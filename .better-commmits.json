@@ -1,0 +1,180 @@
+{
+  "check_status": true,
+  "commit_type": {
+    "enable": true,
+    "initial_value": "feat",
+    "max_items": 20,
+    "infer_type_from_branch": true,
+    "append_emoji_to_label": false,
+    "append_emoji_to_commit": false,
+    "options": [
+      {
+        "value": "🚀 init",
+        "label": "init",
+        "hint": "init something? use this.",
+        "emoji": "🚀",
+        "trailer": "Changelog: init"
+      },
+      {
+        "value": "🧹 chore",
+        "label": "chore",
+        "hint": "Other changes that do not modify src or test files",
+        "emoji": "🧹",
+        "trailer": "Changelog: chore"
+      },
+      {
+        "value": "feat",
+        "label": "feat",
+        "hint": "A new feature",
+        "emoji": "✨",
+        "trailer": "Changelog: feature"
+      },
+      {
+        "value": "fix",
+        "label": "fix",
+        "hint": "A bug fix",
+        "emoji": "🐛",
+        "trailer": "Changelog: fix"
+      },
+      {
+        "value": "docs",
+        "label": "docs",
+        "hint": "Documentation only changes",
+        "emoji": "📚",
+        "trailer": "Changelog: documentation"
+      },
+      {
+        "value": "refactor",
+        "label": "refactor",
+        "hint": "A code change that neither fixes a bug nor adds a feature",
+        "emoji": "🔥",
+        "trailer": "Changelog: refactor"
+      },
+      {
+        "value": "🔨 init",
+        "label": "init",
+        "hint": "An initialization of a project or subproject.",
+        "emoji": "🔨",
+        "trailer": "Changelog: refactor"
+      },
+      {
+        "value": "",
+        "label": "none"
+      }
+    ]
+  },
+  "commit_scope": {
+    "enable": true,
+    "custom_scope": false,
+    "max_items": 50,
+    "initial_value": "",
+    "options": [
+      {
+        "value": "",
+        "label": "none"
+      },
+      {
+        "value": "global",
+        "label": "global"
+      },
+      {
+        "value": "pkgs",
+        "label": "pkgs"
+      },
+      {
+        "value": "libs",
+        "label": "libs"
+      },
+      {
+        "value": "core",
+        "label": "core"
+      },
+      {
+        "value": "utils",
+        "label": "utils"
+      },
+      {
+        "value": "infra",
+        "label": "infra"
+      },
+      {
+        "value": "deploy",
+        "label": "deploy"
+      },
+      {
+        "value": "infra/aws",
+        "label": "infra/aws"
+      },
+      {
+        "value": "infra/gcp",
+        "label": "infra/gcp"
+      },
+      {
+        "value": "infra/azure",
+        "label": "infra/azure"
+      },
+      {
+        "value": "infra/github",
+        "label": "infra/github"
+      }
+    ]
+  },
+  "check_ticket": {
+    "infer_ticket": true,
+    "confirm_ticket": true,
+    "add_to_title": true,
+    "append_hashtag": false,
+    "prepend_hashtag": "Never",
+    "surround": "",
+    "title_position": "start"
+  },
+  "commit_title": {
+    "max_size": 120
+  },
+  "commit_body": {
+    "enable": true,
+    "required": false
+  },
+  "commit_footer": {
+    "enable": true,
+    "initial_value": [],
+    "options": ["closes", "trailer", "breaking-change", "deprecated", "custom"]
+  },
+  "breaking_change": {
+    "add_exclamation_to_title": false
+  },
+  "confirm_with_editor": false,
+  "confirm_commit": true,
+  "print_commit_output": true,
+  "branch_pre_commands": [],
+  "branch_post_commands": [],
+  "worktree_pre_commands": [],
+  "worktree_post_commands": [],
+  "branch_user": {
+    "enable": true,
+    "required": false,
+    "separator": "/"
+  },
+  "branch_type": {
+    "enable": true,
+    "separator": "/"
+  },
+  "branch_version": {
+    "enable": false,
+    "required": false,
+    "separator": "/"
+  },
+  "branch_ticket": {
+    "enable": true,
+    "required": false,
+    "separator": "-"
+  },
+  "branch_description": {
+    "max_length": 70,
+    "separator": ""
+  },
+  "branch_action_default": "branch",
+  "branch_order": ["user", "version", "type", "ticket", "description"],
+  "enable_worktrees": true,
+  "overrides": {}
+}

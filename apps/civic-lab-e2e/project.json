@@ -1,0 +1,10 @@
+{
+  "name": "civic-lab-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/civic-lab-e2e/src",
+  "tags": [],
+  "implicitDependencies": ["civic-lab"],
+  "// targets": "to see all targets run: nx show project civic-lab-e2e --web",
+  "targets": {}
+}
