@@ -1,0 +1,3 @@
+[submodule "submodules/Spectacles-Sample"]
+	path = submodules/Spectacles-Sample
+	url = https://github.com/Snapchat/Spectacles-Sample
