@@ -16,6 +16,7 @@
     "baseUrl": ".",
     "paths": {
       "@govcharters/core": ["packages/core/src/index.ts"]
+      "@gbg/specs-core": ["packages/specs-core/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
