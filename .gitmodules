@@ -1,3 +1,6 @@
 [submodule "submodules/Spectacles-Sample"]
 	path = submodules/Spectacles-Sample
 	url = https://github.com/Snapchat/Spectacles-Sample
+[submodule "submodules/effect"]
+	path = submodules/effect
+	url = https://github.com/Effect-TS/effect
