@@ -4,3 +4,39 @@
 [submodule "submodules/effect"]
 	path = submodules/effect
 	url = https://github.com/Effect-TS/effect
+[submodule "submodules/confect"]
+	path = submodules/confect
+	url = https://github.com/rjdellecese/confect
+[submodule "submodules/agensgraph"]
+	path = submodules/agensgraph
+	url = https://github.com/skaiworldwide-oss/agensgraph
+[submodule "submodules/adk-python"]
+	path = submodules/adk-python
+	url = https://github.com/google/adk-python
+[submodule "submodules/adk-js"]
+	path = submodules/adk-js
+	url = https://github.com/google/adk-js
+[submodule "submodules/convex-backend"]
+	path = submodules/convex-backend
+	url = https://github.com/get-convex/convex-backend
+[submodule "submodules/pybridge"]
+	path = submodules/pybridge
+	url = https://github.com/marcj/pybridge
+[submodule "submodules/three.js"]
+	path = submodules/three.js
+	url = https://github.com/mrdoob/three.js
+[submodule "submodules/langchain"]
+	path = submodules/langchain
+	url = https://github.com/langchain-ai/langchain
+[submodule "submodules/langgraph"]
+	path = submodules/langgraph
+	url = https://github.com/langchain-ai/langgraph
+[submodule "submodules/RxPY"]
+	path = submodules/RxPY
+	url = https://github.com/ReactiveX/RxPY
+[submodule "submodules/mem0"]
+	path = submodules/mem0
+	url = https://github.com/mem0ai/mem0
+[submodule "submodules/www-sacred"]
+	path = submodules/www-sacred
+	url = https://github.com/internet-development/www-sacred
