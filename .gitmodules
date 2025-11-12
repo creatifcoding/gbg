@@ -40,3 +40,12 @@
 [submodule "submodules/www-sacred"]
 	path = submodules/www-sacred
 	url = https://github.com/internet-development/www-sacred
+[submodule "submodules/pixi-react"]
+	path = submodules/pixi-react
+	url = https://github.com/pixijs/pixi-react
+[submodule "submodules/nats.js"]
+	path = submodules/nats.js
+	url = https://github.com/nats-io/nats.js
+[submodule "receipts"]
+	path = receipts
+	url = https://github.com/tim-smart/receipts.git
