@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//wsl.localhost/NixOS/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -2,8 +2,23 @@
   "name": "@gbg/specs-core",
   "version": "0.0.1",
   "type": "commonjs",
-  "main": "./src/index.js",
-  "types": "./src/index.d.ts",
+  "main": "./index.cjs.js",
+  "module": "./index.es.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "require": "./index.cjs.js",
+      "import": "./index.es.js",
+      "default": "./index.cjs.js"
+    }
+  },
+  "scripts": {
+    "build": "nx build specs-core",
+    "build:lens": "nx run specs-core:build:lens",
+    "watch": "nx build specs-core --watch",
+    "dev": "nx build specs-core --watch"
+  },
   "dependencies": {
     "@effect-atom/atom-react": "^0.3.4",
     "@iwer/devui": "^1.1.2",

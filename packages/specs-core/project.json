@@ -13,13 +13,33 @@
   "tags": [],
   "targets": {
     "build": {
-      "executor": "@nx/js:tsc",
+      "executor": "@nx/vite:build",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/packages/specs-core",
-        "main": "packages/specs-core/src/index.ts",
-        "tsConfig": "packages/specs-core/tsconfig.lib.json",
-        "assets": ["packages/specs-core/*.md"]
+        "configFile": "packages/specs-core/vite.config.ts"
+      }
+    },
+    "build:lens": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "outputs": ["packages/specs-core/lenses/init/Packages/specs-core"],
+      "options": {
+        "commands": [
+          "mkdir -p packages/specs-core/lenses/init/Packages/specs-core",
+          "cp dist/packages/specs-core/index.cjs.js packages/specs-core/lenses/init/Packages/specs-core/",
+          "cp dist/packages/specs-core/index.d.ts packages/specs-core/lenses/init/Packages/specs-core/",
+          "echo '✓ Copied build artifacts to Lens Studio Packages folder'"
+        ],
+        "parallel": false
+      }
+    },
+    "watch:lens": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "nx build specs-core --watch"
+        ]
       }
     },
     "nx-release-publish": {
