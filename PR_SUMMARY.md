@@ -1,131 +1,90 @@
-# PR Summary: Task Commit Command
+# PR Summary: Hygraph Existence Checking Utilities
 
 ## Branch
-`docs/tasks/task-commit-command`
+`feat/cms/hygraph-existence-utilities`
 
 ## Overview
-Adds a new Cursor slash command `/task-commit` that automates committing changes related to tasks and their subtasks, following the `.better-commmits.json` specification. The command intelligently groups changes by concern (feature, documentation, task system) and creates appropriate commits.
+Adds `urql`-based existence checking utilities for Hygraph models and fields, enabling programmatic schema management with conditional creation. Includes a preconfigured Content API client and ensure utilities that check existence before creating models/fields.
 
-## Commits (5 total)
+## Commits (3 total)
 
-### 1. Task Commit Command
-**Commit**: `docs(tasks): add task-commit command for committing task changes`
-- Created `.cursor/commands/tasks/task-commit.md` command documentation
-- Command supports recursive subtask traversal (unlimited nesting)
-- Groups commits by concern: feature, documentation, task system
-- Follows `.better-commmits.json` specification for commit messages
-- Includes dry-run and grouping options
+### 1. Urql Existence Checking Utilities
+**Commit**: `feat(cms): add urql existence checking utilities`
+- Added `urql` dependency to `packages/cms/package.json`
+- Created `hygraph-urql-client.ts` - preconfigured urql client for Content API
+- Created `hygraph-existence-utils.ts` with:
+  - `modelExists()` - checks if a model exists via GraphQL introspection
+  - `fieldExists()` - checks if a field exists within a model
+  - `ensureModel()` - generic utility that checks and conditionally creates models
+  - `ensureSimpleField()` - generic utility that checks and conditionally creates fields
+- Updated `hygraph-hello-world.ts` to use ensure utilities with dotenv configuration
+- All utilities use TypeScript generics for type-safe Management SDK integration
 
-### 2. PR Summary and Command Enhancements
-**Commit**: `docs(tasks): add PR summary and enhance task commands`
-- Added PR_SUMMARY.md documenting the branch
-- Updated task-commit command with PR_SUMMARY generation instructions
-- Added new task-update command for intelligently updating task documentation
+### 2. Task Documentation
+**Commit**: `docs(tasks): add hygraph existence checking utilities subtasks`
+- Added task 01-001-003: Add urql dependency and create Content API client
+- Added task 01-001-004: Create existence check utilities using urql
+- Added task 01-001-005: Create ensure utilities with generic type parameters
+- Added task 01-001-006: Update hygraph-hello-world.ts to use ensure utilities
+- Updated parent task 01-001 with new subtasks
 
-### 3. PR_SUMMARY Generation Instructions
-**Commit**: `docs(tasks): add PR_SUMMARY generation instructions to task-commit`
-- Added step 6 to task-commit command for PR_SUMMARY generation
-- Instructions for creating PR_SUMMARY.md after commits
-- Follows existing PR summary format
-
-### 4. Front Matter for Task Commands
-**Commit**: `docs(tasks): add front matter with usage to all task commands`
-- Added YAML front matter to all 10 task command files
-- Includes: id, title, description, command, usage
-- Usage patterns extracted from documented examples in each file
-- Makes command metadata easily accessible
-
-### 5. Front Matter for Phase Commands
-**Commit**: `docs(phases): add front matter with usage to all phase commands`
-- Added YAML front matter to all 6 phase command files
-- Includes: id, title, description, command, usage
-- Usage patterns extracted from documented examples
-- Consistent with task command front matter format
+### 3. PR Summary
+**Commit**: `docs(infra): add PR summary for hygraph existence utilities`
+- Added comprehensive PR_SUMMARY.md documenting the branch
+- Includes commits, files changed, key features, and technical details
+- Documents environment variables and testing approach
 
 ## Files Changed
 
 ### Created
-- `.cursor/commands/tasks/task-commit.md` - Complete command documentation with:
-  - Usage patterns and examples
-  - Implementation steps
-  - Commit structure examples
-  - Nested subtask handling
-  - Concern-based grouping logic
-  - PR_SUMMARY generation instructions
-- `.cursor/commands/tasks/task-update.md` - New command for updating task documentation:
-  - Auto-detection of changes
-  - Progress log updates
-  - Status management
-  - Related docs tracking
+- `packages/cms/src/experiments/hygraph-urql-client.ts` - urql client for Content API
+- `packages/cms/src/experiments/hygraph-existence-utils.ts` - existence checking and ensure utilities
+- `packages/cms/tasks/phase-01-foundation/01-001-003-add-urql-dependency-and-create-content-api-client.md`
+- `packages/cms/tasks/phase-01-foundation/01-001-004-create-existence-check-utilities-using-urql.md`
+- `packages/cms/tasks/phase-01-foundation/01-001-005-create-ensure-utilities-with-generic-type-parameters.md`
+- `packages/cms/tasks/phase-01-foundation/01-001-006-update-hygraph-hello-world-ts-to-use-ensure-utilities.md`
 
 ### Modified
-- All 10 task command files (`.cursor/commands/tasks/*.md`) - Added front matter with usage
-- All 6 phase command files (`.cursor/commands/phases/*.md`) - Added front matter with usage
+- `packages/cms/package.json` - added `urql` and `@urql/core` dependencies
+- `packages/cms/src/experiments/hygraph-hello-world.ts` - refactored to use ensure utilities
+- `packages/cms/tasks/phase-01-foundation/01-001-complete-base-archetype.md` - updated with new subtasks
 
 ## Key Features
-- ✅ Recursive subtask traversal (unlimited nesting depth)
-- ✅ Concern-based commit grouping (feature/docs/tasks)
-- ✅ `.better-commmits.json` compliance
-- ✅ Dry-run mode for preview
-- ✅ Automatic file collection from task metadata
-- ✅ Support for relatedDocs and implementation files
-- ✅ PR_SUMMARY generation instructions
-- ✅ Intelligent task documentation updates
-- ✅ Consistent front matter across all commands (16 total)
-- ✅ Usage patterns extracted from documented examples
+- ✅ GraphQL introspection-based existence checking (no ENVIRONMENT_READ permission required)
+- ✅ Type-safe generic utilities for Management SDK integration
+- ✅ Conditional creation pattern (check before create)
+- ✅ Support for both model and field existence checks
+- ✅ Handles Hygraph naming conventions (capitalized types)
+- ✅ Preconfigured urql client with environment variable support
 
-## Command Usage
+## Technical Details
 
-### task-commit
-```bash
-/task-commit <task-id> [--dry-run] [--group-by-concern]
-```
+### Existence Checking Strategy
+- Uses GraphQL query compilation errors as existence signals
+- Tries both API ID as-is and capitalized versions (Hygraph convention)
+- Read-only Content API queries (no mutations)
 
-**Examples:**
-- `/task-commit 01-001` - Commit all changes for task 01-001 and all subtasks
-- `/task-commit 01-001-003` - Commit changes for specific subtask
-- `/task-commit 01-001 --dry-run` - Show what would be committed
-- `/task-commit 01-001 --group-by-concern` - Group commits by feature/docs/tasks
+### Type Safety
+- Generic type parameters for Management SDK migration inputs
+- `EnsureClients` type for required client instances
+- Full TypeScript type inference for migration parameters
 
-### task-update
-```bash
-/task-update <task-id> [--operation "<description>"] [--files "<file1,file2>"] [--status <status>] [--auto]
-```
+### Environment Variables
+- `HYGRAPH_CONTENT_ENDPOINT` - Content API endpoint (required)
+- `HYGRAPH_CONTENT_TOKEN` - Content API auth token (optional)
+- `HYGRAPH_MGMT_TOKEN` - Management API auth token (required)
+- `HYGRAPH_MGMT_ENDPOINT` - Management API endpoint (required)
 
-**Examples:**
-- `/task-update 01-001` - Update task 01-001 with current git changes
-- `/task-update 01-001 --operation "Added urql dependency" --files "package.json"` - Add specific operation
-- `/task-update 01-001-003 --status completed` - Mark subtask as completed
-- `/task-update 01-001 --auto` - Automatically detect and document all changes
-
-## Implementation Details
-
-### File Collection
-- Task markdown files (recursively from all subtasks)
-- Files listed in `relatedDocs` front matter
-- Implementation files detected from git status
-- Related files from task notes
-
-### Commit Grouping
-- **Feature**: `.ts`, `.tsx`, `.js`, `.jsx` files, `package.json` changes
-- **Documentation**: `.md`, `.mdx` files, doc comments
-- **Task System**: Task markdown files in `packages/cms/tasks/`
-
-### Commit Structure
-Follows `.better-commmits.json`:
-- Commit type (feat, fix, docs, refactor, etc.)
-- Scope (cms, tasks, etc.)
-- Title (max 120 chars)
-- Body (optional)
-- Trailers (Changelog: feature, etc.)
+## Testing
+- Utilities tested with `hygraph-hello-world.ts` example
+- Existence checks validated against Hygraph Content API
+- Conditional creation verified (skips if already exists)
 
 ## Next Steps
 1. Review PR
 2. Merge to main
-3. Use commands for future task commits and updates
-4. Extend with additional task management features
+3. Continue with Phase 1 foundation tasks
+4. Extend utilities for complex field types
 
 ## PR Link
-https://github.com/creatifcoding/gbg/pull/new/docs/tasks/task-commit-command
-
-
+https://github.com/creatifcoding/gbg/pull/new/feat/cms/hygraph-existence-utilities
