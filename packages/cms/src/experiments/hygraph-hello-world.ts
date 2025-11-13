@@ -1,57 +1,86 @@
-import { Client, SimpleFieldType } from '@hygraph/management-sdk';
+import { Client, SimpleFieldType, type BatchMigrationCreateModelInput, type BatchMigrationCreateSimpleFieldInput } from '@hygraph/management-sdk';
 import 'dotenv/config';
+import { hygraphContentClient } from './hygraph-urql-client';
+import { ensureModel, ensureSimpleField } from './hygraph-existence-utils';
 
-const authToken = process.env['HYGRAPH_TOKEN'];
-const endpoint = process.env['HYGRAPH_ENDPOINT'];
+/**
+ * Hygraph Hello World - Ensure Model and Field Example
+ * 
+ * This script demonstrates using urql to check for model/field existence
+ * and the Management SDK to create them if missing.
+ * 
+ * Required environment variables:
+ * - HYGRAPH_MGMT_TOKEN: Management API auth token
+ * - HYGRAPH_MGMT_ENDPOINT: Management API endpoint
+ * - HYGRAPH_CONTENT_ENDPOINT: Content API endpoint for existence checks
+ * - HYGRAPH_CONTENT_TOKEN: Optional Content API auth token
+ */
+
+const authToken = process.env['HYGRAPH_MGMT_TOKEN'];
+const endpoint = process.env['HYGRAPH_MGMT_ENDPOINT'];
 
 if (!authToken || !endpoint) {
-  throw new Error('HYGRAPH_TOKEN and HYGRAPH_ENDPOINT must be set');
+  throw new Error('HYGRAPH_MGMT_TOKEN and HYGRAPH_MGMT_ENDPOINT must be set');
 }
 
-const client = new Client({
+const mgmtClient = new Client({
   authToken: authToken,
   endpoint: endpoint,
 });
 
-const apiId = 'Blob';
-const apiIdPlural = 'Blobs';
-const displayName = 'Blob';
-const description = 'A blob of data.';
+const apiId = 'Yada';
+const apiIdPlural = 'Yadas';
+const displayName = 'Yadas';
+const description = 'A collection of Yadas.';
 
-const createModel = () => {
-  client.createModel({
+const run = async () => {
+  // Ensure model exists (check + create if missing)
+  const modelParams: BatchMigrationCreateModelInput = {
     apiId: apiId,
     apiIdPlural: apiIdPlural,
     displayName: displayName,
     description: description,
-  });
-};
+  };
 
-const addFields = () => {
-  client.createSimpleField({
-    apiId: 'canExist',
+  const modelResult = await ensureModel({
+    ...modelParams,
+    urqlClient: hygraphContentClient,
+    mgmtClient: mgmtClient,
+  });
+  console.log(`Model ${apiId} ${modelResult.created ? 'does not exist, creating' : 'already exists, skipping creation'}`);
+
+  // Ensure field exists (check + create if missing)
+  const fieldParams: BatchMigrationCreateSimpleFieldInput = {
     parentApiId: apiId,
+    apiId: 'canExist',
     type: SimpleFieldType.Boolean,
     displayName: 'Can Exist?',
-  });
-};
+  };
 
-const runMigrations = async () => {
-  const result = await client.run(true);
+  const fieldResult = await ensureSimpleField({
+    ...fieldParams,
+    parentPluralApiId: apiIdPlural, // needed for existence check
+    urqlClient: hygraphContentClient,
+    mgmtClient: mgmtClient,
+  });
+  console.log(`Field canExist ${fieldResult.created ? 'does not exist, creating' : 'already exists, skipping creation'}`);
+
+  // Execute all queued operations
+  const result = await mgmtClient.run(true);
 
   if (result.errors) {
     throw new Error(result.errors);
   }
 
+  console.log('Migrations executed successfully:', result);
   return result;
 };
 
-createModel();
-addFields();
-runMigrations()
+run()
   .then((result) => {
-    console.log(`Migrations run: ${result}`);
+    console.log('Done!');
   })
   .catch((error) => {
-    console.error(`Migration run failed: ${error}`);
+    console.error('Migration run failed:', error);
+    process.exit(1);
   });
