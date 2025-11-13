@@ -1,3 +1,11 @@
+---
+id: "phase-list"
+title: "List Phases"
+description: "View all phases with progress and status."
+command: "phase-list"
+usage: "/phase-list"
+---
+
 # List Phases
 
 View all phases with progress and status.
