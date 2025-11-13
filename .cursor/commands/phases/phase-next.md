@@ -1,3 +1,11 @@
+---
+id: "phase-next"
+title: "Move to Next Phase"
+description: "Transition project to the next phase with validation."
+command: "phase-next"
+usage: "/phase-next <phaseName>"
+---
+
 # Move to Next Phase
 
 Transition project to the next phase with validation.

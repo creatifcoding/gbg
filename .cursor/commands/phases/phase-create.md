@@ -1,3 +1,11 @@
+---
+id: "phase-create"
+title: "Create Phase"
+description: "Create a new phase in the project."
+command: "phase-create"
+usage: "/phase-create"
+---
+
 # Create Phase
 
 Create a new phase in the project.

@@ -1,3 +1,11 @@
+---
+id: "task-list"
+title: "List Tasks"
+description: "View all tasks or filter by phase with rich context."
+command: "task-list"
+usage: "/task-list [phaseName]"
+---
+
 # List Tasks
 
 View all tasks or filter by phase with rich context.

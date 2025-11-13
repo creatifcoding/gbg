@@ -1,3 +1,11 @@
+---
+id: "phase-report"
+title: "Phase Report"
+description: "Generate comprehensive phase status report with analysis."
+command: "phase-report"
+usage: "/phase-report <phaseName>"
+---
+
 # Phase Report
 
 Generate comprehensive phase status report with analysis.
