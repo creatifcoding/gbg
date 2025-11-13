@@ -1,3 +1,11 @@
+---
+id: "phase-show"
+title: "Show Phase"
+description: "View detailed phase information with full context."
+command: "phase-show"
+usage: "/phase-show <phaseName>"
+---
+
 # Show Phase
 
 View detailed phase information with full context.
