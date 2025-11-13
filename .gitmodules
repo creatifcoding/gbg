@@ -3,7 +3,7 @@
 	url = https://github.com/Snapchat/Spectacles-Sample
 [submodule "submodules/effect"]
 	path = submodules/effect
-	url = https://github.com/Effect-TS/effect
+	url = https://github.com/effect-ts/effect
 [submodule "submodules/confect"]
 	path = submodules/confect
 	url = https://github.com/rjdellecese/confect
@@ -49,3 +49,9 @@
 [submodule "receipts"]
 	path = receipts
 	url = https://github.com/tim-smart/receipts.git
+[submodule "submodules/ "]
+	path = "submodules/ "
+	url = https://github.com/tim-smart/effect-atom
+[submodule "submodules/effect-atom"]
+	path = submodules/effect-atom
+	url = https://github.com/tim-smart/effect-atom
