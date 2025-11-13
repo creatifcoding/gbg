@@ -1,0 +1,30 @@
+# Nx Project Inference Ignore File
+# This file tells Nx which directories to ignore during project discovery
+# This prevents interference from external dependencies and test fixtures
+
+# Submodules - external projects not part of this workspace
+submodules/
+
+# Common directories to ignore
+node_modules/
+.next/
+.nuxt/
+dist/
+build/
+tmp/
+coverage/
+.venv/
+venv/
+
+# IDE and tooling
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Lock files of submodules/dependencies
+receipts/
+
+

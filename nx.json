@@ -5,6 +5,7 @@
   "plugins": [
     {
       "plugin": "@nx/js/typescript",
+      "exclude": ["submodules/**", "receipts/**", "node_modules/**"],
       "options": {
         "typecheck": {
           "targetName": "typecheck"
@@ -19,6 +20,7 @@
     },
     {
       "plugin": "@nx/vite/plugin",
+      "exclude": ["submodules/**", "receipts/**", "node_modules/**"],
       "options": {
         "buildTargetName": "build",
         "testTargetName": "test",
@@ -33,12 +35,14 @@
     },
     {
       "plugin": "@nx/eslint/plugin",
+      "exclude": ["submodules/**", "receipts/**", "node_modules/**"],
       "options": {
         "targetName": "lint"
       }
     },
     {
       "plugin": "@nx/next/plugin",
+      "exclude": ["submodules/**", "receipts/**", "node_modules/**"],
       "options": {
         "startTargetName": "start",
         "buildTargetName": "build",
@@ -50,18 +54,21 @@
     },
     {
       "plugin": "@nx/playwright/plugin",
+      "exclude": ["submodules/**", "receipts/**", "node_modules/**"],
       "options": {
         "targetName": "e2e"
       }
     },
     {
       "plugin": "@nx/jest/plugin",
+      "exclude": ["submodules/**", "receipts/**", "node_modules/**"],
       "options": {
         "targetName": "test"
       }
     },
     {
       "plugin": "@nx/rollup/plugin",
+      "exclude": ["submodules/**", "receipts/**", "node_modules/**"],
       "options": {
         "buildTargetName": "build",
         "buildDepsTargetName": "build-deps",
