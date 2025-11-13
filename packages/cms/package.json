@@ -4,5 +4,10 @@
   "type": "module",
   "main": "./index.js",
   "types": "./index.d.ts",
-  "dependencies": {}
+  "dependencies": {
+    "@effect-atom/atom-react": "^0.4.0",
+    "@hygraph/management-sdk": "^1.5.2",
+    "dotenv": "^17.2.3",
+    "effect": "^3.19.3"
+  }
 }
