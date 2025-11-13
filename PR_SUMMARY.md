@@ -6,7 +6,7 @@
 ## Overview
 Adds `urql`-based existence checking utilities for Hygraph models and fields, enabling programmatic schema management with conditional creation. Includes a preconfigured Content API client and ensure utilities that check existence before creating models/fields.
 
-## Commits (2 total)
+## Commits (3 total)
 
 ### 1. Urql Existence Checking Utilities
 **Commit**: `feat(cms): add urql existence checking utilities`
@@ -27,6 +27,12 @@ Adds `urql`-based existence checking utilities for Hygraph models and fields, en
 - Added task 01-001-005: Create ensure utilities with generic type parameters
 - Added task 01-001-006: Update hygraph-hello-world.ts to use ensure utilities
 - Updated parent task 01-001 with new subtasks
+
+### 3. PR Summary
+**Commit**: `docs(infra): add PR summary for hygraph existence utilities`
+- Added comprehensive PR_SUMMARY.md documenting the branch
+- Includes commits, files changed, key features, and technical details
+- Documents environment variables and testing approach
 
 ## Files Changed
 
