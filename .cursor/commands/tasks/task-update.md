@@ -1,3 +1,11 @@
+---
+id: "task-update"
+title: "Update Task Documentation"
+description: "Intelligently update task documentation with operations and progress."
+command: "task-update"
+usage: "/task-update <task-id> [--operation \"<description>\"] [--files \"<file1,file2>\"] [--status <status>] [--auto]"
+---
+
 # Update Task Documentation
 
 Intelligently update task documentation with operations and progress.
@@ -165,4 +173,5 @@ Assistant:
    - Updates status if needed
 5. Shows summary of changes
 ```
+
 

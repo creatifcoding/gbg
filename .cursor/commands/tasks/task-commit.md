@@ -1,3 +1,11 @@
+---
+id: "task-commit"
+title: "Commit Task Changes"
+description: "Commit all changes related to a task and its subtasks (recursively)."
+command: "task-commit"
+usage: "/task-commit <task-id> [--dry-run] [--group-by-concern]"
+---
+
 # Commit Task Changes
 
 Commit all changes related to a task and its subtasks (recursively).

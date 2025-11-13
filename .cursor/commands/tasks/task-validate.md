@@ -1,3 +1,11 @@
+---
+id: "task-validate"
+title: "Validate Tasks"
+description: "Validate task system consistency with detailed analysis and backlinks."
+command: "task-validate"
+usage: "/task-validate"
+---
+
 # Validate Tasks
 
 Validate task system consistency with detailed analysis and backlinks.

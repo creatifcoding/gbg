@@ -1,3 +1,11 @@
+---
+id: "task-deps"
+title: "Show Task Dependencies"
+description: "View task dependencies with analysis and backlinks."
+command: "task-deps"
+usage: "/task-deps <taskId>"
+---
+
 # Show Task Dependencies
 
 View task dependencies with analysis and backlinks.

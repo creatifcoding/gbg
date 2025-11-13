@@ -1,3 +1,11 @@
+---
+id: "task-tree"
+title: "Show Task Tree"
+description: "Display task hierarchy with rich context and navigation."
+command: "task-tree"
+usage: "/task-tree [taskId]"
+---
+
 # Show Task Tree
 
 Display task hierarchy with rich context and navigation.
