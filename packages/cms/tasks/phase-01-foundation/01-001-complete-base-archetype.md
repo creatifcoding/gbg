@@ -2,19 +2,19 @@
 id: "01-001"
 title: "Complete BaseArchetype"
 shortTitle: "complete-base-archetype"
-status: pending
+status: in_progress
 phase: 1
 phaseName: "foundation"
 priority: high
 parent: null
-children: ["01-001-001", "01-001-002"]
+children: ["01-001-001", "01-001-002", "01-001-003", "01-001-004", "01-001-005", "01-001-006"]
 dependsOn: []
 blocks: []
 assignee: null
 labels: ["foundation", "schema"]
 estimatedHours: 8
 actualHours: 0
-startDate: null
+startDate: "2025-11-13"
 dueDate: null
 completedDate: null
 relatedTasks: []
@@ -73,12 +73,16 @@ Complete the `BaseArchetype` class that extends `Schema.TaggedClass` and provide
 ## Dependencies
 
 - Depends on: None (foundation task)
-- Blocks: [Task 01-001-001](./01-001-001-implement-base-archetype-class.md), [Task 01-001-002](./01-001-002-add-typescript-types-exports.md)
+- Blocks: [Task 01-001-001](./01-001-001-implement-base-archetype-class.md), [Task 01-001-002](./01-001-002-add-typescript-types-exports.md), [Task 01-001-003](./01-001-003-add-urql-dependency-and-create-content-api-client.md), [Task 01-001-004](./01-001-004-create-existence-check-utilities-using-urql.md), [Task 01-001-005](./01-001-005-create-ensure-utilities-with-generic-type-parameters.md), [Task 01-001-006](./01-001-006-update-hygraph-hello-world-ts-to-use-ensure-utilities.md)
 
 ## Related Tasks
 
 - [Subtask: Implement BaseArchetype class structure](./01-001-001-implement-base-archetype-class.md)
 - [Subtask: Add TypeScript types and exports](./01-001-002-add-typescript-types-exports.md)
+- [Subtask: Add urql dependency and create Content API client](./01-001-003-add-urql-dependency-and-create-content-api-client.md)
+- [Subtask: Create existence check utilities using urql](./01-001-004-create-existence-check-utilities-using-urql.md)
+- [Subtask: Create ensure utilities with generic type parameters](./01-001-005-create-ensure-utilities-with-generic-type-parameters.md)
+- [Subtask: Update hygraph-hello-world.ts to use ensure utilities](./01-001-006-update-hygraph-hello-world-ts-to-use-ensure-utilities.md)
 
 ## Notes
 
@@ -89,6 +93,8 @@ Complete the `BaseArchetype` class that extends `Schema.TaggedClass` and provide
 ## Progress Log
 
 - **2024-11-12**: Task created
+- **2025-11-13**: Status changed to in_progress
+- **2025-11-13**: Added subtasks 01-001-003 through 01-001-006 for Hygraph existence checking utilities
 
 ## References
 
