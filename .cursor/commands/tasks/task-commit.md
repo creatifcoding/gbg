@@ -111,6 +111,13 @@ See `.cursor/rules/` for:
    - Get confirmation
    - Execute commits
 
+6. **Generate PR_SUMMARY (if creating new branch)**
+   - After commits are created, generate a `PR_SUMMARY.md` file
+   - Include branch name, overview, commit list, files changed, key features
+   - Follow the format from existing PR summaries (see `.cursor/PR_SUMMARY.md` for reference)
+   - Place `PR_SUMMARY.md` in the repository root
+   - Commit the PR_SUMMARY as a separate commit: `docs(infra): add PR summary for <branch-name>`
+
 ## Notes
 
 - Subtasks can have unlimited nesting depth
