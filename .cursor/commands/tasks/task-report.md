@@ -1,3 +1,11 @@
+---
+id: "task-report"
+title: "Task Report"
+description: "Generate comprehensive status reports with analysis and backlinks."
+command: "task-report"
+usage: "/task-report [phaseName]"
+---
+
 # Task Report
 
 Generate comprehensive status reports with analysis and backlinks.

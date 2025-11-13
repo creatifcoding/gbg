@@ -1,3 +1,11 @@
+---
+id: "task-create"
+title: "Create Task"
+description: "Create new tasks with proper naming and contextual backlinks."
+command: "task-create"
+usage: "/task-create <phase> <id> \"<title>\" <phaseName> [parentId]"
+---
+
 # Create Task
 
 Create new tasks with proper naming and contextual backlinks.

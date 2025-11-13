@@ -1,3 +1,11 @@
+---
+id: "phase-tree"
+title: "Show Phase Tree"
+description: "Display all tasks in a phase as a hierarchical tree."
+command: "phase-tree"
+usage: "/phase-tree <phaseName>"
+---
+
 # Show Phase Tree
 
 Display all tasks in a phase as a hierarchical tree.

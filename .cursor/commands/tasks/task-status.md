@@ -1,3 +1,11 @@
+---
+id: "task-status"
+title: "Update Task Status"
+description: "Update task status with context and related navigation."
+command: "task-status"
+usage: "/task-status <taskId> <status>"
+---
+
 # Update Task Status
 
 Update task status with context and related navigation.
