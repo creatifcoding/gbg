@@ -1,3 +1,11 @@
+---
+id: "task-show"
+title: "Show Task"
+description: "View detailed task information with full context and backlinks."
+command: "task-show"
+usage: "/task-show <taskId>"
+---
+
 # Show Task
 
 View detailed task information with full context and backlinks.
