@@ -1,0 +1,91 @@
+#!/bin/bash
+# Task management CLI wrapper
+# Use: task create <phaseNumber> <taskId> <title> <phaseName> [parentId]
+#      task list [phaseName]
+#      task show <taskId>
+#      task status <taskId> <status>
+#      task validate
+#      task report [phaseName]
+#      task tree [taskId]
+#      task deps <taskId>
+
+set -e
+
+# Get the script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPTS_DIR="$SCRIPT_DIR/scripts"
+
+# Get command
+COMMAND=${1:-}
+
+if [[ -z "$COMMAND" ]]; then
+  cat << 'EOF'
+Task Management CLI
+
+Usage: task <command> [options]
+
+Commands:
+  create <phase> <id> <title> <phaseName> [parentId]
+                    Create a new task
+  list [phaseName]  List tasks
+  show <taskId>     Show task details
+  status <id> <st>  Update task status
+  validate          Validate all tasks
+  report [phase]    Generate report
+  tree [taskId]     Show task tree
+  deps <taskId>     Show dependencies
+  help              Show this message
+
+Examples:
+  task create 1 001 "My Task" foundation
+  task list foundation
+  task show 01-001
+  task status 01-001 in_progress
+  task tree 01-001
+EOF
+  exit 0
+fi
+
+case "$COMMAND" in
+  create)
+    shift
+    node "$SCRIPTS_DIR/create-task.js" "$@"
+    ;;
+  list)
+    shift
+    node "$SCRIPTS_DIR/list-tasks.js" "$@"
+    ;;
+  show)
+    shift
+    node "$SCRIPTS_DIR/show-task.js" "$@"
+    ;;
+  status)
+    shift
+    node "$SCRIPTS_DIR/update-status.js" "$@"
+    ;;
+  validate)
+    shift
+    node "$SCRIPTS_DIR/validate-tasks.js" "$@"
+    ;;
+  report)
+    shift
+    node "$SCRIPTS_DIR/task-report.js" "$@"
+    ;;
+  tree)
+    shift
+    node "$SCRIPTS_DIR/task-tree.js" "$@"
+    ;;
+  deps|dependencies)
+    shift
+    node "$SCRIPTS_DIR/task-dependencies.js" "$@"
+    ;;
+  help|-h|--help)
+    echo "Use 'task' with no args for help"
+    ;;
+  *)
+    echo "Unknown command: $COMMAND"
+    echo "Use 'task' for help"
+    exit 1
+    ;;
+esac
+
