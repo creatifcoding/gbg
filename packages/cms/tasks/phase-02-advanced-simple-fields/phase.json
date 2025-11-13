@@ -1,0 +1,19 @@
+{
+  "id": 2,
+  "name": "advanced-simple-fields",
+  "displayName": "Phase 2: Advanced Simple Fields",
+  "description": "Support for advanced simple field types (RichText, JSON, Color, Location) and full validation framework",
+  "status": "pending",
+  "order": 2,
+  "createdAt": "2024-11-13",
+  "startDate": null,
+  "targetCompletionDate": null,
+  "completedDate": null,
+  "estimatedHours": 12,
+  "actualHours": 0,
+  "version": "1.0.0",
+  "dependencies": [1],
+  "tags": ["fields", "validation", "richtext", "json", "color", "location"],
+  "notes": "Focus on advanced simple field types before moving to complex types (Phase 3). Based on INTERNAL.md implementation priorities."
+}
+

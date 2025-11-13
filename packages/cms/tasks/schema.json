@@ -1,0 +1,147 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Task Front Matter Schema",
+  "description": "Schema for validating task front matter YAML",
+  "type": "object",
+  "required": ["id", "title", "shortTitle", "status", "phase", "phaseName", "priority"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^\\d{2}-\\d{3}(-\\d{3})*$",
+      "description": "Unique task identifier (e.g., '01-001' or '01-001-001')"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Task title (human-readable)"
+    },
+    "shortTitle": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "minLength": 1,
+      "maxLength": 30,
+      "description": "Short title in kebab-case (3 words or less, e.g., 'base-archetype')"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "in_progress", "completed", "blocked", "cancelled"],
+      "description": "Current status of the task"
+    },
+    "phase": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Phase number"
+    },
+    "phaseName": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[_-][a-z0-9]+)*$",
+      "description": "Phase name in snake_case (e.g., 'foundation', 'metadata-annotations')"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "Task priority"
+    },
+    "parent": {
+      "type": ["string", "null"],
+      "pattern": "^\\d{2}-\\d{3}(-\\d{3})*$",
+      "description": "ID of parent task (null for top-level tasks)"
+    },
+    "children": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^\\d{2}-\\d{3}(-\\d{3})*$"
+      },
+      "description": "Array of child task IDs"
+    },
+    "siblings": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^\\d{2}-\\d{3}(-\\d{3})*$"
+      },
+      "description": "Array of sibling task IDs"
+    },
+    "dependsOn": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^\\d{2}-\\d{3}(-\\d{3})*$"
+      },
+      "description": "Array of task IDs this task depends on"
+    },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^\\d{2}-\\d{3}(-\\d{3})*$"
+      },
+      "description": "Array of task IDs blocked by this task"
+    },
+    "assignee": {
+      "type": ["string", "null"],
+      "description": "Person or team responsible for this task"
+    },
+    "labels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags for categorization"
+    },
+    "estimatedHours": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Estimated time to complete in hours"
+    },
+    "actualHours": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Actual time spent in hours"
+    },
+    "startDate": {
+      "type": ["string", "null"],
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "Start date in ISO 8601 format (YYYY-MM-DD)"
+    },
+    "dueDate": {
+      "type": ["string", "null"],
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "Due date in ISO 8601 format (YYYY-MM-DD)"
+    },
+    "completedDate": {
+      "type": ["string", "null"],
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "Completion date in ISO 8601 format (YYYY-MM-DD)"
+    },
+    "relatedTasks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^\\d{2}-\\d{3}(-\\d{3})*$"
+      },
+      "description": "Array of related task IDs"
+    },
+    "relatedDocs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of related documentation paths"
+    },
+    "relatedIssues": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of related issue/PR numbers or URLs"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Internal notes (not displayed in body)"
+    }
+  },
+  "additionalProperties": false
+}
+

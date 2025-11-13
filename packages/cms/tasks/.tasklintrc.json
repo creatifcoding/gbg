@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json.schemastore.org/tasklintrc.json",
+  "rules": {
+    "id-format": {
+      "pattern": "^\\d{2}-\\d{3}(-\\d{3})*$",
+      "message": "Task ID must match pattern: XX-XXX[-XXX...]"
+    },
+    "filename-format": {
+      "pattern": "^\\d{2}-\\d{3}(-\\d{3})*-[a-z0-9]+(?:-[a-z0-9]+)*\\.md$",
+      "message": "Task filename must match pattern: XX-XXX[-XXX...]-{snake-case-title}.md"
+    },
+    "phase-name-format": {
+      "pattern": "^[a-z0-9]+(?:[_-][a-z0-9]+)*$",
+      "message": "Phase name must be in snake_case format"
+    },
+    "required-fields": [
+      "id",
+      "title",
+      "shortTitle",
+      "status",
+      "phase",
+      "phaseName",
+      "priority"
+    ],
+    "short-title-format": {
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "maxLength": 30,
+      "message": "Short title must be kebab-case with 3 words or less"
+    },
+    "status-values": [
+      "pending",
+      "in_progress",
+      "completed",
+      "blocked",
+      "cancelled"
+    ],
+    "priority-values": [
+      "low",
+      "medium",
+      "high",
+      "critical"
+    ],
+    "date-format": "YYYY-MM-DD",
+    "parent-child-consistency": true,
+    "dependency-consistency": true,
+    "phase-consistency": true
+  }
+}
+
