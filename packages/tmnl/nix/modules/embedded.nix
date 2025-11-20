@@ -1,7 +1,14 @@
 { inputs, lib, ... }:
 
 {
-  perSystem = { config, pkgs, system, lib, ... }:
+  perSystem =
+    {
+      config,
+      pkgs,
+      system,
+      lib,
+      ...
+    }:
     let
       inherit (pkgs.stdenv) isLinux isDarwin;
     in
@@ -15,11 +22,12 @@
 
         nativeBuildInputs = with pkgs; [
           # TODO: pin and harden specific embedded toolchains
-          # gcc-arm-embedded
-          # openocd
-          # probe-rs-cli
-          # cargo-binutils
-          # qemu
+          gcc-arm-embedded
+          openocd
+          probe-rs
+          qemu
+          qemu-python-utils
+          renode
         ];
 
         shellHook = ''
@@ -30,7 +38,7 @@
       mission-control.scripts = {
         fw-build = {
           description = "Build tmnl firmware (placeholder).";
-          category    = "Embedded";
+          category = "Embedded";
           exec = ''
             set -euo pipefail
             cd "$FLAKE_ROOT"
@@ -40,7 +48,7 @@
 
         fw-flash = {
           description = "Flash tmnl firmware to hardware (placeholder).";
-          category    = "Embedded";
+          category = "Embedded";
           exec = ''
             set -euo pipefail
             cd "$FLAKE_ROOT"
@@ -50,7 +58,7 @@
 
         sim-run = {
           description = "Run tmnl embedded simulation (Renode/other, placeholder).";
-          category    = "Embedded";
+          category = "Embedded";
           exec = ''
             set -euo pipefail
             cd "$FLAKE_ROOT"
