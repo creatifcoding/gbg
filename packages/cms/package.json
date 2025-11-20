@@ -4,6 +4,11 @@
   "type": "module",
   "main": "./index.js",
   "types": "./index.d.ts",
+  "scripts": {
+    "dev:hygraph": "pnpx tsx src/experiments/hygraph-hello-world.ts",
+    "dev:hygraph:delete-models": "pnpx tsx src/experiments/hygraph-delete-all-models.ts",
+    "dev:hygraph:delete-schema": "pnpx tsx src/experiments/hygraph-delete-all-schema.ts"
+  },
   "dependencies": {
     "@effect-atom/atom-react": "^0.4.0",
     "@hygraph/management-sdk": "^1.5.2",
@@ -11,5 +16,8 @@
     "dotenv": "^17.2.3",
     "effect": "^3.19.3",
     "urql": "^4.0.7"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.6"
   }
 }
