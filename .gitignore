@@ -1,5 +1,9 @@
 i# See http://help.github.com/ignore-files/ for more about ignoring files.
 
+# ignore all saved code-workspaces.
+**/*.code-workspace.*
+
+packages/**/*.env.*
 ## direnv be gone.
 **/*.direnv/
 # .env files from all over
