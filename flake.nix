@@ -23,6 +23,8 @@
       inputs.flake-parts.follows = "flake-parts";
     };
     nix-filter.url = "github:numtide/nix-filter";
+    mission-control.url = "github:Platonic-Systems/mission-control";
+    flake-root.url = "github:srid/flake-root";
   };
 
   outputs =
@@ -33,7 +35,10 @@
         specialArgs = { };
       }
       {
-        imports = [ ./nix ];
+        imports = [ 
+          ./nix 
+          ./packages/tmnl/nix
+        ];
         systems = [
           "x86_64-linux"
           "aarch64-linux"
