@@ -55,3 +55,9 @@
 [submodule "submodules/effect-atom"]
 	path = submodules/effect-atom
 	url = https://github.com/tim-smart/effect-atom
+[submodule "submodules/DOMListenerExtension"]
+	path = submodules/DOMListenerExtension
+	url = https://github.com/kdzwinel/DOMListenerExtension
+[submodule "submodules/anime"]
+	path = submodules/anime
+	url = https://github.com/juliangarnier/anime
