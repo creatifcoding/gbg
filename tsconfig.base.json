@@ -18,7 +18,8 @@
       "@gbg/core": ["packages/core/src/index.ts"],
       "@gbg/specs-core": ["packages/specs-core/src/index.ts"],
       "@gbg/cms": ["packages/cms/src/index.ts"],
-      "@gbg/graph": ["packages/getbygraph/src/index.ts"]
+      "@gbg/graph": ["packages/getbygraph/src/index.ts"],
+      "@gbg/tmnl": ["packages/tmnl/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp", "submodules", "receipts"]
