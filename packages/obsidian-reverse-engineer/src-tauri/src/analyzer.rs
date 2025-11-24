@@ -131,29 +131,45 @@ pub fn extract_functions(code: &str) -> Vec<String> {
     
     let mut functions = Vec::new();
     
+    // Common JavaScript/TypeScript keywords to exclude
+    let keywords = [
+        "if", "else", "for", "while", "do", "switch", "case", "break", "continue",
+        "return", "try", "catch", "finally", "throw", "new", "delete", "typeof",
+        "instanceof", "void", "this", "super", "class", "extends", "implements",
+        "interface", "enum", "type", "declare", "namespace", "module", "import",
+        "export", "default", "async", "await", "yield", "get", "set", "static",
+        "public", "private", "protected", "readonly", "abstract",
+    ];
+    
     // Match function declarations: function name()
-    let fn_regex = Regex::new(r"function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(").unwrap();
+    let fn_regex = Regex::new(r"\bfunction\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\(").unwrap();
     for cap in fn_regex.captures_iter(code) {
         if let Some(name) = cap.get(1) {
-            functions.push(name.as_str().to_string());
+            let name_str = name.as_str();
+            if !keywords.contains(&name_str) {
+                functions.push(name_str.to_string());
+            }
         }
     }
     
     // Match arrow functions assigned to variables: const name = () =>
-    let arrow_regex = Regex::new(r"(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*\([^)]*\)\s*=>").unwrap();
+    let arrow_regex = Regex::new(r"(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(?:async\s+)?\([^)]*\)\s*=>").unwrap();
     for cap in arrow_regex.captures_iter(code) {
         if let Some(name) = cap.get(1) {
-            functions.push(name.as_str().to_string());
+            let name_str = name.as_str();
+            if !keywords.contains(&name_str) {
+                functions.push(name_str.to_string());
+            }
         }
     }
     
-    // Match class methods: methodName()
-    let method_regex = Regex::new(r"(?:async\s+)?([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\([^)]*\)\s*\{").unwrap();
+    // Match class methods: methodName() or async methodName()
+    // More specific pattern to avoid false positives
+    let method_regex = Regex::new(r"(?:^|\n|\{)\s*(?:async\s+)?([a-zA-Z_$][a-zA-Z0-9_$]*)\s*\([^)]*\)\s*\{").unwrap();
     for cap in method_regex.captures_iter(code) {
         if let Some(name) = cap.get(1) {
             let name_str = name.as_str();
-            // Skip common keywords
-            if !["if", "for", "while", "switch", "catch"].contains(&name_str) {
+            if !keywords.contains(&name_str) {
                 functions.push(name_str.to_string());
             }
         }
