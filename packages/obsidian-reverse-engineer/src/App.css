@@ -1,0 +1,375 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+header p {
+  color: #888;
+}
+
+.tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #333;
+}
+
+.tabs button {
+  padding: 1rem 2rem;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 1rem;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s;
+}
+
+.tabs button:hover {
+  color: #fff;
+}
+
+.tabs button.active {
+  color: #646cff;
+  border-bottom-color: #646cff;
+}
+
+.error {
+  background: #ff4444;
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.input-section {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.path-input {
+  flex: 1;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 2px solid #333;
+  border-radius: 8px;
+  background: #1a1a1a;
+  color: #fff;
+}
+
+button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  background: #646cff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+button:hover {
+  background: #535bf2;
+}
+
+button:disabled {
+  background: #444;
+  cursor: not-allowed;
+}
+
+.small-btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.summary {
+  background: #1a1a1a;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.summary h2 {
+  margin-bottom: 1rem;
+}
+
+.summary p {
+  margin: 0.5rem 0;
+}
+
+.content-panes {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1rem;
+  min-height: 500px;
+}
+
+.file-list, .file-details {
+  background: #1a1a1a;
+  border-radius: 8px;
+  padding: 1rem;
+  overflow: auto;
+}
+
+.file-list h3, .file-details h3 {
+  margin-bottom: 1rem;
+}
+
+.file-items {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.file-item {
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  background: #2a2a2a;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.file-item:hover {
+  background: #333;
+}
+
+.file-item.selected {
+  background: #646cff;
+}
+
+.file-name {
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+.file-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.file-type {
+  background: #333;
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+}
+
+.file-info p {
+  margin: 0.5rem 0;
+  word-break: break-all;
+}
+
+.functions {
+  margin-top: 1.5rem;
+}
+
+.functions h4 {
+  margin-bottom: 0.5rem;
+}
+
+.function-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.function-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  margin: 0.25rem 0;
+  background: #2a2a2a;
+  border-radius: 4px;
+}
+
+.file-content {
+  margin-top: 1.5rem;
+}
+
+.file-content h4 {
+  margin-bottom: 0.5rem;
+}
+
+.file-content pre {
+  background: #0a0a0a;
+  padding: 1rem;
+  border-radius: 6px;
+  overflow: auto;
+  max-height: 400px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.truncated {
+  color: #888;
+  font-style: italic;
+  margin-top: 0.5rem;
+}
+
+.frida-section {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.frida-list, .frida-details {
+  background: #1a1a1a;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.frida-list h2 {
+  margin-bottom: 1rem;
+}
+
+.frida-item {
+  padding: 1rem;
+  margin: 0.5rem 0;
+  background: #2a2a2a;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.frida-item:hover {
+  background: #333;
+}
+
+.frida-item.selected {
+  background: #646cff;
+}
+
+.frida-item h4 {
+  margin-bottom: 0.5rem;
+}
+
+.frida-item p {
+  font-size: 0.9rem;
+  color: #888;
+}
+
+.frida-details h3 {
+  margin-bottom: 0.5rem;
+}
+
+.frida-details p {
+  color: #888;
+  margin-bottom: 1rem;
+}
+
+.frida-details button {
+  margin-bottom: 1rem;
+}
+
+.script-content {
+  background: #0a0a0a;
+  padding: 1rem;
+  border-radius: 6px;
+  overflow: auto;
+  max-height: 500px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.frida-instructions {
+  background: #1a1a1a;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.frida-instructions h2 {
+  margin-bottom: 1rem;
+}
+
+.frida-instructions pre {
+  background: #0a0a0a;
+  padding: 1rem;
+  border-radius: 6px;
+  overflow: auto;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+
+  .path-input {
+    background: #f9f9f9;
+    border-color: #ddd;
+    color: #213547;
+  }
+
+  .summary, .file-list, .file-details, .frida-list, .frida-details, .frida-instructions {
+    background: #f9f9f9;
+  }
+
+  .file-item, .frida-item, .function-item {
+    background: #fff;
+  }
+
+  .file-item:hover, .frida-item:hover {
+    background: #f0f0f0;
+  }
+
+  .file-type {
+    background: #e0e0e0;
+  }
+
+  .file-content pre, .script-content, .frida-instructions pre {
+    background: #f5f5f5;
+    color: #213547;
+  }
+
+  button {
+    background: #646cff;
+  }
+
+  button:hover {
+    background: #535bf2;
+  }
+}
