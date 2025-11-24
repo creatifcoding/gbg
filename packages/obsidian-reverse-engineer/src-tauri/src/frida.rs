@@ -14,8 +14,8 @@ pub fn get_frida_scripts() -> Vec<FridaScript> {
             name: "Hook All Functions".to_string(),
             description: "Hooks all JavaScript functions and logs their calls".to_string(),
             script: r#"
-// Frida script to hook all functions in Obsidian
-Java.perform(function() {
+// Frida script to hook all functions in Obsidian (Electron app)
+(function() {
     console.log("[*] Starting function hooking...");
     
     // Get all global functions
@@ -38,7 +38,7 @@ Java.perform(function() {
     });
     
     console.log("[*] Hooked " + functions.length + " properties");
-});
+})();
 "#.to_string(),
         },
         FridaScript {
@@ -79,8 +79,8 @@ Interceptor.attach(Module.findExportByName(null, "read"), {
             name: "Trace Plugin API".to_string(),
             description: "Traces Obsidian plugin API calls".to_string(),
             script: r#"
-// Frida script to trace Obsidian plugin API
-Java.perform(function() {
+// Frida script to trace Obsidian plugin API (Electron app)
+(function() {
     console.log("[*] Tracing Obsidian Plugin API...");
     
     // Hook the Plugin class if it exists
@@ -112,7 +112,7 @@ Java.perform(function() {
             }
         });
     }
-});
+})();
 "#.to_string(),
         },
         FridaScript {
