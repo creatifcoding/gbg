@@ -126,7 +126,16 @@ function App() {
   }
 
   function copyToClipboard(text: string) {
-    navigator.clipboard.writeText(text);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch((err) => {
+        console.error("Failed to copy to clipboard:", err);
+        // Fallback: try to show error to user
+        setError("Failed to copy to clipboard. Please copy manually.");
+      });
+    } else {
+      // Fallback for browsers without clipboard API
+      setError("Clipboard API not supported. Please copy manually.");
+    }
   }
 
   return (

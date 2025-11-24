@@ -43,36 +43,61 @@ pub fn get_frida_scripts() -> Vec<FridaScript> {
         },
         FridaScript {
             name: "Monitor File System Access".to_string(),
-            description: "Monitors file system operations in Obsidian".to_string(),
+            description: "Monitors file system operations in Obsidian (Node.js fs module)".to_string(),
             script: r#"
-// Frida script to monitor file system operations
-Interceptor.attach(Module.findExportByName(null, "open"), {
-    onEnter: function(args) {
-        var path = Memory.readUtf8String(args[0]);
-        console.log("[FS] Opening file: " + path);
-        this.path = path;
-    },
-    onLeave: function(retval) {
-        if (retval.toInt32() > 0) {
-            console.log("[FS] Successfully opened: " + this.path);
-        } else {
-            console.log("[FS] Failed to open: " + this.path);
-        }
-    }
-});
+// Frida script to monitor file system operations in Electron/Node.js
+// This hooks the Node.js fs module methods instead of native functions
 
-Interceptor.attach(Module.findExportByName(null, "read"), {
-    onEnter: function(args) {
-        this.fd = args[0].toInt32();
-        this.size = args[2].toInt32();
-    },
-    onLeave: function(retval) {
-        var bytesRead = retval.toInt32();
-        if (bytesRead > 0) {
-            console.log("[FS] Read " + bytesRead + " bytes from fd:" + this.fd);
+// Hook fs.readFile
+if (typeof require !== 'undefined') {
+    try {
+        var fs = require('fs');
+        if (fs && fs.readFile) {
+            var originalReadFile = fs.readFile;
+            fs.readFile = function(path, options, callback) {
+                console.log("[FS] Reading file:", path);
+                if (typeof options === 'function') {
+                    callback = options;
+                    options = undefined;
+                }
+                return originalReadFile.call(this, path, options, function(err, data) {
+                    if (err) {
+                        console.log("[FS] Failed to read:", path, "Error:", err.message);
+                    } else {
+                        console.log("[FS] Successfully read:", path, "Size:", data.length);
+                    }
+                    if (callback) callback(err, data);
+                });
+            };
         }
+        
+        // Hook fs.writeFile
+        if (fs && fs.writeFile) {
+            var originalWriteFile = fs.writeFile;
+            fs.writeFile = function(path, data, options, callback) {
+                console.log("[FS] Writing file:", path, "Size:", data.length);
+                if (typeof options === 'function') {
+                    callback = options;
+                    options = undefined;
+                }
+                return originalWriteFile.call(this, path, data, options, function(err) {
+                    if (err) {
+                        console.log("[FS] Failed to write:", path, "Error:", err.message);
+                    } else {
+                        console.log("[FS] Successfully wrote:", path);
+                    }
+                    if (callback) callback(err);
+                });
+            };
+        }
+        
+        console.log("[*] File system monitoring enabled");
+    } catch(e) {
+        console.log("[!] Failed to hook fs module:", e.message);
     }
-});
+} else {
+    console.log("[!] require() not available, cannot hook fs module");
+}
 "#.to_string(),
         },
         FridaScript {
@@ -171,22 +196,42 @@ Process.enumerateRanges('r--').forEach(function(range) {
 
 /// Generate a custom Frida script template
 pub fn generate_custom_script(target_function: &str) -> String {
+    // Sanitize the target function name to prevent script injection
+    // Only allow alphanumeric characters, underscores, and dollar signs (valid JS identifiers)
+    let sanitized = target_function
+        .chars()
+        .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '$')
+        .collect::<String>();
+    
+    if sanitized.is_empty() {
+        return "// Error: Invalid function name provided".to_string();
+    }
+    
     format!(
         r#"
 // Custom Frida script for function: {}
-Interceptor.attach(Module.findExportByName(null, "{}"), {{
-    onEnter: function(args) {{
-        console.log("[*] {} called");
-        console.log("    arg0: " + args[0]);
-        console.log("    arg1: " + args[1]);
-        console.log("    arg2: " + args[2]);
-    }},
-    onLeave: function(retval) {{
-        console.log("[*] {} returned: " + retval);
-    }}
-}});
+// Note: This script attempts to hook the function by name
+// For minified code, you may need to use function addresses instead
+
+// Try to find and hook the function in the global scope
+if (typeof {} !== 'undefined') {{
+    console.log("[*] Found function: {}");
+    var original_{} = {};
+    {} = function() {{
+        console.log("[CALL] {} called with " + arguments.length + " argument(s)");
+        for (var i = 0; i < arguments.length; i++) {{
+            console.log("    arg" + i + ":", arguments[i]);
+        }}
+        var result = original_{}.apply(this, arguments);
+        console.log("[RETURN] {} returned:", result);
+        return result;
+    }};
+}} else {{
+    console.log("[!] Function {} not found in global scope");
+    console.log("[!] The function may be in a closure or require a different approach");
+}}
 "#,
-        target_function, target_function, target_function, target_function
+        sanitized, sanitized, sanitized, sanitized, sanitized, sanitized, sanitized, sanitized, sanitized, sanitized
     )
 }
 
