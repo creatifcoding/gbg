@@ -83,15 +83,15 @@ After installation, restart your terminal or run:
 source $HOME/.cargo/env
 ```
 
-## Node.js and pnpm
+## Node.js and bun
 
 Install Node.js (v20 or later recommended):
 - Download from https://nodejs.org/
 
-Install pnpm:
+Install bun:
 
 ```bash
-npm install -g pnpm
+npm install -g bun
 ```
 
 ## Building the Application
@@ -100,23 +100,23 @@ Once all dependencies are installed:
 
 1. Install project dependencies:
    ```bash
-   cd packages/obsidian-reverse-engineer
-   pnpm install
+   cd packages/ore
+   bun install
    ```
 
 2. Build the frontend:
    ```bash
-   pnpm run build
+   bun run build
    ```
 
 3. Build the complete Tauri application:
    ```bash
-   pnpm run tauri:build
+   bun run tauri:build
    ```
 
 4. For development with hot reload:
    ```bash
-   pnpm run tauri:dev
+   bun run tauri:dev
    ```
 
 ## Troubleshooting
@@ -157,7 +157,7 @@ If you get WebView2 errors on Windows:
 On Linux/macOS, if you encounter permission errors:
 
 1. Ensure you have write permissions to the project directory
-2. Don't run npm/pnpm with sudo unless absolutely necessary
+2. Don't run npm/bun with sudo unless absolutely necessary
 
 ## CI/CD Considerations
 
@@ -192,8 +192,8 @@ RUN apt-get update && apt-get install -y \\
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 RUN apt-get install -y nodejs
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install bun
+RUN npm install -g bun
 
 WORKDIR /app
 ```
@@ -204,7 +204,7 @@ To build for a specific platform:
 
 ```bash
 # Build for current platform
-pnpm run tauri:build
+bun run tauri:build
 
 # The built application will be in:
 # - Linux: src-tauri/target/release/bundle/
@@ -217,4 +217,4 @@ pnpm run tauri:build
 - [Tauri Prerequisites Guide](https://tauri.app/start/prerequisites/)
 - [Rust Installation](https://www.rust-lang.org/tools/install)
 - [Node.js Downloads](https://nodejs.org/)
-- [pnpm Installation](https://pnpm.io/installation)
+- [bun Installation](https://bun.io/installation)

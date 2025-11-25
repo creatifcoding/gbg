@@ -1,5 +1,5 @@
 {
-  "name": "@gbg/obsidian-reverse-engineer",
+  "name": "@gbg/ore",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -9,14 +9,15 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:dev": "bunx tauri dev",
+    "tauri:build": "bunx tauri build"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-opener": "^2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-opener": "^2"
+    "tauri": "^0.15.0"
   },
   "devDependencies": {
     "@types/react": "^19.1.8",

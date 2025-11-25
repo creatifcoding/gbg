@@ -75,7 +75,7 @@ Key modules:
 
 ### Prerequisites
 - Rust toolchain (rustup)
-- Node.js 20+ and pnpm
+- Node.js 20+ and bun
 - System dependencies (varies by OS):
   - **Linux**: webkit2gtk, libssl-dev, libgtk-3-dev
   - **macOS**: Xcode Command Line Tools
@@ -83,11 +83,11 @@ Key modules:
 
 ### Build Instructions
 ```bash
-cd packages/obsidian-reverse-engineer
-pnpm install
-pnpm run build           # Build frontend only
-pnpm run tauri:build     # Build complete application
-pnpm run tauri:dev       # Development with hot reload
+cd packages/ore
+bun install
+bun run build           # Build frontend only
+bun run tauri:build     # Build complete application
+bun run tauri:dev       # Development with hot reload
 ```
 
 Detailed setup instructions available in `BUILD_SETUP.md`.
@@ -119,8 +119,8 @@ Comprehensive examples available in `USAGE_EXAMPLES.md`.
 - Tagged as: `type:app`, `scope:tools`
 
 ### Package Management
-- Uses pnpm for dependency management
-- Scoped package name: `@gbg/obsidian-reverse-engineer`
+- Uses bun for dependency management
+- Scoped package name: `@gbg/ore`
 - Compatible with workspace structure
 
 ## Testing Status
@@ -217,17 +217,17 @@ The application is production-ready from a code perspective, with the main requi
 ### Key Commands
 ```bash
 # Development
-pnpm run tauri:dev
+bun run tauri:dev
 
 # Build
-pnpm run tauri:build
+bun run tauri:build
 
 # Frontend only
-pnpm run build
+bun run build
 
 # Nx commands
-pnpx nx run obsidian-reverse-engineer:build
-pnpx nx run obsidian-reverse-engineer:tauri:dev
+pnpx nx run ore:build
+pnpx nx run ore:tauri:dev
 ```
 
 ### Key Files

@@ -1,18 +1,18 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "obsidian-reverse-engineer",
+  "productName": "ore",
   "version": "0.1.0",
-  "identifier": "com.gbg.obsidian-reverse-engineer",
+  "identifier": "com.gbg.ore",
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "bun dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build",
+    "beforeBuildCommand": "bun build",
     "frontendDist": "../dist"
   },
   "app": {
     "windows": [
       {
-        "title": "obsidian-reverse-engineer",
+        "title": "ore",
         "width": 800,
         "height": 600
       }

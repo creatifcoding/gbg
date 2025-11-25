@@ -7,7 +7,7 @@ This document provides practical examples of using the Obsidian Reverse Engineer
 ### Step 1: Launch the Application
 
 ```bash
-cd packages/obsidian-reverse-engineer
+cd packages/ore
 pnpm run tauri:dev
 ```
 

@@ -1,35 +1,35 @@
 {
-  "name": "obsidian-reverse-engineer",
+  "name": "ore",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
-  "sourceRoot": "packages/obsidian-reverse-engineer/src",
+  "sourceRoot": "packages/ore/src",
   "targets": {
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm run build",
-        "cwd": "packages/obsidian-reverse-engineer"
+        "command": "bun run build",
+        "cwd": "packages/ore"
       }
     },
     "dev": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm run dev",
-        "cwd": "packages/obsidian-reverse-engineer"
+        "command": "bun run dev",
+        "cwd": "packages/ore"
       }
     },
     "tauri:dev": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm run tauri:dev",
-        "cwd": "packages/obsidian-reverse-engineer"
+        "command": "bun run tauri:dev",
+        "cwd": "packages/ore"
       }
     },
     "tauri:build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm run tauri:build",
-        "cwd": "packages/obsidian-reverse-engineer"
+        "command": "bun run tauri:build",
+        "cwd": "packages/ore"
       }
     }
   },
