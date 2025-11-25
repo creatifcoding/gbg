@@ -15,17 +15,12 @@
 
         LD_LIBRARY_PATH = "${pkgs.stdenv.cc.cc.lib}/lib";
 
-        nativeBuildInputs =
-          with pkgs;
-          lib.mkMerge [
-            [
-              uv
-              ruff
-              mypy
-              jupyter
-            ]
-            (lib.mkIf isDarwin [ iconv ])
-          ];
+        nativeBuildInputs = with pkgs; [
+          uv
+          ruff
+          mypy
+          jupyter
+        ] ++ lib.optionals isDarwin [ iconv ];
 
         shellHook = ''
           echo "[tmnl-python] Python analytics environment layered over tmnl-core."

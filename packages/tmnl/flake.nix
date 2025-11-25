@@ -5,6 +5,24 @@
     nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1.*.tar.gz";
     flake-parts.url = "github:hercules-ci/flake-parts";
     mission-control.url = "github:Platonic-Systems/mission-control";
+    fenix = {
+      url = "https://flakehub.com/f/nix-community/fenix/0.1.*.tar.gz";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    devshell = {
+      url = "github:numtide/devshell";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    process-compose-flake.url = "github:Platonic-Systems/process-compose-flake";
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    flake-linter = {
+      url = "github:mic92/flake-linter";
+      inputs.flake-parts.follows = "flake-parts";
+    };
+    nix-filter.url = "github:numtide/nix-filter";
     flake-root.url = "github:srid/flake-root";
   };
 
@@ -16,7 +34,7 @@
         specialArgs = { };
       }
       {
-        imports = [ 
+        imports = [
           ./nix
         ];
         systems = [

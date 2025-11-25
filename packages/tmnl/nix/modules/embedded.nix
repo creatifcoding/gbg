@@ -10,6 +10,14 @@
       ...
     }:
     let
+      # Override pkgs to permit insecure packages required by embedded toolchain
+      pkgs = import inputs.nixpkgs {
+        inherit system;
+        config = {
+          permittedInsecurePackages = [ "dotnet-sdk-6.0.428" ];
+        };
+      };
+
       inherit (pkgs.stdenv) isLinux isDarwin;
     in
     {
@@ -24,7 +32,7 @@
           # TODO: pin and harden specific embedded toolchains
           gcc-arm-embedded
           openocd
-          probe-rs
+          probe-rs-tools
           qemu
           qemu-python-utils
           renode
