@@ -26,25 +26,22 @@ A Tauri-based desktop application for reverse engineering Obsidian by analyzing 
 
 ### Prerequisites
 
-1. **Rust**: Install from [rustup.rs](https://rustup.rs/)
-2. **Node.js**: Install from [nodejs.org](https://nodejs.org/)
-3. **pnpm**: Install with `npm install -g pnpm`
-4. **Tauri Prerequisites**: Follow the [Tauri prerequisites guide](https://tauri.app/start/prerequisites/)
+Pre requisites fulfilled by Nix!! Enjoy
 
 ### Build
 
 ```bash
-cd packages/obsidian-reverse-engineer
-pnpm install
-pnpm tauri build
+cd packages/ore
+bun install
+bun tauri build
 ```
 
 ### Development
 
 ```bash
-cd packages/obsidian-reverse-engineer
-pnpm install
-pnpm tauri dev
+cd packages/ore
+bun install
+bun tauri dev
 ```
 
 ## Usage
