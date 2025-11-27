@@ -31,6 +31,20 @@
         "command": "bun run tauri:build",
         "cwd": "packages/ore"
       }
+    },
+    "tauri:dev:windows": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run tauri:dev:windows",
+        "cwd": "packages/ore"
+      }
+    },
+    "tauri:dev:both": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run tauri:dev:both",
+        "cwd": "packages/ore"
+      }
     }
   },
   "tags": ["type:app", "scope:tools"]

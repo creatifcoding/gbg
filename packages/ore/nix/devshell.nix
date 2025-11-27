@@ -75,6 +75,10 @@
               ]
             );
           }
+          {
+            name = "CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUSTFLAGS";
+            value = lib.optionalString isLinux ("-L ${pkgs.pkgsCross.mingwW64.windows.pthreads}/lib");
+          }
         ];
         packages =
           with pkgs;
@@ -84,6 +88,7 @@
               lldb_18
               pkg-config
               openssl
+              frida-tools
             ]
             (lib.mkIf isLinux [
               gtk3
@@ -97,6 +102,8 @@
               libsoup_3
               librsvg
               zlib
+              pkgsCross.mingwW64.stdenv.cc
+              pkgsCross.mingwW64.windows.pthreads
             ])
             (lib.mkIf isDarwin [ iconv ])
           ];
