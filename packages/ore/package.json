@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Tauri app for reverse engineering Obsidian with Frida instrumentation",
+  "description": "Universal ontological reverse engineering tool suite with Frida instrumentation",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

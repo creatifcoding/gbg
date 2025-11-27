@@ -11,7 +11,7 @@ fn greet(name: &str) -> String {
 }
 
 #[tauri::command]
-fn analyze_obsidian_directory(path: String) -> Result<AnalysisResult, String> {
+fn analyze_target_directory(path: String) -> Result<AnalysisResult, String> {
     analyze_directory(&path)
 }
 
@@ -47,7 +47,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             greet,
-            analyze_obsidian_directory,
+            analyze_target_directory,
             read_file,
             extract_functions_from_code,
             get_frida_script_templates,
