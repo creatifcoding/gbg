@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "tauri": "cargo-tauri",
     "tauri:dev": "bunx tauri dev",
+    "tauri:dev:windows": "bash scripts/build-windows.sh",
+    "tauri:dev:both": "bash scripts/dev-both.sh",
     "tauri:build": "bunx tauri build"
   },
   "dependencies": {
