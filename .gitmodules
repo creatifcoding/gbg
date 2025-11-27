@@ -61,3 +61,6 @@
 [submodule "submodules/anime"]
 	path = submodules/anime
 	url = https://github.com/juliangarnier/anime
+[submodule "submodules/frida-rust"]
+	path = submodules/frida-rust
+	url = https://github.com/frida/frida-rust
