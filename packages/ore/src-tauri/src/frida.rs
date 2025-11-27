@@ -7,14 +7,14 @@ pub struct FridaScript {
     pub script: String,
 }
 
-/// Get pre-built Frida scripts for common Obsidian reverse engineering tasks
+/// Get pre-built Frida scripts for common reverse engineering tasks
 pub fn get_frida_scripts() -> Vec<FridaScript> {
     vec![
         FridaScript {
             name: "Hook All Functions".to_string(),
             description: "Hooks all JavaScript functions and logs their calls".to_string(),
             script: r#"
-// Frida script to hook all functions in Obsidian (Electron app)
+// Frida script to hook all functions in target application
 (function() {
     console.log("[*] Starting function hooking...");
     
@@ -43,7 +43,7 @@ pub fn get_frida_scripts() -> Vec<FridaScript> {
         },
         FridaScript {
             name: "Monitor File System Access".to_string(),
-            description: "Monitors file system operations in Obsidian (Node.js fs module)".to_string(),
+            description: "Monitors file system operations in target application (Node.js fs module)".to_string(),
             script: r#"
 // Frida script to monitor file system operations in Electron/Node.js
 // This hooks the Node.js fs module methods instead of native functions
@@ -102,11 +102,11 @@ if (typeof require !== 'undefined') {
         },
         FridaScript {
             name: "Trace Plugin API".to_string(),
-            description: "Traces Obsidian plugin API calls".to_string(),
+            description: "Traces plugin API calls in target application".to_string(),
             script: r#"
-// Frida script to trace Obsidian plugin API (Electron app)
+// Frida script to trace plugin API (Electron app)
 (function() {
-    console.log("[*] Tracing Obsidian Plugin API...");
+    console.log("[*] Tracing Plugin API...");
     
     // Hook the Plugin class if it exists
     if (typeof Plugin !== 'undefined') {
@@ -247,7 +247,7 @@ pub fn get_frida_instructions() -> String {
    pip install frida-tools
    ```
 
-2. For Obsidian on desktop, you'll need frida-server running:
+2. For desktop applications, you'll need frida-server running:
    ```bash
    # Download frida-server for your platform from:
    # https://github.com/frida/frida/releases
@@ -264,9 +264,9 @@ pub fn get_frida_instructions() -> String {
 
 ## Usage
 
-1. Find the Obsidian process:
+1. Find the target process:
    ```bash
-   frida-ps | grep -i obsidian
+   frida-ps | grep -i <process-name>
    ```
 
 2. Run a Frida script:
@@ -276,12 +276,12 @@ pub fn get_frida_instructions() -> String {
 
 3. Or attach by name:
    ```bash
-   frida Obsidian -l script.js
+   frida <ProcessName> -l script.js
    ```
 
 ## Notes
 
-- Obsidian is built with Electron, so you're hooking JavaScript/Node.js code
+- Target applications may be built with Electron, so you're hooking JavaScript/Node.js code
 - Some Frida features require root/admin privileges
 - For production analysis, consider using frida-trace for automatic function discovery:
   ```bash
@@ -290,7 +290,7 @@ pub fn get_frida_instructions() -> String {
 
 ## Electron-specific Tips
 
-- Obsidian runs in Electron, so standard Node.js APIs are available
+- Electron applications provide standard Node.js APIs
 - Access to Chromium DevTools APIs
 - Can use both JavaScript and native code hooking
 - Consider using Electron's IPC monitoring for plugin communication

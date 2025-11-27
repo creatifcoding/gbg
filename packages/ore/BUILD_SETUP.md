@@ -1,6 +1,6 @@
 # Build Environment Setup
 
-This document describes how to set up the build environment for the Obsidian Reverse Engineer Tauri application.
+This document describes how to set up the build environment for the ORE (Ontological Reverse Engineer) Tauri application.
 
 ## System Dependencies
 

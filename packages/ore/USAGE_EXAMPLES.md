@@ -1,8 +1,8 @@
 # Usage Examples
 
-This document provides practical examples of using the Obsidian Reverse Engineer tool.
+This document provides practical examples of using the ORE (Ontological Reverse Engineer) tool.
 
-## Example 1: Analyzing Obsidian Installation
+## Example 1: Analyzing Target Application
 
 ### Step 1: Launch the Application
 
@@ -11,23 +11,23 @@ cd packages/ore
 pnpm run tauri:dev
 ```
 
-### Step 2: Enter Obsidian Path
+### Step 2: Enter Target Path
 
-Depending on your OS, enter one of the following paths:
+Depending on your OS and target application, enter one of the following paths:
 
 **macOS:**
 ```
-/Applications/Obsidian.app
+/Applications/TargetApp.app
 ```
 
 **Windows:**
 ```
-C:\Program Files\Obsidian
+C:\Program Files\TargetApp
 ```
 
 **Linux:**
 ```
-/opt/Obsidian
+/opt/TargetApp
 ```
 
 ### Step 3: Browse Results
@@ -38,12 +38,12 @@ After clicking "Analyze Directory", you'll see:
 - Click any file to view its contents
 - For JavaScript/TypeScript files, see extracted function names
 
-## Example 2: Extracting Functions from Obsidian Code
+## Example 2: Extracting Functions from Target Code
 
-### Scenario: You want to find all functions in Obsidian's main application file
+### Scenario: You want to find all functions in a target application's main file
 
 1. Navigate to the Assets Analysis tab
-2. Enter the path to Obsidian's resources (usually inside the app bundle)
+2. Enter the path to the target application's resources (usually inside the app bundle)
 3. Find and click on a file like `app.js` or similar
 4. Review the "Detected Functions" section
 5. Click "Generate Frida Script" for any function you want to hook
@@ -69,9 +69,9 @@ Detected Functions (125):
 2. Click on "Hook All Functions"
 3. Click "Copy to Clipboard"
 4. Save the script to a file: `hook_all.js`
-5. Find Obsidian's process ID:
+5. Find the target process ID:
    ```bash
-   frida-ps | grep -i obsidian
+   frida-ps | grep -i <process-name>
    ```
 6. Run Frida:
    ```bash
@@ -90,23 +90,23 @@ Detected Functions (125):
 
 ## Example 4: Monitoring File System Access
 
-### Track What Files Obsidian Accesses
+### Track What Files the Target Accesses
 
 1. Select "Monitor File System Access" from Frida Scripts
 2. Copy the script
 3. Run with Frida:
    ```bash
-   frida Obsidian -l fs_monitor.js
+   frida <ProcessName> -l fs_monitor.js
    ```
 
 ### Example Output:
 
 ```
-[FS] Opening file: /Users/john/Documents/MyVault/.obsidian/workspace
-[FS] Successfully opened: /Users/john/Documents/MyVault/.obsidian/workspace
+[FS] Opening file: /path/to/config.json
+[FS] Successfully opened: /path/to/config.json
 [FS] Read 4096 bytes from fd:12
-[FS] Opening file: /Users/john/Documents/MyVault/daily-note.md
-[FS] Successfully opened: /Users/john/Documents/MyVault/daily-note.md
+[FS] Opening file: /path/to/data.db
+[FS] Successfully opened: /path/to/data.db
 ```
 
 ## Example 5: Tracing Plugin API Calls
@@ -117,35 +117,35 @@ Detected Functions (125):
 2. Copy and save to `plugin_trace.js`
 3. Run Frida:
    ```bash
-   frida -l plugin_trace.js -f /path/to/Obsidian
+   frida -l plugin_trace.js -f /path/to/TargetApp
    ```
 
 ### Example Output:
 
 ```
-[*] Tracing Obsidian Plugin API...
+[*] Tracing Plugin API...
 [*] Found App class, hooking methods...
-[PLUGIN] Plugin loaded: obsidian-git
+[PLUGIN] Plugin loaded: example-plugin
 [APP] vault called
 [APP] workspace called
-[PLUGIN] Plugin loaded: dataview
+[PLUGIN] Plugin loaded: another-plugin
 ```
 
 ## Example 6: Extracting API Endpoints
 
-### Discover What APIs Obsidian Communicates With
+### Discover What APIs the Target Communicates With
 
 1. Use "Extract API Endpoints" script
-2. Run with Frida while using Obsidian
+2. Run with Frida while using the target application
 3. Perform actions that trigger network requests
 
 ### Example Output:
 
 ```
-[API] fetch https://api.obsidian.md/v1/sync/check
+[API] fetch https://api.example.com/v1/check
 [API] Response status: 200
-[API] XHR GET https://plugin-repo.obsidian.md/plugins.json
-[API] fetch https://updates.obsidian.md/latest
+[API] XHR GET https://plugin-repo.example.com/plugins.json
+[API] fetch https://updates.example.com/latest
 [API] Response status: 200
 ```
 
@@ -162,17 +162,22 @@ Detected Functions (125):
 
 ```javascript
 // Custom Frida script for function: saveFile
-Interceptor.attach(Module.findExportByName(null, "saveFile"), {
-    onEnter: function(args) {
-        console.log("[*] saveFile called");
-        console.log("    arg0: " + args[0]);
-        console.log("    arg1: " + args[1]);
-        console.log("    arg2: " + args[2]);
-    },
-    onLeave: function(retval) {
-        console.log("[*] saveFile returned: " + retval);
-    }
-});
+if (typeof saveFile !== 'undefined') {
+    console.log("[*] Found function: saveFile");
+    var original_saveFile = saveFile;
+    saveFile = function() {
+        console.log("[CALL] saveFile called with " + arguments.length + " argument(s)");
+        for (var i = 0; i < arguments.length; i++) {
+            console.log("    arg" + i + ":", arguments[i]);
+        }
+        var result = original_saveFile.apply(this, arguments);
+        console.log("[RETURN] saveFile returned:", result);
+        return result;
+    };
+} else {
+    console.log("[!] Function saveFile not found in global scope");
+    console.log("[!] The function may be in a closure or require a different approach");
+}
 ```
 
 ## Example 8: Memory Dump
@@ -186,9 +191,9 @@ Interceptor.attach(Module.findExportByName(null, "saveFile"), {
 ### Example Output:
 
 ```
-[MODULE] Obsidian @ 0x100000000
-  [EXPORT] _ZN8Obsidian4App4initEv @ 0x100123456
-  [EXPORT] _ZN8Obsidian6Plugin4loadEv @ 0x100234567
+[MODULE] TargetApp @ 0x100000000
+  [EXPORT] _ZN8TargetApp4App4initEv @ 0x100123456
+  [EXPORT] _ZN8TargetApp6Plugin4loadEv @ 0x100234567
 [MEMORY] 0x100000000 - 0x100400000 (size: 4194304)
 [MEMORY] 0x7fff00000000 - 0x7fff10000000 (size: 268435456)
 ```
@@ -207,13 +212,13 @@ Interceptor.attach(Module.findExportByName(null, "saveFile"), {
 - Frida can produce a lot of output
 - Use grep or log filtering to focus on relevant information:
   ```bash
-  frida -l script.js Obsidian 2>&1 | grep "CALL"
+  frida -l script.js <ProcessName> 2>&1 | grep "CALL"
   ```
 
 ### 4. Save Logs
 - Capture Frida output to files for later analysis:
   ```bash
-  frida -l script.js Obsidian > frida_log.txt 2>&1
+  frida -l script.js <ProcessName> > frida_log.txt 2>&1
   ```
 
 ### 5. Incremental Hooking
@@ -223,7 +228,7 @@ Interceptor.attach(Module.findExportByName(null, "saveFile"), {
 ### 6. Use Detach Mode
 - For production analysis, use `-D` flag to spawn and detach:
   ```bash
-  frida -D -l script.js Obsidian
+  frida -D -l script.js <ProcessName>
   ```
 
 ## Troubleshooting
@@ -237,7 +242,7 @@ Interceptor.attach(Module.findExportByName(null, "saveFile"), {
 ### Issue: Too much output
 **Solution:** Modify scripts to filter specific functions or use grep
 
-### Issue: Obsidian crashes
+### Issue: Target application crashes
 **Solution:** Your hook might be interfering with critical code. Remove hooks one by one to identify the culprit.
 
 ## Advanced Usage
@@ -248,7 +253,7 @@ You can combine multiple monitoring approaches in one script:
 
 ```javascript
 // Combined monitoring script
-Java.perform(function() {
+(function() {
     // Hook plugins
     if (typeof Plugin !== 'undefined') {
         var originalLoad = Plugin.prototype.onload;
@@ -266,22 +271,31 @@ Java.perform(function() {
     };
     
     // Hook file operations
-    Interceptor.attach(Module.findExportByName(null, "open"), {
-        onEnter: function(args) {
-            console.log("[FS] " + Memory.readUtf8String(args[0]));
+    if (typeof require !== 'undefined') {
+        try {
+            var fs = require('fs');
+            if (fs && fs.readFile) {
+                var originalReadFile = fs.readFile;
+                fs.readFile = function(path) {
+                    console.log("[FS] Reading: " + path);
+                    return originalReadFile.apply(this, arguments);
+                };
+            }
+        } catch(e) {
+            console.log("[!] Could not hook fs module");
         }
-    });
-});
+    }
+})();
 ```
 
 Save this as `combined_monitor.js` and run:
 ```bash
-frida -l combined_monitor.js Obsidian
+frida -l combined_monitor.js <ProcessName>
 ```
 
 ## Further Reading
 
 - [Frida Documentation](https://frida.re/docs/)
-- [Obsidian Plugin API](https://docs.obsidian.md/Plugins/)
 - [Electron Security](https://www.electronjs.org/docs/latest/tutorial/security)
 - [JavaScript Reverse Engineering](https://github.com/topics/javascript-reverse-engineering)
+- [ORE Project Charter](../assets/documents/CHARTER.md)

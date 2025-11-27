@@ -24,7 +24,7 @@ interface FridaScript {
 }
 
 function App() {
-  const [obsidianPath, setObsidianPath] = useState("");
+  const [targetPath, setTargetPath] = useState("");
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [selectedFile, setSelectedFile] = useState<AssetInfo | null>(null);
   const [fileContent, setFileContent] = useState<string>("");
@@ -37,8 +37,8 @@ function App() {
   const [activeTab, setActiveTab] = useState<"analyze" | "frida">("analyze");
 
   async function analyzeDirectory() {
-    if (!obsidianPath.trim()) {
-      setError("Please enter an Obsidian directory path");
+    if (!targetPath.trim()) {
+      setError("Please enter a target directory path");
       return;
     }
     
@@ -46,8 +46,8 @@ function App() {
     setError("");
     
     try {
-      const result: AnalysisResult = await invoke("analyze_obsidian_directory", {
-        path: obsidianPath,
+      const result: AnalysisResult = await invoke("analyze_target_directory", {
+        path: targetPath,
       });
       setAnalysisResult(result);
       setError("");
@@ -141,8 +141,8 @@ function App() {
   return (
     <div className="app">
       <header>
-        <h1>🔍 Obsidian Reverse Engineer</h1>
-        <p>Analyze Obsidian assets and generate Frida instrumentation scripts</p>
+        <h1>🔍 ORE - Ontological Reverse Engineer</h1>
+        <p>Universal intervention platform for mapping and manipulating target system ontologies</p>
       </header>
 
       <div className="tabs">
@@ -174,9 +174,9 @@ function App() {
           <div className="input-section">
             <input
               type="text"
-              value={obsidianPath}
-              onChange={(e) => setObsidianPath(e.target.value)}
-              placeholder="Enter Obsidian directory path (e.g., /Applications/Obsidian.app or C:\Program Files\Obsidian)"
+              value={targetPath}
+              onChange={(e) => setTargetPath(e.target.value)}
+              placeholder="Enter target directory path (e.g., /path/to/target/app or C:\Program Files\TargetApp)"
               className="path-input"
             />
             <button onClick={analyzeDirectory} disabled={loading}>

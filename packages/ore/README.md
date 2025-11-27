@@ -1,12 +1,16 @@
-# Obsidian Reverse Engineer
+# ORE - Ontological Reverse Engineer
 
-A Tauri-based desktop application for reverse engineering Obsidian by analyzing its assets, build folders, and providing Frida instrumentation scripts.
+A universal intervention platform for mapping and manipulating the runtime reality of any target system. ORE provides tools for dissecting, analyzing, and controlling target processes through ontological mapping and Frida instrumentation.
+
+## Overview
+
+ORE is a Tauri-based desktop application designed for ontological reverse engineering—extracting the implicit ontology of running systems and providing operators with tools to reshape it. The platform supports universal hooking, active injection, binary patching, and dynamic ontological mapping across multiple architectures and runtime environments.
 
 ## Features
 
 ### 🔍 Asset Analysis
-- **Directory Scanning**: Analyze Obsidian installation directories recursively
-- **File Classification**: Automatically categorize files by type (JavaScript, TypeScript, CSS, HTML, images, fonts, etc.)
+- **Directory Scanning**: Analyze target application directories recursively
+- **File Classification**: Automatically categorize files by type (JavaScript, TypeScript, CSS, HTML, images, fonts, binaries, etc.)
 - **Function Extraction**: Extract function names from JavaScript/TypeScript files
 - **File Content Viewing**: Read and display file contents with size limits for safety
 - **Statistics**: View total file count and directory size
@@ -21,6 +25,12 @@ A Tauri-based desktop application for reverse engineering Obsidian by analyzing 
 - **Custom Script Generation**: Automatically generate Frida scripts for specific functions
 - **Usage Instructions**: Comprehensive guide for Frida installation and usage
 - **Copy to Clipboard**: Easy script export for immediate use
+
+### 🔧 Universal Intervention
+- **Multi-Architecture Support**: Works with x64, ARM, and other architectures
+- **Runtime Agnostic**: Supports native (C/C++), managed (JS/C#/Java), and hybrid applications
+- **Dynamic Mapping**: Converts memory addresses and function signatures into semantic graphs
+- **Active Control**: Inject logic, patch binaries, and trigger internal routines
 
 ## Installation
 
@@ -46,14 +56,14 @@ bun tauri dev
 
 ## Usage
 
-### Analyzing Obsidian
+### Analyzing Target Applications
 
 1. Launch the application
 2. Navigate to the "Asset Analysis" tab
-3. Enter the path to your Obsidian installation:
-   - **macOS**: `/Applications/Obsidian.app`
-   - **Windows**: `C:\Program Files\Obsidian`
-   - **Linux**: `/usr/bin/obsidian` or similar
+3. Enter the path to your target application directory:
+   - **macOS**: `/Applications/TargetApp.app`
+   - **Windows**: `C:\Program Files\TargetApp`
+   - **Linux**: `/usr/bin/targetapp` or similar
 4. Click "Analyze Directory"
 5. Browse files in the list and view their contents
 6. Functions detected in JavaScript/TypeScript files will be listed
@@ -82,21 +92,21 @@ pip install frida-tools
 
 ### Using Generated Scripts
 
-1. Find the Obsidian process:
+1. Find the target process:
    ```bash
-   frida-ps | grep -i obsidian
+   frida-ps | grep -i <process-name>
    ```
 
 2. Save a script to a file (e.g., `hook.js`)
 
-3. Attach Frida to Obsidian:
+3. Attach Frida to the target:
    ```bash
    frida -p <pid> -l hook.js
    ```
 
    Or by process name:
    ```bash
-   frida Obsidian -l hook.js
+   frida <ProcessName> -l hook.js
    ```
 
 ## Architecture
@@ -120,12 +130,21 @@ pip install frida-tools
 - **Vite**: Fast build tool
 - **Rust**: High-performance backend with walkdir and regex crates
 
+## Operational Domains
+
+ORE operates across three domains as defined in the project charter:
+
+1. **The Intervention Domain**: Polymorphic engine (Frida + Capstone + Keystone) capable of hooking, assembling, and disassembling code across architectures
+2. **The Ontological Domain**: Dynamic mapping layer that converts raw memory addresses and function signatures into a semantic graph
+3. **The Control Domain**: Active command interface allowing operators to inject logic, patch binaries, and trigger internal routines
+
 ## Security Considerations
 
 - File reading is limited to 1MB by default to prevent memory issues
 - Only text files should be read for content viewing
 - Frida instrumentation requires appropriate permissions
 - Some operations may require elevated privileges
+- System stability is secondary to system access—crashes are acceptable data points
 
 ## License
 
@@ -137,10 +156,11 @@ This package is part of a larger monorepo. Contributions should follow the monor
 
 ## Notes
 
-- Obsidian is an Electron application, so it contains both JavaScript/TypeScript and native code
-- The build folder typically contains bundled/minified code
+- Target applications may be Electron-based, containing both JavaScript/TypeScript and native code
+- Build folders typically contain bundled/minified code
 - For best results, analyze the unpacked application resources
 - Frida scripts work best with debug builds or when symbols are available
+- ORE rejects passive compliance—it is designed for active intervention and control
 
 ## Recommended IDE Setup
 
