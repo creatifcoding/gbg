@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    obsidian_reverse_engineer_lib::run()
+    ore_lib::run()
 }
