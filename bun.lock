@@ -8,6 +8,7 @@
         "next": "~15.2.4",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
+        "tauri": "^0.15.0",
       },
       "devDependencies": {
         "@eslint/compat": "^1.1.1",
@@ -99,8 +100,8 @@
       "name": "@gbg/graph",
       "version": "0.0.1",
     },
-    "packages/obsidian-reverse-engineer": {
-      "name": "@gbg/obsidian-reverse-engineer",
+    "packages/ore": {
+      "name": "@gbg/ore",
       "version": "0.1.0",
       "dependencies": {
         "@tauri-apps/api": "^2",
@@ -138,6 +139,20 @@
     "packages/tmnl": {
       "name": "@gbg/tmnl",
       "version": "0.0.1",
+      "dependencies": {
+        "@tauri-apps/api": "^2.9.0",
+        "@tauri-apps/plugin-opener": "^2",
+        "react": "^19.1.0",
+        "react-dom": "^19.1.0",
+      },
+      "devDependencies": {
+        "@tauri-apps/cli": "^2.9.4",
+        "@types/react": "^19.1.8",
+        "@types/react-dom": "^19.1.6",
+        "@vitejs/plugin-react": "^4.6.0",
+        "typescript": "~5.8.3",
+        "vite": "^7.0.4",
+      },
     },
   },
   "packages": {
@@ -521,7 +536,7 @@
 
     "@gbg/graph": ["@gbg/graph@workspace:packages/getbygraph"],
 
-    "@gbg/obsidian-reverse-engineer": ["@gbg/obsidian-reverse-engineer@workspace:packages/obsidian-reverse-engineer"],
+    "@gbg/ore": ["@gbg/ore@workspace:packages/ore"],
 
     "@gbg/specs-core": ["@gbg/specs-core@workspace:packages/specs-core"],
 
@@ -4135,9 +4150,11 @@
 
     "@gbg/core/@effect-atom/atom-react": ["@effect-atom/atom-react@0.3.4", "", { "dependencies": { "@effect-atom/atom": "^0.3.4" }, "peerDependencies": { "effect": "^3.18", "react": ">=18 <20", "scheduler": "*" } }, "sha512-1udCtYBTP597a/xwVfIku2NyYV7sEvoLeoCXAOyAaVciRu2pJgLfq6BU9TWoVf3/nkQTQgcUYAKH3SBc1lUHhA=="],
 
-    "@gbg/obsidian-reverse-engineer/typescript": ["typescript@5.8.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ=="],
+    "@gbg/ore/typescript": ["typescript@5.8.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ=="],
 
     "@gbg/specs-core/@effect-atom/atom-react": ["@effect-atom/atom-react@0.3.4", "", { "dependencies": { "@effect-atom/atom": "^0.3.4" }, "peerDependencies": { "effect": "^3.18", "react": ">=18 <20", "scheduler": "*" } }, "sha512-1udCtYBTP597a/xwVfIku2NyYV7sEvoLeoCXAOyAaVciRu2pJgLfq6BU9TWoVf3/nkQTQgcUYAKH3SBc1lUHhA=="],
+
+    "@gbg/tmnl/typescript": ["typescript@5.8.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ=="],
 
     "@isaacs/cliui/string-width": ["string-width@5.1.2", "", { "dependencies": { "eastasianwidth": "0.2.0", "emoji-regex": "9.2.2", "strip-ansi": "7.1.2" } }, "sha512-HnLOCR3vjcY8beoNLtcjZ5/nxn2afmME6lhrDrebokqMap+XbeW8n9TXpPDOqdGK5qcI3oT0GKTW6wC7EMiVqA=="],
 

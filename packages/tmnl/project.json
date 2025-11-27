@@ -2,7 +2,7 @@
   "name": "tmnl",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "packages/tmnl/src",
-  "projectType": "library",
+  "projectType": "application",
   "release": {
     "version": {
       "manifestRootsToUpdate": ["dist/{projectRoot}"],
@@ -15,6 +15,55 @@
     "nx-release-publish": {
       "options": {
         "packageRoot": "dist/{projectRoot}"
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run dev",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run build",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "preview": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run preview",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "tauri:dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run tauri:dev",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "tauri:dev:windows": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run tauri:dev:windows",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "tauri:dev:both": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run tauri:dev:both",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "tauri:build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run tauri:build",
+        "cwd": "packages/tmnl"
       }
     }
   }
