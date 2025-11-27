@@ -64,3 +64,6 @@
 [submodule "submodules/frida-rust"]
 	path = submodules/frida-rust
 	url = https://github.com/frida/frida-rust
+[submodule "submodules/gov"]
+	path = submodules/gov
+	url = git@github.com:creatifcoding/gov.git

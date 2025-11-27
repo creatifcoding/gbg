@@ -2,7 +2,28 @@
   "name": "@gbg/tmnl",
   "version": "0.0.1",
   "type": "module",
-  "main": "./index.js",
-  "types": "./index.d.ts",
-  "dependencies": {}
+  "private": true,
+  "scripts": {
+    "dev": "bash scripts/dev.sh",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri:dev": "bash scripts/tauri-dev.sh",
+    "tauri:dev:windows": "bash scripts/build-windows.sh",
+    "tauri:dev:both": "bash scripts/dev-both.sh",
+    "tauri:build": "bash scripts/tauri-build.sh"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.9.0",
+    "@tauri-apps/plugin-opener": "^2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.9.4",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.4"
+  }
 }
