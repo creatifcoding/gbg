@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { HoundstoothGOL } from './components/houndstooth-gol';
 import { withLayering } from './lib/layers';
+import { Link } from '@tanstack/react-router'; // Import Link
 import './App.css';
 
 /**
@@ -76,12 +77,10 @@ function Content() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, delay: 0.6 }}
         >
-          <button
-            onClickCapture={() => console.log(`count is ${count}`)}
-            onClick={() => setCount((count) => count + 1)}
-          >
-            count is blah {count}
-          </button>
+          <br />
+          <Link to="/tmnl" className="text-blue-500 hover:underline">
+            Go to TMNL Layout
+          </Link>
         </motion.div>
       </motion.div>
     </div>

@@ -12,7 +12,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "esModuleInterop": true, // Added
+    "skipLibCheck": true     // Added
   },
   "files": [],
   "include": [],

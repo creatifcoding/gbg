@@ -31,7 +31,8 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-button {
+/* Scoped to landing page only - removed global button styles that conflict with TMNL */
+.container button {
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   padding: 0.6em 1.2em;
@@ -44,13 +45,13 @@ button {
   transition: all 0.25s;
 }
 
-button:hover {
+.container button:hover {
   border-color: #646cff;
   background-color: rgba(100, 108, 255, 0.2);
   transform: translateY(-2px);
 }
 
-button:focus,
-button:focus-visible {
+.container button:focus,
+.container button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
