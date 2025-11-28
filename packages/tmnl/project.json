@@ -12,6 +12,34 @@
   },
   "tags": [],
   "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run test",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "test:ui": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run test:ui",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "test:run": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run test:run",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "test:coverage": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run test:coverage",
+        "cwd": "packages/tmnl"
+      }
+    },
     "nx-release-publish": {
       "options": {
         "packageRoot": "dist/{projectRoot}"

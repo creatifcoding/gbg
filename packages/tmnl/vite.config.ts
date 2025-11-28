@@ -1,6 +1,7 @@
 /// <reference types='vitest' />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'path';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
 
@@ -9,6 +10,11 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(() => ({
   root: __dirname,
   cacheDir: '../../node_modules/.vite/packages/tmnl',
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
   plugins: [
     react(),
     nxViteTsPaths(),
