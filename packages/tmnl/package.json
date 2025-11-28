@@ -14,9 +14,11 @@
     "tauri:dev": "bash scripts/tauri-dev.sh",
     "tauri:dev:windows": "bash scripts/build-windows.sh",
     "tauri:dev:both": "bash scripts/dev-both.sh",
-    "tauri:build": "bash scripts/tauri-build.sh"
+    "tauri:build": "bash scripts/tauri-build.sh",
+    "example:worker-pool": "npx tsx src/lib/example-runner.ts"
   },
   "dependencies": {
+    "@effect/platform": "^0.93.5",
     "@effect-atom/atom": "^0.4.4",
     "@effect-atom/atom-react": "^0.4.0",
     "@effect/vitest": "^0.27.0",
