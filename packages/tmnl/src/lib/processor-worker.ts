@@ -142,8 +142,6 @@ function processData(
   raw: RawTableBinary,
   config: ProcessorConfig,
 ): Effect.Effect<ChartDTO, Error> {
-  const chunkSize = config.chunkSize ?? 1000;
-
   // Validate columns exist
   const groupByColumn = getStringColumn(raw, config.groupByColumn);
   const aggregateColumn = getNumericColumn(raw, config.aggregateColumn);
@@ -175,13 +173,12 @@ function processData(
   const groups = new Map<string, number[]>();
   const rowCount = raw.rowCount;
 
+  // COOPERATIVE CANCELLATION NOTE:
+  // In a production implementation with Effect.gen and config.chunkSize, you would add:
+  // if (i > 0 && i % config.chunkSize === 0) {
+  //   yield* Effect.yieldNow();
+  // }
   for (let i = 0; i < rowCount; i++) {
-    // COOPERATIVE CANCELLATION NOTE:
-    // In a production implementation with Effect.gen, you would add:
-    // if (i > 0 && i % chunkSize === 0) {
-    //   yield* Effect.yieldNow();
-    // }
-
     // Get group key
     const groupKey = groupByValues[i] ?? '__null__';
 
@@ -223,9 +220,6 @@ function processData(
       },
     ] satisfies SeriesDTO[],
   };
-
-  // Suppress unused variable warning
-  void chunkSize;
 
   return Effect.succeed(chart);
 }

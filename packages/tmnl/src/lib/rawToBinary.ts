@@ -90,8 +90,18 @@ function extractNumericColumn(
 
   for (let i = 0; i < rows.length; i++) {
     const value = rows[i][columnName];
-    // Convert null/undefined to NaN, otherwise cast to number
-    float64[i] = value === null || value === undefined ? Number.NaN : Number(value);
+    // Convert null/undefined to NaN
+    // For numeric columns, values should already be numbers
+    // NaN is handled in aggregation functions
+    if (value === null || value === undefined) {
+      float64[i] = Number.NaN;
+    } else if (typeof value === 'number') {
+      float64[i] = value;
+    } else {
+      // Non-numeric values in a numeric column become NaN
+      // This is intentional - NaN is filtered in aggregation
+      float64[i] = Number.NaN;
+    }
   }
 
   // Return the underlying ArrayBuffer for Transferable transfer

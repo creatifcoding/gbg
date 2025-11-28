@@ -174,13 +174,16 @@ export function makeProcessorPoolLayer<T extends Context.Tag<ProcessorPool, Proc
   config: ProcessorPoolConfig,
 ): Layer.Layer<ProcessorPool> {
   // Worker pool configuration
-  const poolSize = config.poolSize ?? (typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 4) ?? 4;
-  const _permitsPerWorker = config.permitsPerWorker ?? 1;
-  const _idleTimeToLive = config.idleTimeToLive ?? 30000;
+  // Note: In production implementation, use these values with Worker.makePoolSerializedLayer
+  const poolSize = config.poolSize ?? (typeof navigator !== 'undefined' ? navigator.hardwareConcurrency ?? 4 : 4);
 
   // NOTE: This is a simplified implementation. In production, you would use:
   //
   // import * as Worker from '@effect/platform/Worker';
+  // import * as Duration from 'effect/Duration';
+  //
+  // const permitsPerWorker = config.permitsPerWorker ?? 1;
+  // const idleTimeToLive = config.idleTimeToLive ?? 30000;
   //
   // return Worker.makePoolSerializedLayer({
   //   size: poolSize,
