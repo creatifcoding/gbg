@@ -1,0 +1,299 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #262626;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #404040;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@layer base {
+  :root {
+    /* Color tokens */
+    --tac-bg: 10 10 10;
+    --tac-surface: 0 0 0;
+    --tac-surface-raised: 13 13 13;
+    --tac-border: 26 26 26;
+    --tac-text-primary: 255 255 255;
+    --tac-text-secondary: 163 163 163;
+    --tac-text-tertiary: 82 82 82;
+    --tac-text-muted: 64 64 64;
+    --tac-text-ghost: 38 38 38;
+    --tac-accent-red: 220 38 38;
+    --tac-accent-red-dim: 153 27 27;
+    --tac-accent-green: 5 150 105;
+    --tac-accent-amber: 217 119 6;
+    --tac-accent-blue: 59 130 246;
+
+    /* Shadcn tokens */
+    --background: 0 0% 4%;
+    --foreground: 0 0% 64%;
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 64%;
+    --popover: 0 0% 0%;
+    --popover-foreground: 0 0% 64%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 8%;
+    --secondary-foreground: 0 0% 64%;
+    --muted: 0 0% 8%;
+    --muted-foreground: 0 0% 32%;
+    --accent: 0 0% 8%;
+    --accent-foreground: 0 0% 64%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 10%;
+    --input: 0 0% 10%;
+    --ring: 0 0% 40%;
+    --radius: 0px;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    font-size: 10px;
+  }
+
+  body {
+    background-color: rgb(10 10 10);
+    color: rgb(163 163 163);
+    font-size: 10px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* 
+  TYPOGRAPHY TOKEN SYSTEM
+  =======================
+  5 Faces: tactical, display, body, code, data
+  7 Weights: hairline(100), thin(200), light(300), normal(400), medium(500), semibold(600), bold(700)
+  
+  Usage Pattern:
+  - font-{face} text-tac-{size} font-{weight} tracking-tac-{spacing}
+  
+  Semantic Classes:
+  - .type-{context} for pre-composed typography styles
+*/
+
+@layer components {
+  /* ========== SYSTEM IDENTIFIERS ========== */
+  /* Agent IDs, mission codes, serial numbers */
+  .type-id {
+    @apply font-tactical text-tac-2xl font-light tracking-tac-wide text-white;
+  }
+  .type-id-sm {
+    @apply font-tactical text-tac-lg font-light tracking-tac-wide text-white;
+  }
+
+  /* ========== STATISTICS & METRICS ========== */
+  /* Large numerical displays, counters, gauges */
+  .type-stat {
+    @apply font-data text-tac-4xl font-hairline tracking-tac-snug text-white;
+  }
+  .type-stat-md {
+    @apply font-data text-tac-3xl font-thin tracking-tac-snug text-white;
+  }
+  .type-stat-sm {
+    @apply font-data text-tac-2xl font-light tracking-tac-normal text-white;
+  }
+  .type-stat-unit {
+    @apply font-display text-tac-xs font-normal uppercase tracking-tac-widest text-neutral-500;
+  }
+
+  /* ========== HEADINGS ========== */
+  /* Section titles, group headers */
+  .type-heading-xl {
+    @apply font-display text-tac-xl font-bold uppercase tracking-tac-wide text-white;
+  }
+  .type-heading-lg {
+    @apply font-display text-tac-lg font-bold uppercase tracking-tac-wider text-white;
+  }
+  .type-heading {
+    @apply font-display text-tac-md font-normal uppercase tracking-tac-wider text-white;
+  }
+  .type-heading-sm {
+    @apply font-display text-tac-sm font-normal uppercase tracking-tac-widest text-neutral-300;
+  }
+
+  /* ========== LABELS ========== */
+  /* Field labels, category tags, metadata keys */
+  .type-label {
+    @apply font-display text-tac-xs font-normal uppercase tracking-tac-widest text-neutral-500;
+  }
+  .type-label-sm {
+    @apply font-display text-tac-2xs font-normal uppercase tracking-tac-ultra text-neutral-600;
+  }
+  .type-label-xs {
+    @apply font-display text-tac-3xs font-normal uppercase tracking-tac-ultra text-neutral-700;
+  }
+
+  /* ========== BODY TEXT ========== */
+  /* Descriptions, mission briefs, general content */
+  .type-body {
+    @apply font-body text-tac-base font-normal tracking-tac-wide text-neutral-400;
+  }
+  .type-body-sm {
+    @apply font-body text-tac-sm font-normal tracking-tac-wide text-neutral-400;
+  }
+  .type-body-xs {
+    @apply font-body text-tac-xs font-normal tracking-tac-wider text-neutral-500;
+  }
+  .type-body-emphasis {
+    @apply font-body text-tac-base font-medium tracking-tac-normal text-white;
+  }
+
+  /* ========== CODE & TERMINAL ========== */
+  /* Console output, code snippets, commands */
+  .type-code {
+    @apply font-code text-tac-sm font-normal tracking-tac-normal text-neutral-300;
+  }
+  .type-code-sm {
+    @apply font-code text-tac-xs font-normal tracking-tac-normal text-neutral-400;
+  }
+  .type-terminal {
+    @apply font-code text-tac-sm font-medium tracking-tac-normal text-emerald-500;
+  }
+  .type-command {
+    @apply font-code text-tac-sm font-semibold tracking-tac-normal text-white;
+  }
+
+  /* ========== DATA DISPLAY ========== */
+  /* Coordinates, timestamps, technical values */
+  .type-coords {
+    @apply font-tactical text-tac-xs font-normal tracking-tac-wide text-neutral-600;
+  }
+  .type-timestamp {
+    @apply font-tactical text-tac-2xs font-normal tracking-tac-wider text-neutral-500;
+  }
+  .type-value {
+    @apply font-tactical text-tac-sm font-medium tracking-tac-normal text-white;
+  }
+
+  /* ========== NAVIGATION ========== */
+  /* Tabs, menu items, links */
+  .type-nav {
+    @apply font-display text-tac-xs font-normal uppercase tracking-tac-widest text-neutral-500;
+  }
+  .type-nav-active {
+    @apply font-display text-tac-xs font-bold uppercase tracking-tac-widest text-white;
+  }
+
+  /* ========== BADGES & TAGS ========== */
+  /* Status indicators, classification labels */
+  .type-badge {
+    @apply font-display text-tac-2xs font-bold uppercase tracking-tac-wider;
+  }
+  .type-tag {
+    @apply font-tactical text-tac-3xs font-medium uppercase tracking-tac-ultra text-neutral-500;
+  }
+
+  /* ========== ALERTS & WARNINGS ========== */
+  .type-alert {
+    @apply font-display text-tac-xs font-bold uppercase tracking-tac-wider text-red-500;
+  }
+  .type-warning {
+    @apply font-display text-tac-xs font-bold uppercase tracking-tac-wider text-amber-500;
+  }
+  .type-success {
+    @apply font-display text-tac-xs font-bold uppercase tracking-tac-wider text-emerald-500;
+  }
+
+  /* ========== MISSION CONTEXT ========== */
+  /* Operation names, target descriptions */
+  .type-mission-code {
+    @apply font-tactical text-tac-xs font-normal tracking-tac-wider text-neutral-500;
+  }
+  .type-mission-title {
+    @apply font-body text-tac-base font-medium tracking-tac-normal text-white;
+  }
+  .type-mission-desc {
+    @apply font-body text-tac-sm font-normal tracking-tac-wide text-neutral-400;
+  }
+
+  /* ========== GROUP HEADERS (KSP-G Matrix style) ========== */
+  .type-group-header {
+    @apply font-body text-tac-xl font-medium tracking-tac-snug text-white flex items-center gap-2;
+  }
+  .type-item-number {
+    @apply font-display text-tac-xs font-normal uppercase tracking-tac-widest text-neutral-400;
+  }
+  .type-item-subtitle {
+    @apply font-body text-tac-sm font-normal tracking-tac-wide text-red-900;
+  }
+}
+
+/* ========== UTILITY CLASSES ========== */
+@layer utilities {
+  /* Text transforms */
+  .text-tactical-upper {
+    text-transform: uppercase;
+  }
+
+  /* Glow effects for emphasis */
+  .text-glow-red {
+    text-shadow: 0 0 8px rgb(220 38 38 / 0.5);
+  }
+  .text-glow-green {
+    text-shadow: 0 0 8px rgb(5 150 105 / 0.5);
+  }
+  .text-glow-amber {
+    text-shadow: 0 0 8px rgb(217 119 6 / 0.5);
+  }
+  .text-glow-blue {
+    text-shadow: 0 0 8px rgb(59 130 246 / 0.5);
+  }
+
+  /* Scan line effect for retro feel */
+  .text-scanline {
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 1px,
+      rgba(0, 0, 0, 0.1) 1px,
+      rgba(0, 0, 0, 0.1) 2px
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+}
+
+/* tldraw overrides */
+.tl-container {
+  --color-background: rgb(10 10 10) !important;
+  --color-text: rgb(163 163 163) !important;
+}
+
+.tl-background {
+  background-color: rgb(10 10 10) !important;
+}
+
+::selection {
+  background: rgb(127 29 29);
+  color: rgb(255 255 255);
+}

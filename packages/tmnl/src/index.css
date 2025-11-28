@@ -2,70 +2,300 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-  }
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
 
-  .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-  }
+::-webkit-scrollbar-track {
+  background: #000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #262626;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #404040;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 @layer base {
+  :root {
+    /* Color tokens */
+    --tmnl-bg: 10 10 10;
+    --tmnl-surface: 0 0 0;
+    --tmnl-surface-raised: 13 13 13;
+    --tmnl-border: 26 26 26;
+    --tmnl-text-primary: 255 255 255;
+    --tmnl-text-secondary: 163 163 163;
+    --tmnl-text-tertiary: 82 82 82;
+    --tmnl-text-muted: 64 64 64;
+    --tmnl-text-ghost: 38 38 38;
+    --tmnl-accent-red: 220 38 38;
+    --tmnl-accent-red-dim: 153 27 27;
+    --tmnl-accent-green: 5 150 105;
+    --tmnl-accent-amber: 217 119 6;
+    --tmnl-accent-blue: 59 130 246;
+
+    /* Shadcn tokens */
+    --background: 0 0% 4%;
+    --foreground: 0 0% 64%;
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 64%;
+    --popover: 0 0% 0%;
+    --popover-foreground: 0 0% 64%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 8%;
+    --secondary-foreground: 0 0% 64%;
+    --muted: 0 0% 8%;
+    --muted-foreground: 0 0% 32%;
+    --accent: 0 0% 8%;
+    --accent-foreground: 0 0% 64%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 10%;
+    --input: 0 0% 10%;
+    --ring: 0 0% 40%;
+    --radius: 0px;
+  }
+
   * {
-    @apply border-border;
+    border-color: hsl(var(--border));
   }
+
+  html {
+    font-size: 10px;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    background-color: rgb(10 10 10);
+    color: rgb(163 163 163);
+    font-size: 10px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+}
+
+/* 
+  TYPOGRAPHY TOKEN SYSTEM
+  =======================
+  5 Faces: tmnl, display, body, code, data
+  7 Weights: hairline(100), thin(200), light(300), normal(400), medium(500), semibold(600), bold(700)
+  
+  Usage Pattern:
+  - font-{face} text-tmnl-{size} font-{weight} tracking-tmnl-{spacing}
+  
+  Semantic Classes:
+  - .tmnl-type-{context} for pre-composed typography styles
+*/
+
+@layer components {
+  /* ========== SYSTEM IDENTIFIERS ========== */
+  /* Agent IDs, mission codes, serial numbers */
+  .tmnl-type-id {
+    @apply font-tmnl text-tmnl-2xl font-light tracking-tmnl-wide text-white;
+  }
+  .tmnl-type-id-sm {
+    @apply font-tmnl text-tmnl-lg font-light tracking-tmnl-wide text-white;
+  }
+
+  /* ========== STATISTICS & METRICS ========== */
+  /* Large numerical displays, counters, gauges */
+  .tmnl-type-stat {
+    @apply font-data text-tmnl-4xl font-hairline tracking-tmnl-snug text-white;
+  }
+  .tmnl-type-stat-md {
+    @apply font-data text-tmnl-3xl font-thin tracking-tmnl-snug text-white;
+  }
+  .tmnl-type-stat-sm {
+    @apply font-data text-tmnl-2xl font-light tracking-tmnl-normal text-white;
+  }
+  .tmnl-type-stat-unit {
+    @apply font-display text-tmnl-xs font-normal uppercase tracking-tmnl-widest text-neutral-500;
+  }
+
+  /* ========== HEADINGS ========== */
+  /* Section titles, group headers */
+  .tmnl-type-heading-xl {
+    @apply font-display text-tmnl-xl font-bold uppercase tracking-tmnl-wide text-white;
+  }
+  .tmnl-type-heading-lg {
+    @apply font-display text-tmnl-lg font-bold uppercase tracking-tmnl-wider text-white;
+  }
+  .tmnl-type-heading {
+    @apply font-display text-tmnl-md font-normal uppercase tracking-tmnl-wider text-white;
+  }
+  .tmnl-type-heading-sm {
+    @apply font-display text-tmnl-sm font-normal uppercase tracking-tmnl-widest text-neutral-300;
+  }
+
+  /* ========== LABELS ========== */
+  /* Field labels, category tags, metadata keys */
+  .tmnl-type-label {
+    @apply font-display text-tmnl-xs font-normal uppercase tracking-tmnl-widest text-neutral-500;
+  }
+  .tmnl-type-label-sm {
+    @apply font-display text-tmnl-2xs font-normal uppercase tracking-tmnl-ultra text-neutral-600;
+  }
+  .tmnl-type-label-xs {
+    @apply font-display text-tmnl-3xs font-normal uppercase tracking-tmnl-ultra text-neutral-700;
+  }
+
+  /* ========== BODY TEXT ========== */
+  /* Descriptions, mission briefs, general content */
+  .tmnl-type-body {
+    @apply font-body text-tmnl-base font-normal tracking-tmnl-wide text-neutral-400;
+  }
+  .tmnl-type-body-sm {
+    @apply font-body text-tmnl-sm font-normal tracking-tmnl-wide text-neutral-400;
+  }
+  .tmnl-type-body-xs {
+    @apply font-body text-tmnl-xs font-normal tracking-tmnl-wider text-neutral-500;
+  }
+  .tmnl-type-body-emphasis {
+    @apply font-body text-tmnl-base font-medium tracking-tmnl-normal text-white;
+  }
+
+  /* ========== CODE & TERMINAL ========== */
+  /* Console output, code snippets, commands */
+  .tmnl-type-code {
+    @apply font-code text-tmnl-sm font-normal tracking-tmnl-normal text-neutral-300;
+  }
+  .tmnl-type-code-sm {
+    @apply font-code text-tmnl-xs font-normal tracking-tmnl-normal text-neutral-400;
+  }
+  .tmnl-type-terminal {
+    @apply font-code text-tmnl-sm font-medium tracking-tmnl-normal text-emerald-500;
+  }
+  .tmnl-type-command {
+    @apply font-code text-tmnl-sm font-semibold tracking-tmnl-normal text-white;
+  }
+
+  /* ========== DATA DISPLAY ========== */
+  /* Coordinates, timestamps, technical values */
+  .tmnl-type-coords {
+    @apply font-tmnl text-tmnl-xs font-normal tracking-tmnl-wide text-neutral-600;
+  }
+  .tmnl-type-timestamp {
+    @apply font-tmnl text-tmnl-2xs font-normal tracking-tmnl-wider text-neutral-500;
+  }
+  .tmnl-type-value {
+    @apply font-tmnl text-tmnl-sm font-medium tracking-tmnl-normal text-white;
+  }
+
+  /* ========== NAVIGATION ========== */
+  /* Tabs, menu items, links */
+  .tmnl-type-nav {
+    @apply font-display text-tmnl-xs font-normal uppercase tracking-tmnl-widest text-neutral-500 transition-colors hover:text-neutral-400 hover:bg-neutral-900;
+  }
+  .tmnl-type-nav-active {
+    @apply font-display text-tmnl-xs font-bold uppercase tracking-tmnl-widest text-white;
+  }
+
+  /* ========== BADGES & TAGS ========== */
+  /* Status indicators, classification labels */
+  .tmnl-type-badge {
+    @apply font-display text-tmnl-2xs font-bold uppercase tracking-tmnl-wider;
+  }
+  .tmnl-type-tag {
+    @apply font-tmnl text-tmnl-3xs font-medium uppercase tracking-tmnl-ultra text-neutral-500;
+  }
+
+  /* ========== ALERTS & WARNINGS ========== */
+  .tmnl-type-alert {
+    @apply font-display text-tmnl-xs font-bold uppercase tracking-tmnl-wider text-red-500;
+  }
+  .tmnl-type-warning {
+    @apply font-display text-tmnl-xs font-bold uppercase tracking-tmnl-wider text-amber-500;
+  }
+  .tmnl-type-success {
+    @apply font-display text-tmnl-xs font-bold uppercase tracking-tmnl-wider text-emerald-500;
+  }
+
+  /* ========== MISSION CONTEXT ========== */
+  /* Operation names, target descriptions */
+  .tmnl-type-mission-code {
+    @apply font-tmnl text-tmnl-xs font-normal tracking-tmnl-wider text-neutral-500;
+  }
+  .tmnl-type-mission-title {
+    @apply font-body text-tmnl-base font-medium tracking-tmnl-normal text-white;
+  }
+  .tmnl-type-mission-desc {
+    @apply font-body text-tmnl-sm font-normal tracking-tmnl-wide text-neutral-400;
+  }
+
+  /* ========== GROUP HEADERS (KSP-G Matrix style) ========== */
+  .tmnl-type-group-header {
+    @apply font-body text-tmnl-xl font-medium tracking-tmnl-snug text-white flex items-center gap-2;
+  }
+  .tmnl-type-item-number {
+    @apply font-display text-tmnl-xs font-normal uppercase tracking-tmnl-widest text-neutral-400;
+  }
+  .tmnl-type-item-subtitle {
+    @apply font-body text-tmnl-sm font-normal tracking-tmnl-wide text-red-900;
+  }
+}
+
+/* ========== UTILITY CLASSES ========== */
+@layer utilities {
+  /* Text transforms */
+  .text-tmnl-upper {
+    text-transform: uppercase;
+  }
+
+  /* Glow effects for emphasis */
+  .text-glow-red {
+    text-shadow: 0 0 8px rgb(220 38 38 / 0.5);
+  }
+  .text-glow-green {
+    text-shadow: 0 0 8px rgb(5 150 105 / 0.5);
+  }
+  .text-glow-amber {
+    text-shadow: 0 0 8px rgb(217 119 6 / 0.5);
+  }
+  .text-glow-blue {
+    text-shadow: 0 0 8px rgb(59 130 246 / 0.5);
+  }
+
+  /* Scan line effect for retro feel */
+  .text-scanline {
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 1px,
+      rgba(0, 0, 0, 0.1) 1px,
+      rgba(0, 0, 0, 0.1) 2px
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+}
+
+/* tldraw overrides */
+.tl-container {
+  --color-background: rgb(10 10 10) !important;
+  --color-text: rgb(163 163 163) !important;
+}
+
+.tl-background {
+  background-color: rgb(10 10 10) !important;
+}
+
+::selection {
+  background: rgb(127 29 29);
+  color: rgb(255 255 255);
 }
 
 /* Hide scrollbar but keep functionality */
@@ -76,4 +306,67 @@
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
+}
+
+/* TMNL focus styles */
+*:focus-visible {
+  outline: 1px solid var(--tmnl-text-primary, #fff);
+  outline-offset: 1px;
+}
+
+/* Corner decoration utility */
+.tmnl-corners {
+  position: relative;
+}
+
+.tmnl-corners::before,
+.tmnl-corners::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-color: var(--tmnl-text-muted, #404040);
+  pointer-events: none;
+}
+
+.tmnl-corners::before {
+  top: 0;
+  left: 0;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+
+.tmnl-corners::after {
+  bottom: 0;
+  right: 0;
+  border-bottom: 1px solid;
+  border-right: 1px solid;
+}
+
+/* Glitch effect for critical states */
+@keyframes tmnl-glitch {
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-1px, 1px); }
+  40% { transform: translate(1px, -1px); }
+  60% { transform: translate(-1px, -1px); }
+  80% { transform: translate(1px, 1px); }
+}
+
+.tmnl-glitch {
+  animation: tmnl-glitch 0.3s infinite;
+}
+
+/* Scanline effect */
+.tmnl-scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 4px
+  );
+  pointer-events: none;
 }
