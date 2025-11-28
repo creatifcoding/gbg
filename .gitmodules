@@ -67,3 +67,6 @@
 [submodule "submodules/gov"]
 	path = submodules/gov
 	url = git@github.com:creatifcoding/gov.git
+[submodule "submodules/ciborium"]
+	path = submodules/ciborium
+	url = https://github.com/enarx/ciborium
