@@ -13,6 +13,7 @@ import {
   MousePointer2,
   Hand,
   Trash2,
+  Table2,
 } from "lucide-react"
 
 // ============================================================================
@@ -105,6 +106,10 @@ export const SpawnToolbar = track(() => {
         <ToolbarButton onClick={() => spawnShape("terminal-widget")}>
           <Terminal size={10} />
           Terminal
+        </ToolbarButton>
+        <ToolbarButton onClick={() => spawnShape("data-grid-widget")}>
+          <Table2 size={10} />
+          Grid
         </ToolbarButton>
       </ToolbarSection>
     </div>
