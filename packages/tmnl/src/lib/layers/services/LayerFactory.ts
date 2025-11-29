@@ -1,4 +1,5 @@
 import * as Effect from 'effect/Effect';
+import * as Layer from 'effect/Layer';
 import { IdGenerator } from './IdGenerator';
 import { createLayerActor } from '../machines/layerMachine';
 import type { LayerConfig, LayerInstance } from '../types';
@@ -110,4 +111,11 @@ export class LayerFactory extends Effect.Service<LayerFactory>()(
     }),
     dependencies: [IdGenerator.Default],
   }
-) {}
+) {
+  /**
+   * Create LayerFactory layer with custom IdGenerator
+   * Use this instead of Default when you need to override the IdGenerator
+   */
+  static WithIdGenerator = (idGenLayer: typeof IdGenerator.Default) =>
+    LayerFactory.Default.pipe(Layer.provide(idGenLayer));
+}

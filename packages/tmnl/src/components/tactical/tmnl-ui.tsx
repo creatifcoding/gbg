@@ -269,7 +269,10 @@ Button.displayName = 'Button';
 
 const Input = React.forwardRef<
   HTMLInputElement,
-  React.InputHTMLAttributes<HTMLInputElement> & { label?: string; className?: string }
+  React.InputHTMLAttributes<HTMLInputElement> & {
+    label?: string;
+    className?: string;
+  }
 >(({ className = '', label, ...props }, ref) => (
   <div className="space-y-1 w-full">
     {label && <Label>{label}</Label>}
@@ -487,6 +490,7 @@ const DrawerHeader = ({
   title,
   onClose,
 }: {
+  // TODO: This shall be a length bound Schema.Literal so that it only accepts strings that can fit into the button.
   title: string;
   onClose?: () => void;
 }) => (

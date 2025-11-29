@@ -101,10 +101,14 @@ export class LayerManager extends Effect.Service<LayerManager>()("app/layers/Lay
           Array.map(layers, (l) => (l.id === id ? updated : l))
         );
 
-        // Trigger onResort closure
+        // Trigger onResort closure (errors are caught and logged, not propagated)
         const onResort = updated.metadata.onResort as ((layer: LayerInstance) => Promise<void>) | undefined;
         if (onResort) {
-          yield* Effect.promise(() => onResort(updated));
+          yield* Effect.tryPromise(() => onResort(updated)).pipe(
+            Effect.catchAll((error) =>
+              Effect.logWarning(`onResort listener error in bringToFront: ${error}`)
+            )
+          );
         }
       });
 
@@ -127,10 +131,14 @@ export class LayerManager extends Effect.Service<LayerManager>()("app/layers/Lay
           Array.map(layers, (l) => (l.id === id ? updated : l))
         );
 
-        // Trigger onResort closure
+        // Trigger onResort closure (errors are caught and logged, not propagated)
         const onResort = updated.metadata.onResort as ((layer: LayerInstance) => Promise<void>) | undefined;
         if (onResort) {
-          yield* Effect.promise(() => onResort(updated));
+          yield* Effect.tryPromise(() => onResort(updated)).pipe(
+            Effect.catchAll((error) =>
+              Effect.logWarning(`onResort listener error in sendToBack: ${error}`)
+            )
+          );
         }
       });
 
