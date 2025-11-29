@@ -2,7 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { Tldraw, useEditor, type TLComponents } from "tldraw"
 import "tldraw/tldraw.css"
 import { tmnlShapeUtils, type ChartWidgetShape, type ControllerWidgetShape } from "./shapes"
-import { SpawnToolbar, ToolsToolbar, ZoomToolbar, StatusOverlay, ActionsToolbar, MiniMap } from "./tmnl-toolbar" // Corrected import
+import {
+  SpawnToolbar,
+  ToolsToolbar,
+  ZoomToolbar,
+  StatusOverlay,
+  ActionsToolbar,
+  MiniMap,
+} from "@/components/static-ui/canvas-toolbar"
 import { cloneMetadataWithValues } from "@/lib/types"
 
 // Hide all default tldraw UI
@@ -125,10 +132,10 @@ function BindingHandler() {
   return null
 }
 
-// ============================================ 
+// ============================================
 // TMNL CANVAS UI
 // Combines all UI overlays
-// ============================================ 
+// ============================================
 function TmnlCanvasUI() {
   return (
     <>
