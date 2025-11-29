@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { TmnlCanvas } from './tldraw/tmnl-canvas';
 import { Tmnl } from './tactical/tmnl-ui';
-import { Crosshair, Settings, Terminal, User, Wifi, Zap } from 'lucide-react';
+import { Crosshair, User, Wifi, Zap } from 'lucide-react';
+import { HeaderLayer, FooterLayer } from './static-ui';
 
 export function TmnlLayout() {
   const [leftDrawerOpen, setLeftDrawerOpen] = useState(false);
@@ -36,62 +37,16 @@ export function TmnlLayout() {
 
   return (
     <div className="h-screen w-screen bg-neutral-950 text-neutral-400 font-mono flex flex-col overflow-hidden">
-      {/* Header */}
-      <header className="h-10 border-b border-neutral-800 flex items-center justify-between px-4 bg-black z-20 shrink-0">
-        <div className="flex items-center gap-6">
-          <button
-            onClick={() => setLeftDrawerOpen(true)}
-            className="p-1 hover:bg-neutral-900 transition-colors"
-          >
-            <User size={14} className="text-neutral-600 hover:text-white" />
-          </button>
-
-          <div className="flex items-center gap-2">
-            <Crosshair className="text-white" size={16} />
-            <span className="text-[12px] text-white font-bold tracking-tight uppercase">
-              TMNL_UI_KIT
-            </span>
-          </div>
-
-          <nav className="hidden md:flex items-center gap-6 ml-4">
-            {navTabs.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`tmnl-type-nav ${
-                  activeTab === tab ? 'tmnl-type-nav-active' : ''
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        <div className="flex gap-2">
-          <Tmnl.Button
-            size="xs"
-            variant="outline"
-            onClick={() => setCmdOpen(true)}
-          >
-            <Terminal size={10} /> CMD
-          </Tmnl.Button>
-          <Tmnl.Button
-            size="xs"
-            variant="ghost"
-            onClick={() => setSettingsOpen(true)}
-          >
-            <Settings size={10} />
-          </Tmnl.Button>
-          <Tmnl.Button
-            size="xs"
-            variant="tmnl"
-            onClick={() => setRightDrawerOpen(true)}
-          >
-            <Zap size={10} /> ACTIONS
-          </Tmnl.Button>
-        </div>
-      </header>
+      {/* Header Layer */}
+      <HeaderLayer
+        navTabs={navTabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onOpenLeftDrawer={() => setLeftDrawerOpen(true)}
+        onOpenRightDrawer={() => setRightDrawerOpen(true)}
+        onOpenCommand={() => setCmdOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
 
       <div className="flex flex-1 overflow-hidden relative">
         {/* Main canvas */}
@@ -107,7 +62,8 @@ export function TmnlLayout() {
         </main>
       </div>
 
-      <Tmnl.StatusFooter status="connected" message="Canvas Ready" />
+      {/* Footer Layer */}
+      <FooterLayer status="connected" message="Canvas Ready" />
 
       <Tmnl.LeftDrawer
         open={leftDrawerOpen}
