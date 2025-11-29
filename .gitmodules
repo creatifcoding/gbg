@@ -70,3 +70,9 @@
 [submodule "submodules/ciborium"]
 	path = submodules/ciborium
 	url = https://github.com/enarx/ciborium
+[submodule "submodules/xstate"]
+	path = submodules/xstate
+	url = https://github.com/statelyai/xstate
+[submodule "submodules/ag-grid"]
+	path = submodules/ag-grid
+	url = https://github.com/ag-grid/ag-grid.git
