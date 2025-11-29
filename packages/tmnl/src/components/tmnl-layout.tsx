@@ -30,6 +30,7 @@ export function TmnlLayout() {
     'STREAM',
     'LIBRARY',
     'BIO_EXPLOITS',
+    // TODO: Determine the appropriate type via analysis of downstream consumers.
     'KSP-G MATRIX',
   ];
 
@@ -58,9 +59,7 @@ export function TmnlLayout() {
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`tmnl-type-nav ${
-                  activeTab === tab
-                    ? 'tmnl-type-nav-active'
-                    : ''
+                  activeTab === tab ? 'tmnl-type-nav-active' : ''
                 }`}
               >
                 {tab}

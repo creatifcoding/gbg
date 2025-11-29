@@ -53,4 +53,28 @@ export class IdGenerator extends Effect.Service<IdGenerator>()("app/layers/IdGen
     } as const;
   }),
   dependencies: [IdGeneratorConfig.Default],
-}) {}
+}) {
+  /**
+   * Create IdGenerator layer with custom config
+   * Use this instead of Default when you need to override the config
+   */
+  static WithConfig = (config: IdGeneratorConfigType) =>
+    Layer.effect(
+      IdGenerator,
+      Effect.gen(function* () {
+        const generate = (): string => {
+          switch (config.strategy) {
+            case "nanoid":
+              return nanoid();
+            case "uuid":
+              return crypto.randomUUID();
+            case "custom":
+              return config.customGenerator?.() ?? nanoid();
+            default:
+              return nanoid();
+          }
+        };
+        return { generate } as const;
+      })
+    );
+}

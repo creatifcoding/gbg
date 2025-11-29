@@ -230,6 +230,9 @@ describe("Layer State Machine", () => {
   });
 
   it("machine definition has correct initial state", () => {
-    expect(layerMachine.initial).toBe("visible");
+    // XState 5.x: Get initial state via actor snapshot, not machine.initial
+    const actor = createActor(layerMachine);
+    const snapshot = actor.getSnapshot();
+    expect(snapshot.value).toBe("visible");
   });
 });

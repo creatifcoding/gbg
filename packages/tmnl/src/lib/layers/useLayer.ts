@@ -1,6 +1,15 @@
 import { useAtomValue, useAtomSet } from "@effect-atom/atom-react";
+import * as Result from "@effect-atom/atom/Result";
 import { layerAtom, layersAtom, layerIndexAtom, layerOpsAtom } from "./atoms";
 import type { LayerInstance } from "./types";
+
+/**
+ * Helper to unwrap Result types from runtime atoms
+ * Returns the value if Success, or a default if Failure
+ */
+function unwrapResult<T>(result: Result.Result<T>, defaultValue: T): T {
+  return Result.isSuccess(result) ? result.value : defaultValue;
+}
 
 /**
  * useLayer Hook
@@ -11,10 +20,15 @@ import type { LayerInstance } from "./types";
  * @returns Layer state and operations
  */
 export function useLayer(layerId?: string) {
-  // Get specific layer or all layers
-  const layer = layerId ? useAtomValue(layerAtom(layerId)) : undefined;
-  const allLayers = useAtomValue(layersAtom);
-  const layerIndex = useAtomValue(layerIndexAtom);
+  // Get specific layer or all layers (unwrap Result types)
+  const layerResult = layerId ? useAtomValue(layerAtom(layerId)) : undefined;
+  const allLayersResult = useAtomValue(layersAtom);
+  const layerIndexResult = useAtomValue(layerIndexAtom);
+
+  // Unwrap Results to raw values
+  const layer = layerResult ? unwrapResult(layerResult, undefined) : undefined;
+  const allLayers = unwrapResult(allLayersResult, [] as readonly LayerInstance[]);
+  const layerIndex = unwrapResult(layerIndexResult, [] as readonly LayerInstance[]);
 
   // Layer operations
   const bringToFront = useAtomSet(layerOpsAtom.bringToFront);

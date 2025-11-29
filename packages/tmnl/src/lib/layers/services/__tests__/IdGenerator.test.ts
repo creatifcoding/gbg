@@ -1,7 +1,6 @@
 import { describe, it, expect } from "@effect/vitest";
 import * as Effect from "effect/Effect";
-import * as Layer from "effect/Layer";
-import { IdGenerator, IdGeneratorConfig } from "../IdGenerator";
+import { IdGenerator } from "../IdGenerator";
 
 describe("IdGenerator Service", () => {
   /**
@@ -49,14 +48,8 @@ describe("IdGenerator Service", () => {
         expect(id).toMatch(uuidPattern);
       });
     }).pipe(
-      Effect.provide(
-        Layer.mergeAll(
-          IdGeneratorConfig.Custom({
-            strategy: "uuid",
-          }),
-          IdGenerator.Default
-        )
-      )
+      // Use WithConfig to bypass default dependencies
+      Effect.provide(IdGenerator.WithConfig({ strategy: "uuid" }))
     )
   );
 
@@ -68,11 +61,7 @@ describe("IdGenerator Service", () => {
     Effect.gen(function* () {
       const gen = yield* IdGenerator;
 
-      let counter = 0;
-      const customGenerator = () => `custom-${++counter}`;
-
-      // This test needs to be restructured because the generator is already created
-      // We need to provide the config before accessing the service
+      // Generate 10 IDs using the custom generator
       const ids = Array.from({ length: 10 }, () => gen.generate());
 
       // Should have sequential IDs
@@ -90,16 +79,13 @@ describe("IdGenerator Service", () => {
       ]);
     }).pipe(
       Effect.provide(
-        Layer.mergeAll(
-          IdGeneratorConfig.Custom({
-            strategy: "custom",
-            customGenerator: (() => {
-              let counter = 0;
-              return () => `custom-${++counter}`;
-            })(),
-          }),
-          IdGenerator.Default
-        )
+        IdGenerator.WithConfig({
+          strategy: "custom",
+          customGenerator: (() => {
+            let counter = 0;
+            return () => `custom-${++counter}`;
+          })(),
+        })
       )
     )
   );
@@ -119,13 +105,10 @@ describe("IdGenerator Service", () => {
       expect(id).toMatch(nanoidPattern);
     }).pipe(
       Effect.provide(
-        Layer.mergeAll(
-          IdGeneratorConfig.Custom({
-            strategy: "custom",
-            // customGenerator intentionally omitted
-          }),
-          IdGenerator.Default
-        )
+        IdGenerator.WithConfig({
+          strategy: "custom",
+          // customGenerator intentionally omitted
+        })
       )
     )
   );
@@ -142,14 +125,10 @@ describe("IdGenerator Service", () => {
         IdGenerator.Default
       );
 
+      // Use WithConfig for custom configuration
       const customGen = yield* Effect.provide(
         IdGenerator,
-        Layer.mergeAll(
-          IdGeneratorConfig.Custom({
-            strategy: "uuid",
-          }),
-          IdGenerator.Default
-        )
+        IdGenerator.WithConfig({ strategy: "uuid" })
       );
 
       const defaultId = defaultGen.generate();
@@ -178,12 +157,9 @@ describe("IdGenerator Service", () => {
       expect(id).toMatch(nanoidPattern);
     }).pipe(
       Effect.provide(
-        Layer.mergeAll(
-          IdGeneratorConfig.Custom({
-            strategy: "invalid" as any, // Force invalid strategy
-          }),
-          IdGenerator.Default
-        )
+        IdGenerator.WithConfig({
+          strategy: "invalid" as any, // Force invalid strategy
+        })
       )
     )
   );

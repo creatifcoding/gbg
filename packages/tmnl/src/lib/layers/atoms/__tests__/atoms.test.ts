@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as Registry from "@effect-atom/atom/Registry";
 import * as Result from "@effect-atom/atom/Result";
 import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
 import {
   layerRuntimeAtom,
   layersAtom,
@@ -12,31 +13,53 @@ import {
 } from "../index";
 import { LayerFactory } from "../../services/LayerFactory";
 import { LayerManager } from "../../services/LayerManager";
+import { IdGenerator } from "../../services/IdGenerator";
+import type { LayerInstance } from "../../types";
+
+// Shared test layer for Effect operations
+const testLayer = Layer.mergeAll(
+  IdGenerator.Default,
+  LayerFactory.Default,
+  LayerManager.Default
+);
+
+// Helper to run Effect in test context - creates layer
+const createTestLayer = (config: { name: string; zIndex: number; visible?: boolean; opacity?: number }) =>
+  Effect.runPromise(
+    Effect.gen(function* () {
+      const factory = yield* LayerFactory;
+      return yield* factory.createLayer(config);
+    }).pipe(Effect.provide(testLayer))
+  );
 
 describe("Layer Atoms", () => {
   let registry: ReturnType<typeof Registry.make>;
+  let cleanups: Array<() => void> = [];
 
   beforeEach(() => {
     registry = Registry.make();
+    cleanups = [];
   });
+
+  afterEach(() => {
+    cleanups.forEach((fn) => fn());
+    cleanups = [];
+  });
+
+  // Helper to add layer using canonical r.mount() + r.set() pattern
+  const addLayerToRegistry = async (layer: LayerInstance) => {
+    const cancel = registry.mount(layerOpsAtom.addLayer);
+    cleanups.push(cancel);
+    registry.set(layerOpsAtom.addLayer, layer);
+    // Wait for effect to complete
+    await new Promise((resolve) => resolve(null));
+  };
 
   /**
    * Hypothesis 1: layersAtom syncs with LayerManager.getAllLayers
    * Proves: Effect.Ref → Atom synchronization
    */
   it("layersAtom returns all layers from manager", async () => {
-    // Create layer via runtime
-    const createLayerAtom = layerRuntimeAtom.fn(
-      Effect.gen(function* () {
-        const factory = yield* LayerFactory;
-        const manager = yield* LayerManager;
-
-        const layer = yield* factory.createLayer({ name: "Test", zIndex: 0 });
-        yield* manager.addLayer(layer);
-        return layer;
-      })
-    );
-
     // Initially empty
     const before = registry.get(layersAtom);
     expect(Result.isSuccess(before)).toBe(true);
@@ -44,9 +67,9 @@ describe("Layer Atoms", () => {
       expect(before.value.length).toBe(0);
     }
 
-    // Add layer - must registry.get() the atom function first
-    const createLayer = registry.get(createLayerAtom);
-    await createLayer();
+    // Create layer via Effect, add via ops using canonical pattern
+    const layer = await createTestLayer({ name: "Test", zIndex: 0 });
+    await addLayerToRegistry(layer);
 
     // Should have 1 layer now
     const after = registry.get(layersAtom);
@@ -62,23 +85,14 @@ describe("Layer Atoms", () => {
    * Proves: Sorted atom derivation
    */
   it("layerIndexAtom returns layers sorted by z-index", async () => {
-    const createLayersAtom = layerRuntimeAtom.fn(
-      Effect.gen(function* () {
-        const factory = yield* LayerFactory;
-        const manager = yield* LayerManager;
+    // Create and add layers out of order
+    const layer50 = await createTestLayer({ name: "L50", zIndex: 50 });
+    const layer10 = await createTestLayer({ name: "L10", zIndex: 10 });
+    const layer30 = await createTestLayer({ name: "L30", zIndex: 30 });
 
-        const layer50 = yield* factory.createLayer({ name: "L50", zIndex: 50 });
-        const layer10 = yield* factory.createLayer({ name: "L10", zIndex: 10 });
-        const layer30 = yield* factory.createLayer({ name: "L30", zIndex: 30 });
-
-        yield* manager.addLayer(layer50);
-        yield* manager.addLayer(layer10);
-        yield* manager.addLayer(layer30);
-      })
-    );
-
-    const createLayers = registry.get(createLayersAtom);
-    await createLayers();
+    await addLayerToRegistry(layer50);
+    await addLayerToRegistry(layer10);
+    await addLayerToRegistry(layer30);
 
     const index = registry.get(layerIndexAtom);
     expect(Result.isSuccess(index)).toBe(true);
@@ -93,23 +107,11 @@ describe("Layer Atoms", () => {
    * Proves: Family pattern works
    */
   it("layerAtom returns specific layer by ID", async () => {
-    let layerId: string = "";
+    // Create and add layer
+    const createdLayer = await createTestLayer({ name: "Specific", zIndex: 42 });
+    await addLayerToRegistry(createdLayer);
 
-    const createLayerAtom = layerRuntimeAtom.fn(
-      Effect.gen(function* () {
-        const factory = yield* LayerFactory;
-        const manager = yield* LayerManager;
-
-        const layer = yield* factory.createLayer({ name: "Specific", zIndex: 42 });
-        yield* manager.addLayer(layer);
-        return layer.id;
-      })
-    );
-
-    const createLayer = registry.get(createLayerAtom);
-    layerId = await createLayer();
-
-    const layer = registry.get(layerAtom(layerId));
+    const layer = registry.get(layerAtom(createdLayer.id));
     expect(Result.isSuccess(layer)).toBe(true);
     if (Result.isSuccess(layer)) {
       expect(layer.value?.name).toBe("Specific");
@@ -137,22 +139,11 @@ describe("Layer Atoms", () => {
    */
   it("layerOpsAtom.bringToFront updates layerIndex reactively", async () => {
     // Create layers
-    const setup = layerRuntimeAtom.fn(
-      Effect.gen(function* () {
-        const factory = yield* LayerFactory;
-        const manager = yield* LayerManager;
+    const layer10 = await createTestLayer({ name: "L10", zIndex: 10 });
+    const layer20 = await createTestLayer({ name: "L20", zIndex: 20 });
 
-        const layer10 = yield* factory.createLayer({ name: "L10", zIndex: 10 });
-        const layer20 = yield* factory.createLayer({ name: "L20", zIndex: 20 });
-
-        yield* manager.addLayer(layer10);
-        yield* manager.addLayer(layer20);
-
-        return { layer10, layer20 };
-      })
-    );
-
-    const { layer10 } = await setup();
+    await addLayerToRegistry(layer10);
+    await addLayerToRegistry(layer20);
 
     // Before: L10, L20
     const before = registry.get(layerIndexAtom);
@@ -161,9 +152,11 @@ describe("Layer Atoms", () => {
       expect(before.value.map((l) => l.name)).toEqual(["L10", "L20"]);
     }
 
-    // Bring L10 to front
-    const bringToFront = registry.get(layerOpsAtom.bringToFront);
-    await bringToFront(layer10.id);
+    // Bring L10 to front using canonical pattern
+    const cancelBringToFront = registry.mount(layerOpsAtom.bringToFront);
+    cleanups.push(cancelBringToFront);
+    registry.set(layerOpsAtom.bringToFront, layer10.id);
+    await new Promise((resolve) => resolve(null));
 
     // After: L20, L10 (L10 moved to end)
     const after = registry.get(layerIndexAtom);
@@ -178,25 +171,17 @@ describe("Layer Atoms", () => {
    * Proves: LATENT assumption about hash composition
    */
   it("layerSortedAtom visualHash changes when visible layer z-index changes", async () => {
-    const setup = layerRuntimeAtom.fn(
-      Effect.gen(function* () {
-        const factory = yield* LayerFactory;
-        const manager = yield* LayerManager;
-
-        const layer = yield* factory.createLayer({ name: "Test", zIndex: 10, visible: true });
-        yield* manager.addLayer(layer);
-        return layer;
-      })
-    );
-
-    const layer = await setup();
+    const layer = await createTestLayer({ name: "Test", zIndex: 10, visible: true });
+    await addLayerToRegistry(layer);
 
     const before = registry.get(layerSortedAtom);
     const hashBefore = before.visualHash;
 
     // Bring to front (changes z-index)
-    const bringToFront = registry.get(layerOpsAtom.bringToFront);
-    await bringToFront(layer.id);
+    const cancelBringToFront = registry.mount(layerOpsAtom.bringToFront);
+    cleanups.push(cancelBringToFront);
+    registry.set(layerOpsAtom.bringToFront, layer.id);
+    await new Promise((resolve) => resolve(null));
 
     const after = registry.get(layerSortedAtom);
     const hashAfter = after.visualHash;
@@ -206,25 +191,17 @@ describe("Layer Atoms", () => {
   });
 
   it("layerSortedAtom visualHash unchanged when opacity changes", async () => {
-    const setup = layerRuntimeAtom.fn(
-      Effect.gen(function* () {
-        const factory = yield* LayerFactory;
-        const manager = yield* LayerManager;
-
-        const layer = yield* factory.createLayer({ name: "Test", zIndex: 10, visible: true });
-        yield* manager.addLayer(layer);
-        return layer;
-      })
-    );
-
-    const layer = await setup();
+    const layer = await createTestLayer({ name: "Test", zIndex: 10, visible: true });
+    await addLayerToRegistry(layer);
 
     const before = registry.get(layerSortedAtom);
     const hashBefore = before.visualHash;
 
-    // Change opacity (doesn't affect z-index or visibility)
-    const setOpacity = registry.get(layerOpsAtom.setOpacity);
-    await setOpacity({ id: layer.id, opacity: 0.5 });
+    // Change opacity using canonical pattern
+    const cancelSetOpacity = registry.mount(layerOpsAtom.setOpacity);
+    cleanups.push(cancelSetOpacity);
+    registry.set(layerOpsAtom.setOpacity, { id: layer.id, opacity: 0.5 });
+    await new Promise((resolve) => resolve(null));
 
     const after = registry.get(layerSortedAtom);
     const hashAfter = after.visualHash;
@@ -238,28 +215,18 @@ describe("Layer Atoms", () => {
    * Proves: Filtering logic
    */
   it("layerSortedAtom visualHash excludes hidden layers", async () => {
-    const setup = layerRuntimeAtom.fn(
-      Effect.gen(function* () {
-        const factory = yield* LayerFactory;
-        const manager = yield* LayerManager;
+    const visibleLayer = await createTestLayer({ name: "Visible", zIndex: 10, visible: true });
+    const hiddenLayer = await createTestLayer({ name: "Hidden", zIndex: 20, visible: false });
 
-        const visibleLayer = yield* factory.createLayer({ name: "Visible", zIndex: 10, visible: true });
-        const hiddenLayer = yield* factory.createLayer({ name: "Hidden", zIndex: 20, visible: false });
-
-        yield* manager.addLayer(visibleLayer);
-        yield* manager.addLayer(hiddenLayer);
-
-        return { visibleLayer, hiddenLayer };
-      })
-    );
-
-    await setup();
+    await addLayerToRegistry(visibleLayer);
+    await addLayerToRegistry(hiddenLayer);
 
     const sorted = registry.get(layerSortedAtom);
 
     // visualHash should only contain visible layer
-    expect(sorted.visualHash).toContain("Visible:10");
-    expect(sorted.visualHash).not.toContain("Hidden");
+    // The hash format is "id:zIndex", so we check for the pattern
+    expect(sorted.visualHash).toContain(`:10`);
+    expect(sorted.visualHash).not.toContain(`:20`);
   });
 
   /**
@@ -278,19 +245,8 @@ describe("Layer Atoms", () => {
    * Proves: Full CRUD cycle through atoms
    */
   it("layerOpsAtom.removeLayer updates layersAtom", async () => {
-    const createLayerAtom = layerRuntimeAtom.fn(
-      Effect.gen(function* () {
-        const factory = yield* LayerFactory;
-        const manager = yield* LayerManager;
-
-        const layer = yield* factory.createLayer({ name: "ToRemove", zIndex: 0 });
-        yield* manager.addLayer(layer);
-        return layer.id;
-      })
-    );
-
-    const createLayer = registry.get(createLayerAtom);
-    const layerId = await createLayer();
+    const layer = await createTestLayer({ name: "ToRemove", zIndex: 0 });
+    await addLayerToRegistry(layer);
 
     const before = registry.get(layersAtom);
     expect(Result.isSuccess(before)).toBe(true);
@@ -298,9 +254,11 @@ describe("Layer Atoms", () => {
       expect(before.value.length).toBe(1);
     }
 
-    // Remove layer
-    const removeLayer = registry.get(layerOpsAtom.removeLayer);
-    await removeLayer(layerId);
+    // Remove layer using canonical pattern
+    const cancelRemove = registry.mount(layerOpsAtom.removeLayer);
+    cleanups.push(cancelRemove);
+    registry.set(layerOpsAtom.removeLayer, layer.id);
+    await new Promise((resolve) => resolve(null));
 
     const after = registry.get(layersAtom);
     expect(Result.isSuccess(after)).toBe(true);
@@ -314,28 +272,19 @@ describe("Layer Atoms", () => {
    * Proves: State mutations propagate through atoms
    */
   it("layerOpsAtom.setVisible updates layer state", async () => {
-    const createLayerAtom = layerRuntimeAtom.fn(
-      Effect.gen(function* () {
-        const factory = yield* LayerFactory;
-        const manager = yield* LayerManager;
+    const layer = await createTestLayer({ name: "Toggle", zIndex: 0, visible: true });
+    await addLayerToRegistry(layer);
 
-        const layer = yield* factory.createLayer({ name: "Toggle", zIndex: 0, visible: true });
-        yield* manager.addLayer(layer);
-        return layer.id;
-      })
-    );
+    // Hide layer using canonical pattern
+    const cancelSetVisible = registry.mount(layerOpsAtom.setVisible);
+    cleanups.push(cancelSetVisible);
+    registry.set(layerOpsAtom.setVisible, { id: layer.id, visible: false });
+    await new Promise((resolve) => resolve(null));
 
-    const createLayer = registry.get(createLayerAtom);
-    const layerId = await createLayer();
-
-    // Hide layer
-    const setVisible = registry.get(layerOpsAtom.setVisible);
-    await setVisible({ id: layerId, visible: false });
-
-    const layer = registry.get(layerAtom(layerId));
-    expect(Result.isSuccess(layer)).toBe(true);
-    if (Result.isSuccess(layer)) {
-      expect(layer.value?.visible).toBe(false);
+    const result = registry.get(layerAtom(layer.id));
+    expect(Result.isSuccess(result)).toBe(true);
+    if (Result.isSuccess(result)) {
+      expect(result.value?.visible).toBe(false);
     }
   });
 });

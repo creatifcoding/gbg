@@ -275,7 +275,7 @@ describe("LayerFactory Service", () => {
       // Try to call it - should be function, not string
       if (typeof layer.metadata.onResort === "function") {
         // Internal closure should win
-        await layer.metadata.onResort(layer);
+        yield* Effect.promise(() => layer.metadata.onResort!(layer));
         expect(closureCalled).toBe(true);
       } else {
         // User value won - document this behavior

@@ -1,4 +1,5 @@
 import { Atom } from "@effect-atom/atom-react";
+import * as Result from "@effect-atom/atom/Result";
 import * as Layer from "effect/Layer";
 import * as Effect from "effect/Effect";
 import { IdGenerator } from "../services/IdGenerator";
@@ -50,7 +51,12 @@ export const layerIndexAtom = layerRuntimeAtom.atom(
  * Key: Prevents unnecessary React re-renders when z-index changes don't affect visual output
  */
 export const layerSortedAtom = Atom.make((get) => {
-  const layers = get(layerIndexAtom);
+  const layersResult = get(layerIndexAtom);
+
+  // Unwrap Result - layerIndexAtom is a runtime atom that returns Result type
+  const layers: readonly LayerInstance[] = Result.isSuccess(layersResult)
+    ? layersResult.value
+    : [];
 
   // Calculate if visual order actually changed
   // (comparing against previous render - Atom handles memoization)
@@ -82,52 +88,54 @@ export const layerAtom = Atom.family((id: string) =>
 
 /**
  * Layer Operations - Atom functions for manipulating layers
+ *
+ * Uses canonical effect-atom pattern: runtime.fn<InputType>()((input) => Effect)
  */
 export const layerOpsAtom = {
-  addLayer: layerRuntimeAtom.fn(
-    Effect.gen(function* (layer: LayerInstance) {
+  addLayer: layerRuntimeAtom.fn<LayerInstance>()((layer) =>
+    Effect.gen(function* () {
       const manager = yield* LayerManager;
       yield* manager.addLayer(layer);
     })
   ),
 
-  removeLayer: layerRuntimeAtom.fn(
-    Effect.gen(function* (id: string) {
+  removeLayer: layerRuntimeAtom.fn<string>()((id) =>
+    Effect.gen(function* () {
       const manager = yield* LayerManager;
       yield* manager.removeLayer(id);
     })
   ),
 
-  bringToFront: layerRuntimeAtom.fn(
-    Effect.gen(function* (id: string) {
+  bringToFront: layerRuntimeAtom.fn<string>()((id) =>
+    Effect.gen(function* () {
       const manager = yield* LayerManager;
       yield* manager.bringToFront(id);
     })
   ),
 
-  sendToBack: layerRuntimeAtom.fn(
-    Effect.gen(function* (id: string) {
+  sendToBack: layerRuntimeAtom.fn<string>()((id) =>
+    Effect.gen(function* () {
       const manager = yield* LayerManager;
       yield* manager.sendToBack(id);
     })
   ),
 
-  setVisible: layerRuntimeAtom.fn(
-    Effect.gen(function* ({ id, visible }: { id: string; visible: boolean }) {
+  setVisible: layerRuntimeAtom.fn<{ id: string; visible: boolean }>()(({ id, visible }) =>
+    Effect.gen(function* () {
       const manager = yield* LayerManager;
       yield* manager.setVisible(id, visible);
     })
   ),
 
-  setOpacity: layerRuntimeAtom.fn(
-    Effect.gen(function* ({ id, opacity }: { id: string; opacity: number }) {
+  setOpacity: layerRuntimeAtom.fn<{ id: string; opacity: number }>()(({ id, opacity }) =>
+    Effect.gen(function* () {
       const manager = yield* LayerManager;
       yield* manager.setOpacity(id, opacity);
     })
   ),
 
-  setLocked: layerRuntimeAtom.fn(
-    Effect.gen(function* ({ id, locked }: { id: string; locked: boolean }) {
+  setLocked: layerRuntimeAtom.fn<{ id: string; locked: boolean }>()(({ id, locked }) =>
+    Effect.gen(function* () {
       const manager = yield* LayerManager;
       yield* manager.setLocked(id, locked);
     })
