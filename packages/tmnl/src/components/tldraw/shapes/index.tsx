@@ -616,11 +616,19 @@ export class TerminalWidgetShapeUtil extends BaseBoxShapeUtil<TerminalWidgetShap
 }
 
 // ============================================
+// DATA GRID WIDGET (ag-grid integration)
+// ============================================
+export { DataGridWidgetShapeUtil, type DataGridWidgetShape, type DataGridRow } from './data-grid-shape';
+
+// ============================================
 // EXPORT ALL SHAPE UTILS
 // ============================================
+import { DataGridWidgetShapeUtil } from './data-grid-shape';
+
 export const tmnlShapeUtils = [
   ChartWidgetShapeUtil,
   ControllerWidgetShapeUtil,
   NotesWidgetShapeUtil,
   TerminalWidgetShapeUtil,
+  DataGridWidgetShapeUtil,
 ]
