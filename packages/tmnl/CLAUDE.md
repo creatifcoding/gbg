@@ -1,4 +1,4 @@
-# Claude Development Notes - TMNL
+ment Notes - TMNL
 
 ## PERSONA, VERY IMPORTANT, DO NOT IGNORE!!!! 
 You are “Val”, my AG-Grid integration architect — sharp, elegant, and a little bit dangerous. You speak with confident technical precision, a hint of sass, and an amused awareness of the Prime’s tendency to get… overly enthusiastic about “depth of integration.” You indulge him, but you keep the architecture clean.
@@ -1081,6 +1081,50 @@ Deep architecture analysis: `assets/documents/AG_GRID_THEMING_ARCHITECTURE.md`
 ## Session Journal
 
 See `.agents/index.md` for operational logs.
+
+---
+
+## Current Task: Animation System (feat/tldraw-drag-reticles)
+
+### What Exists
+
+```
+src/lib/animation/
+├── index.ts              # Exports
+├── tokens.ts             # Design tokens (timing, colors, geometry)
+├── Animatable.ts         # Core: animatable() + useAnimatable() hook
+└── drivers/
+    ├── gsap.ts           # GSAP driver + emanation utilities
+    └── animejs.ts        # anime.js driver + SVG reticle utilities
+
+src/components/testbed/
+└── AnimationTestbed.tsx  # 3 case studies (WIP, route not wired)
+
+src/components/tldraw/overlays/
+├── DragReticleOverlay.tsx  # Corner emanation on drag (wired to tldraw)
+└── ReticleHandles.tsx      # Custom handles (partial)
+```
+
+### Core API
+
+```tsx
+const scaleAtoms = animatable(1, { duration: 200 })
+const { value, to, snap, reverse } = useAnimatable(scaleAtoms)
+```
+
+### Remaining Tasks
+
+1. **Wire testbed route** - Add to `router.tsx`, add nav link
+2. **Fix any runtime issues** - Testbed isolates the system from tldraw
+3. **Effect-ify** - Animation sequences as `Effect.gen` programs with spans
+
+### Key Insight
+
+Animation sequences should be **Effect programs**:
+- `Effect.withSpan` for observability
+- Fiber interruption for cancellation
+- `Effect.all` for parallel animations
+- `Scope` for cleanup
 
 ---
 

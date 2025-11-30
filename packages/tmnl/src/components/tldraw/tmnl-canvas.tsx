@@ -11,8 +11,13 @@ import {
   MiniMap,
 } from "@/components/static-ui/canvas-toolbar"
 import { cloneMetadataWithValues } from "@/lib/types"
+import { DragReticleOverlay } from "./overlays"
+import { gsapDriver, Animatable } from "@/lib/animation"
 
-// Hide all default tldraw UI
+// Initialize animation system with GSAP driver
+Animatable.setDriver(gsapDriver)
+
+// Hide default tldraw UI, add custom reticle overlay
 const customComponents: TLComponents = {
   Toolbar: null,
   MainMenu: null,
@@ -27,6 +32,8 @@ const customComponents: TLComponents = {
   DebugPanel: null,
   StylePanel: null,
   Minimap: null,
+  // Custom drag reticle overlay for enhanced interactions
+  InFrontOfTheCanvas: DragReticleOverlay,
 }
 
 // ============================================ 
