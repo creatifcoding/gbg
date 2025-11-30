@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-router';
 import App from './App';
 import { TmnlLayout } from './components/tmnl-layout';
+import { AnimationTestbed } from './components/testbed/AnimationTestbed';
 
 // Create a root route
 const rootRoute = createRootRoute({
@@ -30,9 +31,16 @@ const tmnlRoute = createRoute({
   component: TmnlLayout,
 });
 
+// Create testbed route for animation development
+const testbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed',
+  component: AnimationTestbed,
+});
+
 // Create the router
 const router = createRouter({
-  routeTree: rootRoute.addChildren([indexRoute, tmnlRoute]),
+  routeTree: rootRoute.addChildren([indexRoute, tmnlRoute, testbedRoute]),
 });
 
 // Register the router instance for type safety
