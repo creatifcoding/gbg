@@ -76,3 +76,9 @@
 [submodule "submodules/ag-grid"]
 	path = submodules/ag-grid
 	url = https://github.com/ag-grid/ag-grid.git
+[submodule "submodules/GSAP"]
+	path = submodules/GSAP
+	url = https://github.com/greensock/GSAP
+[submodule "submodules/gsap-react"]
+	path = submodules/gsap-react
+	url = https://github.com/greensock/react
