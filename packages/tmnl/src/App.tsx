@@ -78,9 +78,14 @@ function Content() {
           transition={{ duration: 0.6, delay: 0.6 }}
         >
           <br />
-          <Link to="/tmnl" className="text-blue-500 hover:underline">
-            Go to TMNL Layout
-          </Link>
+          <div className="flex flex-col gap-2">
+            <Link to="/tmnl" className="text-blue-500 hover:underline">
+              Go to TMNL Layout
+            </Link>
+            <Link to="/testbed" className="text-cyan-400 hover:underline">
+              Animation Testbed
+            </Link>
+          </div>
         </motion.div>
       </motion.div>
     </div>
