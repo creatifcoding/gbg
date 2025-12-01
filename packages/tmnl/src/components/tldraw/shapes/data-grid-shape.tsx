@@ -6,12 +6,27 @@ import {
   type TLResizeInfo,
   resizeBox,
   stopEventPropagation,
+  useEditor,
+  createShapeId,
 } from 'tldraw';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Table2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Table2, GripVertical } from 'lucide-react';
 import { AgGridReact } from 'ag-grid-react';
-import { ModuleRegistry, AllCommunityModule, type ColDef, type GridReadyEvent, type ICellRendererParams } from 'ag-grid-community';
+import {
+  ModuleRegistry,
+  AllCommunityModule,
+  type ColDef,
+  type GridReadyEvent,
+  type ICellRendererParams,
+  type GridApi,
+  type RowDropZoneParams,
+  type RowDragEnterEvent,
+  type RowDragEndEvent,
+} from 'ag-grid-community';
+import { gsap } from 'gsap';
 import { tmnlDataGridTheme, STATUS_COLORS, TMNL_TOKENS } from './data-grid-theme';
+import { DragBadge } from './drag-badge';
+import { dispatchGridDragEvent } from '../overlays';
 
 // Register all Community modules for ag-grid v34+
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -89,6 +104,27 @@ function ValueCellRenderer(params: ICellRendererParams) {
   );
 }
 
+// Custom drag handle with TMNL styling
+function DragHandleRenderer(_params: ICellRendererParams) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        height: '100%',
+        cursor: 'grab',
+        color: TMNL_TOKENS.colors.textMuted,
+        transition: 'color 0.15s ease',
+      }}
+      className="drag-handle"
+    >
+      <GripVertical size={12} />
+    </div>
+  );
+}
+
 // ============================================
 // DATA GRID WIDGET SHAPE
 // Embeds ag-grid Community inside tldraw
@@ -111,18 +147,93 @@ export type DataGridWidgetShape = TLBaseShape<
   }
 >;
 
+// ============================================
+// SPAWN DATA CARD
+// Creates a data-card shape on canvas from row data
+// ============================================
+
+function spawnDataCard(
+  editor: ReturnType<typeof useEditor>,
+  rowData: DataGridRow,
+  point: { x: number; y: number },
+  sourceGridId: string
+) {
+  console.log('[spawnDataCard] Creating card for:', rowData.name, 'at', point);
+
+  const cardWidth = 180;
+  const cardHeight = 100;
+  const shapeId = createShapeId();
+
+  try {
+    // Create the data card shape
+    editor.createShape({
+      id: shapeId,
+      type: 'data-card',
+      x: point.x - cardWidth / 2,
+      y: point.y - cardHeight / 2,
+      props: {
+        w: cardWidth,
+        h: cardHeight,
+        rowData: rowData,
+        sourceGridId: sourceGridId,
+      },
+    });
+
+    console.log('[spawnDataCard] Created shape:', shapeId);
+
+    // Select the new shape
+    editor.select(shapeId);
+
+    // Animate the spawn with GSAP (after a tick for DOM to update)
+    requestAnimationFrame(() => {
+      // Find the shape element in the DOM
+      const shapeEl = document.querySelector(`[data-shape-id="${shapeId}"]`);
+      console.log('[spawnDataCard] Shape element:', shapeEl);
+      if (shapeEl) {
+        gsap.fromTo(
+          shapeEl,
+          { scale: 0.5, opacity: 0 },
+          { scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(1.7)' }
+        );
+      }
+    });
+  } catch (err) {
+    console.error('[spawnDataCard] Error creating shape:', err);
+  }
+}
+
+// ============================================
+// DATA GRID COMPONENT
+// Uses addRowDropZone API for external drag-out
+// ============================================
+
 function DataGridComponent({ shape }: { shape: DataGridWidgetShape }) {
+  const editor = useEditor();
   const { rowData, title, w, h } = shape.props;
   const gridRef = useRef<AgGridReact>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const gridApiRef = useRef<GridApi | null>(null);
+  const dropZoneRef = useRef<RowDropZoneParams | null>(null);
+
   // Header is 20px (h-5), borders are 2px total
   const gridHeight = h - 22;
   const gridWidth = w - 2; // account for border
 
   const columnDefs = useMemo<ColDef<DataGridRow>[]>(() => [
     {
+      headerName: '',
+      width: 28,
+      rowDrag: true,
+      suppressSizeToFit: true,
+      cellRenderer: DragHandleRenderer,
+      cellStyle: {
+        padding: 0,
+      },
+    },
+    {
       field: 'id',
       headerName: 'ID',
-      width: 60,
+      width: 50,
       suppressSizeToFit: true,
       cellRenderer: IdCellRenderer,
     },
@@ -139,14 +250,14 @@ function DataGridComponent({ shape }: { shape: DataGridWidgetShape }) {
     {
       field: 'value',
       headerName: 'VALUE',
-      width: 100,
+      width: 90,
       editable: true,
       cellRenderer: ValueCellRenderer,
     },
     {
       field: 'status',
       headerName: 'STATUS',
-      width: 100,
+      width: 90,
       cellRenderer: StatusCellRenderer,
     },
   ], []);
@@ -156,8 +267,105 @@ function DataGridComponent({ shape }: { shape: DataGridWidgetShape }) {
     sortable: true,
   }), []);
 
+  // Setup external drop zone on grid ready
   const onGridReady = useCallback((params: GridReadyEvent) => {
     params.api.sizeColumnsToFit();
+    gridApiRef.current = params.api;
+
+    // Find the tldraw canvas element to use as drop zone
+    const canvasEl = document.querySelector('.tl-container') as HTMLElement;
+    if (!canvasEl) {
+      console.warn('[AG-Grid] Could not find .tl-container for drop zone');
+      return;
+    }
+
+    console.log('[AG-Grid] Registering canvas drop zone');
+
+    // Create drop zone for the canvas
+    const dropZone: RowDropZoneParams = {
+      getContainer: () => canvasEl,
+      onDragEnter: (params) => {
+        console.log('[AG-Grid] Drag entered canvas');
+        const rowData = params.node.data as DataGridRow;
+
+        // Dispatch event for drop zone overlay
+        dispatchGridDragEvent('ENTER', { rowName: rowData.name, status: rowData.status });
+
+        // Visual feedback - glow the container (monochrome)
+        if (containerRef.current) {
+          gsap.to(containerRef.current, {
+            borderColor: 'rgba(255, 255, 255, 0.6)',
+            boxShadow: '0 0 12px rgba(255, 255, 255, 0.25)',
+            duration: 0.2,
+          });
+        }
+      },
+      onDragLeave: () => {
+        console.log('[AG-Grid] Drag left canvas');
+
+        // Dispatch event for drop zone overlay
+        dispatchGridDragEvent('LEAVE');
+
+        // Reset visual feedback
+        if (containerRef.current) {
+          gsap.to(containerRef.current, {
+            borderColor: TMNL_TOKENS.colors.border,
+            boxShadow: 'none',
+            duration: 0.2,
+          });
+        }
+      },
+      onDragStop: (dragParams) => {
+        console.log('[AG-Grid] Drop on canvas:', dragParams);
+
+        // Dispatch event for drop zone overlay
+        dispatchGridDragEvent('DROP');
+
+        // Reset visual feedback
+        if (containerRef.current) {
+          gsap.to(containerRef.current, {
+            borderColor: TMNL_TOKENS.colors.border,
+            boxShadow: 'none',
+            duration: 0.2,
+          });
+        }
+
+        // Get row data and mouse position
+        const droppedRowData = dragParams.node.data as DataGridRow;
+        const mouseEvent = dragParams.event as MouseEvent;
+
+        if (!droppedRowData || !mouseEvent) {
+          console.warn('[AG-Grid] Missing row data or mouse event');
+          return;
+        }
+
+        const screenPos = { x: mouseEvent.clientX, y: mouseEvent.clientY };
+        console.log('[AG-Grid] Screen position:', screenPos);
+
+        // Convert screen coords to tldraw page coords
+        const pagePoint = editor.screenToPage(screenPos);
+        console.log('[AG-Grid] Page position:', pagePoint);
+
+        // Spawn the data card
+        spawnDataCard(editor, droppedRowData, pagePoint, shape.id);
+      },
+    };
+
+    dropZoneRef.current = dropZone;
+    params.api.addRowDropZone(dropZone);
+  }, [editor, shape.id]);
+
+  // Cleanup drop zone on unmount
+  useEffect(() => {
+    return () => {
+      if (gridApiRef.current && dropZoneRef.current) {
+        try {
+          gridApiRef.current.removeRowDropZone(dropZoneRef.current);
+        } catch (e) {
+          // Grid may already be destroyed
+        }
+      }
+    };
   }, []);
 
   // Resize columns when shape dimensions change
@@ -167,9 +375,66 @@ function DataGridComponent({ shape }: { shape: DataGridWidgetShape }) {
     }
   }, [w, h]);
 
+  // Row drag enter - highlight source row and grid (monochrome)
+  const onRowDragEnter = useCallback((event: RowDragEnterEvent) => {
+    console.log('[AG-Grid] Row drag enter:', event.node.data);
+
+    // Highlight the dragged row - monochrome
+    const rowEl = event.node.rowElement;
+    if (rowEl) {
+      gsap.to(rowEl, {
+        boxShadow: 'inset 0 0 15px rgba(255, 255, 255, 0.15)',
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        duration: 0.2,
+        ease: 'power2.out',
+      });
+    }
+
+    // Glow the grid container - monochrome
+    if (containerRef.current) {
+      gsap.to(containerRef.current, {
+        borderColor: 'rgba(255, 255, 255, 0.5)',
+        boxShadow: '0 0 15px rgba(255, 255, 255, 0.2), inset 0 0 20px rgba(255, 255, 255, 0.05)',
+        duration: 0.3,
+        ease: 'power2.out',
+      });
+    }
+  }, []);
+
+  // Row drag end - reset highlights
+  const onRowDragEnd = useCallback((event: RowDragEndEvent) => {
+    console.log('[AG-Grid] Row drag end');
+
+    // Reset row highlight
+    const rowEl = event.node.rowElement;
+    if (rowEl) {
+      gsap.to(rowEl, {
+        boxShadow: 'none',
+        backgroundColor: 'transparent',
+        duration: 0.2,
+      });
+    }
+
+    // Reset grid container
+    if (containerRef.current) {
+      gsap.to(containerRef.current, {
+        borderColor: TMNL_TOKENS.colors.border,
+        boxShadow: 'none',
+        duration: 0.2,
+      });
+    }
+  }, []);
+
+  // Custom row drag text for the badge
+  const rowDragText = useCallback((params: { rowNode: { data: DataGridRow }; defaultTextValue: string }) => {
+    return params.rowNode.data.name;
+  }, []);
+
   return (
     <div
+      ref={containerRef}
       className="w-full h-full bg-black border border-neutral-800 flex flex-col overflow-hidden group relative"
+      style={{ transition: 'border-color 0.15s ease' }}
       onPointerDown={stopEventPropagation}
       onPointerMove={stopEventPropagation}
       onPointerUp={stopEventPropagation}
@@ -208,6 +473,13 @@ function DataGridComponent({ shape }: { shape: DataGridWidgetShape }) {
           animateRows={true}
           rowSelection="single"
           suppressMovableColumns={true}
+          rowDragManaged={true}
+          // Custom drag ghost
+          dragAndDropImageComponent={DragBadge}
+          rowDragText={rowDragText}
+          // Row drag feedback
+          onRowDragEnter={onRowDragEnter}
+          onRowDragEnd={onRowDragEnd}
         />
       </div>
     </div>

@@ -1,8 +1,8 @@
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { HoundstoothGOL } from './components/houndstooth-gol';
 import { withLayering } from './lib/layers';
-import { Link } from '@tanstack/react-router'; // Import Link
+import { Link } from '@tanstack/react-router';
 import './App.css';
 
 /**
@@ -43,8 +43,6 @@ const ContentLayer = withLayering(
 );
 
 function Content() {
-  const [count, setCount] = useState(0);
-
   return (
     /**
      * Center contents per the viewport
@@ -82,8 +80,11 @@ function Content() {
             <Link to="/tmnl" className="text-blue-500 hover:underline">
               Go to TMNL Layout
             </Link>
-            <Link to="/testbed" className="text-cyan-400 hover:underline">
+            <Link to="/testbed/v2" className="text-cyan-400 hover:underline">
               Animation Testbed
+            </Link>
+            <Link to="/dispositions" className="text-emerald-400 hover:underline">
+              Dispositions Widget
             </Link>
           </div>
         </motion.div>

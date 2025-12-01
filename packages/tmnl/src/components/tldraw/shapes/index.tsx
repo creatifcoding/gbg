@@ -621,9 +621,15 @@ export class TerminalWidgetShapeUtil extends BaseBoxShapeUtil<TerminalWidgetShap
 export { DataGridWidgetShapeUtil, type DataGridWidgetShape, type DataGridRow } from './data-grid-shape';
 
 // ============================================
+// DATA CARD (spawned from grid row drag-out)
+// ============================================
+export { DataCardShapeUtil, type DataCardShape } from './data-card-shape';
+
+// ============================================
 // EXPORT ALL SHAPE UTILS
 // ============================================
 import { DataGridWidgetShapeUtil } from './data-grid-shape';
+import { DataCardShapeUtil } from './data-card-shape';
 
 export const tmnlShapeUtils = [
   ChartWidgetShapeUtil,
@@ -631,4 +637,5 @@ export const tmnlShapeUtils = [
   NotesWidgetShapeUtil,
   TerminalWidgetShapeUtil,
   DataGridWidgetShapeUtil,
+  DataCardShapeUtil,
 ]
