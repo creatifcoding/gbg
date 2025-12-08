@@ -1,16 +1,131 @@
+use std::sync::OnceLock;
+use std::time::Instant;
+
+// =============================================================================
+// HIGH-RESOLUTION TIMING
+// =============================================================================
+
+/// Lazy-initialized epoch reference for microsecond timing.
+/// First call establishes epoch; subsequent calls measure elapsed time from it.
+/// Thread-safe via OnceLock (lock-free after initialization).
+static EPOCH: OnceLock<Instant> = OnceLock::new();
+
+/// Returns microseconds since an arbitrary epoch (first call).
+///
+/// Resolution: nanosecond-accurate Instant, returned as u64 microseconds.
+/// Thread-safe via OnceLock (lock-free after initialization).
+///
+/// # Example (from JS)
+/// ```typescript
+/// const start = await invoke<number>('now_micros')
+/// // ... do work ...
+/// const end = await invoke<number>('now_micros')
+/// const elapsedMicros = end - start
+/// ```
+#[tauri::command]
+fn now_micros() -> u64 {
+    let epoch = EPOCH.get_or_init(Instant::now);
+    epoch.elapsed().as_micros() as u64
+}
+
+// =============================================================================
+// TAURI APPLICATION
+// =============================================================================
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  tauri::Builder::default()
-    .setup(|app| {
-      if cfg!(debug_assertions) {
-        app.handle().plugin(
-          tauri_plugin_log::Builder::default()
-            .level(log::LevelFilter::Info)
-            .build(),
-        )?;
-      }
-      Ok(())
-    })
-    .run(tauri::generate_context!())
-    .expect("error while running tauri application");
+    // CrabNebula DevTools - initialize early for full instrumentation
+    #[cfg(debug_assertions)]
+    let devtools = tauri_plugin_devtools::init();
+
+    let mut builder = tauri::Builder::default();
+
+    #[cfg(debug_assertions)]
+    {
+        builder = builder.plugin(devtools);
+    }
+
+    builder
+        .invoke_handler(tauri::generate_handler![now_micros])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
+
+// =============================================================================
+// TESTS
+// =============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::thread::sleep;
+    use std::time::Duration;
+
+    /// H1: now_micros returns monotonically increasing values
+    #[test]
+    fn test_monotonic() {
+        let t1 = now_micros();
+        let t2 = now_micros();
+        let t3 = now_micros();
+
+        assert!(t2 >= t1, "t2 ({}) should be >= t1 ({})", t2, t1);
+        assert!(t3 >= t2, "t3 ({}) should be >= t2 ({})", t3, t2);
+    }
+
+    /// H2: Resolution is sufficient to measure 1ms sleep (~1000μs)
+    #[test]
+    fn test_resolution() {
+        let before = now_micros();
+        sleep(Duration::from_millis(1));
+        let after = now_micros();
+
+        let delta = after - before;
+        // Should be at least 900μs (allowing some scheduler variance)
+        assert!(
+            delta >= 900,
+            "Delta should be at least 900μs for 1ms sleep, got {}μs",
+            delta
+        );
+        // Should not exceed 5000μs (5ms) for a 1ms sleep (generous for CI)
+        assert!(
+            delta < 5000,
+            "Delta should be < 5000μs for 1ms sleep, got {}μs",
+            delta
+        );
+    }
+
+    /// H3: Epoch is stable across calls (same Instant instance)
+    #[test]
+    fn test_epoch_stability() {
+        let _ = now_micros(); // Initialize epoch
+        let epoch_ptr = EPOCH.get().unwrap() as *const Instant;
+
+        let _ = now_micros();
+        let epoch_ptr2 = EPOCH.get().unwrap() as *const Instant;
+
+        assert_eq!(
+            epoch_ptr, epoch_ptr2,
+            "Epoch should be the same Instant instance across calls"
+        );
+    }
+
+    /// H4: Rapid successive calls show sub-millisecond resolution
+    #[test]
+    fn test_sub_millisecond() {
+        let mut deltas = Vec::with_capacity(100);
+
+        for _ in 0..100 {
+            let t1 = now_micros();
+            let t2 = now_micros();
+            deltas.push(t2 - t1);
+        }
+
+        // At least some deltas should be non-zero but < 1000μs
+        let sub_ms_count = deltas.iter().filter(|&&d| d > 0 && d < 1000).count();
+        assert!(
+            sub_ms_count > 0,
+            "Should have some sub-millisecond deltas, got {:?}",
+            deltas
+        );
+    }
 }
