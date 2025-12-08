@@ -1,0 +1,314 @@
+{
+  "version": "1.1",
+  "lastUpdated": "2024-12-01T13:00:00Z",
+  "findings": [
+    {
+      "id": "H1.1",
+      "type": "finding",
+      "hypothesis": "H1",
+      "timestamp": "2024-11-30T10:00:00Z",
+      "title": "Render Tracking Infinite Loop",
+      "summary": "Tracking renders via atom causes infinite re-render loop",
+      "severity": "critical",
+      "status": "fixed",
+      "human": {
+        "whatHappened": "Attempted to track render count using an atom, which triggered infinite re-renders",
+        "whyItMatters": "Demonstrates that atoms should not be updated during render phase",
+        "lesson": "Use refs for render tracking, not reactive state"
+      },
+      "machine": {
+        "file": "src/components/testbed/EffectAtomTestbed.tsx",
+        "line": 765,
+        "pattern": "useEffect(() => { setRenderCount(c => c + 1) })",
+        "fix": "Use useRef for render counting instead of atom",
+        "commit": null,
+        "snippets": [
+          {
+            "label": "Anti-pattern",
+            "code": "const renderCountAtom = Atom.make(0)\nuseEffect(() => { setRenderCount(c => c + 1) })",
+            "language": "typescript"
+          },
+          {
+            "label": "Fix",
+            "code": "const renderCountRef = useRef(0)\nrenderCountRef.current += 1",
+            "language": "typescript"
+          }
+        ]
+      },
+      "tags": ["infinite-loop", "render-tracking", "refs"],
+      "related": []
+    },
+    {
+      "id": "H3.1",
+      "type": "finding",
+      "hypothesis": "H3",
+      "timestamp": "2024-11-30T14:00:00Z",
+      "title": "Effect-Atom Uses Result, Not Suspense",
+      "summary": "Effect-Atom does NOT use React Suspense - uses Result monad instead",
+      "severity": "info",
+      "status": "documented",
+      "human": {
+        "whatHappened": "Expected useAtomSuspense to throw Promise like React Suspense, but Effect-Atom uses Result pattern",
+        "whyItMatters": "Must use Result.match() with onInitial/onSuccess/onFailure handlers",
+        "lesson": "Read the README - Effect-Atom has its own state machine for async"
+      },
+      "machine": {
+        "file": "src/components/testbed/EffectAtomTestbed.tsx",
+        "line": 1179,
+        "pattern": "Result.match(result, { onInitial, onSuccess, onFailure })",
+        "fix": "Use Result.match() pattern from README",
+        "commit": null,
+        "snippets": [
+          {
+            "label": "Correct pattern",
+            "code": "Result.match(result, {\n  onInitial: () => <Loading />,\n  onFailure: (e) => <Error cause={e.cause} />,\n  onSuccess: (s) => <Value value={s.value} />\n})",
+            "language": "tsx"
+          }
+        ]
+      },
+      "tags": ["result-pattern", "suspense", "documentation"],
+      "related": ["H3.2", "H3.3"]
+    },
+    {
+      "id": "H3.2a",
+      "type": "finding",
+      "hypothesis": "H3",
+      "timestamp": "2024-11-30T16:00:00Z",
+      "title": "Provider Polling Cascade",
+      "summary": "Context provider with setInterval causes ALL children to re-render",
+      "severity": "critical",
+      "status": "fixed",
+      "human": {
+        "whatHappened": "RenderTrackerProvider used useState with setInterval, causing cascading re-renders",
+        "whyItMatters": "Provider re-renders propagate to entire subtree",
+        "lesson": "Use stable refs in providers, poll only in leaf components"
+      },
+      "machine": {
+        "file": "src/components/testbed/EffectAtomTestbed.tsx",
+        "line": 95,
+        "pattern": "const [, forceUpdate] = useState(0)\nsetInterval(() => forceUpdate(n => n + 1), 500)",
+        "fix": "Use useRef for stats, move polling to GlobalRenderCounter leaf",
+        "commit": null
+      },
+      "tags": ["provider", "polling", "cascade", "context"],
+      "related": ["H3.2b", "H3.2c"]
+    },
+    {
+      "id": "H3.2b",
+      "type": "finding",
+      "hypothesis": "H3",
+      "timestamp": "2024-11-30T16:30:00Z",
+      "title": "Unconditional Stream Subscription",
+      "summary": "useAtomValue(streamAtom) on mount causes infinite render loop",
+      "severity": "critical",
+      "status": "mitigated",
+      "human": {
+        "whatHappened": "Stream atom emits every 1s, causing component to re-render forever",
+        "whyItMatters": "Streams need explicit subscription control",
+        "lesson": "Add pause/subscribe toggle for stream atoms"
+      },
+      "machine": {
+        "file": "src/components/testbed/EffectAtomTestbed.tsx",
+        "line": 1322,
+        "pattern": "const result = useAtomValue(h3StreamAtom)",
+        "fix": "Guard with isSubscribed state, add toggle button",
+        "commit": null
+      },
+      "tags": ["stream", "subscription", "infinite-loop"],
+      "related": ["H3.2a", "H3.2c", "H3.4"]
+    },
+    {
+      "id": "H3.2c",
+      "type": "finding",
+      "hypothesis": "H3",
+      "timestamp": "2024-11-30T17:00:00Z",
+      "title": "Double Stream Subscription",
+      "summary": "Parent and child both subscribed to same stream, doubling renders",
+      "severity": "warning",
+      "status": "fixed",
+      "human": {
+        "whatHappened": "H3_ResultAtoms and H3_StreamResult both called useAtomValue on stream",
+        "whyItMatters": "Each subscription triggers independent re-renders",
+        "lesson": "Single subscription point per stream atom"
+      },
+      "machine": {
+        "file": "src/components/testbed/EffectAtomTestbed.tsx",
+        "line": 1386,
+        "pattern": "// Parent\nconst streamResult = useAtomValue(h3StreamAtom)\n// Child\nconst result = useAtomValue(h3StreamAtom)",
+        "fix": "Removed parent subscription, child is now single subscription point",
+        "commit": null
+      },
+      "tags": ["stream", "subscription", "duplicate"],
+      "related": ["H3.2a", "H3.2b"]
+    },
+    {
+      "id": "H3.3a",
+      "type": "finding",
+      "hypothesis": "H3",
+      "timestamp": "2024-12-01T09:00:00Z",
+      "title": "Parent Cascade Render Tracking",
+      "summary": "Child tracked ALL renders as stream-caused, including parent cascades",
+      "severity": "warning",
+      "status": "fixed",
+      "human": {
+        "whatHappened": "Reset Trigger button click caused h3Stream counter to increment",
+        "whyItMatters": "Inaccurate metrics make debugging harder",
+        "lesson": "Track value changes, not just renders"
+      },
+      "machine": {
+        "file": "src/components/testbed/EffectAtomTestbed.tsx",
+        "line": 1328,
+        "pattern": "tracker?.increment('h3Stream') // Called on every render",
+        "fix": "Compare result to prevResultRef, only count when value changed",
+        "commit": null,
+        "snippets": [
+          {
+            "label": "Fix",
+            "code": "const prevResultRef = useRef(null)\nconst isStreamCausedRender = result !== prevResultRef.current\nif (isStreamCausedRender) tracker?.increment('h3Stream')\nprevResultRef.current = result",
+            "language": "typescript"
+          }
+        ]
+      },
+      "tags": ["render-tracking", "cascade", "false-positive"],
+      "related": ["H3.3b"]
+    },
+    {
+      "id": "H3.3b",
+      "type": "finding",
+      "hypothesis": "H3",
+      "timestamp": "2024-12-01T09:30:00Z",
+      "title": "Result Atom Mount Render Sequence",
+      "summary": "Result atoms cause Initial→Success renders on mount (expected behavior)",
+      "severity": "info",
+      "status": "documented",
+      "human": {
+        "whatHappened": "Multiple renders on mount: Initial state, then Success after Effect resolves",
+        "whyItMatters": "This is EXPECTED - Result<A> transitions are state changes",
+        "lesson": "Plan render budgets: 3-4 renders per Result atom on mount"
+      },
+      "machine": {
+        "file": "src/components/testbed/EffectAtomTestbed.tsx",
+        "line": 1443,
+        "pattern": "// t=0: Initial, t=~1ms: Success (sync), t=1000ms: Success (async)",
+        "fix": "Not a bug - documented as expected behavior",
+        "commit": null
+      },
+      "tags": ["result-pattern", "mount", "expected-behavior"],
+      "related": ["H3.1", "H3.3a"]
+    },
+    {
+      "id": "H3.4",
+      "type": "finding",
+      "hypothesis": "H3",
+      "timestamp": "2024-12-01T11:00:00Z",
+      "title": "Conditional Hook Violation",
+      "summary": "Conditional useAtomValue call violates Rules of Hooks",
+      "severity": "critical",
+      "status": "fixed",
+      "human": {
+        "whatHappened": "Subscribe button crashed with 'Rendered more hooks than during the previous render'",
+        "whyItMatters": "React hooks must be called in same order on every render",
+        "lesson": "Use component boundaries to control hook lifecycle, not conditionals"
+      },
+      "machine": {
+        "file": "src/components/testbed/EffectAtomTestbed.tsx",
+        "line": 1322,
+        "pattern": "const result = isSubscribed ? useAtomValue(h3StreamAtom) : null",
+        "fix": "Extract to H3_StreamValueDisplay component that mounts/unmounts",
+        "commit": null,
+        "snippets": [
+          {
+            "label": "Anti-pattern",
+            "code": "const result = isSubscribed ? useAtomValue(atom) : null",
+            "language": "typescript"
+          },
+          {
+            "label": "Fix",
+            "code": "function StreamDisplay() {\n  const result = useAtomValue(atom) // Always called\n  return <Value value={result} />\n}\n\n// In parent:\n{isSubscribed && <StreamDisplay />}",
+            "language": "tsx"
+          }
+        ]
+      },
+      "tags": ["hooks", "conditional", "rules-of-hooks", "component-boundary"],
+      "related": ["H3.2b"]
+    },
+    {
+      "id": "H3.5",
+      "type": "finding",
+      "hypothesis": "H3",
+      "timestamp": "2024-12-01T12:30:00Z",
+      "title": "Result Atom Caching (Immutability)",
+      "summary": "Result atoms cache forever once resolved; use Atom.family for refetch",
+      "severity": "info",
+      "status": "fixed",
+      "human": {
+        "whatHappened": "H3.b showed stale timestamp that never updated, even after Reset Trigger",
+        "whyItMatters": "Result atoms are immutable once resolved - this is intended behavior",
+        "lesson": "Each atom instance is immutable. To refetch, use Atom.family keyed by trigger - new key = new atom = fresh Effect run = new immutable result"
+      },
+      "machine": {
+        "file": "src/components/testbed/EffectAtomTestbed.tsx",
+        "line": 813,
+        "pattern": "const h3AsyncResultAtom = Atom.make(Effect.gen(...))",
+        "fix": "const h3AsyncResultFamily = Atom.family((trigger) => Atom.make(Effect.gen(...)))",
+        "commit": null,
+        "snippets": [
+          {
+            "label": "Before (cached forever)",
+            "code": "const asyncAtom = Atom.make(\n  Effect.gen(function* () {\n    return { timestamp: Date.now() }\n  })\n)",
+            "language": "typescript"
+          },
+          {
+            "label": "After (refetchable)",
+            "code": "const asyncFamily = Atom.family((trigger: number) =>\n  Atom.make(\n    Effect.gen(function* () {\n      return { id: trigger, timestamp: Date.now() }\n    })\n  )\n)\n\n// Usage: new trigger = new atom = fresh result\nconst result = useAtomValue(asyncFamily(trigger))",
+            "language": "typescript"
+          }
+        ]
+      },
+      "tags": ["atom-family", "caching", "immutability", "refetch"],
+      "related": ["H3.3b"]
+    },
+    {
+      "id": "H3.5.dmg1",
+      "type": "damage",
+      "hypothesis": "H3",
+      "timestamp": "2024-12-01T13:00:00Z",
+      "title": "Dangling Atom Reference After Refactor",
+      "summary": "Renamed h3AsyncResultAtom to h3AsyncResultFamily but left dangling reference in H3_ResultAtoms",
+      "severity": "warning",
+      "status": "fixed",
+      "human": {
+        "whatHappened": "ReferenceError: h3AsyncResultAtom is not defined - app crashed on load",
+        "whyItMatters": "Incomplete refactors break the app entirely",
+        "lesson": "Grep before cutting - audit ALL usages across the file"
+      },
+      "machine": {
+        "file": "src/components/testbed/EffectAtomTestbed.tsx",
+        "line": 1475,
+        "pattern": "const asyncResult = useAtomValue(h3AsyncResultAtom)",
+        "fix": "const asyncResult = useAtomValue(h3AsyncResultFamily(trigger))",
+        "commit": null,
+        "snippets": [
+          {
+            "label": "Error",
+            "code": "ReferenceError: h3AsyncResultAtom is not defined\n    at H3_ResultAtoms (EffectAtomTestbed.tsx:1475:36)",
+            "language": "typescript"
+          },
+          {
+            "label": "Grep audit",
+            "code": "grep -n 'h3AsyncResultAtom' EffectAtomTestbed.tsx\n# Should return 0 results after fix",
+            "language": "typescript"
+          }
+        ]
+      },
+      "damage": {
+        "parentFinding": "H3.5",
+        "rootCause": "Renamed atom to family pattern but didn't audit all usages",
+        "whatWasMissed": "Line 1475 in H3_ResultAtoms still referenced old atom name",
+        "prevention": "Always grep -n 'oldName' before removing/renaming. The CLAUDE.md warning exists for this."
+      },
+      "tags": ["refactor", "dangling-reference", "grep-before-cutting"],
+      "related": ["H3.5"]
+    }
+  ]
+}
