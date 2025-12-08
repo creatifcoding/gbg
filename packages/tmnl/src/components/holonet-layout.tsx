@@ -48,9 +48,10 @@ export function HolonetLayout() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`text-[10px] uppercase tracking-widest transition-colors ${
+                className={`uppercase tracking-widest transition-colors ${
                   activeTab === tab ? "text-white" : "text-neutral-600 hover:text-neutral-400"
                 }`}
+                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
               >
                 {tab}
               </button>
