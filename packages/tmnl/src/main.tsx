@@ -5,6 +5,16 @@ import router from './router'; // Import the router instance
 import { ScaleProvider } from './lib/layers/static-ui/ScaleProvider';
 import './index.css';
 
+// React Grab: UI element selector + Claude Code integration (dev only)
+if (import.meta.env.DEV) {
+  // 1. Core: enables hover-to-select UI elements
+  import('react-grab');
+  // 2. Agent: connects selected elements to Claude Code
+  import('@react-grab/claude-code/client').then(({ attachAgent }) => {
+    attachAgent();
+  });
+}
+
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     {/* ScaleProvider injects CSS custom properties for scalable UI

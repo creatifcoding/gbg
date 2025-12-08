@@ -361,13 +361,13 @@ export default function Dispositions() {
              <div className={`w-2 h-2 rounded-full animate-pulse ${getCategory(activeState.id) === 'KINETIC' ? 'bg-rose-500' : 'bg-emerald-500'}`} />
              <h1 className="text-xs font-bold tracking-[0.2em] text-cyan-100">CEW EMITTER</h1>
           </div>
-          <p className="text-[9px] text-gray-500 uppercase">SYS.01 // {getCategory(activeState.id)}</p>
+          <p className="text-gray-500 uppercase" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>SYS.01 // {getCategory(activeState.id)}</p>
         </div>
         
         <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-px">
           {Object.keys(CATEGORIES).map(cat => (
             <div key={cat} className="mb-4">
-              <div className="px-4 py-2 text-[9px] text-gray-600 font-bold tracking-widest opacity-50 sticky top-0 bg-[#05070a] z-10 border-b border-white/5">{cat}</div>
+              <div className="px-4 py-2 text-gray-600 font-bold tracking-widest opacity-50 sticky top-0 bg-[#05070a] z-10 border-b border-white/5" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>{cat}</div>
               {CEW_STATES.filter(s => getCategory(s.id) === cat).map((state) => {
                 const Icon = state.icon;
                 const isActive = activeState.id === state.id;
@@ -382,7 +382,7 @@ export default function Dispositions() {
                       }`}
                   >
                     <Icon size={14} className={isActive ? 'text-cyan-400' : 'opacity-50'} />
-                    <span className="text-[10px] font-bold tracking-widest">{state.label}</span>
+                    <span className="font-bold tracking-widest" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>{state.label}</span>
                   </button>
                 );
               })}
@@ -397,9 +397,9 @@ export default function Dispositions() {
 
         <div className="flex-1 flex flex-col items-center justify-center relative z-0">
           <Emitter mode={activeState.id} transitionType={transitionType} />
-          
+
           <div className="mt-12 flex flex-col items-center gap-2 opacity-50">
-            <div className="text-[9px] tracking-[0.3em] text-cyan-700">CURRENT DISPOSITION</div>
+            <div className="tracking-[0.3em] text-cyan-700" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>CURRENT DISPOSITION</div>
             <div className="text-xl font-bold tracking-widest text-cyan-100">{activeState.label}</div>
           </div>
         </div>
@@ -407,7 +407,7 @@ export default function Dispositions() {
         {/* BOTTOM: Data readout */}
         <div className="h-40 border-t border-white/10 bg-[#030406]/90 backdrop-blur p-6 flex gap-10">
           <div className="flex-1 max-w-md">
-            <h3 className="text-[9px] text-gray-500 uppercase tracking-widest mb-2">Tactical Definition</h3>
+            <h3 className="text-gray-500 uppercase tracking-widest mb-2" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>Tactical Definition</h3>
             <AnimatePresence mode="wait">
               <motion.p key={activeState.id} initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 5 }} className="text-sm text-cyan-100/80 leading-relaxed font-light">
                 {activeState.desc}
@@ -416,9 +416,9 @@ export default function Dispositions() {
           </div>
           <div className="w-px bg-white/10 mx-4" />
           <div className="w-48 space-y-3">
-             <div className="flex justify-between text-[9px] text-gray-400"><span>EMS SPECTRUM</span><span className="text-cyan-400">KU-BAND</span></div>
+             <div className="flex justify-between text-gray-400" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}><span>EMS SPECTRUM</span><span className="text-cyan-400">KU-BAND</span></div>
              <div className="w-full h-px bg-white/10" />
-             <div className="flex justify-between text-[9px] text-gray-400"><span>MODE CAT</span><span className={getCategory(activeState.id) === 'KINETIC' ? "text-rose-400" : "text-emerald-400"}>{getCategory(activeState.id)}</span></div>
+             <div className="flex justify-between text-gray-400" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}><span>MODE CAT</span><span className={getCategory(activeState.id) === 'KINETIC' ? "text-rose-400" : "text-emerald-400"}>{getCategory(activeState.id)}</span></div>
           </div>
         </div>
       </div>

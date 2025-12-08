@@ -13,13 +13,13 @@ import type { ReactNode } from "react"
 // --- TYPOGRAPHY COMPONENTS ---
 
 const Label = ({ children, className }: { children: ReactNode; className?: string }) => (
-  <span className={cn("text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-500", className)}>
+  <span className={cn("font-mono uppercase tracking-[0.15em] text-neutral-500", className)} style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
     {children}
   </span>
 )
 
 const LabelSmall = ({ children, className }: { children: ReactNode; className?: string }) => (
-  <span className={cn("text-[8px] font-mono uppercase tracking-[0.2em] text-neutral-600", className)}>{children}</span>
+  <span className={cn("text-[12px] font-mono tracking-[0.03em] text-neutral-400", className)}>{children}</span>
 )
 
 const Heading = ({
@@ -32,15 +32,15 @@ const Heading = ({
   className?: string
 }) => {
   const sizeClass = {
-    base: "text-[11px] font-mono uppercase tracking-[0.15em] text-white",
-    lg: "text-[13px] font-mono uppercase tracking-[0.12em] text-white font-medium",
+    base: "text-[12px] font-mono uppercase tracking-[0.15em] text-white",
+    lg: "text-[14px] font-mono uppercase tracking-[0.12em] text-white font-medium",
     xl: "text-[16px] font-mono uppercase tracking-[0.1em] text-white font-bold",
   }[size]
   return <span className={cn(sizeClass, className)}>{children}</span>
 }
 
 const Body = ({ children, className }: { children: ReactNode; className?: string }) => (
-  <span className={cn("text-[11px] font-mono tracking-[0.03em] text-neutral-400", className)}>{children}</span>
+  <span className={cn("text-[12px] font-mono tracking-[0.03em] text-neutral-400", className)}>{children}</span>
 )
 
 const ID = ({ children, className }: { children: ReactNode; className?: string }) => (
@@ -50,20 +50,21 @@ const ID = ({ children, className }: { children: ReactNode; className?: string }
 const Stat = ({ value, unit, className }: { value: string | number; unit?: string; className?: string }) => (
   <span className={cn("inline-flex items-baseline", className)}>
     <span className="text-[32px] font-mono font-thin tracking-tight text-white">{value}</span>
-    {unit && <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-neutral-500 ml-1">{unit}</span>}
+    {unit && <span className="font-mono uppercase tracking-[0.2em] text-neutral-500 ml-1" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>{unit}</span>}
   </span>
 )
 
 const CardLabel = ({ children, className }: { children: ReactNode; className?: string }) => (
   <span
-    className={cn("text-[8px] font-mono uppercase tracking-[0.2em] text-neutral-500 bg-neutral-950 px-2", className)}
+    className={cn("font-mono uppercase tracking-[0.2em] text-neutral-500 bg-neutral-950 px-2", className)}
+    style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
   >
     {children}
   </span>
 )
 
 const Coords = ({ children, className }: { children: ReactNode; className?: string }) => (
-  <span className={cn("text-[10px] font-mono tracking-[0.08em] text-neutral-600", className)}>{children}</span>
+  <span className={cn("font-mono tracking-[0.08em] text-neutral-600", className)} style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>{children}</span>
 )
 
 const GroupHeader = ({
@@ -92,14 +93,12 @@ const GroupHeader = ({
   )
 }
 
-const ItemNumber = ({ children, className }: { children: ReactNode; className?: string }) => (
-  <span className={cn("text-[10px] font-mono uppercase tracking-[0.15em] text-neutral-400", className)}>
-    {children}
-  </span>
+const ItemNumber = ({ children, className }: LabelProps) => (
+  <span className={cn("text-[12px] font-mono tracking-[0.05em] text-red-900", className)}>{children}</span>
 )
 
 const ItemSubtitle = ({ children, className }: { children: ReactNode; className?: string }) => (
-  <span className={cn("text-[11px] font-mono tracking-[0.05em] text-red-900", className)}>{children}</span>
+  <span className={cn("text-[12px] font-mono tracking-[0.05em] text-red-900", className)}>{children}</span>
 )
 
 // --- ATOMIC COMPONENTS ---
@@ -119,9 +118,9 @@ const Button = React.forwardRef<
     tactical: "bg-neutral-900 border-neutral-800 text-neutral-400 hover:border-neutral-600 hover:text-white",
   }
   const sizes = {
-    xs: "px-2 py-1 text-[8px]",
-    sm: "px-3 py-1.5 text-[9px]",
-    md: "px-4 py-2 text-[10px]",
+    xs: "px-2 py-1",
+    sm: "px-3 py-1.5",
+    md: "px-4 py-2",
     icon: "p-1.5 w-7 h-7 flex items-center justify-center",
   }
   return (
@@ -133,6 +132,7 @@ const Button = React.forwardRef<
         sizes[size],
         className,
       )}
+      style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
       {...props}
     >
       <span className="relative z-10 flex items-center gap-1.5 justify-center">{children}</span>
@@ -149,9 +149,10 @@ const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLI
         <input
           ref={ref}
           className={cn(
-            "w-full bg-black border border-neutral-800 px-3 py-2 text-[10px] font-mono text-neutral-400 outline-none focus:border-white focus:text-white placeholder:text-neutral-700 transition-colors",
+            "w-full bg-black border border-neutral-800 px-3 py-2 font-mono text-neutral-400 outline-none focus:border-white focus:text-white placeholder:text-neutral-700 transition-colors",
             className,
           )}
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
           {...props}
         />
         <div className="absolute top-0 left-0 w-1.5 h-1.5 border-t border-l border-white opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none" />
@@ -181,10 +182,11 @@ const Badge = ({
   return (
     <span
       className={cn(
-        "px-1.5 py-0.5 text-[8px] font-mono uppercase tracking-[0.15em] inline-flex items-center gap-1 border",
+        "px-1.5 py-0.5 font-mono uppercase tracking-[0.15em] inline-flex items-center gap-1 border",
         styles[variant],
         className,
       )}
+      style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
     >
       {children}
     </span>
@@ -209,7 +211,7 @@ const Separator = ({
 )
 
 const Kbd = ({ children }: { children: ReactNode }) => (
-  <span className="border border-neutral-800 bg-neutral-900 px-1 py-0.5 text-[8px] font-mono text-neutral-500">
+  <span className="border border-neutral-800 bg-neutral-900 px-1 py-0.5 font-mono text-neutral-500" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
     {children}
   </span>
 )
@@ -260,9 +262,10 @@ const RadioGroup = ({
         </div>
         <span
           className={cn(
-            "text-[10px] font-mono uppercase tracking-[0.1em]",
+            "font-mono uppercase tracking-[0.1em]",
             value === opt ? "text-white" : "text-neutral-500 group-hover:text-neutral-400",
           )}
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
         >
           {opt}
         </span>
@@ -348,11 +351,12 @@ const DrawerNav = ({
         key={item}
         onClick={() => onSelect?.(i)}
         className={cn(
-          "w-full text-left px-3 py-2 text-[10px] font-mono uppercase tracking-[0.15em] transition-colors",
+          "w-full text-left px-3 py-2 font-mono uppercase tracking-[0.15em] transition-colors",
           i === activeIndex
             ? "text-white bg-neutral-900 border-l-2 border-white"
             : "text-neutral-500 hover:text-white hover:bg-neutral-900",
         )}
+        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
       >
         {item}
       </button>
@@ -433,13 +437,13 @@ const CommandBar = ({
         >
           <div className="bg-black border-t border-neutral-800">
             <div className="flex items-center px-4 py-3 gap-3">
-              <span className="text-red-500 text-[10px] font-mono tracking-wider">M-x</span>
+              <span className="text-red-500 font-mono tracking-wider" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>M-x</span>
               <input
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Enter command..."
-                className="flex-1 bg-transparent text-[11px] font-mono text-white placeholder:text-neutral-600 outline-none"
+                className="flex-1 bg-transparent text-[12px] font-mono text-white placeholder:text-neutral-600 outline-none"
                 onKeyDown={(e) => {
                   if (e.key === "Escape") onClose()
                   if (e.key === "Enter") {
@@ -537,7 +541,7 @@ const MissionCard = ({
 }: { code: string; description: string; className?: string; onDetails?: () => void; onJoin?: () => void }) => (
   <div className={cn("border border-neutral-800 bg-black p-3 space-y-2", className)}>
     <div className="flex items-center justify-between">
-      <span className="text-[10px] font-mono uppercase tracking-[0.1em] text-neutral-500">Mission Code: {code}</span>
+      <span className="font-mono uppercase tracking-[0.1em] text-neutral-500" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>Mission Code: {code}</span>
       <Wifi size={12} className="text-neutral-700" />
     </div>
     <p className="text-[12px] font-mono text-white tracking-wide">{description}</p>
@@ -623,7 +627,7 @@ function TacticalKnob({
 
   return (
     <div className="flex flex-col items-center gap-1">
-      {label && <span className="text-[8px] font-mono uppercase text-neutral-500 tracking-widest">{label}</span>}
+      {label && <span className="font-mono uppercase text-neutral-500 tracking-widest" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>{label}</span>}
       <div
         className="relative cursor-pointer touch-none"
         style={{ width: size + 16, height: size + 16 }}
@@ -655,7 +659,7 @@ function TacticalKnob({
           </div>
         </div>
       </div>
-      <span className="text-[9px] font-mono text-neutral-400 tabular-nums">{Math.round(value)}</span>
+      <span className="font-mono text-neutral-400 tabular-nums" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>{Math.round(value)}</span>
     </div>
   )
 }
@@ -685,8 +689,8 @@ function TacticalSlider({
     <div className="flex flex-col gap-1 w-full">
       {label && (
         <div className="flex justify-between">
-          <span className="text-[8px] font-mono uppercase text-neutral-500 tracking-widest">{label}</span>
-          <span className="text-[8px] font-mono text-neutral-400 tabular-nums">{value.toFixed(1)}</span>
+          <span className="font-mono uppercase text-neutral-500 tracking-widest" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>{label}</span>
+          <span className="font-mono text-neutral-400 tabular-nums" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>{value.toFixed(1)}</span>
         </div>
       )}
       <div
@@ -756,7 +760,7 @@ function TacticalFader({
 
   return (
     <div className="flex flex-col items-center gap-1">
-      {label && <span className="text-[8px] font-mono uppercase text-neutral-500 tracking-widest">{label}</span>}
+      {label && <span className="font-mono uppercase text-neutral-500 tracking-widest" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>{label}</span>}
       <div
         className="relative w-6 cursor-pointer touch-none flex justify-center"
         style={{ height }}
@@ -787,7 +791,7 @@ function TacticalFader({
           </div>
         </div>
       </div>
-      <span className="text-[9px] font-mono text-neutral-400 tabular-nums">{value.toFixed(1)}</span>
+      <span className="font-mono text-neutral-400 tabular-nums" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>{value.toFixed(1)}</span>
     </div>
   )
 }
