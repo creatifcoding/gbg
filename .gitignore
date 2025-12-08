@@ -3,6 +3,9 @@ i# See http://help.github.com/ignore-files/ for more about ignoring files.
 # ignore all saved code-workspaces.
 **/*.code-workspace.*
 
+
+packages/tmnl/integrate/**/*
+
 packages/**/*.env.*
 ## direnv be gone.
 **/*.direnv/
@@ -15,6 +18,9 @@ tmp
 
 # holonet-core
 **/*/holonet-core/.data
+
+# audit logs (dev server output, claude debugging)
+**/.audit/
 
 # dependencies
 node_modules

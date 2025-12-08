@@ -27,4 +27,4 @@ venv/
 # Lock files of submodules/dependencies
 receipts/
 
-
+packages/tmnl/integrate/**/*
