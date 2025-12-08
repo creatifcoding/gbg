@@ -1,11 +1,4 @@
 /**
- * Static UI Layer System
- *
- * Provides:
- * - ScaleProvider: Context for global UI scaling
- * - Type definitions for static UI layers
- * - Presets for z-index, position, and pointer-events
+ * Static UI Layer System - Re-export from v1
  */
-
-export * from './types';
-export { ScaleProvider, useScale, useScaleKeyboardShortcuts, useScaledValue } from './ScaleProvider';
+export * from '../v1/static-ui';
