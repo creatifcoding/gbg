@@ -264,7 +264,7 @@ export function DropZoneOverlay() {
           background: 'rgba(0, 0, 0, 0.7)',
           border: '1px solid rgba(255, 255, 255, 0.2)',
           fontFamily: 'monospace',
-          fontSize: '10px',
+          fontSize: 12,
           color: 'rgba(255, 255, 255, 0.6)',
           textTransform: 'uppercase',
           letterSpacing: '0.1em',

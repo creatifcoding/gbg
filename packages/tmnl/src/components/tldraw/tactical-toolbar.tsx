@@ -15,6 +15,8 @@ import {
   MousePointer2,
   Hand,
   Trash2,
+  LineChart,
+  Table2,
 } from "lucide-react"
 
 // ============================================================================
@@ -40,7 +42,7 @@ function ToolbarButton({
       onClick={onClick}
       disabled={disabled}
       className={`
-        px-2 py-1.5 text-[9px] font-mono uppercase tracking-widest
+        px-2 py-1.5 font-mono uppercase tracking-widest
         transition-colors flex items-center gap-1.5
         border-r border-neutral-800 last:border-r-0
         disabled:opacity-30 disabled:cursor-not-allowed
@@ -52,6 +54,7 @@ function ToolbarButton({
               : "text-neutral-500 hover:bg-neutral-900 hover:text-white"
         }
       `}
+      style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
     >
       {children}
     </button>
@@ -96,6 +99,14 @@ export const SpawnToolbar = track(() => {
           <Activity size={10} />
           Chart
         </ToolbarButton>
+        <ToolbarButton onClick={() => spawnShape("echarts-widget")}>
+          <LineChart size={10} />
+          Scope
+        </ToolbarButton>
+        <ToolbarButton onClick={() => spawnShape("data-grid-widget")}>
+          <Table2 size={10} />
+          Grid
+        </ToolbarButton>
         <ToolbarButton onClick={() => spawnShape("notes-widget")}>
           <FileText size={10} />
           Notes
@@ -129,7 +140,7 @@ export const ToolsToolbar = track(() => {
       <button
         onClick={() => editor.setCurrentTool("select")}
         className={`
-          p-2 text-[9px] font-mono uppercase tracking-widest
+          p-2 font-mono uppercase tracking-widest
           transition-colors flex items-center justify-center
           border-b border-neutral-800
           ${
@@ -138,14 +149,15 @@ export const ToolsToolbar = track(() => {
               : "text-neutral-500 hover:bg-neutral-900 hover:text-white"
           }
         `}
+        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
         title="Select (V)"
       >
-        <MousePointer2 size={12} />
+        <MousePointer2 size={14} />
       </button>
       <button
         onClick={() => editor.setCurrentTool("hand")}
         className={`
-          p-2 text-[9px] font-mono uppercase tracking-widest
+          p-2 font-mono uppercase tracking-widest
           transition-colors flex items-center justify-center
           ${
             currentTool === "hand"
@@ -153,9 +165,10 @@ export const ToolsToolbar = track(() => {
               : "text-neutral-500 hover:bg-neutral-900 hover:text-white"
           }
         `}
+        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
         title="Pan (H)"
       >
-        <Hand size={12} />
+        <Hand size={14} />
       </button>
     </div>
   )
@@ -175,9 +188,12 @@ export const ZoomToolbar = track(() => {
       <div className="absolute -bottom-px -right-px w-2 h-2 border-b border-r border-neutral-700" />
 
       <ToolbarButton onClick={() => editor.zoomOut()}>
-        <Minus size={10} />
+        <Minus size={12} />
       </ToolbarButton>
-      <div className="px-2 py-1.5 text-[9px] font-mono text-neutral-400 border-r border-neutral-800 min-w-[48px] text-center">
+      <div
+        className="px-2 py-1.5 font-mono text-neutral-400 border-r border-neutral-800 min-w-[48px] text-center"
+        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+      >
         {Math.round(zoom * 100)}%
       </div>
       <ToolbarButton onClick={() => editor.zoomIn()}>
@@ -200,7 +216,10 @@ export const StatusOverlay = track(() => {
   const selectedCount = editor.getSelectedShapeIds().length
 
   return (
-    <div className="absolute top-4 right-4 text-[9px] font-mono bg-black border border-neutral-800 px-3 py-2 z-50">
+    <div
+      className="absolute top-4 right-4 font-mono bg-black border border-neutral-800 px-3 py-2 z-50"
+      style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+    >
       {/* Corner decoration */}
       <div className="absolute -top-px -left-px w-2 h-2 border-t border-l border-neutral-700" />
       <div className="absolute -top-px -right-px w-2 h-2 border-t border-r border-neutral-700" />
@@ -268,7 +287,12 @@ export const MiniMap = track(() => {
       <div className="absolute -bottom-px -right-px w-2 h-2 border-b border-r border-neutral-700 z-10" />
 
       {/* Label */}
-      <div className="absolute top-1 left-1.5 text-[7px] font-mono text-neutral-600 uppercase tracking-wider">Map</div>
+      <div
+        className="absolute top-1 left-1.5 font-mono text-neutral-600 uppercase tracking-wider"
+        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+      >
+        Map
+      </div>
 
       {/* Grid */}
       <div className="absolute inset-0 opacity-20">

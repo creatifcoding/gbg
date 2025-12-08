@@ -118,7 +118,7 @@ function DataCardComponent({ shape }: { shape: DataCardShape }) {
           />
           <span
             style={{
-              fontSize: '7px',
+              fontSize: 12,
               color: statusColor,
               textTransform: 'uppercase',
               letterSpacing: '0.1em',

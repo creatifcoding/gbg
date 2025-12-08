@@ -77,11 +77,11 @@ export class ChartWidgetShapeUtil extends BaseBoxShapeUtil<ChartWidgetShape> {
           {/* Header */}
           <div className="h-5 flex-shrink-0 flex items-center px-2 border-b border-neutral-800 bg-neutral-900/30">
             <Activity size={10} className="text-neutral-600 mr-1.5" />
-            <span className="text-[8px] font-mono uppercase tracking-widest text-neutral-500 group-hover:text-white transition-colors">
+            <span className="font-mono uppercase tracking-widest text-neutral-500 group-hover:text-white transition-colors" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
               {metadata.name}
             </span>
             <div className="ml-auto flex items-center gap-1">
-              <span className="text-[7px] font-mono text-neutral-600 uppercase">Live</span>
+              <span className="font-mono text-neutral-600 uppercase" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>Live</span>
               <div className="w-1.5 h-1.5 bg-red-500 animate-pulse" />
             </div>
           </div>
@@ -95,7 +95,7 @@ export class ChartWidgetShapeUtil extends BaseBoxShapeUtil<ChartWidgetShape> {
 
               {chartData.length === 0 ? (
                 <div className="w-full h-full flex items-center justify-center">
-                  <span className="text-[7px] font-mono uppercase text-neutral-700 tracking-widest">
+                  <span className="font-mono uppercase text-neutral-700 tracking-widest" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
                     AWAITING SIGNAL
                   </span>
                 </div>
@@ -260,7 +260,7 @@ function ControllerComponent({ shape }: { shape: ControllerWidgetShape }) {
       case "color":
         return (
           <div key={key} className="flex items-center gap-1.5" onPointerDown={stopEventPropagation}>
-            <span className="text-[7px] font-mono uppercase text-neutral-500">{config.label}</span>
+            <span className="font-mono uppercase text-neutral-500" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>{config.label}</span>
             <input
               type="color"
               value={currentValue}
@@ -273,7 +273,7 @@ function ControllerComponent({ shape }: { shape: ControllerWidgetShape }) {
       case "boolean":
         return (
           <div key={key} className="flex items-center gap-1.5" onPointerDown={stopEventPropagation}>
-            <span className="text-[7px] font-mono uppercase text-neutral-500">{config.label}</span>
+            <span className="font-mono uppercase text-neutral-500" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>{config.label}</span>
             <button
               onClick={() => handleParameterChange(key, !currentValue)}
               className={cn(
@@ -307,10 +307,10 @@ function ControllerComponent({ shape }: { shape: ControllerWidgetShape }) {
         onClick={toggleExpanded}
       >
         <Sliders size={10} className="text-neutral-600 mr-1.5" />
-        <span className="text-[8px] font-mono uppercase tracking-widest text-neutral-500">CONTROLLER</span>
+        <span className="font-mono uppercase tracking-widest text-neutral-500" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>CONTROLLER</span>
         {isConnected && (
           <>
-            <span className="ml-1.5 text-[7px] font-mono text-white animate-pulse">LINKED</span>
+            <span className="ml-1.5 font-mono text-white animate-pulse" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>LINKED</span>
             <button
               className="ml-1 p-0.5 hover:bg-neutral-800 transition-colors"
               onClick={(e) => {
@@ -337,7 +337,7 @@ function ControllerComponent({ shape }: { shape: ControllerWidgetShape }) {
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-neutral-700 gap-1">
               <Link2 className="w-4 h-4" />
-              <span className="text-[7px] font-mono uppercase tracking-widest text-center">
+              <span className="font-mono uppercase tracking-widest text-center" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
                 SELECT BOTH
                 <br />
                 TO LINK
@@ -445,14 +445,15 @@ export class NotesWidgetShapeUtil extends BaseBoxShapeUtil<NotesWidgetShape> {
         <div className="w-full h-full bg-black border border-neutral-800 flex flex-col overflow-hidden group">
           <div className="h-5 flex-shrink-0 flex items-center px-2 border-b border-neutral-800 bg-neutral-900/30">
             <FileText size={10} className="text-neutral-600 mr-1.5" />
-            <span className="text-[8px] font-mono uppercase tracking-widest text-neutral-500 group-hover:text-white transition-colors">
+            <span className="font-mono uppercase tracking-widest text-neutral-500 group-hover:text-white transition-colors" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
               {title}
             </span>
           </div>
           <div className="flex-1 p-1.5 min-h-0">
             {isEditing ? (
               <textarea
-                className="w-full h-full bg-neutral-950 border border-neutral-900 p-1.5 text-[9px] font-mono text-neutral-300 resize-none focus:outline-none focus:border-neutral-700"
+                className="w-full h-full bg-neutral-950 border border-neutral-900 p-1.5 font-mono text-neutral-300 resize-none focus:outline-none focus:border-neutral-700"
+                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
                 defaultValue={content}
                 autoFocus
                 onPointerDown={stopEventPropagation}
@@ -465,7 +466,7 @@ export class NotesWidgetShapeUtil extends BaseBoxShapeUtil<NotesWidgetShape> {
                 }}
               />
             ) : (
-              <div className="w-full h-full bg-neutral-950 border border-neutral-900 p-1.5 text-[9px] font-mono text-neutral-400 overflow-auto whitespace-pre-wrap">
+              <div className="w-full h-full bg-neutral-950 border border-neutral-900 p-1.5 font-mono text-neutral-400 overflow-auto whitespace-pre-wrap" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
                 {content || <span className="text-neutral-700 uppercase">Double-click to edit...</span>}
               </div>
             )}
@@ -536,14 +537,14 @@ function TerminalComponent({ shape, isEditing }: { shape: TerminalWidgetShape; i
     <div className="w-full h-full bg-black border border-neutral-800 flex flex-col overflow-hidden group">
       <div className="h-5 flex-shrink-0 flex items-center px-2 border-b border-neutral-800 bg-neutral-900/30">
         <Terminal size={10} className="text-neutral-600 mr-1.5" />
-        <span className="text-[8px] font-mono uppercase tracking-widest text-neutral-500 group-hover:text-white transition-colors">
+        <span className="font-mono uppercase tracking-widest text-neutral-500 group-hover:text-white transition-colors" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
           TERMINAL
         </span>
         <div className="ml-auto w-1.5 h-1.5 bg-red-500 animate-pulse" />
       </div>
       <div className="flex-1 p-1.5 min-h-0 overflow-auto bg-neutral-950 font-mono">
         {history.map((line, i) => (
-          <div key={i} className="text-[8px] text-neutral-400 whitespace-pre-wrap leading-relaxed">
+          <div key={i} className="text-neutral-400 whitespace-pre-wrap leading-relaxed" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
             {line}
           </div>
         ))}
@@ -553,7 +554,7 @@ function TerminalComponent({ shape, isEditing }: { shape: TerminalWidgetShape; i
           className="h-5 flex items-center px-1.5 border-t border-neutral-800 bg-black"
           onPointerDown={stopEventPropagation}
         >
-          <span className="text-[8px] font-mono text-neutral-600 mr-1">&gt;</span>
+          <span className="font-mono text-neutral-600 mr-1" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>&gt;</span>
           <input
             ref={inputRef}
             type="text"
@@ -565,7 +566,8 @@ function TerminalComponent({ shape, isEditing }: { shape: TerminalWidgetShape; i
                 setInput("")
               }
             }}
-            className="flex-1 bg-transparent text-[8px] font-mono text-white outline-none"
+            className="flex-1 bg-transparent font-mono text-white outline-none"
+            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
             autoFocus
           />
         </div>
@@ -626,10 +628,22 @@ export { DataGridWidgetShapeUtil, type DataGridWidgetShape, type DataGridRow } f
 export { DataCardShapeUtil, type DataCardShape } from './data-card-shape';
 
 // ============================================
+// ACQUIRE GHOST (drag reticle)
+// ============================================
+export { AcquireGhostShapeUtil, type AcquireGhostShape } from './acquire-ghost-shape';
+
+// ============================================
+// ECHARTS WIDGET (Chart.make({}) integration)
+// ============================================
+export { EChartsWidgetShapeUtil, type EChartsWidgetShape } from './echarts-widget-shape';
+
+// ============================================
 // EXPORT ALL SHAPE UTILS
 // ============================================
 import { DataGridWidgetShapeUtil } from './data-grid-shape';
 import { DataCardShapeUtil } from './data-card-shape';
+import { AcquireGhostShapeUtil } from './acquire-ghost-shape';
+import { EChartsWidgetShapeUtil } from './echarts-widget-shape';
 
 export const tmnlShapeUtils = [
   ChartWidgetShapeUtil,
@@ -638,4 +652,6 @@ export const tmnlShapeUtils = [
   TerminalWidgetShapeUtil,
   DataGridWidgetShapeUtil,
   DataCardShapeUtil,
+  AcquireGhostShapeUtil,
+  EChartsWidgetShapeUtil,
 ]
