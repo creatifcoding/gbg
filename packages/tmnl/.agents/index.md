@@ -10,6 +10,8 @@ Operational journals and session logs.
 
 | Date | Tagline |
 |------|---------|
+| [2025-12-03](val/journal/2025-12-03.md) | Component deduplication + ideas parking lot |
+| [2025-12-01](val/journal/2025-12-01.md) | The observer that observes itself observes nothing else |
 | [2025-11-29](val/journal/2025-11-29.md) | The scalpel is only as good as the surgeon's eyes |
 
 ---
