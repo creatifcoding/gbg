@@ -14,11 +14,13 @@ export const TMNL_TOKENS = {
     backgroundTertiary: '#141414',
     backgroundHover: '#1a1a1a',
     backgroundSelected: '#1e1e21',
+    backgroundCard: '#0d0d0d', // Alias for card backgrounds
 
     // Borders
     borderMuted: '#1a1a1a',
     borderDefault: '#262626',
     borderSubtle: '#333333',
+    border: '#262626', // Alias for borderDefault (backwards compat)
 
     // Text hierarchy
     textPrimary: '#ffffff',
@@ -39,6 +41,8 @@ export const TMNL_TOKENS = {
   },
 
   // Typography
+  // IMPORTANT: Sizes aligned with TYPOGRAPHY_BASE_SIZES (xs:12, sm:14, base:16)
+  // DO NOT shrink these "to look clean" — readability > aesthetics
   typography: {
     fontFamily: [
       'ui-monospace',
@@ -49,10 +53,10 @@ export const TMNL_TOKENS = {
       '"Liberation Mono"',
       'monospace',
     ],
-    fontSizeXs: 9,
-    fontSizeSm: 10,
-    fontSizeMd: 11,
-    fontSizeLg: 12,
+    fontSizeXs: 12,  // Minimum readable size
+    fontSizeSm: 13,  // Small labels
+    fontSizeMd: 14,  // Body text
+    fontSizeLg: 16,  // Emphasis
   },
 
   // Spacing

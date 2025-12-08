@@ -207,7 +207,7 @@ export function HolonetCanvas({ className }: HolonetCanvasProps) {
       )}
       {!mounted && (
         <div className="w-full h-full flex items-center justify-center">
-          <div className="text-[9px] font-mono text-neutral-600 uppercase tracking-widest flex items-center gap-2">
+          <div className="font-mono text-neutral-600 uppercase tracking-widest flex items-center gap-2" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
             <div className="w-1.5 h-1.5 bg-neutral-700 animate-pulse" />
             Initializing Canvas...
           </div>

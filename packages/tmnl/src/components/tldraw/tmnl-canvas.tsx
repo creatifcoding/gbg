@@ -11,7 +11,7 @@ import {
   MiniMap,
 } from "@/components/static-ui/canvas-toolbar"
 import { cloneMetadataWithValues } from "@/lib/types"
-import { DragReticleOverlay, DropZoneOverlay } from "./overlays"
+import { DragReticleOverlay } from "./overlays"
 import { gsapDriver, Animatable } from "@/lib/animation"
 
 // Initialize animation system with GSAP driver
@@ -19,12 +19,7 @@ Animatable.setDriver(gsapDriver)
 
 // Combined overlay component for InFrontOfTheCanvas
 function CanvasOverlays() {
-  return (
-    <>
-      <DragReticleOverlay />
-      <DropZoneOverlay />
-    </>
-  )
+  return <DragReticleOverlay />
 }
 
 // Hide default tldraw UI, add custom overlays
@@ -228,7 +223,7 @@ export function TmnlCanvas({ className }: TmnlCanvasProps) {
       )}
       {!mounted && (
         <div className="w-full h-full flex items-center justify-center">
-          <div className="text-[9px] font-mono text-neutral-600 uppercase tracking-widest flex items-center gap-2">
+          <div className="font-mono text-neutral-600 uppercase tracking-widest flex items-center gap-2" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
             <div className="w-1.5 h-1.5 bg-neutral-700 animate-pulse" />
             Initializing Canvas...
           </div>
