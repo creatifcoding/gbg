@@ -20,7 +20,8 @@
       "@gbg/cms": ["packages/cms/src/index.ts"],
       "@gbg/graph": ["packages/getbygraph/src/index.ts"],
       "@gbg/tmnl": ["packages/tmnl/src/index.ts"],
-      "@gbg/ore": ["packages/ore/src/index.ts"]
+      "@gbg/ore": ["packages/ore/src/index.ts"],
+      "@gbg/gotby": ["packages/gotby/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp", "submodules", "receipts"]

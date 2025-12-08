@@ -82,3 +82,9 @@
 [submodule "submodules/gsap-react"]
 	path = submodules/gsap-react
 	url = https://github.com/greensock/react
+[submodule "submodules/unit"]
+	path = submodules/unit
+	url = https://github.com/samuelmtimbo/unit/
+[submodule "submodules/website"]
+	path = submodules/website
+	url = https://github.com/Effect-TS/website
