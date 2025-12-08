@@ -1,4 +1,4 @@
-import { createMachine, createActor, type Actor } from 'xstate';
+import { createMachine, createActor, type Actor, type Observer } from 'xstate';
 
 /** */
 /** TODO:  layer lifecycle strings need to be branded enums.
@@ -105,16 +105,43 @@ const lockedMachine = createMachine({
   },
 });
 
+/**
+ * Options for creating a layer actor
+ */
+export interface CreateLayerActorOptions {
+  /** Initial state */
+  initial?: 'hidden' | 'visible' | 'locked';
+  /** Inspector function from @statelyai/inspect for DevTools integration */
+  inspect?: Observer<unknown>;
+}
+
+/**
+ * Create a new layer state machine actor
+ *
+ * @param options - Configuration options including initial state and inspector
+ * @returns Actor instance for the layer machine
+ *
+ * @example
+ * ```typescript
+ * import { createBrowserInspector } from '@statelyai/inspect';
+ * const { inspect } = createBrowserInspector();
+ * const actor = createLayerActor({ initial: 'visible', inspect });
+ * actor.start();
+ * ```
+ */
 export const createLayerActor = (
-  initial?: 'hidden' | 'visible' | 'locked'
+  options?: CreateLayerActorOptions
 ): Actor<typeof layerMachine> => {
+  const { initial, inspect } = options ?? {};
+  const actorOptions = inspect ? { inspect } : undefined;
+
   switch (initial) {
     case 'hidden':
-      return createActor(hiddenMachine);
+      return createActor(hiddenMachine, actorOptions);
     case 'locked':
-      return createActor(lockedMachine);
+      return createActor(lockedMachine, actorOptions);
     case 'visible':
     default:
-      return createActor(layerMachine);
+      return createActor(layerMachine, actorOptions);
   }
 };

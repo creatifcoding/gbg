@@ -172,9 +172,10 @@ function getPositionStyle(mode: PositionMode): CSSProperties {
 
     case 'absolute':
       // NOTE: Absolute positioning is relative to nearest positioned ancestor
-      // TODO: Add warning if no positioned ancestor exists
+      // FIX: Added inset: 0 to prevent wrapper collapse (same as fixed)
       return {
         position: 'absolute',
+        inset: 0,
       };
 
     case 'sticky':
