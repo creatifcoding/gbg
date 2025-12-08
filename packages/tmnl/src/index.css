@@ -2,6 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =============================================================================
+   LCD / SEVEN-SEGMENT FONT
+   DSEG7 Classic - Authentic seven-segment display font
+   https://github.com/keshikan/DSEG
+   ============================================================================= */
+@font-face {
+  font-family: 'DSEG7';
+  src: url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Regular.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DSEG7';
+  src: url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 4px;
@@ -224,6 +247,30 @@
     @apply font-display text-tmnl-xs font-bold uppercase tracking-tmnl-wider text-emerald-500;
   }
 
+  /* ========== LCD / SEVEN-SEGMENT DISPLAY ========== */
+  /* Stopwatches, timers, countdowns, numeric readouts */
+  .tmnl-type-lcd {
+    font-family: 'DSEG7', 'Courier New', monospace;
+    font-size: 1.75rem;
+    line-height: 1.5rem;
+    letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums;
+  }
+  .tmnl-type-lcd-sm {
+    font-family: 'DSEG7', 'Courier New', monospace;
+    font-size: 1.25rem;
+    line-height: 1.25rem;
+    letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums;
+  }
+  .tmnl-type-lcd-lg {
+    font-family: 'DSEG7', 'Courier New', monospace;
+    font-size: 2.75rem;
+    line-height: 2rem;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
   /* ========== MISSION CONTEXT ========== */
   /* Operation names, target descriptions */
   .tmnl-type-mission-code {
@@ -267,6 +314,9 @@
   }
   .text-glow-blue {
     text-shadow: 0 0 8px rgb(59 130 246 / 0.5);
+  }
+  .text-glow-cyan {
+    text-shadow: 0 0 8px rgb(34 211 238 / 0.5);
   }
 
   /* Scan line effect for retro feel */

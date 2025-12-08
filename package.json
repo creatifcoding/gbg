@@ -66,6 +66,8 @@
     "includedScripts": []
   },
   "dependencies": {
+    "@floating-ui/react": "^0.27.16",
+    "@statelyai/inspect": "^0.4.0",
     "@xstate/react": "^6.0.0",
     "effect": "^3.19.7",
     "nanoid": "^5.1.6",

@@ -63,7 +63,15 @@ export default defineConfig(() => ({
         }
       : undefined,
     watch: {
-      ignored: ['**/src-tauri/**'],
+      // Exclude heavy directories from file watching to prevent ENOSPC
+      ignored: [
+        '**/src-tauri/**',
+        '**/.direnv/**',
+        '**/.git/**',
+        '**/node_modules/.cache/**',
+        '**/.nix-profile/**',
+        '**/result/**',
+      ],
     },
   },
   // Uncomment this if you are using workers.
