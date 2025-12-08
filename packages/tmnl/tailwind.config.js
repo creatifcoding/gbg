@@ -13,6 +13,7 @@ export default {
         body: ["var(--font-body)", "monospace"], // IBM Plex Mono - Body text
         code: ["var(--font-code)", "monospace"], // Fira Code - Terminal/code
         data: ["var(--font-data)", "monospace"], // Roboto Mono - Stats/numerics
+        lcd: ['"DSEG7"', '"Courier New"', "monospace"], // DSEG7 - Seven-segment LCD display
         mono: ['"JetBrains Mono"', '"SF Mono"', '"Fira Code"', "Consolas", "monospace"],
       },
       fontWeight: {
