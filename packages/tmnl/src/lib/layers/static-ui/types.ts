@@ -1,4 +1,0 @@
-/**
- * Static UI Types - Re-export from v1
- */
-export * from '../v1/static-ui/types';

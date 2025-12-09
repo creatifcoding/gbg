@@ -1,7 +1,6 @@
 import { type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { HoundstoothGOL } from './components/houndstooth-gol';
-import { withLayering } from './lib/layers';
 import { Link } from '@tanstack/react-router';
 import {
   VantaCard,
@@ -11,32 +10,33 @@ import {
 import './App.css';
 
 /**
- * Background Layer - HoundstoothGOL with full viewport
+ * Background - HoundstoothGOL with full viewport
+ * Plain CSS z-index, no layer system needed
  */
-const BackgroundLayer = withLayering(() => <HoundstoothGOL />, {
-  name: 'houndstooth-background',
-  zIndex: -10,
-  positionMode: 'fixed',
-  pointerEvents: 'auto',
-});
+function Background() {
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: -10, pointerEvents: 'auto' }}>
+      <HoundstoothGOL />
+    </div>
+  );
+}
 
 /**
- * Content Layer - Portal UI
+ * Content - Portal UI
+ * Plain CSS z-index, no layer system needed
  */
-const ContentLayer = withLayering(
-  ({ children }: { children: ReactNode }) => (
-    <div className="min-h-screen flex items-center justify-center overflow-hidden scrollbar-hide p-8">
-      {children}
+function Content({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="min-h-screen flex items-center justify-center overflow-hidden scrollbar-hide p-8"
+      style={{ position: 'relative', zIndex: 10, pointerEvents: 'none' }}
+    >
+      <div style={{ pointerEvents: 'auto' }}>
+        {children}
+      </div>
     </div>
-  ),
-  {
-    name: 'main-content',
-    zIndex: 10,
-    positionMode: 'relative',
-    pointerEvents: 'pass-through',
-    captureClicks: true,
-  }
-);
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Card Data
@@ -104,14 +104,6 @@ const CARDS: readonly CardDef[] = [
     body: 'Emacs minor-mode inspired capability modules. LIFO event dispatch, typed ports, container-scoped.',
     route: '/testbed/overlays',
     status: 'active',
-  },
-  {
-    title: 'LAYERS V2',
-    body: 'Atom-as-State layer management. Hook-based style injection with View Transitions for version switching.',
-    route: '/testbed/layers',
-    status: 'active',
-    label: 'NEW',
-    glow: 'cyan',
   },
   {
     title: 'SCADA CANVAS',
@@ -355,12 +347,12 @@ function App() {
   return (
     <>
       {/* Background - HoundstoothGOL simulation */}
-      <BackgroundLayer />
+      <Background />
 
       {/* Content - Portal overlay */}
-      <ContentLayer>
+      <Content>
         <PortalContent />
-      </ContentLayer>
+      </Content>
     </>
   );
 }

@@ -43,7 +43,6 @@ import { IndicesTestbed } from './components/testbed/IndicesTestbed';
 import { DataGridVariantTestbed } from './components/testbed/DataGridVariantTestbed';
 import Dispositions from './pages/Dispositions';
 import { StreamsPlayground } from './components/playground/streams';
-import { LayerV2Testbed } from './components/testbed/LayerV2Testbed';
 
 // Create a root route
 const rootRoute = createRootRoute({
@@ -236,13 +235,6 @@ const streamsPlaygroundRoute = createRoute({
   component: StreamsPlayground,
 });
 
-// Create layer v2 testbed route
-const layerV2TestbedRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/testbed/layers',
-  component: LayerV2Testbed,
-});
-
 // Create the router
 const router = createRouter({
   routeTree: rootRoute.addChildren([
@@ -272,7 +264,6 @@ const router = createRouter({
     dataGridVariantTestbedRoute,
     scadaCanvasRoute,
     streamsPlaygroundRoute,
-    layerV2TestbedRoute,
   ]),
 });
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { TmnlCanvas } from './tldraw/tmnl-canvas';
 import { Tmnl } from './tactical/tmnl-ui';
 import { Crosshair, User, Wifi, Zap } from 'lucide-react';
-import { HeaderLayer, FooterLayer } from './static-ui';
+import { Header, StatusFooter } from './static-ui';
 
 export function TmnlLayout() {
   const [leftDrawerOpen, setLeftDrawerOpen] = useState(false);
@@ -37,8 +37,8 @@ export function TmnlLayout() {
 
   return (
     <div className="h-screen w-screen bg-neutral-950 text-neutral-400 font-mono flex flex-col overflow-hidden">
-      {/* Header Layer */}
-      <HeaderLayer
+      {/* Header */}
+      <Header
         navTabs={navTabs}
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -62,8 +62,8 @@ export function TmnlLayout() {
         </main>
       </div>
 
-      {/* Footer Layer */}
-      <FooterLayer status="connected" message="Canvas Ready" />
+      {/* Footer */}
+      <StatusFooter status="connected" message="Canvas Ready" />
 
       <Tmnl.LeftDrawer
         open={leftDrawerOpen}

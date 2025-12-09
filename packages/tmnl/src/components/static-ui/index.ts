@@ -1,14 +1,14 @@
 /**
  * TMNL Static UI Components
  *
- * Application chrome elements with layer system integration.
+ * Application chrome elements.
  */
 
 // Header
-export { Header, HeaderLayer, type HeaderProps } from './Header';
+export { Header, type HeaderProps } from './Header';
 
 // Footer
-export { StatusFooter, FooterLayer, type StatusFooterProps } from './Footer';
+export { StatusFooter, type StatusFooterProps } from './Footer';
 
 // Drawer
 export {
@@ -47,6 +47,3 @@ export {
   ActionsToolbar,
   MiniMap,
 } from './canvas-toolbar';
-
-// Layer utilities
-export * from '@/lib/layers/static-ui';

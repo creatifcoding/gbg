@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider } from '@tanstack/react-router'; // Import RouterProvider
 import router from './router'; // Import the router instance
-import { ScaleProvider } from './lib/layers/static-ui/ScaleProvider';
+import { ScaleProvider } from './lib/scale';
 import './index.css';
 
 // React Grab: UI element selector + Claude Code integration (dev only)
