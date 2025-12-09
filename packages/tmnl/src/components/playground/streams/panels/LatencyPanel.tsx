@@ -16,6 +16,7 @@ import {
   feedModeAtom,
 } from '@/lib/streams/playground'
 import { D3Histogram } from '../viz'
+import { MetricBadge } from '@/components/primitives'
 
 // =============================================================================
 // TYPES
@@ -79,18 +80,24 @@ export function LatencyPanel({
             value={toMicro(latency.avgMs)}
             unit="μs"
             accent="green"
+            format="fixed"
+            decimals={1}
           />
           <MetricBadge
             label="p95"
             value={toMicro(latency.p95Ms)}
             unit="μs"
             accent="amber"
+            format="fixed"
+            decimals={1}
           />
           <MetricBadge
             label="p99"
             value={toMicro(latency.p99Ms)}
             unit="μs"
             accent="rose"
+            format="fixed"
+            decimals={1}
           />
         </div>
       </div>
@@ -123,44 +130,6 @@ export function LatencyPanel({
           )}
         </span>
       </div>
-    </div>
-  )
-}
-
-// =============================================================================
-// HELPERS
-// =============================================================================
-
-interface MetricBadgeProps {
-  label: string
-  value: number
-  unit?: string
-  accent?: 'green' | 'amber' | 'rose' | 'neutral'
-}
-
-function MetricBadge({ label, value, unit, accent = 'neutral' }: MetricBadgeProps) {
-  const accentColors = {
-    green: 'text-green-400',
-    amber: 'text-amber-400',
-    rose: 'text-rose-400',
-    neutral: 'text-neutral-300',
-  }
-
-  return (
-    <div className="flex items-center gap-1">
-      <span
-        className="text-neutral-500"
-        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-      >
-        {label}:
-      </span>
-      <span
-        className={`font-mono font-bold ${accentColors[accent]}`}
-        style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
-      >
-        {value.toFixed(1)}
-        {unit && <span className="text-neutral-600 font-normal">{unit}</span>}
-      </span>
     </div>
   )
 }

@@ -25,59 +25,7 @@ import {
   type ScenarioPresetKey,
   UnifiedScenarioConfig as UnifiedScenarioConfigClass,
 } from '@/lib/streams/playground/scenarios/types'
-
-// ============================================================================
-// LOGARITHMIC SLIDER
-// ============================================================================
-
-interface LogSliderProps {
-  value: number
-  min: number
-  max: number
-  onChange: (value: number) => void
-  disabled?: boolean
-}
-
-/**
- * Logarithmic slider for exponential ranges (1 → 10k).
- */
-function LogSlider({ value, min, max, onChange, disabled }: LogSliderProps) {
-  // Convert linear to log scale
-  const logMin = Math.log10(min)
-  const logMax = Math.log10(max)
-  const logValue = Math.log10(Math.max(min, value))
-
-  // Linear position (0-100)
-  const position = ((logValue - logMin) / (logMax - logMin)) * 100
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const linearPos = parseFloat(e.target.value)
-    const logVal = logMin + (linearPos / 100) * (logMax - logMin)
-    const actualValue = Math.round(Math.pow(10, logVal))
-    onChange(Math.max(min, Math.min(max, actualValue)))
-  }
-
-  return (
-    <div className="flex items-center gap-3">
-      <input
-        type="range"
-        min={0}
-        max={100}
-        step={0.5}
-        value={position}
-        onChange={handleChange}
-        disabled={disabled}
-        className="flex-1 h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed"
-      />
-      <span
-        className="min-w-[4rem] text-right font-mono tabular-nums"
-        style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
-      >
-        {value.toLocaleString()}
-      </span>
-    </div>
-  )
-}
+import { LogSlider } from '@/components/primitives'
 
 // ============================================================================
 // MAIN COMPONENT

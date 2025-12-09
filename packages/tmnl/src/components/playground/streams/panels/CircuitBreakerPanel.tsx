@@ -9,6 +9,13 @@
 import { useAtomValue } from '@effect-atom/atom-react'
 import { circuitBreakerAtom } from '@/lib/streams/playground'
 import { D3Gauge } from '../viz'
+import {
+  StateNode,
+  TransitionArrow,
+  TransitionRule,
+  getStateColors,
+  type FsmStateType,
+} from '@/components/primitives'
 
 // =============================================================================
 // TYPES
@@ -31,94 +38,17 @@ interface CircuitBreakerPanelProps {
 // CONSTANTS
 // =============================================================================
 
-const STATE_COLORS: Record<CircuitState, { bg: string; border: string; text: string }> = {
-  closed: {
-    bg: 'bg-green-900/30',
-    border: 'border-green-700',
-    text: 'text-green-400',
-  },
-  open: {
-    bg: 'bg-red-900/30',
-    border: 'border-red-700',
-    text: 'text-red-400',
-  },
-  'half-open': {
-    bg: 'bg-amber-900/30',
-    border: 'border-amber-700',
-    text: 'text-amber-400',
-  },
+/** Map circuit breaker states to FSM state types */
+const STATE_TYPE_MAP: Record<CircuitState, FsmStateType> = {
+  closed: 'success',
+  open: 'error',
+  'half-open': 'warning',
 }
 
 const STATE_DESCRIPTIONS: Record<CircuitState, string> = {
   closed: 'Normal operation. All requests pass through.',
   open: 'Failing. All requests rejected immediately.',
   'half-open': 'Testing. Single request allowed to test recovery.',
-}
-
-// =============================================================================
-// STATE NODE
-// =============================================================================
-
-interface StateNodeProps {
-  state: CircuitState
-  isActive: boolean
-  label: string
-}
-
-function StateNode({ state, isActive, label }: StateNodeProps) {
-  const colors = STATE_COLORS[state]
-
-  return (
-    <div
-      className={`
-        relative p-4 rounded-lg border-2 transition-all
-        ${colors.bg} ${colors.border}
-        ${isActive ? 'ring-2 ring-offset-2 ring-offset-neutral-950' : 'opacity-50'}
-        ${isActive && state === 'closed' ? 'ring-green-400' : ''}
-        ${isActive && state === 'open' ? 'ring-red-400' : ''}
-        ${isActive && state === 'half-open' ? 'ring-amber-400' : ''}
-      `}
-    >
-      {/* Status indicator */}
-      {isActive && (
-        <div
-          className={`
-            absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-neutral-950
-            ${state === 'closed' ? 'bg-green-400' : state === 'open' ? 'bg-red-400' : 'bg-amber-400'}
-            animate-pulse
-          `}
-        />
-      )}
-
-      <div
-        className={`font-mono uppercase tracking-wider ${colors.text}`}
-        style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
-      >
-        {label}
-      </div>
-    </div>
-  )
-}
-
-// =============================================================================
-// TRANSITION ARROW
-// =============================================================================
-
-function TransitionArrow({ direction }: { direction: 'right' | 'down' | 'up' }) {
-  const arrows = {
-    right: '→',
-    down: '↓',
-    up: '↑',
-  }
-
-  return (
-    <span
-      className="text-neutral-600 font-mono"
-      style={{ fontSize: 'var(--tmnl-text-lg, 18px)' }}
-    >
-      {arrows[direction]}
-    </span>
-  )
 }
 
 // =============================================================================
@@ -167,7 +97,7 @@ export function CircuitBreakerPanel({
             }`}
           />
           <span
-            className={`font-mono uppercase ${STATE_COLORS[state].text}`}
+            className={`font-mono uppercase ${getStateColors(STATE_TYPE_MAP[state]).text}`}
             style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
           >
             {state}
@@ -179,11 +109,11 @@ export function CircuitBreakerPanel({
         {/* State machine diagram */}
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-4">
-            <StateNode state="closed" isActive={state === 'closed'} label="Closed" />
+            <StateNode type="success" isActive={state === 'closed'} label="Closed" />
             <TransitionArrow direction="right" />
-            <StateNode state="open" isActive={state === 'open'} label="Open" />
+            <StateNode type="error" isActive={state === 'open'} label="Open" />
             <TransitionArrow direction="right" />
-            <StateNode state="half-open" isActive={state === 'half-open'} label="Half-Open" />
+            <StateNode type="warning" isActive={state === 'half-open'} label="Half-Open" />
           </div>
 
           {/* Description */}
@@ -199,20 +129,26 @@ export function CircuitBreakerPanel({
             <TransitionRule
               from="closed"
               to="open"
+              fromType="success"
+              toType="error"
               condition={`${threshold} failures`}
-              active={state === 'closed'}
+              isActive={state === 'closed'}
             />
             <TransitionRule
               from="open"
               to="half-open"
+              fromType="error"
+              toType="warning"
               condition="timeout"
-              active={state === 'open'}
+              isActive={state === 'open'}
             />
             <TransitionRule
               from="half-open"
               to="closed"
+              fromType="warning"
+              toType="success"
               condition="success"
-              active={state === 'half-open'}
+              isActive={state === 'half-open'}
             />
           </div>
         </div>
@@ -268,42 +204,6 @@ export function CircuitBreakerPanel({
         <span>
           {failureCount}/{threshold} ({failurePercentage.toFixed(0)}%)
         </span>
-      </div>
-    </div>
-  )
-}
-
-// =============================================================================
-// HELPERS
-// =============================================================================
-
-interface TransitionRuleProps {
-  from: CircuitState
-  to: CircuitState
-  condition: string
-  active: boolean
-}
-
-function TransitionRule({ from, to, condition, active }: TransitionRuleProps) {
-  return (
-    <div
-      className={`p-2 rounded border ${
-        active ? 'border-neutral-600 bg-neutral-800/50' : 'border-neutral-800 opacity-50'
-      }`}
-    >
-      <div
-        className="flex items-center gap-1 text-neutral-400"
-        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-      >
-        <span className={STATE_COLORS[from].text}>{from}</span>
-        <span>→</span>
-        <span className={STATE_COLORS[to].text}>{to}</span>
-      </div>
-      <div
-        className="text-neutral-500 mt-1"
-        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-      >
-        {condition}
       </div>
     </div>
   )

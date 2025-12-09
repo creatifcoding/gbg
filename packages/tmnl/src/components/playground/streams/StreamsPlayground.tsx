@@ -23,7 +23,6 @@ import {
   HypothesisPanel,
   RawEventsPanel,
 } from './panels'
-import { D3Gauge } from './viz'
 import {
   resetMetrics,
   playgroundRegistry,
@@ -47,155 +46,13 @@ import { ScenarioConfigPanel } from './ScenarioConfigPanel'
 // TYPES
 // =============================================================================
 
-type ScenarioId =
-  | 'basic-throughput'
-  | 'sustained-load'
-  | 'burst-traffic'
-  | 'backpressure-block'
-  | 'backpressure-drop'
-  | 'circuit-trip'
-  | 'circuit-recovery'
-  | 'topology-fanout'
-  | 'topology-merge'
-  | 'chaos-monkey'
-  | 'stress-1k'
-  | 'stress-5k'
-  | 'stress-10k'
-
 type PlaygroundStatus = 'idle' | 'running' | 'paused' | 'completed' | 'error'
-
-interface ScenarioConfig {
-  /** Target events per second */
-  eventsPerSecond: number
-  /** Duration in seconds */
-  durationSec: number
-  /** Burst config (if applicable) */
-  burst?: { size: number; baselineRate: number }
-  /** Failure rate for circuit breaker scenarios (0-1) */
-  failureRate?: number
-}
-
-interface Scenario {
-  id: ScenarioId
-  name: string
-  category: 'throughput' | 'backpressure' | 'circuit' | 'topology' | 'mixed'
-  config: ScenarioConfig
-}
-
-/** Derive description from config */
-function describeScenario(s: Scenario): string {
-  const { config } = s
-  const rate = config.eventsPerSecond >= 1000
-    ? `${(config.eventsPerSecond / 1000).toFixed(1)}k`
-    : `${config.eventsPerSecond}`
-
-  if (config.burst) {
-    const burstSize = config.burst.size >= 1000
-      ? `${(config.burst.size / 1000).toFixed(0)}k`
-      : `${config.burst.size}`
-    return `${burstSize} burst, ${config.burst.baselineRate}/s baseline, ${config.durationSec}s`
-  }
-
-  if (config.failureRate !== undefined) {
-    return `${(config.failureRate * 100).toFixed(0)}% failure rate, ${rate}/s for ${config.durationSec}s`
-  }
-
-  return `${rate} events/sec for ${config.durationSec}s`
-}
-
-// =============================================================================
-// SCENARIOS
-// =============================================================================
-
-const SCENARIOS: Scenario[] = [
-  {
-    id: 'basic-throughput',
-    name: '01. Basic Throughput',
-    category: 'throughput',
-    config: { eventsPerSecond: 33, durationSec: 30 }, // ~1k total
-  },
-  {
-    id: 'sustained-load',
-    name: '02. Sustained Load',
-    category: 'throughput',
-    config: { eventsPerSecond: 100, durationSec: 60 }, // 6k total
-  },
-  {
-    id: 'burst-traffic',
-    name: '03. Burst Traffic',
-    category: 'throughput',
-    config: { eventsPerSecond: 100, durationSec: 30, burst: { size: 500, baselineRate: 10 } },
-  },
-  {
-    id: 'backpressure-block',
-    name: '04. Backpressure Block',
-    category: 'backpressure',
-    config: { eventsPerSecond: 50, durationSec: 30 },
-  },
-  {
-    id: 'backpressure-drop',
-    name: '05. Backpressure Drop',
-    category: 'backpressure',
-    config: { eventsPerSecond: 50, durationSec: 30 },
-  },
-  {
-    id: 'circuit-trip',
-    name: '06. Circuit Breaker Trip',
-    category: 'circuit',
-    config: { eventsPerSecond: 33, durationSec: 30, failureRate: 0.5 },
-  },
-  {
-    id: 'circuit-recovery',
-    name: '07. Circuit Breaker Recovery',
-    category: 'circuit',
-    config: { eventsPerSecond: 33, durationSec: 45, failureRate: 0.3 },
-  },
-  {
-    id: 'topology-fanout',
-    name: '08. Topology Fanout',
-    category: 'topology',
-    config: { eventsPerSecond: 33, durationSec: 30 },
-  },
-  {
-    id: 'topology-merge',
-    name: '09. Topology Merge',
-    category: 'topology',
-    config: { eventsPerSecond: 33, durationSec: 30 },
-  },
-  {
-    id: 'chaos-monkey',
-    name: '10. Chaos Monkey',
-    category: 'mixed',
-    config: { eventsPerSecond: 50, durationSec: 60, failureRate: 0.2 },
-  },
-  // === STRESS TESTS (rAF + TypedArray architecture) ===
-  {
-    id: 'stress-1k',
-    name: '11. Stress: 1k/sec',
-    category: 'throughput',
-    config: { eventsPerSecond: 1000, durationSec: 15 }, // 15k total
-  },
-  {
-    id: 'stress-5k',
-    name: '12. Stress: 5k/sec',
-    category: 'throughput',
-    config: { eventsPerSecond: 5000, durationSec: 10 }, // 50k total
-  },
-  {
-    id: 'stress-10k',
-    name: '13. Stress: 10k/sec',
-    category: 'throughput',
-    config: { eventsPerSecond: 10000, durationSec: 10 }, // 100k total
-  },
-]
 
 // =============================================================================
 // HEADER
 // =============================================================================
 
 interface PlaygroundHeaderProps {
-  selectedScenario: ScenarioId
-  onScenarioChange: (id: ScenarioId) => void
   status: PlaygroundStatus
   elapsedMs: number
   onStart: () => void
@@ -217,8 +74,6 @@ function formatElapsed(ms: number): string {
 }
 
 function PlaygroundHeader({
-  selectedScenario,
-  onScenarioChange,
   status,
   elapsedMs,
   onStart,
@@ -226,8 +81,6 @@ function PlaygroundHeader({
   onReset,
   isHighRes,
 }: PlaygroundHeaderProps) {
-  const scenario = SCENARIOS.find((s) => s.id === selectedScenario)
-
   return (
     <div className="px-4 py-3 flex items-center justify-between">
       <div className="flex items-center gap-4">
@@ -280,20 +133,6 @@ function PlaygroundHeader({
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Scenario Selector */}
-        <select
-          value={selectedScenario}
-          onChange={(e) => onScenarioChange(e.target.value as ScenarioId)}
-          className="px-3 py-1.5 bg-neutral-800 border border-neutral-700 rounded font-mono text-neutral-200"
-          style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
-        >
-          {SCENARIOS.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-
         {/* Controls */}
         <div className="flex items-center gap-1">
           <button
@@ -361,11 +200,10 @@ function PlaygroundHeader({
 type VisualizationTab = 'throughput' | 'latency' | 'circuit' | 'topology' | 'raw'
 
 interface MainVisualizationProps {
-  scenario: Scenario
   status: PlaygroundStatus
 }
 
-function MainVisualization({ scenario, status }: MainVisualizationProps) {
+function MainVisualization({ status }: MainVisualizationProps) {
   const [activeTab, setActiveTab] = useState<VisualizationTab>('throughput')
   const feedMode = useAtomValue(feedModeAtom)
   const setFeedMode = useAtomSet(feedModeAtom)
@@ -380,30 +218,6 @@ function MainVisualization({ scenario, status }: MainVisualizationProps) {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Scenario header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <span
-            className="font-mono text-neutral-500 uppercase tracking-wider"
-            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-          >
-            {scenario.category}
-          </span>
-          <h2
-            className="font-mono text-neutral-200"
-            style={{ fontSize: 'var(--tmnl-text-lg, 18px)' }}
-          >
-            {scenario.name}
-          </h2>
-        </div>
-        <p
-          className="text-neutral-500 max-w-sm text-right font-mono"
-          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-        >
-          {describeScenario(scenario)}
-        </p>
-      </div>
-
       {/* Tab navigation + Feed mode toggle */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-1">
@@ -517,7 +331,6 @@ function MainVisualization({ scenario, status }: MainVisualizationProps) {
  * - D3 charts (Phase 3)
  */
 export function StreamsPlayground() {
-  const [selectedScenario, setSelectedScenario] = useState<ScenarioId>('basic-throughput')
   const [status, setStatus] = useState<PlaygroundStatus>('idle')
   const [elapsedMs, setElapsedMs] = useState(0)
   const [events, setEvents] = useState<Array<{
@@ -530,8 +343,6 @@ export function StreamsPlayground() {
 
   const startedAtRef = useRef<number | null>(null)
   const stopwatchRef = useRef<number | null>(null)
-
-  const scenario = SCENARIOS.find((s) => s.id === selectedScenario)!
 
   // Initialize timing on mount - detect Tauri high-res vs browser fallback
   useEffect(() => {
@@ -657,13 +468,22 @@ export function StreamsPlayground() {
     resetMetrics()
   }, [])
 
+  // Runtime config changes propagate to running engine
+  const handleConfigChange = useCallback((config: UnifiedScenarioConfig) => {
+    if (engineRef.current && status === 'running') {
+      engineRef.current.updateConfig({
+        eventsPerSecond: config.eventsPerSecond,
+        payloadProfile: config.payloadProfile,
+        payloadTier: config.payloadTier,
+      })
+    }
+  }, [status])
+
   return (
     <RegistryContext.Provider value={playgroundRegistry}>
       <PlaygroundLayout
         header={
           <PlaygroundHeader
-            selectedScenario={selectedScenario}
-            onScenarioChange={setSelectedScenario}
             status={status}
             elapsedMs={elapsedMs}
             onStart={handleStart}
@@ -672,10 +492,13 @@ export function StreamsPlayground() {
             isHighRes={isHighRes}
           />
         }
-        main={<MainVisualization scenario={scenario} status={status} />}
+        main={<MainVisualization status={status} />}
         metrics={
           <div className="space-y-4">
-            <ScenarioConfigPanel isRunning={status === 'running'} />
+            <ScenarioConfigPanel
+              isRunning={status === 'running'}
+              onConfigChange={handleConfigChange}
+            />
             <MetricsPanel />
           </div>
         }

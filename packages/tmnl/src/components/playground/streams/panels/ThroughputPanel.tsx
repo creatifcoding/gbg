@@ -15,6 +15,7 @@ import {
   feedModeAtom,
 } from '@/lib/streams/playground'
 import { D3LineChart } from '../viz'
+import { MetricBadge } from '@/components/primitives'
 
 // =============================================================================
 // TYPES
@@ -113,43 +114,6 @@ export function ThroughputPanel({
           )}
         </span>
       </div>
-    </div>
-  )
-}
-
-// =============================================================================
-// HELPERS
-// =============================================================================
-
-interface MetricBadgeProps {
-  label: string
-  value: number
-  unit?: string
-  accent?: 'cyan' | 'amber' | 'neutral'
-}
-
-function MetricBadge({ label, value, unit, accent = 'neutral' }: MetricBadgeProps) {
-  const accentColors = {
-    cyan: 'text-cyan-400',
-    amber: 'text-amber-400',
-    neutral: 'text-neutral-300',
-  }
-
-  return (
-    <div className="flex items-center gap-1">
-      <span
-        className="text-neutral-500"
-        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-      >
-        {label}:
-      </span>
-      <span
-        className={`font-mono font-bold ${accentColors[accent]}`}
-        style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
-      >
-        {value.toLocaleString()}
-        {unit && <span className="text-neutral-600 font-normal">{unit}</span>}
-      </span>
     </div>
   )
 }
