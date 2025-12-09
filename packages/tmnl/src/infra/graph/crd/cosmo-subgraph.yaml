@@ -1,0 +1,126 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: cosmosubgraphs.tmnl.gbg.dev
+spec:
+  group: tmnl.gbg.dev
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              required: [name, routingUrl, schema]
+              properties:
+                name:
+                  type: string
+                  pattern: "^[a-z][a-z0-9-]*$"
+                routingUrl:
+                  type: string
+                  pattern: "^https?://.+"
+                subscriptionUrl:
+                  type: string
+                schema:
+                  type: object
+                  properties:
+                    configMapRef:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        key:
+                          type: string
+                          default: schema.graphql
+                    inline:
+                      type: string
+                    introspection:
+                      type: object
+                      properties:
+                        url:
+                          type: string
+                        interval:
+                          type: string
+                          default: "5m"
+                connect:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: false
+                    protocol:
+                      type: string
+                      enum: [grpc, grpc-web, connect]
+                      default: connect
+                federation:
+                  type: object
+                  properties:
+                    version:
+                      type: string
+                      enum: ["1", "2"]
+                      default: "2"
+                healthCheck:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: true
+                    path:
+                      type: string
+                      default: "/health"
+                    interval:
+                      type: string
+                      default: "30s"
+                routerSelector:
+                  type: object
+                  additionalProperties:
+                    type: string
+            status:
+              type: object
+              properties:
+                phase:
+                  type: string
+                  enum: [Pending, Validating, Ready, Failed, Unhealthy]
+                observedGeneration:
+                  type: integer
+                schemaHash:
+                  type: string
+                connectedRouters:
+                  type: array
+                  items:
+                    type: string
+                conditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                      reason:
+                        type: string
+                      message:
+                        type: string
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: URL
+          type: string
+          jsonPath: .spec.routingUrl
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+  scope: Namespaced
+  names:
+    plural: cosmosubgraphs
+    singular: cosmosubgraph
+    kind: CosmoSubgraph
+    shortNames: [cs, subgraph]

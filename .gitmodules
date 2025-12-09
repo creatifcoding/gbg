@@ -88,3 +88,15 @@
 [submodule "submodules/website"]
 	path = submodules/website
 	url = https://github.com/Effect-TS/website
+[submodule "submodules/pothos-plugin-effect"]
+	path = submodules/pothos-plugin-effect
+	url = https://github.com/iamchanii/pothos-plugin-effect
+[submodule "submodules/pothos"]
+	path = submodules/pothos
+	url = https://github.com/hayes/pothos
+[submodule "submodules/cosmo"]
+	path = submodules/cosmo
+	url = https://github.com/wundergraph/cosmo
+[submodule "submodules/pepr-excellent-examples"]
+	path = submodules/pepr-excellent-examples
+	url = https://github.com/defenseunicorns/pepr-excellent-examples
