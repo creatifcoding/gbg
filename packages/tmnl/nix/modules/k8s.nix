@@ -308,6 +308,85 @@
             fi
           '';
         };
+
+        # =====================================================================
+        # SCHEMA SYSTEM SPIKES
+        # =====================================================================
+
+        spike5-server = {
+          description = "Start spike-5 GraphQL subgraph server for introspection testing.";
+          category = "Schema System";
+          exec = ''
+            set -euo pipefail
+
+            PORT="''${1:-4011}"
+            SPIKE_DIR="''$FLAKE_ROOT/src/lib/schema-system/spikes"
+
+            echo "[spike-5] Starting GraphQL subgraph server..."
+            echo "  Port: ''$PORT"
+            echo "  Endpoint: http://localhost:''$PORT/graphql"
+            echo ""
+
+            bunx tsx "''$SPIKE_DIR/spike-5-server.ts" "''$PORT"
+          '';
+        };
+
+        spike5-test = {
+          description = "Run spike-5 Pepr infrastructure introspection test.";
+          category = "Schema System";
+          exec = ''
+            set -euo pipefail
+
+            ENDPOINT="''${1:-http://localhost:4011/graphql}"
+            INFRA_DIR="''$FLAKE_ROOT/src/infra/graph"
+
+            echo "[spike-5] Running Pepr infrastructure integration test..."
+            echo "  Target: ''$ENDPOINT"
+            echo ""
+
+            cd "''$INFRA_DIR"
+            bunx tsx test/integration-spike-5.ts "''$ENDPOINT"
+          '';
+        };
+
+        spike5-e2e = {
+          description = "Run full spike-5 E2E test (starts server, runs test, stops server).";
+          category = "Schema System";
+          exec = ''
+            set -euo pipefail
+
+            PORT="''${1:-4011}"
+            ENDPOINT="http://localhost:''$PORT/graphql"
+            SPIKE_DIR="''$FLAKE_ROOT/src/lib/schema-system/spikes"
+            INFRA_DIR="''$FLAKE_ROOT/src/infra/graph"
+
+            echo "[spike-5] Full E2E test"
+            echo "══════════════════════════════════════════════════════════════"
+            echo ""
+
+            # Start server in background
+            echo "[spike-5] Starting subgraph server on port ''$PORT..."
+            bunx tsx "''$SPIKE_DIR/spike-5-server.ts" "''$PORT" &
+            SERVER_PID=''$!
+
+            # Wait for server to be ready
+            echo "[spike-5] Waiting for server to start..."
+            sleep 2
+
+            # Run integration test
+            echo ""
+            cd "''$INFRA_DIR"
+            bunx tsx test/integration-spike-5.ts "''$ENDPOINT" || true
+
+            # Cleanup
+            echo ""
+            echo "[spike-5] Stopping server (PID: ''$SERVER_PID)..."
+            kill ''$SERVER_PID 2>/dev/null || true
+
+            echo ""
+            echo "[spike-5] E2E test complete"
+          '';
+        };
       };
     };
 }
