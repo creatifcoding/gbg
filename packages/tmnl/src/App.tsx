@@ -106,6 +106,14 @@ const CARDS: readonly CardDef[] = [
     status: 'active',
   },
   {
+    title: 'LAYERS V2',
+    body: 'Atom-as-State layer management. Hook-based style injection with View Transitions for version switching.',
+    route: '/testbed/layers',
+    status: 'active',
+    label: 'NEW',
+    glow: 'cyan',
+  },
+  {
     title: 'SCADA CANVAS',
     body: 'Unified multi-overlay P&ID demo. Process plant with TagBinding, Alarm, Faceplate, and Navigation in one container.',
     route: '/scada',
