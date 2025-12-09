@@ -48,44 +48,216 @@ When React is the consumer via effect-atom, `Atom.make()` is the primary state m
 3. **Check .edin/EFFECT_PATTERNS.md** - Curated registry
 4. **Query deepwiki** - Ask "Effect-TS/effect" for verification
 
-## Core Patterns
+## Service Definition Patterns (Three Approaches)
 
-### Pattern 1: Effect.Service Declaration
+Effect-TS provides **three primary patterns** for defining services. Each has specific use cases.
 
-Services are interfaces. Layers provide implementations.
+### Decision Tree
 
-```typescript
-import { Context, Effect, Layer } from 'effect'
-
-// 1. Define the service interface
-interface MyService {
-  readonly doThing: (input: string) => Effect.Effect<Output, MyError>
-}
-
-// 2. Create the service tag
-class MyService extends Context.Tag('app/MyService')<
-  MyService,
-  MyService
->() {}
-
-// 3. Create the implementation
-const myServiceImpl: MyService = {
-  doThing: (input) => Effect.gen(function* () {
-    // implementation
-    return output
-  })
-}
-
-// 4. Create the Layer
-const MyServiceLive = Layer.succeed(MyService, myServiceImpl)
-
-// 5. Export for composition
-export { MyService, MyServiceLive }
+```
+Need a service?
+│
+├─ Multiple swappable implementations (Strategy Pattern)?
+│  └─ Use: class extends Context.Tag
+│     (e.g., SliderBehavior with 5 curve types)
+│
+├─ Effectful construction or service dependencies?
+│  └─ Use: class extends Effect.Service<>()
+│     (Default choice for most services)
+│
+└─ Simple configuration tag?
+   └─ Use: class extends Context.Tag
+      with Static Default + Custom factories
 ```
 
-**Canonical source**: `src/lib/slider/services/SliderBehavior.ts`
+---
 
-### Pattern 2: Atom-as-State (THE State Pattern)
+### Pattern 1: Effect.Service<>() — RECOMMENDED DEFAULT
+
+**When:** Default choice for all services. Auto-layers, clean DI, effectful construction.
+
+```typescript
+import * as Effect from 'effect/Effect'
+
+class MyService extends Effect.Service<MyService>()("app/MyService", {
+  effect: Effect.gen(function* () {
+    // Yield dependencies
+    const config = yield* ConfigService;
+
+    // Define methods
+    const doThing = (input: string): Effect.Effect<number> =>
+      Effect.succeed(input.length);
+
+    return { doThing } as const;
+  }),
+  dependencies: [ConfigService.Default],  // Optional: auto-provides
+}) {}
+
+// Auto-generated: MyService.Default layer
+// Usage: yield* MyService in Effect.gen
+```
+
+**Key Features:**
+- Double `()()` syntax: first parameterizes type, second configures service
+- `dependencies: [...]` auto-provides required layers
+- `as const` ensures readonly interface
+
+**TMNL Examples:**
+- `DataManager` — `src/lib/data-manager/v1/DataManager.ts:73`
+- `SearchKernel` — `src/lib/data-manager/v1/kernels/SearchKernel.ts:308`
+- `IdGenerator` — `src/lib/layers/v1/services/IdGenerator.ts:34`
+
+---
+
+### Pattern 2: class extends Context.Tag — STRATEGY PATTERN
+
+**When:** Multiple swappable implementations of same interface. Runtime behavior swapping.
+
+```typescript
+import * as Context from 'effect/Context'
+import * as Layer from 'effect/Layer'
+
+// Interface shape
+interface BehaviorShape {
+  readonly id: string;
+  readonly transform: (value: number) => number;
+}
+
+// Tag definition
+class MyBehavior extends Context.Tag('app/MyBehavior')<
+  MyBehavior,
+  BehaviorShape
+>() {}
+
+// Multiple implementations
+const linearImpl: BehaviorShape = {
+  id: 'linear',
+  transform: (v) => v,
+};
+
+const logImpl: BehaviorShape = {
+  id: 'logarithmic',
+  transform: (v) => Math.log(v),
+};
+
+// Layer factories
+export const LinearBehavior = {
+  Default: Layer.succeed(MyBehavior, linearImpl),
+  shape: linearImpl,  // Direct access without Layer
+};
+
+export const LogBehavior = {
+  Default: Layer.succeed(MyBehavior, logImpl),
+  shape: logImpl,
+};
+
+// Usage: swap at runtime via Layer substitution
+Effect.provide(LinearBehavior.Default)  // or LogBehavior.Default
+```
+
+**Key Features:**
+- Export both `.Default` (Layer) AND `.shape` (direct access)
+- Perfect for Strategy Pattern
+- Runtime swappable via layer substitution
+
+**TMNL Examples:**
+- `SliderBehavior` — `src/lib/slider/v1/services/SliderBehavior.ts:15` (5 behavior variants)
+
+---
+
+### Pattern 3: Context.Tag with Config — PARAMETERIZED SERVICE
+
+**When:** Service needs configuration injection. Separate config tag from service.
+
+```typescript
+import * as Context from 'effect/Context'
+import * as Layer from 'effect/Layer'
+
+// Config tag FIRST (avoid circular deps)
+class MyConfig extends Context.Tag('app/MyConfig')<
+  MyConfig,
+  { strategy: 'fast' | 'secure' }
+>() {
+  static Default = Layer.succeed(this, { strategy: 'fast' });
+  static Custom = (config: { strategy: 'fast' | 'secure' }) =>
+    Layer.succeed(this, config);
+}
+
+// Service depends on config
+class MyService extends Effect.Service<MyService>()("app/MyService", {
+  effect: Effect.gen(function* () {
+    const config = yield* MyConfig;  // Dependency
+
+    const execute = () => config.strategy === 'fast'
+      ? Effect.succeed('fast')
+      : Effect.sleep('1 second').pipe(Effect.as('secure'));
+
+    return { execute } as const;
+  }),
+  dependencies: [MyConfig.Default],
+}) {}
+
+// Override config at composition site
+const customLayer = MyService.Default.pipe(
+  Layer.provide(MyConfig.Custom({ strategy: 'secure' }))
+);
+```
+
+**TMNL Examples:**
+- `IdGeneratorConfig + IdGenerator` — `src/lib/layers/v1/services/IdGenerator.ts`
+
+---
+
+### Pattern Comparison Table
+
+| Feature | `Effect.Service<>()` | `class extends Context.Tag` |
+|---------|---------------------|---------------------------|
+| Auto-generates Layer | ✅ Yes (`.Default`) | ❌ Manual `Layer.succeed` |
+| Effectful construction | ✅ `Effect.gen` | ⚠️ Needs `Layer.effect` |
+| Dependencies array | ✅ `dependencies: [...]` | ⚠️ Manual `Layer.provide` |
+| Multiple implementations | ⚠️ Possible but awkward | ✅ Idiomatic |
+| Recommended for new code | ✅ Default choice | ⚠️ Strategy Pattern only |
+
+---
+
+### Common Gotchas
+
+**1. Double `()()` Syntax**
+```typescript
+// WRONG
+class MyService extends Effect.Service<MyService>("id", { ... }) {}
+
+// CORRECT
+class MyService extends Effect.Service<MyService>()("id", { ... }) {}
+```
+
+**2. Config Tag BEFORE Service**
+```typescript
+// WRONG — Circular dependency!
+class MyService extends Effect.Service<MyService>()("id", {
+  effect: Effect.gen(function* () {
+    const config = yield* MyConfig;  // MyConfig not defined yet!
+  }),
+}) {}
+class MyConfig extends Context.Tag("config")<...>() {}
+
+// CORRECT — Config first
+class MyConfig extends Context.Tag("config")<...>() {}
+class MyService extends Effect.Service<MyService>()("id", { ... }) {}
+```
+
+**3. Always use `as const`**
+```typescript
+// WRONG
+return { doThing };
+
+// CORRECT
+return { doThing } as const;
+```
+
+---
+
+## Atom-as-State (THE State Pattern)
 
 When React consumes Effect services, Atoms ARE the state.
 

@@ -49,35 +49,219 @@ function Results() {
 
 ---
 
-## 0. Canonical Effect-TS Patterns (Foundation)
+## 0. Effect Service Patterns (Foundation)
 
-These are the **core Effect-TS patterns** that underpin all effect-atom usage. Master these first.
+These are the **core Effect-TS service patterns** that underpin all effect-atom usage. Master these first.
 
-### 0.1 Context.Tag — Service Definition
+### Service Pattern Decision Tree
 
-**Canonical Source:** `Context.ts:507-524`
-**Description:** Defines a service interface with a unique identifier. The Tag is both a type and a value.
+```
+Need a service?
+│
+├─ Multiple swappable implementations (Strategy Pattern)?
+│  └─ Use: class extends Context.Tag
+│     (e.g., SliderBehavior with 5 curve types)
+│
+├─ Effectful construction or service dependencies?
+│  └─ Use: class extends Effect.Service<>()
+│     (Default choice for most services)
+│
+└─ Simple configuration tag?
+   └─ Use: class extends Context.Tag
+      with Static Default + Custom factories
+```
+
+---
+
+### 0.1 Effect.Service<>() — RECOMMENDED DEFAULT
+
+**Canonical Source:** `Effect.ts` (Effect.Service class)
+**Description:** Auto-generates `.Default` layer, supports effectful construction and dependencies array.
 
 ```typescript
-import { Context, Layer } from 'effect';
+import * as Effect from 'effect/Effect'
 
-// Pattern: class extends Context.Tag<Self>()<Id, Shape>
-class MyService extends Context.Tag('app/MyService')<
-  MyService,
-  {
-    readonly doThing: (input: string) => Effect.Effect<number>;
-  }
->() {
-  // Static layer factory is idiomatic
-  static Default = Layer.succeed(this, {
-    doThing: (input) => Effect.succeed(input.length),
-  });
+class MyService extends Effect.Service<MyService>()("app/MyService", {
+  effect: Effect.gen(function* () {
+    // Yield dependencies
+    const config = yield* ConfigService;
+
+    // Define methods
+    const doThing = (input: string): Effect.Effect<number> =>
+      Effect.succeed(input.length);
+
+    return { doThing } as const;
+  }),
+  dependencies: [ConfigService.Default],  // Optional: auto-provides
+}) {}
+
+// Auto-generated: MyService.Default layer
+// Usage: yield* MyService in Effect.gen
+```
+
+**Key Features:**
+- Double `()()` syntax: first parameterizes type, second configures service
+- `dependencies: [...]` auto-provides required layers
+- `as const` ensures readonly interface
+
+**TMNL Examples:**
+- `DataManager` — `src/lib/data-manager/v1/DataManager.ts:73`
+- `SearchKernel` — `src/lib/data-manager/v1/kernels/SearchKernel.ts:308`
+- `IdGenerator` — `src/lib/layers/v1/services/IdGenerator.ts:34`
+
+---
+
+### 0.2 class extends Context.Tag — STRATEGY PATTERN
+
+**Canonical Source:** `Context.ts:507-524`
+**Description:** For multiple swappable implementations of the same interface. Runtime behavior swapping.
+
+```typescript
+import * as Context from 'effect/Context'
+import * as Layer from 'effect/Layer'
+
+// Interface shape
+interface BehaviorShape {
+  readonly id: string;
+  readonly transform: (value: number) => number;
 }
+
+// Tag definition
+class MyBehavior extends Context.Tag('app/MyBehavior')<
+  MyBehavior,
+  BehaviorShape
+>() {}
+
+// Multiple implementations
+const linearImpl: BehaviorShape = {
+  id: 'linear',
+  transform: (v) => v,
+};
+
+const logImpl: BehaviorShape = {
+  id: 'logarithmic',
+  transform: (v) => Math.log(v),
+};
+
+// Layer factories — export both .Default AND .shape
+export const LinearBehavior = {
+  Default: Layer.succeed(MyBehavior, linearImpl),
+  shape: linearImpl,  // Direct access without Layer
+};
+
+export const LogBehavior = {
+  Default: Layer.succeed(MyBehavior, logImpl),
+  shape: logImpl,
+};
+
+// Usage: swap at runtime via Layer substitution
+Effect.provide(LinearBehavior.Default)  // or LogBehavior.Default
+```
+
+**Key Features:**
+- Export both `.Default` (Layer) AND `.shape` (direct access)
+- Perfect for Strategy Pattern
+- Runtime swappable via layer substitution
+
+**TMNL Examples:**
+- `SliderBehavior` — `src/lib/slider/v1/services/SliderBehavior.ts:15` (5 behavior variants)
+
+---
+
+### 0.3 Context.Tag with Config — PARAMETERIZED SERVICE
+
+**Canonical Source:** `Context.ts:507-524` + `Layer.ts`
+**Description:** Service needs configuration injection. Separate config tag from service.
+
+```typescript
+import * as Context from 'effect/Context'
+import * as Layer from 'effect/Layer'
+
+// Config tag FIRST (avoid circular deps)
+class MyConfig extends Context.Tag('app/MyConfig')<
+  MyConfig,
+  { strategy: 'fast' | 'secure' }
+>() {
+  static Default = Layer.succeed(this, { strategy: 'fast' });
+  static Custom = (config: { strategy: 'fast' | 'secure' }) =>
+    Layer.succeed(this, config);
+}
+
+// Service depends on config
+class MyService extends Effect.Service<MyService>()("app/MyService", {
+  effect: Effect.gen(function* () {
+    const config = yield* MyConfig;  // Dependency
+
+    const execute = () => config.strategy === 'fast'
+      ? Effect.succeed('fast')
+      : Effect.sleep('1 second').pipe(Effect.as('secure'));
+
+    return { execute } as const;
+  }),
+  dependencies: [MyConfig.Default],
+}) {}
+
+// Override config at composition site
+const customLayer = MyService.Default.pipe(
+  Layer.provide(MyConfig.Custom({ strategy: 'secure' }))
+);
+```
+
+**TMNL Examples:**
+- `IdGeneratorConfig + IdGenerator` — `src/lib/layers/v1/services/IdGenerator.ts`
+
+---
+
+### 0.4 Service Pattern Comparison
+
+| Feature | `Effect.Service<>()` | `class extends Context.Tag` |
+|---------|---------------------|---------------------------|
+| Auto-generates Layer | ✅ Yes (`.Default`) | ❌ Manual `Layer.succeed` |
+| Effectful construction | ✅ `Effect.gen` | ⚠️ Needs `Layer.effect` |
+| Dependencies array | ✅ `dependencies: [...]` | ⚠️ Manual `Layer.provide` |
+| Multiple implementations | ⚠️ Possible but awkward | ✅ Idiomatic |
+| Recommended for new code | ✅ Default choice | ⚠️ Strategy Pattern only |
+
+---
+
+### 0.5 Common Gotchas
+
+**1. Double `()()` Syntax**
+```typescript
+// WRONG
+class MyService extends Effect.Service<MyService>("id", { ... }) {}
+
+// CORRECT
+class MyService extends Effect.Service<MyService>()("id", { ... }) {}
+```
+
+**2. Config Tag BEFORE Service**
+```typescript
+// WRONG — Circular dependency!
+class MyService extends Effect.Service<MyService>()("id", {
+  effect: Effect.gen(function* () {
+    const config = yield* MyConfig;  // MyConfig not defined yet!
+  }),
+}) {}
+class MyConfig extends Context.Tag("config")<...>() {}
+
+// CORRECT — Config first
+class MyConfig extends Context.Tag("config")<...>() {}
+class MyService extends Effect.Service<MyService>()("id", { ... }) {}
+```
+
+**3. Always use `as const`**
+```typescript
+// WRONG
+return { doThing };
+
+// CORRECT
+return { doThing } as const;
 ```
 
 **Key Insight:** The `Tag` itself is an `Effect<Service, never, Self>` — you can `yield* MyService` directly in `Effect.gen`.
 
-### 0.2 Context.Reference — Service with Default
+### 0.6 Context.Reference — Service with Default
 
 **Canonical Source:** `Context.ts:526-585`
 **Description:** A Tag with a built-in default value. No provider required if default is acceptable.
@@ -95,7 +279,7 @@ const program = Effect.gen(function* () {
 });
 ```
 
-### 0.3 Layer.succeed — Synchronous Service
+### 0.7 Layer.succeed — Synchronous Service
 
 **Canonical Source:** `Layer.ts:772-775`
 **Description:** Creates a Layer from a synchronous value. Most common pattern.
@@ -106,7 +290,7 @@ const MyServiceLive = Layer.succeed(MyService, {
 });
 ```
 
-### 0.4 Layer.effect — Effectful Service
+### 0.8 Layer.effect — Effectful Service
 
 **Canonical Source:** `Layer.ts:289-292`
 **Description:** Creates a Layer from an Effect. Use when construction is effectful.
@@ -123,7 +307,7 @@ const MyServiceLive = Layer.effect(
 );
 ```
 
-### 0.5 Layer.scoped — Resource-Managed Service
+### 0.9 Layer.scoped — Resource-Managed Service
 
 **Canonical Source:** `Layer.ts:727-735`
 **Description:** Creates a Layer from a scoped Effect. Resource is acquired on layer build, released on layer teardown.
@@ -138,7 +322,7 @@ const ConnectionLive = Layer.scoped(
 );
 ```
 
-### 0.6 Stream — Progressive Data
+### 0.10 Stream — Progressive Data
 
 **Canonical Source:** `Stream.ts:52-70`
 **Description:** Pull-based stream of values. Emits chunks for efficiency.
@@ -597,7 +781,9 @@ Quick lookup table for pattern tags to their primary implementations:
 
 | Pattern Tag | TMNL Breadcrumb | Canonical Source |
 |-------------|-----------------|------------------|
-| `PATTERN:CONTEXT_TAG` | `DataManager.ts:73` | `Context.ts:507-524` |
+| `PATTERN:EFFECT_SERVICE` | `DataManager.ts:73` | `Effect.ts` (Effect.Service) |
+| `PATTERN:STRATEGY_TAG` | `SliderBehavior.ts:15` | `Context.ts:507-524` |
+| `PATTERN:CONTEXT_TAG` | _(legacy, prefer Effect.Service)_ | `Context.ts:507-524` |
 | `PATTERN:LAYER_SUCCEED` | `SliderBehavior.ts:68` | `Layer.ts:772-775` |
 | `PATTERN:PRIMITIVE_ATOM` | `atoms/index.ts:51` | `Atom.ts:458-463` |
 | `PATTERN:DERIVED_ATOM` | `atoms/index.ts:94` | `Atom.ts:328-338` |

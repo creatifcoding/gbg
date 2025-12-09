@@ -53,14 +53,67 @@ export type {
 export { Z_INDEX_GAP, LAYER_DEFAULTS } from './types'
 
 // ─────────────────────────────────────────────────────────────
-// Implementation Stubs (TODO: Implement)
+// Atoms (Atom-as-State Doctrine)
 // ─────────────────────────────────────────────────────────────
 
-// TODO: export { LayerProvider } from './LayerProvider'
-// TODO: export { useLayer } from './hooks/useLayer'
-// TODO: export { useRegisterLayer } from './hooks/useRegisterLayer'
-// TODO: export { useLayerStyle } from './hooks/useLayerStyle'
-// TODO: export { useLayerOps } from './hooks/useLayerOps'
-// TODO: export { LayerRegistry } from './services/LayerRegistry'
-// TODO: export { LayerOperations } from './services/LayerOperations'
-// TODO: export { layerRuntimeAtom, layersMapAtom, sortedLayersAtom } from './atoms'
+export {
+  // Registry singleton
+  layerRegistry,
+  // Core state atoms
+  layersMapAtom,
+  layerIdCounterAtom,
+  // Derived atoms
+  sortedLayersAtom,
+  visibleLayersAtom,
+  layerCountAtom,
+  maxZIndexAtom,
+  minZIndexAtom,
+  visualHashAtom,
+  // Layer family
+  layerFamily,
+  // Mutation utilities
+  generateLayerId,
+  addLayer,
+  removeLayer,
+  updateLayer,
+  getLayer,
+  getAllLayers,
+  getSortedLayers,
+  // Z-index operations
+  calculateFrontZIndex,
+  calculateBackZIndex,
+  bringToFront,
+  sendToBack,
+  setVisible,
+  setPointerEvents,
+  setZIndex,
+  setPositionMode,
+  // Reset utilities
+  resetAllLayers,
+} from './atoms'
+
+// ─────────────────────────────────────────────────────────────
+// Services (Effect.Service<>() Pattern)
+// ─────────────────────────────────────────────────────────────
+
+export { LayerRegistry, LayerOperations } from './services'
+
+// ─────────────────────────────────────────────────────────────
+// Provider (React Context)
+// ─────────────────────────────────────────────────────────────
+
+export { LayerProvider, type LayerProviderProps } from './LayerProvider'
+
+// ─────────────────────────────────────────────────────────────
+// Hooks (React Integration)
+// ─────────────────────────────────────────────────────────────
+
+export {
+  useLayer,
+  useExistingLayer,
+  useLayerStyle,
+  useLayerStyleFromValues,
+  useLayerOps,
+  useGlobalLayerOps,
+  type ExtendedLayerOps,
+} from './hooks'
