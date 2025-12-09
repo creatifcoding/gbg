@@ -48,6 +48,12 @@
           echo "    k8s-pepr-deploy      Deploy operator to cluster"
           echo "    k8s-crd-status       Show CRDs and resources"
           echo ""
+          echo "  Schema System Spikes:"
+          echo "    spike5-server        Start GraphQL server for introspection testing"
+          echo "    spike5-test          Run Pepr introspection test (requires server)"
+          echo "    spike5-e2e           Full E2E test (starts server, runs test, stops)"
+          echo "    spike5-smoke         Runtime schema discovery smoke test"
+          echo ""
         '';
       };
 
@@ -385,6 +391,43 @@
 
             echo ""
             echo "[spike-5] E2E test complete"
+          '';
+        };
+
+        spike5-smoke = {
+          description = "Run spike-5 runtime smoke test (decode fail → introspect → decode success).";
+          category = "Schema System";
+          exec = ''
+            set -euo pipefail
+
+            PORT="''${1:-4011}"
+            ENDPOINT="http://localhost:''$PORT/graphql"
+            SPIKE_DIR="''$FLAKE_ROOT/src/lib/schema-system/spikes"
+
+            echo "[spike-5] Runtime Schema Discovery Smoke Test"
+            echo "══════════════════════════════════════════════════════════════"
+            echo ""
+
+            # Start server in background
+            echo "[spike-5] Starting subgraph server on port ''$PORT..."
+            bunx tsx "''$SPIKE_DIR/spike-5-server.ts" "''$PORT" &
+            SERVER_PID=''$!
+
+            # Wait for server to be ready
+            echo "[spike-5] Waiting for server to start..."
+            sleep 2
+
+            # Run smoke test
+            echo ""
+            bunx tsx "''$SPIKE_DIR/spike-5-runtime-smoke.ts" "''$ENDPOINT" || true
+
+            # Cleanup
+            echo ""
+            echo "[spike-5] Stopping server (PID: ''$SERVER_PID)..."
+            kill ''$SERVER_PID 2>/dev/null || true
+
+            echo ""
+            echo "[spike-5] Smoke test complete"
           '';
         };
       };
