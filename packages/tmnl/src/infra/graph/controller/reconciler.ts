@@ -1,40 +1,12 @@
 /**
  * Reconciler
- *
- * Core reconciliation logic for CosmoRouter and CosmoSubgraph.
- * Ensures desired state matches actual cluster state.
+ * Pattern: pepr-excellent-examples/pepr-operator
  */
 
-import { K8s, kind, Log } from 'pepr'
-import type { CosmoRouter, CosmoSubgraph, CosmoRouterStatus, CosmoSubgraphStatus } from '../crd'
-import { generateDeployment, generateService, generateConfigMap } from './generators'
-import { COSMO_GROUP, COSMO_VERSION, ROUTER_KIND, SUBGRAPH_KIND } from '../crd'
-
-// Queue for serializing reconciliation
-const reconcileQueue: Map<string, () => Promise<void>> = new Map()
-let processing = false
-
-async function processQueue(): Promise<void> {
-  if (processing) return
-  processing = true
-
-  while (reconcileQueue.size > 0) {
-    const [key, fn] = reconcileQueue.entries().next().value
-    reconcileQueue.delete(key)
-    try {
-      await fn()
-    } catch (error) {
-      Log.error({ key, error }, 'Reconciliation failed')
-    }
-  }
-
-  processing = false
-}
-
-export function queueReconcile(key: string, fn: () => Promise<void>): void {
-  reconcileQueue.set(key, fn)
-  processQueue()
-}
+import { K8s, Log } from 'pepr'
+import { CosmoRouter, CosmoSubgraph, CosmoRouterStatus, CosmoSubgraphStatus, COSMO_GROUP, COSMO_VERSION, ROUTER_KIND, SUBGRAPH_KIND } from '../crd/types'
+import Deploy from './generators'
+import { introspectEndpoint, type IntrospectionResult } from './introspection'
 
 // =============================================================================
 // ROUTER RECONCILIATION
@@ -44,22 +16,22 @@ export async function reconcileRouter(router: CosmoRouter): Promise<void> {
   const name = router.metadata!.name!
   const namespace = router.metadata!.namespace!
   const key = `${namespace}/${name}`
+  const generation = router.metadata!.generation
 
-  Log.info({ key }, 'Reconciling CosmoRouter')
+  // Skip if already reconciled this generation
+  if (router.status?.observedGeneration === generation) {
+    Log.debug({ key, generation }, 'Skipping - already reconciled this generation')
+    return
+  }
+
+  Log.info({ key, generation }, 'Reconciling CosmoRouter')
 
   try {
     // Update status to Composing
     await updateRouterStatus(router, { phase: 'Composing' })
 
-    // Generate and apply Deployment
-    const deployment = generateDeployment(router)
-    await K8s(kind.Deployment).Apply(deployment, { force: true })
-    Log.debug({ key }, 'Applied Deployment')
-
-    // Generate and apply Service
-    const service = generateService(router)
-    await K8s(kind.Service).Apply(service, { force: true })
-    Log.debug({ key }, 'Applied Service')
+    // Deploy resources
+    await Deploy(router)
 
     // Update status to Running
     await updateRouterStatus(router, {
@@ -94,18 +66,11 @@ async function updateRouterStatus(
   const namespace = router.metadata!.namespace!
 
   try {
-    // Pepr's K8s client for custom resources
-    const api = K8s({
-      group: COSMO_GROUP,
-      version: COSMO_VERSION,
-      kind: ROUTER_KIND,
-      plural: 'cosmorouters',
-    } as any)
-
+    const api = K8s(CosmoRouter)
     await api.PatchStatus({
       metadata: { name, namespace },
       status: { ...router.status, ...status },
-    } as any)
+    } as CosmoRouter)
   } catch (error) {
     Log.warn({ name, namespace, error }, 'Failed to update router status')
   }
@@ -119,8 +84,15 @@ export async function reconcileSubgraph(subgraph: CosmoSubgraph): Promise<void> 
   const name = subgraph.metadata!.name!
   const namespace = subgraph.metadata!.namespace!
   const key = `${namespace}/${name}`
+  const generation = subgraph.metadata!.generation
 
-  Log.info({ key }, 'Reconciling CosmoSubgraph')
+  // Skip if already reconciled this generation
+  if (subgraph.status?.observedGeneration === generation) {
+    Log.debug({ key, generation }, 'Skipping - already reconciled this generation')
+    return
+  }
+
+  Log.info({ key, generation }, 'Reconciling CosmoSubgraph')
 
   try {
     // Update status to Validating
@@ -136,8 +108,30 @@ export async function reconcileSubgraph(subgraph: CosmoSubgraph): Promise<void> 
       throw new Error('No schema source specified')
     }
 
-    // TODO: Validate SDL syntax
-    // TODO: Trigger router recomposition
+    // Handle introspection-based schema discovery
+    let sdl: string | undefined
+    let introspectionResult: IntrospectionResult | undefined
+
+    if (subgraph.spec.schema.introspection?.url) {
+      Log.info({ key, url: subgraph.spec.schema.introspection.url }, 'Introspecting subgraph endpoint')
+      introspectionResult = await introspectEndpoint(subgraph.spec.schema.introspection.url)
+
+      if (!introspectionResult.success) {
+        throw new Error(`Introspection failed: ${introspectionResult.error}`)
+      }
+
+      sdl = introspectionResult.sdl
+      Log.info(
+        { key, typeCount: introspectionResult.types?.length ?? 0 },
+        'Introspection successful - SDL extracted'
+      )
+    } else if (subgraph.spec.schema.inline) {
+      sdl = subgraph.spec.schema.inline
+    }
+    // TODO: Handle configMapRef case
+
+    // TODO: Validate SDL syntax (parse with graphql-js)
+    // TODO: Trigger router recomposition (regenerate router.json)
 
     // Update status to Ready
     await updateSubgraphStatus(subgraph, {
@@ -171,55 +165,12 @@ async function updateSubgraphStatus(
   const namespace = subgraph.metadata!.namespace!
 
   try {
-    const api = K8s({
-      group: COSMO_GROUP,
-      version: COSMO_VERSION,
-      kind: SUBGRAPH_KIND,
-      plural: 'cosmosubgraphs',
-    } as any)
-
+    const api = K8s(CosmoSubgraph)
     await api.PatchStatus({
       metadata: { name, namespace },
       status: { ...subgraph.status, ...status },
-    } as any)
+    } as CosmoSubgraph)
   } catch (error) {
     Log.warn({ name, namespace, error }, 'Failed to update subgraph status')
-  }
-}
-
-// =============================================================================
-// OWNED RESOURCE RECOVERY
-// =============================================================================
-
-export async function recoverOwnedResource(
-  resource: kind.Deployment | kind.Service | kind.ConfigMap
-): Promise<void> {
-  const ownerRef = resource.metadata?.ownerReferences?.find(
-    (ref) => ref.kind === 'CosmoRouter' && ref.apiVersion === 'tmnl.gbg.dev/v1alpha1'
-  )
-
-  if (!ownerRef) return
-
-  const namespace = resource.metadata!.namespace!
-  const routerName = ownerRef.name
-
-  Log.info(
-    { namespace, routerName, resourceKind: resource.kind },
-    'Owned resource deleted, triggering router reconciliation'
-  )
-
-  try {
-    const api = K8s({
-      group: COSMO_GROUP,
-      version: COSMO_VERSION,
-      kind: ROUTER_KIND,
-      plural: 'cosmorouters',
-    } as any)
-
-    const router = (await api.InNamespace(namespace).Get(routerName)) as CosmoRouter
-
-    queueReconcile(`${namespace}/${routerName}`, () => reconcileRouter(router))
-  } catch (error) {
-    Log.error({ namespace, routerName, error }, 'Failed to recover owned resource')
   }
 }

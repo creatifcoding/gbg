@@ -1,45 +1,87 @@
 /**
  * SPIKE 5: E2E Subgraph Introspection → PayloadSchemaRegistry
  *
- * HYPOTHESIS: We can introspect a GraphQL subgraph, derive Effect Schemas
- * from the introspection result, and register them dynamically.
+ * HYPOTHESIS: We can introspect a LIVE GraphQL subgraph over HTTP,
+ * derive Effect Schemas from the introspection result, and register
+ * them dynamically — simulating federated service discovery.
  *
  * SUCCESS CRITERIA:
- * - GraphQL introspection query returns type information
- * - We can map __Type fields to Effect Schema primitives
+ * - HTTP introspection query to running subgraph endpoint
+ * - Parse __schema response into type information
+ * - Map __Type fields to Effect Schema primitives
  * - Generated schemas successfully detect sample payloads
- * - Full pipeline: Subgraph → Introspection → Effect Schema → Registry
+ * - Full pipeline: Live Subgraph (HTTP) → Introspection → Effect Schema → Registry
  *
  * DEPENDENCIES:
- * - Spike 3's sensor-service provides the subgraph SDL
+ * - A GraphQL subgraph must be running (e.g., sensor-service at localhost:4011)
  * - Spike 4's PayloadSchemaRegistry provides registration
+ *
+ * USAGE:
+ *   # First, start a subgraph (in another terminal):
+ *   cd src/lib/schema-system/cosmo/sensor-service && bun run dev
+ *
+ *   # Then run this spike:
+ *   bunx tsx src/lib/schema-system/spikes/spike-5-subgraph-introspection.ts [endpoint]
  *
  * @module
  */
 
-import { Effect, Layer, Ref, Option, Either, Schema, Array as Arr } from 'effect'
-import { buildSchema, introspectionFromSchema, type IntrospectionQuery, type IntrospectionType, type IntrospectionInputTypeRef, type IntrospectionOutputTypeRef, type IntrospectionNamedTypeRef } from 'graphql'
-import { readFileSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { Effect, Schema } from 'effect'
+import {
+  getIntrospectionQuery,
+  type IntrospectionQuery,
+  type IntrospectionType,
+  type IntrospectionInputTypeRef,
+  type IntrospectionOutputTypeRef,
+  type IntrospectionNamedTypeRef,
+} from 'graphql'
 
 // Import Spike 4's registry
 import { PayloadSchemaRegistry } from './spike-4-schema-registry.js'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
+// Default endpoint (sensor-service from Spike 3)
+const DEFAULT_ENDPOINT = 'http://localhost:4011/graphql'
 
 // =============================================================================
-// INTROSPECTION UTILITIES
+// HTTP INTROSPECTION (LIVE SUBGRAPH)
 // =============================================================================
+
+const INTROSPECTION_QUERY = getIntrospectionQuery()
 
 /**
- * Read SDL from Spike 3's sensor-service and build introspection
+ * Introspect a live GraphQL endpoint over HTTP
+ *
+ * This simulates how a federated router discovers subgraph schemas
  */
-function introspectFromSDL(sdlPath: string): IntrospectionQuery {
-  const sdl = readFileSync(sdlPath, 'utf-8')
-  const schema = buildSchema(sdl)
-  return introspectionFromSchema(schema)
+async function introspectEndpoint(url: string): Promise<IntrospectionQuery> {
+  console.log(`   Sending introspection query to: ${url}`)
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      query: INTROSPECTION_QUERY,
+    }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Introspection failed: ${response.status} ${response.statusText}`)
+  }
+
+  const json = (await response.json()) as { data?: IntrospectionQuery; errors?: unknown[] }
+
+  if (json.errors) {
+    throw new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`)
+  }
+
+  if (!json.data) {
+    throw new Error('No data in introspection response')
+  }
+
+  return json.data
 }
 
 /**
@@ -200,24 +242,29 @@ function introspectionToSchemas(introspection: IntrospectionQuery): Introspected
 // VALIDATION TEST PROGRAM
 // =============================================================================
 
-const testProgram = Effect.gen(function* () {
-  console.log('\n' + '='.repeat(60))
-  console.log('SPIKE 5: E2E Subgraph Introspection → Registry')
-  console.log('='.repeat(60) + '\n')
+/**
+ * Creates the test program for a given endpoint
+ */
+const createTestProgram = (endpoint: string) =>
+  Effect.gen(function* () {
+    console.log('\n' + '='.repeat(60))
+    console.log('SPIKE 5: E2E Live Subgraph Introspection → Registry')
+    console.log('='.repeat(60) + '\n')
 
-  // Step 1: Load SDL from Spike 3's sensor-service
-  console.log('Step 1: Load sensor-service SDL')
-  const sdlPath = join(__dirname, '../cosmo/sensor-service/src/graph/schema.graphql')
-  let introspection: IntrospectionQuery
+    // Step 1: Introspect live subgraph over HTTP
+    console.log('Step 1: Introspect live subgraph via HTTP')
+    console.log(`   Target: ${endpoint}`)
+    let introspection: IntrospectionQuery
 
-  try {
-    introspection = introspectFromSDL(sdlPath)
-    console.log(`✓ Introspected schema from: ${sdlPath}`)
-  } catch (e) {
-    console.error(`✗ Failed to load SDL: ${e}`)
-    console.log('\n  Hint: Run spike-3 first to generate the SDL')
-    return { success: false, error: 'SDL not found' }
-  }
+    try {
+      introspection = yield* Effect.promise(() => introspectEndpoint(endpoint))
+      console.log(`✓ Introspection successful`)
+    } catch (e) {
+      console.error(`✗ Failed to introspect: ${e}`)
+      console.log('\n  Hint: Ensure subgraph is running at the endpoint')
+      console.log('  Example: cd src/lib/schema-system/cosmo/sensor-service && bun run dev')
+      return { success: false, error: 'Introspection failed', endpoint }
+    }
 
   // Step 2: Extract object types
   console.log('\nStep 2: Extract object types from introspection')
@@ -290,24 +337,26 @@ const testProgram = Effect.gen(function* () {
   console.log(`   SenML payload matches 'introspected:senmlrecord': ${isSenML}`)
   console.log(`   Sensor payload matches 'introspected:sensor': ${isSensor}`)
 
-  // Step 8: Summary
-  console.log('\n' + '='.repeat(60))
-  console.log('✅ SPIKE 5 SUCCESS: E2E Introspection → Registry pipeline')
-  console.log('='.repeat(60))
-  console.log('\nPipeline validated:')
-  console.log('  1. SDL → GraphQL introspection ✓')
-  console.log('  2. Introspection → Effect Schemas ✓')
-  console.log('  3. Effect Schemas → Registry ✓')
-  console.log('  4. Registry → Payload detection ✓')
+    // Step 8: Summary
+    console.log('\n' + '='.repeat(60))
+    console.log('✅ SPIKE 5 SUCCESS: E2E Live Introspection → Registry')
+    console.log('='.repeat(60))
+    console.log('\nPipeline validated:')
+    console.log(`  1. HTTP introspection to ${endpoint} ✓`)
+    console.log('  2. Introspection → Effect Schemas ✓')
+    console.log('  3. Effect Schemas → Registry ✓')
+    console.log('  4. Registry → Payload detection ✓')
 
-  return { success: true, schemasRegistered: schemas.length }
-})
+    return { success: true, schemasRegistered: schemas.length, endpoint }
+  })
 
 // =============================================================================
 // RUN SPIKE
 // =============================================================================
 
-export function runSpike5() {
+export function runSpike5(endpoint: string = DEFAULT_ENDPOINT) {
+  const testProgram = createTestProgram(endpoint)
+
   return Effect.runPromise(testProgram.pipe(Effect.provide(PayloadSchemaRegistry.Default)))
     .then((result) => {
       console.log('\nSpike 5 completed:', result)
@@ -322,7 +371,9 @@ export function runSpike5() {
 // Run if executed directly
 const isMainModule = import.meta.url.endsWith(process.argv[1]?.replace(/^file:\/\//, '') ?? '')
 if (isMainModule) {
-  runSpike5()
+  // Accept endpoint from CLI: bunx tsx spike-5-*.ts http://localhost:4011/graphql
+  const endpoint = process.argv[2] || DEFAULT_ENDPOINT
+  runSpike5(endpoint)
 }
 
-export { introspectFromSDL, introspectionToSchemas, objectTypeToSchema, IntrospectedSchema }
+export { introspectEndpoint, introspectionToSchemas, objectTypeToSchema, IntrospectedSchema }
