@@ -6,6 +6,10 @@
  * @module @gbg/tmnl/ams/v2/base/handlers
  */
 
+// Entity handlers
 export * from './asset'
 
-// TODO: Phase 4 - Define EventLog handlers
+// EventLog handlers (Phase 4)
+export * from './event-handlers'
+export * from './compaction'
+export * from './reactivity'

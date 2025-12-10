@@ -89,8 +89,8 @@ export class AssetUpdatedPayload extends Schema.Class<AssetUpdatedPayload>(
   updatedBy: IdentityId,
   /** When updated */
   updatedAt: CreatedAt,
-  /** Version after update */
-  version: Schema.Number,
+  /** Version after update (optional - may not be tracked in all implementations) */
+  version: Schema.optional(Schema.Number),
 }) {}
 
 /**

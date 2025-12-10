@@ -7,3 +7,4 @@
  */
 
 export * from './asset'
+export * from './schema'
