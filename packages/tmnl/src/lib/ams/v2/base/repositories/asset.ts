@@ -7,8 +7,64 @@
  * @module @gbg/tmnl/ams/v2/base/repositories/asset
  */
 
-import { Schema } from 'effect'
+import { Option, Schema } from 'effect'
 import { Model } from '@effect/sql'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Nullable JSON Schema Helper
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Creates a schema for nullable JSON that properly handles null ↔ Option.none()
+ *
+ * The issue with Model.FieldOption(Model.JsonFromString(...)) is that:
+ * 1. JsonFromString uses Schema.parseJson which stringifies null → "null" (string)
+ * 2. SQLite expects actual null, not the string "null"
+ *
+ * Additionally, Schema.Option vs Schema.OptionFromSelf matters:
+ * - Schema.Option(A) has encoded form { _tag: "None" | "Some", value?: A }
+ * - Schema.OptionFromSelf(A) treats Option<A> as the encoded form directly
+ *
+ * We MUST use OptionFromSelf to avoid the extra OptionEncoded transformation
+ * layer that causes "missing _tag" errors when decoding SELECT results.
+ *
+ * This schema directly transforms:
+ * - Database (encoded): null | string (JSON text)
+ * - TypeScript (decoded): Option<unknown>
+ */
+const NullableJsonFromString = Schema.transform(
+  Schema.NullOr(Schema.String), // Database side: null | string
+  Schema.OptionFromSelf(Schema.Unknown), // TypeScript side: Option<unknown> (no OptionEncoded layer!)
+  {
+    strict: true,
+    decode: (encoded) =>
+      encoded === null ? Option.none() : Option.some(JSON.parse(encoded)),
+    encode: (decoded) =>
+      Option.isNone(decoded) ? null : JSON.stringify(decoded.value),
+  }
+)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SQLite Boolean Schema Helper
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * SQLite stores booleans as 0/1 integers.
+ * This schema transforms between SQLite INTEGER (0/1) and TypeScript boolean.
+ *
+ * - Database (encoded): 0 | 1
+ * - TypeScript (decoded): boolean
+ */
+const SqliteBoolean = Schema.transform(
+  Schema.Union(Schema.Literal(0), Schema.Literal(1), Schema.Boolean), // Accept both int and bool from DB
+  Schema.Boolean,
+  {
+    strict: true,
+    decode: (encoded) => encoded === 1 || encoded === true,
+    encode: (decoded) => (decoded ? 1 : 0),
+  }
+)
+
 import {
   AssetId,
   AssetKind,
@@ -30,8 +86,8 @@ import { AssetStatus } from '../schemas/asset'
  *
  * Database representation of an asset with:
  * - Model.Generated: id is database-generated (auto-increment or UUID)
- * - Model.DateTimeInsertFromDate: createdAt set on insert
- * - Model.DateTimeUpdateFromDate: updatedAt set on update
+ * - Model.DateTimeInsert: createdAt set on insert
+ * - Model.DateTimeUpdate: updatedAt set on update
  *
  * Variants:
  * - AssetModel: select schema (full entity)
@@ -41,7 +97,7 @@ import { AssetStatus } from '../schemas/asset'
  */
 export class AssetModel extends Model.Class<AssetModel>('AssetModel')({
   /** Primary key - database generated */
-  id: Model.Generated(AssetId),
+  id: Model.GeneratedByApp(AssetId),
 
   /** BFO class literal (always 'material_entity' for assets) */
   bfoClass: Schema.String,
@@ -68,19 +124,19 @@ export class AssetModel extends Model.Class<AssetModel>('AssetModel')({
   containerId: Model.FieldOption(ContainerId),
 
   /** Base properties as JSON */
-  basePropertiesJson: Model.FieldOption(Model.JsonFromString(Schema.Unknown)),
+  basePropertiesJson: NullableJsonFromString,
 
   /** Tags as JSON array */
-  tagsJson: Model.FieldOption(Model.JsonFromString(Tags)),
+  tagsJson: NullableJsonFromString,
 
   /** Optimistic concurrency version */
   version: Schema.Number.pipe(Schema.int()),
 
-  /** Created timestamp - set on insert */
-  createdAt: Model.DateTimeInsertFromDate,
+  /** Created timestamp - set on insert (ISO string for SQLite compatibility) */
+  createdAt: Model.DateTimeInsert,
 
-  /** Updated timestamp - set on update */
-  updatedAt: Model.DateTimeUpdateFromDate,
+  /** Updated timestamp - set on update (ISO string for SQLite compatibility) */
+  updatedAt: Model.DateTimeUpdate,
 }) {}
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -131,12 +187,12 @@ export const makeAssetRepository = Model.makeRepository(AssetModel, {
  * Site SQL Model
  */
 export class SiteModel extends Model.Class<SiteModel>('SiteModel')({
-  id: Model.Generated(SiteId),
+  id: Model.GeneratedByApp(SiteId),
   bfoClass: Schema.String,
   name: Schema.NonEmptyTrimmedString,
-  geoFrameJson: Model.FieldOption(Model.JsonFromString(Schema.Unknown)),
-  createdAt: Model.DateTimeInsertFromDate,
-  updatedAt: Model.DateTimeUpdateFromDate,
+  geoFrameJson: NullableJsonFromString,
+  createdAt: Model.DateTimeInsert,
+  updatedAt: Model.DateTimeUpdate,
 }) {}
 
 export const makeSiteRepository = Model.makeRepository(SiteModel, {
@@ -149,14 +205,14 @@ export const makeSiteRepository = Model.makeRepository(SiteModel, {
  * Sector SQL Model
  */
 export class SectorModel extends Model.Class<SectorModel>('SectorModel')({
-  id: Model.Generated(SectorId),
+  id: Model.GeneratedByApp(SectorId),
   bfoClass: Schema.String,
   siteId: SiteId,
   sectorTypeId: Schema.String,
   name: Schema.NonEmptyTrimmedString,
-  footprintJson: Model.FieldOption(Model.JsonFromString(Schema.Unknown)),
-  createdAt: Model.DateTimeInsertFromDate,
-  updatedAt: Model.DateTimeUpdateFromDate,
+  footprintJson: NullableJsonFromString,
+  createdAt: Model.DateTimeInsert,
+  updatedAt: Model.DateTimeUpdate,
 }) {}
 
 export const makeSectorRepository = Model.makeRepository(SectorModel, {
@@ -169,16 +225,16 @@ export const makeSectorRepository = Model.makeRepository(SectorModel, {
  * Container SQL Model
  */
 export class ContainerModel extends Model.Class<ContainerModel>('ContainerModel')({
-  id: Model.Generated(ContainerId),
+  id: Model.GeneratedByApp(ContainerId),
   bfoClass: Schema.String,
   siteId: SiteId,
   sectorId: Model.FieldOption(SectorId),
   containerTypeId: Schema.String,
   label: Schema.NonEmptyTrimmedString,
   parentContainerId: Model.FieldOption(ContainerId),
-  isMobile: Schema.Boolean,
-  createdAt: Model.DateTimeInsertFromDate,
-  updatedAt: Model.DateTimeUpdateFromDate,
+  isMobile: SqliteBoolean,
+  createdAt: Model.DateTimeInsert,
+  updatedAt: Model.DateTimeUpdate,
 }) {}
 
 export const makeContainerRepository = Model.makeRepository(ContainerModel, {
@@ -201,8 +257,8 @@ export class AssetPropertyModel extends Model.Class<AssetPropertyModel>('AssetPr
     key: Schema.NonEmptyTrimmedString,
     value: Schema.String,
     provenanceJson: Model.JsonFromString(Schema.Unknown),
-    createdAt: Model.DateTimeInsertFromDate,
-    updatedAt: Model.DateTimeUpdateFromDate,
+    createdAt: Model.DateTimeInsert,
+    updatedAt: Model.DateTimeUpdate,
   }
 ) {}
 
@@ -219,9 +275,9 @@ export class AssetTraitModel extends Model.Class<AssetTraitModel>('AssetTraitMod
   id: Model.Generated(Schema.Number.pipe(Schema.int())),
   assetId: AssetId,
   traitId: Schema.NonEmptyTrimmedString,
-  configJson: Model.FieldOption(Model.JsonFromString(Schema.Unknown)),
-  createdAt: Model.DateTimeInsertFromDate,
-  updatedAt: Model.DateTimeUpdateFromDate,
+  configJson: NullableJsonFromString,
+  createdAt: Model.DateTimeInsert,
+  updatedAt: Model.DateTimeUpdate,
 }) {}
 
 export const makeAssetTraitRepository = Model.makeRepository(AssetTraitModel, {
@@ -257,7 +313,7 @@ export class EventJournalModel extends Model.Class<EventJournalModel>('EventJour
   triggeredBy: Schema.String,
 
   /** When the event occurred */
-  occurredAt: Model.DateTimeInsertFromDate,
+  occurredAt: Model.DateTimeInsert,
 
   /** Version for optimistic concurrency */
   aggregateVersion: Schema.Number.pipe(Schema.int()),
