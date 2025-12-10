@@ -6,4 +6,4 @@
  * @module @gbg/tmnl/ams/v2/base/entities
  */
 
-// TODO: Phase 3 - Define entities with Entity.make
+export * from './asset'
