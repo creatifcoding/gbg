@@ -123,8 +123,9 @@ impl Default for EventLog {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ava_domain::{ViewProfileSpec, AssemblageId};
+    use ava_domain::{ViewProfileSpec, AssemblageId, ViewArtifact, UnmountReason, ViewDelta};
     use std::collections::HashMap;
+    use tokio::task::JoinSet;
 
     fn make_test_spec(view_id: &str) -> ViewProfileSpec {
         ViewProfileSpec {
@@ -137,6 +138,19 @@ mod tests {
             version: 1,
         }
     }
+
+    fn make_test_artifact(view_id: &str) -> ViewArtifact {
+        ViewArtifact {
+            view_id: ViewId::new(view_id),
+            asset_id: None,
+            spec: make_test_spec(view_id),
+            channel_bindings: vec![],
+            created_at_ms: 1000.0,
+            logical_version: 1,
+        }
+    }
+
+    // ========== Basic Operations ==========
 
     #[tokio::test]
     async fn test_append_and_retrieve() {
@@ -174,6 +188,39 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_new_log_is_empty() {
+        let log = EventLog::new();
+        assert!(log.is_empty().await);
+        assert_eq!(log.len().await, 0);
+        assert_eq!(log.latest_sequence().await.0, 0);
+    }
+
+    #[tokio::test]
+    async fn test_latest_sequence_after_appends() {
+        let log = EventLog::new();
+
+        // Initially 0
+        assert_eq!(log.latest_sequence().await.0, 0);
+
+        log.append(ReconcilerEvent::ViewRequested {
+            view_id: ViewId::new("view-1"),
+            spec: make_test_spec("view-1"),
+            timestamp_ms: 1000.0,
+        }).await;
+
+        assert_eq!(log.latest_sequence().await.0, 1);
+
+        log.append(ReconcilerEvent::ViewResumed {
+            view_id: ViewId::new("view-1"),
+            timestamp_ms: 2000.0,
+        }).await;
+
+        assert_eq!(log.latest_sequence().await.0, 2);
+    }
+
+    // ========== Filter Operations ==========
+
+    #[tokio::test]
     async fn test_filter_by_view() {
         let log = EventLog::new();
 
@@ -203,6 +250,55 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_filter_by_view_nonexistent() {
+        let log = EventLog::new();
+
+        log.append(ReconcilerEvent::ViewRequested {
+            view_id: ViewId::new("view-1"),
+            spec: make_test_spec("view-1"),
+            timestamp_ms: 1000.0,
+        }).await;
+
+        let events = log.for_view(&ViewId::new("nonexistent")).await;
+        assert!(events.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_from_sequence_pagination() {
+        let log = EventLog::new();
+
+        for i in 1..=10 {
+            log.append(ReconcilerEvent::ViewRequested {
+                view_id: ViewId::new(&format!("view-{}", i)),
+                spec: make_test_spec(&format!("view-{}", i)),
+                timestamp_ms: (i * 1000) as f64,
+            }).await;
+        }
+
+        // Get events from sequence 5 onwards
+        let events = log.from_sequence(EventSequence::new(5)).await;
+        assert_eq!(events.len(), 6); // 5, 6, 7, 8, 9, 10
+        assert_eq!(events[0].sequence.0, 5);
+        assert_eq!(events[5].sequence.0, 10);
+    }
+
+    #[tokio::test]
+    async fn test_from_sequence_beyond_latest() {
+        let log = EventLog::new();
+
+        log.append(ReconcilerEvent::ViewRequested {
+            view_id: ViewId::new("view-1"),
+            spec: make_test_spec("view-1"),
+            timestamp_ms: 1000.0,
+        }).await;
+
+        let events = log.from_sequence(EventSequence::new(100)).await;
+        assert!(events.is_empty());
+    }
+
+    // ========== Compact Operations ==========
+
+    #[tokio::test]
     async fn test_compact() {
         let log = EventLog::new();
 
@@ -227,6 +323,49 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_compact_all() {
+        let log = EventLog::new();
+
+        for i in 1..=5 {
+            log.append(ReconcilerEvent::ViewRequested {
+                view_id: ViewId::new(&format!("view-{}", i)),
+                spec: make_test_spec(&format!("view-{}", i)),
+                timestamp_ms: (i * 1000) as f64,
+            }).await;
+        }
+
+        let removed = log.compact(EventSequence::new(100)).await;
+        assert_eq!(removed, 5);
+        assert!(log.is_empty().await);
+    }
+
+    #[tokio::test]
+    async fn test_compact_none() {
+        let log = EventLog::new();
+
+        for i in 1..=5 {
+            log.append(ReconcilerEvent::ViewRequested {
+                view_id: ViewId::new(&format!("view-{}", i)),
+                spec: make_test_spec(&format!("view-{}", i)),
+                timestamp_ms: (i * 1000) as f64,
+            }).await;
+        }
+
+        let removed = log.compact(EventSequence::new(0)).await;
+        assert_eq!(removed, 0);
+        assert_eq!(log.len().await, 5);
+    }
+
+    #[tokio::test]
+    async fn test_compact_empty_log() {
+        let log = EventLog::new();
+        let removed = log.compact(EventSequence::new(10)).await;
+        assert_eq!(removed, 0);
+    }
+
+    // ========== Replay Operations ==========
+
+    #[tokio::test]
     async fn test_replay() {
         let log = EventLog::new();
 
@@ -246,5 +385,306 @@ mod tests {
 
         assert_eq!(count, 3);
         assert_eq!(last_seq.0, 3);
+    }
+
+    #[tokio::test]
+    async fn test_replay_empty_log() {
+        let log = EventLog::new();
+
+        let mut count = 0;
+        let last_seq = log.replay(|_| {
+            count += 1;
+            Ok(())
+        }).await.unwrap();
+
+        assert_eq!(count, 0);
+        assert_eq!(last_seq.0, 0);
+    }
+
+    #[tokio::test]
+    async fn test_replay_early_failure() {
+        let log = EventLog::new();
+
+        for i in 1..=5 {
+            log.append(ReconcilerEvent::ViewRequested {
+                view_id: ViewId::new(&format!("view-{}", i)),
+                spec: make_test_spec(&format!("view-{}", i)),
+                timestamp_ms: (i * 1000) as f64,
+            }).await;
+        }
+
+        let mut count = 0;
+        let result = log.replay(|entry| {
+            count += 1;
+            if entry.sequence.0 == 3 {
+                Err(ReconcilerError::ReplayFailed { message: "test error".into() })
+            } else {
+                Ok(())
+            }
+        }).await;
+
+        assert!(result.is_err());
+        assert_eq!(count, 3); // Stopped at 3rd event
+    }
+
+    #[tokio::test]
+    async fn test_replay_collects_event_data() {
+        let log = EventLog::new();
+
+        log.append(ReconcilerEvent::ViewRequested {
+            view_id: ViewId::new("view-1"),
+            spec: make_test_spec("view-1"),
+            timestamp_ms: 1000.0,
+        }).await;
+
+        log.append(ReconcilerEvent::ViewMounted {
+            view_id: ViewId::new("view-1"),
+            artifact: make_test_artifact("view-1"),
+            timestamp_ms: 2000.0,
+        }).await;
+
+        log.append(ReconcilerEvent::ViewSuspended {
+            view_id: ViewId::new("view-1"),
+            reason: "resource contention".into(),
+            timestamp_ms: 3000.0,
+        }).await;
+
+        let mut view_ids = Vec::new();
+        log.replay(|entry| {
+            view_ids.push(entry.event.view_id().clone());
+            Ok(())
+        }).await.unwrap();
+
+        assert_eq!(view_ids.len(), 3);
+        assert!(view_ids.iter().all(|id| id.as_str() == "view-1"));
+    }
+
+    // ========== All Event Types ==========
+
+    #[tokio::test]
+    async fn test_all_event_types() {
+        let log = EventLog::new();
+
+        // ViewRequested
+        log.append(ReconcilerEvent::ViewRequested {
+            view_id: ViewId::new("view-1"),
+            spec: make_test_spec("view-1"),
+            timestamp_ms: 1000.0,
+        }).await;
+
+        // ViewMounted
+        log.append(ReconcilerEvent::ViewMounted {
+            view_id: ViewId::new("view-1"),
+            artifact: make_test_artifact("view-1"),
+            timestamp_ms: 2000.0,
+        }).await;
+
+        // ViewUpdated
+        log.append(ReconcilerEvent::ViewUpdated {
+            view_id: ViewId::new("view-1"),
+            delta: ViewDelta::ArtifactReplaced {
+                artifact: Box::new(make_test_artifact("view-1")),
+            },
+            sequence: EventSequence::new(1),
+            timestamp_ms: 3000.0,
+        }).await;
+
+        // ViewSuspended
+        log.append(ReconcilerEvent::ViewSuspended {
+            view_id: ViewId::new("view-1"),
+            reason: "resource contention".into(),
+            timestamp_ms: 4000.0,
+        }).await;
+
+        // ViewResumed
+        log.append(ReconcilerEvent::ViewResumed {
+            view_id: ViewId::new("view-1"),
+            timestamp_ms: 5000.0,
+        }).await;
+
+        // ViewCompilationFailed
+        log.append(ReconcilerEvent::ViewCompilationFailed {
+            view_id: ViewId::new("view-2"),
+            error: "compilation error".into(),
+            timestamp_ms: 6000.0,
+        }).await;
+
+        // ViewUnmounted
+        log.append(ReconcilerEvent::ViewUnmounted {
+            view_id: ViewId::new("view-1"),
+            reason: UnmountReason::ClientRequest,
+            timestamp_ms: 7000.0,
+        }).await;
+
+        assert_eq!(log.len().await, 7);
+
+        let events = log.all().await;
+        assert!(matches!(&events[0].event, ReconcilerEvent::ViewRequested { .. }));
+        assert!(matches!(&events[1].event, ReconcilerEvent::ViewMounted { .. }));
+        assert!(matches!(&events[2].event, ReconcilerEvent::ViewUpdated { .. }));
+        assert!(matches!(&events[3].event, ReconcilerEvent::ViewSuspended { .. }));
+        assert!(matches!(&events[4].event, ReconcilerEvent::ViewResumed { .. }));
+        assert!(matches!(&events[5].event, ReconcilerEvent::ViewCompilationFailed { .. }));
+        assert!(matches!(&events[6].event, ReconcilerEvent::ViewUnmounted { .. }));
+    }
+
+    // ========== Concurrency Tests ==========
+
+    #[tokio::test]
+    async fn test_concurrent_appends() {
+        let log = std::sync::Arc::new(EventLog::new());
+        let mut join_set = JoinSet::new();
+
+        // Spawn 10 concurrent append tasks
+        for i in 0..10 {
+            let log = log.clone();
+            join_set.spawn(async move {
+                log.append(ReconcilerEvent::ViewRequested {
+                    view_id: ViewId::new(&format!("view-{}", i)),
+                    spec: make_test_spec(&format!("view-{}", i)),
+                    timestamp_ms: (i * 1000) as f64,
+                }).await
+            });
+        }
+
+        // Wait for all tasks
+        let mut sequences = Vec::new();
+        while let Some(result) = join_set.join_next().await {
+            sequences.push(result.unwrap());
+        }
+
+        // All should have unique sequences
+        sequences.sort_by_key(|s| s.0);
+        assert_eq!(sequences.len(), 10);
+
+        // Verify uniqueness
+        for (i, seq) in sequences.iter().enumerate() {
+            assert_eq!(seq.0, (i + 1) as u64);
+        }
+
+        assert_eq!(log.len().await, 10);
+    }
+
+    #[tokio::test]
+    async fn test_concurrent_read_write() {
+        let log = std::sync::Arc::new(EventLog::new());
+
+        // Pre-populate
+        for i in 1..=5 {
+            log.append(ReconcilerEvent::ViewRequested {
+                view_id: ViewId::new(&format!("view-{}", i)),
+                spec: make_test_spec(&format!("view-{}", i)),
+                timestamp_ms: (i * 1000) as f64,
+            }).await;
+        }
+
+        let mut join_set = JoinSet::new();
+
+        // Writer task
+        let log_w = log.clone();
+        join_set.spawn(async move {
+            for i in 6..=10 {
+                log_w.append(ReconcilerEvent::ViewRequested {
+                    view_id: ViewId::new(&format!("view-{}", i)),
+                    spec: make_test_spec(&format!("view-{}", i)),
+                    timestamp_ms: (i * 1000) as f64,
+                }).await;
+            }
+        });
+
+        // Reader tasks
+        for _ in 0..3 {
+            let log_r = log.clone();
+            join_set.spawn(async move {
+                for _ in 0..10 {
+                    let _ = log_r.all().await;
+                    let _ = log_r.len().await;
+                }
+            });
+        }
+
+        while let Some(result) = join_set.join_next().await {
+            result.unwrap();
+        }
+
+        assert_eq!(log.len().await, 10);
+    }
+
+    // ========== Edge Cases ==========
+
+    #[tokio::test]
+    async fn test_events_with_same_view_ordering() {
+        let log = EventLog::new();
+
+        // Multiple events for same view
+        for i in 1..=5 {
+            log.append(ReconcilerEvent::ViewRequested {
+                view_id: ViewId::new("shared-view"),
+                spec: make_test_spec("shared-view"),
+                timestamp_ms: (i * 1000) as f64,
+            }).await;
+        }
+
+        let events = log.for_view(&ViewId::new("shared-view")).await;
+        assert_eq!(events.len(), 5);
+
+        // Verify ordering is maintained
+        for (i, event) in events.iter().enumerate() {
+            assert_eq!(event.sequence.0, (i + 1) as u64);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_sequence_gap_after_compact() {
+        let log = EventLog::new();
+
+        for i in 1..=10 {
+            log.append(ReconcilerEvent::ViewRequested {
+                view_id: ViewId::new(&format!("view-{}", i)),
+                spec: make_test_spec(&format!("view-{}", i)),
+                timestamp_ms: (i * 1000) as f64,
+            }).await;
+        }
+
+        log.compact(EventSequence::new(5)).await;
+
+        // Add new event - sequence should continue from 11, not 1
+        let seq = log.append(ReconcilerEvent::ViewRequested {
+            view_id: ViewId::new("view-11"),
+            spec: make_test_spec("view-11"),
+            timestamp_ms: 11000.0,
+        }).await;
+
+        assert_eq!(seq.0, 11);
+
+        // Verify gap exists in stored events
+        let events = log.all().await;
+        assert_eq!(events[0].sequence.0, 6); // First remaining from original
+        assert_eq!(events[events.len() - 1].sequence.0, 11); // New event
+    }
+
+    #[tokio::test]
+    async fn test_clone_isolation() {
+        let log = EventLog::new();
+
+        log.append(ReconcilerEvent::ViewRequested {
+            view_id: ViewId::new("view-1"),
+            spec: make_test_spec("view-1"),
+            timestamp_ms: 1000.0,
+        }).await;
+
+        // Get a clone of events
+        let events_clone = log.all().await;
+
+        // Add more to log
+        log.append(ReconcilerEvent::ViewRequested {
+            view_id: ViewId::new("view-2"),
+            spec: make_test_spec("view-2"),
+            timestamp_ms: 2000.0,
+        }).await;
+
+        // Clone should be unchanged
+        assert_eq!(events_clone.len(), 1);
+        assert_eq!(log.len().await, 2);
     }
 }

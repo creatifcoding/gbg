@@ -33,14 +33,14 @@
 
 mod event_log;
 mod fiber;
-mod scheduler;
+pub mod scheduler;
 mod differ;
 mod reconciler;
 mod error;
 
 pub use event_log::EventLog;
 pub use fiber::{ViewFiber, FiberState};
-pub use scheduler::LaneScheduler;
+pub use scheduler::{LaneScheduler, ScheduledWork, QueueStats};
 pub use differ::{Differ, DiffResult};
 pub use reconciler::Reconciler;
 pub use error::ReconcilerError;
