@@ -250,6 +250,47 @@ describe('Repository', () => {
 
 ---
 
+## Test Execution Strategy
+
+**Critical**: `@effect/vitest` requires vitest context, and `@effect/sql-sqlite-bun` requires bun runtime.
+
+### Dual Test Runner Setup
+
+| Runner | Command | File Pattern | Notes |
+|--------|---------|--------------|-------|
+| **Vitest** | `bunx vitest run src/lib/ams/v2/` | `*.test.ts` (excluding `*.bun.test.ts`) | Effect tests with `it.effect()` |
+| **Bun test** | `bun test *.bun.test.ts` | `*.bun.test.ts` | SQLite tests using `bun:sqlite` |
+
+### Configuration
+
+**vitest.config.ts** must exclude bun-specific tests:
+```typescript
+test: {
+  exclude: [
+    "**/node_modules/**",
+    "**/*.bun.test.ts", // Run with `bun test` instead
+  ],
+}
+```
+
+**repositories/index.ts** must NOT export sqlite-layer:
+```typescript
+// sqlite-layer NOT exported - uses bun:sqlite (import directly for Bun tests)
+export * from './asset'
+```
+
+### Running All Tests
+
+```bash
+# Step 1: Run vitest tests (Effect, schemas, commands, queries)
+bunx vitest run src/lib/ams/v2/
+
+# Step 2: Run bun tests (SQLite integration)
+bun test src/lib/ams/v2/**/*.bun.test.ts
+```
+
+---
+
 ## Spike File
 
 See `src/lib/ams/v2/base/repositories/__tests__/spike-nullable-json.ts` for isolated tests of each encoding behavior.

@@ -4,11 +4,18 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    exclude: ["bun:sqlite"],
+  },
   test: {
     globals: true,
     environment: "happy-dom",
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    exclude: [
+      "**/node_modules/**",
+      "**/*.bun.test.ts", // Bun-specific tests (use bun:sqlite) - run with `bun test`
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
