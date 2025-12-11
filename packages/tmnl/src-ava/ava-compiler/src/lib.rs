@@ -40,10 +40,12 @@
 
 pub mod compiler;
 pub mod error;
+pub mod validation;
 
 // Re-exports
 pub use compiler::{ViewCompiler, CompiledView};
 pub use error::CompilerError;
+pub use validation::{ValidationResult, ValidationError, ValidationWarning, ErrorLocation};
 
 use std::sync::Arc;
 use arrow::array::{StringArray, Float64Array, RecordBatch};
