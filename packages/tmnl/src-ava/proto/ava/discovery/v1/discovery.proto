@@ -1,0 +1,86 @@
+syntax = "proto3";
+package ava.discovery.v1;
+
+import "google/protobuf/empty.proto";
+
+// Service for discovering available data sources
+service DiscoveryService {
+  // List all available sources
+  rpc ListSources(google.protobuf.Empty) returns (ListSourcesResponse);
+
+  // Get a specific source by ID
+  rpc GetSource(GetSourceRequest) returns (SourceDescriptor);
+
+  // Get schema for a source
+  rpc GetSchema(GetSchemaRequest) returns (SourceSchema);
+
+  // Get capabilities for a source
+  rpc GetCapabilities(GetCapabilitiesRequest) returns (SourceCapabilities);
+}
+
+message ListSourcesResponse {
+  repeated SourceDescriptor sources = 1;
+}
+
+message GetSourceRequest {
+  string source_id = 1;
+}
+
+message GetSchemaRequest {
+  string source_id = 1;
+  optional string table_name = 2;  // If omitted, returns all tables
+}
+
+message GetCapabilitiesRequest {
+  string source_id = 1;
+}
+
+// Complete description of a data source
+message SourceDescriptor {
+  string id = 1;
+  string name = 2;
+  optional string description = 3;
+  SourceKind kind = 4;
+  bool connected = 5;
+  SourceSchema schema = 6;
+  SourceCapabilities capabilities = 7;
+  map<string, string> tags = 8;
+}
+
+enum SourceKind {
+  SOURCE_KIND_UNSPECIFIED = 0;
+  SOURCE_KIND_SQL = 1;
+  SOURCE_KIND_STREAM = 2;
+  SOURCE_KIND_API = 3;
+  SOURCE_KIND_CACHE = 4;
+  SOURCE_KIND_GRAPH = 5;
+}
+
+message SourceSchema {
+  repeated TableSchema tables = 1;
+  optional string default_table = 2;
+}
+
+message TableSchema {
+  string name = 1;
+  repeated ColumnDescriptor columns = 2;
+}
+
+message ColumnDescriptor {
+  string name = 1;
+  string data_type = 2;  // Arrow type as string
+  bool nullable = 3;
+  optional string description = 4;
+}
+
+message SourceCapabilities {
+  bool sql_query = 1;
+  bool filtering = 2;
+  bool projection = 3;
+  bool aggregation = 4;
+  bool joins = 5;
+  bool window_functions = 6;
+  bool streaming = 7;
+  bool writable = 8;
+  optional uint64 max_rows = 9;
+}

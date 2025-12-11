@@ -1,0 +1,278 @@
+syntax = "proto3";
+package ava.execution.v1;
+
+import "ava/discovery/v1/discovery.proto";
+
+// Service for executing view specs (validates internally)
+service ExecutionService {
+  // Execute a spec - validates then executes atomically
+  // Returns either results OR validation errors, never both
+  rpc ExecuteSpec(ExecuteSpecRequest) returns (ExecuteSpecResponse);
+
+  // Execute and get compiled SQL (for debugging)
+  rpc CompileSpec(CompileSpecRequest) returns (CompileSpecResponse);
+
+  // Subscribe to a view for streaming updates
+  rpc SubscribeView(SubscribeViewRequest) returns (stream ViewUpdate);
+}
+
+message ExecuteSpecRequest {
+  ViewProfileSpec spec = 1;
+  OutputFormat output_format = 2;
+}
+
+enum OutputFormat {
+  OUTPUT_FORMAT_UNSPECIFIED = 0;
+  OUTPUT_FORMAT_JSON = 1;       // JSON array of records
+  OUTPUT_FORMAT_ARROW_IPC = 2;  // Arrow IPC format (efficient)
+}
+
+message ExecuteSpecResponse {
+  oneof result {
+    ExecutionSuccess success = 1;
+    ExecutionFailure failure = 2;
+  }
+}
+
+message ExecutionSuccess {
+  bytes data = 1;  // JSON or Arrow IPC depending on output_format
+  uint64 row_count = 2;
+  uint64 execution_time_ms = 3;
+}
+
+message ExecutionFailure {
+  repeated ValidationError errors = 1;
+}
+
+message CompileSpecRequest {
+  ViewProfileSpec spec = 1;
+}
+
+message CompileSpecResponse {
+  oneof result {
+    CompilationSuccess success = 1;
+    ExecutionFailure failure = 2;
+  }
+}
+
+message CompilationSuccess {
+  string sql = 1;
+  string logical_plan = 2;  // Debug representation
+}
+
+message SubscribeViewRequest {
+  string view_id = 1;
+  OutputFormat output_format = 2;
+}
+
+message ViewUpdate {
+  oneof update {
+    bytes data = 1;           // Incremental data
+    ViewError error = 2;      // Stream error
+    ViewComplete complete = 3; // Stream ended
+  }
+}
+
+message ViewError {
+  string message = 1;
+  string code = 2;
+}
+
+message ViewComplete {
+  uint64 total_rows = 1;
+}
+
+// --- ViewProfileSpec (the main payload) ---
+
+message ViewProfileSpec {
+  string id = 1;
+  string name = 2;
+  optional string assemblage_id = 3;
+  repeated ChannelPipelineSpec channels = 4;
+  uint32 version = 5;
+}
+
+message ChannelPipelineSpec {
+  string id = 1;
+  ChannelRole role = 2;
+  SourceSpec source = 3;
+  repeated SourceSpec additional_sources = 4;
+  repeated PipelineOperator pipeline = 5;
+  MaterializationTier materialization = 6;
+  optional uint64 refresh_ms = 7;
+}
+
+enum ChannelRole {
+  CHANNEL_ROLE_UNSPECIFIED = 0;
+  CHANNEL_ROLE_STATE = 1;
+  CHANNEL_ROLE_EVENT = 2;
+  CHANNEL_ROLE_METRIC = 3;
+  CHANNEL_ROLE_COMMAND = 4;
+  CHANNEL_ROLE_LOG = 5;
+}
+
+message SourceSpec {
+  string id = 1;
+  ava.discovery.v1.SourceKind kind = 2;
+  string connection = 3;
+  optional string schema_name = 4;
+}
+
+message PipelineOperator {
+  oneof operator {
+    FilterOp filter = 1;
+    ProjectOp project = 2;
+    AggregateOp aggregate = 3;
+    JoinOp join = 4;
+    SortOp sort = 5;
+    LimitOp limit = 6;
+    WindowOp window = 7;
+  }
+}
+
+message FilterOp {
+  string predicate = 1;
+}
+
+message ProjectOp {
+  repeated string columns = 1;
+}
+
+message AggregateOp {
+  repeated string group_by = 1;
+  repeated AggregateExpr aggregates = 2;
+}
+
+message AggregateExpr {
+  string function = 1;
+  string column = 2;
+  string alias = 3;
+}
+
+message JoinOp {
+  string source_id = 1;
+  string left_key = 2;
+  string right_key = 3;
+  JoinType join_type = 4;
+}
+
+enum JoinType {
+  JOIN_TYPE_UNSPECIFIED = 0;
+  JOIN_TYPE_INNER = 1;
+  JOIN_TYPE_LEFT = 2;
+  JOIN_TYPE_RIGHT = 3;
+  JOIN_TYPE_FULL = 4;
+  JOIN_TYPE_CROSS = 5;
+}
+
+message SortOp {
+  repeated SortColumn columns = 1;
+}
+
+message SortColumn {
+  string column = 1;
+  bool descending = 2;
+  bool nulls_first = 3;
+}
+
+message LimitOp {
+  uint32 count = 1;
+  optional uint32 offset = 2;
+}
+
+message WindowOp {
+  repeated string partition_by = 1;
+  repeated SortColumn order_by = 2;
+  string function = 3;
+}
+
+enum MaterializationTier {
+  MATERIALIZATION_TIER_UNSPECIFIED = 0;
+  MATERIALIZATION_TIER_ON_DEMAND = 1;
+  MATERIALIZATION_TIER_CACHED = 2;
+  MATERIALIZATION_TIER_MATERIALIZED = 3;
+}
+
+// --- Validation Errors ---
+
+message ValidationError {
+  oneof error {
+    SourceNotFoundError source_not_found = 1;
+    ColumnNotFoundError column_not_found = 2;
+    TypeMismatchError type_mismatch = 3;
+    InvalidAggregationError invalid_aggregation = 4;
+    UnsupportedOperationError unsupported_operation = 5;
+    CircularDependencyError circular_dependency = 6;
+    InvalidPredicateError invalid_predicate = 7;
+    DuplicateIdentifierError duplicate_identifier = 8;
+    MissingRequiredError missing_required = 9;
+    InvalidValueError invalid_value = 10;
+  }
+}
+
+message SourceNotFoundError {
+  string source_id = 1;
+  ErrorLocation location = 2;
+}
+
+message ColumnNotFoundError {
+  string column = 1;
+  string source_id = 2;
+  repeated string available_columns = 3;
+  ErrorLocation location = 4;
+}
+
+message TypeMismatchError {
+  string expected = 1;
+  string actual = 2;
+  string context = 3;
+  ErrorLocation location = 4;
+}
+
+message InvalidAggregationError {
+  string function = 1;
+  string reason = 2;
+  ErrorLocation location = 3;
+}
+
+message UnsupportedOperationError {
+  string operation = 1;
+  string source_id = 2;
+  optional string required_capability = 3;
+  ErrorLocation location = 4;
+}
+
+message CircularDependencyError {
+  repeated string cycle = 1;
+}
+
+message InvalidPredicateError {
+  string predicate = 1;
+  string reason = 2;
+  ErrorLocation location = 3;
+}
+
+message DuplicateIdentifierError {
+  string identifier = 1;
+  string context = 2;
+  ErrorLocation location = 3;
+}
+
+message MissingRequiredError {
+  string field = 1;
+  string context = 2;
+  ErrorLocation location = 3;
+}
+
+message InvalidValueError {
+  string field = 1;
+  string value = 2;
+  string reason = 3;
+  ErrorLocation location = 4;
+}
+
+message ErrorLocation {
+  optional string channel_id = 1;
+  optional uint32 pipeline_index = 2;
+  optional string field = 3;
+}
