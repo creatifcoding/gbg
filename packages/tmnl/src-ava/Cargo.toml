@@ -1,0 +1,65 @@
+[workspace]
+resolver = "2"
+members = [
+    "ava-domain",
+    "ava-macros",
+    "ava-adapters",
+    "ava-compiler",
+    "ava-reconciler",
+    "ava-runtime",
+    "ava-api",
+    "ava-wasm",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["GBG Team <team@getbygenius.com>"]
+license = "MIT"
+repository = "https://github.com/creatifcoding/gbg"
+
+[workspace.dependencies]
+# Core
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+typeshare = "1.0"
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Async
+tokio = { version = "1", features = ["full"] }
+async-trait = "0.1"
+futures = "0.3"
+
+# DataFusion + Arrow
+datafusion = "44"
+arrow = "53"
+parquet = "53"
+
+# SQL
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
+
+# WASM
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = ["console"] }
+
+# gRPC
+tonic = "0.12"
+prost = "0.13"
+
+# REST
+axum = "0.8"
+tower = "0.5"
+
+# Testing
+pretty_assertions = "1.4"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = "z"  # Optimize for size (important for WASM)
+
+[profile.dev]
+opt-level = 1  # Some optimization for faster dev builds
