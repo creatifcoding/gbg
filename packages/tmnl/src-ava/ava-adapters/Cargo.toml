@@ -1,0 +1,31 @@
+[package]
+name = "ava-adapters"
+description = "AVA source adapters: MemoryAdapter, SQLite, DataFusion TableProvider integration"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+# Internal
+ava-domain = { path = "../ava-domain" }
+
+# Async
+async-trait.workspace = true
+tokio = { workspace = true, features = ["sync", "rt"] }
+futures.workspace = true
+
+# Arrow / DataFusion
+arrow.workspace = true
+datafusion.workspace = true
+
+# SQL (for SQLiteAdapter)
+sqlx.workspace = true
+
+# Utilities
+thiserror.workspace = true
+dashmap = "6"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+pretty_assertions.workspace = true
