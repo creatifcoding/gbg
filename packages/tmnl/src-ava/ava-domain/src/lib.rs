@@ -12,6 +12,7 @@
 //! - `events` - Reconciler event types
 //! - `errors` - Domain error types
 //! - `traits` - Core extensibility traits (SourceAdapter, ChannelCompiler, etc.)
+//! - `discovery` - Source discovery types (SourceDescriptor, SourceSchema, SourceCapabilities)
 
 pub mod ids;
 pub mod channels;
@@ -20,6 +21,7 @@ pub mod assemblages;
 pub mod events;
 pub mod errors;
 pub mod traits;
+pub mod discovery;
 
 // Re-export all types at crate root for convenience
 pub use ids::*;
@@ -29,3 +31,4 @@ pub use assemblages::*;
 pub use events::*;
 pub use errors::*;
 pub use traits::*;
+pub use discovery::*;
