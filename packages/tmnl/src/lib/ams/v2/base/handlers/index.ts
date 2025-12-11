@@ -13,3 +13,6 @@ export * from './asset'
 export * from './event-handlers'
 export * from './compaction'
 export * from './reactivity'
+
+// SQL-backed EventJournal (Phase C)
+export * from './sql-event-journal'

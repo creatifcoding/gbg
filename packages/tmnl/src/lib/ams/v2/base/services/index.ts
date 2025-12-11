@@ -7,6 +7,6 @@
  */
 
 export * from './asset-state'
-
-// TODO: Phase 5 - Add SQL-backed AssetState implementation
-// export * from './asset-repository'
+export * from './asset-state-shape'
+export * from './asset-state-sql'
+export * from './repositories'
