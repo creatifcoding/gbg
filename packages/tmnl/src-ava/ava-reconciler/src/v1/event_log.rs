@@ -10,7 +10,7 @@ use ava_domain::{
     ReconcilerEvent, EventLogEntry, EventSequence, ViewId,
 };
 
-use crate::error::ReconcilerError;
+use super::error::ReconcilerError;
 
 /// Append-only event log for reconciler events
 pub struct EventLog {

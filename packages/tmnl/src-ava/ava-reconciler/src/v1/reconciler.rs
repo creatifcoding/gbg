@@ -13,11 +13,11 @@ use ava_domain::{
     ReconcilerEvent, EventSequence, UnmountReason,
 };
 
-use crate::event_log::EventLog;
-use crate::fiber::{ViewFiber, FiberState};
-use crate::scheduler::{LaneScheduler, ScheduledWork};
-use crate::differ::{Differ, DiffResult};
-use crate::error::ReconcilerError;
+use super::event_log::EventLog;
+use super::fiber::{ViewFiber, FiberState};
+use super::scheduler::{LaneScheduler, ScheduledWork};
+use super::differ::{Differ, DiffResult};
+use super::error::ReconcilerError;
 
 /// The main reconciler struct
 pub struct Reconciler {

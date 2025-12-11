@@ -632,7 +632,7 @@ async fn test_scheduler_standalone() {
             _ => Lane::Background,
         };
 
-        scheduler.enqueue(ava_reconciler::scheduler::ScheduledWork {
+        scheduler.enqueue(ava_reconciler::v1::ScheduledWork {
             view_id: ViewId::new(&format!("view-{}", i)),
             action: FiberAction::Noop,
             lane,

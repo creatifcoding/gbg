@@ -9,7 +9,7 @@ use ava_domain::{
     ViewId, ViewProfileSpec, FiberAction, UnmountReason,
 };
 
-use crate::fiber::{ViewFiber, FiberState};
+use super::fiber::{ViewFiber, FiberState};
 
 /// Result of diffing desired vs actual state
 #[derive(Debug, Clone)]
