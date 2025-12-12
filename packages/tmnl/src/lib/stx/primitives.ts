@@ -60,9 +60,7 @@ export {
   Atom,
 } from '@effect-atom/atom'
 
-export {
-  Result,
-} from '@effect-atom/atom/Result'
+export * as Result from '@effect-atom/atom/Result'
 
 export * as Registry from '@effect-atom/atom/Registry'
 
