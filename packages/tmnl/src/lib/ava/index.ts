@@ -129,8 +129,11 @@ export {
   AvaSessionClient,
   // Layers
   AvaSessionClientLive,
+  AvaSessionClientBrowser,
+  AvaSessionClientNode,
   AvaSessionClientDefault,
   makeAvaSessionClientLayer,
+  makeAvaSessionClientNodeLayer,
 } from './session-client';
 
 // ============================================================================

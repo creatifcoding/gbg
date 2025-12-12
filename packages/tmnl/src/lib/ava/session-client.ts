@@ -2,6 +2,7 @@
  * AVA Session Client Service
  *
  * Effect-based WebSocket client for AVA bidirectional sessions.
+ * Uses Effect Platform Socket API for cross-platform compatibility.
  * Uses Layer.scoped for automatic cleanup per EFFECT_SERVICE_PATTERNS.md.
  *
  * @module
@@ -17,7 +18,11 @@ import {
   Queue,
   Ref,
   Deferred,
+  Scope,
+  Fiber,
+  Chunk,
 } from 'effect';
+import { Socket } from '@effect/platform';
 
 import {
   SessionCommand,
@@ -157,6 +162,7 @@ const decodeEvent = (
 /**
  * Create AvaSessionClient service
  * Uses Layer.scoped for automatic WebSocket cleanup
+ * Requires Socket.WebSocketConstructor in context
  */
 const make = Effect.gen(function* () {
   const config = yield* AvaApiConfig;
@@ -172,68 +178,64 @@ const make = Effect.gen(function* () {
   const connectionDeferred = yield* Deferred.make<void, AvaSessionError>();
   const eventQueue = yield* Queue.unbounded<SessionEvent>();
 
-  // Create WebSocket
-  const ws = yield* Effect.sync(() => new WebSocket(sessionUrl));
+  // Create WebSocket using Effect Platform Socket API
+  // This requires Socket.WebSocketConstructor in context
+  const socket = yield* Socket.makeWebSocket(sessionUrl, {
+    openTimeout: config.timeout,
+  });
+
+  // Get the writer for sending commands (scoped, auto-cleanup)
+  const write = yield* socket.writer;
+
+  // Message handler - decode and enqueue events
+  const handleMessage = (data: string | Uint8Array): Effect.Effect<void> => {
+    const raw = typeof data === 'string' ? data : new TextDecoder().decode(data);
+    return decodeEvent(raw).pipe(
+      Effect.flatMap((evt) => Queue.offer(eventQueue, evt)),
+      Effect.catchAll((error) =>
+        Effect.logWarning(`Failed to decode event: ${error.message}`)
+      )
+    );
+  };
+
+  // Run the socket handler in a fiber
+  // This handles incoming messages and connection lifecycle
+  const runSocket = socket.runRaw(handleMessage, {
+    onOpen: Effect.gen(function* () {
+      yield* Ref.set(connectedRef, true);
+      yield* Deferred.succeed(connectionDeferred, undefined);
+      yield* Effect.logDebug('AvaSessionClient: WebSocket connected');
+    }),
+  }).pipe(
+    Effect.catchAll((error) =>
+      Effect.gen(function* () {
+        yield* Ref.set(connectedRef, false);
+        const isDone = yield* Deferred.isDone(connectionDeferred);
+        if (!isDone) {
+          yield* Deferred.fail(
+            connectionDeferred,
+            new AvaSessionError({
+              operation: 'connect',
+              message: `WebSocket error: ${error}`,
+              cause: error,
+            })
+          );
+        }
+        yield* Effect.logWarning(`AvaSessionClient: Socket error - ${error}`);
+      })
+    )
+  );
+
+  // Fork the socket handler to run in background
+  const socketFiber = yield* Effect.fork(runSocket);
 
   // Register cleanup finalizer (per EFFECT_SERVICE_PATTERNS.md)
   yield* Effect.addFinalizer(() =>
-    Effect.sync(() => {
-      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-        ws.close(1000, 'Client cleanup');
-      }
-    }).pipe(Effect.tap(() => Effect.logDebug('AvaSessionClient: WebSocket cleaned up')))
+    Effect.gen(function* () {
+      yield* Fiber.interrupt(socketFiber);
+      yield* Effect.logDebug('AvaSessionClient: WebSocket cleaned up');
+    })
   );
-
-  // Setup WebSocket event handlers
-  yield* Effect.sync(() => {
-    ws.onopen = () => {
-      Effect.runSync(Ref.set(connectedRef, true));
-      Effect.runSync(Deferred.succeed(connectionDeferred, undefined));
-    };
-
-    ws.onclose = (event) => {
-      Effect.runSync(Ref.set(connectedRef, false));
-      if (!Effect.runSync(Deferred.isDone(connectionDeferred))) {
-        Effect.runSync(
-          Deferred.fail(
-            connectionDeferred,
-            new AvaSessionError({
-              operation: 'connect',
-              message: `WebSocket closed: ${event.code} ${event.reason}`,
-            })
-          )
-        );
-      }
-    };
-
-    ws.onerror = (event) => {
-      Effect.runSync(Ref.set(connectedRef, false));
-      if (!Effect.runSync(Deferred.isDone(connectionDeferred))) {
-        Effect.runSync(
-          Deferred.fail(
-            connectionDeferred,
-            new AvaSessionError({
-              operation: 'connect',
-              message: 'WebSocket connection error',
-              cause: event,
-            })
-          )
-        );
-      }
-    };
-
-    ws.onmessage = (event) => {
-      const data = String(event.data);
-      Effect.runPromise(
-        decodeEvent(data).pipe(
-          Effect.flatMap((evt) => Queue.offer(eventQueue, evt)),
-          Effect.catchAll((error) =>
-            Effect.logWarning(`Failed to decode event: ${error.message}`)
-          )
-        )
-      );
-    };
-  });
 
   // Send command helper
   const sendCommand = (
@@ -251,15 +253,15 @@ const make = Effect.gen(function* () {
       }
 
       const json = encodeCommand(command);
-      yield* Effect.try({
-        try: () => ws.send(json),
-        catch: (error) =>
+      yield* write(json).pipe(
+        Effect.mapError((socketError) =>
           new AvaSessionError({
             operation: 'sendCommand',
-            message: String(error),
-            cause: error,
-          }),
-      });
+            message: `Socket write error: ${socketError}`,
+            cause: socketError,
+          })
+        )
+      );
     }).pipe(Effect.withSpan('AvaSessionClient.sendCommand'));
 
   // Create event stream from queue
@@ -318,17 +320,56 @@ const make = Effect.gen(function* () {
 });
 
 // ============================================================================
-// Layer
+// Layers
 // ============================================================================
 
 /**
  * Live layer for AvaSessionClient
- * Uses Layer.scoped for automatic WebSocket cleanup
+ * Requires:
+ * - AvaApiConfig
+ * - Socket.WebSocketConstructor (for platform-specific WebSocket implementation)
  */
 export const AvaSessionClientLive = Layer.scoped(AvaSessionClient, make);
 
-/** Full layer with default config (from http-client) */
-export const AvaSessionClientDefault = AvaSessionClientLive.pipe(
+/**
+ * Browser layer - uses globalThis.WebSocket
+ * Use this in browser environments (React apps, etc.)
+ */
+export const AvaSessionClientBrowser = AvaSessionClientLive.pipe(
+  Layer.provide(Socket.layerWebSocketConstructorGlobal)
+);
+
+/**
+ * Node.js/Bun layer - requires a WebSocket polyfill
+ * Use this with the ws package in Node.js or Bun's native WebSocket
+ *
+ * Example usage with ws package:
+ * ```typescript
+ * import WebSocket from 'ws'
+ * const NodeWebSocketLayer = Layer.succeed(
+ *   Socket.WebSocketConstructor,
+ *   (url, protocols) => new WebSocket(url, protocols) as unknown as globalThis.WebSocket
+ * )
+ * const layer = AvaSessionClientLive.pipe(
+ *   Layer.provide(NodeWebSocketLayer),
+ *   Layer.provide(configLayer)
+ * )
+ * ```
+ */
+export const AvaSessionClientNode = (
+  WebSocketImpl: new (url: string, protocols?: string | string[]) => globalThis.WebSocket
+) =>
+  AvaSessionClientLive.pipe(
+    Layer.provide(
+      Layer.succeed(
+        Socket.WebSocketConstructor,
+        (url, protocols) => new WebSocketImpl(url, protocols)
+      )
+    )
+  );
+
+/** Full layer with default config (from http-client) - for browser */
+export const AvaSessionClientDefault = AvaSessionClientBrowser.pipe(
   Layer.provide(
     Layer.succeed(AvaApiConfig, {
       baseUrl: 'http://localhost:3000',
@@ -337,9 +378,26 @@ export const AvaSessionClientDefault = AvaSessionClientLive.pipe(
   )
 );
 
-/** Create layer with custom config */
+/** Create layer with custom config - for browser */
 export const makeAvaSessionClientLayer = (baseUrl: string) =>
-  AvaSessionClientLive.pipe(
+  AvaSessionClientBrowser.pipe(
+    Layer.provide(
+      Layer.succeed(AvaApiConfig, {
+        baseUrl,
+        timeout: 30000,
+      })
+    )
+  );
+
+/**
+ * Create layer with custom config for Node.js/Bun
+ * Requires a WebSocket constructor implementation
+ */
+export const makeAvaSessionClientNodeLayer = (
+  baseUrl: string,
+  WebSocketImpl: new (url: string, protocols?: string | string[]) => globalThis.WebSocket
+) =>
+  AvaSessionClientNode(WebSocketImpl).pipe(
     Layer.provide(
       Layer.succeed(AvaApiConfig, {
         baseUrl,
