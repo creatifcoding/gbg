@@ -457,6 +457,7 @@ fn create_artifact(spec: &ViewProfileSpec, timestamp: f64) -> ViewArtifact {
             active: true,
             row_count: None,
             last_updated_ms: Some(timestamp),
+            data: None, // Will be populated by HydrationService (I47)
         }
     }).collect();
 

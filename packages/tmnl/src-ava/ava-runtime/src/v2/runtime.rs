@@ -282,6 +282,7 @@ impl AvaRuntimeV2 {
                 active: false,
                 row_count: None,
                 last_updated_ms: None,
+                data: None, // Will be populated by HydrationService (I47)
             }
         }).collect();
 

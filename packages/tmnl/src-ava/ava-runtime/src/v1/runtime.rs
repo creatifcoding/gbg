@@ -441,6 +441,7 @@ impl AvaRuntime {
                 active: false,
                 row_count: None,
                 last_updated_ms: None,
+                data: None,
             }
         }).collect();
 
