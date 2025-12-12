@@ -136,6 +136,14 @@ const CARDS: readonly CardDef[] = [
     glow: 'emerald',
   },
   {
+    title: 'AVA CLIENT',
+    body: 'Asset View Agent testbed. HTTP + WebSocket clients with Effect Platform. TmnlDataGrid for view display.',
+    route: '/testbed/ava',
+    status: 'active',
+    label: 'NEW',
+    glow: 'emerald',
+  },
+  {
     title: 'SEARCH LAB',
     body: 'Search driver experimentation. FlexSearch vs Linear comparison, indexing strategies, fuzzy matching.',
     route: '/testbed/search',

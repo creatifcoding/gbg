@@ -216,6 +216,17 @@ export const TESTBED_REGISTRY: readonly TestbedEntry[] = [
       { version: 'v1', route: '/testbed/indices', status: 'experimental', label: 'NEW' },
     ],
   },
+  {
+    id: 'ava',
+    name: 'AVA Client',
+    description: 'Asset View Agent HTTP + WebSocket client testbed. Effect Platform integration with TmnlDataGrid.',
+    category: 'data',
+    keywords: ['ava', 'asset', 'view', 'agent', 'websocket', 'http', 'client', 'effect', 'stream'],
+    accent: 'emerald',
+    versions: [
+      { version: 'v1', route: '/testbed/ava', status: 'experimental', label: 'NEW' },
+    ],
+  },
 ] as const
 
 // ─────────────────────────────────────────────────────────────────────────────
