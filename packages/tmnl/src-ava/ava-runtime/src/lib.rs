@@ -46,7 +46,7 @@ pub use error::RuntimeError;
 pub use spec_registry::SpecRegistry;
 
 // Re-export v2 as the default (recommended) API
-pub use v2::{AvaRuntimeV2, RuntimeConfigV2};
+pub use v2::{AvaRuntimeV2, RuntimeConfigV2, HydrationService, HydrationConfig, HydrationStrategy};
 
 // Re-export v1 types at crate root for backward compatibility (deprecated)
 #[deprecated(since = "0.2.0", note = "Use ava_runtime::v1::AvaRuntime instead, or migrate to v2")]
@@ -60,7 +60,7 @@ pub use ava_compiler::{ViewCompiler, CompiledView, CompilerError};
 pub use ava_adapters::{AdapterRegistry, MemoryAdapter, SqliteAdapter};
 pub use ava_domain::{
     ViewProfileSpec, ViewId, ViewArtifact, ViewDelta,
-    ChannelPipelineSpec, ChannelId, ChannelRole,
+    ChannelPipelineSpec, ChannelId, ChannelRole, ChannelBinding, ChannelData,
     SourceSpec, SourceId, SourceKind,
     AssemblageId, Lane, UnmountReason,
 };

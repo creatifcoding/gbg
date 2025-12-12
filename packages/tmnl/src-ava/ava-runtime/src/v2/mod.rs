@@ -11,6 +11,12 @@
 //! - **subscribe_view()**: Returns `Receiver<ViewArtifact>` for continuous updates
 //! - **Reactive triggers**: Source changes, invalidation, and timers all unified
 //!
+//! # Hydration Model (I47)
+//!
+//! The HydrationService populates `ChannelBinding.data` based on source type:
+//! - **Server-hydrated**: SQL queries (Rows), aggregates (Inline), streams (StreamHandle)
+//! - **Client-fetched**: Static assets like 3D models (AssetRef)
+//!
 //! # Usage
 //!
 //! ```ignore
@@ -34,8 +40,10 @@
 //! runtime.unsubscribe(&view_id).await?;
 //! ```
 
+mod hydration;
 mod runtime;
 
+pub use hydration::{HydrationService, HydrationConfig, HydrationStrategy};
 pub use runtime::{AvaRuntimeV2, RuntimeConfigV2};
 
 // Re-export v2 reconciler types

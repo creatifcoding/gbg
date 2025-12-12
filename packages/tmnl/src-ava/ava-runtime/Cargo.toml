@@ -16,6 +16,7 @@ ava-reconciler = { path = "../ava-reconciler" }
 # Core
 thiserror.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 
 # Async
 tokio.workspace = true
@@ -25,6 +26,7 @@ futures.workspace = true
 # DataFusion
 datafusion.workspace = true
 arrow.workspace = true
+arrow-json.workspace = true
 
 [dev-dependencies]
 pretty_assertions.workspace = true

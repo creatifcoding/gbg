@@ -34,6 +34,7 @@ futures = "0.3"
 # DataFusion + Arrow
 datafusion = "44"
 arrow = "53"
+arrow-json = "53"
 parquet = "53"
 
 # SQL
