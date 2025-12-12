@@ -1,0 +1,52 @@
+// AVA Common Timestamps v1
+//
+// Standardized timestamp handling using google.protobuf.Timestamp.
+// Provides duration types and time range utilities.
+
+syntax = "proto3";
+
+package ava.common.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+option java_multiple_files = true;
+option java_package = "com.ava.common.v1";
+
+// TimeRange - Bounded time interval (inclusive start, exclusive end)
+message TimeRange {
+  google.protobuf.Timestamp start = 1;
+  google.protobuf.Timestamp end = 2;
+}
+
+// TimeBound - Open or closed time boundary
+message TimeBound {
+  oneof bound {
+    google.protobuf.Timestamp at = 1;      // Exact timestamp
+    google.protobuf.Timestamp before = 2;  // Exclusive upper bound
+    google.protobuf.Timestamp after = 3;   // Exclusive lower bound
+    TimeRange between = 4;                  // Inclusive range
+  }
+}
+
+// VersionedTimestamp - Timestamp with logical version for optimistic concurrency
+message VersionedTimestamp {
+  google.protobuf.Timestamp timestamp = 1;
+  uint32 version = 2;
+}
+
+// Heartbeat - Periodic liveness signal
+message Heartbeat {
+  google.protobuf.Timestamp timestamp = 1;
+  uint64 sequence = 2;
+  optional google.protobuf.Duration interval = 3;
+}
+
+// TTL - Time-to-live specification
+message TTL {
+  oneof ttl {
+    google.protobuf.Duration duration = 1;           // Relative TTL
+    google.protobuf.Timestamp expires_at = 2;        // Absolute expiration
+    bool never_expires = 3;                          // Infinite TTL
+  }
+}

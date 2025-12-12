@@ -1,0 +1,282 @@
+// AVA Execution Hydration v1
+//
+// The heart of the I47 spec - how data is delivered to views.
+// ChannelData represents the polymorphic payload variants.
+// ChannelBinding captures runtime channel state.
+
+syntax = "proto3";
+
+package ava.execution.v1;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "ava/common/v1/identifiers.proto";
+import "ava/common/v1/errors.proto";
+
+option java_multiple_files = true;
+option java_package = "com.ava.execution.v1";
+
+// ChannelRole - The semantic role of a channel in a view
+enum ChannelRole {
+  CHANNEL_ROLE_UNSPECIFIED = 0;
+
+  // Primary data channels
+  PRIMARY = 1;         // Main dataset for the view
+  SECONDARY = 2;       // Supporting dataset (joins, lookups)
+
+  // Control channels
+  FILTER = 10;         // Filter/predicate channel
+  SORT = 11;           // Sort specification channel
+  SELECTION = 12;      // Selection state channel
+
+  // Derived channels
+  AGGREGATE = 20;      // Aggregation results
+  COMPUTED = 21;       // Computed/derived values
+
+  // Metadata channels
+  SCHEMA = 30;         // Schema information
+  STATS = 31;          // Statistics/metrics
+}
+
+// ChannelData - Polymorphic payload for channel hydration
+// This is the core I47 delivery mechanism
+message ChannelData {
+  oneof data {
+    // Inline JSON-like value (small payloads, config, scalars)
+    InlineData inline = 1;
+
+    // Tabular data as Arrow IPC (efficient for grids, charts)
+    RowSet rows = 2;
+
+    // Reference to external asset (large files, blobs)
+    AssetRef asset_ref = 3;
+
+    // Handle to a live stream (real-time data)
+    StreamHandle stream_handle = 4;
+
+    // Channel-specific error (partial failure)
+    ava.common.v1.ChannelError error = 5;
+
+    // Placeholder indicating data is loading
+    Pending pending = 6;
+  }
+}
+
+// InlineData - Small values embedded directly in the message
+message InlineData {
+  // JSON-compatible value (null, bool, number, string, array, object)
+  google.protobuf.Value value = 1;
+
+  // Optional type hint for deserialization
+  optional string type_hint = 2;
+}
+
+// RowSet - Tabular data in Arrow IPC format
+message RowSet {
+  // Arrow IPC stream bytes (schema + record batches)
+  bytes arrow_ipc = 1;
+
+  // Row count for quick access without parsing
+  uint32 row_count = 2;
+
+  // Column count for validation
+  uint32 column_count = 3;
+
+  // Optional compression codec applied to arrow_ipc
+  optional Codec codec = 4;
+
+  // Schema fingerprint for cache validation
+  optional string schema_hash = 5;
+}
+
+// Codec - Compression codecs for Arrow IPC
+enum Codec {
+  CODEC_UNSPECIFIED = 0;
+  NONE = 1;
+  LZ4 = 2;
+  ZSTD = 3;
+  SNAPPY = 4;
+}
+
+// AssetRef - Reference to an external asset
+message AssetRef {
+  // URI to the asset (file://, s3://, http://, etc.)
+  string uri = 1;
+
+  // MIME type for content negotiation
+  optional string mime_type = 2;
+
+  // ETag for cache validation
+  optional string etag = 3;
+
+  // Content hash for integrity verification
+  optional string content_hash = 4;
+
+  // Size in bytes (if known)
+  optional uint64 size_bytes = 5;
+
+  // Suggested filename for downloads
+  optional string filename = 6;
+}
+
+// StreamHandle - Handle to subscribe to a live data stream
+message StreamHandle {
+  // Topic/channel identifier for the stream
+  string topic = 1;
+
+  // Optional cursor position for resumption
+  optional uint64 cursor = 2;
+
+  // Schema URI for stream message format
+  optional string schema_uri = 3;
+
+  // Stream protocol hint
+  optional StreamProtocol protocol = 4;
+
+  // Backpressure configuration
+  optional BackpressureConfig backpressure = 5;
+}
+
+// StreamProtocol - Supported streaming protocols
+enum StreamProtocol {
+  STREAM_PROTOCOL_UNSPECIFIED = 0;
+  GRPC_SERVER_STREAM = 1;     // gRPC server streaming
+  GRPC_BIDI_STREAM = 2;       // gRPC bidirectional streaming
+  WEBSOCKET = 3;              // WebSocket upgrade
+  SSE = 4;                    // Server-Sent Events
+}
+
+// BackpressureConfig - Flow control settings
+message BackpressureConfig {
+  // Maximum items to buffer before applying backpressure
+  uint32 high_water_mark = 1;
+
+  // Resume normal flow when buffer drops to this level
+  uint32 low_water_mark = 2;
+
+  // Strategy when buffer overflows
+  OverflowStrategy overflow_strategy = 3;
+}
+
+// OverflowStrategy - What to do when backpressure limits are exceeded
+enum OverflowStrategy {
+  OVERFLOW_STRATEGY_UNSPECIFIED = 0;
+  DROP_OLDEST = 1;    // Drop oldest items in buffer
+  DROP_NEWEST = 2;    // Drop newest incoming items
+  BLOCK = 3;          // Block producer until space available
+  ERROR = 4;          // Error the stream
+}
+
+// Pending - Placeholder for data that is still loading
+message Pending {
+  // Optional progress indicator (0.0 - 1.0)
+  optional float progress = 1;
+
+  // Optional status message
+  optional string status = 2;
+
+  // Estimated completion time
+  optional google.protobuf.Timestamp eta = 3;
+
+  // Whether the pending operation can be cancelled
+  bool cancellable = 4;
+}
+
+// ChannelBinding - Runtime state of a bound channel
+message ChannelBinding {
+  // Channel identifier
+  ava.common.v1.ChannelId channel_id = 1;
+
+  // Channel name (human-readable)
+  string name = 2;
+
+  // Semantic role of this channel
+  ChannelRole role = 3;
+
+  // Whether the channel is currently active (has data or is streaming)
+  bool active = 4;
+
+  // Current row count (for tabular channels)
+  optional uint32 row_count = 5;
+
+  // Last update timestamp
+  optional google.protobuf.Timestamp last_updated = 6;
+
+  // Current channel data (may be omitted for large payloads)
+  optional ChannelData data = 7;
+
+  // Data hash for change detection
+  optional string data_hash = 8;
+
+  // Channel-specific metadata
+  map<string, string> metadata = 9;
+
+  // Subscription state for streaming channels
+  optional SubscriptionState subscription = 10;
+}
+
+// SubscriptionState - State of a streaming subscription
+message SubscriptionState {
+  // Whether actively receiving data
+  bool receiving = 1;
+
+  // Messages received since subscription
+  uint64 messages_received = 2;
+
+  // Bytes received since subscription
+  uint64 bytes_received = 3;
+
+  // Current backpressure level (0.0 = none, 1.0 = full)
+  float backpressure_level = 4;
+
+  // Last error encountered (if any)
+  optional ava.common.v1.ChannelError last_error = 5;
+}
+
+// HydrateChannelRequest - Request to hydrate a specific channel
+message HydrateChannelRequest {
+  // View containing the channel
+  ava.common.v1.ViewId view_id = 1;
+
+  // Channel to hydrate
+  ava.common.v1.ChannelId channel_id = 2;
+
+  // Optional parameters for the hydration
+  map<string, google.protobuf.Value> parameters = 3;
+
+  // Preferred data format
+  optional DataFormat preferred_format = 4;
+
+  // Maximum payload size (for pagination)
+  optional uint32 max_rows = 5;
+
+  // Offset for pagination
+  optional uint32 offset = 6;
+}
+
+// DataFormat - Preferred format for channel data
+enum DataFormat {
+  DATA_FORMAT_UNSPECIFIED = 0;
+  ARROW_IPC = 1;          // Arrow IPC (default for tabular)
+  JSON = 2;               // JSON (for debugging/simple clients)
+  JSON_LINES = 3;         // JSON Lines (for streaming)
+}
+
+// HydrateArtifactRequest - Request to hydrate all channels for a view
+message HydrateArtifactRequest {
+  // View to hydrate
+  ava.common.v1.ViewId view_id = 1;
+
+  // Optional: specific channels to hydrate (empty = all)
+  repeated ava.common.v1.ChannelId channel_ids = 2;
+
+  // Parameters for all channels
+  map<string, google.protobuf.Value> parameters = 3;
+
+  // Whether to include channel data in bindings
+  bool include_data = 4;
+
+  // Preferred data format
+  optional DataFormat preferred_format = 5;
+}

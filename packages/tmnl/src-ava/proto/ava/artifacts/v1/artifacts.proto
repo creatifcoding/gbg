@@ -1,0 +1,294 @@
+// AVA Artifacts v1
+//
+// Runtime view instances and streaming delta updates.
+// ViewArtifact represents a fully compiled, mounted view.
+// ViewDelta represents incremental changes for efficient streaming.
+
+syntax = "proto3";
+
+package ava.artifacts.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "ava/common/v1/identifiers.proto";
+import "ava/execution/v1/hydration.proto";
+
+option java_multiple_files = true;
+option java_package = "com.ava.artifacts.v1";
+
+// ViewArtifact - A fully compiled, runtime view instance
+message ViewArtifact {
+  // Unique view identifier
+  ava.common.v1.ViewId view_id = 1;
+
+  // Optional: scoped to a specific asset
+  optional ava.common.v1.AssetId asset_id = 2;
+
+  // View profile specification (copied from registry for self-containment)
+  ViewProfileSpec spec = 3;
+
+  // All channel bindings with their current state
+  repeated ava.execution.v1.ChannelBinding channel_bindings = 4;
+
+  // When this artifact was created
+  google.protobuf.Timestamp created_at = 5;
+
+  // Last modification timestamp
+  google.protobuf.Timestamp updated_at = 6;
+
+  // Logical version for optimistic concurrency
+  uint32 version = 7;
+
+  // Current lifecycle state
+  ArtifactState state = 8;
+
+  // Performance metrics
+  optional ArtifactMetrics metrics = 9;
+
+  // Arbitrary metadata
+  map<string, string> metadata = 10;
+}
+
+// ViewProfileSpec - View specification (simplified copy from registry)
+message ViewProfileSpec {
+  // Human-readable name
+  string name = 1;
+
+  // Optional description
+  optional string description = 2;
+
+  // Domain this view belongs to
+  string domain = 3;
+
+  // Channel specifications
+  repeated ChannelSpec channels = 4;
+
+  // Default parameters
+  map<string, google.protobuf.Value> default_params = 5;
+
+  // Tags for categorization
+  repeated string tags = 6;
+}
+
+// ChannelSpec - Channel definition within a view spec
+message ChannelSpec {
+  // Channel identifier
+  ava.common.v1.ChannelId channel_id = 1;
+
+  // Channel name
+  string name = 2;
+
+  // Semantic role
+  ava.execution.v1.ChannelRole role = 3;
+
+  // Whether the channel is required
+  bool required = 4;
+
+  // Source query or expression
+  optional string source_expr = 5;
+
+  // Expected schema (JSON Schema or Arrow schema)
+  optional string schema = 6;
+}
+
+// ArtifactState - Lifecycle state of a view artifact
+enum ArtifactState {
+  ARTIFACT_STATE_UNSPECIFIED = 0;
+
+  // Artifact is being compiled/created
+  COMPILING = 1;
+
+  // Artifact is ready and serving data
+  ACTIVE = 2;
+
+  // Artifact is paused (no active hydration)
+  SUSPENDED = 3;
+
+  // Artifact is being torn down
+  UNMOUNTING = 4;
+
+  // Artifact encountered an error
+  ERROR = 5;
+
+  // Artifact has been replaced by a newer version
+  SUPERSEDED = 6;
+}
+
+// ArtifactMetrics - Performance and usage metrics
+message ArtifactMetrics {
+  // Time to compile the artifact (ms)
+  uint32 compile_time_ms = 1;
+
+  // Time to initially hydrate all channels (ms)
+  uint32 initial_hydration_ms = 2;
+
+  // Total data size across all channels (bytes)
+  uint64 total_data_bytes = 3;
+
+  // Number of active subscriptions
+  uint32 subscription_count = 4;
+
+  // Number of times this artifact was invalidated
+  uint32 invalidation_count = 5;
+
+  // Last access timestamp
+  optional google.protobuf.Timestamp last_accessed = 6;
+}
+
+// ViewDelta - Incremental update to a view artifact
+// Used for efficient streaming of changes
+message ViewDelta {
+  // View this delta applies to
+  ava.common.v1.ViewId view_id = 1;
+
+  // Sequence number for ordering
+  uint64 sequence = 2;
+
+  // When this delta was generated
+  google.protobuf.Timestamp timestamp = 3;
+
+  // The actual change
+  oneof delta {
+    // A channel received new data
+    ChannelUpdated channel_updated = 10;
+
+    // A channel became active
+    ChannelActivated channel_activated = 11;
+
+    // A channel became inactive
+    ChannelDeactivated channel_deactivated = 12;
+
+    // Channel data was cleared
+    ChannelCleared channel_cleared = 13;
+
+    // The entire artifact was replaced
+    ArtifactReplaced artifact_replaced = 14;
+
+    // Artifact state changed
+    StateChanged state_changed = 15;
+
+    // Artifact metadata updated
+    MetadataUpdated metadata_updated = 16;
+  }
+}
+
+// ChannelUpdated - A channel received new or updated data
+message ChannelUpdated {
+  // Which channel was updated
+  ava.common.v1.ChannelId channel_id = 1;
+
+  // New row count (for tabular data)
+  uint32 row_count = 2;
+
+  // Update timestamp
+  google.protobuf.Timestamp timestamp = 3;
+
+  // Optional: the actual data (may be omitted for large updates)
+  optional ava.execution.v1.ChannelData data = 4;
+
+  // Data hash for change detection
+  optional string data_hash = 5;
+
+  // Whether this is a full replacement or incremental update
+  bool is_full_refresh = 6;
+
+  // For incremental: affected row ranges
+  repeated RowRange affected_rows = 7;
+}
+
+// RowRange - Range of rows affected by an update
+message RowRange {
+  uint32 start = 1;  // Inclusive
+  uint32 end = 2;    // Exclusive
+}
+
+// ChannelActivated - A channel became active
+message ChannelActivated {
+  ava.common.v1.ChannelId channel_id = 1;
+  ava.execution.v1.ChannelRole role = 2;
+  optional string schema = 3;
+}
+
+// ChannelDeactivated - A channel became inactive
+message ChannelDeactivated {
+  ava.common.v1.ChannelId channel_id = 1;
+  DeactivationReason reason = 2;
+}
+
+// DeactivationReason - Why a channel was deactivated
+enum DeactivationReason {
+  DEACTIVATION_REASON_UNSPECIFIED = 0;
+  SOURCE_DISCONNECTED = 1;
+  QUERY_FAILED = 2;
+  TIMEOUT = 3;
+  CLIENT_REQUEST = 4;
+  REPLACED = 5;
+}
+
+// ChannelCleared - Channel data was explicitly cleared
+message ChannelCleared {
+  ava.common.v1.ChannelId channel_id = 1;
+  string reason = 2;
+}
+
+// ArtifactReplaced - The entire artifact was replaced
+message ArtifactReplaced {
+  // The new artifact (full snapshot)
+  ViewArtifact new_artifact = 1;
+
+  // ID of the previous artifact version
+  optional uint32 previous_version = 2;
+
+  // Reason for replacement
+  ReplacementReason reason = 3;
+}
+
+// ReplacementReason - Why an artifact was replaced
+enum ReplacementReason {
+  REPLACEMENT_REASON_UNSPECIFIED = 0;
+  SPEC_CHANGED = 1;
+  INVALIDATED = 2;
+  UPGRADED = 3;
+  RECOMPILED = 4;
+  MIGRATED = 5;
+}
+
+// StateChanged - Artifact state transition
+message StateChanged {
+  ArtifactState previous_state = 1;
+  ArtifactState new_state = 2;
+  optional string reason = 3;
+}
+
+// MetadataUpdated - Artifact metadata was updated
+message MetadataUpdated {
+  // Changed keys and their new values
+  map<string, string> updated = 1;
+
+  // Removed keys
+  repeated string removed = 2;
+}
+
+// TaggedArtifact - Artifact with routing tag for multi-view streams
+message TaggedArtifact {
+  // View identifier for demultiplexing
+  ava.common.v1.ViewId view_id = 1;
+
+  // The artifact
+  ViewArtifact artifact = 2;
+
+  // Optional client-provided correlation tag
+  optional string tag = 3;
+}
+
+// TaggedDelta - Delta with routing tag for multi-view streams
+message TaggedDelta {
+  // View identifier for demultiplexing
+  ava.common.v1.ViewId view_id = 1;
+
+  // The delta
+  ViewDelta delta = 2;
+
+  // Optional client-provided correlation tag
+  optional string tag = 3;
+}

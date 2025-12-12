@@ -1,0 +1,333 @@
+// AVA Registry Assemblages v1
+//
+// Expressive predicate model for asset collections.
+// AssemblagePredicate defines membership rules with full boolean algebra.
+// AssemblageSpec defines complete assemblage configurations.
+
+syntax = "proto3";
+
+package ava.registry.v1;
+
+import "google/protobuf/struct.proto";
+import "ava/common/v1/identifiers.proto";
+
+option java_multiple_files = true;
+option java_package = "com.ava.registry.v1";
+
+// AssemblagePredicate - Expressive predicate for asset matching
+// Supports full boolean algebra: AND, OR, NOT with arbitrary nesting
+message AssemblagePredicate {
+  oneof predicate {
+    // Asset type matching
+    AssetTypePredicate asset_type = 1;
+
+    // Trait presence check
+    HasTraitPredicate has_trait = 2;
+
+    // Site membership
+    InSitePredicate in_site = 3;
+
+    // Sector membership
+    InSectorPredicate in_sector = 4;
+
+    // Property equality
+    PropertyEqualsPredicate property_equals = 5;
+
+    // Property set membership
+    PropertyInPredicate property_in = 6;
+
+    // Property comparison (numeric)
+    PropertyComparePredicate property_compare = 7;
+
+    // Property pattern matching (regex/glob)
+    PropertyMatchesPredicate property_matches = 8;
+
+    // Boolean combinators
+    AndPredicate and = 10;
+    OrPredicate or = 11;
+    NotPredicate not = 12;
+
+    // Constant predicates
+    AlwaysPredicate always = 20;
+    NeverPredicate never = 21;
+  }
+}
+
+// AssetTypePredicate - Match by asset type
+message AssetTypePredicate {
+  // Asset type to match (e.g., "equipment", "process", "location")
+  string type = 1;
+
+  // Whether to include subtypes
+  bool include_subtypes = 2;
+}
+
+// HasTraitPredicate - Match assets with a specific trait
+message HasTraitPredicate {
+  // Trait name to check
+  string trait = 1;
+
+  // Optional: require specific trait value
+  optional google.protobuf.Value with_value = 2;
+}
+
+// InSitePredicate - Match assets in a specific site
+message InSitePredicate {
+  // Site identifier
+  string site_id = 1;
+
+  // Whether to include child sites
+  bool include_children = 2;
+}
+
+// InSectorPredicate - Match assets in a specific sector
+message InSectorPredicate {
+  // Sector identifier
+  string sector_id = 1;
+
+  // Whether to include child sectors
+  bool include_children = 2;
+}
+
+// PropertyEqualsPredicate - Match assets where property equals value
+message PropertyEqualsPredicate {
+  // Property path (dot-separated for nested properties)
+  string property = 1;
+
+  // Value to match
+  google.protobuf.Value value = 2;
+
+  // Case sensitivity for string comparisons
+  bool case_sensitive = 3;
+}
+
+// PropertyInPredicate - Match assets where property is in a set of values
+message PropertyInPredicate {
+  // Property path
+  string property = 1;
+
+  // Set of values to match
+  repeated google.protobuf.Value values = 2;
+}
+
+// PropertyComparePredicate - Numeric property comparison
+message PropertyComparePredicate {
+  // Property path
+  string property = 1;
+
+  // Comparison operator
+  CompareOperator operator = 2;
+
+  // Value to compare against
+  double value = 3;
+}
+
+// CompareOperator - Comparison operators
+enum CompareOperator {
+  COMPARE_OPERATOR_UNSPECIFIED = 0;
+  LESS_THAN = 1;
+  LESS_THAN_OR_EQUAL = 2;
+  GREATER_THAN = 3;
+  GREATER_THAN_OR_EQUAL = 4;
+  BETWEEN = 5;  // Requires value2 in PropertyComparePredicate
+}
+
+// PropertyMatchesPredicate - Pattern matching on string properties
+message PropertyMatchesPredicate {
+  // Property path
+  string property = 1;
+
+  // Pattern to match
+  string pattern = 2;
+
+  // Pattern type
+  PatternType pattern_type = 3;
+
+  // Case sensitivity
+  bool case_sensitive = 4;
+}
+
+// PatternType - Types of pattern matching
+enum PatternType {
+  PATTERN_TYPE_UNSPECIFIED = 0;
+  GLOB = 1;      // Shell-style glob (*, ?, [abc])
+  REGEX = 2;     // Regular expression
+  PREFIX = 3;    // Simple prefix match
+  SUFFIX = 4;    // Simple suffix match
+  CONTAINS = 5;  // Simple contains match
+}
+
+// AndPredicate - Logical AND of predicates
+message AndPredicate {
+  repeated AssemblagePredicate predicates = 1;
+}
+
+// OrPredicate - Logical OR of predicates
+message OrPredicate {
+  repeated AssemblagePredicate predicates = 1;
+}
+
+// NotPredicate - Logical negation
+message NotPredicate {
+  AssemblagePredicate predicate = 1;
+}
+
+// AlwaysPredicate - Always matches (identity for AND)
+message AlwaysPredicate {}
+
+// NeverPredicate - Never matches (identity for OR)
+message NeverPredicate {}
+
+// AssemblageSpec - Complete assemblage definition
+message AssemblageSpec {
+  // Unique identifier
+  ava.common.v1.AssemblageId id = 1;
+
+  // Human-readable name
+  string name = 2;
+
+  // Optional description
+  optional string description = 3;
+
+  // Domain this assemblage belongs to
+  string domain = 4;
+
+  // Membership predicate
+  AssemblagePredicate predicate = 5;
+
+  // Constraints on the assemblage
+  repeated AssemblageConstraint constraints = 6;
+
+  // Views admissible for this assemblage
+  repeated ava.common.v1.ViewId admissible_views = 7;
+
+  // Default view for the assemblage
+  optional ava.common.v1.ViewId default_view = 8;
+
+  // Ordering specification for members
+  optional AssemblageOrdering ordering = 9;
+
+  // Pagination hints
+  optional PaginationHints pagination = 10;
+
+  // Tags for categorization
+  repeated string tags = 11;
+
+  // Arbitrary metadata
+  map<string, string> metadata = 12;
+
+  // Version for optimistic concurrency
+  uint32 version = 13;
+}
+
+// AssemblageConstraint - Constraints on assemblage membership
+message AssemblageConstraint {
+  oneof constraint {
+    // Minimum member count
+    MinCountConstraint min_count = 1;
+
+    // Maximum member count
+    MaxCountConstraint max_count = 2;
+
+    // Cardinality constraint
+    CardinalityConstraint cardinality = 3;
+
+    // Uniqueness constraint on a property
+    UniqueConstraint unique = 4;
+
+    // Required properties
+    RequiredPropertiesConstraint required_properties = 5;
+  }
+}
+
+// MinCountConstraint - Minimum number of members
+message MinCountConstraint {
+  uint32 min = 1;
+  string violation_message = 2;
+}
+
+// MaxCountConstraint - Maximum number of members
+message MaxCountConstraint {
+  uint32 max = 1;
+  string violation_message = 2;
+}
+
+// CardinalityConstraint - Exact cardinality requirement
+message CardinalityConstraint {
+  uint32 exact = 1;
+  optional uint32 tolerance = 2;  // Allowed deviation
+  string violation_message = 3;
+}
+
+// UniqueConstraint - Property must be unique across members
+message UniqueConstraint {
+  string property = 1;
+  bool case_sensitive = 2;
+  string violation_message = 3;
+}
+
+// RequiredPropertiesConstraint - Members must have these properties
+message RequiredPropertiesConstraint {
+  repeated string properties = 1;
+  string violation_message = 2;
+}
+
+// AssemblageOrdering - How to order assemblage members
+message AssemblageOrdering {
+  // Primary sort field
+  string primary_field = 1;
+  SortDirection primary_direction = 2;
+
+  // Secondary sort field (optional)
+  optional string secondary_field = 3;
+  optional SortDirection secondary_direction = 4;
+
+  // Custom comparator expression (optional)
+  optional string comparator_expr = 5;
+}
+
+// SortDirection - Sort direction
+enum SortDirection {
+  SORT_DIRECTION_UNSPECIFIED = 0;
+  ASCENDING = 1;
+  DESCENDING = 2;
+}
+
+// PaginationHints - Hints for paginating assemblage results
+message PaginationHints {
+  // Default page size
+  uint32 default_page_size = 1;
+
+  // Maximum page size
+  uint32 max_page_size = 2;
+
+  // Whether to support cursor-based pagination
+  bool cursor_support = 3;
+
+  // Whether count queries are expensive
+  bool count_expensive = 4;
+}
+
+// AssemblageMatch - Result of matching an asset against assemblages
+message AssemblageMatch {
+  // Asset that was matched
+  ava.common.v1.AssetId asset_id = 1;
+
+  // Assemblages the asset matched
+  repeated ava.common.v1.AssemblageId matched_assemblages = 2;
+
+  // For each assemblage, which predicates matched
+  map<string, PredicateEvaluation> evaluations = 3;
+}
+
+// PredicateEvaluation - Result of evaluating a predicate
+message PredicateEvaluation {
+  // Whether the predicate matched
+  bool matched = 1;
+
+  // Human-readable explanation
+  optional string explanation = 2;
+
+  // Child evaluations (for AND/OR/NOT)
+  repeated PredicateEvaluation children = 3;
+}

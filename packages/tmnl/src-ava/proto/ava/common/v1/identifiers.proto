@@ -1,0 +1,56 @@
+// AVA Common Identifiers v1
+//
+// Branded identifier types for type safety across the AVA API.
+// These wrap primitive values to prevent accidental mixing of ID types.
+
+syntax = "proto3";
+
+package ava.common.v1;
+
+option java_multiple_files = true;
+option java_package = "com.ava.common.v1";
+
+// AssetId - Unique identifier for an asset in the AMS
+message AssetId {
+  string value = 1;
+}
+
+// ViewId - Unique identifier for a registered view profile
+message ViewId {
+  string value = 1;
+}
+
+// ChannelId - Unique identifier for a data channel within a view
+message ChannelId {
+  string value = 1;
+}
+
+// AssemblageId - Unique identifier for an asset assemblage/collection
+message AssemblageId {
+  string value = 1;
+}
+
+// SourceId - Unique identifier for a data source
+message SourceId {
+  string value = 1;
+}
+
+// FiberId - Unique identifier for a reconciler fiber
+message FiberId {
+  string value = 1;
+}
+
+// EventSequence - Monotonic sequence number for event ordering
+message EventSequence {
+  uint64 value = 1;
+}
+
+// CorrelationId - Request correlation for distributed tracing
+message CorrelationId {
+  string value = 1;
+}
+
+// SessionId - Client session identifier for multiplexed connections
+message SessionId {
+  string value = 1;
+}

@@ -1,0 +1,1040 @@
+// AVA Services v1
+//
+// gRPC service definitions using all 4 streaming patterns:
+// - Unary (1:1): Single request/response
+// - Server Streaming (1:N): Request → stream of responses
+// - Client Streaming (N:1): Stream of requests → single response
+// - Bidirectional Streaming (N:M): Full duplex communication
+
+syntax = "proto3";
+
+package ava.services.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "ava/common/v1/identifiers.proto";
+import "ava/common/v1/errors.proto";
+import "ava/execution/v1/hydration.proto";
+import "ava/artifacts/v1/artifacts.proto";
+import "ava/events/v1/events.proto";
+import "ava/registry/v1/assemblages.proto";
+
+option java_multiple_files = true;
+option java_package = "com.ava.services.v1";
+
+// ============================================================================
+// ViewService - Core view lifecycle management
+// ============================================================================
+
+service ViewService {
+  // === UNARY (1:1) ===
+
+  // Get a view's profile specification
+  rpc GetSpec(GetSpecRequest) returns (ava.artifacts.v1.ViewProfileSpec);
+
+  // Get a view's runtime artifact
+  rpc GetArtifact(GetArtifactRequest) returns (ava.artifacts.v1.ViewArtifact);
+
+  // Invalidate a view (force recompilation)
+  rpc Invalidate(InvalidateRequest) returns (google.protobuf.Empty);
+
+  // Get view status
+  rpc GetStatus(GetStatusRequest) returns (ViewStatus);
+
+  // Register a new view spec
+  rpc RegisterSpec(RegisterSpecRequest) returns (RegisterSpecResponse);
+
+  // === SERVER STREAMING (1:N) ===
+
+  // Subscribe to a view - streams artifacts as they update
+  rpc Subscribe(SubscribeRequest) returns (stream ava.artifacts.v1.ViewArtifact);
+
+  // Subscribe to deltas only - lower bandwidth than full artifacts
+  rpc SubscribeDeltas(SubscribeDeltasRequest) returns (stream ava.artifacts.v1.ViewDelta);
+
+  // Subscribe to multiple views - multiplexed stream with routing tags
+  rpc SubscribeMany(SubscribeManyRequest) returns (stream ava.artifacts.v1.TaggedArtifact);
+
+  // === CLIENT STREAMING (N:1) ===
+
+  // Bulk register view specs
+  rpc BulkRegister(stream ava.artifacts.v1.ViewProfileSpec) returns (BulkRegisterResponse);
+
+  // Bulk invalidate views
+  rpc BulkInvalidate(stream ava.common.v1.ViewId) returns (BulkInvalidateResponse);
+
+  // === BIDIRECTIONAL STREAMING (N:M) ===
+
+  // Interactive session - full duplex view management
+  rpc Session(stream SessionCommand) returns (stream SessionEvent);
+}
+
+// --- ViewService Messages ---
+
+message GetSpecRequest {
+  ava.common.v1.ViewId view_id = 1;
+}
+
+message GetArtifactRequest {
+  ava.common.v1.ViewId view_id = 1;
+  optional ava.common.v1.AssetId asset_id = 2;
+  bool include_channel_data = 3;
+}
+
+message InvalidateRequest {
+  ava.common.v1.ViewId view_id = 1;
+  optional ava.common.v1.AssetId asset_id = 2;
+  ava.events.v1.InvalidationScope scope = 3;
+  optional string reason = 4;
+}
+
+message GetStatusRequest {
+  ava.common.v1.ViewId view_id = 1;
+}
+
+message ViewStatus {
+  ava.common.v1.ViewId view_id = 1;
+  ava.artifacts.v1.ArtifactState state = 2;
+  uint32 version = 3;
+  uint32 subscriber_count = 4;
+  google.protobuf.Timestamp last_updated = 5;
+  optional ava.common.v1.AvaError last_error = 6;
+}
+
+message RegisterSpecRequest {
+  ava.artifacts.v1.ViewProfileSpec spec = 1;
+  bool overwrite_existing = 2;
+}
+
+message RegisterSpecResponse {
+  ava.common.v1.ViewId view_id = 1;
+  bool was_created = 2;
+  uint32 version = 3;
+}
+
+message SubscribeRequest {
+  ava.common.v1.ViewId view_id = 1;
+  optional ava.common.v1.AssetId asset_id = 2;
+  SubscriptionOptions options = 3;
+}
+
+message SubscribeDeltasRequest {
+  ava.common.v1.ViewId view_id = 1;
+  optional ava.common.v1.AssetId asset_id = 2;
+  optional uint64 from_sequence = 3;
+  SubscriptionOptions options = 4;
+}
+
+message SubscribeManyRequest {
+  repeated ViewSubscription subscriptions = 1;
+  SubscriptionOptions options = 2;
+}
+
+message ViewSubscription {
+  ava.common.v1.ViewId view_id = 1;
+  optional ava.common.v1.AssetId asset_id = 2;
+  optional string tag = 3;  // Client-provided correlation tag
+}
+
+message SubscriptionOptions {
+  // Include initial artifact snapshot
+  bool include_initial = 1;
+
+  // Include channel data in artifacts
+  bool include_channel_data = 2;
+
+  // Preferred data format
+  ava.execution.v1.DataFormat preferred_format = 3;
+
+  // Heartbeat interval (0 = disabled)
+  uint32 heartbeat_interval_ms = 4;
+
+  // Buffer size for backpressure
+  uint32 buffer_size = 5;
+}
+
+message BulkRegisterResponse {
+  uint32 registered_count = 1;
+  uint32 failed_count = 2;
+  repeated BulkOperationError errors = 3;
+}
+
+message BulkInvalidateResponse {
+  uint32 invalidated_count = 1;
+  uint32 not_found_count = 2;
+  repeated BulkOperationError errors = 3;
+}
+
+message BulkOperationError {
+  ava.common.v1.ViewId view_id = 1;
+  ava.common.v1.AvaError error = 2;
+}
+
+// Session commands (client → server)
+message SessionCommand {
+  oneof command {
+    SubscribeCommand subscribe = 1;
+    UnsubscribeCommand unsubscribe = 2;
+    InvalidateCommand invalidate = 3;
+    SetStrategyCommand set_strategy = 4;
+    PingCommand ping = 5;
+  }
+}
+
+message SubscribeCommand {
+  ava.common.v1.ViewId view_id = 1;
+  optional ava.common.v1.AssetId asset_id = 2;
+  optional string tag = 3;
+  SubscriptionOptions options = 4;
+}
+
+message UnsubscribeCommand {
+  ava.common.v1.ViewId view_id = 1;
+  optional string tag = 2;
+}
+
+message InvalidateCommand {
+  ava.common.v1.ViewId view_id = 1;
+  ava.events.v1.InvalidationScope scope = 2;
+}
+
+message SetStrategyCommand {
+  // Change data delivery strategy mid-session
+  DeliveryStrategy strategy = 1;
+}
+
+enum DeliveryStrategy {
+  DELIVERY_STRATEGY_UNSPECIFIED = 0;
+  EAGER = 1;      // Send all data immediately
+  LAZY = 2;       // Send only on demand
+  THROTTLED = 3;  // Rate-limited delivery
+}
+
+message PingCommand {
+  uint64 sequence = 1;
+}
+
+// Session events (server → client)
+message SessionEvent {
+  oneof event {
+    ArtifactEvent artifact = 1;
+    DeltaEvent delta = 2;
+    StatusEvent status = 3;
+    ErrorEvent error = 4;
+    PongEvent pong = 5;
+    HeartbeatEvent heartbeat = 6;
+  }
+}
+
+message ArtifactEvent {
+  ava.artifacts.v1.TaggedArtifact artifact = 1;
+}
+
+message DeltaEvent {
+  ava.artifacts.v1.TaggedDelta delta = 1;
+}
+
+message StatusEvent {
+  ava.common.v1.ViewId view_id = 1;
+  string message = 2;
+  StatusEventType event_type = 3;
+}
+
+enum StatusEventType {
+  STATUS_EVENT_TYPE_UNSPECIFIED = 0;
+  SUBSCRIBED = 1;
+  UNSUBSCRIBED = 2;
+  INVALIDATED = 3;
+  STRATEGY_CHANGED = 4;
+}
+
+message ErrorEvent {
+  optional ava.common.v1.ViewId view_id = 1;
+  ava.common.v1.AvaError error = 2;
+  bool fatal = 3;
+}
+
+message PongEvent {
+  uint64 sequence = 1;
+  uint64 server_time_ms = 2;
+}
+
+message HeartbeatEvent {
+  google.protobuf.Timestamp timestamp = 1;
+  uint32 active_subscriptions = 2;
+}
+
+// ============================================================================
+// HydrationService - Data delivery and channel management
+// ============================================================================
+
+service HydrationService {
+  // === UNARY (1:1) ===
+
+  // Hydrate a single channel
+  rpc HydrateChannel(ava.execution.v1.HydrateChannelRequest) returns (ava.execution.v1.ChannelData);
+
+  // Get channel metadata
+  rpc GetChannelInfo(GetChannelInfoRequest) returns (ava.execution.v1.ChannelBinding);
+
+  // === SERVER STREAMING (1:N) ===
+
+  // Progressive hydration - streams channel bindings as they resolve
+  rpc HydrateArtifact(ava.execution.v1.HydrateArtifactRequest) returns (stream ava.execution.v1.ChannelBinding);
+
+  // Stream channel data for StreamHandle channels
+  rpc StreamChannel(StreamChannelRequest) returns (stream ava.execution.v1.ChannelData);
+
+  // === CLIENT STREAMING (N:1) ===
+
+  // Batch hydration - stream in requests, get summary
+  rpc BulkHydrate(stream ava.execution.v1.HydrateChannelRequest) returns (BulkHydrateResponse);
+
+  // === BIDIRECTIONAL STREAMING (N:M) ===
+
+  // Adaptive hydration - client controls flow mid-stream
+  rpc AdaptiveHydrate(stream HydrationCommand) returns (stream HydrationEvent);
+}
+
+// --- HydrationService Messages ---
+
+message GetChannelInfoRequest {
+  ava.common.v1.ViewId view_id = 1;
+  ava.common.v1.ChannelId channel_id = 2;
+}
+
+message StreamChannelRequest {
+  ava.common.v1.ViewId view_id = 1;
+  ava.common.v1.ChannelId channel_id = 2;
+  optional uint64 from_cursor = 3;
+  optional uint32 max_batch_size = 4;
+}
+
+message BulkHydrateResponse {
+  uint32 hydrated_count = 1;
+  uint32 failed_count = 2;
+  uint64 total_bytes = 3;
+  uint32 duration_ms = 4;
+}
+
+// Hydration commands (client → server)
+message HydrationCommand {
+  oneof command {
+    StartHydration start = 1;
+    PauseChannel pause = 2;
+    ResumeChannel resume = 3;
+    SetThrottle set_throttle = 4;
+    StopHydration stop = 5;
+  }
+}
+
+message StartHydration {
+  ava.common.v1.ViewId view_id = 1;
+  repeated ava.common.v1.ChannelId channel_ids = 2;
+  ava.execution.v1.DataFormat preferred_format = 3;
+}
+
+message PauseChannel {
+  ava.common.v1.ChannelId channel_id = 1;
+}
+
+message ResumeChannel {
+  ava.common.v1.ChannelId channel_id = 1;
+}
+
+message SetThrottle {
+  // Max items per second (0 = unlimited)
+  uint32 items_per_second = 1;
+  // Max bytes per second (0 = unlimited)
+  uint64 bytes_per_second = 2;
+}
+
+message StopHydration {
+  bool graceful = 1;
+}
+
+// Hydration events (server → client)
+message HydrationEvent {
+  oneof event {
+    ChannelDataReady data_ready = 1;
+    ChannelPaused paused = 2;
+    ChannelResumed resumed = 3;
+    HydrationComplete complete = 4;
+    HydrationError error = 5;
+    HydrationProgress progress = 6;
+  }
+}
+
+message ChannelDataReady {
+  ava.common.v1.ChannelId channel_id = 1;
+  ava.execution.v1.ChannelData data = 2;
+  bool is_final = 3;
+}
+
+message ChannelPaused {
+  ava.common.v1.ChannelId channel_id = 1;
+  uint64 buffered_items = 2;
+}
+
+message ChannelResumed {
+  ava.common.v1.ChannelId channel_id = 1;
+}
+
+message HydrationComplete {
+  uint32 channels_hydrated = 1;
+  uint64 total_bytes = 2;
+  uint32 duration_ms = 3;
+}
+
+message HydrationError {
+  optional ava.common.v1.ChannelId channel_id = 1;
+  ava.common.v1.AvaError error = 2;
+  bool fatal = 3;
+}
+
+message HydrationProgress {
+  ava.common.v1.ChannelId channel_id = 1;
+  float progress = 2;  // 0.0 - 1.0
+  optional string status = 3;
+}
+
+// ============================================================================
+// ReconcilerService - Event log and reconciler management
+// ============================================================================
+
+service ReconcilerService {
+  // === UNARY (1:1) ===
+
+  // Get event count (total or filtered)
+  rpc GetEventCount(GetEventCountRequest) returns (EventCountResponse);
+
+  // Get view timeline summary
+  rpc GetViewTimeline(GetViewTimelineRequest) returns (TimelineResponse);
+
+  // Get reconciler health
+  rpc GetHealth(google.protobuf.Empty) returns (ReconcilerHealth);
+
+  // === SERVER STREAMING (1:N) ===
+
+  // Tail the event log in real-time
+  rpc TailEventLog(TailEventLogRequest) returns (stream ava.events.v1.ReconcilerEvent);
+
+  // Replay events from a specific point
+  rpc ReplayFrom(ReplayFromRequest) returns (stream ava.events.v1.ReconcilerEvent);
+
+  // Watch events for a specific view
+  rpc WatchView(WatchViewRequest) returns (stream ava.events.v1.ReconcilerEvent);
+
+  // Stream fiber actions (low-level)
+  rpc StreamFiberActions(StreamFiberActionsRequest) returns (stream ava.events.v1.FiberAction);
+
+  // === CLIENT STREAMING (N:1) ===
+
+  // Batch event queries
+  rpc QueryEvents(stream EventQuery) returns (stream ava.events.v1.ReconcilerEvent);
+
+  // === BIDIRECTIONAL STREAMING (N:M) ===
+
+  // Debug session - interact with reconciler state
+  rpc DebugSession(stream DebugCommand) returns (stream DebugEvent);
+}
+
+// --- ReconcilerService Messages ---
+
+message GetEventCountRequest {
+  optional ava.events.v1.EventFilter filter = 1;
+}
+
+message EventCountResponse {
+  uint64 total_count = 1;
+  uint64 filtered_count = 2;
+  optional google.protobuf.Timestamp oldest_event = 3;
+  optional google.protobuf.Timestamp newest_event = 4;
+}
+
+message GetViewTimelineRequest {
+  ava.common.v1.ViewId view_id = 1;
+  optional google.protobuf.Timestamp from = 2;
+  optional google.protobuf.Timestamp to = 3;
+}
+
+message TimelineResponse {
+  ava.common.v1.ViewId view_id = 1;
+  repeated TimelineEntry entries = 2;
+  uint32 total_events = 3;
+}
+
+message TimelineEntry {
+  google.protobuf.Timestamp timestamp = 1;
+  string event_type = 2;
+  string summary = 3;
+  optional ava.common.v1.EventSequence sequence = 4;
+}
+
+message ReconcilerHealth {
+  bool healthy = 1;
+  uint32 active_fibers = 2;
+  uint32 max_fibers = 3;
+  uint32 pending_tasks = 4;
+  uint64 events_processed = 5;
+  google.protobuf.Timestamp started_at = 6;
+  repeated ComponentHealth components = 7;
+}
+
+message ComponentHealth {
+  string name = 1;
+  bool healthy = 2;
+  optional string message = 3;
+}
+
+message TailEventLogRequest {
+  // Start from this sequence (omit for live only)
+  optional ava.common.v1.EventSequence from_sequence = 1;
+
+  // Filter by event types
+  repeated string event_types = 2;
+
+  // Filter by view IDs
+  repeated ava.common.v1.ViewId view_ids = 3;
+
+  // Include historical events before going live
+  bool include_historical = 4;
+}
+
+message ReplayFromRequest {
+  // Start sequence
+  ava.common.v1.EventSequence from_sequence = 1;
+
+  // Optional end sequence
+  optional ava.common.v1.EventSequence to_sequence = 2;
+
+  // Filter
+  optional ava.events.v1.EventFilter filter = 3;
+
+  // Replay speed (1.0 = real-time, 0 = as fast as possible)
+  float speed = 4;
+}
+
+message WatchViewRequest {
+  ava.common.v1.ViewId view_id = 1;
+  bool include_historical = 2;
+  optional uint32 historical_limit = 3;
+}
+
+message StreamFiberActionsRequest {
+  optional ava.common.v1.FiberId fiber_id = 1;
+  bool include_completed = 2;
+}
+
+message EventQuery {
+  ava.events.v1.EventFilter filter = 1;
+  optional uint32 limit = 2;
+}
+
+// Debug commands (client → server)
+message DebugCommand {
+  oneof command {
+    InspectFiber inspect_fiber = 1;
+    InspectQueue inspect_queue = 2;
+    ForceGC force_gc = 3;
+    SetLogLevel set_log_level = 4;
+    TriggerCheckpoint trigger_checkpoint = 5;
+    InjectFault inject_fault = 6;
+  }
+}
+
+message InspectFiber {
+  ava.common.v1.FiberId fiber_id = 1;
+}
+
+message InspectQueue {
+  string queue_name = 1;
+}
+
+message ForceGC {
+  bool aggressive = 1;
+}
+
+message SetLogLevel {
+  string component = 1;
+  LogLevel level = 2;
+}
+
+enum LogLevel {
+  LOG_LEVEL_UNSPECIFIED = 0;
+  TRACE = 1;
+  DEBUG = 2;
+  INFO = 3;
+  WARN = 4;
+  ERROR = 5;
+}
+
+message TriggerCheckpoint {
+  bool sync = 1;
+}
+
+message InjectFault {
+  string fault_type = 1;
+  map<string, string> parameters = 2;
+  uint32 duration_ms = 3;
+}
+
+// Debug events (server → client)
+message DebugEvent {
+  oneof event {
+    FiberState fiber_state = 1;
+    QueueState queue_state = 2;
+    GCResult gc_result = 3;
+    LogLevelChanged log_level_changed = 4;
+    CheckpointComplete checkpoint_complete = 5;
+    FaultInjected fault_injected = 6;
+    DebugLog debug_log = 7;
+  }
+}
+
+message FiberState {
+  ava.common.v1.FiberId fiber_id = 1;
+  ava.common.v1.ViewId view_id = 2;
+  string state = 3;
+  uint64 work_units = 4;
+  google.protobuf.Timestamp started_at = 5;
+  optional string current_operation = 6;
+}
+
+message QueueState {
+  string queue_name = 1;
+  uint64 depth = 2;
+  uint64 max_depth = 3;
+  float utilization = 4;
+}
+
+message GCResult {
+  uint64 freed_bytes = 1;
+  uint32 duration_ms = 2;
+  uint32 artifacts_evicted = 3;
+}
+
+message LogLevelChanged {
+  string component = 1;
+  LogLevel previous_level = 2;
+  LogLevel new_level = 3;
+}
+
+message CheckpointComplete {
+  uint64 events_checkpointed = 1;
+  uint32 duration_ms = 2;
+}
+
+message FaultInjected {
+  string fault_type = 1;
+  bool active = 2;
+}
+
+message DebugLog {
+  LogLevel level = 1;
+  string component = 2;
+  string message = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// ============================================================================
+// DiscoveryService - Data source discovery and schema introspection
+// ============================================================================
+
+service DiscoveryService {
+  // === UNARY (1:1) ===
+
+  // List all registered sources
+  rpc ListSources(google.protobuf.Empty) returns (ListSourcesResponse);
+
+  // Get source details
+  rpc GetSource(GetSourceRequest) returns (SourceDescriptor);
+
+  // Get source schema
+  rpc GetSchema(GetSchemaRequest) returns (SourceSchema);
+
+  // Get source capabilities
+  rpc GetCapabilities(GetCapabilitiesRequest) returns (SourceCapabilities);
+
+  // Test source connection
+  rpc TestConnection(TestConnectionRequest) returns (TestConnectionResponse);
+
+  // === SERVER STREAMING (1:N) ===
+
+  // Watch for source changes
+  rpc WatchSources(WatchSourcesRequest) returns (stream SourceEvent);
+
+  // Stream schema introspection (for large schemas)
+  rpc StreamSchema(StreamSchemaRequest) returns (stream TableSchema);
+
+  // === CLIENT STREAMING (N:1) ===
+
+  // Bulk register sources
+  rpc BulkRegisterSources(stream SourceRegistration) returns (BulkRegisterSourcesResponse);
+
+  // === BIDIRECTIONAL STREAMING (N:M) ===
+
+  // Interactive schema exploration
+  rpc ExploreSchema(stream SchemaQuery) returns (stream SchemaResult);
+}
+
+// --- DiscoveryService Messages ---
+
+message ListSourcesResponse {
+  repeated SourceDescriptor sources = 1;
+}
+
+message GetSourceRequest {
+  ava.common.v1.SourceId source_id = 1;
+}
+
+message SourceDescriptor {
+  ava.common.v1.SourceId source_id = 1;
+  string name = 2;
+  string source_type = 3;
+  SourceStatus status = 4;
+  map<string, string> metadata = 5;
+  google.protobuf.Timestamp last_seen = 6;
+}
+
+enum SourceStatus {
+  SOURCE_STATUS_UNSPECIFIED = 0;
+  CONNECTED = 1;
+  DISCONNECTED = 2;
+  DEGRADED = 3;
+  UNKNOWN = 4;
+}
+
+message GetSchemaRequest {
+  ava.common.v1.SourceId source_id = 1;
+  optional string table_name = 2;
+  bool include_statistics = 3;
+}
+
+message SourceSchema {
+  ava.common.v1.SourceId source_id = 1;
+  repeated TableSchema tables = 2;
+  string schema_version = 3;
+  google.protobuf.Timestamp last_updated = 4;
+}
+
+message TableSchema {
+  string name = 1;
+  repeated ColumnSchema columns = 2;
+  optional string primary_key = 3;
+  repeated string indexes = 4;
+  optional uint64 row_count = 5;
+  optional uint64 size_bytes = 6;
+}
+
+message ColumnSchema {
+  string name = 1;
+  string data_type = 2;
+  bool nullable = 3;
+  optional string default_value = 4;
+  optional string description = 5;
+}
+
+message GetCapabilitiesRequest {
+  ava.common.v1.SourceId source_id = 1;
+}
+
+message SourceCapabilities {
+  ava.common.v1.SourceId source_id = 1;
+  bool supports_streaming = 2;
+  bool supports_pushdown = 3;
+  bool supports_transactions = 4;
+  repeated string supported_formats = 5;
+  optional uint64 max_row_batch = 6;
+  repeated string query_languages = 7;
+}
+
+message TestConnectionRequest {
+  ava.common.v1.SourceId source_id = 1;
+  optional uint32 timeout_ms = 2;
+}
+
+message TestConnectionResponse {
+  bool success = 1;
+  optional string error_message = 2;
+  uint32 latency_ms = 3;
+  string server_version = 4;
+}
+
+message WatchSourcesRequest {
+  // Filter by source IDs (empty = all)
+  repeated ava.common.v1.SourceId source_ids = 1;
+
+  // Event types to watch
+  repeated SourceEventType event_types = 2;
+}
+
+enum SourceEventType {
+  SOURCE_EVENT_TYPE_UNSPECIFIED = 0;
+  CONNECTED = 1;
+  DISCONNECTED = 2;
+  SCHEMA_UPDATED = 3;
+  CAPABILITIES_CHANGED = 4;
+  ERROR = 5;
+}
+
+message SourceEvent {
+  ava.common.v1.SourceId source_id = 1;
+  SourceEventType event_type = 2;
+  google.protobuf.Timestamp timestamp = 3;
+
+  oneof details {
+    SourceConnected connected = 10;
+    SourceDisconnected disconnected = 11;
+    SchemaUpdated schema_updated = 12;
+    CapabilitiesChanged capabilities_changed = 13;
+    SourceError source_error = 14;
+  }
+}
+
+message SourceConnected {
+  string server_version = 1;
+  uint32 latency_ms = 2;
+}
+
+message SourceDisconnected {
+  string reason = 1;
+  bool will_reconnect = 2;
+  optional uint32 reconnect_delay_ms = 3;
+}
+
+message SchemaUpdated {
+  repeated string changed_tables = 1;
+  string new_schema_version = 2;
+}
+
+message CapabilitiesChanged {
+  SourceCapabilities old_capabilities = 1;
+  SourceCapabilities new_capabilities = 2;
+}
+
+message SourceError {
+  ava.common.v1.AvaError error = 1;
+  bool recoverable = 2;
+}
+
+message StreamSchemaRequest {
+  ava.common.v1.SourceId source_id = 1;
+  optional string table_pattern = 2;  // Glob pattern for tables
+  bool include_statistics = 3;
+}
+
+message SourceRegistration {
+  string name = 1;
+  string source_type = 2;
+  string connection_string = 3;
+  map<string, string> options = 4;
+}
+
+message BulkRegisterSourcesResponse {
+  uint32 registered_count = 1;
+  uint32 failed_count = 2;
+  repeated SourceRegistrationError errors = 3;
+}
+
+message SourceRegistrationError {
+  string name = 1;
+  ava.common.v1.AvaError error = 2;
+}
+
+// Schema query (client → server)
+message SchemaQuery {
+  oneof query {
+    ListTablesQuery list_tables = 1;
+    DescribeTableQuery describe_table = 2;
+    SearchColumnsQuery search_columns = 3;
+    GetRelationshipsQuery get_relationships = 4;
+  }
+}
+
+message ListTablesQuery {
+  optional string pattern = 1;
+  optional uint32 limit = 2;
+}
+
+message DescribeTableQuery {
+  string table_name = 1;
+  bool include_indexes = 2;
+  bool include_constraints = 3;
+}
+
+message SearchColumnsQuery {
+  string column_pattern = 1;
+  optional string data_type = 2;
+}
+
+message GetRelationshipsQuery {
+  string table_name = 1;
+  bool include_incoming = 2;
+  bool include_outgoing = 3;
+}
+
+// Schema result (server → client)
+message SchemaResult {
+  oneof result {
+    TablesResult tables = 1;
+    TableDescription table_description = 2;
+    ColumnsResult columns = 3;
+    RelationshipsResult relationships = 4;
+    SchemaError error = 5;
+  }
+}
+
+message TablesResult {
+  repeated TableSummary tables = 1;
+  bool has_more = 2;
+}
+
+message TableSummary {
+  string name = 1;
+  uint32 column_count = 2;
+  optional uint64 row_count = 3;
+}
+
+message TableDescription {
+  TableSchema schema = 1;
+  repeated IndexInfo indexes = 2;
+  repeated ConstraintInfo constraints = 3;
+}
+
+message IndexInfo {
+  string name = 1;
+  repeated string columns = 2;
+  bool unique = 3;
+  string index_type = 4;
+}
+
+message ConstraintInfo {
+  string name = 1;
+  string constraint_type = 2;
+  repeated string columns = 3;
+  optional string reference_table = 4;
+}
+
+message ColumnsResult {
+  repeated ColumnMatch matches = 1;
+}
+
+message ColumnMatch {
+  string table_name = 1;
+  ColumnSchema column = 2;
+}
+
+message RelationshipsResult {
+  repeated Relationship relationships = 1;
+}
+
+message Relationship {
+  string from_table = 1;
+  string from_column = 2;
+  string to_table = 3;
+  string to_column = 4;
+  string relationship_type = 5;
+}
+
+message SchemaError {
+  string query_type = 1;
+  ava.common.v1.AvaError error = 2;
+}
+
+// ============================================================================
+// AssemblageService - Asset collection management
+// ============================================================================
+
+service AssemblageService {
+  // === UNARY (1:1) ===
+
+  // Get assemblage spec
+  rpc GetAssemblage(GetAssemblageRequest) returns (ava.registry.v1.AssemblageSpec);
+
+  // Register new assemblage
+  rpc RegisterAssemblage(RegisterAssemblageRequest) returns (RegisterAssemblageResponse);
+
+  // Delete assemblage
+  rpc DeleteAssemblage(DeleteAssemblageRequest) returns (google.protobuf.Empty);
+
+  // Evaluate predicate against an asset
+  rpc EvaluatePredicate(EvaluatePredicateRequest) returns (ava.registry.v1.PredicateEvaluation);
+
+  // === SERVER STREAMING (1:N) ===
+
+  // Stream assemblage members
+  rpc StreamMembers(StreamMembersRequest) returns (stream ava.common.v1.AssetId);
+
+  // Watch assemblage membership changes
+  rpc WatchMembership(WatchMembershipRequest) returns (stream MembershipEvent);
+
+  // === CLIENT STREAMING (N:1) ===
+
+  // Batch evaluate assets against assemblages
+  rpc BatchEvaluate(stream ava.common.v1.AssetId) returns (stream ava.registry.v1.AssemblageMatch);
+}
+
+// --- AssemblageService Messages ---
+
+message GetAssemblageRequest {
+  ava.common.v1.AssemblageId assemblage_id = 1;
+}
+
+message RegisterAssemblageRequest {
+  ava.registry.v1.AssemblageSpec spec = 1;
+  bool overwrite_existing = 2;
+}
+
+message RegisterAssemblageResponse {
+  ava.common.v1.AssemblageId assemblage_id = 1;
+  bool was_created = 2;
+  uint32 version = 3;
+}
+
+message DeleteAssemblageRequest {
+  ava.common.v1.AssemblageId assemblage_id = 1;
+}
+
+message EvaluatePredicateRequest {
+  ava.registry.v1.AssemblagePredicate predicate = 1;
+  ava.common.v1.AssetId asset_id = 2;
+  bool include_explanation = 3;
+}
+
+message StreamMembersRequest {
+  ava.common.v1.AssemblageId assemblage_id = 1;
+  optional uint32 page_size = 2;
+}
+
+message WatchMembershipRequest {
+  ava.common.v1.AssemblageId assemblage_id = 1;
+  bool include_initial = 2;
+}
+
+message MembershipEvent {
+  ava.common.v1.AssemblageId assemblage_id = 1;
+
+  oneof event {
+    MemberAdded added = 2;
+    MemberRemoved removed = 3;
+    MembershipSnapshot snapshot = 4;
+  }
+}
+
+message MemberAdded {
+  ava.common.v1.AssetId asset_id = 1;
+  google.protobuf.Timestamp timestamp = 2;
+}
+
+message MemberRemoved {
+  ava.common.v1.AssetId asset_id = 1;
+  string reason = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}
+
+message MembershipSnapshot {
+  repeated ava.common.v1.AssetId members = 1;
+  uint32 total_count = 2;
+}

@@ -64,6 +64,13 @@ pub mod rest;
 
 /// Generated protobuf types and services
 pub mod proto {
+    /// Common types - identifiers, errors, timestamps
+    pub mod common {
+        pub mod v1 {
+            tonic::include_proto!("ava.common.v1");
+        }
+    }
+
     /// Discovery service - source introspection
     pub mod discovery {
         pub mod v1 {
@@ -71,7 +78,7 @@ pub mod proto {
         }
     }
 
-    /// Execution service - view execution and streaming
+    /// Execution service - view execution and hydration
     pub mod execution {
         pub mod v1 {
             tonic::include_proto!("ava.execution.v1");
@@ -82,6 +89,27 @@ pub mod proto {
     pub mod registry {
         pub mod v1 {
             tonic::include_proto!("ava.registry.v1");
+        }
+    }
+
+    /// Artifacts - runtime view instances and deltas
+    pub mod artifacts {
+        pub mod v1 {
+            tonic::include_proto!("ava.artifacts.v1");
+        }
+    }
+
+    /// Events - reconciler event log and fiber actions
+    pub mod events {
+        pub mod v1 {
+            tonic::include_proto!("ava.events.v1");
+        }
+    }
+
+    /// Services - unified gRPC services with streaming
+    pub mod services {
+        pub mod v1 {
+            tonic::include_proto!("ava.services.v1");
         }
     }
 }
