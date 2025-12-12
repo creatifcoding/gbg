@@ -257,3 +257,84 @@ impl ChannelBindingDto {
         }
     }
 }
+
+// ============================================================================
+// WebSocket Session DTOs (Bidirectional Streaming)
+// ============================================================================
+
+/// Commands sent from client to server over WebSocket
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum SessionCommand {
+    /// Subscribe to a view's artifact updates
+    Subscribe {
+        /// View identifier to subscribe to
+        view_id: String,
+    },
+    /// Unsubscribe from a view
+    Unsubscribe {
+        /// View identifier to unsubscribe from
+        view_id: String,
+    },
+    /// Invalidate a view (trigger recompilation)
+    Invalidate {
+        /// View identifier to invalidate
+        view_id: String,
+        /// Optional reason for invalidation
+        #[serde(skip_serializing_if = "Option::is_none")]
+        reason: Option<String>,
+    },
+    /// Ping to check connection liveness
+    Ping {
+        /// Optional payload to echo back
+        #[serde(skip_serializing_if = "Option::is_none")]
+        payload: Option<String>,
+    },
+}
+
+/// Events sent from server to client over WebSocket
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum SessionEvent {
+    /// View artifact update
+    Artifact {
+        /// The updated artifact
+        artifact: ViewArtifactResponse,
+    },
+    /// View delta (channel update only)
+    Delta {
+        /// View identifier
+        view_id: String,
+        /// Channel that was updated
+        channel_id: String,
+        /// New row count
+        row_count: Option<u32>,
+        /// Update timestamp
+        timestamp_ms: f64,
+    },
+    /// Status update for a subscription
+    Status {
+        /// View identifier
+        view_id: String,
+        /// Whether subscription is active
+        subscribed: bool,
+        /// Human-readable message
+        message: String,
+    },
+    /// Error occurred
+    Error {
+        /// Associated view (if applicable)
+        #[serde(skip_serializing_if = "Option::is_none")]
+        view_id: Option<String>,
+        /// Error code
+        code: String,
+        /// Error message
+        message: String,
+    },
+    /// Pong response to ping
+    Pong {
+        /// Echoed payload
+        #[serde(skip_serializing_if = "Option::is_none")]
+        payload: Option<String>,
+    },
+}

@@ -41,6 +41,10 @@ tokio.workspace = true
 async-trait.workspace = true
 futures.workspace = true
 
+[[bin]]
+name = "ava-server"
+path = "src/bin/ava-server.rs"
+
 [build-dependencies]
 tonic-build = "0.12"
 # protoc provided by nix shell (tmnl-grpc module)

@@ -3,6 +3,7 @@
 //! ViewService REST API providing spec management and view lifecycle operations.
 //! See ADR-001-REST-FROM-GRPC.md for architectural decisions.
 
+use std::collections::HashMap;
 use std::convert::Infallible;
 use std::sync::Arc;
 use std::time::Duration;
@@ -10,11 +11,14 @@ use axum::{
     Router,
     routing::{get, post},
     extract::{State, Path, Json},
+    extract::ws::{WebSocket, WebSocketUpgrade, Message},
     http::StatusCode,
     response::sse::{Event, Sse, KeepAlive},
+    response::IntoResponse,
 };
 use futures::stream::{Stream, StreamExt};
-use tokio::sync::RwLock;
+use futures::sink::SinkExt;
+use tokio::sync::{RwLock, broadcast};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -25,7 +29,7 @@ use ava_runtime::{
 };
 use ava_domain::MaterializationTier;
 use crate::error::ApiError;
-use super::dto::*;
+use super::dto::{*, SessionCommand, SessionEvent};
 
 // ============================================================================
 // OpenAPI Documentation
@@ -102,6 +106,8 @@ pub fn create_router(runtime: AvaRuntimeV2) -> Router {
         .route("/api/v1/views/{id}/invalidate", post(invalidate_view))
         // SSE streaming routes
         .route("/api/v1/views/{id}/subscribe", get(subscribe_view))
+        // WebSocket bidirectional session
+        .route("/api/v1/session", get(ws_session_handler))
         // Swagger UI
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .with_state(state)
@@ -118,6 +124,7 @@ pub fn create_api_router(runtime: AvaRuntimeV2) -> Router {
         .route("/api/v1/views/{id}/status", get(get_status))
         .route("/api/v1/views/{id}/invalidate", post(invalidate_view))
         .route("/api/v1/views/{id}/subscribe", get(subscribe_view))
+        .route("/api/v1/session", get(ws_session_handler))
         .with_state(state)
 }
 
@@ -396,6 +403,181 @@ async fn subscribe_view(
             .interval(Duration::from_secs(15))
             .text("keep-alive")
     ))
+}
+
+// ============================================================================
+// WebSocket Session Handlers
+// ============================================================================
+
+/// WebSocket session upgrade handler
+///
+/// Upgrades HTTP connection to WebSocket for bidirectional streaming.
+/// Supports multiplexing multiple view subscriptions over a single connection.
+///
+/// Commands (client → server):
+/// - `{"type": "subscribe", "view_id": "..."}`
+/// - `{"type": "unsubscribe", "view_id": "..."}`
+/// - `{"type": "invalidate", "view_id": "...", "reason": "..."}`
+/// - `{"type": "ping", "payload": "..."}`
+///
+/// Events (server → client):
+/// - `{"type": "artifact", "artifact": {...}}`
+/// - `{"type": "status", "view_id": "...", "subscribed": true, "message": "..."}`
+/// - `{"type": "error", "view_id": "...", "code": "...", "message": "..."}`
+/// - `{"type": "pong", "payload": "..."}`
+async fn ws_session_handler(
+    ws: WebSocketUpgrade,
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    ws.on_upgrade(move |socket| handle_ws_session(socket, state))
+}
+
+/// Handle WebSocket session with bidirectional message flow
+async fn handle_ws_session(socket: WebSocket, state: AppState) {
+    let (mut sender, mut receiver) = socket.split();
+
+    // Track active subscriptions: view_id -> broadcast receiver
+    let subscriptions: Arc<RwLock<HashMap<String, broadcast::Receiver<ava_runtime::ViewArtifact>>>> =
+        Arc::new(RwLock::new(HashMap::new()));
+
+    // Main message handling loop
+    while let Some(result) = receiver.next().await {
+        match result {
+            Ok(Message::Text(text)) => {
+                // Parse command
+                let response = match serde_json::from_str::<SessionCommand>(&text) {
+                    Ok(cmd) => handle_session_command(cmd, &state, &subscriptions).await,
+                    Err(e) => SessionEvent::Error {
+                        view_id: None,
+                        code: "PARSE_ERROR".to_string(),
+                        message: format!("Invalid command: {}", e),
+                    },
+                };
+
+                // Send response
+                if let Ok(json) = serde_json::to_string(&response) {
+                    if sender.send(Message::Text(json.into())).await.is_err() {
+                        break;
+                    }
+                }
+
+                // Also send any pending artifact updates from subscriptions
+                {
+                    let mut subs = subscriptions.write().await;
+                    let view_ids: Vec<String> = subs.keys().cloned().collect();
+
+                    for view_id in view_ids {
+                        if let Some(rx) = subs.get_mut(&view_id) {
+                            // Drain any available updates
+                            loop {
+                                match rx.try_recv() {
+                                    Ok(artifact) => {
+                                        let response = ViewArtifactResponse::from_artifact(&artifact);
+                                        let event = SessionEvent::Artifact { artifact: response };
+                                        if let Ok(json) = serde_json::to_string(&event) {
+                                            if sender.send(Message::Text(json.into())).await.is_err() {
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    _ => break,
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Ok(Message::Close(_)) => break,
+            Ok(Message::Ping(data)) => {
+                if sender.send(Message::Pong(data)).await.is_err() {
+                    break;
+                }
+            }
+            Ok(_) => {} // Ignore other message types
+            Err(_) => break,
+        }
+    }
+}
+
+/// Process a session command and return the response event
+async fn handle_session_command(
+    cmd: SessionCommand,
+    state: &AppState,
+    subscriptions: &Arc<RwLock<HashMap<String, broadcast::Receiver<ava_runtime::ViewArtifact>>>>,
+) -> SessionEvent {
+    match cmd {
+        SessionCommand::Subscribe { view_id } => {
+            let runtime = state.runtime.read().await;
+            let vid = ViewId::new(&view_id);
+
+            // Get spec
+            let spec = match runtime.get_spec(&vid) {
+                Ok(Some(s)) => s,
+                Ok(None) => {
+                    return SessionEvent::Error {
+                        view_id: Some(view_id.clone()),
+                        code: "NOT_FOUND".to_string(),
+                        message: format!("View {} not found", view_id),
+                    };
+                }
+                Err(e) => {
+                    return SessionEvent::Error {
+                        view_id: Some(view_id.clone()),
+                        code: "RUNTIME_ERROR".to_string(),
+                        message: format!("{:?}", e),
+                    };
+                }
+            };
+
+            // Subscribe and get broadcast receiver
+            match runtime.subscribe_view_hydrated(spec.clone()).await {
+                Ok(rx) => {
+                    // Store subscription
+                    subscriptions.write().await.insert(view_id.clone(), rx);
+
+                    // Return initial artifact
+                    let artifact = AvaRuntimeV2::create_artifact(&spec);
+                    let response = ViewArtifactResponse::from_artifact(&artifact);
+
+                    SessionEvent::Artifact { artifact: response }
+                }
+                Err(e) => SessionEvent::Error {
+                    view_id: Some(view_id),
+                    code: "SUBSCRIBE_ERROR".to_string(),
+                    message: format!("{:?}", e),
+                },
+            }
+        }
+
+        SessionCommand::Unsubscribe { view_id } => {
+            subscriptions.write().await.remove(&view_id);
+            SessionEvent::Status {
+                view_id: view_id.clone(),
+                subscribed: false,
+                message: "Unsubscribed".to_string(),
+            }
+        }
+
+        SessionCommand::Invalidate { view_id, reason } => {
+            let runtime = state.runtime.read().await;
+            let vid = ViewId::new(&view_id);
+
+            match runtime.invalidate(&vid).await {
+                Ok(()) => SessionEvent::Status {
+                    view_id: view_id.clone(),
+                    subscribed: true,
+                    message: reason.unwrap_or_else(|| "Invalidated".to_string()),
+                },
+                Err(e) => SessionEvent::Error {
+                    view_id: Some(view_id),
+                    code: "INVALIDATE_ERROR".to_string(),
+                    message: format!("{:?}", e),
+                },
+            }
+        }
+
+        SessionCommand::Ping { payload } => SessionEvent::Pong { payload },
+    }
 }
 
 // ============================================================================

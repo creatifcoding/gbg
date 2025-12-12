@@ -41,8 +41,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("  - List views:    GET  http://localhost:{}/api/v1/views", REST_PORT);
     println!("  - Register view: POST http://localhost:{}/api/v1/views", REST_PORT);
     println!("  - Get spec:      GET  http://localhost:{}/api/v1/views/{{id}}/spec", REST_PORT);
+    println!("  - Get artifact:  GET  http://localhost:{}/api/v1/views/{{id}}/artifact", REST_PORT);
     println!("  - Get status:    GET  http://localhost:{}/api/v1/views/{{id}}/status", REST_PORT);
     println!("  - Invalidate:    POST http://localhost:{}/api/v1/views/{{id}}/invalidate", REST_PORT);
+    println!("  - SSE subscribe: GET  http://localhost:{}/api/v1/views/{{id}}/subscribe", REST_PORT);
+    println!("  - WebSocket:     WS   ws://localhost:{}/api/v1/session", REST_PORT);
     println!("  - Swagger UI:    http://localhost:{}/swagger-ui", REST_PORT);
     println!();
 

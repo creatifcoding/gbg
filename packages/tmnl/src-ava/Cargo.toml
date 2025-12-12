@@ -58,7 +58,7 @@ tokio-stream = { version = "0.1", features = ["sync"] }
 uuid = { version = "1.0", features = ["v4"] }
 
 # REST
-axum = "0.8"
+axum = { version = "0.8", features = ["ws"] }
 tower = "0.5"
 
 # OpenAPI
