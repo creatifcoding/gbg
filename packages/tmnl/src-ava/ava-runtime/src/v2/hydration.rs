@@ -229,6 +229,7 @@ impl HydrationStrategy {
 // ============================================================================
 
 /// Service that populates ChannelBinding.data based on source type
+#[derive(Clone)]
 pub struct HydrationService {
     /// Configuration
     config: HydrationConfig,

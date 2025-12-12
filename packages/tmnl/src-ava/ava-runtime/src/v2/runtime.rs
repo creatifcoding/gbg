@@ -15,7 +15,7 @@ use datafusion::prelude::*;
 use tokio::sync::{RwLock, broadcast};
 
 use ava_domain::{
-    ViewProfileSpec, ViewId, ViewArtifact, ChannelBinding, ChannelRole,
+    ViewProfileSpec, ViewId, ViewArtifact, ChannelBinding,
 };
 use ava_reconciler::v2::{ReconcilerV2, ReconcilerConfigV2, LagStrategy};
 use ava_compiler::ViewCompiler;
@@ -23,6 +23,7 @@ use ava_adapters::AdapterRegistry;
 
 use crate::error::RuntimeError;
 use crate::spec_registry::SpecRegistry;
+use super::hydration::{HydrationService, HydrationConfig};
 
 /// V2 Runtime configuration
 #[derive(Debug, Clone)]
@@ -69,6 +70,9 @@ pub struct AvaRuntimeV2 {
 
     /// Compiled SQL cache (view_id -> compiled SQL)
     compiled_cache: Arc<RwLock<HashMap<ViewId, String>>>,
+
+    /// Hydration service for populating ChannelData
+    hydration_service: HydrationService,
 }
 
 impl AvaRuntimeV2 {
@@ -81,14 +85,25 @@ impl AvaRuntimeV2 {
             ..Default::default()
         };
 
+        let adapters = Arc::new(RwLock::new(AdapterRegistry::new()));
+        let session = Arc::new(RwLock::new(SessionContext::new()));
+
+        // Initialize hydration service with shared adapters and session
+        let hydration_service = HydrationService::new(
+            HydrationConfig::default(),
+            adapters.clone(),
+            session.clone(),
+        );
+
         Self {
             config,
             spec_registry: SpecRegistry::new(),
             reconciler: ReconcilerV2::new(reconciler_config),
             compiler: ViewCompiler::new("source"),
-            adapters: Arc::new(RwLock::new(AdapterRegistry::new())),
-            session: Arc::new(RwLock::new(SessionContext::new())),
+            adapters,
+            session,
             compiled_cache: Arc::new(RwLock::new(HashMap::new())),
+            hydration_service,
         }
     }
 
@@ -125,10 +140,10 @@ impl AvaRuntimeV2 {
     // View Subscription Operations (v2 API)
     // ========================================================================
 
-    /// Subscribe to a view and receive artifacts via broadcast channel
+    /// Subscribe to a view and receive raw artifacts via broadcast channel
     ///
-    /// This is the primary v2 API. Instead of tick() + get_artifact(), you
-    /// subscribe once and receive all artifact updates automatically.
+    /// This returns unhydrated artifacts (ChannelData is None).
+    /// For hydrated artifacts with data, use `subscribe_view_hydrated()`.
     ///
     /// The initial artifact is computed and broadcast immediately upon subscription.
     /// Subsequent updates arrive when:
@@ -154,6 +169,67 @@ impl AvaRuntimeV2 {
             .map_err(|e| RuntimeError::reconciler_error(e))?;
 
         Ok(rx)
+    }
+
+    /// Subscribe to a view and receive hydrated artifacts via broadcast channel
+    ///
+    /// This is the primary v2 API for most consumers. Each artifact's
+    /// ChannelBindings will have populated ChannelData based on the
+    /// HydrationStrategy for each channel.
+    ///
+    /// The hydration process:
+    /// - QueryRows: Executes SQL and returns RecordBatch rows
+    /// - QueryInline: Executes SQL and inlines JSON if under size threshold
+    /// - BindStream: Returns stream handle for progressive consumption
+    /// - AssetReference: Returns URI reference for static assets
+    /// - Skip: Leaves ChannelData as None (for computed channels)
+    ///
+    /// For raw artifacts without hydration, use `subscribe_view()`.
+    pub async fn subscribe_view_hydrated(
+        &self,
+        spec: ViewProfileSpec,
+    ) -> Result<broadcast::Receiver<ViewArtifact>, RuntimeError> {
+        let view_id = spec.id.clone();
+
+        // Get raw subscription
+        let mut raw_rx = self.subscribe_view(spec).await?;
+
+        // Create a new channel for hydrated artifacts
+        let (hydrated_tx, hydrated_rx) = broadcast::channel(self.config.broadcast_buffer_size);
+
+        // Clone hydration service for the spawned task
+        let hydration_service = self.hydration_service.clone();
+
+        // Spawn hydration task that transforms raw -> hydrated
+        tokio::spawn(async move {
+            loop {
+                match raw_rx.recv().await {
+                    Ok(raw_artifact) => {
+                        // Hydrate the artifact
+                        match hydration_service.hydrate_artifact(raw_artifact).await {
+                            Ok(hydrated) => {
+                                // Broadcast hydrated artifact (ignore send errors if no receivers)
+                                let _ = hydrated_tx.send(hydrated);
+                            }
+                            Err(e) => {
+                                // Log error but continue processing
+                                eprintln!("Hydration error for view {:?}: {:?}", view_id, e);
+                            }
+                        }
+                    }
+                    Err(broadcast::error::RecvError::Lagged(n)) => {
+                        // Consumer fell behind, log and continue
+                        eprintln!("Hydration consumer lagged by {} messages", n);
+                    }
+                    Err(broadcast::error::RecvError::Closed) => {
+                        // Channel closed, exit
+                        break;
+                    }
+                }
+            }
+        });
+
+        Ok(hydrated_rx)
     }
 
     /// Explicitly invalidate a view to trigger recomputation
@@ -249,6 +325,11 @@ impl AvaRuntimeV2 {
         self.session.clone()
     }
 
+    /// Get the hydration service
+    pub fn hydration_service(&self) -> &HydrationService {
+        &self.hydration_service
+    }
+
     // ========================================================================
     // Lifecycle Management
     // ========================================================================
@@ -309,7 +390,7 @@ mod tests {
     use std::collections::HashMap;
     use std::time::Duration;
     use ava_domain::{
-        AssemblageId, ChannelPipelineSpec, ChannelId,
+        AssemblageId, ChannelPipelineSpec, ChannelId, ChannelRole,
         SourceSpec, SourceId, SourceKind, MaterializationTier,
     };
 
@@ -505,5 +586,55 @@ mod tests {
 
         // After shutdown, should still work (new reconciler created)
         // This tests graceful cleanup
+    }
+
+    #[tokio::test]
+    async fn test_subscribe_view_hydrated() {
+        let runtime = AvaRuntimeV2::default();
+        let spec = make_spec("view-1", 1);
+
+        // Subscribe with hydration
+        let mut rx = runtime.subscribe_view_hydrated(spec).await.unwrap();
+
+        // Should receive hydrated artifact
+        let artifact = tokio::time::timeout(Duration::from_secs(1), rx.recv())
+            .await.unwrap().unwrap();
+
+        assert_eq!(artifact.view_id, ViewId::new("view-1"));
+        // Channel bindings should exist (hydration attempted, even if no data)
+        assert_eq!(artifact.channel_bindings.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_subscribe_view_hydrated_invalidate() {
+        let runtime = AvaRuntimeV2::default();
+        let spec = make_spec("view-1", 1);
+        let view_id = ViewId::new("view-1");
+
+        let mut rx = runtime.subscribe_view_hydrated(spec).await.unwrap();
+
+        // Receive initial hydrated artifact
+        let _ = tokio::time::timeout(Duration::from_secs(1), rx.recv())
+            .await.unwrap().unwrap();
+
+        // Invalidate
+        runtime.invalidate(&view_id).await.unwrap();
+
+        // Should receive another hydrated artifact
+        let artifact = tokio::time::timeout(Duration::from_secs(1), rx.recv())
+            .await.unwrap().unwrap();
+
+        assert_eq!(artifact.view_id, view_id);
+    }
+
+    #[tokio::test]
+    async fn test_hydration_service_accessor() {
+        let runtime = AvaRuntimeV2::default();
+
+        // Should be able to access hydration service
+        let _service = runtime.hydration_service();
+
+        // Verify it's properly initialized (config has default values)
+        // This test ensures the accessor works
     }
 }
