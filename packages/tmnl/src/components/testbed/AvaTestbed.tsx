@@ -11,14 +11,13 @@
  * - H4: Connection status reflects WebSocket state
  * - H5: Message log captures all session events
  *
- * @pattern Atom-as-State - React subscribes to atoms, operations mutate directly
- * @see src/lib/ava/atoms/index.ts for state definitions
+ * @pattern stx tri-library composition (XState + Legend-State + effect-atom)
+ * @see src/lib/ava/atoms/ava-stx.ts for state definitions
  * @module
  */
 
 import { useEffect, useMemo } from 'react'
 import { Effect } from 'effect'
-import { Atom, useAtomValue } from '@effect-atom/atom-react'
 import type { ColDef, ICellRendererParams } from 'ag-grid-community'
 
 import {
@@ -38,35 +37,14 @@ import {
   type GridVariantType,
 } from '@/lib/data-grid'
 
+import { useStxData, useStxMatches, useStx } from '@/lib/stx'
 import {
-  // Types
-  type ViewSummary,
-  // Atoms
-  connectionStatusAtom,
-  viewsAtom,
-  selectedViewAtom,
-  artifactAtom,
-  messageLogAtom,
-  errorAtom,
-  configAtom,
-  hypothesesAtom,
-  type MessageLogEntry,
+  getAvaStx,
+  resetAvaStx,
   type ConnectionStatus,
-  // Operations
-  addMessage,
-  clearMessages,
-  setError,
-  setConfig,
-  // Effects
-  fetchViews,
-  selectView,
-  registerTestView,
-  connectSession,
-  disconnectSession,
-  sendPing,
-  subscribeToView,
-  cleanup,
-} from '@/lib/ava'
+  type MessageLogEntry,
+  type ViewSummary,
+} from '@/lib/ava/atoms/ava-stx'
 
 // =============================================================================
 // COLUMN DEFINITIONS
@@ -190,17 +168,35 @@ const createMessageLogColumnDefs = (variant: GridVariantType): ColDef<MessageLog
 
 export function AvaTestbed() {
   // ---------------------------------------------------------------------------
-  // Atom Subscriptions (Atom-as-State pattern)
+  // stx State (tri-library composition)
   // ---------------------------------------------------------------------------
 
-  const connectionStatus = useAtomValue(connectionStatusAtom)
-  const views = useAtomValue(viewsAtom)
-  const selectedView = useAtomValue(selectedViewAtom)
-  const artifact = useAtomValue(artifactAtom)
-  const messageLog = useAtomValue(messageLogAtom)
-  const error = useAtomValue(errorAtom)
-  const config = useAtomValue(configAtom)
-  const hypotheses = useAtomValue(hypothesesAtom)
+  const ava = getAvaStx()
+  const { data, runEffect } = useStx(ava)
+
+  // Fine-grained data subscriptions via Legend-State
+  const views = useStxData(ava, (d) => d.views.get())
+  const selectedView = useStxData(ava, (d) => d.selectedView.get())
+  const artifact = useStxData(ava, (d) => d.artifact.get())
+  const messageLog = useStxData(ava, (d) => d.messageLog.get())
+  const error = useStxData(ava, (d) => d.error.get())
+  const config = useStxData(ava, (d) => d.config.get())
+  const hypotheses = useStxData(ava, (d) => d.hypotheses.get())
+
+  // Machine state matching
+  const isDisconnected = useStxMatches(ava, 'disconnected')
+  const isConnecting = useStxMatches(ava, 'connecting')
+  const isConnected = useStxMatches(ava, 'connected')
+  const isError = useStxMatches(ava, 'error')
+
+  // Derive connection status from machine state
+  const connectionStatus: ConnectionStatus = isConnected
+    ? 'connected'
+    : isConnecting
+      ? 'connecting'
+      : isError
+        ? 'error'
+        : 'disconnected'
 
   // Grid variant
   const variant = tmnlDenseDark
@@ -208,35 +204,35 @@ export function AvaTestbed() {
   const messageLogColumnDefs = useMemo(() => createMessageLogColumnDefs(variant), [variant])
 
   // ---------------------------------------------------------------------------
-  // Handlers (Effect execution)
+  // Handlers (stx effect execution)
   // ---------------------------------------------------------------------------
 
   const handleFetchViews = () => {
-    Effect.runPromise(fetchViews).catch(() => {})
+    runEffect('fetchViews').catch(() => {})
   }
 
   const handleSelectView = (viewId: string) => {
-    Effect.runPromise(selectView(viewId)).catch(() => {})
+    runEffect('selectView', viewId).catch(() => {})
   }
 
   const handleRegisterView = () => {
-    Effect.runPromise(registerTestView).catch(() => {})
+    runEffect('registerTestView').catch(() => {})
   }
 
   const handleConnect = () => {
-    Effect.runPromise(connectSession).catch(() => {})
+    runEffect('connectSession').catch(() => {})
   }
 
   const handleDisconnect = () => {
-    Effect.runPromise(disconnectSession).catch(() => {})
+    runEffect('disconnectSession').catch(() => {})
   }
 
   const handlePing = () => {
-    Effect.runPromise(sendPing).catch(() => {})
+    runEffect('sendPing').catch(() => {})
   }
 
   const handleSubscribe = (viewId: string) => {
-    Effect.runPromise(subscribeToView(viewId)).catch(() => {})
+    runEffect('subscribeToView', viewId).catch(() => {})
   }
 
   // ---------------------------------------------------------------------------
@@ -251,7 +247,7 @@ export function AvaTestbed() {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      Effect.runPromise(cleanup).catch(() => {})
+      resetAvaStx()
     }
   }, [])
 
@@ -289,7 +285,7 @@ export function AvaTestbed() {
             <input
               type="text"
               value={config.baseUrl}
-              onChange={(e) => setConfig({ baseUrl: e.target.value })}
+              onChange={(e) => data.config.set({ ...config, baseUrl: e.target.value })}
               className="px-3 py-1 bg-neutral-900 border border-neutral-700 rounded font-mono text-neutral-200 w-64"
               style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
             />
@@ -353,7 +349,7 @@ export function AvaTestbed() {
             <span className="text-red-300" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
               {error}
             </span>
-            <Button variant="ghost" onClick={() => setError(null)} className="ml-auto">
+            <Button variant="ghost" onClick={() => data.error.set(null)} className="ml-auto">
               Dismiss
             </Button>
           </div>
@@ -515,7 +511,7 @@ export function AvaTestbed() {
             title="Message Log"
             description="WebSocket session events"
             actions={
-              <Button variant="ghost" onClick={clearMessages}>
+              <Button variant="ghost" onClick={() => data.messageLog.set([])}>
                 Clear
               </Button>
             }
