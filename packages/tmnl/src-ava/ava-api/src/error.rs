@@ -10,6 +10,10 @@ pub enum ApiError {
     #[error("View not found: {view_id}")]
     ViewNotFound { view_id: String },
 
+    /// View already exists
+    #[error("View already exists: {view_id}")]
+    ViewAlreadyExists { view_id: String },
+
     /// Invalid request
     #[error("Invalid request: {message}")]
     InvalidRequest { message: String },
@@ -32,6 +36,10 @@ impl ApiError {
         Self::ViewNotFound { view_id: view_id.into() }
     }
 
+    pub fn view_already_exists(view_id: impl Into<String>) -> Self {
+        Self::ViewAlreadyExists { view_id: view_id.into() }
+    }
+
     pub fn invalid_request(message: impl Into<String>) -> Self {
         Self::InvalidRequest { message: message.into() }
     }
@@ -51,6 +59,9 @@ impl From<ApiError> for tonic::Status {
         match err {
             ApiError::ViewNotFound { view_id } => {
                 tonic::Status::not_found(format!("View not found: {}", view_id))
+            }
+            ApiError::ViewAlreadyExists { view_id } => {
+                tonic::Status::already_exists(format!("View already exists: {}", view_id))
             }
             ApiError::InvalidRequest { message } => {
                 tonic::Status::invalid_argument(message)
@@ -78,6 +89,9 @@ impl axum::response::IntoResponse for ApiError {
         let (status, message) = match &self {
             ApiError::ViewNotFound { view_id } => {
                 (StatusCode::NOT_FOUND, format!("View not found: {}", view_id))
+            }
+            ApiError::ViewAlreadyExists { view_id } => {
+                (StatusCode::CONFLICT, format!("View already exists: {}", view_id))
             }
             ApiError::InvalidRequest { message } => {
                 (StatusCode::BAD_REQUEST, message.clone())

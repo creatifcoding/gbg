@@ -25,9 +25,15 @@ uuid.workspace = true
 axum.workspace = true
 tower.workspace = true
 
+# OpenAPI
+utoipa.workspace = true
+utoipa-axum.workspace = true
+utoipa-swagger-ui.workspace = true
+
 # Core
 serde.workspace = true
 serde_json.workspace = true
+chrono.workspace = true
 thiserror.workspace = true
 
 # Async

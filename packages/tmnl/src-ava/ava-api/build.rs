@@ -58,6 +58,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .extern_path(".google.protobuf.Struct", "::prost_wkt_types::Struct")
         .extern_path(".google.protobuf.ListValue", "::prost_wkt_types::ListValue")
         // Add serde derives to all AVA types for JSON REST API support
+        // Note: utoipa::ToSchema NOT added here because prost_wkt_types::Timestamp
+        // doesn't implement ToSchema. REST DTOs are defined separately in rest/dto.rs
         .type_attribute(".", "#[derive(serde::Serialize, serde::Deserialize)]")
         // Compile all protos
         .compile_protos(&protos, &includes)?;
