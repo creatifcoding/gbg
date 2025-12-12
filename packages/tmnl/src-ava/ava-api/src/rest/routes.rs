@@ -12,13 +12,14 @@ use axum::{
     routing::{get, post},
     extract::{State, Path, Json},
     extract::ws::{WebSocket, WebSocketUpgrade, Message},
-    http::StatusCode,
+    http::{StatusCode, Method, HeaderValue},
     response::sse::{Event, Sse, KeepAlive},
     response::IntoResponse,
 };
 use futures::stream::{Stream, StreamExt};
 use futures::sink::SinkExt;
 use tokio::sync::{RwLock, broadcast};
+use tower_http::cors::{CorsLayer, Any};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -93,9 +94,16 @@ impl AppState {
 // Router Configuration
 // ============================================================================
 
-/// Create the REST API router with Swagger UI
+/// Create the REST API router with Swagger UI and CORS
 pub fn create_router(runtime: AvaRuntimeV2) -> Router {
     let state = AppState::new(runtime);
+
+    // CORS configuration - allow all origins for development
+    // In production, restrict to specific origins
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_headers(Any);
 
     Router::new()
         // ViewService routes
@@ -110,12 +118,18 @@ pub fn create_router(runtime: AvaRuntimeV2) -> Router {
         .route("/api/v1/session", get(ws_session_handler))
         // Swagger UI
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .layer(cors)
         .with_state(state)
 }
 
 /// Create router without Swagger UI (for embedding in larger app)
 pub fn create_api_router(runtime: AvaRuntimeV2) -> Router {
     let state = AppState::new(runtime);
+
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_headers(Any);
 
     Router::new()
         .route("/api/v1/views", get(list_views).post(register_spec))
@@ -125,6 +139,7 @@ pub fn create_api_router(runtime: AvaRuntimeV2) -> Router {
         .route("/api/v1/views/{id}/invalidate", post(invalidate_view))
         .route("/api/v1/views/{id}/subscribe", get(subscribe_view))
         .route("/api/v1/session", get(ws_session_handler))
+        .layer(cors)
         .with_state(state)
 }
 

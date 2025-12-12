@@ -11,13 +11,14 @@
  * - H4: Connection status reflects WebSocket state
  * - H5: Message log captures all session events
  *
- * @pattern Direct driver (not Atom.runtime for stateful services)
- * @see DataManagerTestbed.tsx for precedent
+ * @pattern Atom-as-State - React subscribes to atoms, operations mutate directly
+ * @see src/lib/ava/atoms/index.ts for state definitions
  * @module
  */
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { Effect, Stream, Fiber, Runtime, Ref, Queue, Layer } from 'effect'
+import { useEffect, useMemo } from 'react'
+import { Effect } from 'effect'
+import { Atom, useAtomValue } from '@effect-atom/atom-react'
 import type { ColDef, ICellRendererParams } from 'ag-grid-community'
 
 import {
@@ -38,43 +39,34 @@ import {
 } from '@/lib/data-grid'
 
 import {
-  // HTTP Client
-  AvaHttpClient,
-  AvaHttpClientLive,
-  AvaApiConfig,
-  type AvaHttpError,
-  type AvaNotFoundError,
-  // Session Client
-  AvaSessionClient,
-  AvaSessionClientLive,
-  type AvaSessionError,
-  // Schemas
+  // Types
   type ViewSummary,
-  type ViewSpec,
-  type ViewArtifact,
-  type SessionEvent,
+  // Atoms
+  connectionStatusAtom,
+  viewsAtom,
+  selectedViewAtom,
+  artifactAtom,
+  messageLogAtom,
+  errorAtom,
+  configAtom,
+  hypothesesAtom,
+  type MessageLogEntry,
+  type ConnectionStatus,
+  // Operations
+  addMessage,
+  clearMessages,
+  setError,
+  setConfig,
+  // Effects
+  fetchViews,
+  selectView,
+  registerTestView,
+  connectSession,
+  disconnectSession,
+  sendPing,
+  subscribeToView,
+  cleanup,
 } from '@/lib/ava'
-
-// =============================================================================
-// TYPES
-// =============================================================================
-
-interface HypothesisState {
-  id: string
-  label: string
-  status: 'pending' | 'validating' | 'passed' | 'failed'
-  evidence?: string
-}
-
-interface MessageLogEntry {
-  id: string
-  timestamp: number
-  direction: 'in' | 'out'
-  type: string
-  payload: string
-}
-
-type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 
 // =============================================================================
 // COLUMN DEFINITIONS
@@ -198,33 +190,17 @@ const createMessageLogColumnDefs = (variant: GridVariantType): ColDef<MessageLog
 
 export function AvaTestbed() {
   // ---------------------------------------------------------------------------
-  // State
+  // Atom Subscriptions (Atom-as-State pattern)
   // ---------------------------------------------------------------------------
 
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected')
-  const [views, setViews] = useState<readonly ViewSummary[]>([])
-  const [selectedView, setSelectedView] = useState<ViewSpec | null>(null)
-  const [artifact, setArtifact] = useState<ViewArtifact | null>(null)
-  const [messageLog, setMessageLog] = useState<readonly MessageLogEntry[]>([])
-  const [error, setError] = useState<string | null>(null)
-
-  // Config
-  const [baseUrl, setBaseUrl] = useState('http://localhost:3000')
-  const [useMock, setUseMock] = useState(true) // Default to mock mode
-
-  // Hypotheses
-  const [hypotheses, setHypotheses] = useState<HypothesisState[]>([
-    { id: 'H1', label: 'HTTP client can list/register/invalidate views', status: 'pending' },
-    { id: 'H2', label: 'WebSocket session receives artifact events', status: 'pending' },
-    { id: 'H3', label: 'TmnlDataGrid displays views correctly', status: 'pending' },
-    { id: 'H4', label: 'Connection status reflects WebSocket state', status: 'pending' },
-    { id: 'H5', label: 'Message log captures all session events', status: 'pending' },
-  ])
-
-  // Refs for runtime/fibers
-  const runtimeRef = useRef<Runtime.Runtime<AvaHttpClient | AvaSessionClient> | null>(null)
-  const sessionFiberRef = useRef<Fiber.RuntimeFiber<void, never> | null>(null)
-  const messageIdRef = useRef(0)
+  const connectionStatus = useAtomValue(connectionStatusAtom)
+  const views = useAtomValue(viewsAtom)
+  const selectedView = useAtomValue(selectedViewAtom)
+  const artifact = useAtomValue(artifactAtom)
+  const messageLog = useAtomValue(messageLogAtom)
+  const error = useAtomValue(errorAtom)
+  const config = useAtomValue(configAtom)
+  const hypotheses = useAtomValue(hypothesesAtom)
 
   // Grid variant
   const variant = tmnlDenseDark
@@ -232,206 +208,36 @@ export function AvaTestbed() {
   const messageLogColumnDefs = useMemo(() => createMessageLogColumnDefs(variant), [variant])
 
   // ---------------------------------------------------------------------------
-  // Helpers
+  // Handlers (Effect execution)
   // ---------------------------------------------------------------------------
 
-  const updateHypothesis = useCallback((id: string, status: HypothesisState['status'], evidence?: string) => {
-    setHypotheses(prev => prev.map(h =>
-      h.id === id ? { ...h, status, evidence } : h
-    ))
-  }, [])
+  const handleFetchViews = () => {
+    Effect.runPromise(fetchViews).catch(() => {})
+  }
 
-  const addMessage = useCallback((direction: 'in' | 'out', type: string, payload: unknown) => {
-    const entry: MessageLogEntry = {
-      id: `msg-${++messageIdRef.current}`,
-      timestamp: Date.now(),
-      direction,
-      type,
-      payload: typeof payload === 'string' ? payload : JSON.stringify(payload),
-    }
-    setMessageLog(prev => [entry, ...prev].slice(0, 100)) // Keep last 100
-  }, [])
+  const handleSelectView = (viewId: string) => {
+    Effect.runPromise(selectView(viewId)).catch(() => {})
+  }
 
-  // ---------------------------------------------------------------------------
-  // Mock Implementation (Direct Driver Pattern)
-  // ---------------------------------------------------------------------------
+  const handleRegisterView = () => {
+    Effect.runPromise(registerTestView).catch(() => {})
+  }
 
-  const mockViewsRef = useRef<Map<string, ViewSpec>>(new Map([
-    ['mock-view-1', {
-      id: 'mock-view-1',
-      name: 'Device Telemetry',
-      description: 'Real-time device metrics view',
-      assemblage_id: 'mock-assemblage',
-      channels: [
-        { id: 'ch-1', role: 'State', source_connection: 'mqtt://broker/devices/#', materialization: 'Eager' },
-        { id: 'ch-2', role: 'Events', source_connection: 'kafka://events/device-events', materialization: 'OnDemand' },
-      ],
-      version: 1,
-    }],
-    ['mock-view-2', {
-      id: 'mock-view-2',
-      name: 'Alert Dashboard',
-      description: 'Active alerts and acknowledgments',
-      assemblage_id: 'mock-assemblage',
-      channels: [
-        { id: 'ch-3', role: 'State', source_connection: 'redis://alerts', materialization: 'Eager' },
-      ],
-      version: 3,
-    }],
-  ]))
+  const handleConnect = () => {
+    Effect.runPromise(connectSession).catch(() => {})
+  }
 
-  const mockHttpClient = useMemo(() => ({
-    listViews: () => Effect.succeed(
-      Array.from(mockViewsRef.current.values()).map(spec => ({
-        id: spec.id,
-        name: spec.name,
-        version: spec.version,
-      }))
-    ),
-    getSpec: (viewId: string) => {
-      const spec = mockViewsRef.current.get(viewId)
-      return spec
-        ? Effect.succeed(spec)
-        : Effect.fail({ _tag: 'AvaNotFoundError', resource: 'view', id: viewId } as AvaNotFoundError)
-    },
-    getArtifact: (viewId: string) => {
-      const spec = mockViewsRef.current.get(viewId)
-      return spec
-        ? Effect.succeed({
-            view_id: viewId,
-            spec,
-            channel_bindings: spec.channels.map(ch => ({
-              channel_id: ch.id,
-              role: ch.role,
-              active: true,
-              row_count: Math.floor(Math.random() * 1000),
-              last_updated_ms: Date.now(),
-            })),
-            created_at_ms: Date.now() - 3600000,
-            version: spec.version,
-          } as ViewArtifact)
-        : Effect.fail({ _tag: 'AvaNotFoundError', resource: 'view', id: viewId } as AvaNotFoundError)
-    },
-    registerView: (req: { name: string; assemblage_id: string; channels: unknown[]; id?: string }) => {
-      const id = req.id ?? `view-${Date.now()}`
-      const spec: ViewSpec = {
-        id,
-        name: req.name,
-        assemblage_id: req.assemblage_id,
-        channels: req.channels as ViewSpec['channels'],
-        version: 1,
-      }
-      mockViewsRef.current.set(id, spec)
-      return Effect.succeed({ view_id: id, was_created: true, version: 1 })
-    },
-    invalidate: (viewId: string) => {
-      if (!mockViewsRef.current.has(viewId)) {
-        return Effect.fail({ _tag: 'AvaNotFoundError', resource: 'view', id: viewId } as AvaNotFoundError)
-      }
-      return Effect.succeed({ view_id: viewId, message: 'View invalidated (mock)' })
-    },
-    getStatus: (viewId: string) => {
-      if (!mockViewsRef.current.has(viewId)) {
-        return Effect.fail({ _tag: 'AvaNotFoundError', resource: 'view', id: viewId } as AvaNotFoundError)
-      }
-      return Effect.succeed({
-        view_id: viewId,
-        is_subscribed: false,
-        version: 1,
-        total_subscriptions: 0,
-      })
-    },
-  }), [])
+  const handleDisconnect = () => {
+    Effect.runPromise(disconnectSession).catch(() => {})
+  }
 
-  // ---------------------------------------------------------------------------
-  // Operations
-  // ---------------------------------------------------------------------------
+  const handlePing = () => {
+    Effect.runPromise(sendPing).catch(() => {})
+  }
 
-  const fetchViews = useCallback(async () => {
-    try {
-      updateHypothesis('H1', 'validating')
-
-      if (useMock) {
-        const result = await Effect.runPromise(mockHttpClient.listViews())
-        setViews(result)
-        updateHypothesis('H1', 'passed', `Listed ${result.length} views`)
-        if (result.length > 0) {
-          updateHypothesis('H3', 'passed', 'Grid populated with view data')
-        }
-      } else {
-        // Live mode - would use real runtime
-        setError('Live mode not implemented in testbed')
-      }
-    } catch (e) {
-      updateHypothesis('H1', 'failed', String(e))
-      setError(String(e))
-    }
-  }, [useMock, mockHttpClient, updateHypothesis])
-
-  const selectView = useCallback(async (viewId: string) => {
-    try {
-      if (useMock) {
-        const spec = await Effect.runPromise(mockHttpClient.getSpec(viewId))
-        setSelectedView(spec)
-
-        const art = await Effect.runPromise(mockHttpClient.getArtifact(viewId))
-        setArtifact(art)
-
-        // Simulate artifact event
-        addMessage('in', 'artifact', { view_id: viewId, version: art.version })
-        updateHypothesis('H2', 'passed', 'Artifact received for selected view')
-      }
-    } catch (e) {
-      setError(String(e))
-    }
-  }, [useMock, mockHttpClient, addMessage, updateHypothesis])
-
-  const registerTestView = useCallback(async () => {
-    try {
-      const viewName = `Test View ${Date.now()}`
-      if (useMock) {
-        const result = await Effect.runPromise(mockHttpClient.registerView({
-          name: viewName,
-          assemblage_id: 'test-assemblage',
-          channels: [
-            { id: `ch-${Date.now()}`, role: 'State', source_connection: 'test://source' },
-          ],
-        }))
-        addMessage('out', 'register', { name: viewName })
-        addMessage('in', 'status', { view_id: result.view_id, was_created: result.was_created })
-
-        // Refresh views list
-        await fetchViews()
-      }
-    } catch (e) {
-      setError(String(e))
-    }
-  }, [useMock, mockHttpClient, addMessage, fetchViews])
-
-  const simulateConnection = useCallback(() => {
-    setConnectionStatus('connecting')
-    updateHypothesis('H4', 'validating')
-
-    // Simulate connection delay
-    setTimeout(() => {
-      setConnectionStatus('connected')
-      updateHypothesis('H4', 'passed', 'Status transitioned: disconnected → connecting → connected')
-      addMessage('in', 'session', { status: 'connected' })
-    }, 500)
-  }, [updateHypothesis, addMessage])
-
-  const simulateDisconnect = useCallback(() => {
-    setConnectionStatus('disconnected')
-    addMessage('in', 'session', { status: 'disconnected' })
-  }, [addMessage])
-
-  const simulatePing = useCallback(() => {
-    addMessage('out', 'ping', { payload: 'test-ping' })
-    setTimeout(() => {
-      addMessage('in', 'pong', { payload: 'test-ping' })
-      updateHypothesis('H5', 'passed', 'Message log captures ping/pong')
-    }, 100)
-  }, [addMessage, updateHypothesis])
+  const handleSubscribe = (viewId: string) => {
+    Effect.runPromise(subscribeToView(viewId)).catch(() => {})
+  }
 
   // ---------------------------------------------------------------------------
   // Effects
@@ -439,8 +245,15 @@ export function AvaTestbed() {
 
   useEffect(() => {
     // Auto-fetch views on mount
-    fetchViews()
-  }, [fetchViews])
+    handleFetchViews()
+  }, [])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      Effect.runPromise(cleanup).catch(() => {})
+    }
+  }, [])
 
   // ---------------------------------------------------------------------------
   // Render
@@ -464,7 +277,7 @@ export function AvaTestbed() {
       {/* Config Panel */}
       <CollapsiblePanel
         title="Configuration"
-        subtitle="API endpoint and mock mode"
+        subtitle="API endpoint"
         defaultOpen={true}
         className="mb-6"
       >
@@ -475,24 +288,15 @@ export function AvaTestbed() {
             </label>
             <input
               type="text"
-              value={baseUrl}
-              onChange={(e) => setBaseUrl(e.target.value)}
-              disabled={useMock}
-              className="px-3 py-1 bg-neutral-900 border border-neutral-700 rounded font-mono text-neutral-200 w-64 disabled:opacity-50"
+              value={config.baseUrl}
+              onChange={(e) => setConfig({ baseUrl: e.target.value })}
+              className="px-3 py-1 bg-neutral-900 border border-neutral-700 rounded font-mono text-neutral-200 w-64"
               style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
             />
           </div>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={useMock}
-              onChange={(e) => setUseMock(e.target.checked)}
-              className="w-4 h-4"
-            />
-            <span className="text-neutral-400" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
-              Mock Mode
-            </span>
-          </label>
+          <Button variant="ghost" onClick={handleFetchViews}>
+            Refresh Views
+          </Button>
         </div>
       </CollapsiblePanel>
 
@@ -563,21 +367,21 @@ export function AvaTestbed() {
           {/* Connection Status */}
           <TestCard
             title="Connection"
-            description="WebSocket session status"
+            description={`Live WebSocket → ${config.baseUrl}`}
             actions={
               <div className="flex items-center gap-2">
                 {connectionStatus === 'disconnected' ? (
-                  <Button variant="primary" onClick={simulateConnection}>
+                  <Button variant="primary" onClick={handleConnect}>
                     Connect
                   </Button>
                 ) : (
-                  <Button variant="danger" onClick={simulateDisconnect}>
+                  <Button variant="danger" onClick={handleDisconnect}>
                     Disconnect
                   </Button>
                 )}
                 <Button
                   variant="ghost"
-                  onClick={simulatePing}
+                  onClick={handlePing}
                   disabled={connectionStatus !== 'connected'}
                 >
                   Ping
@@ -592,7 +396,7 @@ export function AvaTestbed() {
                 pulse={connectionStatus === 'connecting'}
               />
               {connectionStatus === 'connected' && (
-                <ValueDisplay label="Endpoint" value={useMock ? 'mock://local' : baseUrl} accent="cyan" size="sm" />
+                <ValueDisplay label="Endpoint" value={config.baseUrl} accent="cyan" size="sm" />
               )}
             </div>
           </TestCard>
@@ -603,10 +407,10 @@ export function AvaTestbed() {
             description="Registered view specifications"
             actions={
               <div className="flex items-center gap-2">
-                <Button variant="primary" onClick={registerTestView}>
+                <Button variant="primary" onClick={handleRegisterView}>
                   + Register
                 </Button>
-                <Button variant="ghost" onClick={fetchViews}>
+                <Button variant="ghost" onClick={handleFetchViews}>
                   Refresh
                 </Button>
               </div>
@@ -625,7 +429,7 @@ export function AvaTestbed() {
                 rowSelection="single"
                 onRowClicked={(event) => {
                   if (event.data) {
-                    selectView(event.data.id)
+                    handleSelectView(event.data.id)
                   }
                 }}
                 className="h-full"
@@ -643,6 +447,16 @@ export function AvaTestbed() {
           <TestCard
             title="Artifact Inspector"
             description={selectedView ? `View: ${selectedView.name}` : 'Select a view to inspect'}
+            actions={
+              selectedView && connectionStatus === 'connected' ? (
+                <Button
+                  variant="primary"
+                  onClick={() => handleSubscribe(selectedView.id)}
+                >
+                  Subscribe
+                </Button>
+              ) : null
+            }
           >
             {selectedView && artifact ? (
               <div className="space-y-4">
@@ -701,7 +515,7 @@ export function AvaTestbed() {
             title="Message Log"
             description="WebSocket session events"
             actions={
-              <Button variant="ghost" onClick={() => setMessageLog([])}>
+              <Button variant="ghost" onClick={clearMessages}>
                 Clear
               </Button>
             }
