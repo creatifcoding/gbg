@@ -18,7 +18,7 @@ use ava_domain::{
     ViewProfileSpec, ViewId, ViewArtifact, Lane, ChannelBinding,
     FiberAction, UnmountReason, ChannelRole,
 };
-use ava_reconciler::{Reconciler, FiberState, DiffResult};
+use ava_reconciler::v1::{Reconciler, FiberState, DiffResult, EventLog, QueueStats};
 use ava_compiler::ViewCompiler;
 use ava_adapters::AdapterRegistry;
 
@@ -390,7 +390,7 @@ impl AvaRuntime {
     // ========================================================================
 
     /// Get the event log reference
-    pub fn event_log(&self) -> &Arc<ava_reconciler::EventLog> {
+    pub fn event_log(&self) -> &Arc<EventLog> {
         self.reconciler.event_log()
     }
 
@@ -424,7 +424,7 @@ impl AvaRuntime {
     // ========================================================================
 
     /// Get scheduler statistics
-    pub async fn scheduler_stats(&self) -> ava_reconciler::QueueStats {
+    pub async fn scheduler_stats(&self) -> QueueStats {
         self.reconciler.scheduler().queue_stats().await
     }
 

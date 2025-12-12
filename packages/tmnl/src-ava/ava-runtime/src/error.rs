@@ -40,9 +40,13 @@ pub enum RuntimeError {
         message: String,
     },
 
-    /// Reconciler error
+    /// Reconciler v1 error
     #[error("Reconciler error: {0}")]
-    ReconcilerError(#[from] ava_reconciler::ReconcilerError),
+    ReconcilerError(#[from] ava_reconciler::v1::ReconcilerError),
+
+    /// Reconciler v2 error
+    #[error("Reconciler v2 error: {0}")]
+    ReconcilerV2Error(String),
 
     /// Compiler error
     #[error("Compiler error: {0}")]
@@ -95,5 +99,10 @@ impl RuntimeError {
             state: state.into(),
             expected: expected.into(),
         }
+    }
+
+    /// Create a v2 reconciler error
+    pub fn reconciler_error(err: ava_reconciler::v2::ReconcilerErrorV2) -> Self {
+        Self::ReconcilerV2Error(err.to_string())
     }
 }
