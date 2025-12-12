@@ -1,0 +1,36 @@
+[package]
+name = "ava-api"
+description = "AVA API - gRPC and REST endpoints for view lifecycle management"
+version.workspace = true
+edition = "2021"
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+# AVA crates
+ava-domain = { path = "../ava-domain" }
+ava-runtime = { path = "../ava-runtime" }
+
+# gRPC
+tonic.workspace = true
+prost.workspace = true
+
+# REST
+axum.workspace = true
+tower.workspace = true
+
+# Core
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+# Async
+tokio.workspace = true
+async-trait.workspace = true
+futures.workspace = true
+
+[build-dependencies]
+tonic-build = "0.12"
+
+[dev-dependencies]
+pretty_assertions.workspace = true
