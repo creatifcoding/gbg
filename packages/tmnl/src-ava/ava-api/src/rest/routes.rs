@@ -3,13 +3,17 @@
 //! ViewService REST API providing spec management and view lifecycle operations.
 //! See ADR-001-REST-FROM-GRPC.md for architectural decisions.
 
+use std::convert::Infallible;
 use std::sync::Arc;
+use std::time::Duration;
 use axum::{
     Router,
     routing::{get, post},
     extract::{State, Path, Json},
     http::StatusCode,
+    response::sse::{Event, Sse, KeepAlive},
 };
+use futures::stream::{Stream, StreamExt};
 use tokio::sync::RwLock;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -39,12 +43,14 @@ use super::dto::*;
         list_views,
         register_spec,
         get_spec,
+        get_artifact,
         get_status,
         invalidate_view,
     ),
     components(schemas(
         ViewSummary,
         ViewSpecResponse,
+        ViewArtifactResponse,
         ViewStatusResponse,
         ChannelSpecDto,
         ChannelBindingDto,
@@ -91,8 +97,11 @@ pub fn create_router(runtime: AvaRuntimeV2) -> Router {
         // ViewService routes
         .route("/api/v1/views", get(list_views).post(register_spec))
         .route("/api/v1/views/{id}/spec", get(get_spec))
+        .route("/api/v1/views/{id}/artifact", get(get_artifact))
         .route("/api/v1/views/{id}/status", get(get_status))
         .route("/api/v1/views/{id}/invalidate", post(invalidate_view))
+        // SSE streaming routes
+        .route("/api/v1/views/{id}/subscribe", get(subscribe_view))
         // Swagger UI
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .with_state(state)
@@ -105,8 +114,10 @@ pub fn create_api_router(runtime: AvaRuntimeV2) -> Router {
     Router::new()
         .route("/api/v1/views", get(list_views).post(register_spec))
         .route("/api/v1/views/{id}/spec", get(get_spec))
+        .route("/api/v1/views/{id}/artifact", get(get_artifact))
         .route("/api/v1/views/{id}/status", get(get_status))
         .route("/api/v1/views/{id}/invalidate", post(invalidate_view))
+        .route("/api/v1/views/{id}/subscribe", get(subscribe_view))
         .with_state(state)
 }
 
@@ -210,6 +221,44 @@ async fn get_spec(
     Ok(Json(ViewSpecResponse::from_spec(&spec)))
 }
 
+/// Get view artifact (runtime state with channel bindings)
+#[utoipa::path(
+    get,
+    path = "/api/v1/views/{id}/artifact",
+    tag = "views",
+    params(
+        ("id" = String, Path, description = "View identifier")
+    ),
+    responses(
+        (status = 200, description = "View artifact with channel bindings", body = ViewArtifactResponse),
+        (status = 404, description = "View not found or not subscribed"),
+        (status = 500, description = "Internal server error")
+    )
+)]
+async fn get_artifact(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<Json<ViewArtifactResponse>, ApiError> {
+    let runtime = state.runtime.read().await;
+    let view_id = ViewId::new(&id);
+
+    // Get the spec first
+    let spec = runtime.get_spec(&view_id)
+        .map_err(|e| ApiError::Runtime(e))?
+        .ok_or_else(|| ApiError::view_not_found(&id))?;
+
+    // Check if view is subscribed (has an active artifact)
+    let is_subscribed = runtime.is_subscribed(&view_id).await;
+    if !is_subscribed {
+        return Err(ApiError::view_not_found(format!("{} (not subscribed)", id)));
+    }
+
+    // Create artifact from spec
+    let artifact = AvaRuntimeV2::create_artifact(&spec);
+
+    Ok(Json(ViewArtifactResponse::from_artifact(&artifact)))
+}
+
 /// Get view status
 #[utoipa::path(
     get,
@@ -290,6 +339,63 @@ async fn invalidate_view(
         view_id: id,
         message,
     }))
+}
+
+// ============================================================================
+// SSE Streaming Handlers
+// ============================================================================
+
+/// Subscribe to view updates via Server-Sent Events
+///
+/// Streams ViewArtifact updates as SSE events. Each event contains
+/// a JSON-serialized ViewArtifactResponse in the data field.
+///
+/// Event format:
+/// ```text
+/// event: artifact
+/// data: {"view_id": "...", "spec": {...}, "channel_bindings": [...], ...}
+/// ```
+async fn subscribe_view(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, ApiError> {
+    let runtime = state.runtime.read().await;
+    let view_id = ViewId::new(&id);
+
+    // Get the spec
+    let spec = runtime.get_spec(&view_id)
+        .map_err(|e| ApiError::Runtime(e))?
+        .ok_or_else(|| ApiError::view_not_found(&id))?;
+
+    // Subscribe to the view - this returns a broadcast receiver
+    let rx = runtime.subscribe_view_hydrated(spec).await
+        .map_err(|e| ApiError::Runtime(e))?;
+
+    // Convert broadcast receiver to SSE event stream
+    let stream = tokio_stream::wrappers::BroadcastStream::new(rx)
+        .filter_map(|result| async move {
+            match result {
+                Ok(artifact) => {
+                    let response = ViewArtifactResponse::from_artifact(&artifact);
+                    match serde_json::to_string(&response) {
+                        Ok(json) => Some(
+                            Event::default()
+                                .event("artifact")
+                                .data(json)
+                        ),
+                        Err(_) => None,
+                    }
+                }
+                Err(_) => None, // Skip lagged or closed errors
+            }
+        })
+        .map(Ok);
+
+    Ok(Sse::new(stream).keep_alive(
+        KeepAlive::new()
+            .interval(Duration::from_secs(15))
+            .text("keep-alive")
+    ))
 }
 
 // ============================================================================

@@ -52,7 +52,7 @@ tonic = "0.12"
 prost = "0.13"
 prost-types = "0.13"
 prost-wkt-types = "0.6"
-tokio-stream = "0.1"
+tokio-stream = { version = "0.1", features = ["sync"] }
 
 # Utilities
 uuid = { version = "1.0", features = ["v4"] }

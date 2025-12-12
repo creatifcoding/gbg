@@ -28,13 +28,23 @@ type ViewDeltaStream = Pin<Box<dyn Stream<Item = Result<artifacts::ViewDelta, St
 type TaggedArtifactStream = Pin<Box<dyn Stream<Item = Result<artifacts::TaggedArtifact, Status>> + Send>>;
 type SessionEventStream = Pin<Box<dyn Stream<Item = Result<proto::SessionEvent, Status>> + Send>>;
 
-/// ViewService gRPC server
-pub struct ViewServiceServer {
+/// ViewService implementation - implements the ViewService trait
+///
+/// Use with the generated wrapper for tonic Server:
+/// ```ignore
+/// use ava_api::grpc::ViewServiceImpl;
+/// use ava_api::proto::services::v1::view_service_server::ViewServiceServer;
+///
+/// let impl_ = ViewServiceImpl::new(runtime);
+/// let service = ViewServiceServer::new(impl_);
+/// Server::builder().add_service(service).serve(addr).await?;
+/// ```
+pub struct ViewServiceImpl {
     runtime: Arc<RwLock<AvaRuntimeV2>>,
 }
 
-impl ViewServiceServer {
-    /// Create a new ViewServiceServer with the given runtime
+impl ViewServiceImpl {
+    /// Create a new ViewServiceImpl with the given runtime
     pub fn new(runtime: AvaRuntimeV2) -> Self {
         Self {
             runtime: Arc::new(RwLock::new(runtime)),
@@ -178,7 +188,7 @@ impl ViewServiceServer {
 }
 
 #[tonic::async_trait]
-impl proto::view_service_server::ViewService for ViewServiceServer {
+impl proto::view_service_server::ViewService for ViewServiceImpl {
     // ========================================================================
     // UNARY RPCs
     // ========================================================================
@@ -751,14 +761,14 @@ mod tests {
     #[tokio::test]
     async fn test_server_creation() {
         let runtime = AvaRuntimeV2::default();
-        let _server = ViewServiceServer::new(runtime);
+        let _server = ViewServiceImpl::new(runtime);
     }
 
     #[tokio::test]
     async fn test_view_id_conversion() {
         let proto_id = common::ViewId { value: "test-view".to_string() };
-        let domain_id = ViewServiceServer::from_proto_view_id(&proto_id);
-        let back = ViewServiceServer::to_proto_view_id(&domain_id);
+        let domain_id = ViewServiceImpl::from_proto_view_id(&proto_id);
+        let back = ViewServiceImpl::to_proto_view_id(&domain_id);
         assert_eq!(proto_id.value, back.value);
     }
 }
