@@ -1,30 +1,25 @@
 /**
  * CRD Registration
- *
- * Ensures CRDs are deployed when the operator starts.
- * Uses Pepr's K8s client for server-side apply.
+ * Pattern: pepr-excellent-examples/pepr-operator
  */
 
-import { K8s, kind } from 'pepr'
-import { readFileSync } from 'fs'
-import { join } from 'path'
-import { parse } from 'yaml'
+import { K8s, Log, kind } from 'pepr'
+import { CosmoRouterCRD } from './source/cosmo-router.crd'
+import { CosmoSubgraphCRD } from './source/cosmo-subgraph.crd'
 
-const CRD_DIR = join(import.meta.dir, '.')
-
-export async function registerCRDs(): Promise<void> {
-  const crdFiles = ['cosmo-router.yaml', 'cosmo-subgraph.yaml']
-
-  for (const file of crdFiles) {
-    const content = readFileSync(join(CRD_DIR, file), 'utf-8')
-    const crd = parse(content)
-
-    try {
-      await K8s(kind.CustomResourceDefinition).Apply(crd, { force: true })
-      console.log(`[cosmo-operator] Registered CRD: ${crd.metadata.name}`)
-    } catch (error) {
-      console.error(`[cosmo-operator] Failed to register CRD ${file}:`, error)
-      throw error
-    }
-  }
+export const RegisterCRDs = () => {
+  Promise.all([
+    K8s(kind.CustomResourceDefinition)
+      .Apply(CosmoRouterCRD, { force: true })
+      .then(() => Log.info('CosmoRouter CRD registered')),
+    K8s(kind.CustomResourceDefinition)
+      .Apply(CosmoSubgraphCRD, { force: true })
+      .then(() => Log.info('CosmoSubgraph CRD registered')),
+  ]).catch(err => {
+    Log.error(err)
+    process.exit(1)
+  })
 }
+
+// Self-executing registration
+;(() => RegisterCRDs())()

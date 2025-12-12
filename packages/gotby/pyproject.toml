@@ -1,0 +1,19 @@
+[project]
+name = "gotby"
+version = "0.1.0"
+description = "Ravyn and ADK integration for Gotby"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "ravyn[standard]",
+    "google-adk",
+    "uvicorn",
+    "anyio",
+    "pydantic>=2.12.5",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest",
+    "httpx",
+]

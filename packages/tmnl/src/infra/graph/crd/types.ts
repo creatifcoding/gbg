@@ -1,15 +1,19 @@
 /**
  * Generated TypeScript types for Cosmo CRDs
  *
- * These types are derived from the CRD YAML schemas
- * for use with Pepr's type-safe K8s operations.
+ * Pattern derived from pepr-excellent-examples/pepr-operator
  */
 
-import { GenericKind } from 'pepr'
+import { a, RegisterKind } from 'pepr'
 
 // =============================================================================
 // COSMO ROUTER
 // =============================================================================
+
+export class CosmoRouter extends a.GenericKind {
+  spec!: CosmoRouterSpec
+  status?: CosmoRouterStatus
+}
 
 export interface CosmoRouterSpec {
   executionConfig: {
@@ -59,14 +63,21 @@ export interface CosmoRouterStatus {
   }>
 }
 
-export interface CosmoRouter extends GenericKind {
-  spec: CosmoRouterSpec
-  status?: CosmoRouterStatus
-}
+// Register CosmoRouter kind
+RegisterKind(CosmoRouter, {
+  group: 'tmnl.gbg.dev',
+  version: 'v1alpha1',
+  kind: 'CosmoRouter',
+})
 
 // =============================================================================
 // COSMO SUBGRAPH
 // =============================================================================
+
+export class CosmoSubgraph extends a.GenericKind {
+  spec!: CosmoSubgraphSpec
+  status?: CosmoSubgraphStatus
+}
 
 export interface CosmoSubgraphSpec {
   name: string
@@ -111,10 +122,12 @@ export interface CosmoSubgraphStatus {
   }>
 }
 
-export interface CosmoSubgraph extends GenericKind {
-  spec: CosmoSubgraphSpec
-  status?: CosmoSubgraphStatus
-}
+// Register CosmoSubgraph kind
+RegisterKind(CosmoSubgraph, {
+  group: 'tmnl.gbg.dev',
+  version: 'v1alpha1',
+  kind: 'CosmoSubgraph',
+})
 
 // =============================================================================
 // CONSTANTS

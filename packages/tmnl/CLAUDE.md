@@ -1902,3 +1902,4 @@ See `src/components/testbed/DataManagerTestbed.tsx` for the canonical example of
   eliminates the Ref→Atom bridge: no polling, no SubscriptionRef, no
   streams-to-consume-streams.
 - It's never ever fixed. Until I say it's fixed
+- when checking or validating patterns, usage etc, prefer consulting with resources (e.g. deepwiki or effect-docs, resources defined during session, refer to that as well)

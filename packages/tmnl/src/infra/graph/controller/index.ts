@@ -1,137 +1,120 @@
 /**
  * Cosmo Controller Capability
- *
- * Pepr capability that watches CosmoRouter and CosmoSubgraph
- * resources and reconciles them with cluster state.
+ * Pattern: pepr-excellent-examples/pepr-operator
  */
 
-import { Capability, a, Log, K8s, kind } from 'pepr'
-import { registerCRDs, COSMO_GROUP, COSMO_VERSION, ROUTER_KIND, SUBGRAPH_KIND } from '../crd'
-import type { CosmoRouter, CosmoSubgraph } from '../crd'
-import { reconcileRouter, reconcileSubgraph, recoverOwnedResource, queueReconcile } from './reconciler'
+import { Capability, a, Log } from 'pepr'
+import { CosmoRouter, CosmoSubgraph } from '../crd/types'
+import { CosmoRouterCRD } from '../crd/source/cosmo-router.crd'
+import { CosmoSubgraphCRD } from '../crd/source/cosmo-subgraph.crd'
+import { RegisterCRDs } from '../crd/register'
+import { reconcileRouter, reconcileSubgraph } from './reconciler'
+import Deploy from './generators'
+
+// Import register to trigger self-executing registration
+import '../crd/register'
 
 export const CosmoController = new Capability({
   name: 'cosmo-controller',
   description: 'Manages Cosmo GraphQL Federation resources',
-  namespaces: [], // All namespaces
+  namespaces: [],
 })
 
 const { When, Store } = CosmoController
 
 // =============================================================================
-// CRD REGISTRATION (on startup)
+// COSMO ROUTER
 // =============================================================================
 
-// Register CRDs when capability loads
-registerCRDs().catch((error) => {
-  Log.error({ error }, 'Failed to register CRDs on startup')
-})
-
-// =============================================================================
-// COSMO ROUTER WATCHES
-// =============================================================================
-
-// Watch for CosmoRouter creation/updates
-When({
-  group: COSMO_GROUP,
-  version: COSMO_VERSION,
-  kind: ROUTER_KIND,
-} as any)
+When(CosmoRouter)
   .IsCreatedOrUpdated()
-  .Watch(async (router: CosmoRouter) => {
-    const key = `${router.metadata!.namespace}/${router.metadata!.name}`
-    Log.info({ key }, 'CosmoRouter created/updated')
-    queueReconcile(key, () => reconcileRouter(router))
+  .Reconcile(async instance => {
+    try {
+      Store.setItem(instance.metadata!.name!, JSON.stringify(instance))
+      await reconcileRouter(instance)
+    } catch (error) {
+      Log.error(error, 'Error reconciling CosmoRouter')
+    }
   })
 
-// Watch for CosmoRouter deletion
-When({
-  group: COSMO_GROUP,
-  version: COSMO_VERSION,
-  kind: ROUTER_KIND,
-} as any)
+When(CosmoRouter)
   .IsDeleted()
-  .Watch(async (router: CosmoRouter) => {
-    const key = `${router.metadata!.namespace}/${router.metadata!.name}`
-    Log.info({ key }, 'CosmoRouter deleted')
-    // Owned resources will be garbage collected via ownerReferences
+  .Mutate(async instance => {
+    await Store.removeItemAndWait(instance.Raw.metadata!.name!)
   })
 
 // =============================================================================
-// COSMO SUBGRAPH WATCHES
+// COSMO SUBGRAPH
 // =============================================================================
 
-// Watch for CosmoSubgraph creation/updates
-When({
-  group: COSMO_GROUP,
-  version: COSMO_VERSION,
-  kind: SUBGRAPH_KIND,
-} as any)
+When(CosmoSubgraph)
   .IsCreatedOrUpdated()
-  .Watch(async (subgraph: CosmoSubgraph) => {
-    const key = `${subgraph.metadata!.namespace}/${subgraph.metadata!.name}`
-    Log.info({ key }, 'CosmoSubgraph created/updated')
-    queueReconcile(key, () => reconcileSubgraph(subgraph))
+  .Reconcile(async instance => {
+    try {
+      Store.setItem(instance.metadata!.name!, JSON.stringify(instance))
+      await reconcileSubgraph(instance)
+    } catch (error) {
+      Log.error(error, 'Error reconciling CosmoSubgraph')
+    }
   })
 
-// Watch for CosmoSubgraph deletion
-When({
-  group: COSMO_GROUP,
-  version: COSMO_VERSION,
-  kind: SUBGRAPH_KIND,
-} as any)
+When(CosmoSubgraph)
   .IsDeleted()
-  .Watch(async (subgraph: CosmoSubgraph) => {
-    const key = `${subgraph.metadata!.namespace}/${subgraph.metadata!.name}`
-    Log.info({ key }, 'CosmoSubgraph deleted')
-    // TODO: Trigger router recomposition to remove subgraph
-  })
-
-// =============================================================================
-// OWNED RESOURCE RECOVERY
-// =============================================================================
-
-// Watch for Deployment deletions (recover if owned by CosmoRouter)
-When(a.Deployment)
-  .IsDeleted()
-  .WithLabel('app.kubernetes.io/managed-by', 'cosmo-operator')
-  .Watch(async (deployment) => {
-    await recoverOwnedResource(deployment)
-  })
-
-// Watch for Service deletions (recover if owned by CosmoRouter)
-When(a.Service)
-  .IsDeleted()
-  .WithLabel('app.kubernetes.io/managed-by', 'cosmo-operator')
-  .Watch(async (service) => {
-    await recoverOwnedResource(service)
-  })
-
-// Watch for ConfigMap deletions (recover if owned by CosmoRouter)
-When(a.ConfigMap)
-  .IsDeleted()
-  .WithLabel('app.kubernetes.io/managed-by', 'cosmo-operator')
-  .Watch(async (configMap) => {
-    await recoverOwnedResource(configMap)
+  .Mutate(async instance => {
+    await Store.removeItemAndWait(instance.Raw.metadata!.name!)
   })
 
 // =============================================================================
 // CRD RECOVERY
 // =============================================================================
 
-// Re-register CRDs if they're deleted
 When(a.CustomResourceDefinition)
   .IsDeleted()
-  .WithName('cosmorouters.tmnl.gbg.dev')
-  .Watch(async () => {
-    Log.warn('CosmoRouter CRD deleted, re-registering...')
-    await registerCRDs()
+  .WithName(CosmoRouterCRD.metadata.name)
+  .Watch(() => {
+    RegisterCRDs()
   })
 
 When(a.CustomResourceDefinition)
   .IsDeleted()
-  .WithName('cosmosubgraphs.tmnl.gbg.dev')
-  .Watch(async () => {
-    Log.warn('CosmoSubgraph CRD deleted, re-registering...')
-    await registerCRDs()
+  .WithName(CosmoSubgraphCRD.metadata.name)
+  .Watch(() => {
+    RegisterCRDs()
+  })
+
+// =============================================================================
+// OWNED RESOURCE RECOVERY
+// =============================================================================
+
+When(a.Deployment)
+  .IsDeleted()
+  .WithLabel('app.kubernetes.io/managed-by', 'cosmo-operator')
+  .Watch(async deploy => {
+    const stored = Store.getItem(deploy.metadata!.labels!['app.kubernetes.io/instance'])
+    if (stored) {
+      const instance = JSON.parse(stored) as CosmoRouter
+      await Deploy(instance)
+    }
+  })
+
+When(a.Service)
+  .IsDeleted()
+  .WithLabel('app.kubernetes.io/managed-by', 'cosmo-operator')
+  .Watch(async svc => {
+    const stored = Store.getItem(svc.metadata!.labels!['app.kubernetes.io/instance'])
+    if (stored) {
+      const instance = JSON.parse(stored) as CosmoRouter
+      await Deploy(instance)
+    }
+  })
+
+When(a.ConfigMap)
+  .IsDeleted()
+  .WithLabel('app.kubernetes.io/managed-by', 'cosmo-operator')
+  .Watch(async cm => {
+    const stored = Store.getItem(cm.metadata!.labels!['app.kubernetes.io/instance'])
+    if (stored) {
+      const instance = JSON.parse(stored) as CosmoRouter
+      await Deploy(instance)
+    }
   })

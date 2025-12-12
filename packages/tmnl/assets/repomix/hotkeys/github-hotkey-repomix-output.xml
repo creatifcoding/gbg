@@ -1,0 +1,645 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+4. Repository files, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: src/
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+<additional_info>
+
+</additional_info>
+
+</file_summary>
+
+<directory_structure>
+src/
+  hotkey.ts
+  index.ts
+  macos-symbol-layer.ts
+  macos-uppercase-layer.ts
+  radix-trie.ts
+  sequence.ts
+  utils.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="src/hotkey.ts">
+import {NormalizedSequenceString} from './sequence.js'
+import {macosSymbolLayerKeys} from './macos-symbol-layer.js'
+import {macosUppercaseLayerKeys} from './macos-uppercase-layer.js'
+
+const normalizedHotkeyBrand = Symbol('normalizedHotkey')
+
+/**
+ * A hotkey string with modifier keys in standard order. Build one with `eventToHotkeyString` or normalize a string via
+ * `normalizeHotkey`.
+ *
+ * A full list of key names can be found here:
+ * https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key/Key_Values
+ *
+ * Examples:
+ * "s"                  // Lowercase character for single letters
+ * "S"                  // Uppercase character for shift plus a letter
+ * "1"                  // Number character
+ * "?"                  // Shift plus "/" symbol
+ * "Enter"              // Enter key
+ * "ArrowUp"            // Up arrow
+ * "Control+s"          // Control modifier plus letter
+ * "Control+Alt+Delete" // Multiple modifiers
+ */
+export type NormalizedHotkeyString = NormalizedSequenceString & {[normalizedHotkeyBrand]: true}
+
+const syntheticKeyNames: Record<string, string> = {
+  ' ': 'Space',
+  '+': 'Plus'
+}
+
+/**
+ * Returns a hotkey character string for keydown and keyup events.
+ * @example
+ * document.addEventListener('keydown', function(event) {
+ *   if (eventToHotkeyString(event) === 'h') ...
+ * })
+ */
+export function eventToHotkeyString(
+  event: KeyboardEvent,
+  platform: string = navigator.platform
+): NormalizedHotkeyString {
+  const {ctrlKey, altKey, metaKey, shiftKey, key} = event
+  const hotkeyString: string[] = []
+  const modifiers: boolean[] = [ctrlKey, altKey, metaKey, shiftKey]
+
+  for (const [i, mod] of modifiers.entries()) {
+    if (mod) hotkeyString.push(modifierKeyNames[i])
+  }
+
+  if (!modifierKeyNames.includes(key)) {
+    // MacOS outputs symbols when `Alt` is held, so we map them back to the key symbol if we can
+    const altNormalizedKey =
+      hotkeyString.includes('Alt') && matchApplePlatform.test(platform) ? macosSymbolLayerKeys[key] ?? key : key
+
+    // MacOS outputs lowercase characters when `Command+Shift` is held, so we map them back to uppercase if we can
+    const shiftNormalizedKey =
+      hotkeyString.includes('Shift') && matchApplePlatform.test(platform)
+        ? macosUppercaseLayerKeys[altNormalizedKey] ?? altNormalizedKey
+        : altNormalizedKey
+
+    // Some symbols can't be used because of hotkey string format, so we replace them with 'synthetic' named keys
+    const syntheticKey = syntheticKeyNames[shiftNormalizedKey] ?? shiftNormalizedKey
+
+    hotkeyString.push(syntheticKey)
+  }
+
+  return hotkeyString.join('+') as NormalizedHotkeyString
+}
+
+const modifierKeyNames: string[] = ['Control', 'Alt', 'Meta', 'Shift']
+
+/**
+ * Normalizes a hotkey string before comparing it to the serialized event
+ * string produced by `eventToHotkeyString`.
+ * - Replaces the `Mod` modifier with `Meta` on mac, `Control` on other
+ *   platforms.
+ * - Ensures modifiers are sorted in a consistent order
+ * @param hotkey a hotkey string
+ * @param platform NOTE: this param is only intended to be used to mock `navigator.platform` in tests. `window.navigator.platform` is used by default.
+ * @returns {string} normalized representation of the given hotkey string
+ */
+export function normalizeHotkey(hotkey: string, platform?: string | undefined): NormalizedHotkeyString {
+  let result: string
+  result = localizeMod(hotkey, platform)
+  result = sortModifiers(result)
+  return result as NormalizedHotkeyString
+}
+
+const matchApplePlatform = /Mac|iPod|iPhone|iPad/i
+
+function localizeMod(hotkey: string, platform?: string | undefined): string {
+  const ssrSafeWindow = typeof window === 'undefined' ? undefined : window
+  const safePlatform = platform ?? ssrSafeWindow?.navigator.platform ?? ''
+
+  const localModifier = matchApplePlatform.test(safePlatform) ? 'Meta' : 'Control'
+  return hotkey.replace('Mod', localModifier)
+}
+
+function sortModifiers(hotkey: string): string {
+  const key = hotkey.split('+').pop()
+  const modifiers: string[] = []
+  for (const modifier of ['Control', 'Alt', 'Meta', 'Shift']) {
+    if (hotkey.includes(modifier)) {
+      modifiers.push(modifier)
+    }
+  }
+  if (key) modifiers.push(key)
+  return modifiers.join('+')
+}
+</file>
+
+<file path="src/index.ts">
+import {Leaf, RadixTrie} from './radix-trie.js'
+import {fireDeterminedAction, expandHotkeyToEdges, isFormField} from './utils.js'
+import {SequenceTracker} from './sequence.js'
+import {eventToHotkeyString} from './hotkey.js'
+
+export {eventToHotkeyString, normalizeHotkey} from './hotkey.js'
+export type {NormalizedHotkeyString} from './hotkey.js'
+export {SequenceTracker, normalizeSequence} from './sequence.js'
+export type {NormalizedSequenceString} from './sequence.js'
+export {RadixTrie, Leaf} from './radix-trie.js'
+
+const hotkeyRadixTrie = new RadixTrie<HTMLElement>()
+const elementsLeaves = new WeakMap<HTMLElement, Array<Leaf<HTMLElement>>>()
+let currentTriePosition: RadixTrie<HTMLElement> | Leaf<HTMLElement> = hotkeyRadixTrie
+
+const sequenceTracker = new SequenceTracker({
+  onReset() {
+    currentTriePosition = hotkeyRadixTrie
+  }
+})
+
+function keyDownHandler(event: KeyboardEvent) {
+  if (event.defaultPrevented) return
+  if (!(event.target instanceof Node)) return
+  if (isFormField(event.target)) {
+    const target = event.target as HTMLElement
+    if (!target.id) return
+    if (!target.ownerDocument.querySelector(`[data-hotkey-scope="${target.id}"]`)) return
+  }
+
+  // If the user presses a hotkey that doesn't exist in the Trie,
+  // they've pressed a wrong key-combo and we should reset the flow
+  const newTriePosition = (currentTriePosition as RadixTrie<HTMLElement>).get(eventToHotkeyString(event))
+  if (!newTriePosition) {
+    sequenceTracker.reset()
+    return
+  }
+  sequenceTracker.registerKeypress(event)
+
+  currentTriePosition = newTriePosition
+  if (newTriePosition instanceof Leaf) {
+    const target = event.target as HTMLElement
+    let shouldFire = false
+    let elementToFire
+    const formField = isFormField(target)
+
+    for (let i = newTriePosition.children.length - 1; i >= 0; i -= 1) {
+      elementToFire = newTriePosition.children[i]
+      const scope = elementToFire.getAttribute('data-hotkey-scope')
+      if ((!formField && !scope) || (formField && target.id === scope)) {
+        shouldFire = true
+        break
+      }
+    }
+
+    if (elementToFire && shouldFire) {
+      fireDeterminedAction(elementToFire, sequenceTracker.path)
+      event.preventDefault()
+    }
+
+    sequenceTracker.reset()
+  }
+}
+
+export function install(element: HTMLElement, hotkey?: string): void {
+  // Install the keydown handler if this is the first install
+  if (Object.keys(hotkeyRadixTrie.children).length === 0) {
+    document.addEventListener('keydown', keyDownHandler)
+  }
+
+  const hotkeys = expandHotkeyToEdges(hotkey || element.getAttribute('data-hotkey') || '')
+  const leaves = hotkeys.map(h => (hotkeyRadixTrie.insert(h) as Leaf<HTMLElement>).add(element))
+  elementsLeaves.set(element, leaves)
+}
+
+export function uninstall(element: HTMLElement): void {
+  const leaves = elementsLeaves.get(element)
+  if (leaves && leaves.length) {
+    for (const leaf of leaves) {
+      leaf && leaf.delete(element)
+    }
+  }
+
+  if (Object.keys(hotkeyRadixTrie.children).length === 0) {
+    document.removeEventListener('keydown', keyDownHandler)
+  }
+}
+</file>
+
+<file path="src/macos-symbol-layer.ts">
+/**
+ * Map of special symbols to the keys that would be pressed (while holding `Option`) to type them on MacOS on an
+ * English layout. Most of these are standardized across most language layouts, so this won't work 100% in every
+ * language but it should work most of the time.
+ */
+export const macosSymbolLayerKeys: Record<string, string> = {
+  ['¡']: '1',
+  ['™']: '2',
+  ['£']: '3',
+  ['¢']: '4',
+  ['∞']: '5',
+  ['§']: '6',
+  ['¶']: '7',
+  ['•']: '8',
+  ['ª']: '9',
+  ['º']: '0',
+  ['–']: '-',
+  ['≠']: '=',
+  ['⁄']: '!',
+  ['€']: '@',
+  ['‹']: '#',
+  ['›']: '$',
+  ['ﬁ']: '%',
+  ['ﬂ']: '^',
+  ['‡']: '&',
+  ['°']: '*',
+  ['·']: '(',
+  ['‚']: ')',
+  ['—']: '_',
+  ['±']: '+',
+  ['œ']: 'q',
+  ['∑']: 'w',
+  ['®']: 'r',
+  ['†']: 't',
+  ['¥']: 'y',
+  ['ø']: 'o',
+  ['π']: 'p',
+  ['“']: '[',
+  ['‘']: ']',
+  ['«']: '\\',
+  ['Œ']: 'Q',
+  ['„']: 'W',
+  ['´']: 'E',
+  ['‰']: 'R',
+  ['ˇ']: 'T',
+  ['Á']: 'Y',
+  ['¨']: 'U',
+  ['ˆ']: 'I',
+  ['Ø']: 'O',
+  ['∏']: 'P',
+  ['”']: '{',
+  ['’']: '}',
+  ['»']: '|',
+  ['å']: 'a',
+  ['ß']: 's',
+  ['∂']: 'd',
+  ['ƒ']: 'f',
+  ['©']: 'g',
+  ['˙']: 'h',
+  ['∆']: 'j',
+  ['˚']: 'k',
+  ['¬']: 'l',
+  ['…']: ';',
+  ['æ']: "'",
+  ['Å']: 'A',
+  ['Í']: 'S',
+  ['Î']: 'D',
+  ['Ï']: 'F',
+  ['˝']: 'G',
+  ['Ó']: 'H',
+  ['Ô']: 'J',
+  ['']: 'K',
+  ['Ò']: 'L',
+  ['Ú']: ':',
+  ['Æ']: '"',
+  ['Ω']: 'z',
+  ['≈']: 'x',
+  ['ç']: 'c',
+  ['√']: 'v',
+  ['∫']: 'b',
+  ['µ']: 'm',
+  ['≤']: ',',
+  ['≥']: '.',
+  ['÷']: '/',
+  ['¸']: 'Z',
+  ['˛']: 'X',
+  ['Ç']: 'C',
+  ['◊']: 'V',
+  ['ı']: 'B',
+  ['˜']: 'N',
+  ['Â']: 'M',
+  ['¯']: '<',
+  ['˘']: '>',
+  ['¿']: '?'
+}
+</file>
+
+<file path="src/macos-uppercase-layer.ts">
+/**
+ * Map of 'uppercase' symbols to the keys that would be pressed (while holding `Shift`) to type them on MacOS on an
+ * English layout. Most of these are standardized across most language layouts, so this won't work 100% in every
+ * language but it should work most of the time.
+ *
+ */
+export const macosUppercaseLayerKeys: Record<string, string> = {
+  ['`']: '~',
+  ['1']: '!',
+  ['2']: '@',
+  ['3']: '#',
+  ['4']: '$',
+  ['5']: '%',
+  ['6']: '^',
+  ['7']: '&',
+  ['8']: '*',
+  ['9']: '(',
+  ['0']: ')',
+  ['-']: '_',
+  ['=']: '+',
+  ['[']: '{',
+  [']']: '}',
+  ['\\']: '|',
+  [';']: ':',
+  ["'"]: '"',
+  [',']: '<',
+  ['.']: '>',
+  ['/']: '?',
+  ['q']: 'Q',
+  ['w']: 'W',
+  ['e']: 'E',
+  ['r']: 'R',
+  ['t']: 'T',
+  ['y']: 'Y',
+  ['u']: 'U',
+  ['i']: 'I',
+  ['o']: 'O',
+  ['p']: 'P',
+  ['a']: 'A',
+  ['s']: 'S',
+  ['d']: 'D',
+  ['f']: 'F',
+  ['g']: 'G',
+  ['h']: 'H',
+  ['j']: 'J',
+  ['k']: 'K',
+  ['l']: 'L',
+  ['z']: 'Z',
+  ['x']: 'X',
+  ['c']: 'C',
+  ['v']: 'V',
+  ['b']: 'B',
+  ['n']: 'N',
+  ['m']: 'M'
+}
+</file>
+
+<file path="src/radix-trie.ts">
+export class Leaf<T> {
+  parent: RadixTrie<T>
+  children: T[] = []
+
+  constructor(trie: RadixTrie<T>) {
+    this.parent = trie
+  }
+
+  delete(value: T): boolean {
+    const index = this.children.indexOf(value)
+    if (index === -1) return false
+    this.children = this.children.slice(0, index).concat(this.children.slice(index + 1))
+    if (this.children.length === 0) {
+      this.parent.delete(this)
+    }
+    return true
+  }
+
+  add(value: T): Leaf<T> {
+    this.children.push(value)
+    return this
+  }
+}
+
+export class RadixTrie<T> {
+  parent: RadixTrie<T> | null = null
+  children: {[key: string]: RadixTrie<T> | Leaf<T>} = {}
+
+  constructor(trie?: RadixTrie<T>) {
+    this.parent = trie || null
+  }
+
+  get(edge: string): RadixTrie<T> | Leaf<T> {
+    return this.children[edge]
+  }
+
+  insert(edges: string[]): RadixTrie<T> | Leaf<T> {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    let currentNode: RadixTrie<T> | Leaf<T> = this
+    for (let i = 0; i < edges.length; i += 1) {
+      const edge = edges[i]
+      let nextNode: RadixTrie<T> | Leaf<T> | null = currentNode.get(edge)
+      // If we're at the end of this set of edges:
+      if (i === edges.length - 1) {
+        // If this end already exists as a RadixTrie, then hose it and replace with a Leaf:
+        if (nextNode instanceof RadixTrie) {
+          currentNode.delete(nextNode)
+          nextNode = null
+        }
+        // If nextNode doesn't exist (or used to be a RadixTrie) then make a Leaf:
+        if (!nextNode) {
+          nextNode = new Leaf(currentNode)
+          currentNode.children[edge] = nextNode
+        }
+        return nextNode
+        // We're not at the end of this set of edges:
+      } else {
+        // If we're not at the end, but we've hit a Leaf, replace with a RadixTrie
+        if (nextNode instanceof Leaf) nextNode = null
+        if (!nextNode) {
+          nextNode = new RadixTrie(currentNode)
+          currentNode.children[edge] = nextNode
+        }
+      }
+      currentNode = nextNode
+    }
+    return currentNode
+  }
+
+  delete(node: RadixTrie<T> | Leaf<T>): boolean {
+    for (const edge in this.children) {
+      const currentNode = this.children[edge]
+      if (currentNode === node) {
+        const success = delete this.children[edge]
+        if (Object.keys(this.children).length === 0 && this.parent) {
+          this.parent.delete(this)
+        }
+        return success
+      }
+    }
+    return false
+  }
+}
+</file>
+
+<file path="src/sequence.ts">
+import {NormalizedHotkeyString, eventToHotkeyString, normalizeHotkey} from './hotkey.js'
+
+interface SequenceTrackerOptions {
+  onReset?: () => void
+}
+
+export const SEQUENCE_DELIMITER = ' '
+
+const sequenceBrand = Symbol('sequence')
+
+/**
+ * Sequence of hotkeys, separated by spaces. For example, `Mod+m g`. Obtain one through the `SequenceTracker` class or
+ * by normalizing a string with `normalizeSequence`.
+ */
+export type NormalizedSequenceString = string & {[sequenceBrand]: true}
+
+export class SequenceTracker {
+  static readonly CHORD_TIMEOUT = 1500
+
+  private _path: readonly NormalizedHotkeyString[] = []
+  private timer: number | null = null
+  private onReset
+
+  constructor({onReset}: SequenceTrackerOptions = {}) {
+    this.onReset = onReset
+  }
+
+  get path(): readonly NormalizedHotkeyString[] {
+    return this._path
+  }
+
+  get sequence(): NormalizedSequenceString {
+    return this._path.join(SEQUENCE_DELIMITER) as NormalizedSequenceString
+  }
+
+  registerKeypress(event: KeyboardEvent): void {
+    this._path = [...this._path, eventToHotkeyString(event)]
+    this.startTimer()
+  }
+
+  reset(): void {
+    this.killTimer()
+    this._path = []
+    this.onReset?.()
+  }
+
+  private killTimer(): void {
+    if (this.timer != null) {
+      window.clearTimeout(this.timer)
+    }
+    this.timer = null
+  }
+
+  private startTimer(): void {
+    this.killTimer()
+    this.timer = window.setTimeout(() => this.reset(), SequenceTracker.CHORD_TIMEOUT)
+  }
+}
+
+export function normalizeSequence(sequence: string): NormalizedSequenceString {
+  return sequence
+    .split(SEQUENCE_DELIMITER)
+    .map(h => normalizeHotkey(h))
+    .join(SEQUENCE_DELIMITER) as NormalizedSequenceString
+}
+</file>
+
+<file path="src/utils.ts">
+import {NormalizedHotkeyString, normalizeHotkey} from './hotkey.js'
+import {SEQUENCE_DELIMITER} from './sequence.js'
+
+export function isFormField(element: Node): boolean {
+  if (!(element instanceof HTMLElement)) {
+    return false
+  }
+
+  const name = element.nodeName.toLowerCase()
+  const type = (element.getAttribute('type') || '').toLowerCase()
+  return (
+    name === 'select' ||
+    name === 'textarea' ||
+    (name === 'input' &&
+      type !== 'submit' &&
+      type !== 'reset' &&
+      type !== 'checkbox' &&
+      type !== 'radio' &&
+      type !== 'file') ||
+    element.isContentEditable
+  )
+}
+
+export function fireDeterminedAction(el: HTMLElement, path: readonly NormalizedHotkeyString[]): void {
+  const delegateEvent = new CustomEvent('hotkey-fire', {cancelable: true, detail: {path}})
+  const cancelled = !el.dispatchEvent(delegateEvent)
+  if (cancelled) return
+  if (isFormField(el)) {
+    el.focus()
+  } else {
+    el.click()
+  }
+}
+
+export function expandHotkeyToEdges(hotkey: string): NormalizedHotkeyString[][] {
+  // NOTE: we can't just split by comma, since comma is a valid hotkey character!
+  const output = []
+  let acc = ['']
+  let commaIsSeparator = false
+  for (let i = 0; i < hotkey.length; i++) {
+    if (commaIsSeparator && hotkey[i] === ',') {
+      output.push(acc)
+      acc = ['']
+      commaIsSeparator = false
+      continue
+    }
+
+    if (hotkey[i] === SEQUENCE_DELIMITER) {
+      // Spaces are used to separate key sequences, so a following comma is
+      // part of the sequence, not a separator.
+      acc.push('')
+      commaIsSeparator = false
+      continue
+    } else if (hotkey[i] === '+') {
+      // If the current character is a +, a following comma is part of the
+      // shortcut and not a separator.
+      commaIsSeparator = false
+    } else {
+      commaIsSeparator = true
+    }
+
+    acc[acc.length - 1] += hotkey[i]
+  }
+
+  output.push(acc)
+
+  // Remove any empty hotkeys/sequences
+  return output.map(h => h.map(k => normalizeHotkey(k)).filter(k => k !== '')).filter(h => h.length > 0)
+}
+</file>
+
+</files>

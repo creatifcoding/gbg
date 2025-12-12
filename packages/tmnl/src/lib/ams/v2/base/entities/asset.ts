@@ -7,9 +7,9 @@
  * @module @gbg/tmnl/ams/v2/base/entities/asset
  */
 
-import { Schema } from 'effect'
-import { Entity } from '@effect/cluster'
-import { Rpc } from '@effect/rpc'
+import { Schema } from 'effect';
+import { Entity } from '@effect/cluster';
+import { Rpc } from '@effect/rpc';
 import {
   AssetId,
   AssetKind,
@@ -22,23 +22,29 @@ import {
   TraitId,
   Tags,
   IdentityId,
-} from '../../core/schemas/identifiers'
-import { Provenance } from '../../core/schemas/provenance'
-import { Asset, AssetStatus, AssetSummary, BaseAssetProperties } from '../schemas/asset'
-import { PropertyValue, AssetProperty } from '../schemas/property'
+} from '../../core/schemas/identifiers';
+import { Provenance } from '../../core/schemas/provenance';
+import {
+  Asset,
+  AssetStatus,
+  AssetSummary,
+  BaseAssetProperties,
+} from '../schemas/asset';
+import { PropertyValue, AssetProperty } from '../schemas/property';
 import {
   AssetNotFoundError,
   AssetValidationError,
   AssetConflictError,
   AssetPermissionError,
   AssetCommandError,
-} from '../commands/asset'
-import { PaginatedAssets, PageInfo, AssetQueryEmpty } from '../queries/asset'
+} from '../commands/asset';
+import { PaginatedAssets, PageInfo, AssetQueryEmpty } from '../queries/asset';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Command RPCs
 // ─────────────────────────────────────────────────────────────────────────────
 
+// TODO: From what I can tell, this makes commands/ redundant.  From commands, we only import the errors, I am think we can access the properties from the commands, e.g. payload of Rpc can be payload of the corresponding TaggedRequest. Make sure the strings we use are strongly typed. Schema.Literal backed enums,, consult with your sources.
 /**
  * Create a new asset
  */
@@ -223,15 +229,18 @@ export class ListAssetsBySectorRpc extends Rpc.make('ListAssetsBySector', {
 /**
  * List assets by container
  */
-export class ListAssetsByContainerRpc extends Rpc.make('ListAssetsByContainer', {
-  payload: {
-    containerId: ContainerId,
-    limit: Schema.optional(Schema.Number),
-    cursor: Schema.optional(Schema.String),
-  },
-  success: PaginatedAssets,
-  error: Schema.Never,
-}) {}
+export class ListAssetsByContainerRpc extends Rpc.make(
+  'ListAssetsByContainer',
+  {
+    payload: {
+      containerId: ContainerId,
+      limit: Schema.optional(Schema.Number),
+      cursor: Schema.optional(Schema.String),
+    },
+    success: PaginatedAssets,
+    error: Schema.Never,
+  }
+) {}
 
 /**
  * Search assets with filters
@@ -333,9 +342,9 @@ export const AssetEntity = Entity.make('Asset', [
   CountAssetsBySiteRpc,
   CountAssetsByStatusRpc,
   CountAssetsByKindRpc,
-])
+]);
 
 /**
  * Type helper for Asset Entity
  */
-export type AssetEntity = typeof AssetEntity
+export type AssetEntity = typeof AssetEntity;

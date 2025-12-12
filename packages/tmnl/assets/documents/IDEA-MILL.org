@@ -1,0 +1,575 @@
+#+TITLE: TMNL Idea Mill
+#+AUTHOR: Prime
+#+DATE: [2024-12-03]
+#+STARTUP: overview
+#+OPTIONS: toc:2 num:t
+
+* CLASSIFICATION: TMNL-PRIME
+
+* META: Idea Capture Repository
+Repository for raw ideas, sparks, and unrefined concepts.
+Periodic review promotes ideas to PROPOSAL status.
+
+* AGENTS                                                            :noexport:
+#+BEGIN_ZON
+type:manifest
+version:1.0.0
+audience:machine
+visibility:folded
+#+END_ZON
+
+** CONTEXT INDEX
+#+BEGIN_ZON
+id:ctx-index
+type:registry
+updated:2025-12-03
+#+END_ZON
+
+#+BEGIN_ZON @contexts
+contexts:@(5):id,path,scope,priority
+core-persona,CLAUDE.md,session,10
+domain-data-manager,src/lib/data-manager/CLAUDE.*,task,5
+domain-traits,src/lib/traits/CLAUDE.*,task,5
+ideas-active,assets/documents/IDEA-MILL.org,task,3
+journal-today,.agents/val/journal/TODAY.md,ephemeral,2
+#+END_ZON
+
+** DIRECTIVES
+#+BEGIN_ZON
+id:ctx-directives
+type:instructions
+#+END_ZON
+
+*** Recontextualization
+#+BEGIN_ZON
+trigger:/recontext
+scope:session
+action:inject-context
+#+END_ZON
+
+Scan CONTEXT INDEX, inject based on:
+- Current task domain (inferred from request)
+- Explicit path arguments
+- Priority ordering (higher = first)
+
+*** Auto-Index
+#+BEGIN_ZON
+trigger:on-file-change
+pattern:CLAUDE*.md
+action:update-index
+#+END_ZON
+
+Update CONTEXT INDEX when CLAUDE*.md files are modified.
+
+** Val
+:PROPERTIES:
+:AGENT_ID: val
+:ROLE: AG-Grid Integration Architect
+:PERSONA: Incisive, stylish, technically merciless
+:JOURNAL: [[file:../../.agents/val/journal/][Journal Directory]]
+:ACTIVE_SINCE: 2025-11-29
+:END:
+
+*** Operational Context
+- Primary domain: AG-Grid, Effect-TS, effect-atom, tldraw integration
+- Secondary: Component architecture, design systems, animation
+- Style: Crisp, witty, slightly teasing. Never vague.
+
+*** Session Log Index
+| Date       | Entry                                                    | Tagline                                              |
+|------------+----------------------------------------------------------+------------------------------------------------------|
+| 2025-12-03 | [[file:../../.agents/val/journal/2025-12-03.md][2025-12-03]] | Component deduplication + ideas parking lot          |
+| 2025-12-01 | [[file:../../.agents/val/journal/2025-12-01.md][2025-12-01]] | The observer that observes itself observes nothing else |
+| 2025-11-29 | [[file:../../.agents/val/journal/2025-11-29.md][2025-11-29]] | The scalpel is only as good as the surgeon's eyes    |
+
+*** Recontextualization Protocol
+When resuming from context loss:
+1. Read latest journal entry for session state
+2. Check Ideas Parking Lot for pending threads
+3. Review IDEA-MILL for active ideas in agent's domain
+4. Confirm priorities with Prime before executing
+
+* ACTIVE IDEAS
+
+** IDEA: Design System Unification
+*** META
+| Field       | Value                              |
+|-------------+------------------------------------|
+| ID          | IDEA-0001                          |
+| Origin      | DataManagerTestbed font scaling    |
+| Captured    | [2024-12-03]                       |
+| Status      | RAW                                |
+
+*** THE SPARK
+"Tokenify things you see and place them into the design system.
+We need our own set of class names as well as the raw tokens themselves."
+
+Testbeds are unreadable — 8px fonts, squinting, chaos.
+The canon exists (TMNL_TOKENS, .tmnl-type-*, tailwind extensions)
+but nobody uses it. Massive overhaul needed. Cohesion.
+
+*** REFINED CONCEPT
+Three-layer design system enforcement:
+1. *Raw Tokens* (TypeScript) - TMNL_TOKENS object, source of truth
+2. *Tailwind Scale* (CSS) - tmnl-* classes with baked-in letter-spacing
+3. *Semantic Classes* (CSS) - .tmnl-type-* precomposed for contexts
+
+Problem: Scale mismatch. TMNL_TOKENS says 12px minimum readable,
+but tmnl-xs = 9px. The semantic classes inherit the tiny scale.
+
+*** WHY IT MATTERS
+- Readability: Stop squinting at microscopic fonts
+- Consistency: All testbeds speak the same visual language
+- Velocity: Semantic classes = fewer decisions, faster builds
+- Maintainability: Change token once, propagate everywhere
+
+*** RELATED
+- [[file:../../src/components/tldraw/shapes/data-grid-theme.ts][TMNL_TOKENS source]]
+- [[file:../../tailwind.config.js][Tailwind extensions]]
+- [[file:../../src/index.css][Semantic classes]]
+
+*** NEXT ACTION
+- [ ] Decide scale strategy: shift up, dual scale, or semantic-only fix
+
+** IDEA: Testbed UI Kit Extraction
+*** META
+| Field       | Value                           |
+|-------------+---------------------------------|
+| ID          | IDEA-0002                       |
+| Origin      | Repeated SectionLabel patterns  |
+| Captured    | [2024-12-03]                    |
+| Status      | RAW                             |
+
+*** THE SPARK
+Every testbed reinvents:
+- SectionLabel
+- HypothesisCard
+- Button variants
+- MetricsPanel
+- DamageReport
+
+"Employ component reuse" — lift these into shared kit.
+
+*** REFINED CONCEPT
+Create =src/components/testbed/shared.tsx= (already started) with:
+- SectionLabel (gradient variant exists)
+- HypothesisCard (status colors, icons)
+- Button (default, primary, danger variants)
+- ValueDisplay (key-value pairs)
+- MetricsPanel (stats grid)
+- DamageReportPanel (antipattern display)
+- RenderTrackingBadge (leak detection)
+
+All components consume semantic .tmnl-type-* classes.
+
+*** WHY IT MATTERS
+- DRY: Single source for testbed UI
+- Consistency: Same visual language across experiments
+- Speed: Copy-paste-customize → import-use
+
+*** RELATED
+- [[file:../../src/components/testbed/shared.tsx][Existing shared.tsx]]
+- [[file:../../src/components/testbed/EffectAtomTestbed.tsx][UI patterns to extract]]
+
+*** NEXT ACTION
+- [ ] Audit all testbeds for common components
+- [ ] Extract to shared.tsx with semantic classes
+
+** IDEA: Typography Scale Recalibration
+*** META
+| Field       | Value                    |
+|-------------+--------------------------|
+| ID          | IDEA-0003                |
+| Origin      | "Fonts ridiculously slow"|
+| Captured    | [2024-12-03]             |
+| Status      | RAW                      |
+
+*** THE SPARK
+Current tailwind scale:
+| Token     | Size | Use Case         |
+|-----------+------+------------------|
+| tmnl-4xs  | 6px  | ???              |
+| tmnl-3xs  | 7px  | ???              |
+| tmnl-2xs  | 8px  | Dense data grids |
+| tmnl-xs   | 9px  | Dense labels     |
+| tmnl-sm   | 10px | Grid cells       |
+| tmnl-base | 11px | ???              |
+| tmnl-md   | 12px | Body minimum     |
+| tmnl-lg   | 14px | Readable body    |
+| tmnl-xl   | 16px | Headings         |
+
+But TMNL_TOKENS.typography says fontSizeXs = 12 is "minimum readable".
+Schizophrenic. Dense grid scale ≠ UI readability scale.
+
+*** REFINED CONCEPT
+Option A: Shift everything up
+- tmnl-xs = 12px, tmnl-sm = 14px, tmnl-base = 16px
+- One scale, readable everywhere
+- Risk: breaks dense grid aesthetics
+
+Option B: Dual scale
+- tmnl-* (dense): current micro sizes for AG-Grid
+- tmnl-ui-* (readable): 12px minimum for testbed UI
+- More complexity, more control
+
+Option C: Semantic-only fix
+- Don't touch raw sizes
+- Fix .tmnl-type-* to use larger underlying sizes
+- Components use semantic only, never raw
+
+*** WHY IT MATTERS
+Prime is squinting. That's a UX failure.
+
+*** RELATED
+- IDEA-0001 (Design System Unification)
+
+*** NEXT ACTION
+- [ ] Decide strategy (A, B, or C)
+- [ ] Implement and test on one testbed
+
+** IDEA: Formalized Document Workflow
+*** META
+| Field       | Value                        |
+|-------------+------------------------------|
+| ID          | IDEA-0004                    |
+| Origin      | "Military, science fiction"  |
+| Captured    | [2024-12-03]                 |
+| Status      | ACTIONABLE                   |
+
+*** THE SPARK
+"I like the military, I like science fiction. I want to ingest these
+things and create concise documents. In order to do that, I need formality."
+
+Templates for:
+- Mission briefs
+- Technical specifications
+- Intelligence summaries
+- After-action reports
+- Proposals
+
+*** REFINED CONCEPT
+TMNL-TEMPLATES.org provides org-mode templates.
+Future: tooling to scaffold documents from templates.
+Possible slash command: =/doc brief= → generates mission brief skeleton
+
+*** WHY IT MATTERS
+- Structure enables clarity
+- Formality forces completeness
+- Templates accelerate documentation
+- Military aesthetic aligns with TMNL identity
+
+*** RELATED
+- [[file:TMNL-TEMPLATES.org][Template Library]]
+
+*** NEXT ACTION
+- [X] Create TMNL-TEMPLATES.org
+- [ ] Create slash command for document scaffolding
+
+** IDEA: Universal Indices Builder (Multi-Source Command Palette)
+*** META
+| Field       | Value                                   |
+|-------------+-----------------------------------------|
+| ID          | IDEA-0005                               |
+| Origin      | Testbed navigation + CommandBar search  |
+| Captured    | [2024-12-03]                            |
+| Status      | RESEARCH COMPLETE                       |
+| Researcher  | Val                                     |
+
+*** THE SPARK
+CommandBar orchestrates multiple search sources. Need a universal indices
+builder that leverages Effect.Stream mechanics to compose heterogeneous
+data sources (testbeds, commands, routes, files, etc.) into unified search.
+
+"Since it is now used in two places, it should not be owned by either/or.
+Composability is a top priority." - Prime
+
+*** RESEARCH REPORT: Multi-Source Completion Architectures
+
+**** Emacs: Consult/Vertico Pattern
+:PROPERTIES:
+:SOURCE_URL: https://github.com/minad/consult
+:VERTICO_URL: https://github.com/minad/vertico
+:END:
+
+***** Ontological Primitives
+
+| Concept       | Description                                           | TMNL Analog         |
+|---------------+-------------------------------------------------------+---------------------|
+| Source        | Candidate generator with metadata                     | SearchDriver        |
+| Category      | Completion category for styling/actions               | ResultType          |
+| Narrowing     | Filter to single source via key prefix                | Namespace filtering |
+| Async Pipeline| Composable transform chain for candidates             | Effect.Stream       |
+| Multi-source  | =consult--multi= aggregates sources into unified list | Indices builder     |
+
+***** Source Shape (Consult)
+#+BEGIN_SRC elisp
+(defvar consult-source-bookmark
+  `(:name     "Bookmark"        ; Display name for group
+    :narrow   ?m               ; Narrowing key (press "m SPC" to filter)
+    :category bookmark         ; Completion category
+    :face     consult-bookmark ; Face for candidates
+    :history  bookmark-history ; History variable
+    :items    ,#'bookmark-all-names ; Candidate generator (sync)
+    :async    nil              ; Alternative: async generator
+    :action   ,#'consult--bookmark-action ; Action on select
+    :state    nil              ; Preview state function
+    :hidden   nil              ; Hidden by default?
+    :enabled  ,#'always))      ; Enable predicate
+#+END_SRC
+
+***** Key Design Decisions
+
+1. *Separation of Concerns*
+   - Source: ONLY provides candidates + metadata
+   - UI (Vertico): Renders candidates, handles selection
+   - Actions (Embark): Context-sensitive operations on candidates
+   - No source owns filtering — completion-style handles it
+
+2. *Narrowing Protocol*
+   - =consult-narrow-key= + source key = filter to single source
+   - Widening key returns to all sources
+   - Implemented via =minibuffer-completion-predicate=
+
+3. *Async Pipeline Composition*
+   #+BEGIN_SRC elisp
+   (consult--async-pipeline
+    (consult--async-split)        ; Split input for async/filter parts
+    (consult--async-throttle)     ; Debounce input
+    (consult--async-process ...)  ; External process (grep/find)
+    (consult--async-transform ..) ; Transform candidates
+    (consult--async-highlight ..) ; Highlight matches
+    (consult--async-indicator))   ; Show progress indicator
+   #+END_SRC
+
+4. *consult--multi Source Aggregation*
+   - Each source defines =:items= (sync) or =:async= (stream)
+   - Sources can have =:hidden= flag (excluded by default)
+   - =:narrow= key activates single-source mode
+   - Categories enable per-type annotations (Marginalia)
+
+***** Vertico Rendering Model
+- Minimal vertical completion UI
+- Uses built-in =completing-read= infrastructure
+- Candidate recomputation on every keystroke
+- Lazy highlighting via =completion-lazy-hilit=
+- Groups rendered with =vertico-group-format=
+
+**** Zed: Picker Delegate Pattern
+:PROPERTIES:
+:SOURCE_URL: https://github.com/zed-industries/zed/tree/main/crates/command_palette
+:END:
+
+***** Ontological Primitives
+
+| Concept      | Description                            | TMNL Analog      |
+|--------------+----------------------------------------+------------------|
+| Picker       | UI shell for selection                 | CommandBar       |
+| Delegate     | Handles candidates + selection         | Search driver    |
+| Match        | fuzzy::match_strings scoring           | FlexSearch score |
+| Intercept    | Dynamic candidate injection            | Source priority  |
+
+***** Key Design Decisions
+
+1. *Single Command List*
+   - All commands flatten to =CommandInterceptResult::actions=
+   - No persistent multi-source aggregation
+   - Dynamic injection via =CommandInterceptResult=
+
+2. *Background Matching*
+   #+BEGIN_SRC rust
+   cx.spawn(async move |this, mut cx| {
+       let matches = fuzzy::match_strings(...);
+       this.update(&mut cx, |this, cx| {
+           this.delegate.matches = matches;
+           cx.notify();
+       })
+   })
+   #+END_SRC
+
+3. *No Narrowing*
+   - All commands always visible
+   - Filtering is pure fuzzy match, no categorical separation
+
+**** VSCode: Command Palette Architecture
+:PROPERTIES:
+:DOCUMENTATION: https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette
+:END:
+
+***** Key Design Decisions
+
+1. *Prefix-Based Mode Switching*
+   | Prefix | Mode                  |
+   |--------+-----------------------|
+   | (none) | Commands              |
+   | >      | Commands (explicit)   |
+   | @      | Go to symbol          |
+   | #      | Global symbol search  |
+   | :      | Go to line            |
+
+2. *Extensions Register Commands*
+   - Commands registered with =vscode.commands.registerCommand=
+   - Palette pulls from global registry
+   - No multi-source composition — single command namespace
+
+**** Fzf.vim / Telescope.nvim Patterns
+
+***** fzf.vim
+- Sources are shell commands that output to stdout
+- Pipeline: =source | fzf | sink=
+- Composition via Unix pipes
+
+***** Telescope.nvim
+- Finder/Picker/Previewer separation
+- Finders are Lua coroutines yielding candidates
+- =telescope.pickers.new= composes components
+
+*** REFINED CONCEPT: TMNL Indices Builder
+
+**** Architecture: Effect.Stream Composition
+
+Based on research, the Consult =consult--async-pipeline= pattern maps
+directly to Effect.Stream composition:
+
+#+BEGIN_SRC typescript
+// Source definition (like consult-source-*)
+interface SearchSource<T> {
+  readonly id: string
+  readonly name: string
+  readonly narrowKey?: string      // 't' for testbeds, 'c' for commands
+  readonly category: string        // For styling/actions
+  readonly hidden?: boolean        // Excluded by default?
+  readonly enabled?: () => boolean // Predicate
+  readonly items: () => Effect.Effect<readonly T[]> | Stream.Stream<T>
+  readonly action: (item: T) => Effect.Effect<void>
+  readonly preview?: (item: T) => Effect.Effect<PreviewData>
+}
+
+// Indices builder (like consult--multi)
+const createIndicesBuilder = <T extends SearchItem>(
+  sources: readonly SearchSource<T>[]
+) => Effect.gen(function*() {
+  // Parallel source aggregation
+  const streams = sources
+    .filter(s => !s.hidden && (s.enabled?.() ?? true))
+    .map(source => pipe(
+      typeof source.items === 'function' && Stream.isStream(source.items())
+        ? source.items()
+        : Stream.fromIterable(yield* source.items()),
+      Stream.map(item => ({ ...item, _source: source.id })),
+      Stream.catchAll(() => Stream.empty) // Source failure isolation
+    ))
+
+  // Merge all sources (unordered for speed)
+  return Stream.mergeAll(streams, { concurrency: 'unbounded' })
+})
+
+// Narrowing filter (like consult-narrow)
+const narrowToSource = <T extends SearchItem>(
+  stream: Stream.Stream<T>,
+  narrowKey: string | null
+) => narrowKey
+  ? Stream.filter(stream, item => item._source === sourceByKey.get(narrowKey))
+  : stream
+#+END_SRC
+
+**** Key Design Decisions for TMNL
+
+1. *Source Isolation via Effect.catchAll*
+   - One failing source doesn't crash the whole search
+   - Logged for debugging but UX uninterrupted
+
+2. *Narrowing via Stream.filter*
+   - Press narrow key (e.g., 't') + space to filter to testbeds only
+   - Widening resets filter to =null=
+
+3. *Progressive Updates via Stream.merge*
+   - Fast sources appear immediately
+   - Slow sources (e.g., file search) update asynchronously
+
+4. *No Ownership Hierarchy*
+   - Sources are DATA definitions only
+   - =src/lib/search= owns FlexSearch/Linear drivers
+   - =src/lib/indices= owns source registration + composition
+   - CommandBar consumes indices, doesn't own them
+
+**** File Structure
+
+#+BEGIN_SRC
+src/lib/indices/
+├── index.ts              # Public exports
+├── types.ts              # SearchSource, SearchItem interfaces
+├── builder.ts            # createIndicesBuilder, Effect.Stream composition
+├── narrowing.ts          # Narrow/widen logic
+└── sources/
+    ├── index.ts          # Source registry
+    ├── testbeds.ts       # Testbed source (uses getSearchableTestbeds())
+    ├── commands.ts       # Command palette source
+    └── routes.ts         # Router source
+
+# NOTE: File search is Rust-side (Tauri)
+# See src-tauri/ for file indexing implementation
+# Frontend receives results via Tauri commands/events
+#+END_SRC
+
+**** Tauri Integration Note (Files)
+
+File search will be implemented on the Rust side via Tauri, NOT in TypeScript.
+
+Rationale:
+- Performance: Rust file traversal >> JS
+- Native access: No browser sandbox limitations
+- Existing patterns: ripgrep, fd, ignore crate
+
+When implementing, research:
+- =ignore= crate for .gitignore-aware traversal
+- =walkdir= for recursive directory walking
+- Tauri command pattern for async results
+- Event-based streaming for progressive updates
+
+The TypeScript side will consume via:
+#+BEGIN_SRC typescript
+// Tauri command (one-shot)
+const results = await invoke<FileSearchResult[]>('search_files', { query })
+
+// Or Tauri events (streaming)
+await listen<FileSearchResult>('file_search_result', (event) => {
+  // Progressive update
+})
+#+END_SRC
+
+*** WHY IT MATTERS
+- *Composability*: Sources are independent, combine freely
+- *Isolation*: Source failures don't cascade
+- *Performance*: Progressive updates, lazy loading
+- *Extensibility*: Add new sources without touching CommandBar
+- *Ownership clarity*: No component "owns" search
+
+*** RELATED
+- [[file:../../src/lib/testbed/registry.ts][Testbed Registry]] (first source implementation)
+- [[file:../../src/lib/search/index.ts][Search drivers]] (FlexSearch/Linear)
+- [[file:../../src/components/static-ui/CommandBar/][CommandBar]] (consumer of indices)
+- [[file:../../src/lib/commands/CLAUDE.commands.md][Commands domain]] (future source)
+
+*** NEXT ACTION
+- [ ] Create =src/lib/indices/= directory structure
+- [ ] Define SearchSource<T> interface
+- [ ] Implement createIndicesBuilder with Effect.Stream
+- [ ] Create testbeds source from registry
+- [ ] Wire to CommandBar
+
+* ARCHIVED IDEAS
+/Ideas that were implemented, rejected, or superseded/
+
+(None yet)
+
+* PERIODIC REVIEW
+| Date       | Reviewer | Actions Taken                    |
+|------------+----------+----------------------------------|
+| 2024-12-03 | Val      | Initial capture from session     |
+
+-----
+DOCUMENT CONTROL
+Classification: TMNL-PRIME
+Distribution: Prime, Val
+Retention: Indefinite
+-----

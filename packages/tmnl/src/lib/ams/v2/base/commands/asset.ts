@@ -7,7 +7,7 @@
  * @module @gbg/tmnl/ams/v2/base/commands/asset
  */
 
-import { Schema } from 'effect'
+import { Schema } from 'effect';
 import {
   AssetId,
   AssetKind,
@@ -20,10 +20,10 @@ import {
   TraitId,
   Tags,
   IdentityId,
-} from '../../core/schemas/identifiers'
-import { Provenance } from '../../core/schemas/provenance'
-import { AssetStatus, Asset, BaseAssetProperties } from '../schemas/asset'
-import { PropertyValue } from '../schemas/property'
+} from '../../core/schemas/identifiers';
+import { Provenance } from '../../core/schemas/provenance';
+import { AssetStatus, Asset, BaseAssetProperties } from '../schemas/asset';
+import { PropertyValue } from '../schemas/property';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Error Schemas
@@ -86,8 +86,8 @@ export const AssetCommandError = Schema.Union(
   AssetValidationError,
   AssetConflictError,
   AssetPermissionError
-)
-export type AssetCommandError = typeof AssetCommandError.Type
+);
+export type AssetCommandError = typeof AssetCommandError.Type;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Commands
@@ -98,59 +98,66 @@ export type AssetCommandError = typeof AssetCommandError.Type
  *
  * Produces: AssetCreated event
  */
-export class CreateAsset extends Schema.TaggedRequest<CreateAsset>()('CreateAsset', {
-  failure: AssetCommandError,
-  success: Asset,
-  payload: {
-    /** Site where asset will be located */
-    siteId: SiteId,
-    /** Optional sector within site */
-    sectorId: Schema.optional(SectorId),
-    /** Optional container within sector */
-    containerId: Schema.optional(ContainerId),
-    /** Asset classification */
-    kind: AssetKind,
-    /** Human-readable label */
-    label: AssetLabel,
-    /** Optional description */
-    description: Schema.optional(AssetDescription),
-    /** Initial status (defaults to 'available') */
-    status: Schema.optional(AssetStatus),
-    /** Base properties */
-    baseProperties: Schema.optional(BaseAssetProperties),
-    /** Tags for categorization */
-    tags: Schema.optional(Tags),
-    /** Identity of creator */
-    createdBy: IdentityId,
-  },
-}) {}
+export class CreateAsset extends Schema.TaggedRequest<CreateAsset>()(
+  'CreateAsset',
+  {
+    failure: AssetCommandError,
+    success: Asset,
+    payload: {
+      /** Site where asset will be located */
+      siteId: SiteId,
+      /** Optional sector within site */
+      sectorId: Schema.optional(SectorId),
+      /** Optional container within sector */
+      containerId: Schema.optional(ContainerId),
+      /** Asset classification */
+      kind: AssetKind,
+      /** Human-readable label */
+      label: AssetLabel,
+      /** Optional description */
+      description: Schema.optional(AssetDescription),
+      /** Initial status (defaults to 'available') */
+      status: Schema.optional(AssetStatus),
+      /** Base properties */
+      baseProperties: Schema.optional(BaseAssetProperties),
+      /** Tags for categorization */
+      tags: Schema.optional(Tags),
+      /** Identity of creator */
+      createdBy: IdentityId,
+    },
+  }
+) {}
 
 /**
  * Update asset metadata (label, description, status)
  *
  * Produces: AssetUpdated event
  */
-export class UpdateAsset extends Schema.TaggedRequest<UpdateAsset>()('UpdateAsset', {
-  failure: AssetCommandError,
-  success: Asset,
-  payload: {
-    /** Asset to update */
-    assetId: AssetId,
-    /** New label (optional) */
-    label: Schema.optional(AssetLabel),
-    /** New description (optional) */
-    description: Schema.optional(AssetDescription),
-    /** New status (optional) */
-    status: Schema.optional(AssetStatus),
-    /** New tags (optional, replaces existing) */
-    tags: Schema.optional(Tags),
-    /** Identity of updater */
-    updatedBy: IdentityId,
-    /** Optimistic concurrency version */
-    expectedVersion: Schema.optional(Schema.Number),
-  },
-}) {}
+export class UpdateAsset extends Schema.TaggedRequest<UpdateAsset>()(
+  'UpdateAsset',
+  {
+    failure: AssetCommandError,
+    success: Asset,
+    payload: {
+      /** Asset to update */
+      assetId: AssetId,
+      /** New label (optional) */
+      label: Schema.optional(AssetLabel),
+      /** New description (optional) */
+      description: Schema.optional(AssetDescription),
+      /** New status (optional) */
+      status: Schema.optional(AssetStatus),
+      /** New tags (optional, replaces existing) */
+      tags: Schema.optional(Tags),
+      /** Identity of updater */
+      updatedBy: IdentityId,
+      /** Optimistic concurrency version */
+      expectedVersion: Schema.optional(Schema.Number),
+    },
+  }
+) {}
 
+// TODO: Work on canonical tags
 /**
  * Move asset to a new location
  *
@@ -228,20 +235,23 @@ export class RemoveAssetProperty extends Schema.TaggedRequest<RemoveAssetPropert
  *
  * Produces: TraitAdded event
  */
-export class AddAssetTrait extends Schema.TaggedRequest<AddAssetTrait>()('AddAssetTrait', {
-  failure: AssetCommandError,
-  success: Asset,
-  payload: {
-    /** Asset to update */
-    assetId: AssetId,
-    /** Trait to add */
-    traitId: TraitId,
-    /** Trait configuration (schema depends on trait type) */
-    config: Schema.optional(Schema.Unknown),
-    /** Identity of adder */
-    addedBy: IdentityId,
-  },
-}) {}
+export class AddAssetTrait extends Schema.TaggedRequest<AddAssetTrait>()(
+  'AddAssetTrait',
+  {
+    failure: AssetCommandError,
+    success: Asset,
+    payload: {
+      /** Asset to update */
+      assetId: AssetId,
+      /** Trait to add */
+      traitId: TraitId,
+      /** Trait configuration (schema depends on trait type) */
+      config: Schema.optional(Schema.Unknown),
+      /** Identity of adder */
+      addedBy: IdentityId,
+    },
+  }
+) {}
 
 /**
  * Remove a trait from an asset
@@ -271,20 +281,23 @@ export class RemoveAssetTrait extends Schema.TaggedRequest<RemoveAssetTrait>()(
  *
  * Produces: AssetDeleted event
  */
-export class DeleteAsset extends Schema.TaggedRequest<DeleteAsset>()('DeleteAsset', {
-  failure: AssetCommandError,
-  success: Schema.Void,
-  payload: {
-    /** Asset to delete */
-    assetId: AssetId,
-    /** Identity of deleter */
-    deletedBy: IdentityId,
-    /** Reason for deletion */
-    reason: Schema.optional(Schema.String),
-    /** Hard delete (permanent) vs soft delete (retire) */
-    hard: Schema.optional(Schema.Boolean),
-  },
-}) {}
+export class DeleteAsset extends Schema.TaggedRequest<DeleteAsset>()(
+  'DeleteAsset',
+  {
+    failure: AssetCommandError,
+    success: Schema.Void,
+    payload: {
+      /** Asset to delete */
+      assetId: AssetId,
+      /** Identity of deleter */
+      deletedBy: IdentityId,
+      /** Reason for deletion */
+      reason: Schema.optional(Schema.String),
+      /** Hard delete (permanent) vs soft delete (retire) */
+      hard: Schema.optional(Schema.Boolean),
+    },
+  }
+) {}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Command Union
@@ -302,5 +315,5 @@ export const AssetCommand = Schema.Union(
   AddAssetTrait,
   RemoveAssetTrait,
   DeleteAsset
-)
-export type AssetCommand = typeof AssetCommand.Type
+);
+export type AssetCommand = typeof AssetCommand.Type;

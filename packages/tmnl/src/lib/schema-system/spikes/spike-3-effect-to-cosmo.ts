@@ -19,6 +19,10 @@ import SchemaBuilder from '@pothos/core'
 import { printSchema, lexicographicSortSchema } from 'graphql'
 import { writeFileSync, mkdirSync, existsSync } from 'fs'
 import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 // =============================================================================
 // REUSE SPIKE 1 PATTERNS
@@ -344,21 +348,21 @@ export function runSpike3() {
 
     // Step 2: Write SDL to file
     console.log('\nStep 2: Write SDL to Cosmo service directory')
-    const cosmoDir = join(import.meta.dir, '../cosmo/sensor-service/src/graph')
+    const cosmoDir = join(__dirname, '../cosmo/sensor-service/src/graph')
     const sdlPath = join(cosmoDir, 'schema.graphql')
     writeSDLToFile(sdlPath)
 
     // Step 3: Write compose.yaml
     console.log('\nStep 3: Generate compose.yaml')
     const composeYaml = generateComposeYaml('./src/graph/schema.graphql')
-    const composePath = join(import.meta.dir, '../cosmo/sensor-service/router.compose.yaml')
+    const composePath = join(__dirname, '../cosmo/sensor-service/router.compose.yaml')
     writeFileSync(composePath, composeYaml, 'utf-8')
     console.log(`✓ compose.yaml written to: ${composePath}`)
 
     // Step 4: Write router config
     console.log('\nStep 4: Generate router.config.yaml')
     const routerConfig = generateRouterConfig()
-    const routerConfigPath = join(import.meta.dir, '../cosmo/sensor-service/router.config.yaml')
+    const routerConfigPath = join(__dirname, '../cosmo/sensor-service/router.config.yaml')
     writeFileSync(routerConfigPath, routerConfig, 'utf-8')
     console.log(`✓ router.config.yaml written to: ${routerConfigPath}`)
 

@@ -1,65 +1,56 @@
 /**
  * K8s Resource Generators
- *
- * Produces Deployment, Service, ConfigMap manifests
- * with ownerReferences for cascading deletion.
+ * Pattern: pepr-excellent-examples/pepr-operator
  */
 
-import { kind } from 'pepr'
-import type { CosmoRouter, CosmoSubgraph } from '../crd'
+import { kind, K8s, Log, sdk } from 'pepr'
+import { CosmoRouter } from '../crd/types'
 
-type OwnerReference = {
-  apiVersion: string
-  kind: string
-  name: string
-  uid: string
-  controller?: boolean
-  blockOwnerDeletion?: boolean
-}
+const { getOwnerRefFrom } = sdk
 
-function ownerRef(router: CosmoRouter): OwnerReference {
-  return {
-    apiVersion: 'tmnl.gbg.dev/v1alpha1',
-    kind: 'CosmoRouter',
-    name: router.metadata!.name!,
-    uid: router.metadata!.uid!,
-    controller: true,
-    blockOwnerDeletion: true,
+export default async function Deploy(instance: CosmoRouter) {
+  try {
+    await Promise.all([
+      K8s(kind.Deployment).Apply(deployment(instance), { force: true }),
+      K8s(kind.Service).Apply(service(instance), { force: true }),
+    ])
+  } catch (error) {
+    Log.error(error, 'Failed to apply Kubernetes manifests')
   }
 }
 
-export function generateDeployment(router: CosmoRouter): kind.Deployment {
-  const name = `${router.metadata!.name}-router`
-  const namespace = router.metadata!.namespace!
+function deployment(router: CosmoRouter) {
+  const { name, namespace } = router.metadata!
   const spec = router.spec
 
   return {
     apiVersion: 'apps/v1',
     kind: 'Deployment',
     metadata: {
-      name,
+      ownerReferences: getOwnerRefFrom(router),
+      name: `${name}-router`,
       namespace,
       labels: {
-        'app.kubernetes.io/name': name,
-        'app.kubernetes.io/instance': router.metadata!.name!,
+        'app.kubernetes.io/name': `${name}-router`,
+        'app.kubernetes.io/instance': name,
         'app.kubernetes.io/component': 'router',
         'app.kubernetes.io/managed-by': 'cosmo-operator',
       },
-      ownerReferences: [ownerRef(router)],
     },
     spec: {
       replicas: spec.replicas ?? 1,
       selector: {
         matchLabels: {
-          'app.kubernetes.io/name': name,
-          'app.kubernetes.io/instance': router.metadata!.name!,
+          'app.kubernetes.io/name': `${name}-router`,
+          'app.kubernetes.io/instance': name,
         },
       },
       template: {
         metadata: {
+          ownerReferences: getOwnerRefFrom(router),
           labels: {
-            'app.kubernetes.io/name': name,
-            'app.kubernetes.io/instance': router.metadata!.name!,
+            'app.kubernetes.io/name': `${name}-router`,
+            'app.kubernetes.io/instance': name,
           },
         },
         spec: {
@@ -89,12 +80,12 @@ export function generateDeployment(router: CosmoRouter): kind.Deployment {
                 },
               ],
               livenessProbe: {
-                httpGet: { path: '/health/live', port: 'http' as any },
+                httpGet: { path: '/health/live', port: 3002 },
                 initialDelaySeconds: 5,
                 periodSeconds: 10,
               },
               readinessProbe: {
-                httpGet: { path: '/health/ready', port: 'http' as any },
+                httpGet: { path: '/health/ready', port: 3002 },
                 initialDelaySeconds: 5,
                 periodSeconds: 10,
               },
@@ -104,76 +95,51 @@ export function generateDeployment(router: CosmoRouter): kind.Deployment {
             {
               name: 'execution-config',
               configMap: {
-                name: spec.executionConfig.configMapRef?.name ?? `${router.metadata!.name}-config`,
+                name: spec.executionConfig.configMapRef?.name ?? `${name}-config`,
               },
             },
           ],
         },
       },
     },
-  } as kind.Deployment
+  }
 }
 
-export function generateService(router: CosmoRouter): kind.Service {
-  const name = `${router.metadata!.name}-router`
-  const namespace = router.metadata!.namespace!
+function service(router: CosmoRouter) {
+  const { name, namespace } = router.metadata!
   const spec = router.spec
 
   return {
     apiVersion: 'v1',
     kind: 'Service',
     metadata: {
-      name,
+      ownerReferences: getOwnerRefFrom(router),
+      name: `${name}-router`,
       namespace,
       labels: {
-        'app.kubernetes.io/name': name,
-        'app.kubernetes.io/instance': router.metadata!.name!,
+        'app.kubernetes.io/name': `${name}-router`,
+        'app.kubernetes.io/instance': name,
         'app.kubernetes.io/component': 'router',
         'app.kubernetes.io/managed-by': 'cosmo-operator',
       },
-      ownerReferences: [ownerRef(router)],
     },
     spec: {
       type: spec.service?.type ?? 'ClusterIP',
       ports: [
         {
           port: spec.service?.port ?? 3002,
-          targetPort: 'http' as any,
+          targetPort: 3002,
           protocol: 'TCP',
           name: 'http',
         },
       ],
       selector: {
-        'app.kubernetes.io/name': name,
-        'app.kubernetes.io/instance': router.metadata!.name!,
+        'app.kubernetes.io/name': `${name}-router`,
+        'app.kubernetes.io/instance': name,
       },
     },
-  } as kind.Service
+  }
 }
 
-export function generateConfigMap(
-  router: CosmoRouter,
-  routerJson: string
-): kind.ConfigMap {
-  const name = `${router.metadata!.name}-config`
-  const namespace = router.metadata!.namespace!
-
-  return {
-    apiVersion: 'v1',
-    kind: 'ConfigMap',
-    metadata: {
-      name,
-      namespace,
-      labels: {
-        'app.kubernetes.io/name': name,
-        'app.kubernetes.io/instance': router.metadata!.name!,
-        'app.kubernetes.io/component': 'config',
-        'app.kubernetes.io/managed-by': 'cosmo-operator',
-      },
-      ownerReferences: [ownerRef(router)],
-    },
-    data: {
-      'router.json': routerJson,
-    },
-  } as kind.ConfigMap
-}
+// Named exports for testing
+export { deployment as generateDeployment, service as generateService }

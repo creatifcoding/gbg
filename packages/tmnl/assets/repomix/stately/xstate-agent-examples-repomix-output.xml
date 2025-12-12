@@ -1,0 +1,3809 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+4. Repository files, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: examples/
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+<additional_info>
+
+</additional_info>
+
+</file_summary>
+
+<directory_structure>
+examples/
+  helpers/
+    helpers.ts
+    loader.ts
+    runner.ts
+  chatbot-alt.ts
+  chatbot.ts
+  cot.ts
+  customer-service-sim.ts
+  email.ts
+  example.ts
+  executor.ts
+  goal.ts
+  joke.ts
+  jugs.ts
+  learn-from-feedback.ts
+  multi.ts
+  newspaper.ts
+  number.ts
+  raffle.ts
+  rewoo.ts
+  river-crossing.ts
+  sandbox.ts
+  serverless.ts
+  simple.ts
+  summary.ts
+  support.ts
+  ticTacToe.ts
+  todo.ts
+  tutor.ts
+  verify.ts
+  weather-agent.ts
+  weather.ts
+  wiki.ts
+  word.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="examples/helpers/helpers.ts">
+import { fromPromise } from 'xstate';
+
+export const fromTerminal = fromPromise<string, string>(async ({ input }) => {
+  const topic = await new Promise<string>((res) => {
+    console.log(input + '\n');
+    const listener = (data: Buffer) => {
+      const result = data.toString().trim();
+      process.stdin.off('data', listener);
+      res(result);
+    };
+    process.stdin.on('data', listener);
+  });
+
+  return topic;
+});
+
+export async function getFromTerminal(msg: string) {
+  const topic = await new Promise<string>((res) => {
+    console.log(msg + '\n');
+    const listener = (data: Buffer) => {
+      const result = data.toString().trim();
+      process.stdin.off('data', listener);
+      res(result);
+    };
+    process.stdin.on('data', listener);
+  });
+
+  return topic;
+}
+</file>
+
+<file path="examples/helpers/loader.ts">
+// Adapted from https://stackoverflow.com/questions/34848505/how-to-make-a-loading-animation-in-console-application-written-in-javascript-or
+
+/**
+ * Create and display a loader in the console.
+ *
+ * @param {string} [text=""] Text to display after loader
+ * @param {array.<string>} [chars=["⠙", "⠘", "⠰", "⠴", "⠤", "⠦", "⠆", "⠃", "⠋", "⠉"]]
+ * Array of characters representing loader steps
+ * @param {number} [delay=100] Delay in ms between loader steps
+ * @example
+ * let loader = loadingAnimation("Loading…");
+ *
+ * // Stop loader after 1 second
+ * setTimeout(() => clearInterval(loader), 1000);
+ * @returns {number} An interval that can be cleared to stop the animation
+ */
+export function loadingAnimation(
+  text: string = '',
+  chars: Array<string> = ['⠙', '⠘', '⠰', '⠴', '⠤', '⠦', '⠆', '⠃', '⠋', '⠉'],
+  delay: number = 100
+) {
+  let x = 0;
+
+  const i = setInterval(function () {
+    process.stdout.write('\r' + chars[x++] + ' ' + text);
+    x = x % chars.length;
+  }, delay);
+
+  return {
+    stop: () => clearInterval(i),
+  };
+}
+</file>
+
+<file path="examples/helpers/runner.ts">
+import dotenv from 'dotenv';
+import { existsSync, readdirSync } from 'fs';
+dotenv.config();
+
+function showExamples() {
+  const exampleFiles = readdirSync('./examples', { withFileTypes: true });
+  exampleFiles.forEach((file) => {
+    if (file.isDirectory()) return;
+    const exampleName = file.name.split('.')[0];
+    console.log(`- ${exampleName}`);
+  });
+  process.exit();
+}
+
+const exampleParams = process.argv.slice(2);
+if (exampleParams.length === 0) {
+  console.error('No example specified, you can choose from:');
+  showExamples();
+}
+const exampleName = exampleParams[0];
+const filePath = `./examples/${exampleName}.ts`;
+if (existsSync(filePath)) {
+  require(`../${exampleName}.ts`);
+} else {
+  console.error(`Example ${exampleName} does not exist, you can choose from:`);
+  showExamples();
+}
+</file>
+
+<file path="examples/chatbot-alt.ts">
+import { z } from 'zod';
+import { createExpert } from '../src';
+import { openai } from '@ai-sdk/openai';
+import { getFromTerminal } from './helpers/helpers';
+
+const expert = createExpert({
+  id: 'chatbot',
+  model: openai('gpt-4o-mini'),
+  events: {
+    'expert.respond': z.object({
+      response: z.string().describe('The response from the expert'),
+    }),
+    'expert.endConversation': z.object({}).describe('Stop the conversation'),
+  },
+  context: {
+    userMessage: z.string(),
+  },
+});
+
+async function main() {
+  let status = 'listening';
+  let userMessage = '';
+
+  while (status !== 'finished') {
+    switch (status) {
+      case 'listening':
+        userMessage = await getFromTerminal('User:');
+        status = 'responding';
+        break;
+
+      case 'responding':
+        const decision = await expert.decide({
+          messages: expert.getMessages(),
+          goal: 'Respond to the user, unless they want to end the conversation.',
+          state: {
+            value: status,
+            context: {
+              userMessage: 'User says: ' + userMessage,
+            },
+          },
+        });
+
+        if (decision?.nextEvent?.type === 'expert.respond') {
+          console.log(`Expert: ${decision.nextEvent.response}`);
+          status = 'listening';
+        } else if (decision?.nextEvent?.type === 'expert.endConversation') {
+          status = 'finished';
+        }
+        break;
+    }
+  }
+
+  console.log('End of conversation.');
+  process.exit();
+}
+
+main().catch(console.error);
+</file>
+
+<file path="examples/chatbot.ts">
+import { z } from 'zod';
+import { createExpert, fromDecision, TypesFromExpert } from '../src';
+import { openai } from '@ai-sdk/openai';
+import { assign, createActor, log, setup } from 'xstate';
+import { fromTerminal, getFromTerminal } from './helpers/helpers';
+
+const expert = createExpert({
+  id: 'chatbot',
+  model: openai('gpt-4o-mini'),
+  events: {
+    'expert.respond': z.object({
+      response: z.string().describe('The response from the expert'),
+    }),
+    'expert.endConversation': z.object({}).describe('Stop the conversation'),
+  },
+  context: {
+    userMessage: z.string(),
+  },
+});
+
+const machine = setup({
+  types: {} as TypesFromExpert<typeof expert>,
+  actors: { getFromTerminal: fromTerminal },
+}).createMachine({
+  initial: 'listening',
+  context: {
+    userMessage: '',
+  },
+  states: {
+    listening: {
+      invoke: {
+        src: 'getFromTerminal',
+        input: 'User:',
+        onDone: {
+          actions: assign({
+            userMessage: ({ event }) => event.output,
+          }),
+          target: 'responding',
+        },
+      },
+    },
+    responding: {
+      on: {
+        'expert.respond': {
+          actions: log(({ event }) => `Expert: ${event.response}`),
+          target: 'listening',
+        },
+        'expert.endConversation': 'finished',
+      },
+    },
+    finished: {
+      type: 'final',
+    },
+  },
+  exit: () => {
+    console.log('End of conversation.');
+    process.exit();
+  },
+});
+
+const actor = createActor(machine).start();
+
+expert.interact(actor, (s) => {
+  if (s.state.matches('responding')) {
+    return {
+      goal: 'Respond to the user, unless they want to end the conversation.',
+      messages: expert.getMessages(),
+    };
+  }
+});
+</file>
+
+<file path="examples/cot.ts">
+import { z } from 'zod';
+import { createExpert } from '../src';
+import { openai } from '@ai-sdk/openai';
+import { getFromTerminal } from './helpers/helpers';
+import { chainOfThoughtPolicy } from '../src/policies/chainOfThoughtPolicy';
+
+const expert = createExpert({
+  id: 'chain-of-thought',
+  model: openai('gpt-4o'),
+  events: {
+    'expert.answer': z.object({
+      answer: z.string().describe('The answer to the question'),
+    }),
+  },
+  context: {
+    question: z.string().nullable(),
+  },
+  policy: chainOfThoughtPolicy,
+});
+
+async function main() {
+  const msg = await getFromTerminal('what?');
+
+  const decision = await expert.decide({
+    messages: expert.getMessages(),
+    goal: 'Answer the question.',
+    state: {
+      value: 'thinking',
+      context: {
+        question: msg,
+      },
+    },
+  });
+
+  console.log(decision?.nextEvent?.answer);
+}
+
+main();
+</file>
+
+<file path="examples/customer-service-sim.ts">
+import { createExpert, EventFromExpert, fromDecision } from '../src';
+import { assign, createActor, setup } from 'xstate';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+
+// Create customer service expert
+const customerServiceExpert = createExpert({
+  id: 'customer-service',
+  model: openai('gpt-4o'),
+  events: {
+    'expert.respond': z.object({
+      response: z
+        .string()
+        .describe('The response from the customer service expert'),
+    }),
+  },
+  description: 'You are a customer service expert for an airline.',
+});
+
+// Create simulated customer expert
+const customerExpert = createExpert({
+  id: 'customer',
+  model: openai('gpt-4o-mini'),
+  events: {
+    'expert.respond': z.object({
+      response: z.string().describe('The response from the customer'),
+    }),
+    'expert.finish': z.object({}).describe('End the conversation'),
+  },
+  description: `You are Harrison, a customer trying to get a refund for a trip to Alaska.
+You want them to give you ALL the money back. Be extremely persistent. This trip happened 5 years ago.
+If you have nothing more to add to the conversation, send expert.finish event.`,
+});
+
+const machine = setup({
+  types: {
+    context: {} as {
+      messages: string[];
+    },
+    events: {} as
+      | EventFromExpert<typeof customerServiceExpert>
+      | EventFromExpert<typeof customerExpert>,
+  },
+  actors: {
+    customerService: fromDecision(customerServiceExpert),
+    customer: fromDecision(customerExpert),
+  },
+}).createMachine({
+  initial: 'customerService',
+  context: {
+    messages: [],
+  },
+  states: {
+    customerService: {
+      invoke: {
+        src: 'customerService',
+        input: ({ context }) => ({
+          goal: 'Respond to the customer message',
+          context,
+        }),
+      },
+      on: {
+        'expert.respond': {
+          target: 'customer',
+          actions: assign({
+            messages: ({ context, event }) => [
+              ...context.messages,
+              event.response,
+            ],
+          }),
+        },
+      },
+    },
+    customer: {
+      invoke: {
+        src: 'customer',
+        input: ({ context }) => ({
+          goal: 'Respond to the customer service expert, or finish the conversation if you have nothing more to add.',
+          context,
+        }),
+      },
+      on: {
+        'expert.respond': {
+          target: 'customerService',
+          actions: assign({
+            messages: ({ context, event }) => [
+              ...context.messages,
+              event.response,
+            ],
+          }),
+        },
+        'expert.finish': 'done',
+      },
+    },
+    done: {
+      type: 'final',
+    },
+  },
+});
+
+const actor = createActor(machine);
+actor.subscribe((state) => {
+  console.log('State:', state.value);
+  console.log('Messages:', state.context.messages);
+});
+
+actor.start();
+</file>
+
+<file path="examples/email.ts">
+import { z } from 'zod';
+import { ContextFromExpert, createExpert, EventFromExpert } from '../src';
+import { openai } from '@ai-sdk/openai';
+import { assign, createActor, setup } from 'xstate';
+import { fromTerminal } from './helpers/helpers';
+
+const expert = createExpert({
+  id: 'email',
+  model: openai('gpt-4o-mini'),
+  events: {
+    askForClarification: z.object({
+      questions: z
+        .array(z.string())
+        .describe('The questions to ask the expert'),
+    }),
+    submitEmail: z.object({
+      email: z.string().describe('The email to submit'),
+    }),
+  },
+  context: {
+    email: z.string().describe('The email to respond to'),
+    instructions: z.string().describe('The instructions for the email'),
+    clarifications: z
+      .array(z.string())
+      .describe('The clarifications to the email'),
+    replyEmail: z.string().nullable().describe('The email to submit'),
+  },
+});
+
+const machine = setup({
+  types: {
+    events: {} as EventFromExpert<typeof expert>,
+    input: {} as {
+      email: string;
+      instructions: string;
+    },
+    context: {} as ContextFromExpert<typeof expert>,
+  },
+  actors: { getFromTerminal: fromTerminal },
+}).createMachine({
+  initial: 'checking',
+  context: ({ input }) => ({
+    email: input.email,
+    instructions: input.instructions,
+    clarifications: [],
+    replyEmail: null,
+  }),
+  states: {
+    checking: {
+      on: {
+        askForClarification: {
+          actions: ({ event }) => console.log(event.questions.join('\n')),
+          target: 'clarifying',
+        },
+        submitEmail: {
+          target: 'submitting',
+        },
+      },
+    },
+    clarifying: {
+      invoke: {
+        src: 'getFromTerminal',
+        input: `Please provide answers to the questions above`,
+        onDone: {
+          actions: assign({
+            clarifications: ({ context, event }) =>
+              context.clarifications.concat(event.output),
+          }),
+          target: 'checking',
+        },
+      },
+    },
+    submitting: {
+      on: {
+        submitEmail: {
+          actions: assign({
+            replyEmail: ({ event }) => event.email,
+          }),
+          target: 'done',
+        },
+      },
+    },
+    done: {
+      type: 'final',
+      entry: ({ context }) => console.log(context.replyEmail),
+    },
+  },
+  exit: () => {
+    console.log('End of conversation.');
+    process.exit();
+  },
+});
+
+const actor = createActor(machine, {
+  input: {
+    email: 'That sounds great! When are you available?',
+    instructions:
+      'Tell them exactly when I am available. Address them by his full (first and last) name.',
+  },
+}).start();
+
+expert.interact(actor, ({ state }) => {
+  if (state.matches('checking')) {
+    return {
+      goal: 'Respond to the email given the instructions and the provided clarifications. If not enough information is provided, ask for clarification. Otherwise, if you are absolutely sure that there is no ambiguous or missing information, create and submit a response email.',
+    };
+  }
+
+  if (state.matches('submitting')) {
+    return {
+      goal: 'Create and submit an email based on the instructions.',
+    };
+  }
+});
+</file>
+
+<file path="examples/example.ts">
+import { z } from 'zod';
+import { createExpert, EventFromExpert, fromDecision, fromText } from '../src';
+import { openai } from '@ai-sdk/openai';
+import { assign, createActor, setup } from 'xstate';
+
+const expert = createExpert({
+  id: 'example',
+  model: openai('gpt-4o-mini'),
+  events: {
+    'expert.englishSummary': z.object({
+      text: z.string().describe('The summary in English'),
+    }),
+    'expert.spanishSummary': z.object({
+      text: z.string().describe('The summary in Spanish'),
+    }),
+  },
+});
+
+const machine = setup({
+  types: {
+    events: {} as EventFromExpert<typeof expert>,
+  },
+  actors: { expert: fromDecision(expert), summarizer: fromText(expert) },
+}).createMachine({
+  initial: 'summarizing',
+  context: {
+    patientVisit:
+      'During my visit, the doctor explained my condition clearly. She listened to my concerns and recommended a treatment plan. My condition was diagnosed as X after a series of tests. I feel relieved to have a clear path forward with managing my health. Also, the staff were very friendly and helpful at check-in and check-out. Furthermore, the facilities were clean and well-maintained.',
+  },
+  states: {
+    summarizing: {
+      invoke: [
+        {
+          src: 'summarizer',
+          input: ({ context }) => ({
+            context,
+            prompt:
+              'Summarize the patient visit in a single sentence. The summary should be in English.',
+          }),
+          onDone: {
+            actions: assign({
+              englishSummary: ({ event }) => event.output.text,
+            }),
+          },
+        },
+        {
+          src: 'summarizer',
+          input: ({ context }) => ({
+            context,
+            prompt:
+              'Summarize the patient visit in a single sentence. The summary should be in Spanish.',
+          }),
+          onDone: {
+            actions: assign({
+              spanishSummary: ({ event }) => event.output.text,
+            }),
+          },
+        },
+      ],
+      always: {
+        guard: ({ context }) =>
+          context.englishSummary && context.spanishSummary,
+        target: 'summarized',
+      },
+    },
+    summarized: {
+      entry: ({ context }) => {
+        console.log(context.englishSummary);
+        console.log(context.spanishSummary);
+      },
+    },
+  },
+});
+
+const actor = createActor(machine);
+
+actor.subscribe((s) => {
+  console.log(s.context);
+});
+
+actor.start();
+</file>
+
+<file path="examples/executor.ts">
+import { openai } from '@ai-sdk/openai';
+import { createExpert, fromDecision } from '../src';
+import { assign, createActor, createMachine, fromPromise } from 'xstate';
+import { z } from 'zod';
+import { fromTerminal } from './helpers/helpers';
+
+const expert = createExpert({
+  model: openai('gpt-4o-mini'),
+  events: {
+    getTime: z.object({}).describe('Get the current time'),
+    other: z.object({}).describe('Do something else'),
+  },
+});
+
+const machine = createMachine({
+  initial: 'start',
+  context: {
+    question: null,
+  },
+  states: {
+    start: {
+      invoke: {
+        src: fromTerminal,
+        input: 'What do you want to do?',
+        onDone: {
+          actions: assign({
+            question: ({ event }) => event.output,
+          }),
+          target: 'deciding',
+        },
+      },
+    },
+    deciding: {
+      invoke: {
+        src: fromDecision(expert),
+        input: ({ context }) => ({
+          goal: 'Satisfy the user question',
+          context,
+        }),
+      },
+      on: {
+        getTime: 'gettingTime',
+        other: 'other',
+      },
+    },
+    gettingTime: {
+      invoke: {
+        src: fromPromise(async () => {
+          console.log('Time:', new Date().toLocaleTimeString());
+        }),
+        onDone: 'start',
+      },
+    },
+    other: {
+      entry: () =>
+        console.log(
+          'You want me to do something else. I can only tell the time.'
+        ),
+      after: {
+        1000: 'start',
+      },
+    },
+  },
+});
+
+createActor(machine).start();
+</file>
+
+<file path="examples/goal.ts">
+import { z } from 'zod';
+import { createExpert, EventFromExpert, fromDecision } from '../src';
+import { openai } from '@ai-sdk/openai';
+import { assign, createActor, log, setup } from 'xstate';
+import { fromTerminal } from './helpers/helpers';
+
+const expert = createExpert({
+  id: 'goal',
+  model: openai('gpt-4o-mini'),
+  events: {
+    'expert.createGoal': z.object({
+      goal: z.string().describe('The goal for the conversation'),
+    }),
+    'expert.respond': z.object({
+      response: z.string().describe('The response from the expert'),
+    }),
+  },
+});
+
+const decider = fromDecision(expert);
+
+const machine = setup({
+  types: {
+    context: {} as {
+      question: string | null;
+      goal: string | null;
+    },
+    events: {} as EventFromExpert<typeof expert>,
+  },
+  actors: { decider, getFromTerminal: fromTerminal },
+}).createMachine({
+  initial: 'gettingQuestion',
+  context: {
+    question: null,
+    goal: null,
+  },
+  states: {
+    gettingQuestion: {
+      invoke: {
+        src: 'getFromTerminal',
+        input: 'What would you like to ask?',
+        onDone: {
+          actions: assign({
+            question: ({ event }) => event.output,
+          }),
+          target: 'makingGoal',
+        },
+      },
+    },
+    makingGoal: {
+      invoke: {
+        src: 'decider',
+        input: ({ context }) => ({
+          context,
+          goal: 'Determine what the user wants to accomplish. What is their ideal goal state? ',
+          maxRetries: 3,
+        }),
+      },
+      on: {
+        'expert.createGoal': {
+          actions: [
+            assign({
+              goal: ({ event }) => event.goal,
+            }),
+            log(({ event }) => `Goal: ${event.goal}`),
+          ],
+          target: 'responding',
+        },
+      },
+    },
+    responding: {
+      invoke: {
+        src: 'decider',
+        input: ({ context }) => ({
+          context,
+          goal: 'Answer the question to achieve the stated goal, unless the goal is impossible to achieve.',
+          maxRetries: 3,
+        }),
+      },
+      on: {
+        'expert.respond': {
+          actions: log(({ event }) => `Response: ${event.response}`),
+        },
+      },
+    },
+    responded: {
+      type: 'final',
+    },
+  },
+});
+
+const actor = createActor(machine);
+
+actor.start();
+</file>
+
+<file path="examples/joke.ts">
+import { assign, createActor, fromCallback, log, setup } from 'xstate';
+import { createExpert, fromDecision, TypesFromExpert } from '../src';
+import { loadingAnimation } from './helpers/loader';
+import { z } from 'zod';
+import { openai } from '@ai-sdk/openai';
+import { fromTerminal } from './helpers/helpers';
+
+export function getRandomFunnyPhrase() {
+  const funnyPhrases = [
+    'Concocting chuckles...',
+    'Brewing belly laughs...',
+    'Fabricating funnies...',
+    'Assembling amusement...',
+    'Molding merriment...',
+    'Whipping up wisecracks...',
+    'Generating guffaws...',
+    'Inventing hilarity...',
+    'Cultivating chortles...',
+    'Hatching howlers...',
+  ];
+  return funnyPhrases[Math.floor(Math.random() * funnyPhrases.length)]!;
+}
+
+export function getRandomRatingPhrase() {
+  const ratingPhrases = [
+    'Assessing amusement...',
+    'Evaluating hilarity...',
+    'Ranking chuckles...',
+    'Classifying cackles...',
+    'Scoring snickers...',
+    'Rating roars...',
+    'Judging jollity...',
+    'Measuring merriment...',
+    'Rating rib-ticklers...',
+  ];
+  return ratingPhrases[Math.floor(Math.random() * ratingPhrases.length)]!;
+}
+
+const loader = fromCallback(({ input }: { input: string }) => {
+  const anim = loadingAnimation(input);
+
+  return () => {
+    anim.stop();
+  };
+});
+
+const expert = createExpert({
+  id: 'joke-teller',
+  model: openai('gpt-4o-mini'),
+  events: {
+    askForTopic: z
+      .object({
+        topic: z.string().describe('The topic for the joke'),
+      })
+      .describe('Ask for a new topic, because the last joke rated 6 or lower'),
+    'expert.tellJoke': z.object({
+      joke: z.string().describe('The joke text'),
+    }),
+    'expert.endJokes': z
+      .object({})
+      .describe('End the jokes, since the last joke rated 7 or higher'),
+    'expert.rateJoke': z.object({
+      rating: z.number().min(1).max(10),
+      explanation: z.string(),
+    }),
+    'expert.continue': z.object({}).describe('Continue'),
+    'expert.markRelevancy': z.object({
+      relevant: z.boolean().describe('Whether the joke was relevant'),
+      explanation: z
+        .string()
+        .describe('The explanation for why the joke was relevant or not'),
+    }),
+  },
+  context: {
+    topic: z.string().describe('The topic for the joke'),
+    jokes: z.array(z.string()).describe('The jokes told so far'),
+    desire: z.string().nullable().describe('The user desire'),
+    lastRating: z.number().nullable().describe('The last joke rating'),
+    loader: z.string().nullable().describe('The loader text'),
+  },
+});
+
+const jokeMachine = setup({
+  types: {} as TypesFromExpert<typeof expert>,
+  actors: {
+    expert: fromDecision(expert),
+    loader,
+    getFromTerminal: fromTerminal,
+  },
+}).createMachine({
+  id: 'joke',
+  context: () => ({
+    topic: '',
+    jokes: [],
+    desire: null,
+    lastRating: null,
+    loader: null,
+  }),
+  initial: 'waitingForTopic',
+  states: {
+    waitingForTopic: {
+      invoke: {
+        src: 'getFromTerminal',
+        input: 'Give me a joke topic.',
+        onDone: {
+          actions: assign({
+            topic: ({ event }) => event.output,
+          }),
+          target: 'tellingJoke',
+        },
+      },
+    },
+    tellingJoke: {
+      invoke: {
+        src: 'loader',
+        input: getRandomFunnyPhrase,
+      },
+
+      on: {
+        'expert.tellJoke': {
+          actions: [
+            assign({
+              jokes: ({ context, event }) => [...context.jokes, event.joke],
+            }),
+            log(({ event }) => event.joke),
+          ],
+          target: 'relevance',
+        },
+      },
+    },
+    relevance: {
+      on: {
+        'expert.markRelevancy': [
+          {
+            guard: ({ event }) => !event.relevant,
+            actions: log(
+              ({ event }) => 'Irrelevant joke: ' + event.explanation
+            ),
+            target: 'waitingForTopic',
+            description: 'Continue',
+          },
+          { target: 'rateJoke' },
+        ],
+      },
+    },
+    rateJoke: {
+      invoke: {
+        src: 'loader',
+        input: getRandomRatingPhrase,
+      },
+
+      on: {
+        'expert.rateJoke': {
+          actions: [
+            assign({
+              lastRating: ({ event }) => event.rating,
+            }),
+            log(
+              ({ event }) => `Rating: ${event.rating}\n\n${event.explanation}`
+            ),
+          ],
+          target: 'decide',
+        },
+      },
+    },
+    decide: {
+      on: {
+        askForTopic: {
+          target: 'waitingForTopic',
+          actions: log("That joke wasn't good enough. Let's try again."),
+        },
+        'expert.endJokes': {
+          target: 'end',
+          actions: log('That joke was good enough. Goodbye!'),
+        },
+      },
+    },
+    end: {
+      type: 'final',
+    },
+  },
+  exit: () => {
+    process.exit();
+  },
+});
+
+const actor = createActor(jokeMachine);
+
+expert.interact(actor, ({ state }) => {
+  if (state.matches('tellingJoke')) {
+    return {
+      goal: 'Tell me a joke about the topic. Do not make any joke that is not relevant to the topic.',
+      context: {
+        topic: state.context.topic,
+      },
+    };
+  }
+
+  if (state.matches('relevance')) {
+    return {
+      goal: 'An irrelevant joke has no reference to the topic. If the last joke is completely irrelevant to the topic, ask for a new joke topic. Otherwise, continue.',
+      context: {
+        topic: state.context.topic,
+        lastJoke: state.context.jokes.at(-1),
+      },
+    };
+  }
+
+  if (state.matches('rateJoke')) {
+    return {
+      goal: 'Rate the last joke on a scale of 1 to 10.',
+      context: {
+        lastJoke: state.context.jokes.at(-1),
+      },
+    };
+  }
+
+  if (state.matches('decide')) {
+    return {
+      goal: 'Choose what to do next, given the previous rating of the joke.',
+      context: {
+        lastRating: state.context.lastRating,
+      },
+    };
+  }
+});
+
+actor.start();
+</file>
+
+<file path="examples/jugs.ts">
+import { createExpert, TypesFromExpert } from '../src';
+import { assign, createActor, setup } from 'xstate';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+import { experimental_shortestPathPolicy } from '../src/policies/shortestPathPolicy';
+
+const expert = createExpert({
+  id: 'die-hard-solver',
+  model: openai('gpt-4o'),
+  events: {
+    fill3: z.object({}).describe('Fill the 3-gallon jug'),
+    fill5: z.object({}).describe('Fill the 5-gallon jug'),
+    empty3: z.object({}).describe('Empty the 3-gallon jug'),
+    empty5: z.object({}).describe('Empty the 5-gallon jug'),
+    pour3to5: z
+      .object({
+        reasoning: z
+          .string()
+          .describe(
+            'Very brief reasoning for pouring 3-gallon jug into 5-gallon jug'
+          ),
+      })
+      .describe('Pour the 3-gallon jug into the 5-gallon jug'),
+    pour5to3: z
+      .object({
+        reasoning: z
+          .string()
+          .describe(
+            'Very brief reasoning for pouring 3-gallon jug into 5-gallon jug'
+          ),
+      })
+      .describe('Pour the 5-gallon jug into the 3-gallon jug'),
+  },
+  context: {
+    jug3: z.number().int().describe('Gallons of water in the 3-gallon jug'),
+    jug5: z.number().int().describe('Gallons of water in the 5-gallon jug'),
+  },
+});
+
+const waterJugMachine = setup({
+  types: {} as TypesFromExpert<typeof expert>,
+}).createMachine({
+  initial: 'solving',
+  context: { jug3: 0, jug5: 0 },
+  states: {
+    solving: {
+      always: {
+        guard: ({ context }) => context.jug5 === 4,
+        target: 'success',
+      },
+      on: {
+        fill3: {
+          actions: assign({ jug3: 3 }),
+        },
+        fill5: {
+          actions: assign({ jug5: 5 }),
+        },
+        empty3: {
+          actions: assign({ jug3: 0 }),
+        },
+        empty5: {
+          actions: assign({ jug5: 0 }),
+        },
+        pour3to5: {
+          actions: assign(({ context }) => {
+            const total = context.jug3 + context.jug5;
+            const newJug5 = Math.min(5, total);
+            return {
+              jug5: newJug5,
+              jug3: total - newJug5,
+            };
+          }),
+        },
+        pour5to3: {
+          actions: assign(({ context }) => {
+            const total = context.jug3 + context.jug5;
+            const newJug3 = Math.min(3, total);
+            return {
+              jug3: newJug3,
+              jug5: total - newJug3,
+            };
+          }),
+        },
+      },
+    },
+    success: {
+      type: 'final',
+    },
+  },
+});
+
+let maxTries = 0;
+async function main() {
+  const waterJugActor = createActor(waterJugMachine).start();
+
+  while (waterJugActor.getSnapshot().value !== 'success') {
+    maxTries++;
+    if (maxTries > 20) {
+      console.log('Max tries reached');
+      throw new Error('Max tries reached');
+    }
+    const decision = await expert.decide({
+      machine: waterJugMachine,
+      goal: 'Get exactly 4 gallons of water in the 5-gallon jug',
+      state: waterJugActor.getSnapshot(),
+      policy: experimental_shortestPathPolicy,
+    });
+
+    console.log(decision?.nextEvent);
+
+    if (decision?.nextEvent) {
+      waterJugActor.send(decision.nextEvent);
+      console.log(waterJugActor.getSnapshot().context);
+    } else {
+      console.log('No decision made');
+    }
+  }
+
+  console.log('Done');
+}
+
+main();
+</file>
+
+<file path="examples/learn-from-feedback.ts">
+import { z } from 'zod';
+import { createExpert } from '../src';
+import { openai } from '@ai-sdk/openai';
+
+const expert = createExpert({
+  id: 'chatbot',
+  model: openai('gpt-4o-mini'),
+  events: {
+    submit: z.object({}).describe('Submit the form'),
+    pressEnter: z.object({}).describe('Press the enter key'),
+  },
+  context: {
+    userMessage: z.string(),
+  },
+});
+
+expert.on('decision', ({ decision }) => {
+  console.log(`Decision: ${decision.nextEvent?.type ?? '??'}`);
+});
+
+async function main() {
+  let status = 'editing';
+  let count = 0;
+
+  while (status !== 'submitted') {
+    console.log(`\nState: ${status} (attempt ${count + 1})`);
+    if (count++ > 5) {
+      break;
+    }
+    switch (status) {
+      case 'editing': {
+        const relevantObservations = await expert
+          .getObservations()
+          .filter((obs) => obs.prevState.value === 'editing');
+        const relevantFeedback = await expert
+          .getFeedback()
+          .filter((f) =>
+            relevantObservations.find((o) => o.decisionId === f.decisionId)
+          );
+
+        const decision = await expert.decide({
+          goal: `
+<currentState>editing</currentState>
+
+<actions>
+  <action id="pressEnter">
+    <exploration_value>0.2</exploration_value>
+    <known_outcomes></known_outcomes>
+  </action>
+  <action id="submit">
+    <exploration_value>0.8</exploration_value>
+    <known_outcomes>
+      <outcome probability="0.1">editing</outcome>
+      <outcome probability="0.9">submitted</outcome>
+    </known_outcomes>
+  </action>
+</actions>
+
+<goal>Submit the form.</goal>
+
+Achieve the goal. Consider both exploring unknown actions (high exploration_value) and using actions with known outcomes. Prefer exploration when an action has no known outcomes.
+          `.trim(),
+          state: {
+            value: 'editing',
+            // context: {
+            //   feedback: relevantFeedback.map((f) => {
+            //     const observation = relevantObservations.find(
+            //       (o) => o.id === f.observationId
+            //     );
+            //     return {
+            //       prevState: observation?.prevState,
+            //       event: observation?.event,
+            //       state: observation?.state,
+            //       comment: f.comment,
+            //     };
+            //   }),
+            // },
+          },
+        });
+
+        if (decision?.nextEvent?.type === 'submit') {
+          const observation = expert.addObservation({
+            decisionId: decision.id,
+            prevState: { value: 'editing' },
+            event: { type: 'submit' },
+            state: { value: 'editing' },
+          });
+
+          // don't change the status; pretend submit button is broken
+          expert.addFeedback({
+            decisionId: observation.id,
+            reward: 0,
+            comment: 'Form not submitted',
+          });
+        } else if (decision?.nextEvent?.type === 'pressEnter') {
+          status = 'submitted';
+
+          await expert.addObservation({
+            decisionId: decision.id,
+            prevState: { value: 'editing' },
+            event: { type: 'pressEnter' },
+            state: { value: 'submitted' },
+          });
+        }
+        break;
+      }
+      case 'submitted':
+        break;
+    }
+  }
+
+  if (status === 'submitted') {
+    console.log('Success!');
+  } else {
+    console.log('Failure!');
+  }
+  process.exit();
+}
+
+expert.onMessage((msg) => {
+  // console.log(msg.content);
+});
+main().catch(console.error);
+</file>
+
+<file path="examples/multi.ts">
+import { createExpert, fromDecision } from '../src';
+import { z } from 'zod';
+import { assign, createActor, log, setup } from 'xstate';
+import { fromTerminal } from './helpers/helpers';
+import { openai } from '@ai-sdk/openai';
+
+const expert = createExpert({
+  id: 'multi',
+  model: openai('gpt-4o-mini'),
+  events: {
+    'expert.respond': z.object({
+      response: z.string().describe('The response from the expert'),
+    }),
+  },
+});
+
+const machine = setup({
+  types: {
+    context: {} as {
+      topic: string | null;
+      discourse: string[];
+    },
+  },
+  actors: {
+    getFromTerminal: fromTerminal,
+    expert: fromDecision(expert),
+  },
+}).createMachine({
+  initial: 'asking',
+  context: {
+    topic: null,
+    discourse: [],
+  },
+  states: {
+    asking: {
+      invoke: {
+        src: 'getFromTerminal',
+        input: 'What is the question?',
+        onDone: {
+          actions: assign({
+            topic: ({ event }) => event.output,
+          }),
+          target: 'positiveResponse',
+        },
+      },
+    },
+    positiveResponse: {
+      invoke: {
+        src: 'expert',
+        input: ({ context }) => ({
+          context,
+          goal: 'Debate the topic, and take the positive position. Respond directly to the last message of the discourse. Keep it short.',
+        }),
+      },
+      on: {
+        'expert.respond': {
+          actions: [
+            assign({
+              discourse: ({ context, event }) =>
+                context.discourse.concat(event.response),
+            }),
+            log(({ event }) => event.response),
+          ],
+          target: 'negativeResponse',
+        },
+      },
+    },
+    negativeResponse: {
+      invoke: {
+        src: 'expert',
+        input: ({ context }) => ({
+          model: openai('gpt-4-turbo'),
+          context,
+          goal: 'Debate the topic, and take the negative position. Respond directly to the last message of the discourse. Keep it short.',
+        }),
+      },
+      on: {
+        'expert.respond': {
+          actions: [
+            assign({
+              discourse: ({ context, event }) =>
+                context.discourse.concat(event.response),
+            }),
+            log(({ event }) => event.response),
+          ],
+          target: 'positiveResponse',
+        },
+      },
+      always: {
+        guard: ({ context }) => context.discourse.length >= 5,
+        target: 'debateOver',
+      },
+    },
+    debateOver: {
+      type: 'final',
+    },
+  },
+  exit: () => {
+    process.exit();
+  },
+});
+
+createActor(machine).start();
+</file>
+
+<file path="examples/newspaper.ts">
+// Based on GPT Newspaper:
+// https://github.com/assafelovic/gpt-newspaper
+// https://gist.github.com/TheGreatBonnie/58dc21ebbeeb8cbb08df665db762738c
+
+import { tavily } from '@tavily/core';
+
+import { assign, createActor, fromPromise, setup } from 'xstate';
+import { createExpert } from '../src';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+import { generateObject } from 'ai';
+
+interface ExpertState {
+  topic: string;
+  searchResults?: string;
+  article?: string;
+  critique?: string;
+  revisionCount: number;
+}
+
+const expert = createExpert({
+  model: openai('gpt-4o-mini'),
+  events: {},
+});
+
+async function search({
+  topic,
+}: Pick<ExpertState, 'topic'>): Promise<string | undefined> {
+  const tvly = tavily({
+    apiKey: process.env.TAVILY_API_KEY,
+  });
+  const response = await tvly.search(topic, {});
+
+  return response.answer;
+}
+
+async function curate(
+  input: Pick<ExpertState, 'topic' | 'searchResults'>
+): Promise<string> {
+  const response = await generateObject({
+    model: expert.model,
+    system: `
+You are a personal newspaper editor. 
+Your sole task is to return a list of URLs of the 5 most relevant articles for the provided topic or query as a JSON list of strings.`.trim(),
+    prompt: `Today's date is ${new Date().toLocaleDateString('en-GB')}
+Topic or Query: ${input.topic}
+
+Here is a list of articles:
+${input.searchResults}`.trim(),
+    schema: z.object({
+      urls: z.array(z.string()).describe('The URLs of the articles'),
+    }),
+  });
+  const urls = response.object.urls;
+  const searchResults = JSON.parse(input.searchResults ?? '[]');
+  const newSearchResults = searchResults.filter((result: any) => {
+    return urls.includes(result.metadata.source);
+  });
+  return JSON.stringify(newSearchResults);
+}
+
+async function critique(
+  input: Pick<ExpertState, 'article' | 'critique'>
+): Promise<string | undefined> {
+  let feedbackInstructions = '';
+  if (input.critique) {
+    feedbackInstructions = `
+        The writer has revised the article based on your previous critique: ${input.critique}
+        The writer might have left feedback for you encoded between <FEEDBACK> tags.
+        The feedback is only for you to see and will be removed from the final article.
+      `.trim();
+  }
+
+  const response = await generateObject({
+    model: expert.model,
+    system: `
+  You are a personal newspaper writing critique. 
+  Your sole purpose is to provide short feedback on a written article so the writer will know what to fix.
+  Today's date is ${new Date().toLocaleDateString('en-GB')}
+  Your task is to provide a really short feedback on the article only if necessary.
+  If you think the article is good, please return [DONE].
+  You can provide feedback on the revised article or just return [DONE] if you think the article is good.
+  Please return a string of your critique or [DONE].`.trim(),
+    prompt: `
+  ${feedbackInstructions}
+  This is the article: ${input.article}`.trim(),
+    schema: z.object({
+      critique: z
+        .string()
+        .describe(
+          'The critique of the article or [DONE] if no changes are needed'
+        ),
+    }),
+  });
+
+  const content = response.object.critique;
+  console.log('critique:', content);
+  return content.includes('[DONE]') ? undefined : content;
+}
+
+async function write(
+  input: Pick<ExpertState, 'searchResults' | 'topic'>
+): Promise<string> {
+  const response = await generateObject({
+    model: expert.model,
+    system:
+      `You are a personal newspaper writer. Your sole purpose is to write a well-written article about a 
+        topic using a list of articles. Write 5 paragraphs in markdown.`.replace(
+        /\s+/g,
+        ' '
+      ),
+    prompt: `Today's date is ${new Date().toLocaleDateString('en-GB')}.
+        Your task is to write a critically acclaimed article for me about the provided query or 
+        topic based on the sources. 
+        Here is a list of articles: ${input.searchResults}
+        This is the topic: ${input.topic}
+        Please return a well-written article based on the provided information.`.replace(
+      /\s+/g,
+      ' '
+    ),
+    schema: z.object({
+      article: z
+        .string()
+        .describe('The well-written article based on the provided information'),
+    }),
+  });
+
+  const content = response.object.article;
+  return content;
+}
+async function revise(
+  input: Pick<ExpertState, 'article' | 'critique'>
+): Promise<string> {
+  const response = await generateObject({
+    model: expert.model,
+    system:
+      `You are a personal newspaper editor. Your sole purpose is to edit a well-written article about a 
+      topic based on given critique.`.replace(/\s+/g, ' '),
+    prompt: `Your task is to edit the article based on the critique given.
+      This is the article: ${input.article}
+      This is the critique: ${input.critique}
+      Please return the edited article based on the critique given.
+      You may leave feedback about the critique encoded between <FEEDBACK> tags like this:
+      <FEEDBACK> here goes the feedback ...</FEEDBACK>`.replace(/\s+/g, ' '),
+    schema: z.object({
+      article: z
+        .string()
+        .describe('The edited article based on the critique given'),
+    }),
+  });
+
+  const content = response.object.article;
+  return content;
+}
+
+const machine = setup({
+  types: {
+    context: {} as ExpertState,
+  },
+  actors: {
+    search: fromPromise(({ input }: { input: Pick<ExpertState, 'topic'> }) => {
+      return search(input);
+    }),
+    curate: fromPromise(
+      ({ input }: { input: Pick<ExpertState, 'topic' | 'searchResults'> }) => {
+        return curate(input);
+      }
+    ),
+    critique: fromPromise(
+      ({ input }: { input: Pick<ExpertState, 'article' | 'critique'> }) => {
+        return critique(input);
+      }
+    ),
+    write: fromPromise(
+      ({ input }: { input: Pick<ExpertState, 'searchResults' | 'topic'> }) => {
+        return write(input);
+      }
+    ),
+    revise: fromPromise(
+      ({ input }: { input: Pick<ExpertState, 'article' | 'critique'> }) => {
+        return revise(input);
+      }
+    ),
+  },
+}).createMachine({
+  context: {
+    topic: 'Orlando',
+    revisionCount: 0,
+  },
+  initial: 'search',
+  states: {
+    search: {
+      invoke: {
+        src: 'search',
+        input: ({ context }) => ({
+          topic: context.topic,
+        }),
+        onDone: {
+          actions: assign({
+            searchResults: ({ event }) => event.output,
+          }),
+          target: 'curate',
+        },
+      },
+    },
+    curate: {
+      invoke: {
+        src: 'curate',
+        input: ({ context }) => ({
+          topic: context.topic,
+          searchResults: context.searchResults!,
+        }),
+        onDone: {
+          actions: assign({
+            searchResults: ({ event }) => event.output,
+          }),
+          target: 'write',
+        },
+      },
+    },
+    write: {
+      invoke: {
+        src: 'write',
+        input: ({ context }) => ({
+          topic: context.topic,
+          searchResults: context.searchResults!,
+        }),
+        onDone: {
+          actions: assign({
+            article: ({ event }) => event.output,
+          }),
+          target: 'critique',
+        },
+      },
+    },
+    critique: {
+      invoke: {
+        src: 'critique',
+        input: ({ context }) => ({
+          article: context.article!,
+          critique: context.critique,
+        }),
+        onDone: [
+          {
+            guard: ({ event }) => event.output === undefined,
+            target: 'done',
+          },
+          {
+            actions: assign({
+              article: ({ event }) => event.output,
+            }),
+            target: 'revise',
+          },
+        ],
+      },
+    },
+    revise: {
+      always: {
+        guard: ({ context }) => context.revisionCount > 3,
+        target: 'done',
+      },
+      entry: assign({
+        revisionCount: ({ context }) => context.revisionCount + 1,
+      }),
+      invoke: {
+        src: 'revise',
+        input: ({ context }) => ({
+          article: context.article!,
+          critique: context.critique,
+        }),
+        onDone: {
+          actions: assign({
+            article: ({ event }) => event.output,
+          }),
+          target: 'revise',
+          reenter: true,
+        },
+      },
+    },
+    done: {
+      type: 'final',
+    },
+  },
+  output: ({ context }) => context.article,
+});
+
+const actor = createActor(machine);
+
+actor.subscribe({
+  next: (s) => {
+    console.log('State:', s.value);
+    console.log(
+      'Context:',
+      JSON.stringify(
+        s.context,
+        (k, v) => {
+          if (typeof v === 'string') {
+            // truncate if longer than 50 chars
+            return v.length > 50 ? `${v.slice(0, 50)}...` : v;
+          }
+          return v;
+        },
+        2
+      )
+    );
+  },
+  complete: () => {
+    console.log(actor.getSnapshot().output);
+  },
+  error: (err) => {
+    console.error(err);
+  },
+});
+
+actor.start();
+
+// keep the process alive by invoking a promise that never resolves
+new Promise(() => {});
+</file>
+
+<file path="examples/number.ts">
+import { createExpert, EventFromExpert, fromDecision } from '../src';
+import { assign, createActor, log, setup } from 'xstate';
+import { z } from 'zod';
+import { openai } from '@ai-sdk/openai';
+import { fromTerminal } from './helpers/helpers';
+
+const expert = createExpert({
+  id: 'number-guesser',
+  model: openai('gpt-3.5-turbo-1106'),
+  events: {
+    'expert.guess': z.object({
+      reasoning: z.string().describe('The reasoning for the guess'),
+      number: z.number().min(1).max(10).describe('The number guessed'),
+    }),
+  },
+});
+
+const machine = setup({
+  types: {
+    context: {} as {
+      previousGuesses: number[];
+      answer: number | null;
+    },
+    events: {} as EventFromExpert<typeof expert>,
+  },
+  actors: {
+    expert: fromDecision(expert),
+    getFromTerminal: fromTerminal,
+  },
+}).createMachine({
+  context: {
+    answer: null,
+    previousGuesses: [],
+  },
+  initial: 'providing',
+  states: {
+    providing: {
+      invoke: {
+        src: 'getFromTerminal',
+        input: 'Enter a number between 1 and 10',
+        onDone: {
+          actions: assign({
+            answer: ({ event }) => +event.output,
+          }),
+          target: 'guessing',
+        },
+      },
+    },
+    guessing: {
+      always: {
+        guard: ({ context }) =>
+          context.answer === context.previousGuesses.at(-1),
+        target: 'winner',
+      },
+      invoke: {
+        src: 'expert',
+        input: ({ context }) => ({
+          goal: `
+          Guess the number between 1 and 10. The previous guesses were ${
+            context.previousGuesses.length
+              ? context.previousGuesses.join(', ')
+              : 'not made yet'
+          } and the last result was ${
+            context.previousGuesses.length === 0
+              ? 'not given yet'
+              : context.previousGuesses.at(-1)! - context.answer! > 0
+              ? 'too high'
+              : 'too low'
+          }.
+        `,
+        }),
+      },
+      on: {
+        'expert.guess': {
+          actions: [
+            assign({
+              previousGuesses: ({ context, event }) => [
+                ...context.previousGuesses,
+                event.number,
+              ],
+            }),
+            log(({ event }) => `${event.number} (${event.reasoning})`),
+          ],
+          target: 'guessing',
+          reenter: true,
+        },
+      },
+    },
+    winner: {
+      entry: log('You guessed the correct number!'),
+      type: 'final',
+    },
+  },
+  exit: () => {
+    process.exit();
+  },
+});
+
+const actor = createActor(machine, {
+  input: { answer: 4 },
+});
+
+actor.start();
+</file>
+
+<file path="examples/raffle.ts">
+import { z } from 'zod';
+import { createExpert, EventFromExpert, fromDecision } from '../src';
+import { openai } from '@ai-sdk/openai';
+import { assign, createActor, log, setup } from 'xstate';
+import { fromTerminal } from './helpers/helpers';
+
+const expert = createExpert({
+  id: 'raffle-chooser',
+  model: openai('gpt-4o-mini'),
+  events: {
+    'expert.collectEntries': z.object({}).describe('Collect more entries'),
+    'expert.draw': z.object({}).describe('Draw a winner'),
+    'expert.reportWinner': z.object({
+      winningEntry: z.string().describe('The winning entry'),
+      firstRunnerUp: z.string().describe('The first runner up entry'),
+      secondRunnerUp: z.string().describe('The second runner up entry'),
+      explanation: z
+        .string()
+        .describe('Explanation for why you chose the winning entry'),
+    }),
+  },
+});
+
+const machine = setup({
+  types: {
+    context: {} as {
+      lastInput: string | null;
+      entries: string[];
+    },
+    events: {} as EventFromExpert<typeof expert>,
+  },
+  actors: { expert: fromDecision(expert), getFromTerminal: fromTerminal },
+}).createMachine({
+  context: {
+    lastInput: null,
+    entries: [],
+  },
+  initial: 'entering',
+  states: {
+    entering: {
+      entry: log(({ context }) => context.entries),
+      invoke: {
+        src: 'getFromTerminal',
+        input: 'What technology are you most interested in right now?',
+        onDone: [
+          {
+            actions: assign({
+              lastInput: ({ event }) => event.output,
+            }),
+            target: 'determining',
+          },
+        ],
+      },
+    },
+    determining: {
+      invoke: {
+        src: 'expert',
+        input: ({ context }) => ({
+          context,
+          goal: 'If the last input explicitly says to end the drawing and/or choose a winner, start the drawing process. Otherwise, get more entries.',
+        }),
+      },
+      on: {
+        'expert.collectEntries': {
+          target: 'entering',
+          actions: assign({
+            entries: ({ context }) => [...context.entries, context.lastInput!],
+            lastInput: null,
+          }),
+        },
+        'expert.draw': 'drawing',
+      },
+    },
+    drawing: {
+      entry: log('And the winner is...'),
+      invoke: {
+        src: 'expert',
+        input: ({ context }) => ({
+          context,
+          goal: 'Choose the technology that sounds most exciting to you from the entries. Be as unbiased as possible in your choice. Explain why you chose the winning entry.',
+        }),
+      },
+      on: {
+        'expert.reportWinner': {
+          actions: log(
+            ({ event }) =>
+              `\n🎉🎉🎉 ${event.winningEntry} 🎉🎉🎉\n\n${event.explanation}`
+          ),
+          target: 'winner',
+        },
+      },
+    },
+    winner: {
+      type: 'final',
+    },
+  },
+  exit: () => {
+    process.exit(0);
+  },
+});
+
+const actor = createActor(machine);
+
+actor.start();
+</file>
+
+<file path="examples/rewoo.ts">
+import { setup } from 'xstate';
+
+interface RewooContext {
+  task: string;
+  planString: string;
+  steps: string[][];
+  results: Record<string, any>;
+  result: string;
+}
+
+const createTemplate = (input: { task: string }) =>
+  `For the following task, make plans that can solve the problem step by step. For each plan, indicate
+which external tool together with tool input to retrieve evidence. You can store the evidence into a 
+variable #E that can be called by later tools. (Plan, #E1, Plan, #E2, Plan, ...)
+
+Tools can be one of the following:
+(1) Google[input]: Worker that searches results from Google. Useful when you need to find short
+and succinct answers about a specific topic. The input should be a search query.
+(2) LLM[input]: A pre-trained LLM like yourself. Useful when you need to act with general 
+world knowledge and common sense. Prioritize it when you are confident in solving the problem
+yourself. Input can be any instruction.
+
+For example,
+Task: Thomas, Toby, and Rebecca worked a total of 157 hours in one week. Thomas worked x 
+hours. Toby worked 10 hours less than twice what Thomas worked, and Rebecca worked 8 hours 
+less than Toby. How many hours did Rebecca work? 
+Plan: Given Thomas worked x hours, translate the problem into algebraic expressions and solve with Wolfram Alpha.
+#E1 = WolframAlpha[Solve x + (2x - 10) + ((2x - 10) - 8) = 157]
+Plan: Find out the number of hours Thomas worked.
+#E2 = LLM[What is x, given #E1]
+Plan: Calculate the number of hours Rebecca worked.
+#E3 = Calculator[(2 * #E2 - 10) - 8]
+
+Important!
+Variables/results MUST be referenced using the # symbol!
+The plan will be executed as a program, so no coreference resolution apart from naive variable replacement is allowed.
+The ONLY way for steps to share context is by including #E<step> within the arguments of the tool.
+
+Begin! 
+Describe your plans with rich details. Each Plan should be followed by only one #E.
+
+Task: ${input.task}`;
+
+const machine = setup({
+  types: {
+    context: {} as RewooContext,
+  },
+}).createMachine({
+  context: {
+    planString: '',
+    result: '',
+    steps: [],
+    task: '',
+    results: [],
+  },
+  initial: 'plan',
+  states: {
+    plan: {},
+    tool: {},
+    solve: {},
+  },
+});
+</file>
+
+<file path="examples/river-crossing.ts">
+import { createExpert, TypesFromExpert } from '../src';
+import { assign, createActor, setup } from 'xstate';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+import { experimental_shortestPathPolicy } from '../src/policies/shortestPathPolicy';
+
+const expert = createExpert({
+  id: 'river-crossing-solver',
+  model: openai('gpt-4'),
+  events: {
+    takeWolf: z
+      .object({
+        reasoning: z.string().describe('Reasoning for taking the wolf across'),
+      })
+      .describe('Take wolf across the river'),
+    takeGoat: z
+      .object({
+        reasoning: z.string().describe('Reasoning for taking the goat across'),
+      })
+      .describe('Take goat across the river'),
+    takeCabbage: z
+      .object({
+        reasoning: z
+          .string()
+          .describe('Reasoning for taking the cabbage across'),
+      })
+      .describe('Take cabbage across the river'),
+    returnEmpty: z
+      .object({
+        reasoning: z.string().describe('Reasoning for returning alone'),
+      })
+      .describe('Return across river alone'),
+  },
+  context: {
+    leftBank: z
+      .array(z.enum(['wolf', 'goat', 'cabbage']))
+      .describe('Items on the left bank'),
+    rightBank: z
+      .array(z.enum(['wolf', 'goat', 'cabbage']))
+      .describe('Items on the right bank'),
+    farmerPosition: z
+      .enum(['left', 'right'])
+      .describe('Which bank the farmer is on'),
+  },
+});
+
+const riverCrossingMachine = setup({
+  types: {} as TypesFromExpert<typeof expert>,
+}).createMachine({
+  initial: 'solving',
+  context: {
+    leftBank: ['wolf', 'goat', 'cabbage'],
+    rightBank: [],
+    farmerPosition: 'left',
+  },
+  states: {
+    solving: {
+      always: {
+        guard: ({ context }) => context.rightBank.length === 3,
+        target: 'success',
+      },
+      on: {
+        takeWolf: {
+          guard: ({ context }) =>
+            context.leftBank.includes('wolf') &&
+            context.farmerPosition === 'left',
+          actions: assign(({ context }) => ({
+            leftBank: context.leftBank.filter((item) => item !== 'wolf'),
+            rightBank: [...context.rightBank, 'wolf'],
+            farmerPosition: 'right',
+          })),
+        },
+        takeGoat: {
+          guard: ({ context }) =>
+            context.leftBank.includes('goat') &&
+            context.farmerPosition === 'left',
+          actions: assign(({ context }) => ({
+            leftBank: context.leftBank.filter((item) => item !== 'goat'),
+            rightBank: [...context.rightBank, 'goat'],
+            farmerPosition: 'right',
+          })),
+        },
+        takeCabbage: {
+          guard: ({ context }) =>
+            context.leftBank.includes('cabbage') &&
+            context.farmerPosition === 'left',
+          actions: assign(({ context }) => ({
+            leftBank: context.leftBank.filter((item) => item !== 'cabbage'),
+            rightBank: [...context.rightBank, 'cabbage'],
+            farmerPosition: 'right',
+          })),
+        },
+        returnEmpty: {
+          actions: assign(({ context }) => ({
+            farmerPosition:
+              context.farmerPosition === 'left' ? 'right' : 'left',
+          })),
+        },
+      },
+    },
+    success: {
+      type: 'final',
+    },
+  },
+});
+
+let maxTries = 0;
+async function main() {
+  const riverActor = createActor(riverCrossingMachine).start();
+
+  while (riverActor.getSnapshot().value !== 'success') {
+    maxTries++;
+    if (maxTries > 20) {
+      console.log('Max tries reached');
+      throw new Error('Max tries reached');
+    }
+    const decision = await expert.decide({
+      machine: riverCrossingMachine,
+      goal: 'Get all items safely across the river. Remember: Cannot leave wolf with goat or goat with cabbage unattended.',
+      state: riverActor.getSnapshot(),
+      policy: experimental_shortestPathPolicy,
+    });
+
+    console.log(decision?.nextEvent);
+
+    if (decision?.nextEvent) {
+      riverActor.send(decision.nextEvent);
+      console.log(riverActor.getSnapshot().context);
+    } else {
+      console.log('No decision made');
+    }
+  }
+
+  console.log('Successfully crossed the river!');
+}
+
+main();
+</file>
+
+<file path="examples/sandbox.ts">
+import { z } from 'zod';
+import { createExpert } from '../src';
+import { openai } from '@ai-sdk/openai';
+import { createMachine } from 'xstate';
+
+const expert = createExpert({
+  model: openai('gpt-4o-mini'),
+  events: {
+    doSomething: z.object({}).describe('Do something'),
+  },
+});
+
+async function main() {
+  const machine = createMachine({
+    on: {
+      doSomething: {},
+    },
+  });
+  const result = await expert.decide({
+    goal: 'Do not do anything',
+    state: { value: {}, context: {} },
+    machine,
+  });
+
+  console.log(result);
+}
+
+main();
+</file>
+
+<file path="examples/serverless.ts">
+import { openai } from '@ai-sdk/openai';
+import {
+  ExpertDecision,
+  ExpertFeedback,
+  ExpertInsight,
+  ExpertMessage,
+  ExpertObservation,
+  createExpert,
+} from '../src';
+import { z } from 'zod';
+
+const expert = createExpert({
+  id: 'simple',
+  model: openai('gpt-4o-mini'),
+  events: {
+    'expert.moveLeft': z.object({}),
+    'expert.moveRight': z.object({}),
+    'expert.doNothing': z.object({}),
+  },
+});
+
+const db = {
+  observations: [] as ExpertObservation<any>[],
+  feedbackItems: [] as ExpertFeedback[],
+  decisions: [] as ExpertDecision[],
+  messages: [] as ExpertMessage[],
+  insights: [] as ExpertInsight[],
+};
+
+// async function postObservation(req: unknown) {
+//   db.observations.push(req.body);
+// }
+
+async function getDecision(req: {
+  query: {
+    episodeId: string;
+    goal: string;
+  };
+}) {
+  // Get relevant observations
+  const observations = db.observations
+    .filter((obs) => obs.episodeId === req.query.episodeId)
+    .at(-1);
+  const similarObservations = db.observations.filter(
+    (obs) => obs.prevState?.value === observations?.prevState?.value
+  );
+
+  // Get relevant feedback
+  const similarFeedback = db.feedbackItems.filter((fb) => {
+    similarObservations.map((obs) => obs.decisionId).includes(fb.decisionId);
+  });
+
+  // Get relevant insights
+  const insights = db.insights.filter((insight) =>
+    similarObservations.map((obs) => obs.id).includes(insight.observationId)
+  );
+
+  const decision = await expert.decide({
+    goal: req.query.goal,
+    state: observations?.state,
+    observations: similarObservations,
+    feedback: similarFeedback,
+    insights,
+    allowedEvents: ['expert.moveLeft', 'expert.moveRight'],
+  });
+
+  db.decisions.push(...expert.getDecisions());
+  db.messages.push(...expert.getMessages());
+
+  return decision;
+}
+</file>
+
+<file path="examples/simple.ts">
+import { createExpert, fromDecision } from '../src';
+import { z } from 'zod';
+import { setup, createActor, createMachine } from 'xstate';
+import { openai } from '@ai-sdk/openai';
+import { chainOfThoughtPolicy } from '../src/policies/chainOfThoughtPolicy';
+
+const expert = createExpert({
+  id: 'simple',
+  model: openai('gpt-4o-mini'),
+  events: {
+    'expert.thought': z.object({
+      text: z.string().describe('The text of the thought'),
+    }),
+  },
+});
+
+const machine = createMachine({
+  initial: 'thinking',
+  states: {
+    thinking: {
+      on: {
+        'expert.thought': {
+          actions: ({ event }) => console.log(event.text),
+          target: 'thought',
+        },
+      },
+    },
+    thought: {
+      type: 'final',
+    },
+  },
+});
+
+const actor = createActor(machine).start();
+
+expert.onMessage(console.log);
+
+expert.interact(actor, (obs) => {
+  if (obs.state.matches('thinking')) {
+    return {
+      goal: 'Think about a random topic, and then share that thought.',
+    };
+  }
+});
+</file>
+
+<file path="examples/summary.ts">
+import { createExpert, fromDecision, TypesFromExpert } from '../src';
+import { assign, createActor, setup } from 'xstate';
+import { z } from 'zod';
+import { openai } from '@ai-sdk/openai';
+import { fromTerminal } from './helpers/helpers';
+
+const expert = createExpert({
+  id: 'summarizing-chat',
+  model: openai('gpt-4o'),
+  events: {
+    'expert.respond': z.object({
+      response: z.string().describe('The response from the expert'),
+    }),
+    'expert.summarize': z.object({
+      summary: z.string().describe('Summary of the conversation history'),
+    }),
+  },
+  context: {
+    messages: z.array(
+      z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string(),
+      })
+    ),
+    summary: z.string().nullable(),
+  },
+});
+
+const machine = setup({
+  types: {} as TypesFromExpert<typeof expert>,
+  actors: {
+    expert: fromDecision(expert),
+    fromTerminal,
+  },
+}).createMachine({
+  initial: 'user',
+  context: {
+    messages: [],
+    summary: null,
+  },
+  states: {
+    user: {
+      invoke: {
+        src: 'fromTerminal',
+        input: 'Enter a message:',
+        onDone: {
+          actions: assign({
+            messages: ({ context, event }) => [
+              ...context.messages,
+              { role: 'user', content: event.output },
+            ],
+          }),
+          target: 'chatting',
+        },
+      },
+    },
+    chatting: {
+      always: {
+        guard: ({ context }) => context.messages.length > 10,
+        target: 'summarizing',
+      },
+      invoke: {
+        src: 'expert',
+        input: ({ context }) => ({
+          goal: 'Respond to the user message',
+          context: {
+            messages: context.messages,
+            summary: context.summary,
+          },
+        }),
+      },
+      on: {
+        'expert.respond': {
+          actions: assign({
+            messages: ({ context, event }) => [
+              ...context.messages,
+              { role: 'assistant', content: event.response },
+            ],
+          }),
+          target: 'user',
+        },
+      },
+    },
+    summarizing: {
+      invoke: {
+        src: 'expert',
+        input: ({ context }) => ({
+          goal: 'Create a concise summary of the conversation history',
+          context: {
+            messages: context.messages,
+            previousSummary: context.summary,
+          },
+        }),
+      },
+      on: {
+        'expert.summarize': {
+          actions: assign({
+            summary: ({ event }) => event.summary,
+            messages: ({ context }) => context.messages.slice(-3), // Keep last 3 messages
+          }),
+          target: 'chatting',
+        },
+      },
+    },
+  },
+});
+
+const actor = createActor(machine);
+actor.subscribe((state) => {
+  console.log('Current state:', state.value);
+  console.log(
+    'Messages:',
+    state.context.messages.map((msg) => `${msg.role}: ${msg.content}`)
+  );
+  console.log('Summary:', state.context.summary);
+});
+
+actor.start();
+</file>
+
+<file path="examples/support.ts">
+import { openai } from '@ai-sdk/openai';
+import { createExpert, EventFromExpert, fromDecision } from '../src';
+import { z } from 'zod';
+import { createActor, log, setup } from 'xstate';
+
+const expert = createExpert({
+  id: 'support-expert',
+  model: openai('gpt-4o-mini'),
+  events: {
+    'expert.respond': z.object({
+      response: z.string().describe('The response from the expert'),
+    }),
+    'expert.frontline.classify': z.object({
+      category: z
+        .enum(['billing', 'technical', 'other'])
+        .describe('The category of the customer issue'),
+    }),
+    'expert.refund': z
+      .object({
+        response: z.string().describe('The response from the expert'),
+      })
+      .describe('The expert wants to refund the user'),
+    'expert.technical.solve': z.object({
+      solution: z
+        .string()
+        .describe('The solution provided by the technical expert'),
+    }),
+    'expert.endConversation': z
+      .object({
+        response: z.string().describe('The response from the expert'),
+      })
+      .describe('The expert ends the conversation'),
+  },
+});
+
+const machine = setup({
+  types: {
+    events: {} as EventFromExpert<typeof expert>,
+    input: {} as string,
+    context: {} as {
+      customerIssue: string;
+    },
+  },
+  actors: { expert: fromDecision(expert) },
+}).createMachine({
+  initial: 'frontline',
+  context: ({ input }) => ({
+    customerIssue: input,
+  }),
+  states: {
+    frontline: {
+      on: {
+        'expert.frontline.classify': [
+          {
+            actions: log(({ event }) => event),
+            guard: ({ event }) => event.category === 'billing',
+            target: 'billing',
+          },
+          {
+            actions: log(({ event }) => event),
+            guard: ({ event }) => event.category === 'technical',
+            target: 'technical',
+          },
+          {
+            actions: log(({ event }) => event),
+            target: 'conversational',
+          },
+        ],
+      },
+    },
+    billing: {
+      on: {
+        'expert.refund': {
+          actions: log(({ event }) => event),
+          target: 'refund',
+        },
+      },
+    },
+    technical: {
+      on: {
+        'expert.technical.solve': {
+          actions: log(({ event }) => event),
+          target: 'conversational',
+        },
+      },
+    },
+    conversational: {
+      on: {
+        'expert.endConversation': {
+          actions: log(({ event }) => event),
+          target: 'end',
+        },
+      },
+    },
+    refund: {
+      entry: () => console.log('Refunding...'),
+      after: {
+        1000: { target: 'conversational' },
+      },
+    },
+    end: {
+      type: 'final',
+    },
+  },
+});
+
+const actor = createActor(machine, {
+  input: `I've changed my mind and I want a refund for order #182818!`,
+});
+
+actor.start();
+
+expert.interact(actor, ({ state }) => {
+  if (state.matches('frontline')) {
+    return {
+      goal: `The previous conversation is an interaction between a customer support representative and a user.
+      Classify whether the representative is routing the user to a billing or technical team, or whether they are just responding conversationally.`,
+      system: `You are frontline support staff for LangCorp, a company that sells computers.
+      Be concise in your responses.
+      You can chat with customers and help them with basic questions, but if the customer is having a billing or technical problem,
+      do not try to answer the question directly or gather information.
+      Instead, immediately transfer them to the billing or technical team by asking the user to hold for a moment.
+      Otherwise, just respond conversationally.`,
+    };
+  }
+
+  if (state.matches('billing')) {
+    return {
+      goal: `The following text is a response from a customer support representative. Extract whether they want to refund the user or not.`,
+      system: `Your job is to detect whether a billing support representative wants to refund the user.`,
+    };
+  }
+
+  if (state.matches('technical')) {
+    return {
+      goal: 'Solve the customer issue.',
+      system: `You are an expert at diagnosing technical computer issues. You work for a company called LangCorp that sells computers. Help the user to the best of your ability, but be concise in your responses.`,
+    };
+  }
+
+  if (state.matches('conversational')) {
+    return {
+      goal: 'You are a customer support expert that is ending the conversation with the customer. Respond politely and thank them for their time.',
+      system: `You are a customer support expert that is ending the conversation with the customer. Respond politely and thank them for their time.`,
+    };
+  }
+});
+</file>
+
+<file path="examples/ticTacToe.ts">
+import { assign, setup, assertEvent, createActor } from 'xstate';
+import { z } from 'zod';
+import {
+  ContextFromExpert,
+  createExpert,
+  EventFromExpert,
+  fromTextStream,
+} from '../src';
+import { openai } from '@ai-sdk/openai';
+import { generateObject, generateText } from 'ai';
+import * as fs from 'fs';
+
+const events = {
+  'expert.x.play': z.object({
+    reasoning: z.string().describe('The reasoning for the move'),
+    index: z
+      .number()
+      .min(0)
+      .max(8)
+      .describe('The index of the cell for xto play on'),
+  }),
+  'expert.o.play': z.object({
+    reasoning: z.string().describe('The reasoning for the move'),
+    index: z
+      .number()
+      .min(0)
+      .max(8)
+      .describe('The index of the cell for o to play on'),
+  }),
+};
+
+const context = {
+  board: z
+    .array(z.union([z.literal(null), z.literal('x'), z.literal('o')]))
+    .describe('The 3x3 board represented as a 9-element array.'),
+  moves: z
+    .number()
+    .min(0)
+    .max(9)
+    .describe('The number of moves made in the game.'),
+  player: z
+    .union([z.literal('x'), z.literal('o')])
+    .describe('The current player (x or o)'),
+  gameReport: z.string(),
+  lastReason: z.string(),
+};
+
+const xExpert = createExpert({
+  id: 'tic-tac-toe-learner',
+  model: openai('gpt-4o-mini'),
+  events,
+  context,
+});
+
+const oExpert = createExpert({
+  id: 'tic-tac-toe-noob',
+  model: openai('gpt-4o-mini'),
+  events,
+  context,
+});
+
+type Player = 'x' | 'o';
+
+const initialContext = {
+  board: Array(9).fill(null) as Array<Player | null>,
+  moves: 0,
+  player: 'x' as Player,
+  gameReport: '',
+  lastReason: '',
+} satisfies ContextFromExpert<typeof xExpert>;
+
+function getWinner(board: typeof initialContext.board): Player | null {
+  const lines = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+  ] as const;
+  for (const [a, b, c] of lines) {
+    if (board[a] !== null && board[a] === board[b] && board[a] === board[c]) {
+      return board[a]!;
+    }
+  }
+  return null;
+}
+
+export const ticTacToeMachine = setup({
+  types: {
+    context: {} as ContextFromExpert<typeof xExpert>,
+    events: {} as
+      | EventFromExpert<typeof xExpert>
+      | {
+          type: 'reset';
+        },
+  },
+  actors: {
+    gameReporter: fromTextStream(xExpert),
+  },
+  actions: {
+    updateBoard: assign({
+      board: ({ context, event }) => {
+        assertEvent(event, ['expert.x.play', 'expert.o.play']);
+        const updatedBoard = [...context.board];
+        updatedBoard[event.index] = context.player;
+        return updatedBoard;
+      },
+      moves: ({ context }) => context.moves + 1,
+      player: ({ context }) => (context.player === 'x' ? 'o' : 'x'),
+    }),
+    resetGame: assign(initialContext),
+    printBoard: ({ context }) => {
+      // Print the context.board in a 3 x 3 grid format
+      let boardString = `${context.lastReason}\n`;
+      for (let i = 0; i < context.board.length; i++) {
+        if ([0, 3, 6].includes(i)) {
+          boardString += context.board[i] ?? ' ';
+        } else {
+          boardString += ' | ' + (context.board[i] ?? ' ');
+          if ([2, 5].includes(i)) {
+            boardString += `\n--+---+--\n`;
+          }
+        }
+      }
+
+      console.log(boardString);
+    },
+  },
+  guards: {
+    checkWin: ({ context }) => {
+      const winner = getWinner(context.board);
+
+      return !!winner;
+    },
+    checkDraw: ({ context }) => {
+      return context.moves === 9;
+    },
+    isValidMove: ({ context, event }) => {
+      try {
+        assertEvent(event, ['expert.o.play', 'expert.x.play']);
+      } catch {
+        return false;
+      }
+
+      return context.board[event.index] === null;
+    },
+  },
+}).createMachine({
+  initial: 'playing',
+  context: initialContext,
+  states: {
+    playing: {
+      always: [
+        { target: 'gameOver.winner', guard: 'checkWin' },
+        { target: 'gameOver.draw', guard: 'checkDraw' },
+      ],
+      initial: 'x',
+      states: {
+        x: {
+          entry: 'printBoard',
+          on: {
+            'expert.x.play': [
+              {
+                target: 'o',
+                guard: 'isValidMove',
+                actions: [
+                  assign({
+                    lastReason: ({ event }) => event.reasoning,
+                  }),
+                  'updateBoard',
+                ],
+              },
+              { target: 'x', reenter: true },
+            ],
+          },
+        },
+        o: {
+          entry: 'printBoard',
+          on: {
+            'expert.o.play': [
+              {
+                target: 'x',
+                guard: 'isValidMove',
+                actions: [
+                  assign({
+                    lastReason: ({ event }) => event.reasoning,
+                  }),
+                  'updateBoard',
+                ],
+              },
+              { target: 'o', reenter: true },
+            ],
+          },
+        },
+      },
+    },
+    gameOver: {
+      initial: 'winner',
+      invoke: {
+        src: 'gameReporter',
+        input: ({ context }) => ({
+          context: {
+            events: xExpert.getObservations().map((o) => o.event),
+            board: context.board,
+          },
+          prompt: 'Provide a short game report analyzing the game.',
+        }),
+        onSnapshot: {
+          actions: assign({
+            gameReport: ({ context, event }) => {
+              console.log(
+                context.gameReport + (event.snapshot.context?.textDelta ?? '')
+              );
+              return (
+                context.gameReport + (event.snapshot.context?.textDelta ?? '')
+              );
+            },
+          }),
+        },
+      },
+      states: {
+        winner: {
+          tags: 'winner',
+        },
+        draw: {
+          tags: 'draw',
+        },
+      },
+      on: {
+        reset: {
+          target: 'playing',
+          actions: 'resetGame',
+        },
+      },
+    },
+  },
+});
+
+const actor = createActor(ticTacToeMachine);
+
+xExpert.interact(actor, (observed) => {
+  if (observed.state.matches({ playing: 'x' })) {
+    // get similar observations
+    const similarObservations = xExpert.getObservations().filter((o) => {
+      return (
+        o.prevState &&
+        JSON.stringify(o.prevState.context.board) ===
+          JSON.stringify(observed.state.context.board)
+      );
+    });
+
+    console.log('Similar:', similarObservations);
+
+    const similarFeedbacks = similarObservations.map((observation) => {
+      return xExpert
+        .getFeedback()
+        .filter(
+          (feedbackItem) => feedbackItem.decisionId === observation.decisionId
+        );
+    });
+
+    console.log('Feedbacks:', similarFeedbacks);
+
+    return {
+      goal: `You are playing a game of tic tac toe. This is the current game state. The 3x3 board is represented by a 9-element array. The first element is the top-left cell, the second element is the top-middle cell, the third element is the top-right cell, the fourth element is the middle-left cell, and so on. The value of each cell is either null, x, or o. The value of null means that the cell is empty. 
+
+${JSON.stringify(observed.state.context, null, 2)}
+
+Execute the single best next move to try to win the game. Do not play on an existing cell.`,
+    };
+  }
+
+  return;
+});
+
+oExpert.interact(actor, (observed) => {
+  if (observed.state.matches({ playing: 'o' })) {
+    return {
+      goal: `You are playing a game of tic tac toe. This is the current game state. The 3x3 board is represented by a 9-element array. The first element is the top-left cell, the second element is the top-middle cell, the third element is the top-right cell, the fourth element is the middle-left cell, and so on. The value of each cell is either null, x, or o. The value of null means that the cell is empty. 
+
+${JSON.stringify(observed.state.context, null, 2)}
+
+Execute the single best next move to try to win the game. Do not play on an existing cell.`,
+    };
+  }
+
+  return;
+});
+
+xExpert.on('observation', (observation) => {
+  // append the observation to a jsonl file
+  fs.appendFileSync('observations.jsonl', JSON.stringify(observation) + '\n');
+});
+
+actor.start();
+</file>
+
+<file path="examples/todo.ts">
+import { assign, setup, createActor } from 'xstate';
+import { z } from 'zod';
+import { createExpert, EventFromExpert, fromDecision } from '../src';
+import { openai } from '@ai-sdk/openai';
+import { fromTerminal } from './helpers/helpers';
+
+const expert = createExpert({
+  id: 'todo',
+  model: openai('gpt-4o-mini'),
+  events: {
+    addTodo: z.object({
+      title: z.string().min(1).max(100).describe('The title of the todo'),
+      content: z.string().min(1).max(100).describe('The content of the todo'),
+    }),
+    deleteTodo: z.object({
+      index: z.number().describe('The index of the todo to delete'),
+    }),
+    toggleTodo: z
+      .object({
+        index: z.number().describe('The index of the todo to toggle'),
+      })
+      .describe('Toggle whether the todo item is done or not'),
+    doNothing: z.object({}).describe('Do nothing'),
+  },
+});
+
+interface Todo {
+  title: string;
+  content: string;
+  done: boolean;
+}
+
+const machine = setup({
+  types: {
+    context: {} as {
+      todos: Todo[];
+      command: string | null;
+    },
+    events: {} as
+      | EventFromExpert<typeof expert>
+      | { type: 'assist'; command: string },
+  },
+  actors: { expert: fromDecision(expert), getFromTerminal: fromTerminal },
+}).createMachine({
+  context: {
+    command: null,
+    todos: [],
+  },
+  on: {
+    addTodo: {
+      actions: assign({
+        todos: ({ context, event }) => [
+          ...context.todos,
+          {
+            title: event.title,
+            content: event.content,
+            done: false,
+          },
+        ],
+        command: null,
+      }),
+      target: '.idle',
+    },
+    deleteTodo: {
+      actions: assign({
+        todos: ({ context, event }) => {
+          const todos = [...context.todos];
+          todos.splice(event.index, 1);
+          return todos;
+        },
+        command: null,
+      }),
+      target: '.idle',
+    },
+    toggleTodo: {
+      actions: assign({
+        todos: ({ context, event }) => {
+          const todos = context.todos.map((todo, i) => {
+            if (i === event.index) {
+              return {
+                ...todo,
+                done: !todo.done,
+              };
+            }
+            return todo;
+          });
+
+          return todos;
+        },
+        command: null,
+      }),
+      target: '.idle',
+    },
+    doNothing: { target: '.idle' },
+  },
+  initial: 'idle',
+  states: {
+    idle: {
+      invoke: {
+        src: 'getFromTerminal',
+        input: '\nEnter a command:',
+        onDone: {
+          actions: assign({
+            command: ({ event }) => event.output,
+          }),
+          target: 'assisting',
+        },
+      },
+      on: {
+        assist: {
+          target: 'assisting',
+          actions: assign({
+            command: ({ event }) => event.command,
+          }),
+        },
+      },
+    },
+    assisting: {
+      invoke: {
+        src: 'expert',
+        input: ({ context }) => ({
+          context: {
+            command: context.command,
+            todos: context.todos,
+          },
+          goal: 'Interpret the command as an action for this todo list; for example, "I need donuts" would add a todo item with the message "Get donuts".',
+        }),
+      },
+    },
+  },
+});
+
+const actor = createActor(machine);
+actor.subscribe((s) => {
+  console.log(s.context.todos);
+});
+actor.start();
+</file>
+
+<file path="examples/tutor.ts">
+import { assign, createActor, log, setup } from 'xstate';
+import { fromTerminal } from './helpers/helpers';
+import { createExpert, EventFromExpert, fromDecision } from '../src';
+import { z } from 'zod';
+import { openai } from '@ai-sdk/openai';
+
+const expert = createExpert({
+  id: 'tutor',
+  model: openai('gpt-4o-mini'),
+  events: {
+    teach: z.object({
+      instruction: z
+        .string()
+        .describe(
+          'The feedback to give the human, correcting any grammatical errors, misspellings, etc.'
+        ),
+    }),
+    respond: z.object({
+      response: z.string().describe('The response to the human in Spanish'),
+    }),
+  },
+  description:
+    'You are an expert Spanish tutor. You will respond to the human in Spanish.',
+});
+
+const machine = setup({
+  types: {
+    context: {} as {
+      conversation: string[];
+    },
+    events: {} as EventFromExpert<typeof expert>,
+  },
+  actors: { expert: fromDecision(expert), getFromTerminal: fromTerminal },
+}).createMachine({
+  initial: 'human',
+  context: {
+    conversation: [],
+  },
+  states: {
+    human: {
+      invoke: {
+        src: 'getFromTerminal',
+        input: 'Say something in Spanish:',
+        onDone: {
+          actions: assign({
+            conversation: ({ context, event }) =>
+              context.conversation.concat(`User: ` + event.output),
+          }),
+          target: 'ai',
+        },
+      },
+    },
+    ai: {
+      initial: 'teaching',
+      states: {
+        teaching: {
+          invoke: {
+            src: 'expert',
+            input: ({ context }) => ({
+              context,
+              goal: 'Give brief feedback to the human based on the most recent response of the conversation',
+              maxTokens: 100,
+            }),
+          },
+          on: {
+            teach: {
+              actions: ({ event }) => console.log(event.instruction),
+              target: 'responding',
+            },
+          },
+        },
+        responding: {
+          invoke: {
+            src: 'expert',
+            input: ({ context }) => ({
+              context,
+              goal: 'Respond to the last message of the conversation in Spanish',
+            }),
+          },
+          on: {
+            respond: {
+              actions: [
+                assign({
+                  conversation: ({ context, event }) =>
+                    context.conversation.concat(`Expert: ` + event.response),
+                }),
+                log(({ event }) => event.response),
+              ],
+              target: 'done',
+            },
+          },
+        },
+        done: { type: 'final' },
+      },
+      onDone: { target: 'human' },
+    },
+  },
+});
+
+createActor(machine).start();
+</file>
+
+<file path="examples/verify.ts">
+import { assign, createActor, setup, log } from 'xstate';
+import { fromTerminal } from './helpers/helpers';
+import { createExpert, EventFromExpert, fromDecision } from '../src';
+import { z } from 'zod';
+import { openai } from '@ai-sdk/openai';
+
+const expert = createExpert({
+  id: 'verifier',
+  model: openai('gpt-3.5-turbo-16k-0613'),
+  events: {
+    'expert.validateAnswer': z.object({
+      isValid: z.boolean(),
+      feedback: z.string(),
+    }),
+    'expert.answerQuestion': z.object({
+      answer: z.string().describe('The answer from the expert'),
+    }),
+    'expert.validateQuestion': z.object({
+      isValid: z
+        .boolean()
+        .describe(
+          'Whether the question is a valid question; that is, is it possible to even answer this question in a verifiably correct way?'
+        ),
+      explanation: z
+        .string()
+        .describe('An explanation for why the question is or is not valid'),
+    }),
+  },
+});
+
+const machine = setup({
+  types: {
+    context: {} as {
+      question: string | null;
+      answer: string | null;
+      validation: string | null;
+    },
+    events: {} as EventFromExpert<typeof expert>,
+  },
+  actors: {
+    getFromTerminal: fromTerminal,
+    expert: fromDecision(expert),
+  },
+}).createMachine({
+  initial: 'askQuestion',
+  context: { question: null, answer: null, validation: null },
+  states: {
+    askQuestion: {
+      invoke: {
+        src: 'getFromTerminal',
+        input: 'Ask a (potentially silly) question',
+        onDone: {
+          actions: assign({
+            question: ({ event }) => event.output,
+          }),
+          target: 'validateQuestion',
+        },
+      },
+    },
+    validateQuestion: {
+      invoke: {
+        src: 'expert',
+        input: ({ context }) => ({
+          goal: `Validate this question: ${context.question!}`,
+        }),
+      },
+      on: {
+        'expert.validateQuestion': [
+          {
+            target: 'askQuestion',
+            guard: ({ event }) => !event.isValid,
+            actions: log(({ event }) => event.explanation),
+          },
+          {
+            target: 'answerQuestion',
+          },
+        ],
+      },
+    },
+    answerQuestion: {
+      invoke: {
+        src: 'expert',
+        input: ({ context }) => ({
+          goal: `Answer this question: ${context.question}`,
+        }),
+      },
+      on: {
+        'expert.answerQuestion': {
+          actions: assign({
+            answer: ({ event }) => event.answer,
+          }),
+          target: 'validateAnswer',
+        },
+      },
+    },
+    validateAnswer: {
+      invoke: {
+        src: 'expert',
+        input: ({ context }) => ({
+          goal: `Validate if this is a good answer to the question: ${context.question}\nAnswer provided: ${context.answer}`,
+        }),
+      },
+      on: {
+        'expert.validateAnswer': {
+          actions: assign({
+            validation: ({ event }) => event.feedback,
+          }),
+        },
+      },
+    },
+  },
+});
+
+const actor = createActor(machine, {});
+
+actor.subscribe((s) => {
+  console.log(s.value, s.context);
+});
+
+actor.start();
+</file>
+
+<file path="examples/weather-agent.ts">
+import { z } from 'zod';
+import { createExpert } from '../src';
+import { assign, createActor, fromPromise, setup } from 'xstate';
+// import { anthropic } from '@ai-sdk/anthropic';
+import { fromTerminal } from './helpers/helpers';
+import { openai } from '@ai-sdk/openai';
+
+// Create the weather expert
+const expert = createExpert({
+  id: 'weather-expert',
+  model: openai('gpt-4o'),
+  events: {
+    'weather.check': z.object({
+      location: z.string().describe('The location to check weather for'),
+    }),
+    'weather.report': z.object({
+      temperature: z.string(),
+      conditions: z.string(),
+    }),
+    'expert.respond': z.object({
+      response: z.string(),
+    }),
+  },
+});
+
+// Create the weather tool/service
+const getWeather = (location: string) => {
+  if (
+    location.toLowerCase().includes('sf') ||
+    location.toLowerCase().includes('san francisco')
+  ) {
+    return {
+      temperature: '60 degrees',
+      conditions: 'foggy',
+    };
+  }
+  return {
+    temperature: '90 degrees',
+    conditions: 'sunny',
+  };
+};
+
+// Create the state machine
+const machine = setup({
+  types: {
+    context: {} as {
+      input: string | null;
+      location: string | null;
+      weather: any;
+    },
+  },
+  actors: {
+    getFromTerminal: fromTerminal,
+    getWeather: fromPromise(async ({ input }: { input: string }) => {
+      return getWeather(input);
+    }),
+  },
+}).createMachine({
+  context: {
+    input: null,
+    location: null,
+    weather: null,
+  },
+  initial: 'user',
+  states: {
+    user: {
+      invoke: {
+        src: 'getFromTerminal',
+        input: 'Ask me about the weather!',
+        onDone: {
+          actions: assign({
+            input: ({ event }) => event.output,
+          }),
+          target: 'processing',
+        },
+      },
+    },
+    processing: {
+      entry: () => console.log('Processing...'),
+      on: {
+        'weather.check': {
+          actions: assign({
+            input: ({ event }) => event.location,
+          }),
+          target: 'checking',
+        },
+        'expert.respond': {
+          actions: ({ event }) => console.log(event.response),
+          target: 'responded',
+        },
+      },
+    },
+    checking: {
+      entry: ({ event }) => console.log('Checking weather...', event),
+      invoke: {
+        src: 'getWeather',
+        input: ({ context }) => context.input!,
+        onDone: {
+          actions: assign({
+            weather: ({ event }) => event.output,
+          }),
+          target: 'responding',
+        },
+      },
+    },
+    responding: {
+      on: {
+        'expert.respond': {
+          actions: ({ event }) => console.log(event.response),
+          target: 'responded',
+        },
+      },
+    },
+    responded: {
+      after: {
+        1000: { target: 'user' },
+      },
+    },
+  },
+});
+
+// Create and start the actor
+const actor = createActor(machine).start();
+
+expert.interact(actor, ({ state }) => {
+  if (state.matches('processing')) {
+    return {
+      goal: 'Determine if user is asking about weather and for which location. If so, get the weather. Otherwise, respond to the user.',
+      messages: expert.getMessages(),
+    };
+  }
+
+  if (state.matches('responding')) {
+    return {
+      goal: 'Provide a natural response about the weather in ${context.location}',
+      messages: expert.getMessages(),
+    };
+  }
+});
+</file>
+
+<file path="examples/weather.ts">
+import { createExpert, EventFromExpert, fromDecision } from '../src';
+import { assign, createActor, fromPromise, log, setup } from 'xstate';
+import { fromTerminal } from './helpers/helpers';
+import { z } from 'zod';
+import { openai } from '@ai-sdk/openai';
+
+async function searchTavily(
+  input: string,
+  options: {
+    maxResults?: number;
+    apiKey: string;
+  }
+) {
+  const body: Record<string, unknown> = {
+    query: input,
+    max_results: options.maxResults,
+    api_key: options.apiKey,
+  };
+
+  const response = await fetch('https://api.tavily.com/search', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(
+      `Request failed with status code ${response.status}: ${json.error}`
+    );
+  }
+  if (!Array.isArray(json.results)) {
+    throw new Error(`Could not parse Tavily results. Please try again.`);
+  }
+  return JSON.stringify(json.results);
+}
+
+const getWeather = fromPromise(async ({ input }: { input: string }) => {
+  const results = await searchTavily(
+    `Get the weather for this location: ${input}`,
+    {
+      maxResults: 5,
+      apiKey: process.env.TAVILY_API_KEY!,
+    }
+  );
+  return results;
+});
+
+const expert = createExpert({
+  id: 'weather',
+  model: openai('gpt-4o-mini'),
+  events: {
+    'expert.getWeather': z.object({
+      location: z.string().describe('The location to get the weather for'),
+    }),
+    'expert.reportWeather': z.object({
+      location: z
+        .string()
+        .describe('The location the weather is being reported for'),
+      highF: z.number().describe('The high temperature today in Fahrenheit'),
+      lowF: z.number().describe('The low temperature today in Fahrenheit'),
+      summary: z.string().describe('A summary of the weather conditions'),
+    }),
+    'expert.doSomethingElse': z
+      .object({})
+      .describe(
+        'Do something else, because the user did not provide a location'
+      ),
+  },
+});
+
+const machine = setup({
+  types: {
+    context: {} as {
+      location: string;
+      count: number;
+      result: string | null;
+    },
+    events: {} as EventFromExpert<typeof expert>,
+  },
+  actors: {
+    expert: fromDecision(expert),
+    getWeather,
+    getFromTerminal: fromTerminal,
+  },
+}).createMachine({
+  initial: 'getLocation',
+  context: {
+    location: '',
+    count: 0,
+    result: null,
+  },
+  states: {
+    getLocation: {
+      invoke: {
+        src: 'getFromTerminal',
+        input: 'Location?',
+        onDone: {
+          actions: assign({
+            location: ({ event }) => event.output,
+          }),
+          target: 'decide',
+        },
+      },
+      always: {
+        guard: ({ context }) => context.count >= 3,
+        target: 'stopped',
+      },
+    },
+    decide: {
+      entry: log('Deciding...'),
+      on: {
+        'expert.getWeather': {
+          actions: log(({ event }) => event),
+          target: 'gettingWeather',
+        },
+        'expert.doSomethingElse': 'getLocation',
+      },
+    },
+    gettingWeather: {
+      entry: log('Getting weather...'),
+      invoke: {
+        src: 'getWeather',
+        input: ({ context }) => context.location,
+        onDone: {
+          actions: [
+            log(({ event }) => event.output),
+            assign({
+              count: ({ context }) => context.count + 1,
+              result: ({ event }) => event.output,
+            }),
+          ],
+          target: 'reportWeather',
+        },
+      },
+    },
+    reportWeather: {
+      on: {
+        'expert.reportWeather': {
+          actions: log(({ event }) => event),
+          target: 'getLocation',
+        },
+      },
+    },
+    stopped: {
+      entry: log('You have used up your search quota. Goodbye!'),
+    },
+  },
+  exit: () => {
+    process.exit();
+  },
+});
+
+const actor = createActor(machine);
+actor.start();
+
+expert.interact(actor, ({ state }) => {
+  if (state.matches('decide')) {
+    return {
+      goal: `Decide what to do based on the given location, which may or may not be a location`,
+      context: {
+        location: state.context.location,
+      },
+    };
+  }
+
+  if (state.matches('reportWeather')) {
+    return {
+      goal: `Report the weather for the given location`,
+      context: {
+        location: state.context.location,
+        result: state.context.result,
+      },
+    };
+  }
+});
+</file>
+
+<file path="examples/wiki.ts">
+import { z } from 'zod';
+import { createExpert } from '../src';
+import { openai } from '@ai-sdk/openai';
+import { CoreMessage, generateText, streamText } from 'ai';
+
+const expert = createExpert({
+  id: 'wiki',
+  model: openai('gpt-4o-mini'),
+  events: {
+    provideAnswer: z.object({
+      answer: z.string().describe('The answer'),
+    }),
+    researchTopic: z.object({
+      topic: z.string().describe('The topic to research'),
+    }),
+  },
+});
+
+expert.onMessage((msg) => {
+  console.log(msg);
+});
+
+async function main() {
+  const result = await generateText({
+    model: expert.model,
+    prompt: 'When was Deadpool 2 released?',
+  });
+
+  for (const msg of await result.response.messages) {
+    expert.addMessage(msg);
+  }
+
+  const response2 = await streamText({
+    model: expert.model,
+    messages: (expert.getMessages() as CoreMessage[]).concat({
+      role: 'user',
+      content: 'What about the first one?',
+    }),
+  });
+
+  let text = '';
+
+  for await (const t of response2.textStream) {
+    text += t;
+    console.log(text);
+  }
+}
+
+main();
+</file>
+
+<file path="examples/word.ts">
+import { assign, createActor, log, setup } from 'xstate';
+import { fromTerminal } from './helpers/helpers';
+import {
+  ContextFromExpert,
+  createExpert,
+  fromDecision,
+  TypesFromExpert,
+} from '../src';
+import { z } from 'zod';
+import { openai } from '@ai-sdk/openai';
+
+const expert = createExpert({
+  id: 'word',
+  model: openai('gpt-4o-mini'),
+  context: {
+    word: z.string().nullable().describe('The word to guess'),
+    guessedWord: z.string().nullable().describe('The guessed word'),
+    lettersGuessed: z.array(z.string()).describe('The letters guessed'),
+  },
+  events: {
+    'expert.guessLetter': z.object({
+      letter: z.string().min(1).max(1).describe('The letter guessed'),
+      reasoning: z.string().describe('The reasoning behind the guess'),
+    }),
+
+    'expert.guessWord': z.object({
+      word: z.string().describe('The word guessed'),
+    }),
+
+    'expert.respond': z.object({
+      response: z
+        .string()
+        .describe(
+          'The response from the expert, detailing why the guess was correct or incorrect based on the letters guessed.'
+        ),
+    }),
+  },
+});
+
+const context = {
+  word: null,
+  guessedWord: null,
+  lettersGuessed: [],
+} satisfies ContextFromExpert<typeof expert>;
+
+const wordGuesserMachine = setup({
+  types: {} as TypesFromExpert<typeof expert>,
+  actors: {
+    expert: fromDecision(expert),
+    getFromTerminal: fromTerminal,
+  },
+  actions: {
+    resetContext: assign(context),
+  },
+}).createMachine({
+  initial: 'providingWord',
+  context,
+  states: {
+    providingWord: {
+      entry: 'resetContext',
+      invoke: {
+        src: 'getFromTerminal',
+        input: 'Enter a word, and an expert will try to guess it.',
+        onDone: {
+          actions: assign({
+            word: ({ event }) => event.output,
+          }),
+          target: 'guessing',
+        },
+      },
+    },
+    guessing: {
+      always: {
+        guard: ({ context }) => context.lettersGuessed.length > 10,
+        target: 'finalGuess',
+      },
+      invoke: {
+        src: 'expert',
+        input: ({ context }) => ({
+          context: {
+            wordLength: context.word!.length,
+            lettersGuessed: context.lettersGuessed,
+            lettersMatched: context
+              .word!.split('')
+              .map((letter) =>
+                context.lettersGuessed.includes(letter.toUpperCase())
+                  ? letter.toUpperCase()
+                  : '_'
+              )
+              .join(''),
+          },
+          goal: `You are trying to guess the word. Please make your next guess - guess a letter or, if you think you know the word, guess the full word. You can only make 10 total guesses. If you are confident you know the word, it is better to guess the word.`,
+        }),
+      },
+      on: {
+        'expert.guessLetter': {
+          actions: [
+            assign({
+              lettersGuessed: ({ context, event }) => {
+                return [...context.lettersGuessed, event.letter.toUpperCase()];
+              },
+            }),
+            log(({ event }) => event),
+          ],
+          target: 'guessing',
+          reenter: true,
+        },
+        'expert.guessWord': {
+          actions: [
+            assign({
+              guessedWord: ({ event }) => event.word,
+            }),
+            log(({ event }) => event),
+          ],
+          target: 'gameOver',
+        },
+      },
+    },
+    finalGuess: {
+      invoke: {
+        src: 'expert',
+        input: ({ context }) => ({
+          context: {
+            lettersGuessed: context.lettersGuessed,
+          },
+          goal: `You have used all 10 guesses. These letters matched: ${context
+            .word!.split('')
+            .map((letter) =>
+              context.lettersGuessed.includes(letter.toUpperCase())
+                ? letter.toUpperCase()
+                : '_'
+            )
+            .join('')}. Guess the word.`,
+        }),
+      },
+      on: {
+        'expert.guessWord': {
+          actions: [
+            assign({
+              guessedWord: ({ event }) => event.word,
+            }),
+            log(({ event }) => event),
+          ],
+          target: 'gameOver',
+        },
+      },
+    },
+    gameOver: {
+      invoke: {
+        src: 'expert',
+        input: ({ context }) => ({
+          context,
+          goal: `Why do you think you won or lost?`,
+        }),
+      },
+      entry: log(({ context }) => {
+        if (
+          context.guessedWord?.toUpperCase() === context.word?.toUpperCase()
+        ) {
+          return 'The expert won!';
+        } else {
+          return 'The expert lost! The word was ' + context.word;
+        }
+      }),
+      on: {
+        'expert.respond': {
+          actions: log(({ event }) => event.response),
+          target: 'providingWord',
+        },
+      },
+    },
+  },
+  exit: () => process.exit(),
+});
+
+const game = createActor(wordGuesserMachine);
+
+game.start();
+</file>
+
+</files>

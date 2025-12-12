@@ -7,8 +7,8 @@
  * @module @gbg/tmnl/ams/v2/base/repositories/asset
  */
 
-import { Option, Schema } from 'effect'
-import { Model } from '@effect/sql'
+import { Option, Schema } from 'effect';
+import { Model } from '@effect/sql';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Nullable JSON Schema Helper
@@ -42,7 +42,7 @@ const NullableJsonFromString = Schema.transform(
     encode: (decoded) =>
       Option.isNone(decoded) ? null : JSON.stringify(decoded.value),
   }
-)
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SQLite Boolean Schema Helper
@@ -63,7 +63,7 @@ const SqliteBoolean = Schema.transform(
     decode: (encoded) => encoded === 1 || encoded === true,
     encode: (decoded) => (decoded ? 1 : 0),
   }
-)
+);
 
 import {
   AssetId,
@@ -74,8 +74,8 @@ import {
   SectorId,
   ContainerId,
   Tags,
-} from '../../core/schemas/identifiers'
-import { AssetStatus } from '../schemas/asset'
+} from '../../core/schemas/identifiers';
+import { AssetStatus } from '../schemas/asset';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SQL Model Definition
@@ -95,6 +95,7 @@ import { AssetStatus } from '../schemas/asset'
  * - AssetModel.update: update schema (with id for WHERE clause)
  * - AssetModel.json: JSON API schema
  */
+
 export class AssetModel extends Model.Class<AssetModel>('AssetModel')({
   /** Primary key - database generated */
   id: Model.GeneratedByApp(AssetId),
@@ -177,7 +178,7 @@ export const makeAssetRepository = Model.makeRepository(AssetModel, {
   tableName: 'assets',
   idColumn: 'id',
   spanPrefix: 'AssetRepository',
-})
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Location Models (for joins)
@@ -199,7 +200,7 @@ export const makeSiteRepository = Model.makeRepository(SiteModel, {
   tableName: 'sites',
   idColumn: 'id',
   spanPrefix: 'SiteRepository',
-})
+});
 
 /**
  * Sector SQL Model
@@ -219,12 +220,14 @@ export const makeSectorRepository = Model.makeRepository(SectorModel, {
   tableName: 'sectors',
   idColumn: 'id',
   spanPrefix: 'SectorRepository',
-})
+});
 
 /**
  * Container SQL Model
  */
-export class ContainerModel extends Model.Class<ContainerModel>('ContainerModel')({
+export class ContainerModel extends Model.Class<ContainerModel>(
+  'ContainerModel'
+)({
   id: Model.GeneratedByApp(ContainerId),
   bfoClass: Schema.String,
   siteId: SiteId,
@@ -241,7 +244,7 @@ export const makeContainerRepository = Model.makeRepository(ContainerModel, {
   tableName: 'containers',
   idColumn: 'id',
   spanPrefix: 'ContainerRepository',
-})
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Property & Trait Models
@@ -250,28 +253,33 @@ export const makeContainerRepository = Model.makeRepository(ContainerModel, {
 /**
  * Asset Property SQL Model (EAV pattern)
  */
-export class AssetPropertyModel extends Model.Class<AssetPropertyModel>('AssetPropertyModel')(
-  {
-    id: Model.Generated(Schema.Number.pipe(Schema.int())),
-    assetId: AssetId,
-    key: Schema.NonEmptyTrimmedString,
-    value: Schema.String,
-    provenanceJson: Model.JsonFromString(Schema.Unknown),
-    createdAt: Model.DateTimeInsert,
-    updatedAt: Model.DateTimeUpdate,
-  }
-) {}
+export class AssetPropertyModel extends Model.Class<AssetPropertyModel>(
+  'AssetPropertyModel'
+)({
+  id: Model.Generated(Schema.Number.pipe(Schema.int())),
+  assetId: AssetId,
+  key: Schema.NonEmptyTrimmedString,
+  value: Schema.String,
+  provenanceJson: Model.JsonFromString(Schema.Unknown),
+  createdAt: Model.DateTimeInsert,
+  updatedAt: Model.DateTimeUpdate,
+}) {}
 
-export const makeAssetPropertyRepository = Model.makeRepository(AssetPropertyModel, {
-  tableName: 'asset_properties',
-  idColumn: 'id',
-  spanPrefix: 'AssetPropertyRepository',
-})
+export const makeAssetPropertyRepository = Model.makeRepository(
+  AssetPropertyModel,
+  {
+    tableName: 'asset_properties',
+    idColumn: 'id',
+    spanPrefix: 'AssetPropertyRepository',
+  }
+);
 
 /**
  * Asset Trait SQL Model
  */
-export class AssetTraitModel extends Model.Class<AssetTraitModel>('AssetTraitModel')({
+export class AssetTraitModel extends Model.Class<AssetTraitModel>(
+  'AssetTraitModel'
+)({
   id: Model.Generated(Schema.Number.pipe(Schema.int())),
   assetId: AssetId,
   traitId: Schema.NonEmptyTrimmedString,
@@ -284,7 +292,7 @@ export const makeAssetTraitRepository = Model.makeRepository(AssetTraitModel, {
   tableName: 'asset_traits',
   idColumn: 'id',
   spanPrefix: 'AssetTraitRepository',
-})
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Event Journal Model
@@ -296,7 +304,9 @@ export const makeAssetTraitRepository = Model.makeRepository(AssetTraitModel, {
  * Stores domain events for event sourcing.
  * Used by EventLog for persistence.
  */
-export class EventJournalModel extends Model.Class<EventJournalModel>('EventJournalModel')({
+export class EventJournalModel extends Model.Class<EventJournalModel>(
+  'EventJournalModel'
+)({
   /** Auto-increment sequence number */
   sequenceNumber: Model.Generated(Schema.Number.pipe(Schema.int())),
 
@@ -319,8 +329,11 @@ export class EventJournalModel extends Model.Class<EventJournalModel>('EventJour
   aggregateVersion: Schema.Number.pipe(Schema.int()),
 }) {}
 
-export const makeEventJournalRepository = Model.makeRepository(EventJournalModel, {
-  tableName: 'event_journal',
-  idColumn: 'sequenceNumber',
-  spanPrefix: 'EventJournalRepository',
-})
+export const makeEventJournalRepository = Model.makeRepository(
+  EventJournalModel,
+  {
+    tableName: 'event_journal',
+    idColumn: 'sequenceNumber',
+    spanPrefix: 'EventJournalRepository',
+  }
+);

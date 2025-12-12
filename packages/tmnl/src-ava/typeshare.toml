@@ -1,0 +1,10 @@
+# Typeshare configuration for AVA
+
+[typescript]
+# Type mappings for Rust types that don't have direct TypeScript equivalents
+[typescript.type_mappings]
+u64 = "number"
+u32 = "number"
+i64 = "number"
+i32 = "number"
+usize = "number"

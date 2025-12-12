@@ -7,8 +7,8 @@
  * @module @gbg/tmnl/ams/v2/base/events/asset
  */
 
-import { Schema } from 'effect'
-import * as EventGroup from '@effect/experimental/EventGroup'
+import { Schema } from 'effect';
+import * as EventGroup from '@effect/experimental/EventGroup';
 import {
   AssetId,
   AssetKind,
@@ -21,18 +21,19 @@ import {
   TraitId,
   Tags,
   IdentityId,
-} from '../../core/schemas/identifiers'
-import { CreatedAt } from '../../core/schemas/timestamps'
-import { Provenance } from '../../core/schemas/provenance'
-import { AssetStatus } from '../schemas/asset'
-import { PropertyValue } from '../schemas/property'
+} from '../../core/schemas/identifiers';
+import { CreatedAt } from '../../core/schemas/timestamps';
+import { Provenance } from '../../core/schemas/provenance';
+import { AssetStatus } from '../schemas/asset';
+import { PropertyValue } from '../schemas/property';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Event Payload Schemas
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Asset created event payload
+ * Asset created event payload */
+/* TODO: Shall these be updated to TaggedRequests, with rich annotations.
  */
 export class AssetCreatedPayload extends Schema.Class<AssetCreatedPayload>(
   'AssetCreatedPayload'
@@ -96,30 +97,30 @@ export class AssetUpdatedPayload extends Schema.Class<AssetUpdatedPayload>(
 /**
  * Asset moved event payload
  */
-export class AssetMovedPayload extends Schema.Class<AssetMovedPayload>('AssetMovedPayload')(
-  {
-    /** Asset ID */
-    assetId: AssetId,
-    /** Previous site */
-    fromSiteId: SiteId,
-    /** Previous sector (optional) */
-    fromSectorId: Schema.optional(SectorId),
-    /** Previous container (optional) */
-    fromContainerId: Schema.optional(ContainerId),
-    /** New site */
-    toSiteId: SiteId,
-    /** New sector (optional) */
-    toSectorId: Schema.optional(SectorId),
-    /** New container (optional) */
-    toContainerId: Schema.optional(ContainerId),
-    /** Movement reason */
-    reason: Schema.optional(Schema.String),
-    /** Identity of mover */
-    movedBy: IdentityId,
-    /** When moved */
-    movedAt: CreatedAt,
-  }
-) {}
+export class AssetMovedPayload extends Schema.Class<AssetMovedPayload>(
+  'AssetMovedPayload'
+)({
+  /** Asset ID */
+  assetId: AssetId,
+  /** Previous site */
+  fromSiteId: SiteId,
+  /** Previous sector (optional) */
+  fromSectorId: Schema.optional(SectorId),
+  /** Previous container (optional) */
+  fromContainerId: Schema.optional(ContainerId),
+  /** New site */
+  toSiteId: SiteId,
+  /** New sector (optional) */
+  toSectorId: Schema.optional(SectorId),
+  /** New container (optional) */
+  toContainerId: Schema.optional(ContainerId),
+  /** Movement reason */
+  reason: Schema.optional(Schema.String),
+  /** Identity of mover */
+  movedBy: IdentityId,
+  /** When moved */
+  movedAt: CreatedAt,
+}) {}
 
 /**
  * Property changed event payload
@@ -166,20 +167,20 @@ export class PropertyRemovedPayload extends Schema.Class<PropertyRemovedPayload>
 /**
  * Trait added event payload
  */
-export class TraitAddedPayload extends Schema.Class<TraitAddedPayload>('TraitAddedPayload')(
-  {
-    /** Asset ID */
-    assetId: AssetId,
-    /** Trait ID */
-    traitId: TraitId,
-    /** Trait configuration (optional) */
-    config: Schema.optional(Schema.Unknown),
-    /** Identity of adder */
-    addedBy: IdentityId,
-    /** When added */
-    addedAt: CreatedAt,
-  }
-) {}
+export class TraitAddedPayload extends Schema.Class<TraitAddedPayload>(
+  'TraitAddedPayload'
+)({
+  /** Asset ID */
+  assetId: AssetId,
+  /** Trait ID */
+  traitId: TraitId,
+  /** Trait configuration (optional) */
+  config: Schema.optional(Schema.Unknown),
+  /** Identity of adder */
+  addedBy: IdentityId,
+  /** When added */
+  addedAt: CreatedAt,
+}) {}
 
 /**
  * Trait removed event payload
@@ -266,9 +267,9 @@ export const AssetEvents = EventGroup.empty
     tag: 'AssetDeleted',
     payload: AssetDeletedPayload,
     primaryKey: (payload) => payload.assetId,
-  })
+  });
 
 /**
  * Type helper for AssetEvents
  */
-export type AssetEvents = EventGroup.EventGroup.Events<typeof AssetEvents>
+export type AssetEvents = EventGroup.EventGroup.Events<typeof AssetEvents>;

@@ -1,0 +1,4514 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+4. Repository files, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: packages/xstate-store/test/
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+<additional_info>
+
+</additional_info>
+
+</file_summary>
+
+<directory_structure>
+packages/
+  xstate-store/
+    test/
+      atom.test.ts
+      fromStore.test.ts
+      package.json
+      react.test.tsx
+      solid.test.tsx
+      store.test.ts
+      types.test.tsx
+      undo.test.ts
+      UseActor.vue
+      UseActorRef.vue
+      UseSelector.vue
+      vue.test.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="packages/xstate-store/test/atom.test.ts">
+import { createStore, createAtom, createAsyncAtom } from '../src/index.ts';
+
+it('creates an atom', () => {
+  const atom = createAtom(42);
+
+  expect(atom.get()).toBe(42);
+});
+
+it('sets the value of the atom using a function', () => {
+  const atom = createAtom(0);
+
+  atom.set((prev) => prev + 1);
+
+  expect(atom.get()).toBe(1);
+
+  atom.set((prev) => prev + 1);
+
+  expect(atom.get()).toBe(2);
+});
+
+it('can set the value to undefined', () => {
+  const atom = createAtom<number | undefined>(1);
+  expect(atom.get()).toBe(1);
+
+  atom.set(undefined);
+  expect(atom.get()).toBe(undefined);
+});
+
+it('can subscribe to atom changes', () => {
+  const log = vi.fn();
+  const atom = createAtom(0);
+
+  atom.subscribe(log);
+
+  atom.set(1);
+
+  expect(log).toHaveBeenCalledWith(1);
+
+  atom.set(2);
+
+  expect(log).toHaveBeenCalledWith(2);
+});
+
+it('can unsubscribe from atom changes', () => {
+  const log = vi.fn();
+  const atom = createAtom(0);
+
+  const sub = atom.subscribe(log);
+
+  atom.set(1);
+
+  expect(log).toHaveBeenCalledWith(1);
+
+  sub.unsubscribe();
+
+  atom.set(2);
+
+  expect(log).toHaveBeenCalledTimes(1);
+});
+
+it('can create a combined atom', () => {
+  const nameAtom = createAtom('a');
+  const numAtom = createAtom(3);
+  const combinedAtom = createAtom((read) =>
+    read(nameAtom).repeat(read(numAtom))
+  );
+
+  expect(combinedAtom.get()).toBe('aaa');
+
+  nameAtom.set('b');
+
+  expect(combinedAtom.get()).toBe('bbb');
+
+  numAtom.set(5);
+});
+
+it('can create a combined atom (get API)', () => {
+  const nameAtom = createAtom('a');
+  const numAtom = createAtom(3);
+  const combinedAtom = createAtom(() => nameAtom.get().repeat(numAtom.get()));
+
+  expect(combinedAtom.get()).toBe('aaa');
+
+  nameAtom.set('b');
+
+  expect(combinedAtom.get()).toBe('bbb');
+
+  numAtom.set(5);
+});
+
+it('works with a mix of atoms and stores', () => {
+  const countAtom = createAtom(0);
+  const store = createStore({
+    context: { name: 'David' },
+    on: {
+      nameUpdated: (context, event: { name: string }) => ({
+        ...context,
+        name: event.name
+      })
+    }
+  });
+
+  const combinedAtom = createAtom(
+    (read) => read(store).context.name + ` ${read(countAtom)}`
+  );
+
+  expect(combinedAtom.get()).toBe('David 0');
+
+  store.send({ type: 'nameUpdated', name: 'John' });
+
+  expect(combinedAtom.get()).toBe('John 0');
+
+  countAtom.set(1);
+
+  expect(combinedAtom.get()).toBe('John 1');
+});
+
+it('works with a mix of atoms and stores (get API)', () => {
+  const countAtom = createAtom(0);
+  const store = createStore({
+    context: { name: 'David' },
+    on: {
+      nameUpdated: (context, event: { name: string }) => ({
+        ...context,
+        name: event.name
+      })
+    }
+  });
+
+  const log = vi.fn();
+
+  const combinedAtom = createAtom(
+    () => store.get().context.name + ` ${countAtom.get()}`
+  );
+
+  combinedAtom.subscribe(log);
+
+  expect(combinedAtom.get()).toBe('David 0');
+
+  store.send({ type: 'nameUpdated', name: 'John' });
+
+  expect(combinedAtom.get()).toBe('John 0');
+
+  countAtom.set(1);
+
+  expect(log).toHaveBeenCalledTimes(2);
+  expect(log).toHaveBeenCalledWith('John 1');
+  expect(countAtom.get()).toBe(1);
+  expect(combinedAtom.get()).toBe('John 1');
+});
+
+it('works with stores', () => {
+  const nameStore = createStore({
+    context: { name: 'David' },
+    on: {
+      nameUpdated: (context, event: { name: string }) => ({
+        ...context,
+        name: event.name
+      })
+    }
+  });
+
+  const countStore = createStore({
+    context: { count: 0 },
+    on: {
+      increment: (context) => ({ ...context, count: context.count + 1 })
+    }
+  });
+
+  const combinedAtom = createAtom(
+    (read) =>
+      read(nameStore).context.name + ` ${read(countStore).context.count}`
+  );
+
+  expect(combinedAtom.get()).toBe('David 0');
+
+  nameStore.trigger.nameUpdated({ name: 'John' });
+
+  expect(combinedAtom.get()).toBe('John 0');
+
+  countStore.trigger.increment();
+
+  expect(combinedAtom.get()).toBe('John 1');
+});
+
+it('works with stores (get API)', () => {
+  const nameStore = createStore({
+    context: { name: 'David' },
+    on: {
+      nameUpdated: (context, event: { name: string }) => ({
+        ...context,
+        name: event.name
+      })
+    }
+  });
+
+  const countStore = createStore({
+    context: { count: 0 },
+    on: {
+      increment: (context) => ({ ...context, count: context.count + 1 })
+    }
+  });
+
+  const combinedAtom = createAtom(
+    () => nameStore.get().context.name + ` ${countStore.get().context.count}`
+  );
+
+  expect(combinedAtom.get()).toBe('David 0');
+
+  nameStore.trigger.nameUpdated({ name: 'John' });
+
+  expect(combinedAtom.get()).toBe('John 0');
+
+  countStore.trigger.increment();
+
+  expect(combinedAtom.get()).toBe('John 1');
+});
+
+it('works with selectors', () => {
+  const store = createStore({
+    context: { name: 'David', count: 0 },
+    on: {
+      increment: (context) => ({ ...context, count: context.count + 1 })
+    }
+  });
+
+  const count = store.select((ctx) => ctx.count);
+
+  const combinedAtom = createAtom((read) => 2 * read(count));
+
+  expect(combinedAtom.get()).toBe(0);
+
+  store.trigger.increment();
+
+  expect(combinedAtom.get()).toBe(2);
+});
+
+it('works with selectors (get API)', () => {
+  const store = createStore({
+    context: { name: 'David', count: 0 },
+    on: {
+      increment: (context) => ({ ...context, count: context.count + 1 })
+    }
+  });
+
+  const count = store.select((ctx) => ctx.count);
+
+  const combinedAtom = createAtom(() => 2 * count.get());
+
+  expect(combinedAtom.get()).toBe(0);
+
+  store.trigger.increment();
+
+  expect(combinedAtom.get()).toBe(2);
+});
+
+it('combined atoms should be read-only', () => {
+  const atom1 = createAtom(0);
+  const atom2 = createAtom(1);
+  const combinedAtom = createAtom((read) => read(atom1) + read(atom2));
+
+  expect(combinedAtom.get()).toBe(1);
+
+  // @ts-expect-error
+  combinedAtom.set?.(2);
+
+  expect(combinedAtom.get()).toBe(1);
+});
+
+it('combined atoms should be read-only (get API)', () => {
+  const atom1 = createAtom(0);
+  const atom2 = createAtom(1);
+  const combinedAtom = createAtom(() => atom1.get() + atom2.get());
+
+  expect(combinedAtom.get()).toBe(1);
+
+  // @ts-expect-error
+  combinedAtom.set?.(2);
+
+  expect(combinedAtom.get()).toBe(1);
+});
+
+it('conditionally read atoms are properly read in combined atoms', () => {
+  const atom1 = createAtom(true);
+  const atom2 = createAtom(false);
+  const activatorAtom = createAtom<'inactive' | 'active'>('inactive');
+  const combinedAtom = createAtom((read) =>
+    read(activatorAtom) === 'active' ? read(atom1) : read(atom2)
+  );
+
+  expect(combinedAtom.get()).toBe(false);
+
+  activatorAtom.set('active');
+
+  expect(combinedAtom.get()).toBe(true);
+
+  activatorAtom.set('inactive');
+
+  expect(combinedAtom.get()).toBe(false);
+});
+
+it('conditionally read atoms are properly read in combined atoms (get API)', () => {
+  const atom1 = createAtom(true);
+  const atom2 = createAtom(false);
+  const activatorAtom = createAtom<'inactive' | 'active'>('inactive');
+  const combinedAtom = createAtom(() =>
+    activatorAtom.get() === 'active' ? atom1.get() : atom2.get()
+  );
+
+  expect(combinedAtom.get()).toBe(false);
+
+  activatorAtom.set('active');
+
+  expect(combinedAtom.get()).toBe(true);
+
+  activatorAtom.set('inactive');
+
+  expect(combinedAtom.get()).toBe(false);
+});
+
+it('conditionally read atoms are properly unsubscribed when no longer needed', () => {
+  const atom1 = createAtom(true);
+  const activatorAtom = createAtom<'inactive' | 'active'>('active');
+  const combinedAtom = createAtom((read) =>
+    read(activatorAtom) === 'active' ? read(atom1) : {}
+  );
+
+  const vals: any[] = [];
+
+  combinedAtom.subscribe((val) => vals.push(val));
+
+  atom1.set(false);
+
+  expect(vals).toEqual([false]);
+
+  atom1.set(true);
+
+  expect(vals).toEqual([false, true]);
+
+  activatorAtom.set('inactive');
+
+  // From here, atom1 should no longer be subscribed to
+  // Without the unsubscribe logic, this would be [false, true, {}, {}, ...]
+
+  expect(vals).toEqual([false, true, {}]);
+
+  atom1.set(false);
+
+  expect(vals).toEqual([false, true, {}]);
+
+  atom1.set(true);
+
+  expect(vals).toEqual([false, true, {}]);
+
+  // Subscribing again should cause atom1 to be subscribed again
+
+  activatorAtom.set('active');
+
+  expect(vals).toEqual([false, true, {}, true]);
+
+  atom1.set(false);
+
+  expect(vals).toEqual([false, true, {}, true, false]);
+});
+
+it('conditionally read atoms are properly unsubscribed when no longer needed (get API)', () => {
+  const atom1 = createAtom(true);
+  const activatorAtom = createAtom<'inactive' | 'active'>('active');
+  const combinedAtom = createAtom(() =>
+    activatorAtom.get() === 'active' ? atom1.get() : {}
+  );
+
+  const vals: any[] = [];
+
+  combinedAtom.subscribe((val) => {
+    vals.push(val);
+  });
+
+  expect(vals).toEqual([]);
+
+  atom1.set(false);
+
+  expect(vals).toEqual([false]);
+
+  atom1.set(true);
+
+  expect(vals).toEqual([false, true]);
+
+  activatorAtom.set('inactive');
+
+  // From here, atom1 should no longer be subscribed to
+  // Without the unsubscribe logic, this would be [false, true, {}, {}, ...]
+
+  expect(vals).toEqual([false, true, {}]);
+
+  atom1.set(false);
+
+  expect(vals).toEqual([false, true, {}]);
+
+  atom1.set(true);
+
+  expect(vals).toEqual([false, true, {}]);
+
+  // Subscribing again should cause atom1 to be subscribed again
+
+  activatorAtom.set('active');
+
+  expect(vals).toEqual([false, true, {}, true]);
+
+  atom1.set(false);
+
+  expect(vals).toEqual([false, true, {}, true, false]);
+});
+
+it('handles diamond dependencies with single update', () => {
+  const log = vi.fn();
+  const sourceAtom = createAtom(1);
+
+  const pathA = createAtom(() => sourceAtom.get() * 2);
+  const pathB = createAtom(() => sourceAtom.get() * 3);
+
+  const bottomAtom = createAtom(() => pathA.get() + pathB.get());
+
+  bottomAtom.subscribe((x) => {
+    log(x);
+  });
+
+  // Initial value: (1 * 2) + (1 * 3) = 5
+  expect(bottomAtom.get()).toBe(5);
+  expect(log).toHaveBeenCalledTimes(0);
+
+  // Update source: (2 * 2) + (2 * 3) = 10
+  sourceAtom.set(2);
+
+  const result = bottomAtom.get();
+
+  expect(result).toBe(10);
+
+  // Without proper diamond problem handling, log might be called multiple times
+  // as the update propagates through both paths
+  expect(log).toHaveBeenCalledTimes(1);
+  expect(log).toHaveBeenCalledWith(10);
+});
+
+it('handles complex diamond dependencies correctly', () => {
+  const log = vi.fn();
+
+  // Base atom D
+  const atomD = createAtom(1);
+
+  // Level 1 - C depends on D
+  const atomC = createAtom(() => atomD.get() * 2);
+
+  // Level 2 - B depends on C and D
+  const atomB = createAtom(() => atomC.get() + atomD.get());
+
+  // Level 3 - A depends on B, C, and D
+  const atomA = createAtom(() => atomB.get() + atomC.get() + atomD.get());
+
+  atomA.subscribe(log);
+
+  // Initial computation:
+  // D = 1
+  // C = D * 2 = 2
+  // B = C + D = 3
+  // A = B + C + D = 6
+  expect(atomA.get()).toBe(6);
+  expect(log).toHaveBeenCalledTimes(0);
+
+  // Update base atom D
+  atomD.set(2);
+
+  // After update:
+  // D = 2
+  // C = D * 2 = 4
+  // B = C + D = 6
+  // A = B + C + D = 12
+  expect(atomA.get()).toBe(12);
+
+  // Should only trigger one update despite multiple dependency paths
+  expect(log).toHaveBeenCalledTimes(1);
+  expect(log).toHaveBeenCalledWith(12);
+
+  // Verify intermediate values
+  expect(atomB.get()).toBe(6);
+  expect(atomC.get()).toBe(4);
+  expect(atomD.get()).toBe(2);
+});
+
+it('supports custom equality functions through compare option', () => {
+  const log = vi.fn();
+
+  const coordAtom = createAtom(
+    { x: 0, y: 0 },
+    {
+      compare: (prev, next) => prev.x === next.x && prev.y === next.y
+    }
+  );
+
+  coordAtom.subscribe(log);
+
+  // Initial value
+  expect(coordAtom.get()).toEqual({ x: 0, y: 0 });
+  expect(log).not.toHaveBeenCalled();
+
+  // Setting same values shouldn't trigger update
+  coordAtom.set({ x: 0, y: 0 });
+  expect(log).not.toHaveBeenCalled();
+
+  // Different x value should trigger update
+  coordAtom.set({ x: 1, y: 0 });
+  expect(log).toHaveBeenCalledTimes(1);
+  expect(log).toHaveBeenCalledWith({ x: 1, y: 0 });
+
+  // Different y value should trigger update
+  coordAtom.set({ x: 1, y: 2 });
+  expect(log).toHaveBeenCalledTimes(2);
+  expect(log).toHaveBeenLastCalledWith({ x: 1, y: 2 });
+
+  // Setting same values should not trigger update
+  coordAtom.set({ x: 1, y: 2 });
+  expect(log).toHaveBeenCalledTimes(2);
+});
+
+it('uses Object.is as default equality function', () => {
+  const log = vi.fn();
+  const objAtom = createAtom({ value: 0 });
+
+  objAtom.subscribe(log);
+
+  // Initial value
+  expect(objAtom.get()).toEqual({ value: 0 });
+  expect(log).not.toHaveBeenCalled();
+
+  // Setting with same shape but new object should trigger update
+  objAtom.set({ value: 0 });
+  expect(log).toHaveBeenCalledTimes(1);
+
+  // Setting with same object reference shouldn't trigger update
+  const obj = { value: 1 };
+  objAtom.set(obj);
+  expect(log).toHaveBeenCalledTimes(2);
+  objAtom.set(obj);
+  expect(log).toHaveBeenCalledTimes(2);
+});
+
+it('Atom-specific properties should not be exposed', () => {
+  const atom = createAtom(0);
+
+  // @ts-expect-error
+  atom._subs;
+  // @ts-expect-error
+  atom._subsTail;
+  // @ts-expect-error
+  atom._snapshot;
+  // @ts-expect-error
+  atom._flags;
+  // @ts-expect-error
+  atom._deps;
+  // @ts-expect-error
+  atom._depsTail;
+
+  const computed = createAtom(() => atom.get());
+
+  // @ts-expect-error
+  computed._subs;
+  // @ts-expect-error
+  computed._subsTail;
+  // @ts-expect-error
+  computed._snapshot;
+  // @ts-expect-error
+  computed._flags;
+  // @ts-expect-error
+  computed._deps;
+  // @ts-expect-error
+  computed._depsTail;
+
+  const store = createStore({
+    context: {},
+    on: {}
+  });
+
+  // @ts-expect-error
+  store._subs;
+  // @ts-expect-error
+  store._subsTail;
+  // @ts-expect-error
+  store._snapshot;
+  // @ts-expect-error
+  store._flags;
+  // @ts-expect-error
+  store._deps;
+  // @ts-expect-error
+  store._depsTail;
+});
+
+it('computed atoms can use their previous value in the getter', () => {
+  const count = createAtom(1);
+  const accumulated = createAtom<number>(
+    (_, prev) => count.get() + (prev ?? 0)
+  );
+
+  expect(accumulated.get()).toBe(1); // 0 + 1 = 1
+
+  count.set(2);
+  expect(accumulated.get()).toBe(3); // 1 + 2 = 3
+
+  count.set(3);
+  expect(accumulated.get()).toBe(6); // 3 + 3 = 6
+});
+
+describe('async atoms', () => {
+  it('async atoms should work (fulfilled)', async () => {
+    const atom = createAsyncAtom(async () => 'hello');
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(atom.get()).toEqual({ status: 'done', data: 'hello' });
+  });
+
+  it('async atoms should work (rejected)', async () => {
+    const atom = createAsyncAtom(async () => {
+      throw new Error('test');
+    });
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(atom.get()).toEqual({
+      status: 'error',
+      error: expect.any(Error)
+    });
+  });
+
+  it('should only call getValue once for multiple concurrent reads', async () => {
+    let getValueCallCount = 0;
+    const RESOLVED_VALUE = 'test-value';
+
+    const myAsyncAtom = createAsyncAtom(async () => {
+      getValueCallCount++;
+      return RESOLVED_VALUE;
+    });
+
+    // Initial reads should show pending status
+    expect(myAsyncAtom.get()).toEqual({ status: 'pending' });
+    expect(myAsyncAtom.get()).toEqual({ status: 'pending' });
+
+    // Let the promise resolve
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // Both reads should now show the resolved value
+    expect(myAsyncAtom.get()).toEqual({
+      status: 'done',
+      data: RESOLVED_VALUE
+    });
+    expect(myAsyncAtom.get()).toEqual({
+      status: 'done',
+      data: RESOLVED_VALUE
+    });
+
+    // getValue should have only been called once
+    expect(getValueCallCount).toBe(1);
+
+    // Additional reads after resolution should still use cached value
+    expect(myAsyncAtom.get()).toEqual({
+      status: 'done',
+      data: RESOLVED_VALUE
+    });
+    expect(getValueCallCount).toBe(1);
+  });
+
+  it('should only call getValue once even when error occurs', async () => {
+    let getValueCallCount = 0;
+    const ERROR_MESSAGE = 'test error';
+
+    const myAsyncAtom = createAsyncAtom(async () => {
+      getValueCallCount++;
+      throw new Error(ERROR_MESSAGE);
+    });
+
+    // Initial reads should show pending status
+    expect(myAsyncAtom.get()).toEqual({ status: 'pending' });
+    expect(myAsyncAtom.get()).toEqual({ status: 'pending' });
+
+    // Let the promise reject
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // Both reads should now show the error
+    expect(myAsyncAtom.get()).toEqual({
+      status: 'error',
+      error: expect.any(Error)
+    });
+    expect(myAsyncAtom.get()).toEqual({
+      status: 'error',
+      error: expect.any(Error)
+    });
+
+    // getValue should have only been called once
+    expect(getValueCallCount).toBe(1);
+
+    // Additional reads after rejection should still use cached error
+    expect(myAsyncAtom.get()).toEqual({
+      status: 'error',
+      error: expect.any(Error)
+    });
+    expect(getValueCallCount).toBe(1);
+  });
+
+  it('async atoms should not have a .set() method', () => {
+    const atom = createAsyncAtom(async () => 'hello');
+
+    expect('set' in atom).toBe(false);
+  });
+
+  it('should notify subscribers when async operation completes successfully', async () => {
+    const log = vi.fn();
+    const atom = createAsyncAtom(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return 'test-value';
+    });
+
+    atom.subscribe(log);
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+    expect(log).not.toHaveBeenCalled();
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(log).toHaveBeenCalledWith({ status: 'done', data: 'test-value' });
+    expect(atom.get()).toEqual({ status: 'done', data: 'test-value' });
+  });
+
+  it('should notify subscribers when async operation fails', async () => {
+    const log = vi.fn();
+    const error = new Error('test error');
+    const atom = createAsyncAtom(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      throw error;
+    });
+
+    atom.subscribe(log);
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+    expect(log).not.toHaveBeenCalled();
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(log).toHaveBeenCalledWith({ status: 'error', error });
+    expect(atom.get()).toEqual({ status: 'error', error });
+  });
+
+  it('should notify multiple subscribers when async operation completes', async () => {
+    const log1 = vi.fn();
+    const log2 = vi.fn();
+    const atom = createAsyncAtom(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return 'multi-test';
+    });
+
+    atom.subscribe(log1);
+    atom.subscribe(log2);
+
+    expect(atom.get()).toEqual({ status: 'pending' });
+    expect(log1).not.toHaveBeenCalled();
+    expect(log2).not.toHaveBeenCalled();
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(log1).toHaveBeenCalledTimes(1);
+    expect(log1).toHaveBeenCalledWith({ status: 'done', data: 'multi-test' });
+    expect(log2).toHaveBeenCalledTimes(1);
+    expect(log2).toHaveBeenCalledWith({ status: 'done', data: 'multi-test' });
+  });
+});
+</file>
+
+<file path="packages/xstate-store/test/fromStore.test.ts">
+import { createActor } from 'xstate';
+import { fromStore } from '../src/index.ts';
+
+describe('fromStore', () => {
+  it('creates an actor from store logic with input', () => {
+    const storeLogic = fromStore({
+      context: (count: number) => ({ count }),
+      on: {
+        inc: (ctx, ev: { by: number }) => {
+          return {
+            ...ctx,
+            count: ctx.count + ev.by
+          };
+        }
+      }
+    });
+
+    const actor = createActor(storeLogic, {
+      input: 42
+    });
+
+    actor.start();
+
+    actor.send({ type: 'inc', by: 8 });
+
+    expect(actor.getSnapshot().context.count).toEqual(50);
+  });
+
+  it('emits events', () => {
+    const spy = vi.fn();
+
+    const storeLogic = fromStore({
+      context: (count: number) => ({ count }),
+      emits: {
+        increased: (_: { upBy: number }) => {}
+      },
+      on: {
+        inc: (ctx, ev: { by: number }, enq) => {
+          enq.emit.increased({ upBy: ev.by });
+          return {
+            ...ctx,
+            count: ctx.count + ev.by
+          };
+        }
+      }
+    });
+
+    const actor = createActor(storeLogic, {
+      input: 42
+    });
+
+    actor.on('increased', spy);
+
+    actor.start();
+
+    actor.send({ type: 'inc', by: 8 });
+
+    expect(actor.getSnapshot().context.count).toEqual(50);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith({ type: 'increased', upBy: 8 });
+  });
+});
+</file>
+
+<file path="packages/xstate-store/test/package.json">
+{
+  "type": "module"
+}
+</file>
+
+<file path="packages/xstate-store/test/react.test.tsx">
+import { fireEvent, screen, render, act } from '@testing-library/react';
+import {
+  createStore,
+  fromStore,
+  createStoreConfig,
+  createAtom,
+  AnyStore
+} from '../src/index.ts';
+import {
+  useSelector,
+  useStore,
+  useAtom,
+  createStoreHook
+} from '../src/react.ts';
+import {
+  useActor,
+  useActorRef,
+  useSelector as useXStateSelector
+} from '@xstate/react';
+import ReactDOM from 'react-dom';
+import { vi } from 'vitest';
+
+describe('useSelector', () => {
+  it('useSelector should work with a selector', () => {
+    const store = createStore({
+      context: {
+        count: 0
+      },
+      on: {
+        inc: (ctx) => ({
+          ...ctx,
+          count: ctx.count + 1
+        })
+      }
+    });
+
+    const Counter = () => {
+      const count = useSelector(store, (s) => s.context.count);
+
+      return (
+        <div
+          data-testid="count"
+          onClick={() => {
+            store.send({ type: 'inc' });
+          }}
+        >
+          {count}
+        </div>
+      );
+    };
+
+    render(<Counter />);
+
+    const countDiv = screen.getByTestId('count');
+
+    expect(countDiv.textContent).toEqual('0');
+
+    fireEvent.click(countDiv);
+
+    expect(countDiv.textContent).toEqual('1');
+  });
+
+  it('useSelector should work with the entire snapshot when the selector is not provided', () => {
+    const store = createStore({
+      context: {
+        count: 0
+      },
+      on: {}
+    });
+
+    const Counter = () => {
+      const snapshot = useSelector(store);
+
+      snapshot.context.count satisfies number;
+
+      // @ts-expect-error
+      snapshot.context.count satisfies string;
+
+      return <div data-testid="count">{snapshot.context.count}</div>;
+    };
+
+    render(<Counter />);
+  });
+
+  it('useSelector should work with the entire snapshot and compare when the selector is undefined', () => {
+    const store = createStore({
+      context: {
+        user: { name: 'David', count: 100 }
+      },
+      on: {
+        setUser: (ctx, event: { name: string; count: number }) => ({
+          ...ctx,
+          user: { ...ctx.user, name: event.name, count: event.count }
+        })
+      }
+    });
+
+    const User = () => {
+      const snapshot = useSelector(
+        store,
+        undefined,
+        (a, b) => a.context.user.name === b.context.user.name
+      );
+
+      return (
+        <>
+          <button
+            data-testid="changeUser"
+            onClick={() =>
+              store.send({ type: 'setUser', name: 'John', count: 200 })
+            }
+          >
+            Change User
+          </button>
+          <div
+            data-testid="name"
+            onClick={() =>
+              store.send({ type: 'setUser', name: 'David', count: 200 })
+            }
+          >
+            {snapshot.context.user.name}
+          </div>
+          <div data-testid="count">{snapshot.context.user.count}</div>
+        </>
+      );
+    };
+
+    render(<User />);
+
+    expect(screen.getByTestId('name').textContent).toBe('David');
+
+    expect(screen.getByTestId('count').textContent).toBe('100');
+
+    fireEvent.click(screen.getByTestId('name'));
+
+    expect(screen.getByTestId('name').textContent).toBe('David');
+
+    // unchanged due to comparison function
+    expect(screen.getByTestId('count').textContent).toBe('100');
+
+    fireEvent.click(screen.getByTestId('changeUser'));
+
+    expect(screen.getByTestId('name').textContent).toBe('John');
+
+    expect(screen.getByTestId('count').textContent).toBe('200');
+  });
+
+  it('useSelector can take in a custom comparator', () => {
+    const store = createStore({
+      context: {
+        items: [1, 2]
+      },
+      on: {
+        same: (ctx) => ({
+          ...ctx,
+          items: [1, 2] // different array, same items
+        }),
+        different: (ctx) => ({
+          ...ctx,
+          items: [3, 4]
+        })
+      }
+    });
+
+    let renderCount = 0;
+    const Items = () => {
+      renderCount++;
+      const items = useSelector(
+        store,
+        (s) => s.context.items,
+        (a, b) => JSON.stringify(a) === JSON.stringify(b)
+      );
+
+      return (
+        <>
+          <div
+            data-testid="items"
+            onClick={() => {
+              store.send({ type: 'same' });
+            }}
+          >
+            {items.join(',')}
+          </div>
+          <button
+            data-testid="different"
+            onClick={() => {
+              store.send({ type: 'different' });
+            }}
+          ></button>
+        </>
+      );
+    };
+
+    render(<Items />);
+
+    const itemsDiv = screen.getByTestId('items');
+
+    expect(itemsDiv.textContent).toEqual('1,2');
+
+    expect(renderCount).toBe(1);
+
+    fireEvent.click(itemsDiv);
+
+    expect(itemsDiv.textContent).toEqual('1,2');
+
+    expect(renderCount).toBe(1);
+
+    fireEvent.click(screen.getByTestId('different'));
+
+    expect(itemsDiv.textContent).toEqual('3,4');
+
+    expect(renderCount).toBe(2);
+  });
+
+  it('can batch updates', () => {
+    const store = createStore({
+      context: {
+        count: 0
+      },
+      on: {
+        inc: (ctx) => ({
+          ...ctx,
+          count: ctx.count + 1
+        })
+      }
+    });
+
+    const Counter = () => {
+      const count = useSelector(store, (s) => s.context.count);
+
+      return (
+        <div
+          data-testid="count"
+          onClick={() => {
+            ReactDOM.unstable_batchedUpdates(() => {
+              store.send({ type: 'inc' });
+              store.send({ type: 'inc' });
+            });
+          }}
+        >
+          {count}
+        </div>
+      );
+    };
+
+    render(<Counter />);
+
+    const countDiv = screen.getByTestId('count');
+
+    expect(countDiv.textContent).toEqual('0');
+
+    fireEvent.click(countDiv);
+
+    expect(countDiv.textContent).toEqual('2');
+  });
+
+  it('useSelector should work with atoms', () => {
+    const atom = createAtom(0);
+
+    const Counter = () => {
+      const count = useSelector(atom, (s) => s);
+
+      count satisfies number;
+
+      // @ts-expect-error
+      count satisfies string;
+
+      return (
+        <div data-testid="count" onClick={() => atom.set((prev) => prev + 1)}>
+          {count}
+        </div>
+      );
+    };
+
+    render(<Counter />);
+
+    expect(screen.getByTestId('count').textContent).toEqual('0');
+
+    fireEvent.click(screen.getByTestId('count'));
+
+    expect(screen.getByTestId('count').textContent).toEqual('1');
+  });
+});
+
+describe('XState React hooks', () => {
+  it('useSelector (@xstate/react) should work with stores', () => {
+    const store = createStore({
+      context: {
+        count: 0
+      },
+      on: {
+        inc: (ctx) => ({
+          ...ctx,
+          count: ctx.count + 1
+        })
+      }
+    });
+
+    const Counter = () => {
+      const count = useXStateSelector(store, (s) => s.context.count);
+
+      return (
+        <div
+          data-testid="count"
+          onClick={() => {
+            store.send({ type: 'inc' });
+          }}
+        >
+          {count}
+        </div>
+      );
+    };
+
+    render(<Counter />);
+
+    const countDiv = screen.getByTestId('count');
+
+    expect(countDiv.textContent).toEqual('0');
+
+    fireEvent.click(countDiv);
+
+    expect(countDiv.textContent).toEqual('1');
+  });
+
+  it('useActor (@xstate/react) should work', () => {
+    const store = fromStore({
+      context: {
+        count: 0
+      },
+      on: {
+        inc: (ctx) => ({
+          ...ctx,
+          count: ctx.count + 1
+        })
+      }
+    });
+
+    const Counter = () => {
+      const [snapshot, send] = useActor(store);
+
+      return (
+        <div
+          data-testid="count"
+          onClick={() => {
+            send({ type: 'inc' });
+          }}
+        >
+          {snapshot.context.count}
+        </div>
+      );
+    };
+
+    render(<Counter />);
+
+    const countDiv = screen.getByTestId('count');
+
+    expect(countDiv.textContent).toEqual('0');
+
+    fireEvent.click(countDiv);
+
+    expect(countDiv.textContent).toEqual('1');
+  });
+
+  it('useActorRef (@xstate/react) should work', () => {
+    const store = fromStore({
+      context: {
+        count: 0
+      },
+      on: {
+        inc: (ctx) => ({
+          ...ctx,
+          count: ctx.count + 1
+        })
+      }
+    });
+
+    const Counter = () => {
+      const actorRef = useActorRef(store);
+      const count = useXStateSelector(actorRef, (s) => s.context.count);
+
+      return (
+        <div
+          data-testid="count"
+          onClick={() => {
+            actorRef.send({ type: 'inc' });
+          }}
+        >
+          {count}
+        </div>
+      );
+    };
+
+    render(<Counter />);
+
+    const countDiv = screen.getByTestId('count');
+
+    expect(countDiv.textContent).toEqual('0');
+
+    fireEvent.click(countDiv);
+
+    expect(countDiv.textContent).toEqual('1');
+  });
+});
+
+describe('useStore', () => {
+  it('should create and maintain a stable store reference', () => {
+    let storeRefs: any[] = [];
+
+    const Counter = () => {
+      const store = useStore({
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({
+            ...ctx,
+            count: ctx.count + 1
+          })
+        }
+      });
+
+      storeRefs.push(store);
+      const count = useSelector(store, (s) => s.context.count);
+
+      return (
+        <div
+          data-testid="count"
+          onClick={() => {
+            store.send({ type: 'inc' });
+          }}
+        >
+          {count}
+        </div>
+      );
+    };
+
+    render(<Counter />);
+    const countDiv = screen.getByTestId('count');
+
+    // Initial render
+    expect(countDiv.textContent).toBe('0');
+
+    // Store reference should be stable across renders
+    const initialStoreRef = storeRefs[0];
+    fireEvent.click(countDiv);
+    expect(countDiv.textContent).toBe('1');
+    expect(storeRefs.every((ref) => ref === initialStoreRef)).toBe(true);
+  });
+
+  it('should handle emitted events', () => {
+    const onEmit = vi.fn();
+
+    const Counter = () => {
+      const store = useStore({
+        context: { count: 0 },
+        emits: {
+          countChanged: (payload: { newCount: number }) => {
+            onEmit(payload);
+          }
+        },
+        on: {
+          inc: (ctx, _, enq) => {
+            const newCount = ctx.count + 1;
+            enq.emit.countChanged({ newCount });
+            return {
+              ...ctx,
+              count: newCount
+            };
+          }
+        }
+      });
+
+      const count = useSelector(store, (s) => s.context.count);
+
+      return (
+        <div
+          data-testid="count"
+          onClick={() => {
+            store.send({ type: 'inc' });
+          }}
+        >
+          {count}
+        </div>
+      );
+    };
+
+    render(<Counter />);
+    const countDiv = screen.getByTestId('count');
+
+    fireEvent.click(countDiv);
+    expect(onEmit).toHaveBeenCalledWith({ type: 'countChanged', newCount: 1 });
+  });
+
+  it('should work with multiple components using the same store config', () => {
+    const storeConfig = createStoreConfig({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({
+          ...ctx,
+          count: ctx.count + 1
+        })
+      }
+    });
+
+    const Counter = () => {
+      const store = useStore(storeConfig);
+      const count = useSelector(store, (s) => s.context.count);
+
+      return (
+        <div
+          data-testid="count"
+          onClick={() => {
+            store.send({ type: 'inc' });
+          }}
+        >
+          {count}
+        </div>
+      );
+    };
+
+    // Render two separate counter components
+    render(
+      <>
+        <Counter />
+        <Counter />
+      </>
+    );
+
+    const countDivs = screen.getAllByTestId('count');
+
+    // Each counter should have its own independent store
+    expect(countDivs[0].textContent).toBe('0');
+    expect(countDivs[1].textContent).toBe('0');
+
+    fireEvent.click(countDivs[0]);
+    expect(countDivs[0].textContent).toBe('1');
+    expect(countDivs[1].textContent).toBe('0');
+  });
+});
+
+describe('atom examples', () => {
+  it('first atom example', () => {
+    const counter = createAtom(0);
+
+    const Counter = () => {
+      const count = useSelector(counter, (s) => s);
+
+      // Type checking
+      count satisfies number;
+
+      return (
+        <div>
+          <h1 data-testid="count">{count}</h1>
+          <button
+            data-testid="increment"
+            onClick={() => counter.set((prev) => prev + 1)}
+          >
+            Click
+          </button>
+        </div>
+      );
+    };
+
+    render(<Counter />);
+
+    const countDisplay = screen.getByTestId('count');
+    const button = screen.getByTestId('increment');
+
+    // Initial state
+    expect(countDisplay.textContent).toBe('0');
+
+    // After one click
+    fireEvent.click(button);
+    expect(countDisplay.textContent).toBe('1');
+
+    // After another click
+    fireEvent.click(button);
+    expect(countDisplay.textContent).toBe('2');
+  });
+
+  it('theme switcher example', () => {
+    const theme = createAtom('light');
+
+    const ThemeSwitcher = () => {
+      const currentTheme = useSelector(theme, (s) => s);
+
+      // Type checking
+      currentTheme satisfies string;
+
+      return (
+        <div data-testid="themed-div" className={currentTheme}>
+          <h1>This is a theme switcher</h1>
+          <button
+            data-testid="theme-button"
+            onClick={() =>
+              theme.set(currentTheme === 'light' ? 'dark' : 'light')
+            }
+          >
+            {currentTheme === 'light' ? 'DARK' : 'LIGHT'}
+          </button>
+        </div>
+      );
+    };
+
+    render(<ThemeSwitcher />);
+
+    const button = screen.getByTestId('theme-button');
+    const themedDiv = screen.getByTestId('themed-div');
+
+    // Initial state
+    expect(button.textContent).toBe('DARK');
+    expect(themedDiv.className).toBe('light');
+
+    // After click
+    fireEvent.click(button);
+    expect(button.textContent).toBe('LIGHT');
+    expect(themedDiv.className).toBe('dark');
+
+    // Back to light
+    fireEvent.click(button);
+    expect(button.textContent).toBe('DARK');
+    expect(themedDiv.className).toBe('light');
+  });
+
+  it('read only atoms example', () => {
+    const textAtom = createAtom('readonly atoms');
+    const uppercaseAtom = createAtom((get) => get(textAtom).toUpperCase());
+
+    const DerivedAtomDemo = () => {
+      const text = useSelector(textAtom, (s) => s);
+      const uppercaseText = useSelector(uppercaseAtom, (s) => s);
+
+      // Type checking
+      text satisfies string;
+      uppercaseText satisfies string;
+
+      return (
+        <div className="app">
+          <input
+            data-testid="text-input"
+            value={text}
+            onChange={(e) => textAtom.set(e.target.value)}
+          />
+          <h1 data-testid="uppercase-text">{uppercaseText}</h1>
+        </div>
+      );
+    };
+
+    render(<DerivedAtomDemo />);
+
+    const input = screen.getByTestId('text-input');
+    const uppercaseDisplay = screen.getByTestId('uppercase-text');
+
+    // Initial state
+    expect((input as HTMLInputElement).value).toBe('readonly atoms');
+    expect(uppercaseDisplay.textContent).toBe('READONLY ATOMS');
+
+    // Update input
+    fireEvent.change(input, { target: { value: 'hello world' } });
+    expect((input as HTMLInputElement).value).toBe('hello world');
+    expect(uppercaseDisplay.textContent).toBe('HELLO WORLD');
+
+    // Another update
+    fireEvent.change(input, { target: { value: 'testing' } });
+    expect((input as HTMLInputElement).value).toBe('testing');
+    expect(uppercaseDisplay.textContent).toBe('TESTING');
+  });
+
+  it('write only atoms example', () => {
+    const dotsAtom = createAtom<[number, number][]>([]);
+    const drawingAtom = createAtom(false);
+
+    const handleMouseDown = () => {
+      drawingAtom.set(true);
+    };
+
+    const handleMouseUp = () => {
+      drawingAtom.set(false);
+    };
+
+    const handleMouseMove = (point: [number, number]) => {
+      const isDrawing = drawingAtom.get();
+      if (isDrawing) {
+        dotsAtom.set((prev) => [...prev, point]);
+      }
+    };
+
+    const SvgDots = () => {
+      const dots = useSelector(dotsAtom, (s) => s);
+
+      // Type checking
+      dots satisfies [number, number][];
+
+      return (
+        <g data-testid="dots-group">
+          {dots.map(([x, y], index) => (
+            <circle
+              data-testid={`dot-${index}`}
+              cx={x}
+              cy={y}
+              r="2"
+              fill="#aaa"
+              key={index}
+            />
+          ))}
+        </g>
+      );
+    };
+
+    const SvgRoot = () => {
+      return (
+        <svg
+          data-testid="svg-root"
+          width="100"
+          height="100"
+          viewBox="0 0 100 100"
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onMouseMove={(e) => {
+            handleMouseMove([e.clientX, e.clientY]);
+          }}
+        >
+          <rect width="100" height="100" fill="#eee" />
+          <SvgDots />
+        </svg>
+      );
+    };
+
+    render(<SvgRoot />);
+
+    const svg = screen.getByTestId('svg-root');
+    const dotsGroup = screen.getByTestId('dots-group');
+
+    // Initially no dots
+    expect(dotsGroup.children.length).toBe(0);
+
+    // Simulate drawing action
+    fireEvent.mouseDown(svg);
+    fireEvent.mouseMove(svg, { clientX: 10, clientY: 20 });
+    fireEvent.mouseMove(svg, { clientX: 30, clientY: 40 });
+    fireEvent.mouseUp(svg);
+
+    // Should have created two dots
+    expect(dotsGroup.children.length).toBe(2);
+
+    // Verify dot positions
+    const firstDot = screen.getByTestId('dot-0');
+    const secondDot = screen.getByTestId('dot-1');
+    expect(firstDot.getAttribute('cx')).toBe('10');
+    expect(firstDot.getAttribute('cy')).toBe('20');
+    expect(secondDot.getAttribute('cx')).toBe('30');
+    expect(secondDot.getAttribute('cy')).toBe('40');
+
+    // Moving without mouse down shouldn't create dots
+    fireEvent.mouseMove(svg, { clientX: 50, clientY: 60 });
+    expect(dotsGroup.children.length).toBe(2);
+  });
+});
+
+describe('store examples', () => {
+  it('drawing example with store', () => {
+    type Point = [number, number];
+    type Status = 'idle' | 'drawing';
+
+    const drawingStore = createStore({
+      context: {
+        dots: [] as Point[],
+        status: 'idle' as Status
+      },
+      on: {
+        mouseDown: (ctx) => ({
+          ...ctx,
+          status: 'drawing' as Status
+        }),
+        mouseUp: (ctx) => ({
+          ...ctx,
+          status: 'idle' as Status
+        }),
+        mouseMove: (ctx, e: { point: Point }) => {
+          if (ctx.status !== 'drawing') return ctx;
+          return {
+            ...ctx,
+            dots: [...ctx.dots, e.point]
+          };
+        }
+      }
+    });
+
+    const SvgDots = () => {
+      const dots = useSelector(drawingStore, (s) => s.context.dots);
+
+      return (
+        <g data-testid="dots-group">
+          {dots.map(([x, y], index) => (
+            <circle
+              data-testid={`dot-${index}`}
+              cx={x}
+              cy={y}
+              r="2"
+              fill="#aaa"
+              key={index}
+            />
+          ))}
+        </g>
+      );
+    };
+
+    const SvgRoot = () => {
+      return (
+        <svg
+          data-testid="svg-root"
+          width="100"
+          height="100"
+          viewBox="0 0 100 100"
+          onMouseDown={() => drawingStore.send({ type: 'mouseDown' })}
+          onMouseUp={() => drawingStore.send({ type: 'mouseUp' })}
+          onMouseMove={(e) => {
+            drawingStore.send({
+              type: 'mouseMove',
+              point: [e.clientX, e.clientY]
+            });
+          }}
+        >
+          <rect width="100" height="100" fill="#eee" />
+          <SvgDots />
+        </svg>
+      );
+    };
+
+    render(<SvgRoot />);
+
+    const svg = screen.getByTestId('svg-root');
+    const dotsGroup = screen.getByTestId('dots-group');
+
+    // Initially no dots
+    expect(dotsGroup.children.length).toBe(0);
+
+    // Simulate drawing action
+    fireEvent.mouseDown(svg);
+    fireEvent.mouseMove(svg, { clientX: 10, clientY: 20 });
+    fireEvent.mouseMove(svg, { clientX: 30, clientY: 40 });
+    fireEvent.mouseUp(svg);
+
+    // Should have created two dots
+    expect(dotsGroup.children.length).toBe(2);
+
+    // Verify dot positions
+    const firstDot = screen.getByTestId('dot-0');
+    const secondDot = screen.getByTestId('dot-1');
+    expect(firstDot.getAttribute('cx')).toBe('10');
+    expect(firstDot.getAttribute('cy')).toBe('20');
+    expect(secondDot.getAttribute('cx')).toBe('30');
+    expect(secondDot.getAttribute('cy')).toBe('40');
+
+    // Moving without mouse down shouldn't create dots
+    fireEvent.mouseMove(svg, { clientX: 50, clientY: 60 });
+    expect(dotsGroup.children.length).toBe(2);
+  });
+});
+
+describe('useAtom', () => {
+  it('should return the full atom snapshot when used without selector', () => {
+    const atom = createAtom(0);
+
+    const TestComponent = () => {
+      const count = useAtom(atom);
+      return <div data-testid="value">{count}</div>;
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('value').textContent).toBe('0');
+  });
+
+  it('should return selected value when used with selector', () => {
+    const atom = createAtom({ count: 0, name: 'test' });
+
+    const TestComponent = () => {
+      const count = useAtom(atom, (state) => state.count);
+      return <div data-testid="value">{count}</div>;
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('value').textContent).toBe('0');
+  });
+
+  it('should update when atom value changes', () => {
+    const atom = createAtom({ count: 0 });
+
+    const TestComponent = () => {
+      const snapshot = useAtom(atom);
+      return (
+        <div>
+          <div data-testid="value">{snapshot.count}</div>
+          <button
+            data-testid="increment"
+            onClick={() => atom.set({ count: snapshot.count + 1 })}
+          >
+            Increment
+          </button>
+        </div>
+      );
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('value').textContent).toBe('0');
+
+    act(() => {
+      fireEvent.click(getByTestId('increment'));
+    });
+
+    expect(getByTestId('value').textContent).toBe('1');
+  });
+
+  it('should use custom compare function when provided', () => {
+    const renderCount = vi.fn();
+    const atom = createAtom({ user: { name: 'test', age: 25 } });
+
+    const TestComponent = () => {
+      const userName = useAtom(
+        atom,
+        (state) => state.user.name,
+        (a, b) => a?.toLowerCase() === b?.toLowerCase()
+      );
+
+      renderCount();
+      return <div data-testid="value">{userName}</div>;
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('value').textContent).toBe('test');
+    expect(renderCount).toHaveBeenCalledTimes(1);
+
+    // Update with same value but different case - should not trigger re-render
+    act(() => {
+      atom.set({ user: { name: 'TEST', age: 25 } });
+    });
+
+    expect(renderCount).toHaveBeenCalledTimes(1);
+    expect(getByTestId('value').textContent).toBe('test');
+
+    // Update with actually different value - should trigger re-render
+    act(() => {
+      atom.set({ user: { name: 'john', age: 25 } });
+    });
+
+    expect(renderCount).toHaveBeenCalledTimes(2);
+    expect(getByTestId('value').textContent).toBe('john');
+  });
+
+  it('should handle undefined values correctly', () => {
+    const atom = createAtom<{ value: string | undefined }>({
+      value: undefined
+    });
+
+    const TestComponent = () => {
+      const value = useAtom(atom, (state) => state.value);
+      return <div data-testid="value">{value ?? 'empty'}</div>;
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('value').textContent).toBe('empty');
+
+    act(() => {
+      atom.set({ value: 'defined' });
+    });
+
+    expect(getByTestId('value').textContent).toBe('defined');
+
+    act(() => {
+      atom.set({ value: undefined });
+    });
+
+    expect(getByTestId('value').textContent).toBe('empty');
+  });
+
+  it('should work with updater functions', () => {
+    const atom = createAtom(0);
+
+    const TestComponent = () => {
+      const count = useAtom(atom);
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <button
+            data-testid="increment"
+            onClick={() => atom.set((c) => c + 1)}
+          >
+            Increment
+          </button>
+        </div>
+      );
+    };
+
+    const { getByTestId } = render(<TestComponent />);
+    expect(getByTestId('count').textContent).toBe('0');
+
+    act(() => {
+      fireEvent.click(getByTestId('increment'));
+    });
+    expect(getByTestId('count').textContent).toBe('1');
+
+    act(() => {
+      fireEvent.click(getByTestId('increment'));
+    });
+    expect(getByTestId('count').textContent).toBe('2');
+  });
+
+  // https://github.com/statelyai/xstate/issues/5306
+  it('should work with readonly atoms', () => {
+    const booleanTestAtom = createAtom(() => 13 > 12);
+
+    const TestComponent = () => {
+      const booleanValue = useAtom(booleanTestAtom);
+
+      booleanValue satisfies boolean;
+
+      // @ts-expect-error
+      booleanValue satisfies number;
+
+      return <div data-testid="value">{booleanValue.toString()}</div>;
+    };
+
+    render(<TestComponent />);
+    expect(screen.getByTestId('value').textContent).toBe('true');
+  });
+});
+
+describe('createStoreHook', () => {
+  it('should create a hook that returns state and triggers', () => {
+    const useCountStore = createStoreHook({
+      context: { count: 0 },
+      on: {
+        inc: (ctx, event: { by: number }) => ({
+          ...ctx,
+          count: ctx.count + event.by
+        }),
+        reset: (ctx) => ({
+          ...ctx,
+          count: 0
+        })
+      }
+    });
+
+    const Counter = () => {
+      const [count, store] = useCountStore((s) => s.context.count);
+
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <button
+            data-testid="increment"
+            onClick={() => store.trigger.inc({ by: 1 })}
+          >
+            +1
+          </button>
+          <button
+            data-testid="increment-5"
+            onClick={() => store.trigger.inc({ by: 5 })}
+          >
+            +5
+          </button>
+          <button data-testid="reset" onClick={() => store.trigger.reset()}>
+            Reset
+          </button>
+        </div>
+      );
+    };
+
+    render(<Counter />);
+
+    const countDisplay = screen.getByTestId('count');
+    const incrementBtn = screen.getByTestId('increment');
+    const increment5Btn = screen.getByTestId('increment-5');
+    const resetBtn = screen.getByTestId('reset');
+
+    // Initial state
+    expect(countDisplay.textContent).toBe('0');
+
+    // Increment by 1
+    fireEvent.click(incrementBtn);
+    expect(countDisplay.textContent).toBe('1');
+
+    // Increment by 5
+    fireEvent.click(increment5Btn);
+    expect(countDisplay.textContent).toBe('6');
+
+    // Reset
+    fireEvent.click(resetBtn);
+    expect(countDisplay.textContent).toBe('0');
+  });
+
+  it('should work without selector (return full snapshot)', () => {
+    const useFullStore = createStoreHook({
+      context: { count: 0, name: 'Test' },
+      on: {
+        inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }),
+        setName: (ctx, event: { name: string }) => ({
+          ...ctx,
+          name: event.name
+        })
+      }
+    });
+
+    const Component = () => {
+      const [snapshot, store] = useFullStore();
+
+      return (
+        <div>
+          <div data-testid="name">{snapshot.context.name}</div>
+          <div data-testid="count">{snapshot.context.count}</div>
+          <div data-testid="status">{snapshot.status}</div>
+          <button onClick={() => store.trigger.inc()}>Increment</button>
+          <input
+            data-testid="name-input"
+            value={snapshot.context.name}
+            onChange={(e) => store.trigger.setName({ name: e.target.value })}
+          />
+        </div>
+      );
+    };
+
+    render(<Component />);
+
+    // Check initial state
+    expect(screen.getByTestId('name').textContent).toBe('Test');
+    expect(screen.getByTestId('count').textContent).toBe('0');
+    expect(screen.getByTestId('status').textContent).toBe('active');
+
+    // Update count
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByTestId('count').textContent).toBe('1');
+
+    // Update name
+    const nameInput = screen.getByTestId('name-input') as HTMLInputElement;
+    fireEvent.change(nameInput, { target: { value: 'Updated' } });
+    expect(screen.getByTestId('name').textContent).toBe('Updated');
+  });
+
+  it('should work with custom comparison function', () => {
+    let renderCount = 0;
+
+    const useOptimizedStore = createStoreHook({
+      context: { count: 0, name: 'Test' },
+      on: {
+        inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }),
+        setName: (ctx, event: { name: string }) => ({
+          ...ctx,
+          name: event.name
+        })
+      }
+    });
+
+    const OptimizedComponent = () => {
+      renderCount++;
+      // Only re-render if count changes (custom comparison)
+      const [count, store] = useOptimizedStore(
+        (s) => s.context.count,
+        (a, b) => a === b
+      );
+
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <button data-testid="inc-count" onClick={() => store.trigger.inc()} />
+          <button
+            data-testid="change-name"
+            onClick={() => store.trigger.setName({ name: 'Changed' })}
+          />
+        </div>
+      );
+    };
+
+    render(<OptimizedComponent />);
+
+    expect(renderCount).toBe(1);
+    expect(screen.getByTestId('count').textContent).toBe('0');
+
+    // Changing name shouldn't trigger re-render since we only select count
+    fireEvent.click(screen.getByTestId('change-name'));
+    expect(renderCount).toBe(1); // No re-render
+
+    // Changing count should trigger re-render
+    fireEvent.click(screen.getByTestId('inc-count'));
+    expect(renderCount).toBe(2);
+    expect(screen.getByTestId('count').textContent).toBe('1');
+  });
+
+  it('should maintain stable store instances across renders', () => {
+    const storeInstances: Set<AnyStore> = new Set();
+
+    const useTestStore = createStoreHook({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ ...ctx, count: ctx.count + 1 })
+      }
+    });
+
+    const Component = () => {
+      const [count, store] = useTestStore((s) => s.context.count);
+
+      // Capture the store object to check stability
+      storeInstances.add(store);
+
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <button onClick={() => store.trigger.inc()}>Increment</button>
+        </div>
+      );
+    };
+
+    render(<Component />);
+
+    // Click to trigger re-render
+    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByRole('button'));
+
+    // All trigger objects should be the same reference (stable)
+    expect(storeInstances.size).toBe(1);
+  });
+
+  it('should handle emitted events', () => {
+    const onEmit = vi.fn();
+
+    const useEmittingStore = createStoreHook({
+      context: { count: 0 },
+      emits: {
+        countChanged: (payload: { newCount: number }) => {
+          onEmit(payload);
+        }
+      },
+      on: {
+        inc: (ctx, _event: { type: 'inc' }, enq) => {
+          const newCount = ctx.count + 1;
+          enq.emit.countChanged({ newCount });
+          return { ...ctx, count: newCount };
+        }
+      }
+    });
+
+    const Component = () => {
+      const [count, store] = useEmittingStore((s) => s.context.count);
+
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          <button onClick={() => store.trigger.inc()} />
+        </div>
+      );
+    };
+
+    render(<Component />);
+
+    fireEvent.click(screen.getByRole('button'));
+
+    expect(onEmit).toHaveBeenCalledWith({ type: 'countChanged', newCount: 1 });
+    expect(screen.getByTestId('count').textContent).toBe('1');
+  });
+
+  it('should work with shared store instance across multiple hook calls', () => {
+    const useCounterStore = createStoreHook({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ ...ctx, count: ctx.count + 1 })
+      }
+    });
+
+    const Counter1 = () => {
+      const [count, store] = useCounterStore((s) => s.context.count);
+      return (
+        <div>
+          <div data-testid="count-1">{count}</div>
+          <button data-testid="inc-1" onClick={() => store.trigger.inc()} />
+        </div>
+      );
+    };
+
+    const Counter2 = () => {
+      const [count, store] = useCounterStore((s) => s.context.count);
+      return (
+        <div>
+          <div data-testid="count-2">{count}</div>
+          <button data-testid="inc-2" onClick={() => store.trigger.inc()} />
+        </div>
+      );
+    };
+
+    render(
+      <>
+        <Counter1 />
+        <Counter2 />
+      </>
+    );
+
+    // Both should start at 0 (shared state)
+    expect(screen.getByTestId('count-1').textContent).toBe('0');
+    expect(screen.getByTestId('count-2').textContent).toBe('0');
+
+    // Increment first counter - both should update since they share the same store
+    fireEvent.click(screen.getByTestId('inc-1'));
+    expect(screen.getByTestId('count-1').textContent).toBe('1');
+    expect(screen.getByTestId('count-2').textContent).toBe('1'); // Should also be 1
+
+    // Increment second counter - both should update since they share the same store
+    fireEvent.click(screen.getByTestId('inc-2'));
+    expect(screen.getByTestId('count-1').textContent).toBe('2'); // Should also be 2
+    expect(screen.getByTestId('count-2').textContent).toBe('2');
+  });
+
+  it('should properly type the trigger object', () => {
+    const useTypedStore = createStoreHook({
+      context: { count: 0, name: 'test' },
+      on: {
+        increment: (ctx, event: { by: number }) => ({
+          ...ctx,
+          count: ctx.count + event.by
+        }),
+        decrement: (ctx, event: { by: number }) => ({
+          ...ctx,
+          count: ctx.count - event.by
+        }),
+        setName: (ctx, event: { name: string }) => ({
+          ...ctx,
+          name: event.name
+        }),
+        reset: (ctx) => ({
+          ...ctx,
+          count: 0
+        })
+      }
+    });
+
+    const TypedComponent = () => {
+      const [state, store] = useTypedStore();
+
+      // Test that triggers have correct types
+      return (
+        <div>
+          <div data-testid="count">{state.context.count}</div>
+          <div data-testid="name">{state.context.name}</div>
+          <button
+            data-testid="increment"
+            onClick={() => store.trigger.increment({ by: 5 })}
+          />
+          <button
+            data-testid="decrement"
+            onClick={() => store.trigger.decrement({ by: 2 })}
+          />
+          <button
+            data-testid="set-name"
+            onClick={() => store.trigger.setName({ name: 'updated' })}
+          />
+          <button data-testid="reset" onClick={() => store.trigger.reset()} />
+        </div>
+      );
+    };
+
+    render(<TypedComponent />);
+
+    expect(screen.getByTestId('count').textContent).toBe('0');
+    expect(screen.getByTestId('name').textContent).toBe('test');
+
+    fireEvent.click(screen.getByTestId('increment'));
+    expect(screen.getByTestId('count').textContent).toBe('5');
+
+    fireEvent.click(screen.getByTestId('decrement'));
+    expect(screen.getByTestId('count').textContent).toBe('3');
+
+    fireEvent.click(screen.getByTestId('set-name'));
+    expect(screen.getByTestId('name').textContent).toBe('updated');
+
+    fireEvent.click(screen.getByTestId('reset'));
+    expect(screen.getByTestId('count').textContent).toBe('0');
+  });
+
+  it('should work with complex state selections', () => {
+    const useComplexStore = createStoreHook({
+      context: {
+        user: { name: 'John', age: 30 },
+        settings: { theme: 'dark', notifications: true },
+        items: [1, 2, 3]
+      },
+      on: {
+        updateUser: (ctx, event: { name?: string; age?: number }) => ({
+          ...ctx,
+          user: { ...ctx.user, ...event }
+        }),
+        addItem: (ctx, event: { item: number }) => ({
+          ...ctx,
+          items: [...ctx.items, event.item]
+        }),
+        toggleTheme: (ctx) => ({
+          ...ctx,
+          settings: {
+            ...ctx.settings,
+            theme: ctx.settings.theme === 'dark' ? 'light' : 'dark'
+          }
+        })
+      }
+    });
+
+    const UserComponent = () => {
+      const [userName, store] = useComplexStore((s) => s.context.user.name);
+
+      return (
+        <div>
+          <div data-testid="user-name">{userName}</div>
+          <button
+            data-testid="update-name"
+            onClick={() => store.trigger.updateUser({ name: 'Jane' })}
+          />
+        </div>
+      );
+    };
+
+    const ThemeComponent = () => {
+      const [theme, store] = useComplexStore((s) => s.context.settings.theme);
+
+      return (
+        <div>
+          <div data-testid="theme">{theme}</div>
+          <button
+            data-testid="toggle-theme"
+            onClick={() => store.trigger.toggleTheme()}
+          />
+        </div>
+      );
+    };
+
+    const ItemsComponent = () => {
+      const [itemCount, store] = useComplexStore((s) => s.context.items.length);
+
+      return (
+        <div>
+          <div data-testid="item-count">{itemCount}</div>
+          <button
+            data-testid="add-item"
+            onClick={() => store.trigger.addItem({ item: Math.random() })}
+          />
+        </div>
+      );
+    };
+
+    render(
+      <>
+        <UserComponent />
+        <ThemeComponent />
+        <ItemsComponent />
+      </>
+    );
+
+    // Initial state
+    expect(screen.getByTestId('user-name').textContent).toBe('John');
+    expect(screen.getByTestId('theme').textContent).toBe('dark');
+    expect(screen.getByTestId('item-count').textContent).toBe('3');
+
+    // Update user name
+    fireEvent.click(screen.getByTestId('update-name'));
+    expect(screen.getByTestId('user-name').textContent).toBe('Jane');
+
+    // Toggle theme
+    fireEvent.click(screen.getByTestId('toggle-theme'));
+    expect(screen.getByTestId('theme').textContent).toBe('light');
+
+    // Add item
+    fireEvent.click(screen.getByTestId('add-item'));
+    expect(screen.getByTestId('item-count').textContent).toBe('4');
+  });
+
+  it('trigger methods that do not take args should work when passed directly into event handlers', () => {
+    const useTriggerStore = createStoreHook({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ ...ctx, count: ctx.count + 1 })
+      }
+    });
+
+    const Component = () => {
+      const [count, store] = useTriggerStore((s) => s.context.count);
+      return (
+        <div>
+          <div data-testid="count">{count}</div>
+          {/* Before, event.type would overwrite { type: 'inc' } */}
+          <button onClick={store.trigger.inc} />
+        </div>
+      );
+    };
+
+    render(<Component />);
+
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByTestId('count').textContent).toBe('1');
+  });
+});
+</file>
+
+<file path="packages/xstate-store/test/solid.test.tsx">
+/* @jsxImportSource solid-js */
+import {
+  createRenderEffect,
+  createSignal,
+  type Accessor,
+  type Component
+} from 'solid-js';
+import { fireEvent, render, screen } from '@solidjs/testing-library';
+import { createStore } from '../src/index.ts';
+import { useSelector } from '../src/solid.ts';
+
+/** A function that tracks renders caused by the given accessors changing */
+const useRenderTracker = (...accessors: Accessor<unknown>[]) => {
+  const [renders, setRenders] = createSignal(0);
+
+  createRenderEffect(() => {
+    accessors.forEach((s) => s());
+    setRenders((p) => p + 1);
+  });
+
+  return renders;
+};
+
+/** A commonly reused store for testing selector behaviours. */
+const createCounterStore = () =>
+  createStore({
+    context: { count: 0, other: 0 },
+    on: {
+      increment: (ctx) => ({
+        ...ctx,
+        count: ctx.count + 1
+      }),
+      other: (ctx) => ({
+        ...ctx,
+        other: ctx.other + 1
+      })
+    }
+  });
+
+describe('Solid.js integration', () => {
+  describe('useSelector', () => {
+    // Ensure selectors react and result in renders as expected
+    it('should minimize rerenders', () => {
+      const store = createCounterStore();
+
+      render(() => <Counter store={store} />);
+
+      const counterLabel = screen.getByTestId('counter-label-value');
+      const containerRenders = screen.getByTestId('counter-container-renders');
+      const labelRenders = screen.getByTestId('counter-label-renders');
+      const incrementButton = screen.getByTestId('increment-button');
+      const otherButton = screen.getByTestId('other-button');
+
+      expect(containerRenders.textContent).toBe('1');
+      expect(labelRenders.textContent).toBe('1');
+      expect(counterLabel.textContent).toBe('0');
+
+      fireEvent.click(incrementButton);
+
+      expect(counterLabel.textContent).toBe('1');
+      expect(containerRenders.textContent).toBe('1');
+      expect(labelRenders.textContent).toBe('2');
+
+      fireEvent.click(otherButton);
+      fireEvent.click(otherButton);
+      fireEvent.click(otherButton);
+      fireEvent.click(otherButton);
+
+      expect(labelRenders.textContent).toBe('2');
+
+      fireEvent.click(incrementButton);
+
+      expect(counterLabel.textContent).toBe('2');
+      expect(containerRenders.textContent).toBe('1');
+      expect(labelRenders.textContent).toBe('3');
+    });
+
+    // Validate the expected behaviours of default and custom comparison functions
+    it('can use a custom comparison function', async () => {
+      const INITIAL_ITEMS = [1, 2];
+      const DIFFERENT_ITEMS = [3, 4];
+      const INITIAL_ITEMS_STRING = INITIAL_ITEMS.join(',');
+      const DIFFERENT_ITEMS_STRING = DIFFERENT_ITEMS.join(',');
+
+      const store = createStore({
+        context: { items: INITIAL_ITEMS },
+        on: {
+          same: (ctx) => ({
+            ...ctx,
+            items: [...INITIAL_ITEMS]
+          }),
+          different: (ctx) => ({
+            ...ctx,
+            items: DIFFERENT_ITEMS
+          })
+        }
+      });
+
+      const ItemList: Component<{
+        itemStore: typeof store;
+        name: string;
+        comparison?: (a: number[] | undefined, b: number[]) => boolean;
+      }> = ({ itemStore, name, comparison }) => {
+        const items = useSelector(
+          itemStore,
+          (s) => s.context.items,
+          comparison
+        );
+        const renders = useRenderTracker(items);
+
+        return (
+          <div>
+            <div data-testid={`${name}-selector-renders`}>{renders()}</div>
+            <div data-testid={`${name}-selector-items`}>
+              {items().join(',')}
+            </div>
+          </div>
+        );
+      };
+
+      const Container = () => {
+        return (
+          <>
+            <ItemList itemStore={store} name="default" comparison={undefined} />
+            <ItemList
+              itemStore={store}
+              name="custom"
+              comparison={(a, b) => JSON.stringify(a) === JSON.stringify(b)}
+            />
+
+            <button
+              data-testid="same"
+              onClick={() => {
+                store.send({ type: 'same' });
+              }}
+            >
+              Change
+            </button>
+            <button
+              data-testid="different"
+              onClick={() => {
+                store.send({ type: 'different' });
+              }}
+            >
+              Change
+            </button>
+          </>
+        );
+      };
+
+      render(() => <Container />);
+
+      const defaultRendersDiv = await screen.findByTestId(
+        'default-selector-renders'
+      );
+      const customRendersDiv = await screen.findByTestId(
+        'custom-selector-renders'
+      );
+
+      const defaultItemsDiv = await screen.findByTestId(
+        'default-selector-items'
+      );
+      const customItemsDiv = await screen.findByTestId('custom-selector-items');
+      const differentButton = await screen.findByTestId('different');
+      const sameButton = await screen.findByTestId('same');
+
+      expect(defaultItemsDiv.textContent).toBe(INITIAL_ITEMS_STRING);
+      expect(defaultRendersDiv.textContent).toBe('1');
+
+      expect(customItemsDiv.textContent).toBe(INITIAL_ITEMS_STRING);
+      expect(customRendersDiv.textContent).toBe('1');
+
+      fireEvent.click(sameButton);
+
+      // Expect a rerender for default selector
+      expect(defaultItemsDiv.textContent).toBe(INITIAL_ITEMS_STRING);
+      expect(defaultRendersDiv.textContent).toBe('2');
+
+      // Expect no rerender for custom selector
+      expect(customItemsDiv.textContent).toBe(INITIAL_ITEMS_STRING);
+      expect(defaultRendersDiv.textContent).toBe('2');
+      expect(customRendersDiv.textContent).toBe('1');
+
+      fireEvent.click(differentButton);
+
+      // Expect a rerender for both selectors
+      expect(defaultItemsDiv.textContent).toBe(DIFFERENT_ITEMS_STRING);
+      expect(customItemsDiv.textContent).toBe(DIFFERENT_ITEMS_STRING);
+      expect(defaultRendersDiv.textContent).toBe('3');
+      expect(customRendersDiv.textContent).toBe('2');
+
+      fireEvent.click(sameButton);
+
+      // Expect a rerender for both selectors
+      expect(defaultItemsDiv.textContent).toBe(INITIAL_ITEMS_STRING);
+      expect(customItemsDiv.textContent).toBe(INITIAL_ITEMS_STRING);
+      expect(defaultRendersDiv.textContent).toBe('4');
+      expect(customRendersDiv.textContent).toBe('3');
+
+      // Only default comparison selector should rerender
+      fireEvent.click(sameButton);
+      fireEvent.click(sameButton);
+
+      // Expect only default selector to cause rerenders
+      expect(defaultItemsDiv.textContent).toBe(INITIAL_ITEMS_STRING);
+      expect(customItemsDiv.textContent).toBe(INITIAL_ITEMS_STRING);
+      expect(defaultRendersDiv.textContent).toBe('6');
+      expect(customRendersDiv.textContent).toBe('3');
+    });
+
+    it('should allow batched updates', () => {
+      const store = createCounterStore();
+
+      const BatchCounter = () => {
+        const count = useSelector(store, (s) => s.context.count);
+
+        return (
+          <div
+            data-testid="count"
+            onClick={() => {
+              store.send({ type: 'increment' });
+              store.send({ type: 'increment' });
+            }}
+          >
+            {count()}
+          </div>
+        );
+      };
+
+      render(() => <BatchCounter />);
+
+      const countDiv = screen.getByTestId('count');
+
+      expect(countDiv.textContent).toEqual('0');
+
+      fireEvent.click(countDiv);
+
+      expect(countDiv.textContent).toEqual('2');
+    });
+  });
+});
+
+type CounterStore = ReturnType<typeof createCounterStore>;
+
+// Used to help track renders caused by selector updates
+const CounterLabel: Component<{ store: CounterStore }> = ({ store }) => {
+  const count = useSelector(store, (s) => s.context.count);
+  const renders = useRenderTracker(count);
+
+  return (
+    <>
+      <div data-testid="counter-label-value">{count()}</div>;
+      <div data-testid="counter-label-renders">{renders()}</div>;
+    </>
+  );
+};
+
+const Counter: Component<{ store: CounterStore }> = ({ store }) => {
+  const renders = useRenderTracker();
+
+  return (
+    <div>
+      <div data-testid="counter-container-renders">{renders()}</div>;
+      <CounterLabel store={store} />
+      <button
+        data-testid="other-button"
+        onclick={() => store.send({ type: 'other' })}
+      />
+      <button
+        data-testid="increment-button"
+        onclick={() => store.send({ type: 'increment' })}
+      />
+    </div>
+  );
+};
+</file>
+
+<file path="packages/xstate-store/test/store.test.ts">
+import { produce } from 'immer';
+import {
+  createStore,
+  createStoreConfig,
+  createStoreWithProducer
+} from '../src/index.ts';
+import { createBrowserInspector } from '@statelyai/inspect';
+import {
+  AnyStoreConfig,
+  ContextFromStoreConfig,
+  EventFromStoreConfig
+} from '../src/types.ts';
+
+it('updates a store with an event without mutating original context', () => {
+  const context = { count: 0 };
+  const store = createStore({
+    context,
+    on: {
+      inc: (context, event: { by: number }) => {
+        return {
+          count: context.count + event.by
+        };
+      }
+    }
+  });
+
+  const initial = store.getInitialSnapshot();
+
+  store.send({ type: 'inc', by: 1 });
+
+  const next = store.getSnapshot();
+
+  expect(initial.context).toEqual({ count: 0 });
+  expect(next.context).toEqual({ count: 1 });
+  expect(context.count).toEqual(0);
+});
+
+it('can update context', () => {
+  const store = createStore({
+    context: { count: 0, greeting: 'hello' },
+    on: {
+      inc: (ctx) => ({
+        ...ctx,
+        count: ctx.count + 1
+      }),
+      updateBoth: () => ({
+        count: 42,
+        greeting: 'hi'
+      })
+    }
+  });
+
+  store.send({
+    type: 'inc'
+  });
+  expect(store.getSnapshot().context).toEqual({ count: 1, greeting: 'hello' });
+
+  store.send({
+    type: 'updateBoth'
+  });
+  expect(store.getSnapshot().context).toEqual({ count: 42, greeting: 'hi' });
+});
+
+it('handles unknown events (does not do anything)', () => {
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      inc: (ctx) => ({
+        count: ctx.count + 1
+      })
+    }
+  });
+
+  store.send({
+    // @ts-expect-error
+    type: 'unknown'
+  });
+  expect(store.getSnapshot().context).toEqual({ count: 0 });
+});
+
+it('updates state from sent events', () => {
+  const store = createStore({
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx, ev: { by: number }) => {
+        return {
+          count: ctx.count + ev.by
+        };
+      },
+      dec: (ctx, ev: { by: number }) => {
+        return {
+          count: ctx.count - ev.by
+        };
+      },
+      clear: () => {
+        return {
+          count: 0
+        };
+      }
+    }
+  });
+
+  store.send({ type: 'inc', by: 9 });
+  store.send({ type: 'dec', by: 3 });
+
+  expect(store.getSnapshot().context).toEqual({ count: 6 });
+  store.send({ type: 'clear' });
+
+  expect(store.getSnapshot().context).toEqual({ count: 0 });
+});
+
+it('createStoreWithProducer(…) works with an immer producer', () => {
+  const store = createStoreWithProducer(produce, {
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx, ev: { by: number }) => {
+        ctx.count += ev.by;
+      }
+    }
+  });
+
+  store.send({ type: 'inc', by: 3 });
+  store.send({
+    // @ts-expect-error
+    type: 'whatever'
+  });
+
+  expect(store.getSnapshot().context).toEqual({ count: 3 });
+  expect(store.getInitialSnapshot().context).toEqual({ count: 0 });
+});
+
+it('createStoreWithProducer(…) works with an immer producer (object API)', () => {
+  const store = createStoreWithProducer(produce, {
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx, ev: { by: number }) => {
+        ctx.count += ev.by;
+      }
+    }
+  });
+
+  store.send({ type: 'inc', by: 3 });
+  store.send({
+    // @ts-expect-error
+    type: 'whatever'
+  });
+
+  expect(store.getSnapshot().context).toEqual({ count: 3 });
+  expect(store.getInitialSnapshot().context).toEqual({ count: 0 });
+});
+
+it('createStoreWithProducer(…) infers the context type properly with a producer', () => {
+  const store = createStoreWithProducer(produce, {
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx, ev: { by: number }) => {
+        ctx satisfies { count: number };
+        // @ts-expect-error
+        ctx satisfies { count: string };
+
+        ctx.count += ev.by;
+      }
+    }
+  });
+
+  store.getSnapshot().context satisfies { count: number };
+});
+
+it('can be observed', () => {
+  const store = createStore({
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx) => ({
+        count: ctx.count + 1
+      })
+    }
+  });
+
+  const counts: number[] = [];
+
+  const sub = store.subscribe((s) => counts.push(s.context.count));
+
+  expect(counts).toEqual([]);
+
+  store.send({ type: 'inc' }); // 1
+  store.send({ type: 'inc' }); // 2
+  store.send({ type: 'inc' }); // 3
+
+  expect(counts).toEqual([1, 2, 3]);
+
+  sub.unsubscribe();
+
+  store.send({ type: 'inc' }); // 4
+  store.send({ type: 'inc' }); // 5
+  store.send({ type: 'inc' }); // 6
+
+  expect(counts).toEqual([1, 2, 3]);
+});
+
+it('can be inspected', () => {
+  const store = createStore({
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx) => ({
+        count: ctx.count + 1
+      })
+    }
+  });
+
+  const evs: any[] = [];
+
+  store.inspect((ev) => evs.push(ev));
+
+  store.send({ type: 'inc' });
+
+  expect(evs).toEqual([
+    expect.objectContaining({
+      type: '@xstate.actor'
+    }),
+    expect.objectContaining({
+      type: '@xstate.snapshot',
+      snapshot: expect.objectContaining({ context: { count: 0 } })
+    }),
+    expect.objectContaining({
+      type: '@xstate.event',
+      event: { type: 'inc' }
+    }),
+    expect.objectContaining({
+      type: '@xstate.snapshot',
+      snapshot: expect.objectContaining({ context: { count: 1 } })
+    })
+  ]);
+});
+
+it('inspection with @statelyai/inspect typechecks correctly', () => {
+  const store = createStore({
+    context: {},
+    on: {}
+  });
+
+  const inspector = createBrowserInspector({
+    autoStart: false
+  });
+
+  store.inspect(inspector.inspect);
+});
+
+it('emitted events can be subscribed to', () => {
+  const store = createStore({
+    context: {
+      count: 0
+    },
+    emits: {
+      increased: (a: { upBy: number }) => {}
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.emit.increased({ upBy: 1 });
+        return {
+          ...ctx,
+          count: ctx.count + 1
+        };
+      }
+    }
+  });
+
+  const spy = vi.fn();
+
+  store.on('increased', spy);
+
+  store.send({ type: 'inc' });
+
+  expect(spy).toHaveBeenCalledWith({ type: 'increased', upBy: 1 });
+});
+
+it('emitted events can be unsubscribed to', () => {
+  const store = createStore({
+    context: {
+      count: 0
+    },
+    emits: {
+      increased: (_: { upBy: number }) => {}
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.emit.increased({ upBy: 1 });
+
+        return {
+          ...ctx,
+          count: ctx.count + 1
+        };
+      }
+    }
+  });
+
+  const spy = vi.fn();
+  const sub = store.on('increased', spy);
+  store.send({ type: 'inc' });
+
+  expect(spy).toHaveBeenCalledWith({ type: 'increased', upBy: 1 });
+
+  sub.unsubscribe();
+  store.send({ type: 'inc' });
+
+  expect(spy).toHaveBeenCalledTimes(1);
+});
+
+it('emitted events occur after the snapshot is updated', () => {
+  const store = createStore({
+    context: {
+      count: 0
+    },
+    emits: {
+      increased: (_: { upBy: number }) => {}
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.emit.increased({ upBy: 1 });
+
+        return {
+          ...ctx,
+          count: ctx.count + 1
+        };
+      }
+    }
+  });
+
+  expect.assertions(1);
+
+  store.on('increased', () => {
+    const s = store.getSnapshot();
+
+    expect(s.context.count).toEqual(1);
+  });
+
+  store.send({ type: 'inc' });
+});
+
+it('events can be emitted with no payload', () => {
+  const spy = vi.fn();
+
+  const store = createStore({
+    emits: {
+      incremented: () => {},
+      decremented: () => {},
+      expectsPayload: (_: { payload: string }) => {}
+    },
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (_ctx, _ev, enq) => {
+        enq.emit.incremented();
+        enq.emit.incremented(
+          // @ts-expect-error
+          'foo'
+        );
+      },
+      dec: (_ctx, _ev, enq) => {
+        enq.emit.decremented(
+          // @ts-expect-error No payload expected
+          {}
+        );
+      },
+      hasPayload: (_ctx, _ev, enq) => {
+        enq.emit
+          // @ts-expect-error Payload expected
+          .expectsPayload();
+      }
+    }
+  });
+
+  store.on('incremented', spy);
+
+  store.send({ type: 'inc' });
+
+  expect(spy).toHaveBeenCalledWith({ type: 'incremented' });
+});
+
+it('events can be emitted with optional payloads (type check)', () => {
+  createStore({
+    emits: {
+      optionalPayload: (_: { payload?: string }) => {}
+    },
+    context: {},
+    on: {
+      inc: (_ctx, _ev, enq) => {
+        enq.emit.optionalPayload();
+
+        enq.emit.optionalPayload({ payload: 'hello' });
+
+        enq.emit.optionalPayload({});
+
+        enq.emit.optionalPayload(
+          // @ts-expect-error
+          'foo'
+        );
+      }
+    }
+  });
+});
+
+it('effects can be enqueued', async () => {
+  const store = createStore({
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.effect(() => {
+          setTimeout(() => {
+            store.send({ type: 'dec' });
+          }, 5);
+        });
+
+        return {
+          ...ctx,
+          count: ctx.count + 1
+        };
+      },
+      dec: (ctx) => ({
+        ...ctx,
+        count: ctx.count - 1
+      })
+    }
+  });
+
+  store.send({ type: 'inc' });
+
+  expect(store.getSnapshot().context.count).toEqual(1);
+
+  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  expect(store.getSnapshot().context.count).toEqual(0);
+});
+
+it('effect-only transitions should execute effects', () => {
+  const spy = vi.fn();
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      justEffect: (ctx, _, enq) => {
+        enq.effect(spy);
+      }
+    }
+  });
+
+  store.trigger.justEffect();
+
+  expect(spy).toHaveBeenCalledTimes(1);
+});
+
+it('emits-only transitions should emit events', () => {
+  const spy = vi.fn();
+  const store = createStore({
+    context: { count: 0 },
+    emits: {
+      emitted: () => {}
+    },
+    on: {
+      justEmit: (ctx, _, enq) => {
+        enq.emit.emitted();
+      }
+    }
+  });
+
+  store.on('emitted', spy);
+
+  store.trigger.justEmit();
+
+  expect(spy).toHaveBeenCalledTimes(1);
+});
+
+it('async effects can be enqueued', async () => {
+  const store = createStore({
+    context: {
+      count: 0
+    },
+    on: {
+      inc: (ctx, _, enq) => {
+        enq.effect(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 5));
+          store.send({ type: 'dec' });
+        });
+
+        return {
+          ...ctx,
+          count: ctx.count + 1
+        };
+      },
+      dec: (ctx) => ({
+        ...ctx,
+        count: ctx.count - 1
+      })
+    }
+  });
+
+  store.send({ type: 'inc' });
+
+  expect(store.getSnapshot().context.count).toEqual(1);
+
+  await new Promise((resolve) => setTimeout(resolve, 10));
+
+  expect(store.getSnapshot().context.count).toEqual(0);
+});
+
+describe('store.trigger', () => {
+  it('should allow triggering events with a fluent API', () => {
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        increment: (ctx, event: { by: number }) => ({
+          count: ctx.count + event.by
+        })
+      }
+    });
+
+    store.trigger.increment({ by: 5 });
+
+    expect(store.getSnapshot().context.count).toBe(5);
+  });
+
+  it('should provide type safety for event payloads', () => {
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        increment: (ctx, event: { by: number }) => ({
+          count: ctx.count + event.by
+        }),
+        reset: () => ({ count: 0 })
+      }
+    });
+
+    // @ts-expect-error - missing required 'by' property
+    store.trigger.increment({});
+
+    // @ts-expect-error - extra property not allowed
+    store.trigger.increment({ by: 1, extra: true });
+
+    // @ts-expect-error - unknown event
+    store.trigger.unknown({});
+
+    // Valid usage with no payload
+    store.trigger.reset();
+
+    // Valid usage with payload
+    store.trigger.increment({ by: 1 });
+  });
+
+  it('should be equivalent to store.send', () => {
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        increment: (ctx, event: { by: number }) => ({
+          count: ctx.count + event.by
+        })
+      }
+    });
+
+    const sendSpy = vi.spyOn(store, 'send');
+
+    store.trigger.increment({ by: 5 });
+
+    expect(sendSpy).toHaveBeenCalledWith({
+      type: 'increment',
+      by: 5
+    });
+  });
+});
+
+it('works with typestates', () => {
+  type ContextStates =
+    | {
+        status: 'loading';
+        data: null;
+      }
+    | {
+        status: 'success';
+        data: string;
+      };
+
+  const store = createStore({
+    context: {
+      status: 'loading',
+      data: null
+    } as ContextStates,
+    on: {
+      loaded: () => ({
+        status: 'success' as const,
+        data: 'hello'
+      }),
+      loading: () => ({
+        status: 'loading' as const,
+        data: null
+      })
+    }
+  });
+
+  const context = store.getSnapshot().context;
+
+  if (context.status === 'loading') {
+    context.data satisfies null;
+    // @ts-expect-error
+    context.data satisfies string;
+  } else {
+    context.status satisfies 'success';
+    // @ts-expect-error
+    context.status satisfies 'loading';
+
+    context.data satisfies string;
+    // @ts-expect-error
+    context.data satisfies null;
+  }
+});
+
+it('the emit type is not overridden by the payload', () => {
+  const spy = vi.fn();
+  type Context = {
+    drawer?: Drawer | null;
+  };
+
+  type Drawer = {
+    id: string;
+  };
+
+  const context: Context = {
+    drawer: null
+  };
+
+  const drawersBridgeStore = createStore({
+    emits: {
+      drawerOpened: (_payload: { drawer: Drawer }) => {
+        // ...
+      }
+    },
+    context,
+    on: {
+      openDrawer: (context, event: { drawer: Drawer }, enqueue) => {
+        enqueue.emit.drawerOpened(event);
+
+        return {
+          ...context,
+          drawer: event.drawer
+        };
+      }
+    }
+  });
+
+  drawersBridgeStore.on('drawerOpened', (event) => {
+    // expect to be called here
+    spy(event);
+  });
+
+  drawersBridgeStore.send({
+    type: 'openDrawer',
+    drawer: { id: 'a' }
+  });
+
+  expect(spy).toHaveBeenCalledWith({
+    type: 'drawerOpened',
+    drawer: { id: 'a' }
+  });
+});
+
+it('can emit events from createStoreWithProducer', () => {
+  const store = createStoreWithProducer(produce, {
+    context: {
+      count: 0
+    },
+    emits: {
+      increased: (_: { by: number }) => {}
+    },
+    on: {
+      inc: (ctx, ev: { by: number }, enq) => {
+        enq.emit.increased({ by: ev.by });
+        ctx.count += ev.by;
+      }
+    }
+  });
+
+  const spy = vi.fn();
+  store.on('increased', spy);
+
+  store.send({ type: 'inc', by: 3 });
+
+  expect(spy).toHaveBeenCalledWith({ type: 'increased', by: 3 });
+  expect(store.getSnapshot().context).toEqual({ count: 3 });
+});
+
+describe('store.transition', () => {
+  it('returns next state and effects for a given state and event', () => {
+    const store = createStore({
+      context: { count: 0 },
+      emits: {
+        increased: (_: { by: number }) => {},
+        nothing: () => {}
+      },
+      on: {
+        inc: (ctx, event: { by: number }, enq) => {
+          enq.emit.increased({ by: event.by });
+          return {
+            count: ctx.count + event.by
+          };
+        }
+      }
+    });
+
+    const [nextState, effects] = store.transition(store.getSnapshot(), {
+      type: 'inc',
+      by: 2
+    });
+
+    expect(nextState.context).toEqual({ count: 2 });
+    expect(effects).toHaveLength(1);
+    expect(effects[0]).toEqual({ type: 'increased', by: 2 });
+  });
+
+  it('returns unchanged state and empty effects for unknown events', () => {
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({
+          count: ctx.count + 1
+        })
+      }
+    });
+
+    const currentState = store.getSnapshot();
+    const [nextState, effects] = store.transition(currentState, {
+      // @ts-expect-error
+      type: 'unknown'
+    });
+
+    expect(nextState).toBe(currentState);
+    expect(effects).toEqual([]);
+  });
+
+  it('works with producer functions', () => {
+    const store = createStoreWithProducer(produce, {
+      context: { count: 0 },
+      emits: {
+        increased: (_: { by: number }) => {}
+      },
+      on: {
+        inc: (ctx, event: { by: number }, enq) => {
+          enq.emit.increased({ by: event.by });
+          ctx.count += event.by;
+        }
+      }
+    });
+
+    const [nextState, effects] = store.transition(store.getSnapshot(), {
+      type: 'inc',
+      by: 3
+    });
+
+    expect(nextState.context).toEqual({ count: 3 });
+    expect(effects).toHaveLength(1);
+    expect(effects[0]).toEqual({ type: 'increased', by: 3 });
+  });
+
+  it('collects enqueued effects', () => {
+    const store = createStore({
+      context: { count: 0 },
+      on: {
+        inc: (ctx, _, enq) => {
+          enq.effect(() => {
+            // This effect function would normally do something
+          });
+          return {
+            count: ctx.count + 1
+          };
+        }
+      }
+    });
+
+    const [nextState, effects] = store.transition(store.getSnapshot(), {
+      type: 'inc'
+    });
+
+    expect(nextState.context).toEqual({ count: 1 });
+    expect(effects).toHaveLength(1);
+    expect(typeof effects[0]).toBe('function');
+  });
+});
+
+it('can be created with a logic object', () => {
+  const store = createStore({
+    getInitialSnapshot: () => ({
+      context: { count: 0 },
+      status: 'active' as const,
+      output: undefined,
+      error: undefined
+    }),
+    transition: (
+      snapshot,
+      event: {
+        type: 'inc';
+      }
+    ) => {
+      if (event.type === 'inc') {
+        return [
+          { ...snapshot, context: { count: snapshot.context.count + 1 } },
+          []
+        ];
+      }
+      return [snapshot, []];
+    }
+  });
+
+  expect(store.getSnapshot().context).toEqual({ count: 0 });
+
+  store.trigger.inc();
+
+  expect(store.getSnapshot().context).toEqual({ count: 1 });
+
+  // @ts-expect-error
+  store.trigger.unknown();
+
+  store.getSnapshot().context.count satisfies number;
+
+  // @ts-expect-error
+  store.getSnapshot().context.count satisfies string;
+});
+
+it('should not trigger update if the snapshot is the same', () => {
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      doNothing: (ctx) => ctx
+    }
+  });
+
+  const spy = vi.fn();
+  store.subscribe(spy);
+
+  store.trigger.doNothing();
+  store.trigger.doNothing();
+
+  expect(spy).toHaveBeenCalledTimes(0);
+});
+
+it('should not trigger update if the snapshot is the same even if there are effects', () => {
+  const store = createStore({
+    context: { count: 0 },
+    on: {
+      doNothing: (ctx, _, enq) => {
+        enq.effect(() => {
+          // …
+        });
+        return ctx;
+      }
+    }
+  });
+
+  const spy = vi.fn();
+  store.subscribe(spy);
+
+  store.trigger.doNothing();
+  store.trigger.doNothing();
+
+  expect(spy).toHaveBeenCalledTimes(0);
+});
+
+describe('types', () => {
+  it('AnyStoreConfig', () => {
+    function transformStoreConfig(_config: AnyStoreConfig): void {}
+
+    transformStoreConfig({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    });
+
+    // @ts-expect-error
+    transformStoreConfig({});
+  });
+
+  it('EventFromStoreConfig', () => {
+    const storeConfig = createStoreConfig({
+      context: { count: 0 },
+      on: {
+        inc: (ctx, event: { by: number }) => ({ count: ctx.count + event.by })
+      }
+    });
+
+    let ev: EventFromStoreConfig<typeof storeConfig> = {
+      type: 'inc',
+      by: 1
+    };
+
+    ev satisfies {
+      type: 'inc';
+      by: number;
+    };
+
+    // @ts-expect-error
+    ev satisfies { type: 'unknown' };
+  });
+
+  it('ContextFromStoreConfig', () => {
+    const storeConfig = createStoreConfig({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    });
+
+    type Context = ContextFromStoreConfig<typeof storeConfig>;
+
+    const context: Context = { count: 0 };
+
+    context.count satisfies number;
+
+    // @ts-expect-error
+    context.count satisfies string;
+  });
+
+  it('generics can be provided', () => {
+    type Context = {
+      coffeeBeans: number;
+      water: number;
+    };
+
+    type Events =
+      | {
+          type: 'addWater';
+          amount: number;
+        }
+      | {
+          type: 'grindBeans';
+        };
+
+    type Emitted =
+      | { type: 'brewing' }
+      | { type: 'beansGround'; amount: number };
+
+    const store = createStore<Context, Events, Emitted>({
+      context: {
+        coffeeBeans: 0,
+        water: 0
+      },
+      on: {
+        addWater: (ctx, event) => ({
+          ...ctx,
+          water: ctx.water + event.amount
+        }),
+        grindBeans: (ctx, _, enq) => {
+          enq.emit.brewing();
+
+          enq.emit.beansGround({ amount: 1 });
+
+          // @ts-expect-error
+          enq.emit.beansGround();
+
+          // @ts-expect-error
+          enq.emit.brewing({ foo: 'bar' });
+
+          return {
+            ...ctx,
+            coffeeBeans: ctx.coffeeBeans + 1
+          };
+        }
+      }
+    });
+
+    store.trigger.addWater({ amount: 1 });
+
+    store.trigger.grindBeans();
+
+    // @ts-expect-error
+    store.trigger.unknown();
+  });
+
+  it('localizes TypeScript errors to the specific transition', () => {
+    // but now it's localized to the `changeSort` transition.
+    createStore({
+      context: {
+        sort: 'asc' as const
+      },
+      on: {
+        // @ts-expect-error
+        changeSort: (_, event: { sort: 'desc' }) => ({
+          sort: event.sort
+        })
+      }
+    });
+  });
+});
+</file>
+
+<file path="packages/xstate-store/test/types.test.tsx">
+import { createStore } from '../src/index.ts';
+
+describe('emitted', () => {
+  it('can emit a known event', () => {
+    createStore({
+      context: {},
+      emits: {
+        increased: (_: { upBy: number }) => {}
+      },
+      on: {
+        inc: (ctx, _, enq) => {
+          enq.emit.increased({ upBy: 1 });
+          return ctx;
+        }
+      }
+    });
+  });
+
+  it("can't emit an unknown event", () => {
+    createStore({
+      context: {},
+      emits: {
+        increased: (_: { upBy: number }) => {},
+        decreased: (_: { downBy: number }) => {}
+      },
+      on: {
+        inc: (ctx, _, enq) => {
+          enq.emit
+            // @ts-expect-error
+            .unknown();
+          return ctx;
+        }
+      }
+    });
+  });
+
+  it("can't emit a known event with wrong payload", () => {
+    createStore({
+      context: {},
+      emits: {
+        increased: (_: { upBy: number }) => {},
+        decreased: (_: { downBy: number }) => {}
+      },
+      on: {
+        inc: (ctx, _, enq) => {
+          enq.emit.increased({
+            // @ts-expect-error
+            upBy: 'bazinga'
+          });
+          return ctx;
+        }
+      }
+    });
+  });
+
+  it('can subscribe to a known event', () => {
+    const store = createStore<
+      {},
+      {},
+      {
+        increased: { upBy: number };
+        decreased: { downBy: number };
+      }
+    >({
+      context: {},
+      on: {}
+    });
+
+    store.on('increased', (ev) => {
+      ev satisfies { type: 'increased'; upBy: number };
+    });
+  });
+
+  it("can't subscribe to a unknown event", () => {
+    const store = createStore({
+      emits: {
+        increased: (_: { upBy: number }) => {}
+      },
+      context: {},
+      on: {}
+    });
+
+    store.on('increased', (ev) => {});
+
+    store.on(
+      // @ts-expect-error
+      'unknown',
+      (ev) => {}
+    );
+  });
+
+  it('works with a discriminated union event payload', () => {
+    createStore({
+      context: {},
+      emits: {
+        log: (
+          _:
+            | { level: 'warn'; message: string }
+            | { level: 'error'; error: string }
+        ) => {}
+      },
+      on: {
+        log: (ctx, _ev, enq) => {
+          enq.emit.log({ level: 'warn', message: 'hmm' });
+          enq.emit.log({ level: 'error', error: 'uh oh' });
+          enq.emit.log({
+            level: 'error',
+            // @ts-expect-error
+            message: 'foo'
+          });
+          return ctx;
+        }
+      }
+    });
+  });
+});
+
+describe('trigger', () => {
+  it('works with a distributive event payload', () => {
+    const store = createStore({
+      context: {},
+      on: {
+        log: (
+          ctx,
+          _ev:
+            | { level: 'warn'; message: string }
+            | { level: 'error'; error: string }
+        ) => {
+          return ctx;
+        }
+      }
+    });
+
+    store.trigger.log({ level: 'warn', message: 'hmm' });
+    store.trigger.log({ level: 'error', error: 'uh oh' });
+
+    store.trigger.log({
+      level: 'error',
+      // @ts-expect-error
+      message: 'foo'
+    });
+  });
+});
+</file>
+
+<file path="packages/xstate-store/test/undo.test.ts">
+import { createStore } from '../src/index.ts';
+import { undoRedo } from '../src/undo.ts';
+
+it('should undo a single event', () => {
+  const store = createStore(
+    undoRedo({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    })
+  );
+
+  store.trigger.inc();
+  expect(store.getSnapshot().context.count).toBe(1);
+
+  store.trigger.undo();
+  expect(store.getSnapshot().context.count).toBe(0);
+});
+
+it('should redo a previously undone event', () => {
+  const store = createStore(
+    undoRedo({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    })
+  );
+
+  store.trigger.inc();
+  store.trigger.undo();
+  store.trigger.redo();
+  expect(store.getSnapshot().context.count).toBe(1);
+});
+
+it('should undo/redo multiple events, non-transactional', () => {
+  const store = createStore(
+    undoRedo({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    })
+  );
+
+  store.trigger.inc();
+  store.trigger.inc();
+  store.trigger.inc();
+  expect(store.getSnapshot().context.count).toBe(3);
+  store.trigger.undo();
+  expect(store.getSnapshot().context.count).toBe(2);
+  store.trigger.undo();
+  expect(store.getSnapshot().context.count).toBe(1);
+  store.trigger.redo();
+  expect(store.getSnapshot().context.count).toBe(2);
+  store.trigger.redo();
+  expect(store.getSnapshot().context.count).toBe(3);
+});
+
+it('should group events by transaction ID', () => {
+  const store = createStore(
+    undoRedo(
+      {
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 }),
+          dec: (ctx) => ({ count: ctx.count - 1 })
+        }
+      },
+      {
+        getTransactionId: (event) => {
+          return event.type;
+        }
+      }
+    )
+  );
+
+  // First transaction
+  store.send({ type: 'inc' });
+  store.send({ type: 'inc' });
+  expect(store.getSnapshot().context.count).toBe(2);
+
+  // Second transaction
+  store.send({ type: 'dec' });
+  store.send({ type: 'dec' });
+  expect(store.getSnapshot().context.count).toBe(0);
+
+  // Undo second transaction (both decrements)
+  store.send({ type: 'undo' });
+  expect(store.getSnapshot().context.count).toBe(2);
+
+  // Undo first transaction (both increments)
+  store.send({ type: 'undo' });
+  expect(store.getSnapshot().context.count).toBe(0);
+});
+
+it('should maintain correct state when interleaving undo/redo with new events', () => {
+  const store = createStore(
+    undoRedo({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 }),
+        dec: (ctx) => ({ count: ctx.count - 1 })
+      }
+    })
+  );
+
+  store.trigger.inc(); // 1
+  expect(store.getSnapshot().context.count).toBe(1);
+  store.trigger.inc(); // 2
+  expect(store.getSnapshot().context.count).toBe(2);
+  store.trigger.undo(); // 1
+  expect(store.getSnapshot().context.count).toBe(1);
+  store.send({ type: 'dec' }); // 0
+  expect(store.getSnapshot().context.count).toBe(0);
+  store.trigger.undo(); // 1
+  expect(store.getSnapshot().context.count).toBe(1);
+  store.send({ type: 'redo' }); // 0
+  expect(store.getSnapshot().context.count).toBe(0);
+
+  expect(store.getSnapshot().context.count).toBe(0);
+});
+
+it('should do nothing when undoing with empty history', () => {
+  const store = createStore(
+    undoRedo({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    })
+  );
+
+  const initialSnapshot = store.getSnapshot();
+  store.send({ type: 'undo' });
+  expect(store.getSnapshot()).toEqual(initialSnapshot);
+});
+
+it('should do nothing when redoing with empty undo stack', () => {
+  const store = createStore(
+    undoRedo({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    })
+  );
+
+  const initialSnapshot = store.getSnapshot();
+  store.send({ type: 'redo' });
+  expect(store.getSnapshot()).toEqual(initialSnapshot);
+});
+
+it('should clear redo stack when new events occur after undo', () => {
+  const store = createStore(
+    undoRedo({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 }),
+        dec: (ctx) => ({ count: ctx.count - 1 })
+      }
+    })
+  );
+
+  store.send({ type: 'inc' }); // 1
+  expect(store.getSnapshot().context.count).toBe(1);
+  store.send({ type: 'inc' }); // 2
+  expect(store.getSnapshot().context.count).toBe(2);
+  store.send({ type: 'undo' }); // 1
+  expect(store.getSnapshot().context.count).toBe(1);
+  store.send({ type: 'dec' }); // 0
+
+  // Redo should not work as we added a new event after undo
+  store.send({ type: 'redo' });
+  expect(store.getSnapshot().context.count).toBe(0);
+});
+
+it('should preserve emitted events during undo/redo', () => {
+  type Events = { type: 'inc' };
+
+  const store = createStore(
+    undoRedo({
+      context: { count: 0 },
+      emits: {
+        changed: (_: { value: number }) => {}
+      },
+      on: {
+        inc: (ctx, _: Events, enq) => {
+          enq.emit.changed({ value: ctx.count + 1 });
+          return { count: ctx.count + 1 };
+        }
+      }
+    })
+  );
+
+  const emittedEvents: any[] = [];
+  store.on('changed', (event) => {
+    emittedEvents.push(event);
+  });
+
+  store.send({ type: 'inc' });
+  store.send({ type: 'undo' });
+  store.send({ type: 'redo' });
+
+  expect(emittedEvents).toEqual([
+    { type: 'changed', value: 1 },
+    { type: 'changed', value: 1 }
+  ]);
+});
+
+it('should preserve context and event types', () => {
+  const store = createStore(
+    undoRedo({
+      context: { count: 0 },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    })
+  );
+
+  store.getSnapshot().context satisfies { count: number };
+  store.send({ type: 'inc' });
+  store.send({ type: 'undo' });
+  store.send({ type: 'redo' });
+
+  // @ts-expect-error
+  store.getSnapshot().context.foo;
+
+  // @ts-expect-error
+  store.send({ type: 'dec' });
+});
+
+it('should skip non-undoable events during undo', () => {
+  const store = createStore(
+    undoRedo(
+      {
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 }),
+          log: (ctx) => ctx // No state change, just logging
+        }
+      },
+      {
+        skipEvent: (event) => event.type === 'log'
+      }
+    )
+  );
+
+  store.send({ type: 'inc' }); // count = 1
+  store.send({ type: 'log' }); // count = 1 (logged but not undoable)
+  store.send({ type: 'inc' }); // count = 2
+  expect(store.getSnapshot().context.count).toBe(2);
+
+  store.send({ type: 'undo' }); // count = 1 (skips log event)
+  expect(store.getSnapshot().context.count).toBe(1);
+});
+
+it('should skip non-redoable events during redo', () => {
+  const store = createStore(
+    undoRedo(
+      {
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 }),
+          log: (ctx) => ctx // No state change, just logging
+        }
+      },
+      {
+        skipEvent: (event) => event.type === 'log'
+      }
+    )
+  );
+
+  store.send({ type: 'inc' }); // count = 1
+  store.send({ type: 'log' }); // count = 1 (logged but not redoable)
+  store.send({ type: 'inc' }); // count = 2
+  store.send({ type: 'undo' }); // count = 1
+  expect(store.getSnapshot().context.count).toBe(1);
+
+  store.send({ type: 'redo' }); // count = 2 (skips log event)
+  expect(store.getSnapshot().context.count).toBe(2);
+});
+
+it('should skip events with transaction grouping', () => {
+  const store = createStore(
+    undoRedo(
+      {
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 }),
+          log: (ctx) => ctx // No state change, just logging
+        }
+      },
+      {
+        getTransactionId: (event) => event.type,
+        skipEvent: (event) => event.type === 'log'
+      }
+    )
+  );
+
+  // First transaction: inc events
+  store.send({ type: 'inc' }); // count = 1
+  store.send({ type: 'inc' }); // count = 2
+  expect(store.getSnapshot().context.count).toBe(2);
+
+  // Log events (not a transaction because they're skipped)
+  store.send({ type: 'log' }); // count = 2 (logged but not undoable)
+  store.send({ type: 'log' }); // count = 2 (logged but not undoable)
+  expect(store.getSnapshot().context.count).toBe(2);
+
+  // Second transaction: inc events
+  store.send({ type: 'inc' }); // count = 3
+  store.send({ type: 'inc' }); // count = 4
+  expect(store.getSnapshot().context.count).toBe(4);
+
+  // Undo second transaction (all inc events)
+  store.send({ type: 'undo' }); // count = 0
+  expect(store.getSnapshot().context.count).toBe(0);
+});
+
+it('should handle mixed undoable and non-undoable events', () => {
+  const store = createStore(
+    undoRedo(
+      {
+        context: { count: 0, logs: [] as string[] },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1, logs: ctx.logs }),
+          log: (ctx, event: { type: 'log'; message: string }) => ({
+            logs: [...(ctx.logs || []), event.message],
+            count: ctx.count
+          })
+        }
+      },
+      {
+        skipEvent: (event) => event.type === 'log'
+      }
+    )
+  );
+
+  store.send({ type: 'inc' }); // count = 1
+  store.send({ type: 'log', message: 'first log' }); // logs = ['first log'] (not stored in history)
+  store.send({ type: 'inc' }); // count = 2
+  store.send({ type: 'log', message: 'second log' }); // logs = ['first log', 'second log'] (not stored in history)
+  store.send({ type: 'inc' }); // count = 3
+
+  expect(store.getSnapshot().context.count).toBe(3);
+  expect(store.getSnapshot().context.logs).toEqual(['first log', 'second log']);
+
+  // Undo should skip log events (they're not in history) but still undo inc events
+  // Since log events are skipped, they're not replayed during undo, so logs are lost
+  store.send({ type: 'undo' }); // count = 2, logs = [] (logs lost because not replayed)
+  expect(store.getSnapshot().context.count).toBe(2);
+  expect(store.getSnapshot().context.logs).toEqual([]);
+
+  store.send({ type: 'undo' }); // count = 1, logs = [] (logs lost because not replayed)
+  expect(store.getSnapshot().context.count).toBe(1);
+  expect(store.getSnapshot().context.logs).toEqual([]);
+
+  store.send({ type: 'undo' }); // count = 0, logs = [] (logs lost because not replayed)
+  expect(store.getSnapshot().context.count).toBe(0);
+  expect(store.getSnapshot().context.logs).toEqual([]);
+});
+
+it('should not replay emitted events for skipped events during undo/redo', () => {
+  type Events = { type: 'inc' } | { type: 'log'; message: string };
+
+  const store = createStore(
+    undoRedo(
+      {
+        context: { count: 0 },
+        emits: {
+          changed: (_: { value: number }) => {},
+          logged: (_: { message: string }) => {}
+        },
+        on: {
+          inc: (ctx, _: Events, enq) => {
+            enq.emit.changed({ value: ctx.count + 1 });
+            return { count: ctx.count + 1 };
+          },
+          log: (ctx, event: Events, enq) => {
+            enq.emit.logged({ message: (event as any).message });
+            return ctx; // No state change
+          }
+        }
+      },
+      {
+        skipEvent: (event) => event.type === 'log'
+      }
+    )
+  );
+
+  const emittedEvents: any[] = [];
+  store.on('changed', (event) => {
+    emittedEvents.push(event);
+  });
+  store.on('logged', (event) => {
+    emittedEvents.push(event);
+  });
+
+  store.send({ type: 'inc' }); // count = 1, emits changed(1)
+  store.send({ type: 'log', message: 'test log' }); // emits logged('test log') but not stored in history
+  store.send({ type: 'inc' }); // count = 2, emits changed(2)
+
+  expect(emittedEvents).toEqual([
+    { type: 'changed', value: 1 },
+    { type: 'logged', message: 'test log' },
+    { type: 'changed', value: 2 }
+  ]);
+
+  emittedEvents.length = 0;
+  store.send({ type: 'undo' }); // count = 1
+  store.send({ type: 'undo' }); // count = 0
+  store.send({ type: 'redo' }); // count = 1, emits changed(1)
+  store.send({ type: 'redo' }); // count = 2, emits changed(2)
+
+  // Only inc events should be emitted during undo/redo, log events are skipped from history
+  expect(emittedEvents).toEqual([
+    { type: 'changed', value: 1 },
+    { type: 'changed', value: 2 }
+  ]);
+});
+
+it('should skip events with transaction grouping', () => {
+  const store = createStore(
+    undoRedo(
+      {
+        context: { count: 0, transactionId: null as string | null },
+        on: {
+          inc: (ctx) => ({ ...ctx, count: ctx.count + 1 }),
+          transactionIdUpdated: (ctx, event: { id: string }) => ({
+            ...ctx,
+            transactionId: event.id
+          })
+        }
+      },
+      {
+        getTransactionId: (_, snapshot) => snapshot.context.transactionId
+      }
+    )
+  );
+
+  store.send({ type: 'inc' }); // count = 1
+  store.send({ type: 'transactionIdUpdated', id: '1' });
+  store.send({ type: 'inc' });
+  store.send({ type: 'inc' });
+  store.send({ type: 'inc' }); // count = 4
+  store.send({ type: 'transactionIdUpdated', id: '2' });
+  store.send({ type: 'inc' });
+  store.send({ type: 'inc' });
+  store.send({ type: 'inc' }); // count = 7
+
+  store.send({ type: 'undo' });
+  expect(store.getSnapshot().context.count).toBe(4);
+  store.send({ type: 'undo' });
+  expect(store.getSnapshot().context.count).toBe(1);
+  store.send({ type: 'redo' });
+  expect(store.getSnapshot().context.count).toBe(4);
+  store.send({ type: 'redo' });
+  expect(store.getSnapshot().context.count).toBe(7);
+});
+
+it('should use the snapshot in the skipEvent function', () => {
+  const store = createStore(
+    undoRedo(
+      {
+        context: { count: 0 },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 })
+        }
+      },
+      {
+        skipEvent: (_event, snapshot) => {
+          return snapshot.context.count >= 3;
+        }
+      }
+    )
+  );
+
+  store.send({ type: 'inc' }); // count = 1
+  store.send({ type: 'inc' }); // count = 2
+  store.send({ type: 'inc' }); // count = 3
+  store.send({ type: 'inc' }); // count = 4 (skipped)
+  expect(store.getSnapshot().context.count).toBe(4);
+  store.send({ type: 'undo' }); // count = 2
+  expect(store.getSnapshot().context.count).toBe(2);
+});
+
+it('emit event types should be correct', () => {
+  const store = createStore(
+    undoRedo({
+      context: { count: 0 },
+      emits: {
+        changed: (_: { value: number }) => {}
+      },
+      on: {
+        // TODO: figure out why we need _: {} and not just _
+        inc: (ctx, _: {}, enq) => {
+          enq.emit.changed({ value: ctx.count + 1 });
+          // @ts-expect-error
+          enq.emit.whatever();
+          return { count: ctx.count + 1 };
+        }
+      }
+    })
+  );
+
+  store.on('changed', (event) => {
+    event.value satisfies number;
+    // @ts-expect-error
+    event.value satisfies string;
+    // @ts-expect-error
+    event.unknown;
+  });
+
+  store.on(
+    // @ts-expect-error
+    'whatever',
+    () => {}
+  );
+});
+</file>
+
+<file path="packages/xstate-store/test/UseActor.vue">
+<template>
+  <div data-testid="count">{{ snapshot.context.count }}</div>
+  <button data-testid="increment" @click="send({ type: 'inc' })">
+    Increment
+  </button>
+</template>
+
+<script lang="ts">
+import { defineComponent } from 'vue';
+import { useActor } from '@xstate/vue';
+
+import { fromStore } from '../src/index.ts';
+
+export default defineComponent({
+  emits: ['rerender'],
+  setup() {
+    const { snapshot, send } = useActor(
+      fromStore({
+        context: {
+          count: 0
+        },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 })
+        }
+      })
+    );
+
+    snapshot.value.context.count satisfies number;
+
+    return { snapshot, send };
+  }
+});
+</script>
+</file>
+
+<file path="packages/xstate-store/test/UseActorRef.vue">
+<template>
+  <div data-testid="count">{{ count }}</div>
+  <button data-testid="increment" @click="actorRef.send({ type: 'inc' })">
+    Increment
+  </button>
+</template>
+
+<script lang="ts">
+import { Ref, defineComponent } from 'vue';
+import { useActorRef, useSelector } from '@xstate/vue';
+
+import { fromStore } from '../src/index.ts';
+
+export default defineComponent({
+  emits: ['rerender'],
+  setup() {
+    const actorRef = useActorRef(
+      fromStore({
+        context: {
+          count: 0
+        },
+        on: {
+          inc: (ctx) => ({ count: ctx.count + 1 })
+        }
+      })
+    );
+    const count = useSelector(actorRef, (s) => s.context.count);
+
+    count satisfies Ref<number>;
+
+    return { count, actorRef };
+  }
+});
+</script>
+</file>
+
+<file path="packages/xstate-store/test/UseSelector.vue">
+<template>
+  <div data-testid="count">{{ count }}</div>
+  <button data-testid="increment" @click="store.send({ type: 'inc' })">
+    Increment
+  </button>
+</template>
+
+<script lang="ts">
+import { Ref, defineComponent } from 'vue';
+import { useSelector } from '@xstate/vue';
+
+import { createStore } from '../src/index.ts';
+
+export default defineComponent({
+  emits: ['rerender'],
+  setup() {
+    const store = createStore({
+      context: {
+        count: 0
+      },
+      on: {
+        inc: (ctx) => ({ count: ctx.count + 1 })
+      }
+    });
+    const count = useSelector(store, (state) => state.context.count);
+
+    count satisfies Ref<number>;
+
+    return { store, count };
+  }
+});
+</script>
+</file>
+
+<file path="packages/xstate-store/test/vue.test.ts">
+import { fireEvent, render } from '@testing-library/vue';
+import UseSelector from './UseSelector.vue';
+import UseActor from './UseActor.vue';
+import UseActorRef from './UseActorRef.vue';
+
+it('works with `useSelector(…)` (@xstate/vue)', async () => {
+  const { getByTestId } = render(UseSelector);
+
+  const countEl = getByTestId('count');
+  const incrementEl = getByTestId('increment');
+
+  await fireEvent.click(incrementEl);
+  expect(countEl.textContent).toBe('1');
+});
+
+it('works with `useActor(…)` (@xstate/vue)', async () => {
+  const { getByTestId } = render(UseActor);
+
+  const countEl = getByTestId('count');
+  const incrementEl = getByTestId('increment');
+
+  await fireEvent.click(incrementEl);
+  expect(countEl.textContent).toBe('1');
+});
+
+it('works with `useActorRef(…)` (@xstate/vue)', async () => {
+  const { getByTestId } = render(UseActorRef);
+
+  const countEl = getByTestId('count');
+  const incrementEl = getByTestId('increment');
+
+  await fireEvent.click(incrementEl);
+  expect(countEl.textContent).toBe('1');
+});
+</file>
+
+</files>

@@ -47,6 +47,10 @@ function Results() {
 - `submodules/effect-atom/packages/atom/src/Atom.ts` — React integration
 - `submodules/website/` — Human-authored documentation (battle-tested)
 
+**Related Documentation:**
+
+- [EFFECT_TESTING_PATTERNS.md](./EFFECT_TESTING_PATTERNS.md) — Testing with @effect/vitest
+
 ---
 
 ## 0. Effect Service Patterns (Foundation)
