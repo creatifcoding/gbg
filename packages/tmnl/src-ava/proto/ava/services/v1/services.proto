@@ -563,11 +563,11 @@ message SetLogLevel {
 
 enum LogLevel {
   LOG_LEVEL_UNSPECIFIED = 0;
-  TRACE = 1;
-  DEBUG = 2;
-  INFO = 3;
-  WARN = 4;
-  ERROR = 5;
+  LOG_LEVEL_TRACE = 1;
+  LOG_LEVEL_DEBUG = 2;
+  LOG_LEVEL_INFO = 3;
+  LOG_LEVEL_WARN = 4;
+  LOG_LEVEL_ERROR = 5;
 }
 
 message TriggerCheckpoint {
@@ -700,10 +700,10 @@ message SourceDescriptor {
 
 enum SourceStatus {
   SOURCE_STATUS_UNSPECIFIED = 0;
-  CONNECTED = 1;
-  DISCONNECTED = 2;
-  DEGRADED = 3;
-  UNKNOWN = 4;
+  SOURCE_STATUS_CONNECTED = 1;
+  SOURCE_STATUS_DISCONNECTED = 2;
+  SOURCE_STATUS_DEGRADED = 3;
+  SOURCE_STATUS_UNKNOWN = 4;
 }
 
 message GetSchemaRequest {
@@ -772,11 +772,11 @@ message WatchSourcesRequest {
 
 enum SourceEventType {
   SOURCE_EVENT_TYPE_UNSPECIFIED = 0;
-  CONNECTED = 1;
-  DISCONNECTED = 2;
-  SCHEMA_UPDATED = 3;
-  CAPABILITIES_CHANGED = 4;
-  ERROR = 5;
+  SOURCE_EVENT_CONNECTED = 1;
+  SOURCE_EVENT_DISCONNECTED = 2;
+  SOURCE_EVENT_SCHEMA_UPDATED = 3;
+  SOURCE_EVENT_CAPABILITIES_CHANGED = 4;
+  SOURCE_EVENT_ERROR = 5;
 }
 
 message SourceEvent {

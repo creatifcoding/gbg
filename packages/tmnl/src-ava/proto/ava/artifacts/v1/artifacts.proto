@@ -11,6 +11,7 @@ package ava.artifacts.v1;
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
 import "ava/common/v1/identifiers.proto";
+import "ava/execution/v1/execution.proto";
 import "ava/execution/v1/hydration.proto";
 
 option java_multiple_files = true;

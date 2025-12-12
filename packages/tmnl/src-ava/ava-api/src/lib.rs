@@ -64,6 +64,9 @@ pub mod rest;
 
 /// Generated protobuf types and services
 pub mod proto {
+    // Google well-known types are provided by prost_types (re-exported below)
+    // This avoids doctest issues from C++ examples in proto comments
+
     /// Common types - identifiers, errors, timestamps
     pub mod common {
         pub mod v1 {

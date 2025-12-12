@@ -42,15 +42,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let includes = [proto_root];
 
     // Configure tonic-build
+    // Use prost-wkt-types for google.protobuf well-known types (provides serde support)
+    // This maps google.protobuf types to prost_wkt_types instead of prost_types
     tonic_build::configure()
         // Generate server traits
         .build_server(true)
         // Generate client stubs
         .build_client(true)
-        // Enable serde derives for JSON serialization
+        // Map google.protobuf well-known types to prost-wkt-types (serde-enabled)
+        // Note: Empty is automatically mapped by tonic-build, don't override
+        .extern_path(".google.protobuf.Timestamp", "::prost_wkt_types::Timestamp")
+        .extern_path(".google.protobuf.Duration", "::prost_wkt_types::Duration")
+        .extern_path(".google.protobuf.Any", "::prost_wkt_types::Any")
+        .extern_path(".google.protobuf.Value", "::prost_wkt_types::Value")
+        .extern_path(".google.protobuf.Struct", "::prost_wkt_types::Struct")
+        .extern_path(".google.protobuf.ListValue", "::prost_wkt_types::ListValue")
+        // Add serde derives to all AVA types for JSON REST API support
         .type_attribute(".", "#[derive(serde::Serialize, serde::Deserialize)]")
-        // Make all enums Copy for ergonomics
-        .enum_attribute(".", "#[derive(Copy)]")
         // Compile all protos
         .compile_protos(&protos, &includes)?;
 

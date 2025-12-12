@@ -8,35 +8,36 @@ syntax = "proto3";
 
 package ava.execution.v1;
 
-import "google/protobuf/any.proto";
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "ava/common/v1/identifiers.proto";
 import "ava/common/v1/errors.proto";
+import "ava/execution/v1/execution.proto";
 
 option java_multiple_files = true;
 option java_package = "com.ava.execution.v1";
 
-// ChannelRole - The semantic role of a channel in a view
-enum ChannelRole {
-  CHANNEL_ROLE_UNSPECIFIED = 0;
+// ChannelDisplayRole - The UI/display role of a channel in a view
+// (Distinct from ChannelRole in execution.proto which is about data source type)
+enum ChannelDisplayRole {
+  CHANNEL_DISPLAY_ROLE_UNSPECIFIED = 0;
 
   // Primary data channels
-  PRIMARY = 1;         // Main dataset for the view
-  SECONDARY = 2;       // Supporting dataset (joins, lookups)
+  DISPLAY_PRIMARY = 1;         // Main dataset for the view
+  DISPLAY_SECONDARY = 2;       // Supporting dataset (joins, lookups)
 
   // Control channels
-  FILTER = 10;         // Filter/predicate channel
-  SORT = 11;           // Sort specification channel
-  SELECTION = 12;      // Selection state channel
+  DISPLAY_FILTER = 10;         // Filter/predicate channel
+  DISPLAY_SORT = 11;           // Sort specification channel
+  DISPLAY_SELECTION = 12;      // Selection state channel
 
   // Derived channels
-  AGGREGATE = 20;      // Aggregation results
-  COMPUTED = 21;       // Computed/derived values
+  DISPLAY_AGGREGATE = 20;      // Aggregation results
+  DISPLAY_COMPUTED = 21;       // Computed/derived values
 
   // Metadata channels
-  SCHEMA = 30;         // Schema information
-  STATS = 31;          // Statistics/metrics
+  DISPLAY_SCHEMA = 30;         // Schema information
+  DISPLAY_STATS = 31;          // Statistics/metrics
 }
 
 // ChannelData - Polymorphic payload for channel hydration

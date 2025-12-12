@@ -74,10 +74,10 @@ message ViewRequested {
 // RequestPriority - Urgency of the view request
 enum RequestPriority {
   REQUEST_PRIORITY_UNSPECIFIED = 0;
-  LOW = 1;
-  NORMAL = 2;
-  HIGH = 3;
-  IMMEDIATE = 4;
+  REQUEST_PRIORITY_LOW = 1;
+  REQUEST_PRIORITY_NORMAL = 2;
+  REQUEST_PRIORITY_HIGH = 3;
+  REQUEST_PRIORITY_IMMEDIATE = 4;
 }
 
 // ViewCompiling - View compilation has started
@@ -113,14 +113,14 @@ message ViewUnmounted {
 // UnmountReason - Why a view was unmounted
 enum UnmountReason {
   UNMOUNT_REASON_UNSPECIFIED = 0;
-  CLIENT_REQUEST = 1;       // Client explicitly unsubscribed
-  REPLACED = 2;             // Replaced by a newer version
-  ERROR = 3;                // Unrecoverable error
-  RESOURCE_LIMIT = 4;       // Resource quota exceeded
-  ASSEMBLAGE_MISMATCH = 5;  // Asset no longer matches assemblage
-  SHUTDOWN = 6;             // System shutdown
-  TIMEOUT = 7;              // Idle timeout
-  EVICTED = 8;              // Cache eviction
+  UNMOUNT_CLIENT_REQUEST = 1;       // Client explicitly unsubscribed
+  UNMOUNT_REPLACED = 2;             // Replaced by a newer version
+  UNMOUNT_ERROR = 3;                // Unrecoverable error
+  UNMOUNT_RESOURCE_LIMIT = 4;       // Resource quota exceeded
+  UNMOUNT_ASSEMBLAGE_MISMATCH = 5;  // Asset no longer matches assemblage
+  UNMOUNT_SHUTDOWN = 6;             // System shutdown
+  UNMOUNT_TIMEOUT = 7;              // Idle timeout
+  UNMOUNT_EVICTED = 8;              // Cache eviction
 }
 
 // ViewCompilationFailed - View failed to compile
@@ -141,11 +141,11 @@ message ViewSuspended {
 // SuspendReason - Why a view was suspended
 enum SuspendReason {
   SUSPEND_REASON_UNSPECIFIED = 0;
-  IDLE = 1;                 // No active subscribers
-  RESOURCE_PRESSURE = 2;    // System under resource pressure
-  SOURCE_UNAVAILABLE = 3;   // Data source temporarily unavailable
-  CLIENT_REQUEST = 4;       // Client requested suspension
-  RATE_LIMITED = 5;         // Hit rate limit
+  SUSPEND_IDLE = 1;                 // No active subscribers
+  SUSPEND_RESOURCE_PRESSURE = 2;    // System under resource pressure
+  SUSPEND_SOURCE_UNAVAILABLE = 3;   // Data source temporarily unavailable
+  SUSPEND_CLIENT_REQUEST = 4;       // Client requested suspension
+  SUSPEND_RATE_LIMITED = 5;         // Hit rate limit
 }
 
 // ViewResumed - View was resumed from suspension
@@ -211,10 +211,10 @@ message FiberSpawned {
 // FiberPriority - Fiber scheduling priority
 enum FiberPriority {
   FIBER_PRIORITY_UNSPECIFIED = 0;
-  BACKGROUND = 1;
-  NORMAL = 2;
-  HIGH = 3;
-  CRITICAL = 4;
+  FIBER_PRIORITY_BACKGROUND = 1;
+  FIBER_PRIORITY_NORMAL = 2;
+  FIBER_PRIORITY_HIGH = 3;
+  FIBER_PRIORITY_CRITICAL = 4;
 }
 
 // FiberYielded - Fiber yielded execution
@@ -259,11 +259,11 @@ message FiberCancelled {
 // CancelReason - Why a fiber was cancelled
 enum CancelReason {
   CANCEL_REASON_UNSPECIFIED = 0;
-  CLIENT_REQUEST = 1;
-  SUPERSEDED = 2;
-  TIMEOUT = 3;
-  SHUTDOWN = 4;
-  PARENT_CANCELLED = 5;
+  CANCEL_CLIENT_REQUEST = 1;
+  CANCEL_SUPERSEDED = 2;
+  CANCEL_TIMEOUT = 3;
+  CANCEL_SHUTDOWN = 4;
+  CANCEL_PARENT_CANCELLED = 5;
 }
 
 // EventFilter - Filter for querying events

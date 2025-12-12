@@ -14,6 +14,12 @@ ava-runtime = { path = "../ava-runtime" }
 # gRPC
 tonic.workspace = true
 prost.workspace = true
+prost-types.workspace = true
+prost-wkt-types.workspace = true
+tokio-stream.workspace = true
+
+# Utilities
+uuid.workspace = true
 
 # REST
 axum.workspace = true
