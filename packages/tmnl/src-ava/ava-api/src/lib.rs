@@ -62,6 +62,30 @@ mod error;
 pub mod grpc;
 pub mod rest;
 
+/// Generated protobuf types and services
+pub mod proto {
+    /// Discovery service - source introspection
+    pub mod discovery {
+        pub mod v1 {
+            tonic::include_proto!("ava.discovery.v1");
+        }
+    }
+
+    /// Execution service - view execution and streaming
+    pub mod execution {
+        pub mod v1 {
+            tonic::include_proto!("ava.execution.v1");
+        }
+    }
+
+    /// Registry service - templates and assemblages
+    pub mod registry {
+        pub mod v1 {
+            tonic::include_proto!("ava.registry.v1");
+        }
+    }
+}
+
 pub use error::ApiError;
 
 // Re-export commonly used types

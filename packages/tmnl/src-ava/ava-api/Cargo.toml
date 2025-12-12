@@ -31,6 +31,7 @@ futures.workspace = true
 
 [build-dependencies]
 tonic-build = "0.12"
+# protoc provided by nix shell (tmnl-grpc module)
 
 [dev-dependencies]
 pretty_assertions.workspace = true

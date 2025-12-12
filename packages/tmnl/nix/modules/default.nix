@@ -14,11 +14,12 @@
           config.devShells.tmnl-ui
           config.devShells.tmnl-tauri
           config.devShells.tmnl-k8s
+          config.devShells.tmnl-grpc
         ];
 
         shellHook = ''
           echo "[tmnl] Full-stack development environment"
-          echo "  → Rust + Python + Embedded + UI + Tauri + K8s + Core tooling"
+          echo "  → Rust + Python + Embedded + UI + Tauri + K8s + gRPC + Core tooling"
           echo ""
           tmnl info || true
         '';
