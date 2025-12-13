@@ -21,7 +21,7 @@
  * @module
  */
 
-import { useEffect, useMemo, useState, useCallback, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, useCallback, useRef, type ReactNode } from 'react'
 import type { ColDef, ICellRendererParams } from 'ag-grid-community'
 
 import {
@@ -68,6 +68,10 @@ import {
 } from '@/lib/floating'
 import type { DimensionConstraints } from '@/lib/floating/types'
 
+// Selection System
+import { useSelection, useSelectable, SelectionOverlay } from '@/lib/selection'
+import { SelectionRing } from '@/components/affordances/SelectionRing'
+
 // =============================================================================
 // TYPES
 // =============================================================================
@@ -90,6 +94,7 @@ interface ManagedPanelProps {
  * Wrapper that handles panel registration/unregistration lifecycle.
  * Panel is registered when show=true, unregistered when show=false.
  * Only renders FloatingPanel when panel exists in stx.
+ * Integrates with selection system for multi-select and grouping.
  */
 function ManagedPanel({
   id,
@@ -103,6 +108,9 @@ function ManagedPanel({
   const stx = getFloatingStx()
   const panelsMap = useSelector(stx.data.panels, (p) => p)
   const panel = panelsMap.get(id)
+
+  // Selection integration
+  const { selectableProps, isSelected } = useSelectable(id)
 
   // Register/unregister based on show prop
   useEffect(() => {
@@ -136,9 +144,17 @@ function ManagedPanel({
   }
 
   return (
-    <FloatingPanel id={id} title={title}>
-      {children}
-    </FloatingPanel>
+    <div
+      {...selectableProps}
+      className="relative"
+      style={{ zIndex: panel.zIndex }}
+    >
+      <FloatingPanel id={id} title={title}>
+        {children}
+      </FloatingPanel>
+      {/* Selection ring overlay */}
+      <SelectionRing selected={isSelected} style="ring" color="cyan" />
+    </div>
   )
 }
 
@@ -473,6 +489,7 @@ function PanelControls({ visiblePanels, togglePanel }: {
   togglePanel: (id: string) => void
 }) {
   const { panels, bringToFront, sendToBack, closePanel, resizeSensitivity } = useFloatingPanel()
+  const { selectedIds, selectedCount, hasSelection, deselectAll, group, ungroup } = useSelection()
 
   return (
     <div
@@ -548,11 +565,61 @@ function PanelControls({ visiblePanels, togglePanel }: {
         ))}
       </div>
 
+      {/* Selection controls */}
+      <div className="pt-2 border-t border-neutral-800 space-y-2">
+        <div className="flex items-center justify-between">
+          <span
+            className={`font-mono ${hasSelection ? 'text-cyan-400' : 'text-neutral-600'}`}
+            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+          >
+            {selectedCount} selected
+          </span>
+          {hasSelection && (
+            <div className="flex gap-1">
+              <button
+                onClick={() => group()}
+                className="px-1.5 py-0.5 text-amber-500 hover:bg-amber-500/20 rounded font-mono"
+                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+                title="Group (Shift+G)"
+              >
+                G
+              </button>
+              <button
+                onClick={() => ungroup()}
+                className="px-1.5 py-0.5 text-purple-500 hover:bg-purple-500/20 rounded font-mono"
+                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+                title="Ungroup (Shift+U)"
+              >
+                U
+              </button>
+              <button
+                onClick={deselectAll}
+                className="px-1.5 py-0.5 text-red-500 hover:bg-red-500/20 rounded font-mono"
+                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+                title="Deselect all (Esc)"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
+        {hasSelection && (
+          <div
+            className="text-neutral-600 font-mono"
+            style={{ fontSize: '10px' }}
+          >
+            {Array.from(selectedIds).map(id => id.replace('ava-', '')).join(', ')}
+          </div>
+        )}
+      </div>
+
       <div
         className="text-neutral-600 pt-2 border-t border-neutral-800"
         style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
       >
-        Shift=0.1x • Ctrl+Shift=0.01x
+        Shift=0.1x • Ctrl+Shift=0.01x<br />
+        Click=select • Shift+=add • Ctrl+=toggle<br />
+        Drag=marquee • Shift+G=group • Esc=clear
       </div>
     </div>
   )
@@ -593,6 +660,9 @@ export function AvaTestbed() {
   const ava = getAvaStx()
   const { runEffect } = useStx(ava)
   const variant = tmnlDenseDark
+
+  // Container ref for marquee selection
+  const containerRef = useRef<HTMLDivElement>(null)
 
   // Panel visibility state - all visible by default
   const [visiblePanels, setVisiblePanels] = useState<Set<string>>(
@@ -636,7 +706,10 @@ export function AvaTestbed() {
 
   return (
     <FloatingPanelProvider>
-      <div className="min-h-screen bg-neutral-950 text-neutral-100 overflow-hidden">
+      <div
+        ref={containerRef}
+        className="min-h-screen bg-neutral-950 text-neutral-100 overflow-hidden"
+      >
         {/* Header Bar */}
         <div className="fixed top-0 left-0 right-0 h-14 bg-neutral-900 border-b border-neutral-800 flex items-center justify-between px-4 z-[200]">
           <div className="flex items-center gap-4">
@@ -687,6 +760,12 @@ export function AvaTestbed() {
 
         {/* Drag Overlay (ghost during drag) */}
         <FloatingDragOverlay style="ghost" />
+
+        {/* Selection Overlay (marquee selection + hotkeys) */}
+        <SelectionOverlay
+          containerRef={containerRef}
+          selectableSelector="[data-selectable]"
+        />
 
         {/* Panel Controls Debug UI */}
         <PanelControls visiblePanels={visiblePanels} togglePanel={togglePanel} />
