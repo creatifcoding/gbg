@@ -60,7 +60,8 @@ export {
   restorePersistedState,
   maximizePanel,
   restorePanel,
-  // Velocity tracking for motion blur
+  // NOTE: Velocity tracking now uses centralized drag orchestrator from @/lib/drag
+  // Legacy exports kept for backwards compatibility
   startDragVelocityTracking,
   updateDragVelocity,
   stopDragVelocityTracking,

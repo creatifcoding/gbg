@@ -9,11 +9,17 @@
  * @module
  */
 
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState, useCallback } from 'react'
 import { SelectionOverlay, useSelection, useSelectable, getSelectedIds, getGroupForItem } from '@/lib/selection'
 import { SelectionRing } from '@/components/affordances'
 import { COLORS } from '@/lib/capabilities/tokens'
-import { useMotionBlur } from '@/lib/motion'
+import {
+  useDragOrchestrator,
+  useElementBlurStyle,
+  startDrag as orchestratorStartDrag,
+  updateDragPosition,
+  endDrag as orchestratorEndDrag,
+} from '@/lib/drag'
 
 // =============================================================================
 // Types
@@ -38,7 +44,7 @@ interface TestCardProps {
   id: string
   label: string
   position: Position
-  onDragStart: (id: string, startPos: Position) => void
+  onDragStart: (id: string, cardPos: Position, pointerPos: Position) => void
   onDrag: (id: string, delta: Position) => void
   onDragEnd: (id: string) => void
 }
@@ -48,8 +54,9 @@ function TestCard({ id, label, position, onDragStart, onDrag, onDragEnd }: TestC
   const isDragging = useRef(false)
   const dragStartPos = useRef<Position | null>(null)
 
-  // Direction-aware motion blur
-  const { style: motionBlurStyle, startTracking, updatePosition, stopTracking, isTracking } = useMotionBlur()
+  // Direction-aware motion blur from drag orchestrator
+  // This now works for ALL elements being dragged, not just the primary
+  const blurStyle = useElementBlurStyle(id)
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     // Only drag on left click
@@ -61,14 +68,12 @@ function TestCard({ id, label, position, onDragStart, onDrag, onDragEnd }: TestC
     isDragging.current = true
     dragStartPos.current = { x: e.clientX, y: e.clientY }
 
-    // Start motion blur tracking
-    startTracking(e.clientX, e.clientY)
-
-    onDragStart(id, position)
+    // Pass both card position and pointer position
+    onDragStart(id, position, { x: e.clientX, y: e.clientY })
 
     // Capture pointer for drag tracking outside element
     e.currentTarget.setPointerCapture(e.pointerId)
-  }, [id, position, onDragStart, startTracking])
+  }, [id, position, onDragStart])
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current || !dragStartPos.current) return
@@ -78,11 +83,8 @@ function TestCard({ id, label, position, onDragStart, onDrag, onDragEnd }: TestC
       y: e.clientY - dragStartPos.current.y,
     }
 
-    // Update motion blur tracking
-    updatePosition(e.clientX, e.clientY)
-
     onDrag(id, delta)
-  }, [id, onDrag, updatePosition])
+  }, [id, onDrag])
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current) return
@@ -90,12 +92,9 @@ function TestCard({ id, label, position, onDragStart, onDrag, onDragEnd }: TestC
     isDragging.current = false
     dragStartPos.current = null
 
-    // Stop motion blur tracking
-    stopTracking()
-
     e.currentTarget.releasePointerCapture(e.pointerId)
     onDragEnd(id)
-  }, [id, onDragEnd, stopTracking])
+  }, [id, onDragEnd])
 
   return (
     <div
@@ -105,10 +104,10 @@ function TestCard({ id, label, position, onDragStart, onDrag, onDragEnd }: TestC
         backgroundColor: COLORS.neutral[800],
         border: `1px solid ${COLORS.neutral[700]}`,
         userSelect: 'none',
-        // Apply motion blur during drag
-        filter: motionBlurStyle.filter,
-        transform: motionBlurStyle.transform,
-        transition: motionBlurStyle.transition,
+        // Apply motion blur from drag orchestrator
+        filter: blurStyle.filter,
+        transform: blurStyle.transform,
+        transition: blurStyle.transition,
       }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -287,10 +286,10 @@ export function SelectionTestbed() {
   )
 
   // =============================================================================
-  // Drag Handlers - Query selection system for co-movement
+  // Drag Handlers - Query selection system for co-movement + drag orchestrator
   // =============================================================================
 
-  const handleDragStart = useCallback((id: string, _startPos: Position) => {
+  const handleDragStart = useCallback((id: string, _cardPos: Position, pointerPos: Position) => {
     // Get all items that should move together:
     // 1. The dragged item
     // 2. All selected items (if dragged item is selected)
@@ -322,6 +321,10 @@ export function SelectionTestbed() {
     })
 
     dragState.current = { activeId: id, startPositions }
+
+    // Start drag orchestrator with pointer position for velocity tracking
+    // This enables motion blur for ALL elements being dragged
+    orchestratorStartDrag('selection', id, Array.from(idsToMove), pointerPos)
   }, [])
 
   const handleDrag = useCallback((_id: string, delta: Position) => {
@@ -344,8 +347,23 @@ export function SelectionTestbed() {
     )
   }, [])
 
+  // Track pointer position for velocity calculation
+  const lastPointerPos = useRef<Position | null>(null)
+
+  const handlePointerMoveForVelocity = useCallback((e: React.PointerEvent) => {
+    if (dragState.current.activeId) {
+      // Update drag orchestrator with current pointer position for velocity tracking
+      updateDragPosition({ x: e.clientX, y: e.clientY })
+      lastPointerPos.current = { x: e.clientX, y: e.clientY }
+    }
+  }, [])
+
   const handleDragEnd = useCallback((_id: string) => {
     dragState.current = { activeId: null, startPositions: new Map() }
+    lastPointerPos.current = null
+
+    // End drag orchestrator
+    orchestratorEndDrag()
   }, [])
 
   // Filter deleted cards
@@ -377,6 +395,7 @@ export function SelectionTestbed() {
         ref={containerRef}
         className="absolute inset-0 top-12"
         style={{ cursor: 'crosshair' }}
+        onPointerMove={handlePointerMoveForVelocity}
       >
         <SelectionOverlay
           containerRef={containerRef}

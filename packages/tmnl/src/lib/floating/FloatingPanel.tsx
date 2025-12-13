@@ -25,9 +25,11 @@ import { CSS } from '@dnd-kit/utilities'
 import { useSelector } from '@/lib/stx'
 import { COLORS } from '@/lib/capabilities/tokens'
 import { useFloatingPanelContext } from './FloatingPanelProvider'
-import { getFloatingStx, maximizePanel, restorePanel, getMotionBlurStyle } from './floating-stx'
+import { getFloatingStx, maximizePanel, restorePanel } from './floating-stx'
 import { ResizeHandles } from './ResizeHandles'
 import { FloatingDimensionProvider } from './FloatingDimensionContext'
+// Use centralized drag orchestrator for motion blur
+import { useElementBlurStyle } from '@/lib/drag'
 import type { PanelState, Position, Dimensions } from './types'
 
 // =============================================================================
@@ -170,8 +172,8 @@ export function FloatingPanel({
   const panelsMap = useSelector(stx.data.panels, (p) => p)
   const panel = panelsMap?.get(id)
 
-  // Subscribe to drag velocity for motion blur
-  const dragVelocity = useSelector(stx.data.dragVelocity, (v) => v)
+  // Get motion blur style from centralized drag orchestrator
+  const blurStyle = useElementBlurStyle(id)
 
   // @dnd-kit draggable (transform only - drag state comes from stx)
   // Disable dragging when maximized
@@ -199,11 +201,10 @@ export function FloatingPanel({
     ? CSS.Transform.toString(transform)
     : undefined
 
-  // Direction-aware motion blur from stx (velocity-based, not just transform delta)
-  // Uses dragVelocity from stx which is updated in FloatingPanelProvider.handleDragMove
-  const motionBlurStyle = getMotionBlurStyle()
-  const motionBlur = panel.isDragging ? motionBlurStyle.blurAmount : 0
-  const motionStretch = panel.isDragging ? motionBlurStyle.transform : undefined
+  // Direction-aware motion blur from centralized drag orchestrator
+  // Uses velocity tracking from @/lib/drag which is updated in FloatingPanelProvider.handleDragMove
+  const motionBlur = panel.isDragging ? blurStyle.blurAmount : 0
+  const motionStretch = panel.isDragging ? blurStyle.transform : undefined
 
   // Apple-style animation: subtle scale lift during transition
   const animationScale = animationPhase === 'lift' ? 0.98 : 1.0
