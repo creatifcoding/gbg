@@ -144,6 +144,22 @@ const CARDS: readonly CardDef[] = [
     glow: 'emerald',
   },
   {
+    title: 'FLOATING PANELS',
+    body: '@dnd-kit draggable panels with position persistence. Modal detach, z-index stacking, viewport bounds.',
+    route: '/testbed/floating',
+    status: 'active',
+    label: 'NEW',
+    glow: 'cyan',
+  },
+  {
+    title: 'SELECTION',
+    body: 'Marquee drag selection with grouping. Shift+G to group, modifier keys for multi-select, TMNL ring affordance.',
+    route: '/testbed/selection',
+    status: 'active',
+    label: 'NEW',
+    glow: 'emerald',
+  },
+  {
     title: 'SEARCH LAB',
     body: 'Search driver experimentation. FlexSearch vs Linear comparison, indexing strategies, fuzzy matching.',
     route: '/testbed/search',
