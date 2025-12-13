@@ -377,6 +377,10 @@ export function getDragVelocity(): DragVelocity {
   return getDragStx().data.velocity.get()
 }
 
+export function getBlurConfig(): BlurConfig {
+  return getDragStx().data.blurConfig.get()
+}
+
 export function getMotionBlurStyle(): MotionBlurOutput {
   const stx = getDragStx()
   // Access the computed value

@@ -65,6 +65,7 @@ export {
   // Getters
   getActiveDrag,
   getDragVelocity,
+  getBlurConfig,
   getMotionBlurStyle,
   getBlurStrategy,
   isElementDragged,
