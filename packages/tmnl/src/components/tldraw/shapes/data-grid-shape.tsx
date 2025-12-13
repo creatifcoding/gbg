@@ -18,7 +18,7 @@ import {
   createShapeId,
 } from 'tldraw'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Table2, GripVertical } from 'lucide-react'
+import { Table2, GripVertical, Settings2 } from 'lucide-react'
 import { AgGridReact } from 'ag-grid-react'
 import {
   ModuleRegistry,
@@ -35,8 +35,13 @@ import {
 import { gsap } from 'gsap'
 
 // Import from modular data-grid
-import { tmnlDataGridTheme, TMNL_TOKENS, STATUS_COLORS } from '@/components/data-grid'
+import { tmnlDataGridTheme, TMNL_TOKENS, STATUS_COLORS, VariantBuilder } from '@/components/data-grid'
 import type { DataGridRow } from '@/components/data-grid'
+
+// Drawer and TableService integration
+import { useDrawer } from '@/lib/drawer'
+import { useTableService, type GridId } from '@/lib/table-service'
+import type { GridVariant, GridVariantPartial } from '@/lib/data-grid/schemas/variant'
 
 // Re-export for backwards compatibility
 export type { DataGridRow }
@@ -149,6 +154,153 @@ function DragHandleRenderer(_params: ICellRendererParams) {
 }
 
 // =============================================================================
+// SETTINGS DRAWER CONTENT
+// =============================================================================
+
+interface GridSettingsDrawerProps {
+  gridId: string
+  drawerId: string
+}
+
+function GridSettingsDrawer({ gridId, drawerId }: GridSettingsDrawerProps) {
+  const drawer = useDrawer()
+  const {
+    activeVariant,
+    getVariantForGrid,
+    setGridOverride,
+    clearGridOverride,
+    isReady,
+  } = useTableService()
+
+  const [localVariant, setLocalVariant] = useState<GridVariant | null>(null)
+  const [hasChanges, setHasChanges] = useState(false)
+
+  // Load variant for this grid
+  useEffect(() => {
+    if (isReady) {
+      getVariantForGrid(gridId as GridId).then(setLocalVariant).catch(console.error)
+    }
+  }, [gridId, isReady, getVariantForGrid])
+
+  const handleVariantChange = useCallback((updates: Partial<GridVariant>) => {
+    setLocalVariant((prev) => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        ...updates,
+        colors: updates.colors
+          ? {
+              background: { ...prev.colors.background, ...updates.colors.background },
+              text: { ...prev.colors.text, ...updates.colors.text },
+              signal: { ...prev.colors.signal, ...updates.colors.signal },
+              border: { ...prev.colors.border, ...updates.colors.border },
+              flash: updates.colors.flash ?? prev.colors.flash,
+            }
+          : prev.colors,
+        behavior: updates.behavior
+          ? {
+              ...prev.behavior,
+              ...updates.behavior,
+              microInteractions: {
+                ...prev.behavior.microInteractions,
+                ...updates.behavior.microInteractions,
+              },
+              resize: { ...prev.behavior.resize, ...updates.behavior?.resize },
+              sort: { ...prev.behavior.sort, ...updates.behavior?.sort },
+              drag: { ...prev.behavior.drag, ...updates.behavior?.drag },
+            }
+          : prev.behavior,
+        density: updates.density
+          ? { ...prev.density, ...updates.density }
+          : prev.density,
+      }
+    })
+    setHasChanges(true)
+  }, [])
+
+  const handleSave = useCallback(async () => {
+    if (!localVariant) return
+    const overrides: GridVariantPartial = {
+      colors: localVariant.colors,
+      behavior: localVariant.behavior,
+      density: localVariant.density,
+    }
+    await setGridOverride(gridId as GridId, overrides)
+    setHasChanges(false)
+    drawer.close(drawerId)
+  }, [gridId, localVariant, setGridOverride, drawer, drawerId])
+
+  const handleReset = useCallback(async () => {
+    await clearGridOverride(gridId as GridId)
+    const fresh = await getVariantForGrid(gridId as GridId)
+    setLocalVariant(fresh)
+    setHasChanges(false)
+  }, [gridId, clearGridOverride, getVariantForGrid])
+
+  const handleCancel = useCallback(() => {
+    drawer.close(drawerId)
+  }, [drawer, drawerId])
+
+  if (!localVariant) {
+    return (
+      <div className="p-4 text-neutral-500 font-mono" style={{ fontSize: 10 }}>
+        Loading variant...
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-shrink-0 px-4 py-3 border-b border-neutral-800">
+        <div className="font-mono uppercase tracking-widest text-neutral-300" style={{ fontSize: 11 }}>
+          Grid Settings
+        </div>
+        <div className="font-mono text-neutral-600" style={{ fontSize: 9 }}>
+          ID: {gridId}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4">
+        <VariantBuilder variant={localVariant} onChange={handleVariantChange} />
+      </div>
+
+      <div className="flex-shrink-0 px-4 py-3 border-t border-neutral-800 flex items-center justify-between">
+        <button
+          onClick={handleReset}
+          className="px-3 py-1.5 border border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:text-white transition-colors font-mono uppercase"
+          style={{ fontSize: 9 }}
+        >
+          Reset
+        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleCancel}
+            className="px-3 py-1.5 border border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:text-white transition-colors font-mono uppercase"
+            style={{ fontSize: 9 }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!hasChanges}
+            className={`
+              px-3 py-1.5 border transition-colors font-mono uppercase
+              ${hasChanges
+                ? 'border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10'
+                : 'border-neutral-800 text-neutral-600 cursor-not-allowed'
+              }
+            `}
+            style={{ fontSize: 9 }}
+          >
+            Apply
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
 // SHAPE TYPE
 // =============================================================================
 
@@ -235,6 +387,7 @@ const INITIAL_DRAG_STATE: DragState = {
 
 function DataGridComponent({ shape }: { shape: DataGridWidgetShape }) {
   const editor = useEditor()
+  const drawer = useDrawer()
   const { rowData, title, w, h } = shape.props
   const gridRef = useRef<AgGridReact>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -242,6 +395,18 @@ function DataGridComponent({ shape }: { shape: DataGridWidgetShape }) {
 
   // Hybrid drag state
   const [dragState, setDragState] = useState<DragState>(INITIAL_DRAG_STATE)
+
+  // Settings drawer
+  const settingsDrawerId = `grid-settings-${shape.id}`
+  const handleOpenSettings = useCallback(() => {
+    drawer.open({
+      id: settingsDrawerId,
+      slot: 'global',
+      content: <GridSettingsDrawer gridId={shape.id} drawerId={settingsDrawerId} />,
+      side: 'right',
+      width: 320,
+    })
+  }, [drawer, shape.id, settingsDrawerId])
   const dragStateRef = useRef(dragState)
   dragStateRef.current = dragState
 
@@ -586,6 +751,13 @@ function DataGridComponent({ shape }: { shape: DataGridWidgetShape }) {
           >
             {rowData.length} rows
           </span>
+          <button
+            onClick={handleOpenSettings}
+            className="flex items-center justify-center w-5 h-5 text-neutral-600 hover:text-white transition-colors"
+            aria-label="Grid settings"
+          >
+            <Settings2 size={11} />
+          </button>
           <div
             className="w-1.5 h-1.5 bg-white/50"
             style={{ boxShadow: '0 0 4px rgba(255, 255, 255, 0.3)' }}
