@@ -11,7 +11,7 @@ import { useRef, useEffect, useCallback, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useDrawerStack } from './DrawerStackContext'
-import { rolodexIn, rolodexOut, resetRolodexStyles } from './animations'
+import { cardStackIn, cardStackOut, resetCardStackStyles } from './animations'
 import type { DrawerInstance, DrawerSide } from './types'
 
 // =============================================================================
@@ -35,9 +35,6 @@ const getDrawerStyles = (
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
-    // 3D transform origin for rolodex
-    transformStyle: 'preserve-3d',
-    perspective: 1000,
   }
 
   switch (side) {
@@ -167,22 +164,22 @@ export function Drawer({ instance, container }: DrawerProps) {
   // -------------------------------------------------------------------------
   useEffect(() => {
     if (animationState === 'entering' && drawerRef.current) {
-      rolodexIn(drawerRef.current).then(() => {
+      cardStackIn(drawerRef.current, side).then(() => {
         setAnimationState(id, 'visible')
       })
     }
-  }, [animationState, id, setAnimationState])
+  }, [animationState, id, side, setAnimationState])
 
   // -------------------------------------------------------------------------
   // Exit animation
   // -------------------------------------------------------------------------
   useEffect(() => {
     if (animationState === 'exiting' && drawerRef.current) {
-      rolodexOut(drawerRef.current).then(() => {
+      cardStackOut(drawerRef.current, side).then(() => {
         setAnimationState(id, 'exited')
       })
     }
-  }, [animationState, id, setAnimationState])
+  }, [animationState, id, side, setAnimationState])
 
   // -------------------------------------------------------------------------
   // Escape key handler
@@ -218,7 +215,7 @@ export function Drawer({ instance, container }: DrawerProps) {
   useEffect(() => {
     return () => {
       if (drawerRef.current) {
-        resetRolodexStyles(drawerRef.current)
+        resetCardStackStyles(drawerRef.current)
       }
     }
   }, [])
