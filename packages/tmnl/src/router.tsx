@@ -44,6 +44,8 @@ import { DataGridVariantTestbed } from './components/testbed/DataGridVariantTest
 import Dispositions from './pages/Dispositions';
 import { StreamsPlayground } from './components/playground/streams';
 import { AvaTestbed } from './components/testbed/AvaTestbed';
+import { FloatingPanelTestbed } from './components/testbed/FloatingPanelTestbed';
+import { SelectionTestbed } from './components/testbed/SelectionTestbed';
 
 // Create a root route
 const rootRoute = createRootRoute({
@@ -243,6 +245,20 @@ const avaTestbedRoute = createRoute({
   component: AvaTestbed,
 });
 
+// Create floating panel testbed route
+const floatingPanelTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/floating',
+  component: FloatingPanelTestbed,
+});
+
+// Create selection testbed route
+const selectionTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/selection',
+  component: SelectionTestbed,
+});
+
 // Create the router
 const router = createRouter({
   routeTree: rootRoute.addChildren([
@@ -273,6 +289,8 @@ const router = createRouter({
     scadaCanvasRoute,
     streamsPlaygroundRoute,
     avaTestbedRoute,
+    floatingPanelTestbedRoute,
+    selectionTestbedRoute,
   ]),
 });
 
