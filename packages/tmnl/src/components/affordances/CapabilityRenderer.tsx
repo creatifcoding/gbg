@@ -12,6 +12,8 @@ import type { EntityComponents } from '@/lib/capabilities/types'
 import { GlowRing } from './GlowRing'
 import { Tooltip } from './Tooltip'
 import { Badge } from './Badge'
+import { DraggableAffordance } from './DraggableAffordance'
+import { SelectionRing } from './SelectionRing'
 
 export interface CapabilityRendererProps {
   /** Entity ID to render capabilities for */
@@ -59,14 +61,16 @@ export function CapabilityRenderer({
       {/* Badgeable: corner badge */}
       {entity.badgeable && <Badge {...entity.badgeable} />}
 
+      {/* Draggable: drag handle affordance */}
+      {entity.draggable && <DraggableAffordance {...entity.draggable} />}
+
       {/* Pulsable: handled via glowable.animated for now */}
       {/* Future: dedicated pulse wrapper */}
 
       {/* Clickable: cursor handled by withCapable */}
 
-      {/* Draggable: future drag handle affordance */}
-
-      {/* Selectable: future selection ring */}
+      {/* Selectable: selection ring */}
+      {entity.selectable && <SelectionRing {...entity.selectable} />}
 
       {/* Focusable: future focus ring */}
     </div>

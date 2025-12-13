@@ -31,3 +31,9 @@ export type { TooltipProps } from './Tooltip'
 
 export { Badge } from './Badge'
 export type { BadgeProps } from './Badge'
+
+export { DraggableAffordance, DraggableAffordanceHandle } from './DraggableAffordance'
+export type { DraggableAffordanceProps, DraggableAffordanceHandleProps } from './DraggableAffordance'
+
+export { SelectionRing } from './SelectionRing'
+export type { SelectionRingProps } from './SelectionRing'
