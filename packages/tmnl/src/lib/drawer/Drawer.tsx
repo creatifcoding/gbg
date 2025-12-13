@@ -14,7 +14,6 @@ import { useDrawerStack } from './DrawerStackContext'
 import {
   cardStackIn,
   cardStackOut,
-  animateStackDepth,
   resetCardStackStyles,
 } from './animations'
 import type { DrawerInstance, DrawerSide } from './types'
@@ -27,7 +26,8 @@ const getDrawerStyles = (
   side: DrawerSide,
   width: number | string,
   height: number | string,
-  zIndex: number
+  zIndex: number,
+  isVisible: boolean
 ): React.CSSProperties => {
   const base: React.CSSProperties = {
     position: 'fixed',
@@ -40,6 +40,8 @@ const getDrawerStyles = (
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
+    // Smooth transition for stack depth changes (only when visible, not during enter/exit)
+    transition: isVisible ? 'transform 200ms ease-out, opacity 200ms ease-out' : 'none',
   }
 
   switch (side) {
@@ -194,11 +196,26 @@ export function Drawer({ instance, container, stackIndex, stackSize }: DrawerPro
   }, [animationState, id, side, setAnimationState])
 
   // -------------------------------------------------------------------------
-  // Stack depth animation (recessed card effect)
+  // Stack depth styles (applied directly, CSS transition handles animation)
   // -------------------------------------------------------------------------
   useEffect(() => {
     if (animationState === 'visible' && drawerRef.current) {
-      animateStackDepth(drawerRef.current, stackDepth, side)
+      const el = drawerRef.current
+      const offset = stackDepth * 24 // px per depth level
+      const scale = Math.max(0.88, 1 - stackDepth * 0.04)
+      const opacity = Math.max(0.5, 1 - stackDepth * 0.12)
+
+      // Direction: recede opposite to drawer edge
+      let x = 0, y = 0
+      switch (side) {
+        case 'right': x = -offset; break
+        case 'left': x = offset; break
+        case 'bottom': y = -offset; break
+        case 'top': y = offset; break
+      }
+
+      el.style.transform = `translateX(${x}px) translateY(${y}px) scale(${scale})`
+      el.style.opacity = `${opacity}`
     }
   }, [animationState, stackDepth, side])
 
@@ -258,7 +275,7 @@ export function Drawer({ instance, container, stackIndex, stackSize }: DrawerPro
       {/* Drawer surface */}
       <div
         ref={drawerRef}
-        style={getDrawerStyles(side, width, height, zIndex)}
+        style={getDrawerStyles(side, width, height, zIndex, animationState === 'visible')}
         role="dialog"
         aria-modal="true"
       >
