@@ -12,16 +12,15 @@
  * @route /testbed/drawer
  */
 
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 
-import { COLORS } from '@/lib/capabilities/tokens'
+import { TMNL, TMNL_FONT_SIZE } from '@/lib/tmnl-ui'
 import {
   DrawerStackProvider,
   GlobalSlot,
   useDrawer,
 } from '@/lib/drawer'
 import { useTableService } from '@/lib/table-service'
-import { DEFAULT_VARIANT } from '@/lib/data-grid/variants'
 import type { PresetId } from '@/lib/table-service'
 
 // =============================================================================
@@ -31,28 +30,19 @@ import type { PresetId } from '@/lib/table-service'
 function TestPanel({
   title,
   children,
-  color = COLORS.neutral[800],
 }: {
   title: string
   children: React.ReactNode
-  color?: string
 }) {
   return (
-    <div
-      className="p-4 rounded"
-      style={{
-        backgroundColor: color,
-        border: `1px solid ${COLORS.neutral[700]}`,
-      }}
-    >
-      <h3
-        className="font-mono mb-3"
-        style={{ fontSize: 14, color: COLORS.neutral[300] }}
-      >
-        {title}
-      </h3>
-      {children}
-    </div>
+    <TMNL.Card.Root>
+      <TMNL.Card.Header>
+        <TMNL.Card.Title>{title}</TMNL.Card.Title>
+      </TMNL.Card.Header>
+      <TMNL.Card.Body>
+        {children}
+      </TMNL.Card.Body>
+    </TMNL.Card.Root>
   )
 }
 
@@ -80,52 +70,20 @@ function SampleDrawerContent({
 
   return (
     <div className="p-6">
-      <h2
-        className="font-mono mb-4"
-        style={{ fontSize: 18, color: COLORS.neutral[200] }}
-      >
-        {id}
-      </h2>
-      <p
-        className="mb-4"
-        style={{ fontSize: 14, color: COLORS.neutral[400] }}
-      >
+      <TMNL.Heading level={2} className="mb-4">{id}</TMNL.Heading>
+      <TMNL.Body className="mb-4">
         Depth: {depth} | Stack count: {drawer.count}
-      </p>
+      </TMNL.Body>
       <div className="flex gap-2">
-        <button
-          onClick={handlePushAnother}
-          className="px-3 py-2 rounded font-mono"
-          style={{
-            fontSize: 12,
-            backgroundColor: COLORS.accent.cyan.base,
-            color: COLORS.neutral[950],
-          }}
-        >
+        <TMNL.Button variant="primary" onClick={handlePushAnother}>
           Push Another
-        </button>
-        <button
-          onClick={() => drawer.close(id)}
-          className="px-3 py-2 rounded font-mono"
-          style={{
-            fontSize: 12,
-            backgroundColor: COLORS.neutral[700],
-            color: COLORS.neutral[300],
-          }}
-        >
+        </TMNL.Button>
+        <TMNL.Button variant="tmnl" onClick={() => drawer.close(id)}>
           Close
-        </button>
-        <button
-          onClick={() => drawer.closeAll()}
-          className="px-3 py-2 rounded font-mono"
-          style={{
-            fontSize: 12,
-            backgroundColor: COLORS.accent.red.base,
-            color: COLORS.neutral[100],
-          }}
-        >
+        </TMNL.Button>
+        <TMNL.Button variant="danger" onClick={() => drawer.closeAll()}>
           Close All
-        </button>
+        </TMNL.Button>
       </div>
     </div>
   )
@@ -152,59 +110,31 @@ function PresetFormDrawer() {
 
   return (
     <div className="p-6">
-      <h2
-        className="font-mono mb-4"
-        style={{ fontSize: 18, color: COLORS.neutral[200] }}
-      >
-        Create Preset
-      </h2>
+      <TMNL.Heading level={2} className="mb-4">Create Preset</TMNL.Heading>
       <div className="space-y-4">
         <div>
-          <label
-            className="block mb-1 font-mono"
-            style={{ fontSize: 12, color: COLORS.neutral[400] }}
-          >
-            Preset Name
-          </label>
-          <input
+          <TMNL.Label className="block mb-2">Preset Name</TMNL.Label>
+          <TMNL.Input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 rounded font-mono"
-            style={{
-              fontSize: 14,
-              backgroundColor: COLORS.neutral[800],
-              color: COLORS.neutral[200],
-              border: `1px solid ${COLORS.neutral[600]}`,
-            }}
             placeholder="My Preset"
           />
         </div>
         <div className="flex gap-2">
-          <button
+          <TMNL.Button
+            variant="primary"
             onClick={handleSave}
             disabled={!name.trim() || saving}
-            className="px-4 py-2 rounded font-mono"
-            style={{
-              fontSize: 12,
-              backgroundColor: saving ? COLORS.neutral[600] : COLORS.accent.cyan.base,
-              color: COLORS.neutral[950],
-              opacity: !name.trim() || saving ? 0.5 : 1,
-            }}
           >
             {saving ? 'Saving...' : 'Save Preset'}
-          </button>
-          <button
+          </TMNL.Button>
+          <TMNL.Button
+            variant="tmnl"
             onClick={() => drawer.close('preset-form')}
-            className="px-4 py-2 rounded font-mono"
-            style={{
-              fontSize: 12,
-              backgroundColor: COLORS.neutral[700],
-              color: COLORS.neutral[300],
-            }}
           >
             Cancel
-          </button>
+          </TMNL.Button>
         </div>
       </div>
     </div>
@@ -253,38 +183,19 @@ function DrawerStackTest() {
   }
 
   return (
-    <TestPanel title="TC4-7: Drawer Stack + Animation">
+    <TestPanel title="TC4-7: DRAWER STACK + ANIMATION">
       <div className="space-y-3">
         <div className="flex gap-2">
-          <button
-            onClick={handleOpenSingle}
-            className="px-3 py-2 rounded font-mono"
-            style={{
-              fontSize: 12,
-              backgroundColor: COLORS.accent.cyan.base,
-              color: COLORS.neutral[950],
-            }}
-          >
+          <TMNL.Button variant="primary" onClick={handleOpenSingle}>
             Open Single Drawer
-          </button>
-          <button
-            onClick={handleOpenStacked}
-            className="px-3 py-2 rounded font-mono"
-            style={{
-              fontSize: 12,
-              backgroundColor: COLORS.accent.violet.base,
-              color: COLORS.neutral[100],
-            }}
-          >
+          </TMNL.Button>
+          <TMNL.Button variant="tmnl" onClick={handleOpenStacked}>
             Open Stacked (3x)
-          </button>
+          </TMNL.Button>
         </div>
-        <div
-          className="font-mono"
-          style={{ fontSize: 12, color: COLORS.neutral[500] }}
-        >
+        <TMNL.Body muted>
           Open drawers: {drawer.count} | IDs: {drawer.openIds.join(', ') || 'none'}
-        </div>
+        </TMNL.Body>
       </div>
     </TestPanel>
   )
@@ -296,7 +207,6 @@ function TableServiceTest() {
     activePreset,
     activePresetId,
     isReady,
-    createPreset,
     deletePreset,
     setActivePreset,
     userPresetCount,
@@ -317,136 +227,80 @@ function TableServiceTest() {
   }
 
   return (
-    <TestPanel title="TC1-3: TableService Preset CRUD + Persistence">
+    <TestPanel title="TC1-3: TABLESERVICE PRESET CRUD">
       <div className="space-y-3">
-        <div
-          className="flex items-center gap-2 font-mono"
-          style={{ fontSize: 12, color: COLORS.neutral[400] }}
-        >
-          <span>Status:</span>
-          <span
-            className="px-2 py-0.5 rounded"
-            style={{
-              backgroundColor: isReady ? COLORS.accent.green.base : COLORS.accent.amber.base,
-              color: COLORS.neutral[950],
-            }}
-          >
-            {isReady ? 'Ready' : 'Initializing...'}
-          </span>
+        <div className="flex items-center gap-2">
+          <TMNL.Label>Status:</TMNL.Label>
+          <TMNL.Badge variant={isReady ? 'success' : 'warning'}>
+            {isReady ? 'READY' : 'INITIALIZING'}
+          </TMNL.Badge>
         </div>
 
         <div className="flex gap-2">
-          <button
-            onClick={handleOpenPresetForm}
-            className="px-3 py-2 rounded font-mono"
-            style={{
-              fontSize: 12,
-              backgroundColor: COLORS.accent.cyan.base,
-              color: COLORS.neutral[950],
-            }}
-          >
+          <TMNL.Button variant="primary" onClick={handleOpenPresetForm}>
             Create Preset (Drawer)
-          </button>
-          <button
+          </TMNL.Button>
+          <TMNL.Button
+            variant="tmnl"
             onClick={() => setActivePreset(null)}
             disabled={!activePresetId}
-            className="px-3 py-2 rounded font-mono"
-            style={{
-              fontSize: 12,
-              backgroundColor: COLORS.neutral[700],
-              color: COLORS.neutral[300],
-              opacity: !activePresetId ? 0.5 : 1,
-            }}
           >
             Clear Active
-          </button>
+          </TMNL.Button>
         </div>
 
         <div>
-          <div
-            className="font-mono mb-2"
-            style={{ fontSize: 12, color: COLORS.neutral[400] }}
-          >
+          <TMNL.Label className="block mb-2">
             Presets ({userPresetCount} user-created):
-          </div>
+          </TMNL.Label>
           <div className="space-y-1">
             {presets.length === 0 && (
-              <div
-                className="font-mono italic"
-                style={{ fontSize: 12, color: COLORS.neutral[600] }}
-              >
+              <TMNL.Body muted className="italic">
                 No presets yet. Create one to test persistence.
-              </div>
+              </TMNL.Body>
             )}
             {presets.map((preset) => (
               <div
                 key={preset.id}
-                className="flex items-center gap-2 px-2 py-1 rounded"
-                style={{
-                  backgroundColor:
-                    preset.id === activePresetId
-                      ? COLORS.accent.cyan.muted
-                      : COLORS.neutral[900],
-                  border: `1px solid ${
-                    preset.id === activePresetId
-                      ? COLORS.accent.cyan.border
-                      : COLORS.neutral[700]
-                  }`,
-                }}
+                className={`flex items-center gap-2 px-3 py-2 rounded border ${
+                  preset.id === activePresetId
+                    ? 'bg-neutral-900 border-neutral-600'
+                    : 'bg-neutral-950 border-neutral-800'
+                }`}
               >
                 <span
-                  className="font-mono flex-1"
-                  style={{ fontSize: 12, color: COLORS.neutral[200] }}
+                  className="font-mono flex-1 text-neutral-200"
+                  style={{ fontSize: TMNL_FONT_SIZE.xs }}
                 >
                   {preset.name}
                 </span>
                 {preset.isBuiltIn && (
-                  <span
-                    className="px-1.5 py-0.5 rounded font-mono"
-                    style={{
-                      fontSize: 10,
-                      backgroundColor: COLORS.neutral[700],
-                      color: COLORS.neutral[400],
-                    }}
-                  >
-                    built-in
-                  </span>
+                  <TMNL.Badge>BUILT-IN</TMNL.Badge>
                 )}
-                <button
+                <TMNL.Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setActivePreset(preset.id)}
-                  className="px-2 py-0.5 rounded font-mono"
-                  style={{
-                    fontSize: 10,
-                    backgroundColor: COLORS.accent.cyan.border,
-                    color: COLORS.neutral[100],
-                  }}
                 >
                   Activate
-                </button>
+                </TMNL.Button>
                 {!preset.isBuiltIn && (
-                  <button
+                  <TMNL.Button
+                    variant="danger"
+                    size="sm"
                     onClick={() => handleDeletePreset(preset.id)}
-                    className="px-2 py-0.5 rounded font-mono"
-                    style={{
-                      fontSize: 10,
-                      backgroundColor: COLORS.accent.red.border,
-                      color: COLORS.neutral[100],
-                    }}
                   >
                     Delete
-                  </button>
+                  </TMNL.Button>
                 )}
               </div>
             ))}
           </div>
         </div>
 
-        <div
-          className="font-mono"
-          style={{ fontSize: 12, color: COLORS.neutral[500] }}
-        >
+        <TMNL.Body muted>
           Active: {activePreset?.name ?? 'Default Variant'}
-        </div>
+        </TMNL.Body>
       </div>
     </TestPanel>
   )
@@ -461,29 +315,13 @@ function SlotTest() {
       slot: 'global',
       content: (
         <div className="p-6">
-          <h2
-            className="font-mono mb-4"
-            style={{ fontSize: 18, color: COLORS.neutral[200] }}
-          >
-            Global Slot Drawer
-          </h2>
-          <p
-            className="mb-4"
-            style={{ fontSize: 14, color: COLORS.neutral[400] }}
-          >
+          <TMNL.Heading level={2} className="mb-4">Global Slot Drawer</TMNL.Heading>
+          <TMNL.Body className="mb-4">
             This drawer renders in the GlobalSlot at viewport level.
-          </p>
-          <button
-            onClick={() => drawer.close('global-test')}
-            className="px-3 py-2 rounded font-mono"
-            style={{
-              fontSize: 12,
-              backgroundColor: COLORS.neutral[700],
-              color: COLORS.neutral[300],
-            }}
-          >
+          </TMNL.Body>
+          <TMNL.Button variant="tmnl" onClick={() => drawer.close('global-test')}>
             Close
-          </button>
+          </TMNL.Button>
         </div>
       ),
       title: 'Global Slot Test',
@@ -491,27 +329,16 @@ function SlotTest() {
   }
 
   return (
-    <TestPanel title="TC8-9: Global vs Panel Slots">
+    <TestPanel title="TC8-9: GLOBAL VS PANEL SLOTS">
       <div className="space-y-3">
-        <button
-          onClick={handleOpenGlobal}
-          className="px-3 py-2 rounded font-mono"
-          style={{
-            fontSize: 12,
-            backgroundColor: COLORS.accent.cyan.base,
-            color: COLORS.neutral[950],
-          }}
-        >
+        <TMNL.Button variant="primary" onClick={handleOpenGlobal}>
           Open Global Drawer
-        </button>
-        <div
-          className="font-mono"
-          style={{ fontSize: 12, color: COLORS.neutral[500] }}
-        >
+        </TMNL.Button>
+        <TMNL.Body muted>
           Panel slot testing requires FloatingPanel context.
           <br />
           See AvaTestbed for panel-scoped drawer examples.
-        </div>
+        </TMNL.Body>
       </div>
     </TestPanel>
   )
@@ -523,23 +350,14 @@ function SlotTest() {
 
 function DrawerTestbedContent() {
   return (
-    <div
-      className="min-h-screen p-6"
-      style={{ backgroundColor: COLORS.neutral[950] }}
-    >
+    <div className="min-h-screen p-6 bg-black">
       <header className="mb-8">
-        <h1
-          className="font-mono mb-2"
-          style={{ fontSize: 24, color: COLORS.neutral[100] }}
-        >
-          Drawer System Testbed
-        </h1>
-        <p
-          className="font-mono"
-          style={{ fontSize: 14, color: COLORS.neutral[500] }}
-        >
+        <TMNL.Heading level={1} className="mb-2">
+          DRAWER SYSTEM TESTBED
+        </TMNL.Heading>
+        <TMNL.Body muted>
           Validating drawer stack, rolodex animation, TableService integration.
-        </p>
+        </TMNL.Body>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

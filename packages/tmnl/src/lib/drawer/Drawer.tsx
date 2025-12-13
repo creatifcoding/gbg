@@ -27,8 +27,9 @@ const getDrawerStyles = (
   const base: React.CSSProperties = {
     position: 'fixed',
     zIndex,
-    backgroundColor: 'var(--tmnl-surface-elevated, #1a1a1a)',
-    borderColor: 'var(--tmnl-border, #333)',
+    // TMNL CEW: Pure black surface
+    backgroundColor: 'black',
+    borderColor: 'rgb(38, 38, 38)', // neutral-800
     borderWidth: 1,
     borderStyle: 'solid',
     display: 'flex',
@@ -90,8 +91,9 @@ const getDrawerStyles = (
 const backdropStyles: React.CSSProperties = {
   position: 'fixed',
   inset: 0,
+  // TMNL CEW: Deep black backdrop with subtle blur
   backgroundColor: 'rgba(0, 0, 0, 0.6)',
-  backdropFilter: 'blur(2px)',
+  backdropFilter: 'blur(1px)',
 }
 
 const headerStyles: React.CSSProperties = {
@@ -99,7 +101,8 @@ const headerStyles: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'flex-end',
   padding: '8px 12px',
-  borderBottom: '1px solid var(--tmnl-border, #333)',
+  // TMNL CEW: Hairline border
+  borderBottom: '1px solid rgb(38, 38, 38)', // neutral-800
   flexShrink: 0,
 }
 
@@ -112,7 +115,8 @@ const closeButtonStyles: React.CSSProperties = {
   borderRadius: 4,
   border: 'none',
   backgroundColor: 'transparent',
-  color: 'var(--tmnl-text-muted, #888)',
+  // TMNL CEW: Muted text
+  color: 'rgb(82, 82, 82)', // neutral-600
   cursor: 'pointer',
   transition: 'background-color 0.15s, color 0.15s',
 }
@@ -247,12 +251,13 @@ export function Drawer({ instance, container }: DrawerProps) {
             onClick={handleClose}
             aria-label="Close drawer"
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--tmnl-surface-hover, #2a2a2a)'
-              e.currentTarget.style.color = 'var(--tmnl-text, #fff)'
+              // TMNL CEW: Elevated hover state
+              e.currentTarget.style.backgroundColor = 'rgb(23, 23, 23)' // neutral-900
+              e.currentTarget.style.color = 'white'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent'
-              e.currentTarget.style.color = 'var(--tmnl-text-muted, #888)'
+              e.currentTarget.style.color = 'rgb(82, 82, 82)' // neutral-600
             }}
           >
             <X size={16} />
