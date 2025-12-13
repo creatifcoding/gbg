@@ -408,7 +408,7 @@ export function SelectionOverlay({
 
   if (!isSelecting || !marqueeRect) return null
 
-  const color = COLORS[config.selectionColor]
+  const color = COLORS.accent[config.selectionColor as keyof typeof COLORS.accent]
 
   return (
     <div
