@@ -100,3 +100,6 @@
 [submodule "submodules/pepr-excellent-examples"]
 	path = submodules/pepr-excellent-examples
 	url = https://github.com/defenseunicorns/pepr-excellent-examples
+[submodule "submodules/dnd-kit"]
+	path = submodules/dnd-kit
+	url = https://github.com/clauderic/dnd-kit

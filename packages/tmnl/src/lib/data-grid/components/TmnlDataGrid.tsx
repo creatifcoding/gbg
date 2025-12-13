@@ -217,10 +217,7 @@ function TmnlDataGridInner<TData = unknown>(
         rowSelection={
           variant.behavior.selection === 'none'
             ? undefined
-            : variant.behavior.selection
-        }
-        enableCellChangeFlash={
-          !flashEnabled && variant.behavior.microInteractions.enableCellFlash
+            : { mode: variant.behavior.selection === 'single' ? 'singleRow' : 'multiRow' }
         }
         onGridReady={handleGridReady}
         {...agGridProps}
