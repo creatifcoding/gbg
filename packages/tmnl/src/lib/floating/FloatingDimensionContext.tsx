@@ -58,8 +58,13 @@ export function FloatingDimensionProvider({
         style={{
           containerType: 'size',
           containerName: 'panel',
-          width: '100%',
-          height: '100%',
+          // Fill available space in parent flex container
+          flex: 1,
+          minHeight: 0, // Allow shrinking below content size
+          minWidth: 0,
+          // Make this a flex container so children with flex:1 work
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         {children}

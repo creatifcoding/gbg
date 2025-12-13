@@ -55,6 +55,13 @@ export {
   type MissionCardProps,
 } from './card';
 
+// Interactive Card
+export {
+  InteractiveCard,
+  type InteractiveCardProps,
+  type InteractiveCardMode,
+} from './InteractiveCard';
+
 // Metrics
 export {
   MetricBadge,

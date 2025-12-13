@@ -180,12 +180,15 @@ const make = Effect.gen(function* () {
 
   // Create WebSocket using Effect Platform Socket API
   // This requires Socket.WebSocketConstructor in context
+  console.log('[AvaSessionClient] Creating WebSocket to:', sessionUrl);
   const socket = yield* Socket.makeWebSocket(sessionUrl, {
     openTimeout: config.timeout,
   });
+  console.log('[AvaSessionClient] WebSocket created, getting writer');
 
   // Get the writer for sending commands (scoped, auto-cleanup)
   const write = yield* socket.writer;
+  console.log('[AvaSessionClient] Writer obtained');
 
   // Message handler - decode and enqueue events
   const handleMessage = (data: string | Uint8Array): Effect.Effect<void> => {
@@ -200,18 +203,23 @@ const make = Effect.gen(function* () {
 
   // Run the socket handler in a fiber
   // This handles incoming messages and connection lifecycle
+  console.log('[AvaSessionClient] Setting up runSocket with onOpen callback');
   const runSocket = socket.runRaw(handleMessage, {
     onOpen: Effect.gen(function* () {
+      console.log('[AvaSessionClient] onOpen callback FIRED!');
       yield* Ref.set(connectedRef, true);
       yield* Deferred.succeed(connectionDeferred, undefined);
       yield* Effect.logDebug('AvaSessionClient: WebSocket connected');
+      console.log('[AvaSessionClient] Deferred succeeded, connected=true');
     }),
   }).pipe(
     Effect.catchAll((error) =>
       Effect.gen(function* () {
+        console.log('[AvaSessionClient] Socket error caught:', error);
         yield* Ref.set(connectedRef, false);
         const isDone = yield* Deferred.isDone(connectionDeferred);
         if (!isDone) {
+          console.log('[AvaSessionClient] Failing deferred with error');
           yield* Deferred.fail(
             connectionDeferred,
             new AvaSessionError({
@@ -227,7 +235,14 @@ const make = Effect.gen(function* () {
   );
 
   // Fork the socket handler to run in background
+  console.log('[AvaSessionClient] Forking socket handler');
   const socketFiber = yield* Effect.fork(runSocket);
+  console.log('[AvaSessionClient] Socket handler forked');
+
+  // CRITICAL: Yield control to allow the socket fiber to start running
+  // Without this, the make Effect returns before onOpen has a chance to fire
+  yield* Effect.yieldNow();
+  console.log('[AvaSessionClient] Yielded, service ready');
 
   // Register cleanup finalizer (per EFFECT_SERVICE_PATTERNS.md)
   yield* Effect.addFinalizer(() =>

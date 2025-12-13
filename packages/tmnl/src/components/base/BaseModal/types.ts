@@ -15,6 +15,8 @@ export interface ModalActions {
   close: () => void
   /** Update modal data (for dynamic content) */
   setData: <T>(data: T) => void
+  /** Detach content to floating panel (if visitor allows) */
+  detach: () => void
 }
 
 // =============================================================================
@@ -45,6 +47,10 @@ export interface VisitorContract<TData = unknown> {
   disableOverlayClose?: boolean
   /** Optional: disable escape key to close */
   disableEscapeClose?: boolean
+  /** Optional: allow detaching modal content to floating panel */
+  detachable?: boolean
+  /** Optional: custom title for floating panel when detached */
+  detachTitle?: string
 }
 
 // =============================================================================
@@ -118,6 +124,8 @@ export interface ModalContentProps<TData = unknown> {
   data?: TData
   /** Custom class name */
   className?: string
+  /** Callback when content is detached to floating panel */
+  onDetach?: (visitor: VisitorContract<TData>, data: TData) => void
 }
 
 export interface ModalHeaderProps {

@@ -259,10 +259,21 @@ function ModalOverlay({ className = '', onClick }: ModalOverlayProps) {
 }
 
 /**
+ * Detach icon (pop-out arrow)
+ */
+function DetachIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M8 1h5v5M13 1L6 8M5 3H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+/**
  * Modal.Content - Main content container
  */
 const ModalContent = forwardRef<HTMLDivElement, ModalContentProps>(function ModalContent(
-  { children, visitor, data, className = '' },
+  { children, visitor, data, className = '', onDetach },
   ref
 ) {
   const { isOpen, setIsOpen, contentRef } = useLocalModal()
@@ -314,9 +325,17 @@ const ModalContent = forwardRef<HTMLDivElement, ModalContentProps>(function Moda
     return () => document.removeEventListener('keydown', handleTab)
   }, [isOpen, resolvedRef])
 
+  const handleDetach = () => {
+    if (visitor?.detachable && data !== undefined && onDetach) {
+      setIsOpen(false)
+      onDetach(visitor, data)
+    }
+  }
+
   const actions: ModalActions = {
     close: () => setIsOpen(false),
     setData: () => {}, // Local modals don't support setData
+    detach: handleDetach,
   }
 
   // Stop propagation to prevent overlay click
@@ -339,7 +358,20 @@ const ModalContent = forwardRef<HTMLDivElement, ModalContentProps>(function Moda
           {visitor.header && (
             <div className="px-4 py-3 border-b border-neutral-800 flex items-center justify-between">
               {visitor.header(data, actions)}
-              <ModalCloseButton />
+              <div className="flex items-center gap-1">
+                {visitor.detachable && onDetach && (
+                  <button
+                    onClick={handleDetach}
+                    className="w-6 h-6 flex items-center justify-center rounded hover:bg-neutral-800 text-neutral-500 hover:text-cyan-400 transition-colors"
+                    type="button"
+                    aria-label="Detach to floating panel"
+                    title="Detach to floating panel"
+                  >
+                    <DetachIcon />
+                  </button>
+                )}
+                <ModalCloseButton />
+              </div>
             </div>
           )}
           <div className="p-4 max-h-[70vh] overflow-y-auto">

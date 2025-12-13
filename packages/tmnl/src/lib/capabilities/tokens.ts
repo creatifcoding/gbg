@@ -205,7 +205,8 @@ export const Z_INDEX = {
   content: 1,     // Normal content
   badge: 10,      // Above content
   tooltip: 100,   // Floating
-  modal: 1000,    // Top level
+  floating: 5000, // Floating panels (between tooltip and modal)
+  modal: 9999,    // Top level (matches BaseModal)
 } as const
 
 // =============================================================================

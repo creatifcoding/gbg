@@ -162,27 +162,66 @@ const initialData: AvaData = {
 }
 
 // =============================================================================
-// Layer Factory
+// Layer Factories
 // =============================================================================
 
-const createLiveLayers = (baseUrl: string) => {
+/**
+ * Create HTTP-only layer for REST API operations (list views, get spec, etc.)
+ * Does NOT create a WebSocket connection.
+ */
+const createHttpLayer = (baseUrl: string) => {
   const configLayer = Layer.succeed(AvaApiConfig, {
     baseUrl,
     timeout: 30000,
   })
+  return AvaHttpClientLive.pipe(Layer.provide(configLayer))
+}
 
-  const httpLayer = AvaHttpClientLive.pipe(Layer.provide(configLayer))
-
-  const sessionLayer = AvaSessionClientLive.pipe(
+/**
+ * Create Session layer for WebSocket operations.
+ * Only use this when you need a persistent WebSocket connection.
+ */
+const createSessionLayer = (baseUrl: string) => {
+  const configLayer = Layer.succeed(AvaApiConfig, {
+    baseUrl,
+    timeout: 30000,
+  })
+  return AvaSessionClientLive.pipe(
     Layer.provide(Socket.layerWebSocketConstructorGlobal),
     Layer.provide(configLayer)
   )
-
-  return Layer.mergeAll(httpLayer, sessionLayer)
 }
 
 // =============================================================================
-// Helper Functions
+// Active Session Storage
+// =============================================================================
+
+/**
+ * Module-level storage for the active session client.
+ * This allows sendPing/subscribeToView to reuse the connection established
+ * by connectSession, rather than creating new WebSocket connections.
+ *
+ * CRITICAL: AvaSessionClient is Layer.scoped, so each Effect.scoped + Layer.provide
+ * creates a NEW WebSocket connection. We need to store the client reference from
+ * connectSession and reuse it for subsequent operations.
+ */
+interface ActiveSession {
+  client: AvaSessionClient
+  fiber: Fiber.RuntimeFiber<void, unknown>
+}
+
+let activeSession: ActiveSession | null = null
+
+const setActiveSession = (session: ActiveSession | null): void => {
+  activeSession = session
+}
+
+const getActiveSession = (): ActiveSession | null => {
+  return activeSession
+}
+
+// =============================================================================
+// Message Log Helpers
 // =============================================================================
 
 let messageIdCounter = 0
@@ -198,6 +237,14 @@ const createMessageEntry = (
   type,
   payload: typeof payload === 'string' ? payload : JSON.stringify(payload),
 })
+
+/**
+ * Append a message to the log (internal helper).
+ * Used by the machine subscription and WebSocket stream handlers.
+ */
+const appendToLog = (state: AvaStx, entry: MessageLogEntry): void => {
+  state.data.messageLog.set([entry, ...state.data.messageLog.get()].slice(0, 100))
+}
 
 // =============================================================================
 // stx Instance
@@ -226,7 +273,7 @@ const avaEffects = {
     )
     state.data.error.set(null)
 
-    const layer = createLiveLayers(config.baseUrl)
+    const layer = createHttpLayer(config.baseUrl)
     const client = yield* AvaHttpClient.pipe(Effect.provide(layer))
     const views = yield* client.listViews()
 
@@ -252,7 +299,7 @@ const avaEffects = {
       const state = getAvaStx()
       const config = state.data.config.get()
 
-      const layer = createLiveLayers(config.baseUrl)
+      const layer = createHttpLayer(config.baseUrl)
       const client = yield* AvaHttpClient.pipe(Effect.provide(layer))
 
       const spec = yield* client.getSpec(viewId)
@@ -261,16 +308,8 @@ const avaEffects = {
       state.data.selectedView.set(spec)
       state.data.artifact.set(art)
 
-      // Add message
-      const msg = createMessageEntry('in', 'artifact', { view_id: viewId, version: art.version })
-      state.data.messageLog.set([msg, ...state.data.messageLog.get()].slice(0, 100))
-
-      // Update hypothesis
-      state.data.hypotheses.set(
-        state.data.hypotheses.get().map((h) =>
-          h.id === 'H2' ? { ...h, status: 'passed' as const, evidence: 'Live artifact received' } : h
-        )
-      )
+      // NOTE: No message log entry - this is an HTTP call, not a WebSocket event.
+      // Message log is reserved for actual WebSocket session events.
 
       return { spec, art }
     }),
@@ -284,11 +323,9 @@ const avaEffects = {
     const viewName = `Test View ${Date.now()}`
     const viewId = `testbed-${Date.now()}`
 
-    // Add outgoing message
-    const outMsg = createMessageEntry('out', 'register', { id: viewId, name: viewName })
-    state.data.messageLog.set([outMsg, ...state.data.messageLog.get()].slice(0, 100))
+    // NOTE: No message log entry for HTTP request - message log is for WebSocket events only.
 
-    const layer = createLiveLayers(config.baseUrl)
+    const layer = createHttpLayer(config.baseUrl)
     const client = yield* AvaHttpClient.pipe(Effect.provide(layer))
 
     const result = yield* client.registerView({
@@ -300,13 +337,7 @@ const avaEffects = {
       ],
     })
 
-    // Add incoming message
-    const inMsg = createMessageEntry('in', 'status', {
-      view_id: result.view_id,
-      was_created: result.was_created,
-      version: result.version,
-    })
-    state.data.messageLog.set([inMsg, ...state.data.messageLog.get()].slice(0, 100))
+    // NOTE: No message log entry for HTTP response - message log is for WebSocket events only.
 
     // Refresh views - run as separate effect
     yield* avaEffects.fetchViews
@@ -321,6 +352,15 @@ const avaEffects = {
     const state = getAvaStx()
     const config = state.data.config.get()
 
+    console.log('[ava-stx] connectSession started, baseUrl:', config.baseUrl)
+
+    // Clear any existing session
+    if (activeSession) {
+      console.log('[ava-stx] Clearing existing session, interrupting fiber')
+      yield* Fiber.interrupt(activeSession.fiber).pipe(Effect.ignore)
+      setActiveSession(null)
+    }
+
     // Send machine event
     state.send?.({ type: 'CONNECT' })
 
@@ -332,12 +372,16 @@ const avaEffects = {
     )
     state.data.error.set(null)
 
-    const layer = createLiveLayers(config.baseUrl)
+    const layer = createSessionLayer(config.baseUrl)
+    console.log('[ava-stx] Session layer created, creating program')
 
     const program = Effect.gen(function* () {
+      console.log('[ava-stx] Program started, yielding AvaSessionClient')
       const client = yield* AvaSessionClient
+      console.log('[ava-stx] AvaSessionClient obtained, waiting for connection')
 
       yield* client.waitForConnection
+      console.log('[ava-stx] Connection established!')
 
       // Transition to connected
       state.send?.({ type: 'CONNECTED' })
@@ -351,19 +395,21 @@ const avaEffects = {
         )
       )
 
-      // Add session message
-      const msg = createMessageEntry('in', 'session', {
-        status: 'connected',
-        endpoint: config.baseUrl,
-      })
-      state.data.messageLog.set([msg, ...state.data.messageLog.get()].slice(0, 100))
+      // CRITICAL: Store the client in activeSession for sendPing/subscribeToView to use.
+      // We need a way to pass the fiber reference back. Use a Deferred to signal when stored.
+      // For now, store with null fiber - we'll update it after runFork returns.
+      console.log('[ava-stx] Storing client in activeSession (fiber pending)')
+      setActiveSession({ client, fiber: null as unknown as Fiber.RuntimeFiber<void, unknown> })
 
-      // Stream events
+      // NOTE: No manual message log entry needed here.
+      // The machine subscription in getAvaStx() logs the 'connected' transition.
+
+      // Stream events — WebSocket events are logged as they arrive
       yield* client.events.pipe(
         Stream.tap((event) =>
           Effect.sync(() => {
-            const evtMsg = createMessageEntry('in', event._tag, event)
-            state.data.messageLog.set([evtMsg, ...state.data.messageLog.get()].slice(0, 100))
+            // Log incoming WebSocket event
+            appendToLog(state, createMessageEntry('in', event._tag, event))
 
             if (event._tag === 'artifact') {
               state.data.artifact.set(event.artifact)
@@ -394,8 +440,16 @@ const avaEffects = {
     }).pipe(
       Effect.scoped,
       Effect.provide(layer),
+      Effect.ensuring(
+        // Cleanup: clear activeSession when program exits (success, error, or interrupt)
+        Effect.sync(() => {
+          console.log('[ava-stx] Program exiting, clearing activeSession')
+          setActiveSession(null)
+        })
+      ),
       Effect.catchAll((error) =>
         Effect.sync(() => {
+          console.log('[ava-stx] Connection error caught:', error)
           state.send?.({ type: 'ERROR', message: String(error) })
 
           state.data.hypotheses.set(
@@ -406,14 +460,25 @@ const avaEffects = {
 
           state.data.error.set(`Connection error: ${error}`)
 
-          const errMsg = createMessageEntry('in', 'error', { message: String(error) })
-          state.data.messageLog.set([errMsg, ...state.data.messageLog.get()].slice(0, 100))
+          // NOTE: No manual message log entry needed here.
+          // The machine subscription logs the 'error' transition with context.errorMessage.
         })
       )
     )
 
-    const fiber = yield* Effect.fork(program)
-    // Store fiber in machine context could be done via action, but for now we return it
+    // CRITICAL: Use Effect.runFork instead of yield* Effect.fork
+    // stx uses Effect.runPromiseExit which creates a transient runtime.
+    // When the effect returns, the runtime is disposed before forked fibers can run.
+    // Effect.runFork creates a fiber on a persistent global runtime that outlives
+    // the stx effect call.
+    console.log('[ava-stx] Running program with Effect.runFork (persistent runtime)')
+    const fiber = Effect.runFork(program)
+    console.log('[ava-stx] Program fiber running on global runtime')
+
+    // Update activeSession with the fiber reference (client was stored inside program)
+    if (activeSession) {
+      activeSession.fiber = fiber
+    }
 
     return fiber
   }),
@@ -424,44 +489,55 @@ const avaEffects = {
   disconnectSession: Effect.gen(function* () {
     const state = getAvaStx()
 
-    // Get fiber from machine context if stored there
-    const snapshot = state.actor?.getSnapshot()
-    const fiber = (snapshot?.context as ConnectionContext | undefined)?.fiber
-
-    if (fiber) {
-      yield* Fiber.interrupt(fiber)
+    // Interrupt the active session fiber
+    const session = getActiveSession()
+    if (session?.fiber) {
+      console.log('[ava-stx] Interrupting active session fiber')
+      yield* Fiber.interrupt(session.fiber).pipe(Effect.ignore)
     }
 
-    state.send?.({ type: 'DISCONNECT' })
+    // Clear active session
+    setActiveSession(null)
 
-    const msg = createMessageEntry('in', 'session', { status: 'disconnected' })
-    state.data.messageLog.set([msg, ...state.data.messageLog.get()].slice(0, 100))
+    // Trigger machine transition — the subscription logs the state change
+    state.send?.({ type: 'DISCONNECT' })
   }),
 
   /**
    * Send ping
+   * Only logs to message log if machine is connected AND command succeeds.
+   * Uses the active session client (no new WebSocket connection).
    */
   sendPing: Effect.gen(function* () {
     const state = getAvaStx()
-    const config = state.data.config.get()
     const snapshot = state.actor?.getSnapshot()
 
-    if (!snapshot?.matches('connected')) return
+    // Guard: Only send if connected (machine state is source of truth)
+    if (!snapshot?.matches('connected')) {
+      console.log('[ava-stx] sendPing: Not connected (machine state)')
+      return
+    }
 
-    const outMsg = createMessageEntry('out', 'ping', { payload: 'testbed-ping' })
-    state.data.messageLog.set([outMsg, ...state.data.messageLog.get()].slice(0, 100))
+    // Use the active session client
+    const session = getActiveSession()
+    if (!session?.client) {
+      console.log('[ava-stx] sendPing: No active session client')
+      appendToLog(state, createMessageEntry('in', 'error', { message: 'No active session' }))
+      return
+    }
 
-    const layer = createLiveLayers(config.baseUrl)
-    const program = Effect.gen(function* () {
-      const client = yield* AvaSessionClient
-      yield* client.ping('testbed-ping')
-    }).pipe(Effect.scoped, Effect.provide(layer))
-
-    yield* program.pipe(
+    console.log('[ava-stx] sendPing: Using active session client')
+    yield* session.client.ping('testbed-ping').pipe(
+      Effect.tap(() =>
+        Effect.sync(() => {
+          // Log outbound command only after successful send
+          appendToLog(state, createMessageEntry('out', 'ping', { payload: 'testbed-ping' }))
+        })
+      ),
       Effect.catchAll((e) =>
         Effect.sync(() => {
-          const errMsg = createMessageEntry('in', 'error', { message: `Ping failed: ${e}` })
-          state.data.messageLog.set([errMsg, ...state.data.messageLog.get()].slice(0, 100))
+          // Log failure as inbound error
+          appendToLog(state, createMessageEntry('in', 'error', { message: `Ping failed: ${e}` }))
         })
       )
     )
@@ -469,29 +545,40 @@ const avaEffects = {
 
   /**
    * Subscribe to a view
+   * Only logs to message log if machine is connected AND command succeeds.
+   * Uses the active session client (no new WebSocket connection).
    */
   subscribeToView: (viewId: string) =>
     Effect.gen(function* () {
       const state = getAvaStx()
-      const config = state.data.config.get()
       const snapshot = state.actor?.getSnapshot()
 
-      if (!snapshot?.matches('connected')) return
+      // Guard: Only send if connected (machine state is source of truth)
+      if (!snapshot?.matches('connected')) {
+        console.log('[ava-stx] subscribeToView: Not connected (machine state)')
+        return
+      }
 
-      const outMsg = createMessageEntry('out', 'subscribe', { view_id: viewId })
-      state.data.messageLog.set([outMsg, ...state.data.messageLog.get()].slice(0, 100))
+      // Use the active session client
+      const session = getActiveSession()
+      if (!session?.client) {
+        console.log('[ava-stx] subscribeToView: No active session client')
+        appendToLog(state, createMessageEntry('in', 'error', { message: 'No active session' }))
+        return
+      }
 
-      const layer = createLiveLayers(config.baseUrl)
-      const program = Effect.gen(function* () {
-        const client = yield* AvaSessionClient
-        yield* client.subscribe(viewId)
-      }).pipe(Effect.scoped, Effect.provide(layer))
-
-      yield* program.pipe(
+      console.log('[ava-stx] subscribeToView: Using active session client for', viewId)
+      yield* session.client.subscribe(viewId).pipe(
+        Effect.tap(() =>
+          Effect.sync(() => {
+            // Log outbound command only after successful send
+            appendToLog(state, createMessageEntry('out', 'subscribe', { view_id: viewId }))
+          })
+        ),
         Effect.catchAll((e) =>
           Effect.sync(() => {
-            const errMsg = createMessageEntry('in', 'error', { message: `Subscribe failed: ${e}` })
-            state.data.messageLog.set([errMsg, ...state.data.messageLog.get()].slice(0, 100))
+            // Log failure as inbound error
+            appendToLog(state, createMessageEntry('in', 'error', { message: `Subscribe failed: ${e}` }))
           })
         )
       )
@@ -513,6 +600,7 @@ const avaComputed = {
 // =============================================================================
 
 let avaStxInstance: AvaStx | null = null
+let machineUnsubscribe: (() => void) | null = null
 
 /**
  * Get or create the AVA stx instance
@@ -525,6 +613,44 @@ export const getAvaStx = (): AvaStx => {
       effects: avaEffects,
       computed: avaComputed,
     }) as AvaStx
+
+    // Subscribe to machine state transitions for message log
+    // This is the pull-based event source — the machine defines what conditions update the log
+    if (avaStxInstance.actor) {
+      let previousState: string | null = null
+
+      machineUnsubscribe = avaStxInstance.actor.subscribe((snapshot) => {
+        const currentState = snapshot.value as string
+        const config = avaStxInstance!.data.config.get()
+        const errorMessage = snapshot.context.errorMessage
+
+        // Only log on actual state transitions
+        if (currentState !== previousState) {
+          switch (currentState) {
+            case 'connected':
+              appendToLog(avaStxInstance!, createMessageEntry('in', 'session', {
+                status: 'connected',
+                endpoint: config.baseUrl,
+              }))
+              break
+            case 'disconnected':
+              // Only log disconnect if we were previously connected or in error
+              if (previousState === 'connected' || previousState === 'error') {
+                appendToLog(avaStxInstance!, createMessageEntry('in', 'session', {
+                  status: 'disconnected',
+                }))
+              }
+              break
+            case 'error':
+              appendToLog(avaStxInstance!, createMessageEntry('in', 'error', {
+                message: errorMessage ?? 'Unknown error',
+              }))
+              break
+          }
+          previousState = currentState
+        }
+      }).unsubscribe
+    }
   }
   return avaStxInstance
 }
@@ -533,6 +659,10 @@ export const getAvaStx = (): AvaStx => {
  * Reset the AVA stx instance (for testing)
  */
 export const resetAvaStx = (): void => {
+  if (machineUnsubscribe) {
+    machineUnsubscribe()
+    machineUnsubscribe = null
+  }
   if (avaStxInstance) {
     avaStxInstance.dispose()
     avaStxInstance = null

@@ -69,8 +69,9 @@ import {
 import type { DimensionConstraints } from '@/lib/floating/types'
 
 // Selection System
-import { useSelection, useSelectable, SelectionOverlay } from '@/lib/selection'
+import { useSelection, useSelectable, SelectionOverlay, selectItem } from '@/lib/selection'
 import { SelectionRing } from '@/components/affordances/SelectionRing'
+import type { SelectionMode } from '@/lib/selection/types'
 
 // =============================================================================
 // TYPES
@@ -95,6 +96,9 @@ interface ManagedPanelProps {
  * Panel is registered when show=true, unregistered when show=false.
  * Only renders FloatingPanel when panel exists in stx.
  * Integrates with selection system for multi-select and grouping.
+ *
+ * NOTE: FloatingPanel uses position:fixed, so we can't wrap it.
+ * Instead, we render a fixed-position selectable overlay that tracks the panel.
  */
 function ManagedPanel({
   id,
@@ -110,7 +114,7 @@ function ManagedPanel({
   const panel = panelsMap.get(id)
 
   // Selection integration
-  const { selectableProps, isSelected } = useSelectable(id)
+  const { isSelected, select } = useSelectable(id)
 
   // Register/unregister based on show prop
   useEffect(() => {
@@ -138,23 +142,44 @@ function ManagedPanel({
     }
   }, [show, id, title, initialPosition, initialDimensions, constraints])
 
+  // Handle click on selection overlay
+  const handleSelectionClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    const mode = e.shiftKey ? 'add' : e.ctrlKey || e.metaKey ? 'toggle' : 'replace'
+    select(mode)
+  }, [select])
+
   // Only render if panel exists
   if (!show || !panel) {
     return null
   }
 
   return (
-    <div
-      {...selectableProps}
-      className="relative"
-      style={{ zIndex: panel.zIndex }}
-    >
+    <>
+      {/* The actual panel */}
       <FloatingPanel id={id} title={title}>
         {children}
       </FloatingPanel>
-      {/* Selection ring overlay */}
-      <SelectionRing selected={isSelected} style="ring" color="cyan" />
-    </div>
+
+      {/* Fixed-position selectable overlay that tracks the panel */}
+      <div
+        data-selectable
+        data-selectable-id={id}
+        onClick={handleSelectionClick}
+        className="pointer-events-none"
+        style={{
+          position: 'fixed',
+          left: panel.position.x,
+          top: panel.position.y,
+          width: panel.dimensions.width,
+          height: panel.dimensions.height,
+          zIndex: panel.zIndex + 1,
+        }}
+      >
+        {/* Selection ring */}
+        <SelectionRing selected={isSelected} style="ring" color="cyan" />
+      </div>
+    </>
   )
 }
 
@@ -686,6 +711,54 @@ export function AvaTestbed() {
       resetTestbedStx()
     }
   }, [runEffect])
+
+  // Global click handler for panel selection
+  // Since FloatingPanel uses position:fixed, clicks don't bubble through the selectable overlay.
+  // We detect clicks inside panel bounds and trigger selection manually.
+  // IMPORTANT: Sort by z-index descending to only select the TOPMOST panel.
+  useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      // Ignore clicks on the header bar and panel controls
+      const target = e.target as HTMLElement
+      if (target.closest('.fixed.top-0') || target.closest('.fixed.bottom-4.left-4')) {
+        return
+      }
+
+      // Get all current panels and sort by z-index (highest first)
+      const panelsMap = getFloatingStx().data.panels.get()
+      const panelsSorted = Array.from(panelsMap.entries())
+        .sort(([, a], [, b]) => b.zIndex - a.zIndex)
+
+      const clickX = e.clientX
+      const clickY = e.clientY
+
+      // Check if click is inside any panel's bounds - starting from topmost
+      for (const [panelId, panel] of panelsSorted) {
+        // Skip hidden/minimized panels
+        if (panel.visibility === 'hidden' || panel.visibility === 'minimized') {
+          continue
+        }
+
+        const { x, y } = panel.position
+        const { width, height } = panel.dimensions
+
+        if (
+          clickX >= x &&
+          clickX <= x + width &&
+          clickY >= y &&
+          clickY <= y + height
+        ) {
+          // Click is inside this panel (the topmost one) - select it
+          const mode: SelectionMode = e.shiftKey ? 'add' : e.ctrlKey || e.metaKey ? 'toggle' : 'replace'
+          selectItem(panelId, mode)
+          return // Stop at first (topmost) match
+        }
+      }
+    }
+
+    window.addEventListener('click', handleGlobalClick, true) // Capture phase
+    return () => window.removeEventListener('click', handleGlobalClick, true)
+  }, [])
 
   const contentProps: PanelContentProps = { ava, variant }
 
