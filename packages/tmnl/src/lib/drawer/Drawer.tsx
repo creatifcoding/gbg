@@ -11,7 +11,12 @@ import { useRef, useEffect, useCallback, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useDrawerStack } from './DrawerStackContext'
-import { cardStackIn, cardStackOut, resetCardStackStyles } from './animations'
+import {
+  cardStackIn,
+  cardStackOut,
+  animateStackDepth,
+  resetCardStackStyles,
+} from './animations'
 import type { DrawerInstance, DrawerSide } from './types'
 
 // =============================================================================
@@ -132,9 +137,13 @@ interface DrawerProps {
   instance: DrawerInstance
   /** Portal container (from slot) */
   container: HTMLElement
+  /** Position in stack (0 = bottom, stackSize-1 = top) */
+  stackIndex: number
+  /** Total drawers in stack */
+  stackSize: number
 }
 
-export function Drawer({ instance, container }: DrawerProps) {
+export function Drawer({ instance, container, stackIndex, stackSize }: DrawerProps) {
   const { pop, setAnimationState } = useDrawerStack()
   const drawerRef = useRef<HTMLDivElement>(null)
   const backdropRef = useRef<HTMLDivElement>(null)
@@ -151,6 +160,9 @@ export function Drawer({ instance, container }: DrawerProps) {
     closeOnEscape = true,
     animationState,
   } = instance
+
+  // Compute stack depth (0 = top, 1+ = recessed)
+  const stackDepth = stackSize - 1 - stackIndex
 
   // -------------------------------------------------------------------------
   // Close handler
@@ -180,6 +192,15 @@ export function Drawer({ instance, container }: DrawerProps) {
       })
     }
   }, [animationState, id, side, setAnimationState])
+
+  // -------------------------------------------------------------------------
+  // Stack depth animation (recessed card effect)
+  // -------------------------------------------------------------------------
+  useEffect(() => {
+    if (animationState === 'visible' && drawerRef.current) {
+      animateStackDepth(drawerRef.current, stackDepth, side)
+    }
+  }, [animationState, stackDepth, side])
 
   // -------------------------------------------------------------------------
   // Escape key handler
@@ -282,11 +303,18 @@ interface DrawerRendererProps {
 export function DrawerRenderer({ slotId, container }: DrawerRendererProps) {
   const { getDrawersForSlot } = useDrawerStack()
   const drawers = getDrawersForSlot(slotId)
+  const stackSize = drawers.length
 
   return (
     <>
-      {drawers.map((instance) => (
-        <Drawer key={instance.id} instance={instance} container={container} />
+      {drawers.map((instance, index) => (
+        <Drawer
+          key={instance.id}
+          instance={instance}
+          container={container}
+          stackIndex={index}
+          stackSize={stackSize}
+        />
       ))}
     </>
   )
