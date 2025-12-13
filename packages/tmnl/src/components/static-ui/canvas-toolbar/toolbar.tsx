@@ -64,6 +64,73 @@ function ToolbarButton({
   )
 }
 
+/**
+ * IconButton - Icon-only button with deferred hitbox visualization
+ *
+ * Hitbox is larger than icon but only becomes visible on interaction.
+ * Uses group/peer pattern for CSS-only state management.
+ *
+ * @param size - 'md' (36x36, default) or 'sm' (28x28, for inline toolbars)
+ */
+function IconButton({
+  children,
+  onClick,
+  active = false,
+  disabled = false,
+  title,
+  size = 'md',
+}: {
+  children: React.ReactNode
+  onClick?: () => void
+  active?: boolean
+  disabled?: boolean
+  title?: string
+  size?: 'sm' | 'md'
+}) {
+  const sizeClasses = size === 'sm' ? 'w-7 h-7' : 'w-9 h-9'
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={`
+        group relative
+        ${sizeClasses}
+        flex items-center justify-center
+        disabled:opacity-30 disabled:cursor-not-allowed
+        transition-colors
+      `}
+    >
+      {/* Hitbox - invisible until interaction */}
+      <span
+        className={`
+          absolute inset-0
+          rounded
+          transition-all duration-150 ease-out
+          ${active
+            ? 'bg-neutral-800 opacity-100'
+            : 'bg-neutral-800 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 group-active:opacity-80'
+          }
+        `}
+      />
+      {/* Icon - always visible */}
+      <span
+        className={`
+          relative z-10
+          transition-colors duration-150
+          ${active
+            ? 'text-white'
+            : 'text-neutral-500 group-hover:text-white group-focus-visible:text-white'
+          }
+        `}
+      >
+        {children}
+      </span>
+    </button>
+  )
+}
+
 function ToolbarSection({ children }: { children: React.ReactNode }) {
   return <div className="flex items-center">{children}</div>
 }
@@ -128,45 +195,26 @@ export const ToolsToolbar = track(() => {
   const currentTool = editor.getCurrentToolId()
 
   return (
-    <div className="absolute top-4 left-4 flex flex-col bg-black border border-neutral-800 z-50">
+    <div className="absolute top-4 left-4 flex flex-col bg-black border border-neutral-800 z-50 p-1 gap-0.5">
       <div className="absolute -top-px -left-px w-2 h-2 border-t border-l border-neutral-700" />
       <div className="absolute -top-px -right-px w-2 h-2 border-t border-r border-neutral-700" />
       <div className="absolute -bottom-px -left-px w-2 h-2 border-b border-l border-neutral-700" />
       <div className="absolute -bottom-px -right-px w-2 h-2 border-b border-r border-neutral-700" />
 
-      <button
+      <IconButton
         onClick={() => editor.setCurrentTool("select")}
-        className={`
-          p-2 font-mono uppercase tracking-widest
-          transition-colors flex items-center justify-center
-          border-b border-neutral-800
-          ${
-            currentTool === "select"
-              ? "bg-neutral-800 text-white"
-              : "text-neutral-500 hover:bg-neutral-900 hover:text-white"
-          }
-        `}
-        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        active={currentTool === "select"}
         title="Select (V)"
       >
-        <MousePointer2 size={12} />
-      </button>
-      <button
+        <MousePointer2 size={14} />
+      </IconButton>
+      <IconButton
         onClick={() => editor.setCurrentTool("hand")}
-        className={`
-          p-2 font-mono uppercase tracking-widest
-          transition-colors flex items-center justify-center
-          ${
-            currentTool === "hand"
-              ? "bg-neutral-800 text-white"
-              : "text-neutral-500 hover:bg-neutral-900 hover:text-white"
-          }
-        `}
-        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        active={currentTool === "hand"}
         title="Pan (H)"
       >
-        <Hand size={12} />
-      </button>
+        <Hand size={14} />
+      </IconButton>
     </div>
   )
 })
@@ -180,27 +228,27 @@ export const ZoomToolbar = track(() => {
   const zoom = editor.getZoomLevel()
 
   return (
-    <div className="absolute bottom-4 right-4 flex bg-black border border-neutral-800 z-50">
+    <div className="absolute bottom-4 right-4 flex items-center bg-black border border-neutral-800 z-50 px-1">
       <div className="absolute -top-px -left-px w-2 h-2 border-t border-l border-neutral-700" />
       <div className="absolute -top-px -right-px w-2 h-2 border-t border-r border-neutral-700" />
       <div className="absolute -bottom-px -left-px w-2 h-2 border-b border-l border-neutral-700" />
       <div className="absolute -bottom-px -right-px w-2 h-2 border-b border-r border-neutral-700" />
 
-      <ToolbarButton onClick={() => editor.zoomOut()}>
-        <Minus size={10} />
-      </ToolbarButton>
-      <div className="px-2 py-1.5 font-mono text-neutral-400 border-r border-neutral-800 min-w-[48px] text-center" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+      <IconButton onClick={() => editor.zoomOut()} size="sm" title="Zoom Out">
+        <Minus size={12} />
+      </IconButton>
+      <div className="px-1 py-1.5 font-mono text-neutral-400 min-w-[44px] text-center" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
         {Math.round(zoom * 100)}%
       </div>
-      <ToolbarButton onClick={() => editor.zoomIn()}>
-        <Plus size={10} />
-      </ToolbarButton>
-      <ToolbarButton onClick={() => editor.resetZoom()}>
-        <Grid3X3 size={10} />
-      </ToolbarButton>
-      <ToolbarButton onClick={() => editor.zoomToFit()}>
-        <Maximize2 size={10} />
-      </ToolbarButton>
+      <IconButton onClick={() => editor.zoomIn()} size="sm" title="Zoom In">
+        <Plus size={12} />
+      </IconButton>
+      <IconButton onClick={() => editor.resetZoom()} size="sm" title="Reset Zoom (100%)">
+        <Grid3X3 size={12} />
+      </IconButton>
+      <IconButton onClick={() => editor.zoomToFit()} size="sm" title="Zoom to Fit">
+        <Maximize2 size={12} />
+      </IconButton>
     </div>
   )
 })
