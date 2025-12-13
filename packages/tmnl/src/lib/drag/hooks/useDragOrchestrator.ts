@@ -71,7 +71,48 @@ const NO_BLUR_STYLE: MotionBlurOutput = {
 }
 
 // =============================================================================
-// Blur Style Calculator (pure function)
+// Perceptual Math Utilities
+// =============================================================================
+
+/**
+ * Smooth step (Hermite interpolation) for soft thresholds.
+ * Returns 0 below edge0, 1 above edge1, smooth S-curve transition between.
+ */
+function smoothStep(edge0: number, edge1: number, x: number): number {
+  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)))
+  return t * t * (3 - 2 * t) // Hermite interpolation
+}
+
+/**
+ * Perceptual blur mapping using sqrt for Weber-Fechner compliance.
+ * Human perception of intensity follows logarithmic/power law.
+ */
+function perceptualBlur(magnitude: number, intensity: number, maxBlur: number): number {
+  // Use sqrt for perceptually linear blur increase
+  // sqrt(magnitude) grows slower at high speeds, preventing over-blur
+  const perceptualMagnitude = Math.sqrt(magnitude)
+  return Math.min(perceptualMagnitude * intensity, maxBlur)
+}
+
+/**
+ * Eased stretch factor using quadratic ease-out.
+ * Stretch should feel "springy" - quick onset, gradual settle.
+ */
+function easedStretch(magnitude: number, threshold: number, maxStretch: number): number {
+  // Normalize magnitude above threshold to 0-1 range
+  // Use a reasonable "full stretch" velocity (e.g., 30 px/frame)
+  const fullStretchVelocity = 30
+  const normalized = Math.min((magnitude - threshold) / fullStretchVelocity, 1)
+
+  // Quadratic ease-out: fast onset, gradual settle
+  const eased = 1 - (1 - normalized) * (1 - normalized)
+
+  // Map to stretch range [1.0, maxStretch]
+  return 1 + eased * (maxStretch - 1)
+}
+
+// =============================================================================
+// Blur Style Calculator (perceptually-tuned)
 // =============================================================================
 
 function calculateBlurStyle(
@@ -108,31 +149,39 @@ function calculateBlurStyle(
   const { magnitude, angle } = velocity
   const { maxBlur, intensity, threshold, enableStretch, maxStretch } = blurConfig
 
-  // Check threshold
-  if (magnitude < (threshold ?? 2)) {
+  // Perceptual thresholds
+  const blurThreshold = threshold ?? 2        // Blur starts at low velocity
+  const stretchThreshold = (threshold ?? 2) * 2 // Stretch needs higher velocity
+
+  // Soft threshold using smooth step (no hard cutoff)
+  const blurFactor = smoothStep(blurThreshold * 0.5, blurThreshold * 1.5, magnitude)
+
+  // Below soft threshold - return minimal blur
+  if (blurFactor < 0.01) {
     return {
       ...NO_BLUR_STYLE,
       strategy,
     }
   }
 
-  // Calculate blur amount
-  const blurAmount = Math.min(magnitude * (intensity ?? 0.08), maxBlur ?? 6)
+  // Calculate perceptual blur amount (sqrt mapping + soft threshold)
+  const rawBlur = perceptualBlur(magnitude, intensity ?? 0.15, maxBlur ?? 8)
+  const blurAmount = rawBlur * blurFactor
 
-  // Calculate directional stretch along motion vector
+  // Calculate directional stretch (higher threshold, eased curve)
   let transform: string | undefined
-  if (enableStretch && magnitude > (threshold ?? 2)) {
-    const stretchFactor = 1 + Math.min(magnitude * 0.002, (maxStretch ?? 1.03) - 1)
+  if (enableStretch && magnitude > stretchThreshold) {
+    const stretchFactor = easedStretch(magnitude, stretchThreshold, maxStretch ?? 1.05)
     const angleDeg = (angle * 180) / Math.PI
     // Rotate to align with motion, stretch, rotate back
-    transform = `rotate(${angleDeg}deg) scaleX(${stretchFactor}) rotate(${-angleDeg}deg)`
+    transform = `rotate(${angleDeg}deg) scaleX(${stretchFactor.toFixed(4)}) rotate(${-angleDeg}deg)`
   }
 
   return {
-    filter: blurAmount > 0 ? `blur(${blurAmount.toFixed(2)}px)` : undefined,
+    filter: blurAmount > 0.3 ? `blur(${blurAmount.toFixed(2)}px)` : undefined,
     transform,
     transition: 'none', // No transition during drag
-    isActive: true,
+    isActive: blurAmount > 0.3,
     blurAmount,
     strategy,
   }

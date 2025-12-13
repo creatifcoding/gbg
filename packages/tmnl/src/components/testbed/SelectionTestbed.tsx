@@ -133,6 +133,62 @@ function TestCard({ id, label, position, onDragStart, onDrag, onDragEnd }: TestC
 }
 
 // =============================================================================
+// Drag Debug Panel
+// =============================================================================
+
+function DragDebugPanel() {
+  const { isDragging, velocity, blurStyle, operation } = useDragOrchestrator()
+
+  return (
+    <div
+      className="absolute top-4 left-4 w-72 p-3 rounded z-50"
+      style={{
+        backgroundColor: COLORS.neutral[900],
+        border: `1px solid ${COLORS.neutral[800]}`,
+      }}
+    >
+      <div className="font-mono text-neutral-400 mb-2" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+        DRAG DEBUG
+      </div>
+
+      <div className="space-y-1 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+        <div className="flex justify-between">
+          <span className="text-neutral-500">isDragging:</span>
+          <span className={isDragging ? 'text-green-400' : 'text-neutral-600'}>
+            {isDragging ? 'YES' : 'no'}
+          </span>
+        </div>
+
+        <div className="flex justify-between">
+          <span className="text-neutral-500">elements:</span>
+          <span className="text-cyan-400">{operation?.elementIds.length ?? 0}</span>
+        </div>
+
+        <div className="border-t border-neutral-800 pt-1 mt-1">
+          <div className="text-neutral-500 mb-1">Velocity:</div>
+          <div className="pl-2 text-neutral-600">
+            <div>magnitude: <span className="text-yellow-400">{velocity.magnitude.toFixed(1)}</span></div>
+            <div>angle: <span className="text-yellow-400">{((velocity.angle * 180) / Math.PI).toFixed(1)}°</span></div>
+            <div>smoothed: ({velocity.smoothed.x.toFixed(1)}, {velocity.smoothed.y.toFixed(1)})</div>
+          </div>
+        </div>
+
+        <div className="border-t border-neutral-800 pt-1 mt-1">
+          <div className="text-neutral-500 mb-1">BlurStyle:</div>
+          <div className="pl-2 text-neutral-600">
+            <div>isActive: <span className={blurStyle.isActive ? 'text-green-400' : 'text-neutral-600'}>{blurStyle.isActive ? 'YES' : 'no'}</span></div>
+            <div>blurAmount: <span className="text-cyan-400">{blurStyle.blurAmount.toFixed(2)}px</span></div>
+            <div>strategy: <span className="text-purple-400">{blurStyle.strategy}</span></div>
+            <div className="text-neutral-700 truncate">filter: {blurStyle.filter ?? 'none'}</div>
+            <div className="text-neutral-700 truncate">transform: {blurStyle.transform ?? 'none'}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
 // Selection Info Panel
 // =============================================================================
 
@@ -424,6 +480,7 @@ export function SelectionTestbed() {
         ))}
 
         {/* Info Panels */}
+        <DragDebugPanel />
         <SelectionInfoPanel />
         <HotkeyHelpPanel />
 

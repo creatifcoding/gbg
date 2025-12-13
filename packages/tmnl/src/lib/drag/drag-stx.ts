@@ -213,7 +213,7 @@ export function startDrag(
   // Update data
   stx.data.activeDrag.set(operation)
   stx.data.lastPosition.set(position)
-  stx.data.lastTimestamp.set(Date.now())
+  stx.data.lastTimestamp.set(performance.now()) // Use high-precision timer
   stx.data.velocity.set(initialVelocity)
 
   // Send machine event
@@ -224,24 +224,35 @@ export function startDrag(
 
 /**
  * Update drag position and calculate velocity
+ *
+ * Velocity is normalized to ~60fps frame units (not px/s) to match
+ * the original motion-tracker implementation. This ensures intensity
+ * and threshold values work correctly.
  */
 export function updateDragPosition(position: Vector2D): void {
   const stx = getDragStx()
   const drag = stx.data.activeDrag.get()
   if (!drag) return
 
-  const now = Date.now()
+  const now = performance.now() // Use high-precision timer
   const lastPos = stx.data.lastPosition.get()
   const lastTime = stx.data.lastTimestamp.get()
 
   // Calculate velocity
   if (lastPos && lastTime > 0) {
-    const dt = Math.max(now - lastTime, 1) // Avoid division by zero
+    const dt = now - lastTime
+
+    // Skip if too fast (< 1ms) to avoid noise
+    if (dt < 1) return
+
     const dx = position.x - lastPos.x
     const dy = position.y - lastPos.y
 
-    const rawVx = (dx / dt) * 1000 // px/s
-    const rawVy = (dy / dt) * 1000
+    // Normalize to ~60fps frame units (divide by dt/16.67)
+    // This matches the original motion-tracker velocity scale
+    const frameNormalizer = dt / 16.67
+    const rawVx = dx / frameNormalizer
+    const rawVy = dy / frameNormalizer
 
     // EMA smoothing
     const currentVelocity = stx.data.velocity.get()
@@ -260,10 +271,10 @@ export function updateDragPosition(position: Vector2D): void {
     })
   }
 
-  // Update position
+  // Update position tracking
   stx.data.activeDrag.currentPosition.set(position)
   stx.data.lastPosition.set(position)
-  stx.data.lastTimestamp.set(now)
+  stx.data.lastTimestamp.set(now) // performance.now() from above
 
   // Send machine event
   stx.send?.({ type: 'UPDATE_POSITION', position })
