@@ -77,6 +77,11 @@ export function getItemGroup(itemId: string): string | undefined {
   return _itemToGroup.get(itemId)
 }
 
+export function getGroupForItem(itemId: string): GroupState | undefined {
+  const groupId = _itemToGroup.get(itemId)
+  return groupId ? _groups.get(groupId) : undefined
+}
+
 export function getSelectedCount(): number {
   return _selectedIds.size
 }

@@ -178,6 +178,10 @@ export function SelectionOverlay({
       // Don't start marquee if clicking on a selectable item
       const selectableItem = target.closest(selectableSelector)
       if (selectableItem) {
+        // Prevent native text selection on shift+click
+        if (e.shiftKey) {
+          e.preventDefault()
+        }
         // Handle item click
         const id = selectableItem.getAttribute('data-selectable-id')
         if (id) {

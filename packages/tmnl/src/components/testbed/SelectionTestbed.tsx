@@ -9,35 +9,96 @@
  * @module
  */
 
-import { useRef, useState, useCallback } from 'react'
-import { SelectionOverlay, useSelection, useSelectable } from '@/lib/selection'
+import { useRef, useState, useCallback, useEffect } from 'react'
+import { SelectionOverlay, useSelection, useSelectable, getSelectedIds, getGroupForItem } from '@/lib/selection'
 import { SelectionRing } from '@/components/affordances'
 import { COLORS } from '@/lib/capabilities/tokens'
 
 // =============================================================================
-// Test Card Component
+// Types
+// =============================================================================
+
+interface Position {
+  x: number
+  y: number
+}
+
+interface CardData {
+  id: string
+  label: string
+  position: Position
+}
+
+// =============================================================================
+// Draggable Test Card Component
 // =============================================================================
 
 interface TestCardProps {
   id: string
   label: string
-  color?: string
+  position: Position
+  onDragStart: (id: string, startPos: Position) => void
+  onDrag: (id: string, delta: Position) => void
+  onDragEnd: (id: string) => void
 }
 
-function TestCard({ id, label, color = COLORS.neutral[800] }: TestCardProps) {
+function TestCard({ id, label, position, onDragStart, onDrag, onDragEnd }: TestCardProps) {
   const { selectableProps, isSelected } = useSelectable(id)
+  const isDragging = useRef(false)
+  const dragStartPos = useRef<Position | null>(null)
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    // Only drag on left click
+    if (e.button !== 0) return
+
+    // Prevent text selection
+    e.preventDefault()
+
+    isDragging.current = true
+    dragStartPos.current = { x: e.clientX, y: e.clientY }
+
+    onDragStart(id, position)
+
+    // Capture pointer for drag tracking outside element
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }, [id, position, onDragStart])
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging.current || !dragStartPos.current) return
+
+    const delta: Position = {
+      x: e.clientX - dragStartPos.current.x,
+      y: e.clientY - dragStartPos.current.y,
+    }
+
+    onDrag(id, delta)
+  }, [id, onDrag])
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (!isDragging.current) return
+
+    isDragging.current = false
+    dragStartPos.current = null
+
+    e.currentTarget.releasePointerCapture(e.pointerId)
+    onDragEnd(id)
+  }, [id, onDragEnd])
 
   return (
     <div
       {...selectableProps}
-      className="relative w-32 h-24 rounded cursor-pointer transition-transform hover:scale-[1.02]"
+      className="relative w-32 h-24 rounded cursor-grab active:cursor-grabbing transition-shadow hover:shadow-lg"
       style={{
-        backgroundColor: color,
+        backgroundColor: COLORS.neutral[800],
         border: `1px solid ${COLORS.neutral[700]}`,
+        userSelect: 'none',
       }}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
     >
       <SelectionRing selected={isSelected} color="cyan" style="ring" />
-      <div className="absolute inset-0 flex items-center justify-center">
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <span
           className="font-mono text-neutral-400"
           style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
@@ -46,8 +107,8 @@ function TestCard({ id, label, color = COLORS.neutral[800] }: TestCardProps) {
         </span>
       </div>
       <div
-        className="absolute bottom-1 left-1 font-mono text-neutral-600"
-        style={{ fontSize: '10px' }}
+        className="absolute bottom-1 left-1 font-mono text-neutral-600 pointer-events-none"
+        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
       >
         {id}
       </div>
@@ -145,13 +206,35 @@ function HotkeyRow({ keys, action }: { keys: string; action: string }) {
 }
 
 // =============================================================================
+// Initial Card Data
+// =============================================================================
+
+const INITIAL_CARDS: CardData[] = [
+  { id: 'card-1', label: 'Alpha', position: { x: 50, y: 50 } },
+  { id: 'card-2', label: 'Beta', position: { x: 200, y: 50 } },
+  { id: 'card-3', label: 'Gamma', position: { x: 350, y: 50 } },
+  { id: 'card-4', label: 'Delta', position: { x: 50, y: 200 } },
+  { id: 'card-5', label: 'Epsilon', position: { x: 200, y: 200 } },
+  { id: 'card-6', label: 'Zeta', position: { x: 350, y: 200 } },
+  { id: 'card-7', label: 'Eta', position: { x: 125, y: 350 } },
+  { id: 'card-8', label: 'Theta', position: { x: 275, y: 350 } },
+]
+
+// =============================================================================
 // Main Testbed
 // =============================================================================
 
 export function SelectionTestbed() {
   const containerRef = useRef<HTMLDivElement>(null)
+  const [cards, setCards] = useState<CardData[]>(INITIAL_CARDS)
   const [deletedIds, setDeletedIds] = useState<string[]>([])
   const [log, setLog] = useState<string[]>([])
+
+  // Track drag state for group movement
+  const dragState = useRef<{
+    activeId: string | null
+    startPositions: Map<string, Position>
+  }>({ activeId: null, startPositions: new Map() })
 
   const addLog = useCallback((message: string) => {
     setLog((prev) => [...prev.slice(-9), `${new Date().toLocaleTimeString()}: ${message}`])
@@ -186,20 +269,76 @@ export function SelectionTestbed() {
     [addLog]
   )
 
-  // Card data
-  const cards = [
-    { id: 'card-1', label: 'Alpha', x: 50, y: 50 },
-    { id: 'card-2', label: 'Beta', x: 200, y: 50 },
-    { id: 'card-3', label: 'Gamma', x: 350, y: 50 },
-    { id: 'card-4', label: 'Delta', x: 50, y: 200 },
-    { id: 'card-5', label: 'Epsilon', x: 200, y: 200 },
-    { id: 'card-6', label: 'Zeta', x: 350, y: 200 },
-    { id: 'card-7', label: 'Eta', x: 125, y: 350 },
-    { id: 'card-8', label: 'Theta', x: 275, y: 350 },
-  ].filter((card) => !deletedIds.includes(card.id))
+  // =============================================================================
+  // Drag Handlers - Query selection system for co-movement
+  // =============================================================================
+
+  const handleDragStart = useCallback((id: string, _startPos: Position) => {
+    // Get all items that should move together:
+    // 1. The dragged item
+    // 2. All selected items (if dragged item is selected)
+    // 3. All items in the same group as dragged item
+    const selectedIds = getSelectedIds()
+    const group = getGroupForItem(id)
+
+    const idsToMove = new Set<string>([id])
+
+    // If dragged item is selected, include all selected items
+    if (selectedIds.has(id)) {
+      selectedIds.forEach((sid) => idsToMove.add(sid))
+    }
+
+    // Include all group members
+    if (group) {
+      group.memberIds.forEach((mid) => idsToMove.add(mid))
+    }
+
+    // Store start positions for all items that will move
+    const startPositions = new Map<string, Position>()
+    setCards((current) => {
+      current.forEach((card) => {
+        if (idsToMove.has(card.id)) {
+          startPositions.set(card.id, { ...card.position })
+        }
+      })
+      return current
+    })
+
+    dragState.current = { activeId: id, startPositions }
+  }, [])
+
+  const handleDrag = useCallback((_id: string, delta: Position) => {
+    const { startPositions } = dragState.current
+    if (startPositions.size === 0) return
+
+    setCards((current) =>
+      current.map((card) => {
+        const startPos = startPositions.get(card.id)
+        if (!startPos) return card
+
+        return {
+          ...card,
+          position: {
+            x: startPos.x + delta.x,
+            y: startPos.y + delta.y,
+          },
+        }
+      })
+    )
+  }, [])
+
+  const handleDragEnd = useCallback((_id: string) => {
+    dragState.current = { activeId: null, startPositions: new Map() }
+  }, [])
+
+  // Filter deleted cards
+  const visibleCards = cards.filter((card) => !deletedIds.includes(card.id))
 
   return (
-    <div className="h-screen w-screen overflow-hidden" style={{ backgroundColor: COLORS.neutral[950] }}>
+    <div
+      className="h-screen w-screen overflow-hidden"
+      style={{ backgroundColor: COLORS.neutral[950], userSelect: 'none' }}
+    >
       {/* Header */}
       <div
         className="absolute top-0 left-0 right-0 h-12 flex items-center px-4 z-50"
@@ -212,7 +351,7 @@ export function SelectionTestbed() {
           SELECTION TESTBED
         </div>
         <div className="ml-4 text-neutral-600" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-          Drag to marquee select • Click cards • Use hotkeys
+          Drag cards • Marquee select • Shift+G to group • Drag group to move together
         </div>
       </div>
 
@@ -231,13 +370,20 @@ export function SelectionTestbed() {
         />
 
         {/* Cards */}
-        {cards.map((card) => (
+        {visibleCards.map((card) => (
           <div
             key={card.id}
             className="absolute"
-            style={{ left: card.x, top: card.y }}
+            style={{ left: card.position.x, top: card.position.y }}
           >
-            <TestCard id={card.id} label={card.label} />
+            <TestCard
+              id={card.id}
+              label={card.label}
+              position={card.position}
+              onDragStart={handleDragStart}
+              onDrag={handleDrag}
+              onDragEnd={handleDragEnd}
+            />
           </div>
         ))}
 
@@ -256,7 +402,7 @@ export function SelectionTestbed() {
           <div className="font-mono text-neutral-400 mb-2" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
             EVENT LOG
           </div>
-          <div className="space-y-0.5 font-mono" style={{ fontSize: '10px' }}>
+          <div className="space-y-0.5 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
             {log.length === 0 ? (
               <div className="text-neutral-600">No events yet...</div>
             ) : (

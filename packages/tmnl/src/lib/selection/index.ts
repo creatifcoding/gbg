@@ -70,6 +70,7 @@ export {
   getModifiers,
   getGroup,
   getItemGroup,
+  getGroupForItem,
   getSelectedCount,
   hasSelection,
   startMarquee,
