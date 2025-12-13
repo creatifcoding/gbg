@@ -1,36 +1,45 @@
 /**
- * AVA Testbed
+ * AVA Testbed - Floating Panel Edition v2
  *
- * Interactive testbed for AVA (Asset View Agent) client integration.
- * Validates HTTP + WebSocket client patterns with TmnlDataGrid display.
+ * Every panel uses the proper FloatingPanel system from @/lib/floating.
+ * Features: resize handles, persistence, motion blur, mode toggling.
  *
- * Hypotheses:
- * - H1: HTTP client can list/register/invalidate views
- * - H2: WebSocket session receives artifact events on subscribe
- * - H3: TmnlDataGrid displays views with proper column defs
- * - H4: Connection status reflects WebSocket state
- * - H5: Message log captures all session events
+ * Panels:
+ * - Config: Base URL configuration
+ * - Hypotheses: EDIN validation status
+ * - Connection: WebSocket controls
+ * - Views: Registered view list
+ * - Artifact: Selected view inspector
+ * - Messages: WebSocket event log
+ * - REPL: Console interface
+ * - State: Machine inspector
+ * - Sequence: Event timeline
+ * - Scenarios: Test runner
+ * - Graph: Visualization
  *
- * @pattern stx tri-library composition (XState + Legend-State + effect-atom)
- * @see src/lib/ava/atoms/ava-stx.ts for state definitions
+ * @pattern FloatingPanel stx system + ManagedPanel wrapper
  * @module
  */
 
-import { useEffect, useMemo } from 'react'
-import { Effect } from 'effect'
+import { useEffect, useMemo, useState, useCallback, type ReactNode } from 'react'
 import type { ColDef, ICellRendererParams } from 'ag-grid-community'
 
 import {
-  TestbedHeader,
-  TestCard,
   StatusIndicator,
   Button,
   ValueDisplay,
-  CollapsiblePanel,
   SectionLabel,
   CodeBlock,
   VersionBadge,
 } from './shared'
+import {
+  ReplConsole,
+  StateInspector,
+  SequenceDiagram,
+  ScenarioRunner,
+  GraphVisualization,
+  resetTestbedStx,
+} from './ava'
 import {
   TmnlDataGrid,
   tmnlDenseDark,
@@ -38,6 +47,7 @@ import {
 } from '@/lib/data-grid'
 
 import { useStxData, useStxMatches, useStx } from '@/lib/stx'
+import { useSelector } from '@/lib/stx'
 import {
   getAvaStx,
   resetAvaStx,
@@ -45,6 +55,92 @@ import {
   type MessageLogEntry,
   type ViewSummary,
 } from '@/lib/ava/atoms/ava-stx'
+
+// Floating Panel System
+import {
+  FloatingPanelProvider,
+  FloatingPanel,
+  FloatingDragOverlay,
+  useFloatingPanel,
+  registerPanel,
+  unregisterPanel,
+  getFloatingStx,
+} from '@/lib/floating'
+import type { DimensionConstraints } from '@/lib/floating/types'
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+interface ManagedPanelProps {
+  id: string
+  title: string
+  initialPosition: { x: number; y: number }
+  initialDimensions: { width: number; height: number }
+  constraints?: DimensionConstraints
+  show: boolean
+  children: ReactNode
+}
+
+// =============================================================================
+// MANAGED PANEL WRAPPER
+// =============================================================================
+
+/**
+ * Wrapper that handles panel registration/unregistration lifecycle.
+ * Panel is registered when show=true, unregistered when show=false.
+ * Only renders FloatingPanel when panel exists in stx.
+ */
+function ManagedPanel({
+  id,
+  title,
+  initialPosition,
+  initialDimensions,
+  constraints,
+  show,
+  children,
+}: ManagedPanelProps) {
+  const stx = getFloatingStx()
+  const panelsMap = useSelector(stx.data.panels, (p) => p)
+  const panel = panelsMap.get(id)
+
+  // Register/unregister based on show prop
+  useEffect(() => {
+    if (show) {
+      // Only register if panel doesn't exist yet (preserve resized dimensions)
+      const existingPanel = getFloatingStx().data.panels.get().get(id)
+      if (!existingPanel) {
+        registerPanel({
+          id,
+          title,
+          initialPosition,
+          initialDimensions,
+          constraints,
+        })
+      }
+    } else {
+      unregisterPanel(id)
+    }
+
+    return () => {
+      // Cleanup on unmount
+      if (show) {
+        unregisterPanel(id)
+      }
+    }
+  }, [show, id, title, initialPosition, initialDimensions, constraints])
+
+  // Only render if panel exists
+  if (!show || !panel) {
+    return null
+  }
+
+  return (
+    <FloatingPanel id={id} title={title}>
+      {children}
+    </FloatingPanel>
+  )
+}
 
 // =============================================================================
 // COLUMN DEFINITIONS
@@ -54,8 +150,7 @@ const createViewsColumnDefs = (variant: GridVariantType): ColDef<ViewSummary>[] 
   {
     field: 'id',
     headerName: 'ID',
-    width: 120,
-    suppressSizeToFit: true,
+    width: 100,
     cellStyle: {
       fontFamily: 'monospace',
       color: variant.colors.text.muted,
@@ -66,15 +161,12 @@ const createViewsColumnDefs = (variant: GridVariantType): ColDef<ViewSummary>[] 
     field: 'name',
     headerName: 'Name',
     flex: 1,
-    cellStyle: {
-      color: variant.colors.text.primary,
-    },
+    cellStyle: { color: variant.colors.text.primary },
   },
   {
     field: 'version',
     headerName: 'Ver',
-    width: 60,
-    suppressSizeToFit: true,
+    width: 50,
     cellStyle: {
       textAlign: 'center',
       fontFamily: 'monospace',
@@ -87,8 +179,7 @@ const createMessageLogColumnDefs = (variant: GridVariantType): ColDef<MessageLog
   {
     field: 'direction',
     headerName: '',
-    width: 32,
-    suppressSizeToFit: true,
+    width: 28,
     cellRenderer: (params: ICellRendererParams<MessageLogEntry>) => {
       const isIn = params.value === 'in'
       return (
@@ -104,15 +195,10 @@ const createMessageLogColumnDefs = (variant: GridVariantType): ColDef<MessageLog
   {
     field: 'timestamp',
     headerName: 'Time',
-    width: 80,
-    suppressSizeToFit: true,
+    width: 70,
     valueFormatter: (params) => {
       const d = new Date(params.value)
-      return d.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      })
+      return d.toLocaleTimeString('en-US', { hour12: false }).slice(0, 8)
     },
     cellStyle: {
       fontFamily: 'monospace',
@@ -123,8 +209,7 @@ const createMessageLogColumnDefs = (variant: GridVariantType): ColDef<MessageLog
   {
     field: 'type',
     headerName: 'Type',
-    width: 100,
-    suppressSizeToFit: true,
+    width: 80,
     cellRenderer: (params: ICellRendererParams<MessageLogEntry>) => {
       const typeColors: Record<string, string> = {
         artifact: variant.colors.signal.success,
@@ -132,15 +217,11 @@ const createMessageLogColumnDefs = (variant: GridVariantType): ColDef<MessageLog
         status: variant.colors.signal.warning,
         error: variant.colors.signal.error,
         pong: variant.colors.text.muted,
-        subscribe: variant.colors.signal.accent,
-        unsubscribe: variant.colors.text.muted,
       }
-      const color = typeColors[params.value as string] ?? variant.colors.text.primary
       return (
         <span style={{
-          color,
+          color: typeColors[params.value as string] ?? variant.colors.text.primary,
           fontFamily: 'monospace',
-          textTransform: 'uppercase',
           fontSize: variant.density.fontSizeXs,
         }}>
           {params.value}
@@ -156,384 +237,462 @@ const createMessageLogColumnDefs = (variant: GridVariantType): ColDef<MessageLog
       fontFamily: 'monospace',
       color: variant.colors.text.secondary,
       fontSize: variant.density.fontSizeXs,
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
     },
   },
 ]
 
 // =============================================================================
-// COMPONENT
+// PANEL CONTENT COMPONENTS
 // =============================================================================
 
-export function AvaTestbed() {
-  // ---------------------------------------------------------------------------
-  // stx State (tri-library composition)
-  // ---------------------------------------------------------------------------
+interface PanelContentProps {
+  ava: ReturnType<typeof getAvaStx>
+  variant: GridVariantType
+}
 
-  const ava = getAvaStx()
-  const { data, runEffect } = useStx(ava)
-
-  // Fine-grained data subscriptions via Legend-State
-  const views = useStxData(ava, (d) => d.views.get())
-  const selectedView = useStxData(ava, (d) => d.selectedView.get())
-  const artifact = useStxData(ava, (d) => d.artifact.get())
-  const messageLog = useStxData(ava, (d) => d.messageLog.get())
-  const error = useStxData(ava, (d) => d.error.get())
+// Config Panel Content
+function ConfigContent({ ava }: PanelContentProps) {
+  const { data } = useStx(ava)
   const config = useStxData(ava, (d) => d.config.get())
+
+  return (
+    <div className="p-3">
+      <div className="flex items-center gap-2">
+        <label className="text-neutral-500" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+          URL:
+        </label>
+        <input
+          type="text"
+          value={config.baseUrl}
+          onChange={(e) => data.config.set({ ...config, baseUrl: e.target.value })}
+          className="flex-1 px-2 py-1 bg-neutral-900 border border-neutral-700 rounded font-mono text-neutral-200"
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        />
+      </div>
+    </div>
+  )
+}
+
+// Hypotheses Panel Content
+function HypothesesContent({ ava }: PanelContentProps) {
   const hypotheses = useStxData(ava, (d) => d.hypotheses.get())
 
-  // Machine state matching
+  return (
+    <div className="p-3 space-y-2">
+      {hypotheses.map(h => (
+        <div
+          key={h.id}
+          className="flex items-center gap-2 p-2 bg-neutral-900/50 rounded border border-neutral-800"
+        >
+          <StatusIndicator
+            status={
+              h.status === 'passed' ? 'success' :
+              h.status === 'failed' ? 'error' :
+              h.status === 'validating' ? 'pending' : 'neutral'
+            }
+            label={h.id}
+          />
+          <div className="flex-1 min-w-0">
+            <div className="text-neutral-400 truncate" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+              {h.label}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Connection Panel Content
+function ConnectionContent({ ava }: PanelContentProps) {
+  const { runEffect } = useStx(ava)
+  const config = useStxData(ava, (d) => d.config.get())
+
   const isDisconnected = useStxMatches(ava, 'disconnected')
   const isConnecting = useStxMatches(ava, 'connecting')
   const isConnected = useStxMatches(ava, 'connected')
   const isError = useStxMatches(ava, 'error')
 
-  // Derive connection status from machine state
-  const connectionStatus: ConnectionStatus = isConnected
-    ? 'connected'
-    : isConnecting
-      ? 'connecting'
-      : isError
-        ? 'error'
-        : 'disconnected'
+  const status: ConnectionStatus = isConnected ? 'connected' :
+    isConnecting ? 'connecting' : isError ? 'error' : 'disconnected'
 
-  // Grid variant
-  const variant = tmnlDenseDark
-  const viewsColumnDefs = useMemo(() => createViewsColumnDefs(variant), [variant])
-  const messageLogColumnDefs = useMemo(() => createMessageLogColumnDefs(variant), [variant])
-
-  // ---------------------------------------------------------------------------
-  // Handlers (stx effect execution)
-  // ---------------------------------------------------------------------------
-
-  const handleFetchViews = () => {
-    runEffect('fetchViews').catch(() => {})
-  }
-
-  const handleSelectView = (viewId: string) => {
-    runEffect('selectView', viewId).catch(() => {})
-  }
-
-  const handleRegisterView = () => {
-    runEffect('registerTestView').catch(() => {})
-  }
-
-  const handleConnect = () => {
-    runEffect('connectSession').catch(() => {})
-  }
-
-  const handleDisconnect = () => {
-    runEffect('disconnectSession').catch(() => {})
-  }
-
-  const handlePing = () => {
-    runEffect('sendPing').catch(() => {})
-  }
-
-  const handleSubscribe = (viewId: string) => {
-    runEffect('subscribeToView', viewId).catch(() => {})
-  }
-
-  // ---------------------------------------------------------------------------
-  // Effects
-  // ---------------------------------------------------------------------------
-
-  useEffect(() => {
-    // Auto-fetch views on mount
-    handleFetchViews()
-  }, [])
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      resetAvaStx()
-    }
-  }, [])
-
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
-
-  const connectionStatusMap: Record<ConnectionStatus, { status: 'success' | 'warning' | 'error' | 'neutral' | 'pending'; label: string }> = {
-    disconnected: { status: 'neutral', label: 'Disconnected' },
-    connecting: { status: 'pending', label: 'Connecting...' },
-    connected: { status: 'success', label: 'Connected' },
-    error: { status: 'error', label: 'Error' },
+  const statusMap = {
+    disconnected: { status: 'neutral' as const, label: 'Disconnected' },
+    connecting: { status: 'pending' as const, label: 'Connecting...' },
+    connected: { status: 'success' as const, label: 'Connected' },
+    error: { status: 'error' as const, label: 'Error' },
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 p-8">
-      <TestbedHeader
-        title="AVA Client Testbed"
-        subtitle="HTTP + WebSocket client integration with TmnlDataGrid display"
-        actions={<VersionBadge version="v1" status="experimental" />}
-      />
-
-      {/* Config Panel */}
-      <CollapsiblePanel
-        title="Configuration"
-        subtitle="API endpoint"
-        defaultOpen={true}
-        className="mb-6"
-      >
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <label className="text-neutral-400" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
-              Base URL:
-            </label>
-            <input
-              type="text"
-              value={config.baseUrl}
-              onChange={(e) => data.config.set({ ...config, baseUrl: e.target.value })}
-              className="px-3 py-1 bg-neutral-900 border border-neutral-700 rounded font-mono text-neutral-200 w-64"
-              style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
-            />
-          </div>
-          <Button variant="ghost" onClick={handleFetchViews}>
-            Refresh Views
+    <div className="p-3 space-y-3">
+      <div className="flex items-center gap-3">
+        <StatusIndicator
+          status={statusMap[status].status}
+          label={statusMap[status].label}
+          pulse={status === 'connecting'}
+        />
+        {status === 'connected' && (
+          <span className="text-cyan-400 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+            {config.baseUrl}
+          </span>
+        )}
+      </div>
+      <div className="flex gap-2">
+        {status === 'disconnected' ? (
+          <Button variant="primary" onClick={() => runEffect('connectSession')}>
+            Connect
           </Button>
-        </div>
-      </CollapsiblePanel>
-
-      {/* Hypotheses Panel */}
-      <CollapsiblePanel
-        title="Hypotheses"
-        subtitle="EDIN validation status"
-        defaultOpen={true}
-        className="mb-6"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {hypotheses.map(h => (
-            <div
-              key={h.id}
-              className="flex items-center gap-3 p-3 bg-neutral-900/50 rounded border border-neutral-800"
-            >
-              <StatusIndicator
-                status={
-                  h.status === 'passed' ? 'success' :
-                  h.status === 'failed' ? 'error' :
-                  h.status === 'validating' ? 'pending' :
-                  'neutral'
-                }
-                label={h.id}
-              />
-              <div className="flex-1 min-w-0">
-                <div
-                  className="text-neutral-300 truncate"
-                  style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-                >
-                  {h.label}
-                </div>
-                {h.evidence && (
-                  <div
-                    className="text-neutral-500 truncate"
-                    style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-                  >
-                    {h.evidence}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </CollapsiblePanel>
-
-      {/* Error Display */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-900/30 border border-red-800 rounded">
-          <div className="flex items-center gap-2">
-            <span className="text-red-400 font-mono" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
-              Error:
-            </span>
-            <span className="text-red-300" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
-              {error}
-            </span>
-            <Button variant="ghost" onClick={() => data.error.set(null)} className="ml-auto">
-              Dismiss
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column: Views + Controls */}
-        <div className="space-y-6">
-          {/* Connection Status */}
-          <TestCard
-            title="Connection"
-            description={`Live WebSocket → ${config.baseUrl}`}
-            actions={
-              <div className="flex items-center gap-2">
-                {connectionStatus === 'disconnected' ? (
-                  <Button variant="primary" onClick={handleConnect}>
-                    Connect
-                  </Button>
-                ) : (
-                  <Button variant="danger" onClick={handleDisconnect}>
-                    Disconnect
-                  </Button>
-                )}
-                <Button
-                  variant="ghost"
-                  onClick={handlePing}
-                  disabled={connectionStatus !== 'connected'}
-                >
-                  Ping
-                </Button>
-              </div>
-            }
-          >
-            <div className="flex items-center gap-4">
-              <StatusIndicator
-                status={connectionStatusMap[connectionStatus].status}
-                label={connectionStatusMap[connectionStatus].label}
-                pulse={connectionStatus === 'connecting'}
-              />
-              {connectionStatus === 'connected' && (
-                <ValueDisplay label="Endpoint" value={config.baseUrl} accent="cyan" size="sm" />
-              )}
-            </div>
-          </TestCard>
-
-          {/* Views List */}
-          <TestCard
-            title="Views"
-            description="Registered view specifications"
-            actions={
-              <div className="flex items-center gap-2">
-                <Button variant="primary" onClick={handleRegisterView}>
-                  + Register
-                </Button>
-                <Button variant="ghost" onClick={handleFetchViews}>
-                  Refresh
-                </Button>
-              </div>
-            }
-          >
-            <div className="h-64 border border-neutral-800 rounded overflow-hidden">
-              <TmnlDataGrid<ViewSummary>
-                variant={variant}
-                rowData={views as ViewSummary[]}
-                columnDefs={viewsColumnDefs}
-                defaultColDef={{
-                  resizable: true,
-                  sortable: true,
-                }}
-                getRowId={(params) => params.data.id}
-                rowSelection="single"
-                onRowClicked={(event) => {
-                  if (event.data) {
-                    handleSelectView(event.data.id)
-                  }
-                }}
-                className="h-full"
-              />
-            </div>
-            <div className="mt-2 text-neutral-500" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-              {views.length} view(s) registered • Click to inspect
-            </div>
-          </TestCard>
-        </div>
-
-        {/* Right Column: Artifact + Message Log */}
-        <div className="space-y-6">
-          {/* Selected View / Artifact */}
-          <TestCard
-            title="Artifact Inspector"
-            description={selectedView ? `View: ${selectedView.name}` : 'Select a view to inspect'}
-            actions={
-              selectedView && connectionStatus === 'connected' ? (
-                <Button
-                  variant="primary"
-                  onClick={() => handleSubscribe(selectedView.id)}
-                >
-                  Subscribe
-                </Button>
-              ) : null
-            }
-          >
-            {selectedView && artifact ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <ValueDisplay label="View ID" value={artifact.view_id} accent="cyan" size="sm" />
-                  <ValueDisplay label="Version" value={artifact.version} accent="amber" size="sm" />
-                </div>
-
-                <SectionLabel variant="minimal">Channels</SectionLabel>
-                <div className="space-y-2">
-                  {artifact.channel_bindings.map(binding => (
-                    <div
-                      key={binding.channel_id}
-                      className="flex items-center justify-between p-2 bg-neutral-900/50 rounded border border-neutral-800"
-                    >
-                      <div className="flex items-center gap-3">
-                        <StatusIndicator
-                          status={binding.active ? 'success' : 'neutral'}
-                          label={binding.channel_id}
-                        />
-                        <span
-                          className="font-mono text-neutral-400"
-                          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-                        >
-                          {binding.role}
-                        </span>
-                      </div>
-                      {binding.row_count !== undefined && (
-                        <span
-                          className="font-mono text-cyan-400"
-                          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-                        >
-                          {binding.row_count.toLocaleString()} rows
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-
-                <SectionLabel variant="minimal">Spec</SectionLabel>
-                <CodeBlock>
-                  {JSON.stringify(selectedView, null, 2)}
-                </CodeBlock>
-              </div>
-            ) : (
-              <div className="h-48 flex items-center justify-center text-neutral-500">
-                <span style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
-                  No view selected
-                </span>
-              </div>
-            )}
-          </TestCard>
-
-          {/* Message Log */}
-          <TestCard
-            title="Message Log"
-            description="WebSocket session events"
-            actions={
-              <Button variant="ghost" onClick={() => data.messageLog.set([])}>
-                Clear
-              </Button>
-            }
-          >
-            <div className="h-64 border border-neutral-800 rounded overflow-hidden">
-              <TmnlDataGrid<MessageLogEntry>
-                variant={variant}
-                rowData={messageLog as MessageLogEntry[]}
-                columnDefs={messageLogColumnDefs}
-                defaultColDef={{
-                  resizable: true,
-                }}
-                getRowId={(params) => params.data.id}
-                className="h-full"
-              />
-            </div>
-            <div className="mt-2 text-neutral-500" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-              {messageLog.length} message(s) • Newest first
-            </div>
-          </TestCard>
-        </div>
+        ) : (
+          <Button variant="danger" onClick={() => runEffect('disconnectSession')}>
+            Disconnect
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          onClick={() => runEffect('sendPing')}
+          disabled={status !== 'connected'}
+        >
+          Ping
+        </Button>
       </div>
     </div>
   )
 }
+
+// Views Panel Content
+function ViewsContent({ ava, variant }: PanelContentProps) {
+  const { runEffect } = useStx(ava)
+  const views = useStxData(ava, (d) => d.views.get())
+  const columnDefs = useMemo(() => createViewsColumnDefs(variant), [variant])
+
+  return (
+    <div className="p-3 space-y-2 h-full flex flex-col">
+      <div className="flex-1 min-h-0 border border-neutral-800 rounded overflow-hidden">
+        <TmnlDataGrid<ViewSummary>
+          variant={variant}
+          rowData={views as ViewSummary[]}
+          columnDefs={columnDefs}
+          defaultColDef={{ resizable: true, sortable: true }}
+          getRowId={(params) => params.data.id}
+          rowSelection="single"
+          onRowClicked={(e) => e.data && runEffect('selectView', e.data.id)}
+          className="h-full"
+        />
+      </div>
+      <div className="text-neutral-600" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+        {views.length} view(s) • Click to inspect
+      </div>
+    </div>
+  )
+}
+
+// Artifact Panel Content
+function ArtifactContent({ ava }: PanelContentProps) {
+  const { runEffect } = useStx(ava)
+  const selectedView = useStxData(ava, (d) => d.selectedView.get())
+  const artifact = useStxData(ava, (d) => d.artifact.get())
+  const isConnected = useStxMatches(ava, 'connected')
+
+  if (!selectedView) {
+    return (
+      <div className="h-32 flex items-center justify-center text-neutral-600">
+        <span style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>Select a view</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <ValueDisplay label="View" value={selectedView.name} accent="cyan" size="sm" />
+        {isConnected && (
+          <Button variant="primary" onClick={() => runEffect('subscribeToView', selectedView.id)}>
+            Subscribe
+          </Button>
+        )}
+      </div>
+
+      {artifact && (
+        <>
+          <SectionLabel variant="minimal">Channels</SectionLabel>
+          <div className="space-y-1">
+            {artifact.channel_bindings.map(b => (
+              <div key={b.channel_id} className="flex items-center justify-between p-2 bg-neutral-900/50 rounded">
+                <StatusIndicator status={b.active ? 'success' : 'neutral'} label={b.channel_id} />
+                {b.row_count !== undefined && (
+                  <span className="font-mono text-cyan-400" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+                    {b.row_count} rows
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <SectionLabel variant="minimal">Spec</SectionLabel>
+          <CodeBlock>{JSON.stringify(selectedView, null, 2)}</CodeBlock>
+        </>
+      )}
+    </div>
+  )
+}
+
+// Message Log Panel Content
+function MessageLogContent({ ava, variant }: PanelContentProps) {
+  const { data } = useStx(ava)
+  const messageLog = useStxData(ava, (d) => d.messageLog.get())
+  const columnDefs = useMemo(() => createMessageLogColumnDefs(variant), [variant])
+
+  return (
+    <div className="p-3 space-y-2 h-full flex flex-col">
+      <div className="flex-1 min-h-0 border border-neutral-800 rounded overflow-hidden">
+        <TmnlDataGrid<MessageLogEntry>
+          variant={variant}
+          rowData={messageLog as MessageLogEntry[]}
+          columnDefs={columnDefs}
+          defaultColDef={{ resizable: true }}
+          getRowId={(params) => params.data.id}
+          className="h-full"
+        />
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-neutral-600" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+          {messageLog.length} message(s)
+        </span>
+        <Button variant="ghost" onClick={() => data.messageLog.set([])}>Clear</Button>
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
+// PANEL CONTROLS (fixed position debug)
+// =============================================================================
+
+function PanelControls({ visiblePanels, togglePanel }: {
+  visiblePanels: Set<string>
+  togglePanel: (id: string) => void
+}) {
+  const { panels, bringToFront, sendToBack, closePanel, resizeSensitivity } = useFloatingPanel()
+
+  return (
+    <div
+      className="fixed bottom-4 left-4 bg-neutral-900 border border-neutral-800 rounded p-3 space-y-2"
+      style={{ zIndex: 10000, minWidth: 200 }}
+    >
+      <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
+        <span
+          className="font-mono text-neutral-400"
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        >
+          PANEL CONTROLS
+        </span>
+        <span
+          className={`font-mono ${
+            resizeSensitivity === 0.01 ? 'text-green-400' :
+            resizeSensitivity === 0.1 ? 'text-amber-400' :
+            'text-neutral-500'
+          }`}
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        >
+          {resizeSensitivity}x
+        </span>
+      </div>
+
+      <div className="space-y-1 max-h-64 overflow-auto">
+        {panels.map((panel) => (
+          <div
+            key={panel.id}
+            className="flex items-center justify-between gap-2 px-2 py-1 bg-neutral-800/50 rounded"
+          >
+            <div className="flex flex-col min-w-0">
+              <span
+                className="font-mono text-neutral-300 truncate"
+                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+              >
+                {panel.title}
+              </span>
+              <span
+                className="font-mono text-neutral-600"
+                style={{ fontSize: '10px' }}
+              >
+                {Math.round(panel.dimensions.width)}×{Math.round(panel.dimensions.height)}
+              </span>
+            </div>
+            <div className="flex gap-1">
+              <button
+                onClick={() => bringToFront(panel.id)}
+                className="px-1.5 py-0.5 text-cyan-500 hover:bg-cyan-500/20 rounded"
+                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+                title="Bring to front"
+              >
+                ↑
+              </button>
+              <button
+                onClick={() => sendToBack(panel.id)}
+                className="px-1.5 py-0.5 text-amber-500 hover:bg-amber-500/20 rounded"
+                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+                title="Send to back"
+              >
+                ↓
+              </button>
+              <button
+                onClick={() => closePanel(panel.id)}
+                className="px-1.5 py-0.5 text-red-500 hover:bg-red-500/20 rounded"
+                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+                title="Close"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div
+        className="text-neutral-600 pt-2 border-t border-neutral-800"
+        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+      >
+        Shift=0.1x • Ctrl+Shift=0.01x
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
+// PANEL DEFINITIONS
+// =============================================================================
+
+interface PanelDef {
+  id: string
+  title: string
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+const PANEL_DEFS: PanelDef[] = [
+  { id: 'ava-config', title: 'Config', x: 20, y: 80, w: 360, h: 100 },
+  { id: 'ava-hypotheses', title: 'Hypotheses', x: 20, y: 200, w: 360, h: 200 },
+  { id: 'ava-connection', title: 'Connection', x: 400, y: 80, w: 320, h: 150 },
+  { id: 'ava-views', title: 'Views', x: 400, y: 250, w: 380, h: 280 },
+  { id: 'ava-artifact', title: 'Artifact', x: 800, y: 80, w: 400, h: 350 },
+  { id: 'ava-messages', title: 'Messages', x: 800, y: 450, w: 400, h: 280 },
+  { id: 'ava-repl', title: 'REPL', x: 20, y: 420, w: 450, h: 300 },
+  { id: 'ava-state', title: 'State', x: 490, y: 550, w: 380, h: 280 },
+  { id: 'ava-sequence', title: 'Sequence', x: 890, y: 750, w: 380, h: 200 },
+  { id: 'ava-scenarios', title: 'Scenarios', x: 1220, y: 80, w: 320, h: 300 },
+  { id: 'ava-graph', title: 'Graph', x: 1220, y: 400, w: 320, h: 280 },
+]
+
+// =============================================================================
+// MAIN COMPONENT
+// =============================================================================
+
+export function AvaTestbed() {
+  const ava = getAvaStx()
+  const { runEffect } = useStx(ava)
+  const variant = tmnlDenseDark
+
+  // Panel visibility state - all visible by default
+  const [visiblePanels, setVisiblePanels] = useState<Set<string>>(
+    new Set(PANEL_DEFS.map(p => p.id))
+  )
+
+  const togglePanel = useCallback((id: string) => {
+    setVisiblePanels(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  // Initialize
+  useEffect(() => {
+    runEffect('fetchViews').catch(() => {})
+    return () => {
+      resetAvaStx()
+      resetTestbedStx()
+    }
+  }, [runEffect])
+
+  const contentProps: PanelContentProps = { ava, variant }
+
+  // Content map
+  const panelContent: Record<string, ReactNode> = {
+    'ava-config': <ConfigContent {...contentProps} />,
+    'ava-hypotheses': <HypothesesContent {...contentProps} />,
+    'ava-connection': <ConnectionContent {...contentProps} />,
+    'ava-views': <ViewsContent {...contentProps} />,
+    'ava-artifact': <ArtifactContent {...contentProps} />,
+    'ava-messages': <MessageLogContent {...contentProps} />,
+    'ava-repl': <div className="h-full"><ReplConsole /></div>,
+    'ava-state': <div className="h-full"><StateInspector /></div>,
+    'ava-sequence': <div className="h-full"><SequenceDiagram /></div>,
+    'ava-scenarios': <div className="h-full"><ScenarioRunner /></div>,
+    'ava-graph': <div className="h-full"><GraphVisualization /></div>,
+  }
+
+  return (
+    <FloatingPanelProvider>
+      <div className="min-h-screen bg-neutral-950 text-neutral-100 overflow-hidden">
+        {/* Header Bar */}
+        <div className="fixed top-0 left-0 right-0 h-14 bg-neutral-900 border-b border-neutral-800 flex items-center justify-between px-4 z-[200]">
+          <div className="flex items-center gap-4">
+            <span className="font-mono text-neutral-300" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
+              AVA TESTBED
+            </span>
+            <VersionBadge version="v2" status="experimental" />
+          </div>
+
+          {/* Panel Toggles */}
+          <div className="flex items-center gap-1 flex-wrap">
+            {PANEL_DEFS.map(p => (
+              <button
+                key={p.id}
+                onClick={() => togglePanel(p.id)}
+                className={`
+                  px-2 py-1 rounded font-mono transition-colors
+                  ${visiblePanels.has(p.id)
+                    ? 'bg-cyan-900/50 text-cyan-400 border border-cyan-700'
+                    : 'text-neutral-600 hover:text-neutral-400 border border-transparent'
+                  }
+                `}
+                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+              >
+                {p.title}
+              </button>
+            ))}
+          </div>
+
+          <Button variant="ghost" onClick={() => runEffect('fetchViews')}>
+            Refresh
+          </Button>
+        </div>
+
+        {/* Floating Panels */}
+        {PANEL_DEFS.map(p => (
+          <ManagedPanel
+            key={p.id}
+            id={p.id}
+            title={p.title}
+            initialPosition={{ x: p.x, y: p.y }}
+            initialDimensions={{ width: p.w, height: p.h }}
+            show={visiblePanels.has(p.id)}
+          >
+            {panelContent[p.id]}
+          </ManagedPanel>
+        ))}
+
+        {/* Drag Overlay (ghost during drag) */}
+        <FloatingDragOverlay style="ghost" />
+
+        {/* Panel Controls Debug UI */}
+        <PanelControls visiblePanels={visiblePanels} togglePanel={togglePanel} />
+      </div>
+    </FloatingPanelProvider>
+  )
+}
+
+export default AvaTestbed

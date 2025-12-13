@@ -46,11 +46,11 @@ const initialVelocity: DragVelocity = {
 }
 
 const initialBlurConfig: BlurConfig = {
-  maxBlur: 6,
-  intensity: 0.08,
-  threshold: 2,
+  maxBlur: 8,
+  intensity: 0.4,      // Increased from 0.08 for more visible blur
+  threshold: 1.5,      // Lowered from 2 for earlier blur onset
   enableStretch: true,
-  maxStretch: 1.03,
+  maxStretch: 1.05,    // Slightly more stretch
   wrapperThreshold: 5,
 }
 
@@ -207,7 +207,7 @@ export function startDrag(
     elementIds,
     startPosition: position,
     currentPosition: position,
-    startTime: Date.now(),
+    startTime: performance.now(), // Use high-precision timer (matches blur calculation)
   }
 
   // Update data

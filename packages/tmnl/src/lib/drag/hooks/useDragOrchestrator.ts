@@ -61,10 +61,34 @@ import type {
 // Constants
 // =============================================================================
 
+/**
+ * Envelope configuration - smooth ramp in/out for drag engagement
+ */
+const ENVELOPE = {
+  attackMs: 180,       // Time to ramp IN blur when drag starts (ms)
+  releaseMs: 200,      // Time to ramp OUT blur when drag ends (ms)
+}
+
+/**
+ * Idle pulse configuration - subtle "breathing" effect while drag engaged but not moving
+ */
+const IDLE_PULSE = {
+  minBlur: 0.2,        // Minimum blur during pulse (px)
+  maxBlur: 0.5,        // Maximum blur during pulse (px)
+  period: 900,         // Pulse cycle duration (ms)
+  scaleMin: 1.0,       // Minimum scale
+  scaleMax: 1.006,     // Maximum scale (0.6% - very subtle)
+}
+
+/**
+ * Ease-out transition for when drag ends
+ */
+const EASE_OUT_TRANSITION = `filter ${ENVELOPE.releaseMs}ms cubic-bezier(0.4, 0, 0.2, 1), transform ${ENVELOPE.releaseMs}ms cubic-bezier(0.4, 0, 0.2, 1)`
+
 const NO_BLUR_STYLE: MotionBlurOutput = {
   filter: undefined,
   transform: undefined,
-  transition: 'filter 0.15s ease-out, transform 0.15s ease-out',
+  transition: EASE_OUT_TRANSITION,
   isActive: false,
   blurAmount: 0,
   strategy: 'none',
@@ -81,6 +105,32 @@ const NO_BLUR_STYLE: MotionBlurOutput = {
 function smoothStep(edge0: number, edge1: number, x: number): number {
   const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)))
   return t * t * (3 - 2 * t) // Hermite interpolation
+}
+
+/**
+ * Calculate envelope multiplier for smooth attack/release.
+ * Uses quadratic ease-out for natural feel: fast onset, gradual settle.
+ *
+ * @param elapsed - Time since drag started (ms)
+ * @param attackMs - Attack duration (ms)
+ * @returns Value from 0 to 1
+ */
+function envelopeMultiplier(elapsed: number, attackMs: number): number {
+  if (elapsed >= attackMs) return 1
+  const t = elapsed / attackMs
+  // Quadratic ease-out: starts fast, settles smoothly
+  return 1 - (1 - t) * (1 - t)
+}
+
+/**
+ * Calculate idle pulse effect (breathing animation while drag engaged but not moving).
+ * Returns a value between 0 and 1 based on a sinusoidal cycle.
+ */
+function idlePulseValue(timestamp: number): number {
+  // Sinusoidal pulse: 0.5 + 0.5 * sin(2π * t / period)
+  // This gives a smooth 0→1→0 cycle
+  const phase = (timestamp % IDLE_PULSE.period) / IDLE_PULSE.period
+  return 0.5 + 0.5 * Math.sin(phase * 2 * Math.PI)
 }
 
 /**
@@ -119,7 +169,8 @@ function calculateBlurStyle(
   operation: DragOperation | null,
   velocity: DragVelocity,
   blurConfig: BlurConfig,
-  elementId?: string
+  elementId?: string,
+  timestamp?: number
 ): MotionBlurOutput {
   // If elementId provided, only show blur if that element is being dragged
   if (elementId && operation) {
@@ -150,38 +201,71 @@ function calculateBlurStyle(
   const { maxBlur, intensity, threshold, enableStretch, maxStretch } = blurConfig
 
   // Perceptual thresholds
-  const blurThreshold = threshold ?? 2        // Blur starts at low velocity
-  const stretchThreshold = (threshold ?? 2) * 2 // Stretch needs higher velocity
+  const blurThreshold = threshold ?? 1.5      // Blur starts at low velocity
+  const stretchThreshold = (threshold ?? 1.5) * 3 // Stretch needs higher velocity
 
-  // Soft threshold using smooth step (no hard cutoff)
-  const blurFactor = smoothStep(blurThreshold * 0.5, blurThreshold * 1.5, magnitude)
+  // -------------------------------------------------------------------------
+  // ENVELOPE: Smooth attack when drag starts
+  // -------------------------------------------------------------------------
+  const now = timestamp ?? performance.now()
+  const elapsed = now - operation.startTime
+  const envelope = envelopeMultiplier(elapsed, ENVELOPE.attackMs)
 
-  // Below soft threshold - return minimal blur
-  if (blurFactor < 0.01) {
+  // -------------------------------------------------------------------------
+  // IDLE PULSE: When drag engaged but velocity is very low
+  // Creates a subtle "breathing" effect to indicate active drag state
+  // -------------------------------------------------------------------------
+  const isIdle = magnitude < blurThreshold * 0.5
+
+  if (isIdle) {
+    const pulse = idlePulseValue(now)
+
+    // Interpolate blur and scale based on pulse, apply envelope
+    const rawPulseBlur = IDLE_PULSE.minBlur + pulse * (IDLE_PULSE.maxBlur - IDLE_PULSE.minBlur)
+    const rawPulseScale = IDLE_PULSE.scaleMin + pulse * (IDLE_PULSE.scaleMax - IDLE_PULSE.scaleMin)
+
+    // Apply envelope - ramp in smoothly
+    const pulseBlur = rawPulseBlur * envelope
+    const pulseScale = 1 + (rawPulseScale - 1) * envelope
+
     return {
-      ...NO_BLUR_STYLE,
+      filter: pulseBlur > 0.05 ? `blur(${pulseBlur.toFixed(2)}px)` : undefined,
+      transform: pulseScale > 1.0001 ? `scale(${pulseScale.toFixed(4)})` : undefined,
+      transition: 'none', // No transition during pulse
+      isActive: pulseBlur > 0.05,
+      blurAmount: pulseBlur,
       strategy,
     }
   }
 
+  // -------------------------------------------------------------------------
+  // MOVEMENT BLUR: Velocity-based directional blur
+  // -------------------------------------------------------------------------
+
+  // Soft threshold using smooth step (no hard cutoff)
+  const blurFactor = smoothStep(blurThreshold * 0.5, blurThreshold * 2, magnitude)
+
   // Calculate perceptual blur amount (sqrt mapping + soft threshold)
-  const rawBlur = perceptualBlur(magnitude, intensity ?? 0.15, maxBlur ?? 8)
-  const blurAmount = rawBlur * blurFactor
+  const rawBlur = perceptualBlur(magnitude, intensity ?? 0.5, maxBlur ?? 8)
+  // Apply envelope to blur amount
+  const blurAmount = rawBlur * blurFactor * envelope
 
   // Calculate directional stretch (higher threshold, eased curve)
   let transform: string | undefined
   if (enableStretch && magnitude > stretchThreshold) {
-    const stretchFactor = easedStretch(magnitude, stretchThreshold, maxStretch ?? 1.05)
+    const stretchFactor = easedStretch(magnitude, stretchThreshold, maxStretch ?? 1.06)
+    // Apply envelope to stretch
+    const envelopedStretch = 1 + (stretchFactor - 1) * envelope
     const angleDeg = (angle * 180) / Math.PI
     // Rotate to align with motion, stretch, rotate back
-    transform = `rotate(${angleDeg}deg) scaleX(${stretchFactor.toFixed(4)}) rotate(${-angleDeg}deg)`
+    transform = `rotate(${angleDeg}deg) scaleX(${envelopedStretch.toFixed(4)}) rotate(${-angleDeg}deg)`
   }
 
   return {
-    filter: blurAmount > 0.3 ? `blur(${blurAmount.toFixed(2)}px)` : undefined,
+    filter: blurAmount > 0.1 ? `blur(${blurAmount.toFixed(2)}px)` : undefined,
     transform,
     transition: 'none', // No transition during drag
-    isActive: blurAmount > 0.3,
+    isActive: blurAmount > 0.1,
     blurAmount,
     strategy,
   }
@@ -242,8 +326,15 @@ export function useDragOrchestrator(
     const currentOperation = getActiveDrag()
     const currentVelocity = getDragVelocity()
     const currentConfig = getBlurConfig()
+    const timestamp = performance.now()
 
-    const newStyle = calculateBlurStyle(currentOperation, currentVelocity, currentConfig, elementId)
+    const newStyle = calculateBlurStyle(
+      currentOperation,
+      currentVelocity,
+      currentConfig,
+      elementId,
+      timestamp
+    )
     setBlurStyle(newStyle)
 
     // Continue loop if still dragging

@@ -222,17 +222,56 @@ The directional stretch uses `transform` which is highly optimized:
 
 ---
 
-## 6. Configuration Parameters
+## 6. Envelope & Idle Pulse
+
+### 6.1 Attack Envelope
+
+Blur doesn't snap on instantly - it ramps in smoothly over ~180ms using quadratic ease-out:
+
+```typescript
+const ENVELOPE = {
+  attackMs: 180,       // Time to ramp IN blur when drag starts
+  releaseMs: 200,      // Time to ramp OUT blur when drag ends
+}
+
+function envelopeMultiplier(elapsed: number, attackMs: number): number {
+  if (elapsed >= attackMs) return 1
+  const t = elapsed / attackMs
+  // Quadratic ease-out: starts fast, settles smoothly
+  return 1 - (1 - t) * (1 - t)
+}
+```
+
+### 6.2 Idle Pulse
+
+When drag is engaged but the element isn't moving, a subtle "breathing" effect indicates the active state:
+
+```typescript
+const IDLE_PULSE = {
+  minBlur: 0.2,        // Minimum blur during pulse (px)
+  maxBlur: 0.5,        // Maximum blur during pulse (px)
+  period: 900,         // Pulse cycle duration (ms)
+  scaleMin: 1.0,       // Minimum scale
+  scaleMax: 1.006,     // Maximum scale (0.6% - very subtle)
+}
+
+// Sinusoidal breathing
+const pulse = 0.5 + 0.5 * Math.sin((timestamp % period) / period * 2 * Math.PI)
+```
+
+---
+
+## 7. Configuration Parameters
 
 Default blur configuration:
 
 ```typescript
 const defaultBlurConfig = {
   maxBlur: 8,           // Maximum blur radius (px)
-  intensity: 0.15,      // Blur scaling factor (after sqrt)
-  threshold: 2,         // Velocity threshold (px/frame)
+  intensity: 0.5,       // Blur scaling factor (after sqrt)
+  threshold: 1.5,       // Velocity threshold (px/frame)
   enableStretch: true,  // Enable directional stretch
-  maxStretch: 1.05,     // Maximum stretch factor (5% elongation)
+  maxStretch: 1.06,     // Maximum stretch factor (6% elongation)
   wrapperThreshold: 5,  // Elements before switching to wrapper blur
 }
 ```
