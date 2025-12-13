@@ -160,6 +160,14 @@ const CARDS: readonly CardDef[] = [
     glow: 'emerald',
   },
   {
+    title: 'DRAWER SYSTEM',
+    body: 'Stacking drawer UI with rolodex animation. Global + per-panel slots, TableService presets, parallax lift.',
+    route: '/testbed/drawer',
+    status: 'active',
+    label: 'NEW',
+    glow: 'cyan',
+  },
+  {
     title: 'SEARCH LAB',
     body: 'Search driver experimentation. FlexSearch vs Linear comparison, indexing strategies, fuzzy matching.',
     route: '/testbed/search',

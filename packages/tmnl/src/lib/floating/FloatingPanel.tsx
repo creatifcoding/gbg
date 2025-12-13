@@ -30,6 +30,8 @@ import { ResizeHandles } from './ResizeHandles'
 import { FloatingDimensionProvider } from './FloatingDimensionContext'
 // Use centralized drag orchestrator for motion blur
 import { useElementBlurStyle } from '@/lib/drag'
+// Drawer slot for per-panel drawers
+import { PanelSlot } from '@/lib/drawer'
 import type { PanelState, Position, Dimensions } from './types'
 
 // =============================================================================
@@ -434,8 +436,9 @@ export function FloatingPanel({
           dimensions={panel.dimensions}
           isResizing={panel.isResizing}
         >
+          {/* Content container with relative positioning for drawer slot */}
           <div
-            className="overflow-auto"
+            className="overflow-auto relative"
             style={{
               // flex: 1 fills remaining height, min-height: 0 allows shrinking below content size
               flex: 1,
@@ -444,6 +447,8 @@ export function FloatingPanel({
             }}
           >
             {children}
+            {/* Per-panel drawer slot - renders drawer overlays scoped to this panel */}
+            <PanelSlot panelId={id} />
           </div>
         </FloatingDimensionProvider>
       )}

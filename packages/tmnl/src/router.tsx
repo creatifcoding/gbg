@@ -46,6 +46,7 @@ import { StreamsPlayground } from './components/playground/streams';
 import { AvaTestbed } from './components/testbed/AvaTestbed';
 import { FloatingPanelTestbed } from './components/testbed/FloatingPanelTestbed';
 import { SelectionTestbed } from './components/testbed/SelectionTestbed';
+import { DrawerTestbed } from './components/testbed/DrawerTestbed';
 
 // Create a root route
 const rootRoute = createRootRoute({
@@ -259,6 +260,13 @@ const selectionTestbedRoute = createRoute({
   component: SelectionTestbed,
 });
 
+// Create drawer testbed route
+const drawerTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/drawer',
+  component: DrawerTestbed,
+});
+
 // Create the router
 const router = createRouter({
   routeTree: rootRoute.addChildren([
@@ -291,6 +299,7 @@ const router = createRouter({
     avaTestbedRoute,
     floatingPanelTestbedRoute,
     selectionTestbedRoute,
+    drawerTestbedRoute,
   ]),
 });
 
