@@ -46,8 +46,8 @@ export function SelectionRing({
 }: SelectionRingProps) {
   const ringRef = useRef<HTMLDivElement>(null)
 
-  // Get color tokens
-  const colorTokens = COLORS[color as AccentColor] ?? COLORS.cyan
+  // Get color tokens - access via COLORS.accent[color]
+  const colorTokens = COLORS.accent[color as AccentColor] ?? COLORS.accent.cyan
 
   // Animate on selection change
   useEffect(() => {
@@ -60,13 +60,13 @@ export function SelectionRing({
       ring.style.transform = 'scale(1.02)'
 
       requestAnimationFrame(() => {
-        ring.style.transition = `opacity ${TIMING.fast}ms ${EASING.css.easeOut}, transform ${TIMING.fast}ms ${EASING.css.easeOut}`
+        ring.style.transition = `opacity ${TIMING.fast}ms ${EASING.css.out}, transform ${TIMING.fast}ms ${EASING.css.out}`
         ring.style.opacity = '1'
         ring.style.transform = 'scale(1)'
       })
     } else {
       // Animate out
-      ring.style.transition = `opacity ${TIMING.fast}ms ${EASING.css.easeOut}`
+      ring.style.transition = `opacity ${TIMING.fast}ms ${EASING.css.out}`
       ring.style.opacity = '0'
     }
   }, [selected])
