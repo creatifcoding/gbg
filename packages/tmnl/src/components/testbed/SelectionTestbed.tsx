@@ -13,6 +13,7 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import { SelectionOverlay, useSelection, useSelectable, getSelectedIds, getGroupForItem } from '@/lib/selection'
 import { SelectionRing } from '@/components/affordances'
 import { COLORS } from '@/lib/capabilities/tokens'
+import { useMotionBlur } from '@/lib/motion'
 
 // =============================================================================
 // Types
@@ -47,6 +48,9 @@ function TestCard({ id, label, position, onDragStart, onDrag, onDragEnd }: TestC
   const isDragging = useRef(false)
   const dragStartPos = useRef<Position | null>(null)
 
+  // Direction-aware motion blur
+  const { style: motionBlurStyle, startTracking, updatePosition, stopTracking, isTracking } = useMotionBlur()
+
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     // Only drag on left click
     if (e.button !== 0) return
@@ -57,11 +61,14 @@ function TestCard({ id, label, position, onDragStart, onDrag, onDragEnd }: TestC
     isDragging.current = true
     dragStartPos.current = { x: e.clientX, y: e.clientY }
 
+    // Start motion blur tracking
+    startTracking(e.clientX, e.clientY)
+
     onDragStart(id, position)
 
     // Capture pointer for drag tracking outside element
     e.currentTarget.setPointerCapture(e.pointerId)
-  }, [id, position, onDragStart])
+  }, [id, position, onDragStart, startTracking])
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current || !dragStartPos.current) return
@@ -71,8 +78,11 @@ function TestCard({ id, label, position, onDragStart, onDrag, onDragEnd }: TestC
       y: e.clientY - dragStartPos.current.y,
     }
 
+    // Update motion blur tracking
+    updatePosition(e.clientX, e.clientY)
+
     onDrag(id, delta)
-  }, [id, onDrag])
+  }, [id, onDrag, updatePosition])
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (!isDragging.current) return
@@ -80,9 +90,12 @@ function TestCard({ id, label, position, onDragStart, onDrag, onDragEnd }: TestC
     isDragging.current = false
     dragStartPos.current = null
 
+    // Stop motion blur tracking
+    stopTracking()
+
     e.currentTarget.releasePointerCapture(e.pointerId)
     onDragEnd(id)
-  }, [id, onDragEnd])
+  }, [id, onDragEnd, stopTracking])
 
   return (
     <div
@@ -92,6 +105,10 @@ function TestCard({ id, label, position, onDragStart, onDrag, onDragEnd }: TestC
         backgroundColor: COLORS.neutral[800],
         border: `1px solid ${COLORS.neutral[700]}`,
         userSelect: 'none',
+        // Apply motion blur during drag
+        filter: motionBlurStyle.filter,
+        transform: motionBlurStyle.transform,
+        transition: motionBlurStyle.transition,
       }}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

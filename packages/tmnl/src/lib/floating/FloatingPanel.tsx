@@ -25,7 +25,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useSelector } from '@/lib/stx'
 import { COLORS } from '@/lib/capabilities/tokens'
 import { useFloatingPanelContext } from './FloatingPanelProvider'
-import { getFloatingStx, maximizePanel, restorePanel } from './floating-stx'
+import { getFloatingStx, maximizePanel, restorePanel, getMotionBlurStyle } from './floating-stx'
 import { ResizeHandles } from './ResizeHandles'
 import { FloatingDimensionProvider } from './FloatingDimensionContext'
 import type { PanelState, Position, Dimensions } from './types'
@@ -170,6 +170,9 @@ export function FloatingPanel({
   const panelsMap = useSelector(stx.data.panels, (p) => p)
   const panel = panelsMap?.get(id)
 
+  // Subscribe to drag velocity for motion blur
+  const dragVelocity = useSelector(stx.data.dragVelocity, (v) => v)
+
   // @dnd-kit draggable (transform only - drag state comes from stx)
   // Disable dragging when maximized
   const {
@@ -196,11 +199,11 @@ export function FloatingPanel({
     ? CSS.Transform.toString(transform)
     : undefined
 
-  // Motion blur based on drag velocity (magnitude of transform delta)
-  // Uses panel.isDragging from stx (set by provider on drag start/end)
-  const motionBlur = panel.isDragging && transform
-    ? Math.min(Math.sqrt(transform.x ** 2 + transform.y ** 2) * 0.05, 4)
-    : 0
+  // Direction-aware motion blur from stx (velocity-based, not just transform delta)
+  // Uses dragVelocity from stx which is updated in FloatingPanelProvider.handleDragMove
+  const motionBlurStyle = getMotionBlurStyle()
+  const motionBlur = panel.isDragging ? motionBlurStyle.blurAmount : 0
+  const motionStretch = panel.isDragging ? motionBlurStyle.transform : undefined
 
   // Apple-style animation: subtle scale lift during transition
   const animationScale = animationPhase === 'lift' ? 0.98 : 1.0
@@ -302,10 +305,11 @@ export function FloatingPanel({
         minWidth: panel.isMaximized ? undefined : (panel.constraints?.minWidth ?? 200),
         minHeight: panel.isMaximized ? undefined : (panel.constraints?.minHeight ?? 100),
         zIndex: panel.isMaximized ? 99999 : panel.zIndex,
-        // Apple-style: combine drag transform with animation scale
+        // Apple-style: combine drag transform with animation scale + motion stretch
         transform: [
           transformStyle,
           animationScale !== 1.0 ? `scale(${animationScale})` : '',
+          motionStretch,
         ].filter(Boolean).join(' ') || undefined,
         backgroundColor: COLORS.neutral[950],
         opacity: 1,

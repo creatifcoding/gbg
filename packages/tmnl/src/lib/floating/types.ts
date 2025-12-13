@@ -145,6 +145,24 @@ export const ModifierKeys = Schema.Struct({
 export type ModifierKeys = typeof ModifierKeys.Type
 
 // =============================================================================
+// Velocity State (for motion blur)
+// =============================================================================
+
+export const DragVelocity = Schema.Struct({
+  /** Current velocity vector (px/frame) */
+  x: Schema.Number,
+  y: Schema.Number,
+  /** Smoothed velocity (EMA) for stable blur */
+  smoothedX: Schema.Number,
+  smoothedY: Schema.Number,
+  /** Velocity magnitude */
+  magnitude: Schema.Number,
+  /** Velocity angle in radians */
+  angle: Schema.Number,
+})
+export type DragVelocity = typeof DragVelocity.Type
+
+// =============================================================================
 // STX Data Shape
 // =============================================================================
 
@@ -164,6 +182,12 @@ export interface FloatingStxData {
   modifierKeys: ModifierKeys
   /** Base z-index for floating layer */
   baseZIndex: number
+  /** Drag velocity for motion blur */
+  dragVelocity: DragVelocity
+  /** Last drag position for velocity calculation */
+  lastDragPosition: Position | null
+  /** Last drag timestamp */
+  lastDragTimestamp: number
 }
 
 // =============================================================================

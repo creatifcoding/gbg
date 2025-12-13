@@ -24,6 +24,7 @@ import {
   useSensors,
   closestCenter,
   type DragStartEvent,
+  type DragMoveEvent,
   type DragEndEvent,
 } from '@dnd-kit/core'
 
@@ -42,6 +43,10 @@ import {
   getPanel as stxGetPanel,
   restorePersistedState,
   updatePanelDimensions,
+  // Velocity tracking for motion blur
+  startDragVelocityTracking,
+  updateDragVelocity,
+  stopDragVelocityTracking,
 } from './floating-stx'
 import type {
   PanelState,
@@ -238,9 +243,17 @@ export function FloatingPanelProvider({
       const panel = stxGetPanel(id)
 
       if (panel) {
-        // PANEL DRAG: bring to front, set dragging state, blur effect
+        // PANEL DRAG: bring to front, set dragging state, start velocity tracking
         bringPanelToFront(id)
         setDragging(id, true)
+
+        // Start velocity tracking for motion blur
+        // Use activator event coordinates if available, else fall back to panel position
+        const activatorEvent = event.activatorEvent as PointerEvent | undefined
+        const startX = activatorEvent?.clientX ?? panel.position.x
+        const startY = activatorEvent?.clientY ?? panel.position.y
+        startDragVelocityTracking(startX, startY)
+
         stx.send?.({ type: 'START_DRAG', panelId: id, position: { x: 0, y: 0 } })
       } else {
         // SORTABLE DRAG: delegate to callback
@@ -250,13 +263,34 @@ export function FloatingPanelProvider({
     [stx, onSortableDragStart]
   )
 
+  const handleDragMove = useCallback(
+    (event: DragMoveEvent) => {
+      const id = event.active.id as string
+      const panel = stxGetPanel(id)
+
+      if (panel) {
+        // PANEL DRAG: update velocity tracking for motion blur
+        // Use activator event coordinates if available
+        const activatorEvent = event.activatorEvent as PointerEvent | undefined
+        if (activatorEvent) {
+          // Calculate current position from delta + initial
+          const currentX = activatorEvent.clientX + event.delta.x
+          const currentY = activatorEvent.clientY + event.delta.y
+          updateDragVelocity(currentX, currentY)
+        }
+      }
+      // Note: No sortable drag move callback - @dnd-kit handles it internally
+    },
+    []
+  )
+
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const id = event.active.id as string
       const panel = stxGetPanel(id)
 
       if (panel) {
-        // PANEL DRAG: update position, clear dragging state
+        // PANEL DRAG: update position, clear dragging state, stop velocity tracking
         const { delta } = event
         const newPosition: Position = {
           x: panel.position.x + delta.x,
@@ -264,6 +298,10 @@ export function FloatingPanelProvider({
         }
         updatePanelPosition(id, newPosition)
         setDragging(id, false)
+
+        // Stop velocity tracking
+        stopDragVelocityTracking()
+
         stx.send?.({ type: 'END_DRAG' })
       } else {
         // SORTABLE DRAG: delegate to callback
@@ -310,6 +348,7 @@ export function FloatingPanelProvider({
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
+        onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
       >
         {children}

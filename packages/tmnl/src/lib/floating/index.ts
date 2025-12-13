@@ -60,6 +60,12 @@ export {
   restorePersistedState,
   maximizePanel,
   restorePanel,
+  // Velocity tracking for motion blur
+  startDragVelocityTracking,
+  updateDragVelocity,
+  stopDragVelocityTracking,
+  getDragVelocity,
+  getMotionBlurStyle,
 } from './floating-stx'
 
 // =============================================================================
@@ -112,6 +118,7 @@ export {
   PersistedPanelState,
   PanelStorage,
   ModifierKeys,
+  DragVelocity,
   // Interfaces
   type FloatingStxData,
   type PanelMachineContext,

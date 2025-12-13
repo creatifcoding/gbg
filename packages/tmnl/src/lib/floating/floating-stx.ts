@@ -23,6 +23,7 @@ import type {
   PanelVisibility,
   PanelStorage,
   PersistedPanelState,
+  DragVelocity,
 } from './types'
 
 // =============================================================================
@@ -33,10 +34,20 @@ const STORAGE_KEY = 'tmnl-floating-panels'
 const DEFAULT_WIDTH = 320
 const DEFAULT_HEIGHT = 240
 const BASE_Z_INDEX = 1000
+const VELOCITY_SMOOTHING = 0.3 // EMA factor (lower = smoother)
 
 // =============================================================================
 // Initial Data
 // =============================================================================
+
+const initialVelocity: DragVelocity = {
+  x: 0,
+  y: 0,
+  smoothedX: 0,
+  smoothedY: 0,
+  magnitude: 0,
+  angle: 0,
+}
 
 const initialData: FloatingStxData = {
   panels: new Map<string, PanelState>(),
@@ -50,6 +61,9 @@ const initialData: FloatingStxData = {
     alt: false,
   },
   baseZIndex: BASE_Z_INDEX,
+  dragVelocity: { ...initialVelocity },
+  lastDragPosition: null,
+  lastDragTimestamp: 0,
 }
 
 // =============================================================================
@@ -232,6 +246,50 @@ const floatingComputed = {
     return zOrder
       .map((id: string) => panels.get(id))
       .filter((p): p is PanelState => p !== undefined && p.visibility === 'visible')
+  },
+
+  /**
+   * Motion blur style based on drag velocity
+   * Returns CSS properties for blur and directional stretch
+   */
+  motionBlurStyle: (get: { data: FloatingStxData }) => {
+    const velocity = typeof get.data.dragVelocity.get === 'function'
+      ? get.data.dragVelocity.get()
+      : get.data.dragVelocity
+    const draggingPanel = typeof get.data.draggingPanel.get === 'function'
+      ? get.data.draggingPanel.get()
+      : get.data.draggingPanel
+
+    const isActive = draggingPanel !== null && velocity.magnitude > 2
+
+    if (!isActive) {
+      return {
+        filter: undefined as string | undefined,
+        transform: undefined as string | undefined,
+        transition: 'filter 0.15s ease-out, transform 0.15s ease-out',
+        isActive: false,
+        blurAmount: 0,
+      }
+    }
+
+    // Calculate blur amount (capped at 6px)
+    const blurAmount = Math.min(velocity.magnitude * 0.08, 6)
+
+    // Directional stretch for motion smear
+    let stretchTransform: string | undefined = undefined
+    if (velocity.magnitude > 4) {
+      const stretchFactor = Math.min(1 + velocity.magnitude * 0.001, 1.03)
+      const angleDeg = (velocity.angle * 180) / Math.PI
+      stretchTransform = `rotate(${angleDeg}deg) scaleX(${stretchFactor}) rotate(${-angleDeg}deg)`
+    }
+
+    return {
+      filter: blurAmount > 0.5 ? `blur(${blurAmount.toFixed(1)}px)` : undefined,
+      transform: stretchTransform,
+      transition: 'none',
+      isActive: true,
+      blurAmount,
+    }
   },
 }
 
@@ -599,4 +657,128 @@ export function restorePanel(id: string): void {
   })
 
   stx.data.panels.set(panels)
+}
+
+// =============================================================================
+// Velocity Tracking (for motion blur)
+// =============================================================================
+
+/**
+ * Start drag velocity tracking
+ * Call this on drag start to initialize velocity tracking
+ */
+export function startDragVelocityTracking(x: number, y: number): void {
+  const stx = getFloatingStx()
+  stx.data.lastDragPosition.set({ x, y })
+  stx.data.lastDragTimestamp.set(performance.now())
+  stx.data.dragVelocity.set({ ...initialVelocity })
+}
+
+/**
+ * Update drag velocity based on new position
+ * Call this on drag move to calculate velocity
+ */
+export function updateDragVelocity(x: number, y: number): void {
+  const stx = getFloatingStx()
+  const lastPos = stx.data.lastDragPosition.get()
+  const lastTime = stx.data.lastDragTimestamp.get()
+  const currentVelocity = stx.data.dragVelocity.get()
+
+  if (!lastPos) return
+
+  const now = performance.now()
+  const dt = now - lastTime
+
+  // Avoid division by zero and skip if too fast (< 1ms)
+  if (dt < 1) return
+
+  // Calculate instantaneous velocity (normalized to ~60fps)
+  const rawVelocityX = (x - lastPos.x) / (dt / 16.67)
+  const rawVelocityY = (y - lastPos.y) / (dt / 16.67)
+
+  // Apply EMA smoothing
+  const smoothedX = VELOCITY_SMOOTHING * rawVelocityX + (1 - VELOCITY_SMOOTHING) * currentVelocity.smoothedX
+  const smoothedY = VELOCITY_SMOOTHING * rawVelocityY + (1 - VELOCITY_SMOOTHING) * currentVelocity.smoothedY
+
+  // Calculate magnitude and angle
+  const magnitude = Math.sqrt(smoothedX ** 2 + smoothedY ** 2)
+  const angle = Math.atan2(smoothedY, smoothedX)
+
+  stx.data.dragVelocity.set({
+    x: rawVelocityX,
+    y: rawVelocityY,
+    smoothedX,
+    smoothedY,
+    magnitude,
+    angle,
+  })
+
+  stx.data.lastDragPosition.set({ x, y })
+  stx.data.lastDragTimestamp.set(now)
+}
+
+/**
+ * Stop drag velocity tracking
+ * Call this on drag end to reset velocity
+ */
+export function stopDragVelocityTracking(): void {
+  const stx = getFloatingStx()
+  stx.data.dragVelocity.set({ ...initialVelocity })
+  stx.data.lastDragPosition.set(null)
+  stx.data.lastDragTimestamp.set(0)
+}
+
+/**
+ * Get current drag velocity state
+ */
+export function getDragVelocity(): DragVelocity {
+  const stx = getFloatingStx()
+  return stx.data.dragVelocity.get()
+}
+
+/**
+ * Get motion blur style based on current velocity
+ * This is a convenience function that reads from computed
+ */
+export function getMotionBlurStyle(): {
+  filter: string | undefined
+  transform: string | undefined
+  transition: string
+  isActive: boolean
+  blurAmount: number
+} {
+  const stx = getFloatingStx()
+  const velocity = stx.data.dragVelocity.get()
+  const draggingPanel = stx.data.draggingPanel.get()
+
+  const isActive = draggingPanel !== null && velocity.magnitude > 2
+
+  if (!isActive) {
+    return {
+      filter: undefined,
+      transform: undefined,
+      transition: 'filter 0.15s ease-out, transform 0.15s ease-out',
+      isActive: false,
+      blurAmount: 0,
+    }
+  }
+
+  // Calculate blur amount (capped at 6px)
+  const blurAmount = Math.min(velocity.magnitude * 0.08, 6)
+
+  // Directional stretch for motion smear
+  let stretchTransform: string | undefined = undefined
+  if (velocity.magnitude > 4) {
+    const stretchFactor = Math.min(1 + velocity.magnitude * 0.001, 1.03)
+    const angleDeg = (velocity.angle * 180) / Math.PI
+    stretchTransform = `rotate(${angleDeg}deg) scaleX(${stretchFactor}) rotate(${-angleDeg}deg)`
+  }
+
+  return {
+    filter: blurAmount > 0.5 ? `blur(${blurAmount.toFixed(1)}px)` : undefined,
+    transform: stretchTransform,
+    transition: 'none',
+    isActive: true,
+    blurAmount,
+  }
 }
