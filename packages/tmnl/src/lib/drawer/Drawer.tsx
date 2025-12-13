@@ -196,26 +196,29 @@ export function Drawer({ instance, container, stackIndex, stackSize }: DrawerPro
   }, [animationState, id, side, setAnimationState])
 
   // -------------------------------------------------------------------------
-  // Stack depth styles (applied directly, CSS transition handles animation)
+  // Stack depth styles - staggered panels with hairline borders
   // -------------------------------------------------------------------------
   useEffect(() => {
     if (animationState === 'visible' && drawerRef.current) {
       const el = drawerRef.current
-      const offset = stackDepth * 24 // px per depth level
-      const scale = Math.max(0.88, 1 - stackDepth * 0.04)
-      const opacity = Math.max(0.5, 1 - stackDepth * 0.12)
 
-      // Direction: recede opposite to drawer edge
-      let x = 0, y = 0
-      switch (side) {
-        case 'right': x = -offset; break
-        case 'left': x = offset; break
-        case 'bottom': y = -offset; break
-        case 'top': y = offset; break
+      if (stackDepth === 0) {
+        // Top drawer: neutral position
+        el.style.transform = ''
+      } else {
+        // Recessed: offset to show hairline edge peeking
+        const offset = stackDepth * 12
+
+        let x = 0, y = 0
+        switch (side) {
+          case 'right': x = -offset; break
+          case 'left': x = offset; break
+          case 'bottom': y = -offset; break
+          case 'top': y = offset; break
+        }
+
+        el.style.transform = `translateX(${x}px) translateY(${y}px)`
       }
-
-      el.style.transform = `translateX(${x}px) translateY(${y}px) scale(${scale})`
-      el.style.opacity = `${opacity}`
     }
   }, [animationState, stackDepth, side])
 
