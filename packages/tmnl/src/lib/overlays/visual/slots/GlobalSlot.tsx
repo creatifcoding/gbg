@@ -1,20 +1,13 @@
 /**
  * Global Slot Component
  *
- * Full-viewport slot for global overlays (modal, toast, command-palette, top-bar).
+ * Full-viewport slot for global overlays (drawer, modal, toast, command-palette).
  * Mount at app root to enable visual overlay rendering.
  *
- * @example
- * ```tsx
- * function App() {
- *   return (
- *     <VisualOverlayProvider>
- *       <GlobalSlot />
- *       <RouterProvider router={router} />
- *     </VisualOverlayProvider>
- *   )
- * }
- * ```
+ * Uses proper renderers for each overlay type:
+ * - DrawerRenderer for drawers (slide animations, backdrop)
+ * - ModalRenderer for modals (centered, backdrop)
+ * - etc.
  *
  * @module
  */
@@ -25,10 +18,13 @@ import { useVisualOverlaySafe } from "../providers"
 import {
   overlaysByTypeAtom,
   visualOverlaysAtom,
-  getContent,
 } from "../../atoms"
 import { GLOBAL_SLOT_ID, GLOBAL_ONLY_TYPES } from "../constants"
-import type { VisualOverlayInstance, VisualOverlayType, VisualOverlayId } from "../../schemas/visual"
+import { DrawerRenderer } from "../renderers/DrawerRenderer"
+import { ModalRenderer } from "../renderers/ModalRenderer"
+import { ToastRenderer } from "../renderers/ToastRenderer"
+import { CommandPaletteRenderer } from "../renderers/CommandPaletteRenderer"
+import type { VisualOverlayInstance, VisualOverlayType } from "../../schemas/visual"
 
 // ─────────────────────────────────────────────────────────────
 // Styles
@@ -38,79 +34,65 @@ const containerStyles: React.CSSProperties = {
   position: "fixed",
   inset: 0,
   pointerEvents: "none",
-  zIndex: 1, // Base, individual overlays have their own z-index
-}
-
-const overlayWrapperStyles = (zIndex: number, pointerEvents: boolean): React.CSSProperties => ({
-  position: "absolute",
-  inset: 0,
-  zIndex,
-  pointerEvents: pointerEvents ? "auto" : "none",
-})
-
-// ─────────────────────────────────────────────────────────────
-// Overlay Wrapper (renders individual overlay)
-// ─────────────────────────────────────────────────────────────
-
-interface OverlayWrapperProps {
-  overlay: VisualOverlayInstance
-  onAnimationEnd?: (id: string, state: "visible" | "exited") => void
-}
-
-function OverlayWrapper({ overlay, onAnimationEnd }: OverlayWrapperProps) {
-  const content = getContent(overlay.contentKey)
-
-  // Call animation callbacks when entering/exiting
-  useEffect(() => {
-    if (overlay.animationState === "entering") {
-      // Small delay to allow mount, then mark visible
-      const timer = setTimeout(() => {
-        onAnimationEnd?.(overlay.id, "visible")
-      }, 50) // Animation timing handled by renderers
-      return () => clearTimeout(timer)
-    }
-  }, [overlay.animationState, overlay.id, onAnimationEnd])
-
-  if (!content) return null
-
-  // Determine if this overlay type needs pointer events
-  const needsPointerEvents = overlay.isVisible
-
-  return (
-    <div
-      style={overlayWrapperStyles(overlay.zIndex, needsPointerEvents)}
-      data-overlay-id={overlay.id}
-      data-overlay-type={overlay.type}
-      data-overlay-state={overlay.animationState}
-    >
-      {content}
-    </div>
-  )
+  zIndex: 1000, // Above content, below overlays
 }
 
 // ─────────────────────────────────────────────────────────────
-// Type Layer (renders all overlays of a type)
+// Type Layer (renders all overlays of a type using proper renderer)
 // ─────────────────────────────────────────────────────────────
 
 interface TypeLayerProps {
   type: VisualOverlayType
-  onAnimationEnd?: (id: string, state: "visible" | "exited") => void
+  onCloseRequest?: (id: string) => void
 }
 
-function TypeLayer({ type, onAnimationEnd }: TypeLayerProps) {
+function TypeLayer({ type, onCloseRequest }: TypeLayerProps) {
   const overlays = useAtomValue(overlaysByTypeAtom(type))
 
   if (overlays.length === 0) return null
 
   return (
     <>
-      {overlays.map((overlay) => (
-        <OverlayWrapper
-          key={overlay.id}
-          overlay={overlay}
-          onAnimationEnd={onAnimationEnd}
-        />
-      ))}
+      {overlays.map((overlay) => {
+        // Use the appropriate renderer for each type
+        switch (type) {
+          case "drawer":
+            return (
+              <DrawerRenderer
+                key={overlay.id}
+                id={overlay.id}
+                onCloseRequest={() => onCloseRequest?.(overlay.id)}
+              />
+            )
+          case "modal":
+            return (
+              <ModalRenderer
+                key={overlay.id}
+                id={overlay.id}
+                onCloseRequest={() => onCloseRequest?.(overlay.id)}
+              />
+            )
+          case "toast":
+            return (
+              <ToastRenderer
+                key={overlay.id}
+                id={overlay.id}
+                onDismiss={() => onCloseRequest?.(overlay.id)}
+              />
+            )
+          case "command-palette":
+            return (
+              <CommandPaletteRenderer
+                key={overlay.id}
+                id={overlay.id}
+                onCloseRequest={() => onCloseRequest?.(overlay.id)}
+              />
+            )
+          default:
+            // Fallback: render nothing for unhandled types
+            return null
+        }
+      })}
     </>
   )
 }
@@ -127,7 +109,7 @@ export interface GlobalSlotProps {
 /**
  * GlobalSlot
  *
- * Renders all global-only overlay types (modal, toast, command-palette, top-bar).
+ * Renders all global-only overlay types using proper renderers.
  * Position at app root, outside router but inside VisualOverlayProvider.
  */
 export function GlobalSlot({ containerId = "tmnl-global-slot" }: GlobalSlotProps) {
@@ -146,10 +128,9 @@ export function GlobalSlot({ containerId = "tmnl-global-slot" }: GlobalSlotProps
     }
   }, [ctx, containerId])
 
-  // Animation end handler
-  const handleAnimationEnd = (id: string, state: "visible" | "exited") => {
-    if (!ctx) return
-    ctx.setAnimationState(id as any, state)
+  // Close request handler
+  const handleCloseRequest = (id: string) => {
+    ctx?.close(id as any)
   }
 
   // Check if any overlay is visible (for pointer events)
@@ -167,13 +148,11 @@ export function GlobalSlot({ containerId = "tmnl-global-slot" }: GlobalSlotProps
       }}
       data-overlay-slot="global"
     >
-      {/* Render each global overlay type in z-order */}
-      <TypeLayer type="sidebar" onAnimationEnd={handleAnimationEnd} />
-      <TypeLayer type="top-bar" onAnimationEnd={handleAnimationEnd} />
-      <TypeLayer type="drawer" onAnimationEnd={handleAnimationEnd} />
-      <TypeLayer type="toast" onAnimationEnd={handleAnimationEnd} />
-      <TypeLayer type="modal" onAnimationEnd={handleAnimationEnd} />
-      <TypeLayer type="command-palette" onAnimationEnd={handleAnimationEnd} />
+      {/* Render each global overlay type in z-order (low to high) */}
+      <TypeLayer type="drawer" onCloseRequest={handleCloseRequest} />
+      <TypeLayer type="toast" onCloseRequest={handleCloseRequest} />
+      <TypeLayer type="modal" onCloseRequest={handleCloseRequest} />
+      <TypeLayer type="command-palette" onCloseRequest={handleCloseRequest} />
     </div>
   )
 }

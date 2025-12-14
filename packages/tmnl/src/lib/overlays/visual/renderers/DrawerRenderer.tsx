@@ -48,15 +48,17 @@ const drawerContainerStyles = (
   visible: boolean
 ): React.CSSProperties => ({
   position: "absolute",
-  top: 0,
+  // Position below header (48px)
+  top: "var(--tmnl-size-header, 48px)",
   bottom: 0,
   [side]: 0,
   width: `${width}px`,
   transform: visible ? "translateX(0)" : `translateX(${side === "left" ? "-100%" : "100%"})`,
   transition: `transform ${getAnimationDuration("drawer")}ms ${getAnimationEasing("drawer")}`,
-  backgroundColor: "var(--tmnl-bg-surface, #1a1a1a)",
-  borderLeft: side === "right" ? "1px solid var(--tmnl-border, #333)" : undefined,
-  borderRight: side === "left" ? "1px solid var(--tmnl-border, #333)" : undefined,
+  // Match old drawer styling
+  backgroundColor: "#000",
+  borderLeft: side === "right" ? "1px solid rgb(38, 38, 38)" : undefined,
+  borderRight: side === "left" ? "1px solid rgb(38, 38, 38)" : undefined,
   overflow: "hidden",
   display: "flex",
   flexDirection: "column",
