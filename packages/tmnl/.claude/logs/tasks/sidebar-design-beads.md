@@ -2,7 +2,7 @@
 
 **Date:** 2025-12-14
 **Bead:** tmnl-ua9n (epic)
-**Outcome:** Success (Phase 1-3 complete)
+**Outcome:** Success (Epic Complete)
 
 ## What Was Done
 1. Researched Obsidian ribbon + VS Code activity bar patterns
@@ -53,6 +53,12 @@
 - Integration check protocol now internalized
 - Nullable branded types require Option pattern (documented)
 
-## Remaining Work
-- tmnl-l0lj: Drag: SidebarDragOverlay component
-- tmnl-yj08: Hook: useSidebarDrag
+## Completed Work
+All beads closed:
+- Phase 1: Schemas (5 beads)
+- Phase 2: Atoms (5 beads)
+- Phase 3: Components (4 beads)
+- Phase 4: Hooks (3 beads)
+- Phase 5: Drag features (2 beads)
+
+Commits: `fb43ac6`, `6f577b5`, `fbafc00`
