@@ -48,19 +48,20 @@ const INDICATOR_DURATION = 300
 const GLOW_DURATION = 600
 
 // ─────────────────────────────────────────────────────────────
-// Light Ray Configuration (layered shadows, staggered on hover)
+// Light Ray Configuration (Apple-style hard-edge stepped shadows)
 // ─────────────────────────────────────────────────────────────
 
-/** Light ray layers - each with different opacity, blur, and delay */
-const LIGHT_RAYS = [
-  { opacity: 0.4, blur: 2, width: "100%", delay: 0 },
-  { opacity: 0.25, blur: 6, width: "80%", delay: 0.03 },
-  { opacity: 0.15, blur: 12, width: "60%", delay: 0.06 },
-  { opacity: 0.08, blur: 20, width: "40%", delay: 0.09 },
+/** Hard-edge shadow steps - intense at edge, fading outward (low-poly style) */
+const SHADOW_STEPS = [
+  { opacity: 0.7, offset: 0, delay: 0 },      // Core - brightest
+  { opacity: 0.5, offset: 4, delay: 0.02 },   // Step 1
+  { opacity: 0.35, offset: 8, delay: 0.04 },  // Step 2
+  { opacity: 0.2, offset: 14, delay: 0.06 },  // Step 3
+  { opacity: 0.1, offset: 22, delay: 0.08 },  // Step 4 - outer edge
 ] as const
 
-/** Light ray animation config */
-const LIGHT_RAY_SPRING = { type: "spring", stiffness: 300, damping: 25 } as const
+/** Shadow animation config - snappy like old Apple */
+const SHADOW_SPRING = { type: "spring", stiffness: 500, damping: 30 } as const
 
 // ─────────────────────────────────────────────────────────────
 // SVG Underline (sinusoidal wave, animate along path on hover)
@@ -313,41 +314,40 @@ export const SidebarItem = memo(function SidebarItem({
       data-sidebar-item-id={item.id}
       data-sidebar-group={item.group}
     >
-      {/* Light source edge - 15% column (layered shadows, staggered) */}
-      <div className="flex items-center justify-start pointer-events-none h-10 relative">
-        {/* Hover light rays - staggered layers */}
-        {LIGHT_RAYS.map((ray, i) => (
+      {/* Light source edge - 15% column (Apple-style hard-edge shadows) */}
+      <div className="flex items-center justify-start pointer-events-none h-10 relative overflow-visible">
+        {/* Hard-edge shadow steps - no blur, stepped opacity */}
+        {SHADOW_STEPS.map((step, i) => (
           <motion.div
             key={i}
-            className="absolute left-0 h-6"
+            className="absolute h-5"
             style={{
-              width: ray.width,
-              background: `linear-gradient(to right, rgba(255,255,255,${ray.opacity}) 0%, transparent 100%)`,
-              filter: `blur(${ray.blur}px)`,
-              transformOrigin: "left center",
+              left: step.offset,
+              width: 3,
+              backgroundColor: `rgba(255,255,255,${step.opacity})`,
             }}
-            initial={{ scaleX: 0, opacity: 0 }}
+            initial={{ scaleY: 0, opacity: 0 }}
             animate={{
-              scaleX: isHovered ? 1 : 0,
+              scaleY: isHovered ? 1 : 0,
               opacity: isHovered ? 1 : 0,
             }}
             transition={{
-              ...LIGHT_RAY_SPRING,
-              delay: isHovered ? ray.delay : (LIGHT_RAYS.length - 1 - i) * 0.02,
+              ...SHADOW_SPRING,
+              delay: isHovered ? step.delay : (SHADOW_STEPS.length - 1 - i) * 0.015,
             }}
             aria-hidden="true"
           />
         ))}
-        {/* Active state glow - persistent when item is active */}
+        {/* Active state glow - persistent bar when item is active */}
         <span
           ref={activeGlowRef}
-          className="absolute left-0 h-8 w-full"
+          className="absolute left-0 h-6 w-1"
           style={{
-            background: "linear-gradient(to right, rgba(255,255,255,0.25) 0%, transparent 100%)",
-            filter: "blur(8px)",
-            transformOrigin: "left center",
+            backgroundColor: "rgba(255,255,255,0.6)",
+            boxShadow: "0 0 8px 2px rgba(255,255,255,0.3)",
             opacity: 0,
-            transform: "scaleX(0.5)",
+            transform: "scaleY(0.5)",
+            transformOrigin: "center",
           }}
           aria-hidden="true"
         />
