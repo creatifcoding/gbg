@@ -12,3 +12,9 @@ export {
   type SidebarTooltipProps,
   useTooltipState,
 } from "./SidebarTooltip"
+export {
+  SidebarDragOverlay,
+  DropIndicator,
+  type SidebarDragOverlayProps,
+  type DropIndicatorProps,
+} from "./SidebarDragOverlay"
