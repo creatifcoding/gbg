@@ -208,7 +208,7 @@ export const Sidebar = memo(function Sidebar({ config, className = "" }: Sidebar
     : (config.width ?? SIDEBAR_WIDTH)
 
   return (
-    <aside
+    <nav
       ref={sidebarRef}
       className={`
         h-full w-full
@@ -216,7 +216,7 @@ export const Sidebar = memo(function Sidebar({ config, className = "" }: Sidebar
         bg-black overflow-hidden
         ${className}
       `}
-      role="navigation"
+      style={{ borderRight: "var(--tmnl-border-chrome)" }}
       aria-label="Main sidebar"
       data-collapsed={isCollapsed}
     >
@@ -276,6 +276,6 @@ export const Sidebar = memo(function Sidebar({ config, className = "" }: Sidebar
           <path d="M15 19l-7-7 7-7" />
         </svg>
       </button>
-    </aside>
+    </nav>
   )
 })

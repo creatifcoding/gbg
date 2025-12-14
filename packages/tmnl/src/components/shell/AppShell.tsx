@@ -58,7 +58,6 @@ export function AppShell({ header, sidebar, children }: AppShellProps) {
       {/* Header: row 1, col 1-2 (full width), z-50 */}
       <header
         className="col-span-2 row-start-1 z-50 bg-black"
-        style={{ borderBottom: "var(--tmnl-border-chrome)" }}
         data-shell-header
       >
         {header}
@@ -67,7 +66,6 @@ export function AppShell({ header, sidebar, children }: AppShellProps) {
       {/* Sidebar: row 1-2 (full height), col 1, z-40 */}
       <aside
         className="row-span-2 col-start-1 z-40 bg-black"
-        style={{ borderRight: "var(--tmnl-border-chrome)" }}
         data-shell-sidebar
       >
         {sidebar}

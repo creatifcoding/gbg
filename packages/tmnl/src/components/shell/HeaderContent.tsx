@@ -141,7 +141,10 @@ export function HeaderContent({
   }, [onTabChange])
 
   return (
-    <div className="h-full flex items-center justify-between px-4">
+    <div
+      className="h-full flex items-center justify-between px-4"
+      style={{ borderBottom: "var(--tmnl-border-chrome)" }}
+    >
       {/* Left section */}
       <div className="flex items-center gap-6">
         <button
