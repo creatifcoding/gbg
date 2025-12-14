@@ -4,16 +4,21 @@
  * Main sidebar container with core and plugin sections.
  * Icon-only design, expands drawers adjacent to sidebar.
  *
+ * Animation: Sharp tactical style with anime.js
+ * - Quick snap with slight overshoot on collapse/expand
+ * - Stagger cascade entrance for items
+ * - White indicator accent for active state
+ *
  * @module sidebar/components
  */
 
-import { memo, useCallback, useEffect, useState } from "react"
+import { memo, useCallback, useEffect, useState, useRef } from "react"
 import { useAtomValue } from "@effect-atom/atom-react"
-import { useNavigate } from "@tanstack/react-router"
+import { animate, stagger } from "animejs"
+import router from "@/router"
 
 import type { SidebarItemConfig, SidebarConfig } from "../schemas"
 import {
-  sidebarRegistry,
   sidebarCollapsedAtom,
   sortedSidebarItemsAtom,
   registerItem,
@@ -30,6 +35,20 @@ import { useDrawer } from "@/lib/overlays"
 
 const SIDEBAR_WIDTH = 48 // px
 const SIDEBAR_WIDTH_COLLAPSED = 0 // px (hidden when collapsed)
+
+// ─────────────────────────────────────────────────────────────
+// Animation Constants (Apple-inspired spring physics)
+// ─────────────────────────────────────────────────────────────
+
+/** Spring-like easing for organic feel */
+const SPRING_OUT = "spring(1, 80, 10, 0)" // mass, stiffness, damping, velocity
+
+/** Entrance animation */
+const ENTRANCE_DURATION = 400
+const STAGGER_DELAY = 40 // ms between items
+
+/** Collapse animation */
+const COLLAPSE_DURATION = 300
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -57,15 +76,20 @@ export interface SidebarProps {
  * - Drawer integration for drawer actions
  */
 export const Sidebar = memo(function Sidebar({ config, className = "" }: SidebarProps) {
-  const navigate = useNavigate()
   const drawer = useDrawer()
 
-  // Subscribe to state
-  const isCollapsed = useAtomValue(sidebarCollapsedAtom, { registry: sidebarRegistry })
-  const { core, plugins } = useAtomValue(sortedSidebarItemsAtom, { registry: sidebarRegistry })
+  // Subscribe to state (registry provided via OverlayRegistryProvider context)
+  const isCollapsed = useAtomValue(sidebarCollapsedAtom)
+  const { core, plugins } = useAtomValue(sortedSidebarItemsAtom)
 
   // Track Ctrl key for drag mode
   const [isCtrlHeld, setIsCtrlHeld] = useState(false)
+
+  // Animation refs
+  const sidebarRef = useRef<HTMLElement>(null)
+  const coreItemsRef = useRef<HTMLDivElement>(null)
+  const pluginItemsRef = useRef<HTMLDivElement>(null)
+  const hasMounted = useRef(false)
 
   // Register core items on mount
   useEffect(() => {
@@ -73,6 +97,53 @@ export const Sidebar = memo(function Sidebar({ config, className = "" }: Sidebar
       registerItem(item)
     }
   }, [config.coreItems])
+
+  // ─── Stagger entrance animation on mount ────────────────────
+  useEffect(() => {
+    if (hasMounted.current) return
+    hasMounted.current = true
+
+    // Animate core items with stagger cascade (Apple-style spring)
+    const coreItems = coreItemsRef.current?.querySelectorAll("[data-sidebar-item-id]")
+    if (coreItems?.length) {
+      animate(coreItems, {
+        opacity: [0, 1],
+        translateX: [-12, 0],
+        scale: [0.9, 1],
+        duration: ENTRANCE_DURATION,
+        easing: SPRING_OUT,
+        delay: stagger(STAGGER_DELAY),
+      })
+    }
+
+    // Animate plugin items slightly after core
+    const pluginItems = pluginItemsRef.current?.querySelectorAll("[data-sidebar-item-id]")
+    if (pluginItems?.length) {
+      animate(pluginItems, {
+        opacity: [0, 1],
+        translateX: [-12, 0],
+        scale: [0.9, 1],
+        duration: ENTRANCE_DURATION,
+        easing: SPRING_OUT,
+        delay: stagger(STAGGER_DELAY, { start: (core.length * STAGGER_DELAY) + 80 }),
+      })
+    }
+  }, [core.length])
+
+  // ─── Collapse/expand animation ──────────────────────────────
+  useEffect(() => {
+    if (!sidebarRef.current || !hasMounted.current) return
+
+    const targetWidth = isCollapsed
+      ? (config.width ?? SIDEBAR_WIDTH_COLLAPSED)
+      : (config.width ?? SIDEBAR_WIDTH)
+
+    animate(sidebarRef.current, {
+      width: targetWidth,
+      duration: COLLAPSE_DURATION,
+      easing: SPRING_OUT,
+    })
+  }, [isCollapsed, config.width])
 
   // Ctrl key tracking
   useEffect(() => {
@@ -99,7 +170,7 @@ export const Sidebar = memo(function Sidebar({ config, className = "" }: Sidebar
       switch (action._tag) {
         case "RouteAction":
           setActiveId(item.id)
-          navigate({ to: action.path, search: action.search })
+          router.navigate({ to: action.path, search: action.search })
           break
 
         case "CommandAction":
@@ -128,30 +199,32 @@ export const Sidebar = memo(function Sidebar({ config, className = "" }: Sidebar
           break
       }
     },
-    [navigate, drawer]
+    [drawer]
   )
 
-  // Compute sidebar width
-  const width = isCollapsed
+  // Compute initial sidebar width (anime.js handles animation)
+  const initialWidth = isCollapsed
     ? (config.width ?? SIDEBAR_WIDTH_COLLAPSED)
     : (config.width ?? SIDEBAR_WIDTH)
 
   return (
     <aside
+      ref={sidebarRef}
       className={`
-        fixed left-0 top-12 bottom-0 z-40
+        h-full w-full
         flex flex-col items-center
-        bg-neutral-900/95 border-r border-neutral-800
-        transition-all duration-200 ease-out
+        bg-black overflow-hidden
         ${className}
       `}
-      style={{ width: `${width}px` }}
       role="navigation"
       aria-label="Main sidebar"
       data-collapsed={isCollapsed}
     >
       {/* Core section */}
-      <div className="flex flex-col items-center gap-1 py-2 w-full">
+      <div
+        ref={coreItemsRef}
+        className="flex flex-col items-center gap-1 py-2 w-full"
+      >
         {core.map((item) => (
           <SidebarItem
             key={item.id}
@@ -166,7 +239,10 @@ export const Sidebar = memo(function Sidebar({ config, className = "" }: Sidebar
       {plugins.length > 0 && <SidebarDivider />}
 
       {/* Plugin section (reorderable) */}
-      <div className="flex flex-col items-center gap-1 py-2 w-full flex-1 overflow-y-auto">
+      <div
+        ref={pluginItemsRef}
+        className="flex flex-col items-center gap-1 py-2 w-full flex-1 overflow-y-auto"
+      >
         {plugins.map((item) => (
           <SidebarItem
             key={item.id}

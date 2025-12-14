@@ -58,14 +58,17 @@ const drawerContainerStyles = (
   position: "absolute",
   top: "var(--tmnl-size-header, 48px)",
   bottom: 0,
-  [side]: 0,
+  // Left drawer emerges from sidebar edge, right drawer from viewport edge
+  left: side === "left" ? "var(--tmnl-size-sidebar, 48px)" : undefined,
+  right: side === "right" ? 0 : undefined,
   width: `${width}px`,
   backgroundColor: "#000",
-  borderLeft: side === "right" ? "1px solid rgb(38, 38, 38)" : undefined,
-  borderRight: side === "left" ? "1px solid rgb(38, 38, 38)" : undefined,
+  borderLeft: side === "right" ? "var(--tmnl-border-chrome)" : undefined,
+  borderRight: side === "left" ? "var(--tmnl-border-chrome)" : undefined,
   overflow: "hidden",
   display: "flex",
   flexDirection: "column",
+  pointerEvents: "auto",
 })
 
 const contentStyles: React.CSSProperties = {

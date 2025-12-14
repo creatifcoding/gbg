@@ -3,6 +3,25 @@
 @tailwind utilities;
 
 /* =============================================================================
+   TMNL ROOT VARIABLES & FIXES
+   ============================================================================= */
+:root {
+  /* Layout dimensions */
+  --tmnl-size-header: 48px;
+  --tmnl-size-sidebar: 48px;
+
+  /* Border tokens */
+  --tmnl-border-chrome: 1px solid rgb(38, 38, 38); /* neutral-800 */
+
+  /* Tauri/WebKitGTK overscroll fix */
+  overscroll-behavior: none;
+}
+
+html, body {
+  overscroll-behavior: none;
+}
+
+/* =============================================================================
    LCD / SEVEN-SEGMENT FONT
    DSEG7 Classic - Authentic seven-segment display font
    https://github.com/keshikan/DSEG
