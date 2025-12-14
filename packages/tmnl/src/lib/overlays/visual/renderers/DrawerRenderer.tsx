@@ -37,6 +37,16 @@ export interface DrawerRendererProps {
 
 const SPRING_CONFIG = { type: "spring", stiffness: 400, damping: 40 } as const
 
+// Named variants for proper animation callbacks
+const drawerVariants = {
+  hidden: (side: "left" | "right") => ({
+    x: side === "left" ? "-100%" : "100%",
+  }),
+  visible: {
+    x: 0,
+  },
+}
+
 // ─────────────────────────────────────────────────────────────
 // Styles
 // ─────────────────────────────────────────────────────────────
@@ -114,10 +124,6 @@ export function DrawerRenderer({ id, onCloseRequest }: DrawerRendererProps) {
   const side = config.side ?? "right"
   const width = config.width ?? 400
 
-  // Slide direction based on side
-  const slideFrom = side === "left" ? { x: "-100%" } : { x: "100%" }
-  const slideTo = { x: 0 }
-
   const handleBackdropClick = () => {
     if (config.closeOnOverlayClick) {
       onCloseRequest?.()
@@ -150,9 +156,11 @@ export function DrawerRenderer({ id, onCloseRequest }: DrawerRendererProps) {
             <motion.div
               key={`${id}-panel`}
               style={drawerContainerStyles(side, width)}
-              initial={slideFrom}
-              animate={slideTo}
-              exit={slideFrom}
+              variants={drawerVariants}
+              custom={side}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
               transition={SPRING_CONFIG}
               onAnimationComplete={handleAnimationComplete}
               role="dialog"

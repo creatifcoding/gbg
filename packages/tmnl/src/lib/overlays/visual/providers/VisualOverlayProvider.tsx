@@ -188,8 +188,9 @@ export function VisualOverlayProvider({ children }: VisualOverlayProviderProps) 
   /**
    * Open an overlay of any type.
    *
-   * IDEMPOTENT: If overlay with same ID already exists, returns existing ID
-   * without creating a duplicate. This handles React StrictMode double-invokes.
+   * IDEMPOTENT: If overlay with same ID already exists AND is visible,
+   * returns existing ID without creating a duplicate.
+   * If overlay exists but is exiting/exited, removes it first and creates new.
    */
   const open = useCallback(
     <C extends VisualOverlayConfig>(
@@ -198,11 +199,21 @@ export function VisualOverlayProvider({ children }: VisualOverlayProviderProps) 
     ): VisualOverlayId => {
       const id = (options.id ?? nanoid()) as VisualOverlayId
 
-      // IDEMPOTENT: Check if overlay already exists
+      // Check if overlay already exists
       const existingOverlays = overlayRegistry.get(visualOverlaysAtom)
-      if (existingOverlays.has(id)) {
-        // Already open — no-op, return existing ID
-        return id
+      const existing = existingOverlays.get(id)
+
+      if (existing) {
+        // If still visible, no-op (idempotent for StrictMode)
+        if (existing.isVisible) {
+          return id
+        }
+
+        // Overlay exists but is exiting/exited — remove zombie first
+        const zOrders = overlayRegistry.get(zOrderByTypeAtom)
+        const cleaned = removeOverlayMutation(existingOverlays, zOrders, id)
+        overlayRegistry.set(visualOverlaysAtom, cleaned.overlays)
+        overlayRegistry.set(zOrderByTypeAtom, cleaned.zOrders)
       }
 
       const contentKey = `overlay-${id}-${Date.now()}`
