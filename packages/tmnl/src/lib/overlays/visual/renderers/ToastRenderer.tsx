@@ -10,7 +10,6 @@ import { useEffect, useRef } from "react"
 import { useAtomValue } from "@effect-atom/atom-react"
 import { useVisualOverlaySafe } from "../providers"
 import {
-  overlayRegistry,
   overlayAtom,
   getContent,
   isSuppressedAtom,
@@ -99,13 +98,10 @@ export function ToastRenderer({ id, onCloseRequest }: ToastRendererProps) {
   const ctx = useVisualOverlaySafe()
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const overlay = useAtomValue(overlayAtom(id), {
-    registry: overlayRegistry,
-  })
+  const overlay = useAtomValue(overlayAtom(id))
 
   const isSuppressed = useAtomValue(
-    isSuppressedAtom({ type: "toast", id }),
-    { registry: overlayRegistry }
+    isSuppressedAtom({ type: "toast", id })
   )
 
   // Handle animation state transitions

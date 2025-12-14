@@ -10,7 +10,6 @@ import { useEffect, useRef } from "react"
 import { useAtomValue } from "@effect-atom/atom-react"
 import { useVisualOverlaySafe } from "../providers"
 import {
-  overlayRegistry,
   overlayAtom,
   getContent,
   isSuppressedAtom,
@@ -67,13 +66,10 @@ export function CommandPaletteRenderer({ id, onCloseRequest }: CommandPaletteRen
   const ctx = useVisualOverlaySafe()
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const overlay = useAtomValue(overlayAtom(id), {
-    registry: overlayRegistry,
-  })
+  const overlay = useAtomValue(overlayAtom(id))
 
   const isSuppressed = useAtomValue(
-    isSuppressedAtom({ type: "command-palette", id }),
-    { registry: overlayRegistry }
+    isSuppressedAtom({ type: "command-palette", id })
   )
 
   // Handle escape key

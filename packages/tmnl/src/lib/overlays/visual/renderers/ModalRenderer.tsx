@@ -10,7 +10,6 @@ import { useEffect, useRef } from "react"
 import { useAtomValue } from "@effect-atom/atom-react"
 import { useVisualOverlaySafe } from "../providers"
 import {
-  overlayRegistry,
   overlayAtom,
   getContent,
   isSuppressedAtom,
@@ -77,13 +76,10 @@ export function ModalRenderer({ id, onCloseRequest }: ModalRendererProps) {
   const ctx = useVisualOverlaySafe()
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const overlay = useAtomValue(overlayAtom(id), {
-    registry: overlayRegistry,
-  })
+  const overlay = useAtomValue(overlayAtom(id))
 
   const isSuppressed = useAtomValue(
-    isSuppressedAtom({ type: "modal", id }),
-    { registry: overlayRegistry }
+    isSuppressedAtom({ type: "modal", id })
   )
 
   // Handle escape key
