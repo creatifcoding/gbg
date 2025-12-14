@@ -1,12 +1,15 @@
 /**
  * Drawer Renderer
  *
- * Renders drawer overlay content with slide animations.
+ * Renders drawer overlay content with spring slide animations.
+ * Uses framer-motion for buttery-smooth animations matching the
+ * old static-ui Drawer component.
  *
  * @module
  */
 
-import { useEffect, useRef } from "react"
+import { useEffect } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { useAtomValue } from "@effect-atom/atom-react"
 import { useVisualOverlaySafe } from "../providers"
 import {
@@ -14,7 +17,7 @@ import {
   getContent,
   isSuppressedAtom,
 } from "../../atoms"
-import { getAnimationDuration, getAnimationEasing, BACKDROP_COLOR } from "../constants"
+import { BACKDROP_COLOR } from "../constants"
 import type { VisualOverlayId, DrawerConfig } from "../../schemas/visual"
 
 // ─────────────────────────────────────────────────────────────
@@ -29,32 +32,24 @@ export interface DrawerRendererProps {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Animation Config (matches old Drawer)
+// ─────────────────────────────────────────────────────────────
+
+const SPRING_CONFIG = { type: "spring", stiffness: 400, damping: 40 } as const
+
+// ─────────────────────────────────────────────────────────────
 // Styles
 // ─────────────────────────────────────────────────────────────
 
-const backdropStyles = (visible: boolean): React.CSSProperties => ({
-  position: "absolute",
-  inset: 0,
-  backgroundColor: BACKDROP_COLOR,
-  opacity: visible ? 1 : 0,
-  transition: `opacity ${getAnimationDuration("drawer")}ms ${getAnimationEasing("drawer")}`,
-  pointerEvents: visible ? "auto" : "none",
-})
-
 const drawerContainerStyles = (
   side: "left" | "right",
-  width: number,
-  visible: boolean
+  width: number
 ): React.CSSProperties => ({
   position: "absolute",
-  // Position below header (48px)
   top: "var(--tmnl-size-header, 48px)",
   bottom: 0,
   [side]: 0,
   width: `${width}px`,
-  transform: visible ? "translateX(0)" : `translateX(${side === "left" ? "-100%" : "100%"})`,
-  transition: `transform ${getAnimationDuration("drawer")}ms ${getAnimationEasing("drawer")}`,
-  // Match old drawer styling
   backgroundColor: "#000",
   borderLeft: side === "right" ? "1px solid rgb(38, 38, 38)" : undefined,
   borderRight: side === "left" ? "1px solid rgb(38, 38, 38)" : undefined,
@@ -74,7 +69,6 @@ const contentStyles: React.CSSProperties = {
 
 export function DrawerRenderer({ id, onCloseRequest }: DrawerRendererProps) {
   const ctx = useVisualOverlaySafe()
-  const containerRef = useRef<HTMLDivElement>(null)
 
   const overlay = useAtomValue(overlayAtom(id))
 
@@ -100,56 +94,75 @@ export function DrawerRenderer({ id, onCloseRequest }: DrawerRendererProps) {
     return () => window.removeEventListener("keydown", handler)
   }, [overlay, onCloseRequest])
 
-  // Handle animation state transitions
-  useEffect(() => {
+  // Animation complete callback - update state when framer-motion finishes
+  const handleAnimationComplete = (definition: string) => {
     if (!ctx || !overlay) return
 
-    if (overlay.animationState === "entering") {
-      const timer = setTimeout(() => {
-        ctx.setAnimationState(id, "visible")
-      }, getAnimationDuration("drawer"))
-      return () => clearTimeout(timer)
+    if (definition === "visible" && overlay.animationState === "entering") {
+      ctx.setAnimationState(id, "visible")
     }
-
-    if (overlay.animationState === "exiting") {
-      const timer = setTimeout(() => {
-        ctx.setAnimationState(id, "exited")
-      }, getAnimationDuration("drawer"))
-      return () => clearTimeout(timer)
+    if (definition === "hidden" && overlay.animationState === "exiting") {
+      ctx.setAnimationState(id, "exited")
     }
-  }, [ctx, id, overlay?.animationState])
+  }
 
   if (!overlay || isSuppressed) return null
 
   const config = overlay.config as DrawerConfig
   const content = getContent(overlay.contentKey)
   const isVisible = overlay.animationState === "visible" || overlay.animationState === "entering"
+  const side = config.side ?? "right"
+  const width = config.width ?? 400
+
+  // Slide direction based on side
+  const slideFrom = side === "left" ? { x: "-100%" } : { x: "100%" }
+  const slideTo = { x: 0 }
 
   const handleBackdropClick = () => {
-    if (config.closeOnBackdropClick) {
+    if (config.closeOnOverlayClick) {
       onCloseRequest?.()
     }
   }
 
   return (
-    <div ref={containerRef} data-drawer-id={id}>
-      {/* Backdrop */}
-      {config.showBackdrop && (
-        <div
-          style={backdropStyles(isVisible)}
-          onClick={handleBackdropClick}
-          aria-hidden="true"
-        />
-      )}
+    <div data-drawer-id={id}>
+      <AnimatePresence mode="wait">
+        {isVisible && (
+          <>
+            {/* Backdrop (optional) */}
+            {config.showBackdrop && (
+              <motion.div
+                key={`${id}-backdrop`}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  backgroundColor: BACKDROP_COLOR,
+                }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={handleBackdropClick}
+                aria-hidden="true"
+              />
+            )}
 
-      {/* Drawer panel */}
-      <div
-        style={drawerContainerStyles(config.side ?? "right", config.width ?? 400, isVisible)}
-        role="dialog"
-        aria-modal="true"
-      >
-        <div style={contentStyles}>{content}</div>
-      </div>
+            {/* Drawer panel */}
+            <motion.div
+              key={`${id}-panel`}
+              style={drawerContainerStyles(side, width)}
+              initial={slideFrom}
+              animate={slideTo}
+              exit={slideFrom}
+              transition={SPRING_CONFIG}
+              onAnimationComplete={handleAnimationComplete}
+              role="dialog"
+              aria-modal="true"
+            >
+              <div style={contentStyles}>{content}</div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
