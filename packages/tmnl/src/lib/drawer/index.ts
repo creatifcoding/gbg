@@ -4,37 +4,27 @@
  * Stacking drawer system with rolodex animation.
  * Supports global overlays and per-panel scoped drawers.
  *
- * @example
+ * @deprecated EPOCH-0004: This module is being migrated to the Visual Overlay System.
+ * New code should use:
+ *
  * ```tsx
- * // App setup
- * import { DrawerStackProvider, GlobalSlot } from '@/lib/drawer'
- *
- * function App() {
- *   return (
- *     <DrawerStackProvider>
- *       <GlobalSlot />
- *       <MainContent />
- *     </DrawerStackProvider>
- *   )
- * }
- *
- * // Opening a drawer
- * import { useDrawer } from '@/lib/drawer'
+ * // NEW: Use VisualOverlayProvider (already mounted in main.tsx)
+ * import { useDrawer } from '@/lib/overlays/visual'
  *
  * function MyComponent() {
  *   const drawer = useDrawer()
- *
  *   return (
  *     <button onClick={() => drawer.open({
- *       id: 'settings',
  *       slot: 'global',
- *       content: <SettingsPanel />,
- *     })}>
+ *       side: 'right',
+ *     }, <SettingsPanel />)}>
  *       Open Settings
  *     </button>
  *   )
  * }
  * ```
+ *
+ * The legacy API below remains functional but will be removed in a future release.
  *
  * @module
  */
@@ -91,3 +81,16 @@ export {
   applyParallaxStyles,
   resetParallaxStyles,
 } from './animations'
+
+// ─────────────────────────────────────────────────────────────
+// EPOCH-0004: Visual Overlay System Re-exports
+// Use these for new code - the legacy exports above will be removed
+// ─────────────────────────────────────────────────────────────
+
+export {
+  // New drawer hook with content-as-second-arg API
+  useDrawer as useVisualDrawer,
+  useDrawerSafe as useVisualDrawerSafe,
+  type DrawerOpenOptions,
+  type UseDrawerReturn as UseVisualDrawerReturn,
+} from '../overlays/visual'

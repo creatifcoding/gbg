@@ -181,3 +181,57 @@ export {
 // ─────────────────────────────────────────────────────────────
 
 export * as scada from "./scada"
+
+// ─────────────────────────────────────────────────────────────
+// Visual Overlay System (EPOCH-0004)
+// ─────────────────────────────────────────────────────────────
+
+export * from "./visual"
+
+// Also export atoms for visual overlays
+export {
+  // Visual state atoms
+  visualOverlaysAtom,
+  zOrderByTypeAtom,
+  slotsAtom,
+  visibleOverlayIdsAtom,
+  overlaysByTypeAtom,
+  overlaysBySlotAtom,
+  hasBlockingOverlayAtom,
+  topOverlayByTypeAtom,
+  overlayAtom,
+  overlayCountByTypeAtom,
+  totalVisibleOverlayCountAtom,
+  slotIdsAtom,
+  // Content registry
+  registerContent,
+  getContent,
+  unregisterContent,
+  hasContent,
+  // Visual mutations
+  openOverlay,
+  closeOverlay,
+  removeOverlay,
+  setAnimationState,
+  bringToFront,
+  sendToBack,
+  registerSlot,
+  unregisterSlot,
+  updateSlotBounds,
+  // Suppression atoms
+  suppressionsAtom,
+  isSuppressedAtom,
+  isTypeSuppressedAtom,
+  activeSuppressionKeysAtom,
+  suppressionCountAtom,
+  // Suppression mutations
+  addSuppression,
+  removeSuppression,
+  toggleSuppression,
+  clearAllSuppressions,
+  clearTypeSuppressions,
+  // Suppression helpers
+  typeSuppressionKey,
+  instanceSuppressionKey,
+  parseSuppressionKey,
+} from "./atoms"

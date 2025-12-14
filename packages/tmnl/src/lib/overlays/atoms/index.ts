@@ -46,6 +46,60 @@ export {
   isOverlayActiveAtom,
 } from "./state"
 
+// Re-export visual overlay atoms
+export {
+  // Core state
+  visualOverlaysAtom,
+  zOrderByTypeAtom,
+  slotsAtom,
+  // Derived
+  visibleOverlayIdsAtom,
+  overlaysByTypeAtom,
+  overlaysBySlotAtom,
+  hasBlockingOverlayAtom,
+  topOverlayByTypeAtom,
+  overlayAtom,
+  overlayCountByTypeAtom,
+  totalVisibleOverlayCountAtom,
+  slotIdsAtom,
+  // Content registry
+  registerContent,
+  getContent,
+  unregisterContent,
+  hasContent,
+  // Mutations
+  openOverlay,
+  closeOverlay,
+  removeOverlay,
+  setAnimationState,
+  bringToFront,
+  sendToBack,
+  registerSlot,
+  unregisterSlot,
+  updateSlotBounds,
+} from "./visual"
+
+// Re-export suppression atoms
+export {
+  // Core state
+  suppressionsAtom,
+  // Derived
+  isSuppressedAtom,
+  isTypeSuppressedAtom,
+  activeSuppressionKeysAtom,
+  suppressionCountAtom,
+  // Mutations
+  addSuppression,
+  removeSuppression,
+  toggleSuppression,
+  clearAllSuppressions,
+  clearTypeSuppressions,
+  // Helpers
+  typeSuppressionKey,
+  instanceSuppressionKey,
+  parseSuppressionKey,
+} from "./suppression"
+
 // Import mutation functions
 import {
   containersStateAtom,

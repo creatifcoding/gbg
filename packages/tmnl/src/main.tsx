@@ -1,8 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { RouterProvider } from '@tanstack/react-router'; // Import RouterProvider
-import router from './router'; // Import the router instance
+import { RouterProvider } from '@tanstack/react-router';
+import router from './router';
 import { ScaleProvider } from './lib/scale';
+import { VisualOverlayProvider, GlobalSlot } from './lib/overlays/visual';
 import './index.css';
 
 // React Grab: UI element selector + Claude Code integration (dev only)
@@ -21,7 +22,13 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
         Default scale: 1.0 — base sizes are now readable by default
         User can adjust via Ctrl/Cmd +/- or settings */}
     <ScaleProvider initialScale={1.0}>
-      <RouterProvider router={router} />
+      {/* VisualOverlayProvider manages all visual overlays
+          GlobalSlot renders global overlays (modal, toast, command-palette, top-bar)
+          EPOCH-0004: Global Overlay System */}
+      <VisualOverlayProvider>
+        <GlobalSlot />
+        <RouterProvider router={router} />
+      </VisualOverlayProvider>
     </ScaleProvider>
   </React.StrictMode>
 );
