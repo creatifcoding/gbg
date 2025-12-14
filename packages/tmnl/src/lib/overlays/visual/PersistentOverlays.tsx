@@ -150,52 +150,37 @@ export function PersistentOverlays({
 }: PersistentOverlaysProps) {
   const drawer = useDrawer()
   const commandPalette = useCommandPalette()
+  const mountedRef = useRef(false)
 
-  // Track which drawers are open
-  const leftDrawerOpenRef = useRef(false)
-  const rightDrawerOpenRef = useRef(false)
+  // ─── Mount Persistent Drawers on Init ───────────────────────
+  // Drawers open immediately and stay open - empty, waiting for content
 
-  // ─── Drawer Mutex Logic ─────────────────────────────────────
+  useEffect(() => {
+    if (mountedRef.current) return
+    mountedRef.current = true
+
+    // Open both drawers on mount - they persist, waiting for content
+    drawer.open(
+      { id: DRAWER_LEFT_ID, side: "left", width: 280, showBackdrop: false },
+      <EmptyDrawerContent side="left" />
+    )
+    drawer.open(
+      { id: DRAWER_RIGHT_ID, side: "right", width: 320, showBackdrop: false },
+      <EmptyDrawerContent side="right" />
+    )
+  }, [drawer])
+
+  // ─── Toggle functions (hide/show, not close/open) ───────────
 
   const toggleLeftDrawer = useCallback(() => {
-    if (leftDrawerOpenRef.current) {
-      // Close left drawer
-      drawer.close(DRAWER_LEFT_ID)
-      leftDrawerOpenRef.current = false
-    } else {
-      // Mutex: close right drawer if open
-      if (rightDrawerOpenRef.current) {
-        drawer.close(DRAWER_RIGHT_ID)
-        rightDrawerOpenRef.current = false
-      }
-      // Open left drawer
-      drawer.open(
-        { id: DRAWER_LEFT_ID, side: "left", width: 320, showBackdrop: false },
-        <EmptyDrawerContent side="left" />
-      )
-      leftDrawerOpenRef.current = true
-    }
-  }, [drawer])
+    // TODO: implement suppress/unsuppress for hide/show behavior
+    console.log("[Header] Toggle left drawer visibility")
+  }, [])
 
   const toggleRightDrawer = useCallback(() => {
-    if (rightDrawerOpenRef.current) {
-      // Close right drawer
-      drawer.close(DRAWER_RIGHT_ID)
-      rightDrawerOpenRef.current = false
-    } else {
-      // Mutex: close left drawer if open
-      if (leftDrawerOpenRef.current) {
-        drawer.close(DRAWER_LEFT_ID)
-        leftDrawerOpenRef.current = false
-      }
-      // Open right drawer
-      drawer.open(
-        { id: DRAWER_RIGHT_ID, side: "right", width: 320, showBackdrop: false },
-        <EmptyDrawerContent side="right" />
-      )
-      rightDrawerOpenRef.current = true
-    }
-  }, [drawer])
+    // TODO: implement suppress/unsuppress for hide/show behavior
+    console.log("[Header] Toggle right drawer visibility")
+  }, [])
 
   // ─── Command Palette ────────────────────────────────────────
 
