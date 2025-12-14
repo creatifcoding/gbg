@@ -14,6 +14,7 @@
 
 import { memo, useCallback, useMemo, useRef, useEffect, useState } from "react"
 import { useAtomValue } from "@effect-atom/atom-react"
+import { motion } from "framer-motion"
 import { animate } from "animejs"
 import * as Option from "effect/Option"
 import * as icons from "lucide-react"
@@ -45,6 +46,21 @@ const INDICATOR_DURATION = 300
 
 /** Glow pulse for active state */
 const GLOW_DURATION = 600
+
+// ─────────────────────────────────────────────────────────────
+// Light Ray Configuration (layered shadows, staggered on hover)
+// ─────────────────────────────────────────────────────────────
+
+/** Light ray layers - each with different opacity, blur, and delay */
+const LIGHT_RAYS = [
+  { opacity: 0.4, blur: 2, width: "100%", delay: 0 },
+  { opacity: 0.25, blur: 6, width: "80%", delay: 0.03 },
+  { opacity: 0.15, blur: 12, width: "60%", delay: 0.06 },
+  { opacity: 0.08, blur: 20, width: "40%", delay: 0.09 },
+] as const
+
+/** Light ray animation config */
+const LIGHT_RAY_SPRING = { type: "spring", stiffness: 300, damping: 25 } as const
 
 // ─────────────────────────────────────────────────────────────
 // SVG Underline (sinusoidal wave, animate along path on hover)
@@ -110,7 +126,7 @@ export const SidebarItem = memo(function SidebarItem({
   const buttonRef = useRef<HTMLButtonElement>(null)
   const iconRef = useRef<HTMLSpanElement>(null)
   const indicatorRef = useRef<HTMLSpanElement>(null)
-  const glowRef = useRef<HTMLSpanElement>(null)
+  const activeGlowRef = useRef<HTMLSpanElement>(null)
   const wasActive = useRef(isActive)
   const isPressed = useRef(false)
 
@@ -226,7 +242,7 @@ export const SidebarItem = memo(function SidebarItem({
     if (wasActive.current === isActive) return
     wasActive.current = isActive
 
-    if (!indicatorRef.current || !glowRef.current || !iconRef.current) return
+    if (!indicatorRef.current || !activeGlowRef.current || !iconRef.current) return
 
     if (isActive) {
       // Indicator slides in from left with spring
@@ -237,10 +253,10 @@ export const SidebarItem = memo(function SidebarItem({
         easing: SPRING_OUT,
       })
 
-      // Glow pulse (Apple-style attention)
-      animate(glowRef.current, {
-        opacity: [0, 0.6, 0.3],
-        scale: [0.8, 1.2, 1],
+      // Active glow pulse (Apple-style attention)
+      animate(activeGlowRef.current, {
+        opacity: [0, 0.5, 0.25],
+        scaleX: [0.5, 1.2, 1],
         duration: GLOW_DURATION,
         easing: "easeOutQuad",
       })
@@ -260,9 +276,10 @@ export const SidebarItem = memo(function SidebarItem({
         easing: "easeInQuad",
       })
 
-      // Glow fades
-      animate(glowRef.current, {
+      // Active glow fades
+      animate(activeGlowRef.current, {
         opacity: 0,
+        scaleX: 0.5,
         duration: 150,
         easing: "easeOutQuad",
       })
@@ -296,16 +313,41 @@ export const SidebarItem = memo(function SidebarItem({
       data-sidebar-item-id={item.id}
       data-sidebar-group={item.group}
     >
-      {/* Light source edge - 15% column */}
-      <div className="flex items-center pointer-events-none">
+      {/* Light source edge - 15% column (layered shadows, staggered) */}
+      <div className="flex items-center justify-start pointer-events-none h-10 relative">
+        {/* Hover light rays - staggered layers */}
+        {LIGHT_RAYS.map((ray, i) => (
+          <motion.div
+            key={i}
+            className="absolute left-0 h-6"
+            style={{
+              width: ray.width,
+              background: `linear-gradient(to right, rgba(255,255,255,${ray.opacity}) 0%, transparent 100%)`,
+              filter: `blur(${ray.blur}px)`,
+              transformOrigin: "left center",
+            }}
+            initial={{ scaleX: 0, opacity: 0 }}
+            animate={{
+              scaleX: isHovered ? 1 : 0,
+              opacity: isHovered ? 1 : 0,
+            }}
+            transition={{
+              ...LIGHT_RAY_SPRING,
+              delay: isHovered ? ray.delay : (LIGHT_RAYS.length - 1 - i) * 0.02,
+            }}
+            aria-hidden="true"
+          />
+        ))}
+        {/* Active state glow - persistent when item is active */}
         <span
-          ref={glowRef}
-          className="h-8 w-full"
+          ref={activeGlowRef}
+          className="absolute left-0 h-8 w-full"
           style={{
-            background: "linear-gradient(to right, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%)",
-            opacity: 0,
-            transform: "scaleX(1)",
+            background: "linear-gradient(to right, rgba(255,255,255,0.25) 0%, transparent 100%)",
+            filter: "blur(8px)",
             transformOrigin: "left center",
+            opacity: 0,
+            transform: "scaleX(0.5)",
           }}
           aria-hidden="true"
         />
