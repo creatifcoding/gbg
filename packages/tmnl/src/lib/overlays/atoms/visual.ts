@@ -13,7 +13,7 @@
  * @module
  */
 
-import * as Atom from "@effect-atom/atom/Atom"
+import { Atom } from "@effect-atom/atom-react"
 import type { ReactNode } from "react"
 import {
   type VisualOverlayId,
@@ -75,31 +75,33 @@ export const hasContent = (key: string): boolean => {
  * All visual overlay instances, keyed by ID.
  * This is the single source of truth for overlay state.
  */
-export const visualOverlaysAtom = Atom.make<Map<VisualOverlayId, VisualOverlayInstance>>(
-  new Map()
-).pipe(Atom.keepAlive)
+export const visualOverlaysAtom = Atom.keepAlive(
+  Atom.make<Map<VisualOverlayId, VisualOverlayInstance>>(new Map())
+)
 
 /**
  * Z-order per overlay type (last element = top).
  * Tracks stacking order within each type tier.
  */
-export const zOrderByTypeAtom = Atom.make<Map<VisualOverlayType, VisualOverlayId[]>>(
-  new Map([
-    ["drawer", []],
-    ["modal", []],
-    ["toast", []],
-    ["command-palette", []],
-    ["top-bar", []],
-    ["sidebar", []],
-  ])
-).pipe(Atom.keepAlive)
+export const zOrderByTypeAtom = Atom.keepAlive(
+  Atom.make<Map<VisualOverlayType, VisualOverlayId[]>>(
+    new Map([
+      ["drawer", []],
+      ["modal", []],
+      ["toast", []],
+      ["command-palette", []],
+      ["top-bar", []],
+      ["sidebar", []],
+    ])
+  )
+)
 
 /**
  * Registered slots for overlay rendering.
  */
-export const slotsAtom = Atom.make<Map<SlotId, SlotRegistration>>(
-  new Map()
-).pipe(Atom.keepAlive)
+export const slotsAtom = Atom.keepAlive(
+  Atom.make<Map<SlotId, SlotRegistration>>(new Map())
+)
 
 // ─────────────────────────────────────────────────────────────
 // Derived Atoms

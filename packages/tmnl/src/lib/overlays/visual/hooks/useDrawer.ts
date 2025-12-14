@@ -23,8 +23,6 @@ import { useCallback, useMemo } from "react"
 import { useAtomValue } from "@effect-atom/atom-react"
 import { useVisualOverlay, useVisualOverlaySafe } from "../providers"
 import {
-  overlayRegistry,
-  overlaysByTypeAtom,
   topOverlayByTypeAtom,
   overlayCountByTypeAtom,
 } from "../../atoms"
@@ -88,12 +86,8 @@ export interface UseDrawerReturn {
 export function useDrawer(): UseDrawerReturn {
   const ctx = useVisualOverlay()
 
-  const topDrawer = useAtomValue(topOverlayByTypeAtom("drawer"), {
-    registry: overlayRegistry,
-  })
-  const count = useAtomValue(overlayCountByTypeAtom("drawer"), {
-    registry: overlayRegistry,
-  })
+  const topDrawer = useAtomValue(topOverlayByTypeAtom("drawer"))
+  const count = useAtomValue(overlayCountByTypeAtom("drawer"))
 
   const open = useCallback(
     (options: DrawerOpenOptions, content: ReactNode): VisualOverlayId => {
@@ -103,13 +97,12 @@ export function useDrawer(): UseDrawerReturn {
         slot: options.slot ?? GLOBAL_SLOT_ID,
         side: options.side ?? "right",
         width: options.width ?? 400,
-        showBackdrop: options.showBackdrop ?? false,
-        closeOnBackdropClick: options.closeOnBackdropClick ?? true,
+        height: "50%",
+        showBackdrop: options.showBackdrop ?? true,
+        closeOnOverlayClick: options.closeOnBackdropClick ?? true,
         closeOnEscape: options.closeOnEscape ?? true,
-        zIndexOffset: options.zIndexOffset ?? 0,
         persistence: options.persistence ?? "persist",
-        onOpen: options.onOpen,
-        onClose: options.onClose,
+        zIndexOffset: options.zIndexOffset ?? 0,
       }
 
       return ctx.open("drawer", { id: options.id, config, content })

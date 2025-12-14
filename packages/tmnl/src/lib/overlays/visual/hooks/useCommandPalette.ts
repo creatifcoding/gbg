@@ -27,7 +27,6 @@ import { useCallback, useMemo, useRef, useEffect } from "react"
 import { useAtomValue } from "@effect-atom/atom-react"
 import { useVisualOverlay, useVisualOverlaySafe } from "../providers"
 import {
-  overlayRegistry,
   topOverlayByTypeAtom,
   overlayCountByTypeAtom,
 } from "../../atoms"
@@ -83,12 +82,8 @@ export function useCommandPalette(): UseCommandPaletteReturn {
   const contentRef = useRef<ReactNode>(null)
   const optionsRef = useRef<CommandPaletteOpenOptions>({})
 
-  const instance = useAtomValue(topOverlayByTypeAtom("command-palette"), {
-    registry: overlayRegistry,
-  })
-  const count = useAtomValue(overlayCountByTypeAtom("command-palette"), {
-    registry: overlayRegistry,
-  })
+  const instance = useAtomValue(topOverlayByTypeAtom("command-palette"))
+  const count = useAtomValue(overlayCountByTypeAtom("command-palette"))
 
   const open = useCallback(
     (options: CommandPaletteOpenOptions, content: ReactNode): VisualOverlayId => {
@@ -101,12 +96,10 @@ export function useCommandPalette(): UseCommandPaletteReturn {
         _tag: "CommandPaletteConfig",
         id: (options.id ?? "") as VisualOverlayId,
         placeholder: options.placeholder ?? "Type a command...",
-        closeOnSelect: options.closeOnSelect ?? true,
+        showRecent: true,
         closeOnEscape: options.closeOnEscape ?? true,
-        zIndexOffset: options.zIndexOffset ?? 0,
         persistence: "ephemeral", // Command palette is always ephemeral
-        onOpen: options.onOpen,
-        onClose: options.onClose,
+        zIndexOffset: options.zIndexOffset ?? 0,
       }
 
       const id = ctx.open("command-palette", { id: options.id, config, content })

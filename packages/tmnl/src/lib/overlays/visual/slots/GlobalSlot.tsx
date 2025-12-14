@@ -19,18 +19,16 @@
  * @module
  */
 
-import { useRef, useEffect, type ReactNode } from "react"
-import { createPortal } from "react-dom"
+import { useRef, useEffect } from "react"
 import { useAtomValue } from "@effect-atom/atom-react"
 import { useVisualOverlaySafe } from "../providers"
 import {
-  overlayRegistry,
   overlaysByTypeAtom,
   visualOverlaysAtom,
   getContent,
 } from "../../atoms"
 import { GLOBAL_SLOT_ID, GLOBAL_ONLY_TYPES } from "../constants"
-import type { VisualOverlayInstance, VisualOverlayType } from "../../schemas/visual"
+import type { VisualOverlayInstance, VisualOverlayType, VisualOverlayId } from "../../schemas/visual"
 
 // ─────────────────────────────────────────────────────────────
 // Styles
@@ -100,9 +98,7 @@ interface TypeLayerProps {
 }
 
 function TypeLayer({ type, onAnimationEnd }: TypeLayerProps) {
-  const overlays = useAtomValue(overlaysByTypeAtom(type), {
-    registry: overlayRegistry,
-  })
+  const overlays = useAtomValue(overlaysByTypeAtom(type))
 
   if (overlays.length === 0) return null
 
@@ -137,11 +133,7 @@ export interface GlobalSlotProps {
 export function GlobalSlot({ containerId = "tmnl-global-slot" }: GlobalSlotProps) {
   const ctx = useVisualOverlaySafe()
   const containerRef = useRef<HTMLDivElement>(null)
-
-  // Get all global overlays for pointer events check
-  const allOverlays = useAtomValue(visualOverlaysAtom, {
-    registry: overlayRegistry,
-  })
+  const allOverlays = useAtomValue(visualOverlaysAtom)
 
   // Register slot on mount
   useEffect(() => {

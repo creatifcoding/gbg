@@ -21,7 +21,6 @@ import { useCallback, useMemo } from "react"
 import { useAtomValue } from "@effect-atom/atom-react"
 import { useVisualOverlay, useVisualOverlaySafe } from "../providers"
 import {
-  overlayRegistry,
   overlaysByTypeAtom,
   overlayCountByTypeAtom,
 } from "../../atoms"
@@ -94,12 +93,8 @@ export interface UseToastReturn {
 export function useToast(): UseToastReturn {
   const ctx = useVisualOverlay()
 
-  const toasts = useAtomValue(overlaysByTypeAtom("toast"), {
-    registry: overlayRegistry,
-  })
-  const count = useAtomValue(overlayCountByTypeAtom("toast"), {
-    registry: overlayRegistry,
-  })
+  const toasts = useAtomValue(overlaysByTypeAtom("toast"))
+  const count = useAtomValue(overlayCountByTypeAtom("toast"))
 
   const open = useCallback(
     (options: ToastOpenOptions, content: ReactNode): VisualOverlayId => {
@@ -110,10 +105,9 @@ export function useToast(): UseToastReturn {
         position: options.position ?? "bottom-right",
         duration: options.duration ?? 5000,
         dismissible: options.dismissible ?? true,
-        zIndexOffset: options.zIndexOffset ?? 0,
+        closeOnEscape: false,
         persistence: "ephemeral", // Toasts are always ephemeral
-        onOpen: options.onOpen,
-        onClose: options.onClose,
+        zIndexOffset: options.zIndexOffset ?? 0,
       }
 
       const id = ctx.open("toast", { id: options.id, config, content })

@@ -20,7 +20,6 @@ import { useCallback, useMemo, useRef, useEffect } from "react"
 import { useAtomValue } from "@effect-atom/atom-react"
 import { useVisualOverlay, useVisualOverlaySafe } from "../providers"
 import {
-  overlayRegistry,
   topOverlayByTypeAtom,
   overlayCountByTypeAtom,
 } from "../../atoms"
@@ -78,12 +77,8 @@ export function useTopBar(): UseTopBarReturn {
   const ctx = useVisualOverlay()
   const mountedIdRef = useRef<VisualOverlayId | null>(null)
 
-  const instance = useAtomValue(topOverlayByTypeAtom("top-bar"), {
-    registry: overlayRegistry,
-  })
-  const count = useAtomValue(overlayCountByTypeAtom("top-bar"), {
-    registry: overlayRegistry,
-  })
+  const instance = useAtomValue(topOverlayByTypeAtom("top-bar"))
+  const count = useAtomValue(overlayCountByTypeAtom("top-bar"))
 
   const mount = useCallback(
     (options: TopBarMountOptions, content: ReactNode): VisualOverlayId => {
@@ -96,12 +91,11 @@ export function useTopBar(): UseTopBarReturn {
         _tag: "TopBarConfig",
         id: (options.id ?? "") as VisualOverlayId,
         height: options.height ?? 48,
+        transparent: false,
         autoHide: options.autoHide ?? false,
-        initiallyVisible: options.initiallyVisible ?? true,
-        zIndexOffset: options.zIndexOffset ?? 0,
+        closeOnEscape: false, // Not applicable for top bar
         persistence: "persist", // Top bar always persists
-        onOpen: options.onMount,
-        onClose: options.onUnmount,
+        zIndexOffset: options.zIndexOffset ?? 0,
       }
 
       const id = ctx.open("top-bar", { id: options.id, config, content })

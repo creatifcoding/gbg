@@ -10,7 +10,6 @@ import { useEffect, useRef } from "react"
 import { useAtomValue } from "@effect-atom/atom-react"
 import { useVisualOverlaySafe } from "../providers"
 import {
-  overlayRegistry,
   overlayAtom,
   getContent,
   isSuppressedAtom,
@@ -31,21 +30,28 @@ export interface TopBarRendererProps {
 // Styles
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * Top bar is a **sibling element** in DOM flow, not fixed/portaled.
+ * Uses sticky positioning so it stays at top when scrolling.
+ *
+ * Pattern derived from:
+ * - DataManagerTestbed.tsx:737-769 (sticky header)
+ * - src/components/ui/header.tsx (h-14 flex layout)
+ * - testbed/shared/primitives.tsx (TestbedHeader)
+ */
 const topBarContainerStyles = (
   height: number,
-  visible: boolean
+  visible: boolean,
+  zIndex: number
 ): React.CSSProperties => ({
-  position: "fixed",
+  position: "sticky",
   top: 0,
-  left: 0,
-  right: 0,
   height: `${height}px`,
-  backgroundColor: "var(--tmnl-bg-surface, #1a1a1a)",
-  borderBottom: "1px solid var(--tmnl-border, #333)",
+  zIndex,
+  // Visibility via opacity + transform for animation
+  opacity: visible ? 1 : 0,
   transform: visible ? "translateY(0)" : "translateY(-100%)",
-  transition: `transform ${getAnimationDuration("top-bar")}ms ${getAnimationEasing("top-bar")}`,
-  display: "flex",
-  alignItems: "center",
+  transition: `opacity ${getAnimationDuration("top-bar")}ms ${getAnimationEasing("top-bar")}, transform ${getAnimationDuration("top-bar")}ms ${getAnimationEasing("top-bar")}`,
   pointerEvents: visible ? "auto" : "none",
 })
 
@@ -57,14 +63,8 @@ export function TopBarRenderer({ id }: TopBarRendererProps) {
   const ctx = useVisualOverlaySafe()
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const overlay = useAtomValue(overlayAtom(id), {
-    registry: overlayRegistry,
-  })
-
-  const isSuppressed = useAtomValue(
-    isSuppressedAtom({ type: "top-bar", id }),
-    { registry: overlayRegistry }
-  )
+  const overlay = useAtomValue(overlayAtom(id))
+  const isSuppressed = useAtomValue(isSuppressedAtom({ type: "top-bar", id }))
 
   // Handle animation state transitions
   useEffect(() => {
@@ -95,14 +95,15 @@ export function TopBarRenderer({ id }: TopBarRendererProps) {
   const shouldShow = config.initiallyVisible !== false && isVisible
 
   return (
-    <div
+    <header
       ref={containerRef}
-      style={topBarContainerStyles(config.height ?? 48, shouldShow)}
+      className="flex items-center border-b border-neutral-800 bg-black flex-shrink-0"
+      style={topBarContainerStyles(config.height ?? 48, shouldShow, overlay.zIndex)}
       data-top-bar-id={id}
       role="banner"
     >
       {content}
-    </div>
+    </header>
   )
 }
 

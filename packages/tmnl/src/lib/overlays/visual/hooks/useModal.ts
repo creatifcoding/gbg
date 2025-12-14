@@ -22,7 +22,6 @@ import { useCallback, useMemo } from "react"
 import { useAtomValue } from "@effect-atom/atom-react"
 import { useVisualOverlay, useVisualOverlaySafe } from "../providers"
 import {
-  overlayRegistry,
   topOverlayByTypeAtom,
   overlayCountByTypeAtom,
 } from "../../atoms"
@@ -81,12 +80,8 @@ export interface UseModalReturn {
 export function useModal(): UseModalReturn {
   const ctx = useVisualOverlay()
 
-  const topModal = useAtomValue(topOverlayByTypeAtom("modal"), {
-    registry: overlayRegistry,
-  })
-  const count = useAtomValue(overlayCountByTypeAtom("modal"), {
-    registry: overlayRegistry,
-  })
+  const topModal = useAtomValue(topOverlayByTypeAtom("modal"))
+  const count = useAtomValue(overlayCountByTypeAtom("modal"))
 
   const open = useCallback(
     (options: ModalOpenOptions, content: ReactNode): VisualOverlayId => {
@@ -95,12 +90,12 @@ export function useModal(): UseModalReturn {
         id: (options.id ?? "") as VisualOverlayId,
         size: options.size ?? "md",
         showBackdrop: options.showBackdrop ?? true,
-        closeOnBackdropClick: options.closeOnBackdropClick ?? true,
+        closeOnOverlayClick: options.closeOnBackdropClick ?? true,
+        blockScroll: true,
+        centered: true,
         closeOnEscape: options.closeOnEscape ?? true,
-        zIndexOffset: options.zIndexOffset ?? 0,
         persistence: options.persistence ?? "route-scoped",
-        onOpen: options.onOpen,
-        onClose: options.onClose,
+        zIndexOffset: options.zIndexOffset ?? 0,
       }
 
       return ctx.open("modal", { id: options.id, config, content })

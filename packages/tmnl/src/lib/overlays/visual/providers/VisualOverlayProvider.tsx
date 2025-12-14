@@ -26,7 +26,6 @@ import { useAtomValue } from "@effect-atom/atom-react"
 import {
   // Registry
   overlayRegistry,
-  OverlayRegistryProvider,
   // Visual atoms
   visualOverlaysAtom,
   zOrderByTypeAtom,
@@ -46,7 +45,6 @@ import {
   // Content registry
   registerContent,
   getContent,
-  unregisterContent,
   // Suppression atoms
   suppressionsAtom,
   addSuppression,
@@ -66,7 +64,6 @@ import {
   typeSuppressionKey,
   instanceSuppressionKey,
 } from "../../schemas/visual"
-import { GLOBAL_SLOT_ID, getAnimationDuration } from "../constants"
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -183,17 +180,16 @@ export interface VisualOverlayProviderProps {
  */
 export function VisualOverlayProvider({ children }: VisualOverlayProviderProps) {
   // ─── State Subscriptions ─────────────────────────────────────
-  const visibleOverlayIds = useAtomValue(visibleOverlayIdsAtom, {
-    registry: overlayRegistry,
-  })
-  const hasBlockingOverlay = useAtomValue(hasBlockingOverlayAtom, {
-    registry: overlayRegistry,
-  })
+  const visibleOverlayIds = useAtomValue(visibleOverlayIdsAtom)
+  const hasBlockingOverlay = useAtomValue(hasBlockingOverlayAtom)
 
   // ─── Core Operations ─────────────────────────────────────────
 
   /**
    * Open an overlay of any type.
+   *
+   * IDEMPOTENT: If overlay with same ID already exists, returns existing ID
+   * without creating a duplicate. This handles React StrictMode double-invokes.
    */
   const open = useCallback(
     <C extends VisualOverlayConfig>(
@@ -201,6 +197,14 @@ export function VisualOverlayProvider({ children }: VisualOverlayProviderProps) 
       options: OpenOverlayOptions<C>
     ): VisualOverlayId => {
       const id = (options.id ?? nanoid()) as VisualOverlayId
+
+      // IDEMPOTENT: Check if overlay already exists
+      const existingOverlays = overlayRegistry.get(visualOverlaysAtom)
+      if (existingOverlays.has(id)) {
+        // Already open — no-op, return existing ID
+        return id
+      }
+
       const contentKey = `overlay-${id}-${Date.now()}`
 
       // Register content in memory registry
@@ -448,12 +452,12 @@ export function VisualOverlayProvider({ children }: VisualOverlayProviderProps) 
     ]
   )
 
+  // NOTE: OverlayRegistryProvider must be at app root (main.tsx), not here.
+  // This allows useAtomValue in this component body to access the registry.
   return (
-    <OverlayRegistryProvider>
-      <VisualOverlayContext.Provider value={value}>
-        {children}
-      </VisualOverlayContext.Provider>
-    </OverlayRegistryProvider>
+    <VisualOverlayContext.Provider value={value}>
+      {children}
+    </VisualOverlayContext.Provider>
   )
 }
 

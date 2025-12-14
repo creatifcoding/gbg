@@ -84,6 +84,9 @@ export {
 export { GlobalSlot, type GlobalSlotProps } from "./slots"
 export { PanelSlot, type PanelSlotProps } from "./slots"
 
+// Persistent Overlays (auto-mount)
+export { PersistentOverlays, type PersistentOverlaysProps } from "./PersistentOverlays"
+
 // Renderers
 export {
   DrawerRenderer,

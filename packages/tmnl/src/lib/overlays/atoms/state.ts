@@ -10,7 +10,7 @@
  * - Components subscribe to atoms → automatic reactivity
  */
 
-import * as Atom from "@effect-atom/atom/Atom"
+import { Atom } from "@effect-atom/atom-react"
 import {
   type ContainerId,
   type OverlayId,
@@ -31,9 +31,9 @@ import {
  *
  * NOTE: Uses keepAlive to persist across registry instances.
  */
-export const containersStateAtom = Atom.make<Map<ContainerId, ContainerState>>(
-  new Map()
-).pipe(Atom.keepAlive)
+export const containersStateAtom = Atom.keepAlive(
+  Atom.make<Map<ContainerId, ContainerState>>(new Map())
+)
 
 // ─────────────────────────────────────────────────────────────
 // Derived Atoms

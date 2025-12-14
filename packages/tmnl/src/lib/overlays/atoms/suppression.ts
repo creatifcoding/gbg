@@ -11,7 +11,7 @@
  * @module
  */
 
-import * as Atom from "@effect-atom/atom/Atom"
+import { Atom } from "@effect-atom/atom-react"
 import {
   type SuppressionKey,
   type VisualOverlayId,
@@ -31,9 +31,9 @@ import {
  *
  * NOTE: Uses keepAlive to persist across registry instances.
  */
-export const suppressionsAtom = Atom.make<Set<SuppressionKey>>(
-  new Set()
-).pipe(Atom.keepAlive)
+export const suppressionsAtom = Atom.keepAlive(
+  Atom.make<Set<SuppressionKey>>(new Set())
+)
 
 // ─────────────────────────────────────────────────────────────
 // Derived Atoms
