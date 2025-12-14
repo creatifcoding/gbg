@@ -10,7 +10,7 @@
  * @module
  */
 
-import { useCallback, useEffect, useRef } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Crosshair, Settings, Terminal, User, Zap, PanelLeft, PanelRight } from "lucide-react"
 import { useDrawer } from "./hooks/useDrawer"
 import { useCommandPalette } from "./hooks/useCommandPalette"
@@ -150,37 +150,38 @@ export function PersistentOverlays({
 }: PersistentOverlaysProps) {
   const drawer = useDrawer()
   const commandPalette = useCommandPalette()
-  const mountedRef = useRef(false)
 
-  // ─── Mount Persistent Drawers on Init ───────────────────────
-  // Drawers open immediately and stay open - empty, waiting for content
+  // Track drawer open state locally for toggle behavior
+  const [leftOpen, setLeftOpen] = useState(false)
+  const [rightOpen, setRightOpen] = useState(false)
 
-  useEffect(() => {
-    if (mountedRef.current) return
-    mountedRef.current = true
-
-    // Open both drawers on mount - they persist, waiting for content
-    drawer.open(
-      { id: DRAWER_LEFT_ID, side: "left", width: 280, showBackdrop: false },
-      <EmptyDrawerContent side="left" />
-    )
-    drawer.open(
-      { id: DRAWER_RIGHT_ID, side: "right", width: 320, showBackdrop: false },
-      <EmptyDrawerContent side="right" />
-    )
-  }, [drawer])
-
-  // ─── Toggle functions (hide/show, not close/open) ───────────
+  // ─── Toggle functions ─────────────────────────────────────────
 
   const toggleLeftDrawer = useCallback(() => {
-    // TODO: implement suppress/unsuppress for hide/show behavior
-    console.log("[Header] Toggle left drawer visibility")
-  }, [])
+    if (leftOpen) {
+      drawer.close(DRAWER_LEFT_ID)
+      setLeftOpen(false)
+    } else {
+      drawer.open(
+        { id: DRAWER_LEFT_ID, side: "left", width: 280, showBackdrop: false },
+        <EmptyDrawerContent side="left" />
+      )
+      setLeftOpen(true)
+    }
+  }, [drawer, leftOpen])
 
   const toggleRightDrawer = useCallback(() => {
-    // TODO: implement suppress/unsuppress for hide/show behavior
-    console.log("[Header] Toggle right drawer visibility")
-  }, [])
+    if (rightOpen) {
+      drawer.close(DRAWER_RIGHT_ID)
+      setRightOpen(false)
+    } else {
+      drawer.open(
+        { id: DRAWER_RIGHT_ID, side: "right", width: 320, showBackdrop: false },
+        <EmptyDrawerContent side="right" />
+      )
+      setRightOpen(true)
+    }
+  }, [drawer, rightOpen])
 
   // ─── Command Palette ────────────────────────────────────────
 
