@@ -10,7 +10,7 @@
  * @module
  */
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect } from "react"
 import { Crosshair, Settings, Terminal, User, Zap, PanelLeft, PanelRight } from "lucide-react"
 import { useDrawer } from "./hooks/useDrawer"
 import { useCommandPalette } from "./hooks/useCommandPalette"
@@ -151,37 +151,21 @@ export function PersistentOverlays({
   const drawer = useDrawer()
   const commandPalette = useCommandPalette()
 
-  // Track drawer open state locally for toggle behavior
-  const [leftOpen, setLeftOpen] = useState(false)
-  const [rightOpen, setRightOpen] = useState(false)
-
   // ─── Toggle functions ─────────────────────────────────────────
 
   const toggleLeftDrawer = useCallback(() => {
-    if (leftOpen) {
-      drawer.close(DRAWER_LEFT_ID)
-      setLeftOpen(false)
-    } else {
-      drawer.open(
-        { id: DRAWER_LEFT_ID, side: "left", width: 280, showBackdrop: false },
-        <EmptyDrawerContent side="left" />
-      )
-      setLeftOpen(true)
-    }
-  }, [drawer, leftOpen])
+    drawer.toggle(
+      { id: DRAWER_LEFT_ID, side: "left", width: 280, showBackdrop: false },
+      <EmptyDrawerContent side="left" />
+    )
+  }, [drawer])
 
   const toggleRightDrawer = useCallback(() => {
-    if (rightOpen) {
-      drawer.close(DRAWER_RIGHT_ID)
-      setRightOpen(false)
-    } else {
-      drawer.open(
-        { id: DRAWER_RIGHT_ID, side: "right", width: 320, showBackdrop: false },
-        <EmptyDrawerContent side="right" />
-      )
-      setRightOpen(true)
-    }
-  }, [drawer, rightOpen])
+    drawer.toggle(
+      { id: DRAWER_RIGHT_ID, side: "right", width: 320, showBackdrop: false },
+      <EmptyDrawerContent side="right" />
+    )
+  }, [drawer])
 
   // ─── Command Palette ────────────────────────────────────────
 

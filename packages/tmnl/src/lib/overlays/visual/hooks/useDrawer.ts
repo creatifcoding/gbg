@@ -25,6 +25,7 @@ import { useVisualOverlay, useVisualOverlaySafe } from "../providers"
 import {
   topOverlayByTypeAtom,
   overlayCountByTypeAtom,
+  visualOverlaysAtom,
 } from "../../atoms"
 import type { DrawerConfig, VisualOverlayId, SlotId } from "../../schemas/visual"
 import type { ReactNode } from "react"
@@ -64,6 +65,10 @@ export interface UseDrawerReturn {
   open: (options: DrawerOpenOptions, content: ReactNode) => VisualOverlayId
   /** Close a drawer by ID */
   close: (id: VisualOverlayId) => void
+  /** Toggle a drawer by ID - opens if closed, closes if open */
+  toggle: (options: DrawerOpenOptions, content: ReactNode) => void
+  /** Check if a specific drawer is open */
+  isDrawerOpen: (id: VisualOverlayId) => boolean
   /** Close all drawers */
   closeAll: () => void
   /** Get top (frontmost) drawer */
@@ -88,6 +93,7 @@ export function useDrawer(): UseDrawerReturn {
 
   const topDrawer = useAtomValue(topOverlayByTypeAtom("drawer"))
   const count = useAtomValue(overlayCountByTypeAtom("drawer"))
+  const overlays = useAtomValue(visualOverlaysAtom)
 
   const open = useCallback(
     (options: DrawerOpenOptions, content: ReactNode): VisualOverlayId => {
@@ -117,6 +123,26 @@ export function useDrawer(): UseDrawerReturn {
     [ctx]
   )
 
+  const isDrawerOpen = useCallback(
+    (id: VisualOverlayId): boolean => {
+      const overlay = overlays.get(id)
+      return overlay !== undefined && overlay.isVisible
+    },
+    [overlays]
+  )
+
+  const toggle = useCallback(
+    (options: DrawerOpenOptions, content: ReactNode): void => {
+      const id = (options.id ?? "") as VisualOverlayId
+      if (isDrawerOpen(id)) {
+        close(id)
+      } else {
+        open(options, content)
+      }
+    },
+    [isDrawerOpen, close, open]
+  )
+
   const closeAll = useCallback((): void => {
     ctx.closeAllOfType("drawer")
   }, [ctx])
@@ -125,12 +151,14 @@ export function useDrawer(): UseDrawerReturn {
     () => ({
       open,
       close,
+      toggle,
+      isDrawerOpen,
       closeAll,
       topDrawer,
       count,
       isOpen: count > 0,
     }),
-    [open, close, closeAll, topDrawer, count]
+    [open, close, toggle, isDrawerOpen, closeAll, topDrawer, count]
   )
 }
 
