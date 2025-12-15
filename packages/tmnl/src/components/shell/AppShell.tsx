@@ -48,14 +48,15 @@ export interface AppShellProps {
 export function AppShell({ header, sidebar, children }: AppShellProps) {
   return (
     <div
-      className="h-screen w-screen grid bg-black"
+      className="h-screen w-full grid bg-black overflow-hidden"
       style={{
         gridTemplateColumns: `${SIDEBAR_WIDTH} 1fr`,
         gridTemplateRows: `${HEADER_HEIGHT} 1fr`,
       }}
       data-app-shell
     >
-      {/* Header: row 1, col 1-2 (full width), z-50 */}
+      {/* Header: row 1, col 1-2 (full width), z-50
+          Content is padded left by sidebar width to show corner overlap */}
       <header
         className="col-span-2 row-start-1 z-50 bg-black"
         data-shell-header
@@ -63,7 +64,8 @@ export function AppShell({ header, sidebar, children }: AppShellProps) {
         {header}
       </header>
 
-      {/* Sidebar: row 1-2 (full height), col 1, z-40 */}
+      {/* Sidebar: row 1-2 (full height), col 1, z-40
+          Top portion (header height) shows through as overlap corner */}
       <aside
         className="row-span-2 col-start-1 z-40 bg-black"
         data-shell-sidebar
@@ -74,9 +76,10 @@ export function AppShell({ header, sidebar, children }: AppShellProps) {
       {/* Content: row 2, col 2 (fills remaining space)
           - relative: establishes containing block for absolute children
           - isolate: creates new stacking context (z-index contained)
-          - overflow-auto: scroll independently of chrome */}
+          - overflow-auto: scroll independently of chrome
+          - overflow-x-hidden: prevent horizontal scroll bleed */}
       <main
-        className="row-start-2 col-start-2 relative isolate overflow-auto"
+        className="row-start-2 col-start-2 relative isolate overflow-y-auto overflow-x-hidden"
         data-shell-content
       >
         {children}

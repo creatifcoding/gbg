@@ -142,87 +142,87 @@ export function HeaderContent({
 
   return (
     <div
-      className="h-full flex items-center justify-between px-4"
+      className="h-full flex items-center"
       style={{ borderBottom: "var(--tmnl-border-chrome)" }}
     >
-      {/* Left section */}
-      <div className="flex items-center gap-6">
-        <button
-          onClick={toggleLeftDrawer}
-          className="p-1 hover:bg-neutral-900 transition-colors"
-          title="Toggle Left Panel"
-        >
-          <User
-            className="text-neutral-600 hover:text-white"
-            style={{
-              width: 'var(--tmnl-text-base, 16px)',
-              height: 'var(--tmnl-text-base, 16px)',
-            }}
-          />
-        </button>
-
-        <div className="flex items-center gap-2">
-          <Crosshair
-            className="text-white"
-            style={{
-              width: 'var(--tmnl-text-lg, 18px)',
-              height: 'var(--tmnl-text-lg, 18px)',
-            }}
-          />
-          <span
-            className="text-white font-bold tracking-tight uppercase"
-            style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
-          >
-            TMNL
-          </span>
-        </div>
-
-        <nav className="hidden md:flex items-center gap-6 ml-4">
-          {navTabs.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => handleTabChange(tab)}
-              className={`font-mono uppercase tracking-wider transition-colors ${
-                activeTab === tab
-                  ? 'text-white'
-                  : 'text-neutral-600 hover:text-neutral-300'
-              }`}
-              style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-            >
-              {tab}
-            </button>
-          ))}
-        </nav>
+      {/* Corner overlap zone - sidebar width, shows border intersection */}
+      <div
+        className="h-full flex items-center justify-center shrink-0"
+        style={{
+          width: "var(--tmnl-size-sidebar, 48px)",
+          borderRight: "var(--tmnl-border-chrome)",
+        }}
+      >
+        {/* Corner indicator - subtle crosshair */}
+        <Crosshair
+          className="text-neutral-700"
+          style={{
+            width: 'var(--tmnl-text-base, 16px)',
+            height: 'var(--tmnl-text-base, 16px)',
+          }}
+        />
       </div>
 
-      {/* Right section */}
-      <div className="flex gap-2">
-        <Button variant="outline" onClick={toggleCommand}>
-          <Terminal
-            style={{
-              width: 'var(--tmnl-text-xs, 12px)',
-              height: 'var(--tmnl-text-xs, 12px)',
-            }}
-          />
-          CMD
-        </Button>
-        <Button variant="ghost" onClick={openSettings}>
-          <Settings
-            style={{
-              width: 'var(--tmnl-text-xs, 12px)',
-              height: 'var(--tmnl-text-xs, 12px)',
-            }}
-          />
-        </Button>
-        <Button variant="tmnl" onClick={toggleRightDrawer}>
-          <Zap
-            style={{
-              width: 'var(--tmnl-text-xs, 12px)',
-              height: 'var(--tmnl-text-xs, 12px)',
-            }}
-          />
-          ACTIONS
-        </Button>
+      {/* Main header content - after sidebar zone */}
+      <div className="flex-1 h-full flex items-center justify-between px-4">
+        {/* Left section */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span
+              className="text-white font-bold tracking-tight uppercase"
+              style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
+            >
+              TMNL
+            </span>
+          </div>
+
+          <nav className="hidden md:flex items-center gap-6">
+            {navTabs.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => handleTabChange(tab)}
+                className={`font-mono uppercase tracking-wider transition-colors ${
+                  activeTab === tab
+                    ? 'text-white'
+                    : 'text-neutral-600 hover:text-neutral-300'
+                }`}
+                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+              >
+                {tab}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Right section */}
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={toggleCommand}>
+            <Terminal
+              style={{
+                width: 'var(--tmnl-text-xs, 12px)',
+                height: 'var(--tmnl-text-xs, 12px)',
+              }}
+            />
+            CMD
+          </Button>
+          <Button variant="ghost" onClick={openSettings}>
+            <Settings
+              style={{
+                width: 'var(--tmnl-text-xs, 12px)',
+                height: 'var(--tmnl-text-xs, 12px)',
+              }}
+            />
+          </Button>
+          <Button variant="tmnl" onClick={toggleRightDrawer}>
+            <Zap
+              style={{
+                width: 'var(--tmnl-text-xs, 12px)',
+                height: 'var(--tmnl-text-xs, 12px)',
+              }}
+            />
+            ACTIONS
+          </Button>
+        </div>
       </div>
     </div>
   )
