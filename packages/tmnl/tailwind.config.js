@@ -8,13 +8,25 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        tmnl: ["var(--font-tmnl)", "monospace"], // JetBrains Mono - Primary technical
-        display: ["var(--font-display)", "monospace"], // Space Mono - Labels/nav
-        body: ["var(--font-body)", "monospace"], // IBM Plex Mono - Body text
-        code: ["var(--font-code)", "monospace"], // Fira Code - Terminal/code
-        data: ["var(--font-data)", "monospace"], // Roboto Mono - Stats/numerics
-        lcd: ['"DSEG7"', '"Courier New"', "monospace"], // DSEG7 - Seven-segment LCD display
-        mono: ['"JetBrains Mono"', '"SF Mono"', '"Fira Code"', "Consolas", "monospace"],
+        // ─── Semantic Font Roles (8 local fonts) ─────────────────────────
+        wordmark: ["var(--font-wordmark)", "sans-serif"],      // Bungee Shade - TMNL branding
+        conversational: ["var(--font-conversational)", "sans-serif"], // Barlow Condensed - AI chat
+        numeric: ["var(--font-numeric)", "sans-serif"],        // Orbitron - Stats, counters
+        data: ["var(--font-data)", "monospace"],               // Share Tech Mono - Grids, tables
+        terminal: ["var(--font-terminal)", "monospace"],       // VT323 - Retro, splash
+        geometric: ["var(--font-geometric)", "sans-serif"],    // Geo - Minimalist numeric
+        pixel: ["var(--font-pixel)", "monospace"],             // Silkscreen - Retro UI, badges
+        hairline: ["var(--font-hairline)", "sans-serif"],      // Bungee Hairline - Thin accents
+
+        // ─── Legacy Compatibility ────────────────────────────────────────
+        tmnl: ["var(--font-tmnl)", "monospace"],               // → Orbitron
+        display: ["var(--font-display)", "monospace"],         // → Orbitron
+        body: ["var(--font-body)", "sans-serif"],              // → Barlow Condensed
+        code: ["var(--font-code)", "monospace"],               // → Share Tech Mono
+
+        // ─── Specialty ───────────────────────────────────────────────────
+        lcd: ['"DSEG7"', '"Courier New"', "monospace"],        // Seven-segment LCD
+        mono: ['"Share Tech Mono"', '"JetBrains Mono"', '"SF Mono"', '"Fira Code"', "monospace"],
       },
       fontWeight: {
         hairline: "100",

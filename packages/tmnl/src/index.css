@@ -13,6 +13,52 @@
   /* Border tokens */
   --tmnl-border-chrome: 1px solid rgb(38, 38, 38); /* neutral-800 */
 
+  /* ─────────────────────────────────────────────────────────────
+     FONT FAMILY TOKENS (8 semantic roles)
+     ───────────────────────────────────────────────────────────── */
+
+  /* WORDMARK - Bungee Shade (TMNL branding only) */
+  --font-wordmark: 'Bungee Shade', sans-serif;
+
+  /* CONVERSATIONAL - Barlow Condensed (AI assistant, chat interfaces) */
+  --font-conversational: 'Barlow Condensed', sans-serif;
+
+  /* NUMERIC - Orbitron (displays, stats, counters, status) */
+  --font-numeric: 'Orbitron', sans-serif;
+
+  /* DATA - Share Tech Mono (grids, tables, technical readouts) */
+  --font-data: 'Share Tech Mono', monospace;
+
+  /* TERMINAL - VT323 (retro aesthetic, boot sequences, splash) */
+  --font-terminal: 'VT323', monospace;
+
+  /* GEOMETRIC - Geo (minimalist numeric, status indicators) */
+  --font-geometric: 'Geo', sans-serif;
+
+  /* PIXEL - Silkscreen (retro UI, badges, pixel art) */
+  --font-pixel: 'Silkscreen', monospace;
+
+  /* HAIRLINE - Bungee Hairline (ultra-thin decorative accents) */
+  --font-hairline: 'Bungee Hairline', sans-serif;
+
+  /* Legacy compatibility - map to new fonts */
+  --font-tmnl: 'Orbitron', monospace;
+  --font-display: 'Orbitron', monospace;
+  --font-body: 'Barlow Condensed', sans-serif;
+  --font-code: 'Share Tech Mono', monospace;
+
+  /* ─────────────────────────────────────────────────────────────
+     TYPOGRAPHY SCALE (12px floor per CLAUDE.md)
+     ───────────────────────────────────────────────────────────── */
+  --tmnl-text-xs: 12px;
+  --tmnl-text-sm: 14px;
+  --tmnl-text-base: 16px;
+  --tmnl-text-lg: 18px;
+  --tmnl-text-xl: 20px;
+  --tmnl-text-2xl: 24px;
+  --tmnl-text-3xl: 30px;
+  --tmnl-text-4xl: 36px;
+
   /* Tauri/WebKitGTK overscroll fix */
   overscroll-behavior: none;
 }
@@ -40,6 +86,131 @@ html, body {
   src: url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2') format('woff2'),
        url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff') format('woff');
   font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* =============================================================================
+   TMNL LOCAL FONT STACK
+   8 typefaces for distinct semantic roles
+   ============================================================================= */
+
+/* BUNGEE SHADE - Wordmark only (TMNL branding) */
+@font-face {
+  font-family: 'Bungee Shade';
+  src: url('/assets/data/fonts/Bungee_Shade/BungeeShade-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* BARLOW CONDENSED - Conversational AI, assistant interfaces */
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/assets/data/fonts/Barlow_Condensed/BarlowCondensed-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/assets/data/fonts/Barlow_Condensed/BarlowCondensed-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/assets/data/fonts/Barlow_Condensed/BarlowCondensed-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/assets/data/fonts/Barlow_Condensed/BarlowCondensed-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/assets/data/fonts/Barlow_Condensed/BarlowCondensed-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ORBITRON - Numeric displays, status/alerts, general text */
+@font-face {
+  font-family: 'Orbitron';
+  src: url('/assets/data/fonts/Orbitron/Orbitron-VariableFont_wght.ttf') format('truetype-variations');
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* SHARE TECH MONO - Data grids, tables, technical data */
+@font-face {
+  font-family: 'Share Tech Mono';
+  src: url('/assets/data/fonts/Share_Tech_Mono/ShareTechMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* VT323 - Retro/terminal aesthetic, splash screens */
+@font-face {
+  font-family: 'VT323';
+  src: url('/assets/data/fonts/VT323/VT323-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* GEO - Numeric displays, status/alerts */
+@font-face {
+  font-family: 'Geo';
+  src: url('/assets/data/fonts/Geo/Geo-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geo';
+  src: url('/assets/data/fonts/Geo/Geo-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* SILKSCREEN - Pixel art, retro UI, badges */
+@font-face {
+  font-family: 'Silkscreen';
+  src: url('/assets/data/fonts/Silkscreen/Silkscreen-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Silkscreen';
+  src: url('/assets/data/fonts/Silkscreen/Silkscreen-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* BUNGEE HAIRLINE - Ultra-thin decorative, minimalist accents */
+@font-face {
+  font-family: 'Bungee Hairline';
+  src: url('/assets/data/fonts/Bungee_Hairline/BungeeHairline-Regular.ttf') format('truetype');
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
