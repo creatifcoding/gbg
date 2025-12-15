@@ -27,6 +27,7 @@ import {
   overlayCountByTypeAtom,
   visualOverlaysAtom,
 } from "../../atoms"
+import { overlayId } from "../../schemas/visual"
 import type { DrawerConfig, VisualOverlayId, SlotId } from "../../schemas/visual"
 import type { ReactNode } from "react"
 import { GLOBAL_SLOT_ID } from "../constants"
@@ -36,8 +37,8 @@ import { GLOBAL_SLOT_ID } from "../constants"
 // ─────────────────────────────────────────────────────────────
 
 export interface DrawerOpenOptions {
-  /** Drawer ID (auto-generated if not provided) */
-  id?: string
+  /** Drawer ID (auto-generated if not provided). Use overlayId() to create. */
+  id?: VisualOverlayId
   /** Slot to render in (defaults to "global") */
   slot?: SlotId
   /** Side of slot (defaults to "right") */
@@ -99,7 +100,7 @@ export function useDrawer(): UseDrawerReturn {
     (options: DrawerOpenOptions, content: ReactNode): VisualOverlayId => {
       const config: DrawerConfig = {
         _tag: "DrawerConfig",
-        id: (options.id ?? "") as VisualOverlayId,
+        id: options.id ?? overlayId(""),
         slot: options.slot ?? GLOBAL_SLOT_ID,
         side: options.side ?? "right",
         width: options.width ?? 400,
@@ -133,7 +134,7 @@ export function useDrawer(): UseDrawerReturn {
 
   const toggle = useCallback(
     (options: DrawerOpenOptions, content: ReactNode): void => {
-      const id = (options.id ?? "") as VisualOverlayId
+      const id = options.id ?? overlayId("")
       if (isDrawerOpen(id)) {
         close(id)
       } else {

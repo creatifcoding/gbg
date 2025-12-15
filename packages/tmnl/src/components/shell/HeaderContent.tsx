@@ -10,8 +10,9 @@
  */
 
 import { useCallback, useEffect } from "react"
-import { Crosshair, Settings, Terminal, User, Zap } from "lucide-react"
-import { useDrawer, useCommandPalette } from "@/lib/overlays"
+import { Crosshair, PanelLeft, Settings, Terminal, User, Zap } from "lucide-react"
+import { useDrawer, overlayId } from "@/lib/overlays"
+import { useMinibuffer } from "@/lib/minibuffer"
 
 // ─────────────────────────────────────────────────────────────
 // Button Primitive
@@ -53,27 +54,6 @@ function Button({ children, onClick, variant = "ghost", size = "xs", className =
 }
 
 // ─────────────────────────────────────────────────────────────
-// Command Palette Content (placeholder)
-// ─────────────────────────────────────────────────────────────
-
-function CommandPaletteContent() {
-  return (
-    <div className="p-4">
-      <input
-        type="text"
-        placeholder="Type a command..."
-        className="w-full bg-neutral-900 border border-neutral-700 rounded px-3 py-2 text-white font-label focus:outline-none focus:border-neutral-500"
-        style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
-        autoFocus
-      />
-      <div className="mt-4 text-neutral-600 text-center" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-        No commands available
-      </div>
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
 
@@ -102,27 +82,70 @@ export function HeaderContent({
   onToggleRightDrawer,
 }: HeaderContentProps) {
   const drawer = useDrawer()
-  const commandPalette = useCommandPalette()
+  const minibuffer = useMinibuffer()
 
   // ─── Toggle functions ─────────────────────────────────────────
 
   const toggleLeftDrawer = useCallback(() => {
     onToggleLeftDrawer?.()
-  }, [onToggleLeftDrawer])
+    // Also toggle via drawer hook
+    drawer.toggle(
+      {
+        id: overlayId("left-panel"),
+        side: "left",
+        width: 320,
+        showBackdrop: false,
+      },
+      <div className="p-4 text-neutral-400">
+        <h3 className="text-white font-terminal mb-4" style={{ fontSize: 'var(--tmnl-text-base, 16px)' }}>
+          LEFT PANEL
+        </h3>
+        <p style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
+          Navigation, file browser, or context-sensitive tools.
+        </p>
+      </div>
+    )
+  }, [drawer, onToggleLeftDrawer])
 
   const toggleRightDrawer = useCallback(() => {
     onToggleRightDrawer?.()
-  }, [onToggleRightDrawer])
+    // Also toggle via drawer hook
+    drawer.toggle(
+      {
+        id: overlayId("right-actions"),
+        side: "right",
+        width: 320,
+        showBackdrop: false,
+      },
+      <div className="p-4 text-neutral-400">
+        <h3 className="text-white font-terminal mb-4" style={{ fontSize: 'var(--tmnl-text-base, 16px)' }}>
+          ACTIONS
+        </h3>
+        <p style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
+          Quick actions, properties, and contextual tools.
+        </p>
+      </div>
+    )
+  }, [drawer, onToggleRightDrawer])
 
   const toggleCommand = useCallback(() => {
-    commandPalette.toggle({}, <CommandPaletteContent />)
-  }, [commandPalette])
+    // M-x style command execution via minibuffer
+    minibuffer.executeCommand()
+  }, [minibuffer])
 
-  // ─── Keyboard Shortcut (⌘K) ─────────────────────────────────
+  // ─── Keyboard Shortcuts ─────────────────────────────────────
+  // - Ctrl/Cmd+K: Command palette (modern)
+  // - Alt+X: M-x command palette (Emacs style)
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // Ctrl/Cmd+K
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault()
+        toggleCommand()
+      }
+      // Alt+X (M-x)
+      if (e.altKey && e.key === "x") {
         e.preventDefault()
         toggleCommand()
       }
@@ -172,6 +195,16 @@ export function HeaderContent({
       <div data-tauri-drag-region className="flex-1 h-full flex items-center justify-between px-4">
         {/* Left section */}
         <div className="flex items-center gap-4">
+          {/* Left drawer toggle */}
+          <Button variant="ghost" onClick={toggleLeftDrawer}>
+            <PanelLeft
+              style={{
+                width: 'var(--tmnl-text-sm, 14px)',
+                height: 'var(--tmnl-text-sm, 14px)',
+              }}
+            />
+          </Button>
+
           <div className="flex items-center gap-2">
             <span
               className="text-white font-terminal"

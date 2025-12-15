@@ -19,10 +19,11 @@ import {
   useContext,
   useCallback,
   useMemo,
+  startTransition,
   type ReactNode,
 } from "react"
 import { nanoid } from "nanoid"
-import { useAtomValue } from "@effect-atom/atom-react"
+import { Atom } from "@effect-atom/atom-react"
 import {
   // Registry
   overlayRegistry,
@@ -30,8 +31,8 @@ import {
   visualOverlaysAtom,
   zOrderByTypeAtom,
   slotsAtom,
-  visibleOverlayIdsAtom,
-  hasBlockingOverlayAtom,
+  // NOTE: visibleOverlayIdsAtom/hasBlockingOverlayAtom removed from provider
+  // to avoid re-rendering entire tree. Consumers should subscribe directly.
   // Visual mutations
   openOverlay as openOverlayMutation,
   closeOverlay as closeOverlayMutation,
@@ -83,14 +84,12 @@ interface OpenOverlayOptions<C extends VisualOverlayConfig> {
 
 /**
  * Context value exposed by VisualOverlayProvider.
+ *
+ * PERF NOTE: State accessors (visibleOverlayIds, hasBlockingOverlay) removed.
+ * Consumers should subscribe directly to atoms to avoid provider re-renders.
+ * Use: useAtomValue(visibleOverlayIdsAtom), useAtomValue(hasBlockingOverlayAtom)
  */
 export interface VisualOverlayContextValue {
-  // ─── State Accessors ───────────────────────────────────────
-  /** All visible overlay IDs */
-  visibleOverlayIds: VisualOverlayId[]
-  /** Whether any blocking overlay (modal/command-palette) is open */
-  hasBlockingOverlay: boolean
-
   // ─── Core Operations ───────────────────────────────────────
   /** Open any overlay type */
   open: <C extends VisualOverlayConfig>(
@@ -179,11 +178,9 @@ export interface VisualOverlayProviderProps {
  * ```
  */
 export function VisualOverlayProvider({ children }: VisualOverlayProviderProps) {
-  // ─── State Subscriptions ─────────────────────────────────────
-  const visibleOverlayIds = useAtomValue(visibleOverlayIdsAtom)
-  const hasBlockingOverlay = useAtomValue(hasBlockingOverlayAtom)
-
   // ─── Core Operations ─────────────────────────────────────────
+  // PERF: No useAtomValue subscriptions here — provider is pure operations.
+  // Consumers subscribe directly to atoms they need.
 
   /**
    * Open an overlay of any type.
@@ -191,6 +188,8 @@ export function VisualOverlayProvider({ children }: VisualOverlayProviderProps) 
    * IDEMPOTENT: If overlay with same ID already exists AND is visible,
    * returns existing ID without creating a duplicate.
    * If overlay exists but is exiting/exited, removes it first and creates new.
+   *
+   * PERF: Uses Atom.batch() to coalesce all state updates into single notification.
    */
   const open = useCallback(
     <C extends VisualOverlayConfig>(
@@ -199,42 +198,49 @@ export function VisualOverlayProvider({ children }: VisualOverlayProviderProps) 
     ): VisualOverlayId => {
       const id = (options.id ?? nanoid()) as VisualOverlayId
 
-      // Check if overlay already exists
+      // Check if overlay already exists (read before batch)
       const existingOverlays = overlayRegistry.get(visualOverlaysAtom)
       const existing = existingOverlays.get(id)
 
-      if (existing) {
-        // If still visible, no-op (idempotent for StrictMode)
-        if (existing.isVisible) {
-          return id
-        }
-
-        // Overlay exists but is exiting/exited — remove zombie first
-        const zOrders = overlayRegistry.get(zOrderByTypeAtom)
-        const cleaned = removeOverlayMutation(existingOverlays, zOrders, id)
-        overlayRegistry.set(visualOverlaysAtom, cleaned.overlays)
-        overlayRegistry.set(zOrderByTypeAtom, cleaned.zOrders)
+      if (existing?.isVisible) {
+        // Already visible — idempotent no-op (StrictMode safety)
+        return id
       }
 
       const contentKey = `overlay-${id}-${Date.now()}`
 
-      // Register content in memory registry
+      // Register content in memory registry (sync, outside batch)
       registerContent(contentKey, options.content)
 
-      // Update atoms via registry
-      overlayRegistry.update(visualOverlaysAtom, (overlays) => {
-        const zOrders = overlayRegistry.get(zOrderByTypeAtom)
-        const result = openOverlayMutation(
-          overlays,
-          zOrders,
-          id,
-          type,
-          options.config,
-          contentKey
-        )
-        // Update z-orders as side effect
-        overlayRegistry.set(zOrderByTypeAtom, result.zOrders)
-        return result.overlays
+      // PERF: startTransition marks this as non-urgent, allowing React to
+      // yield to more urgent updates (user input). Atom.batch coalesces
+      // all state updates into a single notification.
+      startTransition(() => {
+        Atom.batch(() => {
+          let overlays = overlayRegistry.get(visualOverlaysAtom)
+          let zOrders = overlayRegistry.get(zOrderByTypeAtom)
+
+          // Clean up zombie if exists
+          if (existing) {
+            const cleaned = removeOverlayMutation(overlays, zOrders, id)
+            overlays = cleaned.overlays
+            zOrders = cleaned.zOrders
+          }
+
+          // Open new overlay
+          const result = openOverlayMutation(
+            overlays,
+            zOrders,
+            id,
+            type,
+            options.config,
+            contentKey
+          )
+
+          // Single batch commit
+          overlayRegistry.set(visualOverlaysAtom, result.overlays)
+          overlayRegistry.set(zOrderByTypeAtom, result.zOrders)
+        })
       })
 
       return id
@@ -244,48 +250,61 @@ export function VisualOverlayProvider({ children }: VisualOverlayProviderProps) 
 
   /**
    * Close an overlay (starts exit animation).
+   * PERF: startTransition for non-blocking close.
    */
   const close = useCallback((id: VisualOverlayId): void => {
-    overlayRegistry.update(visualOverlaysAtom, (overlays) =>
-      closeOverlayMutation(overlays, id)
-    )
+    startTransition(() => {
+      overlayRegistry.update(visualOverlaysAtom, (overlays) =>
+        closeOverlayMutation(overlays, id)
+      )
+    })
   }, [])
 
   /**
    * Close all overlays of a specific type.
+   * PERF: Batched + startTransition for non-blocking bulk close.
    */
   const closeAllOfType = useCallback((type: VisualOverlayType): void => {
-    const overlays = overlayRegistry.get(visualOverlaysAtom)
-    for (const [id, instance] of overlays) {
-      if (instance.type === type && !instance.isExiting && !instance.hasExited) {
-        overlayRegistry.update(visualOverlaysAtom, (current) =>
-          closeOverlayMutation(current, id)
-        )
-      }
-    }
+    startTransition(() => {
+      Atom.batch(() => {
+        let overlays = overlayRegistry.get(visualOverlaysAtom)
+        for (const [id, instance] of overlays) {
+          if (instance.type === type && !instance.isExiting && !instance.hasExited) {
+            overlays = closeOverlayMutation(overlays, id)
+          }
+        }
+        overlayRegistry.set(visualOverlaysAtom, overlays)
+      })
+    })
   }, [])
 
   /**
    * Remove overlay from state (after exit animation completes).
+   * PERF: Batched + startTransition for non-blocking removal.
    */
   const remove = useCallback((id: VisualOverlayId): void => {
-    overlayRegistry.update(visualOverlaysAtom, (overlays) => {
-      const zOrders = overlayRegistry.get(zOrderByTypeAtom)
-      const result = removeOverlayMutation(overlays, zOrders, id)
-      // Update z-orders as side effect
-      overlayRegistry.set(zOrderByTypeAtom, result.zOrders)
-      return result.overlays
+    startTransition(() => {
+      Atom.batch(() => {
+        const overlays = overlayRegistry.get(visualOverlaysAtom)
+        const zOrders = overlayRegistry.get(zOrderByTypeAtom)
+        const result = removeOverlayMutation(overlays, zOrders, id)
+        overlayRegistry.set(visualOverlaysAtom, result.overlays)
+        overlayRegistry.set(zOrderByTypeAtom, result.zOrders)
+      })
     })
   }, [])
 
   /**
    * Update animation state.
+   * PERF: startTransition for non-blocking state update.
    */
   const setAnimationState = useCallback(
     (id: VisualOverlayId, state: OverlayAnimationState): void => {
-      overlayRegistry.update(visualOverlaysAtom, (overlays) =>
-        setAnimationStateMutation(overlays, id, state)
-      )
+      startTransition(() => {
+        overlayRegistry.update(visualOverlaysAtom, (overlays) =>
+          setAnimationStateMutation(overlays, id, state)
+        )
+      })
 
       // Auto-remove after exit animation completes
       if (state === "exited") {
@@ -298,25 +317,33 @@ export function VisualOverlayProvider({ children }: VisualOverlayProviderProps) 
 
   /**
    * Bring overlay to front of its type stack.
+   * PERF: Batched + startTransition for non-blocking z-order change.
    */
   const bringToFront = useCallback((id: VisualOverlayId): void => {
-    overlayRegistry.update(visualOverlaysAtom, (overlays) => {
-      const zOrders = overlayRegistry.get(zOrderByTypeAtom)
-      const result = bringToFrontMutation(overlays, zOrders, id)
-      overlayRegistry.set(zOrderByTypeAtom, result.zOrders)
-      return result.overlays
+    startTransition(() => {
+      Atom.batch(() => {
+        const overlays = overlayRegistry.get(visualOverlaysAtom)
+        const zOrders = overlayRegistry.get(zOrderByTypeAtom)
+        const result = bringToFrontMutation(overlays, zOrders, id)
+        overlayRegistry.set(visualOverlaysAtom, result.overlays)
+        overlayRegistry.set(zOrderByTypeAtom, result.zOrders)
+      })
     })
   }, [])
 
   /**
    * Send overlay to back of its type stack.
+   * PERF: Batched + startTransition for non-blocking z-order change.
    */
   const sendToBack = useCallback((id: VisualOverlayId): void => {
-    overlayRegistry.update(visualOverlaysAtom, (overlays) => {
-      const zOrders = overlayRegistry.get(zOrderByTypeAtom)
-      const result = sendToBackMutation(overlays, zOrders, id)
-      overlayRegistry.set(zOrderByTypeAtom, result.zOrders)
-      return result.overlays
+    startTransition(() => {
+      Atom.batch(() => {
+        const overlays = overlayRegistry.get(visualOverlaysAtom)
+        const zOrders = overlayRegistry.get(zOrderByTypeAtom)
+        const result = sendToBackMutation(overlays, zOrders, id)
+        overlayRegistry.set(visualOverlaysAtom, result.overlays)
+        overlayRegistry.set(zOrderByTypeAtom, result.zOrders)
+      })
     })
   }, [])
 
@@ -406,12 +433,11 @@ export function VisualOverlayProvider({ children }: VisualOverlayProviderProps) 
   )
 
   // ─── Context Value ───────────────────────────────────────────
+  // PERF: All useCallbacks have [] deps, so value is stable.
+  // No state subscriptions means provider never re-renders children.
 
   const value = useMemo(
     (): VisualOverlayContextValue => ({
-      // State
-      visibleOverlayIds,
-      hasBlockingOverlay,
       // Core operations
       open,
       close,
@@ -438,8 +464,6 @@ export function VisualOverlayProvider({ children }: VisualOverlayProviderProps) 
       unsuppressInstance,
     }),
     [
-      visibleOverlayIds,
-      hasBlockingOverlay,
       open,
       close,
       closeAllOfType,
@@ -463,8 +487,6 @@ export function VisualOverlayProvider({ children }: VisualOverlayProviderProps) 
     ]
   )
 
-  // NOTE: OverlayRegistryProvider must be at app root (main.tsx), not here.
-  // This allows useAtomValue in this component body to access the registry.
   return (
     <VisualOverlayContext.Provider value={value}>
       {children}
