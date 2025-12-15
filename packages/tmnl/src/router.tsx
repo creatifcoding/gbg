@@ -24,7 +24,7 @@ import { AnimationV2Testbed } from './lib/animation/v2/__tests__/basic';
 import { BaseModalTestbed } from './components/testbed/BaseModalTestbed';
 import { TraitTestbed } from './components/testbed/TraitTestbed';
 import { CapabilityTestbed } from './components/testbed/CapabilityTestbed';
-import { DataGridTestbed } from './components/testbed/DataGridTestbed';
+import { DataGridTestbedSwitch } from './components/testbed/DataGridTestbedSwitch';
 import { EffectAtomTestbed } from './components/testbed/EffectAtomTestbed';
 import { HotkeyTestbed } from './components/testbed/HotkeyTestbed';
 import { KeybindingTestbed } from './components/testbed/KeybindingTestbed';
@@ -40,13 +40,14 @@ import { OverlayTestbed } from './components/testbed/OverlayTestbed';
 import { ScadaOverlayTestbed } from './components/testbed/ScadaOverlayTestbed';
 import { ScadaCanvas } from './components/scada';
 import { IndicesTestbed } from './components/testbed/IndicesTestbed';
-import { DataGridVariantTestbed } from './components/testbed/DataGridVariantTestbed';
+import { DataGridVariantTestbedSwitch } from './components/testbed/DataGridVariantTestbedSwitch';
 import Dispositions from './pages/Dispositions';
 import { StreamsPlayground } from './components/playground/streams';
 import { AvaTestbed } from './components/testbed/AvaTestbed';
 import { FloatingPanelTestbed } from './components/testbed/FloatingPanelTestbed';
 import { SelectionTestbed } from './components/testbed/SelectionTestbed';
 import { DrawerTestbed } from './components/testbed/DrawerTestbed';
+import { VariablesTestbed } from './components/testbed/VariablesTestbed';
 
 // Create a root route
 const rootRoute = createRootRoute({
@@ -92,11 +93,11 @@ const dispositionsRoute = createRoute({
   component: Dispositions,
 });
 
-// Create data-grid testbed route
+// Create data-grid testbed route (with V1/V2 switch)
 const dataGridTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/testbed/data-grid',
-  component: DataGridTestbed,
+  component: DataGridTestbedSwitch,
 });
 
 // Create effect-atom testbed route
@@ -218,11 +219,11 @@ const indicesTestbedRoute = createRoute({
   component: IndicesTestbed,
 });
 
-// Create data-grid variants testbed route
+// Create data-grid variants testbed route (with V1/V2 switch)
 const dataGridVariantTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/testbed/data-grid-variants',
-  component: DataGridVariantTestbed,
+  component: DataGridVariantTestbedSwitch,
 });
 
 // Create SCADA canvas route (unified multi-overlay demo)
@@ -267,6 +268,13 @@ const drawerTestbedRoute = createRoute({
   component: DrawerTestbed,
 });
 
+// Create variables testbed route
+const variablesTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/variables',
+  component: VariablesTestbed,
+});
+
 // Create the router
 const router = createRouter({
   routeTree: rootRoute.addChildren([
@@ -300,6 +308,7 @@ const router = createRouter({
     floatingPanelTestbedRoute,
     selectionTestbedRoute,
     drawerTestbedRoute,
+    variablesTestbedRoute,
   ]),
 });
 
