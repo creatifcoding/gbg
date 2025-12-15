@@ -1,8 +1,10 @@
 /**
  * HeaderContent
  *
- * Header UI content for AppShell.
- * Extracted from PersistentOverlays for cleaner separation.
+ * Typography:
+ * - Navigation → Orbitron (font-nav)
+ * - Buttons → Orbitron (font-button)
+ * - Wordmark → VT323 (font-terminal)
  *
  * @module components/shell
  */
@@ -24,7 +26,7 @@ interface ButtonProps {
 }
 
 function Button({ children, onClick, variant = "ghost", size = "xs", className = "" }: ButtonProps) {
-  const baseClasses = "inline-flex items-center justify-center gap-1.5 font-mono uppercase tracking-wider transition-colors disabled:opacity-50"
+  const baseClasses = "inline-flex items-center justify-center gap-1.5 font-button uppercase tracking-wide transition-colors disabled:opacity-50"
 
   const sizeClasses = {
     xs: "px-2 py-1",
@@ -59,7 +61,7 @@ function CommandPaletteContent() {
       <input
         type="text"
         placeholder="Type a command..."
-        className="w-full bg-neutral-900 border border-neutral-700 rounded px-3 py-2 text-white font-mono focus:outline-none focus:border-neutral-500"
+        className="w-full bg-neutral-900 border border-neutral-700 rounded px-3 py-2 text-white font-label focus:outline-none focus:border-neutral-500"
         style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
         autoFocus
       />
@@ -184,7 +186,7 @@ export function HeaderContent({
               <button
                 key={tab}
                 onClick={() => handleTabChange(tab)}
-                className={`font-mono uppercase tracking-wider transition-colors ${
+                className={`font-nav uppercase tracking-wide transition-colors ${
                   activeTab === tab
                     ? 'text-white'
                     : 'text-neutral-600 hover:text-neutral-300'

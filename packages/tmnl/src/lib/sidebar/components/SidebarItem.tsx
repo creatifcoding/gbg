@@ -48,20 +48,38 @@ const INDICATOR_DURATION = 300
 const GLOW_DURATION = 600
 
 // ─────────────────────────────────────────────────────────────
-// Light Ray Configuration (Apple-style hard-edge stepped shadows)
+// Light Ray Configuration (Brutalist "crack of light" aesthetic)
 // ─────────────────────────────────────────────────────────────
 
-/** Hard-edge shadow steps - intense at edge, fading outward (low-poly style) */
-const SHADOW_STEPS = [
-  { opacity: 0.7, offset: 0, delay: 0 },      // Core - brightest
-  { opacity: 0.5, offset: 4, delay: 0.02 },   // Step 1
-  { opacity: 0.35, offset: 8, delay: 0.04 },  // Step 2
-  { opacity: 0.2, offset: 14, delay: 0.06 },  // Step 3
-  { opacity: 0.1, offset: 22, delay: 0.08 },  // Step 4 - outer edge
-] as const
-
-/** Shadow animation config - snappy like old Apple */
-const SHADOW_SPRING = { type: "spring", stiffness: 500, damping: 30 } as const
+/**
+ * Light ray emanation config - like light escaping from behind a door.
+ *
+ * Design: Discrete luminance steps (macOS Dock pre-Big Sur style)
+ * - Core: Crisp bright edge (1-2px)
+ * - Falloff: 4-5 hard-edge bands that cascade outward
+ * - No blur/diffusion - pure brutalist stepped opacity
+ */
+const LIGHT_RAY_CONFIG = {
+  /** Core bar - brightest, appears instantly */
+  core: {
+    width: 2,
+    opacity: 0.95,
+    color: "255, 255, 255", // RGB for rgba()
+    delay: 0,
+  },
+  /** Falloff steps - cascade outward with stagger */
+  steps: [
+    { width: 1, opacity: 0.7, offset: 2, delay: 0.01 },
+    { width: 1, opacity: 0.5, offset: 3, delay: 0.02 },
+    { width: 1, opacity: 0.3, offset: 4, delay: 0.03 },
+    { width: 1, opacity: 0.15, offset: 5, delay: 0.04 },
+    { width: 1, opacity: 0.08, offset: 6, delay: 0.05 },
+  ],
+  /** Spring physics - high stiffness for "slit opening" feel */
+  spring: { type: "spring" as const, stiffness: 450, damping: 28 },
+  /** Exit animation - faster collapse, reverse cascade */
+  exitStagger: 0.012,
+} as const
 
 // ─────────────────────────────────────────────────────────────
 // SVG Underline (sinusoidal wave, animate along path on hover)
@@ -314,17 +332,39 @@ export const SidebarItem = memo(function SidebarItem({
       data-sidebar-item-id={item.id}
       data-sidebar-group={item.group}
     >
-      {/* Light source edge - 15% column (Apple-style hard-edge shadows) */}
+      {/* Light source edge - 15% column (Brutalist crack of light) */}
       <div className="flex items-center justify-start pointer-events-none h-10 relative overflow-visible">
-        {/* Hard-edge shadow steps - no blur, stepped opacity */}
-        {SHADOW_STEPS.map((step, i) => (
+        {/* Core light ray - brightest bar */}
+        <motion.div
+          className="absolute h-5"
+          style={{
+            left: 0,
+            width: LIGHT_RAY_CONFIG.core.width,
+            backgroundColor: `rgba(${LIGHT_RAY_CONFIG.core.color}, ${LIGHT_RAY_CONFIG.core.opacity})`,
+            transformOrigin: "center",
+          }}
+          initial={{ scaleY: 0, opacity: 0 }}
+          animate={{
+            scaleY: isHovered ? 1 : 0,
+            opacity: isHovered ? 1 : 0,
+          }}
+          transition={{
+            ...LIGHT_RAY_CONFIG.spring,
+            delay: isHovered ? LIGHT_RAY_CONFIG.core.delay : LIGHT_RAY_CONFIG.exitStagger * LIGHT_RAY_CONFIG.steps.length,
+          }}
+          aria-hidden="true"
+        />
+
+        {/* Falloff steps - discrete luminance bands */}
+        {LIGHT_RAY_CONFIG.steps.map((step, i) => (
           <motion.div
             key={i}
             className="absolute h-5"
             style={{
               left: step.offset,
-              width: 3,
-              backgroundColor: `rgba(255,255,255,${step.opacity})`,
+              width: step.width,
+              backgroundColor: `rgba(${LIGHT_RAY_CONFIG.core.color}, ${step.opacity})`,
+              transformOrigin: "center",
             }}
             initial={{ scaleY: 0, opacity: 0 }}
             animate={{
@@ -332,12 +372,15 @@ export const SidebarItem = memo(function SidebarItem({
               opacity: isHovered ? 1 : 0,
             }}
             transition={{
-              ...SHADOW_SPRING,
-              delay: isHovered ? step.delay : (SHADOW_STEPS.length - 1 - i) * 0.015,
+              ...LIGHT_RAY_CONFIG.spring,
+              delay: isHovered
+                ? step.delay
+                : LIGHT_RAY_CONFIG.exitStagger * (LIGHT_RAY_CONFIG.steps.length - i - 1),
             }}
             aria-hidden="true"
           />
         ))}
+
         {/* Active state glow - persistent bar when item is active */}
         <span
           ref={activeGlowRef}
@@ -404,7 +447,7 @@ export const SidebarItem = memo(function SidebarItem({
         {/* Keyboard shortcut badge */}
         {item.shortcut && !isDragging && (
           <span
-            className="absolute -bottom-0.5 -right-0.5 px-1 font-mono text-neutral-600 bg-neutral-900/90 rounded border border-neutral-800"
+            className="absolute -bottom-0.5 -right-0.5 px-1 font-label text-neutral-600 bg-neutral-900/90 rounded border border-neutral-800"
             style={{ fontSize: "var(--tmnl-text-xs, 12px)" }}
             aria-hidden="true"
           >

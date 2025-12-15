@@ -1,6 +1,7 @@
 /**
  * Slider Component
  *
+ * Typography: Geo (font-stats) - numeric displays
  * The primary slider component with DAW-grade precision.
  * Supports multiple behaviors, debug overlay, and fine control.
  */
@@ -271,7 +272,7 @@ export const Slider = forwardRef<HTMLDivElement, SliderProps>(function Slider(
 
       {/* Modifier indicator */}
       {state.isDragging && state.activeSensitivity !== 1 && (
-        <div className="absolute -top-6 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-cyan-900/80 rounded text-xs font-mono text-cyan-300 whitespace-nowrap">
+        <div className="absolute -top-6 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-cyan-900/80 rounded text-xs font-stats text-cyan-300 whitespace-nowrap">
           {state.activeSensitivity < 0.1 ? 'Ultra-Fine' : 'Fine'} ({state.activeSensitivity}x)
         </div>
       )}
@@ -316,7 +317,7 @@ function ValueDisplay({
         onChange={(e) => onEditChange(e.target.value)}
         onKeyDown={onEditKeyDown}
         onBlur={onEditBlur}
-        className="w-16 px-2 py-1 bg-neutral-900 border border-cyan-600 rounded text-sm font-mono text-cyan-300 text-right focus:outline-none"
+        className="w-16 px-2 py-1 bg-neutral-900 border border-cyan-600 rounded text-sm font-stats text-cyan-300 text-right focus:outline-none"
         onClick={(e) => e.stopPropagation()}
       />
     )
@@ -328,7 +329,7 @@ function ValueDisplay({
         e.stopPropagation()
         onValueClick()
       }}
-      className="min-w-[4rem] px-2 py-1 text-sm font-mono text-neutral-300 text-right hover:text-cyan-400 hover:bg-neutral-800/50 rounded cursor-text transition-colors"
+      className="min-w-[4rem] px-2 py-1 text-sm font-stats text-neutral-300 text-right hover:text-cyan-400 hover:bg-neutral-800/50 rounded cursor-text transition-colors"
     >
       {displayValue}
     </div>

@@ -1,7 +1,7 @@
 /**
  * TMNL Input Primitives
  *
- * Extracted from tmnl-ui.tsx for modular encapsulation.
+ * Typography: Share Tech Mono (font-label) - technical data entry
  * Uses CSS custom properties from ScaleProvider.
  */
 
@@ -28,7 +28,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         <input
           ref={ref}
           className={cn(
-            'w-full bg-black border border-neutral-800 px-3 py-2 font-mono text-neutral-400 outline-none focus:border-white focus:text-white placeholder:text-neutral-700 transition-colors',
+            'w-full bg-black border border-neutral-800 px-3 py-2 font-label text-neutral-400 outline-none focus:border-white focus:text-white placeholder:text-neutral-700 transition-colors',
             className
           )}
           style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
@@ -117,7 +117,7 @@ export const RadioGroup = ({ options, value, onChange }: RadioGroupProps) => (
         </div>
         <span
           className={cn(
-            'font-mono uppercase tracking-[0.1em]',
+            'font-label uppercase tracking-[0.1em]',
             value === opt
               ? 'text-white'
               : 'text-neutral-500 group-hover:text-neutral-400'

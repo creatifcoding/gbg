@@ -1,7 +1,7 @@
 /**
  * TMNL Badge & Utility Primitives
  *
- * Extracted from tmnl-ui.tsx for modular encapsulation.
+ * Typography: Share Tech Mono (font-label) - technical, compact
  * Uses CSS custom properties from ScaleProvider.
  */
 
@@ -33,7 +33,7 @@ export const Badge = ({
   return (
     <span
       className={cn(
-        'px-1.5 py-0.5 font-mono uppercase tracking-[0.15em] inline-flex items-center gap-1 border',
+        'px-1.5 py-0.5 font-label uppercase tracking-[0.15em] inline-flex items-center gap-1 border',
         styles[variant],
         className
       )}
@@ -93,7 +93,7 @@ export interface KbdProps {
 
 export const Kbd = ({ children }: KbdProps) => (
   <span
-    className="border border-neutral-800 bg-neutral-900 px-1 py-0.5 font-mono text-neutral-500"
+    className="border border-neutral-800 bg-neutral-900 px-1 py-0.5 font-label text-neutral-500"
     style={{ fontSize: 'calc(var(--tmnl-text-xs, 12px) * 0.7)' }}
   >
     {children}

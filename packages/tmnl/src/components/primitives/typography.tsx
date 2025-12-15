@@ -1,7 +1,12 @@
 /**
  * TMNL Typography Primitives
  *
- * Extracted from tmnl-ui.tsx for modular encapsulation.
+ * Semantic font mapping (per typography alignment):
+ * - Labels/Headings → Share Tech Mono (font-label, font-heading)
+ * - Body/Chat → Barlow Condensed (font-body)
+ * - Data/Stats → Geo (font-stats)
+ * - Navigation → Orbitron (font-nav)
+ *
  * All components use CSS custom properties from ScaleProvider.
  */
 
@@ -9,7 +14,7 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 // =============================================================================
-// LABELS
+// LABELS (Share Tech Mono)
 // =============================================================================
 
 export const Label = ({
@@ -21,7 +26,7 @@ export const Label = ({
 }) => (
   <span
     className={cn(
-      'font-mono uppercase tracking-[0.15em] text-neutral-500',
+      'font-label uppercase tracking-[0.15em] text-neutral-500',
       className
     )}
     style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
@@ -39,7 +44,7 @@ export const LabelSmall = ({
 }) => (
   <span
     className={cn(
-      'font-mono uppercase tracking-[0.2em] text-neutral-600',
+      'font-label uppercase tracking-[0.2em] text-neutral-600',
       className
     )}
     style={{ fontSize: 'calc(var(--tmnl-text-xs, 12px) * 0.8)' }}
@@ -57,7 +62,7 @@ export const CardLabel = ({
 }) => (
   <span
     className={cn(
-      'font-mono uppercase tracking-[0.2em] text-neutral-500 bg-neutral-950 px-2',
+      'font-label uppercase tracking-[0.2em] text-neutral-500 bg-neutral-950 px-2',
       className
     )}
     style={{ fontSize: 'calc(var(--tmnl-text-xs, 12px) * 0.8)' }}
@@ -67,7 +72,7 @@ export const CardLabel = ({
 );
 
 // =============================================================================
-// HEADINGS
+// HEADINGS (Share Tech Mono)
 // =============================================================================
 
 export const Heading = ({
@@ -85,9 +90,9 @@ export const Heading = ({
     xl: { fontSize: 'var(--tmnl-text-lg, 18px)', fontWeight: 700 },
   }[size];
   const baseClass = {
-    base: 'font-mono uppercase tracking-[0.15em] text-white',
-    lg: 'font-mono uppercase tracking-[0.12em] text-white',
-    xl: 'font-mono uppercase tracking-[0.1em] text-white',
+    base: 'font-heading uppercase tracking-[0.15em] text-white',
+    lg: 'font-heading uppercase tracking-[0.12em] text-white',
+    xl: 'font-heading uppercase tracking-[0.1em] text-white',
   }[size];
   return (
     <span className={cn(baseClass, className)} style={sizeStyles}>
@@ -115,7 +120,7 @@ export const GroupHeader = ({
   return (
     <div
       className={cn(
-        'font-mono font-medium tracking-tight text-white flex items-center gap-3',
+        'font-heading font-medium tracking-tight text-white flex items-center gap-3',
         className
       )}
       style={{ fontSize: 'var(--tmnl-text-lg, 18px)' }}
@@ -127,7 +132,7 @@ export const GroupHeader = ({
 };
 
 // =============================================================================
-// BODY TEXT
+// BODY TEXT (Barlow Condensed)
 // =============================================================================
 
 export const Body = ({
@@ -139,7 +144,7 @@ export const Body = ({
 }) => (
   <span
     className={cn(
-      'font-mono tracking-[0.03em] text-neutral-400',
+      'font-body tracking-[0.03em] text-neutral-400',
       className
     )}
     style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
@@ -147,6 +152,10 @@ export const Body = ({
     {children}
   </span>
 );
+
+// =============================================================================
+// DATA DISPLAY (Geo)
+// =============================================================================
 
 export const Coords = ({
   children,
@@ -157,7 +166,7 @@ export const Coords = ({
 }) => (
   <span
     className={cn(
-      'font-mono tracking-[0.08em] text-neutral-600',
+      'font-stats tracking-[0.08em] text-neutral-600',
       className
     )}
     style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
@@ -165,10 +174,6 @@ export const Coords = ({
     {children}
   </span>
 );
-
-// =============================================================================
-// DISPLAY / DATA
-// =============================================================================
 
 export const ID = ({
   children,
@@ -179,7 +184,7 @@ export const ID = ({
 }) => (
   <span
     className={cn(
-      'font-mono font-light tracking-[0.08em] text-white',
+      'font-stats font-light tracking-[0.08em] text-white',
       className
     )}
     style={{ fontSize: 'var(--tmnl-text-lg, 18px)' }}
@@ -199,14 +204,14 @@ export const Stat = ({
 }) => (
   <span className={cn('inline-flex items-baseline', className)}>
     <span
-      className="font-mono font-thin tracking-tight text-white"
+      className="font-stats font-thin tracking-tight text-white"
       style={{ fontSize: 'var(--tmnl-text-3xl, 36px)' }}
     >
       {value}
     </span>
     {unit && (
       <span
-        className="font-mono uppercase tracking-[0.2em] text-neutral-500 ml-1"
+        className="font-label uppercase tracking-[0.2em] text-neutral-500 ml-1"
         style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
       >
         {unit}
@@ -224,7 +229,7 @@ export const ItemNumber = ({
 }) => (
   <span
     className={cn(
-      'font-mono uppercase tracking-[0.15em] text-neutral-400',
+      'font-label uppercase tracking-[0.15em] text-neutral-400',
       className
     )}
     style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
@@ -242,7 +247,7 @@ export const ItemSubtitle = ({
 }) => (
   <span
     className={cn(
-      'font-mono tracking-[0.05em] text-red-900',
+      'font-body tracking-[0.05em] text-red-900',
       className
     )}
     style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}

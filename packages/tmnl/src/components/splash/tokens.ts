@@ -72,25 +72,32 @@ export const SPLASH_COLORS = {
 // =============================================================================
 
 export const SPLASH_TYPOGRAPHY = {
-  /** Font family - monospace stack */
-  fontFamily: "'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', monospace",
+  /**
+   * Font family - VT323 for retro terminal aesthetic
+   * Uses CSS variable for consistency with design system
+   */
+  fontFamily: "var(--font-splash), 'VT323', monospace",
 
-  /** Font weights */
+  /** Font weights - VT323 only has regular weight, but we keep structure */
   weight: {
-    light: 300,
+    light: 400,
     regular: 400,
-    medium: 500,
-    bold: 700,
+    medium: 400,
+    bold: 400,
   },
 
-  /** Font sizes */
+  /**
+   * Font sizes - VT323 renders larger than typical fonts
+   * Adjusted sizes to compensate for VT323's character metrics
+   * Note: 12px floor applies to standard UI, splash is intentionally stylized
+   */
   size: {
-    xs: '0.65rem',    // Timestamps, brackets
-    sm: '0.75rem',    // Status lines
-    base: '0.875rem', // Main content
-    lg: '1.125rem',   // Headers
-    xl: '1.5rem',     // Logo letters
-    '2xl': '2rem',    // Logo words
+    xs: '0.875rem',   // 14px - Timestamps, brackets
+    sm: '1rem',       // 16px - Status lines
+    base: '1.125rem', // 18px - Main content
+    lg: '1.5rem',     // 24px - Headers
+    xl: '2rem',       // 32px - Logo letters
+    '2xl': '2.5rem',  // 40px - Logo words (expanded)
   },
 
   /** Line heights */

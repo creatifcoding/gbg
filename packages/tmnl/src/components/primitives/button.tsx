@@ -1,7 +1,7 @@
 /**
  * TMNL Button Primitive
  *
- * Extracted from tmnl-ui.tsx for modular encapsulation.
+ * Typography: Orbitron (font-button) - geometric, commanding
  * Uses CSS custom properties from ScaleProvider.
  */
 
@@ -58,7 +58,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          'font-mono uppercase tracking-[0.15em] border transition-all relative overflow-hidden',
+          'font-button uppercase tracking-[0.12em] border transition-all relative overflow-hidden',
           variants[variant],
           sizeClasses[size],
           className

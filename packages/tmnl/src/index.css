@@ -41,11 +41,33 @@
   /* HAIRLINE - Bungee Hairline (ultra-thin decorative accents) */
   --font-hairline: 'Bungee Hairline', sans-serif;
 
-  /* Legacy compatibility - map to new fonts */
-  --font-tmnl: 'Orbitron', monospace;
-  --font-display: 'Orbitron', monospace;
+  /* ─────────────────────────────────────────────────────────────
+     SEMANTIC ROLE MAPPINGS (per typography alignment)
+     ───────────────────────────────────────────────────────────── */
+
+  /* Navigation, Buttons → Orbitron */
+  --font-nav: 'Orbitron', sans-serif;
+  --font-button: 'Orbitron', sans-serif;
+
+  /* Data displays, Stats → Geo */
+  --font-stats: 'Geo', sans-serif;
+
+  /* Labels, Headings → Share Tech Mono */
+  --font-label: 'Share Tech Mono', monospace;
+  --font-heading: 'Share Tech Mono', monospace;
+
+  /* Body, AI Chat → Barlow Condensed */
   --font-body: 'Barlow Condensed', sans-serif;
+  --font-chat: 'Barlow Condensed', sans-serif;
+
+  /* Splash, Boot → VT323 */
+  --font-splash: 'VT323', monospace;
+
+  /* Legacy compatibility - map to new semantic roles */
+  --font-tmnl: 'Orbitron', monospace;
+  --font-display: 'Share Tech Mono', monospace;
   --font-code: 'Share Tech Mono', monospace;
+  --font-data: 'Geo', monospace;
 
   /* ─────────────────────────────────────────────────────────────
      TYPOGRAPHY SCALE (12px floor per CLAUDE.md)

@@ -8,25 +8,34 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        // ─── Semantic Font Roles (8 local fonts) ─────────────────────────
+        // ─── Semantic Role Classes (per typography alignment) ────────────
+        nav: ["var(--font-nav)", "sans-serif"],                // Navigation → Orbitron
+        button: ["var(--font-button)", "sans-serif"],          // Buttons → Orbitron
+        label: ["var(--font-label)", "monospace"],             // Labels/Headings → Share Tech Mono
+        heading: ["var(--font-heading)", "monospace"],         // Headings → Share Tech Mono
+        stats: ["var(--font-stats)", "sans-serif"],            // Stats/Data → Geo
+        body: ["var(--font-body)", "sans-serif"],              // Body text → Barlow Condensed
+        chat: ["var(--font-chat)", "sans-serif"],              // AI chat → Barlow Condensed
+        splash: ["var(--font-splash)", "monospace"],           // Splash/Boot → VT323
+
+        // ─── Base Font Stack (8 local fonts) ─────────────────────────────
         wordmark: ["var(--font-wordmark)", "sans-serif"],      // Bungee Shade - TMNL branding
-        conversational: ["var(--font-conversational)", "sans-serif"], // Barlow Condensed - AI chat
-        numeric: ["var(--font-numeric)", "sans-serif"],        // Orbitron - Stats, counters
-        data: ["var(--font-data)", "monospace"],               // Share Tech Mono - Grids, tables
-        terminal: ["var(--font-terminal)", "monospace"],       // VT323 - Retro, splash
-        geometric: ["var(--font-geometric)", "sans-serif"],    // Geo - Minimalist numeric
-        pixel: ["var(--font-pixel)", "monospace"],             // Silkscreen - Retro UI, badges
-        hairline: ["var(--font-hairline)", "sans-serif"],      // Bungee Hairline - Thin accents
+        conversational: ["var(--font-conversational)", "sans-serif"], // Barlow Condensed
+        numeric: ["var(--font-numeric)", "sans-serif"],        // Orbitron
+        data: ["var(--font-data)", "monospace"],               // Geo (data displays)
+        terminal: ["var(--font-terminal)", "monospace"],       // VT323
+        geometric: ["var(--font-geometric)", "sans-serif"],    // Geo
+        pixel: ["var(--font-pixel)", "monospace"],             // Silkscreen
+        hairline: ["var(--font-hairline)", "sans-serif"],      // Bungee Hairline
 
         // ─── Legacy Compatibility ────────────────────────────────────────
         tmnl: ["var(--font-tmnl)", "monospace"],               // → Orbitron
-        display: ["var(--font-display)", "monospace"],         // → Orbitron
-        body: ["var(--font-body)", "sans-serif"],              // → Barlow Condensed
+        display: ["var(--font-display)", "monospace"],         // → Share Tech Mono
         code: ["var(--font-code)", "monospace"],               // → Share Tech Mono
+        mono: ["var(--font-label)", "monospace"],              // → Share Tech Mono
 
         // ─── Specialty ───────────────────────────────────────────────────
         lcd: ['"DSEG7"', '"Courier New"', "monospace"],        // Seven-segment LCD
-        mono: ['"Share Tech Mono"', '"JetBrains Mono"', '"SF Mono"', '"Fira Code"', "monospace"],
       },
       fontWeight: {
         hairline: "100",
