@@ -1,11 +1,12 @@
 /**
  * TMNL Typography Primitives
  *
- * Semantic font mapping (per typography alignment):
- * - Labels/Headings → Share Tech Mono (font-label, font-heading)
- * - Body/Chat → Barlow Condensed (font-body)
- * - Data/Stats → Geo (font-stats)
- * - Navigation → Orbitron (font-nav)
+ * Semantic font mapping (Geo-primary brutalist system v2):
+ * - Labels → Share Tech Mono (font-label) — monospace precision
+ * - Headings → Space Grotesk (font-heading) — neo-grotesque brutalist
+ * - Body → Geo (font-body) — primary workhorse
+ * - Data/Stats → Geo (font-stats) — tabular clarity
+ * - Navigation → Geo (font-nav) — functional, not flashy
  *
  * All components use CSS custom properties from ScaleProvider.
  */

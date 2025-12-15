@@ -93,12 +93,16 @@ export const VANTA_COLORS = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const VANTA_TYPOGRAPHY = {
-  // Font families
+  // Font families (Geo-primary brutalist system v2)
   family: {
-    /** Headers, labels, technical text — terminal authority */
-    mono: '"JetBrains Mono", "SF Mono", "Fira Code", "Consolas", monospace',
-    /** Body text, descriptions — readability */
-    sans: '"Inter", "SF Pro Display", "Segoe UI", system-ui, sans-serif',
+    /** Labels, technical text — monospace precision */
+    mono: 'var(--font-label), "Share Tech Mono", monospace',
+    /** Headings — neo-grotesque brutalist */
+    grotesk: 'var(--font-heading), "Space Grotesk", sans-serif',
+    /** Body text — Geo primary workhorse */
+    sans: 'var(--font-body), "Geo", sans-serif',
+    /** Data/stats — tabular clarity */
+    data: 'var(--font-stats), "Geo", sans-serif',
   },
 
   // Font sizes (rem-based for accessibility)
@@ -159,52 +163,53 @@ export const VANTA_TYPOGRAPHY = {
   },
 
   // Preset text styles — uses CSS variables for ScaleProvider integration
+  // Updated for Geo-primary brutalist system v2
   preset: {
-    /** Card title — mono, uppercase, tracked */
+    /** Card title — grotesk, uppercase, tracked */
     cardTitle: {
-      fontFamily: '"JetBrains Mono", monospace',
+      fontFamily: 'var(--font-heading), "Space Grotesk", sans-serif',
       fontSize: 'var(--tmnl-text-xs, 12px)', // 12px — FLOOR
       fontWeight: '500',
       letterSpacing: '0.1em',
       lineHeight: '1.25',
       textTransform: 'uppercase' as const,
     },
-    /** Card subtitle — sans, muted */
+    /** Card subtitle — Geo body */
     cardSubtitle: {
-      fontFamily: '"Inter", sans-serif',
+      fontFamily: 'var(--font-body), "Geo", sans-serif',
       fontSize: 'var(--tmnl-text-xs, 12px)', // 12px
       fontWeight: '400',
-      letterSpacing: '0',
+      letterSpacing: '0.02em',
       lineHeight: '1.5',
     },
-    /** Card body — sans, readable */
+    /** Card body — Geo readable */
     cardBody: {
-      fontFamily: '"Inter", sans-serif',
-      fontSize: 'var(--tmnl-text-sm, 14px)', // 13px→14px (bumped to sm tier)
+      fontFamily: 'var(--font-body), "Geo", sans-serif',
+      fontSize: 'var(--tmnl-text-sm, 14px)', // 14px
       fontWeight: '400',
-      letterSpacing: '0',
+      letterSpacing: '0.02em',
       lineHeight: '1.625',
     },
     /** Label — mono, small, uppercase */
     label: {
-      fontFamily: '"JetBrains Mono", monospace',
+      fontFamily: 'var(--font-label), "Share Tech Mono", monospace',
       fontSize: 'var(--tmnl-text-xs, 12px)', // 12px — FLOOR
       fontWeight: '500',
       letterSpacing: '0.15em',
       lineHeight: '1',
       textTransform: 'uppercase' as const,
     },
-    /** Value — mono, emphasized */
+    /** Value — stats/data font, emphasized */
     value: {
-      fontFamily: '"JetBrains Mono", monospace',
+      fontFamily: 'var(--font-stats), "Geo", sans-serif',
       fontSize: 'var(--tmnl-text-sm, 14px)', // 14px
       fontWeight: '600',
       letterSpacing: '0.025em',
       lineHeight: '1.25',
     },
-    /** Micro — timestamps, IDs */
+    /** Micro — timestamps, IDs (mono for alignment) */
     micro: {
-      fontFamily: '"JetBrains Mono", monospace',
+      fontFamily: 'var(--font-label), "Share Tech Mono", monospace',
       fontSize: 'var(--tmnl-text-xs, 12px)', // 12px — FLOOR
       fontWeight: '400',
       letterSpacing: '0.05em',

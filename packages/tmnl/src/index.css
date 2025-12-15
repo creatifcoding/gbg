@@ -14,17 +14,17 @@
   --tmnl-border-chrome: 1px solid rgb(38, 38, 38); /* neutral-800 */
 
   /* ─────────────────────────────────────────────────────────────
-     FONT FAMILY TOKENS (8 semantic roles)
+     FONT FAMILY TOKENS (9 typefaces - brutalist typography v2)
      ───────────────────────────────────────────────────────────── */
 
-  /* WORDMARK - Bungee Shade (TMNL branding only) */
-  --font-wordmark: 'Bungee Shade', sans-serif;
+  /* WORDMARK - VT323 (TMNL branding, retro terminal) */
+  --font-wordmark: 'VT323', monospace;
 
   /* CONVERSATIONAL - Barlow Condensed (AI assistant, chat interfaces) */
   --font-conversational: 'Barlow Condensed', sans-serif;
 
-  /* NUMERIC - Orbitron (displays, stats, counters, status) */
-  --font-numeric: 'Orbitron', sans-serif;
+  /* NUMERIC - Geo (displays, stats, counters - demoted Orbitron) */
+  --font-numeric: 'Geo', sans-serif;
 
   /* DATA - Share Tech Mono (grids, tables, technical readouts) */
   --font-data: 'Share Tech Mono', monospace;
@@ -32,8 +32,11 @@
   /* TERMINAL - VT323 (retro aesthetic, boot sequences, splash) */
   --font-terminal: 'VT323', monospace;
 
-  /* GEOMETRIC - Geo (minimalist numeric, status indicators) */
+  /* GEOMETRIC - Geo (PRIMARY workhorse - nav, buttons, body, data) */
   --font-geometric: 'Geo', sans-serif;
+
+  /* GROTESK - Space Grotesk (neo-grotesque headings, brutalist character) */
+  --font-grotesk: 'Space Grotesk', sans-serif;
 
   /* PIXEL - Silkscreen (retro UI, badges, pixel art) */
   --font-pixel: 'Silkscreen', monospace;
@@ -41,33 +44,39 @@
   /* HAIRLINE - Bungee Hairline (ultra-thin decorative accents) */
   --font-hairline: 'Bungee Hairline', sans-serif;
 
+  /* LEGACY - Orbitron (demoted, kept for backward compat) */
+  --font-orbitron: 'Orbitron', sans-serif;
+
   /* ─────────────────────────────────────────────────────────────
-     SEMANTIC ROLE MAPPINGS (per typography alignment)
+     SEMANTIC ROLE MAPPINGS (Geo-primary brutalist system v2)
      ───────────────────────────────────────────────────────────── */
 
-  /* Navigation, Buttons → Orbitron */
-  --font-nav: 'Orbitron', sans-serif;
-  --font-button: 'Orbitron', sans-serif;
+  /* Navigation, Buttons → Geo (functional, not flashy) */
+  --font-nav: 'Geo', sans-serif;
+  --font-button: 'Geo', sans-serif;
 
-  /* Data displays, Stats → Geo */
+  /* Data displays, Stats → Geo (tabular clarity) */
   --font-stats: 'Geo', sans-serif;
 
-  /* Labels, Headings → Share Tech Mono */
+  /* Labels → Share Tech Mono (monospace precision) */
   --font-label: 'Share Tech Mono', monospace;
-  --font-heading: 'Share Tech Mono', monospace;
 
-  /* Body, AI Chat → Barlow Condensed */
-  --font-body: 'Barlow Condensed', sans-serif;
+  /* Headings → Space Grotesk (neo-grotesque brutalist) */
+  --font-heading: 'Space Grotesk', sans-serif;
+
+  /* Body → Geo (primary workhorse) */
+  --font-body: 'Geo', sans-serif;
+
+  /* AI Chat → Barlow Condensed (conversational) */
   --font-chat: 'Barlow Condensed', sans-serif;
 
-  /* Splash, Boot → VT323 */
+  /* Splash, Boot → VT323 (CRT aesthetic) */
   --font-splash: 'VT323', monospace;
 
-  /* Legacy compatibility - map to new semantic roles */
-  --font-tmnl: 'Orbitron', monospace;
-  --font-display: 'Share Tech Mono', monospace;
+  /* Legacy compatibility */
+  --font-tmnl: 'Geo', sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
   --font-code: 'Share Tech Mono', monospace;
-  --font-data: 'Geo', monospace;
 
   /* ─────────────────────────────────────────────────────────────
      TYPOGRAPHY SCALE (12px floor per CLAUDE.md)
@@ -233,6 +242,17 @@ html, body {
   font-family: 'Bungee Hairline';
   src: url('/assets/data/fonts/Bungee_Hairline/BungeeHairline-Regular.ttf') format('truetype');
   font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* SPACE GROTESK - Neo-grotesque headings (brutalist typography system v2)
+   Derived from Space Mono, retains quirky monospace heritage
+   Research: https://fonts.floriankarsten.com/space-grotesk */
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/assets/data/fonts/Space_Grotesk/SpaceGrotesk-VariableFont_wght.ttf') format('truetype-variations');
+  font-weight: 300 700;
   font-style: normal;
   font-display: swap;
 }

@@ -8,29 +8,31 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        // ─── Semantic Role Classes (per typography alignment) ────────────
-        nav: ["var(--font-nav)", "sans-serif"],                // Navigation → Orbitron
-        button: ["var(--font-button)", "sans-serif"],          // Buttons → Orbitron
-        label: ["var(--font-label)", "monospace"],             // Labels/Headings → Share Tech Mono
-        heading: ["var(--font-heading)", "monospace"],         // Headings → Share Tech Mono
+        // ─── Semantic Role Classes (Geo-primary brutalist v2) ────────────
+        nav: ["var(--font-nav)", "sans-serif"],                // Navigation → Geo
+        button: ["var(--font-button)", "sans-serif"],          // Buttons → Geo
+        label: ["var(--font-label)", "monospace"],             // Labels → Share Tech Mono
+        heading: ["var(--font-heading)", "sans-serif"],        // Headings → Space Grotesk
         stats: ["var(--font-stats)", "sans-serif"],            // Stats/Data → Geo
-        body: ["var(--font-body)", "sans-serif"],              // Body text → Barlow Condensed
+        body: ["var(--font-body)", "sans-serif"],              // Body text → Geo
         chat: ["var(--font-chat)", "sans-serif"],              // AI chat → Barlow Condensed
         splash: ["var(--font-splash)", "monospace"],           // Splash/Boot → VT323
 
-        // ─── Base Font Stack (8 local fonts) ─────────────────────────────
-        wordmark: ["var(--font-wordmark)", "sans-serif"],      // Bungee Shade - TMNL branding
+        // ─── Base Font Stack (9 typefaces) ───────────────────────────────
+        wordmark: ["var(--font-wordmark)", "monospace"],       // VT323 - TMNL branding
         conversational: ["var(--font-conversational)", "sans-serif"], // Barlow Condensed
-        numeric: ["var(--font-numeric)", "sans-serif"],        // Orbitron
-        data: ["var(--font-data)", "monospace"],               // Geo (data displays)
+        numeric: ["var(--font-numeric)", "sans-serif"],        // Geo
+        data: ["var(--font-data)", "monospace"],               // Share Tech Mono
         terminal: ["var(--font-terminal)", "monospace"],       // VT323
-        geometric: ["var(--font-geometric)", "sans-serif"],    // Geo
+        geometric: ["var(--font-geometric)", "sans-serif"],    // Geo (PRIMARY)
+        grotesk: ["var(--font-grotesk)", "sans-serif"],        // Space Grotesk
         pixel: ["var(--font-pixel)", "monospace"],             // Silkscreen
         hairline: ["var(--font-hairline)", "sans-serif"],      // Bungee Hairline
+        orbitron: ["var(--font-orbitron)", "sans-serif"],      // Orbitron (demoted)
 
         // ─── Legacy Compatibility ────────────────────────────────────────
-        tmnl: ["var(--font-tmnl)", "monospace"],               // → Orbitron
-        display: ["var(--font-display)", "monospace"],         // → Share Tech Mono
+        tmnl: ["var(--font-tmnl)", "sans-serif"],              // → Geo
+        display: ["var(--font-display)", "sans-serif"],        // → Space Grotesk
         code: ["var(--font-code)", "monospace"],               // → Share Tech Mono
         mono: ["var(--font-label)", "monospace"],              // → Share Tech Mono
 
