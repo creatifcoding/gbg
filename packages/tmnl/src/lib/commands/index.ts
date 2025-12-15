@@ -75,6 +75,7 @@ export {
   bindingOverridesAtom,
   effectiveBindingsAtom,
 } from './service'
+export type { ExecuteInteractiveOptions } from './service'
 
 // Default commands (import for side-effect registration)
 export { allCommands } from './defaults'
@@ -118,11 +119,16 @@ export {
   wireCommands,
   wireCommandsEffect,
   unwireCommands,
+  unwireCommandsEffect,
+  // Error types (for Effect.catchTag)
+  CommandRegistrationError,
+  BindingRegistrationError,
+  WireError,
 } from './wire'
 export type { WireResult, RegistryLike } from './wire'
 
 // React hook for wiring
-export { useCommandWire, withCommandWire } from './useCommandWire'
+export { useCommandWire, withCommandWire, ProviderRegistrationError } from './useCommandWire'
 export type { UseCommandWireOptions, UseCommandWireResult } from './useCommandWire'
 
 // Persistence
@@ -136,3 +142,20 @@ export type {
   UseKeybindingPersistenceOptions,
   UseKeybindingPersistenceResult,
 } from './persistence'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Command Provider (for M-x)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// The CommandProvider is a completion provider for the minibuffer.
+// It provides fuzzy-matched command completions via CommandService.
+//
+// ARCHITECTURAL NOTE:
+// CommandProvider lives here (commands/), not in minibuffer/.
+// Minibuffer is a generic prompt engine. Commands USES minibuffer, not the reverse.
+//
+export {
+  CommandProvider,
+  COMMAND_PROVIDER_ID,
+  registerCommandProvider,
+} from './CommandProvider'

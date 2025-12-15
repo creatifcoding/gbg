@@ -2,11 +2,41 @@
  * TMNL Commands — React Hook for Command Wiring
  *
  * Wires all commands and keybindings to the hotkey system on mount.
+ * Uses Effect for error handling — no try/catch blocks.
  */
 
-import { useContext, useEffect, useRef, useState } from 'react'
-import { RegistryContext } from '@effect-atom/atom-react'
-import { wireCommands, unwireCommands, type WireResult } from './wire'
+import { useContext, useEffect, useRef, useState, useCallback } from 'react'
+import { Effect, Data } from 'effect'
+import { RegistryContext, type Registry } from '@effect-atom/atom-react'
+import {
+  wireCommandsEffect,
+  unwireCommandsEffect,
+  type WireResult,
+  type RegistryLike,
+} from './wire'
+import { registerCommandProvider } from './CommandProvider'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Error Types (Tagged for Effect.catchTag)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Error during CommandProvider registration */
+export class ProviderRegistrationError extends Data.TaggedError('ProviderRegistrationError')<{
+  readonly cause: unknown
+}> {}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Effect-Based Provider Registration
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Register CommandProvider with minibuffer.
+ * Wrapped in Effect.try for consistent error handling.
+ */
+const registerProviderEffect: Effect.Effect<void, ProviderRegistrationError> = Effect.try({
+  try: () => registerCommandProvider(),
+  catch: (cause) => new ProviderRegistrationError({ cause }),
+})
 
 export interface UseCommandWireOptions {
   /**
@@ -81,43 +111,83 @@ export function useCommandWire(options: UseCommandWireOptions = {}): UseCommandW
     if (hasWired.current) return
     hasWired.current = true
 
-    try {
-      const wireResult = wireCommands(registry)
-      setResult(wireResult)
-      setIsWired(true)
+    // Effect-based wiring pipeline — no try/catch
+    const wireEffect = Effect.gen(function* () {
+      // Register CommandProvider with minibuffer FIRST
+      // This ensures M-x completion works via CommandService.executeInteractive()
+      yield* registerProviderEffect
 
       if (debug) {
-        console.log('[useCommandWire] Wired commands:', {
+        yield* Effect.log('[useCommandWire] Registered CommandProvider with minibuffer')
+      }
+
+      // Then wire commands to hotkey system
+      const wireResult = yield* wireCommandsEffect(registry as RegistryLike)
+
+      if (debug) {
+        yield* Effect.log('[useCommandWire] Wired commands:', {
           commands: wireResult.commandsRegistered,
           bindings: wireResult.bindingsRegistered,
           errors: wireResult.errors,
         })
       }
 
+      return wireResult
+    }).pipe(
+      // Handle provider registration errors
+      Effect.catchTag('ProviderRegistrationError', (err) =>
+        Effect.gen(function* () {
+          yield* Effect.logError('[useCommandWire] Failed to register CommandProvider', err.cause)
+          // Return empty result on provider failure
+          return { commandsRegistered: 0, bindingsRegistered: 0, errors: [] } as WireResult
+        })
+      ),
+      // Handle any unexpected errors
+      Effect.catchAll((err) =>
+        Effect.gen(function* () {
+          yield* Effect.logError('[useCommandWire] Unexpected error during wiring', err)
+          return { commandsRegistered: 0, bindingsRegistered: 0, errors: [] } as WireResult
+        })
+      )
+    )
+
+    // Run the Effect and handle the result
+    Effect.runPromise(wireEffect).then((wireResult) => {
+      setResult(wireResult)
+      setIsWired(true)
+
       onWired?.(wireResult)
 
       if (wireResult.errors.length > 0 && onError) {
         onError(wireResult.errors)
       }
-    } catch (e) {
-      console.error('[useCommandWire] Failed to wire commands:', e)
-    }
+    })
 
     // No cleanup - commands stay registered for app lifetime
   }, [registry, debug, onWired, onError])
 
-  const rewire = () => {
-    unwireCommands(registry)
-    const wireResult = wireCommands(registry)
-    setResult(wireResult)
+  const rewire = useCallback(() => {
+    // Effect-based rewiring
+    const rewireEffect = Effect.gen(function* () {
+      yield* unwireCommandsEffect(registry as RegistryLike)
+      const wireResult = yield* wireCommandsEffect(registry as RegistryLike)
 
-    if (debug) {
-      console.log('[useCommandWire] Re-wired commands:', wireResult)
-    }
-  }
+      if (debug) {
+        yield* Effect.log('[useCommandWire] Re-wired commands:', wireResult)
+      }
 
-  const clear = () => {
-    unwireCommands(registry)
+      return wireResult
+    })
+
+    Effect.runPromise(rewireEffect).then((wireResult) => {
+      setResult(wireResult)
+    })
+  }, [registry, debug])
+
+  const clear = useCallback(() => {
+    // Effect-based clearing
+    Effect.runSync(unwireCommandsEffect(registry as RegistryLike))
+
     setIsWired(false)
     setResult(null)
     hasWired.current = false
@@ -125,7 +195,7 @@ export function useCommandWire(options: UseCommandWireOptions = {}): UseCommandW
     if (debug) {
       console.log('[useCommandWire] Cleared all commands')
     }
-  }
+  }, [registry, debug])
 
   return { isWired, result, rewire, clear }
 }

@@ -3,11 +3,15 @@
  *
  * Bridges the command system (src/lib/commands) with the hotkey system (src/lib/hotkeys).
  *
- * Call `wireCommands(registry)` at app initialization to register all commands
+ * Call `wireCommandsEffect(registry)` at app initialization to register all commands
  * and their default keybindings with the hotkey system.
+ *
+ * ERROR HANDLING:
+ * Uses Effect for error handling. Wiring errors are accumulated (not fail-fast)
+ * so partial wiring is possible. Use `WireError` tagged errors for specific handling.
  */
 
-import { Effect, Option } from 'effect'
+import { Effect, Data, Ref, Array as A } from 'effect'
 import { Atom } from '@effect-atom/atom'
 import { getRegisteredCommands, getDefaultBindings } from './decorators'
 import type { GlobalCommand, EntityCommand, Command } from './types'
@@ -23,6 +27,28 @@ import {
   type ScopeId,
   Scopes,
 } from '../hotkeys'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Error Types (Tagged for Effect.catchTag)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Error during command registration */
+export class CommandRegistrationError extends Data.TaggedError('CommandRegistrationError')<{
+  readonly commandId: string
+  readonly cause: unknown
+}> {}
+
+/** Error during keybinding parsing/registration */
+export class BindingRegistrationError extends Data.TaggedError('BindingRegistrationError')<{
+  readonly commandId: string
+  readonly keys: string
+  readonly cause: unknown
+}> {}
+
+/** Aggregate of all wiring errors (non-fatal, accumulated) */
+export class WireError extends Data.TaggedError('WireError')<{
+  readonly errors: readonly (CommandRegistrationError | BindingRegistrationError)[]
+}> {}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Type Mapping
@@ -75,7 +101,7 @@ function adaptCommandToHotkey(cmd: Command): HotkeyCommand {
 export interface WireResult {
   readonly commandsRegistered: number
   readonly bindingsRegistered: number
-  readonly errors: readonly { commandId: string; error: string }[]
+  readonly errors: readonly (CommandRegistrationError | BindingRegistrationError)[]
 }
 
 /**
@@ -86,41 +112,21 @@ export interface RegistryLike {
   set: <A>(atom: Atom.Writable<A, A>, value: A) => void
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Effect-Based Wiring (Primary API)
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
- * Wire all commands and keybindings from the command system to the hotkey system.
- *
- * @param registry - The effect-atom registry (from RegistryContext)
- * @returns Result with counts and any errors
- *
- * @example
- * ```tsx
- * import { useContext, useEffect } from 'react'
- * import { RegistryContext } from '@effect-atom/atom-react'
- * import { wireCommands } from '@/lib/commands/wire'
- *
- * function App() {
- *   const registry = useContext(RegistryContext)
- *
- *   useEffect(() => {
- *     const result = wireCommands(registry)
- *     console.log(`Wired ${result.commandsRegistered} commands, ${result.bindingsRegistered} bindings`)
- *   }, [registry])
- *
- *   return <YourApp />
- * }
- * ```
+ * Register a single command with the hotkey system.
+ * Returns the command ID on success.
  */
-export function wireCommands(registry: RegistryLike): WireResult {
-  const commands = getRegisteredCommands()
-  const bindings = getDefaultBindings()
-  const errors: { commandId: string; error: string }[] = []
-
-  let commandsRegistered = 0
-  let bindingsRegistered = 0
-
-  // Register all commands
-  for (const [id, cmd] of commands) {
-    try {
+const registerSingleCommand = (
+  registry: RegistryLike,
+  id: string,
+  cmd: Command
+): Effect.Effect<string, CommandRegistrationError> =>
+  Effect.try({
+    try: () => {
       const hotkeyCmd = adaptCommandToHotkey(cmd)
       hotkeyActions.registerCommand(
         registry,
@@ -134,19 +140,21 @@ export function wireCommands(registry: RegistryLike): WireResult {
         },
         hotkeyCmd.handler
       )
-      commandsRegistered++
-    } catch (e) {
-      errors.push({
-        commandId: id,
-        error: e instanceof Error ? e.message : String(e),
-      })
-    }
-  }
+      return id
+    },
+    catch: (cause) => new CommandRegistrationError({ commandId: id, cause }),
+  })
 
-  // Register all keybindings
-  // We need to parse key strings to KeySequence, which requires Effect
-  for (const binding of bindings) {
-    try {
+/**
+ * Register a single keybinding with the hotkey system.
+ * Returns the command ID on success.
+ */
+const registerSingleBinding = (
+  registry: RegistryLike,
+  binding: { keys: string; commandId: string; scope: string }
+): Effect.Effect<string, BindingRegistrationError> =>
+  Effect.try({
+    try: () => {
       // Use the runtime atom to parse keys
       const parseEffect = hotkeyOps.parseKeys(binding.keys)
       const parsedKeys = registry.get(hotkeyRuntimeAtom.atom(parseEffect))
@@ -162,29 +170,117 @@ export function wireCommands(registry: RegistryLike): WireResult {
       }
 
       hotkeyActions.addBinding(registry, hotkeyBinding)
-      bindingsRegistered++
-    } catch (e) {
-      errors.push({
+      return binding.commandId
+    },
+    catch: (cause) =>
+      new BindingRegistrationError({
         commandId: binding.commandId,
-        error: `Failed to parse keys "${binding.keys}": ${e instanceof Error ? e.message : String(e)}`,
-      })
-    }
-  }
+        keys: binding.keys,
+        cause,
+      }),
+  })
 
-  return { commandsRegistered, bindingsRegistered, errors }
+/**
+ * Wire all commands and keybindings from the command system to the hotkey system.
+ *
+ * Uses Effect for error handling with accumulated errors (non-fail-fast).
+ * Partial wiring is possible — errors don't stop the process.
+ *
+ * @param registry - The effect-atom registry (from RegistryContext)
+ * @returns Effect yielding WireResult with counts and accumulated errors
+ *
+ * @example
+ * ```tsx
+ * import { useContext, useEffect } from 'react'
+ * import { RegistryContext } from '@effect-atom/atom-react'
+ * import { wireCommandsEffect } from '@/lib/commands/wire'
+ *
+ * function App() {
+ *   const registry = useContext(RegistryContext)
+ *
+ *   useEffect(() => {
+ *     Effect.runPromise(
+ *       wireCommandsEffect(registry).pipe(
+ *         Effect.tap((result) =>
+ *           Effect.log(`Wired ${result.commandsRegistered} commands, ${result.bindingsRegistered} bindings`)
+ *         )
+ *       )
+ *     )
+ *   }, [registry])
+ *
+ *   return <YourApp />
+ * }
+ * ```
+ */
+export const wireCommandsEffect = (registry: RegistryLike): Effect.Effect<WireResult> =>
+  Effect.gen(function* () {
+    const commands = getRegisteredCommands()
+    const bindings = getDefaultBindings()
+
+    // Use Ref to accumulate errors without fail-fast
+    const errorsRef = yield* Ref.make<(CommandRegistrationError | BindingRegistrationError)[]>([])
+    const commandCountRef = yield* Ref.make(0)
+    const bindingCountRef = yield* Ref.make(0)
+
+    // Register all commands (accumulate errors)
+    for (const [id, cmd] of commands) {
+      yield* registerSingleCommand(registry, id, cmd).pipe(
+        Effect.tap(() => Ref.update(commandCountRef, (n) => n + 1)),
+        Effect.catchAll((err) =>
+          Ref.update(errorsRef, (errs) => [...errs, err])
+        )
+      )
+    }
+
+    // Register all keybindings (accumulate errors)
+    for (const binding of bindings) {
+      yield* registerSingleBinding(registry, binding).pipe(
+        Effect.tap(() => Ref.update(bindingCountRef, (n) => n + 1)),
+        Effect.catchAll((err) =>
+          Ref.update(errorsRef, (errs) => [...errs, err])
+        )
+      )
+    }
+
+    const errors = yield* Ref.get(errorsRef)
+    const commandsRegistered = yield* Ref.get(commandCountRef)
+    const bindingsRegistered = yield* Ref.get(bindingCountRef)
+
+    // Log if there were errors
+    if (errors.length > 0) {
+      yield* Effect.logWarning(`Wire completed with ${errors.length} errors`)
+    }
+
+    return { commandsRegistered, bindingsRegistered, errors }
+  })
+
+/**
+ * Wire commands synchronously (convenience wrapper).
+ *
+ * DEPRECATED: Prefer `wireCommandsEffect` for proper error handling.
+ * This wrapper uses Effect.runSync which will throw on async operations.
+ *
+ * @param registry - The effect-atom registry
+ * @returns WireResult
+ */
+export function wireCommands(registry: RegistryLike): WireResult {
+  return Effect.runSync(wireCommandsEffect(registry))
 }
 
 /**
- * Wire commands as an Effect (for use in Effect pipelines).
+ * Clear all commands and bindings from the hotkey system.
+ * Returns Effect for composition.
  */
-export const wireCommandsEffect = (registry: RegistryLike): Effect.Effect<WireResult> =>
-  Effect.sync(() => wireCommands(registry))
+export const unwireCommandsEffect = (registry: RegistryLike): Effect.Effect<void> =>
+  Effect.sync(() => {
+    registry.set(commandsSourceAtom, new Map())
+    registry.set(bindingsSourceAtom, [])
+  })
 
 /**
  * Clear all commands and bindings from the hotkey system.
- * Useful for testing or reloading.
+ * Synchronous convenience wrapper.
  */
 export function unwireCommands(registry: RegistryLike): void {
-  registry.set(commandsSourceAtom, new Map())
-  registry.set(bindingsSourceAtom, [])
+  Effect.runSync(unwireCommandsEffect(registry))
 }
