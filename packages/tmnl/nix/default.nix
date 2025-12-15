@@ -10,6 +10,8 @@
     ./modules/tauri.nix
     ./modules/k8s.nix      # Kubernetes / Pepr operator
     ./modules/grpc.nix     # gRPC / Protobuf tooling (buf, protoc)
+    ./modules/nats/default.nix      # NATS cluster (Phase 0)
+    ./modules/postgres/default.nix  # PostgreSQL (Phase 0)
     ./modules/default.nix  # Unified tmnl shell
     ./modules/tests.nix    # Test suite
   ];
