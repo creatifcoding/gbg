@@ -20,12 +20,18 @@ export const VisualOverlayId = Schema.String.pipe(
 )
 export type VisualOverlayId = typeof VisualOverlayId.Type
 
+/** Create a VisualOverlayId from a string (unsafe, no validation) */
+export const overlayId = (id: string): VisualOverlayId => id as VisualOverlayId
+
 /** Slot identifier ('global' or panelId) */
 export const SlotId = Schema.String.pipe(
   Schema.brand("SlotId"),
   Schema.minLength(1),
 )
 export type SlotId = typeof SlotId.Type
+
+/** Create a SlotId from a string (unsafe, no validation) */
+export const slotId = (id: string): SlotId => id as SlotId
 
 // ─────────────────────────────────────────────────────────────
 // Overlay Types (Literal union)

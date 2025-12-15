@@ -64,6 +64,11 @@ export {
   useTopBarSafe,
   type TopBarMountOptions,
   type UseTopBarReturn,
+  // Sidebar
+  useSidebar,
+  useSidebarSafe,
+  type SidebarMountOptions,
+  type UseSidebarReturn,
   // Command Palette
   useCommandPalette,
   useCommandPaletteSafe,
@@ -86,6 +91,13 @@ export { PanelSlot, type PanelSlotProps } from "./slots"
 
 // Persistent Overlays (auto-mount)
 export { PersistentOverlays, type PersistentOverlaysProps } from "./PersistentOverlays"
+
+// Components
+export {
+  DrawerSlotContent,
+  notifyDrawerSlotChange,
+  type DrawerSlotContentProps,
+} from "./components"
 
 // Renderers
 export {

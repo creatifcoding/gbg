@@ -67,6 +67,11 @@ export {
   getContent,
   unregisterContent,
   hasContent,
+  // Drawer slot registry (injection pattern)
+  registerDrawerSlot,
+  unregisterDrawerSlot,
+  getDrawerSlotContent,
+  hasDrawerSlotContent,
   // Mutations
   openOverlay,
   closeOverlay,

@@ -40,6 +40,14 @@ export {
   type UseTopBarReturn,
 } from "./useTopBar"
 
+// Sidebar
+export {
+  useSidebar,
+  useSidebarSafe,
+  type SidebarMountOptions,
+  type UseSidebarReturn,
+} from "./useSidebar"
+
 // Command Palette
 export {
   useCommandPalette,

@@ -1,8 +1,10 @@
 /**
  * Top Bar Content
  *
- * Content component for the top bar overlay.
- * Uses visual overlay hooks instead of prop-drilling callbacks.
+ * Canvas-derived top bar with tactical brutalist styling.
+ * Corner decorations, neutral palette, monospace typography.
+ *
+ * Pattern from: src/components/static-ui/canvas-toolbar/toolbar.tsx
  *
  * EPOCH-0004: Global Overlay System
  *
@@ -10,8 +12,110 @@
  */
 
 import { PanelLeft, PanelRight, Save, Upload, Command } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { useDrawer, useCommandPalette } from "@/lib/overlays/visual"
+
+// ─────────────────────────────────────────────────────────────
+// Toolbar Primitives (from canvas-toolbar)
+// ─────────────────────────────────────────────────────────────
+
+function ToolbarButton({
+  children,
+  onClick,
+  active = false,
+  disabled = false,
+  title,
+}: {
+  children: React.ReactNode
+  onClick?: () => void
+  active?: boolean
+  disabled?: boolean
+  title?: string
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={`
+        px-3 py-2 font-mono uppercase tracking-widest
+        transition-colors flex items-center gap-1.5
+        border-r border-neutral-800 last:border-r-0
+        disabled:opacity-30 disabled:cursor-not-allowed
+        ${
+          active
+            ? "bg-neutral-800 text-white"
+            : "text-neutral-500 hover:bg-neutral-900 hover:text-white"
+        }
+      `}
+      style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+    >
+      {children}
+    </button>
+  )
+}
+
+function IconButton({
+  children,
+  onClick,
+  active = false,
+  disabled = false,
+  title,
+}: {
+  children: React.ReactNode
+  onClick?: () => void
+  active?: boolean
+  disabled?: boolean
+  title?: string
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={`
+        group relative w-9 h-9
+        flex items-center justify-center
+        disabled:opacity-30 disabled:cursor-not-allowed
+        transition-colors
+        border-r border-neutral-800 last:border-r-0
+      `}
+    >
+      <span
+        className={`
+          absolute inset-0
+          transition-all duration-150 ease-out
+          ${active
+            ? 'bg-neutral-800 opacity-100'
+            : 'bg-neutral-800 opacity-0 group-hover:opacity-100'
+          }
+        `}
+      />
+      <span
+        className={`
+          relative z-10
+          transition-colors duration-150
+          ${active
+            ? 'text-white'
+            : 'text-neutral-500 group-hover:text-white'
+          }
+        `}
+      >
+        {children}
+      </span>
+    </button>
+  )
+}
+
+/** Corner decoration - tactical brutalist aesthetic */
+function CornerDecorations() {
+  return (
+    <>
+      <div className="absolute -top-px -left-px w-2 h-2 border-t border-l border-neutral-700" />
+      <div className="absolute -top-px -right-px w-2 h-2 border-t border-r border-neutral-700" />
+      <div className="absolute -bottom-px -left-px w-2 h-2 border-b border-l border-neutral-700" />
+      <div className="absolute -bottom-px -right-px w-2 h-2 border-b border-r border-neutral-700" />
+    </>
+  )
+}
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -20,14 +124,16 @@ import { useDrawer, useCommandPalette } from "@/lib/overlays/visual"
 export interface TopBarContentProps {
   /** Title to display */
   title?: string
-  /** Whether sidebar is available */
+  /** Whether sidebar toggle is shown */
   showSidebarToggle?: boolean
-  /** Whether drawer is available */
+  /** Whether drawer toggle is shown */
   showDrawerToggle?: boolean
-  /** Content for sidebar (when toggled) */
-  sidebarContent?: React.ReactNode
-  /** Content for drawer (when toggled) */
-  drawerContent?: React.ReactNode
+  /** Sidebar toggle callback */
+  onSidebarToggle?: () => void
+  /** Drawer toggle callback */
+  onDrawerToggle?: () => void
+  /** Command palette toggle callback */
+  onCommandPalette?: () => void
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -38,102 +144,63 @@ export function TopBarContent({
   title = "TMNL",
   showSidebarToggle = true,
   showDrawerToggle = true,
-  sidebarContent,
-  drawerContent,
+  onSidebarToggle,
+  onDrawerToggle,
+  onCommandPalette,
 }: TopBarContentProps) {
-  const drawer = useDrawer()
-  const commandPalette = useCommandPalette()
-
-  const toolbarActions = [
-    { icon: Save, label: "Save State", onClick: () => console.log("Save") },
-    { icon: Upload, label: "Load State", onClick: () => console.log("Load") },
-  ]
-
-  const handleSidebarToggle = () => {
-    if (sidebarContent) {
-      drawer.open(
-        { id: "sidebar", slot: "global" as any, side: "left", width: 280 },
-        sidebarContent
-      )
-    }
-  }
-
-  const handleDrawerToggle = () => {
-    if (drawerContent) {
-      drawer.open(
-        { id: "settings", slot: "global" as any, side: "right", width: 400 },
-        drawerContent
-      )
-    }
-  }
-
-  const handleCommandPalette = () => {
-    commandPalette.toggle(
-      { placeholder: "Type a command or search..." },
-      <div className="p-4 text-sm text-gray-400">
-        Command palette content goes here
-      </div>
-    )
-  }
-
   return (
-    <div className="h-full flex items-center justify-between px-2 md:px-4">
+    <div className="relative h-full w-full flex items-center bg-black">
+      <CornerDecorations />
+
       {/* Left section */}
-      <div className="flex items-center gap-2 md:gap-4">
+      <div className="flex items-center h-full">
         {showSidebarToggle && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleSidebarToggle}
-            className="text-[var(--tmnl-accent,#4ade80)] hover:bg-[var(--tmnl-accent,#4ade80)]/10"
-          >
-            <PanelLeft className="h-5 w-5" />
-          </Button>
+          <IconButton onClick={onSidebarToggle} title="Toggle Sidebar">
+            <PanelLeft size={14} />
+          </IconButton>
         )}
-        <h1
-          className="text-lg md:text-xl font-bold text-[var(--tmnl-accent,#4ade80)]"
-          style={{ textShadow: "0 0 5px var(--tmnl-accent, #4ade80)" }}
-        >
-          {title}
-        </h1>
+
+        {/* Title */}
+        <div className="px-4 flex items-center gap-2 border-r border-neutral-800 h-full">
+          <div className="w-1.5 h-1.5 bg-neutral-700" />
+          <span
+            className="font-mono uppercase tracking-widest text-neutral-400"
+            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+          >
+            {title}
+          </span>
+        </div>
       </div>
 
-      {/* Center section - command palette trigger */}
-      <button
-        onClick={handleCommandPalette}
-        className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md border border-[var(--tmnl-border,#333)] bg-[var(--tmnl-bg-muted,#1a1a1a)] text-sm text-[var(--tmnl-text-muted,#666)] hover:border-[var(--tmnl-accent,#4ade80)]/50 transition-colors"
-      >
-        <Command className="h-4 w-4" />
-        <span>Command...</span>
-        <kbd className="ml-2 px-1.5 py-0.5 text-xs rounded bg-[var(--tmnl-bg-surface,#222)] border border-[var(--tmnl-border,#333)]">
-          ⌘K
-        </kbd>
-      </button>
+      {/* Center section - command palette */}
+      <div className="flex-1 flex justify-center">
+        <button
+          onClick={onCommandPalette}
+          className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-neutral-800 bg-neutral-900/50 text-neutral-500 hover:border-neutral-600 hover:text-neutral-300 transition-colors"
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        >
+          <Command size={12} />
+          <span className="font-mono uppercase tracking-wider">Command</span>
+          <kbd className="ml-2 px-1.5 py-0.5 font-mono rounded bg-neutral-800 border border-neutral-700">
+            ⌘K
+          </kbd>
+        </button>
+      </div>
 
       {/* Right section */}
-      <div className="flex items-center gap-1 md:gap-2">
-        {toolbarActions.map((action) => (
-          <Button
-            key={action.label}
-            variant="ghost"
-            size="sm"
-            onClick={action.onClick}
-            className="text-[var(--tmnl-accent,#4ade80)] hover:bg-[var(--tmnl-accent,#4ade80)]/10"
-            title={action.label}
-          >
-            <action.icon className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">{action.label}</span>
-          </Button>
-        ))}
+      <div className="flex items-center h-full">
+        <ToolbarButton onClick={() => console.log("Save")} title="Save State">
+          <Save size={10} />
+          <span className="hidden lg:inline">Save</span>
+        </ToolbarButton>
+        <ToolbarButton onClick={() => console.log("Load")} title="Load State">
+          <Upload size={10} />
+          <span className="hidden lg:inline">Load</span>
+        </ToolbarButton>
         {showDrawerToggle && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleDrawerToggle}
-            className="text-[var(--tmnl-accent,#4ade80)] hover:bg-[var(--tmnl-accent,#4ade80)]/10"
-          >
-            <PanelRight className="h-5 w-5" />
-          </Button>
+          <IconButton onClick={onDrawerToggle} title="Toggle Drawer">
+            <PanelRight size={14} />
+          </IconButton>
         )}
       </div>
     </div>

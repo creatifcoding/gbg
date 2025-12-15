@@ -18,6 +18,8 @@ import type {
   CommandScope,
 } from './types'
 import { getRegisteredCommands, getDefaultBindings } from './decorators'
+import { MinibufferService } from '../minibuffer/services/MinibufferService'
+import { COMMAND_PROVIDER_ID } from './CommandProvider'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Atoms (Reactive State)
@@ -66,6 +68,14 @@ export const effectiveBindingsAtom = Atom.make((get) => {
 // Service Definition
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Options for executeInteractive (M-x)
+ */
+export interface ExecuteInteractiveOptions {
+  /** Animation style for the minibuffer drawer */
+  readonly animate?: 'slide' | 'none'
+}
+
 export interface CommandServiceImpl {
   /** Get a command by ID */
   readonly get: (id: string) => Effect.Effect<Option.Option<Command>>
@@ -79,6 +89,20 @@ export interface CommandServiceImpl {
     entity: T,
     ctx?: Partial<CommandContext<T>>
   ) => Effect.Effect<void, CommandError>
+
+  /**
+   * Execute interactive command selection (M-x).
+   *
+   * Opens the minibuffer with command completions, waits for user selection,
+   * then executes the selected command.
+   *
+   * This is the canonical M-x implementation. Hotkeys should call this,
+   * NOT call minibuffer directly.
+   *
+   * @param options - Animation and display options
+   * @returns Effect that completes when command finishes (or is cancelled)
+   */
+  readonly executeInteractive: (options?: ExecuteInteractiveOptions) => Effect.Effect<void>
 
   /** List all commands */
   readonly list: () => Effect.Effect<readonly Command[]>
@@ -165,6 +189,40 @@ export class CommandService extends Context.Tag('tmnl/commands/CommandService')<
 
           yield* (command as EntityCommand<T>).execute(entity, fullCtx)
         }),
+
+      executeInteractive: (_options) =>
+        Effect.gen(function* () {
+          // Use MinibufferService.read() with CommandProvider
+          const minibuffer = yield* MinibufferService
+          const selectedId = yield* minibuffer.read('M-x ', COMMAND_PROVIDER_ID, {
+            requireSelection: true,
+          })
+
+          // Execute the selected command (if not cancelled)
+          if (selectedId) {
+            const commands = getRegisteredCommands()
+            const command = commands.get(selectedId)
+
+            if (!command) {
+              yield* Effect.logWarning(`Command not found: ${selectedId}`)
+              return
+            }
+
+            if (command.type === 'global') {
+              yield* Effect.logInfo(`Executing command: ${selectedId}`)
+              yield* (command as GlobalCommand).execute.pipe(
+                Effect.catchAll((error) =>
+                  Effect.logWarning(`Command failed: ${JSON.stringify(error)}`)
+                )
+              )
+            } else {
+              yield* Effect.logWarning(`Entity command ${selectedId} requires context`)
+            }
+          }
+        }).pipe(
+          // Provide MinibufferService for standalone execution
+          Effect.provide(MinibufferService.Default)
+        ),
 
       list: () =>
         Effect.sync(() => Array.from(getRegisteredCommands().values())),

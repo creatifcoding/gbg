@@ -71,8 +71,14 @@ export const commandPaletteCommand = defineCommand(
     keys: 'ctrl+shift+p',
   },
   Effect.gen(function* () {
-    yield* Effect.log('system.commandPalette: Opening...')
-    // TODO: Open command palette modal
+    // NOTE: This command is a bit recursive — it opens the command palette
+    // which allows selecting commands. The command itself doesn't execute
+    // anything directly; the executeInteractive flow handles it.
+    // For keybind-triggered invocation, this is handled by the hotkey layer
+    // calling CommandService.executeInteractive() directly.
+    yield* Effect.log('system.commandPalette: Opening via executeInteractive...')
+    // The actual palette opening happens via useMinibuffer.executeCommand()
+    // which calls CommandService.executeInteractive()
   })
 )
 

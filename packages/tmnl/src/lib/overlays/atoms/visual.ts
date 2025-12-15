@@ -68,6 +68,46 @@ export const hasContent = (key: string): boolean => {
 }
 
 // ─────────────────────────────────────────────────────────────
+// Drawer Slot Content Registry (injection pattern)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Pre-registered slot content for drawers.
+ * Components can register content for a drawer ID before it opens.
+ * When drawer opens, it checks this registry first.
+ */
+const drawerSlotRegistry = new Map<string, ReactNode>()
+
+/**
+ * Register slot content for a drawer ID.
+ * Call from any component to inject content into a specific drawer.
+ */
+export const registerDrawerSlot = (drawerId: string, content: ReactNode): void => {
+  drawerSlotRegistry.set(drawerId, content)
+}
+
+/**
+ * Unregister slot content for a drawer ID.
+ */
+export const unregisterDrawerSlot = (drawerId: string): void => {
+  drawerSlotRegistry.delete(drawerId)
+}
+
+/**
+ * Get registered slot content for a drawer ID.
+ */
+export const getDrawerSlotContent = (drawerId: string): ReactNode | undefined => {
+  return drawerSlotRegistry.get(drawerId)
+}
+
+/**
+ * Check if slot content is registered for a drawer ID.
+ */
+export const hasDrawerSlotContent = (drawerId: string): boolean => {
+  return drawerSlotRegistry.has(drawerId)
+}
+
+// ─────────────────────────────────────────────────────────────
 // Core State Atoms
 // ─────────────────────────────────────────────────────────────
 

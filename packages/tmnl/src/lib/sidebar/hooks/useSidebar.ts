@@ -12,7 +12,6 @@ import * as Option from "effect/Option"
 
 import type { SidebarItemId } from "../schemas"
 import {
-  sidebarRegistry,
   sidebarCollapsedAtom,
   sidebarActiveIdAtom,
   sortedSidebarItemsAtom,
@@ -63,10 +62,10 @@ export interface UseSidebarReturn {
  * ```
  */
 export function useSidebar(): UseSidebarReturn {
-  // Subscribe to state
-  const isCollapsed = useAtomValue(sidebarCollapsedAtom, { registry: sidebarRegistry })
-  const activeIdOption = useAtomValue(sidebarActiveIdAtom, { registry: sidebarRegistry })
-  const { core, plugins } = useAtomValue(sortedSidebarItemsAtom, { registry: sidebarRegistry })
+  // Subscribe to state (registry provided via OverlayRegistryProvider context)
+  const isCollapsed = useAtomValue(sidebarCollapsedAtom)
+  const activeIdOption = useAtomValue(sidebarActiveIdAtom)
+  const { core, plugins } = useAtomValue(sortedSidebarItemsAtom)
 
   // Derive active ID
   const activeId = useMemo(

@@ -623,6 +623,11 @@ export class TerminalWidgetShapeUtil extends BaseBoxShapeUtil<TerminalWidgetShap
 export { DataGridWidgetShapeUtil, type DataGridWidgetShape, type DataGridRow } from './data-grid-shape';
 
 // ============================================
+// DATA GRID WIDGET V2 (Tmnl.DataGrid)
+// ============================================
+export { DataGridWidgetShapeUtilV2, type DataGridWidgetShapeV2, type DataGridRowV2 } from './data-grid-shape-v2';
+
+// ============================================
 // DATA CARD (spawned from grid row drag-out)
 // ============================================
 export { DataCardShapeUtil, type DataCardShape } from './data-card-shape';
@@ -641,6 +646,7 @@ export { EChartsWidgetShapeUtil, type EChartsWidgetShape } from './echarts-widge
 // EXPORT ALL SHAPE UTILS
 // ============================================
 import { DataGridWidgetShapeUtil } from './data-grid-shape';
+import { DataGridWidgetShapeUtilV2 } from './data-grid-shape-v2';
 import { DataCardShapeUtil } from './data-card-shape';
 import { AcquireGhostShapeUtil } from './acquire-ghost-shape';
 import { EChartsWidgetShapeUtil } from './echarts-widget-shape';
@@ -651,6 +657,7 @@ export const tmnlShapeUtils = [
   NotesWidgetShapeUtil,
   TerminalWidgetShapeUtil,
   DataGridWidgetShapeUtil,
+  DataGridWidgetShapeUtilV2, // V2: Tmnl.DataGrid compound component
   DataCardShapeUtil,
   AcquireGhostShapeUtil,
   EChartsWidgetShapeUtil,

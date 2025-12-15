@@ -11,7 +11,6 @@ import { useAtomValue } from "@effect-atom/atom-react"
 
 import type { SidebarItemId, SidebarItemConfig } from "../schemas"
 import {
-  sidebarRegistry,
   pluginItemsAtom,
   movePlugin,
 } from "../atoms"
@@ -75,7 +74,7 @@ const DRAG_THRESHOLD = 5 // px - minimum movement to start drag
  * ```tsx
  * function PluginSection() {
  *   const { dragState, isCtrlHeld, getDragProps } = useSidebarDrag()
- *   const plugins = useAtomValue(pluginItemsAtom, { registry: sidebarRegistry })
+ *   const plugins = useAtomValue(pluginItemsAtom)
  *
  *   return (
  *     <div>
@@ -93,8 +92,8 @@ const DRAG_THRESHOLD = 5 // px - minimum movement to start drag
  * ```
  */
 export function useSidebarDrag(): UseSidebarDragReturn {
-  // Plugin items for calculating drop index
-  const plugins = useAtomValue(pluginItemsAtom, { registry: sidebarRegistry })
+  // Plugin items for calculating drop index (registry via OverlayRegistryProvider)
+  const plugins = useAtomValue(pluginItemsAtom)
 
   // Ctrl key state
   const [isCtrlHeld, setIsCtrlHeld] = useState(false)

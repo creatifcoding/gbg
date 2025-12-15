@@ -182,7 +182,7 @@ export const Sidebar = memo(function Sidebar({ config, className = "" }: Sidebar
           setActiveId(item.id)
           drawer.toggle(
             {
-              id: action.drawerId as any,
+              id: action.drawerId,
               side: action.side,
               width: action.width ?? 280,
               showBackdrop: false,

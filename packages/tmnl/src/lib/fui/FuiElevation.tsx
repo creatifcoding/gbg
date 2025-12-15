@@ -51,11 +51,11 @@ export function FuiElevation({
 }: FuiElevationProps) {
   if (!visible) return null
 
-  // Full screen: calc(100vw/vh - margin)
+  // Full screen: calc(100% - margin). Using % instead of vw/vh avoids scrollbar width issues.
   const sizeStyles = fullScreen
     ? {
-        width: 'calc(100vw - 32px)',
-        height: 'calc(100vh - 32px)',
+        width: 'calc(100% - 32px)',
+        height: 'calc(100% - 32px)',
       }
     : {
         maxWidth: typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth,

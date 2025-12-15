@@ -14,19 +14,20 @@
  * @module sidebar/atoms
  */
 
-import { Atom, Registry } from "@effect-atom/atom"
+import { Atom } from "@effect-atom/atom-react"
 import * as Option from "effect/Option"
 import type { SidebarItemId, SidebarItemConfig } from "../schemas"
+import { overlayRegistry } from "@/lib/overlays/atoms"
 
 // ─────────────────────────────────────────────────────────────
-// Registry Singleton
+// Registry (Shared with Overlay System)
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Shared registry for sidebar atoms.
- * Enables synchronous get/set operations outside of Effect context.
+ * Reuse overlay registry - it's already provided via OverlayRegistryProvider
+ * which wraps the entire app in main.tsx.
  */
-export const sidebarRegistry = Registry.make()
+export const sidebarRegistry = overlayRegistry
 
 // ─────────────────────────────────────────────────────────────
 // localStorage Keys
@@ -94,8 +95,8 @@ const persistPluginOrder = (order: SidebarItemId[]): void => {
  * Registry of all sidebar items, keyed by ID.
  * Core items are registered from config, plugin items via useSidebarItem hook.
  */
-export const sidebarItemsAtom = Atom.make<Map<SidebarItemId, SidebarItemConfig>>(
-  new Map()
+export const sidebarItemsAtom = Atom.keepAlive(
+  Atom.make<Map<SidebarItemId, SidebarItemConfig>>(new Map())
 )
 
 /**
@@ -103,22 +104,26 @@ export const sidebarItemsAtom = Atom.make<Map<SidebarItemId, SidebarItemConfig>>
  * Updated on route match, drawer open, etc.
  * `Option.none()` means no item is active.
  */
-export const sidebarActiveIdAtom = Atom.make<Option.Option<SidebarItemId>>(
-  Option.none()
+export const sidebarActiveIdAtom = Atom.keepAlive(
+  Atom.make<Option.Option<SidebarItemId>>(Option.none())
 )
 
 /**
  * Whether the sidebar is collapsed.
  * Persisted to localStorage.
  */
-export const sidebarCollapsedAtom = Atom.make<boolean>(loadCollapsed())
+export const sidebarCollapsedAtom = Atom.keepAlive(
+  Atom.make<boolean>(loadCollapsed())
+)
 
 /**
  * User-defined order for plugin items.
  * Only IDs are stored; actual items come from sidebarItemsAtom.
  * Persisted to localStorage.
  */
-export const sidebarPluginOrderAtom = Atom.make<SidebarItemId[]>(loadPluginOrder())
+export const sidebarPluginOrderAtom = Atom.keepAlive(
+  Atom.make<SidebarItemId[]>(loadPluginOrder())
+)
 
 // ─────────────────────────────────────────────────────────────
 // Derived Atoms
@@ -237,4 +242,22 @@ export const setCollapsed = (collapsed: boolean): void => {
 export const reorderPlugins = (newOrder: SidebarItemId[]): void => {
   sidebarRegistry.set(sidebarPluginOrderAtom, newOrder)
   persistPluginOrder(newOrder)
+}
+
+/**
+ * Move a plugin item to a new index.
+ * Computes and applies the new order.
+ */
+export const movePlugin = (id: SidebarItemId, newIndex: number): void => {
+  const plugins = sidebarRegistry.get(pluginItemsAtom)
+  const currentIndex = plugins.findIndex((p) => p.id === id)
+
+  if (currentIndex === -1 || currentIndex === newIndex) return
+
+  // Build new order from current plugin IDs
+  const currentOrder = plugins.map((p) => p.id)
+  const [removed] = currentOrder.splice(currentIndex, 1)
+  currentOrder.splice(newIndex, 0, removed)
+
+  reorderPlugins(currentOrder)
 }

@@ -10,18 +10,68 @@
  * @module
  */
 
-import { useCallback, useEffect } from "react"
-import { Crosshair, Settings, Terminal, User, Zap, PanelLeft, PanelRight } from "lucide-react"
+import { useCallback, useEffect, useRef } from "react"
+import { Crosshair, Settings, Terminal, User, Zap } from "lucide-react"
 import { useDrawer } from "./hooks/useDrawer"
 import { useCommandPalette } from "./hooks/useCommandPalette"
+import { useSidebar } from "./hooks/useSidebar"
+import { DrawerSlotContent } from "./components"
+import { Sidebar, type SidebarConfig as SidebarComponentConfig } from "@/lib/sidebar"
 import type { VisualOverlayId } from "../schemas/visual"
 
 // ─────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────
 
-const DRAWER_LEFT_ID = "persistent-drawer-left" as VisualOverlayId
-const DRAWER_RIGHT_ID = "persistent-drawer-right" as VisualOverlayId
+/** Left drawer ID - use with registerDrawerSlot() to inject content */
+export const DRAWER_LEFT_ID = "persistent-drawer-left" as VisualOverlayId
+/** Right drawer ID - use with registerDrawerSlot() to inject content */
+export const DRAWER_RIGHT_ID = "persistent-drawer-right" as VisualOverlayId
+/** Main sidebar ID */
+export const SIDEBAR_ID = "main-sidebar" as VisualOverlayId
+
+// ─────────────────────────────────────────────────────────────
+// Default Sidebar Configuration
+// ─────────────────────────────────────────────────────────────
+
+const defaultSidebarConfig: SidebarComponentConfig = {
+  coreItems: [
+    {
+      id: "home" as any,
+      label: "Home",
+      icon: { type: "lucide", value: "Home" },
+      group: "core",
+      action: { _tag: "RouteAction", path: "/" },
+      order: 0,
+    },
+    {
+      id: "playground" as any,
+      label: "Playground",
+      icon: { type: "lucide", value: "FlaskConical" },
+      group: "core",
+      action: { _tag: "RouteAction", path: "/playground" },
+      order: 10,
+    },
+    {
+      id: "testbed" as any,
+      label: "Testbed",
+      icon: { type: "lucide", value: "TestTube2" },
+      group: "core",
+      action: { _tag: "RouteAction", path: "/testbed" },
+      order: 20,
+    },
+    {
+      id: "settings" as any,
+      label: "Settings",
+      icon: { type: "lucide", value: "Settings" },
+      group: "core",
+      action: { _tag: "DrawerAction", drawerId: "settings", side: "right", width: 320 },
+      order: 100,
+    },
+  ],
+  width: 48,
+  storageKey: "tmnl:sidebar",
+}
 
 // ─────────────────────────────────────────────────────────────
 // Button Primitives (inline for customization)
@@ -61,31 +111,6 @@ function Button({ children, onClick, variant = "ghost", size = "xs", className =
   )
 }
 
-// ─────────────────────────────────────────────────────────────
-// Empty Drawer Content (placeholder for injection)
-// ─────────────────────────────────────────────────────────────
-
-function EmptyDrawerContent({ side }: { side: "left" | "right" }) {
-  return (
-    <div className="h-full flex flex-col items-center justify-center text-neutral-600 p-4">
-      <div className="w-12 h-12 border border-neutral-700 rounded flex items-center justify-center mb-4">
-        {side === "left" ? <PanelLeft size={20} /> : <PanelRight size={20} />}
-      </div>
-      <span
-        className="font-mono uppercase tracking-wider"
-        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-      >
-        {side === "left" ? "Left Panel" : "Right Panel"}
-      </span>
-      <span
-        className="text-neutral-700 mt-1"
-        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-      >
-        No content
-      </span>
-    </div>
-  )
-}
 
 // ─────────────────────────────────────────────────────────────
 // Command Palette Content (placeholder)
@@ -150,20 +175,40 @@ export function PersistentOverlays({
 }: PersistentOverlaysProps) {
   const drawer = useDrawer()
   const commandPalette = useCommandPalette()
+  const sidebar = useSidebar()
+
+  // Ref to track latest sidebar operations (avoids stale closure in effect)
+  const sidebarRef = useRef(sidebar)
+  sidebarRef.current = sidebar
+
+  // ─── Mount Sidebar ───────────────────────────────────────────
+  // Empty deps = mount once on initial render, unmount on component unmount
+  // Uses ref to access latest sidebar operations without causing re-runs
+
+  useEffect(() => {
+    sidebarRef.current.mount(
+      { id: SIDEBAR_ID as string, side: "left", collapsedWidth: 48 },
+      <Sidebar config={defaultSidebarConfig} />
+    )
+
+    return () => {
+      sidebarRef.current.unmount(SIDEBAR_ID)
+    }
+  }, [])
 
   // ─── Toggle functions ─────────────────────────────────────────
 
   const toggleLeftDrawer = useCallback(() => {
     drawer.toggle(
       { id: DRAWER_LEFT_ID, side: "left", width: 280, showBackdrop: false },
-      <EmptyDrawerContent side="left" />
+      <DrawerSlotContent drawerId={DRAWER_LEFT_ID} side="left" />
     )
   }, [drawer])
 
   const toggleRightDrawer = useCallback(() => {
     drawer.toggle(
       { id: DRAWER_RIGHT_ID, side: "right", width: 320, showBackdrop: false },
-      <EmptyDrawerContent side="right" />
+      <DrawerSlotContent drawerId={DRAWER_RIGHT_ID} side="right" />
     )
   }, [drawer])
 
@@ -204,7 +249,7 @@ export function PersistentOverlays({
 
   return (
     <header
-      className="border-b border-neutral-800 flex items-center justify-between px-4 bg-black shrink-0"
+      className="fixed top-0 left-0 right-0 z-50 border-b border-neutral-800 flex items-center justify-between px-4 bg-black"
       style={{ height: 'var(--tmnl-size-header, 48px)' }}
       data-persistent-header
     >

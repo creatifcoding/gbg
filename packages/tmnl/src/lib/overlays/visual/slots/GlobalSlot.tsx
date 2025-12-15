@@ -15,15 +15,13 @@
 import { useRef, useEffect } from "react"
 import { useAtomValue } from "@effect-atom/atom-react"
 import { useVisualOverlaySafe } from "../providers"
-import {
-  overlaysByTypeAtom,
-  visualOverlaysAtom,
-} from "../../atoms"
-import { GLOBAL_SLOT_ID, GLOBAL_ONLY_TYPES } from "../constants"
+import { overlaysByTypeAtom } from "../../atoms"
+import { GLOBAL_SLOT_ID } from "../constants"
 import { DrawerRenderer } from "../renderers/DrawerRenderer"
 import { ModalRenderer } from "../renderers/ModalRenderer"
 import { ToastRenderer } from "../renderers/ToastRenderer"
 import { CommandPaletteRenderer } from "../renderers/CommandPaletteRenderer"
+import { SidebarRenderer } from "../renderers/SidebarRenderer"
 import type { VisualOverlayInstance, VisualOverlayType } from "../../schemas/visual"
 
 // ─────────────────────────────────────────────────────────────
@@ -88,6 +86,13 @@ function TypeLayer({ type, onCloseRequest }: TypeLayerProps) {
                 onCloseRequest={() => onCloseRequest?.(overlay.id)}
               />
             )
+          case "sidebar":
+            return (
+              <SidebarRenderer
+                key={overlay.id}
+                id={overlay.id}
+              />
+            )
           default:
             // Fallback: render nothing for unhandled types
             return null
@@ -115,7 +120,6 @@ export interface GlobalSlotProps {
 export function GlobalSlot({ containerId = "tmnl-global-slot" }: GlobalSlotProps) {
   const ctx = useVisualOverlaySafe()
   const containerRef = useRef<HTMLDivElement>(null)
-  const allOverlays = useAtomValue(visualOverlaysAtom)
 
   // Register slot on mount
   useEffect(() => {
@@ -133,22 +137,19 @@ export function GlobalSlot({ containerId = "tmnl-global-slot" }: GlobalSlotProps
     ctx?.close(id as any)
   }
 
-  // Check if any overlay is visible (for pointer events)
-  const hasVisibleOverlays = Array.from(allOverlays.values()).some(
-    (o) => GLOBAL_ONLY_TYPES.includes(o.type as any) && o.isVisible
-  )
+  // GlobalSlot is ALWAYS pointer-events: none
+  // Individual renderers handle their own pointer-events
+  // This allows clicks to pass through to content behind
 
   return (
     <div
       ref={containerRef}
       id={containerId}
-      style={{
-        ...containerStyles,
-        pointerEvents: hasVisibleOverlays ? "auto" : "none",
-      }}
+      style={containerStyles}
       data-overlay-slot="global"
     >
       {/* Render each global overlay type in z-order (low to high) */}
+      <TypeLayer type="sidebar" onCloseRequest={handleCloseRequest} />
       <TypeLayer type="drawer" onCloseRequest={handleCloseRequest} />
       <TypeLayer type="toast" onCloseRequest={handleCloseRequest} />
       <TypeLayer type="modal" onCloseRequest={handleCloseRequest} />

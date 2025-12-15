@@ -107,6 +107,10 @@ export const SpawnToolbar = track(() => {
           <Table2 size={10} />
           Grid
         </ToolbarButton>
+        <ToolbarButton onClick={() => spawnShape("data-grid-widget-v2")}>
+          <Table2 size={10} />
+          <span className="text-cyan-500">V2</span>
+        </ToolbarButton>
         <ToolbarButton onClick={() => spawnShape("notes-widget")}>
           <FileText size={10} />
           Notes

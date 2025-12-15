@@ -79,26 +79,17 @@ export { searchCommands, getCategories } from './atoms'
 export type { CommandSearchResult } from './atoms'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DEPRECATED: Effect.Ref-based services
+// DEPRECATED SERVICES REMOVED
 // ─────────────────────────────────────────────────────────────────────────────
 //
-// These services maintain their own Effect.Ref state which is OPAQUE to atoms.
-// They should NOT be used for new code. Use atoms + hotkeyActions instead.
+// CommandRegistry and HotkeyManager services have been removed.
+// Use atoms + hotkeyActions instead:
 //
-// Migration guide:
 //   CommandRegistry.register()  →  hotkeyActions.registerCommand(registry, ...)
 //   HotkeyManager.bind()        →  hotkeyActions.addBinding(registry, ...)
 //   HotkeyManager.processEvent  →  processKeyboardEvent() pure function
 //
-// These exports remain for backwards compatibility but will be removed.
+// For M-x command palette, use the minibuffer system:
+//   import { useMinibuffer } from '@/lib/minibuffer'
+//   const { executeCommand } = useMinibuffer()
 // ─────────────────────────────────────────────────────────────────────────────
-
-/** @deprecated Use hotkeyActions.registerCommand() + commandsSourceAtom instead */
-export { CommandRegistry } from './services/CommandRegistry'
-/** @deprecated Use hotkeyActions.registerCommand() + commandsSourceAtom instead */
-export type { CommandRegistryService } from './services/CommandRegistry'
-
-/** @deprecated Use atoms + hotkeyActions + processKeyboardEvent() instead */
-export { HotkeyManager } from './services/HotkeyManager'
-/** @deprecated Use atoms + hotkeyActions + processKeyboardEvent() instead */
-export type { HotkeyManagerService, BindingOptions } from './services/HotkeyManager'
