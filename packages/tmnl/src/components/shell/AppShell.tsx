@@ -48,7 +48,7 @@ export interface AppShellProps {
 export function AppShell({ header, sidebar, children }: AppShellProps) {
   return (
     <div
-      className="h-screen w-full grid bg-black overflow-hidden"
+      className="h-screen w-screen grid bg-black overflow-hidden"
       style={{
         gridTemplateColumns: `${SIDEBAR_WIDTH} 1fr`,
         gridTemplateRows: `${HEADER_HEIGHT} 1fr`,

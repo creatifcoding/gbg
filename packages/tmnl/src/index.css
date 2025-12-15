@@ -94,8 +94,45 @@
   overscroll-behavior: none;
 }
 
-html, body {
+/* =============================================================================
+   NATIVE DESKTOP APP CSS (Tauri)
+   Prevents web-app behaviors that break native feel
+   ============================================================================= */
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
   overscroll-behavior: none;
+  user-select: none;
+  cursor: default;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prevent image/SVG drag ghosts */
+img, svg {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+/* Opt-in: selectable content (code blocks, text fields, etc.) */
+.selectable,
+input,
+textarea,
+[contenteditable="true"],
+pre,
+code {
+  user-select: text;
+  cursor: text;
+}
+
+/* Opt-in: pointer cursor for interactive elements */
+button,
+a,
+[role="button"],
+.clickable,
+[data-tauri-drag-region="false"] {
+  cursor: pointer;
 }
 
 /* =============================================================================

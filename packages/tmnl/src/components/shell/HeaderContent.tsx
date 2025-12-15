@@ -42,6 +42,7 @@ function Button({ children, onClick, variant = "ghost", size = "xs", className =
 
   return (
     <button
+      data-tauri-drag-region="false"
       onClick={onClick}
       className={`${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
       style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
@@ -144,11 +145,13 @@ export function HeaderContent({
 
   return (
     <div
+      data-tauri-drag-region
       className="h-full flex items-center"
       style={{ borderBottom: "var(--tmnl-border-chrome)" }}
     >
       {/* Corner overlap zone - sidebar width, shows border intersection */}
       <div
+        data-tauri-drag-region
         className="h-full flex items-center justify-center shrink-0"
         style={{
           width: "var(--tmnl-size-sidebar, 48px)",
@@ -166,7 +169,7 @@ export function HeaderContent({
       </div>
 
       {/* Main header content - after sidebar zone */}
-      <div className="flex-1 h-full flex items-center justify-between px-4">
+      <div data-tauri-drag-region className="flex-1 h-full flex items-center justify-between px-4">
         {/* Left section */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
@@ -184,6 +187,7 @@ export function HeaderContent({
           <nav className="hidden md:flex items-center gap-6">
             {navTabs.map((tab) => (
               <button
+                data-tauri-drag-region="false"
                 key={tab}
                 onClick={() => handleTabChange(tab)}
                 className={`font-nav uppercase tracking-wide transition-colors ${

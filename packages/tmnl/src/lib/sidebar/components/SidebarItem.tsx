@@ -12,9 +12,8 @@
  * @module sidebar/components
  */
 
-import { memo, useCallback, useMemo, useRef, useEffect, useState } from "react"
+import { memo, useCallback, useMemo, useRef, useEffect } from "react"
 import { useAtomValue } from "@effect-atom/atom-react"
-import { motion } from "framer-motion"
 import { animate } from "animejs"
 import * as Option from "effect/Option"
 import * as icons from "lucide-react"
@@ -43,53 +42,6 @@ const HOVER_LIFT = -2 // px
 
 /** Active indicator */
 const INDICATOR_DURATION = 300
-
-/** Glow pulse for active state */
-const GLOW_DURATION = 600
-
-// ─────────────────────────────────────────────────────────────
-// Light Ray Configuration (Brutalist "crack of light" aesthetic)
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Light ray emanation config - like light escaping from behind a door.
- *
- * Design: Discrete luminance steps (macOS Dock pre-Big Sur style)
- * - Core: Crisp bright edge (1-2px)
- * - Falloff: 4-5 hard-edge bands that cascade outward
- * - No blur/diffusion - pure brutalist stepped opacity
- */
-const LIGHT_RAY_CONFIG = {
-  /** Core bar - brightest, appears instantly */
-  core: {
-    width: 2,
-    opacity: 0.95,
-    color: "255, 255, 255", // RGB for rgba()
-    delay: 0,
-  },
-  /** Falloff steps - cascade outward with stagger */
-  steps: [
-    { width: 1, opacity: 0.7, offset: 2, delay: 0.01 },
-    { width: 1, opacity: 0.5, offset: 3, delay: 0.02 },
-    { width: 1, opacity: 0.3, offset: 4, delay: 0.03 },
-    { width: 1, opacity: 0.15, offset: 5, delay: 0.04 },
-    { width: 1, opacity: 0.08, offset: 6, delay: 0.05 },
-  ],
-  /** Spring physics - high stiffness for "slit opening" feel */
-  spring: { type: "spring" as const, stiffness: 450, damping: 28 },
-  /** Exit animation - faster collapse, reverse cascade */
-  exitStagger: 0.012,
-} as const
-
-// ─────────────────────────────────────────────────────────────
-// SVG Underline (sinusoidal wave, animate along path on hover)
-// ─────────────────────────────────────────────────────────────
-
-/** Sinusoidal wave path - 2 oscillations */
-const PATH_WAVE = "M0,3 Q3,1 6,3 Q9,5 12,3 Q15,1 18,3 Q21,5 24,3"
-
-/** Path length (approximate for dasharray) */
-const PATH_LENGTH = 28
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -145,12 +97,8 @@ export const SidebarItem = memo(function SidebarItem({
   const buttonRef = useRef<HTMLButtonElement>(null)
   const iconRef = useRef<HTMLSpanElement>(null)
   const indicatorRef = useRef<HTMLSpanElement>(null)
-  const activeGlowRef = useRef<HTMLSpanElement>(null)
   const wasActive = useRef(isActive)
   const isPressed = useRef(false)
-
-  // Hover state for underline visibility
-  const [isHovered, setIsHovered] = useState(false)
 
   // Icon setup
   const Icon = useMemo(() => resolveIcon(item.icon), [item.icon])
@@ -159,8 +107,6 @@ export const SidebarItem = memo(function SidebarItem({
   // ─── Hover Animation ─────────────────────────────────────────
   const handleMouseEnter = useCallback(() => {
     if (item.disabled) return
-    setIsHovered(true)
-
     if (!buttonRef.current || !iconRef.current) return
 
     // Lift button slightly
@@ -180,9 +126,7 @@ export const SidebarItem = memo(function SidebarItem({
 
   const handleMouseLeave = useCallback(() => {
     if (item.disabled) return
-    setIsHovered(false)
     if (isPressed.current) return // Don't reset if still pressed
-
     if (!buttonRef.current || !iconRef.current) return
 
     // Return to rest
@@ -261,7 +205,7 @@ export const SidebarItem = memo(function SidebarItem({
     if (wasActive.current === isActive) return
     wasActive.current = isActive
 
-    if (!indicatorRef.current || !activeGlowRef.current || !iconRef.current) return
+    if (!indicatorRef.current || !iconRef.current) return
 
     if (isActive) {
       // Indicator slides in from left with spring
@@ -270,14 +214,6 @@ export const SidebarItem = memo(function SidebarItem({
         opacity: [0, 1],
         duration: INDICATOR_DURATION,
         easing: SPRING_OUT,
-      })
-
-      // Active glow pulse (Apple-style attention)
-      animate(activeGlowRef.current, {
-        opacity: [0, 0.5, 0.25],
-        scaleX: [0.5, 1.2, 1],
-        duration: GLOW_DURATION,
-        easing: "easeOutQuad",
       })
 
       // Icon pop on activation
@@ -293,14 +229,6 @@ export const SidebarItem = memo(function SidebarItem({
         opacity: [1, 0],
         duration: 150,
         easing: "easeInQuad",
-      })
-
-      // Active glow fades
-      animate(activeGlowRef.current, {
-        opacity: 0,
-        scaleX: 0.5,
-        duration: 150,
-        easing: "easeOutQuad",
       })
     }
   }, [isActive])
@@ -327,79 +255,11 @@ export const SidebarItem = memo(function SidebarItem({
 
   return (
     <div
-      className="grid relative"
-      style={{ gridTemplateColumns: "15% 85%" }}
+      className="relative flex items-center justify-center"
       data-sidebar-item-id={item.id}
       data-sidebar-group={item.group}
     >
-      {/* Light source edge - 15% column (Brutalist crack of light) */}
-      <div className="flex items-center justify-start pointer-events-none h-10 relative overflow-visible">
-        {/* Core light ray - brightest bar */}
-        <motion.div
-          className="absolute h-5"
-          style={{
-            left: 0,
-            width: LIGHT_RAY_CONFIG.core.width,
-            backgroundColor: `rgba(${LIGHT_RAY_CONFIG.core.color}, ${LIGHT_RAY_CONFIG.core.opacity})`,
-            transformOrigin: "center",
-          }}
-          initial={{ scaleY: 0, opacity: 0 }}
-          animate={{
-            scaleY: isHovered ? 1 : 0,
-            opacity: isHovered ? 1 : 0,
-          }}
-          transition={{
-            ...LIGHT_RAY_CONFIG.spring,
-            delay: isHovered ? LIGHT_RAY_CONFIG.core.delay : LIGHT_RAY_CONFIG.exitStagger * LIGHT_RAY_CONFIG.steps.length,
-          }}
-          aria-hidden="true"
-        />
-
-        {/* Falloff steps - discrete luminance bands */}
-        {LIGHT_RAY_CONFIG.steps.map((step, i) => (
-          <motion.div
-            key={i}
-            className="absolute h-5"
-            style={{
-              left: step.offset,
-              width: step.width,
-              backgroundColor: `rgba(${LIGHT_RAY_CONFIG.core.color}, ${step.opacity})`,
-              transformOrigin: "center",
-            }}
-            initial={{ scaleY: 0, opacity: 0 }}
-            animate={{
-              scaleY: isHovered ? 1 : 0,
-              opacity: isHovered ? 1 : 0,
-            }}
-            transition={{
-              ...LIGHT_RAY_CONFIG.spring,
-              delay: isHovered
-                ? step.delay
-                : LIGHT_RAY_CONFIG.exitStagger * (LIGHT_RAY_CONFIG.steps.length - i - 1),
-            }}
-            aria-hidden="true"
-          />
-        ))}
-
-        {/* Active state glow - persistent bar when item is active */}
-        <span
-          ref={activeGlowRef}
-          className="absolute left-0 h-6 w-1"
-          style={{
-            backgroundColor: "rgba(255,255,255,0.6)",
-            boxShadow: "0 0 8px 2px rgba(255,255,255,0.3)",
-            opacity: 0,
-            transform: "scaleY(0.5)",
-            transformOrigin: "center",
-          }}
-          aria-hidden="true"
-        />
-      </div>
-
-      {/* Content column - 85% (icon + underline stacked) */}
-      <div className="flex flex-col items-center">
-        {/* Button */}
-        <button
+      <button
         ref={buttonRef}
         type="button"
         className={[...baseClasses, ...stateClasses, ...dragClasses].join(" ")}
@@ -430,15 +290,13 @@ export const SidebarItem = memo(function SidebarItem({
           {Icon && <Icon size={iconSize} strokeWidth={1.5} />}
         </span>
 
-        {/* Active indicator - white bar with glow */}
+        {/* Active indicator - white bar */}
         <span
           ref={indicatorRef}
-          className="absolute left-0 top-1/2 w-[3px] h-5 rounded-r-full pointer-events-none"
+          className="absolute left-0 top-1/2 w-[3px] h-5 rounded-r-full pointer-events-none bg-white"
           style={{
             transform: "translateY(-50%) scaleY(0)",
             transformOrigin: "center",
-            background: "linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(255,255,255,1), rgba(255,255,255,0.9))",
-            boxShadow: "0 0 8px 2px rgba(255,255,255,0.4), 0 0 20px 4px rgba(255,255,255,0.2)",
             opacity: 0,
           }}
           aria-hidden="true"
@@ -455,35 +313,6 @@ export const SidebarItem = memo(function SidebarItem({
           </span>
         )}
       </button>
-
-        {/* Underline - only visible on hover */}
-        <div className="h-2 flex items-center justify-center px-2">
-          <svg
-            width="24"
-            height="6"
-            viewBox="0 0 24 6"
-            fill="none"
-            className="pointer-events-none"
-            aria-hidden="true"
-            style={{
-              opacity: isHovered ? 0.6 : 0,
-              transition: "opacity 150ms ease-out",
-            }}
-          >
-            <path
-              d={PATH_WAVE}
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeDasharray={PATH_LENGTH}
-              style={{
-                strokeDashoffset: isHovered ? 0 : PATH_LENGTH,
-                transition: "stroke-dashoffset 400ms ease-out",
-              }}
-            />
-          </svg>
-        </div>
-      </div>
     </div>
   )
 })
