@@ -13,10 +13,14 @@ import { Schema, Effect, Data } from 'effect'
 
 /**
  * Variable identifier — branded string for type safety.
- * Format: "group.name" (e.g., "editor.tabWidth", "ui.theme")
+ *
+ * No regex validation — trust the developer at definition time.
+ * Unknown IDs at access time return Option.none(), not errors.
+ *
+ * The brand provides compile-time safety without runtime gatekeeping.
  */
 export const VariableId = Schema.String.pipe(
-  Schema.pattern(/^[a-z][a-z0-9]*(\.[a-z][a-z0-9]*)+$/),
+  Schema.nonEmptyString(),
   Schema.brand('VariableId')
 )
 export type VariableId = typeof VariableId.Type
