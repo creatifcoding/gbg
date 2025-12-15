@@ -169,10 +169,10 @@ export function HeaderContent({
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span
-              className="text-white font-wordmark"
+              className="text-white font-terminal"
               style={{
-                fontSize: 'var(--tmnl-text-lg, 18px)',
-                letterSpacing: '0.05em',
+                fontSize: 'var(--tmnl-text-xl, 20px)',
+                letterSpacing: '0.08em',
               }}
             >
               TMNL
