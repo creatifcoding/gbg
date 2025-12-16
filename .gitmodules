@@ -103,3 +103,6 @@
 [submodule "submodules/dnd-kit"]
 	path = submodules/dnd-kit
 	url = https://github.com/clauderic/dnd-kit
+[submodule "submodules/receipts"]
+	path = submodules/receipts
+	url = https://github.com/tim-smart/receipts.git

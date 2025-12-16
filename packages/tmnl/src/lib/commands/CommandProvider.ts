@@ -1,8 +1,8 @@
 /**
  * Command Provider
  *
- * M-x style command completion provider.
- * Provides fuzzy-matched command completions from CommandService.
+ * M-x style command completion provider using FlexSearchDriver.
+ * Provides fuzzy-matched command completions from the @/lib/search subsystem.
  *
  * ARCHITECTURAL NOTE:
  * This provider lives in commands/, not minibuffer/. Minibuffer is a generic
@@ -11,16 +11,31 @@
  *
  *   commands/ → minibuffer/ (not the reverse)
  *
+ * SEARCH SUBSYSTEM:
+ * Uses FlexSearchDriver from @/lib/search - stream-first, Effect-native search.
+ * Lazy initialization on first complete() call, cached for subsequent searches.
+ *
  * @module
  */
 
 import { Effect } from "effect"
 import { Terminal } from "lucide-react"
 import { CommandService } from "./service"
+import { getRegisteredCommands, getDefaultBindings } from "./decorators"
 import type { Command } from "./types"
 import type { CompletionProvider } from "@/lib/minibuffer/providers/types"
 import type { ProviderId, Completion } from "@/lib/minibuffer/schemas/minibuffer"
 import { createProviderId, providerRegistry } from "@/lib/minibuffer/providers/registry"
+import {
+  createFlexSearchDriver,
+  parseQuery,
+  executeQuery,
+  applyFilters,
+  hasOperatorsOnly,
+  isEmpty,
+  type CommandSearchService,
+  type CommandSearchItem,
+} from "@/lib/search"
 
 // ─────────────────────────────────────────────────────────────
 // Provider ID
@@ -29,102 +44,66 @@ import { createProviderId, providerRegistry } from "@/lib/minibuffer/providers/r
 export const COMMAND_PROVIDER_ID: ProviderId = createProviderId("commands")
 
 // ─────────────────────────────────────────────────────────────
-// Fuzzy Search (local implementation to avoid circular deps)
+// FlexSearch Driver (Lazy Singleton)
 // ─────────────────────────────────────────────────────────────
 
-interface FuzzyMatch {
-  score: number
-  matches: readonly [number, number][]
-}
+let cachedDriver: CommandSearchService | null = null
+let isIndexing = false
 
 /**
- * Fuzzy search scoring for command palette.
- * Returns a score (0-1) based on character matches, consecutive bonus, and word-start bonus.
+ * Transform Command to searchable CommandSearchItem.
  */
-function fuzzyMatch(pattern: string, text: string): FuzzyMatch | null {
-  const patternLower = pattern.toLowerCase()
-  const textLower = text.toLowerCase()
-
-  if (patternLower.length === 0) {
-    return { score: 1, matches: [] }
-  }
-
-  if (patternLower.length > textLower.length) {
-    return null
-  }
-
-  const matches: [number, number][] = []
-  let patternIdx = 0
-  let matchStart = -1
-  let score = 0
-  let consecutiveBonus = 0
-
-  for (let textIdx = 0; textIdx < textLower.length && patternIdx < patternLower.length; textIdx++) {
-    if (textLower[textIdx] === patternLower[patternIdx]) {
-      if (matchStart === -1) {
-        matchStart = textIdx
-      }
-
-      score += 1
-      score += consecutiveBonus * 0.5
-      consecutiveBonus++
-
-      // Start-of-word bonus
-      if (textIdx === 0 || /[\s._-]/.test(text[textIdx - 1])) {
-        score += 2
-      }
-
-      patternIdx++
-    } else {
-      if (matchStart !== -1) {
-        matches.push([matchStart, textIdx])
-        matchStart = -1
-      }
-      consecutiveBonus = 0
-    }
-  }
-
-  if (matchStart !== -1) {
-    matches.push([matchStart, patternIdx + matchStart])
-  }
-
-  if (patternIdx !== patternLower.length) {
-    return null
-  }
-
-  const normalizedScore = score / (patternLower.length * 3.5)
+function commandToSearchItem(command: Command): CommandSearchItem {
+  const bindings = getDefaultBindings()
+  const binding = bindings.find(b => b.commandId === command.id)
 
   return {
-    score: Math.min(1, normalizedScore),
-    matches,
+    id: command.id,
+    name: command.name,
+    description: command.description,
+    category: command.category,
+    scope: command.scope,
+    keys: binding?.keys,
   }
 }
 
 /**
- * Search commands with fuzzy matching.
+ * Get or create FlexSearch driver with indexed commands.
+ * Lazy initialization - indexes on first call, cached thereafter.
  */
-function searchCommands(commands: readonly Command[], query: string): readonly { command: Command; score: number }[] {
-  const results: { command: Command; score: number }[] = []
+const getDriver = Effect.gen(function* () {
+  // Return cached driver if available
+  if (cachedDriver) return cachedDriver
 
-  for (const command of commands) {
-    const nameMatch = fuzzyMatch(query, command.name)
-    const idMatch = fuzzyMatch(query, command.id)
-    const descMatch = command.description ? fuzzyMatch(query, command.description) : null
-
-    const bestMatch = [nameMatch, idMatch, descMatch]
-      .filter((m): m is NonNullable<typeof m> => m !== null)
-      .sort((a, b) => b.score - a.score)[0]
-
-    if (bestMatch) {
-      results.push({
-        command,
-        score: bestMatch.score,
-      })
-    }
+  // Prevent concurrent indexing
+  if (isIndexing) {
+    // Wait a tick and retry
+    yield* Effect.sleep("10 millis")
+    return yield* getDriver
   }
 
-  return results.sort((a, b) => b.score - a.score)
-}
+  isIndexing = true
+
+  try {
+    // Create FlexSearch driver
+    const driver = yield* createFlexSearchDriver<CommandSearchItem>()
+
+    // Get all registered commands
+    const commands = getRegisteredCommands()
+    const searchItems = Array.from(commands.values()).map(commandToSearchItem)
+
+    // Index commands
+    yield* driver.index(searchItems, {
+      fields: ['name', 'description', 'category', 'keys'],
+    })
+
+    // Cache for future searches
+    cachedDriver = driver
+    return driver
+  } finally {
+    isIndexing = false
+  }
+})
 
 // ─────────────────────────────────────────────────────────────
 // Provider Implementation
@@ -133,8 +112,8 @@ function searchCommands(commands: readonly Command[], query: string): readonly {
 /**
  * M-x command completion provider.
  *
- * Integrates with CommandService to provide fuzzy-matched command completions.
- * Uses the commands/service.ts Effect.Service, not hotkeys atoms.
+ * Uses FlexSearchDriver from @/lib/search for fuzzy-matched command completions.
+ * Stream-first: returns Stream, collects to array for Completion format.
  */
 export const CommandProvider: CompletionProvider<string> = {
   id: COMMAND_PROVIDER_ID,
@@ -144,22 +123,53 @@ export const CommandProvider: CompletionProvider<string> = {
 
   complete: (query: string) =>
     Effect.gen(function* () {
-      const service = yield* CommandService
-      const commands = yield* service.list()
-      const results = searchCommands(commands, query)
+      // Parse query with QueryDSL (supports regex, dorking, params)
+      const parsed = yield* parseQuery(query)
+
+      // Get all commands (needed for empty query OR operators-only query)
+      const commands = getRegisteredCommands()
+      const searchItems = Array.from(commands.values()).map(commandToSearchItem)
+
+      // Empty query = return all commands sorted by name
+      if (isEmpty(parsed)) {
+        return searchItems
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((item): Completion => ({
+            value: item.id,
+            label: item.name,
+            description: item.description,
+            category: item.category,
+            score: 1,
+          }))
+      }
+
+      // Operators-only query = filter all commands directly (no driver search)
+      if (hasOperatorsOnly(parsed)) {
+        const filtered = applyFilters(searchItems, parsed)
+        return filtered.map((r): Completion => ({
+          value: r.item.id,
+          label: r.item.name,
+          description: r.item.description,
+          category: r.item.category,
+          score: r.score,
+        }))
+      }
+
+      // Mixed query (text + operators) = use driver search + post-filters
+      const driver = yield* getDriver
+      const results = yield* executeQuery(driver, parsed).pipe(
+        Effect.catchAll(() => Effect.succeed([] as const))
+      )
 
       // Transform to Completion format
       return results.map((r): Completion => ({
-        value: r.command.id,
-        label: r.command.name,
-        description: r.command.description,
-        category: r.command.category,
+        value: r.item.id,
+        label: r.item.name,
+        description: r.item.description,
+        category: r.item.category,
         score: r.score,
       }))
-    }).pipe(
-      // Provide the service layer for standalone execution
-      Effect.provide(CommandService.Default)
-    ),
+    }),
 
   onSelect: (item: Completion) =>
     Effect.gen(function* () {
