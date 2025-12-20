@@ -32,6 +32,27 @@ export {
 } from "./machine"
 
 // ─────────────────────────────────────────────────────────────
+// Providers
+// ─────────────────────────────────────────────────────────────
+
+export {
+  createProviderId,
+  providerRegistry,
+  getCompletions,
+  executeSelection,
+  COMMAND_PROVIDER_ID,
+  type CompletionProvider,
+  type ProviderRegistry,
+} from "./providers"
+
+// ─────────────────────────────────────────────────────────────
+// Hooks
+// ─────────────────────────────────────────────────────────────
+
+export { useMinibuffer } from "./hooks"
+export type { UseMinibufferReturn } from "./hooks"
+
+// ─────────────────────────────────────────────────────────────
 // Bridge Atoms (Approach C: Hybrid)
 // ─────────────────────────────────────────────────────────────
 
@@ -83,7 +104,7 @@ export {
   MinibufferProvider,
   useMinibufferActor,
   useMinibufferSelector,
-  useMinibuffer,
+  // Note: useMinibuffer exported from ./hooks (primary API)
   // Selectors (XState native)
   selectMode,
   selectIsActive,
@@ -97,3 +118,9 @@ export {
   selectWhichKeyEntries,
   selectError,
 } from "./context"
+
+// ─────────────────────────────────────────────────────────────
+// Components
+// ─────────────────────────────────────────────────────────────
+
+export { MinibufferContent } from "./components"
