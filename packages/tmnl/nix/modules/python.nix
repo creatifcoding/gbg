@@ -13,13 +13,19 @@
           config.devShells.tmnl-core
         ];
 
-        LD_LIBRARY_PATH = "${pkgs.stdenv.cc.cc.lib}/lib";
+        # Fix for jaxlib and other Python packages requiring libstdc++.so.6
+        # See: https://discourse.nixos.org/t/how-to-solve-libstdc-not-found-in-shell-nix/25458
+        LD_LIBRARY_PATH = lib.makeLibraryPath [
+          pkgs.stdenv.cc.cc
+          pkgs.zlib
+        ];
 
         nativeBuildInputs = with pkgs; [
           uv
           ruff
           mypy
           jupyter
+          zlib
         ] ++ lib.optionals isDarwin [ iconv ];
 
         shellHook = ''

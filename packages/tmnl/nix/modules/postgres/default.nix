@@ -5,7 +5,7 @@
       postgres-deploy = {
         description = "Deploy PostgreSQL to k3d";
         exec = ''
-          cd $FLAKE_ROOT/packages/tmnl
+          cd "$FLAKE_ROOT/packages/tmnl"
           
           echo "[PostgreSQL] Creating namespace..."
           kubectl create namespace data || true
