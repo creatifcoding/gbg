@@ -176,20 +176,6 @@ function TerminalRoot({
     setSessionInfo,
   }
 
-  // Auto-connect and attach when mode is 'remote' and terminal is ready
-  useEffect(() => {
-    if (!enableConnection || !connection || mode !== 'remote') return
-    if (!isReady) return
-
-    // Connect if not already connected
-    if (!connection.connected) {
-      connection.connect()
-    }
-
-    // Attach terminal ref
-    connection.attachTerminal(termRef)
-  }, [enableConnection, connection, mode, isReady])
-
   return (
     <TerminalContext.Provider value={contextValue}>
       <div
