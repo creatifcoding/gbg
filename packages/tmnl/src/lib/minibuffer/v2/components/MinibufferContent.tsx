@@ -30,7 +30,7 @@ import {
   whichKeyPrefixAtom,
   ops,
 } from "../atoms"
-import { getCompletions } from "../providers"
+import { getCompletions, executeSelection } from "../providers"
 import type { Completion, ProviderId } from "../machine"
 
 // ─────────────────────────────────────────────────────────────
@@ -392,10 +392,12 @@ export function MinibufferContent() {
   // Handle item selection (click or Enter)
   const handleSelect = useCallback((value: string) => {
     const completion = completions.find(c => c.value === value)
-    if (completion) {
+    if (completion && providerId) {
       ops.selectCompletion(completion)
+      // Execute the provider's onSelect handler (this is what was missing!)
+      Effect.runPromise(executeSelection(providerId, completion))
     }
-  }, [completions])
+  }, [completions, providerId])
 
   // Handle selection change from cmdk (keyboard navigation)
   const handleValueChange = useCallback((value: string) => {
