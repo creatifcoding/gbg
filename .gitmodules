@@ -106,3 +106,6 @@
 [submodule "submodules/receipts"]
 	path = submodules/receipts
 	url = https://github.com/tim-smart/receipts.git
+[submodule "submodules/iggy"]
+	path = submodules/iggy
+	url = https://github.com/apache/iggy
