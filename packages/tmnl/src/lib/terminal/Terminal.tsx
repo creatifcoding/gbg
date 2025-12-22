@@ -28,14 +28,13 @@ import {
   useRef,
   useState,
   useCallback,
-  useEffect,
   forwardRef,
   type ReactNode,
   type RefObject,
 } from 'react'
 import { GhosttyTerminal, type GhosttyTerminalRef, type GhosttyTerminalProps } from './GhosttyTerminal'
 import { useTerminalConnection, type UseTerminalConnectionOptions, type TerminalSessionInfo } from './usePtyConnection'
-import { useTerminalHotkeys } from './hooks/useTerminalHotkeys'
+// import { useTerminalHotkeys } from './hooks/useTerminalHotkeys'  // TODO: Re-enable with XState
 import { ZoomIn, ZoomOut, Maximize2, RotateCcw, Terminal as TerminalIcon } from 'lucide-react'
 
 // ============================================================================
@@ -126,23 +125,11 @@ function TerminalRoot({
   className,
 }: TerminalRootProps) {
   const termRef = useRef<GhosttyTerminalRef | null>(null)
-  const containerRef = useRef<HTMLDivElement | null>(null)
   const [isReady, setIsReady] = useState(false)
   const [dimensions, setDimensions] = useState({ cols: 0, rows: 0 })
   const [zoom, setZoom] = useState(initialZoom)
   const [mode, setMode] = useState<'local' | 'remote'>(enableConnection ? 'remote' : 'local')
   const [sessionInfo, setSessionInfo] = useState<TerminalSessionInfo | null>(null)
-
-  // Terminal-scoped hotkeys (Ctrl+=/-, Ctrl+0)
-  useTerminalHotkeys({
-    zoom,
-    setZoom,
-    minZoom: MIN_ZOOM,
-    maxZoom: MAX_ZOOM,
-    zoomStep: ZOOM_STEP,
-    enabled: isReady,
-    containerRef,
-  })
 
   // Compute actual font size from zoom
   const fontSize = Math.round(BASE_FONT_SIZE * zoom)
@@ -176,30 +163,10 @@ function TerminalRoot({
     setSessionInfo,
   }
 
-  // Store connection in ref to avoid stale closure issues
-  const connectionRef = useRef(connection)
-  connectionRef.current = connection
-
-  // Auto-connect when starting in remote mode
-  // Uses a flag ref to ensure we only attempt once
-  const hasAutoConnected = useRef(false)
-  useEffect(() => {
-    if (!enableConnection || mode !== 'remote') return
-    if (!isReady) return
-    if (hasAutoConnected.current) return
-    if (!connectionRef.current) return
-
-    hasAutoConnected.current = true
-    connectionRef.current.connect()
-    connectionRef.current.attachTerminal(termRef)
-  }, [enableConnection, mode, isReady])
-
   return (
     <TerminalContext.Provider value={contextValue}>
       <div
-        ref={containerRef}
         className={className}
-        tabIndex={-1}
         style={{
           width: typeof width === 'number' ? `${width}px` : width,
           height: typeof height === 'number' ? `${height}px` : height,
