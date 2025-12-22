@@ -1,7 +1,8 @@
 /**
- * usePtyConnection — WebSocket hook for PTY relay
+ * useTerminalConnection — WebSocket hook for Terminal relay
  *
- * Connects GhosttyTerminal to the PTY WebSocket relay server.
+ * Connects GhosttyTerminal to the Terminal WebSocket relay server.
+ * Works with both PTY and SSH backends — the server determines which is active.
  * Handles connection lifecycle, message encoding/decoding, and reconnection.
  */
 
@@ -33,9 +34,11 @@ type ClientMessage = ClientData | ClientResize | ClientPing
 interface ServerReady {
   _tag: 'ServerReady'
   sessionId: string
-  pid: number
+  backend: string // 'pty' | 'ssh'
   cols: number
   rows: number
+  pid?: number   // PTY only
+  host?: string  // SSH only
 }
 
 interface ServerData {
@@ -67,16 +70,16 @@ type ServerMessage = ServerReady | ServerData | ServerExit | ServerError | Serve
 // Hook Options
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface UsePtyConnectionOptions {
+export interface UseTerminalConnectionOptions {
   /** WebSocket URL (default: ws://localhost:7681/ws) */
   url?: string
-  /** Shell to spawn (default: bash) */
+  /** Shell to spawn - PTY only (default: bash) */
   shell?: string
   /** Initial columns */
   cols?: number
   /** Initial rows */
   rows?: number
-  /** Working directory */
+  /** Working directory - PTY only */
   cwd?: string
   /** Auto-connect on mount (default: true) */
   autoConnect?: boolean
@@ -88,39 +91,61 @@ export interface UsePtyConnectionOptions {
   maxReconnectAttempts?: number
 
   // Callbacks
-  onReady?: (session: { sessionId: string; pid: number }) => void
+  onReady?: (session: TerminalSessionInfo) => void
   onData?: (data: string) => void
   onExit?: (exitCode: number, signal?: number | string) => void
   onError?: (error: string) => void
   onConnectionChange?: (connected: boolean) => void
 }
 
-export interface UsePtyConnectionReturn {
+/** Session info returned by server */
+export interface TerminalSessionInfo {
+  sessionId: string
+  backend: 'pty' | 'ssh'
+  cols: number
+  rows: number
+  pid?: number   // PTY only
+  host?: string  // SSH only
+}
+
+/** @deprecated Use UseTerminalConnectionOptions instead */
+export type UsePtyConnectionOptions = UseTerminalConnectionOptions
+
+export interface UseTerminalConnectionReturn {
   /** Connection status */
   connected: boolean
-  /** Session ID (after ServerReady) */
+  /** Full session info (after ServerReady) */
+  session: TerminalSessionInfo | null
+  /** Session ID shorthand */
   sessionId: string | null
-  /** PTY process ID */
+  /** Backend type ('pty' | 'ssh') */
+  backend: 'pty' | 'ssh' | null
+  /** PTY process ID (PTY only) */
   pid: number | null
+  /** SSH host (SSH only) */
+  host: string | null
   /** Last error message */
   error: string | null
-  /** Send data to PTY */
+  /** Send data to terminal */
   write: (data: string) => void
-  /** Resize PTY */
+  /** Resize terminal */
   resize: (cols: number, rows: number) => void
-  /** Connect to PTY relay */
+  /** Connect to terminal relay */
   connect: () => void
-  /** Disconnect from PTY relay */
+  /** Disconnect from terminal relay */
   disconnect: () => void
   /** Attach to terminal ref (wires onData) */
   attachTerminal: (termRef: React.RefObject<GhosttyTerminalRef>) => void
 }
 
+/** @deprecated Use UseTerminalConnectionReturn instead */
+export type UsePtyConnectionReturn = UseTerminalConnectionReturn
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Hook Implementation
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function usePtyConnection(options: UsePtyConnectionOptions = {}): UsePtyConnectionReturn {
+export function useTerminalConnection(options: UseTerminalConnectionOptions = {}): UseTerminalConnectionReturn {
   const {
     url: baseUrl = 'ws://localhost:7681/ws',
     shell = 'bash',
@@ -139,8 +164,7 @@ export function usePtyConnection(options: UsePtyConnectionOptions = {}): UsePtyC
   } = options
 
   const [connected, setConnected] = useState(false)
-  const [sessionId, setSessionId] = useState<string | null>(null)
-  const [pid, setPid] = useState<number | null>(null)
+  const [session, setSession] = useState<TerminalSessionInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const wsRef = useRef<WebSocket | null>(null)
@@ -203,9 +227,16 @@ export function usePtyConnection(options: UsePtyConnectionOptions = {}): UsePtyC
 
         switch (msg._tag) {
           case 'ServerReady':
-            setSessionId(msg.sessionId)
-            setPid(msg.pid)
-            onReady?.({ sessionId: msg.sessionId, pid: msg.pid })
+            const sessionInfo: TerminalSessionInfo = {
+              sessionId: msg.sessionId,
+              backend: msg.backend as 'pty' | 'ssh',
+              cols: msg.cols,
+              rows: msg.rows,
+              pid: msg.pid,
+              host: msg.host,
+            }
+            setSession(sessionInfo)
+            onReady?.(sessionInfo)
             break
 
           case 'ServerData':
@@ -272,8 +303,7 @@ export function usePtyConnection(options: UsePtyConnectionOptions = {}): UsePtyC
     wsRef.current?.close()
     wsRef.current = null
     setConnected(false)
-    setSessionId(null)
-    setPid(null)
+    setSession(null)
   }, [maxReconnectAttempts])
 
   // Attach terminal
@@ -296,8 +326,11 @@ export function usePtyConnection(options: UsePtyConnectionOptions = {}): UsePtyC
 
   return {
     connected,
-    sessionId,
-    pid,
+    session,
+    sessionId: session?.sessionId ?? null,
+    backend: session?.backend ?? null,
+    pid: session?.pid ?? null,
+    host: session?.host ?? null,
     error,
     write,
     resize,
@@ -306,3 +339,6 @@ export function usePtyConnection(options: UsePtyConnectionOptions = {}): UsePtyC
     attachTerminal,
   }
 }
+
+/** @deprecated Use useTerminalConnection instead */
+export const usePtyConnection = useTerminalConnection

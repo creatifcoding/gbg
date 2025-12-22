@@ -1,5 +1,14 @@
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 use std::time::Instant;
+
+use tauri::Manager;
+
+mod terminal_server;
+
+use terminal_server::{
+    terminal_server_restart, terminal_server_start, terminal_server_status, terminal_server_stop,
+    TerminalServerManager,
+};
 
 // =============================================================================
 // HIGH-RESOLUTION TIMING
@@ -46,7 +55,37 @@ pub fn run() {
     }
 
     builder
-        .invoke_handler(tauri::generate_handler![now_micros])
+        // Terminal server manager state
+        .manage(Arc::new(TerminalServerManager::default()))
+        // Setup hook for initialization
+        .setup(|app| {
+            log::info!("TMNL app starting...");
+
+            // Auto-start terminal server in development
+            #[cfg(debug_assertions)]
+            {
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    // Small delay to let the app initialize
+                    std::thread::sleep(std::time::Duration::from_millis(500));
+
+                    let manager = handle.state::<Arc<TerminalServerManager>>();
+                    match manager.start(terminal_server::TerminalBackend::Pty) {
+                        Ok(pid) => log::info!("Auto-started terminal server (PID: {})", pid),
+                        Err(e) => log::warn!("Failed to auto-start terminal server: {}", e),
+                    }
+                });
+            }
+
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            now_micros,
+            terminal_server_start,
+            terminal_server_stop,
+            terminal_server_status,
+            terminal_server_restart,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

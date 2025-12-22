@@ -7,23 +7,23 @@
  * ## Usage
  *
  * ```tsx
- * import { GhosttyTerminal, usePtyConnection } from '@/lib/terminal'
+ * import { GhosttyTerminal, useTerminalConnection } from '@/lib/terminal'
  *
  * function Terminal() {
  *   const termRef = useRef<GhosttyTerminalRef>(null)
- *   const pty = usePtyConnection({
- *     onData: (data) => termRef.current?.write(data),
+ *   const terminal = useTerminalConnection({
+ *     onReady: (session) => console.log(`Connected to ${session.backend}`),
  *   })
  *
  *   useEffect(() => {
- *     pty.attachTerminal(termRef)
+ *     terminal.attachTerminal(termRef)
  *   }, [])
  *
  *   return (
  *     <GhosttyTerminal
  *       ref={termRef}
- *       onData={pty.write}
- *       onResize={pty.resize}
+ *       onData={terminal.write}
+ *       onResize={terminal.resize}
  *     />
  *   )
  * }
@@ -34,13 +34,34 @@
 export { GhosttyTerminal } from './GhosttyTerminal';
 export type { GhosttyTerminalProps, GhosttyTerminalRef } from './GhosttyTerminal';
 
-// PTY connection hook
-export { usePtyConnection } from './usePtyConnection';
-export type { UsePtyConnectionOptions, UsePtyConnectionReturn } from './usePtyConnection';
+// Terminal connection hook (backend-agnostic: PTY or SSH)
+export { useTerminalConnection, usePtyConnection } from './usePtyConnection';
+export type {
+  UseTerminalConnectionOptions,
+  UseTerminalConnectionReturn,
+  TerminalSessionInfo,
+  // Deprecated aliases for backwards compatibility
+  UsePtyConnectionOptions,
+  UsePtyConnectionReturn,
+} from './usePtyConnection';
 
 // Theme utilities
 export { tmnlTerminalTheme, createTerminalTheme } from './theme';
 export type { TerminalThemeConfig } from './theme';
+
+// Tauri server management (only available in Tauri context)
+export {
+  useTerminalServer,
+  startTerminalServer,
+  stopTerminalServer,
+  getTerminalServerStatus,
+  restartTerminalServer,
+} from './tauri-server';
+export type {
+  TerminalBackend as TauriTerminalBackend,
+  TerminalServerStatus,
+  UseTerminalServerReturn,
+} from './tauri-server';
 
 // Re-export useful types from ghostty-web
 export type { ITerminalOptions, ITheme } from 'ghostty-web';
