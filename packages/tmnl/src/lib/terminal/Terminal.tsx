@@ -28,12 +28,14 @@ import {
   useRef,
   useState,
   useCallback,
+  useEffect,
   forwardRef,
   type ReactNode,
   type RefObject,
 } from 'react'
 import { GhosttyTerminal, type GhosttyTerminalRef, type GhosttyTerminalProps } from './GhosttyTerminal'
 import { useTerminalConnection, type UseTerminalConnectionOptions, type TerminalSessionInfo } from './usePtyConnection'
+import { useTerminalHotkeys } from './hooks/useTerminalHotkeys'
 import { ZoomIn, ZoomOut, Maximize2, RotateCcw, Terminal as TerminalIcon } from 'lucide-react'
 
 // ============================================================================
@@ -124,11 +126,23 @@ function TerminalRoot({
   className,
 }: TerminalRootProps) {
   const termRef = useRef<GhosttyTerminalRef | null>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
   const [isReady, setIsReady] = useState(false)
   const [dimensions, setDimensions] = useState({ cols: 0, rows: 0 })
   const [zoom, setZoom] = useState(initialZoom)
   const [mode, setMode] = useState<'local' | 'remote'>(enableConnection ? 'remote' : 'local')
   const [sessionInfo, setSessionInfo] = useState<TerminalSessionInfo | null>(null)
+
+  // Terminal-scoped hotkeys (Ctrl+=/-, Ctrl+0)
+  useTerminalHotkeys({
+    zoom,
+    setZoom,
+    minZoom: MIN_ZOOM,
+    maxZoom: MAX_ZOOM,
+    zoomStep: ZOOM_STEP,
+    enabled: isReady,
+    containerRef,
+  })
 
   // Compute actual font size from zoom
   const fontSize = Math.round(BASE_FONT_SIZE * zoom)
@@ -162,10 +176,26 @@ function TerminalRoot({
     setSessionInfo,
   }
 
+  // Auto-connect and attach when mode is 'remote' and terminal is ready
+  useEffect(() => {
+    if (!enableConnection || !connection || mode !== 'remote') return
+    if (!isReady) return
+
+    // Connect if not already connected
+    if (!connection.connected) {
+      connection.connect()
+    }
+
+    // Attach terminal ref
+    connection.attachTerminal(termRef)
+  }, [enableConnection, connection, mode, isReady])
+
   return (
     <TerminalContext.Provider value={contextValue}>
       <div
+        ref={containerRef}
         className={className}
+        tabIndex={-1}
         style={{
           width: typeof width === 'number' ? `${width}px` : width,
           height: typeof height === 'number' ? `${height}px` : height,
@@ -173,6 +203,7 @@ function TerminalRoot({
           flexDirection: 'column',
           background: '#0a0a0c',
           overflow: 'hidden',
+          outline: 'none',
         }}
       >
         {children}

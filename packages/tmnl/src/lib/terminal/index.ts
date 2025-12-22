@@ -64,6 +64,10 @@ export type {
   UsePtyConnectionReturn,
 } from './usePtyConnection';
 
+// Terminal-scoped hotkeys
+export { useTerminalHotkeys } from './hooks/useTerminalHotkeys';
+export type { UseTerminalHotkeysOptions } from './hooks/useTerminalHotkeys';
+
 // Theme utilities
 export { tmnlTerminalTheme, createTerminalTheme } from './theme';
 export type { TerminalThemeConfig } from './theme';
