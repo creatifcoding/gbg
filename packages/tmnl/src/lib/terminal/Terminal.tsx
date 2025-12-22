@@ -176,6 +176,24 @@ function TerminalRoot({
     setSessionInfo,
   }
 
+  // Store connection in ref to avoid stale closure issues
+  const connectionRef = useRef(connection)
+  connectionRef.current = connection
+
+  // Auto-connect when starting in remote mode
+  // Uses a flag ref to ensure we only attempt once
+  const hasAutoConnected = useRef(false)
+  useEffect(() => {
+    if (!enableConnection || mode !== 'remote') return
+    if (!isReady) return
+    if (hasAutoConnected.current) return
+    if (!connectionRef.current) return
+
+    hasAutoConnected.current = true
+    connectionRef.current.connect()
+    connectionRef.current.attachTerminal(termRef)
+  }, [enableConnection, mode, isReady])
+
   return (
     <TerminalContext.Provider value={contextValue}>
       <div
