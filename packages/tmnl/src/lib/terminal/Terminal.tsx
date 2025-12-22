@@ -34,7 +34,6 @@ import {
 } from 'react'
 import { GhosttyTerminal, type GhosttyTerminalRef, type GhosttyTerminalProps } from './GhosttyTerminal'
 import { useTerminalConnection, type UseTerminalConnectionOptions, type TerminalSessionInfo } from './usePtyConnection'
-// import { useTerminalHotkeys } from './hooks/useTerminalHotkeys'  // TODO: Re-enable with XState
 import { ZoomIn, ZoomOut, Maximize2, RotateCcw, Terminal as TerminalIcon } from 'lucide-react'
 
 // ============================================================================
@@ -174,7 +173,6 @@ function TerminalRoot({
           flexDirection: 'column',
           background: '#0a0a0c',
           overflow: 'hidden',
-          outline: 'none',
         }}
       >
         {children}
