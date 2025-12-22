@@ -50,6 +50,14 @@ const defaultSidebarConfig: SidebarConfig = {
       order: 20,
     },
     {
+      id: "docs" as any,
+      label: "Documentation",
+      icon: { type: "lucide", value: "BookOpen" },
+      group: "core",
+      action: { _tag: "RouteAction", path: "/docs/diagrams" },
+      order: 30,
+    },
+    {
       id: "settings" as any,
       label: "Settings",
       icon: { type: "lucide", value: "Settings" },

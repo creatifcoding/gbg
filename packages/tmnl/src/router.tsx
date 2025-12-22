@@ -18,6 +18,7 @@ import {
   Outlet,
 } from '@tanstack/react-router';
 import App from './App';
+import { LockScreenController } from './components/splash';
 import { TmnlLayout } from './components/tmnl-layout';
 import { AnimationTestbed } from './components/testbed/AnimationTestbed';
 import { AnimationV2Testbed } from './lib/animation/v2/__tests__/basic';
@@ -48,13 +49,18 @@ import { FloatingPanelTestbed } from './components/testbed/FloatingPanelTestbed'
 import { SelectionTestbed } from './components/testbed/SelectionTestbed';
 import { DrawerTestbed } from './components/testbed/DrawerTestbed';
 import { VariablesTestbed } from './components/testbed/VariablesTestbed';
+import { ScreensaverTestbed } from './components/testbed/ScreensaverTestbed';
+import { TerminalTestbed } from './components/testbed/TerminalTestbed';
+import { DiagramsPage } from './components/docs';
 
 // Create a root route
+// LockScreenController wraps all routes to enable lock screen functionality
+// Triggered by idle detection or system.lockScreen command (Ctrl+Alt+L / M-x)
 const rootRoute = createRootRoute({
   component: () => (
-    <>
+    <LockScreenController enabled>
       <Outlet />
-    </>
+    </LockScreenController>
   ),
 });
 
@@ -275,6 +281,33 @@ const variablesTestbedRoute = createRoute({
   component: VariablesTestbed,
 });
 
+// Create screensaver testbed route
+const screensaverTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/screensaver',
+  component: ScreensaverTestbed,
+});
+
+// Create terminal testbed route
+const terminalTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/terminal',
+  component: TerminalTestbed,
+});
+
+// Create docs/diagrams route
+const docsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/docs',
+  component: DiagramsPage,
+});
+
+const diagramsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/docs/diagrams',
+  component: DiagramsPage,
+});
+
 // Create the router
 const router = createRouter({
   routeTree: rootRoute.addChildren([
@@ -309,6 +342,10 @@ const router = createRouter({
     selectionTestbedRoute,
     drawerTestbedRoute,
     variablesTestbedRoute,
+    screensaverTestbedRoute,
+    terminalTestbedRoute,
+    docsRoute,
+    diagramsRoute,
   ]),
 });
 
