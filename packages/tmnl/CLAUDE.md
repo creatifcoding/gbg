@@ -259,6 +259,322 @@ Everything else? Schema.
 
 ---
 
+## effect-atom Discipline — ATOM-AS-STATE DOCTRINE
+
+**CRITICAL: Use effect-atom instead of useState for cross-component state.**
+
+This is the single most frequent architecture violation. When React consumes Effect services, the state management pattern MUST use effect-atom, not useState scattered across components.
+
+### The Cardinal Rule
+
+> **Atom.make() is the primary state. Service methods mutate atoms directly via `ctx.set()`. React subscribes via `useAtomValue()`.**
+
+This eliminates:
+- Ref→Atom bridges (no polling, no SubscriptionRef, no streams-to-consume-streams)
+- Setter soup (no `setResults`, `setStatus`, `setStats` in every callback)
+- Stale closures (atoms are always current)
+- React Context overhead (atoms ARE the context)
+
+### When to Use effect-atom (MANDATORY)
+
+| Condition | Example | Pattern |
+|-----------|---------|---------|
+| **Crosses component boundaries** | Search results displayed in grid AND status bar | Module-level atoms |
+| **Derives from async operations** | API responses, streams, Effect programs | `runtimeAtom.fn<T>()()` |
+| **Multiple consumers** | Same state read by 3+ components | `useAtomValue(atom)` |
+| **Service-scoped lifecycle** | State tied to service, not component mount | `Atom.runtime(Layer)` |
+
+### When useState Is Acceptable
+
+| Condition | Example |
+|-----------|---------|
+| **Pure UI state** | Input focus, hover state, local toggle |
+| **Single-component scope** | Dropdown open/closed, form field value |
+| **Ephemeral** | Mouse position during drag, animation frame |
+
+### Core Patterns
+
+**Skills Reference**: `/effect-atom-integration`, `/effect-patterns`
+
+#### Pattern 1: Module-Level State Atoms
+
+```typescript
+// atoms/index.ts — Define OUTSIDE components
+import { Atom } from '@effect-atom/atom-react'
+
+// Primitive state
+export const statusAtom = Atom.make<'idle' | 'loading' | 'error'>('idle')
+export const resultsAtom = Atom.make<readonly Result[]>([])
+
+// Derived state (reactive)
+export const hasResultsAtom = Atom.make((get) => get(resultsAtom).length > 0)
+```
+
+#### Pattern 2: Runtime Atom + Service Layer
+
+```typescript
+// atoms/index.ts
+import { Atom } from '@effect-atom/atom-react'
+import { Layer } from 'effect'
+import { MyService } from '../services/MyService'
+
+// Create runtime from service layer
+export const myRuntimeAtom = Atom.runtime(
+  Layer.mergeAll(
+    MyService.Default,
+    // ... other service layers
+  )
+)
+```
+
+#### Pattern 3: Operation Atoms with `ctx.set()`
+
+```typescript
+// atoms/index.ts — THE CANONICAL PATTERN
+export const searchOps = {
+  search: myRuntimeAtom.fn<{ query: string }>()((args, ctx) =>
+    Effect.gen(function* () {
+      ctx.set(statusAtom, 'loading')  // ← Direct atom mutation
+      ctx.set(resultsAtom, [])
+
+      const service = yield* MyService
+      const results = yield* service.search(args.query)
+
+      ctx.set(resultsAtom, results)   // ← State updates flow to React
+      ctx.set(statusAtom, 'idle')
+
+      return results
+    })
+  ),
+}
+```
+
+#### Pattern 4: React Consumption
+
+```tsx
+// Component.tsx
+import { useAtomValue, useAtom } from '@effect-atom/atom-react'
+import { resultsAtom, statusAtom, searchOps } from './atoms'
+
+function SearchResults() {
+  // Read-only subscription
+  const results = useAtomValue(resultsAtom)
+  const status = useAtomValue(statusAtom)
+
+  // Operation trigger (returns Promise)
+  const handleSearch = async (query: string) => {
+    await searchOps.search({ query })
+    // State already updated via ctx.set() — no setters needed!
+  }
+
+  return <Grid data={results} loading={status === 'loading'} />
+}
+```
+
+#### Pattern 5: XState Hybrid (stx pattern)
+
+For complex state machines, bridge XState to effect-atom:
+
+```typescript
+// atoms.ts
+import { Atom } from '@effect-atom/atom-react'
+import { createActor } from 'xstate'
+import { myMachine } from './machine'
+
+// Single bridge atom — XState → effect-atom
+export const snapshotAtom = Atom.make(
+  createActor(myMachine).getSnapshot()
+)
+
+// Derived selectors (not separate atoms!)
+export const stateAtom = Atom.make((get) => get(snapshotAtom).value)
+export const contextAtom = Atom.make((get) => get(snapshotAtom).context)
+export const canSubmitAtom = Atom.make((get) =>
+  get(snapshotAtom).can({ type: 'SUBMIT' })
+)
+
+// Actor manages its own state, updates bridge atom
+const actor = createActor(myMachine)
+actor.subscribe((snapshot) => {
+  Atom.set(snapshotAtom, snapshot)
+})
+actor.start()
+
+// Operations send events to actor
+export const ops = {
+  submit: () => actor.send({ type: 'SUBMIT' }),
+  cancel: () => actor.send({ type: 'CANCEL' }),
+}
+```
+
+### Canonical Codebase Examples
+
+| Location | Pattern | Notes |
+|----------|---------|-------|
+| `src/lib/minibuffer/v2/atoms.ts` | XState hybrid (stx) | Single snapshotAtom bridges machine |
+| `src/lib/data-manager/v1/atoms/` | Materialized view | Separate state/operation atoms |
+| `src/lib/layers/atoms/` | Runtime + family | `Atom.family()` for per-entity state |
+| `.edin/EFFECT_PATTERNS.md` | Full registry | Anti-patterns, breadcrumbs |
+
+### Anti-Patterns (VIOLATIONS)
+
+#### ANTIPATTERN:USESTATE_CROSSBOUND
+
+```tsx
+// WRONG — useState for cross-component state
+function Parent() {
+  const [results, setResults] = useState<Result[]>([])  // ❌
+  const [status, setStatus] = useState('idle')           // ❌
+
+  return (
+    <>
+      <SearchBar onResults={setResults} onStatus={setStatus} />
+      <ResultsGrid results={results} />
+      <StatusIndicator status={status} />
+    </>
+  )
+}
+
+// RIGHT — atoms
+// atoms/index.ts
+export const resultsAtom = Atom.make<Result[]>([])
+export const statusAtom = Atom.make<Status>('idle')
+
+// Parent.tsx — no props drilling, no context
+function Parent() {
+  return (
+    <>
+      <SearchBar />
+      <ResultsGrid />
+      <StatusIndicator />
+    </>
+  )
+}
+
+// Each component subscribes directly
+function ResultsGrid() {
+  const results = useAtomValue(resultsAtom)  // ✓
+  return <Grid data={results} />
+}
+```
+
+#### ANTIPATTERN:SETTER_SOUP
+
+```tsx
+// WRONG — setter callbacks everywhere
+const handleSearch = async () => {
+  setStatus('loading')      // ❌
+  setResults([])            // ❌
+  try {
+    const data = await fetch(...)
+    setResults(data)        // ❌
+    setStatus('idle')       // ❌
+  } catch {
+    setStatus('error')      // ❌
+  }
+}
+
+// RIGHT — operation atom with ctx.set()
+export const searchOps = {
+  search: runtimeAtom.fn<Query>()((query, ctx) =>
+    Effect.gen(function* () {
+      ctx.set(statusAtom, 'loading')
+      ctx.set(resultsAtom, [])
+
+      const results = yield* pipe(
+        fetch(query),
+        Effect.catchAll(() => {
+          ctx.set(statusAtom, 'error')
+          return Effect.succeed([])
+        })
+      )
+
+      ctx.set(resultsAtom, results)
+      ctx.set(statusAtom, 'idle')
+    })
+  ),
+}
+```
+
+#### ANTIPATTERN:ATOMS_IN_COMPONENT
+
+```tsx
+// WRONG — creates new atom every render
+function Bad() {
+  const atom = Atom.make(0)  // ❌ Recreated on every render!
+  return <div>{useAtomValue(atom)}</div>
+}
+
+// RIGHT — module-level definition
+const counterAtom = Atom.make(0)  // ✓ Stable reference
+
+function Good() {
+  return <div>{useAtomValue(counterAtom)}</div>
+}
+```
+
+#### ANTIPATTERN:REF_ATOM_BRIDGE
+
+```tsx
+// WRONG — Effect.Ref inside service, then bridge to atoms
+class MyService extends Effect.Service<MyService>()('MyService', {
+  effect: Effect.gen(function* () {
+    const stateRef = yield* Ref.make([])  // ❌ Creates Ref→Atom sync problem
+    return { stateRef, ... }
+  })
+}) {}
+
+// RIGHT — Atoms ARE the state, service mutates directly
+const stateAtom = Atom.make<State[]>([])  // ✓ Atom is source of truth
+
+class MyService extends Effect.Service<MyService>()('MyService', {
+  effect: Effect.gen(function* () {
+    return {
+      addItem: (item: State) =>
+        Effect.sync(() => {
+          Atom.set(stateAtom, (prev) => [...prev, item])
+        }),
+    }
+  })
+}) {}
+```
+
+### Decision Tree
+
+```
+Is state shared across components?
+├── YES → Use effect-atom
+│   ├── Has Effect service layer? → Atom.runtime() + ops
+│   ├── Has XState machine? → stx pattern (snapshotAtom bridge)
+│   └── Simple shared state? → Module-level Atom.make()
+└── NO → Consider useState
+    ├── Is it derived from atoms? → Use derived Atom.make((get) => ...)
+    ├── Is it ephemeral UI state? → useState is fine
+    └── Does it need persistence? → Add to atoms anyway
+```
+
+### Testing Atoms
+
+```typescript
+import { Registry } from '@effect-atom/atom-react'
+
+it('search updates results atom', async () => {
+  const registry = Registry.make()
+
+  // Initial state
+  expect(registry.get(resultsAtom)).toEqual([])
+
+  // Trigger operation
+  await registry.get(searchOps.search({ query: 'test' }))
+
+  // Verify atom updated
+  expect(registry.get(resultsAtom)).toHaveLength(5)
+  expect(registry.get(statusAtom)).toBe('idle')
+})
+```
+
+---
+
 ## Overview
 
 TMNL (Terminal & Multi-Modal Navigation Layer) is a modular development environment built with Nix flakes, providing specialized shells for different development contexts (Rust, Python, Embedded, UI, and Tauri).
