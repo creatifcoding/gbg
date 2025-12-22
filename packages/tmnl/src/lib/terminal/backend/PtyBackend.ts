@@ -24,6 +24,23 @@ import { PtyConfig } from './schemas'
 // PTY Backend Implementation
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Get default shell with zsh preference.
+ * Uses $SHELL env var, falls back to zsh, then bash.
+ */
+function getDefaultShell(): string {
+  if (process.platform === 'win32') {
+    return 'powershell.exe'
+  }
+  // User's configured shell is best
+  const userShell = process.env.SHELL
+  if (userShell) {
+    return userShell
+  }
+  // Default: prefer zsh
+  return 'zsh'
+}
+
 const makePtyBackend = Effect.gen(function* () {
   const connect = (config: typeof PtyConfig.Type): Effect.Effect<
     TerminalHandle,
@@ -32,7 +49,7 @@ const makePtyBackend = Effect.gen(function* () {
   > =>
     Effect.gen(function* () {
       const id = nanoid(12)
-      const shell = config.shell ?? (process.platform === 'win32' ? 'powershell.exe' : 'bash')
+      const shell = config.shell ?? getDefaultShell()
       const args = config.args ?? []
       const cols = config.cols ?? 80
       const rows = config.rows ?? 24

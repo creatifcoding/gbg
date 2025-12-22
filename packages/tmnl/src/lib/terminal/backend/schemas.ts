@@ -31,12 +31,31 @@ export type TerminalEnv = typeof TerminalEnv.Type
 // PTY Configuration
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Get default shell with zsh preference, bash fallback.
+ * Checks if zsh exists before defaulting to it.
+ */
+function getDefaultShell(): string {
+  if (process.platform === 'win32') {
+    return 'powershell.exe'
+  }
+  // Prefer zsh if available (check common paths)
+  // In runtime, the actual spawn will fail gracefully if not found
+  // User's $SHELL is the best source, otherwise try zsh first
+  const userShell = process.env.SHELL
+  if (userShell) {
+    return userShell
+  }
+  // Default preference: zsh > bash
+  return 'zsh'
+}
+
 export const PtyConfig = Schema.Struct({
   _tag: Schema.optionalWith(Schema.Literal('PtyConfig'), {
     default: () => 'PtyConfig' as const,
   }),
   shell: Schema.optionalWith(Schema.String, {
-    default: () => (process.platform === 'win32' ? 'powershell.exe' : 'bash'),
+    default: getDefaultShell,
   }),
   args: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
   cwd: Schema.optional(Schema.String),

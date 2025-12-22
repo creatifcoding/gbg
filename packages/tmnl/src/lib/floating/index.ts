@@ -134,3 +134,21 @@ export {
 // =============================================================================
 
 export { panelMachine, type PanelMachine } from './machines/panel-machine'
+
+// =============================================================================
+// Panel Registry
+// =============================================================================
+
+export {
+  PanelRegistryProvider,
+  usePanelRegistry,
+  registerPanelType,
+  unregisterPanelType,
+  getPanelEntry,
+  getAllPanelEntries,
+  openRegisteredPanel,
+  getPanelProps,
+  clearPanelProps,
+  PanelContentRenderer,
+  type PanelRegistryEntry,
+} from './PanelRegistry'

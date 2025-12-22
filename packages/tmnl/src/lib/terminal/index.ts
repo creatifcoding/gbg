@@ -34,6 +34,25 @@
 export { GhosttyTerminal } from './GhosttyTerminal';
 export type { GhosttyTerminalProps, GhosttyTerminalRef } from './GhosttyTerminal';
 
+// Compound component system
+export {
+  Terminal,
+  TerminalRoot,
+  TerminalControls,
+  TerminalScreen,
+  TerminalStatusBar,
+  useTerminalContext,
+  NERD_FONT_FAMILY,
+  BASE_FONT_SIZE,
+} from './Terminal';
+export type {
+  TerminalRootProps,
+  TerminalControlsProps,
+  TerminalScreenProps,
+  TerminalStatusBarProps,
+  TerminalContextValue,
+} from './Terminal';
+
 // Terminal connection hook (backend-agnostic: PTY or SSH)
 export { useTerminalConnection, usePtyConnection } from './usePtyConnection';
 export type {
@@ -62,6 +81,14 @@ export type {
   TerminalServerStatus,
   UseTerminalServerReturn,
 } from './tauri-server';
+
+// Floating Panel integration
+export {
+  TerminalPanel,
+  terminalPanelConfig,
+  type TerminalPanelProps,
+  type TerminalPanelConfig,
+} from './TerminalPanel';
 
 // Re-export useful types from ghostty-web
 export type { ITerminalOptions, ITheme } from 'ghostty-web';
