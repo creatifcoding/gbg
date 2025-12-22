@@ -51,40 +51,399 @@ const TMNL_DIAGRAM_COLORS = {
 } as const
 
 /**
+ * TMNL themeCSS — Raw CSS injected into Mermaid SVG
+ * This is the proper way to apply custom styles per Mermaid docs
+ */
+const TMNL_THEME_CSS = `
+  /* ══════════════════════════════════════════════════════════════════════════
+   * TMNL Mermaid Theme — Q-Branch Brutalist Aesthetic
+   * ══════════════════════════════════════════════════════════════════════════ */
+
+  /* === Typography === */
+  * {
+    font-family: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', ui-monospace, monospace !important;
+  }
+
+  text {
+    text-rendering: optimizeLegibility !important;
+    -webkit-font-smoothing: antialiased !important;
+  }
+
+  /* === Flowchart Nodes === */
+  .node rect,
+  .node circle,
+  .node ellipse,
+  .node polygon,
+  .node path {
+    fill: ${TMNL_DIAGRAM_COLORS.bg.elevated} !important;
+    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+    stroke-width: 2px !important;
+    filter: drop-shadow(0 0 8px ${TMNL_DIAGRAM_COLORS.accent.cyan}40) !important;
+  }
+
+  .node .label {
+    color: ${TMNL_DIAGRAM_COLORS.text.primary} !important;
+    fill: ${TMNL_DIAGRAM_COLORS.text.primary} !important;
+  }
+
+  /* Primary nodes (decision, etc) */
+  .node.default > rect,
+  .node.default > polygon {
+    fill: ${TMNL_DIAGRAM_COLORS.bg.elevated} !important;
+  }
+
+  /* === Flowchart Edges === */
+  .edgePath .path {
+    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+    stroke-width: 2px !important;
+    fill: none !important;
+  }
+
+  .edgePath marker path {
+    fill: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+  }
+
+  /* Arrowheads */
+  .arrowheadPath {
+    fill: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+  }
+
+  marker path {
+    fill: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+    stroke: none !important;
+  }
+
+  .edgeLabel {
+    background-color: ${TMNL_DIAGRAM_COLORS.bg.primary} !important;
+    color: ${TMNL_DIAGRAM_COLORS.text.secondary} !important;
+  }
+
+  .edgeLabel rect {
+    fill: ${TMNL_DIAGRAM_COLORS.bg.primary} !important;
+    opacity: 0.9 !important;
+  }
+
+  .edgeLabel span {
+    color: ${TMNL_DIAGRAM_COLORS.text.secondary} !important;
+    background: ${TMNL_DIAGRAM_COLORS.bg.primary} !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+  }
+
+  /* === Subgraphs / Clusters === */
+  .cluster rect {
+    fill: ${TMNL_DIAGRAM_COLORS.bg.tertiary} !important;
+    stroke: ${TMNL_DIAGRAM_COLORS.line.primary} !important;
+    stroke-width: 1px !important;
+    rx: 8 !important;
+    ry: 8 !important;
+  }
+
+  .cluster span {
+    color: ${TMNL_DIAGRAM_COLORS.text.secondary} !important;
+  }
+
+  .cluster-label .nodeLabel {
+    color: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+    fill: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+    font-weight: 600 !important;
+  }
+
+  /* === Sequence Diagram === */
+  .actor {
+    fill: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyanGlow} !important;
+    stroke-width: 2px !important;
+    filter: drop-shadow(0 0 12px ${TMNL_DIAGRAM_COLORS.accent.cyan}50) !important;
+  }
+
+  .actor-man circle,
+  .actor-man line {
+    fill: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyanGlow} !important;
+  }
+
+  text.actor > tspan {
+    fill: ${TMNL_DIAGRAM_COLORS.text.inverse} !important;
+    font-weight: 600 !important;
+  }
+
+  .actor-line {
+    stroke: ${TMNL_DIAGRAM_COLORS.line.secondary} !important;
+    stroke-dasharray: 4, 4 !important;
+    stroke-width: 1px !important;
+  }
+
+  .messageLine0,
+  .messageLine1 {
+    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+    stroke-width: 1.5px !important;
+  }
+
+  .messageText {
+    fill: ${TMNL_DIAGRAM_COLORS.text.primary} !important;
+    font-size: 12px !important;
+  }
+
+  .sequenceNumber {
+    fill: ${TMNL_DIAGRAM_COLORS.text.inverse} !important;
+    font-weight: 700 !important;
+  }
+
+  .labelBox {
+    fill: ${TMNL_DIAGRAM_COLORS.bg.tertiary} !important;
+    stroke: ${TMNL_DIAGRAM_COLORS.line.primary} !important;
+    rx: 6 !important;
+    ry: 6 !important;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)) !important;
+  }
+
+  .labelText,
+  .labelText > tspan {
+    fill: ${TMNL_DIAGRAM_COLORS.text.secondary} !important;
+  }
+
+  .loopLine {
+    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyanMuted} !important;
+    stroke-dasharray: 6, 3 !important;
+    stroke-width: 1px !important;
+  }
+
+  .loopText,
+  .loopText > tspan {
+    fill: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+    font-weight: 500 !important;
+  }
+
+  .activation0,
+  .activation1,
+  .activation2 {
+    fill: ${TMNL_DIAGRAM_COLORS.accent.cyan}18 !important;
+    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyanGlow} !important;
+    stroke-width: 1px !important;
+  }
+
+  /* Notes */
+  .note {
+    fill: ${TMNL_DIAGRAM_COLORS.bg.elevated} !important;
+    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyanMuted} !important;
+    stroke-width: 1px !important;
+    rx: 4 !important;
+    ry: 4 !important;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5)) !important;
+  }
+
+  .noteText,
+  .noteText > tspan {
+    fill: ${TMNL_DIAGRAM_COLORS.text.secondary} !important;
+    font-size: 12px !important;
+  }
+
+  /* === State Diagram === */
+  .statediagram-state rect {
+    fill: ${TMNL_DIAGRAM_COLORS.bg.elevated} !important;
+    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+    stroke-width: 2px !important;
+    rx: 8 !important;
+    ry: 8 !important;
+    filter: drop-shadow(0 0 8px ${TMNL_DIAGRAM_COLORS.accent.cyan}30) !important;
+  }
+
+  .stateGroup .state-title {
+    fill: ${TMNL_DIAGRAM_COLORS.text.primary} !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px !important;
+  }
+
+  .statediagram-state .nodeLabel {
+    color: ${TMNL_DIAGRAM_COLORS.text.primary} !important;
+  }
+
+  .statediagram-cluster rect {
+    fill: ${TMNL_DIAGRAM_COLORS.bg.tertiary} !important;
+    stroke: ${TMNL_DIAGRAM_COLORS.line.primary} !important;
+  }
+
+  .transition {
+    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+    stroke-width: 1.5px !important;
+  }
+
+  /* Start/End nodes */
+  .start-state,
+  .end-state-outer,
+  .end-state-inner {
+    fill: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyanGlow} !important;
+  }
+
+  /* === ER Diagram === */
+  .entityBox {
+    fill: ${TMNL_DIAGRAM_COLORS.bg.elevated} !important;
+    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+    stroke-width: 2px !important;
+    rx: 6 !important;
+    ry: 6 !important;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)) !important;
+  }
+
+  .entityLabel {
+    fill: ${TMNL_DIAGRAM_COLORS.text.primary} !important;
+    font-weight: 600 !important;
+  }
+
+  .attributeBoxOdd,
+  .attributeBoxEven {
+    fill: ${TMNL_DIAGRAM_COLORS.bg.tertiary} !important;
+    stroke: ${TMNL_DIAGRAM_COLORS.line.secondary} !important;
+  }
+
+  .relationshipLine {
+    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+    stroke-width: 1.5px !important;
+  }
+
+  .relationshipLabel {
+    fill: ${TMNL_DIAGRAM_COLORS.text.secondary} !important;
+    font-size: 11px !important;
+  }
+
+  /* === Class Diagram === */
+  .classGroup rect {
+    fill: ${TMNL_DIAGRAM_COLORS.bg.elevated} !important;
+    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+    stroke-width: 2px !important;
+  }
+
+  .classGroup .title {
+    fill: ${TMNL_DIAGRAM_COLORS.text.primary} !important;
+    font-weight: 600 !important;
+  }
+
+  .classGroup line {
+    stroke: ${TMNL_DIAGRAM_COLORS.line.primary} !important;
+  }
+
+  .relation {
+    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+    stroke-width: 1.5px !important;
+  }
+
+  /* === Pie Chart === */
+  .pieCircle {
+    stroke: ${TMNL_DIAGRAM_COLORS.bg.primary} !important;
+    stroke-width: 2px !important;
+  }
+
+  .pieTitleText {
+    fill: ${TMNL_DIAGRAM_COLORS.text.primary} !important;
+    font-weight: 600 !important;
+  }
+
+  .slice {
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)) !important;
+  }
+
+  /* === Gantt Chart === */
+  .grid .tick line {
+    stroke: ${TMNL_DIAGRAM_COLORS.line.secondary} !important;
+  }
+
+  .grid path {
+    stroke: ${TMNL_DIAGRAM_COLORS.line.secondary} !important;
+  }
+
+  .taskText {
+    fill: ${TMNL_DIAGRAM_COLORS.text.primary} !important;
+  }
+
+  .taskTextOutsideRight,
+  .taskTextOutsideLeft {
+    fill: ${TMNL_DIAGRAM_COLORS.text.secondary} !important;
+  }
+
+  .sectionTitle {
+    fill: ${TMNL_DIAGRAM_COLORS.text.primary} !important;
+    font-weight: 600 !important;
+  }
+
+  /* === Git Graph === */
+  .commit-id,
+  .commit-msg {
+    fill: ${TMNL_DIAGRAM_COLORS.text.secondary} !important;
+  }
+
+  .branch-label {
+    fill: ${TMNL_DIAGRAM_COLORS.text.primary} !important;
+    font-weight: 600 !important;
+  }
+
+  /* === Journey Diagram === */
+  .journey-section {
+    fill: ${TMNL_DIAGRAM_COLORS.bg.tertiary} !important;
+  }
+
+  .journey-task {
+    fill: ${TMNL_DIAGRAM_COLORS.bg.elevated} !important;
+    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
+  }
+
+  /* === General Shape Rendering === */
+  rect, path, line, circle, ellipse, polygon {
+    shape-rendering: geometricPrecision !important;
+  }
+
+  /* === Link Hover States === */
+  .edgePath:hover .path {
+    stroke-width: 3px !important;
+    filter: drop-shadow(0 0 4px ${TMNL_DIAGRAM_COLORS.accent.cyanGlow}) !important;
+  }
+
+  /* === Title === */
+  .titleText {
+    fill: ${TMNL_DIAGRAM_COLORS.text.primary} !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+  }
+`
+
+/**
  * Heavy TMNL theme configuration for Mermaid
+ * Using theme: 'base' as recommended - the only theme that supports full themeVariables customization
  */
 const TMNL_MERMAID_CONFIG = {
-  theme: "base",
+  theme: "base" as const,
   themeVariables: {
-    // === Foundations ===
+    // === Dark Mode Foundation ===
+    darkMode: true,
     background: TMNL_DIAGRAM_COLORS.bg.primary,
-    mainBkg: TMNL_DIAGRAM_COLORS.bg.secondary,
+    mainBkg: TMNL_DIAGRAM_COLORS.bg.elevated,
     secondBkg: TMNL_DIAGRAM_COLORS.bg.tertiary,
 
     // === Typography ===
     fontFamily: "'SF Mono', 'Cascadia Code', 'JetBrains Mono', ui-monospace, monospace",
-    fontSize: "13px",
+    fontSize: "14px",
     textColor: TMNL_DIAGRAM_COLORS.text.primary,
     primaryTextColor: TMNL_DIAGRAM_COLORS.text.primary,
     secondaryTextColor: TMNL_DIAGRAM_COLORS.text.secondary,
     tertiaryTextColor: TMNL_DIAGRAM_COLORS.text.muted,
 
-    // === Borders & Lines ===
-    lineColor: TMNL_DIAGRAM_COLORS.line.primary,
+    // === Primary Colors (Cyan) ===
+    primaryColor: TMNL_DIAGRAM_COLORS.bg.elevated,
     primaryBorderColor: TMNL_DIAGRAM_COLORS.accent.cyan,
-    secondaryBorderColor: TMNL_DIAGRAM_COLORS.line.primary,
 
-    // === Primary Accent (Cyan) ===
-    primaryColor: TMNL_DIAGRAM_COLORS.accent.cyan,
-    primary: TMNL_DIAGRAM_COLORS.accent.cyan,
+    // === Secondary Colors (Emerald) ===
+    secondaryColor: TMNL_DIAGRAM_COLORS.bg.tertiary,
+    secondaryBorderColor: TMNL_DIAGRAM_COLORS.accent.emerald,
 
-    // === Secondary (Emerald) ===
-    secondaryColor: TMNL_DIAGRAM_COLORS.accent.emerald,
-    secondary: TMNL_DIAGRAM_COLORS.accent.emerald,
+    // === Tertiary Colors (Amber) ===
+    tertiaryColor: TMNL_DIAGRAM_COLORS.bg.secondary,
+    tertiaryBorderColor: TMNL_DIAGRAM_COLORS.accent.amber,
 
-    // === Tertiary (Amber) ===
-    tertiaryColor: TMNL_DIAGRAM_COLORS.accent.amber,
-    tertiary: TMNL_DIAGRAM_COLORS.accent.amber,
+    // === Lines ===
+    lineColor: TMNL_DIAGRAM_COLORS.accent.cyan,
 
     // === Notes ===
     noteBkgColor: TMNL_DIAGRAM_COLORS.bg.elevated,
@@ -95,46 +454,47 @@ const TMNL_MERMAID_CONFIG = {
     actorBkg: TMNL_DIAGRAM_COLORS.accent.cyan,
     actorTextColor: TMNL_DIAGRAM_COLORS.text.inverse,
     actorBorder: TMNL_DIAGRAM_COLORS.accent.cyanGlow,
-    actorLineColor: TMNL_DIAGRAM_COLORS.line.primary,
-    signalColor: TMNL_DIAGRAM_COLORS.text.primary,
+    actorLineColor: TMNL_DIAGRAM_COLORS.line.secondary,
+    signalColor: TMNL_DIAGRAM_COLORS.accent.cyan,
     signalTextColor: TMNL_DIAGRAM_COLORS.text.primary,
     labelBoxBkgColor: TMNL_DIAGRAM_COLORS.bg.tertiary,
     labelBoxBorderColor: TMNL_DIAGRAM_COLORS.line.primary,
     labelTextColor: TMNL_DIAGRAM_COLORS.text.secondary,
     loopTextColor: TMNL_DIAGRAM_COLORS.accent.cyan,
     activationBorderColor: TMNL_DIAGRAM_COLORS.accent.cyanGlow,
-    activationBkgColor: `${TMNL_DIAGRAM_COLORS.accent.cyan}15`,
+    activationBkgColor: `${TMNL_DIAGRAM_COLORS.accent.cyan}18`,
     sequenceNumberColor: TMNL_DIAGRAM_COLORS.text.inverse,
 
     // === State Diagram ===
     labelColor: TMNL_DIAGRAM_COLORS.text.primary,
     altBackground: TMNL_DIAGRAM_COLORS.bg.tertiary,
-    compositeBackground: TMNL_DIAGRAM_COLORS.bg.secondary,
-    compositeBorder: TMNL_DIAGRAM_COLORS.line.primary,
-    stateBkg: TMNL_DIAGRAM_COLORS.bg.elevated,
-    stateBorder: TMNL_DIAGRAM_COLORS.accent.cyan,
-
-    // === ER Diagram ===
-    entityBkg: TMNL_DIAGRAM_COLORS.bg.elevated,
-    entityTextColor: TMNL_DIAGRAM_COLORS.text.primary,
-    relationLabelColor: TMNL_DIAGRAM_COLORS.text.secondary,
-    relationLabelBackground: TMNL_DIAGRAM_COLORS.bg.primary,
 
     // === Flowchart ===
     nodeBorder: TMNL_DIAGRAM_COLORS.accent.cyan,
     nodeTextColor: TMNL_DIAGRAM_COLORS.text.primary,
     clusterBkg: TMNL_DIAGRAM_COLORS.bg.tertiary,
     clusterBorder: TMNL_DIAGRAM_COLORS.line.primary,
-    defaultLinkColor: TMNL_DIAGRAM_COLORS.line.primary,
+    defaultLinkColor: TMNL_DIAGRAM_COLORS.accent.cyan,
     titleColor: TMNL_DIAGRAM_COLORS.text.primary,
     edgeLabelBackground: TMNL_DIAGRAM_COLORS.bg.primary,
+
+    // === Error States ===
+    errorBkgColor: TMNL_DIAGRAM_COLORS.accent.rose,
+    errorTextColor: TMNL_DIAGRAM_COLORS.text.primary,
 
     // === Pie Chart ===
     pie1: TMNL_DIAGRAM_COLORS.accent.cyan,
     pie2: TMNL_DIAGRAM_COLORS.accent.emerald,
     pie3: TMNL_DIAGRAM_COLORS.accent.amber,
     pie4: TMNL_DIAGRAM_COLORS.accent.rose,
+    pie5: "#8b5cf6", // violet
+    pie6: "#ec4899", // pink
+    pie7: "#06b6d4", // cyan-500
+    pie8: "#84cc16", // lime
   },
+  // === themeCSS — Raw CSS injection (proper Mermaid API) ===
+  themeCSS: TMNL_THEME_CSS,
+  // === Diagram-specific configurations ===
   sequence: {
     diagramMarginX: 80,
     diagramMarginY: 40,
@@ -187,138 +547,7 @@ const TMNL_MERMAID_CONFIG = {
     curve: "basis",
     padding: 20,
   },
-} as const
-
-// =============================================================================
-// CSS Injection for Mermaid SVG Styling
-// =============================================================================
-
-const TMNL_SVG_STYLES = `
-  /* === Global === */
-  .mermaid {
-    font-family: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', ui-monospace, monospace !important;
-  }
-
-  /* === Sequence Diagram === */
-  .actor {
-    filter: drop-shadow(0 0 8px ${TMNL_DIAGRAM_COLORS.accent.cyan}40);
-  }
-
-  .actor-line {
-    stroke: ${TMNL_DIAGRAM_COLORS.line.primary} !important;
-    stroke-dasharray: 4, 4;
-  }
-
-  .messageLine0, .messageLine1 {
-    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
-    stroke-width: 1.5 !important;
-  }
-
-  .messageText {
-    font-size: 12px !important;
-    fill: ${TMNL_DIAGRAM_COLORS.text.primary} !important;
-  }
-
-  .sequenceNumber {
-    fill: ${TMNL_DIAGRAM_COLORS.text.inverse} !important;
-    font-weight: 600 !important;
-  }
-
-  .labelBox {
-    rx: 6;
-    ry: 6;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-  }
-
-  .loopLine {
-    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyanMuted} !important;
-    stroke-dasharray: 6, 3;
-  }
-
-  .loopText tspan {
-    fill: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
-    font-weight: 500 !important;
-  }
-
-  .activation0, .activation1, .activation2 {
-    fill: ${TMNL_DIAGRAM_COLORS.accent.cyan}12 !important;
-    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyanGlow} !important;
-  }
-
-  /* === Note boxes === */
-  .note {
-    rx: 4;
-    ry: 4;
-    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
-  }
-
-  /* === State Diagram === */
-  .stateGroup .state-title {
-    font-weight: 600 !important;
-    letter-spacing: 0.5px;
-  }
-
-  .statediagram-state rect {
-    rx: 8 !important;
-    ry: 8 !important;
-    filter: drop-shadow(0 0 6px ${TMNL_DIAGRAM_COLORS.accent.cyan}30);
-  }
-
-  .statediagram-state.current rect {
-    filter: drop-shadow(0 0 12px ${TMNL_DIAGRAM_COLORS.accent.cyanGlow}60);
-  }
-
-  .transition {
-    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
-  }
-
-  /* === ER Diagram === */
-  .er.entityBox {
-    rx: 6;
-    ry: 6;
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
-  }
-
-  .er.attributeBoxOdd, .er.attributeBoxEven {
-    fill: ${TMNL_DIAGRAM_COLORS.bg.tertiary} !important;
-  }
-
-  .er.relationshipLine {
-    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
-    stroke-width: 1.5 !important;
-  }
-
-  .er.relationshipLabel {
-    fill: ${TMNL_DIAGRAM_COLORS.text.secondary} !important;
-    font-size: 11px !important;
-  }
-
-  /* === Flowchart === */
-  .node rect, .node circle, .node polygon {
-    filter: drop-shadow(0 0 6px ${TMNL_DIAGRAM_COLORS.accent.cyan}25);
-  }
-
-  .edgePath path {
-    stroke: ${TMNL_DIAGRAM_COLORS.accent.cyan} !important;
-    stroke-width: 1.5 !important;
-  }
-
-  .edgeLabel {
-    background: ${TMNL_DIAGRAM_COLORS.bg.primary} !important;
-    padding: 2px 6px;
-    border-radius: 4px;
-  }
-
-  /* === General polish === */
-  text {
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  rect, path, line {
-    shape-rendering: geometricPrecision;
-  }
-`
+}
 
 // Initialize mermaid
 mermaid.initialize({
@@ -387,13 +616,9 @@ export function DiagramViewer({
       const id = `mermaid-${diagram.id}-${Date.now()}`
       const { svg } = await mermaid.render(id, diagram.source)
 
-      // Inject custom styles into SVG
-      const styledSvg = svg.replace(
-        "<style>",
-        `<style>${TMNL_SVG_STYLES}`
-      )
-
-      setSvgContent(styledSvg)
+      // themeCSS is properly configured in TMNL_MERMAID_CONFIG
+      // No manual injection needed - Mermaid handles it
+      setSvgContent(svg)
 
       // Reset view on new diagram
       setView({ scale: 1, translateX: 0, translateY: 0 })
