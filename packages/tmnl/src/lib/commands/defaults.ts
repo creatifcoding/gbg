@@ -6,8 +6,11 @@
  */
 
 import { Effect } from 'effect'
-import { defineCommand, defineEntityCommand } from './decorators'
+import { defineCommand, defineEntityCommand, defineBinding } from './decorators'
 import type { CommandError } from './types'
+import { forceLockAtom } from '@/components/splash/services'
+import { overlayRegistry } from '@/lib/overlays/atoms'
+import { forceScreensaverAtom } from '@/lib/screensaver'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // File Commands (global)
@@ -82,6 +85,13 @@ export const commandPaletteCommand = defineCommand(
   })
 )
 
+// Alt+X binding (Emacs M-x style) for command palette
+export const commandPaletteAltBinding = defineBinding(
+  'alt+x',
+  'system.commandPalette',
+  'global'
+)
+
 export const settingsCommand = defineCommand(
   {
     id: 'system.settings',
@@ -107,6 +117,79 @@ export const keyboardShortcutsCommand = defineCommand(
   },
   Effect.gen(function* () {
     yield* Effect.log('system.keyboardShortcuts: Opening...')
+  })
+)
+
+/**
+ * Lock Screen Command
+ *
+ * Triggers the Selfcharters lock screen with ASCII aberration wallpaper.
+ * Sets forceLockAtom which LockScreenController watches.
+ *
+ * Keybinding: Ctrl+Alt+L (avoids conflict with Ctrl+L browser address bar)
+ */
+export const lockScreenCommand = defineCommand(
+  {
+    id: 'system.lockScreen',
+    name: 'Lock Screen',
+    description: 'Lock terminal and show ASCII wallpaper',
+    category: 'system',
+    scope: 'global',
+    keys: 'ctrl+alt+l',
+  },
+  Effect.gen(function* () {
+    yield* Effect.log('system.lockScreen: Locking terminal...')
+    // Set the force lock atom — LockScreenController watches this
+    // Use overlayRegistry.set() directly (Atom.set returns an Effect, doesn't mutate)
+    // overlayRegistry is the global singleton provided to React via OverlayRegistryProvider
+    overlayRegistry.set(forceLockAtom, true)
+  })
+)
+
+/**
+ * Screensaver Command
+ *
+ * Triggers the ASCII art screensaver overlay immediately.
+ * Normally activates after idle timeout, but this forces it.
+ *
+ * Keybinding: Ctrl+Alt+S
+ */
+export const screensaverCommand = defineCommand(
+  {
+    id: 'system.screensaver',
+    name: 'Screensaver',
+    description: 'Activate ASCII art screensaver',
+    category: 'system',
+    scope: 'global',
+    keys: 'ctrl+alt+s',
+  },
+  Effect.gen(function* () {
+    yield* Effect.log('system.screensaver: Activating screensaver...')
+    overlayRegistry.set(forceScreensaverAtom, true)
+  })
+)
+
+/**
+ * Toggle Terminal Panel Command
+ *
+ * Opens/closes the floating terminal panel (VSCode-style).
+ * Uses the panel registry to manage terminal instance.
+ *
+ * Keybinding: Ctrl+` (backtick)
+ */
+export const toggleTerminalPanelCommand = defineCommand(
+  {
+    id: 'system.toggleTerminalPanel',
+    name: 'Toggle Terminal',
+    description: 'Open/close floating terminal panel',
+    category: 'system',
+    scope: 'global',
+    keys: 'ctrl+`',
+  },
+  Effect.gen(function* () {
+    yield* Effect.log('system.toggleTerminalPanel: Toggling terminal panel...')
+    // Actual toggle is handled by the onTerminal callback in useGlobalHotkeys
+    // This allows the shell to manage panel state via the floating panel system
   })
 )
 
@@ -167,6 +250,37 @@ export const goToStarredCommand = defineCommand(
   },
   Effect.gen(function* () {
     yield* Effect.log('nav.goToStarred: Navigating to starred...')
+  })
+)
+
+export const goToTerminalCommand = defineCommand(
+  {
+    id: 'nav.goToTerminal',
+    name: 'Go to Terminal',
+    description: 'Open terminal testbed (ghostty-web)',
+    category: 'navigation',
+    scope: 'global',
+    keys: 'g t',
+  },
+  Effect.gen(function* () {
+    yield* Effect.log('nav.goToTerminal: Navigating to terminal...')
+    // Use window.location for navigation (works from any context)
+    window.location.href = '/testbed/terminal'
+  })
+)
+
+export const goToHomeCommand = defineCommand(
+  {
+    id: 'nav.goToHome',
+    name: 'Go to Home',
+    description: 'Navigate to home portal',
+    category: 'navigation',
+    scope: 'global',
+    keys: 'g h',
+  },
+  Effect.gen(function* () {
+    yield* Effect.log('nav.goToHome: Navigating to home...')
+    window.location.href = '/'
   })
 )
 
@@ -400,11 +514,16 @@ export const allCommands = [
   commandPaletteCommand,
   settingsCommand,
   keyboardShortcutsCommand,
+  lockScreenCommand,
+  screensaverCommand,
+  toggleTerminalPanelCommand,
   // Navigation
   goToTopCommand,
   goToBottomCommand,
   goToInboxCommand,
   goToStarredCommand,
+  goToTerminalCommand,
+  goToHomeCommand,
   // Editor
   formatDocumentCommand,
   toggleCommentCommand,
