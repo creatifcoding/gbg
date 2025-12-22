@@ -527,9 +527,11 @@ function TerminalStatusBar({
           {ctx.sessionInfo.pid && (
             <span style={{ color: '#22c55e' }}>PID: {ctx.sessionInfo.pid}</span>
           )}
-          <span style={{ color: 'rgba(255,255,255,0.3)' }}>
-            {ctx.sessionInfo.id.slice(0, 8)}...
-          </span>
+          {ctx.sessionInfo.id && (
+            <span style={{ color: 'rgba(255,255,255,0.3)' }}>
+              {ctx.sessionInfo.id.slice(0, 8)}...
+            </span>
+          )}
         </div>
       )}
     </div>

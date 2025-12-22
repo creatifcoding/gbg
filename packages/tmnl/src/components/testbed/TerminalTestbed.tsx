@@ -155,7 +155,7 @@ export function TerminalTestbed() {
               : `pid=${session.pid ?? 'unknown'}`
             termRef.current.writeln('')
             termRef.current.writeln(
-              `\x1b[1;${backendColor}m[${backendLabel}]\x1b[0m Connected: session=${session.id.slice(0, 8)}... ${details}`
+              `\x1b[1;${backendColor}m[${backendLabel}]\x1b[0m Connected: session=${session.id?.slice(0, 8) ?? 'unknown'}... ${details}`
             )
           }
         },
