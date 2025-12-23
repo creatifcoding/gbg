@@ -238,6 +238,10 @@ export function SelectionMarquee({
       // Only start marquee if activation modifier is held (or 'none' mode)
       if (!isModifierActive(e, effectiveModifier)) return
 
+      // Stop event from reaching other handlers (e.g., OrbitControls)
+      e.stopPropagation()
+      e.preventDefault()
+
       const target = e.target as HTMLElement
 
       // In 2D mode, don't start marquee if clicking on a selectable item
@@ -280,6 +284,10 @@ export function SelectionMarquee({
       const container = containerRef.current
       if (!container) return
 
+      // Stop event from reaching OrbitControls during marquee drag
+      e.stopPropagation()
+      e.preventDefault()
+
       const containerRect = container.getBoundingClientRect()
       const position: Position = {
         x: e.clientX - containerRect.left,
@@ -311,6 +319,11 @@ export function SelectionMarquee({
       container.releasePointerCapture(e.pointerId)
 
       if (!isDragging.current) return
+
+      // Stop event from reaching OrbitControls
+      e.stopPropagation()
+      e.preventDefault()
+
       isDragging.current = false
 
       if (!hasActivated.current) {
@@ -421,16 +434,17 @@ export function SelectionMarquee({
     const container = containerRef.current
     if (!container || disabled) return
 
-    container.addEventListener("pointerdown", handlePointerDown)
-    container.addEventListener("pointermove", handlePointerMove)
-    container.addEventListener("pointerup", handlePointerUp)
+    // Use capture phase to intercept before OrbitControls
+    container.addEventListener("pointerdown", handlePointerDown, { capture: true })
+    container.addEventListener("pointermove", handlePointerMove, { capture: true })
+    container.addEventListener("pointerup", handlePointerUp, { capture: true })
     window.addEventListener("keydown", handleKeyDown)
     window.addEventListener("keyup", handleKeyUp)
 
     return () => {
-      container.removeEventListener("pointerdown", handlePointerDown)
-      container.removeEventListener("pointermove", handlePointerMove)
-      container.removeEventListener("pointerup", handlePointerUp)
+      container.removeEventListener("pointerdown", handlePointerDown, { capture: true })
+      container.removeEventListener("pointermove", handlePointerMove, { capture: true })
+      container.removeEventListener("pointerup", handlePointerUp, { capture: true })
       window.removeEventListener("keydown", handleKeyDown)
       window.removeEventListener("keyup", handleKeyUp)
     }
