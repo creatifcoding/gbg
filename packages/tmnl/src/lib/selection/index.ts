@@ -111,3 +111,13 @@ export {
   useFrustumCollisionDetector,
 } from './frustumSelect'
 export type { Entity3D, ViewportSize } from './frustumSelect'
+
+// Modifier Key Tracking (Stream-backed)
+export {
+  modifierState$,
+  altPressed$,
+  runModifierTracking,
+  startModifierTracking,
+  stopModifierTracking,
+} from './modifierKeys'
+export type { ModifierState } from './modifierKeys'

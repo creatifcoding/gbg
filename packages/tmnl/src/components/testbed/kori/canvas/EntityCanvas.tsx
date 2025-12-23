@@ -16,11 +16,14 @@ import { useRef, useMemo, useEffect, useCallback, useState } from "react"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { OrbitControls, Grid, Text, Billboard } from "@react-three/drei"
 import * as THREE from "three"
+import { useAtomValue } from "@effect-atom/atom-react"
 
 import { useStxData, useStx } from "@/lib/stx"
 import {
   SelectionMarquee,
   createFrustumCollisionDetector,
+  altPressed$,
+  runModifierTracking,
   type CollisionDetector,
 } from "@/lib/selection"
 import { getKoriTestbedStx, type EntityDisplay } from "../kori-testbed-stx"
@@ -156,23 +159,8 @@ function SceneContent({ onCameraReady }: SceneContentProps) {
   const entities = useStxData(testbed, (d) => d.entities.get())
   const selectedIds = useStxData(testbed, (d) => d.selectedEntityIds.get())
 
-  // Track Alt key to disable OrbitControls during marquee selection
-  const [altPressed, setAltPressed] = useState(false)
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey) setAltPressed(true)
-    }
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (!e.altKey) setAltPressed(false)
-    }
-    window.addEventListener("keydown", handleKeyDown)
-    window.addEventListener("keyup", handleKeyUp)
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown)
-      window.removeEventListener("keyup", handleKeyUp)
-    }
-  }, [])
+  // Alt key state from stream-backed atom
+  const altPressed = useAtomValue(altPressed$)
 
   const handleSelect = useCallback((id: string) => {
     runEffect("selectEntity", id)
@@ -308,6 +296,11 @@ export function EntityCanvas() {
   const testbed = getKoriTestbedStx()
   const { runEffect } = useStx(testbed)
   const entities = useStxData(testbed, (d) => d.entities.get())
+
+  // Start modifier key tracking stream (idempotent)
+  useEffect(() => {
+    runModifierTracking()
+  }, [])
 
   // Camera info from R3F scene
   const [cameraInfo, setCameraInfo] = useState<CameraInfo | null>(null)
