@@ -61,12 +61,29 @@ export type CollisionDetector = (
   container: HTMLElement
 ) => string[]
 
+/**
+ * Modifier key that must be held to activate marquee selection.
+ * - 'shift': Shift key (common for selection)
+ * - 'alt': Alt/Option key
+ * - 'ctrl': Ctrl/Cmd key
+ * - 'none': No modifier required (marquee always active)
+ */
+export type ActivationModifier = "shift" | "alt" | "ctrl" | "none"
+
 export interface SelectionMarqueeProps {
   /** Container element ref - marquee is relative to this */
   containerRef: RefObject<HTMLElement>
 
   /** Selection mode: '2d' for DOM elements, '3d' for custom collision */
   mode?: SelectionMode
+
+  /**
+   * Modifier key required to activate marquee selection.
+   * Default: 'none' for 2D mode, 'shift' for 3D mode.
+   * Use this to prevent marquee from interfering with other interactions
+   * (e.g., OrbitControls in 3D scenes).
+   */
+  activationModifier?: ActivationModifier
 
   /**
    * Custom collision detector for 3D mode.
@@ -152,9 +169,26 @@ function getAllSelectableIds(container: HTMLElement, selector: string): string[]
 // Component
 // =============================================================================
 
+/**
+ * Check if the required activation modifier is pressed.
+ */
+function isModifierActive(e: PointerEvent | MouseEvent, modifier: ActivationModifier): boolean {
+  switch (modifier) {
+    case "shift":
+      return e.shiftKey
+    case "alt":
+      return e.altKey
+    case "ctrl":
+      return e.ctrlKey || e.metaKey
+    case "none":
+      return true
+  }
+}
+
 export function SelectionMarquee({
   containerRef,
   mode = "2d",
+  activationModifier,
   collisionDetector: customCollisionDetector,
   selectableSelector = "[data-selectable]",
   onSelectionComplete,
@@ -164,6 +198,9 @@ export function SelectionMarquee({
   selectionColor = "cyan",
   disabled = false,
 }: SelectionMarqueeProps) {
+  // Default activation modifier: none for 2D, shift for 3D
+  const effectiveModifier = activationModifier ?? (mode === "3d" ? "shift" : "none")
+
   // Determine collision detector based on mode
   const collisionDetector =
     mode === "3d" && customCollisionDetector
@@ -198,6 +235,9 @@ export function SelectionMarquee({
       // Only start marquee on left click
       if (e.button !== 0) return
 
+      // Only start marquee if activation modifier is held (or 'none' mode)
+      if (!isModifierActive(e, effectiveModifier)) return
+
       const target = e.target as HTMLElement
 
       // In 2D mode, don't start marquee if clicking on a selectable item
@@ -231,7 +271,7 @@ export function SelectionMarquee({
 
       container.setPointerCapture(e.pointerId)
     },
-    [containerRef, disabled, mode, selectableSelector]
+    [containerRef, disabled, effectiveModifier, mode, selectableSelector]
   )
 
   const handlePointerMove = useCallback(
