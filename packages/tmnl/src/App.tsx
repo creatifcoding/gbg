@@ -144,6 +144,14 @@ const CARDS: readonly CardDef[] = [
     glow: 'emerald',
   },
   {
+    title: 'KORI ECS',
+    body: 'Entity-Component-System testbed. REPL, AG-Grid inspector, R3F 3D canvas, scenario runner for stress tests.',
+    route: '/testbed/kori',
+    status: 'active',
+    label: 'NEW',
+    glow: 'cyan',
+  },
+  {
     title: 'FLOATING PANELS',
     body: '@dnd-kit draggable panels with position persistence. Modal detach, z-index stacking, viewport bounds.',
     route: '/testbed/floating',
@@ -163,6 +171,22 @@ const CARDS: readonly CardDef[] = [
     title: 'DRAWER SYSTEM',
     body: 'Stacking drawer UI with rolodex animation. Global + per-panel slots, TableService presets, parallax lift.',
     route: '/testbed/drawer',
+    status: 'active',
+    label: 'NEW',
+    glow: 'cyan',
+  },
+  {
+    title: 'SCREENSAVER',
+    body: 'ASCII art screensaver with idle detection. GLSL shaders, CRT effects, DebugScope instrumentation.',
+    route: '/testbed/screensaver',
+    status: 'active',
+    label: 'NEW',
+    glow: 'emerald',
+  },
+  {
+    title: 'TERMINAL',
+    body: 'Ghostty-web terminal emulator. Full VT100/xterm compat, WASM-powered parser, agentic harness ready.',
+    route: '/testbed/terminal',
     status: 'active',
     label: 'NEW',
     glow: 'cyan',
@@ -212,6 +236,24 @@ const CARDS: readonly CardDef[] = [
     body: 'User-configurable keyboard mappings. Chord support, conflict detection, import/export.',
     route: '/testbed/keybindings',
     status: 'active',
+  },
+  // Block Editor
+  {
+    title: 'BLOCK EDITOR',
+    body: 'TMNL-native block editor with Effect.Service architecture. Schema-backed blocks, undo/redo, mode switching.',
+    route: '/testbed/editor',
+    status: 'active',
+    label: 'NEW',
+    glow: 'cyan',
+  },
+  // Documentation
+  {
+    title: 'TMNL OVERHAUL',
+    body: 'TMNL-native architecture patterns inspired by AFFiNE research. Block editing, state, storage, UI.',
+    route: '/docs/overhaul',
+    status: 'active',
+    label: 'DOCS',
+    glow: 'emerald',
   },
 ];
 

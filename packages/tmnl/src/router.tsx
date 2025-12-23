@@ -51,7 +51,11 @@ import { DrawerTestbed } from './components/testbed/DrawerTestbed';
 import { VariablesTestbed } from './components/testbed/VariablesTestbed';
 import { ScreensaverTestbed } from './components/testbed/ScreensaverTestbed';
 import { TerminalTestbed } from './components/testbed/TerminalTestbed';
+import { KoriTestbed } from './components/testbed/kori';
+import { EditorTestbed } from './components/testbed/EditorTestbed';
 import { DiagramsPage } from './components/docs';
+import { OverhaulDocsPage } from './components/docs/overhaul';
+import { DocsLanding } from './components/docs-3d';
 
 // Create a root route
 // LockScreenController wraps all routes to enable lock screen functionality
@@ -295,17 +299,38 @@ const terminalTestbedRoute = createRoute({
   component: TerminalTestbed,
 });
 
-// Create docs/diagrams route
+// Create docs landing route (3D bento grid)
 const docsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/docs',
-  component: DiagramsPage,
+  component: DocsLanding,
 });
 
 const diagramsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/docs/diagrams',
   component: DiagramsPage,
+});
+
+// Create overhaul documentation route (AFFiNE integration docs)
+const overhaulDocsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/docs/overhaul',
+  component: OverhaulDocsPage,
+});
+
+// Create KORI ECS testbed route
+const koriTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/kori',
+  component: KoriTestbed,
+});
+
+// Create block editor testbed route
+const editorTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/editor',
+  component: EditorTestbed,
 });
 
 // Create the router
@@ -346,6 +371,9 @@ const router = createRouter({
     terminalTestbedRoute,
     docsRoute,
     diagramsRoute,
+    overhaulDocsRoute,
+    koriTestbedRoute,
+    editorTestbedRoute,
   ]),
 });
 
