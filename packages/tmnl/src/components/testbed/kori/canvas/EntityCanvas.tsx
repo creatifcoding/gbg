@@ -4,15 +4,25 @@
  * 3D visualization of entities using react-three-fiber.
  * Entities rendered as instanced meshes with color coding by trait.
  *
+ * Features:
+ * - Click entity to select
+ * - Shift+Drag for marquee selection (3D frustum projection)
+ * - Drag without shift for orbit controls
+ *
  * @module
  */
 
-import { useRef, useMemo, useEffect } from "react"
+import { useRef, useMemo, useEffect, useCallback, useState } from "react"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { OrbitControls, Grid, Text, Billboard } from "@react-three/drei"
 import * as THREE from "three"
 
 import { useStxData, useStx } from "@/lib/stx"
+import {
+  SelectionMarquee,
+  createFrustumCollisionDetector,
+  type CollisionDetector,
+} from "@/lib/selection"
 import { getKoriTestbedStx, type EntityDisplay } from "../kori-testbed-stx"
 
 // =============================================================================
@@ -113,22 +123,48 @@ function EntityMesh({ entity, isSelected, onClick }: EntityMeshProps) {
 }
 
 // =============================================================================
+// Camera Bridge - Exposes R3F camera/size to parent for marquee selection
+// =============================================================================
+
+interface CameraInfo {
+  camera: THREE.Camera
+  size: { width: number; height: number }
+}
+
+function CameraBridge({ onCameraReady }: { onCameraReady: (info: CameraInfo) => void }) {
+  const { camera, size } = useThree()
+
+  useEffect(() => {
+    onCameraReady({ camera, size })
+  }, [camera, size, onCameraReady])
+
+  return null
+}
+
+// =============================================================================
 // Scene Content
 // =============================================================================
 
-function SceneContent() {
+interface SceneContentProps {
+  onCameraReady: (info: CameraInfo) => void
+}
+
+function SceneContent({ onCameraReady }: SceneContentProps) {
   const testbed = getKoriTestbedStx()
   const { runEffect } = useStx(testbed)
 
   const entities = useStxData(testbed, (d) => d.entities.get())
-  const selectedId = useStxData(testbed, (d) => d.selectedEntityId.get())
+  const selectedIds = useStxData(testbed, (d) => d.selectedEntityIds.get())
 
-  const handleSelect = (id: string) => {
+  const handleSelect = useCallback((id: string) => {
     runEffect("selectEntity", id)
-  }
+  }, [runEffect])
 
   return (
     <>
+      {/* Camera bridge for marquee selection */}
+      <CameraBridge onCameraReady={onCameraReady} />
+
       {/* Lighting */}
       <ambientLight intensity={0.4} />
       <directionalLight position={[10, 10, 5]} intensity={0.8} />
@@ -154,7 +190,7 @@ function SceneContent() {
         <EntityMesh
           key={entity.id}
           entity={entity as EntityDisplay}
-          isSelected={entity.id === selectedId}
+          isSelected={selectedIds.includes(entity.id)}
           onClick={() => handleSelect(entity.id)}
         />
       ))}
@@ -177,7 +213,7 @@ function SceneContent() {
         </Billboard>
       )}
 
-      {/* Camera controls */}
+      {/* Camera controls - disabled during shift for marquee */}
       <OrbitControls
         makeDefault
         enablePan
@@ -225,7 +261,7 @@ function Legend() {
 function StatsOverlay() {
   const testbed = getKoriTestbedStx()
   const entities = useStxData(testbed, (d) => d.entities.get())
-  const selectedId = useStxData(testbed, (d) => d.selectedEntityId.get())
+  const selectedIds = useStxData(testbed, (d) => d.selectedEntityIds.get())
 
   return (
     <div
@@ -235,9 +271,9 @@ function StatsOverlay() {
       <div className="font-mono text-neutral-400">
         Entities: <span className="text-cyan-400">{entities.length}</span>
       </div>
-      {selectedId && (
+      {selectedIds.length > 0 && (
         <div className="font-mono text-neutral-400">
-          Selected: <span className="text-cyan-400">{selectedId.slice(0, 8)}...</span>
+          Selected: <span className="text-cyan-400">{selectedIds.length}</span>
         </div>
       )}
     </div>
@@ -249,8 +285,51 @@ function StatsOverlay() {
 // =============================================================================
 
 export function EntityCanvas() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const testbed = getKoriTestbedStx()
+  const { runEffect } = useStx(testbed)
+  const entities = useStxData(testbed, (d) => d.entities.get())
+
+  // Camera info from R3F scene
+  const [cameraInfo, setCameraInfo] = useState<CameraInfo | null>(null)
+
+  const handleCameraReady = useCallback((info: CameraInfo) => {
+    setCameraInfo(info)
+  }, [])
+
+  // Create frustum collision detector for 3D marquee selection
+  const collisionDetector = useMemo<CollisionDetector | undefined>(() => {
+    if (!cameraInfo) return undefined
+
+    // Convert entities to Entity3D format with scaled positions
+    const entity3Ds = entities.map((e) => ({
+      id: e.id,
+      position: {
+        x: (e.position?.x ?? 0) * 0.1, // Same scale as EntityMesh
+        y: (e.position?.z ?? 0) * 0.1, // Z becomes Y in world space
+        z: (e.position?.y ?? 0) * 0.1, // Y becomes Z in world space
+      },
+    }))
+
+    return createFrustumCollisionDetector(
+      cameraInfo.camera,
+      cameraInfo.size,
+      entity3Ds
+    )
+  }, [cameraInfo, entities])
+
+  // Handle marquee selection complete
+  const handleSelectionComplete = useCallback(
+    (ids: string[]) => {
+      if (ids.length > 0) {
+        runEffect("selectEntities", ids, "replace")
+      }
+    },
+    [runEffect]
+  )
+
   return (
-    <div className="relative w-full h-full bg-neutral-950">
+    <div ref={containerRef} className="relative w-full h-full bg-neutral-950">
       <Canvas
         camera={{ position: [5, 5, 5], fov: 50 }}
         gl={{ antialias: true, alpha: false }}
@@ -258,8 +337,19 @@ export function EntityCanvas() {
       >
         <color attach="background" args={["#0a0a0a"]} />
         <fog attach="fog" args={["#0a0a0a", 15, 40]} />
-        <SceneContent />
+        <SceneContent onCameraReady={handleCameraReady} />
       </Canvas>
+
+      {/* 3D Marquee Selection Overlay */}
+      {collisionDetector && (
+        <SelectionMarquee
+          containerRef={containerRef}
+          mode="3d"
+          collisionDetector={collisionDetector}
+          onSelectionComplete={handleSelectionComplete}
+          selectionColor="cyan"
+        />
+      )}
 
       {/* Overlays */}
       <StatsOverlay />
@@ -270,7 +360,7 @@ export function EntityCanvas() {
         className="absolute bottom-2 right-2 text-neutral-600 font-mono"
         style={{ fontSize: "10px" }}
       >
-        Drag to rotate • Scroll to zoom • Click entity to select
+        Drag to select • Scroll to zoom • Click entity to select
       </div>
     </div>
   )

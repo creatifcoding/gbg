@@ -94,6 +94,20 @@ export {
 export { SelectionOverlay } from './SelectionOverlay'
 export type { SelectionOverlayProps } from './SelectionOverlay'
 
+export { SelectionMarquee } from './SelectionMarquee'
+export type {
+  SelectionMarqueeProps,
+  SelectionMode as MarqueeSelectionMode,
+  CollisionDetector,
+} from './SelectionMarquee'
+
 // Hooks
 export { useSelection, useSelectable } from './useSelection'
 export type { UseSelectionReturn, UseSelectableReturn } from './useSelection'
+
+// 3D Utilities
+export {
+  createFrustumCollisionDetector,
+  useFrustumCollisionDetector,
+} from './frustumSelect'
+export type { Entity3D, ViewportSize } from './frustumSelect'
