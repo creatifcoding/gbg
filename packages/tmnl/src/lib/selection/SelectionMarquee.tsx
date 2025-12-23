@@ -79,9 +79,8 @@ export interface SelectionMarqueeProps {
 
   /**
    * Modifier key required to activate marquee selection.
-   * Default: 'none' for 2D mode, 'shift' for 3D mode.
-   * Use this to prevent marquee from interfering with other interactions
-   * (e.g., OrbitControls in 3D scenes).
+   * Default: 'none' for 2D mode, 'alt' for 3D mode.
+   * Alt is used for 3D because Shift=pan and Ctrl=zoom in OrbitControls.
    */
   activationModifier?: ActivationModifier
 
@@ -198,8 +197,9 @@ export function SelectionMarquee({
   selectionColor = "cyan",
   disabled = false,
 }: SelectionMarqueeProps) {
-  // Default activation modifier: none for 2D, shift for 3D
-  const effectiveModifier = activationModifier ?? (mode === "3d" ? "shift" : "none")
+  // Default activation modifier: none for 2D, alt for 3D
+  // Alt doesn't conflict with OrbitControls (Shift=pan, Ctrl=zoom)
+  const effectiveModifier = activationModifier ?? (mode === "3d" ? "alt" : "none")
 
   // Determine collision detector based on mode
   const collisionDetector =
