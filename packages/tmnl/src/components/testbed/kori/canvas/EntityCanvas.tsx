@@ -156,6 +156,24 @@ function SceneContent({ onCameraReady }: SceneContentProps) {
   const entities = useStxData(testbed, (d) => d.entities.get())
   const selectedIds = useStxData(testbed, (d) => d.selectedEntityIds.get())
 
+  // Track Alt key to disable OrbitControls during marquee selection
+  const [altPressed, setAltPressed] = useState(false)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey) setAltPressed(true)
+    }
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (!e.altKey) setAltPressed(false)
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    window.addEventListener("keyup", handleKeyUp)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+      window.removeEventListener("keyup", handleKeyUp)
+    }
+  }, [])
+
   const handleSelect = useCallback((id: string) => {
     runEffect("selectEntity", id)
   }, [runEffect])
@@ -213,9 +231,10 @@ function SceneContent({ onCameraReady }: SceneContentProps) {
         </Billboard>
       )}
 
-      {/* Camera controls - disabled during shift for marquee */}
+      {/* Camera controls - disabled when Alt held for marquee selection */}
       <OrbitControls
         makeDefault
+        enabled={!altPressed}
         enablePan
         enableZoom
         enableRotate
