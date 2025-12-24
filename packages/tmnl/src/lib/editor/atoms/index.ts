@@ -33,7 +33,7 @@ export const editorRuntimeAtom = Atom.runtime(EditorServiceLive);
 export const documentAtom = editorRuntimeAtom.atom(
   Effect.gen(function* () {
     const editor = yield* EditorService;
-    return Atom.get(editor.atoms.document);
+    return yield* Effect.sync(() => Atom.get(editor.atoms.document));
   })
 );
 
@@ -43,7 +43,8 @@ export const documentAtom = editorRuntimeAtom.atom(
 export const blocksAtom = editorRuntimeAtom.atom(
   Effect.gen(function* () {
     const editor = yield* EditorService;
-    return Atom.get(editor.atoms.document).blocks;
+    const doc = yield* Effect.sync(() => Atom.get(editor.atoms.document));
+    return doc.blocks;
   })
 );
 
@@ -53,7 +54,7 @@ export const blocksAtom = editorRuntimeAtom.atom(
 export const selectionAtom = editorRuntimeAtom.atom(
   Effect.gen(function* () {
     const editor = yield* EditorService;
-    return Atom.get(editor.atoms.selection);
+    return yield* Effect.sync(() => Atom.get(editor.atoms.selection));
   })
 );
 
@@ -63,7 +64,7 @@ export const selectionAtom = editorRuntimeAtom.atom(
 export const modeAtom = editorRuntimeAtom.atom(
   Effect.gen(function* () {
     const editor = yield* EditorService;
-    return Atom.get(editor.atoms.mode);
+    return yield* Effect.sync(() => Atom.get(editor.atoms.mode));
   })
 );
 
@@ -73,7 +74,7 @@ export const modeAtom = editorRuntimeAtom.atom(
 export const isDirtyAtom = editorRuntimeAtom.atom(
   Effect.gen(function* () {
     const editor = yield* EditorService;
-    return Atom.get(editor.atoms.isDirty);
+    return yield* Effect.sync(() => Atom.get(editor.atoms.isDirty));
   })
 );
 

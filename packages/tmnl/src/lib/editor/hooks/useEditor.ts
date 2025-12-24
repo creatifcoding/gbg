@@ -121,7 +121,7 @@ export function useEditor(): UseEditorResult {
   const blocks = Result.match(blocksResult, {
     onInitial: () => [] as Block[],
     onFailure: () => [] as Block[],
-    onSuccess: (s) => s.value ?? [],
+    onSuccess: (s) => s.value,
   });
 
   const selection = Result.match(selectionResult, {
