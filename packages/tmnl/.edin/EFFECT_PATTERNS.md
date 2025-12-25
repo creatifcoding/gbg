@@ -505,6 +505,40 @@ atoms/
 
 **Breadcrumb:** `src/lib/data-manager/v1/atoms/index.ts:34`
 
+### 2.4 Parallel Atom Setup (Effect.all)
+
+**Tag:** `PATTERN:PARALLEL_ATOM_SETUP`
+**Description:** When setting multiple atoms from within an Effect.gen block, use `Effect.all` with `concurrency: 'unbounded'` for parallel execution instead of sequential `Effect.sync` blocks.
+
+**Anti-pattern (sequential):**
+```typescript
+// DON'T: Sequential atom updates
+yield* Effect.sync(() => registry.set(modeAtom, 'command'))
+yield* Effect.sync(() => registry.set(promptAtom, 'M-x '))
+yield* Effect.sync(() => registry.set(inputAtom, ''))
+yield* Effect.sync(() => registry.set(selectedIndexAtom, 0))
+```
+
+**Pattern (parallel):**
+```typescript
+// DO: Parallel atom updates with Effect.all
+yield* Effect.all([
+  Effect.sync(() => registry.set(modeAtom, 'command')),
+  Effect.sync(() => registry.set(promptAtom, 'M-x ')),
+  Effect.sync(() => registry.set(inputAtom, '')),
+  Effect.sync(() => registry.set(selectedIndexAtom, 0)),
+], { concurrency: 'unbounded' })
+```
+
+**When to use:**
+- Multiple independent atom updates in a single Effect
+- Setting up initial state before opening a UI (e.g., drawer, modal)
+- Resetting multiple atoms at once
+
+**Note:** Use `Effect.sync` for synchronous registry operations, `Effect.all` for batching them.
+
+**Breadcrumb:** `src/lib/minibuffer/hooks/useMinibuffer.tsx:124`
+
 ---
 
 ## 3. Data Flow Patterns
@@ -706,6 +740,52 @@ function MyComponent() {
 **Description:** Using SubscriptionRef → Stream → consume → update atom pipeline.
 **Fix:** Just call `ctx.set(atom, value)` directly in the service method.
 
+### 5.8 Sync Atom.get/set/update in Effect.Service
+
+**Tag:** `ANTIPATTERN:SYNC_ATOM_OPS`
+**Description:** Calling `Atom.get()`, `Atom.set()`, `Atom.update()` synchronously inside `Effect.sync()` or plain functions. These methods return `Effect<_, _, AtomRegistry>` and must be yielded.
+**Discovered:** 2025-12-25 via deepwiki query to tim-smart/effect-atom
+**Fix:** Use `Effect.gen(function* () { yield* Atom.get(...) })` for all atom operations.
+
+```typescript
+// WRONG — Atom.get/set/update return Effect, not values!
+const syncDerived = () => {
+  const state = Atom.get(stateAtom);  // Returns Effect, not state!
+  Atom.set(documentAtom, state.document);  // This Effect never runs!
+};
+
+loadDocument: (doc) =>
+  Effect.sync(() => {
+    Atom.set(stateAtom, { ... });  // WRONG — Effect inside Effect.sync
+    syncDerived();  // Calling sync function that returns nothing
+  }),
+
+// CORRECT — yield* all Atom operations
+const syncDerived = Effect.gen(function* () {
+  const state = yield* Atom.get(stateAtom);
+  yield* Atom.set(documentAtom, state.document);
+  yield* Atom.set(selectionAtom, state.selection);
+});
+
+loadDocument: (doc) =>
+  Effect.gen(function* () {
+    yield* Atom.set(stateAtom, { ... });
+    yield* syncDerived;  // Yield the Effect
+  }),
+```
+
+**Key insight from effect-atom source:**
+```typescript
+// Atom.ts line 1932
+export const get = <A>(self: Atom<A>): Effect.Effect<A, never, AtomRegistry> =>
+  Effect.map(AtomRegistry, (_) => _.get(self))
+
+// Atom.ts line 1954
+export const set: {
+  <R, W>(self: Writable<R, W>, value: W): Effect.Effect<void, never, AtomRegistry>
+} = dual(2, (self, value) => Effect.map(AtomRegistry, (_) => _.set(self, value)))
+```
+
 ---
 
 ## 6. Quick Reference
@@ -798,6 +878,7 @@ Quick lookup table for pattern tags to their primary implementations:
 | `PATTERN:PROGRESSIVE_ACCUMULATION` | `atoms/index.ts:206` | _(composite pattern)_ |
 | `PATTERN:ATOM_FAMILY` | `EffectAtomTestbed.tsx:1026` | `Atom.ts:1316-1351` |
 | `PATTERN:ATOM_AS_STATE` | `atoms/index.ts:51-166` | `Atom.ts:458-463` + `Atom.ts:553-588` |
+| `PATTERN:PARALLEL_ATOM_SETUP` | `useMinibuffer.tsx:124` | `Effect.ts` (Effect.all) |
 
 ### 7.5 Search Strategies
 
