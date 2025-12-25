@@ -211,6 +211,9 @@ const MAX_HISTORY = 100;
 
 /**
  * EditorService - Effect.Service with Atom-as-State
+ *
+ * CRITICAL: All Atom.get/set/update calls return Effect<_, _, AtomRegistry>
+ * and MUST be yielded with yield* inside Effect.gen blocks.
  */
 export class EditorService extends Effect.Service<EditorService>()(
   "tmnl/EditorService",
@@ -232,32 +235,32 @@ export class EditorService extends Effect.Service<EditorService>()(
       const modeAtom = Atom.make<EditorMode>("page");
       const isDirtyAtom = Atom.make(false);
 
-      // Sync state to derived atoms
-      const syncDerived = () => {
-        const state = Atom.get(stateAtom);
-        Atom.set(documentAtom, state.document);
-        Atom.set(selectionAtom, state.selection);
-        Atom.set(modeAtom, state.mode);
-        Atom.set(isDirtyAtom, state.isDirty);
-      };
+      // Sync state to derived atoms - returns Effect, must be yielded
+      const syncDerived = Effect.gen(function* () {
+        const state = yield* Atom.get(stateAtom);
+        yield* Atom.set(documentAtom, state.document);
+        yield* Atom.set(selectionAtom, state.selection);
+        yield* Atom.set(modeAtom, state.mode);
+        yield* Atom.set(isDirtyAtom, state.isDirty);
+      });
 
-      // Push to history
-      const pushHistory = () => {
-        const state = Atom.get(stateAtom);
+      // Push to history - returns Effect, must be yielded
+      const pushHistory = Effect.gen(function* () {
+        const state = yield* Atom.get(stateAtom);
         const entry: HistoryEntry = {
           blocks: [...state.document.blocks],
           selection: state.selection,
           timestamp: Date.now(),
         };
 
-        Atom.update(stateAtom, (s) => ({
+        yield* Atom.update(stateAtom, (s) => ({
           ...s,
           history: {
             past: [...s.history.past.slice(-MAX_HISTORY), entry],
             future: [], // Clear future on new edit
           },
         }));
-      };
+      });
 
       return {
         atoms: {
@@ -269,38 +272,41 @@ export class EditorService extends Effect.Service<EditorService>()(
         },
 
         loadDocument: (doc: Document) =>
-          Effect.sync(() => {
-            Atom.set(stateAtom, {
+          Effect.gen(function* () {
+            yield* Atom.set(stateAtom, {
               document: doc,
               selection: null,
               mode: "page",
               history: { past: [], future: [] },
               isDirty: false,
             });
-            syncDerived();
+            yield* syncDerived;
           }),
 
         createNew: (title?: string) =>
-          Effect.sync(() => {
+          Effect.gen(function* () {
             const doc = createDocument(title);
-            Atom.set(stateAtom, {
+            yield* Atom.set(stateAtom, {
               document: doc,
               selection: null,
               mode: "page",
               history: { past: [], future: [] },
               isDirty: false,
             });
-            syncDerived();
+            yield* syncDerived;
             return doc;
           }),
 
         getBlocks: () =>
-          Effect.sync(() => Atom.get(stateAtom).document.blocks),
+          Effect.gen(function* () {
+            const state = yield* Atom.get(stateAtom);
+            return state.document.blocks;
+          }),
 
         addBlock: (block: Block, afterId?: BlockId) =>
-          Effect.sync(() => {
-            pushHistory();
-            Atom.update(stateAtom, (s) => ({
+          Effect.gen(function* () {
+            yield* pushHistory;
+            yield* Atom.update(stateAtom, (s) => ({
               ...s,
               document: {
                 ...s.document,
@@ -309,13 +315,13 @@ export class EditorService extends Effect.Service<EditorService>()(
               },
               isDirty: true,
             }));
-            syncDerived();
+            yield* syncDerived;
           }),
 
         updateBlock: (id: BlockId, updater: (block: Block) => Block) =>
-          Effect.sync(() => {
-            pushHistory();
-            Atom.update(stateAtom, (s) => ({
+          Effect.gen(function* () {
+            yield* pushHistory;
+            yield* Atom.update(stateAtom, (s) => ({
               ...s,
               document: {
                 ...s.document,
@@ -324,13 +330,13 @@ export class EditorService extends Effect.Service<EditorService>()(
               },
               isDirty: true,
             }));
-            syncDerived();
+            yield* syncDerived;
           }),
 
         deleteBlock: (id: BlockId) =>
-          Effect.sync(() => {
-            pushHistory();
-            Atom.update(stateAtom, (s) => ({
+          Effect.gen(function* () {
+            yield* pushHistory;
+            yield* Atom.update(stateAtom, (s) => ({
               ...s,
               document: {
                 ...s.document,
@@ -339,13 +345,13 @@ export class EditorService extends Effect.Service<EditorService>()(
               },
               isDirty: true,
             }));
-            syncDerived();
+            yield* syncDerived;
           }),
 
         moveBlock: (id: BlockId, afterId: BlockId | null) =>
-          Effect.sync(() => {
-            pushHistory();
-            Atom.update(stateAtom, (s) => ({
+          Effect.gen(function* () {
+            yield* pushHistory;
+            yield* Atom.update(stateAtom, (s) => ({
               ...s,
               document: {
                 ...s.document,
@@ -354,39 +360,39 @@ export class EditorService extends Effect.Service<EditorService>()(
               },
               isDirty: true,
             }));
-            syncDerived();
+            yield* syncDerived;
           }),
 
         setSelection: (selection: Selection | null) =>
-          Effect.sync(() => {
-            Atom.update(stateAtom, (s) => ({ ...s, selection }));
-            syncDerived();
+          Effect.gen(function* () {
+            yield* Atom.update(stateAtom, (s) => ({ ...s, selection }));
+            yield* syncDerived;
           }),
 
         clearSelection: () =>
-          Effect.sync(() => {
-            Atom.update(stateAtom, (s) => ({ ...s, selection: null }));
-            syncDerived();
+          Effect.gen(function* () {
+            yield* Atom.update(stateAtom, (s) => ({ ...s, selection: null }));
+            yield* syncDerived;
           }),
 
         setMode: (mode: EditorMode) =>
-          Effect.sync(() => {
-            Atom.update(stateAtom, (s) => ({ ...s, mode }));
-            syncDerived();
+          Effect.gen(function* () {
+            yield* Atom.update(stateAtom, (s) => ({ ...s, mode }));
+            yield* syncDerived;
           }),
 
         toggleMode: () =>
-          Effect.sync(() => {
-            Atom.update(stateAtom, (s) => ({
+          Effect.gen(function* () {
+            yield* Atom.update(stateAtom, (s) => ({
               ...s,
               mode: s.mode === "page" ? "canvas" : "page",
             }));
-            syncDerived();
+            yield* syncDerived;
           }),
 
         undo: () =>
-          Effect.sync(() => {
-            const state = Atom.get(stateAtom);
+          Effect.gen(function* () {
+            const state = yield* Atom.get(stateAtom);
             if (state.history.past.length === 0) return false;
 
             const prev = state.history.past[state.history.past.length - 1];
@@ -396,7 +402,7 @@ export class EditorService extends Effect.Service<EditorService>()(
               timestamp: Date.now(),
             };
 
-            Atom.update(stateAtom, (s) => ({
+            yield* Atom.update(stateAtom, (s) => ({
               ...s,
               document: {
                 ...s.document,
@@ -408,13 +414,13 @@ export class EditorService extends Effect.Service<EditorService>()(
                 future: [current, ...s.history.future],
               },
             }));
-            syncDerived();
+            yield* syncDerived;
             return true;
           }),
 
         redo: () =>
-          Effect.sync(() => {
-            const state = Atom.get(stateAtom);
+          Effect.gen(function* () {
+            const state = yield* Atom.get(stateAtom);
             if (state.history.future.length === 0) return false;
 
             const next = state.history.future[0];
@@ -424,7 +430,7 @@ export class EditorService extends Effect.Service<EditorService>()(
               timestamp: Date.now(),
             };
 
-            Atom.update(stateAtom, (s) => ({
+            yield* Atom.update(stateAtom, (s) => ({
               ...s,
               document: {
                 ...s.document,
@@ -436,15 +442,21 @@ export class EditorService extends Effect.Service<EditorService>()(
                 future: s.history.future.slice(1),
               },
             }));
-            syncDerived();
+            yield* syncDerived;
             return true;
           }),
 
         canUndo: () =>
-          Effect.sync(() => Atom.get(stateAtom).history.past.length > 0),
+          Effect.gen(function* () {
+            const state = yield* Atom.get(stateAtom);
+            return state.history.past.length > 0;
+          }),
 
         canRedo: () =>
-          Effect.sync(() => Atom.get(stateAtom).history.future.length > 0),
+          Effect.gen(function* () {
+            const state = yield* Atom.get(stateAtom);
+            return state.history.future.length > 0;
+          }),
       };
     }),
   }
