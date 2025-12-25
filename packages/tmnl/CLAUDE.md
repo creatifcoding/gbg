@@ -38,6 +38,89 @@ When extracting components or refactoring imports:
 
 ---
 
+## MCP Discipline — RESEARCH BEFORE REINVENTING
+
+**CRITICAL: Use MCP tools to research existing solutions before building from scratch.**
+
+We have powerful MCP servers available. Use them PROACTIVELY to avoid reinventing wheels.
+
+### The Golden Rule
+
+> **Before writing > 50 lines of new code, ask: "Does a library already solve this?"**
+
+### MCP Research Priority Order
+
+1. **deepwiki** — Query GitHub repos for architecture understanding
+   - `mcp__deepwiki__ask_question` for conceptual questions
+   - `mcp__deepwiki__read_wiki_structure` for repo navigation
+   - Canonical repos: `Effect-TS/effect`, `tim-smart/effect-atom`, `toeverything/blocksuite`
+
+2. **effect-docs** — Official Effect documentation
+   - `mcp__effect-docs__effect_docs_search` for pattern lookup
+   - `mcp__effect-docs__get_effect_doc` for full documentation
+
+3. **docfork/Ref** — Library documentation
+   - `mcp__docfork-mcp__docfork_search_docs` for docs search
+   - `mcp__Ref__ref_search_documentation` for API reference
+
+4. **exa** — Code context from the web
+   - `mcp__exa__get_code_context_exa` for implementation patterns
+   - `mcp__exa__web_search_exa` for recent discussions
+
+5. **perplexity** — Deep research with citations
+   - `mcp__plugin_perplexity_perplexity__perplexity_research` for comprehensive analysis
+   - `mcp__plugin_perplexity_perplexity__perplexity_reason` for architectural decisions
+
+### When to Use Which
+
+| Scenario | MCP Tool | Example Query |
+|----------|----------|---------------|
+| Understanding a library's architecture | deepwiki | "How does BlockSuite handle block rendering?" |
+| Effect-TS pattern lookup | effect-docs | "Stream.async usage patterns" |
+| Library API reference | docfork/Ref | "BlockSuite editor initialization" |
+| Finding implementation examples | exa | "BlockSuite React integration example" |
+| Comparing approaches | perplexity | "BlockSuite vs ProseMirror for React apps" |
+
+### Research Workflow
+
+```
+1. Identify the problem domain (e.g., "block-based editor")
+2. Search for existing solutions via MCP
+3. Evaluate fit (integration cost, maintenance, features)
+4. If library exists → integrate it
+5. If not → THEN build custom solution
+```
+
+### Anti-Pattern: The NIH Syndrome
+
+```typescript
+// WRONG — Building from scratch without research
+class EditorService extends Effect.Service<EditorService>()("tmnl/EditorService", {
+  effect: Effect.gen(function* () {
+    // 500 lines of custom block editor logic...
+  })
+}) {}
+
+// RIGHT — Research first, integrate proven solutions
+// After deepwiki query: "toeverything/blocksuite architecture"
+// After docfork search: "BlockSuite React integration"
+import { createEditor } from '@blocksuite/lit';
+// Thin Effect wrapper around battle-tested library
+```
+
+### Submodule Awareness
+
+We have key libraries as submodules for reference:
+
+- `../../submodules/effect` — Effect-TS source
+- `../../submodules/effect-atom` — React integration
+- `../../submodules/AFFiNE` — BlockSuite source (block editor framework)
+- `../../submodules/website` — Effect documentation (human-authored)
+
+**Always check submodules before reinventing.**
+
+---
+
 ## Typography Discipline — THE 12px FLOOR
 
 **CRITICAL: Do NOT shrink text sizes "to look clean."**
