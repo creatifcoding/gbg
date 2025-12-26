@@ -15,9 +15,10 @@ export default defineConfig(() => ({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    dedupe: ['yjs', '@tiptap/pm'], // Ensure single instances for collaboration
   },
   optimizeDeps: {
-    include: ['mermaid'],
+    include: ['mermaid', 'yjs'],
   },
   plugins: [
     react(),
@@ -75,6 +76,15 @@ export default defineConfig(() => ({
         '**/.nix-profile/**',
         '**/result/**',
       ],
+    },
+    // Proxy y-sweet requests to avoid CORS issues in development
+    proxy: {
+      '/y-sweet': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/y-sweet/, ''),
+        ws: true, // Enable WebSocket proxying
+      },
     },
   },
   // Uncomment this if you are using workers.

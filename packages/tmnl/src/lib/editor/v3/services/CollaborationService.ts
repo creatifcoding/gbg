@@ -37,12 +37,59 @@ export interface CollaborationConfig {
 // Configuration
 // =============================================================================
 
+/**
+ * Get y-sweet server URL for HTTP API calls.
+ * In browser dev mode, use Vite proxy to avoid CORS.
+ * Otherwise, use direct connection.
+ */
+function getDefaultServerUrl(): string {
+  if (typeof window !== 'undefined' && import.meta.env.DEV) {
+    // Dev mode: use Vite proxy at /y-sweet to avoid CORS
+    return `${window.location.origin}/y-sweet`;
+  }
+  // Production or non-browser: direct connection
+  return 'http://localhost:8080';
+}
+
+/**
+ * Patch ClientToken URLs to use Vite proxy in dev mode.
+ * The y-sweet server returns URLs like ws://localhost:8080/d/{docId}/ws
+ * which would bypass our proxy. We rewrite them to use the proxy path.
+ */
+function patchClientTokenForProxy(token: ClientToken): ClientToken {
+  if (typeof window === 'undefined' || !import.meta.env.DEV) {
+    return token;
+  }
+
+  const origin = window.location.origin;
+  const wsOrigin = origin.replace(/^http/, 'ws'); // http -> ws, https -> wss
+
+  // Patch the WebSocket URL to go through Vite proxy
+  // e.g., ws://localhost:8080/d/xxx/ws -> ws://localhost:1420/y-sweet/d/xxx/ws
+  const patchedUrl = token.url.replace(
+    /^wss?:\/\/[^/]+/,
+    `${wsOrigin}/y-sweet`
+  );
+
+  // Patch baseUrl if present
+  const patchedBaseUrl = token.baseUrl?.replace(
+    /^https?:\/\/[^/]+/,
+    `${origin}/y-sweet`
+  );
+
+  return {
+    ...token,
+    url: patchedUrl,
+    baseUrl: patchedBaseUrl,
+  };
+}
+
 export class CollaborationConfigTag extends Context.Tag('tmnl/editor/CollaborationConfig')<
   CollaborationConfigTag,
   CollaborationConfig
 >() {
   static readonly Default = Layer.succeed(this, {
-    serverUrl: 'ys://localhost:8080',
+    serverUrl: getDefaultServerUrl(),
   });
 
   static readonly Custom = (config: CollaborationConfig) =>
@@ -86,7 +133,10 @@ export class CollaborationService extends Effect.Service<CollaborationService>()
         Effect.tryPromise({
           try: () => manager.getOrCreateDocAndToken(docId),
           catch: (err) => new Error(`y-sweet connection failed: ${err}`),
-        });
+        }).pipe(
+          // Patch URLs to use Vite proxy in dev mode
+          Effect.map(patchClientTokenForProxy)
+        );
 
       const createDoc = () => Effect.sync(() => new Y.Doc());
 

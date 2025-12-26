@@ -9,14 +9,5 @@
 export { EffectBridge } from './EffectBridge';
 export type { EffectBridgeOptions } from './EffectBridge';
 
-export {
-  CollaborationBridge,
-  collaborationStyles,
-  // Re-exported from services for convenience
-  generateUserColor,
-} from './CollaborationBridge';
-export type {
-  CollaborationBridgeOptions,
-  // Re-exported from services for convenience
-  CollaborationUser,
-} from './CollaborationBridge';
+export { CollaborationBridge, collaborationStyles } from './CollaborationBridge';
+export type { CollaborationBridgeOptions } from './CollaborationBridge';
