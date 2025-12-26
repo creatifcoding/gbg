@@ -53,6 +53,8 @@ import { ScreensaverTestbed } from './components/testbed/ScreensaverTestbed';
 import { TerminalTestbed } from './components/testbed/TerminalTestbed';
 import { KoriTestbed } from './components/testbed/kori';
 import { EditorTestbed } from './components/testbed/EditorTestbed';
+import { EditorV3Testbed } from './components/testbed/EditorV3Testbed';
+import { CollaborationTestbed } from './components/testbed/CollaborationTestbed';
 import { DiagramsPage } from './components/docs';
 import { OverhaulDocsPage } from './components/docs/overhaul';
 import { DocsLanding } from './components/docs-3d';
@@ -333,6 +335,20 @@ const editorTestbedRoute = createRoute({
   component: EditorTestbed,
 });
 
+// Create editor v3 testbed route (Tiptap + Effect)
+const editorV3TestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/editor-v3',
+  component: EditorV3Testbed,
+});
+
+// Create collaboration testbed route (y-sweet real-time sync)
+const collaborationTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/collaboration',
+  component: CollaborationTestbed,
+});
+
 // Create the router
 const router = createRouter({
   routeTree: rootRoute.addChildren([
@@ -374,6 +390,8 @@ const router = createRouter({
     overhaulDocsRoute,
     koriTestbedRoute,
     editorTestbedRoute,
+    editorV3TestbedRoute,
+    collaborationTestbedRoute,
   ]),
 });
 
