@@ -272,10 +272,4 @@ export function useFloatingBounds(): FloatingBoundsContextValue | null {
   return useContext(FloatingBoundsContext)
 }
 
-/**
- * Get current bounds (non-reactive, for use in handlers).
- * Prefer this over useFloatingBounds in drag/resize callbacks.
- */
-export { getBounds }
-
 export default FloatingBoundsProvider
