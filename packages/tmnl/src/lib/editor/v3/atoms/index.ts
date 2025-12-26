@@ -52,19 +52,15 @@ export {
   // State atoms
   collaborationStatusAtom,
   collaborationDocIdAtom,
-  yDocAtom,
   clientTokenAtom,
-  awarenessAtom,
   collaborationErrorAtom,
+  connectedUsersAtom,
   // Derived atoms
   isCollaboratingAtom,
   connectedUsersCountAtom,
-  connectedUsersAtom,
   // Runtime
   collaborationRuntimeAtom,
   createCollaborationRuntime,
   // Operations
   collaborationOps,
-  // Queries
-  collaborationQueries,
 } from './collaboration';

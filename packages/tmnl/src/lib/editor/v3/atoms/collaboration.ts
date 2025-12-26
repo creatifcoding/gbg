@@ -4,22 +4,22 @@
  * Atom-as-State pattern for y-Sweet collaboration.
  * Runtime provides CollaborationService, ops mutate atoms via ctx.set().
  *
+ * NOTE: Y.Doc lifecycle is managed by YDocProvider from @y-sweet/react.
+ * These atoms track connection state and client tokens.
+ *
  * @module editor/v3/atoms/collaboration
  */
 
 import { Atom } from '@effect-atom/atom';
-import { Effect, Layer } from 'effect';
+import { Effect, Layer, pipe } from 'effect';
 import type { ClientToken } from '@y-sweet/sdk';
-import type * as Y from 'yjs';
 import {
   CollaborationService,
   CollaborationServiceLive,
   CollaborationConfigTag,
-  type CollaborationState,
   type ConnectionStatus,
-  type AwarenessUser,
-  type AwarenessState,
   type CollaborationConfig,
+  type CollaborationUser,
 } from '../services';
 
 // =============================================================================
@@ -38,27 +38,21 @@ export const collaborationStatusAtom = Atom.make<ConnectionStatus>('disconnected
 export const collaborationDocIdAtom = Atom.make<string | null>(null);
 
 /**
- * Y.Doc instance (null when disconnected).
- * Use this to access Yjs data structures.
- */
-export const yDocAtom = Atom.make<Y.Doc | null>(null);
-
-/**
  * Client token for y-sweet React provider.
  * Pass this to YDocProvider from @y-sweet/react.
  */
 export const clientTokenAtom = Atom.make<ClientToken | null>(null);
 
 /**
- * Awareness states from all connected clients.
- * Map of clientId → AwarenessState.
- */
-export const awarenessAtom = Atom.make<ReadonlyMap<number, AwarenessState>>(new Map());
-
-/**
  * Connection error message (null when no error).
  */
 export const collaborationErrorAtom = Atom.make<string | null>(null);
+
+/**
+ * Connected users (managed by awareness in React component).
+ * Updated via collaborationOps.updateUsers().
+ */
+export const connectedUsersAtom = Atom.make<readonly CollaborationUser[]>([]);
 
 // =============================================================================
 // Derived Atoms
@@ -75,14 +69,7 @@ export const isCollaboratingAtom = Atom.make((get) => {
  * Number of connected users.
  */
 export const connectedUsersCountAtom = Atom.make((get) => {
-  return get(awarenessAtom).size;
-});
-
-/**
- * List of connected users as array.
- */
-export const connectedUsersAtom = Atom.make((get) => {
-  return Array.from(get(awarenessAtom).values());
+  return get(connectedUsersAtom).length;
 });
 
 // =============================================================================
@@ -120,7 +107,8 @@ export const createCollaborationRuntime = (config: CollaborationConfig) =>
 export const collaborationOps = {
   /**
    * Connect to a document by ID.
-   * Creates the document if it doesn't exist.
+   * Gets client token from y-sweet server.
+   * Use the returned token with YDocProvider.
    */
   connect: collaborationRuntimeAtom.fn<{ docId: string }>()((args, ctx) =>
     Effect.gen(function* () {
@@ -131,114 +119,46 @@ export const collaborationOps = {
       ctx.set(collaborationDocIdAtom, args.docId);
       ctx.set(collaborationErrorAtom, null);
 
-      try {
-        const clientToken = yield* service.connect(args.docId);
-        const state = yield* service.getState;
+      const clientToken = yield* pipe(
+        service.getClientToken(args.docId),
+        Effect.tapError((err) =>
+          Effect.sync(() => {
+            ctx.set(collaborationStatusAtom, 'error');
+            ctx.set(collaborationErrorAtom, err.message);
+          })
+        )
+      );
 
-        // Update atoms with connected state
-        ctx.set(collaborationStatusAtom, 'connected');
-        ctx.set(yDocAtom, state.doc);
-        ctx.set(clientTokenAtom, clientToken);
+      // Update atoms with connected state
+      ctx.set(collaborationStatusAtom, 'connected');
+      ctx.set(clientTokenAtom, clientToken);
 
-        return clientToken;
-      } catch (err) {
-        ctx.set(collaborationStatusAtom, 'error');
-        ctx.set(collaborationErrorAtom, err instanceof Error ? err.message : String(err));
-        throw err;
-      }
+      return clientToken;
     })
   ),
 
   /**
    * Disconnect from the current document.
+   * Resets all collaboration atoms.
    */
   disconnect: collaborationRuntimeAtom.fn<void>()((_, ctx) =>
-    Effect.gen(function* () {
-      const service = yield* CollaborationService;
-      yield* service.disconnect;
-
-      // Reset all atoms
+    Effect.sync(() => {
       ctx.set(collaborationStatusAtom, 'disconnected');
       ctx.set(collaborationDocIdAtom, null);
-      ctx.set(yDocAtom, null);
       ctx.set(clientTokenAtom, null);
-      ctx.set(awarenessAtom, new Map());
+      ctx.set(connectedUsersAtom, []);
       ctx.set(collaborationErrorAtom, null);
     })
   ),
 
   /**
-   * Update local user's awareness state.
+   * Update connected users list.
+   * Call this from awareness change callback in React component.
    */
-  setLocalAwareness: collaborationRuntimeAtom.fn<{ user: Partial<AwarenessUser> }>()(
+  updateUsers: collaborationRuntimeAtom.fn<{ users: readonly CollaborationUser[] }>()(
     (args, ctx) =>
-      Effect.gen(function* () {
-        const service = yield* CollaborationService;
-        yield* service.setLocalAwareness(args.user);
-
-        // Update awareness atom
-        const awareness = yield* service.getAwareness;
-        ctx.set(awarenessAtom, awareness);
+      Effect.sync(() => {
+        ctx.set(connectedUsersAtom, args.users);
       })
   ),
-
-  /**
-   * Refresh awareness from service.
-   */
-  refreshAwareness: collaborationRuntimeAtom.fn<void>()((_, ctx) =>
-    Effect.gen(function* () {
-      const service = yield* CollaborationService;
-      const awareness = yield* service.getAwareness;
-      ctx.set(awarenessAtom, awareness);
-    })
-  ),
-};
-
-// =============================================================================
-// Query Atoms
-// =============================================================================
-
-/**
- * Query atoms for collaboration state.
- */
-export const collaborationQueries = {
-  /**
-   * Current connection status.
-   */
-  status: collaborationStatusAtom,
-
-  /**
-   * Current document ID.
-   */
-  docId: collaborationDocIdAtom,
-
-  /**
-   * Y.Doc instance.
-   */
-  doc: yDocAtom,
-
-  /**
-   * Client token for React provider.
-   */
-  clientToken: clientTokenAtom,
-
-  /**
-   * Awareness states.
-   */
-  awareness: awarenessAtom,
-
-  /**
-   * Is connected?
-   */
-  isCollaborating: isCollaboratingAtom,
-
-  /**
-   * Connected users count.
-   */
-  usersCount: connectedUsersCountAtom,
-
-  /**
-   * Connected users list.
-   */
-  users: connectedUsersAtom,
 };

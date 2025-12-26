@@ -12,6 +12,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import type { Editor, JSONContent } from '@tiptap/core';
 import { EffectBridge } from '../extensions';
+import { editorContentStyles } from './styles';
 
 // =============================================================================
 // Types
@@ -171,120 +172,7 @@ export const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(
             height: '100%',
           }}
         />
-        <style>{`
-          .tmnl-editor-content {
-            padding: 1.5rem;
-            min-height: 200px;
-            color: var(--tmnl-text-primary, #e0e0e0);
-            font-family: var(--tmnl-font-sans, system-ui, -apple-system, sans-serif);
-            font-size: var(--tmnl-text-base, 16px);
-            line-height: 1.6;
-            outline: none;
-          }
-
-          .tmnl-editor-content:focus {
-            outline: none;
-          }
-
-          .tmnl-editor-content p {
-            margin: 0 0 1em 0;
-          }
-
-          .tmnl-editor-content p:last-child {
-            margin-bottom: 0;
-          }
-
-          .tmnl-editor-content h1,
-          .tmnl-editor-content h2,
-          .tmnl-editor-content h3,
-          .tmnl-editor-content h4,
-          .tmnl-editor-content h5,
-          .tmnl-editor-content h6 {
-            color: var(--tmnl-text-primary, #e0e0e0);
-            margin: 1.5em 0 0.5em 0;
-            line-height: 1.3;
-          }
-
-          .tmnl-editor-content h1 { font-size: 2em; }
-          .tmnl-editor-content h2 { font-size: 1.5em; }
-          .tmnl-editor-content h3 { font-size: 1.25em; }
-
-          .tmnl-editor-content strong {
-            font-weight: 600;
-          }
-
-          .tmnl-editor-content em {
-            font-style: italic;
-          }
-
-          .tmnl-editor-content code {
-            font-family: var(--tmnl-font-mono, 'JetBrains Mono', monospace);
-            font-size: 0.9em;
-            background: var(--tmnl-surface-2, #2a2a2a);
-            padding: 0.2em 0.4em;
-            border-radius: 4px;
-          }
-
-          .tmnl-editor-content pre {
-            background: var(--tmnl-surface-2, #2a2a2a);
-            padding: 1rem;
-            border-radius: 8px;
-            overflow-x: auto;
-            margin: 1em 0;
-          }
-
-          .tmnl-editor-content pre code {
-            background: none;
-            padding: 0;
-          }
-
-          .tmnl-editor-content blockquote {
-            border-left: 3px solid var(--tmnl-accent-cyan, #4ecdc4);
-            margin: 1em 0;
-            padding-left: 1rem;
-            color: var(--tmnl-text-secondary, #a0a0a0);
-          }
-
-          .tmnl-editor-content ul,
-          .tmnl-editor-content ol {
-            padding-left: 1.5rem;
-            margin: 0.5em 0;
-          }
-
-          .tmnl-editor-content li {
-            margin: 0.25em 0;
-          }
-
-          .tmnl-editor-content hr {
-            border: none;
-            border-top: 1px solid var(--tmnl-surface-3, #3a3a3a);
-            margin: 2em 0;
-          }
-
-          .tmnl-editor-content a {
-            color: var(--tmnl-accent-cyan, #4ecdc4);
-            text-decoration: none;
-          }
-
-          .tmnl-editor-content a:hover {
-            text-decoration: underline;
-          }
-
-          /* Placeholder */
-          .tmnl-editor-content p.is-editor-empty:first-child::before {
-            content: attr(data-placeholder);
-            color: var(--tmnl-text-muted, #666);
-            float: left;
-            height: 0;
-            pointer-events: none;
-          }
-
-          /* Selection */
-          .tmnl-editor-content ::selection {
-            background: var(--tmnl-accent-cyan, #4ecdc4);
-            color: var(--tmnl-surface-0, #1a1a1a);
-          }
-        `}</style>
+        <style>{editorContentStyles}</style>
       </div>
     );
   }

@@ -18,12 +18,11 @@ export {
   CollaborationServiceLive,
   CollaborationServiceCustom,
   CollaborationConfigTag,
+  generateUserColor,
 } from './CollaborationService';
 export type {
   CollaborationServiceShape,
-  CollaborationState,
   CollaborationConfig,
   ConnectionStatus,
-  AwarenessUser,
-  AwarenessState,
+  CollaborationUser,
 } from './CollaborationService';

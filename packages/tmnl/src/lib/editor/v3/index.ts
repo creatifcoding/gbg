@@ -58,17 +58,14 @@ export {
   // Collaboration atoms
   collaborationStatusAtom,
   collaborationDocIdAtom,
-  yDocAtom,
   clientTokenAtom,
-  awarenessAtom,
   collaborationErrorAtom,
+  connectedUsersAtom,
   isCollaboratingAtom,
   connectedUsersCountAtom,
-  connectedUsersAtom,
   collaborationRuntimeAtom,
   createCollaborationRuntime,
   collaborationOps,
-  collaborationQueries,
 } from './atoms';
 
 // =============================================================================
@@ -79,12 +76,10 @@ export {
   EffectBridge,
   CollaborationBridge,
   collaborationStyles,
-  generateUserColor,
 } from './extensions';
 export type {
   EffectBridgeOptions,
   CollaborationBridgeOptions,
-  CollaborationUser,
 } from './extensions';
 
 // =============================================================================
@@ -100,16 +95,15 @@ export {
   CollaborationServiceLive,
   CollaborationServiceCustom,
   CollaborationConfigTag,
+  generateUserColor,
 } from './services';
 export type {
   EditorServiceShape,
   // Collaboration types
   CollaborationServiceShape,
-  CollaborationState,
   CollaborationConfig,
   ConnectionStatus as CollaborationStatus,
-  AwarenessUser,
-  AwarenessState,
+  CollaborationUser,
 } from './services';
 
 // =============================================================================

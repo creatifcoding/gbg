@@ -12,20 +12,15 @@ import Collaboration from '@tiptap/extension-collaboration';
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import type * as Y from 'yjs';
 import type { Awareness } from 'y-protocols/awareness';
+import { generateUserColor, type CollaborationUser } from '../services';
 
-// =============================================================================
-// Types
-// =============================================================================
-
-export interface CollaborationUser {
-  name: string;
-  color: string;
-}
+// Re-export for convenience
+export { generateUserColor, type CollaborationUser };
 
 export interface CollaborationBridgeOptions {
   /**
    * Yjs document for collaboration.
-   * Get this from yDocAtom or CollaborationService.
+   * Provided by useYDoc() from @y-sweet/react inside YDocProvider.
    */
   document: Y.Doc;
 
@@ -99,12 +94,11 @@ function renderSelection(user: CollaborationUser): HTMLElement {
  * @example
  * ```tsx
  * import { CollaborationBridge } from '@/lib/editor/v3/extensions'
- * import { useAtomValue } from '@effect-atom/atom-react'
- * import { yDocAtom, awarenessAtom } from '@/lib/editor/v3'
+ * import { useYDoc, useAwareness } from '@y-sweet/react'
  *
- * // In component where provider gives awareness
- * const doc = useAtomValue(yDocAtom)
- * const awareness = useYSweetAwareness() // from @y-sweet/react
+ * // Inside YDocProvider context
+ * const doc = useYDoc()
+ * const awareness = useAwareness()
  *
  * const editor = useEditor({
  *   extensions: [
@@ -245,36 +239,5 @@ export const collaborationStyles = `
     animation: tmnl-cursor-blink 1s ease-in-out infinite;
   }
 `;
-
-// =============================================================================
-// Utility: Generate user color
-// =============================================================================
-
-/**
- * Generate a consistent color for a user based on their name.
- * Uses a simple hash to ensure same name = same color.
- */
-export function generateUserColor(name: string): string {
-  // TMNL accent palette
-  const colors = [
-    '#4ecdc4', // cyan
-    '#ff6b6b', // coral
-    '#95e1d3', // mint
-    '#f38181', // salmon
-    '#aa96da', // lavender
-    '#fcbad3', // pink
-    '#a8d8ea', // sky
-    '#ffcc5c', // gold
-  ];
-
-  // Simple string hash
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = ((hash << 5) - hash) + name.charCodeAt(i);
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-
-  return colors[Math.abs(hash) % colors.length];
-}
 
 export default CollaborationBridge;
