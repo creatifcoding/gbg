@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAtomValue } from '@effect-atom/atom-react';
+import { useAtomValue, useAtomSet } from '@effect-atom/atom-react';
 import {
   CollaborativeTiptapEditor,
   collaborationOps,
@@ -157,6 +157,11 @@ export const CollaborationTestbed: React.FC = () => {
   const [docId] = useState(() => `testbed-${Date.now()}`);
   const status = useAtomValue(collaborationStatusAtom);
 
+  // Get callable functions from fn atoms via useAtomSet
+  // runtimeAtom.fn<T>()() returns a Writable, not a callable function
+  const connect = useAtomSet(collaborationOps.connect, { mode: 'promise' });
+  const disconnect = useAtomSet(collaborationOps.disconnect, { mode: 'promise' });
+
   // Define two users for the demo
   const userA: CollaborationUser = {
     name: 'Alice',
@@ -170,18 +175,17 @@ export const CollaborationTestbed: React.FC = () => {
 
   // Connect on mount
   useEffect(() => {
-    collaborationOps.connect({ docId });
+    connect({ docId });
 
     return () => {
-      collaborationOps.disconnect();
+      disconnect(undefined);
     };
-  }, [docId]);
+  }, [docId, connect, disconnect]);
 
-  const handleReconnect = useCallback(() => {
-    collaborationOps.disconnect().then(() => {
-      collaborationOps.connect({ docId });
-    });
-  }, [docId]);
+  const handleReconnect = useCallback(async () => {
+    await disconnect(undefined);
+    await connect({ docId });
+  }, [docId, connect, disconnect]);
 
   return (
     <div
