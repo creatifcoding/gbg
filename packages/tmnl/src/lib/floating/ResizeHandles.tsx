@@ -17,6 +17,7 @@ import {
   updateModifierKeys,
   bringPanelToFront,
 } from './floating-stx'
+import { getBounds, clampResize } from './FloatingBoundsContext'
 import type { ResizeEdge, Dimensions, Position } from './types'
 
 // =============================================================================
@@ -275,7 +276,19 @@ export function ResizeHandles({
       const sensitivity = (mods.ctrl && mods.shift) ? 0.01 : mods.shift ? 0.1 : 1.0
 
       const currentPointer = { x: e.clientX, y: e.clientY }
-      const result = calculateResize(state, currentPointer, sensitivity)
+      let result = calculateResize(state, currentPointer, sensitivity)
+
+      // Clamp within bounds (if bounds provider exists)
+      const bounds = getBounds()
+      if (bounds) {
+        const clamped = clampResize(
+          result.position,
+          result.dimensions,
+          { width: 100, height: 100 }, // min dimensions
+          bounds
+        )
+        result = { dimensions: clamped.dimensions, position: clamped.position }
+      }
 
       // Update via stx
       updatePanelDimensions(panelId, result.dimensions)

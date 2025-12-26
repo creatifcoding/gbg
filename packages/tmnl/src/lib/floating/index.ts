@@ -152,3 +152,18 @@ export {
   PanelContentRenderer,
   type PanelRegistryEntry,
 } from './PanelRegistry'
+
+// =============================================================================
+// Bounds Context (for constraining panels to a container)
+// =============================================================================
+
+export {
+  FloatingBoundsProvider,
+  useFloatingBounds,
+  getBounds,
+  clampPosition,
+  clampDimensions,
+  clampResize,
+  Bounds,
+  type FloatingBoundsProviderProps,
+} from './FloatingBoundsContext'

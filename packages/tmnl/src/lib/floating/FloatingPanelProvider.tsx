@@ -59,6 +59,7 @@ import type {
   UseFloatingPanelReturn,
   PanelStorage,
 } from './types'
+import { getBounds, clampPosition } from './FloatingBoundsContext'
 
 // =============================================================================
 // Storage Key
@@ -293,10 +294,17 @@ export function FloatingPanelProvider({
       if (panel) {
         // PANEL DRAG: update position, clear dragging state, end drag orchestrator
         const { delta } = event
-        const newPosition: Position = {
+        let newPosition: Position = {
           x: panel.position.x + delta.x,
           y: panel.position.y + delta.y,
         }
+
+        // Clamp position within bounds (if bounds provider exists)
+        const bounds = getBounds()
+        if (bounds) {
+          newPosition = clampPosition(newPosition, panel.dimensions, bounds)
+        }
+
         updatePanelPosition(id, newPosition)
         setDragging(id, false)
 
