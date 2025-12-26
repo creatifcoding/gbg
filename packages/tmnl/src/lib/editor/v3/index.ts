@@ -54,6 +54,21 @@ export {
   editorRuntimeAtom,
   editorOps,
   editorQueries,
+
+  // Collaboration atoms
+  collaborationStatusAtom,
+  collaborationDocIdAtom,
+  yDocAtom,
+  clientTokenAtom,
+  awarenessAtom,
+  collaborationErrorAtom,
+  isCollaboratingAtom,
+  connectedUsersCountAtom,
+  connectedUsersAtom,
+  collaborationRuntimeAtom,
+  createCollaborationRuntime,
+  collaborationOps,
+  collaborationQueries,
 } from './atoms';
 
 // =============================================================================
@@ -71,8 +86,22 @@ export {
   EditorService,
   EditorServiceLive,
   EditorNotReady,
+  // Collaboration
+  CollaborationService,
+  CollaborationServiceLive,
+  CollaborationServiceCustom,
+  CollaborationConfigTag,
 } from './services';
-export type { EditorServiceShape } from './services';
+export type {
+  EditorServiceShape,
+  // Collaboration types
+  CollaborationServiceShape,
+  CollaborationState,
+  CollaborationConfig,
+  ConnectionStatus as CollaborationStatus,
+  AwarenessUser,
+  AwarenessState,
+} from './services';
 
 // =============================================================================
 // Components

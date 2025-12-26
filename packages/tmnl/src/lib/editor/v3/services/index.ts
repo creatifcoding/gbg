@@ -12,3 +12,18 @@ export {
   EditorNotReady,
 } from './EditorService';
 export type { EditorServiceShape } from './EditorService';
+
+export {
+  CollaborationService,
+  CollaborationServiceLive,
+  CollaborationServiceCustom,
+  CollaborationConfigTag,
+} from './CollaborationService';
+export type {
+  CollaborationServiceShape,
+  CollaborationState,
+  CollaborationConfig,
+  ConnectionStatus,
+  AwarenessUser,
+  AwarenessState,
+} from './CollaborationService';
