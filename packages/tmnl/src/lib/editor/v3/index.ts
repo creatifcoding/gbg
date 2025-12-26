@@ -75,8 +75,17 @@ export {
 // Extensions
 // =============================================================================
 
-export { EffectBridge } from './extensions';
-export type { EffectBridgeOptions } from './extensions';
+export {
+  EffectBridge,
+  CollaborationBridge,
+  collaborationStyles,
+  generateUserColor,
+} from './extensions';
+export type {
+  EffectBridgeOptions,
+  CollaborationBridgeOptions,
+  CollaborationUser,
+} from './extensions';
 
 // =============================================================================
 // Services
@@ -107,5 +116,10 @@ export type {
 // Components
 // =============================================================================
 
-export { TiptapEditor } from './components';
-export type { TiptapEditorHandle, TiptapEditorProps } from './components';
+export { TiptapEditor, CollaborativeTiptapEditor } from './components';
+export type {
+  TiptapEditorHandle,
+  TiptapEditorProps,
+  CollaborativeTiptapEditorHandle,
+  CollaborativeTiptapEditorProps,
+} from './components';

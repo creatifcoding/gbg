@@ -8,3 +8,9 @@
 
 export { TiptapEditor } from './TiptapEditor';
 export type { TiptapEditorHandle, TiptapEditorProps } from './TiptapEditor';
+
+export { CollaborativeTiptapEditor } from './CollaborativeTiptapEditor';
+export type {
+  CollaborativeTiptapEditorHandle,
+  CollaborativeTiptapEditorProps,
+} from './CollaborativeTiptapEditor';

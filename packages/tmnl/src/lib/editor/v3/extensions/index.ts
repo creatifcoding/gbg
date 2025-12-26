@@ -8,3 +8,13 @@
 
 export { EffectBridge } from './EffectBridge';
 export type { EffectBridgeOptions } from './EffectBridge';
+
+export {
+  CollaborationBridge,
+  collaborationStyles,
+  generateUserColor,
+} from './CollaborationBridge';
+export type {
+  CollaborationBridgeOptions,
+  CollaborationUser,
+} from './CollaborationBridge';
