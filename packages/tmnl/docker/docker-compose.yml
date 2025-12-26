@@ -1,0 +1,40 @@
+# y-Sweet Collaboration Server
+# Real-time Yjs document sync for Tiptap editor
+#
+# Usage:
+#   docker compose up -d          # Start y-sweet
+#   docker compose logs -f        # View logs
+#   docker compose down           # Stop
+#
+# Connection string: ys://localhost:8080
+
+services:
+  y-sweet:
+    image: ghcr.io/jamsocket/y-sweet:latest
+    container_name: tmnl_y_sweet
+    entrypoint: ["/usr/local/bin/y-sweet"]
+    command: ["serve", "--host", "0.0.0.0", "/data"]
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./y-sweet-data:/data
+    environment:
+      # Server config
+      - PORT=8080
+      # Checkpoint every 5 seconds for local dev (faster persistence)
+      - Y_SWEET_CHECKPOINT_FREQ_SECONDS=5
+      # No auth for local dev (NEVER do this in production)
+      # - Y_SWEET_AUTH=your-secret-key
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - tmnl
+
+networks:
+  tmnl:
+    driver: bridge
