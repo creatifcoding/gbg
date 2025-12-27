@@ -18,7 +18,11 @@ import { DocumentManager, type ClientToken } from '@y-sweet/sdk';
 // Types (Canonical definitions)
 // =============================================================================
 
-export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+export type ConnectionStatus =
+  | 'disconnected'
+  | 'connecting'
+  | 'connected'
+  | 'error';
 
 /**
  * User info for collaboration cursors.
@@ -57,6 +61,15 @@ function getDefaultServerUrl(): string {
  * which would bypass our proxy. We rewrite them to use the proxy path.
  */
 function patchClientTokenForProxy(token: ClientToken): ClientToken {
+  // Validate token has required url field
+  if (!token.url) {
+    console.error(
+      '[CollaborationService] Invalid token: missing url field',
+      token
+    );
+    throw new Error('Invalid ClientToken: missing url field');
+  }
+
   if (typeof window === 'undefined' || !import.meta.env.DEV) {
     return token;
   }
@@ -84,10 +97,9 @@ function patchClientTokenForProxy(token: ClientToken): ClientToken {
   };
 }
 
-export class CollaborationConfigTag extends Context.Tag('tmnl/editor/CollaborationConfig')<
-  CollaborationConfigTag,
-  CollaborationConfig
->() {
+export class CollaborationConfigTag extends Context.Tag(
+  'tmnl/editor/CollaborationConfig'
+)<CollaborationConfigTag, CollaborationConfig>() {
   static readonly Default = Layer.succeed(this, {
     serverUrl: getDefaultServerUrl(),
   });
@@ -127,11 +139,25 @@ export class CollaborationService extends Effect.Service<CollaborationService>()
   {
     effect: Effect.gen(function* () {
       const config = yield* CollaborationConfigTag;
+      console.log(
+        '[CollaborationService] Initializing with serverUrl:',
+        config.serverUrl
+      );
       const manager = new DocumentManager(config.serverUrl);
 
-      const getClientToken = (docId: string): Effect.Effect<ClientToken, Error> =>
+      const getClientToken = (
+        docId: string
+      ): Effect.Effect<ClientToken, Error> =>
         Effect.tryPromise({
-          try: () => manager.getOrCreateDocAndToken(docId),
+          try: async () => {
+            console.log(
+              '[CollaborationService] Calling getOrCreateDocAndToken for:',
+              docId
+            );
+            const token = await manager.getOrCreateDocAndToken(docId);
+            console.log('[CollaborationService] Raw token from SDK:', token);
+            return token;
+          },
           catch: (err) => new Error(`y-sweet connection failed: ${err}`),
         }).pipe(
           // Patch URLs to use Vite proxy in dev mode
@@ -185,7 +211,7 @@ const COLLAB_PALETTE = [
 export function generateUserColor(name: string): string {
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
-    hash = ((hash << 5) - hash) + name.charCodeAt(i);
+    hash = (hash << 5) - hash + name.charCodeAt(i);
     hash = hash & hash;
   }
   return COLLAB_PALETTE[Math.abs(hash) % COLLAB_PALETTE.length];

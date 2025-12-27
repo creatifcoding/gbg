@@ -17,6 +17,7 @@ import { generateUserColor, type CollaborationUser } from '../services';
 // Re-export for convenience
 export { generateUserColor, type CollaborationUser };
 
+// How can we actually turn this into a Context.GenericTag?
 export interface CollaborationBridgeOptions {
   /**
    * Yjs document for collaboration.
@@ -29,6 +30,17 @@ export interface CollaborationBridgeOptions {
    * Provided by the y-sweet provider.
    */
   awareness: Awareness;
+
+  /**
+   * Optional provider instance (recommended).
+   *
+   * Some collaboration cursor implementations expect the full provider shape
+   * (e.g. `provider.awareness`, and sometimes `provider.doc`).
+   *
+   * If omitted, we fall back to a minimal provider-like object constructed from
+   * `document` + `awareness`.
+   */
+  provider?: unknown;
 
   /**
    * Current user info for cursor display.
@@ -44,9 +56,11 @@ export interface CollaborationBridgeOptions {
   /**
    * Callback when awareness changes (other users move cursors).
    */
+  // TODO: Needs to be effectual
   onAwarenessChange?: (states: Map<number, unknown>) => void;
 }
 
+// TODO: Is there a way to make this Effect + React native? I don't like much the whole "document.createElement" thing.
 // =============================================================================
 // Cursor Rendering
 // =============================================================================
@@ -112,58 +126,95 @@ function renderSelection(user: CollaborationUser): HTMLElement {
  * })
  * ```
  */
-export const CollaborationBridge = Extension.create<CollaborationBridgeOptions>({
-  name: 'collaborationBridge',
+export const CollaborationBridge = Extension.create<CollaborationBridgeOptions>(
+  {
+    name: 'collaborationBridge',
 
-  addOptions() {
-    return {
-      document: null as unknown as Y.Doc,
-      awareness: null as unknown as Awareness,
-      user: { name: 'Anonymous', color: '#888888' },
-      field: 'default',
-      onAwarenessChange: undefined,
-    };
-  },
+    addOptions() {
+      return {
+        document: undefined as unknown as Y.Doc,
+        awareness: undefined as unknown as Awareness,
+        provider: undefined,
+        user: { name: 'Anonymous', color: '#888888' },
+        field: 'default',
+        onAwarenessChange: undefined,
+      };
+    },
 
-  addExtensions() {
-    const extensions: Extension[] = [];
+    addExtensions() {
+      const extensions: Extension[] = [];
 
-    // Add Collaboration extension
-    if (this.options.document) {
-      extensions.push(
-        Collaboration.configure({
-          document: this.options.document,
-          field: this.options.field,
-        })
-      );
-    }
+      console.log('[CollaborationBridge] addExtensions called', {
+        hasDocument: !!this.options.document,
+        hasAwareness: !!this.options.awareness,
+        hasProvider: !!this.options.provider,
+        providerType: this.options.provider?.constructor?.name,
+        user: this.options.user,
+        field: this.options.field,
+      });
 
-    // Add CollaborationCursor extension
-    if (this.options.awareness) {
-      extensions.push(
-        CollaborationCursor.configure({
-          provider: {
-            awareness: this.options.awareness,
-          } as unknown as { awareness: Awareness },
-          user: this.options.user,
-          render: renderCursor,
-          selectionRender: renderSelection,
-        })
-      );
-
-      // Set up awareness change listener
-      if (this.options.onAwarenessChange) {
-        this.options.awareness.on('change', () => {
-          this.options.onAwarenessChange?.(
-            this.options.awareness.getStates()
-          );
-        });
+      // Add Collaboration extension
+      if (this.options.document) {
+        console.log('[CollaborationBridge] Adding Collaboration extension');
+        extensions.push(
+          Collaboration.configure({
+            document: this.options.document,
+            field: this.options.field,
+          })
+        );
+      } else {
+        console.warn(
+          '[CollaborationBridge] No document provided, skipping Collaboration extension'
+        );
       }
-    }
 
-    return extensions;
-  },
-});
+      // Add CollaborationCursor extension
+      // IMPORTANT: CollaborationCursor requires a REAL provider instance (e.g., from useYjsProvider())
+      // A plain object { awareness, doc } does NOT work — the extension expects the provider to
+      // internally manage the Y.Doc reference via its awareness protocol.
+      if (this.options.provider && this.options.awareness) {
+        console.log(
+          '[CollaborationBridge] Adding CollaborationCursor extension',
+          {
+            providerHasAwareness: !!(this.options.provider as any)?.awareness,
+            providerHasDoc: !!(this.options.provider as any)?.doc,
+          }
+        );
+        extensions.push(
+          CollaborationCursor.configure({
+            provider: this.options.provider,
+            user: this.options.user,
+            render: renderCursor as any, // Type mismatch between y-prosemirror versions
+            selectionRender: renderSelection as any,
+          })
+        );
+
+        // Set up awareness change listener
+        if (this.options.onAwarenessChange) {
+          this.options.awareness.on('change', () => {
+            this.options.onAwarenessChange?.(
+              this.options.awareness.getStates()
+            );
+          });
+        }
+      } else {
+        console.warn(
+          '[CollaborationBridge] Missing provider or awareness, skipping CollaborationCursor',
+          {
+            hasProvider: !!this.options.provider,
+            hasAwareness: !!this.options.awareness,
+          }
+        );
+      }
+
+      console.log(
+        '[CollaborationBridge] Returning extensions:',
+        extensions.map((e) => e.name)
+      );
+      return extensions;
+    },
+  }
+);
 
 // =============================================================================
 // Styles (CSS-in-JS for portability)
