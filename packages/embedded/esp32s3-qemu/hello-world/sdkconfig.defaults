@@ -1,0 +1,49 @@
+# ESP32-S3 QEMU Configuration
+# Target: M5NanoH2 / M5Stamp-S3 (ESP32-S3FN8)
+
+# Target chip
+CONFIG_IDF_TARGET="esp32s3"
+
+# Flash configuration (8MB for M5NanoH2/Stamp-S3)
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+CONFIG_ESPTOOLPY_FLASHMODE_DIO=y
+CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
+
+# CPU frequency
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+
+# Console UART (for QEMU serial output)
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_UART_BAUDRATE=115200
+
+# Enable logging
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+CONFIG_LOG_COLORS=y
+
+# FreeRTOS configuration
+CONFIG_FREERTOS_HZ=1000
+
+# Disable WiFi for QEMU (not emulated)
+CONFIG_ESP_WIFI_ENABLED=n
+
+# Disable Bluetooth for QEMU (not emulated)
+CONFIG_BT_ENABLED=n
+
+# Bootloader settings
+CONFIG_BOOTLOADER_LOG_LEVEL_INFO=y
+
+# Partition table - single factory app
+CONFIG_PARTITION_TABLE_SINGLE_APP=y
+
+# Watchdog timers (disabled for QEMU debugging)
+CONFIG_ESP_TASK_WDT_EN=n
+CONFIG_ESP_INT_WDT=n
+
+# Panic handler - print registers (helpful for debugging in QEMU)
+CONFIG_ESP_SYSTEM_PANIC_PRINT_REGS=y
+
+# PSRAM (disabled for basic QEMU, enable if using SPIRAM emulation)
+CONFIG_SPIRAM=n
+
+# Compiler optimizations (debug-friendly)
+CONFIG_COMPILER_OPTIMIZATION_DEBUG=y

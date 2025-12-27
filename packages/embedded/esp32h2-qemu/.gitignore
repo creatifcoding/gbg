@@ -1,0 +1,32 @@
+# ESP-IDF build artifacts
+build/
+*/build/
+sdkconfig
+sdkconfig.old
+dependencies.lock
+
+# QEMU artifacts
+*.bin
+*.elf
+*.map
+
+# Nix
+result
+result-*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

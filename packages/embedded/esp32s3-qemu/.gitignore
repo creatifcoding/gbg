@@ -1,0 +1,28 @@
+# ESP-IDF build artifacts
+build/
+sdkconfig
+sdkconfig.old
+*.bin
+*.elf
+*.map
+
+# Project-specific
+hello-world/build/
+hello-world/sdkconfig
+hello-world/sdkconfig.old
+hello-world/managed_components/
+hello-world/dependencies.lock
+
+# Nix
+result
+result-*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
