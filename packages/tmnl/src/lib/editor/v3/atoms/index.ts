@@ -63,4 +63,41 @@ export {
   createCollaborationRuntime,
   // Operations
   collaborationOps,
+  // Registry (for direct mutations outside React)
+  collaborationRegistry,
+  // Provider (wrap React components for shared registry)
+  CollaborationRegistryProvider,
+  // Document registry atoms
+  recentDocsAtom,
+  currentPetNameAtom,
+  showDocPickerAtom,
+  // Document registry utilities
+  generatePetName,
+  // Document registry types
+  type RecentDoc,
 } from './collaboration';
+
+// =============================================================================
+// Document Persistence Atoms (NATS KV + y-sweet)
+// =============================================================================
+
+export {
+  // State atoms
+  documentsAtom,
+  currentDocumentIdAtom,
+  documentsLoadingAtom,
+  documentsErrorAtom,
+  documentListAtom,
+  // Derived atoms
+  currentDocumentAtom,
+  documentCountAtom,
+  hasCurrentDocumentAtom,
+  // Runtime
+  documentRuntimeAtom,
+  // Operations
+  documentOps,
+  documentQueries,
+  // Watch
+  documentWatchAtom,
+  type DocumentWatchEvent,
+} from './documents';
