@@ -26,3 +26,12 @@ export type {
   ConnectionStatus,
   CollaborationUser,
 } from './CollaborationService';
+
+export {
+  DocumentRegistryService,
+  DocumentRegistryServiceLive,
+  DocumentNotFoundError,
+  DocumentVersionConflictError,
+  DocumentRegistryError,
+} from './DocumentRegistryService';
+export type { DocumentRegistryServiceShape } from './DocumentRegistryService';
