@@ -38,8 +38,6 @@ import { DataManagerV2Testbed } from './components/testbed/data-manager/v2';
 import { VantaCardTestbed } from './components/testbed/VantaCardTestbed';
 import { ChartingTestbed } from './components/testbed/ChartingTestbed';
 import { OverlayTestbed } from './components/testbed/OverlayTestbed';
-import { ScadaOverlayTestbed } from './components/testbed/ScadaOverlayTestbed';
-import { ScadaCanvas } from './components/scada';
 import { IndicesTestbed } from './components/testbed/IndicesTestbed';
 import { DataGridVariantTestbedSwitch } from './components/testbed/DataGridVariantTestbedSwitch';
 import Dispositions from './pages/Dispositions';
@@ -52,9 +50,10 @@ import { VariablesTestbed } from './components/testbed/VariablesTestbed';
 import { ScreensaverTestbed } from './components/testbed/ScreensaverTestbed';
 import { TerminalTestbed } from './components/testbed/TerminalTestbed';
 import { KoriTestbed } from './components/testbed/kori';
-import { EditorTestbed } from './components/testbed/EditorTestbed';
-import { EditorV3Testbed } from './components/testbed/EditorV3Testbed';
 import { CollaborationTestbed } from './components/testbed/CollaborationTestbed';
+import { CollaborationTestbedV2 } from './components/testbed/CollaborationTestbedV2';
+import { TauriFilesystemTestbed } from './components/testbed/TauriFilesystemTestbed';
+import { KoriAtomsTestbed } from './components/testbed/KoriAtomsTestbed';
 import { DiagramsPage } from './components/docs';
 import { OverhaulDocsPage } from './components/docs/overhaul';
 import { DocsLanding } from './components/docs-3d';
@@ -217,13 +216,6 @@ const overlayTestbedRoute = createRoute({
   component: OverlayTestbed,
 });
 
-// Create SCADA overlay testbed route
-const scadaOverlayTestbedRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/testbed/scada',
-  component: ScadaOverlayTestbed,
-});
-
 // Create indices testbed route
 const indicesTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -236,13 +228,6 @@ const dataGridVariantTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/testbed/data-grid-variants',
   component: DataGridVariantTestbedSwitch,
-});
-
-// Create SCADA canvas route (unified multi-overlay demo)
-const scadaCanvasRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/scada',
-  component: ScadaCanvas,
 });
 
 // Create streams playground route
@@ -328,18 +313,11 @@ const koriTestbedRoute = createRoute({
   component: KoriTestbed,
 });
 
-// Create block editor testbed route
-const editorTestbedRoute = createRoute({
+// Create KORI Entity Atoms testbed route (spec→factory→atoms pipeline)
+const koriAtomsTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/testbed/editor',
-  component: EditorTestbed,
-});
-
-// Create editor v3 testbed route (Tiptap + Effect)
-const editorV3TestbedRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/testbed/editor-v3',
-  component: EditorV3Testbed,
+  path: '/testbed/kori-atoms',
+  component: KoriAtomsTestbed,
 });
 
 // Create collaboration testbed route (y-sweet real-time sync)
@@ -347,6 +325,20 @@ const collaborationTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/testbed/collaboration',
   component: CollaborationTestbed,
+});
+
+// Create collaboration V2 testbed route (autonomous panels)
+const collaborationV2TestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/collaboration-v2',
+  component: CollaborationTestbedV2,
+});
+
+// Create Tauri filesystem diagnostic testbed route
+const tauriFilesystemTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/tauri-fs',
+  component: TauriFilesystemTestbed,
 });
 
 // Create the router
@@ -373,10 +365,8 @@ const router = createRouter({
     vantaCardTestbedRoute,
     chartingTestbedRoute,
     overlayTestbedRoute,
-    scadaOverlayTestbedRoute,
     indicesTestbedRoute,
     dataGridVariantTestbedRoute,
-    scadaCanvasRoute,
     streamsPlaygroundRoute,
     avaTestbedRoute,
     floatingPanelTestbedRoute,
@@ -389,9 +379,10 @@ const router = createRouter({
     diagramsRoute,
     overhaulDocsRoute,
     koriTestbedRoute,
-    editorTestbedRoute,
-    editorV3TestbedRoute,
+    koriAtomsTestbedRoute,
     collaborationTestbedRoute,
+    collaborationV2TestbedRoute,
+    tauriFilesystemTestbedRoute,
   ]),
 });
 

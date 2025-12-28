@@ -7,3 +7,5 @@
  */
 
 export * from "./trait"
+export * from "./entity-spec"
+export * from "./tagged-entity"

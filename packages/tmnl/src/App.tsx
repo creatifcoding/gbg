@@ -2,11 +2,7 @@ import { type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { HoundstoothGOL } from './components/houndstooth-gol';
 import { Link } from '@tanstack/react-router';
-import {
-  VantaCard,
-  VANTA_COLORS,
-  VANTA_TYPOGRAPHY,
-} from './components/portal';
+import { VantaCard, VANTA_COLORS, VANTA_TYPOGRAPHY } from './components/portal';
 import './App.css';
 
 /**
@@ -15,7 +11,14 @@ import './App.css';
  */
 function Background() {
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: -10, pointerEvents: 'auto' }}>
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: -10,
+        pointerEvents: 'auto',
+      }}
+    >
       <HoundstoothGOL />
     </div>
   );
@@ -31,9 +34,7 @@ function Content({ children }: { children: ReactNode }) {
       className="min-h-screen flex items-center justify-center overflow-hidden scrollbar-hide p-8"
       style={{ position: 'relative', zIndex: 10, pointerEvents: 'none' }}
     >
-      <div style={{ pointerEvents: 'auto' }}>
-        {children}
-      </div>
+      <div style={{ pointerEvents: 'auto' }}>{children}</div>
     </div>
   );
 }
@@ -42,7 +43,7 @@ function Content({ children }: { children: ReactNode }) {
 // Card Data
 // ─────────────────────────────────────────────────────────────────────────────
 
-type IndicatorStatus = 'active' | 'idle' | 'warning' | 'error';
+type IndicatorStatus = 'active' | 'idle' | 'pending' | 'error';
 type GlowColor = 'cyan' | 'rose' | 'amber' | 'emerald';
 
 interface CardDef {
@@ -152,6 +153,14 @@ const CARDS: readonly CardDef[] = [
     glow: 'cyan',
   },
   {
+    title: 'KORI ATOMS',
+    body: 'EntitySpec → EntityAtomFactory pipeline. Spawn entities from specs, reactive trait atoms, stats tracking.',
+    route: '/testbed/kori-atoms',
+    status: 'active',
+    label: 'NEW',
+    glow: 'magenta',
+  },
+  {
     title: 'FLOATING PANELS',
     body: '@dnd-kit draggable panels with position persistence. Modal detach, z-index stacking, viewport bounds.',
     route: '/testbed/floating',
@@ -243,8 +252,22 @@ const CARDS: readonly CardDef[] = [
     body: 'TMNL-native block editor with Effect.Service architecture. Schema-backed blocks, undo/redo, mode switching.',
     route: '/testbed/editor',
     status: 'active',
+  },
+  {
+    title: 'EDITOR V3',
+    body: 'Tiptap + Effect integration. EffectBridge syncs ProseMirror to atoms. editorOps for mutations.',
+    route: '/testbed/editor-v3',
+    status: 'active',
     label: 'NEW',
     glow: 'cyan',
+  },
+  {
+    title: 'COLLAB V2',
+    body: 'Autonomous editor panels with y-sweet sync. Discord-style presence, container-native drawers, contextual toolbar.',
+    route: '/testbed/collaboration-v2',
+    status: 'active',
+    label: 'NEW',
+    glow: 'emerald',
   },
   // Documentation
   {
@@ -254,6 +277,15 @@ const CARDS: readonly CardDef[] = [
     status: 'active',
     label: 'DOCS',
     glow: 'emerald',
+  },
+  // Diagnostics
+  {
+    title: 'TAURI FILESYSTEM',
+    body: 'Raw Tauri IPC diagnostic. Tests fs_list_directory invoke with Windows vs WSL paths.',
+    route: '/testbed/tauri-fs',
+    status: 'pending',
+    label: 'DIAG',
+    glow: 'amber',
   },
 ];
 
@@ -283,7 +315,10 @@ function Card({ def, index }: { def: CardDef; index: number }) {
       >
         <VantaCard.Header>
           <VantaCard.Title>{def.title}</VantaCard.Title>
-          <VantaCard.Indicator status={def.status ?? 'active'} label={def.label} />
+          <VantaCard.Indicator
+            status={def.status ?? 'active'}
+            label={def.label}
+          />
         </VantaCard.Header>
 
         <VantaCard.Body>{def.body}</VantaCard.Body>
@@ -347,12 +382,23 @@ function PortalContent() {
 
           <VantaCard.Body>
             A modular development environment for building graph-oriented
-            information systems. Integrates AG-Grid as a first-class data surface
-            across tldraw, ReactFlow, Effect-TS, and state machines.
+            information systems. Integrates AG-Grid as a first-class data
+            surface across tldraw, ReactFlow, Effect-TS, and state machines.
           </VantaCard.Body>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginTop: '16px' }}>
-            <VantaCard.LabelValue label="TESTBEDS" value={String(CARDS.length)} accent="cyan" />
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '16px',
+              marginTop: '16px',
+            }}
+          >
+            <VantaCard.LabelValue
+              label="TESTBEDS"
+              value={String(CARDS.length)}
+              accent="cyan"
+            />
             <VantaCard.LabelValue label="SERVICES" value="8" accent="emerald" />
             <VantaCard.LabelValue label="ATOMS" value="23" accent="amber" />
             <VantaCard.LabelValue label="DRIVERS" value="3" accent="neutral" />
@@ -360,7 +406,9 @@ function PortalContent() {
 
           <VantaCard.Actions>
             <Link to="/tmnl" style={{ textDecoration: 'none' }}>
-              <VantaCard.Action variant="primary">ENTER CANVAS</VantaCard.Action>
+              <VantaCard.Action variant="primary">
+                ENTER CANVAS
+              </VantaCard.Action>
             </Link>
             <Link to="/testbed/vanta" style={{ textDecoration: 'none' }}>
               <VantaCard.Action>DESIGN SYSTEM</VantaCard.Action>
@@ -372,7 +420,13 @@ function PortalContent() {
       {/* ═══════════════════════════════════════════════════════════════════════
           TESTBED CARDS — Data-driven grid
           ═══════════════════════════════════════════════════════════════════════ */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '16px',
+        }}
+      >
         {CARDS.map((def, i) => (
           <Card key={def.route} def={def} index={i} />
         ))}
