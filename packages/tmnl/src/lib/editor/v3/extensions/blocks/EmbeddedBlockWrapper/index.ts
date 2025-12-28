@@ -27,6 +27,10 @@ export {
   type EmbeddedBlockActions,
 } from './atoms';
 
+// Focus overlay
+export { FocusOverlay, useFocusOverlay } from './FocusOverlay';
+export type { FocusOverlayProps, UseFocusOverlayReturn } from './FocusOverlay';
+
 // Persistence
 export {
   BlockState,
