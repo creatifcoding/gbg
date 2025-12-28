@@ -8,7 +8,72 @@
  */
 
 import { Atom } from '@effect-atom/atom-react';
+import { Layer } from 'effect';
 import type { EmbeddedBlockState, FoldState } from './types';
+import { BlockStateService, BlockStatePersistenceLive } from './persistence';
+
+// =============================================================================
+// Focus Mode Atoms (Module-level)
+// =============================================================================
+
+/**
+ * Currently focused block ID.
+ * null means no block is in focus mode.
+ */
+export const focusedBlockIdAtom = Atom.make<string | null>(null);
+
+/**
+ * Whether any block is in focus mode.
+ * Derived from focusedBlockIdAtom.
+ */
+export const isFocusModeAtom = Atom.make((get) => get(focusedBlockIdAtom) !== null);
+
+/**
+ * Timestamp when focus mode was entered.
+ * Used for analytics and debugging.
+ */
+export const focusEnteredAtAtom = Atom.make<Date | null>(null);
+
+// =============================================================================
+// Focus Mode Actions
+// =============================================================================
+
+export const focusActions = {
+  /**
+   * Enter focus mode for a block.
+   */
+  enterFocus: (blockId: string) => {
+    Atom.set(focusedBlockIdAtom, blockId);
+    Atom.set(focusEnteredAtAtom, new Date());
+  },
+
+  /**
+   * Exit focus mode.
+   */
+  exitFocus: () => {
+    Atom.set(focusedBlockIdAtom, null);
+    Atom.set(focusEnteredAtAtom, null);
+  },
+
+  /**
+   * Toggle focus mode for a block.
+   */
+  toggleFocus: (blockId: string) => {
+    const current = Atom.get(focusedBlockIdAtom);
+    if (current === blockId) {
+      focusActions.exitFocus();
+    } else {
+      focusActions.enterFocus(blockId);
+    }
+  },
+
+  /**
+   * Check if a specific block is focused.
+   */
+  isFocused: (blockId: string): boolean => {
+    return Atom.get(focusedBlockIdAtom) === blockId;
+  },
+};
 
 // =============================================================================
 // Default State

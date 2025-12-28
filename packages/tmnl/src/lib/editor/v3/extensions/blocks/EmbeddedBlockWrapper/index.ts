@@ -18,6 +18,19 @@ export {
   getEmbeddedBlockAtoms,
   disposeEmbeddedBlockAtoms,
   createEmbeddedBlockActions,
+  // Focus mode atoms
+  focusedBlockIdAtom,
+  isFocusModeAtom,
+  focusEnteredAtAtom,
+  focusActions,
   type EmbeddedBlockAtoms,
   type EmbeddedBlockActions,
 } from './atoms';
+
+// Persistence
+export {
+  BlockState,
+  FocusState,
+  BlockStateService,
+  BlockStatePersistenceLive,
+} from './persistence';
