@@ -279,107 +279,93 @@ export const animateSuccessToDisplay = (refs: AnimationRefs): Promise<void> => {
 };
 
 // =============================================================================
-// ERROR ENTRY (shake + rose underline)
+// ERROR INDICATION (during editing state)
 // =============================================================================
 
 /**
- * Animate error state entry.
- *
- * - Badge shakes (300ms)
- * - Underline turns rose
- * - Error message fades in
+ * Shake the badge to indicate validation error.
+ * Called during editing when error appears. Does NOT change state.
+ * Underline color managed by ErrorPopover visibility.
  */
-export const animateError = (refs: AnimationRefs): Promise<void> => {
+export const animateErrorShake = (refs: AnimationRefs): Promise<void> => {
   return new Promise((resolve) => {
-    const { badgeRef, underlineRef, errorRef } = refs;
+    const { badgeRef } = refs;
 
-    // Stop shimmer if still running
-    stopSubmittingShimmer(underlineRef);
-
-    // 1. Shake the badge
     if (badgeRef.current) {
       const amplitude = GEOMETRY.shakeAmplitude;
-      animate(badgeRef.current, {
-        translateX: [0, -amplitude, amplitude, -amplitude * 0.75, amplitude * 0.75, -amplitude * 0.5, amplitude * 0.5, 0],
+      const anim = animate(badgeRef.current, {
+        translateX: [
+          0,
+          -amplitude,
+          amplitude,
+          -amplitude * 0.75,
+          amplitude * 0.75,
+          -amplitude * 0.5,
+          amplitude * 0.5,
+          0,
+        ],
         duration: TIMING.errorShake,
-        easing: EASING.out,
-      });
-    }
-
-    // 2. Underline turns rose
-    if (underlineRef.current) {
-      animate(underlineRef.current, {
-        backgroundColor: COLORS.underlineRose,
-        opacity: 1,
-        duration: 100,
-        easing: EASING.out,
-      });
-    }
-
-    // 3. Error message fades in
-    if (errorRef.current) {
-      const anim = animate(errorRef.current, {
-        opacity: [0, 1],
-        translateX: [10, 0],
-        duration: 150,
-        delay: 100,
         easing: EASING.out,
         onComplete: () => resolve(),
       });
-      trackAnimation('error-in', anim);
+      trackAnimation('error-shake', anim);
     } else {
-      setTimeout(resolve, TIMING.errorShake);
+      resolve();
     }
   });
 };
 
+/**
+ * Transition underline to rose (error indication).
+ * Called when error appears during editing.
+ */
+export const animateUnderlineToError = (
+  underlineRef: React.RefObject<HTMLDivElement>
+): void => {
+  if (underlineRef.current) {
+    animate(underlineRef.current, {
+      backgroundColor: [COLORS.underlineCyan, COLORS.underlineRose],
+      duration: 100,
+      easing: EASING.out,
+    });
+  }
+};
+
+/**
+ * Transition underline back to cyan (error cleared).
+ * Called when error clears during editing.
+ */
+export const animateUnderlineFromError = (
+  underlineRef: React.RefObject<HTMLDivElement>
+): void => {
+  if (underlineRef.current) {
+    animate(underlineRef.current, {
+      backgroundColor: [COLORS.underlineRose, COLORS.underlineCyan],
+      duration: 100,
+      easing: EASING.out,
+    });
+  }
+};
+
 // =============================================================================
-// TRANSITION: ERROR → EDITING (200ms)
+// LEGACY: Error State Animations (kept for reference, unused)
 // =============================================================================
 
 /**
- * Animate from error back to editing state.
- *
- * - Error indicator fades out
- * - Underline transitions rose → cyan
- * - Caret reappears
+ * @deprecated Error is now context, not state. Use animateErrorShake instead.
  */
-export const animateErrorToEditing = (refs: AnimationRefs): Promise<void> => {
-  return new Promise((resolve) => {
-    const { errorRef, underlineRef, caretRef } = refs;
+export const animateError = (refs: AnimationRefs): Promise<void> => {
+  // Redirect to new implementation
+  return animateErrorShake(refs);
+};
 
-    // 1. Error indicator fades out
-    if (errorRef.current) {
-      animate(errorRef.current, {
-        opacity: [1, 0],
-        duration: 100,
-        easing: EASING.out,
-      });
-    }
-
-    // 2. Underline transitions rose → cyan
-    if (underlineRef.current) {
-      animate(underlineRef.current, {
-        backgroundColor: [COLORS.underlineRose, COLORS.underlineCyan],
-        duration: 150,
-        easing: EASING.out,
-      });
-    }
-
-    // 3. Caret reappears
-    if (caretRef.current) {
-      const anim = animate(caretRef.current, {
-        opacity: [0, 1],
-        duration: 100,
-        delay: 50,
-        easing: EASING.out,
-        onComplete: () => resolve(),
-      });
-      trackAnimation('caret-reappear', anim);
-    } else {
-      setTimeout(resolve, TIMING.errorToEditing);
-    }
-  });
+/**
+ * @deprecated Error→Editing transition no longer exists.
+ * Errors show during editing, not as separate state.
+ */
+export const animateErrorToEditing = (_refs: AnimationRefs): Promise<void> => {
+  // No-op: error is now shown during editing, not as separate state
+  return Promise.resolve();
 };
 
 // =============================================================================

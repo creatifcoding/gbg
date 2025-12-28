@@ -14,14 +14,17 @@ import type { BlockNameMachineContext } from './machines/blockNameMachine';
 // =============================================================================
 
 /**
- * Badge state values (matches XState machine states)
+ * Badge state values (matches XState machine top-level states)
+ *
+ * NOTE: 'error' is no longer a state — errors are shown via context
+ * while remaining in 'editing' state. This allows users to continue
+ * editing and see live validation feedback.
  */
 export type BadgeState =
   | 'display'
   | 'editing'
   | 'submitting'
-  | 'success'
-  | 'error';
+  | 'success';
 
 // =============================================================================
 // Component Props

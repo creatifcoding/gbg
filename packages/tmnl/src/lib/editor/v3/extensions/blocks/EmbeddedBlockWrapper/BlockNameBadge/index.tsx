@@ -80,6 +80,7 @@ export const BlockNameBadge = memo(function BlockNameBadge({
 
   const inputRef = useRef<HTMLInputElement>(null);
   const prevStateRef = useRef<BadgeState>('display');
+  const prevHasErrorRef = useRef<boolean>(false);
 
   // Double-click detection for ProseMirror compatibility
   const lastClickTimeRef = useRef<number>(0);
@@ -94,11 +95,12 @@ export const BlockNameBadge = memo(function BlockNameBadge({
     [blockId]
   );
 
-  // Subscribe to state (ErrorPopover handles error atom separately)
+  // Subscribe to state (ErrorPopover handles error display)
   const state = useAtomValue(atoms.stateAtom);
   const inputValue = useAtomValue(atoms.inputValueAtom);
   const currentName = useAtomValue(atoms.currentNameAtom);
   const isEditable = useAtomValue(atoms.isEditableAtom);
+  const hasError = useAtomValue(atoms.hasErrorAtom);
 
   const { ops } = atoms;
 
@@ -110,6 +112,28 @@ export const BlockNameBadge = memo(function BlockNameBadge({
   useEffect(() => {
     ops.setOnRename(onRename);
   }, [onRename, ops]);
+
+  // ─────────────────────────────────────────────────────────────
+  // Error Underline Animation
+  // ─────────────────────────────────────────────────────────────
+
+  // Animate underline color when error appears/disappears during editing
+  useEffect(() => {
+    const prevHasError = prevHasErrorRef.current;
+
+    if (state === 'editing') {
+      if (!prevHasError && hasError) {
+        // Error appeared → animate to rose + shake
+        animations.animateUnderlineToError(refs.underlineRef);
+        animations.animateErrorShake(refs);
+      } else if (prevHasError && !hasError) {
+        // Error cleared → animate back to cyan
+        animations.animateUnderlineFromError(refs.underlineRef);
+      }
+    }
+
+    prevHasErrorRef.current = hasError;
+  }, [hasError, state]);
 
   // ─────────────────────────────────────────────────────────────
   // Cleanup on Unmount
@@ -175,17 +199,10 @@ export const BlockNameBadge = memo(function BlockNameBadge({
           animations.cleanupAllAnimations();
           break;
 
-        case 'error->display':
-          // Escape from error
-          animations.cleanupAllAnimations();
-          break;
-
-        case 'submitting->error':
-          await animations.animateError(refs);
-          break;
-
-        case 'error->editing':
-          await animations.animateErrorToEditing(refs);
+        case 'submitting->editing':
+          // Submission failed, return to editing with error in context
+          // Error popover handles display, just restart caret pulse
+          animations.stopSubmittingShimmer(refs.underlineRef);
           animations.startCaretPulse(refs.caretRef);
           setTimeout(() => {
             inputRef.current?.focus();
@@ -234,29 +251,20 @@ export const BlockNameBadge = memo(function BlockNameBadge({
 
   /**
    * Handle submit (Enter or blur).
+   *
+   * The state machine handles the full submission lifecycle:
+   * - SUBMIT event triggers submitting state
+   * - Machine invokes onRename via submitRename actor
+   * - Success → success state → display
+   * - Error → editing state with submissionError in context
    */
-  const handleSubmit = useCallback(async () => {
-    const trimmedValue = inputValue.trim();
-
-    // Empty or unchanged - just cancel
-    if (!trimmedValue || trimmedValue === currentName) {
-      ops.cancel();
-      return;
-    }
-
-    // Trigger submission
+  const handleSubmit = useCallback(() => {
+    // SUBMIT event handles all logic:
+    // - Empty/unchanged → returns to display
+    // - Has validation error → stays in editing
+    // - Valid input → enters submitting, invokes onRename
     ops.submit();
-
-    // Execute the rename
-    if (onRename) {
-      try {
-        await onRename(trimmedValue);
-        ops.success();
-      } catch (err) {
-        ops.error(err instanceof Error ? err.message : 'Rename failed');
-      }
-    }
-  }, [inputValue, currentName, onRename, ops]);
+  }, [ops]);
 
   /**
    * Handle keyboard events in input.
@@ -347,7 +355,7 @@ export const BlockNameBadge = memo(function BlockNameBadge({
             // Checkmark
             <Checkmark ref={refs.checkmarkRef} />
           ) : (
-            // Name display (display, submitting, error)
+            // Name display (display, submitting)
             <span
               ref={refs.nameRef}
               style={styles.getNameStyle(hasName, state)}

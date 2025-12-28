@@ -4,6 +4,11 @@
  * Per-block actor factory with snapshot bridge pattern.
  * Unlike minibuffer (singleton), each block has its own actor instance.
  *
+ * Architecture Notes:
+ * - Error is now CONTEXT, not state — errors show during editing
+ * - validationError: live feedback as user types (debounced)
+ * - submissionError: shown after failed submit, cleared on next input
+ *
  * @module editor/v3/extensions/blocks/BlockNameBadge/atoms
  */
 
@@ -29,7 +34,7 @@ export interface BlockNameAtoms {
   /** Root snapshot atom — single subscription point */
   snapshotAtom: Atom.Atom<BlockNameSnapshot>;
 
-  /** Current state: display | editing | submitting | success | error */
+  /** Current state: display | editing | submitting | success */
   stateAtom: Atom.Atom<BadgeState>;
 
   /** Full context object */
@@ -38,7 +43,13 @@ export interface BlockNameAtoms {
   /** Current input value (during editing) */
   inputValueAtom: Atom.Atom<string>;
 
-  /** Error message (during error state) */
+  /** Validation error (live feedback during editing) */
+  validationErrorAtom: Atom.Atom<string | null>;
+
+  /** Submission error (after failed rename) */
+  submissionErrorAtom: Atom.Atom<string | null>;
+
+  /** Combined error for display (validation OR submission) */
   errorAtom: Atom.Atom<string | null>;
 
   /** Current name from context */
@@ -47,8 +58,11 @@ export interface BlockNameAtoms {
   /** Whether badge is editable (onRename defined) */
   isEditableAtom: Atom.Atom<boolean>;
 
-  /** Whether we're in an error state */
+  /** Whether we have any error to show */
   hasErrorAtom: Atom.Atom<boolean>;
+
+  /** Whether validation is currently running */
+  isValidatingAtom: Atom.Atom<boolean>;
 
   /** Operations to send events to actor */
   ops: BlockNameOps;
@@ -70,20 +84,14 @@ export interface BlockNameOps {
   /** Update input value during editing */
   inputChange: (value: string) => void;
 
-  /** Signal successful rename */
-  success: () => void;
-
-  /** Signal rename error */
-  error: (error: string) => void;
-
-  /** Retry after error */
-  retry: () => void;
-
   /** Sync name from external source */
   setName: (name: string | null) => void;
 
   /** Update onRename handler */
   setOnRename: (handler: ((name: string) => Promise<void>) | undefined) => void;
+
+  /** Update onValidate handler (optional server-side validation) */
+  setOnValidate: (handler: ((name: string) => Promise<string | null>) | undefined) => void;
 }
 
 // =============================================================================
@@ -147,6 +155,35 @@ export const getBlockNameActor = (
 };
 
 /**
+ * Extract top-level state from potentially nested state value.
+ * XState v5 uses { parent: { child: {} } } for nested states.
+ */
+const extractTopLevelState = (stateValue: unknown): BadgeState => {
+  if (typeof stateValue === 'string') {
+    return stateValue as BadgeState;
+  }
+  if (typeof stateValue === 'object' && stateValue !== null) {
+    // Get the first key (top-level state)
+    const topLevel = Object.keys(stateValue)[0];
+    return topLevel as BadgeState;
+  }
+  return 'display';
+};
+
+/**
+ * Check if we're in the validating child state of editing.
+ */
+const isInValidatingState = (stateValue: unknown): boolean => {
+  if (typeof stateValue === 'object' && stateValue !== null) {
+    const editing = (stateValue as Record<string, unknown>).editing;
+    if (typeof editing === 'string') {
+      return editing === 'validating';
+    }
+  }
+  return false;
+};
+
+/**
  * Create the atom bundle for a specific block.
  *
  * This is the main factory. Call this from your component to get
@@ -199,7 +236,7 @@ export const createBlockNameAtoms = (
   // ─────────────────────────────────────────────────────────────
 
   const stateAtom = Atom.make(
-    (get) => get(snapshotAtom).value as BadgeState
+    (get) => extractTopLevelState(get(snapshotAtom).value)
   );
 
   const contextAtom = Atom.make(
@@ -210,9 +247,20 @@ export const createBlockNameAtoms = (
     (get) => get(snapshotAtom).context.inputValue
   );
 
-  const errorAtom = Atom.make(
-    (get) => get(snapshotAtom).context.error
+  const validationErrorAtom = Atom.make(
+    (get) => get(snapshotAtom).context.validationError
   );
+
+  const submissionErrorAtom = Atom.make(
+    (get) => get(snapshotAtom).context.submissionError
+  );
+
+  // Combined error for backwards compatibility with ErrorPopover
+  const errorAtom = Atom.make((get) => {
+    const ctx = get(snapshotAtom).context;
+    // Prioritize submission error (more important) over validation error
+    return ctx.submissionError ?? ctx.validationError ?? null;
+  });
 
   const currentNameAtom = Atom.make(
     (get) => get(snapshotAtom).context.currentName
@@ -222,8 +270,13 @@ export const createBlockNameAtoms = (
     (get) => get(snapshotAtom).context.onRename !== undefined
   );
 
-  const hasErrorAtom = Atom.make(
-    (get) => get(snapshotAtom).context.error !== null
+  const hasErrorAtom = Atom.make((get) => {
+    const ctx = get(snapshotAtom).context;
+    return ctx.validationError !== null || ctx.submissionError !== null;
+  });
+
+  const isValidatingAtom = Atom.make(
+    (get) => isInValidatingState(get(snapshotAtom).value)
   );
 
   // ─────────────────────────────────────────────────────────────
@@ -240,17 +293,14 @@ export const createBlockNameAtoms = (
     inputChange: (value: string) =>
       actor.send({ type: 'INPUT_CHANGE', value }),
 
-    success: () => actor.send({ type: 'SUCCESS' }),
-
-    error: (error: string) => actor.send({ type: 'ERROR', error }),
-
-    retry: () => actor.send({ type: 'RETRY' }),
-
     setName: (name: string | null) =>
       actor.send({ type: 'SET_NAME', name }),
 
     setOnRename: (handler: ((name: string) => Promise<void>) | undefined) =>
       actor.send({ type: 'SET_ON_RENAME', handler }),
+
+    setOnValidate: (handler: ((name: string) => Promise<string | null>) | undefined) =>
+      actor.send({ type: 'SET_ON_VALIDATE', handler }),
   };
 
   // ─────────────────────────────────────────────────────────────
@@ -262,10 +312,13 @@ export const createBlockNameAtoms = (
     stateAtom,
     contextAtom,
     inputValueAtom,
+    validationErrorAtom,
+    submissionErrorAtom,
     errorAtom,
     currentNameAtom,
     isEditableAtom,
     hasErrorAtom,
+    isValidatingAtom,
     ops,
     actor,
   };

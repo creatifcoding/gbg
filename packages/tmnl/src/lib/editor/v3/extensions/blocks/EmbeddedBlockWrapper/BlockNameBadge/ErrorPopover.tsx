@@ -68,23 +68,20 @@ export function ErrorPopover({ blockId, referenceElement }: ErrorPopoverProps) {
 
   const state = useAtomValue(atoms.stateAtom);
   const error = useAtomValue(atoms.errorAtom);
-  const { ops } = atoms;
 
-  // Derived: popover is open when in error state
-  const isOpen = state === 'error' && error !== null;
+  // Derived: popover is open when editing AND error exists
+  // Error shown as live feedback during editing, auto-dismisses when error clears
+  const isOpen = state === 'editing' && error !== null;
 
   // Parse the error for structured display
   const parsed: ParsedError = error ? parseError(error) : { title: 'Error', message: '' };
 
-  // Handlers from atoms ops
-  const handleRetry = () => ops.edit();
-  const handleDismiss = () => ops.cancel();
-
   // FloatingUI setup
   const { refs, floatingStyles, context } = useFloating({
     open: isOpen,
-    onOpenChange: (open) => {
-      if (!open) handleDismiss();
+    onOpenChange: () => {
+      // No explicit dismiss action needed — popover auto-closes when
+      // user types (clears validation error) or cancels editing
     },
     placement: 'bottom-start',
     middleware: [
@@ -196,32 +193,6 @@ export function ErrorPopover({ blockId, referenceElement }: ErrorPopoverProps) {
           >
             {parsed.message}
           </p>
-
-          {/* Retry hint */}
-          <button
-            onClick={handleRetry}
-            style={{
-              marginTop: '8px',
-              fontSize: '11px',
-              fontFamily: TYPOGRAPHY.blockId.fontFamily,
-              color: SOFT_ROSE.hint,
-              background: 'none',
-              border: 'none',
-              padding: 0,
-              cursor: 'pointer',
-              textDecoration: 'underline',
-              textDecorationStyle: 'dotted',
-              textUnderlineOffset: '2px',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = SOFT_ROSE.hint;
-            }}
-          >
-            Click to retry
-          </button>
         </div>
 
         {/* Arrow */}
