@@ -114,6 +114,21 @@ export {
 } from './atoms';
 
 // =============================================================================
+// Providers
+// =============================================================================
+
+export {
+  // Provider
+  ConnectionPortsProvider,
+  useConnectionPorts,
+  useConnectionPortsSafe,
+  ConnectionPortsContext,
+  type ConnectionPortsProviderProps,
+  type ConnectionPortsContextValue,
+  type CreateStreamOptions,
+} from './providers';
+
+// =============================================================================
 // Hooks
 // =============================================================================
 
