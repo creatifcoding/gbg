@@ -62,6 +62,9 @@ pub mod table_provider;
 #[cfg(feature = "nats")]
 pub mod nats;
 
+#[cfg(feature = "durable-streams")]
+pub mod durable_streams;
+
 // Re-exports
 pub use memory::MemoryAdapter;
 pub use registry::AdapterRegistry;

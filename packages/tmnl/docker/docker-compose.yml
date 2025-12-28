@@ -1,33 +1,92 @@
-# y-Sweet Collaboration Server
-# Real-time Yjs document sync for Tiptap editor
+# TMNL Collaboration & Persistence Stack
+#
+# Services:
+#   - y-sweet:    Real-time Yjs document sync (content stored in MinIO)
+#   - minio:      S3-compatible object storage for y-sweet documents
+#   - nats:       Message broker with JetStream for KV (metadata storage)
+#   - minio-init: One-shot container to create bucket
 #
 # Usage:
-#   docker compose up -d          # Start y-sweet
+#   docker compose up -d          # Start all services
 #   docker compose logs -f        # View logs
 #   docker compose down           # Stop
+#   docker compose down -v        # Stop and remove volumes
 #
-# Connection string: ys://localhost:8080
+# Connection strings:
+#   y-sweet:          http://localhost:8080
+#   MinIO:            http://localhost:9000 (API), http://localhost:9001 (Console)
+#   NATS:             nats://localhost:4222 (TCP), ws://localhost:9222 (WebSocket), http://localhost:8222 (Monitoring)
+#   durable-streams:  http://localhost:3030 (HTTP API for persistent streams)
 
 services:
-  y-sweet:
-    image: ghcr.io/jamsocket/y-sweet:latest
-    container_name: tmnl_y_sweet
-    entrypoint: ["/usr/local/bin/y-sweet"]
-    command: ["serve", "--host", "0.0.0.0", "/data"]
+  # ===========================================================================
+  # MinIO - S3-compatible object storage for y-sweet documents
+  # ===========================================================================
+  minio:
+    image: minio/minio:latest
+    container_name: tmnl_minio
+    command: server /data --console-address ":9001"
     ports:
-      - "8080:8080"
+      - '9000:9000' # S3 API
+      - '9001:9001' # Web Console
     volumes:
-      - ./y-sweet-data:/data
+      - minio-data:/data
     environment:
-      # Server config
-      - PORT=8080
-      # Checkpoint every 5 seconds for local dev (faster persistence)
-      - Y_SWEET_CHECKPOINT_FREQ_SECONDS=5
-      # No auth for local dev (NEVER do this in production)
-      # - Y_SWEET_AUTH=your-secret-key
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8080/ || exit 1"]
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - tmnl
+
+  # ===========================================================================
+  # MinIO Init - Create bucket on startup
+  # ===========================================================================
+  minio-init:
+    image: minio/mc:latest
+    container_name: tmnl_minio_init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 minioadmin minioadmin;
+      mc mb local/tmnl-docs --ignore-existing;
+      mc anonymous set download local/tmnl-docs;
+      echo 'Bucket tmnl-docs created successfully';
+      exit 0;
+      "
+    networks:
+      - tmnl
+
+  # ===========================================================================
+  # NATS - Message broker with JetStream for KV storage
+  # ===========================================================================
+  nats:
+    image: nats:2.10-alpine
+    container_name: tmnl_nats
+    command:
+      - '--config'
+      - '/etc/nats/nats-server.conf'
+    ports:
+      - '4222:4222' # Client connections (TCP)
+      - '8222:8222' # HTTP monitoring
+      - '9222:9222' # WebSocket (for browser clients)
+    volumes:
+      - nats-data:/data
+      - ./nats/nats-server.conf:/etc/nats/nats-server.conf:ro
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -q --spider http://localhost:8222/healthz || exit 1',
+        ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -35,6 +94,79 @@ services:
     networks:
       - tmnl
 
+  # ===========================================================================
+  # y-Sweet - Yjs document sync server (stores content in MinIO)
+  # ===========================================================================
+  y-sweet:
+    image: ghcr.io/jamsocket/y-sweet:latest
+    container_name: tmnl_y_sweet
+    entrypoint: ['/usr/local/bin/y-sweet']
+    command: ['serve', '--host', '0.0.0.0']
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+    ports:
+      - '8080:8080'
+    environment:
+      # Server config
+      PORT: '8080'
+      # S3 storage via MinIO
+      Y_SWEET_STORE: 's3://tmnl-docs/ysweet'
+      AWS_ACCESS_KEY_ID: 'minioadmin'
+      AWS_SECRET_ACCESS_KEY: 'minioadmin'
+      AWS_ENDPOINT_URL_S3: 'http://minio:9000'
+      AWS_REGION: 'us-east-1'
+      # Required for MinIO (path-style addressing)
+      AWS_S3_USE_PATH_STYLE: 'true'
+      # Checkpoint every 5 seconds for local dev (faster persistence)
+      Y_SWEET_CHECKPOINT_FREQ_SECONDS: '5'
+      # No auth for local dev (NEVER do this in production)
+      # Y_SWEET_AUTH: your-secret-key
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:8080/ || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - tmnl
+
+  # ===========================================================================
+  # Durable Streams - Persistent stream primitive for reliable data streaming
+  # ===========================================================================
+  durable-streams:
+    build:
+      context: ./durable-streams
+      dockerfile: Dockerfile
+    container_name: tmnl_durable_streams
+    ports:
+      - '3030:3030' # HTTP API
+    volumes:
+      - durable-streams-data:/data
+    environment:
+      PORT: '3030'
+      HOST: '0.0.0.0'
+      DATA_DIR: '/data'
+      LONG_POLL_TIMEOUT: '30000'
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q --spider http://localhost:3030/ || exit 0']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - tmnl
+
 networks:
   tmnl:
     driver: bridge
+
+volumes:
+  minio-data:
+    driver: local
+  nats-data:
+    driver: local
+  durable-streams-data:
+    driver: local

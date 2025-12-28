@@ -35,9 +35,13 @@ serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 scopeguard = { version = "1.2", optional = true }
 
+# Durable Streams (optional)
+reqwest = { version = "0.12", features = ["json"], optional = true }
+
 [features]
 default = []
 nats = ["dep:async-nats", "dep:tracing", "dep:bytes", "dep:serde_bytes", "dep:serde", "dep:serde_json", "dep:scopeguard"]
+durable-streams = ["dep:reqwest", "dep:serde", "dep:serde_json", "dep:tracing"]
 compression = ["nats"]
 
 [dev-dependencies]

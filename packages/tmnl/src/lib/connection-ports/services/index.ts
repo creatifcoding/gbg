@@ -17,7 +17,9 @@ export {
 export {
   DurableStreamsPort,
   DurableStreamsPortConfig,
+  DurableStreamsPortConfigLive,
   DurableStreamsPortMock,
+  DurableStreamsPortHttp,
   DurableStreamsPortLive,
   type DurableStreamsPortShape,
   type StreamMetadata,
