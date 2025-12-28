@@ -260,6 +260,109 @@ export function disposeViewArtifactAtoms(viewId: string) {
 export type ViewArtifactAtoms = ReturnType<typeof getViewArtifactAtoms>;
 
 // =============================================================================
+// View Layers Atoms (Derived deck.gl layers from artifacts)
+// =============================================================================
+
+import type { Layer as DeckLayer } from '@deck.gl/core';
+import {
+  buildLayersFromSpecSync,
+  type LayerBuildResult,
+  type LayerBuildError,
+  type MapRenderOptions,
+} from '../layers';
+
+/**
+ * Registry of view layers atoms.
+ * Derives deck.gl layers from ViewArtifact renderSpec.
+ */
+const viewLayersRegistry = new Map<string, ReturnType<typeof createViewLayersAtoms>>();
+
+/**
+ * Create derived layer atoms for a specific view.
+ */
+function createViewLayersAtoms(viewId: string) {
+  const artifactAtoms = getViewArtifactAtoms(viewId);
+
+  /** Derived layers from artifact.renderSpec */
+  const layersAtom = Atom.make<readonly DeckLayer[]>((get) => {
+    const artifact = get(artifactAtoms.artifactAtom);
+    if (!artifact || !artifact.isReady()) return [];
+
+    // Extract render options from renderSpec
+    const renderOptions = artifact.renderSpec.options as MapRenderOptions | undefined;
+    if (!renderOptions?.layers) return [];
+
+    // Extract data from payload
+    const data = Array.isArray(artifact.payload)
+      ? artifact.payload
+      : artifact.payload && typeof artifact.payload === 'object' && 'data' in artifact.payload
+        ? (artifact.payload as { data: unknown[] }).data
+        : [];
+
+    // Build layers
+    const result = buildLayersFromSpecSync(renderOptions, { data });
+    return result.layers;
+  });
+
+  /** Layer build errors */
+  const layerErrorsAtom = Atom.make<readonly LayerBuildError[]>((get) => {
+    const artifact = get(artifactAtoms.artifactAtom);
+    if (!artifact || !artifact.isReady()) return [];
+
+    const renderOptions = artifact.renderSpec.options as MapRenderOptions | undefined;
+    if (!renderOptions?.layers) return [];
+
+    const data = Array.isArray(artifact.payload)
+      ? artifact.payload
+      : artifact.payload && typeof artifact.payload === 'object' && 'data' in artifact.payload
+        ? (artifact.payload as { data: unknown[] }).data
+        : [];
+
+    const result = buildLayersFromSpecSync(renderOptions, { data });
+    return result.errors;
+  });
+
+  /** Layer count */
+  const layerCountAtom = Atom.make((get) => get(layersAtom).length);
+
+  /** Has layer errors */
+  const hasLayerErrorsAtom = Atom.make((get) => get(layerErrorsAtom).length > 0);
+
+  return {
+    viewId,
+    layersAtom,
+    layerErrorsAtom,
+    layerCountAtom,
+    hasLayerErrorsAtom,
+    // Also expose the underlying artifact atoms
+    ...artifactAtoms,
+  };
+}
+
+/**
+ * Get or create view layers atoms.
+ * Returns derived atoms that produce deck.gl layers from ViewArtifact.
+ */
+export function getViewLayersAtoms(viewId: string) {
+  let atoms = viewLayersRegistry.get(viewId);
+  if (!atoms) {
+    atoms = createViewLayersAtoms(viewId);
+    viewLayersRegistry.set(viewId, atoms);
+  }
+  return atoms;
+}
+
+/**
+ * Dispose view layers atoms.
+ */
+export function disposeViewLayersAtoms(viewId: string) {
+  viewLayersRegistry.delete(viewId);
+  disposeViewArtifactAtoms(viewId);
+}
+
+export type ViewLayersAtoms = ReturnType<typeof getViewLayersAtoms>;
+
+// =============================================================================
 // Operations
 // =============================================================================
 

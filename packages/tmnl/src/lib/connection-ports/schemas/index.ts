@@ -87,3 +87,27 @@ export type {
   ViewStatus as ViewStatusValue,
   DeltaOperation as DeltaOperationValue,
 } from './artifacts';
+
+// Layer schemas
+export {
+  RGBAColor,
+  Position,
+  LayerBaseConfig,
+  ScatterplotLayerConfig,
+  IconLayerConfig,
+  PathLayerConfig,
+  PolygonLayerConfig,
+  HexagonLayerConfig,
+  GeoJsonLayerConfig,
+  LayerConfig,
+  LayerConfigs,
+  MapRenderOptions,
+  Scene3DRenderOptions,
+  DataGridRenderOptions,
+  ChartRenderOptions,
+} from './layers';
+
+export type {
+  RGBAColor as RGBAColorType,
+  Position as PositionType,
+} from './layers';

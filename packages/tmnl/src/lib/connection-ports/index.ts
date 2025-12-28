@@ -111,6 +111,10 @@ export {
   getViewArtifactAtoms,
   disposeViewArtifactAtoms,
   type ViewArtifactAtoms,
+  // View layers atoms (derived deck.gl layers)
+  getViewLayersAtoms,
+  disposeViewLayersAtoms,
+  type ViewLayersAtoms,
   // Operations
   connectionOps,
 } from './atoms';
@@ -148,3 +152,33 @@ export {
   useAtomStreamSuspense,
   type UseAtomStreamReturn,
 } from './hooks';
+
+// =============================================================================
+// Layer Schemas & Builder
+// =============================================================================
+
+export {
+  // Layer configs
+  ScatterplotLayerConfig,
+  IconLayerConfig,
+  PathLayerConfig,
+  PolygonLayerConfig,
+  HexagonLayerConfig,
+  GeoJsonLayerConfig,
+  LayerConfig,
+  LayerConfigs,
+  // Block-specific render options
+  MapRenderOptions,
+  Scene3DRenderOptions,
+  DataGridRenderOptions,
+  ChartRenderOptions,
+} from './schemas/layers';
+
+export {
+  // Layer builder
+  buildLayersFromSpec,
+  buildLayersFromSpecSync,
+  type LayerBuildContext,
+  type LayerBuildResult,
+  type LayerBuildError,
+} from './layers';
