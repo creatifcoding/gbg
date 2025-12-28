@@ -475,3 +475,153 @@ sensor-hub-beta ✕    sensor-hub-beta      sensor-hub-beta|
 - Rapid double-clicks: debounce or ignore if already editing
 - Network timeout: show error after 5s, allow retry
 - Concurrent edits: last-write-wins, but show conflict indicator if detected
+
+---
+
+## MICRO-STATE: DISPLAY (hover)
+
+A hover micro-state reveals contextual action buttons that slide in from the right.
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                                                              │
+│   @sensor-hub-alpha                         ┌───┐  ┌───┐    │
+│   ─────────────────                         │ ⎘ │  │ # │    │
+│   blk_7f3a2c                                └───┘  └───┘    │
+│                                              copy   copy     │
+│                                              name   id       │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Action Buttons
+
+| Button | Icon | Action |
+|--------|------|--------|
+| Copy name | ⎘ (Lucide `Copy`) | Copy block name to clipboard |
+| Copy block ID | # (Lucide `Hash`) | Copy full block ID to clipboard |
+
+### Button Styling
+
+```css
+.action-button {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-button svg {
+  width: 14px;
+  height: 14px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.action-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.action-button:hover svg {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.action-button:active {
+  background: rgba(255, 255, 255, 0.18);
+  transform: scale(0.95);
+}
+```
+
+---
+
+## TRANSITION: DISPLAY (idle) → DISPLAY (hover)
+
+```
+Frame 0 (0ms)        Frame 1 (50ms)       Frame 2 (100ms)      Frame 3 (140ms)
+─────────────        ─────────────        ─────────────        ─────────────
+
+@name                @name        [⎘]←    @name    [⎘]  [#]←  @name    [⎘]  [#]
+                               opacity 0.3      opacity 0.6        opacity 1
+                               x: +8px          x: +4px  x: +8px   x: 0
+```
+
+### Animation (Staggered Entry)
+
+- **Delay before show**: 100ms (debounce to prevent flicker)
+- **Button 1**: opacity 0→1, translateX 8→0, 100ms, ease-out
+- **Button 2**: opacity 0→1, translateX 8→0, 100ms, ease-out, **delay 40ms**
+- Creates "sliding drawer" effect
+
+---
+
+## TRANSITION: DISPLAY (hover) → DISPLAY (idle)
+
+```
+Frame 0 (0ms)        Frame 1 (50ms)
+─────────────        ─────────────
+
+@name    [⎘]  [#]    @name
+                     (buttons gone)
+```
+
+### Animation (Quick Exit)
+
+- **All buttons together**: opacity 1→0, translateX 0→4, 50ms, ease-in
+- **Asymmetric timing**: Exit faster than entry for responsiveness
+
+---
+
+## CLICK: Copy Success Feedback
+
+```
+Frame 0 (click)      Frame 1 (100ms)      Frame 2 (600ms)
+─────────────        ─────────────        ─────────────
+
+[⎘] clicked          [✓]                  [⎘]
+                     emerald color        original icon
+                     scale: 1.1→1.0       restored
+```
+
+### Animation Sequence
+
+1. **Icon swap**: ⎘ → ✓ (Lucide `Check`)
+2. **Scale pulse**: 0 → 1.1 → 1.0 (spring bounce)
+3. **Color flash**: Icon turns emerald (#34d399)
+4. **Hold**: 500ms
+5. **Restore**: ✓ → ⎘, color back to muted (50% white)
+
+---
+
+## Hover Timing Tokens
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--hover-delay` | `100ms` | Debounce before showing buttons |
+| `--hover-enter-duration` | `100ms` | Button fade in |
+| `--hover-exit-duration` | `50ms` | Button fade out |
+| `--hover-stagger` | `40ms` | Delay between buttons |
+| `--success-flash-duration` | `500ms` | Checkmark hold time |
+
+---
+
+## Implementation Notes
+
+### ProseMirror Compatibility
+
+Use `onPointerEnter`/`onPointerLeave` instead of `onMouseEnter`/`onMouseLeave` due to event capturing behavior in ProseMirror.
+
+### Accessibility
+
+- Buttons focusable via Tab when badge is focused
+- `aria-label="Copy block name"`, `aria-label="Copy block ID"`
+- Focus ring visible on keyboard navigation
+
+### Mobile Consideration
+
+Touch devices don't have hover. Consider:
+- Long-press to reveal actions
+- Always-visible smaller icons
+- Swipe gesture

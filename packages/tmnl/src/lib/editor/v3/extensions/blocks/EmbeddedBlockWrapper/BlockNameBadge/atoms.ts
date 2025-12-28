@@ -373,3 +373,33 @@ export const getBlockNameSnapshot = (blockId: BlockId): BlockNameSnapshot | null
 export const hasBlockNameActor = (blockId: BlockId): boolean => {
   return actorCache.has(blockId);
 };
+
+// =============================================================================
+// Hover State (Local UI State, not XState)
+// =============================================================================
+
+/**
+ * Cache of hover atoms keyed by BlockId.
+ * Hover is transient UI state, separate from state machine.
+ */
+const hoverAtomCache = new Map<BlockId, Atom.Atom<boolean>>();
+
+/**
+ * Get or create hover atom for a specific block.
+ * Returns a writable atom for local hover state.
+ */
+export const getHoverAtom = (blockId: BlockId): Atom.Atom<boolean> => {
+  let atom = hoverAtomCache.get(blockId);
+  if (!atom) {
+    atom = Atom.make(false);
+    hoverAtomCache.set(blockId, atom);
+  }
+  return atom;
+};
+
+/**
+ * Clear hover atom for a specific block.
+ */
+export const clearHoverAtom = (blockId: BlockId): void => {
+  hoverAtomCache.delete(blockId);
+};

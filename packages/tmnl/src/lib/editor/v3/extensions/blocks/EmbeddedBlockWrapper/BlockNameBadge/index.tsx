@@ -14,16 +14,18 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
+  useState,
   memo,
   forwardRef,
 } from 'react';
-import { useAtomValue } from '@effect-atom/atom-react';
+import { useAtomValue, useAtom, Atom } from '@effect-atom/atom-react';
 
-import { createBlockNameAtoms } from './atoms';
+import { createBlockNameAtoms, getHoverAtom } from './atoms';
 import * as animations from './animations';
 import * as styles from './styles';
 import { type BlockNameBadgeProps, type AnimationRefs, type BadgeState } from './types';
 import { ErrorPopover } from './ErrorPopover';
+import { ActionTray } from './ActionTray';
 import type { BlockId } from '../shared';
 
 // =============================================================================
@@ -86,6 +88,10 @@ export const BlockNameBadge = memo(function BlockNameBadge({
   const lastClickTimeRef = useRef<number>(0);
   const DOUBLE_CLICK_THRESHOLD = 300;
 
+  // Hover debounce timer
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const HOVER_DELAY = 100; // ms before showing action tray
+
   // ─────────────────────────────────────────────────────────────
   // Atoms Setup
   // ─────────────────────────────────────────────────────────────
@@ -95,12 +101,18 @@ export const BlockNameBadge = memo(function BlockNameBadge({
     [blockId]
   );
 
+  const hoverAtom = useMemo(
+    () => getHoverAtom(blockId),
+    [blockId]
+  );
+
   // Subscribe to state (ErrorPopover handles error display)
   const state = useAtomValue(atoms.stateAtom);
   const inputValue = useAtomValue(atoms.inputValueAtom);
   const currentName = useAtomValue(atoms.currentNameAtom);
   const isEditable = useAtomValue(atoms.isEditableAtom);
   const hasError = useAtomValue(atoms.hasErrorAtom);
+  const [isHovered, setIsHovered] = useAtom(hoverAtom);
 
   const { ops } = atoms;
 
@@ -151,6 +163,10 @@ export const BlockNameBadge = memo(function BlockNameBadge({
   useEffect(() => {
     return () => {
       animations.cleanupAllAnimations();
+      // Clear hover timer
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+      }
       // Actor disposal moved to block deletion handler, not component unmount
     };
   }, [blockId]);
@@ -294,6 +310,37 @@ export const BlockNameBadge = memo(function BlockNameBadge({
     }, 100);
   }, [state, handleSubmit]);
 
+  /**
+   * Handle pointer enter with debounce (prevents flicker).
+   */
+  const handlePointerEnter = useCallback(() => {
+    // Don't show action tray during editing/submitting/success
+    if (state !== 'display') return;
+
+    // Clear any existing timer
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+    }
+
+    // Debounce to prevent flicker
+    hoverTimerRef.current = setTimeout(() => {
+      setIsHovered(true);
+    }, HOVER_DELAY);
+  }, [state, setIsHovered]);
+
+  /**
+   * Handle pointer leave.
+   */
+  const handlePointerLeave = useCallback(() => {
+    // Clear pending hover timer
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+
+    setIsHovered(false);
+  }, [setIsHovered]);
+
   // ─────────────────────────────────────────────────────────────
   // Derived Values
   // ─────────────────────────────────────────────────────────────
@@ -315,6 +362,8 @@ export const BlockNameBadge = memo(function BlockNameBadge({
         ref={refs.badgeRef}
         style={styles.badgeContainerStyle}
         data-badge-state={state}
+        onPointerEnter={handlePointerEnter}
+        onPointerLeave={handlePointerLeave}
       >
         {/* Name Row */}
         <div style={styles.nameRowStyle}>
@@ -366,6 +415,14 @@ export const BlockNameBadge = memo(function BlockNameBadge({
             </span>
           )}
 
+          {/* Action Tray - visible on hover during display state */}
+          {state === 'display' && (
+            <ActionTray
+              blockId={blockId}
+              name={currentName}
+              isVisible={isHovered}
+            />
+          )}
         </div>
 
         {/* Underline */}
