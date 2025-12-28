@@ -61,6 +61,23 @@ export type { DataGridTableOptions, TableData } from './DataGridTable';
 export { Callout } from './Callout';
 export type { CalloutOptions, CalloutVariant } from './Callout';
 
+// Embedded blocks (Mapbox, 3D)
+export { MapBlock, MapBlockView, getMapBlockAtoms, disposeMapBlockAtoms } from './MapBlock';
+export type { MapBlockAttrs, MapBlockOptions, MapBlockMarker } from './MapBlock';
+
+export { Scene3DBlock, Scene3DBlockView, getScene3DBlockAtoms, disposeScene3DBlockAtoms } from './Scene3DBlock';
+export type { Scene3DBlockAttrs, Scene3DBlockOptions, EntityData, CameraState, SceneConfig } from './Scene3DBlock';
+
+// Shared wrapper for embedded blocks
+export { EmbeddedBlockWrapper, useEmbeddedBlock } from './EmbeddedBlockWrapper';
+export type {
+  EmbeddedBlockWrapperProps,
+  BlockBadge,
+  BlockTag,
+  SettingsTab,
+  FoldState,
+} from './EmbeddedBlockWrapper';
+
 // =============================================================================
 // Presets
 // =============================================================================
@@ -80,6 +97,8 @@ import { Image } from './Image';
 import { HardBreak } from './HardBreak';
 import { DataGridTable } from './DataGridTable';
 import { Callout } from './Callout';
+import { MapBlock } from './MapBlock';
+import { Scene3DBlock } from './Scene3DBlock';
 import type { AnyExtension } from '@tiptap/core';
 
 /**
@@ -123,11 +142,13 @@ export const mediaExtensions: AnyExtension[] = [
 
 /**
  * Custom TMNL extensions.
- * DataGridTable (AG-Grid), Callout.
+ * DataGridTable (AG-Grid), Callout, MapBlock, Scene3DBlock.
  */
 export const customBlockExtensions: AnyExtension[] = [
   DataGridTable,
   Callout,
+  MapBlock,
+  Scene3DBlock,
 ];
 
 /**

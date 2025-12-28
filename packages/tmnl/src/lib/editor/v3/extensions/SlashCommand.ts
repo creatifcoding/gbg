@@ -9,7 +9,11 @@
 
 import { Extension } from '@tiptap/core';
 import Suggestion, { type SuggestionOptions } from '@tiptap/suggestion';
+import { PluginKey } from '@tiptap/pm/state';
 import type { Editor, Range } from '@tiptap/core';
+
+// Custom plugin key to avoid conflicts
+const SlashCommandPluginKey = new PluginKey('slashCommand');
 
 // ============================================================================
 // Types
@@ -187,6 +191,36 @@ export const SLASH_ITEMS: readonly SlashMenuItem[] = [
         .run();
     },
   },
+  {
+    title: 'Map',
+    description: 'Mapbox + deck.gl map',
+    icon: 'MapPin',
+    group: 'Advanced',
+    aliases: ['map', 'mapbox', 'geo', 'location', 'deckgl'],
+    command: ({ editor, range }) => {
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertMap()
+        .run();
+    },
+  },
+  {
+    title: '3D Scene',
+    description: 'Three.js 3D scene',
+    icon: 'Box',
+    group: 'Advanced',
+    aliases: ['3d', 'scene', 'threejs', 'r3f', 'three', 'webgl'],
+    command: ({ editor, range }) => {
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertScene3D()
+        .run();
+    },
+  },
 ] as const;
 
 // ============================================================================
@@ -197,20 +231,27 @@ export const SlashCommand = Extension.create<SlashCommandOptions>({
   name: 'slashCommand',
 
   addOptions() {
+    console.log('[SlashCommand] addOptions called');
     return {
       suggestion: {
         char: '/',
         startOfLine: false,
+        // Allow trigger after any character (not just whitespace)
+        allowedPrefixes: null,
         items: ({ query }) => {
+          console.log('[SlashCommand] items callback, query:', query);
           const q = query.toLowerCase();
-          return SLASH_ITEMS.filter(
+          const filtered = SLASH_ITEMS.filter(
             (item) =>
               item.title.toLowerCase().includes(q) ||
               item.description.toLowerCase().includes(q) ||
               item.aliases.some((alias) => alias.includes(q))
           ).slice(0, 10);
+          console.log('[SlashCommand] filtered items:', filtered.length);
+          return filtered;
         },
         command: ({ editor, range, props }) => {
+          console.log('[SlashCommand] command callback');
           props.command({ editor, range });
         },
         // render is set by the component that mounts SlashMenu
@@ -219,12 +260,22 @@ export const SlashCommand = Extension.create<SlashCommandOptions>({
   },
 
   addProseMirrorPlugins() {
-    return [
-      Suggestion({
-        editor: this.editor,
-        ...this.options.suggestion,
-      }),
-    ];
+    console.log('[SlashCommand] addProseMirrorPlugins called');
+    console.log('[SlashCommand] suggestion config:', {
+      char: this.options.suggestion.char,
+      startOfLine: this.options.suggestion.startOfLine,
+      allowedPrefixes: this.options.suggestion.allowedPrefixes,
+      hasItems: !!this.options.suggestion.items,
+      hasRender: !!this.options.suggestion.render,
+      hasCommand: !!this.options.suggestion.command,
+    });
+    const plugin = Suggestion({
+      editor: this.editor,
+      pluginKey: SlashCommandPluginKey,
+      ...this.options.suggestion,
+    });
+    console.log('[SlashCommand] plugin created:', plugin.key?.key || plugin.key);
+    return [plugin];
   },
 });
 

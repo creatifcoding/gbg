@@ -24,15 +24,14 @@ import {
   createContext,
   useContext,
   forwardRef,
-  useCallback,
   useEffect,
   useImperativeHandle,
   useState,
+  useRef,
   type ReactNode,
   type CSSProperties,
   type ComponentType,
 } from 'react';
-import * as Popover from '@radix-ui/react-popover';
 import * as ScrollArea from '@radix-ui/react-scroll-area';
 import { VANTA_COLORS, VANTA_BORDERS, VANTA_SPACING, VANTA_TYPOGRAPHY, VANTA_ANIMATION } from '@/components/portal/tokens';
 import type { SlashMenuItem } from '../extensions/SlashCommand';
@@ -120,17 +119,20 @@ const SlashMenuRoot = forwardRef<{ onKeyDown: (e: KeyboardEvent) => boolean }, S
       flatItems: items,
     };
 
-    // Virtual anchor for Radix Popover
-    const virtualRef = {
-      getBoundingClientRect: () => anchorRect ?? new DOMRect(),
-    };
+    if (!open) return null;
 
     return (
       <SlashMenuContext.Provider value={contextValue}>
-        <Popover.Root open={open} onOpenChange={onOpenChange}>
-          <Popover.Anchor virtualRef={anchorRect ? { current: virtualRef } : undefined} />
+        <div
+          style={{
+            position: 'fixed',
+            top: anchorRect ? anchorRect.bottom + 8 : 0,
+            left: anchorRect ? anchorRect.left : 0,
+            zIndex: 9999,
+          }}
+        >
           {children}
-        </Popover.Root>
+        </div>
       </SlashMenuContext.Provider>
     );
   }
@@ -148,46 +150,39 @@ interface ContentProps {
 
 function Content({ children, className = '', style }: ContentProps) {
   return (
-    <Popover.Portal>
-      <Popover.Content
-        side="bottom"
-        align="start"
-        sideOffset={8}
-        className={className}
-        style={{
-          minWidth: '280px',
-          maxHeight: '320px',
-          background: VANTA_COLORS.surface.elevated,
-          border: VANTA_BORDERS.style.default,
-          borderRadius: VANTA_BORDERS.radius.md,
-          boxShadow: VANTA_BORDERS.shadow.elevated,
-          overflow: 'hidden',
-          zIndex: 50,
-          ...style,
-        }}
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <ScrollArea.Root style={{ height: '100%', maxHeight: '320px' }}>
-          <ScrollArea.Viewport style={{ height: '100%', padding: VANTA_SPACING['1'] }}>
-            {children}
-          </ScrollArea.Viewport>
-          <ScrollArea.Scrollbar
-            orientation="vertical"
+    <div
+      className={className}
+      style={{
+        minWidth: '280px',
+        maxHeight: '320px',
+        background: VANTA_COLORS.surface.elevated,
+        border: VANTA_BORDERS.style.default,
+        borderRadius: VANTA_BORDERS.radius.md,
+        boxShadow: VANTA_BORDERS.shadow.elevated,
+        overflow: 'hidden',
+        ...style,
+      }}
+    >
+      <ScrollArea.Root style={{ height: '100%', maxHeight: '320px' }}>
+        <ScrollArea.Viewport style={{ height: '100%', padding: VANTA_SPACING['1'] }}>
+          {children}
+        </ScrollArea.Viewport>
+        <ScrollArea.Scrollbar
+          orientation="vertical"
+          style={{
+            width: '8px',
+            padding: '2px',
+          }}
+        >
+          <ScrollArea.Thumb
             style={{
-              width: '8px',
-              padding: '2px',
+              background: VANTA_COLORS.surface.border,
+              borderRadius: '4px',
             }}
-          >
-            <ScrollArea.Thumb
-              style={{
-                background: VANTA_COLORS.surface.border,
-                borderRadius: '4px',
-              }}
-            />
-          </ScrollArea.Scrollbar>
-        </ScrollArea.Root>
-      </Popover.Content>
-    </Popover.Portal>
+          />
+        </ScrollArea.Scrollbar>
+      </ScrollArea.Root>
+    </div>
   );
 }
 
@@ -391,6 +386,9 @@ import {
   Minus,
   Image,
   Table,
+  AlertCircle,
+  MapPin,
+  Box,
 } from 'lucide-react';
 
 export const SLASH_ICONS: Record<string, ComponentType<{ size?: number; className?: string }>> = {
@@ -406,6 +404,9 @@ export const SLASH_ICONS: Record<string, ComponentType<{ size?: number; classNam
   Minus,
   Image,
   Table,
+  AlertCircle,
+  MapPin,
+  Box,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -500,15 +501,26 @@ export const DefaultSlashMenu = forwardRef<DefaultSlashMenuHandle, DefaultSlashM
 export function createSlashMenuRender() {
   let component: ReactRenderer<DefaultSlashMenuHandle> | null = null;
 
+  console.log('[SlashMenu] createSlashMenuRender factory called');
+
   return {
     onStart: (props: SuggestionProps<SlashMenuItem>) => {
+      console.log('[SlashMenu] onStart called', { items: props.items?.length, query: props.query });
       component = new ReactRenderer(DefaultSlashMenu, {
         props,
         editor: props.editor,
       });
 
-      // Append to DOM - ReactRenderer creates element but doesn't mount it
-      document.body.appendChild(component.element);
+      // Append to the editor's DOM element for proper positioning
+      const editorElement = props.editor.view.dom.parentElement;
+      if (editorElement) {
+        editorElement.appendChild(component.element);
+        console.log('[SlashMenu] Component appended to editor DOM', component.element);
+      } else {
+        // Fallback to body if editor element not found
+        document.body.appendChild(component.element);
+        console.log('[SlashMenu] Component appended to document.body (fallback)');
+      }
     },
 
     onUpdate: (props: SuggestionProps<SlashMenuItem>) => {
