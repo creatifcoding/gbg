@@ -4,11 +4,15 @@
  * Atoms-as-state for react-three-fiber + kori ECS block.
  * Manages camera state, entity registry, and simulation control.
  *
+ * Supports ConnectionPorts integration for streaming entity updates
+ * from AVA via NATS/Durable Streams.
+ *
  * @module editor/v3/extensions/blocks/Scene3DBlock/atoms
  */
 
-import { Atom } from '@effect-atom/atom-react';
+import { Atom, Result } from '@effect-atom/atom-react';
 import type { Vector3Tuple } from 'three';
+import type { StreamBinding, ViewArtifact } from '@/lib/connection-ports';
 
 // =============================================================================
 // Types
@@ -69,6 +73,38 @@ export interface SceneConfig {
 }
 
 // =============================================================================
+// Stream Binding Types
+// =============================================================================
+
+/**
+ * Stream source configuration for Scene3D entities.
+ * When provided, entities are sourced from AVA streams instead of local state.
+ */
+export interface Scene3DStreamConfig {
+  /** Stream binding configuration */
+  binding: StreamBinding;
+
+  /** Transform artifact payload to entities */
+  payloadToEntities?: (payload: unknown) => EntityData[];
+}
+
+/**
+ * Default payload transformer.
+ * Expects artifact.payload to be { entities: EntityData[] }
+ */
+export function defaultPayloadToEntities(payload: unknown): EntityData[] {
+  if (
+    payload &&
+    typeof payload === 'object' &&
+    'entities' in payload &&
+    Array.isArray((payload as { entities: unknown }).entities)
+  ) {
+    return (payload as { entities: EntityData[] }).entities;
+  }
+  return [];
+}
+
+// =============================================================================
 // Default Values
 // =============================================================================
 
@@ -125,8 +161,14 @@ export function createDemoEntities(): EntityData[] {
 /**
  * Create scene block atoms for a specific block instance.
  * Using per-block state isolation pattern.
+ *
+ * @param blockId - Unique block identifier
+ * @param streamConfig - Optional stream configuration for AVA integration
  */
-export function createScene3DBlockAtoms(blockId: string) {
+export function createScene3DBlockAtoms(
+  blockId: string,
+  streamConfig?: Scene3DStreamConfig
+) {
   const cameraAtom = Atom.make<CameraState>(DEFAULT_CAMERA);
   const entitiesAtom = Atom.make<EntityData[]>([]);
   const isPlayingAtom = Atom.make(false);
@@ -134,6 +176,14 @@ export function createScene3DBlockAtoms(blockId: string) {
   const isLoadingAtom = Atom.make(true);
   const errorAtom = Atom.make<string | null>(null);
   const configAtom = Atom.make<SceneConfig>(DEFAULT_SCENE_CONFIG);
+
+  // Stream state (when using ConnectionPorts)
+  const streamBindingAtom = Atom.make<StreamBinding | null>(
+    streamConfig?.binding ?? null
+  );
+  const streamResultAtom = Atom.make<Result.Result<ViewArtifact, Error>>(
+    Result.initial(false)
+  );
 
   // Derived: entity count
   const entityCountAtom = Atom.make((get) => get(entitiesAtom).length);
@@ -148,16 +198,42 @@ export function createScene3DBlockAtoms(blockId: string) {
     error: get(errorAtom),
   }));
 
+  // Derived: stream status
+  const isStreamConnectedAtom = Atom.make((get) => {
+    const result = get(streamResultAtom);
+    return Result.isSuccess(result);
+  });
+
+  // Derived: stream error message
+  const streamErrorAtom = Atom.make((get) => {
+    const result = get(streamResultAtom);
+    if (Result.isFailure(result)) {
+      // Extract error message from cause
+      return 'Stream error occurred';
+    }
+    return null;
+  });
+
   return {
     blockId,
+    streamConfig,
+    // Camera & scene
     cameraAtom,
+    configAtom,
+    // Entity state
     entitiesAtom,
+    entityCountAtom,
+    // Simulation controls
     isPlayingAtom,
     timeScaleAtom,
     isLoadingAtom,
     errorAtom,
-    configAtom,
-    entityCountAtom,
+    // Stream binding
+    streamBindingAtom,
+    streamResultAtom,
+    isStreamConnectedAtom,
+    streamErrorAtom,
+    // Snapshot
     stateAtom,
   };
 }

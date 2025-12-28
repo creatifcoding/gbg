@@ -53,6 +53,8 @@ export {
   PipelineSpec,
   ViewArtifact,
   ViewDelta,
+  // Stream binding
+  StreamBinding,
 } from './schemas/artifacts';
 
 // =============================================================================

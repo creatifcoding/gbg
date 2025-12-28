@@ -199,11 +199,18 @@ export {
   getScene3DBlockAtoms,
   disposeScene3DBlockAtoms,
   createDemoEntities,
+  defaultPayloadToEntities,
   DEFAULT_CAMERA,
   DEFAULT_SCENE_CONFIG,
   type Scene3DBlockAtoms,
   type Scene3DBlockState,
+  type Scene3DStreamConfig,
   type CameraState,
   type EntityData,
   type SceneConfig,
 } from './atoms';
+export {
+  useScene3DStreamBinding,
+  type UseScene3DStreamBindingOptions,
+  type UseScene3DStreamBindingReturn,
+} from './useStreamBinding';

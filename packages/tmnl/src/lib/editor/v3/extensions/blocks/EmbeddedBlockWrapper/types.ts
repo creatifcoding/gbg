@@ -9,6 +9,7 @@
 
 import type { ReactNode, ComponentType } from 'react';
 import type { NodeViewProps } from '@tiptap/react';
+import type { StreamBinding } from '@/lib/connection-ports';
 
 // =============================================================================
 // Block Tag Types
@@ -40,6 +41,8 @@ export interface BlockBadge {
 
 export type FoldState = 'expanded' | 'collapsed' | 'minimized';
 
+export type StreamStatus = 'idle' | 'connecting' | 'connected' | 'error';
+
 export interface EmbeddedBlockState {
   /** Current fold state */
   readonly foldState: FoldState;
@@ -51,6 +54,25 @@ export interface EmbeddedBlockState {
   readonly isSelected: boolean;
   /** Whether block is being hovered */
   readonly isHovered: boolean;
+  /** Stream connection status */
+  readonly streamStatus: StreamStatus;
+  /** Stream error message (if status is 'error') */
+  readonly streamError: string | null;
+}
+
+// =============================================================================
+// Stream Binding Configuration
+// =============================================================================
+
+export interface StreamBindingConfig {
+  /** Stream binding specification */
+  readonly binding: StreamBinding;
+  /** Whether to auto-connect on mount */
+  readonly autoConnect?: boolean;
+  /** Reconnect delay on error (ms) */
+  readonly reconnectDelayMs?: number;
+  /** Max reconnect attempts (0 = infinite) */
+  readonly maxReconnectAttempts?: number;
 }
 
 // =============================================================================
@@ -93,6 +115,10 @@ export interface EmbeddedBlockWrapperProps {
   readonly onFoldChange?: (state: FoldState) => void;
   /** Custom CSS class */
   readonly className?: string;
+  /** Stream binding configuration for AVA integration */
+  readonly streamConfig?: StreamBindingConfig;
+  /** Callback when stream status changes */
+  readonly onStreamStatusChange?: (status: StreamStatus) => void;
 }
 
 // =============================================================================
@@ -108,6 +134,8 @@ export interface EmbeddedBlockContextValue {
   readonly tabs: readonly SettingsTab[];
   /** Whether block is editable */
   readonly isEditable: boolean;
+  /** Stream binding configuration (if provided) */
+  readonly streamConfig?: StreamBindingConfig;
   /** Actions */
   readonly actions: {
     readonly toggleFold: () => void;
@@ -116,5 +144,11 @@ export interface EmbeddedBlockContextValue {
     readonly minimize: () => void;
     readonly toggleSettings: () => void;
     readonly setActiveTab: (tabId: string) => void;
+    /** Connect to stream (manual trigger) */
+    readonly connectStream: () => void;
+    /** Disconnect from stream */
+    readonly disconnectStream: () => void;
+    /** Reconnect to stream after error */
+    readonly reconnectStream: () => void;
   };
 }

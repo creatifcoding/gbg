@@ -180,10 +180,18 @@ export {
   createMapBlockAtoms,
   getMapBlockAtoms,
   disposeMapBlockAtoms,
+  defaultPayloadToMarkers,
   DEFAULT_VIEW_STATE,
   DEFAULT_MAP_STYLE,
   DEFAULT_MAP_CONFIG,
   type MapBlockAtoms,
   type MapBlockState,
   type MapConfig,
+  type MapStreamConfig,
+  type MarkerData,
 } from './atoms';
+export {
+  useMapStreamBinding,
+  type UseMapStreamBindingOptions,
+  type UseMapStreamBindingReturn,
+} from './useStreamBinding';

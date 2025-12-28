@@ -10,6 +10,64 @@
 import { Schema } from 'effect';
 
 // =============================================================================
+// Stream Binding (Block → ConnectionPorts)
+// =============================================================================
+
+/**
+ * Stream binding configuration for embedded blocks.
+ * Defines how a block subscribes to AVA artifact streams.
+ */
+export class StreamBinding extends Schema.TaggedClass<StreamBinding>()(
+  'StreamBinding',
+  {
+    /** Stream identifier (NATS subject or durable stream URL) */
+    streamId: Schema.String.pipe(Schema.minLength(1)),
+
+    /** Whether to replay from durable streams on connect */
+    replay: Schema.optional(Schema.Boolean),
+
+    /** Starting offset for replay (if replay enabled) */
+    fromOffset: Schema.optional(Schema.String),
+
+    /** Auto-subscribe when block mounts (default: true) */
+    autoSubscribe: Schema.optional(Schema.Boolean),
+
+    /** Buffer size for incoming events */
+    bufferSize: Schema.optional(Schema.Number),
+
+    /** Debounce interval (ms) for high-frequency updates */
+    debounceMs: Schema.optional(Schema.Number),
+  }
+) {
+  static forArtifact(viewId: string, options?: Partial<StreamBinding>): StreamBinding {
+    return new StreamBinding({
+      streamId: `tmnl.ava.artifacts.${viewId}`,
+      replay: true,
+      autoSubscribe: true,
+      ...options,
+    });
+  }
+
+  static forDelta(viewId: string, options?: Partial<StreamBinding>): StreamBinding {
+    return new StreamBinding({
+      streamId: `tmnl.ava.deltas.${viewId}`,
+      replay: false,
+      autoSubscribe: true,
+      ...options,
+    });
+  }
+
+  static forEvents(subject: string, options?: Partial<StreamBinding>): StreamBinding {
+    return new StreamBinding({
+      streamId: subject,
+      replay: false,
+      autoSubscribe: true,
+      ...options,
+    });
+  }
+}
+
+// =============================================================================
 // Branded Types
 // =============================================================================
 
