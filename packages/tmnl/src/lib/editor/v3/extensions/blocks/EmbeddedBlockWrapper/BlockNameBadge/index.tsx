@@ -19,7 +19,7 @@ import React, {
 } from 'react';
 import { useAtomValue } from '@effect-atom/atom-react';
 
-import { createBlockNameAtoms, disposeBlockNameActor } from './atoms';
+import { createBlockNameAtoms } from './atoms';
 import * as animations from './animations';
 import * as styles from './styles';
 import type { BlockNameBadgeProps, AnimationRefs, BadgeState } from './types';
@@ -114,11 +114,20 @@ export const BlockNameBadge = memo(function BlockNameBadge({
   // ─────────────────────────────────────────────────────────────
   // Cleanup on Unmount
   // ─────────────────────────────────────────────────────────────
-
+  //
+  // NOTE: We intentionally do NOT dispose the actor here.
+  // React strict mode calls cleanup on "fake" unmount, but useMemo
+  // returns the same cached atoms bundle on remount. If we dispose
+  // the actor, those atoms point to a stopped actor.
+  //
+  // Actors persist in the module-level cache. They are only disposed
+  // when the block is truly removed from the editor (via external
+  // cleanup mechanism, not component lifecycle).
+  //
   useEffect(() => {
     return () => {
       animations.cleanupAllAnimations();
-      disposeBlockNameActor(blockId);
+      // Actor disposal moved to block deletion handler, not component unmount
     };
   }, [blockId]);
 
