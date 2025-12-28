@@ -472,10 +472,16 @@ function Header({
       </div>
 
       {/* Right: Controls */}
+      {/* NOTE: onMouseDown + preventDefault/stopPropagation required for TipTap NodeViews.
+          contentEditable={false} causes ProseMirror to intercept onClick events. */}
       <div style={{ display: 'flex', gap: VANTA_SPACING['1'] }}>
         {/* Focus/Expand button */}
         <button
-          onClick={onEnterFocus}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onEnterFocus();
+          }}
           style={buttonStyle}
           title="Focus mode (expand to full viewport)"
         >
@@ -484,7 +490,11 @@ function Header({
 
         {/* Fold toggle */}
         <button
-          onClick={onToggleFold}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleFold();
+          }}
           style={buttonStyle}
           title={foldState === 'expanded' ? 'Collapse' : 'Expand'}
         >
@@ -493,7 +503,15 @@ function Header({
 
         {/* Minimize button */}
         {allowMinimize && foldState !== 'minimized' && (
-          <button onClick={onMinimize} style={buttonStyle} title="Minimize">
+          <button
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onMinimize();
+            }}
+            style={buttonStyle}
+            title="Minimize"
+          >
             <Minus size={14} />
           </button>
         )}
@@ -501,7 +519,11 @@ function Header({
         {/* Settings toggle */}
         {hasTabs && (
           <button
-            onClick={onToggleSettings}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleSettings();
+            }}
             style={{
               ...buttonStyle,
               color: settingsOpen ? badgeColors.text : VANTA_COLORS.text.muted,
