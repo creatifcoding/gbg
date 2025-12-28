@@ -15,7 +15,8 @@ import type { NodeViewProps } from '@tiptap/react';
 
 import { TmnlDataGrid, type TmnlDataGridHandle } from '@/lib/data-grid/components/TmnlDataGrid';
 import { tmnlDenseDark } from '@/lib/data-grid/variants';
-import { VANTA_COLORS } from '@/components/portal/tokens';
+import { VANTA_COLORS, VANTA_BORDERS, VANTA_SPACING } from '@/components/portal/tokens';
+import { GripVertical, X, Plus, Minus } from 'lucide-react';
 
 // =============================================================================
 // Types
@@ -146,9 +147,9 @@ function gridDataToTableData(
 // NodeView Component
 // =============================================================================
 
-function DataGridTableView({ node, updateAttributes, selected, editor }: NodeViewProps) {
+function DataGridTableView({ node, updateAttributes, selected, editor, deleteNode }: NodeViewProps) {
   const gridRef = useRef<TmnlDataGridHandle>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   // Parse stored data
   const tableData = useMemo<TableData>(() => {
@@ -181,25 +182,117 @@ function DataGridTableView({ node, updateAttributes, selected, editor }: NodeVie
     [columnDefs, updateAttributes]
   );
 
-  // Focus handling
-  useEffect(() => {
-    if (selected) {
-      setIsEditing(true);
-    }
-  }, [selected]);
+  // Handle delete
+  const handleDelete = useCallback(() => {
+    deleteNode();
+  }, [deleteNode]);
+
+  // Shared button style
+  const controlButtonStyle = {
+    padding: `${VANTA_SPACING['1']} ${VANTA_SPACING['2']}`,
+    fontSize: '12px',
+    fontFamily: 'var(--tmnl-font-mono)',
+    background: 'transparent',
+    border: `1px solid ${VANTA_COLORS.surface.border}`,
+    color: VANTA_COLORS.text.secondary,
+    borderRadius: VANTA_BORDERS.radius.sm,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: VANTA_SPACING['1'],
+    transition: 'all 150ms ease',
+  };
+
+  const showControls = selected || isHovered;
 
   return (
     <NodeViewWrapper
       className="tmnl-datagrid-table"
       data-type="dataGridTable"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       style={{
         margin: '16px 0',
-        borderRadius: '4px',
+        borderRadius: VANTA_BORDERS.radius.md,
         overflow: 'hidden',
-        border: selected ? `1px solid ${VANTA_COLORS.accent.cyan}` : `1px solid ${VANTA_COLORS.surface.border}`,
+        border: selected
+          ? `1px solid ${VANTA_COLORS.accent.cyan}`
+          : `1px solid ${VANTA_COLORS.surface.border}`,
         transition: 'border-color 150ms ease',
+        position: 'relative',
       }}
     >
+      {/* Header bar with drag handle and close button */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: `${VANTA_SPACING['1']} ${VANTA_SPACING['2']}`,
+          background: VANTA_COLORS.surface.elevated,
+          borderBottom: `1px solid ${VANTA_COLORS.surface.border}`,
+          opacity: showControls ? 1 : 0.5,
+          transition: 'opacity 150ms ease',
+        }}
+      >
+        {/* Drag handle */}
+        <div
+          data-drag-handle
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: VANTA_SPACING['2'],
+            cursor: 'grab',
+            color: VANTA_COLORS.text.muted,
+            padding: VANTA_SPACING['1'],
+            borderRadius: VANTA_BORDERS.radius.sm,
+          }}
+          title="Drag to reorder"
+        >
+          <GripVertical size={14} />
+          <span style={{
+            fontSize: '11px',
+            fontFamily: 'var(--tmnl-font-mono)',
+            color: VANTA_COLORS.text.tertiary,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+          }}>
+            Data Grid
+          </span>
+        </div>
+
+        {/* Close button */}
+        {editor.isEditable && (
+          <button
+            onClick={handleDelete}
+            style={{
+              padding: VANTA_SPACING['1'],
+              background: 'transparent',
+              border: 'none',
+              color: VANTA_COLORS.text.muted,
+              cursor: 'pointer',
+              borderRadius: VANTA_BORDERS.radius.sm,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 150ms ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = VANTA_COLORS.accent.roseGlow;
+              e.currentTarget.style.color = VANTA_COLORS.accent.rose;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = VANTA_COLORS.text.muted;
+            }}
+            title="Delete table"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
+      {/* Grid container */}
       <div
         style={{
           height: Math.min(300, 40 + rowData.length * 32),
@@ -218,14 +311,14 @@ function DataGridTableView({ node, updateAttributes, selected, editor }: NodeVie
         />
       </div>
 
-      {/* Table controls */}
+      {/* Table controls - only show when selected */}
       {selected && editor.isEditable && (
         <div
           style={{
             display: 'flex',
-            gap: '8px',
-            padding: '8px',
-            background: VANTA_COLORS.surface.default,
+            gap: VANTA_SPACING['2'],
+            padding: VANTA_SPACING['2'],
+            background: VANTA_COLORS.surface.elevated,
             borderTop: `1px solid ${VANTA_COLORS.surface.border}`,
           }}
         >
@@ -237,18 +330,17 @@ function DataGridTableView({ node, updateAttributes, selected, editor }: NodeVie
               };
               updateAttributes({ data: newData });
             }}
-            style={{
-              padding: '4px 8px',
-              fontSize: '12px',
-              fontFamily: 'var(--tmnl-font-mono)',
-              background: 'transparent',
-              border: `1px solid ${VANTA_COLORS.surface.border}`,
-              color: VANTA_COLORS.text.secondary,
-              borderRadius: '4px',
-              cursor: 'pointer',
+            style={controlButtonStyle}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = VANTA_COLORS.accent.cyanMuted;
+              e.currentTarget.style.color = VANTA_COLORS.accent.cyan;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = VANTA_COLORS.surface.border;
+              e.currentTarget.style.color = VANTA_COLORS.text.secondary;
             }}
           >
-            + Row
+            <Plus size={12} /> Row
           </button>
           <button
             onClick={() => {
@@ -258,19 +350,21 @@ function DataGridTableView({ node, updateAttributes, selected, editor }: NodeVie
               };
               updateAttributes({ data: newData });
             }}
-            style={{
-              padding: '4px 8px',
-              fontSize: '12px',
-              fontFamily: 'var(--tmnl-font-mono)',
-              background: 'transparent',
-              border: `1px solid ${VANTA_COLORS.surface.border}`,
-              color: VANTA_COLORS.text.secondary,
-              borderRadius: '4px',
-              cursor: 'pointer',
+            style={controlButtonStyle}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = VANTA_COLORS.accent.cyanMuted;
+              e.currentTarget.style.color = VANTA_COLORS.accent.cyan;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = VANTA_COLORS.surface.border;
+              e.currentTarget.style.color = VANTA_COLORS.text.secondary;
             }}
           >
-            + Column
+            <Plus size={12} /> Column
           </button>
+
+          <div style={{ flex: 1 }} />
+
           <button
             onClick={() => {
               if (tableData.rows.length > 1) {
@@ -281,18 +375,15 @@ function DataGridTableView({ node, updateAttributes, selected, editor }: NodeVie
                 updateAttributes({ data: newData });
               }
             }}
+            disabled={tableData.rows.length <= 1}
             style={{
-              padding: '4px 8px',
-              fontSize: '12px',
-              fontFamily: 'var(--tmnl-font-mono)',
-              background: 'transparent',
-              border: `1px solid ${VANTA_COLORS.surface.border}`,
-              color: VANTA_COLORS.accent.rose,
-              borderRadius: '4px',
-              cursor: 'pointer',
+              ...controlButtonStyle,
+              color: tableData.rows.length > 1 ? VANTA_COLORS.accent.rose : VANTA_COLORS.text.muted,
+              opacity: tableData.rows.length > 1 ? 1 : 0.5,
+              cursor: tableData.rows.length > 1 ? 'pointer' : 'not-allowed',
             }}
           >
-            - Row
+            <Minus size={12} /> Row
           </button>
           <button
             onClick={() => {
@@ -304,18 +395,15 @@ function DataGridTableView({ node, updateAttributes, selected, editor }: NodeVie
                 updateAttributes({ data: newData });
               }
             }}
+            disabled={tableData.headers.length <= 1}
             style={{
-              padding: '4px 8px',
-              fontSize: '12px',
-              fontFamily: 'var(--tmnl-font-mono)',
-              background: 'transparent',
-              border: `1px solid ${VANTA_COLORS.surface.border}`,
-              color: VANTA_COLORS.accent.rose,
-              borderRadius: '4px',
-              cursor: 'pointer',
+              ...controlButtonStyle,
+              color: tableData.headers.length > 1 ? VANTA_COLORS.accent.rose : VANTA_COLORS.text.muted,
+              opacity: tableData.headers.length > 1 ? 1 : 0.5,
+              cursor: tableData.headers.length > 1 ? 'pointer' : 'not-allowed',
             }}
           >
-            - Column
+            <Minus size={12} /> Column
           </button>
         </div>
       )}
@@ -340,6 +428,8 @@ export const DataGridTable = Node.create<DataGridTableOptions>({
   group: 'block',
 
   atom: true,
+
+  selectable: true,
 
   draggable: true,
 

@@ -506,6 +506,9 @@ export function createSlashMenuRender() {
         props,
         editor: props.editor,
       });
+
+      // Append to DOM - ReactRenderer creates element but doesn't mount it
+      document.body.appendChild(component.element);
     },
 
     onUpdate: (props: SuggestionProps<SlashMenuItem>) => {
@@ -522,6 +525,10 @@ export function createSlashMenuRender() {
     },
 
     onExit: () => {
+      // Remove from DOM before destroying
+      if (component?.element?.parentNode) {
+        component.element.parentNode.removeChild(component.element);
+      }
       component?.destroy();
       component = null;
     },

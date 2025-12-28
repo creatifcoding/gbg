@@ -34,8 +34,12 @@ export type { ListItemOptions } from './ListItem';
 export { TaskList } from './TaskList';
 export type { TaskListOptions } from './TaskList';
 
-export { TaskItem } from './TaskItem';
-export type { TaskItemOptions } from './TaskItem';
+export { TaskItem, TaskCheckbox, TaskItemView, taskCheckboxMachine } from './TaskItem';
+export type {
+  TaskItemOptions,
+  TaskCheckboxContext,
+  TaskCheckboxEvent,
+} from './TaskItem';
 
 // Content blocks
 export { Blockquote } from './Blockquote';

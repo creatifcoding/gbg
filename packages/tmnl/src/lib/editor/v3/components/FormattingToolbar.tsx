@@ -206,7 +206,7 @@ function FormattingGroup({ children }: FormattingGroupProps) {
 
 function BoldButton() {
   const { editor } = useFormattingToolbar();
-  if (!editor) return null;
+  if (!editor?.view) return null;
 
   return (
     <FormattingButton
@@ -215,14 +215,14 @@ function BoldButton() {
       shortcut="⌘B"
       active={editor.isActive('bold')}
       onClick={() => editor.chain().focus().toggleBold().run()}
-      disabled={!editor.can().chain().focus().toggleBold().run()}
+      disabled={!editor.can().toggleBold()}
     />
   );
 }
 
 function ItalicButton() {
   const { editor } = useFormattingToolbar();
-  if (!editor) return null;
+  if (!editor?.view) return null;
 
   return (
     <FormattingButton
@@ -231,14 +231,14 @@ function ItalicButton() {
       shortcut="⌘I"
       active={editor.isActive('italic')}
       onClick={() => editor.chain().focus().toggleItalic().run()}
-      disabled={!editor.can().chain().focus().toggleItalic().run()}
+      disabled={!editor.can().toggleItalic()}
     />
   );
 }
 
 function StrikeButton() {
   const { editor } = useFormattingToolbar();
-  if (!editor) return null;
+  if (!editor?.view) return null;
 
   return (
     <FormattingButton
@@ -247,14 +247,14 @@ function StrikeButton() {
       shortcut="⌘⇧X"
       active={editor.isActive('strike')}
       onClick={() => editor.chain().focus().toggleStrike().run()}
-      disabled={!editor.can().chain().focus().toggleStrike().run()}
+      disabled={!editor.can().toggleStrike()}
     />
   );
 }
 
 function CodeButton() {
   const { editor } = useFormattingToolbar();
-  if (!editor) return null;
+  if (!editor?.view) return null;
 
   return (
     <FormattingButton
@@ -263,7 +263,7 @@ function CodeButton() {
       shortcut="⌘E"
       active={editor.isActive('code')}
       onClick={() => editor.chain().focus().toggleCode().run()}
-      disabled={!editor.can().chain().focus().toggleCode().run()}
+      disabled={!editor.can().toggleCode()}
     />
   );
 }
@@ -274,7 +274,7 @@ function CodeButton() {
 
 function HeadingButton({ level }: { level: 1 | 2 | 3 }) {
   const { editor } = useFormattingToolbar();
-  if (!editor) return null;
+  if (!editor?.view) return null;
 
   const icons = {
     1: <H1Icon />,
@@ -305,7 +305,7 @@ function HeadingButton({ level }: { level: 1 | 2 | 3 }) {
 
 function BulletListButton() {
   const { editor } = useFormattingToolbar();
-  if (!editor) return null;
+  if (!editor?.view) return null;
 
   return (
     <FormattingButton
@@ -320,7 +320,7 @@ function BulletListButton() {
 
 function OrderedListButton() {
   const { editor } = useFormattingToolbar();
-  if (!editor) return null;
+  if (!editor?.view) return null;
 
   return (
     <FormattingButton
@@ -335,7 +335,7 @@ function OrderedListButton() {
 
 function TaskListButton() {
   const { editor } = useFormattingToolbar();
-  if (!editor) return null;
+  if (!editor?.view) return null;
 
   return (
     <FormattingButton
@@ -350,7 +350,7 @@ function TaskListButton() {
 
 function BlockquoteButton() {
   const { editor } = useFormattingToolbar();
-  if (!editor) return null;
+  if (!editor?.view) return null;
 
   return (
     <FormattingButton
@@ -365,7 +365,7 @@ function BlockquoteButton() {
 
 function CodeBlockButton() {
   const { editor } = useFormattingToolbar();
-  if (!editor) return null;
+  if (!editor?.view) return null;
 
   return (
     <FormattingButton
@@ -382,6 +382,7 @@ function CodeBlockButton() {
 // =============================================================================
 
 export const FormattingToolbar = Object.assign(FormattingToolbarRoot, {
+  Root: FormattingToolbarRoot,
   Group: FormattingGroup,
   Divider: FormattingDivider,
   Button: FormattingButton,
