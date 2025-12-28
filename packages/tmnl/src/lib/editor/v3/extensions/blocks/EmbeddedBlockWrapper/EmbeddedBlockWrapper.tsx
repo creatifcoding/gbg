@@ -69,6 +69,7 @@ import {
   saveBlockState,
   restoreBlockState,
 } from './atoms';
+import { FocusOverlay } from './FocusOverlay';
 
 // =============================================================================
 // Context
@@ -247,12 +248,30 @@ export function EmbeddedBlockWrapper({
       ? collapsedHeight
       : 0;
 
+  // Check if THIS block is the focused block (renders in FocusOverlay)
+  const isThisBlockFocused = isFocusMode && focusedBlockId === blockId;
+
   return (
     <EmbeddedBlockContext.Provider value={contextValue}>
+      {/* FocusOverlay portal - renders content full-viewport when this block is focused */}
+      {isThisBlockFocused && (
+        <FocusOverlay
+          title={badge.label}
+          icon={badge.icon}
+          onExit={() => focusActions.exitFocus()}
+        >
+          <div style={{ height: '100%', padding: VANTA_SPACING['4'] }}>
+            {children}
+          </div>
+        </FocusOverlay>
+      )}
+
+      {/* Normal inline editor rendering */}
       <NodeViewWrapper
         className={`tmnl-embedded-block ${className}`}
         data-type="embeddedBlock"
         data-block-tag={badge.tag}
+        data-focused={isThisBlockFocused}
         contentEditable={false}
         onMouseEnter={() => actions.setHovered(true)}
         onMouseLeave={() => actions.setHovered(false)}
@@ -267,6 +286,9 @@ export function EmbeddedBlockWrapper({
             : `1px solid ${VANTA_COLORS.surface.border}`,
           transition: VANTA_ANIMATION.transition.colors,
           outline: 'none',
+          // Dim the inline view when focused (content is in overlay)
+          opacity: isThisBlockFocused ? 0.3 : 1,
+          pointerEvents: isThisBlockFocused ? 'none' : 'auto',
         }}
       >
         {/* Header */}
@@ -285,30 +307,49 @@ export function EmbeddedBlockWrapper({
           onEnterFocus={() => focusActions.enterFocus(blockId)}
         />
 
-        {/* Collapsible Content */}
-        <Collapsible.Root open={contentVisible}>
-          <Collapsible.Content
-            style={{
-              height: typeof contentHeight === 'number' ? `${contentHeight}px` : contentHeight,
-              overflow: 'hidden',
-              transition: 'height 200ms ease',
-            }}
-          >
-            {/* Main content */}
-            <div
+        {/* Collapsible Content - hidden when focused (content is in overlay) */}
+        {!isThisBlockFocused && (
+          <Collapsible.Root open={contentVisible}>
+            <Collapsible.Content
               style={{
-                height: '100%',
-                opacity: contentExpanded ? 1 : 0.6,
-                transition: 'opacity 200ms ease',
+                height: typeof contentHeight === 'number' ? `${contentHeight}px` : contentHeight,
+                overflow: 'hidden',
+                transition: 'height 200ms ease',
               }}
             >
-              {children}
-            </div>
-          </Collapsible.Content>
-        </Collapsible.Root>
+              {/* Main content */}
+              <div
+                style={{
+                  height: '100%',
+                  opacity: contentExpanded ? 1 : 0.6,
+                  transition: 'opacity 200ms ease',
+                }}
+              >
+                {children}
+              </div>
+            </Collapsible.Content>
+          </Collapsible.Root>
+        )}
+
+        {/* Focused indicator in inline view */}
+        {isThisBlockFocused && (
+          <div
+            style={{
+              padding: VANTA_SPACING['4'],
+              textAlign: 'center',
+              color: VANTA_COLORS.text.muted,
+              fontSize: 'var(--tmnl-text-xs, 12px)',
+              fontFamily: 'var(--tmnl-font-mono)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+            }}
+          >
+            Expanded to full viewport — Press Esc to exit
+          </div>
+        )}
 
         {/* Settings Panel */}
-        {state.settingsOpen && tabs.length > 0 && (
+        {state.settingsOpen && tabs.length > 0 && !isThisBlockFocused && (
           <SettingsPanel
             tabs={tabs}
             activeTab={state.activeTab}
