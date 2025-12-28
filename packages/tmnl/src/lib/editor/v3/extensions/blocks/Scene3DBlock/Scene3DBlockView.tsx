@@ -24,11 +24,16 @@ import {
   Settings2,
   Layers,
   Timer,
+  Radio,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 
 import { VANTA_COLORS, VANTA_BORDERS, VANTA_SPACING } from '@/components/portal/tokens';
+import { StreamBinding } from '@/lib/connection-ports';
 import { EmbeddedBlockWrapper, type SettingsTab, type BlockBadge } from '../EmbeddedBlockWrapper';
 import {
+  createScene3DBlockAtoms,
   getScene3DBlockAtoms,
   disposeScene3DBlockAtoms,
   createDemoEntities,
@@ -37,6 +42,7 @@ import {
   type EntityData,
   type Scene3DBlockAtoms,
 } from './atoms';
+import { useScene3DStreamBinding } from './useStreamBinding';
 
 // =============================================================================
 // Badge Config
@@ -238,11 +244,12 @@ function PlaybackSettings({ isPlaying, timeScale, onTogglePlay, onTimeScaleChang
 
 interface EntitiesSettingsProps {
   entityCount: number;
+  streamEntityCount: number;
   onAddEntity: () => void;
   onClearEntities: () => void;
 }
 
-function EntitiesSettings({ entityCount, onAddEntity, onClearEntities }: EntitiesSettingsProps) {
+function EntitiesSettings({ entityCount, streamEntityCount, onAddEntity, onClearEntities }: EntitiesSettingsProps) {
   const buttonStyle = {
     padding: `${VANTA_SPACING['2']} ${VANTA_SPACING['3']}`,
     background: 'transparent',
@@ -259,7 +266,14 @@ function EntitiesSettings({ entityCount, onAddEntity, onClearEntities }: Entitie
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: VANTA_SPACING['3'] }}>
-      <div style={{ color: VANTA_COLORS.text.muted, fontSize: '12px' }}>{entityCount} entities in scene</div>
+      <div style={{ color: VANTA_COLORS.text.muted, fontSize: '12px' }}>
+        {entityCount} entities in scene
+        {streamEntityCount > 0 && (
+          <span style={{ color: VANTA_COLORS.accent.cyan, marginLeft: VANTA_SPACING['2'] }}>
+            ({streamEntityCount} from stream)
+          </span>
+        )}
+      </div>
       <div style={{ display: 'flex', gap: VANTA_SPACING['2'] }}>
         <button onClick={onAddEntity} style={buttonStyle}>
           <Plus size={12} /> Add Entity
@@ -268,6 +282,137 @@ function EntitiesSettings({ entityCount, onAddEntity, onClearEntities }: Entitie
           <RotateCcw size={12} /> Clear All
         </button>
       </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Stream Settings
+// =============================================================================
+
+interface StreamSettingsProps {
+  isConnected: boolean;
+  isLoading: boolean;
+  error: Error | null;
+  streamId: string | null;
+  onConnect: () => void;
+  onDisconnect: () => void;
+}
+
+function StreamSettings({
+  isConnected,
+  isLoading,
+  error,
+  streamId,
+  onConnect,
+  onDisconnect,
+}: StreamSettingsProps) {
+  const buttonStyle = {
+    padding: `${VANTA_SPACING['2']} ${VANTA_SPACING['3']}`,
+    background: 'transparent',
+    border: `1px solid ${VANTA_COLORS.surface.border}`,
+    color: VANTA_COLORS.text.secondary,
+    borderRadius: VANTA_BORDERS.radius.sm,
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontFamily: 'var(--tmnl-font-mono)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: VANTA_SPACING['1'],
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: VANTA_SPACING['3'] }}>
+      {/* Status Indicator */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: VANTA_SPACING['2'] }}>
+        <div
+          style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: isConnected
+              ? VANTA_COLORS.accent.cyan
+              : error
+                ? VANTA_COLORS.accent.magenta
+                : VANTA_COLORS.text.muted,
+            boxShadow: isConnected ? `0 0 8px ${VANTA_COLORS.accent.cyanMuted}` : 'none',
+          }}
+        />
+        <span style={{ color: VANTA_COLORS.text.secondary, fontSize: '12px' }}>
+          {isLoading ? 'Connecting...' : isConnected ? 'Connected' : error ? 'Error' : 'Disconnected'}
+        </span>
+      </div>
+
+      {/* Stream ID */}
+      {streamId && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: VANTA_SPACING['1'] }}>
+          <label style={{ color: VANTA_COLORS.text.muted, fontSize: '12px' }}>Stream ID</label>
+          <code
+            style={{
+              fontSize: '11px',
+              fontFamily: 'var(--tmnl-font-mono)',
+              color: VANTA_COLORS.text.secondary,
+              background: VANTA_COLORS.surface.void,
+              padding: VANTA_SPACING['2'],
+              borderRadius: VANTA_BORDERS.radius.sm,
+              wordBreak: 'break-all',
+            }}
+          >
+            {streamId}
+          </code>
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div
+          style={{
+            fontSize: '12px',
+            color: VANTA_COLORS.accent.magenta,
+            background: `${VANTA_COLORS.accent.magenta}10`,
+            padding: VANTA_SPACING['2'],
+            borderRadius: VANTA_BORDERS.radius.sm,
+          }}
+        >
+          {error.message}
+        </div>
+      )}
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: VANTA_SPACING['2'] }}>
+        {isConnected ? (
+          <button
+            onClick={onDisconnect}
+            style={{
+              ...buttonStyle,
+              borderColor: VANTA_COLORS.accent.magenta,
+              color: VANTA_COLORS.accent.magenta,
+            }}
+          >
+            <WifiOff size={12} /> Disconnect
+          </button>
+        ) : (
+          <button
+            onClick={onConnect}
+            disabled={isLoading || !streamId}
+            style={{
+              ...buttonStyle,
+              borderColor: streamId ? VANTA_COLORS.accent.cyan : VANTA_COLORS.surface.border,
+              color: streamId ? VANTA_COLORS.accent.cyan : VANTA_COLORS.text.muted,
+              opacity: isLoading ? 0.5 : 1,
+            }}
+          >
+            <Wifi size={12} /> {isLoading ? 'Connecting...' : 'Connect'}
+          </button>
+        )}
+      </div>
+
+      {/* No binding hint */}
+      {!streamId && (
+        <div style={{ color: VANTA_COLORS.text.muted, fontSize: '12px', fontStyle: 'italic' }}>
+          No stream binding configured. Add a streamBinding or streamViewId attribute to enable.
+        </div>
+      )}
     </div>
   );
 }
@@ -343,12 +488,46 @@ function Scene3DContent({ atoms, config, isPlaying, isLoading }: Scene3DContentP
 export function Scene3DBlockView(nodeViewProps: NodeViewProps) {
   const { node, updateAttributes, editor } = nodeViewProps;
   const blockId = node.attrs.id || 'default';
-  const atoms = useMemo(() => getScene3DBlockAtoms(blockId), [blockId]);
+
+  // Parse stream binding from node attrs if present
+  const streamBinding = useMemo(() => {
+    if (node.attrs.streamBinding) {
+      const binding = node.attrs.streamBinding;
+      return {
+        streamId: binding.streamId,
+        replay: binding.replay ?? true,
+        fromOffset: binding.fromOffset,
+        autoSubscribe: binding.autoSubscribe ?? true,
+      };
+    }
+    if (node.attrs.streamViewId) {
+      return {
+        streamId: `tmnl.ava.artifacts.${node.attrs.streamViewId}`,
+        replay: true,
+        autoSubscribe: true,
+      };
+    }
+    return null;
+  }, [node.attrs.streamBinding, node.attrs.streamViewId]);
+
+  // Create atoms with stream config if binding exists
+  const atoms = useMemo(() => {
+    if (streamBinding) {
+      return createScene3DBlockAtoms(blockId, {
+        binding: new StreamBinding(streamBinding),
+      });
+    }
+    return getScene3DBlockAtoms(blockId);
+  }, [blockId, streamBinding]);
 
   const [isPlaying, setIsPlaying] = useAtom(atoms.isPlayingAtom);
   const [entities, setEntities] = useAtom(atoms.entitiesAtom);
   const [timeScale, setTimeScale] = useAtom(atoms.timeScaleAtom);
   const [isLoading, setIsLoading] = useAtom(atoms.isLoadingAtom);
+
+  // Stream binding hook (only active when streamBinding is configured)
+  const stream = useScene3DStreamBinding({ atoms });
+  const streamEntities = useAtomValue(atoms.entitiesAtom);
 
   const config = node.attrs.config || DEFAULT_SCENE_CONFIG;
   const entityCount = useAtomValue(atoms.entityCountAtom);
@@ -412,6 +591,9 @@ export function Scene3DBlockView(nodeViewProps: NodeViewProps) {
     updateAttributes({ entities: [] });
   }, [setEntities, updateAttributes]);
 
+  // Compute stream entity count
+  const streamEntityCount = stream.isConnected ? streamEntities.length : 0;
+
   // Settings tabs
   const tabs: SettingsTab[] = useMemo(
     () => [
@@ -434,11 +616,47 @@ export function Scene3DBlockView(nodeViewProps: NodeViewProps) {
         label: 'Entities',
         icon: Layers,
         content: (
-          <EntitiesSettings entityCount={entityCount} onAddEntity={addEntity} onClearEntities={clearEntities} />
+          <EntitiesSettings
+            entityCount={entityCount}
+            streamEntityCount={streamEntityCount}
+            onAddEntity={addEntity}
+            onClearEntities={clearEntities}
+          />
+        ),
+      },
+      {
+        id: 'stream',
+        label: 'Stream',
+        icon: Radio,
+        content: (
+          <StreamSettings
+            isConnected={stream.isConnected}
+            isLoading={stream.isLoading}
+            error={stream.error}
+            streamId={streamBinding?.streamId ?? null}
+            onConnect={stream.subscribe}
+            onDisconnect={stream.unsubscribe}
+          />
         ),
       },
     ],
-    [isPlaying, timeScale, entityCount, togglePlay, handleTimeScaleChange, resetScene, addEntity, clearEntities]
+    [
+      isPlaying,
+      timeScale,
+      entityCount,
+      streamEntityCount,
+      togglePlay,
+      handleTimeScaleChange,
+      resetScene,
+      addEntity,
+      clearEntities,
+      stream.isConnected,
+      stream.isLoading,
+      stream.error,
+      stream.subscribe,
+      stream.unsubscribe,
+      streamBinding,
+    ]
   );
 
   return (

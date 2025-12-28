@@ -10,21 +10,25 @@
 
 import { useRef, useCallback, useMemo, useEffect, type ReactNode } from 'react';
 import { type NodeViewProps } from '@tiptap/react';
-import { useAtom } from '@effect-atom/atom-react';
+import { useAtom, useAtomValue, Atom } from '@effect-atom/atom-react';
 import { Map } from 'react-map-gl/mapbox';
 import { DeckGL } from '@deck.gl/react';
 import type { MapViewState, PickingInfo } from '@deck.gl/core';
 import { ScatterplotLayer } from '@deck.gl/layers';
-import { MapPin, Palette, Layers, Trash2 } from 'lucide-react';
+import { MapPin, Palette, Layers, Trash2, Radio, Wifi, WifiOff } from 'lucide-react';
 
 import { VANTA_COLORS, VANTA_BORDERS, VANTA_SPACING } from '@/components/portal/tokens';
-import { EmbeddedBlockWrapper, type SettingsTab, type BlockBadge } from '../EmbeddedBlockWrapper';
+import { StreamBinding } from '@/lib/connection-ports';
+import { EmbeddedBlockWrapper, type SettingsTab, type BlockBadge, type StreamBindingConfig } from '../EmbeddedBlockWrapper';
 import {
+  createMapBlockAtoms,
   getMapBlockAtoms,
   disposeMapBlockAtoms,
   DEFAULT_VIEW_STATE,
   DEFAULT_MAP_STYLE,
+  type MarkerData,
 } from './atoms';
+import { useMapStreamBinding } from './useStreamBinding';
 
 // =============================================================================
 // Mapbox Token
@@ -89,11 +93,12 @@ function StyleSettings({ mapStyle, onStyleChange }: StyleSettingsProps) {
 
 interface MarkersSettingsProps {
   markerCount: number;
+  streamMarkerCount: number;
   onResetView: () => void;
   onClearMarkers: () => void;
 }
 
-function MarkersSettings({ markerCount, onResetView, onClearMarkers }: MarkersSettingsProps) {
+function MarkersSettings({ markerCount, streamMarkerCount, onResetView, onClearMarkers }: MarkersSettingsProps) {
   const buttonStyle = {
     padding: `${VANTA_SPACING['2']} ${VANTA_SPACING['3']}`,
     background: 'transparent',
@@ -108,18 +113,159 @@ function MarkersSettings({ markerCount, onResetView, onClearMarkers }: MarkersSe
     gap: VANTA_SPACING['1'],
   };
 
+  const totalMarkers = streamMarkerCount > 0 ? streamMarkerCount : markerCount;
+  const source = streamMarkerCount > 0 ? 'stream' : 'local';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: VANTA_SPACING['3'] }}>
       <div style={{ color: VANTA_COLORS.text.muted, fontSize: '12px' }}>
-        {markerCount} marker{markerCount !== 1 ? 's' : ''} • Click map to add
+        {totalMarkers} marker{totalMarkers !== 1 ? 's' : ''} ({source})
+        {streamMarkerCount === 0 && ' • Click map to add'}
       </div>
       <div style={{ display: 'flex', gap: VANTA_SPACING['2'] }}>
         <button onClick={onResetView} style={buttonStyle}>
           <MapPin size={12} /> Reset View
         </button>
-        <button onClick={onClearMarkers} style={buttonStyle}>
-          <Trash2 size={12} /> Clear Markers
-        </button>
+        {streamMarkerCount === 0 && (
+          <button onClick={onClearMarkers} style={buttonStyle}>
+            <Trash2 size={12} /> Clear Markers
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// Stream Settings
+// =============================================================================
+
+interface StreamSettingsProps {
+  isConnected: boolean;
+  isLoading: boolean;
+  error: string | null;
+  streamId: string | null;
+  onConnect: () => void;
+  onDisconnect: () => void;
+}
+
+function StreamSettings({ isConnected, isLoading, error, streamId, onConnect, onDisconnect }: StreamSettingsProps) {
+  const buttonStyle = {
+    padding: `${VANTA_SPACING['2']} ${VANTA_SPACING['3']}`,
+    background: 'transparent',
+    border: `1px solid ${VANTA_COLORS.surface.border}`,
+    color: VANTA_COLORS.text.secondary,
+    borderRadius: VANTA_BORDERS.radius.sm,
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontFamily: 'var(--tmnl-font-mono)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: VANTA_SPACING['1'],
+  };
+
+  if (!streamId) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: VANTA_SPACING['2'] }}>
+        <div style={{ color: VANTA_COLORS.text.muted, fontSize: '12px' }}>
+          No stream configured
+        </div>
+        <div style={{ color: VANTA_COLORS.text.muted, fontSize: '11px', opacity: 0.7 }}>
+          Add <code style={{ background: VANTA_COLORS.surface.elevated, padding: '2px 4px', borderRadius: '2px' }}>streamViewId</code> or{' '}
+          <code style={{ background: VANTA_COLORS.surface.elevated, padding: '2px 4px', borderRadius: '2px' }}>streamBinding</code> to node attrs
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: VANTA_SPACING['3'] }}>
+      {/* Status indicator */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: VANTA_SPACING['2'] }}>
+        <div
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: isConnected
+              ? VANTA_COLORS.accent.emerald
+              : error
+                ? VANTA_COLORS.accent.rose
+                : isLoading
+                  ? VANTA_COLORS.accent.amber
+                  : VANTA_COLORS.text.muted,
+            boxShadow: isConnected
+              ? `0 0 6px ${VANTA_COLORS.accent.emeraldGlow}`
+              : error
+                ? `0 0 6px ${VANTA_COLORS.accent.roseGlow}`
+                : 'none',
+          }}
+        />
+        <span style={{ color: VANTA_COLORS.text.secondary, fontSize: '12px' }}>
+          {isConnected ? 'Connected' : error ? 'Error' : isLoading ? 'Connecting...' : 'Disconnected'}
+        </span>
+      </div>
+
+      {/* Stream ID */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: VANTA_SPACING['1'] }}>
+        <label style={{ color: VANTA_COLORS.text.muted, fontSize: '11px' }}>Stream</label>
+        <code
+          style={{
+            fontSize: '11px',
+            fontFamily: 'var(--tmnl-font-mono)',
+            color: VANTA_COLORS.text.secondary,
+            background: VANTA_COLORS.surface.elevated,
+            padding: `${VANTA_SPACING['1']} ${VANTA_SPACING['2']}`,
+            borderRadius: VANTA_BORDERS.radius.sm,
+            wordBreak: 'break-all',
+          }}
+        >
+          {streamId}
+        </code>
+      </div>
+
+      {/* Error message */}
+      {error && (
+        <div
+          style={{
+            color: VANTA_COLORS.accent.rose,
+            fontSize: '11px',
+            padding: VANTA_SPACING['2'],
+            background: VANTA_COLORS.accent.roseGlow,
+            borderRadius: VANTA_BORDERS.radius.sm,
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      {/* Connect/Disconnect buttons */}
+      <div style={{ display: 'flex', gap: VANTA_SPACING['2'] }}>
+        {isConnected ? (
+          <button
+            onClick={onDisconnect}
+            style={{
+              ...buttonStyle,
+              borderColor: VANTA_COLORS.accent.roseMuted,
+              color: VANTA_COLORS.accent.rose,
+            }}
+          >
+            <WifiOff size={12} /> Disconnect
+          </button>
+        ) : (
+          <button
+            onClick={onConnect}
+            disabled={isLoading}
+            style={{
+              ...buttonStyle,
+              borderColor: isLoading ? VANTA_COLORS.surface.border : VANTA_COLORS.accent.cyanMuted,
+              color: isLoading ? VANTA_COLORS.text.muted : VANTA_COLORS.accent.cyan,
+              opacity: isLoading ? 0.6 : 1,
+            }}
+          >
+            <Wifi size={12} /> {isLoading ? 'Connecting...' : 'Connect'}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -243,10 +389,46 @@ function MapContent({
 export function MapBlockView(nodeViewProps: NodeViewProps) {
   const { node, updateAttributes, editor } = nodeViewProps;
   const blockId = node.attrs.id || 'default';
-  const atoms = useMemo(() => getMapBlockAtoms(blockId), [blockId]);
+
+  // Parse stream binding from node attrs if present
+  const streamBinding = useMemo(() => {
+    if (node.attrs.streamBinding) {
+      // Already a StreamBinding object or raw config
+      const binding = node.attrs.streamBinding;
+      return {
+        streamId: binding.streamId,
+        replay: binding.replay ?? true,
+        fromOffset: binding.fromOffset,
+        autoSubscribe: binding.autoSubscribe ?? true,
+      };
+    }
+    // Check for stream view ID shorthand
+    if (node.attrs.streamViewId) {
+      return {
+        streamId: `tmnl.ava.artifacts.${node.attrs.streamViewId}`,
+        replay: true,
+        autoSubscribe: true,
+      };
+    }
+    return null;
+  }, [node.attrs.streamBinding, node.attrs.streamViewId]);
+
+  // Create atoms with stream config if binding exists
+  const atoms = useMemo(() => {
+    if (streamBinding) {
+      return createMapBlockAtoms(blockId, {
+        binding: new StreamBinding(streamBinding),
+      });
+    }
+    return getMapBlockAtoms(blockId);
+  }, [blockId, streamBinding]);
 
   const [viewState, setViewState] = useAtom(atoms.viewStateAtom);
   const [isLoading, setIsLoading] = useAtom(atoms.isLoadingAtom);
+
+  // Stream binding hook (only active when streamBinding is configured)
+  const stream = useMapStreamBinding({ atoms });
+  const streamMarkers = useAtomValue(atoms.markersAtom);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -292,27 +474,50 @@ export function MapBlockView(nodeViewProps: NodeViewProps) {
     setIsLoading(false);
   }, [setIsLoading]);
 
-  // Demo layer - scatter plot
+  // Markers layer - merges stream markers with local markers
   const layers = useMemo(() => {
-    const demoData = node.attrs.markers || [
-      { position: [-122.4194, 37.7749], color: [34, 211, 238] },
-      { position: [-122.4094, 37.7849], color: [147, 51, 234] },
-      { position: [-122.4294, 37.7649], color: [236, 72, 153] },
-    ];
+    // Priority: stream markers > node.attrs.markers > demo data
+    const hasStreamMarkers = streamMarkers.length > 0;
+    const hasLocalMarkers = node.attrs.markers && node.attrs.markers.length > 0;
+
+    let markerData: Array<{ position: [number, number]; color: [number, number, number]; id?: string }>;
+
+    if (hasStreamMarkers) {
+      // Use stream markers (from AVA)
+      markerData = streamMarkers.map((m: MarkerData) => ({
+        id: m.id,
+        position: m.position,
+        color: m.color,
+      }));
+    } else if (hasLocalMarkers) {
+      // Use local markers from node attrs
+      markerData = node.attrs.markers;
+    } else {
+      // Demo data fallback
+      markerData = [
+        { position: [-122.4194, 37.7749], color: [34, 211, 238] },
+        { position: [-122.4094, 37.7849], color: [147, 51, 234] },
+        { position: [-122.4294, 37.7649], color: [236, 72, 153] },
+      ];
+    }
 
     return [
       new ScatterplotLayer({
         id: 'markers',
-        data: demoData,
+        data: markerData,
         getPosition: (d: { position: [number, number] }) => d.position,
         getFillColor: (d: { color: [number, number, number] }) => [...d.color, 200],
         getRadius: 100,
         radiusMinPixels: 8,
         radiusMaxPixels: 50,
         pickable: true,
+        updateTriggers: {
+          getPosition: markerData,
+          getFillColor: markerData,
+        },
       }),
     ];
-  }, [node.attrs.markers]);
+  }, [streamMarkers, node.attrs.markers]);
 
   // Add marker at click location
   const handleMapClick = useCallback(
@@ -368,13 +573,42 @@ export function MapBlockView(nodeViewProps: NodeViewProps) {
         content: (
           <MarkersSettings
             markerCount={node.attrs.markers?.length || 0}
+            streamMarkerCount={streamMarkers.length}
             onResetView={handleResetView}
             onClearMarkers={handleClearMarkers}
           />
         ),
       },
+      {
+        id: 'stream',
+        label: 'Stream',
+        icon: Radio,
+        content: (
+          <StreamSettings
+            isConnected={stream.isConnected}
+            isLoading={stream.isLoading}
+            error={stream.error}
+            streamId={streamBinding?.streamId ?? null}
+            onConnect={stream.subscribe}
+            onDisconnect={stream.unsubscribe}
+          />
+        ),
+      },
     ],
-    [node.attrs.mapStyle, node.attrs.markers?.length, handleStyleChange, handleResetView, handleClearMarkers]
+    [
+      node.attrs.mapStyle,
+      node.attrs.markers?.length,
+      streamMarkers.length,
+      stream.isConnected,
+      stream.isLoading,
+      stream.error,
+      streamBinding?.streamId,
+      handleStyleChange,
+      handleResetView,
+      handleClearMarkers,
+      stream.subscribe,
+      stream.unsubscribe,
+    ]
   );
 
   return (
