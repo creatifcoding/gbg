@@ -108,3 +108,87 @@ export interface AnimationHandle {
   readonly paused: boolean;
   readonly completed: boolean;
 }
+
+// =============================================================================
+// Error Handling
+// =============================================================================
+
+/**
+ * Parsed error structure for display in the error popover.
+ */
+export interface ParsedError {
+  /** Short error title (e.g., "Invalid name", "Network error") */
+  title: string;
+  /** Detailed error message */
+  message: string;
+  /** Error code if available */
+  code?: string;
+}
+
+/**
+ * Known error patterns for parsing.
+ */
+const ERROR_PATTERNS: Array<{
+  pattern: RegExp;
+  title: string;
+  extract?: (match: RegExpMatchArray) => string;
+}> = [
+  {
+    pattern: /invalid.*name/i,
+    title: 'Invalid name',
+  },
+  {
+    pattern: /already exists/i,
+    title: 'Name taken',
+  },
+  {
+    pattern: /network|fetch|connect/i,
+    title: 'Network error',
+  },
+  {
+    pattern: /timeout/i,
+    title: 'Timeout',
+  },
+  {
+    pattern: /permission|unauthorized|forbidden/i,
+    title: 'Permission denied',
+  },
+  {
+    pattern: /not found|404/i,
+    title: 'Not found',
+  },
+];
+
+/**
+ * Parse an error string into a structured format for display.
+ *
+ * @param error - Raw error string from the rename operation
+ * @returns Parsed error with title and message
+ */
+export function parseError(error: string): ParsedError {
+  // Try to match known patterns
+  for (const { pattern, title } of ERROR_PATTERNS) {
+    if (pattern.test(error)) {
+      return {
+        title,
+        message: error,
+      };
+    }
+  }
+
+  // Extract code from patterns like "[ERR_CODE] message" or "Error: message"
+  const codeMatch = error.match(/^\[?([A-Z_]+)\]?:?\s*(.+)$/i);
+  if (codeMatch) {
+    return {
+      title: 'Error',
+      message: codeMatch[2] || error,
+      code: codeMatch[1],
+    };
+  }
+
+  // Default: use "Rename failed" as title
+  return {
+    title: 'Rename failed',
+    message: error,
+  };
+}

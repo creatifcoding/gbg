@@ -157,9 +157,90 @@ export const checkmarkStyle: CSSProperties = {
 };
 
 // =============================================================================
-// Error Styles
+// Error Styles — "Soft" Variant Popover
 // =============================================================================
 
+/**
+ * Error popover container — positioned below the badge.
+ * Uses the "soft" variant pattern:
+ * - Background: low-opacity accent fill (~12%)
+ * - Border: medium-opacity accent (~30%)
+ * - Text: full accent color
+ */
+export const errorPopoverStyle: CSSProperties = {
+  position: 'absolute',
+  top: '100%',
+  left: 0,
+  marginTop: '8px',
+  padding: '8px 12px',
+  borderRadius: '6px',
+  backgroundColor: COLORS.roseSoftBg,
+  border: `1px solid ${COLORS.roseSoftBorder}`,
+  boxShadow: `0 4px 12px rgba(0, 0, 0, 0.25), 0 0 0 1px ${COLORS.roseSoftBorder}`,
+  zIndex: 10,
+  minWidth: '160px',
+  maxWidth: '280px',
+};
+
+/**
+ * Error popover header row (icon + title)
+ */
+export const errorPopoverHeaderStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  marginBottom: '4px',
+};
+
+/**
+ * Error icon (✕ or warning symbol)
+ */
+export const errorPopoverIconStyle: CSSProperties = {
+  color: COLORS.underlineRose,
+  fontSize: '12px',
+  flexShrink: 0,
+};
+
+/**
+ * Error title text
+ */
+export const errorPopoverTitleStyle: CSSProperties = {
+  fontFamily: TYPOGRAPHY.name.fontFamily,
+  fontSize: '12px',
+  fontWeight: 500,
+  color: COLORS.underlineRose,
+  letterSpacing: '-0.01em',
+};
+
+/**
+ * Error message body
+ */
+export const errorPopoverMessageStyle: CSSProperties = {
+  fontFamily: TYPOGRAPHY.blockId.fontFamily,
+  fontSize: '11px',
+  fontWeight: 400,
+  color: 'rgba(255, 255, 255, 0.7)',
+  lineHeight: 1.4,
+  wordBreak: 'break-word',
+};
+
+/**
+ * Retry hint at bottom
+ */
+export const errorPopoverHintStyle: CSSProperties = {
+  fontFamily: TYPOGRAPHY.blockId.fontFamily,
+  fontSize: '10px',
+  fontWeight: 400,
+  color: 'rgba(255, 255, 255, 0.4)',
+  marginTop: '6px',
+  cursor: 'pointer',
+  userSelect: 'none',
+};
+
+/**
+ * Legacy inline error style (kept for reference)
+ * @deprecated Use errorPopoverStyle instead
+ */
 export const errorMessageStyle: CSSProperties = {
   fontFamily: TYPOGRAPHY.blockId.fontFamily,
   fontSize: `${TYPOGRAPHY.blockId.fontSize}px`,

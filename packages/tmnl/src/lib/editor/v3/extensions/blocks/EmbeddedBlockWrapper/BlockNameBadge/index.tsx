@@ -22,7 +22,8 @@ import { useAtomValue } from '@effect-atom/atom-react';
 import { createBlockNameAtoms } from './atoms';
 import * as animations from './animations';
 import * as styles from './styles';
-import type { BlockNameBadgeProps, AnimationRefs, BadgeState } from './types';
+import { type BlockNameBadgeProps, type AnimationRefs, type BadgeState } from './types';
+import { ErrorPopover } from './ErrorPopover';
 import type { BlockId } from '../shared';
 
 // =============================================================================
@@ -73,7 +74,7 @@ export const BlockNameBadge = memo(function BlockNameBadge({
     underlineRef: useRef<HTMLDivElement>(null),
     caretRef: useRef<HTMLDivElement>(null),
     checkmarkRef: useRef<SVGSVGElement>(null),
-    errorRef: useRef<HTMLSpanElement>(null),
+    errorRef: useRef<HTMLDivElement>(null), // Legacy: unused, popover handles error display
     blockIdRef: useRef<HTMLSpanElement>(null),
   };
 
@@ -93,10 +94,9 @@ export const BlockNameBadge = memo(function BlockNameBadge({
     [blockId]
   );
 
-  // Subscribe to state
+  // Subscribe to state (ErrorPopover handles error atom separately)
   const state = useAtomValue(atoms.stateAtom);
   const inputValue = useAtomValue(atoms.inputValueAtom);
-  const error = useAtomValue(atoms.errorAtom);
   const currentName = useAtomValue(atoms.currentNameAtom);
   const isEditable = useAtomValue(atoms.isEditableAtom);
 
@@ -286,13 +286,6 @@ export const BlockNameBadge = memo(function BlockNameBadge({
     }, 100);
   }, [state, handleSubmit]);
 
-  /**
-   * Handle retry from error state.
-   */
-  const handleRetry = useCallback(() => {
-    ops.edit();
-  }, [ops]);
-
   // ─────────────────────────────────────────────────────────────
   // Derived Values
   // ─────────────────────────────────────────────────────────────
@@ -365,17 +358,6 @@ export const BlockNameBadge = memo(function BlockNameBadge({
             </span>
           )}
 
-          {/* Error message */}
-          {state === 'error' && error && (
-            <span
-              ref={refs.errorRef}
-              style={styles.errorMessageStyle}
-              onClick={handleRetry}
-              title="Click to retry"
-            >
-              ✕ {error}
-            </span>
-          )}
         </div>
 
         {/* Underline */}
@@ -389,6 +371,12 @@ export const BlockNameBadge = memo(function BlockNameBadge({
           {shortBlockId}
         </span>
       </div>
+
+      {/* Error Popover — atoms-as-state, derives open/error from machine */}
+      <ErrorPopover
+        blockId={blockId}
+        referenceElement={refs.badgeRef.current}
+      />
     </>
   );
 });

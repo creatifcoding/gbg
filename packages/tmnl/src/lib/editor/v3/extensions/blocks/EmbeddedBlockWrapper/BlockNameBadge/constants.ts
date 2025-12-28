@@ -89,6 +89,10 @@ export const COLORS = {
   cyanGlow: 'rgba(34, 211, 238, 0.3)',
   roseGlow: 'rgba(244, 63, 94, 0.3)',
 
+  // Soft variant backgrounds (10-15% opacity fills)
+  roseSoftBg: 'rgba(244, 63, 94, 0.12)',
+  roseSoftBorder: 'rgba(244, 63, 94, 0.3)',
+
   // Prefix "@" symbol
   prefixOpacity: 0.6,
 } as const;
