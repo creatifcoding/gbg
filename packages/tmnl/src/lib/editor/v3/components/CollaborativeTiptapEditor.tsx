@@ -17,9 +17,16 @@ import React, {
   useRef,
 } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
 import Collaboration from '@tiptap/extension-collaboration';
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
+import History from '@tiptap/extension-history';
+import Dropcursor from '@tiptap/extension-dropcursor';
+import Gapcursor from '@tiptap/extension-gapcursor';
+import Placeholder from '@tiptap/extension-placeholder';
+import Bold from '@tiptap/extension-bold';
+import Italic from '@tiptap/extension-italic';
+import Strike from '@tiptap/extension-strike';
+import Code from '@tiptap/extension-code';
 import type { AnyExtension } from '@tiptap/core';
 import {
   YDocProvider,
@@ -30,13 +37,38 @@ import {
 import type { Editor, JSONContent } from '@tiptap/core';
 import type { ClientToken } from '@y-sweet/sdk';
 import type { AuthEndpoint } from '@y-sweet/react';
-import { EffectBridge, collaborationStyles } from '../extensions';
+import type { Doc as YDoc, XmlFragment as YXmlFragment } from 'yjs';
+import { Registry } from '@effect-atom/atom';
+
+// Custom block extensions
+import {
+  EffectBridge,
+  collaborationStyles,
+  CodeBlockHighlight,
+  codeBlockHighlightStyles,
+  SlashCommand,
+  allBlockExtensions,
+} from '../extensions';
+import { createSlashMenuRender } from './SlashMenu';
 import { generateUserColor, type CollaborationUser } from '../services';
 import {
   collaborationRegistry,
   connectedUsersAtom,
 } from '../atoms/collaboration';
 import { editorContentStyles, collaborativeEditorStyles } from './styles';
+
+// =============================================================================
+// Y.Doc Content Seeding Info
+// =============================================================================
+
+export interface YDocReadyInfo {
+  /** The Y.Doc instance */
+  doc: YDoc;
+  /** The XmlFragment used for ProseMirror content (field: 'prosemirror') */
+  fragment: YXmlFragment;
+  /** Whether the fragment is empty (no content yet) */
+  isEmpty: boolean;
+}
 
 // =============================================================================
 // Types
@@ -99,6 +131,26 @@ export interface CollaborativeTiptapEditorProps {
   onReady?: (editor: Editor) => void;
 
   /**
+   * Callback when Y.Doc is ready for content seeding.
+   * Use this to seed initial content into an empty Y.Doc.
+   *
+   * IMPORTANT: Only seed content when `info.isEmpty` is true.
+   * Seeding into a non-empty doc will cause content duplication.
+   *
+   * @example
+   * ```tsx
+   * onYDocReady={(info) => {
+   *   if (info.isEmpty && pendingContent) {
+   *     // Seed content directly into the fragment
+   *     const schema = editor.schema;
+   *     prosemirrorJSONToYXmlFragment(schema, pendingContent, info.fragment);
+   *   }
+   * }}
+   * ```
+   */
+  onYDocReady?: (info: YDocReadyInfo) => void;
+
+  /**
    * Callback when awareness changes (users join/leave/move).
    */
   onAwarenessChange?: (users: CollaborationUser[]) => void;
@@ -118,6 +170,12 @@ export interface CollaborativeTiptapEditorProps {
    * Custom styles.
    */
   style?: React.CSSProperties;
+
+  /**
+   * Atom registry to use for syncing editor state atoms.
+   * REQUIRED for TableOfContents and other consumers to read editor state.
+   */
+  registry?: Registry.Registry;
 }
 
 // =============================================================================
@@ -152,9 +210,10 @@ function renderSelection(user: CollaborationUser): HTMLElement {
 // =============================================================================
 
 interface InnerEditorProps
-  extends Omit<CollaborativeTiptapEditorProps, 'clientToken'> {
+  extends Omit<CollaborativeTiptapEditorProps, 'clientToken' | 'authEndpoint'> {
   editorRef: React.Ref<CollaborativeTiptapEditorHandle>;
   onProviderReady?: () => void;
+  registry?: Registry.Registry;
 }
 
 const InnerEditor: React.FC<InnerEditorProps> = ({
@@ -163,17 +222,20 @@ const InnerEditor: React.FC<InnerEditorProps> = ({
   editable = true,
   autoFocus = false,
   onReady,
+  onYDocReady,
   onAwarenessChange,
   onChange,
   className,
   style,
   editorRef,
   onProviderReady,
+  registry,
 }) => {
   const doc = useYDoc();
   const awareness = useAwareness();
   const provider = useYjsProvider();
   const editorInstanceRef = useRef<Editor | null>(null);
+  const yDocReadyFiredRef = useRef(false);
 
   useEffect(() => {
     onProviderReady?.();
@@ -188,14 +250,54 @@ const InnerEditor: React.FC<InnerEditorProps> = ({
     [user.name, user.color]
   );
 
-  // Build extensions array - Collaboration ONLY (no cursor yet)
+  // Build extensions array - Custom blocks + Collaboration
   // CRITICAL: CollaborationCursor is added imperatively AFTER mount to avoid ySyncPlugin timing issue
   const extensions = useMemo((): AnyExtension[] => {
     return [
-      StarterKit.configure({
-        // Disable native history - Yjs handles undo/redo via collaboration extension
+      // Custom block extensions (replaces StarterKit)
+      ...allBlockExtensions,
+
+      // Code block with syntax highlighting
+      CodeBlockHighlight,
+
+      // Inline marks
+      Bold,
+      Italic,
+      Strike,
+      Code,
+
+      // UI helpers
+      Dropcursor.configure({
+        color: 'rgba(45, 212, 191, 0.4)',
+        width: 2,
       }),
+      Gapcursor,
+      Placeholder.configure({
+        placeholder: placeholder || 'Type / for commands...',
+      }),
+
+      // Slash command menu
+      SlashCommand.configure({
+        suggestion: {
+          char: '/',
+          startOfLine: false,
+          items: ({ query }) => {
+            const { SLASH_ITEMS } = require('../extensions/SlashCommand');
+            const q = query.toLowerCase();
+            return SLASH_ITEMS.filter(
+              (item: { title: string; description: string; aliases: readonly string[] }) =>
+                item.title.toLowerCase().includes(q) ||
+                item.description.toLowerCase().includes(q) ||
+                item.aliases.some((alias) => alias.includes(q))
+            ).slice(0, 10);
+          },
+          render: createSlashMenuRender,
+        },
+      }),
+
+      // Effect-Atom bridge
       EffectBridge.configure({
+        registry,
         onTransaction: (meta) => {
           if (meta.docChanged && onChange) {
             onChange(
@@ -207,13 +309,16 @@ const InnerEditor: React.FC<InnerEditorProps> = ({
           }
         },
       }),
-      // Collaboration extension only - cursor added imperatively after mount
+
+      // Collaboration extension - cursor added imperatively after mount
       Collaboration.configure({
         document: doc,
         field: 'prosemirror',
       }),
+
+      // Note: History is disabled in collab mode - Yjs handles undo/redo
     ];
-  }, [doc, onChange]);
+  }, [doc, onChange, registry, placeholder]);
 
   // Initialize editor
   const editor = useEditor(
@@ -235,6 +340,21 @@ const InnerEditor: React.FC<InnerEditorProps> = ({
     // Only recreate when doc changes - cursor added imperatively
     [doc]
   );
+
+  // Fire onYDocReady callback once when BOTH doc AND editor are available
+  useEffect(() => {
+    if (!doc || !editor || yDocReadyFiredRef.current) return;
+
+    const fragment = doc.getXmlFragment('prosemirror');
+    const isEmpty = fragment.length === 0;
+
+    console.log(
+      `[CollaborativeTiptapEditor] Y.Doc ready, fragment length: ${fragment.length}, isEmpty: ${isEmpty}`
+    );
+
+    yDocReadyFiredRef.current = true;
+    onYDocReady?.({ doc, fragment, isEmpty });
+  }, [doc, editor, onYDocReady]);
 
   // Add CollaborationCursor IMPERATIVELY after editor is mounted
   // This avoids the reconfigure timing bug where yCursorPlugin.init runs before ySyncPlugin state exists
@@ -346,7 +466,7 @@ const InnerEditor: React.FC<InnerEditorProps> = ({
         width: '100%',
         height: '100%',
         minHeight: '200px',
-        background: 'var(--tmnl-surface-1, #1e1e1e)',
+        background: 'var(--tmnl-editor-bg, #0a0a0a)',
         borderRadius: '8px',
         overflow: 'hidden',
         ...style,
@@ -359,12 +479,15 @@ const InnerEditor: React.FC<InnerEditorProps> = ({
         style={{
           width: '100%',
           height: '100%',
+          // NOTE: Zoom is handled via transform: scale() on parent container
+          // (see useEditorViewport), not via CSS variable font-size manipulation.
         }}
       />
       <style>{`
         ${editorContentStyles}
         ${collaborativeEditorStyles}
         ${collaborationStyles}
+        ${codeBlockHighlightStyles}
       `}</style>
     </div>
   );
@@ -441,7 +564,7 @@ export const CollaborativeTiptapEditor = forwardRef<
             width: '100%',
             height: '100%',
             minHeight: '200px',
-            background: 'var(--tmnl-surface-1, #1e1e1e)',
+            background: 'var(--tmnl-editor-bg, #0a0a0a)',
             borderRadius: '8px',
             display: 'flex',
             alignItems: 'center',

@@ -128,6 +128,53 @@ export {
   documentRuntimeAtom,
   documentOps,
   documentQueries,
+  // File document atoms (local files ↔ editor)
+  fileDocumentsAtom,
+  currentFilePathAtom,
+  fileDocumentsLoadingAtom,
+  fileDocumentsErrorAtom,
+  fileContentCacheAtom,
+  dirtyFilesAtom,
+  conflictFilesAtom,
+  currentConflictAtom,
+  conflictResolvingAtom,
+  hasActiveConflictAtom,
+  currentFileMappingAtom,
+  currentFileSyncStatusAtom,
+  currentFileDocumentIdAtom,
+  currentFileContentAtom,
+  fileCountAtom,
+  hasCurrentFileAtom,
+  isCurrentFileDirtyAtom,
+  isCurrentFileConflictAtom,
+  fileListAtom,
+  dirtyFileListAtom,
+  markdownRuntimeAtom,
+  markdownOps,
+  makeFileDocumentOps,
+  // Save state atoms
+  saveStateAtom,
+  saveErrorAtom,
+  lastSavedAtAtom,
+  lastSaveResultAtom,
+  isSavingAtom,
+  isSavedAtom,
+  isSaveErrorAtom,
+  canSaveAtom,
+  // Viewport atoms (zoom & scroll)
+  zoomLevelAtom,
+  zoomScaleAtom,
+  canZoomInAtom,
+  canZoomOutAtom,
+  zoomLabelAtom,
+  ZOOM_MIN,
+  ZOOM_MAX,
+  ZOOM_STEP,
+  scrollPositionAtom,
+  activeHeadingIdAtom,
+  // Operation factories (pass registry to create bound ops)
+  createZoomOps,
+  createScrollOps,
 } from './atoms';
 
 // =============================================================================
@@ -138,10 +185,45 @@ export {
   EffectBridge,
   CollaborationBridge,
   collaborationStyles,
+  CodeBlockHighlight,
+  lowlight,
+  DEFAULT_CODE_LANGUAGE,
+  codeBlockHighlightStyles,
+  // Block Extensions
+  allBlockExtensions,
+  coreExtensions,
+  basicBlockExtensions,
+  taskListExtensions,
+  mediaExtensions,
+  customBlockExtensions,
+  // Individual blocks
+  Document,
+  Text,
+  Paragraph,
+  Heading,
+  BulletList,
+  OrderedList,
+  ListItem,
+  TaskList,
+  TaskItem,
+  Blockquote,
+  HorizontalRule,
+  Image,
+  HardBreak,
+  DataGridTable,
+  Callout,
+  // SlashCommand extension
+  SlashCommand,
+  SLASH_ITEMS,
 } from './extensions';
 export type {
   EffectBridgeOptions,
   CollaborationBridgeOptions,
+  // Block types
+  TableData,
+  DataGridTableOptions,
+  CalloutVariant,
+  CalloutOptions,
 } from './extensions';
 
 // =============================================================================
@@ -164,7 +246,33 @@ export {
   DocumentNotFoundError,
   DocumentVersionConflictError,
   DocumentRegistryError,
+  // Markdown Service (markdown ↔ ProseMirror)
+  MarkdownService,
+  MarkdownServiceLive,
+  MarkdownServiceCustom,
+  MarkdownConfigTag,
+  MarkdownParseError,
+  MarkdownSerializeError,
+  // File Document Mapping (local file ↔ document ID)
+  FileDocumentMappingService,
+  FileDocumentMappingServiceLive,
+  FileMappingError,
+  FileMappingNotFoundError,
+  // File Document Service (load/save/conflict)
+  FileDocumentService,
+  FileDocumentServiceLive,
+  FileDocumentError,
+  FileNotFoundError,
+  FileConflictError,
 } from './services';
+
+// File mapping types (re-export from service)
+export {
+  FilePath,
+  FileSyncStatus,
+  FileMapping,
+  FileMappingPayload,
+} from './services/FileDocumentMappingService';
 export type {
   EditorServiceShape,
   // Collaboration types
@@ -174,19 +282,126 @@ export type {
   CollaborationUser,
   // Document registry types
   DocumentRegistryServiceShape,
+  // Markdown types
+  MarkdownServiceShape,
+  MarkdownConfig,
+  // File document types
+  FileDocumentServiceShape,
+  FileLoadResult,
+  FileSaveResult,
+  FileProgressInfo,
+  FileConflict,
+  ConflictResolution,
 } from './services';
+
+// =============================================================================
+// Theme
+// =============================================================================
+
+export {
+  colors,
+  typography,
+  spacing,
+  borderRadius,
+  editorTheme,
+  generateCSSVariables,
+  type EditorTheme,
+  type ColorTokens,
+  type TypographyTokens,
+} from './theme';
 
 // =============================================================================
 // Components
 // =============================================================================
 
-export { TiptapEditor, CollaborativeTiptapEditor } from './components';
+export {
+  TiptapEditor,
+  CollaborativeTiptapEditor,
+  FileDrawer,
+  FileConflictDialog,
+  TableOfContents,
+  useTableOfContents,
+  ZoomControls,
+  // Formatting Toolbar (Compound Component)
+  FormattingToolbar,
+  DefaultFormattingToolbar,
+  // Block Editor Components
+  SlashMenu,
+  DefaultSlashMenu,
+  createSlashMenuRender,
+  SLASH_ICONS,
+  BlockHandle,
+  DefaultBlockHandle,
+  blockHandleStyles,
+  // Styles
+  editorContentStyles,
+  collaborativeEditorStyles,
+  tableOfContentsStyles,
+  editorHeaderStyles,
+  allEditorStyles,
+  editorCSSVariables,
+} from './components';
 export type {
   TiptapEditorHandle,
   TiptapEditorProps,
   CollaborativeTiptapEditorHandle,
   CollaborativeTiptapEditorProps,
+  FileDrawerProps,
+  FileConflictDialogProps,
+  LocalFileEntry,
+  UnifiedFileEntry,
+  // Y.Doc seeding callback info
+  YDocReadyInfo,
+  // TableOfContents types
+  TableOfContentsProps,
+  HeadingItem,
+  UseTableOfContentsOptions,
+  UseTableOfContentsResult,
+  // Zoom controls
+  ZoomControlsProps,
+  // SlashMenu types
+  SlashMenuRootProps,
+  SlashMenuContentProps,
+  DefaultSlashMenuHandle,
+  // BlockHandle types
+  BlockHandleRootProps,
+  BlockHandleMenuItemProps,
+  DefaultBlockHandleProps,
 } from './components';
+
+// =============================================================================
+// Viewport (Zoom, Scroll, Motion Blur)
+// =============================================================================
+
+export {
+  // Primary viewport hook (transform: scale zoom + hotkeys + motion blur)
+  useEditorViewport,
+  // Scoped hotkeys for editor panels
+  useEditorScopedHotkeys,
+  // Components
+  ZoomIndicator,
+  // Constants
+  DEFAULT_EDITOR_HOTKEYS,
+  DEFAULT_VIEWPORT_CONFIG,
+  INITIAL_VIEWPORT_STATE,
+} from './viewport';
+export type {
+  UseEditorViewportOptions,
+  UseEditorViewportResult,
+  // Scoped hotkeys types
+  EditorHotkeyBinding,
+  UseEditorScopedHotkeysOptions,
+  UseEditorScopedHotkeysResult,
+  ZoomIndicatorProps,
+  ZoomConfig,
+  ZoomState,
+  ScrollDirection,
+  ScrollState,
+  MotionBlurConfig,
+  EditorHotkeyAction,
+  ViewportState,
+  ViewportConfig,
+} from './viewport';
 
 // =============================================================================
 // Hooks
@@ -209,6 +424,26 @@ export type {
   UseDocumentOpsResult,
   RecentDoc,
 } from './hooks/useDocuments';
+
+export { useSaveFile } from './hooks/useSaveFile';
+export type {
+  SaveState,
+  SaveError,
+  UseSaveFileResult,
+  UseSaveFileOptions,
+  MorphingSaveButtonProps,
+} from './hooks/useSaveFile';
+
+export {
+  MorphingSaveButton,
+  CompactSaveButton,
+  SaveButtonWithHint,
+} from './components/MorphingSaveButton';
+export type {
+  MorphingSaveButtonFullProps,
+  CompactSaveButtonProps,
+  SaveButtonWithHintProps,
+} from './components/MorphingSaveButton';
 
 // =============================================================================
 // Namespace Alias

@@ -9,5 +9,36 @@
 export { EffectBridge } from './EffectBridge';
 export type { EffectBridgeOptions } from './EffectBridge';
 
-export { CollaborationBridge, collaborationStyles } from './CollaborationBridge';
+export {
+  CollaborationBridge,
+  collaborationStyles,
+} from './CollaborationBridge';
 export type { CollaborationBridgeOptions } from './CollaborationBridge';
+
+export {
+  CodeBlockHighlight,
+  lowlight,
+  DEFAULT_CODE_LANGUAGE,
+  codeBlockHighlightStyles,
+} from './CodeBlockHighlight';
+
+export {
+  SlashCommand,
+  SLASH_ITEMS,
+  SLASH_GROUPS,
+  groupSlashItems,
+} from './SlashCommand';
+export type { SlashMenuItem, SlashCommandOptions } from './SlashCommand';
+
+// Block Extensions
+export * from './blocks';
+
+// Convenience presets
+export {
+  coreExtensions,
+  basicBlockExtensions,
+  taskListExtensions,
+  mediaExtensions,
+  customBlockExtensions,
+  allBlockExtensions,
+} from './blocks';
