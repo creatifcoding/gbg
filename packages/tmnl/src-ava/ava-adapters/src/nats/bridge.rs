@@ -570,6 +570,38 @@ impl NatsBridge {
         self.metrics.snapshot()
     }
 
+    /// Check if a view is currently subscribed.
+    pub fn is_view_subscribed(&self, view_id: &ViewId) -> bool {
+        // Check via fibers - this is sync because we use try_read
+        self.fibers
+            .try_read()
+            .map(|f| f.contains_key(view_id))
+            .unwrap_or(false)
+    }
+
+    /// Get list of all subscribed view IDs.
+    pub fn subscribed_views(&self) -> Vec<ViewId> {
+        self.fibers
+            .try_read()
+            .map(|f| f.keys().cloned().collect())
+            .unwrap_or_default()
+    }
+
+    /// Get the artifact router for external configuration.
+    pub fn artifact_router(&self) -> Arc<RwLock<ArtifactRouter>> {
+        self.artifact_router.clone()
+    }
+
+    /// Get the delta router for external configuration.
+    pub fn delta_router(&self) -> Arc<RwLock<DeltaRouter>> {
+        self.delta_router.clone()
+    }
+
+    /// Get the transform registry for external configuration.
+    pub fn transforms(&self) -> Arc<RwLock<TransformRegistry>> {
+        self.transforms.clone()
+    }
+
     /// Graceful shutdown.
     #[instrument(skip(self))]
     pub async fn shutdown(&mut self) {

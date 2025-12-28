@@ -28,5 +28,12 @@ datafusion.workspace = true
 arrow.workspace = true
 arrow-json.workspace = true
 
+# NATS (optional)
+tracing = { workspace = true, optional = true }
+
+[features]
+default = []
+nats = ["ava-adapters/nats", "dep:tracing"]
+
 [dev-dependencies]
 pretty_assertions.workspace = true

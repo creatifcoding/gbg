@@ -196,6 +196,19 @@ impl ReconcilerV2 {
     pub fn now(&self) -> f64 {
         (self.time_provider)()
     }
+
+    /// Get a broadcaster by view ID (for external integrations like NATS)
+    ///
+    /// Returns a clone of the ViewBroadcaster which can be used to subscribe
+    /// to artifact updates for external publishing.
+    pub async fn get_broadcaster(&self, view_id: &ViewId) -> Option<ViewBroadcaster> {
+        self.broadcasters.read().await.get(view_id).cloned()
+    }
+
+    /// Get all active broadcasters (for bulk NATS attachment)
+    pub async fn get_all_broadcasters(&self) -> HashMap<ViewId, ViewBroadcaster> {
+        self.broadcasters.read().await.clone()
+    }
 }
 
 impl Default for ReconcilerV2 {

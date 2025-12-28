@@ -57,6 +57,12 @@ tokio-stream = { version = "0.1", features = ["sync"] }
 # Utilities
 uuid = { version = "1.0", features = ["v4"] }
 
+# NATS
+async-nats = "0.38"
+
+# Tracing
+tracing = "0.1"
+
 # REST
 axum = { version = "0.8", features = ["ws"] }
 tower = "0.5"

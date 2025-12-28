@@ -63,9 +63,19 @@ pub enum RuntimeError {
     /// Internal error
     #[error("Internal error: {0}")]
     Internal(String),
+
+    /// NATS error
+    #[cfg(feature = "nats")]
+    #[error("NATS error: {0}")]
+    NatsError(String),
 }
 
 impl RuntimeError {
+    /// Create a NATS error
+    #[cfg(feature = "nats")]
+    pub fn nats_error(msg: impl Into<String>) -> Self {
+        Self::NatsError(msg.into())
+    }
     /// Create a new internal error
     pub fn internal(msg: impl Into<String>) -> Self {
         Self::Internal(msg.into())

@@ -43,6 +43,9 @@
 mod hydration;
 mod runtime;
 
+#[cfg(feature = "nats")]
+pub mod nats;
+
 pub use hydration::{HydrationService, HydrationConfig, HydrationStrategy};
 pub use runtime::{AvaRuntimeV2, RuntimeConfigV2};
 
@@ -52,3 +55,7 @@ pub use ava_reconciler::v2::{
     ViewBroadcaster, BroadcasterConfig, LagStrategy,
     TriggerEngine, Trigger,
 };
+
+// Re-export NATS types when feature is enabled
+#[cfg(feature = "nats")]
+pub use nats::{NatsIntegration, NatsRuntimeConfig};
