@@ -59,6 +59,9 @@ pub mod registry;
 pub mod sqlite;
 pub mod table_provider;
 
+#[cfg(feature = "nats")]
+pub mod nats;
+
 // Re-exports
 pub use memory::MemoryAdapter;
 pub use registry::AdapterRegistry;
