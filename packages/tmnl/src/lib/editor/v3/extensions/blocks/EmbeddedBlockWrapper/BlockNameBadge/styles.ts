@@ -15,11 +15,54 @@ import { COLORS, TYPOGRAPHY, GEOMETRY } from './constants';
 // =============================================================================
 
 export const badgeContainerStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'auto auto',
+  gridTemplateRows: 'auto auto auto',
+  gap: '0 8px', // row-gap: 0, column-gap: 8px
+  alignItems: 'center',
+  position: 'relative',
+  minWidth: '80px',
+};
+
+/**
+ * Name column - spans all rows, triggers hover
+ */
+export const nameColumnStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   gap: '2px',
-  position: 'relative',
-  minWidth: '80px',
+  gridColumn: '1',
+  gridRow: '1 / -1',
+};
+
+/**
+ * Actions column - only visible on hover
+ * Contains the action tray with copy buttons
+ */
+export const actionsColumnStyle: CSSProperties = {
+  gridColumn: '2',
+  gridRow: '1 / -1',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'flex-start',
+};
+
+/**
+ * Actions column when hidden (idle state)
+ */
+export const actionsColumnHiddenStyle: CSSProperties = {
+  ...actionsColumnStyle,
+  visibility: 'hidden',
+  pointerEvents: 'none',
+};
+
+/**
+ * Actions column when visible (hovered state)
+ */
+export const actionsColumnVisibleStyle: CSSProperties = {
+  ...actionsColumnStyle,
+  visibility: 'visible',
+  pointerEvents: 'auto',
 };
 
 export const nameRowStyle: CSSProperties = {

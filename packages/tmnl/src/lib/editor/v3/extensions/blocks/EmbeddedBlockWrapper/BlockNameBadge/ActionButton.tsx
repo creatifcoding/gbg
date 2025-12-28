@@ -39,42 +39,54 @@ export interface ActionButtonProps {
 // Styles
 // =============================================================================
 
+/**
+ * Skeuomorphic micro-button styles
+ * 16×16 pill shape with subtle inset/bevel effect
+ */
 const BUTTON_STYLES = {
   base: {
-    width: '24px',
-    height: '24px',
-    borderRadius: '6px',
-    background: 'rgba(255, 255, 255, 0.06)',
-    border: 'none',
+    width: '16px',
+    height: '16px',
+    borderRadius: '8px', // Pill shape
+    // Subtle inset gradient for depth
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    // Inner highlight for skeuo effect
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.1), 0 1px 2px rgba(0,0,0,0.2)',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 0,
     outline: 'none',
-    transition: 'background 100ms ease-out, transform 100ms ease-out',
+    transition: 'all 100ms ease-out',
   } as const,
   hover: {
-    background: 'rgba(255, 255, 255, 0.12)',
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.08) 100%)',
+    border: '1px solid rgba(255, 255, 255, 0.18)',
+    boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15), 0 1px 3px rgba(0,0,0,0.25)',
   } as const,
   active: {
-    background: 'rgba(255, 255, 255, 0.18)',
-    transform: 'scale(0.95)',
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.1) 100%)',
+    border: '1px solid rgba(255, 255, 255, 0.12)',
+    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.2)',
+    transform: 'scale(0.94)',
   } as const,
   focus: {
-    boxShadow: `0 0 0 2px ${COLORS.underlineCyan}`,
+    boxShadow: `inset 0 1px 0 rgba(255,255,255,0.1), 0 0 0 2px ${COLORS.underlineCyan}`,
   } as const,
 };
 
 const ICON_STYLES = {
   base: {
-    width: '14px',
-    height: '14px',
-    color: 'rgba(255, 255, 255, 0.5)',
+    width: '10px',
+    height: '10px',
+    color: 'rgba(255, 255, 255, 0.45)',
     transition: 'color 100ms ease-out',
+    strokeWidth: 2,
   } as const,
   hover: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.75)',
   } as const,
   success: {
     color: COLORS.underlineEmerald,
