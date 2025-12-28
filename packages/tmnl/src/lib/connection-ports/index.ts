@@ -182,3 +182,20 @@ export {
   type LayerBuildResult,
   type LayerBuildError,
 } from './layers';
+
+// =============================================================================
+// Kori Integration
+// =============================================================================
+
+export {
+  // StreamToWorld
+  StreamToWorld,
+  StreamToWorldLive,
+  type StreamToWorldOps,
+  type TraitData,
+  type StreamToTraitsMapper,
+  type EntityIdExtractor,
+  type MaterializeOptions,
+  type MaterializationResult,
+  type MaterializationStats,
+} from './kori';

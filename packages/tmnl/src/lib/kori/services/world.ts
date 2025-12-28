@@ -46,6 +46,10 @@ import {
   IsEnemy as IsEnemySchema,
   IsActive as IsActiveSchema,
   IsDestroyed as IsDestroyedSchema,
+  Renderable3D as Renderable3DSchema,
+  ViewData as ViewDataSchema,
+  ViewMeta as ViewMetaSchema,
+  ViewStatus as ViewStatusSchema,
 } from "../schemas/trait"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -72,19 +76,61 @@ const KootaIsEnemy = trait({ _tag: "IsEnemy" as const })
 const KootaIsActive = trait({ _tag: "IsActive" as const })
 const KootaIsDestroyed = trait({ _tag: "IsDestroyed" as const })
 
+// Rendering traits
+const KootaRenderable3D = trait({
+  _tag: "Renderable3D" as const,
+  type: "sphere" as "sphere" | "box" | "torus" | "mesh",
+  color: "#22d3ee",
+  scale: 1,
+  metalness: 0.7,
+  roughness: 0.3,
+  emissiveIntensity: 0.2,
+})
+
+// AVA View traits
+const KootaViewData = trait(() => ({
+  _tag: "ViewData" as const,
+  viewId: "",
+  payload: null as unknown,
+  version: 0,
+}))
+
+const KootaViewMeta = trait({
+  _tag: "ViewMeta" as const,
+  viewId: "",
+  specHash: "",
+  hydratedAt: 0,
+})
+
+const KootaViewStatus = trait({
+  _tag: "ViewStatus" as const,
+  state: "idle" as "idle" | "hydrating" | "ready" | "error" | "stale",
+  lastError: null as string | null,
+})
+
 /**
  * Registry mapping TraitId → koota trait + Effect Schema
  */
 const TraitRegistry = {
+  // Position & Velocity
   Position2D: { koota: KootaPosition2D, schema: Position2DSchema, isTag: false },
   Position3D: { koota: KootaPosition3D, schema: Position3DSchema, isTag: false },
   Velocity2D: { koota: KootaVelocity2D, schema: Velocity2DSchema, isTag: false },
   Velocity3D: { koota: KootaVelocity3D, schema: Velocity3DSchema, isTag: false },
+  // Gameplay
   Health: { koota: KootaHealth, schema: HealthSchema, isTag: false },
   Name: { koota: KootaName, schema: NameSchema, isTag: false },
   Lifetime: { koota: KootaLifetime, schema: LifetimeSchema, isTag: false },
+  // Relationships
   ParentOf: { koota: KootaParentOf, schema: ParentOfSchema, isTag: false },
   ChildOf: { koota: KootaChildOf, schema: ChildOfSchema, isTag: false },
+  // Rendering
+  Renderable3D: { koota: KootaRenderable3D, schema: Renderable3DSchema, isTag: false },
+  // AVA View
+  ViewData: { koota: KootaViewData, schema: ViewDataSchema, isTag: false },
+  ViewMeta: { koota: KootaViewMeta, schema: ViewMetaSchema, isTag: false },
+  ViewStatus: { koota: KootaViewStatus, schema: ViewStatusSchema, isTag: false },
+  // Tags
   IsPlayer: { koota: KootaIsPlayer, schema: IsPlayerSchema, isTag: true },
   IsEnemy: { koota: KootaIsEnemy, schema: IsEnemySchema, isTag: true },
   IsActive: { koota: KootaIsActive, schema: IsActiveSchema, isTag: true },

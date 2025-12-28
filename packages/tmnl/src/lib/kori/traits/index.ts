@@ -72,6 +72,70 @@ export const ParentOf = trait(() => ({ children: [] as number[] }))
 export const ChildOf = trait({ parentId: 0 })
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Rendering Traits
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Renderable3D — 3D rendering properties for Scene3DBlock entities
+ * Maps to react-three-fiber mesh rendering
+ */
+export const Renderable3D = trait({
+  /** Geometry type */
+  type: 'sphere' as 'sphere' | 'box' | 'torus' | 'mesh',
+  /** CSS/hex color */
+  color: '#22d3ee',
+  /** Scale factor */
+  scale: 1,
+  /** Material metalness (0-1) */
+  metalness: 0.7,
+  /** Material roughness (0-1) */
+  roughness: 0.3,
+  /** Emissive intensity (0-1) */
+  emissiveIntensity: 0.2,
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AVA View Traits
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * ViewData — payload from AVA artifact
+ * Stores the actual data content from the view
+ */
+export const ViewData = trait(() => ({
+  /** View identifier */
+  viewId: '',
+  /** Payload data (Arrow/DataFusion result) */
+  payload: null as unknown,
+  /** Artifact version */
+  version: 0,
+}))
+
+/**
+ * ViewMeta — metadata from AVA artifact
+ * Stores hydration and spec information
+ */
+export const ViewMeta = trait({
+  /** View identifier */
+  viewId: '',
+  /** Spec hash for cache invalidation */
+  specHash: '',
+  /** Hydration timestamp (ms since epoch) */
+  hydratedAt: 0,
+})
+
+/**
+ * ViewStatus — runtime status of view entity
+ * Tracks lifecycle state and errors
+ */
+export const ViewStatus = trait({
+  /** Current state */
+  state: 'idle' as 'idle' | 'hydrating' | 'ready' | 'error' | 'stale',
+  /** Last error message (null if none) */
+  lastError: null as string | null,
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Tag Traits (Markers — no data)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -103,15 +167,25 @@ export const IsDestroyed = trait()
  * All registered traits by string ID
  */
 export const TraitRegistry = {
+  // Position & Velocity
   Position2D,
   Position3D,
   Velocity2D,
   Velocity3D,
+  // Gameplay
   Health,
   Name,
   Lifetime,
+  // Relationships
   ParentOf,
   ChildOf,
+  // Rendering
+  Renderable3D,
+  // AVA View
+  ViewData,
+  ViewMeta,
+  ViewStatus,
+  // Tags
   IsPlayer,
   IsEnemy,
   IsActive,
@@ -174,3 +248,33 @@ export type ParentOfData = { children: number[] }
 
 /** ChildOf trait data type */
 export type ChildOfData = { parentId: number }
+
+/** Renderable3D trait data type */
+export type Renderable3DData = {
+  type: 'sphere' | 'box' | 'torus' | 'mesh'
+  color: string
+  scale: number
+  metalness: number
+  roughness: number
+  emissiveIntensity: number
+}
+
+/** ViewData trait data type */
+export type ViewDataData = {
+  viewId: string
+  payload: unknown
+  version: number
+}
+
+/** ViewMeta trait data type */
+export type ViewMetaData = {
+  viewId: string
+  specHash: string
+  hydratedAt: number
+}
+
+/** ViewStatus trait data type */
+export type ViewStatusData = {
+  state: 'idle' | 'hydrating' | 'ready' | 'error' | 'stale'
+  lastError: string | null
+}

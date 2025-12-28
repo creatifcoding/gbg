@@ -163,6 +163,60 @@ export const ChildOf = defineTrait("ChildOf", {
 export type ChildOf = typeof ChildOf.Type
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Rendering Traits
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Renderable3D trait for Scene3DBlock entities.
+ * Maps to react-three-fiber mesh rendering.
+ */
+export const Renderable3D = defineTrait("Renderable3D", {
+  type: Schema.Literal("sphere", "box", "torus", "mesh"),
+  color: Schema.String,
+  scale: Schema.Number.pipe(Schema.positive()),
+  metalness: Schema.Number.pipe(Schema.clamp(0, 1)),
+  roughness: Schema.Number.pipe(Schema.clamp(0, 1)),
+  emissiveIntensity: Schema.Number.pipe(Schema.clamp(0, 1)),
+})
+export type Renderable3D = typeof Renderable3D.Type
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AVA View Traits
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * ViewData trait — payload from AVA artifact.
+ * Stores the actual data content from the view.
+ */
+export const ViewData = defineTrait("ViewData", {
+  viewId: Schema.String,
+  payload: Schema.Unknown,
+  version: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
+})
+export type ViewData = typeof ViewData.Type
+
+/**
+ * ViewMeta trait — metadata from AVA artifact.
+ * Stores hydration and spec information.
+ */
+export const ViewMeta = defineTrait("ViewMeta", {
+  viewId: Schema.String,
+  specHash: Schema.String,
+  hydratedAt: Schema.Number, // timestamp in ms
+})
+export type ViewMeta = typeof ViewMeta.Type
+
+/**
+ * ViewStatus trait — runtime status of view entity.
+ * Tracks lifecycle state and errors.
+ */
+export const ViewStatus = defineTrait("ViewStatus", {
+  state: Schema.Literal("idle", "hydrating", "ready", "error", "stale"),
+  lastError: Schema.NullOr(Schema.String),
+})
+export type ViewStatus = typeof ViewStatus.Type
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Tag Traits (Markers)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -351,3 +405,11 @@ registerTrait("IsPlayer" as TraitId, IsPlayer, true)
 registerTrait("IsEnemy" as TraitId, IsEnemy, true)
 registerTrait("IsActive" as TraitId, IsActive, true)
 registerTrait("IsDestroyed" as TraitId, IsDestroyed, true)
+
+// Rendering traits
+registerTrait("Renderable3D" as TraitId, Renderable3D)
+
+// AVA View traits
+registerTrait("ViewData" as TraitId, ViewData)
+registerTrait("ViewMeta" as TraitId, ViewMeta)
+registerTrait("ViewStatus" as TraitId, ViewStatus)

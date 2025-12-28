@@ -214,3 +214,24 @@ export {
   type UseScene3DStreamBindingOptions,
   type UseScene3DStreamBindingReturn,
 } from './useStreamBinding';
+export {
+  // Kori trait mapping
+  entityToTraits,
+  traitsToEntity,
+  entitiesToEntityData,
+  // Stream materialization
+  StreamEntityPayload,
+  StreamEntity,
+  createScene3DMaterializeOptions,
+  createEntityMaterializeOptions,
+  // Kori World query
+  queryScene3DEntities,
+} from './kori-bridge';
+export {
+  // Kori World React integration
+  useKoriEntities,
+  koriWorldRuntimeAtom,
+  queryKoriEntities,
+  type UseKoriEntitiesOptions,
+  type UseKoriEntitiesReturn,
+} from './useKoriEntities';
