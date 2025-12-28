@@ -8,9 +8,7 @@
  */
 
 import { Atom } from '@effect-atom/atom-react';
-import { Layer } from 'effect';
 import type { EmbeddedBlockState, FoldState } from './types';
-import { BlockStateService, BlockStatePersistenceLive } from './persistence';
 
 // =============================================================================
 // Focus Mode Atoms (Module-level)
@@ -74,6 +72,58 @@ export const focusActions = {
     return Atom.get(focusedBlockIdAtom) === blockId;
   },
 };
+
+// =============================================================================
+// State Persistence (In-Memory Cache for Focus Transitions)
+// =============================================================================
+
+/**
+ * Saved block states for restoration after focus mode exits.
+ * Keyed by blockId, stores EmbeddedBlockState snapshots.
+ *
+ * Note: This is an in-memory cache. For persistent storage across
+ * page reloads, use BlockStateService with SQLite.
+ */
+export const savedBlockStatesAtom = Atom.make<Map<string, EmbeddedBlockState>>(
+  new Map()
+);
+
+/**
+ * Save a block's state to the cache.
+ * Called before unmounting due to focus mode.
+ */
+export function saveBlockState(blockId: string, state: EmbeddedBlockState): void {
+  Atom.set(savedBlockStatesAtom, (prev) => {
+    const next = new Map(prev);
+    next.set(blockId, { ...state });
+    return next;
+  });
+}
+
+/**
+ * Restore and remove a block's state from the cache.
+ * Called on mount to restore state after focus mode exits.
+ * Returns undefined if no saved state exists.
+ */
+export function restoreBlockState(blockId: string): EmbeddedBlockState | undefined {
+  const saved = Atom.get(savedBlockStatesAtom).get(blockId);
+  if (saved) {
+    // Remove from cache after restoring
+    Atom.set(savedBlockStatesAtom, (prev) => {
+      const next = new Map(prev);
+      next.delete(blockId);
+      return next;
+    });
+  }
+  return saved;
+}
+
+/**
+ * Check if a block has saved state.
+ */
+export function hasSavedBlockState(blockId: string): boolean {
+  return Atom.get(savedBlockStatesAtom).has(blockId);
+}
 
 // =============================================================================
 // Default State

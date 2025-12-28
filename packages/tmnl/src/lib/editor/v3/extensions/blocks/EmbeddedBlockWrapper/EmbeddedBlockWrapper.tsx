@@ -31,7 +31,7 @@ import {
   type CSSProperties,
   type KeyboardEvent,
 } from 'react';
-import { useAtomValue } from '@effect-atom/atom-react';
+import { Atom, useAtomValue } from '@effect-atom/atom-react';
 import { NodeViewWrapper } from '@tiptap/react';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import * as Tabs from '@radix-ui/react-tabs';
@@ -41,6 +41,7 @@ import {
   Settings,
   Minus,
   GripVertical,
+  Maximize2,
 } from 'lucide-react';
 
 import {
@@ -62,6 +63,11 @@ import {
   getEmbeddedBlockAtoms,
   disposeEmbeddedBlockAtoms,
   createEmbeddedBlockActions,
+  focusActions,
+  isFocusModeAtom,
+  focusedBlockIdAtom,
+  saveBlockState,
+  restoreBlockState,
 } from './atoms';
 
 // =============================================================================
@@ -139,8 +145,31 @@ export function EmbeddedBlockWrapper({
   const { node, editor, selected, deleteNode } = nodeViewProps;
   const blockId = node.attrs.id || 'default';
 
-  // Get atoms for this block instance
+  // Focus mode state - check if this block should be hidden
+  const isFocusMode = useAtomValue(isFocusModeAtom);
+  const focusedBlockId = useAtomValue(focusedBlockIdAtom);
+
+  // Get atoms for this block instance (needed for state save before unmount)
   const atoms = useMemo(() => getEmbeddedBlockAtoms(blockId), [blockId]);
+
+  // Sibling unmount logic: if focus mode is active and this block is NOT focused,
+  // save state and unmount this block (return null) to declutter the UI
+  if (isFocusMode && focusedBlockId !== blockId) {
+    // Save current state before unmounting
+    const currentState = Atom.get(atoms.stateAtom);
+    saveBlockState(blockId, currentState);
+    return null;
+  }
+
+  // Restore state on mount if there's saved state from a previous focus mode
+  useEffect(() => {
+    const savedState = restoreBlockState(blockId);
+    if (savedState) {
+      Atom.set(atoms.foldStateAtom, savedState.foldState);
+      Atom.set(atoms.settingsOpenAtom, savedState.settingsOpen);
+      Atom.set(atoms.activeTabAtom, savedState.activeTab);
+    }
+  }, [blockId, atoms]);
   const actions = useMemo(() => createEmbeddedBlockActions(atoms), [atoms]);
 
   // Subscribe to state
@@ -249,9 +278,11 @@ export function EmbeddedBlockWrapper({
           settingsOpen={state.settingsOpen}
           allowMinimize={allowMinimize}
           hasTabs={tabs.length > 0}
+          blockId={blockId}
           onToggleFold={actions.toggleFold}
           onMinimize={actions.minimize}
           onToggleSettings={actions.toggleSettings}
+          onEnterFocus={() => focusActions.enterFocus(blockId)}
         />
 
         {/* Collapsible Content */}
@@ -301,9 +332,11 @@ interface HeaderProps {
   settingsOpen: boolean;
   allowMinimize: boolean;
   hasTabs: boolean;
+  blockId: string;
   onToggleFold: () => void;
   onMinimize: () => void;
   onToggleSettings: () => void;
+  onEnterFocus: () => void;
 }
 
 function Header({
@@ -314,9 +347,11 @@ function Header({
   settingsOpen,
   allowMinimize,
   hasTabs,
+  blockId,
   onToggleFold,
   onMinimize,
   onToggleSettings,
+  onEnterFocus,
 }: HeaderProps) {
   const Icon = badge.icon;
 
@@ -397,6 +432,15 @@ function Header({
 
       {/* Right: Controls */}
       <div style={{ display: 'flex', gap: VANTA_SPACING['1'] }}>
+        {/* Focus/Expand button */}
+        <button
+          onClick={onEnterFocus}
+          style={buttonStyle}
+          title="Focus mode (expand to full viewport)"
+        >
+          <Maximize2 size={14} />
+        </button>
+
         {/* Fold toggle */}
         <button
           onClick={onToggleFold}

@@ -23,6 +23,11 @@ export {
   isFocusModeAtom,
   focusEnteredAtAtom,
   focusActions,
+  // State persistence (in-memory cache)
+  savedBlockStatesAtom,
+  saveBlockState,
+  restoreBlockState,
+  hasSavedBlockState,
   type EmbeddedBlockAtoms,
   type EmbeddedBlockActions,
 } from './atoms';
