@@ -26,12 +26,15 @@ import {
   AnnotationPopoverServiceLive,
   AnnotationToolsService,
   AnnotationToolsServiceLive,
+  AnnotationGraphService,
+  AnnotationGraphServiceLive,
   type PopoverAnchor,
   type PopoverPlacement,
   type PopoverTrigger,
   type PopoverContent,
   type CreateAnnotationInput,
   type QueryAnnotationsInput,
+  type GraphStats,
 } from '../services';
 import type { AnnotationQuery, AnnotationState } from '../services';
 import type {
@@ -239,7 +242,8 @@ export const annotationRuntimeAtom = Atom.runtime(
     IntentRegistryLive,
     IntentExecutorLive,
     AnnotationPopoverServiceLive,
-    AnnotationToolsServiceLive
+    AnnotationToolsServiceLive,
+    AnnotationGraphServiceLive
   )
 );
 
@@ -994,6 +998,206 @@ export const toolOps = {
     Effect.gen(function* () {
       const tools = yield* AnnotationToolsService;
       yield* tools.executeIntent(args.editor, args.markId, args.trigger);
+    })
+  ),
+} as const;
+
+// =============================================================================
+// Graph Operations (Annotation Relationship Tracking)
+// =============================================================================
+
+/**
+ * Graph Operations for Annotation Relationships
+ *
+ * Provides traversal, backlink computation, and graph analysis
+ * using Effect's Graph module with HashMap + PubSub.
+ */
+export const graphOps = {
+  /**
+   * Rebuild the annotation graph from current state
+   */
+  rebuild: annotationRuntimeAtom.fn<void>()(() =>
+    Effect.gen(function* () {
+      const graph = yield* AnnotationGraphService;
+      yield* graph.rebuild;
+    })
+  ),
+
+  /**
+   * Get backlinks (annotations that reference this one)
+   */
+  getBacklinks: annotationRuntimeAtom.fn<{ id: AnnotationId }>()((args) =>
+    Effect.gen(function* () {
+      const graph = yield* AnnotationGraphService;
+      return yield* graph.getBacklinks(args.id);
+    })
+  ),
+
+  /**
+   * Get forward links (annotations this one references)
+   */
+  getForwardLinks: annotationRuntimeAtom.fn<{ id: AnnotationId }>()((args) =>
+    Effect.gen(function* () {
+      const graph = yield* AnnotationGraphService;
+      return yield* graph.getForwardLinks(args.id);
+    })
+  ),
+
+  /**
+   * Get all neighbors (both incoming and outgoing)
+   */
+  getNeighbors: annotationRuntimeAtom.fn<{ id: AnnotationId }>()((args) =>
+    Effect.gen(function* () {
+      const graph = yield* AnnotationGraphService;
+      return yield* graph.getNeighbors(args.id);
+    })
+  ),
+
+  /**
+   * BFS traversal from a starting annotation
+   */
+  bfs: annotationRuntimeAtom.fn<{
+    startId: AnnotationId;
+    direction?: 'outgoing' | 'incoming';
+  }>()((args) =>
+    Effect.gen(function* () {
+      const graph = yield* AnnotationGraphService;
+      return yield* graph.bfs(args.startId, args.direction);
+    })
+  ),
+
+  /**
+   * DFS traversal from a starting annotation
+   */
+  dfs: annotationRuntimeAtom.fn<{
+    startId: AnnotationId;
+    direction?: 'outgoing' | 'incoming';
+  }>()((args) =>
+    Effect.gen(function* () {
+      const graph = yield* AnnotationGraphService;
+      return yield* graph.dfs(args.startId, args.direction);
+    })
+  ),
+
+  /**
+   * Find shortest path between two annotations
+   */
+  shortestPath: annotationRuntimeAtom.fn<{
+    from: AnnotationId;
+    to: AnnotationId;
+  }>()((args) =>
+    Effect.gen(function* () {
+      const graph = yield* AnnotationGraphService;
+      return yield* graph.shortestPath(args.from, args.to);
+    })
+  ),
+
+  /**
+   * Check if path exists between annotations
+   */
+  hasPath: annotationRuntimeAtom.fn<{
+    from: AnnotationId;
+    to: AnnotationId;
+  }>()((args) =>
+    Effect.gen(function* () {
+      const graph = yield* AnnotationGraphService;
+      return yield* graph.hasPath(args.from, args.to);
+    })
+  ),
+
+  /**
+   * Get all reachable annotations from a starting point
+   */
+  reachableFrom: annotationRuntimeAtom.fn<{
+    startId: AnnotationId;
+    direction?: 'outgoing' | 'incoming';
+  }>()((args) =>
+    Effect.gen(function* () {
+      const graph = yield* AnnotationGraphService;
+      return yield* graph.reachableFrom(args.startId, args.direction);
+    })
+  ),
+
+  /**
+   * Get strongly connected components
+   */
+  getComponents: annotationRuntimeAtom.fn<void>()(() =>
+    Effect.gen(function* () {
+      const graph = yield* AnnotationGraphService;
+      return yield* graph.getComponents;
+    })
+  ),
+
+  /**
+   * Get orphan annotations (no connections)
+   */
+  getOrphans: annotationRuntimeAtom.fn<void>()(() =>
+    Effect.gen(function* () {
+      const graph = yield* AnnotationGraphService;
+      return yield* graph.getOrphans;
+    })
+  ),
+
+  /**
+   * Get leaf annotations (no outgoing references)
+   */
+  getLeaves: annotationRuntimeAtom.fn<void>()(() =>
+    Effect.gen(function* () {
+      const graph = yield* AnnotationGraphService;
+      return yield* graph.getLeaves;
+    })
+  ),
+
+  /**
+   * Get root annotations (no incoming references)
+   */
+  getRoots: annotationRuntimeAtom.fn<void>()(() =>
+    Effect.gen(function* () {
+      const graph = yield* AnnotationGraphService;
+      return yield* graph.getRoots;
+    })
+  ),
+
+  /**
+   * Get graph statistics
+   */
+  getStats: annotationRuntimeAtom.fn<void>()(() =>
+    Effect.gen(function* () {
+      const graph = yield* AnnotationGraphService;
+      return yield* graph.getStats;
+    })
+  ),
+
+  /**
+   * Check if graph contains cycles
+   */
+  hasCycles: annotationRuntimeAtom.fn<void>()(() =>
+    Effect.gen(function* () {
+      const graph = yield* AnnotationGraphService;
+      return yield* graph.hasCycles;
+    })
+  ),
+
+  /**
+   * Find common ancestors of two annotations
+   */
+  commonAncestors: annotationRuntimeAtom.fn<{
+    id1: AnnotationId;
+    id2: AnnotationId;
+  }>()((args) =>
+    Effect.gen(function* () {
+      const graph = yield* AnnotationGraphService;
+      return yield* graph.commonAncestors(args.id1, args.id2);
+    })
+  ),
+
+  /**
+   * Get graph snapshot (all nodes and edges)
+   */
+  getSnapshot: annotationRuntimeAtom.fn<void>()(() =>
+    Effect.gen(function* () {
+      const graph = yield* AnnotationGraphService;
+      return yield* graph.getSnapshot;
     })
   ),
 } as const;

@@ -65,6 +65,7 @@ export {
   intentOps,
   popoverOps,
   toolOps,
+  graphOps,
 
   // Popover atoms
   activePopoverAtom,

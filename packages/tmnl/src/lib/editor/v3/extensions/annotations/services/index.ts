@@ -79,3 +79,20 @@ export {
   // Types
   type AnnotationToolsServiceShape,
 } from './AnnotationToolsService';
+
+export {
+  // Service
+  AnnotationGraphService,
+  AnnotationGraphServiceLive,
+
+  // Error types
+  AnnotationNotInGraph,
+
+  // Types
+  type AnnotationGraphServiceShape,
+  type GraphEvent,
+  type TraversalResult,
+  type PathResult,
+  type ComponentResult,
+  type GraphStats,
+} from './AnnotationGraphService';
