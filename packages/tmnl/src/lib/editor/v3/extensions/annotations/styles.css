@@ -1,0 +1,319 @@
+/**
+ * Annotation System - CSS Styles
+ *
+ * Visual styling for IntentMark annotations.
+ * Uses TMNL design tokens via CSS variables.
+ *
+ * @module editor/v3/extensions/annotations/styles
+ */
+
+/* =============================================================================
+   Base Intent Mark Styles
+   ============================================================================= */
+
+.intent-mark {
+  /* Base transitions for all marks */
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    text-decoration-color 150ms ease-out,
+    opacity 150ms ease-out;
+  cursor: pointer;
+}
+
+/* Hidden state */
+.intent-mark[data-hidden="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* =============================================================================
+   Visual Style Types
+   ============================================================================= */
+
+/* Highlight (background fill) */
+.intent-mark--highlight {
+  border-radius: 2px;
+  padding: 0 2px;
+  margin: 0 -2px;
+}
+
+.intent-mark--highlight:hover {
+  filter: brightness(1.1);
+}
+
+/* Pill (rounded container) */
+.intent-mark--pill {
+  border-radius: 9999px;
+  padding: 0 6px;
+  margin: 0 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.intent-mark--pill:hover {
+  filter: brightness(1.15);
+  transform: scale(1.02);
+}
+
+/* Squiggle (wavy underline) */
+.intent-mark--squiggle {
+  text-decoration: wavy underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1.5px;
+}
+
+.intent-mark--squiggle:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Underline (solid/dotted) */
+.intent-mark--underline {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+
+.intent-mark--underline:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* None (invisible intent-only) */
+.intent-mark--none {
+  /* No visual styling */
+}
+
+/* =============================================================================
+   Visual Effects
+   ============================================================================= */
+
+/* Grain texture overlay (cybergrain) */
+.intent-mark--effect-grain {
+  position: relative;
+}
+
+.intent-mark--effect-grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.08;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  border-radius: inherit;
+}
+
+/* Glow effect */
+.intent-mark--effect-glow {
+  box-shadow: 0 0 8px 2px currentColor;
+}
+
+/* Animated effects */
+.intent-mark--animated.intent-mark--squiggle {
+  animation: squiggle-crawl 2s linear infinite;
+}
+
+@keyframes squiggle-crawl {
+  0% {
+    text-decoration-style: wavy;
+  }
+  50% {
+    text-underline-offset: 3px;
+  }
+  100% {
+    text-decoration-style: wavy;
+  }
+}
+
+.intent-mark--animated.intent-mark--highlight {
+  animation: highlight-pulse 2s ease-in-out infinite;
+}
+
+@keyframes highlight-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* =============================================================================
+   TMNL Color Tokens
+   ============================================================================= */
+
+/* Accent colors */
+.intent-mark[style*="accent.cyan"] {
+  --mark-color: var(--tmnl-accent-cyan, #00d4aa);
+}
+
+.intent-mark[style*="accent.yellow"] {
+  --mark-color: var(--tmnl-accent-yellow, #ffd93d);
+}
+
+.intent-mark[style*="accent.blue"] {
+  --mark-color: var(--tmnl-accent-blue, #4da6ff);
+}
+
+.intent-mark[style*="accent.purple"] {
+  --mark-color: var(--tmnl-accent-purple, #a855f7);
+}
+
+.intent-mark[style*="accent.orange"] {
+  --mark-color: var(--tmnl-accent-orange, #ff8c00);
+}
+
+.intent-mark[style*="accent.green"] {
+  --mark-color: var(--tmnl-accent-green, #22c55e);
+}
+
+/* Status colors */
+.intent-mark[style*="status.error"] {
+  --mark-color: var(--tmnl-status-error, #ef4444);
+}
+
+.intent-mark[style*="status.warning"] {
+  --mark-color: var(--tmnl-status-warning, #f59e0b);
+}
+
+.intent-mark[style*="status.success"] {
+  --mark-color: var(--tmnl-status-success, #22c55e);
+}
+
+.intent-mark[style*="status.info"] {
+  --mark-color: var(--tmnl-status-info, #3b82f6);
+}
+
+/* =============================================================================
+   Hidden Annotation Nodes
+   ============================================================================= */
+
+.annotation-node {
+  display: none !important;
+  position: absolute;
+  left: -9999px;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* =============================================================================
+   Selection and Focus States
+   ============================================================================= */
+
+.intent-mark[data-selected="true"] {
+  outline: 2px solid var(--tmnl-accent-cyan, #00d4aa);
+  outline-offset: 1px;
+}
+
+.intent-mark[data-hovered="true"] {
+  filter: brightness(1.2);
+}
+
+/* =============================================================================
+   Intent-Specific Styles
+   ============================================================================= */
+
+/* Hyperlinks */
+.intent-mark[data-intent*="Hyperlink"] {
+  color: var(--tmnl-accent-blue, #4da6ff);
+}
+
+.intent-mark[data-intent*="Hyperlink"]:hover {
+  color: var(--tmnl-accent-cyan, #00d4aa);
+}
+
+/* Citations */
+.intent-mark[data-intent*="Citation"] {
+  font-variant-numeric: tabular-nums;
+}
+
+.intent-mark[data-intent*="Citation"]::before {
+  content: '[';
+  opacity: 0.6;
+}
+
+.intent-mark[data-intent*="Citation"]::after {
+  content: ']';
+  opacity: 0.6;
+}
+
+/* Notes */
+.intent-mark[data-intent*="Note"] {
+  background-image: linear-gradient(
+    135deg,
+    transparent 50%,
+    currentColor 50%
+  );
+  background-size: 6px 6px;
+  background-position: top right;
+  background-repeat: no-repeat;
+  padding-right: 8px;
+}
+
+/* Actions */
+.intent-mark[data-intent*="Action"] {
+  font-weight: 500;
+}
+
+.intent-mark[data-intent*="Action"]:hover {
+  cursor: pointer;
+}
+
+/* =============================================================================
+   CreatedBy Indicators (subtle)
+   ============================================================================= */
+
+.intent-mark[data-created-by="agent"]::before {
+  content: '✦';
+  font-size: 0.7em;
+  opacity: 0.5;
+  margin-right: 2px;
+  vertical-align: super;
+}
+
+.intent-mark[data-created-by="system"]::before {
+  content: '⚙';
+  font-size: 0.7em;
+  opacity: 0.5;
+  margin-right: 2px;
+  vertical-align: super;
+}
+
+/* =============================================================================
+   Dark Mode Adjustments
+   ============================================================================= */
+
+@media (prefers-color-scheme: dark) {
+  .intent-mark--highlight {
+    /* Slightly more transparent in dark mode */
+    opacity: 0.9;
+  }
+
+  .intent-mark--effect-grain::after {
+    opacity: 0.12;
+    mix-blend-mode: soft-light;
+  }
+}
+
+/* =============================================================================
+   Print Styles
+   ============================================================================= */
+
+@media print {
+  .intent-mark--animated {
+    animation: none !important;
+  }
+
+  .intent-mark--effect-grain::after {
+    display: none;
+  }
+
+  .intent-mark--effect-glow {
+    box-shadow: none;
+  }
+
+  .annotation-node {
+    display: none !important;
+  }
+}
