@@ -29,6 +29,8 @@ import { DynamicIsland, DynamicIslandProvider, useDynamicIsland } from './Dynami
 import { ChatContent } from './ChatContent'
 import { PillIndicator } from './PillIndicator'
 import { useCursorPersistence } from '../hooks/useCursorPersistence'
+import { parseIntent } from '../services/IntentParser'
+import * as Option from 'effect/Option'
 import type { Position, IslandSize, CornerPreset } from '../schemas/position'
 
 // -----------------------------------------------------------------------------
@@ -106,8 +108,24 @@ function CursorInner() {
 
       return undefined
     },
-    onFinish: () => {
+    onFinish: (message) => {
       Atom.set(statusAtom, 'idle')
+
+      // Parse AI response for semantic position/visibility intents
+      if (message.content && typeof message.content === 'string') {
+        const intent = parseIntent(message.content)
+        if (Option.isSome(intent)) {
+          const { value } = intent
+          if (value._tag === 'move') {
+            // Auto-reposition based on AI's semantic intent
+            cursorOps.moveTo({ position: value.corner, islandSize })
+          } else if (value._tag === 'minimize') {
+            cursorOps.collapse()
+          } else if (value._tag === 'expand') {
+            cursorOps.expand()
+          }
+        }
+      }
     },
     onError: (error) => {
       console.error('[Cursor] Chat error:', error)
