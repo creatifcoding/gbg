@@ -165,6 +165,14 @@ export const ColumnLayout = Node.create<ColumnLayoutOptions>({
           'data-id': attributes.id,
         }),
       },
+      direction: {
+        default: 'column' as const,
+        parseHTML: (element) =>
+          (element.getAttribute('data-direction') as 'column' | 'row') || 'column',
+        renderHTML: (attributes: ColumnLayoutAttrs) => ({
+          'data-direction': attributes.direction,
+        }),
+      },
       columns: {
         default: DEFAULT_COLUMNS,
         parseHTML: (element) => {
@@ -238,6 +246,7 @@ export const ColumnLayout = Node.create<ColumnLayoutOptions>({
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
         'data-type': 'columnLayout',
         'data-id': attrs.id,
+        'data-direction': attrs.direction,
         'data-columns': String(attrs.columns),
         'data-widths': JSON.stringify(attrs.widths),
         'data-gap': String(attrs.gap),
@@ -255,6 +264,7 @@ export const ColumnLayout = Node.create<ColumnLayoutOptions>({
       insertColumnLayout:
         (options = {}) =>
         ({ commands }) => {
+          const direction = options.direction ?? 'column';
           const columns = Math.min(
             Math.max(options.columns ?? DEFAULT_COLUMNS, 1),
             this.options.maxColumns
@@ -272,6 +282,7 @@ export const ColumnLayout = Node.create<ColumnLayoutOptions>({
             type: 'columnLayout',
             attrs: {
               id: nanoid(12),
+              direction,
               columns,
               widths: normalizedWidths,
               gap: options.gap ?? this.options.defaultGap,
@@ -436,12 +447,15 @@ export type {
   ColumnLayoutState,
   InsertColumnLayoutOptions,
   ResponsiveBehavior,
+  LayoutDirection,
 } from './types';
 
 export { ColumnLayoutView } from './ColumnLayoutView';
 export { ColumnView } from './ColumnView';
 export { ColumnResizeHandle } from './ColumnResizeHandle';
 export type { ColumnResizeHandleProps } from './ColumnResizeHandle';
+export { RowResizeHandle } from './RowResizeHandle';
+export type { RowResizeHandleProps } from './RowResizeHandle';
 export {
   createColumnLayoutAtoms,
   getColumnLayoutAtoms,

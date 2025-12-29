@@ -16,16 +16,23 @@
 export type ResponsiveBehavior = 'stack' | 'scroll' | 'preserve';
 
 /**
+ * Layout direction - columns (horizontal) or rows (vertical).
+ */
+export type LayoutDirection = 'column' | 'row';
+
+/**
  * ColumnLayout node attributes stored in ProseMirror/Y.js.
  */
 export interface ColumnLayoutAttrs {
   /** Unique block ID */
   readonly id: string;
-  /** Number of columns (2-6) */
+  /** Layout direction - 'column' (horizontal) or 'row' (vertical) */
+  readonly direction: LayoutDirection;
+  /** Number of columns/rows (2-6) */
   readonly columns: number;
-  /** Width ratios for each column (must sum to 1) */
+  /** Size ratios for each column/row (must sum to 1) */
   readonly widths: readonly number[];
-  /** Gap between columns in pixels */
+  /** Gap between columns/rows in pixels */
   readonly gap: number;
   /** Responsive behavior */
   readonly responsive: ResponsiveBehavior;
@@ -68,9 +75,11 @@ export interface ColumnLayoutState {
  * Options for inserting a column layout.
  */
 export interface InsertColumnLayoutOptions {
-  /** Number of columns (default: 2) */
+  /** Layout direction - 'column' or 'row' (default: 'column') */
+  direction?: LayoutDirection;
+  /** Number of columns/rows (default: 2) */
   columns?: number;
-  /** Initial width ratios (defaults to equal widths) */
+  /** Initial size ratios (defaults to equal sizes) */
   widths?: number[];
   /** Gap in pixels (default: 16) */
   gap?: number;

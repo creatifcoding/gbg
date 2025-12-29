@@ -25,6 +25,7 @@ import {
   createColumnLayoutAtoms,
 } from './atoms';
 import { ColumnResizeHandle } from './ColumnResizeHandle';
+import { RowResizeHandle } from './RowResizeHandle';
 
 // =============================================================================
 // Component
@@ -96,15 +97,16 @@ export function ColumnLayoutView({
 
   // Use live widths during drag, otherwise use persisted widths
   const displayWidths = liveWidths ?? attrs.widths;
+  const isRowLayout = attrs.direction === 'row';
 
-  // Generate grid-template-columns CSS using fr units
+  // Generate grid template CSS using fr units
   // fr units automatically account for gaps, unlike percentages
-  const gridTemplateColumns = useMemo(() => {
-    if (isStacked) return '1fr';
+  const gridTemplate = useMemo(() => {
+    if (isStacked && !isRowLayout) return '1fr';
     // Convert ratios to fr units (e.g., [0.5, 0.5] → "1fr 1fr", [0.33, 0.67] → "1fr 2fr")
     // Multiply by 100 for better precision with small differences
     return displayWidths.map((w) => `${(w * 100).toFixed(2)}fr`).join(' ');
-  }, [displayWidths, isStacked]);
+  }, [displayWidths, isStacked, isRowLayout]);
 
   // Handle width changes during drag
   const handleWidthsChange = useCallback((newWidths: number[]) => {
@@ -214,7 +216,7 @@ export function ColumnLayoutView({
           }}
         >
           <LayoutGrid size={10} />
-          <span>{attrs.columns}col</span>
+          <span>{attrs.columns}{isRowLayout ? 'row' : 'col'}</span>
           <div style={{ width: 1, height: 10, background: VANTA_COLORS.surface.border, margin: '0 2px' }} />
           <button
             onClick={handleRemoveColumn}
@@ -264,12 +266,15 @@ export function ColumnLayoutView({
         ref={gridRef}
         className="column-layout-grid"
         data-show-guides={showControls}
+        data-direction={attrs.direction}
         style={{
           position: 'relative',
           display: 'grid',
-          gridTemplateColumns,
+          ...(isRowLayout
+            ? { gridTemplateRows: gridTemplate, gridTemplateColumns: '1fr' }
+            : { gridTemplateColumns: gridTemplate }),
           gap: `${attrs.gap}px`,
-          minHeight: '60px',
+          minHeight: isRowLayout ? 'auto' : '60px',
         }}
       >
         {/* CRITICAL: display:contents makes this wrapper invisible to CSS box model.
@@ -281,18 +286,31 @@ export function ColumnLayoutView({
         {showControls &&
           !isStacked &&
           editor.isEditable &&
-          displayWidths.slice(0, -1).map((_, index) => (
-            <ColumnResizeHandle
-              key={index}
-              index={index}
-              widths={displayWidths}
-              onWidthsChange={handleWidthsChange}
-              onDragEnd={handleDragEnd}
-              containerWidth={containerWidth}
-              minWidth={0.1}
-              disabled={!editor.isEditable}
-            />
-          ))}
+          displayWidths.slice(0, -1).map((_, index) =>
+            isRowLayout ? (
+              <RowResizeHandle
+                key={index}
+                index={index}
+                widths={displayWidths}
+                onWidthsChange={handleWidthsChange}
+                onDragEnd={handleDragEnd}
+                containerHeight={containerWidth} // Reuse for height
+                minHeight={0.1}
+                disabled={!editor.isEditable}
+              />
+            ) : (
+              <ColumnResizeHandle
+                key={index}
+                index={index}
+                widths={displayWidths}
+                onWidthsChange={handleWidthsChange}
+                onDragEnd={handleDragEnd}
+                containerWidth={containerWidth}
+                minWidth={0.1}
+                disabled={!editor.isEditable}
+              />
+            )
+          )}
       </div>
     </NodeViewWrapper>
   );

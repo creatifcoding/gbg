@@ -180,6 +180,36 @@ export const SLASH_ITEMS: readonly SlashMenuItem[] = [
       editor.chain().focus().deleteRange(range).insertColumnLayout({ columns: 4 }).run();
     },
   },
+  {
+    title: '2 Rows',
+    description: 'Stacked row layout',
+    icon: 'Rows2',
+    group: 'Blocks',
+    aliases: ['rows', '2row', 'stacked', 'vertical'],
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertColumnLayout({ direction: 'row', columns: 2 }).run();
+    },
+  },
+  {
+    title: '3 Rows',
+    description: 'Three row layout',
+    icon: 'Rows3',
+    group: 'Blocks',
+    aliases: ['3row', 'triple-row', 'thirds-row'],
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertColumnLayout({ direction: 'row', columns: 3 }).run();
+    },
+  },
+  {
+    title: '4 Rows',
+    description: 'Four row layout',
+    icon: 'Rows4',
+    group: 'Blocks',
+    aliases: ['4row', 'quad-row'],
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertColumnLayout({ direction: 'row', columns: 4 }).run();
+    },
+  },
 
   // Media
   {

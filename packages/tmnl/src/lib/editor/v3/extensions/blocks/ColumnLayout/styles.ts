@@ -180,6 +180,53 @@ export const columnLayoutStyles = `
   }
 
   /* =========================================================================
+   * Row Resize Handles (for direction='row' layouts)
+   * ========================================================================= */
+
+  .row-resize-handle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 8px;
+    cursor: row-resize;
+    z-index: 10;
+    background: transparent;
+    transition: background 150ms;
+    touch-action: none;
+  }
+
+  .row-resize-handle:hover {
+    background: ${editorTheme.text.accent}20;
+  }
+
+  .row-resize-handle.dragging {
+    background: ${editorTheme.text.accent}40;
+  }
+
+  /* Handle indicator (horizontal bar, visible on hover) */
+  .row-resize-handle .handle-indicator {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 4px;
+    background: ${editorTheme.text.muted};
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity 150ms, background 150ms;
+  }
+
+  .row-resize-handle:hover .handle-indicator {
+    opacity: 1;
+  }
+
+  .row-resize-handle.dragging .handle-indicator {
+    opacity: 1;
+    background: ${editorTheme.text.accent};
+  }
+
+  /* =========================================================================
    * Badge / Controls
    * ========================================================================= */
 
@@ -239,7 +286,8 @@ export const columnLayoutStyles = `
     grid-template-columns: 1fr !important;
   }
 
-  .column-layout[data-stacked="true"] .column-resize-handle {
+  .column-layout[data-stacked="true"] .column-resize-handle,
+  .column-layout[data-stacked="true"] .row-resize-handle {
     display: none;
   }
 
@@ -249,7 +297,8 @@ export const columnLayoutStyles = `
       grid-template-columns: 1fr !important;
     }
 
-    .column-resize-handle {
+    .column-resize-handle,
+    .row-resize-handle {
       display: none;
     }
   }
@@ -283,7 +332,8 @@ export const columnLayoutStyles = `
       display: none;
     }
 
-    .column-resize-handle {
+    .column-resize-handle,
+    .row-resize-handle {
       display: none;
     }
 
