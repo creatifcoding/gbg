@@ -25,8 +25,14 @@ export const columnLayoutStyles = `
 
   .column-layout {
     position: relative;
-    margin: ${spacing[4]} 0;
-    /* Badge now controlled via toggle button, not hover */
+    /* Full-bleed: break out of editor padding */
+    margin-left: -${spacing[6]};
+    margin-right: -${spacing[6]};
+    margin-top: ${spacing[4]};
+    margin-bottom: ${spacing[4]};
+    padding-left: ${spacing[6]};
+    padding-right: ${spacing[6]};
+    width: calc(100% + ${spacing[6]} * 2);
   }
 
   /* Toggle button - muted by default, brighter on hover */

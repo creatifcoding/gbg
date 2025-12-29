@@ -158,8 +158,7 @@ export function ColumnLayoutView({
       onMouseLeave={() => setIsHovered(false)}
       style={{
         position: 'relative',
-        width: '100%',
-        margin: `${VANTA_SPACING[2]} 0`,
+        // Width and margin handled by CSS for full-bleed effect
       }}
     >
       {/* Layout Toggle Button - Top Right - Only visible on hover */}
