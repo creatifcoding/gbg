@@ -259,8 +259,14 @@ export const columnLayoutStyles = `
    * ========================================================================= */
 
   .column .column-layout {
-    margin: ${spacing[2]} 0;
-    padding-top: ${spacing[4]}; /* Smaller badge space for nested */
+    /* Reset full-bleed for nested layouts */
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: ${spacing[2]};
+    margin-bottom: ${spacing[2]};
+    padding-left: 0;
+    padding-right: 0;
+    width: 100%;
   }
 
   .column .column-layout .column {
