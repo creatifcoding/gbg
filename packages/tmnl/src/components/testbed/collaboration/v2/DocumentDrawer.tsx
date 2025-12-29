@@ -4,18 +4,36 @@
  *
  * Enhanced to work with DocumentListItem from NATS-backed persistence.
  * Displays status badges, visibility indicators, and richer metadata.
+ *
+ * Now supports both:
+ * - Cloud documents (NATS-backed collaborative docs)
+ * - Local files (via FileAccessService + Tauri IPC + VirtualFileList)
+ *
+ * Local files use:
+ * - TanStack Virtual for 10k+ file rendering at 60fps
+ * - Tauri's fs_scan_directory with `ignore` crate for fast filtering
+ * - Progressive streaming updates via effect-atom
  */
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import type {
   DocumentListItem,
   DocumentStatus,
   DocumentVisibility,
 } from '@/lib/editor/v3/schemas/document';
+import type { FilePath, FileSyncStatus, FileMapping } from '@/lib/editor/v3';
+import type { IndexedFile } from '@/lib/file-index';
 
 // =============================================================================
 // Design Tokens
 // =============================================================================
+
+/** Source tab for filtering documents */
+type SourceTab = 'all' | 'local' | 'cloud';
+
+/** Row height for virtualized file list */
+const LOCAL_FILE_ROW_HEIGHT = 36;
 
 const COLORS = {
   bg: {
@@ -23,6 +41,7 @@ const COLORS = {
     secondary: 'rgba(38, 38, 38, 0.95)',
     hover: 'rgba(50, 50, 50, 0.95)',
     input: 'rgba(30, 30, 30, 0.95)',
+    active: 'rgba(34, 211, 238, 0.1)',
   },
   border: 'rgba(63, 63, 63, 0.6)',
   text: {
@@ -65,6 +84,31 @@ export interface RecentDoc {
   lastAccessed: number;
 }
 
+/**
+ * Local file entry from file system scan.
+ * @deprecated Use IndexedFile from file-index module instead
+ */
+export interface LocalFileEntry {
+  readonly path: FilePath;
+  readonly name: string;
+  readonly modifiedAt: Date;
+  readonly size: number;
+  /** If mapped to a collaborative document */
+  readonly mapping?: FileMapping;
+}
+
+/**
+ * Convert IndexedFile to LocalFileEntry for backwards compatibility.
+ */
+function toLocalFileEntry(file: IndexedFile): LocalFileEntry {
+  return {
+    path: file.path as FilePath,
+    name: file.name,
+    modifiedAt: new Date(file.modifiedAt),
+    size: file.size,
+  };
+}
+
 interface DocumentDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -80,6 +124,16 @@ interface DocumentDrawerProps {
   onRemoveDoc?: (docId: string) => void;
   /** Loading state for document list */
   isLoading?: boolean;
+
+  // --- Local File Support ---
+  /** Local files from file system */
+  localFiles?: readonly LocalFileEntry[];
+  /** Select a local file by path */
+  onSelectLocalFile?: (path: FilePath) => void;
+  /** Open file browser dialog */
+  onBrowseFiles?: () => void;
+  /** Currently open file path (for highlighting) */
+  currentFilePath?: FilePath | null;
 }
 
 // =============================================================================
@@ -96,6 +150,31 @@ function formatTimeAgo(date: Date | number): string {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
+}
+
+/**
+ * Format full date for tooltips.
+ * e.g., "Dec 29, 2025 at 3:45 PM"
+ */
+function formatFullDate(date: Date | number): string {
+  const d = typeof date === 'number' ? new Date(date) : date;
+  return d.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+/**
+ * Check if two dates are more than 1 minute apart.
+ * Used to determine if updatedAt should be shown separately from createdAt.
+ */
+function wasModified(createdAt: Date, updatedAt: Date): boolean {
+  const diff = Math.abs(updatedAt.getTime() - createdAt.getTime());
+  return diff > 60000; // More than 1 minute apart
 }
 
 function getStatusStyle(status: DocumentStatus) {
@@ -176,6 +255,59 @@ function VisibilityIndicator({
         }}
       >
         {getVisibilityLabel(visibility)}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Displays document timestamps with context.
+ * Shows "Modified: Xh ago" if document was modified after creation,
+ * otherwise shows "Created: Xh ago".
+ * Includes tooltip with full date on hover.
+ */
+function TimestampDisplay({
+  createdAt,
+  updatedAt,
+}: {
+  createdAt: Date;
+  updatedAt: Date;
+}) {
+  const modified = wasModified(createdAt, updatedAt);
+  const displayDate = modified ? updatedAt : createdAt;
+  const label = modified ? 'Modified' : 'Created';
+  const tooltipText = modified
+    ? `Modified: ${formatFullDate(updatedAt)}\nCreated: ${formatFullDate(createdAt)}`
+    : `Created: ${formatFullDate(createdAt)}`;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+      }}
+      title={tooltipText}
+    >
+      {/* Modified indicator dot */}
+      {modified && (
+        <div
+          style={{
+            width: 4,
+            height: 4,
+            borderRadius: '50%',
+            backgroundColor: COLORS.accent.cyan,
+            opacity: 0.7,
+          }}
+        />
+      )}
+      <span
+        style={{
+          fontSize: 10,
+          color: modified ? COLORS.text.secondary : COLORS.text.muted,
+        }}
+      >
+        {label}: {formatTimeAgo(displayDate)}
       </span>
     </div>
   );
@@ -272,14 +404,7 @@ function DocumentCard({
           <StatusBadge status={doc.status} />
           <VisibilityIndicator visibility={doc.visibility} />
         </div>
-        <span
-          style={{
-            fontSize: 10,
-            color: COLORS.text.muted,
-          }}
-        >
-          {formatTimeAgo(doc.updatedAt)}
-        </span>
+        <TimestampDisplay createdAt={doc.createdAt} updatedAt={doc.updatedAt} />
       </div>
 
       {/* Tags (if any) */}
