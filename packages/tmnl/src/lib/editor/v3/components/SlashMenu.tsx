@@ -28,6 +28,7 @@ import {
   useImperativeHandle,
   useState,
   useRef,
+  useCallback,
   type ReactNode,
   type CSSProperties,
   type ComponentType,
@@ -46,6 +47,7 @@ interface SlashMenuContextValue {
   setSelectedIndex: (index: number) => void;
   onSelect: (item: SlashMenuItem) => void;
   flatItems: SlashMenuItem[];
+  registerItemRef: (index: number, el: HTMLButtonElement | null) => void;
 }
 
 const SlashMenuContext = createContext<SlashMenuContextValue | null>(null);
@@ -76,31 +78,93 @@ const SlashMenuRoot = forwardRef<{ onKeyDown: (e: KeyboardEvent) => boolean }, S
     ref
   ) {
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const itemRefsMap = useRef<Map<number, HTMLButtonElement>>(new Map());
+
+    // Register item refs for scroll-into-view
+    const registerItemRef = useCallback((index: number, el: HTMLButtonElement | null) => {
+      if (el) {
+        itemRefsMap.current.set(index, el);
+      } else {
+        itemRefsMap.current.delete(index);
+      }
+    }, []);
 
     // Reset selection when items change
     useEffect(() => {
       setSelectedIndex(0);
     }, [items]);
 
+    // Scroll selected item into view
+    // Use a more controlled approach for Radix ScrollArea compatibility
+    useEffect(() => {
+      const el = itemRefsMap.current.get(selectedIndex);
+      if (!el) return;
+
+      // Find the ScrollArea viewport (parent with overflow)
+      const viewport = el.closest('[data-radix-scroll-area-viewport]');
+      if (!viewport) {
+        // Fallback to native scrollIntoView
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        return;
+      }
+
+      const viewportRect = viewport.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+
+      // Check if element is above viewport
+      if (elRect.top < viewportRect.top) {
+        viewport.scrollTop -= viewportRect.top - elRect.top + 4;
+      }
+      // Check if element is below viewport
+      else if (elRect.bottom > viewportRect.bottom) {
+        viewport.scrollTop += elRect.bottom - viewportRect.bottom + 4;
+      }
+    }, [selectedIndex]);
+
     // Keyboard navigation
+    // Store items length in ref to avoid stale closure issues
+    const itemsLengthRef = useRef(items.length);
+    itemsLengthRef.current = items.length;
+
+    // Store items in ref for Enter key handler
+    const itemsRef = useRef(items);
+    itemsRef.current = items;
+
     useImperativeHandle(ref, () => ({
       onKeyDown: (event: KeyboardEvent) => {
         if (!open) return false;
 
-        if (event.key === 'ArrowUp') {
+        const len = itemsLengthRef.current;
+        if (len === 0) return false;
+
+        // Arrow Up or Shift+Tab
+        if (event.key === 'ArrowUp' || (event.key === 'Tab' && event.shiftKey)) {
           event.preventDefault();
-          setSelectedIndex((prev) => (prev - 1 + items.length) % items.length);
+          setSelectedIndex((prev) => {
+            const next = prev <= 0 ? len - 1 : prev - 1;
+            return next;
+          });
           return true;
         }
-        if (event.key === 'ArrowDown') {
+        // Arrow Down or Tab
+        if (event.key === 'ArrowDown' || (event.key === 'Tab' && !event.shiftKey)) {
           event.preventDefault();
-          setSelectedIndex((prev) => (prev + 1) % items.length);
+          setSelectedIndex((prev) => {
+            const next = prev >= len - 1 ? 0 : prev + 1;
+            return next;
+          });
           return true;
         }
         if (event.key === 'Enter') {
           event.preventDefault();
-          const item = items[selectedIndex];
-          if (item) onSelect(item);
+          setSelectedIndex((currentIndex) => {
+            const item = itemsRef.current[currentIndex];
+            if (item) {
+              // Defer onSelect to avoid state update during render
+              queueMicrotask(() => onSelect(item));
+            }
+            return currentIndex;
+          });
           return true;
         }
         if (event.key === 'Escape') {
@@ -110,13 +174,14 @@ const SlashMenuRoot = forwardRef<{ onKeyDown: (e: KeyboardEvent) => boolean }, S
         }
         return false;
       },
-    }));
+    }), [open, onSelect, onOpenChange]);
 
     const contextValue: SlashMenuContextValue = {
       selectedIndex,
       setSelectedIndex,
       onSelect,
       flatItems: items,
+      registerItemRef,
     };
 
     if (!open) return null;
@@ -230,11 +295,20 @@ interface ItemProps {
 }
 
 function Item({ children, item, index, icon: Icon, className = '', style }: ItemProps) {
-  const { selectedIndex, setSelectedIndex, onSelect } = useSlashMenu();
+  const { selectedIndex, setSelectedIndex, onSelect, registerItemRef } = useSlashMenu();
   const isSelected = index === selectedIndex;
+
+  // Register ref for scroll-into-view
+  const refCallback = useCallback(
+    (el: HTMLButtonElement | null) => {
+      registerItemRef(index, el);
+    },
+    [registerItemRef, index]
+  );
 
   return (
     <button
+      ref={refCallback}
       onClick={() => onSelect(item)}
       onMouseEnter={() => setSelectedIndex(index)}
       className={className}
@@ -389,6 +463,9 @@ import {
   AlertCircle,
   MapPin,
   Box,
+  Columns2,
+  Columns3,
+  LayoutGrid,
 } from 'lucide-react';
 
 export const SLASH_ICONS: Record<string, ComponentType<{ size?: number; className?: string }>> = {
@@ -407,6 +484,9 @@ export const SLASH_ICONS: Record<string, ComponentType<{ size?: number; classNam
   AlertCircle,
   MapPin,
   Box,
+  Columns2,
+  Columns3,
+  LayoutGrid,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

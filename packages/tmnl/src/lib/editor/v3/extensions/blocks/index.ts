@@ -68,6 +68,25 @@ export type { MapBlockAttrs, MapBlockOptions, MapBlockMarker } from './MapBlock'
 export { Scene3DBlock, Scene3DBlockView, getScene3DBlockAtoms, disposeScene3DBlockAtoms } from './Scene3DBlock';
 export type { Scene3DBlockAttrs, Scene3DBlockOptions, EntityData, CameraState, SceneConfig } from './Scene3DBlock';
 
+// Layout blocks
+export {
+  ColumnLayout,
+  Column,
+  ColumnLayoutView,
+  ColumnView,
+  getColumnLayoutAtoms,
+  disposeColumnLayoutAtoms,
+} from './ColumnLayout';
+export type {
+  ColumnLayoutAttrs,
+  ColumnAttrs,
+  ColumnLayoutOptions,
+  ColumnOptions,
+  ColumnLayoutState,
+  InsertColumnLayoutOptions,
+  ResponsiveBehavior,
+} from './ColumnLayout';
+
 // Shared wrapper for embedded blocks
 export { EmbeddedBlockWrapper, useEmbeddedBlock } from './EmbeddedBlockWrapper';
 export type {
@@ -99,6 +118,8 @@ import { DataGridTable } from './DataGridTable';
 import { Callout } from './Callout';
 import { MapBlock } from './MapBlock';
 import { Scene3DBlock } from './Scene3DBlock';
+import { ColumnLayout, Column } from './ColumnLayout';
+import { ProtectedNodes } from './EmbeddedBlockWrapper/shared/protectedNode';
 import type { AnyExtension } from '@tiptap/core';
 
 /**
@@ -142,14 +163,22 @@ export const mediaExtensions: AnyExtension[] = [
 
 /**
  * Custom TMNL extensions.
- * DataGridTable (AG-Grid), Callout, MapBlock, Scene3DBlock.
+ * DataGridTable (AG-Grid), Callout, MapBlock, Scene3DBlock, ColumnLayout.
  */
 export const customBlockExtensions: AnyExtension[] = [
   DataGridTable,
   Callout,
   MapBlock,
   Scene3DBlock,
+  ColumnLayout,
+  Column,
 ];
+
+/**
+ * Protected node types — cannot be deleted via keyboard.
+ * Only deletable via explicit UI (trash button in block header).
+ */
+export const protectedNodeTypes = ['mapBlock', 'scene3DBlock'];
 
 /**
  * All block extensions combined.
@@ -161,4 +190,8 @@ export const allBlockExtensions: AnyExtension[] = [
   ...taskListExtensions,
   ...mediaExtensions,
   ...customBlockExtensions,
+  // Transaction filter to protect embedded blocks from deletion
+  ProtectedNodes.configure({
+    types: protectedNodeTypes,
+  }),
 ];

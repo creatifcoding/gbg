@@ -23,7 +23,13 @@ export interface SlashMenuItem {
   readonly title: string;
   readonly description: string;
   readonly icon: string;
-  readonly group: 'Basic' | 'Headings' | 'Lists' | 'Blocks' | 'Media' | 'Advanced';
+  readonly group:
+    | 'Basic'
+    | 'Headings'
+    | 'Lists'
+    | 'Blocks'
+    | 'Media'
+    | 'Advanced';
   readonly aliases: readonly string[];
   readonly command: (props: { editor: Editor; range: Range }) => void;
 }
@@ -144,6 +150,36 @@ export const SLASH_ITEMS: readonly SlashMenuItem[] = [
       editor.chain().focus().deleteRange(range).setHorizontalRule().run();
     },
   },
+  {
+    title: '2 Columns',
+    description: 'Side-by-side layout',
+    icon: 'Columns2',
+    group: 'Blocks',
+    aliases: ['columns', '2col', 'side-by-side', 'grid'],
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertColumnLayout({ columns: 2 }).run();
+    },
+  },
+  {
+    title: '3 Columns',
+    description: 'Three column layout',
+    icon: 'Columns3',
+    group: 'Blocks',
+    aliases: ['3col', 'triple', 'thirds'],
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertColumnLayout({ columns: 3 }).run();
+    },
+  },
+  {
+    title: '4 Columns',
+    description: 'Four column layout',
+    icon: 'LayoutGrid',
+    group: 'Blocks',
+    aliases: ['4col', 'quad', 'grid4', 'quarters'],
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertColumnLayout({ columns: 4 }).run();
+    },
+  },
 
   // Media
   {
@@ -198,12 +234,7 @@ export const SLASH_ITEMS: readonly SlashMenuItem[] = [
     group: 'Advanced',
     aliases: ['map', 'mapbox', 'geo', 'location', 'deckgl'],
     command: ({ editor, range }) => {
-      editor
-        .chain()
-        .focus()
-        .deleteRange(range)
-        .insertMap()
-        .run();
+      editor.chain().focus().deleteRange(range).insertMap().run();
     },
   },
   {
@@ -213,12 +244,7 @@ export const SLASH_ITEMS: readonly SlashMenuItem[] = [
     group: 'Advanced',
     aliases: ['3d', 'scene', 'threejs', 'r3f', 'three', 'webgl'],
     command: ({ editor, range }) => {
-      editor
-        .chain()
-        .focus()
-        .deleteRange(range)
-        .insertScene3D()
-        .run();
+      editor.chain().focus().deleteRange(range).insertScene3D().run();
     },
   },
 ] as const;
@@ -231,51 +257,35 @@ export const SlashCommand = Extension.create<SlashCommandOptions>({
   name: 'slashCommand',
 
   addOptions() {
-    console.log('[SlashCommand] addOptions called');
     return {
       suggestion: {
         char: '/',
         startOfLine: false,
-        // Allow trigger after any character (not just whitespace)
         allowedPrefixes: null,
         items: ({ query }) => {
-          console.log('[SlashCommand] items callback, query:', query);
           const q = query.toLowerCase();
-          const filtered = SLASH_ITEMS.filter(
+          return SLASH_ITEMS.filter(
             (item) =>
               item.title.toLowerCase().includes(q) ||
               item.description.toLowerCase().includes(q) ||
               item.aliases.some((alias) => alias.includes(q))
           ).slice(0, 10);
-          console.log('[SlashCommand] filtered items:', filtered.length);
-          return filtered;
         },
         command: ({ editor, range, props }) => {
-          console.log('[SlashCommand] command callback');
           props.command({ editor, range });
         },
-        // render is set by the component that mounts SlashMenu
       },
     };
   },
 
   addProseMirrorPlugins() {
-    console.log('[SlashCommand] addProseMirrorPlugins called');
-    console.log('[SlashCommand] suggestion config:', {
-      char: this.options.suggestion.char,
-      startOfLine: this.options.suggestion.startOfLine,
-      allowedPrefixes: this.options.suggestion.allowedPrefixes,
-      hasItems: !!this.options.suggestion.items,
-      hasRender: !!this.options.suggestion.render,
-      hasCommand: !!this.options.suggestion.command,
-    });
-    const plugin = Suggestion({
-      editor: this.editor,
-      pluginKey: SlashCommandPluginKey,
-      ...this.options.suggestion,
-    });
-    console.log('[SlashCommand] plugin created:', plugin.key?.key || plugin.key);
-    return [plugin];
+    return [
+      Suggestion({
+        editor: this.editor,
+        pluginKey: SlashCommandPluginKey,
+        ...this.options.suggestion,
+      }),
+    ];
   },
 });
 
