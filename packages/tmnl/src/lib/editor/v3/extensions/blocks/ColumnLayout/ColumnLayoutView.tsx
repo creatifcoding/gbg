@@ -39,12 +39,14 @@ export function ColumnLayoutView({
   updateAttributes,
   editor,
   deleteNode,
+  getPos,
 }: NodeViewProps) {
   const attrs = node.attrs as ColumnLayoutAttrs;
   const containerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const [isStacked, setIsStacked] = useState(false);
   const [showControls, setShowControls] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
   const [liveWidths, setLiveWidths] = useState<number[] | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
@@ -123,19 +125,25 @@ export function ColumnLayoutView({
   const canRemoveColumn = attrs.columns > 1;
 
   const handleAddColumn = useCallback(() => {
-    if (!canAddColumn) return;
-    editor.chain().focus().addColumn().run();
-  }, [editor, canAddColumn]);
+    if (!canAddColumn || typeof getPos !== 'function') return;
+    // Focus inside the layout first so the command can find it
+    const pos = getPos();
+    editor.chain().focus(pos + 1).addColumn().run();
+  }, [editor, canAddColumn, getPos]);
 
   const handleRemoveColumn = useCallback(() => {
-    if (!canRemoveColumn) return;
-    // Remove last column
-    editor.chain().focus().removeColumn(attrs.columns - 1).run();
-  }, [editor, canRemoveColumn, attrs.columns]);
+    if (!canRemoveColumn || typeof getPos !== 'function') return;
+    // Focus inside the layout first
+    const pos = getPos();
+    editor.chain().focus(pos + 1).removeColumn(attrs.columns - 1).run();
+  }, [editor, canRemoveColumn, attrs.columns, getPos]);
 
   const toggleControls = useCallback(() => {
     setShowControls((prev) => !prev);
   }, []);
+
+  // Show controls when: explicitly toggled OR hovered (only settings toggle on hover)
+  const showSettingsToggle = isHovered || showControls;
 
   return (
     <NodeViewWrapper
@@ -145,65 +153,71 @@ export function ColumnLayoutView({
       data-columns={attrs.columns}
       data-stacked={isStacked}
       data-controls-visible={showControls}
+      data-hovered={isHovered}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       style={{
         position: 'relative',
-        margin: `${VANTA_SPACING[4]} 0`,
+        width: '100%',
+        margin: `${VANTA_SPACING[2]} 0`,
       }}
     >
-      {/* Layout Toggle Button - Top Right */}
-      {editor.isEditable && (
+      {/* Layout Toggle Button - Top Right - Only visible on hover */}
+      {editor.isEditable && showSettingsToggle && (
         <button
           onClick={toggleControls}
           className="column-layout-toggle"
           data-active={showControls}
           style={{
             position: 'absolute',
-            top: '-8px',
-            right: '8px',
+            top: '-4px',
+            right: '4px',
             zIndex: 20,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            width: 24,
-            height: 24,
+            width: 20,
+            height: 20,
             padding: 0,
             background: showControls ? VANTA_COLORS.accent.cyan : VANTA_COLORS.surface.elevated,
             border: `1px solid ${showControls ? VANTA_COLORS.accent.cyan : VANTA_COLORS.surface.border}`,
-            borderRadius: '4px',
+            borderRadius: '3px',
             color: showControls ? VANTA_COLORS.surface.void : VANTA_COLORS.text.muted,
             cursor: 'pointer',
+            opacity: showControls ? 1 : 0.7,
+            transition: 'opacity 150ms ease',
           }}
           title={showControls ? 'Hide layout controls' : 'Show layout controls'}
         >
-          <Settings2 size={14} />
+          <Settings2 size={12} />
         </button>
       )}
 
-      {/* Control Badge - Only visible when showControls is true */}
+      {/* Control Badge - Only visible when showControls is explicitly true */}
       {showControls && editor.isEditable && (
         <div
           className="column-layout-badge"
           style={{
             position: 'absolute',
-            top: '-28px',
-            left: '8px',
+            top: '-20px',
+            left: '4px',
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
-            padding: '4px 10px',
-            fontSize: '11px',
+            gap: '3px',
+            padding: '2px 6px',
+            fontSize: '10px',
             fontFamily: 'var(--tmnl-font-mono)',
             fontWeight: 500,
-            color: VANTA_COLORS.text.secondary,
+            color: VANTA_COLORS.text.tertiary,
             backgroundColor: VANTA_COLORS.surface.elevated,
             border: `1px solid ${VANTA_COLORS.surface.border}`,
-            borderRadius: '4px',
+            borderRadius: '3px',
             zIndex: 15,
           }}
         >
-          <LayoutGrid size={14} />
-          <span>{attrs.columns} Columns</span>
-          <div style={{ width: 1, height: 14, background: VANTA_COLORS.surface.border, margin: '0 4px' }} />
+          <LayoutGrid size={10} />
+          <span>{attrs.columns}col</span>
+          <div style={{ width: 1, height: 10, background: VANTA_COLORS.surface.border, margin: '0 2px' }} />
           <button
             onClick={handleRemoveColumn}
             disabled={!canRemoveColumn}
@@ -211,18 +225,18 @@ export function ColumnLayoutView({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: 20,
-              height: 20,
+              width: 14,
+              height: 14,
               padding: 0,
-              background: canRemoveColumn ? VANTA_COLORS.surface.hover : 'transparent',
+              background: 'transparent',
               border: 'none',
-              borderRadius: 3,
-              color: canRemoveColumn ? VANTA_COLORS.text.secondary : VANTA_COLORS.surface.border,
+              borderRadius: 2,
+              color: canRemoveColumn ? VANTA_COLORS.text.tertiary : VANTA_COLORS.surface.border,
               cursor: canRemoveColumn ? 'pointer' : 'not-allowed',
             }}
             title="Remove column"
           >
-            <Minus size={12} />
+            <Minus size={10} />
           </button>
           <button
             onClick={handleAddColumn}
@@ -231,18 +245,18 @@ export function ColumnLayoutView({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: 20,
-              height: 20,
+              width: 14,
+              height: 14,
               padding: 0,
-              background: canAddColumn ? VANTA_COLORS.surface.hover : 'transparent',
+              background: 'transparent',
               border: 'none',
-              borderRadius: 3,
-              color: canAddColumn ? VANTA_COLORS.text.secondary : VANTA_COLORS.surface.border,
+              borderRadius: 2,
+              color: canAddColumn ? VANTA_COLORS.text.tertiary : VANTA_COLORS.surface.border,
               cursor: canAddColumn ? 'pointer' : 'not-allowed',
             }}
             title="Add column"
           >
-            <Plus size={12} />
+            <Plus size={10} />
           </button>
         </div>
       )}

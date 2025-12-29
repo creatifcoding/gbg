@@ -75,26 +75,31 @@ export const columnLayoutStyles = `
 
   .column {
     min-width: 0; /* Prevent grid blowout from long content */
-    padding: ${spacing[3]};
+    padding: ${spacing[2]};
     border: 1px dashed transparent;
-    border-radius: ${borderRadius.md};
+    border-radius: ${borderRadius.sm};
     background: transparent;
     transition: border-color 150ms, background 150ms;
   }
 
-  /* Only show column guides when controls are visible */
+  /* Subtle hover hint for columns - just enough to see boundaries */
+  .column-layout[data-hovered="true"] .column {
+    border-color: ${editorTheme.surface.border}20;
+  }
+
+  /* Show column guides when controls are visible */
   .column-layout[data-controls-visible="true"] .column {
     border-color: ${editorTheme.surface.border}40;
-    background: ${editorTheme.surface.secondary}15;
+    background: ${editorTheme.surface.secondary}08;
   }
 
   .column-layout[data-controls-visible="true"] .column:hover {
-    border-color: ${editorTheme.surface.border}80;
-    background: ${editorTheme.surface.secondary}25;
+    border-color: ${editorTheme.surface.border}60;
+    background: ${editorTheme.surface.secondary}12;
   }
 
   .column:focus-within {
-    border-color: ${editorTheme.text.accent}30;
+    border-color: ${editorTheme.text.accent}20;
     border-style: solid;
   }
 
