@@ -64,6 +64,7 @@ export {
   adminOps,
   intentOps,
   popoverOps,
+  toolOps,
 
   // Popover atoms
   activePopoverAtom,
@@ -88,6 +89,11 @@ export {
   useAnnotationPopover,
   type UseAnnotationPopoverOptions,
   type UseAnnotationPopoverReturn,
+
+  // Navigation hook
+  useAnnotationNavigation,
+  type UseAnnotationNavigationOptions,
+  type UseAnnotationNavigationReturn,
 } from './hooks';
 
 // =============================================================================
@@ -105,6 +111,17 @@ export type { AnnotationNodeOptions } from './node-extension';
 // =============================================================================
 
 export { AnnotationPopover, type AnnotationPopoverProps } from './components';
+export { FilterPanel, type FilterPanelProps } from './components';
+
+// =============================================================================
+// Plugins
+// =============================================================================
+
+export {
+  createFilterSyncPlugin,
+  filterSyncPluginKey,
+  type FilterSyncPluginOptions,
+} from './plugins';
 
 // =============================================================================
 // Styles

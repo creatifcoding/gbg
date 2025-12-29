@@ -27,6 +27,22 @@
   pointer-events: none;
 }
 
+/* Filtered hidden (via plugin decoration) */
+.intent-mark--filtered-hidden {
+  opacity: 0.3;
+  pointer-events: none;
+  filter: grayscale(0.8);
+  transition:
+    opacity 200ms ease-out,
+    filter 200ms ease-out;
+}
+
+/* Filtered state data attribute */
+.intent-mark[data-filtered="true"] {
+  opacity: 0.3;
+  filter: grayscale(0.8);
+}
+
 /* =============================================================================
    Visual Style Types
    ============================================================================= */

@@ -24,10 +24,14 @@ import {
   IntentExecutorLive,
   AnnotationPopoverService,
   AnnotationPopoverServiceLive,
+  AnnotationToolsService,
+  AnnotationToolsServiceLive,
   type PopoverAnchor,
   type PopoverPlacement,
   type PopoverTrigger,
   type PopoverContent,
+  type CreateAnnotationInput,
+  type QueryAnnotationsInput,
 } from '../services';
 import type { AnnotationQuery, AnnotationState } from '../services';
 import type {
@@ -234,7 +238,8 @@ export const annotationRuntimeAtom = Atom.runtime(
     AnnotationServiceLive,
     IntentRegistryLive,
     IntentExecutorLive,
-    AnnotationPopoverServiceLive
+    AnnotationPopoverServiceLive,
+    AnnotationToolsServiceLive
   )
 );
 
@@ -814,6 +819,181 @@ export const popoverOps = {
     Effect.gen(function* () {
       const popoverService = yield* AnnotationPopoverService;
       yield* popoverService.updateAnchor(args.anchor);
+    })
+  ),
+} as const;
+
+// =============================================================================
+// Tool Operations (Agent-Facing Interface)
+// =============================================================================
+
+/**
+ * Tool Operations for AI Agent Access
+ *
+ * These operations provide a clean interface for AI agents to
+ * interact with the annotation system programmatically.
+ */
+export const toolOps = {
+  /**
+   * Create a new annotation (agent)
+   *
+   * @example
+   * await toolOps.create({
+   *   editor,
+   *   input: {
+   *     text: 'highlighted text',
+   *     intent: { _tag: 'Note', content: 'My note' },
+   *     visualStyle: 'highlight',
+   *     tags: ['important']
+   *   }
+   * })
+   */
+  create: annotationRuntimeAtom.fn<{
+    editor: import('@tiptap/core').Editor;
+    input: CreateAnnotationInput;
+  }>()((args, ctx) =>
+    Effect.gen(function* () {
+      const tools = yield* AnnotationToolsService;
+      const id = yield* tools.createAnnotation(args.editor, args.input);
+      yield* syncState(ctx);
+      return id;
+    })
+  ),
+
+  /**
+   * Remove an annotation (agent)
+   */
+  remove: annotationRuntimeAtom.fn<{
+    editor: import('@tiptap/core').Editor;
+    annotationId: AnnotationId;
+  }>()((args, ctx) =>
+    Effect.gen(function* () {
+      const tools = yield* AnnotationToolsService;
+      yield* tools.removeAnnotation(args.editor, args.annotationId);
+      yield* syncState(ctx);
+    })
+  ),
+
+  /**
+   * Query annotations with filters
+   */
+  query: annotationRuntimeAtom.fn<{ query: QueryAnnotationsInput }>()((args) =>
+    Effect.gen(function* () {
+      const tools = yield* AnnotationToolsService;
+      return yield* tools.queryAnnotations(args.query);
+    })
+  ),
+
+  /**
+   * Get all annotations (simplified for agents)
+   */
+  getAll: annotationRuntimeAtom.fn<void>()(() =>
+    Effect.gen(function* () {
+      const tools = yield* AnnotationToolsService;
+      return yield* tools.getAllAnnotations;
+    })
+  ),
+
+  /**
+   * Get single annotation by ID
+   */
+  get: annotationRuntimeAtom.fn<{ annotationId: AnnotationId }>()((args) =>
+    Effect.gen(function* () {
+      const tools = yield* AnnotationToolsService;
+      return yield* tools.getAnnotation(args.annotationId);
+    })
+  ),
+
+  /**
+   * Update annotation tags
+   */
+  updateTags: annotationRuntimeAtom.fn<{
+    annotationId: AnnotationId;
+    tags: readonly string[];
+  }>()((args, ctx) =>
+    Effect.gen(function* () {
+      const tools = yield* AnnotationToolsService;
+      yield* tools.updateTags(args.annotationId, args.tags);
+      yield* syncState(ctx);
+    })
+  ),
+
+  /**
+   * Get annotation statistics
+   */
+  getStats: annotationRuntimeAtom.fn<void>()(() =>
+    Effect.gen(function* () {
+      const tools = yield* AnnotationToolsService;
+      return yield* tools.getStats;
+    })
+  ),
+
+  /**
+   * Bulk create annotations
+   */
+  bulkCreate: annotationRuntimeAtom.fn<{
+    editor: import('@tiptap/core').Editor;
+    inputs: readonly CreateAnnotationInput[];
+  }>()((args, ctx) =>
+    Effect.gen(function* () {
+      const tools = yield* AnnotationToolsService;
+      const ids = yield* tools.bulkCreate(args.editor, args.inputs);
+      yield* syncState(ctx);
+      return ids;
+    })
+  ),
+
+  /**
+   * Bulk remove annotations
+   */
+  bulkRemove: annotationRuntimeAtom.fn<{
+    editor: import('@tiptap/core').Editor;
+    annotationIds: readonly AnnotationId[];
+  }>()((args, ctx) =>
+    Effect.gen(function* () {
+      const tools = yield* AnnotationToolsService;
+      yield* tools.bulkRemove(args.editor, args.annotationIds);
+      yield* syncState(ctx);
+    })
+  ),
+
+  /**
+   * Search annotations by text
+   */
+  findByText: annotationRuntimeAtom.fn<{
+    searchText: string;
+    options?: { caseSensitive?: boolean; regex?: boolean };
+  }>()((args) =>
+    Effect.gen(function* () {
+      const tools = yield* AnnotationToolsService;
+      return yield* tools.findByText(args.searchText, args.options);
+    })
+  ),
+
+  /**
+   * Get annotations at a document position
+   */
+  getAtPosition: annotationRuntimeAtom.fn<{
+    editor: import('@tiptap/core').Editor;
+    position: number;
+  }>()((args) =>
+    Effect.gen(function* () {
+      const tools = yield* AnnotationToolsService;
+      return yield* tools.getAtPosition(args.editor, args.position);
+    })
+  ),
+
+  /**
+   * Execute an intent programmatically
+   */
+  executeIntent: annotationRuntimeAtom.fn<{
+    editor: import('@tiptap/core').Editor;
+    markId: AnnotationId;
+    trigger: 'click' | 'hover' | 'keyboard';
+  }>()((args) =>
+    Effect.gen(function* () {
+      const tools = yield* AnnotationToolsService;
+      yield* tools.executeIntent(args.editor, args.markId, args.trigger);
     })
   ),
 } as const;

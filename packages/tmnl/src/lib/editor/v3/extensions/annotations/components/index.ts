@@ -7,3 +7,4 @@
  */
 
 export { AnnotationPopover, type AnnotationPopoverProps } from './AnnotationPopover';
+export { FilterPanel, type FilterPanelProps } from './FilterPanel';

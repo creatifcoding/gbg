@@ -23,3 +23,9 @@ export {
   type UseAnnotationsOptions,
   type UseAnnotationsReturn,
 } from './useAnnotations';
+
+export {
+  useAnnotationNavigation,
+  type UseAnnotationNavigationOptions,
+  type UseAnnotationNavigationReturn,
+} from './useAnnotationNavigation';

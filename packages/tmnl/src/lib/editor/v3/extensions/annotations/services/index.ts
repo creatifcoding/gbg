@@ -65,3 +65,17 @@ export {
   type AnnotationPopoverServiceShape,
   type PopoverContent,
 } from './AnnotationPopoverService';
+
+export {
+  // Service
+  AnnotationToolsService,
+  AnnotationToolsServiceLive,
+
+  // Schemas
+  CreateAnnotationInput,
+  QueryAnnotationsInput,
+  AnnotationResult,
+
+  // Types
+  type AnnotationToolsServiceShape,
+} from './AnnotationToolsService';
