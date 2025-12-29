@@ -3,35 +3,36 @@
  *
  * Global AI-controlled Dynamic Island overlay.
  * Integrates:
- * - AI SDK 6 useChat hook
+ * - AI SDK 6 useChat hook with Claude Code provider
  * - effect-atom state management
- * - Position control via AI tools
+ * - Position control via natural language intent parsing
  * - Pill ↔ Chat state transitions
  */
 
 import { useRef, useEffect, useCallback, useMemo } from 'react'
 import { useChat } from '@ai-sdk/react'
+import { DefaultChatTransport } from 'ai'
 import { useAtomValue } from '@effect-atom/atom-react'
-import { Atom } from '@effect-atom/atom-react'
 import { AnimatePresence } from 'framer-motion'
 import {
+  cursorRegistry,
+  CursorRegistryProvider,
   positionAtom,
   boundsAtom,
   cursorStateAtom,
   messagesAtom,
   statusAtom,
-  currentCornerAtom,
   sizeKeyAtom,
   cursorOps,
   hasBoundsAtom,
 } from '../atoms'
 import { DynamicIsland, DynamicIslandProvider, useDynamicIsland } from './DynamicIsland'
-import { ChatContent } from './ChatContent'
+import { CursorChat } from './chat'
 import { PillIndicator } from './PillIndicator'
 import { useCursorPersistence } from '../hooks/useCursorPersistence'
 import { parseIntent } from '../services/IntentParser'
 import * as Option from 'effect/Option'
-import type { Position, IslandSize, CornerPreset } from '../schemas/position'
+import type { IslandSize } from '../schemas/position'
 
 // -----------------------------------------------------------------------------
 // Size Configuration
@@ -88,40 +89,25 @@ function CursorInner() {
     transition(sizeKey)
   }, [sizeKey, transition])
 
-  // AI SDK useChat integration
-  const { messages, status, append, setMessages } = useChat({
-    api: '/api/cursor/chat',
-    onToolCall: async ({ toolCall }) => {
-      // Handle position tools client-side
-      if (toolCall.toolName === 'move_to') {
-        const args = toolCall.args as { position: CornerPreset | Position }
-        await cursorOps.moveTo({ position: args.position, islandSize })
-        return { moved: true, position: args.position }
-      }
-
-      if (toolCall.toolName === 'minimize') {
-        await cursorOps.collapse()
-        return { minimized: true }
-      }
-
-      if (toolCall.toolName === 'expand') {
-        await cursorOps.expand()
-        return { expanded: true }
-      }
-
-      if (toolCall.toolName === 'get_bounds') {
-        const currentBounds = Atom.get(boundsAtom)
-        return { width: currentBounds.width, height: currentBounds.height }
-      }
-
-      return undefined
-    },
-    onFinish: (message) => {
-      Atom.set(statusAtom, 'idle')
+  // AI SDK useChat integration (v5.0+: sendMessage replaces append, transport replaces api)
+  // NOTE: Claude Code provider does NOT support AI SDK's custom tools interface.
+  // Position/visibility intents are parsed from the AI's natural language response.
+  const { messages, status, sendMessage, setMessages } = useChat({
+    transport: new DefaultChatTransport({
+      api: 'http://localhost:7682/chat',
+    }),
+    onFinish: ({ message }) => {
+      cursorRegistry.set(statusAtom, 'idle')
 
       // Parse AI response for semantic position/visibility intents
-      if (message.content && typeof message.content === 'string') {
-        const intent = parseIntent(message.content)
+      // AI SDK 5.0+: message.parts replaces message.content
+      const textContent = message.parts
+        ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+        .map((part) => part.text)
+        .join('') ?? ''
+
+      if (textContent) {
+        const intent = parseIntent(textContent)
         if (Option.isSome(intent)) {
           const { value } = intent
           if (value._tag === 'move') {
@@ -137,21 +123,21 @@ function CursorInner() {
     },
     onError: (error) => {
       console.error('[Cursor] Chat error:', error)
-      Atom.set(statusAtom, 'idle')
+      cursorRegistry.set(statusAtom, 'idle')
     },
   })
 
   // Sync AI SDK messages → effect-atom
   useEffect(() => {
-    Atom.set(messagesAtom, messages)
+    cursorRegistry.set(messagesAtom, messages)
   }, [messages])
 
   // Sync AI SDK status → effect-atom
   useEffect(() => {
     if (status === 'streaming') {
-      Atom.set(statusAtom, 'streaming')
+      cursorRegistry.set(statusAtom, 'streaming')
     } else if (status === 'submitted') {
-      Atom.set(statusAtom, 'thinking')
+      cursorRegistry.set(statusAtom, 'thinking')
     }
   }, [status])
 
@@ -172,14 +158,17 @@ function CursorInner() {
     cursorOps.updatePosition({ position: pos })
   }, [])
 
-  // Handle send message
+  // Handle send message (AI SDK 5.0+: sendMessage({ text }) replaces append)
+  // Supports optional attachments for future Claude Code file API
   const handleSend = useCallback(
-    async (content: string) => {
-      if (!content.trim()) return
-      Atom.set(statusAtom, 'thinking')
-      await append({ role: 'user', content })
+    async (content: string, attachments?: Array<{ id: string; type: 'file'; url?: string; mediaType?: string; filename?: string }>) => {
+      if (!content.trim() && (!attachments || attachments.length === 0)) return
+      cursorRegistry.set(statusAtom, 'thinking')
+      // TODO: When Claude Code API supports files, convert attachments to AI SDK format
+      // For now, just send the text content
+      await sendMessage({ text: content })
     },
-    [append]
+    [sendMessage]
   )
 
   // Handle collapse
@@ -214,7 +203,7 @@ function CursorInner() {
             onClick={handlePillClick}
           />
         ) : (
-          <ChatContent
+          <CursorChat
             key="chat"
             messages={messages}
             status={status}
@@ -257,9 +246,11 @@ export function Cursor() {
       className="fixed inset-0 pointer-events-none z-[9999]"
       data-cursor-container
     >
-      <DynamicIslandProvider config={ISLAND_CONFIG}>
-        <CursorInner />
-      </DynamicIslandProvider>
+      <CursorRegistryProvider>
+        <DynamicIslandProvider config={ISLAND_CONFIG}>
+          <CursorInner />
+        </DynamicIslandProvider>
+      </CursorRegistryProvider>
     </div>
   )
 }

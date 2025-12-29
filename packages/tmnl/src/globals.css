@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* AI Elements: streamdown for streaming markdown */
+@source "../node_modules/streamdown/dist/*.js";
+
 /* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 4px;
