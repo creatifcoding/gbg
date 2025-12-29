@@ -50,22 +50,23 @@ export const columnLayoutStyles = `
     min-height: 60px;
   }
 
-  /* CRITICAL: NodeViewContent and NodeViewWrapper create intermediate wrappers that break grid layout.
-   * display: contents makes them "invisible" to CSS box model, so columns become
-   * direct grid children. This is the modern CSS solution for wrapper elements.
+  /* CRITICAL: TipTap creates multiple wrapper layers that break CSS Grid.
    *
-   * DOM structure:
-   * .column-layout-grid > [data-node-view-content] > .column (NodeViewWrapper) > [data-node-view-content]
+   * Actual DOM structure (discovered via Playwright inspection):
+   * .column-layout-grid (display: grid)
+   *   └── [data-node-view-content]     ← wrapper 1
+   *       └── [data-node-view-wrapper] ← wrapper 2 (wraps ALL columns!)
+   *           └── .column
+   *           └── .column
    *
-   * We need display:contents on the immediate child [data-node-view-content] so .column becomes grid item.
+   * Both wrappers need display:contents to make .column direct grid children.
    */
   .column-layout-grid > [data-node-view-content] {
     display: contents;
   }
 
-  /* Also handle any additional TipTap wrapper divs */
-  .column-layout-grid > div[data-node-view-content] > div[data-node-view-wrapper] {
-    /* Column wrappers SHOULD participate in grid, don't use display:contents here */
+  .column-layout-grid > [data-node-view-content] > [data-node-view-wrapper] {
+    display: contents;
   }
 
   /* =========================================================================
