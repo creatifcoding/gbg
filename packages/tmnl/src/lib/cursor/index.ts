@@ -15,9 +15,23 @@ export * from './schemas/position'
 // Services
 export { PositionService, PositionServiceLive, PositionServiceDefault } from './services/PositionService'
 
+// Machines
+export {
+  cursorMachine,
+  type CursorMachineContext,
+  type CursorMachineEvent,
+  type CursorMachineSnapshot,
+  type CursorMachineState,
+  getCursorState,
+  isCursorInteractive,
+  isCursorExpanded,
+} from './machines'
+
 // Atoms
 export {
+  // Runtime
   cursorRuntimeAtom,
+  // State atoms
   messagesAtom,
   statusAtom,
   positionAtom,
@@ -25,8 +39,19 @@ export {
   currentCornerAtom,
   cursorStateAtom,
   sizeKeyAtom,
+  // Derived atoms
   hasBoundsAtom,
+  // XState bridge (stx pattern)
+  cursorSnapshotAtom,
+  machineStateAtom,
+  machineContextAtom,
+  isExpandedAtom,
+  hasUnreadAtom,
+  canExpandAtom,
+  canCollapseAtom,
+  // Operations
   cursorOps,
+  cursorActorOps,
 } from './atoms'
 
 // Tools
