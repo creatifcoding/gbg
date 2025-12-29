@@ -29,13 +29,23 @@ export const columnLayoutStyles = `
     /* Badge now controlled via toggle button, not hover */
   }
 
-  /* Toggle button always visible when editable */
+  /* Toggle button - muted by default, brighter on hover */
   .column-layout-toggle {
-    opacity: 0.6;
+    opacity: 0.4;
     transition: all 150ms ease;
   }
 
-  .column-layout:hover .column-layout-toggle,
+  /* Slightly brighter when visible (container hovered) */
+  .column-layout:hover .column-layout-toggle {
+    opacity: 0.6;
+  }
+
+  /* Full brightness on direct button hover */
+  .column-layout-toggle:hover {
+    opacity: 1;
+  }
+
+  /* Active state always bright */
   .column-layout-toggle[data-active="true"] {
     opacity: 1;
   }

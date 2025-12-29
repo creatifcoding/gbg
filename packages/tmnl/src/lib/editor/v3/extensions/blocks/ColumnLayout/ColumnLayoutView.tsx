@@ -184,8 +184,7 @@ export function ColumnLayoutView({
             borderRadius: '3px',
             color: showControls ? VANTA_COLORS.surface.void : VANTA_COLORS.text.muted,
             cursor: 'pointer',
-            opacity: showControls ? 1 : 0.7,
-            transition: 'opacity 150ms ease',
+            // Opacity controlled by CSS for hover transitions
           }}
           title={showControls ? 'Hide layout controls' : 'Show layout controls'}
         >
