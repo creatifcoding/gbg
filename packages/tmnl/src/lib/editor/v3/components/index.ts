@@ -77,6 +77,9 @@ export {
   DefaultFormattingToolbar,
 } from './FormattingToolbar';
 
+export { AnnotationToolbar } from './AnnotationToolbar';
+export type { AnnotationToolbarProps } from './AnnotationToolbar';
+
 // Styles
 export {
   editorContentStyles,

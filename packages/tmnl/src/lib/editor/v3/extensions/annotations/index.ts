@@ -128,10 +128,19 @@ export {
 // Styles
 // =============================================================================
 
+export { annotationStyles } from './styles';
+
 /**
  * Import styles in your app:
  *
+ * CSS import:
  * ```typescript
  * import '@/lib/editor/v3/extensions/annotations/styles.css';
+ * ```
+ *
+ * Or use the CSS-in-JS export:
+ * ```typescript
+ * import { annotationStyles } from '@/lib/editor/v3/extensions/annotations';
+ * // <style>{annotationStyles}</style>
  * ```
  */

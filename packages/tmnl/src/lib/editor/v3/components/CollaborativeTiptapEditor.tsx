@@ -47,7 +47,11 @@ import {
   CodeBlockHighlight,
   codeBlockHighlightStyles,
   SlashCommand,
+  SLASH_ITEMS,
   allBlockExtensions,
+  IntentMark,
+  AnnotationNodeExtension,
+  annotationStyles,
 } from '../extensions';
 import { createSlashMenuRender } from './SlashMenu';
 import { generateUserColor, type CollaborationUser } from '../services';
@@ -56,6 +60,9 @@ import {
   connectedUsersAtom,
 } from '../atoms/collaboration';
 import { editorContentStyles, collaborativeEditorStyles } from './styles';
+import { DefaultBlockHandle, blockHandleStyles } from './BlockDragHandle';
+import { AnnotationToolbar } from './AnnotationToolbar';
+import { BlockRegistryProvider } from '../extensions/blocks/EmbeddedBlockWrapper/registry';
 
 // =============================================================================
 // Y.Doc Content Seeding Info
@@ -266,6 +273,28 @@ const InnerEditor: React.FC<InnerEditorProps> = ({
       Strike,
       Code,
 
+      // Annotation marks
+      IntentMark.configure({
+        onMarkClick: (markId, event) => {
+          console.log('[Annotation] Mark clicked:', markId, event);
+        },
+        onMarkHover: (markId, event) => {
+          console.log('[Annotation] Mark hover:', markId);
+        },
+      }),
+      AnnotationNodeExtension.configure({
+        documentId: undefined, // Will be set per-document
+        onCreate: (node) => {
+          console.log('[Annotation] Node created:', node.id);
+        },
+        onUpdate: (node) => {
+          console.log('[Annotation] Node updated:', node.id);
+        },
+        onDelete: (id) => {
+          console.log('[Annotation] Node deleted:', id);
+        },
+      }),
+
       // UI helpers
       Dropcursor.configure({
         color: 'rgba(45, 212, 191, 0.4)',
@@ -281,15 +310,22 @@ const InnerEditor: React.FC<InnerEditorProps> = ({
         suggestion: {
           char: '/',
           startOfLine: false,
+          // Allow trigger after any character (not just whitespace)
+          allowedPrefixes: null,
           items: ({ query }) => {
-            const { SLASH_ITEMS } = require('../extensions/SlashCommand');
+            console.log(
+              '[SlashCommand] Configured items callback, query:',
+              query
+            );
             const q = query.toLowerCase();
-            return SLASH_ITEMS.filter(
-              (item: { title: string; description: string; aliases: readonly string[] }) =>
+            const filtered = SLASH_ITEMS.filter(
+              (item) =>
                 item.title.toLowerCase().includes(q) ||
                 item.description.toLowerCase().includes(q) ||
                 item.aliases.some((alias) => alias.includes(q))
             ).slice(0, 10);
+            console.log('[SlashCommand] Configured filtered:', filtered.length);
+            return filtered;
           },
           render: createSlashMenuRender,
         },
@@ -483,11 +519,50 @@ const InnerEditor: React.FC<InnerEditorProps> = ({
           // (see useEditorViewport), not via CSS variable font-size manipulation.
         }}
       />
+
+      {/* Annotation toolbar — appears on text selection */}
+      {editor && editable && <AnnotationToolbar editor={editor} />}
+
+      {/* Floating drag handle — appears on block hover */}
+      {editor && editable && (
+        <DefaultBlockHandle
+          editor={editor}
+          onAddBlock={() => {
+            // Insert paragraph below current block
+            editor.chain().focus().insertContentAt(editor.state.selection.to, {
+              type: 'paragraph',
+            }).run();
+          }}
+          onDuplicate={() => {
+            // Duplicate current node
+            const { state } = editor;
+            const { $from } = state.selection;
+            const node = $from.node($from.depth);
+            if (node) {
+              editor.chain().focus().insertContentAt(state.selection.to, node.toJSON()).run();
+            }
+          }}
+          onDelete={() => {
+            // Delete current node (explicit UI deletion bypasses protection)
+            editor.chain()
+              .focus()
+              .command(({ tr }) => {
+                tr.setMeta('allowProtectedNodeDeletion', true);
+                return true;
+              })
+              .deleteSelection()
+              .run();
+          }}
+        />
+      )}
+
       <style>{`
         ${editorContentStyles}
         ${collaborativeEditorStyles}
         ${collaborationStyles}
         ${codeBlockHighlightStyles}
+        ${blockHandleStyles}
+        ${annotationStyles}
       `}</style>
     </div>
   );
@@ -542,18 +617,19 @@ export const CollaborativeTiptapEditor = forwardRef<
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      {/* @y-sweet/react YDocProvider requires docId + authEndpoint */}
-      <YDocProvider
-        docId={clientToken.docId}
-        authEndpoint={effectiveAuthEndpoint}
-        initialClientToken={clientToken}
-      >
-        <InnerEditor
-          {...innerProps}
-          editorRef={ref}
-          onProviderReady={() => setProviderReady(true)}
-        />
-      </YDocProvider>
+      <BlockRegistryProvider documentId={clientToken.docId}>
+        <YDocProvider
+          docId={clientToken.docId}
+          authEndpoint={effectiveAuthEndpoint}
+          initialClientToken={clientToken}
+        >
+          <InnerEditor
+            {...innerProps}
+            editorRef={ref}
+            onProviderReady={() => setProviderReady(true)}
+          />
+        </YDocProvider>
+      </BlockRegistryProvider>
 
       {!providerReady && (
         <div

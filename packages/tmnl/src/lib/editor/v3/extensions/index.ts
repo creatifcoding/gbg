@@ -30,6 +30,15 @@ export {
 } from './SlashCommand';
 export type { SlashMenuItem, SlashCommandOptions } from './SlashCommand';
 
+// Annotation Extensions
+export { IntentMark, IntentMarkExtension } from './annotations';
+export type { IntentMarkOptions } from './annotations';
+
+export { AnnotationNodeExtension, AnnotationNode } from './annotations';
+export type { AnnotationNodeOptions } from './annotations';
+
+export { annotationStyles } from './annotations';
+
 // Block Extensions
 export * from './blocks';
 

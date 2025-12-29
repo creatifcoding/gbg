@@ -9,9 +9,8 @@
  * @module editor/v3/components/FormattingToolbar
  */
 
-import { forwardRef, createContext, useContext, type ReactNode, useCallback } from 'react';
+import { forwardRef, createContext, useContext, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import * as ToggleGroup from '@radix-ui/react-toggle-group';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import type { Editor } from '@tiptap/core';
 
@@ -31,12 +30,15 @@ interface FormattingToolbarContextValue {
   editor: Editor | null;
 }
 
-const FormattingToolbarContext = createContext<FormattingToolbarContextValue | null>(null);
+const FormattingToolbarContext =
+  createContext<FormattingToolbarContextValue | null>(null);
 
 function useFormattingToolbar() {
   const context = useContext(FormattingToolbarContext);
   if (!context) {
-    throw new Error('FormattingToolbar components must be used within FormattingToolbar.Root');
+    throw new Error(
+      'FormattingToolbar components must be used within FormattingToolbar.Root'
+    );
   }
   return context;
 }
@@ -52,38 +54,40 @@ interface FormattingToolbarRootProps {
   style?: React.CSSProperties;
 }
 
-const FormattingToolbarRoot = forwardRef<HTMLDivElement, FormattingToolbarRootProps>(
-  function FormattingToolbarRoot({ editor, children, className, style }, ref) {
-    if (!editor) return null;
+const FormattingToolbarRoot = forwardRef<
+  HTMLDivElement,
+  FormattingToolbarRootProps
+>(function FormattingToolbarRoot({ editor, children, className, style }, ref) {
+  // Bail early if no editor or editor is destroyed — prevents wasted renders
+  if (!editor || editor.isDestroyed) return null;
 
-    return (
-      <FormattingToolbarContext.Provider value={{ editor }}>
-        <Tooltip.Provider delayDuration={300}>
-          <motion.div
-            ref={ref}
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.15 }}
-            className={className}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: VANTA_SPACING['1'],
-              padding: `${VANTA_SPACING['1']} ${VANTA_SPACING['2']}`,
-              backgroundColor: VANTA_COLORS.surface.elevated,
-              borderRadius: VANTA_BORDERS.radius.md,
-              border: VANTA_BORDERS.style.hairline,
-              backdropFilter: 'blur(12px)',
-              ...style,
-            }}
-          >
-            {children}
-          </motion.div>
-        </Tooltip.Provider>
-      </FormattingToolbarContext.Provider>
-    );
-  }
-);
+  return (
+    <FormattingToolbarContext.Provider value={{ editor }}>
+      <Tooltip.Provider delayDuration={300}>
+        <motion.div
+          ref={ref}
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.15 }}
+          className={className}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: VANTA_SPACING['1'],
+            padding: `${VANTA_SPACING['1']} ${VANTA_SPACING['2']}`,
+            backgroundColor: VANTA_COLORS.surface.elevated,
+            borderRadius: VANTA_BORDERS.radius.md,
+            border: VANTA_BORDERS.style.hairline,
+            backdropFilter: 'blur(12px)',
+            ...style,
+          }}
+        >
+          {children}
+        </motion.div>
+      </Tooltip.Provider>
+    </FormattingToolbarContext.Provider>
+  );
+});
 
 // =============================================================================
 // Button
@@ -124,8 +128,12 @@ function FormattingButton({
             padding: 0,
             borderRadius: VANTA_BORDERS.radius.sm,
             border: 'none',
-            backgroundColor: active ? VANTA_COLORS.surface.raised : 'transparent',
-            color: active ? VANTA_COLORS.accent.cyan : VANTA_COLORS.text.secondary,
+            backgroundColor: active
+              ? VANTA_COLORS.surface.raised
+              : 'transparent',
+            color: active
+              ? VANTA_COLORS.accent.cyan
+              : VANTA_COLORS.text.secondary,
             cursor: disabled ? 'not-allowed' : 'pointer',
             opacity: disabled ? 0.4 : 1,
             transition: VANTA_ANIMATION.transition.colors,
@@ -206,7 +214,7 @@ function FormattingGroup({ children }: FormattingGroupProps) {
 
 function BoldButton() {
   const { editor } = useFormattingToolbar();
-  if (!editor?.view) return null;
+  if (!editor?.view || editor.isDestroyed) return null;
 
   return (
     <FormattingButton
@@ -222,7 +230,7 @@ function BoldButton() {
 
 function ItalicButton() {
   const { editor } = useFormattingToolbar();
-  if (!editor?.view) return null;
+  if (!editor?.view || editor.isDestroyed) return null;
 
   return (
     <FormattingButton
@@ -238,7 +246,7 @@ function ItalicButton() {
 
 function StrikeButton() {
   const { editor } = useFormattingToolbar();
-  if (!editor?.view) return null;
+  if (!editor?.view || editor.isDestroyed) return null;
 
   return (
     <FormattingButton
@@ -254,7 +262,7 @@ function StrikeButton() {
 
 function CodeButton() {
   const { editor } = useFormattingToolbar();
-  if (!editor?.view) return null;
+  if (!editor?.view || editor.isDestroyed) return null;
 
   return (
     <FormattingButton
@@ -269,12 +277,41 @@ function CodeButton() {
 }
 
 // =============================================================================
+// Annotation Buttons
+// =============================================================================
+
+function HighlightButton() {
+  const { editor } = useFormattingToolbar();
+  if (!editor?.view || editor.isDestroyed) return null;
+
+  // Check if intentMark extension is available
+  const canHighlight = editor.can().setHighlight?.();
+
+  return (
+    <FormattingButton
+      icon={<HighlightIcon />}
+      label="Highlight"
+      shortcut="⌘⇧H"
+      active={editor.isActive('intentMark')}
+      onClick={() => {
+        if (editor.isActive('intentMark')) {
+          editor.chain().focus().unsetIntentMark().run();
+        } else {
+          editor.chain().focus().setHighlight().run();
+        }
+      }}
+      disabled={canHighlight === false}
+    />
+  );
+}
+
+// =============================================================================
 // Heading Buttons
 // =============================================================================
 
 function HeadingButton({ level }: { level: 1 | 2 | 3 }) {
   const { editor } = useFormattingToolbar();
-  if (!editor?.view) return null;
+  if (!editor?.view || editor.isDestroyed) return null;
 
   const icons = {
     1: <H1Icon />,
@@ -305,7 +342,7 @@ function HeadingButton({ level }: { level: 1 | 2 | 3 }) {
 
 function BulletListButton() {
   const { editor } = useFormattingToolbar();
-  if (!editor?.view) return null;
+  if (!editor?.view || editor.isDestroyed) return null;
 
   return (
     <FormattingButton
@@ -320,7 +357,7 @@ function BulletListButton() {
 
 function OrderedListButton() {
   const { editor } = useFormattingToolbar();
-  if (!editor?.view) return null;
+  if (!editor?.view || editor.isDestroyed) return null;
 
   return (
     <FormattingButton
@@ -335,7 +372,7 @@ function OrderedListButton() {
 
 function TaskListButton() {
   const { editor } = useFormattingToolbar();
-  if (!editor?.view) return null;
+  if (!editor?.view || editor.isDestroyed) return null;
 
   return (
     <FormattingButton
@@ -350,7 +387,7 @@ function TaskListButton() {
 
 function BlockquoteButton() {
   const { editor } = useFormattingToolbar();
-  if (!editor?.view) return null;
+  if (!editor?.view || editor.isDestroyed) return null;
 
   return (
     <FormattingButton
@@ -365,7 +402,7 @@ function BlockquoteButton() {
 
 function CodeBlockButton() {
   const { editor } = useFormattingToolbar();
-  if (!editor?.view) return null;
+  if (!editor?.view || editor.isDestroyed) return null;
 
   return (
     <FormattingButton
@@ -390,6 +427,7 @@ export const FormattingToolbar = Object.assign(FormattingToolbarRoot, {
   Italic: ItalicButton,
   Strike: StrikeButton,
   Code: CodeButton,
+  Highlight: HighlightButton,
   Heading: HeadingButton,
   BulletList: BulletListButton,
   OrderedList: OrderedListButton,
@@ -408,7 +446,11 @@ interface DefaultFormattingToolbarProps {
   style?: React.CSSProperties;
 }
 
-export function DefaultFormattingToolbar({ editor, className, style }: DefaultFormattingToolbarProps) {
+export function DefaultFormattingToolbar({
+  editor,
+  className,
+  style,
+}: DefaultFormattingToolbarProps) {
   return (
     <FormattingToolbar.Root editor={editor} className={className} style={style}>
       <FormattingToolbar.Group>
@@ -416,6 +458,7 @@ export function DefaultFormattingToolbar({ editor, className, style }: DefaultFo
         <FormattingToolbar.Italic />
         <FormattingToolbar.Strike />
         <FormattingToolbar.Code />
+        <FormattingToolbar.Highlight />
       </FormattingToolbar.Group>
 
       <FormattingToolbar.Divider />
@@ -450,7 +493,16 @@ export function DefaultFormattingToolbar({ editor, className, style }: DefaultFo
 
 function BoldIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z" />
       <path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z" />
     </svg>
@@ -459,7 +511,16 @@ function BoldIcon() {
 
 function ItalicIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <line x1="19" y1="4" x2="10" y2="4" />
       <line x1="14" y1="20" x2="5" y2="20" />
       <line x1="15" y1="4" x2="9" y2="20" />
@@ -469,7 +530,16 @@ function ItalicIcon() {
 
 function StrikeIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M17.3 4.9c-2.3-.6-4.4-1-6.2-.9-2.7 0-5.3.7-5.3 3.6 0 1.5 1.8 3.3 3.6 3.9h.2" />
       <path d="M8.7 19.1c2.3.6 4.4 1 6.2.9 2.7 0 5.3-.7 5.3-3.6 0-1.5-1.8-3.3-3.6-3.9h-.2" />
       <line x1="4" y1="12" x2="20" y2="12" />
@@ -479,7 +549,16 @@ function StrikeIcon() {
 
 function CodeIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <polyline points="16 18 22 12 16 6" />
       <polyline points="8 6 2 12 8 18" />
     </svg>
@@ -488,7 +567,16 @@ function CodeIcon() {
 
 function H1Icon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M4 12h8" />
       <path d="M4 18V6" />
       <path d="M12 18V6" />
@@ -499,7 +587,16 @@ function H1Icon() {
 
 function H2Icon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M4 12h8" />
       <path d="M4 18V6" />
       <path d="M12 18V6" />
@@ -510,7 +607,16 @@ function H2Icon() {
 
 function H3Icon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M4 12h8" />
       <path d="M4 18V6" />
       <path d="M12 18V6" />
@@ -522,7 +628,16 @@ function H3Icon() {
 
 function ListIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <line x1="8" y1="6" x2="21" y2="6" />
       <line x1="8" y1="12" x2="21" y2="12" />
       <line x1="8" y1="18" x2="21" y2="18" />
@@ -535,7 +650,16 @@ function ListIcon() {
 
 function OrderedListIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <line x1="10" y1="6" x2="21" y2="6" />
       <line x1="10" y1="12" x2="21" y2="12" />
       <line x1="10" y1="18" x2="21" y2="18" />
@@ -548,7 +672,16 @@ function OrderedListIcon() {
 
 function TaskListIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="3" y="5" width="6" height="6" rx="1" />
       <path d="m3 17 2 2 4-4" />
       <line x1="13" y1="6" x2="21" y2="6" />
@@ -560,7 +693,16 @@ function TaskListIcon() {
 
 function QuoteIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z" />
       <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3z" />
     </svg>
@@ -569,10 +711,37 @@ function QuoteIcon() {
 
 function CodeBlockIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <polyline points="16 18 22 12 16 6" />
       <polyline points="8 6 2 12 8 18" />
       <line x1="12" y1="2" x2="12" y2="22" />
+    </svg>
+  );
+}
+
+function HighlightIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
     </svg>
   );
 }
