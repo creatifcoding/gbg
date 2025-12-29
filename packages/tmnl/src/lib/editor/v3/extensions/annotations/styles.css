@@ -50,11 +50,36 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  position: relative;
+  isolation: isolate;
 }
 
 .intent-mark--pill:hover {
   filter: brightness(1.15);
   transform: scale(1.02);
+}
+
+/* Animated gradient border for pills */
+.intent-mark--pill.intent-mark--animated {
+  background:
+    linear-gradient(var(--tmnl-surface-1, #1a1a2e), var(--tmnl-surface-1, #1a1a2e)) padding-box,
+    linear-gradient(90deg,
+      var(--mark-color, var(--tmnl-accent-cyan, #00d4aa)),
+      var(--tmnl-accent-purple, #a855f7),
+      var(--tmnl-accent-cyan, #00d4aa)
+    ) border-box;
+  border: 1px solid transparent;
+  animation: pill-gradient-rotate 3s linear infinite;
+  background-size: 100% 100%, 200% 100%;
+}
+
+@keyframes pill-gradient-rotate {
+  0% {
+    background-position: 0 0, 0% 50%;
+  }
+  100% {
+    background-position: 0 0, 200% 50%;
+  }
 }
 
 /* Squiggle (wavy underline) */
@@ -109,24 +134,85 @@
   box-shadow: 0 0 8px 2px currentColor;
 }
 
-/* Animated effects */
-.intent-mark--animated.intent-mark--squiggle {
-  animation: squiggle-crawl 2s linear infinite;
+/* =============================================================================
+   Animated Effects - Squiggle Variants
+   ============================================================================= */
+
+/* Crawl: Subtle offset animation */
+.intent-mark--animated.intent-mark--squiggle,
+.intent-mark--squiggle-crawl {
+  animation: squiggle-crawl 2s ease-in-out infinite;
 }
 
 @keyframes squiggle-crawl {
-  0% {
-    text-decoration-style: wavy;
+  0%, 100% {
+    text-underline-offset: 2px;
   }
   50% {
-    text-underline-offset: 3px;
-  }
-  100% {
-    text-decoration-style: wavy;
+    text-underline-offset: 4px;
   }
 }
 
-.intent-mark--animated.intent-mark--highlight {
+/* Pulse: Opacity breathing */
+.intent-mark--squiggle-pulse {
+  animation: squiggle-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes squiggle-pulse {
+  0%, 100% {
+    text-decoration-color: var(--mark-color, var(--tmnl-accent-cyan, #00d4aa));
+  }
+  50% {
+    text-decoration-color: color-mix(in srgb, var(--mark-color, var(--tmnl-accent-cyan, #00d4aa)) 40%, transparent);
+  }
+}
+
+/* Wave: Thickness oscillation */
+.intent-mark--squiggle-wave {
+  animation: squiggle-wave 2s ease-in-out infinite;
+}
+
+@keyframes squiggle-wave {
+  0%, 100% {
+    text-decoration-thickness: 1.5px;
+  }
+  25% {
+    text-decoration-thickness: 2.5px;
+  }
+  50% {
+    text-decoration-thickness: 1px;
+  }
+  75% {
+    text-decoration-thickness: 2px;
+  }
+}
+
+/* Shimmer: Color shift across spectrum */
+.intent-mark--squiggle-shimmer {
+  animation: squiggle-shimmer 3s linear infinite;
+}
+
+@keyframes squiggle-shimmer {
+  0% {
+    text-decoration-color: var(--tmnl-accent-cyan, #00d4aa);
+  }
+  33% {
+    text-decoration-color: var(--tmnl-accent-purple, #a855f7);
+  }
+  66% {
+    text-decoration-color: var(--tmnl-accent-blue, #4da6ff);
+  }
+  100% {
+    text-decoration-color: var(--tmnl-accent-cyan, #00d4aa);
+  }
+}
+
+/* =============================================================================
+   Animated Effects - Highlight Variants
+   ============================================================================= */
+
+.intent-mark--animated.intent-mark--highlight,
+.intent-mark--highlight-pulse {
   animation: highlight-pulse 2s ease-in-out infinite;
 }
 
@@ -136,6 +222,35 @@
   }
   50% {
     opacity: 0.7;
+  }
+}
+
+/* Highlight shimmer: Gradient sweep */
+.intent-mark--highlight-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.intent-mark--highlight-shimmer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: shimmer-sweep 2.5s ease-in-out infinite;
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
   }
 }
 
@@ -208,6 +323,104 @@
 
 .intent-mark[data-hovered="true"] {
   filter: brightness(1.2);
+}
+
+/* =============================================================================
+   Emanation Ring Effect (Active/Selected Marks)
+   ============================================================================= */
+
+.intent-mark--emanation,
+.intent-mark[data-selected="true"].intent-mark--effect-emanation {
+  position: relative;
+}
+
+.intent-mark--emanation::after,
+.intent-mark[data-selected="true"].intent-mark--effect-emanation::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid var(--mark-color, var(--tmnl-accent-cyan, #00d4aa));
+  opacity: 0;
+  animation: emanation-ring 1.5s ease-out infinite;
+  pointer-events: none;
+}
+
+/* Second ring for layered effect */
+.intent-mark--emanation::before,
+.intent-mark[data-selected="true"].intent-mark--effect-emanation::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 1px solid var(--mark-color, var(--tmnl-accent-cyan, #00d4aa));
+  opacity: 0;
+  animation: emanation-ring 1.5s ease-out infinite 0.3s;
+  pointer-events: none;
+}
+
+@keyframes emanation-ring {
+  0% {
+    inset: -2px;
+    opacity: 0.8;
+  }
+  100% {
+    inset: -12px;
+    opacity: 0;
+  }
+}
+
+/* =============================================================================
+   Attention Shimmer on Hover
+   ============================================================================= */
+
+.intent-mark--effect-attention:hover {
+  position: relative;
+}
+
+.intent-mark--effect-attention:hover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: attention-shimmer 0.6s ease-out forwards;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+@keyframes attention-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Attention pulse: Subtle scale + glow on hover */
+.intent-mark--effect-attention-pulse:hover {
+  animation: attention-pulse 0.3s ease-out forwards;
+}
+
+@keyframes attention-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 var(--mark-color, var(--tmnl-accent-cyan, #00d4aa));
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 8px 2px var(--mark-color, var(--tmnl-accent-cyan, #00d4aa));
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 4px 1px var(--mark-color, var(--tmnl-accent-cyan, #00d4aa));
+  }
 }
 
 /* =============================================================================
