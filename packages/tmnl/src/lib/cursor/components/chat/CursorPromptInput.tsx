@@ -172,11 +172,10 @@ export function CursorPromptInput({
           placeholder={isStreaming ? 'Thinking...' : placeholder}
           disabled={isStreaming}
           onKeyDown={handleKeyDown}
-          className="min-h-[44px] resize-none bg-transparent"
+          className="min-h-[44px] resize-none bg-transparent !text-sm"
           style={{
             color: 'var(--tmnl-text-primary, oklch(0.88 0 0))',
             caretColor: 'oklch(0.75 0.15 160)',
-            fontSize: 'var(--tmnl-text-sm, 14px)',
             lineHeight: 'var(--tmnl-leading-relaxed, 1.6)',
           }}
         />
