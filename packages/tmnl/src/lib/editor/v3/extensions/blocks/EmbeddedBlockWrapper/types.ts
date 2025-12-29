@@ -10,6 +10,13 @@
 import type { ReactNode, ComponentType } from 'react';
 import type { NodeViewProps } from '@tiptap/react';
 import type { StreamBinding } from '@/lib/connection-ports';
+import type {
+  PortId,
+  PortDirection,
+  PortPosition,
+  PortDataType,
+  LinkPort,
+} from '@/lib/dataplane';
 
 // =============================================================================
 // Block Tag Types
@@ -76,6 +83,51 @@ export interface StreamBindingConfig {
 }
 
 // =============================================================================
+// Dataplane Port Configuration
+// =============================================================================
+
+/**
+ * Configuration for a single dataplane port.
+ * Ports are registered automatically on mount and cleaned up on unmount.
+ */
+export interface PortConfig {
+  /** Direction of data flow (in, out, or bidirectional) */
+  readonly direction: PortDirection;
+  /** Type of data this port handles */
+  readonly dataType: PortDataType;
+  /** Visual position on the block edge */
+  readonly position: PortPosition;
+  /** Optional human-readable label */
+  readonly label?: string;
+}
+
+/**
+ * Dataplane configuration for EmbeddedBlockWrapper.
+ * Enables data linking between blocks via the d2ts differential dataflow graph.
+ */
+export interface DataplaneConfig {
+  /** Whether dataplane features are enabled for this block */
+  readonly enabled: boolean;
+  /** Port configurations (registered automatically on mount) */
+  readonly ports?: readonly PortConfig[];
+  /** Whether to show port indicators visually */
+  readonly showIndicators?: boolean;
+}
+
+/**
+ * State for registered dataplane ports.
+ * Exposed via EmbeddedBlockContext for child components.
+ */
+export interface DataplaneState {
+  /** Registered ports for this block (null if not yet registered) */
+  readonly ports: ReadonlyArray<LinkPort>;
+  /** Map from port position to port ID for quick lookup */
+  readonly portIdByPosition: ReadonlyMap<PortPosition, PortId>;
+  /** Whether all configured ports are registered */
+  readonly isReady: boolean;
+}
+
+// =============================================================================
 // Settings Tab
 // =============================================================================
 
@@ -119,6 +171,8 @@ export interface EmbeddedBlockWrapperProps {
   readonly streamConfig?: StreamBindingConfig;
   /** Callback when stream status changes */
   readonly onStreamStatusChange?: (status: StreamStatus) => void;
+  /** Dataplane configuration for d2ts linking */
+  readonly dataplaneConfig?: DataplaneConfig;
 }
 
 // =============================================================================
@@ -136,6 +190,8 @@ export interface EmbeddedBlockContextValue {
   readonly isEditable: boolean;
   /** Stream binding configuration (if provided) */
   readonly streamConfig?: StreamBindingConfig;
+  /** Dataplane state (ports, connection info) */
+  readonly dataplane?: DataplaneState;
   /** Actions */
   readonly actions: {
     readonly toggleFold: () => void;

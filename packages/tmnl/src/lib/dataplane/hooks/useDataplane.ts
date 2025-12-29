@@ -25,7 +25,7 @@
  * ```
  */
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useAtomValue, useAtomSet } from '@effect-atom/atom-react';
 import * as Result from '@effect-atom/atom/Result';
 

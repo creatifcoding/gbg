@@ -113,3 +113,27 @@ export {
   // Operations
   dataplaneOps,
 } from './atoms';
+
+// =============================================================================
+// Hooks
+// =============================================================================
+
+export {
+  useDataplane,
+  usePort,
+  usePortData,
+  useHasIncoming,
+  useHasOutgoing,
+  useBlockPorts,
+  type UseDataplaneReturn,
+  type UsePortDataReturn,
+} from './hooks';
+
+// =============================================================================
+// Components
+// =============================================================================
+
+export {
+  LinkPortIndicator,
+  type LinkPortIndicatorProps,
+} from './components';

@@ -46,6 +46,8 @@ import {
   Minus,
   GripVertical,
   Maximize2,
+  Trash2,
+  GripHorizontal,
 } from 'lucide-react';
 
 import {
@@ -63,7 +65,17 @@ import type {
   SettingsTab,
   FoldState,
   BlockTag,
+  DataplaneState,
+  PortConfig,
 } from './types';
+import {
+  useDataplane,
+  LinkPortIndicator,
+  type LinkPort,
+  type PortId,
+  type BlockId as DataplaneBlockId,
+  type PortPosition,
+} from '@/lib/dataplane';
 import {
   getEmbeddedBlockAtoms,
   disposeEmbeddedBlockAtoms,
@@ -185,6 +197,7 @@ export function EmbeddedBlockWrapper({
   children,
   onFoldChange,
   className = '',
+  dataplaneConfig,
 }: EmbeddedBlockWrapperProps) {
   const { node, editor, selected, deleteNode } = nodeViewProps;
   const blockId = node.attrs['id'] || 'default';
@@ -243,6 +256,10 @@ export function EmbeddedBlockWrapper({
   const showControls = useAtomValue(atoms.showControlsAtom);
   const contentVisible = useAtomValue(atoms.contentVisibleAtom);
   const contentExpanded = useAtomValue(atoms.contentExpandedAtom);
+  const customHeight = useAtomValue(atoms.customHeightAtom);
+
+  // Compute effective height: customHeight overrides default when expanded
+  const effectiveExpandedHeight = customHeight ?? expandedHeight;
 
   // Sync selected state from TipTap
   useEffect(() => {
@@ -288,23 +305,129 @@ export function EmbeddedBlockWrapper({
     };
   }, [blockId, badge.tag, blockRegistry]);
 
+  // ---------------------------------------------------------------------------
+  // Dataplane Port Registration
+  // ---------------------------------------------------------------------------
+  const dataplane = useDataplane();
+  const [registeredPorts, setRegisteredPorts] = useState<LinkPort[]>([]);
+  const [portIdByPosition, setPortIdByPosition] = useState<Map<PortPosition, PortId>>(
+    new Map()
+  );
+
+  // Register ports on mount, unregister on unmount
+  useEffect(() => {
+    if (!dataplaneConfig?.enabled || !dataplaneConfig.ports?.length) {
+      return;
+    }
+
+    const ports: LinkPort[] = [];
+    const positionMap = new Map<PortPosition, PortId>();
+
+    // Register all configured ports
+    const registerAll = async () => {
+      for (const portConfig of dataplaneConfig.ports!) {
+        try {
+          const port = await dataplane.registerPort({
+            blockId: blockId as DataplaneBlockId,
+            direction: portConfig.direction,
+            dataType: portConfig.dataType,
+            position: portConfig.position,
+            label: portConfig.label,
+          });
+
+          if (port) {
+            ports.push(port);
+            positionMap.set(portConfig.position, port.id);
+          }
+        } catch (err) {
+          console.warn(
+            `[EmbeddedBlockWrapper] Failed to register port at ${portConfig.position}:`,
+            err
+          );
+        }
+      }
+
+      setRegisteredPorts(ports);
+      setPortIdByPosition(positionMap);
+    };
+
+    registerAll();
+
+    // Cleanup: unregister all ports
+    return () => {
+      for (const port of ports) {
+        dataplane.unregisterPort(port.id).catch((err) => {
+          console.warn(
+            `[EmbeddedBlockWrapper] Failed to unregister port ${port.id}:`,
+            err
+          );
+        });
+      }
+      setRegisteredPorts([]);
+      setPortIdByPosition(new Map());
+    };
+  }, [blockId, dataplaneConfig?.enabled, dataplaneConfig?.ports, dataplane]);
+
+  // Compute dataplane state for context
+  const dataplaneState: DataplaneState | undefined = useMemo(() => {
+    if (!dataplaneConfig?.enabled) return undefined;
+
+    return {
+      ports: registeredPorts,
+      portIdByPosition,
+      isReady: registeredPorts.length === (dataplaneConfig.ports?.length ?? 0),
+    };
+  }, [dataplaneConfig?.enabled, dataplaneConfig?.ports?.length, registeredPorts, portIdByPosition]);
+
   // Notify on fold change
   useEffect(() => {
     onFoldChange?.(state.foldState);
   }, [state.foldState, onFoldChange]);
 
-  // Handle delete key
+  // Resize state tracking
+  const currentHeightRef = useRef(effectiveExpandedHeight);
+
+  // Update ref when effectiveExpandedHeight changes
+  useEffect(() => {
+    currentHeightRef.current = effectiveExpandedHeight;
+  }, [effectiveExpandedHeight]);
+
+  // Resize handlers for adjustable height
+  const handleResize = useCallback(
+    (deltaY: number) => {
+      const MIN_HEIGHT = 80;
+      const MAX_HEIGHT = 800;
+      const newHeight = Math.max(
+        MIN_HEIGHT,
+        Math.min(MAX_HEIGHT, currentHeightRef.current + deltaY)
+      );
+      currentHeightRef.current = newHeight;
+      actions.setCustomHeight(newHeight);
+    },
+    [actions]
+  );
+
+  const handleResizeEnd = useCallback(() => {
+    // Height is already persisted via atom, this is for any cleanup
+    console.log(
+      `[EmbeddedBlockWrapper] Resize complete: ${currentHeightRef.current}px`
+    );
+  }, []);
+
+  // Block node protection: Prevent keyboard deletion
+  // Nodes can ONLY be deleted via explicit UI (trash button in header)
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selected && editor.isEditable) {
+        if (selected) {
+          // Stop deletion propagation — protect the node
           e.preventDefault();
           e.stopPropagation();
-          deleteNode();
+          // Do NOT call deleteNode() — explicit UI only
         }
       }
     },
-    [selected, editor.isEditable, deleteNode]
+    [selected]
   );
 
   // Context value
@@ -314,6 +437,7 @@ export function EmbeddedBlockWrapper({
       badge,
       tabs,
       isEditable: editor.isEditable,
+      dataplane: dataplaneState,
       actions: {
         toggleFold: actions.toggleFold,
         expand: actions.expand,
@@ -326,7 +450,7 @@ export function EmbeddedBlockWrapper({
         reconnectStream: () => actions.setStreamStatus('connecting'),
       },
     }),
-    [state, badge, tabs, editor.isEditable, actions]
+    [state, badge, tabs, editor.isEditable, actions, dataplaneState]
   );
 
   const badgeColors = BADGE_COLORS[badge.tag] || BADGE_COLORS['custom'];
@@ -471,6 +595,18 @@ export function EmbeddedBlockWrapper({
             onToggleSettings={actions.toggleSettings}
             onEnterFocus={() => focusActions.enterFocus(blockId)}
             onRename={handleRename}
+            onDelete={() => {
+              // Use editor chain with meta to bypass node protection
+              editor
+                .chain()
+                .focus()
+                .command(({ tr }) => {
+                  tr.setMeta('allowProtectedNodeDeletion', true);
+                  return true;
+                })
+                .deleteNode(node.type.name)
+                .run();
+            }}
           />
         )}
 
@@ -482,7 +618,7 @@ export function EmbeddedBlockWrapper({
               : state.foldState === 'minimized'
               ? 0
               : contentExpanded
-              ? expandedHeight
+              ? effectiveExpandedHeight
               : collapsedHeight,
             overflow: 'hidden',
             transition: isThisBlockFocused ? 'none' : 'height 200ms ease',
@@ -509,7 +645,7 @@ export function EmbeddedBlockWrapper({
                   : isThisBlockFocused
                   ? '100%'
                   : contentExpanded
-                  ? expandedHeight
+                  ? effectiveExpandedHeight
                   : collapsedHeight,
               visibility:
                 state.foldState === 'minimized' ? 'hidden' : 'visible',
@@ -519,8 +655,32 @@ export function EmbeddedBlockWrapper({
               padding: isThisBlockFocused ? VANTA_SPACING['4'] : undefined,
             }}
           >
+            {/* Dataplane Port Indicators */}
+            {dataplaneConfig?.enabled &&
+              dataplaneConfig.showIndicators !== false &&
+              state.foldState !== 'minimized' &&
+              registeredPorts.map((port) => (
+                <LinkPortIndicator
+                  key={port.id}
+                  portId={port.id}
+                  position={port.position}
+                  direction={port.direction}
+                  dataType={port.dataType}
+                />
+              ))}
+
             {children}
           </div>
+
+          {/* Resize handle - only show when expanded and not in focus mode */}
+          {!isThisBlockFocused && contentExpanded && (
+            <ResizeHandle
+              onResize={handleResize}
+              onResizeEnd={handleResizeEnd}
+              minHeight={80}
+              maxHeight={800}
+            />
+          )}
         </div>
 
         {!isThisBlockFocused && state.settingsOpen && tabs.length > 0 && (
@@ -671,6 +831,8 @@ interface HeaderProps {
   onToggleSettings: () => void;
   onEnterFocus: () => void;
   onRename?: (newName: string) => Promise<void>;
+  /** Explicit delete handler (bypasses keyboard protection) */
+  onDelete: () => void;
 }
 
 function Header({
@@ -687,6 +849,7 @@ function Header({
   onToggleSettings,
   onEnterFocus,
   onRename,
+  onDelete,
 }: HeaderProps) {
   const Icon = badge.icon;
 
@@ -819,6 +982,17 @@ function Header({
             <Settings size={14} />
           </HeaderButton>
         )}
+
+        {/* Delete button — explicit UI deletion (bypasses keyboard protection) */}
+        <HeaderButton
+          onClick={onDelete}
+          title="Delete block"
+          debugLabel={`Delete [${blockId}]`}
+          activeColor={VANTA_COLORS.accent.rose}
+          activeBg={VANTA_COLORS.accent.roseGlow}
+        >
+          <Trash2 size={14} />
+        </HeaderButton>
       </div>
     </div>
   );
@@ -898,6 +1072,120 @@ function SettingsPanel({ tabs, activeTab, onTabChange }: SettingsPanelProps) {
           </Tabs.Content>
         ))}
       </Tabs.Root>
+    </div>
+  );
+}
+
+// =============================================================================
+// ResizeHandle Sub-component
+// =============================================================================
+
+interface ResizeHandleProps {
+  onResize: (deltaY: number) => void;
+  onResizeEnd: () => void;
+  minHeight?: number;
+  maxHeight?: number;
+  disabled?: boolean;
+}
+
+function ResizeHandle({
+  onResize,
+  onResizeEnd,
+  disabled = false,
+}: ResizeHandleProps) {
+  const [isDragging, setIsDragging] = useState(false);
+  const startYRef = useRef(0);
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (disabled) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(true);
+      startYRef.current = e.clientY;
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    },
+    [disabled]
+  );
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const deltaY = e.clientY - startYRef.current;
+      startYRef.current = e.clientY;
+      onResize(deltaY);
+    },
+    [isDragging, onResize]
+  );
+
+  const handlePointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+      onResizeEnd();
+    },
+    [isDragging, onResizeEnd]
+  );
+
+  if (disabled) return null;
+
+  return (
+    <div
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: '12px',
+        cursor: 'ns-resize',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: isDragging
+          ? VANTA_COLORS.surface.hover
+          : 'transparent',
+        transition: isDragging
+          ? 'none'
+          : `background-color ${VANTA_ANIMATION.duration.fast}`,
+        zIndex: 10,
+      }}
+      title="Drag to resize"
+    >
+      <div
+        style={{
+          width: '48px',
+          height: '4px',
+          borderRadius: '2px',
+          backgroundColor: isDragging
+            ? VANTA_COLORS.accent.cyan
+            : VANTA_COLORS.surface.border,
+          opacity: isDragging ? 1 : 0.6,
+          transition: isDragging
+            ? 'none'
+            : `all ${VANTA_ANIMATION.duration.fast}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <GripHorizontal
+          size={10}
+          style={{
+            color: isDragging
+              ? VANTA_COLORS.surface.elevated
+              : VANTA_COLORS.text.muted,
+          }}
+        />
+      </div>
     </div>
   );
 }
