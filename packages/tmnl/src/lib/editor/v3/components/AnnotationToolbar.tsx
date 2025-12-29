@@ -4,30 +4,23 @@
  * Floating selection menu for creating annotations.
  * Appears when text is selected in the editor.
  *
- * Uses custom positioning based on selection coords.
+ * Uses TipTap's BubbleMenu for proper positioning.
  *
  * @module editor/v3/components/AnnotationToolbar
  */
 
-import {
-  forwardRef,
-  useCallback,
-  useState,
-  useEffect,
-  useRef,
-  type ReactNode,
-} from 'react';
-import { createPortal } from 'react-dom';
+import { forwardRef, useCallback, useState, type ReactNode } from 'react';
 import type { Editor } from '@tiptap/core';
+import { BubbleMenu } from '@tiptap/react/menus';
+import { TextSelection, AllSelection } from '@tiptap/pm/state';
 
 import {
   VANTA_COLORS,
-  VANTA_TYPOGRAPHY,
   VANTA_SPACING,
   VANTA_BORDERS,
   VANTA_ANIMATION,
 } from '@/components/portal/tokens';
-import { Intent, VisualStylePresets, type VisualStyle } from '../extensions/annotations/schemas';
+import { Intent, type VisualStyle } from '../extensions/annotations/schemas';
 
 // =============================================================================
 // Types
@@ -46,11 +39,6 @@ export interface AnnotationToolbarProps {
     visualStyle: VisualStyle;
     tags: string[];
   }) => void;
-}
-
-interface Position {
-  top: number;
-  left: number;
 }
 
 // =============================================================================
@@ -80,24 +68,6 @@ const NoteIcon = () => (
   </svg>
 );
 
-const SquiggleIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M3 17c2-3 6-3 8 0s6 3 8 0" strokeLinecap="round" />
-  </svg>
-);
-
-const PillIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="4" y="8" width="16" height="8" rx="4" />
-  </svg>
-);
-
-const ChevronDownIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="6,9 12,15 18,9" />
-  </svg>
-);
-
 const CloseIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <line x1="18" y1="6" x2="6" y2="18" />
@@ -116,7 +86,6 @@ interface ToolbarButtonProps {
   active?: boolean;
   disabled?: boolean;
   onClick?: () => void;
-  hasDropdown?: boolean;
 }
 
 function ToolbarButton({
@@ -126,7 +95,6 @@ function ToolbarButton({
   active = false,
   disabled = false,
   onClick,
-  hasDropdown = false,
 }: ToolbarButtonProps) {
   const tooltipText = shortcut ? `${label} (${shortcut})` : label;
 
@@ -143,7 +111,7 @@ function ToolbarButton({
         gap: '2px',
         minWidth: 28,
         height: 28,
-        padding: hasDropdown ? '0 4px' : 0,
+        padding: 0,
         borderRadius: VANTA_BORDERS.radius.sm,
         border: 'none',
         backgroundColor: active
@@ -158,7 +126,6 @@ function ToolbarButton({
       }}
     >
       {icon}
-      {hasDropdown && <ChevronDownIcon />}
     </button>
   );
 }
@@ -194,32 +161,23 @@ const ANNOTATION_COLORS = [
 ];
 
 // =============================================================================
-// Style Selector Dropdown
+// Style Selector
 // =============================================================================
 
 interface StyleSelectorProps {
-  editor: Editor;
-  selectedStyle: 'highlight' | 'pill' | 'squiggle' | 'underline';
-  onStyleChange: (style: 'highlight' | 'pill' | 'squiggle' | 'underline') => void;
   selectedColor: string;
   onColorChange: (color: string) => void;
 }
 
-function StyleSelector({
-  editor,
-  selectedStyle,
-  onStyleChange,
-  selectedColor,
-  onColorChange,
-}: StyleSelectorProps) {
+function StyleSelector({ selectedColor, onColorChange }: StyleSelectorProps) {
   // Cycle to next color on click
   const handleClick = () => {
-    const currentIndex = ANNOTATION_COLORS.findIndex(c => c.token === selectedColor);
+    const currentIndex = ANNOTATION_COLORS.findIndex((c) => c.token === selectedColor);
     const nextIndex = (currentIndex + 1) % ANNOTATION_COLORS.length;
     onColorChange(ANNOTATION_COLORS[nextIndex].token);
   };
 
-  const currentColor = ANNOTATION_COLORS.find(c => c.token === selectedColor);
+  const currentColor = ANNOTATION_COLORS.find((c) => c.token === selectedColor);
 
   return (
     <button
@@ -253,77 +211,26 @@ function StyleSelector({
 }
 
 // =============================================================================
-// Selection Position Hook
+// Toolbar Content (extracted for BubbleMenu children)
 // =============================================================================
 
-function useSelectionPosition(editor: Editor): Position | null {
-  const [position, setPosition] = useState<Position | null>(null);
-
-  useEffect(() => {
-    if (!editor?.view) return;
-
-    const updatePosition = () => {
-      const { state } = editor;
-      const { from, to } = state.selection;
-
-      // No selection or collapsed selection
-      if (from === to) {
-        setPosition(null);
-        return;
-      }
-
-      // Get selection coordinates
-      try {
-        const start = editor.view.coordsAtPos(from);
-        const end = editor.view.coordsAtPos(to);
-
-        // Position above the selection, centered
-        const top = start.top - 48; // 48px above
-        const left = (start.left + end.right) / 2;
-
-        setPosition({ top, left });
-      } catch {
-        setPosition(null);
-      }
-    };
-
-    // Update on selection change
-    editor.on('selectionUpdate', updatePosition);
-    editor.on('focus', updatePosition);
-    editor.on('blur', () => setPosition(null));
-
-    // Initial update
-    updatePosition();
-
-    return () => {
-      editor.off('selectionUpdate', updatePosition);
-      editor.off('focus', updatePosition);
-      editor.off('blur', () => setPosition(null));
-    };
-  }, [editor]);
-
-  return position;
+interface ToolbarContentProps {
+  editor: Editor;
+  selectedStyle: 'highlight' | 'pill' | 'squiggle' | 'underline';
+  selectedColor: string;
+  onColorChange: (color: string) => void;
+  onAnnotate?: AnnotationToolbarProps['onAnnotate'];
+  className?: string;
+  style?: React.CSSProperties;
 }
 
-// =============================================================================
-// Main Component
-// =============================================================================
-
-export const AnnotationToolbar = forwardRef<HTMLDivElement, AnnotationToolbarProps>(
-  function AnnotationToolbar({ editor, className, style, onAnnotate }, ref) {
-    const [selectedStyle, setSelectedStyle] = useState<
-      'highlight' | 'pill' | 'squiggle' | 'underline'
-    >('highlight');
-    const [selectedColor, setSelectedColor] = useState('accent.yellow');
-
-    const position = useSelectionPosition(editor);
-
+const ToolbarContent = forwardRef<HTMLDivElement, ToolbarContentProps>(
+  function ToolbarContent(
+    { editor, selectedStyle, selectedColor, onColorChange, onAnnotate, className, style },
+    ref
+  ) {
     // Check if selection already has an intent mark
     const hasIntentMark = editor.isActive('intentMark');
-
-    // Check if there's a text selection
-    const { from, to } = editor.state.selection;
-    const hasSelection = from !== to;
 
     // Handle highlight action
     const handleHighlight = useCallback(() => {
@@ -334,11 +241,15 @@ export const AnnotationToolbar = forwardRef<HTMLDivElement, AnnotationToolbarPro
         animated: false,
       };
 
-      editor.chain().focus().setIntentMark({
-        visualStyle,
-        intent: Intent.note('', 'comment'),
-        tags: [],
-      }).run();
+      editor
+        .chain()
+        .focus()
+        .setIntentMark({
+          visualStyle,
+          intent: Intent.note('', 'comment'),
+          tags: [],
+        })
+        .run();
 
       onAnnotate?.({
         intent: Intent.note('', 'comment'),
@@ -364,11 +275,15 @@ export const AnnotationToolbar = forwardRef<HTMLDivElement, AnnotationToolbarPro
         animated: true,
       };
 
-      editor.chain().focus().setIntentMark({
-        visualStyle,
-        intent: Intent.note('', 'sticky'),
-        tags: ['note'],
-      }).run();
+      editor
+        .chain()
+        .focus()
+        .setIntentMark({
+          visualStyle,
+          intent: Intent.note('', 'sticky'),
+          tags: ['note'],
+        })
+        .run();
 
       onAnnotate?.({
         intent: Intent.note('', 'sticky'),
@@ -382,20 +297,11 @@ export const AnnotationToolbar = forwardRef<HTMLDivElement, AnnotationToolbarPro
       editor.chain().focus().unsetIntentMark().run();
     }, [editor]);
 
-    // Don't render if no selection or not editable
-    if (!hasSelection || !editor.isEditable || !position) {
-      return null;
-    }
-
-    const toolbar = (
+    return (
       <div
         ref={ref}
         className={className}
         style={{
-          position: 'fixed',
-          top: position.top,
-          left: position.left,
-          transform: 'translateX(-50%)',
           display: 'flex',
           alignItems: 'center',
           gap: VANTA_SPACING['1'],
@@ -405,20 +311,12 @@ export const AnnotationToolbar = forwardRef<HTMLDivElement, AnnotationToolbarPro
           border: VANTA_BORDERS.style.hairline,
           backdropFilter: 'blur(12px)',
           boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
-          zIndex: 9998,
-          // CSS animation instead of framer-motion
           animation: 'annotationToolbarFadeIn 0.15s ease-out',
           ...style,
         }}
       >
         {/* Style/Color selector */}
-        <StyleSelector
-          editor={editor}
-          selectedStyle={selectedStyle}
-          onStyleChange={setSelectedStyle}
-          selectedColor={selectedColor}
-          onColorChange={setSelectedColor}
-        />
+        <StyleSelector selectedColor={selectedColor} onColorChange={onColorChange} />
 
         <ToolbarDivider />
 
@@ -431,18 +329,9 @@ export const AnnotationToolbar = forwardRef<HTMLDivElement, AnnotationToolbarPro
           onClick={handleHighlight}
         />
 
-        <ToolbarButton
-          icon={<LinkIcon />}
-          label="Link"
-          shortcut="⌘K"
-          onClick={handleLink}
-        />
+        <ToolbarButton icon={<LinkIcon />} label="Link" shortcut="⌘K" onClick={handleLink} />
 
-        <ToolbarButton
-          icon={<NoteIcon />}
-          label="Note"
-          onClick={handleNote}
-        />
+        <ToolbarButton icon={<NoteIcon />} label="Note" onClick={handleNote} />
 
         {hasIntentMark && (
           <>
@@ -456,9 +345,58 @@ export const AnnotationToolbar = forwardRef<HTMLDivElement, AnnotationToolbarPro
         )}
       </div>
     );
+  }
+);
 
-    // Render to body to avoid DOM conflicts with editor mutations
-    return createPortal(toolbar, document.body);
+// =============================================================================
+// Main Component - Uses TipTap's BubbleMenu
+// =============================================================================
+
+export const AnnotationToolbar = forwardRef<HTMLDivElement, AnnotationToolbarProps>(
+  function AnnotationToolbar({ editor, className, style, onAnnotate }, ref) {
+    const [selectedStyle] = useState<'highlight' | 'pill' | 'squiggle' | 'underline'>('highlight');
+    const [selectedColor, setSelectedColor] = useState('accent.yellow');
+
+    // Don't render if editor is not ready
+    if (!editor) {
+      return null;
+    }
+
+    return (
+      <BubbleMenu
+        editor={editor}
+        tippyOptions={{
+          placement: 'top',
+          animation: 'fade',
+          duration: 150,
+          // Ensure it stays visible during interaction
+          interactive: true,
+          // Append to body to avoid clipping issues
+          appendTo: () => document.body,
+        }}
+        // Only show when there's a text selection (not on node selections like images)
+        shouldShow={({ editor, state }) => {
+          const { from, to } = state.selection;
+          const hasSelection = from !== to;
+          // Allow TextSelection (normal selection) and AllSelection (Ctrl+A)
+          const isTextLikeSelection =
+            state.selection instanceof TextSelection ||
+            state.selection instanceof AllSelection;
+          return hasSelection && isTextLikeSelection && editor.isEditable;
+        }}
+      >
+        <ToolbarContent
+          ref={ref}
+          editor={editor}
+          selectedStyle={selectedStyle}
+          selectedColor={selectedColor}
+          onColorChange={setSelectedColor}
+          onAnnotate={onAnnotate}
+          className={className}
+          style={style}
+        />
+      </BubbleMenu>
+    );
   }
 );
 
