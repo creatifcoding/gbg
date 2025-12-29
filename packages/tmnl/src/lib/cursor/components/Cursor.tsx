@@ -9,7 +9,7 @@
  * - Pill ↔ Chat state transitions
  */
 
-import { useRef, useEffect, useCallback, useMemo } from 'react'
+import { useRef, useEffect, useCallback, useMemo, useState } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
 import { useAtomValue } from '@effect-atom/atom-react'
@@ -41,8 +41,8 @@ import type { IslandSize } from '../schemas/position'
 const SIZE_PRESETS: Record<string, IslandSize> = {
   minimal: { width: 120, height: 40 },
   compact: { width: 200, height: 48 },
-  default: { width: 360, height: 400 },
-  expanded: { width: 480, height: 560 },
+  default: { width: 480, height: 560 },
+  expanded: { width: 560, height: 680 },
 }
 
 const getIslandSize = (sizeKey: string): IslandSize =>
@@ -99,27 +99,16 @@ function CursorInner() {
     onFinish: ({ message }) => {
       cursorRegistry.set(statusAtom, 'idle')
 
-      // Parse AI response for semantic position/visibility intents
-      // AI SDK 5.0+: message.parts replaces message.content
-      const textContent = message.parts
-        ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
-        .map((part) => part.text)
-        .join('') ?? ''
-
-      if (textContent) {
-        const intent = parseIntent(textContent)
-        if (Option.isSome(intent)) {
-          const { value } = intent
-          if (value._tag === 'move') {
-            // Auto-reposition based on AI's semantic intent
-            cursorOps.moveTo({ position: value.corner, islandSize })
-          } else if (value._tag === 'minimize') {
-            cursorOps.collapse()
-          } else if (value._tag === 'expand') {
-            cursorOps.expand()
-          }
-        }
-      }
+      // NOTE: Intent parsing disabled - too aggressive, triggers on common words
+      // TODO: Re-enable with explicit markers like [INTENT:MOVE:bottom-right]
+      // const textContent = message.parts
+      //   ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+      //   .map((part) => part.text)
+      //   .join('') ?? ''
+      // if (textContent) {
+      //   const intent = parseIntent(textContent)
+      //   if (Option.isSome(intent)) { ... }
+      // }
     },
     onError: (error) => {
       console.error('[Cursor] Chat error:', error)
@@ -141,9 +130,11 @@ function CursorInner() {
     }
   }, [status])
 
-  // Initialize position when bounds are ready
+  // Initialize position ONCE when bounds are first ready
+  const hasInitialized = useRef(false)
   useEffect(() => {
-    if (hasBounds) {
+    if (hasBounds && !hasInitialized.current) {
+      hasInitialized.current = true
       cursorOps.initializeToBottomRight({ islandSize })
     }
   }, [hasBounds, islandSize])
@@ -191,6 +182,7 @@ function CursorInner() {
     <DynamicIsland
       position={position}
       draggable
+      shiftDragOnly
       onDragEnd={handleDragEnd}
       dragConstraints={dragConstraints}
     >

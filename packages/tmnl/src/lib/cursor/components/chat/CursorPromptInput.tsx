@@ -57,13 +57,31 @@ export function CursorPromptInput({
   }, [])
 
   // Handle keyboard shortcuts
+  // Enter → send, Shift+Enter → newline, Escape → collapse
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === 'Escape') {
         onCollapse()
+        return
       }
+
+      // Enter to send (without Shift)
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault()
+        const textarea = e.currentTarget
+        const content = textarea.value.trim()
+        if (content || attachments.length > 0) {
+          if (!isStreaming) {
+            const currentAttachments = [...cursorRegistry.get(attachmentsAtom)]
+            cursorOps.clearAttachments()
+            textarea.value = ''
+            onSend(content, currentAttachments)
+          }
+        }
+      }
+      // Shift+Enter allows default behavior (newline)
     },
-    [onCollapse]
+    [onCollapse, isStreaming, onSend, attachments.length]
   )
 
   // Handle file selection
@@ -107,7 +125,11 @@ export function CursorPromptInput({
   return (
     <div
       className="px-4 py-3"
-      style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}
+      style={{
+        background: 'oklch(0.04 0 0)',
+        borderBottomLeftRadius: 16,
+        borderBottomRightRadius: 16,
+      }}
     >
       {/* Hidden file input */}
       <input
@@ -123,8 +145,8 @@ export function CursorPromptInput({
         onSubmit={handleSubmit}
         className="rounded-lg overflow-hidden"
         style={{
-          background: 'rgba(255, 255, 255, 0.05)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'oklch(0.06 0 0)',
+          border: '1px solid oklch(0.15 0 0)',
         }}
       >
         {/* Attachments preview */}
@@ -134,9 +156,10 @@ export function CursorPromptInput({
               <PromptInputAttachment
                 key={attachment.id}
                 data={attachment}
-                className="bg-white/5 border-white/10"
+                className="border-white/5"
                 style={{
-                  color: 'rgba(255, 255, 255, 0.7)',
+                  background: 'oklch(0.08 0 0)',
+                  color: 'oklch(0.7 0 0)',
                 }}
               />
             )}
@@ -149,24 +172,26 @@ export function CursorPromptInput({
           placeholder={isStreaming ? 'Thinking...' : placeholder}
           disabled={isStreaming}
           onKeyDown={handleKeyDown}
-          className="min-h-[40px] resize-none bg-transparent text-sm"
+          className="min-h-[44px] resize-none bg-transparent"
           style={{
-            color: 'rgba(255, 255, 255, 0.9)',
-            caretColor: '#60f0a0',
+            color: 'var(--tmnl-text-primary, oklch(0.88 0 0))',
+            caretColor: 'oklch(0.75 0.15 160)',
+            fontSize: 'var(--tmnl-text-sm, 14px)',
+            lineHeight: 'var(--tmnl-leading-relaxed, 1.6)',
           }}
         />
 
         {/* Footer with tools and submit */}
         <PromptInputFooter
           className="px-2 py-1.5"
-          style={{ background: 'rgba(0, 0, 0, 0.2)' }}
+          style={{ background: 'oklch(0.04 0 0)' }}
         >
           <PromptInputTools>
             <PromptInputButton
               onClick={openFileDialog}
               disabled={isStreaming}
-              className="transition-colors hover:bg-white/10"
-              style={{ color: 'rgba(255, 255, 255, 0.5)' }}
+              className="transition-colors hover:bg-white/5"
+              style={{ color: 'oklch(0.5 0 0)' }}
             >
               <PaperclipIcon className="h-4 w-4" />
             </PromptInputButton>
@@ -177,9 +202,9 @@ export function CursorPromptInput({
             className="transition-colors"
             style={{
               background: !isStreaming
-                ? 'linear-gradient(135deg, #60f0a0, #30d080)'
-                : 'rgba(100, 100, 100, 0.3)',
-              color: !isStreaming ? '#000' : 'rgba(255, 255, 255, 0.3)',
+                ? 'oklch(0.7 0.15 160)'
+                : 'oklch(0.2 0 0)',
+              color: !isStreaming ? 'oklch(0.1 0 0)' : 'oklch(0.4 0 0)',
             }}
           >
             <SendIcon className="h-4 w-4" />

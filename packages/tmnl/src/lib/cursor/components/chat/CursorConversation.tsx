@@ -20,6 +20,7 @@ import { MessageCircleIcon } from 'lucide-react'
 interface CursorConversationProps {
   messages: UIMessage[]
   isStreaming?: boolean
+  zoom?: number
   onRetry?: (messageId: string) => void
   onLike?: (messageId: string) => void
   onDislike?: (messageId: string) => void
@@ -28,6 +29,7 @@ interface CursorConversationProps {
 export function CursorConversation({
   messages,
   isStreaming = false,
+  zoom = 1,
   onRetry,
   onLike,
   onDislike,
@@ -47,7 +49,14 @@ export function CursorConversation({
 
   return (
     <Conversation className="flex-1 min-h-0">
-      <ConversationContent className="gap-4 p-4">
+      <ConversationContent
+        className="gap-4 p-4"
+        style={{
+          transform: `scale(${zoom})`,
+          transformOrigin: 'top left',
+          width: `${100 / zoom}%`,
+        }}
+      >
         {messages.length === 0 ? (
           <ConversationEmptyState
             title="Say something..."
