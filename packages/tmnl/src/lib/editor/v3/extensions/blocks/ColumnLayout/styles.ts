@@ -76,19 +76,25 @@ export const columnLayoutStyles = `
   .column {
     min-width: 0; /* Prevent grid blowout from long content */
     padding: ${spacing[3]};
-    border: 1px dashed ${editorTheme.surface.border};
+    border: 1px dashed transparent;
     border-radius: ${borderRadius.md};
-    background: ${editorTheme.surface.secondary}40;
+    background: transparent;
     transition: border-color 150ms, background 150ms;
   }
 
-  .column:hover {
-    border-color: ${editorTheme.surface.border};
-    background: ${editorTheme.surface.secondary}60;
+  /* Only show column guides when controls are visible */
+  .column-layout[data-controls-visible="true"] .column {
+    border-color: ${editorTheme.surface.border}40;
+    background: ${editorTheme.surface.secondary}15;
+  }
+
+  .column-layout[data-controls-visible="true"] .column:hover {
+    border-color: ${editorTheme.surface.border}80;
+    background: ${editorTheme.surface.secondary}25;
   }
 
   .column:focus-within {
-    border-color: ${editorTheme.text.accent}40;
+    border-color: ${editorTheme.text.accent}30;
     border-style: solid;
   }
 
