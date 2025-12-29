@@ -76,6 +76,12 @@ export {
 // =============================================================================
 
 export {
+  // Primary hook (recommended)
+  useAnnotations,
+  type UseAnnotationsOptions,
+  type UseAnnotationsReturn,
+
+  // Lower-level hooks
   useIntentExecution,
   type UseIntentExecutionOptions,
   type UseIntentExecutionReturn,

@@ -17,3 +17,9 @@ export {
   type UseAnnotationPopoverOptions,
   type UseAnnotationPopoverReturn,
 } from './useAnnotationPopover';
+
+export {
+  useAnnotations,
+  type UseAnnotationsOptions,
+  type UseAnnotationsReturn,
+} from './useAnnotations';
