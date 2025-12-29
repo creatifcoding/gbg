@@ -4,16 +4,20 @@
  * Floating selection menu for creating annotations.
  * Appears when text is selected in the editor.
  *
- * Uses TipTap BubbleMenu with VANTA design tokens.
+ * Uses custom positioning based on selection coords.
  *
  * @module editor/v3/components/AnnotationToolbar
  */
 
-import { forwardRef, useCallback, useState, type ReactNode } from 'react';
-import { BubbleMenu } from '@tiptap/react';
-import { motion, AnimatePresence } from 'framer-motion';
-import * as Tooltip from '@radix-ui/react-tooltip';
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import {
+  forwardRef,
+  useCallback,
+  useState,
+  useEffect,
+  useRef,
+  type ReactNode,
+} from 'react';
+import { createPortal } from 'react-dom';
 import type { Editor } from '@tiptap/core';
 
 import {
@@ -44,6 +48,11 @@ export interface AnnotationToolbarProps {
   }) => void;
 }
 
+interface Position {
+  top: number;
+  left: number;
+}
+
 // =============================================================================
 // Icons (inline SVG for minimal deps)
 // =============================================================================
@@ -71,13 +80,6 @@ const NoteIcon = () => (
   </svg>
 );
 
-const ColorIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10" />
-    <circle cx="12" cy="12" r="3" fill="currentColor" />
-  </svg>
-);
-
 const SquiggleIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M3 17c2-3 6-3 8 0s6 3 8 0" strokeLinecap="round" />
@@ -93,6 +95,13 @@ const PillIcon = () => (
 const ChevronDownIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <polyline points="6,9 12,15 18,9" />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 );
 
@@ -119,74 +128,38 @@ function ToolbarButton({
   onClick,
   hasDropdown = false,
 }: ToolbarButtonProps) {
+  const tooltipText = shortcut ? `${label} (${shortcut})` : label;
+
   return (
-    <Tooltip.Root>
-      <Tooltip.Trigger asChild>
-        <motion.button
-          whileHover={{ scale: disabled ? 1 : 1.05 }}
-          whileTap={{ scale: disabled ? 1 : 0.95 }}
-          onClick={disabled ? undefined : onClick}
-          aria-label={label}
-          aria-pressed={active}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '2px',
-            minWidth: 28,
-            height: 28,
-            padding: hasDropdown ? '0 4px' : 0,
-            borderRadius: VANTA_BORDERS.radius.sm,
-            border: 'none',
-            backgroundColor: active
-              ? VANTA_COLORS.surface.raised
-              : 'transparent',
-            color: active
-              ? VANTA_COLORS.accent.cyan
-              : VANTA_COLORS.text.secondary,
-            cursor: disabled ? 'not-allowed' : 'pointer',
-            opacity: disabled ? 0.4 : 1,
-            transition: VANTA_ANIMATION.transition.colors,
-          }}
-        >
-          {icon}
-          {hasDropdown && <ChevronDownIcon />}
-        </motion.button>
-      </Tooltip.Trigger>
-      <Tooltip.Portal>
-        <Tooltip.Content
-          sideOffset={6}
-          style={{
-            padding: `${VANTA_SPACING['1']} ${VANTA_SPACING['2']}`,
-            backgroundColor: VANTA_COLORS.surface.base,
-            borderRadius: VANTA_BORDERS.radius.sm,
-            border: VANTA_BORDERS.style.subtle,
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
-            zIndex: 9999,
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: VANTA_SPACING['2'],
-              fontFamily: VANTA_TYPOGRAPHY.family.mono,
-              fontSize: VANTA_TYPOGRAPHY.size.xs,
-            }}
-          >
-            <span style={{ color: VANTA_COLORS.text.primary }}>{label}</span>
-            {shortcut && (
-              <span style={{ color: VANTA_COLORS.text.tertiary }}>{shortcut}</span>
-            )}
-          </div>
-          <Tooltip.Arrow
-            style={{
-              fill: VANTA_COLORS.surface.base,
-            }}
-          />
-        </Tooltip.Content>
-      </Tooltip.Portal>
-    </Tooltip.Root>
+    <button
+      onClick={disabled ? undefined : onClick}
+      aria-label={label}
+      aria-pressed={active}
+      title={tooltipText}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '2px',
+        minWidth: 28,
+        height: 28,
+        padding: hasDropdown ? '0 4px' : 0,
+        borderRadius: VANTA_BORDERS.radius.sm,
+        border: 'none',
+        backgroundColor: active
+          ? VANTA_COLORS.surface.raised
+          : 'transparent',
+        color: active
+          ? VANTA_COLORS.accent.cyan
+          : VANTA_COLORS.text.secondary,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.4 : 1,
+        transition: VANTA_ANIMATION.transition.colors,
+      }}
+    >
+      {icon}
+      {hasDropdown && <ChevronDownIcon />}
+    </button>
   );
 }
 
@@ -200,7 +173,7 @@ function ToolbarDivider() {
       style={{
         width: 1,
         height: 16,
-        backgroundColor: VANTA_COLORS.border.subtle,
+        backgroundColor: VANTA_COLORS.surface.border,
         margin: `0 ${VANTA_SPACING['1']}`,
       }}
     />
@@ -239,150 +212,97 @@ function StyleSelector({
   selectedColor,
   onColorChange,
 }: StyleSelectorProps) {
+  // Cycle to next color on click
+  const handleClick = () => {
+    const currentIndex = ANNOTATION_COLORS.findIndex(c => c.token === selectedColor);
+    const nextIndex = (currentIndex + 1) % ANNOTATION_COLORS.length;
+    onColorChange(ANNOTATION_COLORS[nextIndex].token);
+  };
+
+  const currentColor = ANNOTATION_COLORS.find(c => c.token === selectedColor);
+
   return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            height: 28,
-            padding: '0 6px',
-            borderRadius: VANTA_BORDERS.radius.sm,
-            border: 'none',
-            backgroundColor: 'transparent',
-            color: VANTA_COLORS.text.secondary,
-            cursor: 'pointer',
-            transition: VANTA_ANIMATION.transition.colors,
-          }}
-        >
-          <div
-            style={{
-              width: 12,
-              height: 12,
-              borderRadius: 2,
-              backgroundColor: selectedColor,
-            }}
-          />
-          <ChevronDownIcon />
-        </motion.button>
-      </DropdownMenu.Trigger>
-
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content
-          sideOffset={8}
-          style={{
-            minWidth: 160,
-            padding: VANTA_SPACING['2'],
-            backgroundColor: VANTA_COLORS.surface.elevated,
-            borderRadius: VANTA_BORDERS.radius.md,
-            border: VANTA_BORDERS.style.subtle,
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5)',
-            zIndex: 9999,
-          }}
-        >
-          {/* Style options */}
-          <div style={{ marginBottom: VANTA_SPACING['2'] }}>
-            <div
-              style={{
-                fontSize: VANTA_TYPOGRAPHY.size.xs,
-                color: VANTA_COLORS.text.tertiary,
-                marginBottom: VANTA_SPACING['1'],
-                fontFamily: VANTA_TYPOGRAPHY.family.mono,
-              }}
-            >
-              Style
-            </div>
-            <div style={{ display: 'flex', gap: VANTA_SPACING['1'] }}>
-              {[
-                { key: 'highlight', icon: <HighlightIcon />, label: 'Highlight' },
-                { key: 'pill', icon: <PillIcon />, label: 'Pill' },
-                { key: 'squiggle', icon: <SquiggleIcon />, label: 'Squiggle' },
-              ].map(({ key, icon, label }) => (
-                <DropdownMenu.Item
-                  key={key}
-                  onSelect={() => onStyleChange(key as any)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 32,
-                    height: 32,
-                    borderRadius: VANTA_BORDERS.radius.sm,
-                    backgroundColor:
-                      selectedStyle === key
-                        ? VANTA_COLORS.surface.raised
-                        : 'transparent',
-                    color:
-                      selectedStyle === key
-                        ? VANTA_COLORS.accent.cyan
-                        : VANTA_COLORS.text.secondary,
-                    cursor: 'pointer',
-                    outline: 'none',
-                  }}
-                  title={label}
-                >
-                  {icon}
-                </DropdownMenu.Item>
-              ))}
-            </div>
-          </div>
-
-          <DropdownMenu.Separator
-            style={{
-              height: 1,
-              backgroundColor: VANTA_COLORS.border.subtle,
-              margin: `${VANTA_SPACING['2']} 0`,
-            }}
-          />
-
-          {/* Color palette */}
-          <div>
-            <div
-              style={{
-                fontSize: VANTA_TYPOGRAPHY.size.xs,
-                color: VANTA_COLORS.text.tertiary,
-                marginBottom: VANTA_SPACING['1'],
-                fontFamily: VANTA_TYPOGRAPHY.family.mono,
-              }}
-            >
-              Color
-            </div>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(6, 1fr)',
-                gap: VANTA_SPACING['1'],
-              }}
-            >
-              {ANNOTATION_COLORS.map(({ name, token, color }) => (
-                <DropdownMenu.Item
-                  key={token}
-                  onSelect={() => onColorChange(token)}
-                  style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: '50%',
-                    backgroundColor: color,
-                    cursor: 'pointer',
-                    outline:
-                      selectedColor === token
-                        ? `2px solid ${VANTA_COLORS.accent.cyan}`
-                        : 'none',
-                    outlineOffset: 2,
-                  }}
-                  title={name}
-                />
-              ))}
-            </div>
-          </div>
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+    <button
+      onClick={handleClick}
+      title={`Color: ${currentColor?.name || 'Yellow'} (click to change)`}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        height: 28,
+        padding: '0 6px',
+        borderRadius: VANTA_BORDERS.radius.sm,
+        border: 'none',
+        backgroundColor: 'transparent',
+        color: VANTA_COLORS.text.secondary,
+        cursor: 'pointer',
+        transition: VANTA_ANIMATION.transition.colors,
+      }}
+    >
+      <div
+        style={{
+          width: 12,
+          height: 12,
+          borderRadius: 2,
+          backgroundColor: currentColor?.color || '#ffd93d',
+          boxShadow: `0 0 6px ${currentColor?.color || '#ffd93d'}`,
+        }}
+      />
+    </button>
   );
+}
+
+// =============================================================================
+// Selection Position Hook
+// =============================================================================
+
+function useSelectionPosition(editor: Editor): Position | null {
+  const [position, setPosition] = useState<Position | null>(null);
+
+  useEffect(() => {
+    if (!editor?.view) return;
+
+    const updatePosition = () => {
+      const { state } = editor;
+      const { from, to } = state.selection;
+
+      // No selection or collapsed selection
+      if (from === to) {
+        setPosition(null);
+        return;
+      }
+
+      // Get selection coordinates
+      try {
+        const start = editor.view.coordsAtPos(from);
+        const end = editor.view.coordsAtPos(to);
+
+        // Position above the selection, centered
+        const top = start.top - 48; // 48px above
+        const left = (start.left + end.right) / 2;
+
+        setPosition({ top, left });
+      } catch {
+        setPosition(null);
+      }
+    };
+
+    // Update on selection change
+    editor.on('selectionUpdate', updatePosition);
+    editor.on('focus', updatePosition);
+    editor.on('blur', () => setPosition(null));
+
+    // Initial update
+    updatePosition();
+
+    return () => {
+      editor.off('selectionUpdate', updatePosition);
+      editor.off('focus', updatePosition);
+      editor.off('blur', () => setPosition(null));
+    };
+  }, [editor]);
+
+  return position;
 }
 
 // =============================================================================
@@ -396,8 +316,14 @@ export const AnnotationToolbar = forwardRef<HTMLDivElement, AnnotationToolbarPro
     >('highlight');
     const [selectedColor, setSelectedColor] = useState('accent.yellow');
 
+    const position = useSelectionPosition(editor);
+
     // Check if selection already has an intent mark
     const hasIntentMark = editor.isActive('intentMark');
+
+    // Check if there's a text selection
+    const { from, to } = editor.state.selection;
+    const hasSelection = from !== to;
 
     // Handle highlight action
     const handleHighlight = useCallback(() => {
@@ -456,92 +382,83 @@ export const AnnotationToolbar = forwardRef<HTMLDivElement, AnnotationToolbarPro
       editor.chain().focus().unsetIntentMark().run();
     }, [editor]);
 
-    return (
-      <BubbleMenu
-        editor={editor}
-        tippyOptions={{
-          duration: 150,
-          placement: 'top',
-          offset: [0, 8],
-        }}
-        shouldShow={({ editor, state }) => {
-          // Only show when there's a text selection
-          const { from, to } = state.selection;
-          return from !== to && editor.isEditable;
+    // Don't render if no selection or not editable
+    if (!hasSelection || !editor.isEditable || !position) {
+      return null;
+    }
+
+    const toolbar = (
+      <div
+        ref={ref}
+        className={className}
+        style={{
+          position: 'fixed',
+          top: position.top,
+          left: position.left,
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: VANTA_SPACING['1'],
+          padding: `${VANTA_SPACING['1']} ${VANTA_SPACING['2']}`,
+          backgroundColor: VANTA_COLORS.surface.elevated,
+          borderRadius: VANTA_BORDERS.radius.md,
+          border: VANTA_BORDERS.style.hairline,
+          backdropFilter: 'blur(12px)',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+          zIndex: 9998,
+          // CSS animation instead of framer-motion
+          animation: 'annotationToolbarFadeIn 0.15s ease-out',
+          ...style,
         }}
       >
-        <Tooltip.Provider delayDuration={300}>
-          <motion.div
-            ref={ref}
-            initial={{ opacity: 0, y: 4, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            className={className}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: VANTA_SPACING['1'],
-              padding: `${VANTA_SPACING['1']} ${VANTA_SPACING['2']}`,
-              backgroundColor: VANTA_COLORS.surface.elevated,
-              borderRadius: VANTA_BORDERS.radius.md,
-              border: VANTA_BORDERS.style.hairline,
-              backdropFilter: 'blur(12px)',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
-              ...style,
-            }}
-          >
-            {/* Style/Color selector */}
-            <StyleSelector
-              editor={editor}
-              selectedStyle={selectedStyle}
-              onStyleChange={setSelectedStyle}
-              selectedColor={selectedColor}
-              onColorChange={setSelectedColor}
-            />
+        {/* Style/Color selector */}
+        <StyleSelector
+          editor={editor}
+          selectedStyle={selectedStyle}
+          onStyleChange={setSelectedStyle}
+          selectedColor={selectedColor}
+          onColorChange={setSelectedColor}
+        />
 
+        <ToolbarDivider />
+
+        {/* Quick actions */}
+        <ToolbarButton
+          icon={<HighlightIcon />}
+          label="Highlight"
+          shortcut="⌘⇧H"
+          active={hasIntentMark}
+          onClick={handleHighlight}
+        />
+
+        <ToolbarButton
+          icon={<LinkIcon />}
+          label="Link"
+          shortcut="⌘K"
+          onClick={handleLink}
+        />
+
+        <ToolbarButton
+          icon={<NoteIcon />}
+          label="Note"
+          onClick={handleNote}
+        />
+
+        {hasIntentMark && (
+          <>
             <ToolbarDivider />
-
-            {/* Quick actions */}
             <ToolbarButton
-              icon={<HighlightIcon />}
-              label="Highlight"
-              shortcut="Mod+Shift+H"
-              active={hasIntentMark && editor.getAttributes('intentMark').visualStyle?.includes('highlight')}
-              onClick={handleHighlight}
+              icon={<CloseIcon />}
+              label="Remove annotation"
+              onClick={handleRemove}
             />
-
-            <ToolbarButton
-              icon={<LinkIcon />}
-              label="Link"
-              shortcut="Mod+K"
-              onClick={handleLink}
-            />
-
-            <ToolbarButton
-              icon={<NoteIcon />}
-              label="Note"
-              onClick={handleNote}
-            />
-
-            {hasIntentMark && (
-              <>
-                <ToolbarDivider />
-                <ToolbarButton
-                  icon={
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  }
-                  label="Remove annotation"
-                  onClick={handleRemove}
-                />
-              </>
-            )}
-          </motion.div>
-        </Tooltip.Provider>
-      </BubbleMenu>
+          </>
+        )}
+      </div>
     );
+
+    // Render to body to avoid DOM conflicts with editor mutations
+    return createPortal(toolbar, document.body);
   }
 );
 

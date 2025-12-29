@@ -9,6 +9,21 @@
 
 export const annotationStyles = /* css */ `
 /* =============================================================================
+   Annotation Toolbar Animation
+   ============================================================================= */
+
+@keyframes annotationToolbarFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+/* =============================================================================
    Base Intent Mark Styles
    ============================================================================= */
 
