@@ -5,8 +5,73 @@ import path from 'path';
 import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
 import { VitePWA } from 'vite-plugin-pwa'; // Import VitePWA
+import type { Plugin } from 'vite';
 
 const host = process.env.TAURI_DEV_HOST;
+
+function tmnlCursorChatPlugin(): Plugin {
+  return {
+    name: 'tmnl-cursor-chat',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use('/api/cursor/chat', async (req, res, next) => {
+        if (req.method !== 'POST') return next();
+
+        try {
+          // Dynamic import to avoid bundling server code
+          const { handleChatRequest } = await import('./src/lib/cursor/api/chat-handler');
+          await handleChatRequest(req, res);
+        } catch (error) {
+          console.error('[cursor/chat] Handler error:', error);
+          res.statusCode = 500;
+          res.end(JSON.stringify({ error: 'Chat handler failed' }));
+        }
+      });
+    },
+  };
+}
+
+function tmnlBrowserLogPlugin(): Plugin {
+  return {
+    name: 'tmnl-browser-log',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use('/__tmnl/browser-log', (req, res, next) => {
+        if (req.method !== 'POST') return next();
+
+        let body = '';
+        req.on('data', (chunk) => {
+          body += chunk;
+        });
+        req.on('end', () => {
+          try {
+            const evt = JSON.parse(body || '{}') as {
+              level?: string;
+              message?: string;
+              stack?: string;
+              href?: string;
+              timestamp?: number;
+            };
+
+            const prefix = `[browser:${evt.level ?? 'log'}]`;
+            // eslint-disable-next-line no-console
+            console.log(prefix, evt.message ?? '', evt.href ? `(${evt.href})` : '');
+            if (evt.stack) {
+              // eslint-disable-next-line no-console
+              console.log(evt.stack);
+            }
+          } catch (e) {
+            // eslint-disable-next-line no-console
+            console.log('[browser:log] (failed to parse payload)', e);
+          }
+
+          res.statusCode = 204;
+          res.end();
+        });
+      });
+    },
+  };
+}
 
 export default defineConfig(() => ({
   root: __dirname,
@@ -24,6 +89,8 @@ export default defineConfig(() => ({
     react(),
     nxViteTsPaths(),
     nxCopyAssetsPlugin(['*.md']),
+    tmnlCursorChatPlugin(),
+    tmnlBrowserLogPlugin(),
     VitePWA({ // Add VitePWA plugin
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
