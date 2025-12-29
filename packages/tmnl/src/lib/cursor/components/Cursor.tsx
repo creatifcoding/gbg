@@ -78,7 +78,15 @@ function CursorInner() {
   const sizeKey = useAtomValue(sizeKeyAtom)
   const hasBounds = useAtomValue(hasBoundsAtom)
 
+  // Get DynamicIsland context for size transitions
+  const { transition } = useDynamicIsland()
+
   const islandSize = useMemo(() => getIslandSize(sizeKey), [sizeKey])
+
+  // Sync sizeKey atom → DynamicIsland internal state
+  useEffect(() => {
+    transition(sizeKey)
+  }, [sizeKey, transition])
 
   // AI SDK useChat integration
   const { messages, status, append, setMessages } = useChat({
@@ -192,12 +200,10 @@ function CursorInner() {
 
   return (
     <DynamicIsland
-      x={position.x}
-      y={position.y}
+      position={position}
       draggable
       onDragEnd={handleDragEnd}
       dragConstraints={dragConstraints}
-      sizeKey={sizeKey}
     >
       <AnimatePresence mode="wait">
         {cursorState === 'pill' ? (
