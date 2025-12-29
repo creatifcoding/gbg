@@ -73,7 +73,7 @@ export {
   ColumnLayout,
   Column,
   ColumnLayoutView,
-  ColumnView,
+  // NOTE: ColumnView is not exported - Column renders as plain HTML for CSS Grid compatibility
   getColumnLayoutAtoms,
   disposeColumnLayoutAtoms,
 } from './ColumnLayout';

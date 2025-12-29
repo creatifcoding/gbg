@@ -118,9 +118,10 @@ export const Column = Node.create<ColumnOptions>({
     ];
   },
 
-  addNodeView() {
-    return ReactNodeViewRenderer(ColumnView);
-  },
+  // NOTE: No addNodeView() - Column renders as plain HTML via renderHTML.
+  // This is CRITICAL for CSS Grid layout to work properly.
+  // ReactNodeViewRenderer creates wrapper divs that break grid parent-child relationships.
+  // The Column content is editable because TipTap handles contenteditable natively.
 });
 
 // =============================================================================

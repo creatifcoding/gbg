@@ -260,7 +260,10 @@ export function ColumnLayoutView({
           minHeight: '60px',
         }}
       >
-        <NodeViewContent />
+        {/* CRITICAL: display:contents makes this wrapper invisible to CSS box model.
+         * Without it, NodeViewContent creates a single grid child that contains
+         * all columns, breaking the grid layout. */}
+        <NodeViewContent style={{ display: 'contents' }} />
 
         {/* Resize handles - Only visible when showControls is true */}
         {showControls &&
