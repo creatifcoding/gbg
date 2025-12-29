@@ -48,3 +48,20 @@ export {
   type NavigationRequest,
   type ExecutorHandlers,
 } from './IntentExecutor';
+
+export {
+  // Service
+  AnnotationPopoverService,
+  AnnotationPopoverServiceLive,
+
+  // Schemas
+  PopoverPosition,
+  PopoverAnchor,
+  PopoverPlacement,
+  PopoverTrigger,
+  ActivePopoverState,
+
+  // Types
+  type AnnotationPopoverServiceShape,
+  type PopoverContent,
+} from './AnnotationPopoverService';

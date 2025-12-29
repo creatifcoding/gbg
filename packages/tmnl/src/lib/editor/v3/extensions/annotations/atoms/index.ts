@@ -22,6 +22,12 @@ import {
   IntentRegistryLive,
   IntentExecutor,
   IntentExecutorLive,
+  AnnotationPopoverService,
+  AnnotationPopoverServiceLive,
+  type PopoverAnchor,
+  type PopoverPlacement,
+  type PopoverTrigger,
+  type PopoverContent,
 } from '../services';
 import type { AnnotationQuery, AnnotationState } from '../services';
 import type {
@@ -227,7 +233,8 @@ export const annotationRuntimeAtom = Atom.runtime(
   Layer.mergeAll(
     AnnotationServiceLive,
     IntentRegistryLive,
-    IntentExecutorLive
+    IntentExecutorLive,
+    AnnotationPopoverServiceLive
   )
 );
 
@@ -648,6 +655,165 @@ export const intentOps = {
     Effect.gen(function* () {
       const executor = yield* IntentExecutor;
       return yield* executor.cancelAll;
+    })
+  ),
+} as const;
+
+// =============================================================================
+// Popover Atoms (Materialized Views)
+// =============================================================================
+
+/**
+ * Active Popover State Atom
+ *
+ * Current popover state (if any). Updated by popoverOps.
+ */
+export const activePopoverAtom = Atom.make<{
+  annotationId: AnnotationId;
+  markId: AnnotationId;
+  placement: PopoverPlacement;
+  trigger: PopoverTrigger;
+  isPinned: boolean;
+} | null>(null);
+
+/**
+ * Popover Content Atom
+ *
+ * Content for the active popover. Derived from active popover + service.
+ */
+export const popoverContentAtom = Atom.make<PopoverContent | null>(null);
+
+/**
+ * Is Popover Open Atom
+ *
+ * Whether any popover is currently open.
+ */
+export const isPopoverOpenAtom = Atom.make((get) => get(activePopoverAtom) !== null);
+
+// =============================================================================
+// Popover Operations
+// =============================================================================
+
+/**
+ * Popover Operations
+ */
+export const popoverOps = {
+  /**
+   * Show a popover for an annotation
+   */
+  show: annotationRuntimeAtom.fn<{
+    annotationId: AnnotationId;
+    markId: AnnotationId;
+    anchor: PopoverAnchor;
+    placement?: PopoverPlacement;
+    trigger?: PopoverTrigger;
+    isPinned?: boolean;
+  }>()((args, ctx) =>
+    Effect.gen(function* () {
+      const popoverService = yield* AnnotationPopoverService;
+      yield* popoverService.show(args);
+
+      // Get content and update atoms
+      const content = yield* popoverService.getContent;
+
+      ctx.set(activePopoverAtom, {
+        annotationId: args.annotationId,
+        markId: args.markId,
+        placement: args.placement ?? 'top',
+        trigger: args.trigger ?? 'click',
+        isPinned: args.isPinned ?? false,
+      });
+
+      if (Option.isSome(content)) {
+        ctx.set(popoverContentAtom, content.value);
+      }
+    })
+  ),
+
+  /**
+   * Hide the active popover
+   */
+  hide: annotationRuntimeAtom.fn<void>()((_, ctx) =>
+    Effect.gen(function* () {
+      const popoverService = yield* AnnotationPopoverService;
+      yield* popoverService.hide;
+
+      ctx.set(activePopoverAtom, null);
+      ctx.set(popoverContentAtom, null);
+    })
+  ),
+
+  /**
+   * Toggle popover for an annotation
+   */
+  toggle: annotationRuntimeAtom.fn<{
+    annotationId: AnnotationId;
+    markId: AnnotationId;
+    anchor: PopoverAnchor;
+    placement?: PopoverPlacement;
+  }>()((args, ctx) =>
+    Effect.gen(function* () {
+      const popoverService = yield* AnnotationPopoverService;
+      const current = yield* popoverService.getActive;
+
+      if (Option.isSome(current) && current.value.annotationId === args.annotationId) {
+        yield* popoverService.hide;
+        ctx.set(activePopoverAtom, null);
+        ctx.set(popoverContentAtom, null);
+      } else {
+        yield* popoverService.show(args);
+        const content = yield* popoverService.getContent;
+
+        ctx.set(activePopoverAtom, {
+          annotationId: args.annotationId,
+          markId: args.markId,
+          placement: args.placement ?? 'top',
+          trigger: 'click',
+          isPinned: false,
+        });
+
+        if (Option.isSome(content)) {
+          ctx.set(popoverContentAtom, content.value);
+        }
+      }
+    })
+  ),
+
+  /**
+   * Pin the active popover
+   */
+  pin: annotationRuntimeAtom.fn<void>()((_, ctx) =>
+    Effect.gen(function* () {
+      const popoverService = yield* AnnotationPopoverService;
+      yield* popoverService.pin;
+
+      ctx.set(activePopoverAtom, (prev) =>
+        prev ? { ...prev, isPinned: true } : null
+      );
+    })
+  ),
+
+  /**
+   * Unpin the active popover
+   */
+  unpin: annotationRuntimeAtom.fn<void>()((_, ctx) =>
+    Effect.gen(function* () {
+      const popoverService = yield* AnnotationPopoverService;
+      yield* popoverService.unpin;
+
+      ctx.set(activePopoverAtom, (prev) =>
+        prev ? { ...prev, isPinned: false } : null
+      );
+    })
+  ),
+
+  /**
+   * Update popover anchor position
+   */
+  updateAnchor: annotationRuntimeAtom.fn<{ anchor: PopoverAnchor }>()((args) =>
+    Effect.gen(function* () {
+      const popoverService = yield* AnnotationPopoverService;
+      yield* popoverService.updateAnchor(args.anchor);
     })
   ),
 } as const;

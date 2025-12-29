@@ -11,3 +11,9 @@ export {
   type UseIntentExecutionOptions,
   type UseIntentExecutionReturn,
 } from './useIntentExecution';
+
+export {
+  useAnnotationPopover,
+  type UseAnnotationPopoverOptions,
+  type UseAnnotationPopoverReturn,
+} from './useAnnotationPopover';

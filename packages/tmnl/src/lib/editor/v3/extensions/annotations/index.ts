@@ -63,6 +63,12 @@ export {
   selectionOps,
   adminOps,
   intentOps,
+  popoverOps,
+
+  // Popover atoms
+  activePopoverAtom,
+  popoverContentAtom,
+  isPopoverOpenAtom,
 } from './atoms';
 
 // =============================================================================
@@ -73,6 +79,9 @@ export {
   useIntentExecution,
   type UseIntentExecutionOptions,
   type UseIntentExecutionReturn,
+  useAnnotationPopover,
+  type UseAnnotationPopoverOptions,
+  type UseAnnotationPopoverReturn,
 } from './hooks';
 
 // =============================================================================
@@ -84,6 +93,12 @@ export type { IntentMarkOptions } from './extension';
 
 export { AnnotationNodeExtension, default as AnnotationNode } from './node-extension';
 export type { AnnotationNodeOptions } from './node-extension';
+
+// =============================================================================
+// Components
+// =============================================================================
+
+export { AnnotationPopover, type AnnotationPopoverProps } from './components';
 
 // =============================================================================
 // Styles
