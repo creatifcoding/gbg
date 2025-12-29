@@ -104,6 +104,36 @@ declare module '@tiptap/core' {
 }
 
 // =============================================================================
+// Color Token Map
+// =============================================================================
+
+/**
+ * Maps TMNL color tokens to their hex fallback values.
+ * Used when CSS variables aren't defined.
+ */
+const COLOR_TOKEN_MAP: Record<string, string> = {
+  // Accent colors
+  'accent.cyan': '#00d4aa',
+  'accent.yellow': '#ffd93d',
+  'accent.blue': '#4da6ff',
+  'accent.purple': '#a855f7',
+  'accent.orange': '#ff8c00',
+  'accent.green': '#22c55e',
+  // Status colors
+  'status.error': '#ef4444',
+  'status.warning': '#f59e0b',
+  'status.success': '#22c55e',
+  'status.info': '#3b82f6',
+};
+
+/**
+ * Get hex fallback for a color token
+ */
+const getColorFallback = (token: string): string => {
+  return COLOR_TOKEN_MAP[token] || '#ffd93d'; // Default to yellow
+};
+
+// =============================================================================
 // Utility Functions
 // =============================================================================
 
@@ -130,8 +160,9 @@ const getVisualStyleClass = (style: VisualStyle): string => {
 const getVisualStyleCSS = (style: VisualStyle): string => {
   const styles: string[] = [];
 
-  // Map TMNL color tokens to CSS variables
-  const colorVar = `var(--tmnl-${style.color.replace('.', '-')}, ${style.color})`;
+  // Map TMNL color tokens to CSS variables with VALID hex fallbacks
+  const hexFallback = getColorFallback(style.color);
+  const colorVar = `var(--tmnl-${style.color.replace('.', '-')}, ${hexFallback})`;
 
   switch (style.type) {
     case 'highlight':
