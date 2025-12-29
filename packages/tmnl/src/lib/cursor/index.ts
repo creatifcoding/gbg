@@ -14,6 +14,16 @@ export * from './schemas/position'
 
 // Services
 export { PositionService, PositionServiceLive, PositionServiceDefault } from './services/PositionService'
+export {
+  IntentParser,
+  IntentParserLive,
+  IntentParserDefault,
+  type PositionIntent,
+  type VisibilityIntent,
+  type Intent,
+  parsePositionIntent,
+  parseIntent,
+} from './services/IntentParser'
 
 // Machines
 export {
@@ -56,6 +66,9 @@ export {
 
 // Tools
 export * from './tools'
+
+// Hooks
+export { useCursorPersistence } from './hooks'
 
 // Components
 export { Cursor } from './components/Cursor'

@@ -28,6 +28,7 @@ import {
 import { DynamicIsland, DynamicIslandProvider, useDynamicIsland } from './DynamicIsland'
 import { ChatContent } from './ChatContent'
 import { PillIndicator } from './PillIndicator'
+import { useCursorPersistence } from '../hooks/useCursorPersistence'
 import type { Position, IslandSize, CornerPreset } from '../schemas/position'
 
 // -----------------------------------------------------------------------------
@@ -208,6 +209,9 @@ function CursorInner() {
 
 export function Cursor() {
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // Enable localStorage persistence for corner preference
+  useCursorPersistence()
 
   // Measure content area bounds on mount/resize
   useEffect(() => {

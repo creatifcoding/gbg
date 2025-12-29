@@ -29,6 +29,7 @@ import {
 } from "@/lib/floating"
 import { TerminalPanel, terminalPanelConfig } from "@/lib/terminal"
 import type { VisualOverlayId } from "../schemas/visual"
+import { Cursor } from "@/lib/cursor"
 
 // ─────────────────────────────────────────────────────────────
 // Constants
@@ -186,16 +187,20 @@ export function PersistentOverlays({
   // ─── Toggle Terminal Panel ──────────────────────────────────
   // Must be defined before useGlobalHotkeys which references it
   const toggleTerminalPanel = useCallback(() => {
+    console.log('[PersistentOverlays] toggleTerminalPanel called, current panelId:', terminalPanelId)
     if (terminalPanelId) {
       // Panel is open - check if it still exists, then close it
       const panel = getPanel(terminalPanelId)
+      console.log('[PersistentOverlays] Closing panel, exists:', !!panel)
       if (panel) {
         unregisterPanel(terminalPanelId)
       }
       setTerminalPanelId(null)
     } else {
       // Panel is closed - open a new one
+      console.log('[PersistentOverlays] Opening panel with type:', TERMINAL_PANEL_TYPE_ID)
       const newPanelId = openRegisteredPanel(TERMINAL_PANEL_TYPE_ID)
+      console.log('[PersistentOverlays] Opened panel with id:', newPanelId)
       setTerminalPanelId(newPanelId)
     }
   }, [terminalPanelId])
@@ -238,6 +243,10 @@ export function PersistentOverlays({
   // This enables opening terminal panels via openRegisteredPanel('terminal')
 
   useEffect(() => {
+    console.log('[PersistentOverlays] Registering terminal panel type:', TERMINAL_PANEL_TYPE_ID)
+    console.log('[PersistentOverlays] terminalPanelConfig:', terminalPanelConfig)
+    console.log('[PersistentOverlays] TerminalPanel component:', TerminalPanel)
+
     registerPanelType({
       id: TERMINAL_PANEL_TYPE_ID,
       title: terminalPanelConfig.title,
@@ -247,6 +256,8 @@ export function PersistentOverlays({
       resizable: terminalPanelConfig.resizable,
       closable: terminalPanelConfig.closable,
     })
+
+    console.log('[PersistentOverlays] Terminal panel type registered')
 
     // Cleanup: no need to unregister as panel types are global singletons
   }, [])
@@ -291,6 +302,8 @@ export function PersistentOverlays({
       <>
         {/* Screensaver overlay - renders even when header hidden */}
         <ScreensaverOverlay isActive={screensaver.isActive} />
+        {/* AI Cursor - global, always mounted */}
+        <Cursor />
       </>
     )
   }
@@ -299,6 +312,9 @@ export function PersistentOverlays({
     <>
     {/* Screensaver overlay - highest z-index */}
     <ScreensaverOverlay isActive={screensaver.isActive} />
+
+    {/* AI Cursor - global Dynamic Island overlay */}
+    <Cursor />
 
     <header
       className="fixed top-0 left-0 right-0 z-50 border-b border-neutral-800 flex items-center justify-between px-4 bg-black"
