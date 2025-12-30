@@ -739,6 +739,7 @@ export function LinksTab({ ports, blockId }: LinksTabProps) {
           mode={visualizerMode}
           onModeChange={setVisualizerMode}
           inlineHeight={200}
+          hideBlockLabels
         />
       </div>
 
