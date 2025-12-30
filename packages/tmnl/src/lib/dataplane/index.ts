@@ -134,6 +134,21 @@ export {
 // =============================================================================
 
 export {
+  // Port indicators
   LinkPortIndicator,
   type LinkPortIndicatorProps,
+  // React Flow components
+  DataplaneVisualizer,
+  type DataplaneVisualizerProps,
+  type VisualizerMode,
+  type VisualizerScope,
+  BidirectionalEdge,
+  type BidirectionalEdgeData,
+  type BidirectionalEdgeProps,
+  LinkPortNode,
+  type LinkPortNodeData,
+  type LinkPortNodeProps,
+  // Settings panels
+  LinkSettingsPanel,
+  type LinkSettingsPanelProps,
 } from './components';
