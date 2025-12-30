@@ -269,6 +269,7 @@ export function EmbeddedBlockWrapper({
   const contentVisible = useAtomValue(atoms.contentVisibleAtom);
   const contentExpanded = useAtomValue(atoms.contentExpandedAtom);
   const customHeight = useAtomValue(atoms.customHeightAtom);
+  const settingsExpanded = useAtomValue(atoms.settingsExpandedAtom);
 
   // Compute effective height: customHeight overrides default when expanded
   const effectiveExpandedHeight = customHeight ?? expandedHeight;
@@ -663,6 +664,7 @@ export function EmbeddedBlockWrapper({
         data-block-tag={badge.tag}
         data-focused={isThisBlockFocused}
         data-hidden-by-focus={isHiddenByFocus}
+        data-settings-expanded={settingsExpanded}
         contentEditable={false}
         onMouseEnter={() => {
           actions.setHovered(true);
@@ -689,7 +691,9 @@ export function EmbeddedBlockWrapper({
             : VANTA_ANIMATION.transition.colors,
           outline: 'none',
           pointerEvents: isHiddenByFocus ? 'none' : 'auto',
-          display: isHiddenByFocus ? 'none' : undefined,
+          display: isHiddenByFocus ? 'none' : settingsExpanded ? 'flex' : undefined,
+          flexDirection: settingsExpanded ? 'column' : undefined,
+          minHeight: settingsExpanded ? effectiveExpandedHeight + 100 : undefined,
           ...(isThisBlockFocused && {
             position: 'fixed' as const,
             inset: VANTA_SPACING['8'],
@@ -758,6 +762,8 @@ export function EmbeddedBlockWrapper({
             position: 'relative',
             height: isThisBlockFocused
               ? '100%'
+              : settingsExpanded
+              ? 0
               : state.foldState === 'minimized'
               ? 0
               : contentExpanded
@@ -817,6 +823,8 @@ export function EmbeddedBlockWrapper({
             tabs={combinedTabs}
             activeTab={state.activeTab}
             onTabChange={actions.setActiveTab}
+            expanded={settingsExpanded}
+            onToggleExpanded={actions.toggleSettingsExpanded}
           />
         )}
       </NodeViewWrapper>
@@ -1135,18 +1143,40 @@ interface SettingsPanelProps {
   tabs: readonly SettingsTab[];
   activeTab: string;
   onTabChange: (tabId: string) => void;
+  expanded?: boolean;
+  onToggleExpanded?: () => void;
 }
 
-function SettingsPanel({ tabs, activeTab, onTabChange }: SettingsPanelProps) {
+function SettingsPanel({
+  tabs,
+  activeTab,
+  onTabChange,
+  expanded = false,
+  onToggleExpanded,
+}: SettingsPanelProps) {
   return (
     <div
       style={{
         borderTop: `1px solid ${VANTA_COLORS.surface.border}`,
         background: VANTA_COLORS.surface.default,
+        display: 'flex',
+        flexDirection: 'column',
+        ...(expanded && {
+          flex: 1,
+          minHeight: '300px',
+        }),
       }}
     >
-      <Tabs.Root value={activeTab} onValueChange={onTabChange}>
-        {/* Tab list */}
+      <Tabs.Root
+        value={activeTab}
+        onValueChange={onTabChange}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: expanded ? '100%' : undefined,
+        }}
+      >
+        {/* Tab list with expand button */}
         <Tabs.List
           style={{
             display: 'flex',
@@ -1191,6 +1221,36 @@ function SettingsPanel({ tabs, activeTab, onTabChange }: SettingsPanelProps) {
               </Tabs.Trigger>
             );
           })}
+
+          {/* Expand/Collapse button */}
+          {onToggleExpanded && (
+            <button
+              onClick={onToggleExpanded}
+              title={expanded ? 'Collapse settings' : 'Expand settings to full block'}
+              style={{
+                marginLeft: 'auto',
+                padding: `${VANTA_SPACING['1']} ${VANTA_SPACING['2']}`,
+                background: 'transparent',
+                border: 'none',
+                color: expanded
+                  ? VANTA_COLORS.accent.cyan
+                  : VANTA_COLORS.text.muted,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: VANTA_SPACING['1'],
+                flexShrink: 0,
+                ...VANTA_TYPOGRAPHY.preset.label,
+                transition: VANTA_ANIMATION.transition.colors,
+              }}
+            >
+              {expanded ? (
+                <Minimize2 size={12} />
+              ) : (
+                <Maximize2 size={12} />
+              )}
+            </button>
+          )}
         </Tabs.List>
 
         {/* Tab content */}
@@ -1200,8 +1260,12 @@ function SettingsPanel({ tabs, activeTab, onTabChange }: SettingsPanelProps) {
             value={tab.id}
             style={{
               padding: VANTA_SPACING['3'],
-              maxHeight: '400px',
+              maxHeight: expanded ? undefined : '400px',
               overflowY: 'auto',
+              ...(expanded && {
+                flex: 1,
+                minHeight: 0,
+              }),
             }}
           >
             {tab.content}

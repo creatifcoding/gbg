@@ -4,11 +4,31 @@
  * Atoms-as-state for embedded block wrapper.
  * Uses Atom.family pattern for per-block isolation.
  *
+ * NOTE: This module uses a module-scoped Registry for synchronous access
+ * to atoms from event handlers. React components should use useAtomValue()
+ * and useSetAtom() hooks instead of the registry directly.
+ *
  * @module editor/v3/extensions/blocks/EmbeddedBlockWrapper/atoms
  */
 
-import { Atom } from '@effect-atom/atom-react';
-import type { EmbeddedBlockState, FoldState } from './types';
+import {
+  Atom,
+  Registry,
+  useAtomSet,
+  useAtomValue,
+} from '@effect-atom/atom-react';
+import { useMemo } from 'react';
+import type { EmbeddedBlockState, FoldState, StreamStatus } from './types';
+
+// =============================================================================
+// Module-scoped Registry for synchronous access
+// =============================================================================
+
+/**
+ * Module-scoped registry for synchronous atom access in event handlers.
+ * React components should use useAtomValue()/useSetAtom() hooks instead.
+ */
+const registry = Registry.make();
 
 // =============================================================================
 // Focus Mode Atoms (Module-level)
@@ -24,7 +44,9 @@ export const focusedBlockIdAtom = Atom.make<string | null>(null);
  * Whether any block is in focus mode.
  * Derived from focusedBlockIdAtom.
  */
-export const isFocusModeAtom = Atom.make((get) => get(focusedBlockIdAtom) !== null);
+export const isFocusModeAtom = Atom.make(
+  (get) => get(focusedBlockIdAtom) !== null
+);
 
 /**
  * Timestamp when focus mode was entered.
@@ -41,23 +63,23 @@ export const focusActions = {
    * Enter focus mode for a block.
    */
   enterFocus: (blockId: string) => {
-    Atom.set(focusedBlockIdAtom, blockId);
-    Atom.set(focusEnteredAtAtom, new Date());
+    registry.set(focusedBlockIdAtom, blockId);
+    registry.set(focusEnteredAtAtom, new Date());
   },
 
   /**
    * Exit focus mode.
    */
   exitFocus: () => {
-    Atom.set(focusedBlockIdAtom, null);
-    Atom.set(focusEnteredAtAtom, null);
+    registry.set(focusedBlockIdAtom, null);
+    registry.set(focusEnteredAtAtom, null);
   },
 
   /**
    * Toggle focus mode for a block.
    */
   toggleFocus: (blockId: string) => {
-    const current = Atom.get(focusedBlockIdAtom);
+    const current = registry.get(focusedBlockIdAtom);
     if (current === blockId) {
       focusActions.exitFocus();
     } else {
@@ -69,7 +91,7 @@ export const focusActions = {
    * Check if a specific block is focused.
    */
   isFocused: (blockId: string): boolean => {
-    return Atom.get(focusedBlockIdAtom) === blockId;
+    return registry.get(focusedBlockIdAtom) === blockId;
   },
 };
 
@@ -92,8 +114,11 @@ export const savedBlockStatesAtom = Atom.make<Map<string, EmbeddedBlockState>>(
  * Save a block's state to the cache.
  * Called before unmounting due to focus mode.
  */
-export function saveBlockState(blockId: string, state: EmbeddedBlockState): void {
-  Atom.set(savedBlockStatesAtom, (prev) => {
+export function saveBlockState(
+  blockId: string,
+  state: EmbeddedBlockState
+): void {
+  registry.update(savedBlockStatesAtom, (prev) => {
     const next = new Map(prev);
     next.set(blockId, { ...state });
     return next;
@@ -105,11 +130,14 @@ export function saveBlockState(blockId: string, state: EmbeddedBlockState): void
  * Called on mount to restore state after focus mode exits.
  * Returns undefined if no saved state exists.
  */
-export function restoreBlockState(blockId: string): EmbeddedBlockState | undefined {
-  const saved = Atom.get(savedBlockStatesAtom).get(blockId);
+export function restoreBlockState(
+  blockId: string
+): EmbeddedBlockState | undefined {
+  const savedStates = registry.get(savedBlockStatesAtom);
+  const saved = savedStates.get(blockId);
   if (saved) {
     // Remove from cache after restoring
-    Atom.set(savedBlockStatesAtom, (prev) => {
+    registry.update(savedBlockStatesAtom, (prev) => {
       const next = new Map(prev);
       next.delete(blockId);
       return next;
@@ -122,7 +150,7 @@ export function restoreBlockState(blockId: string): EmbeddedBlockState | undefin
  * Check if a block has saved state.
  */
 export function hasSavedBlockState(blockId: string): boolean {
-  return Atom.get(savedBlockStatesAtom).has(blockId);
+  return registry.get(savedBlockStatesAtom).has(blockId);
 }
 
 // =============================================================================
@@ -135,6 +163,8 @@ export const DEFAULT_EMBEDDED_BLOCK_STATE: EmbeddedBlockState = {
   activeTab: 'general',
   isSelected: false,
   isHovered: false,
+  streamStatus: 'idle',
+  streamError: null,
 };
 
 // =============================================================================
@@ -149,14 +179,28 @@ export function createEmbeddedBlockAtoms(blockId: string) {
   const isSelectedAtom = Atom.make(false);
   const isHoveredAtom = Atom.make(false);
 
+  // Custom height (null = use default from props)
+  const customHeightAtom = Atom.make<number | null>(null);
+
+  // Settings panel expanded to full block viewport
+  const settingsExpandedAtom = Atom.make(false);
+
+  // Stream state atoms
+  const streamStatusAtom = Atom.make<StreamStatus>('idle');
+  const streamErrorAtom = Atom.make<string | null>(null);
+
   // Derived: complete state snapshot
-  const stateAtom = Atom.make((get): EmbeddedBlockState => ({
-    foldState: get(foldStateAtom),
-    settingsOpen: get(settingsOpenAtom),
-    activeTab: get(activeTabAtom),
-    isSelected: get(isSelectedAtom),
-    isHovered: get(isHoveredAtom),
-  }));
+  const stateAtom = Atom.make(
+    (get): EmbeddedBlockState => ({
+      foldState: get(foldStateAtom),
+      settingsOpen: get(settingsOpenAtom),
+      activeTab: get(activeTabAtom),
+      isSelected: get(isSelectedAtom),
+      isHovered: get(isHoveredAtom),
+      streamStatus: get(streamStatusAtom),
+      streamError: get(streamErrorAtom),
+    })
+  );
 
   // Derived: should show controls (selected or hovered)
   const showControlsAtom = Atom.make(
@@ -181,6 +225,10 @@ export function createEmbeddedBlockAtoms(blockId: string) {
     activeTabAtom,
     isSelectedAtom,
     isHoveredAtom,
+    streamStatusAtom,
+    streamErrorAtom,
+    customHeightAtom,
+    settingsExpandedAtom,
     // Derived atoms
     stateAtom,
     showControlsAtom,
@@ -217,40 +265,190 @@ export function disposeEmbeddedBlockAtoms(blockId: string): void {
 export function createEmbeddedBlockActions(atoms: EmbeddedBlockAtoms) {
   return {
     toggleFold: () => {
-      const current = Atom.get(atoms.foldStateAtom);
-      const next: FoldState =
-        current === 'expanded' ? 'collapsed' : 'expanded';
-      Atom.set(atoms.foldStateAtom, next);
+      const current = registry.get(atoms.foldStateAtom);
+      const next: FoldState = current === 'expanded' ? 'collapsed' : 'expanded';
+      registry.set(atoms.foldStateAtom, next);
     },
 
     expand: () => {
-      Atom.set(atoms.foldStateAtom, 'expanded');
+      registry.set(atoms.foldStateAtom, 'expanded');
     },
 
     collapse: () => {
-      Atom.set(atoms.foldStateAtom, 'collapsed');
+      registry.set(atoms.foldStateAtom, 'collapsed');
     },
 
     minimize: () => {
-      Atom.set(atoms.foldStateAtom, 'minimized');
+      registry.set(atoms.foldStateAtom, 'minimized');
     },
 
     toggleSettings: () => {
-      Atom.set(atoms.settingsOpenAtom, (prev) => !prev);
+      registry.update(atoms.settingsOpenAtom, (prev) => !prev);
     },
 
     setActiveTab: (tabId: string) => {
-      Atom.set(atoms.activeTabAtom, tabId);
+      registry.set(atoms.activeTabAtom, tabId);
     },
 
     setSelected: (selected: boolean) => {
-      Atom.set(atoms.isSelectedAtom, selected);
+      registry.set(atoms.isSelectedAtom, selected);
     },
 
     setHovered: (hovered: boolean) => {
-      Atom.set(atoms.isHoveredAtom, hovered);
+      registry.set(atoms.isHoveredAtom, hovered);
+    },
+
+    setStreamStatus: (status: StreamStatus) => {
+      registry.set(atoms.streamStatusAtom, status);
+    },
+
+    setStreamError: (error: string | null) => {
+      registry.set(atoms.streamErrorAtom, error);
     },
   };
 }
 
-export type EmbeddedBlockActions = ReturnType<typeof createEmbeddedBlockActions>;
+export type EmbeddedBlockActions = ReturnType<
+  typeof createEmbeddedBlockActions
+>;
+
+// =============================================================================
+// React Hooks for Actions (FIXES REGISTRY ISOLATION BUG)
+// =============================================================================
+
+/**
+ * Hook that returns actions using React's atom context.
+ *
+ * CRITICAL: This hook uses `useAtomSet` which writes to the same registry
+ * that `useAtomValue` subscribes to. The old `createEmbeddedBlockActions`
+ * used a module-scoped registry which was ISOLATED from React's context.
+ *
+ * @param atoms - The atoms for this block instance
+ * @returns Actions that properly trigger React re-renders
+ */
+export function useEmbeddedBlockActions(atoms: EmbeddedBlockAtoms) {
+  const setFoldState = useAtomSet(atoms.foldStateAtom);
+  const setSettingsOpen = useAtomSet(atoms.settingsOpenAtom);
+  const setActiveTab = useAtomSet(atoms.activeTabAtom);
+  const setIsSelected = useAtomSet(atoms.isSelectedAtom);
+  const setIsHovered = useAtomSet(atoms.isHoveredAtom);
+  const setStreamStatus = useAtomSet(atoms.streamStatusAtom);
+  const setStreamError = useAtomSet(atoms.streamErrorAtom);
+  const setCustomHeightAtom = useAtomSet(atoms.customHeightAtom);
+  const setSettingsExpanded = useAtomSet(atoms.settingsExpandedAtom);
+
+  // Get current foldState for toggle logic
+  const foldState = useAtomValue(atoms.foldStateAtom);
+
+  return useMemo(
+    () => ({
+      toggleFold: () => {
+        const next: FoldState =
+          foldState === 'expanded' ? 'collapsed' : 'expanded';
+        setFoldState(next);
+      },
+
+      expand: () => {
+        setFoldState('expanded');
+      },
+
+      collapse: () => {
+        setFoldState('collapsed');
+      },
+
+      minimize: () => {
+        setFoldState('minimized');
+      },
+
+      toggleSettings: () => {
+        setSettingsOpen((prev) => !prev);
+      },
+
+      setActiveTab: (tabId: string) => {
+        setActiveTab(tabId);
+      },
+
+      setSelected: (selected: boolean) => {
+        setIsSelected(selected);
+      },
+
+      setHovered: (hovered: boolean) => {
+        setIsHovered(hovered);
+      },
+
+      setStreamStatus: (status: StreamStatus) => {
+        setStreamStatus(status);
+      },
+
+      setStreamError: (error: string | null) => {
+        setStreamError(error);
+      },
+
+      setCustomHeight: (height: number | null) => {
+        setCustomHeightAtom(height);
+      },
+
+      resetCustomHeight: () => {
+        setCustomHeightAtom(null);
+      },
+
+      toggleSettingsExpanded: () => {
+        setSettingsExpanded((prev) => !prev);
+      },
+
+      setSettingsExpanded: (expanded: boolean) => {
+        setSettingsExpanded(expanded);
+      },
+    }),
+    [
+      foldState,
+      setFoldState,
+      setSettingsOpen,
+      setActiveTab,
+      setIsSelected,
+      setIsHovered,
+      setStreamStatus,
+      setStreamError,
+      setCustomHeightAtom,
+      setSettingsExpanded,
+    ]
+  );
+}
+
+/**
+ * Hook for focus mode actions using React's atom context.
+ */
+export function useFocusActions() {
+  const setFocusedBlockId = useAtomSet(focusedBlockIdAtom);
+  const setFocusEnteredAt = useAtomSet(focusEnteredAtAtom);
+  const focusedBlockId = useAtomValue(focusedBlockIdAtom);
+
+  return useMemo(
+    () => ({
+      enterFocus: (blockId: string) => {
+        setFocusedBlockId(blockId);
+        setFocusEnteredAt(new Date());
+      },
+
+      exitFocus: () => {
+        setFocusedBlockId(null);
+        setFocusEnteredAt(null);
+      },
+
+      toggleFocus: (blockId: string) => {
+        if (focusedBlockId === blockId) {
+          setFocusedBlockId(null);
+          setFocusEnteredAt(null);
+        } else {
+          setFocusedBlockId(blockId);
+          setFocusEnteredAt(new Date());
+        }
+      },
+
+      isFocused: (blockId: string): boolean => {
+        return focusedBlockId === blockId;
+      },
+    }),
+    [focusedBlockId, setFocusedBlockId, setFocusEnteredAt]
+  );
+}
