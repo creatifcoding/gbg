@@ -719,16 +719,18 @@ export function LinksTab({ ports, blockId }: LinksTabProps) {
     <div
       style={{
         display: 'flex',
-        flexDirection: 'column',
         gap: VANTA_SPACING['3'],
+        minHeight: '300px',
       }}
     >
-      {/* Visualizer - always visible */}
+      {/* Left: Visualizer canvas */}
       <div
         style={{
-          height: '200px',
+          flex: '1 1 50%',
+          minWidth: 0,
           borderRadius: VANTA_BORDERS.radius.md,
           overflow: 'hidden',
+          border: `1px solid ${VANTA_COLORS.surface.border}`,
         }}
       >
         <DataplaneVisualizer
@@ -736,73 +738,85 @@ export function LinksTab({ ports, blockId }: LinksTabProps) {
           blockId={blockId as BlockId}
           mode={visualizerMode}
           onModeChange={setVisualizerMode}
-          inlineHeight={200}
+          inlineHeight="100%"
         />
       </div>
 
-      {/* Port Creator */}
-      <CollapsibleSection
-        title="Add Port"
-        icon={<Box size={14} style={{ color: VANTA_COLORS.accent.cyan }} />}
-        defaultOpen={false}
-      >
-        <PortCreatorInline blockId={blockId as BlockId} />
-      </CollapsibleSection>
-
-      {/* Link Creator */}
-      <CollapsibleSection
-        title="Create Link"
-        icon={<Link2 size={14} style={{ color: VANTA_COLORS.accent.emerald }} />}
-        defaultOpen={false}
-      >
-        <LinkCreatorInline blockPorts={ports} blockId={blockId as BlockId} />
-      </CollapsibleSection>
-
-      {/* Ports List */}
-      <CollapsibleSection
-        title={`Ports (${ports.length})`}
-        icon={<Layers size={14} style={{ color: VANTA_COLORS.accent.amber }} />}
-        defaultOpen={true}
-      >
-        {ports.length === 0 ? (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: VANTA_SPACING['4'],
-              gap: VANTA_SPACING['2'],
-            }}
-          >
-            <Unlink size={24} style={{ color: VANTA_COLORS.text.muted }} />
-            <span style={{ ...VANTA_TYPOGRAPHY.preset.body, color: VANTA_COLORS.text.muted }}>
-              No ports configured
-            </span>
-            <span style={{ ...VANTA_TYPOGRAPHY.preset.micro, color: VANTA_COLORS.text.tertiary }}>
-              Use "Add Port" above to create ports
-            </span>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: VANTA_SPACING['2'] }}>
-            {ports.map((port) => (
-              <PortRow key={port.id} port={port} onDelete={handleDeletePort} />
-            ))}
-          </div>
-        )}
-      </CollapsibleSection>
-
-      {/* Instructions */}
+      {/* Right: Controls */}
       <div
         style={{
-          ...VANTA_TYPOGRAPHY.preset.micro,
-          color: VANTA_COLORS.text.muted,
-          textAlign: 'center',
-          padding: VANTA_SPACING['2'],
-          borderTop: `1px solid ${VANTA_COLORS.surface.border}`,
+          flex: '1 1 50%',
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: VANTA_SPACING['2'],
+          overflowY: 'auto',
         }}
       >
-        Drag between ports in the visualizer to create links
+        {/* Port Creator */}
+        <CollapsibleSection
+          title="Add Port"
+          icon={<Box size={14} style={{ color: VANTA_COLORS.accent.cyan }} />}
+          defaultOpen={false}
+        >
+          <PortCreatorInline blockId={blockId as BlockId} />
+        </CollapsibleSection>
+
+        {/* Link Creator */}
+        <CollapsibleSection
+          title="Create Link"
+          icon={<Link2 size={14} style={{ color: VANTA_COLORS.accent.emerald }} />}
+          defaultOpen={false}
+        >
+          <LinkCreatorInline blockPorts={ports} blockId={blockId as BlockId} />
+        </CollapsibleSection>
+
+        {/* Ports List */}
+        <CollapsibleSection
+          title={`Ports (${ports.length})`}
+          icon={<Layers size={14} style={{ color: VANTA_COLORS.accent.amber }} />}
+          defaultOpen={true}
+        >
+          {ports.length === 0 ? (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: VANTA_SPACING['4'],
+                gap: VANTA_SPACING['2'],
+              }}
+            >
+              <Unlink size={24} style={{ color: VANTA_COLORS.text.muted }} />
+              <span style={{ ...VANTA_TYPOGRAPHY.preset.body, color: VANTA_COLORS.text.muted }}>
+                No ports configured
+              </span>
+              <span style={{ ...VANTA_TYPOGRAPHY.preset.micro, color: VANTA_COLORS.text.tertiary }}>
+                Use "Add Port" to create ports
+              </span>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: VANTA_SPACING['2'] }}>
+              {ports.map((port) => (
+                <PortRow key={port.id} port={port} onDelete={handleDeletePort} />
+              ))}
+            </div>
+          )}
+        </CollapsibleSection>
+
+        {/* Instructions */}
+        <div
+          style={{
+            ...VANTA_TYPOGRAPHY.preset.micro,
+            color: VANTA_COLORS.text.muted,
+            textAlign: 'center',
+            padding: VANTA_SPACING['2'],
+            marginTop: 'auto',
+          }}
+        >
+          Drag between ports to link
+        </div>
       </div>
     </div>
   );
