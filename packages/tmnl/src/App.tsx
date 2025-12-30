@@ -95,6 +95,14 @@ const CARDS: readonly CardDef[] = [
     status: 'active',
   },
   {
+    title: 'FERMION',
+    body: 'Schema-driven Atom.family library. Effect algebra, lifecycle control, CRUD operations with Result state machine.',
+    route: '/testbed/fermion',
+    status: 'active',
+    label: 'NEW',
+    glow: 'cyan',
+  },
+  {
     title: 'ANIMATION',
     body: 'animatable() primitives with GSAP and anime.js drivers. Effect-TS integration for sequencing.',
     route: '/testbed/v2',

@@ -54,6 +54,9 @@ import { CollaborationTestbed } from './components/testbed/CollaborationTestbed'
 import { CollaborationTestbedV2 } from './components/testbed/CollaborationTestbedV2';
 import { TauriFilesystemTestbed } from './components/testbed/TauriFilesystemTestbed';
 import { KoriAtomsTestbed } from './components/testbed/KoriAtomsTestbed';
+import { TheiaTestbed } from './components/testbed/TheiaTestbed';
+import { DataplaneTestbed } from './components/testbed/DataplaneTestbed';
+import { FermionTestbed } from './components/testbed/FermionTestbed';
 import { DiagramsPage } from './components/docs';
 import { OverhaulDocsPage } from './components/docs/overhaul';
 import { DocsLanding } from './components/docs-3d';
@@ -341,6 +344,27 @@ const tauriFilesystemTestbedRoute = createRoute({
   component: TauriFilesystemTestbed,
 });
 
+// Create Theia IDE testbed route
+const theiaTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/theia',
+  component: TheiaTestbed,
+});
+
+// Create dataplane testbed route
+const dataplaneTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/dataplane',
+  component: DataplaneTestbed,
+});
+
+// Create fermion testbed route (schema-driven Atom.family)
+const fermionTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/fermion',
+  component: FermionTestbed,
+});
+
 // Create the router
 const router = createRouter({
   routeTree: rootRoute.addChildren([
@@ -383,6 +407,9 @@ const router = createRouter({
     collaborationTestbedRoute,
     collaborationV2TestbedRoute,
     tauriFilesystemTestbedRoute,
+    theiaTestbedRoute,
+    dataplaneTestbedRoute,
+    fermionTestbedRoute,
   ]),
 });
 

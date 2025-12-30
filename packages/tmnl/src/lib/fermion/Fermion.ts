@@ -30,7 +30,7 @@
  */
 
 import { Schema, Effect, Layer, Duration, Context } from "effect"
-import type { Fermion, FermionConfig, KeyOf, KeyType, CompositeKeyType } from "./types"
+import type { Fermion, FermionConfig, KeyOf, KeyType, CompositeKeyType, LifecycleConfig } from "./types"
 import type { FermionAlgebra } from "./algebra"
 import { makeFamily } from "./internal/family"
 
@@ -62,7 +62,7 @@ class FermionBuilder<
     private readonly config: {
       key?: string | readonly string[]
       algebra?: Partial<FermionAlgebra<A, E, R, K>>
-      ttl?: Duration.Duration
+      lifecycle?: LifecycleConfig
       reactivityKeys?: (key: K, value: A) => readonly unknown[]
     } = {},
     private readonly layers: Layer.Layer<any, any, any>[] = []
@@ -258,7 +258,34 @@ class FermionBuilder<
   // ==========================================================================
 
   /**
-   * Set TTL for idle atom cleanup
+   * Configure atom lifecycle behavior
+   *
+   * Controls how atoms behave when subscribers come and go.
+   *
+   * @example
+   * ```ts
+   * // Entity cache - persist indefinitely (default)
+   * .withLifecycle({ keepAlive: true })
+   *
+   * // Transient data - reset when no subscribers
+   * .withLifecycle({ keepAlive: false })
+   *
+   * // Time-limited cache - persist for 5 minutes idle
+   * .withLifecycle({ keepAlive: true, ttl: Duration.minutes(5) })
+   * ```
+   */
+  withLifecycle(lifecycle: LifecycleConfig): FermionBuilder<A, I, E, R, L, K> {
+    return new FermionBuilder(
+      this.schema,
+      { ...this.config, lifecycle },
+      this.layers
+    )
+  }
+
+  /**
+   * Convenience method for setting TTL with implicit keepAlive
+   *
+   * Equivalent to `.withLifecycle({ keepAlive: true, ttl })`
    *
    * @example
    * ```ts
@@ -268,7 +295,7 @@ class FermionBuilder<
   withTTL(ttl: Duration.Duration): FermionBuilder<A, I, E, R, L, K> {
     return new FermionBuilder(
       this.schema,
-      { ...this.config, ttl },
+      { ...this.config, lifecycle: { ...this.config.lifecycle, keepAlive: true, ttl } },
       this.layers
     )
   }

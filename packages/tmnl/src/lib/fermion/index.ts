@@ -102,6 +102,7 @@ export {
 export type {
   Fermion,
   FermionConfig,
+  LifecycleConfig,
   KeyOf,
   KeyType,
   CompositeKeyType,

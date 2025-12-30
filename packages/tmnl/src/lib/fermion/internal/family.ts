@@ -24,17 +24,27 @@ export const makeFamily = <A, I, E, R, K>(
   config: FermionConfig<A, I, E, R, K>,
   _providedLayers?: Layer.Layer<any, any, any>
 ): Fermion<A, I, E, R, K> => {
+  // Resolve lifecycle config with defaults
+  const lifecycle = {
+    keepAlive: config.lifecycle?.keepAlive ?? true, // Default: persist state
+    ttl: config.lifecycle?.ttl,
+  }
+
   // Create the atom family for memoized atom creation per key
   const atomFamily = Atom.family((key: K) => {
     // Create base atom with initial Result state
-    // Use keepAlive to prevent auto-reset when no subscribers
-    let baseAtom = Atom.make<Result.Result<A, E>>(Result.initial()).pipe(
-      Atom.keepAlive
-    )
+    let baseAtom = Atom.make<Result.Result<A, E>>(Result.initial())
+
+    // Apply keepAlive if configured (default: true)
+    // This prevents auto-reset when subscriber count hits zero
+    if (lifecycle.keepAlive) {
+      baseAtom = baseAtom.pipe(Atom.keepAlive)
+    }
 
     // Apply TTL if configured (idle timeout for cleanup)
-    if (config.ttl) {
-      baseAtom = Atom.setIdleTTL(baseAtom, config.ttl)
+    // TTL implies keepAlive behavior until the timeout expires
+    if (lifecycle.ttl) {
+      baseAtom = Atom.setIdleTTL(baseAtom, lifecycle.ttl)
     }
 
     return baseAtom

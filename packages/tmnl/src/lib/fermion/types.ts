@@ -35,6 +35,47 @@ export type CompositeKeyType<
 > = { readonly [P in K[number]]: Schema.Schema.Type<S>[P] }
 
 // ============================================================================
+// Lifecycle Configuration
+// ============================================================================
+
+/**
+ * Atom lifecycle configuration
+ *
+ * Controls how atoms behave when subscribers come and go.
+ *
+ * @example
+ * ```ts
+ * // Entity cache - persist indefinitely
+ * { keepAlive: true }
+ *
+ * // Transient data - auto-reset when no subscribers
+ * { keepAlive: false }
+ *
+ * // Time-limited cache - persist for 5 minutes idle
+ * { keepAlive: true, ttl: Duration.minutes(5) }
+ * ```
+ */
+export interface LifecycleConfig {
+  /**
+   * Keep atom state when no subscribers exist.
+   *
+   * - `true` (default): State persists across subscriber changes
+   * - `false`: State resets to initial when last subscriber drops
+   *
+   * Use `false` for transient data that should be refetched on re-mount.
+   */
+  readonly keepAlive?: boolean
+
+  /**
+   * Time-to-live for idle atoms (no subscribers).
+   *
+   * When set, atoms reset to initial after this duration of inactivity.
+   * Requires `keepAlive: true` (implicit if ttl is set).
+   */
+  readonly ttl?: Duration.Duration
+}
+
+// ============================================================================
 // Fermion Core Types
 // ============================================================================
 
@@ -51,8 +92,12 @@ export interface FermionConfig<A, I, E, R, K> {
   /** The algebra providing fetch/persist/remove operations */
   readonly algebra: FermionAlgebra<A, E, R, K>
 
-  /** Optional TTL for idle atom cleanup */
-  readonly ttl?: Duration.Duration
+  /**
+   * Atom lifecycle configuration
+   *
+   * Controls keepAlive behavior and TTL. Defaults to `{ keepAlive: true }`.
+   */
+  readonly lifecycle?: LifecycleConfig
 
   /**
    * Optional function to generate additional reactivity keys
@@ -154,7 +199,7 @@ export interface BuilderState<A, I, E, R, L, K> {
   readonly schema: Schema.Schema<A, I, R>
   readonly key?: string | readonly string[]
   readonly algebra?: Partial<FermionAlgebra<A, E, R, K>>
-  readonly ttl?: Duration.Duration
+  readonly lifecycle?: LifecycleConfig
   readonly reactivityKeys?: (key: K, value: A) => readonly unknown[]
   readonly layers: readonly unknown[]
 }
@@ -164,3 +209,4 @@ export interface BuilderState<A, I, E, R, L, K> {
 // ============================================================================
 
 export type { FermionAlgebra } from "./algebra"
+export type { LifecycleConfig }
