@@ -71,6 +71,11 @@ import type {
 import {
   useDataplane,
   LinkPortIndicator,
+  pendingLinkSourceAtom,
+  isLinkingAtom,
+  hoveredPortAtom,
+  dataplaneOps,
+  portsByIdAtom,
   type LinkPort,
   type PortId,
   type BlockId as DataplaneBlockId,
@@ -90,6 +95,7 @@ import { FocusOverlay } from './FocusOverlay';
 // v4: Using new BlockNameBadge with storyboard animations
 // Reference implementations kept: BlockNameBadge.tsx (v2), BlockNameBadge.v3.tsx
 import { BlockNameBadge } from './BlockNameBadge/index';
+import { LinksTab } from './LinksTab';
 import type { BlockId, BlockType } from './shared';
 import { useBlockRegistryOptional } from './registry';
 
@@ -379,6 +385,101 @@ export function EmbeddedBlockWrapper({
     };
   }, [dataplaneConfig?.enabled, dataplaneConfig?.ports?.length, registeredPorts, portIdByPosition]);
 
+  // Combine user-provided tabs with automatic LinksTab when dataplane is enabled
+  const combinedTabs = useMemo(() => {
+    if (!dataplaneConfig?.enabled) return tabs;
+
+    const linksTab: SettingsTab = {
+      id: 'links',
+      label: 'Links',
+      icon: undefined, // Using Link2 inside LinksTab
+      content: <LinksTab ports={registeredPorts} blockId={blockId} />,
+    };
+
+    // Add Links tab at the end
+    return [...tabs, linksTab];
+  }, [tabs, dataplaneConfig?.enabled, registeredPorts, blockId]);
+
+  // ---------------------------------------------------------------------------
+  // Click-to-Connect Port Linking
+  // ---------------------------------------------------------------------------
+  const isLinking = useAtomValue(isLinkingAtom);
+  const pendingSourcePortId = useAtomValue(pendingLinkSourceAtom);
+  const portsById = useAtomValue(portsByIdAtom);
+
+  /**
+   * Handle port click for linking:
+   * - First click: set as source port (start linking)
+   * - Second click on different port: create link
+   * - Click same port: cancel linking
+   */
+  const handlePortClick = useCallback(
+    async (clickedPortId: PortId) => {
+      if (!pendingSourcePortId) {
+        // No link in progress — start linking from this port
+        Atom.set(pendingLinkSourceAtom, clickedPortId);
+        console.log(`[Dataplane] Started linking from port ${clickedPortId}`);
+      } else if (pendingSourcePortId === clickedPortId) {
+        // Clicked same port — cancel linking
+        Atom.set(pendingLinkSourceAtom, null);
+        console.log('[Dataplane] Linking cancelled');
+      } else {
+        // Different port — attempt to create link
+        const sourcePort = portsById.get(pendingSourcePortId);
+        const targetPort = portsById.get(clickedPortId);
+
+        if (!sourcePort || !targetPort) {
+          console.warn('[Dataplane] Port not found for linking');
+          Atom.set(pendingLinkSourceAtom, null);
+          return;
+        }
+
+        // Validate: source must be output, target must be input (or inout)
+        const isValidSource =
+          sourcePort.direction === 'out' || sourcePort.direction === 'inout';
+        const isValidTarget =
+          targetPort.direction === 'in' || targetPort.direction === 'inout';
+
+        if (!isValidSource || !isValidTarget) {
+          console.warn(
+            `[Dataplane] Invalid link: source=${sourcePort.direction}, target=${targetPort.direction}`
+          );
+          Atom.set(pendingLinkSourceAtom, null);
+          return;
+        }
+
+        try {
+          await dataplaneOps.createLink({
+            sourcePort: pendingSourcePortId,
+            targetPort: clickedPortId,
+            direction: 'unidirectional',
+            relationship: 'pipe',
+          });
+          console.log(
+            `[Dataplane] Created link: ${pendingSourcePortId} → ${clickedPortId}`
+          );
+        } catch (err) {
+          console.error('[Dataplane] Failed to create link:', err);
+        } finally {
+          Atom.set(pendingLinkSourceAtom, null);
+        }
+      }
+    },
+    [pendingSourcePortId, portsById]
+  );
+
+  /**
+   * Handle port hover for visual feedback during linking
+   */
+  const handlePortHover = useCallback(
+    (portId: PortId | null) => {
+      if (isLinking) {
+        Atom.set(hoveredPortAtom, portId);
+      }
+    },
+    [isLinking]
+  );
+
   // Notify on fold change
   useEffect(() => {
     onFoldChange?.(state.foldState);
@@ -435,7 +536,7 @@ export function EmbeddedBlockWrapper({
     () => ({
       state,
       badge,
-      tabs,
+      tabs: combinedTabs,
       isEditable: editor.isEditable,
       dataplane: dataplaneState,
       actions: {
@@ -450,7 +551,7 @@ export function EmbeddedBlockWrapper({
         reconnectStream: () => actions.setStreamStatus('connecting'),
       },
     }),
-    [state, badge, tabs, editor.isEditable, actions, dataplaneState]
+    [state, badge, combinedTabs, editor.isEditable, actions, dataplaneState]
   );
 
   const badgeColors = BADGE_COLORS[badge.tag] || BADGE_COLORS['custom'];
@@ -655,7 +756,7 @@ export function EmbeddedBlockWrapper({
               padding: isThisBlockFocused ? VANTA_SPACING['4'] : undefined,
             }}
           >
-            {/* Dataplane Port Indicators */}
+            {/* Dataplane Port Indicators - with click-to-connect linking */}
             {dataplaneConfig?.enabled &&
               dataplaneConfig.showIndicators !== false &&
               state.foldState !== 'minimized' &&
@@ -666,6 +767,11 @@ export function EmbeddedBlockWrapper({
                   position={port.position}
                   direction={port.direction}
                   dataType={port.dataType}
+                  isLinking={isLinking}
+                  isPendingSource={pendingSourcePortId === port.id}
+                  onClick={() => handlePortClick(port.id)}
+                  onMouseEnter={() => handlePortHover(port.id)}
+                  onMouseLeave={() => handlePortHover(null)}
                 />
               ))}
 
@@ -683,9 +789,9 @@ export function EmbeddedBlockWrapper({
           )}
         </div>
 
-        {!isThisBlockFocused && state.settingsOpen && tabs.length > 0 && (
+        {!isThisBlockFocused && state.settingsOpen && combinedTabs.length > 0 && (
           <SettingsPanel
-            tabs={tabs}
+            tabs={combinedTabs}
             activeTab={state.activeTab}
             onTabChange={actions.setActiveTab}
           />

@@ -57,11 +57,23 @@ export interface LinkPortIndicatorProps {
   /** Whether a drag operation is targeting this port */
   isDragTarget?: boolean;
 
+  /** Whether a link operation is in progress (any port) */
+  isLinking?: boolean;
+
+  /** Whether this port is the pending source of the link operation */
+  isPendingSource?: boolean;
+
   /** Callback when port is clicked */
   onClick?: () => void;
 
   /** Callback when port drag starts (for link creation) */
   onDragStart?: () => void;
+
+  /** Callback when mouse enters the port (for hover feedback during linking) */
+  onMouseEnter?: () => void;
+
+  /** Callback when mouse leaves the port (for hover feedback during linking) */
+  onMouseLeave?: () => void;
 }
 
 // =============================================================================
@@ -123,8 +135,12 @@ export function LinkPortIndicator({
   className,
   isHovered = false,
   isDragTarget = false,
+  isLinking = false,
+  isPendingSource = false,
   onClick,
   onDragStart,
+  onMouseEnter,
+  onMouseLeave,
 }: LinkPortIndicatorProps): React.ReactElement {
   // Check connection state
   const links = useAtomValue(useMemo(() => linksForPortAtom(portId), [portId]));
@@ -164,16 +180,24 @@ export function LinkPortIndicator({
         isHovered && 'scale-125 ring-2 ring-white/30',
         isDragTarget && 'scale-150 ring-2 ring-white/50 animate-pulse',
 
+        // Linking mode states
+        isLinking && !isPendingSource && 'ring-1 ring-white/20 animate-pulse',
+        isPendingSource && 'scale-150 ring-2 ring-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.7)]',
+
         // Custom class
         className
       )}
       onClick={onClick}
       onMouseDown={onDragStart}
-      title={`${direction} port (${dataType})`}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      title={`${direction} port (${dataType})${isPendingSource ? ' - Click another port to link' : ''}`}
       data-port-id={portId}
       data-port-direction={direction}
       data-port-position={position}
       data-port-connected={isConnected}
+      data-port-linking={isLinking}
+      data-port-pending-source={isPendingSource}
     >
       {/* Data type indicator - only show on hover or when connected */}
       <span

@@ -60,6 +60,22 @@ export const versionAtom = Atom.make<number>(0);
 export const graphInitializedAtom = Atom.make<boolean>(false);
 
 // =============================================================================
+// Linking UI State
+// =============================================================================
+
+/** Port currently being linked FROM (null = no link in progress) */
+export const pendingLinkSourceAtom = Atom.make<PortId | null>(null);
+
+/** Indicates link creation mode is active */
+export const isLinkingAtom = Atom.make((get) => get(pendingLinkSourceAtom) !== null);
+
+/** Currently hovered port during linking (for visual feedback) */
+export const hoveredPortAtom = Atom.make<PortId | null>(null);
+
+/** Selected link for editing/deletion */
+export const selectedLinkAtom = Atom.make<LinkId | null>(null);
+
+// =============================================================================
 // Derived Atoms
 // =============================================================================
 

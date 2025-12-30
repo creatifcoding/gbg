@@ -84,6 +84,11 @@ export {
   planesAtom,
   versionAtom,
   graphInitializedAtom,
+  // Linking UI state
+  pendingLinkSourceAtom,
+  isLinkingAtom,
+  hoveredPortAtom,
+  selectedLinkAtom,
   // Derived atoms
   portsByIdAtom,
   linksByIdAtom,
