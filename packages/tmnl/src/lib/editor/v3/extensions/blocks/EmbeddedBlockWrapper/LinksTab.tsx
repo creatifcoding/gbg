@@ -721,8 +721,6 @@ export function LinksTab({ ports, blockId }: LinksTabProps) {
         display: 'flex',
         flexDirection: 'column',
         gap: VANTA_SPACING['3'],
-        maxHeight: '500px',
-        overflowY: 'auto',
       }}
     >
       {/* Visualizer - always visible */}

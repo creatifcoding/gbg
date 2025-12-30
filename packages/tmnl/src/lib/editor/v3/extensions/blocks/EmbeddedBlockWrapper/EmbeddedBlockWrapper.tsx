@@ -35,7 +35,7 @@ import {
   type MouseEvent,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { Atom, useAtomValue } from '@effect-atom/atom-react';
+import { Atom, useAtomValue, useAtomSet } from '@effect-atom/atom-react';
 import { NodeViewWrapper } from '@tiptap/react';
 
 import * as Tabs from '@radix-ui/react-tabs';
@@ -74,6 +74,7 @@ import {
   pendingLinkSourceAtom,
   isLinkingAtom,
   hoveredPortAtom,
+  hoveredBlockIdAtom,
   dataplaneOps,
   portsByIdAtom,
   type LinkPort,
@@ -129,7 +130,7 @@ function tagToBlockType(tag: BlockTag): BlockType {
 // Context
 // =============================================================================
 
-const EmbeddedBlockContext = createContext<EmbeddedBlockContextValue | null>(
+export const EmbeddedBlockContext = createContext<EmbeddedBlockContextValue | null>(
   null
 );
 
@@ -218,6 +219,11 @@ export function EmbeddedBlockWrapper({
   const actions = useEmbeddedBlockActions(atoms);
   const focusActions = useFocusActions();
   const blockRegistry = useBlockRegistryOptional();
+
+  // Dataplane atom setters - must use hooks for React registry
+  const setHoveredBlockId = useAtomSet(hoveredBlockIdAtom);
+  const setPendingLinkSource = useAtomSet(pendingLinkSourceAtom);
+  const setHoveredPort = useAtomSet(hoveredPortAtom);
 
   const handleRename = useMemo(() => {
     if (!blockRegistry?.isAvailable) return undefined;
@@ -426,11 +432,11 @@ export function EmbeddedBlockWrapper({
     async (clickedPortId: PortId) => {
       if (!pendingSourcePortId) {
         // No link in progress — start linking from this port
-        Atom.set(pendingLinkSourceAtom, clickedPortId);
+        setPendingLinkSource(clickedPortId);
         console.log(`[Dataplane] Started linking from port ${clickedPortId}`);
       } else if (pendingSourcePortId === clickedPortId) {
         // Clicked same port — cancel linking
-        Atom.set(pendingLinkSourceAtom, null);
+        setPendingLinkSource(null);
         console.log('[Dataplane] Linking cancelled');
       } else {
         // Different port — attempt to create link
@@ -439,7 +445,7 @@ export function EmbeddedBlockWrapper({
 
         if (!sourcePort || !targetPort) {
           console.warn('[Dataplane] Port not found for linking');
-          Atom.set(pendingLinkSourceAtom, null);
+          setPendingLinkSource(null);
           return;
         }
 
@@ -453,7 +459,7 @@ export function EmbeddedBlockWrapper({
           console.warn(
             `[Dataplane] Invalid link: source=${sourcePort.direction}, target=${targetPort.direction}`
           );
-          Atom.set(pendingLinkSourceAtom, null);
+          setPendingLinkSource(null);
           return;
         }
 
@@ -470,7 +476,7 @@ export function EmbeddedBlockWrapper({
         } catch (err) {
           console.error('[Dataplane] Failed to create link:', err);
         } finally {
-          Atom.set(pendingLinkSourceAtom, null);
+          setPendingLinkSource(null);
         }
       }
     },
@@ -483,7 +489,7 @@ export function EmbeddedBlockWrapper({
   const handlePortHover = useCallback(
     (portId: PortId | null) => {
       if (isLinking) {
-        Atom.set(hoveredPortAtom, portId);
+        setHoveredPort(portId);
       }
     },
     [isLinking]
@@ -653,18 +659,26 @@ export function EmbeddedBlockWrapper({
       <NodeViewWrapper
         className={`tmnl-embedded-block ${className}`}
         data-type="embeddedBlock"
+        data-block-id={blockId}
         data-block-tag={badge.tag}
         data-focused={isThisBlockFocused}
         data-hidden-by-focus={isHiddenByFocus}
         contentEditable={false}
-        onMouseEnter={() => actions.setHovered(true)}
-        onMouseLeave={() => actions.setHovered(false)}
+        onMouseEnter={() => {
+          actions.setHovered(true);
+          setHoveredBlockId(blockId);
+        }}
+        onMouseLeave={() => {
+          actions.setHovered(false);
+          setHoveredBlockId(null);
+        }}
         onKeyDown={handleKeyDown}
         tabIndex={isHiddenByFocus ? -1 : 0}
         style={{
           margin: isThisBlockFocused ? 0 : '16px 0',
           borderRadius: VANTA_BORDERS.radius.md,
-          overflow: isThisBlockFocused ? 'visible' : 'hidden',
+          // Overflow visible when hovered (for port indicators) or focused
+          overflow: isThisBlockFocused || state.isHovered ? 'visible' : 'hidden',
           border: isThisBlockFocused
             ? 'none'
             : selected
@@ -720,6 +734,25 @@ export function EmbeddedBlockWrapper({
           />
         )}
 
+        {/* Dataplane Port Indicators - OUTSIDE overflow:hidden for visibility */}
+        {dataplaneConfig?.enabled &&
+          dataplaneConfig.showIndicators !== false &&
+          state.foldState !== 'minimized' &&
+          registeredPorts.map((port) => (
+            <LinkPortIndicator
+              key={port.id}
+              portId={port.id}
+              blockId={blockId as DataplaneBlockId}
+              position={port.position}
+              direction={port.direction}
+              dataType={port.dataType}
+              isPendingSource={pendingSourcePortId === port.id}
+              onClick={() => handlePortClick(port.id)}
+              onMouseEnter={() => handlePortHover(port.id)}
+              onMouseLeave={() => handlePortHover(null)}
+            />
+          ))}
+
         <div
           style={{
             position: 'relative',
@@ -765,25 +798,6 @@ export function EmbeddedBlockWrapper({
               padding: isThisBlockFocused ? VANTA_SPACING['4'] : undefined,
             }}
           >
-            {/* Dataplane Port Indicators - with click-to-connect linking */}
-            {dataplaneConfig?.enabled &&
-              dataplaneConfig.showIndicators !== false &&
-              state.foldState !== 'minimized' &&
-              registeredPorts.map((port) => (
-                <LinkPortIndicator
-                  key={port.id}
-                  portId={port.id}
-                  position={port.position}
-                  direction={port.direction}
-                  dataType={port.dataType}
-                  isLinking={isLinking}
-                  isPendingSource={pendingSourcePortId === port.id}
-                  onClick={() => handlePortClick(port.id)}
-                  onMouseEnter={() => handlePortHover(port.id)}
-                  onMouseLeave={() => handlePortHover(null)}
-                />
-              ))}
-
             {children}
           </div>
 
@@ -1137,6 +1151,9 @@ function SettingsPanel({ tabs, activeTab, onTabChange }: SettingsPanelProps) {
           style={{
             display: 'flex',
             borderBottom: `1px solid ${VANTA_COLORS.surface.border}`,
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            scrollbarWidth: 'thin',
           }}
         >
           {tabs.map((tab) => {
@@ -1163,6 +1180,8 @@ function SettingsPanel({ tabs, activeTab, onTabChange }: SettingsPanelProps) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: VANTA_SPACING['1'],
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
                   ...VANTA_TYPOGRAPHY.preset.label,
                   transition: VANTA_ANIMATION.transition.colors,
                 }}
@@ -1181,6 +1200,8 @@ function SettingsPanel({ tabs, activeTab, onTabChange }: SettingsPanelProps) {
             value={tab.id}
             style={{
               padding: VANTA_SPACING['3'],
+              maxHeight: '400px',
+              overflowY: 'auto',
             }}
           >
             {tab.content}
