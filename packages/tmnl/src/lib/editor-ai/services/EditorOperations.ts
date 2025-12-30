@@ -14,6 +14,7 @@
  */
 
 import { Context, Effect, Stream } from 'effect'
+import type { EditorView } from '@tiptap/pm/view'
 import type {
   EditorId,
   Selection,
@@ -161,6 +162,17 @@ export interface EditorOperationsShape {
 
   /** Check if document has unsaved changes */
   readonly isDirty: Effect.Effect<boolean>
+
+  // ---------------------------------------------------------------------------
+  // Low-Level Access (for Reconciler)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Get the underlying ProseMirror EditorView.
+   * Required for document reconciliation operations.
+   * Note: This breaks abstraction but is necessary for AI document generation.
+   */
+  readonly getView: Effect.Effect<EditorView | null>
 }
 
 // -----------------------------------------------------------------------------

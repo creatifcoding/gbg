@@ -157,6 +157,18 @@ export {
 } from './services/KnowledgeService'
 
 // -----------------------------------------------------------------------------
+// Services - ReconcilerService
+// -----------------------------------------------------------------------------
+
+export {
+  ReconcilerService,
+  ReconcilerServiceLive,
+  type ReconcilerServiceShape,
+  type ReconciliationResult,
+  type DocumentStreamHandle,
+} from './services/ReconcilerService'
+
+// -----------------------------------------------------------------------------
 // Adapters
 // -----------------------------------------------------------------------------
 
@@ -250,6 +262,8 @@ export {
   withEditorAIRef,
   type WithEditorAIConfig,
   type WithEditorAIInjectedProps,
+  EditorAIDrawer,
+  type EditorAIDrawerProps,
 } from './components'
 
 // -----------------------------------------------------------------------------

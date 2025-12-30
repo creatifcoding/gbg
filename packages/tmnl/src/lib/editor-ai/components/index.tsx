@@ -19,3 +19,8 @@ export {
   type WithEditorAIConfig,
   type WithEditorAIInjectedProps,
 } from './withEditorAI'
+
+export {
+  EditorAIDrawer,
+  type EditorAIDrawerProps,
+} from './EditorAIDrawer'

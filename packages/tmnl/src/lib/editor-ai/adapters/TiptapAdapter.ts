@@ -404,6 +404,15 @@ const createTiptapOperations = (
   ),
 
   isDirty: Effect.succeed(false),
+
+  // ---------------------------------------------------------------------------
+  // Low-Level Access (for Reconciler)
+  // ---------------------------------------------------------------------------
+
+  getView: getEditor(config).pipe(
+    Effect.map((editor) => editor.view),
+    Effect.orElseSucceed(() => null)
+  ),
 })
 
 // -----------------------------------------------------------------------------
