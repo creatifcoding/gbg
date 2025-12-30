@@ -21,44 +21,57 @@ import {
   EditorAIBridge,
   EditorAIBridgeLive,
 } from '../services/EditorAIBridge'
+import { ReconcilerServiceLive } from '../services/ReconcilerService'
 import { KnowledgeService, KnowledgeServiceLive } from '../services/KnowledgeService'
 import type { EditorId, InsertionResult } from '../schemas/editor'
 import type { AIContext } from '../schemas/operations'
 import type { AIStreamError } from '../schemas/errors'
+import type { EditorOperationsShape } from '../services/EditorOperations'
 
 // -----------------------------------------------------------------------------
 // State Atoms (Module-Level Singletons)
 // -----------------------------------------------------------------------------
+// CRITICAL: Use Atom.keepAlive to prevent reset when subscribers unmount.
+// Without keepAlive, React Strict Mode's unmount/remount cycle causes atoms
+// to reset to their initial values, losing registered editor state.
 
 /**
  * Registered editor IDs.
  */
-export const registeredEditorsAtom = Atom.make<readonly EditorId[]>([])
+export const registeredEditorsAtom = Atom.make<readonly EditorId[]>([]).pipe(
+  Atom.keepAlive
+)
 
 /**
  * Currently focused editor ID.
  */
-export const focusedEditorAtom = Atom.make<Option.Option<EditorId>>(Option.none())
+export const focusedEditorAtom = Atom.make<Option.Option<EditorId>>(
+  Option.none()
+).pipe(Atom.keepAlive)
 
 /**
  * Number of registered editors.
  */
-export const editorCountAtom = Atom.make<number>(0)
+export const editorCountAtom = Atom.make<number>(0).pipe(Atom.keepAlive)
 
 /**
  * Last AI context gathered from focused editor.
  */
-export const lastContextAtom = Atom.make<AIContext | null>(null)
+export const lastContextAtom = Atom.make<AIContext | null>(null).pipe(
+  Atom.keepAlive
+)
 
 /**
  * Streaming insertion state.
  */
-export const isStreamingAtom = Atom.make<boolean>(false)
+export const isStreamingAtom = Atom.make<boolean>(false).pipe(Atom.keepAlive)
 
 /**
  * Last insertion result.
  */
-export const lastInsertionResultAtom = Atom.make<InsertionResult | null>(null)
+export const lastInsertionResultAtom = Atom.make<InsertionResult | null>(
+  null
+).pipe(Atom.keepAlive)
 
 // -----------------------------------------------------------------------------
 // Derived Atoms
@@ -110,12 +123,17 @@ export const isEditorFocusedAtom = Atom.family((editorId: EditorId) =>
 
 /**
  * EditorAI runtime combining all service layers.
+ *
+ * CRITICAL: Layer composition must avoid duplicate service instantiation.
+ * EditorAIBridgeLive depends on EditorRegistry + ReconcilerService.
+ * We use Layer.provideMerge to wire dependencies from a SINGLE base layer.
  */
+const editorAIBaseLayer = Layer.mergeAll(EditorRegistryLive, ReconcilerServiceLive)
+
 export const editorAIRuntimeAtom = Atom.runtime(
-  Layer.mergeAll(
-    EditorRegistryLive,
-    Layer.provideMerge(EditorAIBridgeLive, EditorRegistryLive),
-    KnowledgeServiceLive
+  Layer.provideMerge(
+    Layer.mergeAll(EditorAIBridgeLive, KnowledgeServiceLive),
+    editorAIBaseLayer
   )
 )
 
@@ -243,12 +261,127 @@ export const createInsertionHandleOp = editorAIRuntimeAtom.fn<void>()(
 )
 
 // -----------------------------------------------------------------------------
+// Registration Operations
+// These bridge React components to the Effect service layer
+// -----------------------------------------------------------------------------
+
+/**
+ * Register an editor with the EditorRegistry service.
+ * Called when an editor component mounts and has an instance ready.
+ *
+ * Updates atoms to reflect new registration state.
+ */
+export const registerEditorOp = editorAIRuntimeAtom.fn<{
+  id: EditorId
+  operations: EditorOperationsShape
+}>()(({ id, operations }, ctx) =>
+  EditorRegistry.pipe(
+    Effect.flatMap((registry) => registry.register(id, operations)),
+    Effect.flatMap(() => EditorRegistry),
+    Effect.flatMap((registry) =>
+      Effect.all({
+        editors: registry.getAllEditors,
+        focused: registry.getFocusedEditor,
+      })
+    ),
+    Effect.tap(({ editors, focused }) =>
+      Effect.sync(() => {
+        ctx.set(registeredEditorsAtom, editors)
+        ctx.set(focusedEditorAtom, focused)
+        ctx.set(editorCountAtom, editors.length)
+      })
+    ),
+    Effect.asVoid
+  )
+)
+
+/**
+ * Unregister an editor from the EditorRegistry service.
+ * Called when an editor component unmounts.
+ *
+ * Updates atoms to reflect removal. Clears focus if this was the focused editor.
+ */
+export const unregisterEditorOp = editorAIRuntimeAtom.fn<{ id: EditorId }>()(
+  ({ id }, ctx) =>
+    EditorRegistry.pipe(
+      Effect.flatMap((registry) => registry.unregister(id)),
+      Effect.flatMap(() => EditorRegistry),
+      Effect.flatMap((registry) =>
+        Effect.all({
+          editors: registry.getAllEditors,
+          focused: registry.getFocusedEditor,
+        })
+      ),
+      Effect.tap(({ editors, focused }) =>
+        Effect.sync(() => {
+          ctx.set(registeredEditorsAtom, editors)
+          ctx.set(focusedEditorAtom, focused)
+          ctx.set(editorCountAtom, editors.length)
+        })
+      ),
+      Effect.asVoid
+    )
+)
+
+/**
+ * Set the focused editor by ID.
+ * Pass null to clear focus.
+ *
+ * Updates focusedEditorAtom to reflect new focus state.
+ */
+export const setFocusedEditorOp = editorAIRuntimeAtom.fn<{
+  id: EditorId | null
+}>()(({ id }, ctx) =>
+  EditorRegistry.pipe(
+    Effect.flatMap((registry) =>
+      registry.setFocusedEditor(id ? Option.some(id) : Option.none())
+    ),
+    Effect.tap(() =>
+      Effect.sync(() => {
+        ctx.set(focusedEditorAtom, id ? Option.some(id) : Option.none())
+      })
+    ),
+    Effect.asVoid
+  )
+)
+
+/**
+ * Get the EditorOperationsShape for a specific editor.
+ * Returns the operations interface for direct manipulation.
+ */
+export const getEditorOperationsOp = editorAIRuntimeAtom.fn<{ id: EditorId }>()(
+  ({ id }, _ctx) =>
+    EditorRegistry.pipe(Effect.flatMap((registry) => registry.getEditor(id)))
+)
+
+/**
+ * Get the focused editor's operations.
+ * Fails if no editor is focused.
+ */
+export const getFocusedEditorOperationsOp = editorAIRuntimeAtom.fn<void>()(
+  (_args, _ctx) =>
+    EditorRegistry.pipe(
+      Effect.flatMap((registry) => registry.getFocusedOperations)
+    )
+)
+
+// -----------------------------------------------------------------------------
 // Convenience Export
 // -----------------------------------------------------------------------------
 
 export const editorAIOps = {
+  // Registration (React → Effect bridge)
+  registerEditor: registerEditorOp,
+  unregisterEditor: unregisterEditorOp,
+  setFocusedEditor: setFocusedEditorOp,
+  getEditorOperations: getEditorOperationsOp,
+  getFocusedEditorOperations: getFocusedEditorOperationsOp,
+
+  // Focus (legacy, uses Bridge)
   focusEditor: focusEditorOp,
   refreshEditors: refreshEditorsOp,
+
+  // Content operations
   insertText: insertTextOp,
   replaceSelection: replaceSelectionOp,
   getSelection: getSelectionOp,

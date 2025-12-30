@@ -62,6 +62,8 @@ import {
 import { editorContentStyles, collaborativeEditorStyles } from './styles';
 import { DefaultBlockHandle, blockHandleStyles } from './BlockDragHandle';
 import { AnnotationToolbar } from './AnnotationToolbar';
+import { AnnotationPopover } from '../extensions/annotations/components';
+import { AnnotationRegistryProvider } from '../extensions/annotations';
 import { BlockRegistryProvider } from '../extensions/blocks/EmbeddedBlockWrapper/registry';
 
 // =============================================================================
@@ -183,6 +185,17 @@ export interface CollaborativeTiptapEditorProps {
    * REQUIRED for TableOfContents and other consumers to read editor state.
    */
   registry?: Registry.Registry;
+
+  /**
+   * Callback when editor gains focus.
+   * Use this to track focused editor in EditorAI system.
+   */
+  onFocus?: (event: FocusEvent) => void;
+
+  /**
+   * Callback when editor loses focus.
+   */
+  onBlur?: (event: FocusEvent) => void;
 }
 
 // =============================================================================
@@ -232,6 +245,8 @@ const InnerEditor: React.FC<InnerEditorProps> = ({
   onYDocReady,
   onAwarenessChange,
   onChange,
+  onFocus,
+  onBlur,
   className,
   style,
   editorRef,
@@ -371,6 +386,13 @@ const InnerEditor: React.FC<InnerEditorProps> = ({
       onCreate: ({ editor: createdEditor }) => {
         editorInstanceRef.current = createdEditor;
         onReady?.(createdEditor);
+      },
+      // Focus tracking for EditorAI system
+      onFocus: ({ event }) => {
+        onFocus?.(event);
+      },
+      onBlur: ({ event }) => {
+        onBlur?.(event);
       },
     },
     // Only recreate when doc changes - cursor added imperatively
@@ -522,6 +544,14 @@ const InnerEditor: React.FC<InnerEditorProps> = ({
 
       {/* Annotation toolbar — appears on text selection */}
       {editor && editable && <AnnotationToolbar editor={editor} />}
+
+      {/* Annotation popover — appears on mark hover/click */}
+      {/* CRITICAL: Registry provider ensures popover reads from same registry IntentMarkView writes to */}
+      {editor && (
+        <AnnotationRegistryProvider>
+          <AnnotationPopover />
+        </AnnotationRegistryProvider>
+      )}
 
       {/* Floating drag handle — appears on block hover */}
       {editor && editable && (
