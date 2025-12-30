@@ -44,3 +44,12 @@ export {
   LinkSettingsPanel,
   type LinkSettingsPanelProps,
 } from './LinkSettingsPanel';
+
+// =============================================================================
+// Debug & Development
+// =============================================================================
+
+export {
+  DataplaneDebugPanel,
+  type DataplaneDebugPanelProps,
+} from './DataplaneDebugPanel';
