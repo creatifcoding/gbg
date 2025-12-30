@@ -25,7 +25,7 @@
  * ```
  */
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useAtomValue, useAtomSet } from '@effect-atom/atom-react';
 import * as Result from '@effect-atom/atom/Result';
 
@@ -203,18 +203,33 @@ export function useDataplane(): UseDataplaneReturn {
     }
   }, [ensureRuntime, doRunGraph]);
 
-  return {
-    isInitialized,
-    ports,
-    links,
-    initGraph,
-    registerPort,
-    unregisterPort,
-    createLink,
-    removeLink,
-    pushData,
-    runGraph,
-  };
+  // Memoize return object to prevent infinite effect loops in consumers
+  return useMemo(
+    () => ({
+      isInitialized,
+      ports,
+      links,
+      initGraph,
+      registerPort,
+      unregisterPort,
+      createLink,
+      removeLink,
+      pushData,
+      runGraph,
+    }),
+    [
+      isInitialized,
+      ports,
+      links,
+      initGraph,
+      registerPort,
+      unregisterPort,
+      createLink,
+      removeLink,
+      pushData,
+      runGraph,
+    ]
+  );
 }
 
 /**

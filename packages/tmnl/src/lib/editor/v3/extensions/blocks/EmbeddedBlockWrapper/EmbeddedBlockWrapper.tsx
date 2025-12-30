@@ -314,11 +314,19 @@ export function EmbeddedBlockWrapper({
   // ---------------------------------------------------------------------------
   // Dataplane Port Registration
   // ---------------------------------------------------------------------------
-  const dataplane = useDataplane();
+  const { registerPort: dpRegisterPort, unregisterPort: dpUnregisterPort } = useDataplane();
   const [registeredPorts, setRegisteredPorts] = useState<LinkPort[]>([]);
   const [portIdByPosition, setPortIdByPosition] = useState<Map<PortPosition, PortId>>(
     new Map()
   );
+
+  // Use refs to avoid effect re-runs when dataplane functions change reference
+  const registerPortRef = useRef(dpRegisterPort);
+  const unregisterPortRef = useRef(dpUnregisterPort);
+  useEffect(() => {
+    registerPortRef.current = dpRegisterPort;
+    unregisterPortRef.current = dpUnregisterPort;
+  });
 
   // Register ports on mount, unregister on unmount
   useEffect(() => {
@@ -333,7 +341,7 @@ export function EmbeddedBlockWrapper({
     const registerAll = async () => {
       for (const portConfig of dataplaneConfig.ports!) {
         try {
-          const port = await dataplane.registerPort({
+          const port = await registerPortRef.current({
             blockId: blockId as DataplaneBlockId,
             direction: portConfig.direction,
             dataType: portConfig.dataType,
@@ -364,7 +372,7 @@ export function EmbeddedBlockWrapper({
     // State is garbage collected on unmount, and re-registration overwrites on dependency change.
     return () => {
       for (const port of ports) {
-        dataplane.unregisterPort(port.id).catch((err) => {
+        unregisterPortRef.current(port.id).catch((err) => {
           console.warn(
             `[EmbeddedBlockWrapper] Failed to unregister port ${port.id}:`,
             err
@@ -372,7 +380,8 @@ export function EmbeddedBlockWrapper({
         });
       }
     };
-  }, [blockId, dataplaneConfig?.enabled, dataplaneConfig?.ports, dataplane]);
+    // Only re-run when blockId or dataplaneConfig changes, not when dataplane functions change
+  }, [blockId, dataplaneConfig?.enabled, dataplaneConfig?.ports]);
 
   // Compute dataplane state for context
   const dataplaneState: DataplaneState | undefined = useMemo(() => {
