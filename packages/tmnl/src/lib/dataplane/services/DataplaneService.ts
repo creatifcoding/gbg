@@ -166,6 +166,18 @@ export class DataplaneService extends Effect.Service<DataplaneService>()(
         Effect.gen(function* () {
           const state = yield* Ref.get(stateRef);
 
+          // Idempotency check: if port with same blockId + position exists, return it
+          // This prevents duplicates from React Strict Mode double-mounts
+          const existingPort = [...state.ports.values()].find(
+            (p) =>
+              p.blockId === config.blockId &&
+              p.position === config.position &&
+              p.direction === config.direction
+          );
+          if (existingPort) {
+            return existingPort;
+          }
+
           // Ensure graph is initialized
           const graph = state.graph ?? (yield* initGraph());
 

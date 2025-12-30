@@ -76,6 +76,66 @@ export const hoveredPortAtom = Atom.make<PortId | null>(null);
 export const selectedLinkAtom = Atom.make<LinkId | null>(null);
 
 // =============================================================================
+// Port Visibility & Hover State
+// =============================================================================
+
+/** Currently hovered block ID - ports on this block become visible */
+export const hoveredBlockIdAtom = Atom.make<string | null>(null);
+
+/** Currently hovered link ID - for fade/highlight behavior */
+export const hoveredLinkIdAtom = Atom.make<LinkId | null>(null);
+
+/**
+ * Force all ports visible (e.g., when Links tab is open)
+ * When true, all ports and links are fully visible regardless of hover state
+ */
+export const forcePortsVisibleAtom = Atom.make<boolean>(false);
+
+/**
+ * Derive whether ports should be visible for a given block
+ * True when: block is hovered OR links tab is open OR linking is in progress
+ */
+export const shouldShowPortsAtom = Atom.family((blockId: string) =>
+  Atom.make((get) => {
+    const forceVisible = get(forcePortsVisibleAtom);
+    const hoveredBlockId = get(hoveredBlockIdAtom);
+    const isLinking = get(isLinkingAtom);
+
+    return forceVisible || hoveredBlockId === blockId || isLinking;
+  })
+);
+
+/**
+ * Derive link opacity based on hover/selection state
+ * Returns opacity value: 1.0 = full, 0.15 = faded
+ */
+export const linkOpacityAtom = Atom.family((linkId: LinkId) =>
+  Atom.make((get) => {
+    const forceVisible = get(forcePortsVisibleAtom);
+    const selectedLinkId = get(selectedLinkAtom);
+    const hoveredLinkId = get(hoveredLinkIdAtom);
+    const isLinking = get(isLinkingAtom);
+
+    // Full visibility when:
+    // - Force visible (Links tab open)
+    // - This link is selected
+    // - This link is hovered
+    // - Linking in progress (show all possible targets)
+    if (forceVisible || selectedLinkId === linkId || hoveredLinkId === linkId || isLinking) {
+      return 1.0;
+    }
+
+    // Faded when nothing is selected/hovered
+    if (selectedLinkId === null && hoveredLinkId === null) {
+      return 0.15;
+    }
+
+    // Something else is selected/hovered - fade this link
+    return 0.15;
+  })
+);
+
+// =============================================================================
 // Derived Atoms
 // =============================================================================
 
@@ -158,15 +218,68 @@ export const dataplaneOps = {
   // Port Operations
   // ---------------------------------------------------------------------------
 
-  /** Register a new port */
+  /** Register a new port (idempotent - won't duplicate existing ports) */
   registerPort: dataplaneRuntimeAtom.fn<CreatePortConfig>()((config, ctx) =>
     Effect.gen(function* () {
       const service = yield* DataplaneService;
       const port = yield* service.registerPort(config);
 
-      ctx.set(portsAtom, [...ctx(portsAtom), port]);
+      // Only add if not already present (service may return existing port)
+      const currentPorts = ctx(portsAtom);
+      if (!currentPorts.some((p) => p.id === port.id)) {
+        ctx.set(portsAtom, [...currentPorts, port]);
+      }
 
       return port;
+    })
+  ),
+
+  /** Update a port's position (for auto-positioning based on linked block) */
+  updatePortPosition: dataplaneRuntimeAtom.fn<{
+    portId: PortId;
+    position: 'left' | 'right' | 'top' | 'bottom';
+  }>()((args, ctx) =>
+    Effect.gen(function* () {
+      const { portId, position } = args;
+
+      ctx.set(
+        portsAtom,
+        ctx(portsAtom).map((p) =>
+          p.id === portId ? { ...p, position } : p
+        )
+      );
+    })
+  ),
+
+  /**
+   * Auto-position a port based on linked block locations.
+   *
+   * Uses calculateOptimalPosition to determine the best port position
+   * based on where linked blocks are relative to this block.
+   */
+  autoPositionPort: dataplaneRuntimeAtom.fn<{
+    portId: PortId;
+    thisBlockPosition: { x: number; y: number; width: number; height: number };
+    linkedBlockPosition: { x: number; y: number; width: number; height: number };
+  }>()((args, ctx) =>
+    Effect.gen(function* () {
+      const { portId, thisBlockPosition, linkedBlockPosition } = args;
+
+      // Calculate optimal position
+      const optimalPosition = calculateOptimalPosition(
+        thisBlockPosition,
+        linkedBlockPosition
+      );
+
+      // Update port position
+      ctx.set(
+        portsAtom,
+        ctx(portsAtom).map((p) =>
+          p.id === portId ? { ...p, position: optimalPosition } : p
+        )
+      );
+
+      return optimalPosition;
     })
   ),
 
@@ -329,6 +442,59 @@ export const dataplaneOps = {
     })
   ),
 };
+
+// =============================================================================
+// Auto-Positioning Helpers
+// =============================================================================
+
+interface BlockPosition {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Calculate optimal port position based on relative block positions.
+ *
+ * Strategy:
+ * - If linked block is predominantly to the left → use 'right' (port faces the link)
+ * - If linked block is predominantly to the right → use 'left' (port faces the link)
+ * - If linked block is predominantly above → use 'bottom' (port faces the link)
+ * - If linked block is predominantly below → use 'top' (port faces the link)
+ *
+ * Uses center-to-center vector with angle calculation.
+ */
+export function calculateOptimalPosition(
+  thisBlock: BlockPosition,
+  linkedBlock: BlockPosition
+): 'left' | 'right' | 'top' | 'bottom' {
+  const thisCenterX = thisBlock.x + thisBlock.width / 2;
+  const thisCenterY = thisBlock.y + thisBlock.height / 2;
+  const linkedCenterX = linkedBlock.x + linkedBlock.width / 2;
+  const linkedCenterY = linkedBlock.y + linkedBlock.height / 2;
+
+  const dx = linkedCenterX - thisCenterX;
+  const dy = linkedCenterY - thisCenterY;
+
+  // Calculate angle in degrees (0 = right, 90 = down, 180/-180 = left, -90 = up)
+  const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+  // Determine quadrant
+  if (angle >= -45 && angle < 45) {
+    // Linked block is to the right → port on right side faces it
+    return 'right';
+  } else if (angle >= 45 && angle < 135) {
+    // Linked block is below → port on bottom side faces it
+    return 'bottom';
+  } else if (angle >= 135 || angle < -135) {
+    // Linked block is to the left → port on left side faces it
+    return 'left';
+  } else {
+    // Linked block is above → port on top side faces it
+    return 'top';
+  }
+}
 
 // =============================================================================
 // Selector Atoms (for specific lookups)

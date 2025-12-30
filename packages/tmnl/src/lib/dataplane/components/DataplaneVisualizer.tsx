@@ -61,8 +61,6 @@ export interface DataplaneVisualizerProps {
   className?: string;
   /** Height for inline mode */
   inlineHeight?: number | string;
-  /** Hide block labels on port nodes (useful in block-scoped view) */
-  hideBlockLabels?: boolean;
 }
 
 // =============================================================================
@@ -142,7 +140,6 @@ export const DataplaneVisualizer = memo(function DataplaneVisualizer({
   onModeChange,
   className,
   inlineHeight = 300,
-  hideBlockLabels,
 }: DataplaneVisualizerProps): React.ReactElement {
   const allPorts = useAtomValue(portsAtom);
   const allLinks = useAtomValue(linksAtom);
@@ -179,12 +176,12 @@ export const DataplaneVisualizer = memo(function DataplaneVisualizer({
       position: getNodePosition(port, index, blockPositions),
       data: {
         port,
-        blockLabel: hideBlockLabels ? undefined : port.blockId.slice(0, 8),
+        blockLabel: port.blockId.slice(0, 8),
       },
       parentId: port.parentBlockId as string | undefined,
       extent: port.parentBlockId ? 'parent' : undefined,
     }));
-  }, [ports, hideBlockLabels]);
+  }, [ports]);
 
   // Convert links to React Flow edges
   const initialEdges = useMemo(() => {
