@@ -201,3 +201,24 @@ export {
   createKnowledgeTools,
   type KnowledgeTools,
 } from './tools/knowledge-tools'
+
+// -----------------------------------------------------------------------------
+// Components (Phase 3)
+// -----------------------------------------------------------------------------
+
+export {
+  EditorAIProvider,
+  useEditorAIContext,
+  type EditorAIContextValue,
+  type EditorAIProviderProps,
+  withEditorAI,
+  withEditorAIRef,
+  type WithEditorAIConfig,
+  type WithEditorAIInjectedProps,
+} from './components'
+
+// -----------------------------------------------------------------------------
+// Hooks (Phase 3)
+// -----------------------------------------------------------------------------
+
+export { useEditorAI, type UseEditorAIResult } from './hooks'
