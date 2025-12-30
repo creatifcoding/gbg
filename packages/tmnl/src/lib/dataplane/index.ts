@@ -72,17 +72,6 @@ export type {
 } from './schemas/link';
 
 // =============================================================================
-// Services
-// =============================================================================
-
-export {
-  DataplaneService,
-  DataplaneServiceLive,
-  type DataplaneServiceShape,
-  type DataplaneState,
-} from './services/DataplaneService';
-
-// =============================================================================
 // Atoms
 // =============================================================================
 
@@ -115,21 +104,6 @@ export {
 } from './atoms';
 
 // =============================================================================
-// Hooks
-// =============================================================================
-
-export {
-  useDataplane,
-  usePort,
-  usePortData,
-  useHasIncoming,
-  useHasOutgoing,
-  useBlockPorts,
-  type UseDataplaneReturn,
-  type UsePortDataReturn,
-} from './hooks';
-
-// =============================================================================
 // Components
 // =============================================================================
 
@@ -152,3 +126,17 @@ export {
   LinkSettingsPanel,
   type LinkSettingsPanelProps,
 } from './components';
+
+// =============================================================================
+// Services
+// =============================================================================
+
+export {
+  // PipelineBuilder service for d2ts pipeline wiring
+  PipelineBuilder,
+  PipelineBuilderLive,
+  type PipelineBuilderShape,
+  type PipelineConfig,
+  type PipelineResult,
+  type TransformFn,
+} from './services';
