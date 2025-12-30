@@ -4,12 +4,56 @@
  * Handles AI chat requests using AI SDK 6 + Claude Code Provider.
  * Position tools are defined server-side but executed client-side
  * via onToolCall in useChat.
+ *
+ * Uses Effect.Schema - AI SDK 6+ native support.
  */
 
 import { streamText, tool } from 'ai'
 import { claudeCode } from 'ai-sdk-provider-claude-code'
-import { z } from 'zod'
+import { Schema } from 'effect'
 import type { IncomingMessage, ServerResponse } from 'http'
+
+// -----------------------------------------------------------------------------
+// Tool Schemas (Effect.Schema)
+// -----------------------------------------------------------------------------
+
+const CornerPosition = Schema.Literal(
+  'bottom-right',
+  'bottom-left',
+  'top-right',
+  'top-left',
+  'center'
+)
+
+const CoordinatePosition = Schema.Struct({
+  x: Schema.Number,
+  y: Schema.Number,
+})
+
+const MoveToParams = Schema.Struct({
+  position: Schema.Union(CornerPosition, CoordinatePosition),
+  reason: Schema.optional(
+    Schema.String.pipe(
+      Schema.annotations({ description: 'Why the cursor is moving to this position' })
+    )
+  ),
+})
+
+const MinimizeParams = Schema.Struct({
+  reason: Schema.optional(
+    Schema.String.pipe(
+      Schema.annotations({ description: 'Why the cursor is being minimized' })
+    )
+  ),
+})
+
+const ExpandParams = Schema.Struct({
+  reason: Schema.optional(
+    Schema.String.pipe(
+      Schema.annotations({ description: 'Why the cursor is being expanded' })
+    )
+  ),
+})
 
 // -----------------------------------------------------------------------------
 // Tool Definitions
@@ -17,14 +61,9 @@ import type { IncomingMessage, ServerResponse } from 'http'
 
 const positionTools = {
   move_to: tool({
-    description: 'Move the chat panel to a corner position or specific coordinates. Use this when the user asks you to move, get out of the way, or when you need to reposition yourself.',
-    parameters: z.object({
-      position: z.union([
-        z.enum(['bottom-right', 'bottom-left', 'top-right', 'top-left', 'center']),
-        z.object({ x: z.number(), y: z.number() }),
-      ]),
-      reason: z.string().optional().describe('Why the cursor is moving to this position'),
-    }),
+    description:
+      'Move the chat panel to a corner position or specific coordinates. Use this when the user asks you to move, get out of the way, or when you need to reposition yourself.',
+    parameters: MoveToParams,
     execute: async ({ position, reason }) => {
       // Tool result returned to AI - actual movement handled client-side via onToolCall
       return { moved: true, position, reason }
@@ -32,24 +71,22 @@ const positionTools = {
   }),
 
   minimize: tool({
-    description: 'Collapse the chat panel to a minimal pill indicator. Use when the user wants you to be less intrusive.',
-    parameters: z.object({
-      reason: z.string().optional().describe('Why the cursor is being minimized'),
-    }),
+    description:
+      'Collapse the chat panel to a minimal pill indicator. Use when the user wants you to be less intrusive.',
+    parameters: MinimizeParams,
     execute: async ({ reason }) => ({ minimized: true, reason }),
   }),
 
   expand: tool({
-    description: 'Expand the chat panel to full chat mode. Use when starting a conversation.',
-    parameters: z.object({
-      reason: z.string().optional().describe('Why the cursor is being expanded'),
-    }),
+    description:
+      'Expand the chat panel to full chat mode. Use when starting a conversation.',
+    parameters: ExpandParams,
     execute: async ({ reason }) => ({ expanded: true, reason }),
   }),
 
   get_bounds: tool({
     description: 'Get the current content area dimensions.',
-    parameters: z.object({}),
+    parameters: Schema.Struct({}),
     execute: async () => {
       // Actual bounds come from client-side state via onToolCall
       return { width: 0, height: 0, note: 'Bounds provided by client' }

@@ -194,13 +194,48 @@ export {
 } from './atoms'
 
 // -----------------------------------------------------------------------------
-// Tools
+// Schemas - Tools (Phase 4)
 // -----------------------------------------------------------------------------
 
 export {
+  // Tool parameter schemas
+  InsertTextParams,
+  ReplaceSelectionParams,
+  FocusEditorParams,
+  GetContentRangeParams,
+  SetSelectionParams,
+  EmptyParams,
+
+  // Tool result schemas
+  ToolSuccess,
+  InsertTextToolResult,
+  ReadSelectionResult,
+  GetContextResult,
+  ListEditorsToolResult,
+  ContentRangeResult,
+} from './schemas/tools'
+
+// -----------------------------------------------------------------------------
+// Tools (Phase 4)
+// -----------------------------------------------------------------------------
+
+export {
+  // Base editor tools
+  createBaseEditorTools,
+  type BaseEditorTools,
+  type BaseEditorToolName,
+
+  // Knowledge tools
   createKnowledgeTools,
+  searchKnowledge,
+  getAllSchemas,
+  getAllServices,
+  getAllPatterns,
+  loadFullContext,
+  reloadKnowledge,
   type KnowledgeTools,
-} from './tools/knowledge-tools'
+  type KnowledgeToolName,
+} from './tools'
 
 // -----------------------------------------------------------------------------
 // Components (Phase 3)

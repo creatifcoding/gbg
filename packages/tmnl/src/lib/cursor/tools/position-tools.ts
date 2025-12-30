@@ -2,32 +2,58 @@
  * AI SDK Position Tools
  *
  * Tool definitions for AI-controlled cursor positioning.
- * These tools execute client-side via onToolCall.
+ * Uses Effect.Schema - AI SDK 6+ native support.
  */
 
-import { z } from 'zod'
+import { Schema } from 'effect'
 
 // -----------------------------------------------------------------------------
-// Tool Schemas (Zod for AI SDK)
+// Tool Schemas (Effect.Schema for AI SDK)
 // -----------------------------------------------------------------------------
 
-export const MoveToSchema = z.object({
-  position: z.union([
-    z.enum(['bottom-right', 'bottom-left', 'top-right', 'top-left', 'center']),
-    z.object({ x: z.number(), y: z.number() }),
-  ]),
-  reason: z.string().optional().describe('Why the cursor is moving to this position'),
+const CornerPosition = Schema.Literal(
+  'bottom-right',
+  'bottom-left',
+  'top-right',
+  'top-left',
+  'center'
+)
+
+const CoordinatePosition = Schema.Struct({
+  x: Schema.Number,
+  y: Schema.Number,
 })
 
-export const MinimizeSchema = z.object({
-  reason: z.string().optional().describe('Why the cursor is being minimized'),
+export const MoveToParams = Schema.Struct({
+  position: Schema.Union(CornerPosition, CoordinatePosition),
+  reason: Schema.optional(
+    Schema.String.pipe(
+      Schema.annotations({ description: 'Why the cursor is moving to this position' })
+    )
+  ),
 })
+export type MoveToParams = typeof MoveToParams.Type
 
-export const ExpandSchema = z.object({
-  reason: z.string().optional().describe('Why the cursor is being expanded'),
+export const MinimizeParams = Schema.Struct({
+  reason: Schema.optional(
+    Schema.String.pipe(
+      Schema.annotations({ description: 'Why the cursor is being minimized' })
+    )
+  ),
 })
+export type MinimizeParams = typeof MinimizeParams.Type
 
-export const GetBoundsSchema = z.object({})
+export const ExpandParams = Schema.Struct({
+  reason: Schema.optional(
+    Schema.String.pipe(
+      Schema.annotations({ description: 'Why the cursor is being expanded' })
+    )
+  ),
+})
+export type ExpandParams = typeof ExpandParams.Type
+
+export const GetBoundsParams = Schema.Struct({})
+export type GetBoundsParams = typeof GetBoundsParams.Type
 
 // -----------------------------------------------------------------------------
 // Tool Definitions (for server-side streamText)
@@ -35,30 +61,29 @@ export const GetBoundsSchema = z.object({})
 
 export const positionToolDefinitions = {
   move_to: {
-    description: 'Move the chat panel to a corner position or specific coordinates. Use this when the user asks you to move, get out of the way, or when you need to reposition yourself.',
-    parameters: MoveToSchema,
+    description:
+      'Move the chat panel to a corner position or specific coordinates. Use this when the user asks you to move, get out of the way, or when you need to reposition yourself.',
+    parameters: MoveToParams,
   },
   minimize: {
-    description: 'Collapse the chat panel to a minimal pill indicator. Use when the user wants you to be less intrusive or when conversation pauses.',
-    parameters: MinimizeSchema,
+    description:
+      'Collapse the chat panel to a minimal pill indicator. Use when the user wants you to be less intrusive or when conversation pauses.',
+    parameters: MinimizeParams,
   },
   expand: {
-    description: 'Expand the chat panel to full chat mode. Use when starting a conversation or when the user wants to see more content.',
-    parameters: ExpandSchema,
+    description:
+      'Expand the chat panel to full chat mode. Use when starting a conversation or when the user wants to see more content.',
+    parameters: ExpandParams,
   },
   get_bounds: {
-    description: 'Get the current content area dimensions. Useful for understanding available space.',
-    parameters: GetBoundsSchema,
+    description:
+      'Get the current content area dimensions. Useful for understanding available space.',
+    parameters: GetBoundsParams,
   },
 } as const
 
 // -----------------------------------------------------------------------------
 // Tool Types
 // -----------------------------------------------------------------------------
-
-export type MoveToArgs = z.infer<typeof MoveToSchema>
-export type MinimizeArgs = z.infer<typeof MinimizeSchema>
-export type ExpandArgs = z.infer<typeof ExpandSchema>
-export type GetBoundsArgs = z.infer<typeof GetBoundsSchema>
 
 export type PositionToolName = keyof typeof positionToolDefinitions
