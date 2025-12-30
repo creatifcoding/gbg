@@ -360,6 +360,8 @@ export function EmbeddedBlockWrapper({
     registerAll();
 
     // Cleanup: unregister all ports
+    // NOTE: Don't call setState here - triggers infinite re-render loops during unmount.
+    // State is garbage collected on unmount, and re-registration overwrites on dependency change.
     return () => {
       for (const port of ports) {
         dataplane.unregisterPort(port.id).catch((err) => {
@@ -369,8 +371,6 @@ export function EmbeddedBlockWrapper({
           );
         });
       }
-      setRegisteredPorts([]);
-      setPortIdByPosition(new Map());
     };
   }, [blockId, dataplaneConfig?.enabled, dataplaneConfig?.ports, dataplane]);
 
