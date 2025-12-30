@@ -31,7 +31,7 @@ import {
 
 import { VANTA_COLORS, VANTA_BORDERS, VANTA_SPACING } from '@/components/portal/tokens';
 import { StreamBinding } from '@/lib/connection-ports';
-import { EmbeddedBlockWrapper, type SettingsTab, type BlockBadge } from '../EmbeddedBlockWrapper';
+import { EmbeddedBlockWrapper, type SettingsTab, type BlockBadge, type DataplaneConfig } from '../EmbeddedBlockWrapper';
 import {
   createScene3DBlockAtoms,
   getScene3DBlockAtoms,
@@ -52,6 +52,15 @@ const SCENE3D_BADGE: BlockBadge = {
   tag: '3d',
   label: '3D Scene',
   icon: BoxIcon,
+};
+
+const SCENE3D_DATAPLANE_CONFIG: DataplaneConfig = {
+  enabled: true,
+  ports: [
+    { direction: 'in', dataType: 'json', position: 'left', label: 'Entities In' },
+    { direction: 'out', dataType: 'json', position: 'right', label: 'Entities Out' },
+  ],
+  showIndicators: true,
 };
 
 // =============================================================================
@@ -666,6 +675,7 @@ export function Scene3DBlockView(nodeViewProps: NodeViewProps) {
       tabs={tabs}
       expandedHeight={450}
       collapsedHeight={120}
+      dataplaneConfig={SCENE3D_DATAPLANE_CONFIG}
     >
       <Scene3DContent atoms={atoms} config={config} isPlaying={isPlaying} isLoading={isLoading} />
     </EmbeddedBlockWrapper>
