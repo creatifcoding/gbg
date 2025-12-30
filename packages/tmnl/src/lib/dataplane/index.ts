@@ -125,6 +125,9 @@ export {
   // Settings panels
   LinkSettingsPanel,
   type LinkSettingsPanelProps,
+  // Debug panels
+  DataplaneDebugPanel,
+  type DataplaneDebugPanelProps,
 } from './components';
 
 // =============================================================================
@@ -140,3 +143,42 @@ export {
   type PipelineResult,
   type TransformFn,
 } from './services';
+
+// =============================================================================
+// Hooks
+// =============================================================================
+
+export {
+  // Main dataplane hook
+  useDataplane,
+  usePort,
+  type UseDataplaneReturn,
+  // Port data hooks
+  usePortData,
+  useHasIncoming,
+  useHasOutgoing,
+  useBlockPorts,
+  type UsePortDataReturn,
+} from './hooks';
+
+// =============================================================================
+// Persistence
+// =============================================================================
+
+export {
+  // Models
+  LinkPortModel,
+  LinkModel,
+  PlaneModel,
+  // Repositories
+  LinkPortRepo,
+  LinkRepo,
+  PlaneRepo,
+  AllDataplaneRepositoriesLive,
+  // Service
+  DataplanePersistenceService,
+  DataplanePersistenceServiceLive,
+  DataplanePersistenceLive,
+  DataplanePersistenceError,
+  type DataplanePersistenceServiceShape,
+} from './persistence';
