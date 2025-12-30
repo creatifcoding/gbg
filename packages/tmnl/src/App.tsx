@@ -177,6 +177,14 @@ const CARDS: readonly CardDef[] = [
     glow: 'emerald',
   },
   {
+    title: 'DATAPLANE',
+    body: 'd2ts differential dataflow linking. EmbeddedBlockWrapper ports, pipe/sync/aggregate relationships, React Flow viz.',
+    route: '/testbed/dataplane',
+    status: 'active',
+    label: 'NEW',
+    glow: 'cyan',
+  },
+  {
     title: 'DRAWER SYSTEM',
     body: 'Stacking drawer UI with rolodex animation. Global + per-panel slots, TableService presets, parallax lift.',
     route: '/testbed/drawer',
@@ -199,6 +207,14 @@ const CARDS: readonly CardDef[] = [
     status: 'active',
     label: 'NEW',
     glow: 'cyan',
+  },
+  {
+    title: 'THEIA IDE',
+    body: 'Eclipse Theia browser-only IDE. Monaco editor, file navigator, Vim mode, workspace-aware embedding.',
+    route: '/testbed/theia',
+    status: 'active',
+    label: 'NEW',
+    glow: 'emerald',
   },
   {
     title: 'SEARCH LAB',
