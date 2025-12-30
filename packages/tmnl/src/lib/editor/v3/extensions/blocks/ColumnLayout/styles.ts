@@ -25,6 +25,8 @@ export const columnLayoutStyles = `
 
   .column-layout {
     position: relative;
+    /* Span full width in any parent grid */
+    grid-column: 1 / -1;
     /* Full-bleed: break out of editor padding */
     margin-left: -${spacing[6]};
     margin-right: -${spacing[6]};
@@ -70,19 +72,18 @@ export const columnLayoutStyles = `
    *
    * Actual DOM structure (discovered via Playwright inspection):
    * .column-layout-grid (display: grid)
-   *   └── [data-node-view-content]     ← wrapper 1
-   *       └── [data-node-view-wrapper] ← wrapper 2 (wraps ALL columns!)
+   *   └── [data-node-view-content]                    ← wrapper 1
+   *       └── [data-node-view-content-react]          ← wrapper 2 (wraps ALL columns!)
    *           └── .column
    *           └── .column
    *
    * Both wrappers need display:contents to make .column direct grid children.
    */
-  .column-layout-grid > [data-node-view-content] {
-    display: contents;
-  }
-
-  .column-layout-grid > [data-node-view-content] > [data-node-view-wrapper] {
-    display: contents;
+  .column-layout-grid > [data-node-view-content],
+  .column-layout-grid > [data-node-view-content] > [data-node-view-wrapper],
+  .column-layout-grid > [data-node-view-content] > [data-node-view-content-react],
+  .column-layout-grid [data-node-view-content-react] {
+    display: contents !important;
   }
 
   /* =========================================================================
@@ -98,13 +99,20 @@ export const columnLayoutStyles = `
     transition: border-color 150ms, background 150ms;
   }
 
-  /* Subtle hover hint for columns - just enough to see boundaries */
-  .column-layout[data-hovered="true"] .column {
-    border-color: ${editorTheme.surface.border}20;
+  /* Columns dim by default, brighten on hover */
+  .column {
+    opacity: 0.6;
+  }
+
+  .column:hover {
+    opacity: 1;
+    border-color: ${editorTheme.surface.border}40;
+    background: ${editorTheme.surface.secondary}08;
   }
 
   /* Show column guides when controls are visible */
   .column-layout[data-controls-visible="true"] .column {
+    opacity: 1;
     border-color: ${editorTheme.surface.border}40;
     background: ${editorTheme.surface.secondary}08;
   }
