@@ -93,6 +93,27 @@
         "command": "bun run tauri:build",
         "cwd": "packages/tmnl"
       }
+    },
+    "ai:extract": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run ai:extract",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "ai:watch": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run ai:watch",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "telegram:agent": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run telegram:agent",
+        "cwd": "packages/tmnl"
+      }
     }
   }
 }
