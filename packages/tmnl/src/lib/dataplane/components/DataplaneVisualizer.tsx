@@ -28,8 +28,19 @@ import { Maximize2, Minimize2, X, Link2, Unlink } from 'lucide-react';
 import { nanoid } from 'nanoid';
 
 import '@xyflow/react/dist/style.css';
+import './reactflow-overrides.css';
 
 import { portsAtom, linksAtom, dataplaneOps } from '../atoms';
+import {
+  REACTFLOW_THEME,
+  getContainerStyles,
+  getBackgroundProps,
+  getMinimapNodeColor,
+  statsStyles,
+  modeButtonStyles,
+  emptyStateStyles,
+} from './reactflow-theme';
+import { VANTA_COLORS, VANTA_SPACING } from '@/components/portal/tokens';
 import type {
   PortId,
   BlockId,
@@ -243,23 +254,9 @@ export const DataplaneVisualizer = memo(function DataplaneVisualizer({
     onModeChange?.(mode === 'inline' ? 'fullscreen' : 'inline');
   }, [mode, onModeChange]);
 
-  // Container styles based on mode
-  const containerStyles: React.CSSProperties = mode === 'fullscreen'
-    ? {
-        position: 'fixed',
-        inset: '16px',
-        zIndex: 50,
-        backgroundColor: 'rgba(10, 10, 15, 0.98)',
-        borderRadius: '12px',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-      }
-    : {
-        width: '100%',
-        height: typeof inlineHeight === 'number' ? `${inlineHeight}px` : inlineHeight,
-        backgroundColor: 'rgba(10, 10, 15, 0.6)',
-        borderRadius: '8px',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-      };
+  // Container styles based on mode (TMNL themed)
+  const containerStyles = getContainerStyles(mode, inlineHeight);
+  const backgroundProps = getBackgroundProps();
 
   // Empty state
   if (ports.length === 0) {
@@ -268,16 +265,14 @@ export const DataplaneVisualizer = memo(function DataplaneVisualizer({
         className={className}
         style={{
           ...containerStyles,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px',
+          ...emptyStateStyles,
         }}
       >
-        <Unlink size={32} className="text-gray-500" />
-        <span className="text-gray-400 text-sm">No ports registered</span>
-        <span className="text-gray-500 text-xs">
+        <Unlink size={32} style={{ color: REACTFLOW_THEME.empty.iconColor }} />
+        <span style={{ color: REACTFLOW_THEME.empty.textColor, fontSize: 'var(--tmnl-text-sm, 14px)' }}>
+          No ports registered
+        </span>
+        <span style={{ color: REACTFLOW_THEME.empty.hintColor, fontSize: 'var(--tmnl-text-xs, 12px)' }}>
           Ports appear when blocks with dataplane integration mount
         </span>
       </div>
@@ -288,35 +283,28 @@ export const DataplaneVisualizer = memo(function DataplaneVisualizer({
     <div className={className} style={containerStyles}>
       {/* Header with mode toggle */}
       <div
-        className="
-          absolute top-2 right-2 z-10
-          flex items-center gap-2
-        "
+        style={{
+          position: 'absolute',
+          top: VANTA_SPACING['2'],
+          right: VANTA_SPACING['2'],
+          zIndex: 10,
+          display: 'flex',
+          alignItems: 'center',
+          gap: VANTA_SPACING['2'],
+        }}
       >
         {/* Stats badge */}
-        <div
-          className="
-            flex items-center gap-2
-            px-2 py-1 rounded
-            bg-black/50 text-gray-400
-            text-xs font-mono
-          "
-        >
-          <Link2 size={12} />
+        <div style={statsStyles}>
+          <Link2 size={12} style={{ color: REACTFLOW_THEME.stats.accent }} />
           <span>{ports.length} ports</span>
-          <span>·</span>
+          <span style={{ color: VANTA_COLORS.text.muted }}>·</span>
           <span>{links.length} links</span>
         </div>
 
         {/* Mode toggle */}
         <button
           onClick={handleModeToggle}
-          className="
-            p-1.5 rounded
-            bg-black/50 text-gray-400
-            hover:bg-black/70 hover:text-white
-            transition-colors
-          "
+          style={modeButtonStyles}
           title={mode === 'inline' ? 'Expand to fullscreen' : 'Collapse to inline'}
         >
           {mode === 'inline' ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
@@ -326,12 +314,10 @@ export const DataplaneVisualizer = memo(function DataplaneVisualizer({
         {mode === 'fullscreen' && (
           <button
             onClick={() => onModeChange?.('inline')}
-            className="
-              p-1.5 rounded
-              bg-black/50 text-gray-400
-              hover:bg-red-900/50 hover:text-red-400
-              transition-colors
-            "
+            style={{
+              ...modeButtonStyles,
+              color: VANTA_COLORS.accent.rose,
+            }}
             title="Close"
           >
             <X size={14} />
@@ -353,36 +339,27 @@ export const DataplaneVisualizer = memo(function DataplaneVisualizer({
         minZoom={0.1}
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
-        className="bg-transparent"
+        style={{ background: REACTFLOW_THEME.canvas.background }}
       >
         <Background
           variant={BackgroundVariant.Dots}
-          gap={16}
-          size={1}
-          color="rgba(255, 255, 255, 0.05)"
+          gap={backgroundProps.gap}
+          size={backgroundProps.size}
+          color={backgroundProps.color}
         />
         <Controls
           showZoom={true}
           showFitView={true}
           showInteractive={false}
-          className="!bg-black/50 !border-white/10"
         />
         {mode === 'fullscreen' && (
           <MiniMap
             nodeColor={(node) => {
               const data = node.data as PortNodeData | undefined;
               const direction = data?.port?.direction ?? 'inout';
-              switch (direction) {
-                case 'in':
-                  return 'rgba(34, 211, 238, 0.8)';
-                case 'out':
-                  return 'rgba(251, 191, 36, 0.8)';
-                default:
-                  return 'rgba(167, 139, 250, 0.8)';
-              }
+              return getMinimapNodeColor(direction);
             }}
-            maskColor="rgba(0, 0, 0, 0.7)"
-            className="!bg-black/50 !border-white/10"
+            maskColor={REACTFLOW_THEME.minimap.maskColor}
           />
         )}
       </ReactFlow>
