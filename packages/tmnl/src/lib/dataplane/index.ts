@@ -280,9 +280,8 @@ export {
 export {
   // Main dataplane hook
   useDataplane,
-  usePort,
   type UseDataplaneReturn,
-  // Port data hooks
+  // Port data hooks (usePort is exported from components/Port for compound component)
   usePortData,
   useHasIncoming,
   useHasOutgoing,
