@@ -86,9 +86,16 @@ export {
   type LinkPortNodeProps,
 } from './LinkPortNode';
 
-// Placeholder exports for future components
-export const LinkPortIndicator = () => null;
-export type LinkPortIndicatorProps = Record<string, unknown>;
+// =============================================================================
+// Port Indicators & Settings
+// =============================================================================
 
-export const LinkSettingsPanel = () => null;
-export type LinkSettingsPanelProps = Record<string, unknown>;
+export {
+  LinkPortIndicator,
+  type LinkPortIndicatorProps,
+} from './LinkPortIndicator';
+
+export {
+  LinkSettingsPanel,
+  type LinkSettingsPanelProps,
+} from './LinkSettingsPanel';

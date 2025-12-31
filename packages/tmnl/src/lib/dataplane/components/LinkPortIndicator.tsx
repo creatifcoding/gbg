@@ -26,7 +26,15 @@
 
 import React, { useMemo, useCallback } from 'react';
 import { useAtomValue } from '@effect-atom/atom-react';
-import { cn } from '@/lib/utils';
+
+// =============================================================================
+// Utilities
+// =============================================================================
+
+/** Simple class name concatenation utility */
+function cn(...classes: (string | undefined | false | null)[]): string {
+  return classes.filter(Boolean).join(' ');
+}
 
 import {
   linksForPortAtom,
