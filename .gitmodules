@@ -109,3 +109,15 @@
 [submodule "submodules/iggy"]
 	path = submodules/iggy
 	url = https://github.com/apache/iggy
+[submodule "submodules/ghostty-web"]
+	path = submodules/ghostty-web
+	url = https://github.com/coder/ghostty-web.git
+[submodule "submodules/AFFiNE"]
+	path = submodules/AFFiNE
+	url = https://github.com/toeverything/AFFiNE
+[submodule "submodules/durable-streams"]
+	path = submodules/durable-streams
+	url = https://github.com/durable-streams/durable-streams
+[submodule "submodules/infinitty"]
+	path = submodules/infinitty
+	url = https://github.com/jasonkneen/infinitty
