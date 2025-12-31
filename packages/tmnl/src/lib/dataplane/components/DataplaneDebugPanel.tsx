@@ -11,18 +11,23 @@
 
 import React, { useState, useCallback } from 'react';
 import { useAtomValue } from '@effect-atom/atom-react';
-import {
-  ChevronDown,
-  ChevronRight,
-  Database,
-  Link2,
-  Layers,
-  Box,
-  RefreshCw,
-  Save,
-  Trash2,
-  Download,
-} from 'lucide-react';
+
+// =============================================================================
+// Unicode Icons (replacing lucide-react)
+// =============================================================================
+
+const ICONS = {
+  chevronDown: '▼',
+  chevronRight: '▶',
+  database: '⊟',
+  link: '⛓',
+  layers: '☰',
+  box: '◻',
+  refresh: '↻',
+  save: '✓',
+  trash: '✕',
+  download: '↓',
+} as const;
 
 import {
   portsAtom,
@@ -80,11 +85,9 @@ function Section({
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-2 px-3 py-2 hover:bg-surface-sunken/50 transition-colors"
       >
-        {expanded ? (
-          <ChevronDown size={14} className="text-text-muted" />
-        ) : (
-          <ChevronRight size={14} className="text-text-muted" />
-        )}
+        <span className="text-text-muted" style={{ fontSize: 10 }}>
+          {expanded ? ICONS.chevronDown : ICONS.chevronRight}
+        </span>
         {icon}
         <span
           className="flex-1 text-left font-mono"
@@ -239,12 +242,10 @@ export function DataplaneDebugPanel({
           onClick={() => setExpanded(!expanded)}
           className="flex items-center gap-2 flex-1 hover:text-text-primary transition-colors"
         >
-          {expanded ? (
-            <ChevronDown size={14} className="text-text-muted" />
-          ) : (
-            <ChevronRight size={14} className="text-text-muted" />
-          )}
-          <Database size={14} className="text-accent-cyan" />
+          <span className="text-text-muted" style={{ fontSize: 10 }}>
+            {expanded ? ICONS.chevronDown : ICONS.chevronRight}
+          </span>
+          <span className="text-accent-cyan" style={{ fontSize: 14 }}>{ICONS.database}</span>
           <span className="font-mono font-medium">Dataplane Debug</span>
         </button>
 
@@ -257,7 +258,7 @@ export function DataplaneDebugPanel({
               className="p-1 hover:bg-surface-border rounded transition-colors disabled:opacity-50"
               title="Save to SQLite"
             >
-              <Save size={14} className="text-accent-green" />
+              <span className="text-accent-green" style={{ fontSize: 14 }}>{ICONS.save}</span>
             </button>
           )}
           {onLoad && (
@@ -267,7 +268,7 @@ export function DataplaneDebugPanel({
               className="p-1 hover:bg-surface-border rounded transition-colors disabled:opacity-50"
               title="Load from SQLite"
             >
-              <Download size={14} className="text-accent-cyan" />
+              <span className="text-accent-cyan" style={{ fontSize: 14 }}>{ICONS.download}</span>
             </button>
           )}
           {onClear && (
@@ -277,7 +278,7 @@ export function DataplaneDebugPanel({
               className="p-1 hover:bg-surface-border rounded transition-colors disabled:opacity-50"
               title="Clear all"
             >
-              <Trash2 size={14} className="text-accent-red" />
+              <span className="text-accent-red" style={{ fontSize: 14 }}>{ICONS.trash}</span>
             </button>
           )}
         </div>
@@ -300,7 +301,7 @@ export function DataplaneDebugPanel({
               </span>
             </div>
             {loading && (
-              <RefreshCw size={12} className="animate-spin text-accent-cyan" />
+              <span className="animate-spin text-accent-cyan" style={{ fontSize: 12 }}>{ICONS.refresh}</span>
             )}
           </div>
 
@@ -308,7 +309,7 @@ export function DataplaneDebugPanel({
           <Section
             title="Ports"
             count={portCount}
-            icon={<Box size={14} className="text-accent-blue" />}
+            icon={<span className="text-accent-blue" style={{ fontSize: 14 }}>{ICONS.box}</span>}
             defaultExpanded={portCount < 5}
           >
             {ports.length === 0 ? (
@@ -325,7 +326,7 @@ export function DataplaneDebugPanel({
           <Section
             title="Links"
             count={linkCount}
-            icon={<Link2 size={14} className="text-accent-cyan" />}
+            icon={<span className="text-accent-cyan" style={{ fontSize: 14 }}>{ICONS.link}</span>}
             defaultExpanded={linkCount < 5}
           >
             {links.length === 0 ? (
@@ -342,7 +343,7 @@ export function DataplaneDebugPanel({
           <Section
             title="Planes"
             count={planeCount}
-            icon={<Layers size={14} className="text-accent-yellow" />}
+            icon={<span className="text-accent-yellow" style={{ fontSize: 14 }}>{ICONS.layers}</span>}
             defaultExpanded={planeCount < 5}
           >
             {planes.length === 0 ? (

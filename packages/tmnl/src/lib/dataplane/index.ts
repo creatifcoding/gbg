@@ -257,6 +257,9 @@ export {
   // Settings panels
   LinkSettingsPanel,
   type LinkSettingsPanelProps,
+  // Debug panel
+  DataplaneDebugPanel,
+  type DataplaneDebugPanelProps,
 } from './components';
 
 // =============================================================================

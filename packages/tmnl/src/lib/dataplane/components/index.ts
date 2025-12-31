@@ -99,3 +99,8 @@ export {
   LinkSettingsPanel,
   type LinkSettingsPanelProps,
 } from './LinkSettingsPanel';
+
+export {
+  DataplaneDebugPanel,
+  type DataplaneDebugPanelProps,
+} from './DataplaneDebugPanel';
