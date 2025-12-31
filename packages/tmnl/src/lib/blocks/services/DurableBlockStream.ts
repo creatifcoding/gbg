@@ -327,7 +327,169 @@ export const DurableBlockStreamLive = Layer.effect(
 );
 
 // ============================================================================
+// Remote Implementation (using durable-streams protocol)
+// ============================================================================
+
+/**
+ * Configuration for remote block stream
+ */
+export interface RemoteBlockStreamConfig {
+  /** Full URL to the durable stream endpoint */
+  readonly url: string;
+  /** Optional authorization headers */
+  readonly headers?: Record<string, string>;
+  /** Stream ID (used for namespacing) */
+  readonly streamId?: string;
+}
+
+export class RemoteBlockStreamConfigTag extends Context.Tag(
+  'tmnl/blocks/RemoteBlockStreamConfig'
+)<RemoteBlockStreamConfigTag, RemoteBlockStreamConfig>() {}
+
+/**
+ * Remote implementation using durable-streams protocol.
+ * Requires DurableStreamClient service.
+ *
+ * @see src/lib/durable-streams for the Effect bridge
+ */
+export const DurableBlockStreamRemote = Layer.effect(
+  DurableBlockStream,
+  Effect.gen(function* () {
+    // Dynamic import to avoid circular deps
+    const { DurableStreamClient, DurableStreamError } = yield* Effect.tryPromise({
+      try: () => import('../../durable-streams'),
+      catch: () => new Error('Failed to import durable-streams bridge'),
+    });
+
+    const client = yield* DurableStreamClient;
+    const config = yield* RemoteBlockStreamConfigTag;
+
+    // Local state for snapshot computation
+    const state: InMemoryState = {
+      events: [],
+      blocks: new Map(),
+      focusedBlockId: null,
+      isFocusMode: false,
+      sequence: 0,
+    };
+
+    // PubSub for local subscriptions (mirrors remote events)
+    const pubsub = yield* PubSub.unbounded<BlockEvent>();
+
+    // Get or create the remote stream
+    const handle = yield* client.getOrCreate<BlockEvent>({
+      url: config.url,
+      contentType: 'application/json',
+    });
+
+    // Sync local state from remote on startup
+    const syncFromRemote = Effect.gen(function* () {
+      const batch = yield* handle.read({ offset: '-1', live: false });
+      for (const event of batch.items) {
+        applyEvent(state, event);
+      }
+    });
+
+    yield* syncFromRemote.pipe(
+      Effect.catchAll((e) => Effect.logWarning(`Failed to sync from remote: ${e}`))
+    );
+
+    return {
+      publish: (event) =>
+        Effect.gen(function* () {
+          // Publish to remote first
+          yield* handle.append(event).pipe(
+            Effect.catchAll((e) => {
+              Effect.logError(`Failed to publish to remote: ${e}`);
+              return Effect.void;
+            })
+          );
+          // Then apply locally
+          applyEvent(state, event);
+          yield* PubSub.publish(pubsub, event);
+        }),
+
+      publishBatch: (events) =>
+        Effect.gen(function* () {
+          // Publish all to remote
+          yield* handle.appendBatch(events).pipe(
+            Effect.catchAll((e) => {
+              Effect.logError(`Failed to publish batch to remote: ${e}`);
+              return Effect.void;
+            })
+          );
+          // Apply locally
+          for (const event of events) {
+            applyEvent(state, event);
+          }
+          for (const event of events) {
+            yield* PubSub.publish(pubsub, event);
+          }
+        }),
+
+      subscribe: Effect.gen(function* () {
+        const queue = yield* PubSub.subscribe(pubsub);
+        return Stream.fromQueue(queue);
+      }),
+
+      subscribeFrom: (fromSequence) =>
+        Effect.gen(function* () {
+          const queue = yield* PubSub.subscribe(pubsub);
+
+          // Replay missed events from local state first
+          const missedEvents = state.events.slice(fromSequence);
+          const replayStream = Stream.fromIterable(missedEvents);
+
+          // Then live events
+          const liveStream = Stream.fromQueue(queue);
+
+          return pipe(replayStream, Stream.concat(liveStream));
+        }),
+
+      getSnapshot: Effect.sync(() => ({
+        blocks: Object.fromEntries(state.blocks),
+        focusedBlockId: state.focusedBlockId,
+        isFocusMode: state.isFocusMode,
+        sequence: state.sequence,
+        timestamp: Date.now(),
+      })),
+
+      getBlockState: (blockId) => Effect.sync(() => state.blocks.get(blockId) ?? null),
+
+      getCurrentSequence: Effect.sync(() => state.sequence),
+
+      replayAll: Effect.sync(() => Stream.fromIterable(state.events)),
+
+      clear: Effect.gen(function* () {
+        // Delete remote stream
+        yield* handle.delete().pipe(
+          Effect.catchAll((e) => {
+            Effect.logWarning(`Failed to delete remote stream: ${e}`);
+            return Effect.void;
+          })
+        );
+        // Clear local state
+        state.events = [];
+        state.blocks.clear();
+        state.focusedBlockId = null;
+        state.isFocusMode = false;
+        state.sequence = 0;
+      }),
+    };
+  })
+);
+
+// ============================================================================
 // Default Export
 // ============================================================================
 
 export const DurableBlockStreamDefault = DurableBlockStreamLive;
+
+/**
+ * Create a remote block stream layer with configuration
+ */
+export const makeRemoteBlockStream = (config: RemoteBlockStreamConfig) =>
+  pipe(
+    DurableBlockStreamRemote,
+    Layer.provide(Layer.succeed(RemoteBlockStreamConfigTag, config))
+  );

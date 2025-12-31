@@ -6,14 +6,19 @@
  */
 
 import { Atom, Registry } from '@effect-atom/atom';
-import { Layer } from 'effect';
+import { Layer, pipe } from 'effect';
 import {
   DurableBlockStream,
   DurableBlockStreamLive,
+  DurableBlockStreamRemote,
+  RemoteBlockStreamConfigTag,
+  makeRemoteBlockStream,
   type BlockEvent,
   type BlockState,
   type BlockStateSnapshot,
+  type RemoteBlockStreamConfig,
 } from '../services/DurableBlockStream';
+import { DurableStreamClientLive } from '../../durable-streams';
 
 // ============================================================================
 // Registry
@@ -215,3 +220,109 @@ export const blockOps = {
     })
   ),
 };
+
+// ============================================================================
+// Remote Runtime Factory
+// ============================================================================
+
+/**
+ * Create a remote block runtime atom connected to a durable stream server.
+ *
+ * @example
+ * ```typescript
+ * const remoteRuntime = makeRemoteBlockRuntime({
+ *   url: 'https://streams.example.com/v1/stream/blocks-room-123',
+ * });
+ *
+ * // Use with remote operations
+ * const remoteOps = makeRemoteBlockOps(remoteRuntime);
+ * await remoteOps.createBlock({ blockId: 'b1', blockTypeName: 'text' });
+ * ```
+ */
+export const makeRemoteBlockRuntime = (config: RemoteBlockStreamConfig) =>
+  Atom.runtime(
+    pipe(
+      makeRemoteBlockStream(config),
+      Layer.provide(DurableStreamClientLive)
+    )
+  );
+
+/**
+ * Create block operations bound to a remote runtime
+ */
+export const makeRemoteBlockOps = (runtimeAtom: ReturnType<typeof makeRemoteBlockRuntime>) => ({
+  createBlock: runtimeAtom.fn<{
+    blockId: string;
+    blockTypeName: string;
+    attributes?: Record<string, unknown>;
+  }>()((args, ctx) =>
+    ctx.effect.gen(function* () {
+      const stream = yield* DurableBlockStream;
+      yield* stream.publish({
+        _tag: 'BlockCreated',
+        blockId: args.blockId,
+        blockTypeName: args.blockTypeName,
+        attributes: args.attributes ?? {},
+        timestamp: Date.now(),
+      });
+      const snapshot = yield* stream.getSnapshot;
+      ctx.set(blockSnapshotAtom, snapshot);
+    })
+  ),
+
+  updateBlock: runtimeAtom.fn<{
+    blockId: string;
+    key: string;
+    value: unknown;
+  }>()((args, ctx) =>
+    ctx.effect.gen(function* () {
+      const stream = yield* DurableBlockStream;
+      yield* stream.publish({
+        _tag: 'BlockUpdated',
+        blockId: args.blockId,
+        key: args.key,
+        value: args.value,
+        timestamp: Date.now(),
+      });
+      const snapshot = yield* stream.getSnapshot;
+      ctx.set(blockSnapshotAtom, snapshot);
+    })
+  ),
+
+  deleteBlock: runtimeAtom.fn<{ blockId: string }>()((args, ctx) =>
+    ctx.effect.gen(function* () {
+      const stream = yield* DurableBlockStream;
+      yield* stream.publish({
+        _tag: 'BlockDeleted',
+        blockId: args.blockId,
+        timestamp: Date.now(),
+      });
+      const snapshot = yield* stream.getSnapshot;
+      ctx.set(blockSnapshotAtom, snapshot);
+    })
+  ),
+
+  setFocusMode: runtimeAtom.fn<{ blockId: string | null; isFocusMode: boolean }>()(
+    (args, ctx) =>
+      ctx.effect.gen(function* () {
+        const stream = yield* DurableBlockStream;
+        yield* stream.publish({
+          _tag: 'BlockFocusModeChanged',
+          blockId: args.blockId,
+          isFocusMode: args.isFocusMode,
+          timestamp: Date.now(),
+        });
+        const snapshot = yield* stream.getSnapshot;
+        ctx.set(blockSnapshotAtom, snapshot);
+      })
+  ),
+
+  syncSnapshot: runtimeAtom.fn()((_, ctx) =>
+    ctx.effect.gen(function* () {
+      const stream = yield* DurableBlockStream;
+      const snapshot = yield* stream.getSnapshot;
+      ctx.set(blockSnapshotAtom, snapshot);
+      ctx.set(lastSyncAtom, Date.now());
+    })
+  ),
+});

@@ -34,6 +34,7 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@durable-streams/client": "^0.1.2",
     "@effect-atom/atom": "^0.4.4",
     "@effect-atom/atom-react": "0.4.4",
     "@effect/ai": "^0.32.1",
