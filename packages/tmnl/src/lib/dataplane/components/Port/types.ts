@@ -9,11 +9,12 @@
  */
 
 import { Schema } from 'effect';
-import { PortDirection } from '../../schemas/link';
+import { PortDirection, PortDataType } from '../../schemas/link';
 
-// Re-export PortDirection for convenience
-export { PortDirection };
+// Re-export schema types for convenience
+export { PortDirection, PortDataType };
 export type PortDirection = typeof PortDirection.Type;
+export type PortDataType = typeof PortDataType.Type;
 
 // ============================================================================
 // Size Variants
@@ -27,6 +28,15 @@ export type PortDirection = typeof PortDirection.Type;
  */
 export const PortSize = Schema.Literal('compact', 'default', 'large');
 export type PortSize = typeof PortSize.Type;
+
+/**
+ * Size dimensions lookup table
+ */
+export const PORT_SIZE_DIMENSIONS: Record<PortSize, { width: number; height: number }> = {
+  compact: { width: 24, height: 24 },
+  default: { width: 32, height: 32 },
+  large: { width: 48, height: 48 },
+};
 
 // ============================================================================
 // Visual State Machine States

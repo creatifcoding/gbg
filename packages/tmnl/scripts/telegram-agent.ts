@@ -14,9 +14,16 @@
 
 // Load environment from docker/.env if it exists
 import { existsSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
 
-const envPath = join(import.meta.dir, '../docker/.env');
+// import.meta.dir points to script directory when run via `bun run scripts/x.ts`
+// But we may also be run from cwd directly, so try both paths
+const scriptDir = dirname(import.meta.path);
+const envPathFromScript = join(scriptDir, '../docker/.env');
+const envPathFromCwd = join(process.cwd(), 'docker/.env');
+const envPath = existsSync(envPathFromScript) ? envPathFromScript : envPathFromCwd;
+
+// Load env BEFORE importing server (imports are hoisted, so use dynamic import)
 if (existsSync(envPath)) {
   const envContent = await Bun.file(envPath).text();
   for (const line of envContent.split('\n')) {
@@ -31,5 +38,5 @@ if (existsSync(envPath)) {
   console.log('📁 Loaded environment from docker/.env');
 }
 
-// Start the server
-import '../src/lib/telegram/server';
+// Dynamic import AFTER env is loaded (static imports are hoisted before top-level await)
+await import('../src/lib/telegram/server');
