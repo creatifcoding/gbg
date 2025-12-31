@@ -111,3 +111,13 @@ export type {
   MCPToolCallRequest,
   MCPToolCallResult,
 } from './schemas'
+
+// Hooks
+export {
+  useMCPClient,
+  useMCPServers,
+  useMCPTools,
+  type UseMCPClientResult,
+  type UseMCPServersResult,
+  type UseMCPToolsResult,
+} from './hooks'

@@ -150,3 +150,6 @@ export type {
   StreamMetadata,
   StreamState,
 } from './schemas'
+
+// Hooks
+export { useAIStream, type UseAIStreamResult } from './hooks'

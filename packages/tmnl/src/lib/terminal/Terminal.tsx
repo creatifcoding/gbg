@@ -2,19 +2,25 @@
  * Terminal Compound Component
  *
  * A composable terminal system with:
+ * - Two modes: Classic (xterm.js) and OpenWarp (block-based)
  * - Auto-fit to container
  * - Zoom controls
  * - Status bar with dimensions
- * - PTY/SSH backend integration
+ * - PTY integration via TauriPtyService
  *
  * @example
  * ```tsx
+ * // Classic xterm.js mode
  * <Terminal.Root width="100%" height="100%">
  *   <Terminal.Controls />
- *   <Terminal.Screen
- *     onData={handleData}
- *     onReady={handleReady}
- *   />
+ *   <Terminal.Screen />
+ *   <Terminal.StatusBar />
+ * </Terminal.Root>
+ *
+ * // OpenWarp block mode
+ * <Terminal.Root width="100%" height="100%" mode="openwarp">
+ *   <Terminal.Controls />
+ *   <Terminal.BlockScreen />
  *   <Terminal.StatusBar />
  * </Terminal.Root>
  * ```
@@ -29,12 +35,34 @@ import {
   useState,
   useCallback,
   forwardRef,
+  useEffect,
   type ReactNode,
   type RefObject,
 } from 'react'
-import { GhosttyTerminal, type GhosttyTerminalRef, type GhosttyTerminalProps } from './GhosttyTerminal'
-import { useTerminalConnection, type UseTerminalConnectionOptions, type TerminalSessionInfo } from './usePtyConnection'
-import { ZoomIn, ZoomOut, Maximize2, RotateCcw, Terminal as TerminalIcon } from 'lucide-react'
+import { useAtomValue } from '@effect-atom/atom-react'
+import { ZoomIn, ZoomOut, Terminal as TerminalIcon, Blocks, SquareTerminal } from 'lucide-react'
+import { TMNL_FONT_SIZE } from '@/lib/tmnl-ui/tokens'
+import { useTerminalHotkeys } from './hooks/useTerminalHotkeys'
+
+// V2 Imports
+import {
+  XtermTerminal,
+  type XtermTerminalHandle,
+  BlocksView,
+  BlockInput,
+  type BlockInputProps,
+} from './v2/components'
+import {
+  useBlockTerminal,
+  type UseBlockTerminalOptions,
+} from './v2/hooks'
+import {
+  terminalModeAtom,
+  setTerminalMode,
+  toggleTerminalMode,
+  type TerminalMode,
+} from './v2/atoms'
+import type { TerminalConfig } from './v2/schemas'
 
 // ============================================================================
 // Constants
@@ -65,7 +93,12 @@ const NERD_FONT_FAMILY = [
 // ============================================================================
 
 interface TerminalContextValue {
-  termRef: RefObject<GhosttyTerminalRef | null>
+  // Refs
+  xtermRef: RefObject<XtermTerminalHandle | null>
+  containerRef: RefObject<HTMLDivElement | null>
+  blocksContainerRef: RefObject<HTMLDivElement | null>
+
+  // State
   isReady: boolean
   setIsReady: (ready: boolean) => void
   dimensions: { cols: number; rows: number }
@@ -74,11 +107,18 @@ interface TerminalContextValue {
   setZoom: (zoom: number) => void
   fontSize: number
   fontFamily: string
-  mode: 'local' | 'remote'
-  setMode: (mode: 'local' | 'remote') => void
-  connection: ReturnType<typeof useTerminalConnection> | null
-  sessionInfo: TerminalSessionInfo | null
-  setSessionInfo: (info: TerminalSessionInfo | null) => void
+
+  // Mode (from atoms)
+  mode: TerminalMode
+  setMode: (mode: TerminalMode) => void
+  toggleMode: () => void
+
+  // Block terminal hook result (for openwarp mode)
+  blockTerminal: ReturnType<typeof useBlockTerminal> | null
+
+  // Config
+  persistKey?: string
+  cwd?: string
 }
 
 const TerminalContext = createContext<TerminalContextValue | null>(null)
@@ -105,10 +145,12 @@ interface TerminalRootProps {
   initialZoom?: number
   /** Custom font family (default: Nerd Font stack) */
   fontFamily?: string
-  /** Enable PTY/SSH connection (default: false = local echo) */
-  enableConnection?: boolean
-  /** Connection options when enableConnection is true */
-  connectionOptions?: UseTerminalConnectionOptions
+  /** Initial mode (default: from atom) */
+  mode?: TerminalMode
+  /** Key for persisting terminal across remounts */
+  persistKey?: string
+  /** Initial working directory */
+  cwd?: string
   /** Additional className */
   className?: string
 }
@@ -119,34 +161,54 @@ function TerminalRoot({
   height = '100%',
   initialZoom = 1.0,
   fontFamily = NERD_FONT_FAMILY,
-  enableConnection = false,
-  connectionOptions,
+  mode: initialMode,
+  persistKey,
+  cwd,
   className,
 }: TerminalRootProps) {
-  const termRef = useRef<GhosttyTerminalRef | null>(null)
+  const xtermRef = useRef<XtermTerminalHandle | null>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const blocksContainerRef = useRef<HTMLDivElement | null>(null)
+
   const [isReady, setIsReady] = useState(false)
   const [dimensions, setDimensions] = useState({ cols: 0, rows: 0 })
   const [zoom, setZoom] = useState(initialZoom)
-  const [mode, setMode] = useState<'local' | 'remote'>(enableConnection ? 'remote' : 'local')
-  const [sessionInfo, setSessionInfo] = useState<TerminalSessionInfo | null>(null)
+
+  // Mode from atom (global state)
+  const atomMode = useAtomValue(terminalModeAtom)
+  const mode = initialMode ?? atomMode
+
+  // Set initial mode if provided
+  useEffect(() => {
+    if (initialMode && initialMode !== atomMode) {
+      setTerminalMode(initialMode)
+    }
+  }, [initialMode, atomMode])
 
   // Compute actual font size from zoom
   const fontSize = Math.round(BASE_FONT_SIZE * zoom)
 
-  // Optional connection hook
-  const connection = enableConnection
-    ? useTerminalConnection({
-        ...connectionOptions,
-        autoConnect: connectionOptions?.autoConnect ?? false,
-        onReady: (session) => {
-          setSessionInfo(session)
-          connectionOptions?.onReady?.(session)
-        },
-      })
-    : null
+  // Terminal-scoped hotkeys (Ctrl+=/-, Ctrl+0)
+  useTerminalHotkeys({
+    zoom,
+    setZoom,
+    minZoom: MIN_ZOOM,
+    maxZoom: MAX_ZOOM,
+    zoomStep: ZOOM_STEP,
+    enabled: isReady,
+    containerRef,
+  })
+
+  // Block terminal hook (only active in openwarp mode)
+  const blockTerminal = useBlockTerminal({
+    initialCwd: cwd,
+    maxBlocks: 100,
+  })
 
   const contextValue: TerminalContextValue = {
-    termRef,
+    xtermRef,
+    containerRef,
+    blocksContainerRef,
     isReady,
     setIsReady,
     dimensions,
@@ -156,16 +218,19 @@ function TerminalRoot({
     fontSize,
     fontFamily,
     mode,
-    setMode,
-    connection,
-    sessionInfo,
-    setSessionInfo,
+    setMode: setTerminalMode,
+    toggleMode: toggleTerminalMode,
+    blockTerminal,
+    persistKey,
+    cwd,
   }
 
   return (
     <TerminalContext.Provider value={contextValue}>
       <div
+        ref={containerRef}
         className={className}
+        tabIndex={-1}
         style={{
           width: typeof width === 'number' ? `${width}px` : width,
           height: typeof height === 'number' ? `${height}px` : height,
@@ -173,6 +238,7 @@ function TerminalRoot({
           flexDirection: 'column',
           background: '#0a0a0c',
           overflow: 'hidden',
+          outline: 'none',
         }}
       >
         {children}
@@ -216,19 +282,6 @@ function TerminalControls({
     ctx.setZoom(1.0)
   }, [ctx])
 
-  const toggleMode = useCallback(() => {
-    const newMode = ctx.mode === 'local' ? 'remote' : 'local'
-    ctx.setMode(newMode)
-    if (ctx.connection) {
-      if (newMode === 'remote') {
-        ctx.connection.connect()
-        ctx.connection.attachTerminal(ctx.termRef)
-      } else {
-        ctx.connection.disconnect()
-      }
-    }
-  }, [ctx])
-
   return (
     <div
       className={className}
@@ -246,9 +299,9 @@ function TerminalControls({
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <TerminalIcon size={14} style={{ color: 'rgba(255,255,255,0.5)' }} />
         <span
+          className="font-label uppercase tracking-[0.15em]"
           style={{
-            fontSize: '12px',
-            fontFamily: 'monospace',
+            fontSize: TMNL_FONT_SIZE.xs,
             color: 'rgba(255,255,255,0.7)',
           }}
         >
@@ -256,9 +309,9 @@ function TerminalControls({
         </span>
         {ctx.dimensions.cols > 0 && (
           <span
+            className="font-stats tracking-[0.08em]"
             style={{
-              fontSize: '12px',
-              fontFamily: 'monospace',
+              fontSize: TMNL_FONT_SIZE.xs,
               color: 'rgba(255,255,255,0.4)',
             }}
           >
@@ -268,7 +321,7 @@ function TerminalControls({
       </div>
 
       {/* Center: Mode Toggle */}
-      {showModeToggle && ctx.connection && (
+      {showModeToggle && (
         <div
           style={{
             display: 'flex',
@@ -280,34 +333,44 @@ function TerminalControls({
           }}
         >
           <button
-            onClick={() => ctx.mode !== 'local' && toggleMode()}
+            onClick={() => ctx.mode !== 'ghostty' && ctx.setMode('ghostty')}
+            className="font-label uppercase tracking-[0.1em]"
             style={{
               padding: '4px 8px',
-              fontSize: '12px',
-              fontFamily: 'monospace',
-              background: ctx.mode === 'local' ? 'rgba(255,255,255,0.15)' : 'transparent',
-              color: ctx.mode === 'local' ? '#fff' : 'rgba(255,255,255,0.5)',
+              fontSize: TMNL_FONT_SIZE.xs,
+              background: ctx.mode === 'ghostty' ? 'rgba(255,255,255,0.15)' : 'transparent',
+              color: ctx.mode === 'ghostty' ? '#fff' : 'rgba(255,255,255,0.5)',
               border: 'none',
               borderRadius: '3px',
               cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
             }}
+            title="Classic xterm.js mode"
           >
-            Local
+            <SquareTerminal size={12} />
+            Classic
           </button>
           <button
-            onClick={() => ctx.mode !== 'remote' && toggleMode()}
+            onClick={() => ctx.mode !== 'openwarp' && ctx.setMode('openwarp')}
+            className="font-label uppercase tracking-[0.1em]"
             style={{
               padding: '4px 8px',
-              fontSize: '12px',
-              fontFamily: 'monospace',
-              background: ctx.mode === 'remote' ? 'rgba(34,211,238,0.2)' : 'transparent',
-              color: ctx.mode === 'remote' ? '#22d3ee' : 'rgba(255,255,255,0.5)',
+              fontSize: TMNL_FONT_SIZE.xs,
+              background: ctx.mode === 'openwarp' ? 'rgba(34,211,238,0.2)' : 'transparent',
+              color: ctx.mode === 'openwarp' ? '#22d3ee' : 'rgba(255,255,255,0.5)',
               border: 'none',
               borderRadius: '3px',
               cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
             }}
+            title="OpenWarp block mode"
           >
-            Remote
+            <Blocks size={12} />
+            OpenWarp
           </button>
         </div>
       )}
@@ -337,6 +400,7 @@ function TerminalControls({
             </button>
             <button
               onClick={resetZoom}
+              className="font-stats tracking-[0.05em]"
               style={{
                 padding: '4px 8px',
                 background: 'rgba(255,255,255,0.05)',
@@ -344,8 +408,7 @@ function TerminalControls({
                 borderRadius: '4px',
                 cursor: 'pointer',
                 color: '#fff',
-                fontFamily: 'monospace',
-                fontSize: '12px',
+                fontSize: TMNL_FONT_SIZE.xs,
               }}
               title="Reset zoom"
             >
@@ -379,79 +442,69 @@ function TerminalControls({
 }
 
 // ============================================================================
-// Screen Component
+// Screen Component (Classic xterm.js mode)
 // ============================================================================
 
-interface TerminalScreenProps extends Omit<GhosttyTerminalProps, 'fontSize' | 'fontFamily' | 'ref'> {
-  /** Handle local echo when not connected */
-  localEcho?: boolean
+interface TerminalScreenProps {
+  /** Called when terminal outputs data */
+  onData?: (data: string) => void
+  /** Called when shell exits */
+  onExit?: (code: number) => void
+  /** Called when a URL is clicked */
+  onLinkClick?: (url: string) => void
+  /** Called when a file path is clicked */
+  onFilePathClick?: (path: string) => void
+  /** Called when pwd changes */
+  onPwdChange?: (pwd: string) => void
+  /** Additional className */
+  className?: string
 }
 
-const TerminalScreen = forwardRef<GhosttyTerminalRef, TerminalScreenProps>(
+const TerminalScreen = forwardRef<XtermTerminalHandle, TerminalScreenProps>(
   function TerminalScreen(
-    { onData, onResize, onReady, localEcho = true, ...props },
+    { onData, onExit, onLinkClick, onFilePathClick, onPwdChange, className },
     forwardedRef
   ) {
     const ctx = useTerminalContext()
 
-    // Use context ref if no forwarded ref
-    const ref = (forwardedRef as RefObject<GhosttyTerminalRef | null>) ?? ctx.termRef
-
-    const handleData = useCallback(
-      (data: string) => {
-        if (ctx.mode === 'remote' && ctx.connection) {
-          ctx.connection.write(data)
-        } else if (localEcho && ctx.termRef.current) {
-          // Local echo mode
-          if (data === '\r') {
-            ctx.termRef.current.write('\r\n')
-            ctx.termRef.current.write('\x1b[1;35m❯\x1b[0m ')
-          } else if (data === '\x7f') {
-            ctx.termRef.current.write('\b \b')
-          } else {
-            ctx.termRef.current.write(data)
-          }
+    // Unified ref handling
+    const setRefs = useCallback(
+      (instance: XtermTerminalHandle | null) => {
+        ;(ctx.xtermRef as React.MutableRefObject<XtermTerminalHandle | null>).current = instance
+        if (typeof forwardedRef === 'function') {
+          forwardedRef(instance)
+        } else if (forwardedRef) {
+          ;(forwardedRef as React.MutableRefObject<XtermTerminalHandle | null>).current = instance
         }
-        onData?.(data)
+        if (instance) {
+          ctx.setIsReady(true)
+        }
       },
-      [ctx, localEcho, onData]
+      [ctx, forwardedRef]
     )
 
-    const handleResize = useCallback(
-      (cols: number, rows: number) => {
-        ctx.setDimensions({ cols, rows })
-        if (ctx.mode === 'remote' && ctx.connection?.connected) {
-          ctx.connection.resize(cols, rows)
-        }
-        onResize?.(cols, rows)
-      },
-      [ctx, onResize]
-    )
-
-    const handleReady = useCallback(
-      (terminal: import('ghostty-web').Terminal) => {
-        ctx.setIsReady(true)
-        ctx.termRef.current?.focus()
-        if (localEcho && ctx.mode === 'local') {
-          ctx.termRef.current?.write('\x1b[1;35m❯\x1b[0m ')
-        }
-        onReady?.(terminal)
-      },
-      [ctx, localEcho, onReady]
-    )
+    // Don't render if in openwarp mode
+    if (ctx.mode === 'openwarp') {
+      return null
+    }
 
     return (
-      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-        <GhosttyTerminal
-          ref={ref}
-          fontSize={ctx.fontSize}
-          fontFamily={ctx.fontFamily}
-          onData={handleData}
-          onResize={handleResize}
-          onReady={handleReady}
-          autoFit
-          {...props}
-          style={{ width: '100%', height: '100%', ...props.style }}
+      <div
+        className={className}
+        style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}
+      >
+        <XtermTerminal
+          ref={setRefs}
+          persistKey={ctx.persistKey}
+          onData={onData}
+          onExit={onExit}
+          onLinkClick={onLinkClick}
+          onFilePathClick={onFilePathClick}
+          onPwdChange={onPwdChange}
+          config={{
+            fontSize: ctx.fontSize,
+            fontFamily: ctx.fontFamily,
+          }}
         />
       </div>
     )
@@ -459,36 +512,100 @@ const TerminalScreen = forwardRef<GhosttyTerminalRef, TerminalScreenProps>(
 )
 
 // ============================================================================
-// StatusBar Component
+// BlockScreen Component (OpenWarp mode)
 // ============================================================================
 
-interface TerminalStatusBarProps {
-  /** Show connection status (default: true) */
-  showConnection?: boolean
-  /** Show session info (default: true) */
-  showSession?: boolean
-  /** Additional className */
+interface TerminalBlockScreenProps {
+  /** Custom markdown renderer */
+  renderMarkdown?: (content: string) => React.ReactNode
+  /** Additional className for blocks container */
   className?: string
+  /** Props to pass to BlockInput */
+  inputProps?: Partial<BlockInputProps>
 }
 
-function TerminalStatusBar({
-  showConnection = true,
-  showSession = true,
+function TerminalBlockScreen({
+  renderMarkdown,
   className,
-}: TerminalStatusBarProps) {
+  inputProps,
+}: TerminalBlockScreenProps) {
   const ctx = useTerminalContext()
+
+  // Don't render if in ghostty mode
+  if (ctx.mode === 'ghostty' || !ctx.blockTerminal) {
+    return null
+  }
+
+  const { blocks, executeCommand, executeAIQuery, containerRef, dismissBlock } = ctx.blockTerminal
 
   return (
     <div
       className={className}
+      style={{
+        flex: 1,
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Blocks View */}
+      <BlocksView
+        blocks={blocks}
+        containerRef={containerRef}
+        autoScroll
+        renderMarkdown={renderMarkdown}
+        onDismissBlock={dismissBlock}
+      />
+
+      {/* Block Input */}
+      <BlockInput
+        onSubmit={(cmd, isAI, thinkingLevel) => {
+          if (isAI) {
+            executeAIQuery(cmd, thinkingLevel)
+          } else {
+            executeCommand(cmd)
+          }
+        }}
+        {...inputProps}
+      />
+    </div>
+  )
+}
+
+// ============================================================================
+// StatusBar Component
+// ============================================================================
+
+interface TerminalStatusBarProps {
+  /** Additional className */
+  className?: string
+}
+
+function TerminalStatusBar({ className }: TerminalStatusBarProps) {
+  const ctx = useTerminalContext()
+
+  const getModeLabel = () => {
+    if (ctx.mode === 'ghostty') return 'Classic'
+    return 'OpenWarp'
+  }
+
+  const getStatusColor = () => {
+    if (!ctx.isReady) return '#eab308' // yellow
+    if (ctx.mode === 'openwarp') return '#22d3ee' // cyan
+    return '#22c55e' // green
+  }
+
+  return (
+    <div
+      className={`font-label ${className ?? ''}`}
       style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '6px 12px',
         borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-        fontSize: '12px',
-        fontFamily: 'monospace',
+        fontSize: TMNL_FONT_SIZE.xs,
         color: 'rgba(255,255,255,0.5)',
         flexShrink: 0,
       }}
@@ -500,40 +617,27 @@ function TerminalStatusBar({
             width: '8px',
             height: '8px',
             borderRadius: '50%',
-            background: ctx.isReady
-              ? ctx.mode === 'remote' && ctx.connection?.connected
-                ? '#22d3ee'
-                : '#22c55e'
-              : '#eab308',
+            background: getStatusColor(),
           }}
         />
-        <span>
-          {!ctx.isReady
-            ? 'Loading...'
-            : ctx.mode === 'local'
-            ? 'Local Echo'
-            : ctx.connection?.connected
-            ? 'Connected'
-            : 'Disconnected'}
+        <span className="uppercase tracking-[0.1em]">
+          {!ctx.isReady ? 'Loading...' : getModeLabel()}
         </span>
       </div>
 
-      {/* Right: Session Info */}
-      {showSession && ctx.sessionInfo && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      {/* Right: PWD or Block Count */}
+      <div className="font-stats tracking-[0.08em]" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {ctx.mode === 'openwarp' && ctx.blockTerminal && (
           <span style={{ color: 'rgba(255,255,255,0.4)' }}>
-            {ctx.sessionInfo.backend.toUpperCase()}
+            {ctx.blockTerminal.blocks.length} blocks
           </span>
-          {ctx.sessionInfo.pid && (
-            <span style={{ color: '#22c55e' }}>PID: {ctx.sessionInfo.pid}</span>
-          )}
-          {ctx.sessionInfo.id && (
-            <span style={{ color: 'rgba(255,255,255,0.3)' }}>
-              {ctx.sessionInfo.id.slice(0, 8)}...
-            </span>
-          )}
-        </div>
-      )}
+        )}
+        {ctx.mode === 'ghostty' && ctx.xtermRef.current && (
+          <span style={{ color: 'rgba(255,255,255,0.4)' }}>
+            {ctx.xtermRef.current.getPwd() ?? ctx.cwd ?? '~'}
+          </span>
+        )}
+      </div>
     </div>
   )
 }
@@ -546,6 +650,7 @@ export const Terminal = {
   Root: TerminalRoot,
   Controls: TerminalControls,
   Screen: TerminalScreen,
+  BlockScreen: TerminalBlockScreen,
   StatusBar: TerminalStatusBar,
 }
 
@@ -554,6 +659,7 @@ export {
   TerminalRoot,
   TerminalControls,
   TerminalScreen,
+  TerminalBlockScreen,
   TerminalStatusBar,
   useTerminalContext,
   NERD_FONT_FAMILY,
@@ -564,6 +670,7 @@ export type {
   TerminalRootProps,
   TerminalControlsProps,
   TerminalScreenProps,
+  TerminalBlockScreenProps,
   TerminalStatusBarProps,
   TerminalContextValue,
 }
