@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '📦 Fermion: registry.set()/get() for sync | Atom.set()/get() return Effects'"
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/session_context.py\" 2>/dev/null || echo '📦 Fermion: registry.set()/get() for sync | Atom.set()/get() return Effects'"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [[ \"$TOOL_INPUT_FILE\" == *.ts || \"$TOOL_INPUT_FILE\" == *.tsx ]]; then grep -E 'Atom\\.(set|get)\\(' \"$TOOL_INPUT_FILE\" 2>/dev/null | grep -v 'registry\\.' | head -3 && echo '⚠️  Atom.set()/get() detected. Use registry.set()/get() for sync mutations.' || true; fi"
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/atom_pattern_fixer.py\" 2>/dev/null || true"
           }
         ]
       }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [[ \"$TOOL_INPUT_FILE\" == *.ts || \"$TOOL_INPUT_FILE\" == *.tsx ]]; then cd \"$CLAUDE_PROJECT_DIR\" && timeout 30 bun run tsc --noEmit 2>&1 | head -10 || true; fi"
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/validation_state_machine.py\" 2>/dev/null || true"
           }
         ]
       }
