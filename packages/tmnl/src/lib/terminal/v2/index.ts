@@ -1,87 +1,89 @@
 /**
- * Terminal v2
+ * Terminal v2 Module
  *
- * xterm.js-based terminal system for TMNL.
- * Ported from infinitty with Effect-TS integration.
+ * Effect-TS based terminal with OpenWarp block mode support.
  *
  * Features:
- * - XtermTerminal component with persistence registry
- * - TauriPtyService for native PTY operations
+ * - PTY management via TauriPtyService
+ * - Block-based terminal (OpenWarp mode)
+ * - AI integration for natural language commands
  * - Effect-atom state management
- * - Ghostty + OpenWarp mode support (Phase 2)
  *
  * @example
  * ```tsx
- * import { XtermTerminal } from '@/lib/terminal/v2'
+ * import {
+ *   useBlockTerminal,
+ *   BlocksView,
+ *   blocksAtom,
+ *   terminalModeAtom,
+ * } from '@/lib/terminal/v2'
  *
- * function MyTerminal() {
- *   const terminalRef = useRef<XtermTerminalHandle>(null)
+ * function OpenWarpTerminal() {
+ *   const {
+ *     blocks,
+ *     executeCommand,
+ *     executeAIQuery,
+ *     containerRef,
+ *   } = useBlockTerminal({ initialCwd: '~' })
  *
  *   return (
- *     <XtermTerminal
- *       ref={terminalRef}
- *       persistKey="main-terminal"
- *       onData={(data) => console.log('Output:', data)}
+ *     <BlocksView
+ *       blocks={blocks}
+ *       containerRef={containerRef}
+ *       autoScroll
  *     />
  *   )
  * }
  * ```
  */
 
-// Components
-export {
-  XtermTerminal,
-  type XtermTerminalProps,
-  type XtermTerminalHandle,
-} from './components'
-
-// Hooks
-export {
-  useXterm,
-  disposeTerminal,
-  disposeAllTerminals,
-  getPersistedTerminalCount,
-  type UseXtermOptions,
-  type UseXtermReturn,
-} from './hooks'
-
+// =============================================================================
 // Services
-export {
-  TauriPtyService,
-  type TauriPtyServiceShape,
-  type PtyHandle,
-} from './services'
+// =============================================================================
 
-// Atoms
-export {
-  // Runtime
-  terminalRuntimeAtom,
-  // State atoms
-  terminalModeAtom,
-  terminalStatusAtom,
-  activeTerminalIdAtom,
-  terminalInstancesAtom,
-  terminalConfigAtom,
-  // Derived atoms
-  activeTerminalAtom,
-  isTerminalReadyAtom,
-  activePwdAtom,
-  terminalCountAtom,
-  // Operations (synchronous)
-  setTerminalMode,
-  toggleTerminalMode,
-  updateTerminalConfig,
-  registerTerminal,
-  updateTerminalInstance,
-  unregisterTerminal,
-  setActiveTerminal,
-  // Operations (Effect-based)
-  spawnTerminalOp,
-  killTerminalOp,
-  listTerminalsOp,
-} from './atoms'
+export { TauriPtyService } from './services/TauriPtyService'
 
+// =============================================================================
 // Schemas
+// =============================================================================
+
+export {
+  // Terminal schemas
+  TerminalStatus,
+  TerminalMode,
+  CursorStyle,
+  TerminalTheme,
+  TerminalConfig,
+  TerminalInstanceState,
+  PtySpawnOptions,
+  TerminalDataEvent,
+  TerminalExitEvent,
+  TerminalPwdChangeEvent,
+  TerminalEvent,
+  // Block schemas
+  BlockType,
+  ToolCallStatus,
+  ToolCall,
+  TokenUsage,
+  CommandBlock,
+  AIResponseBlock,
+  InteractiveBlock,
+  ErrorBlock,
+  SystemBlock,
+  Block,
+  BlockTerminalState,
+  INITIAL_BLOCK_STATE,
+  // Block helpers
+  isInteractiveCommand,
+  createCommandBlock,
+  createAIResponseBlock,
+  createInteractiveBlock,
+  createErrorBlock,
+  createSystemBlock,
+  getBlockTime,
+  isBlockActive,
+} from './schemas'
+
 export type {
   TerminalStatus,
   TerminalMode,
@@ -90,8 +92,111 @@ export type {
   TerminalConfig,
   TerminalInstanceState,
   PtySpawnOptions,
-  TerminalEvent,
   TerminalDataEvent,
   TerminalExitEvent,
   TerminalPwdChangeEvent,
+  TerminalEvent,
+  BlockType,
+  ToolCallStatus,
+  ToolCall,
+  TokenUsage,
+  CommandBlock,
+  AIResponseBlock,
+  InteractiveBlock,
+  ErrorBlock,
+  SystemBlock,
+  Block,
+  BlockTerminalState,
 } from './schemas'
+
+// =============================================================================
+// Atoms
+// =============================================================================
+
+export {
+  // Runtime atoms
+  terminalRuntimeAtom,
+  blockTerminalRuntimeAtom,
+  // Terminal state atoms
+  terminalModeAtom,
+  terminalStatusAtom,
+  activeTerminalIdAtom,
+  terminalInstancesAtom,
+  terminalConfigAtom,
+  // Terminal derived atoms
+  activeTerminalAtom,
+  isTerminalReadyAtom,
+  activePwdAtom,
+  terminalCountAtom,
+  // Terminal operations
+  setTerminalMode,
+  toggleTerminalMode,
+  updateTerminalConfig,
+  registerTerminal,
+  updateTerminalInstance,
+  unregisterTerminal,
+  setActiveTerminal,
+  spawnTerminalOp,
+  killTerminalOp,
+  listTerminalsOp,
+  // Block state atoms
+  blocksAtom,
+  blockCwdAtom,
+  maxBlocksAtom,
+  userScrolledAtom,
+  inputHistoryAtom,
+  historyIndexAtom,
+  // Block derived atoms
+  latestBlockAtom,
+  activeBlocksAtom,
+  completedBlocksAtom,
+  blockCountAtom,
+  hasActiveBlockAtom,
+  // Block operations
+  addBlock,
+  updateBlock,
+  removeBlock,
+  clearBlocks,
+  setBlockCwd,
+  addToHistory,
+  historyUp,
+  historyDown,
+  resetHistoryIndex,
+  executeCommandOp,
+  executeAIQueryOp,
+  addErrorBlockOp,
+  dismissBlockOp,
+} from './atoms'
+
+// =============================================================================
+// Hooks
+// =============================================================================
+
+export {
+  useBlockTerminal,
+  isBlockActive as isBlockActiveHelper,
+  type UseBlockTerminalOptions,
+  type UseBlockTerminalResult,
+} from './hooks'
+
+// =============================================================================
+// Components
+// =============================================================================
+
+export {
+  // Block components
+  CommandBlock as CommandBlockComponent,
+  AIResponseBlock as AIResponseBlockComponent,
+  InteractiveBlock as InteractiveBlockComponent,
+  ErrorBlock as ErrorBlockComponent,
+  SystemBlock as SystemBlockComponent,
+  // Container components
+  BlocksView,
+  // Types
+  type CommandBlockProps,
+  type AIResponseBlockProps,
+  type InteractiveBlockProps,
+  type ErrorBlockProps,
+  type SystemBlockProps,
+  type BlocksViewProps,
+} from './components'

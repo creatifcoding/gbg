@@ -135,3 +135,48 @@ export const TerminalEvent = Schema.Union(
   TerminalPwdChangeEvent
 )
 export type TerminalEvent = typeof TerminalEvent.Type
+
+// =============================================================================
+// Block Schemas (OpenWarp mode)
+// =============================================================================
+
+export {
+  // Types
+  BlockType,
+  ToolCallStatus,
+  // Block variants
+  ToolCall,
+  TokenUsage,
+  CommandBlock,
+  AIResponseBlock,
+  InteractiveBlock,
+  ErrorBlock,
+  SystemBlock,
+  Block,
+  // State
+  BlockTerminalState,
+  INITIAL_BLOCK_STATE,
+  // Helpers
+  isInteractiveCommand,
+  createCommandBlock,
+  createAIResponseBlock,
+  createInteractiveBlock,
+  createErrorBlock,
+  createSystemBlock,
+  getBlockTime,
+  isBlockActive,
+} from './blocks'
+
+export type {
+  BlockType,
+  ToolCallStatus,
+  ToolCall,
+  TokenUsage,
+  CommandBlock,
+  AIResponseBlock,
+  InteractiveBlock,
+  ErrorBlock,
+  SystemBlock,
+  Block,
+  BlockTerminalState,
+} from './blocks'

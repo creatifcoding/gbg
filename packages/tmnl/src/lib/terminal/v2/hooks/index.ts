@@ -3,10 +3,8 @@
  */
 
 export {
-  useXterm,
-  disposeTerminal,
-  disposeAllTerminals,
-  getPersistedTerminalCount,
-  type UseXtermOptions,
-  type UseXtermReturn,
-} from './useXterm'
+  useBlockTerminal,
+  isBlockActive,
+  type UseBlockTerminalOptions,
+  type UseBlockTerminalResult,
+} from './useBlockTerminal'
