@@ -59,6 +59,10 @@ export {
   portHoveredAtom,
   portLinkingAtom,
   portActiveTabAtom,
+  // ReactFlow Node Integration
+  PortNode,
+  type PortNodeData,
+  type PortNodeProps,
 } from './Port';
 
 // =============================================================================

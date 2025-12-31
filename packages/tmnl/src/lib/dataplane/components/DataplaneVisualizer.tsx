@@ -38,7 +38,7 @@ import type {
   PortPosition,
   CreateLinkConfig,
 } from '../schemas/link';
-import { LinkPortNode, type LinkPortNodeData } from './LinkPortNode';
+import { PortNode, type PortNodeData } from './Port';
 import { BidirectionalEdge, type BidirectionalEdgeData } from './BidirectionalEdge';
 
 // =============================================================================
@@ -68,7 +68,7 @@ export interface DataplaneVisualizerProps {
 // =============================================================================
 
 const nodeTypes: NodeTypes = {
-  linkPort: LinkPortNode,
+  linkPort: PortNode,
 };
 
 const edgeTypes: EdgeTypes = {
@@ -144,6 +144,9 @@ export const DataplaneVisualizer = memo(function DataplaneVisualizer({
   const allPorts = useAtomValue(portsAtom);
   const allLinks = useAtomValue(linksAtom);
 
+  // DEBUG: Log when portsAtom changes
+  console.log('[DataplaneVisualizer] allPorts count:', allPorts.length, 'blockId filter:', blockId);
+
   // Filter based on scope
   const { ports, links } = useMemo(() => {
     if (scope === 'document') {
@@ -170,13 +173,14 @@ export const DataplaneVisualizer = memo(function DataplaneVisualizer({
   const initialNodes = useMemo(() => {
     const blockPositions = new Map<BlockId, { x: number; y: number }>();
 
-    return ports.map((port, index): Node<LinkPortNodeData> => ({
+    return ports.map((port, index): Node<PortNodeData> => ({
       id: port.id as string,
       type: 'linkPort',
       position: getNodePosition(port, index, blockPositions),
       data: {
         port,
         blockLabel: port.blockId.slice(0, 8),
+        size: 'default',
       },
       parentId: port.parentBlockId as string | undefined,
       extent: port.parentBlockId ? 'parent' : undefined,
@@ -366,7 +370,7 @@ export const DataplaneVisualizer = memo(function DataplaneVisualizer({
         {mode === 'fullscreen' && (
           <MiniMap
             nodeColor={(node) => {
-              const data = node.data as LinkPortNodeData | undefined;
+              const data = node.data as PortNodeData | undefined;
               const direction = data?.port?.direction ?? 'inout';
               switch (direction) {
                 case 'in':

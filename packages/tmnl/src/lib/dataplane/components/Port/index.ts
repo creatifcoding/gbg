@@ -53,6 +53,9 @@ export { Tab as PortTab } from './Tab';
 export { TabList as PortTabList } from './TabList';
 export { TabPanel as PortTabPanel } from './TabPanel';
 
+// ReactFlow Node Integration
+export { PortNode, type PortNodeData, type PortNodeProps } from './PortNode';
+
 // Types
 export type { PortSize, PortVisualState, PortTabId, PortEvent } from './types';
 export { PortDirection } from './types';
