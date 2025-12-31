@@ -4,19 +4,39 @@
  * ReactFlow custom node that wraps Port compound component.
  * Bridges ReactFlow node system with Port stx state machine.
  *
+ * Features:
+ * - Direction-based coloring (in: cyan, out: amber, inout: purple)
+ * - Data type indicator icons
+ * - Connection count badge via PortBadge
+ * - Handles for edge connections
+ * - Visual states: collapsed → hovered → expanded → linking
+ * - Expandable sidebar with Info/Config/Links tabs
+ *
  * @module dataplane/components/Port/PortNode
  */
 
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { useAtomValue } from '@effect-atom/atom-react';
 
+// Unicode icons for actions (avoids lucide-react dependency)
+const ICONS = {
+  link: '⛓',      // Link/chain
+  settings: '⚙',  // Settings gear
+  trash: '✕',     // Delete/trash
+  unplug: '⊗',    // Disconnected
+} as const;
+
 import { linksForPortAtom } from '../../atoms';
-import type { LinkPort, PortDirection as SchemaPortDirection, PortDataType } from '../../schemas/link';
+import type { LinkPort, PortDirection as SchemaPortDirection, PortDataType, Link } from '../../schemas/link';
 import { PortProvider } from './context';
 import { PortItem } from './Item';
 import { PortBadge } from './Badge';
-import { portStateValueAtom } from './port-stx';
+import { portStateValueAtom, portOps } from './port-stx';
+import { Sidebar as PortSidebar } from './Sidebar';
+import { Tab as PortTab } from './Tab';
+import { Actions as PortActions } from './Actions';
+import { Action as PortAction } from './Action';
 import type { PortSize } from './types';
 
 // =============================================================================
@@ -60,13 +80,219 @@ const DIRECTION_COLORS: Record<SchemaPortDirection, { bg: string; border: string
 };
 
 const DATA_TYPE_ICONS: Record<PortDataType, string> = {
-  geojson: '◎',
   table: '⊞',
   row: '─',
   cell: '◻',
   json: '{}',
-  stream: '≋',
 };
+
+// =============================================================================
+// Tab Panel Components
+// =============================================================================
+
+interface PortInfoPanelProps {
+  port: LinkPort;
+  links: readonly Link[];
+}
+
+/** Info tab: connection status, block ID, data type, direction */
+const PortInfoPanel = memo(function PortInfoPanel({ port, links }: PortInfoPanelProps) {
+  return (
+    <div className="space-y-2 text-foreground">
+      <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+        <span className="text-muted-foreground" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+          ID
+        </span>
+        <span className="font-mono truncate" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+          {port.id.slice(0, 12)}...
+        </span>
+
+        <span className="text-muted-foreground" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+          Block
+        </span>
+        <span className="font-mono truncate" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+          {port.blockId.slice(0, 12)}...
+        </span>
+
+        <span className="text-muted-foreground" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+          Direction
+        </span>
+        <span
+          className="font-mono uppercase"
+          style={{
+            fontSize: 'var(--tmnl-text-xs, 12px)',
+            color: port.direction === 'in' ? '#22d3ee' : port.direction === 'out' ? '#fbbf24' : '#a78bfa',
+          }}
+        >
+          {port.direction}
+        </span>
+
+        <span className="text-muted-foreground" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+          Data Type
+        </span>
+        <span className="font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+          {port.dataType}
+        </span>
+
+        <span className="text-muted-foreground" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+          Connections
+        </span>
+        <span
+          className="font-mono"
+          style={{
+            fontSize: 'var(--tmnl-text-xs, 12px)',
+            color: links.length > 0 ? '#22d3ee' : 'inherit',
+          }}
+        >
+          {links.length}
+        </span>
+      </div>
+    </div>
+  );
+});
+
+interface PortConfigPanelProps {
+  port: LinkPort;
+}
+
+/** Config tab: rename, validation rules, settings */
+const PortConfigPanel = memo(function PortConfigPanel({ port }: PortConfigPanelProps) {
+  return (
+    <div className="space-y-3">
+      {/* Label field */}
+      <div>
+        <label
+          className="block text-muted-foreground mb-1"
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        >
+          Label
+        </label>
+        <input
+          type="text"
+          defaultValue={port.label ?? ''}
+          placeholder={port.direction.toUpperCase()}
+          className="
+            w-full px-2 py-1 rounded
+            bg-surface-2 border border-surface-3
+            text-foreground font-mono
+            focus:outline-none focus:border-cyan-500/50
+          "
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
+
+      {/* Data type (read-only) */}
+      <div>
+        <label
+          className="block text-muted-foreground mb-1"
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        >
+          Data Type
+        </label>
+        <div
+          className="
+            px-2 py-1 rounded
+            bg-surface-2 border border-surface-3
+            text-muted-foreground font-mono
+          "
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        >
+          {port.dataType}
+        </div>
+      </div>
+
+      {/* Position */}
+      <div>
+        <label
+          className="block text-muted-foreground mb-1"
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        >
+          Position
+        </label>
+        <div
+          className="
+            px-2 py-1 rounded
+            bg-surface-2 border border-surface-3
+            text-muted-foreground font-mono capitalize
+          "
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        >
+          {port.position}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+interface PortLinksPanelProps {
+  port: LinkPort;
+  links: readonly Link[];
+}
+
+/** Links tab: list of connected ports with quick actions */
+const PortLinksPanel = memo(function PortLinksPanel({ port, links }: PortLinksPanelProps) {
+  if (links.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-4 text-muted-foreground">
+        <span className="mb-2 opacity-50" style={{ fontSize: '20px' }}>{ICONS.unplug}</span>
+        <span style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>No connections</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {links.map((link) => {
+        const isSource = link.sourcePort === port.id;
+        const connectedPortId = isSource ? link.targetPort : link.sourcePort;
+
+        return (
+          <div
+            key={link.id}
+            className="
+              flex items-center gap-2
+              px-2 py-1.5 rounded
+              bg-surface-2 border border-surface-3
+              hover:border-surface-4 transition-colors
+            "
+          >
+            {/* Direction indicator */}
+            <span
+              className="font-mono"
+              style={{
+                fontSize: 'var(--tmnl-text-xs, 12px)',
+                color: isSource ? '#fbbf24' : '#22d3ee',
+              }}
+            >
+              {isSource ? '→' : '←'}
+            </span>
+
+            {/* Connected port ID */}
+            <span
+              className="font-mono truncate flex-1"
+              style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+            >
+              {connectedPortId.slice(0, 10)}...
+            </span>
+
+            {/* Link type badge */}
+            <span
+              className="
+                px-1.5 py-0.5 rounded
+                bg-surface-3 text-muted-foreground
+                font-mono uppercase
+              "
+              style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+            >
+              {link.relationship}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+});
 
 // =============================================================================
 // Inner Component (uses Port context)
@@ -94,31 +320,70 @@ const PortNodeInner = memo(function PortNodeInner({
   // Get current visual state from port machine
   const state = useAtomValue(portStateValueAtom(port.id));
   const isExpanded = state === 'expanded';
+  const isHovered = state === 'hovered';
   const isLinking = state === 'linking';
 
   // Determine handle visibility based on port direction
   const showSourceHandle = port.direction === 'out' || port.direction === 'inout';
   const showTargetHandle = port.direction === 'in' || port.direction === 'inout';
 
+  // ==========================================================================
+  // Event Handlers (stx integration)
+  // ==========================================================================
+
+  const handleMouseEnter = useCallback(() => {
+    portOps.hover(port.id);
+  }, [port.id]);
+
+  const handleMouseLeave = useCallback(() => {
+    portOps.unhover(port.id);
+  }, [port.id]);
+
+  const handleClick = useCallback(() => {
+    if (isExpanded) {
+      portOps.collapse(port.id);
+    } else {
+      portOps.expand(port.id);
+    }
+  }, [port.id, isExpanded]);
+
+  const handleStartLinking = useCallback(() => {
+    portOps.startLinking(port.id);
+  }, [port.id]);
+
+  const handleDelete = useCallback(() => {
+    // TODO: Wire to dataplaneOps.removePort when available
+    console.log('[PortNode] Delete requested for:', port.id);
+  }, [port.id]);
+
+  const handleConfigure = useCallback(() => {
+    // Expand and switch to config tab
+    portOps.expand(port.id);
+    portOps.selectTab(port.id, 'config');
+  }, [port.id]);
+
   return (
     <div
       className="relative"
       style={{
-        // Apply direction-based colors as container overlay
         backgroundColor: colors.bg,
         border: `2px solid ${colors.border}`,
         borderRadius: '12px',
-        boxShadow: selected || isConnected || isLinking ? colors.glow : 'none',
-        minWidth: 90,
+        boxShadow: selected || isConnected || isLinking || isHovered ? colors.glow : 'none',
+        minWidth: isExpanded ? 240 : 90,
         transition: 'all 200ms ease-out',
       }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
     >
       {/* Port compound component */}
-      <PortItem className="bg-transparent border-none">
+      <PortItem className="bg-transparent border-none cursor-pointer">
         {/* Direction icon */}
         <span
-          className="text-base font-mono opacity-70"
+          className="font-mono opacity-70"
           title={`Direction: ${port.direction}`}
+          style={{ fontSize: 'var(--tmnl-text-base, 16px)' }}
         >
           {port.direction === 'in' ? '→' : port.direction === 'out' ? '←' : '↔'}
         </span>
@@ -136,8 +401,9 @@ const PortNodeInner = memo(function PortNodeInner({
 
         {/* Data type indicator */}
         <span
-          className="text-sm font-mono opacity-60"
+          className="font-mono opacity-60"
           title={port.dataType}
+          style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
         >
           {typeIcon}
         </span>
@@ -152,12 +418,45 @@ const PortNodeInner = memo(function PortNodeInner({
       {/* Block ID (truncated) */}
       {blockLabel && (
         <div
-          className="text-center text-xs font-mono text-gray-500 px-2 pb-1 truncate"
-          style={{ fontSize: '10px', maxWidth: '100%' }}
+          className="text-center font-mono text-muted-foreground px-2 pb-1 truncate"
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)', maxWidth: '100%' }}
         >
           {blockLabel}
         </div>
       )}
+
+      {/* Actions (visible on hover/expanded) */}
+      <PortActions className="justify-center gap-1 py-1">
+        <PortAction
+          icon={ICONS.link}
+          onClick={handleStartLinking}
+          label="Start linking"
+        />
+        <PortAction
+          icon={ICONS.settings}
+          onClick={handleConfigure}
+          label="Configure"
+        />
+        <PortAction
+          icon={ICONS.trash}
+          onClick={handleDelete}
+          label="Delete"
+          variant="destructive"
+        />
+      </PortActions>
+
+      {/* Sidebar (visible when expanded) */}
+      <PortSidebar width={220}>
+        <PortTab id="info" label="Info">
+          <PortInfoPanel port={port} links={links} />
+        </PortTab>
+        <PortTab id="config" label="Config">
+          <PortConfigPanel port={port} />
+        </PortTab>
+        <PortTab id="links" label="Links">
+          <PortLinksPanel port={port} links={links} />
+        </PortTab>
+      </PortSidebar>
 
       {/* Target handle (for incoming connections) */}
       {showTargetHandle && (
@@ -200,13 +499,6 @@ const PortNodeInner = memo(function PortNodeInner({
  * - Actor lifecycle management (create/dispose)
  * - Visual state machine (hover, expand, linking)
  * - effect-atom reactive subscriptions
- *
- * Features:
- * - Direction-based coloring (in: cyan, out: amber, inout: purple)
- * - Data type indicator icons
- * - Connection count badge via PortBadge
- * - Handles for edge connections
- * - Visual states: collapsed → hovered → expanded → linking
  */
 export const PortNode = memo(function PortNode({
   data,
@@ -225,9 +517,5 @@ export const PortNode = memo(function PortNode({
     </PortProvider>
   );
 });
-
-// =============================================================================
-// Exports
-// =============================================================================
 
 export default PortNode;

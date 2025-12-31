@@ -1,78 +1,62 @@
 /**
- * Port Action Component
+ * @fileoverview Port Action Component
  *
- * Individual action button with icon and tooltip.
- * Common actions: link, settings, delete.
+ * Individual action button for port operations.
  */
 
-import { type LucideIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import React, { memo } from 'react';
 
-interface ActionProps {
-  readonly icon: LucideIcon;
-  readonly onClick: () => void;
-  readonly label: string;
-  readonly variant?: 'default' | 'destructive';
-  readonly disabled?: boolean;
-  readonly className?: string;
+export interface PortActionProps {
+  /** Icon character or symbol */
+  icon: string;
+  /** Click handler */
+  onClick: (e: React.MouseEvent) => void;
+  /** Accessible label */
+  label: string;
+  /** Button variant */
+  variant?: 'default' | 'destructive';
+  /** Disabled state */
+  disabled?: boolean;
 }
 
 /**
- * Action button variants
+ * Individual action button.
  */
-const variantStyles = {
-  default: 'text-muted-foreground hover:text-foreground hover:bg-surface-2',
-  destructive: 'text-muted-foreground hover:text-red-400 hover:bg-red-400/10',
-} as const;
-
-/**
- * PortAction
- *
- * Icon button with tooltip label.
- * - Props: icon (Lucide), onClick, label (tooltip text)
- * - Variants: default, destructive
- */
-export function Action({
-  icon: Icon,
+export const Action = memo(function PortAction({
+  icon,
   onClick,
   label,
   variant = 'default',
   disabled = false,
-  className,
-}: ActionProps) {
+}: PortActionProps) {
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!disabled) {
-      onClick();
-    }
+    if (!disabled) onClick(e);
   };
 
   return (
-    <TooltipProvider delayDuration={200}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            onClick={handleClick}
-            disabled={disabled}
-            className={cn(
-              'p-1 rounded-sm',
-              'transition-colors duration-150',
-              'focus:outline-none focus-visible:ring-1 focus-visible:ring-accent',
-              disabled && 'opacity-50 cursor-not-allowed',
-              !disabled && variantStyles[variant],
-              className
-            )}
-            aria-label={label}
-          >
-            <Icon className="w-3.5 h-3.5" />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent side="top" sideOffset={4}>
-          <p className="text-xs">{label}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={disabled}
+      title={label}
+      aria-label={label}
+      className={`
+        p-1.5 rounded
+        transition-colors duration-150
+        font-mono
+        ${disabled
+          ? 'opacity-50 cursor-not-allowed'
+          : variant === 'destructive'
+            ? 'text-muted-foreground hover:text-red-400 hover:bg-red-500/10'
+            : 'text-muted-foreground hover:text-foreground hover:bg-surface-3'
+        }
+      `}
+      style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
+    >
+      {icon}
+    </button>
   );
-}
+});
+
+export default Action;

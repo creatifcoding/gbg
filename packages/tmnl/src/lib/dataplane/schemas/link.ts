@@ -76,6 +76,7 @@ export type PortPosition = typeof PortPosition.Type;
 
 /** Data type transported through port */
 export const PortDataType = Schema.Literal(
+  'geojson',
   'table',
   'row',
   'cell',

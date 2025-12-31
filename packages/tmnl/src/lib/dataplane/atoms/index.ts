@@ -13,9 +13,11 @@
  */
 
 import { Atom } from '@effect-atom/atom-react';
+import * as React from 'react';
 import { Effect, Layer } from 'effect';
 
 import { DataplaneService, DataplaneServiceLive } from '../services/DataplaneService';
+import { overlayRegistry } from '@/lib/overlays/atoms';
 import type {
   PortId,
   LinkId,
@@ -41,6 +43,26 @@ export const dataplaneRuntimeAtom = Atom.runtime(
 );
 
 // =============================================================================
+// Shared Registry Reference
+// =============================================================================
+
+/**
+ * Dataplane shares the overlay registry singleton.
+ * This prevents context shadowing issues when nested providers exist.
+ *
+ * CRITICAL: All atoms (sidebar, dataplane, overlays) MUST share the same
+ * registry to prevent mutations in one registry being invisible to React
+ * components reading from another registry via context.
+ *
+ * Pattern follows sidebar: import overlayRegistry, alias for domain clarity.
+ */
+export const dataplaneRegistry = overlayRegistry;
+
+// Mount runtime and state atoms on the shared registry.
+// This MUST happen at module load time so ctx.set() and useAtomValue() share state.
+dataplaneRegistry.mount(dataplaneRuntimeAtom);
+
+// =============================================================================
 // State Atoms
 // =============================================================================
 
@@ -58,6 +80,13 @@ export const versionAtom = Atom.make<number>(0);
 
 /** Graph initialization status */
 export const graphInitializedAtom = Atom.make<boolean>(false);
+
+// Mount state atoms to shared registry (MUST happen after atom definitions)
+dataplaneRegistry.mount(portsAtom);
+dataplaneRegistry.mount(linksAtom);
+dataplaneRegistry.mount(planesAtom);
+dataplaneRegistry.mount(versionAtom);
+dataplaneRegistry.mount(graphInitializedAtom);
 
 // =============================================================================
 // Linking UI State
@@ -537,6 +566,35 @@ export const portsInPlaneAtom = Atom.family((planeId: PlaneId) =>
       .filter((p): p is LinkPort => p !== undefined);
   })
 );
+
+/** Get ports for a specific block (family pattern) */
+export const portsForBlockAtom = Atom.family((blockId: string) =>
+  Atom.make((get) => {
+    const ports = get(portsAtom);
+    return ports.filter((p) => p.blockId === blockId);
+  })
+);
+
+// =============================================================================
+// Registry Provider (DEPRECATED - No-op passthrough)
+// =============================================================================
+
+/**
+ * @deprecated No longer needed since dataplane uses shared overlayRegistry.
+ *
+ * This is a passthrough for backwards compatibility. The shared registry is
+ * already provided by OverlayRegistryProvider at the app root.
+ *
+ * Safe to remove from component trees - left as no-op to avoid breaking imports.
+ */
+export function DataplaneRegistryProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}): React.ReactElement {
+  // No-op passthrough - shared registry already provided by OverlayRegistryProvider
+  return children as React.ReactElement;
+}
 
 // =============================================================================
 // Re-export Plane for atom updates

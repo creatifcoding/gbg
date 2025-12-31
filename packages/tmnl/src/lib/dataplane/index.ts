@@ -56,6 +56,71 @@ export {
   CreatePlaneConfig,
 } from './schemas/link';
 
+// =============================================================================
+// Port Type System (Layer 1)
+// =============================================================================
+
+export {
+  // Type hierarchy
+  PortDataTypeCategory,
+  GeoJSONSubtype,
+  TableSubtype,
+  StreamSubtype,
+  LayerSubtype,
+  // Composite spec
+  PortDataTypeSpec,
+  // Factory functions
+  geojsonType,
+  tableType,
+  jsonType,
+  streamType,
+  layerType,
+  // Type guards
+  isGeoJSONType,
+  isTableType,
+  isJSONType,
+  isStreamType,
+  isLayerType,
+} from './schemas/port-types';
+
+// =============================================================================
+// Block Port Schema (Layer 2)
+// =============================================================================
+
+export {
+  // Cardinality
+  PortCardinality,
+  // Schema classes
+  BlockPortSchema,
+  BlockPortConfig,
+  // Validation
+  PortValidationError,
+  validatePortCreation,
+  // Factory helpers
+  createGeoJSONInputSchema,
+  createTableInputSchema,
+  createJSONInputSchema,
+  createJSONOutputSchema,
+} from './schemas/block-port-schema';
+
+// =============================================================================
+// Block Port Registry (Layer 3)
+// =============================================================================
+
+export {
+  registerBlockPortConfig,
+  getBlockPortConfig,
+  getRegisteredBlockTypes,
+  getAllBlockPortConfigs,
+  hasBlockPortConfig,
+  getAllowedPortSchemas,
+  getPortSchema,
+  getDefaultPortSchemaIds,
+  canAddPort,
+  clearRegistry,
+  getRegistrySize,
+} from './schemas/block-port-registry';
+
 export type {
   PortId as PortIdType,
   LinkId as LinkIdType,
@@ -76,6 +141,9 @@ export type {
 // =============================================================================
 
 export {
+  // Registry & Provider
+  dataplaneRegistry,
+  DataplaneRegistryProvider,
   // Runtime
   dataplaneRuntimeAtom,
   // State atoms
@@ -89,6 +157,12 @@ export {
   isLinkingAtom,
   hoveredPortAtom,
   selectedLinkAtom,
+  // Port visibility & hover state
+  hoveredBlockIdAtom,
+  hoveredLinkIdAtom,
+  forcePortsVisibleAtom,
+  shouldShowPortsAtom,
+  linkOpacityAtom,
   // Derived atoms
   portsByIdAtom,
   linksByIdAtom,
@@ -104,8 +178,11 @@ export {
   planeAtom,
   linksForPortAtom,
   portsInPlaneAtom,
+  portsForBlockAtom,
   // Operations
   dataplaneOps,
+  // Helpers
+  calculateOptimalPosition,
 } from './atoms';
 
 // =============================================================================
@@ -113,7 +190,50 @@ export {
 // =============================================================================
 
 export {
-  // Port indicators
+  // Port Compound Component (new)
+  Port,
+  PortContainer,
+  PortItem,
+  PortIcon,
+  PortLabel,
+  PortBadge,
+  PortActions,
+  PortAction,
+  PortTooltip,
+  PortSidebar,
+  PortTab,
+  PortTabList,
+  PortTabPanel,
+  PortProvider,
+  usePortContext,
+  portMachine,
+  portOps,
+  portStateValueAtom,
+  portCanExpandAtom,
+  portMachineActiveTabAtom,
+  portLinkTargetAtom,
+  portMachineContextAtom,
+  getOrCreatePortActor,
+  disposePortActor,
+  disposeAllPortActors,
+  sendPortEvent,
+  getPortActor,
+  getPortSnapshot,
+  portStateAtom,
+  portSnapshotAtom,
+  portExpandedAtom,
+  portHoveredAtom,
+  portLinkingAtom,
+  portActiveTabAtom,
+  type PortSize,
+  type PortVisualState,
+  type PortTabId,
+  type PortEvent,
+  type PortActor,
+  type PortSnapshot,
+  type PortMachineContext,
+  type PortMachineEvent,
+  // Port indicators (legacy)
   LinkPortIndicator,
   type LinkPortIndicatorProps,
   // React Flow components

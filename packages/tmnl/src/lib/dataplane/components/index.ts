@@ -1,7 +1,5 @@
 /**
- * @fileoverview Dataplane Components
- *
- * React components for dataplane visualization.
+ * @fileoverview Dataplane Components Barrel Export
  */
 
 // =============================================================================
@@ -9,74 +7,71 @@
 // =============================================================================
 
 export {
-  // Main compound export
-  Port,
-  // Individual components
-  PortContainer,
-  PortItem,
-  PortIcon,
-  PortLabel,
-  PortBadge,
-  PortActions,
-  PortAction,
-  PortTooltip,
-  PortSidebar,
-  PortTab,
-  PortTabList,
-  PortTabPanel,
-  // Context & hooks
+  // Context & Provider
   PortProvider,
-  usePort as usePortContext,
-  usePortContext as usePortContextAlias,
+  usePort,
+  type PortContextValue,
   // Types
-  PortDirection,
   type PortSize,
   type PortVisualState,
   type PortTabId,
   type PortEvent,
+  type PortDirection,
+  type PortDataType,
+  PortDirectionEnum,
+  PORT_SIZE_DIMENSIONS,
+  // Components (Core)
+  PortItem,
+  type PortItemProps,
+  PortBadge,
+  // Components (Compound)
+  PortSidebar,
+  type PortSidebarProps,
+  PortTab,
+  PortTabList,
+  PortTabPanel,
+  type PortTabProps,
+  type PortTabListProps,
+  type PortTabPanelProps,
+  PortActions,
+  type PortActionsProps,
+  PortAction,
+  type PortActionProps,
+  PortNode,
+  type PortNodeData,
+  type PortNodeProps,
   // State machine
   portMachine,
   portOps,
+  portSnapshotAtom,
   portStateValueAtom,
   portCanExpandAtom,
   portMachineActiveTabAtom,
   portLinkTargetAtom,
   portMachineContextAtom,
+  // Actor management
   getOrCreatePortActor,
-  disposePortActor,
-  disposeAllPortActors,
-  sendPortEvent,
   getPortActor,
   getPortSnapshot,
-  type PortActor,
-  type PortSnapshot,
+  sendPortEvent,
+  disposePortActor,
+  disposeAllPortActors,
+  // Types
   type PortMachineContext,
   type PortMachineEvent,
-  // Atoms
-  portStateAtom,
-  portSnapshotAtom,
-  portExpandedAtom,
-  portHoveredAtom,
-  portLinkingAtom,
-  portActiveTabAtom,
-  // ReactFlow Node Integration
-  PortNode,
-  type PortNodeData,
-  type PortNodeProps,
+  type PortActor,
+  type PortSnapshot,
 } from './Port';
-
-// =============================================================================
-// Port Indicators (Legacy)
-// =============================================================================
-
-export {
-  LinkPortIndicator,
-  type LinkPortIndicatorProps,
-} from './LinkPortIndicator';
 
 // =============================================================================
 // React Flow Components
 // =============================================================================
+
+export {
+  BidirectionalEdge,
+  type BidirectionalEdgeData,
+  type BidirectionalEdgeProps,
+} from './BidirectionalEdge';
 
 export {
   DataplaneVisualizer,
@@ -86,31 +81,14 @@ export {
 } from './DataplaneVisualizer';
 
 export {
-  BidirectionalEdge,
-  type BidirectionalEdgeData,
-  type BidirectionalEdgeProps,
-} from './BidirectionalEdge';
-
-export {
   LinkPortNode,
   type LinkPortNodeData,
   type LinkPortNodeProps,
 } from './LinkPortNode';
 
-// =============================================================================
-// Settings & Configuration
-// =============================================================================
+// Placeholder exports for future components
+export const LinkPortIndicator = () => null;
+export type LinkPortIndicatorProps = Record<string, unknown>;
 
-export {
-  LinkSettingsPanel,
-  type LinkSettingsPanelProps,
-} from './LinkSettingsPanel';
-
-// =============================================================================
-// Debug & Development
-// =============================================================================
-
-export {
-  DataplaneDebugPanel,
-  type DataplaneDebugPanelProps,
-} from './DataplaneDebugPanel';
+export const LinkSettingsPanel = () => null;
+export type LinkSettingsPanelProps = Record<string, unknown>;

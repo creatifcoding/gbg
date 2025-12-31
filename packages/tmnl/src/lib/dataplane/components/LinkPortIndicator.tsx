@@ -24,12 +24,16 @@
  * ```
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { useAtomValue } from '@effect-atom/atom-react';
 import { cn } from '@/lib/utils';
 
-import { linksForPortAtom } from '../atoms';
-import type { PortId, PortDirection, PortPosition, PortDataType } from '../schemas/link';
+import {
+  linksForPortAtom,
+  shouldShowPortsAtom,
+  isLinkingAtom,
+} from '../atoms';
+import type { PortId, PortDirection, PortPosition, PortDataType, BlockId } from '../schemas/link';
 
 // =============================================================================
 // Types
@@ -38,6 +42,9 @@ import type { PortId, PortDirection, PortPosition, PortDataType } from '../schem
 export interface LinkPortIndicatorProps {
   /** Port ID for connection tracking */
   portId: PortId;
+
+  /** Block ID for visibility control (required for hover reveal) */
+  blockId: BlockId;
 
   /** Position on the block edge */
   position: PortPosition;
@@ -56,9 +63,6 @@ export interface LinkPortIndicatorProps {
 
   /** Whether a drag operation is targeting this port */
   isDragTarget?: boolean;
-
-  /** Whether a link operation is in progress (any port) */
-  isLinking?: boolean;
 
   /** Whether this port is the pending source of the link operation */
   isPendingSource?: boolean;
@@ -80,11 +84,20 @@ export interface LinkPortIndicatorProps {
 // Constants
 // =============================================================================
 
-const POSITION_STYLES: Record<PortPosition, string> = {
+/** Hitbox position - larger invisible zone for hover detection */
+const HITBOX_POSITION_STYLES: Record<PortPosition, string> = {
   left: 'left-0 top-1/2 -translate-x-1/2 -translate-y-1/2',
   right: 'right-0 top-1/2 translate-x-1/2 -translate-y-1/2',
   top: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2',
   bottom: 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2',
+};
+
+/** Hitbox dimensions - wider on the axis parallel to the edge */
+const HITBOX_DIMENSIONS: Record<PortPosition, string> = {
+  left: 'w-6 h-12',   // Vertical rectangle on left edge
+  right: 'w-6 h-12',  // Vertical rectangle on right edge
+  top: 'w-12 h-6',    // Horizontal rectangle on top edge
+  bottom: 'w-12 h-6', // Horizontal rectangle on bottom edge
 };
 
 const DIRECTION_COLORS: Record<PortDirection, { base: string; connected: string; glow: string }> = {
@@ -106,6 +119,7 @@ const DIRECTION_COLORS: Record<PortDirection, { base: string; connected: string;
 };
 
 const DATA_TYPE_ICONS: Record<PortDataType, string> = {
+  geojson: '◎',  // Geographic data (target/coordinates)
   table: '⊞',    // Grid/table
   row: '─',      // Single row
   cell: '◻',     // Single cell
@@ -118,24 +132,25 @@ const DATA_TYPE_ICONS: Record<PortDataType, string> = {
 // =============================================================================
 
 /**
- * Visual indicator for a dataplane port.
+ * Visual indicator for a dataplane port with hover-reveal behavior.
  *
  * Features:
+ * - Invisible hitbox zone for hover detection
+ * - Port only visible when block is hovered or linking mode active
  * - Position-aware placement (left/right/top/bottom)
  * - Direction-based coloring (in=cyan, out=amber, inout=violet)
  * - Connection state glow
  * - Data type indicator
- * - Hover/drag target states
  */
 export function LinkPortIndicator({
   portId,
+  blockId,
   position,
   direction,
   dataType,
   className,
   isHovered = false,
   isDragTarget = false,
-  isLinking = false,
   isPendingSource = false,
   onClick,
   onDragStart,
@@ -146,89 +161,125 @@ export function LinkPortIndicator({
   const links = useAtomValue(useMemo(() => linksForPortAtom(portId), [portId]));
   const isConnected = links.length > 0;
 
+  // Check visibility from hover state
+  const shouldShow = useAtomValue(useMemo(() => shouldShowPortsAtom(blockId), [blockId]));
+  const isLinking = useAtomValue(isLinkingAtom);
+
+  // Handle hitbox hover - NOTE: We do NOT manage hoveredBlockIdAtom here.
+  // That's the parent EmbeddedBlockWrapper's responsibility.
+  // The port only triggers optional callbacks for port-specific hover feedback.
+  const handleHitboxEnter = useCallback(() => {
+    onMouseEnter?.();
+  }, [onMouseEnter]);
+
+  const handleHitboxLeave = useCallback(() => {
+    onMouseLeave?.();
+  }, [onMouseLeave]);
+
   // Get colors based on direction
   const colors = DIRECTION_COLORS[direction];
   const colorClass = isConnected ? colors.connected : colors.base;
   const glowClass = isConnected ? colors.glow : '';
 
-  // Get position styles
-  const positionClass = POSITION_STYLES[position];
+  // Get hitbox styles
+  const hitboxPositionClass = HITBOX_POSITION_STYLES[position];
+  const hitboxDimensions = HITBOX_DIMENSIONS[position];
 
   // Get data type icon
   const typeIcon = DATA_TYPE_ICONS[dataType];
 
+  // Port is always visible if connected (shows relationship), otherwise follow hover state
+  const isVisible = shouldShow || isConnected;
+
   return (
     <div
       className={cn(
-        // Base styles
+        // Hitbox styles - invisible but interactive
         'absolute z-10',
-        'w-4 h-4 rounded-full',
-        'border-2',
         'flex items-center justify-center',
         'cursor-pointer',
-        'transition-all duration-150 ease-out',
-
-        // Position
-        positionClass,
-
-        // Colors
-        colorClass,
-        glowClass,
-
-        // Hover states
-        'hover:scale-125',
-        isHovered && 'scale-125 ring-2 ring-white/30',
-        isDragTarget && 'scale-150 ring-2 ring-white/50 animate-pulse',
-
-        // Linking mode states
-        isLinking && !isPendingSource && 'ring-1 ring-white/20 animate-pulse',
-        isPendingSource && 'scale-150 ring-2 ring-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.7)]',
-
-        // Custom class
-        className
+        hitboxPositionClass,
+        hitboxDimensions,
+        // Debug: uncomment to see hitbox
+        // 'bg-red-500/20',
       )}
+      onMouseEnter={handleHitboxEnter}
+      onMouseLeave={handleHitboxLeave}
       onClick={onClick}
       onMouseDown={onDragStart}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      title={`${direction} port (${dataType})${isPendingSource ? ' - Click another port to link' : ''}`}
-      data-port-id={portId}
-      data-port-direction={direction}
+      data-port-hitbox={portId}
       data-port-position={position}
-      data-port-connected={isConnected}
-      data-port-linking={isLinking}
-      data-port-pending-source={isPendingSource}
     >
-      {/* Data type indicator - only show on hover or when connected */}
-      <span
+      {/* Visual port indicator - only shown when visible */}
+      <div
         className={cn(
-          'text-[8px] font-mono text-white/70',
-          'opacity-0 group-hover:opacity-100',
-          isConnected && 'opacity-100'
+          // Base styles
+          'w-4 h-4 rounded-full',
+          'border-2',
+          'flex items-center justify-center',
+          'transition-all duration-150 ease-out',
+
+          // Colors
+          colorClass,
+          glowClass,
+
+          // Visibility transitions
+          isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-75',
+
+          // Hover states (when visible)
+          isVisible && 'hover:scale-125',
+          isHovered && 'scale-125 ring-2 ring-white/30',
+          isDragTarget && 'scale-150 ring-2 ring-white/50 animate-pulse',
+
+          // Linking mode states
+          isLinking && !isPendingSource && 'ring-1 ring-white/20 animate-pulse',
+          isPendingSource && 'scale-150 ring-2 ring-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.7)]',
+
+          // Custom class
+          className
         )}
-        style={{ fontSize: 'var(--tmnl-text-xs, 12px)', transform: 'scale(0.6)' }}
+        title={`${direction} port (${dataType})${isPendingSource ? ' - Click another port to link' : ''}`}
+        data-port-id={portId}
+        data-port-direction={direction}
+        data-port-position={position}
+        data-port-connected={isConnected}
+        data-port-linking={isLinking}
+        data-port-pending-source={isPendingSource}
+        data-port-visible={isVisible}
       >
-        {typeIcon}
-      </span>
+        {/* Data type indicator - only show when visible */}
+        {isVisible && (
+          <span
+            className={cn(
+              'font-mono text-white/70',
+              'transition-opacity duration-100',
+              isConnected ? 'opacity-100' : 'opacity-70'
+            )}
+            style={{ fontSize: '8px' }}
+          >
+            {typeIcon}
+          </span>
+        )}
 
-      {/* Connection count badge */}
-      {isConnected && links.length > 1 && (
-        <span
-          className={cn(
-            'absolute -top-1 -right-1',
-            'w-3 h-3 rounded-full',
-            'bg-white text-black',
-            'text-[8px] font-bold',
-            'flex items-center justify-center'
-          )}
-          style={{ fontSize: '8px' }}
-        >
-          {links.length}
-        </span>
-      )}
+        {/* Connection count badge */}
+        {isVisible && isConnected && links.length > 1 && (
+          <span
+            className={cn(
+              'absolute -top-1 -right-1',
+              'w-3 h-3 rounded-full',
+              'bg-white text-black',
+              'font-bold',
+              'flex items-center justify-center'
+            )}
+            style={{ fontSize: '8px' }}
+          >
+            {links.length}
+          </span>
+        )}
 
-      {/* Direction arrow indicator */}
-      <DirectionArrow direction={direction} position={position} />
+        {/* Direction arrow indicator */}
+        {isVisible && <DirectionArrow direction={direction} position={position} />}
+      </div>
     </div>
   );
 }

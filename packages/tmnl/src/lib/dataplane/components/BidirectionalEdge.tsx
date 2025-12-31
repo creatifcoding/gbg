@@ -14,8 +14,11 @@ import {
   getSmoothStepPath,
   type EdgeProps,
 } from '@xyflow/react';
+import { useAtomValue } from '@effect-atom/atom-react';
+import { Atom } from '@effect-atom/atom-react';
 
-import type { Link, LinkRelationship } from '../schemas/link';
+import { linkOpacityAtom, hoveredLinkIdAtom } from '../atoms';
+import type { Link, LinkRelationship, LinkId } from '../schemas/link';
 
 // =============================================================================
 // Types
@@ -62,6 +65,7 @@ const RELATIONSHIP_LABELS: Record<LinkRelationship, string> = {
  * - Relationship-based coloring
  * - Label showing relationship type
  * - Transform indicator
+ * - Fade when not hovered or selected
  */
 export const BidirectionalEdge = memo(function BidirectionalEdge({
   id,
@@ -75,8 +79,24 @@ export const BidirectionalEdge = memo(function BidirectionalEdge({
   selected,
 }: BidirectionalEdgeProps): React.ReactElement {
   const link = data?.link;
+  const linkId = link?.id as LinkId;
   const relationship = link?.relationship ?? 'mirror';
   const isBidirectional = link?.direction === 'bidirectional';
+
+  // Get opacity from atom (fade behavior)
+  const opacity = useAtomValue(useMemo(() =>
+    linkId ? linkOpacityAtom(linkId) : Atom.make(1.0),
+    [linkId]
+  ));
+
+  // Handle hover for link
+  const handleMouseEnter = useMemo(() => () => {
+    if (linkId) Atom.set(hoveredLinkIdAtom, linkId);
+  }, [linkId]);
+
+  const handleMouseLeave = useMemo(() => () => {
+    Atom.set(hoveredLinkIdAtom, null);
+  }, []);
 
   // Calculate path
   const [edgePath, labelX, labelY] = getSmoothStepPath({
@@ -102,7 +122,14 @@ export const BidirectionalEdge = memo(function BidirectionalEdge({
   }, [isBidirectional]);
 
   return (
-    <>
+    <g
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        opacity,
+        transition: 'opacity 150ms ease-out',
+      }}
+    >
       {/* Main edge path */}
       <BaseEdge
         id={id}
@@ -138,6 +165,8 @@ export const BidirectionalEdge = memo(function BidirectionalEdge({
             position: 'absolute',
             transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
             pointerEvents: 'all',
+            opacity,
+            transition: 'opacity 150ms ease-out',
           }}
         >
           <div
@@ -155,6 +184,8 @@ export const BidirectionalEdge = memo(function BidirectionalEdge({
               boxShadow: `0 0 8px ${strokeColor}`,
             }}
             title={`${relationship}${link?.hasTransform ? ' (transformed)' : ''}`}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
           >
             {labelIcon}
           </div>
@@ -212,7 +243,7 @@ export const BidirectionalEdge = memo(function BidirectionalEdge({
           </marker>
         )}
       </defs>
-    </>
+    </g>
   );
 });
 

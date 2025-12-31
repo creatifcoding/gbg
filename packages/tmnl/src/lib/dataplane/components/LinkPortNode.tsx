@@ -50,6 +50,7 @@ const DIRECTION_COLORS: Record<PortDirection, { bg: string; border: string; glow
 };
 
 const DATA_TYPE_ICONS: Record<PortDataType, string> = {
+  geojson: '◎',
   table: '⊞',
   row: '─',
   cell: '◻',

@@ -166,17 +166,9 @@ export class DataplaneService extends Effect.Service<DataplaneService>()(
         Effect.gen(function* () {
           const state = yield* Ref.get(stateRef);
 
-          // Idempotency check: if port with same blockId + position exists, return it
-          // This prevents duplicates from React Strict Mode double-mounts
-          const existingPort = [...state.ports.values()].find(
-            (p) =>
-              p.blockId === config.blockId &&
-              p.position === config.position &&
-              p.direction === config.direction
-          );
-          if (existingPort) {
-            return existingPort;
-          }
+          // Each port gets a unique ID — no idempotency check on blockId/position/direction.
+          // Multiple ports with same position/direction on a block are allowed.
+          // React Strict Mode double-mount is handled at atoms layer via ID check.
 
           // Ensure graph is initialized
           const graph = state.graph ?? (yield* initGraph());
