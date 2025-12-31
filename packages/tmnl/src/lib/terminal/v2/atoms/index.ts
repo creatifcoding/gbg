@@ -474,7 +474,7 @@ export const executeCommandOp = blockTerminalRuntimeAtom.fn<{
   cwd?: string
 }>()((args, ctx) =>
   Effect.gen(function* () {
-    const cwd = args.cwd ?? Atom.get(blockCwdAtom) || '~'
+    const cwd = (args.cwd ?? Atom.get(blockCwdAtom)) || '~'
 
     // Add to history
     addToHistory(args.command)
@@ -627,3 +627,44 @@ export const dismissBlockOp = blockTerminalRuntimeAtom.fn<{ id: string }>()((arg
     )
   })
 )
+
+// =============================================================================
+// Tabs Atoms and Operations
+// =============================================================================
+
+export {
+  // State atoms
+  tabsAtom,
+  activeTabIdAtom,
+  activePaneIdAtom,
+  // Derived atoms
+  tabCountAtom,
+  activeTabAtom,
+  activePaneAtom,
+  pinnedTabsAtom,
+  unpinnedTabsAtom,
+  // Session operations
+  saveSessionOp,
+  loadSessionOp,
+  initializeTabsOp,
+  // Tab operations
+  createNewTabOp,
+  createWebViewTabOp,
+  createWidgetTabOp,
+  createEditorTabOp,
+  closeTabOp,
+  setActiveTabOp,
+  reorderTabsOp,
+  updateTabTitleOp,
+  pinTabOp,
+  unpinTabOp,
+  togglePinTabOp,
+  updatePinnedTabStyleOp,
+  updateTabStyleOp,
+  // Pane operations
+  splitPaneOp,
+  closePaneOp,
+  setActivePaneOp,
+  resizeSplitOp,
+  updateTerminalViewModeOp,
+} from './tabs'
