@@ -31,6 +31,19 @@ import {
   messagesByChatAtom,
 } from './atoms';
 import type { TelegramMessage } from './schemas/message';
+import {
+  RagProvider,
+  LeannBackendLive,
+  SearchPayload,
+  hasIndex as ragHasIndex,
+  getContext,
+} from '../rag';
+import {
+  registerBlockCommands,
+  parseBlockCommand,
+  handleBlockSubcommand,
+  handleBlocksList,
+} from './commands/blocks';
 
 // ============================================================================
 // Configuration
@@ -38,6 +51,7 @@ import type { TelegramMessage } from './schemas/message';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const PROJECT_ROOT = process.cwd();
+const LEANN_ENABLED = process.env.LEANN_ENABLED !== 'false'; // Enable by default
 
 if (!TELEGRAM_BOT_TOKEN) {
   console.error('❌ TELEGRAM_BOT_TOKEN environment variable is required');
@@ -84,7 +98,14 @@ const handleMessage = async (msg: Message, agent: typeof TelegramAgent.Service) 
   const text = msg.text ?? '';
   const username = msg.from?.username ?? msg.from?.first_name ?? 'Unknown';
 
-  // Skip commands (handled separately)
+  // Handle block subcommands (e.g., /block:create)
+  const blockCmd = parseBlockCommand(text);
+  if (blockCmd) {
+    await handleBlockSubcommand(msg, agent, blockCmd.command, blockCmd.args);
+    return;
+  }
+
+  // Skip other commands (handled separately)
   if (text.startsWith('/')) return;
 
   console.log(`📩 [${chatId}] ${username}: ${text}`);
@@ -105,12 +126,48 @@ const handleMessage = async (msg: Message, agent: typeof TelegramAgent.Service) 
   await Effect.runPromise(agent.sendTypingAction(chatId));
 
   try {
-    // Get conversation history
-    const messages = telegramRegistry.get(messagesByChatAtom)[chatId] ?? [];
-    const conversationHistory = messages.map((m) => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-    }));
+    // Get conversation history - include current message explicitly
+    // (atom update may not have settled yet)
+    const storedMessages = telegramRegistry.get(messagesByChatAtom)[chatId] ?? [];
+    const currentMessage = { role: 'user' as const, content: text };
+
+    // Build conversation history, ensuring current message is included
+    const conversationHistory = [
+      ...storedMessages.map((m) => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      })),
+    ];
+
+    // Add current message if not already in history (timing-safe)
+    const hasCurrentMessage = conversationHistory.some(
+      (m) => m.role === 'user' && m.content === text
+    );
+    if (!hasCurrentMessage) {
+      conversationHistory.push(currentMessage);
+    }
+
+    // RAG: Search codebase for context using Effect-native pattern
+    let ragContext = '';
+    if (LEANN_ENABLED) {
+      const ragProgram = pipe(
+        getContext(text, 3),
+        Effect.tap((ctx) =>
+          ctx ? Effect.log(`🔍 [${chatId}] RAG: Found context`) : Effect.void
+        ),
+        Effect.catchAll((err) => {
+          console.warn(`⚠️ [${chatId}] RAG search failed:`, err);
+          return Effect.succeed('');
+        }),
+        Effect.provide(LeannBackendLive)
+      );
+      ragContext = await Effect.runPromise(ragProgram);
+    }
+
+    // Build system prompt with RAG context
+    const systemWithContext = ragContext
+      ? `${SYSTEM_PROMPT}${ragContext}`
+      : SYSTEM_PROMPT;
 
     // Get AI response
     telegramActorOps.aiStreaming(chatId);
@@ -118,7 +175,7 @@ const handleMessage = async (msg: Message, agent: typeof TelegramAgent.Service) 
 
     const result = streamText({
       model,
-      system: SYSTEM_PROMPT,
+      system: systemWithContext,
       messages: conversationHistory,
     });
 
@@ -210,16 +267,23 @@ const handleHelp = async (msg: Message, agent: typeof TelegramAgent.Service) => 
       msg.chat.id,
       `📋 *Available Commands*
 
+*General:*
 /start — Initialize conversation
 /help — Show this help message
 /reset — Clear conversation history
 /status — Show bot and connection status
 
+*Blocks (Real-time Sync):*
+/blocks — List all blocks
+/block:create <type> — Create block (text, map, scene3d, data-grid)
+/block:delete <id> — Delete a block
+/block:info <id> — Get block details
+/block:focus <id> — Focus on a block
+/block:sync — Force sync with stream
+
 *Tips:*
-• Keep messages concise for best results
-• I can help with Effect-TS, React, TypeScript
-• Ask about TMNL architecture patterns
-• Request code reviews or debugging help`,
+• Blocks sync in real-time with TMNL web app
+• Use focus mode to highlight blocks across devices`,
       { parseMode: 'Markdown' }
     )
   );
@@ -243,6 +307,18 @@ const handleStatus = async (msg: Message, agent: typeof TelegramAgent.Service) =
   const messages = telegramRegistry.get(messagesByChatAtom)[chatId] ?? [];
   const botInfo = await Effect.runPromise(agent.getMe);
 
+  // Check LEANN index status using Effect-native pattern
+  let leannStatus = '❌ Disabled';
+  if (LEANN_ENABLED) {
+    const checkProgram = pipe(
+      ragHasIndex('tmnl-codebase'),
+      Effect.map((exists) => exists ? '✅ Active (tmnl-codebase)' : '⚠️ No index found'),
+      Effect.catchAll(() => Effect.succeed('⚠️ Error checking index')),
+      Effect.provide(LeannBackendLive)
+    );
+    leannStatus = await Effect.runPromise(checkProgram);
+  }
+
   await Effect.runPromise(
     agent.sendMessage(
       chatId,
@@ -251,6 +327,7 @@ const handleStatus = async (msg: Message, agent: typeof TelegramAgent.Service) =
 🤖 Bot: @${botInfo.username}
 💬 Messages in chat: ${messages.length}
 🔗 Connection: Active
+🔍 RAG (LEANN): ${leannStatus}
 🕐 Server time: ${new Date().toISOString()}`,
       { parseMode: 'Markdown' }
     )
@@ -316,6 +393,11 @@ const main = Effect.gen(function* () {
   );
   yield* agent.onCommand('status', (msg) =>
     Effect.tryPromise(() => handleStatus(msg, agent))
+  );
+
+  // Register block commands
+  yield* agent.onCommand('blocks', (msg) =>
+    Effect.tryPromise(() => handleBlocksList(msg, agent))
   );
 
   // Register message handler
