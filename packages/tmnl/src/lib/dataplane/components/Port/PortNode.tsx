@@ -18,15 +18,9 @@
 import React, { memo, useMemo, useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { useAtomValue } from '@effect-atom/atom-react';
+import { Link2, Settings, Trash2, Unplug } from 'lucide-react';
 
-// Unicode icons for actions (avoids lucide-react dependency)
-const ICONS = {
-  link: '⛓',      // Link/chain
-  settings: '⚙',  // Settings gear
-  trash: '✕',     // Delete/trash
-  unplug: '⊗',    // Disconnected
-} as const;
-
+import { Icon } from '../Icon';
 import { linksForPortAtom } from '../../atoms';
 import type { LinkPort, PortDirection as SchemaPortDirection, PortDataType, Link } from '../../schemas/link';
 import { PortProvider } from './context';
@@ -235,7 +229,7 @@ const PortLinksPanel = memo(function PortLinksPanel({ port, links }: PortLinksPa
   if (links.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-4 text-muted-foreground">
-        <span className="mb-2 opacity-50" style={{ fontSize: '20px' }}>{ICONS.unplug}</span>
+        <Icon icon={Unplug} size={20} color="muted" className="mb-2 opacity-50" />
         <span style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>No connections</span>
       </div>
     );
@@ -428,17 +422,17 @@ const PortNodeInner = memo(function PortNodeInner({
       {/* Actions (visible on hover/expanded) */}
       <PortActions className="justify-center gap-1 py-1">
         <PortAction
-          icon={ICONS.link}
+          icon={<Icon icon={Link2} size={14} color="cyan" />}
           onClick={handleStartLinking}
           label="Start linking"
         />
         <PortAction
-          icon={ICONS.settings}
+          icon={<Icon icon={Settings} size={14} color="muted" />}
           onClick={handleConfigure}
           label="Configure"
         />
         <PortAction
-          icon={ICONS.trash}
+          icon={<Icon icon={Trash2} size={14} color="red" />}
           onClick={handleDelete}
           label="Delete"
           variant="destructive"

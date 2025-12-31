@@ -9,21 +9,17 @@
 
 import React, { memo, useState, useCallback, useMemo } from 'react';
 import { useAtomValue, useAtomSet } from '@effect-atom/atom-react';
+import {
+  ArrowRight,
+  ArrowLeftRight,
+  Sigma,
+  Copy,
+  Trash2,
+  Code,
+  Check,
+} from 'lucide-react';
 
-// =============================================================================
-// Unicode Icons (replacing lucide-react)
-// =============================================================================
-
-const ICONS = {
-  arrowRight: '→',
-  arrowLeftRight: '⇄',
-  sigma: 'Σ',
-  copy: '⎘',
-  trash: '✕',
-  code: '{ }',
-  save: '✓',
-} as const;
-
+import { Icon } from './Icon';
 import {
   VANTA_COLORS,
   VANTA_BORDERS,
@@ -59,7 +55,7 @@ export interface LinkSettingsPanelProps {
 interface RelationshipOption {
   value: LinkRelationship;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
   description: string;
 }
 
@@ -67,25 +63,25 @@ const RELATIONSHIP_OPTIONS: readonly RelationshipOption[] = [
   {
     value: 'pipe',
     label: 'Pipe',
-    icon: ICONS.arrowRight,
+    icon: <Icon icon={ArrowRight} size={14} color="cyan" />,
     description: 'Unidirectional flow with optional transform',
   },
   {
     value: 'sync',
     label: 'Sync',
-    icon: ICONS.arrowLeftRight,
+    icon: <Icon icon={ArrowLeftRight} size={14} color="cyan" />,
     description: 'Bidirectional sync (last-write-wins)',
   },
   {
     value: 'aggregate',
     label: 'Aggregate',
-    icon: ICONS.sigma,
+    icon: <Icon icon={Sigma} size={14} color="cyan" />,
     description: 'Many-to-one reduce operation',
   },
   {
     value: 'mirror',
     label: 'Mirror',
-    icon: ICONS.copy,
+    icon: <Icon icon={Copy} size={14} color="cyan" />,
     description: 'Direct 1:1 copy without transform',
   },
 ];
@@ -298,9 +294,7 @@ export const LinkSettingsPanel = memo(function LinkSettingsPanel({
         }}
       >
         <PortPreview portId={link.sourcePort} label="Source" />
-        <span style={{ color: VANTA_COLORS.text.muted, fontSize: 16 }}>
-          {ICONS.arrowRight}
-        </span>
+        <Icon icon={ArrowRight} size={16} color="muted" />
         <PortPreview portId={link.targetPort} label="Target" />
       </div>
 
@@ -357,7 +351,7 @@ export const LinkSettingsPanel = memo(function LinkSettingsPanel({
                 transition: 'all 150ms ease-out',
               }}
             >
-              <span style={{ fontSize: 14 }}>{option.icon}</span>
+              {option.icon}
               {option.label}
             </button>
           ))}
@@ -382,7 +376,7 @@ export const LinkSettingsPanel = memo(function LinkSettingsPanel({
               fontSize: 'var(--tmnl-text-xs, 12px)',
             }}
           >
-            <span style={{ fontSize: 12 }}>{ICONS.code}</span>
+            <Icon icon={Code} size={12} color="muted" />
             Transform Expression
           </label>
           <textarea
@@ -438,7 +432,7 @@ export const LinkSettingsPanel = memo(function LinkSettingsPanel({
             fontSize: 'var(--tmnl-text-xs, 12px)',
           }}
         >
-          <span style={{ fontSize: 12 }}>{ICONS.trash}</span>
+          <Icon icon={Trash2} size={12} color="red" />
           Delete
         </button>
 
@@ -458,7 +452,7 @@ export const LinkSettingsPanel = memo(function LinkSettingsPanel({
               fontSize: 'var(--tmnl-text-xs, 12px)',
             }}
           >
-            <span style={{ fontSize: 12 }}>{ICONS.save}</span>
+            <Icon icon={Check} size={12} color="green" />
             Save Changes
           </button>
         )}

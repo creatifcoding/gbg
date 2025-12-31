@@ -7,8 +7,8 @@
 import React, { memo } from 'react';
 
 export interface PortActionProps {
-  /** Icon character or symbol */
-  icon: string;
+  /** Icon element (lucide-react Icon wrapper or string) */
+  icon: React.ReactNode;
   /** Click handler */
   onClick: (e: React.MouseEvent) => void;
   /** Accessible label */
