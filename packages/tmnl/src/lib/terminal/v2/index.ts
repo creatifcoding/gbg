@@ -14,11 +14,12 @@
  * import {
  *   useBlockTerminal,
  *   BlocksView,
+ *   BlockInput,
  *   blocksAtom,
  *   terminalModeAtom,
  * } from '@/lib/terminal/v2'
  *
- * function OpenWarpTerminal() {
+ * function BlockTerminal() {
  *   const {
  *     blocks,
  *     executeCommand,
@@ -27,11 +28,19 @@
  *   } = useBlockTerminal({ initialCwd: '~' })
  *
  *   return (
- *     <BlocksView
- *       blocks={blocks}
- *       containerRef={containerRef}
- *       autoScroll
- *     />
+ *     <div className="flex flex-col h-full">
+ *       <BlocksView
+ *         blocks={blocks}
+ *         containerRef={containerRef}
+ *         autoScroll
+ *       />
+ *       <BlockInput
+ *         onSubmit={(cmd, isAI, thinking) => {
+ *           if (isAI) executeAIQuery(cmd, thinking)
+ *           else executeCommand(cmd)
+ *         }}
+ *       />
+ *     </div>
  *   )
  * }
  * ```
@@ -192,6 +201,8 @@ export {
   SystemBlock as SystemBlockComponent,
   // Container components
   BlocksView,
+  // Input components
+  BlockInput,
   // Types
   type CommandBlockProps,
   type AIResponseBlockProps,
@@ -199,4 +210,5 @@ export {
   type ErrorBlockProps,
   type SystemBlockProps,
   type BlocksViewProps,
+  type BlockInputProps,
 } from './components'

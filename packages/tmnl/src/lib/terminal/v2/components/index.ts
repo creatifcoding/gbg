@@ -11,3 +11,6 @@ export { SystemBlock, type SystemBlockProps } from './SystemBlock'
 
 // Container components
 export { BlocksView, type BlocksViewProps } from './BlocksView'
+
+// Input components
+export { BlockInput, type BlockInputProps } from './BlockInput'
