@@ -159,6 +159,90 @@ services:
     networks:
       - tmnl
 
+  # ===========================================================================
+  # SSH Server - Remote access via ngrok tunnel
+  # ===========================================================================
+  ssh:
+    image: linuxserver/openssh-server:latest
+    container_name: tmnl_ssh
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/New_York}
+      - USER_NAME=${SSH_USER:-prime}
+      - PUBLIC_KEY_FILE=/config/.ssh/authorized_keys
+      - SUDO_ACCESS=true
+      - LOG_STDOUT=true
+    volumes:
+      - ssh-config:/config
+      - ${SSH_AUTHORIZED_KEYS_PATH:-~/.ssh/authorized_keys}:/config/.ssh/authorized_keys:ro
+      # WSL filesystem mounts
+      - ${WSL_HOME:-/home/getbygenius}:/home/${SSH_USER:-prime}/wsl:rw
+      - ${WINDOWS_ROOT:-/mnt/c}:/home/${SSH_USER:-prime}/windows:rw
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'nc -z localhost 22 || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - tmnl
+
+  # ===========================================================================
+  # ngrok - Tunnel proxy for SSH and TMNL web app
+  # ===========================================================================
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: tmnl_ngrok
+    command: start --all --config /etc/ngrok.yml
+    depends_on:
+      ssh:
+        condition: service_healthy
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    volumes:
+      - ./ngrok/ngrok.yml:/etc/ngrok.yml:ro
+    ports:
+      - '4040:4040' # ngrok web interface / API
+    restart: unless-stopped
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:4040/api/tunnels || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - tmnl
+
+  # ===========================================================================
+  # ngrok-notify - Send tunnel URLs to Telegram on startup
+  # ===========================================================================
+  ngrok-notify:
+    image: alpine:latest
+    container_name: tmnl_ngrok_notify
+    depends_on:
+      ngrok:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - NGROK_API_URL=http://ngrok:4040
+      - NATS_URL=nats://nats:4222
+    volumes:
+      - ./ngrok-notify/notify.sh:/notify.sh:ro
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        apk add --no-cache curl jq && /bin/sh /notify.sh
+    networks:
+      - tmnl
+
 networks:
   tmnl:
     driver: bridge
@@ -169,4 +253,6 @@ volumes:
   nats-data:
     driver: local
   durable-streams-data:
+    driver: local
+  ssh-config:
     driver: local
