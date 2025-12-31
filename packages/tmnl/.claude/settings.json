@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '📦 Fermion: registry.set()/get() for sync | Atom.set()/get() return Effects'"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$TOOL_INPUT_FILE\" == *.ts || \"$TOOL_INPUT_FILE\" == *.tsx ]]; then grep -E 'Atom\\.(set|get)\\(' \"$TOOL_INPUT_FILE\" 2>/dev/null | grep -v 'registry\\.' | head -3 && echo '⚠️  Atom.set()/get() detected. Use registry.set()/get() for sync mutations.' || true; fi"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [[ \"$TOOL_INPUT_FILE\" == *.ts || \"$TOOL_INPUT_FILE\" == *.tsx ]]; then cd \"$CLAUDE_PROJECT_DIR\" && timeout 30 bun run tsc --noEmit 2>&1 | head -10 || true; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
