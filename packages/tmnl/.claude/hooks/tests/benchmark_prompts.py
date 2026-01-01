@@ -153,6 +153,24 @@ BENCHMARKS = [
         expected_skills=["fermion-patterns"],
         description="Atom family pattern"
     ),
+    BenchmarkCase(
+        prompt="Set up Atom.runtime with global layers for my services",
+        expected_keyphrases=["[EFFECT:ATOM:RUNTIME]"],
+        expected_skills=["fermion-patterns"],
+        description="Atom runtime pattern"
+    ),
+    BenchmarkCase(
+        prompt="Handle loading state with Result.waiting and Result.success",
+        expected_keyphrases=["[EFFECT:ATOM:RESULT]"],
+        expected_skills=["fermion-patterns"],
+        description="Result type pattern"
+    ),
+    BenchmarkCase(
+        prompt="Use Atom.batch to update multiple atoms atomically",
+        expected_keyphrases=["[EFFECT:ATOM:BATCH]"],
+        expected_skills=["fermion-patterns"],
+        description="Batch updates pattern"
+    ),
 
     # MULTI-TRIGGER cases
     BenchmarkCase(

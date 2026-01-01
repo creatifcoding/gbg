@@ -436,6 +436,71 @@ const userAtom = Atom.family({
 const user = registry.get(userAtom("user-123"))
 ```"""
     ),
+    TriggerRule(
+        concept="ATOM",
+        action="RUNTIME",
+        keywords=["Atom.runtime", "runtimeAtom", "atom runtime", "global layer", "addGlobalLayer", "runtimeAtom.fn"],
+        skill="fermion-patterns",
+        context="""**Atom Runtime Pattern:**
+```typescript
+// Create runtime with global layers
+const runtimeAtom = Atom.runtime(
+  Layer.mergeAll(DatabaseLayer, LoggingLayer)
+)
+
+// Runtime function for service operations
+const ops = {
+  fetchUser: runtimeAtom.fn<string>()(
+    (id, ctx) => Effect.gen(function* () {
+      ctx.set(loadingAtom, true)
+      const user = yield* UserService.getById(id)
+      ctx.set(userAtom, user)
+      return user
+    })
+  )
+}
+```"""
+    ),
+    TriggerRule(
+        concept="ATOM",
+        action="RESULT",
+        keywords=["Result type", "Result.waiting", "Result.success", "Result.failure", "loading state atom", "async result"],
+        skill="fermion-patterns",
+        context="""**Result Pattern (async state):**
+```typescript
+// Result = Initial | Waiting | Success | Failure
+const resultAtom = Atom.make<Result.Result<User, Error>>(Result.initial())
+
+// In Effect
+ctx.set(resultAtom, Result.waiting())
+const user = yield* UserService.get(id)
+ctx.set(resultAtom, Result.success(user))
+
+// In React - pattern match
+Result.match(result, {
+  onInitial: () => <Placeholder />,
+  onWaiting: () => <Spinner />,
+  onSuccess: (user) => <UserCard user={user} />,
+  onFailure: (err) => <ErrorBanner error={err} />
+})
+```"""
+    ),
+    TriggerRule(
+        concept="ATOM",
+        action="BATCH",
+        keywords=["Atom.batch", "batch atom", "batch updates", "atomic updates", "batch mutation"],
+        skill="fermion-patterns",
+        context="""**Batch Pattern (atomic updates):**
+```typescript
+// Batch multiple updates atomically
+registry.batch(() => {
+  registry.set(loadingAtom, false)
+  registry.set(dataAtom, newData)
+  registry.set(errorAtom, null)
+})
+// Single re-render, not three
+```"""
+    ),
 ]
 
 # Combine all rules

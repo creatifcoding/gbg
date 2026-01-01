@@ -765,6 +765,449 @@ const program = Effect.gen(function* () {
 
 ---
 
+## Advanced Atom.family Patterns
+
+### Keying Strategies
+
+#### String Keys (Simple)
+```typescript
+const userFamily = Atom.family((id: string) => Atom.make<User | null>(null))
+```
+
+#### Composite Keys (Tuple)
+```typescript
+// For multi-part keys, use object or tuple
+const orderFamily = Atom.family(
+  ({ userId, orderId }: { userId: string; orderId: string }) =>
+    Atom.make<Order | null>(null)
+)
+
+// Usage
+const orderAtom = orderFamily({ userId: "u-1", orderId: "o-42" })
+```
+
+#### Hash-based Keys (Complex Objects)
+```typescript
+import { Hash } from "effect"
+
+// When key is complex object, provide hash function
+const queryFamily = Atom.family(
+  (query: SearchQuery) => Atom.make<SearchResult | null>(null),
+  {
+    // Custom equality for memoization
+    isEqual: (a, b) => Hash.hash(a) === Hash.hash(b)
+  }
+)
+```
+
+### Garbage Collection
+
+Atom.family uses `WeakRef` + `FinalizationRegistry` when available:
+
+```typescript
+// Atoms are garbage collected when:
+// 1. No subscribers (React components)
+// 2. Not keepAlive
+// 3. No strong references
+
+// Force keepAlive for cache scenarios
+const cachedFamily = Atom.family((id: string) =>
+  Atom.make<Data | null>(null).pipe(Atom.keepAlive)
+)
+
+// Explicit cleanup
+registry.dispose(userFamily("u-123"))
+```
+
+### Cache Invalidation
+
+```typescript
+// Invalidate single entry
+registry.refresh(userFamily("u-123"))
+
+// Invalidate with Reactivity
+const userAtom = Atom.make(() => fetchUser()).pipe(
+  Atom.withReactivity(["users", "user:123"])
+)
+
+// Invalidate by key
+runtimeAtom.fn(Effect.gen(function* () {
+  yield* updateUser(data)
+  yield* Reactivity.invalidate("user:123")
+}))
+```
+
+---
+
+## Atom.runtime Patterns
+
+### Basic Runtime Setup
+
+```typescript
+import { Atom } from "@effect-atom/atom"
+import { Layer } from "effect"
+
+// Create runtime with service layer
+const appRuntime = Atom.runtime(
+  Layer.mergeAll(
+    DatabaseService.Default,
+    CacheService.Default,
+    LoggingService.Default
+  )
+)
+
+// Effectful atom using services
+const usersAtom = appRuntime.atom(
+  Effect.gen(function* () {
+    const db = yield* DatabaseService
+    return yield* db.query("SELECT * FROM users")
+  })
+)
+```
+
+### Global Layers
+
+```typescript
+// Add cross-cutting concerns globally
+Atom.runtime.addGlobalLayer(
+  Layer.setTracerEnabled(true)
+)
+
+Atom.runtime.addGlobalLayer(
+  Layer.setConfigProvider(ConfigProvider.fromEnv())
+)
+```
+
+### Runtime Functions (runtimeAtom.fn)
+
+```typescript
+// Create effectful operations callable from React
+const ops = {
+  fetchUser: appRuntime.fn<string>()(
+    (userId) => Effect.gen(function* () {
+      const api = yield* UserApi
+      return yield* api.fetch(userId)
+    })
+  ),
+
+  updateUser: appRuntime.fn<User>()(
+    (user, ctx) => Effect.gen(function* () {
+      yield* UserApi.update(user)
+      // ctx.set for sync atom updates within Effect
+      ctx.set(userAtom, Result.success(user))
+    })
+  )
+}
+
+// Usage in React
+const handleSave = () => {
+  registry.set(ops.updateUser, updatedUser)
+}
+```
+
+### Stream-backed Atoms (Atom.pull)
+
+```typescript
+// Paginated/infinite data
+const messagesAtom = Atom.pull(
+  Stream.paginateChunkEffect(0, (page) =>
+    Effect.gen(function* () {
+      const api = yield* MessagesApi
+      const chunk = yield* api.getPage(page)
+      const next = chunk.hasMore ? Option.some(page + 1) : Option.none()
+      return [chunk.messages, next]
+    })
+  )
+)
+
+// Usage: pull next chunk
+registry.set(messagesAtom, void 0) // Triggers next chunk
+```
+
+### SubscriptionRef Integration
+
+```typescript
+// Backed by SubscriptionRef for external updates
+const priceAtom = appRuntime.subscriptionRef(
+  Effect.gen(function* () {
+    const ws = yield* WebSocketService
+    return yield* ws.subscribe("prices")
+  })
+)
+```
+
+---
+
+## Result Handling Patterns
+
+### The Result Type
+
+```typescript
+import * as Result from "@effect-atom/atom/Result"
+
+type Result<A, E = never> =
+  | { _tag: "Initial" }                    // Never fetched
+  | { _tag: "Waiting"; previous?: A }      // Fetching (with optional stale data)
+  | { _tag: "Success"; value: A }          // Success
+  | { _tag: "Failure"; cause: Cause<E> }   // Failed
+```
+
+### Pattern Matching
+
+```typescript
+// Full match
+Result.match(result, {
+  onInitial: () => <Skeleton />,
+  onWaiting: (previous) => previous
+    ? <StaleData data={previous} isRefreshing />
+    : <Loading />,
+  onSuccess: (data) => <Content data={data} />,
+  onFailure: (cause) => <Error cause={cause} />
+})
+
+// Guards
+if (Result.isSuccess(result)) {
+  console.log(result.value)
+}
+if (Result.isFailure(result)) {
+  console.log(Cause.pretty(result.cause))
+}
+```
+
+### Derived Results
+
+```typescript
+// Map over success
+const nameResult = Result.map(userResult, user => user.name)
+
+// FlatMap for dependent fetches
+const profileResult = Result.flatMap(userResult, user =>
+  registry.get(profileFamily(user.profileId))
+)
+```
+
+### Stale-While-Revalidate
+
+```typescript
+function useStaleWhileRevalidate<A>(atom: Atom<Result<A>>) {
+  const result = useAtomValue(atom)
+
+  // Show previous data while revalidating
+  const data = Result.match(result, {
+    onInitial: () => null,
+    onWaiting: (prev) => prev ?? null,
+    onSuccess: (v) => v,
+    onFailure: () => null
+  })
+
+  const isLoading = Result.isWaiting(result)
+  const error = Result.isFailure(result) ? result.cause : null
+
+  return { data, isLoading, error }
+}
+```
+
+---
+
+## Domain Pattern Generalizations
+
+### Pattern: IoT Sensor Data
+
+```typescript
+// Keyed by sensor ID, with polling refresh
+const SensorSchema = Schema.Struct({
+  id: Schema.String.pipe(Schema.brand("SensorId")),
+  value: Schema.Number,
+  unit: Schema.String,
+  timestamp: Schema.DateFromSelf
+})
+
+const sensorFamily = Fermion.fromSchema(SensorSchema)
+  .withKey("id")
+  .withFetch((id) => SensorApi.read(id))
+  .withTTL(Duration.seconds(5))  // Auto-refresh every 5s
+  .build()
+
+// Aggregate atom for dashboard
+const sensorSummaryAtom = Atom.make((get) => {
+  const sensors = ["temp-1", "humidity-1", "pressure-1"]
+  const results = sensors.map(id => get.result(sensorFamily(id)))
+
+  if (results.some(Result.isFailure)) {
+    return { status: "error" }
+  }
+  if (results.some(r => !Result.isSuccess(r))) {
+    return { status: "loading" }
+  }
+
+  const values = results.map(r => (r as Result.Success<Sensor>).value)
+  return {
+    status: "ready",
+    avgTemp: values.find(s => s.id.startsWith("temp"))?.value,
+    humidity: values.find(s => s.id.startsWith("humidity"))?.value
+  }
+})
+```
+
+### Pattern: Financial Tick Data
+
+```typescript
+// High-frequency updates with batching
+const tickAtom = Atom.make<Tick | null>(null).pipe(Atom.keepAlive)
+const tickHistoryAtom = Atom.make<Tick[]>([]).pipe(Atom.keepAlive)
+
+// Batch rapid updates
+const processTick = (tick: Tick) => {
+  Atom.batch(() => {
+    registry.set(tickAtom, tick)
+    const history = registry.get(tickHistoryAtom)
+    registry.set(tickHistoryAtom, [...history.slice(-99), tick])
+  })
+}
+
+// Stream-backed for WebSocket
+const liveTicksAtom = appRuntime.atom(
+  Effect.gen(function* () {
+    const ws = yield* TradingWebSocket
+    return yield* ws.subscribe("ticks")
+  })
+)
+```
+
+### Pattern: Chat/Messaging
+
+```typescript
+// Conversation family keyed by chat ID
+const ConversationSchema = Schema.Struct({
+  chatId: Schema.String.pipe(Schema.brand("ChatId")),
+  messages: Schema.Array(MessageSchema),
+  participants: Schema.Array(Schema.String)
+})
+
+const conversationFamily = Fermion.fromSchema(ConversationSchema)
+  .withKey("chatId")
+  .withFetch((id) => ChatApi.getConversation(id))
+  .withPersist((conv) => ChatApi.updateConversation(conv))
+  .build()
+
+// Optimistic message append
+const sendMessage = (chatId: string, content: string) => {
+  const convAtom = conversationFamily(chatId)
+  const result = registry.get(convAtom)
+
+  if (Result.isSuccess(result)) {
+    const conv = result.value
+    const optimisticMsg = { id: crypto.randomUUID(), content, pending: true }
+
+    // Optimistic update
+    registry.set(convAtom, Result.success({
+      ...conv,
+      messages: [...conv.messages, optimisticMsg]
+    }))
+
+    // Actual send
+    ChatApi.sendMessage(chatId, content).pipe(
+      Effect.tap(() => conversationFamily.fetch(chatId)),
+      Effect.runPromise
+    )
+  }
+}
+```
+
+### Pattern: Form State
+
+```typescript
+// Field atoms for granular reactivity
+const formFieldAtom = Atom.family((field: string) =>
+  Atom.make({ value: "", error: null as string | null, touched: false })
+)
+
+// Validation derived atom
+const formValidAtom = Atom.make((get) => {
+  const fields = ["email", "password", "name"]
+  return fields.every(f => {
+    const field = get(formFieldAtom(f))
+    return field.touched && !field.error
+  })
+})
+
+// Batch field updates
+const updateField = (name: string, value: string) => {
+  Atom.batch(() => {
+    const field = registry.get(formFieldAtom(name))
+    const error = validateField(name, value)
+    registry.set(formFieldAtom(name), {
+      value,
+      error,
+      touched: true
+    })
+  })
+}
+
+// Submit with all fields
+const submitForm = () => {
+  const fields = ["email", "password", "name"]
+  const data = Object.fromEntries(
+    fields.map(f => [f, registry.get(formFieldAtom(f)).value])
+  )
+  return FormApi.submit(data)
+}
+```
+
+### Pattern: Data Grid State
+
+```typescript
+// Grid state atoms
+const gridSelectionAtom = Atom.make<Set<string>>(new Set())
+const gridSortAtom = Atom.make<{ column: string; dir: "asc" | "desc" } | null>(null)
+const gridPageAtom = Atom.make({ page: 0, pageSize: 50 })
+
+// Row data family
+const gridRowFamily = Atom.family((id: string) =>
+  Atom.make<GridRow | null>(null)
+)
+
+// Derived: visible rows
+const visibleRowsAtom = Atom.make((get) => {
+  const { page, pageSize } = get(gridPageAtom)
+  const sort = get(gridSortAtom)
+  const allIds = get(allRowIdsAtom)
+
+  let ids = [...allIds]
+  if (sort) {
+    ids.sort((a, b) => {
+      const rowA = get(gridRowFamily(a))
+      const rowB = get(gridRowFamily(b))
+      // Sort logic...
+    })
+  }
+
+  return ids.slice(page * pageSize, (page + 1) * pageSize)
+})
+
+// Batch selection
+const selectRows = (ids: string[]) => {
+  Atom.batch(() => {
+    const current = registry.get(gridSelectionAtom)
+    registry.set(gridSelectionAtom, new Set([...current, ...ids]))
+  })
+}
+```
+
+---
+
+## Keyphrase Triggers
+
+This skill responds to:
+- `[EFFECT:ATOM:SYNC]` - registry.set/get patterns
+- `[EFFECT:ATOM:EFFECT]` - Atom.set/get inside Effect.gen
+- `[EFFECT:ATOM:FAMILY]` - Atom.family patterns
+- `[EFFECT:ATOM:RUNTIME]` - Atom.runtime patterns
+- `[EFFECT:ATOM:RESULT]` - Result type handling
+- `[EFFECT:ATOM:BATCH]` - Atom.batch patterns
+
+---
+
 ## Related Skills
 
 - `/effect-atom-integration` - Atom.runtime, Atom.make, operation atoms
