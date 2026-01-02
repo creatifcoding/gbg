@@ -4,7 +4,7 @@
  * Discriminated union of reviewable unit types using Schema.TaggedStruct.
  * Each ADR section becomes one or more typed units.
  */
-import { Schema } from '@effect/schema'
+import { Schema } from 'effect'
 import { ReviewStatus } from './status'
 
 // -----------------------------------------------------------------------------
