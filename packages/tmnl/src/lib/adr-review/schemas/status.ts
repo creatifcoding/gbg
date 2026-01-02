@@ -3,7 +3,7 @@
  *
  * Effect Schema definitions for review state management.
  */
-import { Schema } from '@effect/schema'
+import { Schema } from 'effect'
 
 // -----------------------------------------------------------------------------
 // Review Status
