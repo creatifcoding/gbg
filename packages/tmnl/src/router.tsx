@@ -49,6 +49,7 @@ import { DrawerTestbed } from './components/testbed/DrawerTestbed';
 import { VariablesTestbed } from './components/testbed/VariablesTestbed';
 import { ScreensaverTestbed } from './components/testbed/ScreensaverTestbed';
 import { TerminalTestbed } from './components/testbed/TerminalTestbed';
+import { BlockTerminalTestbed } from './components/testbed/BlockTerminalTestbed';
 import { KoriTestbed } from './components/testbed/kori';
 import { CollaborationTestbed } from './components/testbed/CollaborationTestbed';
 import { CollaborationTestbedV2 } from './components/testbed/CollaborationTestbedV2';
@@ -57,6 +58,7 @@ import { KoriAtomsTestbed } from './components/testbed/KoriAtomsTestbed';
 import { TheiaTestbed } from './components/testbed/TheiaTestbed';
 import { DataplaneTestbed } from './components/testbed/DataplaneTestbed';
 import { FermionTestbed } from './components/testbed/FermionTestbed';
+import { AxiomTestbed } from './components/testbed/AxiomTestbed';
 import { DiagramsPage } from './components/docs';
 import { OverhaulDocsPage } from './components/docs/overhaul';
 import { DocsLanding } from './components/docs-3d';
@@ -289,6 +291,13 @@ const terminalTestbedRoute = createRoute({
   component: TerminalTestbed,
 });
 
+// Create block terminal testbed route (OpenWarp blocks)
+const blockTerminalTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/block-terminal',
+  component: BlockTerminalTestbed,
+});
+
 // Create docs landing route (3D bento grid)
 const docsRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -365,6 +374,12 @@ const fermionTestbedRoute = createRoute({
   component: FermionTestbed,
 });
 
+const axiomTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/axiom',
+  component: AxiomTestbed,
+});
+
 // Create the router
 const router = createRouter({
   routeTree: rootRoute.addChildren([
@@ -399,6 +414,7 @@ const router = createRouter({
     variablesTestbedRoute,
     screensaverTestbedRoute,
     terminalTestbedRoute,
+    blockTerminalTestbedRoute,
     docsRoute,
     diagramsRoute,
     overhaulDocsRoute,
@@ -410,6 +426,7 @@ const router = createRouter({
     theiaTestbedRoute,
     dataplaneTestbedRoute,
     fermionTestbedRoute,
+    axiomTestbedRoute,
   ]),
 });
 
