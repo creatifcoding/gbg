@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useRef, useEffect } from 'react'
-import { useAtomValue, useAtom } from '@effect-atom/atom-react'
+import { useAtomValue, useAtom, useAtomSet } from '@effect-atom/atom-react'
 import {
   // State atoms
   blocksAtom,
@@ -19,6 +19,8 @@ import {
   activeBlocksAtom,
   blockCountAtom,
   hasActiveBlockAtom,
+  // ai-core integration
+  isStreamingAtom,
   // Operations
   addBlock,
   updateBlock,
@@ -30,6 +32,7 @@ import {
   historyDown,
   resetHistoryIndex,
   addErrorBlockOp,
+  abortStreamOp,
   // Effect operations
   executeCommandOp,
   executeAIQueryOp,
@@ -75,6 +78,9 @@ export interface UseBlockTerminalResult {
   hasActiveBlock: boolean
   userScrolled: boolean
 
+  // AI streaming state (from ai-core)
+  isStreaming: boolean
+
   // Input handling
   inputHistory: readonly string[]
   historyIndex: number
@@ -90,6 +96,9 @@ export interface UseBlockTerminalResult {
   dismissBlock: (id: string) => Promise<void>
   clearAllBlocks: () => void
   removeBlockById: (id: string) => void
+
+  // AI stream control
+  abortStream: () => void
 
   // Scroll control
   setUserScrolled: (scrolled: boolean) => void
@@ -142,16 +151,63 @@ export function useBlockTerminal(options: UseBlockTerminalOptions = {}): UseBloc
   // Container ref for scroll management
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // State from atoms
-  const blocks = useAtomValue(blocksAtom)
-  const cwd = useAtomValue(blockCwdAtom)
-  const latestBlock = useAtomValue(latestBlockAtom)
-  const activeBlocks = useAtomValue(activeBlocksAtom)
-  const blockCount = useAtomValue(blockCountAtom)
-  const hasActiveBlock = useAtomValue(hasActiveBlockAtom)
+  // Read blocks atom - handle potential Result wrapper from effect-atom
+  const rawBlocks = useAtomValue(blocksAtom)
+
+  // PATTERN: Identify what type was returned and handle accordingly
+  // effect-atom can return Result<A,E> for async atoms or plain A for state atoms
+  // Check for Result type structure (has _tag property like 'Initial', 'Success', 'Failure')
+  const blocks: readonly Block[] = (() => {
+    // If it's already an array, use it directly
+    if (Array.isArray(rawBlocks)) {
+      return rawBlocks
+    }
+
+    // Check if it's a Result type (has _tag property)
+    const maybeResult = rawBlocks as { _tag?: string; value?: readonly Block[]; waiting?: boolean }
+    if (maybeResult && typeof maybeResult === 'object' && '_tag' in maybeResult) {
+      // It's a Result type - extract value based on _tag
+      switch (maybeResult._tag) {
+        case 'Success':
+          // Success has a value property with the actual data
+          return Array.isArray(maybeResult.value) ? maybeResult.value : []
+        case 'Initial':
+        case 'Failure':
+          // Initial state or failure - return empty array
+          return []
+        default:
+          // Unknown Result variant - log and return empty
+          console.warn('[useBlockTerminal] Unknown Result _tag:', maybeResult._tag)
+          return []
+      }
+    }
+
+    // Fallback: If none of the above, return empty and log warning
+    console.warn('[useBlockTerminal] blocksAtom returned unexpected type:', {
+      type: typeof rawBlocks,
+      constructor: (rawBlocks as any)?.constructor?.name,
+      keys: rawBlocks && typeof rawBlocks === 'object' ? Object.keys(rawBlocks) : 'N/A',
+    })
+    return []
+  })()
+  const cwd = useAtomValue(blockCwdAtom) ?? ''
+  const latestBlock = useAtomValue(latestBlockAtom) ?? null
+  const rawActiveBlocks = useAtomValue(activeBlocksAtom)
+  const activeBlocks = rawActiveBlocks ?? []
+  const blockCount = useAtomValue(blockCountAtom) ?? 0
+  const hasActiveBlock = useAtomValue(hasActiveBlockAtom) ?? false
   const [userScrolled, setUserScrolledAtom] = useAtom(userScrolledAtom)
-  const inputHistory = useAtomValue(inputHistoryAtom)
-  const historyIndex = useAtomValue(historyIndexAtom)
+  const rawInputHistory = useAtomValue(inputHistoryAtom)
+  const inputHistory = rawInputHistory ?? []
+  const historyIndex = useAtomValue(historyIndexAtom) ?? -1
+
+  // AI streaming state from ai-core
+  const isStreaming = useAtomValue(isStreamingAtom) ?? false
+
+  // Operation atoms → callable functions via useAtomSet
+  const doExecuteCommand = useAtomSet(executeCommandOp, { mode: 'promise' })
+  const doExecuteAIQuery = useAtomSet(executeAIQueryOp, { mode: 'promise' })
+  const doDismissBlock = useAtomSet(dismissBlockOp, { mode: 'promise' })
 
   // Initialize CWD on mount
   useEffect(() => {
@@ -161,15 +217,18 @@ export function useBlockTerminal(options: UseBlockTerminalOptions = {}): UseBloc
   }, [cwd, initialCwd])
 
   // Track previous blocks for callbacks
-  const prevBlocksRef = useRef<readonly Block[]>(blocks)
+  // Initialize with empty array as blocks may be undefined on first render
+  const prevBlocksRef = useRef<readonly Block[]>([])
   useEffect(() => {
-    const prevBlocks = prevBlocksRef.current
+    const prevBlocks = prevBlocksRef.current ?? []
     prevBlocksRef.current = blocks
 
-    // Detect new blocks
+    // Detect new blocks (both arrays guaranteed to be arrays now)
     if (blocks.length > prevBlocks.length && onBlockAdded) {
       const newBlock = blocks[blocks.length - 1]
-      onBlockAdded(newBlock)
+      if (newBlock) {
+        onBlockAdded(newBlock)
+      }
     }
 
     // Detect completed blocks
@@ -206,12 +265,12 @@ export function useBlockTerminal(options: UseBlockTerminalOptions = {}): UseBloc
 
   // Operations
   const executeCommand = useCallback(async (command: string) => {
-    return executeCommandOp({ command, cwd })
-  }, [cwd])
+    return doExecuteCommand({ command, cwd })
+  }, [cwd, doExecuteCommand])
 
   const executeAIQuery = useCallback(async (prompt: string, model?: string) => {
-    return executeAIQueryOp({ prompt, model })
-  }, [])
+    return doExecuteAIQuery({ prompt, model })
+  }, [doExecuteAIQuery])
 
   const addSystemMessage = useCallback((message: string) => {
     const block = createSystemBlock(message)
@@ -224,8 +283,8 @@ export function useBlockTerminal(options: UseBlockTerminalOptions = {}): UseBloc
   }, [])
 
   const dismissBlock = useCallback(async (id: string) => {
-    await dismissBlockOp({ id })
-  }, [])
+    await doDismissBlock({ id })
+  }, [doDismissBlock])
 
   const clearAllBlocks = useCallback(() => {
     clearBlocks()
@@ -258,6 +317,10 @@ export function useBlockTerminal(options: UseBlockTerminalOptions = {}): UseBloc
     resetHistoryIndex()
   }, [])
 
+  const abortStream = useCallback(() => {
+    abortStreamOp()
+  }, [])
+
   return {
     // State
     blocks,
@@ -267,6 +330,9 @@ export function useBlockTerminal(options: UseBlockTerminalOptions = {}): UseBloc
     blockCount,
     hasActiveBlock,
     userScrolled,
+
+    // AI streaming state
+    isStreaming,
 
     // Input handling
     inputHistory,
@@ -283,6 +349,9 @@ export function useBlockTerminal(options: UseBlockTerminalOptions = {}): UseBloc
     dismissBlock,
     clearAllBlocks,
     removeBlockById,
+
+    // AI stream control
+    abortStream,
 
     // Scroll control
     setUserScrolled,
