@@ -103,6 +103,14 @@ const CARDS: readonly CardDef[] = [
     glow: 'cyan',
   },
   {
+    title: 'AXIOM',
+    body: 'Effect-native ontology framework. Schema.TaggedClass → ObjectType → Ontology service → OSDK/OaC compilation.',
+    route: '/testbed/axiom',
+    status: 'active',
+    label: 'NEW',
+    glow: 'violet',
+  },
+  {
     title: 'ANIMATION',
     body: 'animatable() primitives with GSAP and anime.js drivers. Effect-TS integration for sequencing.',
     route: '/testbed/v2',
@@ -215,6 +223,14 @@ const CARDS: readonly CardDef[] = [
     status: 'active',
     label: 'NEW',
     glow: 'cyan',
+  },
+  {
+    title: 'BLOCK TERMINAL',
+    body: 'OpenWarp-style block terminal. AI streaming blocks, command history, MCP tool integration.',
+    route: '/testbed/block-terminal',
+    status: 'active',
+    label: 'NEW',
+    glow: 'violet',
   },
   {
     title: 'THEIA IDE',
