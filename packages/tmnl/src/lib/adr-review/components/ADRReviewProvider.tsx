@@ -5,7 +5,7 @@
  * Wraps children with registry context and loads ADR data.
  */
 import React, { createContext, useContext, useEffect, useMemo } from 'react'
-import { useAtomValue } from 'effect-atom'
+import { useAtomValue } from '@effect-atom/atom-react'
 import { ADRReviewRegistryProvider, reviewRegistry, selectedADRAtom } from '../atoms'
 import { loadADRUnits, selectADR } from '../atoms/operations'
 import { extractUnitsFromMarkdown, getADRMetadata, type ADRMetadata } from '../parsing'

@@ -4,7 +4,7 @@
  * Module-level atoms for review state management.
  * Uses effect-atom with Registry pattern for React integration.
  */
-import { Atom, Registry, RegistryContext } from 'effect-atom'
+import { Atom, Registry, RegistryContext } from '@effect-atom/atom-react'
 import React from 'react'
 import type { ReviewUnit, ReviewUnitTag } from '../schemas/unit'
 import type { ReviewStatus, Comment, ADRTier, ReviewSummary } from '../schemas/status'

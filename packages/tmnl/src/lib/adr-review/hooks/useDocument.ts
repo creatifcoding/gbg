@@ -4,7 +4,7 @@
  * Access document-level state and operations.
  */
 import { useCallback } from 'react'
-import { useAtomValue } from 'effect-atom'
+import { useAtomValue } from '@effect-atom/atom-react'
 import {
   selectedADRAtom,
   loadedADRIdsAtom,

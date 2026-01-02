@@ -4,7 +4,7 @@
  * Full document container that organizes units by section.
  */
 import React, { useMemo } from 'react'
-import { useAtomValue } from 'effect-atom'
+import { useAtomValue } from '@effect-atom/atom-react'
 import { cn } from '@/lib/utils'
 import { currentUnitsAtom, filteredUnitsAtom, reviewRegistry, unitStatusFamily, makeUnitKey } from '../atoms'
 import { useADRReviewContext } from './ADRReviewProvider'

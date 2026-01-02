@@ -4,7 +4,7 @@
  * Single reviewable unit with content, actions, and comments.
  */
 import React, { createContext, useContext, useMemo, useCallback } from 'react'
-import { useAtomValue } from 'effect-atom'
+import { useAtomValue } from '@effect-atom/atom-react'
 import { cn } from '@/lib/utils'
 import type { ReviewUnit } from '../schemas/unit'
 import { getUnitDisplayName } from '../schemas/unit'

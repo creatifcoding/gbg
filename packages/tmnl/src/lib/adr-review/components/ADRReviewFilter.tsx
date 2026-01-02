@@ -5,7 +5,7 @@
  */
 import React from 'react'
 import { Filter, Download } from 'lucide-react'
-import { useAtomValue } from 'effect-atom'
+import { useAtomValue } from '@effect-atom/atom-react'
 import { cn } from '@/lib/utils'
 import { statusFilterAtom, unitTypeFilterAtom } from '../atoms'
 import { setStatusFilter, setUnitTypeFilter, downloadDigest } from '../atoms/operations'

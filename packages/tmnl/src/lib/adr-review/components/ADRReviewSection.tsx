@@ -5,7 +5,7 @@
  */
 import React, { createContext, useContext } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import { useAtomValue } from 'effect-atom'
+import { useAtomValue } from '@effect-atom/atom-react'
 import { cn } from '@/lib/utils'
 import { reviewRegistry, expandedSectionsAtom } from '../atoms'
 import { toggleSection } from '../atoms/operations'

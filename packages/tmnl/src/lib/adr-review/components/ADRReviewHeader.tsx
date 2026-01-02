@@ -5,7 +5,7 @@
  */
 import React from 'react'
 import { FileText, Calendar, GitCommit, Tag } from 'lucide-react'
-import { useAtomValue } from 'effect-atom'
+import { useAtomValue } from '@effect-atom/atom-react'
 import { cn } from '@/lib/utils'
 import { useADRReviewContext } from './ADRReviewProvider'
 import { currentSummaryAtom } from '../atoms'

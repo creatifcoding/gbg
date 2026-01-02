@@ -4,7 +4,7 @@
  * Flat list view of all units (for filtering/navigation).
  */
 import React from 'react'
-import { useAtomValue } from 'effect-atom'
+import { useAtomValue } from '@effect-atom/atom-react'
 import { ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { filteredUnitsAtom, reviewRegistry, unitStatusFamily, makeUnitKey } from '../atoms'

@@ -4,7 +4,7 @@
  * Access unit context and operations.
  */
 import { useCallback } from 'react'
-import { useAtomValue } from 'effect-atom'
+import { useAtomValue } from '@effect-atom/atom-react'
 import { unitStatusFamily, unitCommentsFamily, makeUnitKey } from '../atoms'
 import { setUnitStatus, addComment, getComments } from '../atoms/operations'
 import type { ReviewStatus } from '../schemas/status'
