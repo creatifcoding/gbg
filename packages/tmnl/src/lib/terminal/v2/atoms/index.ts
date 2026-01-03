@@ -9,7 +9,7 @@
  */
 
 import { Atom } from '@effect-atom/atom-react'
-import { Effect, Layer } from 'effect'
+import { Effect, Layer, Stream } from 'effect'
 import { overlayRegistry } from '@/lib/overlays'
 import { TauriPtyService } from '../services/TauriPtyService'
 import {
@@ -675,57 +675,55 @@ export const executeAIQueryOp = blockTerminalRuntimeAtom.fn<{
 
     // Process stream and update block
     // Event types from ai-core: TextDelta, ThinkingDelta, ToolCallComplete, ToolResult, StreamComplete, StreamError
+    // NOTE: Stream.runForEach for Stream consumption (Effect.forEach is for Iterables)
     const streamResult = yield* Effect.either(
-      Effect.forEach(
-        handle.stream,
-        (event: AIStreamEvent) =>
-          Effect.sync(() => {
-            // Sync to global ai-core state for visibility
-            applyStreamEvent(event)
+      Stream.runForEach(handle.stream, (event: AIStreamEvent) =>
+        Effect.sync(() => {
+          // Sync to global ai-core state for visibility
+          applyStreamEvent(event)
 
-            // Update block-local state
-            ctx.set(blocksAtom, (prev) =>
-              prev.map((b) => {
-                if (b.id !== block.id || b._tag !== 'ai-response') return b
+          // Update block-local state
+          ctx.set(blocksAtom, (prev) =>
+            prev.map((b) => {
+              if (b.id !== block.id || b._tag !== 'ai-response') return b
 
-                switch (event._tag) {
-                  case 'TextDelta':
-                    return { ...b, response: b.response + event.text }
-                  case 'ThinkingDelta':
-                    // Renamed from ReasoningDelta in ai-core
-                    return { ...b, thinking: (b.thinking ?? '') + event.thinking }
-                  case 'ToolCallComplete':
-                    // ToolCallComplete has toolCallId, toolName, args (not input)
-                    return {
-                      ...b,
-                      toolCalls: [...(b.toolCalls ?? []), {
-                        id: event.toolCallId,
-                        name: event.toolName,
-                        input: event.args as Record<string, unknown>,
-                        status: 'running' as const,
-                      }],
-                    }
-                  case 'ToolResult':
-                    // ToolResult has toolCallId (not toolId)
-                    return {
-                      ...b,
-                      toolCalls: (b.toolCalls ?? []).map((tc) =>
-                        tc.id === event.toolCallId
-                          ? { ...tc, output: event.result, status: 'completed' as const }
-                          : tc
-                      ),
-                    }
-                  case 'StreamComplete':
-                    return { ...b, isStreaming: false, endTime: new Date() }
-                  case 'StreamError':
-                    return { ...b, isStreaming: false, endTime: new Date() }
-                  default:
-                    return b
-                }
-              })
-            )
-          }),
-        { concurrency: 1 }
+              switch (event._tag) {
+                case 'TextDelta':
+                  return { ...b, response: b.response + event.text }
+                case 'ThinkingDelta':
+                  // Renamed from ReasoningDelta in ai-core
+                  return { ...b, thinking: (b.thinking ?? '') + event.thinking }
+                case 'ToolCallComplete':
+                  // ToolCallComplete has toolCallId, toolName, args (not input)
+                  return {
+                    ...b,
+                    toolCalls: [...(b.toolCalls ?? []), {
+                      id: event.toolCallId,
+                      name: event.toolName,
+                      input: event.args as Record<string, unknown>,
+                      status: 'running' as const,
+                    }],
+                  }
+                case 'ToolResult':
+                  // ToolResult has toolCallId (not toolId)
+                  return {
+                    ...b,
+                    toolCalls: (b.toolCalls ?? []).map((tc) =>
+                      tc.id === event.toolCallId
+                        ? { ...tc, output: event.result, status: 'completed' as const }
+                        : tc
+                    ),
+                  }
+                case 'StreamComplete':
+                  return { ...b, isStreaming: false, endTime: new Date() }
+                case 'StreamError':
+                  return { ...b, isStreaming: false, endTime: new Date() }
+                default:
+                  return b
+              }
+            })
+          )
+        })
       )
     )
 
