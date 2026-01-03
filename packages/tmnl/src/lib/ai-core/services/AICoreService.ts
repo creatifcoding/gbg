@@ -159,6 +159,9 @@ export class AICoreService extends Context.Tag('tmnl/ai-core/AICoreService')<
           // Convert messages to AI SDK format
           const aiSdkMessages = toAISDKConversation(request.messages)
 
+          // DEBUG: Log what we're sending
+          console.log('[AICoreService] Sending to cursor server:', JSON.stringify({ messages: aiSdkMessages }, null, 2))
+
           // Make streaming request to cursor server
           const response = yield* Effect.tryPromise({
             try: async () => {
@@ -190,6 +193,7 @@ export class AICoreService extends Context.Tag('tmnl/ai-core/AICoreService')<
               try: () => response.text(),
               catch: () => 'Unknown error',
             })
+            console.error('[AICoreService] Server error:', response.status, errorText)
             return yield* Effect.fail(
               AICoreConnectionError.create(
                 CURSOR_CHAT_URL,
@@ -237,8 +241,9 @@ export class AICoreService extends Context.Tag('tmnl/ai-core/AICoreService')<
             })
 
           // Wrap stream with abort check
+          // NOTE: takeUntilEffect for effectful predicates (Ref.get returns Effect)
           const abortableStream = streamWithStart.pipe(
-            Stream.takeUntil(() => Ref.get(abortedRef))
+            Stream.takeUntilEffect(() => Ref.get(abortedRef))
           )
 
           // Fork stream processing to background fiber
