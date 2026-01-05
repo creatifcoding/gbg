@@ -117,7 +117,18 @@ export {
   useMCPClient,
   useMCPServers,
   useMCPTools,
+  useMCPAutoConnect,
   type UseMCPClientResult,
   type UseMCPServersResult,
   type UseMCPToolsResult,
+  type UseMCPAutoConnectOptions,
+  type UseMCPAutoConnectResult,
 } from './hooks'
+
+// Config
+export {
+  parseMCPConfig,
+  loadMCPConfigFromPath,
+  getDefaultMCPConfigs,
+  loadMCPConfigTauri,
+} from './config'

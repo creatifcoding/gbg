@@ -21,6 +21,7 @@ import type {
   MCPRegistryEvent,
   MCPServerInfo,
 } from '../schemas'
+import { createStdioClient } from '../transports/stdio'
 
 // =============================================================================
 // Client Interface (Transport-agnostic)
@@ -152,34 +153,41 @@ export class MCPClientRegistry extends Context.Tag('tmnl/mcp/MCPClientRegistry')
           }
         })
 
-      // Create a mock client for now (stdio transport will be added separately)
-      const createMockClient = (config: MCPServerConfig): MCPClientInstance => ({
-        id: config.id,
-        config,
-        connect: () =>
-          Effect.gen(function* () {
-            yield* updateStatus(config.id, { status: 'connected', lastConnected: Date.now() })
-            yield* publishEvent({ _tag: 'MCPServerConnected', serverId: config.id, serverInfo: { name: config.name, version: '1.0.0' } })
-          }),
-        disconnect: () =>
-          Effect.gen(function* () {
-            yield* updateStatus(config.id, { status: 'disconnected' })
-            yield* publishEvent({ _tag: 'MCPServerDisconnected', serverId: config.id })
-          }),
-        callTool: (_name, _args) => Effect.succeed(null),
-        readResource: (_uri) => Effect.succeed({ contents: '' }),
-        getPrompt: (_name, _args) => Effect.succeed({ messages: [] }),
-        getTools: () => Effect.succeed([]),
-        getResources: () => Effect.succeed([]),
-        getPrompts: () => Effect.succeed([]),
-        getServerInfo: () => Effect.succeed(Option.some({ name: config.name, version: '1.0.0' })),
-        isConnected: () =>
-          Effect.gen(function* () {
-            const state = yield* Ref.get(stateRef)
-            const status = HashMap.get(state.statuses, config.id)
-            return Option.isSome(status) && status.value.status === 'connected'
-          }),
-      })
+      // Create real stdio client with status/event callbacks
+      const createClientWithCallbacks = (config: MCPServerConfig): MCPClientInstance => {
+        return createStdioClient(
+          config,
+          // onStatusChange callback
+          (status, error) => {
+            const mcpStatus = status === 'error' ? 'error' : status
+            Effect.runSync(
+              Effect.gen(function* () {
+                yield* updateStatus(config.id, { status: mcpStatus, error })
+                if (status === 'connected') {
+                  yield* publishEvent({
+                    _tag: 'MCPServerConnected',
+                    serverId: config.id,
+                    serverInfo: { name: config.name, version: '1.0.0' }
+                  })
+                } else if (status === 'disconnected') {
+                  yield* publishEvent({ _tag: 'MCPServerDisconnected', serverId: config.id })
+                } else if (status === 'error' && error) {
+                  yield* publishEvent({ _tag: 'MCPServerError', serverId: config.id, error })
+                }
+              })
+            )
+          },
+          // onToolsChange callback
+          (tools) => {
+            Effect.runSync(
+              Effect.gen(function* () {
+                yield* updateStatus(config.id, { tools: [...tools] })
+                yield* publishEvent({ _tag: 'MCPToolsChanged', serverId: config.id, tools: [...tools] })
+              })
+            )
+          }
+        )
+      }
 
       const connect = (config: MCPServerConfig): Effect.Effect<MCPClientInstance> =>
         Effect.gen(function* () {
@@ -200,8 +208,8 @@ export class MCPClientRegistry extends Context.Tag('tmnl/mcp/MCPClientRegistry')
           // Start connection
           yield* updateStatus(config.id, { status: 'connecting' })
 
-          // Create client (will be replaced with real transport later)
-          const client = createMockClient(config)
+          // Create client with real stdio transport
+          const client = createClientWithCallbacks(config)
 
           // Connect
           yield* client.connect()
