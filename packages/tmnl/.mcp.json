@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/claude-code/main/schemas/mcp-config-schema.json",
+  "mcpServers": {
+    "OSM": {
+      "command": "./bin/osmmcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}
