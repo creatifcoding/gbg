@@ -2,7 +2,7 @@
  * @fileoverview Port Sidebar Component
  *
  * Expandable sidebar panel for port configuration and metadata.
- * Slides out from the port when expanded.
+ * Uses TAC grid-based expand/collapse pattern for smooth animations.
  */
 
 import React, { memo } from 'react';
@@ -21,6 +21,7 @@ export interface PortSidebarProps {
 
 /**
  * Sidebar container that appears when port is expanded.
+ * Uses TAC grid-rows pattern for smooth height transitions.
  * Children should be PortTab components.
  */
 export const Sidebar = memo(function PortSidebar({
@@ -32,26 +33,38 @@ export const Sidebar = memo(function PortSidebar({
   const state = useAtomValue(portStateValueAtom(portId));
   const isExpanded = state === 'expanded';
 
-  if (!isExpanded) return null;
-
+  // TAC grid-based expand/collapse pattern
+  // Grid transitions from grid-rows-[0fr] to grid-rows-[1fr]
   return (
     <div
       className={`
-        absolute top-0 left-full ml-2
-        rounded-lg border
-        bg-surface-1 border-surface-3
-        shadow-lg
-        transition-all duration-200 ease-out
-        ${className ?? ''}
+        grid
+        transition-[grid-template-rows]
+        duration-300
+        ease-out
+        ${isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}
       `}
-      style={{
-        width: `${width}px`,
-        maxHeight: '400px',
-        overflow: 'hidden',
-      }}
-      onClick={(e) => e.stopPropagation()}
     >
-      {children}
+      <div className="overflow-hidden">
+        <div
+          className={`
+            mt-2 px-2 pb-2
+            rounded-lg border
+            bg-gray-900/80 backdrop-blur-md
+            border-surface-3
+            shadow-lg
+            ${className ?? ''}
+          `}
+          style={{
+            width: `${width}px`,
+            maxHeight: '400px',
+            overflow: 'auto',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {children}
+        </div>
+      </div>
     </div>
   );
 });

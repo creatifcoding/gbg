@@ -9,6 +9,7 @@ import { Atom } from '@effect-atom/atom-react';
 import { setup, createActor, type ActorRefFrom, type SnapshotFrom } from 'xstate';
 import type { PortId } from '../../schemas/link';
 import type { PortTabId, PortDirection } from './types';
+import { panelRegistry } from '@/components/testbed/collaboration/v2/panel-stx';
 
 // =============================================================================
 // Types
@@ -30,6 +31,7 @@ export type PortMachineEvent =
   | { type: 'UNHOVER' }
   | { type: 'EXPAND' }
   | { type: 'COLLAPSE' }
+  | { type: 'TOGGLE_ACTIONS' }
   | { type: 'START_LINKING'; target?: PortId }
   | { type: 'END_LINKING' }
   | { type: 'SELECT_TAB'; tabId: PortTabId };
@@ -74,6 +76,7 @@ export const portMachine = setup({
       on: {
         HOVER: 'hovered',
         EXPAND: 'expanded',
+        TOGGLE_ACTIONS: 'hovered', // Click → show actions
         START_LINKING: { target: 'linking', actions: 'setLinkTarget' },
       },
     },
@@ -81,6 +84,7 @@ export const portMachine = setup({
       on: {
         UNHOVER: 'collapsed',
         EXPAND: 'expanded',
+        TOGGLE_ACTIONS: 'collapsed', // Click → hide actions
         START_LINKING: { target: 'linking', actions: 'setLinkTarget' },
       },
     },
@@ -123,6 +127,7 @@ export function getOrCreatePortActor(portId: PortId): PortActor {
     actor = createActor(portMachine, {
       input: { portId },
     });
+    actor.start(); // CRITICAL: Must start the actor for it to process events!
     actorRegistry.set(portId, actor);
   }
   return actor;
@@ -149,7 +154,10 @@ export function getPortSnapshot(portId: PortId): PortSnapshot | undefined {
 export function sendPortEvent(portId: PortId, event: PortMachineEvent): void {
   const actor = actorRegistry.get(portId);
   if (actor) {
+    console.log(`[port-stx] Sending event ${event.type} to port ${portId}`);
     actor.send(event);
+  } else {
+    console.warn(`[port-stx] No actor found for port ${portId}`);
   }
 }
 
@@ -180,71 +188,106 @@ export function disposeAllPortActors(): void {
 
 /**
  * Per-port snapshot atom: XState → effect-atom bridge
+ *
+ * CRITICAL: Uses panelRegistry.set() for external updates from XState.
+ * Atom.set() returns an Effect - panelRegistry.set() mutates directly.
+ *
+ * The factory runs when the atom is first accessed for a given portId.
+ * It sets up the XState actor subscription which updates the atom on state changes.
  */
 export const portSnapshotAtom = Atom.family((portId: PortId) => {
+  console.log(`[port-stx] Creating portSnapshotAtom for ${portId}`);
   const atom = Atom.make<PortSnapshot | null>(null);
 
-  // Subscribe to actor updates
+  // Mount atom on shared registry for React visibility
+  panelRegistry.mount(atom);
+
+  // Get or create the actor (already started if exists)
   const actor = getOrCreatePortActor(portId);
+  console.log(`[port-stx] Got actor for ${portId}, current state: ${actor.getSnapshot().value}`);
+
+  // Subscribe to actor updates - use registry.set() for external mutations
+  // XState immediately fires the callback with current snapshot on subscribe
+  // NOTE: Subscription is intentionally never unsubscribed because the actor
+  // lifecycle is managed by PortProvider's useEffect (disposePortActor)
   actor.subscribe((snapshot) => {
-    Atom.set(atom, snapshot);
+    console.log(`[port-stx] 🔥 Actor subscription callback for ${portId}, state: ${snapshot.value}`);
+    panelRegistry.set(atom, snapshot);
   });
 
-  // Initialize with current snapshot
-  Atom.set(atom, actor.getSnapshot());
+  // Initialize with current snapshot (redundant if subscribe fires immediately, but safe)
+  const initialSnapshot = actor.getSnapshot();
+  console.log(`[port-stx] Initial snapshot for ${portId}: ${initialSnapshot.value}`);
+  panelRegistry.set(atom, initialSnapshot);
 
   return atom;
 });
 
 /**
  * Derived: Current state value
+ *
+ * CRITICAL: Derived atoms must also be mounted on the registry for React to see updates.
  */
-export const portStateValueAtom = Atom.family((portId: PortId) =>
-  Atom.make((get) => {
+export const portStateValueAtom = Atom.family((portId: PortId) => {
+  console.log(`[port-stx] Creating portStateValueAtom for ${portId}`);
+  const derived = Atom.make((get) => {
     const snapshot = get(portSnapshotAtom(portId));
-    return (snapshot?.value ?? 'collapsed') as PortVisualState;
-  })
-);
+    const value = (snapshot?.value ?? 'collapsed') as PortVisualState;
+    console.log(`[port-stx] portStateValueAtom getter for ${portId}: ${value}`);
+    return value;
+  });
+  // Mount derived atom on shared registry
+  panelRegistry.mount(derived);
+  return derived;
+});
 
 /**
  * Derived: Can expand?
  */
-export const portCanExpandAtom = Atom.family((portId: PortId) =>
-  Atom.make((get) => {
+export const portCanExpandAtom = Atom.family((portId: PortId) => {
+  const derived = Atom.make((get) => {
     const snapshot = get(portSnapshotAtom(portId));
     return snapshot?.can({ type: 'EXPAND' }) ?? false;
-  })
-);
+  });
+  panelRegistry.mount(derived);
+  return derived;
+});
 
 /**
  * Derived: Active tab from machine context
  */
-export const portMachineActiveTabAtom = Atom.family((portId: PortId) =>
-  Atom.make((get) => {
+export const portMachineActiveTabAtom = Atom.family((portId: PortId) => {
+  const derived = Atom.make((get) => {
     const snapshot = get(portSnapshotAtom(portId));
     return snapshot?.context.activeTab ?? 'info';
-  })
-);
+  });
+  panelRegistry.mount(derived);
+  return derived;
+});
 
 /**
  * Derived: Link target from machine context
  */
-export const portLinkTargetAtom = Atom.family((portId: PortId) =>
-  Atom.make((get) => {
+export const portLinkTargetAtom = Atom.family((portId: PortId) => {
+  const derived = Atom.make((get) => {
     const snapshot = get(portSnapshotAtom(portId));
     return snapshot?.context.linkTarget ?? null;
-  })
-);
+  });
+  panelRegistry.mount(derived);
+  return derived;
+});
 
 /**
  * Derived: Full machine context
  */
-export const portMachineContextAtom = Atom.family((portId: PortId) =>
-  Atom.make((get) => {
+export const portMachineContextAtom = Atom.family((portId: PortId) => {
+  const derived = Atom.make((get) => {
     const snapshot = get(portSnapshotAtom(portId));
     return snapshot?.context ?? null;
-  })
-);
+  });
+  panelRegistry.mount(derived);
+  return derived;
+});
 
 // =============================================================================
 // Operations (imperative API)
@@ -265,6 +308,10 @@ export const portOps = {
 
   collapse: (portId: PortId) => {
     sendPortEvent(portId, { type: 'COLLAPSE' });
+  },
+
+  toggleActions: (portId: PortId) => {
+    sendPortEvent(portId, { type: 'TOGGLE_ACTIONS' });
   },
 
   startLinking: (portId: PortId, target?: PortId) => {

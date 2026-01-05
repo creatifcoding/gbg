@@ -48,15 +48,25 @@ const TEXT_CLASSES = {
 // Component
 // =============================================================================
 
+/**
+ * PortBadge - TAC-aligned typography
+ * Uses TMNL 12px floor with monospace font
+ */
 export function PortBadge({ status = 'idle', count, className }: PortBadgeProps) {
   const dotClass = DOT_CLASSES[status];
   const textClass = TEXT_CLASSES[status];
 
   return (
     <span className={cn('inline-flex items-center gap-1', textClass, className)}>
+      {/* Glowing dot indicator */}
       <span className={cn('w-1.5 h-1.5 rounded-full', dotClass)} />
       {count !== undefined && (
-        <span className="text-xs font-mono tabular-nums">{count}</span>
+        <span
+          className="font-mono tabular-nums"
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        >
+          {count}
+        </span>
       )}
     </span>
   );

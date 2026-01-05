@@ -18,7 +18,7 @@
 import React, { memo, useMemo, useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { useAtomValue } from '@effect-atom/atom-react';
-import { Link2, Settings, Trash2, Unplug } from 'lucide-react';
+import { Link2, Settings, Trash2, Unplug, Maximize2, ChevronDown, ChevronUp } from 'lucide-react';
 
 import { Icon } from '../Icon';
 import { linksForPortAtom } from '../../atoms';
@@ -26,7 +26,7 @@ import type { LinkPort, PortDirection as SchemaPortDirection, PortDataType, Link
 import { PortProvider } from './context';
 import { PortItem } from './Item';
 import { PortBadge } from './Badge';
-import { portStateValueAtom, portOps } from './port-stx';
+import { portSnapshotAtom, portOps, type PortVisualState } from './port-stx';
 import { Sidebar as PortSidebar } from './Sidebar';
 import { Tab as PortTab } from './Tab';
 import { Actions as PortActions } from './Actions';
@@ -55,21 +55,37 @@ export interface PortNodeProps {
 // Constants
 // =============================================================================
 
-const DIRECTION_COLORS: Record<SchemaPortDirection, { bg: string; border: string; glow: string }> = {
+/**
+ * TAC-aligned direction colors with CSS custom property support
+ * Glass morphism pattern: semi-transparent bg + backdrop-blur
+ */
+const DIRECTION_COLORS: Record<
+  SchemaPortDirection,
+  { bg: string; border: string; glow: string; glowVar: string; handle: string; handleBorder: string }
+> = {
   in: {
-    bg: 'rgba(34, 211, 238, 0.15)',
+    bg: 'rgba(34, 211, 238, 0.12)',
     border: 'rgba(34, 211, 238, 0.6)',
     glow: '0 0 12px rgba(34, 211, 238, 0.4)',
+    glowVar: 'rgba(34, 211, 238, 0.5)',  // For CSS custom prop
+    handle: '#22d3ee',
+    handleBorder: '#0891b2',
   },
   out: {
-    bg: 'rgba(251, 191, 36, 0.15)',
+    bg: 'rgba(251, 191, 36, 0.12)',
     border: 'rgba(251, 191, 36, 0.6)',
     glow: '0 0 12px rgba(251, 191, 36, 0.4)',
+    glowVar: 'rgba(251, 191, 36, 0.5)',
+    handle: '#fbbf24',
+    handleBorder: '#d97706',
   },
   inout: {
-    bg: 'rgba(167, 139, 250, 0.15)',
+    bg: 'rgba(167, 139, 250, 0.12)',
     border: 'rgba(167, 139, 250, 0.6)',
     glow: '0 0 12px rgba(167, 139, 250, 0.4)',
+    glowVar: 'rgba(167, 139, 250, 0.5)',
+    handle: '#a78bfa',
+    handleBorder: '#7c3aed',
   },
 };
 
@@ -311,8 +327,9 @@ const PortNodeInner = memo(function PortNodeInner({
   const connectionCount = links.length;
   const isConnected = connectionCount > 0;
 
-  // Get current visual state from port machine
-  const state = useAtomValue(portStateValueAtom(port.id));
+  // Get current visual state from port machine snapshot (uses panelRegistry via context)
+  const snapshot = useAtomValue(useMemo(() => portSnapshotAtom(port.id), [port.id]));
+  const state = (snapshot?.value ?? 'collapsed') as PortVisualState;
   const isExpanded = state === 'expanded';
   const isHovered = state === 'hovered';
   const isLinking = state === 'linking';
@@ -333,13 +350,18 @@ const PortNodeInner = memo(function PortNodeInner({
     portOps.unhover(port.id);
   }, [port.id]);
 
-  const handleClick = useCallback(() => {
+  // Toggle actions visibility (collapsed ↔ hovered) - with stopPropagation for ReactFlow
+  const handleToggleActions = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent ReactFlow from intercepting
+    console.log(`[PortNode] 👆 Toggle clicked, current state: ${state}, isExpanded: ${isExpanded}`);
     if (isExpanded) {
+      console.log(`[PortNode] → Collapsing ${port.id}`);
       portOps.collapse(port.id);
     } else {
-      portOps.expand(port.id);
+      console.log(`[PortNode] → Toggling actions for ${port.id}`);
+      portOps.toggleActions(port.id);
     }
-  }, [port.id, isExpanded]);
+  }, [port.id, isExpanded, state]);
 
   const handleStartLinking = useCallback(() => {
     portOps.startLinking(port.id);
@@ -356,23 +378,60 @@ const PortNodeInner = memo(function PortNodeInner({
     portOps.selectTab(port.id, 'config');
   }, [port.id]);
 
+  const handleExpand = useCallback(() => {
+    // Expand to info tab
+    portOps.expand(port.id);
+    portOps.selectTab(port.id, 'info');
+  }, [port.id]);
+
+  // TAC glass morphism container styling
+  const containerStyle: React.CSSProperties = {
+    '--port-glow-color': colors.glowVar,
+    backgroundColor: colors.bg,
+    borderColor: colors.border,
+  } as React.CSSProperties;
+
+  // Build container classNames (TAC pattern)
+  const containerClasses = [
+    // Base glass morphism
+    'relative',
+    'backdrop-blur-md',
+    'border-2',
+    'rounded-lg',
+    'shadow-lg',
+    // Width transitions
+    'transition-[min-width,box-shadow,border-color]',
+    'duration-200',
+    'ease-out',
+    // Width based on state
+    isExpanded ? 'min-w-[240px]' : 'min-w-[90px]',
+    // Glow states
+    isLinking && 'animate-pulsing-glow',
+    (selected || isConnected || isHovered) && !isLinking && 'shadow-[0_0_12px_var(--port-glow-color)]',
+  ].filter(Boolean).join(' ');
+
   return (
     <div
-      className="relative"
-      style={{
-        backgroundColor: colors.bg,
-        border: `2px solid ${colors.border}`,
-        borderRadius: '12px',
-        boxShadow: selected || isConnected || isLinking || isHovered ? colors.glow : 'none',
-        minWidth: isExpanded ? 240 : 90,
-        transition: 'all 200ms ease-out',
-      }}
+      className={containerClasses}
+      style={containerStyle}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onClick={handleClick}
     >
       {/* Port compound component */}
-      <PortItem className="bg-transparent border-none cursor-pointer">
+      <PortItem className="bg-transparent border-none">
+        {/* Toggle button - explicit click target that bypasses ReactFlow */}
+        <button
+          type="button"
+          onClick={handleToggleActions}
+          className="p-1 rounded hover:bg-white/10 transition-colors"
+          title={isHovered || isExpanded ? 'Hide actions' : 'Show actions'}
+        >
+          <Icon
+            icon={isHovered || isExpanded ? ChevronUp : ChevronDown}
+            size={12}
+            color="muted"
+          />
+        </button>
         {/* Direction icon */}
         <span
           className="font-mono opacity-70"
@@ -419,8 +478,13 @@ const PortNodeInner = memo(function PortNodeInner({
         </div>
       )}
 
-      {/* Actions (visible on hover/expanded) */}
+      {/* Actions (visible when actions toggled via click) */}
       <PortActions className="justify-center gap-1 py-1">
+        <PortAction
+          icon={<Icon icon={Maximize2} size={14} color="violet" />}
+          onClick={handleExpand}
+          label="Expand details"
+        />
         <PortAction
           icon={<Icon icon={Link2} size={14} color="cyan" />}
           onClick={handleStartLinking}
@@ -452,28 +516,30 @@ const PortNodeInner = memo(function PortNodeInner({
         </PortTab>
       </PortSidebar>
 
-      {/* Target handle (for incoming connections) */}
+      {/* Target handle (for incoming connections) - TAC pattern */}
       {showTargetHandle && (
         <Handle
           type="target"
           position={Position.Left}
           id={`${port.id}-target`}
-          className="!w-3 !h-3 !bg-cyan-500 !border-2 !border-cyan-300"
+          className="!w-3 !h-3 !bg-gray-900 !border-2"
           style={{
-            boxShadow: '0 0 6px rgba(34, 211, 238, 0.5)',
+            borderColor: colors.handle,
+            boxShadow: `0 0 6px ${colors.glowVar}`,
           }}
         />
       )}
 
-      {/* Source handle (for outgoing connections) */}
+      {/* Source handle (for outgoing connections) - TAC pattern */}
       {showSourceHandle && (
         <Handle
           type="source"
           position={Position.Right}
           id={`${port.id}-source`}
-          className="!w-3 !h-3 !bg-amber-500 !border-2 !border-amber-300"
+          className="!w-3 !h-3 !bg-gray-900 !border-2"
           style={{
-            boxShadow: '0 0 6px rgba(251, 191, 36, 0.5)',
+            borderColor: colors.handle,
+            boxShadow: `0 0 6px ${colors.glowVar}`,
           }}
         />
       )}

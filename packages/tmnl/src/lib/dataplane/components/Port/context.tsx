@@ -39,21 +39,20 @@ interface PortProviderProps {
 /**
  * PortProvider
  *
- * Initializes and manages the lifecycle of a port's XState actor.
- * - Creates/retrieves actor on mount via getOrCreatePortActor
- * - Disposes actor on unmount via disposePortActor
- * - Provides portId, size, and send function to descendants
+ * Provides scoped access to port state machine via React context.
+ *
+ * NOTE: Actor lifecycle is managed by portSnapshotAtom, NOT this provider.
+ * The atom creates the actor on first access and sets up the subscription.
+ * This provider only supplies the portId and size to descendants.
+ *
+ * Previously, this provider called getOrCreatePortActor/disposePortActor,
+ * but React StrictMode's double-mount caused actor disposal issues:
+ * subscriptions were set up on the first actor, then it was disposed,
+ * and a new actor was created - causing events to go to the wrong actor.
  */
 export function PortProvider({ portId, size, children }: PortProviderProps) {
-  // Initialize actor on mount, dispose on unmount
-  useEffect(() => {
-    const actor = getOrCreatePortActor(portId);
-    actor.start();
-
-    return () => {
-      disposePortActor(portId);
-    };
-  }, [portId]);
+  // Actor lifecycle is now managed by portSnapshotAtom
+  // This provider only supplies context to descendants
 
   const contextValue = useMemo<PortContextValue>(
     () => ({

@@ -19,22 +19,23 @@ interface PortItemProps {
 }
 
 /**
- * Size class mappings
+ * Size class mappings (TAC-aligned typography)
+ * Uses TMNL fallback sizes with monospace fonts
  */
 const sizeClasses = {
-  compact: 'p-0.5 text-xs',
-  default: 'px-2 py-1 text-sm',
-  large: 'px-3 py-2 text-base',
+  compact: 'p-0.5',  // 12px via CSS var in children
+  default: 'px-2 py-1',  // 12px minimum
+  large: 'px-3 py-2',  // 14px
 } as const;
 
 /**
- * Visual state styles
+ * Visual state styles (TAC glass morphism)
  */
 const stateStyles = {
   collapsed: '',
-  hovered: 'scale-105 shadow-[0_0_8px_rgba(168,219,197,0.3)]',
-  expanded: 'opacity-100',
-  linking: 'animate-pulse',
+  hovered: 'scale-[1.02]',  // Subtle scale, glow handled by parent
+  expanded: '',
+  linking: '',  // Handled by parent with animate-pulsing-glow
 } as const;
 
 /**
@@ -64,11 +65,11 @@ export function PortItem({ children, className }: PortItemProps) {
   return (
     <div
       className={cn(
-        // Base styles
-        'flex items-center gap-1 rounded-full',
-        'bg-surface-1 border border-surface-2',
+        // Base styles (TAC glass pattern)
+        'flex items-center gap-1.5 rounded-lg',
+        'bg-transparent',  // Parent handles glass morphism
         'cursor-pointer select-none',
-        'transition-all duration-200 ease-out',
+        'transition-transform duration-200 ease-out',
         // Size variant
         sizeClasses[size],
         // State variant

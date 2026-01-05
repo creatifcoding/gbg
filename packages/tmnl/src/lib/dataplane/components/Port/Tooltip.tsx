@@ -79,13 +79,19 @@ export function PortTooltip({
             className
           )}
         >
-          {/* Port label */}
-          <p className="font-mono text-xs font-medium text-foreground truncate">
+          {/* Port label - TAC typography with TMNL fallback */}
+          <p
+            className="font-mono font-medium text-foreground truncate"
+            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+          >
             {label}
           </p>
 
-          {/* Metadata grid */}
-          <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs">
+          {/* Metadata grid - 12px floor enforced */}
+          <div
+            className="grid grid-cols-2 gap-x-3 gap-y-0.5"
+            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+          >
             {direction && (
               <>
                 <span className="text-muted-foreground">Direction</span>
@@ -98,8 +104,11 @@ export function PortTooltip({
             <span className="text-foreground tabular-nums">{connectionCount}</span>
           </div>
 
-          {/* Port ID (subtle) */}
-          <p className="text-[10px] text-muted-foreground/60 font-mono truncate pt-1 border-t border-surface-2">
+          {/* Port ID (subtle but still 12px floor) */}
+          <p
+            className="text-muted-foreground/60 font-mono truncate pt-1 border-t border-surface-2"
+            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+          >
             {portId}
           </p>
         </TooltipContent>

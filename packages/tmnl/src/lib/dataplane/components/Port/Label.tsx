@@ -26,23 +26,31 @@ interface PortLabelProps {
 export function PortLabel({ children, className }: PortLabelProps) {
   const { size } = usePort();
 
-  // Size-responsive classes
-  const sizeClasses = {
-    compact: 'sr-only', // Hidden but accessible
-    default: 'max-w-[80px] text-xs', // 12px minimum
-    large: 'max-w-[120px] text-sm', // 14px
+  // Size-responsive styles (TAC-aligned with TMNL fallbacks)
+  const sizeStyles = {
+    compact: { maxWidth: undefined, fontSize: undefined, srOnly: true },
+    default: { maxWidth: '80px', fontSize: 'var(--tmnl-text-xs, 12px)', srOnly: false },
+    large: { maxWidth: '120px', fontSize: 'var(--tmnl-text-sm, 14px)', srOnly: false },
   };
+
+  const style = sizeStyles[size];
+
+  if (style.srOnly) {
+    return <span className="sr-only">{children}</span>;
+  }
 
   return (
     <span
       className={cn(
         // Base styles
         'font-mono text-muted-foreground truncate',
-        // Size variant
-        sizeClasses[size],
         // User overrides
         className
       )}
+      style={{
+        maxWidth: style.maxWidth,
+        fontSize: style.fontSize,
+      }}
     >
       {children}
     </span>

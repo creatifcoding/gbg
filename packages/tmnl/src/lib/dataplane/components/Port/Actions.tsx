@@ -2,6 +2,7 @@
  * @fileoverview Port Actions Component
  *
  * Container for port action buttons.
+ * Uses TAC grid-based expand/collapse pattern for smooth animations.
  */
 
 import React, { memo } from 'react';
@@ -21,6 +22,7 @@ export interface PortActionsProps {
 /**
  * Container for action buttons.
  * Visible on hover or when port is expanded.
+ * Uses TAC grid-rows pattern for smooth height transitions.
  */
 export const Actions = memo(function PortActions({
   children,
@@ -32,16 +34,27 @@ export const Actions = memo(function PortActions({
 
   const isVisible = !showOnHover || state === 'hovered' || state === 'expanded';
 
+  // TAC grid-based expand/collapse pattern
   return (
     <div
       className={`
-        flex items-center
-        transition-opacity duration-150
-        ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}
-        ${className ?? ''}
+        grid
+        transition-[grid-template-rows]
+        duration-200
+        ease-out
+        ${isVisible ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}
       `}
     >
-      {children}
+      <div className="overflow-hidden">
+        <div
+          className={`
+            flex items-center
+            ${className ?? ''}
+          `}
+        >
+          {children}
+        </div>
+      </div>
     </div>
   );
 });

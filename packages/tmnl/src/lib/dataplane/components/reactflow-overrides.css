@@ -174,3 +174,37 @@
 .react-flow__panel {
   margin: 8px !important;
 }
+
+/* =============================================================================
+   PortNode TAC Animations
+   ============================================================================= */
+
+/* Pulsing glow animation for linking state */
+@keyframes pulsing-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px var(--port-glow-color, rgba(34, 211, 238, 0.4));
+  }
+  50% {
+    box-shadow: 0 0 20px var(--port-glow-color, rgba(34, 211, 238, 0.6));
+  }
+}
+
+.animate-pulsing-glow {
+  animation: pulsing-glow 2s ease-in-out infinite;
+}
+
+/* Handle state variants */
+.port-handle-in {
+  background: #22d3ee !important;
+  border-color: #0891b2 !important;
+}
+
+.port-handle-out {
+  background: #fbbf24 !important;
+  border-color: #d97706 !important;
+}
+
+.port-handle-inout {
+  background: #a78bfa !important;
+  border-color: #7c3aed !important;
+}
