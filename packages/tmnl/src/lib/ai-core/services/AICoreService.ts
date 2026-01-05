@@ -163,6 +163,8 @@ export class AICoreService extends Context.Tag('tmnl/ai-core/AICoreService')<
           console.log('[AICoreService] Sending to cursor server:', JSON.stringify({ messages: aiSdkMessages }, null, 2))
 
           // Make streaming request to cursor server
+          // Note: Tools are handled by Claude Code's native MCP system when mode='terminal'
+          // The client-side tools are for display/tracking, not for passing to the AI
           const response = yield* Effect.tryPromise({
             try: async () => {
               return fetch(CURSOR_CHAT_URL, {
@@ -172,7 +174,8 @@ export class AICoreService extends Context.Tag('tmnl/ai-core/AICoreService')<
                 },
                 body: JSON.stringify({
                   messages: aiSdkMessages,
-                  tools: request.tools,
+                  // Terminal mode enables MCP tools via Claude Code's native system
+                  mode: request.tools && request.tools.length > 0 ? 'terminal' : 'cursor',
                   maxTokens: request.maxTokens,
                   temperature: request.temperature,
                   systemPrompt: request.systemPrompt,
@@ -246,12 +249,12 @@ export class AICoreService extends Context.Tag('tmnl/ai-core/AICoreService')<
             Stream.takeUntilEffect(() => Ref.get(abortedRef))
           )
 
-          // Fork stream processing to background fiber
-          const fiber = yield* Effect.fork(
-            Stream.runDrain(abortableStream).pipe(
-              Effect.catchAll(() => Effect.void)
-            )
-          )
+          // NOTE: We do NOT run the stream here - the consumer will consume it.
+          // The fiber is created as a placeholder that can be used for abort signaling.
+          // The actual stream consumption happens in BlockTerminalService.executeAIQuery
+          const fiber = Fiber.unit as unknown as Fiber.RuntimeFiber<void, AICoreStreamError>
+
+          console.log('[AICoreService] Stream handle created, requestId:', requestId)
 
           return {
             stream: abortableStream,

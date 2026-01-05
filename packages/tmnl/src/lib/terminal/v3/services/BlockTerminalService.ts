@@ -109,10 +109,16 @@ export class BlockTerminalService extends Context.Tag('tmnl/terminal/v3/BlockTer
           // Add to history
           addToHistory(args.prompt)
 
+          // Get available MCP tools for the AI to use
+          const aggregatedTools = yield* aiCore.getAvailableTools()
+          const tools = aggregatedTools.map((t) => t.tool)
+          console.log('[BlockTerminalService] Available MCP tools:', tools.map((t) => t.name))
+
           // Get stream from ai-core FIRST to get requestId
           const handle = yield* aiCore.streamChat({
             messages: [userMessage(args.prompt)],
             modelId: model,
+            tools,
           })
 
           const requestId = handle.metadata.requestId
