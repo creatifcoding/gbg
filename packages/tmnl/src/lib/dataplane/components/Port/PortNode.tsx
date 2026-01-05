@@ -15,7 +15,7 @@
  * @module dataplane/components/Port/PortNode
  */
 
-import React, { memo, useMemo, useCallback } from 'react';
+import React, { memo, useMemo, useCallback, type CSSProperties } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { useAtomValue } from '@effect-atom/atom-react';
 import { Link2, Settings, Trash2, Unplug, Maximize2, ChevronDown, ChevronUp } from 'lucide-react';
@@ -32,6 +32,14 @@ import { Tab as PortTab } from './Tab';
 import { Actions as PortActions } from './Actions';
 import { Action as PortAction } from './Action';
 import type { PortSize } from './types';
+import {
+  VANTA_COLORS,
+  VANTA_TYPOGRAPHY,
+  VANTA_SPACING,
+  VANTA_BORDERS,
+  VANTA_ANIMATION,
+  VANTA_CARD_VARIANTS,
+} from '@/components/portal/tokens';
 
 // =============================================================================
 // Types
@@ -56,36 +64,30 @@ export interface PortNodeProps {
 // =============================================================================
 
 /**
- * TAC-aligned direction colors with CSS custom property support
- * Glass morphism pattern: semi-transparent bg + backdrop-blur
+ * VANTA-aligned direction colors
+ * Uses VANTA accent palette for consistent blackout aesthetic
  */
 const DIRECTION_COLORS: Record<
   SchemaPortDirection,
-  { bg: string; border: string; glow: string; glowVar: string; handle: string; handleBorder: string }
+  { accent: string; muted: string; glow: string; glowShadow: string }
 > = {
   in: {
-    bg: 'rgba(34, 211, 238, 0.12)',
-    border: 'rgba(34, 211, 238, 0.6)',
-    glow: '0 0 12px rgba(34, 211, 238, 0.4)',
-    glowVar: 'rgba(34, 211, 238, 0.5)',  // For CSS custom prop
-    handle: '#22d3ee',
-    handleBorder: '#0891b2',
+    accent: VANTA_COLORS.accent.cyan,
+    muted: VANTA_COLORS.accent.cyanMuted,
+    glow: VANTA_COLORS.accent.cyanGlow,
+    glowShadow: VANTA_BORDERS.shadow.glowCyan,
   },
   out: {
-    bg: 'rgba(251, 191, 36, 0.12)',
-    border: 'rgba(251, 191, 36, 0.6)',
-    glow: '0 0 12px rgba(251, 191, 36, 0.4)',
-    glowVar: 'rgba(251, 191, 36, 0.5)',
-    handle: '#fbbf24',
-    handleBorder: '#d97706',
+    accent: VANTA_COLORS.accent.amber,
+    muted: VANTA_COLORS.accent.amberMuted,
+    glow: VANTA_COLORS.accent.amberGlow,
+    glowShadow: VANTA_BORDERS.shadow.glowAmber,
   },
   inout: {
-    bg: 'rgba(167, 139, 250, 0.12)',
-    border: 'rgba(167, 139, 250, 0.6)',
-    glow: '0 0 12px rgba(167, 139, 250, 0.4)',
-    glowVar: 'rgba(167, 139, 250, 0.5)',
-    handle: '#a78bfa',
-    handleBorder: '#7c3aed',
+    accent: VANTA_COLORS.accent.violet,
+    muted: VANTA_COLORS.accent.violetMuted,
+    glow: VANTA_COLORS.accent.violetGlow,
+    glowShadow: `0 0 20px ${VANTA_COLORS.accent.violetGlow}`,
   },
 };
 
@@ -107,53 +109,37 @@ interface PortInfoPanelProps {
 
 /** Info tab: connection status, block ID, data type, direction */
 const PortInfoPanel = memo(function PortInfoPanel({ port, links }: PortInfoPanelProps) {
+  const dirColors = DIRECTION_COLORS[port.direction];
+
+  const labelStyle: CSSProperties = {
+    ...VANTA_TYPOGRAPHY.preset.label,
+    color: VANTA_COLORS.text.muted,
+  };
+
+  const valueStyle: CSSProperties = {
+    ...VANTA_TYPOGRAPHY.preset.micro,
+    color: VANTA_COLORS.text.secondary,
+  };
+
   return (
-    <div className="space-y-2 text-foreground">
-      <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-        <span className="text-muted-foreground" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-          ID
-        </span>
-        <span className="font-mono truncate" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-          {port.id.slice(0, 12)}...
-        </span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: VANTA_SPACING['2'] }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: `${VANTA_SPACING['1']} ${VANTA_SPACING['3']}` }}>
+        <span style={labelStyle}>ID</span>
+        <span style={valueStyle}>{port.id.slice(0, 12)}...</span>
 
-        <span className="text-muted-foreground" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-          Block
-        </span>
-        <span className="font-mono truncate" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-          {port.blockId.slice(0, 12)}...
-        </span>
+        <span style={labelStyle}>Block</span>
+        <span style={valueStyle}>{port.blockId.slice(0, 12)}...</span>
 
-        <span className="text-muted-foreground" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-          Direction
-        </span>
-        <span
-          className="font-mono uppercase"
-          style={{
-            fontSize: 'var(--tmnl-text-xs, 12px)',
-            color: port.direction === 'in' ? '#22d3ee' : port.direction === 'out' ? '#fbbf24' : '#a78bfa',
-          }}
-        >
+        <span style={labelStyle}>Direction</span>
+        <span style={{ ...valueStyle, color: dirColors.accent, textTransform: 'uppercase' }}>
           {port.direction}
         </span>
 
-        <span className="text-muted-foreground" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-          Data Type
-        </span>
-        <span className="font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-          {port.dataType}
-        </span>
+        <span style={labelStyle}>Data Type</span>
+        <span style={valueStyle}>{port.dataType}</span>
 
-        <span className="text-muted-foreground" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-          Connections
-        </span>
-        <span
-          className="font-mono"
-          style={{
-            fontSize: 'var(--tmnl-text-xs, 12px)',
-            color: links.length > 0 ? '#22d3ee' : 'inherit',
-          }}
-        >
+        <span style={labelStyle}>Connections</span>
+        <span style={{ ...valueStyle, color: links.length > 0 ? VANTA_COLORS.accent.cyan : VANTA_COLORS.text.secondary }}>
           {links.length}
         </span>
       </div>
@@ -167,69 +153,54 @@ interface PortConfigPanelProps {
 
 /** Config tab: rename, validation rules, settings */
 const PortConfigPanel = memo(function PortConfigPanel({ port }: PortConfigPanelProps) {
+  const labelStyle: CSSProperties = {
+    ...VANTA_TYPOGRAPHY.preset.label,
+    color: VANTA_COLORS.text.muted,
+    marginBottom: VANTA_SPACING['1'],
+    display: 'block',
+  };
+
+  const inputStyle: CSSProperties = {
+    ...VANTA_TYPOGRAPHY.preset.micro,
+    width: '100%',
+    padding: `${VANTA_SPACING['1']} ${VANTA_SPACING['2']}`,
+    borderRadius: VANTA_BORDERS.radius.sm,
+    background: VANTA_COLORS.surface.elevated,
+    border: VANTA_BORDERS.style.subtle,
+    color: VANTA_COLORS.text.secondary,
+    outline: 'none',
+    transition: VANTA_ANIMATION.transition.colors,
+  };
+
+  const readOnlyStyle: CSSProperties = {
+    ...inputStyle,
+    color: VANTA_COLORS.text.muted,
+  };
+
   return (
-    <div className="space-y-3">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: VANTA_SPACING['3'] }}>
       {/* Label field */}
       <div>
-        <label
-          className="block text-muted-foreground mb-1"
-          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-        >
-          Label
-        </label>
+        <label style={labelStyle}>Label</label>
         <input
           type="text"
           defaultValue={port.label ?? ''}
           placeholder={port.direction.toUpperCase()}
-          className="
-            w-full px-2 py-1 rounded
-            bg-surface-2 border border-surface-3
-            text-foreground font-mono
-            focus:outline-none focus:border-cyan-500/50
-          "
-          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+          style={inputStyle}
           onClick={(e) => e.stopPropagation()}
         />
       </div>
 
       {/* Data type (read-only) */}
       <div>
-        <label
-          className="block text-muted-foreground mb-1"
-          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-        >
-          Data Type
-        </label>
-        <div
-          className="
-            px-2 py-1 rounded
-            bg-surface-2 border border-surface-3
-            text-muted-foreground font-mono
-          "
-          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-        >
-          {port.dataType}
-        </div>
+        <label style={labelStyle}>Data Type</label>
+        <div style={readOnlyStyle}>{port.dataType}</div>
       </div>
 
       {/* Position */}
       <div>
-        <label
-          className="block text-muted-foreground mb-1"
-          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-        >
-          Position
-        </label>
-        <div
-          className="
-            px-2 py-1 rounded
-            bg-surface-2 border border-surface-3
-            text-muted-foreground font-mono capitalize
-          "
-          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-        >
-          {port.position}
-        </div>
+        <label style={labelStyle}>Position</label>
+        <div style={{ ...readOnlyStyle, textTransform: 'capitalize' }}>{port.position}</div>
       </div>
     </div>
   );
@@ -244,57 +215,67 @@ interface PortLinksPanelProps {
 const PortLinksPanel = memo(function PortLinksPanel({ port, links }: PortLinksPanelProps) {
   if (links.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-4 text-muted-foreground">
-        <Icon icon={Unplug} size={20} color="muted" className="mb-2 opacity-50" />
-        <span style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>No connections</span>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: VANTA_SPACING['4'],
+        color: VANTA_COLORS.text.muted,
+      }}>
+        <Icon icon={Unplug} size={20} color="muted" style={{ marginBottom: VANTA_SPACING['2'], opacity: 0.5 }} />
+        <span style={VANTA_TYPOGRAPHY.preset.micro}>No connections</span>
       </div>
     );
   }
 
+  const linkItemStyle: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: VANTA_SPACING['2'],
+    padding: `${VANTA_SPACING['1.5']} ${VANTA_SPACING['2']}`,
+    borderRadius: VANTA_BORDERS.radius.sm,
+    background: VANTA_COLORS.surface.elevated,
+    border: VANTA_BORDERS.style.subtle,
+    transition: VANTA_ANIMATION.transition.colors,
+  };
+
   return (
-    <div className="space-y-2">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: VANTA_SPACING['2'] }}>
       {links.map((link) => {
         const isSource = link.sourcePort === port.id;
         const connectedPortId = isSource ? link.targetPort : link.sourcePort;
 
         return (
-          <div
-            key={link.id}
-            className="
-              flex items-center gap-2
-              px-2 py-1.5 rounded
-              bg-surface-2 border border-surface-3
-              hover:border-surface-4 transition-colors
-            "
-          >
+          <div key={link.id} style={linkItemStyle}>
             {/* Direction indicator */}
-            <span
-              className="font-mono"
-              style={{
-                fontSize: 'var(--tmnl-text-xs, 12px)',
-                color: isSource ? '#fbbf24' : '#22d3ee',
-              }}
-            >
+            <span style={{
+              ...VANTA_TYPOGRAPHY.preset.micro,
+              color: isSource ? VANTA_COLORS.accent.amber : VANTA_COLORS.accent.cyan,
+            }}>
               {isSource ? '→' : '←'}
             </span>
 
             {/* Connected port ID */}
-            <span
-              className="font-mono truncate flex-1"
-              style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-            >
+            <span style={{
+              ...VANTA_TYPOGRAPHY.preset.micro,
+              color: VANTA_COLORS.text.secondary,
+              flex: 1,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>
               {connectedPortId.slice(0, 10)}...
             </span>
 
             {/* Link type badge */}
-            <span
-              className="
-                px-1.5 py-0.5 rounded
-                bg-surface-3 text-muted-foreground
-                font-mono uppercase
-              "
-              style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-            >
+            <span style={{
+              ...VANTA_TYPOGRAPHY.preset.label,
+              padding: `${VANTA_SPACING['0.5']} ${VANTA_SPACING['1.5']}`,
+              borderRadius: VANTA_BORDERS.radius.sm,
+              background: VANTA_COLORS.surface.raised,
+              color: VANTA_COLORS.text.muted,
+            }}>
               {link.relationship}
             </span>
           </div>
@@ -384,165 +365,210 @@ const PortNodeInner = memo(function PortNodeInner({
     portOps.selectTab(port.id, 'info');
   }, [port.id]);
 
-  // TAC glass morphism container styling
-  const containerStyle: React.CSSProperties = {
-    '--port-glow-color': colors.glowVar,
-    backgroundColor: colors.bg,
-    borderColor: colors.border,
-  } as React.CSSProperties;
+  // ==========================================================================
+  // VANTA Blackout Container Styling
+  // ==========================================================================
 
-  // Build container classNames (TAC pattern)
-  const containerClasses = [
-    // Base glass morphism
-    'relative',
-    'backdrop-blur-md',
-    'border-2',
-    'rounded-lg',
-    'shadow-lg',
-    // Width transitions
-    'transition-[min-width,box-shadow,border-color]',
-    'duration-200',
-    'ease-out',
-    // Width based on state
-    isExpanded ? 'min-w-[240px]' : 'min-w-[90px]',
-    // Glow states
-    isLinking && 'animate-pulsing-glow',
-    (selected || isConnected || isHovered) && !isLinking && 'shadow-[0_0_12px_var(--port-glow-color)]',
-  ].filter(Boolean).join(' ');
+  // Determine glow state
+  const showGlow = selected || isConnected || isHovered || isLinking;
+
+  // VANTA container styles — near-black surfaces with accent glows
+  const containerStyle: CSSProperties = {
+    position: 'relative',
+    background: VANTA_COLORS.gradient.surface,
+    border: showGlow ? `1px solid ${colors.muted}` : VANTA_BORDERS.style.subtle,
+    borderRadius: VANTA_BORDERS.radius.md,
+    boxShadow: isLinking
+      ? `${VANTA_BORDERS.shadow.card}, ${colors.glowShadow}`
+      : showGlow
+        ? `${VANTA_BORDERS.shadow.elevated}, ${colors.glowShadow}`
+        : VANTA_BORDERS.shadow.card,
+    padding: VANTA_SPACING['3'],
+    minWidth: isExpanded ? '240px' : '90px',
+    transition: VANTA_ANIMATION.transition.all,
+    // Pulsing animation for linking state
+    animation: isLinking ? 'vanta-port-pulse 2s ease-in-out infinite' : undefined,
+  };
+
+  // Depth gradient overlay (VantaCard pattern)
+  const depthOverlayStyle: CSSProperties = {
+    position: 'absolute',
+    inset: 0,
+    background: VANTA_COLORS.gradient.depth,
+    pointerEvents: 'none',
+    borderRadius: VANTA_BORDERS.radius.md,
+  };
 
   return (
     <div
-      className={containerClasses}
       style={containerStyle}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Port compound component */}
-      <PortItem className="bg-transparent border-none">
-        {/* Toggle button - explicit click target that bypasses ReactFlow */}
-        <button
-          type="button"
-          onClick={handleToggleActions}
-          className="p-1 rounded hover:bg-white/10 transition-colors"
-          title={isHovered || isExpanded ? 'Hide actions' : 'Show actions'}
-        >
-          <Icon
-            icon={isHovered || isExpanded ? ChevronUp : ChevronDown}
-            size={12}
-            color="muted"
+      {/* VANTA depth gradient overlay */}
+      <div style={depthOverlayStyle} />
+
+      {/* Content layer */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {/* Port compound component */}
+        <PortItem className="bg-transparent border-none">
+          {/* Toggle button - explicit click target */}
+          <button
+            type="button"
+            onClick={handleToggleActions}
+            style={{
+              padding: VANTA_SPACING['1'],
+              borderRadius: VANTA_BORDERS.radius.sm,
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              transition: VANTA_ANIMATION.transition.colors,
+            }}
+            title={isHovered || isExpanded ? 'Hide actions' : 'Show actions'}
+          >
+            <Icon
+              icon={isHovered || isExpanded ? ChevronUp : ChevronDown}
+              size={12}
+              color="muted"
+            />
+          </button>
+
+          {/* Direction icon */}
+          <span
+            style={{
+              ...VANTA_TYPOGRAPHY.preset.value,
+              color: colors.muted,
+              opacity: 0.7,
+            }}
+            title={`Direction: ${port.direction}`}
+          >
+            {port.direction === 'in' ? '→' : port.direction === 'out' ? '←' : '↔'}
+          </span>
+
+          {/* Port label */}
+          <span style={{
+            ...VANTA_TYPOGRAPHY.preset.cardTitle,
+            color: colors.accent,
+          }}>
+            {port.label ?? port.direction.toUpperCase()}
+          </span>
+
+          {/* Data type indicator */}
+          <span
+            style={{
+              ...VANTA_TYPOGRAPHY.preset.micro,
+              color: VANTA_COLORS.text.muted,
+              opacity: 0.6,
+            }}
+            title={port.dataType}
+          >
+            {typeIcon}
+          </span>
+
+          {/* Status badge */}
+          <PortBadge
+            status={isConnected ? 'connected' : 'idle'}
+            count={connectionCount > 0 ? connectionCount : undefined}
           />
-        </button>
-        {/* Direction icon */}
-        <span
-          className="font-mono opacity-70"
-          title={`Direction: ${port.direction}`}
-          style={{ fontSize: 'var(--tmnl-text-base, 16px)' }}
-        >
-          {port.direction === 'in' ? '→' : port.direction === 'out' ? '←' : '↔'}
-        </span>
+        </PortItem>
 
-        {/* Port label */}
-        <span
-          className="font-mono font-medium"
-          style={{
-            color: colors.border,
-            fontSize: 'var(--tmnl-text-xs, 12px)',
-          }}
-        >
-          {port.label ?? port.direction.toUpperCase()}
-        </span>
+        {/* Block ID (truncated) */}
+        {blockLabel && (
+          <div style={{
+            ...VANTA_TYPOGRAPHY.preset.micro,
+            textAlign: 'center',
+            color: VANTA_COLORS.text.muted,
+            padding: `0 ${VANTA_SPACING['2']} ${VANTA_SPACING['1']}`,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {blockLabel}
+          </div>
+        )}
 
-        {/* Data type indicator */}
-        <span
-          className="font-mono opacity-60"
-          title={port.dataType}
-          style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
-        >
-          {typeIcon}
-        </span>
+        {/* Actions (visible when actions toggled via click) */}
+        <PortActions className="justify-center gap-1 py-1">
+          <PortAction
+            icon={<Icon icon={Maximize2} size={14} color="violet" />}
+            onClick={handleExpand}
+            label="Expand details"
+          />
+          <PortAction
+            icon={<Icon icon={Link2} size={14} color="cyan" />}
+            onClick={handleStartLinking}
+            label="Start linking"
+          />
+          <PortAction
+            icon={<Icon icon={Settings} size={14} color="muted" />}
+            onClick={handleConfigure}
+            label="Configure"
+          />
+          <PortAction
+            icon={<Icon icon={Trash2} size={14} color="red" />}
+            onClick={handleDelete}
+            label="Delete"
+            variant="destructive"
+          />
+        </PortActions>
 
-        {/* Status badge */}
-        <PortBadge
-          status={isConnected ? 'connected' : 'idle'}
-          count={connectionCount > 0 ? connectionCount : undefined}
-        />
-      </PortItem>
+        {/* Sidebar (visible when expanded) */}
+        <PortSidebar width={220}>
+          <PortTab id="info" label="Info">
+            <PortInfoPanel port={port} links={links} />
+          </PortTab>
+          <PortTab id="config" label="Config">
+            <PortConfigPanel port={port} />
+          </PortTab>
+          <PortTab id="links" label="Links">
+            <PortLinksPanel port={port} links={links} />
+          </PortTab>
+        </PortSidebar>
+      </div>
 
-      {/* Block ID (truncated) */}
-      {blockLabel && (
-        <div
-          className="text-center font-mono text-muted-foreground px-2 pb-1 truncate"
-          style={{ fontSize: 'var(--tmnl-text-xs, 12px)', maxWidth: '100%' }}
-        >
-          {blockLabel}
-        </div>
-      )}
-
-      {/* Actions (visible when actions toggled via click) */}
-      <PortActions className="justify-center gap-1 py-1">
-        <PortAction
-          icon={<Icon icon={Maximize2} size={14} color="violet" />}
-          onClick={handleExpand}
-          label="Expand details"
-        />
-        <PortAction
-          icon={<Icon icon={Link2} size={14} color="cyan" />}
-          onClick={handleStartLinking}
-          label="Start linking"
-        />
-        <PortAction
-          icon={<Icon icon={Settings} size={14} color="muted" />}
-          onClick={handleConfigure}
-          label="Configure"
-        />
-        <PortAction
-          icon={<Icon icon={Trash2} size={14} color="red" />}
-          onClick={handleDelete}
-          label="Delete"
-          variant="destructive"
-        />
-      </PortActions>
-
-      {/* Sidebar (visible when expanded) */}
-      <PortSidebar width={220}>
-        <PortTab id="info" label="Info">
-          <PortInfoPanel port={port} links={links} />
-        </PortTab>
-        <PortTab id="config" label="Config">
-          <PortConfigPanel port={port} />
-        </PortTab>
-        <PortTab id="links" label="Links">
-          <PortLinksPanel port={port} links={links} />
-        </PortTab>
-      </PortSidebar>
-
-      {/* Target handle (for incoming connections) - TAC pattern */}
+      {/* Target handle (for incoming connections) - VANTA pattern */}
       {showTargetHandle && (
         <Handle
           type="target"
           position={Position.Left}
           id={`${port.id}-target`}
-          className="!w-3 !h-3 !bg-gray-900 !border-2"
           style={{
-            borderColor: colors.handle,
-            boxShadow: `0 0 6px ${colors.glowVar}`,
+            width: '10px',
+            height: '10px',
+            background: VANTA_COLORS.surface.void,
+            border: `2px solid ${colors.accent}`,
+            boxShadow: showGlow ? `0 0 8px ${colors.glow}` : 'none',
           }}
         />
       )}
 
-      {/* Source handle (for outgoing connections) - TAC pattern */}
+      {/* Source handle (for outgoing connections) - VANTA pattern */}
       {showSourceHandle && (
         <Handle
           type="source"
           position={Position.Right}
           id={`${port.id}-source`}
-          className="!w-3 !h-3 !bg-gray-900 !border-2"
           style={{
-            borderColor: colors.handle,
-            boxShadow: `0 0 6px ${colors.glowVar}`,
+            width: '10px',
+            height: '10px',
+            background: VANTA_COLORS.surface.void,
+            border: `2px solid ${colors.accent}`,
+            boxShadow: showGlow ? `0 0 8px ${colors.glow}` : 'none',
           }}
         />
       )}
+
+      {/* VANTA pulsing animation keyframes */}
+      <style>{`
+        @keyframes vanta-port-pulse {
+          0%, 100% {
+            box-shadow: ${VANTA_BORDERS.shadow.card}, ${colors.glowShadow};
+          }
+          50% {
+            box-shadow: ${VANTA_BORDERS.shadow.elevated}, 0 0 30px ${colors.glow};
+          }
+        }
+      `}</style>
     </div>
   );
 });
