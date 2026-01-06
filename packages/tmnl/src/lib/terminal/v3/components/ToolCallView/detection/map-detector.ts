@@ -482,7 +482,18 @@ function isValidLonLat(lon: number, lat: number): boolean {
 function findNestedGeoData(
   obj: Record<string, unknown>
 ): Option.Option<DetectedMapData> {
-  // Check common nesting patterns
+  // ===========================================================================
+  // 1. Handle osmmcp response format: { place: { location: { latitude, longitude } } }
+  // ===========================================================================
+  const osmResult = extractOsmMcpCoordinates(obj)
+  if (osmResult.length > 0) {
+    console.log('[map-detector] Found osmmcp format coordinates:', osmResult)
+    return Option.some(coordinatesToDetected(osmResult, nanoid()))
+  }
+
+  // ===========================================================================
+  // 2. Check common nesting patterns (GeoJSON-style)
+  // ===========================================================================
   const geoKeys = [
     'geojson',
     'geometry',
@@ -518,6 +529,100 @@ function findNestedGeoData(
   }
 
   return Option.none()
+}
+
+/**
+ * Extract coordinates from osmmcp response formats
+ * Handles: geocode_address, find_nearby_places, explore_area, etc.
+ */
+function extractOsmMcpCoordinates(obj: Record<string, unknown>): number[][] {
+  const coords: number[][] = []
+
+  // Pattern 1: { place: { location: { latitude, longitude } } }
+  const place = obj['place'] as Record<string, unknown> | undefined
+  if (place) {
+    const location = place['location'] as Record<string, unknown> | undefined
+    if (location) {
+      const lat = location['latitude']
+      const lon = location['longitude']
+      if (typeof lat === 'number' && typeof lon === 'number' && isValidLonLat(lon, lat)) {
+        coords.push([lon, lat])
+      }
+    }
+  }
+
+  // Pattern 2: { candidates: [{ location: { latitude, longitude } }] }
+  const candidates = obj['candidates'] as Array<Record<string, unknown>> | undefined
+  if (Array.isArray(candidates)) {
+    for (const candidate of candidates) {
+      const location = candidate['location'] as Record<string, unknown> | undefined
+      if (location) {
+        const lat = location['latitude']
+        const lon = location['longitude']
+        if (typeof lat === 'number' && typeof lon === 'number' && isValidLonLat(lon, lat)) {
+          // Skip duplicates (first candidate usually matches place)
+          if (!coords.some(c => c[0] === lon && c[1] === lat)) {
+            coords.push([lon, lat])
+          }
+        }
+      }
+    }
+  }
+
+  // Pattern 3: { places: [{ name, distance, location: { latitude, longitude } }] }
+  const places = obj['places'] as Array<Record<string, unknown>> | undefined
+  if (Array.isArray(places)) {
+    for (const p of places) {
+      const location = p['location'] as Record<string, unknown> | undefined
+      if (location) {
+        const lat = location['latitude']
+        const lon = location['longitude']
+        if (typeof lat === 'number' && typeof lon === 'number' && isValidLonLat(lon, lat)) {
+          coords.push([lon, lat])
+        }
+      }
+    }
+  }
+
+  // Pattern 4: { route: { geometry: string (polyline), legs: [...] } }
+  const route = obj['route'] as Record<string, unknown> | undefined
+  if (route) {
+    const geometry = route['geometry']
+    if (typeof geometry === 'string') {
+      // Polyline encoded - we can't decode here but signal it exists
+      // The map view will need to decode it
+      console.log('[map-detector] Found route with polyline geometry')
+    }
+    const legs = route['legs'] as Array<Record<string, unknown>> | undefined
+    if (Array.isArray(legs)) {
+      for (const leg of legs) {
+        const steps = leg['steps'] as Array<Record<string, unknown>> | undefined
+        if (Array.isArray(steps)) {
+          for (const step of steps) {
+            const loc = step['location'] as number[] | undefined
+            if (Array.isArray(loc) && loc.length >= 2) {
+              coords.push([loc[0], loc[1]])
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Pattern 5: { area: { center: { latitude, longitude } } } (explore_area)
+  const area = obj['area'] as Record<string, unknown> | undefined
+  if (area) {
+    const center = area['center'] as Record<string, unknown> | undefined
+    if (center) {
+      const lat = center['latitude']
+      const lon = center['longitude']
+      if (typeof lat === 'number' && typeof lon === 'number' && isValidLonLat(lon, lat)) {
+        coords.push([lon, lat])
+      }
+    }
+  }
+
+  return coords
 }
 
 // =============================================================================
