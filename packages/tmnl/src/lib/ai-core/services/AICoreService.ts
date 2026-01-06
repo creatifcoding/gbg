@@ -71,6 +71,8 @@ export interface StreamChatRequest {
   readonly temperature?: number
   /** System prompt override */
   readonly systemPrompt?: string
+  /** Chat mode: 'terminal' enables MCP tools, 'cursor' is natural language only */
+  readonly mode?: 'terminal' | 'cursor'
 }
 
 /**
@@ -174,8 +176,9 @@ export class AICoreService extends Context.Tag('tmnl/ai-core/AICoreService')<
                 },
                 body: JSON.stringify({
                   messages: aiSdkMessages,
-                  // Terminal mode enables MCP tools via Claude Code's native system
-                  mode: request.tools && request.tools.length > 0 ? 'terminal' : 'cursor',
+                  // Use explicit mode if provided, otherwise default to 'terminal' for MCP tools
+                  // (Cursor mode is only used by Dynamic Island floating chat)
+                  mode: request.mode ?? 'terminal',
                   maxTokens: request.maxTokens,
                   temperature: request.temperature,
                   systemPrompt: request.systemPrompt,
