@@ -322,12 +322,24 @@ interface ToolCallsProps {
   defaultOpen?: boolean
 }
 
-function ToolCalls({ className, defaultOpen = false }: ToolCallsProps) {
+function ToolCalls({ className, defaultOpen = true }: ToolCallsProps) {
   const { content } = useAIResponse()
 
   const pendingCount = content.pendingToolCalls.length
   const completedCount = content.completedToolCalls.length
   const totalCount = pendingCount + completedCount
+
+  console.log('[AIResponse.ToolCalls] Rendering:', {
+    pendingCount,
+    completedCount,
+    totalCount,
+    completedToolCalls: content.completedToolCalls.map(tc => ({
+      toolName: tc.call.toolName,
+      toolCallId: tc.call.toolCallId,
+      hasResult: !!tc.result,
+      resultType: tc.result ? typeof tc.result.result : 'no result',
+    })),
+  })
 
   if (totalCount === 0) {
     return null

@@ -125,17 +125,24 @@ export interface DetectionContext {
 export function detectMapData(ctx: DetectionContext): Option.Option<DetectedMapData> {
   const { toolName, toolCallId, result } = ctx
 
+  console.log('[map-detector] detectMapData called:', { toolName, toolCallId, resultType: typeof result })
+
   // Skip if result is null/undefined
   if (result == null) {
+    console.log('[map-detector] Result is null/undefined, skipping')
     return Option.none()
   }
 
   // 1. Explicit tool name match - highest priority
   if (MAP_PRODUCING_TOOLS.has(toolName)) {
+    console.log('[map-detector] Tool is in MAP_PRODUCING_TOOLS, attempting normalization')
     const normalized = normalizeToMapData(result, toolCallId, 'explicit')
+    console.log('[map-detector] Normalization result:', Option.isSome(normalized) ? 'SUCCESS' : 'FAILED')
     if (Option.isSome(normalized)) {
       return normalized
     }
+  } else {
+    console.log('[map-detector] Tool NOT in MAP_PRODUCING_TOOLS:', toolName)
   }
 
   // 2. Structured schema match (_type: 'MapOutput' or has layers/markers/geojson)

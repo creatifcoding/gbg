@@ -104,12 +104,15 @@ function ToolCallViewRoot({ call, result, isPending, className, children }: Tool
   // 1. Detection-based dispatch (GeoJSON/MapOutput auto-detect)
   // Only try detection when we have a result
   if (result) {
+    console.log('[ToolCallView] Checking detection for:', call.toolName, 'result:', result.result)
     const detectedMap = detectMapData({
       toolName: call.toolName,
       toolCallId: call.toolCallId,
       result: result.result,
     })
+    console.log('[ToolCallView] Detection result:', Option.isSome(detectedMap) ? 'DETECTED' : 'NOT_DETECTED')
     if (Option.isSome(detectedMap)) {
+      console.log('[ToolCallView] Rendering MapToolView for:', call.toolName)
       return <MapToolView call={call} result={result} isPending={isPending} className={className} />
     }
   }
