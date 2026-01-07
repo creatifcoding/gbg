@@ -9,8 +9,9 @@
  * @module terminal/v3/components/ToolCallView/tools/MapToolView
  */
 
-import { memo, useState, useCallback, useEffect } from 'react'
+import { memo, useState, useCallback, useMemo } from 'react'
 import { Option } from 'effect'
+import { Atom } from '@effect-atom/atom'
 import { cn } from '@/lib/utils'
 import {
   Map,
@@ -34,6 +35,10 @@ import {
 } from '../../../atoms'
 import { getEditorMapContext } from '@/lib/commands/defaults'
 import type { DetectedMapData, MapBounds } from '../../../schemas/map-output'
+import type { PendingMapInsertion } from '../../../atoms'
+
+// Stable atom that always returns Option.none() - used when no insertion is active
+const emptyInsertionAtom = Atom.make(Option.none<PendingMapInsertion>())
 
 // =============================================================================
 // Subcomponents
@@ -125,8 +130,13 @@ function MapToolViewComponent({ call, result, isPending, className }: ToolViewPr
   const detectedOption = result ? detectMapData(detectionCtx) : Option.none()
 
   // Get insertion status from atom if we've started an insertion
-  const insertionAtom = insertionId ? insertionByIdAtom(insertionId) : null
-  const insertionOption = useAtomValue(insertionAtom ?? null) ?? Option.none()
+  // CRITICAL: useMemo stabilizes atom reference, and we use emptyInsertionAtom
+  // instead of null to avoid "Invalid value used as weak map key" error
+  const insertionAtom = useMemo(
+    () => (insertionId ? insertionByIdAtom(insertionId) : emptyInsertionAtom),
+    [insertionId]
+  )
+  const insertionOption = useAtomValue(insertionAtom)
   const insertion = Option.isSome(insertionOption) ? insertionOption.value : null
 
   const hasError = result?.isError
