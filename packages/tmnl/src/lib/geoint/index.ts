@@ -37,3 +37,6 @@ export * from './components'
 
 // Persistence - Durable stream storage and PostGIS
 export * from './persistence'
+
+// Server - RPC server handlers for SearchClient
+export * from './server'

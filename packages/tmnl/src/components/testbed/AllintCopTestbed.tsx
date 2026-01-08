@@ -6,7 +6,7 @@
  * - SearchPanel UI with source filters
  * - Search result visualization layers
  * - Viewport-based auto-search
- * - Mock data generation for all source types
+ * - Real API integration (OpenSky, Overpass)
  *
  * Route: /testbed/allint-cop
  *
@@ -25,7 +25,8 @@ import {
   Zap,
   Globe,
 } from 'lucide-react'
-import { HashMap } from 'effect'
+import { Effect, Layer, HashMap, pipe } from 'effect'
+import { FetchHttpClient } from '@effect/platform'
 import { DeckGL } from '@deck.gl/react'
 import { Map as MapboxMap } from 'react-map-gl/mapbox'
 import type { MapViewState } from '@deck.gl/core'
@@ -34,17 +35,20 @@ import {
   SearchPanel,
   viewStateToBBox,
 } from '@/lib/geoint/components'
-// Note: Mock data used for testbed - SearchService atoms available for production use
-// import { searchStatusAtom, allResultsAtom } from '@/lib/geoint/services/SearchService'
 import {
   createSearchResultLayers,
 } from '@/lib/geoint/layers'
+import {
+  OpenSkyClientService,
+  OverpassClientService,
+  openSkyToSearchResult,
+  overpassToSearchResult,
+  ExternalApiClientsLive,
+} from '@/lib/geoint/api/ExternalApiClient'
 import type {
   SearchResultItem,
-  SearchResultTrack,
   SearchResultPoi,
   SearchResultFlight,
-  SearchResultFeature,
   IntelSource,
   BBox,
 } from '@/lib/geoint/schemas'
@@ -65,129 +69,94 @@ const INITIAL_VIEW_STATE: MapViewState = {
 }
 
 // =============================================================================
-// Mock Data Generation
+// Real API Search Effect
 // =============================================================================
 
-function generateMockTrack(index: number, bounds: BBox): SearchResultTrack {
-  const [minLon, minLat, maxLon, maxLat] = bounds
-  const lon = minLon + Math.random() * (maxLon - minLon)
-  const lat = minLat + Math.random() * (maxLat - minLat)
-  const classifications = ['friendly', 'hostile', 'neutral', 'unknown'] as const
-  const objectTypes = ['aircraft', 'vehicle', 'vessel', 'person'] as const
+/**
+ * Combined layer for API clients with HTTP
+ */
+const ApiLayer = pipe(
+  ExternalApiClientsLive,
+  Layer.provide(FetchHttpClient.layer)
+)
 
-  return {
-    _tag: 'SearchResultTrack',
-    id: `track-${index}` as any,
-    source: 'track',
-    score: 0.7 + Math.random() * 0.3,
-    retrievedAt: new Date(),
-    trackId: `TRACK-${String(index).padStart(3, '0')}` as any,
-    position: [lon, lat, Math.random() * 1000] as [number, number, number],
-    heading: Math.random() * 360,
-    speed: 10 + Math.random() * 50,
-    classification: classifications[Math.floor(Math.random() * classifications.length)],
-    objectType: objectTypes[Math.floor(Math.random() * objectTypes.length)],
-    label: `Track ${index}`,
-  }
-}
+/**
+ * Search flights from OpenSky API
+ */
+const searchFlightsEffect = (bounds: BBox, limit: number) =>
+  Effect.gen(function* () {
+    const opensky = yield* OpenSkyClientService
+    const response = yield* opensky.getStates({ bounds }).pipe(
+      Effect.catchAll(() => Effect.succeed({ time: Date.now(), states: null } as const))
+    )
 
-function generateMockPoi(index: number, bounds: BBox): SearchResultPoi {
-  const [minLon, minLat, maxLon, maxLat] = bounds
-  const lon = minLon + Math.random() * (maxLon - minLon)
-  const lat = minLat + Math.random() * (maxLat - minLat)
-  const categories = ['amenity', 'building', 'shop', 'tourism', 'healthcare'] as const
-  const names = ['Hospital', 'School', 'Restaurant', 'Gas Station', 'Police Station', 'Fire Station']
+    return (response.states ?? [])
+      .map(openSkyToSearchResult)
+      .filter((r): r is SearchResultFlight => r !== null)
+      .slice(0, limit)
+  })
 
-  return {
-    _tag: 'SearchResultPoi',
-    id: `poi-${index}` as any,
-    source: 'osm',
-    score: 0.6 + Math.random() * 0.4,
-    retrievedAt: new Date(),
-    poiId: `OSM-${String(index).padStart(6, '0')}` as any,
-    position: [lon, lat] as [number, number],
-    name: names[Math.floor(Math.random() * names.length)] + ` #${index}`,
-    category: categories[Math.floor(Math.random() * categories.length)],
-    tags: { type: 'mock', index: String(index) },
-  }
-}
+/**
+ * Search POIs from Overpass API
+ */
+const searchPoisEffect = (bounds: BBox, amenities: string[], limit: number) =>
+  Effect.gen(function* () {
+    const overpass = yield* OverpassClientService
 
-function generateMockFlight(index: number, bounds: BBox): SearchResultFlight {
-  const [minLon, minLat, maxLon, maxLat] = bounds
-  const lon = minLon + Math.random() * (maxLon - minLon)
-  const lat = minLat + Math.random() * (maxLat - minLat)
-  const altitude = 1000 + Math.random() * 10000
-  const categories = ['light', 'medium', 'heavy', 'rotorcraft'] as const
-  const countries = ['United States', 'Canada', 'Mexico', 'Germany', 'France', 'Japan']
-  const callsigns = ['UAL', 'AAL', 'DAL', 'SWA', 'JBU', 'ASA']
+    const query = overpass.buildQuery({
+      bounds,
+      amenities: amenities.length > 0 ? amenities : ['hospital', 'police', 'fire_station', 'school'],
+    })
 
-  return {
-    _tag: 'SearchResultFlight',
-    id: `flight-${index}` as any,
-    source: 'opensky',
-    score: 0.8 + Math.random() * 0.2,
-    retrievedAt: new Date(),
-    icao24: `${Math.random().toString(16).slice(2, 8)}` as any,
-    callsign: `${callsigns[Math.floor(Math.random() * callsigns.length)]}${100 + index}`,
-    position: [lon, lat, altitude] as [number, number, number],
-    velocity: 150 + Math.random() * 200,
-    heading: Math.random() * 360,
-    verticalRate: -5 + Math.random() * 10,
-    onGround: Math.random() > 0.9,
-    category: categories[Math.floor(Math.random() * categories.length)],
-    originCountry: countries[Math.floor(Math.random() * countries.length)],
-    lastContact: new Date(),
-  }
-}
+    const response = yield* overpass.query(query).pipe(
+      Effect.catchAll(() =>
+        Effect.succeed({
+          version: 0,
+          generator: '',
+          osm3s: { timestamp_osm_base: '', copyright: '' },
+          elements: [],
+        } as const)
+      )
+    )
 
-function generateMockFeature(index: number, bounds: BBox): SearchResultFeature {
-  const [minLon, minLat, maxLon, maxLat] = bounds
-  const lon = minLon + Math.random() * (maxLon - minLon)
-  const lat = minLat + Math.random() * (maxLat - minLat)
+    return response.elements
+      .map(overpassToSearchResult)
+      .filter((r): r is SearchResultPoi => r !== null)
+      .slice(0, limit)
+  })
 
-  return {
-    _tag: 'SearchResultFeature',
-    id: `feature-${index}` as any,
-    source: 'feature',
-    score: 0.5 + Math.random() * 0.5,
-    retrievedAt: new Date(),
-    featureId: `FEAT-${String(index).padStart(4, '0')}` as any,
-    position: [lon, lat] as [number, number],
-    geometryType: 'Point',
-    properties: { category: 'landmark', importance: Math.random() },
-    label: `Feature ${index}`,
-  }
-}
+/**
+ * Combined search effect for all sources
+ */
+const searchAllEffect = (bounds: BBox, sources: IntelSource[], limit: number) =>
+  Effect.gen(function* () {
+    const results: SearchResultItem[] = []
+    const sourceCounts: Record<string, number> = {}
 
-function generateMockResults(bounds: BBox, sources: IntelSource[]): SearchResultItem[] {
-  const results: SearchResultItem[] = []
-
-  if (sources.includes('track')) {
-    for (let i = 0; i < 5; i++) {
-      results.push(generateMockTrack(i, bounds))
+    // Query OpenSky if requested
+    if (sources.includes('opensky') || sources.length === 0) {
+      const flights = yield* searchFlightsEffect(bounds, limit)
+      results.push(...flights)
+      sourceCounts['opensky'] = flights.length
     }
-  }
 
-  if (sources.includes('osm')) {
-    for (let i = 0; i < 8; i++) {
-      results.push(generateMockPoi(i, bounds))
+    // Query Overpass if requested
+    if (sources.includes('osm') || sources.length === 0) {
+      const pois = yield* searchPoisEffect(bounds, [], limit)
+      results.push(...pois)
+      sourceCounts['osm'] = pois.length
     }
-  }
 
-  if (sources.includes('opensky')) {
-    for (let i = 0; i < 6; i++) {
-      results.push(generateMockFlight(i, bounds))
-    }
-  }
+    return { results, sourceCounts }
+  })
 
-  if (sources.includes('feature')) {
-    for (let i = 0; i < 4; i++) {
-      results.push(generateMockFeature(i, bounds))
-    }
-  }
-
-  return results
-}
+/**
+ * Run the search effect with provided layer
+ */
+const runSearch = (bounds: BBox, sources: IntelSource[], limit: number = 50) =>
+  Effect.runPromise(
+    searchAllEffect(bounds, sources, limit).pipe(Effect.provide(ApiLayer))
+  )
 
 // =============================================================================
 // Stats Panel Component
@@ -280,29 +249,32 @@ export function AllintCopTestbed() {
   // Compute current viewport bounds
   const viewportBounds = useMemo(() => viewStateToBBox(viewState), [viewState])
 
-  // Handle search execution
+  // Handle search execution - calls real OpenSky/Overpass APIs
   const handleSearch = useCallback((bounds: BBox, sources: IntelSource[]) => {
     setSearchStatus('searching')
 
-    // Simulate network delay
-    setTimeout(() => {
-      const results = generateMockResults(bounds, sources)
-      setMockResults(results)
+    // Call real APIs via Effect
+    runSearch(bounds, sources, 50)
+      .then(({ results, sourceCounts }) => {
+        setMockResults(results)
 
-      // Group by source
-      const grouped = new Map<IntelSource, SearchResultItem[]>()
-      for (const result of results) {
-        const existing = grouped.get(result.source) ?? []
-        existing.push(result)
-        grouped.set(result.source, existing)
-      }
-      let finalMap = HashMap.empty<IntelSource, readonly SearchResultItem[]>()
-      for (const [source, items] of grouped) {
-        finalMap = HashMap.set(finalMap, source, items)
-      }
-      setMockResultsBySource(finalMap)
-      setSearchStatus('completed')
-    }, 500)
+        // Group by source using Effect HashMap
+        let grouped = HashMap.empty<IntelSource, SearchResultItem[]>()
+        for (const result of results) {
+          const existing = pipe(
+            HashMap.get(grouped, result.source),
+            (opt) => opt._tag === 'Some' ? opt.value : []
+          )
+          grouped = HashMap.set(grouped, result.source, [...existing, result])
+        }
+        setMockResultsBySource(grouped as HashMap.HashMap<IntelSource, readonly SearchResultItem[]>)
+        setSearchStatus('completed')
+        console.log('[ALLINT COP] Real API results:', { total: results.length, sourceCounts })
+      })
+      .catch((error) => {
+        console.error('[ALLINT COP] Search failed:', error)
+        setSearchStatus('error')
+      })
   }, [])
 
   // Handle result selection
