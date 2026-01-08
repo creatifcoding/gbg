@@ -138,11 +138,116 @@ impl ViewServiceImpl {
                     nanos: ((ms % 1000.0) * 1_000_000.0) as i32,
                 }
             }),
-            data: None, // TODO: Convert ChannelData
+            data: binding.data.as_ref().map(Self::to_proto_channel_data),
             data_hash: None,
             metadata: std::collections::HashMap::new(),
             subscription: None,
         }
+    }
+
+    /// Convert domain ChannelData to proto ChannelData
+    fn to_proto_channel_data(data: &ava_domain::ChannelData) -> crate::proto::execution::v1::ChannelData {
+        use crate::proto::execution::v1 as hydration;
+        use ava_domain::ChannelData;
+
+        let data_variant = match data {
+            ChannelData::Inline(value) => {
+                hydration::channel_data::Data::Inline(hydration::InlineData {
+                    value: Some(Self::json_to_proto_value(value)),
+                    type_hint: None,
+                })
+            }
+            ChannelData::Rows(rows) => {
+                // Serialize JSON rows to bytes (not Arrow IPC, but portable)
+                // In production, this should use Arrow serialization
+                let json_bytes = serde_json::to_vec(rows).unwrap_or_default();
+                let column_count = rows.first()
+                    .and_then(|r| r.as_object())
+                    .map(|o| o.len() as u32)
+                    .unwrap_or(0);
+
+                hydration::channel_data::Data::Rows(hydration::RowSet {
+                    arrow_ipc: json_bytes, // JSON-encoded for now
+                    row_count: rows.len() as u32,
+                    column_count,
+                    codec: Some(hydration::Codec::None as i32),
+                    schema_hash: None,
+                })
+            }
+            ChannelData::AssetRef { uri, mime_type, etag, content_hash } => {
+                hydration::channel_data::Data::AssetRef(hydration::AssetRef {
+                    uri: uri.clone(),
+                    mime_type: mime_type.clone(),
+                    etag: etag.clone(),
+                    content_hash: content_hash.clone(),
+                    size_bytes: None,
+                    filename: None,
+                })
+            }
+            ChannelData::StreamHandle { topic, cursor, schema_uri } => {
+                hydration::channel_data::Data::StreamHandle(hydration::StreamHandle {
+                    topic: topic.clone(),
+                    cursor: *cursor,
+                    schema_uri: schema_uri.clone(),
+                    protocol: None,
+                    backpressure: None,
+                })
+            }
+            ChannelData::Error { code, message, retryable: _ } => {
+                // Map to ChannelError::HydrationFailed
+                hydration::channel_data::Data::Error(common::ChannelError {
+                    error: Some(common::channel_error::Error::HydrationFailed(
+                        common::ChannelHydrationFailed {
+                            channel_id: None,
+                            reason: format!("{}: {}", code, message),
+                            source_id: None,
+                        }
+                    )),
+                })
+            }
+            ChannelData::Pending => {
+                hydration::channel_data::Data::Pending(hydration::Pending {
+                    progress: None,
+                    status: Some("Loading...".to_string()),
+                    eta: None,
+                    cancellable: false,
+                })
+            }
+        };
+
+        hydration::ChannelData {
+            data: Some(data_variant),
+        }
+    }
+
+    /// Convert serde_json::Value to prost google.protobuf.Value
+    fn json_to_proto_value(value: &serde_json::Value) -> prost_wkt_types::Value {
+        use prost_wkt_types::{value::Kind, ListValue, Struct, Value};
+        use serde_json::Value as JsonValue;
+
+        let kind = match value {
+            JsonValue::Null => Kind::NullValue(0),
+            JsonValue::Bool(b) => Kind::BoolValue(*b),
+            JsonValue::Number(n) => {
+                Kind::NumberValue(n.as_f64().unwrap_or(0.0))
+            }
+            JsonValue::String(s) => Kind::StringValue(s.clone()),
+            JsonValue::Array(arr) => {
+                Kind::ListValue(ListValue {
+                    values: arr.iter().map(Self::json_to_proto_value).collect(),
+                })
+            }
+            JsonValue::Object(obj) => {
+                Kind::StructValue(Struct {
+                    fields: obj
+                        .iter()
+                        .map(|(k, v)| (k.clone(), Self::json_to_proto_value(v)))
+                        .collect(),
+                })
+            }
+        };
+
+        Value { kind: Some(kind) }
     }
 
     /// Convert domain ChannelRole to proto ChannelRole

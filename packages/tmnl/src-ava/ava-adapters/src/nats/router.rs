@@ -97,7 +97,10 @@ impl SubjectPattern {
                     i += 1;
                 }
                 PatternSegment::MultiWildcard => {
-                    // Consumes rest of subject
+                    // Consumes rest of subject - must have at least one segment
+                    if i >= subject_parts.len() {
+                        return None;
+                    }
                     return Some(captures);
                 }
                 PatternSegment::Capture(name) => {
