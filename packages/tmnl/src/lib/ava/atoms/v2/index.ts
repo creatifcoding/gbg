@@ -39,6 +39,16 @@ import type {
   ReconcilerEvent,
 } from '../../schemas/v2'
 
+import {
+  applyDeltaReducer,
+  deltaToLogEntry,
+} from '../../utils/delta-matching'
+
+import {
+  withAvaSpan,
+  logAvaEvent,
+} from '../../utils/traced'
+
 import { overlayRegistry } from '@/lib/overlays/atoms'
 
 // =============================================================================
@@ -65,7 +75,7 @@ export interface AvaV2Config {
 // =============================================================================
 
 const DEFAULT_CONFIG: AvaV2Config = {
-  natsUrl: 'ws://localhost:8222',
+  natsUrl: 'ws://localhost:9222',
   subjectPrefix: 'tmnl.ava',
 }
 
@@ -154,7 +164,17 @@ export const deltasAtom = Atom.make<readonly ViewDelta[]>([])
 /** Reconciler event log (newest first, capped at 100) */
 export const eventsAtom = Atom.make<readonly ReconcilerEvent[]>([])
 
-/** Active subscription fibers for cleanup */
+/**
+ * Active subscription fibers for cleanup.
+ *
+ * NOTE: AvaClientV2 service now includes a FiberMap for fiber lifecycle management.
+ * To fully leverage FiberMap benefits (auto-removal on completion, scoped cleanup),
+ * this atom-based approach would need to use a single shared service instance.
+ * Current architecture creates fresh layers per operation, so FiberMap.run() can't
+ * be used across operations. See .edin/FIBERMAP_IMPROVEMENT.md for migration path.
+ *
+ * @pattern Manual fiber tracking (pending FiberMap migration)
+ */
 const subscriptionFibersAtom = Atom.make<HashMap.HashMap<ViewId, Fiber.RuntimeFiber<void, unknown>>>(
   HashMap.empty()
 )
@@ -231,8 +251,11 @@ export const avaV2Ops = {
   // ---------------------------------------------------------------------------
 
   /**
-   * Subscribe to a view's artifacts.
-   * Creates a long-running fiber that streams artifacts to state atoms.
+   * Subscribe to a view's artifacts and deltas.
+   * Creates long-running fibers that stream artifacts/deltas to state atoms.
+   * Uses applyDeltaReducer for incremental artifact updates.
+   *
+   * @pattern Traced subscription with delta processing
    */
   subscribe: Atom.fn<ViewId>()(
     (viewId, ctx) =>
@@ -240,6 +263,7 @@ export const avaV2Ops = {
         // Check if already subscribed
         const existingFibers = ctx(subscriptionFibersAtom)
         if (HashMap.has(existingFibers, viewId)) {
+          yield* logAvaEvent('subscription.already_subscribed', { viewId })
           return // Already subscribed
         }
 
@@ -268,36 +292,87 @@ export const avaV2Ops = {
           ctx.set(connectionStatusAtom, 'connected')
           ctx.set(errorAtom, null)
 
-          // Stream artifacts
-          yield* client.subscribeArtifact(viewId).pipe(
-            Stream.tap((artifact) =>
-              Effect.sync(() => {
-                // Update artifact
-                ctx.set(artifactsAtom, HashMap.set(ctx(artifactsAtom), viewId, artifact))
+          yield* logAvaEvent('subscription.connected', { viewId })
 
-                // Update subscription record
-                const subs = ctx(subscriptionsAtom)
-                const sub = Option.getOrNull(HashMap.get(subs, viewId))
-                if (sub) {
-                  ctx.set(
-                    subscriptionsAtom,
-                    HashMap.set(subs, viewId, {
-                      ...sub,
-                      lastUpdate: Date.now(),
-                      artifact,
-                    })
-                  )
-                }
-              })
-            ),
-            Stream.runDrain
+          // Stream artifacts (full snapshots)
+          const artifactFiber = yield* Effect.fork(
+            client.subscribeArtifact(viewId).pipe(
+              Stream.tap((artifact) =>
+                Effect.sync(() => {
+                  // Update artifact (full replacement)
+                  ctx.set(artifactsAtom, HashMap.set(ctx(artifactsAtom), viewId, artifact))
+
+                  // Update subscription record
+                  const subs = ctx(subscriptionsAtom)
+                  const sub = Option.getOrNull(HashMap.get(subs, viewId))
+                  if (sub) {
+                    ctx.set(
+                      subscriptionsAtom,
+                      HashMap.set(subs, viewId, {
+                        ...sub,
+                        lastUpdate: Date.now(),
+                        artifact,
+                      })
+                    )
+                  }
+                })
+              ),
+              Stream.runDrain
+            )
           )
+
+          // Stream deltas (incremental updates)
+          const deltaFiber = yield* Effect.fork(
+            client.subscribeDelta(viewId).pipe(
+              Stream.tap((delta) =>
+                Effect.sync(() => {
+                  // Add delta to history
+                  const currentDeltas = ctx(deltasAtom)
+                  ctx.set(deltasAtom, [delta, ...currentDeltas].slice(0, 100))
+
+                  // Apply delta to artifact incrementally
+                  const artifacts = ctx(artifactsAtom)
+                  const currentArtifact = Option.getOrNull(HashMap.get(artifacts, viewId))
+                  if (currentArtifact) {
+                    const updatedArtifact = applyDeltaReducer(currentArtifact, delta.delta)
+                    ctx.set(artifactsAtom, HashMap.set(artifacts, viewId, updatedArtifact))
+
+                    // Log delta for debugging (warn levels only to reduce noise)
+                    const logEntry = deltaToLogEntry(delta.delta)
+                    if (logEntry.level === 'warn') {
+                      console.warn(`[AVA Delta] ${logEntry.message}`)
+                    }
+                  }
+
+                  // Update subscription delta count
+                  const subs = ctx(subscriptionsAtom)
+                  const sub = Option.getOrNull(HashMap.get(subs, viewId))
+                  if (sub) {
+                    ctx.set(
+                      subscriptionsAtom,
+                      HashMap.set(subs, viewId, {
+                        ...sub,
+                        lastUpdate: Date.now(),
+                        deltaCount: sub.deltaCount + 1,
+                      })
+                    )
+                  }
+                })
+              ),
+              Stream.runDrain
+            )
+          )
+
+          // Wait for both fibers (they run indefinitely until interrupted)
+          yield* Fiber.joinAll([artifactFiber, deltaFiber])
         }).pipe(
           Effect.provide(layer),
+          withAvaSpan('subscription', 'subscribe'),
           Effect.catchAll((error) =>
-            Effect.sync(() => {
+            Effect.gen(function* () {
               ctx.set(connectionStatusAtom, 'error')
               ctx.set(errorAtom, String(error))
+              yield* logAvaEvent('subscription.error', { viewId, error: String(error) })
             })
           )
         )
@@ -315,10 +390,14 @@ export const avaV2Ops = {
   /**
    * Unsubscribe from a view.
    * Interrupts the subscription fiber and cleans up state.
+   *
+   * @pattern Traced unsubscribe with cleanup
    */
   unsubscribe: Atom.fn<ViewId>()(
     (viewId, ctx) =>
       Effect.gen(function* () {
+        yield* logAvaEvent('subscription.unsubscribe.start', { viewId })
+
         const fibers = ctx(subscriptionFibersAtom)
         const fiberOpt = HashMap.get(fibers, viewId)
 
@@ -340,36 +419,53 @@ export const avaV2Ops = {
           yield* client.requestUnsubscribe(viewId)
         }).pipe(
           Effect.provide(layer),
+          withAvaSpan('subscription', 'unsubscribe'),
           Effect.ignore
         )
+
+        yield* logAvaEvent('subscription.unsubscribe.complete', { viewId })
       })
   ),
 
   /**
    * Invalidate a view.
    * Triggers recompilation on the backend.
+   *
+   * @pattern Traced invalidation
    */
   invalidate: Atom.fn<{ viewId: ViewId; reason?: string }>()(
     ({ viewId, reason }, ctx) =>
       Effect.gen(function* () {
+        yield* logAvaEvent('subscription.invalidate.start', { viewId, reason })
+
         const config = ctx(avaV2ConfigAtom)
         const layer = createAvaV2Layer(config)
 
         yield* Effect.gen(function* () {
           const client = yield* AvaClientV2
           yield* client.invalidate(viewId, reason)
-        }).pipe(Effect.provide(layer))
+        }).pipe(
+          Effect.provide(layer),
+          withAvaSpan('subscription', 'invalidate', { viewId, reason })
+        )
+
+        yield* logAvaEvent('subscription.invalidate.complete', { viewId })
       })
   ),
 
   /**
    * Unsubscribe from all views.
    * Cleanup for unmount.
+   *
+   * @pattern Traced bulk cleanup
    */
   unsubscribeAll: Atom.fn()(
     (_, ctx) =>
       Effect.gen(function* () {
         const fibers = ctx(subscriptionFibersAtom)
+        const count = HashMap.size(fibers)
+
+        yield* logAvaEvent('subscription.unsubscribe_all.start', { count })
 
         // Interrupt all fibers
         for (const fiber of HashMap.values(fibers)) {
@@ -382,6 +478,8 @@ export const avaV2Ops = {
         ctx.set(artifactsAtom, HashMap.empty())
         ctx.set(deltasAtom, [])
         ctx.set(connectionStatusAtom, 'disconnected')
+
+        yield* logAvaEvent('subscription.unsubscribe_all.complete', { count })
       })
   ),
 }

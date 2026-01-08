@@ -16,9 +16,9 @@ import {
   Layer,
   Stream,
   Schema,
-  Queue,
   Ref,
   HashMap,
+  FiberMap,
   pipe,
 } from 'effect'
 import {
@@ -213,6 +213,20 @@ export interface AvaClientV2 {
    * Get active subscriptions count
    */
   readonly activeSubscriptions: Effect.Effect<number>
+
+  /**
+   * FiberMap for managing subscription fibers.
+   * Automatically removes fibers when they complete and supports scoped cleanup.
+   *
+   * Usage:
+   * - FiberMap.run(fiberMap, viewId, streamProgram) - Run and track by viewId
+   * - FiberMap.remove(fiberMap, viewId) - Stop and remove a subscription
+   * - FiberMap.clear(fiberMap) - Stop all subscriptions
+   *
+   * @pattern FiberMap for lifecycle management
+   * @see .edin/FIBERMAP_IMPROVEMENT.md
+   */
+  readonly subscriptionFibers: FiberMap.FiberMap<ViewId, void, AvaSubscriptionError>
 }
 
 export const AvaClientV2 = Context.GenericTag<AvaClientV2>('ava/AvaClientV2')
@@ -224,13 +238,22 @@ export const AvaClientV2 = Context.GenericTag<AvaClientV2>('ava/AvaClientV2')
 /**
  * Create AvaClientV2 service
  * Composes NatsClient for NATS transport
+ *
+ * Uses Layer.scoped to properly manage FiberMap lifecycle:
+ * - All subscription fibers are automatically interrupted when layer closes
+ * - FiberMap auto-removes fibers when they complete (success, failure, or interruption)
  */
 const make = Effect.gen(function* () {
   const nats = yield* NatsClient
-  const config = yield* AvaClientV2ConfigTag
+  // AvaClientV2Config is required in context but subjectPrefix is handled by NatsClient
+  yield* AvaClientV2ConfigTag
 
   // Track active subscriptions
   const subscriptionsRef = yield* Ref.make(HashMap.empty<string, number>())
+
+  // FiberMap for subscription lifecycle management
+  // Automatically interrupts all fibers when scope closes
+  const subscriptionFibers = yield* FiberMap.make<ViewId, void, AvaSubscriptionError>()
 
   // Helper: Map NATS errors to AVA errors
   const mapNatsError = (
@@ -418,6 +441,9 @@ const make = Effect.gen(function* () {
     activeSubscriptions: Ref.get(subscriptionsRef).pipe(
       Effect.map(HashMap.size)
     ),
+
+    // Expose FiberMap for fiber lifecycle management in atoms
+    subscriptionFibers,
   }
 
   return service
@@ -430,8 +456,12 @@ const make = Effect.gen(function* () {
 /**
  * Live layer for AvaClientV2
  * Requires NatsClient and AvaClientV2Config in context
+ *
+ * Uses Layer.scoped to properly manage FiberMap lifecycle:
+ * - FiberMap is created with scope
+ * - All fibers are interrupted when layer closes
  */
-export const AvaClientV2Live = Layer.effect(AvaClientV2, make)
+export const AvaClientV2Live = Layer.scoped(AvaClientV2, make)
 
 /**
  * Full layer with NatsClient
