@@ -467,50 +467,58 @@ export const makeSceneGraphBridge: Effect.Effect<
   // =========================================================================
 
   /**
+   * Inner layer building logic (the actual computation).
+   */
+  const buildLayersInner = Effect.gen(function* () {
+    // Get all positioned entities
+    const entities = yield* pipe(
+      geoService.query(),
+      Effect.mapError(
+        (e) =>
+          new SceneGraphBridgeError({
+            operation: 'build',
+            message: `Failed to query entities: ${e.message}`,
+            cause: e,
+          })
+      )
+    )
+
+    // Build layer configs in parallel (independent operations)
+    const [scatterplot, icons, paths, scenegraphLayers] = yield* Effect.all(
+      [
+        buildScatterplotData(entities),
+        buildIconData(entities),
+        buildPathData(entities),
+        buildScenegraphData(entities),
+      ],
+      { concurrency: 'unbounded' }
+    )
+
+    const layers = [scatterplot, icons, paths, ...scenegraphLayers].filter((l) => l.data.length > 0)
+
+    return { layers, entityCount: entities.length }
+  })
+
+  /**
    * Core layer building logic (the lookup function for ScopedCache).
-   * This is the expensive computation that we want to cache.
+   * Uses Effect.timed for idiomatic duration measurement.
    */
   const buildLayersCore = (
     _key: LayerCacheKey
   ): Effect.Effect<readonly LayerConfig[], SceneGraphBridgeError, Scope.Scope> =>
     Effect.gen(function* () {
-      const startTime = Date.now()
-
-      // Get all positioned entities
-      const entities = yield* pipe(
-        geoService.query(),
-        Effect.mapError(
-          (e) =>
-            new SceneGraphBridgeError({
-              operation: 'build',
-              message: `Failed to query entities: ${e.message}`,
-              cause: e,
-            })
-        )
-      )
-
-      // Build layer configs in parallel (independent operations)
-      const [scatterplot, icons, paths, scenegraphLayers] = yield* Effect.all(
-        [
-          buildScatterplotData(entities),
-          buildIconData(entities),
-          buildPathData(entities),
-          buildScenegraphData(entities),
-        ],
-        { concurrency: 'unbounded' }
-      )
-
-      const layers = [scatterplot, icons, paths, ...scenegraphLayers].filter((l) => l.data.length > 0)
+      // Use Effect.timed for idiomatic duration measurement
+      const [duration, result] = yield* Effect.timed(buildLayersInner)
+      const elapsedMs = Duration.toMillis(duration)
 
       // Update stats
-      const elapsed = Date.now() - startTime
       yield* Ref.set(statsRef, {
-        layerCount: layers.length,
-        entityCount: entities.length,
-        lastUpdateMs: elapsed,
+        layerCount: result.layers.length,
+        entityCount: result.entityCount,
+        lastUpdateMs: elapsedMs,
       })
 
-      return layers
+      return result.layers
     })
 
   /**

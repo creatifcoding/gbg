@@ -822,111 +822,121 @@ export const makeGeoPositionService: Effect.Effect<
   ): Effect.Effect<void, GeoPositionError> =>
     Effect.forEach(entityIds, destroy, { concurrency: 10, discard: true })
 
+  /**
+   * Core sync operation (extracted for Effect.timed wrapping).
+   */
+  const syncProjectionsCore = Effect.gen(function* () {
+    const entityIds = yield* Ref.get(positionedEntitiesRef)
+
+    // Collect all positions for batch projection - parallel trait lookups
+    const geoPositionResults = yield* Effect.forEach(
+      Array.from(entityIds),
+      (entityId) =>
+        pipe(
+          world.getTrait(entityId, 'GeoPosition' as TraitId),
+          Effect.map((data) => ({ entityId, geoPos: data as GeoPosition })),
+          Effect.catchAll(() => Effect.succeed(null))
+        ),
+      { concurrency: 'unbounded' }
+    )
+
+    const batchInput = geoPositionResults.filter(
+      (item): item is { entityId: EntityId; geoPos: GeoPosition } => item !== null
+    )
+
+    if (batchInput.length === 0) return { synced: 0, visible: 0 }
+
+    // Batch project
+    const projectionInput: BatchProjectionInput[] = batchInput.map((item) => ({
+      id: item.entityId as string,
+      coord: {
+        longitude: item.geoPos.longitude,
+        latitude: item.geoPos.latitude,
+        altitude: item.geoPos.altitude,
+      },
+    }))
+
+    const results = yield* pipe(
+      projection.projectBatch(projectionInput),
+      Effect.mapError(
+        (e) =>
+          new GeoPositionError({
+            operation: 'sync',
+            message: `Batch projection failed: ${e.message}`,
+            cause: e,
+          })
+      )
+    )
+
+    // Update all screen positions - parallel trait updates
+    const updateResults = yield* Effect.forEach(
+      results,
+      (result) =>
+        Effect.gen(function* () {
+          const entityId = result.id as EntityId
+
+          const screenData: ScreenPosition = {
+            _tag: 'ScreenPosition',
+            x: result.result.screen.x,
+            y: result.result.screen.y,
+            z: result.result.screen.z ?? 0,
+            isVisible: result.result.isVisible,
+          }
+
+          const ndcData: NDCPosition = {
+            _tag: 'NDCPosition',
+            ndcX: result.result.ndc.x,
+            ndcY: result.result.ndc.y,
+            ndcZ: result.result.ndc.z ?? 0.5,
+          }
+
+          yield* pipe(
+            world.setTrait(entityId, 'ScreenPosition' as TraitId, screenData),
+            Effect.catchAll(() =>
+              world.addTrait(entityId, 'ScreenPosition' as TraitId, screenData)
+            ),
+            Effect.catchAll(() => Effect.void)
+          )
+
+          yield* pipe(
+            world.setTrait(entityId, 'NDCPosition' as TraitId, ndcData),
+            Effect.catchAll(() =>
+              world.addTrait(entityId, 'NDCPosition' as TraitId, ndcData)
+            ),
+            Effect.catchAll(() => Effect.void)
+          )
+
+          return { synced: true, visible: result.result.isVisible }
+        }),
+      { concurrency: 'unbounded' }
+    )
+
+    const synced = updateResults.length
+    const visible = updateResults.filter((r) => r.visible).length
+
+    return { synced, visible }
+  })
+
   const syncProjections = (): Effect.Effect<number, GeoPositionError> =>
     Effect.withSpan('GeoPositionService.syncProjections')(
       Effect.gen(function* () {
-        const startTime = Date.now()
-        const entityIds = yield* Ref.get(positionedEntitiesRef)
+        // Use Effect.timed for idiomatic duration measurement
+        const [duration, result] = yield* Effect.timed(syncProjectionsCore)
+        const elapsedMs = Duration.toMillis(duration)
 
-      // Collect all positions for batch projection - parallel trait lookups
-      const geoPositionResults = yield* Effect.forEach(
-        Array.from(entityIds),
-        (entityId) =>
-          pipe(
-            world.getTrait(entityId, 'GeoPosition' as TraitId),
-            Effect.map((data) => ({ entityId, geoPos: data as GeoPosition })),
-            Effect.catchAll(() => Effect.succeed(null))
-          ),
-        { concurrency: 'unbounded' }
-      )
+        yield* Ref.set(statsRef, {
+          total: result.synced,
+          visible: result.visible,
+          lastSyncMs: elapsedMs,
+        })
 
-      const batchInput = geoPositionResults.filter(
-        (item): item is { entityId: EntityId; geoPos: GeoPosition } => item !== null
-      )
+        // Update sync metrics
+        yield* Metric.increment(syncCounter)
+        yield* Metric.update(syncLatencyHistogram, elapsedMs)
 
-      if (batchInput.length === 0) return 0
-
-      // Batch project
-      const projectionInput: BatchProjectionInput[] = batchInput.map((item) => ({
-        id: item.entityId as string,
-        coord: {
-          longitude: item.geoPos.longitude,
-          latitude: item.geoPos.latitude,
-          altitude: item.geoPos.altitude,
-        },
-      }))
-
-      const results = yield* pipe(
-        projection.projectBatch(projectionInput),
-        Effect.mapError(
-          (e) =>
-            new GeoPositionError({
-              operation: 'sync',
-              message: `Batch projection failed: ${e.message}`,
-              cause: e,
-            })
-        )
-      )
-
-      // Update all screen positions - parallel trait updates
-      const updateResults = yield* Effect.forEach(
-        results,
-        (result) =>
-          Effect.gen(function* () {
-            const entityId = result.id as EntityId
-
-            const screenData: ScreenPosition = {
-              _tag: 'ScreenPosition',
-              x: result.result.screen.x,
-              y: result.result.screen.y,
-              z: result.result.screen.z ?? 0,
-              isVisible: result.result.isVisible,
-            }
-
-            const ndcData: NDCPosition = {
-              _tag: 'NDCPosition',
-              ndcX: result.result.ndc.x,
-              ndcY: result.result.ndc.y,
-              ndcZ: result.result.ndc.z ?? 0.5,
-            }
-
-            yield* pipe(
-              world.setTrait(entityId, 'ScreenPosition' as TraitId, screenData),
-              Effect.catchAll(() =>
-                world.addTrait(entityId, 'ScreenPosition' as TraitId, screenData)
-              ),
-              Effect.catchAll(() => Effect.void)
-            )
-
-            yield* pipe(
-              world.setTrait(entityId, 'NDCPosition' as TraitId, ndcData),
-              Effect.catchAll(() =>
-                world.addTrait(entityId, 'NDCPosition' as TraitId, ndcData)
-              ),
-              Effect.catchAll(() => Effect.void)
-            )
-
-            return { synced: true, visible: result.result.isVisible }
-          }),
-        { concurrency: 'unbounded' }
-      )
-
-      const synced = updateResults.length
-      const visible = updateResults.filter((r) => r.visible).length
-      const elapsed = Date.now() - startTime
-
-      yield* Ref.set(statsRef, {
-        total: synced,
-        visible,
-        lastSyncMs: elapsed,
+        return result.synced
       })
-
-      // Update sync metrics
-      yield* Metric.increment(syncCounter)
-      yield* Metric.update(syncLatencyHistogram, elapsed)
-
-      return synced
-    }))
+    )
 
   const startViewportSync = () =>
     Effect.gen(function* () {
