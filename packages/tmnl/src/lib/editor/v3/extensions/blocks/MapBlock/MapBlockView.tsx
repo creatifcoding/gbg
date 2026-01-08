@@ -18,7 +18,7 @@ import {
   type MouseEvent,
 } from 'react';
 import { type NodeViewProps } from '@tiptap/react';
-import { useAtom, useAtomValue, Atom } from '@effect-atom/atom-react';
+import { useAtom, useAtomValue } from '@effect-atom/atom-react';
 import { Map } from 'react-map-gl/mapbox';
 import { DeckGL } from '@deck.gl/react';
 import type { MapViewState, PickingInfo } from '@deck.gl/core';
@@ -44,7 +44,6 @@ import {
   EmbeddedBlockWrapper,
   type SettingsTab,
   type BlockBadge,
-  type StreamBindingConfig,
   type DataplaneConfig,
 } from '../EmbeddedBlockWrapper';
 import {
@@ -56,6 +55,7 @@ import {
   type MarkerData,
 } from './atoms';
 import { useMapStreamBinding } from './useStreamBinding';
+import { AvaMapContent, tryDecodeViewId } from './AvaMapContent';
 
 // =============================================================================
 // Mapbox Token
@@ -740,8 +740,18 @@ export function MapBlockView(nodeViewProps: NodeViewProps) {
   const { node, updateAttributes, editor } = nodeViewProps;
   const blockId = node.attrs.id || 'default';
 
-  // Parse stream binding from node attrs if present
+  // Parse AVA v2 channel binding from node attrs
+  const avaViewId = useMemo(
+    () => tryDecodeViewId(node.attrs.avaViewId),
+    [node.attrs.avaViewId]
+  );
+  const avaChannelId = node.attrs.avaChannelId || 'geojson';
+
+  // Parse legacy stream binding from node attrs if present (used when no AVA config)
   const streamBinding = useMemo(() => {
+    // Skip legacy binding if AVA is configured
+    if (avaViewId) return null;
+
     if (node.attrs.streamBinding) {
       // Already a StreamBinding object or raw config
       const binding = node.attrs.streamBinding;
@@ -761,7 +771,7 @@ export function MapBlockView(nodeViewProps: NodeViewProps) {
       };
     }
     return null;
-  }, [node.attrs.streamBinding, node.attrs.streamViewId]);
+  }, [node.attrs.streamBinding, node.attrs.streamViewId, avaViewId]);
 
   // Create atoms with stream config if binding exists
   const atoms = useMemo(() => {
@@ -909,9 +919,20 @@ export function MapBlockView(nodeViewProps: NodeViewProps) {
     updateAttributes({ markers: [] });
   }, [updateAttributes]);
 
-  // Settings tabs
-  const tabs: SettingsTab[] = useMemo(
-    () => [
+  // Render map content - wrapped with AvaMapContent if AVA is configured
+  const renderMapContent = (avaState?: {
+    isConnected: boolean;
+    isLoading: boolean;
+    error: string | null;
+    subscribe: () => void;
+    unsubscribe: () => void;
+    invalidate: (reason?: string) => void;
+  }) => {
+    // Determine stream status (AVA or legacy)
+    const effectiveStream = avaState ?? stream;
+
+    // Build tabs with effective stream status
+    const effectiveTabs: SettingsTab[] = [
       {
         id: 'style',
         label: 'Style',
@@ -938,56 +959,58 @@ export function MapBlockView(nodeViewProps: NodeViewProps) {
       },
       {
         id: 'stream',
-        label: 'Stream',
+        label: avaViewId ? 'AVA' : 'Stream',
         icon: Radio,
         content: (
           <StreamSettings
-            isConnected={stream.isConnected}
-            isLoading={stream.isLoading}
-            error={stream.error}
-            streamId={streamBinding?.streamId ?? null}
-            onConnect={stream.subscribe}
-            onDisconnect={stream.unsubscribe}
+            isConnected={effectiveStream.isConnected}
+            isLoading={effectiveStream.isLoading}
+            error={effectiveStream.error}
+            streamId={avaViewId ? node.attrs.avaViewId : streamBinding?.streamId ?? null}
+            onConnect={effectiveStream.subscribe}
+            onDisconnect={effectiveStream.unsubscribe}
           />
         ),
       },
-    ],
-    [
-      node.attrs.mapStyle,
-      node.attrs.markers?.length,
-      streamMarkers.length,
-      stream.isConnected,
-      stream.isLoading,
-      stream.error,
-      streamBinding?.streamId,
-      handleStyleChange,
-      handleResetView,
-      handleClearMarkers,
-      stream.subscribe,
-      stream.unsubscribe,
-    ]
-  );
+    ];
 
-  return (
-    <EmbeddedBlockWrapper
-      nodeViewProps={nodeViewProps}
-      badge={MAP_BADGE}
-      tabs={tabs}
-      expandedHeight={400}
-      collapsedHeight={100}
-      dataplaneConfig={MAP_DATAPLANE_CONFIG}
-    >
-      <MapContent
-        viewState={viewState}
-        onViewStateChange={handleViewStateChange}
-        layers={layers}
-        onMapClick={handleMapClick}
-        onLoad={handleLoad}
-        mapStyle={node.attrs.mapStyle || DEFAULT_MAP_STYLE}
-        isLoading={isLoading}
-      />
-    </EmbeddedBlockWrapper>
-  );
+    return (
+      <EmbeddedBlockWrapper
+        nodeViewProps={nodeViewProps}
+        badge={MAP_BADGE}
+        tabs={effectiveTabs}
+        expandedHeight={400}
+        collapsedHeight={100}
+        dataplaneConfig={MAP_DATAPLANE_CONFIG}
+      >
+        <MapContent
+          viewState={viewState}
+          onViewStateChange={handleViewStateChange}
+          layers={layers}
+          onMapClick={handleMapClick}
+          onLoad={handleLoad}
+          mapStyle={node.attrs.mapStyle || DEFAULT_MAP_STYLE}
+          isLoading={isLoading}
+        />
+      </EmbeddedBlockWrapper>
+    );
+  };
+
+  // When AVA is configured, wrap with AvaMapContent for proper hook lifecycle
+  if (avaViewId) {
+    return (
+      <AvaMapContent
+        viewId={avaViewId}
+        channelId={avaChannelId}
+        atoms={atoms}
+      >
+        {(avaState) => renderMapContent(avaState)}
+      </AvaMapContent>
+    );
+  }
+
+  // Fallback to legacy stream or local markers
+  return renderMapContent();
 }
 
 export default MapBlockView;

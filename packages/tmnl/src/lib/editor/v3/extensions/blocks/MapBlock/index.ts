@@ -10,10 +10,18 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { nanoid } from 'nanoid';
+
+import {
+  createProtectedNodeKeyboardShortcuts,
+  protectedNodeViewOptions,
+} from '../EmbeddedBlockWrapper/shared/protectedNode';
 import type { MapViewState } from '@deck.gl/core';
 
 import { MapBlockView } from './MapBlockView';
 import { DEFAULT_VIEW_STATE, DEFAULT_MAP_STYLE } from './atoms';
+
+// Side-effect import: ensures port schema registration runs at module load
+import './ports';
 
 // =============================================================================
 // Types
@@ -33,6 +41,10 @@ export interface MapBlockAttrs {
   mapStyle: string;
   /** Marker data */
   markers: MapBlockMarker[];
+  /** AVA v2 View ID for channel binding (optional) */
+  avaViewId?: string;
+  /** AVA v2 Channel ID (default: 'geojson') */
+  avaChannelId?: string;
 }
 
 export interface MapBlockOptions {
@@ -40,11 +52,20 @@ export interface MapBlockOptions {
   HTMLAttributes: Record<string, unknown>;
 }
 
+export interface InsertMapOptions {
+  /** Initial view state (camera position) */
+  viewState?: Partial<MapViewState>;
+  /** Initial markers to display */
+  markers?: MapBlockMarker[];
+  /** Mapbox style URL override */
+  mapStyle?: string;
+}
+
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     mapBlock: {
       /** Insert a map block */
-      insertMap: (options?: { viewState?: Partial<MapViewState> }) => ReturnType;
+      insertMap: (options?: InsertMapOptions) => ReturnType;
       /** Delete the current map block */
       deleteMap: () => ReturnType;
     };
@@ -115,8 +136,24 @@ export const MapBlock = Node.create<MapBlockOptions>({
           return [];
         },
         renderHTML: (attributes) => ({
-          'data-markers': JSON.stringify(attributes.markers),
+          'data-markers': JSON.stringify(attributes['markers']),
         }),
+      },
+      avaViewId: {
+        default: null,
+        parseHTML: (element) => element.getAttribute('data-ava-view-id') || null,
+        renderHTML: (attributes) =>
+          attributes['avaViewId']
+            ? { 'data-ava-view-id': attributes['avaViewId'] }
+            : {},
+      },
+      avaChannelId: {
+        default: 'geojson',
+        parseHTML: (element) => element.getAttribute('data-ava-channel-id') || 'geojson',
+        renderHTML: (attributes) =>
+          attributes['avaChannelId'] && attributes['avaChannelId'] !== 'geojson'
+            ? { 'data-ava-channel-id': attributes['avaChannelId'] }
+            : {},
       },
     };
   },
@@ -144,21 +181,25 @@ export const MapBlock = Node.create<MapBlockOptions>({
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(MapBlockView);
+    return ReactNodeViewRenderer(MapBlockView, protectedNodeViewOptions);
+  },
+
+  addKeyboardShortcuts() {
+    return createProtectedNodeKeyboardShortcuts.call(this);
   },
 
   addCommands() {
     return {
       insertMap:
-        (options = {}) =>
+        (options: InsertMapOptions = {}) =>
         ({ commands }) => {
           return commands.insertContent({
             type: this.name,
             attrs: {
               id: nanoid(12),
               viewState: { ...DEFAULT_VIEW_STATE, ...options.viewState },
-              mapStyle: DEFAULT_MAP_STYLE,
-              markers: [],
+              mapStyle: options.mapStyle ?? DEFAULT_MAP_STYLE,
+              markers: options.markers ?? [],
             },
           });
         },
@@ -176,6 +217,7 @@ export const MapBlock = Node.create<MapBlockOptions>({
 // =============================================================================
 
 export { MapBlockView } from './MapBlockView';
+export type { InsertMapOptions };
 export {
   createMapBlockAtoms,
   getMapBlockAtoms,
@@ -195,3 +237,16 @@ export {
   type UseMapStreamBindingOptions,
   type UseMapStreamBindingReturn,
 } from './useStreamBinding';
+export { AvaMapContent, tryDecodeViewId } from './AvaMapContent';
+export {
+  // Port config
+  MAP_BLOCK_PORT_CONFIG,
+  // GeoJSON only (for now)
+  GEOJSON_LAYER_INPUT,
+  SELECTED_FEATURES_OUTPUT,
+  // Helpers
+  getMapInputSchemas,
+  getMapOutputSchemas,
+  isValidMapPortSchema,
+  getMapPortSchema,
+} from './ports';
