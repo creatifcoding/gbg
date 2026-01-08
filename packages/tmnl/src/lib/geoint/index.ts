@@ -2,13 +2,16 @@
 // GEOINT - Geospatial Intelligence Library
 // =============================================================================
 //
-// Provides GEOINT capabilities for TMNL:
+// Provides GEOINT capabilities for TMNL including ALLINT COP:
 // - Track intelligence (IntelClient)
 // - Vector features (FeatureClient)
 // - Tile and imagery (GeospatialClient)
-// - Unified service layer (GeointService)
+// - ALLINT Search (SearchClient, SearchService)
+// - External APIs (OpenSky, Overpass)
+// - PostGIS persistence
+// - Effect Cluster distributed search
 //
-// @see .cursor/prd/features.md for feature specifications
+// @see beads:tmnl-j5pyc ALLINT COP Search System
 // =============================================================================
 
 // Schemas - Domain types with Effect Schema
@@ -23,11 +26,14 @@ export * from './services'
 // Layers - Deck.gl layer factories
 export * from './layers'
 
-// R3F - React-Three-Fiber overlay components
-export * from './r3f'
+// API - HttpApi definitions and external API clients
+export * from './api'
+
+// Cluster - Effect Cluster for distributed search
+export * from './cluster'
 
 // Components - Map components with Mapbox integration
 export * from './components'
 
-// Persistence - Durable stream storage for tracks
+// Persistence - Durable stream storage and PostGIS
 export * from './persistence'
