@@ -21,6 +21,7 @@ import {
   Duration,
   PubSub,
   ScopedCache,
+  Schedule,
 } from 'effect'
 import type { Layer as DeckLayer } from '@deck.gl/core'
 import { ScatterplotLayer, IconLayer, PathLayer, ArcLayer } from '@deck.gl/layers'
@@ -635,15 +636,27 @@ export const makeSceneGraphBridge: Effect.Effect<
 
   const getStats = () => Ref.get(statsRef)
 
+  /**
+   * Exponential backoff schedule for transient failures.
+   * Starts at 50ms, doubles each retry, caps at 400ms, max 3 retries.
+   */
+  const retrySchedule = pipe(
+    Schedule.exponential(Duration.millis(50), 2), // 50ms, 100ms, 200ms, 400ms...
+    Schedule.intersect(Schedule.recurs(3)),        // Max 3 retries
+    Schedule.tapOutput(([duration, _count]) =>
+      Effect.logDebug(`Retrying layer rebuild after ${Duration.toMillis(duration)}ms`)
+    )
+  )
+
   const startAutoRebuild = () =>
     Effect.gen(function* () {
       // Subscribe to entity changes
       const changeStream = yield* geoService.onChange()
 
-      // Rebuild with retry on transient failures (3 attempts with exponential backoff)
+      // Rebuild with exponential backoff retry on transient failures
       const rebuildWithRetry = pipe(
         rebuild(),
-        Effect.retry({ times: 3 }),
+        Effect.retry(retrySchedule),
         Effect.catchAll(() => Effect.void) // Suppress after retries exhausted
       )
 
