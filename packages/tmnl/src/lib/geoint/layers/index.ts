@@ -43,3 +43,15 @@ export {
   createPointHeatmapLayer,
   type HeatmapPoint
 } from './heatmap'
+
+// Search result layers - ALLINT COP
+export {
+  createTrackResultsLayer,
+  createPoiResultsLayer,
+  createPoiLabelsLayer,
+  createFlightResultsLayer,
+  createFlightLabelsLayer,
+  createFeatureResultsLayer,
+  createSearchResultLayers,
+  type SearchResultLayerOptions,
+} from './searchResults'
