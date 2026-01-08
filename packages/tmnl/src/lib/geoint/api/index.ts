@@ -75,9 +75,50 @@ export {
   DEFAULT_OVERPASS_CONFIG,
   type OverpassConfig,
   type OverpassClient,
+  // ADSB.lol Client
+  AdsbLolClientService,
+  makeAdsbLolClient,
+  AdsbLolClientLive,
+  DEFAULT_ADSB_LOL_CONFIG,
+  type AdsbLolConfig,
+  type AdsbLolClient,
+  // Planet Labs Client
+  PlanetLabsClientService,
+  makePlanetLabsClient,
+  PlanetLabsClientLive,
+  DEFAULT_PLANET_LABS_CONFIG,
+  type PlanetLabsConfig,
+  type PlanetLabsClient,
+  type PlanetSearchOptions,
+  // Sentinel Hub Client
+  SentinelHubClientService,
+  makeSentinelHubClient,
+  SentinelHubClientLive,
+  DEFAULT_SENTINEL_HUB_CONFIG,
+  type SentinelHubConfig,
+  type SentinelHubClient,
+  type SentinelSearchOptions,
+  // Open-Meteo Weather Client
+  OpenMeteoClientService,
+  makeOpenMeteoClient,
+  OpenMeteoClientLive,
+  DEFAULT_OPEN_METEO_CONFIG,
+  type OpenMeteoConfig,
+  type OpenMeteoClient,
+  type WeatherForecastOptions,
+  type GeocodingOptions,
   // Combined Layer
   ExternalApiClientsLive,
-  // Result Transformers
+  // Result Transformers - Flights & POI
   openSkyToSearchResult,
   overpassToSearchResult,
+  adsbLolToSearchResult,
+  // Result Transformers - Satellite Imagery (Feature + Imagery types)
+  planetItemToSearchResult,
+  sentinelItemToSearchResult,
+  planetItemToImageryResult,
+  sentinelItemToImageryResult,
+  // Result Transformers - Weather
+  weatherForecastToSearchResult,
+  geocodingLocationToSearchResult,
 } from './ExternalApiClient'

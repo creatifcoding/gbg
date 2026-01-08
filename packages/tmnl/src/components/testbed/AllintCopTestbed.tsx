@@ -177,6 +177,8 @@ function StatsPanel({ results, resultsBySource, status }: StatsPanelProps) {
       feature: 0,
       adsb_lol: 0,
       planet: 0,
+      sentinel: 0,
+      weather: 0,
       custom: 0,
     }
     for (const [source, items] of resultsBySource) {

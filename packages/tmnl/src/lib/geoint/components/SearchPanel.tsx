@@ -15,7 +15,7 @@
 
 import { useState, useCallback, useMemo, memo } from 'react'
 import { useAtomValue } from '@effect-atom/atom-react'
-import { Search, X, Loader2, Filter, MapPin, Plane, Building, Layers } from 'lucide-react'
+import { Search, X, Loader2, Filter, MapPin, Plane, Building, Layers, Satellite, CloudSun } from 'lucide-react'
 import {
   searchStatusAtom,
   allResultsAtom,
@@ -56,7 +56,9 @@ const SOURCE_CONFIG: Record<IntelSource, { icon: typeof MapPin; label: string; c
   opensky: { icon: Plane, label: 'Flights', color: 'text-yellow-400' },
   feature: { icon: Layers, label: 'Features', color: 'text-purple-400' },
   adsb_lol: { icon: Plane, label: 'ADS-B', color: 'text-orange-400' },
-  planet: { icon: MapPin, label: 'Satellite', color: 'text-cyan-400' },
+  planet: { icon: Satellite, label: 'Planet', color: 'text-cyan-400' },
+  sentinel: { icon: Satellite, label: 'Sentinel', color: 'text-sky-400' },
+  weather: { icon: CloudSun, label: 'Weather', color: 'text-amber-400' },
   custom: { icon: MapPin, label: 'Custom', color: 'text-gray-400' },
 }
 
