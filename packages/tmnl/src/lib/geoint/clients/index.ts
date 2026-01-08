@@ -20,3 +20,16 @@ export {
   createTilesAtom,
   prefetchTilesMutation
 } from './GeospatialClient'
+
+// ALLINT COP Search Client
+export {
+  SearchClient,
+  createViewportSearchAtom,
+  createFlightDataAtom,
+  savedSearchesAtom,
+  searchHistoryAtom,
+  saveSearchMutation,
+  deleteSavedSearchMutation,
+  clearHistoryMutation,
+  OVERPASS_TEMPLATES
+} from './SearchClient'

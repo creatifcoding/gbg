@@ -107,3 +107,69 @@ export type {
   SpatialOperation as SpatialOperationType,
   ThreatLevel as ThreatLevelType
 } from './analysis'
+
+// Search schemas (TaggedClass) - ALLINT COP Search System
+export {
+  // Branded IDs
+  SearchId,
+  SearchResultId,
+  PoiId,
+  Icao24,
+  // Source & Category Enums
+  IntelSource,
+  PoiCategory,
+  AircraftCategory,
+  // Geographic Filters
+  GeoFilterBounds,
+  GeoFilterRadius,
+  GeoFilterPolygon,
+  GeoFilter,
+  // Temporal Filters
+  TemporalFilterRange,
+  TemporalFilterRelative,
+  TemporalFilter,
+  // Source-Specific Filters
+  TrackFilter,
+  OsmFilter,
+  FlightFilter,
+  FeatureFilter,
+  SourceFilter,
+  // Search Query
+  SearchQuery,
+  // Search Results
+  SearchResultTrack,
+  SearchResultPoi,
+  SearchResultFlight,
+  SearchResultFeature,
+  SearchResultItem,
+  SearchResponse,
+  // Streaming Events
+  SearchStarted,
+  SearchPartialResults,
+  SearchSourceComplete,
+  SearchSourceError,
+  SearchCompleted,
+  SearchEvent,
+  // External API Schemas
+  OpenSkyStateVector,
+  OpenSkyResponse,
+  OverpassElement,
+  OverpassResponse,
+  // Saved Searches
+  SavedSearch,
+  SearchHistoryEntry
+} from './search'
+export type {
+  SearchId as SearchIdType,
+  SearchResultId as SearchResultIdType,
+  PoiId as PoiIdType,
+  Icao24 as Icao24Type,
+  IntelSource as IntelSourceEnum,
+  PoiCategory as PoiCategoryEnum,
+  AircraftCategory as AircraftCategoryEnum,
+  GeoFilter as GeoFilterType,
+  TemporalFilter as TemporalFilterType,
+  SourceFilter as SourceFilterType,
+  SearchResultItem as SearchResultItemType,
+  SearchEvent as SearchEventType
+} from './search'
