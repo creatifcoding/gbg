@@ -5,8 +5,8 @@
 export {
   GeointService,
   GeointServiceLive,
-  GeointServiceDev,
   GeointSubscriptionError,
   GeointQueryError,
-  type GeointServiceError
+  type GeointServiceError,
+  type GeointLayerConfig,
 } from './GeointService'

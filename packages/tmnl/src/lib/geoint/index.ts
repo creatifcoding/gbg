@@ -25,3 +25,9 @@ export * from './layers'
 
 // R3F - React-Three-Fiber overlay components
 export * from './r3f'
+
+// Components - Map components with Mapbox integration
+export * from './components'
+
+// Persistence - Durable stream storage for tracks
+export * from './persistence'

@@ -2,15 +2,16 @@
  * GEOINT Testbed
  *
  * Interactive testbed for the GEOINT layering system.
- * Demonstrates deck.gl layers + R3F overlay integration.
+ * Uses GeointMap with full Mapbox + deck.gl + R3F integration.
  *
  * Route: /testbed/geoint
  *
  * @module
  */
 
-import { useState, useMemo, useCallback } from 'react'
-import { AlertTriangle, Eye, EyeOff } from 'lucide-react'
+import { useState, useCallback, useMemo } from 'react'
+import { AlertTriangle, Eye, EyeOff, Play, Pause } from 'lucide-react'
+import { useAtom } from '@effect-atom/atom-react'
 import { TestbedHeader, SectionLabel, TestCard, ControlGroup } from './shared'
 import {
   Track,
@@ -21,14 +22,10 @@ import {
   type TrackId,
 } from '@/lib/geoint/schemas'
 import {
-  createTrackPathLayer,
-  createTrackPositionLayer,
-  createTrackHeatmapLayer,
-  threatColorRange,
-} from '@/lib/geoint/layers'
-import DeckGL from '@deck.gl/react'
-import type { MapViewState } from '@deck.gl/core'
-import { GeointR3FOverlay } from '@/lib/geoint/r3f'
+  GeointMap,
+  createGeointInstanceAtoms,
+  type GeointLayerVisibility,
+} from '@/lib/geoint/components'
 
 // =============================================================================
 // Mock Data
@@ -107,15 +104,47 @@ const MOCK_THREATS: ThreatVolume[] = [
 ]
 
 // =============================================================================
-// Initial View State
+// Constants
 // =============================================================================
 
-const INITIAL_VIEW_STATE: MapViewState = {
-  longitude: -122.42,
-  latitude: 37.78,
-  zoom: 12,
-  pitch: 0,
-  bearing: 0,
+const INSTANCE_ID = 'geoint-testbed'
+
+// =============================================================================
+// Layer Toggle Button
+// =============================================================================
+
+interface LayerToggleProps {
+  label: string
+  active: boolean
+  onClick: () => void
+  color?: 'cyan' | 'orange' | 'purple' | 'green'
+}
+
+function LayerToggle({ label, active, onClick, color = 'cyan' }: LayerToggleProps) {
+  const colorClasses = {
+    cyan: active
+      ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
+      : 'bg-neutral-800 text-neutral-500 border-neutral-700',
+    orange: active
+      ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+      : 'bg-neutral-800 text-neutral-500 border-neutral-700',
+    purple: active
+      ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+      : 'bg-neutral-800 text-neutral-500 border-neutral-700',
+    green: active
+      ? 'bg-green-500/20 text-green-400 border-green-500/30'
+      : 'bg-neutral-800 text-neutral-500 border-neutral-700',
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 border transition-colors ${colorClasses[color]}`}
+    >
+      {active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+      {label}
+    </button>
+  )
 }
 
 // =============================================================================
@@ -123,62 +152,35 @@ const INITIAL_VIEW_STATE: MapViewState = {
 // =============================================================================
 
 export function GeointTestbed() {
-  const [viewState, setViewState] = useState<MapViewState>(INITIAL_VIEW_STATE)
+  // Get instance atoms
+  const atoms = useMemo(() => createGeointInstanceAtoms(INSTANCE_ID), [])
 
-  // Layer visibility toggles
-  const [showPaths, setShowPaths] = useState(true)
-  const [showPositions, setShowPositions] = useState(true)
-  const [showHeatmap, setShowHeatmap] = useState(false)
-  const [showR3F, setShowR3F] = useState(true)
-  const [showLabels, setShowLabels] = useState(true)
-  const [animate, setAnimate] = useState(true)
+  // Subscribe to visibility atom for layer controls
+  const [visibility, setVisibility] = useAtom(atoms.visibilityAtom)
+  const [selectedTrack, setSelectedTrack] = useAtom(atoms.selectedTrackAtom)
 
-  // Selected track
-  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null)
+  // Animation state
+  const [animate, setAnimate] = useState(false)
 
-  // Build deck.gl layers
-  const layers = useMemo(() => {
-    const result = []
+  // Toggle a specific layer
+  const toggleLayer = useCallback(
+    (layer: keyof GeointLayerVisibility) => {
+      setVisibility((prev) => ({ ...prev, [layer]: !prev[layer] }))
+    },
+    [setVisibility]
+  )
 
-    if (showPaths) {
-      result.push(
-        createTrackPathLayer(MOCK_TRACKS, {
-          id: 'geoint-paths',
-          visible: true,
-        })
-      )
-    }
+  // Track click handler
+  const handleTrackClick = useCallback(
+    (track: Track) => {
+      setSelectedTrack(track)
+    },
+    [setSelectedTrack]
+  )
 
-    if (showPositions) {
-      result.push(
-        createTrackPositionLayer(MOCK_TRACKS, {
-          id: 'geoint-positions',
-          visible: true,
-        })
-      )
-    }
-
-    if (showHeatmap) {
-      result.push(
-        createTrackHeatmapLayer(MOCK_TRACKS, {
-          id: 'geoint-heatmap',
-          visible: true,
-          radiusPixels: 50,
-          intensity: 2,
-          colorRange: threatColorRange,
-        })
-      )
-    }
-
-    return result
-  }, [showPaths, showPositions, showHeatmap])
-
-  const handleTrackClick = useCallback((track: Track) => {
-    setSelectedTrack(track)
-  }, [])
-
+  // Track hover handler
   const handleTrackHover = useCallback((_track: Track | null) => {
-    // Could update hover state here
+    // Could update cursor or tooltip state here
   }, [])
 
   return (
@@ -198,85 +200,78 @@ export function GeointTestbed() {
 
           <div className="space-y-3 mt-4">
             <ControlGroup label="Track Paths">
-              <button
-                onClick={() => setShowPaths(!showPaths)}
-                className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 ${
-                  showPaths
-                    ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                    : 'bg-neutral-800 text-neutral-500 border border-neutral-700'
-                }`}
-              >
-                {showPaths ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                {showPaths ? 'Visible' : 'Hidden'}
-              </button>
+              <LayerToggle
+                label={visibility.paths ? 'Visible' : 'Hidden'}
+                active={visibility.paths}
+                onClick={() => toggleLayer('paths')}
+                color="cyan"
+              />
             </ControlGroup>
 
             <ControlGroup label="Track Positions">
-              <button
-                onClick={() => setShowPositions(!showPositions)}
-                className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 ${
-                  showPositions
-                    ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                    : 'bg-neutral-800 text-neutral-500 border border-neutral-700'
-                }`}
-              >
-                {showPositions ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                {showPositions ? 'Visible' : 'Hidden'}
-              </button>
+              <LayerToggle
+                label={visibility.positions ? 'Visible' : 'Hidden'}
+                active={visibility.positions}
+                onClick={() => toggleLayer('positions')}
+                color="cyan"
+              />
+            </ControlGroup>
+
+            <ControlGroup label="Track Headings">
+              <LayerToggle
+                label={visibility.headings ? 'Visible' : 'Hidden'}
+                active={visibility.headings}
+                onClick={() => toggleLayer('headings')}
+                color="cyan"
+              />
             </ControlGroup>
 
             <ControlGroup label="Heatmap">
-              <button
-                onClick={() => setShowHeatmap(!showHeatmap)}
-                className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 ${
-                  showHeatmap
-                    ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-                    : 'bg-neutral-800 text-neutral-500 border border-neutral-700'
-                }`}
-              >
-                {showHeatmap ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                {showHeatmap ? 'Visible' : 'Hidden'}
-              </button>
+              <LayerToggle
+                label={visibility.heatmap ? 'Visible' : 'Hidden'}
+                active={visibility.heatmap}
+                onClick={() => toggleLayer('heatmap')}
+                color="orange"
+              />
             </ControlGroup>
 
-            <ControlGroup label="3D Overlay">
-              <button
-                onClick={() => setShowR3F(!showR3F)}
-                className={`px-3 py-1.5 rounded text-sm flex items-center gap-2 ${
-                  showR3F
-                    ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                    : 'bg-neutral-800 text-neutral-500 border border-neutral-700'
-                }`}
-              >
-                {showR3F ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                {showR3F ? 'Visible' : 'Hidden'}
-              </button>
+            <ControlGroup label="Animated Trips">
+              <div className="flex gap-2">
+                <LayerToggle
+                  label={visibility.trips ? 'Visible' : 'Hidden'}
+                  active={visibility.trips}
+                  onClick={() => toggleLayer('trips')}
+                  color="orange"
+                />
+                <button
+                  onClick={() => setAnimate(!animate)}
+                  className={`px-3 py-1.5 rounded text-sm flex items-center gap-1 border transition-colors ${
+                    animate
+                      ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                      : 'bg-neutral-800 text-neutral-500 border-neutral-700'
+                  }`}
+                >
+                  {animate ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                </button>
+              </div>
+            </ControlGroup>
+
+            <ControlGroup label="3D Overlay (R3F)">
+              <LayerToggle
+                label={visibility.r3f ? 'Visible' : 'Hidden'}
+                active={visibility.r3f}
+                onClick={() => toggleLayer('r3f')}
+                color="purple"
+              />
             </ControlGroup>
 
             <ControlGroup label="Labels">
-              <button
-                onClick={() => setShowLabels(!showLabels)}
-                className={`px-3 py-1.5 rounded text-sm ${
-                  showLabels
-                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                    : 'bg-neutral-800 text-neutral-500 border border-neutral-700'
-                }`}
-              >
-                {showLabels ? 'On' : 'Off'}
-              </button>
-            </ControlGroup>
-
-            <ControlGroup label="Animation">
-              <button
-                onClick={() => setAnimate(!animate)}
-                className={`px-3 py-1.5 rounded text-sm ${
-                  animate
-                    ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                    : 'bg-neutral-800 text-neutral-500 border border-neutral-700'
-                }`}
-              >
-                {animate ? 'On' : 'Off'}
-              </button>
+              <LayerToggle
+                label={visibility.labels ? 'On' : 'Off'}
+                active={visibility.labels}
+                onClick={() => toggleLayer('labels')}
+                color="green"
+              />
             </ControlGroup>
           </div>
 
@@ -342,36 +337,22 @@ export function GeointTestbed() {
 
         {/* Map View */}
         <div className="flex-1 relative">
-          <DeckGL
-            viewState={viewState}
-            onViewStateChange={({ viewState: vs }) => setViewState(vs as MapViewState)}
-            controller={true}
-            layers={layers}
-            style={{ background: '#0a0a0a' }}
+          <GeointMap
+            instanceId={INSTANCE_ID}
+            tracks={MOCK_TRACKS}
+            threats={MOCK_THREATS}
+            initialViewState={{
+              longitude: -122.42,
+              latitude: 37.78,
+              zoom: 12,
+            }}
+            height="100%"
+            interactive={true}
+            animate={animate}
+            debug={true}
+            onTrackClick={handleTrackClick}
+            onTrackHover={handleTrackHover}
           />
-
-          {/* R3F Overlay */}
-          {showR3F && (
-            <GeointR3FOverlay
-              center={{ lon: viewState.longitude, lat: viewState.latitude }}
-              scale={Math.pow(2, viewState.zoom) * 0.5}
-              tracks={MOCK_TRACKS}
-              threats={MOCK_THREATS}
-              showLabels={showLabels}
-              animate={animate}
-              onTrackClick={handleTrackClick}
-              onTrackHover={handleTrackHover}
-            />
-          )}
-
-          {/* Map Overlay Info */}
-          <div className="absolute top-4 right-4 bg-black/80 border border-neutral-800 rounded p-3">
-            <div className="text-xs font-mono text-neutral-500">
-              <div>LON: {viewState.longitude.toFixed(4)}</div>
-              <div>LAT: {viewState.latitude.toFixed(4)}</div>
-              <div>ZOOM: {viewState.zoom.toFixed(2)}</div>
-            </div>
-          </div>
 
           {/* Selected Track Info */}
           {selectedTrack && (
@@ -388,7 +369,7 @@ export function GeointTestbed() {
                 </div>
                 <button
                   onClick={() => setSelectedTrack(null)}
-                  className="text-neutral-500 hover:text-white"
+                  className="text-neutral-500 hover:text-white text-xl"
                 >
                   ×
                 </button>

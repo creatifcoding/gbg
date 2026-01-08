@@ -11,6 +11,7 @@
  */
 
 import { PathLayer, IconLayer, ScatterplotLayer } from '@deck.gl/layers'
+import { TripsLayer } from '@deck.gl/geo-layers'
 import type { Color, PickingInfo } from '@deck.gl/core'
 import type { Track, Classification } from '../schemas'
 import { classificationColors } from '../schemas'
@@ -295,3 +296,59 @@ export const createTrackLayers = (
 
   return layers
 }
+
+// =============================================================================
+// Animated Trips Layer (F001 - Temporal Animation)
+// =============================================================================
+
+const TRAIL_LENGTH_MS = 180000 // 3 minutes of trail history
+
+/**
+ * Create animated TripsLayer for temporal track visualization
+ *
+ * Animates tracks over time with trailing fade effect.
+ * Use requestAnimationFrame to update currentTime for 60fps animation.
+ *
+ * @example
+ * ```typescript
+ * const [currentTime, setCurrentTime] = useState(Date.now())
+ *
+ * useEffect(() => {
+ *   const animate = () => {
+ *     setCurrentTime(Date.now())
+ *     requestAnimationFrame(animate)
+ *   }
+ *   const id = requestAnimationFrame(animate)
+ *   return () => cancelAnimationFrame(id)
+ * }, [])
+ *
+ * const tripsLayer = createAnimatedTripsLayer(tracks, currentTime)
+ * ```
+ */
+export const createAnimatedTripsLayer = (
+  tracks: readonly Track[],
+  currentTime: number,
+  options?: {
+    id?: string
+    visible?: boolean
+    trailLength?: number
+    widthMinPixels?: number
+    fadeTrail?: boolean
+  }
+) =>
+  new TripsLayer({
+    id: options?.id ?? 'geoint-animated-tracks',
+    data: tracks.map((track) => ({
+      path: track.positions.map(
+        (p) => [p.lon, p.lat, p.timestamp.getTime()] as [number, number, number]
+      ),
+      color: getClassificationColor(track.metadata.classification)
+    })),
+    getPath: (d) => d.path,
+    getColor: (d) => d.color,
+    currentTime,
+    trailLength: options?.trailLength ?? TRAIL_LENGTH_MS,
+    widthMinPixels: options?.widthMinPixels ?? 2,
+    fadeTrail: options?.fadeTrail ?? true,
+    visible: options?.visible ?? true
+  })

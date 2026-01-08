@@ -11,6 +11,7 @@ export {
   createTrackPositionLayer,
   createTrackHeadingLayer,
   createTrackLayers,
+  createAnimatedTripsLayer,
   type TrackPathLayerData,
   type TrackPositionData,
   type TrackLayerOptions
