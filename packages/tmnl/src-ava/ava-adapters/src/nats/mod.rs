@@ -112,6 +112,7 @@ mod batch;
 mod bridge;
 mod router;
 mod transform;
+mod request_handler;
 
 // Macros (re-exported at crate root via #[macro_export])
 #[macro_use]
@@ -163,6 +164,16 @@ pub use bridge::{
     MetricsSnapshot,
     ViewStatus,
     ViewState,
+};
+
+// Request handling (bidirectional bridge)
+pub use request_handler::{
+    NatsRequestHandler,
+    RequestHandlerConfig,
+    RuntimeCommand,
+    SubscribeRequest,
+    InvalidateRequest,
+    UnsubscribeRequest,
 };
 
 // Re-export macros are handled by #[macro_export] in macros.rs

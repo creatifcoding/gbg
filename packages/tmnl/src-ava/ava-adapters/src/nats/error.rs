@@ -36,6 +36,14 @@ pub enum NatsError {
     /// Subscriber lagged and missed messages.
     #[error("Subscriber lagged {0} messages")]
     Lagged(u64),
+
+    /// Invalid subject format.
+    #[error("Invalid subject: {0}")]
+    InvalidSubject(String),
+
+    /// Subscription error.
+    #[error("Subscription error: {0}")]
+    Subscription(#[from] async_nats::SubscribeError),
 }
 
 // Manual From implementations for async_nats errors that don't implement std::error::Error cleanly

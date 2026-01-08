@@ -10,6 +10,7 @@ license.workspace = true
 # AVA crates
 ava-domain = { path = "../ava-domain" }
 ava-runtime = { path = "../ava-runtime" }
+ava-adapters = { path = "../ava-adapters", features = ["nats"] }
 
 # gRPC
 tonic.workspace = true
@@ -41,6 +42,10 @@ thiserror.workspace = true
 tokio.workspace = true
 async-trait.workspace = true
 futures.workspace = true
+
+# Logging
+tracing.workspace = true
+tracing-subscriber = { version = "0.3", features = ["fmt"] }
 
 [[bin]]
 name = "ava-server"
