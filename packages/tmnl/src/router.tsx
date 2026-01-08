@@ -64,6 +64,7 @@ import { AxiomTestbed } from './components/testbed/AxiomTestbed';
 import { PipelineADRTestbed } from './components/testbed/PipelineADRTestbed';
 import { WindowsTestbed } from './components/testbed/WindowsTestbed';
 import { GeointTestbed } from './components/testbed/GeointTestbed';
+import { AllintCopTestbed } from './components/testbed/AllintCopTestbed';
 import { DiagramsPage } from './components/docs';
 import { OverhaulDocsPage } from './components/docs/overhaul';
 import { DocsLanding } from './components/docs-3d';
@@ -418,6 +419,12 @@ const geointTestbedRoute = createRoute({
   component: GeointTestbed,
 });
 
+const allintCopTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/allint-cop',
+  component: AllintCopTestbed,
+});
+
 // Create the router
 const router = createRouter({
   routeTree: rootRoute.addChildren([
@@ -470,6 +477,7 @@ const router = createRouter({
     pipelineADRTestbedRoute,
     windowsTestbedRoute,
     geointTestbedRoute,
+    allintCopTestbedRoute,
   ]),
 });
 
