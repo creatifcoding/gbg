@@ -43,6 +43,7 @@ import { DataGridVariantTestbedSwitch } from './components/testbed/DataGridVaria
 import Dispositions from './pages/Dispositions';
 import { StreamsPlayground } from './components/playground/streams';
 import { AvaTestbed } from './components/testbed/AvaTestbed';
+import { AvaV2Testbed } from './components/testbed/AvaV2Testbed';
 import { FloatingPanelTestbed } from './components/testbed/FloatingPanelTestbed';
 import { SelectionTestbed } from './components/testbed/SelectionTestbed';
 import { DrawerTestbed } from './components/testbed/DrawerTestbed';
@@ -50,6 +51,7 @@ import { VariablesTestbed } from './components/testbed/VariablesTestbed';
 import { ScreensaverTestbed } from './components/testbed/ScreensaverTestbed';
 import { TerminalTestbed } from './components/testbed/TerminalTestbed';
 import { BlockTerminalTestbed } from './components/testbed/BlockTerminalTestbed';
+import { BlockTerminalTestbedV3 } from './components/testbed/BlockTerminalTestbedV3';
 import { KoriTestbed } from './components/testbed/kori';
 import { CollaborationTestbed } from './components/testbed/CollaborationTestbed';
 import { CollaborationTestbedV2 } from './components/testbed/CollaborationTestbedV2';
@@ -59,6 +61,9 @@ import { TheiaTestbed } from './components/testbed/TheiaTestbed';
 import { DataplaneTestbed } from './components/testbed/DataplaneTestbed';
 import { FermionTestbed } from './components/testbed/FermionTestbed';
 import { AxiomTestbed } from './components/testbed/AxiomTestbed';
+import { PipelineADRTestbed } from './components/testbed/PipelineADRTestbed';
+import { WindowsTestbed } from './components/testbed/WindowsTestbed';
+import { GeointTestbed } from './components/testbed/GeointTestbed';
 import { DiagramsPage } from './components/docs';
 import { OverhaulDocsPage } from './components/docs/overhaul';
 import { DocsLanding } from './components/docs-3d';
@@ -249,6 +254,13 @@ const avaTestbedRoute = createRoute({
   component: AvaTestbed,
 });
 
+// Create AVA v2 testbed route (effect-atom based)
+const avaV2TestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/ava-v2',
+  component: AvaV2Testbed,
+});
+
 // Create floating panel testbed route
 const floatingPanelTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -296,6 +308,13 @@ const blockTerminalTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/testbed/block-terminal',
   component: BlockTerminalTestbed,
+});
+
+// Create block terminal v3 testbed route (reference-based blocks)
+const blockTerminalV3TestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/block-terminal-v3',
+  component: BlockTerminalTestbedV3,
 });
 
 // Create docs landing route (3D bento grid)
@@ -380,6 +399,25 @@ const axiomTestbedRoute = createRoute({
   component: AxiomTestbed,
 });
 
+const pipelineADRTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/pipeline-adr',
+  component: PipelineADRTestbed,
+});
+
+const windowsTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/windows',
+  component: WindowsTestbed,
+});
+
+// Create GEOINT testbed route
+const geointTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/geoint',
+  component: GeointTestbed,
+});
+
 // Create the router
 const router = createRouter({
   routeTree: rootRoute.addChildren([
@@ -408,6 +446,7 @@ const router = createRouter({
     dataGridVariantTestbedRoute,
     streamsPlaygroundRoute,
     avaTestbedRoute,
+    avaV2TestbedRoute,
     floatingPanelTestbedRoute,
     selectionTestbedRoute,
     drawerTestbedRoute,
@@ -415,6 +454,7 @@ const router = createRouter({
     screensaverTestbedRoute,
     terminalTestbedRoute,
     blockTerminalTestbedRoute,
+    blockTerminalV3TestbedRoute,
     docsRoute,
     diagramsRoute,
     overhaulDocsRoute,
@@ -427,6 +467,9 @@ const router = createRouter({
     dataplaneTestbedRoute,
     fermionTestbedRoute,
     axiomTestbedRoute,
+    pipelineADRTestbedRoute,
+    windowsTestbedRoute,
+    geointTestbedRoute,
   ]),
 });
 
