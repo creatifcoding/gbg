@@ -166,3 +166,39 @@ export {
 // ============================================================================
 
 export * from './atoms';
+
+// ============================================================================
+// v2 Services (NATS JetStream)
+// ============================================================================
+
+export * from './services';
+
+// ============================================================================
+// v2 Schemas (Enhanced Effect Schema)
+// ============================================================================
+
+export * as AvaV2Schemas from './schemas/v2';
+
+// ============================================================================
+// v2 Atoms (NATS-based reactive)
+// ============================================================================
+
+export * as AvaV2Atoms from './atoms/v2';
+
+// ============================================================================
+// v2 Hooks (React bindings)
+// ============================================================================
+
+export * as AvaV2Hooks from './hooks';
+
+// Direct hook exports for convenience
+export {
+  useAvaConnection,
+  useViewSubscription,
+  useChannelData,
+  useChannels,
+  useAvaMonitor,
+  useAllArtifacts,
+  useSubscriptions,
+  useAvaCleanup,
+} from './hooks';
