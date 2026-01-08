@@ -202,3 +202,19 @@ export {
   useSubscriptions,
   useAvaCleanup,
 } from './hooks';
+
+// ============================================================================
+// Utilities (Tracing, Error Handling)
+// ============================================================================
+
+export * as AvaUtils from './utils';
+
+// ============================================================================
+// React Components
+// ============================================================================
+
+export {
+  AvaProvider,
+  useAvaProviderStatus,
+  type AvaProviderProps,
+} from './components';

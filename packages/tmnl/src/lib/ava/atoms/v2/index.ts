@@ -20,7 +20,7 @@
  */
 
 import { Atom } from '@effect-atom/atom-react'
-import { Effect, Layer, Stream, HashMap, Option, Fiber, pipe } from 'effect'
+import { Effect, Layer, Stream, HashMap, Option, Fiber, FiberMap, pipe } from 'effect'
 
 import {
   AvaClientV2,
@@ -119,13 +119,29 @@ const createAvaV2Layer = (config: AvaV2Config) => {
 
 /**
  * Effect runtime for AVA v2 operations.
- * All AVA v2 atoms derive from this runtime.
  *
- * Runtime is rebuilt when config changes (reactive layer).
+ * PATTERN: Module-level Atom.runtime with reactive layer derivation.
+ *
+ * RuntimeFactory accepts:
+ * - Layer directly: Atom.runtime(MyServiceLive)
+ * - Function: Atom.runtime((get) => Layer) for reactive config
+ *
+ * The runtime provides:
+ * - runtime.atom(effect) - Create read atoms with service access
+ * - runtime.fn<Input>()(effect) - Create function atoms with service access
+ * - runtime.layer - The underlying layer atom (for testing/replacement)
+ *
+ * Benefits over fresh-layer-per-operation:
+ * - FiberMap persists across operations (auto-cleanup on dispose)
+ * - Single service instance shared across all operations
+ * - Proper lifecycle management
+ * - Reactive to config changes
+ *
+ * @see .edin/AVA_V2_STRATEGIC_ANALYSIS.md for migration rationale
  */
-export const avaV2RuntimeAtom = Atom.make((get) => {
+export const avaV2Runtime = Atom.runtime((get) => {
   const config = get(avaV2ConfigAtom)
-  return Atom.runtime(createAvaV2Layer(config))
+  return createAvaV2Layer(config)
 })
 
 // =============================================================================
@@ -163,21 +179,6 @@ export const deltasAtom = Atom.make<readonly ViewDelta[]>([])
 
 /** Reconciler event log (newest first, capped at 100) */
 export const eventsAtom = Atom.make<readonly ReconcilerEvent[]>([])
-
-/**
- * Active subscription fibers for cleanup.
- *
- * NOTE: AvaClientV2 service now includes a FiberMap for fiber lifecycle management.
- * To fully leverage FiberMap benefits (auto-removal on completion, scoped cleanup),
- * this atom-based approach would need to use a single shared service instance.
- * Current architecture creates fresh layers per operation, so FiberMap.run() can't
- * be used across operations. See .edin/FIBERMAP_IMPROVEMENT.md for migration path.
- *
- * @pattern Manual fiber tracking (pending FiberMap migration)
- */
-const subscriptionFibersAtom = Atom.make<HashMap.HashMap<ViewId, Fiber.RuntimeFiber<void, unknown>>>(
-  HashMap.empty()
-)
 
 // Mount state atoms
 avaV2Registry.mount(connectionStatusAtom)
@@ -255,20 +256,19 @@ export const avaV2Ops = {
    * Creates long-running fibers that stream artifacts/deltas to state atoms.
    * Uses applyDeltaReducer for incremental artifact updates.
    *
-   * @pattern Traced subscription with delta processing
+   * @pattern Runtime.fn with FiberMap lifecycle management
    */
-  subscribe: Atom.fn<ViewId>()(
+  subscribe: avaV2Runtime.fn<ViewId>()(
     (viewId, ctx) =>
       Effect.gen(function* () {
-        // Check if already subscribed
-        const existingFibers = ctx(subscriptionFibersAtom)
-        if (HashMap.has(existingFibers, viewId)) {
+        const client = yield* AvaClientV2
+
+        // Check if already subscribed via FiberMap (service-scoped)
+        const hasExisting = yield* FiberMap.has(client.subscriptionFibers, viewId)
+        if (hasExisting) {
           yield* logAvaEvent('subscription.already_subscribed', { viewId })
           return // Already subscribed
         }
-
-        const config = ctx(avaV2ConfigAtom)
-        const layer = createAvaV2Layer(config)
 
         // Create subscription record
         const subscription: ViewSubscription = {
@@ -284,8 +284,6 @@ export const avaV2Ops = {
 
         // Create stream processing program
         const streamProgram = Effect.gen(function* () {
-          const client = yield* AvaClientV2
-
           // Request subscription from backend
           yield* client.requestSubscribe(viewId)
 
@@ -366,7 +364,6 @@ export const avaV2Ops = {
           // Wait for both fibers (they run indefinitely until interrupted)
           yield* Fiber.joinAll([artifactFiber, deltaFiber])
         }).pipe(
-          Effect.provide(layer),
           withAvaSpan('subscription', 'subscribe'),
           Effect.catchAll((error) =>
             Effect.gen(function* () {
@@ -377,13 +374,13 @@ export const avaV2Ops = {
           )
         )
 
-        // Fork as long-running fiber
-        const fiber = yield* Effect.fork(streamProgram)
-
-        // Store fiber for cleanup
-        ctx.set(subscriptionFibersAtom, HashMap.set(ctx(subscriptionFibersAtom), viewId, fiber))
-
-        return fiber
+        // Use FiberMap.run for managed subscription lifecycle
+        // - Auto-removes fiber when it completes
+        // - Auto-interrupts on Layer scope close
+        // - onlyIfMissing prevents duplicate subscriptions
+        yield* FiberMap.run(client.subscriptionFibers, viewId, streamProgram, {
+          onlyIfMissing: true,
+        })
       })
   ),
 
@@ -391,34 +388,24 @@ export const avaV2Ops = {
    * Unsubscribe from a view.
    * Interrupts the subscription fiber and cleans up state.
    *
-   * @pattern Traced unsubscribe with cleanup
+   * @pattern Runtime.fn with FiberMap.remove for cleanup
    */
-  unsubscribe: Atom.fn<ViewId>()(
+  unsubscribe: avaV2Runtime.fn<ViewId>()(
     (viewId, ctx) =>
       Effect.gen(function* () {
         yield* logAvaEvent('subscription.unsubscribe.start', { viewId })
 
-        const fibers = ctx(subscriptionFibersAtom)
-        const fiberOpt = HashMap.get(fibers, viewId)
+        const client = yield* AvaClientV2
 
-        if (Option.isSome(fiberOpt)) {
-          yield* Fiber.interrupt(fiberOpt.value)
-        }
+        // Remove fiber from FiberMap (auto-interrupts if running)
+        yield* FiberMap.remove(client.subscriptionFibers, viewId)
 
-        // Cleanup state
-        ctx.set(subscriptionFibersAtom, HashMap.remove(fibers, viewId))
+        // Cleanup state atoms
         ctx.set(subscriptionsAtom, HashMap.remove(ctx(subscriptionsAtom), viewId))
         ctx.set(artifactsAtom, HashMap.remove(ctx(artifactsAtom), viewId))
 
         // Request unsubscribe from backend
-        const config = ctx(avaV2ConfigAtom)
-        const layer = createAvaV2Layer(config)
-
-        yield* Effect.gen(function* () {
-          const client = yield* AvaClientV2
-          yield* client.requestUnsubscribe(viewId)
-        }).pipe(
-          Effect.provide(layer),
+        yield* client.requestUnsubscribe(viewId).pipe(
           withAvaSpan('subscription', 'unsubscribe'),
           Effect.ignore
         )
@@ -431,21 +418,15 @@ export const avaV2Ops = {
    * Invalidate a view.
    * Triggers recompilation on the backend.
    *
-   * @pattern Traced invalidation
+   * @pattern Runtime.fn with direct service access
    */
-  invalidate: Atom.fn<{ viewId: ViewId; reason?: string }>()(
-    ({ viewId, reason }, ctx) =>
+  invalidate: avaV2Runtime.fn<{ viewId: ViewId; reason?: string }>()(
+    ({ viewId, reason }, _ctx) =>
       Effect.gen(function* () {
         yield* logAvaEvent('subscription.invalidate.start', { viewId, reason })
 
-        const config = ctx(avaV2ConfigAtom)
-        const layer = createAvaV2Layer(config)
-
-        yield* Effect.gen(function* () {
-          const client = yield* AvaClientV2
-          yield* client.invalidate(viewId, reason)
-        }).pipe(
-          Effect.provide(layer),
+        const client = yield* AvaClientV2
+        yield* client.invalidate(viewId, reason).pipe(
           withAvaSpan('subscription', 'invalidate', { viewId, reason })
         )
 
@@ -457,23 +438,20 @@ export const avaV2Ops = {
    * Unsubscribe from all views.
    * Cleanup for unmount.
    *
-   * @pattern Traced bulk cleanup
+   * @pattern Runtime.fn with FiberMap.clear for bulk cleanup
    */
-  unsubscribeAll: Atom.fn()(
+  unsubscribeAll: avaV2Runtime.fn()(
     (_, ctx) =>
       Effect.gen(function* () {
-        const fibers = ctx(subscriptionFibersAtom)
-        const count = HashMap.size(fibers)
+        const client = yield* AvaClientV2
+        const count = yield* FiberMap.size(client.subscriptionFibers)
 
         yield* logAvaEvent('subscription.unsubscribe_all.start', { count })
 
-        // Interrupt all fibers
-        for (const fiber of HashMap.values(fibers)) {
-          yield* Fiber.interrupt(fiber).pipe(Effect.ignore)
-        }
+        // Clear FiberMap (auto-interrupts all running fibers)
+        yield* FiberMap.clear(client.subscriptionFibers)
 
-        // Clear all state
-        ctx.set(subscriptionFibersAtom, HashMap.empty())
+        // Clear all state atoms
         ctx.set(subscriptionsAtom, HashMap.empty())
         ctx.set(artifactsAtom, HashMap.empty())
         ctx.set(deltasAtom, [])
@@ -491,33 +469,30 @@ export const avaV2Ops = {
 /**
  * AVA v2 stream subscriptions - for global event monitoring.
  * These are separate from view-specific subscriptions.
+ *
+ * @pattern Runtime.fn with forked streams
  */
 export const avaV2Streams = {
   /**
    * Subscribe to all artifacts (multi-view).
    * Useful for debugging/monitoring.
    */
-  subscribeAllArtifacts: Atom.fn()(
+  subscribeAllArtifacts: avaV2Runtime.fn()(
     (_, ctx) =>
       Effect.gen(function* () {
-        const config = ctx(avaV2ConfigAtom)
-        const layer = createAvaV2Layer(config)
+        const client = yield* AvaClientV2
 
-        const streamProgram = Effect.gen(function* () {
-          const client = yield* AvaClientV2
-
-          yield* client.subscribeAllArtifacts().pipe(
-            Stream.tap((tagged) =>
-              Effect.sync(() => {
-                ctx.set(
-                  artifactsAtom,
-                  HashMap.set(ctx(artifactsAtom), tagged.viewId, tagged.artifact)
-                )
-              })
-            ),
-            Stream.runDrain
-          )
-        }).pipe(Effect.provide(layer))
+        const streamProgram = client.subscribeAllArtifacts().pipe(
+          Stream.tap((tagged) =>
+            Effect.sync(() => {
+              ctx.set(
+                artifactsAtom,
+                HashMap.set(ctx(artifactsAtom), tagged.viewId, tagged.artifact)
+              )
+            })
+          ),
+          Stream.runDrain
+        )
 
         return yield* Effect.fork(streamProgram)
       })
@@ -527,26 +502,21 @@ export const avaV2Streams = {
    * Subscribe to all deltas (multi-view).
    * Useful for debugging/monitoring.
    */
-  subscribeAllDeltas: Atom.fn()(
+  subscribeAllDeltas: avaV2Runtime.fn()(
     (_, ctx) =>
       Effect.gen(function* () {
-        const config = ctx(avaV2ConfigAtom)
-        const layer = createAvaV2Layer(config)
+        const client = yield* AvaClientV2
 
-        const streamProgram = Effect.gen(function* () {
-          const client = yield* AvaClientV2
-
-          yield* client.subscribeAllDeltas().pipe(
-            Stream.tap((tagged) =>
-              Effect.sync(() => {
-                // Add delta to history (capped at 100)
-                const current = ctx(deltasAtom)
-                ctx.set(deltasAtom, [tagged.delta, ...current].slice(0, 100))
-              })
-            ),
-            Stream.runDrain
-          )
-        }).pipe(Effect.provide(layer))
+        const streamProgram = client.subscribeAllDeltas().pipe(
+          Stream.tap((tagged) =>
+            Effect.sync(() => {
+              // Add delta to history (capped at 100)
+              const current = ctx(deltasAtom)
+              ctx.set(deltasAtom, [tagged.delta, ...current].slice(0, 100))
+            })
+          ),
+          Stream.runDrain
+        )
 
         return yield* Effect.fork(streamProgram)
       })
@@ -556,26 +526,21 @@ export const avaV2Streams = {
    * Subscribe to reconciler events.
    * For lifecycle monitoring.
    */
-  subscribeEvents: Atom.fn()(
+  subscribeEvents: avaV2Runtime.fn()(
     (_, ctx) =>
       Effect.gen(function* () {
-        const config = ctx(avaV2ConfigAtom)
-        const layer = createAvaV2Layer(config)
+        const client = yield* AvaClientV2
 
-        const streamProgram = Effect.gen(function* () {
-          const client = yield* AvaClientV2
-
-          yield* client.subscribeEvents().pipe(
-            Stream.tap((event) =>
-              Effect.sync(() => {
-                // Add event to log (capped at 100)
-                const current = ctx(eventsAtom)
-                ctx.set(eventsAtom, [event, ...current].slice(0, 100))
-              })
-            ),
-            Stream.runDrain
-          )
-        }).pipe(Effect.provide(layer))
+        const streamProgram = client.subscribeEvents().pipe(
+          Stream.tap((event) =>
+            Effect.sync(() => {
+              // Add event to log (capped at 100)
+              const current = ctx(eventsAtom)
+              ctx.set(eventsAtom, [event, ...current].slice(0, 100))
+            })
+          ),
+          Stream.runDrain
+        )
 
         return yield* Effect.fork(streamProgram)
       })
@@ -589,6 +554,9 @@ export const avaV2Streams = {
 /**
  * Reset all AVA v2 state to defaults.
  * Use for testing or full cleanup.
+ *
+ * Note: Does NOT clear FiberMap in AvaClientV2 service.
+ * For full cleanup including fibers, use avaV2Ops.unsubscribeAll().
  */
 export const resetAvaV2State = (): void => {
   avaV2Registry.set(connectionStatusAtom, 'disconnected')
@@ -597,6 +565,5 @@ export const resetAvaV2State = (): void => {
   avaV2Registry.set(artifactsAtom, HashMap.empty())
   avaV2Registry.set(deltasAtom, [])
   avaV2Registry.set(eventsAtom, [])
-  avaV2Registry.set(subscriptionFibersAtom, HashMap.empty())
   avaV2Registry.set(avaV2ConfigAtom, DEFAULT_CONFIG)
 }
