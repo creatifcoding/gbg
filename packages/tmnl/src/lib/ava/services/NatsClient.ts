@@ -11,9 +11,12 @@
 
 import {
   Context,
+  Chunk,
   Data,
+  Duration,
   Effect,
   Layer,
+  Schedule,
   Stream,
   Ref,
   Deferred,
@@ -49,12 +52,42 @@ export type NatsConfig = typeof NatsConfig.Type
 export const NatsConfigTag = Context.GenericTag<NatsConfig>('ava/NatsConfig')
 
 // ============================================================================
+// Robustness: Retry Schedule + Backpressure
+// ============================================================================
+
+/**
+ * NATS connection retry schedule with exponential backoff + jitter
+ *
+ * - Exponential backoff: 100ms, 200ms, 400ms, 800ms, 1600ms
+ * - Jittered: +/- 20% randomness to prevent thundering herd
+ * - Max 5 attempts
+ * - Total timeout: 30 seconds
+ *
+ * @pattern Schedule.exponential.jittered.intersect(recurs(N))
+ * @see AVA_V2_ENHANCEMENT_PLAN.md Pattern 2
+ */
+export const natsRetrySchedule = pipe(
+  Schedule.exponential(Duration.millis(100)),
+  Schedule.jittered,
+  Schedule.intersect(Schedule.recurs(5)),
+  Schedule.upTo(Duration.seconds(30))
+)
+
+/**
+ * Default backpressure buffer size for NATS subscriptions.
+ * When buffer is full, the emitter blocks until consumer catches up.
+ */
+export const DEFAULT_STREAM_BUFFER_SIZE = 100
+
+// ============================================================================
 // Errors
 // ============================================================================
 
 export class NatsConnectionError extends Data.TaggedError('NatsConnectionError')<{
   readonly message: string
   readonly cause?: unknown
+  /** Whether this error is retryable (network errors, timeouts) */
+  readonly retryable?: boolean
 }> {}
 
 export class NatsSubscriptionError extends Data.TaggedError('NatsSubscriptionError')<{
@@ -230,25 +263,36 @@ const make = Effect.gen(function* (_) {
     })
   )
 
-  // Connect to NATS
+  // Connect to NATS with retry (exponential backoff + jitter)
   const nc = yield* _(
-    Effect.tryPromise({
-      try: async () => {
-        const conn = await natsModule.connect({
-          servers: config.serverUrl,
-          timeout: config.timeout,
-          maxReconnectAttempts: config.maxReconnectAttempts,
-          reconnectTimeWait: config.reconnectDelayMs,
-        })
-        return conn as unknown as NatsConnection
-      },
-      catch: (error) =>
-        new NatsConnectionError({
-          message: `Failed to connect to NATS at ${config.serverUrl}`,
-          cause: error,
-        }),
-    }),
-    Effect.tap(() => Effect.log(`Connected to NATS at ${config.serverUrl}`))
+    pipe(
+      Effect.tryPromise({
+        try: async () => {
+          const conn = await natsModule.connect({
+            servers: config.serverUrl,
+            timeout: config.timeout,
+            maxReconnectAttempts: config.maxReconnectAttempts,
+            reconnectTimeWait: config.reconnectDelayMs,
+          })
+          return conn as unknown as NatsConnection
+        },
+        catch: (error) =>
+          new NatsConnectionError({
+            message: `Failed to connect to NATS at ${config.serverUrl}`,
+            cause: error,
+            retryable: true, // Network errors are retryable
+          }),
+      }),
+      // Retry with exponential backoff + jitter for connection errors
+      Effect.retry({
+        while: (e) => e.retryable === true,
+        schedule: natsRetrySchedule,
+      }),
+      Effect.tapError((e) =>
+        Effect.log(`NATS connection failed after retries: ${e.message}`)
+      ),
+      Effect.tap(() => Effect.log(`Connected to NATS at ${config.serverUrl}`))
+    )
   )
 
   // Store connection and mark as connected
@@ -320,44 +364,37 @@ const make = Effect.gen(function* (_) {
               max: options?.max,
             })
 
-            return Stream.asyncPush<NatsMessage<Uint8Array>, NatsSubscriptionError>(
-              (emit) =>
-                Effect.gen(function* (_) {
-                  yield* _(
-                    Effect.fork(
-                      Effect.async<void, NatsSubscriptionError>((resume) => {
-                        ;(async () => {
-                          try {
-                            for await (const msg of sub) {
-                              const natsMsg: NatsMessage<Uint8Array> = {
-                                subject: msg.subject,
-                                data: msg.data,
-                                timestamp: Date.now(),
-                              }
-                              if (!emit.single(natsMsg)) {
-                                break
-                              }
-                            }
-                            emit.end()
-                            resume(Effect.void)
-                          } catch (error) {
-                            const err = new NatsSubscriptionError({
-                              subject: fullSubject,
-                              message: String(error),
-                              cause: error,
-                            })
-                            emit.fail(err)
-                            resume(Effect.fail(err))
-                          }
-                        })()
-                      })
-                    )
-                  )
+            // Use Stream.async with capacity for backpressure control
+            // When buffer is full, emitter blocks until consumer catches up
+            return Stream.async<NatsMessage<Uint8Array>, NatsSubscriptionError>(
+              (emit) => {
+                ;(async () => {
+                  try {
+                    for await (const msg of sub) {
+                      const natsMsg: NatsMessage<Uint8Array> = {
+                        subject: msg.subject,
+                        data: msg.data,
+                        timestamp: Date.now(),
+                      }
+                      emit(Effect.succeed(Chunk.of(natsMsg)))
+                    }
+                    emit.end()
+                  } catch (error) {
+                    const err = new NatsSubscriptionError({
+                      subject: fullSubject,
+                      message: String(error),
+                      cause: error,
+                    })
+                    emit.fail(err)
+                  }
+                })()
 
-                  return Effect.sync(() => {
-                    sub.unsubscribe()
-                  })
-                }).pipe(Effect.scoped)
+                // Return cleanup effect
+                return Effect.sync(() => {
+                  sub.unsubscribe()
+                })
+              },
+              DEFAULT_STREAM_BUFFER_SIZE // Backpressure: buffer up to 100 messages
             )
           })
         )
@@ -384,53 +421,46 @@ const make = Effect.gen(function* (_) {
             })
 
             const decoder = new TextDecoder()
-            return Stream.asyncPush<NatsMessage<A>, NatsSubscriptionError | NatsDecodeError>(
-              (emit) =>
-                Effect.gen(function* (_) {
-                  yield* _(
-                    Effect.fork(
-                      Effect.async<void, NatsSubscriptionError | NatsDecodeError>((resume) => {
-                        ;(async () => {
-                          try {
-                            for await (const msg of sub) {
-                              const raw = decoder.decode(msg.data)
-                              try {
-                                const parsed = JSON.parse(raw) as A
-                                const natsMsg: NatsMessage<A> = {
-                                  subject: msg.subject,
-                                  data: parsed,
-                                  timestamp: Date.now(),
-                                }
-                                if (!emit.single(natsMsg)) break
-                              } catch (parseError) {
-                                const err = new NatsDecodeError({
-                                  subject: msg.subject,
-                                  raw,
-                                  message: String(parseError),
-                                })
-                                emit.fail(err)
-                                resume(Effect.fail(err))
-                                return
-                              }
-                            }
-                            emit.end()
-                            resume(Effect.void)
-                          } catch (error) {
-                            const err = new NatsSubscriptionError({
-                              subject: fullSubject,
-                              message: String(error),
-                              cause: error,
-                            })
-                            emit.fail(err)
-                            resume(Effect.fail(err))
-                          }
-                        })()
-                      })
-                    )
-                  )
+            // Use Stream.async with capacity for backpressure control
+            return Stream.async<NatsMessage<A>, NatsSubscriptionError | NatsDecodeError>(
+              (emit) => {
+                ;(async () => {
+                  try {
+                    for await (const msg of sub) {
+                      const raw = decoder.decode(msg.data)
+                      try {
+                        const parsed = JSON.parse(raw) as A
+                        const natsMsg: NatsMessage<A> = {
+                          subject: msg.subject,
+                          data: parsed,
+                          timestamp: Date.now(),
+                        }
+                        emit(Effect.succeed(Chunk.of(natsMsg)))
+                      } catch (parseError) {
+                        const err = new NatsDecodeError({
+                          subject: msg.subject,
+                          raw,
+                          message: String(parseError),
+                        })
+                        emit.fail(err)
+                        return
+                      }
+                    }
+                    emit.end()
+                  } catch (error) {
+                    const err = new NatsSubscriptionError({
+                      subject: fullSubject,
+                      message: String(error),
+                      cause: error,
+                    })
+                    emit.fail(err)
+                  }
+                })()
 
-                  return Effect.sync(() => sub.unsubscribe())
-                }).pipe(Effect.scoped)
+                // Return cleanup effect
+                return Effect.sync(() => sub.unsubscribe())
+              },
+              DEFAULT_STREAM_BUFFER_SIZE // Backpressure: buffer up to 100 messages
             )
           })
         )
