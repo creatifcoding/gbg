@@ -44,6 +44,12 @@ export {
   SearchPanelActions,
   SearchPanelCollapsibleSection,
   useSearchPanel,
+  // XState-enhanced version
+  SearchPanelWithMachine,
+  SearchPanelXStateRoot,
+  SearchPanelXStateInput,
+  SearchPanelXStateSection,
+  useXStateSearchPanel,
   type SearchPanelRootProps,
   type SearchPanelInputProps,
   type SearchPanelSourceTogglesProps,
@@ -52,6 +58,10 @@ export {
   type SearchPanelResultsProps,
   type SearchPanelActionsProps,
   type SearchPanelCollapsibleSectionProps,
+  type XStateSearchPanelContextValue,
+  type SearchPanelWithMachineProps,
+  type SearchPanelXStateInputProps,
+  type SearchPanelXStateSectionProps,
 } from './SearchPanelCompound'
 
 // Results Panel - Virtualized results display
@@ -98,13 +108,23 @@ export {
   type UseViewportSearchResult,
 } from './hooks/useViewportSearch'
 
-// Radial Command Dial - Ctrl+Click entity actions
+// Radial Command Dial - Ctrl+Click entity actions with XState gesture support
 export {
   RadialCommandDial,
   useRadialDial,
   useCtrlClickDial,
+  // XState-enhanced version with gesture detection
+  RadialDialWithMachine,
+  RadialDialProvider,
+  XStateRadialDial,
+  useGestureDialTrigger,
+  useXStateRadialDial,
   type RadialCommandDialProps,
   type UseRadialDialResult,
+  // XState-enhanced types
+  type XStateRadialDialContextValue,
+  type RadialDialProviderProps,
+  type XStateRadialDialProps,
 } from './RadialCommandDial'
 
 // Entity Panel - Trait-based entity display
@@ -192,6 +212,14 @@ export {
   FilterBarCollapsibleSection,
   useFilterBar,
   filterStateAtom,
+  // XState-enhanced version with presets
+  FilterBarWithMachine,
+  FilterBarXStateRoot,
+  FilterBarXStateSourceChips,
+  FilterBarXStateGroup,
+  FilterBarXStateActiveSummary,
+  FilterBarPresetSelector,
+  useXStateFilterBar,
   type FilterBarState,
   type FilterBarContextValue,
   type FilterBarRootProps,
@@ -201,6 +229,13 @@ export {
   type BoundsIndicatorProps,
   type ActiveFilterSummaryProps,
   type CollapsibleFilterSectionProps,
+  // XState-enhanced types
+  type XStateFilterBarContextValue,
+  type FilterBarWithMachineProps,
+  type PresetSelectorProps as FilterPresetSelectorProps,
+  type XStateGroupProps,
+  type XStateActiveSummaryProps,
+  type XStateSourceChipsProps,
 } from './FilterBar'
 
 // Layer Palette Compound - Enhanced layer control system
@@ -570,3 +605,90 @@ export {
   type GeointKeyboardActions,
   type GeointKeyboardProviderProps,
 } from './GeointKeyboardProvider'
+
+// GeointShell - Layout orchestrator compound component
+export {
+  GeointShell,
+  useGeointShell,
+  type GeointShellProps,
+  type HeaderProps as GeointShellHeaderProps,
+  type SidebarProps as GeointShellSidebarProps,
+  type MapProps as GeointShellMapProps,
+  type IntelProps as GeointShellIntelProps,
+  type TimelineProps as GeointShellTimelineProps,
+  type AnalyticsTopProps as GeointShellAnalyticsTopProps,
+  type AnalyticsBottomProps as GeointShellAnalyticsBottomProps,
+} from './GeointShell'
+
+// ImmersiveHUD - Full-screen immersive mode with glassmorphism overlays
+export {
+  ImmersiveHUD,
+  useImmersiveHUD,
+  type ImmersiveHUDRootProps,
+  type QuickStatsProps as ImmersiveHUDQuickStatsProps,
+  type AlertItem as ImmersiveHUDAlertItem,
+  type AlertsOverlayProps as ImmersiveHUDAlertsProps,
+  type EntityInfoOverlayProps as ImmersiveHUDEntityInfoProps,
+  type MinimapOverlayProps as ImmersiveHUDMinimapProps,
+  type TimelineOverlayProps as ImmersiveHUDTimelineProps,
+  type CompassOverlayProps as ImmersiveHUDCompassProps,
+  type CoordinatesOverlayProps as ImmersiveHUDCoordinatesProps,
+  type ImmersiveHUDContextValue,
+} from './ImmersiveHUD'
+
+// SwimlaneTimeline - Temporal visualization with entity swimlanes
+export {
+  SwimlaneTimeline,
+  useSwimlaneTimeline,
+  type SwimlaneTimelineRootProps,
+  type SwimlaneHeaderProps,
+  type TimeAxisProps,
+  type LaneListProps,
+  type PlaybackControlsProps as SwimlanePlaybackControlsProps,
+} from './SwimlaneTimeline'
+
+// NetworkGraph - Entity relationship visualization with @xyflow/react
+export {
+  NetworkGraph,
+  useNetworkGraph,
+  type NetworkGraphRootProps,
+  type CanvasProps as NetworkGraphCanvasProps,
+  type ControlsProps as NetworkGraphControlsProps,
+  type EdgeLegendProps as NetworkGraphEdgeLegendProps,
+  type MinimapProps as NetworkGraphMinimapProps,
+  type SearchInputProps as NetworkGraphSearchInputProps,
+  type SelectionInfoProps as NetworkGraphSelectionInfoProps,
+  type StatsOverlayProps as NetworkGraphStatsOverlayProps,
+} from './NetworkGraph'
+
+// SplitCompareView - Temporal comparison views
+export {
+  SplitCompareView,
+  useSplitCompare,
+  type SplitCompareRootProps,
+  type PaneContainerProps as SplitComparePaneContainerProps,
+  type LeftPaneProps as SplitCompareLeftPaneProps,
+  type RightPaneProps as SplitCompareRightPaneProps,
+  type SwipeHandleProps as SplitCompareSwipeHandleProps,
+  type ControlsProps as SplitCompareControlsProps,
+  type TimelineSelectorProps as SplitCompareTimelineSelectorProps,
+  type DifferenceOverlayProps as SplitCompareDifferenceOverlayProps,
+} from './SplitCompareView'
+
+// MissionPlanner - Mission planning with objectives, waypoints, resources
+export {
+  MissionPlanner,
+  useMissionPlanner,
+} from './MissionPlanner'
+
+// FusionView - Multi-source intelligence fusion and correlation
+export {
+  FusionView,
+  useFusionView,
+} from './FusionView'
+
+// TemporalHeatmap - Activity density visualization over time
+export {
+  TemporalHeatmap,
+  useTemporalHeatmap,
+} from './TemporalHeatmap'
