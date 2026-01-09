@@ -64,6 +64,7 @@ import { AxiomTestbed } from './components/testbed/AxiomTestbed';
 import { PipelineADRTestbed } from './components/testbed/PipelineADRTestbed';
 import { WindowsTestbed } from './components/testbed/WindowsTestbed';
 import { GeointTestbed } from './components/testbed/GeointTestbed';
+import { GeointDashboardTestbed } from './components/testbed/GeointDashboardTestbed';
 import { AllintCopTestbed } from './components/testbed/AllintCopTestbed';
 import { DiagramsPage } from './components/docs';
 import { OverhaulDocsPage } from './components/docs/overhaul';
@@ -419,6 +420,13 @@ const geointTestbedRoute = createRoute({
   component: GeointTestbed,
 });
 
+// Create GEOINT Dashboard testbed route (three-variant layout system)
+const geointDashboardTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/geoint-dashboard',
+  component: GeointDashboardTestbed,
+});
+
 const allintCopTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/testbed/allint-cop',
@@ -477,6 +485,7 @@ const router = createRouter({
     pipelineADRTestbedRoute,
     windowsTestbedRoute,
     geointTestbedRoute,
+    geointDashboardTestbedRoute,
     allintCopTestbedRoute,
   ]),
 });
