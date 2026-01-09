@@ -35,6 +35,9 @@ export {
   makePostGISService,
   PostGISServiceLive,
   type PostGISService,
+  // Health Check
+  checkDatabaseHealth,
+  type DatabaseHealthStatus,
 } from './postgis/PostGISClient'
 
 // PostGIS Schemas - Effect Model definitions for database persistence
@@ -84,6 +87,43 @@ export {
   // Migration
   runMigrations,
 } from './postgis/repositories'
+
+// Flight Repository - raw.flight_positions and entity.flights_current
+export {
+  // Types
+  type FlightPositionInput,
+  type FlightPositionRow,
+  type CurrentFlight,
+  type FlightTrackSummary,
+  type CurrentFlightSearchOptions,
+  type FlightPositionSearchOptions,
+  type IngestionHealthRow,
+  // Error
+  FlightRepositoryError,
+  // Repository
+  type FlightRepository,
+  FlightRepositoryTag,
+  makeFlightRepository,
+  FlightRepositoryLive,
+} from './postgis/FlightRepository'
+
+// POI Repository - raw.osm_elements (OSM cache)
+export {
+  // Types
+  OsmType,
+  type PoiInput,
+  type PoiRow,
+  type PoiSearchResult,
+  type PoiSearchOptions,
+  type PoiNearbyOptions,
+  // Error
+  PoiRepositoryError,
+  // Repository
+  type PoiRepository,
+  PoiRepositoryTag,
+  makePoiRepository,
+  PoiRepositoryLive,
+} from './postgis/PoiRepository'
 
 // PostGIS Materializer - Event Stream to PostGIS Bridge
 export {
