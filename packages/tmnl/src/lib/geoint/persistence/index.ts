@@ -125,6 +125,61 @@ export {
   PoiRepositoryLive,
 } from './postgis/PoiRepository'
 
+// Weather Repository - raw.weather_observations
+export {
+  // Types
+  type WeatherObservationInput,
+  type WeatherObservationRow,
+  type WeatherSearchResult,
+  type CurrentWeather,
+  type WeatherSearchOptions,
+  type WeatherNearbyOptions,
+  // Error
+  WeatherRepositoryError,
+  // Repository
+  type WeatherRepository,
+  WeatherRepositoryTag,
+  makeWeatherRepository,
+  WeatherRepositoryLive,
+  // Utility
+  makeLocationId,
+} from './postgis/WeatherRepository'
+
+// Imagery Repository - raw.imagery_items
+export {
+  // Types
+  ImageryProvider,
+  type ImageryItemInput,
+  type ImageryItemRow,
+  type ImagerySearchResult as ImagerySearchResultRow,
+  type ImagerySearchOptions,
+  type ImageryNearbyOptions,
+  // Error
+  ImageryRepositoryError,
+  // Repository
+  type ImageryRepository,
+  ImageryRepositoryTag,
+  makeImageryRepository,
+  ImageryRepositoryLive,
+} from './postgis/ImageryRepository'
+
+// GEOINT Repository Facade - Unified access to all domain repositories
+export {
+  // Error
+  GeointRepositoryError,
+  // Types
+  type UnifiedSearchOptions,
+  type UnifiedSearchResult,
+  type RepositoryHealth,
+  // Repository
+  type GeointRepository,
+  GeointRepositoryTag,
+  makeGeointRepository,
+  GeointRepositoryLive,
+  // Combined Layer
+  AllRepositoriesLive,
+} from './postgis/GeointRepository'
+
 // PostGIS Materializer - Event Stream to PostGIS Bridge
 export {
   // Event Schemas
