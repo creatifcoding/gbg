@@ -16,7 +16,8 @@
  * @module testbed/GeointDashboardTestbed
  */
 
-import { FC, useState, useCallback } from 'react'
+import { FC, useState, useCallback, useRef } from 'react'
+import { Effect } from 'effect'
 import {
   GeointDashboard,
   SearchPanelCompound,
@@ -27,6 +28,14 @@ import {
   GEOINT_BINDINGS,
   GEOINT_CATEGORIES,
 } from '@/lib/geoint/components'
+import {
+  AnimationOrchestratorTag,
+  AnimationOrchestratorLive,
+  flyToConfig,
+  listStaggerConfig,
+  panelExpandConfig,
+  panelCollapseConfig,
+} from '@/lib/geoint/animation'
 import {
   SearchProvider,
   useSearch,
@@ -847,6 +856,226 @@ export const KeyboardProviderDemo: FC = () => {
         </div>
       </div>
     </GeointKeyboardProvider>
+  )
+}
+
+// =============================================================================
+// ANIMATION ORCHESTRATOR DEMO
+// =============================================================================
+
+/**
+ * Demonstrates the AnimationOrchestrator Effect service:
+ * - Viewport transitions (fly-to)
+ * - Entity lifecycle animations
+ * - Panel expand/collapse
+ * - Stagger animations for lists/grids
+ */
+export const AnimationOrchestratorDemo: FC = () => {
+  const [log, setLog] = useState<string[]>([])
+  const panelRef = useRef<HTMLDivElement>(null)
+  const entitiesRef = useRef<HTMLDivElement>(null)
+  const [panelExpanded, setPanelExpanded] = useState(false)
+  const [showEntities, setShowEntities] = useState(false)
+
+  const addLog = useCallback((msg: string) => {
+    setLog(prev => [...prev.slice(-14), `[${new Date().toLocaleTimeString()}] ${msg}`])
+  }, [])
+
+  // Run animation using the Effect service
+  const runAnimation = useCallback((description: string, effect: Effect.Effect<unknown, unknown, never>) => {
+    addLog(`Starting: ${description}`)
+    Effect.runPromise(effect).then(
+      () => addLog(`Completed: ${description}`),
+      (err) => addLog(`Error: ${String(err)}`)
+    )
+  }, [addLog])
+
+  // Viewport fly-to animation
+  const handleFlyTo = useCallback(() => {
+    const program = Effect.gen(function* () {
+      const animator = yield* AnimationOrchestratorTag
+      yield* animator.animateViewport(
+        flyToConfig(-122.42, 37.78, 14, { duration: 800 }),
+        (state) => addLog(`Viewport: ${JSON.stringify(state)}`)
+      )
+    }).pipe(Effect.provide(AnimationOrchestratorLive))
+
+    runAnimation('Fly-to San Francisco', program)
+  }, [addLog, runAnimation])
+
+  // Panel expand/collapse animation
+  const handleTogglePanel = useCallback(() => {
+    if (!panelRef.current) return
+
+    const program = Effect.gen(function* () {
+      const animator = yield* AnimationOrchestratorTag
+      const config = panelExpanded
+        ? panelCollapseConfig('demo-panel', panelRef.current!)
+        : panelExpandConfig('demo-panel', panelRef.current!)
+      yield* animator.animatePanel(config)
+    }).pipe(Effect.provide(AnimationOrchestratorLive))
+
+    runAnimation(panelExpanded ? 'Panel collapse' : 'Panel expand', program)
+    setPanelExpanded(!panelExpanded)
+  }, [panelExpanded, runAnimation])
+
+  // Entity appear animation
+  const handleShowEntities = useCallback(() => {
+    if (!entitiesRef.current) return
+
+    const children = Array.from(entitiesRef.current.children) as HTMLElement[]
+    if (children.length === 0) return
+
+    const program = Effect.gen(function* () {
+      const animator = yield* AnimationOrchestratorTag
+      yield* animator.animateStagger(
+        listStaggerConfig(children, 'slideInUp')
+      )
+    }).pipe(Effect.provide(AnimationOrchestratorLive))
+
+    runAnimation('Entity stagger appear', program)
+    setShowEntities(true)
+  }, [runAnimation])
+
+  // Hide entities
+  const handleHideEntities = useCallback(() => {
+    setShowEntities(false)
+    addLog('Entities hidden (instant)')
+  }, [addLog])
+
+  return (
+    <div className="flex h-[700px] gap-4 p-4 bg-surface-0">
+      {/* Demo Controls */}
+      <div className="w-[400px] flex flex-col gap-4">
+        {/* Buttons */}
+        <div className="p-4 bg-surface-1 border border-border-subtle rounded-lg space-y-3">
+          <h3 className="text-sm font-semibold text-text-primary mb-3">Animation Controls</h3>
+
+          <button
+            onClick={handleFlyTo}
+            className="w-full px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-primary/90 transition-colors text-sm"
+          >
+            Fly to San Francisco
+          </button>
+
+          <button
+            onClick={handleTogglePanel}
+            className="w-full px-4 py-2 bg-surface-2 hover:bg-surface-3 rounded-lg transition-colors text-sm text-text-primary"
+          >
+            {panelExpanded ? 'Collapse Panel' : 'Expand Panel'}
+          </button>
+
+          <button
+            onClick={showEntities ? handleHideEntities : handleShowEntities}
+            className="w-full px-4 py-2 bg-surface-2 hover:bg-surface-3 rounded-lg transition-colors text-sm text-text-primary"
+          >
+            {showEntities ? 'Hide Entities' : 'Show Entities (Stagger)'}
+          </button>
+        </div>
+
+        {/* Animated Panel */}
+        <div
+          ref={panelRef}
+          className="bg-surface-1 border border-border-subtle rounded-lg overflow-hidden transition-all"
+          style={{ width: panelExpanded ? '320px' : '48px' }}
+        >
+          <div className="p-3 h-24 flex items-center justify-center">
+            {panelExpanded ? (
+              <span className="text-sm text-text-secondary">Panel Content</span>
+            ) : (
+              <span className="text-lg">📊</span>
+            )}
+          </div>
+        </div>
+
+        {/* Entity Grid */}
+        <div className="p-4 bg-surface-1 border border-border-subtle rounded-lg">
+          <h4 className="text-xs font-medium text-text-tertiary mb-2">Entities</h4>
+          <div ref={entitiesRef} className="grid grid-cols-4 gap-2">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div
+                key={i}
+                className="w-10 h-10 bg-accent-primary/20 border border-accent-primary/30 rounded-lg flex items-center justify-center text-xs text-accent-primary"
+                style={{ opacity: showEntities ? 1 : 0 }}
+              >
+                {i + 1}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Info Panel */}
+      <div className="flex-1 flex flex-col gap-4">
+        {/* Architecture Diagram */}
+        <div className="p-4 bg-surface-1 border border-border-subtle rounded-lg">
+          <h3 className="text-sm font-semibold text-text-primary mb-3">Architecture</h3>
+          <pre className="text-[10px] font-mono text-text-tertiary whitespace-pre leading-relaxed">
+{`┌──────────────────────────────────────────────────────────┐
+│             AnimationOrchestrator (Effect Service)        │
+│  ┌──────────────────────────────────────────────────────┐ │
+│  │  Effect.gen(function* () {                           │ │
+│  │    const animator = yield* AnimationOrchestratorTag  │ │
+│  │    yield* animator.animateViewport(...)              │ │
+│  │    yield* animator.animatePanel(...)                 │ │
+│  │    yield* animator.animateStagger(...)               │ │
+│  │  }).pipe(Effect.provide(AnimationOrchestratorLive))  │ │
+│  └──────────────────────────────────────────────────────┘ │
+│                           │                               │
+│                           ▼                               │
+│  ┌──────────────────────────────────────────────────────┐ │
+│  │  Internal State (Effect.Ref)                         │ │
+│  │  activeAnimations: Map<id, AnimationHandle>          │ │
+│  │  animationQueue: QueuedAnimation[]                   │ │
+│  │  nextId: number                                      │ │
+│  └──────────────────────────────────────────────────────┘ │
+│                           │                               │
+│                           ▼                               │
+│  ┌──────────────────────────────────────────────────────┐ │
+│  │  Animation Drivers                                   │ │
+│  │  • GSAP → Viewport interpolation (sub-ms precision)  │ │
+│  │  • anime.js → Entity/panel animations                │ │
+│  │  • GEOINT Tokens → TIMING, EASING, ANIMATIONS        │ │
+│  └──────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────┘`}
+          </pre>
+        </div>
+
+        {/* Event Log */}
+        <div className="flex-1 p-4 bg-surface-1 border border-border-subtle rounded-lg overflow-auto">
+          <h3 className="text-sm font-semibold text-text-primary mb-2">Event Log</h3>
+          <div className="font-mono text-xs space-y-1">
+            {log.length === 0 ? (
+              <div className="text-text-quaternary">
+                Click the buttons to trigger animations...
+              </div>
+            ) : (
+              log.map((entry, i) => (
+                <div key={i} className="text-text-secondary">{entry}</div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Service Info */}
+        <div className="p-3 bg-surface-1 border border-border-subtle rounded-lg">
+          <div className="grid grid-cols-3 gap-4 text-xs">
+            <div>
+              <span className="text-text-tertiary">Service:</span>{' '}
+              <span className="text-accent-primary font-mono">AnimationOrchestrator</span>
+            </div>
+            <div>
+              <span className="text-text-tertiary">Drivers:</span>{' '}
+              <span className="text-text-secondary">GSAP, anime.js</span>
+            </div>
+            <div>
+              <span className="text-text-tertiary">Pattern:</span>{' '}
+              <span className="text-text-secondary">Effect.async + handles</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

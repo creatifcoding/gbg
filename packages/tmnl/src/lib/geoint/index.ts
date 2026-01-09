@@ -43,3 +43,9 @@ export * from './server'
 
 // Workspace - Persistence for workspace state (viewport, layers, filters)
 export * from './workspace'
+
+// Machines - XState machines and providers
+export * from './machines'
+
+// Animation - Effect-based animation orchestration
+export * from './animation'
