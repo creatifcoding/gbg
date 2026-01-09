@@ -21,6 +21,8 @@ import {
   GeointDashboard,
   SearchPanelCompound,
   VirtualizedResultsList,
+  CommandPalette,
+  createGeointCommands,
 } from '@/lib/geoint/components'
 import {
   SearchProvider,
@@ -535,6 +537,157 @@ export const VirtualizedResultsDemo: FC = () => {
         </div>
       </div>
     </div>
+  )
+}
+
+// =============================================================================
+// COMMAND PALETTE DEMO
+// =============================================================================
+
+/**
+ * Demo showing the CommandPalette with GEOINT-specific commands.
+ * Press Cmd+K (or Ctrl+K) to open.
+ */
+export const CommandPaletteDemo: FC = () => {
+  const [log, setLog] = useState<string[]>([])
+  const [layout, setLayout] = useState<'command' | 'focus' | 'grid'>('command')
+
+  const addLog = useCallback((msg: string) => {
+    setLog(prev => [...prev.slice(-9), `[${new Date().toLocaleTimeString()}] ${msg}`])
+  }, [])
+
+  // Create GEOINT commands with handlers
+  const commands = createGeointCommands({
+    onSearch: () => addLog('Executing search across all sources...'),
+    onFlyTo: (location) => addLog(`Flying to: ${location}`),
+    onToggleLayer: (layer) => addLog(`Toggling layer: ${layer}`),
+    onExport: (format) => addLog(`Exporting as ${format}...`),
+    onSetLayout: (newLayout) => {
+      addLog(`Layout changed to: ${newLayout}`)
+      setLayout(newLayout)
+    },
+  })
+
+  return (
+    <CommandPalette.Provider initialCommands={commands}>
+      <div className="h-[600px] flex flex-col bg-surface-0 p-4 gap-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-text-primary">Command Palette Demo</h2>
+            <p className="text-sm text-text-tertiary">Press ⌘K to open the command palette</p>
+          </div>
+          <CommandPalette.Trigger />
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 flex gap-4">
+          {/* Layout Visualization */}
+          <div className="flex-1 p-4 bg-surface-1 border border-border-subtle rounded-lg">
+            <h3 className="text-sm font-semibold text-text-primary mb-3">
+              Current Layout: <span className="text-accent-primary">{layout}</span>
+            </h3>
+
+            {/* ASCII Layout Preview */}
+            <div className="p-4 bg-surface-2 rounded font-mono text-[10px] text-text-tertiary">
+              {layout === 'command' && (
+                <pre>{`┌────────┬──────────┬────────┐
+│ Search │   Map    │ Entity │
+│ Panel  │ Viewport │ Panel  │
+│ 280px  │  flex-1  │ 320px  │
+└────────┴──────────┴────────┘`}</pre>
+              )}
+              {layout === 'focus' && (
+                <pre>{`┌────────────────────────────┐
+│ ┌────────┐                 │
+│ │ Float  │    Full-Width   │
+│ │ Search │       Map       │
+│ └────────┘                 │
+│ ┌────────────────────────┐ │
+│ │   Entity Drawer (40%)  │ │
+│ └────────────────────────┘ │
+└────────────────────────────┘`}</pre>
+              )}
+              {layout === 'grid' && (
+                <pre>{`┌──────────────────┬─────────┐
+│                  │ Search  │
+│   Primary Map    │ Results │
+│      (2/3)       │  (1/3)  │
+├─────────┬────────┤         │
+│  Stats  │Timeline│         │
+└─────────┴────────┴─────────┘`}</pre>
+              )}
+            </div>
+
+            {/* Architecture Diagram */}
+            <div className="mt-4 p-4 bg-surface-2 rounded">
+              <h4 className="text-xs font-semibold text-text-secondary mb-2">Architecture</h4>
+              <pre className="text-[10px] font-mono text-text-quaternary leading-relaxed">{`┌─────────────────────────────────────────┐
+│         CommandPalette.Provider          │
+│  ┌─────────────────────────────────────┐ │
+│  │      XState commandPaletteMachine   │ │
+│  │      closed ⟷ open (query/select)   │ │
+│  └─────────────────────────────────────┘ │
+│                    │                     │
+│                    ▼                     │
+│  ┌─────────────────────────────────────┐ │
+│  │      effect-atom Registry            │ │
+│  │  paletteOpenAtom, paletteQueryAtom   │ │
+│  │  registeredCommandsAtom              │ │
+│  └─────────────────────────────────────┘ │
+│                    │                     │
+│                    ▼                     │
+│  ┌─────────────────────────────────────┐ │
+│  │      CommandPalette (Dialog)         │ │
+│  │  • Fuzzy search filtering            │ │
+│  │  • Keyboard navigation (↑↓↵⎋)       │ │
+│  │  • Category grouping                 │ │
+│  │  • Recent commands tracking          │ │
+│  │  • anime.js enter/exit animations    │ │
+│  └─────────────────────────────────────┘ │
+└─────────────────────────────────────────┘`}</pre>
+            </div>
+          </div>
+
+          {/* Event Log */}
+          <div className="w-[300px] p-4 bg-surface-1 border border-border-subtle rounded-lg">
+            <h3 className="text-sm font-semibold text-text-primary mb-3">Event Log</h3>
+            <div className="space-y-1 font-mono text-xs">
+              {log.length === 0 ? (
+                <div className="text-text-quaternary">
+                  Open the command palette (⌘K) and try some commands...
+                </div>
+              ) : (
+                log.map((entry, i) => (
+                  <div key={i} className="text-text-secondary">{entry}</div>
+                ))
+              )}
+            </div>
+
+            {/* Keyboard Shortcuts */}
+            <div className="mt-6 pt-4 border-t border-border-subtle">
+              <h4 className="text-xs font-semibold text-text-secondary mb-2">Shortcuts</h4>
+              <div className="space-y-1.5">
+                {[
+                  { key: '⌘K', action: 'Open palette' },
+                  { key: '↑/↓', action: 'Navigate' },
+                  { key: '↵', action: 'Execute' },
+                  { key: '⎋', action: 'Close' },
+                ].map(({ key, action }) => (
+                  <div key={key} className="flex justify-between text-xs">
+                    <span className="text-text-tertiary">{action}</span>
+                    <kbd className="px-1.5 py-0.5 bg-surface-2 rounded text-text-secondary">{key}</kbd>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Command Palette Portal */}
+        <CommandPalette />
+      </div>
+    </CommandPalette.Provider>
   )
 }
 

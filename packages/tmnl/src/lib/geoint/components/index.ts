@@ -535,3 +535,26 @@ export {
   type ProgressProps as ExportPanelProgressProps,
   type ActionsProps as ExportPanelActionsProps,
 } from './ExportPanel'
+
+// Command Palette - M-x style global command search
+export {
+  CommandPalette,
+  CommandPaletteProvider,
+  useCommandPalette,
+  commandPaletteRegistry,
+  registeredCommandsAtom,
+  paletteOpenAtom,
+  paletteQueryAtom,
+  recentCommandIdsAtom,
+  createGeointCommands,
+  type CommandCategory,
+  type CommandItem,
+  type CommandGroup,
+  type CommandPaletteContextValue,
+  type CommandPaletteProviderProps,
+  type CommandPaletteRootProps,
+  type CommandPaletteInputProps,
+  type CommandPaletteListProps,
+  type CommandPaletteFooterProps,
+  type CommandPaletteTriggerProps,
+} from './CommandPalette'
