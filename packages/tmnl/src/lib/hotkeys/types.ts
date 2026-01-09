@@ -4,6 +4,7 @@
  * Effect-native command orchestration with emacs-inspired ergonomics.
  */
 
+import { Schema } from 'effect'
 import type { Effect } from 'effect'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -77,7 +78,15 @@ export interface CommandConfig {
 // Bindings
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Source of a binding */
+/**
+ * Source of a binding.
+ *
+ * NOTE: BindingSourceRegistry in ./BindingSourceRegistry.ts provides
+ * runtime validation. Import BindingSources for ergonomic access:
+ *
+ *   import { BindingSources } from '@/lib/hotkeys'
+ *   source: BindingSources.DEFAULT
+ */
 export type BindingSource = 'default' | 'user' | 'extension'
 
 /** Maps a key sequence to a command */
@@ -108,17 +117,27 @@ export interface Scope {
   readonly layer?: string // Integration with LayerManager
 }
 
-/** Built-in scope IDs */
-export const Scopes = {
-  GLOBAL: 'global',
-  EDITOR: 'editor',
-  GRID: 'grid',
-  TLDRAW: 'tldraw',
-  MODAL: 'modal',
-  PALETTE: 'palette',
-} as const
+/**
+ * Built-in scope IDs as Schema.Literal.
+ *
+ * Runtime-validated enum. No loose strings allowed.
+ * Add new scopes here — they're automatically available everywhere.
+ */
+export const ScopeId = Schema.Literal(
+  'global',
+  'editor',
+  'grid',
+  'tldraw',
+  'modal',
+  'palette',
+  'minibuffer',
+  'terminal',
+  'geoint'
+)
+export type ScopeId = typeof ScopeId.Type
 
-export type ScopeId = (typeof Scopes)[keyof typeof Scopes] | string
+// NOTE: Scopes constant moved to ScopeRegistry.ts
+// Import from '@/lib/hotkeys' or '@/lib/hotkeys/ScopeRegistry'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // which-key
@@ -194,8 +213,8 @@ export interface HotkeyConfig {
   readonly leaderKey: KeyString
   /** Enable/disable hotkeys in input fields */
   readonly enableInInputs: boolean
-  /** Custom scope inheritance */
-  readonly scopeInheritance: Record<string, string>
+  /** Custom scope inheritance: child → parent */
+  readonly scopeInheritance: Partial<Record<ScopeId, ScopeId>>
 
   // ─── Native Hotkey Suppression ─────────────────────────────────────────────
   /**
@@ -268,6 +287,9 @@ export const DEFAULT_CONFIG: HotkeyConfig = {
     tldraw: 'global',
     modal: 'global',
     palette: 'modal',
+    minibuffer: 'global',
+    terminal: 'global',
+    geoint: 'global',
   },
   // Native suppression defaults
   suppressNativeHotkeys: getNativeSuppression(),

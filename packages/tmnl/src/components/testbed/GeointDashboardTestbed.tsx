@@ -23,6 +23,9 @@ import {
   VirtualizedResultsList,
   CommandPalette,
   createGeointCommands,
+  GeointKeyboardProvider,
+  GEOINT_BINDINGS,
+  GEOINT_CATEGORIES,
 } from '@/lib/geoint/components'
 import {
   SearchProvider,
@@ -688,6 +691,162 @@ export const CommandPaletteDemo: FC = () => {
         <CommandPalette />
       </div>
     </CommandPalette.Provider>
+  )
+}
+
+// =============================================================================
+// KEYBOARD PROVIDER DEMO
+// =============================================================================
+
+/**
+ * Demo showing the GeointKeyboardProvider with unified keyboard system.
+ * Demonstrates:
+ * - Scope-based keybinding registration
+ * - Command registration with the hotkey system
+ * - Integration with the existing hotkeys infrastructure
+ */
+export const KeyboardProviderDemo: FC = () => {
+  const [log, setLog] = useState<string[]>([])
+
+  const addLog = useCallback((msg: string) => {
+    setLog(prev => [...prev.slice(-14), `[${new Date().toLocaleTimeString()}] ${msg}`])
+  }, [])
+
+  // Categories for display
+  const categories = Object.values(GEOINT_CATEGORIES) as string[]
+
+  return (
+    <GeointKeyboardProvider
+      activateScope={true}
+      actions={{
+        zoomIn: () => addLog('Map: Zoom In (+)'),
+        zoomOut: () => addLog('Map: Zoom Out (-)'),
+        resetView: () => addLog('Map: Reset View'),
+        toggleFullscreen: () => addLog('View: Toggle Fullscreen'),
+        focusSearch: () => addLog('Search: Focus Input'),
+        clearSearch: () => addLog('Search: Clear'),
+        executeSearch: () => addLog('Search: Execute'),
+        toggleSearchPanel: () => addLog('Panel: Toggle Search'),
+        toggleLayerPanel: () => addLog('Panel: Toggle Layers'),
+        toggleLayer: (id: string) => addLog(`Layer: Toggle ${id}`),
+        showAllLayers: () => addLog('Layers: Show All'),
+        hideAllLayers: () => addLog('Layers: Hide All'),
+        cycleMapStyle: () => addLog('Map: Cycle Style'),
+        selectAll: () => addLog('Selection: Select All'),
+        clearSelection: () => addLog('Selection: Clear'),
+        invertSelection: () => addLog('Selection: Invert'),
+        deleteSelected: () => addLog('Selection: Delete'),
+        fitToSelection: () => addLog('View: Fit to Selection'),
+        fitToAll: () => addLog('View: Fit to All'),
+      }}
+    >
+      <div className="h-[700px] flex flex-col bg-surface-0 p-4 gap-4">
+        {/* Header */}
+        <div>
+          <h2 className="text-lg font-semibold text-text-primary">Keyboard Provider Demo</h2>
+          <p className="text-sm text-text-tertiary">
+            Unified keyboard system for GEOINT with scope-based bindings
+          </p>
+        </div>
+
+        <div className="flex-1 flex gap-4">
+          {/* Bindings Reference */}
+          <div className="w-[350px] flex flex-col gap-4 overflow-auto">
+            {categories.map((category) => (
+              <div key={category} className="p-3 bg-surface-1 border border-border-subtle rounded-lg">
+                <h3 className="text-sm font-semibold text-text-primary mb-2">{category}</h3>
+                <div className="space-y-1">
+                  {GEOINT_BINDINGS
+                    .filter((b) => b.commandId.includes(category.toLowerCase()))
+                    .map((binding) => (
+                      <div key={binding.commandId} className="flex justify-between items-center text-xs">
+                        <span className="text-text-secondary">
+                          {binding.description || binding.commandId.split('.').pop()}
+                        </span>
+                        <kbd className="px-1.5 py-0.5 bg-surface-2 rounded text-text-tertiary font-mono">
+                          {binding.keys}
+                        </kbd>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1 flex flex-col gap-4">
+            {/* Architecture Diagram */}
+            <div className="p-4 bg-surface-1 border border-border-subtle rounded-lg">
+              <h3 className="text-sm font-semibold text-text-primary mb-3">Architecture</h3>
+              <pre className="text-[10px] font-mono text-text-tertiary whitespace-pre leading-relaxed">
+{`┌───────────────────────────────────────────────────────────┐
+│              GeointKeyboardProvider                        │
+│  ┌───────────────────────────────────────────────────────┐ │
+│  │  On Mount:                                            │ │
+│  │   1. Register commands → hotkeyActions.registerCmd()  │ │
+│  │   2. Parse key strings → KeyParser.parse()            │ │
+│  │   3. Add bindings → hotkeyActions.addBinding()        │ │
+│  │   4. Push scope → hotkeyActions.pushScope('geoint')   │ │
+│  └───────────────────────────────────────────────────────┘ │
+│                           │                                │
+│                           ▼                                │
+│  ┌───────────────────────────────────────────────────────┐ │
+│  │            Hotkey System (effect-atom)                 │ │
+│  │  bindingsSourceAtom ← [{ keys, commandId, scope }]     │ │
+│  │  commandsSourceAtom ← Map<id, { handler, name, ... }>  │ │
+│  │  scopeStackSourceAtom ← ['global', 'geoint']           │ │
+│  └───────────────────────────────────────────────────────┘ │
+│                           │                                │
+│                           ▼                                │
+│  ┌───────────────────────────────────────────────────────┐ │
+│  │            useGlobalHotkeys (listener)                 │ │
+│  │  processKeyboardEvent() → match binding → execute      │ │
+│  │  which-key popup on partial sequence (e.g., 'g')       │ │
+│  └───────────────────────────────────────────────────────┘ │
+└───────────────────────────────────────────────────────────┘`}
+              </pre>
+            </div>
+
+            {/* Event Log */}
+            <div className="flex-1 p-4 bg-surface-1 border border-border-subtle rounded-lg overflow-auto">
+              <h3 className="text-sm font-semibold text-text-primary mb-2">Event Log</h3>
+              <p className="text-xs text-text-quaternary mb-3">
+                Press the keys shown to trigger commands. Focus this area first.
+              </p>
+              <div className="font-mono text-xs space-y-1">
+                {log.length === 0 ? (
+                  <div className="text-text-quaternary">
+                    Try pressing: = (zoom in), - (zoom out), g l (layers), / (search)
+                  </div>
+                ) : (
+                  log.map((entry, i) => (
+                    <div key={i} className="text-text-secondary">{entry}</div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Scope Info */}
+            <div className="p-3 bg-surface-1 border border-border-subtle rounded-lg">
+              <div className="flex items-center gap-4 text-xs">
+                <div>
+                  <span className="text-text-tertiary">Active Scope:</span>{' '}
+                  <span className="text-accent-primary font-semibold">geoint</span>
+                </div>
+                <div>
+                  <span className="text-text-tertiary">Scope Chain:</span>{' '}
+                  <span className="text-text-secondary">geoint → global</span>
+                </div>
+                <div>
+                  <span className="text-text-tertiary">Bindings:</span>{' '}
+                  <span className="text-text-secondary">{GEOINT_BINDINGS.length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </GeointKeyboardProvider>
   )
 }
 

@@ -123,6 +123,12 @@ export const ScopeRegistry = TokenRegistry.create<"scope", ScopeMetadata>({
       description: "Terminal/PTY context",
       metadata: { parent: "global", priority: 15 },
     },
+    {
+      id: "geoint",
+      name: "GEOINT",
+      description: "Geointelligence dashboard context",
+      metadata: { parent: "global", priority: 15 },
+    },
   ],
 })
 
@@ -145,6 +151,7 @@ export const Scopes = {
   PALETTE: "palette",
   MINIBUFFER: "minibuffer",
   TERMINAL: "terminal",
+  GEOINT: "geoint",
 } as const
 
 /**

@@ -558,3 +558,15 @@ export {
   type CommandPaletteFooterProps,
   type CommandPaletteTriggerProps,
 } from './CommandPalette'
+
+// Keyboard Provider - Unified keyboard system for GEOINT
+export {
+  GeointKeyboardProvider,
+  useGeointKeyboard,
+  createGeointKeyboardCommands,
+  GEOINT_CATEGORIES,
+  GEOINT_BINDINGS,
+  type GeointCommand,
+  type GeointKeyboardActions,
+  type GeointKeyboardProviderProps,
+} from './GeointKeyboardProvider'
