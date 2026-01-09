@@ -37,6 +37,13 @@ import {
   panelCollapseConfig,
 } from '@/lib/geoint/animation'
 import {
+  LiveDataProvider,
+  LiveStatusIndicator,
+  useLiveData,
+  useIsStreaming,
+  useLastUpdate,
+} from '@/lib/geoint/streaming'
+import {
   SearchProvider,
   useSearch,
   useSearchProviderResults as useSearchResults,
@@ -1074,6 +1081,185 @@ export const AnimationOrchestratorDemo: FC = () => {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
+// STREAMING DEMO
+// =============================================================================
+
+/**
+ * Demo internal component that displays streaming state.
+ */
+const StreamingStateDisplay: FC = () => {
+  const { connectionState, subscriptions, getStreamingState } = useLiveData()
+  const isStreaming = useIsStreaming()
+  const lastUpdate = useLastUpdate()
+
+  return (
+    <div className="space-y-4">
+      {/* Status Indicator */}
+      <div className="flex items-center gap-4">
+        <LiveStatusIndicator showLabel />
+        <div className="text-xs text-text-tertiary">
+          {subscriptions.length} subscription(s) active
+        </div>
+      </div>
+
+      {/* Connection State */}
+      <div className="grid grid-cols-2 gap-4 text-xs">
+        <div>
+          <span className="text-text-tertiary">Connection:</span>{' '}
+          <span className="text-text-primary font-mono">{connectionState}</span>
+        </div>
+        <div>
+          <span className="text-text-tertiary">Is Streaming:</span>{' '}
+          <span className="text-text-primary font-mono">{isStreaming ? 'Yes' : 'No'}</span>
+        </div>
+        <div>
+          <span className="text-text-tertiary">Last Update:</span>{' '}
+          <span className="text-text-primary font-mono">
+            {lastUpdate ? new Date(lastUpdate).toLocaleTimeString() : 'Never'}
+          </span>
+        </div>
+        <div>
+          <span className="text-text-tertiary">Pending:</span>{' '}
+          <span className="text-text-primary font-mono">
+            {getStreamingState().pendingCount}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * StreamingDemo — Demonstrates the real-time data streaming system.
+ *
+ * Shows:
+ * - LiveDataProvider context for managing subscriptions
+ * - LiveStatusIndicator for visual feedback
+ * - Reactive hooks for streaming state
+ */
+export const StreamingDemo: FC = () => {
+  const [log, setLog] = useState<string[]>([])
+
+  const addLog = useCallback((msg: string) => {
+    setLog(prev => [...prev.slice(-19), `[${new Date().toLocaleTimeString()}] ${msg}`])
+  }, [])
+
+  const handleConnectionChange = useCallback((state: string) => {
+    addLog(`Connection state changed: ${state}`)
+  }, [addLog])
+
+  const handleData = useCallback((count: number) => {
+    addLog(`Received ${count} data event(s)`)
+  }, [addLog])
+
+  return (
+    <div className="p-6 space-y-6 bg-surface-0 min-h-screen">
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-xl font-bold text-text-primary mb-1">Streaming Demo</h1>
+        <p className="text-sm text-text-tertiary mb-6">
+          Real-time data integration with Effect-based service and reactive atoms
+        </p>
+
+        <LiveDataProvider
+          autoConnect={false}
+          onConnectionChange={handleConnectionChange}
+          onData={handleData}
+        >
+          <div className="space-y-6">
+            {/* Streaming State Display */}
+            <div className="p-4 bg-surface-1 border border-border-subtle rounded-lg">
+              <h3 className="text-sm font-semibold text-text-primary mb-4">
+                Streaming State
+              </h3>
+              <StreamingStateDisplay />
+            </div>
+
+            {/* Architecture Diagram */}
+            <div className="p-4 bg-surface-1 border border-border-subtle rounded-lg">
+              <h3 className="text-sm font-semibold text-text-primary mb-4">
+                Architecture
+              </h3>
+              <pre className="text-[10px] font-mono text-text-tertiary whitespace-pre overflow-x-auto">
+{`┌─────────────────────────────────────────────────────────────┐
+│  Real-time Data Integration Architecture                     │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  LiveDataProvider (React Context)                     │   │
+│  │  - Manages subscriptions lifecycle                    │   │
+│  │  - Wraps children in GeointRegistryProvider           │   │
+│  │  - Auto-cleanup on unmount                            │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                           │                                  │
+│                           ▼                                  │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  LiveDataService (Effect.Service)                     │   │
+│  │  - subscribe(config, handlers)                        │   │
+│  │  - unsubscribe(id) / unsubscribeAll()                 │   │
+│  │  - Auto-reconnect with exponential backoff            │   │
+│  │  - Fiber-based concurrent subscriptions               │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                           │                                  │
+│                           ▼                                  │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  SearchClient.stream('streamSearch', query)           │   │
+│  │  - AtomRpc.Tag for reactive RPC                       │   │
+│  │  - WebSocket-based streaming                          │   │
+│  │  - Returns Atom with Result<SearchEvent[]>            │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                           │                                  │
+│                           ▼                                  │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Reactive Atoms (effect-atom)                         │   │
+│  │  - streamingStateAtom: {isStreaming, lastUpdate}      │   │
+│  │  - resultsAtom: SearchResultItem[]                    │   │
+│  │  - Hooks: useIsStreaming(), useLastUpdate()           │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘`}
+              </pre>
+            </div>
+
+            {/* Event Log */}
+            <div className="p-4 bg-surface-1 border border-border-subtle rounded-lg">
+              <h3 className="text-sm font-semibold text-text-primary mb-2">Event Log</h3>
+              <div className="font-mono text-xs space-y-1 max-h-40 overflow-auto">
+                {log.length === 0 ? (
+                  <div className="text-text-quaternary">
+                    Connection events will appear here...
+                  </div>
+                ) : (
+                  log.map((entry, i) => (
+                    <div key={i} className="text-text-secondary">{entry}</div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Service Info */}
+            <div className="p-3 bg-surface-1 border border-border-subtle rounded-lg">
+              <div className="grid grid-cols-3 gap-4 text-xs">
+                <div>
+                  <span className="text-text-tertiary">Service:</span>{' '}
+                  <span className="text-accent-primary font-mono">LiveDataService</span>
+                </div>
+                <div>
+                  <span className="text-text-tertiary">Client:</span>{' '}
+                  <span className="text-text-secondary">SearchClient (AtomRpc)</span>
+                </div>
+                <div>
+                  <span className="text-text-tertiary">Pattern:</span>{' '}
+                  <span className="text-text-secondary">Stream + Atom + Context</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </LiveDataProvider>
       </div>
     </div>
   )

@@ -49,3 +49,6 @@ export * from './machines'
 
 // Animation - Effect-based animation orchestration
 export * from './animation'
+
+// Streaming - Real-time data integration
+export * from './streaming'
