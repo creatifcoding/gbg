@@ -32,6 +32,13 @@ export {
   type SearchPanelProps,
 } from './SearchPanel'
 
+// Results Panel - Virtualized results display
+export {
+  ResultsPanel,
+  type ResultsPanelProps,
+  type ViewMode,
+} from './ResultsPanel'
+
 // Viewport Search Hooks
 export {
   useViewportSearch,

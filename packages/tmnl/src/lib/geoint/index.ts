@@ -40,3 +40,6 @@ export * from './persistence'
 
 // Server - RPC server handlers for SearchClient
 export * from './server'
+
+// Workspace - Persistence for workspace state (viewport, layers, filters)
+export * from './workspace'

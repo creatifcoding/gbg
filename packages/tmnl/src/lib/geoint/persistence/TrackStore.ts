@@ -1,64 +1,68 @@
 /**
- * TrackStore - Durable stream persistence for track history
+ * TrackStore - Durable Streams Persistence for GEOINT Tracks
  *
- * Provides:
- * - Append position updates to per-track streams
- * - Replay full track history on demand
- * - Support offline operation with local caching
+ * Persists track position history to durable streams with replay capability.
+ * Supports offline operation and real-time streaming.
  *
- * @see .cursor/prd/features.md F007 (Durable Persistence)
+ * @see .cursor/prd/features.md F007: Durable Persistence
  * @module
  */
 
-import { Context, Data, Effect, Layer, Stream, Scope } from 'effect'
+import { Context, Data, Effect, Layer, Stream, Schedule, Duration, type Scope } from 'effect'
 import {
   DurableStreamClient,
-  DurableStreamError,
-  type EffectStreamHandle
+  DurableStreamClientLive,
+  type EffectStreamHandle,
 } from '@/lib/durable-streams/service'
-import type { TrackId, TrackPosition } from '../schemas'
+import type { TrackId, TrackPosition, TrackPositionUpdate } from '../schemas'
 
 // =============================================================================
 // Configuration
 // =============================================================================
 
 const DEFAULT_BASE_URL = 'http://localhost:8787/streams/geoint/tracks'
+const STREAM_TTL_DAYS = 30
+const RETRY_SCHEDULE = Schedule.exponential(Duration.millis(100)).pipe(
+  Schedule.union(Schedule.spaced(Duration.seconds(5))),
+  Schedule.compose(Schedule.recurs(5))
+)
 
 // =============================================================================
 // Errors
 // =============================================================================
 
 export class TrackStoreError extends Data.TaggedError('TrackStoreError')<{
-  readonly operation: 'append' | 'replay' | 'head' | 'delete'
-  readonly trackId: string
+  readonly operation: 'append' | 'replay' | 'subscribe' | 'delete' | 'connect'
+  readonly trackId?: string
   readonly message: string
   readonly cause?: unknown
 }> {}
 
 // =============================================================================
-// Track Update Schema
+// Track Update Event (for stream storage)
 // =============================================================================
 
-export interface TrackUpdate {
+interface TrackUpdateEvent {
+  readonly _tag: 'TrackUpdateEvent'
   readonly trackId: string
   readonly position: {
-    readonly lat: number
-    readonly lon: number
-    readonly timestamp: string // ISO date string for serialization
-    readonly heading: number
-    readonly speed: number
-    readonly altitude: number
+    lat: number
+    lon: number
+    timestamp: string
+    heading: number
+    speed: number
+    altitude: number
   }
-  readonly recordedAt: string // When this update was recorded
+  readonly eventTimestamp: string
 }
 
 // =============================================================================
 // Service Interface
 // =============================================================================
 
-export interface TrackStoreShape {
+export interface TrackStore {
   /**
-   * Append a position update to a track's stream
+   * Append a position update to a track's durable stream
    * Creates the stream if it doesn't exist
    */
   readonly appendTrackUpdate: (
@@ -67,53 +71,60 @@ export interface TrackStoreShape {
   ) => Effect.Effect<void, TrackStoreError>
 
   /**
-   * Append multiple position updates in batch
+   * Append multiple position updates (batch)
    */
-  readonly appendBatch: (
-    updates: readonly { trackId: TrackId; position: TrackPosition }[]
+  readonly appendTrackUpdates: (
+    updates: readonly TrackPositionUpdate[]
   ) => Effect.Effect<void, TrackStoreError>
 
   /**
-   * Replay full track history as a stream
-   * Starts from beginning and includes live updates
+   * Replay full track history from durable stream
+   * Returns all stored positions for a track
    */
   readonly replayTrack: (
-    trackId: TrackId,
-    options?: { live?: boolean }
-  ) => Effect.Effect<
-    Stream.Stream<TrackUpdate, TrackStoreError>,
-    TrackStoreError,
-    Scope.Scope
-  >
-
-  /**
-   * Get track stream metadata (last position time, count, etc.)
-   */
-  readonly getTrackInfo: (
     trackId: TrackId
-  ) => Effect.Effect<
-    { exists: boolean; lastOffset?: string; contentType?: string },
-    TrackStoreError
-  >
+  ) => Effect.Effect<readonly TrackUpdateEvent[], TrackStoreError>
 
   /**
-   * Delete a track's history
+   * Subscribe to live track position updates
+   * Returns a scoped effect that provides a stream of position updates
+   * The scope manages the underlying subscription lifecycle
+   */
+  readonly subscribeTrack: (
+    trackId: TrackId
+  ) => Effect.Effect<Stream.Stream<TrackUpdateEvent, TrackStoreError>, TrackStoreError, Scope.Scope>
+
+  /**
+   * Delete a track's durable stream
    */
   readonly deleteTrack: (trackId: TrackId) => Effect.Effect<void, TrackStoreError>
 
   /**
-   * Get the base URL for track streams
+   * Check if a track stream exists
    */
-  readonly baseUrl: string
+  readonly trackExists: (trackId: TrackId) => Effect.Effect<boolean, TrackStoreError>
+
+  /**
+   * Get all track IDs with persisted data
+   * (Note: requires external index - returns empty for now)
+   */
+  readonly listTracks: () => Effect.Effect<readonly TrackId[], TrackStoreError>
 }
 
+export const TrackStore = Context.GenericTag<TrackStore>('geoint/TrackStore')
+
 // =============================================================================
-// Service Tag
+// Configuration Tag
 // =============================================================================
 
-export class TrackStore extends Context.Tag('geoint/TrackStore')<
-  TrackStore,
-  TrackStoreShape
+export interface TrackStoreConfig {
+  readonly baseUrl: string
+  readonly ttlDays: number
+}
+
+export class TrackStoreConfigTag extends Context.Tag('geoint/TrackStoreConfig')<
+  TrackStoreConfigTag,
+  TrackStoreConfig
 >() {}
 
 // =============================================================================
@@ -122,44 +133,51 @@ export class TrackStore extends Context.Tag('geoint/TrackStore')<
 
 const make = Effect.gen(function* () {
   const streams = yield* DurableStreamClient
-  const baseUrl = DEFAULT_BASE_URL
 
-  // Cache for stream handles (avoid repeated creates)
-  const handleCache = new Map<string, EffectStreamHandle<TrackUpdate>>()
+  // Get config or use defaults
+  const configResult = yield* Effect.serviceOption(TrackStoreConfigTag)
+  const config = configResult._tag === 'Some' ? configResult.value : {
+    baseUrl: DEFAULT_BASE_URL,
+    ttlDays: STREAM_TTL_DAYS,
+  }
+
+  // Cache for stream handles
+  const handleCache = new Map<string, EffectStreamHandle<TrackUpdateEvent>>()
 
   /**
    * Get or create a stream handle for a track
    */
-  const getHandle = (trackId: string) =>
+  const getHandle = (trackId: TrackId) =>
     Effect.gen(function* () {
       const cached = handleCache.get(trackId)
       if (cached) return cached
 
-      const handle = yield* streams
-        .getOrCreate<TrackUpdate>({
-          url: `${baseUrl}/${trackId}`,
-          contentType: 'application/json'
-        })
-        .pipe(
-          Effect.mapError(
-            (e) =>
-              new TrackStoreError({
-                operation: 'append',
-                trackId,
-                message: `Failed to get/create stream: ${e.message}`,
-                cause: e
-              })
-          )
-        )
+      const url = `${config.baseUrl}/${trackId}`
+      const handle = yield* streams.getOrCreate<TrackUpdateEvent>({
+        url,
+        contentType: 'application/json',
+        ttlSeconds: config.ttlDays * 24 * 60 * 60,
+      }).pipe(
+        Effect.mapError((e) =>
+          new TrackStoreError({
+            operation: 'connect',
+            trackId,
+            message: `Failed to connect to track stream: ${e.message}`,
+            cause: e,
+          })
+        ),
+        Effect.retry(RETRY_SCHEDULE)
+      )
 
       handleCache.set(trackId, handle)
       return handle
     })
 
   /**
-   * Convert TrackPosition to serializable TrackUpdate
+   * Convert TrackPosition to storage event
    */
-  const toUpdate = (trackId: string, position: TrackPosition): TrackUpdate => ({
+  const toStorageEvent = (trackId: TrackId, position: TrackPosition): TrackUpdateEvent => ({
+    _tag: 'TrackUpdateEvent',
     trackId,
     position: {
       lat: position.lat,
@@ -167,142 +185,187 @@ const make = Effect.gen(function* () {
       timestamp: position.timestamp.toISOString(),
       heading: position.heading,
       speed: position.speed,
-      altitude: position.altitude
+      altitude: position.altitude,
     },
-    recordedAt: new Date().toISOString()
+    eventTimestamp: new Date().toISOString(),
   })
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Service Methods
+  // ─────────────────────────────────────────────────────────────────────────────
 
   const appendTrackUpdate = (trackId: TrackId, position: TrackPosition) =>
     Effect.gen(function* () {
       const handle = yield* getHandle(trackId)
-      const update = toUpdate(trackId, position)
-      yield* handle.append(update).pipe(
-        Effect.mapError(
-          (e) =>
-            new TrackStoreError({
-              operation: 'append',
-              trackId,
-              message: `Failed to append: ${e.message}`,
-              cause: e
-            })
-        )
+      const event = toStorageEvent(trackId, position)
+
+      yield* handle.append(event).pipe(
+        Effect.mapError((e) =>
+          new TrackStoreError({
+            operation: 'append',
+            trackId,
+            message: `Failed to append track update: ${e.message}`,
+            cause: e,
+          })
+        ),
+        Effect.retry(RETRY_SCHEDULE)
       )
     })
 
-  const appendBatch = (
-    updates: readonly { trackId: TrackId; position: TrackPosition }[]
-  ) =>
-    Effect.forEach(updates, ({ trackId, position }) =>
-      appendTrackUpdate(trackId, position)
-    ).pipe(Effect.asVoid)
+  const appendTrackUpdates = (updates: readonly TrackPositionUpdate[]) =>
+    Effect.gen(function* () {
+      // Group by trackId for efficient batching
+      const byTrack = new Map<TrackId, TrackPositionUpdate[]>()
+      for (const update of updates) {
+        const existing = byTrack.get(update.trackId) ?? []
+        existing.push(update)
+        byTrack.set(update.trackId, existing)
+      }
 
-  const replayTrack = (trackId: TrackId, options?: { live?: boolean }) =>
+      // Append to each track's stream
+      yield* Effect.forEach(
+        Array.from(byTrack.entries()),
+        ([trackId, trackUpdates]) =>
+          Effect.gen(function* () {
+            const handle = yield* getHandle(trackId)
+            const events = trackUpdates.map((u) => toStorageEvent(trackId, u.position))
+
+            yield* handle.appendBatch(events).pipe(
+              Effect.mapError((e) =>
+                new TrackStoreError({
+                  operation: 'append',
+                  trackId,
+                  message: `Failed to append batch updates: ${e.message}`,
+                  cause: e,
+                })
+              )
+            )
+          }),
+        { concurrency: 5 }
+      )
+    })
+
+  const replayTrack = (trackId: TrackId) =>
     Effect.gen(function* () {
       const handle = yield* getHandle(trackId)
 
-      const batchStream = yield* handle
-        .subscribe({
-          offset: '-1', // From beginning
-          live: options?.live ? 'sse' : false
-        })
-        .pipe(
-          Effect.mapError(
-            (e) =>
-              new TrackStoreError({
-                operation: 'replay',
-                trackId,
-                message: `Failed to subscribe: ${e.message}`,
-                cause: e
-              })
-          )
+      const batch = yield* handle.read({ offset: '0', live: false }).pipe(
+        Effect.mapError((e) =>
+          new TrackStoreError({
+            operation: 'replay',
+            trackId,
+            message: `Failed to replay track: ${e.message}`,
+            cause: e,
+          })
         )
+      )
 
-      // Flatten batches to individual updates
-      return batchStream.pipe(
+      return batch.items
+    })
+
+  const subscribeTrack = (trackId: TrackId) =>
+    Effect.gen(function* () {
+      const handle = yield* getHandle(trackId)
+
+      const stream = yield* handle.subscribe({ offset: '-1', live: 'sse' }).pipe(
+        Effect.mapError((e) =>
+          new TrackStoreError({
+            operation: 'subscribe',
+            trackId,
+            message: `Failed to subscribe to track: ${e.message}`,
+            cause: e,
+          })
+        )
+      )
+
+      // Flatten batches into individual events
+      return stream.pipe(
         Stream.mapConcat((batch) => batch.items),
-        Stream.mapError(
-          (e) =>
-            new TrackStoreError({
-              operation: 'replay',
-              trackId,
-              message: `Stream error: ${e.message}`,
-              cause: e
-            })
+        Stream.mapError((e) =>
+          new TrackStoreError({
+            operation: 'subscribe',
+            trackId,
+            message: `Stream error: ${e instanceof Error ? e.message : String(e)}`,
+            cause: e,
+          })
         )
       )
-    })
-
-  const getTrackInfo = (trackId: TrackId) =>
-    Effect.gen(function* () {
-      const exists = yield* streams.exists(`${baseUrl}/${trackId}`).pipe(
-        Effect.mapError(
-          (e) =>
-            new TrackStoreError({
-              operation: 'head',
-              trackId,
-              message: `Failed to check existence: ${e.message}`,
-              cause: e
-            })
-        )
-      )
-
-      if (!exists) {
-        return { exists: false }
-      }
-
-      const handle = yield* getHandle(trackId)
-      const meta = yield* handle.head().pipe(
-        Effect.mapError(
-          (e) =>
-            new TrackStoreError({
-              operation: 'head',
-              trackId,
-              message: `Failed to get metadata: ${e.message}`,
-              cause: e
-            })
-        )
-      )
-
-      return {
-        exists: true,
-        lastOffset: meta.offset,
-        contentType: meta.contentType
-      }
     })
 
   const deleteTrack = (trackId: TrackId) =>
     Effect.gen(function* () {
-      yield* streams.delete(`${baseUrl}/${trackId}`).pipe(
-        Effect.mapError(
-          (e) =>
-            new TrackStoreError({
-              operation: 'delete',
-              trackId,
-              message: `Failed to delete: ${e.message}`,
-              cause: e
-            })
+      const url = `${config.baseUrl}/${trackId}`
+
+      yield* streams.delete(url).pipe(
+        Effect.mapError((e) =>
+          new TrackStoreError({
+            operation: 'delete',
+            trackId,
+            message: `Failed to delete track: ${e.message}`,
+            cause: e,
+          })
         )
       )
+
+      // Remove from cache
       handleCache.delete(trackId)
     })
 
+  const trackExists = (trackId: TrackId) =>
+    Effect.gen(function* () {
+      const url = `${config.baseUrl}/${trackId}`
+
+      return yield* streams.exists(url).pipe(
+        Effect.mapError((e) =>
+          new TrackStoreError({
+            operation: 'connect',
+            trackId,
+            message: `Failed to check track existence: ${e.message}`,
+            cause: e,
+          })
+        )
+      )
+    })
+
+  const listTracks = () =>
+    // Note: Durable streams don't have a list operation
+    // This would require an external index (e.g., separate metadata stream)
+    Effect.succeed([] as readonly TrackId[])
+
   return {
     appendTrackUpdate,
-    appendBatch,
+    appendTrackUpdates,
     replayTrack,
-    getTrackInfo,
+    subscribeTrack,
     deleteTrack,
-    baseUrl
-  } satisfies TrackStoreShape
+    trackExists,
+    listTracks,
+  } as TrackStore
 })
 
 // =============================================================================
-// Layer
+// Layers
 // =============================================================================
 
 /**
- * TrackStore layer with DurableStreamClient dependency
+ * TrackStore live layer (requires DurableStreamClient)
  */
-export const TrackStoreLive = Layer.effect(TrackStore, make)
+export const TrackStoreLive = Layer.effect(TrackStore, make).pipe(
+  Layer.provide(DurableStreamClientLive)
+)
+
+/**
+ * TrackStore with custom config
+ */
+export const TrackStoreConfigured = (config: TrackStoreConfig) =>
+  Layer.effect(TrackStore, make).pipe(
+    Layer.provide(DurableStreamClientLive),
+    Layer.provide(Layer.succeed(TrackStoreConfigTag, config))
+  )
+
+/**
+ * Default development layer
+ */
+export const TrackStoreDev = TrackStoreLive
 
 export default TrackStore

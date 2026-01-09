@@ -1,30 +1,31 @@
 /**
  * SearchPanel - ALLINT COP Search UI Component
  *
- * Provides search interface for the GEOINT map:
- * - Text search input
- * - Source filters (tracks, OSM, flights, features)
- * - Auto-search on viewport change
+ * Compound component for multi-source intelligence search with:
+ * - cmdk-powered search input with autocomplete
+ * - Source filter chips (OSM, OpenSky, ADS-B, etc.)
+ * - Temporal filters (live, historical)
+ * - Geographic filters (viewport, radius)
  * - Result summary and navigation
  *
- * Uses SearchService atoms for reactive state management.
- *
- * @see beads:tmnl-j5pyc ALLINT COP Search System
- * @module
+ * @module geoint/components/SearchPanel
  */
 
-import { useState, useCallback, useMemo, memo } from 'react'
+import { useState, useCallback, useMemo, memo, useRef, useEffect } from 'react'
 import { useAtomValue } from '@effect-atom/atom-react'
-import { Search, X, Loader2, Filter, MapPin, Plane, Building, Layers, Satellite, CloudSun } from 'lucide-react'
+import { animate } from 'animejs'
+import { Search, X, Loader2, Filter, MapPin, Plane, Building, Layers, Satellite, CloudSun, Radio } from 'lucide-react'
 import {
   searchStatusAtom,
-  allResultsAtom,
-  resultsCountAtom,
-  isSearchingAtom,
+  totalResultCountAtom,
+  sourceCountsAtom,
+  filteredResultsAtom,
+  activeFiltersAtom,
   searchErrorAtom,
-  resultsBySourceAtom,
-} from '../services/SearchService'
+  updateFilters,
+} from '../atoms'
 import type { IntelSource, SearchResultItem, BBox } from '../schemas'
+import { SOURCE_COLORS, TIMING, EASING } from '../tokens'
 import { cn } from '@/lib/utils'
 
 // =============================================================================
@@ -50,16 +51,16 @@ export interface SearchPanelProps {
 // Source Icons & Labels
 // =============================================================================
 
-const SOURCE_CONFIG: Record<IntelSource, { icon: typeof MapPin; label: string; color: string }> = {
-  track: { icon: MapPin, label: 'Tracks', color: 'text-green-400' },
-  osm: { icon: Building, label: 'POI', color: 'text-blue-400' },
-  opensky: { icon: Plane, label: 'Flights', color: 'text-yellow-400' },
-  feature: { icon: Layers, label: 'Features', color: 'text-purple-400' },
-  adsb_lol: { icon: Plane, label: 'ADS-B', color: 'text-orange-400' },
-  planet: { icon: Satellite, label: 'Planet', color: 'text-cyan-400' },
-  sentinel: { icon: Satellite, label: 'Sentinel', color: 'text-sky-400' },
-  weather: { icon: CloudSun, label: 'Weather', color: 'text-amber-400' },
-  custom: { icon: MapPin, label: 'Custom', color: 'text-gray-400' },
+const SOURCE_CONFIG: Record<IntelSource, { icon: typeof MapPin; label: string; description: string }> = {
+  track: { icon: Radio, label: 'Tracks', description: 'Internal track system' },
+  osm: { icon: Building, label: 'POI', description: 'OpenStreetMap POIs' },
+  opensky: { icon: Plane, label: 'OpenSky', description: 'ADS-B flights' },
+  feature: { icon: Layers, label: 'Features', description: 'Static features' },
+  adsb_lol: { icon: Plane, label: 'ADS-B', description: 'Community ADS-B' },
+  planet: { icon: Satellite, label: 'Planet', description: 'Satellite imagery' },
+  sentinel: { icon: Satellite, label: 'Sentinel', description: 'Copernicus data' },
+  weather: { icon: CloudSun, label: 'Weather', description: 'Open-Meteo weather' },
+  custom: { icon: MapPin, label: 'Custom', description: 'User-defined sources' },
 }
 
 // =============================================================================
@@ -80,22 +81,40 @@ const SourceToggle = memo(function SourceToggle({
   onToggle,
 }: SourceToggleProps) {
   const config = SOURCE_CONFIG[source]
+  const colors = SOURCE_COLORS[source]
   const Icon = config.icon
+  const chipRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!chipRef.current) return
+    animate(chipRef.current, {
+      scale: enabled ? [0.95, 1] : 1,
+      duration: TIMING.fast,
+      ease: EASING.anime.out,
+    })
+  }, [enabled])
 
   return (
     <button
+      ref={chipRef}
       onClick={() => onToggle(source)}
       className={cn(
         'flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors',
         enabled
-          ? `bg-surface-3 ${config.color} border border-current/20`
-          : 'bg-surface-2 text-text-tertiary hover:bg-surface-3'
+          ? 'ring-1'
+          : 'bg-surface-2 text-foreground-tertiary hover:bg-surface-3'
       )}
+      style={{
+        backgroundColor: enabled ? colors.tailwind.bg : undefined,
+        color: enabled ? colors.primary : undefined,
+        borderColor: enabled ? colors.primary : undefined,
+      }}
+      title={config.description}
     >
       <Icon className="h-3 w-3" />
       <span>{config.label}</span>
       {count !== undefined && count > 0 && (
-        <span className="ml-1 px-1.5 py-0.5 bg-surface-4 rounded text-[10px]">
+        <span className="ml-1 px-1.5 py-0.5 bg-surface-3 rounded text-[10px]">
           {count}
         </span>
       )}
@@ -114,6 +133,7 @@ interface ResultItemProps {
 
 const ResultItem = memo(function ResultItem({ result, onSelect }: ResultItemProps) {
   const config = SOURCE_CONFIG[result.source]
+  const colors = SOURCE_COLORS[result.source]
   const Icon = config.icon
 
   // Extract display info based on result type
@@ -149,7 +169,7 @@ const ResultItem = memo(function ResultItem({ result, onSelect }: ResultItemProp
       onClick={() => onSelect(result)}
       className="w-full flex items-center gap-2 px-3 py-2 hover:bg-surface-3 transition-colors text-left"
     >
-      <Icon className={cn('h-4 w-4 flex-shrink-0', config.color)} />
+      <Icon className="h-4 w-4 flex-shrink-0" style={{ color: colors.primary }} />
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium text-text-primary truncate">
           {displayInfo.title}
@@ -179,46 +199,34 @@ export const SearchPanel = memo(function SearchPanel({
 }: SearchPanelProps) {
   // Local state
   const [searchText, setSearchText] = useState('')
-  const [enabledSources, setEnabledSources] = useState<Set<IntelSource>>(
-    new Set(['track', 'osm', 'opensky', 'feature'])
-  )
   const [showFilters, setShowFilters] = useState(false)
 
   // Atoms
   const status = useAtomValue(searchStatusAtom)
-  const results = useAtomValue(allResultsAtom)
-  const resultsCount = useAtomValue(resultsCountAtom)
-  const isSearching = useAtomValue(isSearchingAtom)
+  const results = useAtomValue(filteredResultsAtom)
+  const resultsCount = useAtomValue(totalResultCountAtom)
+  const sourceCounts = useAtomValue(sourceCountsAtom)
+  const filters = useAtomValue(activeFiltersAtom)
   const error = useAtomValue(searchErrorAtom)
-  const resultsBySource = useAtomValue(resultsBySourceAtom)
 
-  // Get count per source
-  const sourceCounts = useMemo(() => {
-    const counts: Partial<Record<IntelSource, number>> = {}
-    for (const [source, items] of resultsBySource) {
-      counts[source] = items.length
-    }
-    return counts
-  }, [resultsBySource])
+  // Compute isSearching from status
+  const isSearching = status === 'searching' || status === 'validating'
 
   // Toggle source
   const handleToggleSource = useCallback((source: IntelSource) => {
-    setEnabledSources((prev) => {
-      const next = new Set(prev)
-      if (next.has(source)) {
-        next.delete(source)
-      } else {
-        next.add(source)
-      }
-      return next
-    })
-  }, [])
+    const current = filters.sources
+    const updated = current.includes(source)
+      ? current.filter((s) => s !== source)
+      : [...current, source]
+    updateFilters({ sources: updated })
+  }, [filters.sources])
 
   // Execute search
   const handleSearch = useCallback(() => {
     if (!viewportBounds) return
-    onSearch?.(viewportBounds as [number, number, number, number], Array.from(enabledSources))
-  }, [viewportBounds, enabledSources, onSearch])
+    const sources = filters.sources.length > 0 ? filters.sources : (['track', 'osm', 'opensky', 'feature'] as IntelSource[])
+    onSearch?.(viewportBounds as [number, number, number, number], sources as IntelSource[])
+  }, [viewportBounds, filters.sources, onSearch])
 
   // Handle result selection
   const handleResultSelect = useCallback(
@@ -292,7 +300,7 @@ export const SearchPanel = memo(function SearchPanel({
             <SourceToggle
               key={source}
               source={source}
-              enabled={enabledSources.has(source)}
+              enabled={filters.sources.includes(source)}
               count={sourceCounts[source]}
               onToggle={handleToggleSource}
             />
@@ -307,7 +315,7 @@ export const SearchPanel = memo(function SearchPanel({
           {status === 'searching' && 'Searching...'}
           {status === 'completed' && `${resultsCount} results found`}
           {status === 'error' && (
-            <span className="text-status-error">Error: {error?.message}</span>
+            <span className="text-status-error">Error: {error}</span>
           )}
         </span>
         {autoSearch && viewportBounds && (

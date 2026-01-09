@@ -14,7 +14,21 @@ import { useRef, useCallback, useMemo, useEffect, memo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { Map as MapboxMap } from 'react-map-gl/mapbox'
 import { DeckGL } from '@deck.gl/react'
+import { FlyToInterpolator } from '@deck.gl/core'
 import type { Layer, PickingInfo, MapViewState } from '@deck.gl/core'
+import {
+  ScatterplotLayer,
+  IconLayer,
+  PathLayer,
+  ArcLayer,
+  LineLayer,
+  PolygonLayer,
+  TextLayer,
+  ColumnLayer,
+  GeoJsonLayer,
+} from '@deck.gl/layers'
+import { HeatmapLayer, HexagonLayer, GridLayer, ContourLayer } from '@deck.gl/aggregation-layers'
+import { TripsLayer } from '@deck.gl/geo-layers'
 import { Atom } from '@effect-atom/atom'
 import { useAtom, useAtomValue } from '@effect-atom/atom-react'
 import { VANTA_COLORS } from '@/components/portal/tokens'
@@ -28,8 +42,15 @@ import {
   type TrackPathLayerData,
   type TrackPositionData,
 } from '../layers'
-import { GeointR3FOverlay } from '../r3f'
 import { overlayRegistry } from '@/lib/overlays/atoms'
+import {
+  PositioningProvider,
+  useLayerConfigs,
+  useViewportSync,
+  usePositionedEntities,
+  positioningOps,
+} from '../positioning/hooks'
+import type { LayerConfig } from '../positioning/SceneGraphBridge'
 
 // =============================================================================
 // Configuration
@@ -56,8 +77,9 @@ export interface GeointLayerVisibility {
   headings: boolean
   heatmap: boolean
   trips: boolean
-  r3f: boolean
   labels: boolean
+  /** Enable Kori ECS positioned entities layer */
+  positionedEntities: boolean
 }
 
 const DEFAULT_VISIBILITY: GeointLayerVisibility = {
@@ -66,8 +88,57 @@ const DEFAULT_VISIBILITY: GeointLayerVisibility = {
   headings: false,
   heatmap: false,
   trips: false,
-  r3f: true,
   labels: true,
+  positionedEntities: true,
+}
+
+// =============================================================================
+// Positioning Layer Conversion
+// =============================================================================
+
+/**
+ * Layer constructor map for dynamic layer creation.
+ */
+const LAYER_CONSTRUCTORS: Record<string, new (props: object) => Layer> = {
+  scatterplot: ScatterplotLayer,
+  icon: IconLayer,
+  path: PathLayer,
+  arc: ArcLayer,
+  line: LineLayer,
+  polygon: PolygonLayer,
+  text: TextLayer,
+  column: ColumnLayer,
+  geojson: GeoJsonLayer,
+  heatmap: HeatmapLayer,
+  hexagon: HexagonLayer,
+  grid: GridLayer,
+  contour: ContourLayer,
+  trips: TripsLayer,
+}
+
+/**
+ * Convert positioning LayerConfig to deck.gl Layer instances.
+ */
+function convertPositioningLayers(configs: readonly LayerConfig[]): Layer[] {
+  const layers: Layer[] = []
+
+  for (const config of configs) {
+    if (!config.visible || config.data.length === 0) continue
+
+    const Constructor = LAYER_CONSTRUCTORS[config.type]
+    if (Constructor) {
+      layers.push(
+        new Constructor({
+          id: config.id,
+          data: config.data as unknown[],
+          visible: config.visible,
+          ...(config.props as object),
+        })
+      )
+    }
+  }
+
+  return layers
 }
 
 // =============================================================================
@@ -117,6 +188,26 @@ export const geointRegistry = overlayRegistry
 // Props
 // =============================================================================
 
+/**
+ * Target for camera fly-to animation.
+ */
+export interface FlyToTarget {
+  /** Target longitude */
+  longitude: number
+  /** Target latitude */
+  latitude: number
+  /** Target zoom level */
+  zoom?: number
+  /** Target pitch (tilt) angle */
+  pitch?: number
+  /** Target bearing (rotation) */
+  bearing?: number
+  /** Animation speed (default: 1.5) */
+  speed?: number
+  /** Unique key to trigger new animations (change to re-fly to same location) */
+  key?: string | number
+}
+
 export interface GeointMapProps {
   /** Unique instance ID for atom-based state */
   instanceId: string
@@ -151,6 +242,9 @@ export interface GeointMapProps {
   /** Debug mode */
   debug?: boolean
 
+  /** Target for camera fly-to animation (set to trigger animation) */
+  flyToTarget?: FlyToTarget | null
+
   /** Track click handler */
   onTrackClick?: (track: Track) => void
 
@@ -180,6 +274,7 @@ function GeointMapComponent({
   interactive = true,
   animate = false,
   debug = false,
+  flyToTarget,
   onTrackClick,
   onTrackHover,
   onViewStateChange,
@@ -201,6 +296,11 @@ function GeointMapComponent({
   const [mapLoaded, setMapLoaded] = useAtom(atoms.mapLoadedAtom)
   const [error, setError] = useAtom(atoms.errorAtom)
 
+  // Positioning system integration
+  const positioningLayerConfigs = useLayerConfigs()
+  const positionedEntities = usePositionedEntities()
+  const { syncViewport, syncDimensions } = useViewportSync()
+
   // Sync props to atoms
   useEffect(() => {
     if (propTracks) setTracks(propTracks)
@@ -221,6 +321,22 @@ function GeointMapComponent({
       geointRegistry.set(atoms.visibilityAtom, { ...DEFAULT_VISIBILITY, ...initialVisibility })
     }
   }, []) // Only on mount
+
+  // Fly-to animation effect
+  useEffect(() => {
+    if (!flyToTarget) return
+
+    setViewState((prev) => ({
+      ...prev,
+      longitude: flyToTarget.longitude,
+      latitude: flyToTarget.latitude,
+      zoom: flyToTarget.zoom ?? prev.zoom,
+      pitch: flyToTarget.pitch ?? prev.pitch,
+      bearing: flyToTarget.bearing ?? prev.bearing,
+      transitionInterpolator: new FlyToInterpolator({ speed: flyToTarget.speed ?? 1.5 }),
+      transitionDuration: 'auto',
+    }))
+  }, [flyToTarget?.longitude, flyToTarget?.latitude, flyToTarget?.zoom, flyToTarget?.key, setViewState])
 
   // Animation loop
   useEffect(() => {
@@ -272,14 +388,30 @@ function GeointMapComponent({
     }
   }, [instanceId, setDimensions])
 
+  // Sync dimensions to positioning system
+  useEffect(() => {
+    if (dimensions) {
+      syncDimensions(dimensions.width, dimensions.height)
+    }
+  }, [dimensions, syncDimensions])
+
   // Event handlers
   const handleViewStateChange = useCallback(
     (params: { viewState: MapViewState }) => {
       if (!dimensions) return
       setViewState(params.viewState)
       onViewStateChange?.(params.viewState)
+
+      // Sync with positioning system
+      syncViewport({
+        longitude: params.viewState.longitude,
+        latitude: params.viewState.latitude,
+        zoom: params.viewState.zoom,
+        pitch: params.viewState.pitch,
+        bearing: params.viewState.bearing,
+      })
     },
-    [dimensions, setViewState, onViewStateChange]
+    [dimensions, setViewState, onViewStateChange, syncViewport]
   )
 
   const handleClick = useCallback(
@@ -372,8 +504,13 @@ function GeointMapComponent({
       )
     }
 
+    // Add Kori ECS positioned entity layers
+    if (visibility.positionedEntities && positioningLayerConfigs.length > 0) {
+      result.push(...convertPositioningLayers(positioningLayerConfigs))
+    }
+
     return result
-  }, [instanceId, tracks, visibility, animate, animationTime])
+  }, [instanceId, tracks, visibility, animate, animationTime, positioningLayerConfigs])
 
   // Styles
   const containerStyle: CSSProperties = useMemo(
@@ -501,20 +638,6 @@ function GeointMapComponent({
         </DeckGL>
       )}
 
-      {/* R3F Overlay */}
-      {mapLoaded && visibility.r3f && (
-        <GeointR3FOverlay
-          center={{ lon: viewState.longitude, lat: viewState.latitude }}
-          scale={Math.pow(2, viewState.zoom) * 0.5}
-          tracks={tracks}
-          threats={threats}
-          showLabels={visibility.labels}
-          animate={animate}
-          onTrackClick={onTrackClick}
-          onTrackHover={onTrackHover}
-        />
-      )}
-
       {/* Custom Overlay */}
       {mapLoaded && renderOverlay?.()}
 
@@ -538,6 +661,7 @@ function GeointMapComponent({
           <div>LAT: {viewState.latitude.toFixed(4)}</div>
           <div>ZOOM: {viewState.zoom.toFixed(2)}</div>
           <div>TRACKS: {tracks.length}</div>
+          <div>POSITIONED: {positionedEntities.length}</div>
           <div>LAYERS: {layers.length}</div>
         </div>
       )}
@@ -545,5 +669,19 @@ function GeointMapComponent({
   )
 }
 
+/**
+ * GeointMap wrapped with PositioningProvider.
+ * Use this when you need programmatic entity positioning via Kori ECS.
+ */
+function GeointMapWithPositioning(props: GeointMapProps) {
+  return (
+    <PositioningProvider>
+      <GeointMapComponent {...props} />
+    </PositioningProvider>
+  )
+}
+
 export const GeointMap = memo(GeointMapComponent)
+export const GeointMapPositioned = memo(GeointMapWithPositioning)
+export { positioningOps }
 export default GeointMap
