@@ -49,7 +49,15 @@ import { VirtualizedSearchResults } from './VirtualizedSearchResults'
 import {
   resultsAtom,
   selectedResultAtom,
+  sourceCountsAtom,
 } from '../atoms'
+import {
+  StatsWidget as StatsWidgetCompound,
+} from './StatsWidget'
+import {
+  TimelinePanel,
+  timelineRangeAtom,
+} from './TimelinePanel'
 import { searchResultToEntity } from '../cards/registry'
 import { TIMING, EASING } from '../tokens'
 import type { SearchResultItem, BBox, IntelSource } from '../schemas'
@@ -449,70 +457,97 @@ const GridLayout: FC<GridLayoutProps> = memo(function GridLayout({
 })
 
 // =============================================================================
-// STATS WIDGET
+// WIRED STATS WIDGET
 // =============================================================================
 
-const StatsWidget: FC = memo(function StatsWidget() {
+const WiredStatsWidget: FC = memo(function WiredStatsWidget() {
   const results = useAtomValue(resultsAtom)
+  const sourceCounts = useAtomValue(sourceCountsAtom)
 
-  const stats = {
-    tracks: results.filter((r: SearchResultItem) => r.source === 'track').length,
-    pois: results.filter((r: SearchResultItem) => r.source === 'osm').length,
-    flights: results.filter((r: SearchResultItem) => r.source === 'opensky' || r.source === 'adsb_lol').length,
-    features: results.filter((r: SearchResultItem) => r.source === 'feature').length,
-  }
+  // Generate sparkline data based on results count distribution
+  const sparklineData = useCallback((): number[] => {
+    // Simple distribution across 24 bins based on result count
+    const base = Math.floor(results.length / 24)
+    const variance = Math.ceil(results.length / 48)
+    return Array.from({ length: 24 }, () =>
+      Math.max(0, base + Math.floor(Math.random() * variance * 2 - variance))
+    )
+  }, [results.length])
 
   return (
-    <div className="space-y-2">
-      <div className="text-xs font-medium text-text-secondary">Statistics</div>
-      <div className="grid grid-cols-2 gap-2 text-sm">
-        <div className="flex justify-between">
-          <span className="text-text-tertiary">Tracks</span>
-          <span className="font-mono text-text-primary">{stats.tracks}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-text-tertiary">POIs</span>
-          <span className="font-mono text-text-primary">{stats.pois}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-text-tertiary">Flights</span>
-          <span className="font-mono text-text-primary">{stats.flights}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-text-tertiary">Features</span>
-          <span className="font-mono text-text-primary">{stats.features}</span>
-        </div>
+    <StatsWidgetCompound
+      title="Intel Summary"
+      subtitle="Last 24 hours"
+      accentColor="#22c55e"
+    >
+      <div className="space-y-3">
+        <StatsWidgetCompound.Counter
+          value={results.length}
+          suffix="entities"
+          animateOnMount
+        />
+        <StatsWidgetCompound.SourceBreakdown
+          counts={sourceCounts as Partial<Record<IntelSource, number>>}
+        />
+        <StatsWidgetCompound.Sparkline
+          data={sparklineData()}
+          color="#22c55e"
+          height={32}
+        />
       </div>
-    </div>
+    </StatsWidgetCompound>
   )
 })
 
 // =============================================================================
-// TIMELINE WIDGET
+// WIRED TIMELINE WIDGET
 // =============================================================================
 
-const TimelineWidget: FC = memo(function TimelineWidget() {
+interface WiredTimelineWidgetProps {
+  compact?: boolean
+}
+
+const WiredTimelineWidget: FC<WiredTimelineWidgetProps> = memo(function WiredTimelineWidget({
+  compact = false,
+}) {
+  const range = useAtomValue(timelineRangeAtom)
+
+  // Handler for range changes
+  const handleRangeChange = useCallback((newRange: { start: Date; end: Date }) => {
+    // In production would use registry.set(timelineRangeAtom, newRange)
+    console.log('Range changed:', newRange)
+  }, [])
+
+  // Handler for playhead changes
+  const handlePlayheadChange = useCallback((newPlayhead: Date) => {
+    console.log('Playhead changed:', newPlayhead)
+  }, [])
+
+  if (compact) {
+    return (
+      <TimelinePanel
+        range={range}
+        onRangeChange={handleRangeChange}
+        onPlayheadChange={handlePlayheadChange}
+      >
+        <TimelinePanel.PlaybackControls />
+        <TimelinePanel.RangeDisplay />
+      </TimelinePanel>
+    )
+  }
+
   return (
-    <div className="space-y-2">
-      <div className="text-xs font-medium text-text-secondary">Timeline</div>
-      <div className="flex items-end gap-[2px] h-8">
-        {Array.from({ length: 24 }, (_, i) => {
-          const height = Math.random() * 100
-          return (
-            <div
-              key={i}
-              className="flex-1 bg-accent-primary/40 rounded-t-sm transition-all hover:bg-accent-primary"
-              style={{ height: `${Math.max(10, height)}%` }}
-            />
-          )
-        })}
-      </div>
-      <div className="flex justify-between text-[10px] text-text-quaternary">
-        <span>00:00</span>
-        <span>12:00</span>
-        <span>23:59</span>
-      </div>
-    </div>
+    <TimelinePanel
+      range={range}
+      onRangeChange={handleRangeChange}
+      onPlayheadChange={handlePlayheadChange}
+    >
+      <TimelinePanel.PlaybackControls />
+      <TimelinePanel.BrushSelector />
+      <TimelinePanel.PresetSelector />
+      <TimelinePanel.RangeDisplay />
+      <TimelinePanel.StatusIndicator />
+    </TimelinePanel>
   )
 })
 
@@ -725,8 +760,8 @@ export const GeointDashboard: FC<GeointDashboardProps> = memo(function GeointDas
             mapPanel={mapPanel}
             searchPanel={searchPanelContent}
             resultsPanel={resultsPanelContent}
-            statsWidget={<StatsWidget />}
-            timelineWidget={<TimelineWidget />}
+            statsWidget={<WiredStatsWidget />}
+            timelineWidget={<WiredTimelineWidget compact />}
           />
         )}
 
@@ -768,8 +803,8 @@ export const Dashboard = Object.assign(GeointDashboard, {
   CommandLayout,
   FocusLayout,
   GridLayout,
-  StatsWidget,
-  TimelineWidget,
+  StatsWidget: WiredStatsWidget,
+  TimelineWidget: WiredTimelineWidget,
   LayoutButton,
 })
 

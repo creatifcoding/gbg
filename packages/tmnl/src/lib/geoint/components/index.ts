@@ -182,3 +182,34 @@ export {
   type ActiveFilterSummaryProps,
   type CollapsibleFilterSectionProps,
 } from './FilterBar'
+
+// Layer Palette Compound - Enhanced layer control system
+export {
+  LayerPaletteCompound,
+  LayerPaletteCompoundRoot,
+  LayerPaletteHeader,
+  LayerPaletteGroup,
+  LayerPaletteLayerToggle,
+  LayerPalettePresets,
+  LayerPaletteQuickToggles,
+  useLayerPalette,
+  layerOpacitiesAtom,
+  type PaletteLayerConfig,
+  type LayerPreset,
+  type LayerPaletteContextValue,
+  type LayerPaletteRootProps,
+  type HeaderProps,
+  type GroupProps,
+  type LayerToggleCompoundProps,
+  type PresetsProps,
+  type QuickTogglesProps,
+} from './LayerPaletteCompound'
+
+// Minimap - Navigation overview component
+export {
+  Minimap,
+  type MinimapViewport,
+  type MinimapBounds,
+  type MinimapEntity,
+  type MinimapProps,
+} from './Minimap'
