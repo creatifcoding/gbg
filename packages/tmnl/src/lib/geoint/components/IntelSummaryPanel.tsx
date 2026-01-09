@@ -146,7 +146,7 @@ function TrackListItem({ track, isSelected, onClick, compact = false }: TrackLis
         />
         <span className={`font-mono ${compact ? 'text-xs' : 'text-sm'}`}>{track.trackId}</span>
       </div>
-      <div className={`text-neutral-500 mt-1 ${compact ? 'text-[10px]' : 'text-xs'}`}>
+      <div className={`text-neutral-500 mt-1 ${compact ? 'text-xs' : 'text-xs'}`}>
         {classification.toUpperCase()} • {track.metadata.source} •{' '}
         {((track.metadata.confidence ?? 0) * 100).toFixed(0)}%
       </div>
@@ -181,12 +181,12 @@ function ThreatListItem({ threat, compact = false }: ThreatListItemProps) {
           {threat.level}
         </span>
         {threat.trackId && (
-          <span className={`text-neutral-500 ${compact ? 'text-[10px]' : 'text-xs'}`}>
+          <span className={`text-neutral-500 ${compact ? 'text-xs' : 'text-xs'}`}>
             ({threat.trackId})
           </span>
         )}
       </div>
-      <div className={`text-neutral-500 mt-1 ${compact ? 'text-[10px]' : 'text-xs'}`}>
+      <div className={`text-neutral-500 mt-1 ${compact ? 'text-xs' : 'text-xs'}`}>
         R: {threat.radius}m • H: {threat.height}m • {((threat.confidence ?? 0) * 100).toFixed(0)}%
       </div>
     </div>

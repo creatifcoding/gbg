@@ -308,7 +308,7 @@ function Sidebar({ className, children }: SidebarProps) {
           >
             {panel.label}
             {panel.count > 0 && (
-              <span className="ml-1 text-[10px] opacity-60">({panel.count})</span>
+              <span className="ml-1 text-xs opacity-60">({panel.count})</span>
             )}
           </button>
         ))}
@@ -444,7 +444,7 @@ function ObjectiveList({ className }: ObjectiveListProps) {
                           {objective.name}
                         </span>
                         <span className={cn(
-                          'px-1.5 py-0.5 text-[10px] font-medium rounded border',
+                          'px-1.5 py-0.5 text-xs font-medium rounded border',
                           priorityColors[objective.priority]
                         )}>
                           {objective.priority.slice(0, 1).toUpperCase()}
@@ -452,7 +452,7 @@ function ObjectiveList({ className }: ObjectiveListProps) {
                       </div>
 
                       {/* Meta */}
-                      <div className="flex items-center gap-2 mt-1 text-[10px] text-white/40">
+                      <div className="flex items-center gap-2 mt-1 text-xs text-white/40">
                         <span>{objective.assignedResources.length} resources</span>
                         <span>•</span>
                         <span>{objective.waypoints.length} waypoints</span>
@@ -491,14 +491,14 @@ function WaypointList({ className }: WaypointListProps) {
       {/* Waypoint Type Buttons */}
       {canEdit && (
         <div className="p-2 border-b border-white/5">
-          <div className="text-[10px] text-white/40 mb-2">Place Waypoint</div>
+          <div className="text-xs text-white/40 mb-2">Place Waypoint</div>
           <div className="grid grid-cols-3 gap-1">
             {waypointTypes.map(type => (
               <button
                 key={type}
                 onClick={() => send({ type: 'START_WAYPOINT_PLACEMENT', waypointType: type })}
                 className={cn(
-                  'px-2 py-1.5 rounded text-[10px] font-medium transition-colors',
+                  'px-2 py-1.5 rounded text-xs font-medium transition-colors',
                   'border',
                   state.placingWaypointType === type
                     ? 'bg-white/10 border-white/20'
@@ -547,13 +547,13 @@ function WaypointList({ className }: WaypointListProps) {
                       <div className="text-sm text-white truncate">
                         {waypoint.name}
                       </div>
-                      <div className="text-[10px] text-white/40">
+                      <div className="text-xs text-white/40">
                         {waypoint.position[1].toFixed(4)}, {waypoint.position[0].toFixed(4)}
                       </div>
                     </div>
 
                     {/* Order */}
-                    <span className="text-[10px] text-white/20 font-mono">
+                    <span className="text-xs text-white/20 font-mono">
                       #{index + 1}
                     </span>
                   </div>
@@ -622,10 +622,10 @@ function ResourceList({ className }: ResourceListProps) {
             <div key={type} className="border-b border-white/5">
               {/* Group Header */}
               <div className="px-3 py-2 bg-white/5">
-                <span className="text-[10px] text-white/60 uppercase tracking-wider">
+                <span className="text-xs text-white/60 uppercase tracking-wider">
                   {resourceTypeIcons[type as ResourceType]} {type}
                 </span>
-                <span className="ml-2 text-[10px] text-white/40">
+                <span className="ml-2 text-xs text-white/40">
                   ({resources.length})
                 </span>
               </div>
@@ -646,7 +646,7 @@ function ResourceList({ className }: ResourceListProps) {
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-white">{resource.name}</span>
                       <span className={cn(
-                        'px-1.5 py-0.5 text-[10px] rounded',
+                        'px-1.5 py-0.5 text-xs rounded',
                         resource.status === 'available'
                           ? 'bg-green-500/20 text-green-400'
                           : resource.status === 'assigned'
@@ -736,7 +736,7 @@ function TimelinePanel({ className }: TimelinePanelProps) {
                   <div className="absolute left-0 top-0 w-3 h-3 -translate-x-1/2 rounded-full bg-accent-cyan" />
 
                   {/* Time */}
-                  <div className="text-[10px] text-white/40 font-mono mb-1">
+                  <div className="text-xs text-white/40 font-mono mb-1">
                     +{startOffset}m
                   </div>
 
@@ -750,7 +750,7 @@ function TimelinePanel({ className }: TimelinePanelProps) {
                       style={{ width: `${Math.min(100, duration)}%` }}
                     />
                   </div>
-                  <div className="text-[10px] text-white/40 mt-1">
+                  <div className="text-xs text-white/40 mt-1">
                     {duration}m duration
                   </div>
                 </div>
@@ -846,7 +846,7 @@ function MapCanvas({ className, children }: MapCanvasProps) {
                 send({ type: 'SELECT_WAYPOINT', id: waypoint.id })
               }}
             >
-              <span className="text-[10px] font-bold">{index + 1}</span>
+              <span className="text-xs font-bold">{index + 1}</span>
             </div>
           )
         })}
@@ -957,7 +957,7 @@ function ProgressOverlay({ className }: ProgressOverlayProps) {
       'backdrop-blur-sm',
       className
     )}>
-      <div className="text-[10px] text-white/40 uppercase tracking-wider mb-2">
+      <div className="text-xs text-white/40 uppercase tracking-wider mb-2">
         Mission Progress
       </div>
       <div className="flex items-center gap-4 text-xs">

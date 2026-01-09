@@ -257,7 +257,7 @@ const ResultItem = memo(
           <div className="text-xs text-text-tertiary truncate">{displayInfo.subtitle}</div>
 
           {/* Score */}
-          <div className="mt-2 text-[10px] text-text-quaternary">
+          <div className="mt-2 text-xs text-text-quaternary">
             {Math.round(result.score * 100)}% match
           </div>
         </div>
@@ -283,7 +283,7 @@ const ResultItem = memo(
         >
           <Icon className="w-3 h-3 flex-shrink-0" style={{ color: colors.primary }} />
           <span className="text-xs text-text-primary truncate flex-1">{displayInfo.title}</span>
-          <span className="text-[10px] text-text-quaternary">{Math.round(result.score * 100)}%</span>
+          <span className="text-xs text-text-quaternary">{Math.round(result.score * 100)}%</span>
         </div>
       )
     }
@@ -335,7 +335,7 @@ const ResultItem = memo(
           {displayInfo.detail && (
             <div className="text-xs text-text-tertiary">{displayInfo.detail}</div>
           )}
-          <div className="text-[10px] text-text-quaternary">{Math.round(result.score * 100)}%</div>
+          <div className="text-xs text-text-quaternary">{Math.round(result.score * 100)}%</div>
         </div>
       </div>
     )

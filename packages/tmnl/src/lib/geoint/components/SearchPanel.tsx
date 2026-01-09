@@ -114,7 +114,7 @@ const SourceToggle = memo(function SourceToggle({
       <Icon className="h-3 w-3" />
       <span>{config.label}</span>
       {count !== undefined && count > 0 && (
-        <span className="ml-1 px-1.5 py-0.5 bg-surface-3 rounded text-[10px]">
+        <span className="ml-1 px-1.5 py-0.5 bg-surface-3 rounded text-xs">
           {count}
         </span>
       )}
@@ -178,7 +178,7 @@ const ResultItem = memo(function ResultItem({ result, onSelect }: ResultItemProp
           {displayInfo.subtitle}
         </div>
       </div>
-      <div className="text-[10px] text-text-quaternary">
+      <div className="text-xs text-text-quaternary">
         {Math.round(result.score * 100)}%
       </div>
     </button>

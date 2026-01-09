@@ -717,7 +717,7 @@ export const GeointDashboard: FC<GeointDashboardProps> = memo(function GeointDas
       <div
         ref={containerRef}
         className={cn(
-          'flex flex-col h-full bg-surface-0 overflow-hidden',
+          'flex flex-col h-full bg-surface-0 overflow-hidden typography-floor',
           className
         )}
       >

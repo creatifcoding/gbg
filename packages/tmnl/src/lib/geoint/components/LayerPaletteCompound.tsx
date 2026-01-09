@@ -409,7 +409,7 @@ const Group: FC<GroupProps> = ({
           )} />
           <span className={cn(
             'text-text-secondary group-hover:text-text-primary transition-colors uppercase tracking-wider',
-            compact ? 'text-[10px]' : 'text-xs'
+            compact ? 'text-xs' : 'text-xs'
           )}>
             {title}
           </span>
@@ -593,7 +593,7 @@ const Presets: FC<PresetsProps> = memo(function Presets({ className }) {
         <Bookmark className="w-3.5 h-3.5 text-text-tertiary" />
         <span className={cn(
           'text-text-tertiary uppercase tracking-wider',
-          compact ? 'text-[10px]' : 'text-xs'
+          compact ? 'text-xs' : 'text-xs'
         )}>
           Presets
         </span>

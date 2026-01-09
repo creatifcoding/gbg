@@ -572,28 +572,482 @@ const StatusGrid: FC<StatusGridProps> = memo(function StatusGrid({
 })
 
 // =============================================================================
+// ANIMATED DIGIT COUNTER
+// =============================================================================
+
+export interface AnimatedDigitCounterProps {
+  /** Value to display */
+  value: number
+  /** Number of digits to display (pads with zeros) */
+  digits?: number
+  /** Digit height in pixels */
+  digitHeight?: number
+  /** Additional class */
+  className?: string
+}
+
+const AnimatedDigitCounter: FC<AnimatedDigitCounterProps> = memo(
+  function AnimatedDigitCounter({
+    value,
+    digits = 4,
+    digitHeight = 32,
+    className,
+  }) {
+    const { accentColor } = useStatsWidget()
+    const containerRef = useRef<HTMLDivElement>(null)
+    const [displayDigits, setDisplayDigits] = useState<number[]>(
+      Array(digits).fill(0)
+    )
+
+    // Animate each digit when value changes
+    useEffect(() => {
+      const valueStr = Math.abs(value).toString().padStart(digits, '0')
+      const newDigits = valueStr.split('').map(Number)
+
+      // Animate each digit independently with stagger
+      newDigits.forEach((digit, i) => {
+        if (displayDigits[i] !== digit) {
+          const el = containerRef.current?.querySelector(`[data-digit="${i}"]`)
+          if (el) {
+            animate(el, {
+              translateY: [digitHeight, 0],
+              opacity: [0, 1],
+              duration: TIMING.normal,
+              delay: i * 50,
+              ease: EASING.anime.out,
+            })
+          }
+        }
+      })
+
+      setDisplayDigits(newDigits)
+    }, [value, digits, digitHeight])
+
+    return (
+      <div
+        ref={containerRef}
+        className={cn('flex items-center gap-0.5', className)}
+      >
+        {displayDigits.map((digit, i) => (
+          <div
+            key={i}
+            data-digit={i}
+            className="relative overflow-hidden font-mono font-bold"
+            style={{
+              height: digitHeight,
+              width: digitHeight * 0.65,
+              lineHeight: `${digitHeight}px`,
+              fontSize: digitHeight * 0.8,
+              color: accentColor,
+            }}
+          >
+            <span className="absolute inset-0 flex items-center justify-center">
+              {digit}
+            </span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+)
+
+// =============================================================================
+// LIVE INDICATOR
+// =============================================================================
+
+export interface LiveIndicatorProps {
+  /** Is live/active */
+  isLive?: boolean
+  /** Label text */
+  label?: string
+  /** Pulse speed in ms */
+  pulseSpeed?: number
+  /** Size */
+  size?: 'sm' | 'md' | 'lg'
+  /** Additional class */
+  className?: string
+}
+
+const LiveIndicator: FC<LiveIndicatorProps> = memo(function LiveIndicator({
+  isLive = true,
+  label = 'Live',
+  pulseSpeed = 1500,
+  size = 'md',
+  className,
+}) {
+  const dotRef = useRef<HTMLDivElement>(null)
+
+  // Pulse animation
+  useEffect(() => {
+    if (!isLive || !dotRef.current) return
+
+    const animation = animate(dotRef.current, {
+      scale: [1, 1.5, 1],
+      opacity: [1, 0.5, 1],
+      duration: pulseSpeed,
+      ease: 'linear',
+      loop: true,
+    })
+
+    return () => {
+      animation.pause()
+    }
+  }, [isLive, pulseSpeed])
+
+  const sizes = {
+    sm: { dot: 'w-1.5 h-1.5', text: 'text-xs' },
+    md: { dot: 'w-2 h-2', text: 'text-xs' },
+    lg: { dot: 'w-2.5 h-2.5', text: 'text-sm' },
+  }
+
+  return (
+    <div className={cn('flex items-center gap-1.5', className)}>
+      <div
+        ref={dotRef}
+        className={cn(
+          'rounded-full',
+          sizes[size].dot,
+          isLive ? 'bg-status-success' : 'bg-text-quaternary'
+        )}
+      />
+      <span
+        className={cn(
+          'font-medium uppercase tracking-wider',
+          sizes[size].text,
+          isLive ? 'text-status-success' : 'text-text-quaternary'
+        )}
+      >
+        {label}
+      </span>
+    </div>
+  )
+})
+
+// =============================================================================
+// MULTI-SPARKLINE (Multiple Data Series)
+// =============================================================================
+
+export interface SparklineSeries {
+  id: string
+  data: readonly number[]
+  color: string
+  label?: string
+}
+
+export interface MultiSparklineProps {
+  /** Multiple data series */
+  series: readonly SparklineSeries[]
+  /** Show legend */
+  showLegend?: boolean
+  /** Height */
+  height?: number
+  /** Additional class */
+  className?: string
+}
+
+const MultiSparkline: FC<MultiSparklineProps> = memo(function MultiSparkline({
+  series,
+  showLegend = true,
+  height = 60,
+  className,
+}) {
+  const svgRef = useRef<SVGSVGElement>(null)
+
+  // Calculate global min/max for consistent scaling
+  const allValues = series.flatMap(s => [...s.data])
+  const globalMin = Math.min(...allValues)
+  const globalMax = Math.max(...allValues)
+  const range = globalMax - globalMin || 1
+
+  const generatePath = (data: readonly number[]): string => {
+    if (data.length < 2) return ''
+    return data
+      .map((value, i) => {
+        const x = (i / (data.length - 1)) * 100
+        const y = 100 - ((value - globalMin) / range) * 90 // 90% to leave room for extremes
+        return `${i === 0 ? 'M' : 'L'} ${x} ${y}`
+      })
+      .join(' ')
+  }
+
+  // Animate paths on mount
+  useEffect(() => {
+    if (svgRef.current) {
+      const paths = svgRef.current.querySelectorAll('path[data-sparkline]')
+      paths.forEach((path, i) => {
+        const el = path as SVGPathElement
+        const length = el.getTotalLength()
+        el.style.strokeDasharray = `${length}`
+        el.style.strokeDashoffset = `${length}`
+
+        animate(el, {
+          strokeDashoffset: [length, 0],
+          duration: TIMING.slow * 2,
+          delay: i * 100,
+          ease: EASING.anime.out,
+        })
+      })
+    }
+  }, [series])
+
+  return (
+    <div className={cn('space-y-2', className)}>
+      <svg
+        ref={svgRef}
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        className="w-full"
+        style={{ height }}
+      >
+        {series.map((s) => (
+          <path
+            key={s.id}
+            data-sparkline
+            d={generatePath(s.data)}
+            fill="none"
+            stroke={s.color}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+      </svg>
+
+      {showLegend && (
+        <div className="flex flex-wrap gap-3">
+          {series.map((s) => (
+            <div key={s.id} className="flex items-center gap-1.5">
+              <div
+                className="w-3 h-0.5 rounded-full"
+                style={{ backgroundColor: s.color }}
+              />
+              <span className="text-xs text-text-tertiary">
+                {s.label ?? s.id}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+})
+
+// =============================================================================
+// TREND BADGE
+// =============================================================================
+
+export interface TrendBadgeProps {
+  /** Current value */
+  value: number
+  /** Previous value */
+  previousValue: number
+  /** Format as percentage */
+  asPercentage?: boolean
+  /** Size */
+  size?: 'sm' | 'md' | 'lg'
+  /** Additional class */
+  className?: string
+}
+
+const TrendBadge: FC<TrendBadgeProps> = memo(function TrendBadge({
+  value,
+  previousValue,
+  asPercentage = true,
+  size = 'md',
+  className,
+}) {
+  const badgeRef = useRef<HTMLDivElement>(null)
+
+  const change = previousValue !== 0
+    ? ((value - previousValue) / previousValue) * 100
+    : 0
+  const isPositive = change > 0
+  const isNeutral = change === 0
+
+  // Animate on change
+  useEffect(() => {
+    if (badgeRef.current) {
+      animate(badgeRef.current, {
+        scale: [0.8, 1],
+        opacity: [0, 1],
+        duration: TIMING.fast,
+        ease: EASING.anime.out,
+      })
+    }
+  }, [change])
+
+  const Icon = isNeutral ? Minus : isPositive ? TrendingUp : TrendingDown
+
+  const sizes = {
+    sm: 'px-1.5 py-0.5 text-xs gap-0.5',
+    md: 'px-2 py-1 text-xs gap-1',
+    lg: 'px-2.5 py-1.5 text-sm gap-1.5',
+  }
+
+  const iconSizes = {
+    sm: 'w-2.5 h-2.5',
+    md: 'w-3 h-3',
+    lg: 'w-3.5 h-3.5',
+  }
+
+  return (
+    <div
+      ref={badgeRef}
+      className={cn(
+        'inline-flex items-center rounded-md font-medium',
+        sizes[size],
+        isNeutral
+          ? 'bg-surface-3 text-text-tertiary'
+          : isPositive
+            ? 'bg-green-500/20 text-green-500'
+            : 'bg-red-500/20 text-red-500',
+        className
+      )}
+    >
+      <Icon className={iconSizes[size]} />
+      <span>
+        {asPercentage
+          ? `${Math.abs(change).toFixed(1)}%`
+          : Math.abs(value - previousValue).toLocaleString()}
+      </span>
+    </div>
+  )
+})
+
+// =============================================================================
+// CIRCULAR PROGRESS
+// =============================================================================
+
+export interface CircularProgressProps {
+  /** Progress value (0-100) */
+  value: number
+  /** Size in pixels */
+  size?: number
+  /** Stroke width */
+  strokeWidth?: number
+  /** Show value in center */
+  showValue?: boolean
+  /** Label below value */
+  label?: string
+  /** Color */
+  color?: string
+  /** Additional class */
+  className?: string
+}
+
+const CircularProgress: FC<CircularProgressProps> = memo(
+  function CircularProgress({
+    value,
+    size = 80,
+    strokeWidth = 6,
+    showValue = true,
+    label,
+    color,
+    className,
+  }) {
+    const { accentColor } = useStatsWidget()
+    const circleRef = useRef<SVGCircleElement>(null)
+    const progressColor = color ?? accentColor
+
+    const radius = (size - strokeWidth) / 2
+    const circumference = radius * 2 * Math.PI
+    const normalizedValue = Math.min(100, Math.max(0, value))
+    const strokeDashoffset = circumference - (normalizedValue / 100) * circumference
+
+    // Animate progress on change
+    useEffect(() => {
+      if (circleRef.current) {
+        animate(circleRef.current, {
+          strokeDashoffset: [circumference, strokeDashoffset],
+          duration: TIMING.slow,
+          ease: EASING.anime.out,
+        })
+      }
+    }, [strokeDashoffset, circumference])
+
+    return (
+      <div
+        className={cn('relative inline-flex items-center justify-center', className)}
+        style={{ width: size, height: size }}
+      >
+        <svg width={size} height={size} className="-rotate-90">
+          {/* Background circle */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            className="text-surface-3"
+          />
+          {/* Progress circle */}
+          <circle
+            ref={circleRef}
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={progressColor}
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            strokeDashoffset={circumference}
+            strokeLinecap="round"
+          />
+        </svg>
+
+        {showValue && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span
+              className="text-lg font-bold tabular-nums"
+              style={{ color: progressColor }}
+            >
+              {Math.round(normalizedValue)}%
+            </span>
+            {label && (
+              <span className="text-xs text-text-tertiary">{label}</span>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+)
+
+// =============================================================================
 // COMPOUND EXPORT
 // =============================================================================
 
 export const StatsWidget = Object.assign(Root, {
   Root,
   Counter,
+  AnimatedDigitCounter,
   Breakdown,
   SourceBreakdown,
   ClassificationBreakdown,
   Sparkline,
+  MultiSparkline,
   StatusGrid,
+  LiveIndicator,
+  TrendBadge,
+  CircularProgress,
 })
 
 // Named exports for direct imports
 export {
   Root as StatsWidgetRoot,
   Counter as StatsWidgetCounter,
+  AnimatedDigitCounter as StatsWidgetAnimatedDigitCounter,
   Breakdown as StatsWidgetBreakdown,
   SourceBreakdown as StatsWidgetSourceBreakdown,
   ClassificationBreakdown as StatsWidgetClassificationBreakdown,
   Sparkline as StatsWidgetSparkline,
+  MultiSparkline as StatsWidgetMultiSparkline,
   StatusGrid as StatsWidgetStatusGrid,
+  LiveIndicator as StatsWidgetLiveIndicator,
+  TrendBadge as StatsWidgetTrendBadge,
+  CircularProgress as StatsWidgetCircularProgress,
 }
 
 export default StatsWidget

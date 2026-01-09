@@ -17,9 +17,11 @@
  */
 
 import { FC, useState, useCallback, useRef } from 'react'
+// Note: useState used in demo components below
 import { Effect } from 'effect'
 import {
   GeointDashboard,
+  GeointShell,
   SearchPanelCompound,
   VirtualizedResultsList,
   CommandPalette,
@@ -28,6 +30,8 @@ import {
   GEOINT_BINDINGS,
   GEOINT_CATEGORIES,
 } from '@/lib/geoint/components'
+import { type LayoutMode } from '@/lib/geoint/atoms/layoutAtoms'
+import { executeLayoutTransition, type TransitionPhase } from '@/lib/geoint/animation'
 import {
   AnimationOrchestratorTag,
   AnimationOrchestratorLive,
@@ -54,6 +58,7 @@ import {
   useHoveredResultId,
   searchRegistry,
   searchResultsAtom,
+  GeointRegistryProvider,
 } from '@/lib/geoint/machines'
 import type { BBox, IntelSource, SearchResultItem } from '@/lib/geoint/schemas'
 import { SOURCE_COLORS } from '@/lib/geoint/tokens'
@@ -63,24 +68,17 @@ import { SOURCE_COLORS } from '@/lib/geoint/tokens'
 // =============================================================================
 
 export const GeointDashboardTestbed: FC = () => {
-  const [log, setLog] = useState<string[]>([])
-
-  const addLog = useCallback((msg: string) => {
-    setLog(prev => [...prev.slice(-19), `[${new Date().toLocaleTimeString()}] ${msg}`])
+  const handleSearch = useCallback((bounds: BBox, sources: IntelSource[]) => {
+    console.log('[GEOINT] Search:', { bounds: bounds.map(n => n.toFixed(2)), sources })
   }, [])
 
-  const handleSearch = useCallback((bounds: BBox, sources: IntelSource[]) => {
-    addLog(`Search: bounds=${JSON.stringify(bounds.map(n => n.toFixed(2)))}, sources=${sources.join(',')}`)
-  }, [addLog])
-
   const handleResultSelect = useCallback((result: SearchResultItem) => {
-    addLog(`Selected: ${result._tag} - ${result.id}`)
-  }, [addLog])
+    console.log('[GEOINT] Selected:', result._tag, result.id)
+  }, [])
 
   return (
-    <div className="h-screen flex flex-col bg-surface-0">
-      {/* Dashboard */}
-      <div className="flex-1 min-h-0">
+    <GeointRegistryProvider>
+      <div className="h-screen w-screen overflow-hidden bg-surface-0">
         <GeointDashboard
           initialLayout="command"
           instanceId="testbed"
@@ -89,25 +87,13 @@ export const GeointDashboardTestbed: FC = () => {
             onResultSelect: handleResultSelect,
           }}
           headerSlot={
-            <div className="text-xs text-text-tertiary">
+            <div className="text-sm text-text-tertiary">
               Testbed Mode · Shortcuts: ⌘1/2/3 layouts, ⌘B/E/L panels
             </div>
           }
         />
       </div>
-
-      {/* Debug Log */}
-      <div className="h-32 border-t border-border-subtle bg-surface-1 overflow-auto p-2 font-mono text-xs">
-        <div className="text-text-tertiary mb-1">Event Log:</div>
-        {log.length === 0 ? (
-          <div className="text-text-quaternary">No events yet. Try searching or selecting results.</div>
-        ) : (
-          log.map((entry, i) => (
-            <div key={i} className="text-text-secondary">{entry}</div>
-          ))
-        )}
-      </div>
-    </div>
+    </GeointRegistryProvider>
   )
 }
 
@@ -171,7 +157,7 @@ export const LayoutShowcase: FC = () => {
         {/* Command Center */}
         <div className="p-4 bg-surface-1 rounded-lg border border-border-subtle">
           <h3 className="font-semibold text-text-primary mb-2">Command Center</h3>
-          <pre className="text-[10px] font-mono text-text-tertiary whitespace-pre">
+          <pre className="text-xs font-mono text-text-tertiary whitespace-pre">
 {`┌────────┬──────────┬────────┐
 │ Search │   Map    │ Entity │
 │ Panel  │ Viewport │ Panel  │
@@ -184,7 +170,7 @@ export const LayoutShowcase: FC = () => {
         {/* Focus Mode */}
         <div className="p-4 bg-surface-1 rounded-lg border border-border-subtle">
           <h3 className="font-semibold text-text-primary mb-2">Focus Mode</h3>
-          <pre className="text-[10px] font-mono text-text-tertiary whitespace-pre">
+          <pre className="text-xs font-mono text-text-tertiary whitespace-pre">
 {`┌────────────────────────────┐
 │ ┌────────┐                 │
 │ │ Float  │    Full-Width   │
@@ -201,7 +187,7 @@ export const LayoutShowcase: FC = () => {
         {/* Dashboard Grid */}
         <div className="p-4 bg-surface-1 rounded-lg border border-border-subtle">
           <h3 className="font-semibold text-text-primary mb-2">Dashboard Grid</h3>
-          <pre className="text-[10px] font-mono text-text-tertiary whitespace-pre">
+          <pre className="text-xs font-mono text-text-tertiary whitespace-pre">
 {`┌──────────────────┬─────────┐
 │                  │ Search  │
 │   Primary Map    │ Results │
@@ -376,8 +362,8 @@ const VirtualizedResultsInner: FC<{
 }> = ({ onLog }) => {
   const results = useSearchResults()
   const selectedIds = useSelectedResultIds()
-  const hoveredId = useHoveredResultId()
-  const _searchState = useSearchState()
+  const _hoveredId = useHoveredResultId()
+  useSearchState() // Called for side effects
   const { toggle, clearSelection, selectAll } = useResultSelection()
   const setHovered = useResultHover()
   const { clear } = useSearch()
@@ -464,7 +450,7 @@ const VirtualizedResultsInner: FC<{
 
       {/* Keyboard hints */}
       <div className="p-2 border-t border-border-subtle bg-surface-1">
-        <div className="flex items-center justify-center gap-4 text-[10px] text-text-quaternary">
+        <div className="flex items-center justify-center gap-4 text-xs text-text-quaternary">
           <span><kbd className="px-1 bg-surface-2 rounded">j/k</kbd> Navigate</span>
           <span><kbd className="px-1 bg-surface-2 rounded">Enter</kbd> Select</span>
           <span><kbd className="px-1 bg-surface-2 rounded">Shift</kbd> Multi-select</span>
@@ -496,7 +482,7 @@ export const VirtualizedResultsDemo: FC = () => {
         {/* Architecture Diagram */}
         <div className="p-4 bg-surface-1 border border-border-subtle rounded-lg">
           <h3 className="text-sm font-semibold text-text-primary mb-3">Architecture</h3>
-          <pre className="text-[10px] font-mono text-text-tertiary whitespace-pre leading-relaxed">
+          <pre className="text-xs font-mono text-text-tertiary whitespace-pre leading-relaxed">
 {`┌─────────────────────────────────────────────────────────┐
 │                    SearchProvider                        │
 │  ┌─────────────────────────────────────────────────────┐ │
@@ -608,7 +594,7 @@ export const CommandPaletteDemo: FC = () => {
             </h3>
 
             {/* ASCII Layout Preview */}
-            <div className="p-4 bg-surface-2 rounded font-mono text-[10px] text-text-tertiary">
+            <div className="p-4 bg-surface-2 rounded font-mono text-xs text-text-tertiary">
               {layout === 'command' && (
                 <pre>{`┌────────┬──────────┬────────┐
 │ Search │   Map    │ Entity │
@@ -641,7 +627,7 @@ export const CommandPaletteDemo: FC = () => {
             {/* Architecture Diagram */}
             <div className="mt-4 p-4 bg-surface-2 rounded">
               <h4 className="text-xs font-semibold text-text-secondary mb-2">Architecture</h4>
-              <pre className="text-[10px] font-mono text-text-quaternary leading-relaxed">{`┌─────────────────────────────────────────┐
+              <pre className="text-xs font-mono text-text-quaternary leading-relaxed">{`┌─────────────────────────────────────────┐
 │         CommandPalette.Provider          │
 │  ┌─────────────────────────────────────┐ │
 │  │      XState commandPaletteMachine   │ │
@@ -794,7 +780,7 @@ export const KeyboardProviderDemo: FC = () => {
             {/* Architecture Diagram */}
             <div className="p-4 bg-surface-1 border border-border-subtle rounded-lg">
               <h3 className="text-sm font-semibold text-text-primary mb-3">Architecture</h3>
-              <pre className="text-[10px] font-mono text-text-tertiary whitespace-pre leading-relaxed">
+              <pre className="text-xs font-mono text-text-tertiary whitespace-pre leading-relaxed">
 {`┌───────────────────────────────────────────────────────────┐
 │              GeointKeyboardProvider                        │
 │  ┌───────────────────────────────────────────────────────┐ │
@@ -1017,7 +1003,7 @@ export const AnimationOrchestratorDemo: FC = () => {
         {/* Architecture Diagram */}
         <div className="p-4 bg-surface-1 border border-border-subtle rounded-lg">
           <h3 className="text-sm font-semibold text-text-primary mb-3">Architecture</h3>
-          <pre className="text-[10px] font-mono text-text-tertiary whitespace-pre leading-relaxed">
+          <pre className="text-xs font-mono text-text-tertiary whitespace-pre leading-relaxed">
 {`┌──────────────────────────────────────────────────────────┐
 │             AnimationOrchestrator (Effect Service)        │
 │  ┌──────────────────────────────────────────────────────┐ │
@@ -1185,7 +1171,7 @@ export const StreamingDemo: FC = () => {
               <h3 className="text-sm font-semibold text-text-primary mb-4">
                 Architecture
               </h3>
-              <pre className="text-[10px] font-mono text-text-tertiary whitespace-pre overflow-x-auto">
+              <pre className="text-xs font-mono text-text-tertiary whitespace-pre overflow-x-auto">
 {`┌─────────────────────────────────────────────────────────────┐
 │  Real-time Data Integration Architecture                     │
 ├─────────────────────────────────────────────────────────────┤
@@ -1260,6 +1246,260 @@ export const StreamingDemo: FC = () => {
             </div>
           </div>
         </LiveDataProvider>
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
+// GEOINT SHELL DEMO
+// =============================================================================
+
+/**
+ * Demo showing the GeointShell compound component with:
+ * - Layout variants (command/focus/analytics)
+ * - Animated transitions via anime.js
+ * - XState machine integration
+ * - Keyboard shortcuts (Cmd+1/2/3)
+ */
+export const GeointShellDemo: FC = () => {
+  const [log, setLog] = useState<string[]>([])
+  const [currentLayout, setCurrentLayout] = useState<LayoutMode>('command')
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const addLog = useCallback((msg: string) => {
+    setLog(prev => [...prev.slice(-14), `[${new Date().toLocaleTimeString()}] ${msg}`])
+  }, [])
+
+  const handleLayoutChange = useCallback((layout: LayoutMode) => {
+    addLog(`Layout changing to: ${layout}`)
+
+    // Execute animated transition
+    if (containerRef.current) {
+      executeLayoutTransition(currentLayout, layout, containerRef.current, {
+        onPhaseChange: (phase: TransitionPhase) => {
+          addLog(`Animation phase: ${phase}`)
+        },
+        onComplete: () => {
+          addLog(`Layout transition complete: ${layout}`)
+          setCurrentLayout(layout)
+        },
+      })
+    } else {
+      setCurrentLayout(layout)
+    }
+  }, [currentLayout, addLog])
+
+  return (
+    <div className="h-screen flex flex-col bg-surface-0">
+      {/* Demo Container */}
+      <div ref={containerRef} className="flex-1 min-h-0">
+        <GeointShell
+          layout={currentLayout}
+          onLayoutChange={handleLayoutChange}
+        >
+          {/* Header */}
+          <GeointShell.Header>
+            <div className="flex items-center justify-between w-full px-4">
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-semibold text-text-primary">GEOINT Shell Demo</span>
+                <span className="text-xs text-text-tertiary">
+                  Layout: <span className="text-accent-primary font-mono">{currentLayout}</span>
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                {(['command', 'focus', 'analytics'] as LayoutMode[]).map((layout) => (
+                  <button
+                    key={layout}
+                    onClick={() => handleLayoutChange(layout)}
+                    className={`px-3 py-1.5 text-xs rounded transition-colors ${
+                      currentLayout === layout
+                        ? 'bg-accent-primary text-white'
+                        : 'bg-surface-2 text-text-secondary hover:bg-surface-3'
+                    }`}
+                  >
+                    {layout.charAt(0).toUpperCase() + layout.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </GeointShell.Header>
+
+          {/* Sidebar (Command layout) */}
+          <GeointShell.Sidebar data-layout-panel="sidebar">
+            <div className="h-full p-4 bg-surface-1">
+              <h3 className="text-sm font-semibold text-text-primary mb-4">Search Panel</h3>
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  placeholder="Search ALLINT..."
+                  className="w-full px-3 py-2 text-sm bg-surface-2 border border-border-subtle rounded-lg text-text-primary placeholder:text-text-quaternary"
+                />
+                <div className="space-y-2">
+                  {['Tracks', 'OSM', 'OpenSky', 'Features'].map((source) => (
+                    <label key={source} className="flex items-center gap-2 text-xs text-text-secondary">
+                      <input type="checkbox" defaultChecked className="rounded" />
+                      {source}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </GeointShell.Sidebar>
+
+          {/* Map Viewport */}
+          <GeointShell.Map data-layout-panel="map">
+            <div className="h-full bg-surface-2 flex items-center justify-center">
+              <div className="text-center">
+                <div className="text-6xl mb-4">🗺️</div>
+                <span className="text-text-tertiary">Map Viewport</span>
+                <div className="text-xs text-text-quaternary mt-2">
+                  {currentLayout === 'command' && 'Center column in 3-column layout'}
+                  {currentLayout === 'focus' && 'Full-screen with floating panels'}
+                  {currentLayout === 'analytics' && '60% width with stats grid'}
+                </div>
+              </div>
+            </div>
+          </GeointShell.Map>
+
+          {/* Intel Panel (Command layout) */}
+          <GeointShell.Intel data-layout-panel="intel">
+            <div className="h-full p-4 bg-surface-1">
+              <h3 className="text-sm font-semibold text-text-primary mb-4">Entity Details</h3>
+              <div className="p-4 bg-surface-2 rounded-lg">
+                <div className="text-xs text-text-tertiary">Select an entity to view details</div>
+              </div>
+              <h4 className="text-sm font-semibold text-text-primary mt-6 mb-3">Results</h4>
+              <div className="space-y-2">
+                {['Track Alpha-1', 'POI Beta-3', 'Flight Delta-7'].map((item, i) => (
+                  <div
+                    key={i}
+                    className="p-2 bg-surface-2 rounded text-xs text-text-secondary hover:bg-surface-3 cursor-pointer transition-colors"
+                  >
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </GeointShell.Intel>
+
+          {/* Timeline (Command layout) */}
+          <GeointShell.Timeline data-layout-panel="timeline">
+            <div className="h-full p-3 bg-surface-1 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button className="p-1 hover:bg-surface-2 rounded">⏮️</button>
+                <button className="p-1 hover:bg-surface-2 rounded">▶️</button>
+                <button className="p-1 hover:bg-surface-2 rounded">⏭️</button>
+              </div>
+              <div className="flex-1 mx-4 h-2 bg-surface-2 rounded-full relative">
+                <div className="absolute inset-y-0 left-0 w-1/3 bg-accent-primary rounded-full" />
+                <div className="absolute top-1/2 left-1/3 w-3 h-3 bg-white border-2 border-accent-primary rounded-full -translate-y-1/2" />
+              </div>
+              <div className="text-xs text-text-tertiary">12:34:56</div>
+            </div>
+          </GeointShell.Timeline>
+
+          {/* Analytics Top (Analytics layout) */}
+          <GeointShell.AnalyticsTop>
+            <div className="h-full p-4 bg-surface-1 grid grid-cols-2 gap-4">
+              {[
+                { label: 'Total Tracks', value: '247', change: '+12%' },
+                { label: 'Active Sources', value: '6/8', change: '' },
+                { label: 'Alerts', value: '3', change: 'High' },
+                { label: 'Coverage', value: '87%', change: '' },
+              ].map((stat, i) => (
+                <div key={i} className="p-3 bg-surface-2 rounded-lg">
+                  <div className="text-xs text-text-tertiary">{stat.label}</div>
+                  <div className="text-lg font-semibold text-text-primary">{stat.value}</div>
+                  {stat.change && (
+                    <div className="text-xs text-accent-primary">{stat.change}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </GeointShell.AnalyticsTop>
+
+          {/* Analytics Bottom (Analytics layout) */}
+          <GeointShell.AnalyticsBottom>
+            <div className="h-full p-4 bg-surface-1">
+              <h3 className="text-sm font-semibold text-text-primary mb-3">Source Breakdown</h3>
+              <div className="space-y-2">
+                {[
+                  { source: 'Track', pct: 65 },
+                  { source: 'OSM', pct: 23 },
+                  { source: 'OpenSky', pct: 8 },
+                  { source: 'Other', pct: 4 },
+                ].map(({ source, pct }) => (
+                  <div key={source} className="flex items-center gap-2">
+                    <span className="text-xs text-text-tertiary w-16">{source}</span>
+                    <div className="flex-1 h-2 bg-surface-2 rounded-full">
+                      <div
+                        className="h-full bg-accent-primary rounded-full"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-text-secondary w-8">{pct}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </GeointShell.AnalyticsBottom>
+        </GeointShell>
+      </div>
+
+      {/* Debug Log */}
+      <div className="h-40 border-t border-border-subtle bg-surface-1 overflow-auto p-3 flex gap-4">
+        {/* Event Log */}
+        <div className="flex-1">
+          <div className="text-xs text-text-tertiary mb-2 font-semibold">Event Log</div>
+          <div className="font-mono text-xs space-y-0.5">
+            {log.length === 0 ? (
+              <div className="text-text-quaternary">Switch layouts to see animation events...</div>
+            ) : (
+              log.map((entry, i) => (
+                <div key={i} className="text-text-secondary">{entry}</div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Keyboard Shortcuts */}
+        <div className="w-64 border-l border-border-subtle pl-4">
+          <div className="text-xs text-text-tertiary mb-2 font-semibold">Keyboard Shortcuts</div>
+          <div className="space-y-1.5 text-xs">
+            {[
+              { key: '⌘1', action: 'Command layout' },
+              { key: '⌘2', action: 'Focus layout' },
+              { key: '⌘3', action: 'Analytics layout' },
+              { key: '⌘B', action: 'Toggle sidebar' },
+              { key: '⌘E', action: 'Toggle intel' },
+              { key: '⌘T', action: 'Toggle timeline' },
+            ].map(({ key, action }) => (
+              <div key={key} className="flex justify-between">
+                <span className="text-text-tertiary">{action}</span>
+                <kbd className="px-1.5 py-0.5 bg-surface-2 rounded text-text-secondary">{key}</kbd>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Architecture */}
+        <div className="w-80 border-l border-border-subtle pl-4">
+          <div className="text-xs text-text-tertiary mb-2 font-semibold">Architecture</div>
+          <pre className="text-xs font-mono text-text-quaternary leading-tight">
+{`GeointShell (Compound Component)
+├─ XState layoutMachine
+│   states: command|focus|analytics
+├─ effect-atom registry
+│   layoutModeAtom, panelStates
+├─ anime.js transitions
+│   executeLayoutTransition()
+└─ CSS Grid layouts
+    command: sidebar|map|intel
+    focus:   floating panels
+    analytics: grid`}
+          </pre>
+        </div>
       </div>
     </div>
   )

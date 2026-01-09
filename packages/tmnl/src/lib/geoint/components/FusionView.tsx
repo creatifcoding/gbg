@@ -683,7 +683,7 @@ function EntityList({ className }: EntityListProps) {
                           {entity.id.slice(0, 12)}...
                         </span>
                         {entity.manuallyVerified && (
-                          <span className="text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded">
+                          <span className="text-xs px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded">
                             Verified
                           </span>
                         )}
@@ -694,7 +694,7 @@ function EntityList({ className }: EntityListProps) {
                         {entity.sources.map(source => (
                           <span
                             key={source}
-                            className="px-1.5 py-0.5 text-[10px] rounded"
+                            className="px-1.5 py-0.5 text-xs rounded"
                             style={{
                               backgroundColor: `${SOURCE_COLORS[source]}20`,
                               color: SOURCE_COLORS[source]
@@ -706,7 +706,7 @@ function EntityList({ className }: EntityListProps) {
                       </div>
 
                       {/* Meta */}
-                      <div className="text-[10px] text-white/40">
+                      <div className="text-xs text-white/40">
                         Updated {entity.updatedAt.toLocaleTimeString()}
                       </div>
                     </div>
@@ -716,7 +716,7 @@ function EntityList({ className }: EntityListProps) {
                       <div className={cn('text-lg font-medium', confidenceColors[entity.confidence])}>
                         {Math.round(entity.score * 100)}%
                       </div>
-                      <div className="text-[10px] text-white/40 capitalize">
+                      <div className="text-xs text-white/40 capitalize">
                         {entity.confidence}
                       </div>
                     </div>
@@ -857,10 +857,10 @@ function RulesList({ className }: RulesListProps) {
 
             {rule.conditions.length > 0 && (
               <div className="mt-2 pt-2 border-t border-white/5">
-                <span className="text-[10px] text-white/40">Conditions:</span>
+                <span className="text-xs text-white/40">Conditions:</span>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {rule.conditions.map((cond, i) => (
-                    <span key={i} className="px-1.5 py-0.5 text-[10px] bg-white/10 rounded">
+                    <span key={i} className="px-1.5 py-0.5 text-xs bg-white/10 rounded">
                       {cond.field} {cond.operator} {cond.value}
                     </span>
                   ))}
@@ -891,7 +891,7 @@ function StatsOverlay({ className }: StatsOverlayProps) {
       'bg-surface-1/80 border border-white/10 rounded-lg p-3 backdrop-blur-sm',
       className
     )}>
-      <div className="text-[10px] text-white/40 uppercase tracking-wider mb-2">
+      <div className="text-xs text-white/40 uppercase tracking-wider mb-2">
         Source Stats
       </div>
       <div className="space-y-2">

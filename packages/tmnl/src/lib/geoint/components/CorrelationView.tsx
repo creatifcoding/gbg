@@ -382,7 +382,7 @@ const Graph: FC<GraphProps> = memo(function Graph({
                     x={(sourcePos.x + targetPos.x) / 2}
                     y={(sourcePos.y + targetPos.y) / 2 - 8}
                     textAnchor="middle"
-                    className="text-[9px] fill-text-tertiary font-mono"
+                    className="text-xs fill-text-tertiary font-mono"
                   >
                     {(edge.confidence * 100).toFixed(0)}%
                   </text>
@@ -464,7 +464,7 @@ const Graph: FC<GraphProps> = memo(function Graph({
                   y={pos.y + size / 2 + 12}
                   textAnchor="middle"
                   className={cn(
-                    'text-[10px] fill-text-secondary pointer-events-none',
+                    'text-xs fill-text-secondary pointer-events-none',
                     (isHovered || isSelected) && 'fill-text-primary font-medium'
                   )}
                 >
@@ -680,7 +680,7 @@ const DetailPanel: FC<DetailPanelProps> = memo(function DetailPanel({ className 
       <div className="flex flex-wrap gap-1.5">
         {sourceColors && (
           <span className={cn(
-            'px-2 py-0.5 rounded text-[10px] font-mono uppercase',
+            'px-2 py-0.5 rounded text-xs font-mono uppercase',
             sourceColors.tailwind.bg,
             sourceColors.tailwind.primary
           )}>
@@ -689,7 +689,7 @@ const DetailPanel: FC<DetailPanelProps> = memo(function DetailPanel({ className 
         )}
         {classColors && (
           <span className={cn(
-            'px-2 py-0.5 rounded text-[10px] font-medium uppercase',
+            'px-2 py-0.5 rounded text-xs font-medium uppercase',
             classColors.tailwind.bg,
             classColors.tailwind.text
           )}>

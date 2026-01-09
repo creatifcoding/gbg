@@ -443,13 +443,13 @@ export const Minimap: FC<MinimapProps> = memo(function Minimap({
       <div className="flex items-center justify-between px-2 py-1 border-b border-border-subtle">
         <div className="flex items-center gap-1.5">
           <Navigation className="w-3 h-3 text-accent-primary" />
-          <span className="text-[10px] font-mono text-text-tertiary uppercase">
+          <span className="text-xs font-mono text-text-tertiary uppercase">
             Overview
           </span>
         </div>
         <div className="flex items-center gap-1">
           {showZoomLevel && (
-            <span className="text-[10px] font-mono text-text-tertiary tabular-nums">
+            <span className="text-xs font-mono text-text-tertiary tabular-nums">
               z{viewport.zoom.toFixed(1)}
             </span>
           )}
@@ -495,7 +495,7 @@ export const Minimap: FC<MinimapProps> = memo(function Minimap({
 
         {/* Hover instructions */}
         {isHovered && !isDragging && (
-          <div className="absolute bottom-1 left-1 flex items-center gap-1 text-[9px] text-text-tertiary">
+          <div className="absolute bottom-1 left-1 flex items-center gap-1 text-xs text-text-tertiary">
             <Move className="w-2.5 h-2.5" />
             <span>drag to pan</span>
           </div>

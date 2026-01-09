@@ -28,10 +28,13 @@ import {
   useEffect,
   useRef,
   memo,
+  useMemo,
   type FC,
   type ReactNode,
 } from 'react'
-import { animate } from 'animejs'
+import { useMachine } from '@xstate/react'
+import { animate, stagger } from 'animejs'
+import { entityDetailMachine } from '../machines/entityDetailMachine'
 import {
   X,
   MapPin,
@@ -158,11 +161,25 @@ const Root: FC<EntityDetailCardRootProps> = ({
   children,
   className,
 }) => {
-  const [activeTab, setActiveTab] = useState<DetailTab>(initialTab)
-  const [isExpanded, setIsExpanded] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const tabContentRef = useRef<HTMLDivElement>(null)
 
-  // Enter animation
+  // XState machine for tab management
+  const [state, send] = useMachine(entityDetailMachine, {
+    input: {
+      initialTab,
+      entityId: entity.entityId,
+    },
+  })
+
+  const { activeTab, isExpanded, animationPhase, isLoading } = state.context
+
+  // Update entity ID when entity changes
+  useEffect(() => {
+    send({ type: 'SET_ENTITY', entityId: entity.entityId })
+  }, [entity.entityId, send])
+
+  // Enter animation on mount
   useEffect(() => {
     if (containerRef.current) {
       animate(containerRef.current, {
@@ -174,19 +191,73 @@ const Root: FC<EntityDetailCardRootProps> = ({
     }
   }, [])
 
-  const toggleExpanded = useCallback(() => {
-    setIsExpanded(prev => !prev)
-  }, [])
+  // Tab content animation based on animation phase
+  useEffect(() => {
+    if (!tabContentRef.current) return
 
-  const contextValue: EntityDetailContextValue = {
-    entity,
-    activeTab,
-    setActiveTab,
-    onClose,
-    isExpanded,
-    toggleExpanded,
-    compact,
-  }
+    if (animationPhase === 'exit') {
+      animate(tabContentRef.current, {
+        opacity: [1, 0],
+        translateX: [0, -10],
+        duration: 150,
+        ease: EASING.anime.out,
+      })
+    } else if (animationPhase === 'enter') {
+      animate(tabContentRef.current, {
+        opacity: [0, 1],
+        translateX: [10, 0],
+        duration: 200,
+        ease: EASING.anime.out,
+      })
+    }
+  }, [animationPhase])
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault()
+        send({ type: 'KEYBOARD', key: e.key as 'ArrowLeft' | 'ArrowRight' })
+      } else if (['1', '2', '3', '4'].includes(e.key)) {
+        send({ type: 'KEYBOARD', key: e.key as '1' | '2' | '3' | '4' })
+      } else if (e.key === 'Escape' && isExpanded) {
+        send({ type: 'TOGGLE_EXPAND' })
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [send, isExpanded])
+
+  // Setters that dispatch to machine
+  const setActiveTab = useCallback(
+    (tab: DetailTab) => {
+      send({ type: 'TAB_CHANGE', tab })
+    },
+    [send]
+  )
+
+  const toggleExpanded = useCallback(() => {
+    send({ type: 'TOGGLE_EXPAND' })
+  }, [send])
+
+  const handleClose = useCallback(() => {
+    send({ type: 'CLOSE' })
+    onClose?.()
+  }, [send, onClose])
+
+  const contextValue: EntityDetailContextValue = useMemo(
+    () => ({
+      entity,
+      activeTab,
+      setActiveTab,
+      onClose: handleClose,
+      isExpanded,
+      toggleExpanded,
+      compact,
+    }),
+    [entity, activeTab, setActiveTab, handleClose, isExpanded, toggleExpanded, compact]
+  )
 
   return (
     <EntityDetailContext.Provider value={contextValue}>
@@ -197,8 +268,12 @@ const Root: FC<EntityDetailCardRootProps> = ({
           isExpanded && 'fixed inset-4 z-50 shadow-2xl',
           className
         )}
+        data-loading={isLoading || undefined}
+        data-animation-phase={animationPhase}
       >
-        {children}
+        <div ref={tabContentRef} className="flex flex-col flex-1 min-h-0">
+          {children}
+        </div>
       </div>
     </EntityDetailContext.Provider>
   )
@@ -247,7 +322,7 @@ const Header: FC<HeaderProps> = memo(function Header({
         {source && sourceColors && (
           <div
             className={cn(
-              'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono uppercase mb-2',
+              'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-mono uppercase mb-2',
               sourceColors.tailwind.bg,
               sourceColors.tailwind.primary
             )}
@@ -279,7 +354,7 @@ const Header: FC<HeaderProps> = memo(function Header({
         {classification && classColors && (
           <div
             className={cn(
-              'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium uppercase mt-2',
+              'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium uppercase mt-2',
               classColors.tailwind.bg,
               classColors.tailwind.text
             )}

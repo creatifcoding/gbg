@@ -447,7 +447,7 @@ function Canvas({ className }: CanvasProps) {
             }}
             onClick={() => send({ type: 'SELECT_HOTSPOT', id: hotspot.id })}
           >
-            <span className="text-[8px] font-bold text-white">
+            <span className="text-xs font-bold text-white">
               {hotspot.entityCount}
             </span>
           </div>
@@ -569,7 +569,7 @@ function StatsPanel({ className }: StatsPanelProps) {
       'bg-surface-1/80 border border-white/10 rounded-lg p-3 backdrop-blur-sm',
       className
     )}>
-      <div className="text-[10px] text-white/40 uppercase tracking-wider mb-2">
+      <div className="text-xs text-white/40 uppercase tracking-wider mb-2">
         Statistics
       </div>
 
@@ -597,7 +597,7 @@ function StatsPanel({ className }: StatsPanelProps) {
       {/* Selected hotspot details */}
       {selectedHotspot && (
         <div className="mt-3 pt-3 border-t border-white/10">
-          <div className="text-[10px] text-white/40 uppercase tracking-wider mb-2">
+          <div className="text-xs text-white/40 uppercase tracking-wider mb-2">
             Selected Hotspot
           </div>
           <div className="space-y-1 text-xs">
@@ -645,7 +645,7 @@ function SettingsPanel({ className }: SettingsPanelProps) {
       'bg-surface-1/80 border border-white/10 rounded-lg p-3 backdrop-blur-sm',
       className
     )}>
-      <div className="text-[10px] text-white/40 uppercase tracking-wider mb-3">
+      <div className="text-xs text-white/40 uppercase tracking-wider mb-3">
         Settings
       </div>
 
@@ -687,7 +687,7 @@ function SettingsPanel({ className }: SettingsPanelProps) {
           <button
             onClick={() => send({ type: 'TOGGLE_HOTSPOTS' })}
             className={cn(
-              'px-2 py-1 text-[10px] rounded transition-colors',
+              'px-2 py-1 text-xs rounded transition-colors',
               state.showHotspots
                 ? 'bg-accent-cyan/20 text-accent-cyan'
                 : 'bg-white/5 text-white/40'
@@ -698,7 +698,7 @@ function SettingsPanel({ className }: SettingsPanelProps) {
           <button
             onClick={() => send({ type: 'TOGGLE_ANOMALIES' })}
             className={cn(
-              'px-2 py-1 text-[10px] rounded transition-colors',
+              'px-2 py-1 text-xs rounded transition-colors',
               state.showAnomalies
                 ? 'bg-accent-cyan/20 text-accent-cyan'
                 : 'bg-white/5 text-white/40'
@@ -709,7 +709,7 @@ function SettingsPanel({ className }: SettingsPanelProps) {
           <button
             onClick={() => send({ type: 'TOGGLE_PATTERNS' })}
             className={cn(
-              'px-2 py-1 text-[10px] rounded transition-colors',
+              'px-2 py-1 text-xs rounded transition-colors',
               state.showPatterns
                 ? 'bg-accent-cyan/20 text-accent-cyan'
                 : 'bg-white/5 text-white/40'

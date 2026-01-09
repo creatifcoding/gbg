@@ -301,7 +301,7 @@ const Header: FC<HeaderProps> = memo(function Header({ className }) {
             <Bell className="w-4 h-4 text-text-tertiary" />
           )}
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 flex items-center justify-center text-[9px] font-bold bg-red-500 text-white rounded-full">
+            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 flex items-center justify-center text-xs font-bold bg-red-500 text-white rounded-full">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
@@ -500,7 +500,7 @@ const AlertItem: FC<AlertItemProps> = memo(function AlertItem({
             </h4>
             <p className={cn(
               'text-text-secondary line-clamp-2',
-              compact ? 'text-[11px]' : 'text-xs'
+              compact ? 'text-xs' : 'text-xs'
             )}>
               {alert.message}
             </p>
@@ -530,7 +530,7 @@ const AlertItem: FC<AlertItemProps> = memo(function AlertItem({
         {/* Metadata row */}
         <div className="flex items-center gap-2 mt-1.5">
           {/* Category */}
-          <span className="flex items-center gap-1 text-[10px] text-text-tertiary">
+          <span className="flex items-center gap-1 text-xs text-text-tertiary">
             <CategoryIcon className="w-3 h-3" />
             {categoryConfig.label}
           </span>
@@ -539,7 +539,7 @@ const AlertItem: FC<AlertItemProps> = memo(function AlertItem({
           {sourceColors && (
             <span
               className={cn(
-                'px-1.5 py-0.5 rounded text-[9px] font-mono uppercase',
+                'px-1.5 py-0.5 rounded text-xs font-mono uppercase',
                 sourceColors.tailwind.bg,
                 sourceColors.tailwind.primary
               )}
@@ -552,7 +552,7 @@ const AlertItem: FC<AlertItemProps> = memo(function AlertItem({
           {classColors && (
             <span
               className={cn(
-                'px-1.5 py-0.5 rounded text-[9px] font-medium uppercase',
+                'px-1.5 py-0.5 rounded text-xs font-medium uppercase',
                 classColors.tailwind.bg,
                 classColors.tailwind.text
               )}
@@ -562,7 +562,7 @@ const AlertItem: FC<AlertItemProps> = memo(function AlertItem({
           )}
 
           {/* Timestamp */}
-          <span className="flex items-center gap-1 text-[10px] text-text-tertiary ml-auto">
+          <span className="flex items-center gap-1 text-xs text-text-tertiary ml-auto">
             <Clock className="w-3 h-3" />
             {formatTimeAgo(alert.timestamp)}
           </span>
@@ -575,7 +575,7 @@ const AlertItem: FC<AlertItemProps> = memo(function AlertItem({
 
         {/* Acknowledged badge */}
         {alert.acknowledged && (
-          <div className="flex items-center gap-1 mt-1.5 text-[10px] text-green-500">
+          <div className="flex items-center gap-1 mt-1.5 text-xs text-green-500">
             <CheckCheck className="w-3 h-3" />
             Acknowledged
           </div>
@@ -640,7 +640,7 @@ const Badge: FC<BadgeProps> = memo(function Badge({ count, className }) {
       ref={badgeRef}
       className={cn(
         'inline-flex items-center justify-center min-w-[18px] h-[18px] px-1',
-        'text-[10px] font-bold bg-red-500 text-white rounded-full',
+        'text-xs font-bold bg-red-500 text-white rounded-full',
         className
       )}
     >
