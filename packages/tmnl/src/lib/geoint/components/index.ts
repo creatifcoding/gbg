@@ -114,3 +114,71 @@ export {
   type GeointDashboardProps,
   type DashboardContextValue,
 } from './GeointDashboard'
+
+// Timeline Panel - Temporal filtering and playback
+export {
+  TimelinePanel,
+  TimelinePanelRoot,
+  TimelinePanelPlaybackControls,
+  TimelinePanelBrushSelector,
+  TimelinePanelPresetSelector,
+  TimelinePanelRangeDisplay,
+  TimelinePanelStatusIndicator,
+  useTimeline,
+  timelineRangeAtom,
+  timelinePlayheadAtom,
+  timelinePlayingAtom,
+  timelineSpeedAtom,
+  type TimelineRange,
+  type TimelineContextValue,
+  type TimelinePanelRootProps,
+  type PlaybackControlsProps,
+  type BrushSelectorProps,
+  type PresetSelectorProps,
+  type RangeDisplayProps,
+  type StatusIndicatorProps,
+} from './TimelinePanel'
+
+// Stats Widget - Dashboard statistics components
+export {
+  StatsWidget,
+  StatsWidgetRoot,
+  StatsWidgetCounter,
+  StatsWidgetBreakdown,
+  StatsWidgetSourceBreakdown,
+  StatsWidgetClassificationBreakdown,
+  StatsWidgetSparkline,
+  StatsWidgetStatusGrid,
+  type StatsWidgetRootProps,
+  type CounterProps,
+  type BreakdownProps,
+  type BreakdownItem,
+  type SourceBreakdownProps,
+  type ClassificationBreakdownProps,
+  type SparklineProps,
+  type StatusGridProps,
+  type StatusGridItem,
+} from './StatsWidget'
+
+// Filter Bar - Advanced filtering compound component
+export {
+  FilterBar,
+  FilterBarRoot,
+  FilterBarSourceChips,
+  FilterBarClassificationChips,
+  FilterBarConfidenceSlider,
+  FilterBarBoundsIndicator,
+  FilterBarActiveSummary,
+  FilterBarCollapsibleSection,
+  useFilterBar,
+  filterStateAtom,
+  type FilterBarState,
+  type FilterBarContextValue,
+  type FilterBarRootProps,
+  type SourceChipsProps,
+  type ClassificationChipsProps,
+  type ConfidenceSliderProps,
+  type BoundsIndicatorProps,
+  type ActiveFilterSummaryProps,
+  type CollapsibleFilterSectionProps,
+} from './FilterBar'
