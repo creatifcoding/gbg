@@ -198,7 +198,7 @@ const ResultItem = memo(
         animate(itemRef.current, {
           scale: [0.98, 1],
           duration: TIMING.fast,
-          ease: EASING.anime.out,
+          easing: EASING.anime.out,
         })
       }
     }, [isSelected])

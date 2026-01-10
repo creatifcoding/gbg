@@ -275,7 +275,7 @@ const Root: FC<TrackHistoryPlayerRootProps> = ({
         opacity: [0, 1],
         translateY: [-10, 0],
         duration: TIMING.normal,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [])

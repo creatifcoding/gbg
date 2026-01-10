@@ -42,6 +42,7 @@ import {
   type TrackPathLayerData,
   type TrackPositionData,
 } from '../layers'
+import { MapSelectionOverlay } from './MapSelectionOverlay'
 import { overlayRegistry } from '@/lib/overlays/atoms'
 import {
   PositioningProvider,
@@ -182,7 +183,8 @@ export function disposeGeointInstanceAtoms(_instanceId: string): void {
 // Registry Export
 // =============================================================================
 
-export const geointRegistry = overlayRegistry
+/** Map overlay registry (for positioning layer atoms) */
+export const mapOverlayRegistry = overlayRegistry
 
 // =============================================================================
 // Props
@@ -318,7 +320,7 @@ function GeointMapComponent({
 
   useEffect(() => {
     if (initialVisibility) {
-      geointRegistry.set(atoms.visibilityAtom, { ...DEFAULT_VISIBILITY, ...initialVisibility })
+      mapOverlayRegistry.set(atoms.visibilityAtom, { ...DEFAULT_VISIBILITY, ...initialVisibility })
     }
   }, []) // Only on mount
 
@@ -637,6 +639,9 @@ function GeointMapComponent({
           />
         </DeckGL>
       )}
+
+      {/* Selection Overlay - Animated selection ring */}
+      {mapLoaded && <MapSelectionOverlay dimensions={dimensions} />}
 
       {/* Custom Overlay */}
       {mapLoaded && renderOverlay?.()}

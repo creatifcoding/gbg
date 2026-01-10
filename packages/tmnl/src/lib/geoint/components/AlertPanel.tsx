@@ -197,7 +197,7 @@ const Root: FC<AlertPanelRootProps> = ({
         opacity: [0, 1],
         translateX: [20, 0],
         duration: TIMING.normal,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [])
@@ -385,7 +385,7 @@ const AlertList: FC<AlertListProps> = memo(function AlertList({
         translateX: [-10, 0],
         delay: stagger(30),
         duration: TIMING.fast,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [alerts.length])
@@ -443,7 +443,7 @@ const AlertItem: FC<AlertItemProps> = memo(function AlertItem({
         opacity: [1, 0],
         translateX: [0, 20],
         duration: TIMING.fast,
-        ease: EASING.anime.in,
+        easing: EASING.anime.in,
         complete: () => dismiss(alert.id),
       })
     }
@@ -628,7 +628,7 @@ const Badge: FC<BadgeProps> = memo(function Badge({ count, className }) {
       animate(badgeRef.current, {
         scale: [0.5, 1.2, 1],
         duration: TIMING.fast,
-        ease: EASING.anime.bounce,
+        easing: EASING.anime.bounce,
       })
     }
   }, [count])

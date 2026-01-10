@@ -245,7 +245,7 @@ const Root: FC<CollectionManagerRootProps> = ({
         opacity: [0, 1],
         translateY: [-10, 0],
         duration: TIMING.normal,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [])
@@ -519,7 +519,7 @@ const CollectionItem: FC<CollectionItemProps> = memo(function CollectionItem({
         opacity: [0, 1],
         translateX: [-5, 0],
         duration: TIMING.fast,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [])
@@ -844,7 +844,7 @@ const CreateDialog: FC<CreateDialogProps> = memo(function CreateDialog({
         opacity: [0, 1],
         scale: [0.95, 1],
         duration: TIMING.fast,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [isOpen])

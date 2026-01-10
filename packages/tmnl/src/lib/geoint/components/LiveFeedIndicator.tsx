@@ -206,7 +206,7 @@ const Root: FC<LiveFeedIndicatorRootProps> = ({
         opacity: [0, 1],
         scale: [0.95, 1],
         duration: TIMING.fast,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [])
@@ -422,7 +422,7 @@ const FeedItem: FC<FeedItemProps> = memo(function FeedItem({
       animate(itemRef.current, {
         backgroundColor: [config.color + '20', 'transparent'],
         duration: TIMING.normal,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [feed.status, config.color])

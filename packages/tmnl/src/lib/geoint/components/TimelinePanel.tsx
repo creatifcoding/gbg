@@ -326,7 +326,7 @@ const PlaybackControls: FC<PlaybackControlsProps> = memo(function PlaybackContro
       animate(playButtonRef.current, {
         scale: [0.9, 1],
         duration: TIMING.fast,
-        ease: EASING.anime.bounce,
+        easing: EASING.anime.bounce,
       })
     }
   }, [isPlaying])
@@ -747,7 +747,7 @@ const StatusIndicator: FC<StatusIndicatorProps> = memo(function StatusIndicator(
         opacity: [1, 0.7, 1],
         duration: 1000 / speed,
         loop: true,
-        ease: EASING.anime.inOut,
+        easing: EASING.anime.inOut,
       })
     }
   }, [isPlaying, speed])

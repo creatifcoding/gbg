@@ -64,7 +64,7 @@ export function Tooltip({
         translateY: entrance.y ? [entrance.y, 0] : undefined,
         translateX: entrance.x ? [entrance.x, 0] : undefined,
         duration: TIMING.tooltip.duration,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     } else if (shouldRender) {
       // Exit animation
@@ -74,7 +74,7 @@ export function Tooltip({
         translateY: entrance.y ? [0, entrance.y / 2] : undefined,
         translateX: entrance.x ? [0, entrance.x / 2] : undefined,
         duration: TIMING.tooltip.duration * 0.8,
-        ease: EASING.anime.in,
+        easing: EASING.anime.in,
         onComplete: () => setShouldRender(false),
       })
     }

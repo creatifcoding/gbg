@@ -161,14 +161,14 @@ const Root: FC<MultiSelectActionBarRootProps> = ({
           opacity: [0, 1],
           scale: [0.95, 1],
           duration: TIMING.normal,
-          ease: EASING.anime.bounce,
+          easing: EASING.anime.bounce,
         })
       } else {
         // Pulse animation on count change
         animate(barRef.current, {
           scale: [1, 1.02, 1],
           duration: TIMING.fast,
-          ease: EASING.anime.out,
+          easing: EASING.anime.out,
         })
       }
     }
@@ -225,7 +225,7 @@ const Badge: FC<BadgeProps> = memo(function Badge({ className }) {
       animate(badgeRef.current, {
         scale: [0.8, 1.1, 1],
         duration: TIMING.fast,
-        ease: EASING.anime.bounce,
+        easing: EASING.anime.bounce,
       })
     }
   }, [selectedIds.length])
@@ -301,7 +301,7 @@ const Action: FC<ActionProps> = memo(function Action({
       animate(buttonRef.current, {
         scale: [1, 0.95, 1],
         duration: TIMING.fast,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
 

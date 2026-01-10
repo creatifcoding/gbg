@@ -302,7 +302,7 @@ const Root: FC<MeasurementToolsRootProps> = ({
         opacity: [0, 1],
         translateY: [-10, 0],
         duration: TIMING.normal,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [])
@@ -542,7 +542,7 @@ const Results: FC<ResultsProps> = memo(function Results({ className }) {
       animate(resultsRef.current, {
         scale: [0.98, 1],
         duration: TIMING.fast,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [currentResult?.value])

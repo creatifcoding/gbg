@@ -395,7 +395,7 @@ const SourceChip: FC<SourceChipProps> = memo(function SourceChip({
     animate(chipRef.current, {
       scale: enabled ? [0.95, 1] : 1,
       duration: TIMING.fast,
-      ease: EASING.anime.out,
+      easing: EASING.anime.out,
     })
   }, [enabled])
 
@@ -683,7 +683,7 @@ const CollapsibleSection: FC<CollapsibleSectionProps> = memo(function Collapsibl
       maxHeight: isOpen ? [0, contentRef.current.scrollHeight] : [contentRef.current.scrollHeight, 0],
       opacity: isOpen ? [0, 1] : [1, 0],
       duration: TIMING.normal,
-      ease: EASING.anime.out,
+      easing: EASING.anime.out,
     })
   }, [isOpen])
 
@@ -989,7 +989,7 @@ const XStateInput: FC<XStateInputProps> = memo(function XStateInput({
         opacity: [0, 1],
         translateY: [-8, 0],
         duration: TIMING.fast,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [showSuggestions, suggestions.length])
@@ -1176,7 +1176,7 @@ const XStateSection: FC<XStateSectionProps> = memo(function XStateSection({
         height: [0, targetHeight],
         opacity: [0, 1],
         duration: TIMING.normal,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
         complete: () => {
           content.style.height = 'auto'
           formSend({ type: 'ANIMATION_COMPLETE' })
@@ -1189,7 +1189,7 @@ const XStateSection: FC<XStateSectionProps> = memo(function XStateSection({
         height: [currentHeight, 0],
         opacity: [1, 0],
         duration: TIMING.normal,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
         complete: () => {
           formSend({ type: 'ANIMATION_COMPLETE' })
         },

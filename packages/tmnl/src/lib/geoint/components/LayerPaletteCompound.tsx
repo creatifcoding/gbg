@@ -381,14 +381,14 @@ const Group: FC<GroupProps> = ({
         height: [0, contentRef.current.scrollHeight],
         opacity: [0, 1],
         duration: TIMING.normal,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     } else {
       animate(contentRef.current, {
         height: [contentRef.current.scrollHeight, 0],
         opacity: [1, 0],
         duration: TIMING.fast,
-        ease: EASING.anime.in,
+        easing: EASING.anime.in,
       })
     }
   }, [isOpen])
@@ -517,7 +517,7 @@ const LayerToggle: FC<LayerToggleCompoundProps> = memo(function LayerToggle({
       animate(toggleRef.current, {
         scale: [0.95, 1],
         duration: TIMING.fast,
-        ease: EASING.anime.bounce,
+        easing: EASING.anime.bounce,
       })
     }
   }
@@ -581,7 +581,7 @@ const Presets: FC<PresetsProps> = memo(function Presets({ className }) {
           translateY: [5, 0],
           delay: i * 50,
           duration: TIMING.normal,
-          ease: EASING.anime.out,
+          easing: EASING.anime.out,
         })
       })
     }

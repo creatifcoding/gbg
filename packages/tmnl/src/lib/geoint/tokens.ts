@@ -185,6 +185,35 @@ export const STATUS_COLORS = {
 } as const
 
 // =============================================================================
+// TYPOGRAPHY TOKENS
+// =============================================================================
+
+/**
+ * Typography tokens following TMNL 12px floor rule.
+ * NEVER use text-[10px], text-[9px], etc. - use these tokens.
+ */
+export const TYPOGRAPHY = {
+  /** Minimum readable size (12px) - THE FLOOR */
+  xs: 'text-xs', // 12px
+  /** Secondary/captions (14px) */
+  sm: 'text-sm', // 14px
+  /** Body text (16px) */
+  base: 'text-base', // 16px
+  /** Large text (18px) */
+  lg: 'text-lg', // 18px
+  /** Headings (20px) */
+  xl: 'text-xl', // 20px
+  /** Large headings (24px) */
+  '2xl': 'text-2xl', // 24px
+} as const
+
+/**
+ * Tailwind class for ensuring minimum font size.
+ * Apply to containers to enforce 12px floor on all descendants.
+ */
+export const TYPOGRAPHY_FLOOR_CLASS = '[&_*]:min-[font-size:12px]'
+
+// =============================================================================
 // SPACING TOKENS
 // =============================================================================
 
@@ -294,6 +323,7 @@ export const EASING = {
     bounce: 'easeOutBack',
     elastic: 'easeOutElastic(1, 0.5)',
     spring: 'spring(1, 80, 10, 0)',
+    breathing: 'easeInOutSine',
   },
 } as const
 
@@ -440,7 +470,7 @@ export const ANIMATIONS = {
   fadeIn: {
     opacity: [0, 1],
     duration: TIMING.normal,
-    ease: EASING.anime.out,
+    easing: EASING.anime.out,
   },
 
   /** Slide in from bottom */
@@ -448,7 +478,7 @@ export const ANIMATIONS = {
     translateY: [20, 0],
     opacity: [0, 1],
     duration: TIMING.normal,
-    ease: EASING.anime.out,
+    easing: EASING.anime.out,
   },
 
   /** Slide in from right */
@@ -456,7 +486,7 @@ export const ANIMATIONS = {
     translateX: [20, 0],
     opacity: [0, 1],
     duration: TIMING.normal,
-    ease: EASING.anime.out,
+    easing: EASING.anime.out,
   },
 
   /** Scale in with bounce */
@@ -464,7 +494,7 @@ export const ANIMATIONS = {
     scale: [0.95, 1],
     opacity: [0, 1],
     duration: TIMING.normal,
-    ease: EASING.anime.bounce,
+    easing: EASING.anime.bounce,
   },
 
   /** Pop in for emphasis (radial dial, tooltips) */
@@ -472,7 +502,7 @@ export const ANIMATIONS = {
     scale: [0, 1],
     opacity: [0, 1],
     duration: TIMING.normal,
-    ease: EASING.anime.bounce,
+    easing: EASING.anime.bounce,
   },
 
   // -------------------------------------------------------------------------
@@ -483,7 +513,7 @@ export const ANIMATIONS = {
   fadeOut: {
     opacity: [1, 0],
     duration: TIMING.fast,
-    ease: EASING.anime.in,
+    easing: EASING.anime.in,
   },
 
   /** Slide out downward */
@@ -491,7 +521,7 @@ export const ANIMATIONS = {
     translateY: [0, 20],
     opacity: [1, 0],
     duration: TIMING.fast,
-    ease: EASING.anime.in,
+    easing: EASING.anime.in,
   },
 
   /** Scale out */
@@ -499,7 +529,7 @@ export const ANIMATIONS = {
     scale: [1, 0.95],
     opacity: [1, 0],
     duration: TIMING.fast,
-    ease: EASING.anime.in,
+    easing: EASING.anime.in,
   },
 
   // -------------------------------------------------------------------------
@@ -511,7 +541,7 @@ export const ANIMATIONS = {
     scale: [1, 1.05, 1],
     opacity: [1, 0.8, 1],
     duration: TIMING.slow,
-    ease: EASING.anime.inOut,
+    easing: EASING.anime.inOut,
     loop: true,
   },
 
@@ -519,21 +549,21 @@ export const ANIMATIONS = {
   shake: {
     translateX: [0, -4, 4, -4, 4, 0],
     duration: TIMING.slow,
-    ease: EASING.anime.out,
+    easing: EASING.anime.out,
   },
 
   /** Wobble for attention */
   wobble: {
     rotate: [0, -3, 3, -3, 0],
     duration: TIMING.slow,
-    ease: EASING.anime.elastic,
+    easing: EASING.anime.elastic,
   },
 
   /** Highlight selection */
   highlight: {
     scale: [1, 1.02, 1],
     duration: TIMING.fast,
-    ease: EASING.anime.out,
+    easing: EASING.anime.out,
   },
 
   // -------------------------------------------------------------------------
@@ -545,7 +575,7 @@ export const ANIMATIONS = {
     width: ['48px', '320px'],
     opacity: [0.8, 1],
     duration: TIMING.panel,
-    ease: EASING.anime.out,
+    easing: EASING.anime.out,
   },
 
   /** Panel collapse */
@@ -553,7 +583,7 @@ export const ANIMATIONS = {
     width: ['320px', '48px'],
     opacity: [1, 0.8],
     duration: TIMING.panel,
-    ease: EASING.anime.in,
+    easing: EASING.anime.in,
   },
 
   /** Drawer slide up */
@@ -561,7 +591,7 @@ export const ANIMATIONS = {
     translateY: [200, 0],
     opacity: [0, 1],
     duration: TIMING.panel,
-    ease: EASING.anime.out,
+    easing: EASING.anime.out,
   },
 
   /** Drawer slide down */
@@ -569,7 +599,7 @@ export const ANIMATIONS = {
     translateY: [0, 200],
     opacity: [1, 0],
     duration: TIMING.panel,
-    ease: EASING.anime.in,
+    easing: EASING.anime.in,
   },
 
   // -------------------------------------------------------------------------
@@ -581,13 +611,13 @@ export const ANIMATIONS = {
     scale: [0, 1],
     opacity: [0, 1],
     duration: TIMING.normal,
-    ease: EASING.anime.bounce,
+    easing: EASING.anime.bounce,
   },
 
   /** Entity track update (smooth position) */
   entityMove: {
     duration: TIMING.slow,
-    ease: EASING.anime.out,
+    easing: EASING.anime.out,
   },
 
   /** Entity selection ring */
@@ -596,7 +626,7 @@ export const ANIMATIONS = {
     opacity: [0.5, 1],
     borderWidth: [2, 3],
     duration: TIMING.fast,
-    ease: EASING.anime.out,
+    easing: EASING.anime.out,
   },
 
   // -------------------------------------------------------------------------
@@ -607,7 +637,7 @@ export const ANIMATIONS = {
   staggerList: {
     delay: (_el: Element, i: number) => i * TIMING.stagger,
     duration: TIMING.normal,
-    ease: EASING.anime.out,
+    easing: EASING.anime.out,
   },
 
   /** Stagger config for grid items */
@@ -619,7 +649,7 @@ export const ANIMATIONS = {
       return (row + col) * TIMING.stagger
     },
     duration: TIMING.normal,
-    ease: EASING.anime.out,
+    easing: EASING.anime.out,
   },
 } as const
 
@@ -641,13 +671,13 @@ export const animationUtils = {
   /** Create spring-based animation */
   spring: (props: Record<string, unknown>) => ({
     ...props,
-    ease: EASING.anime.spring,
+    easing: EASING.anime.spring,
   }),
 
   /** Create elastic animation */
   elastic: (props: Record<string, unknown>) => ({
     ...props,
-    ease: EASING.anime.elastic,
+    easing: EASING.anime.elastic,
   }),
 }
 

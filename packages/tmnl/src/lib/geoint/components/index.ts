@@ -32,6 +32,18 @@ export {
   type SearchPanelProps,
 } from './SearchPanel'
 
+// Search Provider - Search context with Atom.runtime + runtimeAtom.fn
+export {
+  SearchProvider,
+  useSearchContext,
+  useSearchContextOptional,
+  searchRuntimeAtom,
+  searchOps,
+  mountSearchRuntime,
+  type SearchContextValue,
+  type SearchProviderProps,
+} from './SearchProvider'
+
 // Compound Search Panel - Composable search interface
 export {
   SearchPanelCompound,
@@ -692,3 +704,28 @@ export {
   TemporalHeatmap,
   useTemporalHeatmap,
 } from './TemporalHeatmap'
+
+// MapSelectionOverlay - Animated selection ring for map entities
+export {
+  MapSelectionOverlay,
+} from './MapSelectionOverlay'
+
+// SearchFilterBridge - Wires FilterBar to SearchProvider
+export {
+  SearchFilterBridge,
+  IntegratedSearchFilterBar,
+  type SearchFilterBridgeProps,
+  type IntegratedSearchFilterBarProps,
+} from './SearchFilterBridge'
+
+// TimelineMapBridge - Bidirectional sync between TimelinePanel and map filters
+export {
+  TimelineMapBridge,
+  IntegratedTimelineBar,
+  mapPlayheadAtom,
+  useTimelineFilters,
+  useMapPlayhead,
+  type TimelineMapBridgeProps,
+  type IntegratedTimelineBarProps,
+  type AggregationBucket,
+} from './TimelineMapBridge'

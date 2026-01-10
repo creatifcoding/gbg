@@ -310,7 +310,7 @@ const Root: FC<VirtualizedResultsListRootProps> = memo(function Root({
           opacity: [0, 1],
           translateX: [-20, 0],
           duration: TIMING.normal,
-          ease: EASING.anime.out,
+          easing: EASING.anime.out,
           delay: stagger(30, { start: 0 }),
         })
       }
@@ -568,7 +568,7 @@ const ViewModeToggle: FC<ViewModeToggleProps> = memo(function ViewModeToggle({ c
           animate(indicator, {
             translateX: activeIndex * (compact ? 24 : 28),
             duration: TIMING.fast,
-            ease: EASING.anime.out,
+            easing: EASING.anime.out,
           })
         }
       }
@@ -764,7 +764,7 @@ const VirtualList: FC<VirtualListProps> = memo(function VirtualList({ virtualize
           opacity: [0, 1],
           scale: [0.95, 1],
           duration: TIMING.fast,
-          ease: EASING.anime.out,
+          easing: EASING.anime.out,
           delay: stagger(20, { start: 0 }),
         })
       }
@@ -1028,7 +1028,7 @@ const EmptyState: FC<EmptyStateProps> = memo(function EmptyState({
         opacity: [0, 1],
         scale: [0.95, 1],
         duration: TIMING.normal,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [])

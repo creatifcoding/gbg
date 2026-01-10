@@ -43,6 +43,7 @@ import { cn } from '@/lib/utils'
 import { dashboardMachine } from '../machines/dashboardMachine'
 import { GeointMap, type GeointMapProps, createGeointInstanceAtoms, disposeGeointInstanceAtoms } from './GeointMap'
 import { SearchPanel, type SearchPanelProps } from './SearchPanel'
+import { SearchProvider } from './SearchProvider'
 import { EntityPanelContent, openEntityPanel } from './EntityPanel'
 import { RadialCommandDial, useRadialDial, useCtrlClickDial } from './RadialCommandDial'
 import { VirtualizedSearchResults } from './VirtualizedSearchResults'
@@ -350,7 +351,7 @@ const FocusLayout: FC<FocusLayoutProps> = memo(function FocusLayout({
         translateX: searchOpen ? ['-100%', '0%'] : ['0%', '-100%'],
         opacity: searchOpen ? [0, 1] : [1, 0],
         duration: TIMING.normal,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [searchOpen])
@@ -361,7 +362,7 @@ const FocusLayout: FC<FocusLayoutProps> = memo(function FocusLayout({
         translateY: entityOpen ? ['100%', '0%'] : ['0%', '100%'],
         opacity: entityOpen ? [0, 1] : [1, 0],
         duration: TIMING.normal,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [entityOpen])
@@ -598,7 +599,7 @@ export const GeointDashboard: FC<GeointDashboardProps> = memo(function GeointDas
       animate(containerRef.current, {
         opacity: [1, 0.8, 1],
         duration: TIMING.normal,
-        ease: EASING.anime.inOut,
+        easing: EASING.anime.inOut,
       })
     }
     setLayoutMode(mode)
@@ -713,84 +714,86 @@ export const GeointDashboard: FC<GeointDashboardProps> = memo(function GeointDas
   )
 
   return (
-    <DashboardContext.Provider value={contextValue}>
-      <div
-        ref={containerRef}
-        className={cn(
-          'flex flex-col h-full bg-surface-0 overflow-hidden typography-floor',
-          className
-        )}
-      >
-        {/* Header */}
-        <DashboardHeader
-          layoutMode={layoutMode}
-          onLayoutChange={handleLayoutChange}
-          onToggleSearch={() => setSearchOpen(p => !p)}
-          onToggleEntity={() => setEntityOpen(p => !p)}
-          onToggleLayers={() => setLayersOpen(p => !p)}
-          searchOpen={searchOpen}
-          entityOpen={entityOpen}
-          layersOpen={layersOpen}
-          headerSlot={headerSlot}
-        />
-
-        {/* Main Content */}
-        {layoutMode === 'command' && (
-          <CommandLayout
-            searchPanel={searchPanelContent}
-            mapPanel={mapPanel}
-            entityPanel={entityPanelContent}
+    <SearchProvider>
+      <DashboardContext.Provider value={contextValue}>
+        <div
+          ref={containerRef}
+          className={cn(
+            'flex flex-col h-full bg-surface-0 overflow-hidden typography-floor',
+            className
+          )}
+        >
+          {/* Header */}
+          <DashboardHeader
+            layoutMode={layoutMode}
+            onLayoutChange={handleLayoutChange}
+            onToggleSearch={() => setSearchOpen(p => !p)}
+            onToggleEntity={() => setEntityOpen(p => !p)}
+            onToggleLayers={() => setLayersOpen(p => !p)}
             searchOpen={searchOpen}
             entityOpen={entityOpen}
+            layersOpen={layersOpen}
+            headerSlot={headerSlot}
           />
-        )}
 
-        {layoutMode === 'focus' && (
-          <FocusLayout
-            mapPanel={mapPanel}
-            searchPanel={searchPanelContent}
-            searchOpen={searchOpen}
-            entityPanel={entityPanelContent}
-            entityOpen={entityOpen}
-          />
-        )}
+          {/* Main Content */}
+          {layoutMode === 'command' && (
+            <CommandLayout
+              searchPanel={searchPanelContent}
+              mapPanel={mapPanel}
+              entityPanel={entityPanelContent}
+              searchOpen={searchOpen}
+              entityOpen={entityOpen}
+            />
+          )}
 
-        {layoutMode === 'grid' && (
-          <GridLayout
-            mapPanel={mapPanel}
-            searchPanel={searchPanelContent}
-            resultsPanel={resultsPanelContent}
-            statsWidget={<WiredStatsWidget />}
-            timelineWidget={<WiredTimelineWidget compact />}
-          />
-        )}
+          {layoutMode === 'focus' && (
+            <FocusLayout
+              mapPanel={mapPanel}
+              searchPanel={searchPanelContent}
+              searchOpen={searchOpen}
+              entityPanel={entityPanelContent}
+              entityOpen={entityOpen}
+            />
+          )}
 
-        {/* Layer Palette (floating) */}
-        {layersOpen && (
-          <div className="absolute bottom-4 left-4 z-30 bg-surface-1 border border-border-subtle rounded-lg p-2 shadow-lg">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-medium text-text-secondary">Layers</span>
-              <button
-                onClick={() => setLayersOpen(false)}
-                className="text-text-tertiary hover:text-text-secondary"
-              >
-                ×
-              </button>
+          {layoutMode === 'grid' && (
+            <GridLayout
+              mapPanel={mapPanel}
+              searchPanel={searchPanelContent}
+              resultsPanel={resultsPanelContent}
+              statsWidget={<WiredStatsWidget />}
+              timelineWidget={<WiredTimelineWidget compact />}
+            />
+          )}
+
+          {/* Layer Palette (floating) */}
+          {layersOpen && (
+            <div className="absolute bottom-4 left-4 z-30 bg-surface-1 border border-border-subtle rounded-lg p-2 shadow-lg">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-medium text-text-secondary">Layers</span>
+                <button
+                  onClick={() => setLayersOpen(false)}
+                  className="text-text-tertiary hover:text-text-secondary"
+                >
+                  ×
+                </button>
+              </div>
+              {/* LayerPalette will be connected to atom state */}
+              <div className="text-xs text-text-tertiary">Layer controls</div>
             </div>
-            {/* LayerPalette will be connected to atom state */}
-            <div className="text-xs text-text-tertiary">Layer controls</div>
-          </div>
-        )}
+          )}
 
-        {/* Radial Command Dial */}
-        <RadialCommandDial
-          entity={dial.entity}
-          position={dial.position}
-          isOpen={dial.isOpen}
-          onClose={dial.close}
-        />
-      </div>
-    </DashboardContext.Provider>
+          {/* Radial Command Dial */}
+          <RadialCommandDial
+            entity={dial.entity}
+            position={dial.position}
+            isOpen={dial.isOpen}
+            onClose={dial.close}
+          />
+        </div>
+      </DashboardContext.Provider>
+    </SearchProvider>
   )
 })
 

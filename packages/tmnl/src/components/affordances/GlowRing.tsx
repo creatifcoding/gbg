@@ -40,7 +40,7 @@ export function GlowRing({ color = 'cyan', intensity = 'md', animated, className
       opacity: timing.opacity,
       scale: timing.scale,
       duration: timing.period,
-      ease: EASING.anime.breathing,
+      easing: EASING.anime.breathing,
       loop: true,
     })
 

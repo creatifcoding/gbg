@@ -7,14 +7,17 @@
  * - Temporal filters (live, historical)
  * - Geographic filters (viewport, radius)
  * - Result summary and navigation
+ * - VirtualizedSearchResults for high-performance result display
  *
  * @module geoint/components/SearchPanel
  */
 
-import { useState, useCallback, useMemo, memo, useRef, useEffect } from 'react'
+import { useState, useCallback, memo, useRef, useEffect } from 'react'
 import { useAtomValue } from '@effect-atom/atom-react'
 import { animate } from 'animejs'
 import { Search, X, Loader2, Filter, MapPin, Plane, Building, Layers, Satellite, CloudSun, Radio } from 'lucide-react'
+import { useSearchContextOptional } from './SearchProvider'
+import { VirtualizedSearchResults } from './VirtualizedSearchResults'
 import {
   searchStatusAtom,
   totalResultCountAtom,
@@ -23,10 +26,18 @@ import {
   activeFiltersAtom,
   searchErrorAtom,
   updateFilters,
+  viewportBoundsAtom,
 } from '../atoms'
 import type { IntelSource, SearchResultItem, BBox } from '../schemas'
 import { SOURCE_COLORS, TIMING, EASING } from '../tokens'
 import { cn } from '@/lib/utils'
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+/** Maximum results to display before showing pagination */
+const MAX_DISPLAY_RESULTS = 50
 
 // =============================================================================
 // Types
@@ -90,7 +101,7 @@ const SourceToggle = memo(function SourceToggle({
     animate(chipRef.current, {
       scale: enabled ? [0.95, 1] : 1,
       duration: TIMING.fast,
-      ease: EASING.anime.out,
+      easing: EASING.anime.out,
     })
   }, [enabled])
 
@@ -123,85 +134,29 @@ const SourceToggle = memo(function SourceToggle({
 })
 
 // =============================================================================
-// Result Item Component
-// =============================================================================
-
-interface ResultItemProps {
-  result: SearchResultItem
-  onSelect: (result: SearchResultItem) => void
-}
-
-const ResultItem = memo(function ResultItem({ result, onSelect }: ResultItemProps) {
-  const config = SOURCE_CONFIG[result.source]
-  const colors = SOURCE_COLORS[result.source]
-  const Icon = config.icon
-
-  // Extract display info based on result type
-  const displayInfo = useMemo(() => {
-    switch (result._tag) {
-      case 'SearchResultTrack':
-        return {
-          title: result.label || `Track ${result.trackId}`,
-          subtitle: `${result.classification} • ${result.objectType}`,
-        }
-      case 'SearchResultPoi':
-        return {
-          title: result.name,
-          subtitle: result.category,
-        }
-      case 'SearchResultFlight':
-        return {
-          title: result.callsign || result.icao24,
-          subtitle: `${result.originCountry} • ${Math.round(result.velocity)} m/s`,
-        }
-      case 'SearchResultFeature':
-        return {
-          title: result.label || `Feature ${result.featureId}`,
-          subtitle: result.geometryType,
-        }
-      default:
-        return { title: 'Unknown', subtitle: '' }
-    }
-  }, [result])
-
-  return (
-    <button
-      onClick={() => onSelect(result)}
-      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-surface-3 transition-colors text-left"
-    >
-      <Icon className="h-4 w-4 flex-shrink-0" style={{ color: colors.primary }} />
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-text-primary truncate">
-          {displayInfo.title}
-        </div>
-        <div className="text-xs text-text-tertiary truncate">
-          {displayInfo.subtitle}
-        </div>
-      </div>
-      <div className="text-xs text-text-quaternary">
-        {Math.round(result.score * 100)}%
-      </div>
-    </button>
-  )
-})
-
-// =============================================================================
 // Search Panel Component
 // =============================================================================
 
 export const SearchPanel = memo(function SearchPanel({
   instanceId: _instanceId = 'default',
-  viewportBounds,
+  viewportBounds: propViewportBounds,
   onSearch,
   onResultSelect,
   autoSearch = false,
   className,
 }: SearchPanelProps) {
+  // Get search context (optional - falls back to onSearch prop)
+  const searchContext = useSearchContextOptional()
+
   // Local state
   const [searchText, setSearchText] = useState('')
   const [showFilters, setShowFilters] = useState(false)
 
-  // Atoms
+  // Atoms - get viewport from atom if not provided via props
+  const atomViewportBounds = useAtomValue(viewportBoundsAtom)
+  const viewportBounds = propViewportBounds ?? atomViewportBounds
+
+  // Search state atoms
   const status = useAtomValue(searchStatusAtom)
   const results = useAtomValue(filteredResultsAtom)
   const resultsCount = useAtomValue(totalResultCountAtom)
@@ -221,12 +176,21 @@ export const SearchPanel = memo(function SearchPanel({
     updateFilters({ sources: updated })
   }, [filters.sources])
 
-  // Execute search
+  // Execute search - uses context if available, otherwise falls back to onSearch prop
   const handleSearch = useCallback(() => {
     if (!viewportBounds) return
-    const sources = filters.sources.length > 0 ? filters.sources : (['track', 'osm', 'opensky', 'feature'] as IntelSource[])
-    onSearch?.(viewportBounds as [number, number, number, number], sources as IntelSource[])
-  }, [viewportBounds, filters.sources, onSearch])
+    const sources = filters.sources.length > 0
+      ? filters.sources
+      : (['track', 'osm', 'opensky', 'feature'] as IntelSource[])
+
+    // Use context executeSearch if available (preferred)
+    if (searchContext) {
+      searchContext.executeSearch(viewportBounds as [number, number, number, number], [...sources])
+    } else if (onSearch) {
+      // Fallback to prop callback
+      onSearch(viewportBounds as [number, number, number, number], [...sources])
+    }
+  }, [viewportBounds, filters.sources, searchContext, onSearch])
 
   // Handle result selection
   const handleResultSelect = useCallback(
@@ -323,25 +287,29 @@ export const SearchPanel = memo(function SearchPanel({
         )}
       </div>
 
-      {/* Results List */}
-      <div className="flex-1 overflow-y-auto max-h-[400px] divide-y divide-border-subtle">
-        {results.length === 0 && status === 'completed' && (
+      {/* Results List - Using VirtualizedSearchResults from search subsystem */}
+      <div className="flex-1 flex flex-col max-h-[400px]">
+        {results.length === 0 && status === 'completed' ? (
           <div className="p-6 text-center text-text-tertiary text-sm">
             No results found in this area
           </div>
-        )}
-        {results.slice(0, 50).map((result, index) => (
-          <ResultItem
-            key={`${result._tag}-${result.id}-${index}`}
-            result={result}
-            onSelect={handleResultSelect}
-          />
-        ))}
-        {results.length > 50 && (
-          <div className="p-3 text-center text-text-tertiary text-xs">
-            Showing 50 of {resultsCount} results
-          </div>
-        )}
+        ) : results.length > 0 ? (
+          <>
+            <VirtualizedSearchResults
+              results={results.slice(0, MAX_DISPLAY_RESULTS)}
+              onSelect={handleResultSelect}
+              onActivate={handleResultSelect}
+              height={360}
+              animateEnter={true}
+              staggerDelay={20}
+            />
+            {results.length > MAX_DISPLAY_RESULTS && (
+              <div className="p-3 text-center text-text-tertiary text-xs border-t border-border-subtle">
+                Showing {MAX_DISPLAY_RESULTS} of {resultsCount} results
+              </div>
+            )}
+          </>
+        ) : null}
       </div>
     </div>
   )

@@ -200,7 +200,7 @@ const Root: FC<SpatialQueryPanelRootProps> = ({
         opacity: [0, 1],
         translateY: [-10, 0],
         duration: TIMING.normal,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [])
@@ -350,7 +350,7 @@ const ModeSelector: FC<ModeSelectorProps> = memo(function ModeSelector({ classNa
         animate(button, {
           scale: [0.95, 1],
           duration: TIMING.fast,
-          ease: EASING.anime.bounce,
+          easing: EASING.anime.bounce,
         })
       }
     }
@@ -635,7 +635,7 @@ const Preview: FC<PreviewProps> = memo(function Preview({ className }) {
         scale: [0.95, 1],
         opacity: [0, 1],
         duration: TIMING.fast,
-        ease: EASING.anime.bounce,
+        easing: EASING.anime.bounce,
       })
     }
   }, [previewCount])
@@ -703,7 +703,7 @@ const ExecuteButton: FC<ExecuteButtonProps> = memo(function ExecuteButton({
       animate(buttonRef.current, {
         scale: [1, 0.97, 1],
         duration: TIMING.fast,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
     executeSearch()

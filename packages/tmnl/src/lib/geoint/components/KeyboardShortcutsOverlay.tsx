@@ -253,7 +253,7 @@ const Root: FC<KeyboardShortcutsOverlayRootProps> = ({
         opacity: [0, 1],
         scale: [0.95, 1],
         duration: TIMING.fast,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
 
       // Animate shortcut items
@@ -263,7 +263,7 @@ const Root: FC<KeyboardShortcutsOverlayRootProps> = ({
         translateY: [5, 0],
         delay: stagger(20, { start: 50 }),
         duration: TIMING.fast,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [shouldShow])

@@ -121,7 +121,7 @@ const ResultItem = memo(function ResultItem({
       opacity: [0, 1],
       delay: index * staggerDelay,
       duration: TIMING.normal,
-      ease: EASING.anime.out,
+      easing: EASING.anime.out,
     })
   }, [animateEnter, index, staggerDelay])
 
@@ -131,7 +131,7 @@ const ResultItem = memo(function ResultItem({
       animate(itemRef.current, {
         scale: [1, 1.01, 1],
         duration: TIMING.fast,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [isSelected])

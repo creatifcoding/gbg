@@ -186,7 +186,7 @@ const Root: FC<EntityDetailCardRootProps> = ({
         opacity: [0, 1],
         translateY: [20, 0],
         duration: TIMING.normal,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [])
@@ -200,14 +200,14 @@ const Root: FC<EntityDetailCardRootProps> = ({
         opacity: [1, 0],
         translateX: [0, -10],
         duration: 150,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     } else if (animationPhase === 'enter') {
       animate(tabContentRef.current, {
         opacity: [0, 1],
         translateX: [10, 0],
         duration: 200,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [animationPhase])
@@ -419,7 +419,7 @@ const TabNav: FC<TabNavProps> = memo(function TabNav({ className }) {
           left: rect.left - navRect.left,
           width: rect.width,
           duration: TIMING.fast,
-          ease: EASING.anime.out,
+          easing: EASING.anime.out,
         })
       }
     }
@@ -500,7 +500,7 @@ const Overview: FC<OverviewProps> = memo(function Overview({
           translateY: [10, 0],
           delay: i * 50,
           duration: TIMING.normal,
-          ease: EASING.anime.out,
+          easing: EASING.anime.out,
         })
       })
     }
@@ -703,7 +703,7 @@ const History: FC<HistoryProps> = memo(function History({
           translateX: [-10, 0],
           delay: i * 30,
           duration: TIMING.normal,
-          ease: EASING.anime.out,
+          easing: EASING.anime.out,
         })
       })
     }
@@ -785,7 +785,7 @@ const Relations: FC<RelationsProps> = memo(function Relations({
           scale: [0.95, 1],
           delay: i * 40,
           duration: TIMING.normal,
-          ease: EASING.anime.out,
+          easing: EASING.anime.out,
         })
       })
     }
@@ -880,7 +880,7 @@ const RawData: FC<RawDataProps> = memo(function RawData({
       animate(codeRef.current, {
         opacity: [0, 1],
         duration: TIMING.normal,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [activeTab])
@@ -997,7 +997,7 @@ const ActionBar: FC<ActionBarProps> = memo(function ActionBar({
           translateY: [5, 0],
           delay: i * 30,
           duration: TIMING.fast,
-          ease: EASING.anime.out,
+          easing: EASING.anime.out,
         })
       })
     }

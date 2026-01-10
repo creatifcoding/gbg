@@ -370,7 +370,7 @@ export const Minimap: FC<MinimapProps> = memo(function Minimap({
         opacity: [0, 1],
         scale: [0.95, 1],
         duration: TIMING.normal,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [isCollapsed])
@@ -385,7 +385,7 @@ export const Minimap: FC<MinimapProps> = memo(function Minimap({
           opacity: [1, 0],
           scale: [1, 0.95],
           duration: TIMING.fast,
-          ease: EASING.anime.in,
+          easing: EASING.anime.in,
           complete: () => setIsCollapsed(true),
         })
       }

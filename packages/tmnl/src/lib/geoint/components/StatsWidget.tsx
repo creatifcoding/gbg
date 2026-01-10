@@ -156,7 +156,7 @@ const Root: FC<StatsWidgetRootProps> = ({
         opacity: [0, 1],
         translateY: [10, 0],
         duration: TIMING.normal,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [])
@@ -229,7 +229,7 @@ const Counter: FC<CounterProps> = memo(function Counter({
     animate(animation, {
       val: value,
       duration: TIMING.slow * 2,
-      ease: EASING.anime.out,
+      easing: EASING.anime.out,
       update: () => {
         setDisplayValue(Math.round(animation.val))
       },
@@ -317,7 +317,7 @@ const Breakdown: FC<BreakdownProps> = memo(function Breakdown({
           translateX: [-10, 0],
           delay: i * TIMING.stagger,
           duration: TIMING.normal,
-          ease: EASING.anime.out,
+          easing: EASING.anime.out,
         })
       })
     }
@@ -455,7 +455,7 @@ const Sparkline: FC<SparklineProps> = memo(function Sparkline({
       animate(pathRef.current, {
         strokeDashoffset: [length, 0],
         duration: TIMING.slow * 2,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [data])
@@ -527,7 +527,7 @@ const StatusGrid: FC<StatusGridProps> = memo(function StatusGrid({
           scale: [0.95, 1],
           delay: i * TIMING.stagger,
           duration: TIMING.normal,
-          ease: EASING.anime.out,
+          easing: EASING.anime.out,
         })
       })
     }
@@ -614,7 +614,7 @@ const AnimatedDigitCounter: FC<AnimatedDigitCounterProps> = memo(
               opacity: [0, 1],
               duration: TIMING.normal,
               delay: i * 50,
-              ease: EASING.anime.out,
+              easing: EASING.anime.out,
             })
           }
         }
@@ -784,7 +784,7 @@ const MultiSparkline: FC<MultiSparklineProps> = memo(function MultiSparkline({
           strokeDashoffset: [length, 0],
           duration: TIMING.slow * 2,
           delay: i * 100,
-          ease: EASING.anime.out,
+          easing: EASING.anime.out,
         })
       })
     }
@@ -872,7 +872,7 @@ const TrendBadge: FC<TrendBadgeProps> = memo(function TrendBadge({
         scale: [0.8, 1],
         opacity: [0, 1],
         duration: TIMING.fast,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [change])
@@ -961,7 +961,7 @@ const CircularProgress: FC<CircularProgressProps> = memo(
         animate(circleRef.current, {
           strokeDashoffset: [circumference, strokeDashoffset],
           duration: TIMING.slow,
-          ease: EASING.anime.out,
+          easing: EASING.anime.out,
         })
       }
     }, [strokeDashoffset, circumference])

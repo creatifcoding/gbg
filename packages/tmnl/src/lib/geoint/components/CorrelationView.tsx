@@ -192,7 +192,7 @@ const Root: FC<CorrelationViewRootProps> = ({
         opacity: [0, 1],
         scale: [0.95, 1],
         duration: TIMING.normal,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
     }
   }, [])
@@ -323,7 +323,7 @@ const Graph: FC<GraphProps> = memo(function Graph({
         opacity: [0, 1],
         strokeDashoffset: [100, 0],
         duration: TIMING.slow,
-        ease: EASING.anime.out,
+        easing: EASING.anime.out,
       })
 
       animate(nodeElements, {
@@ -331,7 +331,7 @@ const Graph: FC<GraphProps> = memo(function Graph({
         scale: [0, 1],
         delay: TIMING.fast,
         duration: TIMING.normal,
-        ease: EASING.anime.bounce,
+        easing: EASING.anime.bounce,
       })
     }
   }, [])

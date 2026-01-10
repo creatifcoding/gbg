@@ -41,7 +41,7 @@ export function Badge({
       scale: TIMING.badge.dotScale,
       opacity: [0.6, 1, 0.6],
       duration: TIMING.badge.dotPeriod,
-      ease: EASING.anime.breathing,
+      easing: EASING.anime.breathing,
       loop: true,
     })
 
