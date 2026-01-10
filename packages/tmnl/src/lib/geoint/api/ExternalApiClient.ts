@@ -25,6 +25,8 @@ import {
   pipe,
 } from 'effect'
 import { HttpClient, HttpClientRequest } from '@effect/platform'
+import { withApiTracing } from './tracing'
+import { withCircuitBreaker, CircuitBreakersService, CircuitBreakersLive, CircuitOpenError } from './circuit-breaker'
 import {
   OpenSkyStateVector,
   OpenSkyResponse,
@@ -194,7 +196,7 @@ export interface OpenSkyClient {
     bounds?: readonly [number, number, number, number]
     icao24?: readonly string[]
     time?: number
-  }) => Effect.Effect<OpenSkyResponse, ExternalApiError | RateLimitError | TimeoutError>
+  }) => Effect.Effect<OpenSkyResponse, ExternalApiError | RateLimitError | TimeoutError | CircuitOpenError, CircuitBreakersService>
 }
 
 /**
@@ -391,7 +393,10 @@ export const makeOpenSkyClient = (
             ? decoded.states.map((s) => transformOpenSkyState(s))
             : null,
         })
-      })
+      }).pipe(
+        withApiTracing('opensky', 'getStates'),
+        (effect) => withCircuitBreaker('opensky', effect)
+      )
 
     return { getStates }
   })
@@ -433,7 +438,7 @@ export interface OverpassClient {
   readonly query: (
     overpassQL: string,
     options?: { timeout?: number }
-  ) => Effect.Effect<OverpassResponse, ExternalApiError | RateLimitError | TimeoutError>
+  ) => Effect.Effect<OverpassResponse, ExternalApiError | RateLimitError | TimeoutError | CircuitOpenError, CircuitBreakersService>
 
   readonly buildQuery: (options: {
     bounds: readonly [number, number, number, number]
@@ -629,7 +634,10 @@ out center;`
               })
           ),
         })
-      })
+      }).pipe(
+        withApiTracing('overpass', 'query'),
+        (effect) => withCircuitBreaker('overpass', effect)
+      )
 
     return { query, buildQuery }
   })
@@ -673,30 +681,30 @@ export interface AdsbLolClient {
     lat: number
     lon: number
     radiusNm: number // Nautical miles, max 250
-  }) => Effect.Effect<AdsbLolResponse, ExternalApiError | RateLimitError | TimeoutError>
+  }) => Effect.Effect<AdsbLolResponse, ExternalApiError | RateLimitError | TimeoutError | CircuitOpenError, CircuitBreakersService>
 
   /** Get aircraft by ICAO hex code */
   readonly getByIcao: (
     icaoHex: string
-  ) => Effect.Effect<AdsbLolResponse, ExternalApiError | RateLimitError | TimeoutError>
+  ) => Effect.Effect<AdsbLolResponse, ExternalApiError | RateLimitError | TimeoutError | CircuitOpenError, CircuitBreakersService>
 
   /** Get aircraft by callsign */
   readonly getByCallsign: (
     callsign: string
-  ) => Effect.Effect<AdsbLolResponse, ExternalApiError | RateLimitError | TimeoutError>
+  ) => Effect.Effect<AdsbLolResponse, ExternalApiError | RateLimitError | TimeoutError | CircuitOpenError, CircuitBreakersService>
 
   /** Get aircraft by type (e.g., "A320", "B738") */
   readonly getByType: (
     aircraftType: string
-  ) => Effect.Effect<AdsbLolResponse, ExternalApiError | RateLimitError | TimeoutError>
+  ) => Effect.Effect<AdsbLolResponse, ExternalApiError | RateLimitError | TimeoutError | CircuitOpenError, CircuitBreakersService>
 
   /** Get aircraft by squawk code */
   readonly getBySquawk: (
     squawk: string
-  ) => Effect.Effect<AdsbLolResponse, ExternalApiError | RateLimitError | TimeoutError>
+  ) => Effect.Effect<AdsbLolResponse, ExternalApiError | RateLimitError | TimeoutError | CircuitOpenError, CircuitBreakersService>
 
   /** Get military aircraft */
-  readonly getMilitary: () => Effect.Effect<AdsbLolResponse, ExternalApiError | RateLimitError | TimeoutError>
+  readonly getMilitary: () => Effect.Effect<AdsbLolResponse, ExternalApiError | RateLimitError | TimeoutError | CircuitOpenError, CircuitBreakersService>
 }
 
 /**
@@ -727,7 +735,7 @@ export const makeAdsbLolClient = (
      * Helper to execute ADSB.lol API request
      * Uses AdsbLolResponseSchema transform for wire → domain conversion.
      */
-    const executeRequest = (url: string): Effect.Effect<AdsbLolResponse, ExternalApiError | RateLimitError | TimeoutError> =>
+    const executeRequest = (url: string, operation: string): Effect.Effect<AdsbLolResponse, ExternalApiError | RateLimitError | TimeoutError | CircuitOpenError, CircuitBreakersService> =>
       Effect.gen(function* () {
         yield* rateLimiter.acquire
 
@@ -797,27 +805,31 @@ export const makeAdsbLolClient = (
         )
 
         return decoded
-      })
+      }).pipe(
+        withApiTracing('adsbLol', operation),
+        (effect) => withCircuitBreaker('adsbLol', effect)
+      )
 
     const getByPoint: AdsbLolClient['getByPoint'] = (options) =>
       executeRequest(
-        `${config.baseUrl}/v2/point/${options.lat}/${options.lon}/${Math.min(options.radiusNm, 250)}`
+        `${config.baseUrl}/v2/point/${options.lat}/${options.lon}/${Math.min(options.radiusNm, 250)}`,
+        'getByPoint'
       )
 
     const getByIcao: AdsbLolClient['getByIcao'] = (icaoHex) =>
-      executeRequest(`${config.baseUrl}/v2/icao/${icaoHex.toLowerCase()}`)
+      executeRequest(`${config.baseUrl}/v2/icao/${icaoHex.toLowerCase()}`, 'getByIcao')
 
     const getByCallsign: AdsbLolClient['getByCallsign'] = (callsign) =>
-      executeRequest(`${config.baseUrl}/v2/callsign/${callsign.toUpperCase()}`)
+      executeRequest(`${config.baseUrl}/v2/callsign/${callsign.toUpperCase()}`, 'getByCallsign')
 
     const getByType: AdsbLolClient['getByType'] = (aircraftType) =>
-      executeRequest(`${config.baseUrl}/v2/type/${aircraftType.toUpperCase()}`)
+      executeRequest(`${config.baseUrl}/v2/type/${aircraftType.toUpperCase()}`, 'getByType')
 
     const getBySquawk: AdsbLolClient['getBySquawk'] = (squawk) =>
-      executeRequest(`${config.baseUrl}/v2/squawk/${squawk}`)
+      executeRequest(`${config.baseUrl}/v2/squawk/${squawk}`, 'getBySquawk')
 
     const getMilitary: AdsbLolClient['getMilitary'] = () =>
-      executeRequest(`${config.baseUrl}/v2/mil`)
+      executeRequest(`${config.baseUrl}/v2/mil`, 'getMilitary')
 
     return {
       getByPoint,
@@ -886,18 +898,18 @@ export interface PlanetLabsClient {
   /** Search for imagery by geographic area and date range */
   readonly quickSearch: (
     options: PlanetSearchOptions
-  ) => Effect.Effect<PlanetSearchResponse, ExternalApiError | RateLimitError | TimeoutError>
+  ) => Effect.Effect<PlanetSearchResponse, ExternalApiError | RateLimitError | TimeoutError | CircuitOpenError, CircuitBreakersService>
 
   /** Get next page of search results */
   readonly getNextPage: (
     nextUrl: string
-  ) => Effect.Effect<PlanetSearchResponse, ExternalApiError | RateLimitError | TimeoutError>
+  ) => Effect.Effect<PlanetSearchResponse, ExternalApiError | RateLimitError | TimeoutError | CircuitOpenError, CircuitBreakersService>
 
   /** Get item details by ID and type */
   readonly getItem: (options: {
     itemType: PlanetItemType
     itemId: string
-  }) => Effect.Effect<PlanetItem, ExternalApiError | RateLimitError | TimeoutError>
+  }) => Effect.Effect<PlanetItem, ExternalApiError | RateLimitError | TimeoutError | CircuitOpenError, CircuitBreakersService>
 }
 
 /**
@@ -1068,7 +1080,10 @@ export const makePlanetLabsClient = (
         )
 
         return decoded
-      })
+      }).pipe(
+        withApiTracing('planet', 'quickSearch'),
+        (effect) => withCircuitBreaker('planet', effect)
+      )
 
     const getNextPage: PlanetLabsClient['getNextPage'] = (nextUrl) =>
       Effect.gen(function* () {
@@ -1142,7 +1157,10 @@ export const makePlanetLabsClient = (
         )
 
         return decoded
-      })
+      }).pipe(
+        withApiTracing('planet', 'getNextPage'),
+        (effect) => withCircuitBreaker('planet', effect)
+      )
 
     const getItem: PlanetLabsClient['getItem'] = (options) =>
       Effect.gen(function* () {
@@ -1218,7 +1236,10 @@ export const makePlanetLabsClient = (
         )
 
         return decoded
-      })
+      }).pipe(
+        withApiTracing('planet', 'getItem'),
+        (effect) => withCircuitBreaker('planet', effect)
+      )
 
     return {
       quickSearch,
@@ -1299,18 +1320,18 @@ export interface SentinelHubClient {
   /** Search for imagery in the catalog */
   readonly search: (
     options: SentinelSearchOptions
-  ) => Effect.Effect<SentinelSearchResponse, ExternalApiError | RateLimitError | TimeoutError>
+  ) => Effect.Effect<SentinelSearchResponse, ExternalApiError | RateLimitError | TimeoutError | CircuitOpenError, CircuitBreakersService>
 
   /** Get next page of search results */
   readonly getNextPage: (
     nextUrl: string
-  ) => Effect.Effect<SentinelSearchResponse, ExternalApiError | RateLimitError | TimeoutError>
+  ) => Effect.Effect<SentinelSearchResponse, ExternalApiError | RateLimitError | TimeoutError | CircuitOpenError, CircuitBreakersService>
 
   /** Get item details by ID */
   readonly getItem: (options: {
     collection: SentinelCollection
     itemId: string
-  }) => Effect.Effect<SentinelItem, ExternalApiError | RateLimitError | TimeoutError>
+  }) => Effect.Effect<SentinelItem, ExternalApiError | RateLimitError | TimeoutError | CircuitOpenError, CircuitBreakersService>
 }
 
 /**
@@ -1561,7 +1582,10 @@ export const makeSentinelHubClient = (
         )
 
         return decoded
-      })
+      }).pipe(
+        withApiTracing('sentinel', 'search'),
+        (effect) => withCircuitBreaker('sentinel', effect)
+      )
 
     const getNextPage: SentinelHubClient['getNextPage'] = (nextUrl) =>
       Effect.gen(function* () {
@@ -1636,7 +1660,10 @@ export const makeSentinelHubClient = (
         )
 
         return decoded
-      })
+      }).pipe(
+        withApiTracing('sentinel', 'getNextPage'),
+        (effect) => withCircuitBreaker('sentinel', effect)
+      )
 
     const getItem: SentinelHubClient['getItem'] = (options) =>
       Effect.gen(function* () {
@@ -1712,7 +1739,10 @@ export const makeSentinelHubClient = (
         )
 
         return decoded
-      })
+      }).pipe(
+        withApiTracing('sentinel', 'getItem'),
+        (effect) => withCircuitBreaker('sentinel', effect)
+      )
 
     return {
       search,
@@ -1810,18 +1840,18 @@ export interface OpenMeteoClient {
   /** Get weather forecast for a location */
   readonly getForecast: (
     options: WeatherForecastOptions
-  ) => Effect.Effect<WeatherForecast, ExternalApiError | RateLimitError | TimeoutError>
+  ) => Effect.Effect<WeatherForecast, ExternalApiError | RateLimitError | TimeoutError | CircuitOpenError, CircuitBreakersService>
 
   /** Search for locations by name */
   readonly geocode: (
     options: GeocodingOptions
-  ) => Effect.Effect<GeocodingResponse, ExternalApiError | RateLimitError | TimeoutError>
+  ) => Effect.Effect<GeocodingResponse, ExternalApiError | RateLimitError | TimeoutError | CircuitOpenError, CircuitBreakersService>
 
   /** Get weather forecast for a named location (combines geocoding + forecast) */
   readonly getWeatherForLocation: (
     locationName: string,
     forecastOptions?: Omit<WeatherForecastOptions, 'latitude' | 'longitude'>
-  ) => Effect.Effect<{ location: GeocodingResponse; weather: WeatherForecast }, ExternalApiError | RateLimitError | TimeoutError>
+  ) => Effect.Effect<{ location: GeocodingResponse; weather: WeatherForecast }, ExternalApiError | RateLimitError | TimeoutError | CircuitOpenError, CircuitBreakersService>
 }
 
 /**
@@ -2012,7 +2042,10 @@ export const makeOpenMeteoClient = (
         )
 
         return decoded
-      })
+      }).pipe(
+        withApiTracing('openMeteo', 'getForecast'),
+        (effect) => withCircuitBreaker('openMeteo', effect)
+      )
 
     const geocode: OpenMeteoClient['geocode'] = (options) =>
       Effect.gen(function* () {
@@ -2105,7 +2138,10 @@ export const makeOpenMeteoClient = (
         )
 
         return decoded
-      })
+      }).pipe(
+        withApiTracing('openMeteo', 'geocode'),
+        (effect) => withCircuitBreaker('openMeteo', effect)
+      )
 
     const getWeatherForLocation: OpenMeteoClient['getWeatherForLocation'] = (locationName, forecastOptions) =>
       Effect.gen(function* () {
@@ -2133,7 +2169,9 @@ export const makeOpenMeteoClient = (
         })
 
         return { location: geocodingResult, weather }
-      })
+      }).pipe(withApiTracing('openMeteo', 'getWeatherForLocation'))
+      // Note: getWeatherForLocation already uses getForecast and geocode which have circuit breakers
+      // No additional wrapper needed since child calls are protected
 
     return {
       getForecast,
@@ -2156,13 +2194,15 @@ export const OpenMeteoClientLive = Layer.effect(
 
 /**
  * All external API clients layer
+ * Includes CircuitBreakersLive for resilience.
  * Note: Planet Labs and Sentinel Hub require API keys, add them separately.
  */
 export const ExternalApiClientsLive = Layer.mergeAll(
   OpenSkyClientLive,
   OverpassClientLive,
   AdsbLolClientLive,
-  OpenMeteoClientLive
+  OpenMeteoClientLive,
+  CircuitBreakersLive
 )
 
 // =============================================================================
@@ -2172,7 +2212,7 @@ export const ExternalApiClientsLive = Layer.mergeAll(
 /**
  * Map OpenSky category number to AircraftCategory
  */
-const mapAircraftCategory = (category: number): AircraftCategory => {
+export const mapAircraftCategory = (category: number): AircraftCategory => {
   switch (category) {
     case 1: return 'light'
     case 2: return 'medium'
@@ -2293,6 +2333,9 @@ const mapAdsbLolCategory = (category: string | undefined): AircraftCategory => {
 
 /**
  * Transform ADSB.lol aircraft to SearchResultFlight
+ *
+ * Note: ADSB.lol uses `~` prefix for MLAT (multilateration) derived positions.
+ * We strip this prefix to get the valid ICAO24 hex code.
  */
 export const adsbLolToSearchResult = (
   aircraft: AdsbLolAircraft
@@ -2300,6 +2343,17 @@ export const adsbLolToSearchResult = (
   // Skip aircraft without position
   if (aircraft.lat === undefined || aircraft.lon === undefined) {
     return null
+  }
+
+  // Strip ~ prefix used for MLAT-derived positions and normalize to lowercase
+  let icao24Hex = aircraft.hex.toLowerCase()
+  if (icao24Hex.startsWith('~')) {
+    icao24Hex = icao24Hex.slice(1)
+  }
+
+  // Validate ICAO24 format (must be exactly 6 hex characters)
+  if (!/^[0-9a-f]{6}$/.test(icao24Hex)) {
+    return null // Skip invalid ICAO24 codes
   }
 
   // Convert altitude from feet to meters
@@ -2318,11 +2372,11 @@ export const adsbLolToSearchResult = (
     : 0
 
   return new SearchResultFlight({
-    id: `adsb-${aircraft.hex}` as SearchResultId,
+    id: `adsb-${icao24Hex}` as SearchResultId,
     source: 'adsb_lol',
     score: 1.0,
     retrievedAt: new Date(),
-    icao24: aircraft.hex.toLowerCase() as Icao24,
+    icao24: icao24Hex as Icao24,
     callsign: aircraft.flight?.trim() ?? '',
     position: [aircraft.lon, aircraft.lat, altitudeMeters],
     velocity: velocityMs,
