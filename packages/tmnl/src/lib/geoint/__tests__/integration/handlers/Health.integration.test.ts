@@ -13,7 +13,7 @@ import {
   RUN_INTEGRATION_TESTS,
   testSearchId,
   TestShardingConfig,
-  RealHandlersLayer,
+  FreshHandlersLayer,
   TIMEOUT,
 } from './helpers'
 
@@ -22,7 +22,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Health Handler Integration Tests', () =
   describe('GetSourceHealth Handler', () => {
     it('returns health status for all configured sources', async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('health-integ-1')
 
         const healthStatuses = yield* client.GetSourceHealth({})
@@ -55,7 +55,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Health Handler Integration Tests', () =
 
     it('includes expected source types', async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('health-integ-2')
 
         const healthStatuses = yield* client.GetSourceHealth({})
@@ -78,7 +78,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Health Handler Integration Tests', () =
 
     it('marks unavailable services correctly', async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('health-integ-3')
 
         const healthStatuses = yield* client.GetSourceHealth({})
@@ -110,7 +110,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Health Handler Integration Tests', () =
     for (const source of sources) {
       it(`pings ${source} source`, async () => {
         const program = Effect.gen(function* () {
-          const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+          const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
           const client = yield* makeClient(`ping-${source}`)
 
           const result = yield* client.PingSource({ source })
@@ -133,7 +133,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Health Handler Integration Tests', () =
   describe('CancelSearch Handler', () => {
     it('accepts cancel request without error', async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('cancel-integ-1')
 
         const result = yield* client.CancelSearch({
@@ -154,7 +154,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Health Handler Integration Tests', () =
 
     it('handles cancel for non-existent search', async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('cancel-integ-2')
 
         const result = yield* client.CancelSearch({

@@ -7,18 +7,15 @@
 
 import { describe, it, expect } from 'vitest'
 import { Effect } from 'effect'
-import {
-  OpenMeteoClientService,
-} from '../../../api/ExternalApiClient'
+import { OpenMeteoClientService } from '../../../api/ExternalApiClient'
 import {
   RUN_INTEGRATION_TESTS,
   SF_CENTER,
   TIMEOUT,
-  RealApiClientsLayer,
+  FreshApiClientsLayer,
 } from './helpers'
 
 describe.skipIf(!RUN_INTEGRATION_TESTS)('Open-Meteo Integration Tests', () => {
-
   describe('getForecast', () => {
     it('fetches weather forecast for San Francisco', async () => {
       const program = Effect.gen(function* () {
@@ -35,10 +32,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Open-Meteo Integration Tests', () => {
         console.log(`  Hourly points: ${forecast.hourly?.length ?? 0}`)
 
         return forecast
-      }).pipe(
-        Effect.provide(RealApiClientsLayer),
-        Effect.timeout(TIMEOUT)
-      )
+      }).pipe(Effect.provide(FreshApiClientsLayer), Effect.timeout(TIMEOUT))
 
       const forecast = await Effect.runPromise(program)
 
@@ -61,16 +55,12 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Open-Meteo Integration Tests', () => {
         console.log(`3-day forecast: ${forecast.hourly?.length ?? 0} hourly points`)
 
         return forecast
-      }).pipe(
-        Effect.provide(RealApiClientsLayer),
-        Effect.timeout(TIMEOUT)
-      )
+      }).pipe(Effect.provide(FreshApiClientsLayer), Effect.timeout(TIMEOUT))
 
       const forecast = await Effect.runPromise(program)
 
-      // 3 days = 72 hours minimum
       if (forecast.hourly) {
-        expect(forecast.hourly.length).toBeGreaterThanOrEqual(24) // At least 1 day
+        expect(forecast.hourly.length).toBeGreaterThanOrEqual(24)
       }
     })
 
@@ -85,16 +75,12 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Open-Meteo Integration Tests', () => {
         })
 
         return forecast
-      }).pipe(
-        Effect.provide(RealApiClientsLayer),
-        Effect.timeout(TIMEOUT)
-      )
+      }).pipe(Effect.provide(FreshApiClientsLayer), Effect.timeout(TIMEOUT))
 
       const forecast = await Effect.runPromise(program)
 
       if (forecast.hourly && forecast.hourly.length > 0) {
         const first = forecast.hourly[0] as any
-        // Check typical hourly data fields
         expect(first).toBeDefined()
       }
     })
@@ -110,10 +96,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Open-Meteo Integration Tests', () => {
         console.log(`Geocode results: ${response.results?.length ?? 0}`)
 
         return response
-      }).pipe(
-        Effect.provide(RealApiClientsLayer),
-        Effect.timeout(TIMEOUT)
-      )
+      }).pipe(Effect.provide(FreshApiClientsLayer), Effect.timeout(TIMEOUT))
 
       const response = await Effect.runPromise(program)
 
@@ -135,10 +118,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Open-Meteo Integration Tests', () => {
         const response = yield* client.geocode({ name: 'New York' })
 
         return response
-      }).pipe(
-        Effect.provide(RealApiClientsLayer),
-        Effect.timeout(TIMEOUT)
-      )
+      }).pipe(Effect.provide(FreshApiClientsLayer), Effect.timeout(TIMEOUT))
 
       const response = await Effect.runPromise(program)
 
@@ -158,14 +138,10 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Open-Meteo Integration Tests', () => {
         const response = yield* client.geocode({ name: 'xyznonexistentplace123' })
 
         return response
-      }).pipe(
-        Effect.provide(RealApiClientsLayer),
-        Effect.timeout(TIMEOUT)
-      )
+      }).pipe(Effect.provide(FreshApiClientsLayer), Effect.timeout(TIMEOUT))
 
       const response = await Effect.runPromise(program)
 
-      // Should return empty results, not error
       expect(response.results === undefined || response.results.length === 0).toBe(true)
     })
   })
@@ -175,7 +151,6 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Open-Meteo Integration Tests', () => {
       const program = Effect.gen(function* () {
         const client = yield* OpenMeteoClientService
 
-        // First geocode
         const geoResult = yield* client.geocode({ name: 'San Francisco' })
 
         if (!geoResult.results || geoResult.results.length === 0) {
@@ -184,7 +159,6 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Open-Meteo Integration Tests', () => {
 
         const location = geoResult.results[0]
 
-        // Then get forecast
         const forecast = yield* client.getForecast({
           latitude: location.latitude,
           longitude: location.longitude,
@@ -194,10 +168,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Open-Meteo Integration Tests', () => {
         console.log(`Weather for ${location.name}: ${forecast.timezone}`)
 
         return { location, forecast }
-      }).pipe(
-        Effect.provide(RealApiClientsLayer),
-        Effect.timeout(TIMEOUT)
-      )
+      }).pipe(Effect.provide(FreshApiClientsLayer), Effect.timeout(TIMEOUT))
 
       const result = await Effect.runPromise(program)
 

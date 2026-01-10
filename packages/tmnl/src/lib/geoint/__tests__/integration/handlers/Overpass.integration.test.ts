@@ -15,7 +15,7 @@ import {
   FISHERMANS_WHARF,
   testSearchId,
   TestShardingConfig,
-  RealHandlersLayer,
+  FreshHandlersLayer,
   LONG_TIMEOUT,
 } from './helpers'
 
@@ -24,7 +24,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Overpass Integration Tests', () => {
   describe('SearchOsm Handler', () => {
     it('fetches hospitals in San Francisco', { timeout: 90000 }, async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('overpass-integ-1')
 
         const results = yield* client.SearchOsm({
@@ -56,7 +56,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Overpass Integration Tests', () => {
 
     it('fetches restaurants at Fishermans Wharf', { timeout: 90000 }, async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('overpass-integ-2')
 
         const results = yield* client.SearchOsm({
@@ -85,7 +85,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Overpass Integration Tests', () => {
 
     it('handles multiple amenity types', { timeout: 90000 }, async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('overpass-integ-3')
 
         const results = yield* client.SearchOsm({
@@ -109,7 +109,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Overpass Integration Tests', () => {
 
     it('respects limit parameter', { timeout: 90000 }, async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('overpass-integ-4')
 
         const results = yield* client.SearchOsm({
@@ -132,7 +132,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Overpass Integration Tests', () => {
 
     it('returns POI with position data', { timeout: 90000 }, async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('overpass-integ-5')
 
         const results = yield* client.SearchOsm({
@@ -169,7 +169,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Overpass Integration Tests', () => {
   describe('PingSource Handler', () => {
     it('pings Overpass API and returns latency', async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('overpass-ping-1')
 
         const result = yield* client.PingSource({ source: 'osm' })

@@ -15,7 +15,7 @@ import {
   SF_BOUNDS,
   testSearchId,
   TestShardingConfig,
-  RealHandlersLayer,
+  FreshHandlersLayer,
   VERY_LONG_TIMEOUT,
 } from './helpers'
 
@@ -24,7 +24,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('AggregatedSearch Integration Tests', ()
   describe('Multi-Source Aggregation', () => {
     it('aggregates data from OpenSky and OSM', { timeout: 120000 }, async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('aggregated-integ-1')
 
         const query = new SearchQuery({
@@ -62,7 +62,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('AggregatedSearch Integration Tests', ()
 
     it('returns source counts for each queried source', { timeout: 120000 }, async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('aggregated-integ-2')
 
         const query = new SearchQuery({
@@ -90,7 +90,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('AggregatedSearch Integration Tests', ()
 
     it('includes execution time in response', { timeout: 120000 }, async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('aggregated-integ-3')
 
         const query = new SearchQuery({
@@ -118,7 +118,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('AggregatedSearch Integration Tests', ()
   describe('Partial Failure Handling', () => {
     it('continues when optional sources are unavailable', { timeout: 120000 }, async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('aggregated-integ-4')
 
         // Include sources that are likely unavailable (planet, sentinel)
@@ -151,7 +151,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('AggregatedSearch Integration Tests', ()
 
     it('records errors for failed sources', { timeout: 120000 }, async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('aggregated-integ-5')
 
         const query = new SearchQuery({
@@ -183,7 +183,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('AggregatedSearch Integration Tests', ()
   describe('Limit Handling', () => {
     it('respects limitPerSource parameter', { timeout: 120000 }, async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('aggregated-integ-6')
 
         const query = new SearchQuery({
@@ -214,7 +214,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('AggregatedSearch Integration Tests', ()
       const queryId = testSearchId()
 
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('aggregated-integ-7')
 
         const query = new SearchQuery({
@@ -238,7 +238,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('AggregatedSearch Integration Tests', ()
 
     it('returns truncated flag', { timeout: 120000 }, async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('aggregated-integ-8')
 
         const query = new SearchQuery({

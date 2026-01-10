@@ -14,7 +14,7 @@ import {
   SF_BOUNDS,
   testSearchId,
   TestShardingConfig,
-  RealHandlersLayer,
+  FreshHandlersLayer,
   TIMEOUT,
 } from './helpers'
 
@@ -23,7 +23,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('OpenSky Integration Tests', () => {
   describe('SearchFlights Handler', () => {
     it('fetches real flight data for San Francisco area', async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('opensky-integ-1')
 
         const results = yield* client.SearchFlights({
@@ -54,7 +54,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('OpenSky Integration Tests', () => {
 
     it('handles ICAO24 filter parameter', async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('opensky-integ-2')
 
         const results = yield* client.SearchFlights({
@@ -80,7 +80,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('OpenSky Integration Tests', () => {
       const oceanBounds = [-140.0, 25.0, -139.9, 25.1] as const
 
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('opensky-integ-3')
 
         const results = yield* client.SearchFlights({
@@ -103,7 +103,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('OpenSky Integration Tests', () => {
 
     it('respects limit parameter', async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('opensky-integ-4')
 
         const results = yield* client.SearchFlights({
@@ -127,7 +127,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('OpenSky Integration Tests', () => {
   describe('PingSource Handler', () => {
     it('pings OpenSky API and returns latency', async () => {
       const program = Effect.gen(function* () {
-        const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
+        const makeClient = yield* Entity.makeTestClient(SearchEntity, FreshHandlersLayer)
         const client = yield* makeClient('opensky-ping-1')
 
         const result = yield* client.PingSource({ source: 'opensky' })

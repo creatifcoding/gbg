@@ -54,6 +54,16 @@ export const RealApiClientsLayer = ExternalApiClientsLive.pipe(
   Layer.provide(HttpClientLive)
 )
 
+/**
+ * Fresh API clients layer - use for test isolation.
+ *
+ * Layer.fresh() ensures stateful services (CircuitBreaker, rate limiters)
+ * are rebuilt for each test, preventing state pollution between tests.
+ *
+ * Use this instead of RealApiClientsLayer when tests need isolation.
+ */
+export const FreshApiClientsLayer = Layer.fresh(RealApiClientsLayer)
+
 // Test handlers layer with real API clients
 // Use Layer.provideMerge to ensure CircuitBreakersService is available
 // when Entity.makeTestClient runs the handlers
@@ -61,6 +71,16 @@ export const RealHandlersLayer = Layer.provideMerge(
   SearchEntityHandlers,
   RealApiClientsLayer
 )
+
+/**
+ * Fresh handlers layer - use for test isolation with Entity tests.
+ *
+ * Layer.fresh() ensures stateful services (CircuitBreaker, rate limiters)
+ * and handler state are rebuilt for each test.
+ *
+ * Use this instead of RealHandlersLayer when tests need isolation.
+ */
+export const FreshHandlersLayer = Layer.fresh(RealHandlersLayer)
 
 // Timeouts
 export const TIMEOUT = Duration.seconds(60)

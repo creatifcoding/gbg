@@ -64,6 +64,9 @@ const TEST_TIMEOUT = 60000
 // Combined API clients layer with CircuitBreakers dependency
 const RealApiClientsLayer = ExternalApiClientsLive.pipe(Layer.provide(HttpClientLive))
 
+// Fresh API clients layer for test isolation
+const FreshApiClientsLayer = Layer.fresh(RealApiClientsLayer)
+
 // =============================================================================
 // Mock API Clients
 // =============================================================================
@@ -369,7 +372,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Repository-First Pattern Integration', 
 
         // Layer with mock repo AND real OpenSky client
         const mockFlightRepo = createMockFlightRepository(flightState)
-        const apiLayer = RealApiClientsLayer
+        const apiLayer = FreshApiClientsLayer
 
         const testLayer = SearchEntityHandlers.pipe(
           Layer.provide(mockFlightRepo),
@@ -412,7 +415,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Repository-First Pattern Integration', 
         })
 
         const mockPoiRepo = createMockPoiRepository(poiState)
-        const apiLayer = RealApiClientsLayer
+        const apiLayer = FreshApiClientsLayer
 
         const testLayer = SearchEntityHandlers.pipe(
           Layer.provide(mockPoiRepo),
@@ -467,7 +470,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Repository-First Pattern Integration', 
         })
 
         const mockFlightRepo = createMockFlightRepository(flightState)
-        const apiLayer = RealApiClientsLayer
+        const apiLayer = FreshApiClientsLayer
 
         const testLayer = SearchEntityHandlers.pipe(
           Layer.provide(mockFlightRepo),
@@ -510,7 +513,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Repository-First Pattern Integration', 
         const repoCallVerified = yield* Ref.make(false)
 
         const mockPoiRepo = createMockPoiRepository(poiState)
-        const apiLayer = RealApiClientsLayer
+        const apiLayer = FreshApiClientsLayer
 
         const testLayer = SearchEntityHandlers.pipe(
           Layer.provide(mockPoiRepo),
@@ -557,7 +560,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Repository-First Pattern Integration', 
     it('queries real FlightRepository from PostGIS', async () => {
       const program = Effect.gen(function* () {
         // Use real repository with database
-        const apiLayer = RealApiClientsLayer
+        const apiLayer = FreshApiClientsLayer
 
         const testLayer = SearchEntityHandlers.pipe(
           Layer.provide(FlightRepositoryLive),
@@ -589,7 +592,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Repository-First Pattern Integration', 
 
     it('queries real PoiRepository from PostGIS', async () => {
       const program = Effect.gen(function* () {
-        const apiLayer = RealApiClientsLayer
+        const apiLayer = FreshApiClientsLayer
 
         const testLayer = SearchEntityHandlers.pipe(
           Layer.provide(PoiRepositoryLive),
