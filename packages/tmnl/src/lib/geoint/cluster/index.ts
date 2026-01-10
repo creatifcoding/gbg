@@ -5,6 +5,7 @@
  * - SearchEntity for sharded search operations
  * - Handlers with fan-out/fan-in aggregation pattern
  * - Health monitoring for source availability
+ * - Containerized cluster nodes for horizontal scaling
  *
  * @see beads:tmnl-j5139 Effect Cluster: Distributed Search Processing
  * @module
@@ -50,3 +51,7 @@ export {
   SearchEntityHandlers,
   SearchEntityLayer,
 } from './SearchEntityHandlers'
+
+// Cluster Node Entry Point (for containerized deployment)
+// Import and run via: bun run src/lib/geoint/cluster/cluster-node.ts
+// Or build with: bun build src/lib/geoint/cluster/cluster-node.ts --outdir dist --target bun
