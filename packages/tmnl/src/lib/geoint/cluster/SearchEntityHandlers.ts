@@ -15,7 +15,7 @@
  * @module
  */
 
-import { Effect, Stream, Option, pipe, DateTime } from 'effect'
+import { Effect, Stream, Option, pipe, DateTime, Duration } from 'effect'
 import {
   SearchEntity,
   SearchEntityError,
@@ -1195,12 +1195,18 @@ export const SearchEntityHandlers = SearchEntity.toLayer(
           let available = true
           let lastError: string | undefined
 
+          // Ping timeout: 30 seconds per external API call
+          const PING_TIMEOUT = Duration.seconds(30)
+
           if (source === 'opensky') {
             yield* opensky.getStates({}).pipe(
+              Effect.timeout(PING_TIMEOUT),
               Effect.catchAll((error) =>
                 Effect.gen(function* () {
                   available = false
-                  lastError = error._tag
+                  lastError = typeof error === 'object' && error !== null && '_tag' in error
+                    ? String(error._tag)
+                    : 'TimeoutError'
                   return { time: 0, states: null }
                 })
               )
@@ -1208,10 +1214,13 @@ export const SearchEntityHandlers = SearchEntity.toLayer(
           } else if (source === 'osm') {
             // Simple health check query for Overpass
             yield* overpass.query('[out:json][timeout:5];node(1);out;').pipe(
+              Effect.timeout(PING_TIMEOUT),
               Effect.catchAll((error) =>
                 Effect.gen(function* () {
                   available = false
-                  lastError = error._tag
+                  lastError = typeof error === 'object' && error !== null && '_tag' in error
+                    ? String(error._tag)
+                    : 'TimeoutError'
                   return { elements: [], version: 0, generator: '', osm3s: { timestamp_osm_base: '', copyright: '' } }
                 })
               )
@@ -1228,10 +1237,13 @@ export const SearchEntityHandlers = SearchEntity.toLayer(
                 geometry: { type: 'Point', coordinates: [0, 0] },
                 limit: 1,
               }).pipe(
+                Effect.timeout(PING_TIMEOUT),
                 Effect.catchAll((error) =>
                   Effect.gen(function* () {
                     available = false
-                    lastError = error._tag
+                    lastError = typeof error === 'object' && error !== null && '_tag' in error
+                      ? String(error._tag)
+                      : 'TimeoutError'
                     return { items: [], selfUrl: '' }
                   })
                 )
@@ -1248,10 +1260,13 @@ export const SearchEntityHandlers = SearchEntity.toLayer(
                 bbox: [0, 0, 1, 1],
                 limit: 1,
               }).pipe(
+                Effect.timeout(PING_TIMEOUT),
                 Effect.catchAll((error) =>
                   Effect.gen(function* () {
                     available = false
-                    lastError = error._tag
+                    lastError = typeof error === 'object' && error !== null && '_tag' in error
+                      ? String(error._tag)
+                      : 'TimeoutError'
                     return { items: [] }
                   })
                 )
@@ -1268,10 +1283,13 @@ export const SearchEntityHandlers = SearchEntity.toLayer(
                 longitude: 0,
                 current: true,
               }).pipe(
+                Effect.timeout(PING_TIMEOUT),
                 Effect.catchAll((error) =>
                   Effect.gen(function* () {
                     available = false
-                    lastError = error._tag
+                    lastError = typeof error === 'object' && error !== null && '_tag' in error
+                      ? String(error._tag)
+                      : 'TimeoutError'
                     return { latitude: 0, longitude: 0 }
                   })
                 )

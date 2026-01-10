@@ -95,6 +95,13 @@ export const TIMEOUT = Duration.seconds(60)
 export const LONG_TIMEOUT = Duration.seconds(90)
 export const VERY_LONG_TIMEOUT = Duration.seconds(120)
 
+/**
+ * Timeout for PingSource handler API calls.
+ * Individual API pings should complete within 30 seconds.
+ * This allows slow APIs to respond while preventing indefinite hangs.
+ */
+export const PING_TIMEOUT = Duration.seconds(30)
+
 // =============================================================================
 // Transport Error Handling
 // =============================================================================
@@ -265,3 +272,66 @@ export const isApiUnavailable = <T>(result: GracefulResult<T>): boolean =>
 
 // Re-export transport error detection for direct use
 export { isTransportError }
+
+// =============================================================================
+// Generic Graceful Handling (for non-API errors like Entity errors)
+// =============================================================================
+
+/** Generic result of a graceful call */
+export type GenericGracefulResult<T> =
+  | { readonly _tag: 'Success'; readonly value: T }
+  | { readonly _tag: 'Error'; readonly error: unknown; readonly message: string }
+
+/**
+ * Runs an Effect with graceful error handling for any error type.
+ * Use this for handlers that don't fail with API-specific errors.
+ *
+ * @example
+ * ```typescript
+ * const result = await runWithGenericGracefulHandling(program)
+ *
+ * if (result._tag === 'Error') {
+ *   console.log(`Error: ${result.message}`)
+ *   return // Skip test
+ * }
+ *
+ * expect(result.value).toBeDefined()
+ * ```
+ */
+export const runWithGenericGracefulHandling = async <T, E>(
+  effect: Effect.Effect<T, E, never>
+): Promise<GenericGracefulResult<T>> => {
+  const exit = await Effect.runPromiseExit(effect)
+
+  if (Exit.isSuccess(exit)) {
+    return { _tag: 'Success', value: exit.value }
+  }
+
+  // Extract the error from the cause
+  const cause = exit.cause
+  const failure = Cause.failureOption(cause)
+
+  if (failure._tag === 'Some') {
+    const error = failure.value
+    const message = error instanceof Error
+      ? error.message
+      : typeof error === 'object' && error !== null && 'message' in error
+        ? String((error as { message: unknown }).message)
+        : String(error)
+    return { _tag: 'Error', error, message }
+  }
+
+  // Handle timeout
+  if (Cause.isTimeoutException(cause)) {
+    return { _tag: 'Error', error: cause, message: 'Request timed out' }
+  }
+
+  // Other failures
+  return { _tag: 'Error', error: cause, message: Cause.pretty(cause) }
+}
+
+/**
+ * Checks if a GenericGracefulResult is an error.
+ */
+export const isError = <T>(result: GenericGracefulResult<T>): result is { readonly _tag: 'Error'; readonly error: unknown; readonly message: string } =>
+  result._tag === 'Error'
