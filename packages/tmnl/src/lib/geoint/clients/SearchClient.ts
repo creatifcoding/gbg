@@ -33,13 +33,12 @@ import {
   SearchHistoryEntry,
   // Primitives
   BBox,
-  Position
+  Position,
+  // Ingestion schemas
+  IngesterNameSchema,
+  IngesterStatusSchema,
+  OrchestratorStatusSchema,
 } from '../schemas'
-import {
-  IngesterStatus,
-  OrchestratorStatus,
-  type IngesterName,
-} from '../ingestion'
 
 // =============================================================================
 // RPC Definitions
@@ -287,7 +286,7 @@ export class SearchRpcs extends RpcGroup.make(
    */
   Rpc.make('startIngestion', {
     payload: Schema.Struct({}),
-    success: OrchestratorStatus
+    success: OrchestratorStatusSchema
   }),
 
   /**
@@ -295,7 +294,7 @@ export class SearchRpcs extends RpcGroup.make(
    */
   Rpc.make('stopIngestion', {
     payload: Schema.Struct({}),
-    success: OrchestratorStatus
+    success: OrchestratorStatusSchema
   }),
 
   /**
@@ -303,7 +302,7 @@ export class SearchRpcs extends RpcGroup.make(
    */
   Rpc.make('getIngestionStatus', {
     payload: Schema.Struct({}),
-    success: OrchestratorStatus
+    success: OrchestratorStatusSchema
   }),
 
   /**
@@ -311,9 +310,9 @@ export class SearchRpcs extends RpcGroup.make(
    */
   Rpc.make('startIngester', {
     payload: Schema.Struct({
-      name: Schema.Literal('flight', 'osm', 'weather', 'imagery')
+      name: IngesterNameSchema
     }),
-    success: IngesterStatus
+    success: IngesterStatusSchema
   }),
 
   /**
@@ -321,9 +320,9 @@ export class SearchRpcs extends RpcGroup.make(
    */
   Rpc.make('stopIngester', {
     payload: Schema.Struct({
-      name: Schema.Literal('flight', 'osm', 'weather', 'imagery')
+      name: IngesterNameSchema
     }),
-    success: IngesterStatus
+    success: IngesterStatusSchema
   })
 ) {}
 

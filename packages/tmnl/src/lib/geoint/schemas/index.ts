@@ -219,3 +219,67 @@ export type {
   SearchResultItem as SearchResultItemType,
   SearchEvent as SearchEventType
 } from './search'
+
+// Error schemas (TaggedError pattern) - Typed error handling
+export {
+  // Category enum
+  SearchErrorCategory,
+  isRecoverable,
+  // Error classes
+  SearchNetworkError,
+  SearchTimeoutError,
+  SearchRateLimitError,
+  SearchServerError,
+  SearchValidationError,
+  SearchNotFoundError,
+  SearchAuthError,
+  SearchUnknownError,
+  // Serializable data
+  SearchErrorData,
+  // Utilities
+  toSearchErrorData,
+  parseError,
+  createErrorState,
+  incrementRetry,
+} from './errors'
+export type {
+  SearchErrorCategory as SearchErrorCategoryType,
+  SearchError,
+  SearchErrorState,
+} from './errors'
+
+// Ingestion schemas (TaggedRequest + TaggedError pattern) - Background data polling
+export {
+  // Ingester name
+  IngesterNameSchema,
+  // Error category enum
+  IngestionErrorCategory,
+  // Error classes
+  IngestionNotConfiguredError,
+  IngestionAlreadyRunningError,
+  IngestionNotRunningError,
+  IngestionStartError,
+  IngestionStopError,
+  IngesterNotFoundError,
+  IngestionUnknownError,
+  // Tagged requests
+  StartIngestionRequest,
+  StopIngestionRequest,
+  GetIngestionStatusRequest,
+  StartIngesterRequest,
+  StopIngesterRequest,
+  // Response schemas
+  IngesterStatusSchema,
+  OrchestratorStatusSchema,
+  // Utilities
+  parseIngestionError,
+  notConfiguredStatus,
+  ingesterNotFoundStatus,
+} from './ingestion'
+export type {
+  IngesterName,
+  IngestionErrorCategory as IngestionErrorCategoryType,
+  IngestionError,
+  IngesterStatus,
+  OrchestratorStatus,
+} from './ingestion'

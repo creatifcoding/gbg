@@ -74,10 +74,13 @@ import { parseError, type SearchError } from '../schemas/errors'
 import {
   IngestionOrchestratorTag,
   IngestionPipelineLive,
-  type IngesterName,
-  type OrchestratorStatus,
-  type IngesterStatus,
 } from '../ingestion'
+import {
+  type IngesterName,
+  notConfiguredStatus,
+  ingesterNotFoundStatus,
+  parseIngestionError,
+} from '../schemas/ingestion'
 
 // =============================================================================
 // Types
@@ -927,18 +930,15 @@ const SearchRpcHandlers = Effect.gen(function* () {
       Effect.gen(function* () {
         if (Option.isNone(orchestratorOption)) {
           yield* Effect.logWarning('[Ingestion] Orchestrator not configured')
-          return {
-            running: false,
-            ingesters: [],
-            startedAt: Option.none(),
-          } satisfies OrchestratorStatus
+          return notConfiguredStatus()
         }
 
         const orchestrator = orchestratorOption.value
         yield* orchestrator.start().pipe(
-          Effect.catchAll((e) =>
-            Effect.logError(`[Ingestion] Failed to start: ${e.message}`)
-          )
+          Effect.catchAll((e) => {
+            const ingestionError = parseIngestionError(e)
+            return Effect.logError(`[Ingestion] ${ingestionError.userMessage}`)
+          })
         )
         return yield* orchestrator.status()
       }),
@@ -947,18 +947,15 @@ const SearchRpcHandlers = Effect.gen(function* () {
       Effect.gen(function* () {
         if (Option.isNone(orchestratorOption)) {
           yield* Effect.logWarning('[Ingestion] Orchestrator not configured')
-          return {
-            running: false,
-            ingesters: [],
-            startedAt: Option.none(),
-          } satisfies OrchestratorStatus
+          return notConfiguredStatus()
         }
 
         const orchestrator = orchestratorOption.value
         yield* orchestrator.stop().pipe(
-          Effect.catchAll((e) =>
-            Effect.logError(`[Ingestion] Failed to stop: ${e.message}`)
-          )
+          Effect.catchAll((e) => {
+            const ingestionError = parseIngestionError(e)
+            return Effect.logError(`[Ingestion] ${ingestionError.userMessage}`)
+          })
         )
         return yield* orchestrator.status()
       }),
@@ -966,11 +963,7 @@ const SearchRpcHandlers = Effect.gen(function* () {
     getIngestionStatus: (_request: {}) =>
       Effect.gen(function* () {
         if (Option.isNone(orchestratorOption)) {
-          return {
-            running: false,
-            ingesters: [],
-            startedAt: Option.none(),
-          } satisfies OrchestratorStatus
+          return notConfiguredStatus()
         }
 
         return yield* orchestratorOption.value.status()
@@ -980,52 +973,40 @@ const SearchRpcHandlers = Effect.gen(function* () {
       Effect.gen(function* () {
         if (Option.isNone(orchestratorOption)) {
           yield* Effect.logWarning(`[Ingestion] Orchestrator not configured, cannot start ${request.name}`)
-          return {
-            name: request.name,
-            running: false,
-            startedAt: Option.none(),
-            error: Option.some('Orchestrator not configured'),
-          } satisfies IngesterStatus
+          return ingesterNotFoundStatus(request.name)
         }
 
         const orchestrator = orchestratorOption.value
         yield* orchestrator.startIngester(request.name).pipe(
-          Effect.catchAll((e) =>
-            Effect.logError(`[Ingestion] Failed to start ${request.name}: ${e.message}`)
-          )
+          Effect.catchAll((e) => {
+            const ingestionError = parseIngestionError(e)
+            return Effect.logError(`[Ingestion] ${ingestionError.userMessage}`)
+          })
         )
         const status = yield* orchestrator.status()
         const ingesterStatus = status.ingesters.find((i) => i.name === request.name)
 
-        return ingesterStatus ?? {
-          name: request.name,
-          running: false,
-          startedAt: Option.none(),
-          error: Option.some('Ingester not found'),
-        }
+        return ingesterStatus ?? ingesterNotFoundStatus(request.name)
       }),
 
     stopIngester: (request: { name: IngesterName }) =>
       Effect.gen(function* () {
         if (Option.isNone(orchestratorOption)) {
           yield* Effect.logWarning(`[Ingestion] Orchestrator not configured, cannot stop ${request.name}`)
-          return {
-            name: request.name,
-            running: false,
-            startedAt: Option.none(),
-            error: Option.some('Orchestrator not configured'),
-          } satisfies IngesterStatus
+          return ingesterNotFoundStatus(request.name)
         }
 
         const orchestrator = orchestratorOption.value
         yield* orchestrator.stopIngester(request.name).pipe(
-          Effect.catchAll((e) =>
-            Effect.logError(`[Ingestion] Failed to stop ${request.name}: ${e.message}`)
-          )
+          Effect.catchAll((e) => {
+            const ingestionError = parseIngestionError(e)
+            return Effect.logError(`[Ingestion] ${ingestionError.userMessage}`)
+          })
         )
         const status = yield* orchestrator.status()
         const ingesterStatus = status.ingesters.find((i) => i.name === request.name)
 
+        // For stop, return stopped status if not found (already stopped)
         return ingesterStatus ?? {
           name: request.name,
           running: false,
