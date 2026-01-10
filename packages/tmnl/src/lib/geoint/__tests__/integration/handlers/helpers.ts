@@ -3,9 +3,11 @@
  *
  * Provides common configuration and utilities for integration tests
  * that call real external APIs.
+ *
+ * @module geoint/__tests__/integration/handlers/helpers
  */
 
-import { Layer, Duration } from 'effect'
+import { Layer, Duration, Effect, Exit, Cause } from 'effect'
 import { ShardingConfig } from '@effect/cluster'
 import { FetchHttpClient } from '@effect/platform'
 import {
@@ -14,7 +16,13 @@ import {
   AdsbLolClientLive,
   OpenMeteoClientLive,
   ExternalApiClientsLive,
+  ExternalApiError,
+  RateLimitError,
+  TimeoutError,
 } from '../../../api/ExternalApiClient'
+import { CircuitOpenError } from '../../../api/circuit-breaker'
+import { isTransportError } from '../../../api/retry'
+import { TimeoutException } from 'effect/Cause'
 import { SearchEntityHandlers } from '../../../cluster/SearchEntityHandlers'
 import type { SearchId, BBox } from '../../../schemas'
 
@@ -86,3 +94,174 @@ export const FreshHandlersLayer = Layer.fresh(RealHandlersLayer)
 export const TIMEOUT = Duration.seconds(60)
 export const LONG_TIMEOUT = Duration.seconds(90)
 export const VERY_LONG_TIMEOUT = Duration.seconds(120)
+
+// =============================================================================
+// Transport Error Handling
+// =============================================================================
+
+/**
+ * All possible API error types from external API clients.
+ * Includes Effect-native errors like TimeoutException.
+ */
+export type ApiError =
+  | ExternalApiError
+  | RateLimitError
+  | TimeoutError
+  | CircuitOpenError
+  | TimeoutException
+
+/** Result of a graceful API call */
+export type GracefulResult<T> =
+  | { readonly _tag: 'Success'; readonly value: T }
+  | { readonly _tag: 'TransportError'; readonly message: string }
+  | { readonly _tag: 'ApiError'; readonly error: ApiError }
+
+/**
+ * Determines if an API error indicates the service is unavailable.
+ *
+ * Includes:
+ * - Transport errors (ECONNREFUSED, ENOTFOUND, etc.)
+ * - Circuit breaker open (previous failures triggered protection)
+ * - Effect timeout exceptions
+ */
+const isServiceUnavailable = (error: ApiError): boolean => {
+  // Handle tagged errors
+  if ('_tag' in error) {
+    switch (error._tag) {
+      case 'ExternalApiError':
+        // Check if this is a transport-level error (no HTTP response received)
+        return isTransportError(error)
+      case 'CircuitOpenError':
+        // Circuit is open due to previous failures - treat as unavailable
+        return true
+      case 'TimeoutError':
+        // Our custom timeout error
+        return true
+      default:
+        return false
+    }
+  }
+
+  // Check for Effect's TimeoutException (has special structure)
+  if (Cause.isTimeoutException(error as unknown as Cause.Cause<unknown>)) {
+    return true
+  }
+
+  return false
+}
+
+/**
+ * Wraps an Effect that may fail with API errors and handles transport errors gracefully.
+ *
+ * Transport errors (ECONNREFUSED, ENOTFOUND, circuit breaker open, etc.) are converted
+ * to a tagged result that can be used to skip tests rather than fail them. This is useful
+ * for integration tests that depend on external APIs that may be temporarily unavailable.
+ *
+ * @example
+ * ```typescript
+ * const program = Effect.gen(function* () {
+ *   const client = yield* AdsbLolClientService
+ *   return yield* client.getByPoint({ lat: 37.6, lon: -122.4, radiusNm: 50 })
+ * }).pipe(Effect.provide(FreshApiClientsLayer))
+ *
+ * const result = await runWithGracefulTransportHandling(program)
+ *
+ * if (result._tag === 'TransportError') {
+ *   console.log(`Skipping: ${result.message}`)
+ *   return // Test skipped gracefully
+ * }
+ * if (result._tag === 'ApiError') {
+ *   throw result.error // Normal test failure
+ * }
+ * // result._tag === 'Success'
+ * expect(result.value.timestamp).toBeDefined()
+ * ```
+ */
+export const runWithGracefulTransportHandling = async <T>(
+  effect: Effect.Effect<T, ApiError, never>
+): Promise<GracefulResult<T>> => {
+  const exit = await Effect.runPromiseExit(effect)
+
+  if (Exit.isSuccess(exit)) {
+    return { _tag: 'Success', value: exit.value }
+  }
+
+  // Extract the error from the cause
+  const cause = exit.cause
+  const failure = Cause.failureOption(cause)
+
+  if (failure._tag === 'Some') {
+    const error = failure.value
+    if (isServiceUnavailable(error)) {
+      const message = 'message' in error ? String(error.message) : String(error)
+      return {
+        _tag: 'TransportError',
+        message,
+      }
+    }
+    return { _tag: 'ApiError', error }
+  }
+
+  // Check for timeout in the cause (TimeoutException is often in Cause)
+  if (Cause.isTimeoutException(cause)) {
+    return {
+      _tag: 'TransportError',
+      message: 'Request timed out',
+    }
+  }
+
+  // Defects or interruptions - re-throw
+  return {
+    _tag: 'ApiError',
+    error: new ExternalApiError({
+      source: 'unknown',
+      statusCode: 0,
+      message: `Unexpected failure: ${Cause.pretty(cause)}`,
+      retryable: false,
+    }),
+  }
+}
+
+/**
+ * Asserts that a GracefulResult is successful and returns the value.
+ * Throws if the result is an error.
+ *
+ * @example
+ * ```typescript
+ * const result = await runWithGracefulTransportHandling(program)
+ * const response = assertSuccess(result)
+ * expect(response.timestamp).toBeDefined()
+ * ```
+ */
+export const assertSuccess = <T>(result: GracefulResult<T>): T => {
+  if (result._tag === 'Success') {
+    return result.value
+  }
+  if (result._tag === 'TransportError') {
+    throw new Error(`Transport error (API unavailable): ${result.message}`)
+  }
+  throw result.error
+}
+
+/**
+ * Checks if a GracefulResult indicates the API is unavailable due to transport errors.
+ * Use this to skip tests gracefully when external APIs are unreachable.
+ *
+ * @example
+ * ```typescript
+ * const result = await runWithGracefulTransportHandling(program)
+ *
+ * if (isApiUnavailable(result)) {
+ *   console.log('API unavailable, skipping test')
+ *   return // Skip without failure
+ * }
+ *
+ * const response = assertSuccess(result)
+ * expect(response).toBeDefined()
+ * ```
+ */
+export const isApiUnavailable = <T>(result: GracefulResult<T>): boolean =>
+  result._tag === 'TransportError'
+
+// Re-export transport error detection for direct use
+export { isTransportError }

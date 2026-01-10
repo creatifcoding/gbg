@@ -3,6 +3,11 @@
  *
  * Tests real ADSB.lol API calls for flight data.
  * Run with: RUN_INTEGRATION_TESTS=1 bun test AdsbLol.integration
+ *
+ * Transport errors (ECONNREFUSED, network issues) are handled gracefully -
+ * tests will skip rather than fail when the API is unreachable.
+ *
+ * @see beads:tmnl-q0hzh Handle ADSB.lol transport errors gracefully in tests
  */
 
 import { describe, it, expect } from 'vitest'
@@ -16,6 +21,8 @@ import {
   SFO_AIRPORT,
   TIMEOUT,
   FreshApiClientsLayer,
+  runWithGracefulTransportHandling,
+  isApiUnavailable,
 } from './helpers'
 
 describe.skipIf(!RUN_INTEGRATION_TESTS)('ADSB.lol Integration Tests', () => {
@@ -38,8 +45,19 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('ADSB.lol Integration Tests', () => {
         Effect.timeout(TIMEOUT)
       )
 
-      const response = await Effect.runPromise(program)
+      // Handle transport errors gracefully
+      const result = await runWithGracefulTransportHandling(program)
 
+      if (isApiUnavailable(result)) {
+        console.log(`  [SKIPPED] API unavailable: ${result._tag === 'TransportError' ? result.message : ''}`)
+        return // Skip test gracefully when API is unreachable
+      }
+
+      if (result._tag === 'ApiError') {
+        throw result.error
+      }
+
+      const response = result.value
       expect(response.timestamp).toBeDefined()
       expect(Array.isArray(response.aircraft) || response.aircraft === undefined).toBe(true)
 
@@ -73,8 +91,15 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('ADSB.lol Integration Tests', () => {
         Effect.timeout(TIMEOUT)
       )
 
-      const response = await Effect.runPromise(program)
-      expect(response.timestamp).toBeDefined()
+      const result = await runWithGracefulTransportHandling(program)
+
+      if (isApiUnavailable(result)) {
+        console.log('  [SKIPPED] API unavailable')
+        return
+      }
+
+      if (result._tag !== 'Success') throw result._tag === 'ApiError' ? result.error : new Error(result.message)
+      expect(result.value.timestamp).toBeDefined()
     })
   })
 
@@ -92,11 +117,17 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('ADSB.lol Integration Tests', () => {
         Effect.timeout(TIMEOUT)
       )
 
-      const response = await Effect.runPromise(program)
+      const result = await runWithGracefulTransportHandling(program)
 
-      expect(response.timestamp).toBeDefined()
+      if (isApiUnavailable(result)) {
+        console.log('  [SKIPPED] API unavailable')
+        return
+      }
+
+      if (result._tag !== 'Success') throw result._tag === 'ApiError' ? result.error : new Error(result.message)
+      expect(result.value.timestamp).toBeDefined()
       // Military feed might be empty, but should return valid structure
-      expect(Array.isArray(response.aircraft) || response.aircraft === undefined).toBe(true)
+      expect(Array.isArray(result.value.aircraft) || result.value.aircraft === undefined).toBe(true)
     })
   })
 
@@ -115,8 +146,15 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('ADSB.lol Integration Tests', () => {
         Effect.timeout(TIMEOUT)
       )
 
-      const response = await Effect.runPromise(program)
-      expect(response.timestamp).toBeDefined()
+      const result = await runWithGracefulTransportHandling(program)
+
+      if (isApiUnavailable(result)) {
+        console.log('  [SKIPPED] API unavailable')
+        return
+      }
+
+      if (result._tag !== 'Success') throw result._tag === 'ApiError' ? result.error : new Error(result.message)
+      expect(result.value.timestamp).toBeDefined()
     })
   })
 
@@ -135,8 +173,15 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('ADSB.lol Integration Tests', () => {
         Effect.timeout(TIMEOUT)
       )
 
-      const response = await Effect.runPromise(program)
-      expect(response.timestamp).toBeDefined()
+      const result = await runWithGracefulTransportHandling(program)
+
+      if (isApiUnavailable(result)) {
+        console.log('  [SKIPPED] API unavailable')
+        return
+      }
+
+      if (result._tag !== 'Success') throw result._tag === 'ApiError' ? result.error : new Error(result.message)
+      expect(result.value.timestamp).toBeDefined()
     })
   })
 
@@ -155,8 +200,15 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('ADSB.lol Integration Tests', () => {
         Effect.timeout(TIMEOUT)
       )
 
-      const response = await Effect.runPromise(program)
-      expect(response.timestamp).toBeDefined()
+      const result = await runWithGracefulTransportHandling(program)
+
+      if (isApiUnavailable(result)) {
+        console.log('  [SKIPPED] API unavailable')
+        return
+      }
+
+      if (result._tag !== 'Success') throw result._tag === 'ApiError' ? result.error : new Error(result.message)
+      expect(result.value.timestamp).toBeDefined()
     })
   })
 
@@ -188,7 +240,15 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('ADSB.lol Integration Tests', () => {
         Effect.timeout(TIMEOUT)
       )
 
-      const results = await Effect.runPromise(program)
+      const result = await runWithGracefulTransportHandling(program)
+
+      if (isApiUnavailable(result)) {
+        console.log('  [SKIPPED] API unavailable')
+        return
+      }
+
+      if (result._tag !== 'Success') throw result._tag === 'ApiError' ? result.error : new Error(result.message)
+      const results = result.value
 
       if (results && results.length > 0) {
         const first = results[0]
