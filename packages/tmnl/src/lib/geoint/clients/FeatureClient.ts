@@ -135,7 +135,7 @@ export class FeatureClient extends AtomRpc.Tag<FeatureClient>()(
     group: FeatureRpcs,
     protocol: RpcClient.layerProtocolSocket({ retryTransientErrors: true }).pipe(
       Layer.provide(RpcSerialization.layerJson),
-      Layer.provide(Socket.layerWebSocket('ws://localhost:8080/geoint/features')),
+      Layer.provide(Socket.layerWebSocket('ws://localhost:8081/geoint/features')),
       Layer.provide(Socket.layerWebSocketConstructorGlobal)
     ),
     spanPrefix: 'geoint-features'

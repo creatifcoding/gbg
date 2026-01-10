@@ -808,23 +808,32 @@ export const SearchRpcHandlersLayer = SearchRpcs.toLayer(SearchRpcHandlers)
 /**
  * Complete search RPC server layer with WebSocket protocol
  *
+ * Uses RpcServer.layerProtocolWebsocketRouter for proper integration
+ * with HttpLayerRouter and BunHttpServer.
+ *
  * @example
  * ```typescript
- * // Start the server
- * Effect.runFork(
- *   Layer.launch(SearchRpcServerLayer).pipe(
- *     Effect.provide(NodeHttpServer.layer({ port: 8080 }))
- *   )
+ * // Start the server with HttpRouter.Default.serve()
+ * const ServerLive = HttpRouter.Default.serve().pipe(
+ *   Layer.provide(SearchRpcServerLayer),
+ *   Layer.provide(BunHttpServer.layer({ port: 8081 })),
+ *   Layer.provide(BunContext.layer)
  * )
+ * BunRuntime.runMain(Layer.launch(ServerLive))
  * ```
  */
 export const SearchRpcServerLayer = pipe(
   RpcServer.layer(SearchRpcs),
   Layer.provide(SearchRpcHandlersLayer),
-  Layer.provideMerge(RpcServer.layerProtocolWebsocket({ path: '/geoint/search' })),
+  Layer.provideMerge(RpcServer.layerProtocolWebsocketRouter({ path: '/geoint/search' })),
   Layer.provide(RpcSerialization.layerJson),
-  Layer.provide(ExternalApiClientsLive),
-  Layer.provide(FetchHttpClient.layer),
+  // ExternalApiClientsLive depends on HttpClient.HttpClient from FetchHttpClient
+  // The dependency order is: SearchRpcHandlersLayer -> ExternalApiClientsLive -> FetchHttpClient
+  Layer.provide(
+    ExternalApiClientsLive.pipe(
+      Layer.provide(FetchHttpClient.layer)
+    )
+  ),
 )
 
 // Note: SearchRpcHandlers, SearchRpcHandlersLayer, SearchRpcServerLayer

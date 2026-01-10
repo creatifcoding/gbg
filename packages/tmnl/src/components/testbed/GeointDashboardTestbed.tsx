@@ -16,7 +16,7 @@
  * @module testbed/GeointDashboardTestbed
  */
 
-import { FC, useState, useCallback, useRef } from 'react'
+import { FC, useState, useCallback, useRef, useEffect } from 'react'
 // Note: useState used in demo components below
 import { Effect } from 'effect'
 import {
@@ -24,12 +24,17 @@ import {
   GeointShell,
   SearchPanelCompound,
   VirtualizedResultsList,
+  VirtualizedResultsListV2,
+  EntityDetailPanelV2,
+  SearchHydrationBridge,
+  SearchErrorDisplay,
   CommandPalette,
   createGeointCommands,
   GeointKeyboardProvider,
   GEOINT_BINDINGS,
   GEOINT_CATEGORIES,
 } from '@/lib/geoint/components'
+import { KoriBridgeProvider } from '@/lib/geoint/hooks'
 import { type LayoutMode } from '@/lib/geoint/atoms/layoutAtoms'
 import { executeLayoutTransition, type TransitionPhase } from '@/lib/geoint/animation'
 import {
@@ -68,6 +73,8 @@ import { SOURCE_COLORS } from '@/lib/geoint/tokens'
 // =============================================================================
 
 export const GeointDashboardTestbed: FC = () => {
+  const [hydrationCount, setHydrationCount] = useState(0)
+
   const handleSearch = useCallback((bounds: BBox, sources: IntelSource[]) => {
     console.log('[GEOINT] Search:', { bounds: bounds.map(n => n.toFixed(2)), sources })
   }, [])
@@ -76,24 +83,53 @@ export const GeointDashboardTestbed: FC = () => {
     console.log('[GEOINT] Selected:', result._tag, result.id)
   }, [])
 
+  const handleHydrated = useCallback((count: number) => {
+    setHydrationCount(count)
+    console.log('[GEOINT] Entities hydrated:', count)
+  }, [])
+
+  const handleHydrationError = useCallback((error: Error) => {
+    console.error('[GEOINT] Hydration error:', error)
+  }, [])
+
   return (
-    <GeointRegistryProvider>
-      <div className="h-screen w-screen overflow-hidden bg-surface-0">
-        <GeointDashboard
-          initialLayout="command"
-          instanceId="testbed"
-          searchProps={{
-            onSearch: handleSearch,
-            onResultSelect: handleResultSelect,
-          }}
-          headerSlot={
-            <div className="text-sm text-text-tertiary">
-              Testbed Mode · Shortcuts: ⌘1/2/3 layouts, ⌘B/E/L panels
-            </div>
-          }
+    <KoriBridgeProvider>
+      <GeointRegistryProvider>
+        {/* Kori bridge - auto-hydrates entities from search results */}
+        <SearchHydrationBridge
+          enabled
+          clearStale
+          onHydrated={handleHydrated}
+          onError={handleHydrationError}
         />
-      </div>
-    </GeointRegistryProvider>
+
+        {/* Error display - shows typed search errors with retry UI */}
+        <div className="fixed top-16 right-4 z-50 max-w-sm">
+          <SearchErrorDisplay autoRetry />
+        </div>
+
+        <div className="h-screen w-screen overflow-hidden bg-surface-0">
+          <GeointDashboard
+            initialLayout="command"
+            instanceId="testbed"
+            searchProps={{
+              onSearch: handleSearch,
+              onResultSelect: handleResultSelect,
+            }}
+            headerSlot={
+              <div className="flex items-center gap-4 text-sm text-text-tertiary">
+                <span>Testbed Mode · Shortcuts: ⌘1/2/3 layouts, ⌘B/E/L panels</span>
+                {hydrationCount > 0 && (
+                  <span className="text-accent-primary">
+                    {hydrationCount} entities hydrated
+                  </span>
+                )}
+              </div>
+            }
+          />
+        </div>
+      </GeointRegistryProvider>
+    </KoriBridgeProvider>
   )
 }
 
@@ -124,12 +160,12 @@ export const CompoundSearchDemo: FC = () => {
         </div>
 
         {/* Collapsible source filters */}
-        <SearchPanelCompound.CollapsibleSection title="Source Filters" defaultOpen>
+        <SearchPanelCompound.CollapsibleSection sectionId="source-filters" title="Source Filters" defaultOpen>
           <SearchPanelCompound.SourceToggles showCounts />
         </SearchPanelCompound.CollapsibleSection>
 
         {/* Collapsible time range */}
-        <SearchPanelCompound.CollapsibleSection title="Time Range">
+        <SearchPanelCompound.CollapsibleSection sectionId="time-range" title="Time Range">
           <SearchPanelCompound.TimeRange />
         </SearchPanelCompound.CollapsibleSection>
 
@@ -542,6 +578,141 @@ export const VirtualizedResultsDemo: FC = () => {
         </div>
       </div>
     </div>
+  )
+}
+
+// =============================================================================
+// KORI INTEGRATION DEMO (V2 Components)
+// =============================================================================
+
+/**
+ * Demo showing Kori-integrated components:
+ * - VirtualizedResultsListV2 with score bars and selection sync
+ * - EntityDetailPanelV2 with auto-sync to Kori selection state
+ * - KoriBridgeProvider for entity hydration
+ */
+export const KoriIntegrationDemo: FC = () => {
+  const [log, setLog] = useState<string[]>([])
+
+  const addLog = useCallback((msg: string) => {
+    setLog(prev => [...prev.slice(-9), `[${new Date().toLocaleTimeString()}] ${msg}`])
+  }, [])
+
+  const handleHydrated = useCallback((count: number) => {
+    addLog(`Hydrated ${count} entities from search results`)
+  }, [addLog])
+
+  const handleResultClick = useCallback((result: SearchResultItem) => {
+    addLog(`Clicked: ${result._tag} - ${result.id}`)
+  }, [addLog])
+
+  const handleResultDoubleClick = useCallback((result: SearchResultItem) => {
+    addLog(`Double-clicked: ${result.id} - Flying to location...`)
+  }, [addLog])
+
+  // Populate mock data on mount
+  const [initialized, setInitialized] = useState(false)
+  useEffect(() => {
+    if (!initialized) {
+      const mockData = generateMockResults(50)
+      searchRegistry.set(searchResultsAtom, mockData)
+      setInitialized(true)
+      addLog('Populated 50 mock search results')
+    }
+  }, [initialized, addLog])
+
+  return (
+    <KoriBridgeProvider>
+      <GeointRegistryProvider>
+        <SearchProvider>
+          <SearchHydrationBridge
+            enabled
+            clearStale
+            onHydrated={handleHydrated}
+          />
+
+          <div className="flex h-[700px] gap-4 p-4 bg-surface-0">
+            {/* Left: VirtualizedResultsListV2 */}
+            <div className="w-[400px] flex flex-col bg-surface-1 border border-border-subtle rounded-lg overflow-hidden">
+              <div className="p-3 border-b border-border-subtle bg-surface-2">
+                <h3 className="text-sm font-semibold text-text-primary">
+                  VirtualizedResultsListV2 (Kori)
+                </h3>
+                <p className="text-xs text-text-tertiary mt-1">
+                  Score bars, selection sync, keyboard nav
+                </p>
+              </div>
+              <div className="flex-1 min-h-0">
+                <VirtualizedResultsListV2
+                  showScoreBars
+                  onResultClick={handleResultClick}
+                  onResultDoubleClick={handleResultDoubleClick}
+                  height="100%"
+                />
+              </div>
+            </div>
+
+            {/* Center: EntityDetailPanelV2 */}
+            <div className="flex-1 flex flex-col bg-surface-1 border border-border-subtle rounded-lg overflow-hidden">
+              <div className="p-3 border-b border-border-subtle bg-surface-2">
+                <h3 className="text-sm font-semibold text-text-primary">
+                  EntityDetailPanelV2 (Kori)
+                </h3>
+                <p className="text-xs text-text-tertiary mt-1">
+                  Auto-syncs with selection state
+                </p>
+              </div>
+              <div className="flex-1 min-h-0 p-4">
+                <EntityDetailPanelV2
+                  showClose={false}
+                />
+              </div>
+            </div>
+
+            {/* Right: Event Log + Architecture */}
+            <div className="w-[350px] flex flex-col gap-4">
+              {/* Event Log */}
+              <div className="flex-1 p-4 bg-surface-1 border border-border-subtle rounded-lg overflow-auto">
+                <h3 className="text-sm font-semibold text-text-primary mb-2">Event Log</h3>
+                <div className="font-mono text-xs space-y-1">
+                  {log.length === 0 ? (
+                    <div className="text-text-quaternary">
+                      Click results to see entity selection sync...
+                    </div>
+                  ) : (
+                    log.map((entry, i) => (
+                      <div key={i} className="text-text-secondary">{entry}</div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Architecture */}
+              <div className="p-4 bg-surface-1 border border-border-subtle rounded-lg">
+                <h3 className="text-sm font-semibold text-text-primary mb-2">Kori Flow</h3>
+                <pre className="text-xs font-mono text-text-tertiary whitespace-pre leading-relaxed">
+{`SearchResults → SearchHydrationBridge
+     ↓
+GeointKoriBridge.hydrateFromSearch()
+     ↓
+entityUIStateFamily(entityId)
+entityAnimationFamily(entityId)
+entityLiveDataFamily(entityId)
+     ↓
+VirtualizedResultsListV2
+  └→ useGeointSelection()
+  └→ useGeointEntityUI(entityId)
+     ↓
+EntityDetailPanelV2
+  └→ selectedEntityIds (atom)
+  └→ useGeointEntity(entityId)`}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </SearchProvider>
+      </GeointRegistryProvider>
+    </KoriBridgeProvider>
   )
 }
 

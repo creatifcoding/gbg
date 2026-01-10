@@ -126,7 +126,7 @@ export class IntelClient extends AtomRpc.Tag<IntelClient>()('geoint/IntelClient'
   protocol: RpcClient.layerProtocolSocket({ retryTransientErrors: true }).pipe(
     Layer.provide(RpcSerialization.layerJson),
     // WebSocket endpoint - will be configured via environment/config
-    Layer.provide(Socket.layerWebSocket('ws://localhost:8080/geoint/intel')),
+    Layer.provide(Socket.layerWebSocket('ws://localhost:8081/geoint/intel')),
     Layer.provide(Socket.layerWebSocketConstructorGlobal)
   ),
   spanPrefix: 'geoint-intel'

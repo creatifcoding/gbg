@@ -147,7 +147,7 @@ export class GeospatialClient extends AtomRpc.Tag<GeospatialClient>()(
     group: GeospatialRpcs,
     protocol: RpcClient.layerProtocolSocket({ retryTransientErrors: true }).pipe(
       Layer.provide(RpcSerialization.layerJson),
-      Layer.provide(Socket.layerWebSocket('ws://localhost:8080/geoint/geospatial')),
+      Layer.provide(Socket.layerWebSocket('ws://localhost:8081/geoint/geospatial')),
       Layer.provide(Socket.layerWebSocketConstructorGlobal)
     ),
     spanPrefix: 'geoint-geospatial'

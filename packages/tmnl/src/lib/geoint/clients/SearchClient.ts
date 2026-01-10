@@ -16,7 +16,7 @@ import * as AtomRpc from '@effect-atom/atom/AtomRpc'
 import { Rpc, RpcGroup, RpcSerialization, RpcSchema } from '@effect/rpc'
 import * as RpcClient from '@effect/rpc/RpcClient'
 import * as Socket from '@effect/platform/Socket'
-import { Layer, Schema, Duration } from 'effect'
+import { Config, Context, Layer, Schema, Duration, Effect } from 'effect'
 import {
   // Query & Filter
   SearchId,
@@ -51,7 +51,11 @@ import {
  * - External API proxies for OpenSky/Overpass
  * - Saved search management
  */
-class SearchRpcs extends RpcGroup.make(
+/**
+ * Search RPC group - exported for server-side handler creation
+ * @internal Use SearchClient for client-side consumption
+ */
+export class SearchRpcs extends RpcGroup.make(
   // =========================================================================
   // Core Search Operations
   // =========================================================================
@@ -306,12 +310,64 @@ class SearchRpcs extends RpcGroup.make(
  * })
  * ```
  */
+// =============================================================================
+// Configuration Service
+// =============================================================================
+
+/**
+ * Search service configuration.
+ * Provides WebSocket URL and other config via Effect Context.
+ */
+export interface SearchConfig {
+  readonly wsUrl: string
+  readonly retryTransientErrors: boolean
+}
+
+/**
+ * SearchConfig service tag.
+ * Provide this in your Layer stack to configure the search client.
+ */
+export class SearchConfigTag extends Context.Tag('geoint/SearchConfig')<SearchConfigTag, SearchConfig>() {}
+
+/**
+ * Config layer for SearchConfig.
+ * Reads from environment or uses defaults.
+ *
+ * Environment variables:
+ * - GEOINT_SEARCH_WS_URL: WebSocket URL (default: ws://localhost:8081/geoint/search)
+ * - GEOINT_SEARCH_RETRY: Whether to retry transient errors (default: true)
+ */
+export const SearchConfigLive = Layer.effect(
+  SearchConfigTag,
+  Effect.gen(function* () {
+    const wsUrl = yield* Config.string('GEOINT_SEARCH_WS_URL').pipe(
+      Config.withDefault('ws://localhost:8081/geoint/search')
+    )
+    const retryTransientErrors = yield* Config.boolean('GEOINT_SEARCH_RETRY').pipe(
+      Config.withDefault(true)
+    )
+    return { wsUrl, retryTransientErrors }
+  })
+)
+
+/**
+ * Create SearchConfig layer with specific values (for testing/custom setups).
+ */
+export const makeSearchConfigLayer = (config: SearchConfig) =>
+  Layer.succeed(SearchConfigTag, config)
+
+// Default config for browser usage (no Config provider)
+const DEFAULT_CONFIG: SearchConfig = {
+  wsUrl: 'ws://localhost:8081/geoint/search',
+  retryTransientErrors: true
+}
+
 export class SearchClient extends AtomRpc.Tag<SearchClient>()('geoint/SearchClient', {
   group: SearchRpcs,
   protocol: RpcClient.layerProtocolSocket({ retryTransientErrors: true }).pipe(
     Layer.provide(RpcSerialization.layerJson),
-    // WebSocket endpoint - configured via environment/config
-    Layer.provide(Socket.layerWebSocket('ws://localhost:8080/geoint/search')),
+    // WebSocket endpoint - uses default, can be overridden via SearchConfigLive
+    Layer.provide(Socket.layerWebSocket(DEFAULT_CONFIG.wsUrl)),
     Layer.provide(Socket.layerWebSocketConstructorGlobal)
   ),
   spanPrefix: 'geoint-search'
