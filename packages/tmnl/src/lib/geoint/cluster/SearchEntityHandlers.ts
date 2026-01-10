@@ -978,8 +978,9 @@ export const SearchEntityHandlers = SearchEntity.toLayer(
             return makeSourceEffect()
           })
 
-          // Execute source queries with bounded concurrency (max 3 parallel API calls)
-          const sourceResults = yield* Effect.all(sourceEffects, { concurrency: 3 })
+          // Execute source queries with bounded concurrency (max 2 parallel API calls)
+          // Lower concurrency helps with memory pressure during multi-source searches
+          const sourceResults = yield* Effect.all(sourceEffects, { concurrency: 2 })
 
           // Aggregate results
           const allResults: SearchResultItem[] = []
@@ -1121,8 +1122,9 @@ export const SearchEntityHandlers = SearchEntity.toLayer(
             })
           ),
           // 2. Merge all source streams - results emit immediately as each completes
+          // Bounded concurrency (2) to limit memory pressure from concurrent API calls
           Stream.concat(
-            Stream.mergeAll(sourceStreams, { concurrency: 'unbounded' })
+            Stream.mergeAll(sourceStreams, { concurrency: 2 })
           ),
           // 3. Emit SearchCompleted after all sources finish
           Stream.concat(

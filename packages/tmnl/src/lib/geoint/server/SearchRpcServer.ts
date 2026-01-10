@@ -22,7 +22,7 @@ import {
 } from 'effect'
 import * as RpcServer from '@effect/rpc/RpcServer'
 import * as RpcSerialization from '@effect/rpc/RpcSerialization'
-import { SearchClient, OVERPASS_TEMPLATES } from '../clients/SearchClient'
+import { SearchClient, SearchRpcs, OVERPASS_TEMPLATES } from '../clients/SearchClient'
 import {
   OpenSkyClientService,
   OverpassClientService,
@@ -455,7 +455,7 @@ const SearchRpcHandlers = Effect.gen(function* () {
         })
       }),
 
-    searchNearby: (request: { center: readonly [number, number]; radiusMeters: number; sources: IntelSource[]; limit: number }) =>
+    searchNearby: (request: { center: readonly [number, number]; radiusMeters: number; sources: readonly IntelSource[]; limit: number }) =>
       Effect.gen(function* () {
         const searchId = yield* generateSearchId
         const { center, radiusMeters, sources, limit } = request
@@ -508,7 +508,7 @@ const SearchRpcHandlers = Effect.gen(function* () {
         )
       }),
 
-    searchInBounds: (request: { bounds: readonly [number, number, number, number]; sources: IntelSource[]; limit: number }) =>
+    searchInBounds: (request: { bounds: readonly [number, number, number, number]; sources: readonly IntelSource[]; limit: number }) =>
       Effect.gen(function* () {
         const searchId = yield* generateSearchId
         const { bounds, sources, limit } = request
@@ -617,7 +617,8 @@ const SearchRpcHandlers = Effect.gen(function* () {
         })
       ).pipe(
         // Merge all source streams - results emit immediately as each completes
-        Stream.concat(Stream.mergeAll(sourceStreams, { concurrency: 'unbounded' })),
+        // Bounded concurrency (2) to limit memory pressure from concurrent API calls
+        Stream.concat(Stream.mergeAll(sourceStreams, { concurrency: 2 })),
         // Emit completion after all sources finish
         Stream.concat(
           Stream.make(
@@ -631,18 +632,36 @@ const SearchRpcHandlers = Effect.gen(function* () {
       )
     },
 
-    // External API Proxies
-    queryOpenSky: (request: { bounds?: readonly [number, number, number, number]; icao24: string[]; time?: number }) =>
+    // External API Proxies (wrapped to catch errors)
+    queryOpenSky: (request: { bounds?: readonly [number, number, number, number]; icao24: readonly string[]; time?: number }) =>
       opensky.getStates({
         bounds: request.bounds,
-        icao24: request.icao24,
+        icao24: [...request.icao24], // Convert readonly to mutable
         time: request.time,
-      }),
+      }).pipe(
+        Effect.catchAll((error) => {
+          console.error('[SearchRpcServer] OpenSky error:', error)
+          return Effect.succeed(new OpenSkyResponse({ time: Date.now() / 1000, states: null }))
+        })
+      ),
 
     queryOverpass: (request: { query: string; format: 'json' | 'xml' | 'csv'; timeout: number }) =>
-      overpass.query(request.query, { timeout: request.timeout }),
+      overpass.query(request.query, { timeout: request.timeout }).pipe(
+        Effect.catchAll((error) => {
+          console.error('[SearchRpcServer] Overpass error:', error)
+          return Effect.succeed(new OverpassResponse({
+            version: 0.6,
+            generator: 'SearchRpcServer (error fallback)',
+            osm3s: {
+              timestamp_osm_base: new Date().toISOString(),
+              copyright: 'Error occurred'
+            },
+            elements: []
+          }))
+        })
+      ),
 
-    buildOverpassQuery: (request: { bounds: readonly [number, number, number, number]; amenities: string[]; tags: Record<string, string> }) =>
+    buildOverpassQuery: (request: { bounds: readonly [number, number, number, number]; amenities: readonly string[]; tags: Record<string, string> }) =>
       Effect.succeed(overpass.buildQuery({
         bounds: request.bounds,
         amenities: request.amenities,
@@ -784,7 +803,7 @@ const SearchRpcHandlers = Effect.gen(function* () {
 /**
  * Search RPC handlers layer
  */
-export const SearchRpcHandlersLayer = (SearchClient as any).group.toLayer(SearchRpcHandlers)
+export const SearchRpcHandlersLayer = SearchRpcs.toLayer(SearchRpcHandlers)
 
 /**
  * Complete search RPC server layer with WebSocket protocol
@@ -800,7 +819,7 @@ export const SearchRpcHandlersLayer = (SearchClient as any).group.toLayer(Search
  * ```
  */
 export const SearchRpcServerLayer = pipe(
-  RpcServer.layer((SearchClient as any).group),
+  RpcServer.layer(SearchRpcs),
   Layer.provide(SearchRpcHandlersLayer),
   Layer.provideMerge(RpcServer.layerProtocolWebsocket({ path: '/geoint/search' })),
   Layer.provide(RpcSerialization.layerJson),
