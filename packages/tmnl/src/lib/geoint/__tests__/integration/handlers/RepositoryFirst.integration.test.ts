@@ -41,9 +41,9 @@ import {
 import {
   OpenSkyClientService,
   OverpassClientService,
-  OpenSkyClientLive,
-  OverpassClientLive,
+  ExternalApiClientsLive,
 } from '../../../api/ExternalApiClient'
+import { CircuitBreakersLive } from '../../../api/circuit-breaker'
 
 // =============================================================================
 // Test Configuration
@@ -60,6 +60,9 @@ const PgClientLive = PgClient.layer({
 
 // Test timeout in ms (longer for real API calls)
 const TEST_TIMEOUT = 60000
+
+// Combined API clients layer with CircuitBreakers dependency
+const RealApiClientsLayer = ExternalApiClientsLive.pipe(Layer.provide(HttpClientLive))
 
 // =============================================================================
 // Mock API Clients
@@ -263,11 +266,12 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Repository-First Pattern Integration', 
         const mockOpenSky = createMockOpenSkyClient(apiCallCount)
         const mockOverpass = createMockOverpassClient(apiCallCount)
 
-        // Compose: handlers get mock repo and mock API clients
+        // Compose: handlers get mock repo and mock API clients + CircuitBreakers
         const testLayer = SearchEntityHandlers.pipe(
           Layer.provide(mockFlightRepo),
           Layer.provide(mockOpenSky),
-          Layer.provide(mockOverpass)
+          Layer.provide(mockOverpass),
+          Layer.provide(CircuitBreakersLive)
         )
 
         const makeClient = yield* Entity.makeTestClient(SearchEntity, testLayer)
@@ -319,7 +323,8 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Repository-First Pattern Integration', 
         const testLayer = SearchEntityHandlers.pipe(
           Layer.provide(mockPoiRepo),
           Layer.provide(mockOpenSky),
-          Layer.provide(mockOverpass)
+          Layer.provide(mockOverpass),
+          Layer.provide(CircuitBreakersLive)
         )
 
         const makeClient = yield* Entity.makeTestClient(SearchEntity, testLayer)
@@ -364,10 +369,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Repository-First Pattern Integration', 
 
         // Layer with mock repo AND real OpenSky client
         const mockFlightRepo = createMockFlightRepository(flightState)
-        const apiLayer = Layer.mergeAll(
-          OpenSkyClientLive,
-          OverpassClientLive
-        ).pipe(Layer.provide(HttpClientLive))
+        const apiLayer = RealApiClientsLayer
 
         const testLayer = SearchEntityHandlers.pipe(
           Layer.provide(mockFlightRepo),
@@ -410,10 +412,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Repository-First Pattern Integration', 
         })
 
         const mockPoiRepo = createMockPoiRepository(poiState)
-        const apiLayer = Layer.mergeAll(
-          OpenSkyClientLive,
-          OverpassClientLive
-        ).pipe(Layer.provide(HttpClientLive))
+        const apiLayer = RealApiClientsLayer
 
         const testLayer = SearchEntityHandlers.pipe(
           Layer.provide(mockPoiRepo),
@@ -468,10 +467,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Repository-First Pattern Integration', 
         })
 
         const mockFlightRepo = createMockFlightRepository(flightState)
-        const apiLayer = Layer.mergeAll(
-          OpenSkyClientLive,
-          OverpassClientLive
-        ).pipe(Layer.provide(HttpClientLive))
+        const apiLayer = RealApiClientsLayer
 
         const testLayer = SearchEntityHandlers.pipe(
           Layer.provide(mockFlightRepo),
@@ -514,10 +510,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Repository-First Pattern Integration', 
         const repoCallVerified = yield* Ref.make(false)
 
         const mockPoiRepo = createMockPoiRepository(poiState)
-        const apiLayer = Layer.mergeAll(
-          OpenSkyClientLive,
-          OverpassClientLive
-        ).pipe(Layer.provide(HttpClientLive))
+        const apiLayer = RealApiClientsLayer
 
         const testLayer = SearchEntityHandlers.pipe(
           Layer.provide(mockPoiRepo),
@@ -564,10 +557,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Repository-First Pattern Integration', 
     it('queries real FlightRepository from PostGIS', async () => {
       const program = Effect.gen(function* () {
         // Use real repository with database
-        const apiLayer = Layer.mergeAll(
-          OpenSkyClientLive,
-          OverpassClientLive
-        ).pipe(Layer.provide(HttpClientLive))
+        const apiLayer = RealApiClientsLayer
 
         const testLayer = SearchEntityHandlers.pipe(
           Layer.provide(FlightRepositoryLive),
@@ -599,10 +589,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Repository-First Pattern Integration', 
 
     it('queries real PoiRepository from PostGIS', async () => {
       const program = Effect.gen(function* () {
-        const apiLayer = Layer.mergeAll(
-          OpenSkyClientLive,
-          OverpassClientLive
-        ).pipe(Layer.provide(HttpClientLive))
+        const apiLayer = RealApiClientsLayer
 
         const testLayer = SearchEntityHandlers.pipe(
           Layer.provide(PoiRepositoryLive),

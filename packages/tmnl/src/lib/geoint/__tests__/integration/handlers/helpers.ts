@@ -13,6 +13,7 @@ import {
   OverpassClientLive,
   AdsbLolClientLive,
   OpenMeteoClientLive,
+  ExternalApiClientsLive,
 } from '../../../api/ExternalApiClient'
 import { SearchEntityHandlers } from '../../../cluster/SearchEntityHandlers'
 import type { SearchId, BBox } from '../../../schemas'
@@ -48,17 +49,17 @@ export const OverpassLive = OverpassClientLive.pipe(Layer.provide(HttpClientLive
 export const AdsbLolLive = AdsbLolClientLive.pipe(Layer.provide(HttpClientLive))
 export const OpenMeteoLive = OpenMeteoClientLive.pipe(Layer.provide(HttpClientLive))
 
-// Combined real API clients layer
-export const RealApiClientsLayer = Layer.mergeAll(
-  OpenSkyClientLive,
-  OverpassClientLive,
-  AdsbLolClientLive,
-  OpenMeteoClientLive
-).pipe(Layer.provide(HttpClientLive))
+// Combined real API clients layer (includes CircuitBreakersLive)
+export const RealApiClientsLayer = ExternalApiClientsLive.pipe(
+  Layer.provide(HttpClientLive)
+)
 
 // Test handlers layer with real API clients
-export const RealHandlersLayer = SearchEntityHandlers.pipe(
-  Layer.provide(RealApiClientsLayer)
+// Use Layer.provideMerge to ensure CircuitBreakersService is available
+// when Entity.makeTestClient runs the handlers
+export const RealHandlersLayer = Layer.provideMerge(
+  SearchEntityHandlers,
+  RealApiClientsLayer
 )
 
 // Timeouts

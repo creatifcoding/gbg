@@ -10,7 +10,7 @@ import { Effect, Layer } from 'effect'
 import { FetchHttpClient } from '@effect/platform'
 import {
   OpenMeteoClientService,
-  OpenMeteoClientLive,
+  ExternalApiClientsLive,
 } from '../../../api/ExternalApiClient'
 import {
   RUN_INTEGRATION_TESTS,
@@ -19,7 +19,8 @@ import {
 } from './helpers'
 
 const HttpClientLive = FetchHttpClient.layer
-const OpenMeteoLive = OpenMeteoClientLive.pipe(Layer.provide(HttpClientLive))
+// Combined API clients layer with CircuitBreakers dependency
+const ApiClientsWithDeps = ExternalApiClientsLive.pipe(Layer.provide(HttpClientLive))
 
 describe.skipIf(!RUN_INTEGRATION_TESTS)('Open-Meteo Integration Tests', () => {
 
@@ -40,7 +41,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Open-Meteo Integration Tests', () => {
 
         return forecast
       }).pipe(
-        Effect.provide(OpenMeteoLive),
+        Effect.provide(ApiClientsWithDeps),
         Effect.timeout(TIMEOUT)
       )
 
@@ -66,7 +67,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Open-Meteo Integration Tests', () => {
 
         return forecast
       }).pipe(
-        Effect.provide(OpenMeteoLive),
+        Effect.provide(ApiClientsWithDeps),
         Effect.timeout(TIMEOUT)
       )
 
@@ -90,7 +91,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Open-Meteo Integration Tests', () => {
 
         return forecast
       }).pipe(
-        Effect.provide(OpenMeteoLive),
+        Effect.provide(ApiClientsWithDeps),
         Effect.timeout(TIMEOUT)
       )
 
@@ -115,7 +116,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Open-Meteo Integration Tests', () => {
 
         return response
       }).pipe(
-        Effect.provide(OpenMeteoLive),
+        Effect.provide(ApiClientsWithDeps),
         Effect.timeout(TIMEOUT)
       )
 
@@ -140,7 +141,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Open-Meteo Integration Tests', () => {
 
         return response
       }).pipe(
-        Effect.provide(OpenMeteoLive),
+        Effect.provide(ApiClientsWithDeps),
         Effect.timeout(TIMEOUT)
       )
 
@@ -163,7 +164,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Open-Meteo Integration Tests', () => {
 
         return response
       }).pipe(
-        Effect.provide(OpenMeteoLive),
+        Effect.provide(ApiClientsWithDeps),
         Effect.timeout(TIMEOUT)
       )
 
@@ -199,7 +200,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Open-Meteo Integration Tests', () => {
 
         return { location, forecast }
       }).pipe(
-        Effect.provide(OpenMeteoLive),
+        Effect.provide(ApiClientsWithDeps),
         Effect.timeout(TIMEOUT)
       )
 

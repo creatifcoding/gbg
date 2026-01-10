@@ -15,7 +15,7 @@ import {
   RUN_INTEGRATION_TESTS,
   SFO_AIRPORT,
   TIMEOUT,
-  AdsbLolLive,
+  RealApiClientsLayer,
 } from './helpers'
 
 describe.skipIf(!RUN_INTEGRATION_TESTS)('ADSB.lol Integration Tests', () => {
@@ -34,7 +34,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('ADSB.lol Integration Tests', () => {
         console.log(`ADSB.lol near SFO: ${response.aircraft?.length ?? 0} aircraft`)
         return response
       }).pipe(
-        Effect.provide(AdsbLolLive),
+        Effect.provide(RealApiClientsLayer),
         Effect.timeout(TIMEOUT)
       )
 
@@ -69,7 +69,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('ADSB.lol Integration Tests', () => {
         console.log(`ADSB.lol 5nm radius: ${response.aircraft?.length ?? 0} aircraft`)
         return response
       }).pipe(
-        Effect.provide(AdsbLolLive),
+        Effect.provide(RealApiClientsLayer),
         Effect.timeout(TIMEOUT)
       )
 
@@ -88,7 +88,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('ADSB.lol Integration Tests', () => {
         console.log(`ADSB.lol military: ${response.aircraft?.length ?? 0} aircraft`)
         return response
       }).pipe(
-        Effect.provide(AdsbLolLive),
+        Effect.provide(RealApiClientsLayer),
         Effect.timeout(TIMEOUT)
       )
 
@@ -111,7 +111,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('ADSB.lol Integration Tests', () => {
         console.log(`ADSB.lol callsign UAL: ${response.aircraft?.length ?? 0} aircraft`)
         return response
       }).pipe(
-        Effect.provide(AdsbLolLive),
+        Effect.provide(RealApiClientsLayer),
         Effect.timeout(TIMEOUT)
       )
 
@@ -131,7 +131,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('ADSB.lol Integration Tests', () => {
         console.log(`ADSB.lol type B738: ${response.aircraft?.length ?? 0} aircraft`)
         return response
       }).pipe(
-        Effect.provide(AdsbLolLive),
+        Effect.provide(RealApiClientsLayer),
         Effect.timeout(TIMEOUT)
       )
 
@@ -151,7 +151,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('ADSB.lol Integration Tests', () => {
         console.log(`ADSB.lol squawk 7700: ${response.aircraft?.length ?? 0} aircraft`)
         return response
       }).pipe(
-        Effect.provide(AdsbLolLive),
+        Effect.provide(RealApiClientsLayer),
         Effect.timeout(TIMEOUT)
       )
 
@@ -184,7 +184,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('ADSB.lol Integration Tests', () => {
 
         return searchResults
       }).pipe(
-        Effect.provide(AdsbLolLive),
+        Effect.provide(RealApiClientsLayer),
         Effect.timeout(TIMEOUT)
       )
 
