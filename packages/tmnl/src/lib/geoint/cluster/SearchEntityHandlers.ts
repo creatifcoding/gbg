@@ -37,6 +37,8 @@ import {
   SearchResultId,
   TrackId,
   FeatureId,
+  PoiId,
+  PoiCategory,
   Classification,
   ObjectType,
   type BBox,
@@ -310,18 +312,25 @@ export const SearchEntityHandlers = SearchEntity.toLayer(
     // Transform PoiSearchResult to SearchResultPoi (pure function)
     // ─────────────────────────────────────────────────────────────────────────
     const poiSearchResultToSearchResult = (poi: PoiSearchResult): SearchResultPoi => {
-      // Determine category from OSM tags (amenity/shop/leisure/tourism)
-      const category = poi.amenity ?? poi.shop ?? poi.leisure ?? poi.tourism ?? 'unknown'
+      // Determine category from which OSM tag field is set
+      const category = poi.amenity
+        ? ('amenity' as const)
+        : poi.shop
+          ? ('shop' as const)
+          : poi.leisure
+            ? ('leisure' as const)
+            : poi.tourism
+              ? ('tourism' as const)
+              : ('building' as const)
 
       return new SearchResultPoi({
         id: `poi-${poi.osm_type}-${poi.osm_id}` as SearchResultId,
         source: 'osm',
         score: 1.0,
         retrievedAt: new Date(),
-        osmId: poi.osm_id.toString(),
-        osmType: poi.osm_type,
+        poiId: `osm-${poi.osm_type}-${poi.osm_id}` as PoiId,
         position: [poi.longitude, poi.latitude],
-        name: poi.name ?? undefined,
+        name: poi.name ?? 'Unknown',
         category,
         tags: poi.tags as Record<string, string>,
       })
