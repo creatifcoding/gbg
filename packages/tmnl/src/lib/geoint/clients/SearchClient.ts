@@ -35,6 +35,11 @@ import {
   BBox,
   Position
 } from '../schemas'
+import {
+  IngesterStatus,
+  OrchestratorStatus,
+  type IngesterName,
+} from '../ingestion'
 
 // =============================================================================
 // RPC Definitions
@@ -270,6 +275,55 @@ export class SearchRpcs extends RpcGroup.make(
       })),
       totalCount: Schema.Number
     })
+  }),
+
+  // =========================================================================
+  // Ingestion Control
+  // =========================================================================
+
+  /**
+   * Start all enabled data ingesters
+   * Begins background polling for flight, POI, weather, and imagery data
+   */
+  Rpc.make('startIngestion', {
+    payload: Schema.Struct({}),
+    success: OrchestratorStatus
+  }),
+
+  /**
+   * Stop all running data ingesters gracefully
+   */
+  Rpc.make('stopIngestion', {
+    payload: Schema.Struct({}),
+    success: OrchestratorStatus
+  }),
+
+  /**
+   * Get the current status of all ingesters
+   */
+  Rpc.make('getIngestionStatus', {
+    payload: Schema.Struct({}),
+    success: OrchestratorStatus
+  }),
+
+  /**
+   * Start a specific ingester by name
+   */
+  Rpc.make('startIngester', {
+    payload: Schema.Struct({
+      name: Schema.Literal('flight', 'osm', 'weather', 'imagery')
+    }),
+    success: IngesterStatus
+  }),
+
+  /**
+   * Stop a specific ingester by name
+   */
+  Rpc.make('stopIngester', {
+    payload: Schema.Struct({
+      name: Schema.Literal('flight', 'osm', 'weather', 'imagery')
+    }),
+    success: IngesterStatus
   })
 ) {}
 

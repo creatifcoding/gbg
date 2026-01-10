@@ -18,11 +18,12 @@ import {
   HashMap,
   Ref,
   Option,
+  Match,
   pipe,
 } from 'effect'
 import * as RpcServer from '@effect/rpc/RpcServer'
 import * as RpcSerialization from '@effect/rpc/RpcSerialization'
-import { SearchClient, SearchRpcs, OVERPASS_TEMPLATES } from '../clients/SearchClient'
+import { SearchRpcs } from '../clients/SearchClient'
 import {
   OpenSkyClientService,
   OverpassClientService,
@@ -69,6 +70,14 @@ import {
   type TrackPositionSearchOptions,
   type FeatureSearchOptions,
 } from '../persistence'
+import { parseError, type SearchError } from '../schemas/errors'
+import {
+  IngestionOrchestratorTag,
+  IngestionPipelineLive,
+  type IngesterName,
+  type OrchestratorStatus,
+  type IngesterStatus,
+} from '../ingestion'
 
 // =============================================================================
 // Types
@@ -105,6 +114,9 @@ const SearchRpcHandlers = Effect.gen(function* () {
   const trackRepoOption = yield* Effect.serviceOption(TrackPositionRepositoryTag)
   const featureRepoOption = yield* Effect.serviceOption(FeatureRepositoryTag)
 
+  // Dependencies - Ingestion Orchestrator (optional - may not be configured)
+  const orchestratorOption = yield* Effect.serviceOption(IngestionOrchestratorTag)
+
   // State
   const savedSearches = yield* Ref.make<SavedSearchStore>({ searches: new Map() })
   const searchHistory = yield* Ref.make<SearchHistoryStore>({ entries: [] })
@@ -138,57 +150,96 @@ const SearchRpcHandlers = Effect.gen(function* () {
     return undefined
   }
 
-  // Helper: Search OpenSky for flights
-  const searchFlights = (bounds: readonly [number, number, number, number] | undefined, limit: number) =>
+  // Helper: Handle and classify errors with exhaustive Match-based logging
+  const handleSearchError = <T>(source: string) => (error: unknown) =>
     Effect.gen(function* () {
-      if (!bounds) return []
+      const searchError = parseError(error)
 
-      const response = yield* opensky.getStates({ bounds }).pipe(
-        Effect.catchAll(() =>
-          Effect.succeed({ time: Date.now(), states: null } as OpenSkyResponse)
-        )
-      )
+      // Exhaustive match on error tags for proper logging
+      const logEffect = pipe(
+        Match.type<SearchError>(),
+        Match.tag('SearchRateLimitError', (e) =>
+          Effect.logWarning(`[${source}] Rate limited: ${e.message}. Retry in ${e.retryDelayMs}ms`)
+        ),
+        Match.tag('SearchTimeoutError', (e) =>
+          Effect.logWarning(`[${source}] Timeout after ${e.timeoutMs}ms: ${e.message}`)
+        ),
+        Match.tag('SearchNetworkError', (e) =>
+          Effect.logError(`[${source}] Network error: ${e.message}${e.url ? ` (URL: ${e.url})` : ''}`)
+        ),
+        Match.tag('SearchServerError', (e) =>
+          Effect.logError(`[${source}] Server error${e.statusCode ? ` (${e.statusCode})` : ''}: ${e.message}`)
+        ),
+        Match.tag('SearchAuthError', (e) =>
+          Effect.logError(`[${source}] Auth error${e.source ? ` for ${e.source}` : ''}: ${e.message}`)
+        ),
+        Match.tag('SearchValidationError', (e) =>
+          Effect.logWarning(`[${source}] Validation error${e.field ? ` (${e.field})` : ''}: ${e.message}`)
+        ),
+        Match.tag('SearchNotFoundError', (e) =>
+          Effect.logWarning(`[${source}] Not found${e.resource ? ` (${e.resource})` : ''}: ${e.message}`)
+        ),
+        Match.tag('SearchUnknownError', (e) =>
+          Effect.logError(`[${source}] Unknown error: ${e.message}`)
+        ),
+        Match.exhaustive
+      )(searchError)
 
-      return (response.states ?? [])
-        .map(openSkyToSearchResult)
-        .filter((r): r is SearchResultFlight => r !== null)
-        .slice(0, limit)
+      yield* logEffect
+
+      return { results: [] as T[], error: searchError as SearchError | undefined }
     })
 
-  // Helper: Search Overpass for POIs
+  // Helper: Search OpenSky for flights with comprehensive error handling
+  const searchFlights = (bounds: readonly [number, number, number, number] | undefined, limit: number) =>
+    Effect.gen(function* () {
+      if (!bounds) return { results: [] as SearchResultFlight[], error: undefined as SearchError | undefined }
+
+      const result = yield* opensky.getStates({ bounds }).pipe(
+        Effect.map((response) => ({
+          results: (response.states ?? [])
+            .map(openSkyToSearchResult)
+            .filter((r): r is SearchResultFlight => r !== null)
+            .slice(0, limit),
+          error: undefined as SearchError | undefined,
+        })),
+        Effect.catchAll(handleSearchError<SearchResultFlight>('OpenSky'))
+      )
+
+      return result
+    })
+
+  // Helper: Search Overpass for POIs with comprehensive error handling
   const searchPois = (bounds: readonly [number, number, number, number] | undefined, amenities: string[], limit: number) =>
     Effect.gen(function* () {
-      if (!bounds) return []
+      if (!bounds) return { results: [] as SearchResultPoi[], error: undefined as SearchError | undefined }
 
       const query = overpass.buildQuery({
         bounds,
         amenities: amenities.length > 0 ? amenities : ['hospital', 'police', 'fire_station', 'school'],
       })
 
-      const response = yield* overpass.query(query).pipe(
-        Effect.catchAll(() =>
-          Effect.succeed(
-            new OverpassResponse({
-              version: 0,
-              generator: '',
-              osm3s: { timestamp_osm_base: '', copyright: '' },
-              elements: [],
-            })
-          )
-        )
+      const result = yield* overpass.query(query).pipe(
+        Effect.map((response) => ({
+          results: response.elements
+            .map(overpassToSearchResult)
+            .filter((r): r is SearchResultPoi => r !== null)
+            .slice(0, limit),
+          error: undefined as SearchError | undefined,
+        })),
+        Effect.catchAll(handleSearchError<SearchResultPoi>('Overpass'))
       )
 
-      return response.elements
-        .map(overpassToSearchResult)
-        .filter((r): r is SearchResultPoi => r !== null)
-        .slice(0, limit)
+      return result
     })
 
-  // Helper: Search PostGIS for tracks
-  const searchTracks = (bounds: readonly [number, number, number, number] | undefined, limit: number): Effect.Effect<SearchResultTrack[], never, never> =>
+  // Helper: Search PostGIS for tracks with comprehensive error handling
+  const searchTracks = (bounds: readonly [number, number, number, number] | undefined, limit: number) =>
     Effect.gen(function* () {
       // If no track repository configured, return empty
-      if (Option.isNone(trackRepoOption) || !bounds) return []
+      if (Option.isNone(trackRepoOption) || !bounds) {
+        return { results: [] as SearchResultTrack[], error: undefined as SearchError | undefined }
+      }
 
       const trackRepo = trackRepoOption.value
       const searchOptions: TrackPositionSearchOptions = {
@@ -196,30 +247,36 @@ const SearchRpcHandlers = Effect.gen(function* () {
         limit,
       }
 
-      const positions = yield* trackRepo.search(searchOptions).pipe(
-        Effect.catchAll(() => Effect.succeed([] as const))
+      const result = yield* trackRepo.search(searchOptions).pipe(
+        Effect.map((positions) => ({
+          results: positions.map((pos) => new SearchResultTrack({
+            id: `track-${pos.track_id}-${pos.id}` as unknown as SearchResultId,
+            source: 'track',
+            score: 1.0,
+            retrievedAt: new Date(),
+            trackId: pos.track_id as unknown as TrackId,
+            position: [pos.longitude, pos.latitude, pos.altitude ?? 0],
+            heading: pos.heading ?? 0,
+            speed: pos.speed ?? 0,
+            classification: (pos.classification ?? 'unknown') as Classification,
+            objectType: 'vehicle' as ObjectType,
+            label: pos.track_id,
+          })),
+          error: undefined as SearchError | undefined,
+        })),
+        Effect.catchAll(handleSearchError<SearchResultTrack>('PostGIS Tracks'))
       )
 
-      return positions.map((pos) => new SearchResultTrack({
-        id: `track-${pos.track_id}-${pos.id}` as unknown as SearchResultId,
-        source: 'track',
-        score: 1.0, // Default score for track results
-        retrievedAt: new Date(),
-        trackId: pos.track_id as unknown as TrackId,
-        position: [pos.longitude, pos.latitude, pos.altitude ?? 0],
-        heading: pos.heading ?? 0,
-        speed: pos.speed ?? 0,
-        classification: (pos.classification ?? 'unknown') as Classification,
-        objectType: 'vehicle' as ObjectType, // Default, could be stored in metadata
-        label: pos.track_id,
-      }))
+      return result
     })
 
-  // Helper: Search PostGIS for features
-  const searchFeatures = (bounds: readonly [number, number, number, number] | undefined, limit: number): Effect.Effect<SearchResultFeature[], never, never> =>
+  // Helper: Search PostGIS for features with comprehensive error handling
+  const searchFeatures = (bounds: readonly [number, number, number, number] | undefined, limit: number) =>
     Effect.gen(function* () {
       // If no feature repository configured, return empty
-      if (Option.isNone(featureRepoOption) || !bounds) return []
+      if (Option.isNone(featureRepoOption) || !bounds) {
+        return { results: [] as SearchResultFeature[], error: undefined as SearchError | undefined }
+      }
 
       const featureRepo = featureRepoOption.value
       const searchOptions: FeatureSearchOptions = {
@@ -227,142 +284,157 @@ const SearchRpcHandlers = Effect.gen(function* () {
         limit,
       }
 
-      const features = yield* featureRepo.search(searchOptions).pipe(
-        Effect.catchAll(() => Effect.succeed([] as const))
+      const result = yield* featureRepo.search(searchOptions).pipe(
+        Effect.map((features) => ({
+          results: features.map((feat) => {
+            // Extract center position from geometry
+            let position: [number, number] = [0, 0]
+            if (feat.geom) {
+              if (feat.geom.type === 'Point') {
+                position = [feat.geom.coordinates[0], feat.geom.coordinates[1]]
+              } else if (feat.geom.type === 'LineString' && feat.geom.coordinates.length > 0) {
+                const mid = Math.floor(feat.geom.coordinates.length / 2)
+                position = [feat.geom.coordinates[mid][0], feat.geom.coordinates[mid][1]]
+              } else if (feat.geom.type === 'Polygon' && feat.geom.coordinates.length > 0 && feat.geom.coordinates[0].length > 0) {
+                // Use centroid approximation (first point)
+                position = [feat.geom.coordinates[0][0][0], feat.geom.coordinates[0][0][1]]
+              }
+            }
+
+            // Determine geometry type
+            const geometryType = feat.geom?.type ?? 'Point'
+
+            return new SearchResultFeature({
+              id: `feature-${feat.feature_id}` as unknown as SearchResultId,
+              source: 'feature',
+              score: 1.0,
+              retrievedAt: new Date(),
+              featureId: feat.feature_id as unknown as FeatureId,
+              position,
+              geometryType: geometryType as 'Point' | 'LineString' | 'Polygon',
+              properties: (feat.properties ?? {}) as Record<string, unknown>,
+              label: feat.name ?? feat.feature_id,
+            })
+          }),
+          error: undefined as SearchError | undefined,
+        })),
+        Effect.catchAll(handleSearchError<SearchResultFeature>('PostGIS Features'))
       )
 
-      return features.map((feat) => {
-        // Extract center position from geometry
-        let position: [number, number] = [0, 0]
-        if (feat.geom) {
-          if (feat.geom.type === 'Point') {
-            position = [feat.geom.coordinates[0], feat.geom.coordinates[1]]
-          } else if (feat.geom.type === 'LineString' && feat.geom.coordinates.length > 0) {
-            const mid = Math.floor(feat.geom.coordinates.length / 2)
-            position = [feat.geom.coordinates[mid][0], feat.geom.coordinates[mid][1]]
-          } else if (feat.geom.type === 'Polygon' && feat.geom.coordinates.length > 0 && feat.geom.coordinates[0].length > 0) {
-            // Use centroid approximation (first point)
-            position = [feat.geom.coordinates[0][0][0], feat.geom.coordinates[0][0][1]]
-          }
-        }
-
-        // Determine geometry type
-        const geometryType = feat.geom?.type ?? 'Point'
-
-        return new SearchResultFeature({
-          id: `feature-${feat.feature_id}` as unknown as SearchResultId,
-          source: 'feature',
-          score: 1.0, // Default score for feature results
-          retrievedAt: new Date(),
-          featureId: feat.feature_id as unknown as FeatureId,
-          position,
-          geometryType: geometryType as 'Point' | 'LineString' | 'Polygon',
-          properties: (feat.properties ?? {}) as Record<string, unknown>,
-          label: feat.name ?? feat.feature_id,
-        })
-      })
+      return result
     })
 
-  // Helper: Search Planet Labs for satellite imagery
-  const searchPlanetImagery = (
-    bounds: readonly [number, number, number, number] | undefined,
-    limit: number
-  ): Effect.Effect<SearchResultImagery[], never, never> => {
-    if (Option.isNone(planetOption) || !bounds) return Effect.succeed([])
+  // Helper: Search Planet Labs for satellite imagery with comprehensive error handling
+  const searchPlanetImagery = (bounds: readonly [number, number, number, number] | undefined, limit: number) =>
+    Effect.gen(function* () {
+      if (Option.isNone(planetOption) || !bounds) {
+        return { results: [] as SearchResultImagery[], error: undefined as SearchError | undefined }
+      }
 
-    const planet = planetOption.value
-    const [minLon, minLat, maxLon, maxLat] = bounds
-    const polygon = [
-      [minLon, minLat],
-      [maxLon, minLat],
-      [maxLon, maxLat],
-      [minLon, maxLat],
-      [minLon, minLat],
-    ]
+      const planet = planetOption.value
+      const [minLon, minLat, maxLon, maxLat] = bounds
+      const polygon = [
+        [minLon, minLat],
+        [maxLon, minLat],
+        [maxLon, maxLat],
+        [minLon, maxLat],
+        [minLon, minLat],
+      ]
 
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-    const now = new Date()
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      const now = new Date()
 
-    return planet.quickSearch({
-      itemTypes: ['PSScene'],
-      geometry: {
-        type: 'Polygon',
-        coordinates: [polygon],
-      },
-      acquiredGte: thirtyDaysAgo.toISOString(),
-      acquiredLte: now.toISOString(),
-      maxCloudCover: 0.3,
-      limit,
-    }).pipe(
-      Effect.map((response) =>
-        response.items
-          .map(planetItemToImageryResult)
-          .filter((r): r is SearchResultImagery => r !== null)
-          .slice(0, limit)
-      ),
-      Effect.catchAll(() => Effect.succeed([] as SearchResultImagery[]))
-    )
-  }
+      const result = yield* planet.quickSearch({
+        itemTypes: ['PSScene'],
+        geometry: {
+          type: 'Polygon',
+          coordinates: [polygon],
+        },
+        acquiredGte: thirtyDaysAgo.toISOString(),
+        acquiredLte: now.toISOString(),
+        maxCloudCover: 0.3,
+        limit,
+      }).pipe(
+        Effect.map((response) => ({
+          results: response.items
+            .map(planetItemToImageryResult)
+            .filter((r): r is SearchResultImagery => r !== null)
+            .slice(0, limit),
+          error: undefined as SearchError | undefined,
+        })),
+        Effect.catchAll(handleSearchError<SearchResultImagery>('Planet Labs'))
+      )
 
-  // Helper: Search Sentinel Hub for satellite imagery
-  const searchSentinelImagery = (
-    bounds: readonly [number, number, number, number] | undefined,
-    limit: number
-  ): Effect.Effect<SearchResultImagery[], never, never> => {
-    if (Option.isNone(sentinelOption) || !bounds) return Effect.succeed([])
+      return result
+    })
 
-    const sentinel = sentinelOption.value
-    const [minLon, minLat, maxLon, maxLat] = bounds
+  // Helper: Search Sentinel Hub for satellite imagery with comprehensive error handling
+  const searchSentinelImagery = (bounds: readonly [number, number, number, number] | undefined, limit: number) =>
+    Effect.gen(function* () {
+      if (Option.isNone(sentinelOption) || !bounds) {
+        return { results: [] as SearchResultImagery[], error: undefined as SearchError | undefined }
+      }
 
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-    const now = new Date()
+      const sentinel = sentinelOption.value
+      const [minLon, minLat, maxLon, maxLat] = bounds
 
-    return sentinel.search({
-      collections: ['sentinel-2-l2a'],
-      bbox: [minLon, minLat, maxLon, maxLat],
-      datetimeGte: thirtyDaysAgo.toISOString(),
-      datetimeLte: now.toISOString(),
-      maxCloudCover: 30,
-      limit,
-    }).pipe(
-      Effect.map((response) =>
-        response.items
-          .map(sentinelItemToImageryResult)
-          .filter((r): r is SearchResultImagery => r !== null)
-          .slice(0, limit)
-      ),
-      Effect.catchAll(() => Effect.succeed([] as SearchResultImagery[]))
-    )
-  }
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      const now = new Date()
 
-  // Helper: Get weather for viewport center
-  const searchWeather = (
-    bounds: readonly [number, number, number, number] | undefined,
-    _limit: number
-  ): Effect.Effect<SearchResultWeather[], never, never> => {
-    if (Option.isNone(weatherOption) || !bounds) return Effect.succeed([])
+      const result = yield* sentinel.search({
+        collections: ['sentinel-2-l2a'],
+        bbox: [minLon, minLat, maxLon, maxLat],
+        datetimeGte: thirtyDaysAgo.toISOString(),
+        datetimeLte: now.toISOString(),
+        maxCloudCover: 30,
+        limit,
+      }).pipe(
+        Effect.map((response) => ({
+          results: response.items
+            .map(sentinelItemToImageryResult)
+            .filter((r): r is SearchResultImagery => r !== null)
+            .slice(0, limit),
+          error: undefined as SearchError | undefined,
+        })),
+        Effect.catchAll(handleSearchError<SearchResultImagery>('Sentinel Hub'))
+      )
 
-    const weather = weatherOption.value
-    const [minLon, minLat, maxLon, maxLat] = bounds
-    const centerLat = (minLat + maxLat) / 2
-    const centerLon = (minLon + maxLon) / 2
+      return result
+    })
 
-    return weather.getForecast({
-      latitude: centerLat,
-      longitude: centerLon,
-      current: true,
-      hourly: true,
-      daily: true,
-      forecastDays: 3,
-      timezone: 'auto',
-    }).pipe(
-      Effect.map((forecast) => {
-        const result = weatherForecastToSearchResult(forecast, `Weather at ${centerLat.toFixed(2)}, ${centerLon.toFixed(2)}`)
-        return result ? [result] : []
-      }),
-      Effect.catchAll(() => Effect.succeed([] as SearchResultWeather[]))
-    )
-  }
+  // Helper: Get weather for viewport center with comprehensive error handling
+  const searchWeather = (bounds: readonly [number, number, number, number] | undefined, _limit: number) =>
+    Effect.gen(function* () {
+      if (Option.isNone(weatherOption) || !bounds) {
+        return { results: [] as SearchResultWeather[], error: undefined as SearchError | undefined }
+      }
+
+      const weather = weatherOption.value
+      const [minLon, minLat, maxLon, maxLat] = bounds
+      const centerLat = (minLat + maxLat) / 2
+      const centerLon = (minLon + maxLon) / 2
+
+      const result = yield* weather.getForecast({
+        latitude: centerLat,
+        longitude: centerLon,
+        current: true,
+        hourly: true,
+        daily: true,
+        forecastDays: 3,
+        timezone: 'auto',
+      }).pipe(
+        Effect.map((forecast) => {
+          const weatherResult = weatherForecastToSearchResult(forecast, `Weather at ${centerLat.toFixed(2)}, ${centerLon.toFixed(2)}`)
+          return {
+            results: weatherResult ? [weatherResult] : [] as SearchResultWeather[],
+            error: undefined as SearchError | undefined,
+          }
+        }),
+        Effect.catchAll(handleSearchError<SearchResultWeather>('Open-Meteo'))
+      )
+
+      return result
+    })
 
   // ─────────────────────────────────────────────────────────────────────────
   // RPC Handlers
@@ -383,51 +455,58 @@ const SearchRpcHandlers = Effect.gen(function* () {
 
         // Query OpenSky if requested
         if (sources.includes('opensky')) {
-          const flights = yield* searchFlights(bounds, limit)
-          allResults.push(...flights)
-          sourceCounts['opensky'] = flights.length
+          const { results, error } = yield* searchFlights(bounds, limit)
+          allResults.push(...results)
+          sourceCounts['opensky'] = results.length
+          if (error) errors['opensky'] = `${error._tag}: ${error.userMessage}`
         }
 
         // Query Overpass if requested
         if (sources.includes('osm')) {
-          const pois = yield* searchPois(bounds, [], limit)
-          allResults.push(...pois)
-          sourceCounts['osm'] = pois.length
+          const { results, error } = yield* searchPois(bounds, [], limit)
+          allResults.push(...results)
+          sourceCounts['osm'] = results.length
+          if (error) errors['osm'] = `${error._tag}: ${error.userMessage}`
         }
 
         // Query PostGIS tracks if requested
         if (sources.includes('track')) {
-          const tracks = yield* searchTracks(bounds, limit)
-          allResults.push(...tracks)
-          sourceCounts['track'] = tracks.length
+          const { results, error } = yield* searchTracks(bounds, limit)
+          allResults.push(...results)
+          sourceCounts['track'] = results.length
+          if (error) errors['track'] = `${error._tag}: ${error.userMessage}`
         }
 
         // Query PostGIS features if requested
         if (sources.includes('feature')) {
-          const features = yield* searchFeatures(bounds, limit)
-          allResults.push(...features)
-          sourceCounts['feature'] = features.length
+          const { results, error } = yield* searchFeatures(bounds, limit)
+          allResults.push(...results)
+          sourceCounts['feature'] = results.length
+          if (error) errors['feature'] = `${error._tag}: ${error.userMessage}`
         }
 
         // Query Planet Labs if requested
         if (sources.includes('planet')) {
-          const planetResults = yield* searchPlanetImagery(bounds, limit)
-          allResults.push(...planetResults)
-          sourceCounts['planet'] = planetResults.length
+          const { results, error } = yield* searchPlanetImagery(bounds, limit)
+          allResults.push(...results)
+          sourceCounts['planet'] = results.length
+          if (error) errors['planet'] = `${error._tag}: ${error.userMessage}`
         }
 
         // Query Sentinel Hub if requested
         if (sources.includes('sentinel')) {
-          const sentinelResults = yield* searchSentinelImagery(bounds, limit)
-          allResults.push(...sentinelResults)
-          sourceCounts['sentinel'] = sentinelResults.length
+          const { results, error } = yield* searchSentinelImagery(bounds, limit)
+          allResults.push(...results)
+          sourceCounts['sentinel'] = results.length
+          if (error) errors['sentinel'] = `${error._tag}: ${error.userMessage}`
         }
 
         // Query Open-Meteo if requested
         if (sources.includes('weather')) {
-          const weatherResults = yield* searchWeather(bounds, limit)
-          allResults.push(...weatherResults)
-          sourceCounts['weather'] = weatherResults.length
+          const { results, error } = yield* searchWeather(bounds, limit)
+          allResults.push(...results)
+          sourceCounts['weather'] = results.length
+          if (error) errors['weather'] = `${error._tag}: ${error.userMessage}`
         }
 
         // Add to history
@@ -470,42 +549,34 @@ const SearchRpcHandlers = Effect.gen(function* () {
           center[1] + latDelta,
         ]
 
-        const query = new SearchQuery({
-          id: searchId,
-          geoFilter: new GeoFilterBounds({ bounds }),
-          sources: [...sources],
-          limitPerSource: limit,
+        const startTime = Date.now()
+        const allResults: SearchResultItem[] = []
+        const sourceCounts: Record<string, number> = {}
+        const errors: Record<string, string> = {}
+
+        if (sources.includes('opensky') || sources.length === 0) {
+          const { results, error } = yield* searchFlights(bounds, limit)
+          allResults.push(...results)
+          sourceCounts['opensky'] = results.length
+          if (error) errors['opensky'] = `${error._tag}: ${error.userMessage}`
+        }
+
+        if (sources.includes('osm') || sources.length === 0) {
+          const { results, error } = yield* searchPois(bounds, [], limit)
+          allResults.push(...results)
+          sourceCounts['osm'] = results.length
+          if (error) errors['osm'] = `${error._tag}: ${error.userMessage}`
+        }
+
+        return new SearchResponse({
+          queryId: searchId,
+          totalCount: allResults.length,
+          results: allResults,
+          sourceCounts,
+          executionTimeMs: Date.now() - startTime,
+          truncated: false,
+          errors,
         })
-
-        // Re-use search handler
-        return yield* Effect.succeed(query).pipe(
-          Effect.flatMap(() => Effect.gen(function* () {
-            const startTime = Date.now()
-            const allResults: SearchResultItem[] = []
-            const sourceCounts: Record<string, number> = {}
-
-            if (sources.includes('opensky') || sources.length === 0) {
-              const flights = yield* searchFlights(bounds, limit)
-              allResults.push(...flights)
-              sourceCounts['opensky'] = flights.length
-            }
-
-            if (sources.includes('osm') || sources.length === 0) {
-              const pois = yield* searchPois(bounds, [], limit)
-              allResults.push(...pois)
-              sourceCounts['osm'] = pois.length
-            }
-
-            return new SearchResponse({
-              queryId: searchId,
-              totalCount: allResults.length,
-              results: allResults,
-              sourceCounts,
-              executionTimeMs: Date.now() - startTime,
-              truncated: false,
-            })
-          }))
-        )
       }),
 
     searchInBounds: (request: { bounds: readonly [number, number, number, number]; sources: readonly IntelSource[]; limit: number }) =>
@@ -515,40 +586,54 @@ const SearchRpcHandlers = Effect.gen(function* () {
         const startTime = Date.now()
         const allResults: SearchResultItem[] = []
         const sourceCounts: Record<string, number> = {}
+        const errors: Record<string, string> = {}
+
+        // Empty result helper
+        const emptyResult = <T>() => Effect.succeed({ results: [] as T[], error: undefined as SearchError | undefined })
 
         // Query all sources in parallel
         const [flights, pois, tracks, features, planetImgs, sentinelImgs, weatherData] = yield* Effect.all([
           (sources.includes('opensky') || sources.length === 0)
             ? searchFlights(bounds, limit)
-            : Effect.succeed([]),
+            : emptyResult<SearchResultFlight>(),
           (sources.includes('osm') || sources.length === 0)
             ? searchPois(bounds, [], limit)
-            : Effect.succeed([]),
+            : emptyResult<SearchResultPoi>(),
           (sources.includes('track') || sources.length === 0)
             ? searchTracks(bounds, limit)
-            : Effect.succeed([]),
+            : emptyResult<SearchResultTrack>(),
           (sources.includes('feature') || sources.length === 0)
             ? searchFeatures(bounds, limit)
-            : Effect.succeed([]),
+            : emptyResult<SearchResultFeature>(),
           (sources.includes('planet') || sources.length === 0)
             ? searchPlanetImagery(bounds, limit)
-            : Effect.succeed([]),
+            : emptyResult<SearchResultImagery>(),
           (sources.includes('sentinel') || sources.length === 0)
             ? searchSentinelImagery(bounds, limit)
-            : Effect.succeed([]),
+            : emptyResult<SearchResultImagery>(),
           (sources.includes('weather') || sources.length === 0)
             ? searchWeather(bounds, limit)
-            : Effect.succeed([]),
+            : emptyResult<SearchResultWeather>(),
         ])
 
-        allResults.push(...flights, ...pois, ...tracks, ...features, ...planetImgs, ...sentinelImgs, ...weatherData)
-        sourceCounts['opensky'] = flights.length
-        sourceCounts['osm'] = pois.length
-        sourceCounts['track'] = tracks.length
-        sourceCounts['feature'] = features.length
-        sourceCounts['planet'] = planetImgs.length
-        sourceCounts['sentinel'] = sentinelImgs.length
-        sourceCounts['weather'] = weatherData.length
+        // Aggregate results and errors
+        allResults.push(...flights.results, ...pois.results, ...tracks.results, ...features.results, ...planetImgs.results, ...sentinelImgs.results, ...weatherData.results)
+        sourceCounts['opensky'] = flights.results.length
+        sourceCounts['osm'] = pois.results.length
+        sourceCounts['track'] = tracks.results.length
+        sourceCounts['feature'] = features.results.length
+        sourceCounts['planet'] = planetImgs.results.length
+        sourceCounts['sentinel'] = sentinelImgs.results.length
+        sourceCounts['weather'] = weatherData.results.length
+
+        // Track errors per source
+        if (flights.error) errors['opensky'] = `${flights.error._tag}: ${flights.error.userMessage}`
+        if (pois.error) errors['osm'] = `${pois.error._tag}: ${pois.error.userMessage}`
+        if (tracks.error) errors['track'] = `${tracks.error._tag}: ${tracks.error.userMessage}`
+        if (features.error) errors['feature'] = `${features.error._tag}: ${features.error.userMessage}`
+        if (planetImgs.error) errors['planet'] = `${planetImgs.error._tag}: ${planetImgs.error.userMessage}`
+        if (sentinelImgs.error) errors['sentinel'] = `${sentinelImgs.error._tag}: ${sentinelImgs.error.userMessage}`
+        if (weatherData.error) errors['weather'] = `${weatherData.error._tag}: ${weatherData.error.userMessage}`
 
         return new SearchResponse({
           queryId: searchId,
@@ -557,6 +642,7 @@ const SearchRpcHandlers = Effect.gen(function* () {
           sourceCounts,
           executionTimeMs: Date.now() - startTime,
           truncated: false,
+          errors,
         })
       }),
 
@@ -567,32 +653,61 @@ const SearchRpcHandlers = Effect.gen(function* () {
         : ['osm', 'opensky', 'track', 'feature', 'planet', 'sentinel', 'weather']
       const limit = request.limitPerSource ?? 100
 
-      // Build search effect for a single source
-      const makeSourceEffect = (source: IntelSource): Effect.Effect<SearchPartialResults, never> =>
+      // Build search effect for a single source with error tracking
+      const makeSourceEffect = (source: IntelSource) =>
         Effect.gen(function* () {
           let results: SearchResultItem[] = []
+          let sourceError: SearchError | undefined
 
           switch (source) {
             case 'opensky':
-              if (bounds) results = yield* searchFlights(bounds, limit)
+              if (bounds) {
+                const r = yield* searchFlights(bounds, limit)
+                results = r.results
+                sourceError = r.error
+              }
               break
             case 'osm':
-              if (bounds) results = yield* searchPois(bounds, [], limit)
+              if (bounds) {
+                const r = yield* searchPois(bounds, [], limit)
+                results = r.results
+                sourceError = r.error
+              }
               break
             case 'track':
-              if (bounds) results = yield* searchTracks(bounds, limit)
+              if (bounds) {
+                const r = yield* searchTracks(bounds, limit)
+                results = r.results
+                sourceError = r.error
+              }
               break
             case 'feature':
-              if (bounds) results = yield* searchFeatures(bounds, limit)
+              if (bounds) {
+                const r = yield* searchFeatures(bounds, limit)
+                results = r.results
+                sourceError = r.error
+              }
               break
             case 'planet':
-              if (bounds) results = yield* searchPlanetImagery(bounds, limit)
+              if (bounds) {
+                const r = yield* searchPlanetImagery(bounds, limit)
+                results = r.results
+                sourceError = r.error
+              }
               break
             case 'sentinel':
-              if (bounds) results = yield* searchSentinelImagery(bounds, limit)
+              if (bounds) {
+                const r = yield* searchSentinelImagery(bounds, limit)
+                results = r.results
+                sourceError = r.error
+              }
               break
             case 'weather':
-              if (bounds) results = yield* searchWeather(bounds, limit)
+              if (bounds) {
+                const r = yield* searchWeather(bounds, limit)
+                results = r.results
+                sourceError = r.error
+              }
               break
           }
 
@@ -601,6 +716,7 @@ const SearchRpcHandlers = Effect.gen(function* () {
             source,
             results,
             isComplete: true,
+            error: sourceError ? `${sourceError._tag}: ${sourceError.userMessage}` : undefined,
           })
         })
 
@@ -632,33 +748,35 @@ const SearchRpcHandlers = Effect.gen(function* () {
       )
     },
 
-    // External API Proxies (wrapped to catch errors)
+    // External API Proxies (wrapped with comprehensive error handling)
     queryOpenSky: (request: { bounds?: readonly [number, number, number, number]; icao24: readonly string[]; time?: number }) =>
       opensky.getStates({
         bounds: request.bounds,
         icao24: [...request.icao24], // Convert readonly to mutable
         time: request.time,
       }).pipe(
-        Effect.catchAll((error) => {
-          console.error('[SearchRpcServer] OpenSky error:', error)
-          return Effect.succeed(new OpenSkyResponse({ time: Date.now() / 1000, states: null }))
-        })
+        Effect.catchAll(handleSearchError<OpenSkyResponse>('queryOpenSky')),
+        Effect.map((result) => 'results' in result
+          ? new OpenSkyResponse({ time: Date.now() / 1000, states: null })
+          : result
+        )
       ),
 
     queryOverpass: (request: { query: string; format: 'json' | 'xml' | 'csv'; timeout: number }) =>
       overpass.query(request.query, { timeout: request.timeout }).pipe(
-        Effect.catchAll((error) => {
-          console.error('[SearchRpcServer] Overpass error:', error)
-          return Effect.succeed(new OverpassResponse({
-            version: 0.6,
-            generator: 'SearchRpcServer (error fallback)',
-            osm3s: {
-              timestamp_osm_base: new Date().toISOString(),
-              copyright: 'Error occurred'
-            },
-            elements: []
-          }))
-        })
+        Effect.catchAll(handleSearchError<OverpassResponse>('queryOverpass')),
+        Effect.map((result) => 'results' in result
+          ? new OverpassResponse({
+              version: 0.6,
+              generator: 'SearchRpcServer (error fallback)',
+              osm3s: {
+                timestamp_osm_base: new Date().toISOString(),
+                copyright: 'Error occurred'
+              },
+              elements: []
+            })
+          : result
+        )
       ),
 
     buildOverpassQuery: (request: { bounds: readonly [number, number, number, number]; amenities: readonly string[]; tags: Record<string, string> }) =>
@@ -728,15 +846,21 @@ const SearchRpcHandlers = Effect.gen(function* () {
         const startTime = Date.now()
         const allResults: SearchResultItem[] = []
         const sourceCounts: Record<string, number> = {}
+        const errors: Record<string, string> = {}
 
-        const [flights, pois] = yield* Effect.all([
-          sources.includes('opensky') ? searchFlights(bounds, limit) : Effect.succeed([]),
-          sources.includes('osm') ? searchPois(bounds, [], limit) : Effect.succeed([]),
+        // Empty result helper
+        const emptyResult = <T>() => Effect.succeed({ results: [] as T[], error: undefined as SearchError | undefined })
+
+        const [flightsResult, poisResult] = yield* Effect.all([
+          sources.includes('opensky') ? searchFlights(bounds, limit) : emptyResult<SearchResultFlight>(),
+          sources.includes('osm') ? searchPois(bounds, [], limit) : emptyResult<SearchResultPoi>(),
         ])
 
-        allResults.push(...flights, ...pois)
-        sourceCounts['opensky'] = flights.length
-        sourceCounts['osm'] = pois.length
+        allResults.push(...flightsResult.results, ...poisResult.results)
+        sourceCounts['opensky'] = flightsResult.results.length
+        sourceCounts['osm'] = poisResult.results.length
+        if (flightsResult.error) errors['opensky'] = `${flightsResult.error._tag}: ${flightsResult.error.userMessage}`
+        if (poisResult.error) errors['osm'] = `${poisResult.error._tag}: ${poisResult.error.userMessage}`
 
         return new SearchResponse({
           queryId: saved.query.id,
@@ -745,6 +869,7 @@ const SearchRpcHandlers = Effect.gen(function* () {
           sourceCounts,
           executionTimeMs: Date.now() - startTime,
           truncated: false,
+          errors,
         })
       }),
 
@@ -793,6 +918,121 @@ const SearchRpcHandlers = Effect.gen(function* () {
 
         return { cells, totalCount }
       }),
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Ingestion Control
+    // ─────────────────────────────────────────────────────────────────────────
+
+    startIngestion: (_request: {}) =>
+      Effect.gen(function* () {
+        if (Option.isNone(orchestratorOption)) {
+          yield* Effect.logWarning('[Ingestion] Orchestrator not configured')
+          return {
+            running: false,
+            ingesters: [],
+            startedAt: Option.none(),
+          } satisfies OrchestratorStatus
+        }
+
+        const orchestrator = orchestratorOption.value
+        yield* orchestrator.start().pipe(
+          Effect.catchAll((e) =>
+            Effect.logError(`[Ingestion] Failed to start: ${e.message}`)
+          )
+        )
+        return yield* orchestrator.status()
+      }),
+
+    stopIngestion: (_request: {}) =>
+      Effect.gen(function* () {
+        if (Option.isNone(orchestratorOption)) {
+          yield* Effect.logWarning('[Ingestion] Orchestrator not configured')
+          return {
+            running: false,
+            ingesters: [],
+            startedAt: Option.none(),
+          } satisfies OrchestratorStatus
+        }
+
+        const orchestrator = orchestratorOption.value
+        yield* orchestrator.stop().pipe(
+          Effect.catchAll((e) =>
+            Effect.logError(`[Ingestion] Failed to stop: ${e.message}`)
+          )
+        )
+        return yield* orchestrator.status()
+      }),
+
+    getIngestionStatus: (_request: {}) =>
+      Effect.gen(function* () {
+        if (Option.isNone(orchestratorOption)) {
+          return {
+            running: false,
+            ingesters: [],
+            startedAt: Option.none(),
+          } satisfies OrchestratorStatus
+        }
+
+        return yield* orchestratorOption.value.status()
+      }),
+
+    startIngester: (request: { name: IngesterName }) =>
+      Effect.gen(function* () {
+        if (Option.isNone(orchestratorOption)) {
+          yield* Effect.logWarning(`[Ingestion] Orchestrator not configured, cannot start ${request.name}`)
+          return {
+            name: request.name,
+            running: false,
+            startedAt: Option.none(),
+            error: Option.some('Orchestrator not configured'),
+          } satisfies IngesterStatus
+        }
+
+        const orchestrator = orchestratorOption.value
+        yield* orchestrator.startIngester(request.name).pipe(
+          Effect.catchAll((e) =>
+            Effect.logError(`[Ingestion] Failed to start ${request.name}: ${e.message}`)
+          )
+        )
+        const status = yield* orchestrator.status()
+        const ingesterStatus = status.ingesters.find((i) => i.name === request.name)
+
+        return ingesterStatus ?? {
+          name: request.name,
+          running: false,
+          startedAt: Option.none(),
+          error: Option.some('Ingester not found'),
+        }
+      }),
+
+    stopIngester: (request: { name: IngesterName }) =>
+      Effect.gen(function* () {
+        if (Option.isNone(orchestratorOption)) {
+          yield* Effect.logWarning(`[Ingestion] Orchestrator not configured, cannot stop ${request.name}`)
+          return {
+            name: request.name,
+            running: false,
+            startedAt: Option.none(),
+            error: Option.some('Orchestrator not configured'),
+          } satisfies IngesterStatus
+        }
+
+        const orchestrator = orchestratorOption.value
+        yield* orchestrator.stopIngester(request.name).pipe(
+          Effect.catchAll((e) =>
+            Effect.logError(`[Ingestion] Failed to stop ${request.name}: ${e.message}`)
+          )
+        )
+        const status = yield* orchestrator.status()
+        const ingesterStatus = status.ingesters.find((i) => i.name === request.name)
+
+        return ingesterStatus ?? {
+          name: request.name,
+          running: false,
+          startedAt: Option.none(),
+          error: Option.none(),
+        }
+      }),
   }
 })
 
@@ -836,5 +1076,42 @@ export const SearchRpcServerLayer = pipe(
   ),
 )
 
-// Note: SearchRpcHandlers, SearchRpcHandlersLayer, SearchRpcServerLayer
-// are exported via `export const` above
+/**
+ * Search RPC server layer with full ingestion pipeline
+ *
+ * Includes background data polling for:
+ * - OpenSky Network flights
+ * - OpenStreetMap POIs via Overpass
+ * - Open-Meteo weather
+ * - Satellite imagery (Planet Labs, Sentinel Hub)
+ *
+ * **Requires:**
+ * - `PgClient.PgClient` (PostgreSQL connection for repositories)
+ *
+ * Use `startIngestion` RPC to begin background polling.
+ *
+ * @example
+ * ```typescript
+ * const ServerLive = HttpRouter.Default.serve().pipe(
+ *   Layer.provide(SearchRpcServerWithIngestionLayer),
+ *   Layer.provide(BunHttpServer.layer({ port: 8081 })),
+ *   Layer.provide(BunContext.layer),
+ *   Layer.provide(PgClientLive)
+ * )
+ * ```
+ */
+export const SearchRpcServerWithIngestionLayer = pipe(
+  RpcServer.layer(SearchRpcs),
+  Layer.provide(SearchRpcHandlersLayer),
+  Layer.provideMerge(RpcServer.layerProtocolWebsocketRouter({ path: '/geoint/search' })),
+  Layer.provide(RpcSerialization.layerJson),
+  // Ingestion pipeline includes all ingesters, orchestrator, repositories, and API clients
+  Layer.provide(
+    IngestionPipelineLive.pipe(
+      Layer.provide(FetchHttpClient.layer)
+    )
+  ),
+)
+
+// Note: SearchRpcHandlers, SearchRpcHandlersLayer, SearchRpcServerLayer,
+// SearchRpcServerWithIngestionLayer are exported via `export const` above
