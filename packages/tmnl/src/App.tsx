@@ -423,6 +423,22 @@ const CARDS: readonly CardDef[] = [
     label: 'NEW',
     glow: 'rose',
   },
+  {
+    title: 'INTEGRATED GEOINT',
+    body: 'Complete vertical slice: AtomRpc search → Handlers → Atoms → UI | Electric Shape sync | Kori entity management | Timeline filtering.',
+    route: '/testbed/integrated-geoint',
+    status: 'active',
+    label: 'NEW',
+    glow: 'cyan',
+  },
+  {
+    title: 'ELECTRIC SYNC',
+    body: 'ElectricSQL shape subscriptions. useEntities(), trait hooks, useFlightEntitiesWithTraits() joins, JSONB parsing.',
+    route: '/testbed/electric-sync',
+    status: 'active',
+    label: 'NEW',
+    glow: 'emerald',
+  },
 ];
 
 /**

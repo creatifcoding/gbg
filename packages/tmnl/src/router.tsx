@@ -72,6 +72,8 @@ import { AtomRpcTestbed } from './components/testbed/AtomRpcTestbed';
 import { MaterializerFlowTestbed } from './components/testbed/MaterializerFlowTestbed';
 import { IngestionOrchestratorTestbed } from './components/testbed/IngestionOrchestratorTestbed';
 import { EntityUIAtomsTestbed } from './components/testbed/EntityUIAtomsTestbed';
+import { IntegratedGeointTestbed } from './components/testbed/IntegratedGeointTestbed';
+import { ElectricSyncTestbed } from './components/testbed/ElectricSyncTestbed';
 import { DiagramsPage } from './components/docs';
 import { OverhaulDocsPage } from './components/docs/overhaul';
 import { DocsLanding } from './components/docs-3d';
@@ -481,6 +483,20 @@ const entityUIAtomsTestbedRoute = createRoute({
   component: EntityUIAtomsTestbed,
 });
 
+// Integrated GEOINT testbed route (full vertical slice: AtomRpc + Electric + Kori)
+const integratedGeointTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/integrated-geoint',
+  component: IntegratedGeointTestbed,
+});
+
+// Electric Sync testbed route (ElectricSQL shape sync patterns)
+const electricSyncTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/electric-sync',
+  component: ElectricSyncTestbed,
+});
+
 // Create the router
 const router = createRouter({
   routeTree: rootRoute.addChildren([
@@ -541,6 +557,8 @@ const router = createRouter({
     materializerFlowTestbedRoute,
     ingestionOrchestratorTestbedRoute,
     entityUIAtomsTestbedRoute,
+    integratedGeointTestbedRoute,
+    electricSyncTestbedRoute,
   ]),
 });
 

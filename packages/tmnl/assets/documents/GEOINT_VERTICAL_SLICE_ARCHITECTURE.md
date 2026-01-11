@@ -459,6 +459,7 @@ Connection strings:
 | MaterializerFlowTestbed | /testbed/materializer-flow | Transactional Outbox: Ingestion → Stream → Materializer → Electric |
 | IngestionOrchestratorTestbed | /testbed/ingestion-orchestrator | Effect.Service lifecycle: Fiber management, Layer composition, Ref+HashMap state |
 | EntityUIAtomsTestbed | /testbed/entity-ui-atoms | Atom.family per-entity state, HashSet selection, Option hover, entityOps |
+| ElectricSyncTestbed | /testbed/electric-sync | ElectricSQL shape subscriptions, trait hooks, useFlightEntitiesWithTraits() joins |
 
 ## Remaining Integration Work
 
