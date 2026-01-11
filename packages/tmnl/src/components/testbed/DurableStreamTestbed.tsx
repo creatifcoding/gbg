@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react'
-import { useAtomValue } from '@effect-atom/atom-react'
+import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
 import { Effect, Layer, Runtime } from 'effect'
 import {
   geointRegistry,
@@ -32,8 +32,8 @@ import {
   streamOffsetAtom,
 } from '../../lib/geoint/atoms/operations'
 import { DurableStreamClientLive, DurableStreamClientConfigTag } from '../../lib/durable-streams/service'
-import type { SearchQuery, IntelSource, SearchResultItem } from '../../lib/geoint/schemas'
-import { SearchId, GeoFilterBounds } from '../../lib/geoint/schemas'
+import type { IntelSource, SearchResultItem } from '../../lib/geoint/schemas'
+import { SearchQuery, SearchId, GeoFilterBounds } from '../../lib/geoint/schemas'
 import { HashMap } from 'effect'
 
 // =============================================================================
@@ -355,6 +355,12 @@ export const DurableStreamTestbed: React.FC = () => {
   const error = useAtomValue(searchErrorAtom)
   const offsets = useAtomValue(streamOffsetAtom)
 
+  // Atom operations via useAtomSet (proper Effect execution)
+  // Cast to any to work around TypeScript inference issue with AtomResultFn
+  const runMockSearch = useAtomSet(mockStreamingSearch, { mode: 'promiseExit' } as const) as (arg: { query: SearchQuery }) => Promise<any>
+  const runStreamingSearch = useAtomSet(streamingSearch, { mode: 'promiseExit' } as const) as (arg: { query: SearchQuery; queryId: string }) => Promise<any>
+  const runCancelSearch = useAtomSet(cancelSearch, { mode: 'promiseExit' } as const) as (arg?: undefined) => Promise<any>
+
   // Log capture
   useEffect(() => {
     const originalLog = console.log
@@ -382,34 +388,38 @@ export const DurableStreamTestbed: React.FC = () => {
 
   // Build a sample query
   const buildQuery = useCallback((): SearchQuery => {
-    return {
-      id: `search-${Date.now()}` as any,
+    return new SearchQuery({
+      id: `search-${Date.now()}` as unknown as typeof SearchId.Type,
+      text: '',
       sources: ['track', 'osm', 'opensky', 'feature'] as IntelSource[],
       geoFilter: new GeoFilterBounds({
         bounds: [-122.5, 37.7, -122.3, 37.9],
       }),
+      sourceFilters: [],
       limitPerSource: 10,
-    } as SearchQuery
+      totalLimit: 100,
+      includeMetadata: true,
+    })
   }, [])
 
   // Start search
-  const handleStartSearch = useCallback(() => {
+  const handleStartSearch = useCallback(async () => {
     const query = buildQuery()
     const queryId = query.id as string
 
     if (useMock) {
       // Run mock search (no DurableStreams needed)
-      geointRegistry.get(mockStreamingSearch({ query }))
+      await runMockSearch({ query })
     } else {
       // Run real streaming search
-      geointRegistry.get(streamingSearch({ query, queryId }))
+      await runStreamingSearch({ query, queryId })
     }
-  }, [useMock, buildQuery])
+  }, [useMock, buildQuery, runMockSearch, runStreamingSearch])
 
   // Cancel search
-  const handleCancel = useCallback(() => {
-    geointRegistry.get(cancelSearch())
-  }, [])
+  const handleCancel = useCallback(async () => {
+    await runCancelSearch(undefined)
+  }, [runCancelSearch])
 
   // Clear logs
   const handleClearLogs = useCallback(() => {

@@ -184,6 +184,35 @@ export const startIngestion = async (pgConfig: PgConfig) => {
 }
 ```
 
+### 6. AtomRpc.Tag Caching Pattern
+
+**Location**: `src/lib/geoint/clients/SearchClient.ts`
+
+```typescript
+// AtomRpc.Tag creates a client with automatic caching and reactivity
+export const SearchClient = AtomRpc.Tag<SearchClient>()('SearchClient', {
+  search: AtomRpc.procedure({
+    input: SearchQuery,
+    output: SearchResponse,
+    // TTL-based caching (30 seconds)
+    cache: { ttl: '30 seconds' },
+    // Reactivity keys for selective invalidation
+    reactivityKeys: (input) => [`search:${input.id}`, `bounds:${JSON.stringify(input.geoFilter)}`],
+  }),
+})
+
+// Cache invalidation on mutation
+export const invalidateSearchCache = (bounds: BBox) => {
+  SearchClient.invalidate(`bounds:${JSON.stringify(bounds)}`)
+}
+```
+
+**Demonstrates**:
+- TTL-based query caching
+- Reactivity keys for cache invalidation
+- Mutation → cache invalidation flow
+- See `AtomRpcTestbed` for interactive demo
+
 ## File Structure
 
 ```
@@ -330,6 +359,8 @@ Connection strings:
 | DurableStreamTestbed | /testbed/durable-stream | Streaming search with atom-based reactive state |
 | SearchToKoriTestbed | /testbed/search-to-kori | Search → Kori Entity deduplication flow |
 | TimelineSearchTestbed | /testbed/timeline-search | XState v5 → Atom filtering → Reactive results |
+| AtomRpcTestbed | /testbed/atom-rpc | AtomRpc.Tag caching + reactivity keys + TTL |
+| MaterializerFlowTestbed | /testbed/materializer-flow | Transactional Outbox: Ingestion → Stream → Materializer → Electric |
 
 ## Remaining Integration Work
 

@@ -44,7 +44,7 @@ function Content({ children }: { children: ReactNode }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 type IndicatorStatus = 'active' | 'idle' | 'pending' | 'error';
-type GlowColor = 'cyan' | 'rose' | 'amber' | 'emerald' | 'violet' | 'magenta';
+type GlowColor = 'cyan' | 'rose' | 'amber' | 'emerald';
 
 interface CardDef {
   readonly title: string;
@@ -108,7 +108,7 @@ const CARDS: readonly CardDef[] = [
     route: '/testbed/axiom',
     status: 'active',
     label: 'NEW',
-    glow: 'violet',
+    glow: 'cyan',
   },
   {
     title: 'PIPELINE ADR',
@@ -198,7 +198,7 @@ const CARDS: readonly CardDef[] = [
     route: '/testbed/kori-atoms',
     status: 'active',
     label: 'NEW',
-    glow: 'magenta',
+    glow: 'rose',
   },
   {
     title: 'FLOATING PANELS',
@@ -254,7 +254,7 @@ const CARDS: readonly CardDef[] = [
     route: '/testbed/block-terminal',
     status: 'active',
     label: 'v2',
-    glow: 'violet',
+    glow: 'amber',
   },
   {
     title: 'BLOCK TERMINAL V3',
@@ -390,6 +390,22 @@ const CARDS: readonly CardDef[] = [
     status: 'active',
     label: 'NEW',
     glow: 'rose',
+  },
+  {
+    title: 'ATOMRPC PATTERN',
+    body: 'AtomRpc.Tag caching + reactivity keys. Query atoms with TTL, mutation → cache invalidation flow.',
+    route: '/testbed/atom-rpc',
+    status: 'active',
+    label: 'NEW',
+    glow: 'amber',
+  },
+  {
+    title: 'MATERIALIZER FLOW',
+    body: 'Ingestion → Postgres → DurableStream → Materializer → Electric → React. Transactional Outbox Pattern.',
+    route: '/testbed/materializer-flow',
+    status: 'active',
+    label: 'NEW',
+    glow: 'emerald',
   },
 ];
 

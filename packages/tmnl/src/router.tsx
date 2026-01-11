@@ -68,6 +68,8 @@ import { AllintCopTestbed } from './components/testbed/AllintCopTestbed';
 import { ECSVerticalSliceTestbed } from './components/testbed/ECSVerticalSliceTestbed';
 import { SearchToKoriTestbed } from './components/testbed/SearchToKoriTestbed';
 import { TimelineSearchTestbed } from './components/testbed/TimelineSearchTestbed';
+import { AtomRpcTestbed } from './components/testbed/AtomRpcTestbed';
+import { MaterializerFlowTestbed } from './components/testbed/MaterializerFlowTestbed';
 import { DiagramsPage } from './components/docs';
 import { OverhaulDocsPage } from './components/docs/overhaul';
 import { DocsLanding } from './components/docs-3d';
@@ -449,6 +451,20 @@ const timelineSearchTestbedRoute = createRoute({
   component: TimelineSearchTestbed,
 });
 
+// AtomRpc testbed route (AtomRpc.Tag caching + reactivity keys)
+const atomRpcTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/atom-rpc',
+  component: AtomRpcTestbed,
+});
+
+// Materializer Flow testbed route (Ingestion → Stream → Materializer → Electric)
+const materializerFlowTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/materializer-flow',
+  component: MaterializerFlowTestbed,
+});
+
 // Create the router
 const router = createRouter({
   routeTree: rootRoute.addChildren([
@@ -505,6 +521,8 @@ const router = createRouter({
     ecsVerticalSliceTestbedRoute,
     searchToKoriTestbedRoute,
     timelineSearchTestbedRoute,
+    atomRpcTestbedRoute,
+    materializerFlowTestbedRoute,
   ]),
 });
 
