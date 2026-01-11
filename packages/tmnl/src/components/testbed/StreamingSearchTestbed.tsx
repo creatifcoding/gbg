@@ -360,10 +360,10 @@ function handleSearchErrorExhaustive(error: SearchError): string {
     Match.type<SearchError>(),
     Match.tag('SearchNetworkError', (e) => `Network: ${e.message}`),
     Match.tag('SearchTimeoutError', (e) => `Timeout after ${e.timeoutMs}ms: ${e.message}`),
-    Match.tag('SearchRateLimitError', (e) => `Rate limited: retry in ${e.retryDelayMs}ms`),
+    Match.tag('SearchRateLimitError', (e) => `Rate limited: retry in ${e.retryAfterMs ?? 0}ms`),
     Match.tag('SearchServerError', (e) => `Server error (${e.statusCode}): ${e.message}`),
     Match.tag('SearchValidationError', (e) => `Validation: ${e.message}`),
-    Match.tag('SearchNotFoundError', (e) => `Not found: ${e.resourceType}`),
+    Match.tag('SearchNotFoundError', (e) => `Not found: ${e.resource ?? 'unknown'}`),
     Match.tag('SearchAuthError', (e) => `Auth: ${e.message}`),
     Match.tag('SearchUnknownError', (e) => `Unknown: ${e.message}`),
     Match.exhaustive
@@ -545,7 +545,7 @@ export function StreamingSearchTestbed() {
     const testErrors: SearchError[] = [
       new SearchNetworkError({ message: 'Connection refused', cause: 'ECONNREFUSED' }),
       new SearchTimeoutError({ message: 'Request timed out', timeoutMs: 30000 }),
-      new SearchRateLimitError({ message: 'Too many requests', retryDelayMs: 60000 }),
+      new SearchRateLimitError({ message: 'Too many requests', source: 'opensky', retryAfterMs: 60000 }),
     ]
 
     for (const error of testErrors) {
