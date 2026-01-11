@@ -75,6 +75,7 @@ import { EntityUIAtomsTestbed } from './components/testbed/EntityUIAtomsTestbed'
 import { IntegratedGeointTestbed } from './components/testbed/IntegratedGeointTestbed';
 import { ElectricSyncTestbed } from './components/testbed/ElectricSyncTestbed';
 import { SearchServiceTestbed } from './components/testbed/SearchServiceTestbed';
+import { SchemaTransformTestbed } from './components/testbed/SchemaTransformTestbed';
 import { DurableStreamsTestbed } from './components/testbed/DurableStreamsTestbed';
 import { DiagramsPage } from './components/docs';
 import { OverhaulDocsPage } from './components/docs/overhaul';
@@ -506,6 +507,13 @@ const searchServiceTestbedRoute = createRoute({
   component: SearchServiceTestbed,
 });
 
+// Schema Transform testbed route (Wire → Domain transform patterns)
+const schemaTransformTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/schema-transform',
+  component: SchemaTransformTestbed,
+});
+
 // Durable Streams testbed route (Event streaming via NativeStreamClient)
 const durableStreamsTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -576,6 +584,7 @@ const router = createRouter({
     integratedGeointTestbedRoute,
     electricSyncTestbedRoute,
     searchServiceTestbedRoute,
+    schemaTransformTestbedRoute,
     durableStreamsTestbedRoute,
   ]),
 });

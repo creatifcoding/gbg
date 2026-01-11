@@ -448,6 +448,14 @@ const CARDS: readonly CardDef[] = [
     glow: 'cyan',
   },
   {
+    title: 'SCHEMA TRANSFORM',
+    body: 'External API wire → domain transforms. ADSB.lol, OpenMeteo weather, Planet/Sentinel imagery. Schema.transform + NullishOr handling.',
+    route: '/testbed/schema-transform',
+    status: 'active',
+    label: 'NEW',
+    glow: 'amber',
+  },
+  {
     title: 'DURABLE STREAMS',
     body: 'Event streaming via NativeStreamClient. append()/read() operations, polling subscriptions, GEOINT event types.',
     route: '/testbed/durable-streams',
