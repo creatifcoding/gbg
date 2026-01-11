@@ -415,6 +415,14 @@ const CARDS: readonly CardDef[] = [
     label: 'NEW',
     glow: 'cyan',
   },
+  {
+    title: 'ENTITY UI ATOMS',
+    body: 'Atom.family for per-entity state. HashSet selection, Option hover, entityOps mutations, registry.get()/set().',
+    route: '/testbed/entity-ui-atoms',
+    status: 'active',
+    label: 'NEW',
+    glow: 'rose',
+  },
 ];
 
 /**

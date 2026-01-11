@@ -263,6 +263,52 @@ export const makeIngestionOrchestrator = Effect.gen(function* () {
 - Fiber.interrupt for graceful shutdown
 - See `IngestionOrchestratorTestbed` for interactive demo
 
+### 8. Entity UI Atoms Pattern
+
+**Location**: `src/lib/geoint/kori/entity-atoms.ts`
+
+```typescript
+// Atom.family pattern - one atom per entity
+const entityUIStateCache = new Map<string, Writable<EntityUIState, EntityUIState>>()
+
+export function entityUIStateFamily(entityId: string): Writable<EntityUIState, EntityUIState> {
+  let atom = entityUIStateCache.get(entityId)
+  if (!atom) {
+    atom = Atom.make<EntityUIState>(DEFAULT_ENTITY_UI_STATE)
+    entityUIStateCache.set(entityId, atom)
+  }
+  return atom
+}
+
+// HashSet-based selection management
+export const selectedEntityIds = Atom.make(HashSet.empty<string>())
+export const hoveredEntityId = Atom.make(Option.none<string>())
+
+// Synchronous operations via registry
+export const entityOps = {
+  select: (entityId: string) => {
+    geointRegistry.update(selectedEntityIds, (ids) => HashSet.add(ids, entityId))
+    const uiAtom = entityUIStateFamily(entityId)
+    geointRegistry.update(uiAtom, (state) => ({ ...state, selected: true }))
+  },
+  toggleSelect: (entityId: string) => {
+    const uiAtom = entityUIStateFamily(entityId)
+    const current = geointRegistry.get(uiAtom)
+    if (current.selected) entityOps.deselect(entityId)
+    else entityOps.select(entityId)
+  },
+  // ... more operations
+}
+```
+
+**Demonstrates**:
+- Atom.family via Map-based memoization (same ID → same atom)
+- HashSet for immutable multi-select collections
+- Option for single nullable hover state
+- registry.get()/set() for synchronous React callback access
+- Operations object pattern for encapsulated mutations
+- See `EntityUIAtomsTestbed` for interactive demo
+
 ## File Structure
 
 ```
@@ -412,6 +458,7 @@ Connection strings:
 | AtomRpcTestbed | /testbed/atom-rpc | AtomRpc.Tag caching + reactivity keys + TTL |
 | MaterializerFlowTestbed | /testbed/materializer-flow | Transactional Outbox: Ingestion → Stream → Materializer → Electric |
 | IngestionOrchestratorTestbed | /testbed/ingestion-orchestrator | Effect.Service lifecycle: Fiber management, Layer composition, Ref+HashMap state |
+| EntityUIAtomsTestbed | /testbed/entity-ui-atoms | Atom.family per-entity state, HashSet selection, Option hover, entityOps |
 
 ## Remaining Integration Work
 

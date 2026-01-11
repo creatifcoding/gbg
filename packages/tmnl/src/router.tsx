@@ -71,6 +71,7 @@ import { TimelineSearchTestbed } from './components/testbed/TimelineSearchTestbe
 import { AtomRpcTestbed } from './components/testbed/AtomRpcTestbed';
 import { MaterializerFlowTestbed } from './components/testbed/MaterializerFlowTestbed';
 import { IngestionOrchestratorTestbed } from './components/testbed/IngestionOrchestratorTestbed';
+import { EntityUIAtomsTestbed } from './components/testbed/EntityUIAtomsTestbed';
 import { DiagramsPage } from './components/docs';
 import { OverhaulDocsPage } from './components/docs/overhaul';
 import { DocsLanding } from './components/docs-3d';
@@ -473,6 +474,13 @@ const ingestionOrchestratorTestbedRoute = createRoute({
   component: IngestionOrchestratorTestbed,
 });
 
+// Entity UI Atoms testbed route (Atom.family + HashSet selection patterns)
+const entityUIAtomsTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/entity-ui-atoms',
+  component: EntityUIAtomsTestbed,
+});
+
 // Create the router
 const router = createRouter({
   routeTree: rootRoute.addChildren([
@@ -532,6 +540,7 @@ const router = createRouter({
     atomRpcTestbedRoute,
     materializerFlowTestbedRoute,
     ingestionOrchestratorTestbedRoute,
+    entityUIAtomsTestbedRoute,
   ]),
 });
 
