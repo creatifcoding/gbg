@@ -407,6 +407,14 @@ const CARDS: readonly CardDef[] = [
     label: 'NEW',
     glow: 'emerald',
   },
+  {
+    title: 'INGESTION ORCHESTRATOR',
+    body: 'Effect.Service lifecycle management. Fiber-based ingesters, Layer composition, Ref + HashMap state tracking.',
+    route: '/testbed/ingestion-orchestrator',
+    status: 'active',
+    label: 'NEW',
+    glow: 'cyan',
+  },
 ];
 
 /**

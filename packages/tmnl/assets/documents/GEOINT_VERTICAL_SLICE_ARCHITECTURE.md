@@ -213,6 +213,56 @@ export const invalidateSearchCache = (bounds: BBox) => {
 - Mutation → cache invalidation flow
 - See `AtomRpcTestbed` for interactive demo
 
+### 7. Ingestion Orchestrator Pattern
+
+**Location**: `src/lib/geoint/ingestion/IngestionOrchestrator.ts`
+
+```typescript
+// Effect.Service with Context.Tag for dependency injection
+export class IngestionOrchestratorTag extends Context.Tag('geoint/IngestionOrchestrator')<
+  IngestionOrchestratorTag,
+  IngestionOrchestrator
+>() {}
+
+// Factory uses optional services via Effect.serviceOption()
+export const makeIngestionOrchestrator = Effect.gen(function* () {
+  const config = yield* IngestionOrchestratorConfigTag
+  const flightIngester = yield* Effect.serviceOption(FlightIngesterTag)
+  const osmIngester = yield* Effect.serviceOption(OsmIngesterTag)
+  // ...
+
+  // Fiber state tracked via Ref + HashMap
+  const fibersRef = yield* Ref.make(HashMap.empty<IngesterName, FiberState>())
+
+  // Start all enabled ingesters concurrently
+  const start = () =>
+    Effect.gen(function* () {
+      const toStart: IngesterName[] = []
+      if (config.enableFlight && Option.isSome(flightIngester)) toStart.push('flight')
+      // ...
+      yield* Effect.forEach(toStart, startOne, { concurrency: 'unbounded' })
+    })
+
+  // Graceful shutdown via Fiber.interrupt
+  const stop = () =>
+    Effect.gen(function* () {
+      const fibers = yield* Ref.get(fibersRef)
+      const running = Array.from(HashMap.keys(fibers))
+      yield* Effect.forEach(running, stopOne, { concurrency: 'unbounded' })
+    })
+
+  return { start, stop, startIngester, stopIngester, status, config }
+})
+```
+
+**Demonstrates**:
+- Effect.Service<> with Context.Tag for type-safe DI
+- Effect.serviceOption for optional dependencies
+- Ref + HashMap for mutable fiber state
+- Effect.forEach with concurrency for parallel operations
+- Fiber.interrupt for graceful shutdown
+- See `IngestionOrchestratorTestbed` for interactive demo
+
 ## File Structure
 
 ```
@@ -361,6 +411,7 @@ Connection strings:
 | TimelineSearchTestbed | /testbed/timeline-search | XState v5 → Atom filtering → Reactive results |
 | AtomRpcTestbed | /testbed/atom-rpc | AtomRpc.Tag caching + reactivity keys + TTL |
 | MaterializerFlowTestbed | /testbed/materializer-flow | Transactional Outbox: Ingestion → Stream → Materializer → Electric |
+| IngestionOrchestratorTestbed | /testbed/ingestion-orchestrator | Effect.Service lifecycle: Fiber management, Layer composition, Ref+HashMap state |
 
 ## Remaining Integration Work
 

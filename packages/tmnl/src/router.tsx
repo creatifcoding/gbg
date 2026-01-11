@@ -70,6 +70,7 @@ import { SearchToKoriTestbed } from './components/testbed/SearchToKoriTestbed';
 import { TimelineSearchTestbed } from './components/testbed/TimelineSearchTestbed';
 import { AtomRpcTestbed } from './components/testbed/AtomRpcTestbed';
 import { MaterializerFlowTestbed } from './components/testbed/MaterializerFlowTestbed';
+import { IngestionOrchestratorTestbed } from './components/testbed/IngestionOrchestratorTestbed';
 import { DiagramsPage } from './components/docs';
 import { OverhaulDocsPage } from './components/docs/overhaul';
 import { DocsLanding } from './components/docs-3d';
@@ -465,6 +466,13 @@ const materializerFlowTestbedRoute = createRoute({
   component: MaterializerFlowTestbed,
 });
 
+// Ingestion Orchestrator testbed route (Effect.Service lifecycle management)
+const ingestionOrchestratorTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/ingestion-orchestrator',
+  component: IngestionOrchestratorTestbed,
+});
+
 // Create the router
 const router = createRouter({
   routeTree: rootRoute.addChildren([
@@ -523,6 +531,7 @@ const router = createRouter({
     timelineSearchTestbedRoute,
     atomRpcTestbedRoute,
     materializerFlowTestbedRoute,
+    ingestionOrchestratorTestbedRoute,
   ]),
 });
 
