@@ -76,6 +76,7 @@ import { IntegratedGeointTestbed } from './components/testbed/IntegratedGeointTe
 import { ElectricSyncTestbed } from './components/testbed/ElectricSyncTestbed';
 import { SearchServiceTestbed } from './components/testbed/SearchServiceTestbed';
 import { SchemaTransformTestbed } from './components/testbed/SchemaTransformTestbed';
+import { StreamingSearchTestbed } from './components/testbed/StreamingSearchTestbed';
 import { DurableStreamsTestbed } from './components/testbed/DurableStreamsTestbed';
 import { DiagramsPage } from './components/docs';
 import { OverhaulDocsPage } from './components/docs/overhaul';
@@ -514,6 +515,13 @@ const schemaTransformTestbedRoute = createRoute({
   component: SchemaTransformTestbed,
 });
 
+// Streaming Search testbed route (Event flow + Match.type error handling)
+const streamingSearchTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/streaming-search',
+  component: StreamingSearchTestbed,
+});
+
 // Durable Streams testbed route (Event streaming via NativeStreamClient)
 const durableStreamsTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -585,6 +593,7 @@ const router = createRouter({
     electricSyncTestbedRoute,
     searchServiceTestbedRoute,
     schemaTransformTestbedRoute,
+    streamingSearchTestbedRoute,
     durableStreamsTestbedRoute,
   ]),
 });

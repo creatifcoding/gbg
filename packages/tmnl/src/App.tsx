@@ -456,6 +456,14 @@ const CARDS: readonly CardDef[] = [
     glow: 'amber',
   },
   {
+    title: 'STREAMING SEARCH',
+    body: 'Event-driven search flow. SearchStarted → SearchPartialResults → SearchCompleted. Match.type exhaustive error handling. Cancellation.',
+    route: '/testbed/streaming-search',
+    status: 'active',
+    label: 'NEW',
+    glow: 'rose',
+  },
+  {
     title: 'DURABLE STREAMS',
     body: 'Event streaming via NativeStreamClient. append()/read() operations, polling subscriptions, GEOINT event types.',
     route: '/testbed/durable-streams',
