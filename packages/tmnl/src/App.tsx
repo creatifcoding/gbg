@@ -439,6 +439,22 @@ const CARDS: readonly CardDef[] = [
     label: 'NEW',
     glow: 'emerald',
   },
+  {
+    title: 'SEARCH SERVICE',
+    body: 'Effect.Service + Atom patterns. Schema-validated results (SearchResultTrack, etc.), registry.set() mutations, HashMap grouping.',
+    route: '/testbed/search-service',
+    status: 'active',
+    label: 'NEW',
+    glow: 'cyan',
+  },
+  {
+    title: 'DURABLE STREAMS',
+    body: 'Event streaming via NativeStreamClient. append()/read() operations, polling subscriptions, GEOINT event types.',
+    route: '/testbed/durable-streams',
+    status: 'active',
+    label: 'NEW',
+    glow: 'amber',
+  },
 ];
 
 /**

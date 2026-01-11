@@ -74,6 +74,8 @@ import { IngestionOrchestratorTestbed } from './components/testbed/IngestionOrch
 import { EntityUIAtomsTestbed } from './components/testbed/EntityUIAtomsTestbed';
 import { IntegratedGeointTestbed } from './components/testbed/IntegratedGeointTestbed';
 import { ElectricSyncTestbed } from './components/testbed/ElectricSyncTestbed';
+import { SearchServiceTestbed } from './components/testbed/SearchServiceTestbed';
+import { DurableStreamsTestbed } from './components/testbed/DurableStreamsTestbed';
 import { DiagramsPage } from './components/docs';
 import { OverhaulDocsPage } from './components/docs/overhaul';
 import { DocsLanding } from './components/docs-3d';
@@ -497,6 +499,20 @@ const electricSyncTestbedRoute = createRoute({
   component: ElectricSyncTestbed,
 });
 
+// Search Service testbed route (Effect.Service + Atom + Schema patterns)
+const searchServiceTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/search-service',
+  component: SearchServiceTestbed,
+});
+
+// Durable Streams testbed route (Event streaming via NativeStreamClient)
+const durableStreamsTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/durable-streams',
+  component: DurableStreamsTestbed,
+});
+
 // Create the router
 const router = createRouter({
   routeTree: rootRoute.addChildren([
@@ -559,6 +575,8 @@ const router = createRouter({
     entityUIAtomsTestbedRoute,
     integratedGeointTestbedRoute,
     electricSyncTestbedRoute,
+    searchServiceTestbedRoute,
+    durableStreamsTestbedRoute,
   ]),
 });
 

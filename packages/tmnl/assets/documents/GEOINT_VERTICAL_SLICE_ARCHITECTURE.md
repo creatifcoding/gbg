@@ -460,6 +460,7 @@ Connection strings:
 | IngestionOrchestratorTestbed | /testbed/ingestion-orchestrator | Effect.Service lifecycle: Fiber management, Layer composition, Ref+HashMap state |
 | EntityUIAtomsTestbed | /testbed/entity-ui-atoms | Atom.family per-entity state, HashSet selection, Option hover, entityOps |
 | ElectricSyncTestbed | /testbed/electric-sync | ElectricSQL shape subscriptions, trait hooks, useFlightEntitiesWithTraits() joins |
+| SearchServiceTestbed | /testbed/search-service | Effect.Service + Atom patterns, Schema.TaggedClass validation, HashMap result grouping |
 
 ## Remaining Integration Work
 
