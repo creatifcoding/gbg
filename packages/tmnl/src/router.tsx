@@ -65,6 +65,9 @@ import { PipelineADRTestbed } from './components/testbed/PipelineADRTestbed';
 import { WindowsTestbed } from './components/testbed/WindowsTestbed';
 import { GeointDashboardTestbed } from './components/testbed/GeointDashboardTestbed';
 import { AllintCopTestbed } from './components/testbed/AllintCopTestbed';
+import { ECSVerticalSliceTestbed } from './components/testbed/ECSVerticalSliceTestbed';
+import { SearchToKoriTestbed } from './components/testbed/SearchToKoriTestbed';
+import { TimelineSearchTestbed } from './components/testbed/TimelineSearchTestbed';
 import { DiagramsPage } from './components/docs';
 import { OverhaulDocsPage } from './components/docs/overhaul';
 import { DocsLanding } from './components/docs-3d';
@@ -425,6 +428,27 @@ const allintCopTestbedRoute = createRoute({
   component: AllintCopTestbed,
 });
 
+// ECS Vertical Slice testbed route (real DB + ingestion + Electric)
+const ecsVerticalSliceTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/ecs-vertical-slice',
+  component: ECSVerticalSliceTestbed,
+});
+
+// Search to Kori testbed route (SearchResult → TraitBundle → Entity Atoms)
+const searchToKoriTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/search-to-kori',
+  component: SearchToKoriTestbed,
+});
+
+// Timeline + Search testbed route (XState machine → Atom filtering → Reactive results)
+const timelineSearchTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/timeline-search',
+  component: TimelineSearchTestbed,
+});
+
 // Create the router
 const router = createRouter({
   routeTree: rootRoute.addChildren([
@@ -478,6 +502,9 @@ const router = createRouter({
     windowsTestbedRoute,
     geointTestbedRoute,
     allintCopTestbedRoute,
+    ecsVerticalSliceTestbedRoute,
+    searchToKoriTestbedRoute,
+    timelineSearchTestbedRoute,
   ]),
 });
 

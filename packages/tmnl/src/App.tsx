@@ -44,7 +44,7 @@ function Content({ children }: { children: ReactNode }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 type IndicatorStatus = 'active' | 'idle' | 'pending' | 'error';
-type GlowColor = 'cyan' | 'rose' | 'amber' | 'emerald';
+type GlowColor = 'cyan' | 'rose' | 'amber' | 'emerald' | 'violet' | 'magenta';
 
 interface CardDef {
   readonly title: string;
@@ -111,6 +111,22 @@ const CARDS: readonly CardDef[] = [
     glow: 'violet',
   },
   {
+    title: 'PIPELINE ADR',
+    body: 'Sensor-to-React architecture review. 26 ADRs across 5 tiers: isolated stages, adjacent pairs, synergies, triplets.',
+    route: '/testbed/pipeline-adr',
+    status: 'active',
+    label: 'NEW',
+    glow: 'cyan',
+  },
+  {
+    title: 'WINDOWS',
+    body: 'Emacs-style pane management. C-x 2/3 split, C-x o navigate, C-x 0/1 close. Multiple routes per viewport.',
+    route: '/testbed/windows',
+    status: 'active',
+    label: 'NEW',
+    glow: 'emerald',
+  },
+  {
     title: 'ANIMATION',
     body: 'animatable() primitives with GSAP and anime.js drivers. Effect-TS integration for sequencing.',
     route: '/testbed/v2',
@@ -159,6 +175,14 @@ const CARDS: readonly CardDef[] = [
     status: 'active',
     label: 'NEW',
     glow: 'emerald',
+  },
+  {
+    title: 'AVA V2',
+    body: 'AVA v2 with effect-atom. NATS WebSocket streaming, view subscriptions, artifact/delta monitoring, FiberMap lifecycle.',
+    route: '/testbed/ava-v2',
+    status: 'active',
+    label: 'NEW',
+    glow: 'cyan',
   },
   {
     title: 'KORI ECS',
@@ -229,8 +253,16 @@ const CARDS: readonly CardDef[] = [
     body: 'OpenWarp-style block terminal. AI streaming blocks, command history, MCP tool integration.',
     route: '/testbed/block-terminal',
     status: 'active',
-    label: 'NEW',
+    label: 'v2',
     glow: 'violet',
+  },
+  {
+    title: 'BLOCK TERMINAL V3',
+    body: 'Reference-based blocks. Content derived from ai-core, XState machine, STX bridge. NO dual-write.',
+    route: '/testbed/block-terminal-v3',
+    status: 'active',
+    label: 'v3',
+    glow: 'cyan',
   },
   {
     title: 'THEIA IDE',
@@ -326,6 +358,38 @@ const CARDS: readonly CardDef[] = [
     status: 'pending',
     label: 'DIAG',
     glow: 'amber',
+  },
+  {
+    title: 'GEOINT',
+    body: 'Geospatial intelligence layering system. deck.gl tracks + R3F overlay, threat volumes, classification colors.',
+    route: '/testbed/geoint',
+    status: 'active',
+    label: 'NEW',
+    glow: 'cyan',
+  },
+  {
+    title: 'ECS VERTICAL SLICE',
+    body: 'Real infrastructure: FlightRepository → Postgres, IngestionOrchestrator, DurableStreams, ElectricSQL sync.',
+    route: '/testbed/ecs-vertical-slice',
+    status: 'active',
+    label: 'NEW',
+    glow: 'emerald',
+  },
+  {
+    title: 'SEARCH → KORI',
+    body: 'SearchClient RPC → SearchResultItem → TraitBundle → Entity Atoms. Effect.Match + Atom.family patterns.',
+    route: '/testbed/search-to-kori',
+    status: 'active',
+    label: 'NEW',
+    glow: 'cyan',
+  },
+  {
+    title: 'TIMELINE + SEARCH',
+    body: 'XState v5 machine → Atom filtering → Reactive results. Window-based temporal filtering with playback controls.',
+    route: '/testbed/timeline-search',
+    status: 'active',
+    label: 'NEW',
+    glow: 'rose',
   },
 ];
 
