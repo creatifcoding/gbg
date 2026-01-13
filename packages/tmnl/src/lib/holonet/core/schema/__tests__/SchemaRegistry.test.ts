@@ -2,8 +2,7 @@
  * Schema Registry Service Tests
  */
 
-import { describe, expect } from 'vitest';
-import { it } from '@effect/vitest';
+import { describe, it, expect } from 'vitest';
 import { Effect, Schema } from 'effect';
 import {
   SchemaRegistry,
@@ -26,7 +25,7 @@ const AnotherSchema = Schema.Struct({
 
 describe('SchemaRegistry', () => {
   describe('register', () => {
-    it.effect('registers a schema', () =>
+    it('registers a schema', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
 
@@ -34,10 +33,9 @@ describe('SchemaRegistry', () => {
 
         const exists = yield* registry.has('TestEvent');
         expect(exists).toBe(true);
-      }).pipe(Effect.provide(SchemaRegistry.Default))
-    );
+      }).pipe(Effect.provide(SchemaRegistry.Default), Effect.runPromise));
 
-    it.effect('fails on duplicate registration', () =>
+    it('fails on duplicate registration', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
 
@@ -51,12 +49,11 @@ describe('SchemaRegistry', () => {
         if (result._tag === 'Left') {
           expect(result.left).toBeInstanceOf(SchemaAlreadyRegisteredError);
         }
-      }).pipe(Effect.provide(SchemaRegistry.Default))
-    );
+      }).pipe(Effect.provide(SchemaRegistry.Default), Effect.runPromise));
   });
 
   describe('registerOrUpdate', () => {
-    it.effect('registers new schema', () =>
+    it('registers new schema', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
 
@@ -64,10 +61,9 @@ describe('SchemaRegistry', () => {
 
         const exists = yield* registry.has('NewSchema');
         expect(exists).toBe(true);
-      }).pipe(Effect.provide(SchemaRegistry.Default))
-    );
+      }).pipe(Effect.provide(SchemaRegistry.Default), Effect.runPromise));
 
-    it.effect('updates existing schema', () =>
+    it('updates existing schema', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
 
@@ -77,12 +73,11 @@ describe('SchemaRegistry', () => {
         // Should succeed without error
         const exists = yield* registry.has('UpdateTest');
         expect(exists).toBe(true);
-      }).pipe(Effect.provide(SchemaRegistry.Default))
-    );
+      }).pipe(Effect.provide(SchemaRegistry.Default), Effect.runPromise));
   });
 
   describe('get', () => {
-    it.effect('retrieves registered schema', () =>
+    it('retrieves registered schema', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
 
@@ -90,10 +85,9 @@ describe('SchemaRegistry', () => {
 
         const schema = yield* registry.get('GetTest');
         expect(schema).toBeDefined();
-      }).pipe(Effect.provide(SchemaRegistry.Default))
-    );
+      }).pipe(Effect.provide(SchemaRegistry.Default), Effect.runPromise));
 
-    it.effect('fails for non-existent schema', () =>
+    it('fails for non-existent schema', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
 
@@ -103,23 +97,21 @@ describe('SchemaRegistry', () => {
         if (result._tag === 'Left') {
           expect(result.left).toBeInstanceOf(SchemaNotFoundError);
         }
-      }).pipe(Effect.provide(SchemaRegistry.Default))
-    );
+      }).pipe(Effect.provide(SchemaRegistry.Default), Effect.runPromise));
   });
 
   describe('getOrNull', () => {
-    it.effect('returns null for non-existent schema', () =>
+    it('returns null for non-existent schema', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
 
         const schema = yield* registry.getOrNull('NonExistent');
         expect(schema).toBeNull();
-      }).pipe(Effect.provide(SchemaRegistry.Default))
-    );
+      }).pipe(Effect.provide(SchemaRegistry.Default), Effect.runPromise));
   });
 
   describe('listIds', () => {
-    it.effect('lists all registered schema IDs', () =>
+    it('lists all registered schema IDs', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
 
@@ -129,12 +121,11 @@ describe('SchemaRegistry', () => {
         const ids = yield* registry.listIds();
         expect(ids).toContain('Schema1');
         expect(ids).toContain('Schema2');
-      }).pipe(Effect.provide(SchemaRegistry.Default))
-    );
+      }).pipe(Effect.provide(SchemaRegistry.Default), Effect.runPromise));
   });
 
   describe('stream metadata', () => {
-    it.effect('sets and retrieves stream metadata', () =>
+    it('sets and retrieves stream metadata', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
 
@@ -147,10 +138,9 @@ describe('SchemaRegistry', () => {
         const meta = yield* registry.getForStream('stream-1');
         expect(meta.schemaId).toBe('TestEvent');
         expect(meta.contentType).toBe('application/json');
-      }).pipe(Effect.provide(SchemaRegistry.Default))
-    );
+      }).pipe(Effect.provide(SchemaRegistry.Default), Effect.runPromise));
 
-    it.effect('fails for non-existent stream', () =>
+    it('fails for non-existent stream', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
 
@@ -162,10 +152,9 @@ describe('SchemaRegistry', () => {
         if (result._tag === 'Left') {
           expect(result.left).toBeInstanceOf(StreamSchemaNotFoundError);
         }
-      }).pipe(Effect.provide(SchemaRegistry.Default))
-    );
+      }).pipe(Effect.provide(SchemaRegistry.Default), Effect.runPromise));
 
-    it.effect('sets metadata from Content-Type header', () =>
+    it('sets metadata from Content-Type header', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
 
@@ -178,12 +167,11 @@ describe('SchemaRegistry', () => {
         expect(meta.schemaId).toBe('BlockEvent');
         expect(meta.contentType).toBe('application/json');
         expect(meta.version).toBe(2);
-      }).pipe(Effect.provide(SchemaRegistry.Default))
-    );
+      }).pipe(Effect.provide(SchemaRegistry.Default), Effect.runPromise));
   });
 
   describe('toStandardSchema', () => {
-    it.effect('converts to Standard Schema V1', () =>
+    it('converts to Standard Schema V1', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
 
@@ -193,19 +181,17 @@ describe('SchemaRegistry', () => {
         expect(standardSchema).toBeDefined();
         // Standard Schema V1 has a specific structure
         expect(standardSchema).toHaveProperty('~standard');
-      }).pipe(Effect.provide(SchemaRegistry.Default))
-    );
+      }).pipe(Effect.provide(SchemaRegistry.Default), Effect.runPromise));
   });
 
   describe('parseContentType', () => {
-    it.effect('parses Content-Type correctly', () =>
+    it('parses Content-Type correctly', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
 
         const parsed = registry.parseContentType('application/json; schema=Test');
         expect(parsed.mimeType).toBe('application/json');
         expect(parsed.schemaId).toBe('Test');
-      }).pipe(Effect.provide(SchemaRegistry.Default))
-    );
+      }).pipe(Effect.provide(SchemaRegistry.Default), Effect.runPromise));
   });
 });
