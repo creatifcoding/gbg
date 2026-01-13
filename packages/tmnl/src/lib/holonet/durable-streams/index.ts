@@ -9,3 +9,6 @@
 
 // ─── Services ────────────────────────────────────────────────────────────────
 export * from './services';
+
+// ─── Events (EventLog for Observability) ─────────────────────────────────────
+export * from './events';
