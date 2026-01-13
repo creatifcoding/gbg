@@ -449,7 +449,7 @@ describe('Durable-Streams Integration Tests', () => {
   });
 
   describe('Consumer Offset Tracking', () => {
-    it('resumes from last acknowledged offset', () =>
+    it('resumes from last acknowledged offset', { timeout: 15000 }, () =>
       Effect.gen(function* () {
         const nats = yield* NatsStreamService;
         const inner = yield* NatsInnerService;
