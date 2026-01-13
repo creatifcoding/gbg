@@ -55,10 +55,9 @@ export type StreamId = typeof StreamId.Type;
  */
 export class SchemaNotFoundError extends Data.TaggedError('SchemaNotFoundError')<{
   readonly schemaId: string;
-  readonly message?: string;
 }> {
   override get message(): string {
-    return this.message ?? `Schema not found: '${this.schemaId}'`;
+    return `Schema not found: '${this.schemaId}'`;
   }
 }
 
@@ -67,10 +66,9 @@ export class SchemaNotFoundError extends Data.TaggedError('SchemaNotFoundError')
  */
 export class StreamSchemaNotFoundError extends Data.TaggedError('StreamSchemaNotFoundError')<{
   readonly streamId: string;
-  readonly message?: string;
 }> {
   override get message(): string {
-    return this.message ?? `Schema metadata not found for stream: '${this.streamId}'`;
+    return `Schema metadata not found for stream: '${this.streamId}'`;
   }
 }
 
@@ -79,10 +77,9 @@ export class StreamSchemaNotFoundError extends Data.TaggedError('StreamSchemaNot
  */
 export class SchemaAlreadyRegisteredError extends Data.TaggedError('SchemaAlreadyRegisteredError')<{
   readonly schemaId: string;
-  readonly message?: string;
 }> {
   override get message(): string {
-    return this.message ?? `Schema already registered: '${this.schemaId}'`;
+    return `Schema already registered: '${this.schemaId}'`;
   }
 }
 

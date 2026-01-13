@@ -46,3 +46,14 @@ export {
   ConsumerStateError,
   ConsumerNotFoundError,
 } from './ConsumerStateService';
+
+export {
+  // Service
+  StreamBridgeService,
+  type StreamBridgeServiceShape,
+
+  // Types
+  type CreateResult,
+  type ReadOptions,
+  type StreamBridgeError,
+} from './StreamBridgeService';
