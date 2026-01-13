@@ -17,6 +17,7 @@
  */
 
 import { Effect, Stream, Chunk } from 'effect';
+import { headers as createNatsHeaders } from 'nats.ws';
 import type {
   Subscription,
   Msg,
@@ -461,19 +462,40 @@ export class NatsInnerService extends Effect.Service<NatsInnerService>()(
       // ─────────────────────────────────────────────────────────────────────────
 
       const jsPublish = (subject: string, data: Uint8Array, opts?: JsPublishOptions) =>
-        Effect.tryPromise({
-          try: () =>
-            js.publish(subject, data, {
-              msgID: opts?.msgID,
-              expect: opts?.expect,
-              headers: opts?.headers as any,
-            }),
-          catch: (err) =>
-            new Inner.Publish.PublishError({
-              message: `Failed to publish to JetStream subject '${subject}'`,
-              subject,
-              cause: err,
-            }),
+        Effect.gen(function* () {
+          // Convert Record<string, string> to NATS MsgHdrs if provided
+          const natsHeaders = opts?.headers
+            ? yield* Effect.try({
+                try: () => {
+                  const hdrs = createNatsHeaders();
+                  for (const [key, value] of Object.entries(opts.headers!)) {
+                    hdrs.set(key, value);
+                  }
+                  return hdrs;
+                },
+                catch: (err) =>
+                  new Inner.Publish.PublishError({
+                    message: `Failed to create headers for subject '${subject}'`,
+                    subject,
+                    cause: err,
+                  }),
+              })
+            : undefined;
+
+          return yield* Effect.tryPromise({
+            try: () =>
+              js.publish(subject, data, {
+                msgID: opts?.msgID,
+                expect: opts?.expect,
+                headers: natsHeaders,
+              }),
+            catch: (err) =>
+              new Inner.Publish.PublishError({
+                message: `Failed to publish to JetStream subject '${subject}'`,
+                subject,
+                cause: err,
+              }),
+          });
         });
 
       // ─────────────────────────────────────────────────────────────────────────
