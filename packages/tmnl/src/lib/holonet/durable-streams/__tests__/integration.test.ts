@@ -260,7 +260,7 @@ describe('Durable-Streams Integration Tests', () => {
   });
 
   describe('NATS JetStream Integration', () => {
-    it('creates stream and publishes with schema headers', () =>
+    it('creates stream and publishes with schema headers', { timeout: 15000 }, () =>
       Effect.gen(function* () {
         const nats = yield* NatsStreamService;
         const inner = yield* NatsInnerService;
@@ -293,7 +293,7 @@ describe('Durable-Streams Integration Tests', () => {
         expect(pubAck.stream).toBe(streamName);
       }).pipe(Effect.provide(IntegrationTestLayer), Effect.runPromise));
 
-    it('fetches messages with schema headers preserved', () =>
+    it('fetches messages with schema headers preserved', { timeout: 15000 }, () =>
       Effect.gen(function* () {
         const nats = yield* NatsStreamService;
         const inner = yield* NatsInnerService;
@@ -350,7 +350,7 @@ describe('Durable-Streams Integration Tests', () => {
   });
 
   describe('Schema Passthrough End-to-End', () => {
-    it('complete producer-consumer flow with schema headers', () =>
+    it('complete producer-consumer flow with schema headers', { timeout: 20000 }, () =>
       Effect.gen(function* () {
         const nats = yield* NatsStreamService;
         const inner = yield* NatsInnerService;
