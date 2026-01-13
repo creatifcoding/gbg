@@ -412,14 +412,18 @@ describe('SubjectRegistry', () => {
           Effect.fork
         );
 
+        // Yield to let the subscription fiber start listening
+        yield* Effect.yieldNow();
+        yield* Effect.sleep(10);
+
         // Register spec
         yield* registry.register(spec);
 
-        // Wait a bit for event propagation
-        yield* Effect.sleep(50);
-
-        // Get collected events
-        const events = yield* Fiber.join(fiber);
+        // Get collected events with a timeout
+        const events = yield* Fiber.join(fiber).pipe(
+          Effect.timeout('2 seconds'),
+          Effect.orDie
+        );
         const eventArray = Chunk.toArray(events);
 
         expect(eventArray.length).toBe(1);
@@ -442,14 +446,18 @@ describe('SubjectRegistry', () => {
           Effect.fork
         );
 
+        // Yield to let the subscription fiber start listening
+        yield* Effect.yieldNow();
+        yield* Effect.sleep(10);
+
         // Unregister spec
         yield* registry.unregister(spec.id);
 
-        // Wait a bit for event propagation
-        yield* Effect.sleep(50);
-
-        // Get collected events
-        const events = yield* Fiber.join(fiber);
+        // Get collected events with a timeout
+        const events = yield* Fiber.join(fiber).pipe(
+          Effect.timeout('2 seconds'),
+          Effect.orDie
+        );
         const eventArray = Chunk.toArray(events);
 
         expect(eventArray.length).toBe(1);
