@@ -2,8 +2,7 @@
  * StreamCodecService Tests
  */
 
-import { describe, expect } from 'vitest';
-import { it } from '@effect/vitest';
+import { describe, it, expect } from 'vitest';
 import { Effect, Schema, Layer } from 'effect';
 import {
   StreamCodecService,
@@ -66,7 +65,7 @@ const TestLayer = Layer.mergeAll(
 
 describe('StreamCodecService', () => {
   describe('encodeJson', () => {
-    it.effect('encodes data to JSON bytes', () =>
+    it('encodes data to JSON bytes', () =>
       Effect.gen(function* () {
         const codec = yield* StreamCodecService;
         const data = { hello: 'world', count: 42 };
@@ -75,10 +74,9 @@ describe('StreamCodecService', () => {
 
         const decoded = JSON.parse(new TextDecoder().decode(bytes));
         expect(decoded).toEqual(data);
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('fails on circular reference', () =>
+    it('fails on circular reference', () =>
       Effect.gen(function* () {
         const codec = yield* StreamCodecService;
         const circular: Record<string, unknown> = { value: 1 };
@@ -91,12 +89,11 @@ describe('StreamCodecService', () => {
           expect(result.left).toBeInstanceOf(CodecError);
           expect((result.left as CodecError).operation).toBe('encode');
         }
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
   });
 
   describe('decodeJson', () => {
-    it.effect('decodes JSON bytes to data', () =>
+    it('decodes JSON bytes to data', () =>
       Effect.gen(function* () {
         const codec = yield* StreamCodecService;
         const original = { hello: 'world', count: 42 };
@@ -105,10 +102,9 @@ describe('StreamCodecService', () => {
         const decoded = yield* codec.decodeJson(bytes);
 
         expect(decoded).toEqual(original);
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('fails on invalid JSON', () =>
+    it('fails on invalid JSON', () =>
       Effect.gen(function* () {
         const codec = yield* StreamCodecService;
         const invalidJson = textEncoder.encode('{ not valid json }');
@@ -120,12 +116,11 @@ describe('StreamCodecService', () => {
           expect(result.left).toBeInstanceOf(CodecError);
           expect((result.left as CodecError).operation).toBe('decode');
         }
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
   });
 
   describe('encodeWithSchema', () => {
-    it.effect('encodes valid data with schema headers', () =>
+    it('encodes valid data with schema headers', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
         const codec = yield* StreamCodecService;
@@ -148,10 +143,9 @@ describe('StreamCodecService', () => {
         // Check headers
         expect(result.headers[HEADER_SCHEMA_ID]).toBe('TestEvent');
         expect(result.headers[HEADER_CONTENT_TYPE]).toBe('application/json');
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('fails on schema validation error', () =>
+    it('fails on schema validation error', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
         const codec = yield* StreamCodecService;
@@ -170,10 +164,9 @@ describe('StreamCodecService', () => {
           expect(result.left).toBeInstanceOf(SchemaValidationError);
           expect((result.left as SchemaValidationError).operation).toBe('encode');
         }
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('fails on unknown schema', () =>
+    it('fails on unknown schema', () =>
       Effect.gen(function* () {
         const codec = yield* StreamCodecService;
 
@@ -185,12 +178,11 @@ describe('StreamCodecService', () => {
         if (result._tag === 'Left') {
           expect(result.left).toBeInstanceOf(SchemaNotFoundError);
         }
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
   });
 
   describe('decodeWithSchema', () => {
-    it.effect('decodes message using schema from headers', () =>
+    it('decodes message using schema from headers', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
         const codec = yield* StreamCodecService;
@@ -212,10 +204,9 @@ describe('StreamCodecService', () => {
 
         expect(result.data).toEqual(data);
         expect(result.schemaId).toBe('TestEvent');
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('fails on missing schema header', () =>
+    it('fails on missing schema header', () =>
       Effect.gen(function* () {
         const codec = yield* StreamCodecService;
 
@@ -227,10 +218,9 @@ describe('StreamCodecService', () => {
         if (result._tag === 'Left') {
           expect(result.left).toBeInstanceOf(MissingSchemaHeaderError);
         }
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('fails on schema validation error', () =>
+    it('fails on schema validation error', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
         const codec = yield* StreamCodecService;
@@ -250,12 +240,11 @@ describe('StreamCodecService', () => {
           expect(result.left).toBeInstanceOf(SchemaValidationError);
           expect((result.left as SchemaValidationError).operation).toBe('decode');
         }
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
   });
 
   describe('decodeWithKnownSchema', () => {
-    it.effect('decodes message with explicit schema', () =>
+    it('decodes message with explicit schema', () =>
       Effect.gen(function* () {
         const codec = yield* StreamCodecService;
 
@@ -270,10 +259,9 @@ describe('StreamCodecService', () => {
         const result = yield* codec.decodeWithKnownSchema(msg, TestEvent);
 
         expect(result).toEqual(data);
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('fails on schema validation error', () =>
+    it('fails on schema validation error', () =>
       Effect.gen(function* () {
         const codec = yield* StreamCodecService;
 
@@ -287,8 +275,7 @@ describe('StreamCodecService', () => {
         if (result._tag === 'Left') {
           expect(result.left).toBeInstanceOf(SchemaValidationError);
         }
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
   });
 
   describe('utilities', () => {
@@ -332,7 +319,7 @@ describe('StreamCodecService', () => {
   });
 
   describe('round-trip encoding/decoding', () => {
-    it.effect('encode then decode produces original data', () =>
+    it('encode then decode produces original data', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
         const codec = yield* StreamCodecService;
@@ -362,7 +349,6 @@ describe('StreamCodecService', () => {
 
         expect(decoded.data).toEqual(original);
         expect(decoded.schemaId).toBe('TestEvent');
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
   });
 });
