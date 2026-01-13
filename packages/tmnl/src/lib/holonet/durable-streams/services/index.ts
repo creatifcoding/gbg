@@ -32,3 +32,17 @@ export {
   extractSchemaId,
   hasSchemaHeaders,
 } from './StreamCodecService';
+
+export {
+  // Service
+  ConsumerStateService,
+  type ConsumerStateServiceShape,
+
+  // Types
+  type ConsumerState,
+  type ConsumerOptions,
+
+  // Errors
+  ConsumerStateError,
+  ConsumerNotFoundError,
+} from './ConsumerStateService';
