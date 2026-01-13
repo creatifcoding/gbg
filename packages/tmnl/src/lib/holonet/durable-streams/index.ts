@@ -12,3 +12,6 @@ export * from './services';
 
 // ─── Events (EventLog for Observability) ─────────────────────────────────────
 export * from './events';
+
+// ─── HTTP API ────────────────────────────────────────────────────────────────
+export * from './api';
