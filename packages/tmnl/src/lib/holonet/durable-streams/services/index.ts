@@ -57,3 +57,21 @@ export {
   type ReadOptions,
   type StreamBridgeError,
 } from './StreamBridgeService';
+
+export {
+  // Service
+  LiveStreamService,
+  type LiveStreamServiceShape,
+
+  // Types
+  type LongPollOptions,
+  type SSEOptions,
+  type SubscribeOptions,
+  type SSEEvent,
+  type LiveStreamError,
+
+  // Errors
+  LongPollTimeoutError,
+  SSEConnectionError,
+  SubscriptionError,
+} from './LiveStreamService';
