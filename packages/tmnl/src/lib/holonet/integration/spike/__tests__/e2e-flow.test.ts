@@ -11,8 +11,7 @@
  * without requiring a real NATS server.
  */
 
-import { describe, expect } from 'vitest';
-import { it } from '@effect/vitest';
+import { describe, it, expect } from 'vitest';
 import { Effect, Stream, Schema, Layer, Chunk, Deferred } from 'effect';
 
 import { SchemaRegistry } from '@/lib/holonet/core/schema';
@@ -80,7 +79,7 @@ const TestLayer = Layer.mergeAll(
 
 describe('End-to-End Flow Validation', () => {
   describe('Encode → Publish → Consume → Decode flow', () => {
-    it.effect('complete round-trip with schema headers', () =>
+    it('complete round-trip with schema headers', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
         const codec = yield* StreamCodecService;
@@ -156,12 +155,11 @@ describe('End-to-End Flow Validation', () => {
         expect(alertResult.schemaId).toBe('Alert');
         expect(alertResult.data._tag).toBe('Alert');
         expect(alertResult.data.severity).toBe('high');
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
   });
 
   describe('NATS → SSE bridge flow', () => {
-    it.effect('converts NATS messages to SSE events', () =>
+    it('converts NATS messages to SSE events', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
         yield* registry.registerOrUpdate('SensorReading', SensorReading);
@@ -224,10 +222,9 @@ describe('End-to-End Flow Validation', () => {
         expect(encoded[0]).toContain('event: data');
         expect(encoded[0]).toContain('"sensorId":"s1"');
         expect(encoded[0]).toContain('id: 1');
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('SSE stream with heartbeats and client disconnect', () =>
+    it('SSE stream with heartbeats and client disconnect', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
         yield* registry.registerOrUpdate('SensorReading', SensorReading);
@@ -286,12 +283,11 @@ describe('End-to-End Flow Validation', () => {
         expect(results.length).toBeGreaterThanOrEqual(1);
         const hasData = results.some((e) => e._tag === 'data');
         expect(hasData).toBe(true);
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
   });
 
   describe('Push source pattern', () => {
-    it.effect('fromPushSource bridges external events to Effect.Stream', () =>
+    it('fromPushSource bridges external events to Effect.Stream', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
         const codec = yield* StreamCodecService;
@@ -334,12 +330,11 @@ describe('End-to-End Flow Validation', () => {
         // Verify we can encode these back through the codec
         const encoded = yield* codec.encodeWithSchema('SensorReading', results[0]);
         expect(encoded.headers[HEADER_SCHEMA_ID]).toBe('SensorReading');
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
   });
 
   describe('Schema validation in flow', () => {
-    it.effect('rejects invalid data at encode time', () =>
+    it('rejects invalid data at encode time', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
         const codec = yield* StreamCodecService;
@@ -360,10 +355,9 @@ describe('End-to-End Flow Validation', () => {
         if (result._tag === 'Left') {
           expect(result.left._tag).toBe('SchemaValidationError');
         }
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('rejects invalid data at decode time', () =>
+    it('rejects invalid data at decode time', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
         yield* registry.registerOrUpdate('SensorReading', SensorReading);
@@ -392,12 +386,11 @@ describe('End-to-End Flow Validation', () => {
         );
 
         expect(result._tag).toBe('Left');
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
   });
 
   describe('Complete producer-consumer scenario', () => {
-    it.effect('simulates producer encoding and consumer decoding', () =>
+    it('simulates producer encoding and consumer decoding', () =>
       Effect.gen(function* () {
         const registry = yield* SchemaRegistry;
         const codec = yield* StreamCodecService;
@@ -490,7 +483,6 @@ describe('End-to-End Flow Validation', () => {
         expect(encodedEvents[0].headers[HEADER_SCHEMA_ID]).toBe('SensorReading');
         expect(encodedEvents[1].headers[HEADER_SCHEMA_ID]).toBe('Alert');
         expect(encodedEvents[2].headers[HEADER_SCHEMA_ID]).toBe('SensorReading');
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
   });
 });

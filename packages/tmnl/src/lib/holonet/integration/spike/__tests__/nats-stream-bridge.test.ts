@@ -4,8 +4,7 @@
  * Validates the NATS consumer → Effect.Stream bridge patterns.
  */
 
-import { describe, expect } from 'vitest';
-import { it } from '@effect/vitest';
+import { describe, it, expect } from 'vitest';
 import { Effect, Stream, Schema, Layer, Chunk } from 'effect';
 
 import {
@@ -119,7 +118,7 @@ describe('NATS Stream Bridge Spike', () => {
   });
 
   describe('decodeJsMessage', () => {
-    it.effect('decodes message using schema from headers', () =>
+    it('decodes message using schema from headers', () =>
       withRegisteredSchemas(
         Effect.gen(function* () {
           const msg = createMockJsMsg({
@@ -136,10 +135,9 @@ describe('NATS Stream Bridge Spike', () => {
           });
           expect(result.schemaId).toBe('TestEvent');
         })
-      )
-    );
+      ).pipe(Effect.runPromise));
 
-    it.effect('fails on missing schema header', () =>
+    it('fails on missing schema header', () =>
       withRegisteredSchemas(
         Effect.gen(function* () {
           const msg = createMockJsMsg({
@@ -154,10 +152,9 @@ describe('NATS Stream Bridge Spike', () => {
             expect(result.left).toBeInstanceOf(MissingSchemaHeaderError);
           }
         })
-      )
-    );
+      ).pipe(Effect.runPromise));
 
-    it.effect('fails on unknown schema', () =>
+    it('fails on unknown schema', () =>
       withRegisteredSchemas(
         Effect.gen(function* () {
           const msg = createMockJsMsg({
@@ -172,10 +169,9 @@ describe('NATS Stream Bridge Spike', () => {
             expect(result.left).toBeInstanceOf(SchemaNotFoundError);
           }
         })
-      )
-    );
+      ).pipe(Effect.runPromise));
 
-    it.effect('fails on validation error', () =>
+    it('fails on validation error', () =>
       withRegisteredSchemas(
         Effect.gen(function* () {
           const msg = createMockJsMsg({
@@ -190,12 +186,11 @@ describe('NATS Stream Bridge Spike', () => {
             expect(result.left).toBeInstanceOf(SchemaValidationError);
           }
         })
-      )
-    );
+      ).pipe(Effect.runPromise));
   });
 
   describe('decodeJsMessageWithKnownSchema', () => {
-    it.effect('decodes message with explicit schema', () =>
+    it('decodes message with explicit schema', () =>
       Effect.gen(function* () {
         const msg = createMockJsMsg({
           data: { _tag: 'TestEvent', id: 'known-schema', value: 99 },
@@ -214,10 +209,9 @@ describe('NATS Stream Bridge Spike', () => {
           value: 99,
         });
         expect(result.schemaId).toBe('TestEvent');
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('fails on validation error', () =>
+    it('fails on validation error', () =>
       Effect.gen(function* () {
         const msg = createMockJsMsg({
           data: { invalid: 'data' },
@@ -233,12 +227,11 @@ describe('NATS Stream Bridge Spike', () => {
         if (result._tag === 'Left') {
           expect(result.left).toBeInstanceOf(SchemaValidationError);
         }
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
   });
 
   describe('fromConsumerMessages', () => {
-    it.effect('decodes stream of messages', () =>
+    it('decodes stream of messages', () =>
       withRegisteredSchemas(
         Effect.gen(function* () {
           const messages = createMockConsumerMessages([
@@ -270,10 +263,9 @@ describe('NATS Stream Bridge Spike', () => {
           expect(results[1].data.id).toBe('msg-2');
           expect(results[2].data.id).toBe('msg-3');
         })
-      )
-    );
+      ).pipe(Effect.runPromise));
 
-    it.effect('skips messages without schema when configured', () =>
+    it('skips messages without schema when configured', () =>
       withRegisteredSchemas(
         Effect.gen(function* () {
           const messages = createMockConsumerMessages([
@@ -306,10 +298,9 @@ describe('NATS Stream Bridge Spike', () => {
           expect(results[0].seq).toBe(1);
           expect(results[1].seq).toBe(3);
         })
-      )
-    );
+      ).pipe(Effect.runPromise));
 
-    it.effect('fails on missing schema when configured to fail', () =>
+    it('fails on missing schema when configured to fail', () =>
       withRegisteredSchemas(
         Effect.gen(function* () {
           const messages = createMockConsumerMessages([
@@ -329,10 +320,9 @@ describe('NATS Stream Bridge Spike', () => {
 
           expect(result._tag).toBe('Left');
         })
-      )
-    );
+      ).pipe(Effect.runPromise));
 
-    it.effect('handles mixed schemas', () =>
+    it('handles mixed schemas', () =>
       withRegisteredSchemas(
         Effect.gen(function* () {
           const messages = createMockConsumerMessages([
@@ -358,12 +348,11 @@ describe('NATS Stream Bridge Spike', () => {
           expect(results[0].schemaId).toBe('TestEvent');
           expect(results[1].schemaId).toBe('AnotherEvent');
         })
-      )
-    );
+      ).pipe(Effect.runPromise));
   });
 
   describe('fromConsumerMessagesWithSchema', () => {
-    it.effect('decodes all messages with known schema', () =>
+    it('decodes all messages with known schema', () =>
       Effect.gen(function* () {
         const messages = createMockConsumerMessages([
           createMockJsMsg({
@@ -389,12 +378,11 @@ describe('NATS Stream Bridge Spike', () => {
         expect(results).toHaveLength(2);
         expect(results[0].data.value).toBe(100);
         expect(results[1].data.value).toBe(200);
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
   });
 
   describe('concurrency options', () => {
-    it.effect('processes messages with concurrency', () =>
+    it('processes messages with concurrency', () =>
       withRegisteredSchemas(
         Effect.gen(function* () {
           const messages = createMockConsumerMessages([
@@ -430,7 +418,6 @@ describe('NATS Stream Bridge Spike', () => {
           expect(results[1].seq).toBe(2);
           expect(results[2].seq).toBe(3);
         })
-      )
-    );
+      ).pipe(Effect.runPromise));
   });
 });

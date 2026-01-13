@@ -5,8 +5,7 @@
  * Requires NATS server with JetStream enabled.
  */
 
-import { describe, beforeEach, afterEach } from 'vitest';
-import { it, expect } from '@effect/vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { Effect, Layer, Stream, pipe, Schema, Duration } from 'effect';
 
 import { NatsStreamService } from '../stream';
@@ -102,7 +101,7 @@ describe('NatsStreamService Integration', () => {
   });
 
   describe('stream management', () => {
-    it.effect('ensureStream creates stream if not exists', () =>
+    it('ensureStream creates stream if not exists', () =>
       Effect.gen(function* () {
         const stream = yield* NatsStreamService;
         const streamName = testStreamName();
@@ -116,10 +115,9 @@ describe('NatsStreamService Integration', () => {
 
         expect(info.config.name).toBe(streamName);
         expect(info.config.subjects).toContain(`${streamName.toLowerCase()}.*`);
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('ensureStream returns existing stream', () =>
+    it('ensureStream returns existing stream', () =>
       Effect.gen(function* () {
         const stream = yield* NatsStreamService;
         const streamName = testStreamName();
@@ -140,10 +138,9 @@ describe('NatsStreamService Integration', () => {
         });
 
         expect(info2.config.name).toBe(info1.config.name);
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('getStreamInfo returns info for existing stream', () =>
+    it('getStreamInfo returns info for existing stream', () =>
       Effect.gen(function* () {
         const stream = yield* NatsStreamService;
         const streamName = testStreamName();
@@ -159,18 +156,16 @@ describe('NatsStreamService Integration', () => {
         const info = yield* stream.getStreamInfo(streamName);
         expect(info).not.toBeNull();
         expect(info?.config.name).toBe(streamName);
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('getStreamInfo returns null for nonexistent stream', () =>
+    it('getStreamInfo returns null for nonexistent stream', () =>
       Effect.gen(function* () {
         const stream = yield* NatsStreamService;
         const info = yield* stream.getStreamInfo('NONEXISTENT_STREAM_12345');
         expect(info).toBeNull();
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('deleteStream removes stream', () =>
+    it('deleteStream removes stream', () =>
       Effect.gen(function* () {
         const stream = yield* NatsStreamService;
         const streamName = testStreamName();
@@ -189,12 +184,11 @@ describe('NatsStreamService Integration', () => {
         // Verify it's gone
         const info = yield* stream.getStreamInfo(streamName);
         expect(info).toBeNull();
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
   });
 
   describe('publishing', () => {
-    it.effect('publish sends typed message to JetStream', () =>
+    it('publish sends typed message to JetStream', () =>
       Effect.gen(function* () {
         const stream = yield* NatsStreamService;
         const streamName = testStreamName();
@@ -214,10 +208,9 @@ describe('NatsStreamService Integration', () => {
 
         expect(ack.stream).toBe(streamName);
         expect(ack.seq).toBeGreaterThan(0);
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('publish with msgId enables deduplication', () =>
+    it('publish with msgId enables deduplication', () =>
       Effect.gen(function* () {
         const stream = yield* NatsStreamService;
         const streamName = testStreamName();
@@ -243,10 +236,9 @@ describe('NatsStreamService Integration', () => {
         const ack2 = yield* stream.publish(subject, SensorEvent, event, { msgId });
         expect(ack2.duplicate).toBe(true);
         expect(ack2.seq).toBe(ack1.seq);
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('publish fails with encode error for invalid data', () =>
+    it('publish fails with encode error for invalid data', () =>
       Effect.gen(function* () {
         const stream = yield* NatsStreamService;
         const streamName = testStreamName();
@@ -270,12 +262,11 @@ describe('NatsStreamService Integration', () => {
         if (result._tag === 'Left') {
           expect(result.left._tag).toBe('Codec/Encode');
         }
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
   });
 
   describe('pull-based consumption', () => {
-    it.effect('getConsumer creates durable consumer', () =>
+    it('getConsumer creates durable consumer', () =>
       Effect.gen(function* () {
         const stream = yield* NatsStreamService;
         const streamName = testStreamName();
@@ -294,10 +285,9 @@ describe('NatsStreamService Integration', () => {
         });
 
         expect(consumer).toBeDefined();
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('fetch retrieves typed messages', () =>
+    it('fetch retrieves typed messages', () =>
       Effect.gen(function* () {
         const stream = yield* NatsStreamService;
         const streamName = testStreamName();
@@ -342,10 +332,9 @@ describe('NatsStreamService Integration', () => {
         for (const msg of messages) {
           yield* msg.ack();
         }
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('next retrieves single typed message', () =>
+    it('next retrieves single typed message', () =>
       Effect.gen(function* () {
         const stream = yield* NatsStreamService;
         const streamName = testStreamName();
@@ -381,10 +370,9 @@ describe('NatsStreamService Integration', () => {
         // Next should return null (no more messages) - min 1000ms required by NATS
         const msg2 = yield* stream.next(consumer, SensorEvent, { expires: 1000 });
         expect(msg2).toBeNull();
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('fetch with decode error for invalid schema', () =>
+    it('fetch with decode error for invalid schema', () =>
       Effect.gen(function* () {
         const inner = yield* NatsInnerService;
         const stream = yield* NatsStreamService;
@@ -418,12 +406,11 @@ describe('NatsStreamService Integration', () => {
         if (result._tag === 'Left') {
           expect(result.left._tag).toBe('Codec/Decode');
         }
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
   });
 
   describe('subscribe (push-based)', () => {
-    it.effect('subscribe receives typed messages as stream', () =>
+    it('subscribe receives typed messages as stream', () =>
       Effect.gen(function* () {
         const stream = yield* NatsStreamService;
         const streamName = testStreamName();
@@ -475,12 +462,11 @@ describe('NatsStreamService Integration', () => {
         expect(received[0].sensorId).toBe('sensor-001');
         expect(received[1].sensorId).toBe('sensor-002');
         expect(received[2].sensorId).toBe('sensor-003');
-      }).pipe(Effect.scoped, Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.scoped, Effect.provide(TestLayer), Effect.runPromise));
   });
 
   describe('complex schema types', () => {
-    it.effect('handles CommandEvent with union and optional fields', () =>
+    it('handles CommandEvent with union and optional fields', () =>
       Effect.gen(function* () {
         const stream = yield* NatsStreamService;
         const streamName = testStreamName();
@@ -525,10 +511,9 @@ describe('NatsStreamService Integration', () => {
         for (const msg of messages) {
           yield* msg.ack();
         }
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
 
-    it.effect('handles Date serialization correctly', () =>
+    it('handles Date serialization correctly', () =>
       Effect.gen(function* () {
         const stream = yield* NatsStreamService;
         const streamName = testStreamName();
@@ -567,7 +552,6 @@ describe('NatsStreamService Integration', () => {
         expect(messages[0].data.timestamp.getTime()).toBe(now.getTime());
 
         yield* messages[0].ack();
-      }).pipe(Effect.provide(TestLayer))
-    );
+      }).pipe(Effect.provide(TestLayer), Effect.runPromise));
   });
 });
