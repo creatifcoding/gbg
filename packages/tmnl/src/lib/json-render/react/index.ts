@@ -74,3 +74,21 @@ export {
   type JSONRenderProviderProps,
   type ConfirmationDialogProps
 } from "./provider"
+
+// =============================================================================
+// Generative (recursive AI-generated UI)
+// =============================================================================
+
+export {
+  GenerativeContainer,
+  createGenerativeContainerRenderer,
+  type GenerativeContainerProps,
+} from "./GenerativeContainer"
+
+export {
+  GenerativeDepthContext,
+  GenerativeDepthProvider,
+  useGenerativeDepth,
+  type GenerativeDepthContextValue,
+  type GenerativeDepthProviderProps,
+} from "./generative"
