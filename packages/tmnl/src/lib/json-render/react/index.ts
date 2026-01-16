@@ -23,7 +23,14 @@ export {
   hasErrorAtom,
   hasPendingConfirmationAtom,
   checkActionLoading,
-  type PendingConfirmation
+  type PendingConfirmation,
+  // GenerativeContainer atom families (per-container isolation)
+  containerTreeFamily,
+  containerIsStreamingFamily,
+  containerErrorFamily,
+  getContainerAtoms,
+  type GenerativeContainerId,
+  type ContainerAtoms,
 } from "./atoms"
 
 // =============================================================================

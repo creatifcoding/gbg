@@ -5,7 +5,7 @@
  * Each container can spawn its own UITree via streaming.
  *
  * Architecture:
- * - Uses useUIStream for AI generation
+ * - Uses Atom.family for per-container state isolation
  * - Depth-limited via React Context
  * - Caches results per session (future: Effect Cache)
  *
@@ -20,12 +20,14 @@
 
 "use client"
 
-import { type ReactNode, useEffect, useMemo, useState, useCallback, useRef } from "react"
+import { type ReactNode, useEffect, useMemo, useCallback, useRef, useId, useContext } from "react"
 import { Effect, Option } from "effect"
+import { useAtomValue, RegistryContext } from "@effect-atom/atom-react"
 
 import { type ComponentRegistry } from "./index"
 import { Renderer } from "./renderer"
 import { GenerativeDepthProvider, useGenerativeDepth } from "./generative"
+import { getContainerAtoms } from "./atoms"
 import type { Action } from "../core/schemas"
 
 // =============================================================================
@@ -44,27 +46,27 @@ const logDebug = (message: string) => Effect.runFork(Effect.logDebug(message))
 const logError = (message: string) => Effect.runFork(Effect.logError(message))
 
 // =============================================================================
-// Local Streaming Hook (isolated state - doesn't use global atoms)
+// Atom Family-based Streaming Hook (per-container isolation)
 // =============================================================================
 
 /**
- * Local UI streaming hook for GenerativeContainer
+ * Container UI streaming hook using Atom.family
  *
- * Unlike useUIStream which uses global atoms, this uses local React state
- * to avoid overwriting the parent's tree when nested containers stream.
+ * Uses atom families keyed by containerId for state isolation.
+ * Each GenerativeContainer gets its own atoms, preventing nested
+ * containers from overwriting parent state.
+ *
+ * Pattern: Atom.family + registry.set() + useAtomValue()
  */
-function useLocalUIStream(api: string) {
-  // Use plain object state that matches what Renderer expects
-  const [state, setState] = useState<{
-    tree: { root: string | null; elements: Record<string, any> }
-    isStreaming: boolean
-    error: Option.Option<Error>
-  }>({
-    tree: { root: null, elements: {} },
-    isStreaming: false,
-    error: Option.none(),
-  })
+function useContainerUIStream(containerId: string, api: string) {
+  const registry = useContext(RegistryContext)
+  const atoms = useMemo(() => getContainerAtoms(containerId), [containerId])
   const abortControllerRef = useRef<AbortController | null>(null)
+
+  // Subscribe to atom values
+  const tree = useAtomValue(atoms.tree)
+  const isStreaming = useAtomValue(atoms.isStreaming)
+  const error = useAtomValue(atoms.error)
 
   const send = useCallback(async (prompt: string, context?: Record<string, unknown>) => {
     // Cancel any existing request
@@ -75,12 +77,10 @@ function useLocalUIStream(api: string) {
     const abortController = new AbortController()
     abortControllerRef.current = abortController
 
-    // Reset state
-    setState({
-      tree: { root: null, elements: {} },
-      isStreaming: true,
-      error: Option.none(),
-    })
+    // Reset state via registry
+    registry.set(atoms.tree, { root: null, elements: {} })
+    registry.set(atoms.isStreaming, true)
+    registry.set(atoms.error, Option.none())
 
     try {
       const response = await fetch(api, {
@@ -102,7 +102,7 @@ function useLocalUIStream(api: string) {
       const decoder = new TextDecoder()
       let buffer = ""
       let root: string | null = null
-      let elements: Record<string, any> = {}
+      let elements: Record<string, unknown> = {}
 
       while (true) {
         const { done, value } = await reader.read()
@@ -131,11 +131,8 @@ function useLocalUIStream(api: string) {
           }
         }
 
-        // Update state with current tree
-        setState((prev) => ({
-          ...prev,
-          tree: { root, elements },
-        }))
+        // Update atom with current tree state
+        registry.set(atoms.tree, { root, elements })
       }
 
       // Handle any remaining buffer
@@ -153,11 +150,9 @@ function useLocalUIStream(api: string) {
         }
       }
 
-      setState({
-        tree: { root, elements },
-        isStreaming: false,
-        error: Option.none(),
-      })
+      // Final state update
+      registry.set(atoms.tree, { root, elements })
+      registry.set(atoms.isStreaming, false)
 
       return { root, elements }
     } catch (err) {
@@ -166,15 +161,12 @@ function useLocalUIStream(api: string) {
         return undefined
       }
       const error = err instanceof Error ? err : new Error(String(err))
-      setState((prev) => ({
-        ...prev,
-        isStreaming: false,
-        error: Option.some(error),
-      }))
-      logError(`[useLocalUIStream] ${error.message}`)
+      registry.set(atoms.isStreaming, false)
+      registry.set(atoms.error, Option.some(error))
+      logError(`[useContainerUIStream] ${error.message}`)
       return undefined
     }
-  }, [api])
+  }, [api, atoms, registry])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -182,13 +174,17 @@ function useLocalUIStream(api: string) {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
       }
+      // Reset atoms on unmount (GC will handle cleanup via Atom.family WeakRef)
+      registry.set(atoms.tree, { root: null, elements: {} })
+      registry.set(atoms.isStreaming, false)
+      registry.set(atoms.error, Option.none())
     }
-  }, [])
+  }, [atoms, registry])
 
   return {
-    tree: state.tree,
-    isStreaming: state.isStreaming,
-    error: state.error,
+    tree,
+    isStreaming,
+    error,
     send,
   }
 }
@@ -310,22 +306,25 @@ export function GenerativeContainer({
 }: GenerativeContainerProps) {
   const depthContext = useGenerativeDepth()
 
+  // Generate unique ID for this container instance (Atom.family key)
+  const containerId = useId()
+
   // Calculate effective max depth
   const effectiveMaxDepth = maxDepth ?? depthContext.maxDepth ?? DEFAULT_MAX_DEPTH
   const isAtMaxDepth = depthContext.depth >= effectiveMaxDepth
 
   // Debug: Log mount
-  log(`[GenerativeContainer] MOUNT depth=${depthContext.depth} maxDepth=${effectiveMaxDepth} isAtMaxDepth=${isAtMaxDepth}`)
+  log(`[GenerativeContainer] MOUNT id=${containerId} depth=${depthContext.depth} maxDepth=${effectiveMaxDepth} isAtMaxDepth=${isAtMaxDepth}`)
   log(`[GenerativeContainer] prompt="${prompt?.substring(0, 60)}..."`)
   logDebug(`[GenerativeContainer] api=${api ?? DEFAULT_API}`)
 
-  // Stream hook for AI generation - uses LOCAL state to avoid overwriting parent's tree
+  // Stream hook for AI generation - uses Atom.family for per-container isolation
   const {
     tree,
     isStreaming,
     error,
     send,
-  } = useLocalUIStream(api ?? DEFAULT_API)
+  } = useContainerUIStream(containerId, api ?? DEFAULT_API)
 
   // Debug: Log state changes
   log(`[GenerativeContainer] STATE depth=${depthContext.depth} streaming=${isStreaming} hasRoot=${!!tree.root} elements=${Object.keys(tree.elements).length} error=${Option.isSome(error)}`)
@@ -371,8 +370,9 @@ export function GenerativeContainer({
 
   // 2. Error → fallback
   if (Option.isSome(error)) {
-    logDebug(`[GenerativeContainer] RENDER: ErrorFallback depth=${depthContext.depth} error=${error.value.message}`)
-    return <>{fallback ?? <ErrorFallback error={error.value} />}</>
+    const errorValue = error.value as Error
+    logDebug(`[GenerativeContainer] RENDER: ErrorFallback depth=${depthContext.depth} error=${errorValue.message}`)
+    return <>{fallback ?? <ErrorFallback error={errorValue} />}</>
   }
 
   // 3. No tree yet (still starting) → skeleton

@@ -108,6 +108,72 @@ export const streamFiberAtom = Atom.make<Option.Option<Fiber.RuntimeFiber<void, 
 ).pipe(Atom.keepAlive)
 
 // =============================================================================
+// GenerativeContainer Atom Families (Per-Container Isolation)
+// =============================================================================
+
+/**
+ * Container ID type for GenerativeContainer instances
+ */
+export type GenerativeContainerId = string
+
+/**
+ * Tree state per GenerativeContainer
+ *
+ * Each container gets its own tree, preventing nested containers
+ * from overwriting parent state.
+ *
+ * @example
+ * const tree = registry.get(containerTreeFamily(containerId))
+ */
+export const containerTreeFamily = Atom.family(
+  (_containerId: GenerativeContainerId) =>
+    Atom.make<{ root: string | null; elements: Record<string, unknown> }>({
+      root: null,
+      elements: {},
+    })
+)
+
+/**
+ * Streaming status per GenerativeContainer
+ */
+export const containerIsStreamingFamily = Atom.family(
+  (_containerId: GenerativeContainerId) => Atom.make<boolean>(false)
+)
+
+/**
+ * Error state per GenerativeContainer
+ */
+export const containerErrorFamily = Atom.family(
+  (_containerId: GenerativeContainerId) =>
+    Atom.make<Option.Option<Error>>(Option.none())
+)
+
+/**
+ * Bundle of atoms for a specific GenerativeContainer instance
+ */
+export interface ContainerAtoms {
+  readonly tree: Atom.Writable<{ root: string | null; elements: Record<string, unknown> }>
+  readonly isStreaming: Atom.Writable<boolean>
+  readonly error: Atom.Writable<Option.Option<Error>>
+}
+
+/**
+ * Get all atoms for a specific GenerativeContainer instance
+ *
+ * @example
+ * const atoms = getContainerAtoms(containerId)
+ * registry.set(atoms.isStreaming, true)
+ * const tree = registry.get(atoms.tree)
+ */
+export function getContainerAtoms(containerId: GenerativeContainerId): ContainerAtoms {
+  return {
+    tree: containerTreeFamily(containerId),
+    isStreaming: containerIsStreamingFamily(containerId),
+    error: containerErrorFamily(containerId),
+  }
+}
+
+// =============================================================================
 // Derived Atoms
 // =============================================================================
 
