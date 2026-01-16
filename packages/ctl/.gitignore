@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Compiled binaries (keep bin/.gitkeep)
+bin/ctl
+bin/ctl-*
+
+# Test databases
+*.db
+*.db-journal
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Nix
+result
+.direnv/

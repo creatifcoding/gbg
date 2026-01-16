@@ -1,0 +1,58 @@
+# CTL - Effect CLI Framework
+# Run `just` to see available commands
+
+# Default: show help
+default:
+    @just --list
+
+# Enter development shell
+dev:
+    nix develop
+
+# Build the package
+build:
+    bun run build
+
+# Run all tests
+test:
+    bun run test:all
+
+# Run vitest tests only
+test-vitest:
+    bun run test:run
+
+# Run bun tests only (persistence)
+test-bun:
+    bun run test:bun
+
+# Type check
+typecheck:
+    bun run typecheck
+
+# Run CTL CLI in dev mode
+ctl *args:
+    bun run src/cli/index.ts {{args}}
+
+# Build nix package
+nix-build:
+    nix build
+
+# Run nix package
+nix-run *args:
+    nix run . -- {{args}}
+
+# Check flake
+nix-check:
+    nix flake check
+
+# Format code
+fmt:
+    nix fmt
+
+# Update flake inputs
+update:
+    nix flake update
+
+# Clean build artifacts
+clean:
+    rm -rf dist node_modules .turbo
