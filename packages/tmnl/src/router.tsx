@@ -71,6 +71,7 @@ import { TimelineSearchTestbed } from './components/testbed/TimelineSearchTestbe
 import { AtomRpcTestbed } from './components/testbed/AtomRpcTestbed';
 import { MaterializerFlowTestbed } from './components/testbed/MaterializerFlowTestbed';
 import { IngestionOrchestratorTestbed } from './components/testbed/IngestionOrchestratorTestbed';
+import { IngestionTestbed } from './components/testbed/IngestionTestbed';
 import { EntityUIAtomsTestbed } from './components/testbed/EntityUIAtomsTestbed';
 import { IntegratedGeointTestbed } from './components/testbed/IntegratedGeointTestbed';
 import { ElectricSyncTestbed } from './components/testbed/ElectricSyncTestbed';
@@ -78,6 +79,8 @@ import { SearchServiceTestbed } from './components/testbed/SearchServiceTestbed'
 import { SchemaTransformTestbed } from './components/testbed/SchemaTransformTestbed';
 import { StreamingSearchTestbed } from './components/testbed/StreamingSearchTestbed';
 import { DurableStreamsTestbed } from './components/testbed/DurableStreamsTestbed';
+import { HolonetDurableStreamsTestbed } from './components/testbed/HolonetDurableStreamsTestbed';
+import { JSONRenderTestbed } from './components/testbed/JSONRenderTestbed';
 import { DiagramsPage } from './components/docs';
 import { OverhaulDocsPage } from './components/docs/overhaul';
 import { DocsLanding } from './components/docs-3d';
@@ -480,6 +483,13 @@ const ingestionOrchestratorTestbedRoute = createRoute({
   component: IngestionOrchestratorTestbed,
 });
 
+// Ingestion testbed route (AtomRpc + Cluster RPC vertical slice)
+const ingestionTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/ingestion',
+  component: IngestionTestbed,
+});
+
 // Entity UI Atoms testbed route (Atom.family + HashSet selection patterns)
 const entityUIAtomsTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -527,6 +537,19 @@ const durableStreamsTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/testbed/durable-streams',
   component: DurableStreamsTestbed,
+});
+
+// Holonet Durable Streams testbed route (HTTP API via HolonetDurableStreamsClient)
+const holonetDurableStreamsTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/holonet-durable-streams',
+  component: HolonetDurableStreamsTestbed,
+});
+
+const jsonRenderTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/json-render',
+  component: JSONRenderTestbed,
 });
 
 // Create the router
@@ -588,6 +611,7 @@ const router = createRouter({
     atomRpcTestbedRoute,
     materializerFlowTestbedRoute,
     ingestionOrchestratorTestbedRoute,
+    ingestionTestbedRoute,
     entityUIAtomsTestbedRoute,
     integratedGeointTestbedRoute,
     electricSyncTestbedRoute,
@@ -595,6 +619,8 @@ const router = createRouter({
     schemaTransformTestbedRoute,
     streamingSearchTestbedRoute,
     durableStreamsTestbedRoute,
+    holonetDurableStreamsTestbedRoute,
+    jsonRenderTestbedRoute,
   ]),
 });
 

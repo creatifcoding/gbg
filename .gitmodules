@@ -121,3 +121,9 @@
 [submodule "submodules/infinitty"]
 	path = submodules/infinitty
 	url = https://github.com/jasonkneen/infinitty
+[submodule "submodules/json-render"]
+	path = submodules/json-render
+	url = https://github.com/vercel-labs/json-render
+[submodule "submodules/transport"]
+	path = submodules/transport
+	url = https://github.com/electric-sql/transport
