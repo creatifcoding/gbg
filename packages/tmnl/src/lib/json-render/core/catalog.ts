@@ -442,3 +442,40 @@ export const commonProps = {
     className: Schema.optional(Schema.String)
   })
 }
+
+// =============================================================================
+// Layout Integration
+// =============================================================================
+
+/**
+ * Merge layout catalog components into an existing catalog config.
+ * Use this to add Grid, Stack, Flex, etc. to your catalog.
+ *
+ * @example
+ * ```typescript
+ * import { createCatalogSync, withLayoutComponents } from '@/lib/json-render'
+ * import { layoutCatalog } from '@/lib/layout'
+ *
+ * const myCatalog = createCatalogSync(withLayoutComponents({
+ *   name: 'My App',
+ *   components: {
+ *     MyCustomComponent: { props: mySchema, hasChildren: true }
+ *   }
+ * }, layoutCatalog))
+ * ```
+ */
+export const withLayoutComponents = <
+  TComponents extends Record<string, ComponentDefinition>,
+  TActions extends Record<string, ActionDefinition>,
+  TFunctions extends Record<string, SyncValidationFunction>,
+  LComponents extends Record<string, ComponentDefinition>
+>(
+  config: CatalogConfig<TComponents, TActions, TFunctions>,
+  layoutCatalog: Catalog<LComponents, Record<string, ActionDefinition>, Record<string, SyncValidationFunction>>
+): CatalogConfig<TComponents & LComponents, TActions, TFunctions> => ({
+  ...config,
+  components: {
+    ...layoutCatalog.components,
+    ...config.components,
+  } as TComponents & LComponents,
+})

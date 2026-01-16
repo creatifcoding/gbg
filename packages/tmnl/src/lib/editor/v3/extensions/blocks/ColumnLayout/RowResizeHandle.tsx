@@ -5,6 +5,18 @@
  * Positioned between adjacent rows.
  *
  * @module editor/v3/extensions/blocks/ColumnLayout/RowResizeHandle
+ * @deprecated Use `ResizeHandle` from `@/lib/layout` for new implementations.
+ * This component is maintained for TipTap/editor compatibility.
+ *
+ * Migration:
+ * ```tsx
+ * // Old (this file)
+ * import { RowResizeHandle } from './RowResizeHandle'
+ *
+ * // New (recommended)
+ * import { ResizeHandle } from '@/lib/layout'
+ * <ResizeHandle direction="vertical" ratios={heights} ... />
+ * ```
  */
 
 import { useRef, useState, useCallback, useEffect } from 'react';
@@ -39,6 +51,8 @@ export interface RowResizeHandleProps {
 /**
  * Draggable handle between adjacent rows.
  * Adjusts row heights on drag.
+ *
+ * @deprecated Use `ResizeHandle` from `@/lib/layout` with direction="vertical"
  */
 export function RowResizeHandle({
   index,
@@ -179,3 +193,13 @@ export function RowResizeHandle({
     </div>
   );
 }
+
+// =============================================================================
+// Re-exports from layout module (recommended for new code)
+// =============================================================================
+
+/**
+ * @deprecated Import directly from '@/lib/layout' instead
+ */
+export { ResizeHandle as GenericResizeHandle } from '@/lib/layout'
+export type { ResizeHandleProps as GenericResizeHandleProps } from '@/lib/layout'

@@ -5,6 +5,18 @@
  * Positioned between adjacent columns.
  *
  * @module editor/v3/extensions/blocks/ColumnLayout/ColumnResizeHandle
+ * @deprecated Use `ResizeHandle` from `@/lib/layout` for new implementations.
+ * This component is maintained for TipTap/editor compatibility.
+ *
+ * Migration:
+ * ```tsx
+ * // Old (this file)
+ * import { ColumnResizeHandle } from './ColumnResizeHandle'
+ *
+ * // New (recommended)
+ * import { ResizeHandle } from '@/lib/layout'
+ * <ResizeHandle direction="horizontal" ratios={widths} ... />
+ * ```
  */
 
 import { useRef, useState, useCallback, useEffect } from 'react';
@@ -207,3 +219,13 @@ export interface UseColumnResizeOptions {
   /** Whether resize is disabled */
   disabled?: boolean;
 }
+
+// =============================================================================
+// Re-exports from layout module (recommended for new code)
+// =============================================================================
+
+/**
+ * @deprecated Import directly from '@/lib/layout' instead
+ */
+export { ResizeHandle as GenericResizeHandle } from '@/lib/layout'
+export type { ResizeHandleProps as GenericResizeHandleProps } from '@/lib/layout'
