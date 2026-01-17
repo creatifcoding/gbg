@@ -99,3 +99,12 @@ export {
   type GenerativeDepthContextValue,
   type GenerativeDepthProviderProps,
 } from "./generative"
+
+// =============================================================================
+// Component Registries
+// =============================================================================
+
+export {
+  layoutRegistry,
+  withLayoutRegistry,
+} from "./registries"
