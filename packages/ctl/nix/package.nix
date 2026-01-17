@@ -1,45 +1,96 @@
 {
   lib,
   stdenv,
+  bun,
+  cacert,
+  makeBinaryWrapper,
 }:
 
-# CTL Package
-#
-# Prerequisites: Run `bun run compile` first to create bin/ctl
+# CTL Package - Two-derivation FOD pattern for Bun
 #
 # Installation:
-#   cd packages/ctl
-#   bun install && bun run compile  # Creates bin/ctl
-#   nix build                       # Creates result/bin/ctl
+#   nix build                       # Builds standalone binary
 #   nix profile install .           # Installs to ~/.nix-profile/bin/ctl
 #
-# Machine-wide (requires root):
-#   sudo nix profile install . --profile /nix/var/nix/profiles/default
+# To update node_modules hash after dependency changes:
+#   nix build 2>&1 | grep "got:" | awk '{print $2}'
 
-stdenv.mkDerivation {
-  pname = "ctl";
+let
+  src = ./..;
   version = "0.1.0";
 
-  # Use the local source directory
-  src = ./..;
+  # Fixed-Output Derivation for node_modules (gets network access)
+  node_modules = stdenv.mkDerivation {
+    pname = "ctl-node_modules";
+    inherit version src;
 
-  # No build phase - we use the pre-compiled binary
-  dontBuild = true;
+    nativeBuildInputs = [ bun ];
+
+    dontConfigure = true;
+    dontFixup = true;
+
+    impureEnvVars = lib.fetchers.proxyImpureEnvVars ++ [
+      "GIT_PROXY_COMMAND"
+      "SOCKS_SERVER"
+    ];
+
+    buildPhase = ''
+      runHook preBuild
+
+      export HOME=$(mktemp -d)
+      bun install --no-progress --frozen-lockfile
+
+      runHook postBuild
+    '';
+
+    installPhase = ''
+      runHook preInstall
+
+      mkdir -p $out
+      cp -r node_modules $out/
+
+      runHook postInstall
+    '';
+
+    # Fixed-output derivation settings
+    outputHashAlgo = "sha256";
+    outputHashMode = "recursive";
+    outputHash = "sha256-wfDxLXpblh90xu8B2YGwbxC/an5Eo85ooGjn1aBxSMU=";
+  };
+
+in
+stdenv.mkDerivation {
+  pname = "ctl";
+  inherit version src;
+
+  nativeBuildInputs = [
+    bun
+    makeBinaryWrapper
+  ];
+
   dontConfigure = true;
   dontFixup = true;
+
+  buildPhase = ''
+    runHook preBuild
+
+    export HOME=$(mktemp -d)
+
+    # Link pre-fetched node_modules
+    ln -s ${node_modules}/node_modules ./node_modules
+
+    # Compile standalone binary
+    bun build --compile --minify src/cli/index.ts --outfile ctl
+
+    runHook postBuild
+  '';
 
   installPhase = ''
     runHook preInstall
 
-    # Install the pre-compiled binary
     mkdir -p $out/bin
-    if [ -f bin/ctl ]; then
-      cp bin/ctl $out/bin/ctl
-      chmod +x $out/bin/ctl
-    else
-      echo "ERROR: bin/ctl not found. Run 'bun run compile' first." >&2
-      exit 1
-    fi
+    cp ctl $out/bin/ctl
+    chmod +x $out/bin/ctl
 
     runHook postInstall
   '';
