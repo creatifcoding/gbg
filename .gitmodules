@@ -127,3 +127,6 @@
 [submodule "submodules/transport"]
 	path = submodules/transport
 	url = https://github.com/electric-sql/transport
+[submodule "submodules/opentui"]
+	path = submodules/opentui
+	url = https://github.com/anomalyco/opentui.git
