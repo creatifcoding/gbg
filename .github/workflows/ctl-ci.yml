@@ -1,0 +1,212 @@
+name: CTL CI
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'packages/ctl/**'
+      - '.github/workflows/ctl-ci.yml'
+  pull_request:
+    branches: [master, main]
+    paths:
+      - 'packages/ctl/**'
+      - '.github/workflows/ctl-ci.yml'
+  workflow_dispatch:
+    inputs:
+      update_nix_hash:
+        description: 'Update Nix node_modules hash'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  WORKING_DIR: packages/ctl
+
+jobs:
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        working-directory: ${{ env.WORKING_DIR }}
+        run: bun run typecheck
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: bun install --frozen-lockfile
+
+      - name: Run vitest
+        working-directory: ${{ env.WORKING_DIR }}
+        run: bun run test:run
+
+      - name: Run bun tests
+        working-directory: ${{ env.WORKING_DIR }}
+        run: bun run test:bun
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [typecheck, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: bun install --frozen-lockfile
+
+      - name: Build TypeScript
+        working-directory: ${{ env.WORKING_DIR }}
+        run: bun run build
+
+      - name: Verify CLI
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          bun run dist/cli/index.js --version
+          bun run dist/cli/index.js health
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctl-dist
+          path: ${{ env.WORKING_DIR }}/dist/
+          retention-days: 7
+
+  compile-binary:
+    name: Compile Binary
+    runs-on: ${{ matrix.os }}
+    needs: [typecheck, test]
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            artifact: ctl-linux-x64
+          - os: macos-latest
+            artifact: ctl-darwin-arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIR }}
+        run: bun install --frozen-lockfile
+
+      - name: Compile standalone binary
+        working-directory: ${{ env.WORKING_DIR }}
+        run: bun run compile
+
+      - name: Verify binary
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          ./bin/ctl --version
+          ./bin/ctl health
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ env.WORKING_DIR }}/bin/ctl
+          retention-days: 30
+
+  nix-build:
+    name: Nix Build
+    runs-on: ubuntu-latest
+    needs: [typecheck, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Build with Nix
+        working-directory: ${{ env.WORKING_DIR }}
+        run: nix build
+
+      - name: Verify Nix build
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          ./result/bin/ctl --version
+          ./result/bin/ctl catalog --type=command
+
+  update-nix-hash:
+    name: Update Nix Hash
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.update_nix_hash == 'true'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Get new hash
+        id: hash
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          # Force rebuild to get new hash
+          sed -i 's/outputHash = "sha256-[^"]*"/outputHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="/' nix/package.nix
+
+          # Capture the new hash from build output
+          NEW_HASH=$(nix build 2>&1 | grep "got:" | awk '{print $2}' || echo "")
+
+          if [ -z "$NEW_HASH" ]; then
+            echo "Failed to get new hash"
+            exit 1
+          fi
+
+          echo "hash=$NEW_HASH" >> $GITHUB_OUTPUT
+          echo "New hash: $NEW_HASH"
+
+      - name: Update package.nix
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          sed -i 's/outputHash = "sha256-[^"]*"/outputHash = "${{ steps.hash.outputs.hash }}"/' nix/package.nix
+          cat nix/package.nix | grep outputHash
+
+      - name: Verify build with new hash
+        working-directory: ${{ env.WORKING_DIR }}
+        run: |
+          nix build
+          ./result/bin/ctl --version
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add packages/ctl/nix/package.nix
+          git commit -m "chore(ctl): update nix node_modules hash" || exit 0
+          git push
