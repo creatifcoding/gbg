@@ -55,7 +55,7 @@ let
     # Fixed-output derivation settings
     outputHashAlgo = "sha256";
     outputHashMode = "recursive";
-    outputHash = "sha256-wfDxLXpblh90xu8B2YGwbxC/an5Eo85ooGjn1aBxSMU=";
+    outputHash = "sha256-ekdoROEa7g39DaVr2M07NfVfkFcf09/NLu6UPyT0tdI=";
   };
 
 in
