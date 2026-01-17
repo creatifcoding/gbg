@@ -28,7 +28,6 @@ import {
   useCallback,
   useState,
   useRef,
-  useEffect,
   useLayoutEffect,
   forwardRef,
   type ReactNode,
@@ -39,7 +38,7 @@ import {
 import { Send, Brain, Slash, AtSign, Paperclip, X, Hash } from 'lucide-react'
 import { motion, AnimatePresence, useReducedMotion, type Easing } from 'motion/react'
 import { cn } from '@/lib/utils'
-import { morphText, initCharSpans } from './text-morph'
+import { useTextMorph } from './text-morph'
 
 // =============================================================================
 // Types
@@ -613,8 +612,11 @@ function ThinkingLevelButton({ className }: ThinkingLevelProps) {
   const prevLevelNameRef = useRef<string | null>(null)
   // Track if morph animation is in progress
   const [isMorphing, setIsMorphing] = useState(false)
-  // Store timeline ref for cleanup on unmount
-  const timelineRef = useRef<ReturnType<typeof morphText>>(null)
+
+  // anime.js v4 scope-based text morph hook
+  // Handles scope creation, animation tracking, and cleanup on unmount
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const textMorph = useTextMorph(labelRef)
 
   if (mode !== 'ai') return null
 
@@ -627,30 +629,17 @@ function ThinkingLevelButton({ className }: ThinkingLevelProps) {
 
   const isActive = thinkingLevel !== 'none'
 
-  // Cleanup timeline on unmount to prevent memory leaks
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useEffect(() => {
-    return () => {
-      // anime.js requires explicit cleanup via revert()
-      if (timelineRef.current) {
-        timelineRef.current.revert()
-        timelineRef.current = null
-      }
-    }
-  }, [])
-
   // Initialize char spans when label container appears or level changes
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useLayoutEffect(() => {
-    if (isActive && labelRef.current && !isMorphing) {
+    if (isActive && labelRef.current && !isMorphing && !textMorph.isAnimating()) {
       // Only init if container doesn't already have correct text
-      // (morphText sets final text, so skip re-init after morph completes)
       if (labelRef.current.textContent !== currentOption.name) {
-        initCharSpans(labelRef.current, currentOption.name)
+        textMorph.initText(currentOption.name)
       }
       prevLevelNameRef.current = currentOption.name
     }
-  }, [isActive, currentOption.name, isMorphing])
+  }, [isActive, currentOption.name, isMorphing, textMorph])
 
   const handleClick = () => {
     // Skip animations if reduced motion preferred or 'none' level
@@ -672,21 +661,17 @@ function ThinkingLevelButton({ className }: ThinkingLevelProps) {
     if (labelRef.current && nextOption.id !== 'none') {
       setIsMorphing(true)
 
-      // Clean up any running timeline before starting new one
-      if (timelineRef.current) {
-        timelineRef.current.revert()
-      }
-
-      // Run morph animation, defer state change to onComplete
+      // Run morph animation via scope-based hook
+      // The hook handles scope cleanup and animation tracking automatically
       const totalDuration = nextOption.animation.duration.press + nextOption.animation.duration.release
-      timelineRef.current = morphText(labelRef.current, fromText, toText, {
+      textMorph.morph(fromText, toText, {
         duration: totalDuration,
         charWidth: 7, // Approximate for 10px mono font
+        skipAnimation: prefersReducedMotion ?? false,
         onComplete: () => {
           setThinkingLevel(nextOption.id)
           prevLevelNameRef.current = toText
           setIsMorphing(false)
-          timelineRef.current = null
         },
       })
     } else {

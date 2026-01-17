@@ -2,13 +2,17 @@
  * Text Morph Animation
  *
  * 4-phase character morphing between strings of varying lengths.
- * Uses anime.js v4 for timeline orchestration.
+ * Uses anime.js v4 for timeline orchestration with proper React scope integration.
+ *
+ * IMPORTANT: This module uses anime.js v4's createScope() for React integration.
+ * Animations MUST be created within scope.add() to be properly tracked and cleaned up.
  *
  * @see .claude/skills/animation-techniques/techniques/text-morph-animation.md
  * @bead tmnl-ypwpb (parent feature)
  */
 
-import { createTimeline, stagger } from "animejs"
+import { useRef, useLayoutEffect, useCallback, useMemo, type RefObject } from "react"
+import { createTimeline, stagger, createScope, type Scope } from "animejs"
 
 // =============================================================================
 // Types
@@ -38,6 +42,15 @@ export interface MorphOptions {
   onComplete?: () => void
   /** Skip animation entirely (for reduced motion) */
   skipAnimation?: boolean
+}
+
+export interface TextMorphHandle {
+  /** Trigger morph animation from current text to target text */
+  morph: (fromText: string, toText: string, options?: MorphOptions) => void
+  /** Initialize char spans for initial text (call before first morph) */
+  initText: (text: string) => void
+  /** Check if animation is currently running */
+  isAnimating: () => boolean
 }
 
 // =============================================================================
@@ -154,49 +167,31 @@ export function initCharSpans(
 }
 
 // =============================================================================
-// Animation Phases
+// Scope-Based Animation Builder
 // =============================================================================
 
 /**
- * Morph text from one string to another with 4-phase animation.
+ * Build the 4-phase morph animation within a scope context.
+ * This function MUST be called within scope.add() for proper React integration.
  *
- * Phases:
- * 1. Fade out unmapped characters (0-20%)
- * 2. Compress remaining characters to close gaps (20-40%)
- * 3. Scramble to target positions + letter swap (40-80%)
- * 4. Fade in new characters (80-100%)
- *
- * @bead tmnl-yxssu (phase 1)
- * @bead tmnl-j17b7 (phase 2)
- * @bead tmnl-7zorg (phase 3)
- * @bead tmnl-az4jt (phase 4)
+ * @internal
  */
-export function morphText(
+function buildMorphTimeline(
   container: HTMLElement,
   fromText: string,
   toText: string,
-  options: MorphOptions = {}
-): ReturnType<typeof createTimeline> | null {
-  const { duration = 500, charWidth = 8, onComplete, skipAnimation } = options
+  options: MorphOptions,
+  charSpans: HTMLSpanElement[]
+): ReturnType<typeof createTimeline> {
+  console.log("[text-morph] buildMorphTimeline:", { fromText, toText, charSpanCount: charSpans.length })
 
-  // Skip animation path
-  if (skipAnimation) {
-    container.textContent = toText
-    onComplete?.()
-    return null
-  }
+  const { duration = 500, charWidth = 8, onComplete } = options
 
   // Phase durations as fractions of total
   const p1 = duration * 0.2 // 0-20%: fade out
   const p2 = duration * 0.2 // 20-40%: compress
   const p3 = duration * 0.4 // 40-80%: scramble
   const p4 = duration * 0.2 // 80-100%: fade in
-
-  // Initialize char spans if not already present
-  let charSpans = Array.from(container.querySelectorAll("span")) as HTMLSpanElement[]
-  if (charSpans.length === 0 || charSpans.length !== fromText.length) {
-    charSpans = initCharSpans(container, fromText)
-  }
 
   // Compute character mapping
   const mapping = computeCharMapping(fromText, toText)
@@ -216,14 +211,19 @@ export function morphText(
     return -fadeOutsBefore * charWidth
   }
 
-  // Build timeline
+  console.log("[text-morph] Mapping:", { fadeOuts: fadeOuts.length, keeps: keeps.length, fadeIns: fadeIns.length })
+
+  // Build timeline - this is now created WITHIN the scope context
   const tl = createTimeline({
     onComplete: () => {
+      console.log("[text-morph] Timeline complete!")
       // Clean up: set final text content
       container.textContent = toText
       onComplete?.()
     },
   })
+
+  console.log("[text-morph] Timeline created, adding phases...")
 
   // Phase 1: Fade out unmapped chars
   // @bead tmnl-yxssu
@@ -332,3 +332,201 @@ export function morphText(
   return tl
 }
 
+// =============================================================================
+// React Hook: useTextMorph
+// =============================================================================
+
+/**
+ * React hook for text morph animations using anime.js v4 scope system.
+ *
+ * IMPORTANT: This hook uses createScope() for proper React integration.
+ * The scope automatically tracks all animations and handles cleanup on unmount.
+ *
+ * @param containerRef - Ref to the container element that will hold char spans
+ * @returns TextMorphHandle with morph() and initText() methods
+ *
+ * @example
+ * ```tsx
+ * function MyComponent() {
+ *   const labelRef = useRef<HTMLSpanElement>(null)
+ *   const textMorph = useTextMorph(labelRef)
+ *
+ *   useLayoutEffect(() => {
+ *     textMorph.initText("Low")
+ *   }, [])
+ *
+ *   const handleClick = () => {
+ *     textMorph.morph("Low", "Medium", {
+ *       duration: 500,
+ *       charWidth: 7,
+ *       onComplete: () => console.log("done"),
+ *     })
+ *   }
+ *
+ *   return <span ref={labelRef} onClick={handleClick} />
+ * }
+ * ```
+ */
+export function useTextMorph(
+  containerRef: RefObject<HTMLElement | null>
+): TextMorphHandle {
+  // Scope instance for anime.js v4 React integration
+  const scopeRef = useRef<Scope | null>(null)
+  // Track animation state
+  const isAnimatingRef = useRef(false)
+  // Track current char spans
+  const charSpansRef = useRef<HTMLSpanElement[]>([])
+
+  // Initialize scope on mount, cleanup on unmount
+  useLayoutEffect(() => {
+    if (!containerRef.current) return
+
+    // Create scope bound to the container element
+    // The scope will track all animations created within scope.add()
+    scopeRef.current = createScope({
+      root: containerRef,
+    })
+
+    return () => {
+      // Cleanup: revert all animations and dispose scope
+      if (scopeRef.current) {
+        scopeRef.current.revert()
+        scopeRef.current = null
+      }
+      isAnimatingRef.current = false
+      charSpansRef.current = []
+    }
+  }, [containerRef])
+
+  // Initialize text with char spans
+  const initText = useCallback(
+    (text: string) => {
+      if (!containerRef.current) return
+      charSpansRef.current = initCharSpans(containerRef.current, text)
+    },
+    [containerRef]
+  )
+
+  // Morph from one text to another
+  const morph = useCallback(
+    (fromText: string, toText: string, options: MorphOptions = {}) => {
+      console.log("[text-morph] morph() called:", { fromText, toText })
+
+      const container = containerRef.current
+
+      if (!container) {
+        console.warn("[text-morph] Container not available")
+        return
+      }
+
+      // Lazily initialize scope if not yet created
+      // This handles the case where the container element appears after initial mount
+      if (!scopeRef.current) {
+        console.log("[text-morph] Lazy-initializing scope")
+        scopeRef.current = createScope({ root: containerRef })
+      }
+
+      console.log("[text-morph] Container and scope valid, proceeding")
+
+      // Skip if reduced motion requested
+      if (options.skipAnimation) {
+        container.textContent = toText
+        charSpansRef.current = initCharSpans(container, toText)
+        options.onComplete?.()
+        return
+      }
+
+      // Revert existing scope to clean up any running animations
+      if (scopeRef.current) {
+        scopeRef.current.revert()
+      }
+
+      // Create fresh scope for this animation
+      scopeRef.current = createScope({
+        root: containerRef,
+      })
+
+      // Ensure char spans are initialized
+      let charSpans = charSpansRef.current
+      if (charSpans.length === 0 || charSpans.length !== fromText.length) {
+        charSpans = initCharSpans(container, fromText)
+        charSpansRef.current = charSpans
+      }
+
+      isAnimatingRef.current = true
+
+      console.log("[text-morph] Adding animation to scope, charSpans:", charSpans.length)
+
+      // Add animation constructor to scope
+      // Animations created within scope.add() are automatically tracked
+      scopeRef.current.add(() => {
+        console.log("[text-morph] scope.add() constructor executing")
+        const tl = buildMorphTimeline(container, fromText, toText, {
+          ...options,
+          onComplete: () => {
+            isAnimatingRef.current = false
+            // Update char spans ref to match new text
+            charSpansRef.current = Array.from(
+              container.querySelectorAll("span")
+            ) as HTMLSpanElement[]
+            options.onComplete?.()
+          },
+        }, charSpans)
+
+        // Return cleanup function for this constructor
+        return () => {
+          tl.revert()
+        }
+      })
+    },
+    [containerRef]
+  )
+
+  // Check if animating
+  const isAnimating = useCallback(() => isAnimatingRef.current, [])
+
+  // Return stable handle (memoized to prevent unnecessary re-renders)
+  return useMemo(
+    () => ({ morph, initText, isAnimating }),
+    [morph, initText, isAnimating]
+  )
+}
+
+// =============================================================================
+// Legacy API (DEPRECATED - use useTextMorph hook instead)
+// =============================================================================
+
+/**
+ * @deprecated Use useTextMorph hook for proper React integration.
+ * This function exists for backwards compatibility but does NOT use the
+ * anime.js v4 scope system, which can cause memory leaks and animation issues.
+ */
+export function morphText(
+  container: HTMLElement,
+  fromText: string,
+  toText: string,
+  options: MorphOptions = {}
+): ReturnType<typeof createTimeline> | null {
+  console.warn(
+    "[text-morph] morphText() is deprecated. Use useTextMorph hook for proper React integration."
+  )
+
+  const { skipAnimation } = options
+
+  // Skip animation path
+  if (skipAnimation) {
+    container.textContent = toText
+    options.onComplete?.()
+    return null
+  }
+
+  // Initialize char spans if not already present
+  let charSpans = Array.from(
+    container.querySelectorAll("span")
+  ) as HTMLSpanElement[]
+  if (charSpans.length === 0 || charSpans.length !== fromText.length) {
+    charSpans = initCharSpans(container, fromText)
+  }
+
+  return buildMorphTimeline(container, fromText, toText, options, charSpans)
+}
