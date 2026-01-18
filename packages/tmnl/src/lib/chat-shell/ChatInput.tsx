@@ -28,7 +28,6 @@ import {
   useCallback,
   useState,
   useRef,
-  useLayoutEffect,
   forwardRef,
   type ReactNode,
   type RefObject,
@@ -38,7 +37,7 @@ import {
 import { Send, Brain, Slash, AtSign, Paperclip, X, Hash } from 'lucide-react'
 import { motion, AnimatePresence, useReducedMotion, type Easing } from 'motion/react'
 import { cn } from '@/lib/utils'
-import { useTextMorph } from './text-morph'
+import { useScrambleText } from '@/lib/animation/text-effects'
 
 // =============================================================================
 // Types
@@ -606,20 +605,6 @@ function ThinkingLevelButton({ className }: ThinkingLevelProps) {
   const [showPulse, setShowPulse] = useState(false)
   const prefersReducedMotion = useReducedMotion()
 
-  // Ref for the label text container (for text morph animation)
-  const labelRef = useRef<HTMLSpanElement>(null)
-  // Track previous level name for morphing
-  const prevLevelNameRef = useRef<string | null>(null)
-  // Track if morph animation is in progress
-  const [isMorphing, setIsMorphing] = useState(false)
-
-  // anime.js v4 scope-based text morph hook
-  // Handles scope creation, animation tracking, and cleanup on unmount
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const textMorph = useTextMorph(labelRef)
-
-  if (mode !== 'ai') return null
-
   // Find current level's animation preset
   const currentOption = thinkingLevels.find((l) => l.id === thinkingLevel) ?? thinkingLevels[0]
   const nextOption = (() => {
@@ -629,55 +614,36 @@ function ThinkingLevelButton({ className }: ThinkingLevelProps) {
 
   const isActive = thinkingLevel !== 'none'
 
-  // Initialize char spans when label container appears or level changes
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  useLayoutEffect(() => {
-    if (isActive && labelRef.current && !isMorphing && !textMorph.isAnimating()) {
-      // Only init if container doesn't already have correct text
-      if (labelRef.current.textContent !== currentOption.name) {
-        textMorph.initText(currentOption.name)
-      }
-      prevLevelNameRef.current = currentOption.name
-    }
-  }, [isActive, currentOption.name, isMorphing, textMorph])
+  // useScrambleText handles text animation automatically when text prop changes
+  // Uses 'cyber' preset with TMNL defaults, respects prefers-reduced-motion
+  const { ref: scrambleRef } = useScrambleText({
+    text: isActive ? currentOption.name : '',
+    preset: 'cyber',
+    playOnMount: false, // Don't animate on first mount
+  })
+
+  if (mode !== 'ai') return null
 
   const handleClick = () => {
-    // Skip animations if reduced motion preferred or 'none' level
-    if (prefersReducedMotion || thinkingLevel === 'none') {
+    console.log('[ThinkingLevel] handleClick:', { thinkingLevel, nextOption: nextOption.id, prefersReducedMotion })
+
+    // Skip all animations if reduced motion preferred
+    if (prefersReducedMotion) {
       setThinkingLevel(nextOption.id)
       return
     }
 
-    // Trigger press animation
-    setIsPressed(true)
-    if (nextOption.animation.pulse) {
-      setShowPulse(true)
+    // Trigger press animation (only when currently active - label exists)
+    if (thinkingLevel !== 'none') {
+      setIsPressed(true)
+      if (nextOption.animation.pulse) {
+        setShowPulse(true)
+      }
     }
 
-    // Text morph animation (only when going from active to active)
-    const fromText = prevLevelNameRef.current ?? currentOption.name
-    const toText = nextOption.name
-
-    if (labelRef.current && nextOption.id !== 'none') {
-      setIsMorphing(true)
-
-      // Run morph animation via scope-based hook
-      // The hook handles scope cleanup and animation tracking automatically
-      const totalDuration = nextOption.animation.duration.press + nextOption.animation.duration.release
-      textMorph.morph(fromText, toText, {
-        duration: totalDuration,
-        charWidth: 7, // Approximate for 10px mono font
-        skipAnimation: prefersReducedMotion ?? false,
-        onComplete: () => {
-          setThinkingLevel(nextOption.id)
-          prevLevelNameRef.current = toText
-          setIsMorphing(false)
-        },
-      })
-    } else {
-      // No morph needed (going to 'none' or no label ref)
-      setThinkingLevel(nextOption.id)
-    }
+    // Just update the level - useScramble handles text animation automatically
+    console.log('[ThinkingLevel] setting level:', nextOption.id)
+    setThinkingLevel(nextOption.id)
   }
 
   // Callback when press animation completes - resets to release state
@@ -804,7 +770,7 @@ function ThinkingLevelButton({ className }: ThinkingLevelProps) {
         </motion.span>
         {isActive && (
           <motion.span
-            ref={labelRef}
+            ref={scrambleRef}
             initial={{ opacity: 0, x: -4 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -4 }}

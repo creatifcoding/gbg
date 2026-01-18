@@ -57,6 +57,33 @@ export {
 // Tokens and configuration
 export * from './tokens'
 
+// Text effects (scramble animations)
+export {
+  // Main hook
+  useScrambleText,
+  useCyberScramble,
+  useTypewriterScramble,
+  useGlitchScramble,
+  useTerminalScramble,
+  useMatrixScramble,
+  type UseScrambleTextOptions,
+  type UseScrambleTextResult,
+  // Presets
+  type ScrambleConfig,
+  type ScramblePreset,
+  SCRAMBLE_PRESETS,
+  getScramblePreset,
+  extendPreset,
+  cyberPreset,
+  typewriterPreset,
+  glitchPreset,
+  matrixPreset,
+  terminalPreset,
+  smoothPreset,
+  rapidPreset,
+  dramaticPreset,
+} from './text-effects'
+
 // Re-export for convenience
 export { gsap } from 'gsap'
 export { animate, createTimeline, stagger, utils } from 'animejs'

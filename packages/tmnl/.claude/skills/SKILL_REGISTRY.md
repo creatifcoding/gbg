@@ -1,11 +1,11 @@
 # TMNL Skill Registry & System Decomposition
 
-> Generated: 2025-12-20 | Updated: 2025-12-21
+> Generated: 2025-12-20 | Updated: 2026-01-16
 > Purpose: Comprehensive mapping of subsystems, testbeds, and skills with dependency graph
 
 ## Overview
 
-TMNL is decomposed into **32 lib subsystems**, validated by **31 testbeds**, and documented via **45+ skills**.
+TMNL is decomposed into **32 lib subsystems**, validated by **31 testbeds**, and documented via **50+ skills**.
 
 **P0+P1 Skills Complete (6 skills, 53 patterns)**:
 - `slider-system` (7 patterns) — DAW-grade behaviors, precision modifiers
@@ -196,8 +196,86 @@ This registry serves as the authoritative reference for skill discovery, gap ana
                     │  beads-issue-management                 │
                     │  beads-dependency-tracking              │
                     │  beads-session-workflow                 │
+                    └───────────────────┬─────────────────────┘
+                                        │
+                    ┌───────────────────▼─────────────────────┐
+                    │        RESEARCH & VERIFICATION          │
+                    │  grounded-research (uncertainty proto)  │
+                    │  effect-research (Effect-TS specific)   │
+                    │  research-cascade (multi-source orch)   │
+                    │  tmnl-submodule-exploration             │
                     └─────────────────────────────────────────┘
 ```
+
+---
+
+## Research Skills Layer (NEW)
+
+Research skills enforce epistemic honesty and grounded verification before implementation.
+
+| Skill | Purpose | Triggers |
+|-------|---------|----------|
+| `grounded-research` | Uncertainty admission protocol, knowledge cutoff awareness | "research", "verify", "uncertain" |
+| `effect-research` | Effect-TS specialized research via deepwiki + submodules | "Effect pattern", "Schema", "Atom.runtime" |
+| `research-cascade` | Multi-source orchestration (deepwiki → submodules → web) | "cross-reference", "verify from multiple" |
+| `tmnl-submodule-exploration` | Navigate effect, effect-atom, website submodules | "submodule", "canonical example" |
+
+### Research Cascade Order
+
+```
+1. deepwiki (ask verification questions)
+   └─ Repos: Effect-TS/effect, tim-smart/effect-atom
+2. Submodules (canonical sources)
+   └─ website/ (human docs), effect/ (tests), effect-atom/ (atoms)
+3. WebSearch (recent changes only)
+   └─ Breaking changes, version updates
+4. Codebase (.edin/, src/lib/)
+   └─ Local precedent, TMNL conventions
+```
+
+### Key Principle
+
+> **Admit uncertainty BEFORE researching. Verify BEFORE implementing.**
+
+---
+
+## CLI Framework Skills (NEW)
+
+Internal CLI framework using Effect CLI with modular services for persistence, messaging, and configuration.
+
+| Skill | Purpose | Triggers |
+|-------|---------|----------|
+| `cli/core` | Command.make, Args, Options, subcommands, program structure | "CLI", "Command.make", "@effect/cli" |
+| `cli/persistence` | SQLite storage via @effect/sql-sqlite-bun, repositories, migrations | "SQLite", "cli storage", "persistence" |
+| `cli/messaging` | Agent-guiding errors, TaggedError patterns, output formatting | "error messages", "agent guidance", "TaggedError" |
+| `cli/services` | Effect.Service patterns, Layer composition, dependency injection | "Effect.Service", "Layer composition", "CLI service" |
+| `cli/config` | Configuration via Context + Config, env vars, config files, XDG paths | "CLI config", "environment variables", "Config.Provider" |
+
+### CLI Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        CLI APPLICATION                           │
+├─────────────────────────────────────────────────────────────────┤
+│  cli/core         │  Command definitions, Args, Options          │
+├───────────────────┼─────────────────────────────────────────────┤
+│  cli/messaging    │  TaggedErrors, recovery guidance, output fmt │
+├───────────────────┼─────────────────────────────────────────────┤
+│  cli/services     │  Effect.Service, Layer composition           │
+├───────────────────┼─────────────────────────────────────────────┤
+│  cli/persistence  │  SqliteClient, repositories, migrations      │
+├───────────────────┼─────────────────────────────────────────────┤
+│  cli/config       │  Config providers, env vars, XDG paths       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key Principle
+
+> **Errors guide the next action. Every failure message answers: What now?**
+
+### Reference Implementation
+
+- **Research Session CLI**: `scripts/research-session-cli.ts`
 
 ---
 
@@ -324,3 +402,25 @@ Skills should include triggers that match:
 - **Service Patterns**: `.edin/EFFECT_SERVICE_PATTERNS.md`
 - **Epoch Records**: `.edin/epochs/EPOCH-*.md`
 - **Session Journal**: `.agents/index.md`
+
+### Research Skills
+
+- **Grounded Research**: `.claude/skills/grounded-research/SKILL.md`
+- **Effect Research**: `.claude/skills/effect-research/SKILL.md`
+- **Research Cascade**: `.claude/skills/research-cascade/SKILL.md`
+- **Submodule Navigation**: `.claude/skills/tmnl-submodule-exploration/SKILL.md`
+
+### CLI Framework Skills
+
+- **Core Patterns**: `.claude/skills/cli/core/SKILL.md`
+- **Persistence**: `.claude/skills/cli/persistence/SKILL.md`
+- **Messaging**: `.claude/skills/cli/messaging/SKILL.md`
+- **Services**: `.claude/skills/cli/services/SKILL.md`
+- **Configuration**: `.claude/skills/cli/config/SKILL.md`
+
+### Methodology Skills
+
+- **Feature Design Documents (FDD)**: `.claude/skills/fdd-feature-design/SKILL.md`
+  - Three-phase approach: SOI → FRD → FRP
+  - Statement of Intent, Feature Requirements, Feature Realization
+  - Backlink traceability between documents
