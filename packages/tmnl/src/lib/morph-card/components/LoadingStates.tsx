@@ -7,12 +7,13 @@
  * @module morph-card/components/LoadingStates
  */
 
-import { type ReactNode, useEffect, useState, useCallback } from 'react';
+import { type ReactNode, useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useScrambleText } from '@/lib/animation/text-effects';
 import { useModalSafe } from '@/lib/overlays/visual/hooks/useModal';
 import type { GenerationStatus } from '../schemas/generative-state';
 import type { ParseResult } from 'effect';
+import type { JsonPatch } from '../schemas/patch-protocol';
 
 // =============================================================================
 // Types
@@ -284,6 +285,9 @@ export function GenerativeLoading({
 // Decode Error Boundary
 // =============================================================================
 
+/** Fix agent status */
+export type FixAgentStatus = 'idle' | 'fixing' | 'fixed' | 'failed';
+
 /**
  * Props for DecodeErrorBoundary
  */
@@ -292,6 +296,16 @@ export interface DecodeErrorBoundaryProps {
   error: ParseResult.ParseError;
   /** Retry callback - triggers full regeneration */
   onRetry?: () => void;
+  /** Card ID for fix agent context (enables fix agent) */
+  cardId?: string;
+  /** Current tree state for fix agent context */
+  currentTree?: unknown;
+  /** Original prompt for fix agent context */
+  originalPrompt?: string;
+  /** Callback when fix patches are applied */
+  onFixPatches?: (patches: JsonPatch[]) => void;
+  /** Auto-trigger fix agent on mount (default: false) */
+  autoFix?: boolean;
 }
 
 /**
@@ -300,10 +314,14 @@ export interface DecodeErrorBoundaryProps {
 function ErrorDetailsModalContent({
   error,
   onRetry,
+  onFix,
+  fixStatus,
   onClose,
 }: {
   error: ParseResult.ParseError;
   onRetry?: () => void;
+  onFix?: () => void;
+  fixStatus?: FixAgentStatus;
   onClose?: () => void;
 }) {
   return (
@@ -328,9 +346,46 @@ function ErrorDetailsModalContent({
         </pre>
       </div>
 
+      {/* Fix agent status */}
+      {fixStatus === 'fixing' && (
+        <div className="flex items-center gap-2 text-[11px] text-cyan-400/80 font-sans">
+          <motion.span
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1, repeat: Infinity }}
+          >
+            ●
+          </motion.span>
+          fix agent working...
+        </div>
+      )}
+      {fixStatus === 'fixed' && (
+        <div className="text-[11px] text-emerald-400/80 font-sans">
+          ✓ fix applied successfully
+        </div>
+      )}
+      {fixStatus === 'failed' && (
+        <div className="text-[11px] text-red-400/80 font-sans">
+          ✗ fix agent failed - try regenerate
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex gap-2 justify-end">
-        {onRetry && (
+        {/* Fix button (preferred) - only show when fix context available */}
+        {onFix && fixStatus !== 'fixing' && fixStatus !== 'fixed' && (
+          <motion.button
+            onClick={() => {
+              onFix();
+            }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="px-3 py-1.5 text-[11px] font-sans bg-cyan-900/30 hover:bg-cyan-900/50 text-cyan-300/80 rounded border border-cyan-800/30 transition-colors"
+          >
+            fix element
+          </motion.button>
+        )}
+        {/* Regenerate button (fallback) */}
+        {onRetry && fixStatus !== 'fixing' && (
           <motion.button
             onClick={() => {
               onRetry();
@@ -349,20 +404,51 @@ function ErrorDetailsModalContent({
 }
 
 /**
+ * Extract error path from ParseError message
+ * Attempts to find a path like /elements/... in the error message
+ */
+function extractErrorPath(errorMessage: string): string {
+  // Look for paths like /elements/chart-1 or /root
+  const pathMatch = errorMessage.match(/\/(?:elements|root|children)[^\s,)]+/);
+  return pathMatch?.[0] ?? '/root';
+}
+
+/**
  * Error boundary for UITree decode failures
  *
  * Shown when generation completes but the response cannot be decoded into a valid UITree.
  * Click the error preview to open a modal with full details.
  *
- * TODO: Fine-grained patch retry - if one element fails, patch just that element.
- * Cadenced reveal with scramble animation on recovery.
+ * When cardId, currentTree, and originalPrompt are provided, enables the fix agent:
+ * - "fix element" button calls /morph-agent/fix endpoint
+ * - Agent makes minimal fixes to the broken element
+ * - Patches are returned via onFixPatches callback
+ *
+ * If autoFix is true, triggers fix agent automatically on mount.
  */
-export function DecodeErrorBoundary({ error, onRetry }: DecodeErrorBoundaryProps) {
+export function DecodeErrorBoundary({
+  error,
+  onRetry,
+  cardId,
+  currentTree,
+  originalPrompt,
+  onFixPatches,
+  autoFix = false,
+}: DecodeErrorBoundaryProps) {
   const modal = useModalSafe();
+  const [fixStatus, setFixStatus] = useState<FixAgentStatus>('idle');
+  const [fixError, setFixError] = useState<string | undefined>();
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Determine if fix agent is available (has required context)
+  const fixAgentAvailable = Boolean(cardId && currentTree && originalPrompt && onFixPatches);
 
   // Scramble animation for the reminder text
+  const reminderText = fixAgentAvailable
+    ? 'fix agent ready - minimal surgical fix'
+    : 'patch the broken element, not the whole tree';
   const { ref: reminderRef } = useScrambleText({
-    text: 'patch the broken element, not the whole tree',
+    text: reminderText,
     preset: 'cyber',
     speed: 0.6,
     scramble: 4,
@@ -370,6 +456,113 @@ export function DecodeErrorBoundary({ error, onRetry }: DecodeErrorBoundaryProps
 
   // Extract first issue path for display - keep it short
   const issuePreview = error.message?.slice(0, 60) ?? 'element decode failed';
+
+  /**
+   * Trigger the fix agent to repair the broken element
+   * Calls POST /morph-agent/fix and streams patches
+   */
+  const triggerFixAgent = useCallback(async () => {
+    if (!fixAgentAvailable || !cardId || !currentTree || !originalPrompt || !onFixPatches) {
+      return;
+    }
+
+    // Abort any previous request
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
+    abortRef.current = new AbortController();
+
+    setFixStatus('fixing');
+    setFixError(undefined);
+
+    try {
+      const response = await fetch('/morph-agent/fix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          _tag: 'FixAgentRequest',
+          cardId,
+          errorMessage: error.message ?? 'Unknown decode error',
+          errorPath: extractErrorPath(error.message ?? ''),
+          currentTree,
+          originalPrompt,
+        }),
+        signal: abortRef.current.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+      }
+
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      // Stream the response and collect patches
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      const collectedPatches: JsonPatch[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            // Agent emits MorphPatch with patches array
+            if (parsed._tag === 'MorphPatch' && Array.isArray(parsed.patches)) {
+              collectedPatches.push(...parsed.patches);
+            }
+          } catch {
+            // Ignore parse errors for individual lines
+          }
+        }
+      }
+
+      // Apply collected patches
+      if (collectedPatches.length > 0) {
+        onFixPatches(collectedPatches);
+        setFixStatus('fixed');
+      } else {
+        setFixStatus('failed');
+        setFixError('Fix agent returned no patches');
+      }
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') {
+        setFixStatus('idle');
+      } else {
+        setFixStatus('failed');
+        setFixError((err as Error).message);
+        console.error('[DecodeErrorBoundary] Fix agent error:', err);
+      }
+    }
+  }, [fixAgentAvailable, cardId, currentTree, originalPrompt, onFixPatches, error.message]);
+
+  // Auto-fix on mount if enabled
+  useEffect(() => {
+    if (autoFix && fixAgentAvailable && fixStatus === 'idle') {
+      triggerFixAgent();
+    }
+  }, [autoFix, fixAgentAvailable, fixStatus, triggerFixAgent]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortRef.current) {
+        abortRef.current.abort();
+      }
+    };
+  }, []);
 
   // Open modal with full error details
   const openErrorDetails = useCallback(() => {
@@ -385,10 +578,12 @@ export function DecodeErrorBoundary({ error, onRetry }: DecodeErrorBoundaryProps
       <ErrorDetailsModalContent
         error={error}
         onRetry={onRetry}
+        onFix={fixAgentAvailable ? triggerFixAgent : undefined}
+        fixStatus={fixStatus}
         onClose={() => modal.close(modalId)}
       />
     );
-  }, [modal, error, onRetry]);
+  }, [modal, error, onRetry, fixAgentAvailable, triggerFixAgent, fixStatus]);
 
   return (
     <motion.div
@@ -408,15 +603,49 @@ export function DecodeErrorBoundary({ error, onRetry }: DecodeErrorBoundaryProps
         ~
       </motion.div>
 
+      {/* Fix status indicator */}
+      {fixStatus === 'fixing' && (
+        <motion.div
+          className="flex items-center gap-2 text-[11px] text-cyan-400/80 font-sans"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <motion.span
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1, repeat: Infinity }}
+          >
+            ●
+          </motion.span>
+          fix agent working...
+        </motion.div>
+      )}
+      {fixStatus === 'fixed' && (
+        <motion.div
+          className="text-[11px] text-emerald-400/80 font-sans"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          ✓ fix applied
+        </motion.div>
+      )}
+      {fixStatus === 'failed' && (
+        <div className="text-[11px] text-red-400/80 font-sans text-center">
+          <div>✗ fix failed</div>
+          {fixError && <div className="text-[10px] text-red-400/60 mt-0.5">{fixError.slice(0, 40)}</div>}
+        </div>
+      )}
+
       {/* Error path preview - clickable to open modal */}
-      <motion.button
-        onClick={openErrorDetails}
-        whileHover={{ scale: 1.01 }}
-        className="text-[11px] text-amber-400/60 font-sans max-w-[200px] truncate hover:text-amber-400/80 transition-colors cursor-pointer underline underline-offset-2 decoration-amber-800/30"
-        title="Click to view full error"
-      >
-        {issuePreview}...
-      </motion.button>
+      {fixStatus !== 'fixing' && (
+        <motion.button
+          onClick={openErrorDetails}
+          whileHover={{ scale: 1.01 }}
+          className="text-[11px] text-amber-400/60 font-sans max-w-[200px] truncate hover:text-amber-400/80 transition-colors cursor-pointer underline underline-offset-2 decoration-amber-800/30"
+          title="Click to view full error"
+        >
+          {issuePreview}...
+        </motion.button>
+      )}
 
       {/* Scrambled reminder - sans-serif, playful */}
       <span
@@ -424,17 +653,31 @@ export function DecodeErrorBoundary({ error, onRetry }: DecodeErrorBoundaryProps
         className="text-[10px] text-neutral-500 font-sans italic"
       />
 
-      {/* Retry button */}
-      {onRetry && (
-        <motion.button
-          onClick={onRetry}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="mt-1 px-3 py-1.5 text-[11px] font-sans bg-amber-900/20 hover:bg-amber-900/40 text-amber-300/80 rounded border border-amber-800/30 transition-colors"
-        >
-          regenerate
-        </motion.button>
-      )}
+      {/* Action buttons */}
+      <div className="flex gap-2 mt-1">
+        {/* Fix button (preferred) - only show when fix agent available */}
+        {fixAgentAvailable && fixStatus !== 'fixing' && fixStatus !== 'fixed' && (
+          <motion.button
+            onClick={triggerFixAgent}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="px-3 py-1.5 text-[11px] font-sans bg-cyan-900/20 hover:bg-cyan-900/40 text-cyan-300/80 rounded border border-cyan-800/30 transition-colors"
+          >
+            fix element
+          </motion.button>
+        )}
+        {/* Regenerate button (fallback) */}
+        {onRetry && fixStatus !== 'fixing' && (
+          <motion.button
+            onClick={onRetry}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="px-3 py-1.5 text-[11px] font-sans bg-amber-900/20 hover:bg-amber-900/40 text-amber-300/80 rounded border border-amber-800/30 transition-colors"
+          >
+            regenerate
+          </motion.button>
+        )}
+      </div>
     </motion.div>
   );
 }

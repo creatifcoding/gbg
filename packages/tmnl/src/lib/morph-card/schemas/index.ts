@@ -11,3 +11,4 @@ export * from './transition-grammar';
 export * from './animation-config';
 export * from './generative-state';
 export * from './patch-protocol';
+export * from './tab-schemas';

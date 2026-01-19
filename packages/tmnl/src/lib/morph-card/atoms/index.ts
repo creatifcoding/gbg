@@ -142,3 +142,20 @@ export {
   getGenerativeAtoms,
   type GenerativeCardAtoms,
 } from './generative-atoms';
+
+// =============================================================================
+// Tab Atoms (Re-export)
+// =============================================================================
+
+export {
+  tabsAtomFamily,
+  cardTabStateFamily,
+  setActiveTab,
+  updateViewState,
+  registerTab,
+  unregisterTab,
+  getActiveTab,
+  getViewState,
+  clearCardState,
+  type AtomRegistry,
+} from './tab-atoms';

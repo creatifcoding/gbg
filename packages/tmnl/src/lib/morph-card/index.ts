@@ -68,6 +68,11 @@ export {
   ScrambleIndicator,
   ProgressiveReveal,
   TypewriterText,
+  // DynamicIslandCard
+  DynamicIslandCard,
+  TabBar,
+  useDynamicIslandContext,
+  useDynamicIslandContextOptional,
   // Types
   type MorphCardProps,
   type RenderRegistry,
@@ -77,6 +82,9 @@ export {
   type MetricGridProps,
   type MetricStatus,
   type GenerativeLoadingProps,
+  type DynamicIslandCardProps,
+  type DynamicIslandViewProps,
+  type TabBarProps,
 } from './components';
 
 // =============================================================================
@@ -119,6 +127,15 @@ export {
   GenerativeCardState,
   DEFAULT_MODE_GENERATION,
   DEFAULT_GENERATIVE_STATE,
+  // Tab Schemas
+  TabView,
+  TabBarConfig,
+  ViewState,
+  DynamicIslandCardState,
+  DEFAULT_DYNAMIC_ISLAND_STATE,
+  ServerQueryRequest,
+  ServerResponse,
+  ServerStreamEvent,
 } from './schemas';
 
 export type {
@@ -172,6 +189,17 @@ export {
   currentModeErrorFamily,
   getGenerativeAtoms,
   type GenerativeCardAtoms,
+  // Tab atoms
+  tabsAtomFamily,
+  cardTabStateFamily,
+  setActiveTab,
+  updateViewState,
+  registerTab,
+  unregisterTab,
+  getActiveTab,
+  getViewState,
+  clearCardState,
+  type AtomRegistry,
 } from './atoms';
 
 // =============================================================================
@@ -181,7 +209,27 @@ export {
 export {
   useGenerativeMode,
   type UseGenerativeModeResult,
+  // DynamicIslandCard hooks
+  useCardServer,
+  type UseCardServerResult,
+  useDynamicIslandCard,
+  type UseDynamicIslandCardResult,
 } from './hooks';
+
+// =============================================================================
+// Services Exports
+// =============================================================================
+
+export {
+  CardServerService,
+  CardServerServiceLive,
+  CardServerQueryError,
+  CardServerStreamError,
+  type CardServerServiceShape,
+  type QueryParams,
+  type QueryOptions,
+  type StreamEvent,
+} from './services';
 
 // =============================================================================
 // Catalog Export

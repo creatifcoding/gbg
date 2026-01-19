@@ -23,3 +23,13 @@ export {
   type GenerativeLoadingProps,
   type DecodeErrorBoundaryProps,
 } from './LoadingStates';
+
+// DynamicIslandCard Components
+export { TabBar, type TabBarProps } from './TabBar';
+export {
+  DynamicIslandCard,
+  useDynamicIslandContext,
+  useDynamicIslandContextOptional,
+  type DynamicIslandCardProps,
+  type DynamicIslandViewProps,
+} from './DynamicIslandCard';

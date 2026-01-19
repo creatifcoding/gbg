@@ -16,3 +16,14 @@ export {
   type UseDurableStreamPatchesResult,
   type StreamStatus,
 } from './useDurableStreamPatches';
+
+// DynamicIslandCard Hooks
+export {
+  useCardServer,
+  type UseCardServerResult,
+} from './useCardServer';
+
+export {
+  useDynamicIslandCard,
+  type UseDynamicIslandCardResult,
+} from './useDynamicIslandCard';
