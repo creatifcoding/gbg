@@ -18,6 +18,24 @@
 // Schemas & Types
 // =============================================================================
 
+// =============================================================================
+// Animation Schema
+// =============================================================================
+
+export {
+  EntranceAnimation,
+  AnimationProperty,
+  AnimationEasing,
+  AnimationDuration,
+  isEntranceAnimation,
+  decodeEntranceAnimation,
+  decodeEntranceAnimationSync,
+  type EntranceAnimation as EntranceAnimationType,
+  type AnimationProperty as AnimationPropertyType,
+  type AnimationEasing as AnimationEasingType,
+  type AnimationDuration as AnimationDurationType,
+} from "./animation-schema"
+
 export {
   // Core UI Types
   UIElement,
@@ -239,3 +257,14 @@ export {
   // Common Prop Schemas
   commonProps
 } from "./catalog"
+
+// =============================================================================
+// Components
+// =============================================================================
+
+export {
+  // SemanticRegion for agent-addressable UI regions
+  SemanticRegion,
+  type SemanticRegionProps,
+  type SemanticRegionType,
+} from "./components"

@@ -26,6 +26,14 @@ import {
   streamChartStyleAgent,
   ChartStylerAgentInputSchema,
 } from '@/lib/charts/styler/agent';
+import { streamFixAgent, type FixAgentResult } from '@/lib/morph-card/agents/fix-agent';
+import { streamEvolutionAgent, type EvolutionAgentResult } from '@/lib/morph-card/agents/evolution-agent';
+import {
+  FixAgentRequest,
+  EvolutionAgentRequest,
+  type JsonPatch,
+  type MorphPatch,
+} from '@/lib/morph-card/schemas/patch-protocol';
 // Note: UITree, UIElement, JsonPatch are defined in @/lib/json-render/core/schemas
 // We use inline JSON Schema here for AI SDK compatibility
 
@@ -584,6 +592,187 @@ const handleChartStyle = Effect.gen(function* () {
 });
 
 // -----------------------------------------------------------------------------
+// MorphCard Agent Handlers
+// -----------------------------------------------------------------------------
+
+/**
+ * Durable stream base URL for patch persistence.
+ * This would connect to your actual durable stream service.
+ */
+const DURABLE_STREAM_BASE = 'http://localhost:3000/v1/stream';
+
+/**
+ * Helper to emit a patch to the durable stream.
+ * In production, this would POST to the durable stream service.
+ */
+async function emitPatchToDurableStream(
+  userId: string,
+  cardId: string,
+  patches: JsonPatch[],
+  source: 'fix-agent' | 'evolution-agent',
+  description?: string
+): Promise<{ success: boolean; seq?: number }> {
+  try {
+    const morphPatch: MorphPatch = {
+      _tag: 'MorphPatch',
+      cardId,
+      patches,
+      metadata: {
+        source,
+        description,
+        createdAt: Date.now(),
+      },
+    };
+
+    const response = await fetch(`${DURABLE_STREAM_BASE}/${userId}/${cardId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(morphPatch),
+    });
+
+    if (!response.ok) {
+      console.warn(`[morph-agent] Durable stream POST failed: ${response.status}`);
+      return { success: false };
+    }
+
+    const result = await response.json();
+    return { success: true, seq: result.seq };
+  } catch (e) {
+    // Durable stream not available - patches still returned to client
+    console.warn('[morph-agent] Durable stream unavailable:', e);
+    return { success: true }; // Consider success for client-side application
+  }
+}
+
+/**
+ * Handle fix agent requests.
+ * Streams tool calls and results as SSE, with final patch emitted to durable stream.
+ */
+const handleFixAgent = Effect.gen(function* () {
+  const request = yield* HttpServerRequest.HttpServerRequest;
+  const body = yield* request.json;
+
+  // Validate request using Effect Schema
+  const decoded = yield* Schema.decodeUnknown(FixAgentRequest)(body).pipe(
+    Effect.mapError((e) => new Error(`Invalid request: ${String(e)}`))
+  );
+
+  yield* Effect.log(
+    `[morph-agent/fix] Card: ${decoded.cardId}, Error: ${decoded.errorMessage.slice(0, 50)}...`
+  );
+
+  // Default userId for durable stream (would come from auth in production)
+  const userId = 'default-user';
+
+  // Create emit callback for the agent
+  const emitPatch = async (patches: JsonPatch[], description?: string) => {
+    return emitPatchToDurableStream(userId, decoded.cardId, patches, 'fix-agent', description);
+  };
+
+  // Create SSE stream from agent generator
+  const generator = streamFixAgent(decoded, emitPatch);
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const event of generator) {
+          // Format as SSE
+          const data = JSON.stringify(event);
+          controller.enqueue(new TextEncoder().encode(`data: ${data}\n\n`));
+        }
+        controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+        controller.close();
+      } catch (e) {
+        controller.error(e);
+      }
+    },
+  });
+
+  const response = new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'X-Accel-Buffering': 'no',
+    },
+  });
+
+  return HttpServerResponse.raw(response);
+});
+
+/**
+ * Handle evolution agent requests.
+ * Streams tool calls and results as SSE, with final patches emitted to durable stream.
+ */
+const handleEvolutionAgent = Effect.gen(function* () {
+  const request = yield* HttpServerRequest.HttpServerRequest;
+  const body = yield* request.json;
+
+  // Validate request using Effect Schema
+  const decoded = yield* Schema.decodeUnknown(EvolutionAgentRequest)(body).pipe(
+    Effect.mapError((e) => new Error(`Invalid request: ${String(e)}`))
+  );
+
+  yield* Effect.log(
+    `[morph-agent/evolve] Card: ${decoded.cardId}, User: ${decoded.userId}, Message: ${decoded.userMessage.slice(0, 50)}...`
+  );
+
+  // Create emit callback for the agent
+  const emitPatch = async (patches: JsonPatch[], description: string) => {
+    return emitPatchToDurableStream(decoded.userId, decoded.cardId, patches, 'evolution-agent', description);
+  };
+
+  // Stub regenerateSubtree - would call /ui-generate in production
+  const regenerateSubtree = async (prompt: string) => {
+    // In production, this would POST to /ui-generate and collect the result
+    // For now, return a simple placeholder
+    console.log(`[morph-agent/evolve] Regenerate subtree requested: ${prompt.slice(0, 50)}...`);
+    return {
+      root: 'placeholder',
+      elements: {
+        placeholder: {
+          key: 'placeholder',
+          type: 'Text',
+          props: { text: 'Regenerated content placeholder' },
+        },
+      },
+    };
+  };
+
+  // Create SSE stream from agent generator
+  const generator = streamEvolutionAgent(decoded, emitPatch, regenerateSubtree);
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const event of generator) {
+          // Format as SSE
+          const data = JSON.stringify(event);
+          controller.enqueue(new TextEncoder().encode(`data: ${data}\n\n`));
+        }
+        controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+        controller.close();
+      } catch (e) {
+        controller.error(e);
+      }
+    },
+  });
+
+  const response = new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'X-Accel-Buffering': 'no',
+    },
+  });
+
+  return HttpServerResponse.raw(response);
+});
+
+// -----------------------------------------------------------------------------
 // CORS Helper
 // -----------------------------------------------------------------------------
 
@@ -679,6 +868,56 @@ const router = HttpRouter.empty.pipe(
       Effect.catchAll((error) =>
         Effect.gen(function* () {
           yield* Effect.logError('[chart-style] Error:', error);
+          return withCors(
+            HttpServerResponse.unsafeJson(
+              { error: String(error) },
+              { status: 500 }
+            )
+          );
+        })
+      )
+    )
+  ),
+
+  // CORS preflight for morph-agent/fix
+  HttpRouter.options(
+    '/morph-agent/fix',
+    Effect.succeed(withCors(HttpServerResponse.empty()))
+  ),
+
+  // MorphCard Fix Agent endpoint - Auto-fix decode errors
+  HttpRouter.post(
+    '/morph-agent/fix',
+    handleFixAgent.pipe(
+      Effect.tap(() => Effect.log('[morph-agent/fix] Request processed')),
+      Effect.catchAll((error) =>
+        Effect.gen(function* () {
+          yield* Effect.logError('[morph-agent/fix] Error:', error);
+          return withCors(
+            HttpServerResponse.unsafeJson(
+              { error: String(error) },
+              { status: 500 }
+            )
+          );
+        })
+      )
+    )
+  ),
+
+  // CORS preflight for morph-agent/evolve
+  HttpRouter.options(
+    '/morph-agent/evolve',
+    Effect.succeed(withCors(HttpServerResponse.empty()))
+  ),
+
+  // MorphCard Evolution Agent endpoint - User-driven UI modification
+  HttpRouter.post(
+    '/morph-agent/evolve',
+    handleEvolutionAgent.pipe(
+      Effect.tap(() => Effect.log('[morph-agent/evolve] Request processed')),
+      Effect.catchAll((error) =>
+        Effect.gen(function* () {
+          yield* Effect.logError('[morph-agent/evolve] Error:', error);
           return withCors(
             HttpServerResponse.unsafeJson(
               { error: String(error) },
