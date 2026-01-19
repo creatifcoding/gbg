@@ -6,29 +6,39 @@
  *
  * ## Architecture
  *
- * ```
- * chartStyleFamily(chartId) → ChartStyleState atom
- *       ↓ (derived)
- * chartResolvedThemeFamily(chartId) → G2ThemeConfig
- *       ↓ (consumed by)
- * <ChartRenderer theme={resolvedTheme} />
- * ```
+ * The agent is the PRIMARY style generator:
+ * - streamChartStyleAgent: LLM outputs JSONL patches directly
+ * - Effect Schema validates each patch as it arrives
+ * - Registry integration for reactive UI updates
+ *
+ * The service provides LOCAL fallback (no LLM required):
+ * - ChartStyler: Orchestrates palette/typography/animation services
+ * - Use when offline or for deterministic styling
  *
  * ## Usage
  *
  * ```typescript
- * import { getChartStyleAtoms, makeChartStyleId } from '@/lib/charts/styler'
+ * // Agent (recommended - actual LLM streaming)
+ * import { streamChartStyleAgent } from '@/lib/charts/styler'
  *
- * // Get atoms for a chart
- * const chartId = makeChartStyleId('my-chart')
- * const atoms = getChartStyleAtoms(chartId)
+ * for await (const patch of streamChartStyleAgent({
+ *   chartId: 'my-chart',
+ *   prompt: 'Style with cyberpunk theme',
+ *   chartType: 'Line',
+ *   intent: 'cyberpunk'
+ * })) {
+ *   console.log(patch.type, patch.confidence, patch.palette);
+ * }
  *
- * // Read/write via registry
- * const style = registry.get(atoms.style)
- * registry.set(atoms.style, { ...style, intent: 'cyberpunk' })
+ * // Fallback (local generation)
+ * import { ChartStyler, ChartStylerLive } from '@/lib/charts/styler'
  *
- * // Use resolved theme in React
- * const theme = useAtomValue(atoms.resolvedTheme)
+ * const style = await Effect.runPromise(
+ *   Effect.gen(function* () {
+ *     const styler = yield* ChartStyler;
+ *     return yield* styler.generateStyle({ chartType: 'Line', intent: 'minimal' });
+ *   }).pipe(Effect.provide(ChartStylerLive))
+ * );
  * ```
  *
  * @module charts/styler
@@ -98,7 +108,7 @@ export type { ChartStyleAtoms } from './atoms';
 
 export {
   StylerInputError,
-  StylerLLMError,
+  StylerLLMError as ServiceStylerLLMError,
   NoStyleMatchError,
   PaletteGenerationError,
   AnimationConfigError,
@@ -106,7 +116,36 @@ export {
 } from './errors';
 
 // =============================================================================
-// Layer 1: Primitive Services
+// Agent (PRIMARY - LLM streaming)
+// =============================================================================
+
+export {
+  // Core streaming
+  streamChartStyleAgent,
+  streamChartStyleAgentEffect,
+  generateChartStyleViaAgent,
+  // Registry integration
+  streamStyleAgentToRegistry,
+  runStyleAgentToRegistry,
+  // Callback interface
+  streamStyleAgentWithCallbacks,
+  // AI SDK tool
+  createChartStylerAgentTool,
+  // Schemas
+  AgentStylePatchSchema,
+  ChartStylerAgentInputSchema,
+  // Error types
+  StylerLLMError,
+  InvalidPatchError,
+  // Types
+  type AgentStylePatch,
+  type ChartStylerAgentInput,
+  type ChartStylerAgentError,
+  type StreamStyleAgentOptions,
+} from './agent';
+
+// =============================================================================
+// Primitive Services (for local generation)
 // =============================================================================
 
 export {
@@ -135,7 +174,7 @@ export {
 } from './services/animation';
 
 // =============================================================================
-// Layer 3: Orchestrator Service
+// Orchestrator Service (LOCAL fallback - no LLM)
 // =============================================================================
 
 export {
@@ -152,42 +191,3 @@ export type {
   StylerOutput as ChartStylerOutput,
   StylerInput as ChartStylerInput,
 } from './service';
-
-// =============================================================================
-// AI Tool
-// =============================================================================
-
-export {
-  // One-shot tool
-  createChartStylerTool,
-  // Streaming tool
-  createChartStylerStreamingTool,
-  // Standalone async generator
-  streamChartStyle,
-  // Types
-  type ChartStylerTool,
-  type ChartStylerStreamingTool,
-  type ChartStylerToolSuccess,
-  type ChartStylerToolError,
-  type ChartStylerToolOutput,
-  type ChartStylerStreamPatch,
-  type StreamingStatus,
-} from './ai-tool';
-
-// =============================================================================
-// Streaming
-// =============================================================================
-
-export {
-  // Stream creation
-  createStyleStream,
-  // Registry integration
-  streamStyleToRegistry,
-  runStyleStream,
-  // Callback interface
-  streamStyleWithCallbacks,
-  // Types
-  type StyleStreamPatch,
-  type StyleStreamEvent,
-  type StreamStyleOptions,
-} from './streaming';

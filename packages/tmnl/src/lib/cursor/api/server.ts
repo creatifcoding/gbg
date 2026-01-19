@@ -14,6 +14,7 @@
 
 import { Effect, Layer, Schema } from 'effect';
 import { getSystemPrompt as getCatalogPrompt } from '@/lib/json-render/server/registry';
+import { buildCatalogPrompt, type ComponentDoc } from '@/lib/json-render/server/catalogs';
 import * as HttpServer from '@effect/platform/HttpServer';
 import * as HttpRouter from '@effect/platform/HttpRouter';
 import * as HttpServerRequest from '@effect/platform/HttpServerRequest';
@@ -21,6 +22,10 @@ import * as HttpServerResponse from '@effect/platform/HttpServerResponse';
 import { BunHttpServer, BunContext } from '@effect/platform-bun';
 import { streamText } from 'ai';
 import { claudeCode } from 'ai-sdk-provider-claude-code';
+import {
+  streamChartStyleAgent,
+  ChartStylerAgentInputSchema,
+} from '@/lib/charts/styler/agent';
 // Note: UITree, UIElement, JsonPatch are defined in @/lib/json-render/core/schemas
 // We use inline JSON Schema here for AI SDK compatibility
 
@@ -231,10 +236,17 @@ const handleChat = Effect.gen(function* () {
 /**
  * Build the UI generation system prompt.
  * Combines static format instructions with dynamic component documentation from catalog.
+ *
+ * @param additionalComponents - Optional dynamic component docs from request
  */
-const buildUIGenerationPrompt = (): string => {
+const buildUIGenerationPrompt = (additionalComponents?: ComponentDoc[]): string => {
   // Get component documentation from catalog (dynamic)
   const catalogComponentDocs = getCatalogPrompt()
+
+  // Build additional component docs if provided
+  const additionalDocs = additionalComponents && additionalComponents.length > 0
+    ? buildCatalogPrompt(additionalComponents)
+    : ''
 
   return `You are a UI generator that outputs JSONL (JSON Lines) patches for progressive UI rendering.
 
@@ -283,6 +295,103 @@ Advanced:
 - Editor: { label?: string, userName?: string, docId?: string, enableLocalFiles?: boolean } - Collaborative rich text editor. Self-contained, no children.
 - GenerativeContainer: { prompt: string, context?: object, maxDepth?: number, fallbackText?: string } - AI-generated UI section. No children (generates its own). Max 3 depth.
 
+Interactive Panels:
+- FoldablePanel: { panelId: string, tag?: 'map'|'3d'|'data-grid'|'chart'|'embed'|'media'|'custom', label?: string, expandedHeight?: number, collapsedHeight?: number, initialFoldState?: 'expanded'|'collapsed' } - Collapsible wrapper for interactive content. Has children. Click anywhere on header to collapse.
+
+CHART PANEL OPTIONS (panelType prop - CRITICAL):
+
+Charts support 3 wrapper modes via panelType:
+- panelType: "none" (DEFAULT) - No wrapper, bare chart for embedding in grids/cards
+- panelType: "foldable" - Simple collapsible FoldablePanel
+- panelType: "interactive" - Full InteractiveChartPanel with tabbed settings (Style, Data, Axes tabs)
+
+DECISION TREE:
+1. Chart in dashboard grid? → panelType: "none"
+2. Chart in card/container? → panelType: "none"
+3. Standalone, needs collapse? → panelType: "foldable"
+4. Needs settings UI? → panelType: "interactive"
+
+Configuration props:
+- chartId: string (REQUIRED for styling/state)
+- panelLabel: string - Header title
+- panelTag: 'chart'|'map'|'3d'|'data-grid' (foldable badge)
+- category: ChartCategory (interactive panel tab filtering)
+- availableTabs: string[] (override tabs for interactive)
+- initialTab: string (default: 'style')
+- expandedHeight: number (default 320)
+
+Example - Bare chart (default, for grids):
+{"op":"add","path":"/elements/myChart","value":{"key":"myChart","type":"Line","props":{"chartId":"sales-chart","data":[...],"xField":"date","yField":"value"}}}
+
+Example - Interactive panel with settings tabs:
+{"op":"add","path":"/elements/myChart","value":{"key":"myChart","type":"Line","props":{"chartId":"sales-chart","panelType":"interactive","panelLabel":"Revenue Trends","data":[...],"xField":"date","yField":"value"}}}
+
+Example - Simple foldable wrapper:
+{"op":"add","path":"/elements/myChart","value":{"key":"myChart","type":"Line","props":{"chartId":"sales-chart","panelType":"foldable","panelTag":"chart","panelLabel":"Revenue","data":[...],"xField":"date","yField":"value"}}}
+
+LAYOUT & RESPONSIVENESS (CRITICAL):
+
+1. ALWAYS wrap root content in a layout container:
+   - VStack: { gap?: number, className?: string } - Vertical stack (default)
+   - HStack: { gap?: number, className?: string } - Horizontal row
+   - Grid: { columns?: number, gap?: number } - CSS Grid layout
+
+2. RESPONSIVE PATTERNS:
+   - Use className for Tailwind responsive utilities
+   - Mobile-first: "flex flex-col md:flex-row" (stack on mobile, row on desktop)
+   - Grid breakpoints: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+
+3. ROOT ELEMENT MUST BE A LAYOUT:
+   ✗ BAD: Root is a Card (no layout context)
+   ✓ GOOD: Root is VStack containing Cards
+
+4. EXAMPLE - Responsive dashboard:
+   {"op":"set","path":"/root","value":"layout"}
+   {"op":"add","path":"/elements/layout","value":{"key":"layout","type":"VStack","props":{"gap":16,"className":"w-full p-4"},"children":["header","content"]}}
+   {"op":"add","path":"/elements/header","value":{"key":"header","type":"Heading","props":{"text":"Dashboard","level":1}}}
+   {"op":"add","path":"/elements/content","value":{"key":"content","type":"Grid","props":{"columns":2,"gap":16,"className":"grid-cols-1 md:grid-cols-2"},"children":["chart1","chart2"]}}
+
+DOMAIN DECOMPOSITION RULES (CRITICAL - follow for interactives):
+
+1. INTERACTIVE CONTENT DETECTION:
+   When user request involves ANY of these, you MUST wrap in FoldablePanel:
+   - Charts/visualizations (Line, Bar, Pie, Scatter, etc.) → tag: 'chart'
+   - Maps/geospatial (MapView, GlobeView) → tag: 'map'
+   - 3D content (Scene3D, ModelViewer) → tag: '3d'
+   - Data tables/grids (DataGrid, AG-Grid) → tag: 'data-grid'
+   - Embedded content (iframes, embeds) → tag: 'embed'
+   - Media players (video, audio) → tag: 'media'
+   - Custom interactives → tag: 'custom'
+
+2. TAG COLORS (for visual domain clarity):
+   - 'map' → cyan (geospatial domain)
+   - '3d' → purple (spatial domain)
+   - 'data-grid' → orange (tabular domain)
+   - 'chart' → emerald (analytical domain)
+   - 'embed' → blue (external content)
+   - 'media' → rose (rich media)
+   - 'custom' → slate (generic)
+
+3. FOLDABLEPANEL WRAPPING PATTERN:
+   ✗ BAD: Generate a chart directly without wrapper
+   ✓ GOOD: Wrap chart in FoldablePanel with appropriate tag
+
+   Example for chart:
+   {"op":"add","path":"/elements/chartPanel","value":{"key":"chartPanel","type":"FoldablePanel","props":{"panelId":"sales-chart","tag":"chart","label":"Sales Overview"},"children":["salesChart"]}}
+   {"op":"add","path":"/elements/salesChart","value":{"key":"salesChart","type":"Line","props":{"xField":"date","yField":"value"}}}
+
+4. MULTI-DOMAIN DECOMPOSITION:
+   When request spans domains (e.g., "dashboard with map, chart, and data table"):
+   - Create separate FoldablePanel for each domain
+   - Use appropriate tag for each panel
+   - Organize in layout (HStack, VStack, Grid)
+
+5. WHEN NOT TO USE FoldablePanel:
+   - Static text/content (Text, Heading, Card)
+   - Simple forms (Input, Button, Switch)
+   - Layout containers (HStack, VStack, Grid)
+   - The component is NOT interactive/visual
+
 GENERATIVECONTAINER RULES (CRITICAL - follow exactly):
 
 1. DECOMPOSITION: When user requests multi-section UI, decompose into GenerativeContainers:
@@ -329,6 +438,8 @@ EXAMPLE OUTPUT (Card with title and button):
 {"op":"add","path":"/elements/content","value":{"key":"content","type":"CardContent","props":{},"children":["btn"]}}
 {"op":"add","path":"/elements/btn","value":{"key":"btn","type":"Button","props":{"label":"Click me","variant":"default"}}}
 
+${additionalDocs}
+
 Now generate JSONL patches for the user's request:`
 }
 
@@ -336,9 +447,26 @@ Now generate JSONL patches for the user's request:`
 // UI Generation Request Schema
 // -----------------------------------------------------------------------------
 
+/**
+ * Schema for dynamic component documentation.
+ * Allows clients to inject additional component knowledge at request time.
+ */
+const ComponentDocSchema = Schema.Struct({
+  /** Component name as used in type field */
+  name: Schema.String,
+  /** Human-readable description */
+  description: Schema.String,
+  /** Props documentation (can be multi-line) */
+  props: Schema.optional(Schema.String),
+  /** Whether component has children */
+  hasChildren: Schema.optional(Schema.Boolean),
+});
+
 const UIGenerateRequestSchema = Schema.Struct({
   prompt: Schema.String,
   currentTree: Schema.optional(Schema.Unknown),
+  /** Dynamic component documentation to inject into the prompt */
+  components: Schema.optional(Schema.Array(ComponentDocSchema)),
 });
 
 // -----------------------------------------------------------------------------
@@ -355,6 +483,9 @@ const handleUIGenerate = Effect.gen(function* () {
   );
 
   yield* Effect.log(`[ui-generate] Prompt: "${decoded.prompt.slice(0, 100)}..."`);
+  if (decoded.components?.length) {
+    yield* Effect.log(`[ui-generate] Dynamic components: ${decoded.components.map(c => c.name).join(', ')}`);
+  }
 
   // Build context for the AI
   const contextMessage = decoded.currentTree
@@ -366,7 +497,7 @@ const handleUIGenerate = Effect.gen(function* () {
   // Client-side validates each line with Effect Schema (decodeJsonPatchSync)
   const result = streamText({
     model: claudeCode('sonnet', { cwd: PROJECT_ROOT }),
-    system: buildUIGenerationPrompt(),
+    system: buildUIGenerationPrompt(decoded.components as ComponentDoc[] | undefined),
     prompt: contextMessage ? `${contextMessage}\n\n${decoded.prompt}` : decoded.prompt,
   });
 
@@ -374,6 +505,71 @@ const handleUIGenerate = Effect.gen(function* () {
   // NOT toTextStreamResponse() which wraps in SSE format (data: ...)
   // Client parses complete JSONL lines and validates with Effect Schema
   const response = new Response(result.textStream, {
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Transfer-Encoding': 'chunked',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'X-Accel-Buffering': 'no',
+    },
+  });
+
+  return HttpServerResponse.raw(response);
+});
+
+// -----------------------------------------------------------------------------
+// Chart Style Handler - JSONL streaming from LLM agent
+// -----------------------------------------------------------------------------
+
+/**
+ * Handle chart style requests.
+ * Uses streamChartStyleAgent to stream JSONL patches directly from LLM.
+ * Follows the same archetype as /ui-generate.
+ */
+const handleChartStyle = Effect.gen(function* () {
+  const request = yield* HttpServerRequest.HttpServerRequest;
+  const body = yield* request.json;
+
+  // Validate request using Effect Schema
+  const decoded = yield* Schema.decodeUnknown(ChartStylerAgentInputSchema)(body).pipe(
+    Effect.mapError((e) => new Error(`Invalid request: ${String(e)}`))
+  );
+
+  yield* Effect.log(
+    `[chart-style] Chart: ${decoded.chartId}, Type: ${decoded.chartType}, Intent: ${decoded.intent ?? 'auto'}`
+  );
+
+  // Create a ReadableStream from the async generator
+  const generator = streamChartStyleAgent({
+    chartId: decoded.chartId,
+    prompt: decoded.prompt,
+    chartType: decoded.chartType,
+    intent: decoded.intent,
+    dataContext: decoded.dataContext ? {
+      fields: decoded.dataContext.fields,
+      shape: decoded.dataContext.shape,
+      rowCount: decoded.dataContext.rowCount,
+    } : undefined,
+  });
+
+  // Convert async generator to ReadableStream (JSONL output)
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const patch of generator) {
+          // Each patch is a complete JSON object, output as JSONL
+          controller.enqueue(new TextEncoder().encode(JSON.stringify(patch) + '\n'));
+        }
+        controller.close();
+      } catch (e) {
+        controller.error(e);
+      }
+    },
+  });
+
+  // Return raw text stream (same pattern as /ui-generate)
+  const response = new Response(stream, {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
       'Transfer-Encoding': 'chunked',
@@ -467,6 +663,31 @@ const router = HttpRouter.empty.pipe(
         })
       )
     )
+  ),
+
+  // CORS preflight for chart-style
+  HttpRouter.options(
+    '/chart-style',
+    Effect.succeed(withCors(HttpServerResponse.empty()))
+  ),
+
+  // Chart Style endpoint - JSONL patches from LLM styler agent
+  HttpRouter.post(
+    '/chart-style',
+    handleChartStyle.pipe(
+      Effect.tap(() => Effect.log('[chart-style] Request processed')),
+      Effect.catchAll((error) =>
+        Effect.gen(function* () {
+          yield* Effect.logError('[chart-style] Error:', error);
+          return withCors(
+            HttpServerResponse.unsafeJson(
+              { error: String(error) },
+              { status: 500 }
+            )
+          );
+        })
+      )
+    )
   )
 );
 
@@ -498,6 +719,7 @@ export const runCursorChatServer = Effect.gen(function* () {
   yield* Effect.log('  GET  /health       - Health check');
   yield* Effect.log('  POST /chat         - Chat endpoint (SSE stream)');
   yield* Effect.log('  POST /ui-generate  - UI generation (NDJSON patches)');
+  yield* Effect.log('  POST /chart-style  - Chart styling agent (JSONL patches)');
   yield* Effect.log('');
   yield* Effect.log('Note: Claude Code CLI must be authenticated (`claude login`)');
 });

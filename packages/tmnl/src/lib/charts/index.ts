@@ -40,6 +40,15 @@
 // Schemas
 export * from './schemas';
 
+// Themes
+export * from './themes';
+
+// Styler (per-chart style atoms)
+export * from './styler';
+
+// Hooks
+export * from './hooks';
+
 // Registry
 export {
   CHART_DEFINITIONS,
@@ -59,7 +68,60 @@ export {
   chartDomainCatalog,
   getChartRecommendations,
   generateChartSelectionPrompt,
+  type ChartPanelType,
 } from './registry';
+
+// Interactive Panel
+export {
+  // Main compound component
+  InteractiveChartPanel,
+  type InteractiveChartPanelProps,
+  // Sub-components
+  Header as PanelHeader,
+  TabBar as PanelTabBar,
+  Content as PanelContent,
+  SettingsPanel,
+  type HeaderProps as PanelHeaderProps,
+  type TabBarProps as PanelTabBarProps,
+  type ContentProps as PanelContentProps,
+  type SettingsPanelProps,
+  // Schemas
+  TabId,
+  ALL_TAB_IDS,
+  TAB_META,
+  TABS_BY_CATEGORY,
+  getTabsForCategory,
+  isTabAvailable,
+  getDefaultTab,
+  PanelId,
+  asPanelId,
+  FoldState,
+  PanelState,
+  DEFAULT_PANEL_STATE,
+  type TabsForCategory,
+  type PanelStatePatch,
+  // Atoms
+  createPanelAtoms,
+  getPanelAtoms,
+  disposePanelAtoms,
+  usePanelActions,
+  usePanelState,
+  type PanelAtoms,
+  type PanelActions,
+  // Context
+  PanelProvider,
+  usePanelContext,
+  usePanelAtoms,
+  useChartId,
+  useChartCategory,
+  useAvailableTabs,
+  type PanelProviderProps,
+  type PanelContextValue,
+  // Hooks
+  useChartPorts,
+  useChartHasConnections,
+  type ChartPortsState,
+} from './interactive-panel';
 
 // Components
 export { ChartRenderer, type ChartRendererProps } from './components';
