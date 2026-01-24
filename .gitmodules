@@ -130,3 +130,9 @@
 [submodule "submodules/opentui"]
 	path = submodules/opentui
 	url = https://github.com/anomalyco/opentui.git
+[submodule "submodules/legend-state"]
+	path = submodules/legend-state
+	url = https://github.com/LegendApp/legend-state
+[submodule "submodules/nex"]
+	path = submodules/nex
+	url = https://github.com/synadia-io/nex
