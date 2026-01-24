@@ -14,6 +14,7 @@
 
 import { describe, it, expect, beforeAll } from 'vitest'
 import { Effect, Stream, Chunk } from 'effect'
+import { PgClient } from '@effect/sql-pg'
 import { TimeSeriesClient } from '../../services/l1/TimeSeriesClient'
 import type { DeviceId } from '../../schemas/identifiers'
 import {
@@ -288,6 +289,7 @@ describe('TimeSeriesClient Integration Tests', () => {
       const program = withCleanDatabase(
         Effect.gen(function* () {
           const client = yield* TimeSeriesClient
+          const sql = yield* PgClient.PgClient
           const now = Date.now()
 
           // Insert enough readings to have aggregation data
@@ -298,6 +300,11 @@ describe('TimeSeriesClient Integration Tests', () => {
           }))
 
           yield* client.insertReadings(readings)
+
+          // Manually refresh the continuous aggregate (not refreshed immediately)
+          yield* sql.unsafe(
+            `CALL refresh_continuous_aggregate('iiot.readings_1min', NULL, NULL)`
+          )
 
           // Query aggregated (1min bucket)
           const aggregated = yield* client

@@ -15,6 +15,19 @@ import { TimeSeriesClient } from '../../services/l1/TimeSeriesClient'
 import { GraphClient } from '../../services/l1/GraphClient'
 
 // =============================================================================
+// Column Name Transformation
+// =============================================================================
+
+/**
+ * Transform snake_case/lowercase column names to camelCase
+ *
+ * Must match the transform in IIoTPgClient.ts for consistent behavior.
+ * PostgreSQL lowercases unquoted identifiers in RETURN AS clauses.
+ */
+const transformResultNames = (columnName: string): string =>
+  columnName.replace(/_([a-z])/g, (_, char) => char.toUpperCase())
+
+// =============================================================================
 // Test Database Configuration
 // =============================================================================
 
@@ -23,6 +36,8 @@ import { GraphClient } from '../../services/l1/GraphClient'
  *
  * Uses hardcoded values matching docker-compose.iiot.yml
  * so tests don't depend on environment variables.
+ *
+ * Includes transformResultNames for consistent column name handling.
  */
 export const TestPgClient = PgClient.layer({
   host: 'localhost',
@@ -31,6 +46,7 @@ export const TestPgClient = PgClient.layer({
   username: 'iiot',
   password: Redacted.make('iiot_dev'),
   maxConnections: 5,
+  transformResultNames,
 })
 
 // =============================================================================

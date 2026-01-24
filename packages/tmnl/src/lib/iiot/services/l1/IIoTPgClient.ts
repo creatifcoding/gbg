@@ -16,6 +16,23 @@ import { Effect, Config, Redacted } from 'effect'
 import { PgClient } from '@effect/sql-pg'
 
 // =============================================================================
+// Column Name Transformation
+// =============================================================================
+
+/**
+ * Transform snake_case/lowercase column names to camelCase
+ *
+ * PostgreSQL lowercases all unquoted identifiers. When using Apache AGE Cypher:
+ *   RETURN s.device_id AS deviceId  →  returns 'deviceid' (lowercase)
+ *
+ * This transform normalizes all result columns to camelCase.
+ *
+ * @see https://deepwiki.com/Effect-TS/effect/6.2-database-adapters-and-drivers
+ */
+const transformResultNames = (columnName: string): string =>
+  columnName.replace(/_([a-z])/g, (_, char) => char.toUpperCase())
+
+// =============================================================================
 // Configuration
 // =============================================================================
 
@@ -29,6 +46,8 @@ import { PgClient } from '@effect/sql-pg'
  * - IIOT_POSTGRES_USER (default: iiot)
  * - IIOT_POSTGRES_PASSWORD (default: iiot_dev)
  * - IIOT_POSTGRES_POOL_SIZE (default: 10)
+ *
+ * Column naming: Uses transformResultNames to convert snake_case → camelCase
  */
 export const IIoTPgClientLive = PgClient.layerConfig({
   host: Config.string('IIOT_POSTGRES_HOST').pipe(Config.withDefault('localhost')),
@@ -39,6 +58,7 @@ export const IIoTPgClientLive = PgClient.layerConfig({
     Config.withDefault(Redacted.make('iiot_dev'))
   ),
   maxConnections: Config.number('IIOT_POSTGRES_POOL_SIZE').pipe(Config.withDefault(10)),
+  transformResultNames: Config.succeed(transformResultNames),
 })
 
 /**
@@ -59,6 +79,7 @@ export const makeIIoTPgClient = (config: {
     username: config.username ?? 'iiot',
     password: Redacted.make(config.password ?? 'iiot_dev'),
     maxConnections: config.maxConnections ?? 10,
+    transformResultNames,
   })
 
 // =============================================================================

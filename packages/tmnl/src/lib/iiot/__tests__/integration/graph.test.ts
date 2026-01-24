@@ -341,10 +341,11 @@ describe('GraphClient Integration Tests', () => {
         yield* client.linkAlarmToSensor('TEST-ALM-002', MOCK_SENSOR_ID)
 
         // Verify relationship
+        // Note: Use snake_case aliases so transformResultNames converts to camelCase
         const result = yield* client.executeCypher(
           `MATCH (a:alarm {id: 'TEST-ALM-002'})-[:triggered_by]->(s:sensor {device_id: '${MOCK_SENSOR_ID}'})
-           RETURN a.id AS alarmId, s.device_id AS sensorId`,
-          '(alarmId agtype, sensorId agtype)'
+           RETURN a.id AS alarm_id, s.device_id AS sensor_id`,
+          '(alarm_id agtype, sensor_id agtype)'
         )
 
         expect(result.rows.length).toBe(1)

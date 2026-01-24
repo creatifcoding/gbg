@@ -137,10 +137,11 @@ describe('Hybrid Query Integration Tests', () => {
         yield* sql.unsafe(`SET search_path = ag_catalog, iiot, public`)
 
         // Hybrid query: Get sensors from graph, join with time series
+        // Note: transformResultNames converts snake_case → camelCase
         const result = yield* sql.unsafe<{
-          device_id: string
-          sensor_type: string
-          reading_count: string // bigint comes as string
+          deviceId: string
+          sensorType: string
+          readingCount: string // bigint comes as string
         }>(`
           WITH machine_sensors AS (
             SELECT
@@ -163,9 +164,9 @@ describe('Hybrid Query Integration Tests', () => {
 
         expect(Array.isArray(result)).toBe(true)
         if (result.length > 0) {
-          expect(result[0]).toHaveProperty('device_id')
-          expect(result[0]).toHaveProperty('sensor_type')
-          expect(result[0]).toHaveProperty('reading_count')
+          expect(result[0]).toHaveProperty('deviceId')
+          expect(result[0]).toHaveProperty('sensorType')
+          expect(result[0]).toHaveProperty('readingCount')
         }
       }).pipe(Effect.provide(IIoTIntegrationLayer))
 
@@ -208,18 +209,20 @@ describe('Hybrid Query Integration Tests', () => {
           // 3. Set search path and run hybrid query
           yield* sql.unsafe(`SET search_path = ag_catalog, iiot, public`)
 
+          // Note: transformResultNames converts snake_case → camelCase
+          // Note: agtype cannot be cast directly to timestamp, must go through text first
           const result = yield* sql.unsafe<{
-            alarm_id: string
-            sensor_id: string
-            reading_time: Date
-            reading_value: number
-            offset_seconds: number
+            alarmId: string
+            sensorId: string
+            readingTime: Date
+            readingValue: number
+            offsetSeconds: number
           }>(`
             WITH alarm_info AS (
               SELECT
                 alarm_id::text AS alarm_id,
                 sensor_id::text AS sensor_id,
-                alarm_time::timestamp AS alarm_time
+                alarm_time::text::timestamptz AS alarm_time
               FROM cypher('iiot_graph', $$
                 MATCH (a:alarm {id: '${testAlarmId}'})-[:triggered_by]->(s:sensor)
                 RETURN a.id AS alarm_id, s.device_id AS sensor_id, a.timestamp AS alarm_time
@@ -230,17 +233,17 @@ describe('Hybrid Query Integration Tests', () => {
               ai.sensor_id,
               sr.time AS reading_time,
               sr.value AS reading_value,
-              EXTRACT(EPOCH FROM (sr.time - ai.alarm_time::timestamptz))::integer AS offset_seconds
+              EXTRACT(EPOCH FROM (sr.time - ai.alarm_time))::integer AS offset_seconds
             FROM alarm_info ai
             JOIN iiot.sensor_readings sr ON sr.device_id = ai.sensor_id
-            WHERE sr.time BETWEEN ai.alarm_time::timestamptz - INTERVAL '10 minutes'
-                              AND ai.alarm_time::timestamptz + INTERVAL '10 minutes'
+            WHERE sr.time BETWEEN ai.alarm_time - INTERVAL '10 minutes'
+                              AND ai.alarm_time + INTERVAL '10 minutes'
             ORDER BY sr.time
           `)
 
           expect(result.length).toBeGreaterThan(0)
-          expect(result[0].alarm_id).toBe(testAlarmId)
-          expect(result[0].sensor_id).toBe('TMP-001')
+          expect(result[0].alarmId).toBe(testAlarmId)
+          expect(result[0].sensorId).toBe('TMP-001')
 
           // 4. Cleanup test alarm
           yield* graphClient.executeCypher(
@@ -281,10 +284,11 @@ describe('Hybrid Query Integration Tests', () => {
             if (sensorIds.length === 0) continue
 
             // Get reading statistics for this machine's sensors
+            // Note: transformResultNames converts snake_case → camelCase
             const stats = yield* sql<{
-              sensor_count: string
-              total_readings: string
-              avg_value: number | null
+              sensorCount: string
+              totalReadings: string
+              avgValue: number | null
             }>`
               SELECT
                 COUNT(DISTINCT device_id) AS sensor_count,
@@ -295,7 +299,7 @@ describe('Hybrid Query Integration Tests', () => {
             `
 
             expect(stats.length).toBe(1)
-            expect(parseInt(stats[0].sensor_count)).toBeLessThanOrEqual(sensorIds.length)
+            expect(parseInt(stats[0].sensorCount)).toBeLessThanOrEqual(sensorIds.length)
           }
         }
       }).pipe(Effect.provide(IIoTIntegrationLayer))

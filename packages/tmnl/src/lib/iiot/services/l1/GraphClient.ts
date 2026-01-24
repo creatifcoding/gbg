@@ -11,6 +11,46 @@
  * IMPORTANT: AGE is preloaded via shared_preload_libraries in docker config.
  * No LOAD 'age' statement is needed.
  *
+ * ## API Reference
+ *
+ * ### Low-Level Cypher
+ *
+ * | Method | Description |
+ * |--------|-------------|
+ * | `executeCypher()` | Run arbitrary Cypher query, returns raw rows |
+ *
+ * ### Asset Hierarchy (Read)
+ *
+ * | Method | Return Type | Description |
+ * |--------|-------------|-------------|
+ * | `getAllPlants()` | `Stream<Plant>` | All plants in the graph |
+ * | `getPlant()` | `Effect<Plant \| null>` | Single plant by ID |
+ * | `getLinesForPlant()` | `Stream<Line>` | Lines contained by a plant |
+ * | `getMachinesForLine()` | `Stream<Machine>` | Machines on a line |
+ * | `getSensorsForMachine()` | `Stream<Sensor>` | Sensors monitoring a machine |
+ * | `getSensorHierarchy()` | `Effect<SensorHierarchy>` | Full path: sensor → machine → line → plant |
+ * | `getPlantHierarchy()` | `Effect<PlantHierarchy>` | Full tree: plant → lines → machines → sensors |
+ * | `getAllSensors()` | `Stream<{sensor, alarmCount}>` | All sensors with alarm counts |
+ *
+ * ### Alarm Operations
+ *
+ * | Method | Description |
+ * |--------|-------------|
+ * | `createAlarmNode()` | Create alarm node with id, type, severity, message, timestamp |
+ * | `linkAlarmToSensor()` | Create `(alarm)-[:triggered_by]->(sensor)` edge |
+ *
+ * ### Diagnostics
+ *
+ * | Method | Description |
+ * |--------|-------------|
+ * | `healthCheck()` | Verify AGE graph exists and is queryable |
+ *
+ * ## Cypher Conventions
+ *
+ * - Use **snake_case** aliases in RETURN clauses (e.g., `AS device_id`)
+ * - PostgreSQL lowercases all identifiers; `transformResultNames` converts `device_id` → `deviceId`
+ * - Cast `agtype` to `text` before casting to other types (e.g., `timestamp::text::timestamptz`)
+ *
  * @see docker/docker-compose.iiot.yml for database setup
  * @see docker/iiot-db/init.sql for graph schema
  * @module
@@ -153,7 +193,7 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
       Stream.fromEffect(
         executeCypher(
           `MATCH (p:plant) RETURN p.id AS id, p.name AS name, p.location AS location`,
-          '(id agtype, name agtype, location agtype)'
+          '(id agtype, name agtype, location agtype)' // snake_case aliases → camelCase via transform
         )
       ).pipe(
         Stream.flatMap((result) =>
@@ -231,8 +271,8 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
       Stream.fromEffect(
         executeCypher(
           `MATCH (m:machine {id: '${escapeCypher(machineId)}'})<-[:monitors]-(s:sensor)
-           RETURN s.device_id AS deviceId, s.type AS type, s.unit AS unit`,
-          '(deviceId agtype, type agtype, unit agtype)'
+           RETURN s.device_id AS device_id, s.type AS type, s.unit AS unit`,
+          '(device_id agtype, type agtype, unit agtype)'
         )
       ).pipe(
         Stream.flatMap((result) =>
@@ -263,9 +303,9 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
         const result = yield* executeCypher(
           `MATCH (s:sensor {device_id: '${escapeCypher(deviceId)}'})-[:monitors]->(m:machine)
                  <-[:contains]-(l:line)<-[:contains]-(p:plant)
-           RETURN s.device_id AS deviceId, m.name AS machineName,
-                  l.name AS lineName, p.name AS plantName`,
-          '(deviceId agtype, machineName agtype, lineName agtype, plantName agtype)'
+           RETURN s.device_id AS device_id, m.name AS machine_name,
+                  l.name AS line_name, p.name AS plant_name`,
+          '(device_id agtype, machine_name agtype, line_name agtype, plant_name agtype)'
         )
 
         if (result.rows.length === 0) {
@@ -277,6 +317,7 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
         }
 
         const row = result.rows[0]
+        // Note: PgClient.transformResultNames converts snake_case → camelCase
         return {
           deviceId: String(row['deviceId']) as DeviceId,
           machineName: String(row['machineName']),
@@ -309,8 +350,8 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
       Stream.fromEffect(
         executeCypher(
           `MATCH (s:sensor)-[:monitors]->(m:machine)
-           RETURN s.device_id AS deviceId, s.type AS type, s.unit AS unit, m.id AS machineId`,
-          '(deviceId agtype, type agtype, unit agtype, machineId agtype)'
+           RETURN s.device_id AS device_id, s.type AS type, s.unit AS unit, m.id AS machine_id`,
+          '(device_id agtype, type agtype, unit agtype, machine_id agtype)'
         )
       ).pipe(
         Stream.flatMap((result) =>
@@ -368,9 +409,9 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
           const result = yield* executeCypher(
             `MATCH (a:alarm)-[:triggered_by]->(s:sensor)-[:monitors]->(m:machine)
              WHERE a.timestamp >= '${sinceStr}'
-             RETURN s.device_id AS deviceId, s.type AS type, s.unit AS unit,
-                    m.id AS machineId, COUNT(a) AS alarmCount`,
-            '(deviceId agtype, type agtype, unit agtype, machineId agtype, alarmCount agtype)'
+             RETURN s.device_id AS device_id, s.type AS type, s.unit AS unit,
+                    m.id AS machine_id, COUNT(a) AS alarm_count`,
+            '(device_id agtype, type agtype, unit agtype, machine_id agtype, alarm_count agtype)'
           )
 
           return result.rows.map((row) => ({
@@ -427,13 +468,14 @@ export class GraphClient extends Effect.Service<GraphClient>()('iiot/GraphClient
         }
 
         // Get full hierarchy in one query
+        // Note: Using snake_case aliases so transformResultNames converts to camelCase
         const hierarchyResult = yield* executeCypher(
           `MATCH (p:plant {id: '${escapeCypher(plantId)}'})-[:contains]->(l:line)
                  -[:contains]->(m:machine)<-[:monitors]-(s:sensor)
-           RETURN l.id AS lineId, l.name AS lineName,
-                  m.id AS machineId, m.name AS machineName, m.model AS machineModel,
-                  s.device_id AS deviceId, s.type AS sensorType, s.unit AS sensorUnit`,
-          '(lineId agtype, lineName agtype, machineId agtype, machineName agtype, machineModel agtype, deviceId agtype, sensorType agtype, sensorUnit agtype)'
+           RETURN l.id AS line_id, l.name AS line_name,
+                  m.id AS machine_id, m.name AS machine_name, m.model AS machine_model,
+                  s.device_id AS device_id, s.type AS sensor_type, s.unit AS sensor_unit`,
+          '(line_id agtype, line_name agtype, machine_id agtype, machine_name agtype, machine_model agtype, device_id agtype, sensor_type agtype, sensor_unit agtype)'
         )
 
         // Group results into hierarchy structure

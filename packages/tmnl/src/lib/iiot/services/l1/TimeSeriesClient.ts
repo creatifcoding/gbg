@@ -8,6 +8,38 @@
  *
  * Requires: IIoTPgClientLive layer to be provided
  *
+ * ## API Reference
+ *
+ * ### Write Operations
+ *
+ * | Method | Description |
+ * |--------|-------------|
+ * | `insertReadings()` | Insert readings one-by-one (safe, slower) |
+ * | `insertReadingsBulk()` | Batch insert (fast, for high-volume ingestion) |
+ *
+ * ### Read Operations
+ *
+ * | Method | Return Type | Latency | Use Case |
+ * |--------|-------------|---------|----------|
+ * | `getLatestReading()` | `Effect<Reading \| null>` | Real-time | Current sensor value |
+ * | `getLatestReadingsForDevices()` | `Effect<Reading[]>` | Real-time | Dashboard multi-sensor view |
+ * | `queryReadings()` | `Stream<Reading>` | Real-time | Historical range query, charts |
+ * | `queryAggregated()` | `Stream<AggregatedReading>` | **1-60s lag** | Trends, reports, analytics |
+ *
+ * ### Diagnostics
+ *
+ * | Method | Description |
+ * |--------|-------------|
+ * | `healthCheck()` | Verify TimescaleDB extension is loaded |
+ * | `getHypertableStats()` | Chunk count, compression status, total size |
+ *
+ * ## Latency Notes
+ *
+ * - **Real-time methods** query the raw `iiot.sensor_readings` hypertable directly
+ * - **`queryAggregated()`** queries continuous aggregates (`readings_1min`, `readings_1hour`)
+ *   which are refreshed by a background worker every ~1 minute. Data may be stale.
+ *   Use for historical analysis, NOT for real-time alerting.
+ *
  * @see docker/docker-compose.iiot.yml for database setup
  * @see docker/iiot-db/init.sql for schema definition
  * @module
@@ -34,30 +66,31 @@ export const TimeSeriesConfig = Context.GenericTag<TimeSeriesConfig>('iiot/TimeS
 
 // =============================================================================
 // Internal Row Types (database result shapes)
+// Note: Uses camelCase because PgClient.transformResultNames converts snake_case → camelCase
 // =============================================================================
 
 interface SensorReadingRow {
   time: Date
-  device_id: string
+  deviceId: string
   value: number
   quality: number
 }
 
 interface AggregatedReadingRow {
   bucket: Date
-  device_id: string
-  avg_value: number
-  min_value: number
-  max_value: number
-  stddev_value: number | null
-  sample_count: number | string // May come as bigint string
+  deviceId: string
+  avgValue: number
+  minValue: number
+  maxValue: number
+  stddevValue: number | null
+  sampleCount: number | string // May come as bigint string
 }
 
 interface HypertableStatsRow {
-  hypertable_name: string
-  num_chunks: number
-  compression_enabled: boolean
-  total_bytes: string | null
+  hypertableName: string
+  numChunks: number
+  compressionEnabled: boolean
+  totalBytes: string | null
 }
 
 // =============================================================================
@@ -67,7 +100,7 @@ interface HypertableStatsRow {
 const mapRowToSensorReading = (row: SensorReadingRow): SensorReading => ({
   _tag: 'SensorReading',
   time: DateTime.unsafeMake(row.time),
-  deviceId: row.device_id as DeviceId,
+  deviceId: row.deviceId as DeviceId,
   value: row.value,
   quality: row.quality as QualityScore,
 })
@@ -75,13 +108,13 @@ const mapRowToSensorReading = (row: SensorReadingRow): SensorReading => ({
 const mapRowToAggregatedReading = (row: AggregatedReadingRow): AggregatedReading => ({
   _tag: 'AggregatedReading',
   bucket: DateTime.unsafeMake(row.bucket),
-  deviceId: row.device_id as DeviceId,
-  avgValue: row.avg_value,
-  minValue: row.min_value,
-  maxValue: row.max_value,
-  stddevValue: row.stddev_value ?? undefined,
+  deviceId: row.deviceId as DeviceId,
+  avgValue: row.avgValue,
+  minValue: row.minValue,
+  maxValue: row.maxValue,
+  stddevValue: row.stddevValue ?? undefined,
   sampleCount:
-    typeof row.sample_count === 'string' ? parseInt(row.sample_count, 10) : row.sample_count,
+    typeof row.sampleCount === 'string' ? parseInt(row.sampleCount, 10) : row.sampleCount,
 })
 
 // =============================================================================
@@ -358,11 +391,7 @@ export class TimeSeriesClient extends Effect.Service<TimeSeriesClient>()('iiot/T
             h.num_chunks,
             h.compression_enabled,
             pg_size_pretty(
-              COALESCE(
-                (SELECT SUM(total_bytes) FROM timescaledb_information.chunks
-                 WHERE hypertable_name = h.hypertable_name),
-                0
-              )
+              COALESCE(hypertable_size(format('%I.%I', h.hypertable_schema, h.hypertable_name)::regclass), 0)
             ) AS total_bytes
           FROM timescaledb_information.hypertables h
           WHERE h.hypertable_schema = 'iiot' AND h.hypertable_name = 'sensor_readings'
@@ -379,10 +408,10 @@ export class TimeSeriesClient extends Effect.Service<TimeSeriesClient>()('iiot/T
 
         const row = rows[0]
         return {
-          tableName: row.hypertable_name,
-          numChunks: row.num_chunks,
-          compressionEnabled: row.compression_enabled,
-          totalSize: row.total_bytes ?? '0 bytes',
+          tableName: row.hypertableName,
+          numChunks: row.numChunks,
+          compressionEnabled: row.compressionEnabled,
+          totalSize: row.totalBytes ?? '0 bytes',
         }
       }).pipe(
         Effect.catchAll((cause) =>
