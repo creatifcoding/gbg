@@ -32,7 +32,8 @@
     "e2e:ui": "bunx playwright test --ui",
     "e2e:headed": "bunx playwright test --headed",
     "e2e:report": "bunx playwright show-report",
-    "spike": "bun run scripts/spike-cli.ts"
+    "spike": "bun run scripts/spike-cli.ts",
+    "seed:iiot": "bun run src/lib/iiot/seed/runner.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.14",
@@ -68,6 +69,8 @@
     "@effect/sql-sqlite-wasm": "^0.50.0",
     "@effect/vitest": "^0.27.0",
     "@effect/wa-sqlite": "^0.2.1",
+    "@effect/workflow": "^0.16.0",
+    "@gbg/ctl": "workspace:*",
     "@electric-sql/client": "^1.4.0",
     "@electric-sql/d2ts": "^0.1.8",
     "@electric-sql/react": "^1.0.26",
