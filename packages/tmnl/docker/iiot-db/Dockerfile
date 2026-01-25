@@ -1,9 +1,14 @@
 # =============================================================================
-# TMNL IIoT Database - Unified PostgreSQL 16 with TimescaleDB + Apache AGE + pg_mooncake
+# TMNL IIoT Database - PostgreSQL 16 with TimescaleDB + Apache AGE + pg_lake
 #
 # This custom image builds on TimescaleDB HA and adds:
 # - Apache AGE for graph queries (asset hierarchy, event causality)
-# - pg_mooncake for columnar analytics (historical data, batch queries)
+# - pg_lake for Iceberg analytics (optional - DuckDB-powered)
+#
+# SCHEMA MANAGEMENT:
+#   Schema is managed by Effect SQL Migrator, NOT this image.
+#   The init.sql just bootstraps the user - run Migrator separately.
+#   See: src/lib/iiot/models/_migrations.ts
 #
 # Build: docker build -t tmnl-iiot-db:latest .
 # =============================================================================
@@ -15,7 +20,6 @@ USER root
 
 # Build arguments
 ARG AGE_VERSION=1.5.0
-ARG MOONCAKE_VERSION=0.1.0
 
 # Install build dependencies (including PostgreSQL dev headers for extension compilation)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -44,20 +48,18 @@ RUN git clone --branch release/PG16/${AGE_VERSION} --depth 1 \
     && cd / && rm -rf /tmp/age-src
 
 # =============================================================================
-# Install pg_mooncake (columnar storage)
-# Note: pg_mooncake may need to be built from source if binary not available
+# pg_lake (Iceberg analytics - optional)
+#
+# pg_lake provides Iceberg table support with DuckDB-powered queries.
+# Requires: shared_preload_libraries = 'pg_extension_base'
+#
+# Currently not built into this image - CREATE EXTENSION will fail gracefully.
+# To enable, add pg_lake to shared_preload_libraries in CMD below.
+#
+# Reference: https://github.com/Snowflake-Labs/pg_lake
 # =============================================================================
 
-# Option 1: Try pgxn install (if available)
-# RUN pgxn install pg_mooncake || echo "pg_mooncake not available via PGXN"
-
-# Option 2: Build from source (fallback - commented out until mooncake releases PG16 binaries)
-# RUN git clone --depth 1 https://github.com/Mooncake-Labs/pg_mooncake.git mooncake-src \
-#     && cd mooncake-src \
-#     && make USE_PGXS=1 PG_CONFIG=/usr/lib/postgresql/16/bin/pg_config install \
-#     && cd / && rm -rf /tmp/mooncake-src
-
-# Note: pg_mooncake is experimental - schema will work without it
+# Note: pg_lake is optional - schema will work without it
 # The CREATE EXTENSION will fail gracefully if not installed
 
 # =============================================================================
@@ -69,10 +71,12 @@ RUN apt-get remove -y build-essential git flex bison \
     && apt-get clean
 
 # =============================================================================
-# Copy initialization scripts
+# Copy bootstrap script
 # =============================================================================
 
-COPY init.sql /docker-entrypoint-initdb.d/10-iiot-schema.sql
+# init.sql is minimal - just creates user context
+# All schema DDL is managed by Effect SQL Migrator
+COPY init.sql /docker-entrypoint-initdb.d/10-iiot-bootstrap.sql
 
 # Switch back to postgres user
 USER postgres
@@ -90,6 +94,8 @@ EXPOSE 5432
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
     CMD pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} || exit 1
 
-# Start postgres with AGE preloaded (alongside timescaledb from base image)
-# This eliminates the need for LOAD 'age' in every session/function
+# Start postgres with extensions preloaded
+# - timescaledb: Time-series hypertables
+# - age: Apache AGE graph queries
+# Note: Add pg_extension_base here when pg_lake is installed
 CMD ["postgres", "-c", "shared_preload_libraries=timescaledb,age"]
