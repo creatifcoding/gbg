@@ -27,16 +27,15 @@ export type QualityScore = Schema.Schema.Type<typeof QualityScore>
 // =============================================================================
 
 /** Raw sensor reading from TimescaleDB hypertable */
-export const SensorReading = Schema.TaggedStruct('SensorReading', {
+export class SensorReading extends Schema.TaggedClass<SensorReading>()('SensorReading', {
   time: Schema.DateTimeUtc,
   deviceId: DeviceId,
   value: Schema.Number,
   quality: QualityScore,
-})
-export type SensorReading = Schema.Schema.Type<typeof SensorReading>
+}) {}
 
 /** Aggregated reading (from continuous aggregates) */
-export const AggregatedReading = Schema.TaggedStruct('AggregatedReading', {
+export class AggregatedReading extends Schema.TaggedClass<AggregatedReading>()('AggregatedReading', {
   bucket: Schema.DateTimeUtc,
   deviceId: DeviceId,
   avgValue: Schema.Number,
@@ -44,8 +43,7 @@ export const AggregatedReading = Schema.TaggedStruct('AggregatedReading', {
   maxValue: Schema.Number,
   stddevValue: Schema.optional(Schema.Number),
   sampleCount: Schema.Number.pipe(Schema.int(), Schema.positive()),
-})
-export type AggregatedReading = Schema.Schema.Type<typeof AggregatedReading>
+}) {}
 
 /** Time bucket granularity for aggregation queries */
 export const TimeBucket = Schema.Literal('1min', '5min', '15min', '1hour', '1day')
@@ -56,7 +54,7 @@ export type TimeBucket = Schema.Schema.Type<typeof TimeBucket>
 // =============================================================================
 
 /** Historical analytics record (from pg_mooncake columnstore) */
-export const AnalyticsRecord = Schema.TaggedStruct('AnalyticsRecord', {
+export class AnalyticsRecord extends Schema.TaggedClass<AnalyticsRecord>()('AnalyticsRecord', {
   deviceId: DeviceId,
   hour: Schema.DateTimeUtc,
   avgValue: Schema.Number,
@@ -64,8 +62,7 @@ export const AnalyticsRecord = Schema.TaggedStruct('AnalyticsRecord', {
   maxValue: Schema.Number,
   stddev: Schema.optional(Schema.Number),
   sampleCount: Schema.Number.pipe(Schema.int(), Schema.positive()),
-})
-export type AnalyticsRecord = Schema.Schema.Type<typeof AnalyticsRecord>
+}) {}
 
 // =============================================================================
 // Query Parameters

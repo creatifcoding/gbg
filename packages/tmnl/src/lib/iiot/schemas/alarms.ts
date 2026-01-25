@@ -42,7 +42,7 @@ export type AlarmType = Schema.Schema.Type<typeof AlarmType>
 // =============================================================================
 
 /** Alarm record from database */
-export const Alarm = Schema.TaggedStruct('Alarm', {
+export class Alarm extends Schema.TaggedClass<Alarm>()('Alarm', {
   id: AlarmId,
   deviceId: DeviceId,
   alarmType: AlarmType,
@@ -53,8 +53,7 @@ export const Alarm = Schema.TaggedStruct('Alarm', {
   clearedAt: Schema.optional(Schema.DateTimeUtc),
   acknowledgedBy: Schema.optional(Schema.String),
   metadata: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
-})
-export type Alarm = Schema.Schema.Type<typeof Alarm>
+}) {}
 
 /** Create alarm parameters */
 export const CreateAlarmParams = Schema.Struct({
@@ -93,12 +92,12 @@ export type AlarmQueryParams = Schema.Schema.Type<typeof AlarmQueryParams>
 // Alarm Context (for root cause analysis)
 // =============================================================================
 
-/** Reading context around an alarm */
-export const AlarmContext = Schema.TaggedStruct('AlarmContext', {
+/** Reading context around an alarm (from materialized view) */
+export class AlarmContext extends Schema.TaggedClass<AlarmContext>()('AlarmContext', {
   alarmId: AlarmId,
   deviceId: DeviceId,
   readingTime: Schema.DateTimeUtc,
   value: Schema.Number,
-  offsetFromAlarm: Schema.String, // PostgreSQL interval as string
-})
-export type AlarmContext = Schema.Schema.Type<typeof AlarmContext>
+  quality: Schema.Number,
+  offsetSeconds: Schema.Number, // seconds from alarm trigger (negative = before)
+}) {}

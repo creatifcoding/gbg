@@ -51,69 +51,61 @@ export type MeasurementUnit = Schema.Schema.Type<typeof MeasurementUnit>
 // =============================================================================
 
 /** Manufacturing plant */
-export const Plant = Schema.TaggedStruct('Plant', {
+export class Plant extends Schema.TaggedClass<Plant>()('Plant', {
   id: PlantId,
   name: Schema.NonEmptyString,
   location: Schema.optional(Schema.String),
-})
-export type Plant = Schema.Schema.Type<typeof Plant>
+}) {}
 
 /** Production line within a plant */
-export const Line = Schema.TaggedStruct('Line', {
+export class Line extends Schema.TaggedClass<Line>()('Line', {
   id: LineId,
   name: Schema.NonEmptyString,
   plantId: PlantId,
-})
-export type Line = Schema.Schema.Type<typeof Line>
+}) {}
 
 /** Machine/equipment within a production line */
-export const Machine = Schema.TaggedStruct('Machine', {
+export class Machine extends Schema.TaggedClass<Machine>()('Machine', {
   id: MachineId,
   name: Schema.NonEmptyString,
   model: Schema.optional(Schema.String),
   lineId: LineId,
-})
-export type Machine = Schema.Schema.Type<typeof Machine>
+}) {}
 
 /** Sensor monitoring a machine */
-export const Sensor = Schema.TaggedStruct('Sensor', {
+export class Sensor extends Schema.TaggedClass<Sensor>()('Sensor', {
   deviceId: DeviceId,
   type: SensorType,
   unit: MeasurementUnit,
   machineId: MachineId,
-})
-export type Sensor = Schema.Schema.Type<typeof Sensor>
+}) {}
 
 // =============================================================================
 // Asset Hierarchy (denormalized for queries)
 // =============================================================================
 
 /** Full sensor hierarchy path */
-export const SensorHierarchy = Schema.TaggedStruct('SensorHierarchy', {
+export class SensorHierarchy extends Schema.TaggedClass<SensorHierarchy>()('SensorHierarchy', {
   deviceId: DeviceId,
   machineName: Schema.String,
   lineName: Schema.String,
   plantName: Schema.String,
-})
-export type SensorHierarchy = Schema.Schema.Type<typeof SensorHierarchy>
+}) {}
 
 /** Machine with its sensors */
-export const MachineWithSensors = Schema.TaggedStruct('MachineWithSensors', {
+export class MachineWithSensors extends Schema.TaggedClass<MachineWithSensors>()('MachineWithSensors', {
   machine: Machine,
   sensors: Schema.Array(Sensor),
-})
-export type MachineWithSensors = Schema.Schema.Type<typeof MachineWithSensors>
+}) {}
 
 /** Line with its machines */
-export const LineWithMachines = Schema.TaggedStruct('LineWithMachines', {
+export class LineWithMachines extends Schema.TaggedClass<LineWithMachines>()('LineWithMachines', {
   line: Line,
   machines: Schema.Array(MachineWithSensors),
-})
-export type LineWithMachines = Schema.Schema.Type<typeof LineWithMachines>
+}) {}
 
 /** Plant with its complete hierarchy */
-export const PlantHierarchy = Schema.TaggedStruct('PlantHierarchy', {
+export class PlantHierarchy extends Schema.TaggedClass<PlantHierarchy>()('PlantHierarchy', {
   plant: Plant,
   lines: Schema.Array(LineWithMachines),
-})
-export type PlantHierarchy = Schema.Schema.Type<typeof PlantHierarchy>
+}) {}
