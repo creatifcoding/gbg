@@ -33,7 +33,7 @@
     "e2e:headed": "bunx playwright test --headed",
     "e2e:report": "bunx playwright show-report",
     "spike": "bun run scripts/spike-cli.ts",
-    "seed:iiot": "bun run src/lib/iiot/seed/runner.ts"
+    "seed:iiot": "bun run src/lib/iiot/seed/ctl/src/index.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.14",
