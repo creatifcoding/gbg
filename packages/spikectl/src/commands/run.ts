@@ -6,6 +6,7 @@
 
 import { Args, Command, Options } from "@effect/cli"
 import { Effect, Console } from "effect"
+import { section, sectionEnd, spikeSuccess, subSection, printList, NextSteps } from "../output.js"
 
 const spikeFile = Args.text({ name: "file" }).pipe(
   Args.withDescription("Path to spike file to execute")
@@ -22,10 +23,7 @@ export const runCommand = Command.make(
   { spikeFile, verbose },
   ({ spikeFile, verbose }) =>
     Effect.gen(function* () {
-      yield* Console.log(``)
-      yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
-      yield* Console.log(`🧪 EXECUTING SPIKE: ${spikeFile}`)
-      yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
+      yield* section("EXECUTING SPIKE", spikeFile)
 
       // Execute via Bun.spawn
       const proc = Bun.spawn(["bun", "run", spikeFile], {
@@ -54,27 +52,20 @@ export const runCommand = Command.make(
             Uint8Array.from(chunks.flatMap((chunk) => Array.from(chunk)))
           )
         })
+        // Raw output from spike execution - intentional Console.log
         yield* Console.log(output)
       }
 
-      yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
       if (exitCode === 0) {
-        yield* Console.log(`✅ SPIKE PASSED - All hypotheses validated`)
-        yield* Console.log(``)
-        yield* Console.log(`📝 NEXT STEPS:`)
-        yield* Console.log(`   1. Extract successful patterns to production code`)
-        yield* Console.log(`   2. Document learning in .edin/ if significant`)
-        yield* Console.log(`   3. Delete spike file if no longer needed`)
+        yield* spikeSuccess(
+          "SPIKE PASSED - All hypotheses validated",
+          { exitCode: "0" },
+          NextSteps.afterSpikePass(spikeFile)
+        )
       } else {
-        yield* Console.log(`❌ SPIKE FAILED - One or more hypotheses invalidated`)
-        yield* Console.log(``)
-        yield* Console.log(`📝 NEXT STEPS:`)
-        yield* Console.log(`   1. IDENTIFY - Find FIRST failing hypothesis (that's the bug layer)`)
-        yield* Console.log(`   2. ANALYZE - Check actual values vs expected in output above`)
-        yield* Console.log(`   3. ROOT CAUSE - The difference reveals the bug`)
-        yield* Console.log(`   4. FIX - Apply fix to production code`)
-        yield* Console.log(`   5. RE-RUN - spikectl run ${spikeFile} --verbose`)
+        yield* subSection("FAILED", "One or more hypotheses invalidated")
+        yield* printList(NextSteps.afterSpikeFail(spikeFile))
       }
-      yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
+      yield* sectionEnd()
     })
 ).pipe(Command.withDescription("Execute a spike file"))

@@ -7,8 +7,19 @@
  */
 
 import { Command, Options } from "@effect/cli"
-import { Effect, Console } from "effect"
+import { Effect } from "effect"
 import { PatternStore, makePatternStoreLayer, StorageError, APP_PATHS } from "../services/pattern-store.js"
+import {
+  section,
+  sectionEnd,
+  subSection,
+  patternTable,
+  printKv,
+  printList,
+  spikeErrorHandler,
+  NextSteps,
+  type ColumnDef,
+} from "../output.js"
 
 const evolve = Options.boolean("evolve").pipe(
   Options.withAlias("e"),
@@ -22,60 +33,85 @@ const verbose = Options.boolean("verbose").pipe(
   Options.withDescription("Show detailed pattern information")
 )
 
+// Table types
+type DomainRow = { domain: string; patterns: number; [key: string]: unknown }
+type PatternRow = { status: string; id: string; domain: string; success: string; [key: string]: unknown }
+type PerformerRow = { id: string; rate: string; [key: string]: unknown }
+
+const domainColumns: ColumnDef<DomainRow>[] = [
+  { key: "domain", header: "Domain" },
+  { key: "patterns", header: "Patterns" },
+]
+
+const patternColumns: ColumnDef<PatternRow>[] = [
+  { key: "status", header: "" },
+  { key: "id", header: "Pattern" },
+  { key: "domain", header: "Domain" },
+  { key: "success", header: "Success %" },
+]
+
+const performerColumns: ColumnDef<PerformerRow>[] = [
+  { key: "id", header: "Pattern" },
+  { key: "rate", header: "Success %" },
+]
+
 export const statsCommand = Command.make("stats", { evolve, verbose }, ({ evolve, verbose }) =>
   Effect.gen(function* () {
-    yield* Console.log(``)
-    yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
-    yield* Console.log(`📊 SPIKE PATTERN STATISTICS`)
-    yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
+    yield* section("SPIKE PATTERN STATISTICS", "")
 
     const store = yield* PatternStore
     const stats = yield* store.getStats()
 
     if (stats.totalPatterns === 0) {
-      yield* Console.log(``)
-      yield* Console.log(`ℹ️  No patterns recorded yet.`)
-      yield* Console.log(``)
-      yield* Console.log(`📝 TO START:`)
-      yield* Console.log(`   1. Run a spike: spikectl run <file>`)
-      yield* Console.log(`   2. Record learning: spikectl learn <file> --fix "description"`)
+      yield* subSection("NO DATA", "")
+      yield* printKv("Status", "No patterns recorded yet")
+      yield* subSection("TO START", "")
+      yield* printList(NextSteps.noPatterns())
     } else {
-      yield* Console.log(``)
-      yield* Console.log(`📈 SUMMARY:`)
-      yield* Console.log(`   Total patterns: ${stats.totalPatterns}`)
-      yield* Console.log(`   Total fixes: ${stats.totalFixes}`)
-      yield* Console.log(`   Avg success rate: ${(stats.avgSuccessRate * 100).toFixed(1)}%`)
+      yield* subSection("SUMMARY", "")
+      yield* printKv("Total patterns", String(stats.totalPatterns))
+      yield* printKv("Total fixes", String(stats.totalFixes))
+      yield* printKv("Avg success rate", `${(stats.avgSuccessRate * 100).toFixed(1)}%`)
 
       if (stats.topDomains.length > 0) {
-        yield* Console.log(``)
-        yield* Console.log(`🏷️  TOP DOMAINS:`)
-        for (const { domain, count } of stats.topDomains) {
-          yield* Console.log(`   ${domain}: ${count} pattern(s)`)
-        }
+        yield* subSection("TOP DOMAINS", "")
+        const domainRows: DomainRow[] = stats.topDomains.map(({ domain, count }) => ({
+          domain,
+          patterns: count,
+        }))
+        yield* patternTable(domainRows, domainColumns)
       }
 
       if (stats.recentPatterns.length > 0) {
-        yield* Console.log(``)
-        yield* Console.log(`🕐 RECENT PATTERNS:`)
-        for (const pattern of stats.recentPatterns) {
+        yield* subSection("RECENT PATTERNS", "")
+        const patternRows: PatternRow[] = stats.recentPatterns.map((pattern) => {
           const rate = store.successRate(pattern)
-          const rateStr = (rate * 100).toFixed(0)
-          const emoji = rate >= 0.7 ? "✅" : rate >= 0.4 ? "⚡" : "⚠️"
-          yield* Console.log(`   ${emoji} ${pattern.id} (${pattern.domain}) - ${rateStr}% success`)
+          const rateStr = `${(rate * 100).toFixed(0)}%`
+          const emoji = rate >= 0.7 ? "OK" : rate >= 0.4 ? "--" : "!!"
+          return {
+            status: emoji,
+            id: pattern.id,
+            domain: pattern.domain,
+            success: rateStr,
+          }
+        })
+        yield* patternTable(patternRows, patternColumns)
 
-          if (verbose) {
-            yield* Console.log(`      Error: ${pattern.errorSignature}`)
-            yield* Console.log(`      Uses: ${pattern.successCount + pattern.failureCount} (${pattern.successCount} success, ${pattern.failureCount} fail)`)
+        if (verbose) {
+          yield* subSection("PATTERN DETAILS", "")
+          for (const pattern of stats.recentPatterns) {
+            yield* printKv(pattern.id, "")
+            yield* printKv("  Error", pattern.errorSignature)
+            yield* printKv("  Uses", `${pattern.successCount + pattern.failureCount} (${pattern.successCount} success, ${pattern.failureCount} fail)`)
             if (pattern.fixes.length > 0) {
-              yield* Console.log(`      Last fix: "${pattern.fixes[0].fix}"`)
+              yield* printKv("  Last fix", `"${pattern.fixes[0].fix}"`)
             }
           }
         }
       }
 
       if (evolve) {
-        yield* Console.log(``)
-        yield* Console.log(`🧬 EVOLUTION ANALYSIS:`)
+        yield* subSection("EVOLUTION ANALYSIS", "")
 
         const patterns = yield* store.listPatterns()
         const lowPerformers = patterns.filter(p => {
@@ -88,34 +124,33 @@ export const statsCommand = Command.make("stats", { evolve, verbose }, ({ evolve
         })
 
         if (lowPerformers.length > 0) {
-          yield* Console.log(``)
-          yield* Console.log(`   ⚠️  LOW PERFORMERS (consider pruning):`)
-          for (const p of lowPerformers) {
-            yield* Console.log(`      - ${p.id}: ${(store.successRate(p) * 100).toFixed(0)}% success`)
-          }
+          yield* printKv("LOW PERFORMERS", "(consider pruning)")
+          const lowRows: PerformerRow[] = lowPerformers.map(p => ({
+            id: p.id,
+            rate: `${(store.successRate(p) * 100).toFixed(0)}%`,
+          }))
+          yield* patternTable(lowRows, performerColumns)
         }
 
         if (highPerformers.length > 0) {
-          yield* Console.log(``)
-          yield* Console.log(`   ✅ HIGH PERFORMERS (promote as templates):`)
-          for (const p of highPerformers) {
-            yield* Console.log(`      - ${p.id}: ${(store.successRate(p) * 100).toFixed(0)}% success`)
-          }
+          yield* printKv("HIGH PERFORMERS", "(promote as templates)")
+          const highRows: PerformerRow[] = highPerformers.map(p => ({
+            id: p.id,
+            rate: `${(store.successRate(p) * 100).toFixed(0)}%`,
+          }))
+          yield* patternTable(highRows, performerColumns)
         }
 
         if (lowPerformers.length === 0 && highPerformers.length === 0) {
-          yield* Console.log(`   ℹ️  Need more data for evolution (patterns need 3+ uses)`)
+          yield* printKv("Status", "Need more data for evolution (patterns need 3+ uses)")
         }
       }
     }
 
-    yield* Console.log(``)
-    yield* Console.log(`💾 Database: ${APP_PATHS.db}`)
-    yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
+    yield* printKv("Database", APP_PATHS.db)
+    yield* sectionEnd()
   }).pipe(
-    Effect.catchTag("StorageError", (e: StorageError) =>
-      Console.error(`❌ Storage error (${e.operation}): ${e.cause}`)
-    ),
+    Effect.catchTag("StorageError", (e: StorageError) => spikeErrorHandler(e)),
     Effect.provide(makePatternStoreLayer())
   )
 ).pipe(Command.withDescription("Show pattern statistics and optionally evolve templates"))

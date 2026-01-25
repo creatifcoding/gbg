@@ -5,8 +5,9 @@
  */
 
 import { Args, Command } from "@effect/cli"
-import { Effect, Console } from "effect"
+import { Effect } from "effect"
 import { generateConfigTemplate } from "../services/generators.js"
+import { section, sectionEnd, spikeWarning, spikeSuccess, NextSteps } from "../output.js"
 
 const initName = Args.text({ name: "name" }).pipe(
   Args.withDescription("Name for the spike config")
@@ -22,33 +23,22 @@ export const initCommand = Command.make("init", { initName }, ({ initName }) =>
     )
 
     if (exists) {
-      yield* Console.log(`⚠️  File already exists: ${filename}`)
-      yield* Console.log(`   Use a different name or delete the existing file.`)
+      yield* spikeWarning(
+        `File already exists: ${filename}`,
+        "Use a different name or delete the existing file."
+      )
       return
     }
 
     const config = generateConfigTemplate(initName)
     yield* Effect.promise(() => Bun.write(filename, config))
 
-    yield* Console.log(``)
-    yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
-    yield* Console.log(`✨ SPIKE CONFIG CREATED: ${filename}`)
-    yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
-    yield* Console.log(``)
-    yield* Console.log(`📝 NEXT STEPS:`)
-    yield* Console.log(``)
-    yield* Console.log(`   1. EDIT CONFIG - Customize hypotheses for your issue:`)
-    yield* Console.log(`      - Update metadata.topic with specific issue description`)
-    yield* Console.log(`      - Update metadata.issueRef if you have a beads issue`)
-    yield* Console.log(`      - Update metadata.relatedFiles with files to investigate`)
-    yield* Console.log(`      - Rewrite hypotheses[].claim with falsifiable statements`)
-    yield* Console.log(`      - Add specific acceptanceCriteria for each hypothesis`)
-    yield* Console.log(``)
-    yield* Console.log(`   2. GENERATE SPIKE:`)
-    yield* Console.log(`      spikectl new --config ${filename}`)
-    yield* Console.log(``)
-    yield* Console.log(`   3. Config will be auto-cleaned after spike generation.`)
-    yield* Console.log(``)
-    yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
+    yield* section("SPIKE CONFIG CREATED", filename)
+    yield* spikeSuccess(
+      "Config created",
+      { file: filename },
+      NextSteps.afterConfigCreate(filename)
+    )
+    yield* sectionEnd()
   })
 ).pipe(Command.withDescription("Generate a spike config JSON template"))

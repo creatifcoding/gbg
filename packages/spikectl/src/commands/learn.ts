@@ -7,12 +7,13 @@
  */
 
 import { Args, Command, Options } from "@effect/cli"
-import { Effect, Console, Option } from "effect"
+import { Effect, Option } from "effect"
 import * as path from "node:path"
 import * as fs from "node:fs/promises"
 import { extractHypothesesFromContent, deriveDomainFromContent } from "../services/generators.js"
 import { PatternStore, makePatternStoreLayer, StorageError, APP_PATHS } from "../services/pattern-store.js"
 import type { SpikePattern, SpikeFix } from "../schemas/index.js"
+import { section, sectionEnd, subSection, spikeSuccess, printKv, printList, NextSteps, spikeErrorHandler } from "../output.js"
 
 const learnFile = Args.text({ name: "file" }).pipe(
   Args.withDescription("Path to completed spike file to extract learnings from")
@@ -47,10 +48,7 @@ export const learnCommand = Command.make(
   { learnFile, fixDescription, rootCauseOpt, errorSignatureOpt, tagsOpt },
   ({ learnFile, fixDescription, rootCauseOpt, errorSignatureOpt, tagsOpt }) =>
     Effect.gen(function* () {
-      yield* Console.log(``)
-      yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
-      yield* Console.log(`🧠 LEARNING EXTRACTION: ${learnFile}`)
-      yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
+      yield* section("LEARNING EXTRACTION", learnFile)
 
       // 1. Read spike file
       const content = yield* Effect.promise(() => fs.readFile(learnFile, "utf-8")).pipe(
@@ -65,11 +63,10 @@ export const learnCommand = Command.make(
       const filename = path.basename(learnFile, ".ts")
       const patternId = filename.replace(/^(spike-|diagnose-)/, "")
 
-      yield* Console.log(``)
-      yield* Console.log(`📊 PATTERN IDENTIFIED:`)
-      yield* Console.log(`   ID: ${patternId}`)
-      yield* Console.log(`   Domain: ${domain}`)
-      yield* Console.log(`   Hypotheses found: ${hypotheses.length}`)
+      yield* subSection("PATTERN IDENTIFIED", "")
+      yield* printKv("ID", patternId)
+      yield* printKv("Domain", domain)
+      yield* printKv("Hypotheses found", String(hypotheses.length))
 
       const fixText = Option.getOrElse(fixDescription, () => "")
       const rootCause = Option.getOrElse(rootCauseOpt, () => fixText ? "See fix description" : "")
@@ -93,10 +90,10 @@ export const learnCommand = Command.make(
         if (existing) {
           // Record success on existing pattern
           yield* store.recordSuccess(patternId, fix)
-          yield* Console.log(``)
-          yield* Console.log(`✅ SUCCESS RECORDED:`)
-          yield* Console.log(`   Pattern: ${patternId}`)
-          yield* Console.log(`   Success count: ${existing.successCount + 1}`)
+          yield* spikeSuccess("Success recorded", {
+            pattern: patternId,
+            "success count": String(existing.successCount + 1),
+          })
         } else {
           // Create new pattern
           const pattern: SpikePattern = {
@@ -115,36 +112,25 @@ export const learnCommand = Command.make(
             tags,
           }
           yield* store.upsertPattern(pattern)
-          yield* Console.log(``)
-          yield* Console.log(`✅ NEW PATTERN CREATED:`)
-          yield* Console.log(`   ID: ${patternId}`)
-          yield* Console.log(`   Error signature: ${errorSignature}`)
-          yield* Console.log(`   Domain: ${domain}`)
-          yield* Console.log(`   Tags: ${tags.join(", ")}`)
+          yield* spikeSuccess("New pattern created", {
+            ID: patternId,
+            "Error signature": errorSignature,
+            Domain: domain,
+            Tags: tags.join(", "),
+          })
         }
 
-        yield* Console.log(``)
-        yield* Console.log(`📝 FIX RECORDED:`)
-        yield* Console.log(`   "${fixText}"`)
-        yield* Console.log(``)
-        yield* Console.log(`💾 Persisted to: ${APP_PATHS.db}`)
+        yield* subSection("FIX RECORDED", "")
+        yield* printKv("Fix", `"${fixText}"`)
+        yield* printKv("Persisted to", APP_PATHS.db)
       } else {
-        yield* Console.log(``)
-        yield* Console.log(`📝 TO RECORD A FIX:`)
-        yield* Console.log(`   spikectl learn ${learnFile} --fix "description of what fixed it"`)
-        yield* Console.log(``)
-        yield* Console.log(`📝 ADVANCED OPTIONS:`)
-        yield* Console.log(`   --cause "root cause"        # What caused the issue`)
-        yield* Console.log(`   --error "regex pattern"     # Error signature for matching`)
-        yield* Console.log(`   --tags "tag1,tag2"          # Searchable tags`)
+        yield* subSection("TO RECORD A FIX", "")
+        yield* printList(NextSteps.afterLearnNoFix(learnFile))
       }
 
-      yield* Console.log(``)
-      yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
+      yield* sectionEnd()
     }).pipe(
-      Effect.catchTag("StorageError", (e: StorageError) =>
-        Console.error(`❌ Storage error (${e.operation}): ${e.cause}`)
-      ),
+      Effect.catchTag("StorageError", (e: StorageError) => spikeErrorHandler(e)),
       Effect.provide(makePatternStoreLayer())
     )
 ).pipe(Command.withDescription("Extract learnings from a completed spike"))

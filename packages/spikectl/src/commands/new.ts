@@ -5,9 +5,21 @@
  */
 
 import { Args, Command, Options } from "@effect/cli"
-import { Effect, Console, Option, Schema } from "effect"
+import { Effect, Option, Schema } from "effect"
 import { SpikeConfig } from "../schemas/index.js"
 import { generateSpikeTemplate, generateSpikeFromConfig } from "../services/generators.js"
+import {
+  section,
+  sectionEnd,
+  subSection,
+  spikeWarning,
+  spikeSuccess,
+  emitSteering,
+  printKv,
+  printList,
+  NextSteps,
+  type OutputMode,
+} from "../output.js"
 
 const spikeName = Args.text({ name: "name" }).pipe(
   Args.withDescription("Name for the spike file (used in filename)"),
@@ -32,15 +44,23 @@ const keepConfig = Options.boolean("keep-config").pipe(
   Options.withDescription("Keep config file after generation (default: auto-cleanup)")
 )
 
+const agentMode = Options.boolean("agent").pipe(
+  Options.withAlias("a"),
+  Options.withDefault(false),
+  Options.withDescription("Output structured JSON for agent consumption")
+)
+
 export const newCommand = Command.make(
   "new",
-  { spikeName, topic, configFile, keepConfig },
-  ({ spikeName, topic, configFile, keepConfig }) =>
+  { spikeName, topic, configFile, keepConfig, agentMode },
+  ({ spikeName, topic, configFile, keepConfig, agentMode }) =>
     Effect.gen(function* () {
+      const mode: OutputMode = agentMode ? "agent" : "console"
+
       // If config file provided, use config-based generation
       if (Option.isSome(configFile)) {
         const configPath = configFile.value
-        yield* Console.log(`📄 Reading config: ${configPath}`)
+        yield* printKv("Reading config", configPath)
 
         const configContent = yield* Effect.promise(async () => {
           const file = Bun.file(configPath)
@@ -69,8 +89,10 @@ export const newCommand = Command.make(
         )
 
         if (exists) {
-          yield* Console.log(`⚠️  File already exists: ${filename}`)
-          yield* Console.log(`   Use a different name or delete the existing file.`)
+          yield* spikeWarning(
+            `File already exists: ${filename}`,
+            "Use a different name or delete the existing file."
+          )
           return
         }
 
@@ -85,48 +107,44 @@ export const newCommand = Command.make(
           }).pipe(Effect.catchAll(() => Effect.void))
         }
 
-        yield* Console.log(``)
-        yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
-        yield* Console.log(`✨ SPIKE GENERATED: ${filename}`)
-        yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
-        yield* Console.log(``)
-        yield* Console.log(`📋 HYPOTHESES TO IMPLEMENT:`)
-        for (const h of config.hypotheses) {
-          yield* Console.log(`   ${h.id}: ${h.description}`)
-          yield* Console.log(`       Claim: "${h.claim}"`)
-          if (h.acceptanceCriteria?.length) {
-            yield* Console.log(`       Pass if: ${h.acceptanceCriteria.join(", ")}`)
-          }
-        }
-        yield* Console.log(``)
-        yield* Console.log(`📝 NEXT STEPS:`)
-        yield* Console.log(`   1. IMPLEMENT - Open ${filename} and fill in test logic`)
-        yield* Console.log(`   2. RUN: spikectl run ${filename} --verbose`)
-        yield* Console.log(``)
-        if (!keepConfig) {
-          yield* Console.log(`   ✓ Config file cleaned up: ${configPath}`)
-        }
-        yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
+        yield* section("SPIKE GENERATED", filename)
+
+        yield* subSection("HYPOTHESES TO IMPLEMENT", "")
+        yield* printList(
+          config.hypotheses.map(h => {
+            const criteria = h.acceptanceCriteria?.length
+              ? ` [Pass if: ${h.acceptanceCriteria.join(", ")}]`
+              : ""
+            return `${h.id}: ${h.description} - "${h.claim}"${criteria}`
+          })
+        )
+
+        yield* spikeSuccess(
+          "Spike generated",
+          {
+            file: filename,
+            hypotheses: String(config.hypotheses.length),
+            ...(keepConfig ? {} : { "config cleaned": configPath }),
+          },
+          [`IMPLEMENT - Open ${filename} and fill in test logic`, `RUN: spikectl run ${filename} --verbose`]
+        )
+
+        yield* sectionEnd()
 
         // Emit steering message for LLM/hook consumption
-        yield* Console.log(``)
-        yield* Console.log(`<!-- SPIKE_STEERING`)
-        yield* Console.log(JSON.stringify({
+        yield* emitSteering("new", {
           action: "IMPLEMENT_SPIKE",
           file: filename,
-          hypotheses: config.hypotheses.map(h => h.id),
+          hypotheses: config.hypotheses.map(h => ({ id: h.id, claim: h.claim })),
           nextCommand: `spikectl run ${filename} --verbose`,
           skills: ["spike-testing"],
-        }))
-        yield* Console.log(`-->`)
+        }, mode)
         return
       }
 
       // Simple mode: name required
       if (Option.isNone(spikeName)) {
-        yield* Console.log(`⚠️  Name required. Usage:`)
-        yield* Console.log(`   spikectl new <name>`)
-        yield* Console.log(`   spikectl new --config <file>`)
+        yield* spikeWarning("Name required.", "Usage: spikectl new <name> or spikectl new --config <file>")
         return
       }
 
@@ -141,20 +159,21 @@ export const newCommand = Command.make(
       )
 
       if (exists) {
-        yield* Console.log(`⚠️  File already exists: ${filename}`)
-        yield* Console.log(`   Use a different name or delete the existing file.`)
+        yield* spikeWarning(
+          `File already exists: ${filename}`,
+          "Use a different name or delete the existing file."
+        )
         return
       }
 
       yield* Effect.promise(() => Bun.write(filename, template))
-      yield* Console.log(``)
-      yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
-      yield* Console.log(`✨ SPIKE CREATED: ${filename}`)
-      yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
-      yield* Console.log(``)
-      yield* Console.log(`📝 NEXT STEPS:`)
-      yield* Console.log(`   1. EDIT SPIKE - Replace placeholders in ${filename}`)
-      yield* Console.log(`   2. RUN: spikectl run ${filename} --verbose`)
-      yield* Console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
+
+      yield* section("SPIKE CREATED", filename)
+      yield* spikeSuccess(
+        "Spike created",
+        { file: filename },
+        NextSteps.afterSpikeCreate(filename)
+      )
+      yield* sectionEnd()
     })
 ).pipe(Command.withDescription("Generate a new spike template (simple or from config)"))
