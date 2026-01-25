@@ -1,0 +1,56 @@
+{
+  "$schema": "./spike-config.schema.json",
+  "metadata": {
+    "name": "test-spike",
+    "topic": "Investigation: test-spike",
+    "author": "Val",
+    "date": "2026-01-24",
+    "relatedFiles": [],
+    "expectedOutcome": "Identify root cause and extract fix"
+  },
+  "paths": {
+    "outputDir": "scripts",
+    "outputFilename": "spike-test-spike.ts"
+  },
+  "setup": {
+    "directories": [],
+    "files": [],
+    "fixtures": {}
+  },
+  "hypotheses": [
+    {
+      "id": "H1",
+      "description": "Schema encoding",
+      "claim": "Schema encodes value to expected type",
+      "acceptanceCriteria": [
+        "typeof encoded === 'string'",
+        "encoded !== undefined"
+      ]
+    },
+    {
+      "id": "H2",
+      "description": "Model layer",
+      "claim": "Model.insert produces correct encoded payload",
+      "acceptanceCriteria": [
+        "All fields have expected types"
+      ]
+    },
+    {
+      "id": "H3",
+      "description": "Repository",
+      "claim": "Repository accepts encoded payload without error",
+      "acceptanceCriteria": [
+        "No SQL binding errors",
+        "Insert returns result"
+      ]
+    },
+    {
+      "id": "H4",
+      "description": "Full integration",
+      "claim": "End-to-end flow works correctly",
+      "acceptanceCriteria": [
+        "Insert → findById returns matching data"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "name": "spikectl",
+  "version": "0.1.0",
+  "description": "Hypothesis-driven debugging CLI with autopoietic learning",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "spikectl": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "compile": "bun build --compile --minify src/index.ts --outfile bin/spikectl",
+    "dev": "bun run src/index.ts",
+    "spikectl": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "@effect/cli": "^0.73.0",
+    "@effect/platform": "^0.94.1",
+    "@effect/platform-node": "^0.104.0",
+    "@gbg/ctl": "workspace:*",
+    "effect": "^3.19.14"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.7.0"
+  }
+}

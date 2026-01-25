@@ -1,0 +1,21 @@
+{
+  "name": "spikectl",
+  "version": "0.1.0",
+  "skills": [
+    {
+      "name": "spikectl/core",
+      "description": "Core patterns and commands for spikectl",
+      "path": "skills/core/SKILL.md",
+      "triggers": [
+        "spikectl",
+        "spikectl help",
+        "spikectl usage"
+      ]
+    }
+  ],
+  "dependencies": [
+    "cli/core",
+    "cli/messaging",
+    "cli/persistence"
+  ]
+}
