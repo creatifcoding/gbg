@@ -25,12 +25,13 @@
 import { Effect, Option, pipe } from 'effect'
 import { SqlClient } from '@effect/sql'
 
-// Import repos for asset and alarm seeding
+// Import repos for asset, alarm, and reading seeding
 import { PlantRepo } from '../repos/PlantRepo'
 import { LineRepo } from '../repos/LineRepo'
 import { MachineRepo } from '../repos/MachineRepo'
 import { SensorRepo } from '../repos/SensorRepo'
 import { AlarmRepo } from '../repos/AlarmRepo'
+import { SensorReadingRepo } from '../repos/SensorReadingRepo'
 
 // Import branded identifiers (used for mockIds typing)
 import type {
@@ -46,20 +47,33 @@ import { LineModel } from '../models/assets/LineModel'
 import { MachineModel } from '../models/assets/MachineModel'
 import { SensorModel } from '../models/assets/SensorModel'
 import { AlarmModel } from '../models/alarms/AlarmModel'
+import { SensorReadingModel } from '../models/readings/SensorReadingModel'
+import type { QualityScore } from '../schemas/readings'
 
 // =============================================================================
 // Configuration
 // =============================================================================
 
 /**
+ * Seed mode controls validation vs performance trade-off.
+ * - 'fast': generate_series (700K rows ~10s, no validation)
+ * - 'validated': repo.insertBatch (1K rows ~2s, full schema validation)
+ */
+export type SeedMode = 'fast' | 'validated'
+
+/**
  * Seeding configuration.
  * Adjust row counts for development vs stress testing.
  */
 export const SeedConfig = {
+  /** Seed mode: 'fast' (generate_series) or 'validated' (repo insertBatch) */
+  mode: 'fast' as SeedMode,
   /** Rows per primary sensor (TMP-001, VIB-001, etc.) */
   primarySensorRows: 100_000,
   /** Rows per secondary sensor (SPD-001, CUR-001) */
   secondarySensorRows: 50_000,
+  /** Rows per sensor in validated mode (smaller for performance) */
+  validatedModeRows: 1_000,
   /** Time range for generated data */
   timeRangeDays: 30,
 } as const
@@ -401,53 +415,101 @@ export const seedAssets = pipe(
 )
 
 // =============================================================================
-// Mock Readings Seeder (Tier 2: Performance - generate_series)
+// Mock Readings Seeder (Tier 2: Performance vs Validation)
 // =============================================================================
 
 /**
- * Seeds mock sensor readings using PostgreSQL generate_series.
- * Uses sql template tags with parameterized values for safety.
- * Performance: 700K+ rows via server-side generation.
+ * Generates typed sensor readings for validated mode.
+ * Creates readings that satisfy SensorReadingModel.insert.Type.
+ */
+const generateTypedReadings = (
+  spec: SensorSpec,
+  count: number,
+  timeRangeDays: number
+): readonly (typeof SensorReadingModel.insert.Type)[] => {
+  const now = Date.now()
+  const msRange = timeRangeDays * 24 * 60 * 60 * 1000
+  const { deviceId, valueMin, valueMax, qualityThreshold } = spec
+  const valueRange = valueMax - valueMin
+
+  return Array.from({ length: count }, () =>
+    SensorReadingModel.insert.make({
+      time: new Date(now - Math.random() * msRange),
+      deviceId,
+      value: valueMin + Math.random() * valueRange,
+      quality: (Math.random() > qualityThreshold ? 100 : 50) as QualityScore,
+    })
+  )
+}
+
+/**
+ * Seeds mock sensor readings.
+ * Mode controlled by SeedConfig.mode:
+ * - 'fast': generate_series (700K+ rows, no validation)
+ * - 'validated': repo.insertBatch (schema-validated)
  *
  * Idempotent: Deletes existing mock data before inserting.
  * Parallelized across sensors (each device is independent).
  */
 export const seedMockReadings = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
-
-  yield* Effect.log('Seeding mock sensor readings...')
-
+  const mode = SeedConfig.mode
   const timeRangeDays = SeedConfig.timeRangeDays
 
-  // Seed each sensor in parallel (bounded by connection pool)
-  yield* Effect.forEach(sensorSpecs, (spec) => {
-    const rowCount = spec.rows === 'primary'
-      ? SeedConfig.primarySensorRows
-      : SeedConfig.secondarySensorRows
+  yield* Effect.log(`Seeding mock sensor readings (mode: ${mode})...`)
 
-    const { deviceId, valueMin, valueMax, qualityThreshold } = spec
-    const valueRange = valueMax - valueMin
+  if (mode === 'validated') {
+    // Validated mode: use repo.insertBatch with typed readings
+    const repo = yield* SensorReadingRepo
+    const rowCount = SeedConfig.validatedModeRows
 
-    return pipe(
-      // Clear existing data for this device (idempotency)
-      sql`
-        DELETE FROM iiot.sensor_readings
-        WHERE device_id = ${deviceId}
-          AND time > NOW() - make_interval(days => ${timeRangeDays})
-      `,
-      // Generate mock data using generate_series
-      Effect.andThen(sql`
-        INSERT INTO iiot.sensor_readings (time, device_id, value, quality)
-        SELECT
-          NOW() - (random() * make_interval(days => ${timeRangeDays})),
-          ${deviceId},
-          ${valueMin} + (random() * ${valueRange}),
-          CASE WHEN random() > ${qualityThreshold} THEN 100 ELSE 50 END
-        FROM generate_series(1, ${rowCount})
-      `),
-      Effect.andThen(Effect.log(`  - ${deviceId}: ${rowCount.toLocaleString()} rows`))
-    )
-  }, { concurrency: 4 }) // Bounded by DB connection pool
+    yield* Effect.forEach(sensorSpecs, (spec) => {
+      const { deviceId } = spec
+      const readings = generateTypedReadings(spec, rowCount, timeRangeDays)
+
+      return pipe(
+        // Clear existing data for this device
+        sql`
+          DELETE FROM iiot.sensor_readings
+          WHERE device_id = ${deviceId}
+            AND time > NOW() - make_interval(days => ${timeRangeDays})
+        `,
+        // Insert via repo with full schema validation
+        Effect.andThen(repo.insertBatch(readings)),
+        Effect.andThen(Effect.log(`  - ${deviceId}: ${rowCount.toLocaleString()} rows (validated)`))
+      )
+    }, { concurrency: 4 })
+  } else {
+    // Fast mode: generate_series (no validation, max performance)
+    yield* Effect.forEach(sensorSpecs, (spec) => {
+      const rowCount = spec.rows === 'primary'
+        ? SeedConfig.primarySensorRows
+        : SeedConfig.secondarySensorRows
+
+      const { deviceId, valueMin, valueMax, qualityThreshold } = spec
+      const valueRange = valueMax - valueMin
+
+      return pipe(
+        // Clear existing data for this device
+        sql`
+          DELETE FROM iiot.sensor_readings
+          WHERE device_id = ${deviceId}
+            AND time > NOW() - make_interval(days => ${timeRangeDays})
+        `,
+        // Generate via PostgreSQL generate_series
+        Effect.andThen(sql`
+          INSERT INTO iiot.sensor_readings (time, device_id, value, quality)
+          SELECT
+            NOW() - (random() * make_interval(days => ${timeRangeDays})),
+            ${deviceId},
+            ${valueMin} + (random() * ${valueRange}),
+            CASE WHEN random() > ${qualityThreshold} THEN 100 ELSE 50 END
+          FROM generate_series(1, ${rowCount})
+        `),
+        Effect.andThen(Effect.log(`  - ${deviceId}: ${rowCount.toLocaleString()} rows (fast)`))
+      )
+    }, { concurrency: 4 })
+  }
 
   yield* Effect.log('Mock readings seeded successfully')
 })

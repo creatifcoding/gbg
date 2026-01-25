@@ -10,6 +10,7 @@
 export {
   // Configuration
   SeedConfig,
+  type SeedMode,
 
   // Tier 1: Asset seeders (repo-based, schema-validated)
   seedPlants,
@@ -18,7 +19,7 @@ export {
   seedSensors,
   seedAssets,
 
-  // Tier 2: Bulk seeders (generate_series, performance-optimized)
+  // Tier 2: Bulk seeders (mode-dependent)
   seedMockReadings,
   seedMockAlarms,
   refreshAggregates,
