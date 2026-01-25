@@ -22,8 +22,14 @@
  * @module
  */
 
-import { Effect, Option } from 'effect'
+import { Effect, Option, pipe } from 'effect'
 import { SqlClient } from '@effect/sql'
+
+// Import repos for asset seeding
+import { PlantRepo } from '../repos/PlantRepo'
+import { LineRepo } from '../repos/LineRepo'
+import { MachineRepo } from '../repos/MachineRepo'
+import { SensorRepo } from '../repos/SensorRepo'
 
 // Import branded identifiers (used for mockIds typing)
 import type {
@@ -308,6 +314,94 @@ export const mockAlarmInserts = [
     acknowledgedBy: Option.none(),
   }),
 ]
+
+// =============================================================================
+// Feature 2: Asset Seed Functions (TDD Implementation)
+// =============================================================================
+
+/**
+ * Check if error is a PostgreSQL unique violation (duplicate key).
+ * PostgreSQL error code 23505 = unique_violation
+ */
+const isDuplicateKeyError = (e: unknown): boolean => {
+  if (typeof e !== 'object' || e === null) return false
+  const err = e as { _tag?: string; cause?: { code?: string } }
+  return err._tag === 'SqlError' && err.cause?.code === '23505'
+}
+
+/**
+ * Seeds all mock plants via PlantRepo.
+ * Idempotent: catches duplicate key errors.
+ */
+export const seedPlants = Effect.gen(function* () {
+  const repo = yield* PlantRepo
+  yield* Effect.log('Seeding plants...')
+  for (const plant of mockPlantInserts) {
+    yield* repo.insert(plant).pipe(
+      Effect.catchIf(isDuplicateKeyError, () => Effect.void)
+    )
+  }
+  yield* Effect.log(`  - ${mockPlantInserts.length} plants seeded`)
+})
+
+/**
+ * Seeds all mock lines via LineRepo.
+ * Idempotent: catches duplicate key errors.
+ * Requires: Plants must exist (FK constraint).
+ */
+export const seedLines = Effect.gen(function* () {
+  const repo = yield* LineRepo
+  yield* Effect.log('Seeding lines...')
+  for (const line of mockLineInserts) {
+    yield* repo.insert(line).pipe(
+      Effect.catchIf(isDuplicateKeyError, () => Effect.void)
+    )
+  }
+  yield* Effect.log(`  - ${mockLineInserts.length} lines seeded`)
+})
+
+/**
+ * Seeds all mock machines via MachineRepo.
+ * Idempotent: catches duplicate key errors.
+ * Requires: Lines must exist (FK constraint).
+ */
+export const seedMachines = Effect.gen(function* () {
+  const repo = yield* MachineRepo
+  yield* Effect.log('Seeding machines...')
+  for (const machine of mockMachineInserts) {
+    yield* repo.insert(machine).pipe(
+      Effect.catchIf(isDuplicateKeyError, () => Effect.void)
+    )
+  }
+  yield* Effect.log(`  - ${mockMachineInserts.length} machines seeded`)
+})
+
+/**
+ * Seeds all mock sensors via SensorRepo.
+ * Idempotent: catches duplicate key errors.
+ * Requires: Machines must exist (FK constraint).
+ */
+export const seedSensors = Effect.gen(function* () {
+  const repo = yield* SensorRepo
+  yield* Effect.log('Seeding sensors...')
+  for (const sensor of mockSensorInserts) {
+    yield* repo.insert(sensor).pipe(
+      Effect.catchIf(isDuplicateKeyError, () => Effect.void)
+    )
+  }
+  yield* Effect.log(`  - ${mockSensorInserts.length} sensors seeded`)
+})
+
+/**
+ * Seeds all assets in FK order: Plants -> Lines -> Machines -> Sensors.
+ * Idempotent: safe to run multiple times.
+ */
+export const seedAssets = pipe(
+  seedPlants,
+  Effect.andThen(seedLines),
+  Effect.andThen(seedMachines),
+  Effect.andThen(seedSensors)
+)
 
 // =============================================================================
 // Mock Readings Seeder (Tier 2: Performance - generate_series)
