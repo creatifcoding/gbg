@@ -25,11 +25,12 @@
 import { Effect, Option, pipe } from 'effect'
 import { SqlClient } from '@effect/sql'
 
-// Import repos for asset seeding
+// Import repos for asset and alarm seeding
 import { PlantRepo } from '../repos/PlantRepo'
 import { LineRepo } from '../repos/LineRepo'
 import { MachineRepo } from '../repos/MachineRepo'
 import { SensorRepo } from '../repos/SensorRepo'
+import { AlarmRepo } from '../repos/AlarmRepo'
 
 // Import branded identifiers (used for mockIds typing)
 import type {
@@ -336,11 +337,10 @@ const isDuplicateKeyError = (e: unknown): boolean => {
 export const seedPlants = Effect.gen(function* () {
   const repo = yield* PlantRepo
   yield* Effect.log('Seeding plants...')
-  for (const plant of mockPlantInserts) {
-    yield* repo.insert(plant).pipe(
-      Effect.catchIf(isDuplicateKeyError, () => Effect.void)
-    )
-  }
+  yield* Effect.forEach(mockPlantInserts, (plant) =>
+    repo.insert(plant).pipe(Effect.catchIf(isDuplicateKeyError, () => Effect.void)),
+    { concurrency: 10 }
+  )
   yield* Effect.log(`  - ${mockPlantInserts.length} plants seeded`)
 })
 
@@ -352,11 +352,10 @@ export const seedPlants = Effect.gen(function* () {
 export const seedLines = Effect.gen(function* () {
   const repo = yield* LineRepo
   yield* Effect.log('Seeding lines...')
-  for (const line of mockLineInserts) {
-    yield* repo.insert(line).pipe(
-      Effect.catchIf(isDuplicateKeyError, () => Effect.void)
-    )
-  }
+  yield* Effect.forEach(mockLineInserts, (line) =>
+    repo.insert(line).pipe(Effect.catchIf(isDuplicateKeyError, () => Effect.void)),
+    { concurrency: 10 }
+  )
   yield* Effect.log(`  - ${mockLineInserts.length} lines seeded`)
 })
 
@@ -368,11 +367,10 @@ export const seedLines = Effect.gen(function* () {
 export const seedMachines = Effect.gen(function* () {
   const repo = yield* MachineRepo
   yield* Effect.log('Seeding machines...')
-  for (const machine of mockMachineInserts) {
-    yield* repo.insert(machine).pipe(
-      Effect.catchIf(isDuplicateKeyError, () => Effect.void)
-    )
-  }
+  yield* Effect.forEach(mockMachineInserts, (machine) =>
+    repo.insert(machine).pipe(Effect.catchIf(isDuplicateKeyError, () => Effect.void)),
+    { concurrency: 10 }
+  )
   yield* Effect.log(`  - ${mockMachineInserts.length} machines seeded`)
 })
 
@@ -384,11 +382,10 @@ export const seedMachines = Effect.gen(function* () {
 export const seedSensors = Effect.gen(function* () {
   const repo = yield* SensorRepo
   yield* Effect.log('Seeding sensors...')
-  for (const sensor of mockSensorInserts) {
-    yield* repo.insert(sensor).pipe(
-      Effect.catchIf(isDuplicateKeyError, () => Effect.void)
-    )
-  }
+  yield* Effect.forEach(mockSensorInserts, (sensor) =>
+    repo.insert(sensor).pipe(Effect.catchIf(isDuplicateKeyError, () => Effect.void)),
+    { concurrency: 10 }
+  )
   yield* Effect.log(`  - ${mockSensorInserts.length} sensors seeded`)
 })
 
@@ -409,114 +406,72 @@ export const seedAssets = pipe(
 
 /**
  * Seeds mock sensor readings using PostgreSQL generate_series.
- * Uses raw SQL for efficiency (700K+ rows).
+ * Uses sql template tags with parameterized values for safety.
+ * Performance: 700K+ rows via server-side generation.
  *
  * Idempotent: Deletes existing mock data before inserting.
+ * Parallelized across sensors (each device is independent).
  */
 export const seedMockReadings = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
 
   yield* Effect.log('Seeding mock sensor readings...')
 
-  for (const spec of sensorSpecs) {
+  const timeRangeDays = SeedConfig.timeRangeDays
+
+  // Seed each sensor in parallel (bounded by connection pool)
+  yield* Effect.forEach(sensorSpecs, (spec) => {
     const rowCount = spec.rows === 'primary'
       ? SeedConfig.primarySensorRows
       : SeedConfig.secondarySensorRows
 
-    // Clear existing data for this device (idempotency)
-    yield* sql.unsafe(`
-      DELETE FROM iiot.sensor_readings
-      WHERE device_id = '${spec.deviceId}'
-        AND time > NOW() - INTERVAL '${SeedConfig.timeRangeDays} days'
-    `)
+    const { deviceId, valueMin, valueMax, qualityThreshold } = spec
+    const valueRange = valueMax - valueMin
 
-    // Generate mock data using generate_series
-    yield* sql.unsafe(`
-      INSERT INTO iiot.sensor_readings (time, device_id, value, quality)
-      SELECT
-        NOW() - (random() * INTERVAL '${SeedConfig.timeRangeDays} days'),
-        '${spec.deviceId}',
-        ${spec.valueMin} + (random() * ${spec.valueMax - spec.valueMin}),
-        CASE WHEN random() > ${spec.qualityThreshold} THEN 100 ELSE 50 END
-      FROM generate_series(1, ${rowCount})
-    `)
-
-    yield* Effect.log(`  - ${spec.deviceId}: ${rowCount.toLocaleString()} rows`)
-  }
+    return pipe(
+      // Clear existing data for this device (idempotency)
+      sql`
+        DELETE FROM iiot.sensor_readings
+        WHERE device_id = ${deviceId}
+          AND time > NOW() - make_interval(days => ${timeRangeDays})
+      `,
+      // Generate mock data using generate_series
+      Effect.andThen(sql`
+        INSERT INTO iiot.sensor_readings (time, device_id, value, quality)
+        SELECT
+          NOW() - (random() * make_interval(days => ${timeRangeDays})),
+          ${deviceId},
+          ${valueMin} + (random() * ${valueRange}),
+          CASE WHEN random() > ${qualityThreshold} THEN 100 ELSE 50 END
+        FROM generate_series(1, ${rowCount})
+      `),
+      Effect.andThen(Effect.log(`  - ${deviceId}: ${rowCount.toLocaleString()} rows`))
+    )
+  }, { concurrency: 4 }) // Bounded by DB connection pool
 
   yield* Effect.log('Mock readings seeded successfully')
 })
 
 // =============================================================================
-// Mock Alarms Seeder
+// Mock Alarms Seeder (Tier 1: Repo-Based)
 // =============================================================================
 
 /**
- * Mock alarm records for testing.
- */
-const mockAlarms = [
-  {
-    deviceId: 'TMP-001',
-    alarmType: 'high_temperature',
-    severity: 'warning',
-    message: 'Temperature exceeded threshold: 29.5C',
-    hoursAgo: 2,
-  },
-  {
-    deviceId: 'VIB-001',
-    alarmType: 'high_vibration',
-    severity: 'critical',
-    message: 'Vibration exceeded critical threshold: 4.8 mm/s',
-    hoursAgo: 1,
-  },
-  {
-    deviceId: 'TMP-003',
-    alarmType: 'high_temperature',
-    severity: 'warning',
-    message: 'Paint booth temperature high: 58C',
-    hoursAgo: 0.5,
-  },
-  {
-    deviceId: 'CUR-001',
-    alarmType: 'overcurrent',
-    severity: 'critical',
-    message: 'Current spike detected: 14.2 amps',
-    hoursAgo: 0.25,
-  },
-] as const
-
-/**
- * Seeds mock alarm records.
- * Idempotent: Uses ON CONFLICT DO NOTHING.
+ * Seeds mock alarm records via AlarmRepo.
+ * Uses mockAlarmInserts (type-safe AlarmModel.insert.make() objects).
+ * Idempotent: catches duplicate key errors.
  */
 export const seedMockAlarms = Effect.gen(function* () {
-  const sql = yield* SqlClient.SqlClient
+  const repo = yield* AlarmRepo
 
   yield* Effect.log('Seeding mock alarms...')
 
-  // Clear existing mock alarms (based on known messages)
-  yield* sql.unsafe(`
-    DELETE FROM iiot.alarms
-    WHERE message LIKE 'Temperature exceeded threshold%'
-       OR message LIKE 'Vibration exceeded critical%'
-       OR message LIKE 'Paint booth temperature%'
-       OR message LIKE 'Current spike detected%'
-  `)
+  yield* Effect.forEach(mockAlarmInserts, (alarm) =>
+    repo.insert(alarm).pipe(Effect.catchIf(isDuplicateKeyError, () => Effect.void)),
+    { concurrency: 10 }
+  )
 
-  for (const alarm of mockAlarms) {
-    yield* sql.unsafe(`
-      INSERT INTO iiot.alarms (device_id, alarm_type, severity, message, triggered_at)
-      VALUES (
-        '${alarm.deviceId}',
-        '${alarm.alarmType}',
-        '${alarm.severity}',
-        '${alarm.message}',
-        NOW() - INTERVAL '${alarm.hoursAgo} hours'
-      )
-    `)
-  }
-
-  yield* Effect.log(`  - ${mockAlarms.length} alarms seeded`)
+  yield* Effect.log(`  - ${mockAlarmInserts.length} alarms seeded`)
 })
 
 // =============================================================================
@@ -551,17 +506,18 @@ export const refreshAggregates = Effect.gen(function* () {
  */
 export const clearMockData = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
+  const timeRangeDays = SeedConfig.timeRangeDays
 
   yield* Effect.log('Clearing mock data...')
 
   // Clear readings (within seed time range)
-  yield* sql.unsafe(`
+  yield* sql`
     DELETE FROM iiot.sensor_readings
-    WHERE time > NOW() - INTERVAL '${SeedConfig.timeRangeDays} days'
-  `)
+    WHERE time > NOW() - make_interval(days => ${timeRangeDays})
+  `
 
   // Clear all alarms (mock data)
-  yield* sql.unsafe(`DELETE FROM iiot.alarms`)
+  yield* sql`DELETE FROM iiot.alarms`
 
   yield* Effect.log('Mock data cleared')
 })
@@ -571,18 +527,20 @@ export const clearMockData = Effect.gen(function* () {
 // =============================================================================
 
 /**
- * Seeds all mock data in correct order.
+ * Seeds all mock data in correct FK order.
  * Idempotent - safe to run multiple times.
  *
  * Order:
- * 1. Readings (700K+ rows)
- * 2. Alarms
- * 3. Refresh aggregates
+ * 1. Assets (Plants → Lines → Machines → Sensors)
+ * 2. Readings (700K+ rows, depends on sensors)
+ * 3. Alarms (depends on devices)
+ * 4. Refresh aggregates
  */
 export const seedAll = Effect.gen(function* () {
   yield* Effect.log('=== IIoT Mock Data Seeder ===')
   yield* Effect.log(`Configuration: ${SeedConfig.primarySensorRows.toLocaleString()} rows/primary, ${SeedConfig.secondarySensorRows.toLocaleString()} rows/secondary`)
 
+  yield* seedAssets
   yield* seedMockReadings
   yield* seedMockAlarms
   yield* refreshAggregates
