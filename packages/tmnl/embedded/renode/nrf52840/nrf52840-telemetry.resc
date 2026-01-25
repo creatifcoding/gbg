@@ -1,0 +1,23 @@
+:name: TMNL nRF52840 Telemetry
+:description: nRF52840 Zephyr Shell over UART socket for telemetry ingestion.
+
+using sysbus
+
+$name?="tmnl-nrf52840"
+$bin?=@https://dl.antmicro.com/projects/renode/renode-nrf52840-zephyr_shell_module.elf-gf8d05cf-s_1310072-c00fbffd6b65c6238877c4fe52e8228c2a38bf1f
+$uartDevice?=sysbus.uart0
+$uartPort?=5501
+
+mach create $name
+machine LoadPlatformDescription @platforms/cpus/nrf52840.repl
+
+emulation CreateServerSocketTerminal $uartPort "uart_socket" false
+connector Connect $uartDevice uart_socket
+
+macro reset
+"""
+    sysbus LoadELF $bin
+"""
+
+runMacro $reset
+start

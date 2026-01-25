@@ -8,6 +8,7 @@
 TMNL is decomposed into **32 lib subsystems**, validated by **31 testbeds**, and documented via **50+ skills**.
 
 **P0+P1 Skills Complete (6 skills, 53 patterns)**:
+
 - `slider-system` (7 patterns) — DAW-grade behaviors, precision modifiers
 - `data-manager-system` (7 patterns) — Effect.Service orchestration, hybrid dispatch
 - `commands-hotkeys-system` (9 patterns) — Emacs-style command infrastructure
@@ -23,53 +24,54 @@ This registry serves as the authoritative reference for skill discovery, gap ana
 
 ### Legend
 
-| Symbol | Meaning |
-|--------|---------|
-| ✅ | Complete (testbed + skill exist) |
-| ⚠️ | Partial (testbed exists, skill missing/incomplete) |
-| 🔧 | Planned (on roadmap) |
-| ➖ | N/A (infrastructure, no testbed needed) |
+| Symbol | Meaning                                            |
+| ------ | -------------------------------------------------- |
+| ✅     | Complete (testbed + skill exist)                   |
+| ⚠️     | Partial (testbed exists, skill missing/incomplete) |
+| 🔧     | Planned (on roadmap)                               |
+| ➖     | N/A (infrastructure, no testbed needed)            |
 
 ---
 
 ## Core Infrastructure Layer
 
-| Subsystem | Path | Testbed | Skill | Status |
-|-----------|------|---------|-------|--------|
-| **commands** | `src/lib/commands/` | KeybindingTestbed | `commands-hotkeys-system` | ✅ |
-| **hotkeys** | `src/lib/hotkeys/` | HotkeyTestbed | `commands-hotkeys-system` | ✅ |
-| **variables** | `src/lib/variables/` | VariablesTestbed | — | ⚠️ |
-| **overlays** | `src/lib/overlays/` | OverlayTestbed | `tmnl-registry-patterns` (partial) | ⚠️ |
-| **minibuffer** | `src/lib/minibuffer/` | — | — | ⚠️ |
-| **debug** | `src/lib/debug/` | — | `tmnl-debug-instrumentation` | ✅ |
+| Subsystem      | Path                  | Testbed           | Skill                              | Status |
+| -------------- | --------------------- | ----------------- | ---------------------------------- | ------ |
+| **commands**   | `src/lib/commands/`   | KeybindingTestbed | `commands-hotkeys-system`          | ✅     |
+| **hotkeys**    | `src/lib/hotkeys/`    | HotkeyTestbed     | `commands-hotkeys-system`          | ✅     |
+| **variables**  | `src/lib/variables/`  | VariablesTestbed  | —                                  | ⚠️     |
+| **overlays**   | `src/lib/overlays/`   | OverlayTestbed    | `tmnl-registry-patterns` (partial) | ⚠️     |
+| **minibuffer** | `src/lib/minibuffer/` | —                 | —                                  | ⚠️     |
+| **debug**      | `src/lib/debug/`      | —                 | `tmnl-debug-instrumentation`       | ✅     |
 
 ---
 
 ## Data & Search Layer
 
-| Subsystem | Path | Testbed | Skill | Status |
-|-----------|------|---------|-------|--------|
-| **data-manager** | `src/lib/data-manager/` | DataManagerTestbed, DataManagerV1/V2 | `data-manager-system` | ✅ |
-| **search** | `src/lib/search/` | SearchTestbed | `search-system` | ✅ |
-| **indices** | `src/lib/indices/` | IndicesTestbed | — | ⚠️ |
-| **data-grid** | `src/lib/data-grid/` | DataGridTestbed, Variants | `ag-grid-patterns` | ✅ |
+| Subsystem        | Path                    | Testbed                              | Skill                 | Status |
+| ---------------- | ----------------------- | ------------------------------------ | --------------------- | ------ |
+| **data-manager** | `src/lib/data-manager/` | DataManagerTestbed, DataManagerV1/V2 | `data-manager-system` | ✅     |
+| **search**       | `src/lib/search/`       | SearchTestbed                        | `search-system`       | ✅     |
+| **indices**      | `src/lib/indices/`      | IndicesTestbed                       | —                     | ⚠️     |
+| **data-grid**    | `src/lib/data-grid/`    | DataGridTestbed, Variants            | `ag-grid-patterns`    | ✅     |
 
 ---
 
 ## UI Controls Layer
 
-| Subsystem | Path | Testbed | Skill | Status |
-|-----------|------|---------|-------|--------|
-| **slider** | `src/lib/slider/` | SliderTestbed, SliderV2Testbed | `slider-system` | ✅ |
-| **drawer** | `src/lib/drawer/` | DrawerTestbed | `drawer-floating-system` | ✅ |
-| **floating** | `src/lib/floating/` | FloatingPanelTestbed | `drawer-floating-system` | ✅ |
-| **selection** | `src/lib/selection/` | SelectionTestbed | — | ⚠️ |
-| **traits** | `src/lib/traits/` | TraitTestbed | — | ⚠️ |
-| **capabilities** | `src/lib/capabilities/` | CapabilityTestbed | — | ⚠️ |
+| Subsystem        | Path                    | Testbed                        | Skill                    | Status |
+| ---------------- | ----------------------- | ------------------------------ | ------------------------ | ------ |
+| **slider**       | `src/lib/slider/`       | SliderTestbed, SliderV2Testbed | `slider-system`          | ✅     |
+| **drawer**       | `src/lib/drawer/`       | DrawerTestbed                  | `drawer-floating-system` | ✅     |
+| **floating**     | `src/lib/floating/`     | FloatingPanelTestbed           | `drawer-floating-system` | ✅     |
+| **selection**    | `src/lib/selection/`    | SelectionTestbed               | —                        | ⚠️     |
+| **traits**       | `src/lib/traits/`       | TraitTestbed                   | —                        | ⚠️     |
+| **capabilities** | `src/lib/capabilities/` | CapabilityTestbed              | —                        | ⚠️     |
 
 ### Gap: Traits & Capabilities Skill
 
 **Needed**: `traits-capabilities-system` skill covering:
+
 - Trait injection pattern (Rust-inspired)
 - useTrait / useTraits hooks
 - Provider-scoped injection
@@ -80,12 +82,12 @@ This registry serves as the authoritative reference for skill discovery, gap ana
 
 ## Animation & Graphics Layer
 
-| Subsystem | Path | Testbed | Skill | Status |
-|-----------|------|---------|-------|--------|
-| **animation** | `src/lib/animation/` | AnimationTestbed, AnimationV2Testbed | `tmnl-animation-tokens` | ✅ |
-| **motion** | `src/lib/motion/` | — | — | ⚠️ |
-| **scale** | `src/lib/scale/` | — | — | ➖ |
-| **screensaver** | `src/lib/screensaver/` | ScreensaverTestbed | — | ⚠️ |
+| Subsystem       | Path                   | Testbed                              | Skill                   | Status |
+| --------------- | ---------------------- | ------------------------------------ | ----------------------- | ------ |
+| **animation**   | `src/lib/animation/`   | AnimationTestbed, AnimationV2Testbed | `tmnl-animation-tokens` | ✅     |
+| **motion**      | `src/lib/motion/`      | —                                    | —                       | ⚠️     |
+| **scale**       | `src/lib/scale/`       | —                                    | —                       | ➖     |
+| **screensaver** | `src/lib/screensaver/` | ScreensaverTestbed                   | —                       | ⚠️     |
 
 ### Note: Animation Coverage
 
@@ -95,11 +97,11 @@ This registry serves as the authoritative reference for skill discovery, gap ana
 
 ## State Management Layer
 
-| Subsystem | Path | Testbed | Skill | Status |
-|-----------|------|---------|-------|--------|
-| **stx** | `src/lib/stx/` | — | `xstate-integration` (partial) | ⚠️ |
-| **context** | `src/lib/context/` | — | — | ➖ |
-| **fui** | `src/lib/fui/` | — | — | ➖ |
+| Subsystem   | Path               | Testbed | Skill                          | Status |
+| ----------- | ------------------ | ------- | ------------------------------ | ------ |
+| **stx**     | `src/lib/stx/`     | —       | `xstate-integration` (partial) | ⚠️     |
+| **context** | `src/lib/context/` | —       | —                              | ➖     |
+| **fui**     | `src/lib/fui/`     | —       | —                              | ➖     |
 
 ### Note: STX Coverage
 
@@ -109,26 +111,27 @@ This registry serves as the authoritative reference for skill discovery, gap ana
 
 ## Streaming & Real-time Layer
 
-| Subsystem | Path | Testbed | Skill | Status |
-|-----------|------|---------|-------|--------|
-| **streams** | `src/lib/streams/` | StreamsPlayground | `streams-playground-system` | ✅ |
-| **ava** | `src/lib/ava/` | AvaTestbed | — | ⚠️ |
-| **ams** | `src/lib/ams/` | — | — | ⚠️ |
-| **bfo** | `src/lib/bfo/` | — | — | ⚠️ |
+| Subsystem   | Path               | Testbed           | Skill                       | Status |
+| ----------- | ------------------ | ----------------- | --------------------------- | ------ |
+| **streams** | `src/lib/streams/` | StreamsPlayground | `streams-playground-system` | ✅     |
+| **ava**     | `src/lib/ava/`     | AvaTestbed        | —                           | ⚠️     |
+| **ams**     | `src/lib/ams/`     | —                 | —                           | ⚠️     |
+| **bfo**     | `src/lib/bfo/`     | —                 | —                           | ⚠️     |
 
 ---
 
 ## Canvas & Visualization Layer
 
-| Subsystem | Path | Testbed | Skill | Status |
-|-----------|------|---------|-------|--------|
-| **tldraw shapes** | `src/components/tldraw/shapes/` | — | `ag-grid-patterns` (partial) | ⚠️ |
-| **scada** | `src/components/scada/` | ScadaOverlayTestbed | — | ⚠️ |
-| **drag** | `src/lib/drag/` | — | — | ⚠️ |
+| Subsystem         | Path                            | Testbed             | Skill                        | Status |
+| ----------------- | ------------------------------- | ------------------- | ---------------------------- | ------ |
+| **tldraw shapes** | `src/components/tldraw/shapes/` | —                   | `ag-grid-patterns` (partial) | ⚠️     |
+| **scada**         | `src/components/scada/`         | ScadaOverlayTestbed | —                            | ⚠️     |
+| **drag**          | `src/lib/drag/`                 | —                   | —                            | ⚠️     |
 
 ### Gap: tldraw Integration Skill
 
 **Needed**: `tldraw-integration` skill covering:
+
 - Custom ShapeUtil patterns
 - Canvas overlays (DragReticleOverlay)
 - Hybrid drag system (grid-to-canvas)
@@ -138,14 +141,22 @@ This registry serves as the authoritative reference for skill discovery, gap ana
 
 ## Support Infrastructure
 
-| Subsystem | Path | Testbed | Skill | Status |
-|-----------|------|---------|-------|--------|
-| **testbed** | `src/lib/testbed/` | — | `tmnl-testbed-patterns` | ✅ |
-| **primitives** | `src/lib/primitives/` | — | `tmnl-component-tiers` (partial) | ✅ |
-| **tmnl-ui** | `src/lib/tmnl-ui/` | — | `tmnl-design-tokens` | ✅ |
-| **sidebar** | `src/lib/sidebar/` | — | — | ➖ |
-| **table-service** | `src/lib/table-service/` | — | — | ⚠️ |
-| **renderer** | `src/lib/renderer/` | — | — | ➖ |
+| Subsystem         | Path                     | Testbed | Skill                            | Status |
+| ----------------- | ------------------------ | ------- | -------------------------------- | ------ |
+| **testbed**       | `src/lib/testbed/`       | —       | `tmnl-testbed-patterns`          | ✅     |
+| **primitives**    | `src/lib/primitives/`    | —       | `tmnl-component-tiers` (partial) | ✅     |
+| **tmnl-ui**       | `src/lib/tmnl-ui/`       | —       | `tmnl-design-tokens`             | ✅     |
+| **sidebar**       | `src/lib/sidebar/`       | —       | —                                | ➖     |
+| **table-service** | `src/lib/table-service/` | —       | —                                | ⚠️     |
+| **renderer**      | `src/lib/renderer/`      | —       | —                                | ➖     |
+
+---
+
+## Embedded & Simulation Layer
+
+| Subsystem  | Path               | Testbed | Skill                                                  | Status |
+| ---------- | ------------------ | ------- | ------------------------------------------------------ | ------ |
+| **renode** | `embedded/renode/` | —       | `renode-for-tmnl`, `renode-init`, `renode-development` | ✅     |
 
 ---
 
@@ -213,12 +224,12 @@ This registry serves as the authoritative reference for skill discovery, gap ana
 
 Research skills enforce epistemic honesty and grounded verification before implementation.
 
-| Skill | Purpose | Triggers |
-|-------|---------|----------|
-| `grounded-research` | Uncertainty admission protocol, knowledge cutoff awareness | "research", "verify", "uncertain" |
-| `effect-research` | Effect-TS specialized research via deepwiki + submodules | "Effect pattern", "Schema", "Atom.runtime" |
-| `research-cascade` | Multi-source orchestration (deepwiki → submodules → web) | "cross-reference", "verify from multiple" |
-| `tmnl-submodule-exploration` | Navigate effect, effect-atom, website submodules | "submodule", "canonical example" |
+| Skill                        | Purpose                                                    | Triggers                                   |
+| ---------------------------- | ---------------------------------------------------------- | ------------------------------------------ |
+| `grounded-research`          | Uncertainty admission protocol, knowledge cutoff awareness | "research", "verify", "uncertain"          |
+| `effect-research`            | Effect-TS specialized research via deepwiki + submodules   | "Effect pattern", "Schema", "Atom.runtime" |
+| `research-cascade`           | Multi-source orchestration (deepwiki → submodules → web)   | "cross-reference", "verify from multiple"  |
+| `tmnl-submodule-exploration` | Navigate effect, effect-atom, website submodules           | "submodule", "canonical example"           |
 
 ### Research Cascade Order
 
@@ -243,13 +254,13 @@ Research skills enforce epistemic honesty and grounded verification before imple
 
 Internal CLI framework using Effect CLI with modular services for persistence, messaging, and configuration.
 
-| Skill | Purpose | Triggers |
-|-------|---------|----------|
-| `cli/core` | Command.make, Args, Options, subcommands, program structure | "CLI", "Command.make", "@effect/cli" |
-| `cli/persistence` | SQLite storage via @effect/sql-sqlite-bun, repositories, migrations | "SQLite", "cli storage", "persistence" |
-| `cli/messaging` | Agent-guiding errors, TaggedError patterns, output formatting | "error messages", "agent guidance", "TaggedError" |
-| `cli/services` | Effect.Service patterns, Layer composition, dependency injection | "Effect.Service", "Layer composition", "CLI service" |
-| `cli/config` | Configuration via Context + Config, env vars, config files, XDG paths | "CLI config", "environment variables", "Config.Provider" |
+| Skill             | Purpose                                                               | Triggers                                                 |
+| ----------------- | --------------------------------------------------------------------- | -------------------------------------------------------- |
+| `cli/core`        | Command.make, Args, Options, subcommands, program structure           | "CLI", "Command.make", "@effect/cli"                     |
+| `cli/persistence` | SQLite storage via @effect/sql-sqlite-bun, repositories, migrations   | "SQLite", "cli storage", "persistence"                   |
+| `cli/messaging`   | Agent-guiding errors, TaggedError patterns, output formatting         | "error messages", "agent guidance", "TaggedError"        |
+| `cli/services`    | Effect.Service patterns, Layer composition, dependency injection      | "Effect.Service", "Layer composition", "CLI service"     |
+| `cli/config`      | Configuration via Context + Config, env vars, config files, XDG paths | "CLI config", "environment variables", "Config.Provider" |
 
 ### CLI Architecture
 
@@ -283,35 +294,35 @@ Internal CLI framework using Effect CLI with modular services for persistence, m
 
 ### P0 — Critical (Frequently Used Subsystems) ✅ COMPLETE
 
-| Skill | Subsystem | Testbed | Patterns |
-|-------|-----------|---------|----------|
-| `slider-system` | slider | SliderTestbed, SliderV2 | 7 patterns |
-| `data-manager-system` | data-manager | DataManagerTestbed, v1/v2 | 7 patterns |
-| `commands-hotkeys-system` | commands, hotkeys | Keybinding, Hotkey | 9 patterns |
+| Skill                     | Subsystem         | Testbed                   | Patterns   |
+| ------------------------- | ----------------- | ------------------------- | ---------- |
+| `slider-system`           | slider            | SliderTestbed, SliderV2   | 7 patterns |
+| `data-manager-system`     | data-manager      | DataManagerTestbed, v1/v2 | 7 patterns |
+| `commands-hotkeys-system` | commands, hotkeys | Keybinding, Hotkey        | 9 patterns |
 
 ### P1 — High (Active Development) ✅ COMPLETE
 
-| Skill | Subsystem | Testbed | Patterns |
-|-------|-----------|---------|----------|
-| `search-system` | search | SearchTestbed | 10 patterns |
-| `drawer-floating-system` | drawer, floating | DrawerTestbed, FloatingPanel | 10 patterns |
-| `streams-playground-system` | streams | StreamsPlayground | 10 patterns |
+| Skill                       | Subsystem        | Testbed                      | Patterns    |
+| --------------------------- | ---------------- | ---------------------------- | ----------- |
+| `search-system`             | search           | SearchTestbed                | 10 patterns |
+| `drawer-floating-system`    | drawer, floating | DrawerTestbed, FloatingPanel | 10 patterns |
+| `streams-playground-system` | streams          | StreamsPlayground            | 10 patterns |
 
 ### P2 — Medium (Emerging Patterns)
 
-| Skill | Subsystem | Testbed | Justification |
-|-------|-----------|---------|---------------|
-| `traits-capabilities-system` | traits, capabilities | TraitTestbed, CapabilityTestbed | Novel abstraction pattern |
-| `selection-system` | selection | SelectionTestbed | Marquee selection patterns |
-| `tldraw-integration` | tldraw | — | Canvas integration patterns |
+| Skill                        | Subsystem            | Testbed                         | Justification               |
+| ---------------------------- | -------------------- | ------------------------------- | --------------------------- |
+| `traits-capabilities-system` | traits, capabilities | TraitTestbed, CapabilityTestbed | Novel abstraction pattern   |
+| `selection-system`           | selection            | SelectionTestbed                | Marquee selection patterns  |
+| `tldraw-integration`         | tldraw               | —                               | Canvas integration patterns |
 
 ### P3 — Low (Specialized)
 
-| Skill | Subsystem | Testbed | Justification |
-|-------|-----------|---------|---------------|
-| `variables-system` | variables | VariablesTestbed | Emacs-style variables |
-| `screensaver-system` | screensaver | ScreensaverTestbed | Specialized idle feature |
-| `overlays-system` | overlays | OverlayTestbed | Partially covered by registry |
+| Skill                | Subsystem   | Testbed            | Justification                 |
+| -------------------- | ----------- | ------------------ | ----------------------------- |
+| `variables-system`   | variables   | VariablesTestbed   | Emacs-style variables         |
+| `screensaver-system` | screensaver | ScreensaverTestbed | Specialized idle feature      |
+| `overlays-system`    | overlays    | OverlayTestbed     | Partially covered by registry |
 
 ---
 
@@ -335,10 +346,12 @@ triggers:
 ## Canonical Sources
 
 ### TMNL Implementations
+
 - **Primary**: `src/lib/[subsystem]/[file].ts`
 - **Testbed**: `src/components/testbed/[Subsystem]Testbed.tsx`
 
 ### Reference Documentation
+
 - **Architecture**: `assets/documents/[SUBSYSTEM]_ARCHITECTURE.md` (if exists)
 - **Pattern Registry**: `.edin/[RELEVANT]_PATTERNS.md`
 
@@ -349,10 +362,12 @@ triggers:
 [Code example with comments]
 
 **Key Features:**
+
 - Feature 1
 - Feature 2
 
 **TMNL Examples:**
+
 - `[file]:[line]` — [description]
 
 ## Pattern N: ...
@@ -360,6 +375,7 @@ triggers:
 ## Anti-Patterns
 
 ### Don't: [Antipattern Title]
+
 [Explanation and fix]
 
 ## Integration Points
@@ -370,8 +386,8 @@ triggers:
 ## Quick Reference
 
 | Pattern | File | Use Case |
-|---------|------|----------|
-| ... | ... | ... |
+| ------- | ---- | -------- |
+| ...     | ...  | ...      |
 ```
 
 ---
@@ -379,6 +395,7 @@ triggers:
 ## Invocation Triggers Guide
 
 Skills should include triggers that match:
+
 1. **Direct mentions**: "slider", "DataManager", "hotkeys"
 2. **Question patterns**: "how do I...", "where is..."
 3. **Action patterns**: "create a...", "implement..."
