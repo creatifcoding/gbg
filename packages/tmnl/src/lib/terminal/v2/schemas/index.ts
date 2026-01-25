@@ -180,3 +180,60 @@ export type {
   Block,
   BlockTerminalState,
 } from './blocks'
+
+// =============================================================================
+// Tabs Schemas
+// =============================================================================
+
+export {
+  // Enums
+  SplitDirection,
+  TerminalViewMode,
+  PinnedTabIcon,
+  TabColor,
+  // Pane types
+  TerminalPane,
+  WebViewPane,
+  WidgetPane,
+  EditorPane,
+  ContentPane,
+  // Tab
+  Tab,
+  // Type guards
+  isTerminalPane,
+  isWebViewPane,
+  isWidgetPane,
+  isEditorPane,
+  isSplitPane,
+  isContentPane,
+  // Factory functions
+  generatePaneId,
+  generateTabId,
+  createTerminalPane,
+  createWebViewPane,
+  createWidgetPane,
+  createEditorPane,
+  createSplitPane,
+  createTab,
+  // Tree utilities
+  findPane,
+  getAllTerminalPanes,
+  getAllContentPanes,
+  replacePane,
+  removePane,
+} from './tabs'
+
+export type {
+  SplitDirection,
+  TerminalViewMode,
+  PinnedTabIcon,
+  TabColor,
+  TerminalPane,
+  WebViewPane,
+  WidgetPane,
+  EditorPane,
+  ContentPane,
+  SplitPane,
+  PaneNode,
+  Tab,
+} from './tabs'

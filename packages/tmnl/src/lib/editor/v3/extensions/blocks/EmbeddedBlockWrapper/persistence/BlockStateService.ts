@@ -11,7 +11,7 @@ import { Model, SqlClient } from '@effect/sql';
 import { SqlError } from '@effect/sql/SqlError';
 import { Context, Effect, Layer, Option, Schedule, Stream } from 'effect';
 
-import { BlockStateModel } from '../../../persistence/models';
+import { BlockStateModel } from '../../../../persistence/models';
 import {
   BlockId,
   BlockState,
@@ -156,7 +156,10 @@ export interface BlockStateServiceShape {
    */
   readonly restore: (
     blockId: string
-  ) => Effect.Effect<BlockState, BlockStateNotFound | BlockStatePersistenceError>;
+  ) => Effect.Effect<
+    BlockState,
+    BlockStateNotFound | BlockStatePersistenceError
+  >;
 
   /**
    * Delete block state from SQLite.
@@ -172,7 +175,10 @@ export interface BlockStateServiceShape {
   readonly watch: (
     blockId: string,
     intervalMs?: number
-  ) => Stream.Stream<BlockState, BlockStateNotFound | BlockStatePersistenceError>;
+  ) => Stream.Stream<
+    BlockState,
+    BlockStateNotFound | BlockStatePersistenceError
+  >;
 
   /**
    * Prune old block states (older than maxAgeMs).
@@ -186,10 +192,9 @@ export interface BlockStateServiceShape {
 // Service Context Tag
 // =============================================================================
 
-export class BlockStateService extends Context.Tag('tmnl/editor/BlockStateService')<
-  BlockStateService,
-  BlockStateServiceShape
->() {}
+export class BlockStateService extends Context.Tag(
+  'tmnl/editor/BlockStateService'
+)<BlockStateService, BlockStateServiceShape>() {}
 
 // =============================================================================
 // Service Implementation
@@ -232,7 +237,9 @@ export const BlockStateServiceLive = Layer.effect(
           nodeAttrs: JSON.parse(model.nodeAttrs),
           savedAt: new Date(model.savedAt),
         });
-      }).pipe(Effect.withSpan('BlockStateService.save', { attributes: { blockId } }));
+      }).pipe(
+        Effect.withSpan('BlockStateService.save', { attributes: { blockId } })
+      );
 
     const restore: BlockStateServiceShape['restore'] = (blockId) =>
       Effect.gen(function* () {
@@ -265,7 +272,11 @@ export const BlockStateServiceLive = Layer.effect(
           nodeAttrs: JSON.parse(model.nodeAttrs),
           savedAt: new Date(model.savedAt),
         });
-      }).pipe(Effect.withSpan('BlockStateService.restore', { attributes: { blockId } }));
+      }).pipe(
+        Effect.withSpan('BlockStateService.restore', {
+          attributes: { blockId },
+        })
+      );
 
     const remove: BlockStateServiceShape['remove'] = (blockId) =>
       repo.delete(blockId as BlockId).pipe(

@@ -3,11 +3,31 @@ use std::time::Instant;
 
 use tauri::Manager;
 
+mod file_browser;
 mod terminal_server;
+mod theia_server;
+mod window_manager;
 
+use file_browser::{
+    fs_compute_hash, fs_copy_file, fs_create_directory, fs_delete_file, fs_file_metadata,
+    fs_list_directory, fs_read_file, fs_rename_file, fs_scan_directory, fs_write_file,
+};
 use terminal_server::{
     terminal_server_restart, terminal_server_start, terminal_server_status, terminal_server_stop,
     TerminalServerManager,
+};
+use theia_server::{
+    theia_server_restart, theia_server_start, theia_server_status, theia_server_stop,
+    TheiaServerManager,
+};
+use window_manager::{
+    close_window, create_testbed_window, emit_to_all_windows, emit_to_window, focus_window,
+    get_or_focus_testbed_window, list_windows,
+    // Window pool commands (for sub-second window opening)
+    init_window_pool, get_pool_status, open_testbed_window_fast,
+    // Window control commands
+    minimize_window, unminimize_window, maximize_window, unmaximize_window,
+    set_fullscreen, toggle_fullscreen, get_window_state,
 };
 
 // =============================================================================
@@ -57,9 +77,30 @@ pub fn run() {
     builder
         // Terminal server manager state
         .manage(Arc::new(TerminalServerManager::default()))
+        // Theia IDE server manager state
+        .manage(Arc::new(TheiaServerManager::default()))
         // Setup hook for initialization
         .setup(|app| {
             log::info!("TMNL app starting...");
+
+            // Initialize window pool in background thread
+            // Must be done from setup(), not from a command, to avoid WebView2 deadlock on Windows
+            {
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    // Wait for event loop to be fully running
+                    std::thread::sleep(std::time::Duration::from_millis(1000));
+
+                    log::info!("Initializing window pool...");
+                    // Create 1 pool window - each WebView2 instance uses ~80MB+ memory
+                    // even when hidden. Replenishment happens after each use.
+                    match window_manager::create_pool_window_from_setup(&handle) {
+                        Ok(label) => log::info!("Created pool window: {}", label),
+                        Err(e) => log::warn!("Failed to create pool window: {:?}", e),
+                    }
+                    log::info!("Window pool initialization complete");
+                });
+            }
 
             // Auto-start terminal server in development
             #[cfg(debug_assertions)]
@@ -80,11 +121,49 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            // Timing
             now_micros,
+            // Terminal server
             terminal_server_start,
             terminal_server_stop,
             terminal_server_status,
             terminal_server_restart,
+            // Theia IDE server
+            theia_server_start,
+            theia_server_stop,
+            theia_server_status,
+            theia_server_restart,
+            // FileBrowser
+            fs_list_directory,
+            fs_scan_directory,
+            fs_read_file,
+            fs_write_file,
+            fs_delete_file,
+            fs_rename_file,
+            fs_copy_file,
+            fs_create_directory,
+            fs_file_metadata,
+            fs_compute_hash,
+            // Window Manager
+            create_testbed_window,
+            focus_window,
+            close_window,
+            list_windows,
+            get_or_focus_testbed_window,
+            emit_to_all_windows,
+            emit_to_window,
+            // Window Pool (sub-second window opening)
+            init_window_pool,
+            get_pool_status,
+            open_testbed_window_fast,
+            // Window Controls
+            minimize_window,
+            unminimize_window,
+            maximize_window,
+            unmaximize_window,
+            set_fullscreen,
+            toggle_fullscreen,
+            get_window_state,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

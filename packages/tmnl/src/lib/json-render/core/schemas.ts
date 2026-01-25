@@ -12,10 +12,29 @@
 
 import * as Schema from "effect/Schema"
 import { Effect, pipe } from "effect"
+import { EntranceAnimation } from "./animation-schema"
 
 // =============================================================================
 // Dynamic Values
 // =============================================================================
+
+/**
+ * Decode error emitted when a streamed patch line fails JSON parse or Schema decode.
+ */
+export class JsonRenderDecodeError extends Schema.TaggedClass<JsonRenderDecodeError>()(
+  "JsonRenderDecodeError",
+  {
+    stage: Schema.Literal("parse", "decode"),
+    line: Schema.String,
+    chunk: Schema.String,
+    parsed: Schema.optional(Schema.Unknown),
+    message: Schema.String,
+    timestamp: Schema.Number,
+    streamId: Schema.optional(Schema.String),
+    context: Schema.optional(Schema.Unknown),
+    lineIndex: Schema.optional(Schema.Number),
+  }
+) {}
 
 /** Path reference to data model */
 export class PathRef extends Schema.Class<PathRef>("PathRef")({
@@ -167,7 +186,9 @@ export class UIElement extends Schema.Class<UIElement>("UIElement")({
   props: Schema.Record({ key: Schema.String, value: Schema.Unknown }),
   children: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
   parentKey: Schema.optionalWith(Schema.NullOr(Schema.String), { default: () => null }),
-  visible: Schema.optional(VisibilityCondition)
+  visible: Schema.optional(VisibilityCondition),
+  /** Entrance animation configuration (LLM-generated or catalog default) */
+  entrance: Schema.optional(EntranceAnimation),
 }) {}
 
 /** Flat UI tree structure */

@@ -1,0 +1,6 @@
+Confidence_Level,Count,Percentage,Avg_Probability,Min_Probability,Max_Probability
+Very High (90-100%),3488,28.05,0.9995,0.9029,1.0
+High (70-90%),8,0.06,0.816,0.7072,0.8977
+Medium (60-70%),3,0.02,0.6367,0.6031,0.6561
+Low (40-60%),2,0.02,0.5277,0.5095,0.546
+Very Low (0-40%),8936,71.85,0.0002,0.0,0.2901

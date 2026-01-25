@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/claude-marketplace.json",
+  "name": "local",
+  "description": "Local TMNL plugins",
+  "owner": {
+    "name": "TMNL"
+  },
+  "plugins": [
+    {
+      "name": "infra",
+      "description": "Infrastructure management for TMNL stack. Start/stop Docker containers, check health, view logs, rebuild services.",
+      "source": "./infra"
+    }
+  ]
+}

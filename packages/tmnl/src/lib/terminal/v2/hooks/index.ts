@@ -8,3 +8,5 @@ export {
   type UseBlockTerminalOptions,
   type UseBlockTerminalResult,
 } from './useBlockTerminal'
+
+export { useTabs, type UseTabsResult } from './useTabs'

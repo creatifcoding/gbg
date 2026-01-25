@@ -1,0 +1,11 @@
+[install]
+# Use npm-compatible flat node_modules structure for Theia compatibility
+node-linker = "hoisted"
+
+# Skip native module scripts that fail on WSL/Nix
+[install.scopes]
+# These native modules are optional or not needed for browser-only Theia
+"@pnpm" = { scripts = "ignore" }
+
+[install.cache]
+disable = false

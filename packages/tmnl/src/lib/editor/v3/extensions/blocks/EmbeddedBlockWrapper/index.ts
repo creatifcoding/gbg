@@ -4,7 +4,7 @@
  * @module editor/v3/extensions/blocks/EmbeddedBlockWrapper
  */
 
-export { EmbeddedBlockWrapper, useEmbeddedBlock } from './EmbeddedBlockWrapper';
+export { EmbeddedBlockWrapper, EmbeddedBlockContext, useEmbeddedBlock } from './EmbeddedBlockWrapper';
 export type {
   EmbeddedBlockWrapperProps,
   EmbeddedBlockContextValue,
@@ -43,3 +43,18 @@ export {
   BlockStateService,
   BlockStatePersistenceLive,
 } from './persistence';
+
+// Block Registry (naming system)
+export {
+  BlockRegistryProvider,
+  useBlockRegistry,
+  useBlockRegistryOptional,
+  BlockRegistry,
+  blocksAtom,
+  namedBlocksAtom,
+  blockByIdAtom,
+  blockByNameAtom,
+  renameErrorAtom,
+  isRenamingAtom,
+} from './registry';
+export type { BlockId, BlockName, BlockType, BlockRef } from './shared';

@@ -241,9 +241,11 @@ const ToolbarContent = forwardRef<HTMLDivElement, ToolbarContentProps>(
         animated: false,
       };
 
+      // Unset existing mark first to ensure clean replacement
       editor
         .chain()
         .focus()
+        .unsetIntentMark()
         .setIntentMark({
           visualStyle,
           intent: Intent.note('', 'comment'),
@@ -275,9 +277,11 @@ const ToolbarContent = forwardRef<HTMLDivElement, ToolbarContentProps>(
         animated: true,
       };
 
+      // Unset existing mark first to ensure clean replacement
       editor
         .chain()
         .focus()
+        .unsetIntentMark()
         .setIntentMark({
           visualStyle,
           intent: Intent.note('', 'sticky'),

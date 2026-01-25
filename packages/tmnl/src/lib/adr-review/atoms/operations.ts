@@ -24,6 +24,7 @@ import {
 } from './index'
 import type { ReviewUnit, ReviewUnitTag } from '../schemas/unit'
 import type { ReviewStatus, Comment, ADRTier, ReviewSummary } from '../schemas/status'
+import { persistUnitStatus, persistComment } from '../persistence'
 
 // -----------------------------------------------------------------------------
 // Document Operations
@@ -139,8 +140,14 @@ export function recomputeFilteredUnits(): void {
 
 /**
  * Set status for a unit.
+ * Updates atom immediately, persists to SQLite in background.
  */
-export function setUnitStatus(adrId: string, path: string, status: ReviewStatus): void {
+export function setUnitStatus(
+  adrId: string,
+  path: string,
+  status: ReviewStatus,
+  reviewedBy?: string
+): void {
   const key = makeUnitKey(adrId, path)
   reviewRegistry.set(unitStatusFamily(key), status)
 
@@ -149,10 +156,14 @@ export function setUnitStatus(adrId: string, path: string, status: ReviewStatus)
   reviewRegistry.set(currentSummaryAtom, computeSummary(adrId, units))
   recomputeAllSummaries()
   recomputeFilteredUnits()
+
+  // Persist in background (fire-and-forget)
+  persistUnitStatus(adrId, path, status, reviewedBy)
 }
 
 /**
  * Add a comment to a unit.
+ * Updates atom immediately, persists to SQLite in background.
  */
 export function addComment(adrId: string, path: string, comment: Omit<Comment, 'id' | 'path'>): void {
   const key = makeUnitKey(adrId, path)
@@ -164,6 +175,9 @@ export function addComment(adrId: string, path: string, comment: Omit<Comment, '
     timestamp: comment.timestamp,
   }
   reviewRegistry.set(unitCommentsFamily(key), [...existing, newComment])
+
+  // Persist in background (fire-and-forget)
+  persistComment(adrId, path, newComment)
 }
 
 /**

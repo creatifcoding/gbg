@@ -149,12 +149,11 @@ export function ChatContent({ messages, status, onSend, onCollapse }: ChatConten
                     lineHeight: 1.5,
                   }}
                 >
-                  {typeof message.content === 'string'
-                    ? message.content
-                    : message.content
-                        .filter((part) => part.type === 'text')
-                        .map((part) => (part as { type: 'text'; text: string }).text)
-                        .join('')}
+                  {/* AI SDK 5.0+: message.parts replaces message.content */}
+                  {message.parts
+                    ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+                    .map((part) => part.text)
+                    .join('') ?? ''}
                 </p>
               </div>
             </div>

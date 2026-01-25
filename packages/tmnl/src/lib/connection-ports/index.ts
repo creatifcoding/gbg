@@ -34,7 +34,7 @@ export {
   // Errors
   NatsConnectionError,
   NatsPublishError,
-  NatsSubscribeError,
+  NatsSubscriptionError,
   DurableStreamsConnectionError,
   DurableStreamsReadError,
   DurableStreamsAppendError,

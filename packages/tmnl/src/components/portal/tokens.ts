@@ -19,16 +19,13 @@
 export const VANTA_COLORS = {
   // Surface hierarchy (darkest to lightest)
   surface: {
-    /** True vantablack — use sparingly */
     void: '#000000',
-    /** Primary card surface */
     base: '#030303',
-    /** Elevated surface (hover, focus) */
     elevated: '#0a0a0a',
-    /** Subtle raised element */
     raised: '#111111',
-    /** Border/separator tone */
     border: '#1a1a1a',
+    hover: '#1f1f1f',
+    default: '#0a0a0a',
   },
 
   // Text hierarchy
@@ -66,6 +63,11 @@ export const VANTA_COLORS = {
     rose: '#fb7185',
     roseMuted: '#e11d48',
     roseGlow: 'rgba(251, 113, 133, 0.15)',
+
+    /** Accent: violet (for 3D/canvas blocks) */
+    violet: '#a78bfa',
+    violetMuted: '#7c3aed',
+    violetGlow: 'rgba(167, 139, 250, 0.15)',
 
     /** Neutral accent */
     neutral: '#a3a3a3',
@@ -278,10 +280,14 @@ export const VANTA_BORDERS = {
 
   // Border styles
   style: {
-    /** Default card border */
+    /** Default card border — visible hairline */
     default: `1px solid ${VANTA_COLORS.surface.border}`,
-    /** Subtle border */
+    /** Subtle border — barely visible */
     subtle: `1px solid rgba(255, 255, 255, 0.05)`,
+    /** Hairline border — visible but refined (use for panels) */
+    hairline: `1px solid rgba(255, 255, 255, 0.12)`,
+    /** Crisp border — high contrast hairline */
+    crisp: `1px solid rgba(255, 255, 255, 0.18)`,
     /** Accent border */
     accent: `1px solid ${VANTA_COLORS.accent.cyan}`,
     /** Dashed separator */

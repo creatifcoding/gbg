@@ -1,0 +1,49 @@
+WARNING:2025-12-16 21:44:52,235:jax._src.xla_bridge:854: An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+================================================================================
+TEST SET PREDICTION
+================================================================================
+
+[1/4] Re-training model to save weights...
+  Training 50 epochs...
+  Epoch 10: Loss = 0.0081
+  Epoch 20: Loss = 0.0028
+  Epoch 30: Loss = 0.0018
+  Epoch 40: Loss = 0.0010
+  Epoch 50: Loss = 0.0005
+Model saved to: results/model_run_001.eqx
+
+[2/4] Loading test data...
+  Test samples: 12,437
+  Test features: 13
+
+[3/4] Normalizing test data...
+  Normalized shape: (12437, 13)
+
+[4/4] Generating predictions...
+  Processed 5,000/12,437 samples...
+  Processed 10,000/12,437 samples...
+  ✓ All 12,437 predictions generated
+
+Saving predictions to: results/test_predictions_run_001.csv
+
+================================================================================
+PREDICTION SUMMARY
+================================================================================
+
+Test Set Predictions:
+  No Fire (0): 8,936 (71.9%)
+  Fire (1):    3,501 (28.1%)
+
+Average Fire Probability: 0.2812
+
+Prediction Confidence:
+  High confidence (>90%): 12,422 (99.9%)
+  Medium confidence (40-60%): 2 (0.0%)
+
+================================================================================
+✓ Predictions complete!
+================================================================================
+
+Files generated:
+  - results/model_run_001.eqx
+  - results/test_predictions_run_001.csv

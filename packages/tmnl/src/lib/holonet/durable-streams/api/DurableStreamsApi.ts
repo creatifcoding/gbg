@@ -132,15 +132,20 @@ export class ApiSequenceConflictError extends Schema.TaggedError<ApiSequenceConf
 
 /**
  * Long-poll timeout (204) - not an error, just no data
+ * Uses asEmpty because 204 No Content has no body - decode provides the instance
  */
-export class ApiLongPollTimeoutError extends Schema.TaggedError<ApiLongPollTimeoutError>()(
+export class ApiLongPollTimeoutError extends Schema.TaggedClass<ApiLongPollTimeoutError>()(
   'ApiLongPollTimeoutError',
-  {
-    streamId: Schema.String,
-    lastOffset: Schema.Number,
-  },
-  HttpApiSchema.annotations({ status: 204 })
+  {}
 ) {}
+
+/**
+ * Schema for ApiLongPollTimeoutError with asEmpty for 204 handling
+ * HttpApiClient will use the decode function when receiving 204
+ */
+export const ApiLongPollTimeoutErrorSchema = ApiLongPollTimeoutError.pipe(
+  HttpApiSchema.asEmpty({ status: 204, decode: () => new ApiLongPollTimeoutError() })
+);
 
 /**
  * NATS connection error (503)
@@ -258,7 +263,7 @@ class StreamsApi extends HttpApiGroup.make('streams')
     HttpApiEndpoint.post('append')`/v1/stream/${streamIdParam}`
       .setPayload(AppendRequestBody)
       .setUrlParams(ProducerQueryParams)
-      .addSuccess(AppendResult, { status: 204 })
+      .addSuccess(AppendResult)
       .addError(ApiStreamNotFoundError)
       .addError(ApiSchemaValidationError)
       .addError(ApiContentTypeMismatchError)
@@ -274,7 +279,7 @@ class StreamsApi extends HttpApiGroup.make('streams')
       .addSuccess(ReadResponse)
       .addError(ApiStreamNotFoundError)
       .addError(ApiInvalidOffsetError)
-      .addError(ApiLongPollTimeoutError)
+      .addError(ApiLongPollTimeoutErrorSchema)
       .addError(ApiForbiddenError)
       .addError(ApiNatsConnectionError)
       .addError(ApiInternalError)

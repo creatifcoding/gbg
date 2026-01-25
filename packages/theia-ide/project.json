@@ -1,0 +1,51 @@
+{
+  "name": "theia-ide",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/theia-ide/src",
+  "projectType": "application",
+  "tags": ["scope:theia", "type:app"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run build",
+        "cwd": "packages/theia-ide"
+      }
+    },
+    "build:prod": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run build:prod",
+        "cwd": "packages/theia-ide"
+      }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run start",
+        "cwd": "packages/theia-ide"
+      }
+    },
+    "download:plugins": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run download:plugins",
+        "cwd": "packages/theia-ide"
+      }
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run clean",
+        "cwd": "packages/theia-ide"
+      }
+    },
+    "fix-symlinks": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "./scripts/fix-bun-symlinks.sh",
+        "cwd": "packages/theia-ide"
+      }
+    }
+  }
+}

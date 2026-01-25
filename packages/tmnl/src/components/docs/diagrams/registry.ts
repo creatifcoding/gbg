@@ -25,7 +25,8 @@ export const DiagramCategory = Schema.Literal(
   "sequence",
   "state",
   "class",
-  "er"
+  "er",
+  "integration"
 )
 export type DiagramCategory = typeof DiagramCategory.Type
 
@@ -245,13 +246,309 @@ const IGGY_TOPIC_STRUCTURE: DiagramEntry = {
 }
 
 // =============================================================================
+// AFFiNE Integration Diagrams
+// =============================================================================
+
+/**
+ * AFFiNE ↔ TMNL Layer Architecture
+ */
+const AFFINE_TMNL_LAYERS: DiagramEntry = {
+  id: "affine-tmnl-layers" as DiagramId,
+  title: "AFFiNE ↔ TMNL Layer Architecture",
+  description: "Comparative architecture showing how AFFiNE layers map to TMNL equivalents.",
+  category: "integration",
+  updatedAt: "2025-12-22",
+  source: `flowchart TB
+    subgraph AFFiNE["AFFiNE Stack"]
+        A1[React Application<br/>@affine/core, Jotai atoms]
+        A2[BlockSuite Editor<br/>Lit Components, BlockSpec]
+        A3[CRDT Data Layer<br/>Yjs / Y-OCTO, SyncController]
+        A4[Storage Abstraction<br/>nbstore: IndexedDB / SQLite]
+        A1 --> A2
+        A2 --> A3
+        A3 --> A4
+    end
+
+    subgraph TMNL["TMNL Stack"]
+        T1[React Application<br/>effect-atom, Effect.Service]
+        T2[BlockSuite Editor<br/>Custom TMNL Blocks]
+        T3[Effect-native State<br/>Atom.runtime, Schema]
+        T4[Storage<br/>Tauri SQLite / IndexedDB]
+        T1 --> T2
+        T2 --> T3
+        T3 --> T4
+    end
+
+    A1 -.->|"State Bridge"| T1
+    A2 -.->|"Embed"| T2
+    A3 -.->|"Share"| T3
+    A4 -.->|"Adapt"| T4
+
+    style A1 fill:#1e3a5f,stroke:#4a90d9
+    style A2 fill:#2d3748,stroke:#718096
+    style A3 fill:#3c366b,stroke:#9f7aea
+    style A4 fill:#234e52,stroke:#38b2ac
+    style T1 fill:#065f46,stroke:#10b981
+    style T2 fill:#1f2937,stroke:#6b7280
+    style T3 fill:#312e81,stroke:#818cf8
+    style T4 fill:#065f46,stroke:#10b981
+`,
+}
+
+/**
+ * BlockSuite Editor Modes
+ */
+const BLOCKSUITE_MODES: DiagramEntry = {
+  id: "blocksuite-modes" as DiagramId,
+  title: "BlockSuite Editor Modes",
+  description: "Page mode vs Edgeless mode architecture and mode switching.",
+  category: "integration",
+  updatedAt: "2025-12-22",
+  source: `stateDiagram-v2
+    [*] --> PageMode: Default
+
+    state PageMode {
+        [*] --> PageRoot
+        PageRoot --> Note: Contains
+        Note --> Blocks: Contains
+        Blocks --> Paragraph
+        Blocks --> Heading
+        Blocks --> List
+        Blocks --> Code
+    }
+
+    state EdgelessMode {
+        [*] --> EdgelessRoot
+        EdgelessRoot --> Surface: Canvas
+        Surface --> Shapes
+        Surface --> Connectors
+        Surface --> Frames
+        EdgelessRoot --> Notes: Floating
+        Notes --> Blocks2: Contains
+    }
+
+    PageMode --> EdgelessMode: Toggle Mode
+    EdgelessMode --> PageMode: Toggle Mode
+
+    note right of PageMode
+        Linear document layout
+        TextSelection + BlockSelection
+        DOM-based rendering
+    end note
+
+    note right of EdgelessMode
+        Infinite canvas
+        SurfaceSelection
+        Canvas-based rendering
+    end note
+`,
+}
+
+/**
+ * State Management Bridge Pattern
+ */
+const STATE_BRIDGE_PATTERN: DiagramEntry = {
+  id: "state-bridge-pattern" as DiagramId,
+  title: "State Management Bridge Pattern",
+  description: "How AFFiNE's LiveData/Jotai bridges to TMNL's effect-atom.",
+  category: "integration",
+  updatedAt: "2025-12-22",
+  source: `flowchart LR
+    subgraph AFFiNE["AFFiNE State"]
+        J1[Jotai Atom]
+        LD[LiveData Observable]
+        SVC[Service State]
+        J1 --> LD
+        SVC --> LD
+    end
+
+    subgraph Bridge["Bridge Layer"]
+        SUB[RxJS Subscription]
+        SYNC[Atom.set on change]
+        SUB --> SYNC
+    end
+
+    subgraph TMNL["TMNL State"]
+        EA[effect-atom]
+        ES[Effect.Service]
+        EA --> ES
+    end
+
+    LD --> SUB
+    SYNC --> EA
+
+    style J1 fill:#7c3aed,stroke:#a78bfa
+    style LD fill:#059669,stroke:#34d399
+    style SVC fill:#2563eb,stroke:#60a5fa
+    style SUB fill:#d97706,stroke:#fbbf24
+    style SYNC fill:#dc2626,stroke:#f87171
+    style EA fill:#10b981,stroke:#6ee7b7
+    style ES fill:#0891b2,stroke:#22d3ee
+`,
+}
+
+/**
+ * Data Layer Stack
+ */
+const DATA_LAYER_STACK: DiagramEntry = {
+  id: "data-layer-stack" as DiagramId,
+  title: "Data Layer Stack",
+  description: "Local-first storage architecture with CRDT synchronization.",
+  category: "integration",
+  updatedAt: "2025-12-22",
+  source: `flowchart TB
+    subgraph Client["Client Application"]
+        UI[React Components]
+        BS[BlockSuite Editor]
+        YJS[Yjs Document]
+    end
+
+    subgraph Storage["Local Storage"]
+        IDB[(IndexedDB<br/>Browser)]
+        SQL[(SQLite<br/>Tauri/Electron)]
+    end
+
+    subgraph Sync["Synchronization"]
+        WS[WebSocket Gateway]
+        CRDT[Y-OCTO CRDT Engine]
+    end
+
+    subgraph Remote["Cloud Sync"]
+        API[GraphQL API]
+        DB[(PostgreSQL)]
+    end
+
+    UI --> BS
+    BS --> YJS
+    YJS --> CRDT
+    CRDT --> IDB
+    CRDT --> SQL
+    CRDT <--> WS
+    WS <--> API
+    API --> DB
+
+    style UI fill:#1e40af,stroke:#60a5fa
+    style BS fill:#7c3aed,stroke:#a78bfa
+    style YJS fill:#059669,stroke:#34d399
+    style IDB fill:#d97706,stroke:#fbbf24
+    style SQL fill:#0891b2,stroke:#22d3ee
+    style WS fill:#dc2626,stroke:#f87171
+    style CRDT fill:#4f46e5,stroke:#818cf8
+    style API fill:#0d9488,stroke:#2dd4bf
+    style DB fill:#374151,stroke:#9ca3af
+`,
+}
+
+/**
+ * Sync Protocol Flow
+ */
+const SYNC_PROTOCOL_FLOW: DiagramEntry = {
+  id: "sync-protocol-flow" as DiagramId,
+  title: "Sync Protocol Flow",
+  description: "WebSocket synchronization protocol between client and server.",
+  category: "sequence",
+  updatedAt: "2025-12-22",
+  source: `sequenceDiagram
+    autonumber
+    participant Client
+    participant WS as WebSocket Gateway
+    participant Server
+    participant DB as PostgreSQL
+
+    rect rgb(30, 40, 50)
+    Note over Client,WS: 1. Connection & Join
+    Client->>WS: Connect
+    WS-->>Client: Connected
+    Client->>WS: space:join(workspaceId)
+    WS->>Server: Validate access
+    Server-->>WS: Access granted
+    WS-->>Client: Joined
+    end
+
+    rect rgb(40, 50, 60)
+    Note over Client,DB: 2. Initial Sync
+    Client->>WS: space:load-doc(docId, stateVector)
+    WS->>Server: diffUpdate(stateVector)
+    Server->>DB: Query missing updates
+    DB-->>Server: Updates
+    Server-->>WS: Missing updates
+    WS-->>Client: Doc updates
+    Client-->>Client: applyUpdate()
+    end
+
+    rect rgb(50, 60, 70)
+    Note over Client,WS: 3. Local Edit
+    Client-->>Client: User types
+    Client->>WS: space:push-doc-update(update)
+    WS->>Server: applyUpdate()
+    Server->>DB: Persist update
+    WS->>Client: broadcast-doc-update
+    Note right of Client: Other clients
+    end
+
+    rect rgb(60, 70, 80)
+    Note over Client,WS: 4. Awareness
+    Client->>WS: space:update-awareness(cursor, selection)
+    WS-->>Client: Broadcast to peers
+    end
+`,
+}
+
+/**
+ * Integration Roadmap
+ */
+const INTEGRATION_ROADMAP: DiagramEntry = {
+  id: "integration-roadmap" as DiagramId,
+  title: "Integration Roadmap",
+  description: "Phased approach for integrating AFFiNE into TMNL.",
+  category: "integration",
+  updatedAt: "2025-12-22",
+  source: `gantt
+    title TMNL ← AFFiNE Integration Phases
+    dateFormat  YYYY-MM-DD
+    section Phase 0
+    Foundation & Submodule Setup       :p0, 2025-01-01, 7d
+    Build Integration                  :after p0, 5d
+    Documentation                      :after p0, 7d
+    section Phase 1
+    BlockSuite Embedding               :p1, after p0, 14d
+    Basic Blocks (P, H, List, Code)    :after p1, 10d
+    Mode Switching                     :after p1, 5d
+    section Phase 2
+    Custom TMNL Blocks                 :p2, 2025-02-01, 14d
+    Effect Integration                 :after p2, 10d
+    Widget System                      :after p2, 7d
+    section Phase 3
+    Atom Bridge                        :p3, 2025-02-20, 10d
+    Service Bridge                     :after p3, 10d
+    Event Bridge                       :after p3, 7d
+    section Phase 4
+    Local Persistence                  :p4, 2025-03-10, 14d
+    Tauri SQLite                       :after p4, 10d
+    Optional Cloud Sync                :after p4, 14d
+    section Phase 5
+    UI Polish                          :p5, 2025-04-01, 14d
+    Extensions                         :after p5, 10d
+    Testing                            :after p5, 14d
+`,
+}
+
+// =============================================================================
 // Registry
 // =============================================================================
 
 export const DIAGRAM_REGISTRY: readonly DiagramEntry[] = [
+  // Original diagrams
   IGGY_CANONICAL_FLOW,
   AVA_VIEW_LIFECYCLE,
   IGGY_TOPIC_STRUCTURE,
+  // AFFiNE Integration diagrams
+  AFFINE_TMNL_LAYERS,
+  BLOCKSUITE_MODES,
+  STATE_BRIDGE_PATTERN,
+  DATA_LAYER_STACK,
+  SYNC_PROTOCOL_FLOW,
+  INTEGRATION_ROADMAP,
 ] as const
 
 /**
@@ -277,6 +574,7 @@ export const getCategoryCounts = (): Record<DiagramCategory, number> => {
     state: 0,
     class: 0,
     er: 0,
+    integration: 0,
   }
   for (const diagram of DIAGRAM_REGISTRY) {
     counts[diagram.category]++

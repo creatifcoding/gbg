@@ -26,6 +26,7 @@
 
         inputsFrom = [
           config.devShells.tmnl-core
+          config.devShells.tmnl-zephyr
         ];
 
         nativeBuildInputs = with pkgs; [
@@ -34,6 +35,7 @@
           openocd
           probe-rs-tools
           qemu
+          socat
           qemu-python-utils
           renode
         ];

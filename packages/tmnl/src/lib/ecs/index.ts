@@ -28,8 +28,9 @@ export * from './schemas'
 // Services (EntityIdService, etc.)
 export * from './services'
 
-// Persistence (migrations)
-export * from './persistence'
+// NOTE: Persistence module is NOT exported from the barrel because it contains
+// Node.js-only dependencies (@effect/sql-pg). For server-side code, import directly:
+//   import { ... } from '@/lib/ecs/persistence'
 
 // Base entity (coordination primitives)
 export * from './entities'

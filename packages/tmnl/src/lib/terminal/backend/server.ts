@@ -183,10 +183,14 @@ const handleWebSocket = (sessionId: string | null, config: TerminalConfig) =>
     // Handle incoming WebSocket messages using Effect patterns
     const messageHandler = (data: Uint8Array) =>
       decodeClientMessage(new TextDecoder().decode(data)).pipe(
+        Effect.tap((msg) => Effect.log(`[Server] Received message: ${msg._tag}`)),
         Effect.flatMap((msg) => {
           switch (msg._tag) {
             case 'ClientData':
-              return handle.write(msg.data)
+              return Effect.gen(function* () {
+                yield* Effect.log(`[Server] ClientData: ${JSON.stringify(msg.data)}`)
+                yield* handle.write(msg.data)
+              })
 
             case 'ClientResize':
               return handle.resize(msg.cols, msg.rows)

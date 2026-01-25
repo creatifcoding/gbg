@@ -2,6 +2,39 @@
 // GEOINT Persistence - Barrel Export
 // =============================================================================
 
+// Flight Entity Materializer - DurableStream → ECS entities
+export {
+  FlightEntityMaterializer,
+  FlightEntityMaterializerLive,
+  FlightEntityMaterializerFullLive,
+  FlightEntityMaterializerConfigTag,
+  FlightEntityMaterializerConfigDefault,
+  type FlightEntityMaterializerConfig,
+  type FlightEntityMaterializerShape,
+} from './FlightEntityMaterializer'
+
+// OSM Entity Materializer - DurableStream → ECS entities (POIs)
+export {
+  OsmEntityMaterializer,
+  OsmEntityMaterializerLive,
+  OsmEntityMaterializerFullLive,
+  OsmEntityMaterializerConfigTag,
+  OsmEntityMaterializerConfigDefault,
+  type OsmEntityMaterializerConfig,
+  type OsmEntityMaterializerShape,
+} from './OsmEntityMaterializer'
+
+// Weather Entity Materializer - DurableStream → ECS entities (weather observations)
+export {
+  WeatherEntityMaterializer,
+  WeatherEntityMaterializerLive,
+  WeatherEntityMaterializerFullLive,
+  WeatherEntityMaterializerConfigTag,
+  WeatherEntityMaterializerConfigDefault,
+  type WeatherEntityMaterializerConfig,
+  type WeatherEntityMaterializerShape,
+} from './WeatherEntityMaterializer'
+
 export {
   TrackStore,
   TrackStoreError,

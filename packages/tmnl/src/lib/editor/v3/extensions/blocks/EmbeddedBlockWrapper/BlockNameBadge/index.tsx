@@ -28,6 +28,7 @@ import { ErrorPopover } from './ErrorPopover';
 import { ActionTray } from './ActionTray';
 import type { BlockId } from '../shared';
 
+
 // =============================================================================
 // Checkmark SVG Component
 // =============================================================================
@@ -186,7 +187,8 @@ export const BlockNameBadge = memo(function BlockNameBadge({
 
       switch (transitionKey) {
         case 'display->editing':
-          await animations.animateDisplayToEditing(refs);
+          // Use blur transition for display → editing
+          await animations.animateDisplayToEditingWithBlur(refs, inputRef);
           animations.startCaretPulse(refs.caretRef);
           // Focus and select input after animation
           setTimeout(() => {
@@ -284,9 +286,17 @@ export const BlockNameBadge = memo(function BlockNameBadge({
 
   /**
    * Handle keyboard events in input.
+   * CRITICAL: Stop Backspace/Delete propagation to prevent node deletion
    */
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // Always stop Backspace/Delete from bubbling — protect the node
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.stopPropagation();
+        // Let the input handle it normally (don't preventDefault)
+        return;
+      }
+
       if (e.key === 'Enter') {
         e.preventDefault();
         handleSubmit();
@@ -353,65 +363,61 @@ export const BlockNameBadge = memo(function BlockNameBadge({
   // Render
   // ─────────────────────────────────────────────────────────────
 
+  const isDisplayMode = state === 'display';
+  const isEditingMode = state === 'editing' || state === 'submitting';
+  const isSuccessMode = state === 'success';
+
   return (
     <>
       {/* Inject keyframe animations */}
       <style>{styles.allKeyframes}</style>
 
-      {/*
-        CSS Grid Container
-        - col-1: Name column (triggers hover)
-        - col-2: Actions column (visible on hover)
-
-        Hitbox expansion logic:
-        - IDLE: only name-column has pointer-events
-        - HOVERED: entire container captures pointer-events
-      */}
+      {/* Badge container — height-matched to block type badge, no extra chrome */}
       <div
         ref={refs.badgeRef}
-        style={{
-          ...styles.badgeContainerStyle,
-          // When hovered, container captures all pointer events (expanded hitbox)
-          pointerEvents: isHovered ? 'auto' : 'none',
-        }}
+        style={styles.badgeContainerStyle}
         data-badge-state={state}
         data-hovered={isHovered}
+        onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}
       >
         {/* ═══════════════════════════════════════════════════════════════
-            NAME COLUMN — Grid col-1, triggers hover
+            DISPLAY MODE: @name · block-id + actions (on hover)
             ═══════════════════════════════════════════════════════════════ */}
-        <div
-          style={{
-            ...styles.nameColumnStyle,
-            // Name column always captures pointer (hover trigger zone)
-            pointerEvents: 'auto',
-          }}
-          onPointerEnter={handlePointerEnter}
-        >
-          {/* Name Row */}
-          <div style={styles.nameRowStyle}>
-            {/* "@" prefix - visible in display, success; hidden in editing */}
-            {state !== 'editing' && state !== 'submitting' && (
+        {isDisplayMode && (
+          <>
+            {/* Name group — inline */}
+            <div style={styles.nameColumnStyle}>
+              <span ref={refs.prefixRef} style={styles.prefixStyle}>@</span>
               <span
-                ref={refs.prefixRef}
-                style={{
-                  ...styles.prefixStyle,
-                  opacity: state === 'success' ? 0 : styles.prefixStyle.opacity,
-                }}
+                ref={refs.nameRef}
+                style={styles.getNameStyle(hasName, state)}
+                onMouseDown={isEditable ? handleMouseDown : undefined}
+                title={isEditable ? 'Double-click to rename' : undefined}
               >
-                @
+                {displayName}
               </span>
-            )}
+              <span ref={refs.blockIdRef} style={styles.blockIdStyle}>
+                {shortBlockId}
+              </span>
+            </div>
 
-            {/* Caret - visible during editing */}
-            {state === 'editing' && (
+            {/* Actions (visible on hover) */}
+            <ActionTray
+              blockId={blockId}
+              name={currentName}
+              isVisible={isHovered}
+            />
+          </>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════
+            EDITING MODE: caret + input + underline
+            ═══════════════════════════════════════════════════════════════ */}
+        {isEditingMode && (
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+            <div style={styles.nameRowStyle}>
               <div ref={refs.caretRef} style={styles.caretStyle} />
-            )}
-
-            {/* Content based on state */}
-            {state === 'editing' ? (
-              // Input field
               <input
                 ref={inputRef}
                 type="text"
@@ -420,59 +426,29 @@ export const BlockNameBadge = memo(function BlockNameBadge({
                 onKeyDown={handleKeyDown}
                 onBlur={handleBlur}
                 placeholder="block-name"
-                style={styles.inputStyle}
+                style={{
+                  ...styles.inputStyle,
+                  flex: 1,
+                  opacity: state === 'submitting' ? 0.7 : 1,
+                }}
                 autoComplete="off"
                 spellCheck={false}
+                disabled={state === 'submitting'}
               />
-            ) : state === 'success' ? (
-              // Checkmark
-              <Checkmark ref={refs.checkmarkRef} />
-            ) : (
-              // Name display (display, submitting)
-              <span
-                ref={refs.nameRef}
-                style={styles.getNameStyle(hasName, state)}
-                onMouseDown={isEditable ? handleMouseDown : undefined}
-                title={isEditable ? 'Double-click to rename' : undefined}
-              >
-                {state === 'submitting' ? inputValue : displayName}
-              </span>
-            )}
+            </div>
+            <div ref={refs.underlineRef} style={styles.getUnderlineStyle(state)} />
           </div>
-
-          {/* Underline */}
-          <div
-            ref={refs.underlineRef}
-            style={styles.getUnderlineStyle(state)}
-          />
-
-          {/* Block ID */}
-          <span ref={refs.blockIdRef} style={styles.blockIdStyle}>
-            {shortBlockId}
-          </span>
-        </div>
+        )}
 
         {/* ═══════════════════════════════════════════════════════════════
-            ACTIONS COLUMN — Grid col-2, visible on hover
+            SUCCESS MODE: checkmark
             ═══════════════════════════════════════════════════════════════ */}
-        {state === 'display' && (
-          <div
-            style={
-              isHovered
-                ? styles.actionsColumnVisibleStyle
-                : styles.actionsColumnHiddenStyle
-            }
-          >
-            <ActionTray
-              blockId={blockId}
-              name={currentName}
-              isVisible={isHovered}
-            />
-          </div>
+        {isSuccessMode && (
+          <Checkmark ref={refs.checkmarkRef} />
         )}
       </div>
 
-      {/* Error Popover — atoms-as-state, derives open/error from machine */}
+      {/* Error Popover */}
       <ErrorPopover
         blockId={blockId}
         referenceElement={refs.badgeRef.current}

@@ -42,8 +42,7 @@ export type AlarmType = Schema.Schema.Type<typeof AlarmType>
 // =============================================================================
 
 /** Alarm record from database */
-export const Alarm = Schema.Struct({
-  _tag: Schema.Literal('Alarm'),
+export const Alarm = Schema.TaggedStruct('Alarm', {
   id: AlarmId,
   deviceId: DeviceId,
   alarmType: AlarmType,
@@ -95,7 +94,7 @@ export type AlarmQueryParams = Schema.Schema.Type<typeof AlarmQueryParams>
 // =============================================================================
 
 /** Reading context around an alarm */
-export const AlarmContext = Schema.Struct({
+export const AlarmContext = Schema.TaggedStruct('AlarmContext', {
   alarmId: AlarmId,
   deviceId: DeviceId,
   readingTime: Schema.DateTimeUtc,

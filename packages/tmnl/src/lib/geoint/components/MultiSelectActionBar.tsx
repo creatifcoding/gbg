@@ -25,6 +25,7 @@ import {
   useEffect,
   useRef,
   memo,
+  useState,
   type FC,
   type ReactNode,
 } from 'react'
@@ -42,8 +43,17 @@ import {
   CheckSquare,
   Square,
   MoreHorizontal,
+  Share2,
+  MinusCircle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { TIMING, EASING } from '../tokens'
 
 // =============================================================================
@@ -425,23 +435,133 @@ interface MoreActionsProps {
   className?: string
 }
 
-const MoreActions: FC<MoreActionsProps> = ({ actions: _actions, className }) => {
-  // TODO: Implement dropdown menu with remaining actions
-  // For now, just show the button
+const MoreActions: FC<MoreActionsProps> = memo(function MoreActions({ actions, className }) {
+  const [open, setOpen] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+
+  // Animate trigger on open state change
+  useEffect(() => {
+    if (triggerRef.current && open) {
+      animate(triggerRef.current, {
+        rotate: [0, 90],
+        duration: TIMING.fast,
+        easing: EASING.anime.out,
+      })
+    } else if (triggerRef.current && !open) {
+      animate(triggerRef.current, {
+        rotate: [90, 0],
+        duration: TIMING.fast,
+        easing: EASING.anime.out,
+      })
+    }
+  }, [open])
+
+  if (actions.length === 0) return null
+
+  const getItemVariantStyles = (variant: ActionProps['variant'] = 'default') => {
+    switch (variant) {
+      case 'primary':
+        return 'text-accent-primary focus:bg-accent-primary/20 focus:text-accent-primary'
+      case 'danger':
+        return 'text-red-400 focus:bg-red-500/20 focus:text-red-400'
+      case 'ghost':
+        return 'text-text-tertiary focus:bg-surface-2 focus:text-text-secondary'
+      default:
+        return 'text-text-secondary focus:bg-surface-2 focus:text-text-primary'
+    }
+  }
+
+  // Separate danger actions to place at the bottom with a separator
+  const regularActions = actions.filter((a) => a.variant !== 'danger')
+  const dangerActions = actions.filter((a) => a.variant === 'danger')
+
   return (
-    <button
-      className={cn(
-        'p-1.5 rounded-md text-text-tertiary',
-        'hover:text-text-secondary hover:bg-surface-2 transition-colors',
-        className
-      )}
-      title="More actions"
-      aria-label="More actions"
-    >
-      <MoreHorizontal className="w-4 h-4" />
-    </button>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger asChild>
+        <button
+          ref={triggerRef}
+          className={cn(
+            'p-1.5 rounded-md text-text-tertiary',
+            'hover:text-text-secondary hover:bg-surface-2 transition-colors',
+            'focus:outline-none focus:ring-2 focus:ring-accent-primary/50',
+            open && 'bg-surface-2 text-text-secondary',
+            className
+          )}
+          title="More actions"
+          aria-label="More actions"
+        >
+          <MoreHorizontal className="w-4 h-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        sideOffset={8}
+        className={cn(
+          'min-w-[180px] bg-surface-1/95 backdrop-blur-md border-border-subtle',
+          'shadow-xl rounded-lg'
+        )}
+      >
+        {regularActions.map((action) => {
+          const Icon = action.icon
+          return (
+            <DropdownMenuItem
+              key={action.id}
+              onClick={() => {
+                if (!action.disabled && !action.loading) {
+                  action.onClick()
+                }
+              }}
+              disabled={action.disabled || action.loading}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 text-xs font-medium cursor-pointer',
+                'rounded-md transition-colors',
+                getItemVariantStyles(action.variant),
+                (action.disabled || action.loading) && 'opacity-50 cursor-not-allowed'
+              )}
+            >
+              {action.loading ? (
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Icon className="w-4 h-4" />
+              )}
+              <span>{action.label}</span>
+            </DropdownMenuItem>
+          )
+        })}
+        {dangerActions.length > 0 && regularActions.length > 0 && (
+          <DropdownMenuSeparator className="bg-border-subtle" />
+        )}
+        {dangerActions.map((action) => {
+          const Icon = action.icon
+          return (
+            <DropdownMenuItem
+              key={action.id}
+              onClick={() => {
+                if (!action.disabled && !action.loading) {
+                  action.onClick()
+                }
+              }}
+              disabled={action.disabled || action.loading}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 text-xs font-medium cursor-pointer',
+                'rounded-md transition-colors',
+                getItemVariantStyles(action.variant),
+                (action.disabled || action.loading) && 'opacity-50 cursor-not-allowed'
+              )}
+            >
+              {action.loading ? (
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Icon className="w-4 h-4" />
+              )}
+              <span>{action.label}</span>
+            </DropdownMenuItem>
+          )
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
-}
+})
 
 // =============================================================================
 // DEFAULT ACTION PRESETS
@@ -456,6 +576,10 @@ export interface DefaultActionsConfig {
   onSetAlert?: () => void
   onShowOnMap?: () => void
   onHideFromMap?: () => void
+  /** Share selected entities */
+  onShare?: () => void
+  /** Remove entities from current selection */
+  onRemoveFromSelection?: () => void
 }
 
 /**
@@ -525,6 +649,25 @@ export const createDefaultActions = (config: DefaultActionsConfig): ActionProps[
       label: 'Export',
       icon: Download,
       onClick: config.onExport,
+    })
+  }
+
+  if (config.onShare) {
+    actions.push({
+      id: 'share',
+      label: 'Share',
+      icon: Share2,
+      onClick: config.onShare,
+    })
+  }
+
+  if (config.onRemoveFromSelection) {
+    actions.push({
+      id: 'remove-from-selection',
+      label: 'Remove from Selection',
+      icon: MinusCircle,
+      onClick: config.onRemoveFromSelection,
+      variant: 'ghost',
     })
   }
 

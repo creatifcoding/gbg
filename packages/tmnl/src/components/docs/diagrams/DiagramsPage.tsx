@@ -55,6 +55,11 @@ const CATEGORY_META: Record<
     icon: "M4 6h16M4 10h16M4 14h16M4 18h16",
     description: "Entity relationships",
   },
+  integration: {
+    label: "Integration",
+    icon: "M13 10V3L4 14h7v7l9-11h-7z",
+    description: "Integration patterns & migration",
+  },
 }
 
 // =============================================================================

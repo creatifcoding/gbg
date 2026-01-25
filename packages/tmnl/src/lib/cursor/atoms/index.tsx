@@ -88,6 +88,20 @@ export const cursorStateAtom = Atom.make<'pill' | 'chat'>('pill')
 /** Current size key for the island */
 export const sizeKeyAtom = Atom.make<string>('minimal')
 
+/** Custom size override (when user resizes manually) */
+export const customSizeAtom = Atom.make<IslandSize | null>(null)
+
+/** Whether currently resizing */
+export const isResizingAtom = Atom.make<boolean>(false)
+
+/** Minimum/maximum size constraints for resizing */
+export const RESIZE_CONSTRAINTS = {
+  minWidth: 120,
+  minHeight: 40,
+  maxWidth: 800,
+  maxHeight: 700,
+} as const
+
 // -----------------------------------------------------------------------------
 // Derived Atoms
 // -----------------------------------------------------------------------------
@@ -334,5 +348,50 @@ export const cursorOps = {
       }
     }
     cursorRegistry.set(attachmentsAtom, [])
+  },
+
+  // -------------------------------------------------------------------------
+  // Resize Operations
+  // -------------------------------------------------------------------------
+
+  /**
+   * Start resize operation
+   */
+  startResize: (): void => {
+    cursorRegistry.set(isResizingAtom, true)
+  },
+
+  /**
+   * Update size during resize (respects constraints)
+   */
+  updateSize: (args: { width: number; height: number }): void => {
+    const constrainedSize: IslandSize = {
+      width: Math.max(RESIZE_CONSTRAINTS.minWidth, Math.min(RESIZE_CONSTRAINTS.maxWidth, args.width)),
+      height: Math.max(RESIZE_CONSTRAINTS.minHeight, Math.min(RESIZE_CONSTRAINTS.maxHeight, args.height)),
+    }
+    cursorRegistry.set(customSizeAtom, constrainedSize)
+  },
+
+  /**
+   * End resize operation
+   */
+  endResize: (): void => {
+    cursorRegistry.set(isResizingAtom, false)
+  },
+
+  /**
+   * Clear custom size (reset to preset)
+   */
+  clearCustomSize: (): void => {
+    cursorRegistry.set(customSizeAtom, null)
+    cursorRegistry.set(isResizingAtom, false)
+  },
+
+  /**
+   * Get effective island size (custom or from preset)
+   */
+  getEffectiveSize: (presetSize: IslandSize): IslandSize => {
+    const customSize = cursorRegistry.get(customSizeAtom)
+    return customSize ?? presetSize
   },
 }

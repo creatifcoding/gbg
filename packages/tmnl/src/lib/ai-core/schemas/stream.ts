@@ -221,12 +221,12 @@ export class StreamState extends Schema.Class<StreamState>('StreamState')({
   static readonly Initial: StreamState = new StreamState({
     status: 'idle',
     text: '',
-    thinking: undefined,
+    thinking: null,
     pendingToolCalls: [],
     completedToolCalls: [],
-    error: undefined,
-    usage: undefined,
-    metadata: undefined,
+    error: null,
+    usage: null,
+    metadata: null,
   })
 
   /**

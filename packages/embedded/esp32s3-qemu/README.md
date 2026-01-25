@@ -1,6 +1,6 @@
 # ESP32-S3 QEMU Development Environment
 
-Nix flake for emulating the **M5NanoH2** / **M5Stamp-S3** boards (ESP32-S3FN8) using Espressif's official QEMU fork with ESP-IDF v5.x.
+Nix flake for emulating the **M5Stamp-S3** boards (ESP32-S3FN8) using Espressif's official QEMU fork with ESP-IDF v5.x.
 
 ## Features
 

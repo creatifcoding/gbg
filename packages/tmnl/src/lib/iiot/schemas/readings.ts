@@ -27,8 +27,7 @@ export type QualityScore = Schema.Schema.Type<typeof QualityScore>
 // =============================================================================
 
 /** Raw sensor reading from TimescaleDB hypertable */
-export const SensorReading = Schema.Struct({
-  _tag: Schema.Literal('SensorReading'),
+export const SensorReading = Schema.TaggedStruct('SensorReading', {
   time: Schema.DateTimeUtc,
   deviceId: DeviceId,
   value: Schema.Number,
@@ -37,8 +36,7 @@ export const SensorReading = Schema.Struct({
 export type SensorReading = Schema.Schema.Type<typeof SensorReading>
 
 /** Aggregated reading (from continuous aggregates) */
-export const AggregatedReading = Schema.Struct({
-  _tag: Schema.Literal('AggregatedReading'),
+export const AggregatedReading = Schema.TaggedStruct('AggregatedReading', {
   bucket: Schema.DateTimeUtc,
   deviceId: DeviceId,
   avgValue: Schema.Number,
@@ -58,8 +56,7 @@ export type TimeBucket = Schema.Schema.Type<typeof TimeBucket>
 // =============================================================================
 
 /** Historical analytics record (from pg_mooncake columnstore) */
-export const AnalyticsRecord = Schema.Struct({
-  _tag: Schema.Literal('AnalyticsRecord'),
+export const AnalyticsRecord = Schema.TaggedStruct('AnalyticsRecord', {
   deviceId: DeviceId,
   hour: Schema.DateTimeUtc,
   avgValue: Schema.Number,

@@ -25,7 +25,11 @@ import type { UITree } from '@/lib/json-render/core/schemas';
 // Constants
 // =============================================================================
 
-const DURABLE_STREAM_BASE = 'http://localhost:3000/v1/stream';
+/**
+ * Durable stream server base URL.
+ * Must match port in scripts/durable-streams-server.ts (default: 4437)
+ */
+const DURABLE_STREAM_BASE = 'http://localhost:4437/v1/stream';
 
 // =============================================================================
 // Types

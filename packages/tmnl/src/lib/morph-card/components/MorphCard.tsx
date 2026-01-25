@@ -11,32 +11,54 @@ import {
   type ReactNode,
   type ReactElement,
   type FC,
+  useState,
   useMemo,
   useCallback,
   useContext,
   useEffect,
+  useRef,
+  isValidElement,
+  forwardRef,
 } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Option } from 'effect';
-import { RegistryContext } from '@effect-atom/atom-react';
+import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
+import { Effect, Option } from 'effect';
+import { RegistryContext, useAtomSet, useAtomValue } from '@effect-atom/atom-react';
 import { cn } from '@/lib/utils';
+import { useAtomStream } from '@/lib/connection-ports/hooks/useAtomStream';
 import type { CardId, CardMode, SizePreset } from '../schemas';
-import type { TransitionGrammar, MorphCardConfig } from '../schemas';
+import type {
+  TransitionGrammar,
+  MorphCardConfig,
+  MorphCardStateMachineConfig,
+} from '../schemas';
 import { grammarToVariants, DEFAULT_TRANSITION } from '../schemas/transition-grammar';
 import { DEFAULT_CARD_CONFIG } from '../schemas/animation-config';
 import { DEFAULT_SIZES } from '../schemas/card-state';
 import { DEFAULT_GENERATIVE_STATE } from '../schemas/generative-state';
-import { CardContext, useCardContextValue, useCardActions } from '../context';
+import {
+  type SizeKey,
+  cardStateFamily,
+  createCardStateService,
+  DEFAULT_BOUNDS,
+  DEFAULT_DRAG_STATE,
+  DEFAULT_POSITION,
+} from '../card-state';
+import { morphCardRegistry } from '../atoms/registry';
+import { CardContext, useCardContextValue, useCardActions, useCardOptional } from '../context';
 import { generativeStateFamily } from '../atoms/generative-atoms';
 import { AnimatedItem, ANIMATION_PRESETS } from './AnimatedItem';
 import { MetricBlock, MetricGrid } from './MetricBlock';
 import { GenerativeLoading, DecodeErrorBoundary } from './LoadingStates';
+import { ReticleOverlay } from './ReticleOverlay';
 import { useGenerativeMode } from '../hooks/useGenerativeMode';
 import { GenerativeDepthProvider } from '@/lib/json-render/react/generative';
 import { Renderer, DefaultFallback } from '@/lib/json-render/react/renderer';
+import { LegendRenderer } from '@/lib/json-render/react/legend-renderer';
 import { UITree } from '@/lib/json-render/core/schemas';
 import type { DomainCatalog } from '@/lib/json-render/core/CatalogService';
 import { Either, Schema } from 'effect';
+import type { TransitionStrategy } from '../machines/islandMachine';
+import { getOrCreateIslandActor } from '../machines/island-stx';
 
 // =============================================================================
 // Types
@@ -52,28 +74,66 @@ export type ModeRender = () => ReactElement;
  */
 export type RenderRegistry = Partial<Record<CardMode, ModeRender>>;
 
+export interface SizeViewStrategyInput<Keys extends string = string> {
+  readonly cardId: CardId;
+  readonly sizeKey: Keys;
+  readonly previousSizeKey: Keys;
+  readonly mode: CardMode;
+}
+
+export type SizeViewStrategy<Keys extends string = string> = (
+  input: SizeViewStrategyInput<Keys>
+) => Effect.Effect<ReactNode | null>;
+
+export type SizeViewRender<Keys extends string = string> = (
+  input: SizeViewStrategyInput<Keys>
+) => ReactNode;
+
+export type SizeViewEntry<Keys extends string = string> =
+  | ReactNode
+  | SizeViewRender<Keys>;
+
+export type SizeViewRegistry<Keys extends string = string> = Partial<
+  Record<Keys | 'default', SizeViewEntry<Keys>>
+>;
+
+export type SizeKeysFromConfig<C extends { sizes: Record<string, unknown> }> =
+  keyof C['sizes'] & string;
+
 /**
  * MorphCard Props
  */
-export interface MorphCardProps {
+export interface MorphCardProps<Keys extends string = string> {
   /** Unique card identifier */
   cardId: string;
-  /** Initial mode */
-  initialMode?: CardMode;
-  /** Size presets for each mode */
-  sizes?: Partial<Record<CardMode, SizePreset>>;
+  /** Initial sizeKey for dynamic island state */
+  initialSizeKey?: string;
+  /** State machine config (sizes + defaults) */
+  stateMachineConfig?: MorphCardStateMachineConfig;
+  /** Effect-driven transition strategy */
+  transitionStrategy: TransitionStrategy;
+  /** Enable scroll when content exceeds size (explicit only) */
+  scrollable?: boolean;
   /** Card configuration */
   config?: Partial<MorphCardConfig>;
   /** Transition grammar for mode changes */
   transition?: TransitionGrammar;
   /** Render registry mapping modes to render functions */
   renders?: RenderRegistry;
+  /** Optional sizeKey -> view mapping */
+  sizeViews?: Partial<Record<string, ReactNode>>;
+  /** Typed sizeKey -> render function mapping */
+  views?: SizeViewRegistry<Keys>;
+  /** Effect-driven sizeKey view resolver */
+  sizeViewStrategy?: SizeViewStrategy<Keys>;
   /** Children (alternative to render registry) */
   children?: ReactNode | ((mode: CardMode) => ReactNode);
   /** Additional className */
   className?: string;
   /** Whether card is interactive (hover effects) */
   interactive?: boolean;
+  /** Disable layout/content animations */
+  disableAnimations?: boolean;
   /** Click handler */
   onClick?: () => void;
   /** Mode change handler */
@@ -95,6 +155,21 @@ export interface MorphCardProps {
   componentCatalog?: DomainCatalog;
   /** Custom loading text during generation */
   loadingText?: string;
+
+  // ==========================================================================
+  // Sizing Props
+  // ==========================================================================
+
+  /** Enable dynamic sizing - card grows/shrinks with content */
+  dynamicSize?: boolean;
+  /** Minimum width when dynamicSize is enabled */
+  minWidth?: number;
+  /** Maximum width when dynamicSize is enabled */
+  maxWidth?: number;
+  /** Minimum height when dynamicSize is enabled */
+  minHeight?: number;
+  /** Maximum height when dynamicSize is enabled */
+  maxHeight?: number;
 }
 
 // =============================================================================
@@ -110,7 +185,14 @@ export interface MorphCardProps {
  * ```tsx
  * <MorphCard
  *   cardId="status-card"
- *   initialMode="compact"
+ *   initialSizeKey="compact"
+ *   stateMachineConfig={{
+ *     sizes: {
+ *       compact: { width: 220, height: 80 },
+ *       expanded: { width: 420, height: 220 }
+ *     }
+ *   }}
+ *   transitionStrategy={defaultTransitionStrategy}
  *   renders={{
  *     idle: () => <IdleView />,
  *     compact: () => <CompactView />,
@@ -133,19 +215,26 @@ export interface MorphCardProps {
  *   generative
  *   prompt="Generate a {{mode}} view of system metrics"
  *   componentCatalog={tmnlCatalog}
+ *   transitionStrategy={defaultTransitionStrategy}
  * />
  * ```
  */
-function MorphCardRoot({
+function MorphCardInner<Keys extends string = string>({
   cardId,
-  initialMode: _initialMode = 'default',
-  sizes: sizesProp,
+  initialSizeKey = 'default',
+  stateMachineConfig,
+  transitionStrategy: _transitionStrategy,
+  scrollable = false,
   config: configProp,
   transition: transitionProp,
   renders,
+  sizeViews,
+  views,
+  sizeViewStrategy,
   children,
   className,
   interactive = true,
+  disableAnimations = false,
   onClick,
   onModeChange: _onModeChange,
   // Generative props
@@ -155,13 +244,64 @@ function MorphCardRoot({
   generativeApi,
   componentCatalog: _componentCatalog,
   loadingText,
-}: MorphCardProps) {
+  // Sizing props
+  dynamicSize = false,
+  minWidth,
+  maxWidth,
+  minHeight,
+  maxHeight,
+}: MorphCardProps<Keys>) {
   const normalizedId = cardId as CardId;
   const registry = useContext(RegistryContext);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [contentRootNode, setContentRootNode] = useState<HTMLElement | null>(null);
+  const transitionStrategy = _transitionStrategy;
+  void transitionStrategy;
+  const cardStateService = useMemo(
+    () => createCardStateService(registry),
+    [registry]
+  );
 
   // Build context value
-  const contextValue = useCardContextValue(normalizedId);
+  const baseContextValue = useCardContextValue(normalizedId);
   const actions = useCardActions(normalizedId);
+  const registerContentNode = useCallback((node: HTMLElement | null) => {
+    setContentRootNode(node);
+  }, []);
+  const contextValue = useMemo(
+    () => ({ ...baseContextValue, registerContentNode }),
+    [baseContextValue, registerContentNode]
+  );
+
+  const setBehavior = useAtomSet(cardStateFamily.behavior(normalizedId));
+  const setMeasuredSize = useAtomSet(cardStateFamily.measuredSize(normalizedId));
+  useEffect(() => {
+    if (registry !== morphCardRegistry) {
+      throw new Error(
+        '[MorphCard] Invalid registry: MorphCard must use morphCardRegistry via MorphCardRoot.'
+      );
+    }
+  }, [registry]);
+
+  const sizeKey = useAtomValue(cardStateFamily.sizeKey(normalizedId));
+  const sizeMap = useMemo(
+    () => (stateMachineConfig?.sizes ?? (DEFAULT_SIZES as Record<string, SizePreset>)),
+    [stateMachineConfig]
+  );
+  const hasStandardSizeKey = !!sizeKey && !!sizeMap[sizeKey];
+  const effectiveDynamicSize = dynamicSize || !hasStandardSizeKey;
+
+  useEffect(() => {
+    setBehavior({
+      dynamicSize: effectiveDynamicSize,
+      scrollable,
+    });
+  }, [effectiveDynamicSize, scrollable, setBehavior]);
+
+  const behavior = useAtomValue(cardStateFamily.behavior(normalizedId));
+  const isDynamicSize = behavior.dynamicSize;
+  const isScrollable = behavior.scrollable;
 
   // Initialize generative state if enabled
   useEffect(() => {
@@ -184,25 +324,139 @@ function MorphCardRoot({
   // Generative mode hook
   const genMode = useGenerativeMode(normalizedId);
 
-  // Merge sizes
-  const sizes = useMemo(
-    () => ({ ...DEFAULT_SIZES, ...sizesProp }),
-    [sizesProp]
-  );
+  // Merge config (machine defaults -> explicit config)
+  const machineDefaults = useMemo(() => {
+    const defaults: Partial<MorphCardConfig> = {};
+    if (stateMachineConfig?.reticle) defaults.reticle = stateMachineConfig.reticle;
+    if (stateMachineConfig?.reticleColor) {
+      defaults.reticleColor = stateMachineConfig.reticleColor;
+    }
+    if (typeof stateMachineConfig?.motionBlur === 'boolean') {
+      defaults.motionBlur = stateMachineConfig.motionBlur;
+    }
+    if (stateMachineConfig?.spring) defaults.spring = stateMachineConfig.spring;
+    return defaults;
+  }, [stateMachineConfig]);
 
-  // Merge config
   const config = useMemo(
-    () => ({ ...DEFAULT_CARD_CONFIG, ...configProp }),
-    [configProp]
+    () => ({ ...DEFAULT_CARD_CONFIG, ...machineDefaults, ...configProp }),
+    [configProp, machineDefaults]
   );
 
   // Active transition
-  const transition = transitionProp ?? contextValue.transition ?? DEFAULT_TRANSITION;
+  const machineTransition = useAtomValue(cardStateFamily.transition(normalizedId));
+  const transition =
+    transitionProp ?? machineTransition ?? contextValue.transition ?? DEFAULT_TRANSITION;
   const variants = useMemo(() => grammarToVariants(transition), [transition]);
+
+  useEffect(() => {
+    // TODO: remove debug logging after transition tracing.
+    console.log('[MorphCard transition]', normalizedId, transition);
+    console.log('[MorphCard variants]', normalizedId, variants);
+  }, [normalizedId, transition, variants]);
 
   // Current mode and dimensions
   const { mode, isHovered } = contextValue.state;
-  const currentSize = sizes[mode] ?? sizes.default;
+  const previousSizeKey = useAtomValue(cardStateFamily.previousSizeKey(normalizedId));
+  const measuredSizeRaw = useAtomValue(cardStateFamily.measuredSize(normalizedId));
+  const measuredSizeStream = useAtomStream(
+    cardStateFamily.measuredSizeDebounced(normalizedId)
+  );
+  const currentSize =
+    sizeMap[sizeKey] ?? sizeMap.default ?? DEFAULT_SIZES.default;
+  const measuredSize = measuredSizeStream.value ?? measuredSizeRaw ?? null;
+  const overlaySize = measuredSize ?? currentSize;
+
+  // Dynamic island state for reticle overlay
+  const reticle = useAtomValue(cardStateFamily.reticle(normalizedId));
+  const complexity = useAtomValue(cardStateFamily.complexity(normalizedId));
+  const [resolvedSizeView, setResolvedSizeView] = useState<ReactNode | null>(null);
+
+  useEffect(() => {
+    if (!sizeViewStrategy) {
+      setResolvedSizeView(null);
+      return;
+    }
+    let active = true;
+    Effect.runPromise(
+      sizeViewStrategy({
+        cardId: normalizedId,
+        sizeKey: sizeKey as Keys,
+        previousSizeKey: previousSizeKey as Keys,
+        mode,
+      })
+    )
+      .then((view) => {
+        if (active) setResolvedSizeView(view ?? null);
+      })
+      .catch(() => {
+        if (active) setResolvedSizeView(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [sizeViewStrategy, normalizedId, sizeKey, previousSizeKey, mode]);
+
+  useEffect(() => {
+    const node = isDynamicSize ? (contentRootNode ?? contentRef.current) : containerRef.current;
+    if (!node) return;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const rect = entry.contentRect;
+      const target = entry.target as HTMLElement;
+      const width = Math.max(rect.width, target.scrollWidth || rect.width);
+      const height = Math.max(rect.height, target.scrollHeight || rect.height);
+      setMeasuredSize({ width, height });
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [contentRootNode, isDynamicSize, setMeasuredSize]);
+
+
+  // Initialize sizeKey snapshot (position/drag disabled)
+  useEffect(() => {
+    let isActive = true;
+    Effect.runPromise(
+      cardStateService.get(normalizedId).pipe(
+        Effect.flatMap((snapshot) => {
+          const next = {
+            ...snapshot,
+            sizeKey: (snapshot.sizeKey ?? (initialSizeKey as SizeKey)) as SizeKey,
+            previousSizeKey: (snapshot.previousSizeKey ??
+              (initialSizeKey as SizeKey)) as SizeKey,
+            basePosition: DEFAULT_POSITION,
+            position: DEFAULT_POSITION,
+            bounds: DEFAULT_BOUNDS,
+            drag: DEFAULT_DRAG_STATE,
+          };
+          return cardStateService
+            .set(normalizedId, next, { recordHistory: false, persist: true })
+            .pipe(Effect.map(() => next));
+        })
+      )
+    )
+      .then((snapshot) => {
+        if (!isActive) return;
+        getOrCreateIslandActor(normalizedId, {
+          sizeKey: snapshot.sizeKey,
+          previousSizeKey: snapshot.previousSizeKey,
+          reticle: snapshot.reticle,
+          activeTransition: snapshot.transition,
+          complexity: snapshot.complexity,
+        });
+      })
+      .catch(() => {
+        // noop - state initialization is best effort
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [
+    cardStateService,
+    initialSizeKey,
+    normalizedId,
+  ]);
 
   // Handle hover
   const handleMouseEnter = useCallback(() => {
@@ -219,47 +473,131 @@ function MorphCardRoot({
     if (renders && renders[mode]) {
       return renders[mode]!();
     }
+    // Effect-driven size view resolver
+    if (resolvedSizeView) {
+      return resolvedSizeView;
+    }
+    // Typed size view provider
+    if (views) {
+      const entry = views[sizeKey as Keys] ?? views.default;
+      if (typeof entry === 'function') {
+        return entry({
+          cardId: normalizedId,
+          sizeKey: sizeKey as Keys,
+          previousSizeKey: previousSizeKey as Keys,
+          mode,
+        });
+      }
+      if (entry) return entry;
+    }
+    // Explicit sizeViews map (legacy)
+    if (sizeViews) {
+      const mapped = sizeViews[sizeKey] ?? sizeViews.default;
+      if (mapped) return mapped;
+    }
     // Render function
     if (typeof children === 'function') {
       return children(mode);
     }
+    // SizeKey-scoped views
+    const childArray = Array.isArray(children) ? children : [children];
+    const sizeViewElements = childArray.filter(
+      (child) => isValidElement(child) && child.type === SizeView
+    ) as Array<ReactElement<SizeViewProps>>;
+    if (sizeViewElements.length > 0) {
+      const matched = sizeViewElements.find((view) => view.props.sizeKey === sizeKey);
+      if (matched) return matched;
+      const fallback = sizeViewElements.find((view) => view.props.sizeKey === 'default');
+      if (fallback) return fallback;
+      const nonViews = childArray.filter(
+        (child) => !(isValidElement(child) && child.type === SizeView)
+      );
+      if (nonViews.length > 0) return <>{nonViews}</>;
+      return sizeViewElements[0] ?? null;
+    }
     // Static children
     return children;
-  }, [renders, children, mode]);
+  }, [
+    renders,
+    resolvedSizeView,
+    sizeViews,
+    views,
+    children,
+    mode,
+    sizeKey,
+    previousSizeKey,
+    normalizedId,
+  ]);
 
   // Generative content rendering with proper error boundary
+  // OPTIMIZATION: Use Legend State LegendRenderer for fine-grained reactivity during streaming
+  // Only fall back to standard Renderer for completion validation
   const generativeContent = useMemo(() => {
-    if (!generative || !genMode.isEnabled) return null;
+    // LOGGING: Track render decision path
+    console.log('[MorphCard] generativeContent decision', {
+      cardId,
+      generative,
+      isEnabled: genMode.isEnabled,
+      status: genMode.status,
+      hasTree$: !!genMode.tree$,
+      hasContent: Option.isSome(genMode.content),
+      contentRoot: Option.isSome(genMode.content) ? genMode.content.value.root : null,
+      contentElementCount: Option.isSome(genMode.content) ? Object.keys(genMode.content.value.elements).length : 0,
+    });
+
+    if (!generative || !genMode.isEnabled) {
+      console.log('[MorphCard] generativeContent → null (not generative or not enabled)');
+      return null;
+    }
+
+    const isStreaming = genMode.status === 'streaming';
+
+    // LEGEND STATE OPTIMIZATION: Use LegendRenderer during streaming
+    // This provides fine-grained reactivity - only changed elements re-render
+    if (isStreaming && genMode.tree$) {
+      console.log('[MorphCard] generativeContent → LegendRenderer (streaming path)', {
+        tree$Root: genMode.tree$?.root?.get?.() ?? 'no root getter',
+        tree$ElementCount: Object.keys(genMode.tree$?.elements?.get?.() ?? {}).length,
+      });
+      return (
+        <GenerativeDepthProvider prompt={prompt}>
+          <LegendRenderer
+            tree$={genMode.tree$}
+            loading={true}
+            fallback={DefaultFallback}
+          />
+        </GenerativeDepthProvider>
+      );
+    }
+
+    // LOGGING: Streaming but no tree$
+    if (isStreaming && !genMode.tree$) {
+      console.log('[MorphCard] generativeContent → STREAMING BUT NO tree$ (falling through)');
+    }
 
     // If we have content, render it using the json-render Renderer
     if (Option.isSome(genMode.content)) {
       const { root, elements } = genMode.content.value;
-      const isStreaming = genMode.status === 'streaming';
 
-      // Decode UITree from plain objects using Schema.decodeUnknownEither
-      // Returns Either<ParseError, UITree> for proper error handling
+      console.log('[MorphCard] generativeContent → Renderer (content path)', {
+        root,
+        elementCount: Object.keys(elements).length,
+        elementTypes: [...new Set(Object.values(elements).map((e: any) => e?.type))],
+      });
+
+      // On completion, validate the final tree
       const decodeResult = Schema.decodeUnknownEither(UITree)({
         root: root ?? '',
         elements: elements as Record<string, unknown>,
       });
 
-      // During streaming, partial content is expected - use empty tree as placeholder
       if (Either.isLeft(decodeResult)) {
-        if (isStreaming) {
-          // Streaming: partial content expected, show placeholder
-          return (
-            <GenerativeDepthProvider prompt={prompt}>
-              <Renderer
-                tree={UITree.empty()}
-                loading={true}
-                fallback={DefaultFallback}
-              />
-            </GenerativeDepthProvider>
-          );
-        }
-
-        // Not streaming but decode failed - this is a real error
-        // Return error boundary placeholder (GenerativeLoading will wrap with error UI)
+        // Decode failed - this is a real error
+        console.error('[MorphCard] generativeContent → DecodeErrorBoundary (schema validation failed)', {
+          error: decodeResult.left,
+          root,
+          elementCount: Object.keys(elements).length,
+        });
         return (
           <DecodeErrorBoundary
             error={decodeResult.left}
@@ -268,24 +606,46 @@ function MorphCardRoot({
         );
       }
 
-      // Successful decode
+      console.log('[MorphCard] generativeContent → Renderer (decode success)', {
+        tree: decodeResult.right,
+        rootElement: decodeResult.right.elements[decodeResult.right.root],
+      });
+
+      // Successful decode - use standard Renderer
       return (
         <GenerativeDepthProvider prompt={prompt}>
           <Renderer
             tree={decodeResult.right}
-            loading={isStreaming}
+            loading={false}
             fallback={DefaultFallback}
           />
         </GenerativeDepthProvider>
       );
     }
 
+    console.log('[MorphCard] generativeContent → null (fallback - no content)');
     return null;
-  }, [generative, genMode.isEnabled, genMode.content, genMode.status, genMode.retry, prompt]);
+  }, [generative, genMode.isEnabled, genMode.content, genMode.status, genMode.tree$, genMode.retry, prompt, cardId]);
 
   // Final content (wrapped in loading state if generative)
   const finalContent = useMemo(() => {
+    console.log('[MorphCard] finalContent decision', {
+      cardId,
+      generative,
+      isEnabled: genMode.isEnabled,
+      status: genMode.status,
+      hasGenerativeContent: !!generativeContent,
+      hasStaticContent: !!staticContent,
+      willUseGenerativeLoading: generative && genMode.isEnabled,
+    });
+
     if (generative && genMode.isEnabled) {
+      const childContent = generativeContent || staticContent;
+      console.log('[MorphCard] finalContent → GenerativeLoading wrapper', {
+        childType: childContent ? (childContent as any)?.type?.name ?? typeof childContent : 'null',
+        usingGenerativeContent: !!generativeContent,
+        usingStaticContent: !generativeContent && !!staticContent,
+      });
       return (
         <GenerativeLoading
           status={genMode.status}
@@ -294,12 +654,14 @@ function MorphCardRoot({
           onRetry={genMode.retry}
           loadingText={loadingText}
         >
-          {generativeContent || staticContent}
+          {childContent}
         </GenerativeLoading>
       );
     }
+    console.log('[MorphCard] finalContent → staticContent (non-generative)');
     return staticContent;
   }, [
+    cardId,
     generative,
     genMode.isEnabled,
     genMode.status,
@@ -323,9 +685,80 @@ function MorphCardRoot({
     `;
   }, [config.borderIntensity]);
 
+  const sizeSpring = useMemo(
+    () => ({
+      stiffness: config.spring?.stiffness ?? 400,
+      damping: config.spring?.damping ?? 30,
+      mass: config.spring?.mass ?? 0.8,
+    }),
+    [config.spring?.damping, config.spring?.mass, config.spring?.stiffness]
+  );
+  const widthMv = useMotionValue(currentSize.width);
+  const heightMv = useMotionValue(currentSize.height);
+  const widthSpring = useSpring(widthMv, sizeSpring);
+  const heightSpring = useSpring(heightMv, sizeSpring);
+  const targetWidth = measuredSize?.width ?? currentSize.width;
+  const targetHeight = measuredSize?.height ?? currentSize.height;
+
+  useEffect(() => {
+    if (!isDynamicSize) return;
+    widthMv.set(targetWidth);
+    heightMv.set(targetHeight);
+  }, [heightMv, isDynamicSize, targetHeight, targetWidth, widthMv]);
+
+  // Dynamic sizing style
+  const dynamicSizeStyle = useMemo(() => {
+    if (!isDynamicSize) return {};
+    return {
+      minWidth: minWidth ?? currentSize.width * 0.5,
+      maxWidth: maxWidth ?? currentSize.width * 2,
+      minHeight: minHeight ?? 100,
+      maxHeight: maxHeight,
+      width: disableAnimations ? targetWidth : widthSpring,
+      height: disableAnimations ? targetHeight : heightSpring,
+    };
+  }, [
+    disableAnimations,
+    heightSpring,
+    isDynamicSize,
+    maxHeight,
+    maxWidth,
+    minHeight,
+    minWidth,
+    targetHeight,
+    targetWidth,
+    widthSpring,
+    currentSize.height,
+    currentSize.width,
+  ]);
+  const transitionKey = `${transition.verb}:${transition.modifier ?? ''}:${transition.direction ?? ''}`;
+  const contentKey = `${mode}-${generative ? 'gen' : 'static'}-${sizeKey}-${transitionKey}`;
+
+  useEffect(() => {
+    // TODO: remove debug logging after transition tracing.
+    console.log('[MorphCard contentKey]', normalizedId, contentKey);
+  }, [normalizedId, contentKey]);
+
+  const shouldAnimateContent =
+    !!renders ||
+    !!views ||
+    !!sizeViews ||
+    !!sizeViewStrategy ||
+    generative;
+
+  const containerTransition = disableAnimations
+    ? { duration: 0 }
+    : {
+        type: 'spring',
+        stiffness: sizeSpring.stiffness,
+        damping: sizeSpring.damping,
+        mass: sizeSpring.mass,
+      };
+
   return (
     <CardContext.Provider value={contextValue}>
       <motion.div
+        ref={containerRef}
         className={cn(
           'relative will-change-transform',
           interactive && 'cursor-pointer',
@@ -334,42 +767,79 @@ function MorphCardRoot({
         data-card-id={cardId}
         data-mode={mode}
         data-generative={generative}
+        data-dynamic-size={isDynamicSize}
         onClick={onClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        style={{
+          ...dynamicSizeStyle,
+          ...(isDynamicSize
+            ? {
+                width: disableAnimations ? targetWidth : widthSpring,
+                height: disableAnimations ? targetHeight : heightSpring,
+              }
+            : {}),
+        }}
         animate={{
-          width: currentSize.width,
-          height: currentSize.height,
+          ...(isDynamicSize
+            ? {}
+            : {
+                width: currentSize.width,
+                height: currentSize.height,
+              }),
         }}
-        transition={{
-          type: 'spring',
-          stiffness: config.spring?.stiffness ?? 400,
-          damping: config.spring?.damping ?? 30,
-          mass: config.spring?.mass ?? 0.8,
-        }}
+        transition={containerTransition}
       >
-        {/* Main container */}
-        <motion.div
-          className="relative w-full h-full overflow-hidden"
-          style={{
-            backgroundColor: 'oklch(0.08 0.005 280)',
-            borderRadius: config.borderRadius ?? 16,
-            boxShadow: borderGlow,
-          }}
-          layout
-        >
-          {/* Content with transition animation */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${mode}-${generative ? 'gen' : 'static'}`}
-              className="absolute inset-0"
-              initial={variants.initial as any}
-              animate={variants.animate as any}
-              exit={variants.exit as any}
-            >
-              {finalContent}
-            </motion.div>
-          </AnimatePresence>
+          {/* Main container */}
+          <motion.div
+            className={cn(
+              'relative overflow-hidden',
+              isDynamicSize ? 'inline-block w-fit min-h-0' : 'w-full h-full'
+            )}
+            style={{
+              backgroundColor: 'oklch(0.08 0.005 280)',
+              borderRadius: config.borderRadius ?? 16,
+              boxShadow: borderGlow,
+            }}
+          >
+            <ReticleOverlay
+              variant={reticle}
+              isActive={complexity === 'complex'}
+              color={config.reticleColor ?? 'rgba(255,255,255,0.3)'}
+              width={overlaySize.width}
+              height={overlaySize.height}
+            />
+            {/* Content with transition animation */}
+            {disableAnimations || !shouldAnimateContent ? (
+              <div
+                ref={contentRef}
+                className={cn(
+                  isDynamicSize ? 'inline-block w-fit' : 'h-full',
+                  isScrollable && 'overflow-auto'
+                )}
+              >
+                {finalContent}
+              </div>
+            ) : (
+              <div
+                ref={contentRef}
+                className={cn(
+                  isDynamicSize ? 'inline-block w-fit' : 'h-full',
+                  isScrollable && 'overflow-auto'
+                )}
+              >
+                <AnimatePresence mode="popLayout">
+                  <motion.div
+                    key={contentKey}
+                    initial={variants.initial as any}
+                    animate={variants.animate as any}
+                    exit={variants.exit as any}
+                  >
+                    {finalContent}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            )}
 
           {/* Hover highlight */}
           {interactive && isHovered && (
@@ -384,9 +854,17 @@ function MorphCardRoot({
               }}
             />
           )}
-        </motion.div>
+          </motion.div>
       </motion.div>
     </CardContext.Provider>
+  );
+}
+
+function MorphCardRoot(props: MorphCardProps) {
+  return (
+    <RegistryContext.Provider value={morphCardRegistry}>
+      <MorphCardInner {...props} />
+    </RegistryContext.Provider>
   );
 }
 
@@ -417,6 +895,16 @@ const Content: FC<ContentProps> = ({ children, className, padding = 'md' }) => (
 );
 
 /**
+ * MorphCard.SizeView - SizeKey-scoped view wrapper
+ */
+interface SizeViewProps {
+  sizeKey: string;
+  children: ReactNode;
+}
+
+const SizeView: FC<SizeViewProps> = ({ children }) => <>{children}</>;
+
+/**
  * MorphCard.Header - Card header area
  */
 interface HeaderProps {
@@ -435,6 +923,111 @@ const Header: FC<HeaderProps> = ({ children, className }) => (
     {children}
   </div>
 );
+
+/**
+ * MorphCard.Div - Layout-aware wrapper
+ */
+interface DivProps {
+  children: ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+  /** Register this node as the content measurement root */
+  measure?: boolean;
+  /** Display mode */
+  layout?: 'block' | 'inline' | 'inline-block';
+  /** Fill available space */
+  fill?: boolean;
+}
+
+const Div = forwardRef<HTMLDivElement, DivProps>(
+  ({ children, className, style, measure = false, layout = 'block', fill = false }, ref) => {
+    const ctx = useCardOptional();
+    const assignRef = useCallback(
+      (node: HTMLDivElement | null) => {
+        if (typeof ref === 'function') {
+          ref(node);
+        } else if (ref) {
+          (ref as { current: HTMLDivElement | null }).current = node;
+        }
+        if (measure) ctx?.registerContentNode?.(node);
+      },
+      [ctx, measure, ref]
+    );
+
+    const display =
+      layout === 'inline' ? 'inline' : layout === 'inline-block' ? 'inline-block' : 'block';
+
+    return (
+      <motion.div
+        ref={assignRef}
+        className={cn('min-w-0', className)}
+        style={{
+          display,
+          ...(fill ? { flex: 1, minWidth: 0 } : null),
+          ...style,
+        }}
+      >
+        {children}
+      </motion.div>
+    );
+  }
+);
+
+Div.displayName = 'MorphCard.Div';
+
+/**
+ * MorphCard.Stack - Layout-aware flex wrapper
+ */
+interface StackProps {
+  children: ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+  direction?: 'row' | 'column';
+  gap?: number | string;
+  align?: React.CSSProperties['alignItems'];
+  justify?: React.CSSProperties['justifyContent'];
+  wrap?: boolean;
+  fill?: boolean;
+}
+
+const Stack = forwardRef<HTMLDivElement, StackProps>(
+  (
+    {
+      children,
+      className,
+      style,
+      direction = 'row',
+      gap = 12,
+      align = 'stretch',
+      justify,
+      wrap = false,
+      fill = false,
+    },
+    ref
+  ) => {
+    const gapValue = typeof gap === 'number' ? `${gap}px` : gap;
+    return (
+      <motion.div
+        ref={ref}
+        className={cn(className)}
+        style={{
+          display: 'flex',
+          flexDirection: direction,
+          gap: gapValue,
+          alignItems: align,
+          ...(justify ? { justifyContent: justify } : null),
+          ...(wrap ? { flexWrap: 'wrap' } : null),
+          ...(fill ? { flex: 1, minWidth: 0 } : null),
+          ...style,
+        }}
+      >
+        {children}
+      </motion.div>
+    );
+  }
+);
+
+Stack.displayName = 'MorphCard.Stack';
 
 /**
  * MorphCard.Title - Card title
@@ -545,6 +1138,9 @@ const Actions: FC<ActionsProps> = ({ children, className }) => (
  */
 export const MorphCard = Object.assign(MorphCardRoot, {
   Content,
+  Div,
+  Stack,
+  SizeView,
   Header,
   Title,
   Badge,

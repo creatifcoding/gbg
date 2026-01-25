@@ -23,6 +23,74 @@ import type {
 import { THINKING_BUDGETS, DEFAULT_MODELS, INITIAL_STREAM_STATE } from '../schemas'
 
 // =============================================================================
+// Helpers
+// =============================================================================
+
+/**
+ * Cursor chat server URL (Claude Code backend)
+ */
+const CURSOR_CHAT_URL = 'http://localhost:7682/chat'
+
+/**
+ * Process AI SDK SSE event and emit to queue
+ * Handles AI SDK 5.0+ UIMessage stream format
+ */
+function processAISDKEvent(
+  line: string,
+  eventQueue: Queue.Queue<AIStreamEvent>
+): Effect.Effect<void> {
+  return Effect.gen(function* () {
+    // AI SDK uses different SSE format
+    // Lines can be: 0:"text", d:{...}, e:{...}
+    if (line.startsWith('0:')) {
+      // Text delta: 0:"content"
+      const text = line.slice(2)
+      try {
+        const parsed = JSON.parse(text)
+        if (typeof parsed === 'string') {
+          yield* Queue.offer(eventQueue, {
+            _tag: 'TextDelta',
+            text: parsed,
+          })
+        }
+      } catch {
+        // Malformed, skip
+      }
+    } else if (line.startsWith('d:')) {
+      // Finish message: d:{"finishReason":"stop",...}
+      try {
+        const data = JSON.parse(line.slice(2))
+        if (data.finishReason) {
+          yield* Queue.offer(eventQueue, {
+            _tag: 'StreamComplete',
+            finishReason: data.finishReason,
+            usage: data.usage ? {
+              promptTokens: data.usage.promptTokens ?? 0,
+              completionTokens: data.usage.completionTokens ?? 0,
+              totalTokens: data.usage.totalTokens ?? 0,
+            } : undefined,
+          })
+        }
+      } catch {
+        // Malformed, skip
+      }
+    } else if (line.startsWith('e:')) {
+      // Error message
+      try {
+        const data = JSON.parse(line.slice(2))
+        yield* Queue.offer(eventQueue, {
+          _tag: 'StreamError',
+          error: data.message ?? 'Unknown error',
+        })
+      } catch {
+        // Malformed, skip
+      }
+    }
+    // Ignore other line types (3:, 8:, f:, etc.)
+  })
+}
+
+// =============================================================================
 // Stream Handle
 // =============================================================================
 
@@ -116,34 +184,88 @@ export class AIService extends Context.Tag('tmnl/ai/AIService')<AIService, AISer
           // Start streaming in background
           const streamingFiber = yield* Effect.fork(
             Effect.gen(function* () {
+              const aborted = yield* Ref.get(abortRef)
+              if (aborted) return
+
               try {
-                // For now, emit a mock response
-                // TODO: Integrate with actual AI SDK
+                // Convert messages to AI SDK format (parts array)
+                const aiSdkMessages = request.messages.map((m) => ({
+                  role: m.role,
+                  parts: [{
+                    type: 'text' as const,
+                    text: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+                  }],
+                }))
 
-                // Emit text delta
-                yield* Queue.offer(eventQueue, {
-                  _tag: 'TextDelta',
-                  text: 'AI streaming is configured. ',
+                // Make streaming request to cursor chat server (Claude Code backend)
+                const response = yield* Effect.tryPromise({
+                  try: async () => {
+                    return fetch(CURSOR_CHAT_URL, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        messages: aiSdkMessages,
+                      }),
+                    })
+                  },
+                  catch: (e) => new Error(`Failed to connect to cursor server: ${e}. Is it running? (bun run cursor:server)`),
                 })
 
-                yield* Effect.sleep(100)
+                if (!response.ok) {
+                  const errorText = yield* Effect.tryPromise({
+                    try: () => response.text(),
+                    catch: () => 'Unknown error',
+                  })
+                  yield* Queue.offer(eventQueue, {
+                    _tag: 'StreamError',
+                    error: `Cursor server error (${response.status}): ${errorText}`,
+                  })
+                  return
+                }
 
-                yield* Queue.offer(eventQueue, {
-                  _tag: 'TextDelta',
-                  text: `Provider: ${request.provider}, Model: ${request.modelId}`,
-                })
+                const reader = response.body?.getReader()
+                if (!reader) {
+                  yield* Queue.offer(eventQueue, {
+                    _tag: 'StreamError',
+                    error: 'No response body from cursor server',
+                  })
+                  return
+                }
 
-                yield* Effect.sleep(100)
+                const decoder = new TextDecoder()
+                let buffer = ''
 
-                // Complete
+                // Process AI SDK SSE stream
+                while (true) {
+                  const aborted = yield* Ref.get(abortRef)
+                  if (aborted) {
+                    reader.cancel()
+                    break
+                  }
+
+                  const { done, value } = yield* Effect.tryPromise({
+                    try: () => reader.read(),
+                    catch: (e) => new Error(`Stream read error: ${e}`),
+                  })
+
+                  if (done) break
+
+                  buffer += decoder.decode(value, { stream: true })
+                  const lines = buffer.split('\n')
+                  buffer = lines.pop() ?? ''
+
+                  for (const line of lines) {
+                    if (!line.trim()) continue
+                    yield* processAISDKEvent(line, eventQueue)
+                  }
+                }
+
+                // Ensure complete is sent if not already
                 yield* Queue.offer(eventQueue, {
                   _tag: 'StreamComplete',
                   finishReason: 'stop',
-                  usage: {
-                    promptTokens: 0,
-                    completionTokens: 0,
-                    totalTokens: 0,
-                  },
                 })
               } catch (error) {
                 yield* Queue.offer(eventQueue, {

@@ -18,7 +18,7 @@ import type {
   CommandScope,
 } from './types'
 import { getRegisteredCommands, getDefaultBindings } from './decorators'
-import { MinibufferService } from '../minibuffer/services/MinibufferService'
+import { ops } from '../minibuffer/v2'
 import { COMMAND_PROVIDER_ID } from './CommandProvider'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -191,38 +191,11 @@ export class CommandService extends Context.Tag('tmnl/commands/CommandService')<
         }),
 
       executeInteractive: (_options) =>
-        Effect.gen(function* () {
-          // Use MinibufferService.read() with CommandProvider
-          const minibuffer = yield* MinibufferService
-          const selectedId = yield* minibuffer.read('M-x ', COMMAND_PROVIDER_ID, {
-            requireSelection: true,
-          })
-
-          // Execute the selected command (if not cancelled)
-          if (selectedId) {
-            const commands = getRegisteredCommands()
-            const command = commands.get(selectedId)
-
-            if (!command) {
-              yield* Effect.logWarning(`Command not found: ${selectedId}`)
-              return
-            }
-
-            if (command.type === 'global') {
-              yield* Effect.logInfo(`Executing command: ${selectedId}`)
-              yield* (command as GlobalCommand).execute.pipe(
-                Effect.catchAll((error) =>
-                  Effect.logWarning(`Command failed: ${JSON.stringify(error)}`)
-                )
-              )
-            } else {
-              yield* Effect.logWarning(`Entity command ${selectedId} requires context`)
-            }
-          }
-        }).pipe(
-          // Provide MinibufferService for standalone execution
-          Effect.provide(MinibufferService.Default)
-        ),
+        Effect.sync(() => {
+          // v2: Open minibuffer in command mode
+          // Execution happens via the execution stream when user selects
+          ops.openCommand(COMMAND_PROVIDER_ID)
+        }),
 
       list: () =>
         Effect.sync(() => Array.from(getRegisteredCommands().values())),

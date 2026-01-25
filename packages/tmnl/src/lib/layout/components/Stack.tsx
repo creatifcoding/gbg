@@ -76,7 +76,7 @@ export const Stack = React.forwardRef<HTMLDivElement, StackProps>(
       gap: spacingToCss(gap),
       alignItems: align,
       ...(justify && { justifyContent: justify }),
-      ...(fill && { flex: 1 }),
+      ...(fill && { flex: 1, minHeight: 0 }),
       ...(wrap && { flexWrap: "wrap" }),
       ...style,
     }

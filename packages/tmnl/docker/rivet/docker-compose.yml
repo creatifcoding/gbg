@@ -1,0 +1,54 @@
+# Rivet Engine Docker Compose Configuration
+#
+# Production deployment for RivetKit actors.
+# Uses PostgreSQL for durable state persistence.
+#
+# Usage:
+#   docker compose up -d
+#
+# Connect your app:
+#   RIVET_ENGINE=http://localhost:6420
+
+services:
+  rivet-engine:
+    image: rivetkit/engine:latest
+    ports:
+      - "6420:6420"
+    volumes:
+      - rivet-data:/data
+    environment:
+      RIVET__POSTGRES__URL: postgresql://rivet:rivet_password@postgres:5432/rivet
+      # Optional: Enable debug logging
+      # RUST_LOG: rivet=debug
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6420/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: rivet
+      POSTGRES_USER: rivet
+      POSTGRES_PASSWORD: rivet_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rivet -d rivet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  rivet-data:
+    driver: local
+  postgres-data:
+    driver: local

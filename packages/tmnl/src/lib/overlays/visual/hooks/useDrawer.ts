@@ -42,9 +42,11 @@ export interface DrawerOpenOptions {
   /** Slot to render in (defaults to "global") */
   slot?: SlotId
   /** Side of slot (defaults to "right") */
-  side?: "left" | "right"
-  /** Width (defaults to 400) */
+  side?: "left" | "right" | "top" | "bottom"
+  /** Width for left/right drawers (defaults to 400) */
   width?: number
+  /** Height for top/bottom drawers (defaults to "50%") */
+  height?: number | string
   /** Show backdrop (defaults to false) */
   showBackdrop?: boolean
   /** Close on backdrop click (defaults to true) */
@@ -104,7 +106,7 @@ export function useDrawer(): UseDrawerReturn {
         slot: options.slot ?? GLOBAL_SLOT_ID,
         side: options.side ?? "right",
         width: options.width ?? 400,
-        height: "50%",
+        height: options.height ?? "50%",
         showBackdrop: options.showBackdrop ?? true,
         closeOnOverlayClick: options.closeOnBackdropClick ?? true,
         closeOnEscape: options.closeOnEscape ?? true,

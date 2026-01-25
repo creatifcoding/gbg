@@ -1,0 +1,59 @@
+syntax = "proto3";
+package scm.events.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/descriptor.proto";
+import "scm/events/v1/envelope.proto";
+
+message Cursor { bytes token = 1; }
+
+message EventBatch {
+  string batch_id = 1;
+  uint64 batch_seq = 2;
+  repeated Event events = 3;
+  Cursor next_cursor = 4;
+}
+
+message Ack {
+  string batch_id = 1;
+  uint64 batch_seq = 2;
+  Cursor cursor = 3;
+}
+
+message AppendRequest { repeated Event events = 1; }
+message AppendResponse {
+  uint64 accepted = 1;
+  uint64 rejected = 2;
+  repeated string rejected_event_ids = 3;
+}
+
+message SubscribeRequest {
+  string tenant_id = 1;
+  Cursor cursor = 2;                 // empty => start policy
+  bool include_snapshot = 3;         // snapshot then deltas
+  repeated string topic_filters = 4; // optional: payload type_url prefixes
+  map<string,string> label_filters = 5;
+}
+
+message SnapshotChunk {
+  uint64 seq = 1;
+  repeated Event items = 2; // snapshot encoded as Events (often platform/crdt events)
+  bool last = 3;
+}
+
+message SchemaResponse {
+  google.protobuf.FileDescriptorSet fds = 1;
+}
+
+service EventJournal {
+  rpc Append(AppendRequest) returns (AppendResponse);
+
+  // Client streams ACKs; server streams event batches.
+  rpc Subscribe(stream Ack) returns (stream EventBatch);
+
+  rpc Snapshot(SubscribeRequest) returns (stream SnapshotChunk);
+
+  // Lets consumers decode Any dynamically (prost-reflect) / generate registries.
+  rpc GetSchema(google.protobuf.Empty) returns (SchemaResponse);
+}

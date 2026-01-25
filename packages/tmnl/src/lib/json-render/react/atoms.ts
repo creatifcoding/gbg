@@ -13,7 +13,7 @@
 
 import { Atom } from "@effect-atom/atom-react"
 import { Deferred, Option, Fiber } from "effect"
-import type { UITree, AuthState, DataModel, Action } from "../core/schemas"
+import type { UITree, AuthState, DataModel, Action, JsonRenderDecodeError } from "../core/schemas"
 import { UITree as UITreeClass } from "../core/schemas"
 import type { ResolvedAction, ActionHandler } from "../core/actions"
 
@@ -40,6 +40,14 @@ export const isStreamingAtom = Atom.make(false).pipe(
  * Current streaming error (if any)
  */
 export const errorAtom = Atom.make<Option.Option<Error>>(Option.none()).pipe(
+  Atom.keepAlive
+)
+
+/**
+ * Whether to use hybrid mode (Tree Worker for off-main-thread processing)
+ * Used for A/B testing worker vs main thread performance
+ */
+export const hybridModeAtom = Atom.make(false).pipe(
   Atom.keepAlive
 )
 
@@ -106,6 +114,37 @@ export const pendingConfirmationAtom = Atom.make<Option.Option<PendingConfirmati
 export const streamFiberAtom = Atom.make<Option.Option<Fiber.RuntimeFiber<void, Error>>>(
   Option.none()
 ).pipe(Atom.keepAlive)
+
+// =============================================================================
+// Decode Error Atoms (per stream + aggregated)
+// =============================================================================
+
+export type DecodeErrorEntry = JsonRenderDecodeError
+
+export const decodeErrorStreamIdsAtom = Atom.make<Set<string>>(new Set()).pipe(
+  Atom.keepAlive
+)
+
+export const decodeErrorsFamily = Atom.family(
+  (_streamId: string) => Atom.make<Array<DecodeErrorEntry>>([])
+)
+
+export const decodeErrorsAtom = Atom.make((get) => {
+  const ids = Array.from(get(decodeErrorStreamIdsAtom))
+  const errors: Array<DecodeErrorEntry> = []
+  for (const id of ids) {
+    for (const entry of get(decodeErrorsFamily(id))) {
+      errors.push(entry)
+    }
+  }
+  return errors
+})
+
+export const registerDecodeErrorStreamId = (ids: Set<string>, streamId: string) => {
+  const next = new Set(ids)
+  next.add(streamId)
+  return next
+}
 
 // =============================================================================
 // GenerativeContainer Atom Families (Per-Container Isolation)

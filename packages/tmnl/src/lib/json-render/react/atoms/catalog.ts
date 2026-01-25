@@ -28,6 +28,10 @@ import {
   type SchemaEntry,
 } from "../../core/CatalogService"
 import { layoutDomainCatalog } from "@/lib/layout/catalog/domain-catalog"
+import { uiDomainCatalog } from "@/lib/json-render/catalog/ui-domain-catalog"
+import { geointDomainCatalog } from "@/lib/json-render/catalog/geoint-domain-catalog"
+import { chartDomainCatalog } from "@/lib/charts"
+import { morphCardDomainCatalog } from "@/lib/morph-card/catalog"
 
 // =============================================================================
 // Build-time Layer (core domains)
@@ -35,13 +39,17 @@ import { layoutDomainCatalog } from "@/lib/layout/catalog/domain-catalog"
 
 /**
  * Default CatalogComponents layer with built-in domains.
- * Add domain catalogs here as they're created.
- *
- * Future: uiDomainCatalog, formsDomainCatalog
+ * All registered catalogs contribute to:
+ * - Renderers (for React rendering)
+ * - Schemas (for validation)
+ * - Prompt generation (for AI)
  */
 export const CatalogComponentsLive = createCatalogLayer(
   layoutDomainCatalog,
-  // uiDomainCatalog,     // Future
+  uiDomainCatalog,
+  geointDomainCatalog,
+  chartDomainCatalog,
+  morphCardDomainCatalog,
 )
 
 // =============================================================================

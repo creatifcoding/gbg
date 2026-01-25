@@ -90,11 +90,15 @@ export {
   commandPaletteCommand,
   settingsCommand,
   keyboardShortcutsCommand,
+  // Window
+  openTestbedWindowCommand,
   // Navigation
   goToTopCommand,
   goToBottomCommand,
   goToInboxCommand,
   goToStarredCommand,
+  goToTerminalCommand,
+  goToHomeCommand,
   // Editor
   formatDocumentCommand,
   toggleCommentCommand,
@@ -159,3 +163,18 @@ export {
   COMMAND_PROVIDER_ID,
   registerCommandProvider,
 } from './CommandProvider'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hooks
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// React hooks for command system integration.
+//
+export {
+  useCommandSearch,
+  Result,
+} from './hooks'
+export type {
+  UseCommandSearchReturn,
+  CommandSearchResult,
+} from './hooks'

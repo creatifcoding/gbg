@@ -190,6 +190,27 @@ export function defineCommand(
 }
 
 /**
+ * Define an additional key binding for an existing command.
+ *
+ * Use this to add alternative bindings (e.g., Alt+X for command palette in addition to Ctrl+Shift+P).
+ */
+export function defineBinding(
+  keys: string,
+  commandId: string,
+  scope: CommandScope,
+  when?: string
+): KeyBinding {
+  const binding: KeyBinding = {
+    keys,
+    commandId,
+    scope,
+    when,
+  }
+  defaultBindings.push(binding)
+  return binding
+}
+
+/**
  * Define an entity command without decorators
  */
 export function defineEntityCommand<TEntity>(

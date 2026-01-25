@@ -369,6 +369,7 @@ export function registerPanel(config: PanelConfig): PanelState {
     isDragging: false,
     isResizing: false,
     isMaximized: false,
+    isSnappingBack: false,
     preMaximizePosition: undefined,
     preMaximizeDimensions: undefined,
     closable: config.closable ?? true,

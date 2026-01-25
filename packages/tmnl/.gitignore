@@ -9,3 +9,7 @@ bin/
 
 # Vendor sources for MCP servers
 vendor/osmmcp/
+
+# egui wasm output (built via wasm-pack)
+public/egui/*
+!public/egui/.gitkeep

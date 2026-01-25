@@ -7,7 +7,7 @@
 
 import { useContext, useEffect, useRef, useState, useCallback } from 'react'
 import { Effect, Data } from 'effect'
-import { RegistryContext, type Registry } from '@effect-atom/atom-react'
+import { RegistryContext } from '@effect-atom/atom-react'
 import {
   wireCommandsEffect,
   unwireCommandsEffect,
@@ -15,6 +15,7 @@ import {
   type RegistryLike,
 } from './wire'
 import { registerCommandProvider } from './CommandProvider'
+import { registerTestbedWindowProvider } from '@/lib/tauri-windows'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Error Types (Tagged for Effect.catchTag)
@@ -35,6 +36,15 @@ export class ProviderRegistrationError extends Data.TaggedError('ProviderRegistr
  */
 const registerProviderEffect: Effect.Effect<void, ProviderRegistrationError> = Effect.try({
   try: () => registerCommandProvider(),
+  catch: (cause) => new ProviderRegistrationError({ cause }),
+})
+
+/**
+ * Register TestbedWindowProvider with minibuffer.
+ * Enables Ctrl+Shift+N quick-switcher for testbed windows.
+ */
+const registerTestbedProviderEffect: Effect.Effect<void, ProviderRegistrationError> = Effect.try({
+  try: () => registerTestbedWindowProvider(),
   catch: (cause) => new ProviderRegistrationError({ cause }),
 })
 
@@ -117,8 +127,11 @@ export function useCommandWire(options: UseCommandWireOptions = {}): UseCommandW
       // This ensures M-x completion works via CommandService.executeInteractive()
       yield* registerProviderEffect
 
+      // Register TestbedWindowProvider for Ctrl+Shift+N quick-switcher
+      yield* registerTestbedProviderEffect
+
       if (debug) {
-        yield* Effect.log('[useCommandWire] Registered CommandProvider with minibuffer')
+        yield* Effect.log('[useCommandWire] Registered CommandProvider and TestbedWindowProvider with minibuffer')
       }
 
       // Then wire commands to hotkey system

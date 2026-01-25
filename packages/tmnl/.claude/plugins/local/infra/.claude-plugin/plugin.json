@@ -1,0 +1,10 @@
+{
+  "name": "infra",
+  "version": "1.0.0",
+  "description": "Infrastructure management for TMNL stack. Start/stop Docker containers, check health, view logs, rebuild services.",
+  "author": {
+    "name": "TMNL",
+    "email": "val@tmnl.dev"
+  },
+  "keywords": ["docker", "infrastructure", "containers", "tmnl"]
+}

@@ -26,10 +26,12 @@
  * ```
  */
 
-import { Effect, Option, Schema, pipe } from 'effect'
-import { Atom } from '@effect-atom/atom'
-import * as internal from './internal/core'
-import * as scope from './internal/scope'
+import { Effect, Option, Schema, pipe } from 'effect';
+import { Atom } from '@effect-atom/atom';
+import * as internal from './internal/core';
+import * as scope from './internal/scope';
+
+// Note: Atom import is used for bridge atoms at the bottom of this file
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Re-exports
@@ -47,7 +49,7 @@ export {
   VariableValidationError,
   VariableOrError,
   type VariableError,
-} from './internal/core'
+} from './internal/core';
 
 export {
   /** Value source type */
@@ -58,7 +60,7 @@ export {
   type WorkspaceId,
   /** Editor ID type */
   type EditorId,
-} from './internal/scope'
+} from './internal/scope';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Define API
@@ -66,14 +68,14 @@ export {
 
 export interface DefineOptions<A> {
   /** Unique variable identifier (e.g., "editor.tabWidth") */
-  readonly id: string
+  readonly id: string;
   /**
    * Explicit group for categorization.
    * If omitted, inferred from ID (first segment before dot, or entire ID if no dots).
    */
-  readonly group?: string
+  readonly group?: string;
   /** Effect Schema for value validation (supports Literal, String, Number, etc.) */
-  readonly schema: Schema.Schema<any, any, never>
+  readonly schema: Schema.Schema<any, any, never>;
   /**
    * Default value, OR a function that computes from lower scope.
    *
@@ -86,9 +88,9 @@ export interface DefineOptions<A> {
    * default: (lower) => lower * 2
    * ```
    */
-  readonly default: A | ((lower: A) => A)
+  readonly default: A | ((lower: A) => A);
   /** Human-readable description */
-  readonly description: string
+  readonly description: string;
 }
 
 /**
@@ -113,10 +115,12 @@ export interface DefineOptions<A> {
  * })
  * ```
  */
-export const define = <A>(options: DefineOptions<A>): internal.VariableDef<A> => {
-  const def = internal.makeVariableDef(options)
-  return internal.registerVariable(def)
-}
+export const define = <A>(
+  options: DefineOptions<A>
+): internal.VariableDef<A> => {
+  const def = internal.makeVariableDef(options);
+  return internal.registerVariable(def);
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Runtime Access API — The Key Feature
@@ -139,9 +143,9 @@ export const define = <A>(options: DefineOptions<A>): internal.VariableDef<A> =>
  * ```
  */
 export const get = (id: string): Effect.Effect<Option.Option<unknown>> => {
-  const provider = scope.createScopeChain()
-  return internal.loadById(provider, id)
-}
+  const provider = scope.createScopeChain();
+  return internal.loadById(provider, id);
+};
 
 /**
  * Get a variable by string ID with type assertion.
@@ -157,9 +161,9 @@ export const getAs = <A>(
   id: string,
   schema: Schema.Schema<A, unknown>
 ): Effect.Effect<Option.Option<A>> => {
-  const provider = scope.createScopeChain()
-  return internal.loadByIdAs(provider, id, schema)
-}
+  const provider = scope.createScopeChain();
+  return internal.loadByIdAs(provider, id, schema);
+};
 
 /**
  * Get a variable by string ID, throwing if not found.
@@ -170,7 +174,9 @@ export const getAs = <A>(
  * const tabWidth = yield* Variable.getOrDie('editor.tabWidth')
  * ```
  */
-export const getOrDie = (id: string): Effect.Effect<unknown, internal.VariableError> =>
+export const getOrDie = (
+  id: string
+): Effect.Effect<unknown, internal.VariableError> =>
   pipe(
     Effect.sync(() => internal.getVariableDefinition(id)),
     Effect.flatMap(
@@ -183,12 +189,12 @@ export const getOrDie = (id: string): Effect.Effect<unknown, internal.VariableEr
             })
           ),
         onSome: (def) => {
-          const provider = scope.createScopeChain()
-          return provider.load(def)
+          const provider = scope.createScopeChain();
+          return provider.load(def);
         },
       })
     )
-  )
+  );
 
 /**
  * Get a variable with full resolution info (value + source + isModified).
@@ -215,7 +221,7 @@ export const resolve = (
           ),
       })
     )
-  )
+  );
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mutation API
@@ -230,20 +236,23 @@ export const resolve = (
  * yield* Variable.set('editor.tabWidth', 2)
  * ```
  */
-export const set = (id: string, value: unknown): Effect.Effect<void, internal.VariableError> => {
-  const maybeDef = internal.getVariableDefinition(id)
+export const set = (
+  id: string,
+  value: unknown
+): Effect.Effect<void, internal.VariableError> => {
+  const maybeDef = internal.getVariableDefinition(id);
   if (Option.isNone(maybeDef)) {
     return Effect.fail(
       new internal.VariableMissingError({
         variableId: id,
         path: ['registry'],
       })
-    )
+    );
   }
-  const def = maybeDef.value
+  const def = maybeDef.value;
 
   // Validate against schema
-  const decoded = Schema.decodeUnknownEither(def.schema)(value)
+  const decoded = Schema.decodeUnknownEither(def.schema)(value);
   if (decoded._tag === 'Left') {
     return Effect.fail(
       new internal.VariableValidationError({
@@ -251,12 +260,12 @@ export const set = (id: string, value: unknown): Effect.Effect<void, internal.Va
         value,
         cause: decoded.left,
       })
-    )
+    );
   }
   // Store in user scope
-  scope.setUserValue(id, decoded.right)
-  return Effect.void
-}
+  scope.setUserValue(id, decoded.right);
+  return Effect.void;
+};
 
 /**
  * Reset a variable to its default value (remove user customization).
@@ -267,7 +276,7 @@ export const set = (id: string, value: unknown): Effect.Effect<void, internal.Va
  * ```
  */
 export const reset = (id: string): Effect.Effect<void> =>
-  Effect.sync(() => scope.removeUserValue(id))
+  Effect.sync(() => scope.removeUserValue(id));
 
 /**
  * Make a variable buffer-local (editor-scoped).
@@ -278,7 +287,9 @@ export const reset = (id: string): Effect.Effect<void> =>
  * yield* Variable.makeLocal('editor.tabWidth')
  * ```
  */
-export const makeLocal = (id: string): Effect.Effect<void, internal.VariableError> =>
+export const makeLocal = (
+  id: string
+): Effect.Effect<void, internal.VariableError> =>
   pipe(
     get(id),
     Effect.flatMap((maybeValue) => {
@@ -288,16 +299,17 @@ export const makeLocal = (id: string): Effect.Effect<void, internal.VariableErro
             variableId: id,
             path: ['registry'],
           })
-        )
+        );
       }
-      const value = maybeValue.value
-      const editorId = Atom.get(scope.currentEditorAtom)
+      const value = maybeValue.value;
+      // Use registry for synchronous access
+      const editorId = scope.variablesRegistry.get(scope.currentEditorAtom);
       if (editorId) {
-        scope.setEditorValue(editorId, id, value)
+        scope.setEditorValue(editorId, id, value);
       }
-      return Effect.void
+      return Effect.void;
     })
-  )
+  );
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Introspection API
@@ -312,10 +324,12 @@ export const makeLocal = (id: string): Effect.Effect<void, internal.VariableErro
  * // → Option.some({ id: 'editor.tabWidth', description: '...', ... })
  * ```
  */
-export const describe = (id: string): Option.Option<{
-  readonly id: string
-  readonly description: string
-  readonly hasComputedDefault: boolean
+export const describe = (
+  id: string
+): Option.Option<{
+  readonly id: string;
+  readonly description: string;
+  readonly hasComputedDefault: boolean;
 }> =>
   pipe(
     internal.getVariableDefinition(id),
@@ -324,7 +338,7 @@ export const describe = (id: string): Option.Option<{
       description: def.description,
       hasComputedDefault: typeof def.default === 'function',
     }))
-  )
+  );
 
 /**
  * List all registered variable IDs.
@@ -336,7 +350,7 @@ export const describe = (id: string): Option.Option<{
  * ```
  */
 export const list = (): ReadonlyArray<string> =>
-  Array.from(internal.getAllVariableDefinitions().keys())
+  Array.from(internal.getAllVariableDefinitions().keys());
 
 /**
  * List variables by group.
@@ -349,15 +363,15 @@ export const list = (): ReadonlyArray<string> =>
  * ```
  */
 export const listByGroup = (group: string): ReadonlyArray<string> => {
-  const allDefs = internal.getAllVariableDefinitions()
-  const result: string[] = []
+  const allDefs = internal.getAllVariableDefinitions();
+  const result: string[] = [];
   for (const [id, def] of allDefs) {
     if (def.group === group) {
-      result.push(id)
+      result.push(id);
     }
   }
-  return result
-}
+  return result;
+};
 
 /**
  * Get unique groups from all registered variables.
@@ -370,13 +384,112 @@ export const listByGroup = (group: string): ReadonlyArray<string> => {
  * ```
  */
 export const groups = (): ReadonlyArray<string> => {
-  const allDefs = internal.getAllVariableDefinitions()
-  const allGroups = new Set<string>()
+  const allDefs = internal.getAllVariableDefinitions();
+  const allGroups = new Set<string>();
   for (const def of allDefs.values()) {
-    allGroups.add(def.group)
+    allGroups.add(def.group);
   }
-  return Array.from(allGroups).sort()
-}
+  return Array.from(allGroups).sort();
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bridge Atoms — Variable → Atom Adapter
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { variableAtom } from './hooks';
+
+/**
+ * Create a derived atom that reads from a variable.
+ * The atom is reactive — updates when the variable changes.
+ *
+ * This is the bridge between Variables v2 and effect-atom consumers.
+ *
+ * @example
+ * ```typescript
+ * // Create bridge atom
+ * const sidebarWidthAtom = Variable.atom('layout.sidebar.collapsedWidth')
+ *
+ * // Use in React
+ * const width = useAtomValue(sidebarWidthAtom) // → 48
+ *
+ * // Type-safe version
+ * const widthAtom = Variable.atom<number>('layout.sidebar.collapsedWidth')
+ * ```
+ */
+export const atom = <A = unknown>(id: string): Atom.Atom<A | undefined> =>
+  Atom.make((get) => {
+    const resolved = get(variableAtom(id));
+    return resolved?.value as A | undefined;
+  });
+
+/**
+ * Create a derived atom with a fallback default.
+ * Never returns undefined — uses provided default if variable not found.
+ *
+ * @example
+ * ```typescript
+ * const widthAtom = Variable.atomWithDefault('layout.sidebar.collapsedWidth', 48)
+ * const width = useAtomValue(widthAtom) // → 48 (guaranteed)
+ * ```
+ */
+export const atomWithDefault = <A>(id: string, defaultValue: A): Atom.Atom<A> =>
+  Atom.make((get) => {
+    const resolved = get(variableAtom(id));
+    return (resolved?.value as A) ?? defaultValue;
+  });
+
+/**
+ * Create multiple bridge atoms from a record of variable IDs.
+ * Returns a record of atoms with the same keys.
+ *
+ * @example
+ * ```typescript
+ * const sidebarAtoms = Variable.atoms({
+ *   collapsed: 'layout.sidebar.collapsed',
+ *   collapsedWidth: 'layout.sidebar.collapsedWidth',
+ *   expandedWidth: 'layout.sidebar.expandedWidth',
+ * })
+ *
+ * // Use in React
+ * const collapsed = useAtomValue(sidebarAtoms.collapsed)
+ * const width = useAtomValue(sidebarAtoms.collapsedWidth)
+ * ```
+ */
+export const atoms = <T extends Record<string, string>>(
+  ids: T
+): { [K in keyof T]: Atom.Atom<unknown | undefined> } => {
+  const result = {} as { [K in keyof T]: Atom.Atom<unknown | undefined> };
+  for (const key of Object.keys(ids) as Array<keyof T>) {
+    result[key] = atom(ids[key]);
+  }
+  return result;
+};
+
+/**
+ * Create multiple bridge atoms with defaults from a record.
+ *
+ * @example
+ * ```typescript
+ * const sidebarAtoms = Variable.atomsWithDefaults({
+ *   collapsed: ['layout.sidebar.collapsed', false],
+ *   collapsedWidth: ['layout.sidebar.collapsedWidth', 48],
+ *   expandedWidth: ['layout.sidebar.expandedWidth', 256],
+ * })
+ *
+ * // All atoms guaranteed to return their default type
+ * const width = useAtomValue(sidebarAtoms.collapsedWidth) // → number
+ * ```
+ */
+export const atomsWithDefaults = <T extends Record<string, [string, unknown]>>(
+  configs: T
+): { [K in keyof T]: Atom.Atom<T[K][1]> } => {
+  const result = {} as { [K in keyof T]: Atom.Atom<T[K][1]> };
+  for (const key of Object.keys(configs) as Array<keyof T>) {
+    const [id, defaultValue] = configs[key];
+    result[key] = atomWithDefault(id, defaultValue);
+  }
+  return result;
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Testing Utilities
@@ -386,4 +499,4 @@ export const groups = (): ReadonlyArray<string> => {
  * Clear the variable registry.
  * For testing only.
  */
-export const clearRegistry = internal.clearRegistry
+export const clearRegistry = internal.clearRegistry;

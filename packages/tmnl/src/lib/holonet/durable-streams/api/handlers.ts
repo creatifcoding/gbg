@@ -24,7 +24,6 @@ import { StreamBridgeService, LiveStreamService } from '../services';
 import {
   StreamNotFoundError,
   StreamExistsError,
-  LongPollTimeoutError as CoreLongPollTimeoutError,
 } from '../schemas/errors';
 import { SchemaValidationError } from '../services/StreamCodecService';
 import {
@@ -174,12 +173,10 @@ export const StreamsHandlersLive = HttpApiBuilder.group(
               timeout: urlParams.timeout,
               limit: urlParams.limit,
             }).pipe(
-              Effect.mapError((e): typeof ApiStreamNotFoundError.Type | typeof ApiLongPollTimeoutError.Type | typeof ApiNatsConnectionError.Type | typeof ApiInternalError.Type => {
+              Effect.mapError((e): typeof ApiStreamNotFoundError.Type | ApiLongPollTimeoutError | typeof ApiNatsConnectionError.Type | typeof ApiInternalError.Type => {
                 if (e._tag === 'LongPollTimeoutError') {
-                  return new ApiLongPollTimeoutError({
-                    streamId: (e as CoreLongPollTimeoutError).streamId,
-                    lastOffset: (e as CoreLongPollTimeoutError).lastOffset,
-                  });
+                  // 204 No Content - client already knows streamId/offset from request
+                  return new ApiLongPollTimeoutError();
                 }
                 if (e._tag === 'StreamNotFoundError') {
                   return new ApiStreamNotFoundError({

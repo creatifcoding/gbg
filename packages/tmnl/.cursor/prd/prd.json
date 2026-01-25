@@ -1,0 +1,287 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "GEOINT Layering System",
+  "version": "0.1.0",
+  "status": "planning",
+  "created": "2026-01-08",
+  "author": "Val (Prime's Architectural Conscience)",
+
+  "overview": {
+    "vision": "Build a comprehensive GEOINT (Geospatial Intelligence) layering system on top of existing BaseMap/MapBlockView architecture",
+    "goals": [
+      "Provide real-time geospatial intelligence visualization",
+      "Enable multi-layer track and feature management",
+      "Support offline-first operation via durable streams",
+      "Integrate 3D visualization via React-Three-Fiber overlay"
+    ],
+    "constraints": [
+      "Must extend existing BaseMap/MapBlockView, not replace",
+      "Must use Effect-TS patterns consistently",
+      "Must integrate with AVA backend via NATS",
+      "Must support atom-based reactivity"
+    ]
+  },
+
+  "techStack": {
+    "core": {
+      "framework": "React 18",
+      "language": "TypeScript 5.x",
+      "runtime": "Bun",
+      "desktop": "Tauri 2.x"
+    },
+    "state": {
+      "library": "effect-atom",
+      "patterns": ["AtomRpc.Tag", "Atom.family", "FiberMap"],
+      "effect": "Effect-TS 3.x"
+    },
+    "visualization": {
+      "maps": ["deck.gl 9.x", "mapbox-gl", "react-map-gl"],
+      "3d": ["react-three-fiber", "@react-three/drei", "three.js"],
+      "layers": ["PathLayer", "TripsLayer", "GeoJsonLayer", "TileLayer"]
+    },
+    "backend": {
+      "transport": "NATS JetStream",
+      "persistence": "Durable Streams",
+      "sync": "ElectricSQL (deferred)"
+    }
+  },
+
+  "architecture": {
+    "layers": [
+      {
+        "name": "React Layer",
+        "components": ["GeointDashboard", "LayerPalette", "IntelSummaryPanel", "GeointR3FOverlay"]
+      },
+      {
+        "name": "Atom Layer",
+        "atoms": ["deckGlLayers", "activeTracks", "featuresInBounds", "satelliteImagery", "classifyTrack"]
+      },
+      {
+        "name": "Service Layer",
+        "services": ["GeospatialClient", "FeatureClient", "IntelClient", "GeointService"]
+      },
+      {
+        "name": "Transport Layer",
+        "systems": ["AvaClientV2 (NATS)", "DurableStreamClient", "ElectricSync (future)"]
+      }
+    ],
+    "keyPatterns": {
+      "stateManagement": "Atom.make() with ctx.set() mutations",
+      "rpcIntegration": "AtomRpc.Tag with reactivity keys",
+      "fiberLifecycle": "FiberMap for subscription management",
+      "schemaValidation": "Effect Schema with branded types"
+    }
+  },
+
+  "features": [
+    {
+      "id": "F001",
+      "name": "Track Visualization",
+      "priority": "P0",
+      "description": "Display moving object tracks (aircraft, vehicles, vessels) with animated trails",
+      "layers": ["PathLayer", "TripsLayer", "IconLayer"],
+      "schemas": ["Track", "TrackId", "TrackMetadata"]
+    },
+    {
+      "id": "F002",
+      "name": "Feature Layers",
+      "priority": "P0",
+      "description": "Display static vector features (buildings, roads, POIs) with styling",
+      "layers": ["GeoJsonLayer", "PolygonLayer"],
+      "schemas": ["Feature", "FeatureId", "LayerId"]
+    },
+    {
+      "id": "F003",
+      "name": "Satellite Imagery",
+      "priority": "P1",
+      "description": "Stream satellite imagery tiles with sensor metadata",
+      "layers": ["TileLayer", "BitmapLayer"],
+      "schemas": ["ImageryChunk", "SensorType"]
+    },
+    {
+      "id": "F004",
+      "name": "3D Visualization",
+      "priority": "P1",
+      "description": "React-Three-Fiber overlay for 3D track markers and threat volumes",
+      "components": ["TrackMarker3D", "ThreatVolume", "GeointR3FOverlay"],
+      "dependencies": ["@react-three/fiber", "@react-three/drei"]
+    },
+    {
+      "id": "F005",
+      "name": "Track Classification",
+      "priority": "P1",
+      "description": "Classify tracks as friendly/hostile/neutral with confidence scoring",
+      "mutations": ["classifyTrack"],
+      "reactivityKeys": ["tracks", "{trackId}"]
+    },
+    {
+      "id": "F006",
+      "name": "Spatial Queries",
+      "priority": "P0",
+      "description": "Query features within bounding box with caching",
+      "atoms": ["featuresInBounds"],
+      "patterns": ["Atom.family", "Atom.setIdleTTL"]
+    },
+    {
+      "id": "F007",
+      "name": "Durable Persistence",
+      "priority": "P2",
+      "description": "Persist track history to durable streams with replay",
+      "service": "TrackStore",
+      "operations": ["appendTrackUpdate", "replayTrack"]
+    }
+  ],
+
+  "implementation": {
+    "phases": [
+      {
+        "phase": 1,
+        "name": "Foundation",
+        "tasks": [
+          "Create src/lib/geoint/schemas/ (core, tracks, features)",
+          "Create AtomRpc.Tag clients",
+          "Create GeointService with atom properties"
+        ],
+        "duration": "1 session"
+      },
+      {
+        "phase": 1.5,
+        "name": "R3F Overlay",
+        "tasks": [
+          "Create src/lib/geoint/r3f/ components",
+          "Implement geo-projection hooks",
+          "Create TrackMarker3D and ThreatVolume"
+        ],
+        "duration": "1 session"
+      },
+      {
+        "phase": 2,
+        "name": "Deck.gl Layers",
+        "tasks": [
+          "Create layer factories (tracks, features, tiles)",
+          "Implement TripsLayer animation",
+          "Wire derived deckGlLayers atom"
+        ],
+        "duration": "1 session"
+      },
+      {
+        "phase": 3,
+        "name": "Persistence",
+        "tasks": [
+          "Create TrackStore with durable streams",
+          "Implement replay functionality",
+          "Add offline detection"
+        ],
+        "duration": "1 session"
+      },
+      {
+        "phase": 4,
+        "name": "Testbed & Integration",
+        "tasks": [
+          "Create /testbed/geoint route",
+          "Wire all components together",
+          "Add layer palette UI"
+        ],
+        "duration": "1 session"
+      }
+    ],
+    "dependencies": {
+      "add": [
+        "@deck.gl/core@^9.0",
+        "@deck.gl/layers@^9.0",
+        "@deck.gl/geo-layers@^9.0",
+        "@react-three/fiber@^8.15",
+        "@react-three/drei@^9.88",
+        "three@^0.160"
+      ]
+    }
+  },
+
+  "files": {
+    "schemas": [
+      "src/lib/geoint/schemas/core.ts",
+      "src/lib/geoint/schemas/tracks.ts",
+      "src/lib/geoint/schemas/features.ts",
+      "src/lib/geoint/schemas/analysis.ts",
+      "src/lib/geoint/schemas/index.ts"
+    ],
+    "clients": [
+      "src/lib/geoint/clients/GeospatialClient.ts",
+      "src/lib/geoint/clients/FeatureClient.ts",
+      "src/lib/geoint/clients/IntelClient.ts",
+      "src/lib/geoint/clients/index.ts"
+    ],
+    "services": [
+      "src/lib/geoint/services/GeointService.ts",
+      "src/lib/geoint/services/index.ts"
+    ],
+    "layers": [
+      "src/lib/geoint/layers/tracks.ts",
+      "src/lib/geoint/layers/features.ts",
+      "src/lib/geoint/layers/tiles.ts",
+      "src/lib/geoint/layers/heatmap.ts",
+      "src/lib/geoint/layers/index.ts"
+    ],
+    "r3f": [
+      "src/lib/geoint/r3f/GeointR3FOverlay.tsx",
+      "src/lib/geoint/r3f/TrackMarker3D.tsx",
+      "src/lib/geoint/r3f/ThreatVolume.tsx",
+      "src/lib/geoint/r3f/hooks/useGeoProjection.ts",
+      "src/lib/geoint/r3f/index.ts"
+    ],
+    "persistence": [
+      "src/lib/geoint/persistence/TrackStore.ts",
+      "src/lib/geoint/persistence/index.ts"
+    ],
+    "components": [
+      "src/lib/geoint/components/GeointDashboard.tsx",
+      "src/lib/geoint/components/LayerPalette.tsx",
+      "src/lib/geoint/components/IntelSummaryPanel.tsx",
+      "src/lib/geoint/components/index.ts"
+    ],
+    "testbed": [
+      "src/lib/geoint/testbed/GeointTestbed.tsx",
+      "src/components/testbed/GeointTestbed.tsx"
+    ]
+  },
+
+  "decisions": {
+    "D001": {
+      "title": "RPC Backend",
+      "choice": "AVA via NATS",
+      "rationale": "Extend AvaClientV2 with AtomRpc.Tag patterns, reuse NATS infrastructure"
+    },
+    "D002": {
+      "title": "R3F Overlay",
+      "choice": "Include Phase 1",
+      "rationale": "Advanced 3D visualization for track markers and threat volumes"
+    },
+    "D003": {
+      "title": "Offline Sync",
+      "choice": "Durable-streams first",
+      "rationale": "Use existing durable-streams, defer ElectricSQL to later phase"
+    },
+    "D004": {
+      "title": "Testbed Location",
+      "choice": "/testbed/geoint",
+      "rationale": "Dedicated route for GEOINT development"
+    }
+  },
+
+  "references": {
+    "existing": [
+      "src/lib/primitives/map/BaseMap.tsx",
+      "src/lib/editor/v3/extensions/blocks/MapBlock/MapBlockView.tsx",
+      "src/lib/ava/services/AvaClientV2.ts",
+      "src/lib/durable-streams/service.ts"
+    ],
+    "documentation": [
+      ".claude/plans/vast-honking-lobster.md",
+      ".edin/AVA_V2_STRATEGIC_ANALYSIS.md"
+    ],
+    "submodules": [
+      "../../submodules/effect-atom",
+      "../../submodules/effect"
+    ]
+  }
+}

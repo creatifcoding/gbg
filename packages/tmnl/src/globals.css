@@ -300,3 +300,16 @@
   background: rgb(127 29 29);
   color: rgb(255 255 255);
 }
+
+/* =============================================================================
+   GEOINT Dashboard Panel Dimensions
+   =============================================================================
+   Static panel dimensions for GeointShell command mode.
+   Responsive behavior can be added via JavaScript if needed.
+   ============================================================================= */
+
+[data-geoint-shell] {
+  --geoint-sidebar-width: 320px;
+  --geoint-intel-width: 380px;
+  --geoint-timeline-height: 300px;
+}

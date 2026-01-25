@@ -126,6 +126,7 @@ export function detectMapData(ctx: DetectionContext): Option.Option<DetectedMapD
   const { toolName, toolCallId, result } = ctx
 
   console.log('[map-detector] detectMapData called:', { toolName, toolCallId, resultType: typeof result })
+  console.log('[map-detector] Result preview:', JSON.stringify(result).slice(0, 500))
 
   // Skip if result is null/undefined
   if (result == null) {
@@ -537,9 +538,11 @@ function findNestedGeoData(
  */
 function extractOsmMcpCoordinates(obj: Record<string, unknown>): number[][] {
   const coords: number[][] = []
+  console.log('[map-detector] extractOsmMcpCoordinates checking:', Object.keys(obj))
 
   // Pattern 1: { place: { location: { latitude, longitude } } }
   const place = obj['place'] as Record<string, unknown> | undefined
+  console.log('[map-detector] place:', place ? Object.keys(place) : 'undefined')
   if (place) {
     const location = place['location'] as Record<string, unknown> | undefined
     if (location) {

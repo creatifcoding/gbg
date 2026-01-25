@@ -360,10 +360,34 @@ WHERE e.entity_type = 'flight'
 
 ---
 
+## Implementation Priority
+
+### Priority 1: Effect Schema Implementation
+Implement BaseEntity + Traits in TypeScript using Effect Schema. This is the foundation.
+
+**Location**: `src/lib/ecs/` (platform-level, not GEOINT-specific)
+**Name**: Canonical Entities
+
+GEOINT is the first consumer, but the ECS subsystem serves the entire platform.
+
+### Priority 2: Programmatic Database Migration
+Use Effect SQL for migrations - NOT raw SQL files. Effect has good support for:
+- Programmatic migrations
+- Schema generation from TypeScript types
+- Type-safe database operations
+
+### Priority 3: Wire Integration
+- SearchRpcServer → Cluster via Sharding.send()
+- Ingesters → Stream publishing
+
+---
+
 ## Next Steps
 
-- [ ] Design provenance/confidence model for multi-source entities
-- [ ] Define canonical entity schema with metadata
+- [x] Design provenance/confidence model for multi-source entities
+- [x] Define canonical entity schema with metadata
+- [ ] **Implement Effect Schema for BaseEntity + Traits** ← NEXT
+- [ ] Programmatic database migration via Effect SQL
 - [ ] Wire SearchRpcServer.ts to Cluster via Sharding.send()
 - [ ] Add stream publishing to ingesters
 - [ ] Implement stale data detection + ingestion handoff

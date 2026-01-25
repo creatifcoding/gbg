@@ -9,8 +9,10 @@
  * @module charts/components/ChartRenderer
  */
 
-import { type FC, Suspense, lazy, useMemo, useState, useEffect } from 'react';
+import { type FC, Suspense, lazy, useMemo, useState, useEffect, useRef } from 'react';
 import type { ChartType } from '../schemas/base';
+import { useChartWithStyle, useDefaultChartTheme, useStreamingStyle } from '../hooks';
+import type { G2ThemeConfig } from '../themes';
 
 // =============================================================================
 // Types
@@ -29,6 +31,28 @@ export interface ChartRendererProps {
   isStreaming?: boolean;
   /** CSS class for container */
   className?: string;
+  /** Explicit height for chart container (default: fills parent) */
+  height?: number | string;
+  /** Whether chart should fill available space (default: true) */
+  fill?: boolean;
+  /** Chart ID for per-chart style atoms (enables dynamic styling) */
+  chartId?: string;
+  /** Direct theme override (takes precedence over atom-based themes) */
+  theme?: G2ThemeConfig;
+  /** Whether to apply default VANTA styling (default: true) */
+  useDefaultStyling?: boolean;
+  /**
+   * Prompt for LLM-powered styling agent.
+   * When provided with chartId, triggers streaming style generation on mount.
+   * Example: "Style with cyberpunk neon theme"
+   */
+  stylePrompt?: string;
+  /**
+   * Style intent hint for the styling agent.
+   * Used with stylePrompt to guide palette selection.
+   * Example: "cyberpunk", "minimal", "emphasize-trend"
+   */
+  styleIntent?: string;
 }
 
 // =============================================================================
@@ -160,9 +184,47 @@ export const ChartRenderer: FC<ChartRendererProps> = ({
   data,
   isStreaming,
   className,
+  height,
+  fill = true,
+  chartId,
+  theme: themeProp,
+  useDefaultStyling = true,
+  stylePrompt,
+  styleIntent,
 }) => {
   // Resolve chart component
   const ChartComponent = ChartComponents[chartType as keyof typeof ChartComponents];
+
+  // Resolve theme: themeProp > chartId atoms > default VANTA theme
+  const chartStyleResult = useChartWithStyle({ chartId });
+  const defaultTheme = useDefaultChartTheme();
+
+  // Streaming style hook - only used when chartId and stylePrompt are provided
+  const streamingStyle = useStreamingStyle({ chartId: chartId ?? 'default' });
+  const hasTriggeredStyle = useRef(false);
+
+  // Trigger style agent on mount when stylePrompt is provided
+  useEffect(() => {
+    if (chartId && stylePrompt && !hasTriggeredStyle.current) {
+      hasTriggeredStyle.current = true;
+      streamingStyle.startStream({
+        prompt: stylePrompt,
+        chartType,
+        intent: styleIntent,
+      });
+    }
+  }, [chartId, stylePrompt, styleIntent, chartType, streamingStyle]);
+
+  const resolvedTheme = useMemo(() => {
+    // Direct theme prop takes highest precedence
+    if (themeProp) return themeProp;
+    // If chartId provided, use atom-based theme
+    if (chartId) return chartStyleResult.theme;
+    // Use default VANTA theme if styling enabled
+    if (useDefaultStyling) return defaultTheme;
+    // No theme (use Ant Design defaults)
+    return undefined;
+  }, [themeProp, chartId, chartStyleResult.theme, useDefaultStyling, defaultTheme]);
 
   // Handle streaming data with debounced updates
   // This prevents excessive re-renders during rapid data updates
@@ -180,7 +242,7 @@ export const ChartRenderer: FC<ChartRendererProps> = ({
     return undefined;
   }, [effectiveData, isStreaming]);
 
-  // Merge props with data override
+  // Merge props with data override and theme
   const chartProps = useMemo(() => {
     const props: Record<string, unknown> = { ...config };
 
@@ -197,13 +259,18 @@ export const ChartRenderer: FC<ChartRendererProps> = ({
     // Remove chartType from props (not needed by Ant Design)
     delete props['chartType'];
 
+    // Apply resolved theme
+    if (resolvedTheme) {
+      props['theme'] = resolvedTheme;
+    }
+
     // Add smooth appear animation for streaming data
     if (isStreaming && !props['animation']) {
       props['animation'] = { appear: { animation: 'fade-in', duration: 300 } };
     }
 
     return props;
-  }, [config, displayData, isStreaming]);
+  }, [config, displayData, isStreaming, resolvedTheme]);
 
   // Handle missing chart component
   if (!ChartComponent) {
@@ -214,14 +281,47 @@ export const ChartRenderer: FC<ChartRendererProps> = ({
   // Type assertion needed due to complex union type from lazy-loaded components
   const Chart = ChartComponent as FC<Record<string, unknown>>;
 
-  // Determine loading state: show loading if explicitly loading, or streaming with no data
-  const isLoading = loading || (isStreaming && (!displayData || displayData.length === 0));
+  // Determine loading state: show loading if explicitly loading, streaming with no data, or style streaming
+  const isDataLoading = loading || (isStreaming && (!displayData || displayData.length === 0));
+  const isStyleLoading = streamingStyle.isStreaming;
+  const isLoading = isDataLoading || isStyleLoading;
+
+  // Container sizing: height prop > fill parent > minHeight fallback
+  const containerStyle: React.CSSProperties = {
+    position: 'relative',
+    opacity: isLoading ? 0.6 : 1,
+    transition: 'opacity 0.3s ease-out',
+    ...(height !== undefined
+      ? { height: typeof height === 'number' ? `${height}px` : height }
+      : fill
+        ? { flex: 1, minHeight: 200 }
+        : { minHeight: 200 }),
+  };
 
   return (
-    <div className={className} style={{ opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+    <div className={className} style={containerStyle}>
       <Suspense fallback={<ChartLoadingFallback className={className} />}>
         <Chart {...chartProps} />
       </Suspense>
+      {isStyleLoading && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 8,
+            right: 8,
+            fontSize: 'var(--tmnl-text-xs, 12px)',
+            color: 'var(--tmnl-text-muted, #888)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
+          <span style={{ opacity: 0.7 }}>Styling...</span>
+          <span style={{ opacity: streamingStyle.confidence }}>
+            {Math.round(streamingStyle.confidence * 100)}%
+          </span>
+        </div>
+      )}
     </div>
   );
 };

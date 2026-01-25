@@ -25,7 +25,8 @@ import type {
   ScopeId,
   WhichKeyEntry,
 } from '../types'
-import { DEFAULT_CONFIG, Scopes } from '../types'
+import { DEFAULT_CONFIG } from '../types'
+import { Scopes } from '../ScopeRegistry'
 import { KeyParser, KeyParserError } from '../services/KeyParser'
 
 // ─────────────────────────────────────────────────────────────────────────────

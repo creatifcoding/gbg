@@ -80,15 +80,16 @@ export const withRegexFilter = <T extends SearchableItem>(
   pattern: string,
   caseSensitive = false
 ) => {
-  let regex: RegExp
+  let regex: RegExp | null = null
   try {
     regex = new RegExp(pattern, caseSensitive ? "" : "i")
   } catch {
-    // Invalid regex - pass through all results
-    return Stream.identity<SearchResult<T>, SearchError>()
+    // Invalid regex - will pass through all results
   }
 
   return Stream.filter<SearchResult<T>, SearchError>((r) => {
+    // Invalid regex - pass through all
+    if (!regex) return true
     const item = r.item
     return regex.test(item.name) || regex.test(item.description ?? "")
   })
@@ -102,16 +103,18 @@ export const withRegexFieldFilter = <T extends SearchableItem>(
   pattern: string,
   caseSensitive = false
 ) => {
-  let regex: RegExp
+  let regex: RegExp | null = null
   try {
     regex = new RegExp(pattern, caseSensitive ? "" : "i")
   } catch {
-    return Stream.identity<SearchResult<T>, SearchError>()
+    // Invalid regex - will pass through all results
   }
 
   const prop = fieldToProperty(field)
 
   return Stream.filter<SearchResult<T>, SearchError>((r) => {
+    // Invalid regex - pass through all
+    if (!regex) return true
     const fieldValue = (r.item as Record<string, unknown>)[prop]
     if (typeof fieldValue !== "string") return false
     return regex.test(fieldValue)

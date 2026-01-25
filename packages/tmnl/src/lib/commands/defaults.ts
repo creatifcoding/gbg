@@ -7,7 +7,6 @@
 
 import { Effect } from 'effect'
 import { defineCommand, defineEntityCommand, defineBinding } from './decorators'
-import type { CommandError } from './types'
 import { forceLockAtom } from '@/components/splash/services'
 import { overlayRegistry } from '@/lib/overlays/atoms'
 import { forceScreensaverAtom } from '@/lib/screensaver'
@@ -190,6 +189,30 @@ export const toggleTerminalPanelCommand = defineCommand(
     yield* Effect.log('system.toggleTerminalPanel: Toggling terminal panel...')
     // Actual toggle is handled by the onTerminal callback in useGlobalHotkeys
     // This allows the shell to manage panel state via the floating panel system
+  })
+)
+
+/**
+ * Open Testbed Window Command
+ *
+ * Opens the quick-switcher to select a testbed and open it in a separate
+ * Tauri window. If the testbed is already open, focuses the existing window.
+ *
+ * Keybinding: Ctrl+Shift+N (Cmd+Shift+N on macOS)
+ */
+export const openTestbedWindowCommand = defineCommand(
+  {
+    id: 'window.openTestbed',
+    name: 'Open Testbed in Window',
+    description: 'Open a testbed in a separate window',
+    category: 'window',
+    scope: 'global',
+    keys: 'ctrl+shift+n',
+  },
+  Effect.gen(function* () {
+    yield* Effect.log('window.openTestbed: Opening testbed window picker...')
+    // Open minibuffer with TestbedWindowProvider
+    minibufferOps.openCommand(TESTBED_WINDOW_PROVIDER_ID, 'Open testbed window: ')
   })
 )
 
@@ -502,6 +525,147 @@ export const tldrawZoomFitCommand = defineCommand(
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Editor Map Commands (for tool → editor MapBlock insertion)
+// ─────────────────────────────────────────────────────────────────────────────
+
+import {
+  pendingMapInsertionsAtom,
+  updateInsertionStatusTerminal,
+} from '@/lib/terminal/v3/atoms/map-insertion'
+import { terminalRegistry } from '@/lib/terminal/v3/terminal-stx'
+import { TESTBED_WINDOW_PROVIDER_ID } from '@/lib/tauri-windows'
+import { ops as minibufferOps } from '@/lib/minibuffer/v2'
+
+/**
+ * Editor context for map insertion.
+ * Set by EditorProvider when editor is available.
+ */
+export interface EditorMapContext {
+  /** Insert a map block with given data */
+  insertMap: (data: {
+    markers?: Array<{ position: [number, number]; label?: string; color?: string }>
+    layers?: Array<{ id: string; type: string; data: unknown }>
+    viewState?: { longitude: number; latitude: number; zoom: number }
+  }) => boolean
+  /** Focus the editor */
+  focus: () => void
+  /** Check if editor is available */
+  isAvailable: () => boolean
+}
+
+// Global editor context reference (set by EditorProvider)
+let editorMapContext: EditorMapContext | null = null
+
+/**
+ * Set the editor context for map insertion.
+ * Called by EditorProvider on mount/unmount.
+ */
+export function setEditorMapContext(ctx: EditorMapContext | null): void {
+  editorMapContext = ctx
+}
+
+/**
+ * Get the current editor map context.
+ */
+export function getEditorMapContext(): EditorMapContext | null {
+  return editorMapContext
+}
+
+/**
+ * Insert Map from Tool Result
+ *
+ * Takes the next pending map insertion and inserts it into the editor.
+ * Uses the terminal registry for atom access.
+ */
+export const insertMapFromToolCommand = defineCommand(
+  {
+    id: 'editor.insertMapFromTool',
+    name: 'Insert Map from Tool',
+    description: 'Insert the next pending map from tool results into the editor',
+    category: 'edit',
+    scope: 'editor',
+  },
+  Effect.gen(function* () {
+    const ctx = getEditorMapContext()
+    if (!ctx || !ctx.isAvailable()) {
+      yield* Effect.logWarning('editor.insertMapFromTool: Editor not available')
+      return
+    }
+
+    // Get latest pending from terminal registry
+    const insertions = terminalRegistry.get(pendingMapInsertionsAtom)
+    const pending = insertions.find((p) => p.status === 'pending')
+
+    if (!pending) {
+      yield* Effect.logWarning('editor.insertMapFromTool: No pending map insertions')
+      return
+    }
+
+    yield* Effect.log(`editor.insertMapFromTool: Inserting map ${pending.id}...`)
+
+    // Mark as inserting
+    updateInsertionStatusTerminal(pending.id, 'inserting')
+
+    try {
+      ctx.focus()
+
+      const success = ctx.insertMap({
+        markers: pending.data.markers?.map((m) => ({
+          position: [m.position[0], m.position[1]] as [number, number],
+          label: m.label,
+          color: m.color,
+        })),
+        layers: pending.data.layers?.map((l) => ({
+          id: l.id,
+          type: l.type,
+          data: l.data,
+        })),
+        viewState: pending.data.bounds
+          ? {
+              longitude: (pending.data.bounds.east + pending.data.bounds.west) / 2,
+              latitude: (pending.data.bounds.north + pending.data.bounds.south) / 2,
+              zoom: 10,
+            }
+          : undefined,
+      })
+
+      if (success) {
+        yield* Effect.log(`editor.insertMapFromTool: Successfully inserted map ${pending.id}`)
+        updateInsertionStatusTerminal(pending.id, 'completed')
+      } else {
+        yield* Effect.logWarning(`editor.insertMapFromTool: Insert failed for ${pending.id}`)
+        updateInsertionStatusTerminal(pending.id, 'failed', 'Insert command returned false')
+      }
+    } catch (e) {
+      const error = e instanceof Error ? e.message : 'Unknown error'
+      yield* Effect.logError(`editor.insertMapFromTool: Error inserting ${pending.id}: ${error}`)
+      updateInsertionStatusTerminal(pending.id, 'failed', error)
+    }
+  })
+)
+
+/**
+ * Insert Specific Map by ID
+ *
+ * Inserts a specific pending map by its ID.
+ * Used when user clicks "Open in Editor" on a specific tool result.
+ */
+export const insertMapByIdCommand = defineCommand(
+  {
+    id: 'editor.insertMapById',
+    name: 'Insert Specific Map',
+    description: 'Insert a specific pending map by ID',
+    category: 'edit',
+    scope: 'editor',
+  },
+  Effect.gen(function* () {
+    // Note: This command requires args.mapId to be passed via executeWithArgs
+    // For now, it falls back to latest pending
+    yield* Effect.log('editor.insertMapById: Use insertMapFromTool for now')
+  })
+)
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Export all commands (for side-effect registration)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -517,6 +681,8 @@ export const allCommands = [
   lockScreenCommand,
   screensaverCommand,
   toggleTerminalPanelCommand,
+  // Window
+  openTestbedWindowCommand,
   // Navigation
   goToTopCommand,
   goToBottomCommand,
@@ -541,4 +707,7 @@ export const allCommands = [
   tldrawZoomInCommand,
   tldrawZoomOutCommand,
   tldrawZoomFitCommand,
+  // Map insertion
+  insertMapFromToolCommand,
+  insertMapByIdCommand,
 ] as const

@@ -187,6 +187,13 @@ export {
   focusedEditorAtom,
   editorCountAtom,
 
+  // Registration operations (React → Effect bridge)
+  registerEditorOp,
+  unregisterEditorOp,
+  setFocusedEditorOp,
+  getEditorOperationsOp,
+  getFocusedEditorOperationsOp,
+
   // Operation atoms
   focusEditorOp,
   insertTextOp,
@@ -264,10 +271,42 @@ export {
   type WithEditorAIInjectedProps,
   EditorAIDrawer,
   type EditorAIDrawerProps,
+  ReconcilerTestPanel,
+  type ReconcilerTestPanelProps,
 } from './components'
 
 // -----------------------------------------------------------------------------
 // Hooks (Phase 3)
 // -----------------------------------------------------------------------------
 
-export { useEditorAI, type UseEditorAIResult } from './hooks'
+export {
+  useEditorAI,
+  type UseEditorAIResult,
+  useReconciler,
+  type UseReconcilerResult,
+  type ReconciliationStats,
+} from './hooks'
+
+// -----------------------------------------------------------------------------
+// Reconciler (Document Streaming)
+// -----------------------------------------------------------------------------
+
+export type {
+  JSONDocument,
+  JSONNode,
+  ReconcileResult,
+  StreamingConfig,
+  StreamingStats,
+  MergeResult,
+  MergeStats,
+  TransformOptions,
+} from './reconciler'
+
+export {
+  mergeIntoEditor,
+  mergeDocuments,
+  createStreamingReconciler,
+  processAIStream,
+  pmNodeToJSON,
+  decodeDocument,
+} from './reconciler'

@@ -78,6 +78,8 @@ export const PanelState = Schema.Struct({
   isResizing: Schema.Boolean,
   /** Whether panel is maximized (fullscreen) */
   isMaximized: Schema.Boolean,
+  /** Whether panel is snapping back to bounds (for elastic animation) */
+  isSnappingBack: Schema.Boolean,
   /** Pre-maximize position (for restore) */
   preMaximizePosition: Schema.optional(Position),
   /** Pre-maximize dimensions (for restore) */

@@ -24,6 +24,16 @@
     };
     nix-filter.url = "github:numtide/nix-filter";
     flake-root.url = "github:srid/flake-root";
+
+    # CLI tools from sibling packages
+    ctl = {
+      url = "path:../ctl";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    spikectl = {
+      url = "path:../spikectl";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =

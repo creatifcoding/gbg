@@ -61,12 +61,49 @@ export type { DataGridTableOptions, TableData } from './DataGridTable';
 export { Callout } from './Callout';
 export type { CalloutOptions, CalloutVariant } from './Callout';
 
-// Embedded blocks (Mapbox, 3D)
+// Embedded blocks (Mapbox, 3D, DataGrid)
 export { MapBlock, MapBlockView, getMapBlockAtoms, disposeMapBlockAtoms } from './MapBlock';
 export type { MapBlockAttrs, MapBlockOptions, MapBlockMarker } from './MapBlock';
 
 export { Scene3DBlock, Scene3DBlockView, getScene3DBlockAtoms, disposeScene3DBlockAtoms } from './Scene3DBlock';
 export type { Scene3DBlockAttrs, Scene3DBlockOptions, EntityData, CameraState, SceneConfig } from './Scene3DBlock';
+
+export {
+  DataGridBlock,
+  DataGridBlockView,
+  createDataGridBlockAtoms,
+  getDataGridBlockAtoms,
+  disposeDataGridBlockAtoms,
+  DEFAULT_COLUMN_DEFS,
+  DEMO_ROW_DATA,
+} from './DataGridBlock';
+export type {
+  DataGridBlockAttrs,
+  DataGridBlockOptions,
+  DataGridBlockAtoms,
+  DataGridState,
+  DataGridRow,
+} from './DataGridBlock';
+
+export {
+  ChartBlock,
+  ChartBlockView,
+  createChartBlockAtoms,
+  getChartBlockAtoms,
+  disposeChartBlockAtoms,
+  createChartBlockActions,
+  useChartBlockActions,
+  useChartBlockAtoms,
+  chartBlockRegistry,
+  DEFAULT_CHART_STATE,
+} from './ChartBlock';
+export type {
+  ChartBlockAttrs,
+  ChartBlockOptions,
+  ChartBlockAtoms,
+  ChartBlockState,
+  InsertChartOptions,
+} from './ChartBlock';
 
 // Layout blocks
 export {
@@ -88,9 +125,10 @@ export type {
 } from './ColumnLayout';
 
 // Shared wrapper for embedded blocks
-export { EmbeddedBlockWrapper, useEmbeddedBlock } from './EmbeddedBlockWrapper';
+export { EmbeddedBlockWrapper, EmbeddedBlockContext, useEmbeddedBlock } from './EmbeddedBlockWrapper';
 export type {
   EmbeddedBlockWrapperProps,
+  EmbeddedBlockContextValue,
   BlockBadge,
   BlockTag,
   SettingsTab,
@@ -118,6 +156,8 @@ import { DataGridTable } from './DataGridTable';
 import { Callout } from './Callout';
 import { MapBlock } from './MapBlock';
 import { Scene3DBlock } from './Scene3DBlock';
+import { DataGridBlock } from './DataGridBlock';
+import { ChartBlock } from './ChartBlock';
 import { ColumnLayout, Column } from './ColumnLayout';
 import { ProtectedNodes } from './EmbeddedBlockWrapper/shared/protectedNode';
 import type { AnyExtension } from '@tiptap/core';
@@ -163,13 +203,15 @@ export const mediaExtensions: AnyExtension[] = [
 
 /**
  * Custom TMNL extensions.
- * DataGridTable (AG-Grid), Callout, MapBlock, Scene3DBlock, ColumnLayout.
+ * DataGridTable (markdown), DataGridBlock (AG-Grid + dataplane), Callout, MapBlock, Scene3DBlock, ChartBlock, ColumnLayout.
  */
 export const customBlockExtensions: AnyExtension[] = [
   DataGridTable,
+  DataGridBlock,
   Callout,
   MapBlock,
   Scene3DBlock,
+  ChartBlock,
   ColumnLayout,
   Column,
 ];
@@ -178,7 +220,7 @@ export const customBlockExtensions: AnyExtension[] = [
  * Protected node types — cannot be deleted via keyboard.
  * Only deletable via explicit UI (trash button in block header).
  */
-export const protectedNodeTypes = ['mapBlock', 'scene3DBlock'];
+export const protectedNodeTypes = ['mapBlock', 'scene3DBlock', 'dataGridBlock', 'chartBlock'];
 
 /**
  * All block extensions combined.

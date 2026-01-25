@@ -385,8 +385,101 @@ Identify Root Cause
 Extract Fix to Production
      │
      ▼
-Document Learning (.edin/)
+Record Learning (bun spike learn)
      │
      ▼
 Decide: Keep or Delete Spike
+```
+
+---
+
+## Autopoietic Workflows (Self-Healing System)
+
+The spike system learns from past debugging sessions to improve future suggestions.
+
+### After Fixing a Bug with a Spike
+
+```bash
+# 1. Run your spike (if not already done)
+bun spike run scripts/spike-datetime-binding.ts --verbose
+
+# 2. Record the learning with the fix description
+bun spike learn scripts/spike-datetime-binding.ts \
+  --fix "Use DateTimeInsert for SQLite (not DateTimeInsertFromDate)"
+
+# 3. Check pattern statistics
+bun spike stats
+```
+
+### When Encountering a New Error
+
+```bash
+# 1. Get hypothesis suggestions based on error message
+bun spike suggest "SQLITE_CONSTRAINT: NOT NULL constraint failed"
+
+# 2. Generate spike from suggestions
+bun spike init datetime-fix
+bun spike new --config spike-datetime-fix.config.json
+
+# 3. Implement and run the spike
+# ... fill in test logic ...
+bun spike run scripts/spike-datetime-fix.ts --verbose
+
+# 4. After resolution, record learning
+bun spike learn scripts/spike-datetime-fix.ts --fix "Use string encoding for DateTime"
+```
+
+### Periodic Pattern Evolution
+
+```bash
+# Review pattern statistics
+bun spike stats
+
+# Evolve patterns based on success rates
+bun spike stats --evolve
+```
+
+### Self-Prompt Integration
+
+When you see these signals, the autopoietic system can help:
+
+| Signal | Action |
+|--------|--------|
+| Error message with no obvious cause | `bun spike suggest "<error>"` |
+| Spike completed successfully | `bun spike learn <file> --fix "..."` |
+| Multiple similar spikes | `bun spike stats --evolve` |
+| Starting new investigation | `bun spike suggest` to check past patterns |
+
+### Pattern Store
+
+Patterns are stored in `.claude/cache/spike-patterns.json` with:
+
+- **Error signatures** - Regex patterns that trigger suggestions
+- **Hypothesis templates** - Pre-built H1-H4 structures
+- **Success/failure counts** - Track what works
+- **Recorded fixes** - Past solutions for reference
+
+### Memory Integration
+
+When `--fix` is provided to `learn`, the system also stores the learning to the opc memory system for broader recall across sessions.
+
+### Autopoietic Feedback Loop
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    FEEDBACK LOOP                            │
+│                                                             │
+│  Error encountered → bun spike suggest → Pattern matched    │
+│       │                                         │           │
+│       ▼                                         ▼           │
+│  Create spike ←─────── Use hypothesis template ←┘           │
+│       │                                                     │
+│       ▼                                                     │
+│  Run spike → Fix found → bun spike learn                    │
+│                              │                              │
+│                              ▼                              │
+│               Pattern updated → Better suggestions          │
+│                              │                              │
+│                              └──────────────────────────────┘
+└─────────────────────────────────────────────────────────────┘
 ```

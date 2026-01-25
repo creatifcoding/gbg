@@ -8,12 +8,19 @@
  *
  * @example
  * ```tsx
- * import { MorphCard, type CardMode } from '@/lib/morph-card'
+ * import { MorphCard, defaultTransitionStrategy } from '@/lib/morph-card'
  *
  * // Using render registry
  * <MorphCard
  *   cardId="status-card"
- *   initialMode="compact"
+ *   initialSizeKey="compact"
+ *   stateMachineConfig={{
+ *     sizes: {
+ *       compact: { width: 220, height: 80 },
+ *       expanded: { width: 420, height: 220 }
+ *     }
+ *   }}
+ *   transitionStrategy={defaultTransitionStrategy}
  *   renders={{
  *     compact: () => (
  *       <MorphCard.Content>
@@ -48,6 +55,7 @@
  *   generative
  *   prompt="Generate a {{mode}} view of system metrics"
  *   componentCatalog={tmnlCatalog}
+ *   transitionStrategy={defaultTransitionStrategy}
  * />
  * ```
  */
@@ -61,6 +69,8 @@ export {
   AnimatedItem,
   MetricBlock,
   MetricGrid,
+  MorphCardStage,
+  LayoutGuard,
   ANIMATION_PRESETS,
   // Loading states
   GenerativeLoading,
@@ -71,20 +81,34 @@ export {
   // DynamicIslandCard
   DynamicIslandCard,
   TabBar,
+  ReticleOverlay,
   useDynamicIslandContext,
   useDynamicIslandContextOptional,
   // Types
   type MorphCardProps,
   type RenderRegistry,
   type ModeRender,
+  type SizeViewStrategy,
+  type SizeViewStrategyInput,
+  type SizeViewRegistry,
+  type SizeViewRender,
+  type SizeViewEntry,
+  type SizeKeysFromConfig,
   type AnimatedItemProps,
   type MetricBlockProps,
   type MetricGridProps,
   type MetricStatus,
+  type MorphCardStageProps,
+  type LayoutGuardMode,
   type GenerativeLoadingProps,
   type DynamicIslandCardProps,
   type DynamicIslandViewProps,
   type TabBarProps,
+  type ReticleOverlayProps,
+  type ViewSpec,
+  type ViewSpecBase,
+  type ViewRegistry,
+  type ViewIdsFromRegistry,
 } from './components';
 
 // =============================================================================
@@ -117,6 +141,7 @@ export {
   ItemAnimationConfig,
   ReticleVariant,
   MorphCardConfig,
+  MorphCardStateMachineConfig,
   DEFAULT_ITEM_CONFIG,
   ITEM_STYLE_VARIANTS,
   DEFAULT_CARD_CONFIG,
@@ -146,11 +171,56 @@ export type {
   TransitionVerb as TransitionVerbType,
   TransitionGrammar as TransitionGrammarType,
   MorphCardConfig as MorphCardConfigType,
+  MorphCardStateMachineConfig as MorphCardStateMachineConfigType,
   GenerationStatus as GenerationStatusType,
   GeneratedContent as GeneratedContentType,
   ModeGenerationState as ModeGenerationStateType,
   GenerativeCardState as GenerativeCardStateType,
 } from './schemas';
+
+// =============================================================================
+// Card State Service + Machine Exports
+// =============================================================================
+
+export {
+  CardStateService,
+  CardStateServiceLive,
+  createCardStateService,
+  type CardStateServiceShape,
+  type CardStateSnapshot,
+  type HistoryState,
+  type HistoryEntry,
+  type Position,
+  type Bounds,
+  type TransitionComplexity,
+  type SizeKey,
+  DEFAULT_CARD_SNAPSHOT,
+  DEFAULT_HISTORY_STATE,
+  DEFAULT_HISTORY_SIZE,
+  getCardStateAtoms,
+  cardStateFamily,
+} from './card-state';
+
+export {
+  islandMachine,
+  type IslandMachine,
+  type IslandMachineContext,
+  type IslandMachineEvent,
+  type TransitionStrategy,
+  type TransitionStrategyInput,
+  defaultTransitionStrategy,
+} from './machines/islandMachine';
+export {
+  getOrCreateIslandActor,
+  getIslandActor,
+  sendIslandEvent,
+  disposeIslandActor,
+  disposeAllIslandActors,
+  islandSnapshotAtomFamily,
+  islandStateValueAtomFamily,
+  type IslandActor,
+  type IslandSnapshot,
+} from './machines/island-stx';
 
 // =============================================================================
 // Context Exports
@@ -167,11 +237,16 @@ export {
 } from './context';
 
 // =============================================================================
+// Registry Exports
+// =============================================================================
+
+export { morphCardRegistry, MorphCardRegistryProvider } from './atoms/registry';
+
+// =============================================================================
 // Atom Exports
 // =============================================================================
 
 export {
-  cardStateFamily,
   cardConfigFamily,
   cardTransitionFamily,
   cardSizesFamily,
@@ -193,6 +268,7 @@ export {
   tabsAtomFamily,
   cardTabStateFamily,
   setActiveTab,
+  updateView,
   updateViewState,
   registerTab,
   unregisterTab,
@@ -214,6 +290,10 @@ export {
   type UseCardServerResult,
   useDynamicIslandCard,
   type UseDynamicIslandCardResult,
+  // Durable stream hook
+  useDurableStreamPatches,
+  type UseDurableStreamPatchesResult,
+  type StreamStatus,
 } from './hooks';
 
 // =============================================================================

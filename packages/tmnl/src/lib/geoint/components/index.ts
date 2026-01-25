@@ -632,6 +632,12 @@ export {
   type AnalyticsBottomProps as GeointShellAnalyticsBottomProps,
 } from './GeointShell'
 
+// GeointDashboardPanel - Self-contained dashboard panel for json-render catalog
+export {
+  GeointDashboardPanel,
+  type GeointDashboardPanelProps,
+} from './GeointDashboardPanel'
+
 // ImmersiveHUD - Full-screen immersive mode with glassmorphism overlays
 export {
   ImmersiveHUD,
@@ -718,6 +724,14 @@ export {
   type IntegratedSearchFilterBarProps,
 } from './SearchFilterBridge'
 
+// SearchErrorDisplay - Typed error display with retry UI
+export {
+  SearchErrorDisplay,
+  InlineSearchError,
+  type SearchErrorDisplayProps,
+  type InlineSearchErrorProps,
+} from './SearchErrorDisplay'
+
 // TimelineMapBridge - Bidirectional sync between TimelinePanel and map filters
 export {
   TimelineMapBridge,
@@ -729,3 +743,43 @@ export {
   type IntegratedTimelineBarProps,
   type AggregationBucket,
 } from './TimelineMapBridge'
+
+// SearchHydrationBridge - Auto-hydrates Kori entities from search results
+export {
+  SearchHydrationBridge,
+  type SearchHydrationBridgeProps,
+} from './SearchHydrationBridge'
+
+// EntityDetailPanelV2 - Kori-integrated entity detail panel
+export {
+  EntityDetailPanelV2,
+  type EntityDetailPanelV2Props,
+} from './EntityDetailPanelV2'
+
+// VirtualizedResultsListV2 - Kori-integrated virtualized results with score bars
+export {
+  VirtualizedResultsListV2,
+  type VirtualizedResultsListV2Props,
+  type SortField as SortFieldV2,
+  type SortDirection as SortDirectionV2,
+  type SortConfig as SortConfigV2,
+} from './VirtualizedResultsListV2'
+
+// TimelineControlsV2 - XState-integrated timeline playback controls
+export {
+  TimelineControlsV2,
+  TimelineControlsV2Root,
+  TimelineControlsV2PlaybackButtons,
+  TimelineControlsV2SpeedControl,
+  TimelineControlsV2LoopControl,
+  TimelineControlsV2Scrubber,
+  TimelineControlsV2TimeDisplay,
+  useTimelineControlsV2,
+  type TimelineControlsV2RootProps,
+  type TimelineControlsV2ContextValue,
+  type PlaybackButtonsProps,
+  type SpeedControlProps,
+  type LoopControlProps,
+  type ScrubberProps,
+  type TimeDisplayProps,
+} from './TimelineControlsV2'

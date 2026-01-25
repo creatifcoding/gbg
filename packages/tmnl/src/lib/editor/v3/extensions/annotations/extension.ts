@@ -8,7 +8,9 @@
  */
 
 import { Mark, mergeAttributes } from '@tiptap/core';
+import { ReactMarkViewRenderer } from '@tiptap/react';
 import type { MarkType } from '@tiptap/pm/model';
+import { IntentMarkView } from './components/IntentMarkView';
 import {
   type AnnotationId,
   type VisualStyle,
@@ -18,6 +20,7 @@ import {
   VisualStylePresets,
   Intent,
 } from './schemas';
+import { generateVisualStyleCSSString } from './visual-style-generator';
 
 // =============================================================================
 // Types
@@ -104,36 +107,6 @@ declare module '@tiptap/core' {
 }
 
 // =============================================================================
-// Color Token Map
-// =============================================================================
-
-/**
- * Maps TMNL color tokens to their hex fallback values.
- * Used when CSS variables aren't defined.
- */
-const COLOR_TOKEN_MAP: Record<string, string> = {
-  // Accent colors
-  'accent.cyan': '#00d4aa',
-  'accent.yellow': '#ffd93d',
-  'accent.blue': '#4da6ff',
-  'accent.purple': '#a855f7',
-  'accent.orange': '#ff8c00',
-  'accent.green': '#22c55e',
-  // Status colors
-  'status.error': '#ef4444',
-  'status.warning': '#f59e0b',
-  'status.success': '#22c55e',
-  'status.info': '#3b82f6',
-};
-
-/**
- * Get hex fallback for a color token
- */
-const getColorFallback = (token: string): string => {
-  return COLOR_TOKEN_MAP[token] || '#ffd93d'; // Default to yellow
-};
-
-// =============================================================================
 // Utility Functions
 // =============================================================================
 
@@ -152,49 +125,6 @@ const getVisualStyleClass = (style: VisualStyle): string => {
   }
 
   return classes.join(' ');
-};
-
-/**
- * Generate inline styles from visual style
- */
-const getVisualStyleCSS = (style: VisualStyle): string => {
-  const styles: string[] = [];
-
-  // Map TMNL color tokens to CSS variables with VALID hex fallbacks
-  const hexFallback = getColorFallback(style.color);
-  const colorVar = `var(--tmnl-${style.color.replace('.', '-')}, ${hexFallback})`;
-
-  switch (style.type) {
-    case 'highlight':
-      styles.push(`background-color: ${colorVar}`);
-      styles.push('color: inherit');
-      styles.push('border-radius: 2px');
-      styles.push('padding: 0 2px');
-      break;
-
-    case 'pill':
-      styles.push(`background-color: ${colorVar}`);
-      styles.push('color: inherit');
-      styles.push('border-radius: 9999px');
-      styles.push('padding: 0 6px');
-      break;
-
-    case 'squiggle':
-      styles.push(`text-decoration: wavy underline ${colorVar}`);
-      styles.push('text-underline-offset: 2px');
-      break;
-
-    case 'underline':
-      styles.push(`text-decoration: underline ${colorVar}`);
-      styles.push('text-underline-offset: 2px');
-      break;
-
-    case 'none':
-      // No visual styling
-      break;
-  }
-
-  return styles.join('; ');
 };
 
 // =============================================================================
@@ -323,22 +253,28 @@ export const IntentMark = Mark.create<IntentMarkOptions>({
 
   renderHTML({ HTMLAttributes }) {
     // Parse visual style for rendering
+    // Use VisualStylePresets.highlight directly as fallback to avoid this.options binding issues
+    const DEFAULT_VISUAL_STYLE: VisualStyle = VisualStylePresets.highlight;
     let visualStyle: VisualStyle;
     try {
-      visualStyle =
-        typeof HTMLAttributes.visualStyle === 'string'
-          ? JSON.parse(HTMLAttributes.visualStyle)
-          : HTMLAttributes.visualStyle || this.options.defaultVisualStyle;
-    } catch {
-      visualStyle = this.options.defaultVisualStyle;
+      if (typeof HTMLAttributes.visualStyle === 'string' && HTMLAttributes.visualStyle) {
+        visualStyle = JSON.parse(HTMLAttributes.visualStyle);
+      } else if (HTMLAttributes.visualStyle && typeof HTMLAttributes.visualStyle === 'object') {
+        visualStyle = HTMLAttributes.visualStyle;
+      } else {
+        visualStyle = DEFAULT_VISUAL_STYLE;
+      }
+    } catch (e) {
+      console.error('[IntentMark] parse error:', e, 'value:', HTMLAttributes.visualStyle);
+      visualStyle = DEFAULT_VISUAL_STYLE;
     }
 
     // Determine element tag based on visual type
     const tag = visualStyle.type === 'highlight' ? 'mark' : 'span';
 
-    // Build class and style
+    // Build class and style (using centralized generator)
     const className = getVisualStyleClass(visualStyle);
-    const style = getVisualStyleCSS(visualStyle);
+    const style = generateVisualStyleCSSString(visualStyle);
 
     return [
       tag,
@@ -460,6 +396,16 @@ export const IntentMark = Mark.create<IntentMarkOptions>({
           });
         },
     };
+  },
+
+  /**
+   * Add custom React view for mark interaction
+   *
+   * This enables hover/click handlers on annotated text
+   * to trigger the AnnotationPopover system.
+   */
+  addMarkView() {
+    return ReactMarkViewRenderer(IntentMarkView);
   },
 
   addKeyboardShortcuts() {

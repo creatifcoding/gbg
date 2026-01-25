@@ -7,3 +7,8 @@
  */
 
 export { useEditorAI, type UseEditorAIResult } from './useEditorAI'
+export {
+  useReconciler,
+  type UseReconcilerResult,
+  type ReconciliationStats,
+} from './useReconciler'

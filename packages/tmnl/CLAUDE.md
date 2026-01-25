@@ -279,9 +279,11 @@ Approaching unfamiliar territory?
 
 **Loop Invariants**:
 
-1. **Grounding**: Every claim traces to a citable source
-2. **Falsifiability**: Hypotheses are stated such that verification can refute them
-3. **Complexity preservation**: Simplifications require explicit confirmation, not assumption
+1. **Source grounding**: Every claim traces to a verifiable source
+2. **Recency awareness**: Knowledge cutoff acknowledged, gaps researched
+4. **Grounding**: Every claim traces to a citable source
+5. **Falsifiability**: Hypotheses are stated such that verification can refute them
+6. **Complexity preservation**: Simplifications require explicit confirmation, not assumption
 
 **Termination Phrases** (loops ONLY close with these):
 
@@ -296,6 +298,190 @@ Approaching unfamiliar territory?
 - "I think..." / "Should work..." / "Probably..."
 - "Based on my understanding..."
 - "This is typically how..."
+
+### 8. Effect-Native Code Discipline
+
+> **You shall be writing Effect-native code. Always.**
+
+This is the most critical discipline. Normal TypeScript (interfaces, manual async, callbacks) is forbidden except at system boundaries.
+
+#### Decision Tree: What Code Pattern Do I Use?
+
+```
+Need to define a data type?
+│
+├─ Domain model (User, Order, Event)?
+│  └─ USE: Schema.TaggedStruct / Schema.TaggedClass
+│     ❌ NOT: interface / type alias
+│
+├─ Branded identifier (UserId, OrderId)?
+│  └─ USE: Schema.String.pipe(Schema.brand('UserId'))
+│     ❌ NOT: type UserId = string
+│
+├─ Union/enum values?
+│  └─ USE: Schema.Literal('a', 'b', 'c')
+│     ❌ NOT: type Status = 'a' | 'b' | 'c'
+│
+└─ External API input/output?
+   └─ USE: JSONSchema.make(EffectSchema)
+      ❌ NOT: Zod / manual JSON Schema
+
+Need to produce a sequence of values?
+│
+├─ Progressive/streaming data?
+│  └─ USE: Stream.asyncScoped + Stream.toAsyncIterable
+│     ❌ NOT: callbacks + promises + manual generators
+│
+├─ Transform stream?
+│  └─ USE: Stream.map / Stream.filter / Stream.provideLayer
+│     ❌ NOT: for-await loops with manual state
+│
+└─ Bridge to async iteration?
+   └─ USE: Stream.toAsyncIterable (AFTER provideLayer)
+      ❌ NOT: callback-to-promise wrappers
+
+Need to integrate with AI SDK?
+│
+├─ Tool input schema?
+│  └─ USE: jsonSchema<Type>(JSONSchema.make(EffectSchema))
+│     REF: src/lib/charts/discriminator/ai-tool.ts
+│     ❌ NOT: Zod schema, manual JSON schema
+│
+├─ Streaming tool?
+│  └─ USE: async function* + Stream.toAsyncIterable
+│     REF: src/lib/charts/styler/ai-tool.ts
+│     ❌ NOT: callback bridges, manual promise wrapping
+│
+└─ Service dependency?
+   └─ USE: Stream.provideLayer(ServiceLive) BEFORE toAsyncIterable
+      ❌ NOT: Effect.runPromise with Effect.provide wrapper
+```
+
+#### Incorrect / Correct Patterns
+
+**Pattern: AI SDK Input Schema**
+```typescript
+// ❌ INCORRECT — Zod (wrong ecosystem)
+import { z } from 'zod';
+const tool = tool({
+  parameters: z.object({ name: z.string() }), // AI SDK v5 API
+  execute: async (input) => { ... }
+});
+
+// ❌ INCORRECT — Manual JSON Schema
+const tool = tool({
+  inputSchema: { type: 'object', properties: { name: { type: 'string' } } },
+  execute: async (input) => { ... }
+});
+
+// ✅ CORRECT — Effect Schema → JSONSchema.make()
+// REF: src/lib/charts/discriminator/ai-tool.ts:42-44
+import { JSONSchema } from 'effect';
+import { jsonSchema } from 'ai';
+
+const InputSchema = Schema.Struct({ name: Schema.String });
+type Input = Schema.Schema.Type<typeof InputSchema>;
+
+const tool = tool({
+  inputSchema: jsonSchema<Input>(
+    JSONSchema.make(InputSchema) as Parameters<typeof jsonSchema>[0]
+  ),
+  execute: async (input: Input) => { ... }
+});
+```
+
+**Pattern: Streaming with Effect**
+```typescript
+// ❌ INCORRECT — Manual callback bridge
+async function* streamBad(input) {
+  const results: any[] = [];
+  await new Promise((resolve) => {
+    runEffect(input, {
+      onPatch: (p) => results.push(p),
+      onDone: resolve,
+    });
+  });
+  for (const r of results) yield r; // Not actually streaming!
+}
+
+// ✅ CORRECT — Effect-native Stream.toAsyncIterable
+// REF: src/lib/charts/styler/ai-tool.ts:250-266
+async function* streamGood(input) {
+  const stream = createStyleStream(input).pipe(
+    Stream.map(mapEventToPatch),
+    Stream.filter((p): p is Patch => p !== null),
+    Stream.provideLayer(ServiceLive) // BEFORE toAsyncIterable
+  );
+
+  const asyncIterable = Stream.toAsyncIterable(stream);
+  for await (const patch of asyncIterable) {
+    yield patch;
+  }
+}
+```
+
+**Pattern: Service Dependencies in Streams**
+```typescript
+// ❌ INCORRECT — Effect.provide after toAsyncIterable
+const stream = createStream(input); // Has R = MyService
+const iter = Stream.toAsyncIterable(stream); // ERROR: R ≠ never
+Effect.provide(iter, MyServiceLive); // Too late!
+
+// ✅ CORRECT — Stream.provideLayer BEFORE toAsyncIterable
+// REF: src/lib/charts/styler/ai-tool.ts:301-308
+const stream = createStream(input).pipe(
+  Stream.provideLayer(MyServiceLive) // Now R = never
+);
+const iter = Stream.toAsyncIterable(stream); // Works!
+```
+
+**Pattern: Domain Types**
+```typescript
+// ❌ INCORRECT — Plain TypeScript
+interface User {
+  id: string;
+  name: string;
+  status: 'active' | 'inactive';
+}
+
+// ✅ CORRECT — Effect Schema
+// REF: src/lib/charts/styler/schemas.ts
+const UserId = Schema.String.pipe(Schema.brand('UserId'));
+const UserStatus = Schema.Literal('active', 'inactive');
+const User = Schema.TaggedStruct('User', {
+  id: UserId,
+  name: Schema.NonEmptyString,
+  status: UserStatus,
+});
+type User = Schema.Schema.Type<typeof User>;
+```
+
+#### Codebase References
+
+| Pattern | Canonical Reference |
+|---------|---------------------|
+| AI SDK + Effect Schema | `src/lib/charts/discriminator/ai-tool.ts:42-44` |
+| Streaming Tool | `src/lib/charts/styler/ai-tool.ts:250-277` |
+| Stream.provideLayer | `src/lib/charts/styler/ai-tool.ts:301-308` |
+| Schema.TaggedStruct | `src/lib/charts/styler/schemas.ts` |
+| Stream.asyncScoped | `src/lib/charts/styler/streaming.ts:66-144` |
+
+#### Enforcement
+
+Before writing ANY TypeScript:
+1. **Is this a domain type?** → Effect Schema
+2. **Is this async/streaming?** → Effect Stream
+3. **Is this AI SDK integration?** → JSONSchema.make()
+4. **Is this a service?** → Effect.Service + Layer
+
+If uncertain, **grep the codebase** for existing patterns:
+```bash
+grep -rn "JSONSchema.make" src/lib/
+grep -rn "Stream.provideLayer" src/lib/
+grep -rn "Schema.TaggedStruct" src/lib/
+```
+
+**Skills**: `/effect-patterns`, `/effect-schema-mastery`, `/effect-stream-patterns`
 
 ---
 

@@ -4,11 +4,19 @@
  * Context provider for ADR review state.
  * Wraps children with registry context and loads ADR data.
  */
-import React, { createContext, useContext, useEffect, useMemo } from 'react'
+import React, { createContext, useContext, useEffect, useMemo, useRef } from 'react'
 import { useAtomValue } from '@effect-atom/atom-react'
-import { ADRReviewRegistryProvider, reviewRegistry, selectedADRAtom } from '../atoms'
-import { loadADRUnits, selectADR } from '../atoms/operations'
+import {
+  ADRReviewRegistryProvider,
+  reviewRegistry,
+  selectedADRAtom,
+  unitStatusFamily,
+  unitCommentsFamily,
+  makeUnitKey,
+} from '../atoms'
+import { loadADRUnits, selectADR, recomputeFilteredUnits, recomputeAllSummaries } from '../atoms/operations'
 import { extractUnitsFromMarkdown, getADRMetadata, type ADRMetadata } from '../parsing'
+import { hydrateADR, type HydratedState } from '../persistence'
 
 // -----------------------------------------------------------------------------
 // Context
@@ -69,31 +77,77 @@ function ADRReviewProviderInner({
 }: ADRReviewProviderProps) {
   const [isLoading, setIsLoading] = React.useState(!!markdown)
   const [metadata, setMetadata] = React.useState<ADRMetadata | null>(propMetadata || null)
+  const hydratedADRs = useRef<Set<string>>(new Set())
 
-  // Load markdown content
+  /**
+   * Apply hydrated state to atoms.
+   * Called after loading persisted state from SQLite.
+   */
+  const applyHydratedState = (state: HydratedState) => {
+    // Apply unit statuses
+    for (const [key, status] of state.unitStatuses) {
+      reviewRegistry.set(unitStatusFamily(key), status)
+    }
+
+    // Apply comments
+    for (const [key, comments] of state.unitComments) {
+      reviewRegistry.set(unitCommentsFamily(key), comments)
+    }
+
+    // Recompute derived state
+    recomputeFilteredUnits()
+    recomputeAllSummaries()
+  }
+
+  // Load markdown content, hydrate from persistence, and select ADR
   useEffect(() => {
     if (markdown && adrId) {
       setIsLoading(true)
-      try {
-        // Parse markdown and extract units
-        const units = extractUnitsFromMarkdown(markdown)
-        loadADRUnits(adrId, units)
 
-        // Extract metadata
-        const meta = getADRMetadata(markdown)
-        if (meta) setMetadata(meta)
-      } finally {
+      // Parse markdown and extract units first
+      const units = extractUnitsFromMarkdown(markdown)
+      console.log(`[ADRReview] Parsed ${units.length} units from ${adrId}`)
+
+      // Load units into registry (sets default pending status)
+      loadADRUnits(adrId, units)
+
+      // Extract metadata
+      const meta = getADRMetadata(markdown)
+      if (meta) setMetadata(meta)
+
+      // Hydrate from persistence (async, but we don't block on it)
+      if (!hydratedADRs.current.has(adrId)) {
+        hydratedADRs.current.add(adrId)
+
+        hydrateADR(adrId)
+          .then((state) => {
+            if (state.unitStatuses.size > 0 || state.unitComments.size > 0) {
+              console.log(`[ADRReview] Applying hydrated state for ${adrId}`)
+              applyHydratedState(state)
+            }
+          })
+          .catch((err) => {
+            console.error(`[ADRReview] Hydration failed for ${adrId}:`, err)
+          })
+          .finally(() => {
+            // Select ADR after hydration attempt (even if it fails)
+            selectADR(adrId)
+            setIsLoading(false)
+          })
+      } else {
+        // Already hydrated, just select
+        selectADR(adrId)
         setIsLoading(false)
       }
     }
   }, [markdown, adrId])
 
-  // Select ADR when adrId changes
+  // Also select ADR when only adrId changes (without markdown)
   useEffect(() => {
-    if (adrId) {
+    if (adrId && !markdown) {
       selectADR(adrId)
     }
-  }, [adrId])
+  }, [adrId, markdown])
 
   const contextValue = useMemo(
     () => ({

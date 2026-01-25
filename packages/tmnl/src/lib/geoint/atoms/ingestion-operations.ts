@@ -23,13 +23,24 @@ import { geointRegistry } from './index'
 
 // =============================================================================
 // Type-only imports (safe for browser)
+// IMPORTANT: Import from types.ts NOT from IngestionOrchestrator.ts
+// to avoid pulling in @effect/sql-pg via the ingester dependencies.
 // =============================================================================
 
 import type {
   OrchestratorStatus,
   IngesterName,
-} from '../ingestion/IngestionOrchestrator'
-import type { FlightEntityMaterializerConfig } from '../persistence/FlightEntityMaterializer'
+} from '../ingestion/types'
+
+// FlightEntityMaterializerConfig is only used in server-side code
+// Define a compatible interface here for browser safety
+export interface PgConfig {
+  readonly host: string
+  readonly port: number
+  readonly database: string
+  readonly username: string
+  readonly password: string
+}
 
 // Re-export types for consumers
 export type { OrchestratorStatus, IngesterName }
@@ -114,18 +125,6 @@ export const materializerFiberAtom = Atom.make<Fiber.RuntimeFiber<void, unknown>
 export const materializerErrorAtom = Atom.make<string | null>(null)
 
 // =============================================================================
-// PG CONFIG TYPE
-// =============================================================================
-
-export interface PgConfig {
-  host: string
-  port: number
-  database: string
-  username: string
-  password: string
-}
-
-// =============================================================================
 // LAYER COMPOSITION (Dynamic imports to prevent browser bundle issues)
 // =============================================================================
 
@@ -139,21 +138,22 @@ export async function createIngestionLayer(pgConfig: PgConfig) {
   }
 
   // Dynamic imports for Node.js-only dependencies
-  const { PgClient } = await import('@effect/sql-pg')
-  const { FetchHttpClient } = await import('@effect/platform')
+  // Using @vite-ignore to prevent bundler from resolving these
+  const { PgClient } = await import(/* @vite-ignore */ '@effect/sql-pg')
+  const { FetchHttpClient } = await import(/* @vite-ignore */ '@effect/platform')
   const {
     IngestionOrchestratorLive,
     IngestionOrchestratorConfigDefault,
-  } = await import('../ingestion/IngestionOrchestrator')
+  } = await import(/* @vite-ignore */ '../ingestion/IngestionOrchestrator')
   const {
     FlightIngesterLive,
     FlightIngesterConfigDefault,
-  } = await import('../ingestion/FlightIngester')
-  const { FlightRepositoryLive } = await import('../persistence/postgis/FlightRepository')
+  } = await import(/* @vite-ignore */ '../ingestion/FlightIngester')
+  const { FlightRepositoryLive } = await import(/* @vite-ignore */ '../persistence/postgis/FlightRepository')
   const {
     OpenSkyClientLive,
     AdsbLolClientLive,
-  } = await import('../api/ExternalApiClient')
+  } = await import(/* @vite-ignore */ '../api/ExternalApiClient')
 
   // Base layers
   const PgLive = PgClient.layer({
@@ -213,16 +213,17 @@ export async function createMaterializerLayer(
   }
 
   // Dynamic imports for Node.js-only dependencies
-  const { PgClient } = await import('@effect/sql-pg')
+  // Using @vite-ignore to prevent bundler from resolving these
+  const { PgClient } = await import(/* @vite-ignore */ '@effect/sql-pg')
   const {
     FlightEntityMaterializer,
     FlightEntityMaterializerLive,
     FlightEntityMaterializerConfigTag,
-  } = await import('../persistence/FlightEntityMaterializer')
+  } = await import(/* @vite-ignore */ '../persistence/FlightEntityMaterializer')
   const {
     DurableStreamClientLive,
     DurableStreamClientConfigTag,
-  } = await import('@/lib/durable-streams/service')
+  } = await import(/* @vite-ignore */ '@/lib/durable-streams/service')
 
   // Base Postgres layer
   const PgLive = PgClient.layer({
@@ -241,13 +242,13 @@ export async function createMaterializerLayer(
   // DurableStream client with config
   const DsClientLive = DurableStreamClientLive.pipe(Layer.provide(DsConfigLive))
 
-  // Materializer config
+  // Materializer config - type inferred from FlightEntityMaterializerConfigTag
   const MaterializerConfigLive = Layer.succeed(FlightEntityMaterializerConfigTag, {
     durableStreamsUrl,
     flightStreamPath: '/flights',
     batchSize: 100,
     autoReconnect: true,
-  } as FlightEntityMaterializerConfig)
+  })
 
   // Full materializer layer
   const MaterializerDeps = Layer.mergeAll(
@@ -280,7 +281,7 @@ export async function startIngestion(pgConfig: PgConfig): Promise<void> {
 
   try {
     // Dynamic import for orchestrator tag
-    const { IngestionOrchestratorTag } = await import('../ingestion/IngestionOrchestrator')
+    const { IngestionOrchestratorTag } = await import(/* @vite-ignore */ '../ingestion/IngestionOrchestrator')
 
     // Create layer (async with dynamic imports)
     const ingestionLayer = await createIngestionLayer(pgConfig)
@@ -342,7 +343,7 @@ export async function stopIngestion(pgConfig: PgConfig): Promise<void> {
 
   try {
     // Dynamic import for orchestrator tag
-    const { IngestionOrchestratorTag } = await import('../ingestion/IngestionOrchestrator')
+    const { IngestionOrchestratorTag } = await import(/* @vite-ignore */ '../ingestion/IngestionOrchestrator')
 
     // Create layer (async with dynamic imports)
     const ingestionLayer = await createIngestionLayer(pgConfig)
@@ -516,7 +517,7 @@ export async function toggleIngester(
 
   try {
     // Dynamic import for orchestrator tag
-    const { IngestionOrchestratorTag } = await import('../ingestion/IngestionOrchestrator')
+    const { IngestionOrchestratorTag } = await import(/* @vite-ignore */ '../ingestion/IngestionOrchestrator')
 
     // Create layer (async with dynamic imports)
     const ingestionLayer = await createIngestionLayer(pgConfig)
@@ -577,7 +578,7 @@ export async function toggleIngester(
 export async function getIngestionStatus(pgConfig: PgConfig): Promise<void> {
   try {
     // Dynamic import for orchestrator tag
-    const { IngestionOrchestratorTag } = await import('../ingestion/IngestionOrchestrator')
+    const { IngestionOrchestratorTag } = await import(/* @vite-ignore */ '../ingestion/IngestionOrchestrator')
 
     // Create layer (async with dynamic imports)
     const ingestionLayer = await createIngestionLayer(pgConfig)
@@ -614,6 +615,32 @@ export async function getIngestionStatus(pgConfig: PgConfig): Promise<void> {
         { name: 'weather', running: false, startedAt: Option.none(), error: Option.none() },
         { name: 'imagery', running: false, startedAt: Option.none(), error: Option.none() },
       ],
+      materializers: {
+        flight: {
+          name: 'flight',
+          running: false,
+          startedAt: Option.none(),
+          eventsProcessed: 0,
+          entitiesCreated: 0,
+          entitiesUpdated: 0,
+        },
+        osm: {
+          name: 'osm',
+          running: false,
+          startedAt: Option.none(),
+          eventsProcessed: 0,
+          entitiesCreated: 0,
+          entitiesUpdated: 0,
+        },
+        weather: {
+          name: 'weather',
+          running: false,
+          startedAt: Option.none(),
+          eventsProcessed: 0,
+          entitiesCreated: 0,
+          entitiesUpdated: 0,
+        },
+      },
       startedAt: Option.none(),
     })
   }
@@ -636,6 +663,32 @@ export function initializeIngestionStatus(): void {
       { name: 'weather', running: false, startedAt: Option.none(), error: Option.none() },
       { name: 'imagery', running: false, startedAt: Option.none(), error: Option.none() },
     ],
+    materializers: {
+      flight: {
+        name: 'flight',
+        running: false,
+        startedAt: Option.none(),
+        eventsProcessed: 0,
+        entitiesCreated: 0,
+        entitiesUpdated: 0,
+      },
+      osm: {
+        name: 'osm',
+        running: false,
+        startedAt: Option.none(),
+        eventsProcessed: 0,
+        entitiesCreated: 0,
+        entitiesUpdated: 0,
+      },
+      weather: {
+        name: 'weather',
+        running: false,
+        startedAt: Option.none(),
+        eventsProcessed: 0,
+        entitiesCreated: 0,
+        entitiesUpdated: 0,
+      },
+    },
     startedAt: Option.none(),
   })
 }

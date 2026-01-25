@@ -5,12 +5,15 @@
  * Syncs document content, selection, marks, and history state to atoms
  * on every transaction.
  *
+ * CRITICAL: Must pass `registry` option to sync atoms to the correct registry.
+ * Without registry, atoms are not synced.
+ *
  * @module editor/v3/extensions/EffectBridge
  */
 
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
-import { Atom } from '@effect-atom/atom';
+import { Registry } from '@effect-atom/atom';
 import {
   editorInstanceAtom,
   editorStatusAtom,
@@ -49,7 +52,9 @@ const MARK_CHECKS: readonly MarkType[] = [
 /**
  * Get active marks at current selection.
  */
-function getActiveMarks(editor: ReturnType<typeof Extension.create>['editor']): ReadonlySet<MarkType> {
+function getActiveMarks(
+  editor: ReturnType<typeof Extension.create>['editor']
+): ReadonlySet<MarkType> {
   const active = new Set<MarkType>();
 
   for (const mark of MARK_CHECKS) {
@@ -70,6 +75,12 @@ function getActiveMarks(editor: ReturnType<typeof Extension.create>['editor']): 
 // =============================================================================
 
 export interface EffectBridgeOptions {
+  /**
+   * Registry to use for atom operations.
+   * REQUIRED: Without this, atoms are not synced.
+   */
+  registry?: Registry.Registry;
+
   /**
    * Callback invoked on every transaction.
    * Useful for external sync (e.g., auto-save trigger).
@@ -92,6 +103,7 @@ export const EffectBridge = Extension.create<EffectBridgeOptions>({
 
   addOptions() {
     return {
+      registry: undefined,
       onTransaction: undefined,
       contentDebounce: 0,
     };
@@ -102,43 +114,60 @@ export const EffectBridge = Extension.create<EffectBridgeOptions>({
       lastContentHash: '',
       contentDebounceTimer: null as ReturnType<typeof setTimeout> | null,
       initialized: false,
+      transactionCount: 0,
     };
   },
 
   onCreate() {
+    const registry = this.options.registry;
+    if (!registry) {
+      console.warn(
+        '[EffectBridge] No registry provided. Atoms will not be synced. ' +
+          'Pass registry option: EffectBridge.configure({ registry: myRegistry })'
+      );
+      return;
+    }
+
     // Store editor reference in atom
-    Atom.set(editorInstanceAtom, this.editor);
-    Atom.set(editorStatusAtom, 'ready');
+    console.log('[EffectBridge] Setting editorInstanceAtom to:', this.editor);
+    console.log('[EffectBridge] Registry identity:', (registry as any)._id ?? 'unknown');
+    registry.set(editorInstanceAtom, this.editor);
+    console.log('[EffectBridge] Verify set:', registry.get(editorInstanceAtom));
+    registry.set(editorStatusAtom, 'ready');
 
     // Initial content sync
-    Atom.set(documentContentAtom, this.editor.getJSON());
+    registry.set(documentContentAtom, this.editor.getJSON());
 
     // Initial selection sync
     const { from, to, anchor, head, empty } = this.editor.state.selection;
-    Atom.set(
+    registry.set(
       selectionAtom,
       new SelectionState({ from, to, anchor, head, empty })
     );
 
     // Initial marks sync
-    Atom.set(activeMarksAtom, getActiveMarks(this.editor));
+    registry.set(activeMarksAtom, getActiveMarks(this.editor));
 
     // Initial history sync
-    Atom.set(canUndoAtom, this.editor.can().undo());
-    Atom.set(canRedoAtom, this.editor.can().redo());
+    registry.set(canUndoAtom, this.editor.can().undo());
+    registry.set(canRedoAtom, this.editor.can().redo());
 
     this.storage.initialized = true;
   },
 
   onDestroy() {
+    const registry = this.options.registry;
+
     // Clean up debounce timer
     if (this.storage.contentDebounceTimer) {
       clearTimeout(this.storage.contentDebounceTimer);
     }
 
+    if (!registry) return;
+
     // Clear editor reference
-    Atom.set(editorInstanceAtom, null);
-    Atom.set(editorStatusAtom, 'destroyed');
+    registry.set(editorInstanceAtom, null);
+    registry.set(editorStatusAtom, 'destroyed');
   },
 
   addProseMirrorPlugins() {
@@ -152,42 +181,47 @@ export const EffectBridge = Extension.create<EffectBridgeOptions>({
           update: (view, prevState) => {
             if (!extension.storage.initialized) return;
 
+            const registry = extension.options.registry;
+            if (!registry) return;
+
             const { state } = view;
             const docChanged = !state.doc.eq(prevState.doc);
             const selectionChanged = !state.selection.eq(prevState.selection);
 
-            // Increment transaction counter
-            const count = Atom.get(transactionCountAtom) + 1;
-            Atom.set(transactionCountAtom, count);
+            // Increment transaction counter (stored in storage, not atom)
+            extension.storage.transactionCount += 1;
+            const count = extension.storage.transactionCount;
+            registry.set(transactionCountAtom, count);
 
             // Sync selection
             if (selectionChanged) {
               const { from, to, anchor, head, empty } = state.selection;
-              Atom.set(
+              registry.set(
                 selectionAtom,
                 new SelectionState({ from, to, anchor, head, empty })
               );
 
               // Active marks may change with selection
-              Atom.set(activeMarksAtom, getActiveMarks(extension.editor));
+              registry.set(activeMarksAtom, getActiveMarks(extension.editor));
             }
 
             // Sync document content
             if (docChanged) {
-              Atom.set(isDirtyAtom, true);
+              registry.set(isDirtyAtom, true);
 
               const updateContent = () => {
-                Atom.set(documentContentAtom, extension.editor.getJSON());
+                registry.set(documentContentAtom, extension.editor.getJSON());
               };
 
               // Debounce if configured
-              if (extension.options.contentDebounce > 0) {
+              const debounce = extension.options.contentDebounce ?? 0;
+              if (debounce > 0) {
                 if (extension.storage.contentDebounceTimer) {
                   clearTimeout(extension.storage.contentDebounceTimer);
                 }
                 extension.storage.contentDebounceTimer = setTimeout(
                   updateContent,
-                  extension.options.contentDebounce
+                  debounce
                 );
               } else {
                 updateContent();
@@ -195,8 +229,8 @@ export const EffectBridge = Extension.create<EffectBridgeOptions>({
             }
 
             // Sync history state
-            Atom.set(canUndoAtom, extension.editor.can().undo());
-            Atom.set(canRedoAtom, extension.editor.can().redo());
+            registry.set(canUndoAtom, extension.editor.can().undo());
+            registry.set(canRedoAtom, extension.editor.can().redo());
 
             // Invoke callback
             extension.options.onTransaction?.({

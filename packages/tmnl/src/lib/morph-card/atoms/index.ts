@@ -14,6 +14,7 @@ import type { TransitionGrammar, MorphCardConfig } from '../schemas';
 import { DEFAULT_TRANSITION } from '../schemas/transition-grammar';
 import { DEFAULT_CARD_CONFIG } from '../schemas/animation-config';
 import { UITree } from '@/lib/json-render/core/schemas';
+export { morphCardRegistry, MorphCardRegistryProvider } from './registry';
 
 // =============================================================================
 // State Atoms
@@ -151,6 +152,7 @@ export {
   tabsAtomFamily,
   cardTabStateFamily,
   setActiveTab,
+  updateView,
   updateViewState,
   registerTab,
   unregisterTab,

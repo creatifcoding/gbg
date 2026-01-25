@@ -1,0 +1,6 @@
+pair,correlation
+PM2.5 vs PM1.0,0.9552
+CNT vs Humidity,0.1335
+CNT vs TVOC,0.0132
+CNT vs Temperature,-0.1246
+Humidity vs Temperature,-0.193

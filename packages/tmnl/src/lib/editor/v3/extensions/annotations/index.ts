@@ -31,6 +31,10 @@ export * from './services';
 // =============================================================================
 
 export {
+  // Registry (CRITICAL for IntentMarkView ↔ AnnotationPopover communication)
+  annotationRegistry,
+  AnnotationRegistryProvider,
+
   // Materialized view atoms
   marksAtom,
   nodesAtom,
@@ -129,6 +133,20 @@ export {
 // =============================================================================
 
 export { annotationStyles } from './styles';
+
+// =============================================================================
+// Visual Style Generator (Centralized Color Tokens + CSS Generation)
+// =============================================================================
+
+export {
+  TMNL_COLOR_TOKENS,
+  getColorHex,
+  getColorVar,
+  generateVisualStyleCSSString,
+  generateVisualStyleCSSProperties,
+  parseVisualStyle,
+  DEFAULT_VISUAL_STYLE,
+} from './visual-style-generator';
 
 /**
  * Import styles in your app:

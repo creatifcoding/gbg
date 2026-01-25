@@ -124,6 +124,7 @@ export function parseSections(markdown: string): ADRSection[] {
 
 /**
  * Parse subsections within a section.
+ * Handles numbered prefixes like "### 1. Title" by stripping the number.
  */
 function parseSubsections(sectionContent: string): ADRSubsection[] {
   const subsectionRegex = /^### (.+)$/gm
@@ -132,7 +133,9 @@ function parseSubsections(sectionContent: string): ADRSubsection[] {
   let match: RegExpExecArray | null
 
   while ((match = subsectionRegex.exec(sectionContent)) !== null) {
-    headers.push({ name: match[1], index: match.index })
+    // Strip numbered prefix like "1. " or "2. " from name
+    const name = match[1].replace(/^\d+\.\s*/, '')
+    headers.push({ name, index: match.index })
   }
 
   for (let i = 0; i < headers.length; i++) {
@@ -254,15 +257,71 @@ export function parseADRMarkdown(markdown: string): ParsedADR | null {
 }
 
 /**
- * Get section by name (case-insensitive).
+ * Section name aliases for handling different ADR formats.
+ * Maps canonical name → array of possible aliases.
+ */
+const SECTION_ALIASES: Record<string, string[]> = {
+  rationale: ['consequences', 'rationale'],
+  implementation: ['implementation', 'implementation notes'],
+}
+
+/**
+ * Get section by name.
+ * Supports fuzzy matching and aliases (e.g., "consequences" = "rationale").
  */
 export function getSection(parsed: ParsedADR, name: string): ADRSection | undefined {
-  return parsed.sections.find((s) => s.name.toLowerCase() === name.toLowerCase())
+  const lowerName = name.toLowerCase()
+
+  // First try exact match
+  const exact = parsed.sections.find((s) => s.name.toLowerCase() === lowerName)
+  if (exact) return exact
+
+  // Try aliases
+  const aliases = SECTION_ALIASES[lowerName]
+  if (aliases) {
+    for (const alias of aliases) {
+      const aliasMatch = parsed.sections.find((s) => s.name.toLowerCase() === alias)
+      if (aliasMatch) return aliasMatch
+    }
+  }
+
+  // Then try contains match
+  return parsed.sections.find((s) => s.name.toLowerCase().includes(lowerName))
+}
+
+/**
+ * Subsection name aliases for handling different ADR formats.
+ * Maps canonical name → array of possible aliases.
+ */
+const SUBSECTION_ALIASES: Record<string, string[]> = {
+  tradeoffs: ['positive', 'negative', 'tradeoffs'], // "Positive/Negative" in Consequences ≈ "Tradeoffs"
 }
 
 /**
  * Get subsection by name within a section.
+ * Supports fuzzy matching and aliases.
+ * This handles varied naming like "Problem Space" matching "problem".
  */
 export function getSubsection(section: ADRSection, name: string): ADRSubsection | undefined {
-  return section.subsections.find((s) => s.name.toLowerCase() === name.toLowerCase())
+  const lowerName = name.toLowerCase()
+
+  // First try exact match
+  const exact = section.subsections.find((s) => s.name.toLowerCase() === lowerName)
+  if (exact) return exact
+
+  // Try aliases
+  const aliases = SUBSECTION_ALIASES[lowerName]
+  if (aliases) {
+    for (const alias of aliases) {
+      const aliasMatch = section.subsections.find((s) => s.name.toLowerCase() === alias)
+      if (aliasMatch) return aliasMatch
+    }
+  }
+
+  // Then try contains match (e.g., "problem space" contains "problem")
+  const contains = section.subsections.find((s) => s.name.toLowerCase().includes(lowerName))
+  if (contains) return contains
+
+  // Try reverse contains (e.g., looking for "constraints" in "architectural constraints")
+  return section.subsections.find((s) => lowerName.includes(s.name.toLowerCase()))
 }

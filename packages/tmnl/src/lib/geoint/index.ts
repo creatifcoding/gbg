@@ -29,17 +29,21 @@ export * from './layers'
 // API - HttpApi definitions and external API clients
 export * from './api'
 
-// Cluster - Effect Cluster for distributed search
-export * from './cluster'
+// NOTE: Server-only modules NOT exported from barrel to prevent browser bundle contamination
+// ─────────────────────────────────────────────────────────────────────────────
+// These modules use @effect/sql-pg and other Node.js-only dependencies.
+// Import them directly when needed in server-side code:
+//
+//   import { ... } from '@/lib/geoint/cluster'        // Effect Cluster nodes
+//   import { ... } from '@/lib/geoint/persistence'    // PostGIS + Materializers
+//   import { ... } from '@/lib/geoint/server'         // RPC handlers
+//   import { ... } from '@/lib/geoint/ingestion'      // Data ingesters
+//
+// See: assets/documents/GEOINT_VERTICAL_SLICE_ARCHITECTURE.md
+// ─────────────────────────────────────────────────────────────────────────────
 
-// Components - Map components with Mapbox integration
+// Components - Map components with Mapbox integration (browser-safe)
 export * from './components'
-
-// Persistence - Durable stream storage and PostGIS
-export * from './persistence'
-
-// Server - RPC server handlers for SearchClient
-export * from './server'
 
 // Workspace - Persistence for workspace state (viewport, layers, filters)
 export * from './workspace'

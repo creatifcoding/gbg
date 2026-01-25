@@ -45,6 +45,10 @@ const EVOLUTION_AGENT_SYSTEM_PROMPT = `You are a MorphCard evolution agent. You 
 - Describe changes clearly in emit_patch
 - Validate changes make sense for the card's purpose
 - Prefer targeted updates over full regeneration when possible
+- When adding a MorphCard in UITree, include:
+  - initialSizeKey (string)
+  - stateMachineConfig.sizes (sizeKey -> { width, height })
+- Do NOT add transitionStrategy to UITree props (it is injected at render-time)
 
 ## ELEMENT TYPES
 

@@ -1,0 +1,9 @@
+[install]
+# Lifecycle scripts to ignore during install
+# These native modules fail on Nix/WSL and are optional for Theia browser mode
+ignoredScripts = [
+  "node-pty",
+  "drivelist",
+  "nsfw",
+  "keytar"
+]

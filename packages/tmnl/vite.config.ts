@@ -79,12 +79,20 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // Polyfill crypto for AI SDK browser compatibility
+      // The AI SDK uses crypto.randomUUID which is available natively in browsers
+      // but Vite externalizes the Node crypto module
+      crypto: path.resolve(__dirname, './src/lib/polyfills/crypto-shim.ts'),
     },
     dedupe: ['yjs', '@tiptap/pm'], // Ensure single instances for collaboration
   },
   optimizeDeps: {
     include: ['mermaid', 'yjs'],
+    // Exclude wa-sqlite from optimization - it needs to load WASM at runtime
+    exclude: ['@effect/wa-sqlite'],
   },
+  // Ensure WASM files are served with correct MIME type
+  assetsInclude: ['**/*.wasm'],
   plugins: [
     react(),
     nxViteTsPaths(),

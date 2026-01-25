@@ -1,0 +1,16 @@
+syntax = "proto3";
+package scm.identity.v1;
+
+import "google/protobuf/timestamp.proto";
+import "scm/common/v1/common.proto";
+
+message PartyDefined { string party_id = 1; string name = 2; string kind = 3; map<string,string> ids = 4; map<string,string> attrs = 5; }
+message PartyUpdated { string party_id = 1; map<string,string> patch = 2; map<string,string> attrs = 3; }
+message FacilityDefined { string facility_id = 1; string party_id = 2; string name = 3; string country = 4; map<string,string> attrs = 5; }
+message FacilityUpdated { string facility_id = 1; map<string,string> patch = 2; map<string,string> attrs = 3; }
+message FacilityCapabilityDeclared { string facility_id = 1; repeated string capabilities = 2; map<string,string> attrs = 3; }
+message FacilityCapabilityRevoked { string facility_id = 1; repeated string capabilities = 2; map<string,string> attrs = 3; }
+message IdentityLinked { string a_kind = 1; string a_id = 2; string b_kind = 3; string b_id = 4; map<string,string> attrs = 5; }
+message IdentityUnlinked { string a_kind = 1; string a_id = 2; string b_kind = 3; string b_id = 4; map<string,string> attrs = 5; }
+message TrustedSupplierStatusGranted { string party_id = 1; string status = 2; google.protobuf.Timestamp ts = 3; map<string,string> attrs = 4; }
+message TrustedSupplierStatusRevoked { string party_id = 1; string status = 2; google.protobuf.Timestamp ts = 3; map<string,string> attrs = 4; }

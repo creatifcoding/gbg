@@ -32,8 +32,11 @@ import {
   resultsAtom,
   searchStatusAtom,
   searchErrorAtom,
+  searchTypedErrorAtom,
+  searchRetryCountAtom,
   lastSearchTimeAtom,
 } from '../atoms'
+import { parseError } from '../schemas'
 import { SearchQuery, GeoFilterBounds, SearchId } from '../schemas'
 import type { BBox, IntelSource, SearchResultItem } from '../schemas'
 
@@ -59,31 +62,95 @@ export const searchOps = {
   /**
    * Execute search with full SearchQuery object.
    * Updates status → executes RPC → sets results or error.
+   * Uses typed errors for proper error classification and retry logic.
    */
   executeQuery: searchRuntimeAtom.fn<SearchQuery>()((query, ctx) =>
     Effect.gen(function* () {
-      // Set searching state
+      // Set searching state and clear previous error
       ctx.set(searchStatusAtom, 'searching')
       ctx.set(searchErrorAtom, null)
+      ctx.set(searchTypedErrorAtom, null)
       ctx.set(searchQueryAtom, query)
 
       // Get client from context and execute RPC
       const client = yield* SearchClient
       const response = yield* client('search', query)
 
-      // Update atoms with results
+      // Success: update atoms with results and reset retry count
       ctx.set(resultsAtom, response.results as readonly SearchResultItem[])
       ctx.set(lastSearchTimeAtom, Date.now())
       ctx.set(searchStatusAtom, 'completed')
+      ctx.set(searchRetryCountAtom, 0)
 
       return response
     }).pipe(
       Effect.catchAll((error) => {
-        // Handle error by updating atoms
-        const message = error instanceof Error ? error.message : 'Search failed'
-        ctx.set(searchErrorAtom, message)
+        // Parse error into typed SearchError
+        const typedError = parseError(error)
+
+        // Update atoms with both string message and typed error
+        ctx.set(searchErrorAtom, typedError.userMessage)
+        ctx.set(searchTypedErrorAtom, typedError)
         ctx.set(searchStatusAtom, 'error')
-        return Effect.fail(error)
+
+        // Log for debugging
+        console.error('[SearchProvider] Search failed:', {
+          category: typedError.category,
+          message: typedError.message,
+          recoverable: typedError.recoverable,
+          tag: typedError._tag,
+        })
+
+        return Effect.fail(typedError)
+      })
+    )
+  ),
+
+  /**
+   * Retry the last failed search (increments retry count).
+   * Must read from geointRegistry since FnContext doesn't have get().
+   */
+  retrySearch: searchRuntimeAtom.fn()((_, ctx) =>
+    Effect.gen(function* () {
+      // Read current state from registry (sync)
+      const query = geointRegistry.get(searchQueryAtom)
+      const typedError = geointRegistry.get(searchTypedErrorAtom)
+      const currentRetries = geointRegistry.get(searchRetryCountAtom)
+
+      // Check if we can retry
+      const canRetry = typedError !== null &&
+        typedError.recoverable &&
+        currentRetries < 3
+
+      if (!query || !canRetry) {
+        return
+      }
+
+      // Increment retry count
+      ctx.set(searchRetryCountAtom, currentRetries + 1)
+
+      // Execute the search again
+      ctx.set(searchStatusAtom, 'searching')
+      ctx.set(searchErrorAtom, null)
+      ctx.set(searchTypedErrorAtom, null)
+
+      const client = yield* SearchClient
+      const response = yield* client('search', query)
+
+      // Success
+      ctx.set(resultsAtom, response.results as readonly SearchResultItem[])
+      ctx.set(lastSearchTimeAtom, Date.now())
+      ctx.set(searchStatusAtom, 'completed')
+      ctx.set(searchRetryCountAtom, 0)
+
+      return response
+    }).pipe(
+      Effect.catchAll((error) => {
+        const typedError = parseError(error)
+        ctx.set(searchErrorAtom, typedError.userMessage)
+        ctx.set(searchTypedErrorAtom, typedError)
+        ctx.set(searchStatusAtom, 'error')
+        return Effect.fail(typedError)
       })
     )
   ),
@@ -97,6 +164,8 @@ export const searchOps = {
       ctx.set(searchQueryAtom, null)
       ctx.set(searchStatusAtom, 'idle')
       ctx.set(searchErrorAtom, null)
+      ctx.set(searchTypedErrorAtom, null)
+      ctx.set(searchRetryCountAtom, 0)
     })
   ),
 

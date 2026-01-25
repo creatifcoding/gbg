@@ -136,3 +136,9 @@
 [submodule "submodules/nex"]
 	path = submodules/nex
 	url = https://github.com/synadia-io/nex
+[submodule "submodules/pg_mooncake"]
+	path = submodules/pg_mooncake
+	url = https://github.com/Mooncake-Labs/pg_mooncake.git
+[submodule "submodules/pg_lake"]
+	path = submodules/pg_lake
+	url = https://github.com/Snowflake-Labs/pg_lake.git

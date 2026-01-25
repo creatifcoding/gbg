@@ -13,4 +13,15 @@ export { SystemBlock, type SystemBlockProps } from './SystemBlock'
 export { BlocksView, type BlocksViewProps } from './BlocksView'
 
 // Input components
-export { BlockInput, type BlockInputProps } from './BlockInput'
+export {
+  BlockInput,
+  type BlockInputProps,
+  type ContextBlock,
+  // External triggers
+  OPEN_THINKING_PICKER_EVENT,
+  OPEN_SLASH_PICKER_EVENT,
+  OPEN_MENTIONS_PICKER_EVENT,
+  triggerOpenThinkingPicker,
+  triggerOpenSlashPicker,
+  triggerOpenMentionsPicker,
+} from './BlockInput'

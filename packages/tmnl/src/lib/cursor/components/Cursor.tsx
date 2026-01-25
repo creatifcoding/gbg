@@ -25,6 +25,7 @@ import {
   sizeKeyAtom,
   cursorOps,
   hasBoundsAtom,
+  customSizeAtom,
 } from '../atoms'
 import { DynamicIsland, DynamicIslandProvider, useDynamicIsland } from './DynamicIsland'
 import { CursorChat } from './chat'
@@ -78,11 +79,39 @@ function CursorInner() {
   const cursorState = useAtomValue(cursorStateAtom)
   const sizeKey = useAtomValue(sizeKeyAtom)
   const hasBounds = useAtomValue(hasBoundsAtom)
+  const customSize = useAtomValue(customSizeAtom)
 
   // Get DynamicIsland context for size transitions
   const { transition } = useDynamicIsland()
 
   const islandSize = useMemo(() => getIslandSize(sizeKey), [sizeKey])
+
+  // Track starting position for resize operations that move the island
+  const resizeStartPosRef = useRef<{ x: number; y: number } | null>(null)
+
+  // Handle resize position changes (for NW/N/W drags)
+  const handleResizePositionChange = useCallback(
+    (delta: { dx: number; dy: number }) => {
+      const currentPos = cursorRegistry.get(positionAtom)
+      if (!resizeStartPosRef.current) {
+        resizeStartPosRef.current = currentPos
+      }
+      cursorOps.updatePosition({
+        position: {
+          x: resizeStartPosRef.current.x + delta.dx,
+          y: resizeStartPosRef.current.y + delta.dy,
+        },
+      })
+    },
+    []
+  )
+
+  // Clear resize start position when resize ends
+  useEffect(() => {
+    return () => {
+      resizeStartPosRef.current = null
+    }
+  }, [])
 
   // Sync sizeKey atom → DynamicIsland internal state
   useEffect(() => {
@@ -167,15 +196,23 @@ function CursorInner() {
     cursorOps.collapse()
   }, [])
 
-  // Compute drag constraints from bounds
+  // Handle position adjustment during size transitions (bounds-aware expansion)
+  const handlePositionAdjust = useCallback((newPosition: { x: number; y: number }) => {
+    cursorOps.updatePosition({ position: newPosition })
+  }, [])
+
+  // Effective size (custom or from preset)
+  const effectiveSize = customSize ?? islandSize
+
+  // Compute drag constraints from bounds using effective size
   const dragConstraints = useMemo(
     () => ({
       left: 16,
-      right: Math.max(0, bounds.width - islandSize.width - 16),
+      right: Math.max(0, bounds.width - effectiveSize.width - 16),
       top: 16,
-      bottom: Math.max(0, bounds.height - islandSize.height - 16),
+      bottom: Math.max(0, bounds.height - effectiveSize.height - 16),
     }),
-    [bounds.width, bounds.height, islandSize.width, islandSize.height]
+    [bounds.width, bounds.height, effectiveSize.width, effectiveSize.height]
   )
 
   return (
@@ -185,6 +222,11 @@ function CursorInner() {
       shiftDragOnly
       onDragEnd={handleDragEnd}
       dragConstraints={dragConstraints}
+      customSize={customSize}
+      resizable={cursorState === 'chat'}
+      onResizePositionChange={handleResizePositionChange}
+      containerBounds={bounds}
+      onPositionAdjust={handlePositionAdjust}
     >
       <AnimatePresence mode="wait">
         {cursorState === 'pill' ? (

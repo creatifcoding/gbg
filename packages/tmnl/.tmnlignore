@@ -1,0 +1,22 @@
+# TMNL Project-Specific Ignore Patterns
+# These extend the default patterns in IgnoreService
+
+# Submodules (massive external repos)
+submodules/
+
+# Rust/Tauri build artifacts
+src-tauri/target/
+src-ava/target/
+
+# Repomix outputs (huge XML dumps)
+assets/repomix/
+
+# Y-sweet data (ephemeral collab docs)
+docker/y-sweet-data/
+
+# Nix outputs
+result
+.direnv/
+
+# Lock files (not markdown)
+*.lock

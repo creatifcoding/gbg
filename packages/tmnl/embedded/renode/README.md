@@ -28,6 +28,12 @@ Override UART/device/bin/port:
 renode --disable-gui -e '$uartDevice=sysbus.uart0;$uartPort=5501;$bin=@/path/to/firmware.elf; i @embedded/renode/nrf52840/nrf52840-telemetry.resc'
 ```
 
+Local firmware (recommended for high-rate telemetry):
+
+```
+embedded/firmware/nrf52840-telemetry/README.md
+```
+
 Attach to UART socket:
 
 ```bash
@@ -52,6 +58,7 @@ Environment overrides (tmux workflow):
 export TMNL_RENODE_SESSION=tmnl-renode
 export TMNL_RENODE_SCRIPT=embedded/renode/nrf52840/nrf52840-telemetry.resc
 export TMNL_RENODE_UART_PORT=5501
+export TMNL_RENODE_FIRMWARE=embedded/firmware/nrf52840-telemetry/build/zephyr/zephyr.elf
 export TMNL_RENODE_MONITOR_ADDR=127.0.0.1:1234
 ```
 

@@ -48,6 +48,7 @@ import {
   RightDrawer,
   CommandBar,
   Modal,
+  TmnlSettings,
 } from '@/components/static-ui';
 
 // Controllers
@@ -90,6 +91,7 @@ export const Tmnl = {
   // Overlays
   CommandBar,
   Modal,
+  Settings: TmnlSettings,
 
   // Cards
   Card,

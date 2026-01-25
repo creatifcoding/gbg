@@ -13,8 +13,10 @@
  */
 
 import { memo, useRef, useEffect, useMemo, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useAtom, useAtomValue } from '@effect-atom/atom-react'
 import { Atom } from '@effect-atom/atom-react'
+import { Effect, pipe } from 'effect'
 import {
   Terminal,
   Sparkles,
@@ -23,15 +25,20 @@ import {
   Hash,
   X,
   Lightbulb,
+  Slash,
+  AtSign,
+  Paperclip,
+  MessageSquare,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ThinkingLevel } from '../../schemas'
+import { TerminalInput, type TerminalInputRef } from '../../v3/components/TerminalInput'
 
 // =============================================================================
 // Types
 // =============================================================================
 
-interface ContextBlock {
+export interface ContextBlock {
   id: string
   label: string
   type: string
@@ -43,17 +50,60 @@ interface CustomContextChip {
   enabled: boolean
 }
 
-type InputSize = 'small' | 'medium' | 'large'
+// Removed: InputSize - TipTap handles auto-resize
+type OverlayType = 'thinking' | 'slash' | 'mentions' | null
+
+// =============================================================================
+// External Event Triggers
+// =============================================================================
+
+/** Event for opening the thinking level picker from outside */
+export const OPEN_THINKING_PICKER_EVENT = 'tmnl-open-thinking-picker'
+
+/** Event for opening the slash commands picker from outside */
+export const OPEN_SLASH_PICKER_EVENT = 'tmnl-open-slash-picker'
+
+/** Event for opening the mentions picker from outside */
+export const OPEN_MENTIONS_PICKER_EVENT = 'tmnl-open-mentions-picker'
+
+/** Trigger the thinking level picker to open */
+export function triggerOpenThinkingPicker(): void {
+  window.dispatchEvent(new CustomEvent(OPEN_THINKING_PICKER_EVENT))
+}
+
+/** Trigger the slash commands picker to open */
+export function triggerOpenSlashPicker(): void {
+  window.dispatchEvent(new CustomEvent(OPEN_SLASH_PICKER_EVENT))
+}
+
+/** Trigger the mentions picker to open */
+export function triggerOpenMentionsPicker(): void {
+  window.dispatchEvent(new CustomEvent(OPEN_MENTIONS_PICKER_EVENT))
+}
+
+// =============================================================================
+// Props Interface
+// =============================================================================
 
 export interface BlockInputProps {
   /**
    * Submit handler for commands
+   * @param command - The command/query text
+   * @param isAI - Whether to send to AI or terminal
+   * @param thinkingLevel - Extended thinking level (AI mode only)
+   * @param contextBlocks - Context blocks to include with AI query
    */
   onSubmit: (
     command: string,
     isAI: boolean,
-    thinkingLevel?: ThinkingLevel
+    thinkingLevel?: ThinkingLevel,
+    contextBlocks?: ContextBlock[]
   ) => void | Promise<void>
+
+  /**
+   * Called when input receives focus
+   */
+  onInputFocus?: () => void
 
   /**
    * Confirmed context blocks
@@ -96,21 +146,81 @@ const isSubmittingAtom = Atom.make(false)
 const submitErrorAtom = Atom.make<string | null>(null)
 const isAIModeAtom = Atom.make(true)
 const thinkingLevelAtom = Atom.make<ThinkingLevel>('none')
-const inputSizeAtom = Atom.make<InputSize>('small')
+// Removed: inputSizeAtom - TipTap handles auto-resize
 const customChipsAtom = Atom.make<CustomContextChip[]>([])
+const overlayAtom = Atom.make<OverlayType>(null)
 
 // Derived: input trimmed check
 const hasInputAtom = Atom.make((get) => get(inputValueAtom).trim().length > 0)
 
 // =============================================================================
-// Input Size Constants
+// Effect-based Operations
 // =============================================================================
 
-const INPUT_SIZES: Record<InputSize, { rows: number; minHeight: string }> = {
-  small: { rows: 2, minHeight: '48px' },
-  medium: { rows: 5, minHeight: '120px' },
-  large: { rows: 10, minHeight: '240px' },
-}
+/** Open an overlay */
+const openOverlay = (type: OverlayType): Effect.Effect<void> =>
+  Effect.sync(() => Atom.set(overlayAtom, type))
+
+/** Close the current overlay */
+const closeOverlay: Effect.Effect<void> = Effect.sync(() =>
+  Atom.set(overlayAtom, null)
+)
+
+/** Toggle an overlay */
+const toggleOverlay = (type: Exclude<OverlayType, null>): Effect.Effect<void> =>
+  Effect.sync(() => {
+    const current = Atom.get(overlayAtom)
+    Atom.set(overlayAtom, current === type ? null : type)
+  })
+
+/** Set thinking level */
+const setThinkingLevelOp = (level: ThinkingLevel): Effect.Effect<void> =>
+  Effect.sync(() => Atom.set(thinkingLevelAtom, level))
+
+/** Cycle thinking level */
+const cycleThinkingLevelOp: Effect.Effect<ThinkingLevel> = Effect.sync(() => {
+  const current = Atom.get(thinkingLevelAtom)
+  const levels: ThinkingLevel[] = ['none', 'low', 'medium', 'high']
+  const idx = levels.indexOf(current)
+  const next = levels[(idx + 1) % levels.length]
+  Atom.set(thinkingLevelAtom, next)
+  return next
+})
+
+/** Toggle AI mode */
+const toggleAIModeOp: Effect.Effect<boolean> = Effect.sync(() => {
+  const current = Atom.get(isAIModeAtom)
+  const next = !current
+  Atom.set(isAIModeAtom, next)
+  return next
+})
+
+/** Set AI mode */
+const setAIModeOp = (isAI: boolean): Effect.Effect<void> =>
+  Effect.sync(() => Atom.set(isAIModeAtom, isAI))
+
+// Removed: cycleInputSizeOp - TipTap handles auto-resize
+
+/** Subscribe to external events - returns cleanup Effect */
+const subscribeExternalEvents: Effect.Effect<() => void> = Effect.sync(() => {
+  const handleThinking = () => Effect.runSync(openOverlay('thinking'))
+  const handleSlash = () => Effect.runSync(openOverlay('slash'))
+  const handleMentions = () => Effect.runSync(openOverlay('mentions'))
+
+  window.addEventListener(OPEN_THINKING_PICKER_EVENT, handleThinking)
+  window.addEventListener(OPEN_SLASH_PICKER_EVENT, handleSlash)
+  window.addEventListener(OPEN_MENTIONS_PICKER_EVENT, handleMentions)
+
+  return () => {
+    window.removeEventListener(OPEN_THINKING_PICKER_EVENT, handleThinking)
+    window.removeEventListener(OPEN_SLASH_PICKER_EVENT, handleSlash)
+    window.removeEventListener(OPEN_MENTIONS_PICKER_EVENT, handleMentions)
+  }
+})
+
+// =============================================================================
+// Removed: INPUT_SIZES - TipTap handles auto-resize with min/max height props
+// =============================================================================
 
 // =============================================================================
 // Detection Utilities
@@ -274,6 +384,7 @@ const THINKING_LEVELS: {
 
 export const BlockInput = memo(function BlockInput({
   onSubmit,
+  onInputFocus,
   confirmedContextBlocks = [],
   onRemoveConfirmedContext,
   pendingContextBlock,
@@ -281,17 +392,37 @@ export const BlockInput = memo(function BlockInput({
   onConfirmContext,
   className,
 }: BlockInputProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const inputRef = useRef<TerminalInputRef>(null)
+  const thinkingBtnRef = useRef<HTMLButtonElement>(null)
+  const slashBtnRef = useRef<HTMLButtonElement>(null)
+  const mentionsBtnRef = useRef<HTMLButtonElement>(null)
 
-  // Atom state
+  // Atom state (Atom-as-State doctrine)
   const [input, setInput] = useAtom(inputValueAtom)
   const [isSubmitting, setIsSubmitting] = useAtom(isSubmittingAtom)
   const [submitError, setSubmitError] = useAtom(submitErrorAtom)
-  const [isAIMode, setIsAIMode] = useAtom(isAIModeAtom)
-  const [thinkingLevel, setThinkingLevel] = useAtom(thinkingLevelAtom)
-  const [inputSize, setInputSize] = useAtom(inputSizeAtom)
+  const isAIMode = useAtomValue(isAIModeAtom)
+  const thinkingLevel = useAtomValue(thinkingLevelAtom)
+  // Removed: inputSize - TipTap handles auto-resize
   const [customChips, setCustomChips] = useAtom(customChipsAtom)
   const hasInput = useAtomValue(hasInputAtom)
+  const overlay = useAtomValue(overlayAtom)
+
+  // Subscribe to external trigger events via Effect
+  useEffect(() => {
+    const cleanup = Effect.runSync(subscribeExternalEvents)
+    return cleanup
+  }, [])
+
+  // Close overlay on Escape - Effect-based
+  useEffect(() => {
+    if (!overlay) return
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') Effect.runSync(closeOverlay)
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [overlay])
 
   // Detection memos
   const nlDetection = useMemo(() => detectNaturalLanguage(input), [input])
@@ -300,19 +431,19 @@ export const BlockInput = memo(function BlockInput({
   const showNLHint =
     !isAIMode && nlDetection.isNaturalLanguage && nlDetection.confidence >= 0.6
 
-  // Auto-switch modes based on detection
+  // Auto-switch modes based on detection - Effect-based
   useEffect(() => {
     if (cliDetection.forceTerminal && isAIMode) {
-      setIsAIMode(false)
+      Effect.runSync(setAIModeOp(false))
     } else if (cliDetection.forceAI && !isAIMode) {
-      setIsAIMode(true)
+      Effect.runSync(setAIModeOp(true))
     } else if (
       cliDetection.isCLICommand &&
       isAIMode &&
       cliDetection.confidence >= 0.7 &&
       !cliDetection.forceAI
     ) {
-      setIsAIMode(false)
+      Effect.runSync(setAIModeOp(false))
     }
   }, [
     cliDetection.forceTerminal,
@@ -320,7 +451,6 @@ export const BlockInput = memo(function BlockInput({
     cliDetection.isCLICommand,
     cliDetection.confidence,
     isAIMode,
-    setIsAIMode,
   ])
 
   // Custom context chip management
@@ -382,10 +512,17 @@ export const BlockInput = memo(function BlockInput({
     const finalIsAI =
       cliDetection.forceAI || (!cliDetection.forceTerminal && isAIMode)
     const finalThinkingLevel = finalIsAI ? thinkingLevel : undefined
+    // Include confirmed context blocks when sending to AI
+    const contextBlocks =
+      finalIsAI && confirmedContextBlocks.length > 0
+        ? confirmedContextBlocks
+        : undefined
 
     try {
       setIsSubmitting(true)
-      await Promise.resolve(onSubmit(finalInput, finalIsAI, finalThinkingLevel))
+      await Promise.resolve(
+        onSubmit(finalInput, finalIsAI, finalThinkingLevel, contextBlocks)
+      )
       setInput('')
     } catch (error) {
       const message =
@@ -396,7 +533,7 @@ export const BlockInput = memo(function BlockInput({
     }
 
     requestAnimationFrame(() => {
-      textareaRef.current?.focus()
+      inputRef.current?.focus()
     })
   }, [
     input,
@@ -405,6 +542,7 @@ export const BlockInput = memo(function BlockInput({
     cliDetection.forceTerminal,
     isAIMode,
     thinkingLevel,
+    confirmedContextBlocks,
     onSubmit,
     setInput,
     setSubmitError,
@@ -412,31 +550,28 @@ export const BlockInput = memo(function BlockInput({
     addCustomContextChip,
   ])
 
-  // Keyboard handler
+  // Keyboard handler for additional keys (TerminalInput handles Enter internally)
   const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (event.key === 'Enter' && !event.shiftKey) {
-        event.preventDefault()
-        void handleSubmit()
-      }
+    (event: KeyboardEvent) => {
       // Tab to switch to AI mode when natural language is detected
       if (event.key === 'Tab' && showNLHint) {
         event.preventDefault()
-        setIsAIMode(true)
+        Effect.runSync(setAIModeOp(true))
       }
-      // Escape to clear pending context
-      if (event.key === 'Escape' && pendingContextBlock) {
-        event.preventDefault()
-        onClearPendingContext?.()
+      // Escape to clear pending context or close overlay
+      if (event.key === 'Escape') {
+        if (pendingContextBlock) {
+          event.preventDefault()
+          onClearPendingContext?.()
+        }
       }
     },
-    [handleSubmit, showNLHint, setIsAIMode, pendingContextBlock, onClearPendingContext]
+    [showNLHint, pendingContextBlock, onClearPendingContext]
   )
 
   // Input change handler
   const handleInputChange = useCallback(
-    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const nextValue = event.target.value
+    (nextValue: string) => {
       setInput(nextValue)
       if (submitError) setSubmitError(null)
       if (pendingContextBlock && nextValue !== input) {
@@ -446,33 +581,10 @@ export const BlockInput = memo(function BlockInput({
     [input, setInput, submitError, setSubmitError, pendingContextBlock, onClearPendingContext]
   )
 
-  // Auto-resize textarea
-  useEffect(() => {
-    if (!textareaRef.current) return
-    textareaRef.current.style.height = 'auto'
-    textareaRef.current.style.height =
-      Math.min(textareaRef.current.scrollHeight, 140) + 'px'
-    textareaRef.current.style.overflowY =
-      textareaRef.current.scrollHeight > 140 ? 'auto' : 'hidden'
-  }, [input])
-
-  // Cycle input size
-  const cycleInputSize = useCallback(() => {
-    setInputSize((prev) => {
-      if (prev === 'small') return 'medium'
-      if (prev === 'medium') return 'large'
-      return 'small'
-    })
-  }, [setInputSize])
-
-  // Cycle thinking level
-  const cycleThinkingLevel = useCallback(() => {
-    setThinkingLevel((prev) => {
-      const levels: ThinkingLevel[] = ['none', 'low', 'medium', 'high']
-      const idx = levels.indexOf(prev)
-      return levels[(idx + 1) % levels.length]
-    })
-  }, [setThinkingLevel])
+  // Cycle thinking level - Effect-based
+  const handleCycleThinkingLevel = useCallback(() => {
+    Effect.runSync(cycleThinkingLevelOp)
+  }, [])
 
   return (
     <div className={cn('relative p-3', className)}>
@@ -571,24 +683,19 @@ export const BlockInput = memo(function BlockInput({
 
         {/* Main input area */}
         <div className="relative px-3 py-2">
-          <textarea
-            ref={textareaRef}
+          <TerminalInput
+            ref={inputRef}
             value={input}
             onChange={handleInputChange}
+            onSubmit={handleSubmit}
             onKeyDown={handleKeyDown}
+            onFocus={onInputFocus}
             placeholder="Type a command or ask a question..."
-            rows={INPUT_SIZES[inputSize].rows}
-            className={cn(
-              'w-full resize-none bg-transparent',
-              'text-white/90 placeholder:text-white/30',
-              'border-none outline-none',
-              'transition-[min-height] duration-150'
-            )}
-            style={{
-              fontSize: 'var(--tmnl-text-sm, 14px)',
-              lineHeight: '1.6',
-              minHeight: INPUT_SIZES[inputSize].minHeight,
-            }}
+            disabled={isSubmitting}
+            isSubmitting={isSubmitting}
+            minHeight={48}
+            maxHeight={200}
+            className="bg-transparent"
           />
 
           {/* Submission error */}
@@ -613,21 +720,6 @@ export const BlockInput = memo(function BlockInput({
               </button>
             </div>
           )}
-
-          {/* Size toggle */}
-          <button
-            onClick={cycleInputSize}
-            title={`Input size: ${inputSize} (click to cycle)`}
-            className={cn(
-              'absolute bottom-2 right-2 px-2 py-1 rounded',
-              'font-mono uppercase tracking-wider',
-              'bg-white/5 text-white/40 border-none cursor-pointer',
-              'opacity-60 hover:opacity-100 transition-opacity'
-            )}
-            style={{ fontSize: '10px' }}
-          >
-            {inputSize === 'small' ? 'S' : inputSize === 'medium' ? 'M' : 'L'}
-          </button>
 
           {/* Natural language detection hint */}
           {showNLHint && (
@@ -661,7 +753,7 @@ export const BlockInput = memo(function BlockInput({
               )}
             >
               <button
-                onClick={() => setIsAIMode(false)}
+                onClick={() => Effect.runSync(setAIModeOp(false))}
                 className={cn(
                   'px-2 py-1 font-mono border-none cursor-pointer transition-all',
                   !isAIMode
@@ -674,7 +766,7 @@ export const BlockInput = memo(function BlockInput({
                 &gt;_
               </button>
               <button
-                onClick={() => setIsAIMode(true)}
+                onClick={() => Effect.runSync(setAIModeOp(true))}
                 className={cn(
                   'px-2 py-1 font-semibold border-none cursor-pointer transition-all',
                   isAIMode
@@ -691,16 +783,69 @@ export const BlockInput = memo(function BlockInput({
             {/* Divider */}
             <div className="w-px h-4 bg-white/20" />
 
+            {/* Action buttons */}
+            <div className="flex items-center gap-0.5">
+              {/* Slash commands */}
+              <button
+                ref={slashBtnRef}
+                onClick={() => Effect.runSync(toggleOverlay('slash'))}
+                className={cn(
+                  'flex items-center justify-center w-6 h-6 rounded-md',
+                  'border-none cursor-pointer transition-all',
+                  overlay === 'slash'
+                    ? 'text-cyan-400 bg-cyan-500/10'
+                    : 'text-white/50 bg-transparent hover:text-white/70'
+                )}
+                title="Slash commands"
+              >
+                <Slash size={13} />
+              </button>
+
+              {/* Mentions */}
+              <button
+                ref={mentionsBtnRef}
+                onClick={() => Effect.runSync(toggleOverlay('mentions'))}
+                className={cn(
+                  'flex items-center justify-center w-6 h-6 rounded-md',
+                  'border-none cursor-pointer transition-all',
+                  overlay === 'mentions'
+                    ? 'text-cyan-400 bg-cyan-500/10'
+                    : 'text-white/50 bg-transparent hover:text-white/70'
+                )}
+                title="Mentions"
+              >
+                <AtSign size={13} />
+              </button>
+
+              {/* Attach files */}
+              <button
+                className={cn(
+                  'flex items-center justify-center w-6 h-6 rounded-md',
+                  'border-none cursor-pointer transition-all',
+                  'text-white/50 bg-transparent hover:text-white/70'
+                )}
+                title="Attach files (coming soon)"
+              >
+                <Paperclip size={13} />
+              </button>
+            </div>
+
+            {/* Divider */}
+            <div className="w-px h-4 bg-white/20" />
+
             {/* Thinking level (only in AI mode) */}
             {isAIMode && (
               <button
-                onClick={cycleThinkingLevel}
+                ref={thinkingBtnRef}
+                onClick={() => Effect.runSync(toggleOverlay('thinking'))}
                 className={cn(
                   'flex items-center justify-center w-7 h-7 rounded-md',
                   'border-none cursor-pointer transition-all',
                   thinkingLevel !== 'none'
                     ? 'text-magenta-400 bg-magenta-500/10 border border-magenta-500/30'
-                    : 'text-white/50 bg-transparent hover:text-white/70'
+                    : overlay === 'thinking'
+                      ? 'text-magenta-400 bg-magenta-500/10'
+                      : 'text-white/50 bg-transparent hover:text-white/70'
                 )}
                 title={`Thinking: ${thinkingLevel === 'none' ? 'Off' : thinkingLevel}`}
               >
@@ -736,8 +881,164 @@ export const BlockInput = memo(function BlockInput({
           </button>
         </div>
       </div>
+
+      {/* Portal-rendered overlays */}
+      {overlay === 'thinking' &&
+        createPortal(
+          <ThinkingPicker
+            selectedLevel={thinkingLevel}
+            onSelectLevel={(level) => {
+              Effect.runSync(setThinkingLevelOp(level))
+              Effect.runSync(closeOverlay)
+            }}
+            onClose={() => Effect.runSync(closeOverlay)}
+            anchorRef={thinkingBtnRef}
+          />,
+          document.body
+        )}
+
+      {overlay === 'slash' &&
+        createPortal(
+          <PlaceholderPicker
+            title="Slash Commands"
+            message="Coming soon..."
+            onClose={() => Effect.runSync(closeOverlay)}
+            anchorRef={slashBtnRef}
+          />,
+          document.body
+        )}
+
+      {overlay === 'mentions' &&
+        createPortal(
+          <PlaceholderPicker
+            title="Mentions"
+            message="Coming soon..."
+            onClose={() => Effect.runSync(closeOverlay)}
+            anchorRef={mentionsBtnRef}
+          />,
+          document.body
+        )}
     </div>
   )
 })
+
+// =============================================================================
+// ThinkingPicker Component
+// =============================================================================
+
+interface ThinkingPickerProps {
+  selectedLevel: ThinkingLevel
+  onSelectLevel: (level: ThinkingLevel) => void
+  onClose: () => void
+  anchorRef: React.RefObject<HTMLButtonElement | null>
+}
+
+function ThinkingPicker({
+  selectedLevel,
+  onSelectLevel,
+  onClose,
+  anchorRef,
+}: ThinkingPickerProps) {
+  const rect = anchorRef.current?.getBoundingClientRect()
+  const bottom = rect ? window.innerHeight - rect.top + 8 : 0
+  const left = rect?.left ?? 0
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-[999998]"
+        onClick={onClose}
+      />
+      {/* Picker */}
+      <div
+        className={cn(
+          'fixed z-[999999] w-48 p-1.5 rounded-lg',
+          'bg-black/90 backdrop-blur-md',
+          'border border-white/20 shadow-xl'
+        )}
+        style={{ bottom, left }}
+      >
+        <div
+          className="px-2 py-1.5 text-white/50 font-mono uppercase tracking-wider"
+          style={{ fontSize: '10px' }}
+        >
+          Extended Thinking
+        </div>
+        {THINKING_LEVELS.map((level) => (
+          <button
+            key={level.id}
+            onClick={() => onSelectLevel(level.id)}
+            className={cn(
+              'w-full flex items-center justify-between px-2 py-1.5 rounded-md',
+              'border-none cursor-pointer transition-all',
+              selectedLevel === level.id
+                ? 'bg-magenta-500/20 text-magenta-300'
+                : 'bg-transparent text-white/70 hover:bg-white/10'
+            )}
+            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+          >
+            <span className="font-medium">{level.name}</span>
+            <span className="text-white/40 font-mono">{level.tokens}</span>
+          </button>
+        ))}
+      </div>
+    </>
+  )
+}
+
+// =============================================================================
+// PlaceholderPicker Component
+// =============================================================================
+
+interface PlaceholderPickerProps {
+  title: string
+  message: string
+  onClose: () => void
+  anchorRef: React.RefObject<HTMLButtonElement | null>
+}
+
+function PlaceholderPicker({
+  title,
+  message,
+  onClose,
+  anchorRef,
+}: PlaceholderPickerProps) {
+  const rect = anchorRef.current?.getBoundingClientRect()
+  const bottom = rect ? window.innerHeight - rect.top + 8 : 0
+  const left = rect?.left ?? 0
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-[999998]"
+        onClick={onClose}
+      />
+      {/* Picker */}
+      <div
+        className={cn(
+          'fixed z-[999999] w-48 p-3 rounded-lg',
+          'bg-black/90 backdrop-blur-md',
+          'border border-white/20 shadow-xl'
+        )}
+        style={{ bottom, left }}
+      >
+        <div
+          className="text-white/50 font-mono uppercase tracking-wider mb-2"
+          style={{ fontSize: '10px' }}
+        >
+          {title}
+        </div>
+        <div
+          className="text-white/40 text-center py-4"
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        >
+          {message}
+        </div>
+      </div>
+    </>
+  )
+}
 
 export default BlockInput

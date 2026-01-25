@@ -70,6 +70,8 @@ import {
   Z_INDEX,
   SHADOW,
 } from '../tokens'
+import { GeointRegistryProvider } from '../kori'
+import { KoriBridgeProvider } from '../hooks'
 
 // =============================================================================
 // CONTEXT
@@ -258,46 +260,51 @@ const Root: FC<GeointShellProps> = memo(({
   }, [snapshot, actorRef, send])
 
   // Layout-specific grid styles
+  // Uses CSS custom properties for responsive panel dimensions (see globals.css)
   const gridStyles = useMemo<CSSProperties>(() => {
     const layout = snapshot.context.currentLayout
     const { sidebar, intel, timeline } = snapshot.context.panels
 
     if (layout === 'command') {
+      // When collapsed via user interaction, use collapsed size
+      // Otherwise, use CSS variable (responsive to container width)
       const sidebarWidth = sidebar.collapsed
-        ? PANEL_DIMENSIONS.sidebar.collapsed
-        : PANEL_DIMENSIONS.sidebar.default
+        ? `${PANEL_DIMENSIONS.sidebar.collapsed}px`
+        : 'var(--geoint-sidebar-width, 320px)'
       const intelWidth = intel.collapsed
-        ? PANEL_DIMENSIONS.intelPanel.collapsed
-        : PANEL_DIMENSIONS.intelPanel.default
+        ? `${PANEL_DIMENSIONS.intelPanel.collapsed}px`
+        : 'var(--geoint-intel-width, 380px)'
       const timelineHeight = timeline.collapsed
-        ? PANEL_DIMENSIONS.drawer.collapsed
-        : PANEL_DIMENSIONS.drawer.default
+        ? `${PANEL_DIMENSIONS.drawer.collapsed}px`
+        : 'var(--geoint-timeline-height, 300px)'
 
       return {
         display: 'grid',
-        gridTemplateColumns: `${sidebarWidth}px 1fr ${intelWidth}px`,
-        gridTemplateRows: `auto 1fr ${timelineHeight}px`,
+        gridTemplateColumns: `${sidebarWidth} 1fr ${intelWidth}`,
+        gridTemplateRows: `auto 1fr ${timelineHeight}`,
         gridTemplateAreas: `
           "header header header"
           "sidebar map intel"
           "timeline timeline timeline"
         `,
-        height: '100vh',
+        height: '100%',
         overflow: 'hidden',
         transition: `grid-template-columns ${TIMING.panel}ms ${EASING.out}, grid-template-rows ${TIMING.panel}ms ${EASING.out}`,
       }
     }
 
     if (layout === 'focus') {
+      // Use drawer.expanded as minimum height anchor (matches timeline height in command mode)
+      const minMapHeight = PANEL_DIMENSIONS.drawer.expanded // 500px
       return {
         display: 'grid',
         gridTemplateColumns: '1fr',
-        gridTemplateRows: 'auto 1fr',
+        gridTemplateRows: `auto minmax(${minMapHeight}px, 1fr)`,
         gridTemplateAreas: `
           "header"
           "map"
         `,
-        height: '100vh',
+        height: '100%',
         overflow: 'hidden',
       }
     }
@@ -312,7 +319,7 @@ const Root: FC<GeointShellProps> = memo(({
         "top"
         "bottom"
       `,
-      height: '100vh',
+      height: '100%',
       overflow: 'hidden',
       gap: '16px',
       padding: '16px',
@@ -320,21 +327,26 @@ const Root: FC<GeointShellProps> = memo(({
   }, [snapshot.context.currentLayout, snapshot.context.panels])
 
   return (
-    <GeointShellContext.Provider value={contextValue}>
-      <div
-        ref={containerRef}
-        className={cn(
-          'bg-surface-base text-text-primary',
-          snapshot.context.isAnimating && 'pointer-events-none',
-          className
-        )}
-        style={gridStyles}
-        data-layout={snapshot.context.currentLayout}
-        data-animating={snapshot.context.isAnimating}
-      >
-        {children}
-      </div>
-    </GeointShellContext.Provider>
+    <GeointRegistryProvider>
+      <KoriBridgeProvider>
+        <GeointShellContext.Provider value={contextValue}>
+          <div
+            ref={containerRef}
+            className={cn(
+              'bg-surface-base text-text-primary h-full min-h-0',
+              snapshot.context.isAnimating && 'pointer-events-none',
+              className
+            )}
+            style={gridStyles}
+            data-geoint-shell
+            data-layout={snapshot.context.currentLayout}
+            data-animating={snapshot.context.isAnimating}
+          >
+            {children}
+          </div>
+        </GeointShellContext.Provider>
+      </KoriBridgeProvider>
+    </GeointRegistryProvider>
   )
 })
 
@@ -406,6 +418,7 @@ const Sidebar: FC<SidebarProps> = memo(({ children, className }) => {
         transitionDuration: `${TIMING.panel}ms`,
         transitionTimingFunction: EASING.out,
       }}
+      data-slot="sidebar"
       data-collapsed={collapsed}
     >
       {!collapsed && (
@@ -443,8 +456,7 @@ const MapSlot: FC<MapProps> = memo(({ children, className }) => {
   return (
     <main
       className={cn(
-        'relative overflow-hidden',
-        layout === 'focus' && 'inset-0',
+        'relative overflow-hidden min-h-0',
         className
       )}
       style={{
@@ -512,6 +524,7 @@ const Intel: FC<IntelProps> = memo(({ children, className }) => {
         transitionDuration: `${TIMING.panel}ms`,
         transitionTimingFunction: EASING.out,
       }}
+      data-slot="intel"
       data-collapsed={collapsed}
     >
       {!collapsed && (
@@ -574,6 +587,7 @@ const Timeline: FC<TimelineProps> = memo(({ children, className }) => {
         transitionDuration: `${TIMING.panel}ms`,
         transitionTimingFunction: EASING.out,
       }}
+      data-slot="timeline"
       data-collapsed={collapsed}
     >
       {!collapsed && (

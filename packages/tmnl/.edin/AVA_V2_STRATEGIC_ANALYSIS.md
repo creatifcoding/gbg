@@ -9,8 +9,8 @@
 >
 > - ✅ **Gap 1 RESOLVED**: `avaV2Runtime = Atom.runtime((get) => createAvaV2Layer(get(avaV2ConfigAtom)))`
 > - ✅ **Gap 2 N/A**: AvaProvider already existed, updated for runtime pattern compatibility
-> - ⏳ **Gap 3**: Integration tests with live NATS still pending (tmnl-jtf8p)
-> - **Tests**: 129/130 passing (1 pre-existing mock timeout)
+> - ✅ **Gap 3 RESOLVED**: Integration tests implemented in `ava-v2-integration.test.ts`
+> - **Tests**: 144+ passing (15 integration + 32 hooks + atoms/schemas/services tests)
 
 ## Executive Summary
 
@@ -67,7 +67,8 @@ AVA v2 represents a fundamental shift from **tick-based pull model** to **event-
 | **TS** | Atoms v2 | ✅ | ✅ | **RESOLVED** - runtime.fn() pattern |
 | **TS** | Hooks v2 | ✅ | ✅ | None |
 | **TS** | AvaProvider | ✅ | ✅ | **EXISTS** - compatible w/ runtime |
-| **TS** | Integration Tests | ✅ | ❌ | tmnl-jtf8p pending |
+| **TS** | Integration Tests | ✅ | ✅ | 15 tests in ava-v2-integration.test.ts |
+| **TS** | AvaV2Testbed | ✅ | ✅ | Route: /testbed/ava-v2 |
 | **TS** | MapBlock Integration | ✅ | ❌ | tmnl-uk4wf pending |
 
 ---

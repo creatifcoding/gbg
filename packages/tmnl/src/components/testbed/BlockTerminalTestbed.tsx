@@ -49,10 +49,16 @@ export function BlockTerminalTestbed() {
   const hasActiveBlock = useAtomValue(hasActiveBlockAtom)
 
   // Handle submit from BlockInput
+  // Note: thinkingLevel is UI-only for now, not passed to AI layer
   const handleSubmit = useCallback(
-    async (command: string, isAI: boolean, thinkingLevel?: ThinkingLevel) => {
+    async (
+      command: string,
+      isAI: boolean,
+      _thinkingLevel?: ThinkingLevel,
+      _contextBlocks?: unknown[]
+    ) => {
       if (isAI) {
-        await executeAIQuery(command, thinkingLevel)
+        await executeAIQuery(command)
       } else {
         await executeCommand(command)
       }

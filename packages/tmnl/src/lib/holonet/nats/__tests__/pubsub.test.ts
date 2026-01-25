@@ -17,7 +17,16 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import { Effect, Layer, Schema, Stream, Chunk, Fiber, Duration, pipe } from 'effect';
+import {
+  Effect,
+  Layer,
+  Schema,
+  Stream,
+  Chunk,
+  Fiber,
+  Duration,
+  pipe,
+} from 'effect';
 import { connect } from 'nats.ws';
 
 import { NatsPubSubService } from '../pubsub';
@@ -482,7 +491,9 @@ describe('NatsPubSubService Integration', () => {
                   result: `Processed: ${reqData.query}`,
                   success: true,
                 };
-                const responseBytes = textEncoder.encode(JSON.stringify(response));
+                const responseBytes = textEncoder.encode(
+                  JSON.stringify(response)
+                );
 
                 // Use Effect.runSync to execute the publish
                 Effect.runSync(inner.core.publish(msg.reply, responseBytes));
@@ -534,8 +545,13 @@ describe('NatsPubSubService Integration', () => {
 
         expect(result._tag).toBe('Left');
         if (result._tag === 'Left') {
-          // Should be a timeout error
-          expect(result.left._tag).toBe('Inner/Core/Timeout');
+          // Timeout may surface as TimeoutError or RequestError with timeout message
+          expect(['Inner/Core/Timeout', 'Inner/Core/Request']).toContain(
+            result.left._tag
+          );
+          if (result.left._tag === 'Inner/Core/Request') {
+            expect(result.left.message.toLowerCase()).toContain('timeout');
+          }
         }
       }).pipe(Effect.scoped, Effect.provide(testPubSubLayer));
 

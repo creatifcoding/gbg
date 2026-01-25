@@ -30,14 +30,18 @@ import {
   actionHandlersAtom,
   loadingActionsAtom,
   pendingConfirmationAtom,
+  decodeErrorStreamIdsAtom,
+  decodeErrorsFamily,
+  registerDecodeErrorStreamId,
   type PendingConfirmation
 } from "./atoms"
 
 import { Action, UITree } from "../core/schemas"
 import type { DataModel, AuthState, VisibilityCondition } from "../core/schemas"
 import { evaluateVisibilitySync } from "../core/visibility"
-import { streamFromFetchProgressive, processPatches } from "../core/streaming"
+import { streamFromFetchProgressive, processPatches, streamHybrid } from "../core/streaming"
 import { resolveAction, type ActionHandler, ResolvedAction } from "../core/actions"
+import { TreeWorkerPoolAuto } from "../workers"
 
 // =============================================================================
 // useUIStream - Stream-based UI rendering
@@ -50,6 +54,16 @@ export interface UseUIStreamOptions {
   onComplete?: (tree: UITree) => void
   /** Callback on error */
   onError?: (error: Error) => void
+  /**
+   * Use hybrid mode (Tree Worker for near-zero main thread blocking)
+   * @default false
+   */
+  hybrid?: boolean
+  /**
+   * Batch size for tree worker (only applies when hybrid=true)
+   * @default 10
+   */
+  batchSize?: number
 }
 
 export interface UseUIStreamReturn {
@@ -78,9 +92,12 @@ export interface UseUIStreamReturn {
 export function useUIStream({
   api,
   onComplete,
-  onError
+  onError,
+  hybrid = false,
+  batchSize = 1,  // Default 1 for immediate processing
 }: UseUIStreamOptions): UseUIStreamReturn {
   const registry = useContext(RegistryContext)
+  const streamId = `ui-stream:http:${api}`
 
   // Read reactive state via atoms
   const tree = useAtomValue(treeAtom)
@@ -105,29 +122,64 @@ export function useUIStream({
       registry.set(treeAtom, UITree.empty())
       registry.set(isStreamingAtom, true)
       registry.set(errorAtom, Option.none())
+      registry.set(decodeErrorStreamIdsAtom, registerDecodeErrorStreamId(
+        registry.get(decodeErrorStreamIdsAtom) as Set<string>,
+        streamId
+      ))
+      registry.set(decodeErrorsFamily(streamId), [])
 
       // Create AbortController for fetch cancellation
       const abortController = new AbortController()
 
       // Create the stream processing effect
       const streamEffect = Effect.gen(function* () {
-        // Get progressive stream (this also starts the producer fiber)
-        // Uses Queue.fromQueue internally for true progressive processing
-        const patchStream = yield* streamFromFetchProgressive(
-          api,
-          { prompt, context, currentTree: UITree.empty() },
-          abortController.signal
-        )
+        let treeStream: Stream.Stream<UITree, Error>
 
-        // Process patches and update atom on each tree update
-        // Items are processed immediately as they arrive from the queue!
+        if (hybrid) {
+          // Hybrid mode: use Tree Worker for near-zero main thread blocking
+          treeStream = yield* streamHybrid(
+            api,
+            { prompt, context, currentTree: UITree.empty() },
+            { batchSize },
+            abortController.signal,
+            {
+              streamId,
+              context: { prompt, transport: "http", api },
+              onDecodeError: (error) =>
+                Effect.sync(() => {
+                  const current = registry.get(decodeErrorsFamily(streamId)) as Array<typeof error>
+                  registry.set(decodeErrorsFamily(streamId), [...current, error])
+                }),
+            }
+          )
+        } else {
+          // Standard mode: process patches on main thread
+          const patchStream = yield* streamFromFetchProgressive(
+            api,
+            { prompt, context, currentTree: UITree.empty() },
+            abortController.signal,
+            {
+              streamId,
+              context: { prompt, transport: "http", api },
+              onDecodeError: (error) =>
+                Effect.sync(() => {
+                  const current = registry.get(decodeErrorsFamily(streamId)) as Array<typeof error>
+                  registry.set(decodeErrorsFamily(streamId), [...current, error])
+                }),
+            }
+          )
+          treeStream = processPatches(patchStream)
+        }
+
+        // Update atom on each tree update
         yield* pipe(
-          processPatches(patchStream),
+          treeStream,
           Stream.runForEach((newTree) =>
             Effect.gen(function* () {
-              yield* Effect.log(`[useUIStream] updating tree, elements: ${Object.keys(newTree.elements).length}`)
               registry.set(treeAtom, newTree)
-              yield* Effect.yieldNow()  // Yield to allow React to re-render
+              // Use setTimeout(0) macrotask to truly yield to browser event loop
+              // React 18 batches microtasks, so Effect.sleep(Duration.zero) isn't enough
+              yield* Effect.promise(() => new Promise<void>(r => setTimeout(r, 0)))
             })
           )
         )
@@ -148,14 +200,16 @@ export function useUIStream({
             registry.set(isStreamingAtom, false)
             registry.set(streamFiberAtom, Option.none())
           })
-        )
+        ),
+        // Always provide TreeWorkerPool layer (it's lazy - won't create pool unless needed)
+        Effect.provide(TreeWorkerPoolAuto)
       )
 
       // Fork the stream processing
       const fiber = Effect.runFork(streamEffect) as RuntimeFiber<void, Error>
       registry.set(streamFiberAtom, Option.some(fiber))
     },
-    [api, onComplete, onError, registry]
+    [api, onComplete, onError, registry, hybrid, batchSize]
   )
 
   /**

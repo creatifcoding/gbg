@@ -9,37 +9,48 @@
  * @module components/shell
  */
 
-import { useCallback, useEffect } from "react"
-import { Crosshair, PanelLeft, Settings, Terminal, User, Zap } from "lucide-react"
-import { useDrawer, overlayId } from "@/lib/overlays"
-import { useMinibuffer } from "@/lib/minibuffer"
+import { useCallback, useEffect, useState } from 'react';
+import { PanelLeft, Settings, Terminal, User, Zap } from 'lucide-react';
+import { SelfchartersLogo } from '@/components/brand';
+import { TmnlSettings } from '@/components/static-ui';
+import { useDrawer, overlayId } from '@/lib/overlays';
+import { useMinibuffer } from '@/lib/minibuffer';
+import { useGlobalHotkeys } from '@/lib/hotkeys';
 
 // ─────────────────────────────────────────────────────────────
 // Button Primitive
 // ─────────────────────────────────────────────────────────────
 
 interface ButtonProps {
-  children: React.ReactNode
-  onClick?: () => void
-  variant?: "outline" | "ghost" | "tmnl"
-  size?: "xs" | "sm" | "md"
-  className?: string
+  children: React.ReactNode;
+  onClick?: () => void;
+  variant?: 'outline' | 'ghost' | 'tmnl';
+  size?: 'xs' | 'sm' | 'md';
+  className?: string;
 }
 
-function Button({ children, onClick, variant = "ghost", size = "xs", className = "" }: ButtonProps) {
-  const baseClasses = "inline-flex items-center justify-center gap-1.5 font-button uppercase tracking-wide transition-colors disabled:opacity-50"
+function Button({
+  children,
+  onClick,
+  variant = 'ghost',
+  size = 'xs',
+  className = '',
+}: ButtonProps) {
+  const baseClasses =
+    'inline-flex items-center justify-center gap-1.5 font-button uppercase tracking-wide transition-colors disabled:opacity-50';
 
   const sizeClasses = {
-    xs: "px-2 py-1",
-    sm: "px-3 py-1.5",
-    md: "px-4 py-2",
-  }
+    xs: 'px-2 py-1',
+    sm: 'px-3 py-1.5',
+    md: 'px-4 py-2',
+  };
 
   const variantClasses = {
-    outline: "border border-neutral-700 text-neutral-400 hover:border-neutral-500 hover:text-white hover:bg-neutral-900",
-    ghost: "text-neutral-500 hover:text-white hover:bg-neutral-900",
-    tmnl: "bg-neutral-800 text-white hover:bg-neutral-700 border border-neutral-700",
-  }
+    outline:
+      'border border-neutral-700 text-neutral-400 hover:border-neutral-500 hover:text-white hover:bg-neutral-900',
+    ghost: 'text-neutral-500 hover:text-white hover:bg-neutral-900',
+    tmnl: 'bg-neutral-800 text-white hover:bg-neutral-700 border border-neutral-700',
+  };
 
   return (
     <button
@@ -50,7 +61,7 @@ function Button({ children, onClick, variant = "ghost", size = "xs", className =
     >
       {children}
     </button>
-  )
+  );
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -59,15 +70,17 @@ function Button({ children, onClick, variant = "ghost", size = "xs", className =
 
 export interface HeaderContentProps {
   /** Navigation tabs */
-  navTabs?: string[]
+  navTabs?: string[];
   /** Currently active tab */
-  activeTab?: string
+  activeTab?: string;
   /** Tab change callback */
-  onTabChange?: (tab: string) => void
+  onTabChange?: (tab: string) => void;
   /** Toggle left drawer */
-  onToggleLeftDrawer?: () => void
+  onToggleLeftDrawer?: () => void;
   /** Toggle right drawer */
-  onToggleRightDrawer?: () => void
+  onToggleRightDrawer?: () => void;
+  /** Open settings modal */
+  onOpenSettings?: () => void;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -75,63 +88,76 @@ export interface HeaderContentProps {
 // ─────────────────────────────────────────────────────────────
 
 export function HeaderContent({
-  navTabs = ["OVERVIEW", "DATA", "CANVAS", "TESTBED"],
+  navTabs = ['OVERVIEW', 'DATA', 'CANVAS', 'TESTBED'],
   activeTab,
   onTabChange,
   onToggleLeftDrawer,
   onToggleRightDrawer,
+  onOpenSettings,
 }: HeaderContentProps) {
-  const drawer = useDrawer()
-  const minibuffer = useMinibuffer()
+  const drawer = useDrawer();
+  const minibuffer = useMinibuffer();
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Global hotkeys - Ctrl+, → settings, Ctrl+Shift+P → minibuffer, etc.
+  useGlobalHotkeys({
+    onSettings: useCallback(() => setSettingsOpen(true), []),
+  });
 
   // ─── Toggle functions ─────────────────────────────────────────
 
   const toggleLeftDrawer = useCallback(() => {
-    onToggleLeftDrawer?.()
+    onToggleLeftDrawer?.();
     // Also toggle via drawer hook
     drawer.toggle(
       {
-        id: overlayId("left-panel"),
-        side: "left",
+        id: overlayId('left-panel'),
+        side: 'left',
         width: 320,
         showBackdrop: false,
       },
       <div className="p-4 text-neutral-400">
-        <h3 className="text-white font-terminal mb-4" style={{ fontSize: 'var(--tmnl-text-base, 16px)' }}>
+        <h3
+          className="text-white font-terminal mb-4"
+          style={{ fontSize: 'var(--tmnl-text-base, 16px)' }}
+        >
           LEFT PANEL
         </h3>
         <p style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
           Navigation, file browser, or context-sensitive tools.
         </p>
       </div>
-    )
-  }, [drawer, onToggleLeftDrawer])
+    );
+  }, [drawer, onToggleLeftDrawer]);
 
   const toggleRightDrawer = useCallback(() => {
-    onToggleRightDrawer?.()
+    onToggleRightDrawer?.();
     // Also toggle via drawer hook
     drawer.toggle(
       {
-        id: overlayId("right-actions"),
-        side: "right",
+        id: overlayId('right-actions'),
+        side: 'right',
         width: 320,
         showBackdrop: false,
       },
       <div className="p-4 text-neutral-400">
-        <h3 className="text-white font-terminal mb-4" style={{ fontSize: 'var(--tmnl-text-base, 16px)' }}>
+        <h3
+          className="text-white font-terminal mb-4"
+          style={{ fontSize: 'var(--tmnl-text-base, 16px)' }}
+        >
           ACTIONS
         </h3>
         <p style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
           Quick actions, properties, and contextual tools.
         </p>
       </div>
-    )
-  }, [drawer, onToggleRightDrawer])
+    );
+  }, [drawer, onToggleRightDrawer]);
 
   const toggleCommand = useCallback(() => {
     // M-x style command execution via minibuffer
-    minibuffer.executeCommand()
-  }, [minibuffer])
+    minibuffer.executeCommand();
+  }, [minibuffer]);
 
   // ─── Keyboard Shortcuts ─────────────────────────────────────
   // - Ctrl/Cmd+K: Command palette (modern)
@@ -140,59 +166,64 @@ export function HeaderContent({
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       // Ctrl/Cmd+K
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault()
-        toggleCommand()
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        toggleCommand();
       }
       // Alt+X (M-x)
-      if (e.altKey && e.key === "x") {
-        e.preventDefault()
-        toggleCommand()
+      if (e.altKey && e.key === 'x') {
+        e.preventDefault();
+        toggleCommand();
       }
-    }
-    window.addEventListener("keydown", handler)
-    return () => window.removeEventListener("keydown", handler)
-  }, [toggleCommand])
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [toggleCommand]);
 
-  // ─── Settings (placeholder) ─────────────────────────────────
+  // ─── Settings ─────────────────────────────────────────────────
 
   const openSettings = useCallback(() => {
-    console.log("[Header] Settings - not yet implemented")
-  }, [])
+    setSettingsOpen(true);
+    onOpenSettings?.();
+  }, [onOpenSettings]);
 
   // ─── Tab Change ─────────────────────────────────────────────
 
-  const handleTabChange = useCallback((tab: string) => {
-    onTabChange?.(tab)
-  }, [onTabChange])
+  const handleTabChange = useCallback(
+    (tab: string) => {
+      onTabChange?.(tab);
+    },
+    [onTabChange]
+  );
 
   return (
     <div
       data-tauri-drag-region
       className="h-full flex items-center"
-      style={{ borderBottom: "var(--tmnl-border-chrome)" }}
+      style={{ borderBottom: 'var(--tmnl-border-chrome)' }}
     >
       {/* Corner overlap zone - sidebar width, shows border intersection */}
       <div
         data-tauri-drag-region
         className="h-full flex items-center justify-center shrink-0"
         style={{
-          width: "var(--tmnl-size-sidebar, 48px)",
-          borderRight: "var(--tmnl-border-chrome)",
+          width: 'var(--tmnl-size-sidebar, 48px)',
+          borderRight: 'var(--tmnl-border-chrome)',
         }}
       >
-        {/* Corner indicator - subtle crosshair */}
-        <Crosshair
-          className="text-neutral-700"
-          style={{
-            width: 'var(--tmnl-text-base, 16px)',
-            height: 'var(--tmnl-text-base, 16px)',
-          }}
+        {/* Corner indicator - Selfcharters logo */}
+        <SelfchartersLogo.Static
+          variant="solid"
+          size={32}
+          fillColor="#525252"
         />
       </div>
 
       {/* Main header content - after sidebar zone */}
-      <div data-tauri-drag-region className="flex-1 h-full flex items-center justify-between px-4">
+      <div
+        data-tauri-drag-region
+        className="flex-1 h-full flex items-center justify-between px-4"
+      >
         {/* Left section */}
         <div className="flex items-center gap-4">
           {/* Left drawer toggle */}
@@ -266,8 +297,14 @@ export function HeaderContent({
           </Button>
         </div>
       </div>
+
+      {/* Settings modal */}
+      <TmnlSettings
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
     </div>
-  )
+  );
 }
 
-export default HeaderContent
+export default HeaderContent;

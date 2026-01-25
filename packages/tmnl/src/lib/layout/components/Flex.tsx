@@ -95,7 +95,7 @@ export const Flex = React.forwardRef<HTMLDivElement, FlexProps>(
       ...(alignItems && { alignItems }),
       ...(alignContent && { alignContent }),
       ...(justifyContent && { justifyContent }),
-      ...(fill && { flex: 1 }),
+      ...(fill && { flex: 1, minHeight: 0 }),
       ...style,
     }
 

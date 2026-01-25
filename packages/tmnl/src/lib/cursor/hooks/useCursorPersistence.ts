@@ -4,13 +4,14 @@
  * Persists and restores cursor state to/from localStorage:
  * - Corner position preference
  * - Expanded/collapsed state
+ *
+ * Uses registry subscriptions (not useAtomValue) to avoid React re-renders.
  */
 
-import { useEffect } from 'react'
-import { Atom } from '@effect-atom/atom'
+import { useEffect, useRef } from 'react'
 import {
+  cursorRegistry,
   currentCornerAtom,
-  cursorStateAtom,
   cursorActorOps,
   cursorSnapshotAtom,
 } from '../atoms'
@@ -29,76 +30,100 @@ interface PersistedState {
 }
 
 // -----------------------------------------------------------------------------
+// Persistence Logic (no React re-renders)
+// -----------------------------------------------------------------------------
+
+let hasRestored = false
+
+/**
+ * Persist current state to localStorage.
+ * Called by registry subscriptions, not React effects.
+ */
+function persistState(): void {
+  if (!hasRestored) return
+
+  try {
+    const corner = cursorRegistry.get(currentCornerAtom)
+    const snapshot = cursorRegistry.get(cursorSnapshotAtom)
+    const state = getCursorState(snapshot)
+    const isExpanded = state === 'chat' || state === 'expanding'
+
+    const persistedState: PersistedState = { corner, isExpanded }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(persistedState))
+  } catch (e) {
+    console.warn('[useCursorPersistence] Failed to persist state:', e)
+  }
+}
+
+/**
+ * Restore state from localStorage.
+ * Called once on initialization.
+ */
+function restoreState(): void {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      const parsed = JSON.parse(saved) as PersistedState
+
+      // Restore corner preference
+      cursorRegistry.set(currentCornerAtom, parsed.corner)
+
+      // Restore expanded state via actor
+      if (parsed.isExpanded) {
+        cursorActorOps.expand()
+      }
+    }
+  } catch (e) {
+    console.warn('[useCursorPersistence] Failed to restore state:', e)
+  }
+
+  // Mark as restored after a tick
+  requestAnimationFrame(() => {
+    hasRestored = true
+  })
+}
+
+// -----------------------------------------------------------------------------
+// Registry Subscriptions (module-level, runs once)
+// -----------------------------------------------------------------------------
+
+let subscriptionsInitialized = false
+
+function initSubscriptions(): void {
+  if (subscriptionsInitialized) return
+  subscriptionsInitialized = true
+
+  // Subscribe to corner changes → persist
+  cursorRegistry.subscribe(currentCornerAtom, () => {
+    persistState()
+  })
+
+  // Subscribe to snapshot changes → persist (for expanded state)
+  cursorRegistry.subscribe(cursorSnapshotAtom, () => {
+    persistState()
+  })
+}
+
+// -----------------------------------------------------------------------------
 // Hook
 // -----------------------------------------------------------------------------
 
 /**
- * Hook to persist and restore cursor state.
- * Call this once in a root component (e.g., Cursor or PersistentOverlays).
+ * Hook to initialize cursor persistence.
+ * Sets up registry subscriptions (once) and restores state on mount.
+ * Does NOT cause React re-renders on atom changes.
  */
 export function useCursorPersistence(): void {
-  // Restore state on mount
+  const initialized = useRef(false)
+
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        const { corner, isExpanded } = JSON.parse(saved) as PersistedState
+    if (initialized.current) return
+    initialized.current = true
 
-        // Restore corner preference
-        Atom.set(currentCornerAtom, corner)
+    // Initialize subscriptions (module-level, runs once globally)
+    initSubscriptions()
 
-        // Restore expanded state via actor
-        if (isExpanded) {
-          cursorActorOps.expand()
-        }
-      }
-    } catch (e) {
-      // Ignore parse errors
-      console.warn('[useCursorPersistence] Failed to restore state:', e)
-    }
+    // Restore state from localStorage
+    restoreState()
   }, [])
-
-  // Persist corner changes
-  useEffect(() => {
-    const unsubCorner = Atom.subscribe(currentCornerAtom, (corner) => {
-      persistState(corner)
-    })
-
-    return unsubCorner
-  }, [])
-
-  // Persist expanded state changes
-  useEffect(() => {
-    const unsubSnapshot = Atom.subscribe(cursorSnapshotAtom, (snapshot) => {
-      const state = getCursorState(snapshot)
-      const isExpanded = state === 'chat' || state === 'expanding'
-      const corner = Atom.get(currentCornerAtom)
-      persistState(corner, isExpanded)
-    })
-
-    return unsubSnapshot
-  }, [])
-}
-
-// -----------------------------------------------------------------------------
-// Helpers
-// -----------------------------------------------------------------------------
-
-function persistState(corner: CornerPreset, isExpanded?: boolean): void {
-  try {
-    // If isExpanded not provided, read from current snapshot
-    const expanded = isExpanded ?? (() => {
-      const snapshot = Atom.get(cursorSnapshotAtom)
-      const state = getCursorState(snapshot)
-      return state === 'chat' || state === 'expanding'
-    })()
-
-    const state: PersistedState = {
-      corner,
-      isExpanded: expanded,
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  } catch (e) {
-    console.warn('[useCursorPersistence] Failed to persist state:', e)
-  }
 }

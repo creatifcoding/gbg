@@ -38,6 +38,9 @@ export { CommandBar, type CommandBarProps } from './CommandBar';
 // Modal
 export { Modal, type ModalProps } from './Modal';
 
+// Settings
+export { TmnlSettings, type TmnlSettingsProps, type SettingsPage } from './Settings';
+
 // Canvas Toolbar (requires tldraw context)
 export {
   SpawnToolbar,

@@ -8,6 +8,8 @@
  */
 
 import { Schema } from 'effect';
+import { TransitionGrammar } from './transition-grammar';
+import { ReticleVariant } from './animation-config';
 
 // =============================================================================
 // Tab System Schemas
@@ -25,6 +27,14 @@ export const TabView = Schema.TaggedStruct('TabView', {
   icon: Schema.optional(Schema.String),
   /** Disabled state */
   disabled: Schema.optional(Schema.Boolean),
+  /** Optional sizeKey override */
+  sizeKey: Schema.optional(Schema.String),
+  /** Optional transition override */
+  transition: Schema.optional(Schema.Union(Schema.String, TransitionGrammar)),
+  /** Optional reticle override */
+  reticle: Schema.optional(ReticleVariant),
+  /** Whether this view should be treated as a complex transition */
+  complex: Schema.optional(Schema.Boolean),
 });
 export type TabView = Schema.Schema.Type<typeof TabView>;
 
@@ -40,6 +50,77 @@ export const TabBarConfig = Schema.Struct({
   autoHide: Schema.optional(Schema.Boolean),
 });
 export type TabBarConfig = Schema.Schema.Type<typeof TabBarConfig>;
+
+// =============================================================================
+// View Registry Schemas
+// =============================================================================
+
+/**
+ * Layout intent for view-driven sizing
+ */
+export const ViewLayout = Schema.Struct({
+  /** Prefer content-driven sizing */
+  fitContent: Schema.optional(Schema.Boolean),
+  /** Minimum width when dynamic sizing */
+  minWidth: Schema.optional(Schema.Number),
+  /** Maximum width when dynamic sizing */
+  maxWidth: Schema.optional(Schema.Number),
+  /** Minimum height when dynamic sizing */
+  minHeight: Schema.optional(Schema.Number),
+  /** Maximum height when dynamic sizing */
+  maxHeight: Schema.optional(Schema.Number),
+});
+export type ViewLayout = Schema.Schema.Type<typeof ViewLayout>;
+
+/**
+ * Serializable view data (render omitted)
+ */
+export const ViewSpecData = Schema.Struct({
+  /** Unique view identifier */
+  id: Schema.String,
+  /** Tab label */
+  label: Schema.String,
+  /** Optional icon name */
+  icon: Schema.optional(Schema.String),
+  /** Disabled state */
+  disabled: Schema.optional(Schema.Boolean),
+  /** Optional ordering */
+  order: Schema.optional(Schema.Number),
+  /** Optional sizeKey override for this view */
+  sizeKey: Schema.optional(Schema.String),
+  /** Optional transition override for this view */
+  transition: Schema.optional(Schema.Union(Schema.String, TransitionGrammar)),
+  /** Optional reticle override for this view */
+  reticle: Schema.optional(ReticleVariant),
+  /** Whether this view should be treated as a complex transition */
+  complex: Schema.optional(Schema.Boolean),
+  /** Keep this view mounted when inactive */
+  keepMounted: Schema.optional(Schema.Boolean),
+  /** Optional content tree for generated views */
+  content: Schema.optional(Schema.Unknown),
+  /** Optional layout intent for view-driven sizing */
+  layout: Schema.optional(ViewLayout),
+  /** Optional dynamic sizing for this view */
+  dynamicSize: Schema.optional(Schema.Boolean),
+  /** Optional minimum width when dynamic sizing */
+  minWidth: Schema.optional(Schema.Number),
+  /** Optional maximum width when dynamic sizing */
+  maxWidth: Schema.optional(Schema.Number),
+  /** Optional minimum height when dynamic sizing */
+  minHeight: Schema.optional(Schema.Number),
+  /** Optional maximum height when dynamic sizing */
+  maxHeight: Schema.optional(Schema.Number),
+});
+export type ViewSpecData = Schema.Schema.Type<typeof ViewSpecData>;
+
+/**
+ * Registry schema for validating serialized view data
+ */
+export const ViewRegistrySchema = Schema.Record({
+  key: Schema.String,
+  value: ViewSpecData,
+});
+export type ViewRegistrySchema = Schema.Schema.Type<typeof ViewRegistrySchema>;
 
 // =============================================================================
 // Card State Persistence Schemas

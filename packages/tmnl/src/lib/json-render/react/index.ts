@@ -19,6 +19,10 @@ export {
   loadingActionsAtom,
   pendingConfirmationAtom,
   streamFiberAtom,
+  decodeErrorStreamIdsAtom,
+  decodeErrorsFamily,
+  decodeErrorsAtom,
+  registerDecodeErrorStreamId,
   visibilityContextAtom,
   hasErrorAtom,
   hasPendingConfirmationAtom,
@@ -31,6 +35,7 @@ export {
   getContainerAtoms,
   type GenerativeContainerId,
   type ContainerAtoms,
+  type DecodeErrorEntry,
 } from "./atoms"
 
 // =============================================================================
@@ -56,6 +61,18 @@ export {
   useConfirmation,
   type UseConfirmationReturn
 } from "./hooks"
+
+export {
+  // Cluster variant of useUIStream (Effect RPC transport)
+  useUIStreamCluster,
+  type UseUIStreamClusterOptions,
+  type UseUIStreamClusterReturn,
+  // Cluster-specific atoms (isolated from HTTP mode)
+  clusterTreeAtom,
+  clusterIsStreamingAtom,
+  clusterErrorAtom,
+  clusterStreamFiberAtom,
+} from "./useUIStreamCluster"
 
 // =============================================================================
 // Renderer
@@ -108,3 +125,40 @@ export {
   layoutRegistry,
   withLayoutRegistry,
 } from "./registries"
+
+// =============================================================================
+// Animation
+// =============================================================================
+
+export {
+  useEntrance,
+  type UseEntranceOptions,
+  type UseEntranceReturn,
+  DURATION_MS,
+  EASING_ANIMEJS,
+  PROPERTY_STATES,
+  STAGGER_DELAY,
+} from "./animation"
+
+// =============================================================================
+// Legend State Integration (Fine-Grained Reactivity)
+// =============================================================================
+
+export {
+  // Observable tree factory and mutations
+  createTreeObservable,
+  applyPatch,
+  applyPatches,
+  bulkSet,
+  getElementKeys,
+  hasElements,
+  resetTree,
+  type ObservableUITree,
+  type JSONPatchOp,
+} from "./observable-tree"
+
+export {
+  // Legend State powered renderer
+  LegendRenderer,
+  type LegendRendererProps,
+} from "./legend-renderer"

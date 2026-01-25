@@ -9,19 +9,10 @@
 
 import { Schema } from 'effect';
 import type { FoldState } from '../types';
+import { BlockId } from '../shared';
 
-// =============================================================================
-// Branded Types
-// =============================================================================
-
-/**
- * Branded BlockId for type safety
- */
-export const BlockId = Schema.String.pipe(
-  Schema.minLength(1),
-  Schema.brand('BlockId')
-);
-export type BlockId = typeof BlockId.Type;
+export { BlockId } from '../shared';
+export type { BlockId as BlockIdType } from '../shared';
 
 // =============================================================================
 // Enums as Literals
@@ -30,7 +21,11 @@ export type BlockId = typeof BlockId.Type;
 /**
  * Fold state enum as Schema.Literal
  */
-export const FoldStateSchema = Schema.Literal('expanded', 'collapsed', 'minimized');
+export const FoldStateSchema = Schema.Literal(
+  'expanded',
+  'collapsed',
+  'minimized'
+);
 export type FoldStateSchema = typeof FoldStateSchema.Type;
 
 // =============================================================================
@@ -246,11 +241,9 @@ export type BlockStateRow = typeof BlockStateRow.Type;
 /**
  * Transform between BlockState and BlockStateRow
  */
-export const BlockStateFromRow = Schema.transform(
-  BlockStateRow,
-  BlockState,
-  {
-    decode: (row) => new BlockState({
+export const BlockStateFromRow = Schema.transform(BlockStateRow, BlockState, {
+  decode: (row) =>
+    new BlockState({
       blockId: row.block_id as BlockId,
       foldState: row.fold_state as FoldState,
       settingsOpen: row.settings_open === 1,
@@ -258,13 +251,12 @@ export const BlockStateFromRow = Schema.transform(
       nodeAttrs: JSON.parse(row.node_attrs),
       savedAt: new Date(row.saved_at),
     }),
-    encode: (state) => ({
-      block_id: state.blockId,
-      fold_state: state.foldState,
-      settings_open: state.settingsOpen ? 1 : 0,
-      active_tab: state.activeTab,
-      node_attrs: JSON.stringify(state.nodeAttrs),
-      saved_at: state.savedAt.toISOString(),
-    }),
-  }
-);
+  encode: (state) => ({
+    block_id: state.blockId,
+    fold_state: state.foldState,
+    settings_open: state.settingsOpen ? 1 : 0,
+    active_tab: state.activeTab,
+    node_attrs: JSON.stringify(state.nodeAttrs),
+    saved_at: state.savedAt.toISOString(),
+  }),
+});

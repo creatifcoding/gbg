@@ -41,7 +41,15 @@ export type {
   HotkeyConfig,
 } from './types'
 
-export { Scopes, DEFAULT_CONFIG, getNativeSuppression } from './types'
+export { ScopeId, DEFAULT_CONFIG, getNativeSuppression } from './types'
+
+// ScopeRegistry (TokenRegistry-backed scope management)
+export { ScopeRegistry, Scopes, isBuiltinScope } from './ScopeRegistry'
+export type { ScopeToken, ScopeMetadata, BuiltinScopeId } from './ScopeRegistry'
+
+// BindingSourceRegistry (TokenRegistry-backed binding source management)
+export { BindingSourceRegistry, BindingSources, isBuiltinBindingSource } from './BindingSourceRegistry'
+export type { BindingSourceToken, BindingSourceMetadata, BuiltinBindingSourceId } from './BindingSourceRegistry'
 
 // KeyParser service (for parsing key strings)
 export { KeyParser, KeyParserError } from './services/KeyParser'
@@ -93,3 +101,11 @@ export type { CommandSearchResult } from './atoms'
 //   import { useMinibuffer } from '@/lib/minibuffer'
 //   const { executeCommand } = useMinibuffer()
 // ─────────────────────────────────────────────────────────────────────────────
+
+// Hooks
+export { useGlobalHotkeys } from './hooks/useGlobalHotkeys'
+export type { UseGlobalHotkeysOptions, UseGlobalHotkeysResult } from './hooks/useGlobalHotkeys'
+
+// Components
+export { WhichKeyPopup } from './components/WhichKeyPopup'
+export type { WhichKeyPopupProps } from './components/WhichKeyPopup'

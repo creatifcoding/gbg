@@ -2,6 +2,19 @@
 // GEOINT Schemas - Barrel Export
 // =============================================================================
 
+// Domain-specific trait schemas (GEOINT-native, not from ECS)
+export {
+  SpatialTrait,
+  Spatial2DTrait,
+  TemporalTrait,
+  KineticTrait,
+  IdentifiableTrait,
+  ClassifiedTrait,
+  Heading,
+  SpeedMps,
+  ExternalIds,
+} from './traits'
+
 // Core types and primitives
 export {
   // Branded IDs
@@ -283,3 +296,40 @@ export type {
   IngesterStatus,
   OrchestratorStatus,
 } from './ingestion'
+
+// Flight events (DurableStream events for reactive ingestion)
+export {
+  FlightSource,
+  FlightPositionEvent,
+  FlightPositionEventEncoded,
+  FlightPositionBatch,
+} from './flight-events'
+export type {
+  FlightSource as FlightSourceType,
+  FlightPositionEvent as FlightPositionEventType,
+  FlightPositionBatch as FlightPositionBatchType,
+} from './flight-events'
+
+// POI events (DurableStream events for reactive OSM ingestion)
+export {
+  PoiSource,
+  OsmElementType,
+  PoiPositionEvent,
+} from './poi-events'
+export type {
+  PoiSource as PoiSourceType,
+  OsmElementType as OsmElementTypeType,
+  PoiPositionEvent as PoiPositionEventType,
+  PoiPositionEventEncoded,
+} from './poi-events'
+
+// Weather events (DurableStream events for reactive weather ingestion)
+export {
+  WeatherSource,
+  WeatherObservationEvent,
+} from './weather-events'
+export type {
+  WeatherSource as WeatherSourceType,
+  WeatherObservationEvent as WeatherObservationEventType,
+  WeatherObservationEventEncoded,
+} from './weather-events'

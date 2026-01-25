@@ -1,70 +1,41 @@
 /**
  * useCommandPalette Hook
  *
- * Opens and manages command palette overlays.
+ * Thin wrapper around useMinibuffer for M-x (execute-extended-command) behavior.
+ * The minibuffer owns the I/O mechanics; this hook just requests command completion.
+ *
+ * Architecture:
+ * - Minibuffer = generic prompt engine (drawer, input, completions UI)
+ * - CommandPalette = specific use case (M-x with CommandProvider)
  *
  * @example
  * ```tsx
  * const palette = useCommandPalette()
  *
- * // Toggle with keyboard shortcut
- * useEffect(() => {
- *   const handler = (e: KeyboardEvent) => {
- *     if ((e.metaKey || e.ctrlKey) && e.key === "k") {
- *       e.preventDefault()
- *       palette.toggle()
- *     }
- *   }
- *   window.addEventListener("keydown", handler)
- *   return () => window.removeEventListener("keydown", handler)
- * }, [palette])
+ * // Open command palette
+ * <button onClick={palette.open}>Commands</button>
+ *
+ * // Or toggle
+ * <button onClick={palette.toggle}>CMD</button>
  * ```
  *
  * @module
  */
 
-import { useCallback, useMemo, useRef, useEffect } from "react"
-import { useAtomValue } from "@effect-atom/atom-react"
-import { useVisualOverlay, useVisualOverlaySafe } from "../providers"
-import {
-  topOverlayByTypeAtom,
-  overlayCountByTypeAtom,
-} from "../../atoms"
-import type { CommandPaletteConfig, VisualOverlayId } from "../../schemas/visual"
-import type { ReactNode } from "react"
+import { useCallback, useMemo } from "react"
+import { useMinibuffer } from "@/lib/minibuffer"
 
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
 
-export interface CommandPaletteOpenOptions {
-  /** Palette ID (auto-generated if not provided) */
-  id?: string
-  /** Placeholder text (defaults to "Type a command...") */
-  placeholder?: string
-  /** Close on select (defaults to true) */
-  closeOnSelect?: boolean
-  /** Close on escape key (defaults to true) */
-  closeOnEscape?: boolean
-  /** Z-index offset from base tier */
-  zIndexOffset?: number
-  /** Callback when palette opens */
-  onOpen?: () => void
-  /** Callback when palette closes */
-  onClose?: () => void
-}
-
 export interface UseCommandPaletteReturn {
-  /** Open the command palette with content */
-  open: (options: CommandPaletteOpenOptions, content: ReactNode) => VisualOverlayId
-  /** Close the command palette */
-  close: () => void
-  /** Toggle command palette visibility */
-  toggle: (options?: CommandPaletteOpenOptions, content?: ReactNode) => void
-  /** Current palette instance (if open) */
-  instance: ReturnType<typeof topOverlayByTypeAtom> extends infer T ? T : never
-  /** Whether palette is open */
-  isOpen: boolean
+  /** Open the command palette (M-x) */
+  open: () => Promise<void>
+  /** Toggle command palette - opens if closed, cancels if open */
+  toggle: () => Promise<void>
+  /** Whether command palette is currently active */
+  isActive: boolean
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -72,94 +43,40 @@ export interface UseCommandPaletteReturn {
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Hook to manage command palette overlay.
+ * Hook for command palette (M-x) functionality.
  *
- * @throws Error if used outside VisualOverlayProvider
+ * Delegates entirely to useMinibuffer — the minibuffer owns the UI,
+ * this hook just triggers command selection mode.
  */
 export function useCommandPalette(): UseCommandPaletteReturn {
-  const ctx = useVisualOverlay()
-  const currentIdRef = useRef<VisualOverlayId | null>(null)
-  const contentRef = useRef<ReactNode>(null)
-  const optionsRef = useRef<CommandPaletteOpenOptions>({})
+  const minibuffer = useMinibuffer()
 
-  const instance = useAtomValue(topOverlayByTypeAtom("command-palette"))
-  const count = useAtomValue(overlayCountByTypeAtom("command-palette"))
+  const open = useCallback(async () => {
+    await minibuffer.executeCommand()
+  }, [minibuffer])
 
-  const open = useCallback(
-    (options: CommandPaletteOpenOptions, content: ReactNode): VisualOverlayId => {
-      // Close existing if already open
-      if (currentIdRef.current) {
-        ctx.close(currentIdRef.current)
-      }
-
-      const config: CommandPaletteConfig = {
-        _tag: "CommandPaletteConfig",
-        id: (options.id ?? "") as VisualOverlayId,
-        placeholder: options.placeholder ?? "Type a command...",
-        showRecent: true,
-        closeOnEscape: options.closeOnEscape ?? true,
-        persistence: "ephemeral", // Command palette is always ephemeral
-        zIndexOffset: options.zIndexOffset ?? 0,
-      }
-
-      const id = ctx.open("command-palette", { id: options.id, config, content })
-      currentIdRef.current = id
-      contentRef.current = content
-      optionsRef.current = options
-      return id
-    },
-    [ctx]
-  )
-
-  const close = useCallback((): void => {
-    if (currentIdRef.current) {
-      ctx.close(currentIdRef.current)
-      currentIdRef.current = null
+  const toggle = useCallback(async () => {
+    if (minibuffer.isActive) {
+      await minibuffer.cancel()
+    } else {
+      await minibuffer.executeCommand()
     }
-  }, [ctx])
-
-  const toggle = useCallback(
-    (options?: CommandPaletteOpenOptions, content?: ReactNode): void => {
-      if (count > 0) {
-        close()
-      } else {
-        // Use provided content/options or fall back to stored refs
-        const finalOptions = options ?? optionsRef.current
-        const finalContent = content ?? contentRef.current
-        if (finalContent) {
-          open(finalOptions, finalContent)
-        }
-      }
-    },
-    [count, open, close]
-  )
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (currentIdRef.current) {
-        ctx.close(currentIdRef.current)
-      }
-    }
-  }, [ctx])
+  }, [minibuffer])
 
   return useMemo(
     () => ({
       open,
-      close,
       toggle,
-      instance,
-      isOpen: count > 0,
+      isActive: minibuffer.isActive,
     }),
-    [open, close, toggle, instance, count]
+    [open, toggle, minibuffer.isActive]
   )
 }
 
 /**
- * Safe version that returns null when no provider exists.
+ * @deprecated Use useCommandPalette() - safe version no longer needed
+ * since minibuffer handles its own safety.
  */
 export function useCommandPaletteSafe(): UseCommandPaletteReturn | null {
-  const ctx = useVisualOverlaySafe()
-  if (!ctx) return null
   return useCommandPalette()
 }

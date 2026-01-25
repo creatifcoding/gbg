@@ -108,6 +108,13 @@
         "cwd": "packages/tmnl"
       }
     },
+    "egui:wasm:build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run egui:wasm:build",
+        "cwd": "packages/tmnl"
+      }
+    },
     "telegram:agent": {
       "executor": "nx:run-commands",
       "options": {

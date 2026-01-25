@@ -33,6 +33,8 @@ import {
  * Use panelRegistry.set() for synchronous updates.
  */
 export const panelRegistry = Registry.make();
+// Add identity marker for debugging
+(panelRegistry as any)._id = 'panelRegistry-' + Date.now();
 
 /**
  * Provider component that injects panelRegistry into React context.
@@ -46,6 +48,11 @@ export function PanelRegistryProvider({
 }: {
   children: React.ReactNode;
 }): React.ReactElement {
+  // Debug: log when provider mounts
+  React.useEffect(() => {
+    console.log('[PanelRegistryProvider] Mounted with registry:', (panelRegistry as any)._id);
+  }, []);
+
   // Type assertion needed due to version mismatch between @effect-atom/atom and @effect-atom/atom-react
   return React.createElement(
     RegistryContext.Provider,

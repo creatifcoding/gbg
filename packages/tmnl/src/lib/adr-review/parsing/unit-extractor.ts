@@ -193,10 +193,19 @@ function extractDecisionUnits(adrId: string, parsed: ParsedADR): ReviewUnit[] {
 function extractRationaleUnits(adrId: string, parsed: ParsedADR): ReviewUnit[] {
   const units: ReviewUnit[] = []
   const rationale = getSection(parsed, 'rationale')
-  if (!rationale) return units
 
-  // Alternatives Considered (table)
-  const alternatives = getSubsection(rationale, 'alternatives considered')
+  // Alternatives Considered - check both as subsection AND as standalone section
+  let alternatives = rationale ? getSubsection(rationale, 'alternatives considered') : undefined
+
+  // Fallback: check for section-level "Alternatives Considered" (some ADRs use this structure)
+  if (!alternatives) {
+    const alternativesSection = getSection(parsed, 'alternatives considered')
+    if (alternativesSection) {
+      // Create a synthetic subsection from the section content
+      alternatives = { name: 'alternatives considered', content: alternativesSection.content }
+    }
+  }
+
   if (alternatives) {
     const rows = parseTable(alternatives.content)
     rows.forEach((row, i) => {
@@ -210,6 +219,9 @@ function extractRationaleUnits(adrId: string, parsed: ParsedADR): ReviewUnit[] {
       })
     })
   }
+
+  // If no rationale section, still return the alternatives we found
+  if (!rationale) return units
 
   // Tradeoffs (table)
   const tradeoffs = getSubsection(rationale, 'tradeoffs')

@@ -6,9 +6,10 @@
  * interruption, and composition with other Effect services.
  *
  * @see Schema definitions in ./schemas.ts
+ * @see Error types in @/lib/holonet/durable-streams/schemas/errors.ts
  */
 
-import { Context, Effect, Layer, Stream, PubSub, Queue, Scope, pipe } from 'effect';
+import { Context, Effect, Layer, Stream, PubSub, Scope, Option, pipe, Match } from 'effect';
 import type {
   DurableStream as DurableStreamHandle,
   StreamResponse,
@@ -25,24 +26,66 @@ import type {
   JsonBatch,
 } from './schemas';
 
+// Import domain errors from holonet
+import {
+  StreamNotFoundError,
+  StreamExistsError,
+  ContentTypeMismatch,
+  InvalidOffsetError,
+  NatsConnectionError,
+  UnexpectedError,
+  type DurableStreamError,
+} from '@/lib/holonet/durable-streams/schemas/errors';
+
+// Re-export error types for consumers
+export {
+  StreamNotFoundError,
+  StreamExistsError,
+  ContentTypeMismatch,
+  InvalidOffsetError,
+  NatsConnectionError,
+  UnexpectedError,
+  type DurableStreamError,
+} from '@/lib/holonet/durable-streams/schemas/errors';
+
 // ============================================================================
-// Error Types
+// Error Mapping (HTTP status → Domain Error)
 // ============================================================================
 
 /**
- * Durable stream error with code and context
+ * Map HTTP errors to domain errors using Match
  */
-export class DurableStreamError extends Error {
-  readonly _tag = 'DurableStreamError';
-  constructor(
-    readonly code: string,
-    message: string,
-    readonly url?: string
-  ) {
-    super(message);
-    this.name = 'DurableStreamError';
-  }
-}
+const mapHttpError = (url: string) => (error: unknown): DurableStreamError =>
+  pipe(
+    Match.value(error),
+    Match.when(
+      (e: unknown): e is { status: number; message?: string } =>
+        typeof (e as { status?: unknown })?.status === 'number',
+      (e: { status: number; message?: string }) =>
+        pipe(
+          Match.value(e.status),
+          Match.when(404, () => new StreamNotFoundError({ streamId: url })),
+          Match.when(409, () => new StreamExistsError({ streamId: url })),
+          Match.when(400, () =>
+            new InvalidOffsetError({ offset: '', reason: e.message ?? 'Bad request' })
+          ),
+          Match.orElse(() =>
+            new UnexpectedError({ message: e.message ?? String(error), cause: error })
+          )
+        )
+    ),
+    Match.when(
+      (e: unknown): e is Error => e instanceof Error,
+      (e: Error) => {
+        const msg = e.message.toLowerCase();
+        if (msg.includes('econnrefused') || msg.includes('fetch failed')) {
+          return new NatsConnectionError({ reason: e.message, cause: e });
+        }
+        return new UnexpectedError({ message: e.message, cause: e });
+      }
+    ),
+    Match.orElse(() => new UnexpectedError({ message: String(error), cause: error }))
+  );
 
 // ============================================================================
 // Stream Handle (wrapped)
@@ -150,6 +193,32 @@ export class DurableStreamClientConfigTag extends Context.Tag(
 )<DurableStreamClientConfigTag, DurableStreamClientConfig>() {}
 
 // ============================================================================
+// URL Construction Helper
+// ============================================================================
+
+/**
+ * Build a full stream URL from baseUrl and streamId.
+ * Handles both full URLs (passthrough) and relative paths.
+ */
+const buildStreamUrl = (baseUrl: string | undefined, streamId: string): string => {
+  // If streamId is already a full URL, use it directly
+  if (streamId.startsWith('http://') || streamId.startsWith('https://')) {
+    return streamId;
+  }
+
+  // If no baseUrl, the streamId must be treated as-is (will likely fail)
+  if (!baseUrl) {
+    return streamId;
+  }
+
+  // Normalize: remove trailing slash from baseUrl, ensure streamId starts with /
+  const base = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  const path = streamId.startsWith('/') ? streamId : `/${streamId}`;
+
+  return `${base}${path}`;
+};
+
+// ============================================================================
 // Helper: Wrap Handle
 // ============================================================================
 
@@ -160,24 +229,14 @@ const wrapHandle = <T>(handle: DurableStreamHandle): EffectStreamHandle<T> => ({
   append: (data: T) =>
     Effect.tryPromise({
       try: () => handle.append(data),
-      catch: (e) =>
-        new DurableStreamError(
-          (e as any)?.code ?? 'APPEND_ERROR',
-          (e as Error).message,
-          handle.url
-        ),
+      catch: mapHttpError(handle.url),
     }),
 
   appendBatch: (items: readonly T[]) =>
     Effect.forEach(items, (item) =>
       Effect.tryPromise({
         try: () => handle.append(item),
-        catch: (e) =>
-          new DurableStreamError(
-            (e as any)?.code ?? 'APPEND_ERROR',
-            (e as Error).message,
-            handle.url
-          ),
+        catch: mapHttpError(handle.url),
       })
     ).pipe(Effect.asVoid),
 
@@ -196,12 +255,7 @@ const wrapHandle = <T>(handle: DurableStreamHandle): EffectStreamHandle<T> => ({
           upToDate: res.upToDate,
         };
       },
-      catch: (e) =>
-        new DurableStreamError(
-          (e as any)?.code ?? 'READ_ERROR',
-          (e as Error).message,
-          handle.url
-        ),
+      catch: mapHttpError(handle.url),
     }),
 
   subscribe: (config?: StreamReadConfig) =>
@@ -219,10 +273,10 @@ const wrapHandle = <T>(handle: DurableStreamHandle): EffectStreamHandle<T> => ({
             });
 
             // Use subscribeJson for live updates
-            res.subscribeJson(async (batch: { items: T[]; offset: string; upToDate: boolean }) => {
+            res.subscribeJson(async (batch: { items: readonly T[]; offset: string; upToDate: boolean }) => {
               await Effect.runPromise(
                 PubSub.publish(pubsub, {
-                  items: batch.items as readonly T[],
+                  items: batch.items,
                   offset: batch.offset,
                   upToDate: batch.upToDate,
                 })
@@ -232,20 +286,15 @@ const wrapHandle = <T>(handle: DurableStreamHandle): EffectStreamHandle<T> => ({
             // Keep alive until aborted
             await new Promise(() => {});
           },
-          catch: (e) =>
-            new DurableStreamError(
-              (e as any)?.code ?? 'SUBSCRIBE_ERROR',
-              (e as Error).message,
-              handle.url
-            ),
+          catch: mapHttpError(handle.url),
         })
       );
 
       // Return a stream from the pubsub
       return pipe(
         Stream.fromPubSub(pubsub),
-        Stream.mapError(
-          () => new DurableStreamError('SUBSCRIBE_ERROR', 'PubSub error', handle.url)
+        Stream.mapError(() =>
+          new UnexpectedError({ message: 'PubSub error', cause: undefined })
         )
       );
     }),
@@ -253,23 +302,13 @@ const wrapHandle = <T>(handle: DurableStreamHandle): EffectStreamHandle<T> => ({
   head: () =>
     Effect.tryPromise({
       try: () => handle.head(),
-      catch: (e) =>
-        new DurableStreamError(
-          (e as any)?.code ?? 'HEAD_ERROR',
-          (e as Error).message,
-          handle.url
-        ),
+      catch: mapHttpError(handle.url),
     }),
 
   delete: () =>
     Effect.tryPromise({
       try: () => handle.delete(),
-      catch: (e) =>
-        new DurableStreamError(
-          (e as any)?.code ?? 'DELETE_ERROR',
-          (e as Error).message,
-          handle.url
-        ),
+      catch: mapHttpError(handle.url),
     }),
 
   raw: () => handle,
@@ -286,58 +325,54 @@ export const DurableStreamClientLive = Layer.effect(
     const { DurableStream } = yield* Effect.tryPromise({
       try: () => import('@durable-streams/client'),
       catch: () =>
-        new DurableStreamError('IMPORT_ERROR', 'Failed to import @durable-streams/client'),
+        new UnexpectedError({
+          message: 'Failed to import @durable-streams/client',
+          cause: undefined,
+        }),
     });
 
     // Try to get config, default to empty if not provided
-    const config = yield* Effect.serviceOption(DurableStreamClientConfigTag);
-    const baseConfig = config.pipe(
-      Effect.getOrElse(() => ({})),
-      Effect.runSync
-    );
+    const configOption = yield* Effect.serviceOption(DurableStreamClientConfigTag);
+    const baseConfig = Option.getOrElse(configOption, () => ({} as DurableStreamClientConfig));
 
     return {
-      create: <T = unknown>(streamConfig: StreamCreateConfig) =>
-        Effect.tryPromise({
+      create: <T = unknown>(streamConfig: StreamCreateConfig) => {
+        const fullUrl = buildStreamUrl(baseConfig.baseUrl, streamConfig.url);
+        return Effect.tryPromise({
           try: () =>
             DurableStream.create({
-              url: streamConfig.url,
+              url: fullUrl,
               contentType: streamConfig.contentType ?? baseConfig.defaultContentType,
               headers: baseConfig.headers,
               ttlSeconds: streamConfig.ttlSeconds,
               expiresAt: streamConfig.expiresAt,
-              body: streamConfig.body,
+              body: streamConfig.body as BodyInit | Uint8Array | undefined,
             }),
-          catch: (e) =>
-            new DurableStreamError(
-              (e as any)?.code ?? 'CREATE_ERROR',
-              (e as Error).message,
-              streamConfig.url
-            ),
-        }).pipe(Effect.map((handle) => wrapHandle<T>(handle))),
+          catch: mapHttpError(fullUrl),
+        }).pipe(Effect.map((handle) => wrapHandle<T>(handle)));
+      },
 
-      connect: <T = unknown>(streamConfig: StreamConnectConfig) =>
-        Effect.tryPromise({
+      connect: <T = unknown>(streamConfig: StreamConnectConfig) => {
+        const fullUrl = buildStreamUrl(baseConfig.baseUrl, streamConfig.url);
+        return Effect.tryPromise({
           try: () =>
             DurableStream.connect({
-              url: streamConfig.url,
+              url: fullUrl,
               headers: { ...baseConfig.headers, ...streamConfig.headers },
             }),
-          catch: (e) =>
-            new DurableStreamError(
-              (e as any)?.code ?? 'CONNECT_ERROR',
-              (e as Error).message,
-              streamConfig.url
-            ),
-        }).pipe(Effect.map((handle) => wrapHandle<T>(handle))),
+          catch: mapHttpError(fullUrl),
+        }).pipe(Effect.map((handle) => wrapHandle<T>(handle)));
+      },
 
       getOrCreate: <T = unknown>(streamConfig: StreamCreateConfig) =>
         Effect.gen(function* () {
+          const fullUrl = buildStreamUrl(baseConfig.baseUrl, streamConfig.url);
+
           // Try to connect first
           const connectResult = yield* Effect.tryPromise({
             try: () =>
               DurableStream.connect({
-                url: streamConfig.url,
+                url: fullUrl,
                 headers: baseConfig.headers,
               }),
             catch: (e) => e as Error,
@@ -351,59 +386,54 @@ export const DurableStreamClientLive = Layer.effect(
           const handle = yield* Effect.tryPromise({
             try: () =>
               DurableStream.create({
-                url: streamConfig.url,
+                url: fullUrl,
                 contentType: streamConfig.contentType ?? baseConfig.defaultContentType,
                 headers: baseConfig.headers,
                 ttlSeconds: streamConfig.ttlSeconds,
                 expiresAt: streamConfig.expiresAt,
-                body: streamConfig.body,
+                body: streamConfig.body as BodyInit | Uint8Array | undefined,
               }),
-            catch: (e) =>
-              new DurableStreamError(
-                (e as any)?.code ?? 'GET_OR_CREATE_ERROR',
-                (e as Error).message,
-                streamConfig.url
-              ),
+            catch: mapHttpError(fullUrl),
           });
 
           return wrapHandle<T>(handle);
         }),
 
       exists: (url: string) =>
-        Effect.tryPromise({
-          try: async () => {
-            const handle = new DurableStream({ url, headers: baseConfig.headers });
-            await handle.head();
-            return true;
-          },
-          catch: (e) => {
-            // If it's a 404, stream doesn't exist
-            if ((e as any)?.code === 'NOT_FOUND') {
-              return false;
-            }
-            throw new DurableStreamError(
-              (e as any)?.code ?? 'EXISTS_ERROR',
-              (e as Error).message,
-              url
-            );
-          },
-        }).pipe(
-          Effect.catchAll((e) => {
-            if (e === false) return Effect.succeed(false);
-            return Effect.fail(e as DurableStreamError);
-          })
-        ),
+        Effect.gen(function* () {
+          const fullUrl = buildStreamUrl(baseConfig.baseUrl, url);
+          const result = yield* Effect.tryPromise({
+            try: async () => {
+              const handle = new DurableStream({ url: fullUrl, headers: baseConfig.headers });
+              await handle.head();
+              return true;
+            },
+            catch: (e) => e as Error,
+          }).pipe(Effect.either);
 
-      delete: (url: string) =>
-        Effect.tryPromise({
-          try: () => DurableStream.delete({ url, headers: baseConfig.headers }),
-          catch: (e) =>
-            new DurableStreamError(
-              (e as any)?.code ?? 'DELETE_ERROR',
-              (e as Error).message,
-              url
-            ),
+          if (result._tag === 'Right') {
+            return true;
+          }
+
+          // Map the error to domain error using Match
+          const domainError = mapHttpError(fullUrl)(result.left);
+
+          // StreamNotFoundError or connection errors mean "doesn't exist"
+          return pipe(
+            Match.value(domainError),
+            Match.tag('StreamNotFoundError', () => false),
+            Match.tag('NatsConnectionError', () => false),
+            Match.orElse((e) => Effect.runSync(Effect.fail(e)))
+          );
         }),
+
+      delete: (url: string) => {
+        const fullUrl = buildStreamUrl(baseConfig.baseUrl, url);
+        return Effect.tryPromise({
+          try: () => DurableStream.delete({ url: fullUrl, headers: baseConfig.headers }),
+          catch: mapHttpError(fullUrl),
+        });
+      },
     };
   })
 );

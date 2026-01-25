@@ -134,13 +134,19 @@ export const executeSelection = (
   completion: Completion
 ): Effect.Effect<void, never, never> =>
   Effect.gen(function* () {
+    console.log('[Minibuffer] executeSelection:', providerId, completion.value)
     const provider = providerRegistry.get(providerId)
-    if (!provider?.onSelect) return
+    if (!provider?.onSelect) {
+      console.log('[Minibuffer] Provider has no onSelect handler')
+      return
+    }
 
+    console.log('[Minibuffer] Calling provider.onSelect...')
     yield* provider.onSelect(completion).pipe(
       Effect.catchAll((error) => {
-        Effect.logWarning(`Provider ${providerId} onSelect failed: ${error}`)
+        console.error('[Minibuffer] onSelect failed:', error)
         return Effect.void
       })
     )
+    console.log('[Minibuffer] onSelect completed')
   })

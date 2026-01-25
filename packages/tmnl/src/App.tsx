@@ -416,6 +416,14 @@ const CARDS: readonly CardDef[] = [
     glow: 'cyan',
   },
   {
+    title: 'INGESTION (CLUSTER RPC)',
+    body: 'AtomRpc → IngestionRpcServer → Effect Cluster → External APIs → Postgres → DurableStreams. Full vertical slice.',
+    route: '/testbed/ingestion',
+    status: 'active',
+    label: 'NEW',
+    glow: 'rose',
+  },
+  {
     title: 'ENTITY UI ATOMS',
     body: 'Atom.family for per-entity state. HashSet selection, Option hover, entityOps mutations, registry.get()/set().',
     route: '/testbed/entity-ui-atoms',
@@ -470,6 +478,38 @@ const CARDS: readonly CardDef[] = [
     status: 'active',
     label: 'NEW',
     glow: 'amber',
+  },
+  {
+    title: 'HOLONET DURABLE STREAMS',
+    body: 'Holonet HTTP API testbed. HolonetDurableStreamsClient wrapper, CRUD operations, NATS gap demonstration.',
+    route: '/testbed/holonet-durable-streams',
+    status: 'active',
+    label: 'NEW',
+    glow: 'cyan',
+  },
+  {
+    title: 'JSON RENDER',
+    body: 'Server-driven UI via json-render. Streaming UITree updates, component registry, Effect Schema integration.',
+    route: '/testbed/json-render',
+    status: 'active',
+    label: 'NEW',
+    glow: 'rose',
+  },
+  {
+    title: 'MORPH CARD',
+    body: 'Dynamic Island aesthetics with MorphCard and DynamicIslandCard. Server integration, durable stream patches, tabbed views.',
+    route: '/testbed/morph-card',
+    status: 'active',
+    label: 'NEW',
+    glow: 'emerald',
+  },
+  {
+    title: 'EGUI MORPH',
+    body: 'egui wasm canvas embedded in DynamicIslandCard. React owns layout; egui owns pixels inside the canvas.',
+    route: '/testbed/egui-morph',
+    status: 'active',
+    label: 'NEW',
+    glow: 'cyan',
   },
 ];
 

@@ -1,9 +1,10 @@
 import type React from "react"
 import type { ReactNode } from "react"
-import { createContext, useContext, useCallback, useRef, useEffect, useMemo } from "react"
+import { createContext, useContext, useCallback, useRef, useEffect, useMemo, useState } from "react"
 import { motion, AnimatePresence, useMotionValue, animate, useTransform } from "framer-motion"
 import { createMachine, assign } from "xstate"
 import { useMachine } from "@xstate/react"
+import { ResizeHandles } from "./ResizeHandles"
 
 // ============================================================================
 // TIMING & EASING
@@ -562,7 +563,7 @@ function MatrixReticle({ color, width, height }: ReticleProps) {
       {Array.from({ length: 8 }).map((_, i) => (
         <motion.div
           key={i}
-          className="absolute text-[8px] font-mono"
+          className="absolute text-xs font-mono"
           style={{ color, left: `${10 + i * 12}%`, top: 4 }}
           initial={{ y: -10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -615,7 +616,7 @@ function BinaryReticle({ color, width, height }: ReticleProps) {
   return (
     <div className="absolute inset-0 flex items-center justify-between px-2 opacity-20 overflow-hidden">
       <motion.span
-        className="text-[6px] font-mono"
+        className="text-xs font-mono"
         style={{ color }}
         initial={{ x: -20, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
@@ -623,7 +624,7 @@ function BinaryReticle({ color, width, height }: ReticleProps) {
         01101001
       </motion.span>
       <motion.span
-        className="text-[6px] font-mono"
+        className="text-xs font-mono"
         style={{ color }}
         initial={{ x: 20, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
@@ -1144,6 +1145,7 @@ export function DynamicIsland({
   children,
   position = { x: 0, y: 0 },
   draggable = false,
+  shiftDragOnly = false,
   onDragEnd,
   trajectory,
   trajectoryDuration, // Now optional - if not provided, uses perceptual normalization
@@ -1153,10 +1155,18 @@ export function DynamicIsland({
   backpressure = defaultBackpressureConfig,
   dragConstraints,
   onForceFeedback,
+  customSize,
+  resizable = false,
+  onResizePositionChange,
+  resizeHandlesVisible,
+  containerBounds,
+  onPositionAdjust,
 }: {
   children: ReactNode
   position?: { x: number; y: number }
   draggable?: boolean
+  /** If true, drag only works when Shift is held - allows text selection otherwise */
+  shiftDragOnly?: boolean
   onDragEnd?: (position: { x: number; y: number }) => void
   trajectory?: TrajectoryPoint[]
   trajectoryDuration?: number // Now optional
@@ -1166,11 +1176,46 @@ export function DynamicIsland({
   backpressure?: BackpressureConfig
   dragConstraints?: DragConstraints
   onForceFeedback?: (force: number, atBoundary: { x: boolean; y: boolean }) => void
+  /** Custom size override (for user resizing) */
+  customSize?: { width: number; height: number } | null
+  /** Enable resize handles */
+  resizable?: boolean
+  /** Callback when resize changes position (for NW/N/W drags) */
+  onResizePositionChange?: (delta: { dx: number; dy: number }) => void
+  /** Control resize handles visibility */
+  resizeHandlesVisible?: boolean
+  /** Container bounds for overflow-aware expansion */
+  containerBounds?: { width: number; height: number }
+  /** Callback when position needs adjustment during size transition */
+  onPositionAdjust?: (newPosition: { x: number; y: number }) => void
 }) {
   const { sizeKey, state, config, activeTransition } = useDynamicIsland()
   const containerRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
   const internalPosition = useRef({ x: position.x, y: position.y })
+
+  // Shift key tracking for shift-drag mode
+  const [isShiftHeld, setIsShiftHeld] = useState(false)
+  useEffect(() => {
+    if (!shiftDragOnly) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') setIsShiftHeld(true)
+    }
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') setIsShiftHeld(false)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [shiftDragOnly])
+
+  // Compute effective draggable state
+  const effectiveDraggable = draggable && (!shiftDragOnly || isShiftHeld)
   const dragVector = useRef<DragVector>({
     x: position.x,
     y: position.y,
@@ -1371,6 +1416,75 @@ export function DynamicIsland({
     f > 0 ? `0 0 ${f}px rgba(255, 50, 50, ${Math.min(f * 0.02, 0.5)})` : "none",
   )
 
+  // Calculate effective size: customSize takes precedence over preset
+  const presetSize = config.sizes[sizeKey] || config.sizes.default
+  const effectiveSize = useMemo(() => ({
+    width: customSize?.width ?? presetSize.width,
+    height: customSize?.height ?? presetSize.height,
+  }), [customSize?.width, customSize?.height, presetSize.width, presetSize.height])
+
+  // Track previous size for expansion direction calculation
+  const prevSizeRef = useRef(effectiveSize)
+
+  // Compute expansion anchor and position adjustment based on bounds
+  // This keeps the island from overflowing and anchors expansion to the correct corner
+  useEffect(() => {
+    if (!containerBounds || !onPositionAdjust) return
+
+    const prevSize = prevSizeRef.current
+    const newSize = effectiveSize
+    const currentPos = internalPosition.current
+
+    // Only adjust if size actually changed
+    if (prevSize.width === newSize.width && prevSize.height === newSize.height) return
+
+    const deltaWidth = newSize.width - prevSize.width
+    const deltaHeight = newSize.height - prevSize.height
+
+    // Determine anchor corner based on position relative to bounds center
+    const centerX = containerBounds.width / 2
+    const centerY = containerBounds.height / 2
+    const islandCenterX = currentPos.x + prevSize.width / 2
+    const islandCenterY = currentPos.y + prevSize.height / 2
+
+    // If island center is in right half, anchor to right (expand left)
+    // If island center is in bottom half, anchor to bottom (expand up)
+    const anchorRight = islandCenterX > centerX
+    const anchorBottom = islandCenterY > centerY
+
+    let newX = currentPos.x
+    let newY = currentPos.y
+
+    // Adjust position based on anchor
+    if (anchorRight) {
+      // Anchor right edge: move left by width increase
+      newX = currentPos.x - deltaWidth
+    }
+    if (anchorBottom) {
+      // Anchor bottom edge: move up by height increase
+      newY = currentPos.y - deltaHeight
+    }
+
+    // Clamp to bounds with padding
+    const padding = 16
+    newX = Math.max(padding, Math.min(containerBounds.width - newSize.width - padding, newX))
+    newY = Math.max(padding, Math.min(containerBounds.height - newSize.height - padding, newY))
+
+    // Update position if it changed
+    if (newX !== currentPos.x || newY !== currentPos.y) {
+      internalPosition.current = { x: newX, y: newY }
+      motionX.set(newX)
+      motionY.set(newY)
+      onPositionAdjust({ x: newX, y: newY })
+    }
+
+    // Update prev size ref
+    prevSizeRef.current = newSize
+  }, [effectiveSize, containerBounds, onPositionAdjust, motionX, motionY])
+
+  // Track hover state for resize handles
+  const [isHovered, setIsHovered] = useState(false)
+
   return (
     <motion.div
       ref={containerRef}
@@ -1381,16 +1495,18 @@ export function DynamicIsland({
         filter: filterStyle,
         boxShadow: forceFeedbackGlow,
       }}
-      drag={draggable}
+      drag={effectiveDraggable}
       dragMomentum={false}
       dragElastic={0} // Disabled built-in elastic - we handle it via physics engine
       onDragStart={handleDragStart}
       onDrag={handleDrag}
       onDragEnd={handleDragEnd}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       whileDrag={{ scale: 1.02, cursor: "grabbing" }}
       animate={{
-        width: config.sizes[sizeKey]?.width || config.sizes.default.width,
-        height: config.sizes[sizeKey]?.height || config.sizes.default.height,
+        width: effectiveSize.width,
+        height: effectiveSize.height,
       }}
       transition={{
         type: "spring",
@@ -1406,7 +1522,7 @@ export function DynamicIsland({
           backgroundColor: "oklch(0.02 0 0)",
           borderRadius: config.borderRadius,
           boxShadow: borderGlow,
-          cursor: draggable ? "grab" : "default",
+          cursor: effectiveDraggable ? "grab" : "default",
         }}
         layout
       >
@@ -1422,10 +1538,20 @@ export function DynamicIsland({
           variant={config.reticle}
           isActive={state === "reticleActive"}
           color={config.reticleColor}
-          width={config.sizes[sizeKey]?.width || config.sizes.default.width}
-          height={config.sizes[sizeKey]?.height || config.sizes.default.height}
+          width={effectiveSize.width}
+          height={effectiveSize.height}
         />
       </motion.div>
+
+      {/* Resize handles (rendered outside main container for proper z-index) */}
+      {resizable && (
+        <ResizeHandles
+          currentSize={effectiveSize}
+          currentPosition={internalPosition.current}
+          onPositionChange={onResizePositionChange}
+          visible={resizeHandlesVisible ?? isHovered}
+        />
+      )}
     </motion.div>
   )
 }

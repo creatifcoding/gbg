@@ -21,6 +21,7 @@ import {
   useRef,
   useEffect,
   memo,
+  useMemo,
   type FC,
   type ReactNode,
   type KeyboardEvent,
@@ -51,17 +52,21 @@ import {
   type SearchFormInput,
 } from '../machines/searchFormMachine'
 import {
-  searchStatusAtom,
-  totalResultCountAtom,
-  sourceCountsAtom,
-  filteredResultsAtom,
-  activeFiltersAtom,
-  searchErrorAtom,
-  updateFilters,
+  useGeointPanel,
+  geointRegistry,
 } from '../atoms'
 import type { IntelSource, SearchResultItem, BBox } from '../schemas'
 import { SOURCE_COLORS, TIMING, EASING } from '../tokens'
 import { VirtualizedSearchResults } from './VirtualizedSearchResults'
+import { InlineSearchError } from './SearchErrorDisplay'
+// GEOINT Kori integration
+import {
+  GeointRegistryProvider,
+  searchPanelUIAtom,
+  timeRangeAtom,
+  collapsibleSectionFamily,
+  searchPanelOps,
+} from '../kori/entity-atoms'
 
 // =============================================================================
 // CONTEXT
@@ -89,10 +94,12 @@ interface SearchPanelContextValue {
   executeSearch: () => void
   clearSearch: () => void
   isSearching: boolean
+  status: 'idle' | 'validating' | 'searching' | 'completed' | 'error'
 
   // Results
   results: readonly SearchResultItem[]
   resultsCount: number
+  sourceCounts: Record<IntelSource, number>
   error: string | null
 
   // Callbacks
@@ -161,19 +168,33 @@ const Root: FC<SearchPanelRootProps> = ({
   className,
   defaultExpanded = true,
 }) => {
-  // Local state
-  const [query, setQuery] = useState('')
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded)
-  const [showFilters, setShowFilters] = useState(false)
-  const [showTimeRange, setShowTimeRange] = useState(false)
+  // Access panel-scoped atoms
+  const { atoms } = useGeointPanel()
 
-  // Atom values
-  const status = useAtomValue(searchStatusAtom)
-  const results = useAtomValue(filteredResultsAtom)
-  const resultsCount = useAtomValue(totalResultCountAtom)
-  const sourceCounts = useAtomValue(sourceCountsAtom)
-  const filters = useAtomValue(activeFiltersAtom)
-  const error = useAtomValue(searchErrorAtom)
+  // Kori atom state (replaces useState)
+  const panelUI = useAtomValue(searchPanelUIAtom)
+  const { query, isExpanded, showFilters, showTimeRange } = panelUI
+
+  // Initialize default expanded state on mount
+  useEffect(() => {
+    searchPanelOps.setExpanded(defaultExpanded)
+  }, []) // Only on mount
+
+  // Panel-scoped atom values
+  const status = useAtomValue(atoms.searchStatusAtom)
+  const results = useAtomValue(atoms.resultsAtom)
+  const filters = useAtomValue(atoms.activeFiltersAtom)
+  const error = useAtomValue(atoms.searchErrorAtom)
+
+  // Derived values (computed inline - TODO: move to derived atom families)
+  const resultsCount = results.length
+  const sourceCounts = useMemo(() => {
+    const counts: Record<IntelSource, number> = {} as Record<IntelSource, number>
+    for (const result of results) {
+      counts[result.source] = (counts[result.source] || 0) + 1
+    }
+    return counts
+  }, [results])
 
   const isSearching = status === 'searching' || status === 'validating'
 
@@ -183,16 +204,20 @@ const Root: FC<SearchPanelRootProps> = ({
     const updated = current.includes(source)
       ? current.filter((s) => s !== source)
       : [...current, source]
-    updateFilters({ sources: updated })
-  }, [filters.sources])
+    geointRegistry.set(atoms.activeFiltersAtom, { ...filters, sources: updated })
+  }, [filters, atoms])
 
   const setAllSources = useCallback((enabled: boolean) => {
+    const current = geointRegistry.get(atoms.activeFiltersAtom)
     if (enabled) {
-      updateFilters({ sources: Object.keys(SOURCE_CONFIG) as IntelSource[] })
+      geointRegistry.set(atoms.activeFiltersAtom, {
+        ...current,
+        sources: Object.keys(SOURCE_CONFIG) as IntelSource[],
+      })
     } else {
-      updateFilters({ sources: [] })
+      geointRegistry.set(atoms.activeFiltersAtom, { ...current, sources: [] })
     }
-  }, [])
+  }, [atoms])
 
   // Execute search
   const executeSearch = useCallback(() => {
@@ -205,27 +230,29 @@ const Root: FC<SearchPanelRootProps> = ({
 
   // Clear search
   const clearSearch = useCallback(() => {
-    setQuery('')
+    searchPanelOps.clearQuery()
   }, [])
 
-  // Context value
+  // Context value - use Kori ops for mutations
   const contextValue: SearchPanelContextValue = {
     query,
-    setQuery,
+    setQuery: searchPanelOps.setQuery,
     enabledSources: [...filters.sources],
     toggleSource,
     setAllSources,
     isExpanded,
-    toggleExpanded: () => setIsExpanded(p => !p),
+    toggleExpanded: searchPanelOps.toggleExpanded,
     showFilters,
-    toggleFilters: () => setShowFilters(p => !p),
+    toggleFilters: searchPanelOps.toggleFilters,
     showTimeRange,
-    toggleTimeRange: () => setShowTimeRange(p => !p),
+    toggleTimeRange: searchPanelOps.toggleTimeRange,
     executeSearch,
     clearSearch,
     isSearching,
+    status,
     results,
     resultsCount,
+    sourceCounts,
     error,
     onResultSelect,
     onResultActivate,
@@ -233,16 +260,18 @@ const Root: FC<SearchPanelRootProps> = ({
   }
 
   return (
-    <SearchPanelContext.Provider value={contextValue}>
-      <div
-        className={cn(
-          'flex flex-col bg-surface-1 border border-border-subtle rounded-lg overflow-hidden',
-          className
-        )}
-      >
-        {children}
-      </div>
-    </SearchPanelContext.Provider>
+    <GeointRegistryProvider>
+      <SearchPanelContext.Provider value={contextValue}>
+        <div
+          className={cn(
+            'flex flex-col bg-surface-1 border border-border-subtle rounded-lg overflow-hidden',
+            className
+          )}
+        >
+          {children}
+        </div>
+      </SearchPanelContext.Provider>
+    </GeointRegistryProvider>
   )
 }
 
@@ -338,8 +367,7 @@ const SourceToggles: FC<SourceTogglesProps> = memo(function SourceToggles({
   showCounts = true,
   className,
 }) {
-  const { enabledSources, toggleSource } = useSearchPanel()
-  const sourceCounts = useAtomValue(sourceCountsAtom)
+  const { enabledSources, toggleSource, sourceCounts } = useSearchPanel()
 
   return (
     <div className={cn('flex flex-wrap gap-1.5', className)}>
@@ -437,17 +465,38 @@ interface TimeRangeProps {
 }
 
 const TimeRange: FC<TimeRangeProps> = memo(function TimeRange({ className }) {
-  const [timeMode, setTimeMode] = useState<'live' | 'historical'>('live')
-  const [range, setRange] = useState<[Date, Date]>([
-    new Date(Date.now() - 24 * 60 * 60 * 1000),
-    new Date(),
-  ])
+  // Kori atom state (replaces useState)
+  const timeRangeState = useAtomValue(timeRangeAtom)
+  const { mode: timeMode, rangeStart, rangeEnd } = timeRangeState
+
+  // Memoized Date objects for datetime-local inputs
+  const rangeStartDate = useMemo(() => new Date(rangeStart), [rangeStart])
+  const rangeEndDate = useMemo(() => new Date(rangeEnd), [rangeEnd])
+
+  // Handlers using Kori ops
+  const handleSetLive = useCallback(() => {
+    searchPanelOps.setTimeMode('live')
+  }, [])
+
+  const handleSetHistorical = useCallback(() => {
+    searchPanelOps.setTimeMode('historical')
+  }, [])
+
+  const handleStartChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newStart = new Date(e.target.value).getTime()
+    searchPanelOps.setTimeRange(newStart, rangeEnd)
+  }, [rangeEnd])
+
+  const handleEndChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEnd = new Date(e.target.value).getTime()
+    searchPanelOps.setTimeRange(rangeStart, newEnd)
+  }, [rangeStart])
 
   return (
     <div className={cn('space-y-2', className)}>
       <div className="flex items-center gap-2">
         <button
-          onClick={() => setTimeMode('live')}
+          onClick={handleSetLive}
           className={cn(
             'flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors',
             timeMode === 'live'
@@ -462,7 +511,7 @@ const TimeRange: FC<TimeRangeProps> = memo(function TimeRange({ className }) {
           Live
         </button>
         <button
-          onClick={() => setTimeMode('historical')}
+          onClick={handleSetHistorical}
           className={cn(
             'flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium transition-colors',
             timeMode === 'historical'
@@ -479,15 +528,15 @@ const TimeRange: FC<TimeRangeProps> = memo(function TimeRange({ className }) {
         <div className="flex items-center gap-2 text-xs">
           <input
             type="datetime-local"
-            value={range[0].toISOString().slice(0, 16)}
-            onChange={(e) => setRange([new Date(e.target.value), range[1]])}
+            value={rangeStartDate.toISOString().slice(0, 16)}
+            onChange={handleStartChange}
             className="flex-1 px-2 py-1 bg-surface-2 border border-border-subtle rounded text-text-primary"
           />
           <span className="text-text-tertiary">to</span>
           <input
             type="datetime-local"
-            value={range[1].toISOString().slice(0, 16)}
-            onChange={(e) => setRange([range[0], new Date(e.target.value)])}
+            value={rangeEndDate.toISOString().slice(0, 16)}
+            onChange={handleEndChange}
             className="flex-1 px-2 py-1 bg-surface-2 border border-border-subtle rounded text-text-primary"
           />
         </div>
@@ -511,8 +560,7 @@ const StatusBar: FC<StatusBarProps> = memo(function StatusBar({
   showViewport = false,
   className,
 }) {
-  const { resultsCount, error, viewportBounds } = useSearchPanel()
-  const status = useAtomValue(searchStatusAtom)
+  const { resultsCount, viewportBounds, status } = useSearchPanel()
 
   return (
     <div className={cn(
@@ -524,7 +572,7 @@ const StatusBar: FC<StatusBarProps> = memo(function StatusBar({
         {status === 'searching' && 'Searching...'}
         {status === 'validating' && 'Validating...'}
         {status === 'completed' && `${resultsCount} results`}
-        {error && <span className="text-status-error">Error: {error}</span>}
+        {status === 'error' && <InlineSearchError />}
       </span>
 
       {showViewport && viewportBounds && (
@@ -554,8 +602,7 @@ const Results: FC<ResultsProps> = memo(function Results({
   showEmpty = true,
   className,
 }) {
-  const { results, onResultSelect, onResultActivate } = useSearchPanel()
-  const status = useAtomValue(searchStatusAtom)
+  const { results, onResultSelect, onResultActivate, status } = useSearchPanel()
 
   if (results.length === 0 && status === 'completed' && showEmpty) {
     return (
@@ -658,6 +705,8 @@ const Actions: FC<ActionsProps> = memo(function Actions({
 // =============================================================================
 
 interface CollapsibleSectionProps {
+  /** Unique section ID for Kori atom state */
+  sectionId: string
   /** Section title */
   title: string
   /** Default open state */
@@ -669,16 +718,33 @@ interface CollapsibleSectionProps {
 }
 
 const CollapsibleSection: FC<CollapsibleSectionProps> = memo(function CollapsibleSection({
+  sectionId,
   title,
   defaultOpen = false,
   children,
   className,
 }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen)
+  // Kori atom state via family (replaces useState)
+  const sectionAtom = useMemo(
+    () => collapsibleSectionFamily(sectionId, defaultOpen),
+    [sectionId, defaultOpen]
+  )
+  const isOpen = useAtomValue(sectionAtom)
   const contentRef = useRef<HTMLDivElement>(null)
+  const prevIsOpen = useRef(isOpen)
 
+  // Initialize to defaultOpen on mount
+  useEffect(() => {
+    searchPanelOps.setSection(sectionId, defaultOpen)
+  }, []) // Only on mount
+
+  // Animate on isOpen changes (skip initial)
   useEffect(() => {
     if (!contentRef.current) return
+    // Skip animation on initial render
+    if (prevIsOpen.current === isOpen) return
+    prevIsOpen.current = isOpen
+
     animate(contentRef.current, {
       maxHeight: isOpen ? [0, contentRef.current.scrollHeight] : [contentRef.current.scrollHeight, 0],
       opacity: isOpen ? [0, 1] : [1, 0],
@@ -687,10 +753,15 @@ const CollapsibleSection: FC<CollapsibleSectionProps> = memo(function Collapsibl
     })
   }, [isOpen])
 
+  // Handler using Kori ops
+  const handleToggle = useCallback(() => {
+    searchPanelOps.toggleSection(sectionId)
+  }, [sectionId])
+
   return (
     <div className={cn('border-b border-border-subtle', className)}>
       <button
-        onClick={() => setIsOpen(p => !p)}
+        onClick={handleToggle}
         className="flex items-center justify-between w-full px-3 py-2 text-xs font-medium text-text-secondary hover:bg-surface-2 transition-colors"
       >
         <span>{title}</span>
@@ -703,7 +774,7 @@ const CollapsibleSection: FC<CollapsibleSectionProps> = memo(function Collapsibl
       <div
         ref={contentRef}
         className="overflow-hidden"
-        style={{ maxHeight: defaultOpen ? undefined : 0 }}
+        style={{ maxHeight: isOpen ? undefined : 0 }}
       >
         <div className="p-3 pt-0">
           {children}
@@ -824,6 +895,9 @@ const XStateRoot: FC<SearchPanelWithMachineProps> = ({
   initialQuery = '',
   initialExpandedSections = ['sources'],
 }) => {
+  // Access panel-scoped atoms
+  const { atoms } = useGeointPanel()
+
   // Initialize XState machine
   const [formState, formSend] = useMachine(searchFormMachine, {
     input: {
@@ -836,12 +910,21 @@ const XStateRoot: FC<SearchPanelWithMachineProps> = ({
   const [showFilters, setShowFilters] = useState(false)
   const [showTimeRange, setShowTimeRange] = useState(false)
 
-  // Atom values
-  const status = useAtomValue(searchStatusAtom)
-  const results = useAtomValue(filteredResultsAtom)
-  const resultsCount = useAtomValue(totalResultCountAtom)
-  const filters = useAtomValue(activeFiltersAtom)
-  const error = useAtomValue(searchErrorAtom)
+  // Panel-scoped atom values
+  const status = useAtomValue(atoms.searchStatusAtom)
+  const results = useAtomValue(atoms.resultsAtom)
+  const filters = useAtomValue(atoms.activeFiltersAtom)
+  const error = useAtomValue(atoms.searchErrorAtom)
+
+  // Derived values
+  const resultsCount = results.length
+  const sourceCounts = useMemo(() => {
+    const counts: Record<IntelSource, number> = {} as Record<IntelSource, number>
+    for (const result of results) {
+      counts[result.source] = (counts[result.source] || 0) + 1
+    }
+    return counts
+  }, [results])
 
   const isSearching = status === 'searching' || status === 'validating'
 
@@ -857,16 +940,20 @@ const XStateRoot: FC<SearchPanelWithMachineProps> = ({
     const updated = current.includes(source)
       ? current.filter((s) => s !== source)
       : [...current, source]
-    updateFilters({ sources: updated })
-  }, [filters.sources])
+    geointRegistry.set(atoms.activeFiltersAtom, { ...filters, sources: updated })
+  }, [filters, atoms])
 
   const setAllSources = useCallback((enabled: boolean) => {
+    const current = geointRegistry.get(atoms.activeFiltersAtom)
     if (enabled) {
-      updateFilters({ sources: Object.keys(SOURCE_CONFIG) as IntelSource[] })
+      geointRegistry.set(atoms.activeFiltersAtom, {
+        ...current,
+        sources: Object.keys(SOURCE_CONFIG) as IntelSource[],
+      })
     } else {
-      updateFilters({ sources: [] })
+      geointRegistry.set(atoms.activeFiltersAtom, { ...current, sources: [] })
     }
-  }, [])
+  }, [atoms])
 
   // Execute search
   const executeSearch = useCallback(() => {
@@ -906,8 +993,10 @@ const XStateRoot: FC<SearchPanelWithMachineProps> = ({
     executeSearch,
     clearSearch,
     isSearching,
+    status,
     results,
     resultsCount,
+    sourceCounts,
     error,
     onResultSelect,
     onResultActivate,

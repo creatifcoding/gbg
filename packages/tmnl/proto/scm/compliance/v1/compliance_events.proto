@@ -1,0 +1,21 @@
+syntax = "proto3";
+package scm.compliance.v1;
+
+import "google/protobuf/timestamp.proto";
+import "scm/common/v1/common.proto";
+
+message ComplianceGateRuleUpdated { string gate_id = 1; string version = 2; map<string,string> attrs = 3; }
+message ExportClassificationDeclared { string part_id = 1; string eccn = 2; map<string,string> attrs = 3; }
+message ExportLicenseRequired { string ref_id = 1; string reason = 2; map<string,string> attrs = 3; }
+message ExportLicenseGranted { string license_id = 1; scm.common.v1.RangeTs validity = 2; map<string,string> attrs = 3; }
+message ExportLicenseExpired { string license_id = 1; map<string,string> attrs = 2; }
+
+message DeniedPartyScreeningHit { string party_id = 1; string list = 2; scm.common.v1.Severity severity = 3; map<string,string> attrs = 4; }
+message DeniedPartyScreeningCleared { string party_id = 1; map<string,string> attrs = 2; }
+
+message SanctionsListUpdated { string list_id = 1; google.protobuf.Timestamp ts = 2; map<string,string> attrs = 3; }
+message FlowdownClauseRequired { string clause_id = 1; string scope_id = 2; map<string,string> attrs = 3; }
+message FlowdownClauseSatisfied { string clause_id = 1; string supplier_party_id = 2; map<string,string> attrs = 3; }
+
+message CUIHandlingDeclared { string scope_id = 1; string policy = 2; map<string,string> attrs = 3; }
+message CUIHandlingViolated { string incident_id = 1; string scope_id = 2; scm.common.v1.Severity severity = 3; map<string,string> attrs = 4; }

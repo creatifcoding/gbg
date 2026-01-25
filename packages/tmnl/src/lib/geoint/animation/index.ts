@@ -45,3 +45,43 @@ export {
   listStaggerConfig,
   gridStaggerConfig,
 } from './AnimationOrchestrator'
+
+// Layout Transitions
+export {
+  // Types
+  type TransitionPhase,
+  type LayoutTransitionConfig,
+  type LayoutPanelRefs,
+  type TransitionHandle,
+
+  // Layout Transitions
+  executeLayoutTransition,
+  getLayoutPanelRefs,
+  transitionCommandToFocus,
+  transitionFocusToCommand,
+  transitionCommandToAnalytics,
+  transitionAnalyticsToCommand,
+  transitionFocusToAnalytics,
+  transitionAnalyticsToFocus,
+
+  // Panel Animations
+  animatePanelExpand,
+  animatePanelCollapse,
+  animateDrawerOpen,
+  animateDrawerClose,
+
+  // Result List Animations
+  animateResultsEnter,
+  animateResultsExit,
+  animateResultSelect,
+
+  // Floating Panel Animations
+  animateFloatingPanelAppear,
+  animateFloatingPanelDisappear,
+  animateFloatingPanelMinimize,
+  animateFloatingPanelRestore,
+
+  // Entity Selection Animations
+  animateEntitySelect,
+  animateEntityDeselect,
+} from './layoutTransitions'

@@ -14,6 +14,7 @@ import type {
   ViewState,
 } from '../schemas/tab-schemas';
 import { DEFAULT_DYNAMIC_ISLAND_STATE } from '../schemas/tab-schemas';
+import type { ViewRegistry, ViewSpec } from '../types/view-registry';
 
 // =============================================================================
 // Constants
@@ -89,6 +90,10 @@ const stateCache = new Map<
   string,
   ReturnType<typeof Atom.make<DynamicIslandCardState>>
 >();
+const viewsCache = new Map<
+  string,
+  ReturnType<typeof Atom.make<ViewRegistry>>
+>();
 
 // =============================================================================
 // Atom Families
@@ -122,6 +127,19 @@ export function cardTabStateFamily(
   }
   touchLRU(key);
   return stateCache.get(key)!;
+}
+
+/**
+ * Atom family for dynamic view registry per card.
+ */
+export function viewRegistryAtomFamily(
+  cardId: CardId | string
+): ReturnType<typeof Atom.make<ViewRegistry>> {
+  const key = String(cardId);
+  if (!viewsCache.has(key)) {
+    viewsCache.set(key, Atom.make<ViewRegistry>({}));
+  }
+  return viewsCache.get(key)!;
 }
 
 // =============================================================================
@@ -194,6 +212,72 @@ export function registerTab(
   if (!currentTabs.find((t) => t.id === tab.id)) {
     registry.set(tabsAtom, [...currentTabs, tab]);
   }
+}
+
+/**
+ * Set the full view registry for a card
+ */
+export function setViewRegistry(
+  cardId: CardId | string,
+  views: ViewRegistry,
+  registry: AtomRegistry
+): void {
+  const viewsAtom = viewRegistryAtomFamily(cardId);
+  registry.set(viewsAtom, views);
+}
+
+/**
+ * Add a view to the registry (by id)
+ */
+export function addView(
+  cardId: CardId | string,
+  view: ViewSpec,
+  registry: AtomRegistry
+): void {
+  const viewsAtom = viewRegistryAtomFamily(cardId);
+  const current = registry.get(viewsAtom);
+  registry.set(viewsAtom, { ...current, [view.id]: view });
+}
+
+/**
+ * Update a view in the registry
+ */
+export function updateView(
+  cardId: CardId | string,
+  viewId: string,
+  patch: Partial<ViewSpec>,
+  registry: AtomRegistry
+): void {
+  const viewsAtom = viewRegistryAtomFamily(cardId);
+  const current = registry.get(viewsAtom);
+  const existing = current[viewId];
+  if (!existing) return;
+  registry.set(viewsAtom, { ...current, [viewId]: { ...existing, ...patch } });
+}
+
+/**
+ * Remove a view from the registry
+ */
+export function removeView(
+  cardId: CardId | string,
+  viewId: string,
+  registry: AtomRegistry
+): void {
+  const viewsAtom = viewRegistryAtomFamily(cardId);
+  const current = registry.get(viewsAtom);
+  const { [viewId]: _removed, ...rest } = current;
+  registry.set(viewsAtom, rest);
+}
+
+/**
+ * Clear the registry for a card
+ */
+export function clearViews(
+  cardId: CardId | string,
+  registry: AtomRegistry
+): void {
+  const viewsAtom = viewRegistryAtomFamily(cardId);
+  registry.set(viewsAtom, {});
 }
 
 /**

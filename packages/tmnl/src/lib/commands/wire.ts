@@ -13,6 +13,7 @@
 
 import { Effect, Data, Ref, Array as A } from 'effect'
 import { Atom } from '@effect-atom/atom'
+import * as Result from '@effect-atom/atom/Result'
 import { getRegisteredCommands, getDefaultBindings } from './decorators'
 import type { GlobalCommand, EntityCommand, Command } from './types'
 import {
@@ -156,8 +157,16 @@ const registerSingleBinding = (
   Effect.try({
     try: () => {
       // Use the runtime atom to parse keys
-      const parseEffect = hotkeyOps.parseKeys(binding.keys)
-      const parsedKeys = registry.get(hotkeyRuntimeAtom.atom(parseEffect))
+      // hotkeyOps.parseKeys is an AtomResultFn - set triggers execution, get retrieves Result
+      registry.set(hotkeyOps.parseKeys, binding.keys)
+      const parseResult = registry.get(hotkeyOps.parseKeys)
+
+      // Unwrap the Result - throw if not success
+      if (!Result.isSuccess(parseResult)) {
+        throw new Error(`Failed to parse keys "${binding.keys}": ${Result.isFailure(parseResult) ? String(parseResult.cause) : 'Initial/Waiting state'}`)
+      }
+
+      const parsedKeys = parseResult.value
 
       // Create the binding with parsed keys
       const hotkeyBinding: Binding = {

@@ -5,3 +5,4 @@
  */
 
 export { handleChatRequest } from './chat-handler'
+export { CursorChatServerLive, runCursorChatServer, CURSOR_CHAT_PORT } from './server'

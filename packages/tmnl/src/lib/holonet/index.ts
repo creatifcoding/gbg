@@ -41,6 +41,8 @@ export * from './subject';
 export * from './utils/codec';
 export * from './utils/stream';
 
+export * from './integration';
+
 // =============================================================================
 // Namespace Export (Convenience)
 // =============================================================================
@@ -62,6 +64,12 @@ import {
   NatsCodecService,
   NatsCodecServiceLive,
 } from './nats';
+import {
+  HolonetDurableStreamsClient,
+  HolonetDurableStreamsClientDefault,
+  HolonetDurableStreamsClientCustom,
+  HolonetDurableStreamsClientLive,
+} from './integration';
 
 /**
  * Holonet namespace for convenient service access.
@@ -105,6 +113,11 @@ export const Holonet = {
   // Codec
   Codec: NatsCodecService,
   CodecLive: NatsCodecServiceLive,
+
+  DurableStreams: HolonetDurableStreamsClient,
+  DurableStreamsLive: HolonetDurableStreamsClientLive,
+  DurableStreamsDefault: HolonetDurableStreamsClientDefault,
+  DurableStreamsCustom: HolonetDurableStreamsClientCustom,
 } as const;
 
 export type HolonetNamespace = typeof Holonet;

@@ -9,7 +9,7 @@
 
 import { useContext, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { RegistryContext } from '@effect-atom/atom-react';
+import { RegistryContext, useAtomValue } from '@effect-atom/atom-react';
 import { cn } from '@/lib/utils';
 import type { TabView, TabBarConfig } from '../schemas/tab-schemas';
 import { tabsAtomFamily, cardTabStateFamily, setActiveTab } from '../atoms/tab-atoms';
@@ -47,9 +47,16 @@ export function TabBar({ cardId, config, className }: TabBarProps) {
   const tabsAtom = useMemo(() => tabsAtomFamily(cardId), [cardId]);
   const stateAtom = useMemo(() => cardTabStateFamily(cardId), [cardId]);
 
-  const tabs = registry.get(tabsAtom);
-  const cardState = registry.get(stateAtom);
+  const tabs = useAtomValue(tabsAtom);
+  const cardState = useAtomValue(stateAtom);
   const activeTab = cardState.activeTab;
+
+  const handleTabClick = useCallback(
+    (tabId: string) => {
+      setActiveTab(cardId, tabId, registry);
+    },
+    [cardId, registry]
+  );
 
   // Auto-hide when single or no tabs
   if (config?.autoHide && tabs.length <= 1) {
@@ -62,13 +69,6 @@ export function TabBar({ cardId, config, className }: TabBarProps) {
   }
 
   const accentColor = config?.accentColor ?? 'rgb(0, 255, 255)'; // Cyan default
-
-  const handleTabClick = useCallback(
-    (tabId: string) => {
-      setActiveTab(cardId, tabId, registry);
-    },
-    [cardId, registry]
-  );
 
   return (
     <div
@@ -122,22 +122,31 @@ function TabButton({ tab, isActive, accentColor, onClick }: TabButtonProps) {
       )}
       whileTap={{ scale: 0.95 }}
     >
-      {tab.label}
+      <span className="relative inline-flex">
+        <span>{tab.label}</span>
 
-      {/* Active indicator */}
-      {isActive && (
-        <motion.div
-          layoutId={`tab-indicator-${tab.id}`}
-          className="absolute bottom-0 left-0 right-0 h-0.5"
-          style={{ backgroundColor: accentColor }}
-          initial={false}
-          transition={{
-            type: 'spring',
-            stiffness: 500,
-            damping: 35,
-          }}
-        />
-      )}
+        {/* Active indicator */}
+        {isActive && (
+          <motion.span
+            layoutId="tab-underline"
+            className="absolute -bottom-1 left-0 right-0 h-0.5"
+            style={{
+              backgroundColor: accentColor,
+              boxShadow: `0 0 10px ${accentColor}, 0 0 20px ${accentColor}`,
+              borderRadius: 999,
+              transformOrigin: 'center',
+            }}
+            initial={false}
+            animate={{ scaleX: [1, 1.08, 1], scaleY: [1, 1.2, 1] }}
+            transition={{
+              layout: { type: 'spring', stiffness: 520, damping: 38, mass: 0.7 },
+              duration: 0.22,
+              times: [0, 0.5, 1],
+              ease: [0.2, 0, 0.2, 1],
+            }}
+          />
+        )}
+      </span>
     </motion.button>
   );
 }

@@ -55,7 +55,7 @@ const reconciler = Reconciler(PMHostConfig)
 
 // Enable concurrent features (React 18+)
 reconciler.injectIntoDevTools({
-  bundleType: process.env.NODE_ENV === 'development' ? 1 : 0,
+  bundleType: import.meta.env?.DEV ? 1 : 0,
   version: '0.1.0',
   rendererPackageName: 'tmnl-document-reconciler',
 })

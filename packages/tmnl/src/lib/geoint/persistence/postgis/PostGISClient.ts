@@ -22,7 +22,6 @@ import {
   Redacted,
 } from 'effect'
 import { PgClient } from '@effect/sql-pg'
-import { SqlError } from '@effect/sql/SqlError'
 import { BBox, Position, Position3D } from '../../schemas'
 
 // =============================================================================
@@ -110,13 +109,14 @@ export interface PostGISConfig {
 
 /**
  * Default PostGIS configuration (for development)
+ * @see docker/docker-compose.yml postgres service
  */
 export const DEFAULT_POSTGIS_CONFIG: PostGISConfig = {
   host: 'localhost',
   port: 5432,
-  database: 'tmnl_geoint',
-  username: 'postgres',
-  password: 'postgres',
+  database: 'tmnl',
+  username: 'tmnl',
+  password: 'tmnl_dev_password',
   ssl: false,
   poolSize: 10,
 }
@@ -165,15 +165,26 @@ export const makePostGISClient = (
 
 /**
  * PostGIS client layer from environment configuration
+ *
+ * Environment variables (with defaults matching docker-compose.yml):
+ * - POSTGRES_HOST (default: localhost)
+ * - POSTGRES_PORT (default: 5432)
+ * - POSTGRES_DB (default: tmnl)
+ * - POSTGRES_USER (default: tmnl)
+ * - POSTGRES_PASSWORD (default: tmnl_dev_password)
+ * - POSTGRES_SSL (default: false)
+ * - POSTGRES_POOL_SIZE (default: 10)
  */
 export const PostGISClientLive = PgClient.layerConfig({
-  host: Config.string('POSTGIS_HOST').pipe(Config.withDefault('localhost')),
-  port: Config.number('POSTGIS_PORT').pipe(Config.withDefault(5432)),
-  database: Config.string('POSTGIS_DATABASE').pipe(Config.withDefault('tmnl_geoint')),
-  username: Config.string('POSTGIS_USERNAME').pipe(Config.withDefault('postgres')),
-  password: Config.redacted('POSTGIS_PASSWORD'),
-  ssl: Config.boolean('POSTGIS_SSL').pipe(Config.withDefault(false)),
-  maxConnections: Config.number('POSTGIS_POOL_SIZE').pipe(Config.withDefault(10)),
+  host: Config.string('POSTGRES_HOST').pipe(Config.withDefault('localhost')),
+  port: Config.number('POSTGRES_PORT').pipe(Config.withDefault(5432)),
+  database: Config.string('POSTGRES_DB').pipe(Config.withDefault('tmnl')),
+  username: Config.string('POSTGRES_USER').pipe(Config.withDefault('tmnl')),
+  password: Config.redacted('POSTGRES_PASSWORD').pipe(
+    Config.withDefault(Redacted.make('tmnl_dev_password'))
+  ),
+  ssl: Config.boolean('POSTGRES_SSL').pipe(Config.withDefault(false)),
+  maxConnections: Config.number('POSTGRES_POOL_SIZE').pipe(Config.withDefault(10)),
 })
 
 // =============================================================================
@@ -437,3 +448,150 @@ export const PostGISServiceLive = Layer.effect(
   PostGISServiceTag,
   makePostGISService
 )
+
+// =============================================================================
+// Health Check
+// =============================================================================
+
+/**
+ * Database health status
+ */
+export interface DatabaseHealthStatus {
+  readonly healthy: boolean
+  readonly connection: boolean
+  readonly postgis: string | null
+  readonly timescaledb: string | null
+  readonly schemas: {
+    readonly raw: boolean
+    readonly entity: boolean
+    readonly geoint: boolean
+  }
+  readonly tables: {
+    readonly flightPositions: boolean
+    readonly osmElements: boolean
+    readonly weatherObservations: boolean
+  }
+  readonly continuousAggregates: {
+    readonly flightsCurrent: boolean
+    readonly flightTracks: boolean
+    readonly weatherCurrent: boolean
+  }
+}
+
+/**
+ * Check database health - verifies connection, extensions, schemas, and tables
+ *
+ * @example
+ * ```typescript
+ * const program = checkDatabaseHealth.pipe(
+ *   Effect.provide(PostGISClientLive),
+ *   Effect.map((status) => {
+ *     if (!status.healthy) {
+ *       console.error('Database not ready:', status)
+ *     }
+ *   })
+ * )
+ * ```
+ */
+export const checkDatabaseHealth = Effect.gen(function* () {
+  const sql = yield* PgClient.PgClient
+
+  // Check connection
+  const connection = yield* sql<{ test: number }>`SELECT 1 as test`.pipe(
+    Effect.map(() => true),
+    Effect.catchAll(() => Effect.succeed(false))
+  )
+
+  // Check PostGIS version
+  const postgis = yield* sql<{ version: string }>`
+    SELECT PostGIS_Version() as version
+  `.pipe(
+    Effect.map((rows) => rows[0]?.version ?? null),
+    Effect.catchAll(() => Effect.succeed(null))
+  )
+
+  // Check TimescaleDB version
+  const timescaledb = yield* sql<{ extversion: string }>`
+    SELECT extversion FROM pg_extension WHERE extname = 'timescaledb'
+  `.pipe(
+    Effect.map((rows) => rows[0]?.extversion ?? null),
+    Effect.catchAll(() => Effect.succeed(null))
+  )
+
+  // Check schemas
+  const checkSchema = (name: string) =>
+    sql<{ exists: boolean }>`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.schemata WHERE schema_name = ${name}
+      ) as exists
+    `.pipe(
+      Effect.map((rows) => rows[0]?.exists ?? false),
+      Effect.catchAll(() => Effect.succeed(false))
+    )
+
+  const rawSchema = yield* checkSchema('raw')
+  const entitySchema = yield* checkSchema('entity')
+  const geointSchema = yield* checkSchema('geoint')
+
+  // Check raw tables
+  const checkTable = (schema: string, table: string) =>
+    sql<{ exists: boolean }>`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = ${schema} AND table_name = ${table}
+      ) as exists
+    `.pipe(
+      Effect.map((rows) => rows[0]?.exists ?? false),
+      Effect.catchAll(() => Effect.succeed(false))
+    )
+
+  const flightPositions = yield* checkTable('raw', 'flight_positions')
+  const osmElements = yield* checkTable('raw', 'osm_elements')
+  const weatherObservations = yield* checkTable('raw', 'weather_observations')
+
+  // Check continuous aggregates
+  const checkContinuousAggregate = (name: string) =>
+    sql<{ exists: boolean }>`
+      SELECT EXISTS (
+        SELECT 1 FROM timescaledb_information.continuous_aggregates
+        WHERE view_name = ${name}
+      ) as exists
+    `.pipe(
+      Effect.map((rows) => rows[0]?.exists ?? false),
+      Effect.catchAll(() => Effect.succeed(false))
+    )
+
+  const flightsCurrent = yield* checkContinuousAggregate('flights_current')
+  const flightTracks = yield* checkContinuousAggregate('flight_tracks')
+  const weatherCurrent = yield* checkContinuousAggregate('weather_current')
+
+  const healthy =
+    connection &&
+    postgis !== null &&
+    timescaledb !== null &&
+    rawSchema &&
+    entitySchema &&
+    flightPositions
+
+  return {
+    healthy,
+    connection,
+    postgis,
+    timescaledb,
+    schemas: {
+      raw: rawSchema,
+      entity: entitySchema,
+      geoint: geointSchema,
+    },
+    tables: {
+      flightPositions,
+      osmElements,
+      weatherObservations,
+    },
+    continuousAggregates: {
+      flightsCurrent,
+      flightTracks,
+      weatherCurrent,
+    },
+  } satisfies DatabaseHealthStatus
+})

@@ -210,32 +210,9 @@ export function useAnnotationPopover(
     [showOnHover, showOnClick, toggle, show]
   );
 
-  // Track mouse enter/leave on popover content
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleMouseEnter = () => {
-      clearHideTimeout();
-    };
-
-    const handleMouseLeave = () => {
-      if (!activePopover?.isPinned) {
-        hide();
-      }
-    };
-
-    // Find popover content element
-    const popoverContent = document.querySelector('.annotation-popover-content');
-    if (popoverContent) {
-      popoverContent.addEventListener('mouseenter', handleMouseEnter);
-      popoverContent.addEventListener('mouseleave', handleMouseLeave);
-
-      return () => {
-        popoverContent.removeEventListener('mouseenter', handleMouseEnter);
-        popoverContent.removeEventListener('mouseleave', handleMouseLeave);
-      };
-    }
-  }, [isOpen, activePopover?.isPinned, clearHideTimeout, hide]);
+  // NOTE: Mouse enter/leave tracking is now handled by safePolygon in AnnotationPopover.
+  // The safePolygon pattern uses document-level mousemove to create a safe traversal zone
+  // between the trigger and popover, which is more reliable than element-level listeners.
 
   // Clean up on unmount
   useEffect(() => {

@@ -2,7 +2,7 @@
  * Terminal Compound Component
  *
  * A composable terminal system with:
- * - Two modes: Classic (xterm.js) and OpenWarp (block-based)
+ * - Two modes: Classic (Ghostty) and OpenWarp (block-based)
  * - Auto-fit to container
  * - Zoom controls
  * - Status bar with dimensions
@@ -10,7 +10,7 @@
  *
  * @example
  * ```tsx
- * // Classic xterm.js mode
+ * // Classic Ghostty mode
  * <Terminal.Root width="100%" height="100%">
  *   <Terminal.Controls />
  *   <Terminal.Screen />
@@ -46,12 +46,11 @@ import { useTerminalHotkeys } from './hooks/useTerminalHotkeys'
 
 // V2 Imports
 import {
-  XtermTerminal,
-  type XtermTerminalHandle,
   BlocksView,
   BlockInput,
   type BlockInputProps,
 } from './v2/components'
+import { GhosttyTerminal, type GhosttyTerminalRef } from './GhosttyTerminal'
 import {
   useBlockTerminal,
   type UseBlockTerminalOptions,
@@ -94,7 +93,7 @@ const NERD_FONT_FAMILY = [
 
 interface TerminalContextValue {
   // Refs
-  xtermRef: RefObject<XtermTerminalHandle | null>
+  xtermRef: RefObject<GhosttyTerminalRef | null>
   containerRef: RefObject<HTMLDivElement | null>
   blocksContainerRef: RefObject<HTMLDivElement | null>
 
@@ -166,7 +165,7 @@ function TerminalRoot({
   cwd,
   className,
 }: TerminalRootProps) {
-  const xtermRef = useRef<XtermTerminalHandle | null>(null)
+  const xtermRef = useRef<GhosttyTerminalRef | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const blocksContainerRef = useRef<HTMLDivElement | null>(null)
 
@@ -460,7 +459,7 @@ interface TerminalScreenProps {
   className?: string
 }
 
-const TerminalScreen = forwardRef<XtermTerminalHandle, TerminalScreenProps>(
+const TerminalScreen = forwardRef<GhosttyTerminalRef, TerminalScreenProps>(
   function TerminalScreen(
     { onData, onExit, onLinkClick, onFilePathClick, onPwdChange, className },
     forwardedRef
@@ -469,12 +468,12 @@ const TerminalScreen = forwardRef<XtermTerminalHandle, TerminalScreenProps>(
 
     // Unified ref handling
     const setRefs = useCallback(
-      (instance: XtermTerminalHandle | null) => {
-        ;(ctx.xtermRef as React.MutableRefObject<XtermTerminalHandle | null>).current = instance
+      (instance: GhosttyTerminalRef | null) => {
+        ;(ctx.xtermRef as React.MutableRefObject<GhosttyTerminalRef | null>).current = instance
         if (typeof forwardedRef === 'function') {
           forwardedRef(instance)
         } else if (forwardedRef) {
-          ;(forwardedRef as React.MutableRefObject<XtermTerminalHandle | null>).current = instance
+          ;(forwardedRef as React.MutableRefObject<GhosttyTerminalRef | null>).current = instance
         }
         if (instance) {
           ctx.setIsReady(true)
@@ -493,7 +492,7 @@ const TerminalScreen = forwardRef<XtermTerminalHandle, TerminalScreenProps>(
         className={className}
         style={{ flex: 1, minHeight: 0, overflow: 'hidden', position: 'relative' }}
       >
-        <XtermTerminal
+        <GhosttyTerminal
           ref={setRefs}
           persistKey={ctx.persistKey}
           onData={onData}
@@ -632,9 +631,9 @@ function TerminalStatusBar({ className }: TerminalStatusBarProps) {
             {ctx.blockTerminal.blocks.length} blocks
           </span>
         )}
-        {ctx.mode === 'ghostty' && ctx.xtermRef.current && (
+        {ctx.mode === 'ghostty' && (
           <span style={{ color: 'rgba(255,255,255,0.4)' }}>
-            {ctx.xtermRef.current.getPwd() ?? ctx.cwd ?? '~'}
+            {ctx.cwd ?? '~'}
           </span>
         )}
       </div>

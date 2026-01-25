@@ -21,11 +21,16 @@ import React, {
   useCallback,
   useState,
 } from 'react'
-import { Registry } from '@effect-atom/atom-react'
+import { Registry, useAtomSet } from '@effect-atom/atom-react'
 import { Effect, Layer, Option, HashMap, Ref } from 'effect'
 
 import type { EditorOperationsShape } from '../services/EditorOperations'
 import type { EditorId } from '../schemas/editor'
+import {
+  registerEditorOp,
+  unregisterEditorOp,
+  setFocusedEditorOp,
+} from '../atoms'
 
 // -----------------------------------------------------------------------------
 // Internal State
@@ -84,6 +89,12 @@ export interface EditorAIContextValue {
   runEffect: <A>(
     fn: (state: EditorAIState) => A
   ) => A
+
+  /**
+   * Version counter that increments on state changes.
+   * Used to force consumer re-renders when editors are registered/unregistered/focused.
+   */
+  version: number
 }
 
 const EditorAIContext = createContext<EditorAIContextValue | null>(null)
@@ -160,15 +171,26 @@ export function EditorAIProvider({
     focusedId: null,
   })
 
-  // Force update for consumers when state changes
-  const [, forceUpdate] = useState(0)
+  // Version counter — incremented on every state change.
+  // Included in context value to force consumer re-renders.
+  const [version, setVersion] = useState(0)
+  const incrementVersion = useCallback(() => setVersion((n) => n + 1), [])
+
+  // BRIDGE: Effect-based registration operations
+  // These sync React state with the EditorRegistry Effect service
+  const registerToEffect = useAtomSet(registerEditorOp)
+  const unregisterFromEffect = useAtomSet(unregisterEditorOp)
+  const setFocusedInEffect = useAtomSet(setFocusedEditorOp)
 
   // Register function
   const register = useCallback(
     (id: EditorId, operations: EditorOperationsShape): (() => void) => {
       stateRef.current.editors.set(id, operations)
       onEditorRegistered?.(id)
-      forceUpdate((n) => n + 1)
+      incrementVersion() // Force consumers to re-render
+
+      // BRIDGE: Sync to Effect layer
+      registerToEffect({ id, operations })
 
       console.debug(`[EditorAIProvider] Registered editor: ${id}`)
 
@@ -182,12 +204,15 @@ export function EditorAIProvider({
         }
 
         onEditorUnregistered?.(id)
-        forceUpdate((n) => n + 1)
+        incrementVersion() // Force consumers to re-render
+
+        // BRIDGE: Sync to Effect layer
+        unregisterFromEffect({ id })
 
         console.debug(`[EditorAIProvider] Unregistered editor: ${id}`)
       }
     },
-    [onEditorRegistered, onEditorUnregistered]
+    [onEditorRegistered, onEditorUnregistered, incrementVersion, registerToEffect, unregisterFromEffect]
   )
 
   // Getters
@@ -208,9 +233,13 @@ export function EditorAIProvider({
 
   const setFocusedEditor = useCallback((id: EditorId | null): void => {
     stateRef.current.focusedId = id
-    forceUpdate((n) => n + 1)
+    incrementVersion() // Force consumers to re-render
+
+    // BRIDGE: Sync to Effect layer
+    setFocusedInEffect({ id })
+
     console.debug(`[EditorAIProvider] Focused editor: ${id ?? 'none'}`)
-  }, [])
+  }, [incrementVersion, setFocusedInEffect])
 
   const getFocusedEditor = useCallback((): EditorOperationsShape | undefined => {
     const focusedId = stateRef.current.focusedId
@@ -224,6 +253,8 @@ export function EditorAIProvider({
   }, [])
 
   // Context value
+  // CRITICAL: Include `version` to force consumer re-renders when state changes.
+  // Without this, consumers with memoized values won't update on registration.
   const contextValue = useMemo<EditorAIContextValue>(
     () => ({
       register,
@@ -234,6 +265,7 @@ export function EditorAIProvider({
       getFocusedEditor,
       registry,
       runEffect,
+      version, // Forces context consumers to re-render on state changes
     }),
     [
       register,
@@ -244,6 +276,7 @@ export function EditorAIProvider({
       getFocusedEditor,
       registry,
       runEffect,
+      version, // Include in deps so contextValue changes when version changes
     ]
   )
 

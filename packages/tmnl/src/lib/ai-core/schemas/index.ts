@@ -88,8 +88,6 @@ export {
 export {
   // JSON Schema
   JSONSchemaType,
-  JSONSchemaProperty,
-  JSONSchema,
   // Tool definition
   ToolDefinition,
   // Tool call lifecycle
@@ -106,3 +104,6 @@ export {
   fromMCPTool,
   fromMCPTools,
 } from './tool'
+
+// Type-only exports for interfaces
+export type { JSONSchemaProperty, JSONSchema } from './tool'

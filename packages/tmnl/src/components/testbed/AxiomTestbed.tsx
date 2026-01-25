@@ -469,8 +469,8 @@ function OntologyTab({
               >
                 <span className="font-mono text-sm">{name}</span>
                 <StatusIndicator
-                  status={compilationResult ? "success" : "idle"}
-                  size="sm"
+                  status={compilationResult ? "success" : "neutral"}
+                  label={compilationResult ? "compiled" : "pending"}
                 />
               </div>
             ))}

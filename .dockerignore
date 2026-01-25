@@ -1,0 +1,68 @@
+# Dependencies
+**/node_modules
+**/.pnp
+**/.pnp.js
+
+# Build outputs
+**/dist
+**/build
+**/.next
+**/out
+
+# Testing
+**/coverage
+
+# Environment and secrets
+**/.env*
+**/secrets
+
+# IDE
+**/.idea
+**/.vscode
+**/.cursor
+
+# Cache
+**/.turbo
+**/.cache
+**/.nx
+
+# Local development
+**/.claude
+**/.beads
+**/.agents
+**/.edin
+**/.archive
+**/.specstory
+
+# Tauri build artifacts
+**/src-tauri/target
+
+# Submodules (not needed for cluster)
+submodules/
+
+# Git
+**/.git
+**/.gitignore
+
+# Documentation
+**/*.md
+**/docs
+
+# Tests
+**/__tests__
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# Docker contexts we don't need
+packages/tmnl/docker/y-sweet-data
+packages/tmnl/docker/nats
+
+# Large static assets
+**/assets/media
+**/public/fonts
+
+# Logs
+**/*.log
+**/logs

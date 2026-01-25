@@ -7,6 +7,7 @@
  */
 
 import { Schema } from 'effect';
+import { SizePreset } from './card-state';
 
 // =============================================================================
 // Item Animation Style
@@ -161,6 +162,38 @@ export const MorphCardConfig = Schema.Struct({
   itemAnimation: Schema.optional(ItemAnimationConfig),
 });
 export type MorphCardConfig = Schema.Schema.Type<typeof MorphCardConfig>;
+
+// =============================================================================
+// State Machine Config
+// =============================================================================
+
+/**
+ * State machine configuration for MorphCard sizing + defaults
+ */
+export const MorphCardStateMachineConfig = Schema.Struct({
+  /** Size map keyed by sizeKey */
+  sizes: Schema.Record({
+    key: Schema.String,
+    value: SizePreset,
+  }),
+  /** Default reticle variant */
+  reticle: Schema.optional(ReticleVariant),
+  /** Default reticle color */
+  reticleColor: Schema.optional(Schema.String),
+  /** Enable motion blur during transitions */
+  motionBlur: Schema.optional(Schema.Boolean),
+  /** Spring physics overrides */
+  spring: Schema.optional(
+    Schema.Struct({
+      stiffness: Schema.Number,
+      damping: Schema.Number,
+      mass: Schema.Number,
+    })
+  ),
+});
+export type MorphCardStateMachineConfig = Schema.Schema.Type<
+  typeof MorphCardStateMachineConfig
+>;
 
 /**
  * Default MorphCard configuration

@@ -13,19 +13,14 @@
  * - /block:sync - Force sync with remote
  */
 
-import { Effect, pipe } from 'effect';
+import { Effect } from 'effect';
 import { nanoid } from 'nanoid';
 import type { Message } from 'node-telegram-bot-api';
 import type { TelegramAgent } from '../services/TelegramAgent';
 import {
   makeRemoteBlockRuntime,
   makeRemoteBlockOps,
-  blockSnapshotAtom,
-  blocksMapAtom,
-  blockIdsAtom,
-  blockStateAtom,
-  focusedBlockIdAtom,
-  isFocusModeAtom,
+  chatBlockOps,
   type RemoteBlockStreamConfig,
 } from '../../blocks';
 
@@ -42,16 +37,21 @@ const getStreamUrl = (chatId: number) =>
   `${STREAM_SERVER_URL}/v1/stream/telegram-blocks-${chatId}`;
 
 // ============================================================================
-// Per-Chat Runtime Cache
+// Per-Chat Runtime Cache (using Atom.family internally)
 // ============================================================================
 
 type BlockRuntime = ReturnType<typeof makeRemoteBlockRuntime>;
 type BlockOps = ReturnType<typeof makeRemoteBlockOps>;
 
+/**
+ * Cache for per-chat runtimes.
+ * The underlying makeRemoteBlockOps uses Atom.family for state isolation.
+ */
 const runtimeCache = new Map<number, { runtime: BlockRuntime; ops: BlockOps }>();
 
 /**
- * Get or create block runtime for a chat
+ * Get or create block runtime for a chat.
+ * Uses chatId for Atom.family-based state isolation.
  */
 const getBlockRuntime = (chatId: number): { runtime: BlockRuntime; ops: BlockOps } => {
   const cached = runtimeCache.get(chatId);
@@ -62,7 +62,8 @@ const getBlockRuntime = (chatId: number): { runtime: BlockRuntime; ops: BlockOps
   };
 
   const runtime = makeRemoteBlockRuntime(config);
-  const ops = makeRemoteBlockOps(runtime);
+  // Pass chatId for per-chat atom isolation
+  const ops = makeRemoteBlockOps(runtime, chatId);
 
   runtimeCache.set(chatId, { runtime, ops });
   return { runtime, ops };
@@ -83,18 +84,13 @@ export const handleBlocksList = async (
   const { ops } = getBlockRuntime(chatId);
 
   try {
-    // Sync first
+    // Sync first to ensure we have latest state
     await ops.syncSnapshot();
 
-    // Get blocks from snapshot
-    const snapshot = await Effect.runPromise(
-      Effect.sync(() => {
-        // Access atom state directly (simplified for now)
-        return { blocks: {}, sequence: 0 } as { blocks: Record<string, unknown>; sequence: number };
-      })
-    );
-
-    const blockIds = Object.keys(snapshot.blocks);
+    // Get blocks from per-chat atoms via chatBlockOps
+    const chatOps = chatBlockOps(chatId);
+    const snapshot = chatOps.getSnapshot();
+    const blockIds = chatOps.getBlockIds();
 
     if (blockIds.length === 0) {
       await Effect.runPromise(
@@ -109,8 +105,9 @@ export const handleBlocksList = async (
 
     const blockList = blockIds
       .map((id, i) => {
-        const block = snapshot.blocks[id] as { blockTypeName: string; createdAt: number };
-        return `${i + 1}. \`${id.substring(0, 8)}\` - ${block.blockTypeName}`;
+        const block = chatOps.getBlockState(id);
+        const typeName = block?.blockTypeName ?? 'unknown';
+        return `${i + 1}. \`${id.substring(0, 8)}\` - ${typeName}`;
       })
       .join('\n');
 
@@ -242,12 +239,30 @@ export const handleBlockInfo = async (
     // Sync first
     await ops.syncSnapshot();
 
-    // TODO: Get specific block state from snapshot
-    // For now, show placeholder
+    // Get specific block state from per-chat atoms
+    const chatOps = chatBlockOps(chatId);
+    const block = chatOps.getBlockState(blockId);
+
+    if (!block) {
+      await Effect.runPromise(
+        agent.sendMessage(chatId, `❌ Block not found: \`${blockId}\``, {
+          parseMode: 'Markdown',
+        })
+      );
+      return;
+    }
+
+    // Format block attributes
+    const attrs = Object.entries(block.attributes ?? {})
+      .map(([k, v]) => `  • ${k}: \`${JSON.stringify(v)}\``)
+      .join('\n');
+
+    const attrSection = attrs ? `\n*Attributes:*\n${attrs}` : '';
+
     await Effect.runPromise(
       agent.sendMessage(
         chatId,
-        `📋 *Block Info*\n\nID: \`${blockId}\`\n\n_View in TMNL for full details._`,
+        `📋 *Block Info*\n\nID: \`${blockId}\`\nType: ${block.blockTypeName}${attrSection}`,
         { parseMode: 'Markdown' }
       )
     );

@@ -186,6 +186,8 @@ export {
   isBlockActive as isBlockActiveHelper,
   type UseBlockTerminalOptions,
   type UseBlockTerminalResult,
+  useTabs,
+  type UseTabsResult,
 } from './hooks'
 
 // =============================================================================
@@ -203,6 +205,13 @@ export {
   BlocksView,
   // Input components
   BlockInput,
+  // External triggers
+  OPEN_THINKING_PICKER_EVENT,
+  OPEN_SLASH_PICKER_EVENT,
+  OPEN_MENTIONS_PICKER_EVENT,
+  triggerOpenThinkingPicker,
+  triggerOpenSlashPicker,
+  triggerOpenMentionsPicker,
   // Types
   type CommandBlockProps,
   type AIResponseBlockProps,
@@ -211,4 +220,97 @@ export {
   type SystemBlockProps,
   type BlocksViewProps,
   type BlockInputProps,
+  type ContextBlock,
 } from './components'
+
+// =============================================================================
+// Tabs (Tab/Pane management)
+// =============================================================================
+
+export {
+  // Tabs schemas
+  SplitDirection,
+  TerminalViewMode,
+  PinnedTabIcon,
+  TabColor,
+  TerminalPane,
+  WebViewPane,
+  WidgetPane,
+  EditorPane,
+  ContentPane,
+  Tab,
+  // Type guards
+  isTerminalPane,
+  isWebViewPane,
+  isWidgetPane,
+  isEditorPane,
+  isSplitPane,
+  isContentPane,
+  // Factory functions
+  generatePaneId,
+  generateTabId,
+  createTerminalPane,
+  createWebViewPane,
+  createWidgetPane,
+  createEditorPane,
+  createSplitPane,
+  createTab,
+  // Tree utilities
+  findPane,
+  getAllTerminalPanes,
+  getAllContentPanes,
+  replacePane,
+  removePane,
+} from './schemas'
+
+export type {
+  SplitDirection,
+  TerminalViewMode,
+  PinnedTabIcon,
+  TabColor,
+  TerminalPane,
+  WebViewPane,
+  WidgetPane,
+  EditorPane,
+  ContentPane,
+  SplitPane,
+  PaneNode,
+  Tab,
+} from './schemas'
+
+export {
+  // Tabs state atoms
+  tabsAtom,
+  activeTabIdAtom,
+  activePaneIdAtom,
+  // Tabs derived atoms
+  tabCountAtom,
+  activeTabAtom,
+  activePaneAtom,
+  pinnedTabsAtom,
+  unpinnedTabsAtom,
+  // Session operations
+  saveSessionOp,
+  loadSessionOp,
+  initializeTabsOp,
+  // Tab operations
+  createNewTabOp,
+  createWebViewTabOp,
+  createWidgetTabOp,
+  createEditorTabOp,
+  closeTabOp,
+  setActiveTabOp,
+  reorderTabsOp,
+  updateTabTitleOp,
+  pinTabOp,
+  unpinTabOp,
+  togglePinTabOp,
+  updatePinnedTabStyleOp,
+  updateTabStyleOp,
+  // Pane operations
+  splitPaneOp,
+  closePaneOp,
+  setActivePaneOp,
+  resizeSplitOp,
+  updateTerminalViewModeOp,
+} from './atoms'

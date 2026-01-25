@@ -25,6 +25,7 @@ import Text from '@tiptap/extension-text'
 import Placeholder from '@tiptap/extension-placeholder'
 import History from '@tiptap/extension-history'
 import { Extension } from '@tiptap/core'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { cn } from '@/lib/utils'
 
 // =============================================================================
@@ -190,7 +191,8 @@ const SubmitOnEnter = Extension.create<SubmitExtensionOptions>({
     const { onSubmit, onKeyDown } = this.options
 
     return [
-      {
+      new Plugin({
+        key: new PluginKey('submitOnEnter'),
         props: {
           handleKeyDown: (view, event) => {
             // Call custom onKeyDown if provided
@@ -206,7 +208,7 @@ const SubmitOnEnter = Extension.create<SubmitExtensionOptions>({
             return false
           },
         },
-      },
+      }),
     ]
   },
 })

@@ -29,6 +29,48 @@ import type {
 export const geointRegistry = Registry.make()
 
 // =============================================================================
+// ATOM FAMILIES (Panel-Scoped State)
+// =============================================================================
+
+// Re-export atom families and context for panel-scoped state
+export * from './families'
+export * from '../context'
+
+import {
+  type PanelId,
+  asPanelId,
+  viewportFamily,
+  searchStatusFamily,
+  searchQueryFamily,
+  searchErrorFamily,
+  searchTypedErrorFamily,
+  searchRetryCountFamily,
+  lastSearchTimeFamily,
+  resultsFamily,
+  selectedResultFamily,
+  hoveredResultFamily,
+  selectedResultsFamily,
+  activeFiltersFamily,
+  layerVisibilityFamily,
+  layerOpacityFamily,
+  panelStateFamily,
+  streamingStateFamily,
+  timelinePlaybackFamily,
+} from './families'
+
+// =============================================================================
+// BACKWARD COMPATIBILITY LAYER
+// =============================================================================
+
+/**
+ * Default panel ID for backward compatibility.
+ * Used by legacy code that doesn't use panel context.
+ *
+ * @internal
+ */
+export const DEFAULT_PANEL_ID: PanelId = asPanelId('__default__')
+
+// =============================================================================
 // VIEWPORT STATE
 // =============================================================================
 
@@ -50,8 +92,21 @@ const DEFAULT_VIEWPORT: ViewportState = {
 
 /**
  * Current map viewport state.
+ *
+ * @deprecated Use panel-scoped atoms via `useGeointPanel()` instead.
+ * This global atom maps to the default panel for backward compatibility.
+ *
+ * Migration:
+ * ```tsx
+ * // Old
+ * const viewport = useAtomValue(viewportAtom)
+ *
+ * // New
+ * const { atoms } = useGeointPanel()
+ * const viewport = useAtomValue(atoms.viewportAtom)
+ * ```
  */
-export const viewportAtom = Atom.make<ViewportState>(DEFAULT_VIEWPORT)
+export const viewportAtom = viewportFamily(DEFAULT_PANEL_ID)
 
 /**
  * Derived bounding box from viewport as [minLon, minLat, maxLon, maxLat].
@@ -77,23 +132,60 @@ export type SearchStatus = 'idle' | 'validating' | 'searching' | 'completed' | '
 
 /**
  * Current search status.
+ *
+ * @deprecated Use panel-scoped atoms via `useGeointPanel()` instead.
  */
-export const searchStatusAtom = Atom.make<SearchStatus>('idle')
+export const searchStatusAtom = searchStatusFamily(DEFAULT_PANEL_ID)
 
 /**
  * Current search query (null when no active search).
+ *
+ * @deprecated Use panel-scoped atoms via `useGeointPanel()` instead.
  */
-export const searchQueryAtom = Atom.make<SearchQuery | null>(null)
+export const searchQueryAtom = searchQueryFamily(DEFAULT_PANEL_ID)
 
 /**
- * Error message from last search failure.
+ * Error message from last search failure (string for display).
+ *
+ * @deprecated Use panel-scoped atoms via `useGeointPanel()` instead.
  */
-export const searchErrorAtom = Atom.make<string | null>(null)
+export const searchErrorAtom = searchErrorFamily(DEFAULT_PANEL_ID)
+
+/**
+ * Typed error from last search failure (for programmatic handling).
+ *
+ * @deprecated Use panel-scoped atoms via `useGeointPanel()` instead.
+ * @see SearchError discriminated union in schemas/errors.ts
+ */
+export const searchTypedErrorAtom = searchTypedErrorFamily(DEFAULT_PANEL_ID)
+
+/**
+ * Retry count for current error.
+ *
+ * @deprecated Use panel-scoped atoms via `useGeointPanel()` instead.
+ */
+export const searchRetryCountAtom = searchRetryCountFamily(DEFAULT_PANEL_ID)
+
+/**
+ * Maximum retries before giving up.
+ */
+export const MAX_SEARCH_RETRIES = 3
+
+/**
+ * Derived: Can retry the search (error is recoverable and retry count < max).
+ */
+export const canRetrySearchAtom = Atom.make((get): boolean => {
+  const error = get(searchTypedErrorAtom)
+  const retryCount = get(searchRetryCountAtom)
+  return error !== null && error.recoverable && retryCount < MAX_SEARCH_RETRIES
+})
 
 /**
  * Last search timestamp.
+ *
+ * @deprecated Use panel-scoped atoms via `useGeointPanel()` instead.
  */
-export const lastSearchTimeAtom = Atom.make<number | null>(null)
+export const lastSearchTimeAtom = lastSearchTimeFamily(DEFAULT_PANEL_ID)
 
 // =============================================================================
 // RESULTS STATE
@@ -101,8 +193,10 @@ export const lastSearchTimeAtom = Atom.make<number | null>(null)
 
 /**
  * All search results from the last search.
+ *
+ * @deprecated Use panel-scoped atoms via `useGeointPanel()` instead.
  */
-export const resultsAtom = Atom.make<readonly SearchResultItem[]>([])
+export const resultsAtom = resultsFamily(DEFAULT_PANEL_ID)
 
 /**
  * Results grouped by source for filtering/display.
@@ -150,22 +244,33 @@ export const totalResultCountAtom = Atom.make((get): number => {
 
 /**
  * Currently selected result (for details panel).
+ *
+ * @deprecated Use panel-scoped atoms via `useGeointPanel()` instead.
  */
-export const selectedResultAtom = Atom.make<SearchResultItem | null>(null)
+export const selectedResultAtom = selectedResultFamily(DEFAULT_PANEL_ID)
 
 /**
  * Hovered result (for highlighting on map).
+ *
+ * @deprecated Use panel-scoped atoms via `useGeointPanel()` instead.
  */
-export const hoveredResultAtom = Atom.make<SearchResultItem | null>(null)
+export const hoveredResultAtom = hoveredResultFamily(DEFAULT_PANEL_ID)
 
 /**
  * Multi-selection for batch operations.
+ *
+ * @deprecated Use panel-scoped atoms via `useGeointPanel()` instead.
  */
-export const selectedResultsAtom = Atom.make<readonly SearchResultItem[]>([])
+export const selectedResultsAtom = selectedResultsFamily(DEFAULT_PANEL_ID)
 
 // =============================================================================
 // FILTER STATE
 // =============================================================================
+
+export interface TimeRange {
+  readonly start: Date
+  readonly end: Date
+}
 
 export interface ActiveFilters {
   readonly sources: readonly IntelSource[]
@@ -173,6 +278,8 @@ export interface ActiveFilters {
   readonly geoFilter: 'viewport' | 'radius' | 'polygon'
   readonly radiusKm: number
   readonly temporalFilter: 'live' | 'lastHour' | 'last24h' | 'custom'
+  /** Custom time range for 'custom' temporalFilter */
+  readonly customTimeRange: TimeRange | null
 }
 
 const DEFAULT_FILTERS: ActiveFilters = {
@@ -181,12 +288,15 @@ const DEFAULT_FILTERS: ActiveFilters = {
   geoFilter: 'viewport',
   radiusKm: 50,
   temporalFilter: 'live',
+  customTimeRange: null,
 }
 
 /**
  * Active filter configuration.
+ *
+ * @deprecated Use panel-scoped atoms via `useGeointPanel()` instead.
  */
-export const activeFiltersAtom = Atom.make<ActiveFilters>(DEFAULT_FILTERS)
+export const activeFiltersAtom = activeFiltersFamily(DEFAULT_PANEL_ID)
 
 /**
  * Get searchable text from a result item.
@@ -211,6 +321,33 @@ const getSearchableText = (r: SearchResultItem): string => {
 }
 
 /**
+ * Get the retrievedAt timestamp from a result item.
+ */
+const getResultTimestamp = (r: SearchResultItem): Date => {
+  return r.retrievedAt
+}
+
+/**
+ * Calculate time range for temporal filter presets.
+ */
+const getTemporalFilterRange = (filter: ActiveFilters['temporalFilter'], customRange: TimeRange | null): TimeRange | null => {
+  const now = new Date()
+  switch (filter) {
+    case 'live':
+      // Live mode: no time filter (show all recent)
+      return null
+    case 'lastHour':
+      return { start: new Date(now.getTime() - 60 * 60 * 1000), end: now }
+    case 'last24h':
+      return { start: new Date(now.getTime() - 24 * 60 * 60 * 1000), end: now }
+    case 'custom':
+      return customRange
+    default:
+      return null
+  }
+}
+
+/**
  * Filtered results based on active filters.
  */
 export const filteredResultsAtom = Atom.make((get): readonly SearchResultItem[] => {
@@ -230,6 +367,15 @@ export const filteredResultsAtom = Atom.make((get): readonly SearchResultItem[] 
     filtered = filtered.filter((r) =>
       getSearchableText(r).toLowerCase().includes(query)
     )
+  }
+
+  // Filter by temporal range
+  const timeRange = getTemporalFilterRange(filters.temporalFilter, filters.customTimeRange)
+  if (timeRange) {
+    filtered = filtered.filter((r) => {
+      const timestamp = getResultTimestamp(r)
+      return timestamp >= timeRange.start && timestamp <= timeRange.end
+    })
   }
 
   return filtered
@@ -263,8 +409,10 @@ const DEFAULT_LAYER_VISIBILITY: LayerVisibility = {
 
 /**
  * Layer visibility state.
+ *
+ * @deprecated Use panel-scoped atoms via `useGeointPanel()` instead.
  */
-export const layerVisibilityAtom = Atom.make<LayerVisibility>(DEFAULT_LAYER_VISIBILITY)
+export const layerVisibilityAtom = layerVisibilityFamily(DEFAULT_PANEL_ID)
 
 export interface LayerOpacity {
   readonly tracks: number
@@ -288,8 +436,10 @@ const DEFAULT_LAYER_OPACITY: LayerOpacity = {
 
 /**
  * Layer opacity state.
+ *
+ * @deprecated Use panel-scoped atoms via `useGeointPanel()` instead.
  */
-export const layerOpacityAtom = Atom.make<LayerOpacity>(DEFAULT_LAYER_OPACITY)
+export const layerOpacityAtom = layerOpacityFamily(DEFAULT_PANEL_ID)
 
 // =============================================================================
 // PANEL STATE
@@ -311,8 +461,10 @@ const DEFAULT_PANEL_STATE: PanelState = {
 
 /**
  * Panel visibility and mode state.
+ *
+ * @deprecated Use panel-scoped atoms via `useGeointPanel()` instead.
  */
-export const panelStateAtom = Atom.make<PanelState>(DEFAULT_PANEL_STATE)
+export const panelStateAtom = panelStateFamily(DEFAULT_PANEL_ID)
 
 // =============================================================================
 // STREAMING STATE
@@ -332,8 +484,10 @@ const DEFAULT_STREAMING_STATE: StreamingState = {
 
 /**
  * Real-time streaming state for live data feeds.
+ *
+ * @deprecated Use panel-scoped atoms via `useGeointPanel()` instead.
  */
-export const streamingStateAtom = Atom.make<StreamingState>(DEFAULT_STREAMING_STATE)
+export const streamingStateAtom = streamingStateFamily(DEFAULT_PANEL_ID)
 
 // =============================================================================
 // ACTIONS (Registry-based mutations)
@@ -428,6 +582,32 @@ export const resetFilters = () => {
 }
 
 /**
+ * Set custom time range for temporal filtering.
+ * Automatically sets temporalFilter to 'custom'.
+ */
+export const setCustomTimeRange = (range: TimeRange) => {
+  const current = geointRegistry.get(activeFiltersAtom)
+  geointRegistry.set(activeFiltersAtom, {
+    ...current,
+    temporalFilter: 'custom',
+    customTimeRange: range,
+  })
+}
+
+/**
+ * Set temporal filter preset.
+ */
+export const setTemporalFilter = (filter: ActiveFilters['temporalFilter']) => {
+  const current = geointRegistry.get(activeFiltersAtom)
+  geointRegistry.set(activeFiltersAtom, {
+    ...current,
+    temporalFilter: filter,
+    // Clear custom range if not using custom
+    customTimeRange: filter === 'custom' ? current.customTimeRange : null,
+  })
+}
+
+/**
  * Fly to a specific location.
  */
 export const flyTo = (lon: number, lat: number, zoom?: number) => {
@@ -486,3 +666,158 @@ export const setStreamingState = (updates: Partial<StreamingState>) => {
     ...updates,
   })
 }
+
+// =============================================================================
+// TIMELINE PLAYBACK ATOMS
+// =============================================================================
+
+export interface TimelinePlaybackState {
+  /** Is timeline playback mode active */
+  readonly enabled: boolean
+  /** Current playhead position (for filtering) */
+  readonly playhead: Date
+  /** Visible time range */
+  readonly range: TimeRange
+  /** Window radius in ms (entities within ±window of playhead are visible) */
+  readonly windowMs: number
+  /** Is currently playing */
+  readonly isPlaying: boolean
+}
+
+const DEFAULT_TIMELINE_PLAYBACK: TimelinePlaybackState = {
+  enabled: false,
+  playhead: new Date(),
+  range: {
+    start: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    end: new Date(),
+  },
+  windowMs: 5 * 60 * 1000, // 5 minute window by default
+  isPlaying: false,
+}
+
+/**
+ * Timeline playback state for temporal visualization.
+ * When enabled, results are filtered to show only entities
+ * within the playhead window.
+ *
+ * @deprecated Use panel-scoped atoms via `useGeointPanel()` instead.
+ */
+export const timelinePlaybackAtom = timelinePlaybackFamily(DEFAULT_PANEL_ID)
+
+/**
+ * Derived: Results filtered by timeline playhead (when timeline is enabled).
+ * Layered on top of filteredResultsAtom.
+ */
+export const timelineFilteredResultsAtom = Atom.make((get): readonly SearchResultItem[] => {
+  const baseResults = get(filteredResultsAtom)
+  const timeline = get(timelinePlaybackAtom)
+
+  // If timeline not enabled, return all filtered results
+  if (!timeline.enabled) {
+    return baseResults
+  }
+
+  // Filter by playhead window
+  const playheadTime = timeline.playhead.getTime()
+  const windowStart = playheadTime - timeline.windowMs
+  const windowEnd = playheadTime + timeline.windowMs
+
+  return baseResults.filter((r) => {
+    const timestamp = getResultTimestamp(r).getTime()
+    return timestamp >= windowStart && timestamp <= windowEnd
+  })
+})
+
+/**
+ * Enable/disable timeline playback mode.
+ */
+export const setTimelineEnabled = (enabled: boolean) => {
+  const current = geointRegistry.get(timelinePlaybackAtom)
+  geointRegistry.set(timelinePlaybackAtom, {
+    ...current,
+    enabled,
+  })
+}
+
+/**
+ * Update timeline playhead (called by TimelineControlsV2 onPlayheadChange).
+ */
+export const setTimelinePlayhead = (playhead: Date) => {
+  const current = geointRegistry.get(timelinePlaybackAtom)
+  geointRegistry.set(timelinePlaybackAtom, {
+    ...current,
+    playhead,
+  })
+}
+
+/**
+ * Set timeline range.
+ */
+export const setTimelineRange = (range: TimeRange) => {
+  const current = geointRegistry.get(timelinePlaybackAtom)
+  geointRegistry.set(timelinePlaybackAtom, {
+    ...current,
+    range,
+  })
+}
+
+/**
+ * Set timeline window size (how much time around playhead is visible).
+ */
+export const setTimelineWindow = (windowMs: number) => {
+  const current = geointRegistry.get(timelinePlaybackAtom)
+  geointRegistry.set(timelinePlaybackAtom, {
+    ...current,
+    windowMs,
+  })
+}
+
+/**
+ * Initialize timeline from search results (auto-detect time range).
+ */
+export const initTimelineFromResults = () => {
+  const results = geointRegistry.get(resultsAtom)
+  if (results.length === 0) return
+
+  // Find min/max timestamps
+  let minTime = Infinity
+  let maxTime = -Infinity
+
+  for (const r of results) {
+    const timestamp = getResultTimestamp(r).getTime()
+    if (timestamp < minTime) minTime = timestamp
+    if (timestamp > maxTime) maxTime = timestamp
+  }
+
+  if (minTime === Infinity || maxTime === -Infinity) return
+
+  // Set range with some padding
+  const padding = (maxTime - minTime) * 0.1 || 60 * 60 * 1000 // 10% or 1 hour
+  const range: TimeRange = {
+    start: new Date(minTime - padding),
+    end: new Date(maxTime + padding),
+  }
+
+  // Calculate appropriate window size (1% of range or 5 min, whichever is larger)
+  const windowMs = Math.max((maxTime - minTime) * 0.01, 5 * 60 * 1000)
+
+  geointRegistry.set(timelinePlaybackAtom, {
+    enabled: true,
+    playhead: new Date(maxTime), // Start at end
+    range,
+    windowMs,
+    isPlaying: false,
+  })
+}
+
+// =============================================================================
+// LAYOUT ATOMS (Re-export from layoutAtoms.ts)
+// =============================================================================
+
+export * from './layoutAtoms'
+
+// =============================================================================
+// PANEL-SCOPED OPERATIONS
+// =============================================================================
+
+export * from './mapOperations'

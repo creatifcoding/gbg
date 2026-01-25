@@ -11,15 +11,18 @@
  * @module morph-card/hooks/useGenerativeMode
  */
 
-import { useContext, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAtomValue, RegistryContext } from '@effect-atom/atom-react';
-import { Effect, Exit, Option, Scope } from 'effect';
+import { Effect, Exit, Option, Scope, Logger } from 'effect';
+import { observable, batch, type ObservableObject } from '@legendapp/state';
 import type { CardId, CardMode } from '../schemas/card-state';
 import type { GeneratedContent } from '../schemas/generative-state';
 import { DEFAULT_MODE_GENERATION } from '../schemas/generative-state';
 import { getGenerativeAtoms } from '../atoms/generative-atoms';
 import { cardStateFamily } from '../atoms';
 import { useGenerativeDepth } from '@/lib/json-render/react/generative';
+import type { ObservableUITree } from '@/lib/json-render/react/observable-tree';
+import type { UIElement } from '@/lib/json-render/core/schemas';
 
 // =============================================================================
 // Constants
@@ -49,6 +52,11 @@ export interface UseGenerativeModeResult {
   retry: () => void;
   /** Manually trigger generation for a specific mode */
   generateForMode: (mode: CardMode) => Promise<void>;
+  /**
+   * Legend State observable tree for fine-grained reactivity
+   * Use with LegendRenderer for optimal streaming performance
+   */
+  tree$: ObservableObject<ObservableUITree> | null;
 }
 
 // =============================================================================
@@ -92,6 +100,8 @@ export function useGenerativeMode(cardId: CardId): UseGenerativeModeResult {
   const generatingModeRef = useRef<CardMode | null>(null);
   // Scope ref for Effect-based cleanup
   const scopeRef = useRef<Scope.CloseableScope | null>(null);
+  // Legend State observable tree for fine-grained reactivity
+  const tree$Ref = useRef<ObservableObject<ObservableUITree> | null>(null);
 
   // Cleanup scope on unmount
   useEffect(() => {
@@ -144,6 +154,9 @@ export function useGenerativeMode(cardId: CardId): UseGenerativeModeResult {
 
     // Build the generation Effect with scoped AbortController
     const generateEffect = Effect.gen(function* () {
+      // LOGGING: Start generation span
+      yield* Effect.log(`[useGenerativeMode] Starting generation for mode: ${mode}`);
+
       // Acquire AbortController with automatic release on scope close
       const abortController = yield* Effect.acquireRelease(
         Effect.sync(() => new AbortController()),
@@ -153,6 +166,8 @@ export function useGenerativeMode(cardId: CardId): UseGenerativeModeResult {
       // Interpolate prompt with mode
       const prompt = currentGenState.prompt.replace(/\{\{mode\}\}/g, mode);
       const api = currentGenState.api ?? DEFAULT_API;
+
+      yield* Effect.log(`[useGenerativeMode] Fetching from API: ${api}`);
 
       const response = yield* Effect.tryPromise({
         try: () => fetch(api, {
@@ -172,12 +187,16 @@ export function useGenerativeMode(cardId: CardId): UseGenerativeModeResult {
         catch: (error) => error as Error,
       });
 
+      yield* Effect.log(`[useGenerativeMode] Response status: ${response.status} ${response.statusText}`);
+
       if (!response.ok) {
+        yield* Effect.log(`[useGenerativeMode] ERROR: HTTP ${response.status}`);
         return yield* Effect.fail(new Error(`HTTP ${response.status}: ${response.statusText}`));
       }
 
       const reader = response.body?.getReader();
       if (!reader) {
+        yield* Effect.log(`[useGenerativeMode] ERROR: No response body`);
         return yield* Effect.fail(new Error('No response body'));
       }
 
@@ -192,9 +211,43 @@ export function useGenerativeMode(cardId: CardId): UseGenerativeModeResult {
       const elements: Record<string, unknown> = {};
       let progress = 0;
       let pendingOps = 0;
-      const BATCH_SIZE = 50; // Flush state every N ops for UI responsiveness
+      const BATCH_SIZE = 5; // Flush state every N ops for incremental rendering
+
+      // LEGEND STATE: Create observable tree for fine-grained reactivity
+      const tree$ = observable<ObservableUITree>({ root: null, elements: {} });
+      tree$Ref.current = tree$;
+
+      yield* Effect.log(`[useGenerativeMode] tree$ created, ref set: ${tree$Ref.current !== null}`);
 
       const flushState = () => {
+        // LOGGING: Log flush state
+        console.log(`[useGenerativeMode] flushState called`, {
+          root,
+          elementCount: Object.keys(elements).length,
+          elementKeys: Object.keys(elements).slice(0, 5), // First 5 keys
+          progress,
+          pendingOps,
+          tree$RefIsSet: tree$Ref.current !== null,
+        });
+
+        // LEGEND STATE: Update observable tree with batched changes
+        batch(() => {
+          tree$.root.set(root);
+          // Spread into observable for fine-grained element updates
+          for (const [key, value] of Object.entries(elements)) {
+            if (!tree$.elements[key].peek()) {
+              // New element - set it
+              tree$.elements[key].set(value as UIElement);
+            }
+          }
+        });
+
+        // LOGGING: Log tree$ state after batch
+        console.log(`[useGenerativeMode] tree$ after batch`, {
+          root: tree$.root.get(),
+          elementCount: Object.keys(tree$.elements.get() ?? {}).length,
+        });
+
         const latestState = registry.get(atoms.state);
         registry.set(atoms.state, {
           ...latestState,
@@ -234,17 +287,33 @@ export function useGenerativeMode(cardId: CardId): UseGenerativeModeResult {
           try {
             const op = JSON.parse(line);
             // Handle JSON Patch operations from UITree stream
-            if (op.op === 'replace' && op.path === '/root') {
+            if ((op.op === 'replace' || op.op === 'set') && op.path === '/root') {
+              console.log(`[useGenerativeMode] OP: set root = ${op.value}`);
+              const wasNull = root === null;
               root = op.value;
+              // INCREMENTAL: Flush immediately when root is first set
+              // This enables rendering to start ASAP, even before all elements arrive
+              if (wasNull && root !== null) {
+                console.log(`[useGenerativeMode] Root set - flushing immediately for incremental render`);
+                flushState();
+              }
             } else if (op.op === 'add' && op.path.startsWith('/elements/')) {
               const key = op.path.replace('/elements/', '');
               // OPTIMIZATION: Direct mutation O(1) instead of spread O(n)
               elements[key] = op.value;
+              // Only log first few elements to avoid spam
+              if (Object.keys(elements).length <= 3) {
+                console.log(`[useGenerativeMode] OP: add element ${key}`, { type: (op.value as any)?.type });
+              }
+            } else {
+              // LOGGING: Unknown op pattern
+              console.warn(`[useGenerativeMode] Unknown op pattern:`, op);
             }
             progress = Math.min(progress + 0.05, 0.95);
             pendingOps++;
-          } catch {
-            // Skip malformed JSON lines
+          } catch (parseError) {
+            // LOGGING: Malformed JSON
+            console.warn(`[useGenerativeMode] Malformed JSON line:`, line.slice(0, 100), parseError);
           }
         }
 
@@ -260,6 +329,17 @@ export function useGenerativeMode(cardId: CardId): UseGenerativeModeResult {
         flushState();
       }
 
+      // LOGGING: Final state summary
+      yield* Effect.log(`[useGenerativeMode] Generation complete`);
+      console.log(`[useGenerativeMode] FINAL STATE:`, {
+        root,
+        elementCount: Object.keys(elements).length,
+        elementTypes: [...new Set(Object.values(elements).map((e: any) => e?.type))],
+        tree$RefIsSet: tree$Ref.current !== null,
+        tree$Root: tree$Ref.current?.root.get(),
+        tree$ElementCount: Object.keys(tree$Ref.current?.elements.get() ?? {}).length,
+      });
+
       // Final success state
       const finalState = registry.get(atoms.state);
       registry.set(atoms.state, {
@@ -274,6 +354,8 @@ export function useGenerativeMode(cardId: CardId): UseGenerativeModeResult {
           },
         },
       });
+
+      yield* Effect.log(`[useGenerativeMode] Atom state updated to 'success'`);
     });
 
     // Run the effect with error handling
@@ -357,7 +439,8 @@ export function useGenerativeMode(cardId: CardId): UseGenerativeModeResult {
     generateForMode(currentMode);
   }, [currentMode, atoms.state, registry, generateForMode]);
 
-  return {
+  // LOGGING: Log hook return value on every render
+  const returnValue = {
     isEnabled: genState.enabled,
     status: currentModeState.status,
     progress: currentModeState.progress,
@@ -365,7 +448,26 @@ export function useGenerativeMode(cardId: CardId): UseGenerativeModeResult {
     error: Option.isSome(currentModeState.error) ? currentModeState.error.value : undefined,
     retry,
     generateForMode,
+    tree$: tree$Ref.current,
   };
+
+  // Log when key values change
+  useEffect(() => {
+    console.log(`[useGenerativeMode] Hook return value changed:`, {
+      cardId,
+      mode: currentMode,
+      isEnabled: returnValue.isEnabled,
+      status: returnValue.status,
+      progress: returnValue.progress,
+      hasContent: Option.isSome(returnValue.content),
+      contentRoot: Option.isSome(returnValue.content) ? returnValue.content.value.root : null,
+      contentElementCount: Option.isSome(returnValue.content) ? Object.keys(returnValue.content.value.elements).length : 0,
+      hasTree$: returnValue.tree$ !== null,
+      tree$Root: returnValue.tree$?.root.get() ?? null,
+    });
+  }, [cardId, currentMode, returnValue.isEnabled, returnValue.status, returnValue.progress, returnValue.content, returnValue.tree$]);
+
+  return returnValue;
 }
 
 export default useGenerativeMode;

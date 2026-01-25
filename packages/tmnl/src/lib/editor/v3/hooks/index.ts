@@ -20,3 +20,31 @@ export {
   type UseCurrentDocumentResult,
   type UseDocumentOpsResult,
 } from './useDocuments';
+
+export {
+  // File document hooks
+  useFileDocuments,
+  useCurrentFile,
+  useMarkdownOps,
+  useFileDocumentOpsWithRegistry,
+  useFileDocumentManager,
+  useFileConflict,
+
+  // Types
+  type UseFileDocumentsResult,
+  type UseCurrentFileResult,
+  type UseMarkdownOpsResult,
+  type UseFileConflictResult,
+} from './useFileDocument';
+
+export {
+  // Save functionality
+  useSaveFile,
+
+  // Types
+  type SaveState,
+  type SaveError,
+  type UseSaveFileResult,
+  type UseSaveFileOptions,
+  type MorphingSaveButtonProps,
+} from './useSaveFile';

@@ -5,7 +5,8 @@
  * Uses CSS custom properties from ScaleProvider.
  */
 
-import { Crosshair, Settings, Terminal, User, Zap } from 'lucide-react';
+import { Settings, Terminal, User, Zap } from 'lucide-react';
+import { SelfchartersLogo } from '@/components/brand';
 import { Button } from '@/components/primitives';
 
 // =============================================================================
@@ -58,18 +59,16 @@ export function Header({
         </button>
 
         <div className="flex items-center gap-2">
-          <Crosshair
-            className="text-white"
-            style={{
-              width: 'var(--tmnl-text-lg, 18px)',
-              height: 'var(--tmnl-text-lg, 18px)',
-            }}
+          <SelfchartersLogo.Static
+            variant="solid"
+            size={18}
+            fillColor="#ffffff"
           />
           <span
             className="text-white font-bold tracking-tight uppercase"
             style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
           >
-            TMNL_UI_KIT
+            TMNL
           </span>
         </div>
 

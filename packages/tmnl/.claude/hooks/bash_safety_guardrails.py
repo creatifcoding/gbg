@@ -37,16 +37,18 @@ class SafetyResult:
 # BLOCK RULES - Hard deny, cannot proceed
 # =============================================================================
 BLOCK_PATTERNS = [
-    # Catastrophic deletes
-    (r'rm\s+(-[rf]+\s+)*/', "Catastrophic delete: rm on root"),
-    (r'rm\s+(-[rf]+\s+)*~', "Catastrophic delete: rm on home"),
-    (r'rm\s+(-[rf]+\s+)*\$HOME', "Catastrophic delete: rm on $HOME"),
+    # Catastrophic deletes - only block actual root/home deletion
+    (r'rm\s+(-[rf]+\s+)*/\s*$', "Catastrophic delete: rm /"),
+    (r'rm\s+(-[rf]+\s+)*/\*', "Catastrophic delete: rm /*"),
+    (r'rm\s+(-[rf]+\s+)*~\s*$', "Catastrophic delete: rm ~"),
+    (r'rm\s+(-[rf]+\s+)*~/\*', "Catastrophic delete: rm ~/*"),
+    (r'rm\s+(-[rf]+\s+)*\$HOME\s*$', "Catastrophic delete: rm $HOME"),
+    (r'rm\s+(-[rf]+\s+)*\$HOME/\*', "Catastrophic delete: rm $HOME/*"),
 
-    # Protected paths
-    (r'rm\s+(-[rf]+\s+)*\.claude/', "Protected path: .claude/"),
-    (r'rm\s+(-[rf]+\s+)*\.beads/', "Protected path: .beads/"),
-    (r'rm\s+(-[rf]+\s+)*src/', "Protected path: src/"),
-    (r'rm\s+(-[rf]+\s+)*\.git/', "Protected path: .git/"),
+    # Protected paths (only block direct deletion of these directories)
+    (r'rm\s+(-[rf]+\s+)*\.claude\s*$', "Protected path: .claude/"),
+    (r'rm\s+(-[rf]+\s+)*\.beads\s*$', "Protected path: .beads/"),
+    (r'rm\s+(-[rf]+\s+)*\.git\s*$', "Protected path: .git/"),
 
     # Chained destruction
     (r'rm\s+-rf\s+node_modules\s*&&\s*rm', "Chained rm commands"),

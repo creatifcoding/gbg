@@ -59,6 +59,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/iteration_summary.py\" 2>/dev/null || true"
+          },
+          {
+            "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/adversarial_quality_gate.py\" 2>/dev/null || true"
           }
         ]
@@ -75,5 +79,16 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "infra@local": true
+  },
+  "extraKnownMarketplaces": {
+    "local": {
+      "source": {
+        "source": "directory",
+        "path": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.claude/plugins/local"
+      }
+    }
   }
 }

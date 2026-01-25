@@ -229,10 +229,10 @@ export const SLASH_ITEMS: readonly SlashMenuItem[] = [
   // Advanced
   {
     title: 'Table',
-    description: 'Data grid table (AG-Grid)',
+    description: 'Basic table (markdown)',
     icon: 'Table',
     group: 'Advanced',
-    aliases: ['table', 'grid', 'datagrid'],
+    aliases: ['table', 'markdown-table'],
     command: ({ editor, range }) => {
       editor
         .chain()
@@ -240,6 +240,16 @@ export const SLASH_ITEMS: readonly SlashMenuItem[] = [
         .deleteRange(range)
         .insertTable({ rows: 3, cols: 3 })
         .run();
+    },
+  },
+  {
+    title: 'Data Grid',
+    description: 'AG-Grid table with dataplane support',
+    icon: 'Grid3x3',
+    group: 'Advanced',
+    aliases: ['datagrid', 'aggrid', 'datatable', 'spreadsheet', 'grid'],
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).insertDataGrid().run();
     },
   },
   {

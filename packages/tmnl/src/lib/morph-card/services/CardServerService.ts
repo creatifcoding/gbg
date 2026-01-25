@@ -15,9 +15,10 @@ import { Context, Effect, Stream, Layer, Data } from 'effect';
 // =============================================================================
 
 /**
- * Base URL for the cursor server
+ * Base URL for the cursor server.
+ * Must match CURSOR_CHAT_PORT in cursor/api/server.ts
  */
-const DEFAULT_BASE_URL = 'http://localhost:3000';
+const DEFAULT_BASE_URL = 'http://localhost:7682';
 
 // =============================================================================
 // Error Types

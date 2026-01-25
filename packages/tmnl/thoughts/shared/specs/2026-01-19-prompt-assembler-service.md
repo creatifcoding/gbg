@@ -121,11 +121,58 @@ Request
 AssembledPrompt
 ```
 
+### High-Throughput Stream + Sink Control (Effect)
+
+All streaming pipelines are Effect-native and must be **ordered** and **lossless**.
+Backpressure uses `suspend` so no events are dropped. Batching uses a heuristic
+to reduce overhead without sacrificing step-level determinism.
+
+**Batch heuristic**:
+- `maxItems = 50` events per batch
+- `maxDelay = 200ms` between batches
+
+These defaults are safe for UI/agent workflows and can be tuned later.
+
+**Guidelines**:
+- Use `Stream.async` with `bufferSize` + `strategy: "suspend"`
+- Use `Stream.aggregateWithin` with `Sink.foldUntilEffect` and `Schedule.spaced`
+- Use ordered processing (`Stream.mapEffect` with `concurrency: 1`)
+- Use `Stream.runForEachChunk` for sink efficiency
+
+**Batching example (sink-side, ordered + lossless)**:
+
+```typescript
+const batched = stream.pipe(
+  Stream.aggregateWithin(
+    Sink.foldUntilEffect(Chunk.empty<AssembleProgress>(), 50, (acc, e) =>
+      Effect.succeed(Chunk.append(acc, e))
+    ),
+    Schedule.spaced("200 millis")
+  ),
+  Stream.mapEffect((chunk) => Effect.succeed(chunk), { concurrency: 1, unordered: false })
+)
+
+// Example sink: write chunks to storage
+yield* Stream.runForEachChunk(batched, (chunk) =>
+  Effect.log(`batch-size:${Chunk.size(chunk)}`)
+)
+```
+
 ---
 
 ## Functional Requirements
 
 ### P0: Must Have
+
+#### FR-0: Effect-Native Boundaries
+
+All core logic is Effect-native. `async` is only used at tool/HTTP boundaries.
+Inside services and pipelines, everything returns `Effect` and composes via
+`Effect.gen`, `Effect.map`, and `Effect.flatMap`.
+
+**Acceptance Criteria**:
+- [ ] No `async` in `ai-core` service implementations
+- [ ] Tool/HTTP handlers wrap Effects with `Effect.runPromise`
 
 #### FR-1: Intent Classification
 
@@ -160,13 +207,23 @@ interface PromptSection {
   requiredCapabilities?: string[] // Capabilities that boost relevance
   complexityLevel?: Complexity    // Alignment bonus if matches intent
   dependencies: string[]          // ['base', 'layout'] - other sections this requires
+  hardInclude?: boolean           // Always include, bypass selection + compression
   baseRelevance: number           // 0-1, starting score before intent-based boosts
   priority: number                // 1-10, tiebreaker within same relevance
-  estimatedTokens: number         // Approximate token count
-  template: TemplateFunction      // (context) => string
+  estimatedTokens: {
+    full: number
+    compact: number
+    micro: number
+  }                               // Approximate token count per variant
+  templateVariants: TemplateVariants
 }
 
 type TemplateFunction = (context: TemplateContext) => string
+type TemplateVariants = {
+  full: TemplateFunction
+  compact: TemplateFunction
+  micro: TemplateFunction
+}
 
 interface TemplateContext {
   catalog: CatalogDocs           // From getCatalogPrompt()
@@ -189,19 +246,22 @@ interface SectionRegistry {
 // 1. Score all sections against intent
 const scores = computeRelevanceScores(intent, sectionsById)
 
-// 2. Build RedBlackTree keyed by relevance
-let tree = RedBlackTree.empty<number, PromptSection>(Number.Order)
+// 2. Build RedBlackTree keyed by [relevance, id] to avoid collisions
+let tree = RedBlackTree.empty<[number, string], PromptSection>(
+  Order.tuple(Order.number, Order.string)
+)
 for (const [id, relevance] of scores) {
   const section = sectionsById.get(id)
   if (section) {
-    tree = RedBlackTree.insert(tree, relevance, section)
+    tree = RedBlackTree.insert(tree, [relevance, id], section)
   }
 }
 
 // 3. Range query: O(log n) to find threshold, then iterate qualifying nodes
 const threshold = 0.7 // Configurable
 const selected: PromptSection[] = []
-for (const [relevance, section] of RedBlackTree.greaterThanEqualForwards(tree, threshold)) {
+for (const [[_relevance, _id], section] of
+     RedBlackTree.greaterThanEqualForwards(tree, [threshold, ''])) {
   selected.push(section)
 }
 // Result: sections ordered by relevance (tree property)
@@ -242,11 +302,12 @@ const computeRelevanceScores = (intent: StructuredIntent, sections: Map<string, 
 
 **Acceptance Criteria**:
 - [ ] Sections can be registered from any module
-- [ ] Dependency graph is resolved correctly (no cycles)
+- [ ] Cyclical dependencies are skipped with warning
 - [ ] Hot-reload works: invalidate section → next call uses new content
 - [ ] RedBlackTree range query returns sections above threshold
 - [ ] Relevance scoring formula is configurable
 - [ ] O(log n) selection complexity verified in benchmarks
+- [ ] Schema validation on read skips invalid rows with warning
 
 #### FR-3: Prompt Assembly
 
@@ -255,6 +316,7 @@ interface AssembleRequest {
   prompt: string
   currentTree?: unknown
   components?: ComponentDoc[]     // Dynamic component injection
+  hardIncludeSectionIds?: string[] // Always include at full fidelity
   context?: Record<string, unknown>
 }
 
@@ -276,6 +338,7 @@ interface PromptMetadata {
     used: number
     warnings: string[]
   }
+  warnings: string[]             // Compression/cycle/validation warnings
   assemblyTimeMs: number
   classificationTimeMs: number
 }
@@ -285,6 +348,7 @@ interface PromptMetadata {
 - [ ] Assembled prompt is valid (all required sections present)
 - [ ] Metadata accurately reflects assembly decisions
 - [ ] Observability span includes all metrics
+- [ ] Assembly uses selected template variant (full/compact/micro)
 
 #### FR-4: Token Budget Management
 
@@ -294,10 +358,54 @@ interface PromptMetadata {
 | medium | 5000 | Multi-component, some interactivity |
 | complex | 10000 | Dashboard, mixed domains, generative |
 
+**Compression Strategy (no drops)**:
+
+- All sections must provide `templateVariants.full|compact|micro`
+- Variants are pre-authored and factual (no auto-summarization)
+- Budget manager selects variant per section
+- Dependencies compress before non-dependencies
+- Hard-includes always use `full`
+
+```typescript
+const applyBudget = (sections: PromptSection[], tier: Complexity) =>
+  Effect.sync(() => {
+    const warnings: string[] = []
+    const selected = sections.map((section) => ({
+      section,
+      variant: 'full' as const,
+    }))
+
+    const compress = (entry: { section: PromptSection; variant: 'full' | 'compact' | 'micro' }) => {
+      if (entry.section.hardInclude) return
+      if (entry.variant === 'full') entry.variant = 'compact'
+      else if (entry.variant === 'compact') entry.variant = 'micro'
+      if (entry.variant !== 'full') {
+        warnings.push(`compressed:${entry.section.id}:${entry.variant}`)
+      }
+    }
+
+    // compress deps first, then non-deps until within budget
+    while (estimateTokens(selected) > tierBudget(tier)) {
+      const dep = selected.find((s) => isDependency(sections, s.section))
+      if (dep) {
+        compress(dep)
+      } else {
+        const next = selected.find((s) => s.variant !== 'micro')
+        if (!next) break
+        compress(next)
+      }
+    }
+
+    return { sections: selected, warnings }
+  })
+```
+
 **Acceptance Criteria**:
 - [ ] Budget tier determined by intent complexity
-- [ ] Sections prioritized by priority field if over budget
-- [ ] Warning emitted if budget exceeded (soft enforcement)
+- [ ] Dependencies resolved before budget enforcement
+- [ ] Over-budget handled by compression (full → compact → micro), not dropping
+- [ ] Compression applies to all sections, deps first
+- [ ] Warnings emitted for any compressed sections
 
 ### P1: Should Have
 
@@ -445,7 +553,6 @@ const AssemblyLogger = Logger.make<string, unknown>((options) => {
     spans: List.toArray(spans).map(({ label, startTime }) => ({
       label,
       startTime,
-      duration: Date.now() - startTime,
     })),
     ...(Cause.isEmpty(cause) ? {} : { cause: Cause.pretty(cause) }),
   }
@@ -615,7 +722,8 @@ const computeKMax = (config: ThresholdFlooredKConfig): number => {
 ```typescript
 const selectSections = (
   intent: StructuredIntent,
-  config: ThresholdFlooredKConfig
+  config: ThresholdFlooredKConfig,
+  options?: { hardIncludeSectionIds?: string[] }
 ) =>
   Effect.gen(function* () {
     // 1. Score all sections (additive model)
@@ -636,8 +744,19 @@ const selectSections = (
     // Note: tree iteration is ascending, so we reverse for top-K
     const topK = qualityFiltered.slice(-kMax).reverse()
 
-    // 5. Resolve dependencies (may add more sections)
-    return yield* resolveDependencies(topK, sectionsById)
+    // 5. Add hard-include sections (always full fidelity)
+    const hardIncludeIds = options?.hardIncludeSectionIds ?? []
+    const hardIncludes = hardIncludeIds
+      .map((id) => sectionsById.get(id))
+      .filter((s): s is PromptSection => Boolean(s))
+
+    // 6. Resolve dependencies (may add more sections)
+    const { sections, warnings } = yield* resolveDependencies(
+      [...topK, ...hardIncludes],
+      sectionsById
+    )
+    // warnings propagated to PromptMetadata.warnings
+    return sections
   })
 ```
 
@@ -674,7 +793,7 @@ export const SectionWeights = Schema.Struct({
 
   /**
    * Runtime override from tools via API
-   * Positive = boost, Negative = suppress, +1.0 = force include
+   * Positive = boost, Negative = suppress (hard-include is separate)
    * Accessed via: POST /api/assembler/overrides/:sectionId
    */
   override: Schema.optionalWith(Schema.Number, { default: () => 0 }),
@@ -738,7 +857,8 @@ const computeRelevanceScores = (
 ```typescript
 const getTopKSections = (
   intent: StructuredIntent,
-  config: DynamicKConfig
+  config: DynamicKConfig,
+  options?: { hardIncludeSectionIds?: string[] }
 ) =>
   Effect.gen(function* () {
     // 1. Compute all scores
@@ -759,8 +879,19 @@ const getTopKSections = (
       selected.push(section)
     }
 
-    // 5. Resolve dependencies (may exceed K)
-    return yield* resolveDependencies(selected, sectionsById)
+    // 5. Add hard-include sections (always full fidelity)
+    const hardIncludeIds = options?.hardIncludeSectionIds ?? []
+    const hardIncludes = hardIncludeIds
+      .map((id) => sectionsById.get(id))
+      .filter((s): s is PromptSection => Boolean(s))
+
+    // 6. Resolve dependencies (may exceed K)
+    const { sections, warnings } = yield* resolveDependencies(
+      [...selected, ...hardIncludes],
+      sectionsById
+    )
+    // warnings propagated to PromptMetadata.warnings
+    return sections
   })
 ```
 
@@ -796,7 +927,8 @@ Overrides are managed via a runtime API that tools can call to dynamically boost
 // POST /api/assembler/overrides/:sectionId
 // Set override for a section
 interface SetOverrideRequest {
-  value: number      // -1.0 to +1.0 (or higher for force-include)
+  version: number    // Monotonic per section_id
+  value: number      // -1.0 to +1.0
   reason?: string    // Audit trail
   ttl?: number       // Auto-expire in ms (optional)
 }
@@ -805,6 +937,7 @@ interface SetOverrideRequest {
 // List all active overrides
 interface OverrideEntry {
   sectionId: string
+  version: number
   value: number
   reason?: string
   setAt: number      // Timestamp
@@ -816,66 +949,41 @@ interface OverrideEntry {
 // Remove override (revert to declared + learned + computed only)
 ```
 
-**Service Implementation**:
+**Service Implementation (Postgres authoritative)**:
 
 ```typescript
 class OverrideService extends Effect.Service<OverrideService>()(
   'ai-core/OverrideService',
   {
     effect: Effect.gen(function* () {
-      // In-memory store with TTL support
-      const overrides = new Map<string, {
-        value: number
-        reason?: string
-        setAt: number
-        expiresAt?: number
-        setBy: string
-      }>()
+      const repo = yield* AssemblerRepository
+      const cache = yield* OverrideCache
 
       const set = (sectionId: string, request: SetOverrideRequest, setBy: string) =>
-        Effect.sync(() => {
-          overrides.set(sectionId, {
+        Effect.gen(function* () {
+          const entry = {
+            sectionId,
+            version: request.version,
             value: request.value,
             reason: request.reason,
             setAt: Date.now(),
             expiresAt: request.ttl ? Date.now() + request.ttl : undefined,
             setBy,
-          })
+          }
+          yield* repo.upsertOverride(entry)
+          yield* cache.set(sectionId, entry)
         })
 
       const get = (sectionId: string) =>
-        Effect.sync(() => {
-          const entry = overrides.get(sectionId)
-          if (!entry) return 0
-
-          // Check expiry
-          if (entry.expiresAt && Date.now() > entry.expiresAt) {
-            overrides.delete(sectionId)
-            return 0
-          }
-
-          return entry.value
-        })
+        cache.get(sectionId).pipe(
+          Effect.map((v) => v ?? 0)
+        )
 
       const remove = (sectionId: string) =>
-        Effect.sync(() => overrides.delete(sectionId))
+        repo.removeOverride(sectionId)
 
       const list = () =>
-        Effect.sync(() => {
-          const now = Date.now()
-          const result: OverrideEntry[] = []
-
-          for (const [sectionId, entry] of overrides) {
-            // Skip expired
-            if (entry.expiresAt && now > entry.expiresAt) {
-              overrides.delete(sectionId)
-              continue
-            }
-            result.push({ sectionId, ...entry })
-          }
-
-          return result
-        })
+        repo.listOverrides()
 
       return { set, get, remove, list } as const
     }),
@@ -896,7 +1004,8 @@ weights.override = override
 - [ ] Overrides support TTL for auto-expiry
 - [ ] Audit trail includes reason and setBy
 - [ ] Expired overrides are cleaned up on access
-- [ ] Override values clamp final relevance to [0, 1] (or allow >1 for force-include)
+- [ ] Override values clamp final relevance to [0, 1]
+- [ ] Hard-include is separate from overrides and bypasses selection/compression
 
 #### FR-11: Embedding Service (Mockable)
 
@@ -966,9 +1075,9 @@ const USE_PROMPT_ASSEMBLER = process.env.USE_PROMPT_ASSEMBLER === 'true'
 
 ## Technical Architecture
 
-### Tool-Centric Model (AI SDK Tools + SQLite Persistence)
+### Tool-Centric Model (AI SDK Tools + Postgres Persistence)
 
-The assembler exposes **AI SDK streaming tools** that agents call during UI generation. All artifacts persist to SQLite for audit trail, analytics, and hot-reload support.
+The assembler exposes **AI SDK streaming tools** that agents call during UI generation. All artifacts persist to Postgres for audit trail, analytics, and hot-reload support.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -977,10 +1086,10 @@ The assembler exposes **AI SDK streaming tools** that agents call during UI gene
 │   UI Generation Agent (Claude)                                              │
 │   │                                                                         │
 │   ├─ tool: assembler_register_section                                       │
-│   │   └─ Dev workflow: author section → validate → persist to SQLite        │
+│   │   └─ Dev workflow: author section → validate → persist to Postgres      │
 │   │                                                                         │
 │   ├─ tool: assembler_set_override                                           │
-│   │   └─ Runtime: boost/suppress section → Effect.Cache → SQLite (batched)  │
+│   │   └─ Runtime: boost/suppress section → Effect.Cache → Postgres (batch)  │
 │   │                                                                         │
 │   ├─ tool: assembler_assemble (STREAMING)                                   │
 │   │   └─ Real-time: classify → score → select → assemble → persist trail    │
@@ -996,30 +1105,31 @@ The assembler exposes **AI SDK streaming tools** that agents call during UI gene
 │   ┌─────────────────────────────────────────────────────────────────────┐   │
 │   │ Effect.Cache<SectionId, Override>                                    │   │
 │   │   ├─ lookup() → Effect<Override>                                     │   │
-│   │   ├─ TTL eviction → triggers batch write to SQLite                   │   │
+│   │   ├─ Read-through cache; Postgres is authoritative                  │   │
 │   │   └─ capacity: configurable (e.g., 1000 overrides)                   │   │
 │   └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 │   ┌─────────────────────────────────────────────────────────────────────┐   │
-│   │ SQLite (XDG: ~/.local/share/tmnl/assembler.db)                       │   │
+│   │ Postgres (DATABASE_URL via Effect Config)                            │   │
 │   │                                                                       │   │
 │   │ sections                                                              │   │
 │   │ ├─ id TEXT PRIMARY KEY                                                │   │
 │   │ ├─ tags JSONB                        -- ['chart', 'visualization']   │   │
 │   │ ├─ domain TEXT                       -- 'visualization'              │   │
 │   │ ├─ metadata JSONB                    -- {capabilities, complexity}   │   │
-│   │ ├─ template TEXT                     -- The actual prompt fragment    │   │
-│   │ ├─ estimated_tokens INTEGER                                           │   │
+│   │ ├─ template_variants JSONB           -- {full, compact, micro}        │   │
+│   │ ├─ estimated_tokens JSONB                                           │   │
 │   │ ├─ status TEXT                       -- 'draft' | 'active'           │   │
 │   │ └─ created_at, updated_at TIMESTAMP                                   │   │
 │   │                                                                       │   │
 │   │ overrides                                                             │   │
 │   │ ├─ section_id TEXT FK                                                 │   │
+│   │ ├─ version BIGINT                 -- monotonic per section             │   │
 │   │ ├─ value REAL                        -- -1.0 to +1.0                  │   │
 │   │ ├─ reason TEXT                                                        │   │
 │   │ ├─ set_by TEXT                       -- tool/agent identifier         │   │
 │   │ ├─ expires_at TIMESTAMP              -- TTL                           │   │
-│   │ └─ created_at TIMESTAMP                                               │   │
+│   │ └─ set_at TIMESTAMP                                                   │   │
 │   │                                                                       │   │
 │   │ assemblies                                                            │   │
 │   │ ├─ id TEXT PRIMARY KEY               -- UUID                          │   │
@@ -1042,45 +1152,31 @@ The assembler exposes **AI SDK streaming tools** that agents call during UI gene
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Write-Behind Cache Flow (Effect.Cache + SQLite)
+### Write-Through Overrides (Postgres Authoritative)
 
-Override writes go to Effect.Cache immediately. TTL eviction triggers batched writes to SQLite for audit trail.
+Overrides are audited configuration. Postgres is the source of truth.
+The cache is read-through only and never the durability path.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    WRITE-BEHIND CACHE WITH TTL TRIGGER                       │
+│                     WRITE-THROUGH OVERRIDE FLOW                              │
 │                                                                             │
-│   set_override(sectionId, value, ttl=5min)                                  │
+│   set_override(sectionId, value, version)                                   │
 │   │                                                                         │
 │   ▼                                                                         │
 │   ┌───────────────────────────────────────┐                                 │
-│   │ Effect.Cache.set(sectionId, override) │ ← Hot path (immediate)          │
+│   │ Postgres UPSERT (versioned)           │ ← Authoritative write           │
 │   └───────────────────────────────────────┘                                 │
 │   │                                                                         │
-│   │  ... time passes ...                                                    │
-│   │                                                                         │
-│   ▼                                                                         │
-│   TTL Eviction Triggers (5min later)                                        │
-│   │                                                                         │
 │   ▼                                                                         │
 │   ┌───────────────────────────────────────┐                                 │
-│   │ Batch Write Queue                      │                                │
-│   │ ├─ override_1 (evicted)                │                                │
-│   │ ├─ override_2 (evicted)                │                                │
-│   │ └─ override_3 (evicted)                │                                │
-│   └───────────────────────────────────────┘                                 │
-│   │                                                                         │
-│   │  Periodic flush OR queue threshold (e.g., 10 items)                     │
-│   │                                                                         │
-│   ▼                                                                         │
-│   ┌───────────────────────────────────────┐                                 │
-│   │ SQLite Batch INSERT                    │ ← Audit trail preserved        │
-│   │ INSERT INTO overrides VALUES (...),   │                                 │
-│   │ (...), (...)                           │                                │
+│   │ Effect.Cache.set(sectionId, override) │ ← Optional warm cache           │
 │   └───────────────────────────────────────┘                                 │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+**Versioned upsert**: `WHERE excluded.version > overrides.version` prevents stale writes.
 
 ### Section Lifecycle Workflow
 
@@ -1100,9 +1196,9 @@ Full lifecycle: Author → Test → Deploy → Monitor (with hot-reload support)
 │   (status='draft')    (dry_run=true)   (section_id)       (intent_hash)    │
 │        │                  │                 │                  │            │
 │        ▼                  ▼                 ▼                  ▼            │
-│   SQLite:             Compare with     SQLite:             SQLite:          │
+│   Postgres:           Compare with     Postgres:           Postgres:        │
 │   sections            expected output  UPDATE sections     SELECT analytics │
-│   (status='draft')                     SET template=...    WHERE intent_hash│
+│   (status='draft')                     SET template_variants=... WHERE intent_hash│
 │                                        (triggers cache                      │
 │                                         invalidation)      Learn: "chart    │
 │                                                           section rarely    │
@@ -1117,7 +1213,7 @@ Full lifecycle: Author → Test → Deploy → Monitor (with hot-reload support)
 // src/lib/ai-core/tools/assembler-tools.ts
 
 import { tool } from 'ai'
-import { Schema, JSONSchema } from 'effect'
+import { Effect, Schema, Stream, JSONSchema } from 'effect'
 
 // =============================================================================
 // Tool: assembler_register_section
@@ -1130,27 +1226,36 @@ const RegisterSectionInput = Schema.Struct({
   capabilities: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
   complexityLevel: Schema.optional(Schema.Literal('simple', 'medium', 'complex')),
   dependencies: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
+  hardInclude: Schema.optionalWith(Schema.Boolean, { default: () => false }),
   baseRelevance: Schema.Number.pipe(Schema.between(0, 1)),
-  estimatedTokens: Schema.Number,
-  template: Schema.String,
+  priority: Schema.Number.pipe(Schema.between(1, 10)),
+  estimatedTokens: Schema.Struct({
+    full: Schema.Number,
+    compact: Schema.Number,
+    micro: Schema.Number,
+  }),
+  templateVariants: Schema.Struct({
+    full: Schema.String,
+    compact: Schema.String,
+    micro: Schema.String,
+  }),
   status: Schema.optionalWith(Schema.Literal('draft', 'active'), { default: () => 'draft' as const }),
 })
 type RegisterSectionInput = typeof RegisterSectionInput.Type
 
 export const assembler_register_section = tool({
-  description: 'Register a new prompt section or update existing. Use status=draft for testing.',
+  description: 'Register or update a prompt section with full/compact/micro templates. Use status=draft for testing.',
   parameters: jsonSchema<RegisterSectionInput>(
     JSONSchema.make(RegisterSectionInput) as Parameters<typeof jsonSchema>[0]
   ),
-  execute: async (input: RegisterSectionInput) => {
-    // Persist to SQLite via AssemblerRepository
-    const result = await Effect.runPromise(
-      AssemblerRepository.upsertSection(input).pipe(
-        Effect.provide(AssemblerRepositoryLive)
-      )
-    )
-    return { success: true, sectionId: input.id, status: input.status }
-  },
+  execute: (input: RegisterSectionInput) =>
+    Effect.gen(function* () {
+      yield* AssemblerRepository.upsertSection(input)
+      return { success: true, sectionId: input.id, status: input.status }
+    }).pipe(
+      Effect.provide(AssemblerRepositoryLive),
+      Effect.runPromise
+    ),
 })
 
 // =============================================================================
@@ -1159,29 +1264,45 @@ export const assembler_register_section = tool({
 
 const SetOverrideInput = Schema.Struct({
   sectionId: Schema.String,
-  value: Schema.Number.pipe(Schema.between(-1, 2)), // -1 to +2 (>1 = force include)
+  version: Schema.Number, // Monotonic per section_id
+  value: Schema.Number.pipe(Schema.between(-1, 1)), // -1 to +1
   reason: Schema.optional(Schema.String),
   ttlMs: Schema.optionalWith(Schema.Number, { default: () => 300_000 }), // 5min default
 })
 type SetOverrideInput = typeof SetOverrideInput.Type
 
 export const assembler_set_override = tool({
-  description: 'Set relevance override for a section. Positive = boost, negative = suppress, >1 = force include.',
+  description: 'Set relevance override for a section. Positive = boost, negative = suppress.',
   parameters: jsonSchema<SetOverrideInput>(
     JSONSchema.make(SetOverrideInput) as Parameters<typeof jsonSchema>[0]
   ),
-  execute: async (input: SetOverrideInput, { toolCallId }) => {
-    // Write to Effect.Cache (hot path)
-    await Effect.runPromise(
-      OverrideCache.set(input.sectionId, {
+  execute: (input: SetOverrideInput, { toolCallId }) =>
+    Effect.gen(function* () {
+      const setAt = Date.now()
+      const expiresAt = setAt + input.ttlMs
+      yield* AssemblerRepository.upsertOverride({
+        sectionId: input.sectionId,
+        version: input.version,
         value: input.value,
         reason: input.reason,
         setBy: toolCallId,
-        expiresAt: Date.now() + input.ttlMs,
-      }).pipe(Effect.provide(OverrideCacheLive))
-    )
-    return { success: true, sectionId: input.sectionId, ttlMs: input.ttlMs }
-  },
+        expiresAt,
+        setAt,
+      })
+      yield* OverrideCache.set(input.sectionId, {
+        value: input.value,
+        reason: input.reason,
+        setBy: toolCallId,
+        expiresAt,
+        setAt,
+        version: input.version,
+      })
+      return { success: true, sectionId: input.sectionId, ttlMs: input.ttlMs }
+    }).pipe(
+      Effect.provide(AssemblerRepositoryLive),
+      Effect.provide(OverrideCacheLive),
+      Effect.runPromise
+    ),
 })
 
 // =============================================================================
@@ -1192,6 +1313,7 @@ const AssembleInput = Schema.Struct({
   prompt: Schema.String,
   hints: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
   dryRun: Schema.optionalWith(Schema.Boolean, { default: () => false }),
+  hardIncludeSectionIds: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
   context: Schema.optional(Schema.Unknown),
 })
 type AssembleInput = typeof AssembleInput.Type
@@ -1233,66 +1355,75 @@ export const assembler_assemble = tool({
   parameters: jsonSchema<AssembleInput>(
     JSONSchema.make(AssembleInput) as Parameters<typeof jsonSchema>[0]
   ),
-  execute: async function* (input: AssembleInput): AsyncGenerator<AssembleProgress> {
-    const assemblyId = crypto.randomUUID()
-    const startTime = Date.now()
+  execute: (input: AssembleInput) =>
+    Stream.async<AssembleProgress>((emit) =>
+      Effect.gen(function* () {
+        const assemblyId = crypto.randomUUID()
+        const startTime = Date.now()
 
-    // 1. Classify intent
-    const intent = await Effect.runPromise(
-      IntentClassifier.classify({ prompt: input.prompt, hints: input.hints }).pipe(
-        Effect.provide(IntentClassifierLive)
-      )
-    )
-    yield { _tag: 'IntentClassified', intent, classificationMs: Date.now() - startTime }
+        // Controlled incremental emission (explicit step boundaries)
+        const step = (event: AssembleProgress) =>
+          Effect.sync(() => emit.single(event))
 
-    // 2. Score all sections
-    const scores = await Effect.runPromise(
-      AssemblerRepository.getAllSections().pipe(
-        Effect.flatMap((sections) => computeRelevanceScores(intent, sections)),
-        Effect.provide(AssemblerRepositoryLive)
-      )
-    )
-    yield {
-      _tag: 'SectionsScored',
-      scores: Array.from(scores.entries()).map(([id, rel]) => ({ sectionId: id, relevance: rel })),
-    }
+        // 1. Classify intent
+        const intent = yield* IntentClassifier.classify({
+          prompt: input.prompt,
+          hints: input.hints,
+        })
+        yield* step({ _tag: 'IntentClassified', intent, classificationMs: Date.now() - startTime })
 
-    // 3. Select top-K with threshold floor
-    const { included, excluded, kMax } = await Effect.runPromise(
-      selectSections(intent, scores).pipe(Effect.provide(OverrideCacheLive))
-    )
-    yield { _tag: 'SectionsSelected', included, excluded, kMax }
+        // 2. Score all sections
+        const scores = yield* AssemblerRepository.getAllSections().pipe(
+          Effect.flatMap((sections) => computeRelevanceScores(intent, sections))
+        )
+        yield* step({
+          _tag: 'SectionsScored',
+          scores: Array.from(scores.entries()).map(([id, rel]) => ({ sectionId: id, relevance: rel })),
+        })
 
-    // 4. Assemble prompt
-    const { prompt: assembledPrompt, tokenCount, fullTokens } = await Effect.runPromise(
-      assembleSections(included, input.context).pipe(Effect.provide(AssemblerRepositoryLive))
-    )
-    const reductionPercent = (fullTokens - tokenCount) / fullTokens
-    yield {
-      _tag: 'Assembled',
-      tokenCount,
-      reductionPercent,
-      assemblyMs: Date.now() - startTime,
-    }
+        // 3. Select top-K with threshold floor
+        const { included, excluded, kMax } = yield* selectSections(intent, scores, {
+          hardIncludeSectionIds: input.hardIncludeSectionIds,
+        }).pipe(Effect.provide(OverrideCacheLive))
+        yield* step({ _tag: 'SectionsSelected', included, excluded, kMax })
 
-    // 5. Record analytics (unless dry run)
-    if (!input.dryRun) {
-      const analyticsId = await Effect.runPromise(
-        AssemblerRepository.recordAssembly({
-          id: assemblyId,
-          intent,
-          sectionsIncluded: included,
-          sectionsExcluded: excluded,
+        // 4. Assemble prompt
+        const { prompt: assembledPrompt, tokenCount, fullTokens } = yield* assembleSections(
+          included,
+          input.context
+        ).pipe(Effect.provide(AssemblerRepositoryLive))
+        const reductionPercent = (fullTokens - tokenCount) / fullTokens
+        yield* step({
+          _tag: 'Assembled',
           tokenCount,
           reductionPercent,
-        }).pipe(Effect.provide(AssemblerRepositoryLive))
-      )
-      yield { _tag: 'AnalyticsRecorded', analyticsId }
-    }
+          assemblyMs: Date.now() - startTime,
+        })
 
-    // 6. Done
-    yield { _tag: 'Done', assemblyId, prompt: assembledPrompt }
-  },
+        // 5. Record analytics (unless dry run)
+        if (!input.dryRun) {
+          const analyticsId = yield* AssemblerRepository.recordAssembly({
+            id: assemblyId,
+            intent,
+            sectionsIncluded: included,
+            sectionsExcluded: excluded,
+            tokenCount,
+            reductionPercent,
+          }).pipe(Effect.provide(AssemblerRepositoryLive))
+          yield* step({ _tag: 'AnalyticsRecorded', analyticsId })
+        }
+
+        // 6. Done
+        yield* step({ _tag: 'Done', assemblyId, prompt: assembledPrompt })
+      }).pipe(
+        Effect.provide(IntentClassifierLive),
+        Effect.provide(AssemblerRepositoryLive),
+        Effect.provide(OverrideCacheLive)
+      )
+    , { bufferSize: 64, strategy: 'suspend' }
+    )
+    // Tool boundary should convert Stream to AsyncIterable for the SDK
+    // e.g., Stream.toAsyncIterable(Runtime.defaultRuntime)
 })
 
 // =============================================================================
@@ -1312,14 +1443,14 @@ export const assembler_query_history = tool({
   parameters: jsonSchema<QueryHistoryInput>(
     JSONSchema.make(QueryHistoryInput) as Parameters<typeof jsonSchema>[0]
   ),
-  execute: async (input: QueryHistoryInput) => {
-    const assemblies = await Effect.runPromise(
-      AssemblerRepository.queryAssemblies(input).pipe(
-        Effect.provide(AssemblerRepositoryLive)
-      )
-    )
-    return { assemblies, count: assemblies.length }
-  },
+  execute: (input: QueryHistoryInput) =>
+    Effect.gen(function* () {
+      const assemblies = yield* AssemblerRepository.queryAssemblies(input)
+      return { assemblies, count: assemblies.length }
+    }).pipe(
+      Effect.provide(AssemblerRepositoryLive),
+      Effect.runPromise
+    ),
 })
 
 // =============================================================================
@@ -1338,43 +1469,41 @@ export const assembler_get_analytics = tool({
   parameters: jsonSchema<GetAnalyticsInput>(
     JSONSchema.make(GetAnalyticsInput) as Parameters<typeof jsonSchema>[0]
   ),
-  execute: async (input: GetAnalyticsInput) => {
-    const analytics = await Effect.runPromise(
-      AssemblerRepository.getAnalytics(input).pipe(
-        Effect.provide(AssemblerRepositoryLive)
-      )
-    )
-    return { analytics }
-  },
+  execute: (input: GetAnalyticsInput) =>
+    Effect.gen(function* () {
+      const analytics = yield* AssemblerRepository.getAnalytics(input)
+      return { analytics }
+    }).pipe(
+      Effect.provide(AssemblerRepositoryLive),
+      Effect.runPromise
+    ),
 })
 ```
 
-### SQLite Repository (Effect SQL)
+### Postgres Repository (Effect SQL + Effect Platform Config)
 
 ```typescript
 // src/lib/ai-core/services/AssemblerRepository.ts
 
-import { Effect, Layer } from 'effect'
+import { Effect, Layer, Option, Schema } from 'effect'
 import * as Sql from '@effect/sql'
-import * as SqliteBun from '@effect/sql-sqlite-bun'
-import * as path from 'path'
-import * as os from 'os'
+import * as Pg from '@effect/sql-pg'
+import * as Config from 'effect/Config'
+import { PromptSection } from '../schemas/section'
 
-// XDG data directory
-const getDbPath = () => {
-  const xdgData = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share')
-  return path.join(xdgData, 'tmnl', 'assembler.db')
-}
+// DATABASE_URL from Effect Platform config
+const DbUrl = Config.string('DATABASE_URL')
 
-// SQLite client layer
-const SqliteLive = SqliteBun.SqliteClient.layer({
-  filename: getDbPath(),
-  // Enable WAL mode for better concurrent access
-  pragma: {
-    journal_mode: 'WAL',
-    foreign_keys: 'ON',
-  },
-})
+// Postgres client layer
+const PgLive = Layer.unwrapEffect(
+  Effect.gen(function* () {
+    const url = yield* DbUrl
+    return Pg.PgClient.layer({
+      connectionString: url,
+      // Optional: max connections, statement_timeout, etc.
+    })
+  })
+)
 
 class AssemblerRepository extends Effect.Service<AssemblerRepository>()(
   'ai-core/AssemblerRepository',
@@ -1389,8 +1518,8 @@ class AssemblerRepository extends Effect.Service<AssemblerRepository>()(
           tags JSONB NOT NULL,
           domain TEXT NOT NULL,
           metadata JSONB NOT NULL,
-          template TEXT NOT NULL,
-          estimated_tokens INTEGER NOT NULL,
+          template_variants JSONB NOT NULL,
+          estimated_tokens JSONB NOT NULL,
           status TEXT NOT NULL DEFAULT 'draft',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -1400,11 +1529,13 @@ class AssemblerRepository extends Effect.Service<AssemblerRepository>()(
         CREATE TABLE IF NOT EXISTS overrides (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           section_id TEXT NOT NULL,
+          version BIGINT NOT NULL,
           value REAL NOT NULL,
           reason TEXT,
           set_by TEXT NOT NULL,
           expires_at TIMESTAMP,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          set_at TIMESTAMP NOT NULL,
+          UNIQUE(section_id),
           FOREIGN KEY (section_id) REFERENCES sections(id)
         )
       `
@@ -1438,14 +1569,14 @@ class AssemblerRepository extends Effect.Service<AssemblerRepository>()(
 
       const upsertSection = (section: RegisterSectionInput) =>
         sql`
-          INSERT INTO sections (id, tags, domain, metadata, template, estimated_tokens, status, updated_at)
+          INSERT INTO sections (id, tags, domain, metadata, template_variants, estimated_tokens, status, updated_at)
           VALUES (
             ${section.id},
             ${JSON.stringify(section.tags)},
             ${section.domain},
-            ${JSON.stringify({ capabilities: section.capabilities, complexityLevel: section.complexityLevel, dependencies: section.dependencies, baseRelevance: section.baseRelevance })},
-            ${section.template},
-            ${section.estimatedTokens},
+            ${JSON.stringify({ capabilities: section.capabilities, complexityLevel: section.complexityLevel, dependencies: section.dependencies, baseRelevance: section.baseRelevance, hardInclude: section.hardInclude, priority: section.priority })},
+            ${JSON.stringify(section.templateVariants)},
+            ${JSON.stringify(section.estimatedTokens)},
             ${section.status},
             CURRENT_TIMESTAMP
           )
@@ -1453,15 +1584,15 @@ class AssemblerRepository extends Effect.Service<AssemblerRepository>()(
             tags = excluded.tags,
             domain = excluded.domain,
             metadata = excluded.metadata,
-            template = excluded.template,
+            template_variants = excluded.template_variants,
             estimated_tokens = excluded.estimated_tokens,
             status = excluded.status,
             updated_at = CURRENT_TIMESTAMP
         `
 
       const getAllSections = () =>
-        sql<{ id: string; tags: string; domain: string; metadata: string; template: string; estimated_tokens: number }>`
-          SELECT id, tags, domain, metadata, template, estimated_tokens
+        sql<{ id: string; tags: string; domain: string; metadata: string; template_variants: string; estimated_tokens: string }>`
+          SELECT id, tags, domain, metadata, template_variants, estimated_tokens
           FROM sections
           WHERE status = 'active'
         `.pipe(
@@ -1470,10 +1601,43 @@ class AssemblerRepository extends Effect.Service<AssemblerRepository>()(
               id: r.id,
               tags: JSON.parse(r.tags) as string[],
               domain: r.domain,
-              ...JSON.parse(r.metadata),
-              template: r.template,
-              estimatedTokens: r.estimated_tokens,
+              ...(() => {
+                const metadata = JSON.parse(r.metadata) as {
+                  capabilities?: string[]
+                  complexityLevel?: string
+                  dependencies?: string[]
+                  baseRelevance?: number
+                  hardInclude?: boolean
+                  priority?: number
+                }
+                return {
+                  requiredCapabilities: metadata.capabilities ?? [],
+                  complexityLevel: metadata.complexityLevel,
+                  dependencies: metadata.dependencies ?? [],
+                  baseRelevance: metadata.baseRelevance ?? 0.5,
+                  hardInclude: metadata.hardInclude ?? false,
+                  priority: metadata.priority ?? 5,
+                }
+              })(),
+              templateVariants: JSON.parse(r.template_variants),
+              estimatedTokens: JSON.parse(r.estimated_tokens),
             }))
+          ),
+          Effect.flatMap((rows) =>
+            Effect.forEach(rows, (row) =>
+              Schema.decode(PromptSection)(row).pipe(
+                Effect.map(Option.some),
+                Effect.catchAll((e) =>
+                  Effect.logWarning('invalid-section-skipped', e).pipe(
+                    Effect.as(Option.none<PromptSection>())
+                  )
+                )
+              )
+            ).pipe(
+              Effect.map((decoded) =>
+                decoded.flatMap((o) => (o._tag === 'Some' ? [o.value] : []))
+              )
+            )
           )
         )
 
@@ -1497,81 +1661,84 @@ class AssemblerRepository extends Effect.Service<AssemblerRepository>()(
           )
         `.pipe(Effect.as(assembly.id))
 
+      const upsertOverride = (override: {
+        sectionId: string
+        version: number
+        value: number
+        reason?: string
+        setBy: string
+        expiresAt?: number
+        setAt: number
+      }) =>
+        sql`
+          INSERT INTO overrides (section_id, version, value, reason, set_by, expires_at, set_at)
+          VALUES (
+            ${override.sectionId},
+            ${override.version},
+            ${override.value},
+            ${override.reason ?? null},
+            ${override.setBy},
+            ${override.expiresAt ? new Date(override.expiresAt).toISOString() : null},
+            ${new Date(override.setAt).toISOString()}
+          )
+          ON CONFLICT(section_id) DO UPDATE SET
+            version = excluded.version,
+            value = excluded.value,
+            reason = excluded.reason,
+            set_by = excluded.set_by,
+            expires_at = excluded.expires_at,
+            set_at = excluded.set_at
+          WHERE excluded.version > overrides.version
+        `
+
       // ... other methods
 
       return {
         upsertSection,
         getAllSections,
         recordAssembly,
+        upsertOverride,
         // queryAssemblies, getAnalytics, batchWriteOverrides, etc.
       } as const
     }),
-    dependencies: [SqliteLive],
+    dependencies: [PgLive],
   }
 ) {}
 
 export const AssemblerRepositoryLive = AssemblerRepository.Default
 ```
 
-### Effect.Cache for Overrides
+### Effect.Cache for Overrides (Read-Through)
 
 ```typescript
 // src/lib/ai-core/services/OverrideCache.ts
 
-import { Effect, Cache, Duration, Queue, Layer } from 'effect'
+import { Effect, Cache, Duration, Layer } from 'effect'
 
 interface Override {
   value: number
   reason?: string
   setBy: string
   expiresAt: number
+  version: number
+  setAt: number
 }
 
 class OverrideCache extends Effect.Service<OverrideCache>()(
   'ai-core/OverrideCache',
   {
     effect: Effect.gen(function* () {
-      // Batch write queue for SQLite persistence
-      const writeQueue = yield* Queue.unbounded<{ sectionId: string; override: Override }>()
-
-      // Effect.Cache with TTL eviction triggering queue writes
+      // Read-through cache (Postgres is authoritative)
       const cache = yield* Cache.make({
         capacity: 1000,
         timeToLive: Duration.minutes(5),
         lookup: (sectionId: string) =>
-          // Load from SQLite on cache miss
+          // Load from Postgres on cache miss
           AssemblerRepository.getOverride(sectionId).pipe(
             Effect.provide(AssemblerRepositoryLive),
             Effect.orElseSucceed(() => null)
           ),
       })
-
-      // Background fiber: flush queue to SQLite periodically or on threshold
-      yield* Effect.forkDaemon(
-        Effect.forever(
-          Effect.gen(function* () {
-            // Wait for either 10 items or 30 seconds
-            const items: { sectionId: string; override: Override }[] = []
-            const deadline = Date.now() + 30_000
-
-            while (items.length < 10 && Date.now() < deadline) {
-              const item = yield* Queue.poll(writeQueue)
-              if (item._tag === 'Some') {
-                items.push(item.value)
-              } else {
-                yield* Effect.sleep(Duration.seconds(1))
-              }
-            }
-
-            if (items.length > 0) {
-              yield* AssemblerRepository.batchWriteOverrides(items).pipe(
-                Effect.provide(AssemblerRepositoryLive),
-                Effect.catchAll((e) => Effect.logError('Override batch write failed', e))
-              )
-            }
-          })
-        )
-      )
 
       const get = (sectionId: string) =>
         cache.get(sectionId).pipe(
@@ -1579,11 +1746,7 @@ class OverrideCache extends Effect.Service<OverrideCache>()(
         )
 
       const set = (sectionId: string, override: Override) =>
-        Effect.gen(function* () {
-          yield* cache.set(sectionId, override)
-          // Queue for eventual SQLite persistence (write-behind)
-          yield* Queue.offer(writeQueue, { sectionId, override })
-        })
+        cache.set(sectionId, override)
 
       return { get, set } as const
     }),
@@ -1610,18 +1773,30 @@ class PromptAssemblerService extends Effect.Service<PromptAssemblerService>()(
       const assemble = (request: AssembleRequest) =>
         Effect.gen(function* () {
           // 1. Classify intent
-          const intent = yield* classifier.classify({
-            prompt: request.prompt,
-            hints: request.components?.map(c => c.name),
-          })
+          const cacheKey = `${request.prompt}:${(request.components ?? []).map(c => c.name).join(',')}`
+          const cached = yield* cache.get(cacheKey)
+          const intent =
+            cached._tag === 'Some'
+              ? cached.value
+              : yield* classifier.classify({
+                  prompt: request.prompt,
+                  hints: request.components?.map(c => c.name),
+                }).pipe(
+                  Effect.tap((i) => cache.set(cacheKey, i))
+                )
 
           // 2. Resolve sections
-          const sections = yield* registry.resolveSections(intent)
+          const sections = yield* registry.getRelevantSections(intent)
 
-          // 3. Apply budget
-          const budgeted = yield* budgetManager.apply(sections, intent.complexity)
+          // 3. Resolve dependencies first
+          const { sections: withDeps, warnings: depWarnings } =
+            yield* registry.resolveDependencies(sections)
 
-          // 4. Assemble with interpolation
+          // 4. Apply budget via compression (full -> compact -> micro)
+          const { sections: budgeted, warnings: budgetWarnings } =
+            yield* budgetManager.apply(withDeps, intent.complexity)
+
+          // 5. Assemble with interpolation
           const context: TemplateContext = {
             catalog: yield* getCatalogDocs(intent),
             request: { prompt: request.prompt, currentTree: request.currentTree },
@@ -1630,6 +1805,7 @@ class PromptAssemblerService extends Effect.Service<PromptAssemblerService>()(
           }
 
           const assembled = yield* assembleSections(budgeted, context)
+          assembled.metadata.warnings = [...depWarnings, ...budgetWarnings]
 
           return assembled
         }).pipe(
@@ -1666,6 +1842,7 @@ class PromptSectionRegistry extends Effect.Service<PromptSectionRegistry>()(
   'ai-core/PromptSectionRegistry',
   {
     effect: Effect.gen(function* () {
+      // LayerMap-backed loader (invalidate on section update from Postgres)
       // Primary storage: O(1) lookup by ID
       const sectionsById = new Map<string, PromptSection>()
 
@@ -1718,7 +1895,7 @@ class PromptSectionRegistry extends Effect.Service<PromptSectionRegistry>()(
           return scores
         })
 
-      // Main resolution method: O(n) scoring + O(n log n) tree build + O(log n + k) range query
+      // Main selection method: O(n) scoring + O(n log n) tree build + O(log n + k) range query
       const getRelevantSections = (
         intent: StructuredIntent,
         threshold = 0.7
@@ -1738,10 +1915,8 @@ class PromptSectionRegistry extends Effect.Service<PromptSectionRegistry>()(
             selected.push(section)
           }
 
-          // 4. Resolve dependencies for selected sections
-          const withDeps = yield* resolveDependencies(selected, sectionsById)
-
-          return withDeps
+          // 4. Dependencies resolved by PromptAssemblerService
+          return selected
         })
 
       return {
@@ -1750,6 +1925,7 @@ class PromptSectionRegistry extends Effect.Service<PromptSectionRegistry>()(
         getRelevantSections,
         computeRelevanceScores,
         buildRelevanceTree,
+        resolveDependencies,
         // For hot-reload: clear and re-register
         clear: () => Effect.sync(() => sectionsById.clear()),
       } as const
@@ -1757,26 +1933,34 @@ class PromptSectionRegistry extends Effect.Service<PromptSectionRegistry>()(
   }
 ) {}
 
-// Dependency resolution (topological sort)
+// Dependency resolution (topological sort with cycle skip + warnings)
 const resolveDependencies = (
   sections: PromptSection[],
   registry: Map<string, PromptSection>
 ) =>
   Effect.gen(function* () {
     const resolved = new Set<string>()
+    const visiting = new Set<string>()
     const result: PromptSection[] = []
+    const warnings: string[] = []
 
     const visit = (section: PromptSection): Effect.Effect<void> =>
       Effect.gen(function* () {
         if (resolved.has(section.id)) return
+        if (visiting.has(section.id)) {
+          warnings.push(`dependency-cycle:${section.id}`)
+          return
+        }
 
         // Visit dependencies first
+        visiting.add(section.id)
         for (const depId of section.dependencies) {
           const dep = registry.get(depId)
           if (dep && !resolved.has(depId)) {
             yield* visit(dep)
           }
         }
+        visiting.delete(section.id)
 
         resolved.add(section.id)
         result.push(section)
@@ -1786,7 +1970,7 @@ const resolveDependencies = (
       yield* visit(section)
     }
 
-    return result
+    return { sections: result, warnings }
   })
 ```
 
@@ -1800,12 +1984,12 @@ src/lib/ai-core/
 ├── services/
 │   ├── AICoreService.ts              # Existing - uses PromptAssembler
 │   ├── PromptAssemblerService.ts     # NEW - main orchestrator
-│   ├── AssemblerRepository.ts        # NEW - SQLite persistence
-│   ├── OverrideCache.ts              # NEW - Effect.Cache with write-behind
+│   ├── AssemblerRepository.ts        # NEW - Postgres persistence
+│   ├── OverrideCache.ts              # NEW - Effect.Cache (read-through)
 │   ├── IntentClassifier.ts           # NEW - Haiku classifier
 │   ├── IntentCache.ts                # NEW - mockable cache
 │   ├── TokenBudgetManager.ts         # NEW - tiered budgets
-│   └── PromptSectionRegistry.ts      # NEW - in-memory + SQLite backed
+│   └── PromptSectionRegistry.ts      # NEW - in-memory + Postgres backed
 ├── sections/
 │   ├── base.ts                       # Format rules, critical rules
 │   ├── catalog.ts                    # Component documentation
@@ -1819,8 +2003,8 @@ src/lib/ai-core/
 │   └── analytics.ts                  # NEW - Analytics schemas
 └── index.ts                          # Updated exports
 
-# SQLite Database Location (XDG)
-~/.local/share/tmnl/assembler.db      # Persisted sections, overrides, assemblies, analytics
+# Postgres Database (via Effect Config)
+DATABASE_URL                          # Persisted sections, overrides, assemblies, analytics
 
 # Domain-colocated sections (register with ai-core registry via tool)
 src/lib/charts/prompt-section.ts      # CHART PANEL OPTIONS
@@ -1910,16 +2094,28 @@ export const PromptSection = Schema.Struct({
   /** Other sections this requires (resolved via topological sort) */
   dependencies: Schema.Array(Schema.String),
 
+  /** Always include, bypass selection + compression */
+  hardInclude: Schema.optionalWith(Schema.Boolean, { default: () => false }),
+
   /** Starting relevance score before intent-based boosts [0, 1] */
   baseRelevance: Schema.Number.pipe(Schema.between(0, 1)),
 
   /** Tiebreaker within same relevance level [1, 10] */
   priority: Schema.Number.pipe(Schema.between(1, 10)),
 
-  /** Approximate token count for budget management */
-  estimatedTokens: Schema.Number,
+  /** Approximate token count per variant for budget management */
+  estimatedTokens: Schema.Struct({
+    full: Schema.Number,
+    compact: Schema.Number,
+    micro: Schema.Number,
+  }),
 
-  // template is a function, not serializable - added at runtime
+  /** Required template variants (pre-authored) */
+  templateVariants: Schema.Struct({
+    full: Schema.String,
+    compact: Schema.String,
+    micro: Schema.String,
+  }),
 })
 export type PromptSection = typeof PromptSection.Type
 
@@ -1930,7 +2126,11 @@ export const PromptSectionWithTemplate = Schema.extend(
   PromptSection,
   Schema.Struct({
     /** Template function: (context) => string */
-    template: Schema.Unknown, // Runtime function, not serializable
+    templateVariants: Schema.Struct({
+      full: Schema.Unknown,
+      compact: Schema.Unknown,
+      micro: Schema.Unknown,
+    }),
   })
 )
 export type PromptSectionWithTemplate = typeof PromptSectionWithTemplate.Type
@@ -1974,6 +2174,7 @@ export const PromptMetadata = Schema.Struct({
   reduction: Schema.Number,
   intent: StructuredIntent,
   budget: BudgetInfo,
+  warnings: Schema.Array(Schema.String),
   assemblyTimeMs: Schema.Number,
   classificationTimeMs: Schema.Number,
 })
@@ -2037,7 +2238,7 @@ export type AssembledPrompt = typeof AssembledPrompt.Type
 
 1. **Token estimation**: How do we estimate tokens without calling the API? Use tiktoken or simple heuristic?
 2. **Section ordering**: Does order matter? Should we sort by dependency depth, priority, or something else?
-3. **Error recovery**: If a section fails to load, do we skip it or fail the entire assembly?
+3. **Error recovery**: Invalid sections are skipped with warnings; should we add retry/backoff for transient DB decode errors?
 4. **Metrics storage**: Where do we persist section analytics? Durable streams? In-memory only?
 
 ---

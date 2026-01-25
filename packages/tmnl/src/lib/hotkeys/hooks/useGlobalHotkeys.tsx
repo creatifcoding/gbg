@@ -255,6 +255,7 @@ export function useGlobalHotkeys(options: UseGlobalHotkeysOptions = {}): UseGlob
 
       // Special handling for terminal panel toggle (Ctrl+`)
       if (commandId === SPECIAL_COMMANDS.TERMINAL_PANEL) {
+        console.log('[useGlobalHotkeys] Terminal command matched, calling onTerminal:', !!onTerminal)
         onTerminal?.()
         return
       }
@@ -285,9 +286,17 @@ export function useGlobalHotkeys(options: UseGlobalHotkeysOptions = {}): UseGlob
 
   // Global keydown handler
   useEffect(() => {
-    if (!isWired || disabled) return
+    console.log('[useGlobalHotkeys] Effect running, isWired:', isWired, 'disabled:', disabled)
+    if (!isWired || disabled) {
+      console.log('[useGlobalHotkeys] Skipping handler setup - isWired:', isWired, 'disabled:', disabled)
+      return
+    }
+
+    console.log('[useGlobalHotkeys] Setting up keydown handler')
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      console.log('[useGlobalHotkeys] RAW keydown:', e.key, 'ctrl:', e.ctrlKey)
+
       // Ignore modifier-only presses
       if (["Control", "Alt", "Shift", "Meta"].includes(e.key)) {
         return
@@ -336,7 +345,17 @@ export function useGlobalHotkeys(options: UseGlobalHotkeysOptions = {}): UseGlob
       }
 
       // Process through pure function
-      console.log('[useGlobalHotkeys] Processing key:', chord.key, 'scopedBindings:', scopedBindings.length)
+      console.log('[useGlobalHotkeys] Processing key:', JSON.stringify(chord.key), 'keyCode:', chord.key.charCodeAt(0), 'ctrl:', chord.ctrl, 'scopedBindings:', scopedBindings.length)
+
+      // Debug: Log all bindings that might match terminal
+      if (chord.ctrl) {
+        const terminalBindings = scopedBindings.filter(b => b.commandId.includes('terminal') || b.commandId.includes('Terminal'))
+        console.log('[useGlobalHotkeys] Terminal bindings:', terminalBindings.map(b => ({
+          keys: b.keys.map(k => `ctrl:${k.ctrl} key:${k.key}`),
+          cmd: b.commandId
+        })))
+      }
+
       if (chord.key === 'esc') {
         console.log('[useGlobalHotkeys] ESC pressed! scopedBindings:', scopedBindings.map(b => ({ keys: b.keys[0]?.key, cmd: b.commandId, scope: b.scope })))
       }

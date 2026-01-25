@@ -109,8 +109,6 @@ export {
   toAISDKConversation,
   // Tools
   JSONSchemaType,
-  JSONSchemaProperty,
-  JSONSchema,
   ToolDefinition,
   ToolCallStatus,
   ToolCallRequest,
@@ -124,6 +122,9 @@ export {
   fromMCPTools,
 } from './schemas'
 
+// Type-only re-exports
+export type { JSONSchemaProperty, JSONSchema } from './schemas'
+
 // =============================================================================
 // Atoms
 // =============================================================================
@@ -131,19 +132,24 @@ export {
 export {
   // Registry
   aiCoreRegistry,
+  AICoreRegistryProvider,
   // Runtime
   aiCoreRuntimeAtom,
-  // State atoms
+  // State atoms (single stream - legacy)
   streamStateAtom,
   activeHandleAtom,
   toolsAtom,
   toolsLoadingAtom,
+  // Multi-stream atoms (v3)
+  streamStatesByIdAtom,
+  streamStateByIdAtom,
+  activeHandlesByIdAtom,
   // Derived atoms
   isStreamingAtom,
   toolCountAtom,
   streamTextAtom,
   hasStreamErrorAtom,
-  // Direct state manipulation
+  // Direct state manipulation (single stream - legacy)
   applyStreamEvent,
   setConnecting,
   setStreamError,
@@ -151,6 +157,15 @@ export {
   setActiveHandle,
   setTools,
   setToolsLoading,
+  // Multi-stream manipulation (v3)
+  initStreamStateById,
+  applyStreamEventById,
+  getStreamStateById,
+  isStreamActiveById,
+  cleanupStreamStateById,
+  setActiveHandleById,
+  getActiveHandleById,
+  clearActiveHandleById,
   // Types
   type AIStreamState,
   INITIAL_STREAM_STATE,

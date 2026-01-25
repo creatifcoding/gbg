@@ -1,0 +1,581 @@
+[2026-01-01T16:04:15.138295] Session ended (reason: test)
+  Recent commits: 3
+    a709bea feat(ai-core): unified AI library with streaming + MCP tools
+    3cb27f8 feat(dataplane): add TMNL vantablack theme for ReactFlow canvas
+    34716bb feat(dataplane): restore lucide-react icons with Icon wrapper
+  Uncommitted changes: 284 files
+
+[2026-01-01T22:15:07.948158] Session ended (reason: other)
+  Recent commits: 3
+    ad6b386 feat(fermion): expand atom patterns with runtime, result, domain generalizations
+    3a9f016 feat(hooks): keyphrase-triggered skill dispatch system
+    a709bea feat(ai-core): unified AI library with streaming + MCP tools
+  Uncommitted changes: 290 files
+
+[2026-01-02T08:41:21.234490] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    3e444cf feat(portal): add Axiom testbed card
+    c00128d feat(testbed): add AxiomTestbed for ontology framework validation
+    6da1eeb feat(axiom): v2 API with Effect Schema and Ontology-as-Service
+  Uncommitted changes: 290 files
+
+[2026-01-03T18:45:36.198366] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    7acf2c7 fix(terminal-v2): use Stream.runForEach for stream consumption
+    a222f2a fix(ai-core): use takeUntilEffect for effectful abort predicate
+    99bcf7f fix(adr-review): correct Schema import in status.ts
+  Uncommitted changes: 303 files
+
+[2026-01-06T05:02:49.212682] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    f85fba6 fix(terminal-v3): add osmmcp response format support to map detection
+    c3ac649 fix(terminal-v3): extract tool output from AI SDK v6 format for map detection
+    be5b76f feat(terminal-v3): wire MCP tools via Claude Code native system
+  Uncommitted changes: 307 files
+
+[2026-01-07T18:22:53.440874] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    7f4ec0d fix(terminal-v3): prevent WeakMap null key error in MapToolView
+    e13c2be fix(ai-core): default to terminal mode for MCP tool access
+    f85fba6 fix(terminal-v3): add osmmcp response format support to map detection
+  Uncommitted changes: 309 files
+
+[2026-01-07T18:23:04.469237] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    7f4ec0d fix(terminal-v3): prevent WeakMap null key error in MapToolView
+    e13c2be fix(ai-core): default to terminal mode for MCP tool access
+    f85fba6 fix(terminal-v3): add osmmcp response format support to map detection
+  Uncommitted changes: 309 files
+
+[2026-01-07T23:12:57.385527] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    7f4ec0d fix(terminal-v3): prevent WeakMap null key error in MapToolView
+    e13c2be fix(ai-core): default to terminal mode for MCP tool access
+    f85fba6 fix(terminal-v3): add osmmcp response format support to map detection
+  Uncommitted changes: 314 files
+
+[2026-01-08T01:09:21.118394] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    96eb811 packages/tmnl/flake.lock: Update
+    245e9e9 feat(ava): complete AVA v2 TypeScript client implementation
+    7f4ec0d fix(terminal-v3): prevent WeakMap null key error in MapToolView
+  Uncommitted changes: 320 files
+
+[2026-01-08T06:00:38.953888] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    70c26ee feat(ava): add robustness layer with retry and backpressure
+    be6db20 feat(ava-api): implement ChannelData gRPC serialization
+    586c09e feat(MapBlock): integrate AVA v2 channel binding with proper React patterns
+  Uncommitted changes: 320 files
+
+[2026-01-08T19:46:22.733172] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    e7d3d67 feat(geoint): Wire external API clients + parallel streaming
+    1cfac4b feat(geoint): Add SearchResultWeather, SearchResultImagery schemas and transformers
+    4c99f11 feat(geoint): Add SearchRpcServer and integrate ALLINT COP search into GeointTestbed
+  Uncommitted changes: 333 files
+
+[2026-01-09T20:58:26.266668] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    529ec49 feat(geoint): implement ImageryIngester service for Planet Labs and Sentinel Hub
+    ebc2da4 feat(geoint): add WeatherRepository, ImageryRepository, and GeointRepository facade
+    670f647 feat(geoint): add FlightRepository and PoiRepository with integration tests
+  Uncommitted changes: 386 files
+
+[2026-01-09T21:15:51.079706] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    529ec49 feat(geoint): implement ImageryIngester service for Planet Labs and Sentinel Hub
+    ebc2da4 feat(geoint): add WeatherRepository, ImageryRepository, and GeointRepository facade
+    670f647 feat(geoint): add FlightRepository and PoiRepository with integration tests
+  Uncommitted changes: 385 files
+
+[2026-01-10T01:20:46.557005] Session ended (reason: other)
+  Recent commits: 3
+    f41ada2 fix(geoint): resolve CircuitBreakersLive layer composition in integration tests
+    043e251 feat(geoint): wire circuit breaker into all 6 API clients
+    de0b80b feat(geoint): implement circuit breaker pattern for API resilience
+  Uncommitted changes: 387 files
+
+[2026-01-10T11:43:55.249045] Session ended (reason: other)
+  Recent commits: 3
+    e5a2406 feat(geoint): add 30-second timeouts to PingSource handler API calls
+    3dd101a feat(geoint): add graceful transport error handling for integration tests
+    caae661 test(geoint): add comprehensive searchMachine XState tests (tmnl-qy9do)
+  Uncommitted changes: 368 files
+
+[2026-01-12T10:29:17.168252] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    6ab8c27 fix(geoint): correct SearchError property names in StreamingSearchTestbed
+    3904c57 feat(geoint): add StreamingSearchTestbed for event-driven search flow
+    7ebad14 feat(geoint): add SchemaTransformTestbed for wire → domain patterns
+  Uncommitted changes: 416 files
+
+[2026-01-12T11:16:44.598673] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    6ab8c27 fix(geoint): correct SearchError property names in StreamingSearchTestbed
+    3904c57 feat(geoint): add StreamingSearchTestbed for event-driven search flow
+    7ebad14 feat(geoint): add SchemaTransformTestbed for wire → domain patterns
+  Uncommitted changes: 416 files
+
+[2026-01-12T11:24:55.122985] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    6ab8c27 fix(geoint): correct SearchError property names in StreamingSearchTestbed
+    3904c57 feat(geoint): add StreamingSearchTestbed for event-driven search flow
+    7ebad14 feat(geoint): add SchemaTransformTestbed for wire → domain patterns
+  Uncommitted changes: 418 files
+
+[2026-01-12T11:40:52.128836] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    d3baa91 fix: Change varDecl.getJsDocs() to kind.getJSDoc()
+    6ab8c27 fix(geoint): correct SearchError property names in StreamingSearchTestbed
+    3904c57 feat(geoint): add StreamingSearchTestbed for event-driven search flow
+  Uncommitted changes: 419 files
+
+[2026-01-12T12:00:02.887986] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    d3baa91 fix: Change varDecl.getJsDocs() to kind.getJSDoc()
+    6ab8c27 fix(geoint): correct SearchError property names in StreamingSearchTestbed
+    3904c57 feat(geoint): add StreamingSearchTestbed for event-driven search flow
+  Uncommitted changes: 419 files
+
+[2026-01-12T12:57:59.137798] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    d3baa91 fix: Change varDecl.getJsDocs() to kind.getJSDoc()
+    6ab8c27 fix(geoint): correct SearchError property names in StreamingSearchTestbed
+    3904c57 feat(geoint): add StreamingSearchTestbed for event-driven search flow
+  Uncommitted changes: 422 files
+
+[2026-01-12T21:30:08.660464] Session ended (reason: clear)
+  Recent commits: 3
+    28f7a8c feat(holonet): implement Layer 1 NATS Effect services with cleanup
+    b647adb feat(holonet): add comprehensive test files for NATS services
+    25bece0 feat(holonet): implement Subject Architecture for NATS topic hierarchy
+  Uncommitted changes: 425 files
+
+[2026-01-13T01:05:39.263117] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    b6b188c fix(holonet): add timeouts to all NATS integration tests
+    85e2efb fix(holonet): increase timeout for consumer offset tracking test
+    f2dc9f8 feat(holonet): add durable-streams integration tests with NATS headers fix
+  Uncommitted changes: 430 files
+
+[2026-01-13T01:11:38.055451] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    b6b188c fix(holonet): add timeouts to all NATS integration tests
+    85e2efb fix(holonet): increase timeout for consumer offset tracking test
+    f2dc9f8 feat(holonet): add durable-streams integration tests with NATS headers fix
+  Uncommitted changes: 431 files
+
+[2026-01-13T01:15:41.339895] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    b6b188c fix(holonet): add timeouts to all NATS integration tests
+    85e2efb fix(holonet): increase timeout for consumer offset tracking test
+    f2dc9f8 feat(holonet): add durable-streams integration tests with NATS headers fix
+  Uncommitted changes: 431 files
+
+[2026-01-13T02:10:34.604248] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    b6b188c fix(holonet): add timeouts to all NATS integration tests
+    85e2efb fix(holonet): increase timeout for consumer offset tracking test
+    f2dc9f8 feat(holonet): add durable-streams integration tests with NATS headers fix
+  Uncommitted changes: 437 files
+
+[2026-01-13T13:52:57.300444] Session ended (reason: other)
+  Recent commits: 3
+    b6b188c fix(holonet): add timeouts to all NATS integration tests
+    85e2efb fix(holonet): increase timeout for consumer offset tracking test
+    f2dc9f8 feat(holonet): add durable-streams integration tests with NATS headers fix
+  Uncommitted changes: 436 files
+
+[2026-01-14T01:41:08.708162] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    b6b188c fix(holonet): add timeouts to all NATS integration tests
+    85e2efb fix(holonet): increase timeout for consumer offset tracking test
+    f2dc9f8 feat(holonet): add durable-streams integration tests with NATS headers fix
+  Uncommitted changes: 451 files
+
+[2026-01-15T16:49:51.318282] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    b6b188c fix(holonet): add timeouts to all NATS integration tests
+    85e2efb fix(holonet): increase timeout for consumer offset tracking test
+    f2dc9f8 feat(holonet): add durable-streams integration tests with NATS headers fix
+  Uncommitted changes: 524 files
+
+[2026-01-15T18:02:12.589568] Session ended (reason: other)
+  Recent commits: 3
+    b6b188c fix(holonet): add timeouts to all NATS integration tests
+    85e2efb fix(holonet): increase timeout for consumer offset tracking test
+    f2dc9f8 feat(holonet): add durable-streams integration tests with NATS headers fix
+  Uncommitted changes: 524 files
+
+[2026-01-16T10:33:53.120200] Session ended (reason: clear)
+  Recent commits: 3
+    471d2dc feat(json-render): add progressive streaming with Queue + Stream.fromQueue
+    b6b188c fix(holonet): add timeouts to all NATS integration tests
+    85e2efb fix(holonet): increase timeout for consumer offset tracking test
+  Uncommitted changes: 527 files
+
+[2026-01-16T10:56:38.500251] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    471d2dc feat(json-render): add progressive streaming with Queue + Stream.fromQueue
+    b6b188c fix(holonet): add timeouts to all NATS integration tests
+    85e2efb fix(holonet): increase timeout for consumer offset tracking test
+  Uncommitted changes: 530 files
+
+[2026-01-16T12:44:35.179779] Session ended (reason: clear)
+  Recent commits: 3
+    a6122c9 refactor(json-render): use Atom.family for GenerativeContainer state
+    cc7afaf feat(json-render): GenerativeContainer with local state isolation
+    471d2dc feat(json-render): add progressive streaming with Queue + Stream.fromQueue
+  Uncommitted changes: 531 files
+
+[2026-01-16T13:47:54.701919] Session ended (reason: clear)
+  Recent commits: 3
+    8cb4656 feat(spike): add hypothesis-driven debugging infrastructure
+    a6122c9 refactor(json-render): use Atom.family for GenerativeContainer state
+    cc7afaf feat(json-render): GenerativeContainer with local state isolation
+  Uncommitted changes: 532 files
+
+[2026-01-16T13:59:30.886376] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    8cb4656 feat(spike): add hypothesis-driven debugging infrastructure
+    a6122c9 refactor(json-render): use Atom.family for GenerativeContainer state
+    cc7afaf feat(json-render): GenerativeContainer with local state isolation
+  Uncommitted changes: 535 files
+
+[2026-01-16T14:14:19.555303] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    8cb4656 feat(spike): add hypothesis-driven debugging infrastructure
+    a6122c9 refactor(json-render): use Atom.family for GenerativeContainer state
+    cc7afaf feat(json-render): GenerativeContainer with local state isolation
+  Uncommitted changes: 536 files
+
+[2026-01-16T15:31:45.805639] Session ended (reason: clear)
+  Recent commits: 3
+    8cb4656 feat(spike): add hypothesis-driven debugging infrastructure
+    a6122c9 refactor(json-render): use Atom.family for GenerativeContainer state
+    cc7afaf feat(json-render): GenerativeContainer with local state isolation
+  Uncommitted changes: 570 files
+
+[2026-01-16T15:33:32.134357] Session ended (reason: clear)
+  Recent commits: 3
+    8cb4656 feat(spike): add hypothesis-driven debugging infrastructure
+    a6122c9 refactor(json-render): use Atom.family for GenerativeContainer state
+    cc7afaf feat(json-render): GenerativeContainer with local state isolation
+  Uncommitted changes: 571 files
+
+[2026-01-16T15:39:19.733865] Session ended (reason: clear)
+  Recent commits: 3
+    8cb4656 feat(spike): add hypothesis-driven debugging infrastructure
+    a6122c9 refactor(json-render): use Atom.family for GenerativeContainer state
+    cc7afaf feat(json-render): GenerativeContainer with local state isolation
+  Uncommitted changes: 571 files
+
+[2026-01-16T16:40:52.183668] Session ended (reason: clear)
+  Recent commits: 3
+    e7dad3c test(layout): add spike tests for breakpoint, resize, and atom registry
+    02bba19 feat(layout): add universal layout system with Grid, Stack, Flex primitives
+    8cb4656 feat(spike): add hypothesis-driven debugging infrastructure
+  Uncommitted changes: 539 files
+
+[2026-01-16T22:35:53.558283] Session ended (reason: clear)
+  Recent commits: 3
+    7592898 feat(ctl): add OpenTUI component library for TUI mode
+    ab76080 feat(ctl): add CI workflow for Bun builds
+    da04886 feat(ctl/nix): FOD pattern for reproducible Bun builds
+  Uncommitted changes: 906 files
+
+[2026-01-17T02:28:45.974818] Session ended (reason: clear)
+  Recent commits: 3
+    5b69975 feat(json-render): wire layout registry into JSONRenderTestbed
+    e9dbb1e feat(ctl): migrate TUI adapter from Ink to OpenTUI
+    7592898 feat(ctl): add OpenTUI component library for TUI mode
+  Uncommitted changes: 923 files
+
+[2026-01-17T02:36:41.135160] Session ended (reason: clear)
+  Recent commits: 3
+    5b69975 feat(json-render): wire layout registry into JSONRenderTestbed
+    e9dbb1e feat(ctl): migrate TUI adapter from Ink to OpenTUI
+    7592898 feat(ctl): add OpenTUI component library for TUI mode
+  Uncommitted changes: 924 files
+
+[2026-01-17T03:41:32.797392] Session ended (reason: clear)
+  Recent commits: 3
+    9ee5e78 feat(json-render): implement unified catalog service
+    5b69975 feat(json-render): wire layout registry into JSONRenderTestbed
+    e9dbb1e feat(ctl): migrate TUI adapter from Ink to OpenTUI
+  Uncommitted changes: 924 files
+
+[2026-01-17T04:10:32.816845] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    9ee5e78 feat(json-render): implement unified catalog service
+    5b69975 feat(json-render): wire layout registry into JSONRenderTestbed
+    e9dbb1e feat(ctl): migrate TUI adapter from Ink to OpenTUI
+  Uncommitted changes: 936 files
+
+[2026-01-17T04:34:07.606815] Session ended (reason: clear)
+  Recent commits: 3
+    820665d feat(json-render): add Parse Worker spike for offloading JSON parsing
+    9ee5e78 feat(json-render): implement unified catalog service
+    5b69975 feat(json-render): wire layout registry into JSONRenderTestbed
+  Uncommitted changes: 944 files
+
+[2026-01-17T05:09:06.521575] Session ended (reason: clear)
+  Recent commits: 3
+    820665d feat(json-render): add Parse Worker spike for offloading JSON parsing
+    9ee5e78 feat(json-render): implement unified catalog service
+    5b69975 feat(json-render): wire layout registry into JSONRenderTestbed
+  Uncommitted changes: 946 files
+
+[2026-01-17T05:38:08.823491] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    820665d feat(json-render): add Parse Worker spike for offloading JSON parsing
+    9ee5e78 feat(json-render): implement unified catalog service
+    5b69975 feat(json-render): wire layout registry into JSONRenderTestbed
+  Uncommitted changes: 954 files
+
+[2026-01-17T05:40:21.702429] Session ended (reason: clear)
+  Recent commits: 3
+    820665d feat(json-render): add Parse Worker spike for offloading JSON parsing
+    9ee5e78 feat(json-render): implement unified catalog service
+    5b69975 feat(json-render): wire layout registry into JSONRenderTestbed
+  Uncommitted changes: 954 files
+
+[2026-01-17T05:49:00.861772] Session ended (reason: other)
+  Recent commits: 3
+    820665d feat(json-render): add Parse Worker spike for offloading JSON parsing
+    9ee5e78 feat(json-render): implement unified catalog service
+    5b69975 feat(json-render): wire layout registry into JSONRenderTestbed
+  Uncommitted changes: 960 files
+
+[2026-01-17T05:50:46.403440] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    820665d feat(json-render): add Parse Worker spike for offloading JSON parsing
+    9ee5e78 feat(json-render): implement unified catalog service
+    5b69975 feat(json-render): wire layout registry into JSONRenderTestbed
+  Uncommitted changes: 960 files
+
+[2026-01-17T06:06:42.653469] Session ended (reason: clear)
+  Recent commits: 3
+    820665d feat(json-render): add Parse Worker spike for offloading JSON parsing
+    9ee5e78 feat(json-render): implement unified catalog service
+    5b69975 feat(json-render): wire layout registry into JSONRenderTestbed
+  Uncommitted changes: 963 files
+
+[2026-01-17T06:13:51.564397] Session ended (reason: other)
+  Recent commits: 3
+    820665d feat(json-render): add Parse Worker spike for offloading JSON parsing
+    9ee5e78 feat(json-render): implement unified catalog service
+    5b69975 feat(json-render): wire layout registry into JSONRenderTestbed
+  Uncommitted changes: 965 files
+
+[2026-01-17T06:26:17.336790] Session ended (reason: clear)
+  Recent commits: 3
+    820665d feat(json-render): add Parse Worker spike for offloading JSON parsing
+    9ee5e78 feat(json-render): implement unified catalog service
+    5b69975 feat(json-render): wire layout registry into JSONRenderTestbed
+  Uncommitted changes: 967 files
+
+[2026-01-17T11:53:42.066713] Session ended (reason: clear)
+  Recent commits: 3
+    820665d feat(json-render): add Parse Worker spike for offloading JSON parsing
+    9ee5e78 feat(json-render): implement unified catalog service
+    5b69975 feat(json-render): wire layout registry into JSONRenderTestbed
+  Uncommitted changes: 989 files
+
+[2026-01-17T22:50:50.129726] Session ended (reason: other)
+  Recent commits: 3
+    416eebe feat(animation): add text-effects module with scramble presets
+    efeacb1 feat(chat-shell): refactor text-morph to use anime.js v4 scope system
+    07e175f feat(chat-shell): add text morph animation for ThinkingLevelButton
+  Uncommitted changes: 1006 files
+
+[2026-01-17T23:57:27.599454] Session ended (reason: clear)
+  Recent commits: 3
+    416eebe feat(animation): add text-effects module with scramble presets
+    efeacb1 feat(chat-shell): refactor text-morph to use anime.js v4 scope system
+    07e175f feat(chat-shell): add text morph animation for ThinkingLevelButton
+  Uncommitted changes: 1006 files
+
+[2026-01-18T12:29:15.222327] Session ended (reason: clear)
+  Recent commits: 3
+    416eebe feat(animation): add text-effects module with scramble presets
+    efeacb1 feat(chat-shell): refactor text-morph to use anime.js v4 scope system
+    07e175f feat(chat-shell): add text morph animation for ThinkingLevelButton
+  Uncommitted changes: 1013 files
+
+[2026-01-18T13:36:48.576799] Session ended (reason: clear)
+  Recent commits: 3
+    416eebe feat(animation): add text-effects module with scramble presets
+    efeacb1 feat(chat-shell): refactor text-morph to use anime.js v4 scope system
+    07e175f feat(chat-shell): add text morph animation for ThinkingLevelButton
+  Uncommitted changes: 1014 files
+
+[2026-01-18T15:25:06.767070] Session ended (reason: clear)
+  Recent commits: 3
+    416eebe feat(animation): add text-effects module with scramble presets
+    efeacb1 feat(chat-shell): refactor text-morph to use anime.js v4 scope system
+    07e175f feat(chat-shell): add text morph animation for ThinkingLevelButton
+  Uncommitted changes: 1018 files
+
+[2026-01-18T16:54:08.171426] Session ended (reason: clear)
+  Recent commits: 3
+    f6c7426 docs(genui): add Q&A documentation for chart integration
+    cdfa954 feat(charts): add AI SDK tool wrapper and streaming support
+    416eebe feat(animation): add text-effects module with scramble presets
+  Uncommitted changes: 1032 files
+
+[2026-01-18T18:56:00.277875] Session ended (reason: clear)
+  Recent commits: 3
+    f6c7426 docs(genui): add Q&A documentation for chart integration
+    cdfa954 feat(charts): add AI SDK tool wrapper and streaming support
+    416eebe feat(animation): add text-effects module with scramble presets
+  Uncommitted changes: 1085 files
+
+[2026-01-18T21:45:42.212224] Session ended (reason: clear)
+  Recent commits: 3
+    d02228a feat(charts): add AI SDK streaming tool wrapper and spike test
+    f6c7426 docs(genui): add Q&A documentation for chart integration
+    cdfa954 feat(charts): add AI SDK tool wrapper and streaming support
+  Uncommitted changes: 1111 files
+
+[2026-01-18T22:16:05.692978] Session ended (reason: clear)
+  Recent commits: 3
+    d02228a feat(charts): add AI SDK streaming tool wrapper and spike test
+    f6c7426 docs(genui): add Q&A documentation for chart integration
+    cdfa954 feat(charts): add AI SDK tool wrapper and streaming support
+  Uncommitted changes: 1112 files
+
+[2026-01-19T01:09:03.335466] Session ended (reason: clear)
+  Recent commits: 3
+    c0550b2 feat(charts): add InteractiveChartPanel compound component with panelType prop
+    d02228a feat(charts): add AI SDK streaming tool wrapper and spike test
+    f6c7426 docs(genui): add Q&A documentation for chart integration
+  Uncommitted changes: 1110 files
+
+[2026-01-19T02:53:20.202464] Session ended (reason: clear)
+  Recent commits: 3
+    ca78291 feat(morph-card): add agent patching architecture for progressive UI iteration
+    c0550b2 feat(charts): add InteractiveChartPanel compound component with panelType prop
+    d02228a feat(charts): add AI SDK streaming tool wrapper and spike test
+  Uncommitted changes: 1113 files
+
+[2026-01-19T13:52:06.236140] Session ended (reason: other)
+  Recent commits: 3
+    a97f289 feat(morph-card): add DynamicIslandCard with tabbed views and server integration
+    ca78291 feat(morph-card): add agent patching architecture for progressive UI iteration
+    c0550b2 feat(charts): add InteractiveChartPanel compound component with panelType prop
+  Uncommitted changes: 1150 files
+
+[2026-01-19T14:19:29.793446] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    a97f289 feat(morph-card): add DynamicIslandCard with tabbed views and server integration
+    ca78291 feat(morph-card): add agent patching architecture for progressive UI iteration
+    c0550b2 feat(charts): add InteractiveChartPanel compound component with panelType prop
+  Uncommitted changes: 1154 files
+
+[2026-01-19T14:38:30.397832] Session ended (reason: clear)
+  Recent commits: 3
+    a97f289 feat(morph-card): add DynamicIslandCard with tabbed views and server integration
+    ca78291 feat(morph-card): add agent patching architecture for progressive UI iteration
+    c0550b2 feat(charts): add InteractiveChartPanel compound component with panelType prop
+  Uncommitted changes: 1166 files
+
+[2026-01-19T15:38:12.988550] Session ended (reason: other)
+  Recent commits: 3
+    a97f289 feat(morph-card): add DynamicIslandCard with tabbed views and server integration
+    ca78291 feat(morph-card): add agent patching architecture for progressive UI iteration
+    c0550b2 feat(charts): add InteractiveChartPanel compound component with panelType prop
+  Uncommitted changes: 1168 files
+
+[2026-01-19T22:35:31.549977] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    372c88c spec(ai-core): add PromptAssemblerService specification
+    a97f289 feat(morph-card): add DynamicIslandCard with tabbed views and server integration
+    ca78291 feat(morph-card): add agent patching architecture for progressive UI iteration
+  Uncommitted changes: 1186 files
+
+[2026-01-20T00:32:51.131902] Session ended (reason: other)
+  Recent commits: 3
+    372c88c spec(ai-core): add PromptAssemblerService specification
+    a97f289 feat(morph-card): add DynamicIslandCard with tabbed views and server integration
+    ca78291 feat(morph-card): add agent patching architecture for progressive UI iteration
+  Uncommitted changes: 1188 files
+
+[2026-01-20T00:40:22.941002] Session ended (reason: other)
+  Recent commits: 3
+    372c88c spec(ai-core): add PromptAssemblerService specification
+    a97f289 feat(morph-card): add DynamicIslandCard with tabbed views and server integration
+    ca78291 feat(morph-card): add agent patching architecture for progressive UI iteration
+  Uncommitted changes: 1188 files
+
+[2026-01-20T01:00:46.859371] Session ended (reason: other)
+  Recent commits: 3
+    372c88c spec(ai-core): add PromptAssemblerService specification
+    a97f289 feat(morph-card): add DynamicIslandCard with tabbed views and server integration
+    ca78291 feat(morph-card): add agent patching architecture for progressive UI iteration
+  Uncommitted changes: 1189 files
+
+[2026-01-21T13:34:42.069339] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    372c88c spec(ai-core): add PromptAssemblerService specification
+    a97f289 feat(morph-card): add DynamicIslandCard with tabbed views and server integration
+    ca78291 feat(morph-card): add agent patching architecture for progressive UI iteration
+  Uncommitted changes: 1233 files
+
+[2026-01-22T15:50:08.402868] Session ended (reason: clear)
+  Recent commits: 3
+    372c88c spec(ai-core): add PromptAssemblerService specification
+    a97f289 feat(morph-card): add DynamicIslandCard with tabbed views and server integration
+    ca78291 feat(morph-card): add agent patching architecture for progressive UI iteration
+  Uncommitted changes: 1273 files
+
+[2026-01-22T17:18:48.752725] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    372c88c spec(ai-core): add PromptAssemblerService specification
+    a97f289 feat(morph-card): add DynamicIslandCard with tabbed views and server integration
+    ca78291 feat(morph-card): add agent patching architecture for progressive UI iteration
+  Uncommitted changes: 1305 files
+
+[2026-01-22T19:29:20.169292] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    372c88c spec(ai-core): add PromptAssemblerService specification
+    a97f289 feat(morph-card): add DynamicIslandCard with tabbed views and server integration
+    ca78291 feat(morph-card): add agent patching architecture for progressive UI iteration
+  Uncommitted changes: 1307 files
+
+[2026-01-23T16:26:12.556266] Session ended (reason: clear)
+  Recent commits: 3
+    372c88c spec(ai-core): add PromptAssemblerService specification
+    a97f289 feat(morph-card): add DynamicIslandCard with tabbed views and server integration
+    ca78291 feat(morph-card): add agent patching architecture for progressive UI iteration
+  Uncommitted changes: 1356 files
+
+[2026-01-24T10:58:26.609946] Session ended (reason: clear)
+  Recent commits: 3
+    372c88c spec(ai-core): add PromptAssemblerService specification
+    a97f289 feat(morph-card): add DynamicIslandCard with tabbed views and server integration
+    ca78291 feat(morph-card): add agent patching architecture for progressive UI iteration
+  Uncommitted changes: 1362 files
+
+[2026-01-24T15:21:34.490406] Session ended (reason: clear)
+  Recent commits: 3
+    5d25244 feat(skills): add IIoT and NEX skill suites
+    705177f feat(iiot-db): add unified IIoT database with TimescaleDB + Apache AGE
+    372c88c spec(ai-core): add PromptAssemblerService specification
+  Uncommitted changes: 1360 files
+
+[2026-01-24T16:13:59.236942] Session ended (reason: clear)
+  Recent commits: 3
+    f4faecc feat(nex): add NEX Effect services module
+    5d25244 feat(skills): add IIoT and NEX skill suites
+    705177f feat(iiot-db): add unified IIoT database with TimescaleDB + Apache AGE
+  Uncommitted changes: 1362 files
+
+[2026-01-24T18:32:06.769510] Session ended (reason: clear)
+  Recent commits: 3
+    149cea3 spike(fermion-iiot): add integration spike for effect-atom + IIoT database
+    b58eb93 fix(iiot): fix integration tests and add API documentation
+    5ac4a09 feat(iiot): implement real database clients for TimescaleDB and Apache AGE
+  Uncommitted changes: 1379 files
+

@@ -16,6 +16,11 @@ import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { nanoid } from 'nanoid';
 
+import {
+  createProtectedNodeKeyboardShortcuts,
+  protectedNodeViewOptions,
+} from '../EmbeddedBlockWrapper/shared/protectedNode';
+
 import { Scene3DBlockView } from './Scene3DBlockView';
 import {
   DEFAULT_CAMERA,
@@ -162,7 +167,11 @@ export const Scene3DBlock = Node.create<Scene3DBlockOptions>({
   },
 
   addNodeView() {
-    return ReactNodeViewRenderer(Scene3DBlockView);
+    return ReactNodeViewRenderer(Scene3DBlockView, protectedNodeViewOptions);
+  },
+
+  addKeyboardShortcuts() {
+    return createProtectedNodeKeyboardShortcuts.call(this);
   },
 
   addCommands() {

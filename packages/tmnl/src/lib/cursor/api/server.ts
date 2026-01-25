@@ -13,8 +13,8 @@
  */
 
 import { Effect, Layer, Schema } from 'effect';
-import { getSystemPrompt as getCatalogPrompt } from '@/lib/json-render/server/registry';
-import { buildCatalogPrompt, type ComponentDoc } from '@/lib/json-render/server/catalogs';
+import { type ComponentDoc } from '@/lib/json-render/server/catalogs';
+import { buildUIGenerationPrompt } from '@/lib/cursor/prompts/ui-generation';
 import * as HttpServer from '@effect/platform/HttpServer';
 import * as HttpRouter from '@effect/platform/HttpRouter';
 import * as HttpServerRequest from '@effect/platform/HttpServerRequest';
@@ -241,216 +241,6 @@ const handleChat = Effect.gen(function* () {
 // UI Generation System Prompt (JSONL Streaming - True Progressive)
 // -----------------------------------------------------------------------------
 
-/**
- * Build the UI generation system prompt.
- * Combines static format instructions with dynamic component documentation from catalog.
- *
- * @param additionalComponents - Optional dynamic component docs from request
- */
-const buildUIGenerationPrompt = (additionalComponents?: ComponentDoc[]): string => {
-  // Get component documentation from catalog (dynamic)
-  const catalogComponentDocs = getCatalogPrompt()
-
-  // Build additional component docs if provided
-  const additionalDocs = additionalComponents && additionalComponents.length > 0
-    ? buildCatalogPrompt(additionalComponents)
-    : ''
-
-  return `You are a UI generator that outputs JSONL (JSON Lines) patches for progressive UI rendering.
-
-OUTPUT FORMAT (JSONL - one JSON object per line, NO markdown, NO code blocks):
-{"op":"set","path":"/root","value":"element-key"}
-{"op":"add","path":"/elements/key","value":{"key":"...","type":"...","props":{...},"children":[...]}}
-
-CRITICAL RULES:
-1. First line MUST set /root to root element key
-2. Add elements with /elements/{key}
-3. Children array contains string keys, not objects
-4. Parent element BEFORE its children
-5. Each element needs: key, type, props
-6. Output ONLY valid JSONL - NO markdown, NO explanation, NO code blocks, NO backticks
-
-${catalogComponentDocs}
-
-## Additional Components (UI/Advanced)
-
-Typography:
-- Heading: { text: string, level?: 1|2|3|4 } - h1-h4 text
-- Text: { text: string, className?: string } - Paragraph
-
-Interactive:
-- Button: { label: string, variant?: "default"|"secondary"|"destructive"|"outline"|"ghost", action?: Action }
-- Input: { placeholder?: string, label?: string }
-- Checkbox: { label: string, checked?: boolean }
-
-Cards:
-- Card: {} - Container. Has children.
-- CardHeader: {} - Has children.
-- CardTitle: { text: string }
-- CardDescription: { text: string }
-- CardContent: {} - Has children.
-
-Feedback:
-- Alert: { variant?: "default"|"destructive" } - Has children.
-- AlertTitle: { text: string }
-- AlertDescription: { text: string }
-- Badge: { text: string, variant?: "default"|"secondary"|"destructive"|"outline" }
-- Progress: { value: number } - 0-100
-- Separator: {}
-
-Advanced:
-- Container: { className?: string } - Generic wrapper. Has children.
-- Editor: { label?: string, userName?: string, docId?: string, enableLocalFiles?: boolean } - Collaborative rich text editor. Self-contained, no children.
-- GenerativeContainer: { prompt: string, context?: object, maxDepth?: number, fallbackText?: string } - AI-generated UI section. No children (generates its own). Max 3 depth.
-
-Interactive Panels:
-- FoldablePanel: { panelId: string, tag?: 'map'|'3d'|'data-grid'|'chart'|'embed'|'media'|'custom', label?: string, expandedHeight?: number, collapsedHeight?: number, initialFoldState?: 'expanded'|'collapsed' } - Collapsible wrapper for interactive content. Has children. Click anywhere on header to collapse.
-
-CHART PANEL OPTIONS (panelType prop - CRITICAL):
-
-Charts support 3 wrapper modes via panelType:
-- panelType: "none" (DEFAULT) - No wrapper, bare chart for embedding in grids/cards
-- panelType: "foldable" - Simple collapsible FoldablePanel
-- panelType: "interactive" - Full InteractiveChartPanel with tabbed settings (Style, Data, Axes tabs)
-
-DECISION TREE:
-1. Chart in dashboard grid? → panelType: "none"
-2. Chart in card/container? → panelType: "none"
-3. Standalone, needs collapse? → panelType: "foldable"
-4. Needs settings UI? → panelType: "interactive"
-
-Configuration props:
-- chartId: string (REQUIRED for styling/state)
-- panelLabel: string - Header title
-- panelTag: 'chart'|'map'|'3d'|'data-grid' (foldable badge)
-- category: ChartCategory (interactive panel tab filtering)
-- availableTabs: string[] (override tabs for interactive)
-- initialTab: string (default: 'style')
-- expandedHeight: number (default 320)
-
-Example - Bare chart (default, for grids):
-{"op":"add","path":"/elements/myChart","value":{"key":"myChart","type":"Line","props":{"chartId":"sales-chart","data":[...],"xField":"date","yField":"value"}}}
-
-Example - Interactive panel with settings tabs:
-{"op":"add","path":"/elements/myChart","value":{"key":"myChart","type":"Line","props":{"chartId":"sales-chart","panelType":"interactive","panelLabel":"Revenue Trends","data":[...],"xField":"date","yField":"value"}}}
-
-Example - Simple foldable wrapper:
-{"op":"add","path":"/elements/myChart","value":{"key":"myChart","type":"Line","props":{"chartId":"sales-chart","panelType":"foldable","panelTag":"chart","panelLabel":"Revenue","data":[...],"xField":"date","yField":"value"}}}
-
-LAYOUT & RESPONSIVENESS (CRITICAL):
-
-1. ALWAYS wrap root content in a layout container:
-   - VStack: { gap?: number, className?: string } - Vertical stack (default)
-   - HStack: { gap?: number, className?: string } - Horizontal row
-   - Grid: { columns?: number, gap?: number } - CSS Grid layout
-
-2. RESPONSIVE PATTERNS:
-   - Use className for Tailwind responsive utilities
-   - Mobile-first: "flex flex-col md:flex-row" (stack on mobile, row on desktop)
-   - Grid breakpoints: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-
-3. ROOT ELEMENT MUST BE A LAYOUT:
-   ✗ BAD: Root is a Card (no layout context)
-   ✓ GOOD: Root is VStack containing Cards
-
-4. EXAMPLE - Responsive dashboard:
-   {"op":"set","path":"/root","value":"layout"}
-   {"op":"add","path":"/elements/layout","value":{"key":"layout","type":"VStack","props":{"gap":16,"className":"w-full p-4"},"children":["header","content"]}}
-   {"op":"add","path":"/elements/header","value":{"key":"header","type":"Heading","props":{"text":"Dashboard","level":1}}}
-   {"op":"add","path":"/elements/content","value":{"key":"content","type":"Grid","props":{"columns":2,"gap":16,"className":"grid-cols-1 md:grid-cols-2"},"children":["chart1","chart2"]}}
-
-DOMAIN DECOMPOSITION RULES (CRITICAL - follow for interactives):
-
-1. INTERACTIVE CONTENT DETECTION:
-   When user request involves ANY of these, you MUST wrap in FoldablePanel:
-   - Charts/visualizations (Line, Bar, Pie, Scatter, etc.) → tag: 'chart'
-   - Maps/geospatial (MapView, GlobeView) → tag: 'map'
-   - 3D content (Scene3D, ModelViewer) → tag: '3d'
-   - Data tables/grids (DataGrid, AG-Grid) → tag: 'data-grid'
-   - Embedded content (iframes, embeds) → tag: 'embed'
-   - Media players (video, audio) → tag: 'media'
-   - Custom interactives → tag: 'custom'
-
-2. TAG COLORS (for visual domain clarity):
-   - 'map' → cyan (geospatial domain)
-   - '3d' → purple (spatial domain)
-   - 'data-grid' → orange (tabular domain)
-   - 'chart' → emerald (analytical domain)
-   - 'embed' → blue (external content)
-   - 'media' → rose (rich media)
-   - 'custom' → slate (generic)
-
-3. FOLDABLEPANEL WRAPPING PATTERN:
-   ✗ BAD: Generate a chart directly without wrapper
-   ✓ GOOD: Wrap chart in FoldablePanel with appropriate tag
-
-   Example for chart:
-   {"op":"add","path":"/elements/chartPanel","value":{"key":"chartPanel","type":"FoldablePanel","props":{"panelId":"sales-chart","tag":"chart","label":"Sales Overview"},"children":["salesChart"]}}
-   {"op":"add","path":"/elements/salesChart","value":{"key":"salesChart","type":"Line","props":{"xField":"date","yField":"value"}}}
-
-4. MULTI-DOMAIN DECOMPOSITION:
-   When request spans domains (e.g., "dashboard with map, chart, and data table"):
-   - Create separate FoldablePanel for each domain
-   - Use appropriate tag for each panel
-   - Organize in layout (HStack, VStack, Grid)
-
-5. WHEN NOT TO USE FoldablePanel:
-   - Static text/content (Text, Heading, Card)
-   - Simple forms (Input, Button, Switch)
-   - Layout containers (HStack, VStack, Grid)
-   - The component is NOT interactive/visual
-
-GENERATIVECONTAINER RULES (CRITICAL - follow exactly):
-
-1. DECOMPOSITION: When user requests multi-section UI, decompose into GenerativeContainers:
-   - Identify distinct functional areas (stats, feed, settings, etc.)
-   - Each area becomes ONE GenerativeContainer with a STANDALONE prompt
-   - The child prompt must be self-contained - it will be sent to a NEW AI call
-
-2. PROMPT REQUIREMENTS - each prompt MUST include:
-   - WHAT to generate (component types: cards, list, form, buttons, etc.)
-   - HOW MANY items (specific count or range)
-   - WHAT DATA to show (field names, labels, values)
-   - NEVER reference "the user's request" or "as requested" - child AI has no parent context
-
-3. PROMPT PATTERNS:
-   ✗ BAD: "generate the stats section" (no context, will fail)
-   ✗ BAD: "show the metrics from the request" (child AI can't see parent)
-   ✓ GOOD: "Generate 3 metric cards in a Row: (1) Followers with count 1,234, (2) Posts with count 56, (3) Engagement Rate at 4.2%"
-   ✓ GOOD: "Create a vertical list of 5 notification items, each with: icon, title, timestamp, and dismiss button"
-   ✓ GOOD: "Build a settings form with: username input, email input, dark mode toggle, save button"
-
-4. CONTEXT OBJECT: Pass dynamic data that the child prompt references:
-   { prompt: "Show profile card for user", context: { name: "John", role: "Admin", avatar: "/img/john.png" } }
-
-5. WHEN TO USE GenerativeContainer vs static components:
-   - USE when: section needs dynamic/complex content, multiple similar items, data-driven layouts
-   - DON'T USE when: simple static text, single button, fixed layout that won't change
-
-6. EXAMPLE - User asks "Create a dashboard with analytics, recent activity, and quick actions":
-   Output structure:
-   - HStack (layout wrapper)
-     - GenerativeContainer: "Generate analytics panel with 4 stat cards in a 2x2 Grid: Total Users (12,453), Revenue ($45,230), Active Sessions (892), Conversion Rate (3.2%). Each card has icon, label, value, and trend indicator."
-     - GenerativeContainer: "Generate activity feed as a VStack of 5 items. Each item is a Card with: user avatar, action description, relative timestamp (e.g. '2 hours ago'), and a 'View' button."
-     - GenerativeContainer: "Generate quick actions panel with 4 buttons in a VStack: 'New Post' (default), 'Invite User' (secondary), 'Export Data' (outline), 'Settings' (ghost)."
-
-ACTIONS (for Button props):
-{"action":{"name":"notify","params":{"message":"Hello!"}}}
-{"action":{"name":"delete","params":{"id":"123"},"confirm":{"title":"Delete?","message":"Cannot undo"}}}
-
-EXAMPLE OUTPUT (Card with title and button):
-{"op":"set","path":"/root","value":"mainCard"}
-{"op":"add","path":"/elements/mainCard","value":{"key":"mainCard","type":"Card","props":{},"children":["header","content"]}}
-{"op":"add","path":"/elements/header","value":{"key":"header","type":"CardHeader","props":{},"children":["title"]}}
-{"op":"add","path":"/elements/title","value":{"key":"title","type":"CardTitle","props":{"text":"Welcome"}}}
-{"op":"add","path":"/elements/content","value":{"key":"content","type":"CardContent","props":{},"children":["btn"]}}
-{"op":"add","path":"/elements/btn","value":{"key":"btn","type":"Button","props":{"label":"Click me","variant":"default"}}}
-
-${additionalDocs}
-
-Now generate JSONL patches for the user's request:`
-}
-
 // -----------------------------------------------------------------------------
 // UI Generation Request Schema
 // -----------------------------------------------------------------------------
@@ -512,7 +302,63 @@ const handleUIGenerate = Effect.gen(function* () {
   // Return raw text stream using result.textStream directly
   // NOT toTextStreamResponse() which wraps in SSE format (data: ...)
   // Client parses complete JSONL lines and validates with Effect Schema
-  const response = new Response(result.textStream, {
+  const sanitizedStream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      const reader = result.textStream.getReader();
+      let buffer = '';
+      let strippedFence = false;
+
+      const pushLine = (line: string) => {
+        if (!line) return;
+        if (line.startsWith('```')) return;
+        controller.enqueue(new TextEncoder().encode(line + '\n'));
+      };
+
+      const pump = (): void => {
+        reader
+          .read()
+          .then(({ done, value }) => {
+            if (done) {
+              if (buffer.length > 0) {
+                const finalLine = buffer.trimEnd();
+                if (finalLine && !finalLine.startsWith('```')) {
+                  controller.enqueue(
+                    new TextEncoder().encode(finalLine + '\n')
+                  );
+                }
+              }
+              controller.close();
+              return;
+            }
+
+            buffer += new TextDecoder().decode(value);
+            const lines = buffer.split('\n');
+            buffer = lines.pop() ?? '';
+
+            for (const rawLine of lines) {
+              const line = rawLine.trimEnd();
+              if (!strippedFence && line.startsWith('```')) {
+                strippedFence = true;
+                continue;
+              }
+              if (line.startsWith('```')) {
+                continue;
+              }
+              pushLine(line);
+            }
+
+            pump();
+          })
+          .catch((error) => {
+            controller.error(error);
+          });
+      };
+
+      pump();
+    },
+  });
+
+  const response = new Response(sanitizedStream, {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
       'Transfer-Encoding': 'chunked',
@@ -597,9 +443,10 @@ const handleChartStyle = Effect.gen(function* () {
 
 /**
  * Durable stream base URL for patch persistence.
- * This would connect to your actual durable stream service.
+ * Connects to the durable streams server (default port 4437).
+ * @see scripts/durable-streams-server.ts
  */
-const DURABLE_STREAM_BASE = 'http://localhost:3000/v1/stream';
+const DURABLE_STREAM_BASE = 'http://localhost:4437/v1/stream';
 
 /**
  * Helper to emit a patch to the durable stream.

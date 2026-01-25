@@ -395,6 +395,67 @@ export const PANEL_DIMENSIONS = {
 } as const
 
 // =============================================================================
+// LAYOUT PRESETS (Responsive Dashboard Support)
+// =============================================================================
+
+/**
+ * Layout presets for responsive dashboard sizing.
+ * Each preset defines dimensions for sidebar, intel panel, and timeline.
+ *
+ * - `full`: All panels expanded (1200px+ containers)
+ * - `compact`: Narrower panels (900px+ containers)
+ * - `minimal`: Collapsed panels, map-focused (600px+ containers)
+ * - `map-focus`: Map only with floating mini-panels (<600px)
+ *
+ * @example
+ * ```tsx
+ * const preset = LAYOUT_PRESETS[computedPreset]
+ * const sidebarWidth = preset.sidebar.collapsed ? 48 : preset.sidebar.width
+ * ```
+ */
+export const LAYOUT_PRESETS = {
+  full: {
+    sidebar: { width: 320, collapsed: false, hidden: false },
+    intel: { width: 380, collapsed: false, hidden: false, floating: false },
+    timeline: { height: 300, collapsed: false, hidden: false, floating: false },
+    minContainerWidth: 1200,
+  },
+  compact: {
+    sidebar: { width: 240, collapsed: false, hidden: false },
+    intel: { width: 280, collapsed: false, hidden: false, floating: false },
+    timeline: { height: 200, collapsed: false, hidden: false, floating: false },
+    minContainerWidth: 900,
+  },
+  minimal: {
+    sidebar: { width: 48, collapsed: true, hidden: false },
+    intel: { width: 48, collapsed: true, hidden: false, floating: false },
+    timeline: { height: 48, collapsed: true, hidden: false, floating: false },
+    minContainerWidth: 600,
+  },
+  'map-focus': {
+    sidebar: { width: 0, collapsed: true, hidden: true },
+    intel: { width: 320, collapsed: false, hidden: false, floating: true },
+    timeline: { height: 80, collapsed: false, hidden: false, floating: true },
+    minContainerWidth: 400,
+  },
+} as const
+
+export type LayoutPreset = keyof typeof LAYOUT_PRESETS
+
+/**
+ * Compute the appropriate preset based on container width.
+ *
+ * @param width - Container width in pixels
+ * @returns The preset name that fits the container
+ */
+export function computePresetFromWidth(width: number): LayoutPreset {
+  if (width >= 1200) return 'full'
+  if (width >= 900) return 'compact'
+  if (width >= 600) return 'minimal'
+  return 'map-focus'
+}
+
+// =============================================================================
 // Z-INDEX SCALE
 // =============================================================================
 

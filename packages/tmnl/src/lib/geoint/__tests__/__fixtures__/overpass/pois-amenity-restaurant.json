@@ -1,0 +1,49 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API",
+  "osm3s": {
+    "timestamp_osm_base": "2024-01-15T12:00:00Z",
+    "copyright": "OpenStreetMap contributors"
+  },
+  "elements": [
+    {
+      "type": "node",
+      "id": 123456789,
+      "lat": 37.7749,
+      "lon": -122.4194,
+      "tags": {
+        "amenity": "restaurant",
+        "name": "Tony's Pizza Napoletana",
+        "cuisine": "italian;pizza",
+        "opening_hours": "Mo-Su 11:00-22:00",
+        "phone": "+1-415-835-9888"
+      }
+    },
+    {
+      "type": "node",
+      "id": 234567890,
+      "lat": 37.7850,
+      "lon": -122.4100,
+      "tags": {
+        "amenity": "restaurant",
+        "name": "House of Prime Rib",
+        "cuisine": "steak",
+        "opening_hours": "Mo-Th 17:00-21:00; Fr-Sa 17:00-22:00; Su 16:00-21:00"
+      }
+    },
+    {
+      "type": "way",
+      "id": 345678901,
+      "center": {
+        "lat": 37.7700,
+        "lon": -122.4300
+      },
+      "tags": {
+        "amenity": "restaurant",
+        "name": "The Slanted Door",
+        "cuisine": "vietnamese",
+        "building": "yes"
+      }
+    }
+  ]
+}

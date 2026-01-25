@@ -41,16 +41,73 @@ const trackAnimation = (key: string, anim: JSAnimation): void => {
 };
 
 // =============================================================================
-// TRANSITION: DISPLAY → EDITING (150ms)
+// TRANSITION: DISPLAY → EDITING (blur + fade sequence)
 // =============================================================================
+
+/**
+ * Animate name blur out before editing.
+ * - Blur: 0 → 4px
+ * - Translate: 0 → -4px
+ * - Opacity: 1 → 0
+ */
+export const animateNameBlurOut = (
+  nameRef: React.RefObject<HTMLSpanElement>,
+  blockIdRef?: React.RefObject<HTMLSpanElement>
+): Promise<void> => {
+  return new Promise((resolve) => {
+    if (nameRef.current) {
+      animate(nameRef.current, {
+        filter: ['blur(0px)', 'blur(4px)'],
+        opacity: [1, 0],
+        translateY: [0, -4],
+        duration: TIMING.blurOut,
+        easing: EASING.out,
+        onComplete: () => resolve(),
+      });
+    } else {
+      resolve();
+    }
+
+    // Also blur out block ID
+    if (blockIdRef?.current) {
+      animate(blockIdRef.current, {
+        filter: ['blur(0px)', 'blur(4px)'],
+        opacity: [0.5, 0],
+        translateY: [0, -4],
+        duration: TIMING.blurOut,
+        easing: EASING.out,
+      });
+    }
+  });
+};
+
+/**
+ * Animate input fade in after blur out.
+ */
+export const animateInputFadeIn = (
+  inputRef: React.RefObject<HTMLInputElement>
+): Promise<void> => {
+  return new Promise((resolve) => {
+    if (inputRef.current) {
+      animate(inputRef.current, {
+        opacity: [0, 1],
+        duration: TIMING.inputFadeIn,
+        easing: EASING.out,
+        onComplete: () => resolve(),
+      });
+    } else {
+      resolve();
+    }
+  });
+};
 
 /**
  * Animate from display to editing state.
  *
- * - "@" prefix fades out (80ms)
- * - Caret fades in (80ms, crossfade with prefix)
- * - Underline intensifies: muted → cyan (150ms)
- * - Name text holds position (no animation)
+ * New sequence:
+ * 1. Name + block ID blur out (100ms)
+ * 2. Input fades in (50ms)
+ * 3. Caret starts pulsing
  */
 export const animateDisplayToEditing = (refs: AnimationRefs): Promise<void> => {
   return new Promise((resolve) => {
@@ -89,6 +146,24 @@ export const animateDisplayToEditing = (refs: AnimationRefs): Promise<void> => {
       resolve();
     }
   });
+};
+
+/**
+ * Full display → editing transition with blur.
+ * This is the new entry point that includes blur.
+ */
+export const animateDisplayToEditingWithBlur = async (
+  refs: AnimationRefs,
+  inputRef: React.RefObject<HTMLInputElement>
+): Promise<void> => {
+  // Phase 1: Blur out name + block ID
+  await animateNameBlurOut(refs.nameRef, refs.blockIdRef);
+
+  // Phase 2: Fade in input + start legacy animations
+  await Promise.all([
+    animateInputFadeIn(inputRef),
+    animateDisplayToEditing(refs),
+  ]);
 };
 
 // =============================================================================

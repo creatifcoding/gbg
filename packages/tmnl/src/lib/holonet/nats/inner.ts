@@ -94,7 +94,13 @@ export interface StreamConfigInput {
 /** Options for consumer creation */
 export interface ConsumerConfigInput {
   readonly durableName?: string;
-  readonly deliverPolicy?: 'all' | 'last' | 'new' | 'by_start_sequence' | 'by_start_time' | 'last_per_subject';
+  readonly deliverPolicy?:
+    | 'all'
+    | 'last'
+    | 'new'
+    | 'by_start_sequence'
+    | 'by_start_time'
+    | 'last_per_subject';
   readonly ackPolicy?: 'none' | 'all' | 'explicit';
   readonly replayPolicy?: 'instant' | 'original';
   readonly filterSubject?: string;
@@ -260,9 +266,7 @@ export interface NatsInnerServiceShape {
 
   readonly kv: {
     /** Open or create a KV bucket */
-    readonly bucket: (
-      name: string
-    ) => Effect.Effect<KV, Inner.KV.BucketError>;
+    readonly bucket: (name: string) => Effect.Effect<KV, Inner.KV.BucketError>;
 
     /** Get a value from KV */
     readonly get: (
@@ -387,7 +391,11 @@ export class NatsInnerService extends Effect.Service<NatsInnerService>()(
       // ─────────────────────────────────────────────────────────────────────────
 
       const core = {
-        publish: (subject: string, data: Uint8Array, opts?: CorePublishOptions) =>
+        publish: (
+          subject: string,
+          data: Uint8Array,
+          opts?: CorePublishOptions
+        ) =>
           Effect.try({
             try: () => {
               nc.publish(subject, data, opts);
@@ -411,17 +419,34 @@ export class NatsInnerService extends Effect.Service<NatsInnerService>()(
               }),
           }),
 
-        request: (subject: string, data: Uint8Array, opts?: CoreRequestOptions) =>
+        request: (
+          subject: string,
+          data: Uint8Array,
+          opts?: CoreRequestOptions
+        ) =>
           Effect.tryPromise({
-            try: () => nc.request(subject, data, {
-              timeout: opts?.timeout ?? 5000,
-              noMux: opts?.noMux,
-            }),
+            try: () =>
+              nc.request(subject, data, {
+                timeout: opts?.timeout ?? 5000,
+                noMux: opts?.noMux,
+              }),
             catch: (err) => {
-              const errAny = err as { code?: string; message?: string };
+              const errAny = err as {
+                code?: string;
+                message?: string;
+                name?: string;
+              };
+              const message = errAny?.message?.toLowerCase() ?? '';
+              const name = errAny?.name?.toLowerCase() ?? '';
+              const code = errAny?.code ?? '';
+
               if (
-                errAny?.code === 'TIMEOUT' ||
-                errAny?.message?.toLowerCase().includes('timeout')
+                code === 'TIMEOUT' ||
+                code === '503' ||
+                name.includes('timeout') ||
+                name.includes('noresponders') ||
+                message.includes('timeout') ||
+                message.includes('no responders')
               ) {
                 return new Inner.Core.TimeoutError({
                   subject,
@@ -461,7 +486,11 @@ export class NatsInnerService extends Effect.Service<NatsInnerService>()(
       // JETSTREAM PUBLISH (js.publish)
       // ─────────────────────────────────────────────────────────────────────────
 
-      const jsPublish = (subject: string, data: Uint8Array, opts?: JsPublishOptions) =>
+      const jsPublish = (
+        subject: string,
+        data: Uint8Array,
+        opts?: JsPublishOptions
+      ) =>
         Effect.gen(function* () {
           // Convert Record<string, string> to NATS MsgHdrs if provided
           const natsHeaders = opts?.headers
@@ -508,7 +537,9 @@ export class NatsInnerService extends Effect.Service<NatsInnerService>()(
             try: () => js.consumers.get(stream, name),
             catch: (err) =>
               new Inner.Consumers.GetError({
-                message: `Failed to get consumer${name ? ` '${name}'` : ''} from stream '${stream}'`,
+                message: `Failed to get consumer${
+                  name ? ` '${name}'` : ''
+                } from stream '${stream}'`,
                 streamName: stream,
                 consumerName: name,
                 cause: err,
@@ -557,7 +588,9 @@ export class NatsInnerService extends Effect.Service<NatsInnerService>()(
                 ack_policy: cfg.ackPolicy as any,
                 replay_policy: cfg.replayPolicy as any,
                 filter_subject: cfg.filterSubject,
-                filter_subjects: cfg.filterSubjects ? [...cfg.filterSubjects] : undefined,
+                filter_subjects: cfg.filterSubjects
+                  ? [...cfg.filterSubjects]
+                  : undefined,
                 ack_wait: cfg.ackWait,
                 max_deliver: cfg.maxDeliver,
                 max_ack_pending: cfg.maxAckPending,
@@ -568,7 +601,9 @@ export class NatsInnerService extends Effect.Service<NatsInnerService>()(
               } as ConsumerConfig),
             catch: (err) =>
               new Inner.Consumers.AddError({
-                message: `Failed to add consumer${cfg.durableName ? ` '${cfg.durableName}'` : ''} to stream '${stream}'`,
+                message: `Failed to add consumer${
+                  cfg.durableName ? ` '${cfg.durableName}'` : ''
+                } to stream '${stream}'`,
                 streamName: stream,
                 cause: err,
               }),
@@ -770,7 +805,12 @@ export class NatsInnerService extends Effect.Service<NatsInnerService>()(
               }),
           }),
 
-        create: (bucketName: string, bucket: KV, key: string, value: Uint8Array) =>
+        create: (
+          bucketName: string,
+          bucket: KV,
+          key: string,
+          value: Uint8Array
+        ) =>
           Effect.tryPromise({
             try: () => bucket.create(key, value),
             catch: (err) =>
@@ -862,7 +902,10 @@ export class NatsInnerService extends Effect.Service<NatsInnerService>()(
               }),
           }),
 
-        info: (store: ObjectStore, name: string): Effect.Effect<ObjectInfo | null, Inner.KV.GetError> =>
+        info: (
+          store: ObjectStore,
+          name: string
+        ): Effect.Effect<ObjectInfo | null, Inner.KV.GetError> =>
           Effect.tryPromise({
             try: async () => {
               try {
@@ -880,7 +923,10 @@ export class NatsInnerService extends Effect.Service<NatsInnerService>()(
               }),
           }),
 
-        get: (store: ObjectStore, name: string): Effect.Effect<Uint8Array | null, Inner.KV.GetError> =>
+        get: (
+          store: ObjectStore,
+          name: string
+        ): Effect.Effect<Uint8Array | null, Inner.KV.GetError> =>
           Effect.tryPromise({
             try: () => store.get(name),
             catch: (err) =>
@@ -909,7 +955,11 @@ export class NatsInnerService extends Effect.Service<NatsInnerService>()(
               // Collect all chunks and concatenate into single Uint8Array
               return Stream.runCollect(byteStream).pipe(
                 Effect.map((chunks) => {
-                  const totalLength = Chunk.reduce(chunks, 0, (acc, chunk) => acc + chunk.length);
+                  const totalLength = Chunk.reduce(
+                    chunks,
+                    0,
+                    (acc, chunk) => acc + chunk.length
+                  );
                   const resultBytes = new Uint8Array(totalLength);
                   let offset = 0;
                   Chunk.forEach(chunks, (chunk) => {
@@ -922,7 +972,12 @@ export class NatsInnerService extends Effect.Service<NatsInnerService>()(
             })
           ),
 
-        put: (store: ObjectStore, name: string, data: Uint8Array, opts?: { description?: string }) =>
+        put: (
+          store: ObjectStore,
+          name: string,
+          data: Uint8Array,
+          opts?: { description?: string }
+        ) =>
           Effect.tryPromise({
             try: () =>
               // Use putBlob which accepts Uint8Array directly

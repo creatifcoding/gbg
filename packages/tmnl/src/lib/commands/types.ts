@@ -25,6 +25,7 @@ export type CommandCategory =
   | 'grid'
   | 'canvas'
   | 'system'
+  | 'window'
 
 /** Base command metadata */
 export interface CommandMeta {

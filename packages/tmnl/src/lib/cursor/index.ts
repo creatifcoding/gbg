@@ -39,6 +39,9 @@ export {
 
 // Atoms
 export {
+  // Registry
+  cursorRegistry,
+  CursorRegistryProvider,
   // Runtime
   cursorRuntimeAtom,
   // State atoms
@@ -49,6 +52,9 @@ export {
   currentCornerAtom,
   cursorStateAtom,
   sizeKeyAtom,
+  customSizeAtom,
+  isResizingAtom,
+  RESIZE_CONSTRAINTS,
   // Derived atoms
   hasBoundsAtom,
   // XState bridge (stx pattern)
@@ -75,3 +81,4 @@ export { Cursor } from './components/Cursor'
 export { DynamicIsland, DynamicIslandProvider, useDynamicIsland } from './components/DynamicIsland'
 export { ChatContent } from './components/ChatContent'
 export { PillIndicator } from './components/PillIndicator'
+export { ResizeHandles } from './components/ResizeHandles'

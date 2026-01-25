@@ -46,6 +46,130 @@ export interface TauriPtyServiceShape {
 }
 
 // =============================================================================
+// WebSocket Fallback for Browser Dev Mode
+// =============================================================================
+
+const WS_URL = 'ws://localhost:7681/ws'
+
+/**
+ * Spawn PTY via WebSocket relay server (fallback for browser dev mode)
+ */
+function spawnViaWebSocket(
+  options: PtySpawnOptions,
+  registry: Ref.Ref<HashMap.HashMap<string, PtyHandle>>
+): Effect.Effect<PtyHandle, Error> {
+  return Effect.gen(function* () {
+    const id = `pty-ws-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const eventQueue = yield* Queue.unbounded<TerminalEvent>()
+
+    // Build WebSocket URL with options
+    const params = new URLSearchParams()
+    if (options.shell) params.set('shell', options.shell)
+    if (options.cols) params.set('cols', String(options.cols))
+    if (options.rows) params.set('rows', String(options.rows))
+    if (options.cwd) params.set('cwd', options.cwd)
+
+    const wsUrl = `${WS_URL}?${params.toString()}`
+
+    // Connect to WebSocket
+    const ws = yield* Effect.tryPromise({
+      try: () =>
+        new Promise<WebSocket>((resolve, reject) => {
+          const socket = new WebSocket(wsUrl)
+          socket.onopen = () => resolve(socket)
+          socket.onerror = (e) => reject(new Error(`WebSocket connection failed: ${e}`))
+          // Timeout after 5 seconds
+          setTimeout(() => reject(new Error('WebSocket connection timeout')), 5000)
+        }),
+      catch: (e) => new Error(`Failed to connect to terminal server: ${e}`),
+    })
+
+    // Session ID from server
+    let serverSessionId = id
+
+    // Handle incoming messages
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data)
+        switch (msg._tag) {
+          case 'ServerReady':
+            serverSessionId = msg.sessionId
+            break
+
+          case 'ServerData':
+            Effect.runSync(
+              Queue.offer(eventQueue, {
+                _tag: 'TerminalData',
+                terminalId: id,
+                data: msg.data,
+              })
+            )
+            break
+
+          case 'ServerExit':
+            Effect.runSync(
+              Queue.offer(eventQueue, {
+                _tag: 'TerminalExit',
+                terminalId: id,
+                code: msg.exitCode,
+              })
+            )
+            break
+
+          case 'ServerError':
+            console.error('[TauriPtyService] Server error:', msg.message)
+            break
+        }
+      } catch (e) {
+        console.error('[TauriPtyService] Failed to parse message:', e)
+      }
+    }
+
+    ws.onclose = () => {
+      Effect.runSync(
+        Queue.offer(eventQueue, {
+          _tag: 'TerminalExit',
+          terminalId: id,
+          code: 0,
+        })
+      )
+    }
+
+    ws.onerror = (e) => {
+      console.error('[TauriPtyService] WebSocket error:', e)
+    }
+
+    // Create handle
+    const handle: PtyHandle = {
+      id,
+      write: (data: string) =>
+        Effect.sync(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ _tag: 'ClientData', data }))
+          }
+        }),
+      resize: (rows: number, cols: number) =>
+        Effect.sync(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ _tag: 'ClientResize', rows, cols }))
+          }
+        }),
+      kill: () =>
+        Effect.gen(function* () {
+          ws.close()
+          yield* Ref.update(registry, HashMap.remove(id))
+        }),
+      events: Stream.fromQueue(eventQueue),
+    }
+
+    // Register handle
+    yield* Ref.update(registry, HashMap.set(id, handle))
+
+    return handle
+  })
+}
+
+// =============================================================================
 // Service Tag
 // =============================================================================
 
@@ -67,8 +191,9 @@ export class TauriPtyService extends Context.Tag('tmnl/terminal/TauriPtyService'
 
       const spawn = (options: PtySpawnOptions): Effect.Effect<PtyHandle> =>
         Effect.gen(function* () {
+          // If not in Tauri, use WebSocket fallback
           if (!isTauri) {
-            return yield* Effect.fail(new Error('TauriPtyService requires Tauri context'))
+            return yield* spawnViaWebSocket(options, registry)
           }
 
           // Dynamically import Tauri API only when needed

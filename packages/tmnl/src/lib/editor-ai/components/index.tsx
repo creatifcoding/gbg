@@ -24,3 +24,8 @@ export {
   EditorAIDrawer,
   type EditorAIDrawerProps,
 } from './EditorAIDrawer'
+
+export {
+  ReconcilerTestPanel,
+  type ReconcilerTestPanelProps,
+} from './ReconcilerTestPanel'

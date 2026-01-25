@@ -31,6 +31,7 @@ interface PersistedTerminal {
   fitAddon: FitAddon
   canvasAddon: CanvasAddon | null
   webLinksAddon: WebLinksAddon | null
+  resizeObserver: ResizeObserver | null
   lastAccess: number
   pwd?: string
 }
@@ -53,6 +54,7 @@ function evictOldestTerminal(): void {
   if (oldest) {
     const entry = terminalRegistry.get(oldest)
     if (entry) {
+      entry.resizeObserver?.disconnect()
       entry.terminal.dispose()
       terminalRegistry.delete(oldest)
     }
@@ -266,18 +268,6 @@ export function useXterm(
     terminalRef.current = terminal
     fitAddonRef.current = fitAddon
 
-    // Persist if key provided
-    if (persistKey) {
-      evictOldestTerminal()
-      terminalRegistry.set(persistKey, {
-        terminal,
-        fitAddon,
-        canvasAddon: canvasAddonRef.current,
-        webLinksAddon: null,
-        lastAccess: Date.now(),
-      })
-    }
-
     // Set up resize observer
     resizeObserverRef.current = new ResizeObserver(() => {
       if (fitAddonRef.current) {
@@ -285,6 +275,19 @@ export function useXterm(
       }
     })
     resizeObserverRef.current.observe(container)
+
+    // Persist if key provided (after ResizeObserver is created)
+    if (persistKey) {
+      evictOldestTerminal()
+      terminalRegistry.set(persistKey, {
+        terminal,
+        fitAddon,
+        canvasAddon: canvasAddonRef.current,
+        webLinksAddon: null,
+        resizeObserver: resizeObserverRef.current,
+        lastAccess: Date.now(),
+      })
+    }
 
     setIsReady(true)
 
@@ -442,6 +445,8 @@ export function useXterm(
 export function disposeTerminal(persistKey: string): void {
   const persisted = terminalRegistry.get(persistKey)
   if (persisted) {
+    // Dispose ResizeObserver first to prevent callbacks during disposal
+    persisted.resizeObserver?.disconnect()
     persisted.terminal.dispose()
     terminalRegistry.delete(persistKey)
   }
@@ -449,6 +454,7 @@ export function disposeTerminal(persistKey: string): void {
 
 export function disposeAllTerminals(): void {
   for (const [key, value] of terminalRegistry) {
+    value.resizeObserver?.disconnect()
     value.terminal.dispose()
     terminalRegistry.delete(key)
   }

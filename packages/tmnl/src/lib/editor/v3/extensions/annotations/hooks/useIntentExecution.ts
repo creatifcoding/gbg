@@ -211,70 +211,24 @@ export function useIntentExecution(
     []
   );
 
-  // Wire up editor event listeners
+  // NOTE: Editor-level event listeners for hover/click have been DISABLED.
+  // IntentMarkView now handles all hover/click events directly on the mark elements,
+  // and AnnotationPopover uses safePolygon for hover-to-popover traversal.
+  //
+  // This hook's execute/cancel/registerAction APIs are still available for
+  // programmatic intent execution.
+  //
+  // If you need editor-level event handling (e.g., for keyboard navigation),
+  // add it here but DO NOT add mouseover/mouseout handlers - they conflict
+  // with IntentMarkView's handlers and safePolygon.
   useEffect(() => {
-    if (!editor) return;
-
-    const handleClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      const markElement = target.closest('[data-annotation-id]') as HTMLElement | null;
-
-      if (markElement) {
-        const markId = markElement.getAttribute('data-annotation-id') as AnnotationId;
-        if (markId) {
-          event.preventDefault();
-          handleMarkClick(markId, event);
-        }
-      }
-    };
-
-    const handleMouseOver = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      const markElement = target.closest('[data-annotation-id]') as HTMLElement | null;
-
-      if (markElement) {
-        const markId = markElement.getAttribute('data-annotation-id') as AnnotationId;
-        if (markId && markId !== hoveredIdRef.current) {
-          handleMarkHoverEnter(markId, event);
-        }
-      }
-    };
-
-    const handleMouseOut = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      const relatedTarget = event.relatedTarget as HTMLElement | null;
-
-      const markElement = target.closest('[data-annotation-id]') as HTMLElement | null;
-      const relatedMarkElement = relatedTarget?.closest('[data-annotation-id]') as HTMLElement | null;
-
-      if (markElement) {
-        const markId = markElement.getAttribute('data-annotation-id') as AnnotationId;
-        const relatedMarkId = relatedMarkElement?.getAttribute('data-annotation-id');
-
-        // Only trigger leave if moving to a different mark or outside all marks
-        if (markId && markId !== relatedMarkId) {
-          handleMarkHoverLeave(markId);
-        }
-      }
-    };
-
-    // Attach to editor DOM
-    const editorElement = editor.view.dom;
-    editorElement.addEventListener('click', handleClick);
-    editorElement.addEventListener('mouseover', handleMouseOver);
-    editorElement.addEventListener('mouseout', handleMouseOut);
-
     return () => {
-      editorElement.removeEventListener('click', handleClick);
-      editorElement.removeEventListener('mouseover', handleMouseOver);
-      editorElement.removeEventListener('mouseout', handleMouseOut);
-
-      // Clean up timeout
+      // Clean up timeout on unmount
       if (hoverTimeoutRef.current) {
         clearTimeout(hoverTimeoutRef.current);
       }
     };
-  }, [editor, handleMarkClick, handleMarkHoverEnter, handleMarkHoverLeave]);
+  }, []);
 
   // Public API
   const execute = useCallback(

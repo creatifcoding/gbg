@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "backend_name": "hnsw",
+  "embedding_model": "facebook/contriever",
+  "dimensions": 768,
+  "backend_kwargs": {
+    "graph_degree": 32,
+    "complexity": 64,
+    "is_compact": true,
+    "is_recompute": true,
+    "num_threads": 1
+  },
+  "embedding_mode": "sentence-transformers",
+  "passage_sources": [
+    {
+      "type": "jsonl",
+      "path": "documents.leann.passages.jsonl",
+      "index_path": "documents.leann.passages.idx",
+      "path_relative": "documents.leann.passages.jsonl",
+      "index_path_relative": "documents.leann.passages.idx"
+    }
+  ],
+  "is_compact": true,
+  "is_pruned": true
+}

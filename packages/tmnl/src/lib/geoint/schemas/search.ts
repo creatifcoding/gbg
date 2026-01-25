@@ -512,7 +512,9 @@ export class SearchPartialResults extends Schema.TaggedClass<SearchPartialResult
   queryId: SearchId,
   source: IntelSource,
   results: Schema.Array(SearchResultItem),
-  isComplete: Schema.Boolean
+  isComplete: Schema.Boolean,
+  /** Optional error message if this source failed */
+  error: Schema.optional(Schema.String),
 }) {}
 
 /** Source completed event */

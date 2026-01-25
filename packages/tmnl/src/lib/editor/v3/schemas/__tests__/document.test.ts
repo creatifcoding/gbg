@@ -502,17 +502,18 @@ describe('createInitialMetadata', () => {
       tags: ['tag1'],
     };
     const createdBy = 'user-creator' as IdentityId;
-    const ysweetDocId = 'ysweet-doc-123';
+    const documentId = generateDocumentId();
 
-    const metadata = createInitialMetadata(payload, createdBy, ysweetDocId);
+    const metadata = createInitialMetadata(payload, createdBy, documentId);
 
     expect(metadata.id.startsWith('doc-')).toBe(true);
+    expect(metadata.id).toBe(documentId);
     expect(metadata.title).toBe('Test Doc');
     expect(metadata.status).toBe('draft');
     expect(metadata.visibility).toBe('team');
     expect(metadata.createdBy).toBe('user-creator');
     expect(metadata.updatedBy).toBe('user-creator');
-    expect(metadata.ysweetDocId).toBe('ysweet-doc-123');
+    expect(metadata.ysweetDocId).toBe(documentId); // Now same as document ID
     expect(metadata.tags).toEqual(['tag1']);
     expect(metadata.version).toBe(1);
     expect(metadata.createdAt).toBeInstanceOf(Date);
@@ -528,7 +529,7 @@ describe('createInitialMetadata', () => {
     const metadata = createInitialMetadata(
       payload,
       'user-1' as IdentityId,
-      'ysweet-1'
+      generateDocumentId()
     );
 
     expect(metadata.visibility).toBe('private');

@@ -24,23 +24,61 @@ export type Offset = typeof Offset.Type;
 export const OFFSET_START: Offset = '-1' as Offset;
 
 // ============================================================================
-// Live Mode
+// Live Mode (Tagged Union)
 // ============================================================================
 
 /**
- * Live mode for reading from a stream.
- * - false: Catch-up only, stop at first upToDate
- * - "auto": Behavior driven by consumption method
- * - "long-poll": Explicit long-poll for live updates
- * - "sse": Server-sent events for live updates
+ * Catch-up mode: Read existing messages, stop at first upToDate
+ */
+export const LiveModeCatchUp = Schema.TaggedStruct('LiveModeCatchUp', {});
+export type LiveModeCatchUp = typeof LiveModeCatchUp.Type;
+
+/**
+ * Long-poll mode: Hold connection for live updates
+ */
+export const LiveModeLongPoll = Schema.TaggedStruct('LiveModeLongPoll', {
+  /** Timeout in milliseconds (default 30s) */
+  timeoutMs: Schema.optionalWith(Schema.Number, { default: () => 30000 }),
+});
+export type LiveModeLongPoll = typeof LiveModeLongPoll.Type;
+
+/**
+ * SSE mode: Server-sent events for live updates
+ */
+export const LiveModeSSE = Schema.TaggedStruct('LiveModeSSE', {
+  /** Heartbeat interval in milliseconds (default 15s) */
+  heartbeatMs: Schema.optionalWith(Schema.Number, { default: () => 15000 }),
+});
+export type LiveModeSSE = typeof LiveModeSSE.Type;
+
+/**
+ * Auto mode: Behavior determined by consumption method
+ */
+export const LiveModeAuto = Schema.TaggedStruct('LiveModeAuto', {});
+export type LiveModeAuto = typeof LiveModeAuto.Type;
+
+/**
+ * Live mode union - discriminated by _tag
  */
 export const LiveMode = Schema.Union(
+  LiveModeCatchUp,
+  LiveModeLongPoll,
+  LiveModeSSE,
+  LiveModeAuto
+);
+export type LiveMode = typeof LiveMode.Type;
+
+/**
+ * Legacy live mode (for backward compatibility with raw client)
+ * Maps to: false | 'auto' | 'long-poll' | 'sse'
+ */
+export const LiveModeLegacy = Schema.Union(
   Schema.Literal(false),
   Schema.Literal('auto'),
   Schema.Literal('long-poll'),
   Schema.Literal('sse')
 );
-export type LiveMode = typeof LiveMode.Type;
+export type LiveModeLegacy = typeof LiveModeLegacy.Type;
 
 // ============================================================================
 // Stream Configuration
@@ -48,41 +86,44 @@ export type LiveMode = typeof LiveMode.Type;
 
 /**
  * Configuration for creating a stream
+ * 
+ * @property url - Full URL to the durable stream endpoint
+ * @property contentType - Content type (defaults to 'application/json' in service)
+ * @property ttlSeconds - Time-to-live in seconds
+ * @property expiresAt - Expiration timestamp (ISO 8601)
+ * @property body - Initial body content
  */
 export const StreamCreateConfig = Schema.Struct({
-  /** Full URL to the durable stream endpoint */
   url: Schema.String,
-  /** Content type (e.g., "application/json", "text/plain") */
   contentType: Schema.optional(Schema.String),
-  /** Time-to-live in seconds */
   ttlSeconds: Schema.optional(Schema.Number),
-  /** Expiration timestamp (ISO 8601) */
   expiresAt: Schema.optional(Schema.String),
-  /** Initial body content */
   body: Schema.optional(Schema.Unknown),
 });
 export type StreamCreateConfig = typeof StreamCreateConfig.Type;
 
 /**
  * Configuration for connecting to an existing stream
+ * 
+ * @property url - Full URL to the durable stream endpoint
+ * @property headers - Optional authorization headers
  */
 export const StreamConnectConfig = Schema.Struct({
-  /** Full URL to the durable stream endpoint */
   url: Schema.String,
-  /** Optional authorization headers */
   headers: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.String })),
 });
 export type StreamConnectConfig = typeof StreamConnectConfig.Type;
 
 /**
- * Configuration for reading from a stream
+ * Configuration for reading from a stream.
+ * Defaults are applied at runtime in the service:
+ * - offset: '-1' (beginning of stream)
+ * - live: false (catch-up mode)
+ * - json: true (parse as JSON)
  */
 export const StreamReadConfig = Schema.Struct({
-  /** Starting offset (defaults to "-1" for beginning) */
   offset: Schema.optional(Schema.String),
-  /** Live mode */
-  live: Schema.optional(LiveMode),
-  /** Treat content as JSON */
+  live: Schema.optional(LiveModeLegacy),
   json: Schema.optional(Schema.Boolean),
 });
 export type StreamReadConfig = typeof StreamReadConfig.Type;

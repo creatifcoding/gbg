@@ -24,13 +24,13 @@
  * ```
  */
 
-import { useCallback, useEffect, useMemo } from 'react'
-import { useAtomValue } from '@effect-atom/atom-react'
-import { Effect, Option, Schema } from 'effect'
-import { Atom } from '@effect-atom/atom'
-import * as Variable from './Variable'
-import * as scope from './internal/scope'
-import * as internal from './internal/core'
+import { useCallback, useEffect, useMemo } from 'react';
+import { useAtomValue } from '@effect-atom/atom-react';
+import { Effect, Option, Schema } from 'effect';
+import { Atom } from '@effect-atom/atom';
+import * as Variable from './Variable';
+import * as scope from './internal/scope';
+import * as internal from './internal/core';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Variable Atoms (using Atom.family for parameterized access)
@@ -43,22 +43,23 @@ import * as internal from './internal/core'
 export const variableAtom = Atom.family((variableId: string) =>
   Atom.make((get) => {
     // Subscribe to all scope atoms for reactivity
-    get(scope.userScopeAtom)
-    get(scope.workspaceScopesAtom)
-    get(scope.editorScopesAtom)
-    get(scope.currentWorkspaceAtom)
-    get(scope.currentEditorAtom)
+    get(scope.userScopeAtom);
+    get(scope.workspaceScopesAtom);
+    get(scope.editorScopesAtom);
+    get(scope.currentWorkspaceAtom);
+    get(scope.currentEditorAtom);
 
     // Get definition
-    const def = internal.getVariableDefinition(variableId)
+    const def = internal.getVariableDefinition(variableId);
     if (Option.isNone(def)) {
-      return undefined
+      return undefined;
     }
 
     // Resolve value using scope chain
-    return scope.resolveValueSync(variableId, def.value)
+    // Pass `get` so resolveValueSync can read atoms synchronously
+    return scope.resolveValueSync(variableId, def.value, get);
   })
-)
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // useVariable — Full Access Hook
@@ -66,23 +67,25 @@ export const variableAtom = Atom.family((variableId: string) =>
 
 export interface UseVariableReturn<A> {
   /** Current value (undefined if not found) */
-  readonly value: A | undefined
+  readonly value: A | undefined;
   /** Where the value came from */
-  readonly source: scope.ValueSource | undefined
+  readonly source: scope.ValueSource | undefined;
   /** Whether value differs from default */
-  readonly isModified: boolean
+  readonly isModified: boolean;
   /** Variable metadata */
-  readonly metadata: {
-    readonly id: string
-    readonly description: string
-    readonly hasComputedDefault: boolean
-  } | undefined
+  readonly metadata:
+    | {
+        readonly id: string;
+        readonly description: string;
+        readonly hasComputedDefault: boolean;
+      }
+    | undefined;
   /** Set the value (user scope) */
-  readonly set: (value: A) => Promise<void>
+  readonly set: (value: A) => Promise<void>;
   /** Reset to default (remove user customization) */
-  readonly reset: () => void
+  readonly reset: () => void;
   /** Make buffer-local (copy to editor scope) */
-  readonly makeLocal: () => Promise<void>
+  readonly makeLocal: () => Promise<void>;
 }
 
 /**
@@ -93,31 +96,33 @@ export interface UseVariableReturn<A> {
  * const { value, set, reset, source, isModified } = useVariable('editor.tabWidth')
  * ```
  */
-export function useVariable<A = unknown>(variableId: string): UseVariableReturn<A> {
+export function useVariable<A = unknown>(
+  variableId: string
+): UseVariableReturn<A> {
   // Subscribe to value changes via Atom.family
-  const resolved = useAtomValue(variableAtom(variableId))
+  const resolved = useAtomValue(variableAtom(variableId));
 
   // Get metadata (static, doesn't change)
   const metadata = useMemo(() => {
-    const desc = Variable.describe(variableId)
-    return Option.isSome(desc) ? desc.value : undefined
-  }, [variableId])
+    const desc = Variable.describe(variableId);
+    return Option.isSome(desc) ? desc.value : undefined;
+  }, [variableId]);
 
   // Mutations
   const set = useCallback(
     async (value: A) => {
-      await Effect.runPromise(Variable.set(variableId, value))
+      await Effect.runPromise(Variable.set(variableId, value));
     },
     [variableId]
-  )
+  );
 
   const reset = useCallback(() => {
-    scope.removeUserValue(variableId)
-  }, [variableId])
+    scope.removeUserValue(variableId);
+  }, [variableId]);
 
   const makeLocal = useCallback(async () => {
-    await Effect.runPromise(Variable.makeLocal(variableId))
-  }, [variableId])
+    await Effect.runPromise(Variable.makeLocal(variableId));
+  }, [variableId]);
 
   return useMemo(
     () => ({
@@ -130,7 +135,7 @@ export function useVariable<A = unknown>(variableId: string): UseVariableReturn<
       makeLocal,
     }),
     [resolved, metadata, set, reset, makeLocal]
-  )
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -146,9 +151,11 @@ export function useVariable<A = unknown>(variableId: string): UseVariableReturn<
  * const fontSize = useVariableValue<number>('editor.fontSize')
  * ```
  */
-export function useVariableValue<A = unknown>(variableId: string): A | undefined {
-  const { value } = useVariable<A>(variableId)
-  return value
+export function useVariableValue<A = unknown>(
+  variableId: string
+): A | undefined {
+  const { value } = useVariable<A>(variableId);
+  return value;
 }
 
 /**
@@ -163,11 +170,11 @@ export function useVariableValueAs<A>(
   variableId: string,
   schema: Schema.Schema<A, unknown>
 ): A | undefined {
-  const value = useVariableValue(variableId)
-  if (value === undefined) return undefined
+  const value = useVariableValue(variableId);
+  if (value === undefined) return undefined;
 
-  const decoded = Schema.decodeUnknownEither(schema)(value)
-  return decoded._tag === 'Right' ? decoded.right : undefined
+  const decoded = Schema.decodeUnknownEither(schema)(value);
+  return decoded._tag === 'Right' ? decoded.right : undefined;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -184,7 +191,7 @@ export function useVariableValueAs<A>(
  * ```
  */
 export function useVariableGroups(): ReadonlyArray<string> {
-  return useMemo(() => Variable.groups(), [])
+  return useMemo(() => Variable.groups(), []);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -204,14 +211,14 @@ export function useVariableList(group?: string): ReadonlyArray<string> {
   return useMemo(
     () => (group ? Variable.listByGroup(group) : Variable.list()),
     [group]
-  )
+  );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // useVariablePersistence — Persistence Hook
 // ─────────────────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = 'tmnl:variables:v2:user'
+const STORAGE_KEY = 'tmnl:variables:v2:user';
 
 /**
  * Hook to setup variable persistence.
@@ -225,38 +232,40 @@ const STORAGE_KEY = 'tmnl:variables:v2:user'
  * }
  * ```
  */
-export function useVariablePersistence(options?: { debounceMs?: number }): void {
-  const debounceMs = options?.debounceMs ?? 1000
+export function useVariablePersistence(options?: {
+  debounceMs?: number;
+}): void {
+  const debounceMs = options?.debounceMs ?? 1000;
 
   // Load on mount
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY)
+      const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw)
+        const parsed = JSON.parse(raw);
         if (typeof parsed === 'object' && parsed !== null) {
-          scope.setUserScopeFromObject(parsed)
+          scope.setUserScopeFromObject(parsed);
         }
       }
     } catch (e) {
-      console.warn('[useVariablePersistence] Failed to load:', e)
+      console.warn('[useVariablePersistence] Failed to load:', e);
     }
-  }, [])
+  }, []);
 
   // Subscribe to user scope changes
-  const userScope = useAtomValue(scope.userScopeAtom)
+  const userScope = useAtomValue(scope.userScopeAtom);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(userScope))
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(userScope));
       } catch (e) {
-        console.warn('[useVariablePersistence] Failed to save:', e)
+        console.warn('[useVariablePersistence] Failed to save:', e);
       }
-    }, debounceMs)
+    }, debounceMs);
 
-    return () => clearTimeout(timeout)
-  }, [userScope, debounceMs])
+    return () => clearTimeout(timeout);
+  }, [userScope, debounceMs]);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -277,14 +286,14 @@ export function useVariablePersistence(options?: { debounceMs?: number }): void 
  */
 export function useEditorContext(editorId: scope.EditorId | null): void {
   useEffect(() => {
-    scope.setCurrentEditor(editorId)
+    scope.setCurrentEditor(editorId);
     return () => {
       if (editorId) {
-        scope.clearEditorScope(editorId)
+        scope.clearEditorScope(editorId);
       }
-      scope.setCurrentEditor(null)
-    }
-  }, [editorId])
+      scope.setCurrentEditor(null);
+    };
+  }, [editorId]);
 }
 
 /**
@@ -299,9 +308,11 @@ export function useEditorContext(editorId: scope.EditorId | null): void {
  * }
  * ```
  */
-export function useWorkspaceContext(workspaceId: scope.WorkspaceId | null): void {
+export function useWorkspaceContext(
+  workspaceId: scope.WorkspaceId | null
+): void {
   useEffect(() => {
-    scope.setCurrentWorkspace(workspaceId)
-    return () => scope.setCurrentWorkspace(null)
-  }, [workspaceId])
+    scope.setCurrentWorkspace(workspaceId);
+    return () => scope.setCurrentWorkspace(null);
+  }, [workspaceId]);
 }

@@ -16,9 +16,9 @@
  * @module
  */
 
-import { useState, useCallback, useMemo, useEffect } from 'react'
-import { useAtom, useAtomValue } from '@effect-atom/atom-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useAtom, useAtomValue } from '@effect-atom/atom-react';
+import { motion, AnimatePresence } from 'framer-motion';
 // NOTE: Effect/Layer removed - browser only uses Electric sync, not direct PostgreSQL
 import {
   Plane,
@@ -31,9 +31,9 @@ import {
   Power,
   PowerOff,
   Activity,
-} from 'lucide-react'
-import { Atom } from '@effect-atom/atom'
-import { TestbedHeader, SectionLabel } from './shared'
+} from 'lucide-react';
+import { Atom } from '@effect-atom/atom';
+import { TestbedHeader, SectionLabel } from './shared';
 
 // ============================================================================
 // GEOINT Schemas & Types
@@ -57,7 +57,7 @@ import {
   setTimelinePlayhead,
   initTimelineFromResults,
   type TimelinePlaybackState,
-} from '@/lib/geoint/atoms'
+} from '@/lib/geoint/atoms';
 
 // ============================================================================
 // GEOINT Persistence - Types only (actual queries run server-side)
@@ -69,14 +69,15 @@ import {
 
 // ============================================================================
 // GEOINT Ingestion - Real data polling via Effect operations
+// NOTE: Types imported from ingestion-operations (browser-safe) NOT from
+// IngestionOrchestrator directly (which pulls in @effect/sql-pg)
 // ============================================================================
 
 import {
+  // Types re-exported for browser safety
   type OrchestratorStatus,
   type IngesterName,
-} from '@/lib/geoint/ingestion/IngestionOrchestrator'
-
-import {
+  // Atoms and operations
   ingestionStatusAtom,
   ingestionLoadingAtom,
   ingestionErrorAtom,
@@ -96,22 +97,29 @@ import {
   stopMaterializer as stopMaterializerOp,
   type PgConfig,
   type MaterializerStats,
-} from '@/lib/geoint/atoms/ingestion-operations'
+} from '@/lib/geoint/atoms/ingestion-operations';
 
 // ============================================================================
 // DurableStreams - Real event streaming (TODO: Wire real subscription)
 // ============================================================================
 
 // DurableStreams will be connected in next iteration
-// import { DurableStreamClient } from '@/lib/durable-streams/service'
+// From Holonet.
 
 // ============================================================================
 // ECS Electric Integration
 // ============================================================================
 
 import {
-  useFlightEntities,
-} from '@/lib/ecs/electric'
+  useFlightEntitiesWithTraits,
+  type FlightEntityWithTraits,
+} from '@/lib/ecs/electric';
+
+import {
+  SearchResultFlight,
+  Icao24,
+  SearchResultId,
+} from '@/lib/geoint/schemas';
 
 // ============================================================================
 // GEOINT Map Components
@@ -120,14 +128,15 @@ import {
 import {
   GeointMapPositioned,
   createGeointInstanceAtoms,
-} from '@/lib/geoint/components'
+} from '@/lib/geoint/components';
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const INSTANCE_ID = 'ecs-vertical-slice-testbed'
-const DURABLE_STREAMS_URL = import.meta.env['VITE_DURABLE_STREAMS_URL'] ?? 'http://localhost:8787'
+const INSTANCE_ID = 'ecs-vertical-slice-testbed';
+const DURABLE_STREAMS_URL =
+  import.meta.env['VITE_DURABLE_STREAMS_URL'] ?? 'http://localhost:8787';
 
 // ============================================================================
 // Testbed-local Atoms (ingestionStatusAtom is imported from ingestion-operations)
@@ -136,27 +145,58 @@ const DURABLE_STREAMS_URL = import.meta.env['VITE_DURABLE_STREAMS_URL'] ?? 'http
 // NOTE: currentFlightsAtom removed - we use Electric sync (electricFlights) instead of direct DB queries
 
 /** Last database query time */
-const lastDbQueryAtom = Atom.make<Date | null>(null)
+const lastDbQueryAtom = Atom.make<Date | null>(null);
 
 /** Connection status for database and electric (stream status from operations module) */
 const connectionStatusAtom = Atom.make<{
-  database: 'connected' | 'disconnected' | 'error'
-  electric: 'connected' | 'disconnected' | 'error'
+  database: 'connected' | 'disconnected' | 'error';
+  electric: 'connected' | 'disconnected' | 'error';
 }>({
   database: 'disconnected',
   electric: 'disconnected',
-})
+});
+
+// ============================================================================
+// ECS Entity → SearchResult Converter
+// ============================================================================
+
+/**
+ * Convert FlightEntityWithTraits to SearchResultFlight for map display.
+ * This bridges the ECS entity system with the GEOINT search result format.
+ */
+function ecsFlightToSearchResult(
+  entity: FlightEntityWithTraits
+): typeof SearchResultFlight.Type {
+  return SearchResultFlight.make({
+    // Base fields (from SearchResultBase)
+    id: SearchResultId.make(entity.entityId),
+    source: 'adsb_lol', // ECS entities come from ingestion pipeline
+    score: Math.max(0, Math.min(1, entity.confidence)), // Clamp to 0-1
+    retrievedAt: new Date(),
+    // Flight-specific fields
+    icao24: Icao24.make(entity.icao24),
+    callsign: entity.callsign ?? '',
+    position: entity.position, // [lon, lat, alt] in meters
+    velocity: Math.max(0, entity.speed), // m/s, ensure non-negative
+    heading: ((entity.heading % 360) + 360) % 360, // Normalize to 0-360
+    verticalRate: entity.verticalRate,
+    onGround: entity.position[2] < 100, // Simple heuristic: < 100m altitude
+    category: 'unknown', // Default category for ingested flights
+    originCountry: 'Unknown', // Not available from ECS traits
+    lastContact: entity.updatedAt,
+  });
+}
 
 // ============================================================================
 // Ingestion Status Panel
 // ============================================================================
 
 interface IngestionPanelProps {
-  status: OrchestratorStatus | null
-  onStartAll: () => void
-  onStopAll: () => void
-  onToggleIngester: (name: IngesterName) => void
-  isStarting: boolean
+  status: OrchestratorStatus | null;
+  onStartAll: () => void;
+  onStopAll: () => void;
+  onToggleIngester: (name: IngesterName) => void;
+  isStarting: boolean;
 }
 
 function IngestionPanel({
@@ -166,7 +206,7 @@ function IngestionPanel({
   onToggleIngester,
   isStarting,
 }: IngestionPanelProps) {
-  const running = status?.running ?? false
+  const running = status?.running ?? false;
 
   return (
     <div className="bg-black/90 border border-neutral-800 rounded-lg p-4">
@@ -198,12 +238,15 @@ function IngestionPanel({
 
       {status && (
         <div className="space-y-2">
+          {/* Ingesters */}
           {status.ingesters.map((ingester) => (
             <div
               key={ingester.name}
               className="flex items-center justify-between text-xs"
             >
-              <span className="text-neutral-400 capitalize">{ingester.name}</span>
+              <span className="text-neutral-400 capitalize">
+                {ingester.name}
+              </span>
               <button
                 onClick={() => onToggleIngester(ingester.name as IngesterName)}
                 className={`px-2 py-0.5 rounded border transition-colors ${
@@ -216,6 +259,123 @@ function IngestionPanel({
               </button>
             </div>
           ))}
+
+          {/* Materializers Status */}
+          <div className="border-t border-neutral-800 pt-2 mt-2 space-y-2">
+            {/* Flight Materializer */}
+            <div>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-neutral-400">Flight Materializer</span>
+                <span
+                  className={`px-2 py-0.5 rounded ${
+                    status.materializers.flight.running
+                      ? 'bg-cyan-500/20 text-cyan-400'
+                      : 'bg-neutral-800 text-neutral-500'
+                  }`}
+                >
+                  {status.materializers.flight.running ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              {status.materializers.flight.running && (
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="text-center">
+                    <div className="text-cyan-400 font-mono">
+                      {status.materializers.flight.eventsProcessed}
+                    </div>
+                    <div className="text-neutral-500 text-[10px]">Events</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-green-400 font-mono">
+                      {status.materializers.flight.entitiesCreated}
+                    </div>
+                    <div className="text-neutral-500 text-[10px]">Created</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-yellow-400 font-mono">
+                      {status.materializers.flight.entitiesUpdated}
+                    </div>
+                    <div className="text-neutral-500 text-[10px]">Updated</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* OSM Materializer */}
+            <div>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-neutral-400">OSM Materializer</span>
+                <span
+                  className={`px-2 py-0.5 rounded ${
+                    status.materializers.osm.running
+                      ? 'bg-emerald-500/20 text-emerald-400'
+                      : 'bg-neutral-800 text-neutral-500'
+                  }`}
+                >
+                  {status.materializers.osm.running ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              {status.materializers.osm.running && (
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="text-center">
+                    <div className="text-emerald-400 font-mono">
+                      {status.materializers.osm.eventsProcessed}
+                    </div>
+                    <div className="text-neutral-500 text-[10px]">Events</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-green-400 font-mono">
+                      {status.materializers.osm.entitiesCreated}
+                    </div>
+                    <div className="text-neutral-500 text-[10px]">Created</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-yellow-400 font-mono">
+                      {status.materializers.osm.entitiesUpdated}
+                    </div>
+                    <div className="text-neutral-500 text-[10px]">Updated</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Weather Materializer */}
+            <div>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-neutral-400">Weather Materializer</span>
+                <span
+                  className={`px-2 py-0.5 rounded ${
+                    status.materializers.weather.running
+                      ? 'bg-orange-500/20 text-orange-400'
+                      : 'bg-neutral-800 text-neutral-500'
+                  }`}
+                >
+                  {status.materializers.weather.running ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              {status.materializers.weather.running && (
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="text-center">
+                    <div className="text-orange-400 font-mono">
+                      {status.materializers.weather.eventsProcessed}
+                    </div>
+                    <div className="text-neutral-500 text-[10px]">Events</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-green-400 font-mono">
+                      {status.materializers.weather.entitiesCreated}
+                    </div>
+                    <div className="text-neutral-500 text-[10px]">Created</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-yellow-400 font-mono">
+                      {status.materializers.weather.entitiesUpdated}
+                    </div>
+                    <div className="text-neutral-500 text-[10px]">Updated</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -225,7 +385,7 @@ function IngestionPanel({
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // ============================================================================
@@ -233,11 +393,11 @@ function IngestionPanel({
 // ============================================================================
 
 interface DatabasePanelProps {
-  flightCount: number
-  lastQuery: Date | null
-  connectionStatus: 'connected' | 'disconnected' | 'error'
-  onRefresh: () => void
-  isLoading: boolean
+  flightCount: number;
+  lastQuery: Date | null;
+  connectionStatus: 'connected' | 'disconnected' | 'error';
+  onRefresh: () => void;
+  isLoading: boolean;
 }
 
 function DatabasePanel({
@@ -259,21 +419,35 @@ function DatabasePanel({
           disabled={isLoading}
           className="p-1.5 rounded border border-neutral-700 hover:bg-neutral-800 transition-colors"
         >
-          <RefreshCw className={`w-3 h-3 text-neutral-400 ${isLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw
+            className={`w-3 h-3 text-neutral-400 ${
+              isLoading ? 'animate-spin' : ''
+            }`}
+          />
         </button>
       </div>
 
       <div className="space-y-2 text-xs">
         <div className="flex items-center justify-between">
           <span className="text-neutral-400">Status</span>
-          <span className={`flex items-center gap-1 ${
-            connectionStatus === 'connected' ? 'text-green-400' :
-            connectionStatus === 'error' ? 'text-red-400' : 'text-yellow-400'
-          }`}>
-            <div className={`w-2 h-2 rounded-full ${
-              connectionStatus === 'connected' ? 'bg-green-400' :
-              connectionStatus === 'error' ? 'bg-red-400' : 'bg-yellow-400'
-            }`} />
+          <span
+            className={`flex items-center gap-1 ${
+              connectionStatus === 'connected'
+                ? 'text-green-400'
+                : connectionStatus === 'error'
+                ? 'text-red-400'
+                : 'text-yellow-400'
+            }`}
+          >
+            <div
+              className={`w-2 h-2 rounded-full ${
+                connectionStatus === 'connected'
+                  ? 'bg-green-400'
+                  : connectionStatus === 'error'
+                  ? 'bg-red-400'
+                  : 'bg-yellow-400'
+              }`}
+            />
             {connectionStatus}
           </span>
         </div>
@@ -295,7 +469,7 @@ function DatabasePanel({
         )}
       </div>
     </div>
-  )
+  );
 }
 
 // ============================================================================
@@ -303,12 +477,16 @@ function DatabasePanel({
 // ============================================================================
 
 interface StreamPanelProps {
-  eventsCount: number
-  connectionStatus: 'connected' | 'disconnected' | 'error'
-  streamUrl: string
+  eventsCount: number;
+  connectionStatus: 'connected' | 'disconnected' | 'error';
+  streamUrl: string;
 }
 
-function StreamPanel({ eventsCount, connectionStatus, streamUrl }: StreamPanelProps) {
+function StreamPanel({
+  eventsCount,
+  connectionStatus,
+  streamUrl,
+}: StreamPanelProps) {
   return (
     <div className="bg-black/90 border border-neutral-800 rounded-lg p-4">
       <div className="flex items-center gap-2 mb-4">
@@ -319,14 +497,24 @@ function StreamPanel({ eventsCount, connectionStatus, streamUrl }: StreamPanelPr
       <div className="space-y-2 text-xs">
         <div className="flex items-center justify-between">
           <span className="text-neutral-400">Status</span>
-          <span className={`flex items-center gap-1 ${
-            connectionStatus === 'connected' ? 'text-green-400' :
-            connectionStatus === 'error' ? 'text-red-400' : 'text-yellow-400'
-          }`}>
-            <div className={`w-2 h-2 rounded-full ${
-              connectionStatus === 'connected' ? 'bg-green-400 animate-pulse' :
-              connectionStatus === 'error' ? 'bg-red-400' : 'bg-yellow-400'
-            }`} />
+          <span
+            className={`flex items-center gap-1 ${
+              connectionStatus === 'connected'
+                ? 'text-green-400'
+                : connectionStatus === 'error'
+                ? 'text-red-400'
+                : 'text-yellow-400'
+            }`}
+          >
+            <div
+              className={`w-2 h-2 rounded-full ${
+                connectionStatus === 'connected'
+                  ? 'bg-green-400 animate-pulse'
+                  : connectionStatus === 'error'
+                  ? 'bg-red-400'
+                  : 'bg-yellow-400'
+              }`}
+            />
             {connectionStatus}
           </span>
         </div>
@@ -341,7 +529,7 @@ function StreamPanel({ eventsCount, connectionStatus, streamUrl }: StreamPanelPr
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // ============================================================================
@@ -349,12 +537,12 @@ function StreamPanel({ eventsCount, connectionStatus, streamUrl }: StreamPanelPr
 // ============================================================================
 
 interface MaterializerPanelProps {
-  stats: MaterializerStats
-  running: boolean
-  error: string | null
-  durableStreamsUrl: string
-  onStart: () => void
-  onStop: () => void
+  stats: MaterializerStats;
+  running: boolean;
+  error: string | null;
+  durableStreamsUrl: string;
+  onStart: () => void;
+  onStop: () => void;
 }
 
 function MaterializerPanel({
@@ -387,8 +575,16 @@ function MaterializerPanel({
       <div className="space-y-2 text-xs">
         <div className="flex items-center justify-between">
           <span className="text-neutral-400">Status</span>
-          <span className={`flex items-center gap-1 ${running ? 'text-green-400' : 'text-neutral-500'}`}>
-            <div className={`w-2 h-2 rounded-full ${running ? 'bg-green-400 animate-pulse' : 'bg-neutral-600'}`} />
+          <span
+            className={`flex items-center gap-1 ${
+              running ? 'text-green-400' : 'text-neutral-500'
+            }`}
+          >
+            <div
+              className={`w-2 h-2 rounded-full ${
+                running ? 'bg-green-400 animate-pulse' : 'bg-neutral-600'
+              }`}
+            />
             {running ? 'Running' : 'Stopped'}
           </span>
         </div>
@@ -400,7 +596,9 @@ function MaterializerPanel({
 
         <div className="flex items-center justify-between">
           <span className="text-neutral-400">Entities Created</span>
-          <span className="text-cyan-400 font-mono">{stats.entitiesCreated}</span>
+          <span className="text-cyan-400 font-mono">
+            {stats.entitiesCreated}
+          </span>
         </div>
 
         <div className="flex items-center justify-between">
@@ -418,9 +616,7 @@ function MaterializerPanel({
         )}
 
         {error && (
-          <div className="text-red-400 font-mono text-[10px] mt-2">
-            {error}
-          </div>
+          <div className="text-red-400 font-mono text-[10px] mt-2">{error}</div>
         )}
 
         <div className="text-neutral-600 font-mono text-[10px] truncate mt-2">
@@ -428,7 +624,7 @@ function MaterializerPanel({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // ============================================================================
@@ -436,11 +632,11 @@ function MaterializerPanel({
 // ============================================================================
 
 interface TimelinePanelProps {
-  timeline: TimelinePlaybackState
-  totalResults: number
-  filteredCount: number
-  onToggle: () => void
-  onPlayheadChange: (date: Date) => void
+  timeline: TimelinePlaybackState;
+  totalResults: number;
+  filteredCount: number;
+  onToggle: () => void;
+  onPlayheadChange: (date: Date) => void;
 }
 
 function TimelinePanel({
@@ -450,15 +646,16 @@ function TimelinePanel({
   onToggle,
   onPlayheadChange,
 }: TimelinePanelProps) {
-  const rangeMs = timeline.range.end.getTime() - timeline.range.start.getTime()
+  const rangeMs = timeline.range.end.getTime() - timeline.range.start.getTime();
   const playheadPosition =
-    ((timeline.playhead.getTime() - timeline.range.start.getTime()) / rangeMs) * 100
+    ((timeline.playhead.getTime() - timeline.range.start.getTime()) / rangeMs) *
+    100;
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const percent = parseFloat(e.target.value)
-    const newTime = timeline.range.start.getTime() + (rangeMs * percent) / 100
-    onPlayheadChange(new Date(newTime))
-  }
+    const percent = parseFloat(e.target.value);
+    const newTime = timeline.range.start.getTime() + (rangeMs * percent) / 100;
+    onPlayheadChange(new Date(newTime));
+  };
 
   return (
     <div className="bg-black/90 border border-neutral-800 rounded-lg p-4">
@@ -507,7 +704,7 @@ function TimelinePanel({
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // ============================================================================
@@ -516,71 +713,105 @@ function TimelinePanel({
 
 export function ECSVerticalSliceTestbed() {
   // Instance atoms for map (used by GeointMapPositioned)
-  useMemo(() => createGeointInstanceAtoms(INSTANCE_ID), [])
+  useMemo(() => createGeointInstanceAtoms(INSTANCE_ID), []);
 
   // Sidebar state
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // ============================================================================
   // Postgres Config (from env vars)
   // ============================================================================
 
-  const pgConfig: PgConfig = useMemo(() => ({
-    host: import.meta.env['VITE_PG_HOST'] ?? 'localhost',
-    port: parseInt(import.meta.env['VITE_PG_PORT'] ?? '5432'),
-    database: import.meta.env['VITE_PG_DATABASE'] ?? 'tmnl',
-    username: import.meta.env['VITE_PG_USER'] ?? 'tmnl',
-    password: import.meta.env['VITE_PG_PASSWORD'] ?? 'tmnl',
-  }), [])
+  const pgConfig: PgConfig = useMemo(
+    () => ({
+      host: import.meta.env['VITE_PG_HOST'] ?? 'localhost',
+      port: parseInt(import.meta.env['VITE_PG_PORT'] ?? '5432'),
+      database: import.meta.env['VITE_PG_DATABASE'] ?? 'tmnl',
+      username: import.meta.env['VITE_PG_USER'] ?? 'tmnl',
+      password: import.meta.env['VITE_PG_PASSWORD'] ?? 'tmnl_dev_password',
+    }),
+    []
+  );
 
   // ============================================================================
   // Ingestion Atom Subscriptions (from ingestion-operations module)
   // ============================================================================
 
-  const ingestionStatus = useAtomValue(ingestionStatusAtom)
-  const ingestionLoading = useAtomValue(ingestionLoadingAtom)
-  const ingestionError = useAtomValue(ingestionErrorAtom)
+  const ingestionStatus = useAtomValue(ingestionStatusAtom);
+  const ingestionLoading = useAtomValue(ingestionLoadingAtom);
+  const ingestionError = useAtomValue(ingestionErrorAtom);
 
   // ============================================================================
   // Materializer Atom Subscriptions
   // ============================================================================
 
-  const materializerStats = useAtomValue(materializerStatsAtom)
-  const materializerRunning = useAtomValue(materializerRunningAtom)
-  const materializerError = useAtomValue(materializerErrorAtom)
+  const materializerStats = useAtomValue(materializerStatsAtom);
+  const materializerRunning = useAtomValue(materializerRunningAtom);
+  const materializerError = useAtomValue(materializerErrorAtom);
 
   // ============================================================================
   // Local Atom Subscriptions
   // ============================================================================
 
   // NOTE: currentFlights removed - using electricFlights from useFlightEntities hook
-  const [lastDbQuery, setLastDbQuery] = useAtom(lastDbQueryAtom)
-  const [connectionStatus, setConnectionStatus] = useAtom(connectionStatusAtom)
-  const [streamEventsCount] = useAtom(streamEventsCountAtom)
-  const streamConnectionStatus = useAtomValue(streamConnectionStatusAtom)
+  const [lastDbQuery, setLastDbQuery] = useAtom(lastDbQueryAtom);
+  const [connectionStatus, setConnectionStatus] = useAtom(connectionStatusAtom);
+  const [streamEventsCount] = useAtom(streamEventsCountAtom);
+  const streamConnectionStatus = useAtomValue(streamConnectionStatusAtom);
 
   // ============================================================================
   // GEOINT Atom Subscriptions
   // ============================================================================
 
-  const results = useAtomValue(resultsAtom)
-  const filteredResults = useAtomValue(filteredResultsAtom)
-  const timelinePlayback = useAtomValue(timelinePlaybackAtom)
-  const timelineResults = useAtomValue(timelineFilteredResultsAtom)
+  const results = useAtomValue(resultsAtom);
+  const filteredResults = useAtomValue(filteredResultsAtom);
+  const timelinePlayback = useAtomValue(timelinePlaybackAtom);
+  const timelineResults = useAtomValue(timelineFilteredResultsAtom);
 
   // ============================================================================
-  // Electric Hook (real-time sync)
+  // Electric Hook (real-time sync with traits joined)
   // ============================================================================
 
-  const { data: electricFlights, isLoading: electricLoading } = useFlightEntities()
+  // Use the composite hook that joins entities with spatial/kinetic/identifiable traits
+  const { data: electricFlights, isLoading: electricLoading } =
+    useFlightEntitiesWithTraits();
 
   // Track Electric connection status
   useEffect(() => {
-    setConnectionStatus(prev => ({
+    setConnectionStatus((prev) => ({
       ...prev,
-      electric: electricFlights.length > 0 || !electricLoading ? 'connected' : 'disconnected',
-    }))
-  }, [electricFlights, electricLoading, setConnectionStatus])
+      electric:
+        electricFlights.length > 0 || !electricLoading
+          ? 'connected'
+          : 'disconnected',
+    }));
+  }, [electricFlights, electricLoading, setConnectionStatus]);
+
+  // ============================================================================
+  // Electric → GEOINT Results Bridge
+  // ============================================================================
+
+  // Convert Electric entities to SearchResultFlight and update geoint atoms
+  useEffect(() => {
+    if (electricFlights.length === 0) return;
+
+    console.log(
+      '[ECSVerticalSlice] Bridging',
+      electricFlights.length,
+      'Electric entities to GEOINT results'
+    );
+
+    // Convert ECS entities to SearchResultFlight format
+    const searchResults = electricFlights.map(ecsFlightToSearchResult);
+
+    // Update the geoint results atom (sync mutation via registry)
+    geointRegistry.set(resultsAtom, searchResults);
+
+    // Initialize timeline if we have results
+    if (searchResults.length > 0) {
+      initTimelineFromResults();
+    }
+  }, [electricFlights]);
 
   // ============================================================================
   // Database Query Effect
@@ -590,68 +821,82 @@ export function ECSVerticalSliceTestbed() {
   // Data comes via Electric sync (useFlightEntities hook).
   // This function just updates UI state based on Electric data.
   const refreshFromElectric = useCallback(() => {
-    console.log('[ECSVerticalSlice] Refreshing from Electric sync...')
-    setSearchStatus('searching')
+    console.log('[ECSVerticalSlice] Refreshing from Electric sync...');
+    setSearchStatus('searching');
 
     // Electric data is already subscribed via useFlightEntities hook
     // Update connection status based on Electric state
     if (electricFlights.length > 0) {
-      setLastDbQuery(new Date())
-      setConnectionStatus(prev => ({ ...prev, database: 'connected' }))
-      setSearchStatus('completed')
-      console.log('[ECSVerticalSlice] Electric sync has', electricFlights.length, 'entities')
+      setLastDbQuery(new Date());
+      setConnectionStatus((prev) => ({ ...prev, database: 'connected' }));
+      setSearchStatus('completed');
+      console.log(
+        '[ECSVerticalSlice] Electric sync has',
+        electricFlights.length,
+        'entities'
+      );
     } else {
-      setConnectionStatus(prev => ({ ...prev, database: electricLoading ? 'disconnected' : 'connected' }))
-      setSearchStatus('completed')
-      console.log('[ECSVerticalSlice] No Electric entities yet (loading:', electricLoading, ')')
+      setConnectionStatus((prev) => ({
+        ...prev,
+        database: electricLoading ? 'disconnected' : 'connected',
+      }));
+      setSearchStatus('completed');
+      console.log(
+        '[ECSVerticalSlice] No Electric entities yet (loading:',
+        electricLoading,
+        ')'
+      );
     }
-  }, [electricFlights, electricLoading, setLastDbQuery, setConnectionStatus])
+  }, [electricFlights, electricLoading, setLastDbQuery, setConnectionStatus]);
 
   // ============================================================================
   // Ingestion Control Effects (using real IngestionOrchestrator)
   // ============================================================================
 
   const startIngestion = useCallback(async () => {
-    console.log('[ECSVerticalSlice] Starting real ingestion...')
-    await startIngestionOp(pgConfig)
-  }, [pgConfig])
+    console.log('[ECSVerticalSlice] Starting real ingestion...');
+    await startIngestionOp(pgConfig);
+  }, [pgConfig]);
 
   const stopIngestion = useCallback(async () => {
-    console.log('[ECSVerticalSlice] Stopping real ingestion...')
-    await stopIngestionOp(pgConfig)
-  }, [pgConfig])
+    console.log('[ECSVerticalSlice] Stopping real ingestion...');
+    await stopIngestionOp(pgConfig);
+  }, [pgConfig]);
 
-  const toggleIngester = useCallback(async (name: IngesterName) => {
-    console.log('[ECSVerticalSlice] Toggling ingester:', name)
-    await toggleIngesterOp(name, pgConfig)
-  }, [pgConfig])
+  const toggleIngester = useCallback(
+    async (name: IngesterName) => {
+      console.log('[ECSVerticalSlice] Toggling ingester:', name);
+      await toggleIngesterOp(name, pgConfig);
+    },
+    [pgConfig]
+  );
 
   // ============================================================================
   // Materializer Control Callbacks
   // ============================================================================
 
   const startMaterializer = useCallback(async () => {
-    console.log('[ECSVerticalSlice] Starting materializer...')
-    await startMaterializerOp(pgConfig, DURABLE_STREAMS_URL)
-  }, [pgConfig])
+    console.log('[ECSVerticalSlice] Starting materializer...');
+    await startMaterializerOp(pgConfig, DURABLE_STREAMS_URL);
+  }, [pgConfig]);
 
   const stopMaterializer = useCallback(async () => {
-    console.log('[ECSVerticalSlice] Stopping materializer...')
-    await stopMaterializerOp()
-  }, [])
+    console.log('[ECSVerticalSlice] Stopping materializer...');
+    await stopMaterializerOp();
+  }, []);
 
   // ============================================================================
   // Timeline Handlers
   // ============================================================================
 
   const handleToggleTimeline = useCallback(() => {
-    const current = geointRegistry.get(timelinePlaybackAtom)
+    const current = geointRegistry.get(timelinePlaybackAtom);
     if (!current.enabled) {
-      initTimelineFromResults()
+      initTimelineFromResults();
     } else {
-      setTimelineEnabled(false)
+      setTimelineEnabled(false);
     }
-  }, [])
+  }, []);
 
   // ============================================================================
   // Initial Load
@@ -659,25 +904,27 @@ export function ECSVerticalSliceTestbed() {
 
   useEffect(() => {
     // Refresh from Electric on mount
-    refreshFromElectric()
+    refreshFromElectric();
 
     // Initialize ingestion status via operations module
-    initializeIngestionStatus()
+    initializeIngestionStatus();
 
     // Subscribe to flight stream for real-time events
-    subscribeToFlightStream(DURABLE_STREAMS_URL)
+    subscribeToFlightStream(DURABLE_STREAMS_URL);
 
     // Cleanup: unsubscribe on unmount
     return () => {
-      unsubscribeFromFlightStream()
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+      unsubscribeFromFlightStream();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ============================================================================
   // Display Results
   // ============================================================================
 
-  const displayResults = timelinePlayback.enabled ? timelineResults : filteredResults
+  const displayResults = timelinePlayback.enabled
+    ? timelineResults
+    : filteredResults;
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -704,7 +951,9 @@ export function ECSVerticalSliceTestbed() {
               <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-800">
                 <div className="flex items-center gap-2">
                   <Layers className="w-4 h-4 text-cyan-400" />
-                  <span className="font-mono text-sm text-white">CONTROL PANEL</span>
+                  <span className="font-mono text-sm text-white">
+                    CONTROL PANEL
+                  </span>
                 </div>
                 <button
                   onClick={() => setSidebarOpen(false)}
@@ -722,7 +971,9 @@ export function ECSVerticalSliceTestbed() {
                   onStartAll={startIngestion}
                   onStopAll={stopIngestion}
                   onToggleIngester={toggleIngester}
-                  isStarting={ingestionLoading.starting || ingestionLoading.stopping}
+                  isStarting={
+                    ingestionLoading.starting || ingestionLoading.stopping
+                  }
                 />
 
                 {/* Show ingestion error if any */}
@@ -764,12 +1015,18 @@ export function ECSVerticalSliceTestbed() {
                   <SectionLabel>Results</SectionLabel>
                   <div className="mt-3 space-y-2 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-neutral-400">ECS Entities (Electric)</span>
-                      <span className="text-cyan-400 font-mono">{electricFlights.length}</span>
+                      <span className="text-neutral-400">
+                        ECS Entities (Electric)
+                      </span>
+                      <span className="text-cyan-400 font-mono">
+                        {electricFlights.length}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-400">Displayed on Map</span>
-                      <span className="text-white font-mono">{displayResults.length}</span>
+                      <span className="text-white font-mono">
+                        {displayResults.length}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -785,7 +1042,9 @@ export function ECSVerticalSliceTestbed() {
 
                 {/* Architecture Info */}
                 <div className="text-xs text-neutral-600 p-3 bg-neutral-900/50 rounded border border-neutral-800">
-                  <div className="font-mono mb-2 text-neutral-500">DATA FLOW</div>
+                  <div className="font-mono mb-2 text-neutral-500">
+                    DATA FLOW
+                  </div>
                   <div className="space-y-1">
                     <div>API → Ingester → Postgres</div>
                     <div>Postgres → Electric → React</div>
@@ -827,12 +1086,20 @@ export function ECSVerticalSliceTestbed() {
 
           {/* Legend */}
           <div className="absolute bottom-4 right-4 bg-black/90 border border-neutral-800 rounded-lg p-3 z-10">
-            <div className="text-xs font-mono text-neutral-400 mb-2">LEGEND</div>
+            <div className="text-xs font-mono text-neutral-400 mb-2">
+              LEGEND
+            </div>
             <div className="space-y-1 text-xs">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-yellow-400" />
                 <span className="text-neutral-300">
-                  Flights ({displayResults.filter(r => r._tag === 'SearchResultFlight').length})
+                  Flights (
+                  {
+                    displayResults.filter(
+                      (r) => r._tag === 'SearchResultFlight'
+                    ).length
+                  }
+                  )
                 </span>
               </div>
             </div>
@@ -840,7 +1107,7 @@ export function ECSVerticalSliceTestbed() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default ECSVerticalSliceTestbed
+export default ECSVerticalSliceTestbed;

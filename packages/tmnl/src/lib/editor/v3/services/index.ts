@@ -35,3 +35,60 @@ export {
   DocumentRegistryError,
 } from './DocumentRegistryService';
 export type { DocumentRegistryServiceShape } from './DocumentRegistryService';
+
+export {
+  MarkdownService,
+  MarkdownServiceLive,
+  MarkdownServiceCustom,
+  MarkdownConfigTag,
+  MarkdownParseError,
+  MarkdownSerializeError,
+} from './MarkdownService';
+export type { MarkdownServiceShape, MarkdownConfig } from './MarkdownService';
+
+export {
+  FileDocumentMappingService,
+  FileDocumentMappingServiceLive,
+  FileMappingError,
+  FileMappingNotFoundError,
+  FilePath,
+  FileSyncStatus,
+  FileMapping,
+  FileMappingPayload,
+  pathToKey,
+  keyToPath,
+} from './FileDocumentMappingService';
+export type { FileDocumentMappingServiceShape } from './FileDocumentMappingService';
+
+export {
+  FileDocumentService,
+  FileDocumentServiceLive,
+  FileDocumentError,
+  FileNotFoundError,
+  FileConflictError,
+} from './FileDocumentService';
+export type {
+  FileDocumentServiceShape,
+  FileLoadResult,
+  FileSaveResult,
+  FileProgressInfo,
+  FileConflict,
+  ConflictResolution,
+} from './FileDocumentService';
+
+export {
+  FileIndexingService,
+  FileIndexingServiceLive,
+  FileIndexingError,
+  TraversalError,
+} from './FileIndexingService';
+export type {
+  FileIndexingServiceShape,
+  TraversalOptions,
+  IndexingOptions,
+  DiscoveredFile,
+  IndexedFile,
+  IndexingProgress,
+  IndexingResult,
+  IndexingError,
+} from './FileIndexingService';

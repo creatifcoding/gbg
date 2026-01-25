@@ -51,6 +51,18 @@ export {
 // Backends
 export { LeannBackendLive } from './backends/LeannBackend';
 
+// Nia (Agentic RAG with Effect AI)
+export {
+  NiaMcpClient,
+  NiaMcpClientLive,
+  NiaSearch,
+  NiaGrep,
+  NiaRead,
+  NiaToolkit,
+  NiaToolHandlers,
+  NiaLive,
+} from './backends/nia';
+
 // ============================================================================
 // Convenience: RPC Server Layer
 // ============================================================================

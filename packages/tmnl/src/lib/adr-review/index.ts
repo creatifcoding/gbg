@@ -126,3 +126,18 @@ export type {
 // Hooks
 export { useUnit, useDocument } from './hooks'
 export type { UseUnitOptions, UseUnitReturn, UseDocumentReturn } from './hooks'
+
+// Persistence (browser-compatible WASM SQLite + IndexedDB)
+export {
+  // Service functions (main API)
+  hydrateADR,
+  hydrateAll,
+  persistUnitStatus,
+  persistComment,
+  deleteComment,
+  // Advanced: Layers for custom runtime composition
+  ADRReviewPersistenceLive,
+  ADRReviewPersistenceTest,
+  ADRPersistence,
+} from './persistence'
+export type { HydratedState } from './persistence'

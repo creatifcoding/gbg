@@ -20,12 +20,8 @@ import { Entity, ShardingConfig } from '@effect/cluster'
 import { FetchHttpClient } from '@effect/platform'
 import { SearchEntity } from '../../cluster/SearchEntity'
 import { SearchEntityHandlers } from '../../cluster/SearchEntityHandlers'
-import {
-  OpenSkyClientLive,
-  OverpassClientLive,
-  AdsbLolClientLive,
-  OpenMeteoClientLive,
-} from '../../api/ExternalApiClient'
+import { ExternalApiClientsLive } from '../../api/ExternalApiClient'
+import { CircuitBreakersLive } from '../../api/circuit-breaker'
 import {
   SearchQuery,
   GeoFilterBounds,
@@ -55,17 +51,19 @@ const TestShardingConfig = ShardingConfig.layer({
 // HTTP client for real API calls
 const HttpClientLive = FetchHttpClient.layer
 
-// Combine all real API client layers
-const RealApiClientsLayer = Layer.mergeAll(
-  OpenSkyClientLive,
-  OverpassClientLive,
-  AdsbLolClientLive,
-  OpenMeteoClientLive
-).pipe(Layer.provide(HttpClientLive))
+// Combined API clients layer (includes CircuitBreakersLive)
+// Provided with HTTP client dependency
+const RealApiClientsLayer = ExternalApiClientsLive.pipe(
+  Layer.provide(HttpClientLive)
+)
 
 // Test handlers layer with real API clients
-const RealHandlersLayer = SearchEntityHandlers.pipe(
-  Layer.provide(RealApiClientsLayer)
+// Handler methods call API client methods which return Effects requiring CircuitBreakersService
+// The CircuitBreakersLive is already in ExternalApiClientsLive, but we need to merge it
+// so it's available when Entity.makeTestClient runs the handlers
+const RealHandlersLayer = Layer.provideMerge(
+  SearchEntityHandlers,
+  RealApiClientsLayer
 )
 
 // Longer timeout for real API calls
@@ -392,7 +390,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('SearchEntity Cluster Handler Integratio
   })
 
   describe('Error Recovery', () => {
-    it('continues working after API errors', async () => {
+    it('continues working after API errors', { timeout: 180000 }, async () => {
       const program = Effect.gen(function* () {
         const makeClient = yield* Entity.makeTestClient(SearchEntity, RealHandlersLayer)
         const client = yield* makeClient('error-recovery-worker')

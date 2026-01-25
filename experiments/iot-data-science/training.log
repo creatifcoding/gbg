@@ -1,0 +1,25 @@
+WARNING:2025-12-16 20:00:10,904:jax._src.xla_bridge:854: An NVIDIA GPU may be present on this machine, but a CUDA-enabled jaxlib is not installed. Falling back to cpu.
+============================================================
+SMOKE DETECTION TRAINING
+============================================================
+
+Loading data...
+  Dataset: 5000 samples × 13 features
+  Train: 4000 | Val: 1000
+  Class balance: 2909 no-fire, 1091 fire
+  Class weights: [0.688, 1.833]
+
+Initializing model...
+
+Training...
+Epoch 10 | Loss: 0.0081 | Train Acc: 0.999 | Val Acc: 0.997
+Epoch 20 | Loss: 0.0030 | Train Acc: 1.000 | Val Acc: 0.999
+Epoch 30 | Loss: 0.0011 | Train Acc: 1.000 | Val Acc: 0.999
+Epoch 40 | Loss: 0.0009 | Train Acc: 1.000 | Val Acc: 0.999
+Epoch 50 | Loss: 0.0007 | Train Acc: 1.000 | Val Acc: 0.999
+
+============================================================
+FINAL RESULTS
+============================================================
+Train Accuracy: 1.000
+Val Accuracy:   0.999

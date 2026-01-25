@@ -11,7 +11,16 @@
  * - Support for remote sync (multi-client coordination)
  */
 
-import { Context, Effect, Layer, Stream, Queue, PubSub, Schema, pipe } from 'effect';
+import {
+  Context,
+  Effect,
+  Layer,
+  Stream,
+  Queue,
+  PubSub,
+  Schema,
+  pipe,
+} from 'effect';
 import type { Scope } from 'effect/Scope';
 import type { BlockId, BlockTypeName, BlockAttributes } from '../types/context';
 
@@ -54,21 +63,27 @@ export type BlockDeleted = typeof BlockDeleted.Type;
 /**
  * Block selection changed
  */
-export const BlockSelectionChanged = Schema.TaggedStruct('BlockSelectionChanged', {
-  blockId: Schema.String,
-  selected: Schema.Boolean,
-  timestamp: Schema.Number,
-});
+export const BlockSelectionChanged = Schema.TaggedStruct(
+  'BlockSelectionChanged',
+  {
+    blockId: Schema.String,
+    selected: Schema.Boolean,
+    timestamp: Schema.Number,
+  }
+);
 export type BlockSelectionChanged = typeof BlockSelectionChanged.Type;
 
 /**
  * Block focus mode changed
  */
-export const BlockFocusModeChanged = Schema.TaggedStruct('BlockFocusModeChanged', {
-  blockId: Schema.NullOr(Schema.String),
-  isFocusMode: Schema.Boolean,
-  timestamp: Schema.Number,
-});
+export const BlockFocusModeChanged = Schema.TaggedStruct(
+  'BlockFocusModeChanged',
+  {
+    blockId: Schema.NullOr(Schema.String),
+    isFocusMode: Schema.Boolean,
+    timestamp: Schema.Number,
+  }
+);
 export type BlockFocusModeChanged = typeof BlockFocusModeChanged.Type;
 
 /**
@@ -185,10 +200,9 @@ export interface DurableBlockStreamShape {
 // Service Tag
 // ============================================================================
 
-export class DurableBlockStream extends Context.Tag('tmnl/blocks/DurableBlockStream')<
-  DurableBlockStream,
-  DurableBlockStreamShape
->() {}
+export class DurableBlockStream extends Context.Tag(
+  'tmnl/blocks/DurableBlockStream'
+)<DurableBlockStream, DurableBlockStreamShape>() {}
 
 // ============================================================================
 // In-Memory Implementation (for development/testing)
@@ -309,7 +323,8 @@ export const DurableBlockStreamLive = Layer.effect(
         timestamp: Date.now(),
       })),
 
-      getBlockState: (blockId) => Effect.sync(() => state.blocks.get(blockId) ?? null),
+      getBlockState: (blockId) =>
+        Effect.sync(() => state.blocks.get(blockId) ?? null),
 
       getCurrentSequence: Effect.sync(() => state.sequence),
 
@@ -347,24 +362,41 @@ export class RemoteBlockStreamConfigTag extends Context.Tag(
 )<RemoteBlockStreamConfigTag, RemoteBlockStreamConfig>() {}
 
 /**
- * Remote implementation using durable-streams protocol.
- * Requires DurableStreamClient service.
+ * Remote implementation using @durable-streams/client via Effect bridge.
+ * Leverages DurableStreamClient for proper Effect integration.
  *
- * @see src/lib/durable-streams for the Effect bridge
+ * @see src/lib/durable-streams/service.ts
  */
 export const DurableBlockStreamRemote = Layer.effect(
   DurableBlockStream,
   Effect.gen(function* () {
-    // Dynamic import to avoid circular deps
-    const { DurableStreamClient, DurableStreamError } = yield* Effect.tryPromise({
-      try: () => import('../../durable-streams'),
-      catch: () => new Error('Failed to import durable-streams bridge'),
-    });
-
-    const client = yield* DurableStreamClient;
     const config = yield* RemoteBlockStreamConfigTag;
 
-    // Local state for snapshot computation
+    // Import the Effect client service dynamically
+    const {
+      DurableStreamClient,
+      DurableStreamClientLive,
+      DurableStreamClientConfigured,
+      DurableStreamError,
+    } = yield* Effect.tryPromise({
+      try: () => import('../../durable-streams/service'),
+      catch: (e) =>
+        new Error(
+          `Failed to import durable-streams service: ${(e as Error).message}`
+        ),
+    });
+
+    // Create a mini-runtime for the client
+    const clientRuntime = yield* Effect.runtime<never>();
+    const clientLayer = DurableStreamClientConfigured({
+      baseUrl: extractBaseUrl(config.url),
+      defaultContentType: 'application/json',
+    });
+
+    // Get the stream URL
+    const streamUrl = config.url;
+
+    // Local state for snapshot computation (mirrors remote)
     const state: InMemoryState = {
       events: [],
       blocks: new Map(),
@@ -373,51 +405,95 @@ export const DurableBlockStreamRemote = Layer.effect(
       sequence: 0,
     };
 
-    // PubSub for local subscriptions (mirrors remote events)
+    // PubSub for local subscriptions
     const pubsub = yield* PubSub.unbounded<BlockEvent>();
 
-    // Get or create the remote stream
-    const handle = yield* client.getOrCreate<BlockEvent>({
-      url: config.url,
-      contentType: 'application/json',
-    });
+    // Helper to run client operations
+    const runClient = <A, E>(
+      effect: Effect.Effect<A, E, typeof DurableStreamClient.Service>
+    ) => effect.pipe(Effect.provide(clientLayer));
+
+    // Get or create the stream handle
+    const getHandle = () =>
+      runClient(
+        Effect.gen(function* () {
+          const client = yield* DurableStreamClient;
+          return yield* client.getOrCreate<BlockEvent>({
+            url: streamUrl,
+            contentType: 'application/json',
+          });
+        })
+      );
 
     // Sync local state from remote on startup
-    const syncFromRemote = Effect.gen(function* () {
-      const batch = yield* handle.read({ offset: '-1', live: false });
-      for (const event of batch.items) {
-        applyEvent(state, event);
+    yield* Effect.gen(function* () {
+      const handle = yield* getHandle().pipe(
+        Effect.catchAll(() => Effect.succeed(null))
+      );
+
+      if (handle) {
+        const result = yield* handle
+          .read({ offset: '-1', live: false })
+          .pipe(
+            Effect.catchAll(() =>
+              Effect.succeed({
+                items: [] as readonly BlockEvent[],
+                offset: '-1',
+                upToDate: true,
+              })
+            )
+          );
+
+        for (const event of result.items) {
+          applyEvent(state, event);
+        }
       }
     });
-
-    yield* syncFromRemote.pipe(
-      Effect.catchAll((e) => Effect.logWarning(`Failed to sync from remote: ${e}`))
-    );
 
     return {
       publish: (event) =>
         Effect.gen(function* () {
-          // Publish to remote first
+          // Publish to remote via Effect client
+          const handle = yield* getHandle().pipe(
+            Effect.catchAll((e) => {
+              Effect.logError(`Failed to get handle: ${e}`);
+              return Effect.fail(e);
+            })
+          );
+
           yield* handle.append(event).pipe(
             Effect.catchAll((e) => {
               Effect.logError(`Failed to publish to remote: ${e}`);
               return Effect.void;
             })
           );
+
           // Then apply locally
           applyEvent(state, event);
           yield* PubSub.publish(pubsub, event);
-        }),
+        }).pipe(
+          Effect.catchAll((e) => {
+            // If remote fails, still apply locally for resilience
+            applyEvent(state, event);
+            return PubSub.publish(pubsub, event);
+          })
+        ),
 
       publishBatch: (events) =>
         Effect.gen(function* () {
-          // Publish all to remote
-          yield* handle.appendBatch(events).pipe(
-            Effect.catchAll((e) => {
-              Effect.logError(`Failed to publish batch to remote: ${e}`);
-              return Effect.void;
-            })
+          const handle = yield* getHandle().pipe(
+            Effect.catchAll(() => Effect.succeed(null))
           );
+
+          if (handle) {
+            yield* handle.appendBatch(events).pipe(
+              Effect.catchAll((e) => {
+                Effect.logError(`Failed to publish batch: ${e}`);
+                return Effect.void;
+              })
+            );
+          }
+
           // Apply locally
           for (const event of events) {
             applyEvent(state, event);
@@ -454,20 +530,27 @@ export const DurableBlockStreamRemote = Layer.effect(
         timestamp: Date.now(),
       })),
 
-      getBlockState: (blockId) => Effect.sync(() => state.blocks.get(blockId) ?? null),
+      getBlockState: (blockId) =>
+        Effect.sync(() => state.blocks.get(blockId) ?? null),
 
       getCurrentSequence: Effect.sync(() => state.sequence),
 
       replayAll: Effect.sync(() => Stream.fromIterable(state.events)),
 
       clear: Effect.gen(function* () {
-        // Delete remote stream
-        yield* handle.delete().pipe(
-          Effect.catchAll((e) => {
-            Effect.logWarning(`Failed to delete remote stream: ${e}`);
-            return Effect.void;
-          })
+        // Delete remote stream via client
+        const handle = yield* getHandle().pipe(
+          Effect.catchAll(() => Effect.succeed(null))
         );
+        if (handle) {
+          yield* handle.delete().pipe(
+            Effect.catchAll((e) => {
+              Effect.logWarning(`Failed to delete remote stream: ${e}`);
+              return Effect.void;
+            })
+          );
+        }
+
         // Clear local state
         state.events = [];
         state.blocks.clear();
@@ -478,6 +561,29 @@ export const DurableBlockStreamRemote = Layer.effect(
     };
   })
 );
+
+// Helper to extract stream ID from URL
+const extractStreamIdFromUrl = (url: string): string => {
+  // Handle formats like:
+  // - "http://localhost:4437/v1/stream/my-stream" -> "my-stream"
+  // - "my-stream" -> "my-stream"
+  const match = url.match(/\/v1\/stream\/(.+)$/);
+  return match ? match[1] : url;
+};
+
+// Helper to extract base URL
+const extractBaseUrl = (url: string): string => {
+  // Handle formats like:
+  // - "http://localhost:3030/v1/stream/my-stream" -> "http://localhost:3030"
+  // - "http://localhost:3030" -> "http://localhost:3030"
+  const match = url.match(/^(https?:\/\/[^/]+)/);
+  // Browser-safe: use import.meta.env for Vite
+  const envUrl =
+    typeof import.meta !== 'undefined'
+      ? import.meta.env?.VITE_DURABLE_STREAM_URL
+      : undefined;
+  return match ? match[1] : envUrl ?? 'http://127.0.0.1:4437';
+};
 
 // ============================================================================
 // Default Export

@@ -87,8 +87,6 @@ import {
   registerEditorOp,
   unregisterEditorOp,
   setFocusedEditorOp,
-  registeredEditorsAtom,
-  focusedEditorAtom,
   type EditorId,
 } from '@/lib/editor-ai';
 import * as Option from 'effect/Option';
@@ -202,6 +200,98 @@ function EditorAIRegistration({
       }
     };
   }, [editorId, editorInstance, registerEditor, setFocusedEditor]);
+
+  return null;
+}
+
+// =============================================================================
+// EditorMapContext Registration Component
+// =============================================================================
+
+import {
+  setEditorMapContext,
+  type EditorMapContext,
+} from '@/lib/commands/defaults';
+import type { MapBlockMarker } from '@/lib/editor/v3/extensions/blocks/MapBlock';
+
+/**
+ * Registers the editor with EditorMapContext for tool-to-editor map insertion.
+ *
+ * When this editor has focus, setEditorMapContext is called with the insertMap
+ * implementation that invokes the TipTap mapBlock.insertMap command.
+ */
+function EditorMapContextRegistration({
+  editorInstanceRef,
+  editorInstance,
+}: {
+  editorInstanceRef: React.RefObject<Editor | null>;
+  editorInstance: Editor | null;
+}) {
+  const isRegisteredRef = useRef(false);
+
+  useEffect(() => {
+    if (!editorInstance) {
+      return;
+    }
+
+    // Skip if already registered for this editor
+    if (isRegisteredRef.current) {
+      return;
+    }
+
+    console.log('[EditorMapContextRegistration] Registering map context');
+
+    // Create EditorMapContext adapter for this TipTap editor
+    const mapContext: EditorMapContext = {
+      insertMap: (data) => {
+        const editor = editorInstanceRef.current;
+        if (!editor) return false;
+
+        try {
+          // Convert markers from DetectedMapData format to MapBlockMarker format
+          const markers: MapBlockMarker[] = (data.markers ?? []).map((m) => ({
+            position: [m.position[0], m.position[1]] as [number, number],
+            color: [255, 100, 100] as [number, number, number], // Default red
+          }));
+
+          // Insert the map block with markers and viewState
+          const result = editor.commands.insertMap({
+            markers,
+            viewState: data.viewState
+              ? {
+                  longitude: data.viewState.longitude,
+                  latitude: data.viewState.latitude,
+                  zoom: data.viewState.zoom ?? 10,
+                }
+              : undefined,
+          });
+
+          return result;
+        } catch (e) {
+          console.error('[EditorMapContextRegistration] insertMap failed:', e);
+          return false;
+        }
+      },
+      focus: () => {
+        editorInstanceRef.current?.commands.focus();
+      },
+      isAvailable: () => {
+        return editorInstanceRef.current !== null;
+      },
+    };
+
+    setEditorMapContext(mapContext);
+    isRegisteredRef.current = true;
+
+    // Cleanup: Clear context on unmount
+    return () => {
+      if (isRegisteredRef.current) {
+        console.log('[EditorMapContextRegistration] Unmounting, clearing map context');
+        setEditorMapContext(null);
+        isRegisteredRef.current = false;
+      }
+    };
+  }, [editorInstance, editorInstanceRef]);
 
   return null;
 }
@@ -767,6 +857,11 @@ export function AutonomousEditorPanel({
         {/* Register editor with EditorAI system for reconciler access */}
         <EditorAIRegistration
           editorId={editorId}
+          editorInstanceRef={editorInstanceRef}
+          editorInstance={editorInstance}
+        />
+        {/* Register editor with EditorMapContext for tool-to-editor map insertion */}
+        <EditorMapContextRegistration
           editorInstanceRef={editorInstanceRef}
           editorInstance={editorInstance}
         />
@@ -1404,6 +1499,7 @@ export function AutonomousEditorPanel({
 
         {/* Reconciler Test Panel (split pane from right) */}
         <ReconcilerTestPanel
+          editorId={editorId}
           isOpen={isReconcilerPanelOpen}
           onToggle={() => setIsReconcilerPanelOpen(!isReconcilerPanelOpen)}
           width={400}

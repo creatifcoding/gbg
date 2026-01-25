@@ -1,3 +1,17 @@
+---
+name: effect-scope-resource
+description: Instructions on how to properly utilize Effect scopes for resource management, lifecycle concerns, etc.
+model_invoked: true
+triggers:
+  - "scope"
+  - "constrain"
+  - "resource"
+  - "resource management"
+  - "management"
+  - "cleanup"
+---
+
+
 # Effect Scope & Resources
 
 ## Triggers

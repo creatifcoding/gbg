@@ -2,22 +2,21 @@
  * useReconciler Hook
  *
  * React hook for document reconciliation operations.
- * Provides access to the ReconcilerService via the focused editor's view.
+ * Provides access to the ReconcilerService via a specific editor's view.
  *
- * REFACTORED: Uses effect-atom instead of React context.
- * - Subscribes to `focusedEditorAtom` for reactive focus updates
+ * REFACTORED: Panel-scoped architecture.
+ * - Accepts explicit `editorId` parameter (no global focus dependency)
  * - Uses `useAtomSet(getEditorOperationsOp)` to get editor operations
- * - No more dependency on context version counters
+ * - Each panel owns its reconciler — no cross-panel interference
  *
  * @module editor-ai/hooks/useReconciler
  */
 
 import { useCallback, useMemo, useState, useRef, useEffect } from 'react'
-import { Effect, Option } from 'effect'
-import { useAtomValue, useAtom, useAtomSet } from '@effect-atom/atom-react'
+import { Effect } from 'effect'
+import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
 
 import {
-  focusedEditorAtom,
   registeredEditorsAtom,
   getEditorOperationsOp,
 } from '../atoms'
@@ -68,9 +67,9 @@ export interface UseReconcilerResult {
   hasView: boolean
 
   /**
-   * Currently focused editor ID.
+   * The editor ID this reconciler operates on.
    */
-  focusedEditorId: EditorId | null
+  editorId: EditorId
 
   /**
    * Last reconciliation result.
@@ -126,6 +125,17 @@ export interface UseReconcilerResult {
    * Clear last result and error.
    */
   clearState: () => void
+
+  /**
+   * Subscribe to document changes.
+   * Callback receives the document JSON on every content change.
+   * Returns an unsubscribe function.
+   *
+   * Use this instead of polling for real-time document observation.
+   */
+  subscribeToDocument: (
+    callback: (document: JSONDocument) => void
+  ) => () => void
 }
 
 // -----------------------------------------------------------------------------
@@ -135,21 +145,21 @@ export interface UseReconcilerResult {
 /**
  * Hook for document reconciliation operations.
  *
- * REFACTORED: Uses effect-atom subscriptions instead of React context.
- * - `focusedEditorAtom` triggers re-renders when focus changes
+ * REFACTORED: Panel-scoped architecture.
+ * - Accepts explicit `editorId` — operates on THAT editor, not global focus
  * - `registeredEditorsAtom` triggers re-renders when editors register/unregister
- * - No dependency array issues because atoms are stable
+ * - No cross-panel interference: each panel's reconciler is isolated
  *
  * Usage:
  * ```tsx
- * function ReconcilerTest() {
+ * function ReconcilerTest({ editorId }: { editorId: EditorId }) {
  *   const {
  *     hasView,
  *     reconcileDocument,
  *     lastResult,
  *     isReconciling,
  *     error,
- *   } = useReconciler()
+ *   } = useReconciler(editorId)
  *
  *   const handleReconcile = async (doc: JSONDocument) => {
  *     const result = await reconcileDocument(doc)
@@ -160,23 +170,17 @@ export interface UseReconcilerResult {
  * }
  * ```
  */
-export function useReconciler(): UseReconcilerResult {
-  // Subscribe to atoms (replaces context)
-  const focusedEditorOption = useAtomValue(focusedEditorAtom)
+export function useReconciler(editorId: EditorId): UseReconcilerResult {
+  // Subscribe to registration state (needed to know when editor is ready)
   const registeredEditors = useAtomValue(registeredEditorsAtom)
 
   // Get callable function from operation atom via useAtomSet
   // mode: "promise" required so setter returns Promise<Result> instead of void
   const getEditorOperations = useAtomSet(getEditorOperationsOp, { mode: 'promise' })
 
-  // Extract focused editor ID from Option
-  const focusedEditorId = Option.isSome(focusedEditorOption)
-    ? focusedEditorOption.value
-    : null
-
-  // Cache for the focused editor operations (avoid re-fetching on every render)
+  // Cache for the editor operations (avoid re-fetching on every render)
   const editorOpsRef = useRef<EditorOperationsShape | null>(null)
-  const lastFocusedIdRef = useRef<EditorId | null>(null)
+  const lastEditorIdRef = useRef<EditorId | null>(null)
 
   // Local state
   const [lastResult, setLastResult] = useState<ReconciliationStats | null>(null)
@@ -186,55 +190,48 @@ export function useReconciler(): UseReconcilerResult {
   const [opsLoaded, setOpsLoaded] = useState(false)
 
   // ---------------------------------------------------------------------------
-  // Fetch editor operations when focus changes
+  // Fetch editor operations when editorId changes or registration completes
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
     // RACE CONDITION FIX: Check if editor is actually registered before fetching.
     // registeredEditors in deps ensures we retry when registration completes.
-    const isRegistered = focusedEditorId
-      ? registeredEditors.includes(focusedEditorId)
-      : false
+    const isRegistered = registeredEditors.includes(editorId)
 
     // STRICT MODE FIX: Only skip if this is a true no-change scenario.
     // The ref tracks "what we last attempted to load" - if we unmount/remount,
     // cleanup clears it, so we'll retry the fetch.
     if (
-      focusedEditorId === lastFocusedIdRef.current &&
+      editorId === lastEditorIdRef.current &&
       editorOpsRef.current !== null
     ) {
       return // Truly no change - same ID and we have operations
     }
 
-    lastFocusedIdRef.current = focusedEditorId
+    lastEditorIdRef.current = editorId
     setOpsLoaded(false) // Reset while fetching
-
-    if (!focusedEditorId) {
-      editorOpsRef.current = null
-      return
-    }
 
     // Don't attempt fetch until editor is registered (race condition guard)
     if (!isRegistered) {
       console.log(
         '[useReconciler] Editor not registered yet, waiting:',
-        focusedEditorId
+        editorId
       )
       return
     }
 
-    // Fetch the operations for the focused editor
+    // Fetch the operations for the specified editor
     // mode: "promise" returns Promise<Result.Success<R>> — unwrap with .value
-    getEditorOperations({ id: focusedEditorId })
+    getEditorOperations({ id: editorId })
       .then((result) => {
-        // Guard against stale responses (focus may have changed during fetch)
-        if (lastFocusedIdRef.current !== focusedEditorId) {
-          console.log('[useReconciler] Stale response, ignoring:', focusedEditorId)
+        // Guard against stale responses (editorId may have changed during fetch)
+        if (lastEditorIdRef.current !== editorId) {
+          console.log('[useReconciler] Stale response, ignoring:', editorId)
           return
         }
         editorOpsRef.current = result.value
         setOpsLoaded(true) // Signal that operations are ready
-        console.log('[useReconciler] Cached editor operations for:', focusedEditorId)
+        console.log('[useReconciler] Cached editor operations for:', editorId)
       })
       .catch((err) => {
         console.error('[useReconciler] Failed to get editor operations:', err)
@@ -244,12 +241,12 @@ export function useReconciler(): UseReconcilerResult {
 
     // STRICT MODE FIX: Cleanup clears refs so remount will re-fetch
     return () => {
-      console.log('[useReconciler] Cleanup, clearing refs for:', focusedEditorId)
-      lastFocusedIdRef.current = null
+      console.log('[useReconciler] Cleanup, clearing refs for:', editorId)
+      lastEditorIdRef.current = null
       editorOpsRef.current = null
       setOpsLoaded(false)
     }
-  }, [focusedEditorId, getEditorOperations, registeredEditors])
+  }, [editorId, getEditorOperations, registeredEditors])
 
   // ---------------------------------------------------------------------------
   // Helpers
@@ -260,7 +257,7 @@ export function useReconciler(): UseReconcilerResult {
 
     // Debug logging
     console.log('[useReconciler.getView]', {
-      focusedEditorId,
+      editorId,
       hasEditor: !!editor,
       opsLoaded,
       allEditorIds: registeredEditors,
@@ -278,7 +275,7 @@ export function useReconciler(): UseReconcilerResult {
       console.log('[useReconciler.getView] Error getting view:', err)
       return null
     }
-  }, [focusedEditorId, opsLoaded, registeredEditors])
+  }, [editorId, opsLoaded, registeredEditors])
 
   // ---------------------------------------------------------------------------
   // State
@@ -289,7 +286,7 @@ export function useReconciler(): UseReconcilerResult {
   const hasView = useMemo(() => {
     if (!opsLoaded || !editorOpsRef.current) return false
     return getView() !== null
-  }, [getView, opsLoaded, focusedEditorId, registeredEditors])
+  }, [getView, opsLoaded, editorId, registeredEditors])
 
   // ---------------------------------------------------------------------------
   // Operations
@@ -420,6 +417,31 @@ export function useReconciler(): UseReconcilerResult {
     setIsReconciling(false)
   }, [])
 
+  const subscribeToDocument = useCallback(
+    (callback: (document: JSONDocument) => void): (() => void) => {
+      const editor = editorOpsRef.current
+      if (!editor) {
+        console.warn('[useReconciler.subscribeToDocument] No editor operations available')
+        return () => {} // No-op unsubscribe
+      }
+
+      try {
+        // Run the Effect synchronously to get the unsubscribe function
+        const unsubscribe = Effect.runSync(
+          editor.subscribeToUpdates((doc) => {
+            callback(doc as JSONDocument)
+          })
+        )
+        console.log('[useReconciler.subscribeToDocument] Subscribed to document updates')
+        return unsubscribe
+      } catch (err) {
+        console.error('[useReconciler.subscribeToDocument] Failed to subscribe:', err)
+        return () => {} // No-op unsubscribe
+      }
+    },
+    [opsLoaded] // Re-create when ops become available
+  )
+
   // ---------------------------------------------------------------------------
   // Return
   // ---------------------------------------------------------------------------
@@ -428,7 +450,7 @@ export function useReconciler(): UseReconcilerResult {
     () => ({
       // State
       hasView,
-      focusedEditorId,
+      editorId,
       lastResult,
       isReconciling,
       error,
@@ -440,10 +462,11 @@ export function useReconciler(): UseReconcilerResult {
       computeMerge,
       processStream,
       clearState,
+      subscribeToDocument,
     }),
     [
       hasView,
-      focusedEditorId,
+      editorId,
       lastResult,
       isReconciling,
       error,
@@ -453,6 +476,7 @@ export function useReconciler(): UseReconcilerResult {
       computeMerge,
       processStream,
       clearState,
+      subscribeToDocument,
     ]
   )
 }

@@ -49,18 +49,22 @@ interface TiptapAdapterConfig {
 
 /**
  * Get editor from ref or fail.
+ * Uses Effect.try for sync-compatible lazy ref reading.
+ * (Effect.suspend requires runtime; Effect.try works with Effect.runSync)
  */
 const getEditor = (
   config: TiptapAdapterConfig
 ): Effect.Effect<Editor, EditorOperationError> =>
-  Effect.suspend(() => {
-    const editor = config.editorRef.current
-    if (editor) {
-      return Effect.succeed(editor)
-    }
-    return Effect.fail(
-      makeEditorOperationError('getEditor', config.id, 'Editor ref is null')
-    )
+  Effect.try({
+    try: () => {
+      const editor = config.editorRef.current
+      if (!editor) {
+        throw new Error('Editor ref is null')
+      }
+      return editor
+    },
+    catch: () =>
+      makeEditorOperationError('getEditor', config.id, 'Editor ref is null'),
   })
 
 /**
@@ -413,6 +417,28 @@ const createTiptapOperations = (
     Effect.map((editor) => editor.view),
     Effect.orElseSucceed(() => null)
   ),
+
+  // ---------------------------------------------------------------------------
+  // Subscriptions
+  // ---------------------------------------------------------------------------
+
+  subscribeToUpdates: (callback) =>
+    getEditor(config).pipe(
+      Effect.map((editor) => {
+        // TipTap's onUpdate fires on every content change
+        const handler = () => {
+          callback(editor.getJSON())
+        }
+
+        // Subscribe
+        editor.on('update', handler)
+
+        // Return unsubscribe function
+        return () => {
+          editor.off('update', handler)
+        }
+      })
+    ),
 })
 
 // -----------------------------------------------------------------------------

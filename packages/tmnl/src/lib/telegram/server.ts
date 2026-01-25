@@ -2,21 +2,23 @@
  * Telegram Agent Server
  *
  * Standalone Bun server for the Telegram bot agent.
- * Connects to Claude Code for AI responses following cursor architecture.
+ * Uses Effect AI with NiaToolkit for agentic RAG.
  *
  * Usage: bun run scripts/telegram-agent.ts
  *
  * Features:
  * - Telegram Bot API integration
- * - Claude Code (AI SDK 6) for responses
+ * - Effect AI (@effect/ai-anthropic) for Claude integration
+ * - NiaToolkit for agentic search (Claude decides when to search)
  * - XState lifecycle management
  * - effect-atom state (Atom-as-State)
  * - Commands: /start, /help, /reset, /status
  */
 
-import { Effect, Layer, pipe } from 'effect';
-import { streamText } from 'ai';
-import { claudeCode } from 'ai-sdk-provider-claude-code';
+import { Config, Effect, Layer, pipe } from 'effect';
+import { LanguageModel } from '@effect/ai';
+import { AnthropicClient, AnthropicLanguageModel } from '@effect/ai-anthropic';
+import { NodeHttpClient } from '@effect/platform-node';
 import { nanoid } from 'nanoid';
 import type { Message } from 'node-telegram-bot-api';
 import {
@@ -32,12 +34,9 @@ import {
 } from './atoms';
 import type { TelegramMessage } from './schemas/message';
 import {
-  RagProvider,
-  LeannBackendLive,
-  SearchPayload,
-  hasIndex as ragHasIndex,
-  getContext,
-} from '../rag';
+  NiaToolkit,
+  NiaLive,
+} from '../rag/backends/nia';
 import {
   registerBlockCommands,
   parseBlockCommand,
@@ -50,12 +49,21 @@ import {
 // ============================================================================
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const PROJECT_ROOT = process.cwd();
-const LEANN_ENABLED = process.env.LEANN_ENABLED !== 'false'; // Enable by default
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const NIA_API_TOKEN = process.env.NIA_API_TOKEN;
 
 if (!TELEGRAM_BOT_TOKEN) {
   console.error('❌ TELEGRAM_BOT_TOKEN environment variable is required');
   process.exit(1);
+}
+
+if (!ANTHROPIC_API_KEY) {
+  console.error('❌ ANTHROPIC_API_KEY environment variable is required for Effect AI');
+  process.exit(1);
+}
+
+if (!NIA_API_TOKEN) {
+  console.warn('⚠️ NIA_API_TOKEN not set — Nia RAG tools will fail');
 }
 
 // ============================================================================
@@ -77,6 +85,23 @@ Your capabilities:
 - Provide technical guidance on Effect services, atoms, and state management
 - Assist with debugging and problem-solving
 
+TOOLS AVAILABLE:
+You have access to the following tools to search code and documentation:
+
+1. NiaSearch - Semantic search across indexed repositories and docs
+   Use when: User asks about patterns, concepts, or "how does X work?"
+
+2. NiaGrep - Regex pattern search in repository code
+   Use when: User asks for specific function names, imports, or syntax
+
+3. NiaRead - Read file content from repositories
+   Use when: You need to see full file context after searching
+
+USE THESE TOOLS PROACTIVELY when the user asks about:
+- Code patterns (search Effect-TS/effect for examples)
+- API usage (search for function signatures)
+- Implementation details (grep for specific code)
+
 Keep responses concise (Telegram has message limits).
 Use Markdown formatting sparingly (Telegram supports a subset).
 If code is needed, keep snippets short or suggest viewing in the full environment.
@@ -84,10 +109,18 @@ If code is needed, keep snippets short or suggest viewing in the full environmen
 Current context: TMNL development environment running on WSL2.`;
 
 // ============================================================================
-// AI Provider (Claude Code via AI SDK)
+// Effect AI Model (Anthropic Claude)
 // ============================================================================
 
-const model = claudeCode('sonnet', { cwd: PROJECT_ROOT });
+const ClaudeModel = AnthropicLanguageModel.model('claude-sonnet-4-20250514');
+
+// Anthropic client layer with HTTP
+const AnthropicClientLayer = pipe(
+  AnthropicClient.layerConfig({
+    apiKey: Config.redacted('ANTHROPIC_API_KEY'),
+  }),
+  Layer.provide(NodeHttpClient.layerUndici)
+);
 
 // ============================================================================
 // Message Handlers
@@ -126,20 +159,17 @@ const handleMessage = async (msg: Message, agent: typeof TelegramAgent.Service) 
   await Effect.runPromise(agent.sendTypingAction(chatId));
 
   try {
-    // Get conversation history - include current message explicitly
-    // (atom update may not have settled yet)
+    // Get conversation history
     const storedMessages = telegramRegistry.get(messagesByChatAtom)[chatId] ?? [];
     const currentMessage = { role: 'user' as const, content: text };
 
-    // Build conversation history, ensuring current message is included
-    const conversationHistory = [
-      ...storedMessages.map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      })),
-    ];
+    // Build conversation history
+    const conversationHistory = storedMessages.map((m) => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+    }));
 
-    // Add current message if not already in history (timing-safe)
+    // Add current message if not already in history
     const hasCurrentMessage = conversationHistory.some(
       (m) => m.role === 'user' && m.content === text
     );
@@ -147,45 +177,37 @@ const handleMessage = async (msg: Message, agent: typeof TelegramAgent.Service) 
       conversationHistory.push(currentMessage);
     }
 
-    // RAG: Search codebase for context using Effect-native pattern
-    let ragContext = '';
-    if (LEANN_ENABLED) {
-      const ragProgram = pipe(
-        getContext(text, 3),
-        Effect.tap((ctx) =>
-          ctx ? Effect.log(`🔍 [${chatId}] RAG: Found context`) : Effect.void
-        ),
-        Effect.catchAll((err) => {
-          console.warn(`⚠️ [${chatId}] RAG search failed:`, err);
-          return Effect.succeed('');
-        }),
-        Effect.provide(LeannBackendLive)
-      );
-      ragContext = await Effect.runPromise(ragProgram);
-    }
+    // Build prompt for Effect AI
+    const fullPrompt = conversationHistory
+      .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+      .join('\n\n');
 
-    // Build system prompt with RAG context
-    const systemWithContext = ragContext
-      ? `${SYSTEM_PROMPT}${ragContext}`
-      : SYSTEM_PROMPT;
-
-    // Get AI response
+    // Effect AI: Claude with NiaToolkit (agentic RAG)
+    // Claude decides when to use tools based on the question
     telegramActorOps.aiStreaming(chatId);
     telegramOps.setBotStatus(chatId, 'streaming');
 
-    const result = streamText({
-      model,
-      system: systemWithContext,
-      messages: conversationHistory,
-    });
+    const aiProgram = pipe(
+      LanguageModel.generateText({
+        system: SYSTEM_PROMPT,
+        prompt: fullPrompt,
+        toolkit: NiaToolkit,
+      }),
+      Effect.tap(() => Effect.sync(() => {
+        // Keep typing indicator active during tool calls
+        Effect.runPromise(agent.sendTypingAction(chatId)).catch(() => {});
+      })),
+      Effect.map((response) => response.text),
+      Effect.provide(ClaudeModel),
+      Effect.provide(NiaLive),
+      Effect.provide(AnthropicClientLayer),
+      Effect.catchAll((err) => {
+        console.error(`❌ [${chatId}] Effect AI error:`, err);
+        return Effect.succeed('❌ Sorry, I encountered an error processing your request.');
+      })
+    );
 
-    // Collect full response (Telegram doesn't support streaming edits well)
-    let fullResponse = '';
-    for await (const chunk of result.textStream) {
-      fullResponse += chunk;
-      // Keep typing indicator active
-      await Effect.runPromise(agent.sendTypingAction(chatId)).catch(() => {});
-    }
+    const fullResponse = await Effect.runPromise(aiProgram);
 
     // Send response
     if (fullResponse.trim()) {
@@ -307,17 +329,14 @@ const handleStatus = async (msg: Message, agent: typeof TelegramAgent.Service) =
   const messages = telegramRegistry.get(messagesByChatAtom)[chatId] ?? [];
   const botInfo = await Effect.runPromise(agent.getMe);
 
-  // Check LEANN index status using Effect-native pattern
-  let leannStatus = '❌ Disabled';
-  if (LEANN_ENABLED) {
-    const checkProgram = pipe(
-      ragHasIndex('tmnl-codebase'),
-      Effect.map((exists) => exists ? '✅ Active (tmnl-codebase)' : '⚠️ No index found'),
-      Effect.catchAll(() => Effect.succeed('⚠️ Error checking index')),
-      Effect.provide(LeannBackendLive)
-    );
-    leannStatus = await Effect.runPromise(checkProgram);
-  }
+  // Check Nia status
+  const niaStatus = NIA_API_TOKEN
+    ? '✅ Active (Agentic RAG)'
+    : '⚠️ NIA_API_TOKEN not set';
+
+  const anthropicStatus = ANTHROPIC_API_KEY
+    ? '✅ Configured'
+    : '❌ Missing API key';
 
   await Effect.runPromise(
     agent.sendMessage(
@@ -327,8 +346,14 @@ const handleStatus = async (msg: Message, agent: typeof TelegramAgent.Service) =
 🤖 Bot: @${botInfo.username}
 💬 Messages in chat: ${messages.length}
 🔗 Connection: Active
-🔍 RAG (LEANN): ${leannStatus}
-🕐 Server time: ${new Date().toISOString()}`,
+🧠 Claude (Effect AI): ${anthropicStatus}
+🔍 RAG (Nia): ${niaStatus}
+🕐 Server time: ${new Date().toISOString()}
+
+*Tools available:*
+• NiaSearch — semantic search
+• NiaGrep — regex pattern search
+• NiaRead — file content`,
       { parseMode: 'Markdown' }
     )
   );

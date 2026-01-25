@@ -1,7 +1,0 @@
-dev_mode: true
-execution_config:
-  file:
-    path: "router.json"
-    watch: true
-graph:
-  token: ""

@@ -23,9 +23,8 @@ import { Terminal } from "lucide-react"
 import { CommandService } from "./service"
 import { getRegisteredCommands, getDefaultBindings } from "./decorators"
 import type { Command } from "./types"
-import type { CompletionProvider } from "@/lib/minibuffer/providers/types"
-import type { ProviderId, Completion } from "@/lib/minibuffer/schemas/minibuffer"
-import { createProviderId, providerRegistry } from "@/lib/minibuffer/providers/registry"
+import type { ProviderId, Completion, CompletionProvider } from "@/lib/minibuffer/v2"
+import { createProviderId, providerRegistry, COMMAND_PROVIDER_ID } from "@/lib/minibuffer/v2"
 import {
   createFlexSearchDriver,
   parseQuery,
@@ -37,11 +36,8 @@ import {
   type CommandSearchItem,
 } from "@/lib/search"
 
-// ─────────────────────────────────────────────────────────────
-// Provider ID
-// ─────────────────────────────────────────────────────────────
-
-export const COMMAND_PROVIDER_ID: ProviderId = createProviderId("commands")
+// Re-export for backward compatibility
+export { COMMAND_PROVIDER_ID }
 
 // ─────────────────────────────────────────────────────────────
 // FlexSearch Driver (Lazy Singleton)

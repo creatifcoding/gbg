@@ -12,7 +12,7 @@ import type { DomainCatalog, ComponentRenderProps } from '@/lib/json-render/core
 import type { EntranceAnimation } from '@/lib/json-render/core/animation-schema';
 
 import { MorphCard, AnimatedItem, MetricBlock, MetricGrid, type MetricStatus } from '../components';
-import type { CardMode } from '../schemas';
+import { defaultTransitionStrategy } from '../machines/islandMachine';
 
 // =============================================================================
 // Prop Schemas
@@ -24,32 +24,50 @@ import type { CardMode } from '../schemas';
 const MorphCardPropsSchema = Schema.Struct({
   /** Unique card identifier */
   cardId: Schema.String,
-  /** Initial display mode */
-  initialMode: Schema.optional(Schema.Literal('idle', 'compact', 'default', 'expanded', 'detail')),
-  /** Custom size for idle mode */
-  idleSize: Schema.optional(Schema.Struct({
-    width: Schema.Number,
-    height: Schema.Number,
-  })),
-  /** Custom size for compact mode */
-  compactSize: Schema.optional(Schema.Struct({
-    width: Schema.Number,
-    height: Schema.Number,
-  })),
-  /** Custom size for default mode */
-  defaultSize: Schema.optional(Schema.Struct({
-    width: Schema.Number,
-    height: Schema.Number,
-  })),
-  /** Custom size for expanded mode */
-  expandedSize: Schema.optional(Schema.Struct({
-    width: Schema.Number,
-    height: Schema.Number,
-  })),
-  /** Custom size for detail mode */
-  detailSize: Schema.optional(Schema.Struct({
-    width: Schema.Number,
-    height: Schema.Number,
+  /** Initial sizeKey */
+  initialSizeKey: Schema.optional(Schema.String),
+  /** State machine config (sizes + defaults) */
+  stateMachineConfig: Schema.optional(Schema.Struct({
+    sizes: Schema.Record({
+      key: Schema.String,
+      value: Schema.Struct({
+        width: Schema.Number,
+        height: Schema.Number,
+      }),
+    }),
+    reticle: Schema.optional(Schema.Literal(
+      'none',
+      'corners',
+      'crosshair',
+      'scan',
+      'pulse',
+      'diamond',
+      'hexagon',
+      'brackets',
+      'targeting',
+      'orbital',
+      'grid',
+      'dashed',
+      'radar',
+      'chevron',
+      'triangles',
+      'ring',
+      'segments',
+      'parallax',
+      'vortex',
+      'matrix',
+      'circuit',
+      'sine',
+      'binary',
+      'glitch'
+    )),
+    reticleColor: Schema.optional(Schema.String),
+    motionBlur: Schema.optional(Schema.Boolean),
+    spring: Schema.optional(Schema.Struct({
+      stiffness: Schema.Number,
+      damping: Schema.Number,
+      mass: Schema.Number,
+    })),
   })),
   /** Border radius */
   borderRadius: Schema.optional(Schema.Number),
@@ -73,6 +91,19 @@ const MorphCardPropsSchema = Schema.Struct({
   generativeApi: Schema.optional(Schema.String),
   /** Custom loading text during generation */
   loadingText: Schema.optional(Schema.String),
+  // Dynamic sizing props
+  /** Enable dynamic sizing - card grows/shrinks with content */
+  dynamicSize: Schema.optional(Schema.Boolean),
+  /** Enable scroll when content exceeds size (explicit only) */
+  scrollable: Schema.optional(Schema.Boolean),
+  /** Minimum width when dynamicSize is enabled */
+  minWidth: Schema.optional(Schema.Number),
+  /** Maximum width when dynamicSize is enabled */
+  maxWidth: Schema.optional(Schema.Number),
+  /** Minimum height when dynamicSize is enabled */
+  minHeight: Schema.optional(Schema.Number),
+  /** Maximum height when dynamicSize is enabled */
+  maxHeight: Schema.optional(Schema.Number),
 });
 
 /**
@@ -81,6 +112,13 @@ const MorphCardPropsSchema = Schema.Struct({
 const MorphCardContentPropsSchema = Schema.Struct({
   padding: Schema.optional(Schema.Literal('none', 'sm', 'md', 'lg')),
   className: Schema.optional(Schema.String),
+});
+
+/**
+ * MorphCard.SizeView props schema
+ */
+const MorphCardSizeViewPropsSchema = Schema.Struct({
+  sizeKey: Schema.String,
 });
 
 /**
@@ -177,14 +215,6 @@ const MetricGridPropsSchema = Schema.Struct({
 function MorphCardRenderer({ element, children }: ComponentRenderProps) {
   const props = element.props;
 
-  // Build sizes object from individual size props
-  const sizes: Partial<Record<CardMode, { width: number; height: number }>> = {};
-  if (props['idleSize']) sizes.idle = props['idleSize'] as { width: number; height: number };
-  if (props['compactSize']) sizes.compact = props['compactSize'] as { width: number; height: number };
-  if (props['defaultSize']) sizes.default = props['defaultSize'] as { width: number; height: number };
-  if (props['expandedSize']) sizes.expanded = props['expandedSize'] as { width: number; height: number };
-  if (props['detailSize']) sizes.detail = props['detailSize'] as { width: number; height: number };
-
   // Build config object
   const config: { borderRadius?: number; motionBlur?: boolean } = {};
   if (props['borderRadius'] !== undefined) config.borderRadius = props['borderRadius'] as number;
@@ -193,8 +223,9 @@ function MorphCardRenderer({ element, children }: ComponentRenderProps) {
   return (
     <MorphCard
       cardId={(props['cardId'] as string) ?? element.key}
-      initialMode={(props['initialMode'] as CardMode) ?? 'default'}
-      sizes={Object.keys(sizes).length > 0 ? sizes : undefined}
+      initialSizeKey={props['initialSizeKey'] as string}
+      stateMachineConfig={props['stateMachineConfig'] as any}
+      transitionStrategy={defaultTransitionStrategy}
       config={Object.keys(config).length > 0 ? config : undefined}
       interactive={(props['interactive'] as boolean) ?? true}
       className={props['className'] as string}
@@ -203,6 +234,13 @@ function MorphCardRenderer({ element, children }: ComponentRenderProps) {
       generativeContext={props['generativeContext'] as Record<string, unknown>}
       generativeApi={props['generativeApi'] as string}
       loadingText={props['loadingText'] as string}
+      // Dynamic sizing props
+      dynamicSize={props['dynamicSize'] as boolean}
+      scrollable={props['scrollable'] as boolean}
+      minWidth={props['minWidth'] as number}
+      maxWidth={props['maxWidth'] as number}
+      minHeight={props['minHeight'] as number}
+      maxHeight={props['maxHeight'] as number}
     >
       {children}
     </MorphCard>
@@ -217,6 +255,14 @@ function MorphCardContentRenderer({ element, children }: ComponentRenderProps) {
     >
       {children}
     </MorphCard.Content>
+  );
+}
+
+function MorphCardSizeViewRenderer({ element, children }: ComponentRenderProps) {
+  return (
+    <MorphCard.SizeView sizeKey={element.props['sizeKey'] as string}>
+      {children}
+    </MorphCard.SizeView>
   );
 }
 
@@ -374,8 +420,13 @@ const defaultAnimations = {
  *   "type": "MorphCard",
  *   "props": {
  *     "cardId": "system-status",
- *     "initialMode": "default",
- *     "defaultSize": { "width": 320, "height": 120 }
+ *     "initialSizeKey": "default",
+ *     "stateMachineConfig": {
+ *       "sizes": {
+ *         "default": { "width": 320, "height": 120 },
+ *         "expanded": { "width": 420, "height": 220 }
+ *       }
+ *     }
  *   },
  *   "children": [
  *     {
@@ -400,7 +451,7 @@ export const morphCardDomainCatalog: DomainCatalog = {
     MorphCard: {
       schema: MorphCardPropsSchema,
       renderer: MorphCardRenderer,
-      description: `Polymorphic card container that morphs between modes (idle, compact, default, expanded, detail).
+      description: `Polymorphic card container driven by sizeKey transitions.
       Supports both static renders and AI-generated content.
 
       STATIC MODE: Provide children or use renders prop for mode-specific content.
@@ -412,7 +463,41 @@ export const morphCardDomainCatalog: DomainCatalog = {
       Loading states include morphing placeholder, scramble animations, and progressive reveal as content streams in.
 
       REQUIRED: Always provide cardId for per-card state isolation.
-      SIZING: Set *Size props (idleSize, defaultSize, etc.) for custom dimensions per mode.`,
+
+      ═══════════════════════════════════════════════════════════════════════════════
+      SIZING DISCIPLINE (CRITICAL DECISION TREE)
+      ═══════════════════════════════════════════════════════════════════════════════
+
+      FIXED SIZING (default - dynamicSize: false):
+      - Card animates to exact dimensions per sizeKey (stateMachineConfig.sizes)
+      - Content scrolls if it overflows container
+      - USE WHEN: Dashboard widgets, status cards, thumbnail previews
+      - Props: initialSizeKey, stateMachineConfig.sizes
+
+      DYNAMIC SIZING (dynamicSize: true):
+      - Card grows/shrinks to fit content using framer-motion layout animation
+      - No scroll needed - content determines card height
+      - USE WHEN: AI-generated content with unknown length, rich text, lists
+
+      DECISION TREE:
+      1. Is content length known/fixed? → FIXED sizing (default)
+      2. Is this a dashboard widget/grid? → FIXED sizing with mode-based sizes
+      3. Is content AI-generated? → DYNAMIC sizing (dynamicSize: true)
+      4. Is content variable-length (lists, text)? → DYNAMIC with maxHeight
+      5. Need content to scroll within bounds? → FIXED sizing
+
+      DYNAMIC SIZING CONSTRAINTS:
+      - minWidth: Prevent collapse below this width (default: 50% of defaultSize.width)
+      - maxWidth: Cap growth (default: 200% of defaultSize.width)
+      - minHeight: Minimum card height (default: 100px)
+      - maxHeight: Cap height before layout stabilizes (optional)
+
+      EXAMPLE - AI dashboard card with dynamic height:
+      { "dynamicSize": true, "minHeight": 100, "maxHeight": 600 }
+
+      EXAMPLE - Fixed status widget in grid:
+      { "defaultSize": { "width": 280, "height": 120 } }
+      ═══════════════════════════════════════════════════════════════════════════════`,
       hasChildren: true,
       defaultEntrance: defaultAnimations.card,
     },
@@ -422,6 +507,13 @@ export const morphCardDomainCatalog: DomainCatalog = {
       schema: MorphCardContentPropsSchema,
       renderer: MorphCardContentRenderer,
       description: 'Content wrapper with configurable padding. Use inside MorphCard.',
+      hasChildren: true,
+      defaultEntrance: defaultAnimations.structure,
+    },
+    MorphCardSizeView: {
+      schema: MorphCardSizeViewPropsSchema,
+      renderer: MorphCardSizeViewRenderer,
+      description: 'SizeKey-scoped view wrapper for MorphCard content.',
       hasChildren: true,
       defaultEntrance: defaultAnimations.structure,
     },

@@ -56,6 +56,8 @@ export interface CardContextValue {
   readonly dimensions: { width: number; height: number };
   /** Whether controls should be visible */
   readonly showControls: boolean;
+  /** Register a layout root for measurement */
+  readonly registerContentNode?: (node: HTMLElement | null) => void;
   /** Available actions */
   readonly actions: CardActions;
 }

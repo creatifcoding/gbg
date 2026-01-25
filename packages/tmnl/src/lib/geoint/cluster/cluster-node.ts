@@ -36,12 +36,16 @@ import { FetchHttpClient } from '@effect/platform'
 
 // Local
 import { SEARCH_SHARD_GROUPS } from './SearchEntity'
+import { INGESTION_SHARD_GROUPS } from './IngestionEntity'
 import { SearchEntityHandlers } from './SearchEntityHandlers'
+import { IngestionEntityHandlers } from './IngestionEntityHandlers'
 import {
   OpenSkyClientLive,
   OverpassClientLive,
   OpenMeteoClientLive,
+  AdsbLolClientLive,
 } from '../api/ExternalApiClient'
+import { CircuitBreakersLive } from '../api/circuit-breaker'
 import {
   TrackPositionRepositoryLive,
   FeatureRepositoryLive,
@@ -100,6 +104,8 @@ const ExternalApiClientsLayer = Layer.mergeAll(
   OpenSkyClientLive,
   OverpassClientLive,
   OpenMeteoClientLive,
+  AdsbLolClientLive,
+  CircuitBreakersLive,
 ).pipe(
   Layer.provide(FetchHttpClient.layer)
 )
@@ -108,16 +114,31 @@ const ExternalApiClientsLayer = Layer.mergeAll(
 // Entity Handlers with Dependencies
 // =============================================================================
 
+const SharedDepsLayer = Layer.mergeAll(
+  ExternalApiClientsLayer,
+  RepositoriesLayer,
+).pipe(
+  Layer.provideMerge(DurableStreamClientLive),
+  Layer.provideMerge(PostgresLayer),
+)
+
 const SearchEntityHandlersWithDeps = SearchEntityHandlers.pipe(
-  Layer.provide(ExternalApiClientsLayer),
-  Layer.provide(RepositoriesLayer),
-  Layer.provide(DurableStreamClientLive),
-  Layer.provide(PostgresLayer),
+  Layer.provide(SharedDepsLayer),
+)
+
+const IngestionEntityHandlersWithDeps = IngestionEntityHandlers.pipe(
+  Layer.provide(SharedDepsLayer),
 )
 
 // =============================================================================
 // Sharding Config Layer
 // =============================================================================
+
+// All valid shard groups (search + ingestion)
+const ALL_SHARD_GROUPS = [
+  ...SEARCH_SHARD_GROUPS,
+  ...INGESTION_SHARD_GROUPS,
+] as const
 
 const ShardingConfigLayer = Layer.unwrapEffect(
   Effect.gen(function* () {
@@ -126,7 +147,7 @@ const ShardingConfigLayer = Layer.unwrapEffect(
     const shardGroups = yield* ClusterConfig.shardGroups
 
     // Validate shard groups
-    const validGroups = SEARCH_SHARD_GROUPS as readonly string[]
+    const validGroups = ALL_SHARD_GROUPS as readonly string[]
     for (const group of shardGroups) {
       if (!validGroups.includes(group)) {
         yield* Effect.die(
@@ -169,7 +190,13 @@ const HttpRunnerLayer = BunClusterHttp.layer({
 // Cluster Layer (Entity handlers OUTSIDE, consume Sharding from HttpRunner)
 // =============================================================================
 
-const ClusterLayer = SearchEntityHandlersWithDeps.pipe(
+// Merge both entity handlers (Search + Ingestion)
+const EntityHandlersLayer = Layer.mergeAll(
+  SearchEntityHandlersWithDeps,
+  IngestionEntityHandlersWithDeps,
+)
+
+const ClusterLayer = EntityHandlersLayer.pipe(
   Layer.provide(HttpRunnerLayer),
 )
 

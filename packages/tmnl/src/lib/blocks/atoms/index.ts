@@ -18,7 +18,6 @@ import {
   type BlockStateSnapshot,
   type RemoteBlockStreamConfig,
 } from '../services/DurableBlockStream';
-import { DurableStreamClientLive } from '../../durable-streams';
 
 // ============================================================================
 // Registry
@@ -222,6 +221,103 @@ export const blockOps = {
 };
 
 // ============================================================================
+// Per-Chat State (Atom.family pattern)
+// ============================================================================
+
+/**
+ * Per-chat block snapshot family.
+ * Each chatId gets its own isolated state.
+ *
+ * @example
+ * ```typescript
+ * const chatSnapshot = blockSnapshotByChatAtom(12345);
+ * const snapshot = blockRegistry.get(chatSnapshot);
+ * ```
+ */
+export const blockSnapshotByChatAtom = Atom.family((chatId: number) =>
+  Atom.make<BlockStateSnapshot>({
+    blocks: {},
+    focusedBlockId: null,
+    isFocusMode: false,
+    sequence: 0,
+    timestamp: Date.now(),
+  })
+);
+
+/**
+ * Per-chat connection state family
+ */
+export const connectionStateByChatAtom = Atom.family((chatId: number) =>
+  Atom.make<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected')
+);
+
+/**
+ * Per-chat last sync timestamp family
+ */
+export const lastSyncByChatAtom = Atom.family((chatId: number) =>
+  Atom.make<number | null>(null)
+);
+
+/**
+ * Per-chat latest event family (for debugging)
+ */
+export const latestEventByChatAtom = Atom.family((chatId: number) =>
+  Atom.make<BlockEvent | null>(null)
+);
+
+/**
+ * Per-chat derived atoms
+ */
+export const chatBlockOps = (chatId: number) => {
+  const snapshotAtom = blockSnapshotByChatAtom(chatId);
+  const connectionAtom = connectionStateByChatAtom(chatId);
+  const syncAtom = lastSyncByChatAtom(chatId);
+  const eventAtom = latestEventByChatAtom(chatId);
+
+  return {
+    /** Get the snapshot atom for this chat */
+    snapshotAtom,
+
+    /** Get current snapshot value */
+    getSnapshot: () => blockRegistry.get(snapshotAtom),
+
+    /** Update snapshot */
+    updateSnapshot: (snapshot: BlockStateSnapshot) => {
+      blockRegistry.set(snapshotAtom, snapshot);
+      blockRegistry.set(syncAtom, Date.now());
+    },
+
+    /** Record an event */
+    recordEvent: (event: BlockEvent) => {
+      blockRegistry.set(eventAtom, event);
+    },
+
+    /** Set connection state */
+    setConnectionState: (state: 'disconnected' | 'connecting' | 'connected' | 'error') => {
+      blockRegistry.set(connectionAtom, state);
+    },
+
+    /** Get blocks map */
+    getBlocks: () => blockRegistry.get(snapshotAtom).blocks,
+
+    /** Get block IDs */
+    getBlockIds: () => Object.keys(blockRegistry.get(snapshotAtom).blocks),
+
+    /** Get specific block state */
+    getBlockState: (blockId: string) => blockRegistry.get(snapshotAtom).blocks[blockId] ?? null,
+
+    /** Check if focus mode is active */
+    isFocusMode: () => blockRegistry.get(snapshotAtom).isFocusMode,
+
+    /** Get focused block ID */
+    getFocusedBlockId: () => blockRegistry.get(snapshotAtom).focusedBlockId,
+
+    /** Get current sequence */
+    getSequence: () => blockRegistry.get(snapshotAtom).sequence,
+  };
+};
+
+// ============================================================================
 // Remote Runtime Factory
 // ============================================================================
 
@@ -240,89 +336,103 @@ export const blockOps = {
  * ```
  */
 export const makeRemoteBlockRuntime = (config: RemoteBlockStreamConfig) =>
-  Atom.runtime(
-    pipe(
-      makeRemoteBlockStream(config),
-      Layer.provide(DurableStreamClientLive)
-    )
-  );
+  Atom.runtime(makeRemoteBlockStream(config));
 
 /**
- * Create block operations bound to a remote runtime
+ * Create block operations bound to a remote runtime with per-chat state isolation.
+ *
+ * @param runtimeAtom - The Atom.runtime for the remote connection
+ * @param chatId - The chat ID for per-chat state isolation
  */
-export const makeRemoteBlockOps = (runtimeAtom: ReturnType<typeof makeRemoteBlockRuntime>) => ({
-  createBlock: runtimeAtom.fn<{
-    blockId: string;
-    blockTypeName: string;
-    attributes?: Record<string, unknown>;
-  }>()((args, ctx) =>
-    ctx.effect.gen(function* () {
-      const stream = yield* DurableBlockStream;
-      yield* stream.publish({
-        _tag: 'BlockCreated',
-        blockId: args.blockId,
-        blockTypeName: args.blockTypeName,
-        attributes: args.attributes ?? {},
-        timestamp: Date.now(),
-      });
-      const snapshot = yield* stream.getSnapshot;
-      ctx.set(blockSnapshotAtom, snapshot);
-    })
-  ),
+export const makeRemoteBlockOps = (
+  runtimeAtom: ReturnType<typeof makeRemoteBlockRuntime>,
+  chatId: number
+) => {
+  // Get per-chat atoms
+  const snapshotAtom = blockSnapshotByChatAtom(chatId);
+  const syncAtom = lastSyncByChatAtom(chatId);
 
-  updateBlock: runtimeAtom.fn<{
-    blockId: string;
-    key: string;
-    value: unknown;
-  }>()((args, ctx) =>
-    ctx.effect.gen(function* () {
-      const stream = yield* DurableBlockStream;
-      yield* stream.publish({
-        _tag: 'BlockUpdated',
-        blockId: args.blockId,
-        key: args.key,
-        value: args.value,
-        timestamp: Date.now(),
-      });
-      const snapshot = yield* stream.getSnapshot;
-      ctx.set(blockSnapshotAtom, snapshot);
-    })
-  ),
+  return {
+    /** Get the current snapshot for this chat */
+    getSnapshot: () => blockRegistry.get(snapshotAtom),
 
-  deleteBlock: runtimeAtom.fn<{ blockId: string }>()((args, ctx) =>
-    ctx.effect.gen(function* () {
-      const stream = yield* DurableBlockStream;
-      yield* stream.publish({
-        _tag: 'BlockDeleted',
-        blockId: args.blockId,
-        timestamp: Date.now(),
-      });
-      const snapshot = yield* stream.getSnapshot;
-      ctx.set(blockSnapshotAtom, snapshot);
-    })
-  ),
+    /** Get chat-scoped operations helper */
+    chatOps: chatBlockOps(chatId),
 
-  setFocusMode: runtimeAtom.fn<{ blockId: string | null; isFocusMode: boolean }>()(
-    (args, ctx) =>
+    createBlock: runtimeAtom.fn<{
+      blockId: string;
+      blockTypeName: string;
+      attributes?: Record<string, unknown>;
+    }>()((args, ctx) =>
       ctx.effect.gen(function* () {
         const stream = yield* DurableBlockStream;
         yield* stream.publish({
-          _tag: 'BlockFocusModeChanged',
+          _tag: 'BlockCreated',
           blockId: args.blockId,
-          isFocusMode: args.isFocusMode,
+          blockTypeName: args.blockTypeName,
+          attributes: args.attributes ?? {},
           timestamp: Date.now(),
         });
         const snapshot = yield* stream.getSnapshot;
-        ctx.set(blockSnapshotAtom, snapshot);
+        ctx.set(snapshotAtom, snapshot);
       })
-  ),
+    ),
 
-  syncSnapshot: runtimeAtom.fn()((_, ctx) =>
-    ctx.effect.gen(function* () {
-      const stream = yield* DurableBlockStream;
-      const snapshot = yield* stream.getSnapshot;
-      ctx.set(blockSnapshotAtom, snapshot);
-      ctx.set(lastSyncAtom, Date.now());
-    })
-  ),
-});
+    updateBlock: runtimeAtom.fn<{
+      blockId: string;
+      key: string;
+      value: unknown;
+    }>()((args, ctx) =>
+      ctx.effect.gen(function* () {
+        const stream = yield* DurableBlockStream;
+        yield* stream.publish({
+          _tag: 'BlockUpdated',
+          blockId: args.blockId,
+          key: args.key,
+          value: args.value,
+          timestamp: Date.now(),
+        });
+        const snapshot = yield* stream.getSnapshot;
+        ctx.set(snapshotAtom, snapshot);
+      })
+    ),
+
+    deleteBlock: runtimeAtom.fn<{ blockId: string }>()((args, ctx) =>
+      ctx.effect.gen(function* () {
+        const stream = yield* DurableBlockStream;
+        yield* stream.publish({
+          _tag: 'BlockDeleted',
+          blockId: args.blockId,
+          timestamp: Date.now(),
+        });
+        const snapshot = yield* stream.getSnapshot;
+        ctx.set(snapshotAtom, snapshot);
+      })
+    ),
+
+    setFocusMode: runtimeAtom.fn<{ blockId: string | null; isFocusMode: boolean }>()(
+      (args, ctx) =>
+        ctx.effect.gen(function* () {
+          const stream = yield* DurableBlockStream;
+          yield* stream.publish({
+            _tag: 'BlockFocusModeChanged',
+            blockId: args.blockId,
+            isFocusMode: args.isFocusMode,
+            timestamp: Date.now(),
+          });
+          const snapshot = yield* stream.getSnapshot;
+          ctx.set(snapshotAtom, snapshot);
+        })
+    ),
+
+    syncSnapshot: runtimeAtom.fn()((_, ctx) =>
+      ctx.effect.gen(function* () {
+        const stream = yield* DurableBlockStream;
+        const snapshot = yield* stream.getSnapshot;
+        ctx.set(snapshotAtom, snapshot);
+        ctx.set(syncAtom, Date.now());
+        return snapshot;
+      })
+    ),
+  };
+};

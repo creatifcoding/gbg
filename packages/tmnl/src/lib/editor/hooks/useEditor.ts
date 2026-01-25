@@ -253,9 +253,14 @@ export function useEditor(): UseEditorResult {
       throw new Error("Editor not ready");
     },
     loadDocument: async (doc) => {
+      console.log("[useEditor] loadDocument called", { isSuccess: Result.isSuccess(loadDocumentFn), loadDocumentFn });
       if (Result.isSuccess(loadDocumentFn)) {
-        return loadDocumentFn.value(doc);
+        console.log("[useEditor] calling loadDocumentFn.value(doc)");
+        const result = await loadDocumentFn.value(doc);
+        console.log("[useEditor] loadDocument completed", result);
+        return result;
       }
+      console.error("[useEditor] Editor not ready - loadDocumentFn:", loadDocumentFn);
       throw new Error("Editor not ready");
     },
     createNew: async (title) => {

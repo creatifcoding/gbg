@@ -58,7 +58,9 @@ export const selectionAtom = Atom.make<SelectionState | null>(null);
  * Active formatting marks at cursor position.
  * Derived from editor.isActive() checks.
  */
-export const activeMarksAtom = Atom.make<ReadonlySet<MarkType>>(new Set());
+export const activeMarksAtom = Atom.make<ReadonlySet<MarkType>>(
+  new Set<MarkType>()
+);
 
 /**
  * Whether undo is available.
@@ -124,6 +126,16 @@ export const isReadyAtom = Atom.make((get) => {
   const status = get(editorStatusAtom);
   const editor = get(editorInstanceAtom);
   return status === 'ready' && editor !== null;
+});
+
+/**
+ * Editor view is mounted and ready for DOM operations.
+ * More strict than isReadyAtom — checks that view.dom exists.
+ * Use this before calling view.nodeDOM(), view.coordsAtPos(), etc.
+ */
+export const isViewMountedAtom = Atom.make((get) => {
+  const editor = get(editorInstanceAtom);
+  return editor !== null && editor.view?.dom !== null && editor.view?.dom !== undefined;
 });
 
 // =============================================================================

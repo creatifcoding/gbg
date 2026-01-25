@@ -41,6 +41,10 @@ export const TIMING = {
   // Text slide animations
   slideInDuration: 150,
   slideInDelay: 100,
+
+  // Blur transition (display → editing)
+  blurOut: 100, // Name blur + translate duration
+  inputFadeIn: 50, // Input appear duration
 } as const;
 
 // =============================================================================

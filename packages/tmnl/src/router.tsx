@@ -81,9 +81,13 @@ import { StreamingSearchTestbed } from './components/testbed/StreamingSearchTest
 import { DurableStreamsTestbed } from './components/testbed/DurableStreamsTestbed';
 import { HolonetDurableStreamsTestbed } from './components/testbed/HolonetDurableStreamsTestbed';
 import { JSONRenderTestbed } from './components/testbed/JSONRenderTestbed';
+import { MorphCardTestbed } from './components/testbed/MorphCardTestbed';
+import { EguiMorphCardTestbed } from './components/testbed/EguiMorphCardTestbed';
 import { DiagramsPage } from './components/docs';
 import { OverhaulDocsPage } from './components/docs/overhaul';
 import { DocsLanding } from './components/docs-3d';
+import { WindowRoute } from './routes/WindowRoute';
+import { PoolPlaceholder } from './routes/PoolPlaceholder';
 
 // Create a root route
 // LockScreenController wraps all routes to enable lock screen functionality
@@ -552,77 +556,132 @@ const jsonRenderTestbedRoute = createRoute({
   component: JSONRenderTestbed,
 });
 
-// Create the router
-const router = createRouter({
-  routeTree: rootRoute.addChildren([
-    indexRoute,
-    tmnlRoute,
-    testbedRoute,
-    testbedV2Route,
-    dispositionsRoute,
-    dataGridTestbedRoute,
-    effectAtomTestbedRoute,
-    hotkeyTestbedRoute,
-    keybindingTestbedRoute,
-    baseModalTestbedRoute,
-    traitTestbedRoute,
-    capabilityTestbedRoute,
-    sliderTestbedRoute,
-    sliderV2TestbedRoute,
-    searchTestbedRoute,
-    dataManagerTestbedRoute,
-    dataManagerV1TestbedRoute,
-    dataManagerV2TestbedRoute,
-    vantaCardTestbedRoute,
-    chartingTestbedRoute,
-    overlayTestbedRoute,
-    indicesTestbedRoute,
-    dataGridVariantTestbedRoute,
-    streamsPlaygroundRoute,
-    avaTestbedRoute,
-    avaV2TestbedRoute,
-    floatingPanelTestbedRoute,
-    selectionTestbedRoute,
-    drawerTestbedRoute,
-    variablesTestbedRoute,
-    screensaverTestbedRoute,
-    terminalTestbedRoute,
-    blockTerminalTestbedRoute,
-    blockTerminalV3TestbedRoute,
-    docsRoute,
-    diagramsRoute,
-    overhaulDocsRoute,
-    koriTestbedRoute,
-    koriAtomsTestbedRoute,
-    collaborationTestbedRoute,
-    collaborationV2TestbedRoute,
-    tauriFilesystemTestbedRoute,
-    theiaTestbedRoute,
-    dataplaneTestbedRoute,
-    fermionTestbedRoute,
-    axiomTestbedRoute,
-    pipelineADRTestbedRoute,
-    windowsTestbedRoute,
-    geointTestbedRoute,
-    allintCopTestbedRoute,
-    ecsVerticalSliceTestbedRoute,
-    searchToKoriTestbedRoute,
-    timelineSearchTestbedRoute,
-    atomRpcTestbedRoute,
-    materializerFlowTestbedRoute,
-    ingestionOrchestratorTestbedRoute,
-    ingestionTestbedRoute,
-    entityUIAtomsTestbedRoute,
-    integratedGeointTestbedRoute,
-    electricSyncTestbedRoute,
-    searchServiceTestbedRoute,
-    schemaTransformTestbedRoute,
-    streamingSearchTestbedRoute,
-    durableStreamsTestbedRoute,
-    holonetDurableStreamsTestbedRoute,
-    jsonRenderTestbedRoute,
-  ]),
+// MorphCard testbed route (DynamicIslandCard, server integration)
+const morphCardTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/morph-card',
+  component: MorphCardTestbed,
 });
+
+// egui MorphCard testbed route (WASM canvas inside DynamicIslandCard)
+const eguiMorphCardTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/egui-morph',
+  component: EguiMorphCardTestbed,
+});
+
+// Window route for child Tauri windows (testbed in separate window)
+// URL: /window?testbed=<testbed-id>
+const windowRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/window',
+  component: WindowRoute,
+  validateSearch: (search: Record<string, unknown>) => ({
+    testbed:
+      typeof search['testbed'] === 'string' ? search['testbed'] : undefined,
+  }),
+});
+
+// Pool placeholder route - minimal memory footprint for pre-created pool windows
+// Pool windows start here and navigate to /window?testbed=<id> when claimed
+const poolPlaceholderRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/pool-placeholder',
+  component: PoolPlaceholder,
+});
+
+// Create the router (with HMR preservation)
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  tmnlRoute,
+  testbedRoute,
+  testbedV2Route,
+  dispositionsRoute,
+  dataGridTestbedRoute,
+  effectAtomTestbedRoute,
+  hotkeyTestbedRoute,
+  keybindingTestbedRoute,
+  baseModalTestbedRoute,
+  traitTestbedRoute,
+  capabilityTestbedRoute,
+  sliderTestbedRoute,
+  sliderV2TestbedRoute,
+  searchTestbedRoute,
+  dataManagerTestbedRoute,
+  dataManagerV1TestbedRoute,
+  dataManagerV2TestbedRoute,
+  vantaCardTestbedRoute,
+  chartingTestbedRoute,
+  overlayTestbedRoute,
+  indicesTestbedRoute,
+  dataGridVariantTestbedRoute,
+  streamsPlaygroundRoute,
+  avaTestbedRoute,
+  avaV2TestbedRoute,
+  floatingPanelTestbedRoute,
+  selectionTestbedRoute,
+  drawerTestbedRoute,
+  variablesTestbedRoute,
+  screensaverTestbedRoute,
+  terminalTestbedRoute,
+  blockTerminalTestbedRoute,
+  blockTerminalV3TestbedRoute,
+  docsRoute,
+  diagramsRoute,
+  overhaulDocsRoute,
+  koriTestbedRoute,
+  koriAtomsTestbedRoute,
+  collaborationTestbedRoute,
+  collaborationV2TestbedRoute,
+  tauriFilesystemTestbedRoute,
+  theiaTestbedRoute,
+  dataplaneTestbedRoute,
+  fermionTestbedRoute,
+  axiomTestbedRoute,
+  pipelineADRTestbedRoute,
+  windowsTestbedRoute,
+  geointTestbedRoute,
+  allintCopTestbedRoute,
+  ecsVerticalSliceTestbedRoute,
+  searchToKoriTestbedRoute,
+  timelineSearchTestbedRoute,
+  atomRpcTestbedRoute,
+  materializerFlowTestbedRoute,
+  ingestionOrchestratorTestbedRoute,
+  ingestionTestbedRoute,
+  entityUIAtomsTestbedRoute,
+  integratedGeointTestbedRoute,
+  electricSyncTestbedRoute,
+  searchServiceTestbedRoute,
+  schemaTransformTestbedRoute,
+  streamingSearchTestbedRoute,
+  durableStreamsTestbedRoute,
+  holonetDurableStreamsTestbedRoute,
+  jsonRenderTestbedRoute,
+  morphCardTestbedRoute,
+  eguiMorphCardTestbedRoute,
+  windowRoute,
+  poolPlaceholderRoute,
+]);
+
+// Singleton router instance - preserved across HMR
+let router: ReturnType<typeof createRouter<typeof routeTree>>;
+
+function getRouter() {
+  if (!router) {
+    router = createRouter({ routeTree });
+  }
+  return router;
+}
+
+// HMR: Invalidate router on hot update so it picks up new routes
+// but preserve current location
+if (import.meta.hot) {
+  import.meta.hot.accept(() => {
+    // Router will be recreated on next getRouter() call
+    // but location is preserved by the browser
+  });
+}
 
 // Register the router instance for type safety
 declare module '@tanstack/react-router' {
@@ -631,4 +690,4 @@ declare module '@tanstack/react-router' {
   }
 }
 
-export default router;
+export default getRouter();

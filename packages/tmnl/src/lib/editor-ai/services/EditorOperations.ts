@@ -173,6 +173,21 @@ export interface EditorOperationsShape {
    * Note: This breaks abstraction but is necessary for AI document generation.
    */
   readonly getView: Effect.Effect<EditorView | null>
+
+  // ---------------------------------------------------------------------------
+  // Subscriptions
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Subscribe to document updates.
+   * Callback receives the current document JSON on every content change.
+   * Returns an unsubscribe function.
+   *
+   * Uses TipTap's native `onUpdate` event for zero-latency updates.
+   */
+  readonly subscribeToUpdates: (
+    callback: (document: unknown) => void
+  ) => Effect.Effect<() => void>
 }
 
 // -----------------------------------------------------------------------------

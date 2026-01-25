@@ -1,6 +1,0 @@
-version: 1
-subgraphs:
-  - name: sensors
-    routing_url: http://localhost:4011/graphql
-    schema:
-      file: ./src/graph/schema.graphql

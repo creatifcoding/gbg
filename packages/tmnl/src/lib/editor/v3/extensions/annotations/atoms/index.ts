@@ -8,12 +8,52 @@
  * - Atoms declared at module level (singleton, writable)
  * - Operation atoms use ctx.set() to publish updates
  * - Components call useAtomValue() to subscribe
+ * - CRITICAL: Use annotationRegistry for mutations, wrap UI with AnnotationRegistryProvider
  *
  * @module editor/v3/extensions/annotations/atoms
  */
 
-import { Atom } from '@effect-atom/atom-react';
+import React from 'react';
+import { Atom, Registry } from '@effect-atom/atom';
+import { RegistryContext } from '@effect-atom/atom-react';
 import { Layer, Effect, Option } from 'effect';
+
+// =============================================================================
+// Registry Singleton
+// =============================================================================
+
+/**
+ * Global registry singleton for annotation state mutations.
+ * This is shared across all annotation operations AND React components.
+ *
+ * IMPORTANT: Use annotationRegistry.set() for direct mutations.
+ * React components reading atoms must be wrapped in AnnotationRegistryProvider.
+ */
+export const annotationRegistry = Registry.make();
+
+/**
+ * Provides the annotation registry to React components.
+ * Wrap your annotation UI with this provider so useAtomValue reads from
+ * the same registry that annotationRegistry.set() writes to.
+ *
+ * @example
+ * ```tsx
+ * <AnnotationRegistryProvider>
+ *   <AnnotationPopover />
+ * </AnnotationRegistryProvider>
+ * ```
+ */
+export function AnnotationRegistryProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}): React.ReactElement {
+  return React.createElement(
+    RegistryContext.Provider,
+    { value: annotationRegistry as never },
+    children
+  );
+}
 
 import {
   AnnotationService,
@@ -677,12 +717,24 @@ export const intentOps = {
  *
  * Current popover state (if any). Updated by popoverOps.
  */
+/**
+ * Anchor rectangle for popover positioning
+ */
+export interface AnchorRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export const activePopoverAtom = Atom.make<{
   annotationId: AnnotationId;
   markId: AnnotationId;
   placement: PopoverPlacement;
   trigger: PopoverTrigger;
   isPinned: boolean;
+  /** Anchor position for popover placement */
+  anchorRect: AnchorRect | null;
 } | null>(null);
 
 /**
@@ -699,6 +751,79 @@ export const popoverContentAtom = Atom.make<PopoverContent | null>(null);
  */
 export const isPopoverOpenAtom = Atom.make((get) => get(activePopoverAtom) !== null);
 
+/**
+ * Popover Hover State Atom
+ *
+ * Tracks whether mouse is over the trigger (annotation mark) or the popover itself.
+ * Used to coordinate closing - only close when BOTH are false for a duration.
+ */
+export const popoverHoverStateAtom = Atom.make<{
+  trigger: boolean;
+  popover: boolean;
+}>({ trigger: false, popover: false });
+
+// =============================================================================
+// Popover Content Builder (for direct intent data)
+// =============================================================================
+
+/**
+ * Build popover content directly from intent data.
+ * Used when marks aren't registered with AnnotationService.
+ */
+function buildPopoverContentFromIntent(intentData: {
+  intentType: string;
+  intent: IntentPayload;
+  visualType?: string;
+  tags?: readonly string[];
+}): PopoverContent {
+  const { intentType, intent, tags } = intentData;
+
+  // Base content
+  const content: PopoverContent = {
+    title: intentType,
+    meta: tags?.length ? tags.join(', ') : undefined,
+  };
+
+  // Intent-specific content
+  switch (intent._tag) {
+    case 'Hyperlink':
+      content.title = intent.label ?? 'Link';
+      content.href = intent.href;
+      content.actionLabel = 'Open Link';
+      break;
+
+    case 'Ultralink':
+      content.title = intent.metadata?.title ?? 'Ultralink';
+      content.description = intent.metadata?.description ?? `→ ${intent.target}`;
+      break;
+
+    case 'Popover':
+      content.title = 'Popover';
+      content.description =
+        typeof intent.content === 'string'
+          ? intent.content
+          : JSON.stringify(intent.content);
+      break;
+
+    case 'Action':
+      content.title = intent.actionName ?? 'Action';
+      content.actionLabel = 'Execute';
+      break;
+
+    case 'Citation':
+      content.title = 'Citation';
+      content.description = intent.source ?? undefined;
+      break;
+
+    case 'Note':
+      content.title = intent.noteType === 'comment' ? 'Comment' : 'Note';
+      content.description = `Note: ${intent.targetNodeId}`;
+      break;
+  }
+
+  return content;
+}
+
 // =============================================================================
 // Popover Operations
 // =============================================================================
@@ -709,6 +834,9 @@ export const isPopoverOpenAtom = Atom.make((get) => get(activePopoverAtom) !== n
 export const popoverOps = {
   /**
    * Show a popover for an annotation
+   *
+   * Pass `intentData` to bypass service lookup - essential when marks
+   * aren't registered with AnnotationService (e.g., TipTap-only marks).
    */
   show: annotationRuntimeAtom.fn<{
     annotationId: AnnotationId;
@@ -717,13 +845,33 @@ export const popoverOps = {
     placement?: PopoverPlacement;
     trigger?: PopoverTrigger;
     isPinned?: boolean;
+    /** Direct intent data - bypasses AnnotationService lookup */
+    intentData?: {
+      intentType: string;
+      intent: IntentPayload;
+      visualType?: string;
+      tags?: readonly string[];
+    };
   }>()((args, ctx) =>
     Effect.gen(function* () {
       const popoverService = yield* AnnotationPopoverService;
       yield* popoverService.show(args);
 
-      // Get content and update atoms
-      const content = yield* popoverService.getContent;
+      // Extract anchor rect from anchor
+      let anchorRect: AnchorRect | null = null;
+      if (args.anchor._tag === 'virtual' && args.anchor.getBoundingClientRect) {
+        const rectFn = args.anchor.getBoundingClientRect as () => DOMRect;
+        const rect = rectFn();
+        anchorRect = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      } else if (args.anchor._tag === 'coordinates') {
+        anchorRect = { x: args.anchor.position.x, y: args.anchor.position.y, width: 0, height: 0 };
+      } else if (args.anchor._tag === 'element') {
+        const el = document.querySelector(args.anchor.selector);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          anchorRect = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+        }
+      }
 
       ctx.set(activePopoverAtom, {
         annotationId: args.annotationId,
@@ -731,10 +879,20 @@ export const popoverOps = {
         placement: args.placement ?? 'top',
         trigger: args.trigger ?? 'click',
         isPinned: args.isPinned ?? false,
+        anchorRect,
       });
 
-      if (Option.isSome(content)) {
-        ctx.set(popoverContentAtom, content.value);
+      // Generate content: prefer direct intentData, fallback to service lookup
+      if (args.intentData) {
+        // Build content directly from provided intent data
+        const content = buildPopoverContentFromIntent(args.intentData);
+        ctx.set(popoverContentAtom, content);
+      } else {
+        // Fallback: try service lookup
+        const content = yield* popoverService.getContent;
+        if (Option.isSome(content)) {
+          ctx.set(popoverContentAtom, content.value);
+        }
       }
     })
   ),
@@ -760,6 +918,13 @@ export const popoverOps = {
     markId: AnnotationId;
     anchor: PopoverAnchor;
     placement?: PopoverPlacement;
+    /** Direct intent data - bypasses AnnotationService lookup */
+    intentData?: {
+      intentType: string;
+      intent: IntentPayload;
+      visualType?: string;
+      tags?: readonly string[];
+    };
   }>()((args, ctx) =>
     Effect.gen(function* () {
       const popoverService = yield* AnnotationPopoverService;
@@ -771,7 +936,22 @@ export const popoverOps = {
         ctx.set(popoverContentAtom, null);
       } else {
         yield* popoverService.show(args);
-        const content = yield* popoverService.getContent;
+
+        // Extract anchor rect from anchor
+        let anchorRect: AnchorRect | null = null;
+        if (args.anchor._tag === 'virtual' && args.anchor.getBoundingClientRect) {
+          const rectFn = args.anchor.getBoundingClientRect as () => DOMRect;
+          const rect = rectFn();
+          anchorRect = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+        } else if (args.anchor._tag === 'coordinates') {
+          anchorRect = { x: args.anchor.position.x, y: args.anchor.position.y, width: 0, height: 0 };
+        } else if (args.anchor._tag === 'element') {
+          const el = document.querySelector(args.anchor.selector);
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            anchorRect = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+          }
+        }
 
         ctx.set(activePopoverAtom, {
           annotationId: args.annotationId,
@@ -779,10 +959,18 @@ export const popoverOps = {
           placement: args.placement ?? 'top',
           trigger: 'click',
           isPinned: false,
+          anchorRect,
         });
 
-        if (Option.isSome(content)) {
-          ctx.set(popoverContentAtom, content.value);
+        // Generate content: prefer direct intentData, fallback to service lookup
+        if (args.intentData) {
+          const content = buildPopoverContentFromIntent(args.intentData);
+          ctx.set(popoverContentAtom, content);
+        } else {
+          const content = yield* popoverService.getContent;
+          if (Option.isSome(content)) {
+            ctx.set(popoverContentAtom, content.value);
+          }
         }
       }
     })

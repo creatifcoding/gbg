@@ -5,6 +5,7 @@
 //!
 //! # Commands
 //! - `fs_list_directory` - List directory contents
+//! - `fs_scan_directory` - Recursive scan with ignore patterns
 //! - `fs_read_file` - Read file as bytes
 //! - `fs_write_file` - Write bytes to file
 //! - `fs_delete_file` - Delete file or directory
@@ -16,6 +17,7 @@
 //!
 //! @module file_browser
 
+use ignore::WalkBuilder;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs::{self, Metadata};
@@ -302,6 +304,106 @@ pub fn fs_list_directory(path: &str) -> Result<Vec<FileEntry>, String> {
             (FileType::Directory, _) => std::cmp::Ordering::Less,
             (_, FileType::Directory) => std::cmp::Ordering::Greater,
             _ => a.name.cmp(&b.name),
+        }
+    });
+
+    Ok(entries)
+}
+
+/// Recursively scan directory with ignore pattern support
+///
+/// # Arguments
+/// * `path` - Root directory to scan
+/// * `ignore_patterns` - Gitignore-style patterns from frontend IgnoreContext
+/// * `max_depth` - Maximum recursion depth (None = unlimited)
+///
+/// # Returns
+/// Vector of FileEntry objects for all non-ignored files
+#[tauri::command]
+pub fn fs_scan_directory(
+    path: &str,
+    ignore_patterns: Vec<String>,
+    max_depth: Option<usize>,
+) -> Result<Vec<FileEntry>, String> {
+    let root = Path::new(path);
+
+    if !root.exists() {
+        return Err(format!("Path does not exist: {}", root.display()));
+    }
+
+    if !root.is_dir() {
+        return Err(format!("Path is not a directory: {}", root.display()));
+    }
+
+    // Build the walker with ignore patterns
+    let mut builder = WalkBuilder::new(root);
+    
+    // Configure walker
+    builder
+        .hidden(false)           // Don't skip hidden files (let patterns decide)
+        .git_ignore(true)        // Respect .gitignore
+        .git_global(true)        // Respect global gitignore
+        .git_exclude(true)       // Respect .git/info/exclude
+        .ignore(true)            // Respect .ignore files
+        .parents(true)           // Check parent directories for ignore files
+        .follow_links(false);    // Don't follow symlinks (avoid cycles)
+
+    // Set max depth if provided
+    if let Some(depth) = max_depth {
+        builder.max_depth(Some(depth));
+    }
+
+    // Add custom ignore patterns from frontend
+    // The `ignore` crate's OverrideBuilder handles gitignore-style patterns
+    let mut overrides = ignore::overrides::OverrideBuilder::new(root);
+    for pattern in &ignore_patterns {
+        // Negate the pattern to make it an ignore (! prefix means "don't ignore")
+        // But we want these TO be ignored, so we add them as-is with ! negation logic inverted
+        // Actually, Override uses "include" logic, so we need to invert:
+        // - Pattern "node_modules/" means "ignore node_modules"
+        // - For Override, we want "!node_modules/" to exclude it
+        let ignore_pattern = format!("!{}", pattern.trim_start_matches('!'));
+        if overrides.add(&ignore_pattern).is_err() {
+            // Skip invalid patterns, log would be nice but we're in Rust
+            continue;
+        }
+    }
+    
+    if let Ok(built_overrides) = overrides.build() {
+        builder.overrides(built_overrides);
+    }
+
+    let walker = builder.build();
+
+    let mut entries = Vec::new();
+
+    for result in walker {
+        match result {
+            Ok(entry) => {
+                // Skip the root directory itself
+                if entry.path() == root {
+                    continue;
+                }
+
+                // Get metadata
+                let meta = match entry.metadata() {
+                    Ok(m) => m,
+                    Err(_) => continue, // Skip entries we can't read
+                };
+
+                entries.push(create_file_entry(entry.path(), &meta));
+            }
+            Err(_) => continue, // Skip errors (permission denied, etc.)
+        }
+    }
+
+    // Sort: directories first, then by path
+    entries.sort_by(|a, b| {
+        match (&a.entry_type, &b.entry_type) {
+            (FileType::Directory, FileType::Directory) => a.path.cmp(&b.path),
+            (FileType::Directory, _) => std::cmp::Ordering::Less,
+            (_, FileType::Directory) => std::cmp::Ordering::Greater,
+            _ => a.path.cmp(&b.path),
         }
     });
 

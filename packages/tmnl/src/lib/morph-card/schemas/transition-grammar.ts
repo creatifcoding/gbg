@@ -230,6 +230,38 @@ export function parseGrammar(grammar: string | TransitionGrammar): TransitionGra
   };
 }
 
+// =============================================================================
+// Delta-Based Heuristic
+// =============================================================================
+
+export interface SizeDeltaInput {
+  readonly from: { width: number; height: number };
+  readonly to: { width: number; height: number };
+}
+
+export function deriveGrammarByDelta(input: SizeDeltaInput): TransitionGrammar {
+  const delta =
+    Math.abs(input.to.width - input.from.width) +
+    Math.abs(input.to.height - input.from.height);
+  if (delta < 40) {
+    return { verb: 'snap', modifier: 'fast' };
+  }
+  if (delta < 140) {
+    return { verb: 'morph', modifier: 'smooth' };
+  }
+  if (delta < 260) {
+    return {
+      verb: 'slide',
+      modifier: 'smooth',
+      direction: input.to.height >= input.from.height ? 'up' : 'down',
+    };
+  }
+  if (delta < 380) {
+    return { verb: 'cinematic', modifier: 'slow' };
+  }
+  return { verb: 'teleport', modifier: 'bounce' };
+}
+
 /**
  * Convert grammar to Framer Motion variants
  */
@@ -246,14 +278,39 @@ export function grammarToVariants(grammar: TransitionGrammar) {
         ? EASING.sharp
         : EASING.smooth;
 
+  const directionalSlide =
+    grammar.verb === 'slide' && grammar.direction
+      ? (() => {
+          switch (grammar.direction) {
+            case 'up':
+              return { initial: { y: 20, opacity: 0 }, animate: { y: 0, opacity: 1 }, exit: { y: -20, opacity: 0 } };
+            case 'down':
+              return { initial: { y: -20, opacity: 0 }, animate: { y: 0, opacity: 1 }, exit: { y: 20, opacity: 0 } };
+            case 'left':
+              return { initial: { x: 20, opacity: 0 }, animate: { x: 0, opacity: 1 }, exit: { x: -20, opacity: 0 } };
+            case 'right':
+              return { initial: { x: -20, opacity: 0 }, animate: { x: 0, opacity: 1 }, exit: { x: 20, opacity: 0 } };
+          }
+          return null;
+        })()
+      : null;
+
+  const resolved = directionalSlide ?? base;
+
+  const animate = { ...resolved.animate } as Record<string, unknown>;
+  const exit = { ...resolved.exit } as Record<string, unknown>;
+
+  if (animate.filter == null) animate.filter = 'blur(0px)';
+  if (exit.filter == null) exit.filter = 'blur(0px)';
+
   return {
-    initial: base.initial,
+    initial: resolved.initial,
     animate: {
-      ...base.animate,
+      ...animate,
       transition: { duration, ease },
     },
     exit: {
-      ...base.exit,
+      ...exit,
       transition: { duration: duration * 0.8, ease: EASING.snap },
     },
   };

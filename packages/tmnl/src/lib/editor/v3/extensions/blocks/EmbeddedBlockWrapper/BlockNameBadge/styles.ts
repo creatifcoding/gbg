@@ -11,28 +11,30 @@ import type { CSSProperties } from 'react';
 import { COLORS, TYPOGRAPHY, GEOMETRY } from './constants';
 
 // =============================================================================
-// Container Styles
+// Badge Container Styles (height-matched to block type badge, no extra chrome)
 // =============================================================================
 
+/**
+ * Badge container — matches HEIGHT of block type badge, no border/bg
+ * Block type badge uses: padding 4px 8px, which gives ~24px height
+ * We match that height with flex alignment
+ */
 export const badgeContainerStyle: CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'auto auto',
-  gridTemplateRows: 'auto auto auto',
-  gap: '0 8px', // row-gap: 0, column-gap: 8px
+  display: 'flex',
   alignItems: 'center',
+  gap: '8px',
+  minHeight: '24px', // Match block type badge height
   position: 'relative',
-  minWidth: '80px',
 };
 
+
 /**
- * Name column - spans all rows, triggers hover
+ * Name group — inline row matching block type badge height
  */
 export const nameColumnStyle: CSSProperties = {
   display: 'flex',
-  flexDirection: 'column',
-  gap: '2px',
-  gridColumn: '1',
-  gridRow: '1 / -1',
+  alignItems: 'center',
+  gap: '6px',
 };
 
 /**

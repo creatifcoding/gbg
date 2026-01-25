@@ -177,7 +177,6 @@ export const GhosttyTerminal = forwardRef<GhosttyTerminalRef, GhosttyTerminalPro
     const containerRef = useRef<HTMLDivElement>(null);
     const terminalRef = useRef<Terminal | null>(null);
     const fitAddonRef = useRef<FitAddon | null>(null);
-    const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
     // Callback refs to avoid stale closures - these always point to current props
     const onDataRef = useRef(onData);
@@ -323,24 +322,17 @@ export const GhosttyTerminal = forwardRef<GhosttyTerminalRef, GhosttyTerminalPro
           // Open terminal in container
           term.open(container);
 
-          // Initial fit
+          // Setup auto-fit with FitAddon's built-in ResizeObserver (debounced)
           if (autoFit) {
-            // Small delay to ensure container has dimensions
+            // Use FitAddon's observeResize() - handles ResizeObserver + debouncing
+            fitAddon.observeResize();
+
+            // Initial fit after container has dimensions
             requestAnimationFrame(() => {
               if (!disposed && fitAddonRef.current) {
                 fitAddonRef.current.fit();
               }
             });
-          }
-
-          // Setup resize observer for auto-fit
-          if (autoFit) {
-            resizeObserverRef.current = new ResizeObserver(() => {
-              if (fitAddonRef.current) {
-                fitAddonRef.current.fit();
-              }
-            });
-            resizeObserverRef.current.observe(container);
           }
 
           setIsReady(true);
@@ -361,11 +353,7 @@ export const GhosttyTerminal = forwardRef<GhosttyTerminalRef, GhosttyTerminalPro
       return () => {
         disposed = true;
 
-        if (resizeObserverRef.current) {
-          resizeObserverRef.current.disconnect();
-          resizeObserverRef.current = null;
-        }
-
+        // FitAddon.dispose() handles its own ResizeObserver cleanup
         if (fitAddonRef.current) {
           fitAddonRef.current.dispose();
           fitAddonRef.current = null;
@@ -383,7 +371,10 @@ export const GhosttyTerminal = forwardRef<GhosttyTerminalRef, GhosttyTerminalPro
       if (terminalRef.current && isReady) {
         terminalRef.current.options.fontSize = fontSize;
         if (autoFit && fitAddonRef.current) {
-          fitAddonRef.current.fit();
+          // Delay fit to next frame so terminal can recalculate glyph metrics
+          requestAnimationFrame(() => {
+            fitAddonRef.current?.fit();
+          });
         }
       }
     }, [fontSize, isReady, autoFit]);
@@ -393,7 +384,10 @@ export const GhosttyTerminal = forwardRef<GhosttyTerminalRef, GhosttyTerminalPro
       if (terminalRef.current && isReady) {
         terminalRef.current.options.fontFamily = fontFamily;
         if (autoFit && fitAddonRef.current) {
-          fitAddonRef.current.fit();
+          // Delay fit to next frame so terminal can recalculate glyph metrics
+          requestAnimationFrame(() => {
+            fitAddonRef.current?.fit();
+          });
         }
       }
     }, [fontFamily, isReady, autoFit]);
@@ -426,7 +420,7 @@ export const GhosttyTerminal = forwardRef<GhosttyTerminalRef, GhosttyTerminalPro
             background: '#0a0a0c',
             color: '#ff5555',
             fontFamily: 'monospace',
-            fontSize: '14px',
+            fontSize: 'var(--tmnl-text-sm, 14px)',
             padding: '20px',
           }}
         >

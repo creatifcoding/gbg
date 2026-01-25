@@ -29,6 +29,7 @@ export {
   characterCountAtom,
   hasSelectionAtom,
   isReadyAtom,
+  isViewMountedAtom,
   // AI atoms
   aiStatusAtom,
   aiSuggestionAtom,
@@ -101,3 +102,83 @@ export {
   documentWatchAtom,
   type DocumentWatchEvent,
 } from './documents';
+
+// =============================================================================
+// File Document Atoms (Local Files ↔ Editor)
+// =============================================================================
+
+export {
+  // State atoms
+  fileDocumentsAtom,
+  currentFilePathAtom,
+  fileDocumentsLoadingAtom,
+  fileDocumentsErrorAtom,
+  fileContentCacheAtom,
+  dirtyFilesAtom,
+  conflictFilesAtom,
+  // Conflict atoms
+  currentConflictAtom,
+  conflictResolvingAtom,
+  hasActiveConflictAtom,
+  // Derived atoms
+  currentFileMappingAtom,
+  currentFileSyncStatusAtom,
+  currentFileDocumentIdAtom,
+  currentFileContentAtom,
+  fileCountAtom,
+  hasCurrentFileAtom,
+  isCurrentFileDirtyAtom,
+  isCurrentFileConflictAtom,
+  fileListAtom,
+  dirtyFileListAtom,
+  // Markdown runtime (no FileAccessService required)
+  markdownRuntimeAtom,
+  markdownOps,
+  // Factory for file operations (requires FileDocumentService layer)
+  makeFileDocumentOps,
+  // Types
+  type FileDocumentOps,
+  type FilePath,
+  type FileMapping,
+  type FileSyncStatus,
+  type FileLoadResult,
+  type FileSaveResult,
+  type FileConflict,
+  type ConflictResolution,
+  // Save state atoms
+  saveStateAtom,
+  saveErrorAtom,
+  lastSavedAtAtom,
+  lastSaveResultAtom,
+  isSavingAtom,
+  isSavedAtom,
+  isSaveErrorAtom,
+  canSaveAtom,
+  // Errors
+  FileNotFoundError,
+  FileDocumentError,
+  FileNotLoadedError,
+} from './fileDocuments';
+
+// =============================================================================
+// Viewport Atoms (Zoom & Scroll)
+// =============================================================================
+
+export {
+  // Zoom atoms
+  zoomLevelAtom,
+  zoomScaleAtom,
+  canZoomInAtom,
+  canZoomOutAtom,
+  zoomLabelAtom,
+  // Zoom constants
+  ZOOM_MIN,
+  ZOOM_MAX,
+  ZOOM_STEP,
+  // Scroll atoms
+  scrollPositionAtom,
+  activeHeadingIdAtom,
+  // Operation factories (pass registry to create bound ops)
+  createZoomOps,
+  createScrollOps,
+} from './viewport';

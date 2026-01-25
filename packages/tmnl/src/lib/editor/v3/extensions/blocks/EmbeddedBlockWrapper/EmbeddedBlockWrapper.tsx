@@ -46,6 +46,7 @@ import {
   Minus,
   GripVertical,
   Maximize2,
+  Minimize2,
   Trash2,
   GripHorizontal,
 } from 'lucide-react';
@@ -69,7 +70,6 @@ import type {
   PortConfig,
 } from './types';
 import {
-  useDataplane,
   LinkPortIndicator,
   pendingLinkSourceAtom,
   isLinkingAtom,
@@ -77,6 +77,7 @@ import {
   hoveredBlockIdAtom,
   dataplaneOps,
   portsByIdAtom,
+  portsForBlockAtom,
   type LinkPort,
   type PortId,
   type BlockId as DataplaneBlockId,
@@ -319,76 +320,34 @@ export function EmbeddedBlockWrapper({
   }, [blockId, badge.tag, blockRegistry]);
 
   // ---------------------------------------------------------------------------
-  // Dataplane Port Registration
+  // Dataplane Port Registration (Atom-as-State pattern)
   // ---------------------------------------------------------------------------
-  const { registerPort: dpRegisterPort, unregisterPort: dpUnregisterPort } = useDataplane();
-  const [registeredPorts, setRegisteredPorts] = useState<LinkPort[]>([]);
-  const [portIdByPosition, setPortIdByPosition] = useState<Map<PortPosition, PortId>>(
-    new Map()
-  );
+  // NOTE: useDataplane() hook removed — auto-registration disabled.
+  // Ports are created manually via LinksTab "Add Port" UI.
 
-  // Use refs to avoid effect re-runs when dataplane functions change reference
-  const registerPortRef = useRef(dpRegisterPort);
-  const unregisterPortRef = useRef(dpUnregisterPort);
-  useEffect(() => {
-    registerPortRef.current = dpRegisterPort;
-    unregisterPortRef.current = dpUnregisterPort;
-  });
+  // Subscribe to global portsAtom filtered by blockId - this ensures UI reflects
+  // all ports for this block, including manually added ones via LinksTab
+  const portsForBlockAtomInstance = useMemo(() => portsForBlockAtom(blockId), [blockId]);
+  const registeredPorts = useAtomValue(portsForBlockAtomInstance);
 
-  // Register ports on mount, unregister on unmount
-  useEffect(() => {
-    if (!dataplaneConfig?.enabled || !dataplaneConfig.ports?.length) {
-      return;
-    }
-
-    const ports: LinkPort[] = [];
+  // Derive portIdByPosition from registeredPorts (no separate state needed)
+  const portIdByPosition = useMemo(() => {
     const positionMap = new Map<PortPosition, PortId>();
+    for (const port of registeredPorts) {
+      positionMap.set(port.position, port.id);
+    }
+    return positionMap;
+  }, [registeredPorts]);
 
-    // Register all configured ports
-    const registerAll = async () => {
-      for (const portConfig of dataplaneConfig.ports!) {
-        try {
-          const port = await registerPortRef.current({
-            blockId: blockId as DataplaneBlockId,
-            direction: portConfig.direction,
-            dataType: portConfig.dataType,
-            position: portConfig.position,
-            label: portConfig.label,
-          });
-
-          if (port) {
-            ports.push(port);
-            positionMap.set(portConfig.position, port.id);
-          }
-        } catch (err) {
-          console.warn(
-            `[EmbeddedBlockWrapper] Failed to register port at ${portConfig.position}:`,
-            err
-          );
-        }
-      }
-
-      setRegisteredPorts(ports);
-      setPortIdByPosition(positionMap);
-    };
-
-    registerAll();
-
-    // Cleanup: unregister all ports
-    // NOTE: Don't call setState here - triggers infinite re-render loops during unmount.
-    // State is garbage collected on unmount, and re-registration overwrites on dependency change.
-    return () => {
-      for (const port of ports) {
-        unregisterPortRef.current(port.id).catch((err) => {
-          console.warn(
-            `[EmbeddedBlockWrapper] Failed to unregister port ${port.id}:`,
-            err
-          );
-        });
-      }
-    };
-    // Only re-run when blockId or dataplaneConfig changes, not when dataplane functions change
-  }, [blockId, dataplaneConfig?.enabled, dataplaneConfig?.ports]);
+  // NOTE: Auto-registration of ports on mount is DISABLED.
+  // Ports are created manually via LinksTab "Add Port" UI.
+  // This avoids React Strict Mode double-mount creating duplicate ports.
+  //
+  // The dataplaneConfig.ports array can still define ALLOWED port schemas
+  // for the block type, but ports are not auto-created on mount.
+  //
+  // To restore auto-registration, implement proper idempotency at the
+  // service layer using a stable port identifier (not blockId+position+direction).
 
   // Compute dataplane state for context
   const dataplaneState: DataplaneState | undefined = useMemo(() => {
@@ -405,16 +364,17 @@ export function EmbeddedBlockWrapper({
   const combinedTabs = useMemo(() => {
     if (!dataplaneConfig?.enabled) return tabs;
 
+    const blockType = tagToBlockType(badge.tag);
     const linksTab: SettingsTab = {
       id: 'links',
       label: 'Links',
       icon: undefined, // Using Link2 inside LinksTab
-      content: <LinksTab ports={registeredPorts} blockId={blockId} />,
+      content: <LinksTab ports={registeredPorts} blockId={blockId} blockType={blockType} />,
     };
 
     // Add Links tab at the end
     return [...tabs, linksTab];
-  }, [tabs, dataplaneConfig?.enabled, registeredPorts, blockId]);
+  }, [tabs, dataplaneConfig?.enabled, registeredPorts, blockId, badge.tag]);
 
   // ---------------------------------------------------------------------------
   // Click-to-Connect Port Linking
@@ -1154,8 +1114,51 @@ function SettingsPanel({
   expanded = false,
   onToggleExpanded,
 }: SettingsPanelProps) {
+  const tabListRef = useRef<HTMLDivElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  // Check scroll state
+  const updateScrollIndicators = useCallback(() => {
+    const el = tabListRef.current;
+    if (!el) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setCanScrollLeft(scrollLeft > 2);
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 2);
+  }, []);
+
+  // Update on mount and resize
+  useEffect(() => {
+    updateScrollIndicators();
+
+    const el = tabListRef.current;
+    if (!el) return;
+
+    el.addEventListener('scroll', updateScrollIndicators);
+    const resizeObserver = new ResizeObserver(updateScrollIndicators);
+    resizeObserver.observe(el);
+
+    return () => {
+      el.removeEventListener('scroll', updateScrollIndicators);
+      resizeObserver.disconnect();
+    };
+  }, [updateScrollIndicators, tabs.length]);
+
+  // Scroll by amount
+  const scrollBy = useCallback((direction: 'left' | 'right') => {
+    const el = tabListRef.current;
+    if (!el) return;
+
+    const scrollAmount = direction === 'left' ? -120 : 120;
+    el.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+  }, []);
+
   return (
     <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       style={{
         borderTop: `1px solid ${VANTA_COLORS.surface.border}`,
         background: VANTA_COLORS.surface.default,
@@ -1176,61 +1179,139 @@ function SettingsPanel({
           height: expanded ? '100%' : undefined,
         }}
       >
-        {/* Tab list with expand button */}
-        <Tabs.List
+        {/* Tab bar container with scroll indicators */}
+        <div
           style={{
+            position: 'relative',
             display: 'flex',
             borderBottom: `1px solid ${VANTA_COLORS.surface.border}`,
-            overflowX: 'auto',
-            overflowY: 'hidden',
-            scrollbarWidth: 'thin',
           }}
         >
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = tab.id === activeTab;
+          {/* Left scroll indicator */}
+          <div
+            onClick={() => scrollBy('left')}
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: `linear-gradient(to right, ${VANTA_COLORS.surface.default} 60%, transparent)`,
+              zIndex: 2,
+              cursor: canScrollLeft ? 'pointer' : 'default',
+              opacity: canScrollLeft ? 1 : 0,
+              pointerEvents: canScrollLeft ? 'auto' : 'none',
+              transition: `opacity ${VANTA_ANIMATION.duration.fast}`,
+            }}
+          >
+            <ChevronDown
+              size={12}
+              style={{
+                transform: 'rotate(90deg)',
+                color: VANTA_COLORS.text.muted,
+              }}
+            />
+          </div>
 
-            return (
-              <Tabs.Trigger
-                key={tab.id}
-                value={tab.id}
-                style={{
-                  padding: `${VANTA_SPACING['2']} ${VANTA_SPACING['3']}`,
-                  background: isActive
-                    ? VANTA_COLORS.surface.elevated
-                    : 'transparent',
-                  border: 'none',
-                  borderBottom: isActive
-                    ? `2px solid ${VANTA_COLORS.accent.cyan}`
-                    : '2px solid transparent',
-                  color: isActive
-                    ? VANTA_COLORS.text.primary
-                    : VANTA_COLORS.text.muted,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: VANTA_SPACING['1'],
-                  flexShrink: 0,
-                  whiteSpace: 'nowrap',
-                  ...VANTA_TYPOGRAPHY.preset.label,
-                  transition: VANTA_ANIMATION.transition.colors,
-                }}
-              >
-                {Icon && <Icon size={12} />}
-                {tab.label}
-              </Tabs.Trigger>
-            );
-          })}
+          {/* Scrollable tab list */}
+          <Tabs.List
+            ref={tabListRef}
+            style={{
+              display: 'flex',
+              flex: 1,
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              paddingLeft: canScrollLeft ? '20px' : 0,
+              paddingRight: '36px', // Space for expand button
+              // Tab bar visibility based on hover
+              opacity: isHovered ? 1 : 0.5,
+              transition: `opacity ${VANTA_ANIMATION.duration.normal}`,
+            }}
+          >
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = tab.id === activeTab;
 
-          {/* Expand/Collapse button */}
+              return (
+                <Tabs.Trigger
+                  key={tab.id}
+                  value={tab.id}
+                  style={{
+                    padding: `${VANTA_SPACING['2']} ${VANTA_SPACING['3']}`,
+                    background: isActive
+                      ? VANTA_COLORS.surface.elevated
+                      : 'transparent',
+                    border: 'none',
+                    borderBottom: isActive
+                      ? `2px solid ${VANTA_COLORS.accent.cyan}`
+                      : '2px solid transparent',
+                    color: isActive
+                      ? VANTA_COLORS.text.primary
+                      : VANTA_COLORS.text.muted,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: VANTA_SPACING['1'],
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
+                    ...VANTA_TYPOGRAPHY.preset.label,
+                    transition: VANTA_ANIMATION.transition.colors,
+                  }}
+                >
+                  {Icon && <Icon size={12} />}
+                  {tab.label}
+                </Tabs.Trigger>
+              );
+            })}
+          </Tabs.List>
+
+          {/* Right scroll indicator */}
+          <div
+            onClick={() => scrollBy('right')}
+            style={{
+              position: 'absolute',
+              right: '32px', // Leave space for sticky expand button
+              top: 0,
+              bottom: 0,
+              width: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: `linear-gradient(to left, ${VANTA_COLORS.surface.default} 60%, transparent)`,
+              zIndex: 2,
+              cursor: canScrollRight ? 'pointer' : 'default',
+              opacity: canScrollRight ? 1 : 0,
+              pointerEvents: canScrollRight ? 'auto' : 'none',
+              transition: `opacity ${VANTA_ANIMATION.duration.fast}`,
+            }}
+          >
+            <ChevronDown
+              size={12}
+              style={{
+                transform: 'rotate(-90deg)',
+                color: VANTA_COLORS.text.muted,
+              }}
+            />
+          </div>
+
+          {/* Sticky Expand/Collapse button - always visible */}
           {onToggleExpanded && (
             <button
               onClick={onToggleExpanded}
               title={expanded ? 'Collapse settings' : 'Expand settings to full block'}
               style={{
-                marginLeft: 'auto',
-                padding: `${VANTA_SPACING['1']} ${VANTA_SPACING['2']}`,
-                background: 'transparent',
+                position: 'absolute',
+                right: 0,
+                top: 0,
+                bottom: 0,
+                padding: `0 ${VANTA_SPACING['2']}`,
+                background: VANTA_COLORS.surface.default,
+                borderLeft: `1px solid ${VANTA_COLORS.surface.border}`,
                 border: 'none',
                 color: expanded
                   ? VANTA_COLORS.accent.cyan
@@ -1238,20 +1319,20 @@ function SettingsPanel({
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: VANTA_SPACING['1'],
-                flexShrink: 0,
+                justifyContent: 'center',
+                zIndex: 3,
                 ...VANTA_TYPOGRAPHY.preset.label,
                 transition: VANTA_ANIMATION.transition.colors,
               }}
             >
               {expanded ? (
-                <Minimize2 size={12} />
+                <Minimize2 size={14} />
               ) : (
-                <Maximize2 size={12} />
+                <Maximize2 size={14} />
               )}
             </button>
           )}
-        </Tabs.List>
+        </div>
 
         {/* Tab content */}
         {tabs.map((tab) => (

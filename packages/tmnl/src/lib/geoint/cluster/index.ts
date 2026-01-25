@@ -52,6 +52,45 @@ export {
   SearchEntityLayer,
 } from './SearchEntityHandlers'
 
+// Ingestion Entity Definition
+export {
+  // Error Types
+  IngestionEntityError,
+  FlightNotFoundError,
+  // Result Schemas
+  FlightIngestionResult,
+  RegionIngestionResult,
+  PoiIngestionResult,
+  WeatherIngestionResult,
+  WeatherPointResult,
+  ImageryIngestionResult,
+  // Payload Schemas
+  IngestFlightByIcaoPayload,
+  IngestFlightsByRegionPayload,
+  IngestPoiByRegionPayload,
+  IngestWeatherByGridPayload,
+  IngestWeatherByPointPayload,
+  IngestImageryByRegionPayload,
+  // RPC Classes
+  IngestFlightByIcaoRpc,
+  IngestFlightsByRegionRpc,
+  IngestPoiByRegionRpc,
+  IngestWeatherByGridRpc,
+  IngestWeatherByPointRpc,
+  IngestImageryByRegionRpc,
+  // Entity
+  IngestionEntity,
+  type IngestionEntity as IngestionEntityType,
+  // Shard Groups
+  INGESTION_SHARD_GROUPS,
+  type IngestionShardGroup,
+} from './IngestionEntity'
+
+// Ingestion Handlers
+export {
+  IngestionEntityHandlers,
+} from './IngestionEntityHandlers'
+
 // Cluster Node Entry Point (for containerized deployment)
 // Import and run via: bun run src/lib/geoint/cluster/cluster-node.ts
 // Or build with: bun build src/lib/geoint/cluster/cluster-node.ts --outdir dist --target bun

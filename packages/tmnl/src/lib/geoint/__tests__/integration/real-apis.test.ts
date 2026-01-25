@@ -15,13 +15,9 @@ import { Effect, Layer, Duration } from 'effect'
 import { FetchHttpClient } from '@effect/platform'
 import {
   OpenSkyClientService,
-  OpenSkyClientLive,
   OverpassClientService,
-  OverpassClientLive,
   AdsbLolClientService,
-  AdsbLolClientLive,
   OpenMeteoClientService,
-  OpenMeteoClientLive,
   ExternalApiClientsLive,
   openSkyToSearchResult,
   overpassToSearchResult,
@@ -37,6 +33,9 @@ const SF_CENTER: readonly [number, number] = [-122.4, 37.78]
 
 // Provide the real HTTP client using FetchHttpClient (browser/Bun compatible)
 const HttpClientLive = FetchHttpClient.layer
+
+// Combined API clients layer with CircuitBreakers dependency
+const ApiClientsWithDeps = ExternalApiClientsLive.pipe(Layer.provide(HttpClientLive))
 
 // Longer timeout for real API calls
 const TIMEOUT = Duration.seconds(60)
@@ -78,8 +77,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Real API Integration Tests', () => {
 
       await Effect.runPromise(
         program.pipe(
-          Effect.provide(OpenSkyClientLive),
-          Effect.provide(HttpClientLive),
+          Effect.provide(ApiClientsWithDeps),
           Effect.timeout(TIMEOUT)
         )
       )
@@ -104,8 +102,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Real API Integration Tests', () => {
 
       await Effect.runPromise(
         program.pipe(
-          Effect.provide(OpenSkyClientLive),
-          Effect.provide(HttpClientLive),
+          Effect.provide(ApiClientsWithDeps),
           Effect.timeout(TIMEOUT)
         )
       )
@@ -150,8 +147,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Real API Integration Tests', () => {
 
       await Effect.runPromise(
         program.pipe(
-          Effect.provide(OverpassClientLive),
-          Effect.provide(HttpClientLive),
+          Effect.provide(ApiClientsWithDeps),
           Effect.timeout(TIMEOUT)
         )
       )
@@ -185,8 +181,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Real API Integration Tests', () => {
 
       await Effect.runPromise(
         program.pipe(
-          Effect.provide(OverpassClientLive),
-          Effect.provide(HttpClientLive),
+          Effect.provide(ApiClientsWithDeps),
           Effect.timeout(TIMEOUT)
         )
       )
@@ -230,8 +225,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Real API Integration Tests', () => {
 
       await Effect.runPromise(
         program.pipe(
-          Effect.provide(AdsbLolClientLive),
-          Effect.provide(HttpClientLive),
+          Effect.provide(ApiClientsWithDeps),
           Effect.timeout(TIMEOUT)
         )
       )
@@ -254,8 +248,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Real API Integration Tests', () => {
 
       await Effect.runPromise(
         program.pipe(
-          Effect.provide(AdsbLolClientLive),
-          Effect.provide(HttpClientLive),
+          Effect.provide(ApiClientsWithDeps),
           Effect.timeout(TIMEOUT)
         )
       )
@@ -293,8 +286,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Real API Integration Tests', () => {
 
       await Effect.runPromise(
         program.pipe(
-          Effect.provide(OpenMeteoClientLive),
-          Effect.provide(HttpClientLive),
+          Effect.provide(ApiClientsWithDeps),
           Effect.timeout(TIMEOUT)
         )
       )
@@ -325,8 +317,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Real API Integration Tests', () => {
 
       await Effect.runPromise(
         program.pipe(
-          Effect.provide(OpenMeteoClientLive),
-          Effect.provide(HttpClientLive),
+          Effect.provide(ApiClientsWithDeps),
           Effect.timeout(TIMEOUT)
         )
       )
@@ -390,8 +381,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Real API Integration Tests', () => {
 
       await Effect.runPromise(
         program.pipe(
-          Effect.provide(ExternalApiClientsLive),
-          Effect.provide(HttpClientLive),
+          Effect.provide(ApiClientsWithDeps),
           Effect.timeout(Duration.seconds(120)) // Longer timeout for parallel queries
         )
       )
