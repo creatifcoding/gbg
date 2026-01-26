@@ -97,3 +97,21 @@ packages/*/.claude/tsc-cache/
 
 # Nix result symlinks
 result
+
+# Large binaries
+packages/spikectl/bin/
+packages/theia-ide/lib/
+
+# Rust build artifacts
+**/target/
+
+# Large data files
+*.db
+*.rlib
+*.rmeta
+
+# Leann indexes
+.leann/
+
+# Repomix outputs
+.agents/context/repomix/

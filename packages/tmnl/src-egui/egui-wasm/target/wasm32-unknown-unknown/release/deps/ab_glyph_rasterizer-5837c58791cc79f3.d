@@ -1,9 +1,0 @@
-/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src-egui/egui-wasm/target/wasm32-unknown-unknown/release/deps/ab_glyph_rasterizer-5837c58791cc79f3.d: /home/getbygenius/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ab_glyph_rasterizer-0.1.10/src/lib.rs /home/getbygenius/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ab_glyph_rasterizer-0.1.10/src/geometry.rs /home/getbygenius/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ab_glyph_rasterizer-0.1.10/src/raster.rs
-
-/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src-egui/egui-wasm/target/wasm32-unknown-unknown/release/deps/libab_glyph_rasterizer-5837c58791cc79f3.rlib: /home/getbygenius/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ab_glyph_rasterizer-0.1.10/src/lib.rs /home/getbygenius/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ab_glyph_rasterizer-0.1.10/src/geometry.rs /home/getbygenius/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ab_glyph_rasterizer-0.1.10/src/raster.rs
-
-/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src-egui/egui-wasm/target/wasm32-unknown-unknown/release/deps/libab_glyph_rasterizer-5837c58791cc79f3.rmeta: /home/getbygenius/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ab_glyph_rasterizer-0.1.10/src/lib.rs /home/getbygenius/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ab_glyph_rasterizer-0.1.10/src/geometry.rs /home/getbygenius/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ab_glyph_rasterizer-0.1.10/src/raster.rs
-
-/home/getbygenius/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ab_glyph_rasterizer-0.1.10/src/lib.rs:
-/home/getbygenius/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ab_glyph_rasterizer-0.1.10/src/geometry.rs:
-/home/getbygenius/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ab_glyph_rasterizer-0.1.10/src/raster.rs:
