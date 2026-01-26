@@ -29,6 +29,7 @@
             rustup
             rustc
             cargo
+            wasm-pack
             lldb_18
             natscli
             nats-top
