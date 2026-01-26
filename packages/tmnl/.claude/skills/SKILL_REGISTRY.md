@@ -441,3 +441,38 @@ Skills should include triggers that match:
   - Three-phase approach: SOI → FRD → FRP
   - Statement of Intent, Feature Requirements, Feature Realization
   - Backlink traceability between documents
+
+---
+
+## Multi-Agent Orchestration Layer
+
+| Subsystem | Path | Agents | Skill | Status |
+| --------- | ---- | ------ | ----- | ------ |
+| **architecture-council** | `.claude/skills/architecture-council/` | Schema-Sage, Repo-Maven, Event-Oracle, Entity-Weaver, Infra-Smith, Architect-Prime | `architecture-council` | ✅ |
+| **research-council** | `.claude/skills/research-council/` | Internal Oracle, Docs Oracle, Standards Oracle, Community Oracle | `research-council` | ✅ |
+
+### Agent Definitions
+
+| Agent | Path | Domain | MCPs |
+|-------|------|--------|------|
+| **Schema-Sage** | `.claude/agents/council/schema-sage.md` | Types, Schema, Validation | deepwiki |
+| **Repo-Maven** | `.claude/agents/council/repo-maven.md` | Repository, Persistence | deepwiki |
+| **Event-Oracle** | `.claude/agents/council/event-oracle.md` | Event Sourcing, EventLog | deepwiki, exa |
+| **Entity-Weaver** | `.claude/agents/council/entity-weaver.md` | Cluster Entities, Aggregates | deepwiki |
+| **Infra-Smith** | `.claude/agents/council/infra-smith.md` | Database, Deployment | deepwiki |
+| **Architect-Prime** | `.claude/agents/council/architect-prime.md` | Synthesis, Coordination | deepwiki, exa |
+| **Industry-Oracle** | `.claude/agents/council/industry-oracle.md` | Standards, Compliance | exa, playwright |
+
+### Council Skills
+
+| Skill | Purpose | Triggers |
+|-------|---------|----------|
+| `architecture-council` | Major architectural decisions, ADR creation | "architecture council", "ADR", "major design" |
+| `research-council` | Parallel multi-source research | "research council", "parallel research" |
+
+### Council Patterns
+
+| Pattern | Path | Purpose |
+|---------|------|---------|
+| **Task Steering** | `.claude/skills/architecture-council/patterns/task-steering.md` | Task dependencies, parallel agent dispatch |
+

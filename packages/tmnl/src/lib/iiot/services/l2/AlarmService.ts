@@ -84,12 +84,15 @@ const AlarmFromRow = Schema.transformOrFail(
           deviceId: row.deviceId as Schema.Schema.Type<typeof DeviceId>,
           alarmType: row.alarmType as Schema.Schema.Type<typeof AlarmType>,
           severity: row.severity as Schema.Schema.Type<typeof AlarmSeverity>,
-          message: row.message ?? undefined,
           triggeredAt: DateTime.unsafeFromDate(row.triggeredAt),
+          // Type side is T | undefined (not null), so convert null → undefined
+          message: row.message ?? undefined,
           acknowledgedAt: row.acknowledgedAt
             ? DateTime.unsafeFromDate(row.acknowledgedAt)
             : undefined,
-          clearedAt: row.clearedAt ? DateTime.unsafeFromDate(row.clearedAt) : undefined,
+          clearedAt: row.clearedAt
+            ? DateTime.unsafeFromDate(row.clearedAt)
+            : undefined,
           acknowledgedBy: row.acknowledgedBy ?? undefined,
           metadata: row.metadata ?? undefined,
         }),
@@ -434,7 +437,8 @@ export class AlarmService extends Effect.Service<AlarmService>()('iiot/AlarmServ
           deviceId: alarm.deviceId,
           readingTime: reading.time,
           value: reading.value,
-          offsetFromAlarm: `${((DateTime.toDate(reading.time).getTime() - alarmTime.getTime()) / 1000).toFixed(0)}s`,
+          quality: reading.quality,
+          offsetSeconds: (DateTime.toDate(reading.time).getTime() - alarmTime.getTime()) / 1000,
         }))
       })
 

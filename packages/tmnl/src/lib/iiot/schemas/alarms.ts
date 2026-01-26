@@ -47,12 +47,13 @@ export class Alarm extends Schema.TaggedClass<Alarm>()('Alarm', {
   deviceId: DeviceId,
   alarmType: AlarmType,
   severity: AlarmSeverity,
-  message: Schema.optional(Schema.String),
+  // nullable: true allows NULL from database to decode as undefined
+  message: Schema.optionalWith(Schema.String, { nullable: true }),
   triggeredAt: Schema.DateTimeUtc,
-  acknowledgedAt: Schema.optional(Schema.DateTimeUtc),
-  clearedAt: Schema.optional(Schema.DateTimeUtc),
-  acknowledgedBy: Schema.optional(Schema.String),
-  metadata: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
+  acknowledgedAt: Schema.optionalWith(Schema.DateTimeUtc, { nullable: true }),
+  clearedAt: Schema.optionalWith(Schema.DateTimeUtc, { nullable: true }),
+  acknowledgedBy: Schema.optionalWith(Schema.String, { nullable: true }),
+  metadata: Schema.optionalWith(Schema.Record({ key: Schema.String, value: Schema.Unknown }), { nullable: true }),
 }) {}
 
 /** Create alarm parameters */
