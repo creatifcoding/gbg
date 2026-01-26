@@ -90,3 +90,10 @@ result/
 
 # OpenCode
 .opencode/
+
+# More specific patterns
+packages/*/result/
+packages/*/.claude/tsc-cache/
+
+# Nix result symlinks
+result
