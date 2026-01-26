@@ -353,12 +353,14 @@
         "@effect/sql-sqlite-wasm": "^0.50.0",
         "@effect/vitest": "^0.27.0",
         "@effect/wa-sqlite": "^0.2.1",
+        "@effect/workflow": "^0.16.0",
         "@electric-sql/client": "^1.4.0",
         "@electric-sql/d2ts": "^0.1.8",
         "@electric-sql/react": "^1.0.26",
         "@emotion/is-prop-valid": "^1.4.0",
         "@faker-js/faker": "^10.1.0",
         "@floating-ui/react": "^0.27.16",
+        "@gbg/ctl": "workspace:*",
         "@gsap/react": "^2.1.2",
         "@hookform/resolvers": "^3.10.0",
         "@legendapp/state": "^3.0.0-beta.42",
@@ -1046,7 +1048,7 @@
 
     "@effect/wa-sqlite": ["@effect/wa-sqlite@0.2.1", "", {}, "sha512-vMnGIHKWSIFnDf7+n7lP2vyXPzORJotkaRI8LKyJw3eNjsvFopHYVaaGSeMSSVTm/w45pC5T4JdLrD6nxSR4oQ=="],
 
-    "@effect/workflow": ["@effect/workflow@0.15.2", "", { "peerDependencies": { "@effect/experimental": "^0.57.11", "@effect/platform": "^0.93.6", "@effect/rpc": "^0.72.2", "effect": "^3.19.10" } }, "sha512-UAo5QWEvyyKsnf4EQ7WL3zwiuZS4Wd5fmAxdpcpZSIxNOvsABp3DOuyRCiidD8l3sQhdPwES/UsVK4QOCQ7wew=="],
+    "@effect/workflow": ["@effect/workflow@0.16.0", "", { "peerDependencies": { "@effect/experimental": "^0.58.0", "@effect/platform": "^0.94.0", "@effect/rpc": "^0.73.0", "effect": "^3.19.13" } }, "sha512-MiAdlxx3TixkgHdbw+Yf1Z3tHAAE0rOQga12kIydJqj05Fnod+W/I+kQGRMY/XWRg+QUsVxhmh1qTr7Ype6lrw=="],
 
     "@electric-sql/client": ["@electric-sql/client@1.4.0", "", { "dependencies": { "@microsoft/fetch-event-source": "^2.0.1" }, "optionalDependencies": { "@rollup/rollup-darwin-arm64": "^4.18.1" } }, "sha512-JTJxm3r5KXhpSEJ+C89gWbGzIH+UnPlzD92iNdtkXYx2gkoJcgd2h0YfaBF2Tu1k3yVG/pje/6CeFlHI9JrsCQ=="],
 
@@ -7539,8 +7541,6 @@
     "@effect/sql/uuid": ["uuid@11.1.0", "", { "bin": { "uuid": "dist/esm/bin/uuid" } }, "sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A=="],
 
     "@effect/sql-sqlite-wasm/@effect/wa-sqlite": ["@effect/wa-sqlite@0.1.2", "", {}, "sha512-2JvJ9BDkBOwfeY/gXsC0XwEKC0AwisP2W5ABJ6mx14QyXTK12MGDIybDlHieuZt1TEFSMiKfpg7yyqyRWRooJQ=="],
-
-    "@effect/workflow/@effect/rpc": ["@effect/rpc@0.72.2", "", { "dependencies": { "msgpackr": "^1.11.4" }, "peerDependencies": { "@effect/platform": "^0.93.3", "effect": "^3.19.5" } }, "sha512-BmTXybXCOq96D2r9mvSW/YdiTQs5CStnd4II+lfVKrMr3pMNERKLZ2LG37Tfm4Sy3Q8ire6IVVKO/CN+VR0uQQ=="],
 
     "@electron/get/env-paths": ["env-paths@2.2.1", "", {}, "sha512-+h1lkLKhZMTYjog1VEpJNG7NZJWcuc2DDk/qsqSTRRCOXiLjeQ1d1/udrUGhqMxUgAlwKNZ0cf2uqan5GLuS2A=="],
 

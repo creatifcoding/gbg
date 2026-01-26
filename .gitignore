@@ -80,3 +80,13 @@ cache/
 
 vite.config.*.timestamp*
 vitest.config.*.timestamp*
+
+# Build artifacts
+result/
+**/result/
+
+# Claude Code caches
+.claude/tsc-cache/
+
+# OpenCode
+.opencode/
