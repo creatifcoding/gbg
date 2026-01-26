@@ -142,3 +142,9 @@
 [submodule "submodules/pg_lake"]
 	path = submodules/pg_lake
 	url = https://github.com/Snowflake-Labs/pg_lake.git
+[submodule "submodules/continuous-claude"]
+	path = submodules/continuous-claude
+	url = https://github.com/parcadei/Continuous-Claude-v3.git
+[submodule "submodules/continuous-claude-thewindmom"]
+	path = submodules/continuous-claude-thewindmom
+	url = https://github.com/ThewindMom/Continuous-Claude-v3.git
