@@ -1,12 +1,15 @@
 # V3 Service Architecture - Complete Work Breakdown Structure
 
-**Generated**: 2026-01-26
+**Generated**: 2026-01-29
 **Author**: Plan Agent (Val)
 **Based On**:
 - `thoughts/shared/specs/2026-01-25-v3-service-architecture.md` (23 sections, ~2975 lines)
 - `assets/documents/iiot/ADR-0012-event-sourcing-boundaries-iiot.md`
 - `thoughts/shared/plans/2026-01-26-es-boundaries-wbs.md` (incorporated as Epics 7-12)
+- `thoughts/shared/plans/2026-01-29-eventlog-integration-wbs-final.md` (EventLog expansion)
 **Status**: Implementation-Ready
+
+**Note**: This version incorporates EventLog integration details (Epics 7-10 expanded, Epic 25 added) from the EventLog Integration WBS finalized 2026-01-29.
 
 ---
 
@@ -16,6 +19,7 @@ This WBS covers the **complete v3 IIoT Service Architecture** implementation, sy
 - **AMS v2 patterns**: Entity/Event, CQRS, Effect Cluster, Layer composition
 - **IIoT patterns**: Model/Repo, DDL co-location, PostgreSQL extensions
 - **ADR-0012 boundaries**: Hybrid ES (decisions get ES, data gets CRUD)
+- **EventLog Integration**: 75 events across 11 aggregates for full audit trail
 
 The v3 architecture unifies these into a single, coherent system with:
 - Effect Cluster entities as domain actors
@@ -23,43 +27,101 @@ The v3 architecture unifies these into a single, coherent system with:
 - Manual repos with decode utilities
 - Multiple transports (HTTP, RPC, WebSocket)
 - PostgreSQL-first with extensions (TimescaleDB, AGE)
+- Event sourcing for decision-critical domains
 
 ### Scope Overview
 
 | Category | Epics | Story Points |
 |----------|-------|--------------|
 | **Foundation** (Schemas, Repos, Infrastructure) | 1-6 | 47 |
-| **Event Sourcing Boundaries** (from ES WBS) | 7-12 | 58 |
+| **Event Sourcing Boundaries** (with EventLog integration) | 7-12 | 76 |
 | **Entity & Service Layer** | 13-16 | 42 |
 | **RPC & HTTP Handlers** | 17-18 | 26 |
 | **Stream Processing & Real-time** | 19-20 | 21 |
 | **Migration & Integration** | 21-22 | 26 |
 | **Documentation & DX** | 23-24 | 16 |
-| **Total** | **24 Epics** | **~236 SP** |
+| **Regulatory Compliance** (NEW) | 25 | 13 |
+| **Total** | **25 Epics** | **~267 SP** |
 
-**Estimated Duration**: 10-14 sprints (5-7 months)
+**Estimated Duration**: 11-15 sprints (5.5-7.5 months)
+
+### Change Summary vs Original WBS
+
+| Metric | Baseline | Updated | Delta |
+|--------|----------|---------|-------|
+| Epics | 24 | 25 | +1 |
+| Story Points | 236 | 267 | +31 |
+| Sprints | 10-14 | 11-15 | +1 |
+| Duration | 5-7 months | 5.5-7.5 months | +0.5 months |
 
 ---
 
 ## Critical Path
 
 ```
+                              ┌──────────────────────────────────────────────────────────────┐
+                              │                    UPDATED CRITICAL PATH                      │
+                              └──────────────────────────────────────────────────────────────┘
+
 Epic 1 (Schemas) ──┬──> Epic 2 (Models) ──> Epic 3 (DDL) ──> Epic 4 (Repos)
                    │                                              │
                    │                                              v
                    │                               Epic 7 (ES Infrastructure)
-                   │                                              │
-                   v                                              v
-              Epic 5 (Errors) ──────────────> Epic 13 (Entity Definitions)
-                                                         │
-                                                         v
-                                              Epic 14 (State Services)
-                                                         │
-                                                         v
-                                              Epic 17 (RPC Handlers)
-                                                         │
-                                                         v
-                                              Epic 21 (Migration)
+                   │                                     │ EL-1: IIoTEventLog
+                   │                                     │
+                   v                                     v
+              Epic 5 (Errors) ───────────────> Epic 8 (Alarm ES Migration)
+                                                     │ EL-2: 10 Alarm Events
+                                                     │
+                              ┌───────────────────────┼───────────────────────┐
+                              │                       │                       │
+                              v                       v                       v
+                    Epic 9 (Work Order)    Epic 10 (Equipment State)   Epic 11 (Non-ES)
+                    EL-3: 46 events        EL-4: 6 events
+                              │                       │                       │
+                              └───────────────────────┼───────────────────────┘
+                                                      │
+                                                      v
+                                            Epic 12 (ES Testing)
+                                                      │
+                                                      v
+                                           ┌─────────────────────┐
+                                           │ Epic 25 (NEW)       │
+                                           │ Regulatory Compliance│
+                                           │ EL-5: 13 events     │
+                                           └─────────────────────┘
+                                                      │
+                                                      v
+                                            Epic 13 (Entity Definitions)
+                                                      │
+                                          ┌───────────┼───────────┐
+                                          v           v           v
+                                    Epic 14     Epic 15     Epic 16
+                                    (State)     (Events)    (Handlers)
+                                          │           │           │
+                                          └───────────┼───────────┘
+                                                      v
+                                          ┌───────────┴───────────┐
+                                          v                       v
+                                    Epic 17 (RPC)           Epic 18 (HTTP)
+                                          │                       │
+                                          └───────────┬───────────┘
+                                                      v
+                                          ┌───────────┴───────────┐
+                                          v                       v
+                                   Epic 19 (Streams)      Epic 20 (WebSocket)
+                                          │                       │
+                                          └───────────┬───────────┘
+                                                      v
+                                          ┌───────────┴───────────┐
+                                          v                       v
+                                   Epic 21 (Migration)    Epic 22 (Layers)
+                                          │                       │
+                                          └───────────┬───────────┘
+                                                      v
+                                          ┌───────────┴───────────┐
+                                          v                       v
+                                   Epic 23 (Docs)         Epic 24 (DX)
 ```
 
 ---
@@ -255,174 +317,142 @@ Epic 1 (Schemas) ──┬──> Epic 2 (Models) ──> Epic 3 (DDL) ──> E
 
 ---
 
-## Phase 2: Event Sourcing Boundaries (Sprints 3-5)
+## Phase 2: Event Sourcing Boundaries (Sprints 3-6)
 
-*Incorporates ES Boundaries WBS (Epics 1-6) as Epics 7-12*
+*Incorporates ES Boundaries WBS (Epics 1-6) as Epics 7-12, expanded with EventLog integration details*
 
-### Epic 7: ES Infrastructure (ES WBS Epic 1)
+### Epic 7: ES Infrastructure (Expanded)
 
-**Goal**: Establish EventLog and SqlEventJournal infrastructure.
+**Goal**: Establish IIoT-specific EventLog infrastructure with SqlEventJournal, identity persistence, and AMS v2-aligned patterns.
 
-| Task ID | Description | Files | Size | Depends On |
-|---------|-------------|-------|------|------------|
-| 7.1.1 | Create `iiot_event_journal` table DDL | `models/events/EventJournalModel.ddl.ts` | S | Epic 3 |
-| 7.1.2 | Create `iiot_event_remotes` table DDL | `models/events/EventJournalModel.ddl.ts` | S | 7.1.1 |
-| 7.1.3 | Add migration `0014_event_journal` | `models/_migrations.ts` | S | 7.1.2 |
-| 7.1.4 | Test migration idempotency | `__tests__/models.integration.test.ts` | S | 7.1.3 |
-| 7.2.1 | Create IIoTEventLogConfig context tag | `services/l1/IIoTEventLog.ts` | S | 7.1 |
-| 7.2.2 | Create IIoTEventLogLive layer | `services/l1/IIoTEventLog.ts` | M | 7.2.1 |
-| 7.2.3 | Create IIoTEventLogTest (in-memory) | `services/l1/IIoTEventLog.ts` | M | 7.2.1 |
-| 7.2.4 | Export from services/l1/index.ts | `services/l1/index.ts` | S | 7.2.2 |
-| 7.2.5 | Integration test: write/read events | `__tests__/integration/event-journal.test.ts` | M | 7.2.2 |
-| 7.3.1 | Create event base schemas (EventMetadata) | `schemas/events/base.ts` | S | Epic 1 |
-| 7.3.2 | Create Event.make wrapper | `schemas/events/base.ts` | M | 7.3.1 |
-| 7.3.3 | Export from schemas/index.ts | `schemas/index.ts` | S | 7.3.2 |
+**Story Points**: 21 SP (expanded from 8 SP)
+**Sprint**: 3
+
+See: `thoughts/shared/plans/fragments/epic-7-expanded.md` for complete task breakdown.
+
+**Key Deliverables**:
+- IIoTEventLog facade layer (API stability protection)
+- SqlEventJournal tables (iiot_event_journal, iiot_event_remotes, iiot_event_identity)
+- Event base schemas (EventMetadata, IIoTEventEntry)
+- Canonical API patterns (EventGroup.empty, EventLog.group, groupReactivity)
+- Integration tests (write/read roundtrip)
 
 **Acceptance Criteria**:
-- [ ] SqlEventJournal tables created
-- [ ] EventLog service can write/read
-- [ ] Test layer works without database
-- [ ] All event schemas include metadata
-
-**Estimate**: 8 SP (T-shirt: M)
+- [ ] `@effect/experimental` version pinned in `package.json`
+- [ ] `IIoTEventLogFacade` abstracts EventLog API for domain isolation
+- [ ] `iiot_event_journal` and `iiot_event_remotes` tables created via idempotent migration
+- [ ] `IIoTSqlEventJournalLayer` writes to PostgreSQL
+- [ ] `IIoTEventLogTest` provides in-memory layer for unit tests
+- [ ] `IIoTIdentityLayer` persists identity via KeyValueStore
+- [ ] `IIoTEventLogStackLayer` composes all layers for production use
+- [ ] `EventMetadata` schema captures correlationId, causationId, userId
+- [ ] `Event.make` wrapper injects IIoT-specific metadata
+- [ ] Integration test: write event, read event, verify payload
 
 ---
 
-### Epic 8: Alarm Domain ES Migration (ES WBS Epic 2)
+### Epic 8: Alarm Domain ES Migration (Expanded)
 
-**Goal**: Migrate Alarm from CRUD to Event Sourcing.
+**Goal**: ISA-18.2 compliant alarm lifecycle with full audit trail via EventLog.
 
-| Task ID | Description | Files | Size | Depends On |
-|---------|-------------|-------|------|------------|
-| 8.1.1 | Define AlarmTriggered event | `schemas/events/alarm-events.ts` | S | Epic 7 |
-| 8.1.2 | Define AlarmAcknowledged event | `schemas/events/alarm-events.ts` | S | 8.1.1 |
-| 8.1.3 | Define AlarmCleared event | `schemas/events/alarm-events.ts` | S | 8.1.1 |
-| 8.1.4 | Define AlarmEscalated event | `schemas/events/alarm-events.ts` | S | 8.1.1 |
-| 8.1.5 | Define AlarmSuppressed event | `schemas/events/alarm-events.ts` | S | 8.1.1 |
-| 8.1.6 | Define AlarmShelved event | `schemas/events/alarm-events.ts` | S | 8.1.1 |
-| 8.1.7 | Create AlarmEvents EventGroup | `schemas/events/alarm-events.ts` | M | 8.1.1-6 |
-| 8.2.1 | Define AlarmAggregate type | `schemas/events/alarm-aggregate.ts` | M | 8.1.7 |
-| 8.2.2 | Implement foldAlarmEvents reducer | `schemas/events/alarm-aggregate.ts` | M | 8.2.1 |
-| 8.2.3 | Unit test aggregate projection | `__tests__/schemas/alarm-aggregate.test.ts` | M | 8.2.2 |
-| 8.3.1 | Create AlarmEventHandlers | `services/l2/AlarmEventHandlers.ts` | L | 8.1.7 |
-| 8.3.2 | Handle AlarmTriggered -> insert | `services/l2/AlarmEventHandlers.ts` | M | 8.3.1 |
-| 8.3.3 | Handle AlarmAcknowledged -> update | `services/l2/AlarmEventHandlers.ts` | M | 8.3.1 |
-| 8.3.4 | Handle AlarmCleared -> update | `services/l2/AlarmEventHandlers.ts` | M | 8.3.1 |
-| 8.3.5 | Handle AlarmEscalated -> update + notify | `services/l2/AlarmEventHandlers.ts` | M | 8.3.1 |
-| 8.3.6 | Integration test event -> projection | `__tests__/integration/alarm-events.test.ts` | L | 8.3.2-5 |
-| 8.4.1 | Refactor AlarmService.createAlarm -> event | `services/l2/AlarmService.ts` | M | 8.3 |
-| 8.4.2 | Refactor AlarmService.acknowledgeAlarm | `services/l2/AlarmService.ts` | M | 8.4.1 |
-| 8.4.3 | Refactor AlarmService.clearAlarm | `services/l2/AlarmService.ts` | M | 8.4.1 |
-| 8.4.4 | Add AlarmService.escalateAlarm | `services/l2/AlarmService.ts` | M | 8.4.1 |
-| 8.4.5 | Keep read operations unchanged | - | - | - |
-| 8.4.6 | Update service dependencies | `services/l2/AlarmService.ts` | S | 8.4.1-4 |
-| 8.4.7 | Update integration tests | `__tests__/services.test.ts` | M | 8.4.6 |
-| 8.5.1 | Update AlarmEntity handlers -> EventLog | `entity/AlarmEntity.ts` | L | 8.4 |
-| 8.5.2 | Update AlarmLifecycleWorkflow | `workflow/AlarmLifecycleWorkflow.ts` | M | 8.5.1 |
-| 8.5.3 | Integration test entity -> event -> projection | `__tests__/entity/alarm-entity.test.ts` | L | 8.5.2 |
-| 8.6.1 | Document AlarmRepo as projection-only | `repos/AlarmRepo.ts` | S | 8.4 |
-| 8.6.2 | Add @readonly JSDoc markers | `repos/AlarmRepo.ts` | S | 8.6.1 |
-| 8.7.1 | Add getAlarmAtTime (temporal query) | `services/l2/AlarmService.ts` | M | 8.4 |
-| 8.7.2 | Add getAlarmHistory | `services/l2/AlarmService.ts` | M | 8.7.1 |
-| 8.7.3 | Test temporal queries | `__tests__/services/alarm-temporal.test.ts` | M | 8.7.2 |
+**Story Points**: 21 SP (expanded from 13 SP)
+**Sprints**: 2-3
+
+See: `thoughts/shared/plans/fragments/epic-8-expanded.md` for complete task breakdown.
+
+**Key Deliverables**:
+- 10 Alarm Event Schemas (AlarmTriggered, AlarmAcknowledged, AlarmCleared, AlarmEscalated, AlarmShelved, AlarmUnshelved, AlarmSuppressed, AlarmOutOfService, AlarmReturnedToService, AlarmConfigChanged)
+- Event Handlers (projection updates on event writes)
+- Reactivity Bindings (atom invalidation for real-time UI)
+- Temporal Queries (point-in-time state reconstruction)
+- Feature Flag (`ES_ALARM_ENABLED` for safe rollback)
 
 **Acceptance Criteria**:
-- [ ] All alarm state changes through EventLog
-- [ ] Projection table stays in sync
-- [ ] Temporal queries work
-- [ ] ISA-18.2 audit trail complete
-
-**Estimate**: 13 SP (T-shirt: L)
+- [ ] All 10 alarm events implemented with Schema.Class payloads
+- [ ] Event handlers update projections in same transaction
+- [ ] Reactivity binds to atoms - UI refreshes on events
+- [ ] Temporal queries work - reconstruct any past state
+- [ ] Feature flag enables rollback - can disable ES at runtime
+- [ ] ISA-18.2 compliance verified - full audit trail
+- [ ] Performance acceptable - <100ms temporal queries
 
 ---
 
-### Epic 9: Work Order Domain (ES WBS Epic 3)
+### Epic 9: Work Order Domain (Expanded)
 
-**Goal**: Implement Work Orders as new ES domain.
+**Goal**: 46 events across 6 aggregates for FDA-compliant work order lifecycle with full audit trail, temporal queries, and compliance support.
 
-| Task ID | Description | Files | Size | Depends On |
-|---------|-------------|-------|------|------------|
-| 9.1.1 | Define WorkOrderId branded identifier | `schemas/identifiers.ts` | S | Epic 1 |
-| 9.1.2 | Define WorkOrderStatus literal | `schemas/work-orders.ts` | S | - |
-| 9.1.3 | Define WorkOrderPriority literal | `schemas/work-orders.ts` | S | - |
-| 9.1.4 | Define WorkOrder domain schema | `schemas/work-orders.ts` | M | 9.1.1-3 |
-| 9.1.5 | Define CreateWorkOrderParams | `schemas/work-orders.ts` | S | 9.1.4 |
-| 9.2.1 | Define WorkOrderCreated event | `schemas/events/work-order-events.ts` | S | Epic 7 |
-| 9.2.2 | Define WorkOrderSubmitted event | `schemas/events/work-order-events.ts` | S | 9.2.1 |
-| 9.2.3 | Define WorkOrderApproved event | `schemas/events/work-order-events.ts` | S | 9.2.1 |
-| 9.2.4 | Define WorkOrderRejected event | `schemas/events/work-order-events.ts` | S | 9.2.1 |
-| 9.2.5 | Define WorkOrderStarted event | `schemas/events/work-order-events.ts` | S | 9.2.1 |
-| 9.2.6 | Define WorkOrderCompleted event | `schemas/events/work-order-events.ts` | S | 9.2.1 |
-| 9.2.7 | Define WorkOrderClosed event | `schemas/events/work-order-events.ts` | S | 9.2.1 |
-| 9.2.8 | Define WorkOrderCancelled event | `schemas/events/work-order-events.ts` | S | 9.2.1 |
-| 9.2.9 | Create WorkOrderEvents group | `schemas/events/work-order-events.ts` | M | 9.2.1-8 |
-| 9.3.1 | Create WorkOrderModel | `models/work-orders/WorkOrderModel.ts` | M | 9.1.4 |
-| 9.3.2 | Create WorkOrderModel.ddl.ts | `models/work-orders/WorkOrderModel.ddl.ts` | M | 9.3.1 |
-| 9.3.3 | Add migration `0015_work_orders` | `models/_migrations.ts` | S | 9.3.2 |
-| 9.3.4 | Create WorkOrderRepo | `repos/WorkOrderRepo.ts` | M | 9.3.1 |
-| 9.4.1 | Create WorkOrderService class | `services/l2/WorkOrderService.ts` | L | 9.2, 9.3 |
-| 9.4.2 | Implement createWorkOrder | `services/l2/WorkOrderService.ts` | M | 9.4.1 |
-| 9.4.3 | Implement submitWorkOrder | `services/l2/WorkOrderService.ts` | M | 9.4.1 |
-| 9.4.4 | Implement approveWorkOrder | `services/l2/WorkOrderService.ts` | M | 9.4.1 |
-| 9.4.5 | Implement rejectWorkOrder | `services/l2/WorkOrderService.ts` | M | 9.4.1 |
-| 9.4.6 | Implement startWorkOrder | `services/l2/WorkOrderService.ts` | M | 9.4.1 |
-| 9.4.7 | Implement completeWorkOrder | `services/l2/WorkOrderService.ts` | M | 9.4.1 |
-| 9.4.8 | Implement closeWorkOrder | `services/l2/WorkOrderService.ts` | M | 9.4.1 |
-| 9.4.9 | Implement query methods | `services/l2/WorkOrderService.ts` | M | 9.4.1 |
-| 9.4.10 | Create WorkOrderEventHandlers | `services/l2/WorkOrderEventHandlers.ts` | L | 9.2.9 |
-| 9.5.1 | Create WorkOrderEntity definition | `entity/WorkOrderEntity.ts` | M | 9.4 |
-| 9.5.2 | Create WorkOrder RPC definitions | `rpc/WorkOrderRpcs.ts` | M | 9.5.1 |
-| 9.5.3 | Implement entity handlers | `entity/WorkOrderEntity.ts` | L | 9.5.2 |
-| 9.5.4 | Integration tests | `__tests__/entity/work-order-entity.test.ts` | L | 9.5.3 |
+**Story Points**: 34 SP (expanded from 13 SP)
+**Sprints**: 4-5
+
+See: `thoughts/shared/plans/fragments/epic-9-expanded.md` for complete task breakdown.
+
+**Aggregate Overview**:
+
+| Aggregate | Events | Purpose | Compliance |
+|-----------|--------|---------|------------|
+| **WorkOrder** | 11 | Lifecycle state machine | ISA-95 L3, FDA 21 CFR Part 11 |
+| **WorkOrderContext** | 10 | Hybrid snapshot + live refs | Audit trail, RCA |
+| **TaskInstance** | 9 | Task execution tracking | Process control |
+| **ApprovalRequest** | 6 | 4-eyes principle, escalation | FDA, ISO 9001 |
+| **L3SyncOperation** | 5 | External system integration | ERP reconciliation |
+| **WorkflowDefinition** | 5 | Template versioning | Change control |
+| **TOTAL** | **46** | | |
 
 **Acceptance Criteria**:
-- [ ] Work order lifecycle fully ES
-- [ ] Approval workflow enforced
-- [ ] Full audit trail for CMMS
-- [ ] Link to triggering alarm
-
-**Estimate**: 13 SP (T-shirt: L)
+- [ ] All 46 events defined with Effect Schema
+- [ ] All 6 EventGroups created
+- [ ] Combined IIoTEventLogSchema includes all groups
+- [ ] Each event has a projection handler
+- [ ] Same-transaction writes (event + projection)
+- [ ] Reactivity bindings for cache invalidation
+- [ ] `Context.snapshot()` creates immutable audit record
+- [ ] `Context.resolve()` returns live entity state
+- [ ] `Context.update()` enforces version conflict detection
+- [ ] `getWorkOrderAtTime(id, timestamp)` reconstructs state
+- [ ] `getHistory(id)` returns full event history
+- [ ] Replay produces consistent state
+- [ ] FDA 21 CFR Part 11 audit trail
+- [ ] 4-eyes approval principle supported
+- [ ] All state changes traceable to user + timestamp
 
 ---
 
-### Epic 10: Equipment State Domain (ES WBS Epic 4)
+### Epic 10: Equipment State Domain (Expanded)
 
-**Goal**: Track equipment operational state changes for OEE.
+**Goal**: Track equipment operational state changes for OEE calculations, Root Cause Analysis (RCA), and downtime reporting.
 
-| Task ID | Description | Files | Size | Depends On |
-|---------|-------------|-------|------|------------|
-| 10.1.1 | Define EquipmentStateId identifier | `schemas/identifiers.ts` | S | Epic 1 |
-| 10.1.2 | Define OperationalState literal | `schemas/equipment-state.ts` | S | - |
-| 10.1.3 | Define EquipmentState domain schema | `schemas/equipment-state.ts` | M | 10.1.1-2 |
-| 10.1.4 | Add state transition validation | `schemas/equipment-state.ts` | M | 10.1.2 |
-| 10.2.1 | Define EquipmentStateChanged event | `schemas/events/equipment-state-events.ts` | M | Epic 7 |
-| 10.2.2 | Define MaintenanceModeEntered event | `schemas/events/equipment-state-events.ts` | S | 10.2.1 |
-| 10.2.3 | Define MaintenanceModeExited event | `schemas/events/equipment-state-events.ts` | S | 10.2.1 |
-| 10.2.4 | Create EquipmentStateEvents group | `schemas/events/equipment-state-events.ts` | M | 10.2.1-3 |
-| 10.3.1 | Create EquipmentStateModel | `models/equipment-state/EquipmentStateModel.ts` | M | 10.1.3 |
-| 10.3.2 | Create EquipmentStateHistoryModel | `models/equipment-state/EquipmentStateHistoryModel.ts` | M | 10.3.1 |
-| 10.3.3 | Create DDL files | `models/equipment-state/*.ddl.ts` | M | 10.3.1-2 |
-| 10.3.4 | Add migration `0016_equipment_state` | `models/_migrations.ts` | S | 10.3.3 |
-| 10.3.5 | Create EquipmentStateRepo | `repos/EquipmentStateRepo.ts` | M | 10.3.1 |
-| 10.4.1 | Create EquipmentStateService | `services/l2/EquipmentStateService.ts` | L | 10.2, 10.3 |
-| 10.4.2 | Implement changeState with validation | `services/l2/EquipmentStateService.ts` | M | 10.4.1 |
-| 10.4.3 | Implement enterMaintenanceMode | `services/l2/EquipmentStateService.ts` | M | 10.4.1 |
-| 10.4.4 | Implement exitMaintenanceMode | `services/l2/EquipmentStateService.ts` | M | 10.4.1 |
-| 10.4.5 | Implement getCurrentState | `services/l2/EquipmentStateService.ts` | S | 10.4.1 |
-| 10.4.6 | Implement getStateHistory | `services/l2/EquipmentStateService.ts` | M | 10.4.1 |
-| 10.4.7 | Implement getStateAtTime (temporal) | `services/l2/EquipmentStateService.ts` | M | 10.4.1 |
-| 10.4.8 | Create EquipmentStateEventHandlers | `services/l2/EquipmentStateEventHandlers.ts` | L | 10.2.4 |
-| 10.5.1 | Calculate downtime from history | `services/l2/EquipmentStateService.ts` | M | 10.4.6 |
-| 10.5.2 | Add getDowntimeReport | `services/l2/EquipmentStateService.ts` | M | 10.5.1 |
-| 10.5.3 | Integration test: state -> OEE metrics | `__tests__/services/equipment-state.test.ts` | L | 10.5.2 |
+**Story Points**: 21 SP (expanded from 8 SP)
+**Sprint**: 6
+
+See: `thoughts/shared/plans/fragments/epic-10-expanded.md` for complete task breakdown.
+
+**Event Catalog**:
+
+| Event | Purpose | OEE Impact |
+|-------|---------|------------|
+| **EquipmentStateChanged** | Core state transition tracking | Direct availability calculation |
+| **MaintenanceModeEntered** | Mark equipment as under maintenance | Planned vs unplanned downtime |
+| **MaintenanceModeExited** | Return to normal operation | Duration tracking |
+| **PerformanceDegraded** | Below optimal but operational | Performance factor reduction |
+| **FaultDetected** | Equipment fault occurred | Unplanned downtime start |
+| **FaultCleared** | Fault resolved | Unplanned downtime end |
 
 **Acceptance Criteria**:
-- [ ] All state transitions ES
-- [ ] Transitions validated (prevent invalid)
-- [ ] Full history for RCA
-- [ ] Downtime calculation for OEE
-
-**Estimate**: 8 SP (T-shirt: M)
+- [ ] All 6 equipment state events defined and validated
+- [ ] State transitions validated against ISA-88 state machine
+- [ ] Event -> projection handlers maintain consistency
+- [ ] `getStateAtTime(equipmentId, timestamp)` returns accurate state reconstruction
+- [ ] `getDowntimeReport(equipmentId, range)` calculates MTBF/MTTR correctly
+- [ ] OEE calculation matches manual calculation within 0.1%
+- [ ] Temporal query on 10K events completes in <100ms
+- [ ] OEE calculation for 1 month data completes in <500ms
+- [ ] Event handlers update projections within same transaction
+- [ ] Reactivity triggers atom refresh within 50ms of event write
+- [ ] All state transitions auditable via event stream
+- [ ] Maintenance mode tracked with work order linkage
+- [ ] Fault events linked to triggering alarms when applicable
+- [ ] Downtime reasons captured for regulatory reporting
 
 ---
 
@@ -489,7 +519,38 @@ Epic 1 (Schemas) ──┬──> Epic 2 (Models) ──> Epic 3 (DDL) ──> E
 
 ---
 
-## Phase 3: Entity & Service Layer (Sprints 6-8)
+## Phase 2.5: Regulatory Compliance (Sprint 7) — NEW
+
+### Epic 25: Regulatory Compliance Event Sourcing
+
+**Goal**: Complete audit trail infrastructure for FDA 21 CFR Part 11, ISO 9001, and general operator audit compliance.
+
+**Story Points**: 13 SP
+**Sprint**: 7
+
+See: `thoughts/shared/plans/fragments/epic-25-regulatory.md` for complete task breakdown.
+
+**Domain Overview**:
+
+| Domain | Events | Purpose |
+|--------|--------|---------|
+| **Batch Records** | 4 | FDA 21 CFR Part 11 compliance |
+| **Quality Events** | 5 | ISO 9001 NCR-CAPA lifecycle |
+| **Operator Actions** | 4 | General audit trail |
+| **TOTAL** | **13** | |
+
+**Acceptance Criteria**:
+- [ ] **Immutability**: Events in journal cannot be UPDATE/DELETE (enforced at DB level)
+- [ ] **Batch Traceability**: Any batch can be reconstructed from events at any point in time
+- [ ] **NCR-CAPA Lifecycle**: Complete chain from Inspection -> NCR -> CAPA -> Resolution
+- [ ] **Operator Accountability**: All operator actions attributable with timestamp
+- [ ] **Temporal Queries**: Point-in-time state reconstruction working for all aggregates
+- [ ] **Feature Flag**: `ES_REGULATORY_ENABLED` controls rollout
+- [ ] **Test Coverage**: >90% for handlers, 100% for compliance validation
+
+---
+
+## Phase 3: Entity & Service Layer (Sprints 8-9)
 
 ### Epic 13: Entity Definitions (Section 6)
 
@@ -613,7 +674,7 @@ Epic 1 (Schemas) ──┬──> Epic 2 (Models) ──> Epic 3 (DDL) ──> E
 
 ---
 
-## Phase 4: RPC & HTTP Layer (Sprints 9-10)
+## Phase 4: RPC & HTTP Layer (Sprints 10-11)
 
 ### Epic 17: RPC Handler Layer (Section 6.1)
 
@@ -669,7 +730,7 @@ Epic 1 (Schemas) ──┬──> Epic 2 (Models) ──> Epic 3 (DDL) ──> E
 
 ---
 
-## Phase 5: Stream Processing & Real-time (Sprints 11-12)
+## Phase 5: Stream Processing & Real-time (Sprints 12-13)
 
 ### Epic 19: Stream Processing (Section 20.3)
 
@@ -721,7 +782,7 @@ Epic 1 (Schemas) ──┬──> Epic 2 (Models) ──> Epic 3 (DDL) ──> E
 
 ---
 
-## Phase 6: Migration & Integration (Sprints 13-14)
+## Phase 6: Migration & Integration (Sprints 14-15)
 
 ### Epic 21: Migration Path (Section 11)
 
@@ -777,7 +838,7 @@ Epic 1 (Schemas) ──┬──> Epic 2 (Models) ──> Epic 3 (DDL) ──> E
 
 ---
 
-## Phase 7: Documentation & DX (Sprint 15)
+## Phase 7: Documentation & DX (Sprint 16)
 
 ### Epic 23: Documentation
 
@@ -855,6 +916,9 @@ Epic 1 (Schemas) ──┬──> Epic 2 (Models) ──> Epic 3 (DDL) ──> E
 │                                    Epic 12 (ES Testing)                          │
 │                                            │                                     │
 │                                            v                                     │
+│                                    Epic 25 (Regulatory)                          │
+│                                            │                                     │
+│                                            v                                     │
 │  Epic 13 (Entities) <──────────────────────┘                                     │
 │         │                                                                        │
 │         ├─────────────────────┬──────────────────────┐                          │
@@ -900,10 +964,10 @@ Epic 1 (Schemas) ──┬──> Epic 2 (Models) ──> Epic 3 (DDL) ──> E
 | 4. Repository Layer | L | 13 | Many repos, batch insert complexity |
 | 5. Error Schemas | S | 5 | Straightforward Data.TaggedError |
 | 6. L1 Infrastructure | S | 5 | Validation and documentation |
-| 7. ES Infrastructure | M | 8 | New pattern, Effect primitives help |
-| 8. Alarm ES Migration | L | 13 | Refactoring existing code |
-| 9. Work Order Domain | L | 13 | New domain, follows ES pattern |
-| 10. Equipment State | M | 8 | Smaller domain, clear state machine |
+| 7. ES Infrastructure (Expanded) | XL | 21 | EventLog facade, tables, identity layer |
+| 8. Alarm ES Migration (Expanded) | XL | 21 | 10 events, temporal queries, reactivity |
+| 9. Work Order Domain (Expanded) | XXL | 34 | 46 events, 6 aggregates, complex lifecycle |
+| 10. Equipment State (Expanded) | XL | 21 | 6 events, state machine, OEE |
 | 11. Non-ES Validation | S | 3 | Mostly documentation |
 | 12. ES Integration Testing | L | 13 | Comprehensive testing |
 | 13. Entity Definitions | L | 13 | Many RPCs, multiple entities |
@@ -918,7 +982,55 @@ Epic 1 (Schemas) ──┬──> Epic 2 (Models) ──> Epic 3 (DDL) ──> E
 | 22. Layer Composition | L | 13 | Multiple deployment modes |
 | 23. Documentation | M | 8 | Comprehensive docs needed |
 | 24. Developer Experience | M | 8 | Tooling and generators |
-| **TOTAL** | - | **~236 SP** | **10-14 sprints** |
+| 25. Regulatory Compliance (NEW) | L | 13 | FDA/ISO compliance events |
+| **TOTAL** | - | **~267 SP** | **11-15 sprints** |
+
+---
+
+## Event Catalog Summary
+
+| Domain | Events | Source |
+|--------|--------|--------|
+| Alarm | 10 | Epic 8 (EL-2) |
+| WorkOrder Lifecycle | 11 | Epic 9 (EL-3) |
+| WorkOrderContext | 10 | Epic 9 (EL-3) |
+| TaskInstance | 9 | Epic 9 (EL-3) |
+| ApprovalRequest | 6 | Epic 9 (EL-3) |
+| L3SyncOperation | 5 | Epic 9 (EL-3) |
+| WorkflowDefinition | 5 | Epic 9 (EL-3) |
+| Equipment State | 6 | Epic 10 (EL-4) |
+| Batch Records | 4 | Epic 25 (EL-5) |
+| Quality Events | 5 | Epic 25 (EL-5) |
+| Operator Actions | 4 | Epic 25 (EL-5) |
+| **Total** | **75 events** | |
+
+---
+
+## Risk Mitigations (Pre-Mortem 2026-01-29)
+
+### Tigers Addressed (EventLog Integration)
+
+1. **EventLog API stability (@effect/experimental)** (severity: MEDIUM)
+   - Mitigation: Pin `@effect/experimental` version in package.json, create internal `IIoTEventLogFacade` interface
+   - Task: Epic 7 (7.0.1, 7.0.2)
+   - Rollback: If API breaks, update facade without changing domain code
+
+2. **No rollback strategy for ES migration** (severity: HIGH)
+   - Mitigation: Feature flags per domain (`ES_ALARM_ENABLED`, `ES_REGULATORY_ENABLED`)
+   - Tasks: Epic 8 (8.0.1-2), Epic 25 (25.4.8)
+   - AlarmService will check flag: `ES_ALARM_ENABLED ? emitEvent() : directCRUD()`
+   - Allows runtime toggle during migration phase
+
+3. **Team unfamiliar with temporal query debugging** (severity: MEDIUM)
+   - Mitigation: Execute Epic 8 temporal queries (8.7.1-8.7.3) as spike BEFORE full work order implementation
+   - Team builds competence on alarm domain before tackling more complex Work Order ES
+
+### Pre-Mortem Runs
+- Date: 2026-01-29
+- Mode: deep
+- Tigers: 3 (all mitigated)
+- Elephants: 1 (addressed)
+- Paper Tigers: 4 (EventLog team competence verified via 76 existing files)
 
 ---
 
@@ -926,16 +1038,18 @@ Epic 1 (Schemas) ──┬──> Epic 2 (Models) ──> Epic 3 (DDL) ──> E
 
 | Risk | Probability | Impact | Mitigation |
 |------|-------------|--------|------------|
-| **EventLog API changes** (`@effect/experimental`) | Medium | High | Pin version, abstract behind internal interface, monitor releases |
+| **EventLog API changes** (`@effect/experimental`) | Medium | High | Pin version, abstract behind internal interface, monitor releases, **facade added per pre-mortem** |
 | **Projection consistency** (events/projections diverge) | Low | High | Same-transaction writes, integration tests, monitoring |
-| **Migration complexity** (existing alarm data) | Medium | Medium | Backfill events from existing data, test on staging |
+| **Migration complexity** (existing alarm data) | Medium | Medium | Backfill events from existing data, test on staging, **feature flags** |
 | **Performance degradation** (ES writes slower) | Low | Medium | Benchmark early, optimize projection queries |
-| **Team learning curve** (ES is new pattern) | Medium | Medium | Spike with alarm domain first, document patterns |
-| **Partial adoption confusion** (some ES, some not) | Medium | Low | Clear documentation, code annotations, ADR-0012 |
+| **Team learning curve** (ES is new pattern) | Medium | Medium | Spike with alarm domain first, document patterns, **temporal query training** |
+| **Partial adoption confusion** (some ES, some not) | Medium | Low | Clear documentation, code annotations, ADR-0012, **@persistence JSDoc** |
 | **Protocol adapter complexity** (OPC-UA, Sparkplug) | Medium | Medium | Start with single protocol, add others incrementally |
 | **Layer composition complexity** | Medium | Medium | Clear deployment profiles, extensive testing |
 | **Schema/model drift** | Low | Medium | Enforce Model.fields reuse, add validation |
 | **Transaction scope issues** | Low | High | Clear saga patterns, compensation events documented |
+| **FDA audit fails on mutability** | Low | High | DB-level constraints + immutability tests |
+| **NCR-CAPA chain breaks** | Low | Medium | Lifecycle integration tests |
 
 ---
 
@@ -949,38 +1063,43 @@ Epic 1 (Schemas) ──┬──> Epic 2 (Models) ──> Epic 3 (DDL) ──> E
 5. Epic 5: Error Schemas
 6. Epic 6: L1 Infrastructure
 
-### Sprint 3-4: ES Infrastructure
-7. Epic 7: ES Infrastructure
-8. Epic 8: Alarm ES Migration (start)
+### Sprint 3: ES Infrastructure
+7. Epic 7: ES Infrastructure (IIoTEventLog, facade, tables)
 
-### Sprint 5: ES Domains
-8. Epic 8: Alarm ES Migration (complete)
-9. Epic 9: Work Order Domain
-10. Epic 10: Equipment State Domain
+### Sprint 4: Alarm ES
+8. Epic 8: Alarm ES Migration (10 events, temporal queries)
+
+### Sprint 5: Work Order ES (Start)
+9. Epic 9: Work Order Domain (start - schemas, events)
+
+### Sprint 6: Work Order ES (Complete) + Equipment State
+9. Epic 9: Work Order Domain (complete - handlers, services)
+10. Epic 10: Equipment State Domain (6 events, OEE)
 11. Epic 11: Non-ES Validation
 
-### Sprint 6: ES Testing
+### Sprint 7: ES Testing + Regulatory
 12. Epic 12: ES Integration & Testing
+25. Epic 25: Regulatory Compliance (13 events)
 
-### Sprint 7-8: Entity Layer
+### Sprint 8-9: Entity Layer
 13. Epic 13: Entity Definitions
 14. Epic 14: State Services
 15. Epic 15: Event Handlers
 16. Epic 16: Entity Handlers
 
-### Sprint 9-10: Transport Layer
+### Sprint 10-11: Transport Layer
 17. Epic 17: RPC Handler Layer
 18. Epic 18: HTTP API Layer
 
-### Sprint 11-12: Real-time
+### Sprint 12-13: Real-time
 19. Epic 19: Stream Processing
 20. Epic 20: Real-time Subscriptions
 
-### Sprint 13-14: Integration
+### Sprint 14-15: Integration
 21. Epic 21: Migration Path
 22. Epic 22: Layer Composition
 
-### Sprint 15: Polish
+### Sprint 16: Polish
 23. Epic 23: Documentation
 24. Epic 24: Developer Experience
 
@@ -1005,22 +1124,26 @@ Epic 1 (Schemas) ──┬──> Epic 2 (Models) ──> Epic 3 (DDL) ──> E
 ## Success Criteria
 
 ### Technical Metrics
-- [ ] All 24 epics completed
+- [ ] All 25 epics completed
 - [ ] 100% schema validation coverage
 - [ ] Integration tests pass all deployment modes
 - [ ] Performance: <100ms for 95% of queries
 - [ ] ES temporal queries accurate to 1ms
+- [ ] All 75 events implemented and tested
 
 ### Quality Metrics
 - [ ] Zero schema/model drift
 - [ ] ISA-18.2 compliance verified
 - [ ] ISA-95 hierarchy complete
 - [ ] OpenAPI documentation generated
+- [ ] FDA 21 CFR Part 11 compliance verified
+- [ ] ISO 9001 NCR-CAPA lifecycle complete
 
 ### Team Metrics
 - [ ] All developers trained on ES patterns
 - [ ] Pattern documentation complete
 - [ ] Quickstart guide validated by new team members
+- [ ] Temporal query competence demonstrated
 
 ---
 
