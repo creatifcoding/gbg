@@ -11,10 +11,10 @@ import { Rpc, RpcGroup } from '@effect/rpc'
 import { Schema } from 'effect'
 import { DeviceId, MachineId, PlantId, LineId } from '../schemas/identifiers'
 import {
-  Plant,
-  Line,
-  Machine,
-  Sensor,
+  PlantSchema,
+  LineSchema,
+  MachineSchema,
+  SensorSchema,
   SensorHierarchy,
   PlantHierarchy,
   MachineWithSensors,
@@ -37,7 +37,7 @@ import {
 
 /** List all plants */
 export const ListPlants = Rpc.make(PlantListTag, {
-  success: Plant,
+  success: PlantSchema,
   error: RpcGraphError,
   stream: true,
 })
@@ -47,7 +47,7 @@ export const GetPlant = Rpc.make(PlantGetTag, {
   payload: Schema.Struct({
     plantId: PlantId,
   }),
-  success: Plant,
+  success: PlantSchema,
   error: Schema.Union(RpcGraphError, RpcPlantNotFoundError),
 })
 
@@ -69,7 +69,7 @@ export const ListLinesForPlant = Rpc.make(LineListForPlantTag, {
   payload: Schema.Struct({
     plantId: PlantId,
   }),
-  success: Line,
+  success: LineSchema,
   error: RpcGraphError,
   stream: true,
 })
@@ -83,7 +83,7 @@ export const ListMachinesForLine = Rpc.make(MachineListForLineTag, {
   payload: Schema.Struct({
     lineId: LineId,
   }),
-  success: Machine,
+  success: MachineSchema,
   error: RpcGraphError,
   stream: true,
 })
@@ -106,7 +106,7 @@ export const ListSensorsForMachine = Rpc.make(SensorListForMachineTag, {
   payload: Schema.Struct({
     machineId: MachineId,
   }),
-  success: Sensor,
+  success: SensorSchema,
   error: RpcGraphError,
   stream: true,
 })

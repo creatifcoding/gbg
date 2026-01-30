@@ -8,6 +8,10 @@
 
 import { Data } from 'effect'
 import type { DeviceId, AlarmId, MachineId, PlantId } from './identifiers'
+import { HierarchyError } from './hierarchy'
+
+// Re-export HierarchyError from hierarchy module
+export { HierarchyError }
 
 // =============================================================================
 // Database Errors
@@ -56,11 +60,8 @@ export class PlantNotFoundError extends Data.TaggedError('PlantNotFoundError')<{
   readonly plantId: PlantId
 }> {}
 
-/** Asset hierarchy traversal error */
-export class HierarchyError extends Data.TaggedError('HierarchyError')<{
-  readonly message: string
-  readonly cause?: unknown
-}> {}
+// Note: HierarchyError is defined in hierarchy/path.ts with specific error codes
+// Re-exported via hierarchy/index.ts
 
 // =============================================================================
 // Alarm Errors
