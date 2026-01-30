@@ -238,6 +238,8 @@
     "rxjs": "^7.8.2",
     "shadcn": "^3.5.1",
     "shiki": "^3.20.0",
+    "scichart": "^5.0.170",
+    "scichart-react": "^1.0.0",
     "sonner": "^1.7.4",
     "ssh2": "^1.17.0",
     "streamdown": "^1.6.10",

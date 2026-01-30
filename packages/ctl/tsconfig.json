@@ -14,7 +14,6 @@
     "moduleResolution": "bundler",
     "target": "ES2022",
     "lib": ["ES2022"],
-    "types": ["bun"],
     "jsx": "react-jsx",
     "jsxImportSource": "react"
   },
