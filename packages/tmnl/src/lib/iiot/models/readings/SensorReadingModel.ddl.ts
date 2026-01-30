@@ -22,9 +22,11 @@ import { SqlClient } from '@effect/sql'
  * - value: DOUBLE PRECISION NOT NULL
  * - quality: INTEGER DEFAULT 100
  *
- * TimescaleDB features:
- * - Hypertable chunked by day
+ * TimescaleDB features (per spec 4.4):
+ * - Hypertable chunked by 7 days
  * - Space partition by device_id hash (4 partitions)
+ * - Compression after 30 days
+ * - Retention: 2 years
  */
 export const createSensorReadingsTable = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
@@ -40,9 +42,9 @@ export const createSensorReadingsTable = Effect.gen(function* () {
     )
   `
 
-  // Convert to hypertable (chunk by day)
+  // Convert to hypertable (chunk by 7 days per spec 4.4)
   // sql.unsafe for TimescaleDB extension functions
-  yield* sql.unsafe(`SELECT create_hypertable('iiot.sensor_readings', by_range('time', INTERVAL '1 day'), if_not_exists => TRUE)`)
+  yield* sql.unsafe(`SELECT create_hypertable('iiot.sensor_readings', by_range('time', INTERVAL '7 days'), if_not_exists => TRUE)`)
 
   // Add space partition for high cardinality workloads
   yield* sql.unsafe(`SELECT add_dimension('iiot.sensor_readings', by_hash('device_id', 4), if_not_exists => TRUE)`)
@@ -123,6 +125,41 @@ export const createReadings1HourAggregate = Effect.gen(function* () {
   `)
 })
 
+/**
+ * Creates 1-day continuous aggregate (aggregates from 1-hour view).
+ * Maps to AggregatedReadingModel (1-day bucket).
+ * Per spec 4.4: chunk 90 days, retain forever.
+ */
+export const createReadings1DayAggregate = Effect.gen(function* () {
+  const sql = yield* SqlClient.SqlClient
+
+  yield* sql.unsafe(`
+    CREATE MATERIALIZED VIEW IF NOT EXISTS iiot.readings_1day
+    WITH (timescaledb.continuous) AS
+    SELECT
+      time_bucket('1 day', bucket) AS bucket,
+      device_id,
+      AVG(avg_value) AS avg_value,
+      MIN(min_value) AS min_value,
+      MAX(max_value) AS max_value,
+      AVG(avg_stddev) AS avg_stddev,
+      SUM(sample_count) AS sample_count
+    FROM iiot.readings_1hour
+    GROUP BY time_bucket('1 day', bucket), device_id
+    WITH NO DATA
+  `)
+
+  // Refresh policy: daily schedule, looking back 2 days for late data
+  yield* sql.unsafe(`
+    SELECT add_continuous_aggregate_policy('iiot.readings_1day',
+      start_offset => INTERVAL '2 days',
+      end_offset => INTERVAL '1 day',
+      schedule_interval => INTERVAL '1 day',
+      if_not_exists => TRUE
+    )
+  `)
+})
+
 // =============================================================================
 // Compression & Retention Policies DDL
 // =============================================================================
@@ -142,9 +179,46 @@ export const createCompressionPolicies = Effect.gen(function* () {
     )
   `)
 
-  // Compress raw data after 7 days
-  yield* sql.unsafe(`SELECT add_compression_policy('iiot.sensor_readings', INTERVAL '7 days', if_not_exists => TRUE)`)
+  // Compress raw data after 30 days (per spec 4.4)
+  yield* sql.unsafe(`SELECT add_compression_policy('iiot.sensor_readings', INTERVAL '30 days', if_not_exists => TRUE)`)
 
-  // Drop raw data after 30 days (aggregates preserved longer)
-  yield* sql.unsafe(`SELECT add_retention_policy('iiot.sensor_readings', INTERVAL '30 days', if_not_exists => TRUE)`)
+  // Retain raw data for 2 years (per spec 4.4)
+  yield* sql.unsafe(`SELECT add_retention_policy('iiot.sensor_readings', INTERVAL '2 years', if_not_exists => TRUE)`)
+})
+
+/**
+ * Enables compression and retention policies on continuous aggregates.
+ * Per spec 4.4 Storage Architecture:
+ * - readings_1min: compress after 90 days, retain 1 year
+ * - readings_1hour: retain 5 years (no compression specified)
+ * - readings_1day: retain forever (no policy needed)
+ */
+export const createAggregateRetentionPolicies = Effect.gen(function* () {
+  const sql = yield* SqlClient.SqlClient
+
+  // -------------------------------------------------------------------------
+  // readings_1min: compress after 90 days, retain 1 year
+  // -------------------------------------------------------------------------
+
+  // Enable compression on the underlying hypertable of the continuous aggregate
+  // Note: Continuous aggregates in TimescaleDB 2.x+ support compression via
+  // ALTER MATERIALIZED VIEW ... SET (timescaledb.compress = true)
+  yield* sql.unsafe(`
+    ALTER MATERIALIZED VIEW iiot.readings_1min SET (
+      timescaledb.compress = true
+    )
+  `)
+
+  yield* sql.unsafe(`SELECT add_compression_policy('iiot.readings_1min', INTERVAL '90 days', if_not_exists => TRUE)`)
+  yield* sql.unsafe(`SELECT add_retention_policy('iiot.readings_1min', INTERVAL '1 year', if_not_exists => TRUE)`)
+
+  // -------------------------------------------------------------------------
+  // readings_1hour: retain 5 years (no compression per spec)
+  // -------------------------------------------------------------------------
+  yield* sql.unsafe(`SELECT add_retention_policy('iiot.readings_1hour', INTERVAL '5 years', if_not_exists => TRUE)`)
+
+  // -------------------------------------------------------------------------
+  // readings_1day: retain forever (no retention policy = forever)
+  // -------------------------------------------------------------------------
+  // No action needed - absence of retention policy means data is kept forever
 })

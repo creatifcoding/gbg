@@ -28,9 +28,9 @@ import { CreatedAt, UpdatedAt } from '../_common'
  * FK: plantId → iiot.plants(id)
  */
 export class LineModel extends Model.Class<LineModel>('LineModel')({
-  // Derived from Line.fields - direct reuse
-  name: Line.fields.name,
-  plantId: Line.fields.plantId,
+  // Derived from Line.Schema.fields - accessing schema via namespace
+  name: Line.Schema.fields.name,
+  plantId: Line.Schema.fields.plantId,
 
   // Derived with Model-specific transforms
   id: Model.GeneratedByApp(LineId),  // Add GeneratedByApp modifier
