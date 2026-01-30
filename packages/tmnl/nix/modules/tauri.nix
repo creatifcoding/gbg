@@ -119,6 +119,10 @@
               export WEBKIT_DISABLE_COMPOSITING_MODE=1
             fi
 
+            # Enable Rust debug logging for window pooling
+            export RUST_LOG="''${RUST_LOG:-tmnl=debug}"
+            echo "[tmnl tauri-dev] RUST_LOG=$RUST_LOG"
+
             cd "$FLAKE_ROOT"
             echo "[tmnl tauri-dev] bun run tauri:dev"
             bun run tauri:dev
@@ -147,6 +151,10 @@
               echo "[WSLg detected] Setting WEBKIT_DISABLE_COMPOSITING_MODE=1"
               export WEBKIT_DISABLE_COMPOSITING_MODE=1
             fi
+
+            # Enable Rust debug logging for window pooling
+            export RUST_LOG="''${RUST_LOG:-tmnl=debug}"
+            echo "[tmnl tauri-dev-both] RUST_LOG=$RUST_LOG"
 
             cd "$FLAKE_ROOT"
             echo "[tmnl tauri-dev-both] bun run tauri:dev:both"
