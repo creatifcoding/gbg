@@ -35,3 +35,4 @@ ignore = "0.4"
 
 [dev-dependencies]
 tempfile = "3"
+url = "2"  # For URL parsing tests

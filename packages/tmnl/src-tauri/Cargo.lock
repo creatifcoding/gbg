@@ -4753,6 +4753,7 @@ dependencies = [
  "tauri-plugin-log",
  "tauri-plugin-opener",
  "tempfile",
+ "url",
 ]
 
 [[package]]

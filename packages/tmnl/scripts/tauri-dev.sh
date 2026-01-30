@@ -56,6 +56,10 @@ if [ -n "$WSL_DISTRO_NAME" ]; then
   export WEBKIT_DISABLE_COMPOSITING_MODE=1
 fi
 
+# Enable Rust debug logging for window pooling and other tmnl modules
+export RUST_LOG="${RUST_LOG:-tmnl=debug}"
+echo "[tmnl] RUST_LOG=$RUST_LOG"
+
 # Start react-grab Claude Code server (detached, port 4567)
 echo "[tmnl] Starting react-grab server on port 4567..."
 bunx @react-grab/claude-code &

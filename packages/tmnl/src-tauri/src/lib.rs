@@ -88,17 +88,24 @@ pub fn run() {
             {
                 let handle = app.handle().clone();
                 std::thread::spawn(move || {
-                    // Wait for event loop to be fully running
-                    std::thread::sleep(std::time::Duration::from_millis(1000));
+                    // Wait for event loop to be running (reduced from 1000ms for faster startup)
+                    std::thread::sleep(std::time::Duration::from_millis(500));
 
                     log::info!("Initializing window pool...");
-                    // Create 1 pool window - each WebView2 instance uses ~80MB+ memory
-                    // even when hidden. Replenishment happens after each use.
-                    match window_manager::create_pool_window_from_setup(&handle) {
-                        Ok(label) => log::info!("Created pool window: {}", label),
-                        Err(e) => log::warn!("Failed to create pool window: {:?}", e),
+                    // Create pool windows - each WebView2 instance uses ~80MB+ memory
+                    // 5 windows (~400MB) provides snappy UX for rapid workflows
+                    const INIT_POOL_SIZE: usize = 5; // Match POOL_SIZE in window_manager.rs
+                    for i in 0..INIT_POOL_SIZE {
+                        match window_manager::create_pool_window_from_setup(&handle) {
+                            Ok(label) => log::info!("Created pool window {}/{}: {}", i + 1, INIT_POOL_SIZE, label),
+                            Err(e) => log::warn!("Failed to create pool window {}/{}: {:?}", i + 1, INIT_POOL_SIZE, e),
+                        }
+                        // Small delay between creations to avoid overwhelming WebView2
+                        if i < INIT_POOL_SIZE - 1 {
+                            std::thread::sleep(std::time::Duration::from_millis(100));
+                        }
                     }
-                    log::info!("Window pool initialization complete");
+                    log::info!("Window pool initialization complete ({} windows)", INIT_POOL_SIZE);
                 });
             }
 
