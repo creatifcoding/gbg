@@ -211,8 +211,9 @@ export const openTestbedWindowCommand = defineCommand(
   },
   Effect.gen(function* () {
     yield* Effect.log('window.openTestbed: Opening testbed window picker...')
-    // Open minibuffer with TestbedWindowProvider
-    minibufferOps.openCommand(TESTBED_WINDOW_PROVIDER_ID, 'Open testbed window: ')
+    // NOTE: Actual minibuffer opening handled by useGlobalHotkeys special handling
+    // The hotkey layer calls minibuffer.openCommand(TESTBED_WINDOW_PROVIDER_ID)
+    // which properly opens the drawer + sends the XState event + fetches completions
   })
 )
 
@@ -533,8 +534,6 @@ import {
   updateInsertionStatusTerminal,
 } from '@/lib/terminal/v3/atoms/map-insertion'
 import { terminalRegistry } from '@/lib/terminal/v3/terminal-stx'
-import { TESTBED_WINDOW_PROVIDER_ID } from '@/lib/tauri-windows'
-import { ops as minibufferOps } from '@/lib/minibuffer/v2'
 
 /**
  * Editor context for map insertion.

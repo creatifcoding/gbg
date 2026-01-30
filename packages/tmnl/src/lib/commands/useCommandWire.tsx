@@ -15,7 +15,7 @@ import {
   type RegistryLike,
 } from './wire'
 import { registerCommandProvider } from './CommandProvider'
-import { registerTestbedWindowProvider } from '@/lib/tauri-windows'
+import { registerTestbedWindowProvider, WindowManagerService, WindowManagerServiceDefault } from '@/lib/tauri-windows'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Error Types (Tagged for Effect.catchTag)
@@ -133,6 +133,29 @@ export function useCommandWire(options: UseCommandWireOptions = {}): UseCommandW
       if (debug) {
         yield* Effect.log('[useCommandWire] Registered CommandProvider and TestbedWindowProvider with minibuffer')
       }
+
+      // Check window pool health (diagnostic - runs after 1.5s to allow Rust pool init)
+      setTimeout(() => {
+        const checkPool = Effect.gen(function* () {
+          const svc = yield* WindowManagerService
+          const status = yield* svc.getPoolStatus()
+          console.log(`[WindowPool] 🎱 Status: ${status.available}/${status.target_size} windows available`)
+          if (status.available === 0) {
+            console.error(`[WindowPool] ❌ Pool EMPTY - fast path will not work!`)
+          } else if (status.available < status.target_size) {
+            console.warn(`[WindowPool] ⚠️ Pool partially filled (${status.available}/${status.target_size})`)
+          } else {
+            console.log(`[WindowPool] ✅ Pool healthy - fast path ready`)
+          }
+        }).pipe(
+          Effect.provide(WindowManagerServiceDefault),
+          Effect.catchAll((e) => {
+            console.warn('[WindowPool] Could not check pool status:', e)
+            return Effect.void
+          })
+        )
+        Effect.runPromise(checkPool)
+      }, 1500)
 
       // Then wire commands to hotkey system
       const wireResult = yield* wireCommandsEffect(registry as RegistryLike)

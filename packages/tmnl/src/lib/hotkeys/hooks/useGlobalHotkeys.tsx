@@ -21,6 +21,7 @@ import { useAtomValue } from "@effect-atom/atom-react"
 import { Effect } from "effect"
 import { useMinibuffer } from "@/lib/minibuffer"
 import { useCommandWire } from "@/lib/commands"
+import { TESTBED_WINDOW_PROVIDER_ID } from "@/lib/tauri-windows"
 import {
   sequenceSourceAtom,
   scopedBindingsAtom,
@@ -47,6 +48,7 @@ const SPECIAL_COMMANDS = {
   SETTINGS: "system.settings",
   TERMINAL_PANEL: "system.toggleTerminalPanel",
   MINIBUFFER_CANCEL: "minibuffer.cancel",
+  OPEN_TESTBED_WINDOW: "window.openTestbed",
 } as const
 
 /**
@@ -79,6 +81,7 @@ const BROWSER_SHORTCUTS_TO_BLOCK = new Set([
 
   // Tab/Window management (intercept for app use)
   "ctrl+n",          // New window
+  "ctrl+shift+n",    // New incognito / our testbed window picker
   "ctrl+t",          // New tab
   "ctrl+w",          // Close tab
   "ctrl+shift+t",    // Reopen tab
@@ -268,6 +271,13 @@ export function useGlobalHotkeys(options: UseGlobalHotkeysOptions = {}): UseGlob
         } else {
           await minibuffer.cancel()
         }
+        return
+      }
+
+      // Special handling for testbed window picker (Ctrl+Shift+N)
+      // Opens minibuffer with TestbedWindowProvider
+      if (commandId === SPECIAL_COMMANDS.OPEN_TESTBED_WINDOW) {
+        minibuffer.openCommand(TESTBED_WINDOW_PROVIDER_ID)
         return
       }
 
