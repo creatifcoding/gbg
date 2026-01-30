@@ -9,11 +9,60 @@
  */
 
 import { useSearch } from '@tanstack/react-router'
-import { Suspense, lazy, useMemo, useEffect, useState } from 'react'
+import { Suspense, lazy, useMemo, useEffect, useState, useRef } from 'react'
 import { Effect } from 'effect'
 import { getTestbedById, getWindowLabel } from '@/lib/testbed/registry'
 import { WindowLayout, WindowHeaderContent } from '@/components/shell'
 import { getCurrentWindowLabel } from '@/lib/tauri-windows'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Performance Measurement
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PERF_ENABLED = true // Set to false in production
+
+interface PerfMetrics {
+  navigationStart: number
+  routeMount: number
+  testbedResolved: number
+  suspenseStart: number
+  testbedMounted: number
+}
+
+function logPerf(label: string, startTime: number) {
+  if (!PERF_ENABLED) return
+  const elapsed = performance.now() - startTime
+  console.log(`[WindowRoute:Perf] ${label}: ${elapsed.toFixed(1)}ms`)
+}
+
+/**
+ * Hook to track when a component actually mounts (not just renders)
+ */
+function useOnMount(callback: () => void) {
+  const hasRun = useRef(false)
+  useEffect(() => {
+    if (!hasRun.current) {
+      hasRun.current = true
+      callback()
+    }
+  }, [callback])
+}
+
+/**
+ * Wrapper to track testbed mount time
+ */
+function TestbedPerfWrapper({
+  children,
+  testbedId,
+  onMount
+}: {
+  children: React.ReactNode
+  testbedId: string
+  onMount: () => void
+}) {
+  useOnMount(onMount)
+  return <>{children}</>
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Lazy Component Map
@@ -131,14 +180,29 @@ function TestbedNotFound({ testbedId }: { testbedId: string }) {
  * - Looks up testbed in registry for metadata
  * - Lazy-loads the testbed component
  * - Wraps in WindowLayout with WindowHeaderContent
+ * - Performance tracking (when PERF_ENABLED=true)
  *
  * Used by child Tauri windows opened via:
  * - Cmd+Shift+N quick-switcher
  * - WindowManagerService.createTestbedWindow()
  */
 export function WindowRoute() {
+  // Performance tracking - capture navigation timestamp
+  const navStartRef = useRef(performance.now())
+  const perfMetricsRef = useRef<Partial<PerfMetrics>>({
+    navigationStart: navStartRef.current
+  })
+
   const search = useSearch({ from: '/window' }) as WindowSearchParams
   const testbedId = search.testbed
+
+  // Track route mount
+  useEffect(() => {
+    if (PERF_ENABLED) {
+      perfMetricsRef.current.routeMount = performance.now()
+      logPerf('Route mounted', navStartRef.current)
+    }
+  }, [])
 
   // Get window label for display (optional, doesn't affect functionality)
   const [windowLabel, setWindowLabel] = useState<string | undefined>(undefined)
@@ -159,8 +223,28 @@ export function WindowRoute() {
     const entry = getTestbedById(testbedId)
     if (!entry) return null
 
+    // Track testbed resolution
+    if (PERF_ENABLED) {
+      perfMetricsRef.current.testbedResolved = performance.now()
+      logPerf(`Testbed "${testbedId}" resolved`, navStartRef.current)
+    }
+
     // Get lazy component
     return TESTBED_COMPONENTS[testbedId] ?? null
+  }, [testbedId])
+
+  // Callback when testbed actually mounts
+  const handleTestbedMount = useMemo(() => () => {
+    if (PERF_ENABLED && testbedId) {
+      perfMetricsRef.current.testbedMounted = performance.now()
+      const total = performance.now() - navStartRef.current
+      console.log(`[WindowRoute:Perf] ✅ Testbed "${testbedId}" READY in ${total.toFixed(0)}ms`)
+      console.log(`[WindowRoute:Perf] Breakdown:`, {
+        routeMount: `${(perfMetricsRef.current.routeMount! - navStartRef.current).toFixed(0)}ms`,
+        testbedResolved: `${(perfMetricsRef.current.testbedResolved! - navStartRef.current).toFixed(0)}ms`,
+        testbedMounted: `${total.toFixed(0)}ms (total)`
+      })
+    }
   }, [testbedId])
 
   // No testbed specified - show empty state in WindowLayout
@@ -212,7 +296,9 @@ export function WindowRoute() {
       }
     >
       <Suspense fallback={<TestbedLoading />}>
-        <TestbedComponent />
+        <TestbedPerfWrapper testbedId={testbedId} onMount={handleTestbedMount}>
+          <TestbedComponent />
+        </TestbedPerfWrapper>
       </Suspense>
     </WindowLayout>
   )

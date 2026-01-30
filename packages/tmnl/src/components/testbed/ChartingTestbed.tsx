@@ -1,417 +1,673 @@
 /**
- * TMNL Charting Testbed
- *
- * Demonstrates Chart.make({}) API with multiple chart types.
+ * TMNL Charting Testbed (v2)
  *
  * Route: /testbed/charting
  */
 
-import { useEffect, useState } from "react"
-import { Link } from "@tanstack/react-router"
-import { ArrowLeft, LineChart, BarChart3, ScatterChart, Activity, Layers } from "lucide-react"
 import {
-  Chart,
-  useChart,
-  useLineChart,
-  generateSignal,
-  generateDualSignal,
-  RingBuffer,
-  RealtimeSignalGenerator,
-  CHART_TOKENS,
-  SubgraphView,
-  type ChartSeries,
-} from "@/lib/charting/v1"
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { Link } from '@tanstack/react-router';
 import {
-  VantaCard,
-  VANTA_COLORS,
-  VANTA_TYPOGRAPHY,
-} from "@/components/portal"
-import { SectionLabel } from "@/components/testbed/shared"
+  Activity,
+  ArrowLeft,
+  BarChart3,
+  Cpu,
+  Gauge,
+  LineChart,
+  ScatterChart,
+} from 'lucide-react';
+import { Cause, Effect, Exit } from 'effect';
+import { useAtomSet, useAtomValue } from '@effect-atom/atom-react';
+import type { ChartSeries, ChartSpec, ChartState } from '@/lib/charting/v2';
+import {
+  chartingRuntimeAtom,
+  chartInstanceFamily,
+  chartInstancesAtom,
+  chartOps,
+  chartReleasesAtom,
+  chartSpecsAtom,
+  chartStateFamily,
+  chartStateSubscriptionsAtom,
+  chartStatesAtom,
+} from '@/lib/charting/v2';
+import { CHART_TOKENS } from '@/lib/charting/v1';
+import { VantaCard, VANTA_COLORS, VANTA_TYPOGRAPHY } from '@/components/portal';
+import { SectionLabel } from '@/components/testbed/shared';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Case 1: Basic Line Chart with useChart hook
-// ─────────────────────────────────────────────────────────────────────────────
+type ExitPromise = Promise<Exit.Exit<unknown, unknown>>;
 
-function Case1_LineChart() {
-  const { containerRef, state, setData } = useChart({
-    config: {
-      id: "case1-line",
-      kind: Chart.Kind.Line,
-      renderer: Chart.Renderer.ECharts,
-      height: 280,
-    },
-  })
+type ErrorState = {
+  context: string;
+  message: string;
+};
 
-  useEffect(() => {
-    if (state === Chart.State.Ready) {
-      const data = generateSignal({
-        pointCount: 100,
-        frequency: 2,
-        amplitude: 1,
-        noise: 0.1,
-      })
-      setData(data)
-    }
-  }, [state, setData])
+const chartSurfaceStyle = {
+  width: '100%',
+  height: 280,
+  background: CHART_TOKENS.colors.chartBackground,
+  marginTop: 12,
+  borderRadius: 8,
+  border: `1px solid ${CHART_TOKENS.colors.chartBorder}`,
+};
 
-  return (
-    <VantaCard variant="default" corners>
-      <VantaCard.Header>
-        <div className="flex items-center gap-2">
-          <LineChart size={14} style={{ color: VANTA_COLORS.accent.cyan }} />
-          <VantaCard.Title>LINE CHART</VantaCard.Title>
-        </div>
-        <VantaCard.Indicator status={state === Chart.State.Ready ? "active" : "pending"} />
-      </VantaCard.Header>
-      <VantaCard.Subtitle>useChart hook with generateSignal</VantaCard.Subtitle>
-      <div
-        ref={containerRef}
-        style={{
-          width: "100%",
-          height: 280,
-          background: CHART_TOKENS.colors.chartBackground,
-          marginTop: 12,
-        }}
-      />
-    </VantaCard>
-  )
+const resolveIndicator = (state: ChartState) => {
+  switch (state) {
+    case 'READY':
+    case 'STREAMING':
+      return { status: 'active' as const, label: state };
+    case 'LOADING':
+      return { status: 'pending' as const, label: state };
+    case 'ERROR':
+      return { status: 'error' as const, label: state };
+    case 'DISPOSED':
+      return { status: 'inactive' as const, label: state };
+    case 'PAUSED':
+      return { status: 'idle' as const, label: state };
+    case 'UNINITIALIZED':
+    default:
+      return { status: 'idle' as const, label: state };
+  }
+};
+
+function ChartRuntimeMount() {
+  useAtomValue(chartingRuntimeAtom);
+  useAtomValue(chartInstancesAtom);
+  useAtomValue(chartSpecsAtom);
+  useAtomValue(chartStatesAtom);
+  useAtomValue(chartReleasesAtom);
+  useAtomValue(chartStateSubscriptionsAtom);
+  return null;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Case 2: Shorthand Hook (useLineChart)
-// ─────────────────────────────────────────────────────────────────────────────
+const makeSignalSeries = (params: {
+  pointCount: number;
+  frequency: number;
+  amplitude: number;
+  noise?: number;
+  phase?: number;
+}): ChartSeries => {
+  const { pointCount, frequency, amplitude, noise = 0, phase = 0 } = params;
+  return Array.from({ length: pointCount }, (_, i) => {
+    const t = i;
+    const theta = (i / pointCount) * Math.PI * 2 * frequency + phase;
+    const jitter = noise ? (Math.random() - 0.5) * noise : 0;
+    return { t, x: t, y: amplitude * Math.sin(theta) + jitter };
+  });
+};
 
-function Case2_ShorthandHook() {
-  const { containerRef, state, setData } = useLineChart("case2-shorthand", {
-    height: 280,
-  })
+const makeBarSeries = (): ChartSeries =>
+  [120, 200, 150, 80, 190, 130].map((y, i) => ({
+    t: i,
+    x: i,
+    y,
+  }));
 
-  useEffect(() => {
-    if (state === Chart.State.Ready) {
-      const { wave1 } = generateDualSignal(
-        { pointCount: 100, frequency: 3, amplitude: 0.8 },
-        { pointCount: 100, frequency: 5, amplitude: 0.5, phase: Math.PI / 4 }
-      )
-      setData(wave1)
-    }
-  }, [state, setData])
+const makeScatterSeries = (count = 64): ChartSeries =>
+  Array.from({ length: count }, (_, i) => ({
+    t: i,
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+  }));
 
-  return (
-    <VantaCard variant="default" corners>
-      <VantaCard.Header>
-        <div className="flex items-center gap-2">
-          <Activity size={14} style={{ color: VANTA_COLORS.accent.emerald }} />
-          <VantaCard.Title>SHORTHAND HOOK</VantaCard.Title>
-        </div>
-        <VantaCard.Indicator status={state === Chart.State.Ready ? "active" : "pending"} />
-      </VantaCard.Header>
-      <VantaCard.Subtitle>useLineChart convenience wrapper</VantaCard.Subtitle>
-      <div
-        ref={containerRef}
-        style={{
-          width: "100%",
-          height: 280,
-          background: CHART_TOKENS.colors.chartBackground,
-          marginTop: 12,
-        }}
-      />
-    </VantaCard>
-  )
-}
+const makeBurstSeries = (): ChartSeries =>
+  Array.from({ length: 32 }, (_, i) => ({
+    t: i,
+    x: i,
+    y: 0.6 + Math.sin(i * 0.35) * 0.5 + Math.random() * 0.25,
+  }));
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Case 3: Real-time Streaming with RingBuffer
-// ─────────────────────────────────────────────────────────────────────────────
+const useExitRunner = (scope: string) => {
+  const [error, setError] = useState<ErrorState | null>(null);
 
-function Case3_RealtimeStream() {
-  const { containerRef, state, setData } = useChart({
-    config: {
-      id: "case3-realtime",
-      kind: Chart.Kind.Line,
-      renderer: Chart.Renderer.ECharts,
-      height: 280,
-      animate: false,
-    },
-  })
-
-  const [isStreaming, setIsStreaming] = useState(false)
-  const [fps, setFps] = useState(0)
-
-  useEffect(() => {
-    if (state !== Chart.State.Ready || !isStreaming) return
-
-    const buffer = new RingBuffer(256)
-    const generator = new RealtimeSignalGenerator(buffer)
-
-    generator.start(2, 60)
-
-    let lastTime = performance.now()
-    let frameCount = 0
-
-    const updateChart = () => {
-      if (!isStreaming) return
-
-      const snapshot = buffer.snapshot()
-      const data: ChartSeries = Array.from(snapshot.data).map((y, i) => ({
-        t: i,
-        x: i,
-        y,
-      }))
-      setData(data)
-
-      frameCount++
-      const now = performance.now()
-      if (now - lastTime >= 1000) {
-        setFps(frameCount)
-        frameCount = 0
-        lastTime = now
+  const run = useCallback(
+    async (promise: ExitPromise, action?: string) => {
+      const exit = await promise;
+      if (Exit.isFailure(exit)) {
+        const message = Cause.pretty(exit.cause);
+        const context = action ? `${scope}:${action}` : scope;
+        setError({ context, message });
+        Effect.runFork(
+          Effect.logError(`[ChartingTestbed] ${context}\n${message}`)
+        );
+        return null;
       }
+      setError(null);
+      return exit.value;
+    },
+    [scope]
+  );
 
-      requestAnimationFrame(updateChart)
+  return { error, run } as const;
+};
+
+function ErrorPanel({ error }: { error: ErrorState | null }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    if (!error) return;
+    const payload = `${error.context}\n${error.message}`;
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(payload);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
     }
+  }, [error]);
 
-    const frameId = requestAnimationFrame(updateChart)
+  if (!error) return null;
+
+  return (
+    <div
+      style={{
+        marginTop: 10,
+        padding: '10px 12px',
+        borderRadius: 8,
+        border: `1px solid ${VANTA_COLORS.accent.roseMuted}`,
+        background: 'rgba(251, 113, 133, 0.08)',
+      }}
+    >
+      <div className="flex items-center justify-between" style={{ gap: 12 }}>
+        <span
+          style={{
+            ...VANTA_TYPOGRAPHY.preset.label,
+            fontSize: 'var(--tmnl-text-xs, 12px)',
+            color: VANTA_COLORS.accent.rose,
+          }}
+        >
+          ERROR
+        </span>
+        <button
+          type="button"
+          onClick={handleCopy}
+          style={{
+            ...VANTA_TYPOGRAPHY.preset.label,
+            fontSize: 'var(--tmnl-text-xs, 12px)',
+            color: copied
+              ? VANTA_COLORS.accent.emerald
+              : VANTA_COLORS.text.muted,
+            border: `1px solid ${VANTA_COLORS.surface.border}`,
+            background: 'transparent',
+            borderRadius: 6,
+            padding: '4px 10px',
+            cursor: 'pointer',
+          }}
+        >
+          {copied ? 'COPIED' : 'COPY'}
+        </button>
+      </div>
+      <pre
+        style={{
+          marginTop: 8,
+          whiteSpace: 'pre-wrap',
+          fontFamily: VANTA_TYPOGRAPHY.family.mono,
+          fontSize: 'var(--tmnl-text-xs, 12px)',
+          color: VANTA_COLORS.text.secondary,
+          userSelect: 'text',
+        }}
+      >
+        {error.context}
+        {'\n'}
+        {error.message}
+      </pre>
+    </div>
+  );
+}
+
+const useChartActions = (spec: ChartSpec) => {
+  const state = useAtomValue(chartStateFamily(spec.id));
+  const createOp = useAtomSet(chartOps.create, { mode: 'promiseExit' });
+  const mountOp = useAtomSet(chartOps.mount, { mode: 'promiseExit' });
+  const unmountOp = useAtomSet(chartOps.unmount, { mode: 'promiseExit' });
+  const disposeOp = useAtomSet(chartOps.dispose, { mode: 'promiseExit' });
+  const setDataOp = useAtomSet(chartOps.setData, { mode: 'promiseExit' });
+  const appendDataOp = useAtomSet(chartOps.appendData, { mode: 'promiseExit' });
+  const clearDataOp = useAtomSet(chartOps.clearData, { mode: 'promiseExit' });
+  const { error, run } = useExitRunner(spec.id);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const create = useCallback(
+    () => run(createOp(spec), 'create'),
+    [createOp, run, spec]
+  );
+  const mount = useCallback(
+    (container: HTMLElement | null) =>
+      container ? run(mountOp({ id: spec.id, container }), 'mount') : null,
+    [mountOp, run, spec.id]
+  );
+  const unmount = useCallback(
+    () => run(unmountOp(spec.id), 'unmount'),
+    [run, unmountOp, spec.id]
+  );
+  const dispose = useCallback(
+    () => run(disposeOp(spec.id), 'dispose'),
+    [disposeOp, run, spec.id]
+  );
+  const setData = useCallback(
+    (data: ChartSeries) => run(setDataOp({ id: spec.id, data }), 'setData'),
+    [run, setDataOp, spec.id]
+  );
+  const appendData = useCallback(
+    (data: ChartSeries) =>
+      run(appendDataOp({ id: spec.id, data }), 'appendData'),
+    [appendDataOp, run, spec.id]
+  );
+  const clearData = useCallback(
+    () => run(clearDataOp(spec.id), 'clearData'),
+    [clearDataOp, run, spec.id]
+  );
+
+  return {
+    state,
+    error,
+    containerRef,
+    create,
+    mount,
+    unmount,
+    dispose,
+    setData,
+    appendData,
+    clearData,
+  } as const;
+};
+
+const useAutoChart = (spec: ChartSpec, initialData?: ChartSeries) => {
+  const actions = useChartActions(spec);
+  const { create, mount, dispose, containerRef, state, setData } = actions;
+
+  useEffect(() => {
+    let active = true;
+
+    const start = async () => {
+      await create();
+      if (!active) return;
+      await mount(containerRef.current);
+    };
+
+    void start();
 
     return () => {
-      generator.stop()
-      cancelAnimationFrame(frameId)
+      active = false;
+      void dispose();
+    };
+  }, [containerRef, create, dispose, mount]);
+
+  useEffect(() => {
+    if (state === 'READY' && initialData) {
+      void setData(initialData);
     }
-  }, [state, isStreaming, setData])
+  }, [initialData, setData, state]);
+
+  return actions;
+};
+
+function LifecycleOpsCard() {
+  const spec = useMemo<ChartSpec>(
+    () => ({
+      id: 'chart-life-cycle',
+      kind: 'LINE',
+      renderer: 'ECHARTS',
+      title: 'Lifecycle Probe',
+      projection: 'TY',
+      strokeWidth: 2,
+    }),
+    []
+  );
+
+  const signal = useMemo(
+    () =>
+      makeSignalSeries({
+        pointCount: 128,
+        frequency: 2,
+        amplitude: 0.9,
+        noise: 0.1,
+      }),
+    []
+  );
+  const burst = useMemo(() => makeBurstSeries(), []);
+  const actions = useChartActions(spec);
+  const indicator = resolveIndicator(actions.state);
+  const instance = useAtomValue(chartInstanceFamily(spec.id));
+  const hasInstance = Boolean(instance);
 
   return (
-    <VantaCard variant="elevated" corners glow glowColor={isStreaming ? "emerald" : "neutral"}>
+    <VantaCard variant="elevated" corners glow glowColor="cyan">
       <VantaCard.Header>
         <div className="flex items-center gap-2">
-          <Activity size={14} style={{ color: isStreaming ? VANTA_COLORS.accent.emerald : VANTA_COLORS.text.muted }} />
-          <VantaCard.Title>REALTIME STREAM</VantaCard.Title>
+          <Cpu size={14} style={{ color: VANTA_COLORS.accent.cyan }} />
+          <VantaCard.Title>LIFECYCLE + OPS</VantaCard.Title>
         </div>
-        <VantaCard.Indicator status={isStreaming ? "active" : "inactive"} label={isStreaming ? `${fps} FPS` : "IDLE"} />
+        <VantaCard.Indicator
+          status={indicator.status}
+          label={indicator.label}
+        />
       </VantaCard.Header>
-      <VantaCard.Subtitle>RingBuffer + RealtimeSignalGenerator</VantaCard.Subtitle>
-      <div
-        ref={containerRef}
-        style={{
-          width: "100%",
-          height: 280,
-          background: CHART_TOKENS.colors.chartBackground,
-          marginTop: 12,
-        }}
-      />
+      <VantaCard.Subtitle>
+        Create → Mount → Update → Unmount → Dispose (ECharts)
+      </VantaCard.Subtitle>
+      <div ref={actions.containerRef} style={chartSurfaceStyle} />
+      <ErrorPanel error={actions.error} />
       <VantaCard.Divider />
       <VantaCard.Actions>
         <VantaCard.Action
-          variant={isStreaming ? "ghost" : "primary"}
-          onClick={() => setIsStreaming(!isStreaming)}
+          variant="primary"
+          onClick={() => void actions.create()}
         >
-          {isStreaming ? "STOP" : "START STREAM"}
+          {hasInstance ? 'RECREATE' : 'CREATE'}
+        </VantaCard.Action>
+        <VantaCard.Action
+          variant="ghost"
+          onClick={() => void actions.mount(actions.containerRef.current)}
+          disabled={!hasInstance}
+        >
+          MOUNT
+        </VantaCard.Action>
+        <VantaCard.Action
+          variant="ghost"
+          onClick={() => void actions.unmount()}
+        >
+          UNMOUNT
+        </VantaCard.Action>
+        <VantaCard.Action
+          variant="ghost"
+          onClick={() => void actions.dispose()}
+          disabled={!hasInstance}
+        >
+          DISPOSE
+        </VantaCard.Action>
+      </VantaCard.Actions>
+      <VantaCard.Actions>
+        <VantaCard.Action
+          variant="ghost"
+          onClick={() => void actions.setData(signal)}
+          disabled={!hasInstance}
+        >
+          SET DATA
+        </VantaCard.Action>
+        <VantaCard.Action
+          variant="ghost"
+          onClick={() => void actions.appendData(burst)}
+          disabled={!hasInstance}
+        >
+          APPEND BURST
+        </VantaCard.Action>
+        <VantaCard.Action
+          variant="ghost"
+          onClick={() => void actions.clearData()}
+          disabled={!hasInstance}
+        >
+          CLEAR
         </VantaCard.Action>
       </VantaCard.Actions>
     </VantaCard>
-  )
+  );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Case 4: Bar Chart
-// ─────────────────────────────────────────────────────────────────────────────
-
-function Case4_BarChart() {
-  const { containerRef, state, setData } = useChart({
-    config: {
-      id: "case4-bar",
-      kind: Chart.Kind.Bar,
-      renderer: Chart.Renderer.ECharts,
-      height: 280,
-    },
-  })
-
-  useEffect(() => {
-    if (state === Chart.State.Ready) {
-      const data: ChartSeries = [
-        { t: 0, x: 0, y: 120, series: "A" },
-        { t: 1, x: 1, y: 200, series: "A" },
-        { t: 2, x: 2, y: 150, series: "A" },
-        { t: 3, x: 3, y: 80, series: "A" },
-        { t: 4, x: 4, y: 190, series: "A" },
-        { t: 5, x: 5, y: 130, series: "A" },
-      ]
-      setData(data)
-    }
-  }, [state, setData])
+function SignalGalleryCard(props: {
+  spec: ChartSpec;
+  title: string;
+  subtitle: string;
+  icon: ReactNode;
+  data: ChartSeries;
+}) {
+  const { spec, title, subtitle, icon, data } = props;
+  const actions = useAutoChart(spec, data);
+  const indicator = resolveIndicator(actions.state);
 
   return (
     <VantaCard variant="default" corners>
       <VantaCard.Header>
         <div className="flex items-center gap-2">
-          <BarChart3 size={14} style={{ color: VANTA_COLORS.accent.amber }} />
-          <VantaCard.Title>BAR CHART</VantaCard.Title>
+          {icon}
+          <VantaCard.Title>{title}</VantaCard.Title>
         </div>
-        <VantaCard.Indicator status={state === Chart.State.Ready ? "active" : "pending"} />
-      </VantaCard.Header>
-      <VantaCard.Subtitle>Chart.Kind.Bar with static data</VantaCard.Subtitle>
-      <div
-        ref={containerRef}
-        style={{
-          width: "100%",
-          height: 280,
-          background: CHART_TOKENS.colors.chartBackground,
-          marginTop: 12,
-        }}
-      />
-    </VantaCard>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Case 5: Scatter Chart
-// ─────────────────────────────────────────────────────────────────────────────
-
-function Case5_ScatterChart() {
-  const { containerRef, state, setData } = useChart({
-    config: {
-      id: "case5-scatter",
-      kind: Chart.Kind.Scatter,
-      renderer: Chart.Renderer.ECharts,
-      height: 280,
-      projection: Chart.Projections.XY,
-    },
-  })
-
-  useEffect(() => {
-    if (state === Chart.State.Ready) {
-      const data: ChartSeries = Array.from({ length: 50 }, (_, i) => ({
-        t: i,
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-      }))
-      setData(data)
-    }
-  }, [state, setData])
-
-  return (
-    <VantaCard variant="default" corners>
-      <VantaCard.Header>
-        <div className="flex items-center gap-2">
-          <ScatterChart size={14} style={{ color: VANTA_COLORS.accent.rose }} />
-          <VantaCard.Title>SCATTER CHART</VantaCard.Title>
-        </div>
-        <VantaCard.Indicator status={state === Chart.State.Ready ? "active" : "pending"} />
-      </VantaCard.Header>
-      <VantaCard.Subtitle>XY projection with random data</VantaCard.Subtitle>
-      <div
-        ref={containerRef}
-        style={{
-          width: "100%",
-          height: 280,
-          background: CHART_TOKENS.colors.chartBackground,
-          marginTop: 12,
-        }}
-      />
-    </VantaCard>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Case 6: SubgraphView (Multi-Chart Grid)
-// ─────────────────────────────────────────────────────────────────────────────
-
-function Case6_SubgraphView() {
-  const channels = [
-    { id: "ch1", title: "CHANNEL 1", kind: "line" as const, frequency: 2, color: CHART_TOKENS.colors.waveGreen },
-    { id: "ch2", title: "CHANNEL 2", kind: "line" as const, frequency: 3, color: CHART_TOKENS.colors.waveAmber },
-    { id: "ch3", title: "CHANNEL 3", kind: "line" as const, frequency: 5, color: CHART_TOKENS.colors.waveCyan },
-    { id: "ch4", title: "CHANNEL 4", kind: "bar" as const, frequency: 1, color: CHART_TOKENS.colors.waveRed },
-  ]
-
-  return (
-    <VantaCard variant="elevated" corners glow glowColor="cyan" className="col-span-2">
-      <VantaCard.Header>
-        <div className="flex items-center gap-2">
-          <Layers size={14} style={{ color: VANTA_COLORS.accent.cyan }} />
-          <VantaCard.Title>SUBGRAPH VIEW</VantaCard.Title>
-        </div>
-        <VantaCard.Indicator status="active" label="4 CH" />
-      </VantaCard.Header>
-      <VantaCard.Subtitle>Multi-channel oscilloscope display</VantaCard.Subtitle>
-      <div style={{ marginTop: 12 }}>
-        <SubgraphView
-          channels={channels}
-          columns={2}
-          rowHeight={180}
-          streaming={false}
-          streamFps={30}
-          bufferSize={256}
+        <VantaCard.Indicator
+          status={indicator.status}
+          label={indicator.label}
         />
-      </div>
-    </VantaCard>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// API Reference Card
-// ─────────────────────────────────────────────────────────────────────────────
-
-function APIReferenceCard() {
-  return (
-    <VantaCard variant="ghost">
-      <VantaCard.Header>
-        <VantaCard.Title>API REFERENCE</VantaCard.Title>
       </VantaCard.Header>
-      <pre
-        style={{
-          ...VANTA_TYPOGRAPHY.preset.micro,
-          color: VANTA_COLORS.text.secondary,
-          whiteSpace: "pre-wrap",
-          lineHeight: 1.6,
-        }}
-      >
-{`// Factory API
-const chart = Chart.make({
-  id: "my-chart",
-  kind: Chart.Kind.Line,
-  renderer: Chart.Renderer.ECharts,
-})
-
-// Shorthand
-const line = Chart.line({ id: "line-1" })
-const bar = Chart.bar({ id: "bar-1" })
-
-// React hook
-const { containerRef, setData } = useChart({
-  config: { id: "chart", ... }
-})
-
-// Signal generators
-const data = generateSignal({
-  pointCount: 512,
-  frequency: 2,
-})
-
-// Real-time streaming
-const buffer = new RingBuffer(256)
-const gen = new RealtimeSignalGenerator(buffer)
-gen.start(2, 60) // 2Hz @ 60fps`}
-      </pre>
+      <VantaCard.Subtitle>{subtitle}</VantaCard.Subtitle>
+      <div ref={actions.containerRef} style={chartSurfaceStyle} />
+      <ErrorPanel error={actions.error} />
     </VantaCard>
-  )
+  );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Main Testbed
-// ─────────────────────────────────────────────────────────────────────────────
+function StreamingSciChartCard() {
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [fps, setFps] = useState(0);
+  const [pointCount, setPointCount] = useState(512);
+  const [targetFps, setTargetFps] = useState(45);
+
+  const spec = useMemo<ChartSpec>(
+    () => ({
+      id: 'chart-sci-stream',
+      kind: 'LINE',
+      renderer: 'SCICHART',
+      title: 'SciChart Streaming',
+      projection: 'TY',
+      strokeWidth: 2,
+    }),
+    []
+  );
+
+  const actions = useAutoChart(spec);
+  const indicator = resolveIndicator(actions.state);
+  const seriesRef = useRef<ChartSeries>([]);
+  const tickRef = useRef(0);
+  const frameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (actions.state !== 'READY' || !isStreaming) return;
+
+    let active = true;
+    let lastFrame = performance.now();
+    let frameCount = 0;
+    let lastSecond = performance.now();
+
+    const loop = (now: number) => {
+      if (!active) return;
+      const frameInterval = 1000 / targetFps;
+
+      if (now - lastFrame >= frameInterval) {
+        lastFrame = now;
+        const t = tickRef.current;
+        const y =
+          Math.sin(t * 0.08) * 0.9 +
+          Math.sin(t * 0.015) * 0.6 +
+          (Math.random() - 0.5) * 0.12;
+        const next = [...seriesRef.current, { t, x: t, y }];
+        seriesRef.current =
+          next.length > pointCount
+            ? next.slice(next.length - pointCount)
+            : next;
+        tickRef.current += 1;
+
+        void actions.setData(seriesRef.current);
+        frameCount += 1;
+      }
+
+      if (now - lastSecond >= 1000) {
+        setFps(frameCount);
+        frameCount = 0;
+        lastSecond = now;
+      }
+
+      frameRef.current = requestAnimationFrame(loop);
+    };
+
+    frameRef.current = requestAnimationFrame(loop);
+
+    return () => {
+      active = false;
+      if (frameRef.current) {
+        cancelAnimationFrame(frameRef.current);
+      }
+      frameRef.current = null;
+      void actions.clearData();
+    };
+  }, [actions, isStreaming, pointCount, targetFps]);
+
+  return (
+    <VantaCard
+      variant="elevated"
+      corners
+      glow
+      glowColor={isStreaming ? 'emerald' : 'cyan'}
+      className="col-span-2"
+    >
+      <VantaCard.Header>
+        <div className="flex items-center gap-2">
+          <Gauge size={14} style={{ color: VANTA_COLORS.accent.emerald }} />
+          <VantaCard.Title>STREAMING STRESS (SCICHART)</VantaCard.Title>
+        </div>
+        <VantaCard.Indicator
+          status={isStreaming ? 'active' : indicator.status}
+          label={isStreaming ? `${fps} FPS` : indicator.label}
+        />
+      </VantaCard.Header>
+      <VantaCard.Subtitle>
+        Adaptive stream loop with SciChart renderer
+      </VantaCard.Subtitle>
+      <div ref={actions.containerRef} style={chartSurfaceStyle} />
+      <ErrorPanel error={actions.error} />
+      <VantaCard.Divider />
+      <VantaCard.Actions>
+        <VantaCard.Action
+          variant={isStreaming ? 'ghost' : 'primary'}
+          onClick={() => setIsStreaming((prev) => !prev)}
+        >
+          {isStreaming ? 'STOP STREAM' : 'START STREAM'}
+        </VantaCard.Action>
+        <VantaCard.Action
+          variant="ghost"
+          onClick={() => void actions.clearData()}
+        >
+          CLEAR
+        </VantaCard.Action>
+      </VantaCard.Actions>
+      <VantaCard.Actions>
+        <label
+          style={{
+            ...VANTA_TYPOGRAPHY.preset.label,
+            color: VANTA_COLORS.text.muted,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          POINTS
+          <input
+            type="number"
+            min={128}
+            max={2048}
+            value={pointCount}
+            onChange={(event) => setPointCount(Number(event.target.value))}
+            style={{
+              width: 96,
+              padding: '6px 8px',
+              borderRadius: 6,
+              border: `1px solid ${VANTA_COLORS.surface.border}`,
+              background: VANTA_COLORS.surface.raised,
+              color: VANTA_COLORS.text.primary,
+              fontSize: 'var(--tmnl-text-xs, 12px)',
+            }}
+          />
+        </label>
+        <label
+          style={{
+            ...VANTA_TYPOGRAPHY.preset.label,
+            color: VANTA_COLORS.text.muted,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          TARGET FPS
+          <input
+            type="number"
+            min={15}
+            max={120}
+            value={targetFps}
+            onChange={(event) => setTargetFps(Number(event.target.value))}
+            style={{
+              width: 96,
+              padding: '6px 8px',
+              borderRadius: 6,
+              border: `1px solid ${VANTA_COLORS.surface.border}`,
+              background: VANTA_COLORS.surface.raised,
+              color: VANTA_COLORS.text.primary,
+              fontSize: 'var(--tmnl-text-xs, 12px)',
+            }}
+          />
+        </label>
+      </VantaCard.Actions>
+    </VantaCard>
+  );
+}
 
 export function ChartingTestbed() {
+  const lineSpec = useMemo<ChartSpec>(
+    () => ({
+      id: 'chart-gallery-line',
+      kind: 'LINE',
+      renderer: 'ECHARTS',
+      title: 'Signal Line',
+      projection: 'TY',
+      strokeWidth: 2,
+    }),
+    []
+  );
+  const barSpec = useMemo<ChartSpec>(
+    () => ({
+      id: 'chart-gallery-bar',
+      kind: 'BAR',
+      renderer: 'ECHARTS',
+      title: 'Load Bars',
+      projection: 'TY',
+    }),
+    []
+  );
+  const scatterSpec = useMemo<ChartSpec>(
+    () => ({
+      id: 'chart-gallery-scatter',
+      kind: 'SCATTER',
+      renderer: 'ECHARTS',
+      title: 'Noise Scatter',
+      projection: 'XY',
+    }),
+    []
+  );
+
+  const lineSeries = useMemo(
+    () =>
+      makeSignalSeries({
+        pointCount: 160,
+        frequency: 2.6,
+        amplitude: 0.8,
+        noise: 0.12,
+      }),
+    []
+  );
+  const barSeries = useMemo(() => makeBarSeries(), []);
+  const scatterSeries = useMemo(() => makeScatterSeries(72), []);
+
   return (
     <div
       className="min-h-screen w-screen"
       style={{ backgroundColor: VANTA_COLORS.surface.void }}
     >
-      {/* Header */}
+      <ChartRuntimeMount />
       <header
         className="border-b sticky top-0 z-10"
         style={{
           borderColor: VANTA_COLORS.surface.border,
-          backgroundColor: "rgba(0, 0, 0, 0.8)",
-          backdropFilter: "blur(8px)",
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          backdropFilter: 'blur(8px)',
         }}
       >
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -437,24 +693,14 @@ export function ChartingTestbed() {
                 style={{
                   ...VANTA_TYPOGRAPHY.preset.micro,
                   color: VANTA_COLORS.text.muted,
-                  marginTop: "2px",
+                  marginTop: '2px',
                 }}
               >
-                Chart.make({"{}"}) API • v1 experimental
+                Charting v2 • runtime + atoms • ECharts + SciChart
               </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <Link
-              to="/testbed/vanta"
-              style={{
-                ...VANTA_TYPOGRAPHY.preset.label,
-                color: VANTA_COLORS.text.muted,
-              }}
-              className="hover:text-white transition-colors"
-            >
-              VANTA
-            </Link>
             <Link
               to="/testbed/data-grid"
               style={{
@@ -486,7 +732,7 @@ export function ChartingTestbed() {
                   color: VANTA_COLORS.text.muted,
                 }}
               >
-                CHARTING v1
+                CHARTING v2
               </span>
             </div>
           </div>
@@ -494,37 +740,97 @@ export function ChartingTestbed() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-12">
-        {/* Basic Charts */}
         <section>
-          <SectionLabel variant="gradient">Basic Chart Types</SectionLabel>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Case1_LineChart />
-            <Case2_ShorthandHook />
-            <Case4_BarChart />
-            <Case5_ScatterChart />
+          <SectionLabel variant="gradient">Lifecycle + Ops</SectionLabel>
+          <div className="grid grid-cols-1 gap-6">
+            <LifecycleOpsCard />
           </div>
         </section>
 
-        {/* Streaming */}
         <section>
-          <SectionLabel variant="gradient">Real-time Streaming</SectionLabel>
-          <Case3_RealtimeStream />
+          <SectionLabel variant="gradient">Signal Gallery</SectionLabel>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <SignalGalleryCard
+              spec={lineSpec}
+              title="LINE SIGNAL"
+              subtitle="Sine + noise (TY projection)"
+              icon={
+                <LineChart
+                  size={14}
+                  style={{ color: VANTA_COLORS.accent.cyan }}
+                />
+              }
+              data={lineSeries}
+            />
+            <SignalGalleryCard
+              spec={barSpec}
+              title="BAR LOAD"
+              subtitle="Static bar series"
+              icon={
+                <BarChart3
+                  size={14}
+                  style={{ color: VANTA_COLORS.accent.amber }}
+                />
+              }
+              data={barSeries}
+            />
+            <SignalGalleryCard
+              spec={scatterSpec}
+              title="SCATTER NOISE"
+              subtitle="XY projection scatter"
+              icon={
+                <ScatterChart
+                  size={14}
+                  style={{ color: VANTA_COLORS.accent.rose }}
+                />
+              }
+              data={scatterSeries}
+            />
+          </div>
         </section>
 
-        {/* Multi-Channel */}
         <section>
-          <SectionLabel variant="gradient">Multi-Channel Display</SectionLabel>
-          <Case6_SubgraphView />
+          <SectionLabel variant="gradient">Streaming Stress</SectionLabel>
+          <div className="grid grid-cols-1 gap-6">
+            <StreamingSciChartCard />
+          </div>
         </section>
 
-        {/* API Reference */}
         <section>
           <SectionLabel variant="gradient">API Reference</SectionLabel>
-          <APIReferenceCard />
+          <VantaCard variant="ghost">
+            <VantaCard.Header>
+              <VantaCard.Title>V2 QUICKSTART</VantaCard.Title>
+            </VantaCard.Header>
+            <pre
+              style={{
+                ...VANTA_TYPOGRAPHY.preset.micro,
+                color: VANTA_COLORS.text.secondary,
+                whiteSpace: 'pre-wrap',
+                lineHeight: 1.6,
+              }}
+            >
+              {`// Create via chartOps
+const create = useAtomSet(chartOps.create, { mode: 'promiseExit' })
+await create({ id: 'chart-1', kind: 'LINE', renderer: 'ECHARTS' })
+
+// Mount when container is ready
+const mount = useAtomSet(chartOps.mount, { mode: 'promiseExit' })
+await mount({ id: 'chart-1', container })
+
+// Update data
+const setData = useAtomSet(chartOps.setData, { mode: 'promiseExit' })
+await setData({ id: 'chart-1', data })
+
+// Dispose
+const dispose = useAtomSet(chartOps.dispose, { mode: 'promiseExit' })
+await dispose('chart-1')`}
+            </pre>
+          </VantaCard>
         </section>
       </main>
     </div>
-  )
+  );
 }
 
-export default ChartingTestbed
+export default ChartingTestbed;
