@@ -14,7 +14,7 @@
     ./modules/nats/default.nix # NATS cluster (Phase 0)
     ./modules/postgres/default.nix # PostgreSQL (Phase 0)
     ./modules/worktrunk.nix # Git worktree management for parallel AI workflows
-    ./modules/ctl.nix # CLI tools (ctl + spikectl)
+    ./modules/ctl.nix # CLI tools (ctl)
     ./modules/default.nix # Unified tmnl shell
     ./modules/tests.nix # Test suite
   ];

@@ -56,8 +56,8 @@
           # Git worktree management for parallel AI workflows
           config.packages.worktrunk
 
-          # Hypothesis-driven debugging CLI
-          config.packages.spikectl
+          # DEPRECATED: spikectl removed from active configuration
+          # config.packages.spikectl
         ];
 
         inputsFrom = [

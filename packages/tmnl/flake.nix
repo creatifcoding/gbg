@@ -30,8 +30,15 @@
       url = "path:../ctl";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    spikectl = {
-      url = "path:../spikectl";
+    # DEPRECATED: spikectl removed from active configuration
+    # spikectl = {
+    #   url = "path:../spikectl";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
+
+    # Zephyr RTOS SDK (for embedded development)
+    zephyr-nix = {
+      url = "github:nix-community/zephyr-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
