@@ -17,6 +17,8 @@ import {
   TestPgClientWithMigrations,
   AssetRepositoriesIntegrationLayer,
   cleanTestAssets,
+  setupTestHierarchy,
+  setupMockHierarchy,
   isDatabaseAvailable,
 } from '../integration/layer'
 import { PlantRepo, LineRepo, MachineRepo, SensorRepo } from '../../repos'
@@ -103,6 +105,13 @@ describe.skipIf(!RUN_INTEGRATION)('seedPlants', () => {
     )
     await Effect.runPromise(
       cleanMockAssets.pipe(Effect.provide(TestPgClient))
+    )
+    // Re-create hierarchy after clean (both TEST- and MOCK- hierarchies)
+    await Effect.runPromise(
+      setupTestHierarchy.pipe(Effect.provide(TestPgClient))
+    )
+    await Effect.runPromise(
+      setupMockHierarchy.pipe(Effect.provide(TestPgClient))
     )
   })
 
@@ -221,6 +230,13 @@ describe.skipIf(!RUN_INTEGRATION)('seedLines', () => {
     await Effect.runPromise(
       cleanMockAssets.pipe(Effect.provide(TestPgClient))
     )
+    // Re-create hierarchy after clean (both TEST- and MOCK- hierarchies)
+    await Effect.runPromise(
+      setupTestHierarchy.pipe(Effect.provide(TestPgClient))
+    )
+    await Effect.runPromise(
+      setupMockHierarchy.pipe(Effect.provide(TestPgClient))
+    )
   })
 
   afterAll(async () => {
@@ -329,6 +345,13 @@ describe.skipIf(!RUN_INTEGRATION)('seedMachines', () => {
     )
     await Effect.runPromise(
       cleanMockAssets.pipe(Effect.provide(TestPgClient))
+    )
+    // Re-create hierarchy after clean (both TEST- and MOCK- hierarchies)
+    await Effect.runPromise(
+      setupTestHierarchy.pipe(Effect.provide(TestPgClient))
+    )
+    await Effect.runPromise(
+      setupMockHierarchy.pipe(Effect.provide(TestPgClient))
     )
   })
 
@@ -445,6 +468,13 @@ describe.skipIf(!RUN_INTEGRATION)('seedSensors', () => {
     )
     await Effect.runPromise(
       cleanMockAssets.pipe(Effect.provide(TestPgClient))
+    )
+    // Re-create hierarchy after clean (both TEST- and MOCK- hierarchies)
+    await Effect.runPromise(
+      setupTestHierarchy.pipe(Effect.provide(TestPgClient))
+    )
+    await Effect.runPromise(
+      setupMockHierarchy.pipe(Effect.provide(TestPgClient))
     )
   })
 
@@ -584,6 +614,13 @@ describe.skipIf(!RUN_INTEGRATION)('seedAssets (composed)', () => {
     )
     await Effect.runPromise(
       cleanMockAssets.pipe(Effect.provide(TestPgClient))
+    )
+    // Re-create hierarchy after clean (both TEST- and MOCK- hierarchies)
+    await Effect.runPromise(
+      setupTestHierarchy.pipe(Effect.provide(TestPgClient))
+    )
+    await Effect.runPromise(
+      setupMockHierarchy.pipe(Effect.provide(TestPgClient))
     )
   })
 

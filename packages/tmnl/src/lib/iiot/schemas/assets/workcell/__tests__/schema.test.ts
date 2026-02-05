@@ -15,24 +15,45 @@ import {
   WorkCell,
   CreateWorkCellParams,
 } from '../schema'
-import { LineId, makeLineId } from '../../line/schema'
+import { makeLineId } from '../../line/schema'
 import { AssetStatus } from '../../common/types'
+import { HierarchyPath, PathSegment } from '../../../hierarchy'
 
 describe('WorkCell Schema', () => {
   const now = DateTime.unsafeNow()
   const testLineId = makeLineId('assembly-01')
 
-  // Helper to create valid test data
-  const makeTestWorkCell = () =>
+  // Helper to create valid HierarchyPath for WorkCell
+  const makeTestHierarchyPath = (slug: string) =>
+    HierarchyPath.fromSegments([
+      new PathSegment({ level: 'enterprise', id: 'ENT-test', name: Option.none() }),
+      new PathSegment({ level: 'site', id: 'SIT-test', name: Option.none() }),
+      new PathSegment({ level: 'plant', id: 'PLT-test', name: Option.none() }),
+      new PathSegment({ level: 'line', id: 'LIN-assembly-01', name: Option.none() }),
+      new PathSegment({ level: 'workcell', id: `WCL-${slug}`, name: Option.none() }),
+    ])
+
+  // Helper to create valid test data with all required BaseAssetFields
+  const makeTestWorkCell = (slug = 'welding-station-01') =>
     new WorkCell({
-      id: makeWorkCellId('welding-station-01'),
+      id: makeWorkCellId(slug),
       name: 'Welding Station 1' as Schema.Schema.Type<typeof Schema.NonEmptyString>,
       status: 'active' as AssetStatus,
-      lineId: testLineId,
+      hierarchyPath: makeTestHierarchyPath(slug),
+      // Optional BaseAssetFields (all parent IDs are Option)
+      enterpriseId: Option.none(),
+      siteId: Option.none(),
+      areaId: Option.none(),
+      plantId: Option.none(),
+      lineId: Option.some(testLineId),
+      workCellId: Option.none(),
+      machineId: Option.none(),
+      location: Option.none(),
+      description: Option.some('Primary welding station for frame assembly'),
+      // WorkCell-specific optional fields
       cellType: Option.some('welding'),
       cycleTimeSeconds: Option.some(45),
       position: Option.some(3),
-      description: Option.some('Primary welding station for frame assembly'),
       createdAt: now,
       updatedAt: Option.none(),
       metadata: {},
@@ -83,7 +104,7 @@ describe('WorkCell Schema', () => {
       expect(workCell._tag).toBe('WorkCell')
       expect(workCell.id).toBe('WCL-welding-station-01')
       expect(workCell.name).toBe('Welding Station 1')
-      expect(workCell.lineId).toBe('LIN-assembly-01')
+      expect(Option.getOrNull(workCell.lineId)).toBe('LIN-assembly-01')
     })
 
     it('getAutomationLevel returns 1 (ISA-95 Level 1)', () => {
@@ -130,11 +151,21 @@ describe('WorkCell Schema', () => {
         id: makeWorkCellId('minimal-cell'),
         name: 'Minimal Cell' as Schema.Schema.Type<typeof Schema.NonEmptyString>,
         status: 'active' as AssetStatus,
-        lineId: testLineId,
+        hierarchyPath: makeTestHierarchyPath('minimal-cell'),
+        // All BaseAssetFields parent IDs as Option.none()
+        enterpriseId: Option.none(),
+        siteId: Option.none(),
+        areaId: Option.none(),
+        plantId: Option.none(),
+        lineId: Option.some(testLineId),
+        workCellId: Option.none(),
+        machineId: Option.none(),
+        location: Option.none(),
+        description: Option.none(),
+        // WorkCell-specific optional fields
         cellType: Option.none(),
         cycleTimeSeconds: Option.none(),
         position: Option.none(),
-        description: Option.none(),
         createdAt: now,
         updatedAt: Option.none(),
         metadata: {},
@@ -155,7 +186,7 @@ describe('WorkCell Schema', () => {
         expect(decoded._tag).toBe('WorkCell')
         expect(decoded.id).toBe('WCL-welding-station-01')
         expect(decoded.name).toBe('Welding Station 1')
-        expect(decoded.lineId).toBe('LIN-assembly-01')
+        expect(Option.getOrNull(decoded.lineId)).toBe('LIN-assembly-01')
       })
     )
   })

@@ -82,6 +82,15 @@ describe('Feature: Site Entity Schema', () => {
     enterpriseId: 'ENT-acme-corp',
     timezone: 'America/Chicago',
     createdAt: '2025-01-01T00:00:00.000Z',
+    hierarchyPath: {
+      _tag: 'HierarchyPath' as const,
+      segments: [
+        { _tag: 'PathSegment' as const, level: 'enterprise' as const, id: 'ENT-acme-corp' },
+        { _tag: 'PathSegment' as const, level: 'site' as const, id: 'SIT-chicago-main' },
+      ],
+      materialized: '/ENT-acme-corp/SIT-chicago-main',
+      depth: 2,
+    },
   }
 
   describe('Scenario: Valid Site decoding', () => {

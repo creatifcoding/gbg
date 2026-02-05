@@ -124,13 +124,13 @@ export const createSensorNodes = Effect.gen(function* () {
 
   const sensors = [
     { deviceId: 'TMP-001', type: 'temperature', unit: 'celsius', machineId: 'MCH-001' },
-    { deviceId: 'VIB-001', type: 'vibration', unit: 'mm/s', machineId: 'MCH-001' },
+    { deviceId: 'VIB-001', type: 'vibration', unit: 'mm_s', machineId: 'MCH-001' },
     { deviceId: 'TMP-002', type: 'temperature', unit: 'celsius', machineId: 'MCH-002' },
-    { deviceId: 'VIB-002', type: 'vibration', unit: 'mm/s', machineId: 'MCH-002' },
+    { deviceId: 'VIB-002', type: 'vibration', unit: 'mm_s', machineId: 'MCH-002' },
     { deviceId: 'TMP-003', type: 'temperature', unit: 'celsius', machineId: 'MCH-003' },
     { deviceId: 'HUM-001', type: 'humidity', unit: 'percent', machineId: 'MCH-003' },
-    { deviceId: 'SPD-001', type: 'speed', unit: 'm/min', machineId: 'MCH-004' },
-    { deviceId: 'CUR-001', type: 'current', unit: 'amps', machineId: 'MCH-004' },
+    { deviceId: 'SPD-001', type: 'speed', unit: 'rpm', machineId: 'MCH-004' },
+    { deviceId: 'CUR-001', type: 'current', unit: 'ampere', machineId: 'MCH-004' },
   ]
 
   for (const s of sensors) {

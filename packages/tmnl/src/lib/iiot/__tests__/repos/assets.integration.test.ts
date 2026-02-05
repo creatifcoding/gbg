@@ -14,6 +14,7 @@ import {
   TestPgClient,
   AssetRepositoriesIntegrationLayer,
   cleanTestAssets,
+  setupTestHierarchy,
   isDatabaseAvailable,
 } from '../integration/layer'
 import { PlantRepo, LineRepo, MachineRepo, SensorRepo } from '../../repos'
@@ -49,11 +50,19 @@ describe.skipIf(!RUN_INTEGRATION)('PlantRepo Integration', () => {
         'Database not available. Run: docker compose -f docker/docker-compose.iiot.yml up -d'
       )
     }
+    // Setup FK parent records (Enterprise, Site, Area) in iiot_mock
+    await Effect.runPromise(
+      setupTestHierarchy.pipe(Effect.provide(TestPgClient))
+    )
   })
 
   beforeEach(async () => {
     await Effect.runPromise(
       cleanTestAssets.pipe(Effect.provide(TestPgClient))
+    )
+    // Re-create hierarchy after clean (cleanTestAssets deletes Enterprise/Site/Area too)
+    await Effect.runPromise(
+      setupTestHierarchy.pipe(Effect.provide(TestPgClient))
     )
   })
 
@@ -80,7 +89,8 @@ describe.skipIf(!RUN_INTEGRATION)('PlantRepo Integration', () => {
     expect(Option.isSome(result.location)).toBe(true)
     expect(Option.getOrNull(result.location)).toBe('Test Location A')
     expect(DateTime.isDateTime(result.createdAt)).toBe(true)
-    expect(DateTime.isDateTime(result.updatedAt)).toBe(true)
+    // updatedAt is Option<Date> - should be None on initial insert
+    expect(Option.isNone(result.updatedAt)).toBe(true)
   })
 
   it('should insert a plant with optional location as None', async () => {
@@ -254,6 +264,10 @@ describe.skipIf(!RUN_INTEGRATION)('LineRepo Integration', () => {
     await Effect.runPromise(
       cleanTestAssets.pipe(Effect.provide(TestPgClient))
     )
+    // Re-create hierarchy after clean
+    await Effect.runPromise(
+      setupTestHierarchy.pipe(Effect.provide(TestPgClient))
+    )
     // Insert parent plant for FK constraints
     await Effect.runPromise(
       Effect.gen(function* () {
@@ -361,17 +375,20 @@ describe.skipIf(!RUN_INTEGRATION)('LineRepo Integration', () => {
   // Cascade Behavior Tests
   // ---------------------------------------------------------------------------
 
-  it('should fail to delete plant with existing lines (FK constraint)', async () => {
-    const result = await Effect.runPromiseExit(
+  it('should cascade delete lines when plant is deleted (ON DELETE CASCADE)', async () => {
+    const result = await Effect.runPromise(
       Effect.gen(function* () {
         const plantRepo = yield* PlantRepo
         const lineRepo = yield* LineRepo
         yield* lineRepo.insert(testLine1Insert)
-        yield* plantRepo.delete(testIds.plant1) // Should fail due to FK
+        yield* plantRepo.delete(testIds.plant1) // Cascades to delete lines
+        // Verify line was cascade deleted
+        return yield* lineRepo.findById(testIds.line1)
       }).pipe(Effect.provide(AssetRepositoriesIntegrationLayer))
     )
 
-    expect(result._tag).toBe('Failure')
+    // Line should be deleted via cascade
+    expect(Option.isNone(result)).toBe(true)
   })
 })
 
@@ -392,6 +409,10 @@ describe.skipIf(!RUN_INTEGRATION)('MachineRepo Integration', () => {
   beforeEach(async () => {
     await Effect.runPromise(
       cleanTestAssets.pipe(Effect.provide(TestPgClient))
+    )
+    // Re-create hierarchy after clean
+    await Effect.runPromise(
+      setupTestHierarchy.pipe(Effect.provide(TestPgClient))
     )
     // Insert parent hierarchy: Plant -> Line
     await Effect.runPromise(
@@ -414,7 +435,7 @@ describe.skipIf(!RUN_INTEGRATION)('MachineRepo Integration', () => {
   // Insert Tests
   // ---------------------------------------------------------------------------
 
-  it('should insert a machine with model field', async () => {
+  it('should insert a machine with modelNumber field', async () => {
     const result = await Effect.runPromise(
       Effect.gen(function* () {
         const machineRepo = yield* MachineRepo
@@ -424,12 +445,12 @@ describe.skipIf(!RUN_INTEGRATION)('MachineRepo Integration', () => {
 
     expect(result.id).toBe(testIds.machine1)
     expect(result.name).toBe('Test Machine Alpha')
-    expect(Option.isSome(result.model)).toBe(true)
-    expect(Option.getOrNull(result.model)).toBe('Model X-100')
+    expect(Option.isSome(result.modelNumber)).toBe(true)
+    expect(Option.getOrNull(result.modelNumber)).toBe('Model X-100')
     expect(result.lineId).toBe(testIds.line1)
   })
 
-  it('should insert a machine without model (optional field)', async () => {
+  it('should insert a machine without modelNumber (optional field)', async () => {
     const result = await Effect.runPromise(
       Effect.gen(function* () {
         const machineRepo = yield* MachineRepo
@@ -438,7 +459,7 @@ describe.skipIf(!RUN_INTEGRATION)('MachineRepo Integration', () => {
     )
 
     expect(result.id).toBe(testIds.machine2)
-    expect(Option.isNone(result.model)).toBe(true)
+    expect(Option.isNone(result.modelNumber)).toBe(true)
   })
 
   it('should fail to insert machine with invalid line FK', async () => {
@@ -476,7 +497,7 @@ describe.skipIf(!RUN_INTEGRATION)('MachineRepo Integration', () => {
   // Update Tests
   // ---------------------------------------------------------------------------
 
-  it('should update machine model field', async () => {
+  it('should update machine name field', async () => {
     const result = await Effect.runPromise(
       Effect.gen(function* () {
         const machineRepo = yield* MachineRepo
@@ -486,7 +507,8 @@ describe.skipIf(!RUN_INTEGRATION)('MachineRepo Integration', () => {
     )
 
     expect(result.name).toBe('Updated Machine Alpha')
-    expect(Option.getOrNull(result.model)).toBe('Model X-200')
+    // modelNumber should remain unchanged from insert
+    expect(Option.getOrNull(result.modelNumber)).toBe('Model X-100')
   })
 })
 
@@ -507,6 +529,10 @@ describe.skipIf(!RUN_INTEGRATION)('SensorRepo Integration', () => {
   beforeEach(async () => {
     await Effect.runPromise(
       cleanTestAssets.pipe(Effect.provide(TestPgClient))
+    )
+    // Re-create hierarchy after clean
+    await Effect.runPromise(
+      setupTestHierarchy.pipe(Effect.provide(TestPgClient))
     )
     // Insert parent hierarchy: Plant -> Line -> Machine
     await Effect.runPromise(

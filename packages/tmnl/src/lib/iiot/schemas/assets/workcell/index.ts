@@ -8,10 +8,9 @@ export {
   // Identifier
   WorkCellId,
   makeWorkCellId,
-  // Entity Schema
-  WorkCellSchema,
-  // Entity Namespace
+  // Entity class
   WorkCell,
+  type WorkCellEntity,
   // Command Params
   CreateWorkCellParams,
 } from './schema'

@@ -1,16 +1,21 @@
 /**
  * LineModel - Effect SQL Model for Production Line Entity
  *
- * Derives from Line domain schema with Model-specific transforms
- * for PostgreSQL persistence.
+ * Model for PostgreSQL persistence - defines fields per DDL.
  *
  * @module
  */
 
+import { Schema } from 'effect'
 import { Model } from '@effect/sql'
-import { LineId } from '../../schemas/identifiers'
-import { Line } from '../../schemas/assets'
-import { CreatedAt, UpdatedAt } from '../_common'
+import { LineId, PlantId, EnterpriseId, SiteId, AreaId } from '../../schemas/identifiers'
+import { CreatedAt, OptionalMetadata, OptionalNumeric } from '../_common'
+
+// =============================================================================
+// Asset Status (inline to avoid circular import)
+// =============================================================================
+
+const AssetStatus = Schema.Literal('active', 'inactive', 'maintenance', 'decommissioned')
 
 // =============================================================================
 // Model Definition
@@ -19,23 +24,46 @@ import { CreatedAt, UpdatedAt } from '../_common'
 /**
  * Line Model
  *
- * Derives from Line domain schema (schemas/assets.ts).
- * Applies Model-specific transforms for PostgreSQL:
- * - id → Model.GeneratedByApp (client-provided)
- * - Adds createdAt/updatedAt timestamps
+ * Defines fields for PostgreSQL persistence per DDL:
+ * - id: TEXT PRIMARY KEY (client-provided LineId)
+ * - name: TEXT NOT NULL
+ * - status: TEXT NOT NULL
+ * - hierarchy_path: TEXT NOT NULL
+ * - enterprise_id: TEXT NOT NULL (ancestry)
+ * - site_id: TEXT NOT NULL (ancestry)
+ * - area_id: TEXT (optional ancestry)
+ * - plant_id: TEXT NOT NULL (direct parent)
+ * - capacity: NUMERIC (nullable)
+ * - operating_hours_per_day: NUMERIC (nullable)
+ * - location: JSONB (nullable)
+ * - metadata: JSONB DEFAULT '{}'
  *
  * PK: id (client-provided LineId)
- * FK: plantId → iiot.plants(id)
+ * FK: enterprise_id, site_id, area_id, plant_id
  */
 export class LineModel extends Model.Class<LineModel>('LineModel')({
-  // Derived from Line.Schema.fields - accessing schema via namespace
-  name: Line.Schema.fields.name,
-  plantId: Line.Schema.fields.plantId,
+  // Core identity
+  id: Model.GeneratedByApp(LineId),
+  name: Schema.NonEmptyString,
+  status: AssetStatus,
 
-  // Derived with Model-specific transforms
-  id: Model.GeneratedByApp(LineId),  // Add GeneratedByApp modifier
+  // Hierarchy (required)
+  hierarchyPath: Schema.String,
+  enterpriseId: EnterpriseId,
+  siteId: SiteId,
+  plantId: PlantId,
 
-  // DB-only fields (not in domain schema)
+  // Optional ancestry
+  areaId: Model.FieldOption(AreaId),
+
+  // Optional fields
+  description: Model.FieldOption(Schema.String),
+  capacity: OptionalNumeric,
+  operatingHoursPerDay: OptionalNumeric,
+  location: Model.FieldOption(Schema.Unknown),
+  metadata: OptionalMetadata,
+
+  // DB-only fields (timestamps)
   createdAt: CreatedAt,
-  updatedAt: UpdatedAt,
+  updatedAt: Model.FieldOption(Schema.DateFromSelf),
 }) {}

@@ -17,6 +17,57 @@ import {
   UpdateAreaParams,
 } from '../../schemas/assets/area'
 import { makeSiteId } from '../../schemas/assets/site'
+import { makeEnterpriseId } from '../../schemas/assets/enterprise'
+import { HierarchyPath, PathSegment } from '../../schemas/hierarchy'
+import { EnterpriseId } from '../../schemas/identifiers'
+import { SiteId } from '../../schemas/assets/site'
+
+// =============================================================================
+// Test Helpers
+// =============================================================================
+
+/** Create a valid HierarchyPath for Area tests */
+const makeTestHierarchyPath = (areaSlug: string) =>
+  HierarchyPath.fromSegments([
+    new PathSegment({ level: 'enterprise', id: 'ENT-test-enterprise', name: Option.none() }),
+    new PathSegment({ level: 'site', id: 'SIT-chicago-facility', name: Option.none() }),
+    new PathSegment({ level: 'area', id: `ARA-${areaSlug}`, name: Option.none() }),
+  ])
+
+/** Base data for Area constructor tests */
+const makeBaseAreaData = (overrides: Partial<{
+  id: string
+  name: string
+  status: 'active' | 'inactive' | 'maintenance' | 'decommissioned'
+  areaSlug: string
+}> = {}) => {
+  const slug = overrides.areaSlug ?? 'production-1'
+  return {
+    id: (overrides.id ?? `ARA-${slug}`) as ReturnType<typeof makeAreaId>,
+    name: overrides.name ?? 'Production Area 1',
+    status: overrides.status ?? ('active' as const),
+    enterpriseId: 'ENT-test-enterprise' as EnterpriseId,
+    siteId: 'SIT-chicago-facility' as SiteId,
+    hierarchyPath: makeTestHierarchyPath(slug),
+    createdAt: DateTime.unsafeNow(),
+    // Optional fields
+    description: Option.none<string>(),
+    location: Option.none(),
+    updatedAt: Option.none(),
+    metadata: {},
+    // Optional parent IDs (Area is at level 2, so these are None)
+    areaId: Option.none(),
+    plantId: Option.none(),
+    lineId: Option.none(),
+    workCellId: Option.none(),
+    machineId: Option.none(),
+    // Area-specific optional fields
+    areaType: Option.none(),
+    building: Option.none(),
+    floor: Option.none(),
+    zone: Option.none(),
+  }
+}
 
 // =============================================================================
 // Feature: Area Identifier
@@ -63,25 +114,17 @@ describe('Feature: Area Identifier', () => {
 // =============================================================================
 
 describe('Feature: Area Entity', () => {
-  const validAreaData = {
-    _tag: 'Area' as const,
-    id: 'ARA-production-1',
-    name: 'Production Area 1',
-    status: 'active' as const,
-    siteId: 'SIT-chicago-facility',
-    areaType: Option.some('production' as const),
-    building: Option.some('Building A'),
-    floor: Option.some('Ground'),
-    zone: Option.some('Zone 1'),
-    description: Option.some('Main production area for widget assembly'),
-    createdAt: DateTime.unsafeNow(),
-    updatedAt: Option.none(),
-    metadata: {},
-  }
-
   describe('Scenario: Valid Area creation', () => {
     it('Given valid area data, When creating Area instance, Then it should succeed', () => {
-      const area = new Area(validAreaData)
+      const areaData = {
+        ...makeBaseAreaData(),
+        areaType: Option.some('production' as const),
+        building: Option.some('Building A'),
+        floor: Option.some('Ground'),
+        zone: Option.some('Zone 1'),
+        description: Option.some('Main production area for widget assembly'),
+      }
+      const area = new Area(areaData)
 
       expect(area._tag).toBe('Area')
       expect(area.id).toBe('ARA-production-1')
@@ -91,21 +134,7 @@ describe('Feature: Area Entity', () => {
     })
 
     it('Given minimal required fields, When creating Area, Then optional fields should be Option.none or default', () => {
-      const minimalArea = new Area({
-        _tag: 'Area',
-        id: makeAreaId('minimal'),
-        name: 'Minimal Area',
-        status: 'active' as const,
-        siteId: makeSiteId('test-site'),
-        areaType: Option.none(),
-        building: Option.none(),
-        floor: Option.none(),
-        zone: Option.none(),
-        description: Option.none(),
-        createdAt: DateTime.unsafeNow(),
-        updatedAt: Option.none(),
-        metadata: {},
-      })
+      const minimalArea = new Area(makeBaseAreaData({ areaSlug: 'minimal', name: 'Minimal Area' }))
 
       expect(minimalArea.id).toBe('ARA-minimal')
       expect(Option.isNone(minimalArea.areaType)).toBe(true)
@@ -118,7 +147,7 @@ describe('Feature: Area Entity', () => {
 
     it.each(areaTypes)('Given areaType "%s", When creating Area, Then it should succeed', (areaType) => {
       const area = new Area({
-        ...validAreaData,
+        ...makeBaseAreaData(),
         areaType: Option.some(areaType),
       })
       expect(Option.getOrNull(area.areaType)).toBe(areaType)
@@ -129,10 +158,7 @@ describe('Feature: Area Entity', () => {
     const statuses = ['active', 'inactive', 'maintenance', 'decommissioned'] as const
 
     it.each(statuses)('Given status "%s", When creating Area, Then it should succeed', (status) => {
-      const area = new Area({
-        ...validAreaData,
-        status,
-      })
+      const area = new Area(makeBaseAreaData({ status }))
       expect(area.status).toBe(status)
     })
   })
@@ -144,21 +170,7 @@ describe('Feature: Area Entity', () => {
 
 describe('Feature: Area Methods', () => {
   const createArea = (status: 'active' | 'inactive' | 'maintenance' | 'decommissioned') =>
-    new Area({
-      _tag: 'Area',
-      id: makeAreaId('test'),
-      name: 'Test Area',
-      status,
-      siteId: makeSiteId('test-site'),
-      areaType: Option.none(),
-      building: Option.none(),
-      floor: Option.none(),
-      zone: Option.none(),
-      description: Option.none(),
-      createdAt: DateTime.unsafeNow(),
-      updatedAt: Option.none(),
-      metadata: {},
-    })
+    new Area(makeBaseAreaData({ status, areaSlug: 'test', name: 'Test Area' }))
 
   describe('Scenario: getAutomationLevel returns ISA-95 Level 2', () => {
     it('Given an Area, When calling getAutomationLevel, Then it should return 2', () => {

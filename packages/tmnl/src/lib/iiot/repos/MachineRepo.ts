@@ -53,16 +53,36 @@ export const MachineRepoLive = Layer.effect(
   Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient
 
+    // Column alias helper for SELECT statements
+    const selectColumns = sql`
+      id,
+      name,
+      status,
+      machine_type AS "machineType",
+      hierarchy_path AS "hierarchyPath",
+      enterprise_id AS "enterpriseId",
+      site_id AS "siteId",
+      area_id AS "areaId",
+      plant_id AS "plantId",
+      line_id AS "lineId",
+      workcell_id AS "workcellId",
+      description,
+      manufacturer,
+      model_number AS "modelNumber",
+      serial_number AS "serialNumber",
+      installation_date AS "installationDate",
+      last_maintenance_date AS "lastMaintenanceDate",
+      next_maintenance_date AS "nextMaintenanceDate",
+      location,
+      metadata,
+      created_at AS "createdAt",
+      updated_at AS "updatedAt"
+    `
+
     const findById = (id: MachineId) =>
       Effect.gen(function* () {
         const rows = yield* sql`
-          SELECT
-            id,
-            name,
-            model,
-            line_id AS "lineId",
-            created_at AS "createdAt",
-            updated_at AS "updatedAt"
+          SELECT ${selectColumns}
           FROM iiot.machines
           WHERE id = ${id}
           LIMIT 1
@@ -73,13 +93,7 @@ export const MachineRepoLive = Layer.effect(
     const findByLine = (lineId: LineId) =>
       Effect.gen(function* () {
         const rows = yield* sql`
-          SELECT
-            id,
-            name,
-            model,
-            line_id AS "lineId",
-            created_at AS "createdAt",
-            updated_at AS "updatedAt"
+          SELECT ${selectColumns}
           FROM iiot.machines
           WHERE line_id = ${lineId}
           ORDER BY name ASC
@@ -90,13 +104,7 @@ export const MachineRepoLive = Layer.effect(
     const findAll = () =>
       Effect.gen(function* () {
         const rows = yield* sql`
-          SELECT
-            id,
-            name,
-            model,
-            line_id AS "lineId",
-            created_at AS "createdAt",
-            updated_at AS "updatedAt"
+          SELECT ${selectColumns}
           FROM iiot.machines
           ORDER BY name ASC
         `
@@ -106,15 +114,36 @@ export const MachineRepoLive = Layer.effect(
     const insert = (machine: typeof MachineModel.insert.Type) =>
       Effect.gen(function* () {
         const rows = yield* sql`
-          INSERT INTO iiot.machines (id, name, model, line_id)
-          VALUES (${machine.id}, ${machine.name}, ${Option.getOrNull(machine.model)}, ${machine.lineId})
-          RETURNING
-            id,
-            name,
-            model,
-            line_id AS "lineId",
-            created_at AS "createdAt",
-            updated_at AS "updatedAt"
+          INSERT INTO iiot.machines (
+            id, name, status, machine_type, hierarchy_path,
+            enterprise_id, site_id, area_id, plant_id, line_id, workcell_id,
+            description, manufacturer, model_number, serial_number,
+            installation_date, last_maintenance_date, next_maintenance_date,
+            location, metadata
+          )
+          VALUES (
+            ${machine.id},
+            ${machine.name},
+            ${machine.status},
+            ${machine.machineType},
+            ${machine.hierarchyPath},
+            ${machine.enterpriseId},
+            ${machine.siteId},
+            ${Option.getOrNull(machine.areaId)},
+            ${machine.plantId},
+            ${machine.lineId},
+            ${Option.getOrNull(machine.workcellId)},
+            ${Option.getOrNull(machine.description)},
+            ${Option.getOrNull(machine.manufacturer)},
+            ${Option.getOrNull(machine.modelNumber)},
+            ${Option.getOrNull(machine.serialNumber)},
+            ${Option.getOrNull(machine.installationDate)},
+            ${Option.getOrNull(machine.lastMaintenanceDate)},
+            ${Option.getOrNull(machine.nextMaintenanceDate)},
+            ${Option.match(machine.location, { onNone: () => null, onSome: (v) => JSON.stringify(v) })},
+            ${Option.match(machine.metadata, { onNone: () => '{}', onSome: (v) => JSON.stringify(v) })}
+          )
+          RETURNING ${selectColumns}
         `
         return yield* decodeFirst(MachineModel)(rows)
       })
@@ -130,13 +159,7 @@ export const MachineRepoLive = Layer.effect(
           UPDATE iiot.machines
           SET ${sql.update(changes, ['id'])}, updated_at = NOW()
           WHERE id = ${machine.id}
-          RETURNING
-            id,
-            name,
-            model,
-            line_id AS "lineId",
-            created_at AS "createdAt",
-            updated_at AS "updatedAt"
+          RETURNING ${selectColumns}
         `
         return yield* decodeFirst(MachineModel)(rows)
       })

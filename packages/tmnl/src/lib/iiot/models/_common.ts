@@ -11,6 +11,23 @@ import { Schema } from 'effect'
 import { Model } from '@effect/sql'
 
 // =============================================================================
+// NUMERIC Column Transform
+// =============================================================================
+
+/**
+ * PostgreSQL NUMERIC columns return strings to preserve precision.
+ * This schema accepts both string and number inputs, normalizes to number.
+ *
+ * Uses Schema.Union(Number, NumberFromString) per Effect-TS best practices.
+ */
+export const NumericFromPg = Schema.Union(Schema.Number, Schema.NumberFromString)
+
+/**
+ * Optional NUMERIC field - handles NULL and string-to-number conversion.
+ */
+export const OptionalNumeric = Model.FieldOption(NumericFromPg)
+
+// =============================================================================
 // JSON Transforms
 // =============================================================================
 
@@ -58,8 +75,17 @@ export const CreatedAt = Model.DateTimeInsertFromDate
 /**
  * DateTime that's updated on each modification (updated_at pattern).
  * Uses Model.DateTimeUpdateFromDate for pg driver Date objects.
+ *
+ * @deprecated Use UpdatedAtNullable for nullable updated_at columns
  */
 export const UpdatedAt = Model.DateTimeUpdateFromDate
+
+/**
+ * Nullable DateTime for updated_at columns.
+ * Handles NULL values from DB when record hasn't been updated yet.
+ * Uses DateFromSelf to match pg driver's native Date return type.
+ */
+export const UpdatedAtNullable = Model.FieldOption(Schema.DateFromSelf)
 
 // =============================================================================
 // Re-exports for convenience

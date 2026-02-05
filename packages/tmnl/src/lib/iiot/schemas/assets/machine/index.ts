@@ -10,11 +10,9 @@ export {
   // Identifier
   MachineId,
   makeMachineId,
-  // Entity (Schema class)
-  MachineSchema,
-  // Entity (Namespace with Schema + Type)
+  // Entity class
   Machine,
-  type MachineType,
+  type MachineEntity,
   // Command params
   CreateMachineParams,
   type CreateMachineParams as CreateMachineParamsType,

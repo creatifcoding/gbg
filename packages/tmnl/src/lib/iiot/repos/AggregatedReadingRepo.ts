@@ -57,6 +57,15 @@ export class AggregatedReadingRepo extends Context.Tag('iiot/AggregatedReadingRe
 // Repository Implementation (Manual - Composite PK, Read-Only from CAggs)
 // =============================================================================
 
+// Map bucket type to view name
+const bucketToView = (bucket: TimeBucket): string => {
+  switch (bucket) {
+    case '1min': return 'iiot.readings_1min'
+    case '1hour': return 'iiot.readings_1hour'
+    case '1day': return 'iiot.readings_1day'
+  }
+}
+
 export const AggregatedReadingRepoLive = Layer.effect(
   AggregatedReadingRepo,
   Effect.gen(function* () {
@@ -70,9 +79,9 @@ export const AggregatedReadingRepoLive = Layer.effect(
       limit?: number
     }) =>
       Effect.gen(function* () {
-        // Note: View name is determined by bucket, but we use parameterized query
-        // In production, use separate methods or dynamic SQL safely
-        const rows = yield* sql`
+        // Query the appropriate continuous aggregate view based on bucket
+        const viewName = bucketToView(params.bucket)
+        const rows = yield* sql.unsafe(`
           SELECT
             bucket,
             device_id AS "deviceId",
@@ -81,14 +90,13 @@ export const AggregatedReadingRepoLive = Layer.effect(
             max_value AS "maxValue",
             stddev_value AS "stddevValue",
             sample_count AS "sampleCount"
-          FROM iiot.sensor_readings_agg
-          WHERE device_id = ${params.deviceId}
-            AND bucket_interval = ${params.bucket}
-            AND (${params.since ?? null}::timestamp IS NULL OR bucket >= ${params.since ?? null})
-            AND (${params.until ?? null}::timestamp IS NULL OR bucket <= ${params.until ?? null})
+          FROM ${viewName}
+          WHERE device_id = $1
+            AND ($2::timestamptz IS NULL OR bucket >= $2::timestamptz)
+            AND ($3::timestamptz IS NULL OR bucket <= $3::timestamptz)
           ORDER BY bucket DESC
-          LIMIT ${params.limit ?? 1000}
-        `
+          LIMIT $4
+        `, [params.deviceId, params.since ?? null, params.until ?? null, params.limit ?? 1000])
         return yield* decodeRows(AggregatedReadingModel)(rows)
       })
 
@@ -100,7 +108,8 @@ export const AggregatedReadingRepoLive = Layer.effect(
     }) =>
       Stream.fromEffect(
         Effect.gen(function* () {
-          const rows = yield* sql`
+          const viewName = bucketToView(params.bucket)
+          const rows = yield* sql.unsafe(`
             SELECT
               bucket,
               device_id AS "deviceId",
@@ -109,20 +118,20 @@ export const AggregatedReadingRepoLive = Layer.effect(
               max_value AS "maxValue",
               stddev_value AS "stddevValue",
               sample_count AS "sampleCount"
-            FROM iiot.sensor_readings_agg
-            WHERE device_id = ${params.deviceId}
-              AND bucket_interval = ${params.bucket}
-              AND (${params.since ?? null}::timestamp IS NULL OR bucket >= ${params.since ?? null})
-              AND (${params.until ?? null}::timestamp IS NULL OR bucket <= ${params.until ?? null})
+            FROM ${viewName}
+            WHERE device_id = $1
+              AND ($2::timestamptz IS NULL OR bucket >= $2::timestamptz)
+              AND ($3::timestamptz IS NULL OR bucket <= $3::timestamptz)
             ORDER BY bucket DESC
-          `
+          `, [params.deviceId, params.since ?? null, params.until ?? null])
           return yield* decodeRows(AggregatedReadingModel)(rows)
         })
       ).pipe(Stream.flatMap(Stream.fromIterable))
 
     const getLatestBucket = (deviceId: DeviceId, bucket: TimeBucket) =>
       Effect.gen(function* () {
-        const rows = yield* sql`
+        const viewName = bucketToView(bucket)
+        const rows = yield* sql.unsafe(`
           SELECT
             bucket,
             device_id AS "deviceId",
@@ -131,12 +140,11 @@ export const AggregatedReadingRepoLive = Layer.effect(
             max_value AS "maxValue",
             stddev_value AS "stddevValue",
             sample_count AS "sampleCount"
-          FROM iiot.sensor_readings_agg
-          WHERE device_id = ${deviceId}
-            AND bucket_interval = ${bucket}
+          FROM ${viewName}
+          WHERE device_id = $1
           ORDER BY bucket DESC
           LIMIT 1
-        `
+        `, [deviceId])
         return yield* decodeOptional(AggregatedReadingModel)(rows)
       })
 

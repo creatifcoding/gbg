@@ -59,7 +59,7 @@ export const makeSiteId = (slug: string): SiteId => `SIT-${slug}` as SiteId
  * ```ts
  * import { DateTime, Option } from 'effect'
  *
- * const site = new SiteSchema({
+ * const site = new Site({
  *   id: makeSiteId('chicago-main'),
  *   name: 'Chicago Main Site',
  *   status: 'active',
@@ -80,7 +80,7 @@ export const makeSiteId = (slug: string): SiteId => `SIT-${slug}` as SiteId
  * site.materializePath() // '/ENT-acme-corp/SIT-chicago-main'
  * ```
  */
-export class SiteSchema extends Schema.TaggedClass<SiteSchema>()('Site', {
+export class Site extends Schema.TaggedClass<Site>()('Site', {
   /** Unique site identifier (SIT-{slug} format) */
   id: SiteId,
 
@@ -145,19 +145,8 @@ export class SiteSchema extends Schema.TaggedClass<SiteSchema>()('Site', {
   }
 }
 
-// =============================================================================
-// Site Namespace
-// =============================================================================
-
-/**
- * Site namespace for schema and type exports.
- */
-export namespace Site {
-  /** The Site schema */
-  export const Schema = SiteSchema
-  /** The Site type */
-  export type Type = typeof SiteSchema.Type
-}
+/** Site entity type alias */
+export type SiteEntity = typeof Site.Type
 
 // =============================================================================
 // Create Site Parameters

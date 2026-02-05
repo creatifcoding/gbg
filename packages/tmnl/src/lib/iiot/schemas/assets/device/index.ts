@@ -14,11 +14,9 @@ export {
   ControlMode,
   PowerUnit,
 
-  // Entity class (renamed)
-  DeviceSchema,
-
-  // Device namespace (schema + type)
+  // Entity class
   Device,
+  type DeviceEntity,
 
   // Command params
   CreateDeviceParams,

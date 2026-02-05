@@ -8,10 +8,9 @@ export {
   // Identifier
   LineId,
   makeLineId,
-  // Schema
-  LineSchema,
-  // Namespace
+  // Entity class
   Line,
+  type LineEntity,
   // Command Params
   CreateLineParams,
 } from './schema'

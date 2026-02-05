@@ -251,7 +251,7 @@ describe('Feature: L2 AlarmService', () => {
 
         const alarm = yield* service.createAlarm({
           deviceId: TestDeviceId,
-          alarmType: 'threshold_exceeded',
+          alarmType: 'high_temperature',
           severity: 'warning',
           message: 'Temperature exceeded 30C',
         })
@@ -323,7 +323,7 @@ describe('Feature: L2 AlarmService', () => {
 
         const alarm = yield* service.createAlarm({
           deviceId: TestDeviceId,
-          alarmType: 'threshold_exceeded',
+          alarmType: 'high_pressure',
           severity: 'warning',
           message: 'High pressure',
         })
@@ -345,21 +345,21 @@ describe('Feature: L2 AlarmService', () => {
         // Create alarms with different severities
         yield* service.createAlarm({
           deviceId: TestDeviceId,
-          alarmType: 'threshold_exceeded',
+          alarmType: 'high_temperature',
           severity: 'critical',
           message: 'Critical 1',
         })
 
         yield* service.createAlarm({
           deviceId: TestDeviceId,
-          alarmType: 'threshold_exceeded',
+          alarmType: 'high_vibration',
           severity: 'warning',
           message: 'Warning 1',
         })
 
         yield* service.createAlarm({
           deviceId: TestDeviceId,
-          alarmType: 'threshold_exceeded',
+          alarmType: 'overcurrent',
           severity: 'critical',
           message: 'Critical 2',
         })
@@ -427,7 +427,7 @@ describe('Feature: L3 IIoTService Orchestration', () => {
 
         const enrichedAlert = yield* service.raiseAlarm({
           deviceId: TestDeviceId,
-          alarmType: 'threshold_exceeded',
+          alarmType: 'high_temperature',
           severity: 'critical',
           message: 'Temperature critical: 95C',
         })

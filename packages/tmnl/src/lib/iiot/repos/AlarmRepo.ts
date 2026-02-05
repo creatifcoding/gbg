@@ -43,7 +43,7 @@ export interface AlarmRepository {
     limit?: number
   }) => Effect.Effect<readonly AlarmModel[], AlarmRepoError>
   readonly insert: (alarm: typeof AlarmModel.insert.Type) => Effect.Effect<AlarmModel, AlarmRepoError>
-  readonly update: (alarm: typeof AlarmModel.update.Type) => Effect.Effect<AlarmModel, AlarmRepoError>
+  readonly update: (alarm: Partial<typeof AlarmModel.update.Type> & { id: typeof AlarmModel.update.Type['id'] }) => Effect.Effect<AlarmModel, AlarmRepoError>
   readonly acknowledge: (id: AlarmId, acknowledgedBy: string) => Effect.Effect<AlarmModel, AlarmRepoError>
   readonly clear: (id: AlarmId) => Effect.Effect<AlarmModel, AlarmRepoError>
   readonly delete: (id: AlarmId) => Effect.Effect<void, SqlError.SqlError>
@@ -213,7 +213,7 @@ export const AlarmRepoLive = Layer.effect(
         return yield* decodeFirst(AlarmModel)(rows)
       })
 
-    const update = (alarm: typeof AlarmModel.update.Type) =>
+    const update = (alarm: Partial<typeof AlarmModel.update.Type> & { id: typeof AlarmModel.update.Type['id'] }) =>
       Effect.gen(function* () {
         // sql.update() handles partial updates:
         // - undefined fields → skipped (not in SET)

@@ -68,7 +68,7 @@ export const makeLineId = (slug: string): LineId => `LIN-${slug}` as LineId
  * ```ts
  * import { DateTime, Option } from 'effect'
  *
- * const assemblyLine = new LineSchema({
+ * const assemblyLine = new Line({
  *   id: makeLineId('assembly-01'),
  *   name: 'Assembly Line 1',
  *   status: 'active',
@@ -91,7 +91,7 @@ export const makeLineId = (slug: string): LineId => `LIN-${slug}` as LineId
  * assemblyLine.materializePath() // '/ENT-acme/SIT-chicago/PLT-main/LIN-assembly-01'
  * ```
  */
-export class LineSchema extends Schema.TaggedClass<LineSchema>()('Line', {
+export class Line extends Schema.TaggedClass<Line>()('Line', {
   /** Unique line identifier (pattern: LIN-{slug}) */
   id: LineId,
 
@@ -154,24 +154,8 @@ export class LineSchema extends Schema.TaggedClass<LineSchema>()('Line', {
   }
 }
 
-// =============================================================================
-// Line Namespace + Type
-// =============================================================================
-
-/**
- * Line namespace containing schema and type utilities.
- */
-export namespace Line {
-  /** Line schema class */
-  export const Schema = LineSchema
-  /** Line type derived from schema */
-  export type Type = typeof LineSchema.Type
-}
-
-/**
- * Line type alias for backward compatibility.
- */
-export type Line = Line.Type
+/** Line entity type alias */
+export type LineEntity = typeof Line.Type
 
 // =============================================================================
 // Create Line Parameters

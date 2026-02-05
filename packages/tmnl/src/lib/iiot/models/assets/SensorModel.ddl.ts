@@ -50,7 +50,7 @@ export const createSensorsTable = Effect.gen(function* () {
 
   yield* sql`
     CREATE TABLE IF NOT EXISTS iiot.sensors (
-      id                  TEXT PRIMARY KEY,
+      device_id           TEXT PRIMARY KEY,
       name                TEXT NOT NULL,
       status              TEXT NOT NULL CHECK (status IN ('active', 'inactive', 'maintenance', 'decommissioned')),
       description         TEXT,
@@ -62,7 +62,7 @@ export const createSensorsTable = Effect.gen(function* () {
       line_id             TEXT NOT NULL REFERENCES iiot.lines(id) ON DELETE CASCADE,
       workcell_id         TEXT REFERENCES iiot.workcells(id) ON DELETE CASCADE,
       machine_id          TEXT NOT NULL REFERENCES iiot.machines(id) ON DELETE CASCADE,
-      sensor_type         TEXT NOT NULL,
+      type                TEXT NOT NULL,
       unit                TEXT NOT NULL,
       sample_rate_ms      INTEGER,
       threshold_high      NUMERIC,
@@ -86,5 +86,5 @@ export const createSensorsTable = Effect.gen(function* () {
   yield* sql`CREATE INDEX IF NOT EXISTS idx_sensors_machine ON iiot.sensors (machine_id)`
   yield* sql`CREATE INDEX IF NOT EXISTS idx_sensors_name ON iiot.sensors (name)`
   yield* sql`CREATE INDEX IF NOT EXISTS idx_sensors_status ON iiot.sensors (status)`
-  yield* sql`CREATE INDEX IF NOT EXISTS idx_sensors_type ON iiot.sensors (sensor_type)`
+  yield* sql`CREATE INDEX IF NOT EXISTS idx_sensors_type ON iiot.sensors (type)`
 })

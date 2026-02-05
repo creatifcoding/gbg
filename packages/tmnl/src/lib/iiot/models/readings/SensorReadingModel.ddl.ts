@@ -108,7 +108,7 @@ export const createReadings1HourAggregate = Effect.gen(function* () {
       AVG(avg_value) AS avg_value,
       MIN(min_value) AS min_value,
       MAX(max_value) AS max_value,
-      AVG(stddev_value) AS avg_stddev,
+      AVG(stddev_value) AS stddev_value,
       SUM(sample_count) AS sample_count
     FROM iiot.readings_1min
     GROUP BY time_bucket('1 hour', bucket), device_id
@@ -142,7 +142,7 @@ export const createReadings1DayAggregate = Effect.gen(function* () {
       AVG(avg_value) AS avg_value,
       MIN(min_value) AS min_value,
       MAX(max_value) AS max_value,
-      AVG(avg_stddev) AS avg_stddev,
+      AVG(stddev_value) AS stddev_value,
       SUM(sample_count) AS sample_count
     FROM iiot.readings_1hour
     GROUP BY time_bucket('1 day', bucket), device_id

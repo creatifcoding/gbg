@@ -87,7 +87,7 @@ export type AreaType = typeof AreaType.Type
  * ```ts
  * import { DateTime, Option } from 'effect'
  *
- * const productionArea = new AreaSchema({
+ * const productionArea = new Area({
  *   id: makeAreaId('production-1'),
  *   name: 'Production Area 1',
  *   status: 'active',
@@ -111,7 +111,7 @@ export type AreaType = typeof AreaType.Type
  * productionArea.materializePath() // 'ENT-acme/SIT-chicago-facility/ARA-production-1'
  * ```
  */
-export class AreaSchema extends Schema.TaggedClass<AreaSchema>()('Area', {
+export class Area extends Schema.TaggedClass<Area>()('Area', {
   /** Unique area identifier (ARA-{slug} format) */
   id: AreaId,
 
@@ -172,21 +172,8 @@ export class AreaSchema extends Schema.TaggedClass<AreaSchema>()('Area', {
   }
 }
 
-// =============================================================================
-// Area Namespace
-// =============================================================================
-
-/**
- * Area namespace for schema and type access.
- * Provides unified access pattern across all asset schemas.
- */
-export namespace Area {
-  /** The Area schema class */
-  export const Schema = AreaSchema
-
-  /** TypeScript type derived from AreaSchema */
-  export type Type = typeof AreaSchema.Type
-}
+/** Area entity type alias for type imports */
+export type AreaEntity = typeof Area.Type
 
 // =============================================================================
 // Create Area Parameters

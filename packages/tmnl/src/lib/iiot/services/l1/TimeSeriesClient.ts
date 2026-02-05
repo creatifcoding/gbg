@@ -294,10 +294,12 @@ export class TimeSeriesClient extends Effect.Service<TimeSeriesClient>()('iiot/T
       Stream.fromEffect(
         Effect.gen(function* () {
           // Map bucket to continuous aggregate view
-          const viewName =
-            params.bucket === '1min' || params.bucket === '5min' || params.bucket === '15min'
-              ? 'iiot.readings_1min'
-              : 'iiot.readings_1hour'
+          // All views use stddev_value column (consistent naming per DDL)
+          const viewName = params.bucket === '1min' || params.bucket === '5min' || params.bucket === '15min'
+            ? 'iiot.readings_1min'
+            : params.bucket === '1day'
+            ? 'iiot.readings_1day'
+            : 'iiot.readings_1hour'
 
           yield* Effect.logDebug(`Querying ${viewName} for device ${params.deviceId}`)
 
@@ -306,6 +308,7 @@ export class TimeSeriesClient extends Effect.Service<TimeSeriesClient>()('iiot/T
 
           // Use unsafe query because view name is dynamic
           // Note: viewName is controlled by our code, not user input
+          // Pass Date objects directly - pg driver handles conversion (don't use toISOString())
           const rows = yield* sql.unsafe<AggregatedReadingRow>(
             `
             SELECT bucket, device_id, avg_value, min_value, max_value, stddev_value, sample_count
@@ -315,7 +318,7 @@ export class TimeSeriesClient extends Effect.Service<TimeSeriesClient>()('iiot/T
               AND bucket <= $3
             ORDER BY bucket DESC
           `,
-            [params.deviceId, since.toISOString(), until.toISOString()]
+            [params.deviceId, since, until]
           )
 
           return rows.map(mapRowToAggregatedReading)
@@ -409,7 +412,7 @@ export class TimeSeriesClient extends Effect.Service<TimeSeriesClient>()('iiot/T
         const row = rows[0]
         return {
           tableName: row.hypertableName,
-          numChunks: row.numChunks,
+          numChunks: Number(row.numChunks),
           compressionEnabled: row.compressionEnabled,
           totalSize: row.totalBytes ?? '0 bytes',
         }

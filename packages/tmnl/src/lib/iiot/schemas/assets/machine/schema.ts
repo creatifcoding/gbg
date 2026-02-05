@@ -67,7 +67,7 @@ export const makeMachineId = (slug: string): MachineId => `MCH-${slug}` as Machi
  * ```ts
  * import { DateTime, Option } from 'effect'
  *
- * const cnc = new MachineSchema({
+ * const cnc = new Machine({
  *   id: makeMachineId('cnc-lathe-001'),
  *   name: 'CNC Lathe Alpha',
  *   status: 'active',
@@ -84,7 +84,7 @@ export const makeMachineId = (slug: string): MachineId => `MCH-${slug}` as Machi
  * })
  * ```
  */
-export class MachineSchema extends Schema.TaggedClass<MachineSchema>()('Machine', {
+export class Machine extends Schema.TaggedClass<Machine>()('Machine', {
   /** Unique machine identifier with MCH- prefix */
   id: MachineId,
 
@@ -203,13 +203,9 @@ export class MachineSchema extends Schema.TaggedClass<MachineSchema>()('Machine'
  * type MachineEntity = Machine.Type
  * ```
  */
-export namespace Machine {
-  /** Machine schema class */
-  export const Schema = MachineSchema
 
-  /** Machine type */
-  export type Type = typeof MachineSchema.Type
-}
+/** Machine entity type alias */
+export type MachineEntity = typeof Machine.Type
 
 /**
  * Machine type alias for backward compatibility.

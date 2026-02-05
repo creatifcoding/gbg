@@ -70,7 +70,7 @@ export const makeWorkCellId = (slug: string): WorkCellId =>
  * ```ts
  * import { DateTime, Option } from 'effect'
  *
- * const weldingCell = new WorkCellSchema({
+ * const weldingCell = new WorkCell({
  *   id: makeWorkCellId('welding-01'),
  *   name: 'Welding Station 1',
  *   status: 'active',
@@ -94,7 +94,7 @@ export const makeWorkCellId = (slug: string): WorkCellId =>
  * weldingCell.materializePath() // '/ENT-acme/SIT-chicago/PLT-main/LIN-assembly-01/WCL-welding-01'
  * ```
  */
-export class WorkCellSchema extends Schema.TaggedClass<WorkCellSchema>()('WorkCell', {
+export class WorkCell extends Schema.TaggedClass<WorkCell>()('WorkCell', {
   /** Unique work cell identifier (pattern: WCL-{slug}) */
   id: WorkCellId,
 
@@ -234,10 +234,6 @@ export type CreateWorkCellParams = Schema.Schema.Type<typeof CreateWorkCellParam
  * const cell: WorkCell.Type = new WorkCell.Schema({ ... })
  * ```
  */
-export namespace WorkCell {
-  /** The WorkCell schema class */
-  export const Schema = WorkCellSchema
 
-  /** Type derived from WorkCellSchema */
-  export type Type = typeof WorkCellSchema.Type
-}
+/** WorkCell entity type alias */
+export type WorkCellEntity = typeof WorkCell.Type

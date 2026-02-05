@@ -17,12 +17,24 @@ import { Effect, Schema, Option, ParseResult } from 'effect'
 // =============================================================================
 
 /**
+ * Convert camelCase to snake_case for SQL column names.
+ *
+ * @example
+ * camelToSnake('operatorId') // 'operator_id'
+ * camelToSnake('machineId') // 'machine_id'
+ */
+const camelToSnake = (str: string): string =>
+  str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)
+
+/**
  * Transform an update object for use with sql.update().
  *
- * Converts Option fields to their primitive form:
- * - undefined → undefined (sql.update skips these)
- * - Option.none() → null (sets DB field to NULL)
- * - Option.some(v) → v (sets DB field to value)
+ * Performs two transformations:
+ * 1. camelCase keys → snake_case (for SQL column names)
+ * 2. Option fields → primitive values:
+ *    - undefined → undefined (sql.update skips these)
+ *    - Option.none() → null (sets DB field to NULL)
+ *    - Option.some(v) → v (sets DB field to value)
  *
  * Non-Option fields are passed through as-is.
  *
@@ -31,17 +43,19 @@ import { Effect, Schema, Option, ParseResult } from 'effect'
  * const changes = prepareUpdate({
  *   id: 'foo',
  *   name: 'New Name',           // string → string
- *   model: Option.none(),       // Option.none() → null
- *   description: Option.some('x') // Option.some('x') → 'x'
+ *   modelNumber: Option.none(), // Option.none() → null, key → model_number
+ *   operatorId: Option.some('x') // Option.some('x') → 'x', key → operator_id
  *   // location: undefined      // omitted → sql.update skips
  * })
  * sql`UPDATE t SET ${sql.update(changes, ['id'])} WHERE id = ${id}`
  * ```
  */
 export const prepareUpdate = <T extends Record<string, unknown>>(
-  obj: T
+  obj: T,
+  options?: { jsonbFields?: readonly string[] }
 ): Record<string, unknown> => {
   const result: Record<string, unknown> = {}
+  const jsonbSet = new Set(options?.jsonbFields ?? [])
 
   for (const [key, value] of Object.entries(obj)) {
     if (value === undefined) {
@@ -49,12 +63,18 @@ export const prepareUpdate = <T extends Record<string, unknown>>(
       continue
     }
 
+    // Convert key to snake_case for SQL
+    const snakeKey = camelToSnake(key)
+    const isJsonb = jsonbSet.has(key)
+
     if (Option.isOption(value)) {
       // Convert Option to primitive: none → null, some → value
-      result[key] = Option.getOrNull(value)
+      const rawValue = Option.getOrNull(value)
+      // JSON.stringify JSONB fields (including strings)
+      result[snakeKey] = isJsonb && rawValue !== null ? JSON.stringify(rawValue) : rawValue
     } else {
-      // Pass through non-Option values as-is
-      result[key] = value
+      // JSON.stringify JSONB fields
+      result[snakeKey] = isJsonb ? JSON.stringify(value) : value
     }
   }
 

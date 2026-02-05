@@ -14,9 +14,9 @@ export {
   MeasurementUnit,
   ThresholdStatus,
 
-  // Entity class and namespace
-  SensorSchema,
+  // Entity class
   Sensor,
+  type SensorEntity,
 
   // Command params
   CreateSensorParams,

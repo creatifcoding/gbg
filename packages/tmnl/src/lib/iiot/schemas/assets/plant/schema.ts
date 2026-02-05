@@ -56,7 +56,7 @@ export const makePlantId = (slug: string): PlantId => `PLT-${slug}` as PlantId
  *
  * @example
  * ```ts
- * const plant = new PlantSchema({
+ * const plant = new Plant({
  *   id: makePlantId('chicago-assembly'),
  *   name: 'Chicago Assembly Plant',
  *   status: 'active',
@@ -73,7 +73,7 @@ export const makePlantId = (slug: string): PlantId => `PLT-${slug}` as PlantId
  * plant.materializePath() // '/ENT-acme/SIT-chicago/PLT-chicago-assembly'
  * ```
  */
-export class PlantSchema extends Schema.TaggedClass<PlantSchema>()('Plant', {
+export class Plant extends Schema.TaggedClass<Plant>()('Plant', {
   /** Unique plant identifier (PLT-{slug} format) */
   id: PlantId,
 
@@ -123,30 +123,8 @@ export class PlantSchema extends Schema.TaggedClass<PlantSchema>()('Plant', {
   }
 }
 
-// =============================================================================
-// Plant Namespace + Type
-// =============================================================================
-
-/**
- * Plant namespace containing schema and type utilities.
- *
- * Usage:
- * - `Plant.Schema` - The Effect Schema class for encoding/decoding
- * - `Plant.Type` - The TypeScript type (same as `Plant`)
- * - `type Plant` - Same as `Plant.Type` (via declaration merging)
- */
-export namespace Plant {
-  /** Plant schema class */
-  export const Schema = PlantSchema
-  /** Plant type derived from schema */
-  export type Type = typeof PlantSchema.Type
-}
-
-/**
- * Plant type alias for backward compatibility.
- * Allows `import type { Plant }` to work as a type.
- */
-export type Plant = Plant.Type
+/** Plant entity type alias */
+export type PlantEntity = typeof Plant.Type
 
 // =============================================================================
 // Create Plant Parameters

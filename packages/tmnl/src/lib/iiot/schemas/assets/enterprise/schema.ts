@@ -56,7 +56,7 @@ export const makeEnterpriseId = (slug: string): EnterpriseId => `ENT-${slug}` as
  *
  * @example
  * ```ts
- * const enterprise = new EnterpriseSchema({
+ * const enterprise = new Enterprise({
  *   id: makeEnterpriseId('acme-corp'),
  *   name: 'ACME Corporation',
  *   status: 'active',
@@ -71,7 +71,7 @@ export const makeEnterpriseId = (slug: string): EnterpriseId => `ENT-${slug}` as
  * enterprise.materializePath() // '/ENT-acme-corp'
  * ```
  */
-export class EnterpriseSchema extends Schema.TaggedClass<EnterpriseSchema>()('Enterprise', {
+export class Enterprise extends Schema.TaggedClass<Enterprise>()('Enterprise', {
   /** Unique enterprise identifier (ENT-{slug} format) */
   id: EnterpriseId,
 
@@ -128,13 +128,8 @@ export class EnterpriseSchema extends Schema.TaggedClass<EnterpriseSchema>()('En
 // Enterprise Namespace
 // =============================================================================
 
-/**
- * Enterprise namespace for type-safe access to schema and type.
- */
-export namespace Enterprise {
-  export const Schema = EnterpriseSchema
-  export type Type = typeof EnterpriseSchema.Type
-}
+/** Enterprise entity type alias */
+export type EnterpriseEntity = typeof Enterprise.Type
 
 // =============================================================================
 // Create Enterprise Parameters

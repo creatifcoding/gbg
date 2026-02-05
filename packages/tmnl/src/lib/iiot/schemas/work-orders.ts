@@ -162,6 +162,26 @@ export const getValidNextStates = (
 ): readonly WorkOrderStatus[] => validTransitions[current]
 
 // =============================================================================
+// Work Order Transition (Audit Trail)
+// =============================================================================
+
+/**
+ * Work order state transition record.
+ * Used for audit trails and FDA 21 CFR Part 11 compliance reporting.
+ *
+ * This class is defined before WorkOrder to enable embedding in the
+ * WorkOrder's transitions array.
+ */
+export class WorkOrderTransition extends Schema.TaggedClass<WorkOrderTransition>()('WorkOrderTransition', {
+  workOrderId: WorkOrderId,
+  fromState: WorkOrderStatus,
+  toState: WorkOrderStatus,
+  transitionedAt: Schema.DateTimeUtc,
+  transitionedBy: Schema.optional(Schema.String),
+  reason: Schema.optional(Schema.String),
+}) {}
+
+// =============================================================================
 // Work Order Entity
 // =============================================================================
 
@@ -273,6 +293,15 @@ export class WorkOrder extends Schema.TaggedClass<WorkOrder>()('WorkOrder', {
   /** Extensible metadata */
   metadata: Schema.optionalWith(Schema.Record({ key: Schema.String, value: Schema.Unknown }), {
     default: () => ({}),
+  }),
+
+  /**
+   * Append-only state transition history for FDA 21 CFR Part 11 audit trail.
+   * Each transition records who, when, from/to states, and optional reason.
+   * This is embedded within the WorkOrder for complete audit visibility.
+   */
+  transitions: Schema.optionalWith(Schema.Array(WorkOrderTransition), {
+    default: () => [],
   }),
 }) {
   /**
@@ -444,3 +473,19 @@ export const WorkOrderQueryParams = Schema.Struct({
   offset: Schema.optionalWith(Schema.Number, { default: () => 0 }),
 })
 export type WorkOrderQueryParams = Schema.Schema.Type<typeof WorkOrderQueryParams>
+
+// =============================================================================
+// Work Order History (for Temporal Queries)
+// =============================================================================
+
+/**
+ * Work order state at a specific point in time.
+ * Used for temporal queries: "What was the work order state at time T?"
+ */
+export class WorkOrderAtTime extends Schema.TaggedClass<WorkOrderAtTime>()('WorkOrderAtTime', {
+  workOrder: WorkOrder,
+  /** The point in time this represents */
+  asOf: Schema.DateTimeUtc,
+  /** Was this reconstructed from events? */
+  fromReplay: Schema.Boolean,
+}) {}

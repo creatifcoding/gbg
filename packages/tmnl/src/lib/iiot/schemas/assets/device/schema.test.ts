@@ -14,6 +14,25 @@ import {
   Device,
   CreateDeviceParams,
 } from './schema'
+import { HierarchyPath, PathSegment } from '../../hierarchy'
+import { MachineId } from '../machine/schema'
+
+// =============================================================================
+// Test Helpers
+// =============================================================================
+
+/**
+ * Create a valid HierarchyPath for Device (ISA-95 Level 0).
+ * Device path: Enterprise → Site → Plant → Machine → Device
+ */
+const makeTestHierarchyPath = (slug: string) =>
+  HierarchyPath.fromSegments([
+    new PathSegment({ level: 'enterprise', id: 'ENT-test', name: Option.none() }),
+    new PathSegment({ level: 'site', id: 'SIT-test', name: Option.none() }),
+    new PathSegment({ level: 'plant', id: 'PLT-test', name: Option.none() }),
+    new PathSegment({ level: 'machine', id: 'MCH-cnc-001', name: Option.none() }),
+    new PathSegment({ level: 'device', id: `DEV-${slug}`, name: Option.none() }),
+  ])
 
 // =============================================================================
 // DeviceId Tests
@@ -104,7 +123,6 @@ describe('Device', () => {
       id: makeDeviceId('motor-01'),
       name: 'Main Motor' as Schema.Schema.Type<typeof Schema.NonEmptyString>,
       status: 'active',
-      machineId: 'MCH-cnc-001' as Schema.Schema.Type<typeof Schema.String> & { readonly MachineId: unique symbol },
       deviceType: 'motor',
       controlMode: Option.some('auto' as const),
       ratedPower: Option.some(5000),
@@ -115,6 +133,18 @@ describe('Device', () => {
       createdAt: DateTime.unsafeNow(),
       updatedAt: Option.none(),
       metadata: {},
+      // BaseAssetFields: Hierarchy Path
+      hierarchyPath: makeTestHierarchyPath('motor-01'),
+      // BaseAssetFields: Location (optional)
+      location: Option.none(),
+      // BaseAssetFields: Parent IDs (all as Option)
+      enterpriseId: Option.none(),
+      siteId: Option.none(),
+      areaId: Option.none(),
+      plantId: Option.none(),
+      lineId: Option.none(),
+      workCellId: Option.none(),
+      machineId: Option.some('MCH-cnc-001' as MachineId),
     })
 
   it('should create a valid device instance', () => {
@@ -177,7 +207,6 @@ describe('Device', () => {
       id: makeDeviceId('valve-01'),
       name: 'Simple Valve' as Schema.Schema.Type<typeof Schema.NonEmptyString>,
       status: 'active',
-      machineId: 'MCH-machine-01' as Schema.Schema.Type<typeof Schema.String> & { readonly MachineId: unique symbol },
       deviceType: 'valve',
       controlMode: Option.none(),
       ratedPower: Option.none(),
@@ -188,6 +217,18 @@ describe('Device', () => {
       createdAt: DateTime.unsafeNow(),
       updatedAt: Option.none(),
       metadata: {},
+      // BaseAssetFields: Hierarchy Path
+      hierarchyPath: makeTestHierarchyPath('valve-01'),
+      // BaseAssetFields: Location (optional)
+      location: Option.none(),
+      // BaseAssetFields: Parent IDs (all as Option)
+      enterpriseId: Option.none(),
+      siteId: Option.none(),
+      areaId: Option.none(),
+      plantId: Option.none(),
+      lineId: Option.none(),
+      workCellId: Option.none(),
+      machineId: Option.some('MCH-machine-01' as MachineId),
     })
 
     expect(Option.isNone(deviceWithNoOptionals.controlMode)).toBe(true)

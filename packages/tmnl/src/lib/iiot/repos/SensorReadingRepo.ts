@@ -83,7 +83,7 @@ export const SensorReadingRepoLive = Layer.effect(
         yield* sql`
           INSERT INTO iiot.sensor_readings (time, device_id, value, quality)
           SELECT * FROM UNNEST(
-            ${times}::timestamp[],
+            ${times}::timestamptz[],
             ${deviceIds}::text[],
             ${values}::double precision[],
             ${qualities}::integer[]
@@ -140,8 +140,8 @@ export const SensorReadingRepoLive = Layer.effect(
             quality
           FROM iiot.sensor_readings
           WHERE device_id = ${params.deviceId}
-            AND (${params.since ?? null}::timestamp IS NULL OR time >= ${params.since ?? null})
-            AND (${params.until ?? null}::timestamp IS NULL OR time <= ${params.until ?? null})
+            AND (${params.since ?? null}::timestamptz IS NULL OR time >= ${params.since ?? null}::timestamptz)
+            AND (${params.until ?? null}::timestamptz IS NULL OR time <= ${params.until ?? null}::timestamptz)
           ORDER BY time DESC
           LIMIT ${params.limit ?? 1000}
         `

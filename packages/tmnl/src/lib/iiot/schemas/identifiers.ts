@@ -98,6 +98,10 @@ export type WorkOrderId = Schema.Schema.Type<typeof WorkOrderId>
 export const TaskInstanceId = Schema.String.pipe(Schema.brand('TaskInstanceId'))
 export type TaskInstanceId = Schema.Schema.Type<typeof TaskInstanceId>
 
+/** Task definition identifier referencing workflow template (e.g., 'TDEF-maintenance-step-1') */
+export const TaskDefinitionId = Schema.String.pipe(Schema.brand('TaskDefinitionId'))
+export type TaskDefinitionId = Schema.Schema.Type<typeof TaskDefinitionId>
+
 /** Approval request identifier (e.g., 'APRV-abc123') */
 export const ApprovalId = Schema.String.pipe(Schema.brand('ApprovalId'))
 export type ApprovalId = Schema.Schema.Type<typeof ApprovalId>
@@ -113,6 +117,18 @@ export type WorkflowDefinitionId = Schema.Schema.Type<typeof WorkflowDefinitionI
 /** Context snapshot identifier for immutable audit records */
 export const ContextSnapshotId = Schema.String.pipe(Schema.brand('ContextSnapshotId'))
 export type ContextSnapshotId = Schema.Schema.Type<typeof ContextSnapshotId>
+
+/** Work order context identifier (e.g., 'CTX-abc123') */
+export const WorkOrderContextId = Schema.String.pipe(Schema.brand('WorkOrderContextId'))
+export type WorkOrderContextId = Schema.Schema.Type<typeof WorkOrderContextId>
+
+/** Resource identifier for tools, materials, equipment (e.g., 'RES-abc123') */
+export const ResourceId = Schema.String.pipe(Schema.brand('ResourceId'))
+export type ResourceId = Schema.Schema.Type<typeof ResourceId>
+
+/** External system reference identifier (e.g., 'EXTREF-abc123') */
+export const ExternalRefId = Schema.String.pipe(Schema.brand('ExternalRefId'))
+export type ExternalRefId = Schema.Schema.Type<typeof ExternalRefId>
 
 // Note: EquipmentStateId is defined in equipment-state/schema.ts with pattern validation
 // Re-exported via equipment-state/index.ts

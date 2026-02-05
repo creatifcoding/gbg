@@ -76,10 +76,23 @@ export const createSchema = Effect.gen(function* () {
 /**
  * Creates the Apache AGE graph for asset hierarchy.
  * Named 'iiot_graph' to avoid conflict with 'iiot' schema.
+ *
+ * Idempotent: checks ag_catalog.ag_graph before creating.
  */
 export const createGraph = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
-  yield* sql.unsafe(`SELECT create_graph('iiot_graph')`)
+  // Check if graph exists before creating (create_graph has no IF NOT EXISTS)
+  yield* sql.unsafe(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM ag_catalog.ag_graph WHERE name = 'iiot_graph') THEN
+        PERFORM create_graph('iiot_graph');
+        RAISE NOTICE 'Created AGE graph: iiot_graph';
+      ELSE
+        RAISE NOTICE 'AGE graph iiot_graph already exists';
+      END IF;
+    END $$
+  `)
 })
 
 // =============================================================================
@@ -87,15 +100,25 @@ export const createGraph = Effect.gen(function* () {
 // =============================================================================
 
 /**
- * Grants permissions on iiot schema to the iiot user.
+ * Grants permissions on iiot schema to the current user.
+ * Uses CURRENT_USER for portability across different database setups.
  */
 export const grantPermissions = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
 
-  yield* sql.unsafe(`GRANT USAGE ON SCHEMA iiot TO iiot`)
-  yield* sql.unsafe(`GRANT USAGE ON SCHEMA ag_catalog TO iiot`)
-  yield* sql.unsafe(`GRANT ALL ON ALL TABLES IN SCHEMA iiot TO iiot`)
-  yield* sql.unsafe(`GRANT ALL ON ALL SEQUENCES IN SCHEMA iiot TO iiot`)
-  yield* sql.unsafe(`GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA iiot TO iiot`)
-  yield* sql.unsafe(`GRANT SELECT ON ALL TABLES IN SCHEMA ag_catalog TO iiot`)
+  // Use DO block with EXECUTE to dynamically grant to CURRENT_USER
+  yield* sql.unsafe(`
+    DO $$
+    DECLARE
+      current_role text := CURRENT_USER;
+    BEGIN
+      EXECUTE format('GRANT USAGE ON SCHEMA iiot TO %I', current_role);
+      EXECUTE format('GRANT USAGE ON SCHEMA ag_catalog TO %I', current_role);
+      EXECUTE format('GRANT ALL ON ALL TABLES IN SCHEMA iiot TO %I', current_role);
+      EXECUTE format('GRANT ALL ON ALL SEQUENCES IN SCHEMA iiot TO %I', current_role);
+      EXECUTE format('GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA iiot TO %I', current_role);
+      EXECUTE format('GRANT SELECT ON ALL TABLES IN SCHEMA ag_catalog TO %I', current_role);
+      RAISE NOTICE 'Granted iiot schema permissions to %', current_role;
+    END $$
+  `)
 })

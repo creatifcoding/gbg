@@ -121,7 +121,7 @@ export type PowerUnit = typeof PowerUnit.Type
  * ```ts
  * import { DateTime, Option } from 'effect'
  *
- * const motor = new DeviceSchema({
+ * const motor = new Device({
  *   id: makeDeviceId('spindle-motor-01'),
  *   name: 'Main Spindle Motor',
  *   status: 'active',
@@ -147,7 +147,7 @@ export type PowerUnit = typeof PowerUnit.Type
  * })
  * ```
  */
-export class DeviceSchema extends Schema.TaggedClass<DeviceSchema>()('Device', {
+export class Device extends Schema.TaggedClass<Device>()('Device', {
   /** Unique device identifier (DEV-{slug} format) */
   id: DeviceId,
 
@@ -232,12 +232,9 @@ export class DeviceSchema extends Schema.TaggedClass<DeviceSchema>()('Device', {
  * type DeviceType = Device.Type
  * ```
  */
-export namespace Device {
-  /** Device schema class */
-  export const Schema = DeviceSchema
-  /** Device instance type */
-  export type Type = typeof DeviceSchema.Type
-}
+
+/** Device entity type alias */
+export type DeviceEntity = typeof Device.Type
 
 // =============================================================================
 // CreateDeviceParams - Command Parameters

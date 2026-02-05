@@ -53,15 +53,29 @@ export const LineRepoLive = Layer.effect(
   Effect.gen(function* () {
     const sql = yield* SqlClient.SqlClient
 
+    // Column alias helper for SELECT statements
+    const selectColumns = sql`
+      id,
+      name,
+      status,
+      hierarchy_path AS "hierarchyPath",
+      enterprise_id AS "enterpriseId",
+      site_id AS "siteId",
+      area_id AS "areaId",
+      plant_id AS "plantId",
+      description,
+      capacity,
+      operating_hours_per_day AS "operatingHoursPerDay",
+      location,
+      metadata,
+      created_at AS "createdAt",
+      updated_at AS "updatedAt"
+    `
+
     const findById = (id: LineId) =>
       Effect.gen(function* () {
         const rows = yield* sql`
-          SELECT
-            id,
-            name,
-            plant_id AS "plantId",
-            created_at AS "createdAt",
-            updated_at AS "updatedAt"
+          SELECT ${selectColumns}
           FROM iiot.lines
           WHERE id = ${id}
           LIMIT 1
@@ -72,12 +86,7 @@ export const LineRepoLive = Layer.effect(
     const findByPlant = (plantId: PlantId) =>
       Effect.gen(function* () {
         const rows = yield* sql`
-          SELECT
-            id,
-            name,
-            plant_id AS "plantId",
-            created_at AS "createdAt",
-            updated_at AS "updatedAt"
+          SELECT ${selectColumns}
           FROM iiot.lines
           WHERE plant_id = ${plantId}
           ORDER BY name ASC
@@ -88,12 +97,7 @@ export const LineRepoLive = Layer.effect(
     const findAll = () =>
       Effect.gen(function* () {
         const rows = yield* sql`
-          SELECT
-            id,
-            name,
-            plant_id AS "plantId",
-            created_at AS "createdAt",
-            updated_at AS "updatedAt"
+          SELECT ${selectColumns}
           FROM iiot.lines
           ORDER BY name ASC
         `
@@ -103,14 +107,27 @@ export const LineRepoLive = Layer.effect(
     const insert = (line: typeof LineModel.insert.Type) =>
       Effect.gen(function* () {
         const rows = yield* sql`
-          INSERT INTO iiot.lines (id, name, plant_id)
-          VALUES (${line.id}, ${line.name}, ${line.plantId})
-          RETURNING
-            id,
-            name,
-            plant_id AS "plantId",
-            created_at AS "createdAt",
-            updated_at AS "updatedAt"
+          INSERT INTO iiot.lines (
+            id, name, status, hierarchy_path, enterprise_id,
+            site_id, area_id, plant_id, description, capacity,
+            operating_hours_per_day, location, metadata
+          )
+          VALUES (
+            ${line.id},
+            ${line.name},
+            ${line.status},
+            ${line.hierarchyPath},
+            ${line.enterpriseId},
+            ${line.siteId},
+            ${Option.getOrNull(line.areaId)},
+            ${line.plantId},
+            ${Option.getOrNull(line.description)},
+            ${Option.getOrNull(line.capacity)},
+            ${Option.getOrNull(line.operatingHoursPerDay)},
+            ${Option.match(line.location, { onNone: () => null, onSome: (v) => JSON.stringify(v) })},
+            ${Option.match(line.metadata, { onNone: () => '{}', onSome: (v) => JSON.stringify(v) })}
+          )
+          RETURNING ${selectColumns}
         `
         return yield* decodeFirst(LineModel)(rows)
       })
@@ -123,12 +140,7 @@ export const LineRepoLive = Layer.effect(
             name = COALESCE(${line.name ?? null}, name),
             updated_at = NOW()
           WHERE id = ${line.id}
-          RETURNING
-            id,
-            name,
-            plant_id AS "plantId",
-            created_at AS "createdAt",
-            updated_at AS "updatedAt"
+          RETURNING ${selectColumns}
         `
         return yield* decodeFirst(LineModel)(rows)
       })

@@ -83,9 +83,9 @@ describe('Asset Definitions', () => {
       })
     })
 
-    it('should have model as Option<string>', () => {
+    it('should have modelNumber as Option<string>', () => {
       mockMachineInserts.forEach((machine) => {
-        expect(Option.isOption(machine.model)).toBe(true)
+        expect(Option.isOption(machine.modelNumber)).toBe(true)
       })
     })
   })
@@ -122,16 +122,31 @@ describe('Asset Definitions', () => {
       const validUnits: MeasurementUnit[] = [
         'celsius',
         'fahrenheit',
-        'mm/s',
-        'percent',
-        'm/min',
-        'amps',
+        'kelvin',
         'psi',
         'bar',
-        'l/min',
+        'pascal',
+        'kpa',
+        'mm_s',
+        'in_s',
+        'g',
+        'l_min',
         'gpm',
+        'm3_h',
         'meters',
         'feet',
+        'mm',
+        'inches',
+        'percent',
+        'rpm',
+        'ampere',
+        'volt',
+        'watt',
+        'newton',
+        'nm',
+        'kg',
+        'count',
+        'unitless',
       ]
       mockSensorInserts.forEach((sensor) => {
         expect(validUnits).toContain(sensor.unit)

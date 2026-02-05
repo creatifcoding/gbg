@@ -152,7 +152,7 @@ export type ThresholdStatus = Schema.Schema.Type<typeof ThresholdStatus>
  * ```ts
  * import { DateTime, Option } from 'effect'
  *
- * const tempSensor = new SensorSchema({
+ * const tempSensor = new Sensor({
  *   id: makeSensorId('temp-motor-01'),
  *   name: 'Motor Temperature Sensor',
  *   status: 'active',
@@ -175,7 +175,7 @@ export type ThresholdStatus = Schema.Schema.Type<typeof ThresholdStatus>
  * })
  * ```
  */
-export class SensorSchema extends Schema.TaggedClass<SensorSchema>()('Sensor', {
+export class Sensor extends Schema.TaggedClass<Sensor>()('Sensor', {
   /** Unique sensor identifier (SNS-{slug} format) */
   id: SensorId,
 
@@ -311,15 +311,9 @@ export class SensorSchema extends Schema.TaggedClass<SensorSchema>()('Sensor', {
  * const sensor = new Sensor.Schema({ ... })
  * ```
  */
-export namespace Sensor {
-  export const Schema = SensorSchema
-  export type Type = typeof SensorSchema.Type
-}
 
-/**
- * Sensor type alias for backward compatibility.
- */
-export type Sensor = Sensor.Type
+/** Sensor entity type alias */
+export type SensorEntity = typeof Sensor.Type
 
 // =============================================================================
 // CreateSensorParams - Command Parameters

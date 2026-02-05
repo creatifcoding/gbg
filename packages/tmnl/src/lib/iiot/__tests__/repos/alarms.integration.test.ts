@@ -16,6 +16,7 @@ import {
   RepositoriesIntegrationLayer,
   cleanTestAssets,
   cleanTestAlarms,
+  setupTestHierarchy,
   isDatabaseAvailable,
 } from '../integration/layer'
 import { AlarmRepo, AlarmContextRepo, PlantRepo, LineRepo, MachineRepo, SensorRepo, SensorReadingRepo } from '../../repos'
@@ -55,6 +56,10 @@ describe.skipIf(!RUN_INTEGRATION)('AlarmRepo Integration', () => {
     )
     await Effect.runPromise(
       cleanTestAssets.pipe(Effect.provide(TestPgClient))
+    )
+    // Re-create hierarchy after clean
+    await Effect.runPromise(
+      setupTestHierarchy.pipe(Effect.provide(TestPgClient))
     )
     // Insert parent hierarchy: Plant -> Line -> Machine -> Sensor
     await Effect.runPromise(
@@ -434,6 +439,10 @@ describe.skipIf(!RUN_INTEGRATION)('AlarmContextRepo Integration', () => {
     )
     await Effect.runPromise(
       cleanTestAssets.pipe(Effect.provide(TestPgClient))
+    )
+    // Re-create hierarchy after clean
+    await Effect.runPromise(
+      setupTestHierarchy.pipe(Effect.provide(TestPgClient))
     )
     // Also clean sensor readings
     await Effect.runPromise(

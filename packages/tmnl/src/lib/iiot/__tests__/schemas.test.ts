@@ -8,18 +8,22 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { Schema } from 'effect'
+import { Schema, Option } from 'effect'
 import {
-  PlantId,
+  PlantId as LegacyPlantId,
   DeviceId,
   AlarmId,
 } from '../schemas/identifiers'
 import {
   Plant,
+  makePlantId,
   Machine,
+  makeMachineId,
   Sensor,
+  makeSensorId,
   SensorType,
 } from '../schemas/assets'
+import { HierarchyPath, PathSegment } from '../schemas/hierarchy'
 import {
   QualityScore,
   TimeBucket,
@@ -30,13 +34,69 @@ import {
 } from '../schemas/alarms'
 
 // =============================================================================
+// Test Helpers
+// =============================================================================
+
+/**
+ * Create encoded HierarchyPath data for Plant level.
+ * The encoded form requires segments in their encoded shape.
+ */
+const createEncodedPlantHierarchyPath = () => ({
+  _tag: 'HierarchyPath' as const,
+  segments: [
+    { _tag: 'PathSegment' as const, level: 'enterprise', id: 'ENT-acme' },
+    { _tag: 'PathSegment' as const, level: 'site', id: 'SIT-chicago' },
+    { _tag: 'PathSegment' as const, level: 'plant', id: 'PLT-main' },
+  ],
+  materialized: '/ENT-acme/SIT-chicago/PLT-main',
+  depth: 3,
+})
+
+/**
+ * Create encoded HierarchyPath data for Machine level.
+ */
+const createEncodedMachineHierarchyPath = (machineSlug: string) => ({
+  _tag: 'HierarchyPath' as const,
+  segments: [
+    { _tag: 'PathSegment' as const, level: 'enterprise', id: 'ENT-acme' },
+    { _tag: 'PathSegment' as const, level: 'site', id: 'SIT-chicago' },
+    { _tag: 'PathSegment' as const, level: 'plant', id: 'PLT-main' },
+    { _tag: 'PathSegment' as const, level: 'line', id: 'LIN-assembly' },
+    { _tag: 'PathSegment' as const, level: 'machine', id: `MCH-${machineSlug}` },
+  ],
+  materialized: `/ENT-acme/SIT-chicago/PLT-main/LIN-assembly/MCH-${machineSlug}`,
+  depth: 5,
+})
+
+/**
+ * Create encoded HierarchyPath data for Sensor level.
+ */
+const createEncodedSensorHierarchyPath = (sensorSlug: string) => ({
+  _tag: 'HierarchyPath' as const,
+  segments: [
+    { _tag: 'PathSegment' as const, level: 'enterprise', id: 'ENT-acme' },
+    { _tag: 'PathSegment' as const, level: 'site', id: 'SIT-chicago' },
+    { _tag: 'PathSegment' as const, level: 'plant', id: 'PLT-main' },
+    { _tag: 'PathSegment' as const, level: 'line', id: 'LIN-assembly' },
+    { _tag: 'PathSegment' as const, level: 'machine', id: 'MCH-robot-01' },
+    { _tag: 'PathSegment' as const, level: 'sensor', id: `SNS-${sensorSlug}` },
+  ],
+  materialized: `/ENT-acme/SIT-chicago/PLT-main/LIN-assembly/MCH-robot-01/SNS-${sensorSlug}`,
+  depth: 6,
+})
+
+// ISO timestamp for test data
+const TEST_TIMESTAMP = '2026-01-15T10:30:00.000Z'
+
+// =============================================================================
 // Feature: Branded Identifiers
 // =============================================================================
 
 describe('Feature: Branded Identifiers', () => {
   describe('Scenario: Valid identifier encoding', () => {
     it('Given a valid string, When encoding as PlantId, Then it should succeed', () => {
-      const result = Schema.decodeUnknownSync(PlantId)('PLANT-001')
+      // Using legacy PlantId (simple brand without pattern validation)
+      const result = Schema.decodeUnknownSync(LegacyPlantId)('PLANT-001')
       expect(result).toBe('PLANT-001')
     })
 
@@ -53,7 +113,7 @@ describe('Feature: Branded Identifiers', () => {
 
   describe('Scenario: Invalid identifier encoding', () => {
     it('Given a number, When encoding as PlantId, Then it should fail', () => {
-      expect(() => Schema.decodeUnknownSync(PlantId)(123)).toThrow()
+      expect(() => Schema.decodeUnknownSync(LegacyPlantId)(123)).toThrow()
     })
 
     it('Given null, When encoding as DeviceId, Then it should fail', () => {
@@ -69,11 +129,17 @@ describe('Feature: Branded Identifiers', () => {
 describe('Feature: Asset Hierarchy Schemas', () => {
   describe('Scenario: Valid Plant encoding', () => {
     it('Given valid plant data, When decoding, Then it should produce a Plant', () => {
+      // ENCODED input: strings for timestamps, omit optional fields
       const data = {
         _tag: 'Plant' as const,
-        id: 'PLANT-001',
+        id: 'PLT-chicago-assembly',
         name: 'Chicago Assembly',
-        location: 'Chicago, IL',
+        status: 'active' as const,
+        timezone: 'America/Chicago',
+        hierarchyPath: createEncodedPlantHierarchyPath(),
+        enterpriseId: 'ENT-acme',
+        siteId: 'SIT-chicago',
+        createdAt: TEST_TIMESTAMP,
       }
 
       const result = Schema.decodeUnknownSync(Plant)(data)
@@ -86,21 +152,43 @@ describe('Feature: Asset Hierarchy Schemas', () => {
     it('Given machine data with model, When decoding, Then model should be optional', () => {
       const withModel = {
         _tag: 'Machine' as const,
-        id: 'MCH-001',
+        id: 'MCH-welding-robot-001',
         name: 'Welding Robot',
-        lineId: 'LINE-001',
-        model: 'FANUC R-2000',
+        status: 'active' as const,
+        // Required parent IDs for Machine
+        enterpriseId: 'ENT-acme',
+        siteId: 'SIT-chicago',
+        plantId: 'PLT-main',
+        lineId: 'LIN-assembly',
+        // Hierarchy and timestamps (encoded as string)
+        hierarchyPath: createEncodedMachineHierarchyPath('welding-robot-001'),
+        createdAt: TEST_TIMESTAMP,
+        // Machine-specific fields
+        machineType: 'Welding Robot',
+        modelNumber: 'FANUC R-2000',
       }
 
       const withoutModel = {
         _tag: 'Machine' as const,
-        id: 'MCH-002',
+        id: 'MCH-press-001',
         name: 'Press',
-        lineId: 'LINE-001',
+        status: 'active' as const,
+        // Required parent IDs
+        enterpriseId: 'ENT-acme',
+        siteId: 'SIT-chicago',
+        plantId: 'PLT-main',
+        lineId: 'LIN-assembly',
+        // Hierarchy and timestamps
+        hierarchyPath: createEncodedMachineHierarchyPath('press-001'),
+        createdAt: TEST_TIMESTAMP,
+        // Machine-specific fields
+        machineType: 'Hydraulic Press',
+        // modelNumber omitted
       }
 
-      expect(Schema.decodeUnknownSync(Machine)(withModel).model).toBe('FANUC R-2000')
-      expect(Schema.decodeUnknownSync(Machine)(withoutModel).model).toBeUndefined()
+      // modelNumber is stored as Option on the decoded type
+      expect(Option.getOrNull(Schema.decodeUnknownSync(Machine)(withModel).modelNumber)).toBe('FANUC R-2000')
+      expect(Option.isNone(Schema.decodeUnknownSync(Machine)(withoutModel).modelNumber)).toBe(true)
     })
   })
 
@@ -108,14 +196,19 @@ describe('Feature: Asset Hierarchy Schemas', () => {
     it('Given sensor with valid type and unit, When decoding, Then it should succeed', () => {
       const data = {
         _tag: 'Sensor' as const,
-        deviceId: 'TMP-001',
-        machineId: 'MCH-001',
-        type: 'temperature',
-        unit: 'celsius',
+        id: 'SNS-temp-001',
+        name: 'Temperature Sensor 001',
+        status: 'active' as const,
+        // Hierarchy and timestamps (encoded as string)
+        hierarchyPath: createEncodedSensorHierarchyPath('temp-001'),
+        createdAt: TEST_TIMESTAMP,
+        // Sensor-specific fields
+        sensorType: 'temperature' as const,
+        unit: 'celsius' as const,
       }
 
       const result = Schema.decodeUnknownSync(Sensor)(data)
-      expect(result.type).toBe('temperature')
+      expect(result.sensorType).toBe('temperature')
       expect(result.unit).toBe('celsius')
     })
   })

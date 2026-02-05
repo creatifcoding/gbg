@@ -105,20 +105,41 @@ export const SensorType = Schema.Literal(
 )
 export type SensorType = Schema.Schema.Type<typeof SensorType>
 
-/** Measurement unit strings */
+/** Measurement unit strings - uses underscores (mm_s not mm/s) */
 export const MeasurementUnit = Schema.Literal(
+  // Temperature
   'celsius',
   'fahrenheit',
-  'mm/s',
-  'percent',
-  'm/min',
-  'amps',
+  'kelvin',
+  // Pressure
   'psi',
   'bar',
-  'l/min',
+  'pascal',
+  'kpa',
+  // Vibration
+  'mm_s',
+  'in_s',
+  'g',
+  // Flow
+  'l_min',
   'gpm',
+  'm3_h',
+  // Level
   'meters',
-  'feet'
+  'feet',
+  'mm',
+  'inches',
+  // General
+  'percent',
+  'rpm',
+  'ampere',
+  'volt',
+  'watt',
+  'newton',
+  'nm',
+  'kg',
+  'count',
+  'unitless'
 )
 export type MeasurementUnit = Schema.Schema.Type<typeof MeasurementUnit>
 

@@ -507,6 +507,19 @@ export type EquipmentStateQueryParams = typeof EquipmentStateQueryParams.Type
 // =============================================================================
 
 /**
+ * Duration in milliseconds with safe bounds.
+ * Constrained to [0, MAX_SAFE_INTEGER] to prevent Infinity/NaN in calculations.
+ * MAX_SAFE_INTEGER ≈ 285 million years — sufficient for any real duration.
+ */
+const DurationMs = Schema.Number.pipe(
+  Schema.nonNegative(),
+  Schema.lessThanOrEqualTo(Number.MAX_SAFE_INTEGER),
+  Schema.annotations({
+    description: 'Duration in milliseconds (0 to MAX_SAFE_INTEGER)',
+  })
+)
+
+/**
  * Aggregated state durations for a machine over a time period.
  * Used for OEE calculations and downtime reports.
  */
@@ -523,22 +536,22 @@ export class StateDurationAggregate extends Schema.TaggedClass<StateDurationAggr
     periodEnd: Schema.DateTimeUtc,
 
     /** Total milliseconds in 'running' state */
-    runningMs: Schema.Number.pipe(Schema.nonNegative()),
+    runningMs: DurationMs,
 
     /** Total milliseconds in 'idle' state */
-    idleMs: Schema.Number.pipe(Schema.nonNegative()),
+    idleMs: DurationMs,
 
     /** Total milliseconds in 'planned_downtime' state */
-    plannedDowntimeMs: Schema.Number.pipe(Schema.nonNegative()),
+    plannedDowntimeMs: DurationMs,
 
     /** Total milliseconds in 'unplanned_downtime' state */
-    unplannedDowntimeMs: Schema.Number.pipe(Schema.nonNegative()),
+    unplannedDowntimeMs: DurationMs,
 
     /** Total milliseconds in 'setup' state */
-    setupMs: Schema.Number.pipe(Schema.nonNegative()),
+    setupMs: DurationMs,
 
     /** Total milliseconds in 'blocked' state */
-    blockedMs: Schema.Number.pipe(Schema.nonNegative()),
+    blockedMs: DurationMs,
 
     /** Number of state transitions in period */
     transitionCount: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
