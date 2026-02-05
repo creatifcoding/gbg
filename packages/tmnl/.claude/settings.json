@@ -1,4 +1,13 @@
 {
+  "permissions": {
+    "deny": [
+      "Read(./node_modules/**)",
+      "Read(../../../node_modules/**)",
+      "Read(./.turbo/**)",
+      "Read(./dist/**)",
+      "Read(./coverage/**)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
