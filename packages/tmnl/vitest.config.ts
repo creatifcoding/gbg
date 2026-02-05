@@ -12,6 +12,13 @@ export default defineConfig({
     environment: "happy-dom",
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    // Sequential execution for integration tests to avoid DB race conditions
+    pool: "forks",
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
     exclude: [
       "**/node_modules/**",
       "**/*.bun.test.ts", // Bun-specific tests (use bun:sqlite) - run with `bun test`
@@ -33,6 +40,11 @@ export default defineConfig({
         branches: 80,
         statements: 85,
       },
+    },
+    // Benchmark configuration
+    benchmark: {
+      include: ["src/**/*.bench.{ts,tsx}"],
+      exclude: ["**/node_modules/**"],
     },
   },
   resolve: {

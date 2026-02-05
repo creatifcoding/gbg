@@ -6,6 +6,7 @@ import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
 import { VitePWA } from 'vite-plugin-pwa'; // Import VitePWA
 import type { Plugin } from 'vite';
+import { sourceExtractPlugin } from './vite-plugin-source-extract';
 
 const host = process.env.TAURI_DEV_HOST;
 
@@ -99,6 +100,7 @@ export default defineConfig(() => ({
     nxCopyAssetsPlugin(['*.md']),
     tmnlCursorChatPlugin(),
     tmnlBrowserLogPlugin(),
+    sourceExtractPlugin(), // Extract ComponentBox sources for testbed
     VitePWA({ // Add VitePWA plugin
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
@@ -152,13 +154,29 @@ export default defineConfig(() => ({
         '**/result/**',
       ],
     },
-    // Proxy y-sweet requests to avoid CORS issues in development
+    // Proxy requests to avoid CORS issues in development
     proxy: {
       '/y-sweet': {
         target: 'http://localhost:8080',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/y-sweet/, ''),
-        ws: true, // Enable WebSocket proxying
+        ws: true,
+      },
+      // Cursor chat server (Claude Code backend)
+      '/api/chat': {
+        target: 'http://localhost:7682',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+      '/api/ui-generate': {
+        target: 'http://localhost:7682',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+      '/api/chart-style': {
+        target: 'http://localhost:7682',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },
