@@ -1,46 +1,102 @@
 /**
  * AlarmEntity - Effect Cluster Entity for Alarm Lifecycle
  *
- * Replaces the module-level Map<AlarmId, Alarm> antipattern with
- * proper entity state management using Effect.Ref.
+ * Manages ISA-18.2 compliant alarm lifecycle with state machine transitions.
+ * Alarms are EVENT SOURCED for full audit trail per ADR-0012.
+ *
+ * ARCHITECTURE (Machine + Entity):
+ * - External API: Rpc.make() definitions (PRESERVED)
+ * - Internal: Machine booted at handler init, delegates via actor.send()
+ * - Graph validation: ISA-18.2 state transitions validated in Machine
+ * - StateService: Wrapped by Machine procedures
  *
  * Entity Lifecycle:
- * - Create: Initialize alarm with entity-scoped Ref
+ * - Create: Initialize alarm with entity-scoped state
  * - Get: Read current alarm state
- * - Acknowledge: Operator acknowledges alarm (with timestamp)
- * - Clear: Alarm condition resolved (with timestamp)
- *
- * Per DeepWiki research, entity state is managed via Effect.Ref
- * inside handlers, with MessageStorage providing durability.
+ * - Acknowledge: Operator acknowledges alarm (graph-validated)
+ * - Clear: Alarm condition resolved (graph-validated)
  *
  * @module
  */
 
-import { Schema, Effect, Ref, DateTime, Option } from 'effect'
+import { Schema, Effect } from 'effect'
 import { Entity } from '@effect/cluster'
 import { Rpc } from '@effect/rpc'
+import { Machine } from '@effect/experimental'
 import {
-  AlarmId,
   Alarm,
   CreateAlarmParams,
   AcknowledgeAlarmParams,
 } from '../schemas'
+import { AlarmId } from '../schemas/identifiers'
+import { AlarmState } from '../state'
+import { IIoTFeatureFlags } from '../infrastructure/feature-flags'
 import {
-  RpcAlarmNotFoundError,
-  RpcAlarmAlreadyAcknowledgedError,
-  RpcAlarmAlreadyClearedError,
-  RpcQueryError,
-} from '../rpc/errors'
-import {
-  AlarmEntityType,
-  AlarmCreateTag,
-  AlarmGetTag,
-  AlarmAcknowledgeTag,
-  AlarmClearTag,
-} from '../tags'
+  makeAlarmMachine,
+  InternalCreateAlarm,
+  InternalGetAlarm,
+  InternalAcknowledgeAlarm,
+  InternalClearAlarm,
+} from '../machines/AlarmMachine'
 
 // =============================================================================
-// RPC Definitions
+// RPC Error Schemas
+// =============================================================================
+
+/** Alarm not found error */
+export class RpcAlarmNotFoundError extends Schema.TaggedError<RpcAlarmNotFoundError>()(
+  'RpcAlarmNotFoundError',
+  {
+    alarmId: AlarmId,
+  }
+) {}
+
+/** Alarm transition error (invalid state transition) */
+export class RpcAlarmTransitionError extends Schema.TaggedError<RpcAlarmTransitionError>()(
+  'RpcAlarmTransitionError',
+  {
+    alarmId: AlarmId,
+    message: Schema.String,
+  }
+) {}
+
+/** Alarm already acknowledged error (legacy - maps to transition error) */
+export class RpcAlarmAlreadyAcknowledgedError extends Schema.TaggedError<RpcAlarmAlreadyAcknowledgedError>()(
+  'RpcAlarmAlreadyAcknowledgedError',
+  {
+    alarmId: AlarmId,
+  }
+) {}
+
+/** Alarm already cleared error (legacy - maps to transition error) */
+export class RpcAlarmAlreadyClearedError extends Schema.TaggedError<RpcAlarmAlreadyClearedError>()(
+  'RpcAlarmAlreadyClearedError',
+  {
+    alarmId: AlarmId,
+  }
+) {}
+
+/** Alarm query error */
+export class RpcQueryError extends Schema.TaggedError<RpcQueryError>()(
+  'RpcQueryError',
+  {
+    operation: Schema.String,
+    message: Schema.String,
+  }
+) {}
+
+// =============================================================================
+// RPC Tags
+// =============================================================================
+
+export const AlarmEntityType = 'Alarm' as const
+export const AlarmCreateTag = `${AlarmEntityType}.Create` as const
+export const AlarmGetTag = `${AlarmEntityType}.Get` as const
+export const AlarmAcknowledgeTag = `${AlarmEntityType}.Acknowledge` as const
+export const AlarmClearTag = `${AlarmEntityType}.Clear` as const
+
+// =============================================================================
+// RPC Definitions (PRESERVED - external API unchanged)
 // =============================================================================
 
 /**
@@ -87,7 +143,7 @@ export class ClearAlarmRpc extends Rpc.make(AlarmClearTag, {
 }) {}
 
 // =============================================================================
-// Entity Definition
+// Entity Definition (PRESERVED)
 // =============================================================================
 
 /**
@@ -113,153 +169,115 @@ export const AlarmEntity = Entity.make(AlarmEntityType, [
 export type AlarmEntity = typeof AlarmEntity
 
 // =============================================================================
-// Handler Implementation
+// Handler Implementation (REFACTORED - delegates to Machine)
 // =============================================================================
-
-let alarmCounter = 0
 
 /**
  * AlarmEntity handler layer
  *
- * Each handler:
- * - Has explicit return type matching RPC error definition
- * - Uses inline error handling (colocated, readable)
- * - Applies tapErrorTag for selective observability per error type
+ * ARCHITECTURE (Machine + Entity):
+ * - Boots AlarmMachine at initialization
+ * - Handlers delegate to Machine via actor.send()
+ * - Machine validates state transitions via ISA-18.2 graph
+ * - StateService wrapped by Machine procedures
+ *
+ * Usage:
+ * ```typescript
+ * // Testing: In-memory adapters
+ * const TestStack = AlarmEntityHandlers.pipe(
+ *   Layer.provide(AllStateServicesInMemory),
+ *   Layer.provide(IIoTFeatureFlagsDisabledLayer)
+ * )
+ * ```
  */
 export const AlarmEntityHandlers = AlarmEntity.toLayer(
   Effect.gen(function* () {
-    const alarmState = yield* Ref.make<Option.Option<Alarm>>(Option.none())
+    // ─────────────────────────────────────────────────────────────────────────
+    // PORT INJECTION
+    // ─────────────────────────────────────────────────────────────────────────
+    const state = yield* AlarmState          // Port: state persistence
+    const flags = yield* IIoTFeatureFlags    // Port: feature flags
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Create
+    // MACHINE BOOT (internal actor)
     // ─────────────────────────────────────────────────────────────────────────
+    const alarmMachine = makeAlarmMachine({ state, flags })
+    const actor = yield* Machine.boot(alarmMachine)
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // HANDLERS DELEGATE TO MACHINE
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Create handler - delegates to InternalCreateAlarm procedure
+     */
     const handleCreate = (envelope: {
       payload: {
         deviceId: string
+        assetId?: string
         alarmType: string
         severity: string
         message?: string
         metadata?: Record<string, unknown>
       }
-    }): Effect.Effect<Alarm, RpcQueryError> => {
-      const { deviceId, alarmType, severity, message, metadata } = envelope.payload
-      const id = `ALM-${++alarmCounter}` as AlarmId
+    }) =>
+      actor.send(new InternalCreateAlarm({ params: envelope.payload as typeof CreateAlarmParams.Type })).pipe(
+        Effect.catchTag('MachineCreateError', (e) =>
+          Effect.fail(new RpcQueryError({ operation: 'create', message: e.message }))
+        )
+      )
 
-      return DateTime.now.pipe(
-        Effect.flatMap((now) => {
-          const alarm: Alarm = {
-            _tag: 'Alarm',
-            id,
-            deviceId: deviceId as Alarm['deviceId'],
-            alarmType: alarmType as Alarm['alarmType'],
-            severity: severity as Alarm['severity'],
-            message,
-            triggeredAt: now,
-            metadata,
-          }
-          return Ref.set(alarmState, Option.some(alarm)).pipe(
-            Effect.flatMap(() => Effect.logInfo(`Created alarm ${id} for device ${deviceId}`)),
-            Effect.as(alarm)
-          )
+    /**
+     * Get handler - delegates to InternalGetAlarm procedure
+     */
+    const handleGet = (envelope: { payload: { alarmId: AlarmId } }) =>
+      actor.send(new InternalGetAlarm({ alarmId: envelope.payload.alarmId })).pipe(
+        Effect.catchTag('MachineAlarmNotFoundError', (e) =>
+          Effect.fail(new RpcAlarmNotFoundError({ alarmId: e.alarmId as AlarmId }))
+        ),
+        Effect.tapError((e) =>
+          Effect.logWarning(`Get: ${e._tag} for alarm ${envelope.payload.alarmId}`)
+        )
+      )
+
+    /**
+     * Acknowledge handler - delegates to InternalAcknowledgeAlarm procedure
+     * Maps Machine errors to appropriate RPC errors
+     */
+    const handleAcknowledge = (envelope: { payload: { alarmId: AlarmId; acknowledgedBy: string } }) =>
+      actor.send(
+        new InternalAcknowledgeAlarm({
+          alarmId: envelope.payload.alarmId,
+          acknowledgedBy: envelope.payload.acknowledgedBy,
         })
-      )
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Get
-    // ─────────────────────────────────────────────────────────────────────────
-    const handleGet = (envelope: {
-      payload: { alarmId: string }
-    }): Effect.Effect<Alarm, RpcAlarmNotFoundError> => {
-      const { alarmId } = envelope.payload
-
-      return Ref.get(alarmState).pipe(
-        Effect.flatMap((maybeAlarm) => {
-          if (Option.isNone(maybeAlarm) || maybeAlarm.value.id !== alarmId) {
-            return Effect.fail(new RpcAlarmNotFoundError({ alarmId: alarmId as AlarmId }))
-          }
-          return Effect.succeed(maybeAlarm.value)
+      ).pipe(
+        Effect.catchTags({
+          MachineAlarmNotFoundError: (e) =>
+            Effect.fail(new RpcAlarmNotFoundError({ alarmId: e.alarmId as AlarmId })),
+          MachineInvalidTransitionError: (e) =>
+            Effect.fail(new RpcAlarmAlreadyAcknowledgedError({ alarmId: e.alarmId as AlarmId })),
         }),
-        // Inline observability: log not found
-        Effect.tapErrorTag('RpcAlarmNotFoundError', (e) =>
-          Effect.logWarning(`Get: Alarm ${e.alarmId} not found`)
+        Effect.tapError((e) =>
+          Effect.logWarning(`Acknowledge: ${e._tag} for alarm ${envelope.payload.alarmId}`)
         )
       )
-    }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Acknowledge
-    // ─────────────────────────────────────────────────────────────────────────
-    const handleAcknowledge = (envelope: {
-      payload: { alarmId: string; acknowledgedBy: string }
-    }): Effect.Effect<Alarm, RpcAlarmNotFoundError | RpcAlarmAlreadyAcknowledgedError> => {
-      const { alarmId, acknowledgedBy } = envelope.payload
-
-      return Ref.get(alarmState).pipe(
-        Effect.flatMap((maybeAlarm) => {
-          if (Option.isNone(maybeAlarm) || maybeAlarm.value.id !== alarmId) {
-            return Effect.fail(new RpcAlarmNotFoundError({ alarmId: alarmId as AlarmId }))
-          }
-          const alarm = maybeAlarm.value
-          if (alarm.acknowledgedAt !== undefined) {
-            return Effect.fail(new RpcAlarmAlreadyAcknowledgedError({ alarmId: alarmId as AlarmId }))
-          }
-          return DateTime.now.pipe(
-            Effect.flatMap((now) => {
-              const updated: Alarm = { ...alarm, acknowledgedAt: now, acknowledgedBy }
-              return Ref.set(alarmState, Option.some(updated)).pipe(
-                Effect.flatMap(() => Effect.logInfo(`Alarm ${alarmId} acknowledged by ${acknowledgedBy}`)),
-                Effect.as(updated)
-              )
-            })
-          )
+    /**
+     * Clear handler - delegates to InternalClearAlarm procedure
+     * Maps Machine errors to appropriate RPC errors
+     */
+    const handleClear = (envelope: { payload: { alarmId: AlarmId } }) =>
+      actor.send(new InternalClearAlarm({ alarmId: envelope.payload.alarmId })).pipe(
+        Effect.catchTags({
+          MachineAlarmNotFoundError: (e) =>
+            Effect.fail(new RpcAlarmNotFoundError({ alarmId: e.alarmId as AlarmId })),
+          MachineInvalidTransitionError: (e) =>
+            Effect.fail(new RpcAlarmAlreadyClearedError({ alarmId: e.alarmId as AlarmId })),
         }),
-        // Inline observability: log each error type with specific context
-        Effect.tapErrorTag('RpcAlarmNotFoundError', (e) =>
-          Effect.logWarning(`Acknowledge: Alarm ${e.alarmId} not found`)
-        ),
-        Effect.tapErrorTag('RpcAlarmAlreadyAcknowledgedError', (e) =>
-          Effect.logWarning(`Acknowledge: Alarm ${e.alarmId} already acknowledged`)
+        Effect.tapError((e) =>
+          Effect.logWarning(`Clear: ${e._tag} for alarm ${envelope.payload.alarmId}`)
         )
       )
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Clear
-    // ─────────────────────────────────────────────────────────────────────────
-    const handleClear = (envelope: {
-      payload: { alarmId: string }
-    }): Effect.Effect<Alarm, RpcAlarmNotFoundError | RpcAlarmAlreadyClearedError> => {
-      const { alarmId } = envelope.payload
-
-      return Ref.get(alarmState).pipe(
-        Effect.flatMap((maybeAlarm) => {
-          if (Option.isNone(maybeAlarm) || maybeAlarm.value.id !== alarmId) {
-            return Effect.fail(new RpcAlarmNotFoundError({ alarmId: alarmId as AlarmId }))
-          }
-          const alarm = maybeAlarm.value
-          if (alarm.clearedAt !== undefined) {
-            return Effect.fail(new RpcAlarmAlreadyClearedError({ alarmId: alarmId as AlarmId }))
-          }
-          return DateTime.now.pipe(
-            Effect.flatMap((now) => {
-              const updated: Alarm = { ...alarm, clearedAt: now }
-              return Ref.set(alarmState, Option.some(updated)).pipe(
-                Effect.flatMap(() => Effect.logInfo(`Alarm ${alarmId} cleared`)),
-                Effect.as(updated)
-              )
-            })
-          )
-        }),
-        // Inline observability: log each error type with specific context
-        Effect.tapErrorTag('RpcAlarmNotFoundError', (e) =>
-          Effect.logWarning(`Clear: Alarm ${e.alarmId} not found`)
-        ),
-        Effect.tapErrorTag('RpcAlarmAlreadyClearedError', (e) =>
-          Effect.logWarning(`Clear: Alarm ${e.alarmId} already cleared`)
-        )
-      )
-    }
 
     return AlarmEntity.of({
       [AlarmCreateTag]: handleCreate,
