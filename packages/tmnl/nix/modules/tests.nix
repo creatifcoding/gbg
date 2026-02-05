@@ -207,8 +207,8 @@
             ''
               echo "🎨 Testing UI toolchain..."
               command -v ${
-                pkgs.nodejs_22.meta.mainProgram or "node"
-              } && { echo "  ✓ ${pkgs.nodejs_22.name} $(node --version)"; } || { echo "  ✗ ${pkgs.nodejs_22.name} not found"; exit 1; }
+                pkgs.nodejs_24.meta.mainProgram or "node"
+              } && { echo "  ✓ ${pkgs.nodejs_24.name} $(node --version)"; } || { echo "  ✗ ${pkgs.nodejs_24.name} not found"; exit 1; }
               command -v ${
                 pkgs.pnpm.meta.mainProgram or "pnpm"
               } && { echo "  ✓ ${pkgs.pnpm.name} $(pnpm --version)"; } || { echo "  ✗ ${pkgs.pnpm.name} not found"; exit 1; }

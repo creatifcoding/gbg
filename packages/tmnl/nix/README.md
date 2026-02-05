@@ -152,7 +152,7 @@ Capabilities:
 
 - Inherits `tmnl-core`.
 - Provides UI/tooling:
-  - `nodejs_22`, `pnpm`
+  - `nodejs_24`, `pnpm`
   - (future) `tauri-cli`, `rustc`, `cargo`.
 
 Mission-control commands (paths are placeholders until bound to a concrete UI project):
