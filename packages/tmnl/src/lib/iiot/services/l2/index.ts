@@ -12,3 +12,6 @@
 export * from './SensorService'
 export * from './AssetService'
 export * from './AlarmService'
+export * from './alarm-temporal'
+export * from './equipment-state-temporal'
+export * from './work-order-temporal'

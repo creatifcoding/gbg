@@ -33,12 +33,16 @@ import type { EntityType } from '../models/_event-journal.ddl'
  *
  * @property entryTable - The table name for entries (default: "iiot.event_journal")
  * @property remotesTable - The table name for remotes (default: "iiot.event_remotes")
- * @property identityId - The CRDT identity for this EventJournal instance
+ * @property identityTable - The table name for identity persistence (default: "iiot.event_journal_identity")
+ * @property identityId - The CRDT identity for this EventJournal instance (optional - will be loaded/generated if not provided)
+ * @property nodeName - The node name for identity persistence (default: "primary")
  */
 export interface IIoTSqlEventJournalConfig {
   readonly entryTable?: string
   readonly remotesTable?: string
-  readonly identityId: Uint8Array
+  readonly identityTable?: string
+  readonly identityId?: Uint8Array
+  readonly nodeName?: string
 }
 
 // =============================================================================
@@ -164,7 +168,55 @@ export const makeIIoTSqlEventJournal = (
     Effect.flatMap(PubSub.unbounded<EventJournal.Entry>(), (pubsub) => {
       const entryTable = config.entryTable ?? 'iiot.event_journal'
       const remotesTable = config.remotesTable ?? 'iiot.event_remotes'
-      const identityId = config.identityId
+      const identityTable = config.identityTable ?? 'iiot.event_journal_identity'
+      const nodeName = config.nodeName ?? 'primary'
+
+      // Identity loading/creation effect with race condition handling
+      const loadOrCreateIdentity = Effect.gen(function* () {
+        // Try to load existing identity
+        const existingRows = yield* sql<{ identity_id: Uint8Array }>`
+          SELECT identity_id FROM ${sql(identityTable)}
+          WHERE node_name = ${nodeName}
+        `
+
+        if (existingRows.length > 0 && existingRows[0]) {
+          return existingRows[0].identity_id
+        }
+
+        // Generate new identity
+        const newIdentityId = new Uint8Array(16)
+        crypto.getRandomValues(newIdentityId)
+
+        // Persist it (DO NOTHING on conflict to handle race)
+        yield* sql`
+          INSERT INTO ${sql(identityTable)} (node_name, identity_id)
+          VALUES (${nodeName}, ${newIdentityId})
+          ON CONFLICT (node_name) DO NOTHING
+        `
+
+        // Re-read to get the winner of any race condition
+        const persistedRows = yield* sql<{ identity_id: Uint8Array }>`
+          SELECT identity_id FROM ${sql(identityTable)}
+          WHERE node_name = ${nodeName}
+        `
+
+        if (persistedRows.length === 0 || !persistedRows[0]) {
+          // This should never happen - we just inserted or another process did
+          // Use Effect.die for invariant violation
+          return yield* Effect.die(
+            new Error(`Identity persistence failed for node ${nodeName}`)
+          )
+        }
+
+        return persistedRows[0].identity_id
+      })
+
+      // If identity is provided, use it directly; otherwise load/create
+      const getIdentityId = config.identityId
+        ? Effect.succeed(config.identityId)
+        : loadOrCreateIdentity
+
+      return Effect.flatMap(getIdentityId, (identityId) => {
 
       const EntryArraySchema = Schema.Array(
         Schema.Struct({
@@ -292,7 +344,7 @@ export const makeIIoTSqlEventJournal = (
                   AND primary_key = ${entry.primaryKey}
                   AND created_at >= ${new Date(entry.createdAtMillis)}
                 ORDER BY created_at ASC
-              `.pipe(Effect.flatMap(decodeEntryArray))
+              `.withoutTransform.pipe(Effect.flatMap(decodeEntryArray))
 
               const conflicts = conflictRows.map(sqlRowToEntry)
               yield* options.effect({ entry, conflicts })
@@ -318,7 +370,7 @@ export const makeIIoTSqlEventJournal = (
               WHERE remote_id = ${remoteId}
             )
             ORDER BY created_at ASC
-          `.pipe(Effect.flatMap(decodeEntryArray))
+          `.withoutTransform.pipe(Effect.flatMap(decodeEntryArray))
 
           const entries = rows.map(sqlRowToEntry)
           return yield* f(entries)
@@ -359,6 +411,7 @@ export const makeIIoTSqlEventJournal = (
         )
       ),
     }))
+  })
   }))
 
 // =============================================================================
@@ -369,6 +422,48 @@ export const IIoTSqlEventJournalLayer = (
   config: IIoTSqlEventJournalConfig
 ): Layer.Layer<EventJournal.EventJournal, SqlError, SqlClient.SqlClient> =>
   Layer.effect(EventJournal.EventJournal, makeIIoTSqlEventJournal(config))
+
+// =============================================================================
+// Compaction Strategies
+// =============================================================================
+
+/**
+ * Simple compaction: deduplicate entries by ID.
+ *
+ * When the same entry arrives via multiple sync paths, only process it once.
+ * This is the minimal compaction strategy - no entity-aware grouping.
+ *
+ * @example
+ * ```ts
+ * await journal.writeFromRemote({
+ *   remoteId,
+ *   entries: remoteEntries,
+ *   compact: simpleCompact,  // Dedupe before processing
+ *   effect: ({ entry, conflicts }) => handleConflicts(entry, conflicts),
+ * })
+ * ```
+ */
+export const simpleCompact = (
+  uncommitted: ReadonlyArray<EventJournal.RemoteEntry>
+): Effect.Effect<
+  readonly (readonly [
+    ReadonlyArray<EventJournal.Entry>,
+    ReadonlyArray<EventJournal.RemoteEntry>
+  ])[]
+> => {
+  // Dedupe by entry ID, keeping first occurrence
+  const seen = new Set<string>()
+  const deduped: EventJournal.RemoteEntry[] = []
+
+  for (const re of uncommitted) {
+    if (!seen.has(re.entry.idString)) {
+      seen.add(re.entry.idString)
+      deduped.push(re)
+    }
+  }
+
+  return Effect.succeed([[deduped.map((r) => r.entry), deduped] as const])
+}
 
 // =============================================================================
 // Re-exports

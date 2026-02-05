@@ -5,19 +5,25 @@
  * - Alarm creation and lifecycle (persisted to iiot.alarms table)
  * - Acknowledgement and clearing
  * - Root cause analysis context
+ * - Event emission to EventLog (when ES_ALARM_ENABLED=true)
  *
  * Database: iiot.alarms table (TimescaleDB)
  * Graph sync: Automatic via alarm_graph_sync trigger
+ * Event sourcing: Optional via ES_ALARM_ENABLED feature flag (EL-2.14-17)
  *
  * @module
+ * @see WBS EL-2.14-17 for alarm event emission requirements
+ * @see ADR-0012 for ES boundaries (alarms ARE event sourced)
  */
 
 import { Effect, Stream, Chunk, DateTime, Schema, ParseResult } from 'effect'
 import { PgClient } from '@effect/sql-pg'
+import * as EventLog from '@effect/experimental/EventLog'
 import { AlarmId, DeviceId } from '../../schemas/identifiers'
 import {
   Alarm,
   AlarmSeverity,
+  AlarmState,
   AlarmType,
   CreateAlarmParams,
   AlarmContext,
@@ -30,6 +36,12 @@ import {
 } from '../../schemas/errors'
 import { TimeSeriesClient } from '../l1/TimeSeriesClient'
 import { IIoTPgClientLive } from '../l1/IIoTPgClient'
+import {
+  emitAlarmTriggered,
+  emitAlarmAcknowledged,
+  emitAlarmCleared,
+} from './alarm-event-emitter'
+import { IIoTFeatureFlags, IIoTFeatureFlagsDisabledLayer } from '../../infrastructure/feature-flags'
 
 // =============================================================================
 // Error Union
@@ -71,6 +83,20 @@ type AlarmRow = Schema.Schema.Type<typeof AlarmRowSchema>
  * - null → undefined for optional fields
  * - Branded identifiers via schema decode
  */
+/**
+ * Derive ISA-18.2 alarm state from database row timestamps.
+ *
+ * State derivation logic:
+ * - clearedAt set → 'cleared'
+ * - acknowledgedAt set but not clearedAt → 'acknowledged'
+ * - neither set → 'unacknowledged'
+ */
+const deriveAlarmState = (row: AlarmRow): Schema.Schema.Type<typeof AlarmState> => {
+  if (row.clearedAt) return 'cleared' as Schema.Schema.Type<typeof AlarmState>
+  if (row.acknowledgedAt) return 'acknowledged' as Schema.Schema.Type<typeof AlarmState>
+  return 'unacknowledged' as Schema.Schema.Type<typeof AlarmState>
+}
+
 const AlarmFromRow = Schema.transformOrFail(
   AlarmRowSchema,
   Schema.typeSchema(Alarm),
@@ -78,24 +104,25 @@ const AlarmFromRow = Schema.transformOrFail(
     strict: true,
     decode: (row, _, ast) =>
       ParseResult.try({
-        try: () => ({
-          _tag: 'Alarm' as const,
-          id: row.id as Schema.Schema.Type<typeof AlarmId>,
-          deviceId: row.deviceId as Schema.Schema.Type<typeof DeviceId>,
-          alarmType: row.alarmType as Schema.Schema.Type<typeof AlarmType>,
-          severity: row.severity as Schema.Schema.Type<typeof AlarmSeverity>,
-          triggeredAt: DateTime.unsafeFromDate(row.triggeredAt),
-          // Type side is T | undefined (not null), so convert null → undefined
-          message: row.message ?? undefined,
-          acknowledgedAt: row.acknowledgedAt
-            ? DateTime.unsafeFromDate(row.acknowledgedAt)
-            : undefined,
-          clearedAt: row.clearedAt
-            ? DateTime.unsafeFromDate(row.clearedAt)
-            : undefined,
-          acknowledgedBy: row.acknowledgedBy ?? undefined,
-          metadata: row.metadata ?? undefined,
-        }),
+        try: () =>
+          new Alarm({
+            id: row.id as Schema.Schema.Type<typeof AlarmId>,
+            deviceId: row.deviceId as Schema.Schema.Type<typeof DeviceId>,
+            alarmType: row.alarmType as Schema.Schema.Type<typeof AlarmType>,
+            severity: row.severity as Schema.Schema.Type<typeof AlarmSeverity>,
+            state: deriveAlarmState(row),
+            triggeredAt: DateTime.unsafeFromDate(row.triggeredAt),
+            // Type side is T | undefined (not null), so convert null → undefined
+            message: row.message ?? undefined,
+            acknowledgedAt: row.acknowledgedAt
+              ? DateTime.unsafeFromDate(row.acknowledgedAt)
+              : undefined,
+            clearedAt: row.clearedAt
+              ? DateTime.unsafeFromDate(row.clearedAt)
+              : undefined,
+            acknowledgedBy: row.acknowledgedBy ?? undefined,
+            metadata: row.metadata ?? undefined,
+          }),
         catch: (e) =>
           new ParseResult.Type(ast, row, `Failed to decode alarm row: ${String(e)}`),
       }),
@@ -158,7 +185,7 @@ const ALARM_COLUMNS = `
 // =============================================================================
 
 export class AlarmService extends Effect.Service<AlarmService>()('iiot/AlarmService', {
-  dependencies: [TimeSeriesClient.Default, IIoTPgClientLive],
+  dependencies: [TimeSeriesClient.Default, IIoTPgClientLive, IIoTFeatureFlagsDisabledLayer],
 
   effect: Effect.gen(function* () {
     const tsClient = yield* TimeSeriesClient
@@ -218,6 +245,22 @@ export class AlarmService extends Effect.Service<AlarmService>()('iiot/AlarmServ
 
         const alarm = yield* decodeRow(rows[0], 'createAlarm')
         yield* Effect.logInfo(`Created alarm ${alarm.id} for device ${params.deviceId}`)
+
+        // Emit AlarmTriggered event (conditional on feature flag)
+        yield* emitAlarmTriggered({
+          alarmId: alarm.id,
+          deviceId: alarm.deviceId,
+          alarmType: alarm.alarmType,
+          severity: alarm.severity,
+          triggeredAt: alarm.triggeredAt,
+          message: alarm.message,
+          metadata: alarm.metadata,
+        }).pipe(
+          Effect.provide(IIoTFeatureFlagsDisabledLayer),
+          Effect.catchAll((err) =>
+            Effect.logWarning(`Failed to emit AlarmTriggered event: ${String(err)}`)
+          )
+        )
 
         return alarm
       })
@@ -352,6 +395,19 @@ export class AlarmService extends Effect.Service<AlarmService>()('iiot/AlarmServ
         const updated = yield* decodeRow(rows[0], 'acknowledgeAlarm')
         yield* Effect.logInfo(`Alarm ${alarmId} acknowledged by ${acknowledgedBy}`)
 
+        // Emit AlarmAcknowledged event (conditional on feature flag)
+        yield* emitAlarmAcknowledged({
+          alarmId: updated.id,
+          deviceId: updated.deviceId,
+          acknowledgedBy,
+          acknowledgedAt: updated.acknowledgedAt ?? DateTime.unsafeNow(),
+        }).pipe(
+          Effect.provide(IIoTFeatureFlagsDisabledLayer),
+          Effect.catchAll((err) =>
+            Effect.logWarning(`Failed to emit AlarmAcknowledged event: ${String(err)}`)
+          )
+        )
+
         return updated
       })
 
@@ -400,6 +456,19 @@ export class AlarmService extends Effect.Service<AlarmService>()('iiot/AlarmServ
 
         const updated = yield* decodeRow(rows[0], 'clearAlarm')
         yield* Effect.logInfo(`Alarm ${alarmId} cleared`)
+
+        // Emit AlarmCleared event (conditional on feature flag)
+        yield* emitAlarmCleared({
+          alarmId: updated.id,
+          deviceId: updated.deviceId,
+          clearedAt: updated.clearedAt ?? DateTime.unsafeNow(),
+          autoClear: false,
+        }).pipe(
+          Effect.provide(IIoTFeatureFlagsDisabledLayer),
+          Effect.catchAll((err) =>
+            Effect.logWarning(`Failed to emit AlarmCleared event: ${String(err)}`)
+          )
+        )
 
         return updated
       })

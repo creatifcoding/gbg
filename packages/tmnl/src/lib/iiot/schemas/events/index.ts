@@ -31,9 +31,13 @@ export {
 export {
   StructuralEvents,
   OperationalEvents,
+  AlarmEvents,
+  EquipmentStateEvents,
   StructuralEventFields,
   OperationalEventFields,
   type IIoTEvents,
+  type AlarmEventTypes,
+  type EquipmentStateEventTypes,
 } from './groups'
 
 // =============================================================================
@@ -139,3 +143,95 @@ export {
   STRUCTURAL_EVENT_TAGS,
   type StructuralEventTag,
 } from './structural'
+
+// =============================================================================
+// Operational Events (Alarm Events - ISA-18.2)
+// =============================================================================
+
+export {
+  AlarmTriggered,
+  AlarmAcknowledged,
+  AlarmCleared,
+  AlarmEscalated,
+  AlarmShelved,
+  AlarmUnshelved,
+  AlarmSuppressed,
+  AlarmOutOfService,
+  AlarmReturnedToService,
+  AlarmConfigChanged,
+  ALARM_EVENT_TAGS,
+  type AlarmTriggeredType,
+  type AlarmAcknowledgedType,
+  type AlarmClearedType,
+  type AlarmEscalatedType,
+  type AlarmShelvedType,
+  type AlarmUnshelvedType,
+  type AlarmSuppressedType,
+  type AlarmOutOfServiceType,
+  type AlarmReturnedToServiceType,
+  type AlarmConfigChangedType,
+  type AlarmEvent,
+  type AlarmEventTag,
+} from './operational'
+
+// =============================================================================
+// Operational Events (Task Instance Events - EL-3.9-12)
+// =============================================================================
+
+export {
+  // Branded Types
+  TaskDefinitionId,
+  // Events
+  TaskBecameReady,
+  TaskStarted,
+  TaskProgressUpdated,
+  TaskBlocked,
+  TaskUnblocked,
+  TaskCompleted,
+  TaskFailed,
+  TaskSkipped,
+  TaskCompensated,
+  // Tags and Union
+  TASK_EVENT_TAGS,
+  type TaskBecameReadyType,
+  type TaskStartedType,
+  type TaskProgressUpdatedType,
+  type TaskBlockedType,
+  type TaskUnblockedType,
+  type TaskCompletedType,
+  type TaskFailedType,
+  type TaskSkippedType,
+  type TaskCompensatedType,
+  type TaskEvent,
+  type TaskEventTag,
+} from './operational'
+
+// =============================================================================
+// Operational Events (Equipment State Events - EL-4.1-3)
+// =============================================================================
+
+export {
+  // Enums
+  EquipmentState,
+  MaintenanceType,
+  FaultSeverity,
+  MaintenanceOutcome,
+  FaultClearMethod,
+  // Events
+  EquipmentStateChanged,
+  MaintenanceModeEntered,
+  MaintenanceModeExited,
+  PerformanceDegraded,
+  FaultDetected,
+  FaultCleared,
+  // Tags and Union
+  EQUIPMENT_STATE_EVENT_TAGS,
+  type EquipmentStateChangedType,
+  type MaintenanceModeEnteredType,
+  type MaintenanceModeExitedType,
+  type PerformanceDegradedType,
+  type FaultDetectedType,
+  type FaultClearedType,
+  type EquipmentStateEvent,
+  type EquipmentStateEventTag,
+} from './operational'

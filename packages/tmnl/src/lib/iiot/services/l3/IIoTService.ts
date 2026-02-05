@@ -9,7 +9,7 @@
  * @module
  */
 
-import { Effect, Stream, Chunk } from 'effect'
+import { Effect, Stream, Chunk, DateTime } from 'effect'
 import type { DeviceId, PlantId, MachineId } from '../../schemas/identifiers'
 import type { Alarm, AlarmSeverity } from '../../schemas/alarms'
 import type { SensorReading, TimeBucket } from '../../schemas/readings'
@@ -219,7 +219,8 @@ export class IIoTService extends Effect.Service<IIoTService>()('iiot/IIoTService
               .pipe(Effect.option)
 
             // Get recent readings around alarm time
-            const alarmTime = new Date(alarm.triggeredAt as unknown as string)
+            // alarm.triggeredAt is DateTime.Utc - use DateTime.toDate() for conversion
+            const alarmTime = DateTime.toDate(alarm.triggeredAt)
             const since = new Date(alarmTime.getTime() - 5 * 60 * 1000)
             const until = new Date(alarmTime.getTime() + 5 * 60 * 1000)
 

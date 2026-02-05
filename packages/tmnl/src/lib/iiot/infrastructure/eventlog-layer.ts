@@ -17,7 +17,7 @@ import * as EventLog from '@effect/experimental/EventLog'
 import * as EventJournal from '@effect/experimental/EventJournal'
 import { SqlClient } from '@effect/sql'
 import type { SqlError } from '@effect/sql/SqlError'
-import { StructuralEvents, OperationalEvents } from '../schemas/events/groups'
+import { StructuralEvents, OperationalEvents, AlarmEvents } from '../schemas/events/groups'
 import { IIoTSqlEventJournalLayer, type IIoTSqlEventJournalConfig } from './sql-event-journal'
 
 // =============================================================================
@@ -27,7 +27,11 @@ import { IIoTSqlEventJournalLayer, type IIoTSqlEventJournalConfig } from './sql-
 /**
  * IIoT EventLog Schema
  *
- * Combines all event groups into a single schema for the EventLog.
+ * Combines all event groups into a single schema for the EventLog:
+ * - StructuralEvents: Entity lifecycle (created, updated, decommissioned)
+ * - OperationalEvents: Runtime business events (state changes, etc.)
+ * - AlarmEvents: ISA-18.2 alarm lifecycle (triggered, acknowledged, cleared, etc.)
+ *
  * This schema is used by EventLog.layer to know which events to handle.
  *
  * @example
@@ -36,12 +40,13 @@ import { IIoTSqlEventJournalLayer, type IIoTSqlEventJournalConfig } from './sql-
  *
  * // Use with EventLog client
  * const client = yield* EventLog.makeClient(IIoTEventLogSchema)
- * yield* client('StateStarted', payload)
+ * yield* client('AlarmTriggered', payload)
  * ```
  */
 export const IIoTEventLogSchema = EventLog.schema(
   StructuralEvents,
-  OperationalEvents
+  OperationalEvents,
+  AlarmEvents
 )
 
 export type IIoTEventLogSchema = typeof IIoTEventLogSchema

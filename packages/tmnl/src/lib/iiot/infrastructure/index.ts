@@ -46,5 +46,23 @@ export {
 export {
   makeIIoTSqlEventJournal,
   IIoTSqlEventJournalLayer,
+  simpleCompact,
   type IIoTSqlEventJournalConfig,
 } from './sql-event-journal'
+
+// =============================================================================
+// Feature Flags (EventLog Migration)
+// =============================================================================
+
+export {
+  IIoTFeatureFlags,
+  IIoTFeatureFlagsDefault,
+  IIoTFeatureFlagsDisabledLayer,
+  IIoTFeatureFlagsEnabledLayer,
+  IIoTFeatureFlagsEnvLayer,
+  makeFeatureFlagsLayer,
+  isAlarmEventSourcingEnabled,
+  isEquipmentStateEventSourcingEnabled,
+  isWorkOrderEventSourcingEnabled,
+  isBatchRecordEventSourcingEnabled,
+} from './feature-flags'
