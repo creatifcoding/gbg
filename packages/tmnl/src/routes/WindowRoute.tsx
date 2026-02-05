@@ -90,6 +90,7 @@ const TESTBED_COMPONENTS: Record<string, React.LazyExoticComponent<React.Compone
   'slider': lazy(() => import('@/components/testbed/SliderTestbed').then(m => ({ default: m.SliderTestbed }))),
   'base-modal': lazy(() => import('@/components/testbed/BaseModalTestbed').then(m => ({ default: m.BaseModalTestbed }))),
   'vanta': lazy(() => import('@/components/testbed/VantaCardTestbed').then(m => ({ default: m.VantaCardTestbed }))),
+  'rvn': lazy(() => import('@/components/testbed/RvnTestbed').then(m => ({ default: m.RvnTestbed }))),
   'morph-card': lazy(() => import('@/components/testbed/MorphCardTestbed').then(m => ({ default: m.MorphCardTestbed }))),
   'drawer': lazy(() => import('@/components/testbed/DrawerTestbed').then(m => ({ default: m.DrawerTestbed }))),
   'floating': lazy(() => import('@/components/testbed/FloatingPanelTestbed').then(m => ({ default: m.FloatingPanelTestbed }))),

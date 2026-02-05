@@ -20,7 +20,7 @@ import { motion } from 'framer-motion';
 import { cn } from '../../tmnl-ui/utils/cn';
 import { Effect } from 'effect';
 import { RegistryContext, useAtomValue } from '@effect-atom/atom-react';
-import { MorphCard } from './MorphCard';
+import { MorphCard, type MorphCardSlots, type MorphCardTheme, type MorphCardRenderers } from './MorphCard';
 import { TabBar } from './TabBar';
 import type {
   TabView,
@@ -131,6 +131,12 @@ export interface DynamicIslandCardProps<Keys extends string = string> {
   interactive?: boolean;
   /** Additional className */
   className?: string;
+  /** Headless slots (inject components) */
+  slots?: MorphCardSlots;
+  /** Theme classes/styles (inject styling) */
+  theme?: MorphCardTheme;
+  /** Renderers for container/frame (full override) */
+  renderers?: MorphCardRenderers;
   /** Unified view registry (tabs + content) */
   views?: ViewRegistry<Keys>;
   /** Allow registry CRUD from context */
@@ -179,6 +185,9 @@ function DynamicIslandCardInner<Keys extends string = string>({
   scrollable,
   interactive = true,
   className,
+  slots,
+  theme,
+  renderers,
   views,
   allowRegistryUpdates,
   disableAnimations = false,
@@ -513,6 +522,9 @@ function DynamicIslandCardInner<Keys extends string = string>({
         scrollable={scrollable}
         interactive={interactive}
         className={className}
+        slots={slots}
+        theme={theme}
+        renderers={renderers}
         onClick={onClick}
       >
         {/* TabBar at top */}

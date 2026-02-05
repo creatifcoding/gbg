@@ -77,7 +77,7 @@ export interface UseBlockTerminalResult {
 
   // Operations
   executeCommand: (command: string, cwd?: string) => Promise<BlockHandle>
-  executeAIQuery: (prompt: string, model?: string) => Promise<BlockHandle>
+  executeAIQuery: (prompt: string, model?: string, systemPrompt?: string) => Promise<BlockHandle>
   abort: () => void
 
   // Mode control
@@ -155,8 +155,8 @@ export function useBlockTerminal(): UseBlockTerminalResult {
   )
 
   const executeAIQuery = useCallback(
-    async (prompt: string, model?: string): Promise<BlockHandle> => {
-      return doExecuteAIQuery({ prompt, model })
+    async (prompt: string, model?: string, systemPrompt?: string): Promise<BlockHandle> => {
+      return doExecuteAIQuery({ prompt, model, systemPrompt })
     },
     [doExecuteAIQuery]
   )

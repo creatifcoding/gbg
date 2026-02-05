@@ -191,6 +191,29 @@ export const TESTBED_REGISTRY: readonly TestbedEntry[] = [
     accent: 'emerald',
     versions: [{ version: 'v1', route: '/testbed/vanta', status: 'stable' }],
   },
+  {
+    id: 'rvn',
+    name: 'RVN Design System',
+    description: 'Brutalist compound component library. RvnCard slots, 2px borders, 4px shadows, press states.',
+    category: 'ui',
+    keywords: [
+      'rvn',
+      'brutalist',
+      'design',
+      'system',
+      'compound',
+      'component',
+      'card',
+      'tactical',
+      'industrial',
+      'press',
+      'border',
+      'slot',
+      'composition',
+    ],
+    accent: 'amber',
+    versions: [{ version: 'v1', route: '/testbed/rvn', status: 'stable' }],
+  },
 
   // ═══════════════════════════════════════════════════════════════════════════
   // STATE CATEGORY

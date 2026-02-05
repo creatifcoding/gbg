@@ -123,7 +123,7 @@ function CursorInner() {
   // Position/visibility intents are parsed from the AI's natural language response.
   const { messages, status, sendMessage, setMessages } = useChat({
     transport: new DefaultChatTransport({
-      api: 'http://localhost:7682/chat',
+      api: '/api/chat',
     }),
     onFinish: ({ message }) => {
       cursorRegistry.set(statusAtom, 'idle')

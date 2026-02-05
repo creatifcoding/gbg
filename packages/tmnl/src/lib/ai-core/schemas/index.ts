@@ -107,3 +107,27 @@ export {
 
 // Type-only exports for interfaces
 export type { JSONSchemaProperty, JSONSchema } from './tool'
+
+// Sessions
+export {
+  // Branded types
+  SessionId,
+  // Classes
+  SessionMetadata,
+  SessionConfig,
+  Session,
+  // JSON serialization
+  SessionMetadataFromJson,
+  SessionFromJson,
+  // Factories
+  createSession,
+  toMetadata,
+  generateTitleFromMessages,
+} from './session'
+
+// Type-only exports for sessions
+export type {
+  SessionMetadataType,
+  SessionConfigType,
+  SessionType,
+} from './session'

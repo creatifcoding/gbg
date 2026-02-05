@@ -15,6 +15,10 @@ export {
   type SizeViewRender,
   type SizeViewEntry,
   type SizeKeysFromConfig,
+  type MorphCardSlots,
+  type MorphCardTheme,
+  type MorphCardRenderers,
+  useMorphCardSkin,
 } from './MorphCard';
 export { AnimatedItem, ANIMATION_PRESETS, type AnimatedItemProps } from './AnimatedItem';
 export {

@@ -21,7 +21,7 @@ import { Schema } from 'effect'
  * | normal  | 24px       | 12px      | Standard analyst view        |
  * | relaxed | 32px       | 14px      | Presentation / readability   |
  */
-export const DensityTier = Schema.Literal('ultra', 'dense', 'normal', 'relaxed')
+export const DensityTier = Schema.Literal('ultra', 'dense', 'normal', 'relaxed', 'rvn')
 export type DensityTier = typeof DensityTier.Type
 
 // =============================================================================
@@ -96,6 +96,17 @@ export const DENSITY_PRESETS: Record<DensityTier, DensityConfig> = {
     paddingY: 4,
     iconSize: 14,
     spacing: 6,
+  },
+  rvn: {
+    tier: 'rvn',
+    rowHeight: 36,
+    headerHeight: 40,
+    fontSize: 12,
+    fontSizeXs: 12, // 12px floor enforced
+    paddingX: 10,
+    paddingY: 4,
+    iconSize: 14,
+    spacing: 4,
   },
 }
 

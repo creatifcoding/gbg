@@ -62,6 +62,20 @@ export function AICoreRegistryProvider({ children }: { children: ReactNode }) {
 // =============================================================================
 
 /**
+ * Stream content part for inline tool call flow
+ * Tracks the order of text chunks and tool calls in the stream
+ */
+export interface StreamContentPart {
+  type: 'text' | 'tool_call'
+  /** Index in the content stream for ordering */
+  index: number
+  /** Text content (for type='text') */
+  text?: string
+  /** Tool call ID (for type='tool_call') - references completedToolCalls */
+  toolCallId?: string
+}
+
+/**
  * Simplified stream state for atoms (no Schema.Class complexity)
  */
 export interface AIStreamState {
@@ -73,6 +87,10 @@ export interface AIStreamState {
     call: ToolCallComplete
     result: ToolResultEvent | null
   }>
+  /** Ordered content parts for inline tool call rendering */
+  contentParts: StreamContentPart[]
+  /** Counter for content part ordering */
+  contentPartIndex: number
   error: string | null
   usage: TokenUsage | null
   metadata: {
@@ -90,6 +108,8 @@ export const INITIAL_STREAM_STATE: AIStreamState = {
   thinking: '',
   pendingToolCalls: [],
   completedToolCalls: [],
+  contentParts: [],
+  contentPartIndex: 0,
   error: null,
   usage: null,
   metadata: null,
@@ -205,11 +225,34 @@ export const reduceStreamEvent = (state: AIStreamState, event: AIStreamEvent): A
         },
       }
 
-    case 'TextDelta':
+    case 'TextDelta': {
+      // For inline flow: extend last text part if consecutive, else create new
+      const lastPart = state.contentParts[state.contentParts.length - 1]
+      let contentParts: StreamContentPart[]
+      let contentPartIndex = state.contentPartIndex
+
+      if (lastPart?.type === 'text') {
+        // Extend the last text part
+        contentParts = [
+          ...state.contentParts.slice(0, -1),
+          { ...lastPart, text: (lastPart.text ?? '') + event.text },
+        ]
+      } else {
+        // Create new text part
+        contentParts = [
+          ...state.contentParts,
+          { type: 'text', index: contentPartIndex, text: event.text },
+        ]
+        contentPartIndex++
+      }
+
       return {
         ...state,
         text: state.text + event.text,
+        contentParts,
+        contentPartIndex,
       }
+    }
 
     case 'ThinkingDelta':
       return {
@@ -227,6 +270,11 @@ export const reduceStreamEvent = (state: AIStreamState, event: AIStreamEvent): A
       const pendingToolCalls = state.pendingToolCalls.filter(
         (tc) => tc.toolCallId !== event.toolCallId
       )
+      // Add tool_call content part for inline rendering
+      const contentParts: StreamContentPart[] = [
+        ...state.contentParts,
+        { type: 'tool_call', index: state.contentPartIndex, toolCallId: event.toolCallId },
+      ]
       return {
         ...state,
         pendingToolCalls,
@@ -234,6 +282,8 @@ export const reduceStreamEvent = (state: AIStreamState, event: AIStreamEvent): A
           ...state.completedToolCalls,
           { call: event, result: null },
         ],
+        contentParts,
+        contentPartIndex: state.contentPartIndex + 1,
       }
     }
 
@@ -435,3 +485,32 @@ export const clearActiveHandleById = (requestId: string): void => {
     return next
   })
 }
+
+// =============================================================================
+// Session Atoms (re-exported from sessions.ts)
+// =============================================================================
+
+export {
+  // State atoms
+  sessionsIndexAtom,
+  activeSessionAtom,
+  sessionSidebarExpandedAtom,
+  sessionSearchQueryAtom,
+  // Derived atoms
+  filteredSessionsAtom,
+  hasActiveSessionAtom,
+  activeSessionIdAtom,
+  sessionCountAtom,
+  // Manipulation functions
+  setSessionsIndex,
+  setActiveSession,
+  updateActiveSession,
+  addSessionToIndex,
+  updateSessionInIndex,
+  removeSessionFromIndex,
+  toggleSidebar,
+  setSidebarExpanded,
+  setSearchQuery,
+  clearSearchQuery,
+  clearSessionState,
+} from './sessions'

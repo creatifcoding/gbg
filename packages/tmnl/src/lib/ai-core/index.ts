@@ -44,6 +44,28 @@ export {
   // Tool bridge
   ToolBridge,
   type ToolBridgeShape,
+  // Conversation compaction
+  ConversationCompactor,
+  Summarizer,
+  CompactionConfig,
+  CompactionResult,
+  SummarizationRequest,
+  SummarizationError,
+  ConversationCompactorLive,
+  ConversationCompactorTest,
+  NoopSummarizer,
+  ConversationCompactorService,
+  type ConversationCompactorShape,
+  type SummarizerFn,
+  // Session services
+  SessionStorage,
+  type SessionStorageShape,
+  type SessionStorageType,
+  SessionStorageLocalLive,
+  SessionService,
+  SessionServiceLive,
+  SessionServiceModule,
+  type SessionServiceShape,
 } from './services'
 
 // =============================================================================
@@ -120,6 +142,23 @@ export {
   toAISDKTools,
   fromMCPTool,
   fromMCPTools,
+  // Sessions
+  SessionId,
+  SessionMetadata,
+  SessionConfig,
+  Session,
+  SessionMetadataFromJson,
+  SessionFromJson,
+  createSession,
+  toMetadata,
+  generateTitleFromMessages,
+} from './schemas'
+
+// Session type-only exports
+export type {
+  SessionMetadataType,
+  SessionConfigType,
+  SessionType,
 } from './schemas'
 
 // Type-only re-exports
@@ -168,8 +207,29 @@ export {
   clearActiveHandleById,
   // Types
   type AIStreamState,
+  type StreamContentPart,
   INITIAL_STREAM_STATE,
   reduceStreamEvent,
+  // Session atoms
+  sessionsIndexAtom,
+  activeSessionAtom,
+  sessionSidebarExpandedAtom,
+  sessionSearchQueryAtom,
+  filteredSessionsAtom,
+  hasActiveSessionAtom,
+  activeSessionIdAtom,
+  sessionCountAtom,
+  setSessionsIndex,
+  setActiveSession,
+  updateActiveSession,
+  addSessionToIndex,
+  updateSessionInIndex,
+  removeSessionFromIndex,
+  toggleSidebar,
+  setSidebarExpanded,
+  setSearchQuery,
+  clearSearchQuery,
+  clearSessionState,
 } from './atoms'
 
 // =============================================================================
@@ -183,4 +243,111 @@ export {
   useIsAIStreaming,
   useAITools,
   type UseAICoreResult,
+  // Phase 1: useChat bridge with tool execution
+  useChatWithTools,
+  type UseChatWithToolsOptions,
+  type UseChatWithToolsReturn,
+  // Chat error types (Effect TaggedError)
+  ChatConnectionError,
+  ChatServerError,
+  ChatToolError,
+  // Session hooks
+  useAiCoreChatSession,
+  type UseAiCoreChatSessionResult,
+  useAiCoreChatSessions,
+  type UseAiCoreChatSessionsResult,
 } from './hooks'
+
+// =============================================================================
+// Components (Phase 2)
+// =============================================================================
+
+export {
+  // Main renderer
+  MessagePartRenderer,
+  type MessagePartRendererProps,
+  type UIMessagePart,
+  // Part renderers
+  TextRenderer,
+  type TextRendererProps,
+  ReasoningRenderer,
+  type ReasoningRendererProps,
+  ToolCallRenderer,
+  type ToolCallRendererProps,
+  ToolResultRenderer,
+  type ToolResultRendererProps,
+  StepStartIndicator,
+  type StepStartIndicatorProps,
+  // RVN Components (Dark Theme Contrast Islands)
+  RVN_DARK,
+  darkContainerStyle,
+  darkHeaderStyle,
+  darkLabelStyle,
+  darkCodeBlockStyle,
+  darkChevronStyle,
+  darkButtonStyle,
+  darkApplyButtonStyle,
+  darkStatusStyles,
+  CopyButton,
+  type CopyButtonProps,
+  ThinkingSection,
+  type ThinkingSectionProps,
+  SideBySideDiff,
+  type SideBySideDiffProps,
+  ToolArgsFormatted,
+  type ToolArgsFormattedProps,
+  ToolResultFormatted,
+  type ToolResultFormattedProps,
+  ToolCallBlock,
+  type ToolCallBlockProps,
+  // Session Components
+  SessionProvider,
+  useSessionContext,
+  type SessionProviderProps,
+  type SessionContextValue,
+  SessionSidebar,
+  type SessionSidebarProps,
+  SessionHeader,
+  type SessionHeaderProps,
+  SessionSwitcher,
+  type SessionSwitcherProps,
+  type SessionSwitcherRootProps,
+  type SessionSwitcherContentProps,
+  type SessionSwitcherMainProps,
+  // Session-Aware Chat Bridge
+  SessionAwareChat,
+  type SessionAwareChatProps,
+  type SessionChatRenderProps,
+} from './components'
+
+// =============================================================================
+// Providers (Phase 3 - Dependency Injection)
+// =============================================================================
+
+export {
+  // Core Service
+  ChatDataProvider,
+  type ChatDataProviderShape,
+  type ChatDataProviderType,
+  // Schemas
+  ProviderStatus,
+  SendMessageOptions,
+  ProviderState,
+  // Errors
+  ChatSendError,
+  ProviderNotConfiguredError,
+  // Providers
+  NoopProvider,
+  AISDKProvider,
+  AISDKProviderConfig,
+  type AISDKProviderConfigShape,
+  // Bridge (for React adapter)
+  AISDKBridgeService,
+  type AISDKBridge,
+  // React Hook Adapter
+  useAISDKProviderBridge,
+  type UseAISDKProviderBridgeOptions,
+  type UseAISDKProviderBridgeReturn,
+  // Registry
+  BUILT_IN_PROVIDERS,
+} from './providers'

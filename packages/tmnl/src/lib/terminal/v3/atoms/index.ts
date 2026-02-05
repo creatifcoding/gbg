@@ -275,6 +275,7 @@ export const executeCommandOp = blockTerminalRuntimeAtom.fn<{
 export const executeAIQueryOp = blockTerminalRuntimeAtom.fn<{
   prompt: string
   model?: string
+  systemPrompt?: string
 }>()((args, _ctx) =>
   Effect.gen(function* () {
     const service = yield* BlockTerminalService

@@ -76,7 +76,7 @@ import { generateUserColor, type CollaborationUser } from "@/lib/editor/v3/servi
 // =============================================================================
 
 // Real AI endpoint on cursor server (uses Claude + generateObject)
-const AI_SERVER_URL = "http://localhost:7682/ui-generate"
+const AI_SERVER_URL = "/api/ui-generate"
 
 // Transport mode for A/B testing
 type TransportMode = "http" | "cluster"
@@ -449,7 +449,7 @@ function DiagnosticsDrawer({
 }
 
 // Fix circular reference: GenerativeContainer needs registry, registry needs GenerativeContainer
-tmnlRegistry['GenerativeContainer'] = createGenerativeContainerRenderer(tmnlRegistry, "http://localhost:7682/ui-generate")
+tmnlRegistry['GenerativeContainer'] = createGenerativeContainerRenderer(tmnlRegistry, "/api/ui-generate")
 
 // =============================================================================
 // Demo Data

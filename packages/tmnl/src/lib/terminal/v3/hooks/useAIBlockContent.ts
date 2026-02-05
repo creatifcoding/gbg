@@ -17,6 +17,7 @@ import {
   type AIStreamState,
   type ToolCallComplete,
   type ToolResult,
+  type StreamContentPart,
 } from '@/lib/ai-core'
 import type { AIResponseBlockV3 } from '../schemas'
 
@@ -46,6 +47,8 @@ export interface AIBlockContent {
   }>
   /** Tool calls in progress */
   pendingToolCalls: ReadonlyArray<unknown>
+  /** Ordered content parts for inline tool call rendering */
+  contentParts: StreamContentPart[]
   /** Token usage (if available) */
   usage: {
     promptTokens?: number
@@ -103,6 +106,7 @@ export function useAIBlockContent(block: AIResponseBlockV3): AIBlockContent {
       error: null,
       completedToolCalls: [],
       pendingToolCalls: [],
+      contentParts: [],
       usage: null,
       metadata: null,
     }
@@ -118,6 +122,7 @@ export function useAIBlockContent(block: AIResponseBlockV3): AIBlockContent {
     error: streamState.error,
     completedToolCalls: streamState.completedToolCalls,
     pendingToolCalls: streamState.pendingToolCalls,
+    contentParts: streamState.contentParts,
     usage: streamState.usage,
     metadata: streamState.metadata,
   }

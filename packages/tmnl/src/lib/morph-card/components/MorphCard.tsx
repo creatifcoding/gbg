@@ -10,10 +10,14 @@
 import {
   type ReactNode,
   type ReactElement,
+  type CSSProperties,
+  type HTMLAttributes,
+  type ComponentType,
   type FC,
   useState,
   useMemo,
   useCallback,
+  createContext,
   useContext,
   useEffect,
   useRef,
@@ -100,6 +104,41 @@ export type SizeViewRegistry<Keys extends string = string> = Partial<
 export type SizeKeysFromConfig<C extends { sizes: Record<string, unknown> }> =
   keyof C['sizes'] & string;
 
+// =============================================================================
+// Headless Skin Types
+// =============================================================================
+
+export type MorphCardSlotName =
+  | 'container'
+  | 'frame'
+  | 'content'
+  | 'header'
+  | 'body'
+  | 'footer'
+  | 'title'
+  | 'badge'
+  | 'actions';
+
+export interface MorphCardTheme {
+  classNames?: Partial<Record<MorphCardSlotName, string>>;
+  styles?: Partial<Record<MorphCardSlotName, CSSProperties>>;
+}
+
+export interface MorphCardSlots {
+  Content?: ComponentType<any>;
+  Header?: ComponentType<any>;
+  Body?: ComponentType<any>;
+  Footer?: ComponentType<any>;
+  Title?: ComponentType<any>;
+  Badge?: ComponentType<any>;
+  Actions?: ComponentType<any>;
+}
+
+export interface MorphCardRenderers {
+  container?: (defaultNode: ReactNode) => ReactNode;
+  frame?: (defaultNode: ReactNode) => ReactNode;
+}
+
 /**
  * MorphCard Props
  */
@@ -130,6 +169,12 @@ export interface MorphCardProps<Keys extends string = string> {
   children?: ReactNode | ((mode: CardMode) => ReactNode);
   /** Additional className */
   className?: string;
+  /** Headless slots (inject components) */
+  slots?: MorphCardSlots;
+  /** Theme classes/styles (inject styling) */
+  theme?: MorphCardTheme;
+  /** Renderers for container/frame (full override) */
+  renderers?: MorphCardRenderers;
   /** Whether card is interactive (hover effects) */
   interactive?: boolean;
   /** Disable layout/content animations */
@@ -170,6 +215,22 @@ export interface MorphCardProps<Keys extends string = string> {
   minHeight?: number;
   /** Maximum height when dynamicSize is enabled */
   maxHeight?: number;
+}
+
+// =============================================================================
+// Headless Skin Context
+// =============================================================================
+
+interface MorphCardSkinContextValue {
+  slots?: MorphCardSlots;
+  theme?: MorphCardTheme;
+  renderers?: MorphCardRenderers;
+}
+
+const MorphCardSkinContext = createContext<MorphCardSkinContextValue>({});
+
+export function useMorphCardSkin(): MorphCardSkinContextValue {
+  return useContext(MorphCardSkinContext);
 }
 
 // =============================================================================
@@ -233,6 +294,9 @@ function MorphCardInner<Keys extends string = string>({
   sizeViewStrategy,
   children,
   className,
+  slots,
+  theme,
+  renderers,
   interactive = true,
   disableAnimations = false,
   onClick,
@@ -273,6 +337,14 @@ function MorphCardInner<Keys extends string = string>({
     () => ({ ...baseContextValue, registerContentNode }),
     [baseContextValue, registerContentNode]
   );
+
+  const skinContextValue = useMemo(
+    () => ({ slots, theme, renderers }),
+    [slots, theme, renderers]
+  );
+
+  const renderContainer = renderers?.container ?? ((node: ReactNode) => node);
+  const renderFrame = renderers?.frame ?? ((node: ReactNode) => node);
 
   const setBehavior = useAtomSet(cardStateFamily.behavior(normalizedId));
   const setMeasuredSize = useAtomSet(cardStateFamily.measuredSize(normalizedId));
@@ -371,6 +443,8 @@ function MorphCardInner<Keys extends string = string>({
   const reticle = useAtomValue(cardStateFamily.reticle(normalizedId));
   const complexity = useAtomValue(cardStateFamily.complexity(normalizedId));
   const [resolvedSizeView, setResolvedSizeView] = useState<ReactNode | null>(null);
+  const lastMeasuredRef = useRef<{ width: number; height: number } | null>(null);
+  const measureRafRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!sizeViewStrategy) {
@@ -398,7 +472,8 @@ function MorphCardInner<Keys extends string = string>({
   }, [sizeViewStrategy, normalizedId, sizeKey, previousSizeKey, mode]);
 
   useEffect(() => {
-    const node = isDynamicSize ? (contentRootNode ?? contentRef.current) : containerRef.current;
+    if (!isDynamicSize) return;
+    const node = contentRootNode ?? contentRef.current;
     if (!node) return;
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
@@ -407,10 +482,33 @@ function MorphCardInner<Keys extends string = string>({
       const target = entry.target as HTMLElement;
       const width = Math.max(rect.width, target.scrollWidth || rect.width);
       const height = Math.max(rect.height, target.scrollHeight || rect.height);
-      setMeasuredSize({ width, height });
+
+      if (measureRafRef.current) {
+        cancelAnimationFrame(measureRafRef.current);
+      }
+
+      measureRafRef.current = requestAnimationFrame(() => {
+        const prev = lastMeasuredRef.current;
+        const next = { width, height };
+        if (
+          prev &&
+          Math.abs(prev.width - next.width) < 0.5 &&
+          Math.abs(prev.height - next.height) < 0.5
+        ) {
+          return;
+        }
+        lastMeasuredRef.current = next;
+        setMeasuredSize(next);
+      });
     });
     observer.observe(node);
-    return () => observer.disconnect();
+    return () => {
+      if (measureRafRef.current) {
+        cancelAnimationFrame(measureRafRef.current);
+        measureRafRef.current = null;
+      }
+      observer.disconnect();
+    };
   }, [contentRootNode, isDynamicSize, setMeasuredSize]);
 
 
@@ -673,18 +771,6 @@ function MorphCardInner<Keys extends string = string>({
     loadingText,
   ]);
 
-  // Border glow based on config
-  const borderGlow = useMemo(() => {
-    const intensity = config.borderIntensity ?? 0.15;
-    return `
-      inset 0 0 0 1px rgba(255,255,255,${intensity}),
-      inset 0 1px 0 rgba(255,255,255,${intensity * 0.8}),
-      0 0 0 1px rgba(255,255,255,${intensity * 0.3}),
-      0 2px 8px rgba(0,0,0,0.4),
-      0 0 20px rgba(0,0,0,0.2)
-    `;
-  }, [config.borderIntensity]);
-
   const sizeSpring = useMemo(
     () => ({
       stiffness: config.spring?.stiffness ?? 400,
@@ -756,107 +842,100 @@ function MorphCardInner<Keys extends string = string>({
       };
 
   return (
-    <CardContext.Provider value={contextValue}>
-      <motion.div
-        ref={containerRef}
-        className={cn(
-          'relative will-change-transform',
-          interactive && 'cursor-pointer',
-          className
-        )}
-        data-card-id={cardId}
-        data-mode={mode}
-        data-generative={generative}
-        data-dynamic-size={isDynamicSize}
-        onClick={onClick}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        style={{
-          ...dynamicSizeStyle,
-          ...(isDynamicSize
-            ? {
-                width: disableAnimations ? targetWidth : widthSpring,
-                height: disableAnimations ? targetHeight : heightSpring,
-              }
-            : {}),
-        }}
-        animate={{
-          ...(isDynamicSize
-            ? {}
-            : {
-                width: currentSize.width,
-                height: currentSize.height,
-              }),
-        }}
-        transition={containerTransition}
-      >
-          {/* Main container */}
+    <MorphCardSkinContext.Provider value={skinContextValue}>
+      <CardContext.Provider value={contextValue}>
+        {renderContainer(
           <motion.div
+            ref={containerRef}
             className={cn(
-              'relative overflow-hidden',
-              isDynamicSize ? 'inline-block w-fit min-h-0' : 'w-full h-full'
+              'relative will-change-transform',
+              interactive && 'cursor-pointer',
+              theme?.classNames?.container,
+              className
             )}
+            data-card-id={cardId}
+            data-mode={mode}
+            data-generative={generative}
+            data-dynamic-size={isDynamicSize}
+            onClick={onClick}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
             style={{
-              backgroundColor: 'oklch(0.08 0.005 280)',
-              borderRadius: config.borderRadius ?? 16,
-              boxShadow: borderGlow,
+              ...dynamicSizeStyle,
+              ...theme?.styles?.container,
+              ...(isDynamicSize
+                ? {
+                    width: disableAnimations ? targetWidth : widthSpring,
+                    height: disableAnimations ? targetHeight : heightSpring,
+                  }
+                : {}),
             }}
+            animate={{
+              ...(isDynamicSize
+                ? {}
+                : {
+                    width: currentSize.width,
+                    height: currentSize.height,
+                  }),
+            }}
+            transition={containerTransition}
           >
-            <ReticleOverlay
-              variant={reticle}
-              isActive={complexity === 'complex'}
-              color={config.reticleColor ?? 'rgba(255,255,255,0.3)'}
-              width={overlaySize.width}
-              height={overlaySize.height}
-            />
-            {/* Content with transition animation */}
-            {disableAnimations || !shouldAnimateContent ? (
-              <div
-                ref={contentRef}
+            {/* Main container */}
+            {renderFrame(
+              <motion.div
                 className={cn(
-                  isDynamicSize ? 'inline-block w-fit' : 'h-full',
-                  isScrollable && 'overflow-auto'
+                  'relative overflow-hidden',
+                  isDynamicSize ? 'inline-block w-fit min-h-0' : 'w-full h-full',
+                  theme?.classNames?.frame
                 )}
+                style={{
+                  ...theme?.styles?.frame,
+                }}
               >
-                {finalContent}
-              </div>
-            ) : (
-              <div
-                ref={contentRef}
-                className={cn(
-                  isDynamicSize ? 'inline-block w-fit' : 'h-full',
-                  isScrollable && 'overflow-auto'
-                )}
-              >
-                <AnimatePresence mode="popLayout">
-                  <motion.div
-                    key={contentKey}
-                    initial={variants.initial as any}
-                    animate={variants.animate as any}
-                    exit={variants.exit as any}
+                <ReticleOverlay
+                  variant={reticle}
+                  isActive={complexity === 'complex'}
+                  color={config.reticleColor ?? 'rgba(255,255,255,0.3)'}
+                  width={overlaySize.width}
+                  height={overlaySize.height}
+                />
+                {/* Content with transition animation */}
+                {disableAnimations || !shouldAnimateContent ? (
+                  <div
+                    ref={contentRef}
+                    className={cn(
+                      isDynamicSize ? 'inline-block w-fit' : 'h-full',
+                      isScrollable && 'overflow-auto'
+                    )}
                   >
                     {finalContent}
-                  </motion.div>
-                </AnimatePresence>
-              </div>
+                  </div>
+                ) : (
+                  <div
+                    ref={contentRef}
+                    className={cn(
+                      isDynamicSize ? 'inline-block w-fit' : 'h-full',
+                      isScrollable && 'overflow-auto'
+                    )}
+                  >
+                    <AnimatePresence mode="popLayout">
+                      <motion.div
+                        key={contentKey}
+                        initial={variants.initial as any}
+                        animate={variants.animate as any}
+                        exit={variants.exit as any}
+                      >
+                        {finalContent}
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
+                )}
+              </motion.div>
             )}
-
-          {/* Hover highlight */}
-          {interactive && isHovered && (
-            <motion.div
-              className="absolute inset-0 pointer-events-none"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              style={{
-                background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 50%)',
-                borderRadius: config.borderRadius ?? 16,
-              }}
-            />
-          )}
           </motion.div>
-      </motion.div>
-    </CardContext.Provider>
+        )}
+      </CardContext.Provider>
+    </MorphCardSkinContext.Provider>
   );
 }
 
@@ -873,26 +952,34 @@ function MorphCardRoot(props: MorphCardProps) {
 // =============================================================================
 
 /**
- * MorphCard.Content - Content wrapper with padding
+ * MorphCard.Content - Headless content wrapper
  */
-interface ContentProps {
-  children: ReactNode;
-  className?: string;
+interface ContentProps extends HTMLAttributes<HTMLDivElement> {
   padding?: 'none' | 'sm' | 'md' | 'lg';
 }
 
-const PADDING_STYLES = {
-  none: '',
-  sm: 'p-2',
-  md: 'p-4',
-  lg: 'p-6',
+const PADDING_VALUES = {
+  none: '0px',
+  sm: 'var(--morph-card-padding-sm, 0px)',
+  md: 'var(--morph-card-padding-md, 0px)',
+  lg: 'var(--morph-card-padding-lg, 0px)',
 };
 
-const Content: FC<ContentProps> = ({ children, className, padding = 'md' }) => (
-  <div className={cn('w-full h-full', PADDING_STYLES[padding], className)}>
-    {children}
-  </div>
-);
+const Content: FC<ContentProps> = ({ children, className, style, padding = 'md', ...props }) => {
+  const { slots, theme } = useMorphCardSkin();
+  const Slot = slots?.Content ?? 'div';
+
+  return (
+    <Slot
+      className={cn(theme?.classNames?.content, className)}
+      style={{ padding: PADDING_VALUES[padding], ...theme?.styles?.content, ...style }}
+      data-slot="content"
+      {...props}
+    >
+      {children}
+    </Slot>
+  );
+};
 
 /**
  * MorphCard.SizeView - SizeKey-scoped view wrapper
@@ -905,24 +992,25 @@ interface SizeViewProps {
 const SizeView: FC<SizeViewProps> = ({ children }) => <>{children}</>;
 
 /**
- * MorphCard.Header - Card header area
+ * MorphCard.Header - Headless header slot
  */
-interface HeaderProps {
-  children: ReactNode;
-  className?: string;
-}
+interface HeaderProps extends HTMLAttributes<HTMLDivElement> {}
 
-const Header: FC<HeaderProps> = ({ children, className }) => (
-  <div
-    className={cn(
-      'flex items-center justify-between px-4 py-2',
-      'border-b border-white/5',
-      className
-    )}
-  >
-    {children}
-  </div>
-);
+const Header: FC<HeaderProps> = ({ children, className, style, ...props }) => {
+  const { slots, theme } = useMorphCardSkin();
+  const Slot = slots?.Header ?? 'div';
+
+  return (
+    <Slot
+      className={cn(theme?.classNames?.header, className)}
+      style={{ ...theme?.styles?.header, ...style }}
+      data-slot="header"
+      {...props}
+    >
+      {children}
+    </Slot>
+  );
+};
 
 /**
  * MorphCard.Div - Layout-aware wrapper
@@ -1030,104 +1118,115 @@ const Stack = forwardRef<HTMLDivElement, StackProps>(
 Stack.displayName = 'MorphCard.Stack';
 
 /**
- * MorphCard.Title - Card title
+ * MorphCard.Title - Headless title slot
  */
-interface TitleProps {
-  children: ReactNode;
-  className?: string;
+interface TitleProps extends HTMLAttributes<HTMLSpanElement> {
   size?: 'sm' | 'md' | 'lg';
 }
 
-const TITLE_SIZES = {
-  sm: 'text-xs',
-  md: 'text-sm',
-  lg: 'text-base',
+const Title: FC<TitleProps> = ({ children, className, style, size = 'md', ...props }) => {
+  const { slots, theme } = useMorphCardSkin();
+  const Slot = slots?.Title ?? 'span';
+
+  return (
+    <Slot
+      className={cn(theme?.classNames?.title, className)}
+      style={{ ...theme?.styles?.title, ...style }}
+      data-slot="title"
+      data-size={size}
+      {...props}
+    >
+      {children}
+    </Slot>
+  );
 };
 
-const Title: FC<TitleProps> = ({ children, className, size = 'md' }) => (
-  <span
-    className={cn(
-      'font-mono font-medium text-neutral-200 tracking-wide uppercase',
-      TITLE_SIZES[size],
-      className
-    )}
-  >
-    {children}
-  </span>
-);
-
 /**
- * MorphCard.Badge - Status badge
+ * MorphCard.Badge - Headless badge slot
  */
-interface BadgeProps {
-  children: ReactNode;
+interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: 'default' | 'success' | 'warning' | 'error' | 'info';
-  className?: string;
 }
 
-const BADGE_VARIANTS = {
-  default: 'bg-neutral-800 text-neutral-300',
-  success: 'bg-emerald-900/50 text-emerald-400',
-  warning: 'bg-amber-900/50 text-amber-400',
-  error: 'bg-red-900/50 text-red-400',
-  info: 'bg-cyan-900/50 text-cyan-400',
+const Badge: FC<BadgeProps> = ({ children, variant = 'default', className, style, ...props }) => {
+  const { slots, theme } = useMorphCardSkin();
+  const Slot = slots?.Badge ?? 'span';
+
+  return (
+    <Slot
+      className={cn(theme?.classNames?.badge, className)}
+      style={{ ...theme?.styles?.badge, ...style }}
+      data-slot="badge"
+      data-variant={variant}
+      {...props}
+    >
+      {children}
+    </Slot>
+  );
 };
 
-const Badge: FC<BadgeProps> = ({ children, variant = 'default', className }) => (
-  <span
-    className={cn(
-      'px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider',
-      BADGE_VARIANTS[variant],
-      className
-    )}
-  >
-    {children}
-  </span>
-);
+/**
+ * MorphCard.Body - Headless body slot
+ */
+interface BodyProps extends HTMLAttributes<HTMLDivElement> {}
+
+const Body: FC<BodyProps> = ({ children, className, style, ...props }) => {
+  const { slots, theme } = useMorphCardSkin();
+  const Slot = slots?.Body ?? 'div';
+
+  return (
+    <Slot
+      className={cn(theme?.classNames?.body, className)}
+      style={{ ...theme?.styles?.body, ...style }}
+      data-slot="body"
+      {...props}
+    >
+      {children}
+    </Slot>
+  );
+};
 
 /**
- * MorphCard.Body - Main content area
+ * MorphCard.Footer - Headless footer slot
  */
-interface BodyProps {
-  children: ReactNode;
-  className?: string;
-}
+interface FooterProps extends HTMLAttributes<HTMLDivElement> {}
 
-const Body: FC<BodyProps> = ({ children, className }) => (
-  <div className={cn('flex-1 overflow-hidden', className)}>{children}</div>
-);
+const Footer: FC<FooterProps> = ({ children, className, style, ...props }) => {
+  const { slots, theme } = useMorphCardSkin();
+  const Slot = slots?.Footer ?? 'div';
+
+  return (
+    <Slot
+      className={cn(theme?.classNames?.footer, className)}
+      style={{ ...theme?.styles?.footer, ...style }}
+      data-slot="footer"
+      {...props}
+    >
+      {children}
+    </Slot>
+  );
+};
 
 /**
- * MorphCard.Footer - Card footer area
+ * MorphCard.Actions - Headless actions slot
  */
-interface FooterProps {
-  children: ReactNode;
-  className?: string;
-}
+interface ActionsProps extends HTMLAttributes<HTMLDivElement> {}
 
-const Footer: FC<FooterProps> = ({ children, className }) => (
-  <div
-    className={cn(
-      'flex items-center justify-between px-4 py-2',
-      'border-t border-white/5',
-      className
-    )}
-  >
-    {children}
-  </div>
-);
+const Actions: FC<ActionsProps> = ({ children, className, style, ...props }) => {
+  const { slots, theme } = useMorphCardSkin();
+  const Slot = slots?.Actions ?? 'div';
 
-/**
- * MorphCard.Actions - Action button container
- */
-interface ActionsProps {
-  children: ReactNode;
-  className?: string;
-}
-
-const Actions: FC<ActionsProps> = ({ children, className }) => (
-  <div className={cn('flex items-center gap-2', className)}>{children}</div>
-);
+  return (
+    <Slot
+      className={cn(theme?.classNames?.actions, className)}
+      style={{ ...theme?.styles?.actions, ...style }}
+      data-slot="actions"
+      {...props}
+    >
+      {children}
+    </Slot>
+  );
+};
 
 // =============================================================================
 // Compound Component Export

@@ -28,7 +28,7 @@ import type { UIElement } from '@/lib/json-render/core/schemas';
 // Constants
 // =============================================================================
 
-const DEFAULT_API = 'http://localhost:7682/ui-generate';
+const DEFAULT_API = '/api/ui-generate';
 
 // =============================================================================
 // Types

@@ -166,11 +166,11 @@ function TmnlDataGridInner<TData = unknown>(
   // Merged default column def
   const mergedDefaultColDef = useMemo<ColDef<TData>>(
     () => ({
-      resizable: variant.behavior.resize.columns,
+      resizable: variant.behavior.resize.enableColumnResize,
       sortable: variant.behavior.sort.enabled,
       ...defaultColDef,
     }),
-    [variant.behavior.resize.columns, variant.behavior.sort.enabled, defaultColDef]
+    [variant.behavior.resize.enableColumnResize, variant.behavior.sort.enabled, defaultColDef]
   )
 
   // Handle grid ready
@@ -206,8 +206,50 @@ function TmnlDataGridInner<TData = unknown>(
     [variant.colors.border.primary, variant.colors.background.base, style]
   )
 
+  // Generate unique ID for scoped CSS
+  const scopeId = useMemo(() => `tmnl-grid-${Math.random().toString(36).slice(2, 8)}`, [])
+
+  // Build CSS for microinteractions not covered by AG-Grid theme params
+  const microInteractionCSS = useMemo(() => {
+    const { selectedRow, selectedRowTransitionMs } = variant.behavior.microInteractions
+    const transitionMs = selectedRowTransitionMs ?? 150
+    const rules: string[] = []
+
+    // Selected row styling based on microinteraction type
+    if (selectedRow === 'invert') {
+      // Invert: black background, white text
+      rules.push(`
+        .${scopeId} .ag-row-selected {
+          background-color: ${variant.colors.background.selected} !important;
+          transition: background-color ${transitionMs}ms ease-out, color ${transitionMs}ms ease-out;
+        }
+        .${scopeId} .ag-row-selected .ag-cell {
+          color: ${variant.colors.text.primary === '#000000' ? '#ffffff' : '#000000'} !important;
+        }
+      `)
+    } else if (selectedRow === 'leftAccent') {
+      // Left accent: colored left border
+      rules.push(`
+        .${scopeId} .ag-row-selected {
+          border-left: 3px solid ${variant.colors.signal.accent} !important;
+          transition: border-color ${transitionMs}ms ease-out;
+        }
+      `)
+    } else if (selectedRow === 'fill') {
+      // Fill is default AG-Grid behavior, just add transition
+      rules.push(`
+        .${scopeId} .ag-row-selected {
+          transition: background-color ${transitionMs}ms ease-out;
+        }
+      `)
+    }
+
+    return rules.join('\n')
+  }, [variant, scopeId])
+
   return (
-    <div className={className} style={containerStyle}>
+    <div className={`${scopeId} ${className ?? ''}`} style={containerStyle}>
+      {microInteractionCSS && <style>{microInteractionCSS}</style>}
       <AgGridReact<TData>
         ref={gridRef}
         theme={theme}

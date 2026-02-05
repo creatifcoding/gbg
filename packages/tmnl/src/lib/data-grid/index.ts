@@ -111,6 +111,7 @@ export {
   tmnlDenseDarkMuted,
   tmnlUltraOps,
   tmnlAnalystLight,
+  rvnBrutalist,
   GRID_VARIANTS,
   DEFAULT_VARIANT,
 } from './variants'

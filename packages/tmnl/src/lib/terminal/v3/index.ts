@@ -46,28 +46,23 @@
 // =============================================================================
 
 export {
-  // Stream reference
+  // Stream reference (schema serves as both value and type via Schema.Type<>)
   StreamRef,
-  type StreamRef,
-  // Blocks
+  // Block schemas
   AIResponseBlockV3,
   CommandBlockV3,
   InteractiveBlockV3,
   SystemBlockV3,
   ErrorBlockV3,
+  JsonRenderBlockV3,
   BlockV3,
-  type AIResponseBlockV3,
-  type CommandBlockV3,
-  type InteractiveBlockV3,
-  type SystemBlockV3,
-  type ErrorBlockV3,
-  type BlockV3,
   // Type guards
   isAIResponseBlock,
   isCommandBlock,
   isInteractiveBlock,
   isSystemBlock,
   isErrorBlock,
+  isJsonRenderBlock,
   isBlockActive,
   // Factories
   createAIResponseBlock,
@@ -75,6 +70,23 @@ export {
   createInteractiveBlock,
   createSystemBlock,
   createErrorBlock,
+  createJsonRenderBlock,
+  createJsonRenderBlockWithRegions,
+  // JsonRenderBlock specific
+  SemanticRegionEntry,
+} from './schemas'
+
+// Re-export type aliases with distinct names
+export type {
+  StreamRefType,
+  AIResponseBlockV3Type,
+  CommandBlockV3Type,
+  InteractiveBlockV3Type,
+  SystemBlockV3Type,
+  ErrorBlockV3Type,
+  BlockV3Type,
+  JsonRenderBlockV3ExportType,
+  SemanticRegionEntryExportType,
 } from './schemas'
 
 // =============================================================================
@@ -267,3 +279,15 @@ export {
   EditToolView,
   GrepToolView,
 } from './components/ToolCallView/tools'
+
+// JsonRenderBlock - Rich UI rendering via json-render system
+export {
+  JsonRenderBlock,
+  JsonRenderBlockHeader,
+  JsonRenderBlockContent,
+  JsonRenderBlockLoadingState,
+  JsonRenderBlockEmptyState,
+  JsonRenderBlockSemanticRegions,
+  JsonRenderBlockMeta,
+  type JsonRenderBlockProps,
+} from './components/JsonRenderBlock'

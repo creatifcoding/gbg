@@ -34,6 +34,12 @@ import {
   type JsonPatch,
   type MorphPatch,
 } from '@/lib/morph-card/schemas/patch-protocol';
+// Design, File, and Bash tools for AI-driven component manipulation
+import { designTools } from '@/lib/cursor/tools/design-tools';
+import { fileTools, setFileToolsContext } from '@/lib/cursor/tools/file-tools';
+import { bashTools, setBashToolContext } from '@/lib/cursor/tools/bash-tool';
+import * as fs from 'node:fs/promises';
+import { Glob } from 'bun';
 // Note: UITree, UIElement, JsonPatch are defined in @/lib/json-render/core/schemas
 // We use inline JSON Schema here for AI SDK compatibility
 
@@ -85,7 +91,8 @@ BEHAVIOR:
 - The client will parse your response and execute the position/visibility commands automatically`;
 
 // -----------------------------------------------------------------------------
-// Request Schema (AI SDK 5.0+ format: messages use 'parts' instead of 'content')
+// Request Schema (AI SDK format: messages use 'parts' OR 'content')
+// AI SDK useChat sends 'content' for user messages, 'parts' for assistant
 // -----------------------------------------------------------------------------
 
 const TextPart = Schema.Struct({
@@ -99,10 +106,14 @@ const UIMessagePart = Schema.Union(
   Schema.Struct({ type: Schema.String }) // Fallback for unknown types
 );
 
+// Accept messages with either 'parts' array OR 'content' string
 const UIMessage = Schema.Struct({
   id: Schema.optional(Schema.String),
   role: Schema.String,
-  parts: Schema.Array(UIMessagePart),
+  // AI SDK assistant messages use parts
+  parts: Schema.optional(Schema.Array(UIMessagePart)),
+  // AI SDK useChat user messages use content
+  content: Schema.optional(Schema.String),
   metadata: Schema.optional(Schema.Unknown),
 });
 
@@ -124,10 +135,11 @@ const ChatRequestSchema = Schema.Struct({
   systemPrompt: Schema.optional(Schema.String),
 });
 
-// Helper to convert AI SDK 5.0+ parts to content string for streamText
+// Helper to convert AI SDK parts to content string for streamText
 function partsToContent(
-  parts: ReadonlyArray<{ type: string; text?: string }>
+  parts: ReadonlyArray<{ type: string; text?: string }> | undefined
 ): string {
+  if (!parts) return '';
   return parts
     .filter(
       (p): p is { type: 'text'; text: string } =>
@@ -135,6 +147,16 @@ function partsToContent(
     )
     .map((p) => p.text)
     .join('');
+}
+
+// Helper to get message content from either parts or content field
+function getMessageContent(msg: { parts?: ReadonlyArray<{ type: string; text?: string }>; content?: string }): string {
+  // Prefer content if present (AI SDK useChat format)
+  if (msg.content !== undefined) {
+    return msg.content;
+  }
+  // Fall back to parts (AI SDK streaming format)
+  return partsToContent(msg.parts);
 }
 
 // -----------------------------------------------------------------------------
@@ -200,26 +222,37 @@ const handleChat = Effect.gen(function* () {
     }`
   );
 
-  // Convert AI SDK 5.0+ messages (parts) to streamText format (content)
+  // Convert AI SDK messages to streamText format (content)
+  // Handles both parts (assistant) and content (user from useChat)
   const convertedMessages = decoded.messages.map((msg) => ({
     role: msg.role as 'user' | 'assistant' | 'system',
-    content: partsToContent(
-      msg.parts as Array<{ type: string; text?: string }>
-    ),
+    content: getMessageContent(msg),
   }));
 
   // Call AI SDK with mode-appropriate configuration
+  // Design tools (designTools/fileTools) use global context pattern -
+  // setDesignToolsContext/setFileToolsContext must be called at app startup
+  // to wire them to the testbed provider. For now, we pass the tools directly.
   const result = yield* Effect.tryPromise({
     try: async () => {
       const aiResult = streamText({
         model: createModel(mode),
         system: systemPrompt,
         messages: convertedMessages,
+        tools: {
+          ...designTools,
+          ...fileTools,
+          ...bashTools,
+        },
       });
 
       // AI SDK 5.0+: Use toUIMessageStreamResponse() for useChat compatibility
       // This returns a Response with proper SSE formatting
-      const response = aiResult.toUIMessageStreamResponse();
+      // Enable reasoning and sources for extended thinking/source references
+      const response = aiResult.toUIMessageStreamResponse({
+        sendReasoning: true,   // Include extended thinking/reasoning parts
+        sendSources: true,     // Include source references if available
+      });
 
       // Add CORS headers to the response
       const headers = new Headers(response.headers);
@@ -331,7 +364,8 @@ const handleUIGenerate = Effect.gen(function* () {
               return;
             }
 
-            buffer += new TextDecoder().decode(value);
+            // textStream yields strings directly, no decoding needed
+            buffer += value;
             const lines = buffer.split('\n');
             buffer = lines.pop() ?? '';
 
@@ -788,6 +822,7 @@ export const CursorChatServerLive = router.pipe(
     BunHttpServer.layer({
       port: CURSOR_CHAT_PORT,
       idleTimeout: 120, // 2 minutes for streaming responses
+      // HTTP only - Vite proxy handles frontend requests
     })
   ),
   Layer.provide(BunContext.layer)
@@ -798,6 +833,63 @@ export const CursorChatServerLive = router.pipe(
 // -----------------------------------------------------------------------------
 
 export const runCursorChatServer = Effect.gen(function* () {
+  // Initialize bash tool context with project root as cwd
+  setBashToolContext({
+    cwd: PROJECT_ROOT,
+    timeout: 60000, // 60s timeout for long-running commands
+    maxOutput: 1024 * 1024, // 1MB output limit
+  });
+
+  // Initialize file tools context with real fs operations
+  setFileToolsContext({
+    readFile: async (path) => {
+      try {
+        const content = await fs.readFile(path, 'utf-8');
+        return { success: true, content };
+      } catch (e) {
+        return { success: false, error: String(e) };
+      }
+    },
+    writeFile: async (path, content) => {
+      try {
+        await fs.writeFile(path, content, 'utf-8');
+        return { success: true };
+      } catch (e) {
+        return { success: false, error: String(e) };
+      }
+    },
+    editFile: async (filePath, oldContent, newContent, replaceAll) => {
+      try {
+        const content = await fs.readFile(filePath, 'utf-8');
+        if (!content.includes(oldContent)) {
+          return { success: false, error: 'Old content not found in file' };
+        }
+        const updated = replaceAll
+          ? content.split(oldContent).join(newContent)
+          : content.replace(oldContent, newContent);
+        await fs.writeFile(filePath, updated, 'utf-8');
+        return { success: true };
+      } catch (e) {
+        return { success: false, error: String(e) };
+      }
+    },
+    listFiles: async (pattern, basePath) => {
+      const glob = new Glob(pattern);
+      const cwd = basePath ?? PROJECT_ROOT;
+      const files: string[] = [];
+      for await (const file of glob.scan({ cwd })) {
+        files.push(file);
+      }
+      return files;
+    },
+    searchFiles: async (query, options) => {
+      // Simple grep-like search using ripgrep via child_process
+      // For now, return empty - would need proper implementation
+      console.log(`[file-tools] Search requested: ${query}`, options);
+      return [];
+    },
+  });
+
   yield* Effect.log(
     `Cursor Chat Server starting on http://localhost:${CURSOR_CHAT_PORT}`
   );
@@ -811,3 +903,11 @@ export const runCursorChatServer = Effect.gen(function* () {
 });
 
 export { CURSOR_CHAT_PORT };
+
+// Re-export tools for external usage
+export { designTools };
+export { fileTools };
+export { bashTools };
+export type { DesignToolsContext } from '@/lib/cursor/tools/design-tools';
+export type { FileToolsContext } from '@/lib/cursor/tools/file-tools';
+export type { BashToolContext } from '@/lib/cursor/tools/bash-tool';

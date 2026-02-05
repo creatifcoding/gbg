@@ -70,6 +70,7 @@ export const tmnlUltraOps: GridVariant = {
     ...BEHAVIOR_PRESETS.operator,
     microInteractions: {
       hoverRow: 'none',
+      selectedRow: 'fill',
       focusOutline: 'strong',
       animateRows: false,
       enableCellFlash: true,

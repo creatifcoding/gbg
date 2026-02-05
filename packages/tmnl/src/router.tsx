@@ -88,6 +88,8 @@ import { OverhaulDocsPage } from './components/docs/overhaul';
 import { DocsLanding } from './components/docs-3d';
 import { WindowRoute } from './routes/WindowRoute';
 import { PoolPlaceholder } from './routes/PoolPlaceholder';
+import { ConductorView } from './lib/conductor';
+import { ConductorTestbed } from './components/testbed/ConductorTestbed';
 
 // Create a root route
 // LockScreenController wraps all routes to enable lock screen functionality
@@ -563,6 +565,27 @@ const morphCardTestbedRoute = createRoute({
   component: MorphCardTestbed,
 });
 
+// Conductor testbed route (canvas)
+const conductorTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/conductor',
+  component: ConductorTestbed,
+});
+
+// Conductor route — canvas testbed
+const conductorRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/conductor',
+  component: ConductorTestbed,
+});
+
+// Conductor legacy panel
+const conductorLegacyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/conductor/legacy',
+  component: () => <ConductorView className="h-screen" />,
+});
+
 // egui MorphCard testbed route (WASM canvas inside DynamicIslandCard)
 const eguiMorphCardTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -660,6 +683,9 @@ const routeTree = rootRoute.addChildren([
   jsonRenderTestbedRoute,
   morphCardTestbedRoute,
   eguiMorphCardTestbedRoute,
+  conductorTestbedRoute,
+  conductorRoute,
+  conductorLegacyRoute,
   windowRoute,
   poolPlaceholderRoute,
 ]);

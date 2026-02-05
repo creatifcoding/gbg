@@ -34,7 +34,7 @@ import type { Action } from "../core/schemas"
 // Constants
 // =============================================================================
 
-const DEFAULT_API = "http://localhost:7682/ui-generate"
+const DEFAULT_API = "/api/ui-generate"
 const DEFAULT_MAX_DEPTH = 3
 
 // =============================================================================

@@ -66,6 +66,7 @@
 
 export {
   MorphCard,
+  useMorphCardSkin,
   AnimatedItem,
   MetricBlock,
   MetricGrid,
@@ -86,6 +87,9 @@ export {
   useDynamicIslandContextOptional,
   // Types
   type MorphCardProps,
+  type MorphCardSlots,
+  type MorphCardTheme,
+  type MorphCardRenderers,
   type RenderRegistry,
   type ModeRender,
   type SizeViewStrategy,
@@ -110,6 +114,19 @@ export {
   type ViewRegistry,
   type ViewIdsFromRegistry,
 } from './components';
+
+// =============================================================================
+// Skins
+// =============================================================================
+
+export {
+  tmnlMorphCardTheme,
+  createTmnlMorphCardTheme,
+  tmnlMorphCardSlots,
+  tmnlBorderGlow,
+} from './skins/tmnl-default';
+
+export { rvnMorphCardTheme, rvnMorphCardSlots } from './skins/rvn';
 
 // =============================================================================
 // Schema Exports

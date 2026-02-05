@@ -17,6 +17,7 @@ import {
   setActiveHandleById,
   clearActiveHandleById,
   userMessage,
+  AICoreConnectionError,
 } from '@/lib/ai-core'
 import { TauriPtyService, type PtyHandle } from '../../v2/services/TauriPtyService'
 import { terminalActorOps, terminalRegistry } from '../terminal-stx'
@@ -58,7 +59,9 @@ export interface BlockTerminalServiceShape {
   readonly executeAIQuery: (args: {
     prompt: string
     model?: string
-  }) => Effect.Effect<BlockHandle, Error>
+    /** System prompt for context (e.g., component info for design chat) */
+    systemPrompt?: string
+  }) => Effect.Effect<BlockHandle, AICoreConnectionError>
 
   /**
    * Execute a shell command, creating a CommandBlock or InteractiveBlock.
@@ -102,7 +105,7 @@ export class BlockTerminalService extends Context.Tag('tmnl/terminal/v3/BlockTer
       // -----------------------------------------------------------------------
       // executeAIQuery
       // -----------------------------------------------------------------------
-      const executeAIQuery = (args: { prompt: string; model?: string }) =>
+      const executeAIQuery = (args: { prompt: string; model?: string; systemPrompt?: string }) =>
         Effect.gen(function* () {
           const model = args.model ?? 'claude-sonnet-4-20250514'
 
@@ -119,6 +122,7 @@ export class BlockTerminalService extends Context.Tag('tmnl/terminal/v3/BlockTer
             messages: [userMessage(args.prompt)],
             modelId: model,
             tools,
+            systemPrompt: args.systemPrompt,
           })
 
           const requestId = handle.metadata.requestId

@@ -49,6 +49,8 @@ export type KeyboardNavMode = typeof KeyboardNavMode.Type
 export const MicroInteractions = Schema.Struct({
   /** Row hover effect */
   hoverRow: Schema.Literal('none', 'subtleFill', 'underline', 'glow'),
+  /** Selected row effect */
+  selectedRow: Schema.Literal('none', 'fill', 'invert', 'leftAccent'),
   /** Focus outline style */
   focusOutline: Schema.Literal('none', 'subtle', 'strong', 'accent'),
   /** Animate row reordering */
@@ -57,6 +59,8 @@ export const MicroInteractions = Schema.Struct({
   enableCellFlash: Schema.Boolean,
   /** Flash duration multiplier (1.0 = default, 0.5 = faster, 2.0 = slower) */
   flashDurationScale: Schema.optional(Schema.Number),
+  /** Selected row transition duration in ms */
+  selectedRowTransitionMs: Schema.optional(Schema.Number),
 })
 export type MicroInteractions = typeof MicroInteractions.Type
 
@@ -135,6 +139,7 @@ export const BEHAVIOR_PRESETS = {
     keyboardNav: 'standard',
     microInteractions: {
       hoverRow: 'subtleFill',
+      selectedRow: 'fill',
       focusOutline: 'subtle',
       animateRows: true,
       enableCellFlash: true,
@@ -153,6 +158,7 @@ export const BEHAVIOR_PRESETS = {
     keyboardNav: 'none',
     microInteractions: {
       hoverRow: 'subtleFill',
+      selectedRow: 'none',
       focusOutline: 'none',
       animateRows: false,
       enableCellFlash: true,
@@ -172,6 +178,7 @@ export const BEHAVIOR_PRESETS = {
     keyboardNav: 'vim',
     microInteractions: {
       hoverRow: 'none',
+      selectedRow: 'fill',
       focusOutline: 'strong',
       animateRows: false,
       enableCellFlash: true,
@@ -190,6 +197,7 @@ export const BEHAVIOR_PRESETS = {
     keyboardNav: 'none',
     microInteractions: {
       hoverRow: 'none',
+      selectedRow: 'none',
       focusOutline: 'none',
       animateRows: false,
       enableCellFlash: false,
@@ -197,6 +205,26 @@ export const BEHAVIOR_PRESETS = {
     resize: { enableColumnResize: false },
     sort: { enabled: false },
     drag: { enableRowDrag: false },
+  },
+
+  /** RVN Brutalist - high contrast invert selection */
+  rvnBrutalist: {
+    selection: 'single',
+    hover: 'row',
+    focus: 'cell',
+    editTrigger: 'doubleClick',
+    keyboardNav: 'standard',
+    microInteractions: {
+      hoverRow: 'subtleFill',
+      selectedRow: 'invert',
+      focusOutline: 'strong',
+      animateRows: false,
+      enableCellFlash: true,
+      selectedRowTransitionMs: 100,
+    },
+    resize: { enableColumnResize: true },
+    sort: { enabled: true },
+    drag: { enableRowDrag: true },
   },
 } as const satisfies Record<string, BehaviorConfig>
 

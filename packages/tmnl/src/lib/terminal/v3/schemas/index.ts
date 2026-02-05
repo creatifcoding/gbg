@@ -1,30 +1,32 @@
 /**
  * Terminal v3 Schemas
+ *
+ * Effect Schema exports are both values AND types.
+ * Use Schema.Type<typeof X> for type extraction.
  */
 
+// =============================================================================
+// Block Schemas & Factories
+// =============================================================================
+
 export {
-  // Stream reference
+  // Stream reference (schema + type)
   StreamRef,
-  type StreamRef,
-  // Blocks
+  // Block schemas (also serve as types via Schema.Type<>)
   AIResponseBlockV3,
   CommandBlockV3,
   InteractiveBlockV3,
   SystemBlockV3,
   ErrorBlockV3,
+  JsonRenderBlockV3,
   BlockV3,
-  type AIResponseBlockV3,
-  type CommandBlockV3,
-  type InteractiveBlockV3,
-  type SystemBlockV3,
-  type ErrorBlockV3,
-  type BlockV3,
   // Type guards
   isAIResponseBlock,
   isCommandBlock,
   isInteractiveBlock,
   isSystemBlock,
   isErrorBlock,
+  isJsonRenderBlock,
   isBlockActive,
   // Factories
   createAIResponseBlock,
@@ -34,37 +36,53 @@ export {
   createErrorBlock,
 } from './blocks'
 
-// Map output schemas for tool result detection
+// Block type aliases for convenience (distinct names to avoid conflicts)
+export type {
+  StreamRef as StreamRefType,
+  AIResponseBlockV3 as AIResponseBlockV3Type,
+  CommandBlockV3 as CommandBlockV3Type,
+  InteractiveBlockV3 as InteractiveBlockV3Type,
+  SystemBlockV3 as SystemBlockV3Type,
+  ErrorBlockV3 as ErrorBlockV3Type,
+  BlockV3 as BlockV3Type,
+} from './blocks'
+
+// =============================================================================
+// JsonRenderBlock
+// =============================================================================
+
 export {
-  // GeoJSON types
+  SemanticRegionEntry,
+  createJsonRenderBlock,
+  createJsonRenderBlockWithRegions,
+} from './json-render-block'
+
+export type {
+  JsonRenderBlockV3 as JsonRenderBlockV3ExportType,
+  SemanticRegionEntry as SemanticRegionEntryExportType,
+} from './json-render-block'
+
+// =============================================================================
+// Map Output Schemas
+// =============================================================================
+
+export {
+  // GeoJSON schemas
   Position,
   GeometryType,
   Geometry,
   Feature,
   FeatureCollection,
-  type Position,
-  type GeometryType,
-  type Geometry,
-  type Feature,
-  type FeatureCollection,
-  // Map configuration
+  // Map configuration schemas
   MapLayerType,
   ColorSpec,
   MapLayer,
   MapMarker,
   MapBounds,
-  type MapLayerType,
-  type ColorSpec,
-  type MapLayer,
-  type MapMarker,
-  type MapBounds,
-  // Structured output
+  // Structured output schemas
   StructuredMapOutput,
   DetectionSource,
   DetectedMapData,
-  type StructuredMapOutput,
-  type DetectionSource,
-  type DetectedMapData,
   // Type guards
   isFeatureCollection,
   isFeature,
@@ -76,4 +94,21 @@ export {
   decodeStructuredMapOutput,
   decodeFeatureCollection,
   decodeFeature,
+} from './map-output'
+
+// Map type aliases for convenience (distinct names)
+export type {
+  Position as PositionType,
+  GeometryType as GeometryTypeType,
+  Geometry as GeometrySchemaType,
+  Feature as FeatureType,
+  FeatureCollection as FeatureCollectionType,
+  MapLayerType as MapLayerTypeType,
+  ColorSpec as ColorSpecType,
+  MapLayer as MapLayerSchemaType,
+  MapMarker as MapMarkerType,
+  MapBounds as MapBoundsType,
+  StructuredMapOutput as StructuredMapOutputType,
+  DetectionSource as DetectionSourceType,
+  DetectedMapData as DetectedMapDataType,
 } from './map-output'

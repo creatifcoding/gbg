@@ -31,7 +31,7 @@ import type { AgentStylePatch } from '../styler/agent';
 // Constants
 // =============================================================================
 
-const DEFAULT_API = 'http://localhost:7682/chart-style';
+const DEFAULT_API = '/api/chart-style';
 
 // =============================================================================
 // Stream Fiber Atom (per-chart fiber storage)
