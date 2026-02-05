@@ -144,10 +144,13 @@ services:
       - tmnl
 
   # ===========================================================================
-  # PostgreSQL + PostGIS + TimescaleDB - Spatiotemporal data storage
+  # PostgreSQL + TimescaleDB + Apache AGE - Spatiotemporal + Graph data storage
   # ===========================================================================
   postgres:
-    image: timescale/timescaledb-ha:pg16-ts2.17
+    build:
+      context: ./iiot-db
+      dockerfile: Dockerfile
+    image: tmnl-iiot-db:latest
     container_name: tmnl_postgres
     ports:
       - '5432:5432'
@@ -160,7 +163,7 @@ services:
       POSTGRES_DB: tmnl
       # TimescaleDB settings
       TIMESCALEDB_TELEMETRY: 'off'
-    # Enable logical replication for Electric
+    # Enable logical replication for Electric + preload AGE
     command:
       - postgres
       - -c
@@ -169,6 +172,8 @@ services:
       - max_replication_slots=10
       - -c
       - max_wal_senders=10
+      - -c
+      - shared_preload_libraries=timescaledb,age
     restart: unless-stopped
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U tmnl -d tmnl']

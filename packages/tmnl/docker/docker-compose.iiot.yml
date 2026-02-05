@@ -23,7 +23,7 @@ services:
   iiot-db:
     build:
       context: ./iiot-db
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.lite  # Use lite image (no pg_lake) for fast builds
     container_name: tmnl_iiot_db
     ports:
       - '5433:5432'  # Different port to not conflict with main postgres
