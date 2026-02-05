@@ -269,7 +269,7 @@ Epic 1 (Schemas) ──┬──> Epic 2 (Models) ──> Epic 3 (DDL) ──> E
 
 ### Epic 5: Error Schemas (Section 3.7)
 
-**Goal**: Define domain errors with Data.TaggedError.
+**Goal**: Define domain errors with Schema.TaggedError.
 
 | Task ID | Description | Files | Size | Depends On |
 |---------|-------------|-------|------|------------|
@@ -285,7 +285,7 @@ Epic 1 (Schemas) ──┬──> Epic 2 (Models) ──> Epic 3 (DDL) ──> E
 | 5.6.1 | Create error barrel exports | `errors/index.ts` | S | 5.1-5.5 |
 
 **Acceptance Criteria**:
-- [ ] All errors use Data.TaggedError
+- [ ] All errors use Schema.TaggedError
 - [ ] Error unions for service signatures
 - [ ] Version conflict tracking for optimistic locking
 
@@ -962,7 +962,7 @@ See: `thoughts/shared/plans/fragments/epic-25-regulatory.md` for complete task b
 | 2. Model Derivation | L | 13 | Many files, FK relationships |
 | 3. DDL Infrastructure | L | 13 | TimescaleDB complexity, many migrations |
 | 4. Repository Layer | L | 13 | Many repos, batch insert complexity |
-| 5. Error Schemas | S | 5 | Straightforward Data.TaggedError |
+| 5. Error Schemas | S | 5 | Straightforward Schema.TaggedError |
 | 6. L1 Infrastructure | S | 5 | Validation and documentation |
 | 7. ES Infrastructure (Expanded) | XL | 21 | EventLog facade, tables, identity layer |
 | 8. Alarm ES Migration (Expanded) | XL | 21 | 10 events, temporal queries, reactivity |

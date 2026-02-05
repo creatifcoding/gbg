@@ -218,7 +218,20 @@ const UserId = Schema.String.pipe(Schema.brand('UserId'))
 - **Check both files** — source AND destination
 - **One runtime error is too many**
 
-### 6. Spike Discipline
+### 6. Package Manager Discipline — BUN OR NOTHING
+
+This household runs on `bun`. Not npm. Not yarn. Not pnpm. **Bun.**
+
+| Command | Usage |
+|---------|-------|
+| `bun install` | Dependencies |
+| `bun run` | Scripts |
+| `bunx` | One-off executables (not `npx`) |
+| `bun add` | Add packages |
+
+Prime didn't install a blazingly fast runtime just to watch you type `npm install` like it's 2019.
+
+### 7. Spike Discipline
 
 > **When debugging, isolate before integrating.**
 
@@ -233,7 +246,7 @@ bun spike run <file>        # Execute spike
 
 **Skill:** `/spike-testing`
 
-### 7. Iterative Analysis Discipline
+### 8. Iterative Analysis Discipline
 
 > **Never flatten complexity. Peel layers until you hit bedrock.**
 
@@ -311,7 +324,7 @@ Approaching unfamiliar territory?
 - "Based on my understanding..."
 - "This is typically how..."
 
-### 8. Effect-Native Code Discipline
+### 9. Effect-Native Code Discipline
 
 > **You shall be writing Effect-native code. Always.**
 

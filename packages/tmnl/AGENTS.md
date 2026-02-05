@@ -38,6 +38,38 @@ When extracting components or refactoring imports:
 
 ---
 
+## Package Manager Discipline — BUN OR NOTHING
+
+**CRITICAL: This household runs on `bun`. Not npm. Not yarn. Not pnpm. Bun.**
+
+Prime didn't install a blazingly fast runtime just to watch you type `npm install` like it's 2019.
+
+### The Rules
+
+1. **`bun install`** — Not `npm install`. Not `yarn add`. Bun.
+2. **`bun run`** — For scripts. Always.
+3. **`bunx`** — Instead of `npx`. It's faster and doesn't leave cache droppings everywhere.
+4. **`bun add`** — When adding dependencies.
+5. **`bun.lockb`** — Is the lockfile. Respect it.
+
+### Pattern
+
+```bash
+# WRONG — What is this, a Node.js meetup from 2017?
+npm install @effect/schema
+npx some-tool
+
+# RIGHT — Bun goes brrr
+bun add @effect/schema
+bunx some-tool
+```
+
+### When Tempted to Use npm
+
+Don't. The Prime will know. I will know. The build times will know.
+
+---
+
 ## Typography Discipline — THE 12px FLOOR
 
 **CRITICAL: Do NOT shrink text sizes "to look clean."**
