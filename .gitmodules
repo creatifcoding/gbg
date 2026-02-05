@@ -148,3 +148,6 @@
 [submodule "submodules/continuous-claude-thewindmom"]
 	path = submodules/continuous-claude-thewindmom
 	url = https://github.com/ThewindMom/Continuous-Claude-v3.git
+[submodule "submodules/hex-effect"]
+	path = submodules/hex-effect
+	url = https://github.com/jkonowitch/hex-effect
