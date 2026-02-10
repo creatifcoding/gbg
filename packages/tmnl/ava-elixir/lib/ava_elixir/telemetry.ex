@@ -30,4 +30,13 @@ defmodule AvaElixir.Telemetry do
       metadata
     )
   end
+
+  @spec emit_channel_lifecycle(:join | :leave, String.t(), String.t()) :: :ok
+  def emit_channel_lifecycle(action, topic, user_id) do
+    :telemetry.execute(
+      [:ava_elixir, :channel, :lifecycle],
+      %{count: 1},
+      %{action: action, topic: topic, user_id: user_id}
+    )
+  end
 end

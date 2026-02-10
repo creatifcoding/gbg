@@ -38,6 +38,14 @@ Subscription events arrive in BEAM mailboxes as:
 
 See `docs/BOUNDARY_CONTRACT.md` for full contract semantics and error normalization.
 
+## Phoenix Surface
+
+- Endpoint health: `GET /`
+- LiveView ops page: `GET /ops/:workspace_id`
+- Channel topic pattern: `ava:workspace:<workspace_id>:events`
+
+TMNL should connect through `AvaElixirWeb.UserSocket` using short-lived channel token auth.
+
 ## Development
 
 From `packages/tmnl`:
@@ -46,6 +54,9 @@ From `packages/tmnl`:
 bun run elixir:deps
 bun run elixir:test
 bun run elixir:build
+bun run phoenix:init
+bun run phoenix:test
+bun run phoenix:dev
 ```
 
 Or directly with mission control:
@@ -54,4 +65,7 @@ Or directly with mission control:
 tmnl elixir-deps
 tmnl elixir-test
 tmnl elixir-build
+tmnl phoenix-init
+tmnl phoenix-test
+tmnl phoenix-dev
 ```

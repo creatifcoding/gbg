@@ -11,6 +11,8 @@ defmodule AvaElixir.Supervisor do
   @impl true
   def init(:ok) do
     children = [
+      {Phoenix.PubSub, name: AvaElixir.PubSub},
+      AvaElixirWeb.Endpoint,
       {AvaElixir.FailureProbe, []}
     ]
 

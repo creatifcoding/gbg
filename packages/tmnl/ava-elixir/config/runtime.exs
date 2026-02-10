@@ -17,3 +17,13 @@ runtime_mode =
   end
 
 config :ava_elixir, :runtime_mode, runtime_mode
+
+if config_env() == :prod do
+  secret_key_base =
+    System.get_env("AVA_ELIXIR_SECRET_KEY_BASE") ||
+      "ava_elixir_prod_secret_key_base_override_me"
+
+  config :ava_elixir, AvaElixirWeb.Endpoint,
+    secret_key_base: secret_key_base,
+    server: true
+end
