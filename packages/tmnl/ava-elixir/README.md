@@ -23,7 +23,18 @@ Configuration is loaded in `config/runtime.exs`.
 - `AvaElixir.nif_version/0`
 - `AvaElixir.ping/1`
 - `AvaElixir.register_spec_json/1`
+- `AvaElixir.get_spec_json/1`
+- `AvaElixir.list_specs/0`
 - `AvaElixir.invalidate_view/1`
+- `AvaElixir.subscribe/2`
+- `AvaElixir.unsubscribe/1`
+- `AvaElixir.list_subscriptions/0`
+
+Subscription events arrive in BEAM mailboxes as:
+
+```elixir
+{:ava_artifact, subscription_id, %{view_id: view_id, sequence: seq}}
+```
 
 See `docs/BOUNDARY_CONTRACT.md` for full contract semantics and error normalization.
 

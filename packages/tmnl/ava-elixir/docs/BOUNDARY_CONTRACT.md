@@ -13,9 +13,14 @@ Module: `AvaElixir.Native`
 | Function | Scheduler | Input | Output |
 | --- | --- | --- | --- |
 | `nif_version/0` | Normal | none | string |
-| `runtime_ping/1` | DirtyCpu | payload string | string (`"ava-runtime:<payload>"`) |
+| `runtime_ping/1` | Normal | payload string | string (`"ava-runtime:<payload>"`) |
 | `register_spec_json/1` | DirtyCpu | JSON string | `{:ok, "registered:<view_id>"}` or `{:error, reason}` |
-| `invalidate_view/1` | Normal | view id string | `{:ok, "invalidated:<view_id>"}` or `{:error, "view_not_found:<view_id>"}` |
+| `get_spec_json/1` | Normal | view id string | `{:ok, spec_json}` or `{:error, "view_not_found:<view_id>"}` |
+| `list_specs/0` | Normal | none | `{:ok, [view_id]}` |
+| `invalidate_view/1` | DirtyCpu | view id string | `{:ok, "invalidated:<view_id>"}` or `{:error, "view_not_found:<view_id>"}` |
+| `subscribe_view/3` | Normal | view id, interval ms, pid | `{:ok, subscription_id}` or `{:error, reason}` |
+| `unsubscribe/1` | Normal | subscription id | `{:ok, "unsubscribed:<id>"}` or `{:error, "subscription_not_found:<id>"}` |
+| `list_subscriptions/0` | Normal | none | `{:ok, [subscription_id]}` |
 
 ## Event Tuple Contract (Elixir-side canonical)
 
@@ -26,6 +31,10 @@ Constructed via `AvaElixir.Contracts`:
 - `{:ava_lagged, sub_ref, dropped_count}`
 
 `sub_ref` is currently `reference() | String.t()`.
+
+NIF subscription bridge currently emits mailbox events as:
+
+- `{:ava_artifact, subscription_id, %{view_id: String.t(), sequence: non_neg_integer()}}`
 
 ## View Spec Baseline Contract
 
@@ -53,7 +62,9 @@ Current native reason strings include:
 - `invalid_json:<decode_error>`
 - `missing_id`
 - `view_not_found:<view_id>`
+- `subscription_not_found:<subscription_id>`
 - `registry_lock_poisoned`
+- `subscriptions_lock_poisoned`
 
 ### Public API (`AvaElixir`)
 

@@ -214,6 +214,22 @@ let
         in
         drv;
 
+      telemetry =
+        let
+          version = "1.3.0";
+          drv = buildRebar3 {
+            inherit version;
+            name = "telemetry";
+
+            src = fetchHex {
+              inherit version;
+              pkg = "telemetry";
+              sha256 = "7015fc8919dbe63764f4b4b87a95b7c0996bd539e0d499be6ec9d7f3875b79e6";
+            };
+          };
+        in
+        drv;
+
     };
 in
 self

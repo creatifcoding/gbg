@@ -24,6 +24,7 @@ defmodule AvaElixir.MixProject do
   defp deps do
     [
       {:jason, "~> 1.4"},
+      {:telemetry, "~> 1.2"},
       {:rustler, "~> 0.37", runtime: false},
       {:deps_nix, "~> 2.0", only: :dev, runtime: false}
     ]
@@ -32,7 +33,10 @@ defmodule AvaElixir.MixProject do
   defp aliases do
     [
       "deps.get": ["deps.get", "deps.nix"],
-      "deps.update": ["deps.update", "deps.nix"]
+      "deps.update": ["deps.update", "deps.nix"],
+      "lint.nif": ["cmd bash scripts/check_nif_schedule.sh"],
+      "artifact.build": ["cmd bash scripts/precompile_artifact.sh"],
+      "artifact.verify": ["cmd bash scripts/verify_artifact.sh"]
     ]
   end
 end

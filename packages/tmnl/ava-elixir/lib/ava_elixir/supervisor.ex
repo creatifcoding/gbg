@@ -11,7 +11,7 @@ defmodule AvaElixir.Supervisor do
   @impl true
   def init(:ok) do
     children = [
-      # Sidecar health/state workers will be added here in phase 2.
+      {AvaElixir.FailureProbe, []}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)

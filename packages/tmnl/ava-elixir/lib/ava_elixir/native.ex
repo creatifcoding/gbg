@@ -1,12 +1,6 @@
 defmodule AvaElixir.Native do
   @moduledoc """
   Rustler boundary for AVA control-plane integration.
-
-  Phase 1 surface is intentionally narrow:
-  - `nif_version/0`
-  - `runtime_ping/1`
-  - `register_spec_json/1`
-  - `invalidate_view/1`
   """
 
   @behaviour AvaElixir.NativeBehaviour
@@ -26,6 +20,27 @@ defmodule AvaElixir.Native do
   def register_spec_json(_json), do: :erlang.nif_error(:nif_not_loaded)
 
   @impl true
+  @spec get_spec_json(String.t()) :: {:ok, String.t()} | {:error, term()}
+  def get_spec_json(_view_id), do: :erlang.nif_error(:nif_not_loaded)
+
+  @impl true
+  @spec list_specs() :: {:ok, [String.t()]} | {:error, term()}
+  def list_specs, do: :erlang.nif_error(:nif_not_loaded)
+
+  @impl true
   @spec invalidate_view(String.t()) :: {:ok, String.t()} | {:error, term()}
   def invalidate_view(_view_id), do: :erlang.nif_error(:nif_not_loaded)
+
+  @impl true
+  @spec subscribe_view(String.t(), non_neg_integer(), pid()) ::
+          {:ok, String.t()} | {:error, term()}
+  def subscribe_view(_view_id, _interval_ms, _pid), do: :erlang.nif_error(:nif_not_loaded)
+
+  @impl true
+  @spec unsubscribe(String.t()) :: {:ok, String.t()} | {:error, term()}
+  def unsubscribe(_subscription_id), do: :erlang.nif_error(:nif_not_loaded)
+
+  @impl true
+  @spec list_subscriptions() :: {:ok, [String.t()]} | {:error, term()}
+  def list_subscriptions, do: :erlang.nif_error(:nif_not_loaded)
 end
