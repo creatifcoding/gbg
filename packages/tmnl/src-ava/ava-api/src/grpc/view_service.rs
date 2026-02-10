@@ -51,6 +51,11 @@ impl ViewServiceImpl {
         }
     }
 
+    /// Create a ViewServiceImpl from a shared runtime instance
+    pub fn from_shared(runtime: Arc<RwLock<AvaRuntimeV2>>) -> Self {
+        Self { runtime }
+    }
+
     /// Get shared runtime access
     pub fn runtime(&self) -> Arc<RwLock<AvaRuntimeV2>> {
         self.runtime.clone()

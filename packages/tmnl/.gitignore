@@ -5,7 +5,7 @@
 docker/.env
 
 # Built binaries (osmmcp, etc.)
-bin/
+/bin/
 
 # Vendor sources for MCP servers
 vendor/osmmcp/

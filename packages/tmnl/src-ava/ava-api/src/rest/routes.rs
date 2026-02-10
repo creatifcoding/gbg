@@ -88,6 +88,10 @@ impl AppState {
             runtime: Arc::new(RwLock::new(runtime)),
         }
     }
+
+    pub fn from_shared(runtime: Arc<RwLock<AvaRuntimeV2>>) -> Self {
+        Self { runtime }
+    }
 }
 
 // ============================================================================
@@ -96,7 +100,12 @@ impl AppState {
 
 /// Create the REST API router with Swagger UI and CORS
 pub fn create_router(runtime: AvaRuntimeV2) -> Router {
-    let state = AppState::new(runtime);
+    create_router_shared(Arc::new(RwLock::new(runtime)))
+}
+
+/// Create the REST API router from a shared runtime instance
+pub fn create_router_shared(runtime: Arc<RwLock<AvaRuntimeV2>>) -> Router {
+    let state = AppState::from_shared(runtime);
 
     // CORS configuration - allow all origins for development
     // In production, restrict to specific origins
@@ -124,7 +133,12 @@ pub fn create_router(runtime: AvaRuntimeV2) -> Router {
 
 /// Create router without Swagger UI (for embedding in larger app)
 pub fn create_api_router(runtime: AvaRuntimeV2) -> Router {
-    let state = AppState::new(runtime);
+    create_api_router_shared(Arc::new(RwLock::new(runtime)))
+}
+
+/// Create API router from a shared runtime instance
+pub fn create_api_router_shared(runtime: Arc<RwLock<AvaRuntimeV2>>) -> Router {
+    let state = AppState::from_shared(runtime);
 
     let cors = CorsLayer::new()
         .allow_origin(Any)

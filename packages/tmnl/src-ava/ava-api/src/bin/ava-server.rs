@@ -28,7 +28,7 @@ use tracing_subscriber::FmtSubscriber;
 
 use ava_api::grpc::ViewServiceImpl;
 use ava_api::proto::services::v1::view_service_server::ViewServiceServer;
-use ava_api::rest::create_router;
+use ava_api::rest::create_router_shared;
 use ava_api::AvaRuntimeV2;
 use ava_domain::{ViewId, ViewArtifact, ChannelBinding, ChannelRole, ChannelData};
 
@@ -75,15 +75,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create shared runtime (single instance for all transports)
     let runtime = Arc::new(RwLock::new(AvaRuntimeV2::default()));
 
-    // Clone for each transport
-    let rest_runtime = AvaRuntimeV2::default();
-    let grpc_runtime = AvaRuntimeV2::default();
-
     // =========================================================================
     // REST Server
     // =========================================================================
     let rest_addr: SocketAddr = format!("0.0.0.0:{}", rest_port).parse()?;
-    let rest_router = create_router(rest_runtime);
+    let rest_router = create_router_shared(runtime.clone());
 
     info!("REST API listening on http://localhost:{}", rest_port);
     info!("  - List views:    GET  http://localhost:{}/api/v1/views", rest_port);
@@ -106,7 +102,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // gRPC Server
     // =========================================================================
     let grpc_addr: SocketAddr = format!("0.0.0.0:{}", grpc_port).parse()?;
-    let grpc_impl = ViewServiceImpl::new(grpc_runtime);
+    let grpc_impl = ViewServiceImpl::from_shared(runtime.clone());
     let grpc_service = ViewServiceServer::new(grpc_impl);
 
     info!("gRPC ViewService listening on http://localhost:{}", grpc_port);
