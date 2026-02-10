@@ -16,6 +16,7 @@
           inputsFrom = [
             config.devShells.tmnl-core
             config.devShells.tmnl-rust
+            config.devShells.tmnl-elixir
             config.devShells.tmnl-python
             config.devShells.tmnl-embedded
             config.devShells.tmnl-zephyr
@@ -27,7 +28,7 @@
 
           shellHook = ''
             echo "[tmnl] Full-stack development environment"
-            echo "  → Rust + Python + Embedded + UI + Tauri + K8s + gRPC + Core tooling"
+            echo "  → Rust + Elixir + Python + Embedded + UI + Tauri + K8s + gRPC + Core tooling"
             echo ""
             tmnl info || true
           '';

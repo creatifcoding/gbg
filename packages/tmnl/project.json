@@ -40,6 +40,34 @@
         "cwd": "packages/tmnl"
       }
     },
+    "elixir:init": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run elixir:init",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "elixir:deps": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run elixir:deps",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "elixir:build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run elixir:build",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "elixir:test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run elixir:test",
+        "cwd": "packages/tmnl"
+      }
+    },
     "nx-release-publish": {
       "options": {
         "packageRoot": "dist/{projectRoot}"
@@ -112,6 +140,20 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "bun run egui:wasm:build",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "pi-orchestrator:remote-ws": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run pi-orchestrator:remote-ws",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "pi-orchestrator:sdk:validate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run pi-orchestrator:sdk:validate",
         "cwd": "packages/tmnl"
       }
     },

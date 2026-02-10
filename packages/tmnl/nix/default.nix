@@ -4,6 +4,7 @@
   imports = [
     ./modules/core.nix
     ./modules/rust.nix
+    ./modules/elixir.nix
     ./modules/python.nix
     ./modules/embedded.nix
     ./modules/zephyr.nix
@@ -15,6 +16,7 @@
     ./modules/postgres/default.nix # PostgreSQL (Phase 0)
     ./modules/worktrunk.nix # Git worktree management for parallel AI workflows
     ./modules/ctl.nix # CLI tools (ctl)
+    ./modules/sparkplug.nix # Sparkplug B adapter scripts (Epic 27)
     ./modules/default.nix # Unified tmnl shell
     ./modules/tests.nix # Test suite
   ];
