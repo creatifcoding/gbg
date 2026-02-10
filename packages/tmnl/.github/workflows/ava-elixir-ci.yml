@@ -1,0 +1,54 @@
+name: ava-elixir-ci
+
+on:
+  push:
+    paths:
+      - "packages/tmnl/ava-elixir/**"
+      - "packages/tmnl/nix/modules/elixir.nix"
+      - ".github/workflows/ava-elixir-ci.yml"
+  pull_request:
+    paths:
+      - "packages/tmnl/ava-elixir/**"
+      - "packages/tmnl/nix/modules/elixir.nix"
+      - ".github/workflows/ava-elixir-ci.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        otp: ["26.2", "27.0"]
+        elixir: ["1.18.1"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup BEAM
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ matrix.otp }}
+          elixir-version: ${{ matrix.elixir }}
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Elixir deps
+        working-directory: packages/tmnl/ava-elixir
+        run: mix deps.get
+
+      - name: Run tests
+        working-directory: packages/tmnl/ava-elixir
+        run: mix test
+
+      - name: Enforce NIF scheduler policy
+        working-directory: packages/tmnl/ava-elixir
+        run: mix lint.nif
+
+      - name: Build precompiled artifact
+        working-directory: packages/tmnl/ava-elixir
+        run: mix artifact.build
+
+      - name: Verify artifact checksum
+        working-directory: packages/tmnl/ava-elixir
+        run: mix artifact.verify
