@@ -68,6 +68,27 @@
         "cwd": "packages/tmnl"
       }
     },
+    "phoenix:init": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run phoenix:init",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "phoenix:dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run phoenix:dev",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "phoenix:test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run phoenix:test",
+        "cwd": "packages/tmnl"
+      }
+    },
     "nx-release-publish": {
       "options": {
         "packageRoot": "dist/{projectRoot}"

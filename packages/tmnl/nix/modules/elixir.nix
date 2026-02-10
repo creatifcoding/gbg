@@ -38,6 +38,7 @@
             pkgs.cargo
             pkgs.pkg-config
             pkgs.openssl
+            pkgs.nodejs
           ]
           ++ lib.optionals isLinux [ pkgs.inotify-tools ]
           ++ lib.optionals isDarwin [ pkgs.iconv ];
@@ -131,6 +132,46 @@
 
             echo "[tmnl elixir-init-app] mix new ava-elixir --sup --app ava_elixir --module AvaElixir"
             mix new ava-elixir --sup --app ava_elixir --module AvaElixir
+          '';
+        };
+
+        phoenix-init = {
+          description = "Initialize Phoenix surface in ava-elixir (deps + compile + routes).";
+          category = "Elixir";
+          exec = ''
+            set -euo pipefail
+            cd "${elixirAppDir}"
+            [ -f mix.exs ] || { echo "[tmnl phoenix-init] mix.exs not found" >&2; exit 1; }
+            echo "[tmnl phoenix-init] mix deps.get"
+            mix deps.get
+            echo "[tmnl phoenix-init] mix compile"
+            mix compile
+            echo "[tmnl phoenix-init] mix phx.routes"
+            mix phx.routes
+          '';
+        };
+
+        phoenix-dev = {
+          description = "Run Phoenix endpoint + LiveView server.";
+          category = "Elixir";
+          exec = ''
+            set -euo pipefail
+            cd "${elixirAppDir}"
+            [ -f mix.exs ] || { echo "[tmnl phoenix-dev] mix.exs not found" >&2; exit 1; }
+            echo "[tmnl phoenix-dev] mix phx.server"
+            mix phx.server
+          '';
+        };
+
+        phoenix-test = {
+          description = "Run Phoenix-specific channel/liveview test suite.";
+          category = "Elixir";
+          exec = ''
+            set -euo pipefail
+            cd "${elixirAppDir}"
+            [ -f mix.exs ] || { echo "[tmnl phoenix-test] mix.exs not found" >&2; exit 1; }
+            echo "[tmnl phoenix-test] mix phoenix.test"
+            mix phoenix.test
           '';
         };
       };

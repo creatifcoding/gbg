@@ -41,7 +41,10 @@
     "elixir:init": "DIRENV_DISABLE=1 nix develop .#tmnl-elixir -c tmnl elixir-init-app",
     "elixir:deps": "DIRENV_DISABLE=1 nix develop .#tmnl-elixir -c tmnl elixir-deps",
     "elixir:build": "DIRENV_DISABLE=1 nix develop .#tmnl-elixir -c tmnl elixir-build",
-    "elixir:test": "DIRENV_DISABLE=1 nix develop .#tmnl-elixir -c tmnl elixir-test"
+    "elixir:test": "DIRENV_DISABLE=1 nix develop .#tmnl-elixir -c tmnl elixir-test",
+    "phoenix:init": "DIRENV_DISABLE=1 nix develop .#tmnl-elixir -c tmnl phoenix-init",
+    "phoenix:dev": "DIRENV_DISABLE=1 nix develop .#tmnl-elixir -c tmnl phoenix-dev",
+    "phoenix:test": "DIRENV_DISABLE=1 nix develop .#tmnl-elixir -c tmnl phoenix-test"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.14",
@@ -231,6 +234,7 @@
     "next-themes": "^0.4.6",
     "node-telegram-bot-api": "^0.67.0",
     "postprocessing": "^6.38.1",
+    "phoenix": "^1.8.1",
     "react": "^19.3.0-canary-ec9cc003-20251208",
     "react-day-picker": "9.8.0",
     "react-dom": "^19.3.0-canary-ec9cc003-20251208",

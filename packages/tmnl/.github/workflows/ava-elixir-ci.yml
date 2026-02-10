@@ -37,7 +37,15 @@ jobs:
         working-directory: packages/tmnl/ava-elixir
         run: mix deps.get
 
-      - name: Run tests
+      - name: Compile app
+        working-directory: packages/tmnl/ava-elixir
+        run: mix compile
+
+      - name: Run Phoenix channel/liveview tests
+        working-directory: packages/tmnl/ava-elixir
+        run: mix phoenix.test
+
+      - name: Run full tests
         working-directory: packages/tmnl/ava-elixir
         run: mix test
 
