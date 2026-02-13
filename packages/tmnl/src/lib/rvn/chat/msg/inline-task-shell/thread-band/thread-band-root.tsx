@@ -57,6 +57,7 @@ export const ThreadBand = forwardRef<HTMLDivElement, ThreadBandProps>(
       selectedTaskIds,
       toggleSelection,
       taskLookup,
+      transfer,
     } = useInlineTaskShellContext()
 
     const scrollRef = useRef<HTMLDivElement | null>(null)
@@ -142,12 +143,18 @@ export const ThreadBand = forwardRef<HTMLDivElement, ThreadBandProps>(
               const task = filteredTasks[item.index]
               if (!task) return null
 
+              const rowTransfer = transfer?.getRowTransferProps(task.taskId)
+
               return (
                 <div
                   key={task.taskId}
                   ref={virtualizer.measureElement}
                   data-index={item.index}
+                  data-transfer-dragging={rowTransfer?.isDragging || undefined}
                   className="rvn-chat__inline-task-shell-thread-band-row"
+                  draggable={rowTransfer?.draggable}
+                  onDragStart={rowTransfer?.onDragStart}
+                  onDragEnd={rowTransfer?.onDragEnd}
                   style={{
                     position: 'absolute',
                     top: 0,
