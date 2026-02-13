@@ -86,3 +86,11 @@ export {
   type InlineTaskTransferHandle,
   type InlineTaskRowTransferProps,
 } from './hooks'
+
+// ── React Integration ────────────────────────────────────────
+export {
+  TransferBusProvider,
+  useTransferBus,
+} from './TransferBusProvider'
+
+export { TransferOverlay } from './overlay/TransferOverlay'
