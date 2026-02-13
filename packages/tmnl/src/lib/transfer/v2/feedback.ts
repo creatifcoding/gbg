@@ -1,121 +1,200 @@
 /**
  * Transfer v2 — Feedback Animations
  *
- * Ephemeral visual feedback for transfer events using the animation library.
- * Accept flash, reject shake, copy badge.
+ * Scoped anime.js v4 animations for transfer events.
+ * Each surface gets a createScope bound to its root ref.
+ * Layout animations for enter/exit of dropped tokens.
+ * Registered methods callable from atom subscriptions.
  *
- * See: src/lib/transfer/docs/redesign/04-transfer-trait-wiring.md §Feedback Animations
+ * See: src/lib/transfer/docs/redesign/04-transfer-trait-wiring.md
  *
  * @since v2
  */
-import { useEffect, useRef, useCallback, useState } from 'react'
+import { useEffect, useRef, type RefObject } from 'react'
+import { createScope, animate, createLayout, stagger } from 'animejs'
 import type { TransferFeedbackEvent } from './schemas'
 
-// ── Accept Flash ─────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────
 
-/**
- * Ephemeral opacity flash on transfer accept.
- * Returns opacity value (0–1) that pulses then fades.
- */
-export function useAcceptFlash(lastEvent: TransferFeedbackEvent | null) {
-  const [flashOpacity, setFlashOpacity] = useState(0)
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
-
-  useEffect(() => {
-    if (lastEvent?._tag !== 'Accepted') return
-
-    setFlashOpacity(1)
-    timerRef.current = setTimeout(() => setFlashOpacity(0), 400)
-
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-    }
-  }, [lastEvent])
-
-  return flashOpacity
+export interface TransferFeedbackScope {
+  /** Flash accept: pulse green outline + opacity pop */
+  flashAccept: (count: number) => void
+  /** Shake reject: horizontal oscillation on target */
+  shakeReject: (reason?: string) => void
+  /** Copy badge: fade-up badge with count */
+  showCopyBadge: (count: number) => void
+  /** Dispatch from a feedback event */
+  dispatch: (event: TransferFeedbackEvent) => void
+  /** Cleanup everything */
+  revert: () => void
 }
 
-// ── Reject Shake ─────────────────────────────────────────────
+// ── Hook: useTransferFeedbackScope ───────────────────────────
 
 /**
- * Ephemeral horizontal shake on transfer reject.
- * Returns translateX offset that settles to 0.
+ * Creates an anime.js scope bound to a root ref.
+ * Returns registered methods for accept/reject/copy feedback.
+ *
+ * Usage:
+ * ```tsx
+ * const rootRef = useRef<HTMLDivElement>(null)
+ * const feedback = useTransferFeedbackScope(rootRef)
+ *
+ * // On transfer accept:
+ * feedback.current?.dispatch({ _tag: 'Accepted', tokenCount: 3, targetId: 'composer' })
+ * ```
  */
-export function useRejectShake(lastEvent: TransferFeedbackEvent | null) {
-  const [shakeX, setShakeX] = useState(0)
-  const frameRef = useRef<number>()
+export function useTransferFeedbackScope(
+  rootRef: RefObject<HTMLElement | null>,
+): RefObject<TransferFeedbackScope | null> {
+  const feedbackRef = useRef<TransferFeedbackScope | null>(null)
+  const scopeRef = useRef<ReturnType<typeof createScope> | null>(null)
 
   useEffect(() => {
-    if (lastEvent?._tag !== 'Rejected') return
+    if (!rootRef.current) return
 
-    let start: number | null = null
-    const duration = 300
-    const amplitude = 6
+    const scope = createScope({ root: rootRef.current })
+      .add((self) => {
+        // ── Accept Flash ───────────────────────────────
+        self.add('flashAccept', (count: number) => {
+          animate('[data-transfer-target]', {
+            outline: [
+              '2px solid rgba(0, 229, 255, 0.8)',
+              '2px solid rgba(0, 229, 255, 0)',
+            ],
+            duration: 400,
+            ease: 'out(3)',
+          })
+        })
 
-    const animate = (ts: number) => {
-      if (start === null) start = ts
-      const elapsed = ts - start
-      const progress = Math.min(elapsed / duration, 1)
-      // Damped oscillation
-      const decay = 1 - progress
-      const oscillation = Math.sin(progress * Math.PI * 4) * decay * amplitude
-      setShakeX(oscillation)
+        // ── Reject Shake ───────────────────────────────
+        self.add('shakeReject', (_reason?: string) => {
+          animate('[data-transfer-target]', {
+            translateX: [
+              { to: -6, duration: 50 },
+              { to: 6, duration: 50 },
+              { to: -4, duration: 50 },
+              { to: 4, duration: 50 },
+              { to: 0, duration: 80 },
+            ],
+            ease: 'out(2)',
+          })
+        })
 
-      if (progress < 1) {
-        frameRef.current = requestAnimationFrame(animate)
-      } else {
-        setShakeX(0)
-      }
+        // ── Copy Badge ─────────────────────────────────
+        self.add('showCopyBadge', (count: number) => {
+          // Find or create the badge element inside the scope root
+          const root = rootRef.current
+          if (!root) return
+
+          let badge = root.querySelector('.transfer-copy-badge') as HTMLElement | null
+          if (!badge) {
+            badge = document.createElement('div')
+            badge.className = 'transfer-copy-badge'
+            root.appendChild(badge)
+          }
+
+          badge.textContent = `Copied ${count} task${count > 1 ? 's' : ''}`
+          badge.style.display = 'block'
+
+          animate(badge, {
+            opacity: [1, 0],
+            translateY: [0, -24],
+            duration: 1000,
+            ease: 'out(3)',
+            onComplete: () => {
+              if (badge) badge.style.display = 'none'
+            },
+          })
+        })
+      })
+
+    scopeRef.current = scope
+
+    feedbackRef.current = {
+      flashAccept: (count) => scope.methods.flashAccept(count),
+      shakeReject: (reason) => scope.methods.shakeReject(reason),
+      showCopyBadge: (count) => scope.methods.showCopyBadge(count),
+
+      dispatch: (event) => {
+        switch (event._tag) {
+          case 'Accepted':
+            scope.methods.flashAccept(event.tokenCount)
+            break
+          case 'Rejected':
+            scope.methods.shakeReject(event.reason)
+            break
+          case 'Copied':
+            scope.methods.showCopyBadge(event.tokenCount)
+            break
+        }
+      },
+
+      revert: () => scope.revert(),
     }
 
-    frameRef.current = requestAnimationFrame(animate)
     return () => {
-      if (frameRef.current) cancelAnimationFrame(frameRef.current)
+      scope.revert()
+      feedbackRef.current = null
+      scopeRef.current = null
     }
-  }, [lastEvent])
+  }, [rootRef])
 
-  return shakeX
+  return feedbackRef
 }
 
-// ── Copy Badge ───────────────────────────────────────────────
+// ── Hook: useTransferLayout ──────────────────────────────────
 
 /**
- * Ephemeral "Copied N tasks" badge.
- * Returns { visible, tokenCount } that auto-clears after duration.
+ * Auto-layout for token enter/exit in a drop zone (e.g. composer).
+ * Wraps createLayout with transfer-specific enter/exit states.
+ *
+ * Usage:
+ * ```tsx
+ * const containerRef = useRef<HTMLDivElement>(null)
+ * const layout = useTransferLayout(containerRef, '.transfer-chip')
+ *
+ * // When tokens change:
+ * layout.current?.update(() => {
+ *   // DOM mutations here — add/remove chip elements
+ * })
+ * ```
  */
-export function useCopyBadge(lastEvent: TransferFeedbackEvent | null, durationMs = 1200) {
-  const [badge, setBadge] = useState<{ visible: boolean; tokenCount: number }>({
-    visible: false,
-    tokenCount: 0,
-  })
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+export function useTransferLayout(
+  containerRef: RefObject<HTMLElement | null>,
+  childrenSelector = '.transfer-chip',
+) {
+  const layoutRef = useRef<ReturnType<typeof createLayout> | null>(null)
 
   useEffect(() => {
-    if (lastEvent?._tag !== 'Copied') return
+    if (!containerRef.current) return
 
-    setBadge({ visible: true, tokenCount: lastEvent.tokenCount })
-    timerRef.current = setTimeout(() => {
-      setBadge((prev) => ({ ...prev, visible: false }))
-    }, durationMs)
+    const layout = createLayout(containerRef.current, {
+      children: childrenSelector,
+      duration: 250,
+      ease: 'out(3)',
+      delay: stagger(30),
+      enterFrom: {
+        opacity: 0,
+        transform: 'scale(0.8) translateY(8px)',
+        duration: 200,
+        ease: 'out(3)',
+      },
+      leaveTo: {
+        opacity: 0,
+        transform: 'scale(0.6) translateY(-12px)',
+        duration: 180,
+        ease: 'in(2)',
+      },
+    })
+
+    layoutRef.current = layout
 
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
+      layout.revert()
+      layoutRef.current = null
     }
-  }, [lastEvent, durationMs])
+  }, [containerRef, childrenSelector])
 
-  return badge
-}
-
-// ── Combined Feedback Hook ───────────────────────────────────
-
-/**
- * All three feedback hooks combined.
- * Returns state values for CSS/style application.
- */
-export function useTransferFeedback(lastEvent: TransferFeedbackEvent | null) {
-  const flashOpacity = useAcceptFlash(lastEvent)
-  const shakeX = useRejectShake(lastEvent)
-  const copyBadge = useCopyBadge(lastEvent)
-
-  return { flashOpacity, shakeX, copyBadge }
+  return layoutRef
 }
