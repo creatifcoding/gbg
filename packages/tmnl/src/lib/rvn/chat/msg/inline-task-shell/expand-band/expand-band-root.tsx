@@ -21,7 +21,7 @@ export interface ExpandBandProps extends ComponentPropsWithoutRef<'button'> {
 
 export const ExpandBand = forwardRef<HTMLButtonElement, ExpandBandProps>(
   ({ label, className, onClick, ...props }, ref) => {
-    const { expanded, setExpanded, metrics } = useInlineTaskShellContext()
+    const { expanded, setExpanded, metrics, transfer } = useInlineTaskShellContext()
 
     const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
       onClick?.(event)
@@ -38,6 +38,9 @@ export const ExpandBand = forwardRef<HTMLButtonElement, ExpandBandProps>(
         data-expanded={expanded || undefined}
         aria-expanded={expanded}
         onClick={handleClick}
+        draggable={transfer?.clusterDragProps.draggable}
+        onDragStart={transfer?.clusterDragProps.onDragStart}
+        onDragEnd={transfer?.clusterDragProps.onDragEnd}
         {...props}
       >
         <span>
