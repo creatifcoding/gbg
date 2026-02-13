@@ -253,3 +253,11 @@ export {
   getSlideDirection,
   type TaskViewMode,
 } from './view-state'
+
+export {
+  taskStatusFamily,
+  taskActionsFamily,
+  getActionsForStatus,
+  type TaskAction,
+  type ActionVariant,
+} from './task-actions'
