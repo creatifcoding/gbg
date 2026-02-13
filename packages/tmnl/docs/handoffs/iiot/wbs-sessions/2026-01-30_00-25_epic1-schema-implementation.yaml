@@ -1,0 +1,90 @@
+---
+session: wbs-fact-system
+date: 2026-01-30
+status: partial
+outcome: PARTIAL_MINUS
+---
+
+goal: Epic 1 Schema Architecture - WorkOrder domain + Asset hierarchy refactor
+now: Refactor assets into separate files/directories (not single assets-v2.ts)
+test: bun run typecheck
+
+done_this_session:
+  - task: Re-audited Epic 1-6 completion status (found Epic 1 only ~60% complete)
+    files: []
+  - task: Added WorkOrder-related identifiers to identifiers.ts
+    files: [src/lib/iiot/schemas/identifiers.ts]
+  - task: Created WorkOrder domain schema with full state machine
+    files: [src/lib/iiot/schemas/work-orders.ts]
+  - task: Created TaskInstance schema with blocking/compensation
+    files: [src/lib/iiot/schemas/task-instance.ts]
+  - task: Created ApprovalRequest schema for FDA 4-eyes principle
+    files: [src/lib/iiot/schemas/approval.ts]
+  - task: Created WorkflowDefinition schema with versioning
+    files: [src/lib/iiot/schemas/workflow-definition.ts]
+  - task: Created L3SyncOperation schema for ERP integration
+    files: [src/lib/iiot/schemas/l3-sync.ts]
+  - task: Created assets-v2.ts with refactored Plant/Line/Machine/Sensor classes
+    files: [src/lib/iiot/schemas/assets-v2.ts]
+  - task: Updated barrel exports in schemas/index.ts
+    files: [src/lib/iiot/schemas/index.ts]
+
+blockers: []
+
+questions:
+  - Should EquipmentState have same slug pattern as other entities?
+  - DeviceConfig audit log - event sourced or simple audit table?
+  - Migration strategy for existing Asset data to new schema structure?
+
+decisions:
+  - embedded_slugs: Each entity type has fixed prefix (PLT-, LIN-, MCH-, SNS-) validated by regex
+  - discriminated_union: Asset = Schema.Union(Plant, Line, Machine, Sensor) for pattern matching on _tag
+  - type_specific_fields: Sensors require sensorType + unit, Machines have lineId, etc.
+  - factory_functions: makePlantId('slug') -> 'PLT-slug' as PlantId
+
+findings:
+  - epic1_incomplete: Original audit claimed 100%, actual is ~60% - missing WorkOrder, EquipmentState, DeviceConfig
+  - assets_v2_wrong_approach: User wants SEPARATE FILES in SEPARATE DIRECTORIES, not single assets-v2.ts
+  - schema_extension_pattern: Use Struct.omit(BaseClass.fields, "_tag") for distinct _tag per subclass
+
+worked:
+  - Parallel subagent research (oracle + scout)
+  - DeepWiki queries for Schema.TaggedClass extension patterns
+  - BaseAssetFields object for field spreading
+
+failed:
+  - assets-v2.ts approach - user wants separate files per entity (Plant.ts, Line.ts, etc.)
+  - Initial Epic 1-6 audit was too generous (claimed complete, wasn't)
+
+next:
+  - DELETE assets-v2.ts (wrong approach)
+  - Create separate directories: schemas/assets/plant/, schemas/assets/line/, etc.
+  - Each directory has: schema.ts, identifiers.ts (or single file per entity)
+  - Create EquipmentState schemas (6 events for OEE)
+  - Create DeviceConfig schemas (CRUD + audit)
+  - Complete error schemas (9 missing error types)
+  - Update barrel exports for new structure
+
+files:
+  created:
+    - src/lib/iiot/schemas/work-orders.ts
+    - src/lib/iiot/schemas/task-instance.ts
+    - src/lib/iiot/schemas/approval.ts
+    - src/lib/iiot/schemas/workflow-definition.ts
+    - src/lib/iiot/schemas/l3-sync.ts
+    - src/lib/iiot/schemas/assets-v2.ts (TO BE DELETED - wrong approach)
+    - thoughts/shared/handoffs/wbs-fact-system/2026-01-29_22-43_wbs-fact-system-planning.yaml
+  modified:
+    - src/lib/iiot/schemas/identifiers.ts (+TaskInstanceId, ApprovalId, SyncId, WorkflowDefinitionId, ContextSnapshotId)
+    - src/lib/iiot/schemas/index.ts (added work-order exports)
+
+context:
+  wbs_location: thoughts/shared/plans/fragments/wbs-summary-updated.md
+  epic7_plan: thoughts/shared/plans/fragments/epic-7-expanded.md
+  epic9_plan: thoughts/shared/plans/fragments/epic-9-expanded.md
+  effect_submodule: submodules/website (Effect docs)
+
+references:
+  - src/lib/iiot/schemas/assets.ts (current polymorphic implementation to replace)
+  - src/lib/iiot/schemas/alarms.ts (good ISA-18.2 pattern to follow)
+  - src/lib/iiot/schemas/readings.ts (OPC-UA pattern)
