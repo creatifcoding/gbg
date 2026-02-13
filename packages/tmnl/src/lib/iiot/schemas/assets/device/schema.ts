@@ -10,7 +10,7 @@
  */
 
 import { Schema } from 'effect'
-import { AssetMetadata, AssetStatus, BaseAssetFields } from '../common/types'
+import { AssetMetadata, BaseAssetFields } from '../common/types'
 import { MachineId } from '../machine/schema'
 import { HierarchyPath } from '../../hierarchy'
 
@@ -103,6 +103,31 @@ export const PowerUnit = Schema.Literal('watts', 'kilowatts', 'horsepower')
 export type PowerUnit = typeof PowerUnit.Type
 
 // =============================================================================
+// Device Status (domain-specific override)
+// =============================================================================
+
+/**
+ * Device lifecycle status matching the ISA-95 control module (actuation) state graph.
+ * Overrides the generic AssetStatus from BaseAssetFields.
+ *
+ * @see machines/graphs/device-graph.ts for transition rules
+ */
+export const DeviceStatus = Schema.Literal(
+  'provisioned',
+  'online',
+  'offline',
+  'faulted',
+  'firmware_update',
+  'decommissioned'
+).pipe(
+  Schema.annotations({
+    identifier: '@gbg/tmnl/iiot/DeviceStatus',
+    description: 'Device lifecycle state per ISA-95 control module (actuation) graph',
+  })
+)
+export type DeviceStatus = typeof DeviceStatus.Type
+
+// =============================================================================
 // Device Entity (ISA-95 Level 0)
 // =============================================================================
 
@@ -154,6 +179,9 @@ export class Device extends Schema.TaggedClass<Device>()('Device', {
   /** Spread common asset fields (name, status, description, location, metadata, timestamps, hierarchy) */
   ...BaseAssetFields,
 
+  /** Device lifecycle state (overrides generic AssetStatus) */
+  status: DeviceStatus,
+
   /** Device type classification */
   deviceType: DeviceType,
 
@@ -182,11 +210,10 @@ export class Device extends Schema.TaggedClass<Device>()('Device', {
 
   /**
    * Check if device is operational.
-   * Only 'active' status counts as operational for devices
-   * (stricter than container asset types).
+   * Only 'online' status counts as operational for devices.
    */
   isOperational(): boolean {
-    return this.status === 'active'
+    return this.status === 'online'
   }
 
   /**
@@ -258,8 +285,8 @@ export const CreateDeviceParams = Schema.Struct({
   /** Human-readable name */
   name: Schema.NonEmptyString,
 
-  /** Initial status (defaults to 'active' if not provided) */
-  status: Schema.optionalWith(AssetStatus, { default: () => 'active' as const }),
+  /** Initial status (defaults to 'provisioned') */
+  status: Schema.optionalWith(DeviceStatus, { default: () => 'provisioned' as DeviceStatus }),
 
   /** Parent machine ID (required - devices must belong to a machine or workcell) */
   machineId: MachineId,

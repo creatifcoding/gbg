@@ -122,7 +122,7 @@ describe('Device', () => {
     new Device({
       id: makeDeviceId('motor-01'),
       name: 'Main Motor' as Schema.Schema.Type<typeof Schema.NonEmptyString>,
-      status: 'active',
+      status: 'online',
       deviceType: 'motor',
       controlMode: Option.some('auto' as const),
       ratedPower: Option.some(5000),
@@ -164,24 +164,24 @@ describe('Device', () => {
   })
 
   describe('isOperational', () => {
-    it('should return true only for active status', () => {
-      const activeDevice = createValidDevice()
-      expect(activeDevice.isOperational()).toBe(true)
+    it('should return true only for online status', () => {
+      const onlineDevice = createValidDevice()
+      expect(onlineDevice.isOperational()).toBe(true)
 
-      const inactiveDevice = new Device({
-        ...activeDevice,
-        status: 'inactive',
+      const offlineDevice = new Device({
+        ...onlineDevice,
+        status: 'offline',
       })
-      expect(inactiveDevice.isOperational()).toBe(false)
+      expect(offlineDevice.isOperational()).toBe(false)
 
-      const maintenanceDevice = new Device({
-        ...activeDevice,
-        status: 'maintenance',
+      const faultedDevice = new Device({
+        ...onlineDevice,
+        status: 'faulted',
       })
-      expect(maintenanceDevice.isOperational()).toBe(false)
+      expect(faultedDevice.isOperational()).toBe(false)
 
       const decommissionedDevice = new Device({
-        ...activeDevice,
+        ...onlineDevice,
         status: 'decommissioned',
       })
       expect(decommissionedDevice.isOperational()).toBe(false)
@@ -206,7 +206,7 @@ describe('Device', () => {
     const deviceWithNoOptionals = new Device({
       id: makeDeviceId('valve-01'),
       name: 'Simple Valve' as Schema.Schema.Type<typeof Schema.NonEmptyString>,
-      status: 'active',
+      status: 'provisioned',
       deviceType: 'valve',
       controlMode: Option.none(),
       ratedPower: Option.none(),
@@ -275,7 +275,7 @@ describe('CreateDeviceParams', () => {
     expect(result.powerUnit).toBe('watts')
   })
 
-  it('should default status to active', () => {
+  it('should default status to provisioned', () => {
     const params = {
       slug: 'valve-01',
       name: 'Control Valve',
@@ -284,7 +284,7 @@ describe('CreateDeviceParams', () => {
     }
 
     const result = Schema.decodeSync(CreateDeviceParams)(params)
-    expect(result.status).toBe('active')
+    expect(result.status).toBe('provisioned')
   })
 
   it('should reject invalid slug patterns', () => {

@@ -174,7 +174,7 @@ export const DeviceStateInMemory: Layer.Layer<DeviceState> = Layer.effect(
             const device = new Device({
               id,
               name: params.name,
-              status: params.status ?? 'active',
+              status: params.status ?? 'provisioned',
               machineId: Option.some(params.machineId),
               deviceType: params.deviceType,
               controlMode: params.controlMode ? Option.some(params.controlMode) : Option.none(),
@@ -322,7 +322,7 @@ export const makeDeviceStateSql = (repo: {
           const device = new Device({
             id,
             name: params.name,
-            status: params.status ?? 'active',
+            status: params.status ?? 'provisioned',
             machineId: Option.some(params.machineId),
             deviceType: params.deviceType,
             controlMode: params.controlMode ? Option.some(params.controlMode) : Option.none(),
