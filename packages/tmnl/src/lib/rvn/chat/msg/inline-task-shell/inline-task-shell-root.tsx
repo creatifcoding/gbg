@@ -11,6 +11,7 @@ import {
   forwardRef,
   useCallback,
   useMemo,
+  useRef,
   useState,
   type ComponentPropsWithoutRef,
 } from 'react'
@@ -22,6 +23,7 @@ import {
   type InlineTaskShellMetrics,
 } from './inline-task-shell-context'
 import { cn } from '@/lib/utils'
+import { useInlineTaskTransfer } from '@/lib/transfer/v2/hooks'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -90,6 +92,9 @@ export const InlineTaskShellRoot = forwardRef<HTMLDivElement, InlineTaskShellRoo
     },
     ref,
   ) => {
+    // ── Refs ───────────────────────────────────────────────────────
+    const shellRef = useRef<HTMLDivElement>(null)
+
     // ── State ──────────────────────────────────────────────────────
     const [internalExpanded, setInternalExpanded] = useState(defaultExpanded)
     const [searchTerm, setSearchTerm] = useState('')
@@ -145,6 +150,14 @@ export const InlineTaskShellRoot = forwardRef<HTMLDivElement, InlineTaskShellRoo
 
     const clearSelection = useCallback(() => setSelectedTaskIds(new Set()), [])
 
+    // ── Transfer v2 ────────────────────────────────────────────────
+    const transfer = useInlineTaskTransfer({
+      threadId,
+      tasks: tasks.map((t) => ({ id: t.taskId, label: t.title, status: t.status })),
+      clusterLabel: `${tasks.length} tasks`,
+      shellRef,
+    })
+
     // ── Context value ──────────────────────────────────────────────
     const ctxValue = useMemo<InlineTaskShellContextValue>(
       () => ({
@@ -162,6 +175,7 @@ export const InlineTaskShellRoot = forwardRef<HTMLDivElement, InlineTaskShellRoo
         clearSelection,
         taskLookup,
         metrics,
+        transfer,
       }),
       [
         threadId,
@@ -176,13 +190,19 @@ export const InlineTaskShellRoot = forwardRef<HTMLDivElement, InlineTaskShellRoo
         clearSelection,
         taskLookup,
         metrics,
+        transfer,
       ],
     )
 
     return (
       <InlineTaskShellContext.Provider value={ctxValue}>
         <div
-          ref={ref}
+          ref={(node) => {
+            // Merge forwarded ref + local shell ref
+            ;(shellRef as React.MutableRefObject<HTMLDivElement | null>).current = node
+            if (typeof ref === 'function') ref(node)
+            else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node
+          }}
           data-slot="rvn-chat-inline-task-shell"
           data-thread-id={threadId}
           data-expanded={expanded || undefined}
