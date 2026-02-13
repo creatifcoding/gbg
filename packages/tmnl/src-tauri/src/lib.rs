@@ -83,6 +83,22 @@ pub fn run() {
         .setup(|app| {
             log::info!("TMNL app starting...");
 
+            #[cfg(all(debug_assertions, target_os = "linux"))]
+            {
+                let auto_open = std::env::var("TMNL_AUTO_OPEN_DEVTOOLS")
+                    .map(|value| value != "0" && value.to_lowercase() != "false")
+                    .unwrap_or(true);
+
+                if auto_open {
+                    if let Some(main_window) = app.get_webview_window("main") {
+                        main_window.open_devtools();
+                        log::info!("Auto-opened devtools for main window (Linux debug)");
+                    } else {
+                        log::warn!("Could not find main window to auto-open devtools");
+                    }
+                }
+            }
+
             // Initialize window pool in background thread
             // Must be done from setup(), not from a command, to avoid WebView2 deadlock on Windows
             {

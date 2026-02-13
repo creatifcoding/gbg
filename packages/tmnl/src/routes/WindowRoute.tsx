@@ -83,7 +83,6 @@ const TESTBED_COMPONENTS: Record<string, React.LazyExoticComponent<React.Compone
   'streaming-search': lazy(() => import('@/components/testbed/StreamingSearchTestbed').then(m => ({ default: m.StreamingSearchTestbed }))),
   'timeline-search': lazy(() => import('@/components/testbed/TimelineSearchTestbed').then(m => ({ default: m.TimelineSearchTestbed }))),
   'integrated-geoint': lazy(() => import('@/components/testbed/IntegratedGeointTestbed').then(m => ({ default: m.IntegratedGeointTestbed }))),
-  'allint-cop': lazy(() => import('@/components/testbed/AllintCopTestbed').then(m => ({ default: m.AllintCopTestbed }))),
   // Animation
   'animation': lazy(() => import('@/components/testbed/AnimationTestbed').then(m => ({ default: m.AnimationTestbed }))),
   // UI
