@@ -139,42 +139,44 @@ export const MachineStateInMemory: Layer.Layer<MachineState> = Layer.effect(
 
             // Build hierarchy path from parent IDs
             const segments: PathSegment[] = [
-              new PathSegment({ level: 'enterprise', id: params.enterpriseId }),
-              new PathSegment({ level: 'site', id: params.siteId }),
-              new PathSegment({ level: 'plant', id: params.plantId }),
-              new PathSegment({ level: 'line', id: params.lineId }),
+              new PathSegment({ level: 'enterprise', id: params.enterpriseId, name: Option.none() }),
+              new PathSegment({ level: 'site', id: params.siteId, name: Option.none() }),
+              new PathSegment({ level: 'plant', id: params.plantId, name: Option.none() }),
+              new PathSegment({ level: 'line', id: params.lineId, name: Option.none() }),
             ]
 
             // Add work cell if present
             if (Option.isSome(params.workCellId)) {
-              segments.push(new PathSegment({ level: 'workcell', id: params.workCellId.value }))
+              segments.push(new PathSegment({ level: 'workcell', id: params.workCellId.value, name: Option.none() }))
             }
 
             // Add self to path
-            segments.push(new PathSegment({ level: 'machine', id }))
+            segments.push(new PathSegment({ level: 'machine', id, name: Option.some(params.name) }))
 
             const hierarchyPath = HierarchyPath.fromSegments(segments)
 
             const machine = new Machine({
               id,
               name: params.name,
-              status: params.status ?? 'active',
-              description: params.description ?? Option.none(),
+              status: params.status,
+              description: params.description,
               enterpriseId: params.enterpriseId,
               siteId: params.siteId,
+              areaId: Option.none(),
               plantId: params.plantId,
               lineId: params.lineId,
-              workCellId: params.workCellId ?? Option.none(),
+              workCellId: params.workCellId,
+              machineId: Option.none(),
               hierarchyPath,
               machineType: params.machineType,
-              manufacturer: params.manufacturer ?? Option.none(),
-              modelNumber: params.modelNumber ?? Option.none(),
-              serialNumber: params.serialNumber ?? Option.none(),
-              installationDate: params.installationDate ?? Option.none(),
+              manufacturer: params.manufacturer,
+              modelNumber: params.modelNumber,
+              serialNumber: params.serialNumber,
+              installationDate: params.installationDate,
               lastMaintenanceDate: Option.none(),
-              nextMaintenanceDate: params.nextMaintenanceDate ?? Option.none(),
+              nextMaintenanceDate: params.nextMaintenanceDate,
               location: Option.none(),
-              metadata: params.metadata ?? {},
+              metadata: params.metadata,
               createdAt: now,
               updatedAt: Option.none(),
             })
@@ -283,30 +285,32 @@ export const makeMachineStateSql = (repo: {
 
           // Build hierarchy path from parent IDs
           const segments: PathSegment[] = [
-            new PathSegment({ type: 'enterprise', id: params.enterpriseId }),
-            new PathSegment({ type: 'site', id: params.siteId }),
-            new PathSegment({ type: 'plant', id: params.plantId }),
-            new PathSegment({ type: 'line', id: params.lineId }),
+            new PathSegment({ level: 'enterprise', id: params.enterpriseId, name: Option.none() }),
+            new PathSegment({ level: 'site', id: params.siteId, name: Option.none() }),
+            new PathSegment({ level: 'plant', id: params.plantId, name: Option.none() }),
+            new PathSegment({ level: 'line', id: params.lineId, name: Option.none() }),
           ]
 
           if (Option.isSome(params.workCellId)) {
-            segments.push(new PathSegment({ type: 'workcell', id: params.workCellId.value }))
+            segments.push(new PathSegment({ level: 'workcell', id: params.workCellId.value, name: Option.none() }))
           }
 
-          segments.push(new PathSegment({ type: 'machine', id }))
+          segments.push(new PathSegment({ level: 'machine', id, name: Option.some(params.name) }))
 
           const hierarchyPath = HierarchyPath.fromSegments(segments)
 
           const machine = new Machine({
             id,
             name: params.name,
-            status: params.status ?? 'active',
+            status: params.status ?? 'commissioned',
             description: params.description ?? Option.none(),
             enterpriseId: params.enterpriseId,
             siteId: params.siteId,
+            areaId: Option.none(),
             plantId: params.plantId,
             lineId: params.lineId,
             workCellId: params.workCellId ?? Option.none(),
+            machineId: Option.none(),
             hierarchyPath,
             machineType: params.machineType,
             manufacturer: params.manufacturer ?? Option.none(),

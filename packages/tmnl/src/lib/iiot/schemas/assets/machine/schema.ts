@@ -9,7 +9,7 @@
  */
 
 import { Schema } from 'effect'
-import { AssetStatus, AssetMetadata, BaseAssetFields } from '../common/types'
+import { AssetMetadata, BaseAssetFields } from '../common/types'
 import { EnterpriseId, SiteId, PlantId, LineId, WorkCellId } from '../../identifiers'
 import { HierarchyPath } from '../../hierarchy'
 
@@ -48,6 +48,33 @@ export type MachineId = typeof MachineId.Type
  * ```
  */
 export const makeMachineId = (slug: string): MachineId => `MCH-${slug}` as MachineId
+
+// =============================================================================
+// Machine Status (domain-specific override)
+// =============================================================================
+
+/**
+ * Machine lifecycle status matching the ISA-95 equipment module state graph.
+ * Overrides the generic AssetStatus from BaseAssetFields.
+ *
+ * @see machines/graphs/machine-asset-graph.ts for transition rules
+ */
+export const MachineStatus = Schema.Literal(
+  'commissioned',
+  'operational',
+  'idle',
+  'faulted',
+  'scheduled_maintenance',
+  'unscheduled_maintenance',
+  'retired',
+  'decommissioned'
+).pipe(
+  Schema.annotations({
+    identifier: '@gbg/tmnl/iiot/MachineStatus',
+    description: 'Machine lifecycle state per ISA-95 equipment module graph',
+  })
+)
+export type MachineStatus = typeof MachineStatus.Type
 
 // =============================================================================
 // Machine Entity
@@ -90,6 +117,9 @@ export class Machine extends Schema.TaggedClass<Machine>()('Machine', {
 
   // Spread common asset fields
   ...BaseAssetFields,
+
+  /** Machine lifecycle state (overrides generic AssetStatus) */
+  status: MachineStatus,
 
   // ─────────────────────────────────────────────────────────────────────────
   // Override parent IDs as required (Machine requires up to Line, WorkCell optional)
@@ -145,10 +175,10 @@ export class Machine extends Schema.TaggedClass<Machine>()('Machine', {
 
   /**
    * Check if machine is operational.
-   * Returns false if in maintenance or decommissioned.
+   * Only 'operational' and 'idle' are considered operational states.
    */
   isOperational(): boolean {
-    return this.status !== 'maintenance' && this.status !== 'decommissioned'
+    return this.status === 'operational' || this.status === 'idle'
   }
 
   /**
@@ -207,16 +237,6 @@ export class Machine extends Schema.TaggedClass<Machine>()('Machine', {
 /** Machine entity type alias */
 export type MachineEntity = typeof Machine.Type
 
-/**
- * Machine type alias for backward compatibility.
- */
-export type Machine = Machine.Type
-
-/**
- * @deprecated Use Machine.Type instead
- */
-export type MachineType = Machine.Type
-
 // =============================================================================
 // Create Machine Parameters
 // =============================================================================
@@ -237,8 +257,8 @@ export const CreateMachineParams = Schema.Struct({
   /** Human-readable machine name */
   name: Schema.NonEmptyString,
 
-  /** Initial status (defaults to 'active' in service) */
-  status: Schema.optionalWith(AssetStatus, { default: () => 'active' as AssetStatus }),
+  /** Initial status (defaults to 'commissioned') */
+  status: Schema.optionalWith(MachineStatus, { default: () => 'commissioned' as MachineStatus }),
 
   // ─────────────────────────────────────────────────────────────────────────
   // Parent Entity References (Required up to Line, WorkCell optional)
