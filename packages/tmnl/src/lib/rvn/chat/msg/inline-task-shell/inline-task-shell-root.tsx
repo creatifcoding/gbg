@@ -24,6 +24,7 @@ import {
 } from './inline-task-shell-context'
 import { cn } from '@/lib/utils'
 import { useInlineTaskTransfer } from '@/lib/transfer/v2/hooks'
+import { TransferRegistryProvider } from '@/lib/transfer/v2/registry'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -78,7 +79,11 @@ function deriveMetrics(tasks: ReadonlyArray<RvnChatInlineTaskItem>): InlineTaskS
 // Component
 // ---------------------------------------------------------------------------
 
-export const InlineTaskShellRoot = forwardRef<HTMLDivElement, InlineTaskShellRootProps>(
+// ---------------------------------------------------------------------------
+// Inner — runs inside RegistryContext so useAtom works
+// ---------------------------------------------------------------------------
+
+const InlineTaskShellInner = forwardRef<HTMLDivElement, InlineTaskShellRootProps>(
   (
     {
       threadId,
@@ -214,6 +219,20 @@ export const InlineTaskShellRoot = forwardRef<HTMLDivElement, InlineTaskShellRoo
       </InlineTaskShellContext.Provider>
     )
   },
+)
+
+InlineTaskShellInner.displayName = 'InlineTaskShell.Inner'
+
+// ---------------------------------------------------------------------------
+// Outer — wraps with TransferRegistryProvider so atom hooks have context
+// ---------------------------------------------------------------------------
+
+export const InlineTaskShellRoot = forwardRef<HTMLDivElement, InlineTaskShellRootProps>(
+  (props, ref) => (
+    <TransferRegistryProvider>
+      <InlineTaskShellInner ref={ref} {...props} />
+    </TransferRegistryProvider>
+  ),
 )
 
 InlineTaskShellRoot.displayName = 'InlineTaskShell.Root'

@@ -87,6 +87,12 @@ export {
   type InlineTaskRowTransferProps,
 } from './hooks'
 
+// ── Registry ─────────────────────────────────────────────────
+export {
+  transferRegistry,
+  TransferRegistryProvider,
+} from './registry'
+
 // ── React Integration ────────────────────────────────────────
 export {
   TransferBusProvider,
