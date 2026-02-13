@@ -5,8 +5,9 @@
  * schema change propagates without touching this component. Individual
  * fields can be overridden via the `fieldRenderers` prop.
  */
-import type { ReactNode } from 'react'
+import { useCallback, useState, type ReactNode } from 'react'
 import { DateTime, HashMap, Option } from 'effect'
+import { Check, Copy } from 'lucide-react'
 import type { RvnChatInlineTaskItem } from '../inline-task-types'
 import { InlineTaskDetailFieldStatus } from './inline-task-detail-field-status'
 import { InlineTaskDetailFieldDeps } from './inline-task-detail-field-deps'
@@ -79,6 +80,36 @@ export interface InlineTaskDetailFieldsProps {
   fieldRenderers?: Readonly<Record<string, InlineTaskFieldRenderer | undefined>>
   /** Field keys to hide entirely. Defaults to hiding the raw `metadata` container. */
   hiddenFields?: ReadonlySet<string>
+  /** Show copy-to-clipboard button on each non-empty field value. */
+  copyable?: boolean
+}
+
+// ---------------------------------------------------------------------------
+// Copy button
+// ---------------------------------------------------------------------------
+
+function CopyFieldButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = useCallback(() => {
+    void navigator.clipboard.writeText(value).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }, [value])
+
+  return (
+    <button
+      type="button"
+      className="rvn-chat__inline-task-detail-field-copy"
+      data-copied={copied || undefined}
+      onClick={handleCopy}
+      aria-label={copied ? 'Copied' : 'Copy value'}
+      title={copied ? 'Copied!' : 'Copy to clipboard'}
+    >
+      {copied ? <Check size={10} strokeWidth={2} /> : <Copy size={10} strokeWidth={2} />}
+    </button>
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -91,6 +122,7 @@ export function InlineTaskDetailFields({
   onNavigateTask,
   fieldRenderers,
   hiddenFields,
+  copyable = false,
 }: InlineTaskDetailFieldsProps) {
   return (
     <dl className="rvn-chat__inline-task-detail-grid">
@@ -142,13 +174,17 @@ export function InlineTaskDetailFields({
         }
 
         // Default text renderer
+        const formatted = fmt(value)
         return (
           <div key={desc.key} className="rvn-chat__inline-task-detail-field">
             <dt>{desc.key}</dt>
             <dd>
               <span className="rvn-chat__inline-task-detail-field-value">
-                {fmt(value)}
+                {formatted}
               </span>
+              {copyable && formatted !== '—' ? (
+                <CopyFieldButton value={formatted} />
+              ) : null}
             </dd>
           </div>
         )

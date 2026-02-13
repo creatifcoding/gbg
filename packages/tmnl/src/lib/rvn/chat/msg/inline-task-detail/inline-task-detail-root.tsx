@@ -11,10 +11,12 @@ export interface InlineTaskDetailRootProps extends ComponentPropsWithoutRef<'sec
   task: RvnChatInlineTaskItem
   taskIndex?: HashMap.HashMap<string, RvnChatInlineTaskItem>
   onNavigateTask?: (taskId: string) => void
+  /** Enable copy-to-clipboard per field value. Default: false. */
+  copyable?: boolean
 }
 
 const Root = forwardRef<HTMLElement, InlineTaskDetailRootProps>(
-  ({ task, taskIndex, onNavigateTask, className, children, ...props }, ref) => (
+  ({ task, taskIndex, onNavigateTask, copyable, className, children, ...props }, ref) => (
     <section
       ref={ref}
       data-slot="rvn-chat-inline-task-detail"
@@ -28,6 +30,7 @@ const Root = forwardRef<HTMLElement, InlineTaskDetailRootProps>(
           task={task}
           taskIndex={taskIndex}
           onNavigateTask={onNavigateTask}
+          copyable={copyable}
         />
       )}
     </section>
