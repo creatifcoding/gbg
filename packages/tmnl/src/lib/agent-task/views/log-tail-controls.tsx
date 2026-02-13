@@ -1,0 +1,75 @@
+/**
+ * LogTailControls — Tail/inspect toggle + jump-to-latest.
+ *
+ * - 'tail' mode: auto-scroll follows latest entries (live indicator)
+ * - 'inspect' mode: user has scrolled up, paused auto-scroll
+ * - Jump-to-latest button appears in inspect mode
+ *
+ * @module agent-task/views/log-tail-controls
+ */
+
+import React, { useCallback } from 'react'
+import { useAtom, useAtomValue } from '@effect-atom/atom-react'
+import { tailModeFamily, logCountFamily, logTotalCountFamily, type TailMode } from '../atoms'
+import './log-view.css'
+
+export interface LogTailControlsProps {
+  readonly taskId: string
+  /** Callback when jump-to-latest is clicked */
+  readonly onJumpToLatest?: () => void
+}
+
+export function LogTailControls({ taskId, onJumpToLatest }: LogTailControlsProps) {
+  const [tailMode, setTailMode] = useAtom(tailModeFamily(taskId))
+  const filteredCount = useAtomValue(logCountFamily(taskId))
+  const totalCount = useAtomValue(logTotalCountFamily(taskId))
+
+  const toggleMode = useCallback(() => {
+    setTailMode((prev) => (prev === 'tail' ? 'inspect' : 'tail'))
+  }, [setTailMode])
+
+  const handleJump = useCallback(() => {
+    setTailMode('tail')
+    onJumpToLatest?.()
+  }, [setTailMode, onJumpToLatest])
+
+  const isFiltered = filteredCount !== totalCount
+
+  return (
+    <div className="at-log-tail-controls">
+      {/* Live / Paused indicator */}
+      <div className="at-log-tail-controls__status" data-mode={tailMode}>
+        <span className="at-log-tail-controls__dot" />
+        <span className="at-log-tail-controls__label">
+          {tailMode === 'tail' ? 'LIVE' : 'PAUSED'}
+        </span>
+      </div>
+
+      {/* Entry count */}
+      <span className="at-log-tail-controls__count">
+        {isFiltered ? `${filteredCount}/${totalCount}` : totalCount}
+        {isFiltered && <span className="at-log-tail-controls__filtered"> filtered</span>}
+      </span>
+
+      {/* Toggle button */}
+      <button
+        className="at-log-tail-controls__toggle"
+        onClick={toggleMode}
+        title={tailMode === 'tail' ? 'Pause auto-scroll' : 'Resume auto-scroll'}
+      >
+        {tailMode === 'tail' ? '⏸' : '▶'}
+      </button>
+
+      {/* Jump to latest */}
+      {tailMode === 'inspect' && (
+        <button
+          className="at-log-tail-controls__jump"
+          onClick={handleJump}
+          title="Jump to latest"
+        >
+          ↓ Latest
+        </button>
+      )}
+    </div>
+  )
+}
