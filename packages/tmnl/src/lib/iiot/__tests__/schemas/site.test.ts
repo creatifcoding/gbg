@@ -78,7 +78,7 @@ describe('Feature: Site Entity Schema', () => {
     _tag: 'Site' as const,
     id: 'SIT-chicago-main',
     name: 'Chicago Main Site',
-    status: 'active' as const,
+    status: 'operational' as const,
     enterpriseId: 'ENT-acme-corp',
     timezone: 'America/Chicago',
     createdAt: '2025-01-01T00:00:00.000Z',
@@ -99,7 +99,7 @@ describe('Feature: Site Entity Schema', () => {
       expect(result._tag).toBe('Site')
       expect(result.id).toBe('SIT-chicago-main')
       expect(result.name).toBe('Chicago Main Site')
-      expect(result.status).toBe('active')
+      expect(result.status).toBe('operational')
       expect(result.enterpriseId).toBe('ENT-acme-corp')
       expect(result.timezone).toBe('America/Chicago')
     })
@@ -167,18 +167,18 @@ describe('Feature: Site Entity Schema', () => {
       expect(site.getAutomationLevel()).toBe(3)
     })
 
-    it('Given an active Site, When calling isOperational, Then it should return true', () => {
+    it('Given an operational Site, When calling isOperational, Then it should return true', () => {
       const site = Schema.decodeUnknownSync(Site)(validSiteData)
       expect(site.isOperational()).toBe(true)
     })
 
-    it('Given an inactive Site, When calling isOperational, Then it should return true', () => {
-      const site = Schema.decodeUnknownSync(Site)({ ...validSiteData, status: 'inactive' })
+    it('Given a seasonal_shutdown Site, When calling isOperational, Then it should return true', () => {
+      const site = Schema.decodeUnknownSync(Site)({ ...validSiteData, status: 'seasonal_shutdown' })
       expect(site.isOperational()).toBe(true)
     })
 
-    it('Given a maintenance Site, When calling isOperational, Then it should return false', () => {
-      const site = Schema.decodeUnknownSync(Site)({ ...validSiteData, status: 'maintenance' })
+    it('Given a planned Site, When calling isOperational, Then it should return false', () => {
+      const site = Schema.decodeUnknownSync(Site)({ ...validSiteData, status: 'planned' })
       expect(site.isOperational()).toBe(false)
     })
 
@@ -264,7 +264,7 @@ describe('Feature: UpdateSiteParams Schema', () => {
       // Encoded form uses raw values
       const params = {
         id: 'SIT-chicago-main',
-        status: 'inactive' as const,
+        status: 'closed' as const,
       }
       const result = Schema.decodeUnknownSync(UpdateSiteParams)(params)
       expect(Option.isSome(result.status)).toBe(true)

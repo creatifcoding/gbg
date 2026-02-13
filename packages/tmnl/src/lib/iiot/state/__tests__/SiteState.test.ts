@@ -42,7 +42,7 @@ describe('SiteState', () => {
         expect(site.name).toBe('Test Site chicago-main')
         expect(site.enterpriseId).toBe(testEnterpriseId)
         expect(site.timezone).toBe('America/Chicago')
-        expect(site.status).toBe('active')
+        expect(site.status).toBe('planned')
         expect(site._tag).toBe('Site')
 
         return site

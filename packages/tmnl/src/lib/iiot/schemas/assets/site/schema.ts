@@ -10,7 +10,7 @@
  */
 
 import { Schema } from 'effect'
-import { AssetStatus, AssetLocation, AssetMetadata, BaseAssetFields } from '../common'
+import { AssetLocation, AssetMetadata, BaseAssetFields } from '../common'
 import { EnterpriseId } from '../enterprise/schema'
 import { HierarchyPath } from '../../hierarchy'
 
@@ -44,6 +44,30 @@ export type SiteId = typeof SiteId.Type
  * @returns SiteId branded string (e.g., 'SIT-chicago-facility')
  */
 export const makeSiteId = (slug: string): SiteId => `SIT-${slug}` as SiteId
+
+// =============================================================================
+// Site Status (domain-specific override of BaseAssetFields.status)
+// =============================================================================
+
+/**
+ * Site lifecycle status per ISA-95 site state graph.
+ * Overrides the generic AssetStatus to match the site graph states:
+ * planned -> under_construction -> operational -> seasonal_shutdown|closed -> decommissioned
+ */
+export const SiteStatus = Schema.Literal(
+  'planned',
+  'under_construction',
+  'operational',
+  'seasonal_shutdown',
+  'closed',
+  'decommissioned'
+).pipe(
+  Schema.annotations({
+    identifier: '@gbg/tmnl/iiot/SiteStatus',
+    description: 'Site lifecycle state per ISA-95 site graph',
+  })
+)
+export type SiteStatus = typeof SiteStatus.Type
 
 // =============================================================================
 // Site Entity
@@ -87,6 +111,9 @@ export class Site extends Schema.TaggedClass<Site>()('Site', {
   /** Spread base asset fields (name, status, description, location, metadata, timestamps, hierarchyPath, parent IDs) */
   ...BaseAssetFields,
 
+  /** Site lifecycle state (overrides generic AssetStatus from BaseAssetFields) */
+  status: SiteStatus,
+
   /** Override enterpriseId to be required (sites must belong to an enterprise) */
   enterpriseId: EnterpriseId,
 
@@ -122,10 +149,11 @@ export class Site extends Schema.TaggedClass<Site>()('Site', {
 
   /**
    * Check if site is operational.
-   * A site is operational if it's active or inactive (not in maintenance or decommissioned).
+   * A site is operational if it's operational or in seasonal_shutdown
+   * (still staffed/maintained, just temporarily paused).
    */
   isOperational(): boolean {
-    return this.status === 'active' || this.status === 'inactive'
+    return this.status === 'operational' || this.status === 'seasonal_shutdown'
   }
 
   /**
@@ -174,8 +202,8 @@ export const CreateSiteParams = Schema.Struct({
   /** IANA timezone identifier */
   timezone: Schema.String,
 
-  /** Initial status (defaults to 'active' in handler) */
-  status: Schema.optionalWith(AssetStatus, { as: 'Option' }),
+  /** Initial status (defaults to 'planned' in handler) */
+  status: Schema.optionalWith(SiteStatus, { as: 'Option' }),
 
   /** Street address */
   address: Schema.optional(Schema.String),
@@ -218,7 +246,7 @@ export const UpdateSiteParams = Schema.Struct({
   name: Schema.optionalWith(Schema.NonEmptyString, { as: 'Option' }),
 
   /** Updated status */
-  status: Schema.optionalWith(AssetStatus, { as: 'Option' }),
+  status: Schema.optionalWith(SiteStatus, { as: 'Option' }),
 
   /** Updated timezone */
   timezone: Schema.optionalWith(Schema.String, { as: 'Option' }),
