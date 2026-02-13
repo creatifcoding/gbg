@@ -1,0 +1,30 @@
+.rvn-chat__interruption-banner {
+  border: 2px solid var(--rvn-border);
+  padding: 8px 10px;
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.rvn-chat__interruption-banner[data-tone='info'] {
+  background: var(--rvn-info-bg);
+  color: var(--rvn-info-fg);
+}
+
+.rvn-chat__interruption-banner[data-tone='warn'] {
+  background: var(--rvn-accent-tan);
+  color: var(--rvn-text-tan);
+}
+
+.rvn-chat__interruption-banner[data-tone='error'] {
+  background: var(--rvn-error-bg);
+  color: var(--rvn-error-fg);
+}
+
+.rvn-chat__thread-status-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
