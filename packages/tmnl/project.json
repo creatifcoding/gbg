@@ -164,17 +164,31 @@
         "cwd": "packages/tmnl"
       }
     },
-    "pi-orchestrator:remote-ws": {
+    "harness:remote-ws": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "bun run pi-orchestrator:remote-ws",
+        "command": "bun run harness:remote-ws",
         "cwd": "packages/tmnl"
       }
     },
-    "pi-orchestrator:sdk:validate": {
+    "harness:piai:smoke": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "bun run pi-orchestrator:sdk:validate",
+        "command": "bun run harness:piai:smoke",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "spike:provider-marker:match": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run spike:provider-marker:match",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "spike:overlay-reducer:pipeline": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run spike:overlay-reducer:pipeline",
         "cwd": "packages/tmnl"
       }
     },

@@ -50,6 +50,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@selfcharters/sparkplug-client": path.resolve(__dirname, "../sparkplug-client/src/index.ts"),
     },
   },
 });

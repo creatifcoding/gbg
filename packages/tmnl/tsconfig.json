@@ -11,7 +11,8 @@
     "noPropertyAccessFromIndexSignature": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@selfcharters/sparkplug-client": ["../sparkplug-client/src/index.ts"]
     },
     "esModuleInterop": true, // Added
     "skipLibCheck": true     // Added

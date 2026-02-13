@@ -40,6 +40,7 @@
         );
         LD_LIBRARY_PATH = lib.optionalString isLinux (
           lib.makeLibraryPath [
+            pkgs.stdenv.cc.cc.lib  # libstdc++.so.6 (64-bit) — DuckDB, native Node addons
             pkgs.gtk3
             pkgs.webkitgtk_4_1
             pkgs.glib

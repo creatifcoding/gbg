@@ -178,6 +178,11 @@ export default defineConfig(() => ({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      '/api/pi-orchestrator': {
+        target: 'http://localhost:8787',
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
   // Uncomment this if you are using workers.

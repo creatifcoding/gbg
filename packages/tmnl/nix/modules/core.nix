@@ -36,7 +36,7 @@
         # Fix for binary packages requiring libstdc++.so.6 (JAX, pandas, etc.)
         # See: https://discourse.nixos.org/t/how-to-solve-libstdc-not-found-in-shell-nix/25458
         LD_LIBRARY_PATH = lib.makeLibraryPath [
-          pkgs.stdenv.cc.cc
+          pkgs.stdenv.cc.cc.lib  # libstdc++.so.6 (64-bit) — DuckDB, native Node addons
           pkgs.zlib
         ];
 
