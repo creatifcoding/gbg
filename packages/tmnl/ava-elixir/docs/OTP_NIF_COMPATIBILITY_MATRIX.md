@@ -25,7 +25,7 @@ Defines support policy for AVA Elixir control-plane NIF builds and runtime compa
 
 - Lane A: OTP 26 + Elixir 1.18 + NIF tests
 - Lane B: OTP 27 + Elixir 1.18 + NIF tests
-- Lane C: sidecar mode functional tests (no NIF assumptions)
+- Lane C: sidecar mode functional tests (no NIF assumptions, `mix sidecar.test`)
 
 ## Release Blocking Conditions
 

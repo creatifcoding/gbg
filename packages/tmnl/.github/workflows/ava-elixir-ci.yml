@@ -60,3 +60,32 @@ jobs:
       - name: Verify artifact checksum
         working-directory: packages/tmnl/ava-elixir
         run: mix artifact.verify
+
+  sidecar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup BEAM
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27.0"
+          elixir-version: "1.18.1"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Elixir deps
+        working-directory: packages/tmnl/ava-elixir
+        run: mix deps.get
+
+      - name: Compile app
+        working-directory: packages/tmnl/ava-elixir
+        run: mix compile
+
+      - name: Run sidecar functional tests
+        working-directory: packages/tmnl/ava-elixir
+        env:
+          AVA_RUNTIME_MODE: sidecar
+        run: mix sidecar.test

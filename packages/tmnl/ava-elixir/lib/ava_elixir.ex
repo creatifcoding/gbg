@@ -20,7 +20,7 @@ defmodule AvaElixir do
           | {:native_error, String.t()}
 
   @typedoc "Public API error reasons"
-  @type error_reason :: :sidecar_not_implemented | native_error_reason
+  @type error_reason :: :runtime_client_unavailable | native_error_reason
 
   @typedoc "Result helper"
   @type result(t) :: {:ok, t} | {:error, error_reason}
@@ -30,15 +30,15 @@ defmodule AvaElixir do
   """
   @spec ping(String.t()) :: String.t()
   def ping(payload \\ "ok") do
-    native_client().runtime_ping(payload)
+    runtime_client().runtime_ping(payload)
   end
 
   @doc """
-  Returns NIF version for smoke checks.
+  Returns active runtime version identifier for smoke checks.
   """
   @spec nif_version() :: String.t()
   def nif_version do
-    native_client().nif_version()
+    runtime_client().nif_version()
   end
 
   @doc """
@@ -144,14 +144,14 @@ defmodule AvaElixir do
     start = System.monotonic_time()
 
     result =
-      case mode do
-        :nif ->
-          native_client()
+      case runtime_client(mode) do
+        nil ->
+          {:error, :runtime_client_unavailable}
+
+        client ->
+          client
           |> fun.()
           |> normalize_native_result()
-
-        :sidecar ->
-          {:error, :sidecar_not_implemented}
       end
 
     finish = System.monotonic_time()
@@ -163,9 +163,18 @@ defmodule AvaElixir do
     result
   end
 
-  @spec native_client() :: module()
-  defp native_client do
+  @spec runtime_client() :: module()
+  defp runtime_client do
+    runtime_client(runtime_mode())
+  end
+
+  @spec runtime_client(runtime_mode()) :: module() | nil
+  defp runtime_client(:nif) do
     Application.get_env(:ava_elixir, :native_client, AvaElixir.Native)
+  end
+
+  defp runtime_client(:sidecar) do
+    Application.get_env(:ava_elixir, :sidecar_client, AvaElixir.SidecarClient)
   end
 
   @spec normalize_native_result({:ok, term()} | {:error, term()}) :: result(term())

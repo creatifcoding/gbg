@@ -8,7 +8,7 @@ defmodule AvaElixir.MixProject do
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
-      preferred_cli_env: ["phoenix.test": :test],
+      preferred_cli_env: ["phoenix.test": :test, "sidecar.test": :test],
       aliases: aliases(),
       deps: deps()
     ]
@@ -46,7 +46,9 @@ defmodule AvaElixir.MixProject do
       "lint.nif": ["cmd bash scripts/check_nif_schedule.sh"],
       "artifact.build": ["cmd bash scripts/precompile_artifact.sh"],
       "artifact.verify": ["cmd bash scripts/verify_artifact.sh"],
+      "hex.repair": ["cmd bash scripts/repair_hex_env.sh"],
       "phoenix.test": ["test test/phoenix"],
+      "sidecar.test": ["test test/sidecar_mode_test.exs"],
       "phoenix.dev": ["phx.server"]
     ]
   end

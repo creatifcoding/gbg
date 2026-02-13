@@ -6,6 +6,12 @@ This document defines the initial contract between Elixir control-plane modules 
 
 Phase 1 intentionally keeps surface area small and scheduler-safe.
 
+`AvaElixir` routes all control-plane calls through one of two runtime clients:
+
+- `AvaElixir.Native` (`:nif` mode)
+- `AvaElixir.SidecarClient` (`:sidecar` mode)
+
+Both clients are required to preserve tuple/error semantics.
 ## NIF API Surface
 
 Module: `AvaElixir.Native`
@@ -38,16 +44,23 @@ NIF subscription bridge currently emits mailbox events as:
 
 ## View Spec Baseline Contract
 
-`AvaElixir.Contracts.validate_view_spec/1` currently requires the following keys:
+`AvaElixir.Contracts.validate_view_spec/1` enforces both presence and baseline type/value checks:
 
-- `id`
-- `name`
-- `assemblage_id`
-- `version`
-- `channels`
+Required fields:
 
-This is a phase-1 compatibility gate before full AVA Schema-backed validation is introduced.
+- `id` (non-empty string)
+- `name` (non-empty string)
+- `assemblage_id` (non-empty string)
+- `version` (positive integer)
+- `channels` (list)
 
+Error shapes:
+
+- `{:missing_keys, [atom()]}`
+- `{:invalid_type, field, expected}`
+- `{:invalid_value, field, rule}`
+
+This remains a phase-1 compatibility gate before full AVA Schema-backed validation is introduced.
 ## Error Semantics
 
 ### Native (`AvaElixir.Native`)
@@ -68,14 +81,16 @@ Current native reason strings include:
 
 ### Public API (`AvaElixir`)
 
-`AvaElixir` normalizes native reasons into match-friendly terms:
+`AvaElixir` normalizes runtime-client reasons into match-friendly terms:
 
 - `{:invalid_json, detail}`
 - `:missing_id`
 - `{:view_not_found, view_id}`
+- `{:subscription_not_found, subscription_id}`
 - `:native_registry_unavailable`
+- `:native_subscriptions_unavailable`
+- `:runtime_client_unavailable`
 - `{:native_error, raw}` (fallback)
-- `:sidecar_not_implemented` (runtime mode fallback)
 
 ## Upgrade Rules
 
@@ -88,6 +103,6 @@ Current native reason strings include:
 
 ## Next-phase Extensions
 
-- Replace ad-hoc JSON validation with AVA domain-level schema checks.
+- Replace baseline Elixir validation with AVA domain-level schema checks.
 - Wire real runtime operations (`register_spec`, `invalidate`) into Rust-backed AVA orchestrator.
-- Add subscription bridge (`subscribe/unsubscribe`) and lag telemetry.
+- Expand sidecar client from in-memory fallback to remote sidecar transport adapter.

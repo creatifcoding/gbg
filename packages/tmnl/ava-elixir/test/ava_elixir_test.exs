@@ -4,9 +4,13 @@ defmodule AvaElixirTest do
   setup do
     prev_mode = Application.get_env(:ava_elixir, :runtime_mode)
     prev_client = Application.get_env(:ava_elixir, :native_client)
+    prev_sidecar_client = Application.get_env(:ava_elixir, :sidecar_client)
 
     Application.put_env(:ava_elixir, :runtime_mode, :nif)
     Application.put_env(:ava_elixir, :native_client, AvaElixir.Native)
+    Application.put_env(:ava_elixir, :sidecar_client, AvaElixir.SidecarClient)
+
+    AvaElixir.SidecarClient.reset()
 
     on_exit(fn ->
       if prev_mode == nil,
@@ -16,6 +20,10 @@ defmodule AvaElixirTest do
       if prev_client == nil,
         do: Application.delete_env(:ava_elixir, :native_client),
         else: Application.put_env(:ava_elixir, :native_client, prev_client)
+
+      if prev_sidecar_client == nil,
+        do: Application.delete_env(:ava_elixir, :sidecar_client),
+        else: Application.put_env(:ava_elixir, :sidecar_client, prev_sidecar_client)
     end)
 
     :ok
@@ -83,12 +91,25 @@ defmodule AvaElixirTest do
     assert {:error, {:invalid_json, _detail}} = AvaElixir.register_spec_json("{")
   end
 
-  test "sidecar mode is a safe fallback" do
+  test "sidecar mode provides functional rollback runtime" do
     Application.put_env(:ava_elixir, :runtime_mode, :sidecar)
 
+    spec_json =
+      ~s({"id":"view-sidecar","name":"Sidecar","assemblage_id":"alpha","version":1,"channels":[]})
+
     assert AvaElixir.runtime_mode() == :sidecar
-    assert {:error, :sidecar_not_implemented} = AvaElixir.register_spec_json("{}")
-    assert {:error, :sidecar_not_implemented} = AvaElixir.invalidate_view("view-1")
-    assert {:error, :sidecar_not_implemented} = AvaElixir.subscribe("view-1")
+    assert AvaElixir.nif_version() == "sidecar-0.1.0"
+    assert AvaElixir.ping("probe-sidecar") == "ava-runtime:probe-sidecar"
+
+    assert {:ok, "registered:view-sidecar"} = AvaElixir.register_spec_json(spec_json)
+    assert {:ok, "invalidated:view-sidecar"} = AvaElixir.invalidate_view("view-sidecar")
+
+    assert {:ok, "registered:view-sidecar"} = AvaElixir.register_spec_json(spec_json)
+    assert {:ok, sub_id} = AvaElixir.subscribe("view-sidecar", interval_ms: 10, pid: self())
+
+    assert_receive {:ava_artifact, ^sub_id, %{view_id: "view-sidecar", sequence: _seq}}, 500
+
+    assert {:ok, "unsubscribed:" <> ^sub_id} = AvaElixir.unsubscribe(sub_id)
+    assert {:ok, "invalidated:view-sidecar"} = AvaElixir.invalidate_view("view-sidecar")
   end
 end

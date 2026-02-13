@@ -2,10 +2,10 @@
 
 AVA Elixir control-plane subapp for `packages/tmnl`.
 
-This app provides a typed Elixir API over a Rustler NIF boundary (`native/ava_bridge`) and is designed for phased rollout:
+This app provides a typed Elixir API over a Rustler NIF boundary (`native/ava_bridge`) and supports dual runtime routing:
 
 - `:nif` mode (default): execute control-plane calls via Rustler
-- `:sidecar` mode: safe rollback path (currently explicit not-implemented)
+- `:sidecar` mode: execute equivalent control-plane semantics in-BEAM (`AvaElixir.SidecarClient`)
 
 ## Runtime configuration
 
@@ -57,6 +57,8 @@ bun run elixir:build
 bun run phoenix:init
 bun run phoenix:test
 bun run phoenix:dev
+cd ava-elixir && mix sidecar.test
+cd ava-elixir && mix hex.repair
 ```
 
 Or directly with mission control:
@@ -69,3 +71,15 @@ tmnl phoenix-init
 tmnl phoenix-test
 tmnl phoenix-dev
 ```
+
+## Troubleshooting: Hex archive corruption
+
+If `mix deps.get` fails with `Error loading module 'Elixir.Hex': corrupt atom table`, run:
+
+```bash
+cd ava-elixir
+mix hex.repair
+env -u ERL_LIBS mix deps.get
+```
+
+`mix hex.repair` clears stale local Hex archives under project-scoped `MIX_HOME/HEX_HOME`, unsets conflicting `ERL_LIBS`, and reinstalls Hex/Rebar.

@@ -1,4 +1,3 @@
 import Config
 
-config :ava_elixir, AvaElixirWeb.Endpoint,
-  server: true
+config :ava_elixir, AvaElixirWeb.Endpoint, server: true

@@ -1,7 +1,7 @@
 defmodule AvaElixirWeb.UserSocket do
   use Phoenix.Socket
 
-  channel "ava:*", AvaElixirWeb.AvaEventChannel
+  channel("ava:*", AvaElixirWeb.AvaEventChannel)
 
   @impl true
   def connect(_params, socket, connect_info) do

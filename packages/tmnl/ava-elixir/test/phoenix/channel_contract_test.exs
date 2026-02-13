@@ -5,9 +5,7 @@ defmodule AvaElixirWeb.ChannelContractTest do
     {:ok, token} = AvaElixir.ChannelToken.issue("user-1")
 
     {:ok, socket} =
-      connect(AvaElixirWeb.UserSocket, %{},
-        connect_info: %{auth_token: token}
-      )
+      connect(AvaElixirWeb.UserSocket, %{}, connect_info: %{auth_token: token})
 
     topic = AvaElixir.ChannelTopics.workspace_events("ws-1")
 
@@ -21,7 +19,7 @@ defmodule AvaElixirWeb.ChannelContractTest do
 
     assert :ok = AvaElixir.EventBus.publish(topic, envelope)
 
-    assert_push "ava_event", pushed
+    assert_push("ava_event", pushed)
     assert {:ok, _} = AvaElixir.EventEnvelope.validate(pushed)
     assert pushed["workspace_id"] == "ws-1" or pushed[:workspace_id] == "ws-1"
   end
@@ -30,9 +28,7 @@ defmodule AvaElixirWeb.ChannelContractTest do
     {:ok, token} = AvaElixir.ChannelToken.issue("user-1")
 
     {:ok, socket} =
-      connect(AvaElixirWeb.UserSocket, %{},
-        connect_info: %{auth_token: token}
-      )
+      connect(AvaElixirWeb.UserSocket, %{}, connect_info: %{auth_token: token})
 
     assert {:error, %{reason: "unauthorized_topic"}} =
              subscribe_and_join(socket, AvaElixirWeb.AvaEventChannel, "ava:invalid")

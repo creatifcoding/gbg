@@ -7,18 +7,14 @@ defmodule AvaElixirWeb.ChannelAuthTest do
     {:ok, token} = ChannelToken.issue("user-123")
 
     assert {:ok, socket} =
-             connect(AvaElixirWeb.UserSocket, %{},
-               connect_info: %{auth_token: token}
-             )
+             connect(AvaElixirWeb.UserSocket, %{}, connect_info: %{auth_token: token})
 
     assert socket.assigns.channel_claims.user_id == "user-123"
   end
 
   test "connect fails with invalid token" do
     assert :error =
-             connect(AvaElixirWeb.UserSocket, %{},
-               connect_info: %{auth_token: "invalid-token"}
-             )
+             connect(AvaElixirWeb.UserSocket, %{}, connect_info: %{auth_token: "invalid-token"})
   end
 
   test "connect fails with expired token" do
@@ -27,8 +23,6 @@ defmodule AvaElixirWeb.ChannelAuthTest do
     {:ok, token} = ChannelToken.issue("user-expired", signed_at: signed_at)
 
     assert :error =
-             connect(AvaElixirWeb.UserSocket, %{},
-               connect_info: %{auth_token: token}
-             )
+             connect(AvaElixirWeb.UserSocket, %{}, connect_info: %{auth_token: token})
   end
 end

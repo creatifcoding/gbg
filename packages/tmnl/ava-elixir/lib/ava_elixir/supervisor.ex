@@ -13,7 +13,8 @@ defmodule AvaElixir.Supervisor do
     children = [
       {Phoenix.PubSub, name: AvaElixir.PubSub},
       AvaElixirWeb.Endpoint,
-      {AvaElixir.FailureProbe, []}
+      {AvaElixir.FailureProbe, []},
+      {AvaElixir.SidecarClient, []}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)

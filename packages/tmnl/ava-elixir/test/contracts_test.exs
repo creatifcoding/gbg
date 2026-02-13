@@ -22,6 +22,26 @@ defmodule AvaElixir.ContractsTest do
     assert :channels in missing
   end
 
+  test "rejects invalid field types and values" do
+    assert {:error, {:invalid_type, :version, :integer}} =
+             Contracts.validate_view_spec(%{
+               "id" => "view-x",
+               "name" => "Demo",
+               "assemblage_id" => "alpha",
+               "version" => "1",
+               "channels" => []
+             })
+
+    assert {:error, {:invalid_value, :id, :empty_string}} =
+             Contracts.validate_view_spec(%{
+               "id" => "   ",
+               "name" => "Demo",
+               "assemblage_id" => "alpha",
+               "version" => 1,
+               "channels" => []
+             })
+  end
+
   test "builds canonical bridge events" do
     sub_ref = make_ref()
 

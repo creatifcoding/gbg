@@ -30,15 +30,16 @@ Outputs in `dist/nif/`:
 bash scripts/verify_artifact.sh
 ```
 
-## CI Matrix (proposed)
+## CI Matrix (current)
 
-For each supported target lane:
+`ava-elixir-ci` executes:
 
-1. Build Elixir + Rustler NIF
-2. Run `mix test`
-3. Run `mix lint.nif`
-4. Run artifact packaging script
-5. Upload tarball + checksum as release artifacts
+1. Build Elixir + Rustler NIF (`mix compile`)
+2. Run Phoenix tests (`mix phoenix.test`)
+3. Run full tests (`mix test`)
+4. Run scheduler policy gate (`mix lint.nif`)
+5. Build + verify artifacts (`mix artifact.build`, `mix artifact.verify`)
+6. Run sidecar functional lane (`mix sidecar.test` with `AVA_RUNTIME_MODE=sidecar`)
 
 ## Consumption policy
 
