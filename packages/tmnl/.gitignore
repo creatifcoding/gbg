@@ -58,3 +58,7 @@ test_plant_insert.ts
 
 # Secrets
 auth.json
+
+# Nix-scoped Elixir caches (reproducible via mix deps.get)
+.nix-hex/
+.nix-mix/
