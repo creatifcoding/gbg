@@ -1,0 +1,90 @@
+/* ==========================================================================
+ * View Navigator — Tab bar + slide transitions
+ * ========================================================================== */
+
+.at-view-nav {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ---------------------------------------------------------------------------
+ * Tab bar
+ * --------------------------------------------------------------------------- */
+
+.at-view-nav__tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.6);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0 8px;
+}
+
+.at-view-nav__tab {
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #6b7280;
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.at-view-nav__tab:hover {
+  color: #9ca3af;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.at-view-nav__tab[data-active] {
+  color: #e5e7eb;
+  border-bottom-color: #3b82f6;
+}
+
+/* ---------------------------------------------------------------------------
+ * Viewport with slide transitions
+ * --------------------------------------------------------------------------- */
+
+.at-view-nav__viewport {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease-out, opacity 0.15s ease-out;
+}
+
+.at-view-nav__viewport[data-animating] {
+  opacity: 0.7;
+}
+
+.at-view-nav__viewport[data-slide="left"] {
+  animation: at-slide-in-from-right 0.2s ease-out;
+}
+
+.at-view-nav__viewport[data-slide="right"] {
+  animation: at-slide-in-from-left 0.2s ease-out;
+}
+
+@keyframes at-slide-in-from-right {
+  from {
+    transform: translateX(20px);
+    opacity: 0.5;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes at-slide-in-from-left {
+  from {
+    transform: translateX(-20px);
+    opacity: 0.5;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
