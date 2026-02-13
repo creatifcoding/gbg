@@ -38,6 +38,10 @@ export type {
 } from './inline-task-thread'
 
 export {
+  AgentTask,
+  AgentTaskThread,
+  AgentTaskSchema,
+  AgentTaskThreadSchema,
   RvnChatInlineTaskStatusSchema,
   RvnChatInlineTaskPhaseSchema,
   RvnChatInlineTaskMetadataSchema,

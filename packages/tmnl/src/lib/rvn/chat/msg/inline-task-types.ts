@@ -1,5 +1,9 @@
 import { Schema } from 'effect'
 
+// ---------------------------------------------------------------------------
+// Literal unions
+// ---------------------------------------------------------------------------
+
 export const AgentTaskStatusSchema = Schema.Literal(
   'queued',
   'claimed',
@@ -32,6 +36,10 @@ export const AgentTaskPhaseSchema = Schema.Literal(
 
 export type AgentTaskPhase = typeof AgentTaskPhaseSchema.Type
 
+// ---------------------------------------------------------------------------
+// Metadata struct (nested, not tagged)
+// ---------------------------------------------------------------------------
+
 export const AgentTaskMetadataSchema = Schema.Struct({
   phase: Schema.optional(AgentTaskPhaseSchema),
   owner: Schema.optional(Schema.String),
@@ -41,7 +49,11 @@ export const AgentTaskMetadataSchema = Schema.Struct({
 
 export type AgentTaskMetadata = typeof AgentTaskMetadataSchema.Type
 
-export const AgentTaskSchema = Schema.TaggedStruct('AgentTask', {
+// ---------------------------------------------------------------------------
+// AgentTask — TaggedClass (constructable via `new AgentTask({...})`)
+// ---------------------------------------------------------------------------
+
+const AgentTaskFields = {
   taskId: Schema.String,
   title: Schema.String,
   status: AgentTaskStatusSchema,
@@ -63,9 +75,16 @@ export const AgentTaskSchema = Schema.TaggedStruct('AgentTask', {
 
   createdAt: Schema.DateTimeUtc,
   updatedAt: Schema.DateTimeUtc,
-})
+}
 
-export type AgentTask = typeof AgentTaskSchema.Type
+export class AgentTask extends Schema.TaggedClass<AgentTask>()('AgentTask', AgentTaskFields) {}
+
+/** Schema for AgentTask — use for AST introspection and codec derivation */
+export const AgentTaskSchema = AgentTask
+
+// ---------------------------------------------------------------------------
+// Transfer mode + cluster
+// ---------------------------------------------------------------------------
 
 export const AgentTaskThreadTransferModeSchema = Schema.Literal('individuated', 'cluster')
 export type AgentTaskThreadTransferMode = typeof AgentTaskThreadTransferModeSchema.Type
@@ -78,21 +97,30 @@ export const AgentTaskThreadClusterSchema = Schema.Struct({
 
 export type AgentTaskThreadCluster = typeof AgentTaskThreadClusterSchema.Type
 
-export const AgentTaskThreadSchema = Schema.TaggedStruct('AgentTaskThread', {
+// ---------------------------------------------------------------------------
+// AgentTaskThread — TaggedClass
+// ---------------------------------------------------------------------------
+
+const AgentTaskThreadFields = {
   threadId: Schema.String,
   messageAnchorId: Schema.optional(Schema.String),
   sessionId: Schema.optional(Schema.String),
-  items: Schema.Array(AgentTaskSchema),
+  items: Schema.Array(AgentTask),
   selectedTaskIds: Schema.Array(Schema.String),
   clusters: Schema.Array(AgentTaskThreadClusterSchema),
   transferModeDefault: AgentTaskThreadTransferModeSchema,
   createdAt: Schema.DateTimeUtc,
   updatedAt: Schema.DateTimeUtc,
-})
+}
 
-export type AgentTaskThread = typeof AgentTaskThreadSchema.Type
+export class AgentTaskThread extends Schema.TaggedClass<AgentTaskThread>()('AgentTaskThread', AgentTaskThreadFields) {}
 
+export const AgentTaskThreadSchema = AgentTaskThread
+
+// ---------------------------------------------------------------------------
 // Backward compatibility exports for existing RVN surface names
+// ---------------------------------------------------------------------------
+
 export const RvnChatInlineTaskStatusSchema = AgentTaskStatusSchema
 export type RvnChatInlineTaskStatus = AgentTaskStatus
 
