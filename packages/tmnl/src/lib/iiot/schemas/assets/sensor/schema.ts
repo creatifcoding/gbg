@@ -9,7 +9,7 @@
  */
 
 import { Option, Schema } from 'effect'
-import { AssetMetadata, AssetStatus, BaseAssetFields } from '../common/types'
+import { AssetMetadata, BaseAssetFields } from '../common/types'
 import { MachineId } from '../../identifiers'
 import { HierarchyPath } from '../../hierarchy'
 
@@ -139,6 +139,31 @@ export const ThresholdStatus = Schema.Literal('normal', 'warning', 'critical')
 export type ThresholdStatus = Schema.Schema.Type<typeof ThresholdStatus>
 
 // =============================================================================
+// Sensor Status (domain-specific override)
+// =============================================================================
+
+/**
+ * Sensor lifecycle status matching the ISA-95 control module (sensing) state graph.
+ * Overrides the generic AssetStatus from BaseAssetFields.
+ *
+ * @see machines/graphs/sensor-graph.ts for transition rules
+ */
+export const SensorStatus = Schema.Literal(
+  'active',
+  'calibrating',
+  'needs_calibration',
+  'faulted',
+  'offline',
+  'decommissioned'
+).pipe(
+  Schema.annotations({
+    identifier: '@gbg/tmnl/iiot/SensorStatus',
+    description: 'Sensor lifecycle state per ISA-95 control module (sensing) graph',
+  })
+)
+export type SensorStatus = typeof SensorStatus.Type
+
+// =============================================================================
 // Sensor Entity (ISA-95 Level 0)
 // =============================================================================
 
@@ -181,6 +206,9 @@ export class Sensor extends Schema.TaggedClass<Sensor>()('Sensor', {
 
   // Spread base asset fields (name, status, description, location, metadata, timestamps, hierarchy)
   ...BaseAssetFields,
+
+  /** Sensor lifecycle state (overrides generic AssetStatus) */
+  status: SensorStatus,
 
   /** Sensor measurement type */
   sensorType: SensorType,
@@ -233,11 +261,11 @@ export class Sensor extends Schema.TaggedClass<Sensor>()('Sensor', {
 
   /**
    * Check if sensor is operational.
-   * Only 'active' status counts as operational for sensors
-   * (stricter than other asset types).
+   * Active, calibrating, and needs_calibration sensors are still operational
+   * (they continue to produce readings, though quality may vary).
    */
   isOperational(): boolean {
-    return this.status === 'active'
+    return this.status === 'active' || this.status === 'calibrating' || this.status === 'needs_calibration'
   }
 
   /**
@@ -335,8 +363,8 @@ export const CreateSensorParams = Schema.Struct({
   /** Human-readable name */
   name: Schema.NonEmptyString,
 
-  /** Initial status (defaults to 'active' if not provided) */
-  status: Schema.optionalWith(AssetStatus, { default: () => 'active' as const }),
+  /** Initial status (defaults to 'active') */
+  status: Schema.optionalWith(SensorStatus, { default: () => 'active' as SensorStatus }),
 
   /** Parent machine ID */
   machineId: MachineId,

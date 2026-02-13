@@ -172,12 +172,12 @@ export const SensorAssetStateInMemory: Layer.Layer<SensorAssetState> = Layer.eff
               new PathSegment({
                 level: 'machine',
                 id: params.machineId,
-                name: 'Machine', // Would be looked up
+                name: Option.none(), // Would be looked up in production
               }),
               new PathSegment({
                 level: 'sensor',
                 id,
-                name: params.name,
+                name: Option.some(params.name),
               }),
             ]
 
