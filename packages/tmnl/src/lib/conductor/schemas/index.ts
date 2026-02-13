@@ -40,6 +40,105 @@ export const AgentStatus = Schema.Literal(
 )
 export type AgentStatus = typeof AgentStatus.Type
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Inline task thread contracts (session-scoped + message anchored)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const InlineTaskStatus = Schema.Literal(
+  'queued',
+  'running',
+  'paused',
+  'completed',
+  'failed',
+  'cancelled',
+  'blocked',
+)
+export type InlineTaskStatus = typeof InlineTaskStatus.Type
+
+const InlineHarnessTaskEventShared = {
+  threadId: Schema.String,
+  messageAnchorId: Schema.optional(Schema.String),
+  taskId: Schema.String,
+  title: Schema.String,
+  status: InlineTaskStatus,
+  progress: Schema.NullOr(Schema.Number),
+  seq: Schema.Number,
+  at: Schema.String,
+  message: Schema.optional(Schema.String),
+} as const
+
+export const InlineHarnessTaskThreadStarted = Schema.TaggedStruct(
+  'InlineHarnessTaskThreadStarted',
+  InlineHarnessTaskEventShared,
+)
+export type InlineHarnessTaskThreadStarted = typeof InlineHarnessTaskThreadStarted.Type
+
+export const InlineHarnessTaskUpserted = Schema.TaggedStruct(
+  'InlineHarnessTaskUpserted',
+  InlineHarnessTaskEventShared,
+)
+export type InlineHarnessTaskUpserted = typeof InlineHarnessTaskUpserted.Type
+
+export const InlineHarnessTaskStatusChanged = Schema.TaggedStruct(
+  'InlineHarnessTaskStatusChanged',
+  {
+    ...InlineHarnessTaskEventShared,
+    previousStatus: Schema.optional(InlineTaskStatus),
+  },
+)
+export type InlineHarnessTaskStatusChanged = typeof InlineHarnessTaskStatusChanged.Type
+
+export const InlineHarnessTaskProgressChanged = Schema.TaggedStruct(
+  'InlineHarnessTaskProgressChanged',
+  InlineHarnessTaskEventShared,
+)
+export type InlineHarnessTaskProgressChanged = typeof InlineHarnessTaskProgressChanged.Type
+
+export const InlineHarnessTaskLogAppended = Schema.TaggedStruct(
+  'InlineHarnessTaskLogAppended',
+  InlineHarnessTaskEventShared,
+)
+export type InlineHarnessTaskLogAppended = typeof InlineHarnessTaskLogAppended.Type
+
+export const InlineHarnessTaskCompleted = Schema.TaggedStruct(
+  'InlineHarnessTaskCompleted',
+  {
+    ...InlineHarnessTaskEventShared,
+    status: Schema.Literal('completed'),
+  },
+)
+export type InlineHarnessTaskCompleted = typeof InlineHarnessTaskCompleted.Type
+
+export const InlineHarnessTaskFailed = Schema.TaggedStruct(
+  'InlineHarnessTaskFailed',
+  {
+    ...InlineHarnessTaskEventShared,
+    status: Schema.Literal('failed'),
+  },
+)
+export type InlineHarnessTaskFailed = typeof InlineHarnessTaskFailed.Type
+
+export const InlineHarnessTaskThreadCompleted = Schema.TaggedStruct(
+  'InlineHarnessTaskThreadCompleted',
+  {
+    ...InlineHarnessTaskEventShared,
+    status: Schema.Literal('completed', 'failed', 'cancelled'),
+  },
+)
+export type InlineHarnessTaskThreadCompleted = typeof InlineHarnessTaskThreadCompleted.Type
+
+export const InlineHarnessTaskEvent = Schema.Union(
+  InlineHarnessTaskThreadStarted,
+  InlineHarnessTaskUpserted,
+  InlineHarnessTaskStatusChanged,
+  InlineHarnessTaskProgressChanged,
+  InlineHarnessTaskLogAppended,
+  InlineHarnessTaskCompleted,
+  InlineHarnessTaskFailed,
+  InlineHarnessTaskThreadCompleted,
+)
+export type InlineHarnessTaskEvent = typeof InlineHarnessTaskEvent.Type
+
 export class AgentSpec extends Schema.Class<AgentSpec>('AgentSpec')({
   id: Schema.String,
   name: Schema.String,

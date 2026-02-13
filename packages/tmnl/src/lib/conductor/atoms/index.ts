@@ -16,6 +16,8 @@ import {
 } from '../services/ConductorService'
 import type { AgentInstance } from '../schemas'
 
+export * from './inline-task-thread'
+
 // Re-export primary atoms
 export {
   conductorStateAtom,
