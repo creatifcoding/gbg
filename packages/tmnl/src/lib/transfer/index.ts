@@ -1,13 +1,16 @@
 /**
  * Transfer Library
  *
- * Compound trait + hook system for drag/copy/paste reference transfer across surfaces.
+ * v2: Atom-family scoped, anime.js feedback, compound hook.
+ * v1: Legacy stx-based runtime (deprecated, preserved for backward compat).
  *
- * - Schema-first reference tokens
- * - stx runtime for drag + hover + clipboard
- * - Trait contracts for source/target capability declaration
- * - Hook runtime for draggable/droppable integration
+ * New consumers should use `@/lib/transfer/v2`.
  */
+
+// ── v2 re-export (preferred) ─────────────────────────────────
+export * as v2 from './v2'
+
+// ── v1 exports below (deprecated) ────────────────────────────
 
 export {
   TransferReferenceKindSchema,
