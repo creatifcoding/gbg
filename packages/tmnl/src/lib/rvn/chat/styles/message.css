@@ -275,6 +275,42 @@
   box-shadow: inset 0 0 0 1px #22d3eeaa;
 }
 
+/* Transfer v2 — data-transfer-dragging on shell thread-band rows */
+.rvn-chat__inline-task-shell-thread-band-row[data-transfer-dragging] {
+  opacity: 0.4;
+  pointer-events: none;
+  transition: opacity 120ms ease-out;
+}
+
+/* Transfer v2 — copy badge animation */
+.transfer-copy-badge {
+  position: absolute;
+  top: -20px;
+  right: 8px;
+  font-family: var(--font-data, 'Share Tech Mono', monospace);
+  font-size: var(--tmnl-text-xs, 12px);
+  color: var(--rvn-accent-cyan, #00e5ff);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Transfer v2 — target accept/reject outlines */
+.transfer-target--accept {
+  outline: 1px solid var(--rvn-accent-cyan, #00e5ff);
+  outline-offset: -1px;
+}
+
+.transfer-target--reject {
+  outline: 1px dashed var(--rvn-status-error, #ff4444);
+  outline-offset: -1px;
+}
+
+/* Transfer v2 — source dragging class */
+.transfer-source--dragging {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
 .rvn-chat__composer-reference-lane {
   display: flex;
   flex-wrap: wrap;
