@@ -333,6 +333,9 @@ export {
   ProviderStatus,
   SendMessageOptions,
   ProviderState,
+  ExtensionUIRequest,
+  ExtensionUIResponse,
+  ExtensionUIResponseKind,
   // Errors
   ChatSendError,
   ProviderNotConfiguredError,
@@ -344,6 +347,11 @@ export {
   // Bridge (for React adapter)
   AISDKBridgeService,
   type AISDKBridge,
+  // Pi Provider
+  PiProvider,
+  PiProviderConfig,
+  PiProviderConfigDefault,
+  type PiProviderConfigShape,
   // React Hook Adapter
   useAISDKProviderBridge,
   type UseAISDKProviderBridgeOptions,

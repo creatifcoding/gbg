@@ -63,6 +63,29 @@ export class ProviderState extends Schema.Class<ProviderState>('ProviderState')(
   streamingMessageId: Schema.NullOr(Schema.String),
 }) {}
 
+/**
+ * Generic interactive extension UI request surfaced by providers that support it (e.g. pi-rpc).
+ */
+export class ExtensionUIRequest extends Schema.Class<ExtensionUIRequest>('ExtensionUIRequest')({
+  requestId: Schema.String,
+  method: Schema.String,
+  payload: Schema.Unknown,
+  agentId: Schema.optionalWith(Schema.String, { as: 'Option' }),
+}) {}
+
+export const ExtensionUIResponseKind = Schema.Literal('value', 'confirm', 'cancel')
+export type ExtensionUIResponseKind = typeof ExtensionUIResponseKind.Type
+
+/**
+ * Generic interactive extension UI response payload.
+ */
+export class ExtensionUIResponse extends Schema.Class<ExtensionUIResponse>('ExtensionUIResponse')({
+  requestId: Schema.String,
+  kind: ExtensionUIResponseKind,
+  value: Schema.optionalWith(Schema.String, { as: 'Option' }),
+  confirmed: Schema.optionalWith(Schema.Boolean, { as: 'Option' }),
+}) {}
+
 // =============================================================================
 // SERVICE SHAPE
 // =============================================================================
@@ -113,6 +136,24 @@ export interface ChatDataProviderShape {
    * Clear conversation history
    */
   readonly clear: Effect.Effect<void>
+
+  /**
+   * Optional provider capability: expose provider/harness metrics.
+   * Implemented by providers that aggregate telemetry in-process (e.g. pi-rpc).
+   */
+  readonly getMetrics?: Effect.Effect<Readonly<Record<string, number>>>
+
+  /**
+   * Optional provider capability: list pending interactive extension UI requests.
+   * Implemented by providers like pi-rpc; absent on generic providers.
+   */
+  readonly getPendingExtensionUI?: Effect.Effect<readonly ExtensionUIRequest[]>
+
+  /**
+   * Optional provider capability: send extension UI response back to provider runtime.
+   * Implemented by providers like pi-rpc; absent on generic providers.
+   */
+  readonly respondExtensionUI?: (response: ExtensionUIResponse) => Effect.Effect<void, ChatSendError>
 
   /**
    * Stream of state changes (for reactive subscriptions)
@@ -212,7 +253,7 @@ export const NoopProvider = {
 /**
  * Provider type for runtime selection
  */
-export type ChatDataProviderType = 'noop' | 'ai-sdk' | 'terminal-v3'
+export type ChatDataProviderType = 'noop' | 'ai-sdk' | 'terminal-v3' | 'pi-rpc'
 
 /**
  * Registry of built-in providers

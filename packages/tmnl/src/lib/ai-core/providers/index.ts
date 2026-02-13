@@ -30,6 +30,9 @@ export {
   ProviderStatus,
   SendMessageOptions,
   ProviderState,
+  ExtensionUIRequest,
+  ExtensionUIResponse,
+  ExtensionUIResponseKind,
   // Errors
   ChatSendError,
   ProviderNotConfiguredError,
@@ -62,3 +65,14 @@ export {
   type UseAISDKProviderBridgeOptions,
   type UseAISDKProviderBridgeReturn,
 } from './useAISDKProviderBridge'
+
+// =============================================================================
+// Pi Provider
+// =============================================================================
+
+export {
+  PiProvider,
+  PiProviderConfig,
+  PiProviderConfigDefault,
+  type PiProviderConfigShape,
+} from './pi'
