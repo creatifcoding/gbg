@@ -111,6 +111,7 @@ export class GetSensorStateRpc extends Rpc.make(SensorGetStateTag, {
   payload: Schema.Struct({
     sensorId: SensorId,
   }),
+  primaryKey: ({ sensorId }) => sensorId,
   success: SensorState,
   error: RpcSensorNotFoundError,
 }) {}
@@ -122,6 +123,7 @@ export class GetLatestReadingRpc extends Rpc.make(SensorGetLatestTag, {
   payload: Schema.Struct({
     sensorId: SensorId,
   }),
+  primaryKey: ({ sensorId }) => sensorId,
   success: SensorReading,
   error: Schema.Union(RpcSensorNotFoundError, RpcNoReadingsError),
 }) {}
@@ -137,6 +139,7 @@ export class GetAggregatedReadingsRpc extends Rpc.make(SensorGetAggregatedTag, {
     until: Schema.optionalWith(Schema.DateTimeUtc, { as: 'Option' }),
     limit: Schema.optionalWith(Schema.Number, { default: () => 100 }),
   }),
+  primaryKey: ({ sensorId }) => sensorId,
   success: Schema.Array(AggregatedReading),
   error: Schema.Union(RpcSensorNotFoundError, RpcSensorQueryError),
 }) {}
@@ -150,6 +153,7 @@ export class GetReadingStatsRpc extends Rpc.make(SensorGetStatsTag, {
     since: Schema.DateTimeUtc,
     until: Schema.DateTimeUtc,
   }),
+  primaryKey: ({ sensorId }) => sensorId,
   success: ReadingStats,
   error: Schema.Union(RpcSensorNotFoundError, RpcSensorQueryError),
 }) {}

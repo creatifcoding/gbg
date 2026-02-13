@@ -132,6 +132,7 @@ export class GetCurrentStateRpc extends Rpc.make(EquipmentStateGetCurrentTag, {
   payload: Schema.Struct({
     machineId: MachineId,
   }),
+  primaryKey: ({ machineId }) => machineId,
   success: EquipmentState,
   error: RpcMachineStateNotFoundError,
 }) {}
@@ -146,6 +147,7 @@ export class GetStateHistoryRpc extends Rpc.make(EquipmentStateGetHistoryTag, {
     until: Schema.optionalWith(Schema.DateTimeUtc, { as: 'Option' }),
     limit: Schema.optionalWith(Schema.Number, { default: () => 100 }),
   }),
+  primaryKey: ({ machineId }) => machineId,
   success: Schema.Array(EquipmentState),
   error: RpcMachineStateNotFoundError,
 }) {}
@@ -161,6 +163,7 @@ export class TransitionStateRpc extends Rpc.make(EquipmentStateTransitionTag, {
     operatorId: Schema.optionalWith(Schema.String, { as: 'Option' }),
     notes: Schema.optionalWith(Schema.String, { as: 'Option' }),
   }),
+  primaryKey: ({ machineId }) => machineId,
   success: EquipmentState,
   error: Schema.Union(RpcMachineStateNotFoundError, RpcEquipmentTransitionError),
 }) {}
@@ -174,6 +177,7 @@ export class UpdateStateReasonRpc extends Rpc.make(EquipmentStateUpdateReasonTag
     reason: StateReason,
     notes: Schema.optionalWith(Schema.String, { as: 'Option' }),
   }),
+  primaryKey: ({ stateId }) => stateId,
   success: EquipmentState,
   error: RpcEquipmentStateNotFoundError,
 }) {}
@@ -193,6 +197,7 @@ export class GetOeeRpc extends Rpc.make(EquipmentStateGetOeeTag, {
     /** Optional: Total parts produced (for quality calculation) */
     totalPartsProduced: Schema.optionalWith(Schema.Number, { as: 'Option' }),
   }),
+  primaryKey: ({ machineId }) => machineId,
   success: OeeResult,
   error: Schema.Union(RpcMachineStateNotFoundError, RpcOeeCalculationError),
 }) {}
@@ -206,6 +211,7 @@ export class GetDurationsRpc extends Rpc.make(EquipmentStateGetDurationsTag, {
     since: Schema.DateTimeUtc,
     until: Schema.DateTimeUtc,
   }),
+  primaryKey: ({ machineId }) => machineId,
   success: StateDurationAggregate,
   error: RpcMachineStateNotFoundError,
 }) {}

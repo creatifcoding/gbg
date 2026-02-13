@@ -96,6 +96,7 @@ export class GetAssetRpc extends Rpc.make(AssetGetTag, {
   payload: Schema.Struct({
     assetId: AssetId,
   }),
+  primaryKey: ({ assetId }) => assetId,
   success: AssetRecord,
   error: RpcAssetNotFoundError,
 }) {}
@@ -108,6 +109,7 @@ export class GetChildrenRpc extends Rpc.make(AssetGetChildrenTag, {
     parentId: AssetId,
     level: Schema.optionalWith(EquipmentLevel, { as: 'Option' }),
   }),
+  primaryKey: ({ parentId }) => parentId,
   success: Schema.Array(AssetRecord),
   error: RpcAssetHierarchyError,
 }) {}
@@ -119,6 +121,7 @@ export class GetHierarchyRpc extends Rpc.make(AssetGetHierarchyTag, {
   payload: Schema.Struct({
     assetId: AssetId,
   }),
+  primaryKey: ({ assetId }) => assetId,
   success: AssetPath,
   error: RpcAssetNotFoundError,
 }) {}
@@ -135,6 +138,7 @@ export class UpdateAssetRpc extends Rpc.make(AssetUpdateTag, {
       { as: 'Option' }
     ),
   }),
+  primaryKey: ({ assetId }) => assetId,
   success: AssetRecord,
   error: Schema.Union(RpcAssetNotFoundError, RpcAssetValidationError),
 }) {}

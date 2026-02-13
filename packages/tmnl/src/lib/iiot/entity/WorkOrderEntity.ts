@@ -135,6 +135,7 @@ export class CreateWorkOrderRpc extends Rpc.make(WorkOrderCreateTag, {
       { default: () => ({}) }
     ),
   }),
+  primaryKey: ({ workflowDefinitionId }) => workflowDefinitionId,
   success: WorkOrder,
   error: RpcWorkOrderValidationError,
 }) {}
@@ -146,6 +147,7 @@ export class GetWorkOrderRpc extends Rpc.make(WorkOrderGetTag, {
   payload: Schema.Struct({
     workOrderId: WorkOrderId,
   }),
+  primaryKey: ({ workOrderId }) => workOrderId,
   success: WorkOrder,
   error: RpcWorkOrderNotFoundError,
 }) {}
@@ -158,6 +160,7 @@ export class SubmitWorkOrderRpc extends Rpc.make(WorkOrderSubmitTag, {
     workOrderId: WorkOrderId,
     comments: Schema.optionalWith(Schema.String, { as: 'Option' }),
   }),
+  primaryKey: ({ workOrderId }) => workOrderId,
   success: WorkOrder,
   error: Schema.Union(RpcWorkOrderNotFoundError, RpcWorkOrderTransitionError),
 }) {}
@@ -171,6 +174,7 @@ export class ApproveWorkOrderRpc extends Rpc.make(WorkOrderApproveTag, {
     approvalLevel: Schema.Number,
     comments: Schema.optionalWith(Schema.String, { as: 'Option' }),
   }),
+  primaryKey: ({ workOrderId }) => workOrderId,
   success: WorkOrder,
   error: Schema.Union(RpcWorkOrderNotFoundError, RpcWorkOrderTransitionError),
 }) {}
@@ -183,6 +187,7 @@ export class RejectWorkOrderRpc extends Rpc.make(WorkOrderRejectTag, {
     workOrderId: WorkOrderId,
     reason: Schema.NonEmptyString,
   }),
+  primaryKey: ({ workOrderId }) => workOrderId,
   success: WorkOrder,
   error: Schema.Union(RpcWorkOrderNotFoundError, RpcWorkOrderTransitionError),
 }) {}
@@ -195,6 +200,7 @@ export class StartWorkOrderRpc extends Rpc.make(WorkOrderStartTag, {
     workOrderId: WorkOrderId,
     assignedTo: Schema.optionalWith(Schema.String, { as: 'Option' }),
   }),
+  primaryKey: ({ workOrderId }) => workOrderId,
   success: WorkOrder,
   error: Schema.Union(RpcWorkOrderNotFoundError, RpcWorkOrderTransitionError),
 }) {}
@@ -209,6 +215,7 @@ export class SuspendWorkOrderRpc extends Rpc.make(WorkOrderSuspendTag, {
     expectedResume: Schema.optionalWith(Schema.DateTimeUtc, { as: 'Option' }),
     notes: Schema.optionalWith(Schema.String, { as: 'Option' }),
   }),
+  primaryKey: ({ workOrderId }) => workOrderId,
   success: WorkOrder,
   error: Schema.Union(RpcWorkOrderNotFoundError, RpcWorkOrderTransitionError),
 }) {}
@@ -221,6 +228,7 @@ export class ResumeWorkOrderRpc extends Rpc.make(WorkOrderResumeTag, {
     workOrderId: WorkOrderId,
     notes: Schema.optionalWith(Schema.String, { as: 'Option' }),
   }),
+  primaryKey: ({ workOrderId }) => workOrderId,
   success: WorkOrder,
   error: Schema.Union(RpcWorkOrderNotFoundError, RpcWorkOrderTransitionError),
 }) {}
@@ -234,6 +242,7 @@ export class CompleteWorkOrderRpc extends Rpc.make(WorkOrderCompleteTag, {
     outcome: WorkOrderOutcome,
     summary: Schema.String,
   }),
+  primaryKey: ({ workOrderId }) => workOrderId,
   success: WorkOrder,
   error: Schema.Union(RpcWorkOrderNotFoundError, RpcWorkOrderTransitionError),
 }) {}
@@ -247,6 +256,7 @@ export class FailWorkOrderRpc extends Rpc.make(WorkOrderFailTag, {
     failedTaskId: Schema.optionalWith(TaskInstanceId, { as: 'Option' }),
     failureReason: Schema.NonEmptyString,
   }),
+  primaryKey: ({ workOrderId }) => workOrderId,
   success: WorkOrder,
   error: Schema.Union(RpcWorkOrderNotFoundError, RpcWorkOrderTransitionError),
 }) {}
@@ -260,6 +270,7 @@ export class CancelWorkOrderRpc extends Rpc.make(WorkOrderCancelTag, {
     reason: Schema.NonEmptyString,
     compensationRequired: Schema.optionalWith(Schema.Boolean, { default: () => false }),
   }),
+  primaryKey: ({ workOrderId }) => workOrderId,
   success: WorkOrder,
   error: Schema.Union(RpcWorkOrderNotFoundError, RpcWorkOrderTransitionError),
 }) {}
@@ -273,6 +284,7 @@ export class CloseWorkOrderRpc extends Rpc.make(WorkOrderCloseTag, {
     finalStatus: WorkOrderFinalStatus,
     notes: Schema.optionalWith(Schema.String, { as: 'Option' }),
   }),
+  primaryKey: ({ workOrderId }) => workOrderId,
   success: WorkOrder,
   error: Schema.Union(RpcWorkOrderNotFoundError, RpcWorkOrderTransitionError),
 }) {}

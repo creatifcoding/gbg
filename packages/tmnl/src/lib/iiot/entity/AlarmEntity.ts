@@ -107,6 +107,7 @@ export const AlarmClearTag = `${AlarmEntityType}.Clear` as const
  */
 export class CreateAlarmRpc extends Rpc.make(AlarmCreateTag, {
   payload: CreateAlarmParams,
+  primaryKey: ({ deviceId }) => deviceId,
   success: Alarm,
   error: RpcQueryError,
 }) {}
@@ -118,6 +119,7 @@ export class GetAlarmRpc extends Rpc.make(AlarmGetTag, {
   payload: Schema.Struct({
     alarmId: AlarmId,
   }),
+  primaryKey: ({ alarmId }) => alarmId,
   success: Alarm,
   error: RpcAlarmNotFoundError,
 }) {}
@@ -127,6 +129,7 @@ export class GetAlarmRpc extends Rpc.make(AlarmGetTag, {
  */
 export class AcknowledgeAlarmRpc extends Rpc.make(AlarmAcknowledgeTag, {
   payload: AcknowledgeAlarmParams,
+  primaryKey: ({ alarmId }) => alarmId,
   success: Alarm,
   error: Schema.Union(RpcAlarmNotFoundError, RpcAlarmAlreadyAcknowledgedError),
 }) {}
@@ -138,6 +141,7 @@ export class ClearAlarmRpc extends Rpc.make(AlarmClearTag, {
   payload: Schema.Struct({
     alarmId: AlarmId,
   }),
+  primaryKey: ({ alarmId }) => alarmId,
   success: Alarm,
   error: Schema.Union(RpcAlarmNotFoundError, RpcAlarmAlreadyClearedError),
 }) {}
