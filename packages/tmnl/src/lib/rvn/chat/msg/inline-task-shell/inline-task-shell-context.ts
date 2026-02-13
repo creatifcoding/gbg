@@ -9,6 +9,7 @@
 import { createContext, useContext } from 'react'
 import type { HashMap } from 'effect'
 import type { RvnChatInlineTaskItem, RvnChatInlineTaskStatus } from '../inline-task-types'
+import type { InlineTaskTransferHandle } from '@/lib/transfer/v2/hooks'
 
 // ---------------------------------------------------------------------------
 // Metrics
@@ -61,6 +62,9 @@ export interface InlineTaskShellContextValue {
 
   /** Derived metrics */
   readonly metrics: InlineTaskShellMetrics
+
+  /** Transfer v2 handle (null when transfer not enabled) */
+  readonly transfer: InlineTaskTransferHandle | null
 }
 
 // ---------------------------------------------------------------------------
