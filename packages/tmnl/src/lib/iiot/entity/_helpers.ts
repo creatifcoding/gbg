@@ -96,6 +96,34 @@ export const maybeEmitEquipment = (
 }
 
 // =============================================================================
+// Asset Event Emission (Generic)
+// =============================================================================
+
+/**
+ * Generic non-blocking event emission for asset entities (Enterprise, Site, Area, etc.).
+ *
+ * Asset entities don't have a specific feature flag yet - always emits (log only).
+ * Failures are caught and logged, never propagating to caller.
+ *
+ * @param flags - The feature flags instance (passed for future extensibility)
+ * @param entityType - The asset entity type (e.g., 'Enterprise', 'Site', 'Area')
+ * @param eventType - The event type (e.g., 'EnterpriseCreated', 'SiteCommissioned')
+ * @param payload - The event payload to log
+ */
+export const maybeEmitAsset = (
+  _flags: FeatureFlagsShape,
+  entityType: string,
+  eventType: string,
+  payload: unknown
+): Effect.Effect<void> => {
+  return Effect.logInfo(`[ES:${entityType}] ${eventType}`, { payload }).pipe(
+    Effect.catchAll((err) =>
+      Effect.logWarning(`Event emission failed (non-blocking): ${String(err)}`)
+    )
+  )
+}
+
+// =============================================================================
 // Convenience: Combined Event Emission
 // =============================================================================
 

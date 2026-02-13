@@ -12,6 +12,15 @@ import { Layer } from 'effect'
 import { AlarmEntityHandlers } from './AlarmEntity'
 import { WorkOrderEntityHandlers } from './WorkOrderEntity'
 import { EquipmentStateEntityHandlers } from './EquipmentStateEntity'
+import { EnterpriseEntityHandlers } from './EnterpriseEntity'
+import { SiteEntityHandlers } from './SiteEntity'
+import { AreaEntityHandlers } from './AreaEntity'
+import { PlantEntityHandlers } from './PlantEntity'
+import { LineEntityHandlers } from './LineEntity'
+import { WorkCellEntityHandlers } from './WorkCellEntity'
+import { MachineAssetEntityHandlers } from './MachineAssetEntity'
+import { DeviceEntityHandlers } from './DeviceEntity'
+import { SensorAssetEntityHandlers } from './SensorAssetEntity'
 import { AllStateServicesInMemory } from '../state'
 import {
   IIoTFeatureFlagsDisabledLayer,
@@ -46,6 +55,15 @@ export const EntityHandlersLayer = Layer.mergeAll(
   AlarmEntityHandlers,
   WorkOrderEntityHandlers,
   EquipmentStateEntityHandlers,
+  EnterpriseEntityHandlers,
+  SiteEntityHandlers,
+  AreaEntityHandlers,
+  PlantEntityHandlers,
+  LineEntityHandlers,
+  WorkCellEntityHandlers,
+  MachineAssetEntityHandlers,
+  DeviceEntityHandlers,
+  SensorAssetEntityHandlers,
 )
 
 // =============================================================================

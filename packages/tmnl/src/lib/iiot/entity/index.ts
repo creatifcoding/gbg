@@ -2,16 +2,23 @@
  * IIoT Entity Barrel Export
  *
  * Effect Cluster Entity definitions for IIoT domain aggregates.
- * Each entity is a distributed actor managing lifecycle state.
+ * Each entity is a distributed actor managing lifecycle state via
+ * Machine-backed handlers and graph-validated state transitions.
  *
  * Entity Boundaries (per ADR-0012):
- * - Alarm: EVENT SOURCED - ISA-18.2 lifecycle
- * - WorkOrder: EVENT SOURCED - FDA 21 CFR Part 11 compliance
- * - EquipmentState: EVENT SOURCED - OEE tracking
- * - Asset: NOT event sourced - hierarchy queries
- * - Sensor: NOT event sourced - TimescaleDB reads
+ * - **Alarm**: EVENT SOURCED — ISA-18.2 lifecycle (triggered -> acknowledged -> cleared)
+ * - **WorkOrder**: EVENT SOURCED — FDA 21 CFR Part 11 compliance (draft -> approved -> completed)
+ * - **EquipmentState**: EVENT SOURCED — OEE tracking (running -> faulted -> idle)
+ * - **Asset**: NOT event sourced — ISA-95 hierarchy queries
+ * - **Sensor**: NOT event sourced — TimescaleDB time-series reads
  *
- * @module
+ * ISA-95 asset entities (Enterprise, Site, Area, Plant, Line, WorkCell, Machine, Device, Sensor)
+ * are NOT barrel-exported here due to generic RPC error name collisions.
+ * Import them directly: `import { SiteEntity } from './SiteEntity'`
+ *
+ * @module @gbg/tmnl/iiot/entity
+ * @see {@link EntityHandlersLayer} for composed handler layers
+ * @see {@link EntityTestingStack} for test-ready composition
  */
 
 // Alarm Entity - ISA-18.2 lifecycle (EVENT SOURCED)
@@ -124,6 +131,26 @@ export {
   EquipmentStateGetDurationsTag,
   type EquipmentStateEntity as EquipmentStateEntityTypeAlias,
 } from './EquipmentStateEntity'
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ISA-95 Asset Entities
+//
+// NOT barrel-exported because entity files share generic RPC error names
+// (RpcNotFoundError, RpcTransitionError, RpcQueryError).
+// Import directly from the specific entity file:
+//
+//   import { EnterpriseEntity, EnterpriseEntityHandlers } from './EnterpriseEntity'
+//   import { SiteEntity, SiteEntityHandlers } from './SiteEntity'
+//   import { AreaEntity, AreaEntityHandlers } from './AreaEntity'
+//   import { PlantEntity, PlantEntityHandlers } from './PlantEntity'
+//   import { LineEntity, LineEntityHandlers } from './LineEntity'
+//   import { WorkCellEntity, WorkCellEntityHandlers } from './WorkCellEntity'
+//   import { MachineAssetEntity, MachineAssetEntityHandlers } from './MachineAssetEntity'
+//   import { DeviceEntity, DeviceEntityHandlers } from './DeviceEntity'
+//   import { SensorAssetEntity, SensorAssetEntityHandlers } from './SensorAssetEntity'
+//
+// Their handlers are composed in EntityStack.EntityHandlersLayer.
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Entity Stack - Layer composition for testing and production
 export {
