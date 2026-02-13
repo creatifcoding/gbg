@@ -18,6 +18,7 @@ import {
   type RvnChatMessageRole,
   type RvnChatInlineTaskItem,
 } from './msg'
+import { InlineTaskShell } from './msg/inline-task-shell'
 import { RvnChatComposer } from './composer'
 import { RvnStatusChip, type RvnChatConnectionState } from './status'
 import {
@@ -231,6 +232,109 @@ const ARTIFACT_CARD_TASKS: ReadonlyArray<RvnChatInlineTaskItem> = (() => {
 /** @deprecated alias — use ARTIFACT_CARD_TASKS directly */
 const DEFAULT_ARTIFACT_CARD_TASKS = ARTIFACT_CARD_TASKS
 
+/**
+ * 6 tasks for the remediation pipeline — exercises InlineTaskShell compound.
+ * Different status distribution than ARTIFACT_CARD_TASKS to show shell metrics.
+ */
+const REMEDIATION_TASKS: ReadonlyArray<RvnChatInlineTaskItem> = (() => {
+  const now = DateTime.unsafeNow()
+  const t = (overrides: Omit<RvnChatInlineTaskItem, '_tag' | 'createdAt' | 'updatedAt'>): RvnChatInlineTaskItem => ({
+    _tag: 'AgentTask',
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  })
+
+  return [
+    t({
+      taskId: 'rm-001',
+      title: 'Lock intake valve V-4821-A to safe position',
+      status: 'completed',
+      progress: 100,
+      message: 'Valve locked at 62% open — safe operating position confirmed',
+      dependencies: [],
+      assignmentMode: 'dispatcher-assigned',
+      assignedAgentId: 'agent-actuator-01',
+      claimedBy: 'actuator-agent',
+      sessionId: 'sess-rm-01',
+      nodeId: 'node-field-3',
+      toolCallId: 'tc-valve-lock-001',
+      toolName: 'valve-controller',
+      lastSeq: 4,
+      metadata: { phase: 'interaction', owner: 'actuator-agent', deliverable: 'Valve lock confirmation' },
+    }),
+    t({
+      taskId: 'rm-002',
+      title: 'Deploy pressure relief bypass circuit',
+      status: 'completed',
+      progress: 100,
+      message: 'Bypass circuit PR-4821B activated — relief path confirmed',
+      dependencies: ['rm-001'],
+      assignmentMode: 'self-select',
+      claimedBy: 'circuit-agent',
+      sessionId: 'sess-rm-01',
+      nodeId: 'node-field-3',
+      toolCallId: 'tc-bypass-002',
+      toolName: 'circuit-manager',
+      lastSeq: 8,
+      metadata: { phase: 'interaction', owner: 'circuit-agent', deliverable: 'Bypass circuit activation' },
+    }),
+    t({
+      taskId: 'rm-003',
+      title: 'Monitor pressure decay curve for 60s window',
+      status: 'running',
+      progress: 72,
+      message: 'Sample 43/60 — pressure trending toward baseline (2,180 PSI, target 2,100)',
+      dependencies: ['rm-002'],
+      assignmentMode: 'handoff',
+      assignedAgentId: 'agent-monitor-01',
+      claimedBy: 'monitor-agent',
+      sessionId: 'sess-rm-02',
+      nodeId: 'node-analytics-2',
+      toolCallId: 'tc-decay-003',
+      toolName: 'pressure-monitor',
+      lastSeq: 43,
+      metadata: { phase: 'qa', owner: 'monitor-agent', deliverable: 'Pressure decay report', note: 'Sampling at 1Hz' },
+    }),
+    t({
+      taskId: 'rm-004',
+      title: 'Validate pressure within operating envelope',
+      status: 'queued',
+      dependencies: ['rm-003'],
+      assignmentMode: 'policy-assigned',
+      assignedAgentId: 'agent-qa-02',
+      sessionId: 'sess-rm-02',
+      nodeId: 'node-qa-1',
+      lastSeq: 44,
+      metadata: { phase: 'qa', owner: 'qa-agent', deliverable: 'Operating envelope compliance report' },
+    }),
+    t({
+      taskId: 'rm-005',
+      title: 'Generate remediation incident report for WO-4821',
+      status: 'queued',
+      dependencies: ['rm-003', 'rm-004'],
+      assignmentMode: 'dispatcher-assigned',
+      assignedAgentId: 'agent-report-01',
+      sessionId: 'sess-rm-03',
+      nodeId: 'node-analytics-2',
+      lastSeq: 45,
+      metadata: { phase: 'brief', owner: 'report-agent', deliverable: 'Incident report PDF + structured JSON' },
+    }),
+    t({
+      taskId: 'rm-006',
+      title: 'Notify operations team via channel broadcast',
+      status: 'queued',
+      dependencies: ['rm-005'],
+      assignmentMode: 'dispatcher-assigned',
+      assignedAgentId: 'agent-comms-01',
+      sessionId: 'sess-rm-03',
+      nodeId: 'node-comms-1',
+      lastSeq: 46,
+      metadata: { phase: 'interaction', owner: 'comms-agent', deliverable: 'Slack + PagerDuty notification' },
+    }),
+  ]
+})()
+
 const formatNowTime = () => DateTime.toDate(DateTime.unsafeNow()).toLocaleTimeString()
 
 const DEFAULT_MESSAGES: ReadonlyArray<RvnChatIsolatedMessage> = [
@@ -253,6 +357,20 @@ const DEFAULT_MESSAGES: ReadonlyArray<RvnChatIsolatedMessage> = [
     at: '09:15:48',
     tasks: DEFAULT_ARTIFACT_CARD_TASKS,
     telemetryLabel: 'telemetry',
+  },
+  {
+    id: 'msg-user-2',
+    role: 'user',
+    text: 'Execute remediation protocol. Lock V-4821-A, deploy bypass, confirm pressure decay.',
+    at: 'OPERATOR • 09:16:12',
+  },
+  {
+    id: 'msg-assistant-2',
+    role: 'assistant',
+    text: 'Initiating remediation pipeline for Sector 4 intake valve V-4821-A. 6 tasks dispatched.',
+    at: '09:16:15',
+    tasks: REMEDIATION_TASKS,
+    telemetryLabel: 'remediation',
   },
 ]
 
@@ -393,6 +511,54 @@ function AssistantAnalysisCard({
           </RvnChatMessageShell.AttachmentLane.InlineTaskThread>
         </RvnChatMessageShell.AttachmentLane.Root>
       ) : null}
+    </RvnChatArtifactCard>
+  )
+}
+
+/**
+ * Remediation card — uses InlineTaskShell compound instead of VirtualizedList.
+ * This is the v2 rendering path.
+ */
+function AssistantRemediationCard({
+  summary,
+  messageId,
+  tasks,
+}: {
+  summary: string
+  messageId: string
+  tasks: ReadonlyArray<RvnChatInlineTaskItem>
+}) {
+  return (
+    <RvnChatArtifactCard className="rvn-chat__analysis-card">
+      <RvnChatArtifactCard.Header className="rvn-chat__analysis-card-header">
+        <span className="rvn-chat__analysis-title">
+          <Zap size={RVN_CHAT_UTILITY_ICON_SIZE} strokeWidth={RVN_CHAT_ICON_STROKE_WIDTH} className="rvn-chat__analysis-title-icon" />
+          REMEDIATION: V-4821-A
+        </span>
+        <span className="rvn-chat__analysis-variance">
+          <Diamond size={RVN_CHAT_UTILITY_ICON_SIZE} strokeWidth={RVN_CHAT_ICON_STROKE_WIDTH} className="rvn-chat__analysis-variance-icon" />
+          PIPELINE ACTIVE
+        </span>
+      </RvnChatArtifactCard.Header>
+
+      <RvnChatArtifactCard.Body className="rvn-chat__analysis-card-body">
+        <p className="rvn-chat__analysis-copy">{summary}</p>
+      </RvnChatArtifactCard.Body>
+
+      <RvnChatMessageShell.AttachmentLane.Root messageAnchorId={messageId}>
+        <RvnChatMessageShell.AttachmentLane.InlineTaskThread>
+          <InlineTaskShell
+            threadId={`remediation:${messageId}`}
+            tasks={tasks}
+            defaultExpanded
+          >
+            <InlineTaskShell.ExpandBand label="Remediation Pipeline" />
+            <InlineTaskShell.MetricsBand />
+            <InlineTaskShell.ThreadBand estimatedRowHeight={44} overscan={8} />
+            <InlineTaskShell.SearchBand placeholder="Filter remediation tasks…" />
+          </InlineTaskShell>
+        </RvnChatMessageShell.AttachmentLane.InlineTaskThread>
+      </RvnChatMessageShell.AttachmentLane.Root>
     </RvnChatArtifactCard>
   )
 }
@@ -743,7 +909,13 @@ export function RvnChatIsolated({
                     </RvnChatMessageShell.HeaderCluster.Timestamp>
                   </RvnChatMessageShell.HeaderCluster.Root>
 
-                  {message.role === 'assistant' ? (
+                  {message.role === 'assistant' && message.telemetryLabel === 'remediation' && message.tasks ? (
+                    <AssistantRemediationCard
+                      summary={message.text}
+                      messageId={message.id}
+                      tasks={message.tasks}
+                    />
+                  ) : message.role === 'assistant' ? (
                     <AssistantAnalysisCard
                       summary={message.text}
                       messageId={message.id}
