@@ -242,3 +242,14 @@ export const logTotalCountFamily = Atom.family(
   (taskId: string) =>
     Atom.readable((get) => get(logBufferFamily(taskId)).length),
 )
+
+// ---------------------------------------------------------------------------
+// Re-export view state atoms
+// ---------------------------------------------------------------------------
+
+export {
+  taskViewModeFamily,
+  viewOrder,
+  getSlideDirection,
+  type TaskViewMode,
+} from './view-state'
