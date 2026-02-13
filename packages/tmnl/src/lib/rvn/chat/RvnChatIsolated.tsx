@@ -494,20 +494,16 @@ function AssistantAnalysisCard({
       {tasks && tasks.length > 0 ? (
         <RvnChatMessageShell.AttachmentLane.Root messageAnchorId={messageId}>
           <RvnChatMessageShell.AttachmentLane.InlineTaskThread>
-            <RvnChatInlineTaskThread.VirtualizedList
+            <InlineTaskShell
               threadId={`assistant:${messageId}`}
-              messageAnchorId={messageId}
-              expansionLevel={expansionLevel}
-              previewTasks={tasks}
-              expandedTasks={tasks}
-              previewCount={0}
-              estimatedRowHeight={44}
-              overscan={8}
-              transferSurfaceId="rvn-chat"
-              transferSourceLabel="Assistant analysis tasks"
-              transferClusterId={`cluster:${messageId}`}
-              transferClusterLabel="Assistant task cluster"
-            />
+              tasks={tasks}
+              defaultExpanded
+            >
+              <InlineTaskShell.ExpandBand />
+              <InlineTaskShell.MetricsBand />
+              <InlineTaskShell.ThreadBand estimatedRowHeight={44} overscan={8} />
+              <InlineTaskShell.SearchBand placeholder="Filter tasks…" />
+            </InlineTaskShell>
           </RvnChatMessageShell.AttachmentLane.InlineTaskThread>
         </RvnChatMessageShell.AttachmentLane.Root>
       ) : null}
