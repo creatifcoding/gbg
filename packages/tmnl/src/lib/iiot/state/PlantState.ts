@@ -183,7 +183,7 @@ export const PlantStateInMemory: Layer.Layer<PlantState> = Layer.effect(
             const plant = new Plant({
               id,
               name: params.name,
-              status: Option.isSome(params.status) ? params.status.value : 'active',
+              status: Option.isSome(params.status) ? params.status.value : 'commissioning',
               timezone: params.timezone,
               siteCode: params.siteCode,
               description: params.description,
@@ -331,7 +331,7 @@ export const makePlantStateSql = (repo: {
           const plant = new Plant({
             id,
             name: params.name,
-            status: Option.isSome(params.status) ? params.status.value : 'active',
+            status: Option.isSome(params.status) ? params.status.value : 'commissioning',
             timezone: params.timezone,
             siteCode: params.siteCode,
             description: params.description,

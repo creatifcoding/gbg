@@ -9,7 +9,7 @@
  */
 
 import { Schema } from 'effect'
-import { AssetStatus, AssetLocation, AssetMetadata, BaseAssetFields } from '../common/types'
+import { AssetLocation, AssetMetadata, BaseAssetFields } from '../common/types'
 import { HierarchyPath } from '../../hierarchy'
 
 // =============================================================================
@@ -42,6 +42,29 @@ export type PlantId = typeof PlantId.Type
  * @returns PlantId branded string (e.g., 'PLT-chicago-assembly')
  */
 export const makePlantId = (slug: string): PlantId => `PLT-${slug}` as PlantId
+
+// =============================================================================
+// Plant Status (domain-specific, overrides generic AssetStatus)
+// =============================================================================
+
+/**
+ * Plant lifecycle state per ISA-95 plant state graph.
+ * Overrides the generic AssetStatus for Plant entities.
+ */
+export const PlantStatus = Schema.Literal(
+  'commissioning',
+  'operational',
+  'scheduled_shutdown',
+  'emergency_shutdown',
+  'maintenance_shutdown',
+  'decommissioned'
+).pipe(
+  Schema.annotations({
+    identifier: '@gbg/tmnl/iiot/PlantStatus',
+    description: 'Plant lifecycle state per ISA-95 plant graph',
+  })
+)
+export type PlantStatus = typeof PlantStatus.Type
 
 // =============================================================================
 // Plant Entity
@@ -80,6 +103,9 @@ export class Plant extends Schema.TaggedClass<Plant>()('Plant', {
   // Spread base asset fields (name, status, description, location, metadata, timestamps, hierarchy)
   ...BaseAssetFields,
 
+  /** Plant lifecycle state (overrides generic AssetStatus) */
+  status: PlantStatus,
+
   /** IANA timezone identifier (e.g., 'America/Chicago') */
   timezone: Schema.String.pipe(
     Schema.annotations({
@@ -100,10 +126,10 @@ export class Plant extends Schema.TaggedClass<Plant>()('Plant', {
 
   /**
    * Check if plant is operational.
-   * A plant is operational if it's active or inactive (not in maintenance or decommissioned).
+   * A plant is operational only in the 'operational' state.
    */
   isOperational(): boolean {
-    return this.status === 'active' || this.status === 'inactive'
+    return this.status === 'operational'
   }
 
   /**
@@ -149,8 +175,8 @@ export const CreatePlantParams = Schema.Struct({
   /** IANA timezone identifier */
   timezone: Schema.String,
 
-  /** Initial status (defaults to 'active' in handler) */
-  status: Schema.optionalWith(AssetStatus, { as: 'Option' }),
+  /** Initial status (defaults to 'commissioning' in handler) */
+  status: Schema.optionalWith(PlantStatus, { as: 'Option' }),
 
   /** ERP site code */
   siteCode: Schema.optionalWith(Schema.String, { as: 'Option' }),
@@ -181,7 +207,7 @@ export const UpdatePlantParams = Schema.Struct({
   name: Schema.optionalWith(Schema.NonEmptyString, { as: 'Option' }),
 
   /** Updated status */
-  status: Schema.optionalWith(AssetStatus, { as: 'Option' }),
+  status: Schema.optionalWith(PlantStatus, { as: 'Option' }),
 
   /** Updated timezone */
   timezone: Schema.optionalWith(Schema.String, { as: 'Option' }),
