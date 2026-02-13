@@ -1,7 +1,8 @@
 /**
  * IIoT + Fermion Integration
  *
- * Minimal vertical slice: Fermion family that fetches sensor data from IIoT.
+ * Schema-driven Atom.family instances for IIoT domain entities.
+ * Each Fermion provides keyed atom access + Effect-based fetch.
  */
 
 import { Effect } from 'effect'
@@ -32,3 +33,20 @@ export const sensorFermion = Fermion.fromSchema(SensorReading)
     })
   )
   .buildWithDeps()
+
+// =============================================================================
+// Work Order Fermion
+// =============================================================================
+
+export {
+  workOrderFermion,
+  workOrderListAtom,
+  workOrderStatsAtom,
+  workOrdersByStatusAtom,
+  workOrdersByPriorityAtom,
+  fetchOpenWorkOrders,
+  fetchAllWorkOrders,
+  fetchWorkOrdersByStatus,
+  WorkOrderNotFoundError,
+} from './workOrderFermion'
+export type { WorkOrderStats } from './workOrderFermion'
