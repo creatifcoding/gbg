@@ -10,7 +10,7 @@
  */
 
 import { Schema, Option } from 'effect'
-import { AssetStatus, AssetMetadata, BaseAssetFields } from '../common/types'
+import { AssetMetadata, BaseAssetFields } from '../common/types'
 import { HierarchyPath } from '../../hierarchy'
 import { SiteId } from '../site/schema'
 import { EnterpriseId } from '../../identifiers'
@@ -46,6 +46,29 @@ export type AreaId = typeof AreaId.Type
  * @returns AreaId branded string (e.g., 'ARA-production-1')
  */
 export const makeAreaId = (slug: string): AreaId => `ARA-${slug}` as AreaId
+
+// =============================================================================
+// Area Status (domain-specific override of BaseAssetFields.status)
+// =============================================================================
+
+/**
+ * Area lifecycle status per ISA-95 area state graph.
+ * Overrides the generic AssetStatus to match the area graph states:
+ * active <-> restricted, active <-> maintenance, active <-> inactive, inactive|maintenance -> decommissioned
+ */
+export const AreaStatus = Schema.Literal(
+  'active',
+  'restricted',
+  'maintenance',
+  'inactive',
+  'decommissioned'
+).pipe(
+  Schema.annotations({
+    identifier: '@gbg/tmnl/iiot/AreaStatus',
+    description: 'Area lifecycle state per ISA-95 area graph',
+  })
+)
+export type AreaStatus = typeof AreaStatus.Type
 
 // =============================================================================
 // Area Type
@@ -118,6 +141,9 @@ export class Area extends Schema.TaggedClass<Area>()('Area', {
   // Spread common asset fields (from BaseAssetFields)
   ...BaseAssetFields,
 
+  /** Area lifecycle state (overrides generic AssetStatus from BaseAssetFields) */
+  status: AreaStatus,
+
   // Override required parent fields for Area (parent is Site)
   /** Parent enterprise identifier (required via Site) */
   enterpriseId: EnterpriseId,
@@ -147,10 +173,10 @@ export class Area extends Schema.TaggedClass<Area>()('Area', {
 
   /**
    * Check if area is operational.
-   * An area is operational if it's active or inactive (not in maintenance or decommissioned).
+   * An area is operational if it's active or restricted (not in maintenance, inactive, or decommissioned).
    */
   isOperational(): boolean {
-    return this.status !== 'maintenance' && this.status !== 'decommissioned'
+    return this.status === 'active' || this.status === 'restricted'
   }
 
   /**
@@ -199,7 +225,7 @@ export const CreateAreaParams = Schema.Struct({
   siteId: SiteId,
 
   /** Initial status (defaults to 'active' in handler) */
-  status: Schema.optionalWith(AssetStatus, { as: 'Option' }),
+  status: Schema.optionalWith(AreaStatus, { as: 'Option' }),
 
   /** Area type classification */
   areaType: Schema.optional(AreaType),
@@ -241,7 +267,7 @@ export const UpdateAreaParams = Schema.Struct({
   name: Schema.optionalWith(Schema.NonEmptyString, { as: 'Option' }),
 
   /** Updated status */
-  status: Schema.optionalWith(AssetStatus, { as: 'Option' }),
+  status: Schema.optionalWith(AreaStatus, { as: 'Option' }),
 
   /** Updated area type */
   areaType: Schema.optionalWith(AreaType, { as: 'Option' }),

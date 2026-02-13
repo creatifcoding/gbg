@@ -184,8 +184,8 @@ describe('Feature: Area Methods', () => {
       expect(createArea('active').isOperational()).toBe(true)
     })
 
-    it('Given inactive status, When calling isOperational, Then it should return true', () => {
-      expect(createArea('inactive').isOperational()).toBe(true)
+    it('Given inactive status, When calling isOperational, Then it should return false', () => {
+      expect(createArea('inactive').isOperational()).toBe(false)
     })
 
     it('Given maintenance status, When calling isOperational, Then it should return false', () => {

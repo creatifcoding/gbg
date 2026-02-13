@@ -152,10 +152,11 @@ export const AreaStateInMemory: Layer.Layer<AreaState> = Layer.effect(
             // For in-memory, we construct a simple path
             const hierarchyPath = HierarchyPath.make({
               segments: [
-                PathSegment.make({ level: 'site', id: params.siteId }),
-                PathSegment.make({ level: 'area', id }),
+                PathSegment.make({ level: 'site', id: params.siteId, name: Option.none() }),
+                PathSegment.make({ level: 'area', id, name: Option.some(params.name) }),
               ],
               materialized: `${params.siteId}/${id}`,
+              depth: 2,
             })
 
             const area = new Area({
@@ -176,6 +177,12 @@ export const AreaStateInMemory: Layer.Layer<AreaState> = Layer.effect(
               metadata: params.metadata ?? {},
               hierarchyPath,
               location: Option.none(),
+              // BaseAssetFields parent references (not applicable at area level)
+              areaId: Option.none(),
+              plantId: Option.none(),
+              lineId: Option.none(),
+              workCellId: Option.none(),
+              machineId: Option.none(),
             })
 
             yield* Ref.update(store, (map) => {
