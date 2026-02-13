@@ -16,6 +16,7 @@ import {
   RVN_CHAT_ROLE_ICON_SIZE,
   RVN_CHAT_UTILITY_ICON_SIZE,
   type RvnChatMessageRole,
+  AgentTask,
   type RvnChatInlineTaskItem,
 } from './msg'
 import { InlineTaskShell } from './msg/inline-task-shell'
@@ -121,12 +122,8 @@ const DEFAULT_AGENTS: ReadonlyArray<RvnChatIsolatedAgent> = [
  */
 const ARTIFACT_CARD_TASKS: ReadonlyArray<RvnChatInlineTaskItem> = (() => {
   const now = DateTime.unsafeNow()
-  const t = (overrides: Omit<RvnChatInlineTaskItem, '_tag' | 'createdAt' | 'updatedAt'>): RvnChatInlineTaskItem => ({
-    _tag: 'AgentTask',
-    createdAt: now,
-    updatedAt: now,
-    ...overrides,
-  })
+  const t = (overrides: Omit<RvnChatInlineTaskItem, '_tag' | 'createdAt' | 'updatedAt'>): RvnChatInlineTaskItem =>
+    new AgentTask({ createdAt: now, updatedAt: now, ...overrides })
 
   return [
     t({
@@ -238,12 +235,8 @@ const DEFAULT_ARTIFACT_CARD_TASKS = ARTIFACT_CARD_TASKS
  */
 const REMEDIATION_TASKS: ReadonlyArray<RvnChatInlineTaskItem> = (() => {
   const now = DateTime.unsafeNow()
-  const t = (overrides: Omit<RvnChatInlineTaskItem, '_tag' | 'createdAt' | 'updatedAt'>): RvnChatInlineTaskItem => ({
-    _tag: 'AgentTask',
-    createdAt: now,
-    updatedAt: now,
-    ...overrides,
-  })
+  const t = (overrides: Omit<RvnChatInlineTaskItem, '_tag' | 'createdAt' | 'updatedAt'>): RvnChatInlineTaskItem =>
+    new AgentTask({ createdAt: now, updatedAt: now, ...overrides })
 
   return [
     t({
@@ -714,8 +707,7 @@ export function RvnChatIsolated({
             text: `Telemetry indicates pressure fluctuation exceeding normal operating parameters after command: ${text}`,
             at: `${formatNowTime()}`,
             tasks: [
-              {
-                _tag: 'AgentTask' as const,
+              new AgentTask({
                 taskId: `task-${Date.now()}-a`,
                 title: 'Analyze incoming telemetry',
                 status: 'running',
@@ -723,16 +715,15 @@ export function RvnChatIsolated({
                 dependencies: [],
                 createdAt: DateTime.unsafeNow(),
                 updatedAt: DateTime.unsafeNow(),
-              },
-              {
-                _tag: 'AgentTask' as const,
+              }),
+              new AgentTask({
                 taskId: `task-${Date.now()}-b`,
                 title: 'Draft remediation options',
                 status: 'queued',
                 dependencies: [],
                 createdAt: DateTime.unsafeNow(),
                 updatedAt: DateTime.unsafeNow(),
-              },
+              }),
             ],
           },
         ])

@@ -7,7 +7,7 @@ import {
   type RvnChatIsolatedStatusRow,
   type RvnChatIsolatedSendPayload,
 } from '@/lib/rvn/chat'
-import type { RvnChatInlineTaskItem } from '@/lib/rvn/chat/msg'
+import { AgentTask, type RvnChatInlineTaskItem } from '@/lib/rvn/chat/msg'
 
 const AGENTS: ReadonlyArray<RvnChatIsolatedAgent> = [
   {
@@ -37,8 +37,7 @@ const task = (
   overrides: Omit<RvnChatInlineTaskItem, '_tag' | 'createdAt' | 'updatedAt' | 'dependencies'> & {
     dependencies?: ReadonlyArray<string>
   },
-): RvnChatInlineTaskItem => ({
-  _tag: 'AgentTask',
+): RvnChatInlineTaskItem => new AgentTask({
   createdAt: now,
   updatedAt: now,
   dependencies: [],
