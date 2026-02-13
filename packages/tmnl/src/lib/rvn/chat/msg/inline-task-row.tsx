@@ -299,6 +299,30 @@ export const RvnChatInlineTaskRow = forwardRef<HTMLElement, RvnChatInlineTaskRow
           </span>
         </button>
 
+        {/* Collapsed-row bottom bar: running = animated stripe, completed = green line */}
+        {status === 'running' && normalizedProgress !== null ? (
+          <div className="rvn-chat__inline-task-row-bottom-bar" aria-hidden="true">
+            <motion.div
+              className="rvn-chat__inline-task-row-bottom-bar-fill"
+              data-status="running"
+              initial={false}
+              animate={
+                !prefersReducedMotion
+                  ? { backgroundPositionX: ['0px', '16px'] }
+                  : undefined
+              }
+              transition={
+                !prefersReducedMotion
+                  ? { duration: 1, ease: 'linear', repeat: Number.POSITIVE_INFINITY }
+                  : undefined
+              }
+              style={{ width: `${normalizedProgress}%` }}
+            />
+          </div>
+        ) : status === 'completed' ? (
+          <div className="rvn-chat__inline-task-row-bottom-bar rvn-chat__inline-task-row-bottom-bar--completed" aria-hidden="true" />
+        ) : null}
+
         <AnimatePresence initial={false}>
           {expanded ? (
             <motion.div

@@ -15,12 +15,43 @@ import {
   useRef,
   type ComponentPropsWithoutRef,
   type KeyboardEvent,
+  type ReactNode,
 } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { motion, useReducedMotion } from 'motion/react'
+import { Eye, RotateCcw, X } from 'lucide-react'
 import { useInlineTaskShellContext } from '../inline-task-shell-context'
 import { RvnChatInlineTaskRow } from '../../inline-task-row'
+import type { InlineTaskRowAction } from '../row'
 import { cn } from '@/lib/utils'
+import {
+  RVN_CHAT_ICON_STROKE_WIDTH,
+} from '../../iconography'
+
+// ---------------------------------------------------------------------------
+// Props
+// ---------------------------------------------------------------------------
+
+// ── Default toolbar actions (muse parity: View Logs / Retry / Abort) ─────
+
+const DEFAULT_ACTIONS: ReadonlyArray<InlineTaskRowAction> = [
+  {
+    id: 'view-logs',
+    label: 'View Logs',
+    icon: <Eye size={12} strokeWidth={RVN_CHAT_ICON_STROKE_WIDTH} />,
+  },
+  {
+    id: 'retry',
+    label: 'Retry',
+    icon: <RotateCcw size={12} strokeWidth={RVN_CHAT_ICON_STROKE_WIDTH} />,
+  },
+  {
+    id: 'abort',
+    label: 'Abort',
+    icon: <X size={12} strokeWidth={RVN_CHAT_ICON_STROKE_WIDTH} />,
+    variant: 'danger',
+  },
+]
 
 // ---------------------------------------------------------------------------
 // Props
@@ -31,6 +62,14 @@ export interface ThreadBandProps extends ComponentPropsWithoutRef<'div'> {
   overscan?: number
   /** Maximum rows visible before scroll. Default 6. */
   maxVisibleRows?: number
+  /** Override toolbar actions per row. Default: View Logs / Retry / Abort */
+  actions?: ReadonlyArray<InlineTaskRowAction>
+  /** Callback when a toolbar action is clicked */
+  onAction?: (actionId: string, task: any) => void
+  /** Enable copy-to-clipboard per detail field. Default: true */
+  copyable?: boolean
+  /** Show standalone progress bar in expanded detail. Default: true */
+  showStandaloneProgress?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -43,6 +82,10 @@ export const ThreadBand = forwardRef<HTMLDivElement, ThreadBandProps>(
       estimatedRowHeight = 44,
       overscan = 10,
       maxVisibleRows = 6,
+      actions = DEFAULT_ACTIONS,
+      onAction,
+      copyable = true,
+      showStandaloneProgress = true,
       className,
       ...props
     },
@@ -191,6 +234,10 @@ export const ThreadBand = forwardRef<HTMLDivElement, ThreadBandProps>(
                         setExpandedTaskId(nextExpanded ? task.taskId : null)
                       }}
                       onSelectionToggle={toggleSelection}
+                      actions={actions}
+                      onAction={onAction}
+                      copyable={copyable}
+                      showStandaloneProgress={showStandaloneProgress}
                     />
                   </motion.div>
                 </div>

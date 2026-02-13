@@ -253,9 +253,17 @@
 }
 
 .rvn-chat__inline-task-row {
-  border: 0;
-  border-bottom: 1px solid #1f2937;
-  background: transparent;
+  position: relative;
+  border: 1px solid #1f2937;
+  border-radius: 6px;
+  background: #0a0a0a;
+  margin-bottom: 4px;
+  overflow: hidden;
+  transition: border-color 200ms ease;
+}
+
+.rvn-chat__inline-task-row:hover {
+  border-color: #374151;
 }
 
 .rvn-chat__inline-task-row--draggable {
@@ -346,13 +354,15 @@
   border: 0;
   background: transparent;
   color: inherit;
-  padding: 3px 6px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
   text-align: left;
   cursor: pointer;
+  position: relative;
+  user-select: none;
 }
 
 .rvn-chat__inline-task-row-head {
@@ -409,12 +419,91 @@
 .rvn-chat__inline-task-row-status {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  color: #e9e4d6;
-  text-transform: uppercase;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid transparent;
   font-weight: 700;
+  text-transform: uppercase;
   letter-spacing: 0.08em;
+  font-size: var(--tmnl-text-xs, 12px);
   flex-shrink: 0;
+}
+
+/* Status badge variants — colored bg + border + glow (muse parity) */
+
+.rvn-chat__inline-task-row[data-status='completed'] .rvn-chat__inline-task-row-status {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.1);
+  border-color: rgba(74, 222, 128, 0.2);
+}
+
+.rvn-chat__inline-task-row[data-status='running'] .rvn-chat__inline-task-row-status {
+  color: #22d3ee;
+  background: rgba(34, 211, 238, 0.1);
+  border-color: rgba(34, 211, 238, 0.2);
+  box-shadow: 0 0 10px rgba(0, 225, 255, 0.15);
+  animation: rvn-status-glow-blue 2s infinite;
+}
+
+.rvn-chat__inline-task-row[data-status='queued'] .rvn-chat__inline-task-row-status,
+.rvn-chat__inline-task-row[data-status='claimed'] .rvn-chat__inline-task-row-status {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.rvn-chat__inline-task-row[data-status='failed'] .rvn-chat__inline-task-row-status,
+.rvn-chat__inline-task-row[data-status='blocked'] .rvn-chat__inline-task-row-status,
+.rvn-chat__inline-task-row[data-status='cancelled'] .rvn-chat__inline-task-row-status {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.2);
+}
+
+.rvn-chat__inline-task-row[data-status='paused'] .rvn-chat__inline-task-row-status {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.2);
+}
+
+@keyframes rvn-status-glow-blue {
+  0% { box-shadow: 0 0 0 0 rgba(0, 225, 255, 0.2); }
+  70% { box-shadow: 0 0 0 6px rgba(0, 225, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 225, 255, 0); }
+}
+
+/* ── Collapsed-row bottom bar (muse parity) ── */
+
+.rvn-chat__inline-task-row-bottom-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: rgba(6, 182, 212, 0.15);
+  overflow: hidden;
+}
+
+.rvn-chat__inline-task-row-bottom-bar-fill {
+  height: 100%;
+  background: #22d3ee;
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.15) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.15) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 1rem 1rem;
+}
+
+.rvn-chat__inline-task-row-bottom-bar--completed {
+  height: 1px;
+  background: rgba(74, 222, 128, 0.3);
 }
 
 .rvn-chat__inline-task-row-status-label {
@@ -441,9 +530,8 @@
 
 .rvn-chat__inline-task-row-details {
   overflow: hidden;
-  padding: 0 6px 4px;
-  display: grid;
-  gap: 3px;
+  background: #080808;
+  border-top: 1px solid rgba(31, 41, 55, 0.5);
 }
 
 /* ── InlineTaskDetail compound component ── */
@@ -452,26 +540,58 @@
   padding: 2px 0;
 }
 
+/* ── Primary header row (Task ID chip, Title, Status, Progress) ── */
+
+.rvn-chat__inline-task-detail-primary {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 12px 16px;
+  padding: 16px 20px;
+  border-bottom: 1px dashed #1a1a1a;
+}
+
+.rvn-chat__inline-task-detail-chip {
+  display: inline-block;
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-sm, 14px);
+  color: #e5e7eb;
+  background: #1a1a1a;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #2a2a2a;
+}
+
+.rvn-chat__inline-task-detail-field--wide {
+  grid-column: span 2;
+}
+
+/* ── Detail fields grid (all remaining schema fields) ── */
+
 .rvn-chat__inline-task-detail-grid {
   margin: 0;
-  padding: 4px 6px;
+  padding: 16px 20px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 1px 8px;
-  background: #070b12;
-  border: 1px solid #1f2937;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px 16px;
 }
 
 .rvn-chat__inline-task-detail-field {
   display: flex;
-  gap: 4px;
-  align-items: baseline;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
-  padding: 1px 0;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: background 120ms ease;
+}
+
+.rvn-chat__inline-task-detail-field:hover {
+  background: rgba(31, 41, 55, 0.3);
 }
 
 .rvn-chat__inline-task-detail-field dt,
 .rvn-chat__inline-task-detail-field dd {
+  display: block;
   margin: 0;
   font-family: var(--rvn-font-mono);
   font-size: 12px;
@@ -483,11 +603,10 @@
 
 .rvn-chat__inline-task-detail-field dt {
   color: #64748b;
-  flex-shrink: 0;
-}
-
-.rvn-chat__inline-task-detail-field dt::after {
-  content: ':';
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: var(--tmnl-text-xs, 12px);
+  letter-spacing: 0.06em;
 }
 
 .rvn-chat__inline-task-detail-field dd {
@@ -496,6 +615,7 @@
 
 .rvn-chat__inline-task-detail-field-value {
   color: #cbd5e1;
+  font-size: var(--tmnl-text-xs, 12px);
 }
 
 /* ── Status field (matches row gutter semantics) ── */
@@ -1065,8 +1185,8 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 4px;
-  padding: 3px 6px;
+  gap: 6px;
+  padding: 8px 16px;
   border-top: 1px solid rgba(31, 41, 55, 0.5);
   background: #070707;
 }
