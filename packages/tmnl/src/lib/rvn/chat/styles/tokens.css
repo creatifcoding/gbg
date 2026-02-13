@@ -1,0 +1,44 @@
+.rvn-chat {
+  --rvn-bg-base: #f4f4f0;
+  --rvn-bg-thread: #f8f8f6;
+  --rvn-bg-panel: #ffffff;
+  --rvn-bg-muted: #f3f4f6;
+
+  --rvn-border: #121212;
+  --rvn-border-soft: #d1d5db;
+
+  --rvn-text: #121212;
+  --rvn-text-muted: #6b7280;
+  --rvn-text-dim: #9ca3af;
+
+  --rvn-accent-orange: #ea580c;
+  --rvn-accent-tan: #fdf6e3;
+  --rvn-text-tan: #8b7d5b;
+
+  --rvn-info-bg: #ecfeff;
+  --rvn-info-fg: #0f172a;
+  --rvn-warn-bg: #fef3c7;
+  --rvn-warn-fg: #78350f;
+  --rvn-error-bg: #fee2e2;
+  --rvn-error-fg: #7f1d1d;
+
+  --rvn-font-sans: var(--font-heading, 'Space Grotesk', sans-serif);
+  --rvn-font-mono: var(--font-data, 'Share Tech Mono', monospace);
+
+  --rvn-shadow-hard: 4px 4px 0 rgba(0, 0, 0, 0.12);
+  --rvn-shadow-hard-lg: 6px 6px 0 var(--rvn-border);
+}
+
+.rvn-chat,
+.rvn-chat * {
+  box-sizing: border-box;
+}
+
+.havoc-btn {
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease,
+    color 120ms ease;
+}
+
+.havoc-btn:active {
+  transform: translate(1px, 1px);
+}

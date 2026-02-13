@@ -1,0 +1,45 @@
+.rvn-chat-testbed {
+  min-height: 100vh;
+  background: #dcdcdc;
+  background-image: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.rvn-chat-testbed__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: #111;
+  text-transform: uppercase;
+  font-family: var(--font-data, 'Share Tech Mono', monospace);
+  font-size: var(--tmnl-text-xs, 12px);
+}
+
+.rvn-chat-testbed__title {
+  font-size: var(--tmnl-text-sm, 14px);
+  letter-spacing: 0.06em;
+}
+
+.rvn-chat-testbed__toggle {
+  min-height: 28px;
+  border: 2px solid #121212;
+  background: #fff;
+  color: #121212;
+  padding: 3px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: var(--tmnl-text-xs, 12px);
+  cursor: pointer;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.18);
+}
+
+.rvn-chat-testbed__surface {
+  width: min(1200px, 100%);
+  height: min(86vh, 960px);
+}

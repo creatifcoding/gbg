@@ -151,3 +151,6 @@
 [submodule "submodules/hex-effect"]
 	path = submodules/hex-effect
 	url = https://github.com/jkonowitch/hex-effect
+[submodule "submodules/pi-interactive-shell"]
+	path = submodules/pi-interactive-shell
+	url = https://github.com/nicobailon/pi-interactive-shell
