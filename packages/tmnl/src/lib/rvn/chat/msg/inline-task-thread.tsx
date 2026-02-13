@@ -20,6 +20,10 @@ import {
   type InlineTaskDetailFieldsProps,
   type InlineTaskBadgeProps,
 } from './inline-task-detail'
+import {
+  InlineTaskShell,
+  type InlineTaskShellRootProps,
+} from './inline-task-shell'
 import type {
   RvnChatInlineTaskItem,
   RvnChatInlineTaskMetadata,
@@ -55,6 +59,7 @@ interface RvnChatInlineTaskThreadComponent {
   Log: typeof RvnChatInlineTaskLog
   ExpandControl: typeof RvnChatInlineTaskExpandControl
   VirtualizedList: typeof RvnChatInlineTaskVirtualizedList
+  Shell: typeof InlineTaskShell
 }
 
 const InlineTaskThread = Root as RvnChatInlineTaskThreadComponent
@@ -64,6 +69,7 @@ InlineTaskThread.Detail = InlineTaskDetail
 InlineTaskThread.Log = RvnChatInlineTaskLog
 InlineTaskThread.ExpandControl = RvnChatInlineTaskExpandControl
 InlineTaskThread.VirtualizedList = RvnChatInlineTaskVirtualizedList
+InlineTaskThread.Shell = InlineTaskShell
 
 export { InlineTaskThread as RvnChatInlineTaskThread }
 export type {
@@ -73,6 +79,7 @@ export type {
   RvnChatInlineTaskLogEntry,
   RvnChatInlineTaskExpandControlProps,
   RvnChatInlineTaskVirtualizedListProps,
+  InlineTaskShellRootProps,
   RvnChatInlineTaskItem,
   RvnChatInlineTaskMetadata,
   RvnChatInlineTaskPhase,
