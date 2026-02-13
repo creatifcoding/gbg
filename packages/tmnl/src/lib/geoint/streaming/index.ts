@@ -62,3 +62,13 @@ export {
   LiveStatusIndicator,
   type LiveStatusIndicatorProps,
 } from './LiveDataProvider'
+
+export {
+  TrackStoreSinkConfig,
+  TrackStoreSourceConfig,
+  startTrackStoreSinkFromOutlet,
+  replayTrackStoreToChannelInlet,
+  streamTrackStoreToChannelInlet,
+  type TrackStoreSinkConfig as TrackStoreSinkConfigType,
+  type TrackStoreSourceConfig as TrackStoreSourceConfigType,
+} from './TrackStoreChannelBridge'
