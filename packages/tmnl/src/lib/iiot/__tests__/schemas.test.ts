@@ -134,7 +134,7 @@ describe('Feature: Asset Hierarchy Schemas', () => {
         _tag: 'Plant' as const,
         id: 'PLT-chicago-assembly',
         name: 'Chicago Assembly',
-        status: 'active' as const,
+        status: 'operational' as const,
         timezone: 'America/Chicago',
         hierarchyPath: createEncodedPlantHierarchyPath(),
         enterpriseId: 'ENT-acme',
@@ -154,7 +154,7 @@ describe('Feature: Asset Hierarchy Schemas', () => {
         _tag: 'Machine' as const,
         id: 'MCH-welding-robot-001',
         name: 'Welding Robot',
-        status: 'active' as const,
+        status: 'commissioned' as const,
         // Required parent IDs for Machine
         enterpriseId: 'ENT-acme',
         siteId: 'SIT-chicago',
@@ -172,7 +172,7 @@ describe('Feature: Asset Hierarchy Schemas', () => {
         _tag: 'Machine' as const,
         id: 'MCH-press-001',
         name: 'Press',
-        status: 'active' as const,
+        status: 'commissioned' as const,
         // Required parent IDs
         enterpriseId: 'ENT-acme',
         siteId: 'SIT-chicago',

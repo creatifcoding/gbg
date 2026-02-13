@@ -1,10 +1,14 @@
 /**
- * IIoT State Services Barrel Export
+ * IIoT State Services — Swappable Persistence Layer
  *
- * Swappable state services for IIoT domain aggregates.
- * Each service provides in-memory (testing) and SQL (production) implementations.
+ * Each domain aggregate has a state service with two implementations:
+ * - **In-memory** (`*InMemory`) — Map-backed, for unit/integration tests
+ * - **SQL** (`make*Sql()`) — Repository-backed factory for production
  *
- * @module
+ * Use {@link AllStateServicesInMemory} for testing stacks.
+ * Use individual `make*Sql()` factories with a repository pattern for production.
+ *
+ * @module @gbg/tmnl/iiot/state
  */
 
 import { Layer } from 'effect'
@@ -16,6 +20,7 @@ import { AreaState, AreaStateInMemory } from './AreaState'
 import { SensorAssetState, SensorAssetStateInMemory } from './SensorAssetState'
 import { PlantState, PlantStateInMemory } from './PlantState'
 import { EnterpriseState, EnterpriseStateInMemory } from './EnterpriseState'
+import { SiteState, SiteStateInMemory } from './SiteState'
 import { WorkCellState, WorkCellStateInMemory } from './WorkCellState'
 import { LineState, LineStateInMemory } from './LineState'
 import { DeviceState, DeviceStateInMemory } from './DeviceState'
@@ -32,6 +37,7 @@ export { AreaState } from './AreaState'
 export { SensorAssetState } from './SensorAssetState'
 export { PlantState } from './PlantState'
 export { EnterpriseState } from './EnterpriseState'
+export { SiteState } from './SiteState'
 export { WorkCellState } from './WorkCellState'
 export { LineState } from './LineState'
 export { DeviceState } from './DeviceState'
@@ -48,6 +54,7 @@ export { AreaStateInMemory } from './AreaState'
 export { SensorAssetStateInMemory } from './SensorAssetState'
 export { PlantStateInMemory } from './PlantState'
 export { EnterpriseStateInMemory } from './EnterpriseState'
+export { SiteStateInMemory } from './SiteState'
 export { WorkCellStateInMemory } from './WorkCellState'
 export { LineStateInMemory } from './LineState'
 export { DeviceStateInMemory } from './DeviceState'
@@ -59,34 +66,46 @@ export { DeviceStateInMemory } from './DeviceState'
 export { makeAlarmStateSql } from './AlarmState'
 export { makeWorkOrderStateSql } from './WorkOrderState'
 export { makeEquipmentStateSql } from './EquipmentStateService'
-export { makeMachineStateSql, MachineFilter, MachineStateShape } from './MachineState'
-export { makeAreaStateSql, AreaFilter, AreaStateShape, AreaStateNotFoundError } from './AreaState'
-export { makeSensorAssetStateSql, SensorAssetFilter, SensorAssetStateShape, SensorAssetStateNotFoundError } from './SensorAssetState'
-export { makePlantStateSql, PlantFilter, PlantStateShape, PlantStateNotFoundError } from './PlantState'
-export { makeEnterpriseStateSql, EnterpriseFilter, EnterpriseStateShape, EnterpriseStateNotFoundError } from './EnterpriseState'
-export { makeWorkCellStateSql, WorkCellFilter, WorkCellStateShape, WorkCellStateNotFoundError } from './WorkCellState'
-export { makeLineStateSql, LineFilter, LineStateShape, LineStateNotFoundError } from './LineState'
-export { makeDeviceStateSql, DeviceFilter, DeviceStateShape, DeviceStateNotFoundError } from './DeviceState'
+export { makeMachineStateSql } from './MachineState'
+export type { MachineFilter, MachineStateShape } from './MachineState'
+export { makeAreaStateSql, AreaStateNotFoundError } from './AreaState'
+export type { AreaFilter, AreaStateShape } from './AreaState'
+export { makeSensorAssetStateSql, SensorAssetStateNotFoundError } from './SensorAssetState'
+export type { SensorAssetFilter, SensorAssetStateShape } from './SensorAssetState'
+export { makePlantStateSql, PlantStateNotFoundError } from './PlantState'
+export type { PlantFilter, PlantStateShape } from './PlantState'
+export { makeEnterpriseStateSql, EnterpriseStateNotFoundError } from './EnterpriseState'
+export type { EnterpriseFilter, EnterpriseStateShape } from './EnterpriseState'
+export { makeSiteStateSql, SiteStateNotFoundError } from './SiteState'
+export type { SiteFilter, SiteStateShape } from './SiteState'
+export { makeWorkCellStateSql, WorkCellStateNotFoundError } from './WorkCellState'
+export type { WorkCellFilter, WorkCellStateShape } from './WorkCellState'
+export { makeLineStateSql, LineStateNotFoundError } from './LineState'
+export type { LineFilter, LineStateShape } from './LineState'
+export { makeDeviceStateSql, DeviceStateNotFoundError } from './DeviceState'
+export type { DeviceFilter, DeviceStateShape } from './DeviceState'
 
 // =============================================================================
 // Shape Interfaces
 // =============================================================================
 
-export {
+export type {
   AlarmStateShape,
   AlarmFilter,
-  AlarmStateNotFoundError,
   WorkOrderStateShape,
   WorkOrderFilter,
-  WorkOrderStateNotFoundError,
   EquipmentStateShapeInterface,
   EquipmentStateFilter,
-  EquipmentStateNotFoundError,
-  MachineStateNotFoundError,
   PaginationOptions,
   TimeRangeFilter,
   WorkCellStateShape as WorkCellStateShapeFromStateShape,
   WorkCellFilter as WorkCellFilterFromStateShape,
+} from './StateShape'
+export {
+  AlarmStateNotFoundError,
+  WorkOrderStateNotFoundError,
+  EquipmentStateNotFoundError,
+  MachineStateNotFoundError,
   WorkCellStateNotFoundError as WorkCellStateNotFoundErrorFromStateShape,
 } from './StateShape'
 
@@ -111,7 +130,7 @@ export {
  * ```
  */
 export const AllStateServicesInMemory: Layer.Layer<
-  AlarmState | WorkOrderState | EquipmentStateService | MachineState | AreaState | SensorAssetState | PlantState | EnterpriseState | WorkCellState | LineState | DeviceState
+  AlarmState | WorkOrderState | EquipmentStateService | MachineState | AreaState | SensorAssetState | PlantState | EnterpriseState | SiteState | WorkCellState | LineState | DeviceState
 > = Layer.mergeAll(
   AlarmStateInMemory,
   WorkOrderStateInMemory,
@@ -121,6 +140,7 @@ export const AllStateServicesInMemory: Layer.Layer<
   SensorAssetStateInMemory,
   PlantStateInMemory,
   EnterpriseStateInMemory,
+  SiteStateInMemory,
   WorkCellStateInMemory,
   LineStateInMemory,
   DeviceStateInMemory
