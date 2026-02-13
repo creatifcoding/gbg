@@ -340,15 +340,6 @@ export const RvnChatInlineTaskRow = forwardRef<HTMLElement, RvnChatInlineTaskRow
                 copyable={copyable}
               />
 
-              {(showStandaloneProgress ?? (normalizedProgress !== null)) && normalizedProgress !== null ? (
-                <div className="rvn-chat__inline-task-row-standalone-progress">
-                  <InlineTaskRowProgress
-                    progress={normalizedProgress}
-                    status={status}
-                  />
-                </div>
-              ) : null}
-
               {actions && actions.length > 0 ? (
                 <InlineTaskRowToolbar
                   task={task}
@@ -356,31 +347,6 @@ export const RvnChatInlineTaskRow = forwardRef<HTMLElement, RvnChatInlineTaskRow
                   onAction={onAction}
                 />
               ) : null}
-
-              {showProgress ? (
-                <div className="rvn-chat__inline-task-row-progress" aria-label={`Task progress ${progressWidth}%`}>
-                  <div className="rvn-chat__inline-task-row-progress-center">
-                    <motion.span
-                      className="rvn-chat__inline-task-row-progress-bar"
-                      initial={false}
-                      animate={
-                        animateStripe
-                          ? { backgroundPositionX: ['0px', '20px'] }
-                          : { backgroundPositionX: '0px' }
-                      }
-                      transition={
-                        animateStripe
-                          ? { duration: 1.1, ease: 'linear', repeat: Number.POSITIVE_INFINITY }
-                          : { duration: prefersReducedMotion ? 0.12 : 0.18, ease: 'easeOut' }
-                      }
-                      style={{ width: `${progressWidth}%` }}
-                    />
-                  </div>
-                </div>
-              ) : null}
-
-              {message ? <p className="rvn-chat__inline-task-row-message">{message}</p> : null}
-              {note ? <p className="rvn-chat__inline-task-row-message">{note}</p> : null}
             </motion.div>
           ) : null}
         </AnimatePresence>
