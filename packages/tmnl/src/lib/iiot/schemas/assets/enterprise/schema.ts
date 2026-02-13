@@ -10,7 +10,7 @@
  */
 
 import { Schema } from 'effect'
-import { AssetStatus, AssetMetadata, BaseAssetFields } from '../common'
+import { AssetMetadata, BaseAssetFields } from '../common'
 import { HierarchyPath } from '../../hierarchy'
 
 // =============================================================================
@@ -43,6 +43,28 @@ export type EnterpriseId = typeof EnterpriseId.Type
  * @returns EnterpriseId branded string (e.g., 'ENT-acme-corp')
  */
 export const makeEnterpriseId = (slug: string): EnterpriseId => `ENT-${slug}` as EnterpriseId
+
+// =============================================================================
+// Enterprise Status (domain-specific override of BaseAssetFields.status)
+// =============================================================================
+
+/**
+ * Enterprise lifecycle status per ISA-95 enterprise state graph.
+ * Overrides the generic AssetStatus to match the enterprise graph states:
+ * active -> restructuring (bidirectional), active -> merged (terminal), active|restructuring -> dissolved (terminal)
+ */
+export const EnterpriseStatus = Schema.Literal(
+  'active',
+  'restructuring',
+  'merged',
+  'dissolved'
+).pipe(
+  Schema.annotations({
+    identifier: '@gbg/tmnl/iiot/EnterpriseStatus',
+    description: 'Enterprise lifecycle state per ISA-95 enterprise graph',
+  })
+)
+export type EnterpriseStatus = typeof EnterpriseStatus.Type
 
 // =============================================================================
 // Enterprise Entity
@@ -78,6 +100,9 @@ export class Enterprise extends Schema.TaggedClass<Enterprise>()('Enterprise', {
   // Spread base asset fields (name, status, description, location, metadata, timestamps, hierarchyPath, parent IDs)
   ...BaseAssetFields,
 
+  /** Enterprise lifecycle state (overrides generic AssetStatus from BaseAssetFields) */
+  status: EnterpriseStatus,
+
   /** Industry sector (e.g., 'manufacturing', 'pharma', 'automotive') */
   industry: Schema.optionalWith(Schema.String, { as: 'Option' }),
 
@@ -100,10 +125,10 @@ export class Enterprise extends Schema.TaggedClass<Enterprise>()('Enterprise', {
 
   /**
    * Check if enterprise is operational.
-   * An enterprise is operational if it's active or inactive (not in maintenance or decommissioned).
+   * An enterprise is operational if it's active or restructuring (not merged or dissolved).
    */
   isOperational(): boolean {
-    return this.status === 'active' || this.status === 'inactive'
+    return this.status === 'active' || this.status === 'restructuring'
   }
 
   /**
@@ -152,7 +177,7 @@ export const CreateEnterpriseParams = Schema.Struct({
   name: Schema.NonEmptyString,
 
   /** Initial status (defaults to 'active' in handler) */
-  status: Schema.optionalWith(AssetStatus, { as: 'Option' }),
+  status: Schema.optionalWith(EnterpriseStatus, { as: 'Option' }),
 
   /** Industry sector */
   industry: Schema.optionalWith(Schema.String, { as: 'Option' }),
@@ -189,7 +214,7 @@ export const UpdateEnterpriseParams = Schema.Struct({
   name: Schema.optionalWith(Schema.NonEmptyString, { as: 'Option' }),
 
   /** Updated status */
-  status: Schema.optionalWith(AssetStatus, { as: 'Option' }),
+  status: Schema.optionalWith(EnterpriseStatus, { as: 'Option' }),
 
   /** Updated industry */
   industry: Schema.optionalWith(Schema.String, { as: 'Option' }),
