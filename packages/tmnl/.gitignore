@@ -13,3 +13,48 @@ vendor/osmmcp/
 # egui wasm output (built via wasm-pack)
 public/egui/*
 !public/egui/.gitkeep
+
+# Agent journals and research thoughts (high-volume, ephemeral)
+.agents/val/journal/
+thoughts/
+
+# Agent/editor config directories (third-party AI tools)
+.adal/
+.agent/
+.augment/
+.cline/
+.codebuddy/
+.codex/
+.commandcode/
+.continue/
+.crush/
+.cursor/
+.factory/
+.gemini/
+.goose/
+.junie/
+.kilocode/
+.kiro/
+.kode/
+.mcpjam/
+.mux/
+.neovate/
+.openclaude/
+.openhands/
+.pochi/
+.qoder/
+.qwen/
+.roo/
+.trae/
+.vibe/
+.windsurf/
+.zencoder/
+
+# Test artifacts and spikes (root level)
+hello.txt
+erl_crash.dump
+_test_embed.ts
+test_plant_insert.ts
+
+# Secrets
+auth.json
