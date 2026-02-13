@@ -16,7 +16,7 @@ import {
   CreateWorkCellParams,
 } from '../schema'
 import { makeLineId } from '../../line/schema'
-import { AssetStatus } from '../../common/types'
+import type { WorkCellStatus } from '../schema'
 import { HierarchyPath, PathSegment } from '../../../hierarchy'
 
 describe('WorkCell Schema', () => {
@@ -38,7 +38,7 @@ describe('WorkCell Schema', () => {
     new WorkCell({
       id: makeWorkCellId(slug),
       name: 'Welding Station 1' as Schema.Schema.Type<typeof Schema.NonEmptyString>,
-      status: 'active' as AssetStatus,
+      status: 'idle' as WorkCellStatus,
       hierarchyPath: makeTestHierarchyPath(slug),
       // Optional BaseAssetFields (all parent IDs are Option)
       enterpriseId: Option.none(),
@@ -112,15 +112,23 @@ describe('WorkCell Schema', () => {
       expect(workCell.getAutomationLevel()).toBe(1)
     })
 
-    it('isOperational returns true for active status', () => {
+    it('isOperational returns true for idle status', () => {
       const workCell = makeTestWorkCell()
       expect(workCell.isOperational()).toBe(true)
     })
 
-    it('isOperational returns true for inactive status', () => {
+    it('isOperational returns true for setup status', () => {
       const workCell = new WorkCell({
         ...makeTestWorkCell(),
-        status: 'inactive' as AssetStatus,
+        status: 'setup' as WorkCellStatus,
+      })
+      expect(workCell.isOperational()).toBe(true)
+    })
+
+    it('isOperational returns true for running status', () => {
+      const workCell = new WorkCell({
+        ...makeTestWorkCell(),
+        status: 'running' as WorkCellStatus,
       })
       expect(workCell.isOperational()).toBe(true)
     })
@@ -128,7 +136,7 @@ describe('WorkCell Schema', () => {
     it('isOperational returns false for maintenance status', () => {
       const workCell = new WorkCell({
         ...makeTestWorkCell(),
-        status: 'maintenance' as AssetStatus,
+        status: 'maintenance' as WorkCellStatus,
       })
       expect(workCell.isOperational()).toBe(false)
     })
@@ -136,7 +144,7 @@ describe('WorkCell Schema', () => {
     it('isOperational returns false for decommissioned status', () => {
       const workCell = new WorkCell({
         ...makeTestWorkCell(),
-        status: 'decommissioned' as AssetStatus,
+        status: 'decommissioned' as WorkCellStatus,
       })
       expect(workCell.isOperational()).toBe(false)
     })
@@ -150,7 +158,7 @@ describe('WorkCell Schema', () => {
       const workCell = new WorkCell({
         id: makeWorkCellId('minimal-cell'),
         name: 'Minimal Cell' as Schema.Schema.Type<typeof Schema.NonEmptyString>,
-        status: 'active' as AssetStatus,
+        status: 'idle' as WorkCellStatus,
         hierarchyPath: makeTestHierarchyPath('minimal-cell'),
         // All BaseAssetFields parent IDs as Option.none()
         enterpriseId: Option.none(),
@@ -198,7 +206,7 @@ describe('WorkCell Schema', () => {
           slug: 'welding-01',
           name: 'Welding Station 1',
           lineId: 'LIN-assembly-01',
-          status: 'active',
+          status: 'idle',
           cellType: 'welding',
           cycleTimeSeconds: 45,
           position: 3,
@@ -213,7 +221,7 @@ describe('WorkCell Schema', () => {
       })
     )
 
-    it.effect('defaults status to active when not provided', () =>
+    it.effect('defaults status to idle when not provided', () =>
       Effect.gen(function* () {
         const params = {
           slug: 'welding-01',
@@ -222,7 +230,7 @@ describe('WorkCell Schema', () => {
         }
 
         const decoded = yield* Schema.decodeUnknown(CreateWorkCellParams)(params)
-        expect(decoded.status).toBe('active')
+        expect(decoded.status).toBe('idle')
       })
     )
 

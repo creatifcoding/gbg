@@ -12,7 +12,7 @@
  */
 
 import { Schema } from 'effect'
-import { AssetStatus, AssetMetadata, BaseAssetFields } from '../common/types'
+import { AssetMetadata, BaseAssetFields } from '../common/types'
 import { LineId } from '../line/schema'
 import { HierarchyPath } from '../../hierarchy'
 
@@ -53,6 +53,30 @@ export type WorkCellId = typeof WorkCellId.Type
  */
 export const makeWorkCellId = (slug: string): WorkCellId =>
   `WCL-${slug}` as WorkCellId
+
+// =============================================================================
+// WorkCell Status (domain-specific, overrides generic AssetStatus)
+// =============================================================================
+
+/**
+ * WorkCell operational state per ISA-95 workcell state graph.
+ * Overrides the generic AssetStatus for WorkCell entities.
+ */
+export const WorkCellStatus = Schema.Literal(
+  'idle',
+  'setup',
+  'running',
+  'blocked',
+  'faulted',
+  'maintenance',
+  'decommissioned'
+).pipe(
+  Schema.annotations({
+    identifier: '@gbg/tmnl/iiot/WorkCellStatus',
+    description: 'WorkCell operational state per ISA-95 workcell graph',
+  })
+)
+export type WorkCellStatus = typeof WorkCellStatus.Type
 
 // =============================================================================
 // WorkCell Entity
@@ -101,6 +125,9 @@ export class WorkCell extends Schema.TaggedClass<WorkCell>()('WorkCell', {
   /** Spread BaseAssetFields for common asset properties */
   ...BaseAssetFields,
 
+  /** WorkCell operational state (overrides generic AssetStatus) */
+  status: WorkCellStatus,
+
   /** Work cell type classification (e.g., 'assembly', 'welding', 'packaging') */
   cellType: Schema.optionalWith(Schema.String, { as: 'Option' }),
 
@@ -128,12 +155,12 @@ export class WorkCell extends Schema.TaggedClass<WorkCell>()('WorkCell', {
 
   /**
    * Check if the work cell is operational.
-   * A work cell is operational if not in maintenance or decommissioned.
+   * A work cell is operational when idle, in setup, or running.
    *
-   * @returns true if status is 'active' or 'inactive'
+   * @returns true if status is 'idle', 'setup', or 'running'
    */
   isOperational(): boolean {
-    return this.status !== 'maintenance' && this.status !== 'decommissioned'
+    return this.status === 'idle' || this.status === 'setup' || this.status === 'running'
   }
 
   /**
@@ -193,8 +220,8 @@ export const CreateWorkCellParams = Schema.Struct({
   /** Parent line identifier */
   lineId: LineId,
 
-  /** Initial status (defaults to 'active' if not provided) */
-  status: Schema.optionalWith(AssetStatus, { default: () => 'active' as const }),
+  /** Initial status (defaults to 'idle' if not provided) */
+  status: Schema.optionalWith(WorkCellStatus, { default: () => 'idle' as const }),
 
   /** Work cell type classification */
   cellType: Schema.optional(Schema.String),

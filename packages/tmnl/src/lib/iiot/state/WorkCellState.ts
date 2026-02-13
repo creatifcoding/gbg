@@ -151,7 +151,7 @@ export const WorkCellStateInMemory: Layer.Layer<WorkCellState> = Layer.effect(
             const workCell = new WorkCell({
               id,
               name: params.name,
-              status: params.status ?? 'active',
+              status: params.status ?? 'idle',
               description: params.description !== undefined ? Option.some(params.description) : Option.none(),
               location: Option.none(),
               metadata: params.metadata ?? {},
@@ -277,7 +277,7 @@ export const makeWorkCellStateSql = (repo: {
           const workCell = new WorkCell({
             id,
             name: params.name,
-            status: params.status ?? 'active',
+            status: params.status ?? 'idle',
             description: params.description !== undefined ? Option.some(params.description) : Option.none(),
             location: Option.none(),
             metadata: params.metadata ?? {},
