@@ -1,3 +1,4 @@
+/** @deprecated Use `@/lib/transfer/v2/traits` — these v1 traits render null. */
 import { Schema } from 'effect'
 import { createTrait } from '@/lib/traits'
 import {

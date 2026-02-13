@@ -1,3 +1,8 @@
+/**
+ * @deprecated Use `@/lib/transfer/v2` instead.
+ * This module uses stx-based global mutable state.
+ * v2 uses atom-family scoped state with anime.js feedback.
+ */
 import { nanoid } from 'nanoid'
 import { stxData } from '@/lib/stx'
 import type {
