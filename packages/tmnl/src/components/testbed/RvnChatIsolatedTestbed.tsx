@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { DateTime } from 'effect'
 import {
   RvnChatIsolated,
   type RvnChatIsolatedAgent,
@@ -6,6 +7,7 @@ import {
   type RvnChatIsolatedStatusRow,
   type RvnChatIsolatedSendPayload,
 } from '@/lib/rvn/chat'
+import type { RvnChatInlineTaskItem } from '@/lib/rvn/chat/msg'
 
 const AGENTS: ReadonlyArray<RvnChatIsolatedAgent> = [
   {
@@ -28,6 +30,109 @@ const AGENTS: ReadonlyArray<RvnChatIsolatedAgent> = [
   },
 ]
 
+// ── Task factories ───────────────────────────────────────────
+
+const now = DateTime.unsafeNow()
+const task = (
+  overrides: Omit<RvnChatInlineTaskItem, '_tag' | 'createdAt' | 'updatedAt' | 'dependencies'> & {
+    dependencies?: ReadonlyArray<string>
+  },
+): RvnChatInlineTaskItem => ({
+  _tag: 'AgentTask',
+  createdAt: now,
+  updatedAt: now,
+  dependencies: [],
+  ...overrides,
+})
+
+// ── Analysis tasks (v1 VirtualizedList path) ─────────────────
+
+const ANALYSIS_TASKS: ReadonlyArray<RvnChatInlineTaskItem> = [
+  task({
+    taskId: 'iso-shell-01',
+    title: 'Hydrate shell bands',
+    status: 'completed',
+    progress: 100,
+    assignmentMode: 'dispatcher-assigned',
+    claimedBy: 'prime-agent',
+    metadata: { phase: 'layout', owner: 'prime-agent' },
+  }),
+  task({
+    taskId: 'iso-shell-02',
+    title: 'Attach message shell compounds',
+    status: 'running',
+    progress: 65,
+    message: 'Wiring attachment lane slots…',
+    dependencies: ['iso-shell-01'],
+    assignmentMode: 'self-select',
+    claimedBy: 'val-agent',
+    metadata: { phase: 'interaction', owner: 'val-agent' },
+  }),
+  task({
+    taskId: 'iso-shell-03',
+    title: 'Finalize transport actions',
+    status: 'queued',
+    dependencies: ['iso-shell-02'],
+    assignmentMode: 'policy-assigned',
+    metadata: { phase: 'qa' },
+  }),
+]
+
+// ── Remediation tasks (v2 InlineTaskShell path) ──────────────
+
+const REMEDIATION_TASKS: ReadonlyArray<RvnChatInlineTaskItem> = [
+  task({
+    taskId: 'rm-001',
+    title: 'Lock intake valve V-4821-A to safe position',
+    status: 'completed',
+    progress: 100,
+    message: 'Valve locked at 62% open — safe operating position confirmed',
+    assignmentMode: 'dispatcher-assigned',
+    claimedBy: 'actuator-agent',
+    metadata: { phase: 'interaction', owner: 'actuator-agent', deliverable: 'Valve lock confirmation' },
+  }),
+  task({
+    taskId: 'rm-002',
+    title: 'Deploy pressure relief bypass circuit',
+    status: 'completed',
+    progress: 100,
+    message: 'Bypass circuit PR-4821B activated',
+    dependencies: ['rm-001'],
+    assignmentMode: 'self-select',
+    claimedBy: 'circuit-agent',
+    metadata: { phase: 'interaction', owner: 'circuit-agent' },
+  }),
+  task({
+    taskId: 'rm-003',
+    title: 'Monitor pressure decay curve for 60s window',
+    status: 'running',
+    progress: 72,
+    message: 'Sample 43/60 — pressure trending toward baseline',
+    dependencies: ['rm-002'],
+    assignmentMode: 'handoff',
+    claimedBy: 'monitor-agent',
+    metadata: { phase: 'qa', owner: 'monitor-agent', note: 'Sampling at 1Hz' },
+  }),
+  task({
+    taskId: 'rm-004',
+    title: 'Validate pressure within operating envelope',
+    status: 'queued',
+    dependencies: ['rm-003'],
+    assignmentMode: 'policy-assigned',
+    metadata: { phase: 'qa', owner: 'qa-agent' },
+  }),
+  task({
+    taskId: 'rm-005',
+    title: 'Generate incident report for WO-4821',
+    status: 'queued',
+    dependencies: ['rm-003', 'rm-004'],
+    assignmentMode: 'dispatcher-assigned',
+    metadata: { phase: 'brief', owner: 'report-agent' },
+  }),
+]
+
+// ── Messages ─────────────────────────────────────────────────
+
 const INITIAL_MESSAGES: ReadonlyArray<RvnChatIsolatedMessage> = [
   {
     id: 'boot-1',
@@ -46,27 +151,22 @@ const INITIAL_MESSAGES: ReadonlyArray<RvnChatIsolatedMessage> = [
     role: 'assistant',
     text: 'Composition complete. Inline task feed attached.',
     at: 'assistant · 10:01:41',
-    tasks: [
-      {
-        taskId: 'iso-shell-01',
-        title: 'Hydrate shell bands',
-        status: 'completed',
-        progress: 100,
-      },
-      {
-        taskId: 'iso-shell-02',
-        title: 'Attach message shell compounds',
-        status: 'running',
-        progress: 65,
-        message: 'Wiring attachment lane slots…',
-      },
-      {
-        taskId: 'iso-shell-03',
-        title: 'Finalize transport actions',
-        status: 'queued',
-      },
-    ],
-    telemetryLabel: 'build telemetry',
+    tasks: ANALYSIS_TASKS,
+    telemetryLabel: 'telemetry',
+  },
+  {
+    id: 'user-2',
+    role: 'user',
+    text: 'Execute remediation protocol. Lock V-4821-A, deploy bypass, confirm pressure decay.',
+    at: 'operator · 10:02:03',
+  },
+  {
+    id: 'assistant-2',
+    role: 'assistant',
+    text: 'Initiating remediation pipeline for Sector 4 intake valve V-4821-A. 5 tasks dispatched.',
+    at: 'assistant · 10:02:06',
+    tasks: REMEDIATION_TASKS,
+    telemetryLabel: 'remediation',
   },
 ]
 
