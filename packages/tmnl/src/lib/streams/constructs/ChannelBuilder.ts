@@ -61,6 +61,7 @@ export interface InletBuilderConfig {
 /** Outlet builder configuration */
 export interface OutletBuilderConfig {
   readonly name?: string
+  readonly schema?: Schema.Schema<unknown, unknown>
   readonly broadcast?: boolean
   readonly maxLag?: number
 }
@@ -193,6 +194,7 @@ export class ChannelBuilder {
       id: outletId,
       name: config?.name ?? localId,
       channelId,
+      schema: config?.schema,
       broadcast: config?.broadcast ?? false,
       maxLag: config?.maxLag ?? 16,
       subscriberCount: 0,

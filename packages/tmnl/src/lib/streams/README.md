@@ -197,7 +197,8 @@ interface FeedsManagerService {
 
 | Document | Purpose |
 |----------|---------|
-| [API Reference](./docs/API.md) | Complete API signatures and types |
+| [API Reference](./docs/API.md) | Complete API signatures and runtime notes |
+| [Channel Protocol](./docs/CHANNEL.md) | Topology/protocol semantics + implementation status |
 | [Tutorial](./docs/TUTORIAL.md) | Step-by-step learning guide |
 | [Patterns](./docs/PATTERNS.md) | Problem → Solution catalog |
 

@@ -117,8 +117,12 @@ export {
   getChannel,
   openChannel,
   connectFeedToChannel,
+  outletHandle,
+  subscribeOutletHandle,
+  getOutletStreamHandle,
 } from "./ChannelService"
 export type {
   ChannelInstance,
   ChannelServiceShape,
+  OutletHandle,
 } from "./ChannelService"

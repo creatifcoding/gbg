@@ -183,6 +183,7 @@ class Outlet extends Schema.TaggedClass<Outlet>()("Outlet", {
   id: OutletId,
   name: Schema.String,
   channelId: ChannelId,
+  schema: Schema.optional(Schema.Unknown),
   broadcast: Schema.Boolean,
   maxLag: Schema.Number,
   subscriberCount: Schema.Number,
@@ -196,9 +197,12 @@ class Outlet extends Schema.TaggedClass<Outlet>()("Outlet", {
 | `id` | `OutletId` | Unique identifier |
 | `name` | `string` | Human-readable name |
 | `channelId` | `ChannelId` | Parent channel |
+| `schema` | `Schema?` | Optional outgoing payload validation/decoding |
 | `broadcast` | `boolean` | Enable fan-out to multiple subscribers |
 | `maxLag` | `number` | Backpressure: max items ahead of slowest consumer |
 | `subscriberCount` | `number` | Current number of subscribers |
+
+At runtime, outlet `schema` is enforced at egress publish boundary. Invalid payloads are suppressed for that outlet, `metrics.errors` increments, and `ChannelFaulted` is emitted.
 
 **Example:**
 
@@ -207,6 +211,7 @@ const filteredOutlet = new Outlet({
   id: "filtered" as OutletId,
   name: "Filtered Readings",
   channelId: "sensors" as ChannelId,
+  schema: Schema.Struct({ at: Schema.DateFromString }),
   broadcast: true,
   maxLag: 16,
   subscriberCount: 0,
@@ -1051,15 +1056,22 @@ const handleEvent = (event: ChannelEvent) => {
 
 ---
 
-## Next Steps
+## Runtime Status
 
-The Channel schemas define the **data model**. Implementation requires:
+Channel runtime is implemented and actively used.
 
-1. **ChannelBuilder** — Fluent API for constructing channels
-2. **ChannelService** — Effect.Service for runtime operations
-3. **ChannelManager** — Registry and lifecycle management (like FeedsManager)
+Implemented surfaces:
+1. **ChannelBuilder** — Fluent API for constructing channels.
+2. **ChannelService** — Effect.Service runtime with connect/open/close/metrics/events.
+3. **Protocol enforcement** — retry, timeout, circuit-breaker, and backpressure semantics.
+4. **Domain bridges** — IIoT ingestion channel adapter and GEOINT TrackStore channel bridge.
 
-See the implementation files (coming soon):
+Reference implementation files:
 - `constructs/ChannelBuilder.ts`
 - `constructs/ChannelService.ts`
-- `constructs/ChannelManager.ts`
+- `src/lib/iiot/adapters/ingestion-channel.ts`
+- `src/lib/geoint/streaming/TrackStoreChannelBridge.ts`
+
+Throughput/semantics scope policy:
+- `.pi/thoughts/shared/specs/streams/2026-02-07-e2e-claim-scope.md`
+- `.pi/thoughts/shared/specs/streams/2026-02-07-junction-semantics-depth.md`

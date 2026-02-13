@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from "@effect/vitest"
-import { Effect, Stream, Layer } from "effect"
+import { Effect, Stream, Layer, Deferred } from "effect"
 import {
   outletToAtom,
   channelOutletAtom,
@@ -157,6 +157,79 @@ describe("outletToAtom (pure)", () => {
 
       expect(handle._registry.get(handle.statusAtom)).toBe("idle")
     })
+
+    it("stop keeps status idle (interrupt does not race to error)", async () => {
+      const stream = Stream.never as Stream.Stream<number>
+
+      const handle = outletToAtom(stream, testChannelId, testOutletId, {
+        initialValue: [],
+        accumulate: (prev, next) => [...prev, next],
+      })
+
+      handle.start()
+      await waitFor(() => handle._registry.get(handle.statusAtom) === "running")
+
+      handle.stop()
+      await waitFor(() => handle._registry.get(handle.statusAtom) === "idle")
+
+      // Give interrupt callbacks time to settle; status must remain idle.
+      await new Promise((resolve) => setTimeout(resolve, 30))
+      expect(handle._registry.get(handle.statusAtom)).toBe("idle")
+    })
+
+    it("ignores stale failure from previous run after restart", async () => {
+      const failureGate = await Effect.runPromise(Deferred.make<void>())
+      let run = 0
+      let onErrorCount = 0
+
+      const stream = Stream.unwrap(
+        Effect.sync(() => {
+          run += 1
+
+          if (run === 1) {
+            return Stream.fromEffect(
+              Effect.uninterruptible(
+                Deferred.await(failureGate).pipe(
+                  Effect.flatMap(() => Effect.fail("stale-error"))
+                )
+              )
+            )
+          }
+
+          return Stream.never as Stream.Stream<never, string>
+        })
+      )
+
+      const handle = outletToAtom(stream, testChannelId, testOutletId, {
+        initialValue: [] as readonly number[],
+        accumulate: (prev, next) => [...prev, next],
+        onError: () => {
+          onErrorCount += 1
+        },
+      })
+
+      handle.start()
+      await waitFor(() => handle._registry.get(handle.statusAtom) === "running")
+
+      handle.stop()
+      await waitFor(() => handle._registry.get(handle.statusAtom) === "idle")
+
+      // Restart immediately. The first run is still uninterruptible and will fail later.
+      handle.start()
+      await waitFor(() => handle._registry.get(handle.statusAtom) === "running")
+
+      await Effect.runPromise(Deferred.succeed(failureGate, undefined))
+
+      // Let stale completion settle. It must not invoke onError or force error status.
+      await new Promise((resolve) => setTimeout(resolve, 30))
+
+      expect(onErrorCount).toBe(0)
+      const settledStatus = handle._registry.get(handle.statusAtom)
+      expect(settledStatus).not.toBe("error")
+
+      handle.stop()
+    })
+
   })
 
   describe("maxItems cap", () => {
@@ -249,7 +322,36 @@ describe("channelOutletAtom (ChannelService)", () => {
 
       // Cleanup
       yield* service.close(channelId)
-    }).pipe(Effect.provide(ChannelServiceLive))
+    }).pipe(Effect.scoped, Effect.provide(ChannelServiceLive))
+  )
+
+  it.effect("scope finalizer stops running handle when scope closes", () =>
+    Effect.gen(function* () {
+      const service = yield* ChannelService
+
+      const builder = createTestChannel()
+      const channelId = yield* service.register(builder)
+      yield* service.open(channelId)
+
+      const outletId = `${channelId}:outlet:output` as OutletId
+
+      const handle = yield* Effect.scoped(
+        Effect.gen(function* () {
+          const scopedHandle = yield* channelOutletAtomArray<number>(
+            channelId,
+            outletId,
+            { maxItems: 100 }
+          )
+          scopedHandle.start()
+          return scopedHandle
+        })
+      )
+
+      // addFinalizer in channelOutletAtom should have stopped this handle.
+      expect(handle._registry.get(handle.statusAtom)).toBe("idle")
+
+      yield* service.close(channelId)
+    }).pipe(Effect.scoped, Effect.provide(ChannelServiceLive))
   )
 
   it.effect("channelOutletAtomArray creates array accumulator", () =>
@@ -274,7 +376,7 @@ describe("channelOutletAtom (ChannelService)", () => {
       expect(initialValue).toEqual([])
 
       yield* service.close(channelId)
-    }).pipe(Effect.provide(ChannelServiceLive))
+    }).pipe(Effect.scoped, Effect.provide(ChannelServiceLive))
   )
 
   it.effect("channelOutletAtomLatest creates latest-value accumulator", () =>
@@ -298,7 +400,7 @@ describe("channelOutletAtom (ChannelService)", () => {
       expect(initialValue).toBeNull()
 
       yield* service.close(channelId)
-    }).pipe(Effect.provide(ChannelServiceLive))
+    }).pipe(Effect.scoped, Effect.provide(ChannelServiceLive))
   )
 
   it.effect("fails with CHANNEL_NOT_FOUND for missing channel", () =>
@@ -316,7 +418,7 @@ describe("channelOutletAtom (ChannelService)", () => {
       if (result._tag === "Left") {
         expect(result.left.code).toBe("CHANNEL_NOT_FOUND")
       }
-    }).pipe(Effect.provide(ChannelServiceLive))
+    }).pipe(Effect.scoped, Effect.provide(ChannelServiceLive))
   )
 
   it.effect("fails with OUTLET_NOT_FOUND for missing outlet", () =>
@@ -342,6 +444,6 @@ describe("channelOutletAtom (ChannelService)", () => {
       }
 
       yield* service.close(channelId)
-    }).pipe(Effect.provide(ChannelServiceLive))
+    }).pipe(Effect.scoped, Effect.provide(ChannelServiceLive))
   )
 })

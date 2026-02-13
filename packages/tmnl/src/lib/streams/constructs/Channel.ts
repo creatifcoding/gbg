@@ -97,6 +97,8 @@ export class Outlet extends Schema.TaggedClass<Outlet>()("Outlet", {
   id: OutletId,
   name: Schema.String,
   channelId: ChannelId,
+  /** Optional schema for validating/decoding outgoing payloads at publish boundary */
+  schema: Schema.optional(Schema.Unknown),
   /** Enable broadcasting to multiple subscribers */
   broadcast: Schema.Boolean,
   /** Maximum lag for broadcast backpressure */

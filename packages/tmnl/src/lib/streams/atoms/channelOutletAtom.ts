@@ -18,6 +18,9 @@ import * as Registry from "@effect-atom/atom/Registry"
 import * as Effect from "effect/Effect"
 import * as Stream from "effect/Stream"
 import * as Fiber from "effect/Fiber"
+import * as Exit from "effect/Exit"
+import * as Cause from "effect/Cause"
+import type * as Scope from "effect/Scope"
 import type { OutletId, ChannelId } from "../constructs/Channel"
 import { ChannelService, type ChannelServiceError } from "../constructs/ChannelService"
 
@@ -148,8 +151,9 @@ export const outletToAtom = <A, E = never, B = readonly A[]>(
     emitCount: 0,
   })
 
-  // Track running fiber
+  // Track running fiber + monotonic run ID to avoid stale callbacks
   let runningFiber: Fiber.RuntimeFiber<void, unknown> | null = null
+  let activeRunId = 0
 
   // Derived read-only atoms
   const valueAtom = Atom.make((get) => get(stateAtom).value)
@@ -164,12 +168,17 @@ export const outletToAtom = <A, E = never, B = readonly A[]>(
     registry.set(stateAtom, { ...currentState, ...patch })
   }
 
+  const isActiveRun = (runId: number): boolean => activeRunId === runId
+
   // Start the outlet stream subscription
   const startInternal = () => {
     const currentState = registry.get(stateAtom)
     if (currentState.status === "running") {
       return // Already running
     }
+
+    const runId = activeRunId + 1
+    activeRunId = runId
 
     updateState({
       value: initialValue,
@@ -180,60 +189,71 @@ export const outletToAtom = <A, E = never, B = readonly A[]>(
     let current: B = initialValue
     let emitCount = 0
 
-    const fiber = Effect.runFork(
-      stream.pipe(
-        Stream.tap((value) =>
-          Effect.sync(() => {
-            // Accumulate
-            current = accumulate(current, value)
-            emitCount++
+    const program = stream.pipe(
+      Stream.tap((value) =>
+        Effect.sync(() => {
+          if (!isActiveRun(runId)) return
 
-            // Apply maxItems cap for array-like values
-            if (maxItems !== undefined && Array.isArray(current)) {
-              if (current.length > maxItems) {
-                current = current.slice(-maxItems) as unknown as B
-              }
-            }
+          // Accumulate
+          current = accumulate(current, value)
+          emitCount++
 
-            // Batch: only update atom every N emissions
-            if (emitCount % batchEvery === 0) {
-              updateState({
-                value: current,
-                status: "running",
-                emitCount,
-              })
+          // Apply maxItems cap for array-like values
+          if (maxItems !== undefined && Array.isArray(current)) {
+            if (current.length > maxItems) {
+              current = current.slice(-maxItems) as unknown as B
             }
-          })
-        ),
-        Stream.runDrain,
-        // Handle success
-        Effect.tap(() =>
-          Effect.sync(() => {
+          }
+
+          // Batch: only update atom every N emissions
+          if (emitCount % batchEvery === 0) {
+            updateState({
+              value: current,
+              status: "running",
+              emitCount,
+            })
+          }
+        })
+      ),
+      Stream.runDrain,
+      Effect.exit,
+      Effect.tap((exit) =>
+        Effect.sync(() => {
+          if (!isActiveRun(runId)) return
+
+          runningFiber = null
+
+          if (Exit.isSuccess(exit)) {
             updateState({
               value: current,
               status: "complete",
               emitCount,
             })
-            runningFiber = null
             onComplete?.(current)
-          })
-        ),
-        // Handle errors
-        Effect.tapError((error) =>
-          Effect.sync(() => {
+            return
+          }
+
+          if (Cause.isInterruptedOnly(exit.cause)) {
             updateState({
               value: current,
-              status: "error",
+              status: "idle",
               emitCount,
             })
-            runningFiber = null
-            onError?.(error)
+            return
+          }
+
+          updateState({
+            value: current,
+            status: "error",
+            emitCount,
           })
-        ),
-        Effect.catchAll(() => Effect.void)
-      )
+          onError?.(Cause.squash(exit.cause))
+        })
+      ),
+      Effect.asVoid
     )
 
+    const fiber = Effect.runFork(program)
     runningFiber = fiber
   }
 
@@ -244,9 +264,14 @@ export const outletToAtom = <A, E = never, B = readonly A[]>(
       return // Not running
     }
 
-    if (runningFiber !== null) {
-      Effect.runFork(Fiber.interrupt(runningFiber))
-      runningFiber = null
+    // Invalidate active run first so stale callbacks cannot mutate state.
+    activeRunId += 1
+
+    const fiberToStop = runningFiber
+    runningFiber = null
+
+    if (fiberToStop !== null) {
+      Effect.runFork(Fiber.interrupt(fiberToStop))
     }
 
     updateState({ status: "idle" })
@@ -296,17 +321,19 @@ export const channelOutletAtom = <A, B = readonly A[]>(
   channelId: ChannelId,
   outletId: OutletId,
   options: ChannelOutletAtomOptions<A, B>
-): Effect.Effect<ChannelOutletAtomHandle<A, B>, ChannelServiceError, ChannelService> =>
+): Effect.Effect<ChannelOutletAtomHandle<A, B>, ChannelServiceError, ChannelService | Scope.Scope> =>
   Effect.gen(function* () {
     const service = yield* ChannelService
-    const stream = yield* service.getOutletStream(channelId, outletId)
+    const stream = yield* service.getOutletStream<A>(channelId, outletId)
+    const handle = outletToAtom(stream, channelId, outletId, options)
 
-    return outletToAtom(
-      stream as Stream.Stream<A, unknown, never>,
-      channelId,
-      outletId,
-      options
+    yield* Effect.addFinalizer(() =>
+      Effect.sync(() => {
+        handle.stop()
+      })
     )
+
+    return handle
   })
 
 // ============================================================================
@@ -329,7 +356,11 @@ export const channelOutletAtomArray = <A>(
   options?: Omit<ChannelOutletAtomOptions<A, readonly A[]>, "initialValue" | "accumulate"> & {
     readonly initialValue?: readonly A[]
   }
-): Effect.Effect<ChannelOutletAtomHandle<A, readonly A[]>, ChannelServiceError, ChannelService> =>
+): Effect.Effect<
+  ChannelOutletAtomHandle<A, readonly A[]>,
+  ChannelServiceError,
+  ChannelService | Scope.Scope
+> =>
   channelOutletAtom(channelId, outletId, {
     initialValue: options?.initialValue ?? [],
     accumulate: (prev, next) => [...prev, next],
@@ -349,7 +380,11 @@ export const channelOutletAtomLatest = <A>(
   channelId: ChannelId,
   outletId: OutletId,
   options?: Omit<ChannelOutletAtomOptions<A, A | null>, "initialValue" | "accumulate" | "maxItems">
-): Effect.Effect<ChannelOutletAtomHandle<A, A | null>, ChannelServiceError, ChannelService> =>
+): Effect.Effect<
+  ChannelOutletAtomHandle<A, A | null>,
+  ChannelServiceError,
+  ChannelService | Scope.Scope
+> =>
   channelOutletAtom(channelId, outletId, {
     initialValue: null,
     accumulate: (_prev, next) => next,

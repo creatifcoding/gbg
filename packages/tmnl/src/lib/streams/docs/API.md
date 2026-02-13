@@ -441,7 +441,7 @@ function sendCommand(
 
 The Channel construct provides a topological multiplexing protocol for multi-input, multi-output streaming with resilience patterns.
 
-> **Note:** Channel schemas define the protocol. Implementation (ChannelBuilder, ChannelService) follows in a future iteration.
+> **Runtime status (current):** `ChannelBuilder` and `ChannelService` are implemented and production-wired in TMNL. Inlet schema validation, retry/circuit-breaker/timeout protocol enforcement, and typed domain adapter bridges (IIoT + GEOINT) are covered by integration tests.
 
 ### Identity Types
 
@@ -510,6 +510,7 @@ class Outlet extends Schema.TaggedClass<Outlet>()("Outlet", {
   id: OutletId,
   name: Schema.String,
   channelId: ChannelId,
+  schema: Schema.optional(Schema.Unknown),
   broadcast: Schema.Boolean,
   maxLag: Schema.Number,
   subscriberCount: Schema.Number,
@@ -521,6 +522,7 @@ class Outlet extends Schema.TaggedClass<Outlet>()("Outlet", {
 | `id` | `OutletId` | Unique outlet identifier |
 | `name` | `string` | Human-readable name |
 | `channelId` | `ChannelId` | Parent channel |
+| `schema` | `Schema<unknown>?` | Outgoing payload validation/decoding |
 | `broadcast` | `boolean` | Multi-subscriber mode |
 | `maxLag` | `number` | Backpressure threshold |
 | `subscriberCount` | `number` | Active subscribers |
@@ -846,3 +848,36 @@ export { ChannelRequest, ChannelResponse, ChannelAck, ChannelNack }
 // Channel State
 export { ChannelTopology, ChannelMetrics, ChannelState, ChannelConfig }
 ```
+
+---
+
+## Typed Outlet Handle Helpers
+
+Prefer typed helpers over raw generics when consuming outlet streams:
+
+```typescript
+import {
+  outletHandle,
+  subscribeOutletHandle,
+  getOutletStreamHandle,
+} from "@/lib/streams/constructs"
+
+const OutSchema = Schema.Struct({ at: Schema.DateFromString })
+const handle = outletHandle(channelId, outletId, OutSchema)
+
+const queue = yield* subscribeOutletHandle(handle) // Queue<{ at: Date }>
+const stream = yield* getOutletStreamHandle(handle) // Stream<{ at: Date }>
+```
+
+`subscribeOutletHandle` / `getOutletStreamHandle` fail fast with `BUILD_FAILED` on schema mismatch.
+
+---
+
+## Claim Scope Policy (Throughput/Completion)
+
+Performance claims for Channel runtime are **profile-scoped** and **environment-specific**.
+
+Canonical references:
+- `artifacts/benchmarks/streams-channel-junction-benchmark.json`
+- `.pi/thoughts/shared/specs/streams/2026-02-07-e2e-claim-scope.md`
+- `.pi/thoughts/shared/specs/streams/2026-02-07-junction-semantics-depth.md`
