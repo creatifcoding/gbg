@@ -1,0 +1,448 @@
+/* ==========================================================================
+ * Agent Task Log View — Component-level CSS
+ *
+ * Visual language from integrate specs:
+ * - Black bg, rounded border, monospace everything
+ * - Timestamp in blue, level badges colored by severity
+ * - Live indicator dot (red pulse)
+ * - Compact density (12px base, 1px line spacing)
+ * ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+ * LogEntryRow
+ * --------------------------------------------------------------------------- */
+
+.at-log-entry {
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #9ca3af; /* gray-400 */
+}
+
+.at-log-entry__line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 1px 0;
+  cursor: default;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.at-log-entry[data-expandable] .at-log-entry__line {
+  cursor: pointer;
+}
+
+.at-log-entry[data-expandable] .at-log-entry__line:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Timestamp — blue accent */
+.at-log-entry__timestamp {
+  color: #3b82f6; /* blue-500 */
+  flex-shrink: 0;
+}
+
+/* Level badge — colored by data-level */
+.at-log-entry__level {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  min-width: 40px;
+  text-align: center;
+}
+
+.at-log-entry[data-level="debug"] .at-log-entry__level {
+  color: #6b7280;
+  background: rgba(107, 114, 128, 0.1);
+}
+
+.at-log-entry[data-level="info"] .at-log-entry__level {
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.at-log-entry[data-level="warn"] .at-log-entry__level {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+}
+
+.at-log-entry[data-level="error"] .at-log-entry__level {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.at-log-entry[data-level="fatal"] .at-log-entry__level {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.2);
+  font-weight: 800;
+}
+
+/* Source — dimmed */
+.at-log-entry__source {
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.at-log-entry__source::after {
+  content: ':';
+}
+
+/* Message — primary text */
+.at-log-entry__message {
+  color: #d1d5db; /* gray-300 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.at-log-entry[data-level="error"] .at-log-entry__message,
+.at-log-entry[data-level="fatal"] .at-log-entry__message {
+  color: #fca5a5; /* red-300 */
+}
+
+.at-log-entry[data-level="warn"] .at-log-entry__message {
+  color: #fde68a; /* yellow-200 */
+}
+
+/* Span indicator */
+.at-log-entry__span {
+  color: #6b7280;
+  font-size: 10px;
+  cursor: help;
+  flex-shrink: 0;
+}
+
+/* Expanded metadata */
+.at-log-entry__meta {
+  padding: 4px 0 4px 80px;
+  border-left: 2px solid rgba(59, 130, 246, 0.2);
+  margin-left: 8px;
+}
+
+.at-log-entry__meta-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+.at-log-entry__meta-label {
+  color: #6b7280;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  min-width: 60px;
+}
+
+.at-log-entry__meta-value {
+  color: #9ca3af;
+  font-size: 11px;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.at-log-entry__meta-value--inline {
+  color: #a5b4fc; /* indigo-300 */
+  font-family: inherit;
+}
+
+/* ---------------------------------------------------------------------------
+ * LogFilterBar
+ * --------------------------------------------------------------------------- */
+
+.at-log-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.6);
+  background: rgba(0, 0, 0, 0.3);
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+  font-size: 12px;
+}
+
+.at-log-filter-bar__severity {
+  display: flex;
+  gap: 2px;
+}
+
+.at-log-filter-bar__severity-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.at-log-filter-bar__severity-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #9ca3af;
+}
+
+.at-log-filter-bar__severity-btn[data-active] {
+  border-color: currentColor;
+}
+
+.at-log-filter-bar__severity-btn[data-level="debug"][data-active] {
+  color: #6b7280;
+  background: rgba(107, 114, 128, 0.15);
+}
+
+.at-log-filter-bar__severity-btn[data-level="info"][data-active] {
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.15);
+}
+
+.at-log-filter-bar__severity-btn[data-level="warn"][data-active] {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.15);
+}
+
+.at-log-filter-bar__severity-btn[data-level="error"][data-active] {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.15);
+}
+
+.at-log-filter-bar__severity-btn[data-level="fatal"][data-active] {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.at-log-filter-bar__input {
+  flex: 1;
+  min-width: 80px;
+  height: 22px;
+  padding: 0 6px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(55, 65, 81, 0.5);
+  border-radius: 3px;
+  color: #d1d5db;
+  font-size: 11px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.at-log-filter-bar__input::placeholder {
+  color: #4b5563;
+}
+
+.at-log-filter-bar__input:focus {
+  border-color: #3b82f6;
+}
+
+.at-log-filter-bar__input--narrow {
+  flex: 0 1 100px;
+}
+
+.at-log-filter-bar__clear {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(107, 114, 128, 0.3);
+  border-radius: 3px;
+  color: #6b7280;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.at-log-filter-bar__clear:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
+/* ---------------------------------------------------------------------------
+ * LogTailControls
+ * --------------------------------------------------------------------------- */
+
+.at-log-tail-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-top: 1px solid rgba(31, 41, 55, 0.6);
+  background: rgba(0, 0, 0, 0.3);
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+  font-size: 12px;
+}
+
+.at-log-tail-controls__status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.at-log-tail-controls__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6b7280;
+}
+
+.at-log-tail-controls__status[data-mode="tail"] .at-log-tail-controls__dot {
+  background: #ef4444;
+  animation: at-log-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes at-log-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.at-log-tail-controls__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.at-log-tail-controls__status[data-mode="tail"] .at-log-tail-controls__label {
+  color: #ef4444;
+}
+
+.at-log-tail-controls__count {
+  color: #6b7280;
+  font-size: 11px;
+  margin-left: auto;
+}
+
+.at-log-tail-controls__filtered {
+  color: #4b5563;
+  font-style: italic;
+}
+
+.at-log-tail-controls__toggle,
+.at-log-tail-controls__jump {
+  height: 20px;
+  padding: 0 6px;
+  background: transparent;
+  border: 1px solid rgba(55, 65, 81, 0.5);
+  border-radius: 3px;
+  color: #9ca3af;
+  font-size: 10px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.at-log-tail-controls__toggle:hover,
+.at-log-tail-controls__jump:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #6b7280;
+  color: #e5e7eb;
+}
+
+.at-log-tail-controls__jump {
+  color: #3b82f6;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.at-log-tail-controls__jump:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+}
+
+/* ---------------------------------------------------------------------------
+ * InlineTaskLogView (root)
+ * --------------------------------------------------------------------------- */
+
+.at-log-view {
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  border: 1px solid rgba(31, 41, 55, 0.8);
+  border-radius: 6px;
+  overflow: hidden;
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+  max-height: 280px;
+}
+
+.at-log-view__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(31, 41, 55, 0.6);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.at-log-view__title {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.at-log-view__scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #374151 transparent;
+}
+
+.at-log-view__scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.at-log-view__scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.at-log-view__scroll::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 2px;
+}
+
+.at-log-view__entries {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* Tail cursor blink */
+.at-log-view__cursor {
+  display: inline-block;
+  width: 7px;
+  height: 14px;
+  background: #9ca3af;
+  margin-top: 4px;
+  animation: at-log-blink 1s step-end infinite;
+}
+
+@keyframes at-log-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Empty state */
+.at-log-view__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  color: #4b5563;
+  font-size: 12px;
+  font-style: italic;
+}
