@@ -1,0 +1,502 @@
+{
+  "generatedAt": "2026-02-09T09:52:37.949Z",
+  "runtime": {
+    "node": "24.12.0",
+    "platform": "linux",
+    "arch": "x64"
+  },
+  "config": {
+    "repeats": 2,
+    "directEventCount": 1000,
+    "directTimeoutMs": 500,
+    "junctionEventCount": 300,
+    "junctionTimeoutMs": 1000,
+    "tiers": [
+      "small",
+      "medium",
+      "large"
+    ],
+    "junctionKinds": [
+      "map",
+      "filter",
+      "merge",
+      "broadcast",
+      "partition",
+      "buffer"
+    ]
+  },
+  "summary": {
+    "directAvgEps": 6241.323894998383,
+    "directMinEps": 4545.41675651251,
+    "directMaxEps": 7385.379610062888,
+    "directCompletionRate": 1,
+    "junctionCompletionRate": 1,
+    "junctionTimeoutRate": 0
+  },
+  "directTrials": [
+    {
+      "mode": "direct",
+      "tier": "small",
+      "junctionKind": null,
+      "emitted": 1000,
+      "received": 1000,
+      "elapsedMs": 178.26811600000002,
+      "eventsPerSecond": 5609.528066140553,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "direct",
+      "tier": "medium",
+      "junctionKind": null,
+      "emitted": 1000,
+      "received": 1000,
+      "elapsedMs": 158.84707099999991,
+      "eventsPerSecond": 6295.363167256641,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "direct",
+      "tier": "large",
+      "junctionKind": null,
+      "emitted": 1000,
+      "received": 1000,
+      "elapsedMs": 220.00182900000004,
+      "eventsPerSecond": 4545.41675651251,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "direct",
+      "tier": "small",
+      "junctionKind": null,
+      "emitted": 1000,
+      "received": 1000,
+      "elapsedMs": 135.40265399999998,
+      "eventsPerSecond": 7385.379610062888,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "direct",
+      "tier": "medium",
+      "junctionKind": null,
+      "emitted": 1000,
+      "received": 1000,
+      "elapsedMs": 137.36309499999993,
+      "eventsPerSecond": 7279.975746032808,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "direct",
+      "tier": "large",
+      "junctionKind": null,
+      "emitted": 1000,
+      "received": 1000,
+      "elapsedMs": 157.92100099999993,
+      "eventsPerSecond": 6332.280023984907,
+      "completed": true,
+      "timedOut": false
+    }
+  ],
+  "junctionTrials": [
+    {
+      "mode": "junction",
+      "tier": "small",
+      "junctionKind": "map",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 179.83701300000007,
+      "eventsPerSecond": 1668.1771732941309,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "small",
+      "junctionKind": "filter",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 37.47119599999996,
+      "eventsPerSecond": 8006.149576864328,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "small",
+      "junctionKind": "merge",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 42.14588099999992,
+      "eventsPerSecond": 7118.133323633704,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "small",
+      "junctionKind": "broadcast",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 40.6424320000001,
+      "eventsPerSecond": 7381.448039329913,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "small",
+      "junctionKind": "partition",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 44.92336599999999,
+      "eventsPerSecond": 6678.03921905585,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "small",
+      "junctionKind": "buffer",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 52.56457599999999,
+      "eventsPerSecond": 5707.265668803266,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "medium",
+      "junctionKind": "map",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 40.05177499999991,
+      "eventsPerSecond": 7490.3047368063135,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "medium",
+      "junctionKind": "filter",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 41.24677900000006,
+      "eventsPerSecond": 7273.2952068814775,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "medium",
+      "junctionKind": "merge",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 45.086410000000114,
+      "eventsPerSecond": 6653.8897197625465,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "medium",
+      "junctionKind": "broadcast",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 40.08993699999996,
+      "eventsPerSecond": 7483.174643053199,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "medium",
+      "junctionKind": "partition",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 41.70782599999984,
+      "eventsPerSecond": 7192.894685999724,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "medium",
+      "junctionKind": "buffer",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 53.57216800000015,
+      "eventsPerSecond": 5599.922706133512,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "large",
+      "junctionKind": "map",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 44.15805100000034,
+      "eventsPerSecond": 6793.778104019982,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "large",
+      "junctionKind": "filter",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 51.53240400000004,
+      "eventsPerSecond": 5821.579757854878,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "large",
+      "junctionKind": "merge",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 184.3760989999996,
+      "eventsPerSecond": 1627.108945395361,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "large",
+      "junctionKind": "broadcast",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 42.888766999999916,
+      "eventsPerSecond": 6994.838531963406,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "large",
+      "junctionKind": "partition",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 54.31443799999988,
+      "eventsPerSecond": 5523.393245825367,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "large",
+      "junctionKind": "buffer",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 49.39682499999981,
+      "eventsPerSecond": 6073.264830280107,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "small",
+      "junctionKind": "map",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 39.7106960000001,
+      "eventsPerSecond": 7554.639687000178,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "small",
+      "junctionKind": "filter",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 40.1351880000002,
+      "eventsPerSecond": 7474.73762923444,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "small",
+      "junctionKind": "merge",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 38.48164399999996,
+      "eventsPerSecond": 7795.924727124452,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "small",
+      "junctionKind": "broadcast",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 41.62815499999988,
+      "eventsPerSecond": 7206.660972603779,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "small",
+      "junctionKind": "partition",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 42.00361899999962,
+      "eventsPerSecond": 7142.241719695694,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "small",
+      "junctionKind": "buffer",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 49.26077899999973,
+      "eventsPerSecond": 6090.037674800102,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "medium",
+      "junctionKind": "map",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 40.841499999999996,
+      "eventsPerSecond": 7345.46968157389,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "medium",
+      "junctionKind": "filter",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 40.27167299999974,
+      "eventsPerSecond": 7449.404945257724,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "medium",
+      "junctionKind": "merge",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 43.03225800000018,
+      "eventsPerSecond": 6971.514253330576,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "medium",
+      "junctionKind": "broadcast",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 40.33016500000031,
+      "eventsPerSecond": 7438.600858687231,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "medium",
+      "junctionKind": "partition",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 39.29643699999997,
+      "eventsPerSecond": 7634.27992212119,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "medium",
+      "junctionKind": "buffer",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 199.88872300000003,
+      "eventsPerSecond": 1500.8350421049015,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "large",
+      "junctionKind": "map",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 42.50716000000011,
+      "eventsPerSecond": 7057.634525571673,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "large",
+      "junctionKind": "filter",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 47.51593300000013,
+      "eventsPerSecond": 6313.671668827363,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "large",
+      "junctionKind": "merge",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 51.23068599999988,
+      "eventsPerSecond": 5855.865369438948,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "large",
+      "junctionKind": "broadcast",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 45.20035300000018,
+      "eventsPerSecond": 6637.116307476599,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "large",
+      "junctionKind": "partition",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 55.88640200000009,
+      "eventsPerSecond": 5368.032101977141,
+      "completed": true,
+      "timedOut": false
+    },
+    {
+      "mode": "junction",
+      "tier": "large",
+      "junctionKind": "buffer",
+      "emitted": 300,
+      "received": 300,
+      "elapsedMs": 47.89123100000006,
+      "eventsPerSecond": 6264.194795911586,
+      "completed": true,
+      "timedOut": false
+    }
+  ]
+}
