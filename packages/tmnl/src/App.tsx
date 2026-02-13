@@ -520,13 +520,22 @@ const CARDS: readonly CardDef[] = [
     glow: 'cyan',
   },
   {
+    title: 'RVN CHAT TESTBED',
+    body: 'Conductor-themed RVN chat shell mounted in isolation. Slot compounds + transport flow without conductor runtime.',
+    route: '/testbed/rvn-chat-isolated',
+    status: 'active',
+    label: 'NEW',
+    glow: 'amber',
+  },
+  {
     title: 'Conductor',
-    description: 'Agent orchestration — spawn, drive, and watch multiple pi agents',
+    body: 'Agent orchestration — spawn, drive, and watch multiple pi agents',
     route: '/testbed/conductor',
     status: 'active',
     label: 'NEW',
     glow: 'cyan',
   },
+
 ];
 
 /**

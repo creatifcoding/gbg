@@ -64,7 +64,6 @@ import { AxiomTestbed } from './components/testbed/AxiomTestbed';
 import { PipelineADRTestbed } from './components/testbed/PipelineADRTestbed';
 import { WindowsTestbed } from './components/testbed/WindowsTestbed';
 import { GeointDashboardTestbed } from './components/testbed/GeointDashboardTestbed';
-import { AllintCopTestbed } from './components/testbed/AllintCopTestbed';
 import { ECSVerticalSliceTestbed } from './components/testbed/ECSVerticalSliceTestbed';
 import { SearchToKoriTestbed } from './components/testbed/SearchToKoriTestbed';
 import { TimelineSearchTestbed } from './components/testbed/TimelineSearchTestbed';
@@ -90,6 +89,7 @@ import { WindowRoute } from './routes/WindowRoute';
 import { PoolPlaceholder } from './routes/PoolPlaceholder';
 import { ConductorView } from './lib/conductor';
 import { ConductorTestbed } from './components/testbed/ConductorTestbed';
+import { RvnChatIsolatedTestbed } from './components/testbed/RvnChatIsolatedTestbed';
 
 // Create a root route
 // LockScreenController wraps all routes to enable lock screen functionality
@@ -441,12 +441,6 @@ const geointTestbedRoute = createRoute({
   component: GeointDashboardTestbed,
 });
 
-const allintCopTestbedRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/testbed/allint-cop',
-  component: AllintCopTestbed,
-});
-
 // ECS Vertical Slice testbed route (real DB + ingestion + Electric)
 const ecsVerticalSliceTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -565,6 +559,13 @@ const morphCardTestbedRoute = createRoute({
   component: MorphCardTestbed,
 });
 
+// RVN chat isolated testbed route (conductor-themed shell in isolation)
+const rvnChatIsolatedTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/rvn-chat-isolated',
+  component: RvnChatIsolatedTestbed,
+});
+
 // Conductor testbed route (canvas)
 const conductorTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -664,7 +665,6 @@ const routeTree = rootRoute.addChildren([
   pipelineADRTestbedRoute,
   windowsTestbedRoute,
   geointTestbedRoute,
-  allintCopTestbedRoute,
   ecsVerticalSliceTestbedRoute,
   searchToKoriTestbedRoute,
   timelineSearchTestbedRoute,
@@ -683,6 +683,7 @@ const routeTree = rootRoute.addChildren([
   jsonRenderTestbedRoute,
   morphCardTestbedRoute,
   eguiMorphCardTestbedRoute,
+  rvnChatIsolatedTestbedRoute,
   conductorTestbedRoute,
   conductorRoute,
   conductorLegacyRoute,
