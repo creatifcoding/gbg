@@ -28,14 +28,19 @@ cargo build --target x86_64-pc-windows-gnu 2>&1 | tee -a "$LOG_PATH"
 # Get the exe path
 EXE_PATH="$(pwd)/target/x86_64-pc-windows-gnu/debug/tmnl.exe"
 
-if [ -f "$EXE_PATH" ]; then
-  # Convert WSL path to Windows path
+if [ ! -f "$EXE_PATH" ]; then
+  echo "[tmnl-windows] Build failed - no exe at $EXE_PATH"
+  exit 1
+fi
+
+# Launch on Windows only when WSL helpers are available.
+if command -v wslpath >/dev/null 2>&1 && command -v powershell.exe >/dev/null 2>&1; then
   WIN_PATH=$(wslpath -w "$EXE_PATH")
   echo "[tmnl-windows] Launching: $WIN_PATH"
   powershell.exe -Command "Start-Process -WindowStyle Hidden '$WIN_PATH'" || true
 else
-  echo "[tmnl-windows] Build failed - no exe at $EXE_PATH"
-  exit 1
+  echo "[tmnl-windows] wslpath/powershell.exe unavailable; skipping Windows launch"
+  echo "[tmnl-windows] Built artifact: $EXE_PATH"
 fi
 
 echo "[tmnl-windows] Done."

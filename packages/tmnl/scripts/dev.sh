@@ -23,10 +23,17 @@ mkfifo "$FIFO_PATH"
 echo "[tmnl] Created FIFO: $FIFO_PATH"
 echo "[tmnl] Claude can read errors via: cat $FIFO_PATH"
 
+HARNESS_WS_PID=""
+
 # Cleanup function
 cleanup() {
   echo "[tmnl] Cleaning up FIFO..."
   rm -f "$FIFO_PATH"
+
+  if [ -n "$HARNESS_WS_PID" ]; then
+    kill "$HARNESS_WS_PID" 2>/dev/null || true
+  fi
+
   jobs -p | xargs -r kill 2>/dev/null || true
   # Kill react-grab server if running
   pkill -f "react-grab.*server" 2>/dev/null || true
@@ -39,6 +46,43 @@ if [ -n "$WSL_DISTRO_NAME" ]; then
   export WEBKIT_DISABLE_COMPOSITING_MODE=1
 fi
 
+HARNESS_WS_HEALTH_URL="http://127.0.0.1:8787/health"
+
+harness_ws_health_ok() {
+  local payload
+  payload=$(curl -fsS --max-time 2 "$HARNESS_WS_HEALTH_URL" 2>/dev/null || true)
+  echo "$payload" | grep -q '"service":"harness-remote-ws"'
+}
+
+# Ensure harness remote WS server is available
+if harness_ws_health_ok; then
+  echo "[tmnl] harness remote WS already running on :8787"
+else
+  echo "[tmnl] starting harness remote WS on :8787..."
+  bun run harness:remote-ws >/tmp/tmnl/harness-remote-ws.log 2>&1 &
+  HARNESS_WS_PID=$!
+
+  for _ in $(seq 1 80); do
+    if harness_ws_health_ok; then
+      echo "[tmnl] harness remote WS ready"
+      break
+    fi
+
+    if ! kill -0 "$HARNESS_WS_PID" 2>/dev/null; then
+      echo "[tmnl] harness remote WS process exited early"
+      break
+    fi
+
+    sleep 0.25
+  done
+
+  if ! harness_ws_health_ok; then
+    echo "[tmnl] failed to start harness remote WS (see /tmp/tmnl/harness-remote-ws.log)"
+    tail -n 80 /tmp/tmnl/harness-remote-ws.log 2>/dev/null || true
+    exit 1
+  fi
+fi
+
 # Start react-grab Claude Code server (detached, port 4567)
 echo "[tmnl] Starting react-grab server on port 4567..."
 bunx @react-grab/claude-code &
@@ -47,5 +91,6 @@ bunx @react-grab/claude-code &
 cat > "$LOG_PATH" < "$FIFO_PATH" &
 
 # Run Vite dev server
+# --force avoids stale optimized-deps cache issues in long-lived Tauri/WebView sessions
 # Stderr is tee'd to both terminal and FIFO
-vite 2> >(tee "$FIFO_PATH" >&2)
+bunx vite --force 2> >(tee "$FIFO_PATH" >&2)
