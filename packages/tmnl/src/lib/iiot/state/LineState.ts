@@ -138,7 +138,7 @@ export const LineStateInMemory: Layer.Layer<LineState> = Layer.effect(
             const line = new Line({
               id,
               name: params.name,
-              status: params.status ?? 'active',
+              status: params.status ?? 'idle',
               hierarchyPath: HierarchyPath.fromSegments(segments),
               enterpriseId: Option.none(),
               siteId: Option.none(),
@@ -280,7 +280,7 @@ export const makeLineStateSql = (repo: {
           const line = new Line({
             id,
             name: params.name,
-            status: params.status ?? 'active',
+            status: params.status ?? 'idle',
             hierarchyPath: HierarchyPath.fromSegments(segments),
             enterpriseId: Option.none(),
             siteId: Option.none(),

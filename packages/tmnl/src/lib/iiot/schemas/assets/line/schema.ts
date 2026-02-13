@@ -11,7 +11,7 @@
  */
 
 import { Schema } from 'effect'
-import { AssetStatus, AssetMetadata, BaseAssetFields } from '../common/types'
+import { AssetMetadata, BaseAssetFields } from '../common/types'
 import { HierarchyPath } from '../../hierarchy'
 import { PlantId } from '../plant/schema'
 
@@ -51,6 +51,30 @@ export type LineId = typeof LineId.Type
  * ```
  */
 export const makeLineId = (slug: string): LineId => `LIN-${slug}` as LineId
+
+// =============================================================================
+// Line Status (domain-specific, overrides generic AssetStatus)
+// =============================================================================
+
+/**
+ * Line operational state per ISA-95/OEE line state graph.
+ * Overrides the generic AssetStatus for Line entities.
+ */
+export const LineStatus = Schema.Literal(
+  'idle',
+  'running',
+  'changeover',
+  'starved',
+  'blocked',
+  'maintenance',
+  'decommissioned'
+).pipe(
+  Schema.annotations({
+    identifier: '@gbg/tmnl/iiot/LineStatus',
+    description: 'Line operational state per ISA-95/OEE line graph',
+  })
+)
+export type LineStatus = typeof LineStatus.Type
 
 // =============================================================================
 // Line Entity
@@ -98,6 +122,9 @@ export class Line extends Schema.TaggedClass<Line>()('Line', {
   /** Base asset fields (name, status, description, location, metadata, timestamps, hierarchy) */
   ...BaseAssetFields,
 
+  /** Line operational state (overrides generic AssetStatus) */
+  status: LineStatus,
+
   /** Production capacity in units per hour */
   capacity: Schema.optionalWith(
     Schema.Number.pipe(Schema.positive()),
@@ -125,12 +152,12 @@ export class Line extends Schema.TaggedClass<Line>()('Line', {
 
   /**
    * Check if the line is operational.
-   * A line is operational if not in maintenance or decommissioned.
+   * A line is operational when idle, running, or in changeover.
    *
-   * @returns true if status is 'active' or 'inactive'
+   * @returns true if status is 'idle', 'running', or 'changeover'
    */
   isOperational(): boolean {
-    return this.status !== 'maintenance' && this.status !== 'decommissioned'
+    return this.status === 'idle' || this.status === 'running' || this.status === 'changeover'
   }
 
   /**
@@ -193,8 +220,8 @@ export const CreateLineParams = Schema.Struct({
   /** Parent plant identifier */
   plantId: PlantId,
 
-  /** Initial status (defaults to 'active' if not provided) */
-  status: Schema.optionalWith(AssetStatus, { default: () => 'active' as const }),
+  /** Initial status (defaults to 'idle' if not provided) */
+  status: Schema.optionalWith(LineStatus, { default: () => 'idle' as const }),
 
   /** Production capacity in units per hour */
   capacity: Schema.optional(Schema.Number.pipe(Schema.positive())),

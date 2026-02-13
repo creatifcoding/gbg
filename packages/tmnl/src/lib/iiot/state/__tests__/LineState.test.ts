@@ -27,7 +27,7 @@ describe('LineState', () => {
     slug,
     name: `Test Line ${slug}`,
     plantId: testPlantId,
-    status: 'active',
+    status: 'idle',
     capacity: 100,
     lineType: 'assembly',
     operatingHoursPerDay: 16,
@@ -43,7 +43,7 @@ describe('LineState', () => {
         new Line({
           id: makeLineId(slug),
           name: `Test Line ${slug}`,
-          status: 'active',
+          status: 'idle',
           hierarchyPath: HierarchyPath.fromSegments([
             new PathSegment({ level: 'enterprise', id: testEnterpriseId, name: Option.none() }),
             new PathSegment({ level: 'site', id: testSiteId, name: Option.none() }),
@@ -78,7 +78,7 @@ describe('LineState', () => {
         const line = yield* state.create(params)
 
         expect(line.name).toBe('Test Line assembly-1')
-        expect(line.status).toBe('active')
+        expect(line.status).toBe('idle')
         expect(Option.getOrNull(line.plantId)).toBe(testPlantId)
         expect(Option.getOrNull(line.capacity)).toBe(100)
         expect(Option.getOrNull(line.lineType)).toBe('assembly')
@@ -96,7 +96,7 @@ describe('LineState', () => {
         const params = makeTestCreateParams('assembly-2', { status: undefined })
         const line = yield* state.create(params)
 
-        expect(line.status).toBe('active')
+        expect(line.status).toBe('idle')
         return line
       }).pipe(Effect.provide(LineStateInMemory))
 
@@ -210,13 +210,13 @@ describe('LineState', () => {
     it.concurrent('should filter by status', async () => {
       const program = Effect.gen(function* () {
         const state = yield* LineState
-        yield* state.create(makeTestCreateParams('status-1', { status: 'active' }))
+        yield* state.create(makeTestCreateParams('status-1', { status: 'running' }))
         yield* state.create(makeTestCreateParams('status-2', { status: 'maintenance' }))
 
-        const lines = yield* state.list({ status: 'active' })
+        const lines = yield* state.list({ status: 'running' })
 
         for (const line of lines) {
-          expect(line.status).toBe('active')
+          expect(line.status).toBe('running')
         }
       }).pipe(Effect.provide(LineStateInMemory))
 
