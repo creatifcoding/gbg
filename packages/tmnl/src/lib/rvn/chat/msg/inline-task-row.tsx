@@ -3,6 +3,7 @@ import {
   useState,
   type ComponentPropsWithoutRef,
   type MouseEvent,
+  type ReactNode,
 } from 'react'
 import type { HashMap } from 'effect'
 import {
@@ -19,6 +20,11 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import type { RvnChatInlineTaskItem, RvnChatInlineTaskStatus } from './inline-task-types'
 import { InlineTaskDetail } from './inline-task-detail'
+import {
+  InlineTaskRowToolbar,
+  InlineTaskRowProgress,
+  type InlineTaskRowAction,
+} from './inline-task-shell/row'
 import { useTransferDraggable, type TransferReferenceToken } from '@/lib/transfer'
 import { cn } from '@/lib/utils'
 import {
@@ -38,6 +44,13 @@ export interface RvnChatInlineTaskRowProps extends ComponentPropsWithoutRef<'art
   transferSelectionIds?: ReadonlyArray<string>
   onExpandedChange?: (expanded: boolean) => void
   onSelectionToggle?: (taskId: string, additive: boolean) => void
+  /** Toolbar actions to render in expanded panel. Omit to hide toolbar. */
+  actions?: ReadonlyArray<InlineTaskRowAction>
+  onAction?: (actionId: string, task: RvnChatInlineTaskItem) => void
+  /** Show standalone progress bar in expanded panel. Default: true when progress exists. */
+  showStandaloneProgress?: boolean
+  /** Enable copy-to-clipboard per detail field. Default: false. */
+  copyable?: boolean
 }
 
 function StatusIndicator({ status }: { status: RvnChatInlineTaskStatus }) {
@@ -180,6 +193,10 @@ export const RvnChatInlineTaskRow = forwardRef<HTMLElement, RvnChatInlineTaskRow
       transferTokens,
       onExpandedChange,
       onSelectionToggle,
+      actions,
+      onAction,
+      showStandaloneProgress,
+      copyable = false,
       className,
       ...props
     },
@@ -296,7 +313,25 @@ export const RvnChatInlineTaskRow = forwardRef<HTMLElement, RvnChatInlineTaskRow
                 task={task}
                 taskIndex={taskIndex}
                 onNavigateTask={onNavigateTask}
+                copyable={copyable}
               />
+
+              {(showStandaloneProgress ?? (normalizedProgress !== null)) && normalizedProgress !== null ? (
+                <div className="rvn-chat__inline-task-row-standalone-progress">
+                  <InlineTaskRowProgress
+                    progress={normalizedProgress}
+                    status={status}
+                  />
+                </div>
+              ) : null}
+
+              {actions && actions.length > 0 ? (
+                <InlineTaskRowToolbar
+                  task={task}
+                  actions={actions}
+                  onAction={onAction}
+                />
+              ) : null}
 
               {showProgress ? (
                 <div className="rvn-chat__inline-task-row-progress" aria-label={`Task progress ${progressWidth}%`}>
