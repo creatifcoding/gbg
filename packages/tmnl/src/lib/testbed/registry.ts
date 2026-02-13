@@ -876,17 +876,7 @@ export const TESTBED_REGISTRY: readonly TestbedEntry[] = [
       { version: 'v1', route: '/testbed/windows', status: 'experimental' },
     ],
   },
-  {
-    id: 'allint-cop',
-    name: 'ALLINT COP',
-    description: 'All-source intelligence common operating picture.',
-    category: 'data',
-    keywords: ['allint', 'cop', 'intelligence', 'common', 'operating'],
-    accent: 'emerald',
-    versions: [
-      { version: 'v1', route: '/testbed/allint-cop', status: 'experimental' },
-    ],
-  },
+
   {
     id: 'atom-rpc',
     name: 'Atom RPC',

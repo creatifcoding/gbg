@@ -123,9 +123,9 @@ export function StreamsDocPanel() {
 
       <DocSection title="Scenarios">
         <ul className="space-y-1 text-neutral-400">
-          <li>• <span className="text-cyan-400">01</span> Basic Throughput - 1k events/sec</li>
-          <li>• <span className="text-cyan-400">02</span> Sustained Load - 5k events/sec</li>
-          <li>• <span className="text-cyan-400">03</span> Burst Traffic - 10k bursts</li>
+          <li>• <span className="text-cyan-400">01</span> Basic Throughput (profile target: 1k events/sec)</li>
+          <li>• <span className="text-cyan-400">02</span> Sustained Load (profile target: 5k events/sec)</li>
+          <li>• <span className="text-cyan-400">03</span> Burst Traffic (profile burst: 10k events)</li>
           <li>• <span className="text-cyan-400">04</span> Backpressure Block</li>
           <li>• <span className="text-cyan-400">05</span> Backpressure Drop</li>
           <li>• <span className="text-cyan-400">06</span> Circuit Breaker Trip</li>
@@ -134,6 +134,28 @@ export function StreamsDocPanel() {
           <li>• <span className="text-cyan-400">09</span> Topology Merge</li>
           <li>• <span className="text-cyan-400">10</span> Chaos Monkey</li>
         </ul>
+      </DocSection>
+
+      <DocSection title="Junction Semantics (Runtime Contract)">
+        <ul className="space-y-1 text-neutral-400">
+          <li>• <span className="text-cyan-400">map/filter/flatMap</span>: stateless transform/predicate semantics.</li>
+          <li>• <span className="text-cyan-400">merge</span>: fan-in pass-through; arrival-order, no global reorder guarantee.</li>
+          <li>• <span className="text-cyan-400">broadcast</span>: fan-out via multiple active outgoing wires.</li>
+          <li>• <span className="text-cyan-400">partition</span>: emits annotated payloads (<span className="font-mono">_tag=Partitioned</span>, branch, value). Missing predicate faults + increments errors.</li>
+          <li>• <span className="text-cyan-400">buffer</span>: supports <span className="font-mono">drop-oldest</span>, <span className="font-mono">drop-newest</span>, <span className="font-mono">error</span>, <span className="font-mono">block</span> with explicit overflow behavior.</li>
+        </ul>
+      </DocSection>
+
+      <DocSection title="Claim Scope (Critical)">
+        <p className="text-neutral-400">
+          Throughput and completion claims are profile-scoped and environment-specific. Do not generalize to universal 10k guarantees.
+        </p>
+        <p className="text-neutral-500 font-mono break-all">
+          Artifact: artifacts/benchmarks/streams-channel-junction-benchmark.json
+        </p>
+        <p className="text-neutral-500 font-mono break-all">
+          Canonical scope: .pi/thoughts/shared/specs/streams/2026-02-07-e2e-claim-scope.md
+        </p>
       </DocSection>
     </div>
   )

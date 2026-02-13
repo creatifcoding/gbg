@@ -5,11 +5,9 @@
  * Agents live as draggable nodes on an infinite canvas.
  *
  * Integration surface:
- * - anime.js 4.3.2 layout (createLayout for node enter/leave/rearrange)
- * - anime.js animate + createTimeline for status transitions & FX
- * - anime.js createScope for lifecycle cleanup
+ * - anime.js 4.3.2 animate for status transitions & FX
  * - RVN design system (panels, badges, status dots, context menu)
- * - Selection overlay (marquee select, Shift+click multi-select)
+ * - NodeChrome (groupAccent + brutalist depth chrome + shift-drag overlay)
  * - @dnd-kit (pointer drag positioning)
  * - Framer Motion (viewport transitions, inspector panel)
  * - @base-ui-components (RvnContextMenu compound)
@@ -37,23 +35,37 @@ import {
   useMemo,
   useRef,
   useEffect,
+  useId,
   useLayoutEffect,
   type ReactNode,
 } from 'react'
 import { Link } from '@tanstack/react-router'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import {
+  useFloating,
+  autoUpdate,
+  offset,
+  flip,
+  shift,
+  FloatingPortal,
+  useDismiss,
+  useInteractions,
+  useRole,
+} from '@floating-ui/react'
 import { Atom } from '@effect-atom/atom'
+import * as AtomResult from '@effect-atom/atom/Result'
 import { Registry, RegistryContext } from '@effect-atom/atom-react'
-import { useAtomValue } from '@effect-atom/atom-react'
+import { useAtomSet, useAtomValue } from '@effect-atom/atom-react'
+import { Effect, HashMap, HashSet, Option, Schema, Subscribable } from 'effect'
 import * as React from 'react'
 
 // anime.js 4.3.2
 import {
   createLayout,
-  animate as animeAnimate,
   createScope,
+  createTimeline,
+  animate as animeAnimate,
   stagger,
-  spring,
 } from 'animejs'
 
 // dnd-kit
@@ -70,14 +82,6 @@ import {
 import { RvnBadge } from '@/lib/rvn/display/RvnBadge'
 import { RvnStatusDot } from '@/lib/rvn/display/RvnStatusDot'
 import { useRvnAnimate } from '@/lib/rvn/hooks/useRvnAnimate'
-
-// Selection
-import { SelectionOverlay } from '@/lib/selection/SelectionOverlay'
-import {
-  selectItem,
-  deselectAll,
-  subscribeToSelection,
-} from '@/lib/selection/selection-stx'
 
 // Conductor schemas
 import type { AgentRole, AgentStatus } from '@/lib/conductor/schemas'
@@ -103,14 +107,43 @@ import {
   Square,
   ChevronDown,
   ChevronUp,
-  Zap,
   Search,
   Code,
   Shield,
   Bot,
   Activity,
   Network,
+  MessageSquare,
 } from 'lucide-react'
+import { NodeChrome } from '@/components/testbed/conductor/NodeChrome'
+import { MicrointeractionHitbox } from '@/components/testbed/conductor/MicrointeractionHitbox'
+import type {
+  ChatExpansionLevel,
+  ConductorInspectorSurface,
+} from '@/components/testbed/conductor/chat-surface-types'
+import {
+  DEFAULT_RVN_HARNESS_QUICK_ACTIONS,
+  DEFAULT_RVN_HARNESS_SLASH_COMMANDS,
+  extractMentions,
+  mapRvnModeToExpansionLevel,
+  toRvnHarnessChatViewModel,
+  type RvnHarnessChatMode,
+  type RvnHarnessChatSurfaceProps,
+  type RvnHarnessThinkingLevel,
+} from '@/components/testbed/conductor/rvn-harness-chat-view-model'
+import {
+  inlineTaskExpandedTasksByScopeAtom,
+  toInlineTaskUiStateKey,
+} from '@/lib/conductor/atoms'
+import { RvnChat } from '@/lib/rvn/chat'
+import {
+  NodeChatAtomAccessors,
+  type NodeAgentProvisionOutcome,
+  type NodeChatAbortOutcome,
+  type NodeChatReconnectOutcome,
+  type NodeChatSendOutcome,
+} from '@/components/testbed/conductor/agent-chat-stx'
+import { ScrambleQuote, type ScrambleQuoteHandle } from '@/components/ui/scramble-quote'
 
 // =============================================================================
 // Canvas State (Atom-as-State — registry.set() mutates, React subscribes)
@@ -142,24 +175,100 @@ interface WorkflowDef {
   steps: { id: string; agentRole: AgentRole; prompt: string }[]
 }
 
+const LogViewerChannel = Schema.Literal('operations', 'tagrack', 'all')
+type LogViewerChannel = typeof LogViewerChannel.Type
+
+const LogOperationEvent = Schema.TaggedStruct('LogOperation', {
+  channel: Schema.Literal('operations'),
+  at: Schema.String,
+  message: Schema.String,
+})
+
+const LogTagRackTransitionEvent = Schema.TaggedStruct('LogTagRackTransition', {
+  channel: Schema.Literal('tagrack'),
+  at: Schema.String,
+  nodeId: Schema.String,
+  label: Schema.String,
+  details: Schema.NullOr(Schema.String),
+})
+
+const LogSystemEvent = Schema.TaggedStruct('LogSystem', {
+  channel: Schema.Literal('operations', 'tagrack'),
+  at: Schema.String,
+  message: Schema.String,
+})
+
+const ConductorLogEvent = Schema.Union(LogOperationEvent, LogTagRackTransitionEvent, LogSystemEvent)
+type ConductorLogEvent = typeof ConductorLogEvent.Type
+
 // Registry singleton — all mutations go through this
 const reg = Registry.make()
 
 // Primary atoms
-const nodesAtom = Atom.make<Map<string, AgentNode>>(new Map())
+const nodesAtom = Atom.make(HashMap.empty<string, AgentNode>())
 const viewportAtom = Atom.make<CanvasViewport>({ panX: 0, panY: 0, zoom: 1 })
 const activeNodeIdAtom = Atom.make<string | null>(null)
+const inspectorNodeIdAtom = Atom.make<string | null>(null)
+const selectedNodeIdsAtom = Atom.make(HashSet.empty<string>())
+const nodeRefsAtom = Atom.make(HashMap.empty<string, HTMLDivElement>())
+const selectedNodeRefsAtom = Atom.make((get) => {
+  const ids = get(selectedNodeIdsAtom)
+  const refs = get(nodeRefsAtom)
+  let selected = HashMap.empty<string, HTMLDivElement>()
+  for (const id of HashSet.values(ids)) {
+    const maybeRef = HashMap.get(refs, id)
+    if (Option.isSome(maybeRef)) {
+      selected = HashMap.set(selected, id, maybeRef.value)
+    }
+  }
+  return selected
+})
+const selectedCountAtom = Atom.make((get) => HashSet.size(get(selectedNodeIdsAtom)))
+const microHitboxDebugAtom = Atom.make(false)
 const terminalExpandedAtom = Atom.make(false)
-const inspectorExpandedAtom = Atom.make(true)
-const logAtom = Atom.make<string[]>([])
+const logViewerChannelAtom = Atom.make<LogViewerChannel>('operations')
+const logRetentionLimitAtom = Atom.make(1000)
+const logEventsAtom = Atom.make<ReadonlyArray<ConductorLogEvent>>([])
+const logEventsSubscribableAtom = Atom.subscribable((get) =>
+  Subscribable.make({
+    get: Effect.succeed(get(logEventsAtom)),
+    changes: get.stream(logEventsAtom, { withoutInitialValue: true }),
+  }))
+const LOG_RETENTION_PRESETS = [250, 500, 1000, 2000] as const
+
+const OrchestratorConnectivityStatus = Schema.Literal('checking', 'online', 'offline')
+type OrchestratorConnectivityStatus = typeof OrchestratorConnectivityStatus.Type
+
+interface OrchestratorConnectivityState {
+  readonly status: OrchestratorConnectivityStatus
+  readonly lastOkAt: string | null
+  readonly lastError: string | null
+  readonly latencyMs: number | null
+}
+
+const orchestratorConnectivityAtom = Atom.make<OrchestratorConnectivityState>({
+  status: 'checking',
+  lastOkAt: null,
+  lastError: null,
+  latencyMs: null,
+})
+
 const wfStatusAtom = Atom.make<'idle' | 'running' | 'complete' | 'failed'>('idle')
 const wfProgressAtom = Atom.make<{ current: number; total: number }>({ current: 0, total: 0 })
 
 // Derived (read-only)
-const nodeListAtom = Atom.make((get) => Array.from(get(nodesAtom).values()))
+const nodeListAtom = Atom.make((get) => Array.from(HashMap.values(get(nodesAtom))))
 const activeNodeAtom = Atom.make((get) => {
   const id = get(activeNodeIdAtom)
-  return id ? get(nodesAtom).get(id) ?? null : null
+  if (!id) return null
+  const maybeNode = HashMap.get(get(nodesAtom), id)
+  return Option.isSome(maybeNode) ? maybeNode.value : null
+})
+const inspectorNodeAtom = Atom.make((get) => {
+  const id = get(inspectorNodeIdAtom)
+  if (!id) return null
+  const maybeNode = HashMap.get(get(nodesAtom), id)
+  return Option.isSome(maybeNode) ? maybeNode.value : null
 })
 const activeCountAtom = Atom.make((get) =>
   get(nodeListAtom).filter((n) => n.status !== 'terminated' && n.status !== 'failed').length,
@@ -169,9 +278,188 @@ const activeCountAtom = Atom.make((get) =>
 // Imperative helpers (mutate atoms via registry)
 // =============================================================================
 
+const appendLogEvent = (event: ConductorLogEvent) => {
+  const retention = Math.max(1, reg.get(logRetentionLimitAtom))
+  const next = [...reg.get(logEventsAtom), event]
+  reg.set(logEventsAtom, next.slice(-retention))
+}
+
+const setLogRetentionLimit = (nextLimit: number) => {
+  const normalized = Math.max(1, Math.floor(nextLimit))
+  reg.set(logRetentionLimitAtom, normalized)
+  reg.set(logEventsAtom, reg.get(logEventsAtom).slice(-normalized))
+}
+
 const log = (msg: string) => {
-  const ts = new Date().toLocaleTimeString()
-  reg.set(logAtom, [...reg.get(logAtom).slice(-49), `${ts} ${msg}`])
+  appendLogEvent(LogOperationEvent.make({
+    at: new Date().toISOString(),
+    channel: 'operations',
+    message: msg,
+  }))
+}
+
+const logSystem = (msg: string, channel: 'operations' | 'tagrack' = 'operations') => {
+  appendLogEvent(LogSystemEvent.make({
+    at: new Date().toISOString(),
+    channel,
+    message: msg,
+  }))
+}
+
+const logTagRackTransition = (nodeId: string, label: string, payload?: Record<string, unknown>) => {
+  appendLogEvent(LogTagRackTransitionEvent.make({
+    at: new Date().toISOString(),
+    channel: 'tagrack',
+    nodeId,
+    label,
+    details: payload ? JSON.stringify(payload) : null,
+  }))
+}
+
+const resolveOrchestratorHealthUrls = (): ReadonlyArray<string> => {
+  const direct = 'http://127.0.0.1:8787/health'
+
+  if (typeof window === 'undefined') {
+    return [direct]
+  }
+
+  const location = window.location
+
+  if (location.host.length > 0 && location.protocol !== 'tauri:' && location.protocol !== 'file:') {
+    return [
+      direct,
+      '/api/harness/health',
+    ]
+  }
+
+  return [direct]
+}
+
+const isOrchestratorOnline = (): boolean => reg.get(orchestratorConnectivityAtom).status === 'online'
+
+function failNodePromptAsOffline(nodeId: string, reason?: string) {
+  const nodes = reg.get(nodesAtom)
+  const maybeNode = HashMap.get(nodes, nodeId)
+  if (Option.isNone(maybeNode)) return
+
+  const message = reason ?? 'harness runtime offline'
+
+  setNodeField(nodeId, 'status', 'failed')
+  reg.set(NodeChatAtomAccessors.pending(nodeId), false)
+  reg.set(NodeChatAtomAccessors.error(nodeId), message)
+  appendNodeOutput(
+    nodeId,
+    `[${new Date().toLocaleTimeString()}] • trace:error ${message}`,
+  )
+}
+
+function failWorkingNodesAsOffline(reason?: string) {
+  const nodes = reg.get(nodeListAtom)
+  for (const node of nodes) {
+    if (node.status === 'working' || node.status === 'waiting') {
+      failNodePromptAsOffline(node.id, reason)
+    }
+  }
+}
+
+const setOrchestratorConnectivity = (next: OrchestratorConnectivityState) => {
+  const prev = reg.get(orchestratorConnectivityAtom)
+  reg.set(orchestratorConnectivityAtom, next)
+
+  if (prev.status !== next.status) {
+    if (next.status === 'online') {
+      logSystem(`harness runtime online (${next.latencyMs ?? 0}ms)`)
+    }
+
+    if (next.status === 'offline') {
+      const reason = next.lastError ?? 'health check failed'
+      logSystem(`harness runtime offline (${reason})`)
+      failWorkingNodesAsOffline(`harness runtime offline (${reason})`)
+    }
+  }
+}
+
+const probeOrchestratorConnectivity = async (): Promise<void> => {
+  const urls = resolveOrchestratorHealthUrls()
+
+  let lastError = 'health check failed'
+
+  for (const url of urls) {
+    const startedAt = performance.now()
+    const controller = new AbortController()
+    const timeout = window.setTimeout(() => controller.abort(), 2500)
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        cache: 'no-store',
+        signal: controller.signal,
+      })
+
+      if (!response.ok) {
+        throw new Error(`health status ${response.status} (${url})`)
+      }
+
+      const latencyMs = Math.max(0, Math.round(performance.now() - startedAt))
+      setOrchestratorConnectivity({
+        status: 'online',
+        lastOkAt: new Date().toISOString(),
+        lastError: null,
+        latencyMs,
+      })
+      window.clearTimeout(timeout)
+      return
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error)
+    } finally {
+      window.clearTimeout(timeout)
+    }
+  }
+
+  setOrchestratorConnectivity({
+    status: 'offline',
+    lastOkAt: reg.get(orchestratorConnectivityAtom).lastOkAt,
+    lastError,
+    latencyMs: null,
+  })
+}
+
+const formatLogLine = (event: ConductorLogEvent): string => {
+  const ts = new Date(event.at).toLocaleTimeString()
+  switch (event._tag) {
+    case 'LogOperation':
+      return `${ts} ${event.message}`
+    case 'LogTagRackTransition':
+      return `${ts} [${event.nodeId}] ${event.label}${event.details ? ` ${event.details}` : ''}`
+    case 'LogSystem':
+      return `${ts} [SYSTEM] ${event.message}`
+  }
+}
+
+const clearLogEvents = (channel: LogViewerChannel) => {
+  if (channel === 'all') {
+    reg.set(logEventsAtom, [])
+    return
+  }
+  reg.set(logEventsAtom, reg.get(logEventsAtom).filter((event) => event.channel !== channel))
+}
+
+const clearSelection = () => {
+  reg.set(selectedNodeIdsAtom, HashSet.empty<string>())
+}
+
+const selectOnly = (id: string) => {
+  reg.set(selectedNodeIdsAtom, HashSet.make(id))
+}
+
+const toggleSelection = (id: string) => {
+  const next = HashSet.toggle(reg.get(selectedNodeIdsAtom), id)
+  reg.set(selectedNodeIdsAtom, next)
+}
+
+const registerNodeRef = (id: string, el: HTMLDivElement | null) => {
+  const refs = reg.get(nodeRefsAtom)
+  reg.set(nodeRefsAtom, el ? HashMap.set(refs, id, el) : HashMap.remove(refs, id))
 }
 
 let nodeSeq = 0
@@ -195,59 +483,271 @@ const ROLE_NAMES: Record<AgentRole, string> = {
   implementer: 'Builder', reviewer: 'Auditor', conductor: 'Maestro',
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+async function waitForSendPromptResult(nodeId: string, requestId: string, timeoutMs = 60000) {
+  const opAtom = NodeChatAtomAccessors.sendPrompt(nodeId)
+  const start = Date.now()
+
+  while (Date.now() - start < timeoutMs) {
+    if (!isOrchestratorOnline()) {
+      return {
+        requestId,
+        ok: false,
+        agentId: null,
+        assistantText: '',
+        error: 'harness runtime offline',
+      } satisfies NodeChatSendOutcome
+    }
+
+    const result = reg.get(opAtom)
+
+    if (AtomResult.isSuccess(result)) {
+      const outcome = result.value as NodeChatSendOutcome
+      if (outcome.requestId === requestId) {
+        return outcome
+      }
+    }
+
+    if (AtomResult.isFailure(result)) {
+      return {
+        requestId,
+        ok: false,
+        agentId: null,
+        assistantText: '',
+        error: String(result.cause),
+      } satisfies NodeChatSendOutcome
+    }
+
+    await sleep(40)
+  }
+
+  // Stream-first fallback: avoid false timeout failure while deltas continue.
+  return {
+    requestId,
+    ok: true,
+    agentId: null,
+    assistantText: '',
+    error: null,
+  } satisfies NodeChatSendOutcome
+}
+
+const inFlightNodeProvision = new Set<string>()
+
+async function waitForNodeProvisionResult(nodeId: string, requestId: string, timeoutMs = 20000) {
+  const opAtom = NodeChatAtomAccessors.ensureNodeAgent(nodeId)
+  const start = Date.now()
+
+  while (Date.now() - start < timeoutMs) {
+    if (!isOrchestratorOnline()) {
+      return {
+        requestId,
+        ok: false,
+        agentId: null,
+        error: 'harness runtime offline',
+      } satisfies NodeAgentProvisionOutcome
+    }
+
+    const result = reg.get(opAtom)
+
+    if (AtomResult.isSuccess(result)) {
+      const outcome = result.value as NodeAgentProvisionOutcome
+      if (outcome.requestId === requestId) {
+        return outcome
+      }
+    }
+
+    if (AtomResult.isFailure(result)) {
+      return {
+        requestId,
+        ok: false,
+        agentId: null,
+        error: String(result.cause),
+      } satisfies NodeAgentProvisionOutcome
+    }
+
+    await sleep(30)
+  }
+
+  return {
+    requestId,
+    ok: false,
+    agentId: null,
+    error: 'timed out waiting for node agent provision',
+  } satisfies NodeAgentProvisionOutcome
+}
+
+async function provisionNodeAgentOnActivate(nodeId: string) {
+  if (!isOrchestratorOnline()) return
+  if (inFlightNodeProvision.has(nodeId)) return
+
+  const maybeNode = HashMap.get(reg.get(nodesAtom), nodeId)
+  if (Option.isNone(maybeNode)) return
+
+  const node = maybeNode.value
+  if (node.sessionId) return
+
+  const requestId = `provision-${nodeId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const opAtom = NodeChatAtomAccessors.ensureNodeAgent(nodeId)
+
+  inFlightNodeProvision.add(nodeId)
+
+  if (node.status === 'idle') {
+    setNodeField(nodeId, 'status', 'waiting')
+  }
+
+  try {
+    reg.set(opAtom, {
+      requestId,
+      role: node.spec.role,
+    })
+
+    const outcome = await waitForNodeProvisionResult(nodeId, requestId)
+
+    if (outcome.ok && outcome.agentId) {
+      setNodeField(nodeId, 'sessionId', outcome.agentId)
+
+      const current = HashMap.get(reg.get(nodesAtom), nodeId)
+      if (Option.isSome(current) && current.value.status === 'waiting') {
+        setNodeField(nodeId, 'status', 'idle')
+      }
+
+      logSystem(`agent prewarmed ${node.spec.name} (${outcome.agentId})`)
+      return
+    }
+
+    const message = outcome.error ?? 'unknown node provision failure'
+    setNodeField(nodeId, 'status', 'failed')
+    reg.set(NodeChatAtomAccessors.error(nodeId), message)
+    appendNodeOutput(
+      nodeId,
+      `[${new Date().toLocaleTimeString()}] • trace:error ${message}`,
+    )
+    logSystem(`agent prewarm failed ${node.spec.name}: ${message}`)
+  } finally {
+    inFlightNodeProvision.delete(nodeId)
+  }
+}
+
 function spawnNode(role: AgentRole, position?: CanvasNodePosition): AgentNode {
   const id = `agent-${++nodeSeq}-${Date.now().toString(36)}`
+  const vp = reg.get(viewportAtom)
+  const worldX = -vp.panX / vp.zoom
+  const worldY = -vp.panY / vp.zoom
+
   const node: AgentNode = {
     id,
-    spec: { id, name: `${ROLE_NAMES[role]}-${nodeSeq}`, role, model: 'claude-sonnet-4-20250514', awareness: 'briefed' },
+    spec: { id, name: `${ROLE_NAMES[role]}-${nodeSeq}`, role, model: 'gpt-5.3-codex', awareness: 'briefed' },
     status: 'spawning',
-    position: position ?? { x: 200 + Math.random() * 400, y: 150 + Math.random() * 300 },
+    position: position ?? { x: worldX + 180 + Math.random() * 280, y: worldY + 120 + Math.random() * 220 },
     output: [],
     spawnedAt: new Date().toISOString(),
     sessionId: null,
   }
-  const nodes = new Map(reg.get(nodesAtom))
-  nodes.set(id, node)
-  reg.set(nodesAtom, nodes)
+  reg.set(nodesAtom, HashMap.set(reg.get(nodesAtom), id, node))
   log(`⚡ SPAWN ${node.spec.name} [${role}]`)
 
-  // Simulate boot
-  setTimeout(() => { setNodeField(id, 'status', 'idle'); log(`✓ ${node.spec.name} ready`) }, 800 + Math.random() * 500)
+  setTimeout(() => { setNodeField(id, 'status', 'idle'); log(`✓ ${node.spec.name} ready`) }, 300)
   return node
 }
 
 function setNodeField<K extends keyof AgentNode>(id: string, key: K, value: AgentNode[K]) {
-  const nodes = new Map(reg.get(nodesAtom))
-  const n = nodes.get(id)
-  if (!n) return
-  nodes.set(id, { ...n, [key]: value })
-  reg.set(nodesAtom, nodes)
+  const nodes = reg.get(nodesAtom)
+  const maybeNode = HashMap.get(nodes, id)
+  if (Option.isNone(maybeNode)) return
+  reg.set(nodesAtom, HashMap.set(nodes, id, { ...maybeNode.value, [key]: value }))
+}
+
+function appendNodeOutput(id: string, line: string) {
+  const nodes = reg.get(nodesAtom)
+  const maybeNode = HashMap.get(nodes, id)
+  if (Option.isNone(maybeNode)) return
+
+  const nextNode: AgentNode = {
+    ...maybeNode.value,
+    output: [...maybeNode.value.output, line],
+  }
+
+  reg.set(nodesAtom, HashMap.set(nodes, id, nextNode))
 }
 
 function removeNode(id: string) {
-  const nodes = new Map(reg.get(nodesAtom))
-  const n = nodes.get(id)
-  if (n) log(`✕ TERMINATED ${n.spec.name}`)
-  nodes.delete(id)
-  reg.set(nodesAtom, nodes)
+  const nodes = reg.get(nodesAtom)
+  const maybeNode = HashMap.get(nodes, id)
+  if (Option.isSome(maybeNode)) log(`✕ TERMINATED ${maybeNode.value.spec.name}`)
+  reg.set(nodesAtom, HashMap.remove(nodes, id))
+
+  reg.set(selectedNodeIdsAtom, HashSet.remove(reg.get(selectedNodeIdsAtom), id))
+  reg.set(nodeRefsAtom, HashMap.remove(reg.get(nodeRefsAtom), id))
+
   if (reg.get(activeNodeIdAtom) === id) reg.set(activeNodeIdAtom, null)
+  if (reg.get(inspectorNodeIdAtom) === id) reg.set(inspectorNodeIdAtom, null)
 }
 
-function sendPrompt(id: string, prompt: string) {
+async function sendPrompt(id: string, prompt: string) {
   const nodes = reg.get(nodesAtom)
-  const n = nodes.get(id)
-  if (!n) return
+  const maybeNode = HashMap.get(nodes, id)
+  if (Option.isNone(maybeNode)) {
+    logSystem(`sendPrompt dropped: unknown node '${id}'`)
+    return
+  }
+  const node = maybeNode.value
+
+  if (!isOrchestratorOnline()) {
+    failNodePromptAsOffline(id, 'harness runtime offline (prompt blocked)')
+    logSystem(`prompt blocked ${node.spec.name}: harness runtime offline`)
+    return
+  }
+
   setNodeField(id, 'status', 'working')
-  log(`▸ PROMPT → ${n.spec.name}: "${prompt.slice(0, 60)}…"`)
-  setTimeout(() => {
-    const cur = reg.get(nodesAtom).get(id)
-    if (!cur) return
-    const updated = new Map(reg.get(nodesAtom))
-    updated.set(id, { ...cur, status: 'complete', output: [...cur.output, `[${new Date().toLocaleTimeString()}] Done: ${prompt.slice(0, 40)}…`] })
-    reg.set(nodesAtom, updated)
-    log(`✓ ${n.spec.name} complete`)
-  }, 2000 + Math.random() * 3000)
+  appendNodeOutput(id, `[${new Date().toLocaleTimeString()}] • trace: prompt dispatched`)
+  log(`▸ PROMPT → ${node.spec.name}: "${prompt.slice(0, 60)}…"`)
+
+  const requestId = `${id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+  const opAtom = NodeChatAtomAccessors.sendPrompt(id)
+  reg.set(opAtom, {
+    requestId,
+    role: node.spec.role,
+    prompt,
+  })
+
+  const outcome = await waitForSendPromptResult(id, requestId)
+
+  if (outcome.ok) {
+    if (outcome.agentId) {
+      setNodeField(id, 'sessionId', outcome.agentId)
+    }
+
+    if (outcome.assistantText.length > 0) {
+      appendNodeOutput(
+        id,
+        `[${new Date().toLocaleTimeString()}] • trace: ${outcome.assistantText}`,
+      )
+      setNodeField(id, 'status', 'complete')
+      log(`✓ ${node.spec.name} complete (pi)`)
+    } else {
+      setNodeField(id, 'status', 'working')
+      appendNodeOutput(
+        id,
+        `[${new Date().toLocaleTimeString()}] • trace: stream accepted`,
+      )
+    }
+
+    return
+  }
+
+  const message = outcome.error ?? 'unknown error'
+  setNodeField(id, 'status', 'failed')
+  reg.set(NodeChatAtomAccessors.pending(id), false)
+  reg.set(NodeChatAtomAccessors.error(id), message)
+  appendNodeOutput(
+    id,
+    `[${new Date().toLocaleTimeString()}] • trace:error ${message}`,
+  )
+  log(`✕ ${node.spec.name} failed (pi): ${message}`)
 }
+
 
 // =============================================================================
 // Workflows
@@ -280,14 +780,816 @@ async function runWorkflow(wf: WorkflowDef) {
     const step = wf.steps[i]
     reg.set(wfProgressAtom, { current: i, total: wf.steps.length })
     const node = spawnNode(step.agentRole, { x: 100 + i * 220, y: 200 })
-    await new Promise((r) => setTimeout(r, 1000))
-    sendPrompt(node.id, step.prompt)
-    await new Promise((r) => setTimeout(r, 3000 + Math.random() * 2000))
+    await sleep(250)
+    await sendPrompt(node.id, step.prompt)
     reg.set(wfProgressAtom, { current: i + 1, total: wf.steps.length })
   }
 
   reg.set(wfStatusAtom, 'complete')
   log(`✓ WORKFLOW DONE: ${wf.name}`)
+}
+
+type TagDescriptorId = 'role' | 'status' | 'awareness' | 'model'
+
+type TagDescriptor = {
+  id: TagDescriptorId
+  label: string
+  theory: string
+}
+
+const ROLE_THEORY: Record<AgentRole, string> = {
+  scout: 'Recon sweep role focused on broad discovery and uncertainty reduction.',
+  analyzer: 'Analytical role focused on pattern extraction, anomaly triage, and synthesis.',
+  planner: 'Architectural role focused on sequencing, constraints, and dependency choreography.',
+  implementer: 'Execution role focused on deterministic artifact production and patch delivery.',
+  reviewer: 'Assurance role focused on risk surfacing, contract validation, and quality gates.',
+  conductor: 'Coordination role focused on orchestration topology, delegation, and state coherence.',
+}
+
+const STATUS_THEORY: Record<AgentStatus, string> = {
+  spawning: 'Bootstrap phase: runtime context and mission brief are being initialized.',
+  idle: 'Ready phase: resources allocated and awaiting explicit tasking.',
+  working: 'Execution phase: active reasoning and artifact production in progress.',
+  waiting: 'Blocked phase: paused pending dependency, signal, or external response.',
+  complete: 'Settled phase: objective satisfied and output emitted.',
+  failed: 'Fault phase: execution aborted due to contract or runtime violation.',
+  terminated: 'Stopped phase: lifecycle closed and node retired.',
+}
+
+function deriveTagDescriptors(node: AgentNode): ReadonlyArray<TagDescriptor> {
+  return [
+    {
+      id: 'role',
+      label: node.spec.role,
+      theory: ROLE_THEORY[node.spec.role],
+    },
+    {
+      id: 'status',
+      label: node.status,
+      theory: STATUS_THEORY[node.status],
+    },
+    {
+      id: 'awareness',
+      label: node.spec.awareness,
+      theory: `Awareness profile \"${node.spec.awareness}\" determines how much contextual memory and mission state is loaded before execution.`,
+    },
+    {
+      id: 'model',
+      label: node.spec.model,
+      theory: `Model binding \"${node.spec.model}\" defines latency, reasoning depth, and output style envelope for this node.`,
+    },
+  ]
+}
+
+function tagDescriptorAccent(id: TagDescriptorId): string {
+  switch (id) {
+    case 'status':
+      return '#22d3ee'
+    case 'role':
+      return '#f97316'
+    case 'awareness':
+      return '#a78bfa'
+    case 'model':
+      return '#facc15'
+  }
+}
+
+const GOLDEN_RATIO = 1.61803398875
+const INV_GOLDEN_RATIO = 1 / GOLDEN_RATIO
+
+/**
+ * TagRack descriptor choreography storyboard (temporal budget)
+ *
+ * HOVER IN:   [hover intent 540ms] -> [handoff 96ms] -> [enter 190ms] -> [settle 64ms]
+ * SWITCH TAG: [record] -> [switch 150ms] -> [settle 64ms]
+ * HOVER OUT:  [handoff 96ms] -> [exit 118ms]
+ */
+const TAGRACK_TEMPORAL_BUDGET_MS = {
+  hoverIntent: 540,
+  handoff: 96,
+  enter: 190,
+  switch: 150,
+  exit: 118,
+  settle: 64,
+} as const
+
+const TAGRACK_DISCLOSURE_CADENCE_MS = {
+  tagStart: 0,
+  roleStart: 320,
+  descriptionStart: 640,
+  segmentDuration: 320,
+} as const
+
+let tagRackMeasureContext: CanvasRenderingContext2D | null = null
+
+function measureTagRackTextWidth(text: string, sizePx: number, weight: number = 500): number {
+  if (typeof document === 'undefined') {
+    return Math.max(1, text.length) * sizePx * 0.62
+  }
+
+  if (!tagRackMeasureContext) {
+    tagRackMeasureContext = document.createElement('canvas').getContext('2d')
+  }
+
+  if (!tagRackMeasureContext) {
+    return Math.max(1, text.length) * sizePx * 0.62
+  }
+
+  tagRackMeasureContext.font = `${weight} ${sizePx}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace`
+  return tagRackMeasureContext.measureText(text).width
+}
+
+type TagDescriptorPanelGeometry = {
+  panelWidthPx: number
+  descriptorWidthPx: number
+  descriptorMinHeightPx: number
+}
+
+function estimateWrappedLineCount(text: string, maxWidthPx: number, sizePx: number, weight: number = 500): number {
+  const words = text.trim().split(/\s+/).filter(Boolean)
+  if (words.length === 0) return 1
+
+  const spaceWidth = measureTagRackTextWidth(' ', sizePx, weight)
+  let lines = 1
+  let currentLineWidth = 0
+
+  for (const word of words) {
+    const wordWidth = measureTagRackTextWidth(word, sizePx, weight)
+
+    if (currentLineWidth === 0) {
+      currentLineWidth = wordWidth
+      continue
+    }
+
+    if (currentLineWidth + spaceWidth + wordWidth <= maxWidthPx) {
+      currentLineWidth += spaceWidth + wordWidth
+    } else {
+      lines += 1
+      currentLineWidth = wordWidth
+    }
+  }
+
+  return lines
+}
+
+function computeDescriptorPanelGeometry(descriptor: TagDescriptor, node: AgentNode): TagDescriptorPanelGeometry {
+  const badgeText = `${descriptor.id} ${descriptor.label}`.toUpperCase()
+  const badgePx = measureTagRackTextWidth(badgeText, 12) + 28
+
+  const nodeNamePx = measureTagRackTextWidth(node.spec.name, 14, 700) + 48
+
+  const theoryPx = measureTagRackTextWidth(descriptor.theory, 12, 500)
+  const targetLines = Math.max(3, Math.min(8, Math.round(Math.sqrt(descriptor.theory.length) / 2.15)))
+  const estimatedDescriptorWidthPx = Math.round(theoryPx / targetLines + 30)
+
+  const descriptorWidthPx = Math.round(
+    Math.max(
+      132,
+      Math.min(188, Math.max(estimatedDescriptorWidthPx, badgePx * INV_GOLDEN_RATIO, nodeNamePx * 0.52)),
+    ),
+  )
+
+  const panelWidthPx = Math.round(
+    Math.max(
+      184,
+      Math.min(248, Math.max(descriptorWidthPx * GOLDEN_RATIO, badgePx + 40, nodeNamePx * INV_GOLDEN_RATIO + 24)),
+    ),
+  )
+
+  const contentWidthPx = Math.max(96, descriptorWidthPx - 16)
+  const wrappedLines = estimateWrappedLineCount(descriptor.theory, contentWidthPx, 14, 500)
+  const descriptorMinHeightPx = Math.round(Math.max(72, wrappedLines * 20 + 8))
+
+  return {
+    panelWidthPx,
+    descriptorWidthPx,
+    descriptorMinHeightPx,
+  }
+}
+
+const tagRackOpenTagIdAtomFamily = Atom.family((nodeId: string) => Atom.make<TagDescriptorId | null>(null))
+const tagRackReferenceElAtomFamily = Atom.family((nodeId: string) => Atom.make<HTMLElement | null>(null))
+const tagRackPanelLayoutReadyAtomFamily = Atom.family((nodeId: string) => Atom.make(false))
+const tagRackPanelBodyVisibleAtomFamily = Atom.family((nodeId: string) => Atom.make(false))
+const tagRackIsClosingAtomFamily = Atom.family((nodeId: string) => Atom.make(false))
+const tagRackIsPanelHoveredAtomFamily = Atom.family((nodeId: string) => Atom.make(false))
+
+type TagRackScopeMethods = {
+  runLayoutTransition: (args: {
+    duration: number
+    ease: string
+    delay?: number
+    onBegin?: () => void
+    onComplete?: () => void
+  }) => void
+  runDisclosureCadence: () => void
+  stopDisclosureCadence: () => void
+  traceTransition: (label: string, payload?: Record<string, unknown>) => void
+}
+
+/**
+ * TAGRACK (Lexicon #4): informational tag rail.
+ * Reference: ./conductor/NODE_STATE_LEXICON.md
+ */
+function TagRack({
+  node,
+  mode,
+  onActivate,
+}: {
+  node: AgentNode
+  mode: 'compact' | 'expanded'
+  onActivate: () => void
+}) {
+  const descriptors = useMemo(() => deriveTagDescriptors(node), [node])
+  const visibleDescriptors = mode === 'compact'
+    ? descriptors.filter((d) => d.id === 'role' || d.id === 'status')
+    : descriptors
+  const hitboxDebug = useAtomValue(microHitboxDebugAtom)
+
+  const openTagId = useAtomValue(tagRackOpenTagIdAtomFamily(node.id))
+  const setOpenTagId = useAtomSet(tagRackOpenTagIdAtomFamily(node.id))
+
+  const referenceEl = useAtomValue(tagRackReferenceElAtomFamily(node.id))
+  const setReferenceEl = useAtomSet(tagRackReferenceElAtomFamily(node.id))
+
+  const panelLayoutReady = useAtomValue(tagRackPanelLayoutReadyAtomFamily(node.id))
+  const setPanelLayoutReady = useAtomSet(tagRackPanelLayoutReadyAtomFamily(node.id))
+
+  const panelBodyVisible = useAtomValue(tagRackPanelBodyVisibleAtomFamily(node.id))
+  const setPanelBodyVisible = useAtomSet(tagRackPanelBodyVisibleAtomFamily(node.id))
+
+  const isClosing = useAtomValue(tagRackIsClosingAtomFamily(node.id))
+  const setIsClosing = useAtomSet(tagRackIsClosingAtomFamily(node.id))
+
+  const isPanelHovered = useAtomValue(tagRackIsPanelHoveredAtomFamily(node.id))
+  const setIsPanelHovered = useAtomSet(tagRackIsPanelHoveredAtomFamily(node.id))
+
+  const quoteRef = useRef<ScrambleQuoteHandle>(null)
+  const panelTagTokenRef = useRef<HTMLSpanElement | null>(null)
+  const panelRoleTypeRef = useRef<HTMLSpanElement | null>(null)
+  const panelDescriptionRef = useRef<HTMLDivElement | null>(null)
+  const scopeHostRef = useRef<HTMLDivElement | null>(null)
+  const tagRackScopeRef = useRef<{ methods?: Partial<TagRackScopeMethods>; revert?: () => void } | null>(null)
+  const panelRootRef = useRef<HTMLDivElement | null>(null)
+  const panelLayoutRef = useRef<ReturnType<typeof createLayout> | null>(null)
+  const pendingTransitionRef = useRef<'open' | 'switch' | 'close' | null>(null)
+  const transitionRunIdRef = useRef(0)
+  const closeIntentTimerRef = useRef<number | null>(null)
+  const hoverAnchorByTagIdRef = useRef(new Map<TagDescriptorId, HTMLElement>())
+  const lastAnimatedTagIdRef = useRef<TagDescriptorId | null>(null)
+
+  useEffect(() => {
+    const scopeRoot = scopeHostRef.current
+    if (!scopeRoot) return
+
+    tagRackScopeRef.current = createScope({ root: scopeRoot }).add((self: any) => {
+      let disclosureTimeline: { cancel?: () => void } | null = null
+
+      self.add('runLayoutTransition', (args: Parameters<TagRackScopeMethods['runLayoutTransition']>[0]) => {
+        const layout = panelLayoutRef.current
+        if (!layout) return
+        layout.animate(args)
+      })
+
+      self.add('stopDisclosureCadence', () => {
+        disclosureTimeline?.cancel?.()
+        disclosureTimeline = null
+      })
+
+      self.add('runDisclosureCadence', () => {
+        disclosureTimeline?.cancel?.()
+
+        const tagEl = panelTagTokenRef.current
+        const roleEl = panelRoleTypeRef.current
+        const descriptionEl = panelDescriptionRef.current
+        if (!tagEl || !roleEl || !descriptionEl) return
+
+        const prepare = (el: HTMLElement) => {
+          el.style.opacity = '0'
+          el.style.transform = 'translateY(8px)'
+          el.style.filter = 'blur(2px)'
+        }
+
+        prepare(tagEl)
+        prepare(roleEl)
+        prepare(descriptionEl)
+
+        logTagRackTransition(node.id, 'disclosure:start')
+
+        const segment = (marker: string, replayQuote: boolean = false) => ({
+          opacity: [0, 1],
+          y: [8, 0],
+          filter: ['blur(2px)', 'blur(0px)'],
+          duration: TAGRACK_DISCLOSURE_CADENCE_MS.segmentDuration,
+          onBegin: () => {
+            logTagRackTransition(node.id, marker)
+            if (replayQuote) {
+              quoteRef.current?.replay()
+            }
+          },
+        })
+
+        disclosureTimeline = createTimeline({
+          defaults: {
+            ease: 'out(3)',
+          },
+        })
+          .add(tagEl, segment('disclosure:tag'), TAGRACK_DISCLOSURE_CADENCE_MS.tagStart)
+          .add(roleEl, segment('disclosure:role'), TAGRACK_DISCLOSURE_CADENCE_MS.roleStart)
+          .add(descriptionEl, {
+            ...segment('disclosure:description', true),
+            onComplete: () => {
+              logTagRackTransition(node.id, 'disclosure:complete')
+            },
+          }, TAGRACK_DISCLOSURE_CADENCE_MS.descriptionStart)
+      })
+
+      self.add('traceTransition', (label: string, payload?: Record<string, unknown>) => {
+        logTagRackTransition(node.id, label, payload)
+      })
+    })
+
+    return () => {
+      tagRackScopeRef.current?.methods?.stopDisclosureCadence?.()
+      tagRackScopeRef.current?.revert?.()
+      tagRackScopeRef.current = null
+    }
+  }, [node.id])
+
+  const openTag = useMemo(
+    () => visibleDescriptors.find((d) => d.id === openTagId) ?? null,
+    [openTagId, visibleDescriptors]
+  )
+
+  const geometryByTagId = useMemo(() => {
+    const mapping = new Map<TagDescriptorId, TagDescriptorPanelGeometry>()
+    for (const descriptor of visibleDescriptors) {
+      mapping.set(descriptor.id, computeDescriptorPanelGeometry(descriptor, node))
+    }
+    return mapping
+  }, [node, visibleDescriptors])
+
+  const activeGeometry = openTag
+    ? geometryByTagId.get(openTag.id) ?? { panelWidthPx: 204, descriptorWidthPx: 148, descriptorMinHeightPx: 72 }
+    : { panelWidthPx: 204, descriptorWidthPx: 148, descriptorMinHeightPx: 72 }
+
+  const panelWidthPx = activeGeometry.panelWidthPx
+  const descriptorWidthPx = activeGeometry.descriptorWidthPx
+  const descriptorMinHeightPx = activeGeometry.descriptorMinHeightPx
+  const popoverOpen = (!!openTagId || isClosing) && !!referenceEl
+
+  const clearLayoutArtifacts = useCallback(() => {
+    const root = panelRootRef.current
+    if (!root) return
+
+    const nodes = [root, ...Array.from(root.querySelectorAll<HTMLElement>('*'))]
+    for (const node of nodes) {
+      node.style.opacity = ''
+      node.style.filter = ''
+      node.style.transform = ''
+      node.style.transition = ''
+      node.style.willChange = ''
+      node.style.height = ''
+      node.style.width = ''
+      node.style.maxHeight = ''
+    }
+  }, [])
+
+  const clearCloseIntent = useCallback(() => {
+    if (closeIntentTimerRef.current !== null) {
+      window.clearTimeout(closeIntentTimerRef.current)
+      closeIntentTimerRef.current = null
+    }
+  }, [])
+
+  const resetPanelState = useCallback(() => {
+    transitionRunIdRef.current += 1
+    tagRackScopeRef.current?.methods?.stopDisclosureCadence?.()
+    setOpenTagId(null)
+    setReferenceEl(null)
+    setPanelBodyVisible(false)
+    setIsPanelHovered(false)
+    setIsClosing(false)
+    pendingTransitionRef.current = null
+    lastAnimatedTagIdRef.current = null
+  }, [])
+
+  const closeDescriptorPanel = useCallback(() => {
+    clearCloseIntent()
+
+    if (isClosing || !openTagId) return
+
+    const layout = panelLayoutRef.current
+    if (layout && panelLayoutReady) {
+      layout.record()
+      pendingTransitionRef.current = 'close'
+      setIsClosing(true)
+      setPanelBodyVisible(false)
+      return
+    }
+
+    resetPanelState()
+  }, [clearCloseIntent, isClosing, openTagId, panelLayoutReady, resetPanelState])
+
+  const queueCloseDescriptorPanel = useCallback(() => {
+    clearCloseIntent()
+    closeIntentTimerRef.current = window.setTimeout(() => {
+      if (!isPanelHovered) {
+        closeDescriptorPanel()
+      }
+    }, TAGRACK_TEMPORAL_BUDGET_MS.handoff)
+  }, [clearCloseIntent, closeDescriptorPanel, isPanelHovered])
+
+  const { refs, floatingStyles, context, update } = useFloating({
+    open: popoverOpen,
+    onOpenChange: (open) => {
+      if (!open) {
+        closeDescriptorPanel()
+      }
+    },
+    placement: 'top-start',
+    strategy: 'fixed',
+    middleware: [offset(9), flip({ fallbackAxisSideDirection: 'start' }), shift({ padding: 8 })],
+    whileElementsMounted: (...args) => autoUpdate(...args, { animationFrame: true }),
+    elements: {
+      reference: referenceEl,
+    },
+  })
+
+  const setPanelLayoutRoot = useCallback((el: HTMLDivElement | null) => {
+    if (panelLayoutRef.current) {
+      panelLayoutRef.current.revert()
+      panelLayoutRef.current = null
+    }
+
+    panelRootRef.current = el
+    setPanelLayoutReady(false)
+
+    if (!el) return
+
+    panelLayoutRef.current = createLayout(el, {
+      enterFrom: {
+        opacity: 0,
+        transform: 'translateY(-4px) scale(0.965)',
+      },
+      leaveTo: {
+        opacity: 0,
+        transform: 'translateY(14px) scale(0.9)',
+      },
+      duration: TAGRACK_TEMPORAL_BUDGET_MS.enter,
+      ease: 'out(3)',
+    })
+
+    setPanelLayoutReady(true)
+  }, [])
+
+  const openDescriptorPanel = useCallback((tagId: TagDescriptorId, anchor: HTMLElement) => {
+    clearCloseIntent()
+    setReferenceEl(anchor)
+
+    if (isClosing) {
+      transitionRunIdRef.current += 1
+      pendingTransitionRef.current = null
+      setIsClosing(false)
+    }
+
+    const layout = panelLayoutRef.current
+    const hasOpenTag = openTagId !== null
+    const isSwitch = hasOpenTag && openTagId !== tagId
+
+    if (!hasOpenTag) {
+      pendingTransitionRef.current = 'open'
+      lastAnimatedTagIdRef.current = null
+      setOpenTagId(tagId)
+      return
+    }
+
+    if (isSwitch) {
+      if (layout && panelLayoutReady) {
+        layout.record()
+      }
+      pendingTransitionRef.current = 'switch'
+      lastAnimatedTagIdRef.current = null
+      setOpenTagId(tagId)
+      if (!panelBodyVisible) {
+        setPanelBodyVisible(true)
+      }
+      return
+    }
+
+    if (!panelBodyVisible) {
+      if (layout && panelLayoutReady) {
+        layout.record()
+      }
+      pendingTransitionRef.current = 'open'
+      setPanelBodyVisible(true)
+    }
+  }, [clearCloseIntent, isClosing, openTagId, panelBodyVisible, panelLayoutReady, setPanelBodyVisible])
+
+  const dismiss = useDismiss(context, { escapeKey: true, outsidePress: true })
+  const role = useRole(context, { role: 'dialog' })
+  const { getFloatingProps } = useInteractions([dismiss, role])
+
+  useLayoutEffect(() => {
+    const transition = pendingTransitionRef.current
+    if (!transition || !panelLayoutReady) return
+
+    const layout = panelLayoutRef.current
+    if (!layout) return
+
+    if (transition !== 'close' && !openTagId) {
+      pendingTransitionRef.current = null
+      return
+    }
+
+    if (transition === 'open' && !panelBodyVisible) {
+      layout.record()
+      setPanelBodyVisible(true)
+      return
+    }
+
+    if (transition === 'switch' && !panelBodyVisible) {
+      layout.record()
+      setPanelBodyVisible(true)
+      return
+    }
+
+    pendingTransitionRef.current = null
+
+    const duration = transition === 'switch'
+      ? TAGRACK_TEMPORAL_BUDGET_MS.switch
+      : transition === 'close'
+        ? TAGRACK_TEMPORAL_BUDGET_MS.exit
+        : TAGRACK_TEMPORAL_BUDGET_MS.enter
+
+    const runId = transitionRunIdRef.current + 1
+    transitionRunIdRef.current = runId
+
+    const scopeTransition = tagRackScopeRef.current?.methods?.runLayoutTransition as
+      | TagRackScopeMethods['runLayoutTransition']
+      | undefined
+
+    const scopeTrace = tagRackScopeRef.current?.methods?.traceTransition as
+      | ((label: string, payload?: Record<string, unknown>) => void)
+      | undefined
+
+    scopeTrace?.('layout-transition:dispatch', {
+      transition,
+      runId,
+      panelBodyVisible,
+      hasOpenTag: openTagId !== null,
+    })
+
+    const transitionParams = {
+      duration,
+      ease: transition === 'close' ? 'inExpo' : 'out(3)',
+      delay: transition === 'open' ? TAGRACK_TEMPORAL_BUDGET_MS.settle : 0,
+      onBegin: () => {
+        scopeTrace?.('layout-transition:begin', { transition, runId })
+        if (transition === 'close') {
+          tagRackScopeRef.current?.methods?.stopDisclosureCadence?.()
+        }
+      },
+      onComplete: () => {
+        if (transitionRunIdRef.current !== runId) return
+
+        clearLayoutArtifacts()
+
+        if (transition === 'close') {
+          scopeTrace?.('layout-transition:complete', { transition, runId })
+          resetPanelState()
+          return
+        }
+
+        if (openTagId) {
+          lastAnimatedTagIdRef.current = openTagId
+        }
+
+        update()
+        const runDisclosureCadence = tagRackScopeRef.current?.methods?.runDisclosureCadence
+        if (runDisclosureCadence) {
+          runDisclosureCadence()
+        } else {
+          quoteRef.current?.replay()
+        }
+        scopeTrace?.('layout-transition:complete', { transition, runId })
+      },
+    }
+
+    if (scopeTransition) {
+      scopeTransition(transitionParams)
+    } else {
+      layout.animate(transitionParams)
+    }
+  }, [clearLayoutArtifacts, openTagId, panelBodyVisible, panelLayoutReady, resetPanelState, setPanelBodyVisible, update])
+
+  useEffect(() => {
+    if (!openTagId || openTag || isClosing) return
+    resetPanelState()
+  }, [isClosing, openTag, openTagId, resetPanelState])
+
+  useEffect(() => {
+    const liveIds = new Set(visibleDescriptors.map((descriptor) => descriptor.id))
+    const staleIds: TagDescriptorId[] = []
+
+    for (const id of hoverAnchorByTagIdRef.current.keys()) {
+      if (!liveIds.has(id)) {
+        staleIds.push(id)
+      }
+    }
+
+    for (const id of staleIds) {
+      hoverAnchorByTagIdRef.current.delete(id)
+    }
+  }, [visibleDescriptors])
+
+  useEffect(() => {
+    return () => {
+      clearCloseIntent()
+      hoverAnchorByTagIdRef.current.clear()
+      pendingTransitionRef.current = null
+      transitionRunIdRef.current += 1
+      if (panelLayoutRef.current) {
+        panelLayoutRef.current.revert()
+        panelLayoutRef.current = null
+      }
+    }
+  }, [clearCloseIntent])
+
+  const accent = openTag ? tagDescriptorAccent(openTag.id) : '#22d3ee'
+
+  return (
+    <div ref={scopeHostRef} style={{ display: 'contents' }}>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+        {visibleDescriptors.map((tag) => {
+          const hitboxId = `tag-${node.id}-${tag.id}`
+
+          const hitboxPriority = tag.id === 'status'
+            ? 30
+            : tag.id === 'role'
+              ? 20
+              : tag.id === 'awareness'
+                ? 10
+                : 0
+
+          return (
+            <MicrointeractionHitbox.Root
+              key={tag.id}
+              id={hitboxId}
+              label={`Tag ${tag.label}`}
+              dwellMs={TAGRACK_TEMPORAL_BUDGET_MS.hoverIntent}
+              hoverLeaveGraceMs={52}
+              priority={hitboxPriority}
+              debug={hitboxDebug ? {
+                polygonFill: true,
+                polygonStroke: true,
+                boundsBox: true,
+                stateBadge: true,
+                timingMs: true,
+              } : false}
+              onArmedChange={(armed) => {
+                if (!armed) return
+                const anchor = hoverAnchorByTagIdRef.current.get(tag.id)
+                if (!anchor) return
+                openDescriptorPanel(tag.id, anchor)
+              }}
+              onHoverChange={(hovered) => {
+                if (hovered) {
+                  clearCloseIntent()
+                  return
+                }
+
+                if (openTagId === tag.id && !isPanelHovered) {
+                  queueCloseDescriptorPanel()
+                }
+              }}
+            >
+              <MicrointeractionHitbox.Target
+                onMouseEnter={(event) => {
+                  hoverAnchorByTagIdRef.current.set(tag.id, event.currentTarget)
+                }}
+                onMouseMove={(event) => {
+                  hoverAnchorByTagIdRef.current.set(tag.id, event.currentTarget)
+                }}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onActivate()
+                  hoverAnchorByTagIdRef.current.set(tag.id, event.currentTarget)
+                  openDescriptorPanel(tag.id, event.currentTarget)
+                }}
+              >
+                <MorphCard.Badge variant={tag.id === 'status' ? 'info' : 'default'}>{tag.label}</MorphCard.Badge>
+              </MicrointeractionHitbox.Target>
+            </MicrointeractionHitbox.Root>
+          )
+        })}
+      </div>
+
+      {popoverOpen && openTag && (
+        <FloatingPortal>
+          <div
+            ref={refs.setFloating}
+            style={{ ...floatingStyles, zIndex: 9999, width: panelWidthPx, maxWidth: panelWidthPx }}
+            {...getFloatingProps()}
+          >
+            <div
+              ref={setPanelLayoutRoot}
+              onMouseEnter={() => {
+                clearCloseIntent()
+                setIsPanelHovered(true)
+              }}
+              onMouseLeave={() => {
+                setIsPanelHovered(false)
+                queueCloseDescriptorPanel()
+              }}
+              style={{
+                background: '#f6f6f2',
+                border: isClosing ? '0 solid transparent' : '2px solid #000',
+                boxShadow: isClosing ? 'none' : '5px 5px 0 #000',
+                padding: 0,
+                overflow: 'hidden',
+                width: panelWidthPx,
+                transformOrigin: 'left bottom',
+              }}
+            >
+              {panelBodyVisible && (
+                <section key={openTag.id} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '8px 10px', transformOrigin: 'left bottom' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid rgba(0,0,0,0.2)', paddingBottom: 6 }}>
+                    <span
+                      ref={panelTagTokenRef}
+                      style={{
+                        fontFamily: 'var(--rvn-font-mono)',
+                        fontSize: 'var(--tmnl-text-xs, 12px)',
+                        color: accent,
+                        background: '#0a0a0a',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        border: '1px solid #000',
+                        padding: '1px 6px',
+                        opacity: 0,
+                      }}
+                    >
+                      {openTag.id}
+                    </span>
+                    <span
+                      ref={panelRoleTypeRef}
+                      style={{
+                        fontFamily: 'var(--rvn-font-sans)',
+                        fontSize: 'var(--tmnl-text-sm, 14px)',
+                        color: '#111111',
+                        fontWeight: 700,
+                        textTransform: 'capitalize',
+                        flex: 1,
+                        minWidth: 0,
+                        opacity: 0,
+                      }}
+                    >
+                      {openTag.label}
+                    </span>
+                  </div>
+                  <div
+                    ref={panelDescriptionRef}
+                    style={{
+                      border: '1px solid #111111',
+                      background: '#111111',
+                      padding: '6px 7px',
+                      width: descriptorWidthPx,
+                      minHeight: descriptorMinHeightPx,
+                      opacity: 0,
+                      fontFamily: 'var(--rvn-font-mono)',
+                      display: 'grid',
+                    }}
+                  >
+                    <div
+                      aria-hidden
+                      style={{
+                        gridArea: '1 / 1',
+                        visibility: 'hidden',
+                        whiteSpace: 'pre-wrap',
+                        fontSize: 'var(--tmnl-text-sm, 14px)',
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      "{openTag.theory}"
+                    </div>
+                    <div style={{ gridArea: '1 / 1' }}>
+                      <ScrambleQuote
+                        ref={quoteRef}
+                        text={openTag.theory}
+                        preset="rapid"
+                        manual
+                        className="border-none bg-transparent p-0 rounded-none"
+                      />
+                    </div>
+                  </div>
+                </section>
+              )}
+            </div>
+          </div>
+        </FloatingPortal>
+      )}
+    </div>
+  )
 }
 
 // =============================================================================
@@ -298,30 +1600,54 @@ interface AgentNodeCardProps {
   node: AgentNode
   isSelected: boolean
   isActive: boolean
+  chatExpansionLevel: ChatExpansionLevel
+  onChatExpansionLevelChange: (id: string, next: ChatExpansionLevel) => void
   onSelect: (id: string) => void
   onActivate: (id: string) => void
+  onOpenChat: (id: string) => void
+  onOpenInspector: (id: string) => void
 }
 
-function AgentNodeCard({ node, isSelected, isActive, onSelect, onActivate }: AgentNodeCardProps) {
+function AgentNodeCard({
+  node,
+  isSelected,
+  isActive,
+  chatExpansionLevel,
+  onChatExpansionLevelChange,
+  onSelect,
+  onActivate,
+  onOpenChat,
+  onOpenInspector,
+}: AgentNodeCardProps) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id: node.id })
+  const [shiftDragArmed, setShiftDragArmed] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
   const prevStatusRef = useRef(node.status)
 
   const cfg = ROLE_CFG[node.spec.role]
   const RoleIcon = cfg.icon
+  const prefersReducedMotion = useReducedMotion()
 
-  // Morph size based on active state
+  const iconMotionProps = prefersReducedMotion
+    ? {}
+    : {
+        whileHover: { y: -1, scale: 1.03 },
+        whileTap: { scale: 0.95 },
+        transition: { duration: 0.12, ease: 'easeOut' },
+      }
+
+  // Node card expansion follows node state and explicit chat intent.
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
       sendIslandEvent(node.id as any, {
         type: 'TRANSITION',
-        sizeKey: isActive ? 'expanded' : 'compact',
+        sizeKey: chatExpansionLevel === 'l3' ? 'chat' : isActive ? 'expanded' : 'compact',
         reticle: 'corners',
-        complexity: isActive ? 'complex' : 'simple',
+        complexity: 'simple',
       })
     })
     return () => cancelAnimationFrame(raf)
-  }, [isActive, node.id])
+  }, [chatExpansionLevel, isActive, node.id])
 
   // anime.js: Status-change FX — flash border color on transition
   useEffect(() => {
@@ -357,24 +1683,11 @@ function AgentNodeCard({ node, isSelected, isActive, onSelect, onActivate }: Age
     }
   }, [node.status, cfg.color])
 
-  // anime.js: Spawn entrance — scaleIn with overshoot
-  useEffect(() => {
-    const el = cardRef.current
-    if (!el) return
-    animeAnimate(el, {
-      scale: [0.6, 1],
-      opacity: [0, 1],
-      duration: 350,
-      easing: 'easeOutBack',
-    })
-  }, [])
-
   const style: React.CSSProperties = {
-    position: 'absolute',
     left: node.position.x,
     top: node.position.y,
     transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
-    zIndex: isActive ? 100 : isSelected ? 50 : 1,
+    zIndex: isActive ? 120 : isSelected ? 95 : transform ? 90 : 1,
     userSelect: 'none',
   }
 
@@ -390,12 +1703,57 @@ function AgentNodeCard({ node, isSelected, isActive, onSelect, onActivate }: Age
         <RvnStatusDot status={STATUS_TO_RVN[node.status]} size={6} />
       </MorphCard.Header>
       <MorphCard.Body>
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
-          <MorphCard.Badge>{node.spec.role}</MorphCard.Badge>
-          <MorphCard.Badge variant="info">{node.status}</MorphCard.Badge>
-        </div>
-        <div style={{ fontFamily: 'var(--rvn-font-mono)', fontSize: 'var(--tmnl-text-xs, 12px)', color: '#666' }}>
-          {node.spec.model.split('-').slice(-1)[0]}
+        <TagRack node={node} mode="compact" onActivate={() => onActivate(node.id)} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+          <div style={{ fontFamily: 'var(--rvn-font-mono)', fontSize: 'var(--tmnl-text-xs, 12px)', color: '#666', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {node.spec.model.split('-').slice(-1)[0]}
+          </div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <motion.button
+              type="button"
+              {...iconMotionProps}
+              aria-label={`Open inspector for ${node.spec.name}`}
+              onClick={(event) => {
+                event.stopPropagation()
+                onOpenInspector(node.id)
+              }}
+              style={{
+                border: '1px solid #000',
+                minHeight: 24,
+                minWidth: 24,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#fff',
+                cursor: 'pointer',
+                padding: 0,
+              }}
+            >
+              <Eye size={12} />
+            </motion.button>
+            <motion.button
+              type="button"
+              {...iconMotionProps}
+              aria-label={`Open chat for ${node.spec.name}`}
+              onClick={(event) => {
+                event.stopPropagation()
+                onOpenChat(node.id)
+              }}
+              style={{
+                border: '1px solid #000',
+                minHeight: 24,
+                minWidth: 24,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#fff',
+                cursor: 'pointer',
+                padding: 0,
+              }}
+            >
+              <MessageSquare size={12} />
+            </motion.button>
+          </div>
         </div>
         {node.status === 'working' && <WorkingBar color={cfg.color} />}
       </MorphCard.Body>
@@ -414,11 +1772,7 @@ function AgentNodeCard({ node, isSelected, isActive, onSelect, onActivate }: Age
         <RvnStatusDot status={STATUS_TO_RVN[node.status]} size={6} />
       </MorphCard.Header>
       <MorphCard.Body>
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
-          <MorphCard.Badge>{node.spec.role}</MorphCard.Badge>
-          <MorphCard.Badge variant="info">{node.status}</MorphCard.Badge>
-          <MorphCard.Badge variant="default">{node.spec.awareness}</MorphCard.Badge>
-        </div>
+        <TagRack node={node} mode="expanded" onActivate={() => onActivate(node.id)} />
         <div style={{ fontFamily: 'var(--rvn-font-mono)', fontSize: 'var(--tmnl-text-xs, 12px)', color: '#666' }}>
           {node.spec.model}
         </div>
@@ -437,22 +1791,105 @@ function AgentNodeCard({ node, isSelected, isActive, onSelect, onActivate }: Age
           <span style={{ fontFamily: 'var(--rvn-font-mono)', fontSize: 'var(--tmnl-text-xs, 12px)', color: '#666' }}>
             {node.output.length} logs
           </span>
+          <motion.button
+            type="button"
+            {...iconMotionProps}
+            aria-label={`Open inspector for ${node.spec.name}`}
+            onClick={(event) => {
+              event.stopPropagation()
+              onOpenInspector(node.id)
+            }}
+            style={{
+              border: '1px solid #000',
+              minHeight: 24,
+              minWidth: 24,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#fff',
+              cursor: 'pointer',
+              padding: 0,
+            }}
+          >
+            <Eye size={12} />
+          </motion.button>
+          <motion.button
+            type="button"
+            {...iconMotionProps}
+            aria-label={`Open chat for ${node.spec.name}`}
+            onClick={(event) => {
+              event.stopPropagation()
+              onOpenChat(node.id)
+            }}
+            style={{
+              border: '1px solid #000',
+              minHeight: 24,
+              minWidth: 24,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: '#fff',
+              cursor: 'pointer',
+              padding: 0,
+            }}
+          >
+            <MessageSquare size={12} />
+          </motion.button>
         </MorphCard.Actions>
       </MorphCard.Footer>
     </MorphCard.Content>
   )
 
+  const chatView = (
+    <MorphCard.Content padding="sm">
+      <AgentInspector
+        node={node}
+        surface="chat"
+        chatExpansionLevel={chatExpansionLevel}
+        onChatExpansionLevelChange={(next) => {
+          onChatExpansionLevelChange(node.id, next)
+        }}
+      />
+    </MorphCard.Content>
+  )
+
+  useEffect(() => {
+    if (!transform) {
+      setShiftDragArmed(false)
+    }
+  }, [transform])
+
+  const setChromeRef = useCallback((el: HTMLDivElement | null) => {
+    setNodeRef(el)
+    cardRef.current = el
+    registerNodeRef(node.id, el)
+  }, [setNodeRef, node.id])
+
   return (
-    <div
-      ref={(el) => { setNodeRef(el); (cardRef as React.MutableRefObject<HTMLDivElement | null>).current = el }}
+    <NodeChrome
+      nodeId={node.id}
+      isActive={isActive}
+      isSelected={isSelected}
       style={style}
-      {...listeners}
-      {...attributes}
-      data-selectable
-      data-selectable-id={node.id}
+      setNodeRef={setChromeRef}
+      listeners={listeners as Record<string, unknown>}
+      attributes={attributes as Record<string, unknown>}
+      groupAccent="#000"
+      showShiftDragOverlay={shiftDragArmed && !!transform}
+      onPointerDownCapture={(e) => {
+        setShiftDragArmed(e.shiftKey)
+      }}
+      onPointerUpCapture={() => {
+        setShiftDragArmed(false)
+      }}
       onClick={(e) => {
         e.stopPropagation()
-        if (e.shiftKey) { selectItem(node.id, 'add') } else { onSelect(node.id); onActivate(node.id) }
+        if (e.shiftKey) {
+          onSelect(node.id)
+        } else {
+          selectOnly(node.id)
+          onActivate(node.id)
+        }
       }}
     >
       <MorphCard
@@ -462,6 +1899,7 @@ function AgentNodeCard({ node, isSelected, isActive, onSelect, onActivate }: Age
           sizes: {
             compact: { width: 220, height: 120 },
             expanded: { width: 280, height: 200 },
+            chat: { width: 560, height: 460 },
             default: { width: 220, height: 120 },
           },
           reticle: 'corners',
@@ -471,16 +1909,21 @@ function AgentNodeCard({ node, isSelected, isActive, onSelect, onActivate }: Age
         theme={rvnMorphCardTheme}
         interactive={false}
         disableAnimations={false}
-        dynamicSize={false}
+        dynamicSize
+        minWidth={220}
+        maxWidth={980}
+        minHeight={120}
+        maxHeight={860}
         views={{
           compact: compactView,
           expanded: expandedView,
+          chat: chatView,
           default: compactView,
         }}
       >
         {null}
       </MorphCard>
-    </div>
+    </NodeChrome>
   )
 }
 
@@ -573,54 +2016,222 @@ function RailButton({ title, onClick, children }: { title: string; onClick: () =
   )
 }
 
-// =============================================================================
-// Inspector Panel — right sidebar
-// =============================================================================
+function ConductorAssistantInlineTaskAttachment({
+  threadId,
+  messageAnchorId,
+  streaming,
+  expansionLevel,
+}: {
+  threadId: string
+  messageAnchorId: string
+  streaming: boolean
+  expansionLevel: ChatExpansionLevel
+}) {
+  const scopeKey = useMemo(
+    () => toInlineTaskUiStateKey(threadId, messageAnchorId),
+    [messageAnchorId, threadId],
+  )
+  const tasksAtom = useMemo(() => inlineTaskExpandedTasksByScopeAtom(scopeKey), [scopeKey])
+  const tasks = useAtomValue(tasksAtom)
 
-function InspectorPanel() {
-  const activeNode = useAtomValue(activeNodeAtom)
-  const expanded = useAtomValue(inspectorExpandedAtom)
-
-  if (!expanded) {
-    return (
-      <div style={{ width: 32, background: '#f4f4f4', borderLeft: '3px solid #000', display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8, flexShrink: 0 }}>
-        <button onClick={() => reg.set(inspectorExpandedAtom, true)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#000' }}>
-          <Eye size={14} />
-        </button>
-      </div>
-    )
+  if (tasks.length === 0 && !streaming) {
+    return null
   }
 
   return (
-    <motion.div
-      initial={{ width: 0, opacity: 0 }}
-      animate={{ width: 260, opacity: 1 }}
-      exit={{ width: 0, opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      style={{ background: '#fff', borderLeft: '3px solid #000', display: 'flex', flexDirection: 'column', flexShrink: 0, overflow: 'hidden' }}
-    >
-      <div style={{ background: '#000', color: '#fff', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '3px solid #000' }}>
-        <span style={{ fontFamily: 'var(--rvn-font-sans)', fontSize: 'var(--tmnl-text-xs, 12px)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-          Inspector
-        </span>
-        <button onClick={() => reg.set(inspectorExpandedAtom, false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#fff' }}>
-          <EyeOff size={12} />
-        </button>
-      </div>
-      <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
-        {activeNode ? <AgentInspector node={activeNode} /> : (
-          <div style={{ color: '#999', fontFamily: 'var(--rvn-font-mono)', fontSize: 'var(--tmnl-text-sm, 14px)', textAlign: 'center', marginTop: 40 }}>
-            Select an agent node
-          </div>
-        )}
-      </div>
-    </motion.div>
+    <RvnChat.MessageShell.AttachmentLane.Root messageAnchorId={messageAnchorId}>
+      <RvnChat.MessageShell.AttachmentLane.InlineTaskThread>
+        <RvnChat.InlineTaskThread.VirtualizedList
+          threadId={threadId}
+          messageAnchorId={messageAnchorId}
+          expansionLevel={expansionLevel}
+          streaming={streaming}
+          autoOpenOnStreaming
+        />
+      </RvnChat.MessageShell.AttachmentLane.InlineTaskThread>
+    </RvnChat.MessageShell.AttachmentLane.Root>
   )
 }
 
-function AgentInspector({ node }: { node: AgentNode }) {
-  const [promptText, setPromptText] = useState('')
+function AgentInspector({
+  node,
+  surface,
+  chatExpansionLevel,
+  onChatExpansionLevelChange,
+}: {
+  node: AgentNode
+  surface: ConductorInspectorSurface
+  chatExpansionLevel: ChatExpansionLevel
+  onChatExpansionLevelChange: (next: ChatExpansionLevel) => void
+}) {
   const inspectorRef = useRef<HTMLDivElement>(null)
+  const nodeList = useAtomValue(nodeListAtom)
+
+  const activeAgentAtom = useMemo(() => NodeChatAtomAccessors.activeAgent(node.id), [node.id])
+  const activeAgentIdForNode = useAtomValue(activeAgentAtom)
+  const setActiveAgentForNode = useAtomSet(activeAgentAtom)
+
+  const activeAgentId =
+    activeAgentIdForNode && nodeList.some((item) => item.id === activeAgentIdForNode)
+      ? activeAgentIdForNode
+      : node.id
+
+  const chatMessagesAtom = useMemo(() => NodeChatAtomAccessors.messages(activeAgentId), [activeAgentId])
+  const chatPendingAtom = useMemo(() => NodeChatAtomAccessors.pending(activeAgentId), [activeAgentId])
+  const chatErrorAtom = useMemo(() => NodeChatAtomAccessors.error(activeAgentId), [activeAgentId])
+  const chatStreamingMessageIdAtom = useMemo(() => NodeChatAtomAccessors.streamingMessageId(activeAgentId), [activeAgentId])
+  const chatSessionIdAtom = useMemo(() => NodeChatAtomAccessors.sessionId(activeAgentId), [activeAgentId])
+  const chatLastSeqAtom = useMemo(() => NodeChatAtomAccessors.lastSeq(activeAgentId), [activeAgentId])
+  const chatDraftAtom = useMemo(() => NodeChatAtomAccessors.draft(activeAgentId), [activeAgentId])
+  const chatScrollTopAtom = useMemo(() => NodeChatAtomAccessors.scrollTop(activeAgentId), [activeAgentId])
+  const chatReliabilityMetricsAtom = useMemo(() => NodeChatAtomAccessors.reliabilityMetrics(activeAgentId), [activeAgentId])
+  const sendPromptOpAtom = useMemo(() => NodeChatAtomAccessors.sendPrompt(activeAgentId), [activeAgentId])
+  const reconnectNodeOpAtom = useMemo(() => NodeChatAtomAccessors.reconnectNode(activeAgentId), [activeAgentId])
+  const abortNodeOpAtom = useMemo(() => NodeChatAtomAccessors.abortNode(activeAgentId), [activeAgentId])
+
+  const chatMessages = useAtomValue(chatMessagesAtom)
+  const isPending = useAtomValue(chatPendingAtom)
+  const chatError = useAtomValue(chatErrorAtom)
+  const chatStreamingMessageId = useAtomValue(chatStreamingMessageIdAtom)
+  const chatSessionId = useAtomValue(chatSessionIdAtom)
+  const chatLastSeq = useAtomValue(chatLastSeqAtom)
+  const chatDraft = useAtomValue(chatDraftAtom)
+  const chatScrollTop = useAtomValue(chatScrollTopAtom)
+  const chatReliabilityMetrics = useAtomValue(chatReliabilityMetricsAtom)
+  const setChatMessages = useAtomSet(chatMessagesAtom)
+  const setChatPending = useAtomSet(chatPendingAtom)
+  const setChatError = useAtomSet(chatErrorAtom)
+  const setChatStreamingMessageId = useAtomSet(chatStreamingMessageIdAtom)
+  const setChatSessionId = useAtomSet(chatSessionIdAtom)
+  const setChatLastSeq = useAtomSet(chatLastSeqAtom)
+  const setChatDraft = useAtomSet(chatDraftAtom)
+  const setChatScrollTop = useAtomSet(chatScrollTopAtom)
+  const orchestratorConnectivity = useAtomValue(orchestratorConnectivityAtom)
+  const runChatPrompt = useAtomSet(sendPromptOpAtom, { mode: 'promise' })
+  const runReconnectNode = useAtomSet(reconnectNodeOpAtom, { mode: 'promise' })
+  const runAbortNode = useAtomSet(abortNodeOpAtom, { mode: 'promise' })
+
+  const chatDisabled = isPending || orchestratorConnectivity.status !== 'online'
+  const [chatReconnectInFlight, setChatReconnectInFlight] = useState(false)
+  const [chatResyncInFlight, setChatResyncInFlight] = useState(false)
+
+  const connectionState = useMemo(() => {
+    if (chatResyncInFlight) return 'resyncing' as const
+    if (chatReconnectInFlight) return 'reconnecting' as const
+    if (orchestratorConnectivity.status === 'online') return 'online' as const
+    if (orchestratorConnectivity.status === 'checking') return 'connecting' as const
+    return 'offline' as const
+  }, [chatReconnectInFlight, chatResyncInFlight, orchestratorConnectivity.status])
+
+  const messageState = useMemo(() => {
+    if (chatError) return 'error' as const
+    if (isPending && chatStreamingMessageId !== null) return 'assistant_streaming' as const
+    if (isPending) return 'send_accepted' as const
+
+    const hasDraft = chatDraft.trim().length > 0
+    if (hasDraft) return 'typing' as const
+
+    const lastMessage = chatMessages.at(-1)
+    if (lastMessage?.role === 'assistant') return 'assistant_finalized' as const
+
+    return 'idle' as const
+  }, [chatDraft, chatError, chatMessages, chatStreamingMessageId, isPending])
+
+  const chatStatusRows = useMemo(() => {
+    const rows: { id: string; tone: 'info' | 'warn' | 'error'; text: string }[] = []
+
+    if (isPending) {
+      rows.push({
+        id: 's1-pending',
+        tone: 'info',
+        text: 'S1 • Message queued — waiting for assistant stream…',
+      })
+    }
+
+    if (chatReconnectInFlight) {
+      rows.push({
+        id: 's1-reconnecting',
+        tone: 'info',
+        text: 'S1 • Reconnecting — restoring node session stream…',
+      })
+    }
+
+    if (chatResyncInFlight) {
+      rows.push({
+        id: 's2-resyncing',
+        tone: 'warn',
+        text: 'S2 • Resyncing — replaying missed events for this node…',
+      })
+    }
+
+    if (orchestratorConnectivity.status !== 'online') {
+      rows.push({
+        id: 's2-offline',
+        tone: 'warn',
+        text: 'S2 • Connection lost — live stream interrupted. Draft is preserved for this node.',
+      })
+    }
+
+    if (chatError) {
+      const normalized = chatError.toLowerCase()
+
+      if (normalized.includes('session')) {
+        rows.push({
+          id: 's4-session',
+          tone: 'error',
+          text: 'S4 • Session unavailable — cannot open chat session for this node.',
+        })
+      } else if (normalized.includes('timeout')) {
+        rows.push({
+          id: 's3-timeout',
+          tone: 'error',
+          text: 'S3 • Request timed out — control plane did not respond in time.',
+        })
+      } else if (normalized.includes('decode') || normalized.includes('format')) {
+        rows.push({
+          id: 's3-sync-format',
+          tone: 'error',
+          text: 'S3 • Sync format error — received invalid payload. Please reconnect.',
+        })
+      } else if (normalized.includes('prompt')) {
+        rows.push({
+          id: 's3-prompt',
+          tone: 'error',
+          text: 'S3 • Send failed — agent could not process this prompt. Try again or switch agent.',
+        })
+      } else {
+        rows.push({
+          id: 's3-generic',
+          tone: 'error',
+          text: `S3 • chat-error: ${chatError}`,
+        })
+      }
+    }
+
+    if (chatReliabilityMetrics.sendCount > 0) {
+      const ack = chatReliabilityMetrics.avgAckLatencyMs === null
+        ? '—'
+        : `${Math.round(chatReliabilityMetrics.avgAckLatencyMs)}ms`
+      const delta = chatReliabilityMetrics.avgFirstDeltaLagMs === null
+        ? '—'
+        : `${Math.round(chatReliabilityMetrics.avgFirstDeltaLagMs)}ms`
+
+      rows.push({
+        id: 's1-metrics',
+        tone: 'info',
+        text: `S1 • metrics ack(avg)=${ack} delta(avg)=${delta} replay=${chatReliabilityMetrics.replayEventCount} reconnects=${chatReliabilityMetrics.reconnectCount}`,
+      })
+    }
+
+    return rows
+  }, [
+    chatError,
+    chatReconnectInFlight,
+    chatReliabilityMetrics,
+    chatResyncInFlight,
+    isPending,
+    orchestratorConnectivity.status,
+  ])
 
   // anime.js: cascade entrance when node changes
   useEffect(() => {
@@ -635,59 +2246,294 @@ function AgentInspector({ node }: { node: AgentNode }) {
     })
   }, [node.id])
 
+  const agentOptions = nodeList.map((item) => ({
+    id: item.id,
+    name: item.spec.name,
+    role: item.spec.role,
+    model: item.spec.model,
+    status: item.status,
+  }))
+
+  const activeSessionLabel = useMemo(() => {
+    const active = nodeList.find((item) => item.id === activeAgentId)
+    const resolvedSessionId = chatSessionId ?? active?.sessionId ?? node.sessionId ?? null
+    if (!resolvedSessionId) return undefined
+
+    return chatLastSeq > 0
+      ? `${resolvedSessionId} · seq:${chatLastSeq}`
+      : resolvedSessionId
+  }, [activeAgentId, chatLastSeq, chatSessionId, node.sessionId, nodeList])
+
+  const chatTitle = useMemo(() => {
+    const active = nodeList.find((item) => item.id === activeAgentId)
+    const nodeName = active?.spec.name ?? node.spec.name
+    const resolvedSessionId = chatSessionId ?? active?.sessionId ?? node.sessionId ?? null
+
+    if (!resolvedSessionId) {
+      return `${nodeName} Session`
+    }
+
+    return `${nodeName} · ${resolvedSessionId}`
+  }, [activeAgentId, chatSessionId, node.sessionId, node.spec.name, nodeList])
+
+  useEffect(() => {
+    if (activeAgentIdForNode && !nodeList.some((item) => item.id === activeAgentIdForNode)) {
+      setActiveAgentForNode(node.id)
+    }
+  }, [activeAgentIdForNode, node.id, nodeList, setActiveAgentForNode])
+
+  const showInspectorDetails = surface === 'inspector'
+  const showChatSurface = surface === 'chat'
+
   return (
-    <div ref={inspectorRef} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div>
-        <div style={{ fontFamily: 'var(--rvn-font-sans)', fontSize: 'var(--tmnl-text-sm, 14px)', fontWeight: 700, marginBottom: 4 }}>
-          {node.spec.name}
-        </div>
-        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-          <RvnBadge variant="filled">{node.spec.role}</RvnBadge>
-          <RvnBadge>{node.status}</RvnBadge>
-          <RvnBadge variant="muted">{node.spec.awareness}</RvnBadge>
-        </div>
-      </div>
-
-      <div style={{ border: '2px solid #000', fontFamily: 'var(--rvn-font-mono)', fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-        {([
-          ['ID', node.id],
-          ['MODEL', node.spec.model],
-          ['SPAWNED', new Date(node.spawnedAt).toLocaleTimeString()],
-          ['SESSION', node.sessionId ?? '—'],
-          ['OUTPUT', `${node.output.length} lines`],
-        ] as const).map(([label, value]) => (
-          <div key={label} data-inspector-row style={{ display: 'flex', borderBottom: '1px solid #ddd', padding: '4px 8px' }}>
-            <span style={{ width: 70, fontWeight: 700, flexShrink: 0, color: '#666' }}>{label}</span>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#000' }}>{value}</span>
+    <div ref={inspectorRef} style={{ display: 'flex', flexDirection: 'column', gap: showInspectorDetails ? 12 : 8 }}>
+      {showInspectorDetails && (
+        <>
+          <div>
+            <div style={{ fontFamily: 'var(--rvn-font-sans)', fontSize: 'var(--tmnl-text-sm, 14px)', fontWeight: 700, marginBottom: 4 }}>
+              {node.spec.name}
+            </div>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              <RvnBadge variant="filled">{node.spec.role}</RvnBadge>
+              <RvnBadge>{node.status}</RvnBadge>
+              <RvnBadge variant="muted">{node.spec.awareness}</RvnBadge>
+            </div>
           </div>
-        ))}
-      </div>
 
-      <div style={{ display: 'flex', gap: 4 }}>
-        <ActionBtn icon={<Terminal size={12} />} label="Terminal" onClick={() => { reg.set(terminalExpandedAtom, true); log(`📺 Terminal → ${node.spec.name}`) }} />
-        <ActionBtn icon={<Trash2 size={12} />} label="Kill" destructive onClick={() => removeNode(node.id)} />
-      </div>
+          <div style={{ border: '2px solid #000', fontFamily: 'var(--rvn-font-mono)', fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+            {([
+              ['ID', node.id],
+              ['MODEL', node.spec.model],
+              ['SPAWNED', new Date(node.spawnedAt).toLocaleTimeString()],
+              ['SESSION', node.sessionId ?? '—'],
+              ['OUTPUT', `${node.output.length} lines`],
+            ] as const).map(([label, value]) => (
+              <div key={label} data-inspector-row style={{ display: 'flex', borderBottom: '1px solid #ddd', padding: '4px 8px' }}>
+                <span style={{ width: 70, fontWeight: 700, flexShrink: 0, color: '#666' }}>{label}</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#000' }}>{value}</span>
+              </div>
+            ))}
+          </div>
 
-      <div>
-        <div style={{ fontFamily: 'var(--rvn-font-sans)', fontSize: 'var(--tmnl-text-xs, 12px)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>
-          Send Prompt
-        </div>
-        <textarea
-          value={promptText}
-          onChange={(e) => setPromptText(e.target.value)}
-          placeholder="Enter a prompt…"
-          style={{ width: '100%', height: 80, resize: 'vertical', border: '2px solid #000', padding: 8, fontFamily: 'var(--rvn-font-mono)', fontSize: 'var(--tmnl-text-xs, 12px)', background: '#f4f4f4' }}
+          <div style={{ display: 'flex', gap: 4 }}>
+            <ActionBtn icon={<Terminal size={12} />} label="Terminal" onClick={() => { reg.set(terminalExpandedAtom, true); log(`📺 Terminal → ${node.spec.name}`) }} />
+            <ActionBtn icon={<Trash2 size={12} />} label="Kill" destructive onClick={() => removeNode(node.id)} />
+          </div>
+        </>
+      )}
+
+      {showChatSurface && (
+        <RvnHarnessChatSurface
+          nodeId={node.id}
+          title={chatTitle}
+          agents={agentOptions}
+          activeAgentId={activeAgentId}
+          onActiveAgentChange={(nextAgentId) => {
+            setActiveAgentForNode(nextAgentId)
+            void provisionNodeAgentOnActivate(nextAgentId)
+          }}
+          messages={chatMessages}
+          disabled={chatDisabled}
+          quickActions={['/status', '/alarm', '@WO-4821']}
+          slashCommands={[
+            { id: 'status', command: '/status', description: 'System overview' },
+            { id: 'status-wo', command: '/status:wo', description: 'Work order status summary' },
+            { id: 'alarm', command: '/alarm', description: 'Active alarms' },
+            { id: 'escalate', command: '/escalate', description: 'Escalate selected work order' },
+          ]}
+          mentionEntities={nodeList.map((item) => ({
+            id: item.id,
+            label: item.spec.name,
+            subtitle: `${item.spec.role} · ${item.status}`,
+          }))}
+          statusRows={chatStatusRows}
+          streamingMessageId={chatStreamingMessageId}
+          draft={chatDraft}
+          onDraftChange={setChatDraft}
+          threadScrollTop={chatScrollTop}
+          onThreadScrollTopChange={setChatScrollTop}
+          expansionLevel={chatExpansionLevel}
+          onToggleExpansion={(nextLevel) => {
+            onChatExpansionLevelChange(nextLevel)
+          }}
+          onExitChat={() => {
+            onChatExpansionLevelChange('l2')
+          }}
+          connectionState={connectionState}
+          messageState={messageState}
+          sessionLabel={activeSessionLabel}
+          onPause={async (targetAgentId) => {
+            const target = nodeList.find((item) => item.id === targetAgentId)
+            if (!target) {
+              logSystem(`chat-pause dropped: unknown target '${targetAgentId}'`)
+              return
+            }
+
+            const requestId = `abort-${targetAgentId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+            const outcome = await (runAbortNode({ requestId }) as Promise<NodeChatAbortOutcome>)
+
+            if (outcome.ok) {
+              logSystem(`chat-pause ${targetAgentId} ok`)
+              return
+            }
+
+            const message = outcome.error ?? 'unknown pause failure'
+            reg.set(NodeChatAtomAccessors.error(targetAgentId), message)
+            logSystem(`chat-pause failed ${targetAgentId}: ${message}`)
+          }}
+          onReconnect={async (targetAgentId) => {
+            setChatReconnectInFlight(true)
+
+            try {
+              await probeOrchestratorConnectivity()
+              if (!isOrchestratorOnline()) {
+                return
+              }
+
+              const target = nodeList.find((item) => item.id === targetAgentId)
+              if (!target) {
+                logSystem(`chat-reconnect dropped: unknown target '${targetAgentId}'`)
+                return
+              }
+
+              const requestId = `reconnect-${targetAgentId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+              setChatResyncInFlight(true)
+              const outcome = await (runReconnectNode({
+                requestId,
+                role: target.spec.role,
+              }) as Promise<NodeChatReconnectOutcome>)
+
+              if (outcome.ok) {
+                logSystem(`chat-reconnect ${targetAgentId} ok replayed=${outcome.replayedEventCount}`)
+                return
+              }
+
+              const message = outcome.error ?? 'unknown reconnect failure'
+              reg.set(NodeChatAtomAccessors.error(targetAgentId), message)
+              logSystem(`chat-reconnect failed ${targetAgentId}: ${message}`)
+            } finally {
+              setChatReconnectInFlight(false)
+              setTimeout(() => {
+                setChatResyncInFlight(false)
+              }, 300)
+            }
+          }}
+          onResetSession={async (targetAgentId) => {
+            const target = nodeList.find((item) => item.id === targetAgentId)
+            if (!target) {
+              logSystem(`chat-reset dropped: unknown target '${targetAgentId}'`)
+              return
+            }
+
+            const requestId = `reset-${targetAgentId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+            const outcome = await (runAbortNode({ requestId }) as Promise<NodeChatAbortOutcome>)
+
+            setChatPending(false)
+            setChatStreamingMessageId(null)
+            setChatDraft('')
+            setChatScrollTop(0)
+            setChatMessages([])
+            setChatLastSeq(0)
+            setChatSessionId(null)
+            setChatReconnectInFlight(false)
+            setChatResyncInFlight(false)
+            setNodeField(targetAgentId, 'status', 'idle')
+            setNodeField(targetAgentId, 'sessionId', null)
+            appendNodeOutput(targetAgentId, `[${new Date().toLocaleTimeString()}] • trace: session reset`)
+
+            if (outcome.ok || chatSessionId === null) {
+              setChatError(null)
+              logSystem(`chat-reset ${targetAgentId} ok`)
+              return
+            }
+
+            const message = outcome.error ?? 'unknown reset failure'
+            setChatError(message)
+            logSystem(`chat-reset failed ${targetAgentId}: ${message}`)
+          }}
+          onSend={async (payload) => {
+            const targetNodeId = nodeList.some((item) => item.id === payload.targetAgentId)
+              ? payload.targetAgentId
+              : activeAgentId
+
+            const maybeTarget = HashMap.get(reg.get(nodesAtom), targetNodeId)
+            if (Option.isNone(maybeTarget)) {
+              logSystem(`chat-send dropped: unknown target '${targetNodeId}'`)
+              return
+            }
+
+            const targetNode = maybeTarget.value
+
+            if (!isOrchestratorOnline()) {
+              failNodePromptAsOffline(targetNodeId, 'harness runtime offline (chat blocked)')
+              logSystem(`chat-send blocked ${node.id} -> ${targetNodeId}: harness runtime offline`)
+              return
+            }
+
+            const requestId = `${targetNodeId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+            setNodeField(targetNodeId, 'status', 'working')
+            appendNodeOutput(targetNodeId, `[${new Date().toLocaleTimeString()}] • trace: prompt dispatched`)
+            logSystem(`chat-send ${node.id} -> ${targetNodeId}`)
+
+            try {
+              const outcome = await (runChatPrompt({
+                requestId,
+                role: targetNode.spec.role,
+                prompt: payload.text,
+                thinkingLevel: payload.thinkingLevel,
+              }) as Promise<NodeChatSendOutcome>)
+
+              if (outcome.ok) {
+                if (outcome.agentId) {
+                  setNodeField(targetNodeId, 'sessionId', outcome.agentId)
+                }
+
+                if (outcome.assistantText.length > 0) {
+                  appendNodeOutput(
+                    targetNodeId,
+                    `[${new Date().toLocaleTimeString()}] • trace: ${outcome.assistantText}`,
+                  )
+                  setNodeField(targetNodeId, 'status', 'complete')
+                } else {
+                  setNodeField(targetNodeId, 'status', 'working')
+                  appendNodeOutput(
+                    targetNodeId,
+                    `[${new Date().toLocaleTimeString()}] • trace: stream accepted`,
+                  )
+                }
+                return
+              }
+
+              const message = outcome.error ?? 'unknown error'
+              setNodeField(targetNodeId, 'status', 'failed')
+              reg.set(NodeChatAtomAccessors.pending(targetNodeId), false)
+              reg.set(NodeChatAtomAccessors.error(targetNodeId), message)
+              appendNodeOutput(
+                targetNodeId,
+                `[${new Date().toLocaleTimeString()}] • trace:error ${message}`,
+              )
+            } catch (error) {
+              const message = error instanceof Error ? error.message : String(error)
+              setNodeField(targetNodeId, 'status', 'failed')
+              reg.set(NodeChatAtomAccessors.pending(targetNodeId), false)
+              reg.set(NodeChatAtomAccessors.error(targetNodeId), message)
+              appendNodeOutput(
+                targetNodeId,
+                `[${new Date().toLocaleTimeString()}] • trace:error ${message}`,
+              )
+              logSystem(`chat-send failed ${targetNodeId}: ${message}`)
+            }
+          }}
+          onBreakout={(message) => {
+            log(`▶ BREAKOUT ${node.spec.name}: ${message.text.slice(0, 80)}`)
+          }}
         />
-        <button
-          onClick={() => { if (promptText.trim()) { sendPrompt(node.id, promptText); setPromptText('') } }}
-          disabled={!promptText.trim() || node.status === 'working'}
-          style={{ width: '100%', marginTop: 4, padding: '6px 12px', background: node.status === 'working' ? '#ccc' : '#000', color: '#fff', border: '2px solid #000', fontFamily: 'var(--rvn-font-sans)', fontSize: 'var(--tmnl-text-xs, 12px)', fontWeight: 700, textTransform: 'uppercase', cursor: node.status === 'working' ? 'not-allowed' : 'pointer', letterSpacing: '0.05em' }}
-        >
-          {node.status === 'working' ? 'Working…' : 'Send'}
-        </button>
-      </div>
+      )}
 
-      {node.output.length > 0 && (
+
+      {showInspectorDetails && node.output.length > 0 && (
         <div>
           <div style={{ fontFamily: 'var(--rvn-font-sans)', fontSize: 'var(--tmnl-text-xs, 12px)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>
             Output ({node.output.length})
@@ -698,6 +2544,100 @@ function AgentInspector({ node }: { node: AgentNode }) {
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ * INSPECT-TRAP follow-through (Lexicon #11): inline detached inspector surface.
+ * Reference: ./conductor/NODE_STATE_LEXICON.md
+ */
+function InlineInspectorOverlay({
+  node,
+  referenceElement,
+  portalRoot,
+  chatExpansionLevel,
+  onChatExpansionLevelChange,
+  onClose,
+}: {
+  node: AgentNode | null
+  referenceElement: HTMLElement | null
+  portalRoot: HTMLElement | null
+  chatExpansionLevel: ChatExpansionLevel
+  onChatExpansionLevelChange: (next: ChatExpansionLevel) => void
+  onClose: () => void
+}) {
+  const open = !!node && !!referenceElement
+
+  const { refs, floatingStyles, context } = useFloating({
+    open,
+    onOpenChange: (nextOpen) => {
+      if (!nextOpen) onClose()
+    },
+    placement: 'right-start',
+    middleware: [
+      offset(12),
+      flip({ fallbackAxisSideDirection: 'start' }),
+      shift({ padding: 8 }),
+    ],
+    whileElementsMounted: autoUpdate,
+    elements: {
+      reference: referenceElement,
+    },
+  })
+
+  const dismiss = useDismiss(context, { escapeKey: true, outsidePress: true })
+  const role = useRole(context, { role: 'dialog' })
+  const { getFloatingProps } = useInteractions([dismiss, role])
+  const prefersReducedMotion = useReducedMotion()
+
+  const panelWidth = useMemo(() => {
+    if (chatExpansionLevel !== 'l3') {
+      return 320
+    }
+
+    if (typeof window === 'undefined') {
+      return 960
+    }
+
+    return Math.min(960, Math.max(460, window.innerWidth - 80))
+  }, [chatExpansionLevel])
+
+  const panelTitle = chatExpansionLevel === 'l3' ? 'Node Chat' : 'Inline Inspector'
+
+  if (!open || !node) return null
+
+  return (
+    <FloatingPortal root={portalRoot}>
+      <motion.div
+        key={`inline-inspector-${node.id}`}
+        ref={refs.setFloating}
+        initial={prefersReducedMotion ? undefined : { opacity: 0, y: 6, scale: 0.98 }}
+        animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
+        exit={prefersReducedMotion ? undefined : { opacity: 0, y: 6, scale: 0.98 }}
+        transition={{ duration: prefersReducedMotion ? 0 : 0.16, ease: 'easeOut' }}
+        style={{ ...floatingStyles, zIndex: 12000, width: panelWidth }}
+        {...getFloatingProps()}
+      >
+        <div style={{ background: '#fff', border: '3px solid #000', boxShadow: '6px 6px 0 rgba(0,0,0,0.24)', maxHeight: chatExpansionLevel === 'l3' ? '84vh' : '70vh', overflow: 'auto' }}>
+          <div style={{ background: '#000', color: '#fff', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '3px solid #000' }}>
+            <span style={{ fontFamily: 'var(--rvn-font-sans)', fontSize: 'var(--tmnl-text-xs, 12px)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              {panelTitle}
+            </span>
+            <button onClick={onClose} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#fff' }}>
+              <EyeOff size={12} />
+            </button>
+          </div>
+          <div style={{ padding: 12 }}>
+            <AgentInspector
+              node={node}
+              surface="inspector"
+              chatExpansionLevel={chatExpansionLevel}
+              onChatExpansionLevelChange={onChatExpansionLevelChange}
+            />
+          </div>
+        </div>
+      </motion.div>
+    </FloatingPortal>
   )
 }
 
@@ -732,6 +2672,23 @@ function StatusBar() {
   const agentCount = useAtomValue(activeCountAtom)
   const status = useAtomValue(wfStatusAtom)
   const progress = useAtomValue(wfProgressAtom)
+  const microHitboxDebug = useAtomValue(microHitboxDebugAtom)
+  const setMicroHitboxDebug = useAtomSet(microHitboxDebugAtom)
+  const orchestratorConnectivity = useAtomValue(orchestratorConnectivityAtom)
+
+  const connectivityColor =
+    orchestratorConnectivity.status === 'online'
+      ? '#10b981'
+      : orchestratorConnectivity.status === 'offline'
+        ? '#f43f5e'
+        : '#f59e0b'
+
+  const connectivityText =
+    orchestratorConnectivity.status === 'online'
+      ? `PI WS ONLINE ${orchestratorConnectivity.latencyMs ?? 0}ms`
+      : orchestratorConnectivity.status === 'offline'
+        ? 'PI WS OFFLINE'
+        : 'PI WS CHECKING'
 
   return (
     <div style={{ height: 32, background: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', borderBottom: '3px solid #000', fontFamily: 'var(--rvn-font-mono)', fontSize: 'var(--tmnl-text-xs, 12px)', flexShrink: 0 }}>
@@ -742,6 +2699,44 @@ function StatusBar() {
         <span>AGENTS: {agentCount}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button
+          type="button"
+          onClick={() => { void probeOrchestratorConnectivity() }}
+          style={{
+            background: 'transparent',
+            color: connectivityColor,
+            border: `1px solid ${connectivityColor}`,
+            padding: '2px 8px',
+            cursor: 'pointer',
+            fontFamily: 'var(--rvn-font-mono)',
+            fontSize: 'var(--tmnl-text-xs, 12px)',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+          }}
+          title={orchestratorConnectivity.lastError ?? 'Probe pi orchestrator remote websocket health'}
+        >
+          {connectivityText}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMicroHitboxDebug(!microHitboxDebug)}
+          style={{
+            background: microHitboxDebug ? '#ec4899' : 'transparent',
+            color: microHitboxDebug ? '#fff' : '#ec4899',
+            border: '1px solid #ec4899',
+            padding: '2px 8px',
+            cursor: 'pointer',
+            fontFamily: 'var(--rvn-font-mono)',
+            fontSize: 'var(--tmnl-text-xs, 12px)',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+          }}
+          title="Toggle Microinteraction Hitbox debug overlay"
+        >
+          HBX DBG {microHitboxDebug ? 'ON' : 'OFF'}
+        </button>
+
         {status !== 'idle' && (
           <span style={{ color: status === 'running' ? '#06b6d4' : status === 'complete' ? '#10b981' : '#f43f5e' }}>
             ● {status.toUpperCase()} {status === 'running' && `${progress.current}/${progress.total}`}
@@ -760,7 +2755,7 @@ function KillAllButton() {
       ref={ref}
       onClick={() => {
         play()
-        for (const [id] of reg.get(nodesAtom)) removeNode(id)
+        for (const id of HashMap.keys(reg.get(nodesAtom))) removeNode(id)
         reg.set(wfStatusAtom, 'idle')
         log('⚠ All agents terminated')
       }}
@@ -778,18 +2773,54 @@ function KillAllButton() {
 function TerminalPanel() {
   const expanded = useAtomValue(terminalExpandedAtom)
   const activeNode = useAtomValue(activeNodeAtom)
-  const logLines = useAtomValue(logAtom)
+  const channel = useAtomValue(logViewerChannelAtom)
+  const setChannel = useAtomSet(logViewerChannelAtom)
+  const retentionLimit = useAtomValue(logRetentionLimitAtom)
+  const logEvents = useAtomValue(logEventsSubscribableAtom)
   const logEndRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+
+  const counts = useMemo(() => {
+    let operations = 0
+    let tagrack = 0
+    for (const event of logEvents) {
+      if (event.channel === 'operations') operations += 1
+      if (event.channel === 'tagrack') tagrack += 1
+    }
+    return {
+      operations,
+      tagrack,
+      all: logEvents.length,
+    }
+  }, [logEvents])
+
+  const logLines = useMemo(() => {
+    const scoped = channel === 'all'
+      ? logEvents
+      : logEvents.filter((event) => event.channel === channel)
+    return scoped.map(formatLogLine)
+  }, [channel, logEvents])
 
   // anime.js: slide open
   useLayoutEffect(() => {
     const el = panelRef.current
     if (!el) return
-    animeAnimate(el, { height: expanded ? 200 : 28, duration: 200, easing: 'easeOutQuad' })
+    animeAnimate(el, { height: expanded ? 220 : 28, duration: 200, easing: 'easeOutQuad' })
   }, [expanded])
 
-  useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [logLines])
+  useEffect(() => {
+    logSystem('Conductor log viewer online')
+  }, [])
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [logLines])
+
+  const tabs: ReadonlyArray<{ id: LogViewerChannel; label: string; count: number }> = [
+    { id: 'operations', label: 'OPERATIONS', count: counts.operations },
+    { id: 'tagrack', label: 'TAGRACK', count: counts.tagrack },
+    { id: 'all', label: 'ALL', count: counts.all },
+  ]
 
   return (
     <div ref={panelRef} style={{ height: 28, background: '#000', borderTop: '3px solid #000', display: 'flex', flexDirection: 'column', flexShrink: 0, overflow: 'hidden' }}>
@@ -798,10 +2829,107 @@ function TerminalPanel() {
         style={{ height: 28, display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', background: '#111', border: 'none', borderBottom: expanded ? '1px solid #333' : 'none', color: '#fff', cursor: 'pointer', fontFamily: 'var(--rvn-font-mono)', fontSize: 'var(--tmnl-text-xs, 12px)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0, width: '100%', textAlign: 'left' }}
       >
         <Terminal size={12} style={{ color: '#06b6d4' }} />
-        <span>{activeNode ? `TERMINAL — ${activeNode.spec.name}` : 'OPERATION LOG'}</span>
+        <span>{activeNode ? `TERMINAL — ${activeNode.spec.name}` : 'LOG VIEWER'}</span>
         {expanded ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
         <span style={{ marginLeft: 'auto', color: '#666' }}>{logLines.length}</span>
       </button>
+
+      {expanded && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '6px 12px', borderBottom: '1px solid #222', background: '#0d0d0d' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            {tabs.map((tab) => {
+              const active = tab.id === channel
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setChannel(tab.id)}
+                  style={{
+                    border: active ? '1px solid #22d3ee' : '1px solid #334155',
+                    background: active ? '#083344' : '#0f172a',
+                    color: active ? '#ecfeff' : '#94a3b8',
+                    boxShadow: active ? 'inset 0 0 0 1px rgba(34,211,238,0.35)' : 'none',
+                    padding: '2px 8px',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--rvn-font-mono)',
+                    fontSize: 'var(--tmnl-text-xs, 12px)',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {tab.label} {tab.count}
+                </button>
+              )
+            })}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ color: '#94a3b8', fontFamily: 'var(--rvn-font-mono)', fontSize: 'var(--tmnl-text-xs, 12px)', textTransform: 'uppercase' }}>
+              Retention
+            </span>
+
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={retentionLimit}
+              onChange={(event) => {
+                const parsed = Number(event.currentTarget.value)
+                if (!Number.isFinite(parsed) || parsed <= 0) return
+                setLogRetentionLimit(parsed)
+              }}
+              style={{
+                width: 84,
+                background: '#020617',
+                color: '#cbd5e1',
+                border: '1px solid #334155',
+                padding: '2px 6px',
+                fontFamily: 'var(--rvn-font-mono)',
+                fontSize: 'var(--tmnl-text-xs, 12px)',
+              }}
+            />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {LOG_RETENTION_PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  onClick={() => setLogRetentionLimit(preset)}
+                  style={{
+                    border: '1px solid #334155',
+                    background: preset === retentionLimit ? '#164e63' : '#0f172a',
+                    color: preset === retentionLimit ? '#cffafe' : '#94a3b8',
+                    padding: '2px 6px',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--rvn-font-mono)',
+                    fontSize: 'var(--tmnl-text-xs, 12px)',
+                    fontWeight: 700,
+                  }}
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => clearLogEvents(channel)}
+              style={{
+                marginLeft: 'auto',
+                border: '1px solid #7f1d1d',
+                background: '#1f0a0a',
+                color: '#fecaca',
+                padding: '2px 8px',
+                cursor: 'pointer',
+                fontFamily: 'var(--rvn-font-mono)',
+                fontSize: 'var(--tmnl-text-xs, 12px)',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+              }}
+            >
+              Clear {channel.toUpperCase()}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div style={{ flex: 1, overflow: 'auto', padding: '4px 12px', fontFamily: 'var(--rvn-font-mono)', fontSize: 'var(--tmnl-text-xs, 12px)', color: '#aaa' }}>
         {logLines.map((line, i) => <div key={i} style={{ padding: '1px 0', whiteSpace: 'pre-wrap' }}>{line}</div>)}
         <div ref={logEndRef} />
@@ -818,71 +2946,52 @@ function CanvasSurface() {
   const nodes = useAtomValue(nodeListAtom)
   const viewport = useAtomValue(viewportAtom)
   const activeNodeId = useAtomValue(activeNodeIdAtom)
+  const inspectorNode = useAtomValue(inspectorNodeAtom)
+  const inspectorNodeId = useAtomValue(inspectorNodeIdAtom)
+  const selectedNodeIds = useAtomValue(selectedNodeIdsAtom)
+  const selectedCount = useAtomValue(selectedCountAtom)
+  const nodeRefs = useAtomValue(nodeRefsAtom)
   const containerRef = useRef<HTMLDivElement>(null!)
-  const layoutRootRef = useRef<HTMLDivElement>(null)
-  const layoutRef = useRef<ReturnType<typeof createLayout> | null>(null)
-  const scopeRef = useRef<ReturnType<typeof createScope> | null>(null)
-  const prevNodeCountRef = useRef(0)
 
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
+  const [chatExpansionByNodeId, setChatExpansionByNodeId] = useState<Record<string, ChatExpansionLevel>>({})
 
-  // Subscribe to selection changes
-  useEffect(() => subscribeToSelection((ids) => {
-    setSelectedIds(ids)
-    if (ids.size === 1) {
-      const [first] = ids
-      reg.set(activeNodeIdAtom, first)
-    } else if (ids.size === 0) {
-      reg.set(activeNodeIdAtom, null)
-    }
-  }), [])
+  const activeReferenceElement = useMemo(() => {
+    if (!inspectorNodeId) return null
+    const maybeRef = HashMap.get(nodeRefs, inspectorNodeId)
+    return Option.isSome(maybeRef) ? maybeRef.value : null
+  }, [inspectorNodeId, nodeRefs])
 
-  // anime.js Scope — auto-cleanup for all canvas animations
+  const activeChatExpansionLevel: ChatExpansionLevel =
+    inspectorNodeId === null
+      ? 'l2'
+      : (chatExpansionByNodeId[inspectorNodeId] ?? 'l2')
+
+  // Swallow browser/page zoom gestures within canvas (portable ctrl/cmd+wheel guard)
   useEffect(() => {
-    const scope = createScope({ root: containerRef.current ?? document })
-    scopeRef.current = scope
-    return () => { scope.revert(); scopeRef.current = null }
-  }, [])
+    const el = containerRef.current
+    if (!el) return
 
-  // anime.js Layout — auto-animate node enter/leave transitions
-  useLayoutEffect(() => {
-    const root = layoutRootRef.current
-    if (!root) return
-
-    const layout = createLayout(root, {
-      ease: spring({ bounce: 0.3, duration: 500 }),
-      enterFrom: {
-        opacity: 0,
-        transform: 'scale(0.7)',
-        filter: 'blur(8px)',
-      },
-      leaveTo: {
-        opacity: 0,
-        transform: 'scale(0.5)',
-        filter: 'blur(12px)',
-      },
-    })
-
-    layoutRef.current = layout
-    return () => { layout.revert(); layoutRef.current = null }
-  }, [])
-
-  // Trigger layout animation when nodes change
-  useLayoutEffect(() => {
-    if (!layoutRef.current) return
-    const currentCount = nodes.length
-    if (currentCount !== prevNodeCountRef.current) {
-      layoutRef.current.record()
-      // DOM has already changed via React re-render
-      prevNodeCountRef.current = currentCount
+    const preventZoomWheel = (event: WheelEvent) => {
+      if (event.ctrlKey || event.metaKey) {
+        event.preventDefault()
+      }
     }
-  })
 
-  // Animate after record
-  useEffect(() => {
-    layoutRef.current?.animate()
-  }, [nodes.length])
+    const preventGesture = (event: Event) => {
+      event.preventDefault()
+    }
+
+    el.addEventListener('wheel', preventZoomWheel, { passive: false })
+    el.addEventListener('gesturestart', preventGesture as EventListener, { passive: false } as AddEventListenerOptions)
+    el.addEventListener('gesturechange', preventGesture as EventListener, { passive: false } as AddEventListenerOptions)
+
+    return () => {
+      el.removeEventListener('wheel', preventZoomWheel)
+      el.removeEventListener('gesturestart', preventGesture as EventListener)
+      el.removeEventListener('gesturechange', preventGesture as EventListener)
+    }
+  }, [])
 
   // dnd-kit
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
@@ -891,8 +3000,9 @@ function CanvasSurface() {
     const { active, delta } = event
     const id = active.id as string
     const vp = reg.get(viewportAtom)
-    const n = reg.get(nodesAtom).get(id)
-    if (!n) return
+    const maybeNode = HashMap.get(reg.get(nodesAtom), id)
+    if (Option.isNone(maybeNode)) return
+    const n = maybeNode.value
     setNodeField(id, 'position', { x: n.position.x + delta.x / vp.zoom, y: n.position.y + delta.y / vp.zoom })
   }, [])
 
@@ -901,7 +3011,18 @@ function CanvasSurface() {
   const panStart = useRef({ x: 0, y: 0 })
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button === 1) { e.preventDefault(); isPanning.current = true; panStart.current = { x: e.clientX, y: e.clientY } }
+    if (e.button === 1) {
+      e.preventDefault()
+      isPanning.current = true
+      panStart.current = { x: e.clientX, y: e.clientY }
+      return
+    }
+
+    if (e.button === 0 && e.target === containerRef.current) {
+      reg.set(activeNodeIdAtom, null)
+      reg.set(inspectorNodeIdAtom, null)
+      clearSelection()
+    }
   }, [])
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isPanning.current) return
@@ -911,12 +3032,57 @@ function CanvasSurface() {
   }, [])
   const handleMouseUp = useCallback(() => { isPanning.current = false }, [])
 
-  // Zoom (wheel)
+  // Wheel: pan by default, ctrl/cmd+wheel zooms (canvas-like)
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault()
     e.stopPropagation()
     const vp = reg.get(viewportAtom)
-    reg.set(viewportAtom, { ...vp, zoom: Math.max(0.25, Math.min(3, vp.zoom - e.deltaY * 0.001)) })
+
+    if (e.ctrlKey || e.metaKey) {
+      reg.set(viewportAtom, {
+        ...vp,
+        zoom: Math.max(0.25, Math.min(3, vp.zoom - e.deltaY * 0.001)),
+      })
+      return
+    }
+
+    reg.set(viewportAtom, {
+      ...vp,
+      panX: vp.panX - e.deltaX,
+      panY: vp.panY - e.deltaY,
+    })
+  }, [])
+
+  const activateNode = useCallback((id: string) => {
+    reg.set(activeNodeIdAtom, id)
+    void provisionNodeAgentOnActivate(id)
+  }, [])
+
+  const setActiveChatExpansionLevel = useCallback((next: ChatExpansionLevel) => {
+    if (!inspectorNodeId) return
+    setChatExpansionByNodeId((previous) => ({
+      ...previous,
+      [inspectorNodeId]: next,
+    }))
+  }, [inspectorNodeId])
+
+  const openNodeInspector = useCallback((id: string) => {
+    reg.set(inspectorNodeIdAtom, id)
+    reg.set(activeNodeIdAtom, id)
+    setChatExpansionByNodeId((previous) => ({
+      ...previous,
+      [id]: 'l2',
+    }))
+  }, [])
+
+  const openNodeChat = useCallback((id: string) => {
+    reg.set(inspectorNodeIdAtom, null)
+    reg.set(activeNodeIdAtom, id)
+    setChatExpansionByNodeId((previous) => ({
+      ...previous,
+      [id]: 'l3',
+    }))
+    void provisionNodeAgentOnActivate(id)
   }, [])
 
   return (
@@ -942,36 +3108,48 @@ function CanvasSurface() {
 
       {/* Zoom label */}
       <div style={{ position: 'absolute', bottom: 8, right: 8, background: '#000', color: '#fff', padding: '2px 8px', fontFamily: 'var(--rvn-font-mono)', fontSize: 'var(--tmnl-text-xs, 12px)', zIndex: 10, border: '2px solid #000' }}>
-        {Math.round(viewport.zoom * 100)}%
+        {Math.round(viewport.zoom * 100)}% | sel:{selectedCount}
       </div>
 
       {/* Canvas transform + dnd-kit + layout root */}
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <MorphCardRegistryProvider>
           <div
-            ref={layoutRootRef}
             style={{ position: 'absolute', left: viewport.panX, top: viewport.panY, transform: `scale(${viewport.zoom})`, transformOrigin: '0 0' }}
           >
             {nodes.map((node) => (
               <AgentNodeCard
                 key={node.id}
                 node={node}
-                isSelected={selectedIds.has(node.id)}
+                isSelected={HashSet.has(selectedNodeIds, node.id)}
                 isActive={activeNodeId === node.id}
-                onSelect={(id) => selectItem(id, 'replace')}
-                onActivate={(id) => reg.set(activeNodeIdAtom, id)}
+                chatExpansionLevel={chatExpansionByNodeId[node.id] ?? 'l2'}
+                onChatExpansionLevelChange={(id, next) => {
+                  setChatExpansionByNodeId((previous) => ({
+                    ...previous,
+                    [id]: next,
+                  }))
+                }}
+                onSelect={(id) => toggleSelection(id)}
+                onActivate={activateNode}
+                onOpenChat={openNodeChat}
+                onOpenInspector={openNodeInspector}
               />
             ))}
           </div>
         </MorphCardRegistryProvider>
       </DndContext>
 
-      {/* Selection overlay */}
-      <SelectionOverlay
-        containerRef={containerRef as React.RefObject<HTMLElement>}
-        selectableSelector="[data-selectable]"
-        onDelete={(ids) => { for (const id of ids) removeNode(id) }}
-      />
+      <AnimatePresence>
+        <InlineInspectorOverlay
+          node={inspectorNode}
+          referenceElement={activeReferenceElement}
+          portalRoot={containerRef.current}
+          chatExpansionLevel={activeChatExpansionLevel}
+          onChatExpansionLevelChange={setActiveChatExpansionLevel}
+          onClose={() => reg.set(inspectorNodeIdAtom, null)}
+        />
+      </AnimatePresence>
 
       {/* Context menu */}
       <AnimatePresence>
@@ -979,8 +3157,6 @@ function CanvasSurface() {
           <CanvasContextMenu
             x={ctxMenu.x}
             y={ctxMenu.y}
-            selectedCount={selectedIds.size}
-            selectedIds={selectedIds}
             containerRef={containerRef}
             onClose={() => setCtxMenu(null)}
           />
@@ -994,8 +3170,8 @@ function CanvasSurface() {
 // Context Menu — RVN brutalist + Framer entrance
 // =============================================================================
 
-function CanvasContextMenu({ x, y, selectedCount, selectedIds, containerRef, onClose }: {
-  x: number; y: number; selectedCount: number; selectedIds: Set<string>
+function CanvasContextMenu({ x, y, containerRef, onClose }: {
+  x: number; y: number
   containerRef: React.RefObject<HTMLDivElement | null>; onClose: () => void
 }) {
   const menuRef = useRef<HTMLDivElement>(null)
@@ -1045,22 +3221,11 @@ function CanvasContextMenu({ x, y, selectedCount, selectedIds, containerRef, onC
       })}
       <div style={{ height: 1, background: '#333', margin: '4px 0' }} />
 
-      {selectedCount > 0 && (<>
-        <CtxLabel>Selection ({selectedCount})</CtxLabel>
-        <CtxItem onClick={() => { for (const id of selectedIds) sendPrompt(id, 'Analyze and report'); onClose() }}>
-          <Zap size={12} style={{ color: '#06b6d4' }} />PROMPT ALL
-        </CtxItem>
-        <CtxItem destructive onClick={() => { for (const id of selectedIds) removeNode(id); deselectAll(); onClose() }}>
-          <Trash2 size={12} />KILL SELECTED
-        </CtxItem>
-        <div style={{ height: 1, background: '#333', margin: '4px 0' }} />
-      </>)}
-
       <CtxItem onClick={() => { reg.set(viewportAtom, { panX: 0, panY: 0, zoom: 1 }); onClose() }}>
         <Maximize2 size={12} style={{ color: '#666' }} />RESET VIEW
       </CtxItem>
-      <CtxItem onClick={() => { deselectAll(); onClose() }}>
-        <Square size={12} style={{ color: '#666' }} />DESELECT ALL
+      <CtxItem onClick={() => { reg.set(activeNodeIdAtom, null); reg.set(inspectorNodeIdAtom, null); clearSelection(); onClose() }}>
+        <Square size={12} style={{ color: '#666' }} />CLEAR ACTIVE
       </CtxItem>
     </motion.div>
   )
@@ -1090,6 +3255,25 @@ function CtxItem({ children, onClick, destructive = false }: { children: ReactNo
 // =============================================================================
 
 function ConductorTestbedInner() {
+  useEffect(() => {
+    let mounted = true
+
+    const run = async () => {
+      if (!mounted) return
+      await probeOrchestratorConnectivity()
+    }
+
+    void run()
+    const interval = window.setInterval(() => {
+      void run()
+    }, 5000)
+
+    return () => {
+      mounted = false
+      window.clearInterval(interval)
+    }
+  }, [])
+
   return (
     <div
       style={{
@@ -1107,7 +3291,6 @@ function ConductorTestbedInner() {
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <ToolRail />
         <CanvasSurface />
-        <InspectorPanel />
       </div>
       <TerminalPanel />
     </div>
@@ -1117,7 +3300,9 @@ function ConductorTestbedInner() {
 export function ConductorTestbed() {
   return (
     <RegistryContext.Provider value={reg as any}>
-      <ConductorTestbedInner />
+      <MicrointeractionHitbox.Provider>
+        <ConductorTestbedInner />
+      </MicrointeractionHitbox.Provider>
     </RegistryContext.Provider>
   )
 }
