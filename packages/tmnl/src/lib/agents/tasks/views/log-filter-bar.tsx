@@ -2,14 +2,19 @@
  * LogFilterBar — Filter controls for the log view.
  *
  * Renders: severity buttons, search input, source input, regex toggle.
- * Reads/writes logFilterAtom directly.
+ * Reads/writes filter atom from injected atom surface (or default fallback).
  *
  * @module agent-task/views/log-filter-bar
  */
 
 import React, { useCallback } from 'react'
 import { useAtom } from '@effect-atom/atom-react'
-import { logFilterAtom, DEFAULT_FILTER, type LogFilterState } from '../atoms'
+import {
+  logFilterAtom,
+  DEFAULT_FILTER,
+  type AgentTaskLogAtomSurfaceAtoms,
+  type LogFilterState,
+} from '../atoms'
 import type { LogLevel } from '../schemas/log-level'
 import './log-view.css'
 
@@ -24,10 +29,12 @@ const SEVERITY_LEVELS: ReadonlyArray<LogLevel> = [
 export interface LogFilterBarProps {
   /** Compact mode — hide less-used controls */
   readonly compact?: boolean
+  /** Optional injected atom surface. */
+  readonly atoms?: AgentTaskLogAtomSurfaceAtoms
 }
 
-export function LogFilterBar({ compact = false }: LogFilterBarProps) {
-  const [filter, setFilter] = useAtom(logFilterAtom)
+export function LogFilterBar({ compact = false, atoms }: LogFilterBarProps) {
+  const [filter, setFilter] = useAtom(atoms?.logFilterAtom ?? logFilterAtom)
 
   const setMinLevel = useCallback(
     (level: LogLevel) => {
@@ -69,7 +76,6 @@ export function LogFilterBar({ compact = false }: LogFilterBarProps) {
 
   return (
     <div className="at-log-filter-bar">
-      {/* Severity buttons */}
       <div className="at-log-filter-bar__severity">
         {SEVERITY_LEVELS.map((level) => (
           <button
@@ -85,7 +91,6 @@ export function LogFilterBar({ compact = false }: LogFilterBarProps) {
         ))}
       </div>
 
-      {/* Search input */}
       <input
         className="at-log-filter-bar__input"
         type="text"
@@ -97,7 +102,6 @@ export function LogFilterBar({ compact = false }: LogFilterBarProps) {
 
       {!compact && (
         <>
-          {/* Source filter */}
           <input
             className="at-log-filter-bar__input at-log-filter-bar__input--narrow"
             type="text"
@@ -107,7 +111,6 @@ export function LogFilterBar({ compact = false }: LogFilterBarProps) {
             spellCheck={false}
           />
 
-          {/* Regex filter */}
           <input
             className="at-log-filter-bar__input at-log-filter-bar__input--narrow"
             type="text"
@@ -119,7 +122,6 @@ export function LogFilterBar({ compact = false }: LogFilterBarProps) {
         </>
       )}
 
-      {/* Clear filters */}
       {isFiltering && (
         <button
           className="at-log-filter-bar__clear"

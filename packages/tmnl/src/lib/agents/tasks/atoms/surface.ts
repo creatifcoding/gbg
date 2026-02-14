@@ -230,3 +230,41 @@ export const AgentTaskLogAtomSurfaceNats = AgentTaskLogAtomSurfaceCustom(
 export const AgentTaskLogAtomSurfaceNatsMicro = AgentTaskLogAtomSurfaceCustom(
   AgentTaskServiceNatsMicro,
 )
+
+// ---------------------------------------------------------------------------
+// Runtime helpers (resolve Context.Tag -> atoms for React consumers)
+// ---------------------------------------------------------------------------
+
+export interface AgentTaskLogAtomSurfaceRuntime {
+  readonly runtimeAtom: ReturnType<typeof Atom.runtime>
+  readonly atomSurfaceAtom: Atom.Atom<AgentTaskLogAtomSurfaceAtoms>
+}
+
+export const createAgentTaskLogAtomSurfaceRuntime = (
+  surfaceLayer: Layer.Layer<AgentTaskLogAtomSurface, never, never>,
+): AgentTaskLogAtomSurfaceRuntime => {
+  const runtimeAtom = Atom.runtime(surfaceLayer)
+  const atomSurfaceAtom = runtimeAtom.atom(
+    Effect.gen(function* () {
+      const surface = yield* AgentTaskLogAtomSurface
+      return surface.atoms
+    }),
+  )
+
+  return {
+    runtimeAtom,
+    atomSurfaceAtom,
+  }
+}
+
+export const agentTaskLogSurfaceMockRuntime = createAgentTaskLogAtomSurfaceRuntime(
+  AgentTaskLogAtomSurfaceMock,
+)
+
+export const agentTaskLogSurfaceNatsRuntime = createAgentTaskLogAtomSurfaceRuntime(
+  AgentTaskLogAtomSurfaceNats,
+)
+
+export const agentTaskLogSurfaceNatsMicroRuntime = createAgentTaskLogAtomSurfaceRuntime(
+  AgentTaskLogAtomSurfaceNatsMicro,
+)

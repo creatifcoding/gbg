@@ -4,20 +4,18 @@
  * Renders inside the expanded task row as the "Logs" tab.
  * Orchestrates: filter bar → scrollable log entries → tail controls.
  *
- * On mount:
- * 1. Triggers logStreamTrigger for the taskId (starts mock/nats stream)
- * 2. Subscribes to filteredLogBufferFamily for reactive updates
- * 3. Auto-scrolls when tailMode === 'tail'
+ * Atom dependencies are injected through a DI-able atom surface
+ * (Context.Tag-backed), with a default mock-backed runtime.
  *
  * @module agent-task/views/inline-task-log-view
  */
 
 import React, { useEffect, useRef, useCallback, memo } from 'react'
+import type { Atom } from '@effect-atom/atom'
 import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
 import {
-  filteredLogBufferFamily,
-  tailModeFamily,
-  logStreamTrigger,
+  agentTaskLogSurfaceMockRuntime,
+  type AgentTaskLogAtomSurfaceAtoms,
 } from '../atoms'
 import { LogEntryRow } from './log-entry-row'
 import { LogFilterBar } from './log-filter-bar'
@@ -30,16 +28,21 @@ export interface InlineTaskLogViewProps {
   readonly compact?: boolean
   /** Max height override (default: 280px via CSS) */
   readonly maxHeight?: number
+  /** Optional injected atom-surface atom (DI seam). */
+  readonly atomSurfaceAtom?: Atom.Atom<AgentTaskLogAtomSurfaceAtoms>
 }
 
 export const InlineTaskLogView = memo(function InlineTaskLogView({
   taskId,
   compact = false,
   maxHeight,
+  atomSurfaceAtom = agentTaskLogSurfaceMockRuntime.atomSurfaceAtom,
 }: InlineTaskLogViewProps) {
-  const entries = useAtomValue(filteredLogBufferFamily(taskId))
-  const tailMode = useAtomValue(tailModeFamily(taskId))
-  const setStreamTrigger = useAtomSet(logStreamTrigger)
+  const atoms = useAtomValue(atomSurfaceAtom)
+
+  const entries = useAtomValue(atoms.filteredLogBufferFamily(taskId))
+  const tailMode = useAtomValue(atoms.tailModeFamily(taskId))
+  const setStreamTrigger = useAtomSet(atoms.logStreamTrigger)
   const scrollRef = useRef<HTMLDivElement>(null)
   const hasTriggered = useRef(false)
 
@@ -58,13 +61,9 @@ export const InlineTaskLogView = memo(function InlineTaskLogView({
     }
   }, [entries, tailMode])
 
-  // Handle user scroll — switch to inspect mode if scrolled up
   const handleScroll = useCallback(() => {
     if (!scrollRef.current) return
-    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
-    const atBottom = scrollHeight - scrollTop - clientHeight < 30
-    // We don't set tailMode here — that's handled by LogTailControls
-    // This prevents fighting between auto-scroll and user intent
+    // Reserved for future auto tail/inspect mode switching.
   }, [])
 
   const jumpToLatest = useCallback(() => {
@@ -78,7 +77,7 @@ export const InlineTaskLogView = memo(function InlineTaskLogView({
   return (
     <div className="at-log-view" style={style}>
       {/* Filter bar */}
-      <LogFilterBar compact={compact} />
+      <LogFilterBar compact={compact} atoms={atoms} />
 
       {/* Header */}
       <div className="at-log-view__header">
@@ -98,15 +97,13 @@ export const InlineTaskLogView = memo(function InlineTaskLogView({
             {entries.map((entry) => (
               <LogEntryRow key={entry.key} entry={entry} />
             ))}
-            {tailMode === 'tail' && (
-              <span className="at-log-view__cursor" />
-            )}
+            {tailMode === 'tail' && <span className="at-log-view__cursor" />}
           </div>
         )}
       </div>
 
       {/* Tail controls */}
-      <LogTailControls taskId={taskId} onJumpToLatest={jumpToLatest} />
+      <LogTailControls taskId={taskId} atoms={atoms} onJumpToLatest={jumpToLatest} />
     </div>
   )
 })

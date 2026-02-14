@@ -45,8 +45,13 @@ export {
   AgentTaskLogAtomSurfaceNatsMicro,
   AgentTaskLogAtomSurfaceCustom,
   createAgentTaskLogAtomSurfaceAtoms,
+  createAgentTaskLogAtomSurfaceRuntime,
+  agentTaskLogSurfaceMockRuntime,
+  agentTaskLogSurfaceNatsRuntime,
+  agentTaskLogSurfaceNatsMicroRuntime,
   type AgentTaskLogAtomSurfaceAtoms,
   type AgentTaskLogAtomSurfaceShape,
+  type AgentTaskLogAtomSurfaceRuntime,
 } from './surface'
 
 // ---------------------------------------------------------------------------

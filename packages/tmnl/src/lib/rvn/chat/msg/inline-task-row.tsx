@@ -30,7 +30,7 @@ import {
   InlineTaskViewNavigator,
   InlineTaskLogView,
   InlineTaskSemanticSummary,
-} from '@/lib/agent-task/views'
+} from '@/lib/agents/tasks/views'
 import { useTransferDraggable, type TransferReferenceToken } from '@/lib/transfer'
 import { cn } from '@/lib/utils'
 import {

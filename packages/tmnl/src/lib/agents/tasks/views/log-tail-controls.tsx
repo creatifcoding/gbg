@@ -10,19 +10,36 @@
 
 import React, { useCallback } from 'react'
 import { useAtom, useAtomValue } from '@effect-atom/atom-react'
-import { tailModeFamily, logCountFamily, logTotalCountFamily, type TailMode } from '../atoms'
+import {
+  tailModeFamily,
+  logCountFamily,
+  logTotalCountFamily,
+  type AgentTaskLogAtomSurfaceAtoms,
+} from '../atoms'
 import './log-view.css'
 
 export interface LogTailControlsProps {
   readonly taskId: string
+  /** Optional injected atom surface. */
+  readonly atoms?: AgentTaskLogAtomSurfaceAtoms
   /** Callback when jump-to-latest is clicked */
   readonly onJumpToLatest?: () => void
 }
 
-export function LogTailControls({ taskId, onJumpToLatest }: LogTailControlsProps) {
-  const [tailMode, setTailMode] = useAtom(tailModeFamily(taskId))
-  const filteredCount = useAtomValue(logCountFamily(taskId))
-  const totalCount = useAtomValue(logTotalCountFamily(taskId))
+export function LogTailControls({
+  taskId,
+  atoms,
+  onJumpToLatest,
+}: LogTailControlsProps) {
+  const [tailMode, setTailMode] = useAtom(
+    (atoms?.tailModeFamily ?? tailModeFamily)(taskId),
+  )
+  const filteredCount = useAtomValue(
+    (atoms?.logCountFamily ?? logCountFamily)(taskId),
+  )
+  const totalCount = useAtomValue(
+    (atoms?.logTotalCountFamily ?? logTotalCountFamily)(taskId),
+  )
 
   const toggleMode = useCallback(() => {
     setTailMode((prev) => (prev === 'tail' ? 'inspect' : 'tail'))
@@ -37,7 +54,6 @@ export function LogTailControls({ taskId, onJumpToLatest }: LogTailControlsProps
 
   return (
     <div className="at-log-tail-controls">
-      {/* Live / Paused indicator */}
       <div className="at-log-tail-controls__status" data-mode={tailMode}>
         <span className="at-log-tail-controls__dot" />
         <span className="at-log-tail-controls__label">
@@ -45,13 +61,13 @@ export function LogTailControls({ taskId, onJumpToLatest }: LogTailControlsProps
         </span>
       </div>
 
-      {/* Entry count */}
       <span className="at-log-tail-controls__count">
         {isFiltered ? `${filteredCount}/${totalCount}` : totalCount}
-        {isFiltered && <span className="at-log-tail-controls__filtered"> filtered</span>}
+        {isFiltered && (
+          <span className="at-log-tail-controls__filtered"> filtered</span>
+        )}
       </span>
 
-      {/* Toggle button */}
       <button
         className="at-log-tail-controls__toggle"
         onClick={toggleMode}
@@ -60,7 +76,6 @@ export function LogTailControls({ taskId, onJumpToLatest }: LogTailControlsProps
         {tailMode === 'tail' ? '⏸' : '▶'}
       </button>
 
-      {/* Jump to latest */}
       {tailMode === 'inspect' && (
         <button
           className="at-log-tail-controls__jump"
