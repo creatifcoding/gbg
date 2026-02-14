@@ -39,6 +39,7 @@
     "spike": "bun run scripts/spike-cli.ts",
     "spike:provider-marker:match": "bun run scripts/spikes/provider-marker-match-bench.ts",
     "spike:overlay-reducer:pipeline": "bun run scripts/spikes/overlay-reducer-pipeline-bench.ts",
+    "spike:nu-cmdk:impl-spec": "bun run scripts/spikes/nu-cmdk-impl-spec-spike.ts",
     "seed:iiot": "bun run src/lib/iiot/seed/ctl/src/index.ts",
     "elixir:init": "DIRENV_DISABLE=1 nix develop .#tmnl-elixir -c tmnl elixir-init-app",
     "elixir:deps": "DIRENV_DISABLE=1 nix develop .#tmnl-elixir -c tmnl elixir-deps",

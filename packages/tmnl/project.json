@@ -192,6 +192,13 @@
         "cwd": "packages/tmnl"
       }
     },
+    "spike:nu-cmdk:impl-spec": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run spike:nu-cmdk:impl-spec",
+        "cwd": "packages/tmnl"
+      }
+    },
     "telegram:agent": {
       "executor": "nx:run-commands",
       "options": {
