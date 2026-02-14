@@ -10,13 +10,14 @@
 import {
   forwardRef,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
   type ComponentPropsWithoutRef,
 } from 'react'
 import type { Atom } from '@effect-atom/atom'
-import { HashMap } from 'effect'
+import { useAtomSet, useAtomValue } from '@effect-atom/atom-react'
 import type { RvnChatInlineTaskItem } from '../inline-task-types'
 import type { AgentTaskLogAtomSurfaceAtoms } from '@/lib/agents/tasks/atoms'
 import {
@@ -24,6 +25,10 @@ import {
   type InlineTaskShellContextValue,
   type InlineTaskShellMetrics,
 } from './inline-task-shell-context'
+import {
+  inlineTaskShellTaskLookupFamily,
+  inlineTaskShellTasksFamily,
+} from './inline-task-shell-atoms'
 import { cn } from '@/lib/utils'
 import { useInlineTaskTransfer } from '@/lib/transfer/v2/hooks'
 import { TransferRegistryProvider } from '@/lib/transfer/v2/registry'
@@ -129,6 +134,13 @@ const InlineTaskShellInner = forwardRef<HTMLDivElement, InlineTaskShellRootProps
     )
 
     // ── Derived state ──────────────────────────────────────────────
+    const setThreadTasks = useAtomSet(inlineTaskShellTasksFamily(threadId))
+    const taskLookup = useAtomValue(inlineTaskShellTaskLookupFamily(threadId))
+
+    useEffect(() => {
+      setThreadTasks((prev) => (prev === tasks ? prev : tasks))
+    }, [tasks, setThreadTasks])
+
     const filteredTasks = useMemo(() => {
       if (!searchTerm) return tasks
       const lower = searchTerm.toLowerCase()
@@ -138,11 +150,6 @@ const InlineTaskShellInner = forwardRef<HTMLDivElement, InlineTaskShellRootProps
           t.taskId.toLowerCase().includes(lower),
       )
     }, [tasks, searchTerm])
-
-    const taskLookup = useMemo(
-      () => HashMap.fromIterable(tasks.map((t) => [t.taskId, t] as const)),
-      [tasks],
-    )
 
     const metrics = useMemo(() => deriveMetrics(tasks), [tasks])
 

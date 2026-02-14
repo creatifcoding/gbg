@@ -18,6 +18,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { HashMap, Option } from 'effect'
 import { motion, useReducedMotion } from 'motion/react'
 import { Eye, RotateCcw, X } from 'lucide-react'
 import { useInlineTaskShellContext } from '../inline-task-shell-context'
@@ -124,7 +125,7 @@ export const ThreadBand = forwardRef<HTMLDivElement, ThreadBandProps>(
     )
 
     const taskIndexById = useMemo(
-      () => new Map(filteredTasks.map((task, index) => [task.taskId, index])),
+      () => HashMap.fromIterable(filteredTasks.map((task, index) => [task.taskId, index] as const)),
       [filteredTasks],
     )
 
@@ -149,9 +150,9 @@ export const ThreadBand = forwardRef<HTMLDivElement, ThreadBandProps>(
     // ── Scroll to expanded task ──────────────────────────────────────
     useEffect(() => {
       if (!expanded || !expandedTaskId) return
-      const idx = taskIndexById.get(expandedTaskId)
-      if (idx !== undefined) {
-        virtualizer.scrollToIndex(idx, { align: 'end' })
+      const idx = HashMap.get(taskIndexById, expandedTaskId)
+      if (Option.isSome(idx)) {
+        virtualizer.scrollToIndex(idx.value, { align: 'end' })
       }
     }, [expanded, expandedTaskId, taskIndexById, virtualizer])
 
@@ -223,10 +224,10 @@ export const ThreadBand = forwardRef<HTMLDivElement, ThreadBandProps>(
                       task={task}
                       taskIndex={taskLookup}
                       onNavigateTask={(depId) => {
-                        const depIndex = taskIndexById.get(depId)
-                        if (depIndex !== undefined) {
+                        const depIndex = HashMap.get(taskIndexById, depId)
+                        if (Option.isSome(depIndex)) {
                           setExpandedTaskId(depId)
-                          virtualizer.scrollToIndex(depIndex, { align: 'center' })
+                          virtualizer.scrollToIndex(depIndex.value, { align: 'center' })
                         }
                       }}
                       selected={selectedTaskIds.has(task.taskId)}
