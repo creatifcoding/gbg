@@ -25,6 +25,9 @@ import {
   MockTransportServiceError,
 } from './MockTransportService'
 import { NatsTransportServiceLive } from './NatsTransportService'
+import { AgentTaskCommandRouterServiceLive } from './AgentTaskCommandRouterService'
+import { AgentTaskMicroHostServiceLive } from './AgentTaskMicroHostService'
+import { NatsMicroServiceLive } from '../../holonet/nats/micro'
 
 // ---------------------------------------------------------------------------
 // Common base: CodecService + LogService + AgentTaskService
@@ -92,4 +95,28 @@ export const AgentTaskServiceTestError = AgentTaskServiceBase.pipe(
  */
 export const AgentTaskServiceNats = AgentTaskServiceBase.pipe(
   Layer.provide(NatsTransportServiceLive),
+)
+
+// ---------------------------------------------------------------------------
+// NATS + Micro control-plane layer
+// ---------------------------------------------------------------------------
+
+/**
+ * Full stack with NATS log transport + command microservice host.
+ *
+ * Includes:
+ * - AgentTaskServiceNats (log ingest/publish)
+ * - NatsMicroService (nc.services wrapper)
+ * - AgentTaskCommandRouterService (schema validation + routing)
+ * - AgentTaskMicroHostService (request/reply endpoint host)
+ *
+ * Still requires upstream NATS infra layers:
+ * - NatsPubSubService (for transport + command events)
+ * - NatsConnectionService (for micro host)
+ */
+export const AgentTaskServiceNatsMicro = Layer.mergeAll(
+  AgentTaskServiceNats,
+  NatsMicroServiceLive,
+  AgentTaskCommandRouterServiceLive,
+  AgentTaskMicroHostServiceLive,
 )

@@ -18,3 +18,18 @@ export {
   AgentTaskLogEntrySchema,
   AgentTaskLogEntryFields,
 } from './log-entry'
+
+export {
+  AgentTaskCommandAction,
+  AgentTaskCommand,
+  AgentTaskCommandSchema,
+  AgentTaskCommandAckStatus,
+  AgentTaskCommandAck,
+  AgentTaskCommandAckSchema,
+  AgentTaskCommandEventKind,
+  AgentTaskCommandEvent,
+  AgentTaskCommandEventSchema,
+  type AgentTaskCommandAction,
+  type AgentTaskCommandAckStatus,
+  type AgentTaskCommandEventKind,
+} from './command'

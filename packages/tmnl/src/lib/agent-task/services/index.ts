@@ -49,6 +49,28 @@ export {
   type AgentTaskServiceShape,
 } from './AgentTaskService'
 
+// Command control-plane services
+export {
+  AgentTaskCommandRouterService,
+  AgentTaskCommandRouterServiceLive,
+  resolveTaskCommandEventsSubject,
+  CommandDecodeError,
+  CommandRouteError,
+  CommandEventPublishError,
+  type AgentTaskCommandRouterError,
+  type AgentTaskCommandRouterServiceShape,
+} from './AgentTaskCommandRouterService'
+
+export {
+  AgentTaskMicroHostService,
+  AgentTaskMicroHostServiceLive,
+  AGENT_TASK_MICRO_SERVICE_NAME,
+  AGENT_TASK_MICRO_SERVICE_VERSION,
+  AGENT_TASK_COMMAND_SUBJECT,
+  extractTaskIdFromCommandSubject,
+  type AgentTaskMicroHostServiceShape,
+} from './AgentTaskMicroHostService'
+
 // Pre-composed layers
 export {
   AgentTaskServiceBase,
@@ -56,4 +78,5 @@ export {
   AgentTaskServiceTestFast,
   AgentTaskServiceTestError,
   AgentTaskServiceNats,
+  AgentTaskServiceNatsMicro,
 } from './layers'
