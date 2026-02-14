@@ -9,6 +9,8 @@
  * - NatsPubSubService: High-level typed pub/sub with Schema codecs
  * - NatsCodecService: Stream-native, parallelizable codec with Schema transforms
  * - NatsKVService: High-level KV with Schema codecs
+ * - NatsMicroService: Wrapper around nc.services add/client APIs
+ * - NatsServiceDiscoveryService: Stream-based PING/INFO/STATS discovery
  *
  * @module holonet/nats
  */
@@ -106,3 +108,19 @@ export {
   type SubscribeOptions as StreamSubscribeOptions,
   type FetchOptions,
 } from './stream';
+
+// =============================================================================
+// Microservices API (nc.services)
+// =============================================================================
+
+export {
+  NatsMicroService,
+  NatsMicroServiceLive,
+  type NatsMicroServiceShape,
+} from './micro';
+
+export {
+  NatsServiceDiscoveryService,
+  NatsServiceDiscoveryServiceLive,
+  type NatsServiceDiscoveryServiceShape,
+} from './micro-discovery';

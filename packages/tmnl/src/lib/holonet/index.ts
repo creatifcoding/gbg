@@ -12,6 +12,8 @@
  * - NatsCodecService: Stream-native, parallelizable codec with Schema transforms
  * - NatsKVService: High-level KV with Schema codecs
  * - NatsStreamService: High-level JetStream with Schema codecs
+ * - NatsMicroService: Wrapper around NATS services.add/client APIs
+ * - NatsServiceDiscoveryService: Stream-based service discovery APIs
  *
  * @module holonet
  */
@@ -69,6 +71,10 @@ import {
   NatsStreamServiceLive,
   NatsCodecService,
   NatsCodecServiceLive,
+  NatsMicroService,
+  NatsMicroServiceLive,
+  NatsServiceDiscoveryService,
+  NatsServiceDiscoveryServiceLive,
 } from './nats';
 import {
   HolonetDurableStreamsClient,
@@ -115,6 +121,12 @@ export const Holonet = {
   // Stream
   Stream: NatsStreamService,
   StreamLive: NatsStreamServiceLive,
+
+  // Microservices
+  Micro: NatsMicroService,
+  MicroLive: NatsMicroServiceLive,
+  MicroDiscovery: NatsServiceDiscoveryService,
+  MicroDiscoveryLive: NatsServiceDiscoveryServiceLive,
 
   // Codec
   Codec: NatsCodecService,

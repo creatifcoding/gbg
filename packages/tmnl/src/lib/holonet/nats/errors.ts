@@ -357,6 +357,59 @@ export namespace Stream {
 }
 
 // =============================================================================
+// MICRO SERVICE ERRORS
+// =============================================================================
+
+/**
+ * Errors for NatsMicroService and discovery wrappers.
+ */
+export namespace Micro {
+  /**
+   * Failed to register/start a micro service via nc.services.add().
+   */
+  export class AddServiceError extends Data.TaggedError('Micro/AddService')<{
+    readonly message: string;
+    readonly serviceName: string;
+    readonly cause?: unknown;
+  }> {}
+
+  /**
+   * Failed to create a discovery client via nc.services.client().
+   */
+  export class ClientCreationError extends Data.TaggedError('Micro/ClientCreation')<{
+    readonly message: string;
+    readonly cause?: unknown;
+  }> {}
+
+  /**
+   * Failed while querying micro discovery APIs (PING/INFO/STATS).
+   */
+  export class DiscoveryQueryError extends Data.TaggedError('Micro/DiscoveryQuery')<{
+    readonly message: string;
+    readonly operation: 'ping' | 'info' | 'stats';
+    readonly serviceName?: string;
+    readonly serviceId?: string;
+    readonly cause?: unknown;
+  }> {}
+
+  /**
+   * Failed to drain/stop a micro service instance.
+   */
+  export class StopServiceError extends Data.TaggedError('Micro/StopService')<{
+    readonly message: string;
+    readonly serviceName: string;
+    readonly serviceId?: string;
+    readonly cause?: unknown;
+  }> {}
+
+  export type Error =
+    | AddServiceError
+    | ClientCreationError
+    | DiscoveryQueryError
+    | StopServiceError;
+}
+
+// =============================================================================
 // HUB SERVICE ERRORS
 // =============================================================================
 
@@ -433,4 +486,5 @@ export type NatsError =
   | Inner.Error
   | Codec.Error
   | KV.NotFoundError
-  | Hub.Error;
+  | Hub.Error
+  | Micro.Error;
