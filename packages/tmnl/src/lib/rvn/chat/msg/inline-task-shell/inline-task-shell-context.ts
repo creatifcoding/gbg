@@ -7,8 +7,10 @@
  * consume it.
  */
 import { createContext, useContext } from 'react'
+import type { Atom } from '@effect-atom/atom'
 import type { HashMap } from 'effect'
 import type { RvnChatInlineTaskItem, RvnChatInlineTaskStatus } from '../inline-task-types'
+import type { AgentTaskLogAtomSurfaceAtoms } from '@/lib/agents/tasks/atoms'
 import type { InlineTaskTransferHandle } from '@/lib/transfer/v2/hooks'
 
 // ---------------------------------------------------------------------------
@@ -65,6 +67,9 @@ export interface InlineTaskShellContextValue {
 
   /** Transfer v2 handle (null when transfer not enabled) */
   readonly transfer: InlineTaskTransferHandle | null
+
+  /** Optional DI atom surface for inline task log view. */
+  readonly taskLogAtomSurfaceAtom?: Atom.Atom<AgentTaskLogAtomSurfaceAtoms>
 }
 
 // ---------------------------------------------------------------------------

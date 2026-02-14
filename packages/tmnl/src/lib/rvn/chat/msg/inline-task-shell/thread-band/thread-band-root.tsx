@@ -101,6 +101,7 @@ export const ThreadBand = forwardRef<HTMLDivElement, ThreadBandProps>(
       toggleSelection,
       taskLookup,
       transfer,
+      taskLogAtomSurfaceAtom,
     } = useInlineTaskShellContext()
 
     const scrollRef = useRef<HTMLDivElement | null>(null)
@@ -238,6 +239,7 @@ export const ThreadBand = forwardRef<HTMLDivElement, ThreadBandProps>(
                       onAction={onAction}
                       copyable={copyable}
                       showStandaloneProgress={showStandaloneProgress}
+                      taskLogAtomSurfaceAtom={taskLogAtomSurfaceAtom}
                     />
                   </motion.div>
                 </div>

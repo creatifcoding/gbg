@@ -6,6 +6,7 @@ import {
   type ComponentPropsWithoutRef,
   type KeyboardEvent,
 } from 'react'
+import type { Atom } from '@effect-atom/atom'
 import { DateTime } from 'effect'
 import { RvnChatShell } from './shell'
 import {
@@ -16,10 +17,11 @@ import {
   RVN_CHAT_ROLE_ICON_SIZE,
   RVN_CHAT_UTILITY_ICON_SIZE,
   type RvnChatMessageRole,
-  AgentTask,
   type RvnChatInlineTaskItem,
 } from './msg'
+import { AgentTask } from './msg/inline-task-types'
 import { InlineTaskShell } from './msg/inline-task-shell'
+import type { AgentTaskLogAtomSurfaceAtoms } from '@/lib/agents/tasks/atoms'
 import { RvnChatComposer } from './composer'
 import { RvnStatusChip, type RvnChatConnectionState } from './status'
 import {
@@ -100,6 +102,9 @@ export interface RvnChatIsolatedProps
   disabled?: boolean
   placeholder?: string
   maxChars?: number
+
+  /** Optional DI atom surface for inline task log view. */
+  taskLogAtomSurfaceAtom?: Atom.Atom<AgentTaskLogAtomSurfaceAtoms>
 }
 
 const DEFAULT_AGENTS: ReadonlyArray<RvnChatIsolatedAgent> = [
@@ -444,11 +449,13 @@ function AssistantAnalysisCard({
   messageId,
   expansionLevel,
   tasks,
+  taskLogAtomSurfaceAtom,
 }: {
   summary: string
   messageId: string
   expansionLevel: 'l2' | 'l3'
   tasks?: ReadonlyArray<RvnChatInlineTaskItem>
+  taskLogAtomSurfaceAtom?: Atom.Atom<AgentTaskLogAtomSurfaceAtoms>
 }) {
   return (
     <RvnChatArtifactCard className="rvn-chat__analysis-card">
@@ -491,6 +498,7 @@ function AssistantAnalysisCard({
               threadId={`assistant:${messageId}`}
               tasks={tasks}
               defaultExpanded
+              taskLogAtomSurfaceAtom={taskLogAtomSurfaceAtom}
             >
               <InlineTaskShell.ExpandBand />
               <InlineTaskShell.MetricsBand />
@@ -512,10 +520,12 @@ function AssistantRemediationCard({
   summary,
   messageId,
   tasks,
+  taskLogAtomSurfaceAtom,
 }: {
   summary: string
   messageId: string
   tasks: ReadonlyArray<RvnChatInlineTaskItem>
+  taskLogAtomSurfaceAtom?: Atom.Atom<AgentTaskLogAtomSurfaceAtoms>
 }) {
   return (
     <RvnChatArtifactCard className="rvn-chat__analysis-card">
@@ -540,6 +550,7 @@ function AssistantRemediationCard({
             threadId={`remediation:${messageId}`}
             tasks={tasks}
             defaultExpanded
+            taskLogAtomSurfaceAtom={taskLogAtomSurfaceAtom}
           >
             <InlineTaskShell.ExpandBand label="Remediation Pipeline" />
             <InlineTaskShell.MetricsBand />
@@ -574,6 +585,7 @@ export function RvnChatIsolated({
   disabled = false,
   placeholder = 'Ask about work orders, alarms, sensors...',
   maxChars = 2000,
+  taskLogAtomSurfaceAtom,
   style,
   className,
   ...props
@@ -901,6 +913,7 @@ export function RvnChatIsolated({
                       summary={message.text}
                       messageId={message.id}
                       tasks={message.tasks}
+                      taskLogAtomSurfaceAtom={taskLogAtomSurfaceAtom}
                     />
                   ) : message.role === 'assistant' ? (
                     <AssistantAnalysisCard
@@ -908,6 +921,7 @@ export function RvnChatIsolated({
                       messageId={message.id}
                       expansionLevel={expansionLevel}
                       tasks={message.tasks}
+                      taskLogAtomSurfaceAtom={taskLogAtomSurfaceAtom}
                     />
                   ) : message.role === 'user' ? (
                     <RvnChatMessageShell.BodyContent.Root className="rvn-chat__user-bubble">

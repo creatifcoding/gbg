@@ -6,6 +6,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react'
+import type { Atom } from '@effect-atom/atom'
 import type { HashMap } from 'effect'
 import {
   AlertTriangle,
@@ -31,6 +32,7 @@ import {
   InlineTaskLogView,
   InlineTaskSemanticSummary,
 } from '@/lib/agents/tasks/views'
+import type { AgentTaskLogAtomSurfaceAtoms } from '@/lib/agents/tasks/atoms'
 import { useTransferDraggable, type TransferReferenceToken } from '@/lib/transfer'
 import { cn } from '@/lib/utils'
 import {
@@ -57,6 +59,8 @@ export interface RvnChatInlineTaskRowProps extends ComponentPropsWithoutRef<'art
   showStandaloneProgress?: boolean
   /** Enable copy-to-clipboard per detail field. Default: false. */
   copyable?: boolean
+  /** Optional DI atom surface for log view. */
+  taskLogAtomSurfaceAtom?: Atom.Atom<AgentTaskLogAtomSurfaceAtoms>
 }
 
 function StatusIndicator({ status }: { status: RvnChatInlineTaskStatus }) {
@@ -203,6 +207,7 @@ export const RvnChatInlineTaskRow = forwardRef<HTMLElement, RvnChatInlineTaskRow
       onAction,
       showStandaloneProgress,
       copyable = false,
+      taskLogAtomSurfaceAtom,
       className,
       ...props
     },
@@ -350,7 +355,11 @@ export const RvnChatInlineTaskRow = forwardRef<HTMLElement, RvnChatInlineTaskRow
                   />
                 )}
                 renderLogs={() => (
-                  <InlineTaskLogView taskId={taskId} compact />
+                  <InlineTaskLogView
+                    taskId={taskId}
+                    compact
+                    atomSurfaceAtom={taskLogAtomSurfaceAtom}
+                  />
                 )}
                 renderSummary={() => (
                   <InlineTaskSemanticSummary

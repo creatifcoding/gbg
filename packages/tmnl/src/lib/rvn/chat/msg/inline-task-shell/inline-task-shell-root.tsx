@@ -15,8 +15,10 @@ import {
   useState,
   type ComponentPropsWithoutRef,
 } from 'react'
+import type { Atom } from '@effect-atom/atom'
 import { HashMap } from 'effect'
 import type { RvnChatInlineTaskItem } from '../inline-task-types'
+import type { AgentTaskLogAtomSurfaceAtoms } from '@/lib/agents/tasks/atoms'
 import {
   InlineTaskShellContext,
   type InlineTaskShellContextValue,
@@ -38,6 +40,9 @@ export interface InlineTaskShellRootProps extends ComponentPropsWithoutRef<'div'
   expanded?: boolean
   defaultExpanded?: boolean
   onExpandedChange?: (expanded: boolean) => void
+
+  /** Optional DI atom surface for inline task log view. */
+  taskLogAtomSurfaceAtom?: Atom.Atom<AgentTaskLogAtomSurfaceAtoms>
 }
 
 // ---------------------------------------------------------------------------
@@ -91,6 +96,7 @@ const InlineTaskShellInner = forwardRef<HTMLDivElement, InlineTaskShellRootProps
       expanded: expandedProp,
       defaultExpanded = false,
       onExpandedChange,
+      taskLogAtomSurfaceAtom,
       className,
       children,
       ...props
@@ -181,6 +187,7 @@ const InlineTaskShellInner = forwardRef<HTMLDivElement, InlineTaskShellRootProps
         taskLookup,
         metrics,
         transfer,
+        taskLogAtomSurfaceAtom,
       }),
       [
         threadId,
@@ -196,6 +203,7 @@ const InlineTaskShellInner = forwardRef<HTMLDivElement, InlineTaskShellRootProps
         taskLookup,
         metrics,
         transfer,
+        taskLogAtomSurfaceAtom,
       ],
     )
 
