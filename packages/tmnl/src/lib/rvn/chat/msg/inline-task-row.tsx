@@ -1,5 +1,6 @@
 import {
   forwardRef,
+  useCallback,
   useState,
   type ComponentPropsWithoutRef,
   type MouseEvent,
@@ -25,6 +26,11 @@ import {
   InlineTaskRowProgress,
   type InlineTaskRowAction,
 } from './inline-task-shell/row'
+import {
+  InlineTaskViewNavigator,
+  InlineTaskLogView,
+  InlineTaskSemanticSummary,
+} from '@/lib/agent-task/views'
 import { useTransferDraggable, type TransferReferenceToken } from '@/lib/transfer'
 import { cn } from '@/lib/utils'
 import {
@@ -333,11 +339,33 @@ export const RvnChatInlineTaskRow = forwardRef<HTMLElement, RvnChatInlineTaskRow
               exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
               transition={{ duration: prefersReducedMotion ? 0.1 : 0.12, ease: 'easeOut' }}
             >
-              <InlineTaskDetail
-                task={task}
-                taskIndex={taskIndex}
-                onNavigateTask={onNavigateTask}
-                copyable={copyable}
+              <InlineTaskViewNavigator
+                taskId={taskId}
+                renderDetail={() => (
+                  <InlineTaskDetail
+                    task={task}
+                    taskIndex={taskIndex}
+                    onNavigateTask={onNavigateTask}
+                    copyable={copyable}
+                  />
+                )}
+                renderLogs={() => (
+                  <InlineTaskLogView taskId={taskId} compact />
+                )}
+                renderSummary={() => (
+                  <InlineTaskSemanticSummary
+                    task={{
+                      id: taskId,
+                      status,
+                      title,
+                      progress: normalizedProgress ?? undefined,
+                      dependencies: Array.isArray(task.dependencies) ? task.dependencies : undefined,
+                      metadata: task.metadata as Record<string, unknown> | undefined,
+                      assignmentMode: task.assignmentMode,
+                      claimedBy: task.claimedBy,
+                    }}
+                  />
+                )}
               />
 
               {actions && actions.length > 0 ? (
