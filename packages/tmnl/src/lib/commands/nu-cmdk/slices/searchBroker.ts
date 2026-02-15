@@ -91,8 +91,11 @@ export interface NuCmdkSearchBrokerDeps {
   readonly adapters?: ReadonlyArray<LaneAdapter>
   readonly adapterRouter?: QueryAdapterRouter
   readonly maxAdapterConcurrency?: number | "unbounded"
+  readonly middlewareRegistry?: ReadonlyArray<QueryAdapterMiddleware>
   readonly globalAdapterMiddleware?: ReadonlyArray<QueryAdapterMiddleware>
+  readonly globalAdapterMiddlewareIds?: ReadonlyArray<string>
   readonly adapterMiddlewareByAdapterId?: Readonly<Record<string, ReadonlyArray<QueryAdapterMiddleware>>>
+  readonly adapterMiddlewareIdsByAdapterId?: Readonly<Record<string, ReadonlyArray<string>>>
 }
 
 export const makeNuCmdkSearchBroker = (
@@ -100,13 +103,6 @@ export const makeNuCmdkSearchBroker = (
 ): Effect.Effect<NuCmdkSearchBroker> =>
   Effect.gen(function* () {
     const sessions = new Map<string, SessionEntry>()
-
-    const adapterRouter = deps.adapterRouter ?? (yield* makeQueryAdapterRouter({
-      adapters: deps.adapters,
-      maxConcurrency: deps.maxAdapterConcurrency,
-      globalMiddleware: deps.globalAdapterMiddleware,
-      adapterMiddlewareByAdapterId: deps.adapterMiddlewareByAdapterId,
-    }))
 
     const getEntry = (queryId: string): Option.Option<SessionEntry> =>
       Option.fromNullable(sessions.get(queryId))
@@ -130,6 +126,31 @@ export const makeNuCmdkSearchBroker = (
         attrs: params.attrs ?? {},
       })
     }
+
+    const adapterRouter = deps.adapterRouter ?? (yield* makeQueryAdapterRouter({
+      adapters: deps.adapters,
+      maxConcurrency: deps.maxAdapterConcurrency,
+      middlewareRegistry: deps.middlewareRegistry,
+      globalMiddleware: deps.globalAdapterMiddleware,
+      globalMiddlewareIds: deps.globalAdapterMiddlewareIds,
+      adapterMiddlewareByAdapterId: deps.adapterMiddlewareByAdapterId,
+      adapterMiddlewareIdsByAdapterId: deps.adapterMiddlewareIdsByAdapterId,
+      onEvent: (event) => {
+        emitBrokerEvent({
+          queryId: event.queryId,
+          scenarioId: event.scenarioId,
+          event: event.event,
+          laneId: event.laneId,
+          attrs: {
+            ...(event.attrs ?? {}),
+            phase: event.phase,
+            middlewareId: event.middlewareId,
+            adapterId: event.adapterId,
+            durationMs: event.durationMs,
+          },
+        })
+      },
+    }))
 
     const startQuery: NuCmdkSearchBroker["startQuery"] = ({ queryId, queryText, scope, scenarioId }) =>
       Effect.gen(function* () {
