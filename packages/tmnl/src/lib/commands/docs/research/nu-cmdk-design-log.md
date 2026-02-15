@@ -678,6 +678,32 @@
 
 ---
 
+## Iteration 27 — canonical middleware spec
+
+### Request (you)
+- "I meant for middleware specifically."
+- "Yes. do this."
+
+### Action taken
+- authored canonical middleware spec:
+  - `arch/nu-cmdk-query-middleware-spec.md`
+- spec covers:
+  - middleware scopes (global + adapter-local)
+  - deterministic ordering/composition
+  - parse-once dispatch lifecycle
+  - bounded concurrency interaction
+  - failure semantics + observability requirements
+  - acceptance criteria + anti-patterns
+- linked the new spec in docs map and D18 decision references:
+  - `docs/README.md`
+  - `arch/nu-cmdk-provider-adapter-layer-router-decision.md`
+  - `arch/nu-cmdk-decision-lock.md`
+
+### Validation snapshot
+- docs-spec codification pass only (no runtime mutation in this iteration).
+
+---
+
 ## Operator note
 
 This log is append-only by iteration. Never rewrite history; add correction entries when alignment drifts.

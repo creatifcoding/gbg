@@ -186,3 +186,7 @@ Examples:
 ## Implementation note
 
 This decision intentionally mirrors architecture patterns from Effect's `HttpLayerRouter` and `internal/httpRouter`, adapted for provider/adapter dispatch semantics rather than HTTP path routing.
+
+Canonical middleware behavior is specified in:
+
+- `nu-cmdk-query-middleware-spec.md`

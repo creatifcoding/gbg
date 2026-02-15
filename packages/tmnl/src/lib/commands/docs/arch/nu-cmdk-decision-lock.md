@@ -78,7 +78,7 @@
     - Provider/adapter orchestration adopts `HttpLayerRouter`-style service + middleware architecture.
     - Middleware is split into global and adapter-local scopes with deterministic composition.
     - Query dispatch follows parse-once, typed-emits enforcement, and bounded scheduling for N+1 efficiency.
-    - See: `nu-cmdk-provider-adapter-layer-router-decision.md`.
+    - See: `nu-cmdk-provider-adapter-layer-router-decision.md` and `nu-cmdk-query-middleware-spec.md`.
 
 ---
 

@@ -71,6 +71,10 @@
   - Design decision + rationale for `HttpLayerRouter`-parity provider/adapter router + middleware
   - N+1 dispatch efficiency model (parse-once, bounded scheduling, composable middleware)
 
+- [`arch/nu-cmdk-query-middleware-spec.md`](./arch/nu-cmdk-query-middleware-spec.md)
+  - Canonical middleware specification (scope, ordering, lifecycle, failure semantics)
+  - Execution parity rules for global + adapter-local middleware in router dispatch
+
 - [`arch/nu-cmdk-provider-onboarding-checklist.md`](./arch/nu-cmdk-provider-onboarding-checklist.md)
   - Design efficacy preamble (provider abstraction first principles)
   - Deterministic checklist for typed-emits adapters and broker-safe onboarding
