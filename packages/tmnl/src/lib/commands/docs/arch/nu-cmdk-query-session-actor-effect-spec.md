@@ -1,10 +1,17 @@
 # NuCmdk QuerySession Actor (Effect Definition)
 
-**Status:** Draft lock candidate (implementation preflight)  
-**Date:** 2026-02-13  
+**Status:** Implemented in slices; runtime hardening in progress  
+**Date:** 2026-02-13 (updated 2026-02-15)  
 **Scope:** Define a per-query actor model in Effect for sequencing, fairness, cancellation, lane health isolation.
 
 ---
+
+## Implementation reality snapshot (2026-02-15)
+
+- Implemented actor: `src/lib/commands/nu-cmdk/slices/querySession.ts`
+- Implemented tests: `src/lib/commands/nu-cmdk/slices/__tests__/querySession.slice.test.ts`
+- Current runtime path: broker-backed command overlay provider context consumes session snapshots.
+- Remaining: lane streaming ergonomics in live UI path, persistence-backed cache integration, host-level e2e parity.
 
 ## 1) Definition (what an actor is in this system)
 

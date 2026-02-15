@@ -1,7 +1,7 @@
 # Service Spec — `NuCmdkSearchBroker`
 
-**Status:** Proposed  
-**Date:** 2026-02-13
+**Status:** Partially implemented (slice-complete; runtime integration in progress)  
+**Date:** 2026-02-13 (updated 2026-02-15)
 
 ---
 
@@ -19,6 +19,14 @@ Dedicated orchestration service that federates search across provider lanes:
 Shell stays presentation-focused; broker owns choreography.
 
 ---
+
+## Implementation reality snapshot (2026-02-15)
+
+- Implemented service: `src/lib/commands/nu-cmdk/slices/searchBroker.ts`
+- Implemented adapter router: `src/lib/commands/nu-cmdk/slices/queryAdapterRouter.ts`
+- Implemented tests: `src/lib/commands/nu-cmdk/slices/__tests__/searchBroker.slice.test.ts`
+- Runtime usage: command overlay provider context now uses broker/session path (`src/lib/commands/shell/providers/command-provider-context.ts`)
+- Remaining: multi-lane real transports, persistence runtime path, full host/e2e parity.
 
 ## 2) Core responsibilities
 

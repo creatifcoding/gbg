@@ -754,6 +754,250 @@
 
 ---
 
+## Iteration 29 — validation gap analysis and closure plan
+
+### Request (you)
+- perform a real gap analysis on whether proposed architecture and implementation are fully validated.
+
+### Action taken
+- authored validation matrix + closure plan document:
+  - `impl/nu-cmdk-gap-analysis.md`
+- analysis includes:
+  - T1/T2/T3/T4 evidence model,
+  - D01–D18 coverage matrix,
+  - gap clusters (production path, real transport, persistence, telemetry gating, typed channels),
+  - recommended closure waves (A–E) with explicit exit criteria.
+- linked the new artifact in docs index (`docs/README.md`).
+
+### Validation snapshot
+- docs analysis pass only; no runtime mutation in this iteration.
+
+---
+
+## Iteration 30 — hardened WBS v2 synthesis
+
+### Request (you)
+- harden the WBS and proceed to building.
+- explicit expectation for a large-form master planning artifact.
+
+### Action taken
+- authored hardened master WBS:
+  - `impl/nu-cmdk-wbs-v2-master.md`
+- WBS v2 includes:
+  - full latent backlog decomposition,
+  - task-level decision links (D01–D18),
+  - required evidence tiers (T1–T4),
+  - dependency sequencing and milestone gates,
+  - risk register and audit protocol.
+- linked WBS v2 in docs index (`docs/README.md`).
+
+### Validation snapshot
+- planning artifact expansion only in this iteration.
+
+---
+
+## Iteration 31 — build-phase scaffold kickoff (Phase 1)
+
+### Request (you)
+- "enough validation ... let's get to actually building"
+
+### Action taken
+- started implementation-phase scaffold for shell architecture:
+  - `src/lib/commands/shell/types.ts`
+  - `src/lib/commands/shell/contracts.ts`
+  - `src/lib/commands/shell/NuCmdkShell.tsx`
+  - `src/lib/commands/shell/components/{ModeBand,QueryBand,KindBand,ResultsBand,FooterBand}.tsx`
+  - `src/lib/commands/shell/components/index.ts`
+  - `src/lib/commands/shell/index.ts`
+- exported scaffold from command package surface:
+  - `src/lib/commands/index.ts`
+
+### Validation snapshot
+- scaffold build slice only (no host cutover in this iteration).
+
+---
+
+## Iteration 32 — ResultsBand item consumer contract lock
+
+### Request (you)
+- "the ITEM itself. ought to be decomposed."
+- provider-facing API should allow object-driven rendering under typed constraints.
+- explicitly define who consumes this API.
+
+### Action taken
+- ran structured alignment questionnaire for item-consumer boundary.
+- locked consumer model:
+  - primary consumer: provider authors,
+  - control boundary: hybrid (provider semantic/display hints + shell-owned layout/typography/interaction),
+  - typed style: Schema + namespaced extension bag,
+  - customization mode: data + typed slot override components.
+- recorded architecture decision artifact:
+  - `arch/nu-cmdk-item-consumer-contract-decision.md`
+- synchronized lock references:
+  - `arch/nu-cmdk-decision-lock.md` (added D19)
+  - `arch/ascii/traceability-index.md` (added D19)
+
+### Validation snapshot
+- documentation/decision sync pass only.
+
+---
+
+## Iteration 33 — D19 feature plan import + execution map
+
+### Request (you)
+- "Let's do it! write a feature_plan out for this stuff."
+
+### Action taken
+- imported D19 execution tree into tasker feature graph:
+  - root: `#F270` NuCmdk D19: Provider-first ResultsBand Item Contract
+  - subfeatures: `#F271`..`#F274`
+  - tasks: `#1024`..`#1041`
+- authored implementation-facing plan doc:
+  - `impl/nu-cmdk-d19-feature-plan.md`
+- linked D19 feature plan in docs index.
+
+### Validation snapshot
+- planning/import pass only (no runtime mutation in this iteration).
+
+---
+
+## Iteration 34 — D19 context contract (Atom state + Effect ops)
+
+### Request (you)
+- add a context contract and specify API expectations for return surfaces (Effects and Atoms, respectively).
+
+### Action taken
+- added D19 provider context contract module:
+  - `src/lib/commands/shell/item-contract.ts`
+- contract includes:
+  - schema-first item payload families,
+  - provider descriptor schema,
+  - **atom-first state contract** (`NuCmdkItemProviderAtoms`),
+  - **effect-first operation contract** (`NuCmdkItemProviderEffects`),
+  - composed provider context contract (`NuCmdkItemProviderContextContract`).
+- added transitional row mapper for integration wave:
+  - `shellRowToItemModel(...)`
+- exported contract from shell + command package surfaces.
+
+### Validation snapshot
+- typecheck pass (`bunx tsc --noEmit`).
+
+---
+
+## Iteration 35 — D19 implementation wave (item contract wired into shell/results)
+
+### Request (you)
+- "let's do the work as planned! proceed"
+
+### Action taken
+- implemented schema-first item contract + provider bridge exports:
+  - `src/lib/commands/shell/item-contract.ts`
+- rewired `ResultsBand` to provider-item model:
+  - item-first props (`items`) with row-compat fallback (`rows` + mapper),
+  - typed slot overrides (`icon/content/meta/actions`),
+  - section grouping over item models,
+  - item/section context decomposition and slot render contexts.
+- integrated shell + overlay path to pass typed items:
+  - `NuCmdkShell` now supports `items`, `onSelectItem`, and `itemSlots` pass-through.
+  - `NuCmdkShellOverlay` maps rows → items via `shellRowToItemModel` and executes via item selection.
+- expanded component export surface for provider consumers.
+
+### Validation snapshot
+- typecheck pass (`bunx tsc --noEmit`).
+- feature tasks advanced:
+  - done: `#1026`, `#1027`, `#1028`, `#1031`
+  - in_progress: `#1040`
+
+---
+
+## Iteration 36 — ResultsBand.Item deep decomposition + slot policy completion
+
+### Request (you)
+- complete decomposition in entirety, specifically Item internals and provider-facing control model.
+
+### Action taken
+- reworked `ResultsBand` to item-first architecture with recursive item decomposition:
+  - `ItemRoot`, `ItemLeft`, `ItemRight`
+  - slot envelopes: `ItemIconSlot`, `ItemContentSlot`, `ItemMetaSlot`, `ItemActionsSlot`
+  - action primitives: `ItemActionGroup`, `ItemActionButton`
+- added per-item slot policy API:
+  - global `itemSlots`
+  - per-item `resolveItemSlots(context)` merge strategy
+- added strict decode boundary + violation hook path for unknown provider payloads:
+  - `decodeItemModelUnknown`
+  - `decodeItemModelsUnknown({ mode: strict|drop-invalid, onViolation })`
+- preserved compatibility path:
+  - `rows` + `rowMapper` fallback still supported while item-first path is active.
+
+### Validation snapshot
+- typecheck pass (`bunx tsc --noEmit`).
+- D19 implementation tasks advanced to done for decode, item decomposition, guardrails, slot API, resolver hooks, and overlay integration.
+
+---
+
+## Iteration 37 — D19 validation wave (schema + slots + guardrails)
+
+### Request (you)
+- continue canonical tasks from current step.
+
+### Action taken
+- added schema boundary tests:
+  - `src/lib/commands/shell/__tests__/item-contract.test.ts`
+  - covers strict failure, drop-invalid path, violation callback, and row mapper compatibility.
+- added ResultsBand rendering tests:
+  - `src/lib/commands/shell/__tests__/ResultsBand.test.tsx`
+  - covers fallback rendering, slot overrides, layout envelope guardrails, action-intent dispatch without row-select leakage.
+- documented provider API recipes:
+  - `arch/nu-cmdk-resultsband-item-api.md`
+  - linked from docs index.
+
+### Validation snapshot
+- test run:
+  - `bun run test:run src/lib/commands/shell/__tests__/item-contract.test.ts src/lib/commands/shell/__tests__/ResultsBand.test.tsx`
+  - result: 10/10 passing.
+
+---
+
+## Iteration 38 — broker/session-backed command provider context (overlay runtime)
+
+### Request (you)
+- "these were slices though, they're surely not sufficient for a real, robust implementation"
+- "continue, remember, we have specs and docs ... diverged from implementation and current operational reality."
+
+### Action taken
+- replaced command overlay bridge from `useCommandSearch` with broker/session runtime context:
+  - new provider module: `src/lib/commands/shell/providers/command-provider-context.ts`
+  - exports via: `src/lib/commands/shell/providers/index.ts` and shell barrel.
+- overlay now consumes provider contract state directly from atoms:
+  - `provider.context.atoms.items`
+  - `provider.context.atoms.sections`
+  - effect surfaces for query/execute/preview.
+- introduced broker lifecycle in provider effect path:
+  - lazy broker initialization via `makeNuCmdkSearchBroker`
+  - `startQuery` + `runAdapters` + `snapshot` per query mutation
+  - previous query stop before next dispatch.
+- expanded `QueryRow` slice contract to carry render-critical UI fields:
+  - `label`, `description`, `badges`, `shortcuts`, `sectionKey`, `sectionTitle`, `sectionPriority`.
+- updated lane adapter completion normalization to populate those fields.
+
+### Validation snapshot
+- typecheck pass: `bunx tsc --noEmit --pretty false`.
+- tests pass:
+  - `laneAdapters.slice.test.ts`
+  - `searchBroker.slice.test.ts`
+  - `item-contract.test.ts`
+  - `ResultsBand.test.tsx`
+  - total in targeted run: 18/18 passing.
+
+### Reality checkpoint
+- status moved from "slice-only" to "runtime-integrated for command overlay path".
+- still not fully production-complete:
+  - no multi-lane real transport surfacing in shell yet,
+  - no persisted SQLite/WAL execution in runtime path,
+  - no dedicated e2e host parity harness yet.
+
+---
+
 ## Operator note
 
 This log is append-only by iteration. Never rewrite history; add correction entries when alignment drifts.
