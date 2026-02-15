@@ -132,13 +132,32 @@ export const completionToRow = (
   const provider = slug(params.providerId)
   const rendererToken = `${provider}/${kind}/list@v1`
 
+  const shortcuts =
+    typeof completion.shortcuts === "string"
+      ? completion.shortcuts.split("+").map((part) => part.trim()).filter((part) => part.length > 0)
+      : completion.shortcuts
+        ? [...completion.shortcuts]
+        : undefined
+
+  const stableRowId = completion.value.trim().length > 0
+    ? completion.value
+    : `${provider}:${kind}:${index}`
+
   return {
-    rowId: `${provider}:${kind}:${slug(completion.value)}:${index}` as QueryRow["rowId"],
+    rowId: stableRowId as QueryRow["rowId"],
     laneId: params.laneId as QueryRow["laneId"],
     score: completion.score ?? 0.5,
     category: kind,
     rendererToken,
     resolverIdentity: inferResolverIdentity(params.providerId, completion),
+    label: completion.label,
+    description: completion.description ?? null,
+    badges: completion.badges
+      ? completion.badges.map((badge) => ({ text: badge.text, tone: badge.tone }))
+      : undefined,
+    shortcuts,
+    sectionKey: completion.section ? slug(completion.section) : undefined,
+    sectionTitle: completion.section,
   }
 }
 

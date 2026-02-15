@@ -22,6 +22,12 @@ export const ResultKind = Schema.Literal(
 )
 export type ResultKind = typeof ResultKind.Type
 
+export const QueryRowBadge = Schema.Struct({
+  text: Schema.String,
+  tone: Schema.optional(Schema.Literal("neutral", "warn", "success", "error", "info")),
+})
+export type QueryRowBadge = typeof QueryRowBadge.Type
+
 export const QueryRow = Schema.Struct({
   rowId: RowId,
   laneId: LaneId,
@@ -29,6 +35,13 @@ export const QueryRow = Schema.Struct({
   category: ResultKind,
   rendererToken: Schema.String,
   resolverIdentity: Schema.String,
+  label: Schema.optional(Schema.String),
+  description: Schema.optional(Schema.NullOr(Schema.String)),
+  badges: Schema.optional(Schema.Array(QueryRowBadge)),
+  shortcuts: Schema.optional(Schema.Array(Schema.String)),
+  sectionKey: Schema.optional(Schema.String),
+  sectionTitle: Schema.optional(Schema.String),
+  sectionPriority: Schema.optional(Schema.Int),
 })
 export type QueryRow = typeof QueryRow.Type
 

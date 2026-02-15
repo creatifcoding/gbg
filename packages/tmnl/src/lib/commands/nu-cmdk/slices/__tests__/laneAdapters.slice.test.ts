@@ -22,8 +22,12 @@ describe("nu-cmdk lane adapters", () => {
       {
         value: "src/lib/minibuffer/v2/providers.ts",
         label: "providers.ts",
+        description: "Provider registry",
         kind: "file",
         category: "workspace",
+        section: "Workspace",
+        badges: [{ text: "GLOBAL", tone: "info" }],
+        shortcuts: "g+t",
         score: 0.81,
       },
       0,
@@ -33,6 +37,12 @@ describe("nu-cmdk lane adapters", () => {
     expect(row.category).toBe("file")
     expect(row.rendererToken).toBe("workspace-results/file/list@v1")
     expect(row.resolverIdentity).toBe("docs:http.fetch@v1")
+    expect(row.label).toBe("providers.ts")
+    expect(row.description).toBe("Provider registry")
+    expect(row.sectionKey).toBe("workspace")
+    expect(row.sectionTitle).toBe("Workspace")
+    expect(row.shortcuts).toEqual(["g", "t"])
+    expect(row.badges?.[0]?.text).toBe("GLOBAL")
   })
 
   it("supports static adapters returning mixed row categories", async () => {
