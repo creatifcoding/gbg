@@ -261,10 +261,17 @@ Reject immediately:
 
 ## 14) Next implementation slices (post-spec)
 
-1. Add middleware registry by ID for deterministic registration/discovery.
-2. Add phase-level telemetry events and budgets.
-3. Add admission middleware for heavy adapter deferral.
-4. Introduce typed request-channel helpers (`QueryRequest`) for compile-time middleware contracts.
+Status update (2026-02-15):
+
+- ✅ middleware registry by ID implemented
+- ✅ phase-level telemetry events implemented
+- ✅ heavy-adapter admission middleware implemented
+
+Remaining slices:
+
+1. Add telemetry budget thresholds and alert-level mapping per phase.
+2. Introduce typed request-channel helpers (`QueryRequest`) for compile-time middleware contracts.
+3. Add middleware registration snapshots to spike output for deterministic replay audits.
 
 ---
 

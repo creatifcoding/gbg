@@ -704,6 +704,56 @@
 
 ---
 
+## Iteration 28 — middleware registry IDs + phase telemetry + heavy admission slice
+
+### Request (you)
+- proceed with middleware registry IDs, phase telemetry, and admission behavior for heavy adapters.
+
+### Action taken
+- upgraded `queryAdapterRouter` middleware system:
+  - middleware registry primitives:
+    - `registerMiddleware`
+    - `addGlobalMiddlewareId`
+    - `addAdapterMiddlewareId`
+    - `listRegisteredMiddlewareIds`
+  - error contract:
+    - `QueryMiddlewareNotFound`
+  - router telemetry events:
+    - `query.middleware.phase.started|completed|failed`
+    - `query.adapter.dispatch.started|completed|failed`
+  - phase coverage:
+    - `query.parse`
+    - `middleware.global`
+    - `middleware.adapter`
+    - `adapter.dispatch`
+- implemented heavy admission middleware helper:
+  - `makeHeavyAdapterAdmissionMiddleware(...)`
+  - gate heavy adapter execution by query length/terms/scope policy.
+- broker integration updates:
+  - broker now wires router telemetry into event stream via `onEvent` bridge.
+  - added broker deps for middleware IDs / registry injection.
+- tests expanded:
+  - `queryAdapterRouter.slice.test.ts` now covers:
+    - registry-ID middleware usage,
+    - heavy-adapter admission behavior,
+    - middleware phase telemetry emission,
+    - previous cost-order and bounded concurrency checks.
+
+### Validation snapshot
+- tests pass:
+  - `queryAdapterRouter.slice.test.ts`
+  - `searchBroker.slice.test.ts`
+  - `laneAdapters.slice.test.ts`
+  - `querySession.slice.test.ts`
+  - total: 15/15 passing
+- spike rerun:
+  - `bun run spike:nu-cmdk:impl-spec --run-id=spike-0011 --iteration=2`
+  - artifacts:
+    - `impl/spike/logs/2026-02-15-spike-0011-iteration-2.jsonl`
+    - `impl/spike/logs/2026-02-15-spike-0011-iteration-2-comparison.md`
+
+---
+
 ## Operator note
 
 This log is append-only by iteration. Never rewrite history; add correction entries when alignment drifts.
