@@ -313,6 +313,61 @@ describe("nu-cmdk query adapter router slice", () => {
     }
   })
 
+  it("rejects dispatch when middleware phase budget is breached", async () => {
+    const events: Array<{ event: string; phase: string; middlewareId?: string }> = []
+
+    const adapter = makeStaticRowsAdapter({
+      adapterId: "budget-adapter",
+      laneId: "budget-lane",
+      emits: ["docs"],
+      rows: [
+        {
+          rowId: "budget-row",
+          laneId: "budget-lane",
+          score: 0.61,
+          category: "docs",
+          rendererToken: "docs/document/list@v2",
+          resolverIdentity: "docs:http.fetch@v1",
+        } as unknown as QueryRow,
+      ],
+    })
+
+    const slowMiddleware = queryAdapterMiddleware({
+      id: "budget.slow",
+      run: (effect) => effect.pipe(Effect.delay("5 millis")),
+    })
+
+    const router = await Effect.runPromise(
+      makeQueryAdapterRouter({
+        adapters: [adapter],
+        globalMiddleware: [slowMiddleware],
+        phaseBudgetsMs: {
+          "middleware.global": 1,
+        },
+        rejectOnBudgetBreach: {
+          "middleware.global": true,
+        },
+        onEvent: (event) => {
+          events.push({ event: event.event, phase: event.phase, middlewareId: event.middlewareId })
+        },
+      }),
+    )
+
+    const [result] = await Effect.runPromise(
+      router.dispatch({
+        queryId: "q-budget",
+        scenarioId: "TEST-BUDGET",
+        query: "budget",
+        scope: "global",
+      }),
+    )
+
+    expect(result?._tag).toBe("DispatchFailed")
+    expect(
+      events.some((event) => event.event === "query.phase.budget.breached" && event.phase === "middleware.global"),
+    ).toBe(true)
+  })
+
   it("emits middleware phase telemetry", async () => {
     const events: Array<{ event: string; phase: string; middlewareId?: string }> = []
 

@@ -26,12 +26,14 @@ import {
   makeStaticRowsAdapter,
   nowMs,
   objectiveScore,
+  queryAdapterMiddleware,
   type EventRecord,
   type LaneAdapter,
   type QueryMetric,
   type QueryRow,
   type ResultKind,
   type Theta,
+  type QueryPhaseBudgetMap,
 } from "../../src/lib/commands/nu-cmdk/slices"
 import {
   createProviderId,
@@ -113,6 +115,18 @@ const thetaNeighborC: Theta = {
     checkpoint_wal_pages: 950,
   },
 }
+
+const phaseBudgetsMs: QueryPhaseBudgetMap = {
+  "query.parse": 70,
+  "middleware.global": 140,
+  "middleware.adapter": 140,
+  "adapter.dispatch": 260,
+}
+
+const middlewareSlowdown = queryAdapterMiddleware({
+  id: "spike.telemetry.marker",
+  run: (effect) => effect,
+})
 
 const asRow = (row: {
   rowId: string
@@ -441,7 +455,28 @@ const runScenario = (params: {
       runId: params.runId,
       registry,
       adapters,
+      phaseBudgetsMs,
+      rejectOnPhaseBudgetBreach: {
+        "adapter.dispatch": true,
+        "middleware.global": true,
+        "middleware.adapter": true,
+        "query.parse": false,
+      },
+      middlewareRegistry: [middlewareSlowdown],
+      globalAdapterMiddlewareIds: ["spike.telemetry.marker"],
       onEvent: (event) => params.events.push(event),
+    })
+
+    params.events.push({
+      event: "query.middleware.snapshot",
+      run_id: params.runId,
+      query_id: queryId,
+      scenario_id: params.scenarioId,
+      t_ms: nowMs(),
+      attrs: {
+        globalMiddlewareIds: ["spike.telemetry.marker"],
+        phaseBudgetsMs,
+      },
     })
 
     yield* broker.startQuery({
@@ -566,6 +601,8 @@ const runCandidate = (params: {
       theta: params.theta,
       scenario_batch: params.scenarioBatch,
       measurement_mode: "runtime-scripted",
+      phase_budgets_ms: phaseBudgetsMs,
+      global_middleware_ids: ["spike.telemetry.marker"],
       ts_ms: nowMs(),
     }
 
@@ -582,11 +619,22 @@ const runCandidate = (params: {
 
     const scored = objectiveScore(metrics)
 
+    const phaseBudgetBreaches = params.events.filter(
+      (event) => event.run_id === params.runId && event.event === "query.phase.budget.breached",
+    ).length
+
     const guardrails = {
       policy_violations: metrics.reduce((a, m) => a + m.policy_violations, 0),
       lane_isolation_violations: metrics.reduce((a, m) => a + m.lane_isolation_violations, 0),
       selection_identity_violations: metrics.reduce((a, m) => a + m.selection_identity_violations, 0),
+      phase_budget_breaches: phaseBudgetBreaches,
     }
+
+    const accepted =
+      guardrails.policy_violations === 0 &&
+      guardrails.lane_isolation_violations === 0 &&
+      guardrails.selection_identity_violations === 0 &&
+      guardrails.phase_budget_breaches === 0
 
     const summary = {
       type: "run.summary",
@@ -597,11 +645,8 @@ const runCandidate = (params: {
       p95: scored.p95,
       penalties: scored.penalties,
       guardrails,
-      accepted:
-        guardrails.policy_violations === 0 &&
-        guardrails.lane_isolation_violations === 0 &&
-        guardrails.selection_identity_violations === 0,
-      reject_reason: null,
+      accepted,
+      reject_reason: accepted ? null : "phase-budget-or-guardrail-breach",
       ts_ms: nowMs(),
     }
 
@@ -661,7 +706,9 @@ const main = async () => {
       winner_run_id: winner.runId,
       loser_run_id: second?.runId ?? null,
       delta_objective: Number(delta.toFixed(2)),
-      accept_reason: "lowest_objective_with_zero_guardrail_violations",
+      accept_reason: (winner.summary as any).accepted
+        ? "lowest_objective_with_zero_guardrail_and_budget_violations"
+        : "no-accepted-candidate-budget-or-guardrail-breach",
       next_step: `iteration-${args.iteration + 1}-neighborhood`,
       ts_ms: nowMs(),
     }
@@ -679,13 +726,16 @@ const main = async () => {
         const s = run.summary
         const p95 = s.p95 as any
         const penalties = s.penalties as any
-        return `| ${run.candidateName} | ${run.runId} | ${s.objective_score} | ${p95.ttr_ms} | ${p95.ttfa_ms} | ${p95.tts_ms} | ${penalties.quality} | ${penalties.stability} | ${penalties.safety} | PASS |`
+        const guardrails = s.guardrails as any
+        const phaseBreaches = guardrails.phase_budget_breaches ?? 0
+        const gate = s.accepted ? "PASS" : `FAIL (${s.reject_reason})`
+        return `| ${run.candidateName} | ${run.runId} | ${s.objective_score} | ${p95.ttr_ms} | ${p95.ttfa_ms} | ${p95.tts_ms} | ${penalties.quality} | ${penalties.stability} | ${penalties.safety} | ${phaseBreaches} | ${gate} |`
       })
       .join("\n")
 
     const comparison = `# ${args.runId} — Iteration ${args.iteration} Candidate Comparison\n\n` +
-      `| Candidate | Run ID | ObjectiveScore | P95 TTR | P95 TTFA | P95 TTS | Quality Penalty | Stability Penalty | Safety Penalty | Guardrails |\n` +
-      `|---|---|---:|---:|---:|---:|---:|---:|---:|---|\n` +
+      `| Candidate | Run ID | ObjectiveScore | P95 TTR | P95 TTFA | P95 TTS | Quality Penalty | Stability Penalty | Safety Penalty | Phase Budget Breaches | Gate |\n` +
+      `|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|\n` +
       `${tableRows}\n\n` +
       `Winner: **${winner.runId}** (Δ objective ${delta.toFixed(2)})\n`
 
