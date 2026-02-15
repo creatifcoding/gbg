@@ -8,6 +8,7 @@ import { type Completion, providerRegistry } from '../../../minibuffer/v2/provid
 import { TESTBED_WINDOW_PROVIDER_ID } from '../../../tauri-windows'
 import {
   adaptersFromProviderRegistry,
+  makeHeavyAdapterAdmissionMiddleware,
   makeNuCmdkSearchBroker,
   type NuCmdkSearchBroker,
   type QueryRow,
@@ -61,6 +62,17 @@ const defaultPhaseBudgetsMs = {
   "middleware.adapter": 120,
   "adapter.dispatch": 220,
 } as const
+
+const runtimeAdapterCostClasses = {
+  [COMMAND_PROVIDER_ID]: 'fast',
+  [TESTBED_WINDOW_PROVIDER_ID]: 'heavy',
+} as const
+
+const heavyLaneAdmissionMiddleware = makeHeavyAdapterAdmissionMiddleware({
+  id: 'admission.heavy.nu-cmdk-ui',
+  minNormalizedQueryLength: 2,
+  minTerms: 1,
+})
 
 const mapResultKindToShellKind = (
   row: QueryRow,
@@ -192,6 +204,7 @@ export const useNuCmdkCommandProviderContext = (
         const adapters = adaptersFromProviderRegistry({
           include: (provider) =>
             provider.id === COMMAND_PROVIDER_ID || provider.id === TESTBED_WINDOW_PROVIDER_ID,
+          costClassByProviderId: runtimeAdapterCostClasses,
         })
         const nextFingerprint = adapters.map((adapter) => adapter.adapterId).sort().join('|')
 
@@ -217,6 +230,7 @@ export const useNuCmdkCommandProviderContext = (
             "middleware.adapter": true,
             "query.parse": false,
           },
+          globalAdapterMiddleware: [heavyLaneAdmissionMiddleware],
           onEvent: (event) => {
             if (import.meta.env.DEV) {
               console.debug('[NuCmdk broker]', event.event, event)

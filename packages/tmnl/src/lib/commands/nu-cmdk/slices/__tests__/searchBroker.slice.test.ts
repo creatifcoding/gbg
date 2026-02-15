@@ -5,6 +5,7 @@ import {
   makeNuCmdkSearchBroker,
   QuerySessionNotFound,
   makeStaticRowsAdapter,
+  makeHeavyAdapterAdmissionMiddleware,
   type Theta,
   type QueryRow,
   type EventRecord,
@@ -263,5 +264,123 @@ describe("nu-cmdk search broker slice", () => {
     expect(Object.keys(out.rowsById)).toContain("doc-2")
     expect(Object.keys(out.rowsById)).not.toContain("cmd-should-drop")
     expect(events.some((e) => e.event === "lane.adapter.kind_mismatch")).toBe(true)
+  })
+
+  it("applies heavy-lane admission middleware in broker dispatch", async () => {
+    const shortQuery = await Effect.runPromise(
+      Effect.gen(function* () {
+        const broker = yield* makeNuCmdkSearchBroker({
+          theta,
+          runId: "test-run",
+          registry: Registry.make(),
+          onEvent: () => {},
+          adapters: [
+            makeStaticRowsAdapter({
+              adapterId: "fast-commands",
+              laneId: "commands-lane",
+              emits: ["command"],
+              costClass: "fast",
+              rows: [
+                {
+                  rowId: "cmd-fast",
+                  laneId: "commands-lane",
+                  score: 0.81,
+                  category: "command",
+                  rendererToken: "commands/command/list@v1",
+                  resolverIdentity: "commands:open@v1",
+                } as unknown as QueryRow,
+              ],
+            }),
+            makeStaticRowsAdapter({
+              adapterId: "heavy-docs",
+              laneId: "docs-lane",
+              emits: ["docs"],
+              costClass: "heavy",
+              rows: [mkRow({ rowId: "doc-heavy", laneId: "docs-lane", score: 0.72, resolverIdentity: "docs:http.fetch@v1" })],
+            }),
+          ],
+          globalAdapterMiddleware: [
+            makeHeavyAdapterAdmissionMiddleware({
+              minNormalizedQueryLength: 3,
+              minTerms: 1,
+            }),
+          ],
+        })
+
+        yield* broker.startQuery({
+          queryId: "q-short",
+          queryText: "go",
+          scope: "global",
+          scenarioId: "TEST-ADMISSION",
+        })
+        yield* broker.runAdapters("q-short")
+        yield* Effect.sleep("10 millis")
+        const snapshot = yield* broker.snapshot("q-short")
+        yield* broker.stopAll
+
+        return snapshot
+      }),
+    )
+
+    expect(Object.keys(shortQuery.rowsById)).toContain("cmd-fast")
+    expect(Object.keys(shortQuery.rowsById)).not.toContain("doc-heavy")
+
+    const longQuery = await Effect.runPromise(
+      Effect.gen(function* () {
+        const broker = yield* makeNuCmdkSearchBroker({
+          theta,
+          runId: "test-run",
+          registry: Registry.make(),
+          onEvent: () => {},
+          adapters: [
+            makeStaticRowsAdapter({
+              adapterId: "fast-commands",
+              laneId: "commands-lane",
+              emits: ["command"],
+              costClass: "fast",
+              rows: [
+                {
+                  rowId: "cmd-fast",
+                  laneId: "commands-lane",
+                  score: 0.81,
+                  category: "command",
+                  rendererToken: "commands/command/list@v1",
+                  resolverIdentity: "commands:open@v1",
+                } as unknown as QueryRow,
+              ],
+            }),
+            makeStaticRowsAdapter({
+              adapterId: "heavy-docs",
+              laneId: "docs-lane",
+              emits: ["docs"],
+              costClass: "heavy",
+              rows: [mkRow({ rowId: "doc-heavy", laneId: "docs-lane", score: 0.72, resolverIdentity: "docs:http.fetch@v1" })],
+            }),
+          ],
+          globalAdapterMiddleware: [
+            makeHeavyAdapterAdmissionMiddleware({
+              minNormalizedQueryLength: 3,
+              minTerms: 1,
+            }),
+          ],
+        })
+
+        yield* broker.startQuery({
+          queryId: "q-long",
+          queryText: "golang",
+          scope: "global",
+          scenarioId: "TEST-ADMISSION",
+        })
+        yield* broker.runAdapters("q-long")
+        yield* Effect.sleep("10 millis")
+        const snapshot = yield* broker.snapshot("q-long")
+        yield* broker.stopAll
+
+        return snapshot
+      }),
+    )
+
+    expect(Object.keys(longQuery.rowsById)).toContain("cmd-fast")
+    expect(Object.keys(longQuery.rowsById)).toContain("doc-heavy")
   })
 })
