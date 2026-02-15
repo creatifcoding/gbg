@@ -13,12 +13,16 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Settings, Terminal, User, Zap } from "lucide-react"
 import { SelfchartersLogo } from "@/components/brand"
-import { useDrawer } from "./hooks/useDrawer"
-import { useCommandPalette } from "./hooks/useCommandPalette"
-import { useSidebar } from "./hooks/useSidebar"
+import { useDrawer } from './hooks/useDrawer'
+import { useCommandPalette } from './hooks/useCommandPalette'
+import { useSidebar } from './hooks/useSidebar'
+import { useVisualOverlay } from './providers'
 import { DrawerSlotContent } from "./components"
 import { Sidebar, type SidebarConfig as SidebarComponentConfig } from "@/lib/sidebar"
-import { useGlobalHotkeys, WhichKeyPopup } from "@/lib/hotkeys"
+import { useGlobalHotkeys, WhichKeyPopup } from '@/lib/hotkeys'
+import { useCommandWire, NuCmdkShellOverlay } from '@/lib/commands'
+import { useMinibuffer } from "@/lib/minibuffer"
+import { TESTBED_WINDOW_PROVIDER_ID } from "@/lib/tauri-windows"
 import { TmnlSettings } from "@/components/static-ui"
 import { useScreensaver, ScreensaverOverlay } from "@/lib/screensaver"
 import {
@@ -168,6 +172,7 @@ export function PersistentOverlays({
   onTabChange,
 }: PersistentOverlaysProps) {
   const drawer = useDrawer()
+  const visualOverlay = useVisualOverlay()
   const commandPalette = useCommandPalette()
   const sidebar = useSidebar()
 
@@ -208,14 +213,59 @@ export function PersistentOverlays({
   // ─── Global Hotkeys ─────────────────────────────────────────
   // Wires all system commands and handles keyboard events
   // Ctrl+Shift+P → minibuffer, Ctrl+, → settings, Ctrl+` → terminal, etc.
+  const minibuffer = useMinibuffer()
+  const { isWired } = useCommandWire({
+    debug: false,
+  })
+
+  const openNuCmdkShell = useCallback(() => {
+    const id = 'nu-cmdk-shell' as VisualOverlayId
+    visualOverlay.open('command-palette', {
+      id,
+      config: {
+        _tag: 'CommandPaletteConfig',
+        id,
+        placeholder: 'NuCmdk',
+        showRecent: false,
+        width: '92vw',
+        maxWidth: 1280,
+        paddingTop: '4vh',
+        closeOnEscape: true,
+        persistence: 'ephemeral',
+        zIndexOffset: 0,
+      },
+      content: <NuCmdkShellOverlay onClose={() => visualOverlay.close(id)} />,
+    })
+  }, [visualOverlay])
+
+  const useNuCmdkForCommandPalette = import.meta.env.VITE_NU_CMDK_COMMAND_PALETTE_HOST === '1'
+
+  const openTestbedWindowPicker = useCallback(() => {
+    if (!isWired) {
+      return
+    }
+    minibuffer.openCommand(TESTBED_WINDOW_PROVIDER_ID)
+  }, [isWired, minibuffer])
+
   const {
     isReady: hotkeysReady,
     showWhichKey,
     whichKeyEntries,
     currentSequence,
   } = useGlobalHotkeys({
+    isWired,
     debug: false,
     onSettings: useCallback(() => setSettingsOpen(true), []),
+    onOpenCommandPalette: () => {
+      if (useNuCmdkForCommandPalette) {
+        openNuCmdkShell()
+        return
+      }
+      commandPalette.toggle()
+    },
+    onOpenNuCmdk: openNuCmdkShell,
+    onOpenTestbedWindow: openTestbedWindowPicker,
+    onMinibufferCancel: () => minibuffer.cancel(),
     onTerminal: toggleTerminalPanel,
   })
 
@@ -278,12 +328,6 @@ export function PersistentOverlays({
     )
   }, [drawer])
 
-  // ─── Command Palette ────────────────────────────────────────
-  // Uses minibuffer with CommandProvider for M-x behavior
-
-  const toggleCommand = useCallback(() => {
-    commandPalette.toggle()
-  }, [commandPalette])
 
   // ─── Settings ─────────────────────────────────────────────────
 
@@ -371,7 +415,7 @@ export function PersistentOverlays({
 
       {/* Right section */}
       <div className="flex gap-2">
-        <Button variant="outline" onClick={toggleCommand}>
+        <Button variant="outline" onClick={() => commandPalette.toggle()}>
           <Terminal
             style={{
               width: 'var(--tmnl-text-xs, 12px)',

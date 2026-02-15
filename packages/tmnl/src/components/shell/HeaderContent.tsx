@@ -9,13 +9,15 @@
  * @module components/shell
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { PanelLeft, Settings, Terminal, User, Zap } from 'lucide-react';
 import { SelfchartersLogo } from '@/components/brand';
 import { TmnlSettings } from '@/components/static-ui';
-import { useDrawer, overlayId } from '@/lib/overlays';
+import { useDrawer, useVisualOverlay, overlayId } from '@/lib/overlays';
 import { useMinibuffer } from '@/lib/minibuffer';
+import { useCommandWire, NuCmdkShellOverlay } from '@/lib/commands';
 import { useGlobalHotkeys } from '@/lib/hotkeys';
+import { TESTBED_WINDOW_PROVIDER_ID } from '@/lib/tauri-windows';
 
 // ─────────────────────────────────────────────────────────────
 // Button Primitive
@@ -96,12 +98,69 @@ export function HeaderContent({
   onOpenSettings,
 }: HeaderContentProps) {
   const drawer = useDrawer();
+  const visualOverlay = useVisualOverlay();
   const minibuffer = useMinibuffer();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const { isWired } = useCommandWire({
+    debug: false,
+  });
 
-  // Global hotkeys - Ctrl+, → settings, Ctrl+Shift+P → minibuffer, etc.
+  const useNuCmdkForCommandPalette = import.meta.env.VITE_NU_CMDK_COMMAND_PALETTE_HOST === '1';
+
+  const openNuCmdkShell = useCallback(() => {
+    const id = overlayId('nu-cmdk-shell');
+    visualOverlay.open('command-palette', {
+      id,
+      config: {
+        _tag: 'CommandPaletteConfig',
+        id,
+        placeholder: 'NuCmdk',
+        showRecent: false,
+        width: '92vw',
+        maxWidth: 1280,
+        paddingTop: '4vh',
+        closeOnEscape: true,
+        persistence: 'ephemeral',
+        zIndexOffset: 0,
+      },
+      content: (
+        <NuCmdkShellOverlay onClose={() => visualOverlay.close(id)} />
+      ),
+    });
+  }, [visualOverlay]);
+
+  const openCommandPalette = useCallback(() => {
+    if (useNuCmdkForCommandPalette) {
+      openNuCmdkShell();
+      return;
+    }
+
+    // M-x style command execution via minibuffer
+    if (!isWired) {
+      return
+    }
+    minibuffer.executeCommand();
+  }, [isWired, minibuffer, openNuCmdkShell, useNuCmdkForCommandPalette]);
+
+  const openTestbedWindowPicker = useCallback(() => {
+    if (!isWired) {
+      return
+    }
+    minibuffer.openCommand(TESTBED_WINDOW_PROVIDER_ID);
+  }, [isWired, minibuffer]);
+
+  const openSettingsFromHotkey = useCallback(() => {
+    setSettingsOpen(true);
+  }, []);
+
+  // Global hotkeys - Ctrl+, → settings, Ctrl+Shift+P/Alt+X → M-x, Ctrl+Shift+K → NuCmdk shell.
   useGlobalHotkeys({
-    onSettings: useCallback(() => setSettingsOpen(true), []),
+    isWired,
+    onSettings: openSettingsFromHotkey,
+    onOpenCommandPalette: openCommandPalette,
+    onOpenNuCmdk: openNuCmdkShell,
+    onOpenTestbedWindow: openTestbedWindowPicker,
+    onMinibufferCancel: () => minibuffer.cancel(),
   });
 
   // ─── Toggle functions ─────────────────────────────────────────
@@ -154,31 +213,9 @@ export function HeaderContent({
     );
   }, [drawer, onToggleRightDrawer]);
 
-  const toggleCommand = useCallback(() => {
-    // M-x style command execution via minibuffer
-    minibuffer.executeCommand();
-  }, [minibuffer]);
-
-  // ─── Keyboard Shortcuts ─────────────────────────────────────
-  // - Ctrl/Cmd+K: Command palette (modern)
-  // - Alt+X: M-x command palette (Emacs style)
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      // Ctrl/Cmd+K
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        toggleCommand();
-      }
-      // Alt+X (M-x)
-      if (e.altKey && e.key === 'x') {
-        e.preventDefault();
-        toggleCommand();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [toggleCommand]);
+  const openCommandPaletteFromButton = useCallback(() => {
+    openCommandPalette();
+  }, [openCommandPalette]);
 
   // ─── Settings ─────────────────────────────────────────────────
 
@@ -269,7 +306,7 @@ export function HeaderContent({
 
         {/* Right section */}
         <div className="flex gap-2">
-          <Button variant="outline" onClick={toggleCommand}>
+          <Button variant="outline" onClick={openCommandPaletteFromButton}>
             <Terminal
               style={{
                 width: 'var(--tmnl-text-xs, 12px)',
