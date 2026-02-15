@@ -4,6 +4,8 @@ import { Effect } from 'effect'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { COMMAND_PROVIDER_ID } from '../../CommandProvider'
 import { CommandService } from '../../service'
+import { type Completion, providerRegistry } from '../../../minibuffer/v2/providers'
+import { TESTBED_WINDOW_PROVIDER_ID } from '../../../tauri-windows'
 import {
   adaptersFromProviderRegistry,
   makeNuCmdkSearchBroker,
@@ -151,13 +153,18 @@ const buildSectionsFromRows = (rows: ReadonlyArray<NuCmdkShellRow>): ReadonlyArr
   return Array.from(byId.values()).sort((a, b) => a.order - b.order || a.title.localeCompare(b.title))
 }
 
-const toItems = (rows: ReadonlyArray<NuCmdkShellRow>): ReadonlyArray<NuCmdkItemModel> =>
-  rows.map((row) =>
-    shellRowToItemModel(row, {
-      providerId: commandProviderDescriptor.providerId,
-      laneId: 'command-search',
-    }),
-  )
+const toItems = (params: {
+  readonly shellRows: ReadonlyArray<NuCmdkShellRow>
+  readonly queryRowsById: ReadonlyMap<string, QueryRow>
+}): ReadonlyArray<NuCmdkItemModel> =>
+  params.shellRows.map((row) => {
+    const queryRow = params.queryRowsById.get(row.rowId)
+
+    return shellRowToItemModel(row, {
+      providerId: queryRow?.providerId ?? commandProviderDescriptor.providerId,
+      laneId: queryRow?.laneId ?? 'command-search',
+    })
+  })
 
 export interface UseNuCmdkCommandProviderContextOptions {
   readonly query: string
@@ -183,7 +190,8 @@ export const useNuCmdkCommandProviderContext = (
     () =>
       Effect.gen(function* () {
         const adapters = adaptersFromProviderRegistry({
-          include: (provider) => provider.id === COMMAND_PROVIDER_ID,
+          include: (provider) =>
+            provider.id === COMMAND_PROVIDER_ID || provider.id === TESTBED_WINDOW_PROVIDER_ID,
         })
         const nextFingerprint = adapters.map((adapter) => adapter.adapterId).sort().join('|')
 
@@ -278,7 +286,8 @@ export const useNuCmdkCommandProviderContext = (
           .filter((row): row is QueryRow => Boolean(row))
 
         const shellRows = orderedRows.map(rowToShellRow)
-        const items = toItems(shellRows)
+        const queryRowsById = new Map(orderedRows.map((row) => [row.rowId, row]))
+        const items = toItems({ shellRows, queryRowsById })
         const sections = buildSectionsFromRows(shellRows)
 
         registry.set(commandProviderItemsAtom as never, items as never)
@@ -301,9 +310,52 @@ export const useNuCmdkCommandProviderContext = (
   const executeEffect = useCallback(
     (itemId: string) =>
       Effect.gen(function* () {
-        const service = yield* CommandService
-        yield* service.execute(itemId)
-        registry.set(commandProviderSelectedItemIdAtom as never, itemId as never)
+        const items = registry.get(commandProviderItemsAtom as never) as ReadonlyArray<NuCmdkItemModel>
+        const target = items.find((item) => item.semantic.itemId === itemId)
+
+        if (!target) {
+          return
+        }
+
+        const completion: Completion = {
+          value: target.semantic.itemId,
+          label: target.semantic.label,
+          description: target.semantic.description ?? undefined,
+          category: target.layout.sectionKey ?? undefined,
+          score:
+            typeof target.telemetry.attributes.score === 'number'
+              ? target.telemetry.attributes.score
+              : undefined,
+          badges: target.display.badges,
+          shortcuts: target.display.shortcuts,
+          section: target.layout.sectionKey ?? undefined,
+          kind: target.semantic.kind,
+          metadata: target.extensions,
+        }
+
+        const provider = providerRegistry.get(target.telemetry.providerId as never)
+
+        if (provider?.onSelect) {
+          yield* provider.onSelect(completion).pipe(
+            Effect.catchAll(() => Effect.void),
+          )
+          registry.set(commandProviderSelectedItemIdAtom as never, itemId as never)
+          return
+        }
+
+        const executeAction = target.actions.find((action) => action.kind === 'execute')
+        const resolver = executeAction?.resolverIdentity ?? ''
+        const shouldFallbackToCommandService =
+          resolver.startsWith('command:') || resolver === 'commands:open@v1'
+
+        if (shouldFallbackToCommandService) {
+          const service = yield* CommandService
+          yield* service.execute(itemId)
+          registry.set(commandProviderSelectedItemIdAtom as never, itemId as never)
+          return
+        }
+
+        yield* Effect.logWarning(`No execution handler for provider ${target.telemetry.providerId}`)
       }).pipe(Effect.provide(CommandService.Default)),
     [registry],
   )

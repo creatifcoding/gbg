@@ -150,6 +150,7 @@ export const completionToRow = (
     category: kind,
     rendererToken,
     resolverIdentity: inferResolverIdentity(params.providerId, completion),
+    providerId: params.providerId,
     label: completion.label,
     description: completion.description ?? null,
     badges: completion.badges

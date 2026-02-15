@@ -35,6 +35,7 @@ export const QueryRow = Schema.Struct({
   category: ResultKind,
   rendererToken: Schema.String,
   resolverIdentity: Schema.String,
+  providerId: Schema.optional(Schema.String),
   label: Schema.optional(Schema.String),
   description: Schema.optional(Schema.NullOr(Schema.String)),
   badges: Schema.optional(Schema.Array(QueryRowBadge)),

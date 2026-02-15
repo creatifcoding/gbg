@@ -37,6 +37,7 @@ describe("nu-cmdk lane adapters", () => {
     expect(row.category).toBe("file")
     expect(row.rendererToken).toBe("workspace-results/file/list@v1")
     expect(row.resolverIdentity).toBe("docs:http.fetch@v1")
+    expect(row.providerId).toBe("workspace-results")
     expect(row.label).toBe("providers.ts")
     expect(row.description).toBe("Provider registry")
     expect(row.sectionKey).toBe("workspace")
