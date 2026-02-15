@@ -13,7 +13,7 @@ import {
   type NuCmdkSearchBroker,
   type QueryRow,
   type Theta,
-} from '../../nu-cmdk/slices'
+} from '../../nu-cmdk/runtime'
 import {
   shellRowToItemModel,
   type NuCmdkItemModel,
@@ -188,7 +188,7 @@ export interface UseNuCmdkCommandProviderContextResult {
 }
 
 /**
- * Command provider runtime bridge backed by NuCmdk broker/session slices.
+ * Command provider runtime bridge backed by NuCmdk broker/session runtime modules.
  *
  * State surfaces are atom-first (`context.atoms`), and command surfaces are effect-first (`context.effects`).
  */

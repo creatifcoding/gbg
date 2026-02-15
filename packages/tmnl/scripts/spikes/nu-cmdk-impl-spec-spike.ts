@@ -2,7 +2,7 @@
 /**
  * NuCmdk Impl-Spec Spike (runtime-scripted)
  *
- * Executes implementation slices from src/lib/commands/nu-cmdk/slices:
+ * Executes implementation runtime modules from src/lib/commands/nu-cmdk/runtime:
  * - QuerySession actor
  * - PolicyBundle gate
  * - RendererCompatibilityMap
@@ -34,7 +34,7 @@ import {
   type ResultKind,
   type Theta,
   type QueryPhaseBudgetMap,
-} from "../../src/lib/commands/nu-cmdk/slices"
+} from "../../src/lib/commands/nu-cmdk/runtime"
 import {
   createProviderId,
   providerRegistry,
@@ -361,8 +361,8 @@ const registerLiveProviders = (): (() => void) => {
             metadata: { resolverIdentity: "search:rpc.lookup@v1" },
           },
           {
-            value: "src/lib/commands/nu-cmdk/slices/searchBroker.ts",
-            label: "search broker slice",
+            value: "src/lib/commands/nu-cmdk/runtime/searchBroker.ts",
+            label: "search broker runtime",
             kind: "file",
             category: "file",
             score: 0.82,
