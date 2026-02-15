@@ -98,10 +98,14 @@ describe("nu-cmdk lane adapters", () => {
         emitsByProviderId: {
           [providerId]: ["docs", "file"] as ReadonlyArray<ResultKind>,
         },
+        costClassByProviderId: {
+          [providerId]: "heavy",
+        },
       })
 
       expect(adapters).toHaveLength(1)
       expect(adapters[0]?.emits).toEqual(["docs", "file"])
+      expect(adapters[0]?.costClass).toBe("heavy")
     } finally {
       providerRegistry.unregister(providerId)
     }

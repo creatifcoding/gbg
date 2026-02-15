@@ -6,6 +6,7 @@ import { COMMAND_PROVIDER_ID } from '../../CommandProvider'
 import { CommandService } from '../../service'
 import { type Completion, providerRegistry } from '../../../minibuffer/v2/providers'
 import { TESTBED_WINDOW_PROVIDER_ID } from '../../../tauri-windows'
+import { DOCUMENT_PROVIDER_ID } from '../../../editor/v3/providers/DocumentProvider'
 import {
   adaptersFromProviderRegistry,
   makeHeavyAdapterAdmissionMiddleware,
@@ -65,6 +66,7 @@ const defaultPhaseBudgetsMs = {
 
 const runtimeAdapterCostClasses = {
   [COMMAND_PROVIDER_ID]: 'fast',
+  [DOCUMENT_PROVIDER_ID]: 'medium',
   [TESTBED_WINDOW_PROVIDER_ID]: 'heavy',
 } as const
 
@@ -203,7 +205,9 @@ export const useNuCmdkCommandProviderContext = (
       Effect.gen(function* () {
         const adapters = adaptersFromProviderRegistry({
           include: (provider) =>
-            provider.id === COMMAND_PROVIDER_ID || provider.id === TESTBED_WINDOW_PROVIDER_ID,
+            provider.id === COMMAND_PROVIDER_ID ||
+            provider.id === DOCUMENT_PROVIDER_ID ||
+            provider.id === TESTBED_WINDOW_PROVIDER_ID,
           costClassByProviderId: runtimeAdapterCostClasses,
         })
         const nextFingerprint = adapters.map((adapter) => adapter.adapterId).sort().join('|')

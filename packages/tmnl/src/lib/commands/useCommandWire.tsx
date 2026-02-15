@@ -16,6 +16,7 @@ import {
 } from './wire'
 import { registerCommandProvider } from './CommandProvider'
 import { registerTestbedWindowProvider, WindowManagerService, WindowManagerServiceDefault } from '@/lib/tauri-windows'
+import { registerDocumentProvider } from '@/lib/editor/v3/providers/DocumentProvider'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Error Types (Tagged for Effect.catchTag)
@@ -45,6 +46,14 @@ const registerProviderEffect: Effect.Effect<void, ProviderRegistrationError> = E
  */
 const registerTestbedProviderEffect: Effect.Effect<void, ProviderRegistrationError> = Effect.try({
   try: () => registerTestbedWindowProvider(),
+  catch: (cause) => new ProviderRegistrationError({ cause }),
+})
+
+/**
+ * Register DocumentProvider with minibuffer.
+ */
+const registerDocumentProviderEffect: Effect.Effect<void, ProviderRegistrationError> = Effect.try({
+  try: () => registerDocumentProvider(),
   catch: (cause) => new ProviderRegistrationError({ cause }),
 })
 
@@ -130,8 +139,11 @@ export function useCommandWire(options: UseCommandWireOptions = {}): UseCommandW
       // Register TestbedWindowProvider for Ctrl+Shift+N quick-switcher
       yield* registerTestbedProviderEffect
 
+      // Register DocumentProvider for document quick-open surfaces
+      yield* registerDocumentProviderEffect
+
       if (debug) {
-        yield* Effect.log('[useCommandWire] Registered CommandProvider and TestbedWindowProvider with minibuffer')
+        yield* Effect.log('[useCommandWire] Registered CommandProvider, TestbedWindowProvider, and DocumentProvider with minibuffer')
       }
 
       // Check window pool health (diagnostic - runs after 1.5s to allow Rust pool init)
@@ -173,7 +185,7 @@ export function useCommandWire(options: UseCommandWireOptions = {}): UseCommandW
       // Handle provider registration errors
       Effect.catchTag('ProviderRegistrationError', (err) =>
         Effect.gen(function* () {
-          yield* Effect.logError('[useCommandWire] Failed to register CommandProvider', err.cause)
+          yield* Effect.logError('[useCommandWire] Failed to register minibuffer provider(s)', err.cause)
           // Return empty result on provider failure
           return { commandsRegistered: 0, bindingsRegistered: 0, errors: [] } as WireResult
         })
