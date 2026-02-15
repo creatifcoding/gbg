@@ -14,6 +14,18 @@ class QueryMiddlewareNotFound extends Schema.TaggedError<QueryMiddlewareNotFound
   },
 ) {}
 
+class QueryPhaseBudgetExceeded extends Schema.TaggedError<QueryPhaseBudgetExceeded>()(
+  "QueryPhaseBudgetExceeded",
+  {
+    phase: Schema.Literal("query.parse", "middleware.global", "middleware.adapter", "adapter.dispatch"),
+    budgetMs: Schema.Int,
+    durationMs: Schema.Int,
+    adapterId: Schema.optional(Schema.String),
+    laneId: Schema.optional(Schema.String),
+    middlewareId: Schema.optional(Schema.String),
+  },
+) {}
+
 export interface AdapterDispatchInput {
   readonly queryId: string
   readonly scenarioId: string
@@ -85,6 +97,10 @@ export const makeHeavyAdapterAdmissionMiddleware = (options?: {
     },
   })
 
+export type QueryAdapterPhase = "query.parse" | "middleware.global" | "middleware.adapter" | "adapter.dispatch"
+
+export type QueryPhaseBudgetMap = Readonly<Partial<Record<QueryAdapterPhase, number>>>
+
 export interface QueryAdapterRouterEvent {
   readonly event:
     | "query.middleware.phase.started"
@@ -93,12 +109,13 @@ export interface QueryAdapterRouterEvent {
     | "query.adapter.dispatch.started"
     | "query.adapter.dispatch.completed"
     | "query.adapter.dispatch.failed"
+    | "query.phase.budget.breached"
   readonly queryId: string
   readonly scenarioId: string
   readonly adapterId?: string
   readonly laneId?: string
   readonly middlewareId?: string
-  readonly phase: "query.parse" | "middleware.global" | "middleware.adapter" | "adapter.dispatch"
+  readonly phase: QueryAdapterPhase
   readonly durationMs?: number
   readonly attrs?: Record<string, unknown>
 }
@@ -186,6 +203,8 @@ export const makeQueryAdapterRouter = (options?: {
   readonly globalMiddlewareIds?: ReadonlyArray<string>
   readonly adapterMiddlewareByAdapterId?: Readonly<Record<string, ReadonlyArray<QueryAdapterMiddleware>>>
   readonly adapterMiddlewareIdsByAdapterId?: Readonly<Record<string, ReadonlyArray<string>>>
+  readonly phaseBudgetsMs?: QueryPhaseBudgetMap
+  readonly rejectOnBudgetBreach?: boolean | Readonly<Partial<Record<QueryAdapterPhase, boolean>>>
   readonly onEvent?: (event: QueryAdapterRouterEvent) => void
 }): Effect.Effect<QueryAdapterRouter> =>
   Effect.sync(() => {
@@ -302,6 +321,18 @@ export const makeQueryAdapterRouter = (options?: {
         .map((id) => middlewareRegistry.get(id))
         .filter((middleware): middleware is QueryAdapterMiddleware => Boolean(middleware))
 
+    const phaseBudgetsMs = options?.phaseBudgetsMs ?? {}
+
+    const shouldRejectOnBudgetBreach = (phase: QueryAdapterPhase): boolean => {
+      const policy = options?.rejectOnBudgetBreach ?? false
+      if (typeof policy === "boolean") {
+        return policy
+      }
+      return policy[phase] === true
+    }
+
+    const budgetForPhase = (phase: QueryAdapterPhase): number | undefined => phaseBudgetsMs[phase]
+
     const withPhaseTelemetry = <A, E>(params: {
       readonly eventStart: QueryAdapterRouterEvent["event"]
       readonly eventComplete: QueryAdapterRouterEvent["event"]
@@ -314,57 +345,93 @@ export const makeQueryAdapterRouter = (options?: {
       readonly middlewareId?: string
       readonly attrs?: Record<string, unknown>
       readonly effect: Effect.Effect<A, E, never>
-    }): Effect.Effect<A, E, never> => {
-      const startedAt = Date.now()
+    }): Effect.Effect<A, E | QueryPhaseBudgetExceeded, never> =>
+      Effect.gen(function* () {
+        const startedAt = Date.now()
 
-      emit({
-        event: params.eventStart,
-        queryId: params.queryId,
-        scenarioId: params.scenarioId,
-        phase: params.phase,
-        adapterId: params.adapterId,
-        laneId: params.laneId,
-        middlewareId: params.middlewareId,
-        attrs: params.attrs,
+        emit({
+          event: params.eventStart,
+          queryId: params.queryId,
+          scenarioId: params.scenarioId,
+          phase: params.phase,
+          adapterId: params.adapterId,
+          laneId: params.laneId,
+          middlewareId: params.middlewareId,
+          attrs: params.attrs,
+        })
+
+        const exit = yield* Effect.exit(params.effect)
+        const durationMs = Date.now() - startedAt
+
+        if (exit._tag === "Success") {
+          emit({
+            event: params.eventComplete,
+            queryId: params.queryId,
+            scenarioId: params.scenarioId,
+            phase: params.phase,
+            adapterId: params.adapterId,
+            laneId: params.laneId,
+            middlewareId: params.middlewareId,
+            durationMs,
+            attrs: params.attrs,
+          })
+        } else {
+          emit({
+            event: params.eventFail,
+            queryId: params.queryId,
+            scenarioId: params.scenarioId,
+            phase: params.phase,
+            adapterId: params.adapterId,
+            laneId: params.laneId,
+            middlewareId: params.middlewareId,
+            durationMs,
+            attrs: {
+              ...(params.attrs ?? {}),
+              error: String(exit.cause),
+            },
+          })
+        }
+
+        const budgetMs = budgetForPhase(params.phase)
+        const budgetBreached = typeof budgetMs === "number" && durationMs > budgetMs
+
+        if (budgetBreached) {
+          emit({
+            event: "query.phase.budget.breached",
+            queryId: params.queryId,
+            scenarioId: params.scenarioId,
+            phase: params.phase,
+            adapterId: params.adapterId,
+            laneId: params.laneId,
+            middlewareId: params.middlewareId,
+            durationMs,
+            attrs: {
+              ...(params.attrs ?? {}),
+              budgetMs,
+              overByMs: durationMs - budgetMs,
+            },
+          })
+        }
+
+        if (exit._tag === "Failure") {
+          return yield* Effect.failCause(exit.cause)
+        }
+
+        if (budgetBreached && shouldRejectOnBudgetBreach(params.phase)) {
+          return yield* Effect.fail(
+            new QueryPhaseBudgetExceeded({
+              phase: params.phase,
+              budgetMs: Math.round(budgetMs ?? 0),
+              durationMs: Math.round(durationMs),
+              adapterId: params.adapterId,
+              laneId: params.laneId,
+              middlewareId: params.middlewareId,
+            }),
+          )
+        }
+
+        return exit.value
       })
-
-      return params.effect.pipe(
-        Effect.onExit((exit) =>
-          Effect.sync(() => {
-            const durationMs = Date.now() - startedAt
-
-            if (exit._tag === "Success") {
-              emit({
-                event: params.eventComplete,
-                queryId: params.queryId,
-                scenarioId: params.scenarioId,
-                phase: params.phase,
-                adapterId: params.adapterId,
-                laneId: params.laneId,
-                middlewareId: params.middlewareId,
-                durationMs,
-                attrs: params.attrs,
-              })
-            } else {
-              emit({
-                event: params.eventFail,
-                queryId: params.queryId,
-                scenarioId: params.scenarioId,
-                phase: params.phase,
-                adapterId: params.adapterId,
-                laneId: params.laneId,
-                middlewareId: params.middlewareId,
-                durationMs,
-                attrs: {
-                  ...(params.attrs ?? {}),
-                  error: String(exit.cause),
-                },
-              })
-            }
-          }),
-        ),
-      )
-    }
 
     const dispatch: QueryAdapterRouter["dispatch"] = (input) =>
       Effect.gen(function* () {
@@ -490,4 +557,5 @@ export const makeQueryAdapterRouter = (options?: {
 
 export {
   QueryMiddlewareNotFound,
+  QueryPhaseBudgetExceeded,
 }

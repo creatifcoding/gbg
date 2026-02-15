@@ -53,6 +53,13 @@ const defaultTheta: Theta = {
   },
 }
 
+const defaultPhaseBudgetsMs = {
+  "query.parse": 60,
+  "middleware.global": 120,
+  "middleware.adapter": 120,
+  "adapter.dispatch": 220,
+} as const
+
 const mapResultKindToShellKind = (
   row: QueryRow,
 ): NuCmdkShellKind => {
@@ -195,6 +202,13 @@ export const useNuCmdkCommandProviderContext = (
           theta: defaultTheta,
           runId: 'nu-cmdk-shell-runtime',
           registry: registry as never,
+          phaseBudgetsMs: defaultPhaseBudgetsMs,
+          rejectOnPhaseBudgetBreach: {
+            "adapter.dispatch": true,
+            "middleware.global": true,
+            "middleware.adapter": true,
+            "query.parse": false,
+          },
           onEvent: (event) => {
             if (import.meta.env.DEV) {
               console.debug('[NuCmdk broker]', event.event, event)

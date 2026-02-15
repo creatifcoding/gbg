@@ -16,6 +16,8 @@ import {
   makeQueryAdapterRouter,
   type QueryAdapterMiddleware,
   type QueryAdapterRouter,
+  type QueryAdapterPhase,
+  type QueryPhaseBudgetMap,
 } from "./queryAdapterRouter"
 import {
   type EventRecord,
@@ -96,6 +98,8 @@ export interface NuCmdkSearchBrokerDeps {
   readonly globalAdapterMiddlewareIds?: ReadonlyArray<string>
   readonly adapterMiddlewareByAdapterId?: Readonly<Record<string, ReadonlyArray<QueryAdapterMiddleware>>>
   readonly adapterMiddlewareIdsByAdapterId?: Readonly<Record<string, ReadonlyArray<string>>>
+  readonly phaseBudgetsMs?: QueryPhaseBudgetMap
+  readonly rejectOnPhaseBudgetBreach?: boolean | Readonly<Partial<Record<QueryAdapterPhase, boolean>>>
 }
 
 export const makeNuCmdkSearchBroker = (
@@ -135,6 +139,8 @@ export const makeNuCmdkSearchBroker = (
       globalMiddlewareIds: deps.globalAdapterMiddlewareIds,
       adapterMiddlewareByAdapterId: deps.adapterMiddlewareByAdapterId,
       adapterMiddlewareIdsByAdapterId: deps.adapterMiddlewareIdsByAdapterId,
+      phaseBudgetsMs: deps.phaseBudgetsMs,
+      rejectOnBudgetBreach: deps.rejectOnPhaseBudgetBreach,
       onEvent: (event) => {
         emitBrokerEvent({
           queryId: event.queryId,
