@@ -15,8 +15,6 @@ import {
   type RegistryLike,
 } from './wire'
 import { registerCommandProvider } from './CommandProvider'
-import { registerTestbedWindowProvider, WindowManagerService, WindowManagerServiceDefault } from '@/lib/tauri-windows'
-import { registerDocumentProvider } from '@/lib/editor/v3/providers/DocumentProvider'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Error Types (Tagged for Effect.catchTag)
@@ -40,22 +38,6 @@ const registerProviderEffect: Effect.Effect<void, ProviderRegistrationError> = E
   catch: (cause) => new ProviderRegistrationError({ cause }),
 })
 
-/**
- * Register TestbedWindowProvider with minibuffer.
- * Enables Ctrl+Shift+N quick-switcher for testbed windows.
- */
-const registerTestbedProviderEffect: Effect.Effect<void, ProviderRegistrationError> = Effect.try({
-  try: () => registerTestbedWindowProvider(),
-  catch: (cause) => new ProviderRegistrationError({ cause }),
-})
-
-/**
- * Register DocumentProvider with minibuffer.
- */
-const registerDocumentProviderEffect: Effect.Effect<void, ProviderRegistrationError> = Effect.try({
-  try: () => registerDocumentProvider(),
-  catch: (cause) => new ProviderRegistrationError({ cause }),
-})
 
 export interface UseCommandWireOptions {
   /**
@@ -132,42 +114,13 @@ export function useCommandWire(options: UseCommandWireOptions = {}): UseCommandW
 
     // Effect-based wiring pipeline — no try/catch
     const wireEffect = Effect.gen(function* () {
-      // Register CommandProvider with minibuffer FIRST
-      // This ensures M-x completion works via CommandService.executeInteractive()
+      // Register CommandProvider with minibuffer first.
+      // Keeps legacy M-x command palette behavior intact.
       yield* registerProviderEffect
 
-      // Register TestbedWindowProvider for Ctrl+Shift+N quick-switcher
-      yield* registerTestbedProviderEffect
-
-      // Register DocumentProvider for document quick-open surfaces
-      yield* registerDocumentProviderEffect
-
       if (debug) {
-        yield* Effect.log('[useCommandWire] Registered CommandProvider, TestbedWindowProvider, and DocumentProvider with minibuffer')
+        yield* Effect.log('[useCommandWire] Registered CommandProvider with minibuffer')
       }
-
-      // Check window pool health (diagnostic - runs after 1.5s to allow Rust pool init)
-      setTimeout(() => {
-        const checkPool = Effect.gen(function* () {
-          const svc = yield* WindowManagerService
-          const status = yield* svc.getPoolStatus()
-          console.log(`[WindowPool] 🎱 Status: ${status.available}/${status.target_size} windows available`)
-          if (status.available === 0) {
-            console.error(`[WindowPool] ❌ Pool EMPTY - fast path will not work!`)
-          } else if (status.available < status.target_size) {
-            console.warn(`[WindowPool] ⚠️ Pool partially filled (${status.available}/${status.target_size})`)
-          } else {
-            console.log(`[WindowPool] ✅ Pool healthy - fast path ready`)
-          }
-        }).pipe(
-          Effect.provide(WindowManagerServiceDefault),
-          Effect.catchAll((e) => {
-            console.warn('[WindowPool] Could not check pool status:', e)
-            return Effect.void
-          })
-        )
-        Effect.runPromise(checkPool)
-      }, 1500)
 
       // Then wire commands to hotkey system
       const wireResult = yield* wireCommandsEffect(registry as RegistryLike)
@@ -185,7 +138,7 @@ export function useCommandWire(options: UseCommandWireOptions = {}): UseCommandW
       // Handle provider registration errors
       Effect.catchTag('ProviderRegistrationError', (err) =>
         Effect.gen(function* () {
-          yield* Effect.logError('[useCommandWire] Failed to register minibuffer provider(s)', err.cause)
+          yield* Effect.logError('[useCommandWire] Failed to register command provider', err.cause)
           // Return empty result on provider failure
           return { commandsRegistered: 0, bindingsRegistered: 0, errors: [] } as WireResult
         })

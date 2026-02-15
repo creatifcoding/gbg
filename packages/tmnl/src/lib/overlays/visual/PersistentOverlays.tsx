@@ -20,7 +20,7 @@ import { useVisualOverlay } from './providers'
 import { DrawerSlotContent } from "./components"
 import { Sidebar, type SidebarConfig as SidebarComponentConfig } from "@/lib/sidebar"
 import { useGlobalHotkeys, WhichKeyPopup } from '@/lib/hotkeys'
-import { useCommandWire, NuCmdkShellOverlay } from '@/lib/commands'
+import { useCommandWire, useNuCmdkWire, NuCmdkShellOverlay } from '@/lib/commands'
 import { useMinibuffer } from "@/lib/minibuffer"
 import { TESTBED_WINDOW_PROVIDER_ID } from "@/lib/tauri-windows"
 import { TmnlSettings } from "@/components/static-ui"
@@ -217,6 +217,9 @@ export function PersistentOverlays({
   const { isWired } = useCommandWire({
     debug: false,
   })
+  const { isReady: isNuCmdkWired } = useNuCmdkWire({
+    debug: false,
+  })
 
   const openNuCmdkShell = useCallback(() => {
     const id = 'nu-cmdk-shell' as VisualOverlayId
@@ -241,11 +244,11 @@ export function PersistentOverlays({
   const useNuCmdkForCommandPalette = import.meta.env.VITE_NU_CMDK_COMMAND_PALETTE_HOST === '1'
 
   const openTestbedWindowPicker = useCallback(() => {
-    if (!isWired) {
+    if (!isNuCmdkWired) {
       return
     }
     minibuffer.openCommand(TESTBED_WINDOW_PROVIDER_ID)
-  }, [isWired, minibuffer])
+  }, [isNuCmdkWired, minibuffer])
 
   const {
     isReady: hotkeysReady,

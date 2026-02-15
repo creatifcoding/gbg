@@ -15,7 +15,7 @@ import { SelfchartersLogo } from '@/components/brand';
 import { TmnlSettings } from '@/components/static-ui';
 import { useDrawer, useVisualOverlay, overlayId } from '@/lib/overlays';
 import { useMinibuffer } from '@/lib/minibuffer';
-import { useCommandWire, NuCmdkShellOverlay } from '@/lib/commands';
+import { useCommandWire, useNuCmdkWire, NuCmdkShellOverlay } from '@/lib/commands';
 import { useGlobalHotkeys } from '@/lib/hotkeys';
 import { TESTBED_WINDOW_PROVIDER_ID } from '@/lib/tauri-windows';
 
@@ -104,6 +104,9 @@ export function HeaderContent({
   const { isWired } = useCommandWire({
     debug: false,
   });
+  const { isReady: isNuCmdkWired } = useNuCmdkWire({
+    debug: false,
+  });
 
   const useNuCmdkForCommandPalette = import.meta.env.VITE_NU_CMDK_COMMAND_PALETTE_HOST === '1';
 
@@ -143,11 +146,11 @@ export function HeaderContent({
   }, [isWired, minibuffer, openNuCmdkShell, useNuCmdkForCommandPalette]);
 
   const openTestbedWindowPicker = useCallback(() => {
-    if (!isWired) {
+    if (!isNuCmdkWired) {
       return
     }
     minibuffer.openCommand(TESTBED_WINDOW_PROVIDER_ID);
-  }, [isWired, minibuffer]);
+  }, [isNuCmdkWired, minibuffer]);
 
   const openSettingsFromHotkey = useCallback(() => {
     setSettingsOpen(true);
