@@ -120,6 +120,22 @@
 - Semantic fallback chain: accepted as proposed
 - Ranking/categorization recompute on row updates: explicitly required and accepted
 
+## Session E — ResultsBand item consumer alignment (`nu-cmdk-item-consumer-alignment`)
+
+### Locked selections
+
+- Primary consumer: **provider authors**
+- Control boundary: **hybrid** (provider semantic/display payload + shell layout guardrails)
+- Required item payload families:
+  - semantic core
+  - action intents
+  - display tokens
+  - layout hints
+  - telemetry hooks
+- Type style: **Schema + namespaced extension bag**
+- Consumer customization mode: **data + slot override components**
+- Hard boundary: shell retains ownership of layout, sizing, and typography constraints.
+
 ## Immediate implications for spec/plan
 
 1. Architecture must formalize **provider-concurrent streaming** and non-blocking merge behavior.
@@ -127,3 +143,4 @@
 3. Ranking engine must support pluggable multi-signal scoring.
 4. Implementation plan should include parity tests before direct cutover.
 5. Variant C manifest validation gates are mandatory before chunk ingestion.
+6. ResultsBand item API must expose typed slot overrides while preserving shell-owned layout envelope.
