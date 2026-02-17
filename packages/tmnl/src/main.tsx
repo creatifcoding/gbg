@@ -9,7 +9,6 @@ import { OverlayRegistryProvider } from './lib/overlays/atoms';
 import { DataplaneRegistryProvider } from './lib/dataplane';
 import { VisualOverlayProvider, GlobalSlot } from './lib/overlays/visual';
 import { BufferProvider } from './lib/buffer';
-import { ActorProvider } from './lib/actors';
 import { WindowProvider } from './lib/windows';
 import { AppShell, HeaderContent } from '@/lib/shell';
 import { Sidebar, type SidebarConfig } from './lib/sidebar';
@@ -139,33 +138,31 @@ root.render(
       <DataplaneRegistryProvider>
         <ScaleProvider initialScale={1.0}>
           <VisualOverlayProvider>
-            <ActorProvider>
-              <BufferProvider>
-                {isChildWindow ? (
-                  // Child window: minimal tree, WindowRoute has its own layout
-                  <RouterProvider router={router} />
-                ) : (
-                  // Main window: full AppShell with sidebar
-                  <>
-                    <AppShell>
-                      <AppShell.Header>
-                        <HeaderContent />
-                      </AppShell.Header>
-                      <AppShell.Sidebar>
-                        <Sidebar config={defaultSidebarConfig} />
-                      </AppShell.Sidebar>
-                      <AppShell.Workspace>
-                        <WindowProvider enabled={true}>
-                          <RouterProvider router={router} />
-                        </WindowProvider>
-                      </AppShell.Workspace>
-                    </AppShell>
-                    <GlobalSlot />
-                    <Cursor />
-                  </>
-                )}
-              </BufferProvider>
-            </ActorProvider>
+            <BufferProvider>
+              {isChildWindow ? (
+                // Child window: minimal tree, WindowRoute has its own layout
+                <RouterProvider router={router} />
+              ) : (
+                // Main window: full AppShell with sidebar
+                <>
+                  <AppShell>
+                    <AppShell.Header>
+                      <HeaderContent />
+                    </AppShell.Header>
+                    <AppShell.Sidebar>
+                      <Sidebar config={defaultSidebarConfig} />
+                    </AppShell.Sidebar>
+                    <AppShell.Workspace>
+                      <WindowProvider enabled={true}>
+                        <RouterProvider router={router} />
+                      </WindowProvider>
+                    </AppShell.Workspace>
+                  </AppShell>
+                  <GlobalSlot />
+                  <Cursor />
+                </>
+              )}
+            </BufferProvider>
           </VisualOverlayProvider>
         </ScaleProvider>
       </DataplaneRegistryProvider>
