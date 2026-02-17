@@ -15,7 +15,8 @@ import { SelfchartersLogo } from '@/components/brand';
 import { TmnlSettings } from '@/components/static-ui';
 import { useDrawer, useVisualOverlay, overlayId } from '@/lib/overlays';
 import { useMinibuffer } from '@/lib/minibuffer';
-import { useCommandWire, useNuCmdkWire, NuCmdkShellOverlay } from '@/lib/commands';
+import { useCommandWire } from '@/lib/commands';
+import { useNuCmdkWire, NuCmdkShellOverlay } from '@/lib/nu-cmdk';
 import { useGlobalHotkeys } from '@/lib/hotkeys';
 import { TESTBED_WINDOW_PROVIDER_ID } from '@/lib/tauri-windows';
 

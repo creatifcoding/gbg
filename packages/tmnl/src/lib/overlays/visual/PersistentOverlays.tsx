@@ -20,7 +20,8 @@ import { useVisualOverlay } from './providers'
 import { DrawerSlotContent } from "./components"
 import { Sidebar, type SidebarConfig as SidebarComponentConfig } from "@/lib/sidebar"
 import { useGlobalHotkeys, WhichKeyPopup } from '@/lib/hotkeys'
-import { useCommandWire, useNuCmdkWire, NuCmdkShellOverlay } from '@/lib/commands'
+import { useCommandWire } from '@/lib/commands'
+import { useNuCmdkWire, NuCmdkShellOverlay } from '@/lib/nu-cmdk'
 import { useMinibuffer } from "@/lib/minibuffer"
 import { TESTBED_WINDOW_PROVIDER_ID } from "@/lib/tauri-windows"
 import { TmnlSettings } from "@/components/static-ui"
