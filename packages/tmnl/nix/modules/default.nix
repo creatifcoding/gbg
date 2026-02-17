@@ -21,6 +21,7 @@
             config.devShells.tmnl-embedded
             config.devShells.tmnl-zephyr
             config.devShells.tmnl-ui
+            config.devShells.tmnl-fonts
             config.devShells.tmnl-tauri
             config.devShells.tmnl-k8s
             config.devShells.tmnl-grpc
@@ -28,7 +29,7 @@
 
           shellHook = ''
             echo "[tmnl] Full-stack development environment"
-            echo "  → Rust + Elixir + Python + Embedded + UI + Tauri + K8s + gRPC + Core tooling"
+            echo "  → Rust + Elixir + Python + Embedded + UI + Fonts + Tauri + K8s + gRPC + Core tooling"
             echo ""
             tmnl info || true
           '';

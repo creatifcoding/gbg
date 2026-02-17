@@ -9,6 +9,7 @@
     ./modules/embedded.nix
     ./modules/zephyr.nix
     ./modules/ui.nix
+    ./modules/fonts.nix
     ./modules/tauri.nix
     ./modules/k8s.nix # Kubernetes / Pepr operator
     ./modules/grpc.nix # gRPC / Protobuf tooling (buf, protoc)

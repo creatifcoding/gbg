@@ -90,6 +90,7 @@
     "@electric-sql/react": "^1.0.26",
     "@emotion/is-prop-valid": "^1.4.0",
     "@faker-js/faker": "^10.1.0",
+    "@floating-ui/core": "^1.7.4",
     "@floating-ui/react": "^0.27.16",
     "@gbg/ctl": "workspace:*",
     "@gsap/react": "^2.1.2",
