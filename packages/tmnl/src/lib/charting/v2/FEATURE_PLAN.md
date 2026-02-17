@@ -1,132 +1,112 @@
-# Charting v2 Library Split Plan
+# Charting v2 Library Boundary Split — Completion Record
 
+Feature: `#F303`
+Status: **closed**
+Completion: **100% (6/6 sub-features)**
 Scope: `src/lib/charting/v2/**`
-Priority: critical
-Feature ID: `#F303` (Charting v2 Library Boundary Split)
 
-## Why
+---
 
-The primary risk is maintainability and correctness drift in library code (not just testbed composition).
-Current concentration points:
-- `adapters/echarts.ts` mixes projection, option-builders, data-apply, and instance lifecycle.
-- `adapters/scichart.ts` mixes bootstrap (module/licensing/wasm), series mutation engine, and lifecycle.
-- `theme.ts` mixes token source + ECharts mapping + SciChart mapping.
-- `atoms.ts` combines state, families, ops, and cleanup internals.
+## What was delivered
 
-## Target Structure
+### 1) Theme system decomposition
+Split theme concerns into dedicated v2-native modules:
 
-```text
-src/lib/charting/v2/
-  index.ts
-  schemas.ts
-  errors.ts
-  types.ts
+- `theme/tokens.ts`
+- `theme/contracts.ts`
+- `theme/echarts.ts`
+- `theme/scichart.ts`
+- `theme/index.ts`
 
-  theme/
-    index.ts
-    tokens.ts
-    contracts.ts
-    echarts.ts
-    scichart.ts
+Removed legacy compatibility path (`theme.ts` shim) and moved consumers to modular theme exports.
 
-  adapters/
-    index.ts
-    types.ts
-    shared/
-      projection.ts
-      boundedSeries.ts
-    echarts/
-      index.ts
-      lifecycle.ts
-      data.ts
-      options/
-        base.ts
-        line.ts
-        area.ts
-        bar.ts
-        scatter.ts
-        candlestick.ts
-        index.ts
-    scichart/
-      index.ts
-      lifecycle.ts
-      bootstrap.ts
-      seriesEngine.ts
+### 2) Adapter modularization (ECharts + SciChart)
+Refactored adapters into thin orchestration shells with internal modules for lifecycle and rendering logic.
 
-  runtime/
-    index.ts
-    service.ts
-    registry.ts
-    instances.ts
+**ECharts:**
+- `adapters/echarts/lifecycle.ts`
+- `adapters/echarts/data.ts`
+- `adapters/echarts/options/{base,line,area,bar,scatter,candlestick}/index.ts`
+- table-driven option builder dispatch (`OPTION_BUILDERS`)
 
-  atoms/
-    index.ts
-    state.ts
-    families.ts
-    ops.ts
-    internal.ts
+**SciChart:**
+- `adapters/scichart/bootstrap.ts`
+- `adapters/scichart/lifecycle.ts`
+- `adapters/scichart/series/*`
+- isolated series engine + streaming hot-path behavior
 
-  __tests__/
-    runtime.test.ts
-    atoms.test.ts
-    hotpath.test.ts
-    adapters-theme.test.ts
-```
+### 3) Runtime and atoms split
+Modularized runtime/atoms internals and removed compatibility shims.
 
-## Hard Boundaries
+- runtime internals: `runtime/registry.ts`, `runtime/instances.ts`
+- atoms modules: `atoms/state.ts`, `atoms/families.ts`, `atoms/internal.ts`, `atoms/ops.ts`, `atoms/index.ts`
+- removed `atoms.ts` shim
 
-1. **Theme layer is pure mapping**
-   - `tokens.ts` is canonical source.
-   - renderer mappings never define new raw colors/sizes.
+### 4) Typed key discipline with Effect HashMap
+Adopted typed map keys for runtime/atom maps:
 
-2. **Adapters consume shared projection utils**
-   - no duplicated projection switches in each adapter.
+- `keys.ts` (`ChartMapKey`, `toChartMapKey`)
+- map state migrated to Effect `HashMap` with typed keying
 
-3. **Lifecycle split from data mutation**
-   - lifecycle modules own mount/unmount/dispose state machine.
-   - data modules own set/append/clear/apply semantics.
+### 5) SciChart React/Vite resolution fix + streaming path hardening
+Resolved critical mount failure and stabilized high-frequency update behavior.
 
-4. **Atoms split by responsibility**
-   - `state.ts`: Atom.make declarations only.
-   - `families.ts`: selector families only.
-   - `ops.ts`: operational mutations only.
-   - `internal.ts`: map helpers, requireInstance, cleanupRegistration.
+- fixed invalid dynamic import pattern causing
+  `ChartMountError: Module name, 'scichart' does not resolve to a valid URL`
+- added wasm bootstrap flow
+- preserved fast append strategies (`appendPointFast`, `appendBatchFast`) with bounded trimming
 
-5. **Public API stability first**
-   - keep root `index.ts` stable during migration via compatibility barrels.
+### 6) Architecture and verification artifacts
+Added explicit library boundary documentation and tests:
 
-## Execution Phases
+- `ARCHITECTURE.md`
+- `__tests__/hotpath.test.ts`
+- `__tests__/options-theme.test.ts`
+- strengthened `__tests__/atoms.test.ts`
 
-### Phase 1 — Contract Freeze
-- snapshot export surface and adapter/runtime invariants.
+---
 
-### Phase 2 — Theme Decomposition
-- split `theme.ts` into `theme/*` modules with parity-preserving tests.
+## Validation evidence
 
-### Phase 3 — Adapter Modularization
-- split ECharts and SciChart into lifecycle/data/bootstrap/options modules.
-- isolate streaming hot-path mutations in `scichart/seriesEngine.ts`.
-
-### Phase 4 — Runtime + Atoms Split
-- split runtime internals and atom layers with no behavior change.
-
-### Phase 5 — Validation + Docs
-- add hot-path tests (`appendPointFast`, `appendBatchFast`, maxPoints trim).
-- add adapter/theme snapshot checks.
-- add `ARCHITECTURE.md` for extension guidance.
-
-### Phase 6 — Cutover + Cleanup
-- migrate imports to new module tree.
-- remove transitional monolith files.
-
-## Regression Matrix
+Executed and passing during closeout:
 
 ```bash
 bunx tsc --noEmit --pretty false
-bunx vitest run src/lib/charting/v2/__tests__/runtime.test.ts src/lib/charting/v2/__tests__/atoms.test.ts
-bunx vitest run src/lib/iiot/adapters/__tests__/integration/channel-ingestion.integration.test.ts src/lib/geoint/__tests__/integration/channel-flight-events.integration.test.ts src/lib/geoint/__tests__/integration/channel-trackstore-bridge.integration.test.ts
+bunx vitest run \
+  src/lib/charting/v2/__tests__/runtime.test.ts \
+  src/lib/charting/v2/__tests__/atoms.test.ts \
+  src/lib/charting/v2/__tests__/hotpath.test.ts \
+  src/lib/charting/v2/__tests__/options-theme.test.ts
 ```
 
-## Immediate Next Step
+Result at close: charting-v2 regression matrix green.
 
-Start with **Phase 2 theme split** (lowest risk, highest structural gain), then adapter extraction.
+---
+
+## Sub-feature closure
+
+- `#F304` Phase 1 — Contract freeze + import surface audit ✅
+- `#F305` Phase 2 — Theme system decomposition ✅
+- `#F306` Phase 3 — Adapter modularization ✅
+- `#F307` Phase 4 — Runtime and atoms split ✅
+- `#F308` Phase 5 — Validation and docs ✅
+- `#F309` Phase 6 — Controlled cutover + cleanup ✅
+
+---
+
+## Implementation commits (key)
+
+- `cb8a50c` fix(charting-v2): resolve SciChart vite import failure
+- `d01b4e3` perf(charting-v2): improve streaming hot path + diagnostics
+- `77018c6` docs(charting-v2): library boundary split plan (superseded by this completion record)
+- `74f79ac` refactor(charting-v2): theme modularization
+- `ba6e114` refactor(charting-v2): atoms/runtime modular split + typed maps
+- `c924145` refactor(charting-v2): adapter lifecycle/series modularization
+- `9978a9d` test(charting-v2): add hotpath/theme-option coverage
+- `d272f0d` docs(charting-v2): architecture boundary document
+
+---
+
+## Notes
+
+This file now serves as a completion artifact (not an active plan). Feature `#F303` is fully closed and library boundary refactor is complete.
