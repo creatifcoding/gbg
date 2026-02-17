@@ -1,7 +1,7 @@
 # NuCmdk Design Decision Lock
 
 **Status:** Locked (current wave)  
-**Date:** 2026-02-13
+**Date:** 2026-02-15
 
 ---
 
@@ -79,6 +79,13 @@
     - Middleware is split into global and adapter-local scopes with deterministic composition.
     - Query dispatch follows parse-once, typed-emits enforcement, and bounded scheduling for N+1 efficiency.
     - See: `nu-cmdk-provider-adapter-layer-router-decision.md` and `nu-cmdk-query-middleware-spec.md`.
+
+19. **ResultsBand item consumer contract (provider-first hybrid)**
+    - Primary consumer is provider authors; shell integrators are secondary consumers.
+    - Rendering control is hybrid: provider-supplied typed semantic/display payloads + shell-owned layout/typography/interaction guardrails.
+    - Item API supports typed slot overrides (`icon`, `content`, `meta`, `actions`) inside constrained shell envelopes.
+    - Contract uses Effect Schema plus namespaced extension bag (unknown fields outside namespace are not accepted).
+    - See: `nu-cmdk-item-consumer-contract-decision.md`.
 
 ---
 

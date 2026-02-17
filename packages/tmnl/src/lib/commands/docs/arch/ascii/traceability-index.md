@@ -1,7 +1,7 @@
 # NuCmdk ASCII Suite — Decision Traceability Index
 
 **Status:** Active  
-**Date:** 2026-02-13  
+**Date:** 2026-02-15  
 **Purpose:** Map implementation/research acceptance checks back to locked architecture decisions.
 
 ---
@@ -28,6 +28,7 @@
 | D16 | TTR-first performance objective | Time-to-resolution primary metric with penalty constraints |
 | D17 | Constrained hillclimb tuning | Safe parameter optimization loop with guardrails |
 | D18 | Provider/adapter LayerRouter parity | `HttpLayerRouter`-style service + global/local middleware + bounded dispatch |
+| D19 | ResultsBand item consumer contract | Provider-first hybrid payload + constrained slot API under shell guardrails |
 
 ---
 
