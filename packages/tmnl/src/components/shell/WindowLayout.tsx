@@ -3,9 +3,9 @@
  *
  * Layout orchestrator for child Tauri windows.
  * Derived from AppShell conventions with simplified structure:
- * - No sidebar (child windows focus on testbed content)
+ * - No sidebar (child windows focus on testbed workspace)
  * - Simple header with testbed name and window controls
- * - Full content area for the testbed
+ * - Full workspace area for the testbed
  *
  * Grid Structure:
  * ┌──────────────────────────────────────┐
@@ -13,7 +13,7 @@
  * │   [name]              [min][max][x]  │
  * ├──────────────────────────────────────┤
  * │                                      │
- * │            CONTENT                   │  ← row 2 (1fr)
+ * │           WORKSPACE                  │  ← row 2 (1fr)
  * │          (testbed)                   │
  * │                                      │
  * └──────────────────────────────────────┘
@@ -36,7 +36,7 @@ const HEADER_HEIGHT = "var(--tmnl-size-header, 48px)"
 export interface WindowLayoutProps {
   /** Header content (WindowHeaderContent component) */
   header: ReactNode
-  /** Main content (testbed component) */
+  /** Main workspace content (testbed component) */
   children: ReactNode
   /** Optional className for the container */
   className?: string
@@ -50,12 +50,12 @@ export interface WindowLayoutProps {
  * WindowLayout provides CSS Grid layout for child Tauri windows.
  *
  * Uses same grid conventions as AppShell:
- * - Grid template for header/content split
+ * - Grid template for header/workspace split
  * - z-index layering for chrome
  * - Isolation for stacking contexts
  *
  * Key differences from AppShell:
- * - No sidebar column (full width content)
+ * - No sidebar column (full width workspace)
  * - Header spans full width (no corner overlap)
  */
 export function WindowLayout({ header, children, className = "" }: WindowLayoutProps) {
@@ -77,10 +77,10 @@ export function WindowLayout({ header, children, className = "" }: WindowLayoutP
         {header}
       </header>
 
-      {/* Content: row 2, full width
+      {/* Workspace: row 2, full width
           - relative: establishes containing block for absolute children
           - isolate: creates new stacking context (z-index contained)
-          - overflow-auto: scroll independently of chrome
+          - overflow-y-auto: scroll independently of chrome
           - overflow-x-hidden: prevent horizontal scroll bleed */}
       <main
         className="row-start-2 relative isolate overflow-y-auto overflow-x-hidden"
