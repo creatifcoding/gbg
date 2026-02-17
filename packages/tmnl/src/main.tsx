@@ -13,6 +13,7 @@ import { WindowProvider } from './lib/windows';
 import { AppShell, HeaderContent } from '@/lib/shell';
 import { Sidebar, type SidebarConfig } from './lib/sidebar';
 import { Cursor } from './lib/cursor';
+import { Agentation } from 'agentation';
 import './index.css';
 
 // Variables v2: Register all variables at startup (side-effect import)
@@ -160,6 +161,7 @@ root.render(
                   </AppShell>
                   <GlobalSlot />
                   <Cursor />
+                  {import.meta.env.DEV && <Agentation />}
                 </>
               )}
             </BufferProvider>
