@@ -196,6 +196,12 @@ export const CommandPaletteConfig = Schema.TaggedStruct("CommandPaletteConfig", 
   placeholder: Schema.optionalWith(Schema.String, { default: () => "Enter command..." }),
   /** Show recent commands */
   showRecent: Schema.optionalWith(Schema.Boolean, { default: () => true }),
+  /** Explicit width for palette container */
+  width: Schema.optionalWith(Schema.Union(Schema.Number, Schema.String), { default: () => "100%" }),
+  /** Maximum width for palette container */
+  maxWidth: Schema.optionalWith(Schema.Union(Schema.Number, Schema.String), { default: () => 600 }),
+  /** Top padding for the backdrop container */
+  paddingTop: Schema.optionalWith(Schema.Union(Schema.Number, Schema.String), { default: () => "15vh" }),
   /** Close on Escape key */
   closeOnEscape: Schema.optionalWith(Schema.Boolean, { default: () => true }),
   /** Persistence behavior */
