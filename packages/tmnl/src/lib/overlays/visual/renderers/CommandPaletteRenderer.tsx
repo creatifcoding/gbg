@@ -1,25 +1,17 @@
 /**
  * Command Palette Renderer
  *
- * Renders command palette overlay with fade/scale animations.
+ * Renders command palette overlay as a top-anchored workspace modal.
  *
  * @module
  */
 
-import { useEffect, useRef } from "react"
-import { useAtomValue } from "@effect-atom/atom-react"
-import { useVisualOverlaySafe } from "../providers"
-import {
-  overlayAtom,
-  getContent,
-  isSuppressedAtom,
-} from "../../atoms"
-import { getAnimationDuration, getAnimationEasing, BACKDROP_COLOR } from "../constants"
-import type { VisualOverlayId, CommandPaletteConfig } from "../../schemas/visual"
-
-// ─────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────
+import { useEffect } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
+import { useAtomValue } from '@effect-atom/atom-react'
+import { useVisualOverlaySafe } from '../providers'
+import { overlayAtom, getContent, isSuppressedAtom } from '../../atoms'
+import type { VisualOverlayId, CommandPaletteConfig } from '../../schemas/visual'
 
 export interface CommandPaletteRendererProps {
   /** Overlay ID */
@@ -28,51 +20,72 @@ export interface CommandPaletteRendererProps {
   onCloseRequest?: () => void
 }
 
-// ─────────────────────────────────────────────────────────────
-// Styles
-// ─────────────────────────────────────────────────────────────
+const toCssDimension = (value: number | string | undefined, fallback: string): string => {
+  if (typeof value === 'number') return `${value}px`
+  if (typeof value === 'string' && value.length > 0) return value
+  return fallback
+}
 
-const backdropStyles = (visible: boolean): React.CSSProperties => ({
-  position: "absolute",
-  inset: 0,
-  backgroundColor: "rgba(0, 0, 0, 0.6)",
-  opacity: visible ? 1 : 0,
-  transition: `opacity ${getAnimationDuration("command-palette")}ms ${getAnimationEasing("command-palette")}`,
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "center",
-  paddingTop: "15vh",
+const EASE_ENTER: [number, number, number, number] = [0.32, 0.72, 0, 1]
+const EASE_EXIT: [number, number, number, number] = [0.4, 0, 1, 1]
+const ENTER_DURATION_SECONDS = 0.2
+const EXIT_DURATION_SECONDS = 0.12
+
+const backdropStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: 'var(--tmnl-size-header, 48px)',
+  left: 'var(--tmnl-size-sidebar, 48px)',
+  right: 0,
+  bottom: 0,
+  display: 'flex',
+  alignItems: 'flex-start',
+  justifyContent: 'center',
+  padding: '10px 14px 0',
+  pointerEvents: 'auto',
+  backgroundColor: 'transparent',
+}
+
+const paletteContainerStyle = (
+  width: string,
+  maxWidth: string,
+  verticalOffset: string,
+): React.CSSProperties => ({
+  position: 'relative',
+  width,
+  maxWidth,
+  marginTop: verticalOffset,
+  maxHeight: 'min(80vh, 680px)',
+  backgroundColor: 'transparent',
+  borderRadius: '10px',
+  overflow: 'hidden',
+  pointerEvents: 'auto',
+  transformOrigin: '50% 0%',
+  willChange: 'transform, opacity',
 })
 
-const paletteContainerStyles = (visible: boolean): React.CSSProperties => ({
-  position: "relative",
-  width: "100%",
-  maxWidth: "600px",
-  backgroundColor: "var(--tmnl-bg-surface, #1a1a1a)",
-  borderRadius: "12px",
-  border: "1px solid var(--tmnl-border, #333)",
-  boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
-  transform: visible ? "scale(1) translateY(0)" : "scale(0.98) translateY(-10px)",
-  opacity: visible ? 1 : 0,
-  transition: `transform ${getAnimationDuration("command-palette")}ms ${getAnimationEasing("command-palette")}, opacity ${getAnimationDuration("command-palette")}ms ${getAnimationEasing("command-palette")}`,
-  overflow: "hidden",
-})
+const backdropVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+} as const
 
-// ─────────────────────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────────────────────
+const panelVariants = (reduceMotion: boolean) =>
+  reduceMotion
+    ? {
+        hidden: { opacity: 0 },
+        visible: { opacity: 1 },
+      }
+    : {
+        hidden: { opacity: 0, y: 14, scale: 0.985 },
+        visible: { opacity: 1, y: 0, scale: 1 },
+      }
 
 export function CommandPaletteRenderer({ id, onCloseRequest }: CommandPaletteRendererProps) {
   const ctx = useVisualOverlaySafe()
-  const containerRef = useRef<HTMLDivElement>(null)
+  const reduceMotion = useReducedMotion()
 
   const overlay = useAtomValue(overlayAtom(id))
+  const isSuppressed = useAtomValue(isSuppressedAtom({ type: 'command-palette', id }))
 
-  const isSuppressed = useAtomValue(
-    isSuppressedAtom({ type: "command-palette", id })
-  )
-
-  // Handle escape key
   useEffect(() => {
     if (!overlay || !overlay.isVisible) return
 
@@ -80,40 +93,48 @@ export function CommandPaletteRenderer({ id, onCloseRequest }: CommandPaletteRen
     if (!config.closeOnEscape) return
 
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         e.preventDefault()
         onCloseRequest?.()
       }
     }
 
-    window.addEventListener("keydown", handler)
-    return () => window.removeEventListener("keydown", handler)
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
   }, [overlay, onCloseRequest])
-
-  // Handle animation state transitions
-  useEffect(() => {
-    if (!ctx || !overlay) return
-
-    if (overlay.animationState === "entering") {
-      const timer = setTimeout(() => {
-        ctx.setAnimationState(id, "visible")
-      }, getAnimationDuration("command-palette"))
-      return () => clearTimeout(timer)
-    }
-
-    if (overlay.animationState === "exiting") {
-      const timer = setTimeout(() => {
-        ctx.setAnimationState(id, "exited")
-      }, getAnimationDuration("command-palette"))
-      return () => clearTimeout(timer)
-    }
-  }, [ctx, id, overlay?.animationState])
 
   if (!overlay || isSuppressed) return null
 
   const config = overlay.config as CommandPaletteConfig
   const content = getContent(overlay.contentKey)
-  const isVisible = overlay.animationState === "visible" || overlay.animationState === "entering"
+
+  const targetState =
+    overlay.animationState === 'exiting' || overlay.animationState === 'exited'
+      ? 'hidden'
+      : 'visible'
+
+  const width = toCssDimension(config.width, 'min(78vw, 680px)')
+  const maxWidth = toCssDimension(config.maxWidth, '680px')
+  const verticalOffset = toCssDimension(config.paddingTop, '0px')
+
+  const backdropTransition = reduceMotion
+    ? { duration: 0.08, ease: 'linear' as const }
+    : {
+        duration: targetState === 'visible' ? 0.1 : 0.08,
+        ease: targetState === 'visible' ? EASE_ENTER : EASE_EXIT,
+      }
+
+  const panelTransition = reduceMotion
+    ? { duration: 0.1, ease: 'linear' as const }
+    : targetState === 'visible'
+      ? {
+          duration: ENTER_DURATION_SECONDS,
+          ease: EASE_ENTER,
+        }
+      : {
+          duration: EXIT_DURATION_SECONDS,
+          ease: EASE_EXIT,
+        }
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -121,24 +142,48 @@ export function CommandPaletteRenderer({ id, onCloseRequest }: CommandPaletteRen
     }
   }
 
+  const handlePanelAnimationComplete = () => {
+    if (!ctx) return
+
+    if (overlay.animationState === 'entering') {
+      ctx.setAnimationState(id, 'visible')
+      return
+    }
+
+    if (overlay.animationState === 'exiting') {
+      ctx.setAnimationState(id, 'exited')
+    }
+  }
+
   return (
-    <div
-      ref={containerRef}
-      style={backdropStyles(isVisible)}
+    <motion.div
+      initial='hidden'
+      animate={targetState}
+      variants={backdropVariants}
+      transition={backdropTransition}
+      style={backdropStyle}
       onClick={handleBackdropClick}
       data-command-palette-id={id}
-      role="presentation"
+      data-animation-state={overlay.animationState}
+      role='presentation'
+      aria-hidden='true'
     >
-      <div
-        style={paletteContainerStyles(isVisible)}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Command palette"
+      <motion.div
+        key={`${id}-${overlay.openedAt}`}
+        initial='hidden'
+        animate={targetState}
+        variants={panelVariants(reduceMotion)}
+        transition={panelTransition}
+        style={paletteContainerStyle(width, maxWidth, verticalOffset)}
+        role='dialog'
+        aria-modal='true'
+        aria-label='Command palette'
         onClick={(e) => e.stopPropagation()}
+        onAnimationComplete={handlePanelAnimationComplete}
       >
         {content}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
 
