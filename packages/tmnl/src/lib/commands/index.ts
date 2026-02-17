@@ -136,9 +136,6 @@ export type { WireResult, RegistryLike } from './wire'
 export { useCommandWire, withCommandWire, ProviderRegistrationError } from './useCommandWire'
 export type { UseCommandWireOptions, UseCommandWireResult } from './useCommandWire'
 
-// NuCmdk wiring hook (provider/runtime bootstrap)
-export { useNuCmdkWire, NuCmdkProviderRegistrationError } from './useNuCmdkWire'
-export type { UseNuCmdkWireOptions, UseNuCmdkWireResult } from './useNuCmdkWire'
 
 // Persistence
 export {
@@ -184,33 +181,4 @@ export type {
   CommandSearchResult,
 } from './hooks'
 
-// NuCmdk shell scaffold (phase 1)
-export {
-  NuCmdkShell,
-  NuCmdkShellOverlay,
-} from './shell'
-export type {
-  NuCmdkShellProps,
-  NuCmdkShellOverlayProps,
-  NuCmdkShellState,
-  NuCmdkShellRow,
-  NuCmdkShellKind,
-  NuCmdkShellMode,
-  NuCmdkShellBridge,
-  NuCmdkCompletionBridge,
-  NuCmdkExecutionBridge,
-  NuCmdkHostBridge,
-  NuCmdkItemProviderBridge,
-  NuCmdkSearchRequest,
-  NuCmdkSelectionRequest,
-  NuCmdkItemModel,
-  NuCmdkItemSemantic,
-  NuCmdkItemActionIntent,
-  NuCmdkItemDisplay,
-  NuCmdkItemLayoutHints,
-  NuCmdkItemTelemetry,
-  NuCmdkItemProviderDescriptor,
-  NuCmdkItemProviderContextContract,
-  NuCmdkItemProviderAtoms,
-  NuCmdkItemProviderEffects,
-} from './shell'
+// NuCmdk is now a standalone module at '@/lib/nu-cmdk'.

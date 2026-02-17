@@ -13,6 +13,13 @@ The command system provides:
 - **User-overridable keybindings** via reactive atoms
 - **Effect integration** for async execution and error handling
 
+### Boundary Note
+
+NuCmdk has been extracted to `@/lib/nu-cmdk`.
+
+- `@/lib/commands` owns command registry + execution domain.
+- `@/lib/nu-cmdk` owns command-palette runtime + shell UI.
+
 ## Quick Start
 
 ```ts

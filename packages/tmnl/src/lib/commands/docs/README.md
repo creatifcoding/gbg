@@ -157,9 +157,9 @@
 - [`impl/spike/logs/README.md`](./impl/spike/logs/README.md)
   - Append-only run index for spike logs
 
-- Runtime slice modules (implementation spike backing):
-  - `src/lib/commands/nu-cmdk/slices/`
-  - Includes QuerySession actor slice, policy/renderer/cache slices, and metrics scoring
+- Runtime modules (implementation spike backing):
+  - `src/lib/nu-cmdk/runtime/`
+  - Includes QuerySession actor slices, policy/renderer/cache slices, and metrics scoring
 
 ---
 
