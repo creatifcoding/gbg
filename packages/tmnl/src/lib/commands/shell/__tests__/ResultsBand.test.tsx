@@ -142,7 +142,7 @@ describe('ResultsBand guardrails (#1036)', () => {
 
     const itemRoot = container.querySelector('[data-slot="results-item"]') as HTMLElement
     expect(itemRoot).toBeTruthy()
-    expect(itemRoot.style.minHeight).toBe('56px')
+    expect(itemRoot.style.minHeight).toBe('44px')
   })
 
   it('action button runs action intent without selecting item', async () => {
