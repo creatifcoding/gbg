@@ -11,7 +11,7 @@
  * - Title → Orbitron (font-nav)
  * - Buttons → Orbitron (font-button)
  *
- * @module components/shell
+ * @module lib/shell
  */
 
 import { useCallback } from 'react'

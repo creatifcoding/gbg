@@ -16,7 +16,7 @@
  *
  * ░░░░ = overlap zone (header on top of sidebar corner)
  *
- * @module components/shell
+ * @module lib/shell
  */
 
 import type { JSX, ReactNode } from "react"

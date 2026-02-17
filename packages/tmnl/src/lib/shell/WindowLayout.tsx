@@ -18,7 +18,7 @@
  * │                                      │
  * └──────────────────────────────────────┘
  *
- * @module components/shell
+ * @module lib/shell
  */
 
 import type { ReactNode } from "react"

@@ -6,7 +6,7 @@
  * - Buttons → Orbitron (font-button)
  * - Wordmark → VT323 (font-terminal)
  *
- * @module components/shell
+ * @module lib/shell
  */
 
 import { useCallback, useState } from 'react';
