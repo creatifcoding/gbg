@@ -7,6 +7,7 @@ import { KindBand } from './components/KindBand'
 import { ModeBand } from './components/ModeBand'
 import { QueryBand } from './components/QueryBand'
 import { ResultsBand } from './components/ResultsBand'
+import { NU_CMDK_TOKENS } from './tokens'
 import type { ResultsBandItemSlotOverrides } from './components/ResultsBand'
 import type {
   NuCmdkItemActionIntent,
@@ -42,31 +43,45 @@ const rootStyle: CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   width: '100%',
-  height: '100%',
-  minHeight: '680px',
-  backgroundColor: '#05070c',
-  border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: '12px',
+  height: 'clamp(340px, 52vh, 500px)',
+  minHeight: '340px',
+  maxHeight: '500px',
+  background: NU_CMDK_TOKENS.surface.panel,
+  border: `1px solid ${NU_CMDK_TOKENS.border.medium}`,
+  borderRadius: NU_CMDK_TOKENS.border.radius.shell,
   overflow: 'hidden',
-  boxShadow: '0 30px 90px rgba(0, 0, 0, 0.55)',
+  boxShadow: NU_CMDK_TOKENS.shadow.shell,
 }
 
 const shellStyles = `
 .nu-cmdk-item {
-  transition: background-color 140ms ease, border-color 140ms ease, transform 120ms ease;
+  transition: background-color 140ms ease, border-color 140ms ease, transform 120ms ease, box-shadow 120ms ease;
 }
 
 .nu-cmdk-item[data-selected='true'] {
-  background: linear-gradient(90deg, rgba(8, 47, 73, 0.75), rgba(8, 47, 73, 0.25));
-  border-left-color: #22d3ee !important;
-  border-color: rgba(34, 211, 238, 0.2) !important;
+  background: ${NU_CMDK_TOKENS.surface.rowSelected};
+  border-left-color: ${NU_CMDK_TOKENS.accent.cyan} !important;
+  border-color: ${NU_CMDK_TOKENS.border.accent} !important;
+  box-shadow: ${NU_CMDK_TOKENS.shadow.selectedInset};
 }
 
 .nu-cmdk-item:hover {
-  background-color: rgba(255, 255, 255, 0.035);
+  background-color: ${NU_CMDK_TOKENS.surface.rowHover};
+}
+
+[data-slot='query-input']::placeholder {
+  color: ${NU_CMDK_TOKENS.misc.placeholder};
+}
+
+[data-slot='results-section-header'] span:last-child {
+  border: 1px solid ${NU_CMDK_TOKENS.border.subtle};
+  background: ${NU_CMDK_TOKENS.surface.pill};
+  border-radius: ${NU_CMDK_TOKENS.misc.chipRadius};
+  padding: 2px 8px;
+  font-size: ${NU_CMDK_TOKENS.typography.size.xs};
+  letter-spacing: 0.08em;
 }
 `
-
 type NuCmdkShellCompound = ((props: NuCmdkShellProps) => JSX.Element) & {
   ModeBand: typeof ModeBand
   QueryBand: typeof QueryBand
