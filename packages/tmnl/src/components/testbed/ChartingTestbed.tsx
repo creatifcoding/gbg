@@ -4,14 +4,7 @@
  * Route: /testbed/charting
  */
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
 import {
   Activity,
@@ -22,17 +15,15 @@ import {
   LineChart,
   ScatterChart,
 } from 'lucide-react';
-import { Cause, Chunk, Effect, Exit, Fiber, Stream } from 'effect';
-import { useAtomSet, useAtomValue } from '@effect-atom/atom-react';
+import { Cause, Chunk, Effect, Fiber, Stream } from 'effect';
+import { useAtomValue } from '@effect-atom/atom-react';
 import type { ChartSeries, ChartSpec } from '@/lib/charting/v2';
 import {
   chartingRuntimeAtom,
   chartInstanceFamily,
   chartInstancesAtom,
-  chartOps,
   chartReleasesAtom,
   chartSpecsAtom,
-  chartStateFamily,
   chartStateSubscriptionsAtom,
   chartStatesAtom,
 } from '@/lib/charting/v2';
@@ -46,13 +37,7 @@ import {
   makeScatterSeries,
   makeSignalSeries,
 } from './charting/data/series-factories';
-
-type ExitPromise = Promise<Exit.Exit<unknown, unknown>>;
-
-type ErrorState = {
-  context: string;
-  message: string;
-};
+import { useAutoChart, useChartActions, type ErrorState } from './charting/hooks';
 
 function ChartRuntimeMount() {
   useAtomValue(chartingRuntimeAtom);
@@ -63,30 +48,6 @@ function ChartRuntimeMount() {
   useAtomValue(chartStateSubscriptionsAtom);
   return null;
 }
-
-const useExitRunner = (scope: string) => {
-  const [error, setError] = useState<ErrorState | null>(null);
-
-  const run = useCallback(
-    async (promise: ExitPromise, action?: string) => {
-      const exit = await promise;
-      if (Exit.isFailure(exit)) {
-        const message = Cause.pretty(exit.cause);
-        const context = action ? `${scope}:${action}` : scope;
-        setError({ context, message });
-        Effect.runFork(
-          Effect.logError(`[ChartingTestbed] ${context}\n${message}`)
-        );
-        return null;
-      }
-      setError(null);
-      return exit.value;
-    },
-    [scope]
-  );
-
-  return { error, run } as const;
-};
 
 function ErrorPanel({ error }: { error: ErrorState | null }) {
   const [copied, setCopied] = useState(false);
@@ -159,93 +120,6 @@ function ErrorPanel({ error }: { error: ErrorState | null }) {
     </div>
   );
 }
-
-const useChartActions = (spec: ChartSpec) => {
-  const state = useAtomValue(chartStateFamily(spec.id));
-  const createOp = useAtomSet(chartOps.create, { mode: 'promiseExit' });
-  const mountOp = useAtomSet(chartOps.mount, { mode: 'promiseExit' });
-  const unmountOp = useAtomSet(chartOps.unmount, { mode: 'promiseExit' });
-  const disposeOp = useAtomSet(chartOps.dispose, { mode: 'promiseExit' });
-  const setDataOp = useAtomSet(chartOps.setData, { mode: 'promiseExit' });
-  const appendDataOp = useAtomSet(chartOps.appendData, { mode: 'promiseExit' });
-  const clearDataOp = useAtomSet(chartOps.clearData, { mode: 'promiseExit' });
-  const { error, run } = useExitRunner(spec.id);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
-  const create = useCallback(
-    () => run(createOp(spec), 'create'),
-    [createOp, run, spec]
-  );
-  const mount = useCallback(
-    (container: HTMLElement | null) =>
-      container ? run(mountOp({ id: spec.id, container }), 'mount') : null,
-    [mountOp, run, spec.id]
-  );
-  const unmount = useCallback(
-    () => run(unmountOp(spec.id), 'unmount'),
-    [run, unmountOp, spec.id]
-  );
-  const dispose = useCallback(
-    () => run(disposeOp(spec.id), 'dispose'),
-    [disposeOp, run, spec.id]
-  );
-  const setData = useCallback(
-    (data: ChartSeries) => run(setDataOp({ id: spec.id, data }), 'setData'),
-    [run, setDataOp, spec.id]
-  );
-  const appendData = useCallback(
-    (data: ChartSeries) =>
-      run(appendDataOp({ id: spec.id, data }), 'appendData'),
-    [appendDataOp, run, spec.id]
-  );
-  const clearData = useCallback(
-    () => run(clearDataOp(spec.id), 'clearData'),
-    [clearDataOp, run, spec.id]
-  );
-
-  return {
-    state,
-    error,
-    containerRef,
-    create,
-    mount,
-    unmount,
-    dispose,
-    setData,
-    appendData,
-    clearData,
-  } as const;
-};
-
-const useAutoChart = (spec: ChartSpec, initialData?: ChartSeries) => {
-  const actions = useChartActions(spec);
-  const { create, mount, dispose, containerRef, state, setData } = actions;
-
-  useEffect(() => {
-    let active = true;
-
-    const start = async () => {
-      await create();
-      if (!active) return;
-      await mount(containerRef.current);
-    };
-
-    void start();
-
-    return () => {
-      active = false;
-      void dispose();
-    };
-  }, [containerRef, create, dispose, mount]);
-
-  useEffect(() => {
-    if (state === 'READY' && initialData) {
-      void setData(initialData);
-    }
-  }, [initialData, setData, state]);
-
-  return actions;
-};
 
 function LifecycleOpsCard() {
   const spec = useMemo<ChartSpec>(
