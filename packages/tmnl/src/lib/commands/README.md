@@ -202,7 +202,8 @@ function useKeybindingEditor() {
 ### System Commands
 | ID | Name | Default Key |
 |----|------|-------------|
-| `system.commandPalette` | Command Palette | `ctrl+shift+p` |
+| `system.commandPalette` | Command Palette | `ctrl+shift+p` / `alt+x` |
+| `system.nuCmdk` | NuCmdk Shell | `ctrl+shift+k` |
 | `system.settings` | Settings | `ctrl+,` |
 | `system.keyboardShortcuts` | Keyboard Shortcuts | `ctrl+k ctrl+s` |
 

@@ -49,6 +49,11 @@
   - Compound API surface
   - Adapter seam boundaries
 
+- [`arch/nu-cmdk-typography-rationale.md`](./arch/nu-cmdk-typography-rationale.md)
+  - Command-surface type stack rationale (Inter / IBM Plex Condensed / JetBrains Mono)
+  - 12px floor + Vantablack guardrails
+  - Nix provisioning + font sync policy
+
 - [`arch/nu-cmdk-result-schema-spec.md`](./arch/nu-cmdk-result-schema-spec.md)
   - Effect Schema model for heterogeneous result rows
   - Normalization + ranking pipeline
@@ -66,6 +71,15 @@
 - [`arch/nu-cmdk-provider-contract-proposals.md`](./arch/nu-cmdk-provider-contract-proposals.md)
   - Provider artifact shape variants + recommendation
   - Execution resolver and renderer-token contract proposals
+
+- [`arch/nu-cmdk-item-consumer-contract-decision.md`](./arch/nu-cmdk-item-consumer-contract-decision.md)
+  - Provider-first ResultsBand.Item contract
+  - Hybrid control boundary (typed provider payload + shell layout guardrails)
+  - Typed slot override policy for item subparts
+
+- [`arch/nu-cmdk-resultsband-item-api.md`](./arch/nu-cmdk-resultsband-item-api.md)
+  - Provider integration API for item payloads, slot overrides, and action/telemetry hooks
+  - Atom-state + Effect-ops context contract usage
 
 - [`arch/nu-cmdk-provider-adapter-layer-router-decision.md`](./arch/nu-cmdk-provider-adapter-layer-router-decision.md)
   - Design decision + rationale for `HttpLayerRouter`-parity provider/adapter router + middleware
@@ -124,6 +138,18 @@
   - Phased migration plan (no-code to cutover)
   - Validation gates
   - Risk controls + rollback plan
+
+- [`impl/nu-cmdk-wbs.md`](./impl/nu-cmdk-wbs.md)
+  - Work breakdown structure (epics/sprints) for validation and integration closure
+
+- [`impl/nu-cmdk-wbs-v2-master.md`](./impl/nu-cmdk-wbs-v2-master.md)
+  - Hardened master WBS with full latent backlog decomposition, dependencies, and evidence contracts
+
+- [`impl/nu-cmdk-gap-analysis.md`](./impl/nu-cmdk-gap-analysis.md)
+  - Validation status matrix (D01–D18) and closure sequence to full implementation confidence
+
+- [`impl/nu-cmdk-d19-feature-plan.md`](./impl/nu-cmdk-d19-feature-plan.md)
+  - Execution plan for D19 provider-first ResultsBand.Item contract implementation
 
 - [`impl/spike/nu-cmdk-spike-testing-runbook.md`](./impl/spike/nu-cmdk-spike-testing-runbook.md)
   - Spike execution protocol for TTR optimization and hillclimb acceptance/rejection logging
