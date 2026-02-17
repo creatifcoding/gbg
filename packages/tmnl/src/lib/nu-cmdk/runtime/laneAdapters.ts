@@ -1,6 +1,6 @@
 import { Effect } from "effect"
-import type { Completion } from "../../../minibuffer/v2/machine"
-import { providerRegistry, type CompletionProvider } from "../../../minibuffer/v2/providers"
+import type { Completion } from "../../minibuffer/v2/machine"
+import { providerRegistry, type CompletionProvider } from "../../minibuffer/v2/providers"
 import type { QueryRow, ResultKind, Scope as QueryScope } from "./types"
 
 export type AdapterCostClass = "fast" | "medium" | "heavy"

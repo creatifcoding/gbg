@@ -10,7 +10,7 @@ import {
   createProviderId,
   providerRegistry,
   type CompletionProvider,
-} from "../../../../minibuffer/v2/providers"
+} from "../../../minibuffer/v2/providers"
 
 describe("nu-cmdk lane adapters", () => {
   it("maps generic completion kinds to query rows", () => {
