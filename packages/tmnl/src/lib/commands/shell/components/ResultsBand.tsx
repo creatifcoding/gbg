@@ -16,6 +16,7 @@ import {
   type NuCmdkItemSection,
 } from '../item-contract'
 import type { NuCmdkShellRow } from '../types'
+import { NU_CMDK_TOKENS } from '../tokens'
 
 export interface ResultsBandSectionIdentity {
   readonly sectionId: string
@@ -179,18 +180,19 @@ const ResultsBandSectionContext = createContext<ResultsBandSectionContextValue |
 const ResultsBandItemContext = createContext<ResultsBandItemContextValue | null>(null)
 
 const listStyle: CSSProperties = {
-  padding: '10px 12px 12px',
+  padding: '6px',
   overflow: 'auto',
   flex: 1,
+  background: NU_CMDK_TOKENS.surface.band,
 }
 
 const sectionTitleStyle: CSSProperties = {
-  fontFamily: "var(--font-data, 'JetBrains Mono', monospace)",
-  fontSize: 'var(--tmnl-text-xs, 12px)',
-  letterSpacing: '0.14em',
-  textTransform: 'uppercase',
-  color: 'var(--tmnl-fg-muted, #9ca3af)',
-  margin: '12px 8px 6px',
+  fontFamily: NU_CMDK_TOKENS.typography.family.heading,
+  fontSize: NU_CMDK_TOKENS.typography.size.xs,
+  letterSpacing: '0.08em',
+  textTransform: 'none',
+  color: NU_CMDK_TOKENS.text.tertiary,
+  margin: '8px 4px 4px',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
@@ -200,21 +202,21 @@ const itemStyle: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  gap: '12px',
-  padding: '10px 12px',
-  marginBottom: '8px',
-  borderRadius: '8px',
+  gap: '8px',
+  padding: '7px 8px',
+  marginBottom: '4px',
+  borderRadius: NU_CMDK_TOKENS.border.radius.row,
   borderLeft: '2px solid transparent',
-  border: '1px solid rgba(255,255,255,0.03)',
-  backgroundColor: 'transparent',
+  border: `1px solid ${NU_CMDK_TOKENS.border.subtle}`,
+  backgroundColor: NU_CMDK_TOKENS.surface.row,
   cursor: 'pointer',
-  minHeight: '56px',
+  minHeight: '44px',
 }
 
 const itemLeftStyle: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: '12px',
+  gap: '8px',
   minWidth: 0,
   flex: 1,
 }
@@ -222,16 +224,16 @@ const itemLeftStyle: CSSProperties = {
 const itemRightStyle: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: '8px',
+  gap: '4px',
   justifyContent: 'flex-end',
   flexShrink: 0,
 }
 
 const iconEnvelopeStyle: CSSProperties = {
-  width: '40px',
-  height: '40px',
-  minWidth: '40px',
-  borderRadius: '8px',
+  width: '24px',
+  height: '24px',
+  minWidth: '24px',
+  borderRadius: NU_CMDK_TOKENS.border.radius.row,
   overflow: 'hidden',
   display: 'inline-flex',
   alignItems: 'center',
@@ -240,11 +242,11 @@ const iconEnvelopeStyle: CSSProperties = {
 
 const iconTileStyle: CSSProperties = {
   ...iconEnvelopeStyle,
-  border: '1px solid rgba(34, 211, 238, 0.25)',
-  backgroundColor: 'rgba(34, 211, 238, 0.08)',
-  color: 'var(--tmnl-accent, #22d3ee)',
-  fontFamily: "var(--font-data, 'JetBrains Mono', monospace)",
-  fontSize: 'var(--tmnl-text-sm, 14px)',
+  border: `1px solid ${NU_CMDK_TOKENS.border.accent}`,
+  backgroundColor: NU_CMDK_TOKENS.accent.cyanGlow,
+  color: NU_CMDK_TOKENS.accent.cyan,
+  fontFamily: NU_CMDK_TOKENS.typography.family.data,
+  fontSize: NU_CMDK_TOKENS.typography.size.xs,
   fontWeight: 700,
 }
 
@@ -255,20 +257,20 @@ const contentEnvelopeStyle: CSSProperties = {
 }
 
 const primaryTextStyle: CSSProperties = {
-  fontFamily: "var(--font-data, 'JetBrains Mono', monospace)",
-  fontSize: 'var(--tmnl-text-lg, 18px)',
-  color: 'var(--tmnl-fg, #e5e7eb)',
-  lineHeight: 1.18,
+  fontFamily: NU_CMDK_TOKENS.typography.family.ui,
+  fontSize: NU_CMDK_TOKENS.typography.size.sm,
+  color: NU_CMDK_TOKENS.text.primary,
+  lineHeight: 1.16,
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
 }
 
 const secondaryTextStyle: CSSProperties = {
-  fontFamily: "var(--font-data, 'JetBrains Mono', monospace)",
-  fontSize: 'var(--tmnl-text-sm, 14px)',
-  color: 'var(--tmnl-fg-muted, #9ca3af)',
-  marginTop: '4px',
+  fontFamily: NU_CMDK_TOKENS.typography.family.ui,
+  fontSize: NU_CMDK_TOKENS.typography.size.xs,
+  color: NU_CMDK_TOKENS.text.tertiary,
+  marginTop: '2px',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap',
@@ -277,54 +279,54 @@ const secondaryTextStyle: CSSProperties = {
 const rightMetaStyle: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: '6px',
-  color: 'var(--tmnl-fg-muted, #9ca3af)',
-  fontFamily: "var(--font-data, 'JetBrains Mono', monospace)",
-  fontSize: 'var(--tmnl-text-sm, 14px)',
+  gap: '4px',
+  color: NU_CMDK_TOKENS.text.secondary,
+  fontFamily: NU_CMDK_TOKENS.typography.family.data,
+  fontSize: NU_CMDK_TOKENS.typography.size.xs,
 }
 
 const badgeStyle: CSSProperties = {
-  border: '1px solid rgba(245, 158, 11, 0.45)',
-  backgroundColor: 'rgba(245, 158, 11, 0.14)',
-  color: '#f59e0b',
-  borderRadius: '4px',
-  padding: '2px 8px',
-  fontFamily: "var(--font-data, 'JetBrains Mono', monospace)",
-  fontSize: 'var(--tmnl-text-xs, 12px)',
-  letterSpacing: '0.06em',
-  textTransform: 'uppercase',
+  border: `1px solid ${NU_CMDK_TOKENS.accent.warn}`,
+  backgroundColor: NU_CMDK_TOKENS.surface.badgeWarn,
+  color: NU_CMDK_TOKENS.accent.warn,
+  borderRadius: NU_CMDK_TOKENS.border.radius.badge,
+  padding: '1px 6px',
+  fontFamily: NU_CMDK_TOKENS.typography.family.data,
+  fontSize: NU_CMDK_TOKENS.typography.size.xs,
+  letterSpacing: '0.03em',
+  textTransform: 'none',
 }
 
 const shortcutStyle: CSSProperties = {
-  border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: '8px',
-  minWidth: '28px',
-  height: '30px',
+  border: `1px solid ${NU_CMDK_TOKENS.border.subtle}`,
+  borderRadius: NU_CMDK_TOKENS.border.radius.row,
+  minWidth: '20px',
+  height: '20px',
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  padding: '0 8px',
-  backgroundColor: 'rgba(255,255,255,0.03)',
-  fontFamily: "var(--font-data, 'JetBrains Mono', monospace)",
-  fontSize: 'var(--tmnl-text-xs, 12px)',
-  color: 'var(--tmnl-fg-muted, #9ca3af)',
+  padding: '0 5px',
+  backgroundColor: NU_CMDK_TOKENS.surface.pill,
+  fontFamily: NU_CMDK_TOKENS.typography.family.data,
+  fontSize: NU_CMDK_TOKENS.typography.size.xs,
+  color: NU_CMDK_TOKENS.text.secondary,
 }
 
 const actionsGroupStyle: CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
-  gap: '6px',
+  gap: '4px',
 }
 
 const actionButtonStyle: CSSProperties = {
-  border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: '8px',
-  minHeight: '30px',
-  padding: '4px 8px',
-  backgroundColor: 'rgba(255,255,255,0.03)',
-  color: 'var(--tmnl-fg-muted, #9ca3af)',
-  fontFamily: "var(--font-data, 'JetBrains Mono', monospace)",
-  fontSize: 'var(--tmnl-text-xs, 12px)',
+  border: `1px solid ${NU_CMDK_TOKENS.border.subtle}`,
+  borderRadius: NU_CMDK_TOKENS.border.radius.row,
+  minHeight: '20px',
+  padding: '1px 6px',
+  backgroundColor: NU_CMDK_TOKENS.surface.pill,
+  color: NU_CMDK_TOKENS.text.secondary,
+  fontFamily: NU_CMDK_TOKENS.typography.family.data,
+  fontSize: NU_CMDK_TOKENS.typography.size.xs,
   cursor: 'pointer',
 }
 
