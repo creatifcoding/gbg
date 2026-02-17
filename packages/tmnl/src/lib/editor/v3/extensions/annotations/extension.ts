@@ -185,7 +185,16 @@ export const IntentMark = Mark.create<IntentMarkOptions>({
         },
         renderHTML: (attributes) => {
           if (!attributes.visualStyle) return {};
-          return { 'data-visual-style': attributes.visualStyle };
+
+          if (typeof attributes.visualStyle === 'string') {
+            return { 'data-visual-style': attributes.visualStyle };
+          }
+
+          if (typeof attributes.visualStyle === 'object') {
+            return { 'data-visual-style': JSON.stringify(attributes.visualStyle) };
+          }
+
+          return {};
         },
       },
 

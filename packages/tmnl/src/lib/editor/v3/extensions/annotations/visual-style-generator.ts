@@ -76,6 +76,111 @@ export const getColorVar = (token: string): string => {
   return `var(${cssVarName}, ${hex})`;
 };
 
+const VISUAL_TYPES = new Set<VisualStyle['type']>([
+  'highlight',
+  'pill',
+  'squiggle',
+  'underline',
+  'none',
+]);
+
+const VISUAL_EFFECTS = new Set<NonNullable<VisualStyle['effect']>>([
+  'none',
+  'grain',
+  'glow',
+  'animate',
+]);
+
+const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
+  const clean = hex.replace('#', '').trim();
+  const normalized =
+    clean.length === 3
+      ? clean
+          .split('')
+          .map((char) => `${char}${char}`)
+          .join('')
+      : clean;
+
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
+    return null;
+  }
+
+  return {
+    r: Number.parseInt(normalized.slice(0, 2), 16),
+    g: Number.parseInt(normalized.slice(2, 4), 16),
+    b: Number.parseInt(normalized.slice(4, 6), 16),
+  };
+};
+
+const getRelativeLuminance = ({ r, g, b }: { r: number; g: number; b: number }): number => {
+  const toLinear = (channel: number) => {
+    const value = channel / 255;
+    return value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  };
+
+  const red = toLinear(r);
+  const green = toLinear(g);
+  const blue = toLinear(b);
+
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+};
+
+const prefersDarkForeground = (backgroundHex: string): boolean => {
+  const rgb = hexToRgb(backgroundHex);
+  if (!rgb) {
+    return true;
+  }
+
+  // Pragmatic threshold keeps bright fills readable (yellow/cyan/green)
+  // while preserving light text on deeper accents (purple/blue/red).
+  const luminance = getRelativeLuminance(rgb);
+  return luminance >= 0.45;
+};
+
+export const getMarkTextColor = (token: string): string => {
+  if (token === 'transparent') {
+    return 'inherit';
+  }
+
+  const hex = getColorHex(token);
+  return prefersDarkForeground(hex)
+    ? 'var(--tmnl-surface-0, #0d0d14)'
+    : 'var(--tmnl-text-primary, #f0f0f0)';
+};
+
+const normalizeVisualStyle = (input: unknown): VisualStyle | null => {
+  if (!input || typeof input !== 'object') {
+    return null;
+  }
+
+  const candidate = input as Record<string, unknown>;
+  const type = candidate.type;
+  const color = candidate.color;
+
+  if (typeof type !== 'string' || !VISUAL_TYPES.has(type as VisualStyle['type'])) {
+    return null;
+  }
+
+  if (typeof color !== 'string' || color.length === 0) {
+    return null;
+  }
+
+  const effectCandidate = candidate.effect;
+  const effect =
+    typeof effectCandidate === 'string' && VISUAL_EFFECTS.has(effectCandidate as NonNullable<VisualStyle['effect']>)
+      ? (effectCandidate as NonNullable<VisualStyle['effect']>)
+      : 'none';
+
+  const animated = typeof candidate.animated === 'boolean' ? candidate.animated : false;
+
+  return {
+    type,
+    color,
+    effect,
+    animated,
+  } satisfies VisualStyle;
+};
+
 // =============================================================================
 // CSS Generation (String-based for extension.ts renderHTML)
 // =============================================================================
@@ -96,14 +201,14 @@ export const generateVisualStyleCSSString = (style: VisualStyle): string => {
   switch (style.type) {
     case 'highlight':
       styles.push(`background-color: ${colorVar}`);
-      styles.push('color: inherit');
+      styles.push(`color: ${getMarkTextColor(style.color)}`);
       styles.push('border-radius: 2px');
       styles.push('padding: 0 2px');
       break;
 
     case 'pill':
       styles.push(`background-color: ${colorVar}`);
-      styles.push('color: inherit');
+      styles.push(`color: ${getMarkTextColor(style.color)}`);
       styles.push('border-radius: 9999px');
       styles.push('padding: 0 6px');
       break;
@@ -147,7 +252,7 @@ export const generateVisualStyleCSSProperties = (style: VisualStyle): React.CSSP
       return {
         ...base,
         backgroundColor: colorVar,
-        color: 'inherit',
+        color: getMarkTextColor(style.color),
         borderRadius: '2px',
         padding: '0 2px',
       };
@@ -156,7 +261,7 @@ export const generateVisualStyleCSSProperties = (style: VisualStyle): React.CSSP
       return {
         ...base,
         backgroundColor: colorVar,
-        color: 'inherit',
+        color: getMarkTextColor(style.color),
         borderRadius: '9999px',
         padding: '0 6px',
       };
@@ -189,19 +294,19 @@ export const generateVisualStyleCSSProperties = (style: VisualStyle): React.CSSP
  * Safely parse a JSON string into a VisualStyle.
  * Returns null if parsing fails.
  */
-export const parseVisualStyle = (json: string | undefined | null): VisualStyle | null => {
-  if (!json) return null;
+export const parseVisualStyle = (input: unknown): VisualStyle | null => {
+  if (!input) return null;
 
-  try {
-    const parsed = JSON.parse(json);
-    // Basic validation - check required fields exist
-    if (parsed && typeof parsed.type === 'string' && typeof parsed.color === 'string') {
-      return parsed as VisualStyle;
+  if (typeof input === 'string') {
+    try {
+      const parsed = JSON.parse(input);
+      return normalizeVisualStyle(parsed);
+    } catch {
+      return null;
     }
-    return null;
-  } catch {
-    return null;
   }
+
+  return normalizeVisualStyle(input);
 };
 
 // =============================================================================
