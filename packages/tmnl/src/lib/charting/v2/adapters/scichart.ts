@@ -2,14 +2,23 @@ import { Effect } from 'effect';
 import type { ChartAdapter } from './types';
 import { ChartMountError, ChartUpdateError } from '../errors';
 import type { ChartInstance } from '../types';
-import type {
-  ChartDatum,
-  ChartSeries,
-  ChartSpec,
-  ProjectionKind,
-} from '../schemas';
+import type { ChartDatum, ChartSeries, ChartSpec } from '../schemas';
 import { ChartState } from '../schemas';
-import { CHART_TOKENS } from '../../v1/tokens';
+import { resolveProjection } from './shared/projection';
+import { trimHeadToMaxPoints } from './shared/boundedSeries';
+import { loadSciChartModule } from './scichart/bootstrap';
+import {
+  appendSeriesBatch,
+  appendSeriesPoint,
+  setSeriesData,
+} from './scichart/seriesEngine';
+import { createRenderableSeriesForKind } from './scichart/series/index';
+import {
+  CHART_TOKENS,
+  createSciChartAxisOptions,
+  createSciChartThemeOverrides,
+  createSciChartTitleStyle,
+} from '../theme/index';
 
 type SciChartSurface = {
   xAxes: { add: (axis: unknown) => void };
@@ -21,29 +30,13 @@ type SciChartSurface = {
 
 type SciChartDataSeries = {
   clear: () => void;
+  append: (xValue: number, yValue: number) => void;
   appendRange: (xValues: number[], yValues: number[]) => void;
+  removeRange: (startIndex: number, count: number) => void;
+  count: () => number;
 };
 
-const resolveProjection = (projection?: ProjectionKind) => {
-  switch (projection) {
-    case 'XY':
-      return {
-        x: (d: ChartDatum) => d.x,
-        y: (d: ChartDatum) => d.y,
-      };
-    case 'TX':
-      return {
-        x: (d: ChartDatum) => d.t,
-        y: (d: ChartDatum) => d.x,
-      };
-    case 'TY':
-    default:
-      return {
-        x: (d: ChartDatum) => d.t,
-        y: (d: ChartDatum) => d.y,
-      };
-  }
-};
+const axisOptions = createSciChartAxisOptions;
 
 export const SciChartAdapter: ChartAdapter = {
   renderer: 'SCICHART',
@@ -53,9 +46,10 @@ export const SciChartAdapter: ChartAdapter = {
     Effect.sync(() => {
       const resolvedSpec = { ...spec, renderer: 'SCICHART' } as ChartSpec;
       let state: ChartState = 'UNINITIALIZED';
-      let series: ChartSeries = [];
+      let series: ChartDatum[] = [];
       let surface: SciChartSurface | null = null;
       let dataSeries: SciChartDataSeries | null = null;
+      const projection = resolveProjection(resolvedSpec.projection);
       const listeners = new Set<(next: ChartState) => void>();
 
       const setState = (next: ChartState) => {
@@ -68,11 +62,7 @@ export const SciChartAdapter: ChartAdapter = {
         Effect.try({
           try: () => {
             if (!dataSeries) return;
-            const projection = resolveProjection(resolvedSpec.projection);
-            const xValues = series.map((d) => projection.x(d));
-            const yValues = series.map((d) => projection.y(d));
-            dataSeries.clear();
-            dataSeries.appendRange(xValues, yValues);
+            setSeriesData(dataSeries, series, projection);
           },
           catch: (error) =>
             new ChartUpdateError({
@@ -86,34 +76,31 @@ export const SciChartAdapter: ChartAdapter = {
           try: async () => {
             if (state !== 'UNINITIALIZED') return;
             setState('LOADING');
-            const scichartModule = 'scichart';
-            const scichart = await import(/* @vite-ignore */ scichartModule);
+            const scichart = await loadSciChartModule();
             const {
               SciChartSurface,
               NumericAxis,
-              FastLineRenderableSeries,
-              FastMountainRenderableSeries,
               XyDataSeries,
-              XyScatterRenderableSeries,
-              EllipsePointMarker,
               ZoomPanModifier,
               MouseWheelZoomModifier,
               ZoomExtentsModifier,
               SciChartJsNavyTheme,
             } = scichart;
 
+            const tmnlTheme = Object.assign(
+              new SciChartJsNavyTheme(),
+              createSciChartThemeOverrides()
+            );
+
             const { sciChartSurface, wasmContext } =
               await SciChartSurface.create(container, {
-                theme: new SciChartJsNavyTheme(),
+                theme: tmnlTheme,
                 title: resolvedSpec.title ?? '',
-                titleStyle: {
-                  fontSize: 14,
-                  color: CHART_TOKENS.colors.textPrimary,
-                },
+                titleStyle: createSciChartTitleStyle(),
               });
 
-            const xAxis = new NumericAxis(wasmContext);
-            const yAxis = new NumericAxis(wasmContext);
+            const xAxis = new NumericAxis(wasmContext, axisOptions(0));
+            const yAxis = new NumericAxis(wasmContext, axisOptions(1));
             sciChartSurface.xAxes.add(xAxis);
             sciChartSurface.yAxes.add(yAxis);
 
@@ -125,34 +112,13 @@ export const SciChartAdapter: ChartAdapter = {
                 ? resolvedSpec.strokeWidth
                 : CHART_TOKENS.dimensions.strokeThicknessDefault;
 
-            let renderableSeries: unknown;
-            if (resolvedSpec.kind === 'AREA') {
-              renderableSeries = new FastMountainRenderableSeries(wasmContext, {
-                dataSeries,
-                stroke: CHART_TOKENS.colors.waveCyan,
-                strokeThickness: strokeWidth,
-                fill: CHART_TOKENS.colors.waveCyan,
-                opacity: 0.35,
-              });
-            } else if (resolvedSpec.kind === 'SCATTER') {
-              renderableSeries = new XyScatterRenderableSeries(wasmContext, {
-                dataSeries,
-                pointMarker: new EllipsePointMarker(wasmContext, {
-                  fill: CHART_TOKENS.colors.waveRed,
-                  stroke: CHART_TOKENS.colors.waveRed,
-                  size:
-                    'pointSize' in resolvedSpec && resolvedSpec.pointSize
-                      ? resolvedSpec.pointSize
-                      : 7,
-                }),
-              });
-            } else {
-              renderableSeries = new FastLineRenderableSeries(wasmContext, {
-                dataSeries,
-                stroke: CHART_TOKENS.colors.waveGreen,
-                strokeThickness: strokeWidth,
-              });
-            }
+            const renderableSeries = createRenderableSeriesForKind({
+              scichart,
+              wasmContext,
+              dataSeries,
+              spec: resolvedSpec,
+              strokeWidth,
+            });
 
             sciChartSurface.renderableSeries.add(renderableSeries);
             sciChartSurface.chartModifiers.add(
@@ -165,10 +131,7 @@ export const SciChartAdapter: ChartAdapter = {
             setState('READY');
 
             if (dataSeries && series.length > 0) {
-              const projection = resolveProjection(resolvedSpec.projection);
-              const xValues = series.map((d) => projection.x(d));
-              const yValues = series.map((d) => projection.y(d));
-              dataSeries.appendRange(xValues, yValues);
+              setSeriesData(dataSeries, series, projection);
             }
           },
           catch: (error) => {
@@ -203,18 +166,63 @@ export const SciChartAdapter: ChartAdapter = {
 
       const setData = (data: ChartSeries) =>
         Effect.sync(() => {
-          series = data;
+          series = [...data];
         }).pipe(Effect.andThen(updateSeries));
 
       const appendData = (data: ChartSeries) =>
-        Effect.sync(() => {
-          series = [...series, ...data];
-        }).pipe(Effect.andThen(updateSeries));
+        Effect.try({
+          try: () => {
+            if (data.length === 0) return;
+            if (!dataSeries) {
+              series.push(...data);
+              return;
+            }
+            appendSeriesBatch(dataSeries, series, projection, data);
+          },
+          catch: (error) =>
+            new ChartUpdateError({
+              renderer: 'SCICHART',
+              message: error instanceof Error ? error.message : String(error),
+            }),
+        });
 
       const clearData = () =>
-        Effect.sync(() => {
-          series = [];
-        }).pipe(Effect.andThen(updateSeries));
+        Effect.try({
+          try: () => {
+            series.length = 0;
+            dataSeries?.clear();
+          },
+          catch: (error) =>
+            new ChartUpdateError({
+              renderer: 'SCICHART',
+              message: error instanceof Error ? error.message : String(error),
+            }),
+        });
+
+      const appendPointFast = (point: ChartDatum, maxPoints?: number) => {
+        if (!dataSeries) {
+          series.push(point);
+          trimHeadToMaxPoints(series, maxPoints);
+          return;
+        }
+
+        appendSeriesPoint(dataSeries, series, projection, point, maxPoints);
+      };
+
+      const appendBatchFast = (
+        points: ReadonlyArray<ChartDatum>,
+        maxPoints?: number
+      ) => {
+        if (points.length === 0) return;
+
+        if (!dataSeries) {
+          series.push(...points);
+          trimHeadToMaxPoints(series, maxPoints);
+          return;
+        }
+
+        appendSeriesBatch(dataSeries, series, projection, points, maxPoints);
+      };
 
       const onStateChange = (handler: (next: ChartState) => void) => {
         listeners.add(handler);
@@ -234,6 +242,8 @@ export const SciChartAdapter: ChartAdapter = {
         setData,
         appendData,
         clearData,
+        appendPointFast,
+        appendBatchFast,
         onStateChange,
       } satisfies ChartInstance;
     }),
