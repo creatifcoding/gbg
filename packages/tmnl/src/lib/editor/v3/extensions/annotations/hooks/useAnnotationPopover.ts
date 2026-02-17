@@ -23,9 +23,11 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { useAtomValue } from '@effect-atom/atom-react';
-import type { Editor } from '@tiptap/core';
+import { posToDOMRect, type Editor } from '@tiptap/core';
+import type { Transaction } from '@tiptap/pm/state';
 
-import { popoverOps, activePopoverAtom, isPopoverOpenAtom } from '../atoms';
+import { activePopoverAtom, isPopoverOpenAtom } from '../atoms';
+import { popoverControllerOps } from '../popover-stx';
 import type { PopoverRequest } from '../services';
 import type { AnnotationId } from '../schemas';
 
@@ -77,6 +79,82 @@ export interface UseAnnotationPopoverReturn {
 }
 
 // =============================================================================
+// Anchor Utilities
+// =============================================================================
+
+interface AnchorRange {
+  from: number;
+  to: number;
+}
+
+function findAnnotationRange(editor: Editor, annotationId: AnnotationId): AnchorRange | null {
+  let minFrom: number | null = null;
+  let maxTo: number | null = null;
+
+  editor.state.doc.descendants((node, pos) => {
+    if (!node.isText) return;
+
+    const hasAnnotation = node.marks.some(
+      (mark) => mark.type.name === 'intentMark' && mark.attrs.id === annotationId
+    );
+
+    if (!hasAnnotation) return;
+
+    const from = pos;
+    const to = pos + node.nodeSize;
+
+    minFrom = minFrom === null ? from : Math.min(minFrom, from);
+    maxTo = maxTo === null ? to : Math.max(maxTo, to);
+  });
+
+  if (minFrom === null || maxTo === null) {
+    return null;
+  }
+
+  return { from: minFrom, to: maxTo };
+}
+
+function hasAnnotationInRange(
+  editor: Editor,
+  annotationId: AnnotationId,
+  range: AnchorRange
+): boolean {
+  let found = false;
+
+  editor.state.doc.nodesBetween(range.from, range.to, (node) => {
+    if (found || !node.isText) return;
+
+    if (
+      node.marks.some(
+        (mark) => mark.type.name === 'intentMark' && mark.attrs.id === annotationId
+      )
+    ) {
+      found = true;
+    }
+  });
+
+  return found;
+}
+
+function mapRange(range: AnchorRange, transaction: Transaction): AnchorRange {
+  const mappedFrom = transaction.mapping.map(range.from, -1);
+  const mappedTo = transaction.mapping.map(range.to, 1);
+
+  return {
+    from: Math.min(mappedFrom, mappedTo),
+    to: Math.max(mappedFrom, mappedTo),
+  };
+}
+
+function toVirtualAnchor(editor: Editor, range: AnchorRange) {
+  return {
+    _tag: 'virtual' as const,
+    getBoundingClientRect: () =>
+      posToDOMRect(editor.view, range.from, Math.max(range.from + 1, range.to)),
+  };
+}
+
+// =============================================================================
 // Hook Implementation
 // =============================================================================
 
@@ -89,7 +167,7 @@ export function useAnnotationPopover(
   const activePopover = useAtomValue(activePopoverAtom);
 
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const currentMarkElementRef = useRef<HTMLElement | null>(null);
+  const anchorRangeRef = useRef<AnchorRange | null>(null);
 
   // Clear hide timeout
   const clearHideTimeout = useCallback(() => {
@@ -117,18 +195,22 @@ export function useAnnotationPopover(
     };
   }, []);
 
-  // Get element anchor from mark ID
+  // Get element/range anchor from mark ID
   const getElementAnchor = useCallback(
     (markId: AnnotationId) => {
       if (!editor) return null;
+
+      const range = findAnnotationRange(editor, markId);
+      if (range) {
+        anchorRangeRef.current = range;
+        return toVirtualAnchor(editor, range);
+      }
 
       const element = editor.view.dom.querySelector(
         `[data-annotation-id="${markId}"]`
       ) as HTMLElement | null;
 
       if (!element) return null;
-
-      currentMarkElementRef.current = element;
 
       return {
         _tag: 'virtual' as const,
@@ -148,17 +230,34 @@ export function useAnnotationPopover(
           ? getVirtualAnchor(request.position)
           : getElementAnchor(request.markId);
 
+      if (editor) {
+        const range = findAnnotationRange(editor, request.markId);
+        if (range) {
+          anchorRangeRef.current = range;
+        }
+      }
+
       if (!anchor) return;
 
-      popoverOps.show({
-        annotationId: request.annotationId,
-        markId: request.markId,
-        anchor,
-        placement: 'top',
-        trigger: request.trigger,
-      });
+      if (request.trigger === 'hover') {
+        popoverControllerOps.openHover({
+          annotationId: request.annotationId,
+          markId: request.markId,
+          anchor,
+          placement: 'top',
+          trigger: request.trigger,
+        });
+      } else {
+        popoverControllerOps.openClick({
+          annotationId: request.annotationId,
+          markId: request.markId,
+          anchor,
+          placement: 'top',
+          trigger: request.trigger,
+        });
+      }
     },
-    [clearHideTimeout, getVirtualAnchor, getElementAnchor]
+    [clearHideTimeout, getVirtualAnchor, getElementAnchor, editor]
   );
 
   // Hide popover with optional delay
@@ -168,7 +267,7 @@ export function useAnnotationPopover(
 
     clearHideTimeout();
     hideTimeoutRef.current = setTimeout(() => {
-      popoverOps.hide();
+      popoverControllerOps.close('manual');
     }, hideDelay);
   }, [activePopover?.isPinned, clearHideTimeout, hideDelay]);
 
@@ -176,7 +275,7 @@ export function useAnnotationPopover(
   const toggle = useCallback(
     (request: PopoverRequest) => {
       if (isOpen && activePopover?.annotationId === request.annotationId) {
-        popoverOps.hide();
+        popoverControllerOps.close('manual');
       } else {
         show(request);
       }
@@ -187,12 +286,12 @@ export function useAnnotationPopover(
   // Pin popover
   const pin = useCallback(() => {
     clearHideTimeout();
-    popoverOps.pin();
+    popoverControllerOps.pin();
   }, [clearHideTimeout]);
 
   // Unpin popover
   const unpin = useCallback(() => {
-    popoverOps.unpin();
+    popoverControllerOps.unpin();
   }, []);
 
   // Handle popover request from IntentExecutor
@@ -214,10 +313,112 @@ export function useAnnotationPopover(
   // The safePolygon pattern uses document-level mousemove to create a safe traversal zone
   // between the trigger and popover, which is more reliable than element-level listeners.
 
+  // Wire editor lifecycle events to popover lifecycle and anchor updates.
+  useEffect(() => {
+    if (!editor) return;
+
+    const refreshAnchorFromRange = () => {
+      if (!activePopover?.annotationId) return;
+
+      const current =
+        anchorRangeRef.current ??
+        findAnnotationRange(editor, activePopover.annotationId);
+
+      if (!current) {
+        popoverControllerOps.close('invalid-anchor');
+        return;
+      }
+
+      anchorRangeRef.current = current;
+      popoverControllerOps.updateAnchor(toVirtualAnchor(editor, current));
+    };
+
+    const onSelectionUpdate = () => {
+      if (!activePopover) return;
+      popoverControllerOps.selectionInvalidated();
+    };
+
+    const onTransaction = ({ transaction }: { transaction: Transaction }) => {
+      if (!activePopover?.annotationId) return;
+
+      let nextRange = anchorRangeRef.current
+        ? mapRange(anchorRangeRef.current, transaction)
+        : null;
+
+      if (nextRange && !hasAnnotationInRange(editor, activePopover.annotationId, nextRange)) {
+        nextRange = null;
+      }
+
+      if (!nextRange) {
+        nextRange = findAnnotationRange(editor, activePopover.annotationId);
+      }
+
+      if (!nextRange) {
+        popoverControllerOps.close('invalid-anchor');
+        return;
+      }
+
+      anchorRangeRef.current = nextRange;
+      popoverControllerOps.updateAnchor(toVirtualAnchor(editor, nextRange));
+    };
+
+    const onBlur = () => {
+      if (!activePopover?.isPinned) {
+        popoverControllerOps.close('blur');
+      }
+    };
+
+    editor.on('selectionUpdate', onSelectionUpdate);
+    editor.on('transaction', onTransaction);
+    editor.on('blur', onBlur);
+
+    refreshAnchorFromRange();
+
+    return () => {
+      editor.off('selectionUpdate', onSelectionUpdate);
+      editor.off('transaction', onTransaction);
+      editor.off('blur', onBlur);
+    };
+  }, [editor, activePopover]);
+
+  // Keep anchor position fresh through viewport changes.
+  useEffect(() => {
+    if (!editor || !activePopover?.annotationId) return;
+
+    const updateFromViewport = () => {
+      const range =
+        anchorRangeRef.current ??
+        findAnnotationRange(editor, activePopover.annotationId);
+
+      if (!range) {
+        popoverControllerOps.close('invalid-anchor');
+        return;
+      }
+
+      anchorRangeRef.current = range;
+      popoverControllerOps.updateAnchor(toVirtualAnchor(editor, range));
+    };
+
+    window.addEventListener('scroll', updateFromViewport, true);
+    window.addEventListener('resize', updateFromViewport);
+
+    return () => {
+      window.removeEventListener('scroll', updateFromViewport, true);
+      window.removeEventListener('resize', updateFromViewport);
+    };
+  }, [editor, activePopover?.annotationId]);
+
+  useEffect(() => {
+    if (!activePopover) {
+      anchorRangeRef.current = null;
+    }
+  }, [activePopover]);
+
   // Clean up on unmount
   useEffect(() => {
     return () => {
       clearHideTimeout();
+      anchorRangeRef.current = null;
     };
   }, [clearHideTimeout]);
 
