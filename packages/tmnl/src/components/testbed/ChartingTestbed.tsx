@@ -22,9 +22,9 @@ import {
   LineChart,
   ScatterChart,
 } from 'lucide-react';
-import { Cause, Effect, Exit } from 'effect';
+import { Cause, Chunk, Effect, Exit, Fiber, Stream } from 'effect';
 import { useAtomSet, useAtomValue } from '@effect-atom/atom-react';
-import type { ChartSeries, ChartSpec, ChartState } from '@/lib/charting/v2';
+import type { ChartSeries, ChartSpec } from '@/lib/charting/v2';
 import {
   chartingRuntimeAtom,
   chartInstanceFamily,
@@ -36,43 +36,22 @@ import {
   chartStateSubscriptionsAtom,
   chartStatesAtom,
 } from '@/lib/charting/v2';
-import { CHART_TOKENS } from '@/lib/charting/v1';
+import { buffer as streamBuffer } from '@/lib/streams';
 import { VantaCard, VANTA_COLORS, VANTA_TYPOGRAPHY } from '@/components/portal';
 import { SectionLabel } from '@/components/testbed/shared';
+import { chartSurfaceStyle, resolveIndicator } from './charting/constants/styles';
+import {
+  makeBarSeries,
+  makeBurstSeries,
+  makeScatterSeries,
+  makeSignalSeries,
+} from './charting/data/series-factories';
 
 type ExitPromise = Promise<Exit.Exit<unknown, unknown>>;
 
 type ErrorState = {
   context: string;
   message: string;
-};
-
-const chartSurfaceStyle = {
-  width: '100%',
-  height: 280,
-  background: CHART_TOKENS.colors.chartBackground,
-  marginTop: 12,
-  borderRadius: 8,
-  border: `1px solid ${CHART_TOKENS.colors.chartBorder}`,
-};
-
-const resolveIndicator = (state: ChartState) => {
-  switch (state) {
-    case 'READY':
-    case 'STREAMING':
-      return { status: 'active' as const, label: state };
-    case 'LOADING':
-      return { status: 'pending' as const, label: state };
-    case 'ERROR':
-      return { status: 'error' as const, label: state };
-    case 'DISPOSED':
-      return { status: 'inactive' as const, label: state };
-    case 'PAUSED':
-      return { status: 'idle' as const, label: state };
-    case 'UNINITIALIZED':
-    default:
-      return { status: 'idle' as const, label: state };
-  }
 };
 
 function ChartRuntimeMount() {
@@ -84,43 +63,6 @@ function ChartRuntimeMount() {
   useAtomValue(chartStateSubscriptionsAtom);
   return null;
 }
-
-const makeSignalSeries = (params: {
-  pointCount: number;
-  frequency: number;
-  amplitude: number;
-  noise?: number;
-  phase?: number;
-}): ChartSeries => {
-  const { pointCount, frequency, amplitude, noise = 0, phase = 0 } = params;
-  return Array.from({ length: pointCount }, (_, i) => {
-    const t = i;
-    const theta = (i / pointCount) * Math.PI * 2 * frequency + phase;
-    const jitter = noise ? (Math.random() - 0.5) * noise : 0;
-    return { t, x: t, y: amplitude * Math.sin(theta) + jitter };
-  });
-};
-
-const makeBarSeries = (): ChartSeries =>
-  [120, 200, 150, 80, 190, 130].map((y, i) => ({
-    t: i,
-    x: i,
-    y,
-  }));
-
-const makeScatterSeries = (count = 64): ChartSeries =>
-  Array.from({ length: count }, (_, i) => ({
-    t: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-  }));
-
-const makeBurstSeries = (): ChartSeries =>
-  Array.from({ length: 32 }, (_, i) => ({
-    t: i,
-    x: i,
-    y: 0.6 + Math.sin(i * 0.35) * 0.5 + Math.random() * 0.25,
-  }));
 
 const useExitRunner = (scope: string) => {
   const [error, setError] = useState<ErrorState | null>(null);
@@ -441,7 +383,18 @@ function StreamingSciChartCard() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [fps, setFps] = useState(0);
   const [pointCount, setPointCount] = useState(512);
-  const [targetFps, setTargetFps] = useState(45);
+  const [targetFps, setTargetFps] = useState(60);
+  const [streamStats, setStreamStats] = useState<{
+    batches: number;
+    pointsApplied: number;
+    lastFlushMs: number;
+    mode: 'idle' | 'batch' | 'point' | 'effect';
+  }>({
+    batches: 0,
+    pointsApplied: 0,
+    lastFlushMs: 0,
+    mode: 'idle',
+  });
 
   const spec = useMemo<ChartSpec>(
     () => ({
@@ -456,61 +409,106 @@ function StreamingSciChartCard() {
   );
 
   const actions = useAutoChart(spec);
-  const indicator = resolveIndicator(actions.state);
-  const seriesRef = useRef<ChartSeries>([]);
+  const { state, appendData, clearData } = actions;
+  const indicator = resolveIndicator(state);
+  const instance = useAtomValue(chartInstanceFamily(spec.id));
   const tickRef = useRef(0);
-  const frameRef = useRef<number | null>(null);
+  const statsRef = useRef({
+    batches: 0,
+    pointsApplied: 0,
+    lastFlushMs: 0,
+    mode: 'idle' as 'idle' | 'batch' | 'point' | 'effect',
+  });
 
   useEffect(() => {
-    if (actions.state !== 'READY' || !isStreaming) return;
+    if (state !== 'READY' || !isStreaming || !instance) return;
 
-    let active = true;
-    let lastFrame = performance.now();
+    const flushIntervalMs = Math.max(
+      1,
+      Math.floor(1000 / Math.max(1, targetFps))
+    );
     let frameCount = 0;
     let lastSecond = performance.now();
 
-    const loop = (now: number) => {
-      if (!active) return;
-      const frameInterval = 1000 / targetFps;
-
-      if (now - lastFrame >= frameInterval) {
-        lastFrame = now;
-        const t = tickRef.current;
-        const y =
-          Math.sin(t * 0.08) * 0.9 +
-          Math.sin(t * 0.015) * 0.6 +
-          (Math.random() - 0.5) * 0.12;
-        const next = [...seriesRef.current, { t, x: t, y }];
-        seriesRef.current =
-          next.length > pointCount
-            ? next.slice(next.length - pointCount)
-            : next;
-        tickRef.current += 1;
-
-        void actions.setData(seriesRef.current);
-        frameCount += 1;
-      }
-
-      if (now - lastSecond >= 1000) {
-        setFps(frameCount);
-        frameCount = 0;
-        lastSecond = now;
-      }
-
-      frameRef.current = requestAnimationFrame(loop);
+    statsRef.current = {
+      batches: 0,
+      pointsApplied: 0,
+      lastFlushMs: 0,
+      mode: 'idle',
     };
 
-    frameRef.current = requestAnimationFrame(loop);
+    const pointEffect = Effect.sync(() => {
+      const t = tickRef.current;
+      const y =
+        Math.sin(t * 0.08) * 0.9 +
+        Math.sin(t * 0.015) * 0.6 +
+        (Math.random() - 0.5) * 0.12;
+      tickRef.current += 1;
+      return { t, x: t, y };
+    }).pipe(Effect.tap(() => Effect.yieldNow()));
+
+    const firehoseStream = Stream.repeatEffect(pointEffect).pipe(
+      streamBuffer(`${flushIntervalMs} millis`)
+    );
+
+    const streamFiber = Effect.runFork(
+      firehoseStream.pipe(
+        Stream.tap((chunk) =>
+          Effect.sync(() => {
+            const points = Chunk.toReadonlyArray(
+              Chunk.takeRight(chunk, Math.max(1, pointCount))
+            );
+            if (points.length === 0) return;
+
+            const flushStart = performance.now();
+
+            if (instance.appendBatchFast) {
+              instance.appendBatchFast(points, pointCount);
+              statsRef.current.mode = 'batch';
+            } else if (instance.appendPointFast) {
+              for (const point of points) {
+                instance.appendPointFast(point, pointCount);
+              }
+              statsRef.current.mode = 'point';
+            } else {
+              void appendData(points as ChartSeries);
+              statsRef.current.mode = 'effect';
+            }
+
+            statsRef.current.batches += 1;
+            statsRef.current.pointsApplied += points.length;
+            statsRef.current.lastFlushMs = performance.now() - flushStart;
+
+            frameCount += points.length;
+            const now = performance.now();
+            if (now - lastSecond >= 1000) {
+              setFps(frameCount);
+              setStreamStats({ ...statsRef.current });
+              frameCount = 0;
+              lastSecond = now;
+            }
+          })
+        ),
+        Stream.runDrain,
+        Effect.catchAllCause((cause) =>
+          Effect.logError(
+            `[ChartingTestbed] chart-sci-stream:stream\n${Cause.pretty(cause)}`
+          )
+        )
+      )
+    );
 
     return () => {
-      active = false;
-      if (frameRef.current) {
-        cancelAnimationFrame(frameRef.current);
-      }
-      frameRef.current = null;
-      void actions.clearData();
+      Effect.runFork(Fiber.interrupt(streamFiber));
+      setStreamStats({
+        batches: 0,
+        pointsApplied: 0,
+        lastFlushMs: 0,
+        mode: 'idle',
+      });
+      void clearData();
     };
-  }, [actions, isStreaming, pointCount, targetFps]);
+  }, [state, isStreaming, instance, pointCount, targetFps, appendData, clearData]);
 
   return (
     <VantaCard
@@ -531,9 +529,25 @@ function StreamingSciChartCard() {
         />
       </VantaCard.Header>
       <VantaCard.Subtitle>
-        Adaptive stream loop with SciChart renderer
+        Firehose stream via src/lib/streams → buffered apply to SciChart
       </VantaCard.Subtitle>
       <div ref={actions.containerRef} style={chartSurfaceStyle} />
+      <div
+        style={{
+          marginTop: 8,
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 12,
+          color: VANTA_COLORS.text.muted,
+          fontFamily: VANTA_TYPOGRAPHY.family.mono,
+          fontSize: 'var(--tmnl-text-xs, 12px)',
+        }}
+      >
+        <span>MODE: {streamStats.mode.toUpperCase()}</span>
+        <span>BATCHES: {streamStats.batches}</span>
+        <span>PTS APPLIED: {streamStats.pointsApplied}</span>
+        <span>LAST FLUSH: {streamStats.lastFlushMs.toFixed(2)}ms</span>
+      </div>
       <ErrorPanel error={actions.error} />
       <VantaCard.Divider />
       <VantaCard.Actions>
