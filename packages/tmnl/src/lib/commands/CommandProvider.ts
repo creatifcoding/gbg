@@ -127,28 +127,40 @@ export const CommandProvider: CompletionProvider<string> = {
       const searchItems = Array.from(commands.values()).map(commandToSearchItem)
 
       // Empty query = return all commands sorted by name
+      const mapToCompletion = (item: CommandSearchItem, score = 1): Completion => ({
+        value: item.id,
+        label: item.name,
+        description: item.description,
+        category: item.category,
+        kind: "command",
+        queryKind: "Commands",
+        section: "Commands",
+        score,
+        shortcuts: undefined,
+        badges: [
+          {
+            text: item.scope ?? "global",
+            tone: item.scope === "global" ? "info" : "neutral",
+          },
+        ],
+        metadata: {
+          source: "commands",
+          commandId: item.id,
+          commandCategory: item.category,
+          scope: item.scope,
+        },
+      })
+
       if (isEmpty(parsed)) {
         return searchItems
           .sort((a, b) => a.name.localeCompare(b.name))
-          .map((item): Completion => ({
-            value: item.id,
-            label: item.name,
-            description: item.description,
-            category: item.category,
-            score: 1,
-          }))
+          .map((item) => mapToCompletion(item, 1))
       }
 
       // Operators-only query = filter all commands directly (no driver search)
       if (hasOperatorsOnly(parsed)) {
         const filtered = applyFilters(searchItems, parsed)
-        return filtered.map((r): Completion => ({
-          value: r.item.id,
-          label: r.item.name,
-          description: r.item.description,
-          category: r.item.category,
-          score: r.score,
-        }))
+        return filtered.map((r) => mapToCompletion(r.item, r.score))
       }
 
       // Mixed query (text + operators) = use driver search + post-filters
@@ -158,13 +170,7 @@ export const CommandProvider: CompletionProvider<string> = {
       )
 
       // Transform to Completion format
-      return results.map((r): Completion => ({
-        value: r.item.id,
-        label: r.item.name,
-        description: r.item.description,
-        category: r.item.category,
-        score: r.score,
-      }))
+      return results.map((r) => mapToCompletion(r.item, r.score))
     }),
 
   onSelect: (item: Completion) =>

@@ -91,6 +91,20 @@ export const commandPaletteAltBinding = defineBinding(
   'global'
 )
 
+export const nuCmdkCommand = defineCommand(
+  {
+    id: 'system.nuCmdk',
+    name: 'NuCmdk Shell',
+    description: 'Open NuCmdk standalone shell',
+    category: 'system',
+    scope: 'global',
+    keys: 'ctrl+shift+k',
+  },
+  Effect.gen(function* () {
+    yield* Effect.log('system.nuCmdk: Opening NuCmdk shell...')
+  })
+)
+
 export const settingsCommand = defineCommand(
   {
     id: 'system.settings',
@@ -675,6 +689,7 @@ export const allCommands = [
   newFileCommand,
   // System
   commandPaletteCommand,
+  nuCmdkCommand,
   settingsCommand,
   keyboardShortcutsCommand,
   lockScreenCommand,
