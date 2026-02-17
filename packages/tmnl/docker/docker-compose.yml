@@ -134,8 +134,8 @@ services:
       # Y_SWEET_AUTH: your-secret-key
     restart: unless-stopped
     healthcheck:
-      # y-sweet returns 404 on root (WebSocket server), so just check port is open
-      test: ['CMD-SHELL', 'curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/ | grep -q "404" || exit 1']
+      # y-sweet image doesn't ship curl; probe TCP port directly via bash /dev/tcp
+      test: ['CMD-SHELL', 'bash -lc "echo > /dev/tcp/localhost/8080"']
       interval: 10s
       timeout: 5s
       retries: 3
