@@ -2,8 +2,8 @@ import { Atom } from '@effect-atom/atom'
 import { RegistryContext, useAtomValue } from '@effect-atom/atom-react'
 import { Effect } from 'effect'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
-import { COMMAND_PROVIDER_ID } from '../../CommandProvider'
-import { CommandService } from '../../service'
+import { COMMAND_PROVIDER_ID } from '@/lib/commands/CommandProvider'
+import { CommandService } from '@/lib/commands/service'
 import { type Completion, providerRegistry } from '../../../minibuffer/v2/providers'
 import { TESTBED_WINDOW_PROVIDER_ID } from '../../../tauri-windows'
 import { DOCUMENT_PROVIDER_ID } from '../../../editor/v3/providers/DocumentProvider'
@@ -14,7 +14,7 @@ import {
   type NuCmdkSearchBroker,
   type QueryRow,
   type Theta,
-} from '../../nu-cmdk/runtime'
+} from '../../runtime'
 import {
   shellRowToItemModel,
   type NuCmdkItemModel,
