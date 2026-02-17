@@ -8,14 +8,16 @@
  */
 
 import { useCallback, useRef, useMemo } from 'react';
+import { posToDOMRect, type Editor } from '@tiptap/core';
 import { MarkViewContent, type MarkViewRendererProps } from '@tiptap/react';
 
 import {
   annotationRegistry,
   activePopoverAtom,
-  popoverContentAtom,
   hoveredAnnotationIdAtom,
+  popoverHoverStateAtom,
 } from '../atoms';
+import { popoverControllerOps } from '../popover-stx';
 import type { AnnotationId, IntentPayload } from '../schemas';
 import {
   generateVisualStyleCSSProperties,
@@ -56,6 +58,95 @@ function parseTags(json: string | undefined | null): readonly string[] {
   }
 }
 
+interface AnchorRange {
+  from: number;
+  to: number;
+}
+
+function findAnnotationRange(editor: Editor, annotationId: AnnotationId): AnchorRange | null {
+  let minFrom: number | null = null;
+  let maxTo: number | null = null;
+
+  editor.state.doc.descendants((node, pos) => {
+    if (!node.isText) return;
+
+    const hasAnnotation = node.marks.some(
+      (mark) => mark.type.name === 'intentMark' && mark.attrs.id === annotationId
+    );
+
+    if (!hasAnnotation) return;
+
+    const from = pos;
+    const to = pos + node.nodeSize;
+
+    minFrom = minFrom === null ? from : Math.min(minFrom, from);
+    maxTo = maxTo === null ? to : Math.max(maxTo, to);
+  });
+
+  if (minFrom === null || maxTo === null) {
+    return null;
+  }
+
+  return { from: minFrom, to: maxTo };
+}
+
+function toUnionRect(rects: readonly DOMRect[]): DOMRect | null {
+  if (rects.length === 0) return null;
+
+  let left = Number.POSITIVE_INFINITY;
+  let top = Number.POSITIVE_INFINITY;
+  let right = Number.NEGATIVE_INFINITY;
+  let bottom = Number.NEGATIVE_INFINITY;
+
+  for (const rect of rects) {
+    if (rect.width <= 0 && rect.height <= 0) {
+      continue;
+    }
+
+    left = Math.min(left, rect.left);
+    top = Math.min(top, rect.top);
+    right = Math.max(right, rect.right);
+    bottom = Math.max(bottom, rect.bottom);
+  }
+
+  if (!Number.isFinite(left) || !Number.isFinite(top)) {
+    return null;
+  }
+
+  return new DOMRect(left, top, Math.max(right - left, 1), Math.max(bottom - top, 1));
+}
+
+function resolveAnnotationAnchorRect(
+  editor: Editor | null,
+  annotationId: AnnotationId,
+  fallbackElement: HTMLElement | null
+): DOMRect {
+  if (editor) {
+    const range = findAnnotationRange(editor, annotationId);
+    if (range) {
+      return posToDOMRect(editor.view, range.from, Math.max(range.from + 1, range.to));
+    }
+  }
+
+  if (typeof document !== 'undefined') {
+    const escapedId = typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+      ? CSS.escape(annotationId)
+      : annotationId;
+
+    const markEls = Array.from(
+      document.querySelectorAll<HTMLElement>(`[data-annotation-id="${escapedId}"]`)
+    );
+
+    const rects = markEls.flatMap((el) => Array.from(el.getClientRects()));
+    const unionRect = toUnionRect(rects);
+    if (unionRect) {
+      return unionRect;
+    }
+  }
+
+  return fallbackElement?.getBoundingClientRect() ?? new DOMRect(0, 0, 1, 1);
+}
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -88,78 +179,40 @@ const HOVER_DELAY_MS = 150; // Delay before showing popover on hover
 // Component
 // =============================================================================
 
-/**
- * Build popover content directly from intent data.
- * Used when marks aren't registered with AnnotationService.
- */
-function buildPopoverContent(intentData: {
-  intentType: string;
-  intent: IntentPayload;
-  visualType?: string;
-  tags?: readonly string[];
-}) {
-  const { intentType, intent, tags } = intentData;
-
-  const content: {
-    title: string;
-    description?: string;
-    href?: string;
-    actionLabel?: string;
-    meta?: string;
-  } = {
-    title: intentType,
-    meta: tags?.length ? tags.join(', ') : undefined,
-  };
-
-  switch (intent._tag) {
-    case 'Hyperlink':
-      content.title = intent.label ?? 'Link';
-      content.href = intent.href;
-      content.actionLabel = 'Open Link';
-      break;
-    case 'Ultralink':
-      content.title = intent.metadata?.title ?? 'Ultralink';
-      content.description = intent.metadata?.description ?? `→ ${intent.target}`;
-      break;
-    case 'Popover':
-      content.title = 'Popover';
-      content.description =
-        typeof intent.content === 'string' ? intent.content : JSON.stringify(intent.content);
-      break;
-    case 'Action':
-      content.title = intent.actionName ?? 'Action';
-      content.actionLabel = 'Execute';
-      break;
-    case 'Citation':
-      content.title = 'Citation';
-      content.description = intent.source ?? undefined;
-      break;
-    case 'Note':
-      content.title = intent.noteType === 'comment' ? 'Comment' : 'Note';
-      content.description = `Note: ${intent.targetNodeId}`;
-      break;
-  }
-
-  return content;
-}
-
 export function IntentMarkView(props: MarkViewRendererProps) {
   const { HTMLAttributes } = props;
   const attrs = HTMLAttributes as unknown as IntentMarkHTMLAttributes;
+  const markAttrs = (props.mark?.attrs ?? {}) as Record<string, unknown>;
 
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spanRef = useRef<HTMLSpanElement>(null);
 
-  // Parse the annotation ID - use HTML attribute name (data-annotation-id)
-  const annotationId = attrs['data-annotation-id'] as AnnotationId | null;
+  const rawAnnotationId =
+    (typeof markAttrs.id === 'string' ? markAttrs.id : null) ??
+    attrs['data-annotation-id'] ??
+    null;
 
-  // Parse intent and tags from data attributes - memoized for stability
+  const rawIntent =
+    typeof markAttrs.intent === 'string' ? markAttrs.intent : attrs['data-intent'];
+
+  const rawVisualStyle =
+    typeof markAttrs.visualStyle === 'string' ||
+    (markAttrs.visualStyle !== null && typeof markAttrs.visualStyle === 'object')
+      ? markAttrs.visualStyle
+      : attrs['data-visual-style'];
+
+  const rawTags =
+    typeof markAttrs.tags === 'string' ? markAttrs.tags : attrs['data-tags'];
+
+  const annotationId = rawAnnotationId as AnnotationId | null;
+
+  // Parse intent and tags from mark attrs (fallback to HTML attributes) - memoized for stability
   const intentData = useMemo(() => {
-    const intent = parseIntent(attrs['data-intent']);
+    const intent = parseIntent(rawIntent);
     if (!intent) return undefined;
 
-    const visualStyle = parseVisualStyle(attrs['data-visual-style']);
-    const tags = parseTags(attrs['data-tags']);
+    const visualStyle = parseVisualStyle(rawVisualStyle);
+    const tags = parseTags(rawTags);
 
     return {
       intentType: intent._tag,
@@ -167,37 +220,55 @@ export function IntentMarkView(props: MarkViewRendererProps) {
       visualType: visualStyle?.type,
       tags,
     };
-  }, [attrs['data-intent'], attrs['data-visual-style'], attrs['data-tags']]);
+  }, [rawIntent, rawVisualStyle, rawTags]);
 
   // Handle mouse enter - show popover after delay
   const handleMouseEnter = useCallback(() => {
-    if (!annotationId) return;
+    if (!annotationId) {
+      if (import.meta.env.DEV) {
+        console.warn('[IntentMarkView] Missing annotationId on mouse enter', {
+          rawAnnotationId,
+          rawIntent,
+        });
+      }
+      return;
+    }
 
     // Set hover state immediately for CSS effects
     annotationRegistry.set(hoveredAnnotationIdAtom, annotationId);
+    const hoverState = annotationRegistry.get(popoverHoverStateAtom);
+    annotationRegistry.set(popoverHoverStateAtom, {
+      trigger: true,
+      popover: hoverState.popover,
+    });
 
     // Delay popover show for better UX
     hoverTimeoutRef.current = setTimeout(() => {
-      if (!spanRef.current) return;
+      const element = spanRef.current;
+      if (!element) return;
 
-      const rect = spanRef.current.getBoundingClientRect();
+      if (import.meta.env.DEV) {
+        console.debug('[PopoverDebug][mark] hover dispatch', {
+          annotationId,
+          intentType: intentData?.intentType,
+        });
+      }
 
-      // Set atoms directly via registry - no Effect needed!
-      annotationRegistry.set(activePopoverAtom, {
+      popoverControllerOps.openHover({
         annotationId,
         markId: annotationId,
+        anchor: {
+          _tag: 'virtual',
+          getBoundingClientRect: () =>
+            resolveAnnotationAnchorRect(props.editor ?? null, annotationId, element),
+        },
         placement: 'top',
         trigger: 'hover',
-        isPinned: false,
-        anchorRect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+        intentType: intentData?.intentType,
+        intentData,
       });
-
-      // Build and set content directly
-      if (intentData) {
-        annotationRegistry.set(popoverContentAtom, buildPopoverContent(intentData));
-      }
     }, HOVER_DELAY_MS);
-  }, [annotationId, intentData]);
+  }, [annotationId, intentData, props.editor, rawAnnotationId, rawIntent]);
 
   // Handle mouse leave - just cancel pending open, safePolygon handles closing
   const handleMouseLeave = useCallback(() => {
@@ -209,8 +280,13 @@ export function IntentMarkView(props: MarkViewRendererProps) {
 
     // Clear CSS hover state
     annotationRegistry.set(hoveredAnnotationIdAtom, null);
+    const hoverState = annotationRegistry.get(popoverHoverStateAtom);
+    annotationRegistry.set(popoverHoverStateAtom, {
+      trigger: false,
+      popover: hoverState.popover,
+    });
 
-    // Note: We do NOT close the popover here!
+    // Note: We do NOT close the popover here directly.
     // safePolygon in AnnotationPopover handles closing via document mousemove
     // This allows user to move cursor from trigger to popover without closing
   }, []);
@@ -218,40 +294,54 @@ export function IntentMarkView(props: MarkViewRendererProps) {
   // Handle click - toggle popover (pinned mode)
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
-      if (!annotationId || !spanRef.current) return;
+      if (!annotationId || !spanRef.current) {
+        if (import.meta.env.DEV) {
+          console.warn('[IntentMarkView] Click ignored: missing annotationId or spanRef', {
+            annotationId,
+            hasSpan: !!spanRef.current,
+          });
+        }
+        return;
+      }
 
       // Prevent editor from handling click
       e.stopPropagation();
 
-      const rect = spanRef.current.getBoundingClientRect();
-
       // Check if this popover is already open - toggle it
       const current = annotationRegistry.get(activePopoverAtom);
       if (current?.annotationId === annotationId) {
-        // Close it
-        annotationRegistry.set(activePopoverAtom, null);
-        annotationRegistry.set(popoverContentAtom, null);
-      } else {
-        // Open it (pinned)
-        annotationRegistry.set(activePopoverAtom, {
-          annotationId,
-          markId: annotationId,
-          placement: 'top',
-          trigger: 'click',
-          isPinned: true,
-          anchorRect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
-        });
-
-        if (intentData) {
-          annotationRegistry.set(popoverContentAtom, buildPopoverContent(intentData));
-        }
+        popoverControllerOps.close('manual');
+        return;
       }
+
+      const element = spanRef.current;
+
+      if (import.meta.env.DEV) {
+        console.debug('[PopoverDebug][mark] click dispatch', {
+          annotationId,
+          intentType: intentData?.intentType,
+        });
+      }
+
+      popoverControllerOps.openClick({
+        annotationId,
+        markId: annotationId,
+        anchor: {
+          _tag: 'virtual',
+          getBoundingClientRect: () =>
+            resolveAnnotationAnchorRect(props.editor ?? null, annotationId, element),
+        },
+        placement: 'top',
+        trigger: 'click',
+        intentType: intentData?.intentType,
+        intentData,
+      });
     },
-    [annotationId, intentData]
+    [annotationId, intentData, props.editor]
   );
 
   // Parse visual style for rendering - use centralized parser
-  const visualStyle = parseVisualStyle(attrs['data-visual-style']) ?? DEFAULT_VISUAL_STYLE;
+  const visualStyle = parseVisualStyle(rawVisualStyle) ?? DEFAULT_VISUAL_STYLE;
 
   // Build class names
   const classNames = ['intent-mark', `intent-mark--${visualStyle.type}`];
@@ -270,9 +360,11 @@ export function IntentMarkView(props: MarkViewRendererProps) {
       ref={spanRef}
       className={classNames.join(' ')}
       data-annotation-id={annotationId}
-      data-visual-style={attrs['data-visual-style']}
-      data-intent={attrs['data-intent']}
-      data-tags={attrs['data-tags']}
+      data-visual-style={
+        typeof rawVisualStyle === 'string' ? rawVisualStyle : JSON.stringify(visualStyle)
+      }
+      data-intent={rawIntent}
+      data-tags={rawTags}
       data-created-at={attrs['data-created-at']}
       data-created-by={attrs['data-created-by']}
       onMouseEnter={handleMouseEnter}
