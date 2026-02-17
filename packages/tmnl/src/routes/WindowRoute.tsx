@@ -12,7 +12,7 @@ import { useSearch } from '@tanstack/react-router'
 import { Suspense, lazy, useMemo, useEffect, useState, useRef } from 'react'
 import { Effect } from 'effect'
 import { getTestbedById, getWindowLabel } from '@/lib/testbed/registry'
-import { WindowLayout, WindowHeaderContent } from '@/components/shell'
+import { WindowLayout, WindowHeaderContent } from '@/lib/shell'
 import { getCurrentWindowLabel } from '@/lib/tauri-windows'
 
 // ─────────────────────────────────────────────────────────────────────────────

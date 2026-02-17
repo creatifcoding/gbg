@@ -11,7 +11,7 @@ import { VisualOverlayProvider, GlobalSlot } from './lib/overlays/visual';
 import { BufferProvider } from './lib/buffer';
 import { ActorProvider } from './lib/actors';
 import { WindowProvider } from './lib/windows';
-import { AppShell, HeaderContent } from './components/shell';
+import { AppShell, HeaderContent } from '@/lib/shell';
 import { Sidebar, type SidebarConfig } from './lib/sidebar';
 import { Cursor } from './lib/cursor';
 import './index.css';
