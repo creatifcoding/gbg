@@ -92,6 +92,31 @@ declare module '@tiptap/core' {
 }
 
 // =============================================================================
+// Utilities
+// =============================================================================
+
+function normalizeNodeText(content: unknown): string {
+  if (typeof content === 'string') {
+    return content;
+  }
+
+  if (content === null || content === undefined) {
+    return '';
+  }
+
+  try {
+    return JSON.stringify(content);
+  } catch {
+    return String(content);
+  }
+}
+
+function toInlineTextContent(content: unknown): Array<{ type: 'text'; text: string }> {
+  const text = normalizeNodeText(content);
+  return text.length > 0 ? [{ type: 'text', text }] : [];
+}
+
+// =============================================================================
 // Extension Definition
 // =============================================================================
 
@@ -243,15 +268,7 @@ export const AnnotationNodeExtension = Node.create<AnnotationNodeOptions>({
               createdAt: now,
               updatedAt: now,
             },
-            content: [
-              {
-                type: 'text',
-                text:
-                  typeof options.content === 'string'
-                    ? options.content
-                    : JSON.stringify(options.content),
-              },
-            ],
+            content: toInlineTextContent(options.content),
           });
         },
 
@@ -278,6 +295,23 @@ export const AnnotationNodeExtension = Node.create<AnnotationNodeOptions>({
               }
 
               tr.setNodeMarkup(pos, undefined, newAttrs);
+
+              // Update node text content when requested.
+              // IMPORTANT: Never write empty text nodes.
+              let nextText = node.textContent ?? '';
+              if (updates.content !== undefined) {
+                nextText = normalizeNodeText(updates.content);
+
+                const contentFrom = pos + 1;
+                const contentTo = pos + node.nodeSize - 1;
+
+                if (nextText.length > 0) {
+                  tr.replaceWith(contentFrom, contentTo, state.schema.text(nextText));
+                } else {
+                  tr.delete(contentFrom, contentTo);
+                }
+              }
+
               updated = true;
 
               // Notify callback
@@ -286,7 +320,7 @@ export const AnnotationNodeExtension = Node.create<AnnotationNodeOptions>({
                 const schemaNode = decodeNodeAttrs({
                   id: node.attrs.id,
                   title: newAttrs.title,
-                  content: JSON.stringify(updates.content ?? node.textContent),
+                  content: JSON.stringify(nextText),
                   documentId: node.attrs.documentId,
                   createdAt: node.attrs.createdAt,
                   updatedAt: newAttrs.updatedAt,
