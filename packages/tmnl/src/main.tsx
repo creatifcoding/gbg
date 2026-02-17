@@ -147,13 +147,18 @@ root.render(
                 ) : (
                   // Main window: full AppShell with sidebar
                   <>
-                    <AppShell
-                      header={<HeaderContent />}
-                      sidebar={<Sidebar config={defaultSidebarConfig} />}
-                    >
-                      <WindowProvider enabled={true}>
-                        <RouterProvider router={router} />
-                      </WindowProvider>
+                    <AppShell>
+                      <AppShell.Header>
+                        <HeaderContent />
+                      </AppShell.Header>
+                      <AppShell.Sidebar>
+                        <Sidebar config={defaultSidebarConfig} />
+                      </AppShell.Sidebar>
+                      <AppShell.Workspace>
+                        <WindowProvider enabled={true}>
+                          <RouterProvider router={router} />
+                        </WindowProvider>
+                      </AppShell.Workspace>
                     </AppShell>
                     <GlobalSlot />
                     <Cursor />
