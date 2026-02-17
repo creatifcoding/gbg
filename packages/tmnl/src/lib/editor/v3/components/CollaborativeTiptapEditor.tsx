@@ -549,7 +549,7 @@ const InnerEditor: React.FC<InnerEditorProps> = ({
       {/* CRITICAL: Registry provider ensures popover reads from same registry IntentMarkView writes to */}
       {editor && (
         <AnnotationRegistryProvider>
-          <AnnotationPopover />
+          <AnnotationPopover editor={editor} />
         </AnnotationRegistryProvider>
       )}
 

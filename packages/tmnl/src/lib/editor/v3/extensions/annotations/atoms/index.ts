@@ -287,6 +287,20 @@ export const annotationRuntimeAtom = Atom.runtime(
   )
 );
 
+/**
+ * Popover Runtime Atom
+ *
+ * Isolated runtime for popover lifecycle operations.
+ *
+ * Why isolated?
+ * - `popoverOps` powers immediate UI lifecycle (hover/click open/close)
+ * - full annotation runtime can fail from unrelated services
+ * - popover interaction must not be blocked by graph/tools executor wiring
+ */
+export const popoverRuntimeAtom = Atom.runtime(
+  Layer.mergeAll(AnnotationServiceLive, AnnotationPopoverServiceLive)
+);
+
 // =============================================================================
 // Operation Atoms (Mutations via Effect)
 // =============================================================================
@@ -824,6 +838,28 @@ function buildPopoverContentFromIntent(intentData: {
   return content;
 }
 
+function resolveAnchorRect(anchor: PopoverAnchor): AnchorRect | null {
+  if (anchor._tag === 'virtual' && anchor.getBoundingClientRect) {
+    const rectFn = anchor.getBoundingClientRect as () => DOMRect;
+    const rect = rectFn();
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+  }
+
+  if (anchor._tag === 'coordinates') {
+    return { x: anchor.position.x, y: anchor.position.y, width: 0, height: 0 };
+  }
+
+  if (anchor._tag === 'element') {
+    const el = document.querySelector(anchor.selector);
+    if (!el) return null;
+
+    const rect = el.getBoundingClientRect();
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+  }
+
+  return null;
+}
+
 // =============================================================================
 // Popover Operations
 // =============================================================================
@@ -838,7 +874,7 @@ export const popoverOps = {
    * Pass `intentData` to bypass service lookup - essential when marks
    * aren't registered with AnnotationService (e.g., TipTap-only marks).
    */
-  show: annotationRuntimeAtom.fn<{
+  show: popoverRuntimeAtom.fn<{
     annotationId: AnnotationId;
     markId: AnnotationId;
     anchor: PopoverAnchor;
@@ -857,21 +893,7 @@ export const popoverOps = {
       const popoverService = yield* AnnotationPopoverService;
       yield* popoverService.show(args);
 
-      // Extract anchor rect from anchor
-      let anchorRect: AnchorRect | null = null;
-      if (args.anchor._tag === 'virtual' && args.anchor.getBoundingClientRect) {
-        const rectFn = args.anchor.getBoundingClientRect as () => DOMRect;
-        const rect = rectFn();
-        anchorRect = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
-      } else if (args.anchor._tag === 'coordinates') {
-        anchorRect = { x: args.anchor.position.x, y: args.anchor.position.y, width: 0, height: 0 };
-      } else if (args.anchor._tag === 'element') {
-        const el = document.querySelector(args.anchor.selector);
-        if (el) {
-          const rect = el.getBoundingClientRect();
-          anchorRect = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
-        }
-      }
+      const anchorRect = resolveAnchorRect(args.anchor);
 
       ctx.set(activePopoverAtom, {
         annotationId: args.annotationId,
@@ -900,7 +922,7 @@ export const popoverOps = {
   /**
    * Hide the active popover
    */
-  hide: annotationRuntimeAtom.fn<void>()((_, ctx) =>
+  hide: popoverRuntimeAtom.fn<void>()((_, ctx) =>
     Effect.gen(function* () {
       const popoverService = yield* AnnotationPopoverService;
       yield* popoverService.hide;
@@ -913,7 +935,7 @@ export const popoverOps = {
   /**
    * Toggle popover for an annotation
    */
-  toggle: annotationRuntimeAtom.fn<{
+  toggle: popoverRuntimeAtom.fn<{
     annotationId: AnnotationId;
     markId: AnnotationId;
     anchor: PopoverAnchor;
@@ -937,21 +959,7 @@ export const popoverOps = {
       } else {
         yield* popoverService.show(args);
 
-        // Extract anchor rect from anchor
-        let anchorRect: AnchorRect | null = null;
-        if (args.anchor._tag === 'virtual' && args.anchor.getBoundingClientRect) {
-          const rectFn = args.anchor.getBoundingClientRect as () => DOMRect;
-          const rect = rectFn();
-          anchorRect = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
-        } else if (args.anchor._tag === 'coordinates') {
-          anchorRect = { x: args.anchor.position.x, y: args.anchor.position.y, width: 0, height: 0 };
-        } else if (args.anchor._tag === 'element') {
-          const el = document.querySelector(args.anchor.selector);
-          if (el) {
-            const rect = el.getBoundingClientRect();
-            anchorRect = { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
-          }
-        }
+        const anchorRect = resolveAnchorRect(args.anchor);
 
         ctx.set(activePopoverAtom, {
           annotationId: args.annotationId,
@@ -979,38 +987,48 @@ export const popoverOps = {
   /**
    * Pin the active popover
    */
-  pin: annotationRuntimeAtom.fn<void>()((_, ctx) =>
+  pin: popoverRuntimeAtom.fn<void>()((_, ctx) =>
     Effect.gen(function* () {
       const popoverService = yield* AnnotationPopoverService;
       yield* popoverService.pin;
 
-      ctx.set(activePopoverAtom, (prev) =>
-        prev ? { ...prev, isPinned: true } : null
-      );
+      const prev = annotationRegistry.get(activePopoverAtom);
+      ctx.set(activePopoverAtom, prev ? { ...prev, isPinned: true } : null);
     })
   ),
 
   /**
    * Unpin the active popover
    */
-  unpin: annotationRuntimeAtom.fn<void>()((_, ctx) =>
+  unpin: popoverRuntimeAtom.fn<void>()((_, ctx) =>
     Effect.gen(function* () {
       const popoverService = yield* AnnotationPopoverService;
       yield* popoverService.unpin;
 
-      ctx.set(activePopoverAtom, (prev) =>
-        prev ? { ...prev, isPinned: false } : null
-      );
+      const prev = annotationRegistry.get(activePopoverAtom);
+      ctx.set(activePopoverAtom, prev ? { ...prev, isPinned: false } : null);
     })
   ),
 
   /**
    * Update popover anchor position
    */
-  updateAnchor: annotationRuntimeAtom.fn<{ anchor: PopoverAnchor }>()((args) =>
+  updateAnchor: popoverRuntimeAtom.fn<{ anchor: PopoverAnchor }>()((args, ctx) =>
     Effect.gen(function* () {
       const popoverService = yield* AnnotationPopoverService;
       yield* popoverService.updateAnchor(args.anchor);
+
+      const anchorRect = resolveAnchorRect(args.anchor);
+      const prev = annotationRegistry.get(activePopoverAtom);
+      ctx.set(
+        activePopoverAtom,
+        prev
+          ? {
+              ...prev,
+              anchorRect,
+            }
+          : prev
+      );
     })
   ),
 } as const;
