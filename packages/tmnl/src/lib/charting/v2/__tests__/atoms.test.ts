@@ -229,16 +229,16 @@ describe('ChartOps atoms', () => {
     registry.set(chartOps.dispose, 'chart-op-3');
     await vi.advanceTimersByTimeAsync(0);
 
+    const key = toChartMapKey('chart-op-3');
+
     expect(counters.disposed).toBe(1);
-    expect(
-      HashMap.has(registry.get(chartInstancesAtom), toChartMapKey('chart-op-3'))
-    ).toBe(false);
-    expect(
-      HashMap.has(registry.get(chartSpecsAtom), toChartMapKey('chart-op-3'))
-    ).toBe(false);
-    expect(
-      HashMap.has(registry.get(chartStatesAtom), toChartMapKey('chart-op-3'))
-    ).toBe(false);
+    expect(HashMap.has(registry.get(chartInstancesAtom), key)).toBe(false);
+    expect(HashMap.has(registry.get(chartSpecsAtom), key)).toBe(false);
+    expect(HashMap.has(registry.get(chartStatesAtom), key)).toBe(false);
+    expect(HashMap.has(registry.get(chartReleasesAtom), key)).toBe(false);
+    expect(HashMap.has(registry.get(chartStateSubscriptionsAtom), key)).toBe(
+      false
+    );
   });
 
   it('CH-OP-H4: duplicate create releases prior instance', async () => {
