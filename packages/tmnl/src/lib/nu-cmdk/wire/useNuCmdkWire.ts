@@ -3,7 +3,7 @@ import { Data, Effect } from 'effect'
 import {
   COMMAND_PROVIDER_ID,
   registerCommandProvider,
-} from './CommandProvider'
+} from '@/lib/commands/CommandProvider'
 import {
   TESTBED_WINDOW_PROVIDER_ID,
   registerTestbedWindowProvider,
