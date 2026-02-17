@@ -10,7 +10,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Registry } from '@effect-atom/atom-react';
 import * as Result from '@effect-atom/atom/Result';
-import { Effect } from 'effect';
+import { Effect, HashMap, Option } from 'effect';
 import * as Runtime from 'effect/Runtime';
 import { ChartRuntime } from '../runtime';
 import {
@@ -21,7 +21,8 @@ import {
   chartReleasesAtom,
   chartStateSubscriptionsAtom,
   chartOps,
-} from '../atoms';
+} from '../atoms/index';
+import { toChartMapKey } from '../keys';
 import type { ChartSpec, ChartState } from '../schemas';
 import type { ChartAdapter } from '../adapters/types';
 import type { ChartInstance } from '../types';
@@ -158,9 +159,17 @@ describe('ChartOps atoms', () => {
     const createResult = registry.get(chartOps.create);
     expect(Result.isSuccess(createResult)).toBe(true);
 
-    expect(registry.get(chartInstancesAtom).has('chart-op-1')).toBe(true);
-    expect(registry.get(chartSpecsAtom).has('chart-op-1')).toBe(true);
-    expect(registry.get(chartStatesAtom).get('chart-op-1')).toBe('READY');
+    expect(
+      HashMap.has(registry.get(chartInstancesAtom), toChartMapKey('chart-op-1'))
+    ).toBe(true);
+    expect(
+      HashMap.has(registry.get(chartSpecsAtom), toChartMapKey('chart-op-1'))
+    ).toBe(true);
+    expect(
+      Option.getOrUndefined(
+        HashMap.get(registry.get(chartStatesAtom), toChartMapKey('chart-op-1'))
+      )
+    ).toBe('READY');
     expect(counters.created).toBe(1);
   });
 
@@ -190,7 +199,11 @@ describe('ChartOps atoms', () => {
     emit('ERROR');
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(registry.get(chartStatesAtom).get('chart-op-2')).toBe('ERROR');
+    expect(
+      Option.getOrUndefined(
+        HashMap.get(registry.get(chartStatesAtom), toChartMapKey('chart-op-2'))
+      )
+    ).toBe('ERROR');
   });
 
   it('CH-OP-H3: dispose clears atoms and disposes adapter instance', async () => {
@@ -217,9 +230,15 @@ describe('ChartOps atoms', () => {
     await vi.advanceTimersByTimeAsync(0);
 
     expect(counters.disposed).toBe(1);
-    expect(registry.get(chartInstancesAtom).has('chart-op-3')).toBe(false);
-    expect(registry.get(chartSpecsAtom).has('chart-op-3')).toBe(false);
-    expect(registry.get(chartStatesAtom).has('chart-op-3')).toBe(false);
+    expect(
+      HashMap.has(registry.get(chartInstancesAtom), toChartMapKey('chart-op-3'))
+    ).toBe(false);
+    expect(
+      HashMap.has(registry.get(chartSpecsAtom), toChartMapKey('chart-op-3'))
+    ).toBe(false);
+    expect(
+      HashMap.has(registry.get(chartStatesAtom), toChartMapKey('chart-op-3'))
+    ).toBe(false);
   });
 
   it('CH-OP-H4: duplicate create releases prior instance', async () => {

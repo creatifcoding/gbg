@@ -1,49 +1,47 @@
-import { Effect, Exit, RcMap, Ref, Scope } from 'effect';
+import { Effect, Exit, HashMap, RcMap, Ref, Scope } from 'effect';
 import {
   ChartAdapterUnavailable,
   ChartInstanceNotFound,
   type ChartError,
 } from './errors';
-import type { ChartSpec, ChartRenderer } from './schemas';
+import type { ChartSpec } from './schemas';
 import type { ChartInstance } from './types';
+import { type ChartMapKey } from './keys';
 import type { ChartAdapter } from './adapters/types';
 import { EChartsAdapter } from './adapters/echarts';
 import { SciChartAdapter } from './adapters/scichart';
+import { makeAdapterRegistry } from './runtime/registry';
+import {
+  invalidateSpec,
+  lookupSpec,
+  registerSpec,
+  type ChartSpecsRef,
+} from './runtime/instances';
 
 export class ChartRuntime extends Effect.Service<ChartRuntime>()(
   'tmnl/charting/ChartRuntime',
   {
     effect: Effect.gen(function* () {
-      const adapters = new Map<ChartRenderer, ChartAdapter>([
+      const registry = makeAdapterRegistry([
         ['ECHARTS', EChartsAdapter],
         ['SCICHART', SciChartAdapter],
-      ]);
+      ] as const);
 
-      const specsRef = yield* Ref.make<ReadonlyMap<string, ChartSpec>>(
-        new Map()
-      );
+      const specsRef: ChartSpecsRef = yield* Ref.make<
+        HashMap.HashMap<ChartMapKey, ChartSpec>
+      >(HashMap.empty());
       const mapScope = yield* Scope.make();
       const closeMapScope = Scope.close(mapScope, Exit.void);
 
       const instances = yield* RcMap.make({
         lookup: (id: string) =>
-          Ref.get(specsRef).pipe(
-            Effect.flatMap((specs) => {
-              const spec = specs.get(id);
-              if (!spec) {
-                return Effect.fail(new ChartInstanceNotFound({ id }));
+          lookupSpec(specsRef, id).pipe(
+            Effect.flatMap((spec) => {
+              const adapterOrError = registry.resolveAdapter(spec);
+              if (adapterOrError instanceof ChartAdapterUnavailable) {
+                return Effect.fail(adapterOrError);
               }
-              const renderer = spec.renderer ?? 'ECHARTS';
-              const adapter = adapters.get(renderer);
-              if (!adapter) {
-                return Effect.fail(
-                  new ChartAdapterUnavailable({
-                    renderer,
-                    message: `No adapter registered for ${renderer}`,
-                  })
-                );
-              }
-              return adapter.makeInstance(spec);
+              return adapterOrError.makeInstance(spec);
             }),
             Effect.acquireRelease((instance) =>
               instance.dispose().pipe(Effect.catchAll(() => Effect.void))
@@ -53,21 +51,14 @@ export class ChartRuntime extends Effect.Service<ChartRuntime>()(
 
       const registerAdapter = (adapter: ChartAdapter) =>
         Effect.sync(() => {
-          adapters.set(adapter.renderer, adapter);
-        });
-
-      const registerSpec = (spec: ChartSpec) =>
-        Ref.update(specsRef, (current) => {
-          const next = new Map(current);
-          next.set(spec.id, spec);
-          return next;
+          registry.registerAdapter(adapter);
         });
 
       const acquire = (spec: ChartSpec) =>
         Effect.gen(function* () {
           const scope = yield* Scope.make();
           const release = Scope.close(scope, Exit.void);
-          const instance = yield* registerSpec(spec).pipe(
+          const instance = yield* registerSpec(specsRef, spec).pipe(
             Effect.andThen(RcMap.get(instances, spec.id)),
             Scope.extend(scope),
             Effect.tapError(() => release)
@@ -84,14 +75,7 @@ export class ChartRuntime extends Effect.Service<ChartRuntime>()(
 
       const invalidate = (id: string) =>
         Effect.all(
-          [
-            RcMap.invalidate(instances, id),
-            Ref.update(specsRef, (current) => {
-              const next = new Map(current);
-              next.delete(id);
-              return next;
-            }),
-          ],
+          [RcMap.invalidate(instances, id), invalidateSpec(specsRef, id)],
           { concurrency: 'unbounded' }
         ).pipe(Effect.asVoid);
 
