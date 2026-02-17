@@ -94,6 +94,11 @@ interface SpawnedEditor {
   position: { x: number; y: number };
 }
 
+interface CollaborationDocumentSelectDetail {
+  docId: string;
+  petName: string;
+}
+
 // =============================================================================
 // User Presets
 // =============================================================================
@@ -111,6 +116,7 @@ const USER_PRESETS: CollaborationUser[] = [
 
 const STORAGE_KEY_DOC_ID = 'tmnl:collab:docId';
 const STORAGE_KEY_PET_NAME = 'tmnl:collab:petName';
+const COLLAB_DOCUMENT_SELECT_EVENT = 'tmnl:collab:document-select';
 
 // =============================================================================
 // Icon Components
@@ -898,6 +904,28 @@ function CollaborationTestbedInner() {
     },
     [disconnect]
   );
+
+  // External selection bridge (NuCmdk document provider -> collaboration host)
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<CollaborationDocumentSelectDetail>).detail;
+      if (!detail?.docId) {
+        return;
+      }
+
+      setDocId(detail.docId);
+      setPetName(detail.petName ?? generatePetName());
+      setSpawnedEditors([]);
+      setNextEditorIndex(0);
+      setHasAutoSpawned(false);
+      setShowDocPicker(false);
+    };
+
+    window.addEventListener(COLLAB_DOCUMENT_SELECT_EVENT, handler as EventListener);
+    return () => {
+      window.removeEventListener(COLLAB_DOCUMENT_SELECT_EVENT, handler as EventListener);
+    };
+  }, []);
 
   // Spawn default editors on first connect (only once)
   useEffect(() => {

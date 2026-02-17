@@ -13,6 +13,8 @@ import {
 import {
   DOCUMENT_PROVIDER_ID,
   registerDocumentProvider,
+  setDocumentSelectCallback,
+  clearDocumentSelectCallback,
 } from '@/lib/editor/v3/providers/DocumentProvider'
 import { providerRegistry } from '@/lib/minibuffer/v2/providers'
 
@@ -78,6 +80,40 @@ const checkWindowPoolHealth = (): Effect.Effect<void, never, never> =>
     }),
   )
 
+const COLLAB_DOC_ID_STORAGE_KEY = 'tmnl:collab:docId'
+const COLLAB_PET_NAME_STORAGE_KEY = 'tmnl:collab:petName'
+const COLLAB_DOCUMENT_SELECT_EVENT = 'tmnl:collab:document-select'
+const COLLABORATION_ROUTE = '/testbed/collaboration'
+
+let hasDocumentSelectWired = false
+
+const installDocumentSelectionBridge = (debug: boolean): Effect.Effect<void, never, never> =>
+  Effect.sync(() => {
+    setDocumentSelectCallback((docId, petName) => {
+      localStorage.setItem(COLLAB_DOC_ID_STORAGE_KEY, docId)
+      localStorage.setItem(COLLAB_PET_NAME_STORAGE_KEY, petName)
+
+      window.dispatchEvent(
+        new CustomEvent(COLLAB_DOCUMENT_SELECT_EVENT, {
+          detail: { docId, petName },
+        }),
+      )
+
+      void import('@/router')
+        .then(({ default: router }) => router.navigate({ to: COLLABORATION_ROUTE }))
+        .catch((error) => {
+          console.warn('[useNuCmdkWire] Could not navigate to collaboration route', error)
+        })
+
+      if (debug) {
+        console.log('[useNuCmdkWire] Document select bridged to collaboration host', {
+          docId,
+          petName,
+        })
+      }
+    })
+  })
+
 let hasNuCmdkWired = false
 let lastNuCmdkProviders: ReadonlyArray<string> = []
 
@@ -108,6 +144,11 @@ export function useNuCmdkWire(options: UseNuCmdkWireOptions = {}): UseNuCmdkWire
         providerId: DOCUMENT_PROVIDER_ID,
         register: () => registerDocumentProvider(),
       })
+
+      if (!hasDocumentSelectWired) {
+        yield* installDocumentSelectionBridge(debug)
+        hasDocumentSelectWired = true
+      }
 
       const registered: Array<string> = []
       if (commandRegistered) registered.push(COMMAND_PROVIDER_ID)
@@ -173,6 +214,10 @@ export function useNuCmdkWire(options: UseNuCmdkWireOptions = {}): UseNuCmdkWire
   const rewire = useCallback(() => {
     hasNuCmdkWired = false
     lastNuCmdkProviders = []
+    if (hasDocumentSelectWired) {
+      clearDocumentSelectCallback()
+      hasDocumentSelectWired = false
+    }
     wiringRef.current = false
     setIsReady(false)
     setProviders([])
