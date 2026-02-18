@@ -22,4 +22,6 @@ export { InlineTasksView } from './inline-tasks-view'
 export { FrameChromeView } from './frame-chrome-view'
 export { ConnectionView } from './connection-view'
 export { AgentSelectorView } from './agent-selector-view'
+export { StatusBannerView } from './status-banner-view'
+export { CommandBandView } from './command-band-view'
 // MorphOverlay archived — layout morphing (#F368) will replace it

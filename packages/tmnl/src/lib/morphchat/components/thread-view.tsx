@@ -18,6 +18,8 @@ import { ChatThreadBand, type ChatThreadAutoScrollMode } from '@/lib/chat/shell'
 import { ThreadTailControls } from './thread-tail-controls'
 import { useMorphChatContext } from './surface-context'
 import type { ChatMessage, ChatRole } from '../schemas/message-types'
+import type { MockChatAdapter } from '../adapters/mock-adapter'
+import type { AgentTask } from '@/lib/chat/msg/inline-task-types'
 
 // Compose from src/lib/chat/msg/ — the TMNL-styled implementation library
 import {
@@ -26,6 +28,8 @@ import {
   ChatMessageBodyContent,
   ChatMessageFooterActions,
   ChatMessageSeverityRails,
+  ChatMessageAttachmentLane,
+  InlineTaskShell,
 } from '@/lib/chat/msg'
 import type { ChatMessageRole } from '@/lib/chat/msg'
 
@@ -64,13 +68,23 @@ function resolveAutoScroll(scrollBehavior: string): ChatThreadAutoScrollMode {
 // Message Renderers (per thread mode)
 // =============================================================================
 
-/** Full fidelity message — role badges, timestamps, attachments, animations */
-function FullMessage({ message, isLatest }: { message: ChatMessage; isLatest: boolean }) {
+/** Full fidelity message — role badges, timestamps, task pipelines, animations */
+function FullMessage({
+  message,
+  isLatest,
+  tasks,
+}: {
+  message: ChatMessage
+  isLatest: boolean
+  tasks?: ReadonlyArray<AgentTask>
+}) {
   const chatRole = toChatRole(message.role)
   const isStreaming = message.status === 'streaming'
   const ts = message.timestamp
     ? new Date(message.timestamp).toLocaleTimeString()
     : ''
+
+  const hasTasks = tasks && tasks.length > 0
 
   return (
     <ChatMessageShellRoot role={chatRole} streaming={isStreaming}>
@@ -87,7 +101,28 @@ function FullMessage({ message, isLatest }: { message: ChatMessage; isLatest: bo
           <ChatMessageBodyContent.Root>{message.content}</ChatMessageBodyContent.Root>
           {isStreaming && isLatest && <ChatMessageBodyContent.StreamCursor />}
         </ChatMessageBodyContent>
-        {message.status === 'complete' && (
+
+        {/* ── Task Pipeline (when message carries tasks) ── */}
+        {hasTasks && (
+          <ChatMessageAttachmentLane.Root messageAnchorId={message.id}>
+            <ChatMessageAttachmentLane.InlineTaskThread>
+              <InlineTaskShell
+                threadId={`morph:${message.id}`}
+                tasks={tasks}
+                defaultExpanded={false}
+              >
+                <InlineTaskShell.ExpandBand
+                  label={`${tasks.length} task${tasks.length !== 1 ? 's' : ''}`}
+                />
+                <InlineTaskShell.MetricsBand />
+                <InlineTaskShell.ThreadBand estimatedRowHeight={44} overscan={8} />
+                <InlineTaskShell.SearchBand placeholder="Filter tasks…" />
+              </InlineTaskShell>
+            </ChatMessageAttachmentLane.InlineTaskThread>
+          </ChatMessageAttachmentLane.Root>
+        )}
+
+        {message.status === 'complete' && !hasTasks && (
           <ChatMessageFooterActions>
             <ChatMessageFooterActions.Group />
           </ChatMessageFooterActions>
@@ -223,15 +258,19 @@ export function ThreadView() {
   // Map spec.scrollBehavior → ChatThreadBand autoScroll
   const autoScroll = resolveAutoScroll(spec.scrollBehavior)
 
+  // Task map from adapter (mock-specific, duck-typed)
+  const messageTasks = (adapter as Partial<MockChatAdapter>).messageTasks
+
   // Select renderer per thread mode
   const renderMessage = React.useCallback(
     (msg: ChatMessage, index: number) => {
       const isLatest = index === resolvedMessages.length - 1
       const key = msg.id
+      const tasks = messageTasks?.get(msg.id)
 
       switch (spec.thread) {
         case 'full':
-          return <FullMessage key={key} message={msg} isLatest={isLatest} />
+          return <FullMessage key={key} message={msg} isLatest={isLatest} tasks={tasks} />
         case 'compact':
           return <CompactMessage key={key} message={msg} />
         case 'stream-only':

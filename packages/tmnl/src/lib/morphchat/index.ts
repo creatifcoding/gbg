@@ -67,6 +67,7 @@ export type {
   MockAdapterFullConfig,
   MockAdapterSurfaceConfig,
   MockStatusRow,
+  MockCommandChip,
 } from './adapters'
 
 // ── Components ──────────────────────────────────────────────

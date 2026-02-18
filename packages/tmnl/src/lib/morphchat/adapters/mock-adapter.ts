@@ -25,7 +25,7 @@ import type {
 } from '../schemas/message-types'
 import { CONNECTED, DISCONNECTED, STREAMING_IDLE } from '../schemas/message-types'
 import { morphChatRegistry } from '../atoms/registry'
-import { AgentTask, type RvnChatInlineTaskItem } from '@/lib/chat/msg/inline-task-types'
+import { AgentTask } from '@/lib/chat/msg/inline-task-types'
 
 // =============================================================================
 // Status Row (used by StatusBannerView)
@@ -58,7 +58,7 @@ export interface MockAdapterFullConfig extends MockAdapterConfig {
   /** Seed inline tasks for messages that carry them */
   readonly seedTasks?: boolean
   /** Default /command chips */
-  readonly commandChips?: ReadonlyArray<string>
+  readonly commandChips?: ReadonlyArray<MockCommandChip>
 }
 
 // =============================================================================
@@ -129,10 +129,10 @@ const MOCK_AGENTS: ReadonlyArray<AgentInfo> = [
 const now = DateTime.unsafeNow()
 
 function makeTask(
-  overrides: Omit<RvnChatInlineTaskItem, '_tag' | 'createdAt' | 'updatedAt' | 'dependencies'> & {
+  overrides: Omit<AgentTask, '_tag' | 'createdAt' | 'updatedAt' | 'dependencies'> & {
     dependencies?: ReadonlyArray<string>
   },
-): RvnChatInlineTaskItem {
+): AgentTask {
   return new AgentTask({
     createdAt: now,
     updatedAt: now,
@@ -141,7 +141,7 @@ function makeTask(
   })
 }
 
-const ANALYSIS_TASKS: ReadonlyArray<RvnChatInlineTaskItem> = [
+const ANALYSIS_TASKS: ReadonlyArray<AgentTask> = [
   makeTask({
     taskId: 'iso-shell-01',
     title: 'Hydrate shell bands',
@@ -176,7 +176,7 @@ const ANALYSIS_TASKS: ReadonlyArray<RvnChatInlineTaskItem> = [
 // Seeded Inline Tasks — Remediation Pipeline (5 tasks)
 // =============================================================================
 
-const REMEDIATION_TASKS: ReadonlyArray<RvnChatInlineTaskItem> = [
+const REMEDIATION_TASKS: ReadonlyArray<AgentTask> = [
   makeTask({
     taskId: 'rm-001',
     title: 'Lock intake valve V-4821-A to safe position',
@@ -286,12 +286,20 @@ function createSeedMessages(seedTasks: boolean): ReadonlyArray<ChatMessage> {
 // Default Command Chips
 // =============================================================================
 
-const DEFAULT_COMMAND_CHIPS: ReadonlyArray<string> = [
-  '/analyze',
-  '/remediate',
-  '/status',
-  '/help',
-  '/export',
+/** Typed command chip with label, slash command, and optional description. */
+export interface MockCommandChip {
+  readonly id: string
+  readonly label: string
+  readonly command: string
+  readonly description?: string
+}
+
+const DEFAULT_COMMAND_CHIPS: ReadonlyArray<MockCommandChip> = [
+  { id: 'cmd-analyze', label: 'analyze', command: '/analyze', description: 'Run analysis pipeline' },
+  { id: 'cmd-remediate', label: 'remediate', command: '/remediate', description: 'Execute remediation' },
+  { id: 'cmd-status', label: 'status', command: '/status', description: 'Show system status' },
+  { id: 'cmd-help', label: 'help', command: '/help', description: 'Display available commands' },
+  { id: 'cmd-export', label: 'export', command: '/export', description: 'Export session data' },
 ]
 
 // =============================================================================
@@ -332,7 +340,7 @@ export interface MockChatAdapter extends MorphChatAdapter {
   readonly statusRows$: Atom.Atom<ReadonlyArray<MockStatusRow>>
 
   /** Command chips (for command band + suggestions) */
-  readonly commandChips$: Atom.Atom<ReadonlyArray<string>>
+  readonly commandChips$: Atom.Atom<ReadonlyArray<MockCommandChip>>
 
   /** Composer draft text (for command suggestions, char counter) */
   readonly draft$: Atom.Atom<string>
@@ -341,7 +349,7 @@ export interface MockChatAdapter extends MorphChatAdapter {
   readonly surfaceConfig: MockAdapterSurfaceConfig
 
   /** Task map: messageId → tasks (for rich message rendering) */
-  readonly messageTasks: ReadonlyMap<string, ReadonlyArray<RvnChatInlineTaskItem>>
+  readonly messageTasks: ReadonlyMap<string, ReadonlyArray<AgentTask>>
 
   // ── Mock-specific operations ──────────────────────────────
 
@@ -405,14 +413,14 @@ export function createMockChatAdapter(
   const seedMessages = initialMessages ?? createSeedMessages(seedTasks)
 
   // Message → Tasks mapping (for rich rendering)
-  const messageTasks = new Map<string, ReadonlyArray<RvnChatInlineTaskItem>>()
+  const messageTasks = new Map<string, ReadonlyArray<AgentTask>>()
   if (seedTasks) {
     messageTasks.set('assistant-1', ANALYSIS_TASKS)
     messageTasks.set('assistant-2', REMEDIATION_TASKS)
   }
 
   // All seeded tasks flattened for the inlineTasks$ atom
-  const allTasks: ReadonlyArray<RvnChatInlineTaskItem> = seedTasks
+  const allTasks: ReadonlyArray<AgentTask> = seedTasks
     ? [...ANALYSIS_TASKS, ...REMEDIATION_TASKS]
     : []
 
@@ -439,7 +447,7 @@ export function createMockChatAdapter(
   const statusRows$ = Atom.make<ReadonlyArray<MockStatusRow>>(createDefaultStatusRows(true))
   morphChatRegistry.mount(statusRows$)
 
-  const commandChips$ = Atom.make<ReadonlyArray<string>>(configChips ?? DEFAULT_COMMAND_CHIPS)
+  const commandChips$ = Atom.make<ReadonlyArray<MockCommandChip>>(configChips ?? DEFAULT_COMMAND_CHIPS)
   morphChatRegistry.mount(commandChips$)
 
   const draft$ = Atom.make<string>('')

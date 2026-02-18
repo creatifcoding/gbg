@@ -27,6 +27,8 @@ import { InlineTasksView } from './inline-tasks-view'
 import { FrameChromeView } from './frame-chrome-view'
 import { ConnectionView } from './connection-view'
 import { AgentSelectorView } from './agent-selector-view'
+import { StatusBannerView } from './status-banner-view'
+import { CommandBandView } from './command-band-view'
 
 // =============================================================================
 // Surface Content
@@ -90,6 +92,9 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
         </div>
       )}
 
+      {/* ── Status Banners (interruption banners above thread) ───── */}
+      <StatusBannerView />
+
       {/* ── Thread Band (includes tail controls via renderAfterScroll) ── */}
       {spec.thread !== 'none' && (
         <div className="morphchat-thread flex-1 min-h-0 flex flex-col overflow-hidden">
@@ -101,6 +106,9 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
       {spec.inlineTasks !== 'hidden' && (
         <InlineTasksView />
       )}
+
+      {/* ── Command Band (slash command chips) ─────────── */}
+      <CommandBandView />
 
       {/* ── Composer Band (with transfer drop zone) ───── */}
       {spec.composer !== 'none' && (
