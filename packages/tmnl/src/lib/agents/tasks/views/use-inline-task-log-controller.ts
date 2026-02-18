@@ -86,7 +86,7 @@ import {
   useScrollPointer,
   type ScrollAnchorHandle,
   type ScrollPointerHandle,
-} from './scroll-anchors'
+} from '@/lib/scroll'
 
 export interface UseInlineTaskLogControllerOptions {
   readonly taskId: string

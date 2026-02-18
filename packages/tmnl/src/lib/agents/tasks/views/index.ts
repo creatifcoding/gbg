@@ -23,6 +23,7 @@ export {
   type UseInlineTaskLogControllerOptions,
   type TailInterruptProps,
 } from './use-inline-task-log-controller'
+// Re-export scroll primitives from extracted lib (backwards compatibility)
 export {
   useScrollAnchor,
   useScrollPointer,
@@ -31,7 +32,7 @@ export {
   type ScrollAnchorOptions,
   type ScrollPointerHandle,
   type ScrollPointerOptions,
-} from './scroll-anchors'
+} from '@/lib/scroll'
 export {
   useInlineTaskLogViewContext,
   InlineTaskLogViewProvider,

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, type PropsWithChildren } from 'react'
 import type { AgentTaskLogAtomSurfaceAtoms } from '../atoms'
 import type { AssembledLogEntry } from '../services/CodecService'
-import type { ScrollAnchorHandle, ScrollPointerHandle } from './scroll-anchors'
+import type { ScrollAnchorHandle, ScrollPointerHandle } from '@/lib/scroll'
 import type { TailInterruptProps } from './use-inline-task-log-controller'
 
 export interface InlineTaskLogViewContextValue {
