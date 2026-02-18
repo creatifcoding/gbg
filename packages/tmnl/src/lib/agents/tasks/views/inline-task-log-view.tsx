@@ -96,7 +96,9 @@ function InlineTaskLogViewRoot({
     tailMode,
     unreadCount,
     scrollRef,
-    tailAnchorRef,
+    head,
+    tail,
+    pointer,
     tailInterruptProps,
     interruptTail,
     jumpToLatest,
@@ -116,7 +118,9 @@ function InlineTaskLogViewRoot({
       tailMode,
       unreadCount,
       scrollRef,
-      tailAnchorRef,
+      head,
+      tail,
+      pointer,
       tailInterruptProps,
       interruptTail,
       jumpToLatest,
@@ -129,7 +133,9 @@ function InlineTaskLogViewRoot({
       tailMode,
       unreadCount,
       scrollRef,
-      tailAnchorRef,
+      head,
+      tail,
+      pointer,
       tailInterruptProps,
       interruptTail,
       jumpToLatest,
@@ -235,6 +241,7 @@ function InlineTaskLogViewEntries({ children }: InlineTaskLogViewEntriesProps) {
   if (children) {
     return (
       <div className="at-log-view__entries" data-slot="log-view-entries">
+        <InlineTaskLogView.HeadAnchor />
         {children}
         <InlineTaskLogView.TailAnchor />
       </div>
@@ -243,6 +250,7 @@ function InlineTaskLogViewEntries({ children }: InlineTaskLogViewEntriesProps) {
 
   return (
     <div className="at-log-view__entries" data-slot="log-view-entries">
+      <InlineTaskLogView.HeadAnchor />
       {ctx.entries.map((entry) => (
         <LogEntryRow key={entry.key} entry={entry} />
       ))}
@@ -265,12 +273,25 @@ function InlineTaskLogViewCursor({ className, ...rest }: InlineTaskLogViewCursor
   )
 }
 
-/** 1px sentinel at the tail — IntersectionObserver target for tail-mode detection. */
-function InlineTaskLogViewTailAnchor() {
-  const { tailAnchorRef } = useInlineTaskLogViewContext()
+/** 1px sentinel at the head — IntersectionObserver target for head visibility. */
+function InlineTaskLogViewHeadAnchor() {
+  const { head } = useInlineTaskLogViewContext()
   return (
     <div
-      ref={tailAnchorRef}
+      ref={head.ref}
+      className="at-log-view__head-anchor"
+      data-slot="log-view-head-anchor"
+      aria-hidden="true"
+    />
+  )
+}
+
+/** 1px sentinel at the tail — IntersectionObserver target for tail-mode detection. */
+function InlineTaskLogViewTailAnchor() {
+  const { tail } = useInlineTaskLogViewContext()
+  return (
+    <div
+      ref={tail.ref}
       className="at-log-view__tail-anchor"
       data-slot="log-view-tail-anchor"
       aria-hidden="true"
@@ -303,6 +324,7 @@ export const InlineTaskLogView = Object.assign(InlineTaskLogViewBase, {
   Empty: InlineTaskLogViewEmpty,
   Entries: InlineTaskLogViewEntries,
   Cursor: InlineTaskLogViewCursor,
+  HeadAnchor: InlineTaskLogViewHeadAnchor,
   TailAnchor: InlineTaskLogViewTailAnchor,
   TailControls: InlineTaskLogViewTailControls,
 })

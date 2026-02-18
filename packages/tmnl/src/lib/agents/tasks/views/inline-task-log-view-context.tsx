@@ -1,6 +1,7 @@
 import React, { createContext, useContext, type PropsWithChildren } from 'react'
 import type { AgentTaskLogAtomSurfaceAtoms } from '../atoms'
 import type { AssembledLogEntry } from '../services/CodecService'
+import type { ScrollAnchorHandle, ScrollPointerHandle } from './scroll-anchors'
 import type { TailInterruptProps } from './use-inline-task-log-controller'
 
 export interface InlineTaskLogViewContextValue {
@@ -11,7 +12,9 @@ export interface InlineTaskLogViewContextValue {
   readonly tailMode: 'tail' | 'inspect'
   readonly unreadCount: number
   readonly scrollRef: React.RefObject<HTMLDivElement | null>
-  readonly tailAnchorRef: React.RefObject<HTMLDivElement | null>
+  readonly head: ScrollAnchorHandle
+  readonly tail: ScrollAnchorHandle
+  readonly pointer: ScrollPointerHandle
   readonly tailInterruptProps: TailInterruptProps
   readonly interruptTail: () => void
   readonly jumpToLatest: () => void
