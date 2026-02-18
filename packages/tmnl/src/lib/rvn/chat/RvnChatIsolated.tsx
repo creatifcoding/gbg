@@ -21,7 +21,10 @@ import {
 } from './msg'
 import { AgentTask } from './msg/inline-task-types'
 import { InlineTaskShell } from './msg/inline-task-shell'
-import type { AgentTaskLogAtomSurfaceAtoms } from '@/lib/agents/tasks/atoms'
+import {
+  agentTaskLogSurfaceNatsMicroRuntime,
+  type AgentTaskLogAtomSurfaceAtoms,
+} from '@/lib/agents/tasks/atoms'
 import { RvnChatComposer } from './composer'
 import { RvnStatusChip, type RvnChatConnectionState } from './status'
 import {
@@ -585,7 +588,7 @@ export function RvnChatIsolated({
   disabled = false,
   placeholder = 'Ask about work orders, alarms, sensors...',
   maxChars = 2000,
-  taskLogAtomSurfaceAtom,
+  taskLogAtomSurfaceAtom = agentTaskLogSurfaceNatsMicroRuntime.atomSurfaceAtom,
   style,
   className,
   ...props

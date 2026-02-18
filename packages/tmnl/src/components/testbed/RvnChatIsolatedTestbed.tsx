@@ -8,7 +8,6 @@ import {
   type RvnChatIsolatedSendPayload,
 } from '@/lib/rvn/chat'
 import { AgentTask, type RvnChatInlineTaskItem } from '@/lib/rvn/chat/msg/inline-task-types'
-import { agentTaskLogSurfaceMockRuntime } from '@/lib/agents/tasks/atoms'
 
 const AGENTS: ReadonlyArray<RvnChatIsolatedAgent> = [
   {
@@ -249,7 +248,6 @@ export function RvnChatIsolatedTestbed() {
             setConnectionOnline(true)
           }}
           onPause={async () => undefined}
-          taskLogAtomSurfaceAtom={agentTaskLogSurfaceMockRuntime.atomSurfaceAtom}
         />
       </section>
     </main>
