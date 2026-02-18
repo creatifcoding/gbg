@@ -176,6 +176,19 @@ const INITIAL_MESSAGES: ReadonlyArray<RvnChatIsolatedMessage> = [
 const EMITTER_NATS_WS_URL = 'ws://127.0.0.1:9222'
 const EMITTER_CODEC = StringCodec()
 const EMITTER_TASK_IDS = ['rm-001', 'rm-002', 'rm-003', 'rm-004', 'rm-005'] as const
+
+type EmitterTaskTarget = 'random' | (typeof EMITTER_TASK_IDS)[number]
+type EmitterRatePreset = 'slow' | 'normal' | 'chaos'
+
+const EMITTER_RATE_CONFIG: Record<
+  EmitterRatePreset,
+  { readonly intervalMs: number; readonly burstCount: number; readonly label: string }
+> = {
+  slow: { intervalMs: 900, burstCount: 8, label: 'Slow' },
+  normal: { intervalMs: 350, burstCount: 15, label: 'Normal' },
+  chaos: { intervalMs: 90, burstCount: 40, label: 'Chaos' },
+}
+
 const EMITTER_LEVELS: ReadonlyArray<LogLevel> = [
   'DEBUG',
   'INFO',
@@ -235,6 +248,8 @@ export function RvnChatIsolatedTestbed() {
   const [emitterRunning, setEmitterRunning] = useState(false)
   const [emitterError, setEmitterError] = useState<string | null>(null)
   const [emitterCount, setEmitterCount] = useState(0)
+  const [emitterTaskTarget, setEmitterTaskTarget] = useState<EmitterTaskTarget>('random')
+  const [emitterRate, setEmitterRate] = useState<EmitterRatePreset>('normal')
 
   const emitterNcRef = useRef<NatsConnection | null>(null)
   const emitterTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -244,7 +259,7 @@ export function RvnChatIsolatedTestbed() {
     const nc = emitterNcRef.current
     if (!nc) return
 
-    const taskId = randomEmitterTaskId()
+    const taskId = emitterTaskTarget === 'random' ? randomEmitterTaskId() : emitterTaskTarget
     emitterSeqRef.current += 1
 
     const entry = makeEmitterEntry(taskId, emitterSeqRef.current)
@@ -252,7 +267,19 @@ export function RvnChatIsolatedTestbed() {
 
     nc.publish(resolveTaskSubject(taskId), EMITTER_CODEC.encode(line))
     setEmitterCount((prev) => prev + 1)
-  }, [])
+  }, [emitterTaskTarget])
+
+  const startEmitterTimer = useCallback(() => {
+    if (emitterTimerRef.current) {
+      clearInterval(emitterTimerRef.current)
+      emitterTimerRef.current = null
+    }
+
+    const rate = EMITTER_RATE_CONFIG[emitterRate]
+    emitterTimerRef.current = setInterval(() => {
+      emitOne()
+    }, rate.intervalMs)
+  }, [emitOne, emitterRate])
 
   const stopEmitter = useCallback(async () => {
     if (emitterTimerRef.current) {
@@ -282,24 +309,23 @@ export function RvnChatIsolatedTestbed() {
       const nc = await connect({ servers: EMITTER_NATS_WS_URL })
       emitterNcRef.current = nc
 
-      emitterTimerRef.current = setInterval(() => {
-        emitOne()
-      }, 350)
-
+      startEmitterTimer()
       setEmitterRunning(true)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       setEmitterError(`Emitter failed to start: ${message}`)
       await stopEmitter()
     }
-  }, [emitOne, emitterRunning, stopEmitter])
+  }, [emitterRunning, startEmitterTimer, stopEmitter])
 
   const burstEmit = useCallback(async () => {
     if (!emitterRunning) {
       await startEmitter()
     }
 
-    for (let i = 0; i < 15; i += 1) {
+    const burstCount = EMITTER_RATE_CONFIG[emitterRate].burstCount
+
+    for (let i = 0; i < burstCount; i += 1) {
       emitOne()
     }
 
@@ -307,7 +333,12 @@ export function RvnChatIsolatedTestbed() {
     if (nc) {
       await nc.flush()
     }
-  }, [emitOne, emitterRunning, startEmitter])
+  }, [emitOne, emitterRate, emitterRunning, startEmitter])
+
+  useEffect(() => {
+    if (!emitterRunning) return
+    startEmitterTimer()
+  }, [emitterRate, emitterRunning, startEmitterTimer])
 
   useEffect(() => {
     return () => {
@@ -335,7 +366,7 @@ export function RvnChatIsolatedTestbed() {
     rows.push({
       id: 'iso-emitter',
       tone: emitterRunning ? 'info' : 'warn',
-      text: `S3 • Live emitter ${emitterRunning ? 'running' : 'stopped'} — ${emitterCount} logs published.`,
+      text: `S3 • Live emitter ${emitterRunning ? 'running' : 'stopped'} — ${emitterCount} logs • rate ${EMITTER_RATE_CONFIG[emitterRate].label} • target ${emitterTaskTarget}.`,
     })
 
     if (emitterError) {
@@ -347,7 +378,7 @@ export function RvnChatIsolatedTestbed() {
     }
 
     return rows
-  }, [connectionOnline, emitterCount, emitterError, emitterRunning])
+  }, [connectionOnline, emitterCount, emitterError, emitterRate, emitterRunning, emitterTaskTarget])
 
   const connectionState = connectionOnline ? 'online' : 'offline'
 
@@ -413,8 +444,57 @@ export function RvnChatIsolatedTestbed() {
               void burstEmit()
             }}
           >
-            Burst ×15
+            Burst ×{EMITTER_RATE_CONFIG[emitterRate].burstCount}
           </button>
+
+          <label
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              border: '1px solid rgba(255,255,255,0.2)',
+              padding: '4px 8px',
+            }}
+          >
+            Target
+            <select
+              value={emitterTaskTarget}
+              onChange={(event) => {
+                setEmitterTaskTarget(event.target.value as EmitterTaskTarget)
+              }}
+              className="havoc-btn"
+              style={{ minWidth: '110px' }}
+            >
+              <option value="random">random</option>
+              {EMITTER_TASK_IDS.map((taskId) => (
+                <option key={taskId} value={taskId}>
+                  {taskId}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div style={{ display: 'inline-flex', gap: '4px' }}>
+            {(Object.keys(EMITTER_RATE_CONFIG) as ReadonlyArray<EmitterRatePreset>).map((preset) => {
+              const active = emitterRate === preset
+              return (
+                <button
+                  key={preset}
+                  type="button"
+                  className="rvn-chat-testbed__toggle havoc-btn"
+                  onClick={() => {
+                    setEmitterRate(preset)
+                  }}
+                  style={{
+                    borderColor: active ? '#14b8a6' : undefined,
+                    boxShadow: active ? '0 0 0 1px rgba(20,184,166,0.45) inset' : undefined,
+                  }}
+                >
+                  {EMITTER_RATE_CONFIG[preset].label}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </header>
 
