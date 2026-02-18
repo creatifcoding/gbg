@@ -44,7 +44,7 @@ const QUOTED_PATTERN = /"([^"]+)"/g
 const REGEX_PATTERN = /regex:(\S+)/g
 
 /** Field operators: field:value or -field:value */
-const FIELD_PATTERN = /(-?)(category|scope|name|desc|keys):(\S+)/g
+const FIELD_PATTERN = /(-?)(category|scope|name|desc|keys|field):(\S+)/g
 
 /** Case sensitivity: case:sensitive or case:insensitive */
 const CASE_PATTERN = /case:(sensitive|insensitive)/g
@@ -62,7 +62,7 @@ const SORT_PATTERN = /sort:(score|name)/g
 // Valid Field Names
 // ─────────────────────────────────────────────────────────────
 
-const VALID_FIELDS = new Set<string>(["category", "scope", "name", "desc", "keys"])
+const VALID_FIELDS = new Set<string>(["category", "scope", "name", "desc", "keys", "field"])
 
 const isValidField = (field: string): field is FieldName => VALID_FIELDS.has(field)
 

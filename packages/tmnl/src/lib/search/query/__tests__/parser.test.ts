@@ -87,6 +87,13 @@ describe("parseQuery", () => {
       expect(result.fieldOperators[0].field).toBe("keys")
     })
 
+    it("parses field:value alias", () => {
+      const result = runParse("field:runtime")
+      expect(result.fieldOperators).toHaveLength(1)
+      expect(result.fieldOperators[0].field).toBe("field")
+      expect(result.fieldOperators[0].value).toBe("runtime")
+    })
+
     it("parses exclusion -field:value", () => {
       const result = runParse("-scope:debug")
       expect(result.fieldOperators).toHaveLength(1)

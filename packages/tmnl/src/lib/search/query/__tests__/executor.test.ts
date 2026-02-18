@@ -168,6 +168,18 @@ describe("applyFilters", () => {
       expect(results.map((r) => r.item.id)).toEqual(["cmd-1", "cmd-3"])
     })
 
+    it("filters by field alias across all searchable fields", () => {
+      const query = runParse("field:runtime")
+      const results = applyFilters(testItems, query)
+
+      expect(results).toHaveLength(0)
+
+      const query2 = runParse("field:row")
+      const results2 = applyFilters(testItems, query2)
+      expect(results2).toHaveLength(2)
+      expect(results2.map((r) => r.item.id)).toEqual(["cmd-1", "cmd-2"])
+    })
+
     it("is case insensitive", () => {
       const query = runParse("category:GRID")
       const results = applyFilters(testItems, query)
@@ -207,6 +219,14 @@ describe("applyFilters", () => {
 
       expect(results).toHaveLength(1)
       expect(results[0].item.id).toBe("cmd-3")
+    })
+
+    it("supports field alias exclusion", () => {
+      const query = runParse("-field:debug")
+      const results = applyFilters(testItems, query)
+
+      expect(results).toHaveLength(4)
+      expect(results.every((r) => !r.item.name.toLowerCase().includes("debug"))).toBe(true)
     })
 
     it("keeps items when excluded field is missing", () => {

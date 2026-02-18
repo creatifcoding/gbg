@@ -36,13 +36,38 @@ export interface SearchableItem extends Indexable {
 /**
  * Map field names from DSL to item properties.
  */
-const fieldToProperty = (field: FieldOperator["field"]): keyof SearchableItem => {
+const fieldToProperty = (
+  field: FieldOperator["field"]
+): keyof SearchableItem | "field" => {
   switch (field) {
     case "desc":
       return "description"
     default:
       return field
   }
+}
+
+const matchesFieldValue = (
+  item: SearchableItem,
+  field: FieldOperator["field"],
+  lowerValue: string
+): boolean => {
+  if (field === "field") {
+    const joined = [
+      item.name,
+      item.description ?? "",
+      item.category ?? "",
+      item.scope ?? "",
+      item.keys ?? "",
+    ].join(" ")
+
+    return joined.toLowerCase().includes(lowerValue)
+  }
+
+  const prop = fieldToProperty(field)
+  const fieldValue = (item as Record<string, unknown>)[prop]
+  if (typeof fieldValue !== "string") return false
+  return fieldValue.toLowerCase().includes(lowerValue)
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -110,21 +135,22 @@ export const executeQuery = <T extends SearchableItem>(
     // Post-filter: Field operators (include)
     const includes = query.fieldOperators.filter((op) => !op.exclude)
     for (const op of includes) {
-      const prop = fieldToProperty(op.field)
       const lowerValue = op.value.toLowerCase()
-      results = results.filter((r) => {
-        const fieldValue = (r.item as Record<string, unknown>)[prop]
-        if (typeof fieldValue !== "string") return false
-        return fieldValue.toLowerCase().includes(lowerValue)
-      })
+      results = results.filter((r) =>
+        matchesFieldValue(r.item, op.field, lowerValue)
+      )
     }
 
     // Post-filter: Field operators (exclude)
     const excludes = query.fieldOperators.filter((op) => op.exclude)
     for (const op of excludes) {
-      const prop = fieldToProperty(op.field)
       const lowerValue = op.value.toLowerCase()
       results = results.filter((r) => {
+        if (op.field === "field") {
+          return !matchesFieldValue(r.item, op.field, lowerValue)
+        }
+
+        const prop = fieldToProperty(op.field)
         const fieldValue = (r.item as Record<string, unknown>)[prop]
         if (typeof fieldValue !== "string") return true // Keep if field doesn't exist
         return !fieldValue.toLowerCase().includes(lowerValue)
@@ -211,21 +237,22 @@ export const applyFilters = <T extends SearchableItem>(
   // Apply field operators (include)
   const includes = query.fieldOperators.filter((op) => !op.exclude)
   for (const op of includes) {
-    const prop = fieldToProperty(op.field)
     const lowerValue = op.value.toLowerCase()
-    results = results.filter((r) => {
-      const fieldValue = (r.item as Record<string, unknown>)[prop]
-      if (typeof fieldValue !== "string") return false
-      return fieldValue.toLowerCase().includes(lowerValue)
-    })
+    results = results.filter((r) =>
+      matchesFieldValue(r.item, op.field, lowerValue)
+    )
   }
 
   // Apply field operators (exclude)
   const excludes = query.fieldOperators.filter((op) => op.exclude)
   for (const op of excludes) {
-    const prop = fieldToProperty(op.field)
     const lowerValue = op.value.toLowerCase()
     results = results.filter((r) => {
+      if (op.field === "field") {
+        return !matchesFieldValue(r.item, op.field, lowerValue)
+      }
+
+      const prop = fieldToProperty(op.field)
       const fieldValue = (r.item as Record<string, unknown>)[prop]
       if (typeof fieldValue !== "string") return true
       return !fieldValue.toLowerCase().includes(lowerValue)
@@ -291,10 +318,15 @@ export const applyFieldFilter = <T extends SearchableItem>(
   results: readonly SearchResult<T>[],
   op: FieldOperator
 ): readonly SearchResult<T>[] => {
-  const prop = fieldToProperty(op.field)
   const lowerValue = op.value.toLowerCase()
 
   return results.filter((r) => {
+    if (op.field === "field") {
+      const matches = matchesFieldValue(r.item, op.field, lowerValue)
+      return op.exclude ? !matches : matches
+    }
+
+    const prop = fieldToProperty(op.field)
     const fieldValue = (r.item as Record<string, unknown>)[prop]
     if (typeof fieldValue !== "string") return op.exclude // Keep if exclude and no field
     const matches = fieldValue.toLowerCase().includes(lowerValue)

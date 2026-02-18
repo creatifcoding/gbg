@@ -16,7 +16,7 @@ import { Schema } from "effect"
 /**
  * Valid field names for dorking operators.
  */
-export const FieldName = Schema.Literal("category", "scope", "name", "desc", "keys")
+export const FieldName = Schema.Literal("category", "scope", "name", "desc", "keys", "field")
 export type FieldName = typeof FieldName.Type
 
 // ─────────────────────────────────────────────────────────────

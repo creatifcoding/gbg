@@ -38,6 +38,29 @@ const fieldToProperty = (field: FieldOperator["field"]): string => {
   }
 }
 
+const matchesFieldValue = (
+  item: SearchableItem,
+  field: FieldOperator["field"],
+  value: string
+): boolean => {
+  if (field === "field") {
+    const joined = [
+      item.name,
+      item.description ?? "",
+      item.category ?? "",
+      item.scope ?? "",
+      item.keys ?? "",
+    ].join(" ")
+
+    return joined.toLowerCase().includes(value.toLowerCase())
+  }
+
+  const prop = fieldToProperty(field)
+  const fieldValue = (item as Record<string, unknown>)[prop]
+  if (typeof fieldValue !== "string") return false
+  return fieldValue.toLowerCase().includes(value.toLowerCase())
+}
+
 /**
  * Filter results by field value match (include or exclude).
  */
@@ -47,10 +70,14 @@ export const withFieldMatch = <T extends SearchableItem>(
   exclude = false
 ) =>
   Stream.filter<SearchResult<T>, SearchError>((r) => {
-    const prop = fieldToProperty(field)
-    const fieldValue = (r.item as Record<string, unknown>)[prop]
-    if (typeof fieldValue !== "string") return exclude
-    const matches = fieldValue.toLowerCase().includes(value.toLowerCase())
+    const matches = matchesFieldValue(r.item, field, value)
+
+    if (field !== "field") {
+      const prop = fieldToProperty(field)
+      const fieldValue = (r.item as Record<string, unknown>)[prop]
+      if (typeof fieldValue !== "string") return exclude
+    }
+
     return exclude ? !matches : matches
   })
 
