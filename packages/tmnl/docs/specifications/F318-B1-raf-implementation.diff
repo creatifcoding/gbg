@@ -1,0 +1,201 @@
+diff --git a/packages/tmnl/src/lib/agents/tasks/views/inline-task-log-view.tsx b/packages/tmnl/src/lib/agents/tasks/views/inline-task-log-view.tsx
+index 611dbdd..c9db3be 100644
+--- a/packages/tmnl/src/lib/agents/tasks/views/inline-task-log-view.tsx
++++ b/packages/tmnl/src/lib/agents/tasks/views/inline-task-log-view.tsx
+@@ -10,11 +10,16 @@
+  * @module agent-task/views/inline-task-log-view
+  */
+ 
+-import React, { useEffect, useRef, useCallback, memo } from 'react'
++import React, { useEffect, useRef, useCallback, useState, memo } from 'react'
+ import type { Atom } from '@effect-atom/atom'
+-import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
++import * as AtomResult from '@effect-atom/atom/Result'
++import { useAtom, useAtomValue, useAtomSet } from '@effect-atom/atom-react'
+ import {
+   agentTaskLogSurfaceMockRuntime,
++  filteredLogBufferFamily,
++  tailModeFamily,
++  unreadCountFamily,
++  logStreamTrigger,
+   type AgentTaskLogAtomSurfaceAtoms,
+ } from '../atoms'
+ import { LogEntryRow } from './log-entry-row'
+@@ -38,40 +43,142 @@ export const InlineTaskLogView = memo(function InlineTaskLogView({
+   maxHeight,
+   atomSurfaceAtom = agentTaskLogSurfaceMockRuntime.atomSurfaceAtom,
+ }: InlineTaskLogViewProps) {
+-  const atoms = useAtomValue(atomSurfaceAtom)
++  const atomSurfaceResult = useAtomValue(atomSurfaceAtom)
++  const atoms = AtomResult.isSuccess(atomSurfaceResult)
++    ? atomSurfaceResult.value
++    : undefined
++
++  const entries = useAtomValue(
++    (atoms?.filteredLogBufferFamily ?? filteredLogBufferFamily)(taskId),
++  )
++  const [tailMode, setTailMode] = useAtom((atoms?.tailModeFamily ?? tailModeFamily)(taskId))
++  const [unreadCount, setUnreadCount] = useAtom(
++    (atoms?.unreadCountFamily ?? unreadCountFamily)(taskId),
++  )
++  const setStreamTrigger = useAtomSet(atoms?.logStreamTrigger ?? logStreamTrigger)
+ 
+-  const entries = useAtomValue(atoms.filteredLogBufferFamily(taskId))
+-  const tailMode = useAtomValue(atoms.tailModeFamily(taskId))
+-  const setStreamTrigger = useAtomSet(atoms.logStreamTrigger)
+   const scrollRef = useRef<HTMLDivElement>(null)
+-  const hasTriggered = useRef(false)
++  const rafIdRef = useRef<number | null>(null)
++  const lastEntryCountRef = useRef(0)
++  const lastTriggeredTaskIdRef = useRef<string | null>(null)
+ 
+-  // Trigger stream on mount (once)
+-  useEffect(() => {
+-    if (!hasTriggered.current) {
+-      hasTriggered.current = true
+-      setStreamTrigger(taskId)
++  const [prefersReducedMotion, setPrefersReducedMotion] = useState(() => {
++    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
++      return false
+     }
+-  }, [taskId, setStreamTrigger])
++    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
++  })
++
++  const SCROLL_FOLLOW_THRESHOLD_PX = 24
++
++  const scheduleScrollToLatest = useCallback(
++    (mode: 'auto' | 'smooth' = 'auto') => {
++      const el = scrollRef.current
++      if (!el) return
++
++      if (rafIdRef.current !== null) {
++        cancelAnimationFrame(rafIdRef.current)
++      }
++
++      rafIdRef.current = requestAnimationFrame(() => {
++        const behavior: ScrollBehavior = prefersReducedMotion
++          ? 'auto'
++          : mode === 'smooth'
++            ? 'smooth'
++            : 'auto'
++
++        el.scrollTo({
++          top: el.scrollHeight,
++          behavior,
++        })
++      })
++    },
++    [prefersReducedMotion],
++  )
+ 
+-  // Auto-scroll to bottom when in tail mode and entries change
+   useEffect(() => {
+-    if (tailMode === 'tail' && scrollRef.current) {
+-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
++    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
++      return
+     }
+-  }, [entries, tailMode])
+ 
+-  const handleScroll = useCallback(() => {
+-    if (!scrollRef.current) return
+-    // Reserved for future auto tail/inspect mode switching.
++    const mql = window.matchMedia('(prefers-reduced-motion: reduce)')
++    const onChange = (event: MediaQueryListEvent) => {
++      setPrefersReducedMotion(event.matches)
++    }
++
++    if (typeof mql.addEventListener === 'function') {
++      mql.addEventListener('change', onChange)
++      return () => mql.removeEventListener('change', onChange)
++    }
++
++    mql.addListener(onChange)
++    return () => mql.removeListener(onChange)
+   }, [])
+ 
+-  const jumpToLatest = useCallback(() => {
+-    if (scrollRef.current) {
+-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
++  useEffect(() => {
++    if (lastTriggeredTaskIdRef.current === taskId) return
++
++    lastTriggeredTaskIdRef.current = taskId
++    lastEntryCountRef.current = 0
++    setTailMode('tail')
++    setUnreadCount(0)
++    setStreamTrigger(taskId)
++  }, [taskId, setStreamTrigger, setTailMode, setUnreadCount])
++
++  useEffect(() => {
++    return () => {
++      if (rafIdRef.current !== null) {
++        cancelAnimationFrame(rafIdRef.current)
++        rafIdRef.current = null
++      }
+     }
+   }, [])
+ 
++  useEffect(() => {
++    const appended = Math.max(entries.length - lastEntryCountRef.current, 0)
++    if (appended === 0) {
++      lastEntryCountRef.current = entries.length
++      return
++    }
++
++    if (tailMode === 'tail') {
++      scheduleScrollToLatest('auto')
++      setUnreadCount(0)
++    } else {
++      setUnreadCount((prev) => prev + appended)
++    }
++
++    lastEntryCountRef.current = entries.length
++  }, [entries, tailMode, scheduleScrollToLatest, setUnreadCount])
++
++  const handleScroll = useCallback(() => {
++    const el = scrollRef.current
++    if (!el) return
++
++    const distanceFromBottom = el.scrollHeight - (el.scrollTop + el.clientHeight)
++    const isNearBottom = distanceFromBottom <= SCROLL_FOLLOW_THRESHOLD_PX
++
++    if (isNearBottom) {
++      if (tailMode !== 'tail') {
++        setTailMode('tail')
++      }
++      if (unreadCount !== 0) {
++        setUnreadCount(0)
++      }
++      return
++    }
++
++    if (tailMode !== 'inspect') {
++      setTailMode('inspect')
++    }
++  }, [tailMode, unreadCount, setTailMode, setUnreadCount])
++
++  const jumpToLatest = useCallback(() => {
++    setTailMode('tail')
++    setUnreadCount(0)
++    scheduleScrollToLatest('smooth')
++  }, [setTailMode, setUnreadCount, scheduleScrollToLatest])
++
+   const style = maxHeight ? { maxHeight: `${maxHeight}px` } : undefined
+ 
+   return (
+@@ -103,7 +210,12 @@ export const InlineTaskLogView = memo(function InlineTaskLogView({
+       </div>
+ 
+       {/* Tail controls */}
+-      <LogTailControls taskId={taskId} atoms={atoms} onJumpToLatest={jumpToLatest} />
++      <LogTailControls
++        taskId={taskId}
++        atoms={atoms}
++        unreadCountOverride={unreadCount}
++        onJumpToLatest={jumpToLatest}
++      />
+     </div>
+   )
+ })

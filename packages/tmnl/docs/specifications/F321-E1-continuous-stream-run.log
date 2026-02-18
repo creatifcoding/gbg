@@ -1,0 +1,10 @@
+bun test v1.3.2 (b131639c)
+
+src/lib/agents/tasks/services/__tests__/MockTransportService.test.ts:
+(pass) MockTransportService > keeps emitting past template length when infinite mode is enabled [108.00ms]
+(pass) MockTransportService > supports deterministic seed mode for reproducible test assertions [34.00ms]
+
+ 2 pass
+ 0 fail
+ 2 expect() calls
+Ran 2 tests across 1 file. [771.00ms]
