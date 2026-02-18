@@ -13,14 +13,16 @@
  */
 
 import * as React from 'react'
-import { Paperclip } from 'lucide-react'
+import { AtSign, Command, Mic, Paperclip, Pause, RotateCcw } from 'lucide-react'
 import { Effect } from 'effect'
 import { useAtomValue } from '@effect-atom/atom-react'
+import { AnimatePresence, motion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { useMorphChatContext } from './surface-context'
-import { Composer } from '@/lib/chat/composer'
+import { Composer, useComposer } from '@/lib/chat/composer'
 import { useTransferDroppable } from '@/lib/transfer/v2/hooks'
 import type { TransferToken, TransferResult } from '@/lib/transfer/v2/schemas'
+import type { MockChatAdapter, MockCommandChip } from '../adapters/mock-adapter'
 
 // =============================================================================
 // Composer View
@@ -101,7 +103,7 @@ export function ComposerView() {
     : ''
 
   switch (spec.composer) {
-    // ── Full: multiline, toolbar, thinking, chips, send/pause ──
+    // ── Full: multiline, toolbar, thinking, chips, send/pause, suggestions ──
     case 'full':
       return (
         <div ref={composerDropRef} className={cn(dropIndicatorClass, 'transition-all')}>
@@ -115,17 +117,43 @@ export function ComposerView() {
                 setDroppedRefs((prev) => prev.filter((r) => r.id !== id))
               } />
             )}
+            {/* Command suggestions popup above input */}
+            <CommandSuggestions adapter={adapter} />
             <Composer.TextArea placeholder="Message..." />
+            {/* Character counter */}
+            <CharacterCounter maxChars={(adapter as Partial<MockChatAdapter>).surfaceConfig?.maxChars} />
             <Composer.Toolbar>
               <Composer.ToolbarGroup>
                 <Composer.ModeToggle />
                 <Composer.Divider />
                 <Composer.ThinkingLevel />
+                <Composer.Divider />
+                {/* Insert buttons: /cmd, @entity, mic */}
+                <Composer.ActionButton
+                  icon={<Command size={14} />}
+                  title="Insert command"
+                  onClick={() => (adapter as Partial<MockChatAdapter>).setDraft?.('/')}
+                />
+                <Composer.ActionButton
+                  icon={<AtSign size={14} />}
+                  title="Mention entity"
+                  onClick={() => (adapter as Partial<MockChatAdapter>).setDraft?.('@')}
+                />
+                <Composer.ActionButton
+                  icon={<Mic size={14} />}
+                  title="Voice input"
+                />
               </Composer.ToolbarGroup>
               <Composer.ToolbarGroup>
                 <Composer.ActionButton
                   icon={<Paperclip size={14} />}
                   title="Attach"
+                />
+                {/* Transport group: reconnect / pause / send */}
+                <TransportGroup
+                  isStreaming={isStreaming}
+                  onCancel={handleCancel}
+                  onReconnect={() => (adapter as Partial<MockChatAdapter>).toggleConnection?.()}
                 />
                 <Composer.SendButton />
               </Composer.ToolbarGroup>
@@ -211,6 +239,150 @@ export function ComposerView() {
 }
 
 ComposerView.displayName = 'MorphChat.ComposerView'
+
+// =============================================================================
+// Character Counter — shows current / max chars
+// =============================================================================
+
+function CharacterCounter({ maxChars = 4096 }: { maxChars?: number }) {
+  // We read the composer value from context if available, else return null
+  // This must be rendered inside <Composer> to access context
+  try {
+    const { value } = useComposer()
+    const len = value.length
+    const isNearLimit = len > maxChars * 0.9
+    const isOverLimit = len > maxChars
+
+    if (len === 0) return null
+
+    return (
+      <div
+        className={cn(
+          'text-right px-3 py-0.5 font-mono transition-colors duration-150',
+          isOverLimit ? 'text-red-400' : isNearLimit ? 'text-amber-400' : 'text-neutral-600',
+        )}
+        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        aria-live="polite"
+      >
+        {len.toLocaleString()} / {maxChars.toLocaleString()}
+      </div>
+    )
+  } catch {
+    return null
+  }
+}
+
+// =============================================================================
+// Transport Group — Reconnect + Pause buttons alongside Send
+// =============================================================================
+
+function TransportGroup({
+  isStreaming,
+  onCancel,
+  onReconnect,
+}: {
+  isStreaming: boolean
+  onCancel: () => void
+  onReconnect: () => void
+}) {
+  return (
+    <>
+      {/* Reconnect — always visible, toggles connection */}
+      <Composer.ActionButton
+        icon={<RotateCcw size={14} />}
+        title="Toggle connection"
+        onClick={onReconnect}
+      />
+      {/* Pause/Cancel — only during streaming */}
+      <AnimatePresence>
+        {isStreaming && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: [0.32, 0.72, 0, 1] }}
+          >
+            <Composer.ActionButton
+              icon={<Pause size={14} />}
+              title="Cancel generation"
+              onClick={onCancel}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  )
+}
+
+// =============================================================================
+// Command Suggestions — popup above input showing matching /commands
+// =============================================================================
+
+function CommandSuggestions({
+  adapter,
+}: {
+  adapter: { send: any } & Partial<MockChatAdapter>
+}) {
+  const chips = adapter.commandChips$
+    ? useAtomValue(adapter.commandChips$)
+    : []
+
+  const draft = adapter.draft$ ? useAtomValue(adapter.draft$) : ''
+
+  // Only show when draft starts with /
+  const isCommandMode = draft.startsWith('/')
+  const query = draft.slice(1).toLowerCase()
+
+  const matchedChips = React.useMemo(() => {
+    if (!isCommandMode || !chips.length) return []
+    if (query.length === 0) return chips.slice(0, 5)
+    return chips.filter(
+      (c) =>
+        c.label.toLowerCase().includes(query) ||
+        c.command.toLowerCase().includes(query),
+    ).slice(0, 5)
+  }, [isCommandMode, query, chips])
+
+  if (!isCommandMode || matchedChips.length === 0) return null
+
+  return (
+    <div
+      data-slot="morphchat-command-suggestions"
+      className="px-3 py-1.5 border-b border-neutral-800/30"
+    >
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 4 }}
+          transition={{ duration: 0.15, ease: [0.32, 0.72, 0, 1] }}
+          className="flex flex-wrap gap-1"
+        >
+          {matchedChips.map((chip) => (
+            <button
+              key={chip.id}
+              type="button"
+              onClick={() => adapter.setDraft?.(chip.command + ' ')}
+              className={cn(
+                'inline-flex items-center gap-1 px-2 py-0.5 rounded',
+                'font-mono border border-neutral-800 text-neutral-400',
+                'hover:border-cyan-800/50 hover:text-cyan-400',
+                'transition-all duration-150 active:scale-[0.97]',
+              )}
+              style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+            >
+              <span className="text-cyan-600">/</span>
+              <span>{chip.label}</span>
+              {chip.description && (
+                <span className="text-neutral-700 ml-1">— {chip.description}</span>
+              )}
+            </button>
+          ))}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  )
+}
 
 // =============================================================================
 // Dropped reference chips — rendered when tasks are dropped onto composer

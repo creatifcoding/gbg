@@ -24,4 +24,6 @@ export { ConnectionView } from './connection-view'
 export { AgentSelectorView } from './agent-selector-view'
 export { StatusBannerView } from './status-banner-view'
 export { CommandBandView } from './command-band-view'
+export { AnalysisCard, RemediationCard } from './artifact-cards'
+export type { AnalysisCardProps, RemediationCardProps } from './artifact-cards'
 // MorphOverlay archived — layout morphing (#F368) will replace it

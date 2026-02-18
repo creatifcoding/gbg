@@ -20,6 +20,7 @@ import { useMorphChatContext } from './surface-context'
 import type { ChatMessage, ChatRole } from '../schemas/message-types'
 import type { MockChatAdapter } from '../adapters/mock-adapter'
 import type { AgentTask } from '@/lib/chat/msg/inline-task-types'
+import { AnalysisCard, RemediationCard } from './artifact-cards'
 
 // Compose from src/lib/chat/msg/ — the TMNL-styled implementation library
 import {
@@ -28,10 +29,17 @@ import {
   ChatMessageBodyContent,
   ChatMessageFooterActions,
   ChatMessageSeverityRails,
-  ChatMessageAttachmentLane,
-  InlineTaskShell,
 } from '@/lib/chat/msg'
 import type { ChatMessageRole } from '@/lib/chat/msg'
+
+// =============================================================================
+// Pipeline detection — determines which artifact card to render
+// =============================================================================
+
+/** Heuristic: remediation tasks have IDs starting with 'rm-' */
+function isRemediationPipeline(tasks: ReadonlyArray<AgentTask>): boolean {
+  return tasks.length > 0 && tasks[0].taskId.startsWith('rm-')
+}
 
 // =============================================================================
 // Role Mapping: MorphChat → chat/ library
@@ -102,24 +110,19 @@ function FullMessage({
           {isStreaming && isLatest && <ChatMessageBodyContent.StreamCursor />}
         </ChatMessageBodyContent>
 
-        {/* ── Task Pipeline (when message carries tasks) ── */}
+        {/* ── Artifact Cards (when message carries tasks) ── */}
         {hasTasks && (
-          <ChatMessageAttachmentLane.Root messageAnchorId={message.id}>
-            <ChatMessageAttachmentLane.InlineTaskThread>
-              <InlineTaskShell
-                threadId={`morph:${message.id}`}
+          isRemediationPipeline(tasks!)
+            ? <RemediationCard
+                summary={message.content}
+                messageId={message.id}
+                tasks={tasks!}
+              />
+            : <AnalysisCard
+                summary={message.content}
+                messageId={message.id}
                 tasks={tasks}
-                defaultExpanded={false}
-              >
-                <InlineTaskShell.ExpandBand
-                  label={`${tasks.length} task${tasks.length !== 1 ? 's' : ''}`}
-                />
-                <InlineTaskShell.MetricsBand />
-                <InlineTaskShell.ThreadBand estimatedRowHeight={44} overscan={8} />
-                <InlineTaskShell.SearchBand placeholder="Filter tasks…" />
-              </InlineTaskShell>
-            </ChatMessageAttachmentLane.InlineTaskThread>
-          </ChatMessageAttachmentLane.Root>
+              />
         )}
 
         {message.status === 'complete' && !hasTasks && (
