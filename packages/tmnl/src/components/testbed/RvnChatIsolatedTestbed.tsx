@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DateTime } from 'effect'
+import { faker } from '@faker-js/faker'
+import { connect, StringCodec, type NatsConnection } from 'nats.ws'
 import {
   RvnChatIsolated,
   type RvnChatIsolatedAgent,
@@ -7,6 +9,8 @@ import {
   type RvnChatIsolatedStatusRow,
   type RvnChatIsolatedSendPayload,
 } from '@/lib/rvn/chat'
+import { AgentTaskLogEntry, type LogLevel } from '@/lib/agents/tasks/schemas'
+import { serializeLine } from '@/lib/agents/tasks/codec/jsonl-codec'
 import { AgentTask, type RvnChatInlineTaskItem } from '@/lib/rvn/chat/msg/inline-task-types'
 
 const AGENTS: ReadonlyArray<RvnChatIsolatedAgent> = [
@@ -169,31 +173,181 @@ const INITIAL_MESSAGES: ReadonlyArray<RvnChatIsolatedMessage> = [
   },
 ]
 
+const EMITTER_NATS_WS_URL = 'ws://127.0.0.1:9222'
+const EMITTER_CODEC = StringCodec()
+const EMITTER_TASK_IDS = ['rm-001', 'rm-002', 'rm-003', 'rm-004', 'rm-005'] as const
+const EMITTER_LEVELS: ReadonlyArray<LogLevel> = [
+  'DEBUG',
+  'INFO',
+  'INFO',
+  'WARN',
+  'ERROR',
+]
+
+const pickLevel = (): LogLevel =>
+  EMITTER_LEVELS[Math.floor(Math.random() * EMITTER_LEVELS.length)] ?? 'INFO'
+
+const resolveTaskSubject = (taskId: string): string => `agent.task.${taskId}.logs`
+
+const randomEmitterTaskId = (): string =>
+  EMITTER_TASK_IDS[Math.floor(Math.random() * EMITTER_TASK_IDS.length)] ?? 'rm-003'
+
+const makeEmitterEntry = (taskId: string, seq: number): AgentTaskLogEntry => {
+  const operation = faker.helpers.arrayElement([
+    'archive-spill-checkpoint',
+    'durability-ack',
+    'hydrate-window',
+    'tail-follow',
+    'querydsl-filter',
+    'outbox-drain',
+  ])
+
+  return new AgentTaskLogEntry({
+    id: `rvn-testbed-${taskId}-${Date.now()}-${seq}`,
+    timestamp: DateTime.unsafeNow(),
+    level: pickLevel(),
+    source: 'rvn.testbed.emitter',
+    message: `${operation} :: ${faker.hacker.phrase()} [seq=${seq}]`,
+    parentTaskId: taskId,
+    traceId: faker.string.alphanumeric(16),
+    spanId: faker.string.alphanumeric(16),
+    metadata: {
+      seq,
+      taskId,
+      operation,
+      latencyMs: faker.number.int({ min: 3, max: 900 }),
+      worker: faker.helpers.arrayElement(['alpha', 'beta', 'gamma', 'delta']),
+      lane: faker.helpers.arrayElement(['hot', 'durability', 'archive', 'hydration']),
+    },
+    payload: {
+      sample: faker.number.float({ min: 0, max: 1, precision: 0.001 }),
+      status: faker.helpers.arrayElement(['ok', 'warn', 'retry', 'degraded']),
+      note: faker.company.catchPhrase(),
+    },
+  })
+}
+
 export function RvnChatIsolatedTestbed() {
   const [activeAgentId, setActiveAgentId] = useState(AGENTS[0]?.id ?? 'agent-prime')
   const [connectionOnline, setConnectionOnline] = useState(true)
   const [messages, setMessages] = useState<ReadonlyArray<RvnChatIsolatedMessage>>(INITIAL_MESSAGES)
   const [draft, setDraft] = useState('')
+  const [emitterRunning, setEmitterRunning] = useState(false)
+  const [emitterError, setEmitterError] = useState<string | null>(null)
+  const [emitterCount, setEmitterCount] = useState(0)
 
-  const statusRows = useMemo<ReadonlyArray<RvnChatIsolatedStatusRow>>(() => {
-    if (connectionOnline) {
-      return [
-        {
-          id: 'iso-info',
-          tone: 'info',
-          text: 'S1 • Isolated mount active — no conductor runtime dependency.',
-        },
-      ]
+  const emitterNcRef = useRef<NatsConnection | null>(null)
+  const emitterTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const emitterSeqRef = useRef(0)
+
+  const emitOne = useCallback(() => {
+    const nc = emitterNcRef.current
+    if (!nc) return
+
+    const taskId = randomEmitterTaskId()
+    emitterSeqRef.current += 1
+
+    const entry = makeEmitterEntry(taskId, emitterSeqRef.current)
+    const line = serializeLine(entry)
+
+    nc.publish(resolveTaskSubject(taskId), EMITTER_CODEC.encode(line))
+    setEmitterCount((prev) => prev + 1)
+  }, [])
+
+  const stopEmitter = useCallback(async () => {
+    if (emitterTimerRef.current) {
+      clearInterval(emitterTimerRef.current)
+      emitterTimerRef.current = null
     }
 
-    return [
-      {
+    const nc = emitterNcRef.current
+    emitterNcRef.current = null
+
+    if (nc) {
+      try {
+        await nc.drain()
+      } catch {
+        await nc.close()
+      }
+    }
+
+    setEmitterRunning(false)
+  }, [])
+
+  const startEmitter = useCallback(async () => {
+    if (emitterRunning) return
+
+    try {
+      setEmitterError(null)
+      const nc = await connect({ servers: EMITTER_NATS_WS_URL })
+      emitterNcRef.current = nc
+
+      emitterTimerRef.current = setInterval(() => {
+        emitOne()
+      }, 350)
+
+      setEmitterRunning(true)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      setEmitterError(`Emitter failed to start: ${message}`)
+      await stopEmitter()
+    }
+  }, [emitOne, emitterRunning, stopEmitter])
+
+  const burstEmit = useCallback(async () => {
+    if (!emitterRunning) {
+      await startEmitter()
+    }
+
+    for (let i = 0; i < 15; i += 1) {
+      emitOne()
+    }
+
+    const nc = emitterNcRef.current
+    if (nc) {
+      await nc.flush()
+    }
+  }, [emitOne, emitterRunning, startEmitter])
+
+  useEffect(() => {
+    return () => {
+      void stopEmitter()
+    }
+  }, [stopEmitter])
+
+  const statusRows = useMemo<ReadonlyArray<RvnChatIsolatedStatusRow>>(() => {
+    const rows: RvnChatIsolatedStatusRow[] = []
+
+    if (connectionOnline) {
+      rows.push({
+        id: 'iso-info',
+        tone: 'info',
+        text: 'S1 • Isolated mount active — no conductor runtime dependency.',
+      })
+    } else {
+      rows.push({
         id: 'iso-offline',
         tone: 'warn',
         text: 'S2 • Connection offline — draft is preserved in composer state.',
-      },
-    ]
-  }, [connectionOnline])
+      })
+    }
+
+    rows.push({
+      id: 'iso-emitter',
+      tone: emitterRunning ? 'info' : 'warn',
+      text: `S3 • Live emitter ${emitterRunning ? 'running' : 'stopped'} — ${emitterCount} logs published.`,
+    })
+
+    if (emitterError) {
+      rows.push({
+        id: 'iso-emitter-error',
+        tone: 'error',
+        text: `S4 • ${emitterError}`,
+      })
+    }
+
+    return rows
+  }, [connectionOnline, emitterCount, emitterError, emitterRunning])
 
   const connectionState = connectionOnline ? 'online' : 'offline'
 
@@ -221,13 +375,47 @@ export function RvnChatIsolatedTestbed() {
     <main className="rvn-chat-testbed">
       <header className="rvn-chat-testbed__header">
         <strong className="rvn-chat-testbed__title">RVN Chat Isolated Testbed</strong>
-        <button
-          type="button"
-          className="rvn-chat-testbed__toggle havoc-btn"
-          onClick={() => setConnectionOnline((value) => !value)}
-        >
-          Toggle connection ({connectionOnline ? 'online' : 'offline'})
-        </button>
+        <div className="rvn-chat-testbed__controls" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="rvn-chat-testbed__toggle havoc-btn"
+            onClick={() => setConnectionOnline((value) => !value)}
+          >
+            Toggle connection ({connectionOnline ? 'online' : 'offline'})
+          </button>
+
+          {emitterRunning ? (
+            <button
+              type="button"
+              className="rvn-chat-testbed__toggle havoc-btn"
+              onClick={() => {
+                void stopEmitter()
+              }}
+            >
+              Stop log emitter
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="rvn-chat-testbed__toggle havoc-btn"
+              onClick={() => {
+                void startEmitter()
+              }}
+            >
+              Start log emitter
+            </button>
+          )}
+
+          <button
+            type="button"
+            className="rvn-chat-testbed__toggle havoc-btn"
+            onClick={() => {
+              void burstEmit()
+            }}
+          >
+            Burst ×15
+          </button>
+        </div>
       </header>
 
       <section className="rvn-chat-testbed__surface">
