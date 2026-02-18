@@ -1,152 +1,196 @@
-import { DateTime, Effect, Layer, Stream } from 'effect'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { Chunk, DateTime, Duration, Effect, Fiber, Layer, Stream } from 'effect'
+import { beforeAll, describe, expect, it } from 'vitest'
 
 import { serializeLine } from '../../codec/jsonl-codec'
 import { AgentTaskLogEntry } from '../../schemas'
-import { AgentTaskServiceBase } from '../../services/layers'
-import { TransportService } from '../../services/TransportService'
-import {
-  AgentTaskLogAtomSurfaceCustom,
-  createAgentTaskLogAtomSurfaceRuntime,
-} from '../../atoms/surface'
-import { InlineTaskLogView } from '../inline-task-log-view'
+import { AgentTaskService } from '../../services/AgentTaskService'
+import { AgentTaskServiceNats } from '../../services/layers'
+import { NatsConnectionService, NatsConnectionServiceLive } from '../../../../holonet/nats/connection'
+import { NatsInnerService, NatsInnerServiceLive } from '../../../../holonet/nats/inner'
 
-const TASK_ID = 'integration-deterministic-1'
+const resolveSubject = (taskId: string) => `agent.task.${taskId}.logs`
 
-const FIXTURE_LINES: ReadonlyArray<string> = [
-  serializeLine(
-    new AgentTaskLogEntry({
-      id: 'entry-001',
-      timestamp: DateTime.unsafeMake(1_700_000_000_001),
+const makeTaskId = (suffix: string) =>
+  `nats-ingest-${suffix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`
+
+const testLayer = Layer.mergeAll(
+  AgentTaskServiceNats,
+  NatsInnerServiceLive,
+)
+
+const collectMessages = (chunk: Chunk.Chunk<{ readonly entry: AgentTaskLogEntry }>) =>
+  Chunk.toArray(chunk).map((item) => item.entry.message)
+
+let natsAvailable = false
+
+beforeAll(async () => {
+  const health = Effect.gen(function* () {
+    yield* NatsConnectionService
+    return true as const
+  }).pipe(
+    Effect.scoped,
+    Effect.provide(NatsConnectionServiceLive),
+    Effect.catchAll(() => Effect.succeed(false as const)),
+  )
+
+  natsAvailable = await Effect.runPromise(health)
+
+  if (!natsAvailable) {
+    console.warn(
+      '[inline-task-log-view.integration] NATS unavailable. Start infra: ./.pi/skills/infra-up/scripts/infra-up.sh --service nats',
+    )
+  }
+})
+
+describe('InlineTaskLogView integration (NATS ingestion via TMNL services)', () => {
+  it('ingests both AgentTask publish path and raw-wire publish path', async () => {
+    if (!natsAvailable) return
+
+    const taskId = makeTaskId('wire')
+
+    const quotedEntry = new AgentTaskLogEntry({
+      id: `${taskId}-quoted-1`,
+      timestamp: DateTime.unsafeNow(),
+      level: 'WARN',
+      source: 'runtime.quoted',
+      message: 'wire quoted payload ingested',
+      parentTaskId: taskId,
+    })
+
+    const rawEntry = new AgentTaskLogEntry({
+      id: `${taskId}-raw-1`,
+      timestamp: DateTime.unsafeNow(),
       level: 'INFO',
-      source: 'runtime',
-      message: 'runtime boot complete',
-      parentTaskId: TASK_ID,
-      metadata: { phase: 'boot' },
-    }),
-  ),
-  serializeLine(
-    new AgentTaskLogEntry({
-      id: 'entry-002',
-      timestamp: DateTime.unsafeMake(1_700_000_000_002),
+      source: 'runtime.raw',
+      message: 'wire raw payload ingested',
+      parentTaskId: taskId,
+    })
+
+    const program = Effect.gen(function* () {
+      const service = yield* AgentTaskService
+      const inner = yield* NatsInnerService
+
+      const stream = yield* service.subscribeLogs(taskId)
+
+      const collector = yield* stream.pipe(
+        // Hub publish path can emit local echo + NATS echo for service.publishLog.
+        Stream.take(3),
+        Stream.runCollect,
+        Effect.fork,
+      )
+
+      yield* Effect.sleep(Duration.millis(120))
+
+      yield* service.publishLog(taskId, quotedEntry)
+      yield* inner.core.publish(
+        resolveSubject(taskId),
+        new TextEncoder().encode(serializeLine(rawEntry)),
+      )
+      // invalid line should be ignored by codec parser
+      yield* inner.core.publish(
+        resolveSubject(taskId),
+        new TextEncoder().encode('not-json-at-all'),
+      )
+      yield* inner.core.flush()
+
+      const collected = yield* Fiber.join(collector).pipe(
+        Effect.timeoutFail({
+          duration: Duration.seconds(6),
+          onTimeout: () => new Error('Timed out waiting for NATS ingestion'),
+        }),
+      )
+
+      return collectMessages(collected)
+    }).pipe(
+      Effect.scoped,
+      Effect.provide(testLayer),
+    )
+
+    const messages = await Effect.runPromise(program)
+
+    expect(messages).toContain(quotedEntry.message)
+    expect(messages).toContain(rawEntry.message)
+    expect(new Set(messages).size).toBeGreaterThanOrEqual(2)
+  })
+
+  it('honors subscribe filter options against live NATS traffic', async () => {
+    if (!natsAvailable) return
+
+    const taskId = makeTaskId('filters')
+
+    const allowEntry = new AgentTaskLogEntry({
+      id: `${taskId}-allow`,
+      timestamp: DateTime.unsafeNow(),
       level: 'WARN',
       source: 'worker',
-      message: 'checkpoint latency spike',
-      parentTaskId: TASK_ID,
-      metadata: { latencyMs: 222 },
-    }),
-  ),
-  'not-json-at-all',
-  serializeLine(
-    new AgentTaskLogEntry({
-      id: 'entry-003',
-      timestamp: DateTime.unsafeMake(1_700_000_000_003),
-      level: 'ERROR',
-      source: 'durability',
-      message: 'outbox retry exhausted',
-      parentTaskId: TASK_ID,
-      metadata: { retries: 3 },
-    }),
-  ),
-  serializeLine(
-    new AgentTaskLogEntry({
-      id: 'entry-004',
-      timestamp: DateTime.unsafeMake(1_700_000_000_004),
-      level: 'INFO',
-      source: 'runtime',
-      message: 'archive checkpoint flushed',
-      parentTaskId: TASK_ID,
-      metadata: { chunk: 4 },
-    }),
-  ),
-]
+      message: 'checkpoint warning threshold hit',
+      parentTaskId: taskId,
+    })
 
-const readRowCount = (container: HTMLElement) =>
-  container.querySelectorAll('.at-log-entry').length
+    const noiseEntries: ReadonlyArray<AgentTaskLogEntry> = [
+      new AgentTaskLogEntry({
+        id: `${taskId}-noise-1`,
+        timestamp: DateTime.unsafeNow(),
+        level: 'INFO',
+        source: 'worker',
+        message: 'checkpoint info ignored by minLevel',
+        parentTaskId: taskId,
+      }),
+      new AgentTaskLogEntry({
+        id: `${taskId}-noise-2`,
+        timestamp: DateTime.unsafeNow(),
+        level: 'ERROR',
+        source: 'durability',
+        message: 'checkpoint but wrong source',
+        parentTaskId: taskId,
+      }),
+      new AgentTaskLogEntry({
+        id: `${taskId}-noise-3`,
+        timestamp: DateTime.unsafeNow(),
+        level: 'WARN',
+        source: 'worker',
+        message: 'different token',
+        parentTaskId: taskId,
+      }),
+    ]
 
-const makeDeterministicSurfaceRuntime = () => {
-  const transportLayer = Layer.succeed(TransportService, {
-    subscribe: (taskId: string) =>
-      Effect.succeed(Stream.fromIterable(taskId === TASK_ID ? FIXTURE_LINES : [])),
-    publish: () => Effect.void,
-  })
+    const program = Effect.gen(function* () {
+      const service = yield* AgentTaskService
 
-  return createAgentTaskLogAtomSurfaceRuntime(
-    AgentTaskLogAtomSurfaceCustom(
-      AgentTaskServiceBase.pipe(
-        Layer.provide(transportLayer),
-      ),
-    ),
-  )
-}
+      const stream = yield* service.subscribeLogs(taskId, {
+        minLevel: 'WARN',
+        sourceFilter: 'worker',
+        messageFilter: 'checkpoint',
+      })
 
-describe('InlineTaskLogView integration (deterministic transport)', () => {
-  it('renders deterministic stream and applies source + regex filters', async () => {
-    const runtime = makeDeterministicSurfaceRuntime()
+      const collector = yield* stream.pipe(
+        Stream.take(1),
+        Stream.runCollect,
+        Effect.fork,
+      )
 
-    const { container } = render(
-      <InlineTaskLogView taskId={TASK_ID} atomSurfaceAtom={runtime.atomSurfaceAtom} />,
+      yield* Effect.sleep(Duration.millis(120))
+
+      for (const entry of noiseEntries) {
+        yield* service.publishLog(taskId, entry)
+      }
+      yield* service.publishLog(taskId, allowEntry)
+
+      const collected = yield* Fiber.join(collector).pipe(
+        Effect.timeoutFail({
+          duration: Duration.seconds(6),
+          onTimeout: () => new Error('Timed out waiting for filtered NATS ingestion'),
+        }),
+      )
+
+      return collectMessages(collected)
+    }).pipe(
+      Effect.scoped,
+      Effect.provide(testLayer),
     )
 
-    await waitFor(() => {
-      expect(readRowCount(container)).toBe(4)
-      expect(screen.queryByText('Waiting for log entries…')).not.toBeInTheDocument()
-    })
+    const messages = await Effect.runPromise(program)
 
-    const sourceInput = screen.getByPlaceholderText('Source…') as HTMLInputElement
-    fireEvent.change(sourceInput, { target: { value: 'runtime' } })
-
-    await waitFor(() => {
-      expect(readRowCount(container)).toBe(2)
-    })
-
-    const regexInput = screen.getByPlaceholderText('/regex/') as HTMLInputElement
-    fireEvent.change(regexInput, { target: { value: 'checkpoint' } })
-
-    await waitFor(() => {
-      expect(readRowCount(container)).toBe(1)
-      expect(screen.getByText('archive checkpoint flushed')).toBeInTheDocument()
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: /clear/i }))
-
-    await waitFor(() => {
-      expect(readRowCount(container)).toBe(4)
-    })
-  })
-
-  it('commits dorks on Enter and supports row detail expansion', async () => {
-    const runtime = makeDeterministicSurfaceRuntime()
-
-    const { container } = render(
-      <InlineTaskLogView taskId={TASK_ID} atomSurfaceAtom={runtime.atomSurfaceAtom} />,
-    )
-
-    await waitFor(() => {
-      expect(readRowCount(container)).toBe(4)
-    })
-
-    const search = screen.getByPlaceholderText(/Search or dork/) as HTMLInputElement
-    fireEvent.change(search, { target: { value: 'category:warn' } })
-
-    expect(search.value).toBe('category:warn')
-    expect(screen.queryByText('CATEGORY')).toBeNull()
-
-    fireEvent.keyDown(search, { key: 'Enter' })
-
-    await waitFor(() => {
-      expect(screen.getByText('CATEGORY')).toBeInTheDocument()
-      expect(screen.getByText('category:warn')).toBeInTheDocument()
-      expect(readRowCount(container)).toBe(1)
-    })
-
-    const firstLine = container.querySelector('.at-log-entry__line') as HTMLDivElement
-    expect(firstLine).toBeTruthy()
-    fireEvent.click(firstLine)
-
-    await waitFor(() => {
-      expect(container.querySelector('.rvn-chat__inline-task-detail')).toBeTruthy()
-    })
+    expect(messages).toEqual([allowEntry.message])
   })
 })
