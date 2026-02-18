@@ -37,6 +37,7 @@ export const outboxRetryCountFamily = defaultAtoms.outboxRetryCountFamily
 export const outboxDroppedCountFamily = defaultAtoms.outboxDroppedCountFamily
 export const outboxDegradedFamily = defaultAtoms.outboxDegradedFamily
 export const outboxMetricsFamily = defaultAtoms.outboxMetricsFamily
+export const durabilityAckMetricsFamily = defaultAtoms.durabilityAckMetricsFamily
 export const hydrationCacheFamily = defaultAtoms.hydrationCacheFamily
 export const hydrationLoadingFamily = defaultAtoms.hydrationLoadingFamily
 export const hydrationErrorFamily = defaultAtoms.hydrationErrorFamily
@@ -65,13 +66,18 @@ export {
   type AgentTaskLogAtomSurfaceShape,
   type AgentTaskLogAtomSurfaceRuntime,
   type OutboxMetrics,
+  type DurabilityAckLatencyBuckets,
+  type DurabilityAckMetrics,
   type HydrationCachePolicy,
   type HydrationCacheEntry,
   type HydrationMetrics,
   DEFAULT_HYDRATION_CACHE_POLICY,
+  EMPTY_DURABILITY_ACK_BUCKETS,
+  EMPTY_DURABILITY_ACK_METRICS,
   hydrationWindowCacheKey,
   pruneHydrationCacheEntries,
   upsertHydrationCacheEntry,
+  recordDurabilityAckLatency,
 } from './surface'
 
 // ---------------------------------------------------------------------------

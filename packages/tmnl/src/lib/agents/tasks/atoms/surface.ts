@@ -110,6 +110,31 @@ export interface HydrationMetrics {
   readonly windowsCached: number
   readonly loading: boolean
   readonly hasError: boolean
+  readonly requests: number
+  readonly cacheHits: number
+  readonly archiveHits: number
+  readonly natsFallbackHits: number
+  readonly errors: number
+}
+
+export interface DurabilityAckLatencyBuckets {
+  readonly le10ms: number
+  readonly le25ms: number
+  readonly le50ms: number
+  readonly le100ms: number
+  readonly le250ms: number
+  readonly le500ms: number
+  readonly le1000ms: number
+  readonly gt1000ms: number
+}
+
+export interface DurabilityAckMetrics {
+  readonly samples: number
+  readonly minMs: number | null
+  readonly maxMs: number | null
+  readonly lastMs: number | null
+  readonly avgMs: number | null
+  readonly buckets: DurabilityAckLatencyBuckets
 }
 
 export const hydrationWindowCacheKey = (window: HydrationWindow): string =>
@@ -196,6 +221,62 @@ export const mergeHotAndHydratedEntries = (
   })
 }
 
+export const EMPTY_DURABILITY_ACK_BUCKETS: DurabilityAckLatencyBuckets = {
+  le10ms: 0,
+  le25ms: 0,
+  le50ms: 0,
+  le100ms: 0,
+  le250ms: 0,
+  le500ms: 0,
+  le1000ms: 0,
+  gt1000ms: 0,
+}
+
+export const EMPTY_DURABILITY_ACK_METRICS: DurabilityAckMetrics = {
+  samples: 0,
+  minMs: null,
+  maxMs: null,
+  lastMs: null,
+  avgMs: null,
+  buckets: EMPTY_DURABILITY_ACK_BUCKETS,
+}
+
+export const recordDurabilityAckLatency = (
+  current: DurabilityAckMetrics,
+  latencyMs: number,
+): DurabilityAckMetrics => {
+  const clampedLatency = Math.max(0, Math.trunc(latencyMs))
+
+  const nextBuckets: DurabilityAckLatencyBuckets =
+    clampedLatency <= 10
+      ? { ...current.buckets, le10ms: current.buckets.le10ms + 1 }
+      : clampedLatency <= 25
+        ? { ...current.buckets, le25ms: current.buckets.le25ms + 1 }
+        : clampedLatency <= 50
+          ? { ...current.buckets, le50ms: current.buckets.le50ms + 1 }
+          : clampedLatency <= 100
+            ? { ...current.buckets, le100ms: current.buckets.le100ms + 1 }
+            : clampedLatency <= 250
+              ? { ...current.buckets, le250ms: current.buckets.le250ms + 1 }
+              : clampedLatency <= 500
+                ? { ...current.buckets, le500ms: current.buckets.le500ms + 1 }
+                : clampedLatency <= 1000
+                  ? { ...current.buckets, le1000ms: current.buckets.le1000ms + 1 }
+                  : { ...current.buckets, gt1000ms: current.buckets.gt1000ms + 1 }
+
+  const samples = current.samples + 1
+  const sum = (current.avgMs ?? 0) * current.samples + clampedLatency
+
+  return {
+    samples,
+    minMs: current.minMs === null ? clampedLatency : Math.min(current.minMs, clampedLatency),
+    maxMs: current.maxMs === null ? clampedLatency : Math.max(current.maxMs, clampedLatency),
+    lastMs: clampedLatency,
+    avgMs: sum / samples,
+    buckets: nextBuckets,
+  }
+}
+
 export interface AgentTaskLogAtomSurfaceAtoms {
   readonly logRuntimeAtom: ReturnType<typeof Atom.runtime>
   readonly logBufferFamily: ReturnType<typeof Atom.family<string, Atom.Writable<ReadonlyArray<AssembledLogEntry>>>>
@@ -209,6 +290,7 @@ export interface AgentTaskLogAtomSurfaceAtoms {
   readonly outboxDroppedCountFamily: ReturnType<typeof Atom.family<string, Atom.Writable<number>>>
   readonly outboxDegradedFamily: ReturnType<typeof Atom.family<string, Atom.Writable<boolean>>>
   readonly outboxMetricsFamily: ReturnType<typeof Atom.family<string, Atom.Atom<OutboxMetrics>>>
+  readonly durabilityAckMetricsFamily: ReturnType<typeof Atom.family<string, Atom.Writable<DurabilityAckMetrics>>>
   readonly hydrationCacheFamily: ReturnType<typeof Atom.family<string, Atom.Writable<ReadonlyArray<HydrationCacheEntry>>>>
   readonly hydrationLoadingFamily: ReturnType<typeof Atom.family<string, Atom.Writable<boolean>>>
   readonly hydrationErrorFamily: ReturnType<typeof Atom.family<string, Atom.Writable<string | null>>>
@@ -400,10 +482,19 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
                   Effect.sync(() => {
                     incrementCounter(outboxInFlightFamily, attempt.taskId)
                   }),
-                onAttemptSuccess: (attempt) =>
+                onAttemptSuccess: (attempt, receipt) =>
                   Effect.sync(() => {
                     decrementCounter(outboxInFlightFamily, attempt.taskId)
                     updatePendingByEntry(attempt.taskId, attempt.entryId, 'remove')
+
+                    const ackMetricsAtom = durabilityAckMetricsFamily(attempt.taskId)
+                    ctx.set(
+                      ackMetricsAtom,
+                      recordDurabilityAckLatency(
+                        ctx.get(ackMetricsAtom),
+                        receipt.publishLatencyMs,
+                      ),
+                    )
                   }),
                 onAttemptFailure: (failure) =>
                   Effect.sync(() => {
@@ -563,6 +654,10 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
       })),
   )
 
+  const durabilityAckMetricsFamily = Atom.family(
+    (_taskId: string) => Atom.make<DurabilityAckMetrics>(EMPTY_DURABILITY_ACK_METRICS),
+  )
+
   const hydrationCacheFamily = Atom.family(
     (_taskId: string) => Atom.make<ReadonlyArray<HydrationCacheEntry>>([]),
   )
@@ -575,12 +670,37 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
     (_taskId: string) => Atom.make<string | null>(null),
   )
 
+  const hydrationRequestCountFamily = Atom.family(
+    (_taskId: string) => Atom.make<number>(0),
+  )
+
+  const hydrationCacheHitCountFamily = Atom.family(
+    (_taskId: string) => Atom.make<number>(0),
+  )
+
+  const hydrationArchiveHitCountFamily = Atom.family(
+    (_taskId: string) => Atom.make<number>(0),
+  )
+
+  const hydrationNatsFallbackHitCountFamily = Atom.family(
+    (_taskId: string) => Atom.make<number>(0),
+  )
+
+  const hydrationErrorCountFamily = Atom.family(
+    (_taskId: string) => Atom.make<number>(0),
+  )
+
   const hydrationMetricsFamily = Atom.family(
     (taskId: string) =>
       Atom.readable((get): HydrationMetrics => ({
         windowsCached: get(hydrationCacheFamily(taskId)).length,
         loading: get(hydrationLoadingFamily(taskId)),
         hasError: get(hydrationErrorFamily(taskId)) !== null,
+        requests: get(hydrationRequestCountFamily(taskId)),
+        cacheHits: get(hydrationCacheHitCountFamily(taskId)),
+        archiveHits: get(hydrationArchiveHitCountFamily(taskId)),
+        natsFallbackHits: get(hydrationNatsFallbackHitCountFamily(taskId)),
+        errors: get(hydrationErrorCountFamily(taskId)),
       })),
   )
 
@@ -601,6 +721,10 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
 
         ctx.set(loadingAtom, true)
         ctx.set(errorAtom, null)
+        ctx.set(
+          hydrationRequestCountFamily(taskId),
+          ctx.get(hydrationRequestCountFamily(taskId)) + 1,
+        )
 
         const nowEpochMs = Date.now()
         const prunedBefore = pruneHydrationCacheEntries(ctx.get(cacheAtom), nowEpochMs)
@@ -630,11 +754,33 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
           )
 
           ctx.set(cacheAtom, nextCache)
+
+          if (slice.source === 'cache') {
+            ctx.set(
+              hydrationCacheHitCountFamily(taskId),
+              ctx.get(hydrationCacheHitCountFamily(taskId)) + 1,
+            )
+          } else if (slice.source === 'archive') {
+            ctx.set(
+              hydrationArchiveHitCountFamily(taskId),
+              ctx.get(hydrationArchiveHitCountFamily(taskId)) + 1,
+            )
+          } else {
+            ctx.set(
+              hydrationNatsFallbackHitCountFamily(taskId),
+              ctx.get(hydrationNatsFallbackHitCountFamily(taskId)) + 1,
+            )
+          }
+
           return Option.some(slice)
         }).pipe(
           Effect.tapError((error) =>
             Effect.sync(() => {
               ctx.set(errorAtom, error.message)
+              ctx.set(
+                hydrationErrorCountFamily(taskId),
+                ctx.get(hydrationErrorCountFamily(taskId)) + 1,
+              )
             }),
           ),
           Effect.catchAll(() => Effect.succeed(Option.none<HydrationSlice>())),
@@ -694,6 +840,7 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
     outboxDroppedCountFamily,
     outboxDegradedFamily,
     outboxMetricsFamily,
+    durabilityAckMetricsFamily,
     hydrationCacheFamily,
     hydrationLoadingFamily,
     hydrationErrorFamily,

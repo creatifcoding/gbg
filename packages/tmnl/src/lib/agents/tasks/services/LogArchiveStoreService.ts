@@ -349,6 +349,13 @@ const make = Effect.gen(function* () {
 
   const writeChunk: LogArchiveStoreServiceShape['writeChunk'] = (chunk) =>
     writeChunkInternal(chunk, true).pipe(
+      Effect.withSpan('AgentTask.LogArchive.spill', {
+        attributes: {
+          taskId: chunk.taskId,
+          chunkIndex: chunk.chunkIndex,
+          entryCount: chunk.entryCount,
+        },
+      }),
       Effect.withSpan('AgentTask.LogArchive.writeChunk', {
         attributes: {
           taskId: chunk.taskId,
@@ -439,6 +446,9 @@ const make = Effect.gen(function* () {
 
   const evictOldestChunk: LogArchiveStoreServiceShape['evictOldestChunk'] = (taskId) =>
     evictOldestChunkInternal(taskId, true).pipe(
+      Effect.withSpan('AgentTask.LogArchive.evict', {
+        attributes: { taskId },
+      }),
       Effect.withSpan('AgentTask.LogArchive.evictOldestChunk', {
         attributes: { taskId },
       }),
