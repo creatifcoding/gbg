@@ -9,7 +9,15 @@
  */
 
 import { Atom } from '@effect-atom/atom'
-import { Context, DateTime, Effect, HashSet, Layer, Stream } from 'effect'
+import {
+  Context,
+  DateTime,
+  Effect,
+  HashSet,
+  Layer,
+  Option,
+  Stream,
+} from 'effect'
 
 import {
   applyFilters as applyQueryDslFilters,
@@ -23,10 +31,11 @@ import {
 import type { LogLevel } from '../schemas/log-level'
 import type { AssembledLogEntry } from '../services/CodecService'
 import { AgentTaskService } from '../services/AgentTaskService'
+import { AgentTaskLogOutboxService } from '../services/AgentTaskLogOutboxService'
 import {
   AgentTaskServiceMock,
-  AgentTaskServiceNats,
-  AgentTaskServiceNatsMicro,
+  AgentTaskServiceNatsOutbox,
+  AgentTaskServiceNatsOutboxMicro,
 } from '../services/layers'
 
 // ---------------------------------------------------------------------------
@@ -190,6 +199,7 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
   )
   const taskBufferLruAtom = Atom.make<ReadonlyArray<string>>([])
   const taskLastSeenAtom = Atom.make<TaskLastSeenEntries>([])
+  const outboxDrainStartedAtom = Atom.make<boolean>(false)
 
   const retentionPolicy = DEFAULT_LOG_RETENTION_POLICY
 
@@ -197,54 +207,86 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
     (taskId, ctx) =>
       Effect.gen(function* () {
         const svc = yield* AgentTaskService
+        const outboxOption = yield* Effect.serviceOption(AgentTaskLogOutboxService)
         const bufferAtom = logBufferFamily(taskId)
+
+        if (Option.isSome(outboxOption) && !ctx.get(outboxDrainStartedAtom)) {
+          ctx.set(outboxDrainStartedAtom, true)
+
+          yield* Effect.forkScoped(
+            outboxOption.value.drainForever().pipe(
+              Effect.ensuring(
+                Effect.sync(() => {
+                  ctx.set(outboxDrainStartedAtom, false)
+                }),
+              ),
+              Effect.withSpan('AgentTask.LogSurface.outboxDrain'),
+            ),
+          )
+        }
 
         const stream = yield* svc.subscribeLogs(taskId)
 
         yield* stream.pipe(
           Stream.runForEach((entry) =>
-            Effect.sync(() => {
-              const now = Date.now()
-
-              const current = ctx.get(bufferAtom)
-              const merged = svc.mergeIntoBuffer(current, [entry])
-              const bounded = applyPerTaskEntryCap(
-                merged,
-                retentionPolicy.maxEntriesPerTask,
-              )
-              ctx.set(bufferAtom, bounded)
-
-              const currentLru = ctx.get(taskBufferLruAtom)
-              const currentLastSeen = ctx.get(taskLastSeenAtom)
-              const touchedLru = touchLruOrder(currentLru, taskId)
-              const nextLastSeen = upsertLastSeen(currentLastSeen, taskId, now)
-
-              const evictedTaskIds = selectEvictedTaskIds(
-                touchedLru,
-                nextLastSeen,
-                now,
-                taskId,
-                retentionPolicy,
-              )
-
-              if (evictedTaskIds.length === 0) {
-                ctx.set(taskBufferLruAtom, touchedLru)
-                ctx.set(taskLastSeenAtom, nextLastSeen)
-                return
+            Effect.gen(function* () {
+              if (Option.isSome(outboxOption)) {
+                yield* outboxOption.value.enqueue(taskId, entry.entry).pipe(
+                  Effect.catchAll((error) =>
+                    Effect.logWarning('[AgentTaskLogSurface] outbox enqueue failed').pipe(
+                      Effect.annotateLogs({
+                        taskId,
+                        entryId: entry.entry.id,
+                        tag: error._tag,
+                      }),
+                    ),
+                  ),
+                )
               }
 
-              const evictedSet = HashSet.fromIterable(evictedTaskIds)
-              for (const evictedTaskId of evictedTaskIds) {
-                ctx.set(logBufferFamily(evictedTaskId), [])
-                ctx.set(unreadCountFamily(evictedTaskId), 0)
-                ctx.set(tailModeFamily(evictedTaskId), 'tail')
-              }
+              yield* Effect.sync(() => {
+                const now = Date.now()
 
-              ctx.set(
-                taskBufferLruAtom,
-                touchedLru.filter((id) => !HashSet.has(evictedSet, id)),
-              )
-              ctx.set(taskLastSeenAtom, removeLastSeenEntries(nextLastSeen, evictedTaskIds))
+                const current = ctx.get(bufferAtom)
+                const merged = svc.mergeIntoBuffer(current, [entry])
+                const bounded = applyPerTaskEntryCap(
+                  merged,
+                  retentionPolicy.maxEntriesPerTask,
+                )
+                ctx.set(bufferAtom, bounded)
+
+                const currentLru = ctx.get(taskBufferLruAtom)
+                const currentLastSeen = ctx.get(taskLastSeenAtom)
+                const touchedLru = touchLruOrder(currentLru, taskId)
+                const nextLastSeen = upsertLastSeen(currentLastSeen, taskId, now)
+
+                const evictedTaskIds = selectEvictedTaskIds(
+                  touchedLru,
+                  nextLastSeen,
+                  now,
+                  taskId,
+                  retentionPolicy,
+                )
+
+                if (evictedTaskIds.length === 0) {
+                  ctx.set(taskBufferLruAtom, touchedLru)
+                  ctx.set(taskLastSeenAtom, nextLastSeen)
+                  return
+                }
+
+                const evictedSet = HashSet.fromIterable(evictedTaskIds)
+                for (const evictedTaskId of evictedTaskIds) {
+                  ctx.set(logBufferFamily(evictedTaskId), [])
+                  ctx.set(unreadCountFamily(evictedTaskId), 0)
+                  ctx.set(tailModeFamily(evictedTaskId), 'tail')
+                }
+
+                ctx.set(
+                  taskBufferLruAtom,
+                  touchedLru.filter((id) => !HashSet.has(evictedSet, id)),
+                )
+                ctx.set(taskLastSeenAtom, removeLastSeenEntries(nextLastSeen, evictedTaskIds))
+              })
             }),
           ),
         )
@@ -467,14 +509,14 @@ export const AgentTaskLogAtomSurfaceMock = AgentTaskLogAtomSurfaceCustom(
   AgentTaskServiceMock,
 )
 
-/** Production surface using NATS transport. */
+/** Production surface using NATS transport + transactional outbox drain. */
 export const AgentTaskLogAtomSurfaceNats = AgentTaskLogAtomSurfaceCustom(
-  AgentTaskServiceNats,
+  AgentTaskServiceNatsOutbox,
 )
 
-/** Production+control plane surface (NATS + micro host composition). */
+/** Production+control plane surface (NATS + outbox + micro host composition). */
 export const AgentTaskLogAtomSurfaceNatsMicro = AgentTaskLogAtomSurfaceCustom(
-  AgentTaskServiceNatsMicro,
+  AgentTaskServiceNatsOutboxMicro,
 )
 
 // ---------------------------------------------------------------------------
