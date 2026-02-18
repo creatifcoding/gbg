@@ -49,6 +49,70 @@ export {
   type AgentTaskServiceShape,
 } from './AgentTaskService'
 
+// Durability service
+export {
+  AGENT_TASK_LOG_DURABILITY_WILDCARD,
+  resolveAgentTaskLogDurabilitySubject,
+  AgentTaskLogDurabilityConfig,
+  AgentTaskLogDurabilityConfigDefault,
+  AgentTaskLogDurabilityConfigCustom,
+  AgentTaskLogDurabilityEnsureStreamError,
+  AgentTaskLogDurabilityPublishError,
+  AgentTaskLogDurabilityService,
+  AgentTaskLogDurabilityServiceLive,
+  AgentTaskLogDurabilityServiceDefault,
+  type AgentTaskLogDurabilityConfigShape,
+  type AgentTaskLogDurabilityError,
+  type AgentTaskLogDurabilityServiceShape,
+} from './AgentTaskLogDurabilityService'
+
+// Local archive store service
+export {
+  archiveManifestKey,
+  archiveChunkKey,
+  archiveOldestChunkIndex,
+  LogArchiveStoreConfig,
+  LogArchiveStoreConfigDefault,
+  LogArchiveStoreConfigCustom,
+  LogArchiveStoreReadError,
+  LogArchiveStoreWriteError,
+  LogArchiveStoreArchiveDegradedError,
+  LogArchiveStoreService,
+  LogArchiveStoreServiceLive,
+  LogArchiveStoreServiceDefault,
+  LogArchiveStoreBackingBrowser,
+  LogArchiveStoreServiceBrowser,
+  type LogArchiveStoreConfigShape,
+  type LogArchiveStoreError,
+  type LogArchiveStoreServiceShape,
+} from './LogArchiveStoreService'
+
+// Outbox queue store + orchestration
+export {
+  AgentTaskLogOutboxQueueStoreConfig,
+  AgentTaskLogOutboxQueueStoreConfigDefault,
+  AgentTaskLogOutboxQueueStoreConfigCustom,
+  AgentTaskLogOutboxQueueStoreLive,
+  AgentTaskLogOutboxQueueStoreDefault,
+  AgentTaskLogOutboxQueueStoreBackingBrowser,
+  AgentTaskLogOutboxQueueStoreBrowser,
+  type AgentTaskLogOutboxQueueStoreConfigShape,
+} from './AgentTaskLogOutboxQueueStore'
+
+export {
+  AgentTaskLogOutboxConfig,
+  AgentTaskLogOutboxConfigDefault,
+  AgentTaskLogOutboxConfigCustom,
+  AgentTaskLogOutboxEnqueueError,
+  AgentTaskLogOutboxDrainError,
+  AgentTaskLogOutboxService,
+  AgentTaskLogOutboxServiceLive,
+  AgentTaskLogOutboxServiceDefault,
+  type AgentTaskLogOutboxConfigShape,
+  type AgentTaskLogOutboxError,
+  type AgentTaskLogOutboxServiceShape,
+} from './AgentTaskLogOutboxService'
+
 // Command control-plane services
 export {
   AgentTaskCommandRouterService,
@@ -78,5 +142,10 @@ export {
   AgentTaskServiceTestFast,
   AgentTaskServiceTestError,
   AgentTaskServiceNats,
+  AgentTaskServiceNatsDurable,
+  AgentTaskLogOutboxQueueLayer,
+  AgentTaskServiceNatsOutbox,
   AgentTaskServiceNatsMicro,
+  AgentTaskServiceNatsDurableMicro,
+  AgentTaskServiceNatsOutboxMicro,
 } from './layers'

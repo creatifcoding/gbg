@@ -15,6 +15,7 @@
  * @module agent-task/services/layers
  */
 
+import { PersistedQueue } from '@effect/experimental'
 import { Layer } from 'effect'
 import { CodecServiceLive } from './CodecService'
 import { LogServiceLive } from './LogService'
@@ -27,7 +28,17 @@ import {
 import { NatsTransportServiceLive } from './NatsTransportService'
 import { AgentTaskCommandRouterServiceLive } from './AgentTaskCommandRouterService'
 import { AgentTaskMicroHostServiceLive } from './AgentTaskMicroHostService'
-import { NatsMicroServiceLive } from '../../holonet/nats/micro'
+import {
+  AgentTaskLogDurabilityServiceDefault,
+} from './AgentTaskLogDurabilityService'
+import {
+  AgentTaskLogOutboxQueueStoreBrowser,
+} from './AgentTaskLogOutboxQueueStore'
+import {
+  AgentTaskLogOutboxServiceDefault,
+} from './AgentTaskLogOutboxService'
+import { NatsMicroServiceLive } from '../../../holonet/nats/micro'
+import { NatsStreamServiceLive } from '../../../holonet/nats/stream'
 
 // ---------------------------------------------------------------------------
 // Common base: CodecService + LogService + AgentTaskService
@@ -97,6 +108,36 @@ export const AgentTaskServiceNats = AgentTaskServiceBase.pipe(
   Layer.provide(NatsTransportServiceLive),
 )
 
+/**
+ * NATS stack plus JetStream durability receipts for task log publish acks.
+ *
+ * Requires upstream NATS infra (connection + pubsub), same as AgentTaskServiceNats,
+ * plus NatsStreamService dependencies.
+ */
+export const AgentTaskServiceNatsDurable = Layer.mergeAll(
+  AgentTaskServiceNats,
+  AgentTaskLogDurabilityServiceDefault.pipe(
+    Layer.provide(NatsStreamServiceLive),
+  ),
+)
+
+/**
+ * PersistedQueue factory backed by custom outbox store (browser localStorage WAL).
+ */
+export const AgentTaskLogOutboxQueueLayer = PersistedQueue.layer.pipe(
+  Layer.provide(AgentTaskLogOutboxQueueStoreBrowser),
+)
+
+/**
+ * NATS durability + transactional outbox orchestration.
+ */
+export const AgentTaskServiceNatsOutbox = Layer.mergeAll(
+  AgentTaskServiceNatsDurable,
+  AgentTaskLogOutboxServiceDefault.pipe(
+    Layer.provide(AgentTaskLogOutboxQueueLayer),
+  ),
+)
+
 // ---------------------------------------------------------------------------
 // NATS + Micro control-plane layer
 // ---------------------------------------------------------------------------
@@ -116,6 +157,26 @@ export const AgentTaskServiceNats = AgentTaskServiceBase.pipe(
  */
 export const AgentTaskServiceNatsMicro = Layer.mergeAll(
   AgentTaskServiceNats,
+  NatsMicroServiceLive,
+  AgentTaskCommandRouterServiceLive,
+  AgentTaskMicroHostServiceLive,
+)
+
+/**
+ * NATS + durability + micro control-plane composition.
+ */
+export const AgentTaskServiceNatsDurableMicro = Layer.mergeAll(
+  AgentTaskServiceNatsDurable,
+  NatsMicroServiceLive,
+  AgentTaskCommandRouterServiceLive,
+  AgentTaskMicroHostServiceLive,
+)
+
+/**
+ * NATS + durability + outbox + micro control-plane composition.
+ */
+export const AgentTaskServiceNatsOutboxMicro = Layer.mergeAll(
+  AgentTaskServiceNatsOutbox,
   NatsMicroServiceLive,
   AgentTaskCommandRouterServiceLive,
   AgentTaskMicroHostServiceLive,
