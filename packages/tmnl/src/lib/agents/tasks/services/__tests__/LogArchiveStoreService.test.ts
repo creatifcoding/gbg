@@ -10,6 +10,7 @@ import { AgentTaskLogEntry } from '../../schemas/log-entry'
 import {
   archiveChunkKey,
   archiveManifestKey,
+  LogArchiveStoreArchiveDegradedError,
   LogArchiveStoreConfigCustom,
   LogArchiveStoreService,
   LogArchiveStoreServiceLive,
@@ -171,6 +172,156 @@ describe('LogArchiveStoreService', () => {
     if (Option.isSome(result.manifestAfter)) {
       expect(result.manifestAfter.value.chunkCount).toBe(2)
       expect(result.manifestAfter.value.evictedChunkCount).toBe(1)
+    }
+  })
+
+  it('recovers quota-style chunk write failure by evicting oldest chunk and retrying once', async () => {
+    const storeId = 'archive-store-test-quota-recovery'
+    const backingMap = new Map<string, unknown>()
+    const failOnceKeys = new Set<string>()
+
+    const backingLayer = Layer.succeed(
+      Persistence.BackingPersistence,
+      Persistence.BackingPersistence.of({
+        [Persistence.BackingPersistenceTypeId]:
+          Persistence.BackingPersistenceTypeId,
+        make: () =>
+          Effect.succeed({
+            get: (key: string) =>
+              Effect.succeed(
+                backingMap.has(key)
+                  ? Option.some(backingMap.get(key) as unknown)
+                  : Option.none(),
+              ),
+            getMany: (keys: Array<string>) =>
+              Effect.succeed(
+                keys.map((key) =>
+                  backingMap.has(key)
+                    ? Option.some(backingMap.get(key) as unknown)
+                    : Option.none(),
+                ),
+              ),
+            set: (key: string, value: unknown) =>
+              Effect.gen(function* () {
+                if (failOnceKeys.has(key)) {
+                  failOnceKeys.delete(key)
+                  return yield* Effect.fail(new Error('quota exceeded'))
+                }
+
+                backingMap.set(key, value)
+              }),
+            setMany: (
+              entries: ReadonlyArray<readonly [key: string, value: unknown, ttl: Option.Option<unknown>]>,
+            ) =>
+              Effect.sync(() => {
+                for (const [key, value] of entries) {
+                  backingMap.set(key, value)
+                }
+              }),
+            remove: (key: string) =>
+              Effect.sync(() => {
+                backingMap.delete(key)
+              }),
+            clear: Effect.sync(() => {
+              backingMap.clear()
+            }),
+          }),
+      }),
+    )
+
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const service = yield* LogArchiveStoreService
+
+        yield* service.writeManifest(
+          new LogArchiveManifest({
+            taskId: 'task-quota',
+            version: 1,
+            nextChunkIndex: 1,
+            latestChunkIndex: 0,
+            chunkCount: 1,
+            totalEntries: 2,
+            evictedChunkCount: 0,
+            updatedAt: now(),
+          }),
+        )
+        yield* service.writeChunk(makeChunk('task-quota', 0, ['q0', 'q1']))
+
+        failOnceKeys.add(archiveChunkKey('task-quota', 1))
+
+        yield* service.writeChunk(makeChunk('task-quota', 1, ['q2', 'q3']))
+
+        const oldChunk = yield* service.readChunk('task-quota', 0)
+        const newChunk = yield* service.readChunk('task-quota', 1)
+        const manifest = yield* service.readManifest('task-quota')
+
+        return { oldChunk, newChunk, manifest }
+      }).pipe(
+        Effect.provide(
+          LogArchiveStoreServiceLive.pipe(
+            Layer.provide(LogArchiveStoreConfigCustom({ storeId })),
+            Layer.provide(backingLayer),
+          ),
+        ),
+      ),
+    )
+
+    expect(Option.isNone(result.oldChunk)).toBe(true)
+    expect(Option.isSome(result.newChunk)).toBe(true)
+    expect(Option.isSome(result.manifest)).toBe(true)
+    if (Option.isSome(result.manifest)) {
+      expect(result.manifest.value.chunkCount).toBe(0)
+      expect(result.manifest.value.evictedChunkCount).toBe(1)
+    }
+  })
+
+  it('fails with archive degraded error when quota recovery cannot evict any chunk', async () => {
+    const storeId = 'archive-store-test-quota-degraded'
+    const failKey = archiveChunkKey('task-degraded', 0)
+
+    const backingLayer = Layer.succeed(
+      Persistence.BackingPersistence,
+      Persistence.BackingPersistence.of({
+        [Persistence.BackingPersistenceTypeId]:
+          Persistence.BackingPersistenceTypeId,
+        make: () =>
+          Effect.succeed({
+            get: (_key: string) => Effect.succeed(Option.none()),
+            getMany: (keys: Array<string>) =>
+              Effect.succeed(keys.map(() => Option.none())),
+            set: (key: string, _value: unknown) =>
+              key === failKey
+                ? Effect.fail(new Error('quota exceeded'))
+                : Effect.void,
+            setMany: () => Effect.void,
+            remove: () => Effect.void,
+            clear: Effect.void,
+          }),
+      }),
+    )
+
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const service = yield* LogArchiveStoreService
+
+        return yield* Effect.either(
+          service.writeChunk(makeChunk('task-degraded', 0, ['d0'])),
+        )
+      }).pipe(
+        Effect.provide(
+          LogArchiveStoreServiceLive.pipe(
+            Layer.provide(LogArchiveStoreConfigCustom({ storeId })),
+            Layer.provide(backingLayer),
+          ),
+        ),
+      ),
+    )
+
+    expect(result._tag).toBe('Left')
+    if (result._tag === 'Left') {
+      expect(result.left).toBeInstanceOf(LogArchiveStoreArchiveDegradedError)
+      expect(result.left._tag).toBe('AgentTask/LogArchiveStoreArchiveDegradedError')
+      expect(result.left.taskId).toBe('task-degraded')
     }
   })
 
