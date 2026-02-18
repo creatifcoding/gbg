@@ -38,6 +38,8 @@ export const outboxDroppedCountFamily = defaultAtoms.outboxDroppedCountFamily
 export const outboxDegradedFamily = defaultAtoms.outboxDegradedFamily
 export const outboxMetricsFamily = defaultAtoms.outboxMetricsFamily
 export const durabilityAckMetricsFamily = defaultAtoms.durabilityAckMetricsFamily
+export const archivePendingCountFamily = defaultAtoms.archivePendingCountFamily
+export const archiveDegradedFamily = defaultAtoms.archiveDegradedFamily
 export const hydrationCacheFamily = defaultAtoms.hydrationCacheFamily
 export const hydrationLoadingFamily = defaultAtoms.hydrationLoadingFamily
 export const hydrationErrorFamily = defaultAtoms.hydrationErrorFamily
@@ -66,18 +68,23 @@ export {
   type AgentTaskLogAtomSurfaceShape,
   type AgentTaskLogAtomSurfaceRuntime,
   type OutboxMetrics,
+  type ArchiveSpillPendingEntry,
   type DurabilityAckLatencyBuckets,
   type DurabilityAckMetrics,
   type HydrationCachePolicy,
   type HydrationCacheEntry,
   type HydrationMetrics,
   DEFAULT_HYDRATION_CACHE_POLICY,
+  ARCHIVE_SPILL_CHECKPOINT_SIZE,
   EMPTY_DURABILITY_ACK_BUCKETS,
   EMPTY_DURABILITY_ACK_METRICS,
   hydrationWindowCacheKey,
   pruneHydrationCacheEntries,
   upsertHydrationCacheEntry,
   recordDurabilityAckLatency,
+  shouldSpillArchiveCheckpoint,
+  buildArchiveChunkFromAckedBatch,
+  advanceArchiveManifestAfterChunk,
 } from './surface'
 
 // ---------------------------------------------------------------------------

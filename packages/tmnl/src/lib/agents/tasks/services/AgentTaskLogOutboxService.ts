@@ -77,6 +77,7 @@ export interface AgentTaskLogOutboxDrainAttempt {
   readonly queueName: string
   readonly taskId: string
   readonly entryId: string
+  readonly entry: AgentTaskLogEntry
   /** 1-based attempt number */
   readonly attempt: number
   readonly maxAttempts: number
@@ -196,6 +197,7 @@ const make = Effect.gen(function* () {
             queueName: config.queueName,
             taskId: envelope.taskId,
             entryId: envelope.entry.id,
+            entry: envelope.entry,
             attempt: metadata.attempts + 1,
             maxAttempts: config.maxAttempts,
             retried: metadata.attempts > 0,

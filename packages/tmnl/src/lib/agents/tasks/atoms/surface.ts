@@ -29,11 +29,18 @@ import {
   type SearchableItem,
 } from '../../../search/query'
 import { LOG_LEVEL_SEVERITY, logLevelDataAttr, type LogLevel } from '../schemas/log-level'
-import type { HydrationSlice, HydrationWindow } from '../schemas/hydration-window'
+import {
+  LogArchiveChunk,
+  LogArchiveManifest,
+  type AgentTaskLogDurabilityReceipt,
+  type HydrationSlice,
+  type HydrationWindow,
+} from '../schemas'
 import type { AgentTaskLogEntry } from '../schemas/log-entry'
 import type { AssembledLogEntry } from '../services/CodecService'
 import { AgentTaskService } from '../services/AgentTaskService'
 import { AgentTaskLogOutboxService } from '../services/AgentTaskLogOutboxService'
+import { LogArchiveStoreService } from '../services/LogArchiveStoreService'
 import { LogHydrationService } from '../services/LogHydrationService'
 import {
   AgentTaskServiceMock,
@@ -277,6 +284,121 @@ export const recordDurabilityAckLatency = (
   }
 }
 
+export interface ArchiveSpillPendingEntry {
+  readonly entry: AgentTaskLogEntry
+  readonly receipt: AgentTaskLogDurabilityReceipt
+}
+
+export const ARCHIVE_SPILL_CHECKPOINT_SIZE = 100
+
+export const shouldSpillArchiveCheckpoint = (
+  pendingCount: number,
+  checkpointSize = ARCHIVE_SPILL_CHECKPOINT_SIZE,
+): boolean => pendingCount >= Math.max(1, checkpointSize)
+
+const computeEntryApproxBytes = (entry: AgentTaskLogEntry): number => {
+  try {
+    return JSON.stringify(entry).length
+  } catch {
+    return 0
+  }
+}
+
+const minTimestamp = (
+  entries: ReadonlyArray<AgentTaskLogEntry>,
+): DateTime.Utc | undefined => {
+  let min: DateTime.Utc | undefined
+  for (const entry of entries) {
+    if (!min) {
+      min = entry.timestamp
+      continue
+    }
+
+    if (DateTime.toEpochMillis(entry.timestamp) < DateTime.toEpochMillis(min)) {
+      min = entry.timestamp
+    }
+  }
+  return min
+}
+
+const maxTimestamp = (
+  entries: ReadonlyArray<AgentTaskLogEntry>,
+): DateTime.Utc | undefined => {
+  let max: DateTime.Utc | undefined
+  for (const entry of entries) {
+    if (!max) {
+      max = entry.timestamp
+      continue
+    }
+
+    if (DateTime.toEpochMillis(entry.timestamp) > DateTime.toEpochMillis(max)) {
+      max = entry.timestamp
+    }
+  }
+  return max
+}
+
+export const buildArchiveChunkFromAckedBatch = (
+  taskId: string,
+  chunkIndex: number,
+  batch: ReadonlyArray<ArchiveSpillPendingEntry>,
+  persistedAt: DateTime.Utc,
+): LogArchiveChunk => {
+  const entries = batch.map((item) => item.entry)
+  const firstReceipt = batch[0]?.receipt
+  const lastReceipt = batch[batch.length - 1]?.receipt
+
+  return new LogArchiveChunk({
+    taskId,
+    chunkIndex,
+    entryCount: entries.length,
+    entries,
+    oldestTimestamp: minTimestamp(entries),
+    newestTimestamp: maxTimestamp(entries),
+    firstDurabilitySequence: firstReceipt?.sequence,
+    lastDurabilitySequence: lastReceipt?.sequence,
+    approxBytes: entries.reduce((sum, entry) => sum + computeEntryApproxBytes(entry), 0),
+    persistedAt,
+  })
+}
+
+export const advanceArchiveManifestAfterChunk = (
+  taskId: string,
+  current: Option.Option<LogArchiveManifest>,
+  chunk: LogArchiveChunk,
+  updatedAt: DateTime.Utc,
+): LogArchiveManifest => {
+  if (Option.isNone(current)) {
+    return new LogArchiveManifest({
+      taskId,
+      version: 1,
+      nextChunkIndex: chunk.chunkIndex + 1,
+      latestChunkIndex: chunk.chunkIndex,
+      chunkCount: 1,
+      totalEntries: chunk.entryCount,
+      evictedChunkCount: 0,
+      oldestTimestamp: chunk.oldestTimestamp,
+      newestTimestamp: chunk.newestTimestamp,
+      lastDurabilitySequence: chunk.lastDurabilitySequence,
+      updatedAt,
+    })
+  }
+
+  const manifest = current.value
+
+  return new LogArchiveManifest({
+    ...manifest,
+    nextChunkIndex: chunk.chunkIndex + 1,
+    latestChunkIndex: chunk.chunkIndex,
+    chunkCount: manifest.chunkCount + 1,
+    totalEntries: manifest.totalEntries + chunk.entryCount,
+    oldestTimestamp: manifest.oldestTimestamp ?? chunk.oldestTimestamp,
+    newestTimestamp: chunk.newestTimestamp ?? manifest.newestTimestamp,
+    lastDurabilitySequence: chunk.lastDurabilitySequence ?? manifest.lastDurabilitySequence,
+    updatedAt,
+  })
+}
+
 export interface AgentTaskLogAtomSurfaceAtoms {
   readonly logRuntimeAtom: ReturnType<typeof Atom.runtime>
   readonly logBufferFamily: ReturnType<typeof Atom.family<string, Atom.Writable<ReadonlyArray<AssembledLogEntry>>>>
@@ -291,6 +413,8 @@ export interface AgentTaskLogAtomSurfaceAtoms {
   readonly outboxDegradedFamily: ReturnType<typeof Atom.family<string, Atom.Writable<boolean>>>
   readonly outboxMetricsFamily: ReturnType<typeof Atom.family<string, Atom.Atom<OutboxMetrics>>>
   readonly durabilityAckMetricsFamily: ReturnType<typeof Atom.family<string, Atom.Writable<DurabilityAckMetrics>>>
+  readonly archivePendingCountFamily: ReturnType<typeof Atom.family<string, Atom.Atom<number>>>
+  readonly archiveDegradedFamily: ReturnType<typeof Atom.family<string, Atom.Writable<boolean>>>
   readonly hydrationCacheFamily: ReturnType<typeof Atom.family<string, Atom.Writable<ReadonlyArray<HydrationCacheEntry>>>>
   readonly hydrationLoadingFamily: ReturnType<typeof Atom.family<string, Atom.Writable<boolean>>>
   readonly hydrationErrorFamily: ReturnType<typeof Atom.family<string, Atom.Writable<string | null>>>
@@ -423,6 +547,7 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
       Effect.gen(function* () {
         const svc = yield* AgentTaskService
         const outboxOption = yield* Effect.serviceOption(AgentTaskLogOutboxService)
+        const archiveStoreOption = yield* Effect.serviceOption(LogArchiveStoreService)
         const bufferAtom = logBufferFamily(taskId)
 
         const updatePendingByEntry = (
@@ -472,6 +597,113 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
           ctx.set(outboxDegradedFamily(targetTaskId), true)
         }
 
+        const setArchiveDegraded = (targetTaskId: string) => {
+          ctx.set(archiveDegradedFamily(targetTaskId), true)
+          ctx.set(archiveSpillPendingFamily(targetTaskId), [])
+        }
+
+        const flushArchiveCheckpoint = (targetTaskId: string): Effect.Effect<void, never> =>
+          Effect.gen(function* () {
+            if (Option.isNone(archiveStoreOption)) {
+              return
+            }
+
+            if (ctx.get(archiveDegradedFamily(targetTaskId))) {
+              return
+            }
+
+            const pendingAtom = archiveSpillPendingFamily(targetTaskId)
+            const pending = ctx.get(pendingAtom)
+
+            if (!shouldSpillArchiveCheckpoint(pending.length)) {
+              return
+            }
+
+            const batch = pending.slice(0, ARCHIVE_SPILL_CHECKPOINT_SIZE)
+
+            const persistedAt = yield* DateTime.now
+
+            const manifestOption = yield* archiveStoreOption.value.readManifest(targetTaskId).pipe(
+              Effect.catchAll((error) =>
+                Effect.gen(function* () {
+                  yield* Effect.logWarning('[AgentTaskLogSurface] archive manifest read failed').pipe(
+                    Effect.annotateLogs({
+                      taskId: targetTaskId,
+                      tag: error._tag,
+                    }),
+                  )
+                  yield* Effect.sync(() => {
+                    setArchiveDegraded(targetTaskId)
+                  })
+                  return Option.none<LogArchiveManifest>()
+                }),
+              ),
+            )
+
+            const chunkIndex = Option.isSome(manifestOption)
+              ? manifestOption.value.nextChunkIndex
+              : 0
+            const chunk = buildArchiveChunkFromAckedBatch(
+              targetTaskId,
+              chunkIndex,
+              batch,
+              persistedAt,
+            )
+
+            const writeChunkResult = yield* Effect.either(
+              archiveStoreOption.value.writeChunk(chunk),
+            )
+
+            if (writeChunkResult._tag === 'Left') {
+              yield* Effect.logWarning('[AgentTaskLogSurface] archive spill write failed').pipe(
+                Effect.annotateLogs({
+                  taskId: targetTaskId,
+                  tag: writeChunkResult.left._tag,
+                  chunkIndex,
+                }),
+              )
+              yield* Effect.sync(() => {
+                setArchiveDegraded(targetTaskId)
+              })
+              return
+            }
+
+            const nextManifest = advanceArchiveManifestAfterChunk(
+              targetTaskId,
+              manifestOption,
+              chunk,
+              persistedAt,
+            )
+
+            const writeManifestResult = yield* Effect.either(
+              archiveStoreOption.value.writeManifest(nextManifest),
+            )
+
+            if (writeManifestResult._tag === 'Left') {
+              yield* Effect.logWarning('[AgentTaskLogSurface] archive manifest write failed').pipe(
+                Effect.annotateLogs({
+                  taskId: targetTaskId,
+                  tag: writeManifestResult.left._tag,
+                  chunkIndex,
+                }),
+              )
+              yield* Effect.sync(() => {
+                setArchiveDegraded(targetTaskId)
+              })
+              return
+            }
+
+            ctx.set(pendingAtom, pending.slice(ARCHIVE_SPILL_CHECKPOINT_SIZE))
+            ctx.set(archiveManifestFamily(targetTaskId), Option.some(nextManifest))
+          }).pipe(
+            Effect.withSpan('AgentTask.LogSurface.archiveSpillCheckpoint', {
+              attributes: {
+                taskId: targetTaskId,
+                checkpointSize: ARCHIVE_SPILL_CHECKPOINT_SIZE,
+              },
+            }),
+          )
+
         if (Option.isSome(outboxOption) && !ctx.get(outboxDrainStartedAtom)) {
           ctx.set(outboxDrainStartedAtom, true)
 
@@ -483,18 +715,39 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
                     incrementCounter(outboxInFlightFamily, attempt.taskId)
                   }),
                 onAttemptSuccess: (attempt, receipt) =>
-                  Effect.sync(() => {
-                    decrementCounter(outboxInFlightFamily, attempt.taskId)
-                    updatePendingByEntry(attempt.taskId, attempt.entryId, 'remove')
+                  Effect.gen(function* () {
+                    yield* Effect.sync(() => {
+                      decrementCounter(outboxInFlightFamily, attempt.taskId)
+                      updatePendingByEntry(attempt.taskId, attempt.entryId, 'remove')
 
-                    const ackMetricsAtom = durabilityAckMetricsFamily(attempt.taskId)
-                    ctx.set(
-                      ackMetricsAtom,
-                      recordDurabilityAckLatency(
-                        ctx.get(ackMetricsAtom),
-                        receipt.publishLatencyMs,
-                      ),
-                    )
+                      const ackMetricsAtom = durabilityAckMetricsFamily(attempt.taskId)
+                      ctx.set(
+                        ackMetricsAtom,
+                        recordDurabilityAckLatency(
+                          ctx.get(ackMetricsAtom),
+                          receipt.publishLatencyMs,
+                        ),
+                      )
+
+                      if (
+                        Option.isSome(archiveStoreOption) &&
+                        !ctx.get(archiveDegradedFamily(attempt.taskId))
+                      ) {
+                        const pendingAtom = archiveSpillPendingFamily(attempt.taskId)
+                        const pending = ctx.get(pendingAtom)
+                        ctx.set(pendingAtom, [
+                          ...pending,
+                          {
+                            entry: attempt.entry,
+                            receipt,
+                          },
+                        ])
+                      }
+                    })
+
+                    if (Option.isSome(archiveStoreOption)) {
+                      yield* flushArchiveCheckpoint(attempt.taskId)
+                    }
                   }),
                 onAttemptFailure: (failure) =>
                   Effect.sync(() => {
@@ -652,6 +905,23 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
         dropped: get(outboxDroppedCountFamily(taskId)),
         degraded: get(outboxDegradedFamily(taskId)),
       })),
+  )
+
+  const archiveManifestFamily = Atom.family(
+    (_taskId: string) => Atom.make<Option.Option<LogArchiveManifest>>(Option.none()),
+  )
+
+  const archiveSpillPendingFamily = Atom.family(
+    (_taskId: string) => Atom.make<ReadonlyArray<ArchiveSpillPendingEntry>>([]),
+  )
+
+  const archivePendingCountFamily = Atom.family(
+    (taskId: string) =>
+      Atom.readable((get) => get(archiveSpillPendingFamily(taskId)).length),
+  )
+
+  const archiveDegradedFamily = Atom.family(
+    (_taskId: string) => Atom.make<boolean>(false),
   )
 
   const durabilityAckMetricsFamily = Atom.family(
@@ -841,6 +1111,8 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
     outboxDegradedFamily,
     outboxMetricsFamily,
     durabilityAckMetricsFamily,
+    archivePendingCountFamily,
+    archiveDegradedFamily,
     hydrationCacheFamily,
     hydrationLoadingFamily,
     hydrationErrorFamily,

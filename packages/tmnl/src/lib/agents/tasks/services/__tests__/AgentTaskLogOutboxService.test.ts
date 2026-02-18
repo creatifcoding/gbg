@@ -86,6 +86,8 @@ describe('AgentTaskLogOutboxService', () => {
       Layer.provide(queueFactoryLayer('outbox-service-store-a')),
     )
 
+    const successAttempts: string[] = []
+
     const result = await Effect.runPromise(
       Effect.gen(function* () {
         const outbox = yield* AgentTaskLogOutboxService
@@ -93,7 +95,12 @@ describe('AgentTaskLogOutboxService', () => {
         yield* outbox.enqueue('task-a', entry('entry-a'))
         yield* outbox.enqueue('task-a', entry('entry-a'))
 
-        const first = yield* outbox.drainOne()
+        const first = yield* outbox.drainOne({
+          onAttemptSuccess: (attempt) =>
+            Effect.sync(() => {
+              successAttempts.push(attempt.entry.id)
+            }),
+        })
         const second = yield* outbox
           .drainOne()
           .pipe(Effect.timeoutOption(Duration.millis(40)))
@@ -105,6 +112,7 @@ describe('AgentTaskLogOutboxService', () => {
     expect(result.first.entryId).toBe('entry-a')
     expect(result.first.sequence).toBe(1)
     expect(Option.isNone(result.second)).toBe(true)
+    expect(successAttempts).toEqual(['entry-a'])
     expect(publishCalls).toBe(1)
   })
 
