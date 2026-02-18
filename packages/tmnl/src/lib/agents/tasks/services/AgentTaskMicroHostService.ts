@@ -17,7 +17,7 @@ import { Data, Effect, Schema } from 'effect'
 import type { ServiceIdentity, ServiceInfo, ServiceStats } from 'nats.ws'
 
 import { NatsMicroService } from '../../../holonet/nats/micro'
-import { AgentTaskCommandRouterService } from './AgentTaskCommandRouterService'
+import { AgentTaskCommandRouterService, AgentTaskCommandRouterServiceLive } from './AgentTaskCommandRouterService'
 import { AgentTaskCommandAckSchema } from '../schemas/command'
 
 // ---------------------------------------------------------------------------
@@ -77,6 +77,7 @@ export interface AgentTaskMicroHostServiceShape {
 export class AgentTaskMicroHostService extends Effect.Service<AgentTaskMicroHostService>()(
   'AgentTask/AgentTaskMicroHostService',
   {
+    dependencies: [NatsMicroService.Default, AgentTaskCommandRouterServiceLive],
     scoped: Effect.gen(function* () {
       const micro = yield* NatsMicroService
       const router = yield* AgentTaskCommandRouterService

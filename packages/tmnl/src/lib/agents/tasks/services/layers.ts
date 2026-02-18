@@ -26,7 +26,6 @@ import {
   MockTransportServiceError,
 } from './MockTransportService'
 import { NatsTransportServiceLive } from './NatsTransportService'
-import { AgentTaskCommandRouterServiceLive } from './AgentTaskCommandRouterService'
 import { AgentTaskMicroHostServiceLive } from './AgentTaskMicroHostService'
 import { NatsPubSubServiceLive } from '../../../holonet/nats/pubsub'
 import {
@@ -38,7 +37,7 @@ import {
 import {
   AgentTaskLogOutboxServiceDefault,
 } from './AgentTaskLogOutboxService'
-import { NatsMicroServiceLive } from '../../../holonet/nats/micro'
+
 import { NatsStreamServiceLive } from '../../../holonet/nats/stream'
 
 // ---------------------------------------------------------------------------
@@ -137,6 +136,7 @@ export const AgentTaskServiceNatsOutbox = Layer.mergeAll(
   AgentTaskServiceNatsDurable,
   AgentTaskLogOutboxServiceDefault.pipe(
     Layer.provide(AgentTaskLogOutboxQueueLayer),
+    Layer.provide(AgentTaskServiceNatsDurable),
   ),
 )
 
@@ -157,11 +157,19 @@ export const AgentTaskServiceNatsOutbox = Layer.mergeAll(
  * - NatsPubSubService (for transport + command events)
  * - NatsConnectionService (for micro host)
  */
+/**
+ * Shared control-plane deps: NatsPubSub is needed by the command router
+ * (for event publication) but isn't re-exported by AgentTaskServiceNats
+ * since that layer only surfaces AgentTaskService.
+ */
+const ControlPlaneDeps = NatsPubSubServiceLive
+
 export const AgentTaskServiceNatsMicro = Layer.mergeAll(
   AgentTaskServiceNats,
-  NatsMicroServiceLive,
-  AgentTaskCommandRouterServiceLive,
-  AgentTaskMicroHostServiceLive,
+  AgentTaskMicroHostServiceLive.pipe(
+    Layer.provide(AgentTaskServiceNats),
+    Layer.provide(ControlPlaneDeps),
+  ),
 )
 
 /**
@@ -169,9 +177,10 @@ export const AgentTaskServiceNatsMicro = Layer.mergeAll(
  */
 export const AgentTaskServiceNatsDurableMicro = Layer.mergeAll(
   AgentTaskServiceNatsDurable,
-  NatsMicroServiceLive,
-  AgentTaskCommandRouterServiceLive,
-  AgentTaskMicroHostServiceLive,
+  AgentTaskMicroHostServiceLive.pipe(
+    Layer.provide(AgentTaskServiceNatsDurable),
+    Layer.provide(ControlPlaneDeps),
+  ),
 )
 
 /**
@@ -179,7 +188,8 @@ export const AgentTaskServiceNatsDurableMicro = Layer.mergeAll(
  */
 export const AgentTaskServiceNatsOutboxMicro = Layer.mergeAll(
   AgentTaskServiceNatsOutbox,
-  NatsMicroServiceLive,
-  AgentTaskCommandRouterServiceLive,
-  AgentTaskMicroHostServiceLive,
+  AgentTaskMicroHostServiceLive.pipe(
+    Layer.provide(AgentTaskServiceNatsOutbox),
+    Layer.provide(ControlPlaneDeps),
+  ),
 )
