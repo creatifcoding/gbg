@@ -87,6 +87,20 @@ export {
   type LogArchiveStoreServiceShape,
 } from './LogArchiveStoreService'
 
+// Hydration service
+export {
+  LogHydrationConfig,
+  LogHydrationConfigDefault,
+  LogHydrationConfigCustom,
+  LogHydrationFetchError,
+  LogHydrationService,
+  LogHydrationServiceLive,
+  LogHydrationServiceDefault,
+  type LogHydrationConfigShape,
+  type LogHydrationError,
+  type LogHydrationServiceShape,
+} from './LogHydrationService'
+
 // Outbox queue store + orchestration
 export {
   AgentTaskLogOutboxQueueStoreConfig,
