@@ -29,8 +29,14 @@ const makeRuntime = (config?: Parameters<typeof MockTransportServiceCustom>[0]) 
     ),
   )
 
-const makeHydrationProbeSurface = (options?: { readonly keepLoading?: boolean }) => {
+const makeHydrationProbeSurface = (options?: {
+  readonly keepLoading?: boolean
+  readonly pulseLoadingMs?: number
+  readonly errorMessageOnce?: string
+}) => {
   const calls: Array<{ readonly taskId: string; readonly centerOffset: number }> = []
+  let triggerCount = 0
+
   const atoms = createAgentTaskLogAtomSurfaceAtoms(
     AgentTaskServiceBase.pipe(
       Layer.provide(
@@ -48,11 +54,25 @@ const makeHydrationProbeSurface = (options?: { readonly keepLoading?: boolean })
     readonly taskId: string
     readonly centerOffset: number
   }>()(({ taskId, centerOffset }, ctx) =>
-    Effect.sync(() => {
+    Effect.gen(function* () {
+      triggerCount += 1
       calls.push({ taskId, centerOffset })
+
+      if (options?.errorMessageOnce) {
+        const nextError = triggerCount === 1 ? options.errorMessageOnce : null
+        ctx.set(atoms.hydrationErrorFamily(taskId), nextError)
+      }
+
       if (options?.keepLoading) {
         ctx.set(atoms.hydrationLoadingFamily(taskId), true)
       }
+
+      if (options?.pulseLoadingMs && options.pulseLoadingMs > 0) {
+        ctx.set(atoms.hydrationLoadingFamily(taskId), true)
+        yield* Effect.sleep(`${options.pulseLoadingMs} millis`)
+        ctx.set(atoms.hydrationLoadingFamily(taskId), false)
+      }
+
       return Option.none()
     }),
   )

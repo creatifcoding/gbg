@@ -11,6 +11,8 @@ export interface InlineTaskLogViewContextValue {
   readonly entries: ReadonlyArray<AssembledLogEntry>
   readonly tailMode: 'tail' | 'inspect'
   readonly unreadCount: number
+  readonly hydrationLoading: boolean
+  readonly hydrationError: string | null
   readonly scrollRef: React.RefObject<HTMLDivElement | null>
   readonly head: ScrollAnchorHandle
   readonly tail: ScrollAnchorHandle

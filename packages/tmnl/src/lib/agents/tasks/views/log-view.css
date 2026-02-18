@@ -582,6 +582,30 @@
   50% { opacity: 0; }
 }
 
+.at-log-view__hydration-row {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 8px;
+  margin-bottom: 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+}
+
+.at-log-view__hydration-row--loading {
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  background: rgba(30, 58, 138, 0.2);
+  color: #bfdbfe;
+}
+
+.at-log-view__hydration-row--error {
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  background: rgba(127, 29, 29, 0.28);
+  color: #fecaca;
+}
+
 /* Scroll sentinels — 1px targets for IntersectionObserver.
    Must have actual geometry for reliable cross-browser detection. */
 .at-log-view__head-anchor,

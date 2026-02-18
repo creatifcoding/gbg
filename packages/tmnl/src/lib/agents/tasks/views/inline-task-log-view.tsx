@@ -62,6 +62,7 @@ export interface InlineTaskLogViewEntriesProps {
   readonly children?: React.ReactNode
 }
 export interface InlineTaskLogViewCursorProps extends HTMLAttributes<HTMLSpanElement> {}
+export interface InlineTaskLogViewHydrationStatusProps extends HTMLAttributes<HTMLDivElement> {}
 
 const DefaultInlineTaskLogViewLayout = () => (
   <>
@@ -94,6 +95,8 @@ function InlineTaskLogViewRoot({
     entries,
     tailMode,
     unreadCount,
+    hydrationLoading,
+    hydrationError,
     scrollRef,
     head,
     tail,
@@ -116,6 +119,8 @@ function InlineTaskLogViewRoot({
       entries,
       tailMode,
       unreadCount,
+      hydrationLoading,
+      hydrationError,
       scrollRef,
       head,
       tail,
@@ -131,6 +136,8 @@ function InlineTaskLogViewRoot({
       entries,
       tailMode,
       unreadCount,
+      hydrationLoading,
+      hydrationError,
       scrollRef,
       head,
       tail,
@@ -211,11 +218,16 @@ function InlineTaskLogViewBody({ children }: InlineTaskLogViewBodyProps) {
     return <>{children}</>
   }
 
-  if (ctx.entries.length === 0) {
-    return <InlineTaskLogView.Empty>Waiting for log entries…</InlineTaskLogView.Empty>
-  }
-
-  return <InlineTaskLogView.Entries />
+  return (
+    <>
+      <InlineTaskLogView.HydrationStatus />
+      {ctx.entries.length === 0 ? (
+        <InlineTaskLogView.Empty>Waiting for log entries…</InlineTaskLogView.Empty>
+      ) : (
+        <InlineTaskLogView.Entries />
+      )}
+    </>
+  )
 }
 
 function InlineTaskLogViewEmpty({ className, children, ...rest }: InlineTaskLogViewEmptyProps) {
@@ -272,6 +284,49 @@ function InlineTaskLogViewCursor({ className, ...rest }: InlineTaskLogViewCursor
   )
 }
 
+function InlineTaskLogViewHydrationStatus({
+  className,
+  ...rest
+}: InlineTaskLogViewHydrationStatusProps) {
+  const { hydrationLoading, hydrationError } = useInlineTaskLogViewContext()
+
+  if (!hydrationLoading && !hydrationError) {
+    return null
+  }
+
+  if (hydrationError) {
+    return (
+      <div
+        {...rest}
+        role="status"
+        className={
+          className
+            ? `at-log-view__hydration-row at-log-view__hydration-row--error ${className}`
+            : 'at-log-view__hydration-row at-log-view__hydration-row--error'
+        }
+        data-slot="log-view-hydration-error"
+      >
+        Hydration failed: {hydrationError}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      {...rest}
+      role="status"
+      className={
+        className
+          ? `at-log-view__hydration-row at-log-view__hydration-row--loading ${className}`
+          : 'at-log-view__hydration-row at-log-view__hydration-row--loading'
+      }
+      data-slot="log-view-hydration-loading"
+    >
+      Hydrating archived logs…
+    </div>
+  )
+}
+
 /** 1px sentinel at the head — IntersectionObserver target for head visibility. */
 function InlineTaskLogViewHeadAnchor() {
   const { head } = useInlineTaskLogViewContext()
@@ -323,6 +378,7 @@ export const InlineTaskLogView = Object.assign(InlineTaskLogViewBase, {
   Empty: InlineTaskLogViewEmpty,
   Entries: InlineTaskLogViewEntries,
   Cursor: InlineTaskLogViewCursor,
+  HydrationStatus: InlineTaskLogViewHydrationStatus,
   HeadAnchor: InlineTaskLogViewHeadAnchor,
   TailAnchor: InlineTaskLogViewTailAnchor,
   TailControls: InlineTaskLogViewTailControls,

@@ -73,6 +73,7 @@ import type { Atom } from '@effect-atom/atom'
 import {
   filteredLogBufferFamily,
   hydrateWindowTrigger,
+  hydrationErrorFamily,
   hydrationLoadingFamily,
   logStreamTrigger,
   tailModeFamily,
@@ -106,6 +107,8 @@ export interface InlineTaskLogController {
   readonly entries: ReadonlyArray<AssembledLogEntry>
   readonly tailMode: 'tail' | 'inspect'
   readonly unreadCount: number
+  readonly hydrationLoading: boolean
+  readonly hydrationError: string | null
   /** Attach to scroll container */
   readonly scrollRef: React.RefObject<HTMLDivElement | null>
   /** Fixed anchor at the head of entries */
@@ -172,6 +175,7 @@ export const useInlineTaskLogController = ({
   const hydrationLoading = useAtomValue(
     (atoms?.hydrationLoadingFamily ?? hydrationLoadingFamily)(taskId),
   )
+  const hydrationError = useAtomValue((atoms?.hydrationErrorFamily ?? hydrationErrorFamily)(taskId))
 
   const setStreamTrigger = useAtomSet(atoms?.logStreamTrigger ?? logStreamTrigger)
   const setHydrateWindowTrigger = useAtomSet(
@@ -418,6 +422,8 @@ export const useInlineTaskLogController = ({
     entries,
     tailMode,
     unreadCount,
+    hydrationLoading,
+    hydrationError,
     scrollRef,
     head,
     tail,
