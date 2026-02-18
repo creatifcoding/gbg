@@ -207,13 +207,14 @@ export const useInlineTaskLogController = ({
   // Scroll-to-tail — scoped to our scroll container only (no ancestor leak).
   // -------------------------------------------------------------------------
 
+  // With column-reverse, scrollTop 0 = bottom (tail). Scroll to 0 = go to tail.
   const scrollToTail = useCallback(
     (behavior: ScrollBehavior = 'smooth') => {
       const container = scrollRef.current
       if (!container) return
       lastDownwardScrollAtRef.current = Date.now()
       container.scrollTo({
-        top: container.scrollHeight,
+        top: 0,
         behavior: PREFERS_REDUCED_MOTION ? 'auto' : behavior,
       })
     },
@@ -281,6 +282,9 @@ export const useInlineTaskLogController = ({
     setTailMode('inspect')
   }, [tailMode, setTailMode])
 
+  // column-reverse inverts scrollTop: 0 = bottom, negative = scrolled up.
+  // delta > 0 (toward 0 / less negative) = scrolling DOWN toward tail.
+  // delta < 0 (more negative) = scrolling UP away from tail.
   const handleScroll = useCallback(() => {
     const el = scrollRef.current
     if (!el) return
@@ -290,8 +294,10 @@ export const useInlineTaskLogController = ({
     lastScrollTopRef.current = scrollTop
 
     if (delta < 0) {
+      // Scrolling UP (away from tail) — more negative scrollTop
       interruptTail()
     } else if (delta > 0) {
+      // Scrolling DOWN (toward tail) — toward 0
       lastDownwardScrollAtRef.current = Date.now()
     }
   }, [interruptTail])
