@@ -1,4 +1,4 @@
-import { DateTime, Effect, Layer } from 'effect'
+import { DateTime, Duration, Effect, Layer } from 'effect'
 import { describe, expect, it } from 'vitest'
 
 import { NatsStreamService } from '../../../../holonet/nats/stream'
@@ -17,6 +17,13 @@ const makeEntry = (id: string) =>
     source: 'agent-task.test',
     message: `message:${id}`,
   })
+
+const percentile = (samples: ReadonlyArray<number>, p: number): number => {
+  if (samples.length === 0) return 0
+  const sorted = [...samples].sort((a, b) => a - b)
+  const rank = Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1))
+  return sorted[rank] ?? 0
+}
 
 describe('AgentTaskLogDurabilityService', () => {
   it('ensures stream once and publishes acknowledgements', async () => {
@@ -145,5 +152,58 @@ describe('AgentTaskLogDurabilityService', () => {
       expect(result.left.taskId).toBe('task-fail')
       expect(result.left.entryId).toBe('entry-fail')
     }
+  })
+
+  it('provides deterministic latency probe samples for durability telemetry baselines', async () => {
+    const simulatedLatenciesMs = [4, 7, 12, 19, 31, 47]
+    let publishIndex = 0
+
+    const fakeStream = {
+      ensureStream: () => Effect.succeed({ config: { name: 'AGENT_TASK_LOGS' } } as any),
+      publish: () =>
+        Effect.gen(function* () {
+          const latency = simulatedLatenciesMs[publishIndex] ?? 1
+          publishIndex += 1
+          yield* Effect.sleep(Duration.millis(latency))
+
+          return {
+            stream: 'AGENT_TASK_LOGS',
+            seq: publishIndex,
+            duplicate: false,
+          }
+        }),
+    }
+
+    const provided = AgentTaskLogDurabilityServiceLive.pipe(
+      Layer.provide(AgentTaskLogDurabilityConfigCustom({
+        streamName: 'AGENT_TASK_LOGS',
+        subjects: ['agent.task.*.logs'],
+        storage: 'memory',
+        retention: 'limits',
+        duplicateWindow: 60_000_000_000,
+      })),
+      Layer.provide(Layer.succeed(NatsStreamService, fakeStream as any)),
+    )
+
+    const receipts = await Effect.runPromise(
+      Effect.gen(function* () {
+        const durability = yield* AgentTaskLogDurabilityService
+
+        return yield* Effect.forEach(simulatedLatenciesMs, (_latency, index) =>
+          durability.publishAndAwaitAck('task-probe', makeEntry(`entry-probe-${index}`)),
+        )
+      }).pipe(Effect.provide(provided)),
+    )
+
+    const samples = receipts.map((receipt) => receipt.publishLatencyMs)
+
+    expect(samples).toHaveLength(simulatedLatenciesMs.length)
+    expect(samples.every((sample) => sample >= 0)).toBe(true)
+
+    const p50 = percentile(samples, 50)
+    const p95 = percentile(samples, 95)
+
+    expect(p50).toBeGreaterThanOrEqual(0)
+    expect(p95).toBeGreaterThanOrEqual(p50)
   })
 })
