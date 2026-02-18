@@ -30,13 +30,13 @@ import {
 } from '../../../search/query'
 import { LOG_LEVEL_SEVERITY, logLevelDataAttr, type LogLevel } from '../schemas/log-level'
 import {
+  AgentTaskLogEntry,
   LogArchiveChunk,
   LogArchiveManifest,
   type AgentTaskLogDurabilityReceipt,
   type HydrationSlice,
   type HydrationWindow,
 } from '../schemas'
-import type { AgentTaskLogEntry } from '../schemas/log-entry'
 import type { AssembledLogEntry } from '../services/CodecService'
 import { AgentTaskService } from '../services/AgentTaskService'
 import { AgentTaskLogOutboxService } from '../services/AgentTaskLogOutboxService'
@@ -296,6 +296,60 @@ export const shouldSpillArchiveCheckpoint = (
   checkpointSize = ARCHIVE_SPILL_CHECKPOINT_SIZE,
 ): boolean => pendingCount >= Math.max(1, checkpointSize)
 
+export const ARCHIVE_REDACTED_VALUE = '[REDACTED]'
+
+const ARCHIVE_SENSITIVE_KEY_PATTERNS = [
+  /token/i,
+  /authorization/i,
+  /api.?key/i,
+  /secret/i,
+  /password/i,
+  /cookie/i,
+  /set-cookie/i,
+  /session/i,
+]
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false
+  }
+
+  const prototype = Object.getPrototypeOf(value)
+  return prototype === Object.prototype || prototype === null
+}
+
+const isSensitiveArchiveKey = (key: string): boolean =>
+  ARCHIVE_SENSITIVE_KEY_PATTERNS.some((pattern) => pattern.test(key))
+
+export const redactArchiveValue = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map((item) => redactArchiveValue(item))
+  }
+
+  if (!isPlainObject(value)) {
+    return value
+  }
+
+  const out: Record<string, unknown> = {}
+
+  for (const [key, nested] of Object.entries(value)) {
+    out[key] = isSensitiveArchiveKey(key)
+      ? ARCHIVE_REDACTED_VALUE
+      : redactArchiveValue(nested)
+  }
+
+  return out
+}
+
+export const redactArchiveEntry = (entry: AgentTaskLogEntry): AgentTaskLogEntry =>
+  new AgentTaskLogEntry({
+    ...entry,
+    metadata: entry.metadata
+      ? (redactArchiveValue(entry.metadata) as Record<string, unknown>)
+      : undefined,
+    payload: entry.payload ? redactArchiveValue(entry.payload) : undefined,
+  })
+
 const computeEntryApproxBytes = (entry: AgentTaskLogEntry): number => {
   try {
     return JSON.stringify(entry).length
@@ -344,7 +398,7 @@ export const buildArchiveChunkFromAckedBatch = (
   batch: ReadonlyArray<ArchiveSpillPendingEntry>,
   persistedAt: DateTime.Utc,
 ): LogArchiveChunk => {
-  const entries = batch.map((item) => item.entry)
+  const entries = batch.map((item) => redactArchiveEntry(item.entry))
   const firstReceipt = batch[0]?.receipt
   const lastReceipt = batch[batch.length - 1]?.receipt
 

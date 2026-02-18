@@ -76,6 +76,7 @@ export {
   type HydrationMetrics,
   DEFAULT_HYDRATION_CACHE_POLICY,
   ARCHIVE_SPILL_CHECKPOINT_SIZE,
+  ARCHIVE_REDACTED_VALUE,
   EMPTY_DURABILITY_ACK_BUCKETS,
   EMPTY_DURABILITY_ACK_METRICS,
   hydrationWindowCacheKey,
@@ -85,6 +86,8 @@ export {
   shouldSpillArchiveCheckpoint,
   buildArchiveChunkFromAckedBatch,
   advanceArchiveManifestAfterChunk,
+  redactArchiveValue,
+  redactArchiveEntry,
 } from './surface'
 
 // ---------------------------------------------------------------------------
