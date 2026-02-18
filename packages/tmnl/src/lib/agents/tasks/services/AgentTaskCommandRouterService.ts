@@ -15,7 +15,7 @@
 import { Context, Data, DateTime, Effect, Layer, Schema } from 'effect'
 import { nanoid } from 'nanoid'
 import { AgentTaskService } from './AgentTaskService'
-import { NatsPubSubService } from '../../holonet/nats/pubsub'
+import { NatsPubSubService } from '../../../holonet/nats/pubsub'
 import {
   AgentTaskCommand,
   AgentTaskCommandAck,

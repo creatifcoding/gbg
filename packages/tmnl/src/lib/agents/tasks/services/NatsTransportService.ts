@@ -24,7 +24,7 @@ import {
   TransportSubscribeError,
   TransportPublishError,
 } from './TransportService'
-import { NatsPubSubService } from '../../holonet/nats/pubsub'
+import { NatsPubSubService } from '../../../holonet/nats/pubsub'
 
 // ---------------------------------------------------------------------------
 // Subject convention for agent task logs

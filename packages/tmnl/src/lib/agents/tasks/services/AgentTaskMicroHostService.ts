@@ -16,7 +16,7 @@
 import { Data, Effect, Schema } from 'effect'
 import type { ServiceIdentity, ServiceInfo, ServiceStats } from 'nats.ws'
 
-import { NatsMicroService } from '../../holonet/nats/micro'
+import { NatsMicroService } from '../../../holonet/nats/micro'
 import { AgentTaskCommandRouterService } from './AgentTaskCommandRouterService'
 import { AgentTaskCommandAckSchema } from '../schemas/command'
 
