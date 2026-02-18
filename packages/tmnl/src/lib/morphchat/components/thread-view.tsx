@@ -1,0 +1,289 @@
+/**
+ * Thread Mode Resolver
+ *
+ * Maps spec.thread axis → rendered message list using src/lib/chat/msg/
+ * compound components. Each mode selects different chat/ primitives
+ * and applies different layout/styling.
+ *
+ * Scroll is delegated to ChatThreadBand from src/lib/chat/shell/ —
+ * no duplicate useTailFollow here.
+ *
+ * @module morphchat/components/thread-view
+ */
+
+import * as React from 'react'
+import { useAtomValue } from '@effect-atom/atom-react'
+import { cn } from '@/lib/utils'
+import { ChatThreadBand, type ChatThreadAutoScrollMode } from '@/lib/chat/shell'
+import { ThreadTailControls } from './thread-tail-controls'
+import { useMorphChatContext } from './surface-context'
+import type { ChatMessage, ChatRole } from '../schemas/message-types'
+
+// Compose from src/lib/chat/msg/ — the TMNL-styled implementation library
+import {
+  ChatMessageShellRoot,
+  ChatMessageHeaderCluster,
+  ChatMessageBodyContent,
+  ChatMessageFooterActions,
+  ChatMessageSeverityRails,
+} from '@/lib/chat/msg'
+import type { ChatMessageRole } from '@/lib/chat/msg'
+
+// =============================================================================
+// Role Mapping: MorphChat → chat/ library
+// =============================================================================
+
+/**
+ * MorphChat uses 'operator'/'agent'; src/lib/chat/ uses 'user'/'assistant'.
+ * This bridges the two vocabularies.
+ */
+function toChatRole(role: ChatRole): ChatMessageRole {
+  switch (role) {
+    case 'operator': return 'user'
+    case 'agent': return 'assistant'
+    case 'system': return 'system'
+    case 'tool': return 'tool'
+    default: return 'user'
+  }
+}
+
+// =============================================================================
+// Spec → ChatThreadBand autoScroll mapping
+// =============================================================================
+
+function resolveAutoScroll(scrollBehavior: string): ChatThreadAutoScrollMode {
+  switch (scrollBehavior) {
+    case 'auto-follow': return 'follow'
+    case 'pinned': return 'lock'
+    case 'manual':
+    default: return 'off'
+  }
+}
+
+// =============================================================================
+// Message Renderers (per thread mode)
+// =============================================================================
+
+/** Full fidelity message — role badges, timestamps, attachments, animations */
+function FullMessage({ message, isLatest }: { message: ChatMessage; isLatest: boolean }) {
+  const chatRole = toChatRole(message.role)
+  const isStreaming = message.status === 'streaming'
+  const ts = message.timestamp
+    ? new Date(message.timestamp).toLocaleTimeString()
+    : ''
+
+  return (
+    <ChatMessageShellRoot role={chatRole} streaming={isStreaming}>
+      <ChatMessageSeverityRails role={chatRole}>
+        <ChatMessageSeverityRails.RoleIconRail role={chatRole} streaming={isStreaming} />
+      </ChatMessageSeverityRails>
+      <div className="flex-1 min-w-0">
+        <ChatMessageHeaderCluster>
+          <ChatMessageHeaderCluster.Role>{message.authorName ?? chatRole}</ChatMessageHeaderCluster.Role>
+          <ChatMessageHeaderCluster.Timestamp>{ts}</ChatMessageHeaderCluster.Timestamp>
+          {isStreaming && <ChatMessageHeaderCluster.StreamingBadge streaming role={chatRole} />}
+        </ChatMessageHeaderCluster>
+        <ChatMessageBodyContent>
+          <ChatMessageBodyContent.Root>{message.content}</ChatMessageBodyContent.Root>
+          {isStreaming && isLatest && <ChatMessageBodyContent.StreamCursor />}
+        </ChatMessageBodyContent>
+        {message.status === 'complete' && (
+          <ChatMessageFooterActions>
+            <ChatMessageFooterActions.Group />
+          </ChatMessageFooterActions>
+        )}
+      </div>
+    </ChatMessageShellRoot>
+  )
+}
+
+/** Compact message — tighter spacing, no role rail */
+function CompactMessage({ message }: { message: ChatMessage }) {
+  return (
+    <div className="flex gap-2 px-3 py-1">
+      <span
+        className={cn(
+          'shrink-0 font-mono',
+          message.role === 'operator' ? 'text-cyan-500' : 'text-emerald-500',
+        )}
+        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+      >
+        {message.role === 'operator' ? 'you' : message.authorName ?? 'agent'}
+      </span>
+      <span
+        className="text-neutral-300 min-w-0 break-words"
+        style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
+      >
+        {message.content}
+      </span>
+    </div>
+  )
+}
+
+/** Stream-only — just the current streaming response */
+function StreamOnlyMessage({ message }: { message: ChatMessage }) {
+  return (
+    <div className="px-4 py-3">
+      <span
+        className="text-neutral-200"
+        style={{ fontSize: 'var(--tmnl-text-base, 16px)' }}
+      >
+        {message.content}
+      </span>
+    </div>
+  )
+}
+
+/** Log mode — monospace, timestamped, terminal-style */
+function LogMessage({ message }: { message: ChatMessage }) {
+  const ts = message.timestamp
+    ? new Date(message.timestamp).toLocaleTimeString('en-US', { hour12: false })
+    : '--:--:--'
+
+  return (
+    <div className="flex gap-2 px-3 py-0.5 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+      <span className="text-neutral-600 shrink-0">{ts}</span>
+      <span className={cn(
+        'shrink-0 w-8',
+        message.role === 'system' ? 'text-amber-500' :
+        message.role === 'agent' ? 'text-emerald-500' :
+        message.role === 'tool' ? 'text-violet-400' :
+        'text-cyan-500',
+      )}>
+        {message.role.slice(0, 4).toUpperCase()}
+      </span>
+      <span className="text-neutral-400 min-w-0 break-all">{message.content}</span>
+    </div>
+  )
+}
+
+/** Card mode — each message as a distinct card surface */
+function CardMessage({ message }: { message: ChatMessage }) {
+  return (
+    <div className="mx-3 my-2 rounded border border-neutral-800 bg-neutral-950 p-3">
+      <div className="flex items-center gap-2 mb-2">
+        <span
+          className={cn(
+            'font-mono px-1.5 py-0.5 rounded',
+            message.role === 'operator'
+              ? 'bg-cyan-500/10 text-cyan-400'
+              : 'bg-emerald-500/10 text-emerald-400',
+          )}
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        >
+          {message.authorName ?? message.role}
+        </span>
+        <span
+          className="text-neutral-600"
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        >
+          {message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : ''}
+        </span>
+      </div>
+      <div className="text-neutral-200" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
+        {message.content}
+      </div>
+    </div>
+  )
+}
+
+// =============================================================================
+// Thread View
+// =============================================================================
+
+export function ThreadView() {
+  const { spec, adapter } = useMorphChatContext()
+  // Read directly from adapter atoms — adapter IS the state owner
+  const messages = useAtomValue(adapter.messages$)
+  const streaming = useAtomValue(adapter.streaming$)
+
+  // Render streaming buffer as a virtual message when active
+  const displayMessages = React.useMemo(() => {
+    if (!streaming.isStreaming || !streaming.buffer) return messages
+    const streamMsg: ChatMessage = {
+      id: streaming.messageId ?? 'stream-buffer',
+      role: 'agent',
+      authorName: 'Agent',
+      content: streaming.buffer,
+      timestamp: new Date().toISOString(),
+      status: 'streaming',
+    }
+    return [...messages, streamMsg]
+  }, [messages, streaming])
+
+  // For stream-only mode, show only the latest streaming or last message
+  const streamOnlyMessages = React.useMemo(() => {
+    if (spec.thread !== 'stream-only') return displayMessages
+    const latest = displayMessages[displayMessages.length - 1]
+    return latest ? [latest] : []
+  }, [spec.thread, displayMessages])
+
+  const resolvedMessages = spec.thread === 'stream-only' ? streamOnlyMessages : displayMessages
+
+  // Map spec.scrollBehavior → ChatThreadBand autoScroll
+  const autoScroll = resolveAutoScroll(spec.scrollBehavior)
+
+  // Select renderer per thread mode
+  const renderMessage = React.useCallback(
+    (msg: ChatMessage, index: number) => {
+      const isLatest = index === resolvedMessages.length - 1
+      const key = msg.id
+
+      switch (spec.thread) {
+        case 'full':
+          return <FullMessage key={key} message={msg} isLatest={isLatest} />
+        case 'compact':
+          return <CompactMessage key={key} message={msg} />
+        case 'stream-only':
+          return <StreamOnlyMessage key={key} message={msg} />
+        case 'log':
+          return <LogMessage key={key} message={msg} />
+        case 'card':
+          return <CardMessage key={key} message={msg} />
+        default:
+          return null
+      }
+    },
+    [spec.thread, resolvedMessages.length],
+  )
+
+  // Tail controls — rendered inside the ChatThreadBand context scope
+  // but outside the scroll container
+  const tailControls = spec.scrollBehavior !== 'manual'
+    ? <ThreadTailControls />
+    : undefined
+
+  if (resolvedMessages.length === 0) {
+    return (
+      <ChatThreadBand
+        autoScroll="off"
+        itemCount={0}
+        className={cn(
+          'flex items-center justify-center',
+          spec.thread === 'log' ? 'bg-neutral-950' : '',
+        )}
+      >
+        <span className="text-neutral-600" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
+          No messages yet
+        </span>
+      </ChatThreadBand>
+    )
+  }
+
+  return (
+    <ChatThreadBand
+      autoScroll={autoScroll}
+      itemCount={resolvedMessages.length}
+      bottomThreshold={24}
+      renderAfterScroll={tailControls}
+      className={cn(
+        'h-full',
+        spec.thread === 'log' ? 'bg-neutral-950' : '',
+      )}
+    >
+      {resolvedMessages.map(renderMessage)}
+    </ChatThreadBand>
+  )
+}
+
+ThreadView.displayName = 'MorphChat.ThreadView'
