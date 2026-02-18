@@ -1,5 +1,5 @@
 import { Atom } from '@effect-atom/atom'
-import { Effect, Layer } from 'effect'
+import { Effect, Layer, Option } from 'effect'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
@@ -7,6 +7,7 @@ import { MockTransportServiceCustom } from '../../services/MockTransportService'
 import { AgentTaskServiceBase } from '../../services/layers'
 import {
   AgentTaskLogAtomSurfaceCustom,
+  createAgentTaskLogAtomSurfaceAtoms,
   createAgentTaskLogAtomSurfaceRuntime,
 } from '../../atoms/surface'
 import { InlineTaskLogView } from '../inline-task-log-view'
@@ -27,6 +28,47 @@ const makeRuntime = (config?: Parameters<typeof MockTransportServiceCustom>[0]) 
       ),
     ),
   )
+
+const makeHydrationProbeSurface = (options?: { readonly keepLoading?: boolean }) => {
+  const calls: Array<{ readonly taskId: string; readonly centerOffset: number }> = []
+  const atoms = createAgentTaskLogAtomSurfaceAtoms(
+    AgentTaskServiceBase.pipe(
+      Layer.provide(
+        MockTransportServiceCustom({
+          intervalMs: 0,
+          jitterMs: 0,
+          infinite: true,
+          seed: 444,
+        }),
+      ),
+    ),
+  )
+
+  const hydrateWindowTriggerProbe = atoms.logRuntimeAtom.fn<{
+    readonly taskId: string
+    readonly centerOffset: number
+  }>()(({ taskId, centerOffset }, ctx) =>
+    Effect.sync(() => {
+      calls.push({ taskId, centerOffset })
+      if (options?.keepLoading) {
+        ctx.set(atoms.hydrationLoadingFamily(taskId), true)
+      }
+      return Option.none()
+    }),
+  )
+
+  const atomSurfaceAtom = atoms.logRuntimeAtom.atom(
+    Effect.succeed({
+      ...atoms,
+      hydrateWindowTrigger: hydrateWindowTriggerProbe,
+    }),
+  )
+
+  return {
+    atomSurfaceAtom,
+    calls,
+  }
+}
 
 const installScrollMetrics = (
   element: HTMLDivElement,
@@ -133,6 +175,110 @@ describe('InlineTaskLogView controller extraction regressions', () => {
       expect(screen.getByText('LIVE')).toBeInTheDocument()
       expect(screen.queryByText(/\+\d+ new/)).toBeNull()
       expect(readVisibleCount(second.container)).toBeGreaterThan(0)
+    })
+  })
+
+  it('triggers hydration probe only in inspect mode near head threshold', async () => {
+    const probe = makeHydrationProbeSurface()
+
+    const { container } = render(
+      <InlineTaskLogView
+        taskId="controller-hydration-probe"
+        atomSurfaceAtom={probe.atomSurfaceAtom}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.queryByText('Waiting for log entries…')).not.toBeInTheDocument()
+    })
+
+    const scrollEl = container.querySelector('.at-log-view__scroll') as HTMLDivElement
+    expect(scrollEl).toBeTruthy()
+
+    installScrollMetrics(scrollEl, {
+      scrollHeight: 1200,
+      clientHeight: 300,
+      scrollTop: 500,
+    })
+    fireEvent.scroll(scrollEl)
+
+    await waitFor(() => {
+      expect(screen.getByText('PAUSED')).toBeInTheDocument()
+    })
+    expect(probe.calls).toHaveLength(0)
+
+    installScrollMetrics(scrollEl, {
+      scrollHeight: 1200,
+      clientHeight: 300,
+      scrollTop: 30,
+    })
+    fireEvent.scroll(scrollEl)
+
+    await waitFor(() => {
+      expect(probe.calls).toHaveLength(1)
+    })
+
+    expect(probe.calls[0]).toMatchObject({
+      taskId: 'controller-hydration-probe',
+    })
+    expect(probe.calls[0]!.centerOffset).toBeGreaterThanOrEqual(0)
+  })
+
+  it('coalesces hydration probe requests while prior probe remains in-flight', async () => {
+    const probe = makeHydrationProbeSurface({ keepLoading: true })
+
+    const { container } = render(
+      <InlineTaskLogView
+        taskId="controller-hydration-coalesce"
+        atomSurfaceAtom={probe.atomSurfaceAtom}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.queryByText('Waiting for log entries…')).not.toBeInTheDocument()
+    })
+
+    const scrollEl = container.querySelector('.at-log-view__scroll') as HTMLDivElement
+    expect(scrollEl).toBeTruthy()
+
+    installScrollMetrics(scrollEl, {
+      scrollHeight: 1200,
+      clientHeight: 300,
+      scrollTop: 500,
+    })
+    fireEvent.scroll(scrollEl)
+
+    await waitFor(() => {
+      expect(screen.getByText('PAUSED')).toBeInTheDocument()
+    })
+
+    installScrollMetrics(scrollEl, {
+      scrollHeight: 1200,
+      clientHeight: 300,
+      scrollTop: 30,
+    })
+    fireEvent.scroll(scrollEl)
+
+    await waitFor(() => {
+      expect(probe.calls).toHaveLength(1)
+    })
+
+    installScrollMetrics(scrollEl, {
+      scrollHeight: 1200,
+      clientHeight: 300,
+      scrollTop: 120,
+    })
+    fireEvent.scroll(scrollEl)
+
+    installScrollMetrics(scrollEl, {
+      scrollHeight: 1200,
+      clientHeight: 300,
+      scrollTop: 30,
+    })
+    fireEvent.scroll(scrollEl)
+
+    await waitFor(() => {
+      expect(probe.calls).toHaveLength(1)
     })
   })
 

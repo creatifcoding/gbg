@@ -68,10 +68,12 @@
 
 import { useAtom, useAtomSet, useAtomValue } from '@effect-atom/atom-react'
 import * as AtomResult from '@effect-atom/atom/Result'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Atom } from '@effect-atom/atom'
 import {
   filteredLogBufferFamily,
+  hydrateWindowTrigger,
+  hydrationLoadingFamily,
   logStreamTrigger,
   tailModeFamily,
   unreadCountFamily,
@@ -144,6 +146,9 @@ const TAIL_PROXIMITY_PX = 24
  */
 const REENGAGEMENT_RECENCY_MS = 500
 
+/** Top-threshold proximity (px) used to probe hydration while inspecting. */
+const HYDRATION_HEAD_PROXIMITY_PX = 32
+
 // ---------------------------------------------------------------------------
 // Controller
 // ---------------------------------------------------------------------------
@@ -164,13 +169,22 @@ export const useInlineTaskLogController = ({
   const [unreadCount, setUnreadCount] = useAtom(
     (atoms?.unreadCountFamily ?? unreadCountFamily)(taskId),
   )
+  const hydrationLoading = useAtomValue(
+    (atoms?.hydrationLoadingFamily ?? hydrationLoadingFamily)(taskId),
+  )
+
   const setStreamTrigger = useAtomSet(atoms?.logStreamTrigger ?? logStreamTrigger)
+  const setHydrateWindowTrigger = useAtomSet(
+    atoms?.hydrateWindowTrigger ?? hydrateWindowTrigger,
+  )
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const lastEntryCountRef = useRef(0)
   const lastTriggeredKeyRef = useRef<string | null>(null)
   const lastScrollTopRef = useRef(0)
   const lastDownwardScrollAtRef = useRef(0)
+  const [nearHeadProximity, setNearHeadProximity] = useState(false)
+  const hydrationProbeArmedRef = useRef(false)
 
   // -------------------------------------------------------------------------
   // Scroll anchors — head, tail, pointer
@@ -274,6 +288,39 @@ export const useInlineTaskLogController = ({
   ])
 
   // -------------------------------------------------------------------------
+  // Inspect near-head hydration probe (AH1-T12)
+  // -------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (tailMode !== 'inspect') {
+      hydrationProbeArmedRef.current = false
+      return
+    }
+
+    const nearHead = head.isVisible || nearHeadProximity
+    if (!nearHead) {
+      hydrationProbeArmedRef.current = false
+      return
+    }
+
+    if (hydrationLoading || hydrationProbeArmedRef.current) {
+      return
+    }
+
+    hydrationProbeArmedRef.current = true
+    const centerOffset = Math.max(entries.length - 1, 0)
+    void setHydrateWindowTrigger({ taskId, centerOffset })
+  }, [
+    entries.length,
+    head.isVisible,
+    hydrationLoading,
+    nearHeadProximity,
+    setHydrateWindowTrigger,
+    tailMode,
+    taskId,
+  ])
+
+  // -------------------------------------------------------------------------
   // Tail interrupt + re-engagement handlers
   // -------------------------------------------------------------------------
 
@@ -282,25 +329,47 @@ export const useInlineTaskLogController = ({
     setTailMode('inspect')
   }, [tailMode, setTailMode])
 
-  // column-reverse inverts scrollTop: 0 = bottom, negative = scrolled up.
-  // delta > 0 (toward 0 / less negative) = scrolling DOWN toward tail.
-  // delta < 0 (more negative) = scrolling UP away from tail.
+  // Tail-distance fallback for environments where IntersectionObserver precision
+  // is limited (notably jsdom): combine reverse-scroll and standard-scroll math.
   const handleScroll = useCallback(() => {
     const el = scrollRef.current
     if (!el) return
 
     const scrollTop = el.scrollTop
-    const delta = scrollTop - lastScrollTopRef.current
+    const prevScrollTop = lastScrollTopRef.current
     lastScrollTopRef.current = scrollTop
 
-    if (delta < 0) {
-      // Scrolling UP (away from tail) — more negative scrollTop
+    const maxScrollable = Math.max(el.scrollHeight - el.clientHeight, 0)
+    const nearHeadNow =
+      scrollTop <= HYDRATION_HEAD_PROXIMITY_PX ||
+      Math.abs(maxScrollable - scrollTop) <= HYDRATION_HEAD_PROXIMITY_PX
+    setNearHeadProximity((prev) => (prev === nearHeadNow ? prev : nearHeadNow))
+
+    const distanceFromTail = (top: number) => {
+      const reverseDistance = Math.abs(top)
+      const standardDistance = Math.abs(el.scrollHeight - (top + el.clientHeight))
+      return Math.min(reverseDistance, standardDistance)
+    }
+
+    const prevDistanceFromTail = distanceFromTail(prevScrollTop)
+    const nextDistanceFromTail = distanceFromTail(scrollTop)
+
+    if (nextDistanceFromTail > prevDistanceFromTail) {
+      // User moved away from tail.
       interruptTail()
-    } else if (delta > 0) {
-      // Scrolling DOWN (toward tail) — toward 0
+      return
+    }
+
+    if (nextDistanceFromTail < prevDistanceFromTail) {
+      // User moved toward tail.
       lastDownwardScrollAtRef.current = Date.now()
     }
-  }, [interruptTail])
+
+    if (tailMode === 'inspect' && nextDistanceFromTail <= TAIL_PROXIMITY_PX) {
+      setTailMode('tail')
+      setUnreadCount(0)
+    }
+  }, [interruptTail, setTailMode, setUnreadCount, tailMode])
 
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
