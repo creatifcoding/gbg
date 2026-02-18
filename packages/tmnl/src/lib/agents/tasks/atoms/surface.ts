@@ -75,6 +75,14 @@ export const DEFAULT_FILTER: LogFilterState = {
 // Atom surface shape
 // ---------------------------------------------------------------------------
 
+export interface OutboxMetrics {
+  readonly pending: number
+  readonly inFlight: number
+  readonly retries: number
+  readonly dropped: number
+  readonly degraded: boolean
+}
+
 export interface AgentTaskLogAtomSurfaceAtoms {
   readonly logRuntimeAtom: ReturnType<typeof Atom.runtime>
   readonly logBufferFamily: ReturnType<typeof Atom.family<string, Atom.Writable<ReadonlyArray<AssembledLogEntry>>>>
@@ -87,6 +95,7 @@ export interface AgentTaskLogAtomSurfaceAtoms {
   readonly outboxRetryCountFamily: ReturnType<typeof Atom.family<string, Atom.Writable<number>>>
   readonly outboxDroppedCountFamily: ReturnType<typeof Atom.family<string, Atom.Writable<number>>>
   readonly outboxDegradedFamily: ReturnType<typeof Atom.family<string, Atom.Writable<boolean>>>
+  readonly outboxMetricsFamily: ReturnType<typeof Atom.family<string, Atom.Atom<OutboxMetrics>>>
   readonly filteredLogBufferFamily: ReturnType<typeof Atom.family<string, Atom.Atom<ReadonlyArray<AssembledLogEntry>>>>
   readonly logCountFamily: ReturnType<typeof Atom.family<string, Atom.Atom<number>>>
   readonly logTotalCountFamily: ReturnType<typeof Atom.family<string, Atom.Atom<number>>>
@@ -424,6 +433,17 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
     (_taskId: string) => Atom.make<ReadonlySet<string>>(new Set<string>()),
   )
 
+  const outboxMetricsFamily = Atom.family(
+    (taskId: string) =>
+      Atom.readable((get): OutboxMetrics => ({
+        pending: get(outboxPendingFamily(taskId)),
+        inFlight: get(outboxInFlightFamily(taskId)),
+        retries: get(outboxRetryCountFamily(taskId)),
+        dropped: get(outboxDroppedCountFamily(taskId)),
+        degraded: get(outboxDegradedFamily(taskId)),
+      })),
+  )
+
   const filteredLogBufferFamily = Atom.family(
     (taskId: string) =>
       Atom.readable((get) => {
@@ -456,6 +476,7 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
     outboxRetryCountFamily,
     outboxDroppedCountFamily,
     outboxDegradedFamily,
+    outboxMetricsFamily,
     filteredLogBufferFamily,
     logCountFamily,
     logTotalCountFamily,

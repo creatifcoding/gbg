@@ -36,6 +36,7 @@ export const outboxInFlightFamily = defaultAtoms.outboxInFlightFamily
 export const outboxRetryCountFamily = defaultAtoms.outboxRetryCountFamily
 export const outboxDroppedCountFamily = defaultAtoms.outboxDroppedCountFamily
 export const outboxDegradedFamily = defaultAtoms.outboxDegradedFamily
+export const outboxMetricsFamily = defaultAtoms.outboxMetricsFamily
 export const filteredLogBufferFamily = defaultAtoms.filteredLogBufferFamily
 export const logCountFamily = defaultAtoms.logCountFamily
 export const logTotalCountFamily = defaultAtoms.logTotalCountFamily
@@ -58,6 +59,7 @@ export {
   type AgentTaskLogAtomSurfaceAtoms,
   type AgentTaskLogAtomSurfaceShape,
   type AgentTaskLogAtomSurfaceRuntime,
+  type OutboxMetrics,
 } from './surface'
 
 // ---------------------------------------------------------------------------
