@@ -90,6 +90,7 @@ import { PoolPlaceholder } from './routes/PoolPlaceholder';
 import { ConductorView } from './lib/conductor';
 import { ConductorTestbed } from './components/testbed/ConductorTestbed';
 import { RvnChatIsolatedTestbed } from './components/testbed/RvnChatIsolatedTestbed';
+import { MorphChatTestbed } from './components/testbed/MorphChatTestbed';
 
 // Create a root route
 // LockScreenController wraps all routes to enable lock screen functionality
@@ -566,6 +567,13 @@ const rvnChatIsolatedTestbedRoute = createRoute({
   component: RvnChatIsolatedTestbed,
 });
 
+// MorphChat testbed route (adaptive chat surface showcase)
+const morphChatTestbedRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/testbed/morphchat',
+  component: MorphChatTestbed,
+});
+
 // Conductor testbed route (canvas)
 const conductorTestbedRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -684,6 +692,7 @@ const routeTree = rootRoute.addChildren([
   morphCardTestbedRoute,
   eguiMorphCardTestbedRoute,
   rvnChatIsolatedTestbedRoute,
+  morphChatTestbedRoute,
   conductorTestbedRoute,
   conductorRoute,
   conductorLegacyRoute,

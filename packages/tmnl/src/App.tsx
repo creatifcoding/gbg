@@ -528,6 +528,14 @@ const CARDS: readonly CardDef[] = [
     glow: 'amber',
   },
   {
+    title: 'MORPHCHAT',
+    body: 'Adaptive chat surface architecture. 8 presets, 9 feature axes, spec-driven topology, XState morphing, mock adapter streaming.',
+    route: '/testbed/morphchat',
+    status: 'active',
+    label: 'NEW',
+    glow: 'cyan',
+  },
+  {
     title: 'Conductor',
     body: 'Agent orchestration — spawn, drive, and watch multiple pi agents',
     route: '/testbed/conductor',
