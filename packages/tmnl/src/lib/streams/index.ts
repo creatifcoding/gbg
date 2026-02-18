@@ -38,7 +38,13 @@ export {
 export type { TickerOptions, PulseOptions, StopwatchEvent } from "./primitives/time"
 
 // Legacy re-export (deprecated, use primitives)
-export { ticker, pulse, counter, heartbeat } from "./factories"
+// NOTE: aliased to avoid duplicate named exports with primitives
+export {
+  ticker as legacyTicker,
+  pulse as legacyPulse,
+  counter as legacyCounter,
+  heartbeat as legacyHeartbeat,
+} from "./factories"
 export type { TickerOptions as LegacyTickerOptions, PulseOptions as LegacyPulseOptions } from "./factories"
 
 // ============================================================================
