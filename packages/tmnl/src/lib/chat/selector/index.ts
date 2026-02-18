@@ -1,0 +1,6 @@
+export { ChatAgentSelector } from './agent-selector-root'
+export type { ChatAgentSelectorRootProps } from './agent-selector-root'
+export type { AgentSelectorTriggerProps } from './selector-trigger'
+export type { AgentSelectorMenuProps } from './selector-menu'
+export type { AgentSelectorOptionProps } from './selector-option'
+export type { ChatAgentOption } from './selector-types'
