@@ -168,6 +168,14 @@
   font-size: 12px;
 }
 
+.at-log-filter-bar__query-stack {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
 .at-log-filter-bar__severity {
   display: flex;
   gap: 2px;
@@ -245,6 +253,124 @@
 
 .at-log-filter-bar__input:focus {
   border-color: #3b82f6;
+}
+
+.at-log-filter-bar__dork-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.at-log-filter-bar__dork-chip {
+  display: inline-flex;
+  align-items: stretch;
+  max-width: 100%;
+  min-height: 18px;
+  border-radius: 2px;
+  border: 1px solid rgba(55, 65, 81, 0.62);
+  background: rgba(17, 24, 39, 0.78);
+  color: #d1d5db;
+  font-size: 11px;
+  transition:
+    border-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.at-log-filter-bar__dork-chip-type {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  padding: 0 5px;
+  border-right: 1px solid rgba(55, 65, 81, 0.62);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 700;
+  color: #93c5fd;
+  background: rgba(30, 64, 175, 0.18);
+}
+
+.at-log-filter-bar__dork-chip-token {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 180px;
+  padding: 0 5px;
+}
+
+.at-log-filter-bar__dork-chip:hover,
+.at-log-filter-bar__dork-chip:focus-within {
+  border-color: rgba(96, 165, 250, 0.68);
+  background: rgba(30, 41, 59, 0.95);
+}
+
+.at-log-filter-bar__dork-chip[data-kind='field'] .at-log-filter-bar__dork-chip-type {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.2);
+}
+
+.at-log-filter-bar__dork-chip[data-kind='regex'] .at-log-filter-bar__dork-chip-type {
+  color: #fca5a5;
+  background: rgba(185, 28, 28, 0.24);
+}
+
+.at-log-filter-bar__dork-chip[data-kind='phrase'] .at-log-filter-bar__dork-chip-type {
+  color: #fcd34d;
+  background: rgba(180, 83, 9, 0.24);
+}
+
+.at-log-filter-bar__dork-chip[data-kind='param'] .at-log-filter-bar__dork-chip-type {
+  color: #67e8f9;
+  background: rgba(8, 145, 178, 0.24);
+}
+
+.at-log-filter-bar__dork-chip[data-exclude] {
+  border-color: rgba(245, 158, 11, 0.72);
+  background: rgba(69, 26, 3, 0.58);
+}
+
+.at-log-filter-bar__dork-chip[data-exclude] .at-log-filter-bar__dork-chip-type {
+  color: #fcd34d;
+  background: rgba(120, 53, 15, 0.42);
+  border-right-color: rgba(245, 158, 11, 0.52);
+}
+
+.at-log-filter-bar__dork-chip-close-wrap {
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin: 1px 3px 1px 0;
+  will-change: width, opacity;
+}
+
+.at-log-filter-bar__dork-chip-close {
+  width: 13px;
+  height: 13px;
+  border: 1px solid rgba(71, 85, 105, 0.75);
+  border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 6, 23, 0.9);
+  color: #cbd5e1;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    border-color 150ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 150ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.at-log-filter-bar__dork-chip-close:hover {
+  border-color: rgba(248, 113, 113, 0.9);
+  background: rgba(127, 29, 29, 0.86);
+  color: #fecaca;
 }
 
 .at-log-filter-bar__input--narrow {
@@ -333,6 +459,22 @@
   font-style: italic;
 }
 
+.at-log-tail-controls__unread {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 .at-log-tail-controls__toggle,
 .at-log-tail-controls__jump {
   height: 20px;
@@ -394,6 +536,7 @@
 }
 
 .at-log-view__scroll {
+  position: relative;
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
@@ -419,6 +562,7 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
+  transform: translate3d(0, 0, 0);
 }
 
 /* Tail cursor blink */
@@ -436,6 +580,15 @@
   50% { opacity: 0; }
 }
 
+/* Tail sentinel — 1px target for IntersectionObserver.
+   Must have actual geometry for reliable cross-browser detection. */
+.at-log-view__tail-anchor {
+  height: 1px;
+  width: 100%;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
 /* Empty state */
 .at-log-view__empty {
   display: flex;
@@ -446,3 +599,4 @@
   font-size: 12px;
   font-style: italic;
 }
+
