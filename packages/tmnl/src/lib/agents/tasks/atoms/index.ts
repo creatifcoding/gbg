@@ -30,6 +30,7 @@ export const logBufferFamily = defaultAtoms.logBufferFamily
 export const logStreamTrigger = defaultAtoms.logStreamTrigger
 export const logFilterAtom = defaultAtoms.logFilterAtom
 export const tailModeFamily = defaultAtoms.tailModeFamily
+export const unreadCountFamily = defaultAtoms.unreadCountFamily
 export const filteredLogBufferFamily = defaultAtoms.filteredLogBufferFamily
 export const logCountFamily = defaultAtoms.logCountFamily
 export const logTotalCountFamily = defaultAtoms.logTotalCountFamily
