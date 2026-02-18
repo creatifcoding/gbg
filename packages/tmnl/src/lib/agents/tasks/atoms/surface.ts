@@ -29,9 +29,11 @@ import {
   type SearchableItem,
 } from '../../../search/query'
 import type { LogLevel } from '../schemas/log-level'
+import type { HydrationSlice, HydrationWindow } from '../schemas/hydration-window'
 import type { AssembledLogEntry } from '../services/CodecService'
 import { AgentTaskService } from '../services/AgentTaskService'
 import { AgentTaskLogOutboxService } from '../services/AgentTaskLogOutboxService'
+import { LogHydrationService } from '../services/LogHydrationService'
 import {
   AgentTaskServiceMock,
   AgentTaskServiceNatsOutbox,
@@ -83,6 +85,60 @@ export interface OutboxMetrics {
   readonly degraded: boolean
 }
 
+export interface HydrationCachePolicy {
+  readonly cacheTtlMs: number
+  readonly maxWindowsPerTask: number
+}
+
+export const DEFAULT_HYDRATION_CACHE_POLICY: HydrationCachePolicy = {
+  cacheTtlMs: 5 * 60 * 1000,
+  maxWindowsPerTask: 16,
+}
+
+export interface HydrationCacheEntry {
+  readonly key: string
+  readonly fromOffset: number
+  readonly toOffset: number
+  readonly source: 'cache' | 'archive' | 'nats'
+  readonly slice: HydrationSlice
+  readonly expiresAtEpochMs: number
+  readonly touchedAtEpochMs: number
+}
+
+export interface HydrationMetrics {
+  readonly windowsCached: number
+  readonly loading: boolean
+  readonly hasError: boolean
+}
+
+export const hydrationWindowCacheKey = (window: HydrationWindow): string =>
+  `${window.anchor}:${window.fromOffset}:${window.toOffset}`
+
+export const pruneHydrationCacheEntries = (
+  entries: ReadonlyArray<HydrationCacheEntry>,
+  nowEpochMs: number,
+): ReadonlyArray<HydrationCacheEntry> =>
+  entries.filter((entry) => entry.expiresAtEpochMs > nowEpochMs)
+
+export const upsertHydrationCacheEntry = (
+  entries: ReadonlyArray<HydrationCacheEntry>,
+  incoming: HydrationCacheEntry,
+  policy: HydrationCachePolicy,
+): ReadonlyArray<HydrationCacheEntry> => {
+  const withoutExisting = entries.filter((entry) => entry.key !== incoming.key)
+  const withIncoming = [...withoutExisting, incoming]
+
+  if (withIncoming.length <= policy.maxWindowsPerTask) {
+    return withIncoming
+  }
+
+  const ordered = [...withIncoming].sort(
+    (left, right) => left.touchedAtEpochMs - right.touchedAtEpochMs,
+  )
+
+  return ordered.slice(ordered.length - policy.maxWindowsPerTask)
+}
+
 export interface AgentTaskLogAtomSurfaceAtoms {
   readonly logRuntimeAtom: ReturnType<typeof Atom.runtime>
   readonly logBufferFamily: ReturnType<typeof Atom.family<string, Atom.Writable<ReadonlyArray<AssembledLogEntry>>>>
@@ -96,6 +152,11 @@ export interface AgentTaskLogAtomSurfaceAtoms {
   readonly outboxDroppedCountFamily: ReturnType<typeof Atom.family<string, Atom.Writable<number>>>
   readonly outboxDegradedFamily: ReturnType<typeof Atom.family<string, Atom.Writable<boolean>>>
   readonly outboxMetricsFamily: ReturnType<typeof Atom.family<string, Atom.Atom<OutboxMetrics>>>
+  readonly hydrationCacheFamily: ReturnType<typeof Atom.family<string, Atom.Writable<ReadonlyArray<HydrationCacheEntry>>>>
+  readonly hydrationLoadingFamily: ReturnType<typeof Atom.family<string, Atom.Writable<boolean>>>
+  readonly hydrationErrorFamily: ReturnType<typeof Atom.family<string, Atom.Writable<string | null>>>
+  readonly hydrationMetricsFamily: ReturnType<typeof Atom.family<string, Atom.Atom<HydrationMetrics>>>
+  readonly hydrateWindowTrigger: ReturnType<ReturnType<typeof Atom.runtime>['fn<{ readonly taskId: string; readonly centerOffset: number }>']>
   readonly filteredLogBufferFamily: ReturnType<typeof Atom.family<string, Atom.Atom<ReadonlyArray<AssembledLogEntry>>>>
   readonly logCountFamily: ReturnType<typeof Atom.family<string, Atom.Atom<number>>>
   readonly logTotalCountFamily: ReturnType<typeof Atom.family<string, Atom.Atom<number>>>
@@ -216,6 +277,7 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
   const outboxDrainStartedAtom = Atom.make<boolean>(false)
 
   const retentionPolicy = DEFAULT_LOG_RETENTION_POLICY
+  const hydrationCachePolicy = DEFAULT_HYDRATION_CACHE_POLICY
 
   const logStreamTrigger = logRuntimeAtom.fn<string>()(
     (taskId, ctx) =>
@@ -444,6 +506,97 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
       })),
   )
 
+  const hydrationCacheFamily = Atom.family(
+    (_taskId: string) => Atom.make<ReadonlyArray<HydrationCacheEntry>>([]),
+  )
+
+  const hydrationLoadingFamily = Atom.family(
+    (_taskId: string) => Atom.make<boolean>(false),
+  )
+
+  const hydrationErrorFamily = Atom.family(
+    (_taskId: string) => Atom.make<string | null>(null),
+  )
+
+  const hydrationMetricsFamily = Atom.family(
+    (taskId: string) =>
+      Atom.readable((get): HydrationMetrics => ({
+        windowsCached: get(hydrationCacheFamily(taskId)).length,
+        loading: get(hydrationLoadingFamily(taskId)),
+        hasError: get(hydrationErrorFamily(taskId)) !== null,
+      })),
+  )
+
+  const hydrateWindowTrigger = logRuntimeAtom.fn<{
+    readonly taskId: string
+    readonly centerOffset: number
+  }>()(
+    ({ taskId, centerOffset }, ctx) =>
+      Effect.gen(function* () {
+        const hydrationOption = yield* Effect.serviceOption(LogHydrationService)
+        if (Option.isNone(hydrationOption)) {
+          return Option.none<HydrationSlice>()
+        }
+
+        const loadingAtom = hydrationLoadingFamily(taskId)
+        const errorAtom = hydrationErrorFamily(taskId)
+        const cacheAtom = hydrationCacheFamily(taskId)
+
+        ctx.set(loadingAtom, true)
+        ctx.set(errorAtom, null)
+
+        const nowEpochMs = Date.now()
+        const prunedBefore = pruneHydrationCacheEntries(ctx.get(cacheAtom), nowEpochMs)
+        if (prunedBefore.length !== ctx.get(cacheAtom).length) {
+          ctx.set(cacheAtom, prunedBefore)
+        }
+
+        return yield* Effect.gen(function* () {
+          const window = yield* hydrationOption.value.planWindow(taskId, centerOffset)
+          const slice = yield* hydrationOption.value.hydrateWindow(window)
+
+          const expiresAtEpochMs = Date.now() + hydrationCachePolicy.cacheTtlMs
+          const cacheEntry: HydrationCacheEntry = {
+            key: hydrationWindowCacheKey(window),
+            fromOffset: window.fromOffset,
+            toOffset: window.toOffset,
+            source: slice.source,
+            slice,
+            expiresAtEpochMs,
+            touchedAtEpochMs: Date.now(),
+          }
+
+          const nextCache = upsertHydrationCacheEntry(
+            pruneHydrationCacheEntries(ctx.get(cacheAtom), Date.now()),
+            cacheEntry,
+            hydrationCachePolicy,
+          )
+
+          ctx.set(cacheAtom, nextCache)
+          return Option.some(slice)
+        }).pipe(
+          Effect.tapError((error) =>
+            Effect.sync(() => {
+              ctx.set(errorAtom, error.message)
+            }),
+          ),
+          Effect.catchAll(() => Effect.succeed(Option.none<HydrationSlice>())),
+          Effect.ensuring(
+            Effect.sync(() => {
+              ctx.set(loadingAtom, false)
+            }),
+          ),
+        )
+      }).pipe(
+        Effect.withSpan('AgentTask.LogSurface.hydrateWindow', {
+          attributes: {
+            taskId,
+            centerOffset,
+          },
+        }),
+      ),
+  )
+
   const filteredLogBufferFamily = Atom.family(
     (taskId: string) =>
       Atom.readable((get) => {
@@ -477,6 +630,11 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
     outboxDroppedCountFamily,
     outboxDegradedFamily,
     outboxMetricsFamily,
+    hydrationCacheFamily,
+    hydrationLoadingFamily,
+    hydrationErrorFamily,
+    hydrationMetricsFamily,
+    hydrateWindowTrigger,
     filteredLogBufferFamily,
     logCountFamily,
     logTotalCountFamily,
