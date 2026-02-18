@@ -580,8 +580,9 @@
   50% { opacity: 0; }
 }
 
-/* Tail sentinel — 1px target for IntersectionObserver.
+/* Scroll sentinels — 1px targets for IntersectionObserver.
    Must have actual geometry for reliable cross-browser detection. */
+.at-log-view__head-anchor,
 .at-log-view__tail-anchor {
   height: 1px;
   width: 100%;

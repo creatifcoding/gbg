@@ -21,7 +21,17 @@ export {
   useInlineTaskLogController,
   type InlineTaskLogController,
   type UseInlineTaskLogControllerOptions,
+  type TailInterruptProps,
 } from './use-inline-task-log-controller'
+export {
+  useScrollAnchor,
+  useScrollPointer,
+  scrollInContainer,
+  type ScrollAnchorHandle,
+  type ScrollAnchorOptions,
+  type ScrollPointerHandle,
+  type ScrollPointerOptions,
+} from './scroll-anchors'
 export {
   useInlineTaskLogViewContext,
   InlineTaskLogViewProvider,
