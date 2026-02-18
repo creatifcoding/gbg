@@ -45,6 +45,7 @@ const WHICH_KEY_DELAY = 500
 /** Command IDs with special handling */
 const SPECIAL_COMMANDS = {
   COMMAND_PALETTE: "system.commandPalette",
+  NUCMDK: "system.nuCmdk",
   SETTINGS: "system.settings",
   TERMINAL_PANEL: "system.toggleTerminalPanel",
   MINIBUFFER_CANCEL: "minibuffer.cancel",
@@ -110,6 +111,8 @@ export interface UseGlobalHotkeysOptions {
   debug?: boolean
   /** Disable hotkey processing (e.g., when modal is open) */
   disabled?: boolean
+  /** Optional external wiring state override */
+  isWired?: boolean
   /** Called when a command is executed */
   onCommand?: (commandId: string) => void
   /** Called when settings command is triggered */
@@ -118,6 +121,12 @@ export interface UseGlobalHotkeysOptions {
   onTerminal?: () => void
   /** Called when minibuffer cancel is triggered (esc in minibuffer scope) */
   onMinibufferCancel?: () => void
+  /** Called when command palette command is triggered */
+  onOpenCommandPalette?: () => void
+  /** Called when NuCmdk command is triggered */
+  onOpenNuCmdk?: () => void
+  /** Called when testbed window command is triggered */
+  onOpenTestbedWindow?: () => void
 }
 
 export interface UseGlobalHotkeysResult {
@@ -213,13 +222,25 @@ function shouldBlockBrowserShortcut(chord: KeyChord): boolean {
  * ```
  */
 export function useGlobalHotkeys(options: UseGlobalHotkeysOptions = {}): UseGlobalHotkeysResult {
-  const { debug = false, disabled = false, onCommand, onSettings, onTerminal, onMinibufferCancel } = options
+  const {
+    debug = false,
+    disabled = false,
+    isWired: isWiredOverride,
+    onCommand,
+    onSettings,
+    onTerminal,
+    onMinibufferCancel,
+    onOpenCommandPalette,
+    onOpenNuCmdk,
+    onOpenTestbedWindow,
+  } = options
 
   const registry = useContext(RegistryContext)
   const minibuffer = useMinibuffer()
 
   // Wire commands via useCommandWire
-  const { isWired } = useCommandWire({ debug })
+  const { isWired: isWiredFromHook } = useCommandWire({ debug })
+  const isWired = isWiredOverride ?? isWiredFromHook
 
   // Reactive state from atoms
   const currentSequence = useAtomValue(sequenceSourceAtom)
@@ -246,7 +267,21 @@ export function useGlobalHotkeys(options: UseGlobalHotkeysOptions = {}): UseGlob
 
       // Special handling for command palette
       if (commandId === SPECIAL_COMMANDS.COMMAND_PALETTE) {
-        await minibuffer.executeCommand()
+        if (onOpenCommandPalette) {
+          onOpenCommandPalette()
+        } else {
+          await minibuffer.executeCommand()
+        }
+        return
+      }
+
+      // Special handling for NuCmdk shell
+      if (commandId === SPECIAL_COMMANDS.NUCMDK) {
+        if (onOpenNuCmdk) {
+          onOpenNuCmdk()
+        } else {
+          await minibuffer.executeCommand()
+        }
         return
       }
 
@@ -277,7 +312,11 @@ export function useGlobalHotkeys(options: UseGlobalHotkeysOptions = {}): UseGlob
       // Special handling for testbed window picker (Ctrl+Shift+N)
       // Opens minibuffer with TestbedWindowProvider
       if (commandId === SPECIAL_COMMANDS.OPEN_TESTBED_WINDOW) {
-        minibuffer.openCommand(TESTBED_WINDOW_PROVIDER_ID)
+        if (onOpenTestbedWindow) {
+          onOpenTestbedWindow()
+        } else {
+          minibuffer.openCommand(TESTBED_WINDOW_PROVIDER_ID)
+        }
         return
       }
 
@@ -291,7 +330,18 @@ export function useGlobalHotkeys(options: UseGlobalHotkeysOptions = {}): UseGlob
         }
       }
     },
-    [commands, minibuffer, onCommand, onSettings, onTerminal, onMinibufferCancel, debug]
+    [
+      commands,
+      minibuffer,
+      onCommand,
+      onSettings,
+      onTerminal,
+      onMinibufferCancel,
+      onOpenCommandPalette,
+      onOpenNuCmdk,
+      onOpenTestbedWindow,
+      debug,
+    ]
   )
 
   // Global keydown handler
@@ -312,14 +362,23 @@ export function useGlobalHotkeys(options: UseGlobalHotkeysOptions = {}): UseGlob
         return
       }
 
-      // For input elements, only allow escape key through
-      // This enables minibuffer cancel while typing in the search input
+      // Create chord from event
+      const chord: KeyChord = {
+        ctrl: e.ctrlKey,
+        alt: e.altKey,
+        shift: e.shiftKey,
+        meta: e.metaKey,
+        key: normalizeKey(e.key),
+      }
+
+      // For input elements, allow Escape and globally-reserved shortcuts
+      // (e.g. command palette / NuCmdk) to still work while typing.
       if (isInputElement(e.target)) {
-        if (e.key !== "Escape") {
+        const isAllowedInInput = chord.key === 'esc' || shouldBlockBrowserShortcut(chord)
+        if (!isAllowedInInput) {
           return
         }
-        // Escape in input - let it through for minibuffer cancel
-        console.log('[useGlobalHotkeys] Escape in input element, checking for minibuffer binding')
+        console.log('[useGlobalHotkeys] Input element shortcut passthrough:', formatChordForBlocking(chord))
       }
 
       // Clear existing timeouts
@@ -332,15 +391,6 @@ export function useGlobalHotkeys(options: UseGlobalHotkeysOptions = {}): UseGlob
         whichKeyTimeoutRef.current = null
       }
       setShowWhichKey(false)
-
-      // Create chord from event
-      const chord: KeyChord = {
-        ctrl: e.ctrlKey,
-        alt: e.altKey,
-        shift: e.shiftKey,
-        meta: e.metaKey,
-        key: normalizeKey(e.key),
-      }
 
       // Block browser shortcuts unconditionally (VS Code pattern)
       // This prevents browser from handling shortcuts we want to intercept,
