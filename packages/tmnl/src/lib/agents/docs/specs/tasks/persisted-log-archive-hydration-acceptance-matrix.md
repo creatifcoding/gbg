@@ -130,14 +130,14 @@ Evidence reference format suggestion:
 
 | Row ID | Assertion | Verification Method | Evidence Ref | Status |
 |---|---|---|---|---|
-| H-01 | `AgentTask.LogDurability.publish` span emitted | tracing assertion | _pending_ | pending |
-| H-02 | `AgentTask.LogDurability.ack` span emitted | tracing assertion | _pending_ | pending |
-| H-03 | `AgentTask.LogArchive.spill` span emitted | tracing assertion | _pending_ | pending |
-| H-04 | `AgentTask.LogArchive.evict` span emitted on quota path | tracing assertion | _pending_ | pending |
-| H-05 | `AgentTask.LogHydration.plan` span emitted | tracing assertion | _pending_ | pending |
-| H-06 | `AgentTask.LogHydration.fetch` span emitted | tracing assertion | _pending_ | pending |
-| H-07 | cache hit/miss counters increment correctly | metric assertions | _pending_ | pending |
-| H-08 | durability ack latency histogram receives samples | metric assertions | _pending_ | pending |
+| H-01 | `AgentTask.LogDurability.publish` span emitted | tracing assertion | `src/lib/agents/tasks/services/AgentTaskLogDurabilityService.ts` (`publishAndAwaitAck`) + `src/lib/agents/tasks/services/__tests__/AgentTaskLogDurabilityService.test.ts` | pass |
+| H-02 | `AgentTask.LogDurability.ack` span emitted | tracing assertion | `src/lib/agents/tasks/services/AgentTaskLogDurabilityService.ts` (`publishAndAwaitAck`) + `src/lib/agents/tasks/services/__tests__/AgentTaskLogDurabilityService.test.ts` | pass |
+| H-03 | `AgentTask.LogArchive.spill` span emitted | tracing assertion | `src/lib/agents/tasks/services/LogArchiveStoreService.ts` (`writeChunk`) + `src/lib/agents/tasks/services/__tests__/LogArchiveStoreService.test.ts` | pass |
+| H-04 | `AgentTask.LogArchive.evict` span emitted on quota path | tracing assertion | `src/lib/agents/tasks/services/LogArchiveStoreService.ts` (`evictOldestChunk`) + `src/lib/agents/tasks/services/__tests__/LogArchiveStoreService.test.ts` | pass |
+| H-05 | `AgentTask.LogHydration.plan` span emitted | tracing assertion | `src/lib/agents/tasks/services/LogHydrationService.ts` (`planWindow`) + `src/lib/agents/tasks/services/__tests__/LogHydrationService.test.ts` | pass |
+| H-06 | `AgentTask.LogHydration.fetch` span emitted | tracing assertion | `src/lib/agents/tasks/services/LogHydrationService.ts` (`hydrateWindow`) + `src/lib/agents/tasks/services/__tests__/LogHydrationService.test.ts` | pass |
+| H-07 | cache hit/miss counters increment correctly | metric assertions | `src/lib/agents/tasks/atoms/surface.ts` (`hydrateWindowTrigger`) + `docs/specifications/F332-observability-evidence.md` | pass |
+| H-08 | durability ack latency histogram receives samples | metric assertions | `src/lib/agents/tasks/atoms/surface.ts` (`recordDurabilityAckLatency` / outbox drain hooks) + `src/lib/agents/tasks/atoms/__tests__/surface.observability.test.ts` | pass |
 
 ---
 
