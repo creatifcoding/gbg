@@ -12,6 +12,7 @@ import React, { useCallback } from 'react'
 import { useAtom, useAtomValue } from '@effect-atom/atom-react'
 import {
   tailModeFamily,
+  unreadCountFamily,
   logCountFamily,
   logTotalCountFamily,
   type AgentTaskLogAtomSurfaceAtoms,
@@ -24,15 +25,21 @@ export interface LogTailControlsProps {
   readonly atoms?: AgentTaskLogAtomSurfaceAtoms
   /** Callback when jump-to-latest is clicked */
   readonly onJumpToLatest?: () => void
+  /** Optional override for unread count from parent-controlled lifecycle */
+  readonly unreadCountOverride?: number
 }
 
 export function LogTailControls({
   taskId,
   atoms,
   onJumpToLatest,
+  unreadCountOverride,
 }: LogTailControlsProps) {
   const [tailMode, setTailMode] = useAtom(
     (atoms?.tailModeFamily ?? tailModeFamily)(taskId),
+  )
+  const unreadCountFromAtom = useAtomValue(
+    (atoms?.unreadCountFamily ?? unreadCountFamily)(taskId),
   )
   const filteredCount = useAtomValue(
     (atoms?.logCountFamily ?? logCountFamily)(taskId),
@@ -40,6 +47,7 @@ export function LogTailControls({
   const totalCount = useAtomValue(
     (atoms?.logTotalCountFamily ?? logTotalCountFamily)(taskId),
   )
+  const unreadCount = unreadCountOverride ?? unreadCountFromAtom
 
   const toggleMode = useCallback(() => {
     setTailMode((prev) => (prev === 'tail' ? 'inspect' : 'tail'))
@@ -68,6 +76,12 @@ export function LogTailControls({
         )}
       </span>
 
+      {tailMode === 'inspect' && unreadCount > 0 ? (
+        <span className="at-log-tail-controls__unread" aria-live="polite">
+          +{unreadCount} new
+        </span>
+      ) : null}
+
       <button
         className="at-log-tail-controls__toggle"
         onClick={toggleMode}
@@ -82,7 +96,7 @@ export function LogTailControls({
           onClick={handleJump}
           title="Jump to latest"
         >
-          ↓ Latest
+          ↓ Latest{unreadCount > 0 ? ` (${unreadCount})` : ''}
         </button>
       )}
     </div>
