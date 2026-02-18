@@ -178,6 +178,13 @@
         "cwd": "packages/tmnl"
       }
     },
+    "task-logs:emit": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run task-logs:emit",
+        "cwd": "packages/tmnl"
+      }
+    },
     "spike:provider-marker:match": {
       "executor": "nx:run-commands",
       "options": {

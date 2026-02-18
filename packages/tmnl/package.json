@@ -24,6 +24,7 @@
     "cursor:cluster": "bun run scripts/cursor-cluster-node.ts",
     "harness:remote-ws": "bun run scripts/harness-remote-ws-server.ts",
     "harness:piai:smoke": "bun run scripts/harness-piai-smoke.ts",
+    "task-logs:emit": "bun run scripts/task-log-emitter-sidecar.ts",
     "telegram:agent": "bun run scripts/telegram-agent.ts",
     "durable:server": "bun run scripts/durable-streams-server.ts",
     "search:server": "bun run scripts/search-server.ts",
