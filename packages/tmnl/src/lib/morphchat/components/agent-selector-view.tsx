@@ -22,7 +22,7 @@ import { ChevronDown, Bot } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useMorphChatContext } from './surface-context'
 import type { MockChatAdapter } from '../adapters/mock-adapter'
-import type { ChatAgentInfo } from '../schemas/message-types'
+import type { AgentInfo } from '../schemas/message-types'
 
 // =============================================================================
 // Agent Selector View (topology resolver)
@@ -78,7 +78,7 @@ function AgentTabs({
   activeId,
   onSelect,
 }: {
-  agents: ReadonlyArray<ChatAgentInfo>
+  agents: ReadonlyArray<AgentInfo>
   activeId?: string
   onSelect: (id: string) => void
 }) {
@@ -130,7 +130,7 @@ function AgentDropdown({
   activeId,
   onSelect,
 }: {
-  agents: ReadonlyArray<ChatAgentInfo>
+  agents: ReadonlyArray<AgentInfo>
   activeId?: string
   onSelect: (id: string) => void
 }) {

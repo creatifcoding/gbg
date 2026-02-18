@@ -7,6 +7,8 @@ export type {
 } from './types'
 
 export { createMockChatAdapter } from './mock-adapter'
+export { createHarnessAdapter } from './harness-adapter'
+export type { HarnessAdapterConfig, HarnessAdapterExtensions } from './harness-adapter'
 export type {
   MockChatAdapter,
   MockAdapterFullConfig,
