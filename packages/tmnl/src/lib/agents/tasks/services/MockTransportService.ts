@@ -18,14 +18,13 @@ import {
   Effect,
   Layer,
   Stream,
-  Schedule,
   Duration,
   DateTime,
-  Scope,
   Random,
-  Chunk,
+  Option,
   pipe,
 } from 'effect'
+import { faker } from '@faker-js/faker'
 import { TransportService, TransportSubscribeError } from './TransportService'
 import { AgentTaskLogEntry } from '../schemas/log-entry'
 import { serializeLine } from '../codec/jsonl-codec'
@@ -97,16 +96,34 @@ let _counter = 0
 const templateToLine = (
   template: MockLogTemplate,
   taskId: string,
+  sequence: number,
 ): string => {
   _counter++
+
+  const syntheticLatency = faker.number.int({ min: 12, max: 350 })
+  const syntheticWorker = faker.helpers.arrayElement([
+    'worker.alpha',
+    'worker.beta',
+    'worker.gamma',
+    'worker.delta',
+  ])
+
+  const message = `${template.message} · #${sequence.toString().padStart(5, '0')}`
+
   const entry = new AgentTaskLogEntry({
-    id: `mock-${taskId}-${_counter.toString().padStart(4, '0')}`,
+    id: `mock-${taskId}-${_counter.toString().padStart(6, '0')}`,
     timestamp: DateTime.unsafeNow(),
     level: template.level,
     source: template.source,
-    message: template.message,
+    message,
     parentTaskId: taskId,
-    metadata: template.metadata,
+    metadata: {
+      ...(template.metadata ?? {}),
+      sequence,
+      syntheticLatency,
+      worker: syntheticWorker,
+      traceId: faker.string.alphanumeric(16),
+    },
   })
   return serializeLine(entry)
 }
@@ -122,12 +139,19 @@ export interface MockTransportConfig {
   readonly jitterMs?: number
   /** Use error scenario instead of success (default: false) */
   readonly errorScenario?: boolean
+  /** Keep stream open indefinitely (default: true) */
+  readonly infinite?: boolean
+  /** Optional deterministic seed for faker/randomized fields */
+  readonly seed?: number
+  /** Optional hard cap for entries (primarily tests) */
+  readonly maxEntries?: number
 }
 
-const DEFAULT_CONFIG: Required<MockTransportConfig> = {
+const DEFAULT_CONFIG: Required<Omit<MockTransportConfig, 'seed' | 'maxEntries'>> = {
   intervalMs: 200,
   jitterMs: 100,
   errorScenario: false,
+  infinite: true,
 }
 
 // ---------------------------------------------------------------------------
@@ -144,19 +168,33 @@ const makeMockTransport = (
       Effect.gen(function* () {
         const templates = config.errorScenario ? ERROR_TEMPLATES : ALL_TEMPLATES
 
-        // Build a stream that emits one template at a time with jitter delay
-        const lineStream = pipe(
-          Stream.fromIterable(templates),
-          Stream.mapEffect((template) =>
-            Effect.gen(function* () {
-              // Add jitter
-              const jitter = yield* Random.nextIntBetween(0, config.jitterMs)
-              yield* Effect.sleep(
-                Duration.millis(config.intervalMs + jitter),
-              )
-              return templateToLine(template, taskId)
-            }),
-          ),
+        if (config.seed !== undefined) {
+          yield* Effect.sync(() => faker.seed(config.seed))
+        }
+
+        const lineStream = Stream.unfoldEffect(0, (emitted) =>
+          Effect.gen(function* () {
+            const exhaustedFiniteScenario = !config.infinite && emitted >= templates.length
+            const exhaustedMaxEntries =
+              config.maxEntries !== undefined && emitted >= config.maxEntries
+
+            if (exhaustedFiniteScenario || exhaustedMaxEntries) {
+              return Option.none()
+            }
+
+            const jitter =
+              config.jitterMs > 0
+                ? yield* Random.nextIntBetween(0, config.jitterMs)
+                : 0
+
+            yield* Effect.sleep(Duration.millis(config.intervalMs + jitter))
+
+            const template = templates[emitted % templates.length]
+            const sequence = emitted + 1
+            const line = templateToLine(template, taskId, sequence)
+
+            return Option.some([line, emitted + 1] as const)
+          }),
         )
 
         return lineStream as Stream.Stream<string, TransportSubscribeError>
