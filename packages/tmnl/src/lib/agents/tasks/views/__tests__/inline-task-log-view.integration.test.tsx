@@ -1,107 +1,149 @@
-import { Layer } from 'effect'
+import { DateTime, Effect, Layer, Stream } from 'effect'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
-import { MockTransportServiceCustom } from '../../services/MockTransportService'
+import { serializeLine } from '../../codec/jsonl-codec'
+import { AgentTaskLogEntry } from '../../schemas'
 import { AgentTaskServiceBase } from '../../services/layers'
+import { TransportService } from '../../services/TransportService'
 import {
   AgentTaskLogAtomSurfaceCustom,
   createAgentTaskLogAtomSurfaceRuntime,
 } from '../../atoms/surface'
 import { InlineTaskLogView } from '../inline-task-log-view'
 
-const makeIntegrationSurfaceRuntime = () =>
-  createAgentTaskLogAtomSurfaceRuntime(
+const TASK_ID = 'integration-deterministic-1'
+
+const FIXTURE_LINES: ReadonlyArray<string> = [
+  serializeLine(
+    new AgentTaskLogEntry({
+      id: 'entry-001',
+      timestamp: DateTime.unsafeMake(1_700_000_000_001),
+      level: 'INFO',
+      source: 'runtime',
+      message: 'runtime boot complete',
+      parentTaskId: TASK_ID,
+      metadata: { phase: 'boot' },
+    }),
+  ),
+  serializeLine(
+    new AgentTaskLogEntry({
+      id: 'entry-002',
+      timestamp: DateTime.unsafeMake(1_700_000_000_002),
+      level: 'WARN',
+      source: 'worker',
+      message: 'checkpoint latency spike',
+      parentTaskId: TASK_ID,
+      metadata: { latencyMs: 222 },
+    }),
+  ),
+  'not-json-at-all',
+  serializeLine(
+    new AgentTaskLogEntry({
+      id: 'entry-003',
+      timestamp: DateTime.unsafeMake(1_700_000_000_003),
+      level: 'ERROR',
+      source: 'durability',
+      message: 'outbox retry exhausted',
+      parentTaskId: TASK_ID,
+      metadata: { retries: 3 },
+    }),
+  ),
+  serializeLine(
+    new AgentTaskLogEntry({
+      id: 'entry-004',
+      timestamp: DateTime.unsafeMake(1_700_000_000_004),
+      level: 'INFO',
+      source: 'runtime',
+      message: 'archive checkpoint flushed',
+      parentTaskId: TASK_ID,
+      metadata: { chunk: 4 },
+    }),
+  ),
+]
+
+const readRowCount = (container: HTMLElement) =>
+  container.querySelectorAll('.at-log-entry').length
+
+const makeDeterministicSurfaceRuntime = () => {
+  const transportLayer = Layer.succeed(TransportService, {
+    subscribe: (taskId: string) =>
+      Effect.succeed(Stream.fromIterable(taskId === TASK_ID ? FIXTURE_LINES : [])),
+    publish: () => Effect.void,
+  })
+
+  return createAgentTaskLogAtomSurfaceRuntime(
     AgentTaskLogAtomSurfaceCustom(
       AgentTaskServiceBase.pipe(
-        Layer.provide(
-          MockTransportServiceCustom({
-            intervalMs: 0,
-            jitterMs: 0,
-            infinite: true,
-            seed: 21,
-          }),
-        ),
+        Layer.provide(transportLayer),
       ),
     ),
   )
+}
 
-describe('InlineTaskLogView integration smoke', () => {
-  it('does not chip partial dork tokens while typing (regression)', async () => {
-    const integrationSurfaceRuntime = makeIntegrationSurfaceRuntime()
+describe('InlineTaskLogView integration (deterministic transport)', () => {
+  it('renders deterministic stream and applies source + regex filters', async () => {
+    const runtime = makeDeterministicSurfaceRuntime()
 
-    render(
-      <InlineTaskLogView
-        taskId="integration-dork-partial-1"
-        atomSurfaceAtom={integrationSurfaceRuntime.atomSurfaceAtom}
-      />,
+    const { container } = render(
+      <InlineTaskLogView taskId={TASK_ID} atomSurfaceAtom={runtime.atomSurfaceAtom} />,
     )
 
     await waitFor(() => {
+      expect(readRowCount(container)).toBe(4)
       expect(screen.queryByText('Waiting for log entries…')).not.toBeInTheDocument()
     })
 
-    const search = screen.getByPlaceholderText(/Search or dork/) as HTMLInputElement
-
-    fireEvent.change(search, { target: { value: 'scope:r' } })
-
-    expect(search.value).toBe('scope:r')
-    expect(screen.queryByText('SCOPE')).toBeNull()
-    expect(screen.queryByText('scope:r')).toBeNull()
-
-    fireEvent.change(search, { target: { value: 'scope:runtime,' } })
+    const sourceInput = screen.getByPlaceholderText('Source…') as HTMLInputElement
+    fireEvent.change(sourceInput, { target: { value: 'runtime' } })
 
     await waitFor(() => {
-      expect(screen.getByText('SCOPE')).toBeInTheDocument()
-      expect(screen.getByText('scope:runtime')).toBeInTheDocument()
-      expect(search.value).toBe('')
+      expect(readRowCount(container)).toBe(2)
+    })
+
+    const regexInput = screen.getByPlaceholderText('/regex/') as HTMLInputElement
+    fireEvent.change(regexInput, { target: { value: 'checkpoint' } })
+
+    await waitFor(() => {
+      expect(readRowCount(container)).toBe(1)
+      expect(screen.getByText('archive checkpoint flushed')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /clear/i }))
+
+    await waitFor(() => {
+      expect(readRowCount(container)).toBe(4)
     })
   })
 
-  it('covers stream -> QueryDSL filter -> row detail expansion pipeline', async () => {
-    const integrationSurfaceRuntime = makeIntegrationSurfaceRuntime()
+  it('commits dorks on Enter and supports row detail expansion', async () => {
+    const runtime = makeDeterministicSurfaceRuntime()
 
     const { container } = render(
-      <InlineTaskLogView
-        taskId="integration-pipeline-1"
-        atomSurfaceAtom={integrationSurfaceRuntime.atomSurfaceAtom}
-      />,
+      <InlineTaskLogView taskId={TASK_ID} atomSurfaceAtom={runtime.atomSurfaceAtom} />,
     )
 
     await waitFor(() => {
-      expect(screen.queryByText('Waiting for log entries…')).not.toBeInTheDocument()
+      expect(readRowCount(container)).toBe(4)
     })
 
     const search = screen.getByPlaceholderText(/Search or dork/) as HTMLInputElement
-    fireEvent.change(search, { target: { value: 'category:info runtime' } })
+    fireEvent.change(search, { target: { value: 'category:warn' } })
 
-    // Dork tokens should not chip while user is still typing.
+    expect(search.value).toBe('category:warn')
     expect(screen.queryByText('CATEGORY')).toBeNull()
-    expect(search.value).toBe('category:info runtime')
 
     fireEvent.keyDown(search, { key: 'Enter' })
 
     await waitFor(() => {
-      const rows = container.querySelectorAll('.at-log-entry')
-      expect(rows.length).toBeGreaterThan(0)
       expect(screen.getByText('CATEGORY')).toBeInTheDocument()
-      expect(screen.getByText('category:info')).toBeInTheDocument()
-      expect(search.value).toBe('runtime')
+      expect(screen.getByText('category:warn')).toBeInTheDocument()
+      expect(readRowCount(container)).toBe(1)
     })
 
-    expect(screen.queryByRole('button', { name: /remove category:info/i })).toBeNull()
-
-    const chip = screen.getByText('category:info').closest('.at-log-filter-bar__dork-chip') as HTMLSpanElement
-    expect(chip).toBeTruthy()
-    fireEvent.mouseEnter(chip)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /remove category:info/i })).toBeInTheDocument()
-    })
-
-    const firstRow = container.querySelector('.at-log-entry__line') as HTMLDivElement
-    expect(firstRow).toBeTruthy()
-    fireEvent.click(firstRow)
+    const firstLine = container.querySelector('.at-log-entry__line') as HTMLDivElement
+    expect(firstLine).toBeTruthy()
+    fireEvent.click(firstLine)
 
     await waitFor(() => {
       expect(container.querySelector('.rvn-chat__inline-task-detail')).toBeTruthy()
