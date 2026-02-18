@@ -82,6 +82,11 @@ export interface AgentTaskLogAtomSurfaceAtoms {
   readonly logFilterAtom: Atom.Writable<LogFilterState>
   readonly tailModeFamily: ReturnType<typeof Atom.family<string, Atom.Writable<TailMode>>>
   readonly unreadCountFamily: ReturnType<typeof Atom.family<string, Atom.Writable<number>>>
+  readonly outboxPendingFamily: ReturnType<typeof Atom.family<string, Atom.Writable<number>>>
+  readonly outboxInFlightFamily: ReturnType<typeof Atom.family<string, Atom.Writable<number>>>
+  readonly outboxRetryCountFamily: ReturnType<typeof Atom.family<string, Atom.Writable<number>>>
+  readonly outboxDroppedCountFamily: ReturnType<typeof Atom.family<string, Atom.Writable<number>>>
+  readonly outboxDegradedFamily: ReturnType<typeof Atom.family<string, Atom.Writable<boolean>>>
   readonly filteredLogBufferFamily: ReturnType<typeof Atom.family<string, Atom.Atom<ReadonlyArray<AssembledLogEntry>>>>
   readonly logCountFamily: ReturnType<typeof Atom.family<string, Atom.Atom<number>>>
   readonly logTotalCountFamily: ReturnType<typeof Atom.family<string, Atom.Atom<number>>>
@@ -210,18 +215,98 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
         const outboxOption = yield* Effect.serviceOption(AgentTaskLogOutboxService)
         const bufferAtom = logBufferFamily(taskId)
 
+        const updatePendingByEntry = (
+          targetTaskId: string,
+          entryId: string,
+          direction: 'add' | 'remove',
+        ) => {
+          const idsAtom = outboxPendingEntryIdsFamily(targetTaskId)
+          const pendingAtom = outboxPendingFamily(targetTaskId)
+          const existing = ctx.get(idsAtom)
+
+          if (direction === 'add') {
+            if (existing.has(entryId)) return
+            const next = new Set(existing)
+            next.add(entryId)
+            ctx.set(idsAtom, next)
+            ctx.set(pendingAtom, ctx.get(pendingAtom) + 1)
+            return
+          }
+
+          if (!existing.has(entryId)) return
+          const next = new Set(existing)
+          next.delete(entryId)
+          ctx.set(idsAtom, next)
+          ctx.set(pendingAtom, Math.max(0, ctx.get(pendingAtom) - 1))
+        }
+
+        const incrementCounter = (
+          family: ReturnType<typeof Atom.family<string, Atom.Writable<number>>>,
+          targetTaskId: string,
+          by = 1,
+        ) => {
+          const atom = family(targetTaskId)
+          ctx.set(atom, Math.max(0, ctx.get(atom) + by))
+        }
+
+        const decrementCounter = (
+          family: ReturnType<typeof Atom.family<string, Atom.Writable<number>>>,
+          targetTaskId: string,
+          by = 1,
+        ) => {
+          const atom = family(targetTaskId)
+          ctx.set(atom, Math.max(0, ctx.get(atom) - by))
+        }
+
+        const setDegraded = (targetTaskId: string) => {
+          ctx.set(outboxDegradedFamily(targetTaskId), true)
+        }
+
         if (Option.isSome(outboxOption) && !ctx.get(outboxDrainStartedAtom)) {
           ctx.set(outboxDrainStartedAtom, true)
 
           yield* Effect.forkScoped(
-            outboxOption.value.drainForever().pipe(
-              Effect.ensuring(
-                Effect.sync(() => {
-                  ctx.set(outboxDrainStartedAtom, false)
-                }),
+            outboxOption.value
+              .drainOne({
+                onAttemptStart: (attempt) =>
+                  Effect.sync(() => {
+                    incrementCounter(outboxInFlightFamily, attempt.taskId)
+                  }),
+                onAttemptSuccess: (attempt) =>
+                  Effect.sync(() => {
+                    decrementCounter(outboxInFlightFamily, attempt.taskId)
+                    updatePendingByEntry(attempt.taskId, attempt.entryId, 'remove')
+                  }),
+                onAttemptFailure: (failure) =>
+                  Effect.sync(() => {
+                    decrementCounter(outboxInFlightFamily, failure.taskId)
+                    setDegraded(failure.taskId)
+
+                    if (failure.dropped) {
+                      incrementCounter(outboxDroppedCountFamily, failure.taskId)
+                      updatePendingByEntry(failure.taskId, failure.entryId, 'remove')
+                      return
+                    }
+
+                    incrementCounter(outboxRetryCountFamily, failure.taskId)
+                  }),
+              })
+              .pipe(
+                Effect.catchAll((error) =>
+                  Effect.sync(() => {
+                    if ('_tag' in error && error._tag === 'AgentTask/LogOutboxDrainError') {
+                      setDegraded(taskId)
+                    }
+                  }),
+                ),
+                Effect.forever,
+                Effect.ensuring(
+                  Effect.sync(() => {
+                    ctx.set(outboxDrainStartedAtom, false)
+                  }),
+                ),
+                Effect.withSpan('AgentTask.LogSurface.outboxDrain'),
               ),
-              Effect.withSpan('AgentTask.LogSurface.outboxDrain'),
-            ),
           )
         }
 
@@ -232,6 +317,11 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
             Effect.gen(function* () {
               if (Option.isSome(outboxOption)) {
                 yield* outboxOption.value.enqueue(taskId, entry.entry).pipe(
+                  Effect.tap(() =>
+                    Effect.sync(() => {
+                      updatePendingByEntry(taskId, entry.entry.id, 'add')
+                    }),
+                  ),
                   Effect.catchAll((error) =>
                     Effect.logWarning('[AgentTaskLogSurface] outbox enqueue failed').pipe(
                       Effect.annotateLogs({
@@ -239,6 +329,11 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
                         entryId: entry.entry.id,
                         tag: error._tag,
                       }),
+                      Effect.zipRight(
+                        Effect.sync(() => {
+                          setDegraded(taskId)
+                        }),
+                      ),
                     ),
                   ),
                 )
@@ -305,6 +400,30 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
     (_taskId: string) => Atom.make<number>(0),
   )
 
+  const outboxPendingFamily = Atom.family(
+    (_taskId: string) => Atom.make<number>(0),
+  )
+
+  const outboxInFlightFamily = Atom.family(
+    (_taskId: string) => Atom.make<number>(0),
+  )
+
+  const outboxRetryCountFamily = Atom.family(
+    (_taskId: string) => Atom.make<number>(0),
+  )
+
+  const outboxDroppedCountFamily = Atom.family(
+    (_taskId: string) => Atom.make<number>(0),
+  )
+
+  const outboxDegradedFamily = Atom.family(
+    (_taskId: string) => Atom.make<boolean>(false),
+  )
+
+  const outboxPendingEntryIdsFamily = Atom.family(
+    (_taskId: string) => Atom.make<ReadonlySet<string>>(new Set<string>()),
+  )
+
   const filteredLogBufferFamily = Atom.family(
     (taskId: string) =>
       Atom.readable((get) => {
@@ -332,6 +451,11 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
     logFilterAtom,
     tailModeFamily,
     unreadCountFamily,
+    outboxPendingFamily,
+    outboxInFlightFamily,
+    outboxRetryCountFamily,
+    outboxDroppedCountFamily,
+    outboxDegradedFamily,
     filteredLogBufferFamily,
     logCountFamily,
     logTotalCountFamily,
