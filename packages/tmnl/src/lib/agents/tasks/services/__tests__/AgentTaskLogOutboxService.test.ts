@@ -146,6 +146,9 @@ describe('AgentTaskLogOutboxService', () => {
       }),
     )
 
+    const attempts: number[] = []
+    const failures: Array<{ dropped: boolean; attempt: number; retried: boolean }> = []
+
     const layer = AgentTaskLogOutboxServiceLive.pipe(
       Layer.provide(AgentTaskLogOutboxConfigCustom({
         queueName: 'outbox-service-b',
@@ -161,8 +164,27 @@ describe('AgentTaskLogOutboxService', () => {
 
         yield* outbox.enqueue('task-b', entry('entry-b'))
 
-        const first = yield* Effect.either(outbox.drainOne())
-        const second = yield* Effect.either(outbox.drainOne())
+        const hooks = {
+          onAttemptStart: (attempt: { attempt: number }) =>
+            Effect.sync(() => {
+              attempts.push(attempt.attempt)
+            }),
+          onAttemptFailure: (failure: {
+            dropped: boolean
+            attempt: number
+            retried: boolean
+          }) =>
+            Effect.sync(() => {
+              failures.push({
+                dropped: failure.dropped,
+                attempt: failure.attempt,
+                retried: failure.retried,
+              })
+            }),
+        }
+
+        const first = yield* Effect.either(outbox.drainOne(hooks))
+        const second = yield* Effect.either(outbox.drainOne(hooks))
 
         return { first, second }
       }).pipe(Effect.provide(layer)),
@@ -174,6 +196,63 @@ describe('AgentTaskLogOutboxService', () => {
       expect(result.second.right.entryId).toBe('entry-b')
       expect(result.second.right.sequence).toBe(2)
     }
+
+    expect(attempts).toEqual([1, 2])
+    expect(failures).toEqual([{ dropped: false, attempt: 1, retried: false }])
     expect(publishCalls).toBe(2)
+  })
+
+  it('marks attempt failure as dropped at max-attempt boundary', async () => {
+    const fakeDurability = Layer.succeed(
+      AgentTaskLogDurabilityService,
+      AgentTaskLogDurabilityService.of({
+        ensureStream: Effect.void,
+        publishAndAwaitAck: (taskId, e) =>
+          Effect.fail(
+            new AgentTaskLogDurabilityPublishError({
+              message: 'permanent-failure',
+              streamName: 'AGENT_TASK_LOGS',
+              taskId,
+              entryId: e.id,
+              subject: `agent.task.${taskId}.logs`,
+            }),
+          ),
+      }),
+    )
+
+    const failures: Array<{ dropped: boolean; attempt: number; maxAttempts: number }> = []
+
+    const layer = AgentTaskLogOutboxServiceLive.pipe(
+      Layer.provide(AgentTaskLogOutboxConfigCustom({
+        queueName: 'outbox-service-c',
+        maxAttempts: 1,
+      })),
+      Layer.provide(fakeDurability),
+      Layer.provide(queueFactoryLayer('outbox-service-store-c')),
+    )
+
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const outbox = yield* AgentTaskLogOutboxService
+
+        yield* outbox.enqueue('task-c', entry('entry-c'))
+
+        return yield* Effect.either(
+          outbox.drainOne({
+            onAttemptFailure: (failure) =>
+              Effect.sync(() => {
+                failures.push({
+                  dropped: failure.dropped,
+                  attempt: failure.attempt,
+                  maxAttempts: failure.maxAttempts,
+                })
+              }),
+          }),
+        )
+      }).pipe(Effect.provide(layer)),
+    )
+
+    expect(result._tag).toBe('Left')
+    expect(failures).toEqual([{ dropped: true, attempt: 1, maxAttempts: 1 }])
   })
 })

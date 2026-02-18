@@ -110,6 +110,9 @@ export {
   AgentTaskLogOutboxServiceDefault,
   type AgentTaskLogOutboxConfigShape,
   type AgentTaskLogOutboxError,
+  type AgentTaskLogOutboxDrainAttempt,
+  type AgentTaskLogOutboxDrainFailure,
+  type AgentTaskLogOutboxDrainHooks,
   type AgentTaskLogOutboxServiceShape,
 } from './AgentTaskLogOutboxService'
 

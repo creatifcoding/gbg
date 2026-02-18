@@ -73,6 +73,34 @@ export type AgentTaskLogOutboxError =
   | AgentTaskLogOutboxEnqueueError
   | AgentTaskLogOutboxDrainError
 
+export interface AgentTaskLogOutboxDrainAttempt {
+  readonly queueName: string
+  readonly taskId: string
+  readonly entryId: string
+  /** 1-based attempt number */
+  readonly attempt: number
+  readonly maxAttempts: number
+  readonly retried: boolean
+}
+
+export interface AgentTaskLogOutboxDrainFailure extends AgentTaskLogOutboxDrainAttempt {
+  readonly dropped: boolean
+  readonly errorTag: string
+}
+
+export interface AgentTaskLogOutboxDrainHooks {
+  readonly onAttemptStart?: (
+    attempt: AgentTaskLogOutboxDrainAttempt,
+  ) => Effect.Effect<void, never>
+  readonly onAttemptSuccess?: (
+    attempt: AgentTaskLogOutboxDrainAttempt,
+    receipt: AgentTaskLogDurabilityReceipt,
+  ) => Effect.Effect<void, never>
+  readonly onAttemptFailure?: (
+    failure: AgentTaskLogOutboxDrainFailure,
+  ) => Effect.Effect<void, never>
+}
+
 // ---------------------------------------------------------------------------
 // Service shape
 // ---------------------------------------------------------------------------
@@ -84,7 +112,9 @@ export interface AgentTaskLogOutboxServiceShape {
     source?: 'runtime' | 'recovery',
   ) => Effect.Effect<string, AgentTaskLogOutboxEnqueueError>
 
-  readonly drainOne: () => Effect.Effect<
+  readonly drainOne: (
+    hooks?: AgentTaskLogOutboxDrainHooks,
+  ) => Effect.Effect<
     AgentTaskLogDurabilityReceipt,
     AgentTaskLogOutboxDrainError | AgentTaskLogDurabilityError
   >
@@ -149,13 +179,33 @@ const make = Effect.gen(function* () {
       }),
     )
 
-  const drainOne: AgentTaskLogOutboxServiceShape['drainOne'] = () =>
+  const runHook = (effect: Effect.Effect<void, never> | undefined) =>
+    effect ?? Effect.void
+
+  const isDurabilityError = (cause: unknown): cause is AgentTaskLogDurabilityError =>
+    typeof cause === 'object' &&
+    cause !== null &&
+    '_tag' in cause &&
+    (cause as { _tag: string })._tag.startsWith('AgentTask/LogDurability')
+
+  const drainOne: AgentTaskLogOutboxServiceShape['drainOne'] = (hooks) =>
     queue
       .take(
-        (envelope, metadata) =>
-          Effect.uninterruptibleMask((restore) =>
+        (envelope, metadata) => {
+          const attempt: AgentTaskLogOutboxDrainAttempt = {
+            queueName: config.queueName,
+            taskId: envelope.taskId,
+            entryId: envelope.entry.id,
+            attempt: metadata.attempts + 1,
+            maxAttempts: config.maxAttempts,
+            retried: metadata.attempts > 0,
+          }
+
+          return Effect.uninterruptibleMask((restore) =>
             Effect.gen(function* () {
-              return yield* restore(
+              yield* runHook(hooks?.onAttemptStart?.(attempt))
+
+              const receipt = yield* restore(
                 durability.publishAndAwaitAck(envelope.taskId, envelope.entry),
               ).pipe(
                 Effect.withSpan('AgentTask.LogOutbox.publishAwaitAck', {
@@ -163,23 +213,39 @@ const make = Effect.gen(function* () {
                     queueName: config.queueName,
                     taskId: envelope.taskId,
                     entryId: envelope.entry.id,
-                    attempts: metadata.attempts,
+                    attempt: attempt.attempt,
+                    retried: attempt.retried,
                   },
                 }),
               )
-            }),
-          ),
+
+              yield* runHook(hooks?.onAttemptSuccess?.(attempt, receipt))
+              return receipt
+            }).pipe(
+              Effect.tapError((error) =>
+                runHook(
+                  hooks?.onAttemptFailure?.({
+                    ...attempt,
+                    dropped: attempt.attempt >= attempt.maxAttempts,
+                    errorTag:
+                      typeof error === 'object' &&
+                      error !== null &&
+                      '_tag' in error &&
+                      typeof (error as { _tag: unknown })._tag === 'string'
+                        ? (error as { _tag: string })._tag
+                        : 'UnknownError',
+                  }),
+                ),
+              ),
+            ),
+          )
+        },
         { maxAttempts: config.maxAttempts },
       )
       .pipe(
         Effect.mapError((cause) => {
-          if (
-            typeof cause === 'object' &&
-            cause !== null &&
-            '_tag' in cause &&
-            (cause as { _tag: string })._tag.startsWith('AgentTask/LogDurability')
-          ) {
-            return cause as AgentTaskLogDurabilityError
+          if (isDurabilityError(cause)) {
+            return cause
           }
 
           return new AgentTaskLogOutboxDrainError({
