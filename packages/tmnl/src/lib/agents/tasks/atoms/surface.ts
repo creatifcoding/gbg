@@ -28,8 +28,9 @@ import {
   type ParsedQuery,
   type SearchableItem,
 } from '../../../search/query'
-import type { LogLevel } from '../schemas/log-level'
+import { LOG_LEVEL_SEVERITY, logLevelDataAttr, type LogLevel } from '../schemas/log-level'
 import type { HydrationSlice, HydrationWindow } from '../schemas/hydration-window'
+import type { AgentTaskLogEntry } from '../schemas/log-entry'
 import type { AssembledLogEntry } from '../services/CodecService'
 import { AgentTaskService } from '../services/AgentTaskService'
 import { AgentTaskLogOutboxService } from '../services/AgentTaskLogOutboxService'
@@ -137,6 +138,62 @@ export const upsertHydrationCacheEntry = (
   )
 
   return ordered.slice(ordered.length - policy.maxWindowsPerTask)
+}
+
+const hydrationDedupeKey = (entry: AgentTaskLogEntry): string =>
+  `${entry.id}:${DateTime.toEpochMillis(entry.timestamp)}`
+
+const hydrationAssembledKey = (entry: AssembledLogEntry): string =>
+  hydrationDedupeKey(entry.entry)
+
+const formatRelativeFromNow = (timestamp: DateTime.Utc): string => {
+  const diffMs = Date.now() - DateTime.toEpochMillis(timestamp)
+  if (diffMs < 1_000) return 'just now'
+  if (diffMs < 60_000) return `${Math.floor(diffMs / 1_000)}s ago`
+  if (diffMs < 3_600_000) return `${Math.floor(diffMs / 60_000)}m ago`
+  if (diffMs < 86_400_000) return `${Math.floor(diffMs / 3_600_000)}h ago`
+  return `${Math.floor(diffMs / 86_400_000)}d ago`
+}
+
+export const assembleHydratedEntry = (entry: AgentTaskLogEntry): AssembledLogEntry => ({
+  entry,
+  key: entry.id,
+  severityOrd: LOG_LEVEL_SEVERITY[entry.level],
+  levelAttr: logLevelDataAttr(entry.level),
+  timestampDisplay: DateTime.formatIso(entry.timestamp),
+  relativeTime: formatRelativeFromNow(entry.timestamp),
+})
+
+export const mergeHotAndHydratedEntries = (
+  hotEntries: ReadonlyArray<AssembledLogEntry>,
+  hydratedEntries: ReadonlyArray<AgentTaskLogEntry>,
+): ReadonlyArray<AssembledLogEntry> => {
+  const deduped = new Map<string, AssembledLogEntry>()
+
+  for (const entry of hotEntries) {
+    const key = hydrationAssembledKey(entry)
+    if (!deduped.has(key)) {
+      deduped.set(key, entry)
+    }
+  }
+
+  for (const entry of hydratedEntries) {
+    const key = hydrationDedupeKey(entry)
+    if (!deduped.has(key)) {
+      deduped.set(key, assembleHydratedEntry(entry))
+    }
+  }
+
+  return [...deduped.values()].sort((left, right) => {
+    const leftTs = DateTime.toEpochMillis(left.entry.timestamp)
+    const rightTs = DateTime.toEpochMillis(right.entry.timestamp)
+
+    if (leftTs !== rightTs) {
+      return leftTs - rightTs
+    }
+
+    return hydrationAssembledKey(left).localeCompare(hydrationAssembledKey(right))
+  })
 }
 
 export interface AgentTaskLogAtomSurfaceAtoms {
@@ -600,10 +657,17 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
   const filteredLogBufferFamily = Atom.family(
     (taskId: string) =>
       Atom.readable((get) => {
-        const buffer = get(logBufferFamily(taskId))
+        const hotBuffer = get(logBufferFamily(taskId))
         const filter = get(logFilterAtom)
+        const hydrationCache = get(hydrationCacheFamily(taskId))
 
-        return applyLogFilters(buffer, filter, taskId)
+        const nowEpochMs = Date.now()
+        const hydratedEntries = hydrationCache
+          .filter((entry) => entry.expiresAtEpochMs > nowEpochMs)
+          .flatMap((entry) => entry.slice.mergedEntries)
+
+        const mergedBuffer = mergeHotAndHydratedEntries(hotBuffer, hydratedEntries)
+        return applyLogFilters(mergedBuffer, filter, taskId)
       }),
   )
 
