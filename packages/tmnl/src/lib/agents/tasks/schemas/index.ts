@@ -33,3 +33,37 @@ export {
   type AgentTaskCommandAckStatus,
   type AgentTaskCommandEventKind,
 } from './command'
+
+export {
+  AgentTaskLogDurabilityReceipt,
+  AgentTaskLogDurabilityReceiptSchema,
+  AgentTaskLogDurabilityReceiptFields,
+} from './durability-receipt'
+
+export {
+  LogArchiveManifest,
+  LogArchiveManifestSchema,
+  LogArchiveManifestFields,
+  LogArchiveChunk,
+  LogArchiveChunkSchema,
+  LogArchiveChunkFields,
+} from './log-archive'
+
+export {
+  HydrationAnchor,
+  HydrationWindow,
+  HydrationWindowSchema,
+  HydrationWindowFields,
+  HydrationSliceSource,
+  HydrationSlice,
+  HydrationSliceSchema,
+  HydrationSliceFields,
+  type HydrationAnchor,
+  type HydrationSliceSource,
+} from './hydration-window'
+
+export {
+  AgentTaskLogOutboxEnvelope,
+  AgentTaskLogOutboxEnvelopeSchema,
+  AgentTaskLogOutboxEnvelopeFields,
+} from './log-outbox'
