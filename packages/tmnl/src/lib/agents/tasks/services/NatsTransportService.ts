@@ -47,11 +47,20 @@ const resolveLogSubject = (taskId: string): string =>
 export const AGENT_TASK_LOGS_WILDCARD = 'agent.task.*.logs'
 
 // ---------------------------------------------------------------------------
-// Raw line schema — transport deals in strings
+// Wire payload schema
 // ---------------------------------------------------------------------------
 
-/** Schema for raw JSONL string transport. PubSub encodes/decodes as string. */
-const RawLine = Schema.String
+/**
+ * Wire payload can be either:
+ * 1) JSON-encoded string line (published via NatsPubSubService + Schema.String)
+ * 2) Raw JSON object bytes (published by ad-hoc producers / nats CLI helpers)
+ *
+ * We normalize to JSONL string for downstream CodecService.
+ */
+const WirePayload = Schema.Unknown
+
+const normalizeWirePayloadToLine = (payload: unknown): string =>
+  typeof payload === 'string' ? payload : JSON.stringify(payload)
 
 // ---------------------------------------------------------------------------
 // Implementation
@@ -65,7 +74,7 @@ const makeNatsTransport = Effect.gen(function* () {
       Effect.gen(function* () {
         const subject = resolveLogSubject(taskId)
 
-        const typedStream = yield* pubsub.subscribe(subject, RawLine).pipe(
+        const typedStream = yield* pubsub.subscribe(subject, WirePayload).pipe(
           Effect.mapError(
             (err) =>
               new TransportSubscribeError(
@@ -75,10 +84,10 @@ const makeNatsTransport = Effect.gen(function* () {
           ),
         )
 
-        // Extract raw string data from typed messages
+        // Normalize payloads to JSONL line strings for CodecService.
         return pipe(
           typedStream,
-          Stream.map((msg) => msg.data),
+          Stream.map((msg) => normalizeWirePayloadToLine(msg.data)),
           Stream.mapError(
             (err) =>
               new TransportSubscribeError(
@@ -90,7 +99,7 @@ const makeNatsTransport = Effect.gen(function* () {
       }),
 
     publish: (taskId, line) =>
-      pubsub.publish(resolveLogSubject(taskId), RawLine, line).pipe(
+      pubsub.publish(resolveLogSubject(taskId), WirePayload, line).pipe(
         Effect.mapError(
           (err) =>
             new TransportPublishError(
