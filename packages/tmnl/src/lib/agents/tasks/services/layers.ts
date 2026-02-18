@@ -28,6 +28,7 @@ import {
 import { NatsTransportServiceLive } from './NatsTransportService'
 import { AgentTaskCommandRouterServiceLive } from './AgentTaskCommandRouterService'
 import { AgentTaskMicroHostServiceLive } from './AgentTaskMicroHostService'
+import { NatsPubSubServiceLive } from '../../../holonet/nats/pubsub'
 import {
   AgentTaskLogDurabilityServiceDefault,
 } from './AgentTaskLogDurabilityService'
@@ -94,18 +95,19 @@ export const AgentTaskServiceTestError = AgentTaskServiceBase.pipe(
 
 /**
  * Full stack with NATS transport.
- * Requires NatsPubSubService to be provided upstream.
  *
- * Usage:
- * ```typescript
- * const ProductionLayer = AgentTaskServiceNats.pipe(
- *   Layer.provide(NatsPubSubServiceLive),
- *   Layer.provide(NatsConnectionServiceLive),
- * )
- * ```
+ * Includes NatsPubSubServiceLive internally so the atom surface can resolve
+ * cleanly in browser/testbed contexts without extra layer plumbing.
+ *
+ * For custom NATS config/connection tuning, provide custom holonet layers
+ * above this composition.
  */
 export const AgentTaskServiceNats = AgentTaskServiceBase.pipe(
-  Layer.provide(NatsTransportServiceLive),
+  Layer.provide(
+    NatsTransportServiceLive.pipe(
+      Layer.provide(NatsPubSubServiceLive),
+    ),
+  ),
 )
 
 /**
