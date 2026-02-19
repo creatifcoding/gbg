@@ -154,3 +154,6 @@
 [submodule "submodules/pi-interactive-shell"]
 	path = submodules/pi-interactive-shell
 	url = https://github.com/nicobailon/pi-interactive-shell
+[submodule "submodules/tambo"]
+	path = submodules/tambo
+	url = https://github.com/tambo-ai/tambo
