@@ -19,7 +19,7 @@ import type { CardId } from '../schemas/card-state';
 import { MorphPatch, type JsonPatch } from '../schemas/patch-protocol';
 import { applyJsonPatches } from '../differ/UITreeDiffer';
 import { uiTreeAtomFamily } from '../atoms';
-import type { UITree } from '@/lib/genifer/core/schemas';
+import type { UITree } from '@/lib/genifer';
 
 // =============================================================================
 // Constants

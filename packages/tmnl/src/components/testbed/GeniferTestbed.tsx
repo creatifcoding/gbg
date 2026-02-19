@@ -1,11 +1,11 @@
 /**
- * JSON-Render Testbed
+ * Genifer Testbed
  *
  * EDIN Experiment: Validating Effect-native JSON-driven UI rendering
  * with TMNL component integration and real AI generation.
  *
  * Demonstrates:
- * - Component registry mapping json-render types to TMNL components
+ * - Component registry mapping genifer types to TMNL components
  * - Action execution with confirmation dialogs
  * - Visibility conditions based on data model
  * - Data binding and reactive updates
@@ -20,7 +20,7 @@ import { useAtomValue } from "@effect-atom/atom-react"
 import { Effect, Option } from "effect"
 
 import {
-  JSONRenderProvider,
+  GeniferProvider,
   Renderer,
   useAction,
   useActions,
@@ -34,9 +34,9 @@ import {
   type ComponentRegistry,
   decodeErrorsAtom,
   type DecodeErrorEntry
-} from "@/lib/json-render/react"
-import { DEFAULT_CLUSTER_BASE_URL } from "@/lib/json-render/react/useUIStreamCluster"
-import { UITree, UIElement, Action, EqCondition, PathRef, type VisibilityCondition } from "@/lib/json-render/core"
+} from "@/lib/genifer/react"
+import { DEFAULT_CLUSTER_BASE_URL } from "@/lib/genifer/react"
+import { UITree, UIElement, Action, EqCondition, PathRef, type VisibilityCondition } from "@/lib/genifer/core"
 import { morphCardDomainCatalog } from "@/lib/morph-card/catalog"
 
 // TMNL UI Components
@@ -82,16 +82,16 @@ const AI_SERVER_URL = "/api/ui-generate"
 type TransportMode = "http" | "cluster"
 
 // Cluster server card ID for routing
-const CLUSTER_CARD_ID = "json-render-testbed"
+const CLUSTER_CARD_ID = "genifer-testbed"
 const HELLO_MORPHCARD_PROMPT =
   "Create a MorphCard that says Hello World with a title and a short description. Use initialSizeKey and stateMachineConfig.sizes with compact and expanded sizes."
 
 // =============================================================================
-// Editor Wrapper for json-render Registry
+// Editor Wrapper for genifer Registry
 // =============================================================================
 
 /**
- * Wrapper for AutonomousEditorPanel in json-render registry.
+ * Wrapper for AutonomousEditorPanel in genifer registry.
  *
  * Provides all required context providers:
  * - PanelRegistryProvider: Panel-scoped atom registry for state isolation
@@ -105,7 +105,7 @@ function EditorPanelWrapper({
   element: { props: Record<string, unknown> }
 }) {
   // Generate stable IDs on mount
-  const [panelId] = useState(() => `json-render-editor-${Math.random().toString(36).slice(2, 8)}`)
+  const [panelId] = useState(() => `genifer-editor-${Math.random().toString(36).slice(2, 8)}`)
   const [user] = useState<CollaborationUser>(() => ({
     id: `user-${Math.random().toString(36).slice(2, 8)}`,
     name: (element.props['userName'] as string) ?? "Demo User",
@@ -136,7 +136,7 @@ function EditorPanelWrapper({
 // =============================================================================
 
 /**
- * Maps json-render element types to TMNL components
+ * Maps genifer element types to TMNL components
  *
  * Each renderer receives:
  * - element: The UIElement with type and props
@@ -372,7 +372,7 @@ function DiagnosticsDrawer({
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetContent side={side} className="w-[420px] sm:w-[520px]">
           <SheetHeader>
-            <SheetTitle className="text-base">JSON Render Diagnostics</SheetTitle>
+            <SheetTitle className="text-base">Genifer Diagnostics</SheetTitle>
           </SheetHeader>
           <div className="mt-4 space-y-6 text-sm">
             <div className="space-y-2">
@@ -435,7 +435,7 @@ function DiagnosticsDrawer({
                 variant="secondary"
                 size="sm"
                 onClick={() => {
-                  console.log("[JSONRender Diagnostics] tree", tree)
+                  console.log("[Genifer Diagnostics] tree", tree)
                 }}
               >
                 Log Tree to Console
@@ -484,7 +484,7 @@ function createDemoTree(): UITree {
 
     // Header section - VStack (vertical stack)
     header: el("header", "VStack", { gap: 8 }, ["title", "subtitle", "statusBadge"]),
-    title: el("title", "Heading", { text: "JSON-Render Demo", level: 1 }),
+    title: el("title", "Heading", { text: "Genifer Demo", level: 1 }),
     subtitle: el("subtitle", "Text", { text: "Effect-native JSON-driven UI with TMNL components" }),
     statusBadge: el("statusBadge", "Badge", { text: "Live", variant: "default" }),
 
@@ -908,7 +908,7 @@ function HTTPStreamingDemo({ transportMode, onTransportModeChange }: StreamingDe
               Hello MorphCard
             </Button>
             <span className="text-sm text-muted-foreground">
-              Quick prompt for the JSON render testbed
+              Quick prompt for the Genifer testbed
             </span>
           </div>
 
@@ -1365,13 +1365,13 @@ function StaticDemo() {
 
 type DemoMode = "streaming" | "static"
 
-export function JSONRenderTestbed() {
+export function GeniferTestbed() {
   const [mode, setMode] = useState<DemoMode>("streaming")
 
   return (
     <div className="w-full max-w-[1800px] mx-auto px-6 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">JSON-Render Testbed</h1>
+        <h1 className="text-3xl font-bold">Genifer Testbed</h1>
         <p className="text-muted-foreground mt-2">
           Effect-native JSON-driven UI rendering with TMNL component integration
         </p>
@@ -1399,9 +1399,9 @@ export function JSONRenderTestbed() {
         </Button>
       </div>
 
-      <JSONRenderProvider>
+      <GeniferProvider>
         {mode === "streaming" ? <StreamingDemo /> : <StaticDemo />}
-      </JSONRenderProvider>
+      </GeniferProvider>
 
       {mode === "streaming" && (
         <Alert className="mt-6">
@@ -1423,4 +1423,4 @@ export function JSONRenderTestbed() {
   )
 }
 
-export default JSONRenderTestbed
+export default GeniferTestbed

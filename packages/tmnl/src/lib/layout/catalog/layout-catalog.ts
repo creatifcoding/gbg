@@ -4,7 +4,7 @@
  */
 
 import { Schema } from "effect"
-import { createCatalogSync } from "../../genifer/core/catalog"
+import { createCatalogSync } from "@/lib/genifer/core/catalog"
 import {
   AlignItems,
   FlexDirection,

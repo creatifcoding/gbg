@@ -268,3 +268,24 @@ export {
   type SemanticRegionProps,
   type SemanticRegionType,
 } from "./components"
+
+// =============================================================================
+// CatalogService (Effect Service for domain catalog composition)
+// =============================================================================
+
+export {
+  // Service Tag
+  CatalogComponents,
+  // Layer factory
+  createCatalogLayer,
+  // Accessors (return Effects)
+  getRenderersRecord,
+  getSchemasRecord,
+  getSystemPrompt,
+  getRegister,
+  // Types
+  type DomainCatalog,
+  type ComponentDef,
+  type ComponentRenderProps,
+  type SchemaEntry,
+} from "./CatalogService"

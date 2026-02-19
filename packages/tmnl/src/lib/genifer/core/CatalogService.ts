@@ -298,7 +298,7 @@ entrance?: {
  * @example
  * ```typescript
  * import { createCatalogLayer } from '@/lib/genifer/core/CatalogService'
- * import { layoutDomainCatalog } from '@/lib/layout/catalog/domain-catalog'
+ * import { layoutDomainCatalog } from '@/lib/layout'
  *
  * const CatalogLive = createCatalogLayer(layoutDomainCatalog, uiDomainCatalog)
  * ```
@@ -347,97 +347,5 @@ export const getRegister = Effect.gen(function* () {
   return catalog.register
 })
 
-// =============================================================================
-// Chart-Specific Prompt Generation
-// =============================================================================
-
-import { allCharts } from '@/lib/charts/composable/categories'
-
-/**
- * Generate a scoped prompt containing only specific chart types.
- *
- * Use this for downstream agents that need knowledge of only
- * the charts selected by the discriminator.
- *
- * @param chartTypes - Array of chart type names to include
- */
-export const generateScopedChartPrompt = (chartTypes: string[]): string => {
-  const subset = allCharts.pick(...chartTypes)
-
-  if (subset.isEmpty()) {
-    return '# No Charts Available\n\nNo valid chart types were specified.'
-  }
-
-  return `# Chart Configuration Guide
-
-You are configuring one of these chart types:
-
-${subset.generateMiniSchema()}
-
-## Configuration Rules
-
-1. All required fields MUST be provided
-2. Field names must match the data structure exactly
-3. Series field enables grouping/comparison
-4. Color field enables categorical coloring
-
-## Example Configuration
-
-\`\`\`json
-{
-  "chartType": "Line",
-  "xField": "date",
-  "yField": "value",
-  "seriesField": "category",
-  "smooth": true
-}
-\`\`\`
-`
-}
-
-/**
- * Generate a prompt for a specific chart category.
- *
- * @param category - Chart category name
- */
-export const generateCategoryChartPrompt = (category: string): string => {
-  const subset = allCharts.byCategory(category as any)
-
-  if (subset.isEmpty()) {
-    return `# No Charts Available\n\nNo charts found for category: ${category}`
-  }
-
-  return `# ${formatCategoryName(category)} Charts
-
-${subset.generateMiniSchema()}
-`
-}
-
-/**
- * Generate a combined prompt with components AND chart knowledge.
- *
- * Use this when an agent needs both component and chart knowledge.
- */
-export const generateCombinedPrompt = Effect.gen(function* () {
-  const catalog = yield* CatalogComponents
-  const componentPrompt = catalog.generatePrompt()
-
-  // Add chart knowledge section
-  const chartPrompt = allCharts.generateMiniSchema()
-
-  return `${componentPrompt}
-
-# Chart Types
-
-The following chart types are available for data visualization:
-
-${chartPrompt}
-`
-})
-
-function formatCategoryName(category: string): string {
-  return category
-    .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
+// Chart-specific prompt generation has been moved to @/lib/charts.
+// Use the charts module directly for scoped chart prompts.

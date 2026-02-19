@@ -9,7 +9,7 @@
  */
 
 import { Schema } from 'effect'
-import type { UITree, JsonPatch } from '@/lib/genifer/core/schemas'
+import type { UITree, JsonPatch } from '@/lib/genifer'
 
 // =============================================================================
 // Semantic Region Entry

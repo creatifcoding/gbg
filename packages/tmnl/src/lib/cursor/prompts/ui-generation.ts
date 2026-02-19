@@ -5,8 +5,8 @@
  * the system prompt for JSONL patch streaming.
  */
 
-import { getSystemPrompt as getCatalogPrompt } from "@/lib/genifer/server/registry"
-import { buildCatalogPrompt, type ComponentDoc } from "@/lib/genifer/server/catalogs"
+import { getSystemPrompt as getCatalogPrompt } from "@/lib/genifer/server"
+import { buildCatalogPrompt, type ComponentDoc } from "@/lib/genifer/server"
 
 /**
  * Build the UI generation system prompt.

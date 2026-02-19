@@ -14,6 +14,13 @@ import {
   type SchemaEntry,
 } from "../../react/atoms/catalog"
 
+// Trigger side-effect registration of external domain catalogs
+// In production, these are imported via the app's module graph.
+// In tests, we need explicit imports to trigger registerDomainCatalog().
+import "@/lib/layout/catalog/domain-catalog"
+import "@/lib/charts/registry/factory"
+import "@/lib/morph-card/catalog"
+
 // =============================================================================
 // Memoization Cache
 // =============================================================================

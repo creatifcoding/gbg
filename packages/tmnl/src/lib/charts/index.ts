@@ -26,7 +26,7 @@
  * ### Catalog integration
  * ```ts
  * import { chartDomainCatalog } from '@/lib/charts'
- * import { createCatalogLayer } from '@/lib/genifer/core/CatalogService'
+ * import { createCatalogLayer } from '@/lib/genifer'
  *
  * const CatalogLive = createCatalogLayer(
  *   layoutDomainCatalog,

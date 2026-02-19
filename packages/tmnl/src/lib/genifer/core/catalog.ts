@@ -454,7 +454,7 @@ export const commonProps = {
  * @example
  * ```typescript
  * import { createCatalogSync, withLayoutComponents } from '@/lib/genifer'
- * import { layoutCatalog } from '@/lib/layout'
+ * // Domain catalogs register via registerDomainCatalog()
  *
  * const myCatalog = createCatalogSync(withLayoutComponents({
  *   name: 'My App',

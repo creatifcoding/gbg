@@ -72,6 +72,8 @@ export {
   clusterIsStreamingAtom,
   clusterErrorAtom,
   clusterStreamFiberAtom,
+  // Constants
+  DEFAULT_CLUSTER_BASE_URL,
 } from "./useUIStreamCluster"
 
 // =============================================================================
@@ -118,15 +120,6 @@ export {
 } from "./generative"
 
 // =============================================================================
-// Component Registries
-// =============================================================================
-
-export {
-  layoutRegistry,
-  withLayoutRegistry,
-} from "./registries"
-
-// =============================================================================
 // Animation
 // =============================================================================
 
@@ -162,3 +155,22 @@ export {
   LegendRenderer,
   type LegendRendererProps,
 } from "./legend-renderer"
+
+// =============================================================================
+// Catalog Registration (plugin API for external domain modules)
+// =============================================================================
+
+export {
+  registerDomainCatalog,
+  catalogRuntime,
+  CatalogComponentsLive,
+  renderersAtom,
+  promptAtom,
+  schemasAtom,
+  registerCatalogAtom,
+  catalogRegistry,
+  getCatalogSystemPrompt,
+  getCatalogRenderers,
+  getCatalogSchemas,
+  registerPluginCatalog,
+} from "./atoms/catalog"

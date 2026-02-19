@@ -10,7 +10,7 @@ import { RegistryProvider } from '@effect-atom/atom-react'
 
 import { GeniferBlock } from '../index'
 import { createGeniferBlock, createGeniferBlockWithRegions } from '../../../schemas/genifer-block'
-import type { UITree } from '@/lib/genifer/core/schemas'
+import type { UITree } from '@/lib/genifer'
 
 // =============================================================================
 // Test Utilities

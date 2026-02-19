@@ -8,8 +8,8 @@
  */
 
 import { Schema } from 'effect';
-import type { DomainCatalog, ComponentRenderProps } from '@/lib/genifer/core/CatalogService';
-import type { EntranceAnimation } from '@/lib/genifer/core/animation-schema';
+import type { DomainCatalog, ComponentRenderProps } from '@/lib/genifer';
+import type { EntranceAnimation } from '@/lib/genifer';
 
 import { MorphCard, AnimatedItem, MetricBlock, MetricGrid, type MetricStatus } from '../components';
 import { defaultTransitionStrategy } from '../machines/islandMachine';
@@ -587,3 +587,10 @@ export const morphCardDomainCatalog: DomainCatalog = {
 };
 
 export default morphCardDomainCatalog;
+
+// ==============================================================================
+// Plugin Registration (self-register with genifer catalog system)
+// ==============================================================================
+
+import { registerDomainCatalog } from "@/lib/genifer/react"
+registerDomainCatalog(morphCardDomainCatalog)

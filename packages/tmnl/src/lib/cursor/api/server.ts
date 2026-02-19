@@ -13,7 +13,7 @@
  */
 
 import { Effect, Layer, Schema } from 'effect';
-import { type ComponentDoc } from '@/lib/genifer/server/catalogs';
+import { type ComponentDoc } from '@/lib/genifer/server';
 import { buildUIGenerationPrompt } from '@/lib/cursor/prompts/ui-generation';
 import * as HttpServer from '@effect/platform/HttpServer';
 import * as HttpRouter from '@effect/platform/HttpRouter';
@@ -40,7 +40,7 @@ import { fileTools, setFileToolsContext } from '@/lib/cursor/tools/file-tools';
 import { bashTools, setBashToolContext } from '@/lib/cursor/tools/bash-tool';
 import * as fs from 'node:fs/promises';
 import { Glob } from 'bun';
-// Note: UITree, UIElement, JsonPatch are defined in @/lib/genifer/core/schemas
+// Note: UITree, UIElement, JsonPatch are defined in @/lib/genifer
 // We use inline JSON Schema here for AI SDK compatibility
 
 // -----------------------------------------------------------------------------

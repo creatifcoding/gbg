@@ -18,8 +18,8 @@ import {
 } from 'react'
 import { cn } from '@/lib/utils'
 import { Loader2, Layers, Box } from 'lucide-react'
-import { Renderer, type ComponentRegistry } from '@/lib/genifer/react/renderer'
-import type { UITree, Action } from '@/lib/genifer/core/schemas'
+import { Renderer, type ComponentRegistry } from '@/lib/genifer/react'
+import type { UITree, Action } from '@/lib/genifer'
 import type {
   GeniferBlockV3,
   SemanticRegionEntry,

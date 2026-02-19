@@ -13,8 +13,8 @@
  */
 
 import { Schema } from "effect"
-import type { DomainCatalog, ComponentRenderProps } from "@/lib/genifer/core/CatalogService"
-import type { EntranceAnimation } from "@/lib/genifer/core/animation-schema"
+import type { DomainCatalog, ComponentRenderProps } from "@/lib/genifer"
+import type { EntranceAnimation } from "@/lib/genifer"
 import {
   Grid,
   Stack,
@@ -400,7 +400,7 @@ const defaultAnimations = {
  * @example
  * ```ts
  * import { layoutDomainCatalog } from '@/lib/layout/catalog/domain-catalog'
- * import { createCatalogLayer } from '@/lib/genifer/core/CatalogService'
+ * import { createCatalogLayer } from '@/lib/genifer'
  *
  * const CatalogLive = createCatalogLayer(layoutDomainCatalog)
  * ```
@@ -487,3 +487,10 @@ export const layoutDomainCatalog: DomainCatalog = {
     },
   },
 }
+
+// ==============================================================================
+// Plugin Registration (self-register with genifer catalog system)
+// ==============================================================================
+
+import { registerDomainCatalog } from "@/lib/genifer/react"
+registerDomainCatalog(layoutDomainCatalog)

@@ -41,7 +41,7 @@ import {
 } from '../schemas/transition-grammar';
 import { sendIslandEvent } from '../machines/island-stx';
 import type { TransitionStrategy } from '../machines/islandMachine';
-import { Renderer, DefaultFallback } from '@/lib/genifer/react/renderer';
+import { Renderer, DefaultFallback } from '@/lib/genifer/react';
 import { Schema, Either } from 'effect';
 import { ViewRegistrySchema } from '../schemas/tab-schemas';
 import type { ReticleVariant } from '../schemas/animation-config';

@@ -13,7 +13,7 @@ import { DEFAULT_CARD_STATE, DEFAULT_SIZES } from '../schemas/card-state';
 import type { TransitionGrammar, MorphCardConfig } from '../schemas';
 import { DEFAULT_TRANSITION } from '../schemas/transition-grammar';
 import { DEFAULT_CARD_CONFIG } from '../schemas/animation-config';
-import { UITree } from '@/lib/genifer/core/schemas';
+import { UITree } from '@/lib/genifer';
 export { morphCardRegistry, MorphCardRegistryProvider } from './registry';
 
 // =============================================================================

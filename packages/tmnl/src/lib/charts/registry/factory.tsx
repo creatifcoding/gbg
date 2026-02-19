@@ -14,7 +14,7 @@ import type {
   ComponentDef,
   ComponentRenderProps,
   DomainCatalog,
-} from '@/lib/genifer/core/CatalogService';
+} from '@/lib/genifer';
 
 import { CHART_DEFINITIONS, type ChartDefinition, type ChartCategory } from './definitions';
 import { ChartRenderer } from '../components/ChartRenderer';
@@ -253,7 +253,7 @@ const formatDescription = (def: ChartDefinition): string => {
  * @example
  * ```ts
  * import { createChartDomainCatalog } from '@/lib/charts/registry/factory'
- * import { createCatalogLayer } from '@/lib/genifer/core/CatalogService'
+ * import { createCatalogLayer } from '@/lib/genifer'
  *
  * const CatalogLive = createCatalogLayer(
  *   layoutDomainCatalog,
@@ -338,3 +338,10 @@ export const generateChartSelectionPrompt = (): string => {
 
   return lines.join('\n');
 };
+
+// ==============================================================================
+// Plugin Registration (self-register with genifer catalog system)
+// ==============================================================================
+
+import { registerDomainCatalog } from "@/lib/genifer/react"
+registerDomainCatalog(chartDomainCatalog)

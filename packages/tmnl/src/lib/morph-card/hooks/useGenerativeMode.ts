@@ -20,9 +20,9 @@ import type { GeneratedContent } from '../schemas/generative-state';
 import { DEFAULT_MODE_GENERATION } from '../schemas/generative-state';
 import { getGenerativeAtoms } from '../atoms/generative-atoms';
 import { cardStateFamily } from '../atoms';
-import { useGenerativeDepth } from '@/lib/genifer/react/generative';
-import type { ObservableUITree } from '@/lib/genifer/react/observable-tree';
-import type { UIElement } from '@/lib/genifer/core/schemas';
+import { useGenerativeDepth } from '@/lib/genifer/react';
+import type { ObservableUITree } from '@/lib/genifer/react';
+import type { UIElement } from '@/lib/genifer';
 
 // =============================================================================
 // Constants
