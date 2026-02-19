@@ -102,6 +102,23 @@ export interface MorphChatAdapter {
   /** Transfer system config (when surface participates in drag/drop) */
   readonly transferConfig?: TransferSurfaceConfig
 
+  // ── Model Selection (Optional) ───────────────────────────
+
+  /** Available models atom — when adapter supports model switching */
+  readonly availableModels$?: Atom.Atom<ReadonlyArray<{
+    readonly id: string
+    readonly label: string
+    readonly provider: string
+    readonly description?: string
+    readonly color?: string
+  }>>
+
+  /** Currently selected model ID */
+  readonly selectedModel$?: Atom.Atom<string | null>
+
+  /** Select a model — applies to next message */
+  readonly selectModel?: (modelId: string) => void
+
   /** Dispose adapter — cleanup subscriptions, close connections */
   readonly dispose: () => Effect.Effect<void>
 }

@@ -33,6 +33,7 @@ import { InlineTasksView } from './inline-tasks-view'
 import { FrameChromeView } from './frame-chrome-view'
 import { ConnectionView } from './connection-view'
 import { AgentSelectorView } from './agent-selector-view'
+import { ModelSelectorView } from './model-selector-view'
 import { StatusBannerView } from './status-banner-view'
 import { CommandBandView } from './command-band-view'
 
@@ -198,7 +199,9 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
               className="flex items-center gap-2 px-3 py-1.5 border-b border-neutral-800/50"
             >
               {spec.connectionStatus !== 'hidden' && <ConnectionView />}
-              <div className="flex-1" />
+              <div className="flex-1 flex items-center justify-center min-w-0">
+                <ModelSelectorView />
+              </div>
               {spec.agentSelector !== 'hidden' && <AgentSelectorView />}
             </motion.div>
           )}

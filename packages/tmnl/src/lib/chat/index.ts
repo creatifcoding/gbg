@@ -38,6 +38,7 @@ export { CHAT_TOKENS } from './tokens'
 export { ChatShell } from './shell'
 export type { ChatShellRootProps, ChatShellExpansionLevel, ChatShellBand } from './shell'
 export { ChatHeaderBand, ChatCommandBand, ChatThreadBand, ChatComposerBand, useChatThreadTail } from './shell'
+export { ModelSelector, type ModelOption, type ModelSelectorRootProps } from './shell/header-band'
 export { ChatShellOverlayLayer, ChatShellOrnamentLayer } from './shell'
 export { useChatShellContext } from './shell'
 export {

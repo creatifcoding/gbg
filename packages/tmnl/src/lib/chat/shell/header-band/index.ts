@@ -44,6 +44,7 @@ HeaderBand.SessionCluster = ChatHeaderSessionCluster
 HeaderBand.ConnectionBadge = ChatHeaderConnectionBadge
 
 export { HeaderBand as ChatHeaderBand }
+export { ModelSelector, type ModelOption, type ModelSelectorRootProps } from './model-selector'
 export type {
   ChatHeaderBandProps,
   ChatHeaderLeftSlotProps,
