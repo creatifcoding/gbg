@@ -39,19 +39,15 @@ The key insight: **streaming JSON parsing is incremental computation over a mono
 
 This mapping is not metaphorical — it is structurally exact. The same d2ts engine that processes tsingou's signal pipeline can process genifer's JSON token stream.
 
-### 1.3 What Hashbrown Does (And How We Improve)
+### 1.3 Why d2ts Instead of a Bespoke Parser
 
-Hashbrown implements a custom streaming JSON parser with these properties:
-- Eagerly parses incoming JSON to minimize latency [HASHBROWN]
-- Uses `s.literal` discriminators for immediate component identification
-- Generates simplified schemas for `anyOf` elements
-- Supports `s.streaming.string()`, `s.streaming.array()`, `s.streaming.object()`
+The conventional approach to streaming JSON is a handwritten incremental parser — stateful, single-purpose, and difficult to compose with other stream operators. By using d2ts, we get:
 
-**Our improvement**: Instead of a bespoke parser, we use d2ts — a mathematically grounded incremental computation engine with formal convergence guarantees. This gives us:
 1. **Proven correctness** via lattice fixed-point theory
-2. **Composability** via d2ts operator algebra
-3. **Reuse** of the same engine used by tsingou's signal pipeline
+2. **Composability** via d2ts operator algebra (same operators compose with tsingou's signal pipeline)
+3. **Reuse** of shared infrastructure across the platform
 4. **Backpressure** via Effect.Stream integration
+5. **Formal convergence guarantees** (§4) — not just "it works in practice"
 
 ---
 
@@ -352,7 +348,7 @@ const processLLMStream = (llmStream: Stream.Stream<string>) =>
 
 ### 7.1 Design
 
-Inspired by hashbrown's `s.streaming.*` types, but implemented as Effect.Schema annotations:
+Streaming-aware annotations layered on top of Effect.Schema:
 
 ```typescript
 import { Schema } from 'effect'
@@ -424,7 +420,6 @@ See [BIBLIOGRAPHY.md](./BIBLIOGRAPHY.md) for full citations. Key references for 
 - [KLEENE-FPT] — Fixed-point convergence theorem
 - [ALUR-VPL2004] — JSON as visibly pushdown language
 - [COMON-TATA2007] — Tree automata and grammars
-- [HASHBROWN] — Competitor streaming parser (comparison point)
 - [TSG-DIFF-DATAFLOW] — Tsingou's differential dataflow research (extrapolation source)
 - [TSG-ADR001] — Tsingou's d2ts architecture decision (structural template)
 - [TSG-FUSION-ONTOLOGY] — Tsingou's fusion ontology (catalog analogy)

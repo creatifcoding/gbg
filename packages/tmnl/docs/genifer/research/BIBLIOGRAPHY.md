@@ -73,9 +73,8 @@ Status:        LIVING DOCUMENT
 | [TSG-ADR001] | `docs/tsingou/adr/ADR-001-d2ts-as-signal-pipeline.md` | d2ts as core computation engine. Version semantics, MultiSet model, output path. **Direct template for genifer d2ts integration.** |
 | [TSG-FUSION-ONTOLOGY] | `docs/tsingou/concepts/fusion-ontology.md` | Entity-class/signal-kind mapping. Structural analogy to component-type/prop-schema mapping. |
 
-## Competitor Systems (Analysis Sources)
+## Prior Art (Generative UI Systems)
 
 | Key | Citation | URL | Notes |
 |-----|----------|-----|-------|
-| [TAMBO] | tambo-ai/tambo. "Tambo: Generative UI for React." | https://github.com/tambo-ai/tambo | Submodule at `../../submodules/tambo`. Bidirectional state, tool calling, Standard Schema, conversation threads. |
-| [HASHBROWN] | liveloveapp/hashbrown. "Hashbrown: Generative UI Framework." | https://github.com/liveloveapp/hashbrown | Streaming JSON parser, Skillet schema language, prompt composition with `<ui>` blocks, component tree lowering. |
+| [VERCEL-AI-SDK] | Vercel. "AI SDK: Generative UI." | https://sdk.vercel.ai/docs/ai-sdk-rsc | Server-rendered generative UI via RSC. Streaming React components. |
