@@ -14,7 +14,8 @@ import * as HttpServerResponse from '@effect/platform/HttpServerResponse'
 import * as HttpMiddleware from '@effect/platform/HttpMiddleware'
 import { BunContext, BunHttpServer } from '@effect/platform-bun'
 
-import { HarnessRuntime, HarnessRuntimeLive } from '../HarnessRuntime'
+import { HarnessRuntime } from '../HarnessRuntime'
+import { HarnessRuntimeLive } from '../HarnessRuntimeLive'
 import {
   HarnessWsRequestEnvelope,
   type HarnessWsResponseEnvelope,

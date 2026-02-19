@@ -1,6 +1,5 @@
-import { Context, Effect, Layer, Option, Schema, Stream } from 'effect'
+import { Context, Effect, Option, Schema, Stream } from 'effect'
 
-import { PiAiHarnessEngine, PiAiHarnessEngineLive, type AvailableModelInfo, type ModelOverride } from './PiAiHarnessEngine'
 import {
   type HarnessClientMessageId,
   type HarnessEvent,
@@ -12,6 +11,22 @@ import {
   type HarnessThinkingLevel,
   type HarnessSessionId,
 } from './schemas'
+
+// Re-export these types so consumers that only need the shape
+// don't have to import PiAiHarnessEngine (server-only).
+export interface AvailableModelInfo {
+  readonly id: string
+  readonly name: string
+  readonly provider: string
+  readonly reasoning: boolean
+  readonly contextWindow: number
+  readonly maxTokens: number
+}
+
+export interface ModelOverride {
+  readonly provider: string
+  readonly modelId: string
+}
 
 export class HarnessRuntimeError extends Schema.TaggedError<HarnessRuntimeError>()(
   'HarnessRuntimeError',
@@ -53,84 +68,3 @@ export interface HarnessRuntimeShape {
 }
 
 export const HarnessRuntime = Context.GenericTag<HarnessRuntimeShape>('tmnl/harness/HarnessRuntime')
-
-const toRuntimeError = (code: string, message: string) => (cause: unknown) =>
-  new HarnessRuntimeError({
-    code,
-    message,
-    cause: Option.some(cause),
-  })
-
-export const HarnessRuntimeLive = Layer.effect(
-  HarnessRuntime,
-  Effect.gen(function* () {
-    const engine = yield* PiAiHarnessEngine
-
-    return HarnessRuntime.of({
-      backend: 'pi-ai',
-
-      openSession: (nodeId, role) =>
-        engine.openSession(nodeId, role).pipe(
-          Effect.map(
-            (view) =>
-              new HarnessSessionView({
-                ...view,
-                backend: 'pi-ai',
-              }),
-          ),
-          Effect.mapError(toRuntimeError('open-session-failed', 'Failed to open harness session')),
-          Effect.withSpan('tmnl.harness.runtime.open-session'),
-        ),
-
-      resumeSession: (sessionId, fromSeq) =>
-        engine.getSnapshot(sessionId, fromSeq).pipe(
-          Effect.map((snapshot) => new HarnessSnapshot(snapshot)),
-          Effect.mapError(toRuntimeError('resume-session-failed', 'Failed to resume harness session')),
-          Effect.withSpan('tmnl.harness.runtime.resume-session'),
-        ),
-
-      send: (sessionId, clientMessageId, text, thinkingLevel, modelOverride?) =>
-        engine.send(sessionId, clientMessageId, text, thinkingLevel, modelOverride).pipe(
-          Effect.map(
-            (ack) =>
-              new HarnessSendAck({
-                accepted: ack.accepted,
-                sessionId: ack.sessionId,
-                backend: 'pi-ai',
-              }),
-          ),
-          Effect.mapError(toRuntimeError('send-failed', 'Failed to send harness prompt')),
-          Effect.withSpan('tmnl.harness.runtime.send'),
-        ),
-
-      getSnapshot: (sessionId, fromSeq) =>
-        engine.getSnapshot(sessionId, fromSeq).pipe(
-          Effect.map((snapshot) => new HarnessSnapshot(snapshot)),
-          Effect.mapError(toRuntimeError('snapshot-failed', 'Failed to get harness snapshot')),
-          Effect.withSpan('tmnl.harness.runtime.get-snapshot'),
-        ),
-
-      abortSession: (sessionId) =>
-        engine.abortSession(sessionId).pipe(
-          Effect.mapError(toRuntimeError('abort-failed', 'Failed to abort harness session')),
-          Effect.withSpan('tmnl.harness.runtime.abort-session'),
-        ),
-
-      respondExtensionUI: (sessionId, response) =>
-        engine.respondExtensionUI(sessionId, response).pipe(
-          Effect.mapError(toRuntimeError('extension-ui-failed', 'Failed to route harness extension UI response')),
-          Effect.withSpan('tmnl.harness.runtime.respond-extension-ui'),
-        ),
-
-      getAvailableModels: () =>
-        engine.getAvailableModels().pipe(
-          Effect.mapError(toRuntimeError('models-failed', 'Failed to get available models')),
-          Effect.withSpan('tmnl.harness.runtime.get-available-models'),
-        ),
-
-      events: engine.events.pipe(
-        Stream.mapError(toRuntimeError('events-failed', 'Harness event stream failed')),
-      ),
-    })
-  }),
-).pipe(Layer.provide(PiAiHarnessEngineLive))
