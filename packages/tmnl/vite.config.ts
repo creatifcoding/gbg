@@ -80,10 +80,24 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      // Polyfill crypto for AI SDK browser compatibility
-      // The AI SDK uses crypto.randomUUID which is available natively in browsers
-      // but Vite externalizes the Node crypto module
+      // Node.js builtins shimmed for browser/Tauri builds.
+      // Transitive deps (nats.ws, escalade, yargs, pg, @osdk/maker) import
+      // these — shims provide browser-compatible stubs or Web API proxies.
+      // See: docs/RCA_ROUTE_OPTIMIZATION.md (Phase B)
+      // Shims for Node builtins that appear in the EAGER main chunk.
+      // These must resolve to real modules (not externals) or WebKitGTK
+      // will fail with unresolvable bare import at runtime.
       crypto: path.resolve(__dirname, './src/lib/polyfills/crypto-shim.ts'),
+      path: path.resolve(__dirname, './src/lib/polyfills/node-builtins-shim.ts'),
+      fs: path.resolve(__dirname, './src/lib/polyfills/fs-shim.ts'),
+      util: path.resolve(__dirname, './src/lib/polyfills/util-shim.ts'),
+      stream: path.resolve(__dirname, './src/lib/polyfills/stream-shim.ts'),
+      net: path.resolve(__dirname, './src/lib/polyfills/net-shim.ts'),
+      tls: path.resolve(__dirname, './src/lib/polyfills/net-shim.ts'),
+      dns: path.resolve(__dirname, './src/lib/polyfills/net-shim.ts'),
+      child_process: path.resolve(__dirname, './src/lib/polyfills/fs-shim.ts'),
+      os: path.resolve(__dirname, './src/lib/polyfills/util-shim.ts'),
+      url: path.resolve(__dirname, './src/lib/polyfills/url-shim.ts'),
     },
     dedupe: ['yjs', '@tiptap/pm'], // Ensure single instances for collaboration
   },
@@ -91,6 +105,36 @@ export default defineConfig(() => ({
     include: ['mermaid', 'yjs'],
     // Exclude wa-sqlite from optimization - it needs to load WASM at runtime
     exclude: ['@effect/wa-sqlite'],
+    esbuildOptions: {
+      // Mirror resolve.alias into esbuild's dep optimization pass.
+      // Vite's resolve.alias doesn't always propagate to esbuild,
+      // causing "No matching export" errors when transitive deps
+      // (y18n, escalade, etc.) import Node builtins like 'fs'.
+      plugins: [
+        {
+          name: 'node-builtins-shim',
+          setup(build) {
+            const shimMap: Record<string, string> = {
+              fs: path.resolve(__dirname, './src/lib/polyfills/fs-shim.ts'),
+              path: path.resolve(__dirname, './src/lib/polyfills/node-builtins-shim.ts'),
+              crypto: path.resolve(__dirname, './src/lib/polyfills/crypto-shim.ts'),
+              util: path.resolve(__dirname, './src/lib/polyfills/util-shim.ts'),
+              stream: path.resolve(__dirname, './src/lib/polyfills/stream-shim.ts'),
+              net: path.resolve(__dirname, './src/lib/polyfills/net-shim.ts'),
+              tls: path.resolve(__dirname, './src/lib/polyfills/net-shim.ts'),
+              dns: path.resolve(__dirname, './src/lib/polyfills/net-shim.ts'),
+              child_process: path.resolve(__dirname, './src/lib/polyfills/fs-shim.ts'),
+              os: path.resolve(__dirname, './src/lib/polyfills/util-shim.ts'),
+              url: path.resolve(__dirname, './src/lib/polyfills/url-shim.ts'),
+            }
+            build.onResolve(
+              { filter: /^(fs|path|crypto|util|stream|net|tls|dns|child_process|os|url)$/ },
+              (args) => ({ path: shimMap[args.path] }),
+            )
+          },
+        },
+      ],
+    },
   },
   // Ensure WASM files are served with correct MIME type
   assetsInclude: ['**/*.wasm'],
@@ -104,6 +148,10 @@ export default defineConfig(() => ({
     VitePWA({ // Add VitePWA plugin
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      workbox: {
+        // Tauri embeds assets in binary — large chunks are expected and fine.
+        maximumFileSizeToCacheInBytes: 30 * 1024 * 1024, // 30MB
+      },
       manifest: {
         name: 'TMNL App',
         short_name: 'TMNL',
@@ -196,6 +244,13 @@ export default defineConfig(() => ({
     reportCompressedSize: true,
     commonjsOptions: {
       transformMixedEsModules: true,
+    },
+    rollupOptions: {
+      // Node.js builtins shimmed as empty modules for browser bundle.
+      // These leak in via transitive deps (escalade, yargs, pg, nats.ws, etc.).
+      // Using resolve.alias (not external!) — external leaves bare imports that
+      // WebKitGTK can't resolve. Shims return empty objects/no-ops.
+      // See: docs/RCA_ROUTE_OPTIMIZATION.md (Phase B — Production Build)
     },
   },
   test: {

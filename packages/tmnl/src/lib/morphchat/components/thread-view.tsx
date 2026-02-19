@@ -32,6 +32,7 @@ import {
   ChatMessageSeverityRails,
   ChatThinkingBlock,
   ChatToolBlock,
+  ChatFileAttachment,
 } from '@/lib/chat/msg'
 import type { ChatMessageRole } from '@/lib/chat/msg'
 
@@ -103,14 +104,17 @@ function PartRenderer({
         </ChatMessageBodyContent>
       )
     case 'thinking':
+      // Convenience wrapper — Root + Trigger + Content in one call
       return (
         <ChatThinkingBlock
           content={part.content}
           isStreaming={part.isStreaming}
           durationMs={part.durationMs}
+          defaultOpen={part.isStreaming}
         />
       )
     case 'tool-invocation':
+      // Convenience wrapper — Root + Header + Content(Input+Output+Approval) in one call
       return (
         <ChatToolBlock
           toolCallId={part.toolCallId}
@@ -122,20 +126,13 @@ function PartRenderer({
         />
       )
     case 'file':
-      // Phase C will add a proper FileAttachment component
       return (
-        <div className="flex items-center gap-2 px-2 py-1 rounded border border-neutral-800 my-1">
-          <span className="text-neutral-500" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>📎</span>
-          <a
-            href={part.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-cyan-400 font-mono truncate hover:underline"
-            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-          >
-            {part.filename ?? part.mediaType}
-          </a>
-        </div>
+        <ChatFileAttachment
+          url={part.url}
+          mediaType={part.mediaType}
+          filename={part.filename}
+          size={part.size}
+        />
       )
     default:
       return null

@@ -53,16 +53,66 @@ export { ChatMessageBodyContent } from './body-content'
 export type { ChatMessageBodyContentRootProps, ChatMessageStreamCursorProps } from './body-content'
 
 // ---------------------------------------------------------------------------
-// Thinking Block (Phase A — minimal; Phase B will add compound sub-components)
+// Thinking Block (compound: Root, Trigger, Content)
 // ---------------------------------------------------------------------------
-export { ChatThinkingBlock } from './thinking-block'
-export type { ChatThinkingBlockProps } from './thinking-block'
+export { ChatThinkingBlock, useChatThinkingBlock } from './thinking-block'
+export type {
+  ChatThinkingBlockProps,
+  ChatThinkingBlockRootProps,
+  ChatThinkingBlockTriggerProps,
+  ChatThinkingBlockContentProps,
+} from './thinking-block'
 
 // ---------------------------------------------------------------------------
-// Tool Block (Phase A — minimal; Phase B will add compound sub-components)
+// Tool Block (compound: Root, Header, Content, Input, Output, Approval)
 // ---------------------------------------------------------------------------
-export { ChatToolBlock } from './tool-block'
-export type { ChatToolBlockProps } from './tool-block'
+export { ChatToolBlock, useChatToolBlock } from './tool-block'
+export type {
+  ChatToolBlockProps,
+  ChatToolBlockRootProps,
+  ChatToolBlockHeaderProps,
+  ChatToolBlockContentProps,
+  ChatToolBlockInputProps,
+  ChatToolBlockOutputProps,
+  ChatToolBlockApprovalProps,
+} from './tool-block'
+
+// ---------------------------------------------------------------------------
+// Code Block (compound: Root, Header, CopyButton)
+// ---------------------------------------------------------------------------
+export { ChatCodeBlock, useChatCodeBlock } from './code-block'
+export type {
+  ChatCodeBlockProps,
+  ChatCodeBlockRootProps,
+  ChatCodeBlockHeaderProps,
+  ChatCodeBlockCopyButtonProps,
+} from './code-block'
+
+// ---------------------------------------------------------------------------
+// Token Usage (compound: Root, Ring, Detail, Cost)
+// ---------------------------------------------------------------------------
+export { ChatTokenUsage, useChatTokenUsage } from './token-usage'
+export type {
+  ChatTokenUsageProps,
+  ChatTokenUsageRootProps,
+  ChatTokenUsageRingProps,
+  ChatTokenUsageDetailProps,
+  ChatTokenUsageCostProps,
+  TokenUsageData,
+} from './token-usage'
+
+// ---------------------------------------------------------------------------
+// File Attachment (compound: Root, Icon, Name, Size, Preview)
+// ---------------------------------------------------------------------------
+export { ChatFileAttachment, useChatFileAttachment } from './file-attachment'
+export type {
+  ChatFileAttachmentProps,
+  ChatFileAttachmentRootProps,
+  ChatFileAttachmentIconProps,
+  ChatFileAttachmentNameProps,
+  ChatFileAttachmentSizeProps,
+  ChatFileAttachmentPreviewProps,
+} from './file-attachment'
 
 // ---------------------------------------------------------------------------
 // Footer Actions
