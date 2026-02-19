@@ -173,7 +173,7 @@ export const UIGeneratePayload = Schema.Struct({
 export type UIGeneratePayload = typeof UIGeneratePayload.Type
 
 // Import JsonPatch from canonical source
-import { JsonPatch, PatchOp } from '../../json-render/core/schemas'
+import { JsonPatch, PatchOp } from '../../genifer/core/schemas'
 export { JsonPatch, PatchOp }
 export type { JsonPatch as JsonPatchType, PatchOp as PatchOpType }
 

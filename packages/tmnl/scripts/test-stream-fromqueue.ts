@@ -11,7 +11,7 @@
  */
 
 import { Effect, Stream, pipe } from "effect"
-import { streamFromFetchProgressive } from "../src/lib/json-render/core/streaming"
+import { streamFromFetchProgressive } from "../src/lib/genifer/core/streaming"
 
 const main = Effect.gen(function* () {
   yield* Effect.log("=== Stream.fromQueue Progressive Test ===")

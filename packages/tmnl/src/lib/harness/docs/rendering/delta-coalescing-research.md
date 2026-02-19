@@ -28,16 +28,16 @@ Without coalescing, token-rate updates can force:
 
 That pattern burns frame budget and triggers avoidable reconciliation/layout churn.
 
-`json-render` already uses lower-level emittance patterns that prove this point in practice:
+`genifer` already uses lower-level emittance patterns that prove this point in practice:
 
 - queue-driven progressive streaming (`Stream.fromQueue`)
 - debounced/throttled emission in processing (`Stream.debounce`, batch processing)
 - worker/off-thread processing options for heavy stages
 
 Relevant source:
-- `src/lib/json-render/core/streaming.ts`
-- `src/lib/json-render/react/hooks.ts`
-- `src/lib/json-render/react/observable-tree.ts`
+- `src/lib/genifer/core/streaming.ts`
+- `src/lib/genifer/react/hooks.ts`
+- `src/lib/genifer/react/observable-tree.ts`
 
 ---
 
@@ -212,7 +212,7 @@ Adopt a **bucketed hybrid coalescer**:
 4. Frame-aligned flush with max one commit/frame per bucket group
 5. Backpressure mode when backlog exceeds threshold
 
-This captures the useful parts of json-render’s emittance semantics while fitting harness chat marker workloads.
+This captures the useful parts of genifer’s emittance semantics while fitting harness chat marker workloads.
 
 ---
 

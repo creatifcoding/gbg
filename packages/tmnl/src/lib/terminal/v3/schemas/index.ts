@@ -18,7 +18,7 @@ export {
   InteractiveBlockV3,
   SystemBlockV3,
   ErrorBlockV3,
-  JsonRenderBlockV3,
+  GeniferBlockV3,
   BlockV3,
   // Type guards
   isAIResponseBlock,
@@ -26,7 +26,7 @@ export {
   isInteractiveBlock,
   isSystemBlock,
   isErrorBlock,
-  isJsonRenderBlock,
+  isGeniferBlock,
   isBlockActive,
   // Factories
   createAIResponseBlock,
@@ -48,19 +48,19 @@ export type {
 } from './blocks'
 
 // =============================================================================
-// JsonRenderBlock
+// GeniferBlock
 // =============================================================================
 
 export {
   SemanticRegionEntry,
-  createJsonRenderBlock,
-  createJsonRenderBlockWithRegions,
-} from './json-render-block'
+  createGeniferBlock,
+  createGeniferBlockWithRegions,
+} from './genifer-block'
 
 export type {
-  JsonRenderBlockV3 as JsonRenderBlockV3ExportType,
+  GeniferBlockV3 as GeniferBlockV3ExportType,
   SemanticRegionEntry as SemanticRegionEntryExportType,
-} from './json-render-block'
+} from './genifer-block'
 
 // =============================================================================
 // Map Output Schemas

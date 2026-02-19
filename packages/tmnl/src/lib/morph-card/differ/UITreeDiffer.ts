@@ -8,7 +8,7 @@
  */
 
 import { Differ, HashMap } from 'effect';
-import type { UITree, UIElement } from '@/lib/json-render/core/schemas';
+import type { UITree, UIElement } from '@/lib/genifer/core/schemas';
 import type { JsonPatch } from '../schemas/patch-protocol';
 
 // =============================================================================

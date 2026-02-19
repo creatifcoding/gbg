@@ -48,7 +48,7 @@ MorphCard (UI)
 - DynamicIslandCard tabs: `src/lib/morph-card/components/DynamicIslandCard.tsx`
 - Tab atoms + persistence: `src/lib/morph-card/atoms/tab-atoms.ts`
 - Effect services (server + streams): `src/lib/morph-card/hooks/useCardServer.ts`, `src/lib/morph-card/hooks/useDurableStreamPatches.ts`
-- Legend-State renderer: `src/lib/json-render/react/legend-renderer.tsx`
+- Legend-State renderer: `src/lib/genifer/react/legend-renderer.tsx`
 - XState patterns: `src/lib/drag/machines/drag-machine.ts`, `src/lib/geoint/machines/*`
 
 ## State Machine (XState)
@@ -352,6 +352,6 @@ send({ type: "TRANSITION", sizeKey, grammar, complexity: isComplex })
 - XState + Legend-State + effect-atom composition: `src/lib/stx/ARCHITECTURE.md`
 - XState implementation patterns: `src/lib/drag/machines/drag-machine.ts`, `src/lib/geoint/machines/*`
 - Cursor DynamicIsland behavior baseline: `src/lib/cursor/components/DynamicIsland.tsx`
-- Legend-State renderer usage: `src/lib/json-render/react/legend-renderer.tsx`
-- effect-atom patterns: `src/lib/json-render/react/atoms.ts`, `src/lib/cursor/atoms/index.tsx`
+- Legend-State renderer usage: `src/lib/genifer/react/legend-renderer.tsx`
+- effect-atom patterns: `src/lib/genifer/react/atoms.ts`, `src/lib/cursor/atoms/index.tsx`
 - AtomRpc usage patterns: `src/lib/geoint/clients/*.ts`, `src/lib/geoint/server/IngestionRpcServer.ts`

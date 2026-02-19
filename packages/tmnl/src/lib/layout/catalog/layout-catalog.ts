@@ -1,10 +1,10 @@
 /**
  * @module layout/catalog/layout-catalog
- * @description json-render catalog integration for layout components
+ * @description genifer catalog integration for layout components
  */
 
 import { Schema } from "effect"
-import { createCatalogSync } from "../../json-render/core/catalog"
+import { createCatalogSync } from "../../genifer/core/catalog"
 import {
   AlignItems,
   FlexDirection,
@@ -179,7 +179,7 @@ const AspectRatioPropsSchema = Schema.Struct({
 // =============================================================================
 
 /**
- * Layout component catalog for json-render
+ * Layout component catalog for genifer
  */
 export const layoutCatalog = createCatalogSync({
   name: "TMNL Layout",

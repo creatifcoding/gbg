@@ -1,15 +1,15 @@
 /**
  * MorphCard Domain Catalog
  *
- * JSON-render catalog for polymorphic card components.
+ * Genifer catalog for polymorphic card components.
  * Enables AI-driven card generation with morphing container pattern.
  *
  * @module morph-card/catalog
  */
 
 import { Schema } from 'effect';
-import type { DomainCatalog, ComponentRenderProps } from '@/lib/json-render/core/CatalogService';
-import type { EntranceAnimation } from '@/lib/json-render/core/animation-schema';
+import type { DomainCatalog, ComponentRenderProps } from '@/lib/genifer/core/CatalogService';
+import type { EntranceAnimation } from '@/lib/genifer/core/animation-schema';
 
 import { MorphCard, AnimatedItem, MetricBlock, MetricGrid, type MetricStatus } from '../components';
 import { defaultTransitionStrategy } from '../machines/islandMachine';

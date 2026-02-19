@@ -481,8 +481,8 @@ export const TESTBED_REGISTRY: readonly TestbedEntry[] = [
     ],
   },
   {
-    id: 'json-render',
-    name: 'JSON Render',
+    id: 'genifer',
+    name: 'Genifer',
     description:
       'Generative UI rendering from JSON schemas. Streaming component generation.',
     category: 'ui',
@@ -499,7 +499,7 @@ export const TESTBED_REGISTRY: readonly TestbedEntry[] = [
     versions: [
       {
         version: 'v1',
-        route: '/testbed/json-render',
+        route: '/testbed/genifer',
         status: 'experimental',
         label: 'NEW',
       },

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Spike: Server-Side Layout Module Compatibility for json-render Generate Endpoint
+ * Spike: Server-Side Layout Module Compatibility for genifer Generate Endpoint
  *
  * Author: Val
  * Date: 2026-01-16
@@ -327,7 +327,7 @@ async function main() {
 ╔════════════════════════════════════════════════════════════╗
 ║  SERVER-SIDE LAYOUT COMPATIBILITY VERIFIED                 ║
 ╠════════════════════════════════════════════════════════════╣
-║  Safe for: json-render generate endpoint, SSR, backends    ║
+║  Safe for: genifer generate endpoint, SSR, backends    ║
 ╚════════════════════════════════════════════════════════════╝
 `)
   }

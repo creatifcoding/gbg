@@ -4,7 +4,7 @@
  */
 
 import { Effect, Stream, pipe, Fiber } from "effect"
-import { streamFromFetchProgressive, processPatches } from "@/lib/json-render/core"
+import { streamFromFetchProgressive, processPatches } from "@/lib/genifer/core"
 
 const SERVER_URL = "http://localhost:7682/ui-generate"
 

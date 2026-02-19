@@ -7,8 +7,8 @@
 
 import { Effect, Stream, pipe } from "effect"
 import { Atom, Registry } from "@effect-atom/atom-react"
-import { UITree } from "@/lib/json-render/core"
-import { processPatches, streamFromFetchProgressive } from "@/lib/json-render/core/streaming"
+import { UITree } from "@/lib/genifer/core"
+import { processPatches, streamFromFetchProgressive } from "@/lib/genifer/core/streaming"
 
 const SERVER_URL = "http://localhost:7682/ui-generate"
 
@@ -18,7 +18,7 @@ const main = Effect.gen(function* () {
   // Create a registry like React's RegistryProvider does
   const registry = Registry.make()
 
-  // Create atoms like json-render does
+  // Create atoms like genifer does
   const treeAtom = Atom.make<UITree>(UITree.empty()).pipe(Atom.keepAlive)
   const isStreamingAtom = Atom.make(false).pipe(Atom.keepAlive)
 

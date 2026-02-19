@@ -2,7 +2,7 @@
  * Chart Registry Factory
  *
  * Factory functions to create ComponentDef entries from ChartDefinition.
- * Enables integration with the json-render CatalogService.
+ * Enables integration with the genifer CatalogService.
  *
  * Charts are wrapped in FoldablePanel for interactive usage.
  *
@@ -14,7 +14,7 @@ import type {
   ComponentDef,
   ComponentRenderProps,
   DomainCatalog,
-} from '@/lib/json-render/core/CatalogService';
+} from '@/lib/genifer/core/CatalogService';
 
 import { CHART_DEFINITIONS, type ChartDefinition, type ChartCategory } from './definitions';
 import { ChartRenderer } from '../components/ChartRenderer';
@@ -170,7 +170,7 @@ const createChartRenderer = (chartType: string, chartCategory: ChartCategory) =>
 /**
  * Create a ComponentDef from a ChartDefinition
  *
- * Maps the chart definition to the json-render catalog format,
+ * Maps the chart definition to the genifer catalog format,
  * creating a renderer that delegates to ChartRenderer.
  */
 export const createChartComponentDef = (
@@ -248,12 +248,12 @@ const formatDescription = (def: ChartDefinition): string => {
 // =============================================================================
 
 /**
- * Create the chart domain catalog for json-render integration
+ * Create the chart domain catalog for genifer integration
  *
  * @example
  * ```ts
  * import { createChartDomainCatalog } from '@/lib/charts/registry/factory'
- * import { createCatalogLayer } from '@/lib/json-render/core/CatalogService'
+ * import { createCatalogLayer } from '@/lib/genifer/core/CatalogService'
  *
  * const CatalogLive = createCatalogLayer(
  *   layoutDomainCatalog,

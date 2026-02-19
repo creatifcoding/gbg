@@ -119,7 +119,7 @@ const TESTBED_COMPONENTS: Record<string, React.LazyExoticComponent<React.Compone
   'terminal': lazy(() => import('@/components/testbed/TerminalTestbed').then(m => ({ default: m.TerminalTestbed }))),
   'geoint': lazy(() => import('@/components/testbed/GeointDashboardTestbed').then(m => ({ default: m.GeointDashboardTestbed }))),
   'collaboration': lazy(() => import('@/components/testbed/CollaborationTestbed').then(m => ({ default: m.CollaborationTestbed }))),
-  'json-render': lazy(() => import('@/components/testbed/JSONRenderTestbed').then(m => ({ default: m.JSONRenderTestbed }))),
+  'genifer': lazy(() => import('@/components/testbed/GeniferTestbed').then(m => ({ default: m.GeniferTestbed }))),
   // Infrastructure
   'dataplane': lazy(() => import('@/components/testbed/DataplaneTestbed').then(m => ({ default: m.DataplaneTestbed }))),
   'durable-streams': lazy(() => import('@/components/testbed/DurableStreamsTestbed').then(m => ({ default: m.DurableStreamsTestbed }))),

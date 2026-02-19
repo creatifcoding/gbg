@@ -5,7 +5,7 @@
  *
  * Combines:
  * - Effect Schemas for prop validation (from layout-catalog.ts)
- * - React Adapters for rendering (from json-render/react/registries/layout.tsx)
+ * - React Adapters for rendering (from genifer/react/registries/layout.tsx)
  *
  * This is the single source of truth for layout components.
  *
@@ -13,8 +13,8 @@
  */
 
 import { Schema } from "effect"
-import type { DomainCatalog, ComponentRenderProps } from "@/lib/json-render/core/CatalogService"
-import type { EntranceAnimation } from "@/lib/json-render/core/animation-schema"
+import type { DomainCatalog, ComponentRenderProps } from "@/lib/genifer/core/CatalogService"
+import type { EntranceAnimation } from "@/lib/genifer/core/animation-schema"
 import {
   Grid,
   Stack,
@@ -400,7 +400,7 @@ const defaultAnimations = {
  * @example
  * ```ts
  * import { layoutDomainCatalog } from '@/lib/layout/catalog/domain-catalog'
- * import { createCatalogLayer } from '@/lib/json-render/core/CatalogService'
+ * import { createCatalogLayer } from '@/lib/genifer/core/CatalogService'
  *
  * const CatalogLive = createCatalogLayer(layoutDomainCatalog)
  * ```

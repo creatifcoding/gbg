@@ -120,13 +120,13 @@ This bibliography supports the harness custom-rendering research and rigorous mo
 
 ## G) Internal codebase evidence (TMNL)
 
-### [B21] `src/lib/json-render/core/streaming.ts`
+### [B21] `src/lib/genifer/core/streaming.ts`
 - Why it matters: queue-driven progressive streaming + debounce/grouping patterns already proven in-project.
 
-### [B22] `src/lib/json-render/react/hooks.ts`
+### [B22] `src/lib/genifer/react/hooks.ts`
 - Why it matters: end-to-end stream integration and cancellation/yield behavior in reactive consumer path.
 
-### [B23] `src/lib/json-render/react/observable-tree.ts`
+### [B23] `src/lib/genifer/react/observable-tree.ts`
 - Why it matters: batch mutation/coalesced update semantics and fine-grained state propagation.
 
 ### [B24] `src/lib/harness/docs/benchmarks/provider-marker-match-benchmark-report.md`

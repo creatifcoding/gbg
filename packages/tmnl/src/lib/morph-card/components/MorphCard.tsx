@@ -55,11 +55,11 @@ import { MetricBlock, MetricGrid } from './MetricBlock';
 import { GenerativeLoading, DecodeErrorBoundary } from './LoadingStates';
 import { ReticleOverlay } from './ReticleOverlay';
 import { useGenerativeMode } from '../hooks/useGenerativeMode';
-import { GenerativeDepthProvider } from '@/lib/json-render/react/generative';
-import { Renderer, DefaultFallback } from '@/lib/json-render/react/renderer';
-import { LegendRenderer } from '@/lib/json-render/react/legend-renderer';
-import { UITree } from '@/lib/json-render/core/schemas';
-import type { DomainCatalog } from '@/lib/json-render/core/CatalogService';
+import { GenerativeDepthProvider } from '@/lib/genifer/react/generative';
+import { Renderer, DefaultFallback } from '@/lib/genifer/react/renderer';
+import { LegendRenderer } from '@/lib/genifer/react/legend-renderer';
+import { UITree } from '@/lib/genifer/core/schemas';
+import type { DomainCatalog } from '@/lib/genifer/core/CatalogService';
 import { Either, Schema } from 'effect';
 import type { TransitionStrategy } from '../machines/islandMachine';
 import { getOrCreateIslandActor } from '../machines/island-stx';
@@ -673,7 +673,7 @@ function MorphCardInner<Keys extends string = string>({
       console.log('[MorphCard] generativeContent → STREAMING BUT NO tree$ (falling through)');
     }
 
-    // If we have content, render it using the json-render Renderer
+    // If we have content, render it using the genifer Renderer
     if (Option.isSome(genMode.content)) {
       const { root, elements } = genMode.content.value;
 

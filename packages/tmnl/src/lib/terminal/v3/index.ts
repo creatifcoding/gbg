@@ -54,7 +54,7 @@ export {
   InteractiveBlockV3,
   SystemBlockV3,
   ErrorBlockV3,
-  JsonRenderBlockV3,
+  GeniferBlockV3,
   BlockV3,
   // Type guards
   isAIResponseBlock,
@@ -62,7 +62,7 @@ export {
   isInteractiveBlock,
   isSystemBlock,
   isErrorBlock,
-  isJsonRenderBlock,
+  isGeniferBlock,
   isBlockActive,
   // Factories
   createAIResponseBlock,
@@ -70,9 +70,9 @@ export {
   createInteractiveBlock,
   createSystemBlock,
   createErrorBlock,
-  createJsonRenderBlock,
-  createJsonRenderBlockWithRegions,
-  // JsonRenderBlock specific
+  createGeniferBlock,
+  createGeniferBlockWithRegions,
+  // GeniferBlock specific
   SemanticRegionEntry,
 } from './schemas'
 
@@ -85,7 +85,7 @@ export type {
   SystemBlockV3Type,
   ErrorBlockV3Type,
   BlockV3Type,
-  JsonRenderBlockV3ExportType,
+  GeniferBlockV3ExportType,
   SemanticRegionEntryExportType,
 } from './schemas'
 
@@ -280,14 +280,14 @@ export {
   GrepToolView,
 } from './components/ToolCallView/tools'
 
-// JsonRenderBlock - Rich UI rendering via json-render system
+// GeniferBlock - Rich UI rendering via genifer system
 export {
-  JsonRenderBlock,
-  JsonRenderBlockHeader,
-  JsonRenderBlockContent,
-  JsonRenderBlockLoadingState,
-  JsonRenderBlockEmptyState,
-  JsonRenderBlockSemanticRegions,
-  JsonRenderBlockMeta,
-  type JsonRenderBlockProps,
-} from './components/JsonRenderBlock'
+  GeniferBlock,
+  GeniferBlockHeader,
+  GeniferBlockContent,
+  GeniferBlockLoadingState,
+  GeniferBlockEmptyState,
+  GeniferBlockSemanticRegions,
+  GeniferBlockMeta,
+  type GeniferBlockProps,
+} from './components/GeniferBlock'

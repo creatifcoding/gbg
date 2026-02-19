@@ -4,7 +4,7 @@
  */
 
 import { Effect, Stream, Queue, Duration, pipe, Fiber } from "effect"
-import { processPatches, type JsonPatch } from "@/lib/json-render/core"
+import { processPatches, type JsonPatch } from "@/lib/genifer/core"
 
 const main = Effect.gen(function* () {
   yield* Effect.log("=== Network Chunk Simulation Test ===")

@@ -40,7 +40,7 @@
  * - **Services**: BreakpointService, ResizeService, LayoutService
  * - **Hooks**: useContainerSize, useBreakpoint
  * - **Components**: Grid, Stack, Flex, ResizeHandle
- * - **Catalog**: json-render integration
+ * - **Catalog**: genifer integration
  */
 
 // =============================================================================

@@ -2,13 +2,13 @@
  * TMNL Charts Module
  *
  * Comprehensive charting library with 40 Ant Design chart types.
- * Supports both standalone usage and json-render catalog integration.
+ * Supports both standalone usage and genifer catalog integration.
  *
  * ## Features
  * - 40 chart types: statistical, tiny, relational
  * - Data-first chart selection
  * - Effect Schema validation
- * - json-render catalog integration
+ * - genifer catalog integration
  * - Lazy-loaded components
  *
  * ## Usage
@@ -26,7 +26,7 @@
  * ### Catalog integration
  * ```ts
  * import { chartDomainCatalog } from '@/lib/charts'
- * import { createCatalogLayer } from '@/lib/json-render/core/CatalogService'
+ * import { createCatalogLayer } from '@/lib/genifer/core/CatalogService'
  *
  * const CatalogLive = createCatalogLayer(
  *   layoutDomainCatalog,

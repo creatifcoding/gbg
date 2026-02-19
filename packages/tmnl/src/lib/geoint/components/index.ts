@@ -632,7 +632,7 @@ export {
   type AnalyticsBottomProps as GeointShellAnalyticsBottomProps,
 } from './GeointShell'
 
-// GeointDashboardPanel - Self-contained dashboard panel for json-render catalog
+// GeointDashboardPanel - Self-contained dashboard panel for genifer catalog
 export {
   GeointDashboardPanel,
   type GeointDashboardPanelProps,

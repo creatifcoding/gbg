@@ -24,7 +24,7 @@
 
 import type { Schema } from 'effect';
 import type { ChartType } from '../schemas/base';
-import type { EntranceAnimation } from '@/lib/json-render/core/animation-schema';
+import type { EntranceAnimation } from '@/lib/genifer/core/animation-schema';
 import {
   LineChartPropsSchema,
   BarChartPropsSchema,

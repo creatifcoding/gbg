@@ -10,14 +10,14 @@
 
 import { Schema } from 'effect'
 import {
-  JsonRenderBlockV3,
-  isJsonRenderBlock,
-  type JsonRenderBlockV3 as JsonRenderBlockV3Type,
-} from './json-render-block'
+  GeniferBlockV3,
+  isGeniferBlock,
+  type GeniferBlockV3 as GeniferBlockV3Type,
+} from './genifer-block'
 
-// Re-export JsonRenderBlock for convenience
-export { JsonRenderBlockV3, isJsonRenderBlock }
-export type { JsonRenderBlockV3Type }
+// Re-export GeniferBlock for convenience
+export { GeniferBlockV3, isGeniferBlock }
+export type { GeniferBlockV3Type }
 
 // =============================================================================
 // Stream Reference (links block to ai-core state)
@@ -142,7 +142,7 @@ export type ErrorBlockV3 = typeof ErrorBlockV3.Type
  * - interactive: Long-running PTY processes
  * - system: System messages
  * - error: Error messages
- * - json-render: Rich UI rendering via json-render system
+ * - genifer: Rich UI rendering via genifer system
  */
 export const BlockV3 = Schema.Union(
   AIResponseBlockV3,
@@ -150,7 +150,7 @@ export const BlockV3 = Schema.Union(
   InteractiveBlockV3,
   SystemBlockV3,
   ErrorBlockV3,
-  JsonRenderBlockV3,
+  GeniferBlockV3,
 )
 export type BlockV3 = typeof BlockV3.Type
 
@@ -186,7 +186,7 @@ export const isBlockActive = (block: BlockV3): boolean => {
       return block.exitCode === null
     case 'interactive':
       return block.endTime === null && !block.dismissed
-    case 'json-render':
+    case 'genifer':
       return block.isStreaming
     default:
       return false

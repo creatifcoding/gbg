@@ -34,7 +34,7 @@ The `src/lib/geoint/` directory is a comprehensive ALLINT COP (All-Source Intell
                  ▼                                         ▼
     ┌─────────────────────────┐              ┌─────────────────────────┐
     │   PRESENTATION LAYER    │              │   INTEGRATION LAYER     │
-    │   (React Components)    │              │   (json-render)         │
+    │   (React Components)    │              │   (genifer)         │
     └───────────┬─────────────┘              └───────────┬─────────────┘
                 │                                        │
     ┌───────────┴───────────┐                            │
@@ -286,12 +286,12 @@ The `src/lib/geoint/` directory is a comprehensive ALLINT COP (All-Source Intell
 
 ## Integration Analysis
 
-### json-render Integration (PRIMARY)
+### genifer Integration (PRIMARY)
 
 **Single Entry Point:** `GeointDashboardPanel` registered in `geoint-domain-catalog.tsx`
 
 ```typescript
-// src/lib/json-render/catalog/geoint-domain-catalog.tsx
+// src/lib/genifer/catalog/geoint-domain-catalog.tsx
 export const geointDomainCatalog: DomainCatalog = {
   name: 'TMNL Geoint',
   components: {
@@ -307,7 +307,7 @@ export const geointDomainCatalog: DomainCatalog = {
 
 **Component Hierarchy:**
 ```
-GeointDashboardPanel (json-render entry)
+GeointDashboardPanel (genifer entry)
 └── GeointShell (layout orchestrator)
     ├── GeointShell.Header (layout controls)
     ├── GeointShell.Sidebar
@@ -336,7 +336,7 @@ GeointDashboardPanel (json-render entry)
 
 | Component | Used In | Purpose |
 |-----------|---------|---------|
-| `GeointDashboardPanel` | json-render catalog | Primary integration point |
+| `GeointDashboardPanel` | genifer catalog | Primary integration point |
 | `GeointShell` | GeointDashboardPanel | Layout orchestrator with slots |
 | `GeointMap` | GeointDashboardPanel | DeckGL + Mapbox map canvas |
 | `SearchProvider` | GeointDashboardPanel | Search context with Atom.runtime |
@@ -757,7 +757,7 @@ Schema.transform(
 </EntityDetailCard.Overview>
 ```
 
-#### 2. Register Atomic Components in json-render Catalog
+#### 2. Register Atomic Components in genifer Catalog
 
 **Why:** Enable LLMs to compose custom dashboards. Currently only `GeointDashboard` is registered.
 
@@ -923,7 +923,7 @@ Integrate high-value orphaned components:
 ### Components (51 files)
 
 **ACTIVE (13):**
-- `GeointDashboardPanel.tsx` - **295 lines** - json-render panel wrapper
+- `GeointDashboardPanel.tsx` - **295 lines** - genifer panel wrapper
 - `GeointShell.tsx` - Layout orchestrator (compound component)
 - `GeointMap.tsx` - DeckGL + Mapbox map component
 - `SearchProvider.tsx` - SearchContext with Atom.runtime
@@ -1120,7 +1120,7 @@ The primary issue is **not** code quality or architecture—it's that **74% of c
 
 **Next Steps:**
 1. ✅ **Integrate Minimap** (high value, low effort, user-reported)
-2. ✅ **Register atomic components** in json-render catalog (enable LLM composition)
+2. ✅ **Register atomic components** in genifer catalog (enable LLM composition)
 3. ✅ **Audit orphaned services** (remove LiveDataService, SceneGraphBridge if unused)
 4. ⚠️ **Component backlog review** (integrate Tier 1, archive/remove Tier 3)
 5. ⚠️ **XState machine audit** (remove unused machines or integrate components)

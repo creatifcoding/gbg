@@ -3,7 +3,7 @@
 /**
  * GeointDashboardPanel
  *
- * Self-contained GEOINT dashboard wrapped in a panel container for json-render.
+ * Self-contained GEOINT dashboard wrapped in a panel container for genifer.
  * Includes all connected components: map, search, entity details, timeline.
  *
  * @module geoint/components/GeointDashboardPanel

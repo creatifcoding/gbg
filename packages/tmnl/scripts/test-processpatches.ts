@@ -6,7 +6,7 @@
  */
 
 import { Effect, Stream, Queue, Duration, pipe, Fiber, Chunk } from "effect"
-import { processPatches, UITree, JsonPatch } from "../src/lib/json-render/core"
+import { processPatches, UITree, JsonPatch } from "../src/lib/genifer/core"
 
 const main = Effect.gen(function* () {
   yield* Effect.log("=== processPatches Progressive Test ===")

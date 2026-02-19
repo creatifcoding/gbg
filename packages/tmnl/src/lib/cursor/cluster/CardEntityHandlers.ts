@@ -3,7 +3,7 @@
  *
  * Implements the handlers for CardEntity RPCs using real agents:
  * - Chat: Streaming LLM responses via AICoreService
- * - UI Generation: Progressive UI patches via JSON-render streaming
+ * - UI Generation: Progressive UI patches via Genifer streaming
  * - Chart Styling: LLM-driven chart customization via chart styler agent
  * - Morph Agents: Fix/evolve operations via morph agents
  * - Operations Control: Cancel, state query
@@ -60,7 +60,7 @@ import {
 import { streamText } from 'ai'
 import { claudeCode } from 'ai-sdk-provider-claude-code'
 import { buildUIGenerationPrompt } from '../prompts/ui-generation'
-import { JsonPatch as JsonPatchSchema, decodeJsonPatchSync } from '../../json-render/core/schemas'
+import { JsonPatch as JsonPatchSchema, decodeJsonPatchSync } from '../../genifer/core/schemas'
 
 // =============================================================================
 // Event Mapping: AIStreamEvent → ChatChunk
@@ -720,7 +720,7 @@ export const CardEntityHandlers = CardEntity.toLayer(
 
         /**
          * Stub regenerateSubtree - would connect to UI generation endpoint
-         * TODO: Integrate with StreamUIGenerate or json-render agent
+         * TODO: Integrate with StreamUIGenerate or genifer agent
          */
         const regenerateSubtree = async (_prompt: string): Promise<{
           root: string

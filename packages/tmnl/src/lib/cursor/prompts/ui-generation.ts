@@ -1,12 +1,12 @@
 /**
  * @fileoverview Shared UI generation prompt assembly (server + RPC)
  *
- * Uses json-render catalog docs and optional dynamic components to build
+ * Uses genifer catalog docs and optional dynamic components to build
  * the system prompt for JSONL patch streaming.
  */
 
-import { getSystemPrompt as getCatalogPrompt } from "@/lib/json-render/server/registry"
-import { buildCatalogPrompt, type ComponentDoc } from "@/lib/json-render/server/catalogs"
+import { getSystemPrompt as getCatalogPrompt } from "@/lib/genifer/server/registry"
+import { buildCatalogPrompt, type ComponentDoc } from "@/lib/genifer/server/catalogs"
 
 /**
  * Build the UI generation system prompt.

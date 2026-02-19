@@ -496,9 +496,9 @@ const CARDS: readonly CardDef[] = [
     glow: 'cyan',
   },
   {
-    title: 'JSON RENDER',
-    body: 'Server-driven UI via json-render. Streaming UITree updates, component registry, Effect Schema integration.',
-    route: '/testbed/json-render',
+    title: 'GENIFER',
+    body: 'Server-driven UI via genifer. Streaming UITree updates, component registry, Effect Schema integration.',
+    route: '/testbed/genifer',
     status: 'active',
     label: 'NEW',
     glow: 'rose',

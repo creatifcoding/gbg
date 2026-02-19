@@ -10,7 +10,7 @@
 import { Schema, JSONSchema } from 'effect';
 import { jsonSchema, tool } from 'ai';
 import type { JsonPatch } from '../../schemas/patch-protocol';
-import { UITree } from '@/lib/json-render/core/schemas';
+import { UITree } from '@/lib/genifer/core/schemas';
 
 // =============================================================================
 // Tool Context (injected at runtime)
