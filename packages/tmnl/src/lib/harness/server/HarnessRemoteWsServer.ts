@@ -145,6 +145,7 @@ const handleRemoteWs = Effect.gen(function* () {
             command.clientMessageId,
             command.text,
             Option.fromNullable(command.thinkingLevel),
+            command.modelOverride,
           )
         case 'remote:chat_v2_get_snapshot':
           return yield* runtime.getSnapshot(command.sessionId, Option.fromNullable(command.fromSeq))
@@ -156,6 +157,10 @@ const handleRemoteWs = Effect.gen(function* () {
           yield* runtime.respondExtensionUI(command.sessionId, command.response)
           return {}
         }
+        case 'remote:get_available_models':
+          return yield* runtime.getAvailableModels().pipe(
+            Effect.map((models) => ({ models })),
+          )
       }
     }).pipe(Effect.either)
 
