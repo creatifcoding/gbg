@@ -63,10 +63,19 @@ const harnessRuntimeAtom = Atom.runtime(HarnessRuntimeBrowserWebSocketDefault)
 // Event Processor (pure function, mutates atoms via ctx.set)
 // =============================================================================
 
+/** Atom read/write context from fn-atom callback.
+ *  IMPORTANT: ctx.set does NOT support updater functions —
+ *  it sets the atom value to whatever you pass, literally.
+ *  Always read current value via ctx(atom), compute new value, then set. */
+interface AtomCtx {
+  <A>(atom: Atom.Atom<A>): A
+  set: <A>(atom: Atom.Writable<A, A>, value: A) => void
+}
+
 function processEvent(
   event: HarnessEvent,
   agentName: string,
-  ctx: { set: <A>(atom: Atom.Writable<A, A>, value: A | ((prev: A) => A)) => void },
+  ctx: AtomCtx,
 ): void {
   console.log('[processEvent]', event._tag, (event as any).messageId ?? (event as any).sessionId ?? '')
   switch (event._tag) {
@@ -76,11 +85,13 @@ function processEvent(
       ctx.set(harnessAgents$, [{ id: event.agentId, name: agentName, isActive: true }])
       break
 
-    case 'chat:v2/send_accepted':
-      ctx.set(harnessMessages$, ((prev: ReadonlyArray<ChatMessage>) =>
-        prev.map((msg) => msg.status === 'pending' ? { ...msg, status: 'sent' as const } : msg),
-      ) as any)
+    case 'chat:v2/send_accepted': {
+      const msgs = ctx(harnessMessages$)
+      ctx.set(harnessMessages$, msgs.map((msg) =>
+        msg.status === 'pending' ? { ...msg, status: 'sent' as const } : msg,
+      ))
       break
+    }
 
     case 'chat:v2/assistant_start': {
       const streamMsg: ChatMessage = {
@@ -91,50 +102,51 @@ function processEvent(
         timestamp: new Date(event.at).toISOString(),
         status: 'streaming',
       }
-      ctx.set(harnessMessages$, ((prev: ReadonlyArray<ChatMessage>) => [...prev, streamMsg]) as any)
+      ctx.set(harnessMessages$, [...ctx(harnessMessages$), streamMsg])
       ctx.set(harnessStreaming$, { isStreaming: true, buffer: '', messageId: event.messageId as string } as StreamingState)
       break
     }
 
-    case 'chat:v2/assistant_delta':
-      ctx.set(harnessStreaming$, ((prev: StreamingState) => ({ ...prev, buffer: prev.buffer + event.delta })) as any)
-      ctx.set(harnessMessages$, ((prev: ReadonlyArray<ChatMessage>) =>
-        prev.map((msg) =>
-          msg.id === (event.messageId as string) && msg.status === 'streaming'
-            ? { ...msg, content: msg.content + event.delta }
-            : msg,
-        ),
-      ) as any)
+    case 'chat:v2/assistant_delta': {
+      const prevStreaming = ctx(harnessStreaming$)
+      ctx.set(harnessStreaming$, { ...prevStreaming, buffer: prevStreaming.buffer + event.delta } as StreamingState)
+      const msgId = event.messageId as string
+      ctx.set(harnessMessages$, ctx(harnessMessages$).map((msg) =>
+        msg.id === msgId && msg.status === 'streaming'
+          ? { ...msg, content: msg.content + event.delta }
+          : msg,
+      ))
       break
+    }
 
-    case 'chat:v2/assistant_final':
-      ctx.set(harnessMessages$, ((prev: ReadonlyArray<ChatMessage>) =>
-        prev.map((msg) =>
-          msg.id === (event.messageId as string)
-            ? { ...msg, content: event.text, status: 'complete' as const }
-            : msg,
-        ),
-      ) as any)
+    case 'chat:v2/assistant_final': {
+      const finalId = event.messageId as string
+      ctx.set(harnessMessages$, ctx(harnessMessages$).map((msg) =>
+        msg.id === finalId
+          ? { ...msg, content: event.text, status: 'complete' as const }
+          : msg,
+      ))
       ctx.set(harnessStreaming$, STREAMING_IDLE)
       break
+    }
 
-    case 'chat:v2/usage':
-      ctx.set(harnessMessages$, ((prev: ReadonlyArray<ChatMessage>) =>
-        prev.map((msg) =>
-          msg.id === (event.messageId as string)
-            ? {
-                ...msg,
-                model: event.model,
-                tokenUsage: {
-                  prompt: event.usage.input,
-                  completion: event.usage.output,
-                  total: event.usage.totalTokens,
-                },
-              }
-            : msg,
-        ),
-      ) as any)
+    case 'chat:v2/usage': {
+      const usageId = event.messageId as string
+      ctx.set(harnessMessages$, ctx(harnessMessages$).map((msg) =>
+        msg.id === usageId
+          ? {
+              ...msg,
+              model: event.model,
+              tokenUsage: {
+                prompt: event.usage.input,
+                completion: event.usage.output,
+                total: event.usage.totalTokens,
+              },
+            }
+          : msg,
+      ))
       break
+    }
 
     case 'chat:v2/error':
       ctx.set(harnessConnection$, { phase: 'error', error: `[${event.code}] ${event.message}` } as ConnectionState)
@@ -142,11 +154,12 @@ function processEvent(
       break
 
     case 'chat:v2/heartbeat': {
+      const prevConn = ctx(harnessConnection$) as any
       const latencyMs = Date.now() - event.at
-      ctx.set(harnessConnection$, ((prev: ConnectionState) => ({
-        ...prev,
-        latencyMs: latencyMs > 0 ? latencyMs : (prev as any).latencyMs,
-      })) as any)
+      ctx.set(harnessConnection$, {
+        ...prevConn,
+        latencyMs: latencyMs > 0 ? latencyMs : prevConn.latencyMs,
+      } as ConnectionState)
       break
     }
 
@@ -260,7 +273,7 @@ export const harnessOps = {
         status: 'pending',
         thinkingLevel,
       }
-      ctx.set(harnessMessages$, ((prev: ReadonlyArray<ChatMessage>) => [...prev, userMsg]) as any)
+      ctx.set(harnessMessages$, [...ctx(harnessMessages$), userMsg])
       console.log('[harnessOps.send] optimistic insert done, calling runtime.send...')
 
       const tl: Option.Option<HarnessThinkingLevel> =
@@ -277,9 +290,9 @@ export const harnessOps = {
         Effect.sync(() => {
           console.error('[harnessOps.send] ERROR:', error)
           // Mark pending → error
-          ctx.set(harnessMessages$, ((prev: ReadonlyArray<ChatMessage>) =>
-            prev.map((msg) => msg.status === 'pending' ? { ...msg, status: 'error' as const } : msg),
-          ) as any)
+          ctx.set(harnessMessages$, ctx(harnessMessages$).map((msg) =>
+            msg.status === 'pending' ? { ...msg, status: 'error' as const } : msg,
+          ))
         }),
       ),
     ),
