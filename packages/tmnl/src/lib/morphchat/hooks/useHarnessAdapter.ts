@@ -49,8 +49,8 @@ export const harnessConnection$ = Atom.make<ConnectionState>(DISCONNECTED)
 export const harnessStreaming$ = Atom.make<StreamingState>(STREAMING_IDLE)
 export const harnessAgents$ = Atom.make<ReadonlyArray<AgentInfo>>([])
 
-// Internal bookkeeping
-const harnessSessionId$ = Atom.make<HarnessSessionId | null>(null)
+// Internal bookkeeping — exported for cross-fn-atom reading via useAtomValue
+export const harnessSessionId$ = Atom.make<HarnessSessionId | null>(null)
 const harnessEventFiber$ = Atom.make<Fiber.RuntimeFiber<void, unknown> | null>(null)
 
 // =============================================================================
@@ -68,6 +68,7 @@ function processEvent(
   agentName: string,
   ctx: { set: <A>(atom: Atom.Writable<A, A>, value: A | ((prev: A) => A)) => void },
 ): void {
+  console.log('[processEvent]', event._tag, (event as any).messageId ?? (event as any).sessionId ?? '')
   switch (event._tag) {
     case 'chat:v2/session_opened':
       ctx.set(harnessSessionId$, event.sessionId)
@@ -207,7 +208,10 @@ export const harnessOps = {
 
       // Open session — transport is already connected (eager in Layer)
       const session = yield* runtime.openSession(nodeId, role)
+      console.log('[harnessOps.connect] session.sessionId:', session.sessionId)
       ctx.set(harnessSessionId$, session.sessionId)
+      const readBack = ctx(harnessSessionId$)
+      console.log('[harnessOps.connect] readBack after set:', readBack)
 
       // Set connected directly — don't rely solely on the session_opened
       // event in case the event stream subscription raced the PubSub publish.
@@ -238,10 +242,11 @@ export const harnessOps = {
   send: harnessRuntimeAtom.fn<{
     content: string
     thinkingLevel?: number
-  }>()(({ content, thinkingLevel }, ctx) =>
+    sessionId: HarnessSessionId | null
+  }>()(({ content, thinkingLevel, sessionId }, ctx) =>
     Effect.gen(function* () {
+      console.log('[harnessOps.send] enter, content:', content?.slice(0, 40), 'sessionId:', sessionId)
       const runtime = yield* HarnessRuntime
-      const sessionId = ctx(harnessSessionId$)
       if (!sessionId) return yield* Effect.fail(new Error('No active session'))
 
       const clientMessageId = `cmid-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` as HarnessClientMessageId
@@ -256,6 +261,7 @@ export const harnessOps = {
         thinkingLevel,
       }
       ctx.set(harnessMessages$, ((prev: ReadonlyArray<ChatMessage>) => [...prev, userMsg]) as any)
+      console.log('[harnessOps.send] optimistic insert done, calling runtime.send...')
 
       const tl: Option.Option<HarnessThinkingLevel> =
         thinkingLevel == null || thinkingLevel === 0 ? Option.none() :
@@ -265,9 +271,11 @@ export const harnessOps = {
         Option.some('high' as HarnessThinkingLevel)
 
       yield* runtime.send(sessionId, clientMessageId, content, tl)
+      console.log('[harnessOps.send] ✓ runtime.send completed')
     }).pipe(
       Effect.tapError((error) =>
         Effect.sync(() => {
+          console.error('[harnessOps.send] ERROR:', error)
           // Mark pending → error
           ctx.set(harnessMessages$, ((prev: ReadonlyArray<ChatMessage>) =>
             prev.map((msg) => msg.status === 'pending' ? { ...msg, status: 'error' as const } : msg),
@@ -280,10 +288,9 @@ export const harnessOps = {
   /**
    * Cancel / abort the active session.
    */
-  cancel: harnessRuntimeAtom.fn<void>()((_arg, ctx) =>
+  cancel: harnessRuntimeAtom.fn<{ sessionId: HarnessSessionId | null }>()(({ sessionId }, ctx) =>
     Effect.gen(function* () {
       const runtime = yield* HarnessRuntime
-      const sessionId = ctx(harnessSessionId$)
       if (sessionId) yield* runtime.abortSession(sessionId)
       ctx.set(harnessStreaming$, STREAMING_IDLE)
     }),
@@ -292,7 +299,7 @@ export const harnessOps = {
   /**
    * Full dispose — interrupt event fiber + abort session.
    */
-  dispose: harnessRuntimeAtom.fn<void>()((_arg, ctx) =>
+  dispose: harnessRuntimeAtom.fn<{ sessionId: HarnessSessionId | null }>()(({ sessionId }, ctx) =>
     Effect.gen(function* () {
       const fiber = ctx(harnessEventFiber$)
       if (fiber) {
@@ -300,7 +307,6 @@ export const harnessOps = {
         ctx.set(harnessEventFiber$, null)
       }
       const runtime = yield* HarnessRuntime
-      const sessionId = ctx(harnessSessionId$)
       if (sessionId) yield* runtime.abortSession(sessionId)
       ctx.set(harnessStreaming$, STREAMING_IDLE)
       ctx.set(harnessConnection$, DISCONNECTED)
@@ -348,8 +354,9 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
   const [, doClear] = useAtom(harnessOps.clear)
   const [, doDispose] = useAtom(harnessOps.dispose)
 
-  // Read connection state for status derivation
+  // Read connection + session state for status derivation and passing to ops
   const connectionState = useAtomValue(harnessConnection$)
+  const sessionId = useAtomValue(harnessSessionId$)
 
   const status: HarnessAdapterStatus =
     (connectionState as any)?.phase === 'connected' ? 'connected' :
@@ -369,10 +376,11 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
     }
   }, [autoConnect, nodeId, role, agentName, doConnect])
 
-  // Build adapter (stable ref — atoms are module-level singletons)
-  const adapter = useRef<MorphChatAdapter>(null!)
-  if (!adapter.current) {
-    adapter.current = {
+  // Build adapter — recreated when sessionId changes so send/cancel/dispose
+  // always capture the current sessionId via closure.
+  const adapterRef = useRef<MorphChatAdapter>(null!)
+  const adapter = React.useMemo<MorphChatAdapter>(() => {
+    const a: MorphChatAdapter = {
       adapterId: `harness-${nodeId}`,
       label: `Harness (${nodeId})`,
       messages$: harnessMessages$,
@@ -380,13 +388,15 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
       streaming$: harnessStreaming$,
       agents$: harnessAgents$,
       send: (params: SendParams) =>
-        Effect.sync(() => doSend({ content: params.content, thinkingLevel: params.thinkingLevel })),
-      cancel: () => Effect.sync(() => doCancel(undefined as void)),
+        Effect.sync(() => doSend({ content: params.content, thinkingLevel: params.thinkingLevel, sessionId })),
+      cancel: () => Effect.sync(() => doCancel({ sessionId })),
       reconnect: () => Effect.sync(() => doConnect({ nodeId, role, agentName })),
       clear: () => Effect.sync(() => doClear(undefined as void)),
-      dispose: () => Effect.sync(() => doDispose(undefined as void)),
+      dispose: () => Effect.sync(() => doDispose({ sessionId })),
     }
-  }
+    adapterRef.current = a
+    return a
+  }, [nodeId, sessionId, doSend, doCancel, doConnect, doClear, doDispose, role, agentName])
 
-  return { adapter: adapter.current, status, error, connect: doConnect }
+  return { adapter, status, error, connect: doConnect }
 }

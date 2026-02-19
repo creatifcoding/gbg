@@ -38,12 +38,14 @@ export function ComposerView() {
   // Composer passes { value, mode, thinkingLevel, contextChips }
   const handleSubmit = React.useCallback(
     (params: { value: string; mode?: string; thinkingLevel?: number; contextChips?: unknown[] }) => {
+      console.log('[ComposerView.handleSubmit] params:', { value: params.value?.slice(0, 40), thinkingLevel: params.thinkingLevel })
       Effect.runSync(
         adapter.send({
           content: params.value,
           thinkingLevel: params.thinkingLevel as number | undefined,
         }),
       )
+      console.log('[ComposerView.handleSubmit] ✓ Effect.runSync returned')
     },
     [adapter],
   )
