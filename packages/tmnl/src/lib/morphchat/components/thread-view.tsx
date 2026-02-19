@@ -234,13 +234,18 @@ export function ThreadView() {
   // Read directly from adapter atoms — adapter IS the state owner
   const messages = useAtomValue(adapter.messages$)
   const streaming = useAtomValue(adapter.streaming$)
-  console.log('[ThreadView] messages:', messages?.length ?? 'null', 'typeof:', typeof messages, 'isArray:', Array.isArray(messages), 'streaming:', streaming?.isStreaming)
 
-  // Render streaming buffer as a virtual message when active
+  // Render streaming buffer as a virtual message when active.
+  // Some adapters (harness) manage streaming messages directly in messages$.
+  // Others (mock) only use streaming$ buffer. We only overlay the buffer when
+  // messages$ doesn't already contain the streaming message.
   const displayMessages = React.useMemo(() => {
     if (!streaming.isStreaming || !streaming.buffer) return messages
+    const streamingId = streaming.messageId ?? 'stream-buffer'
+    const alreadyInMessages = messages.some((m) => m.id === streamingId)
+    if (alreadyInMessages) return messages
     const streamMsg: ChatMessage = {
-      id: streaming.messageId ?? 'stream-buffer',
+      id: streamingId,
       role: 'agent',
       authorName: 'Agent',
       content: streaming.buffer,
