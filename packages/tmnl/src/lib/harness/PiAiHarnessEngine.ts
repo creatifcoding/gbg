@@ -319,6 +319,9 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                 thinkingLevel,
                 sessionId,
                 signal: abortController.signal,
+                // Pass session model's provider so API key resolves for the correct provider
+                // (critical when model override changes provider, e.g. openai → anthropic)
+                providerOverride: session.model.provider,
               })
 
               const stream = yield* Effect.try({

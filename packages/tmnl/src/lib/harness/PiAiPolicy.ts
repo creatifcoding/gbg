@@ -5,6 +5,7 @@ import {
   type OAuthCredentials,
   type SimpleStreamOptions,
 } from '@mariozechner/pi-ai'
+import { AuthStorage, ModelRegistry } from '@mariozechner/pi-coding-agent'
 import { Config, Context, Effect, Layer, Option, Schema } from 'effect'
 
 import type { HarnessThinkingLevel as ThinkingLevel } from './schemas'
@@ -20,6 +21,7 @@ export class PiAiPolicyConfig extends Schema.Class<PiAiPolicyConfig>('PiAiPolicy
   model: Schema.String,
   systemPrompt: Schema.NonEmptyString,
   apiKey: Schema.optionalWith(Schema.String, { as: 'Option' }),
+  /** @deprecated Legacy path for local auth.json. Use AuthStorage (~/.pi/agent/auth.json) instead. */
   oauthAuthFile: Schema.String,
   cacheRetention: PiAiCacheRetention,
   maxRetryDelayMs: Schema.optionalWith(Schema.Number.pipe(Schema.positive()), { as: 'Option' }),
@@ -44,6 +46,8 @@ export interface PiAiPolicyShape {
     readonly thinkingLevel: Option.Option<ThinkingLevel>
     readonly sessionId: string
     readonly signal: AbortSignal | undefined
+    /** Override the provider used for API key resolution (e.g. after model override) */
+    readonly providerOverride?: string
   }) => Effect.Effect<SimpleStreamOptions>
 }
 
@@ -128,6 +132,16 @@ const mapThinking = (
     },
   })
 
+/**
+ * @deprecated Use `AuthStorage.refreshOAuthTokenWithLock(provider)` instead.
+ *
+ * This function reads from a local `auth.json` file (via `oauthAuthFile` config),
+ * which may not contain all OAuth providers. `AuthStorage` reads from
+ * `~/.pi/agent/auth.json` and handles all registered OAuth providers (anthropic,
+ * openai-codex, github-copilot, etc.) with proper token refresh.
+ *
+ * Kept as a legacy fallback — will be removed in a future version.
+ */
 const resolveOAuthApiKeyFromFile = (
   provider: string,
   authFile: string,
@@ -176,19 +190,63 @@ export const PiAiPolicyLive = Layer.effect(
         }),
     }).pipe(Effect.withSpan('tmnl.harness.policy.resolve-model'))
 
-    const makeStreamOptions: PiAiPolicyShape['makeStreamOptions'] = ({ thinkingLevel, sessionId, signal }) =>
+    // ── Unified auth: AuthStorage handles all OAuth refresh + static keys ──
+    const authStorage = new AuthStorage()
+    const modelRegistry = new ModelRegistry(authStorage)
+
+    const resolveApiKeyForProvider = (provider: string): Effect.Effect<Option.Option<string>> =>
+      Effect.tryPromise({
+        try: async () => {
+          // 1. Static API key from config takes absolute precedence
+          if (Option.isSome(config.apiKey) && provider === config.provider) {
+            return Option.some(config.apiKey.value)
+          }
+
+          // 2. Check if provider has OAuth credentials → refresh token
+          const oauthProviders = authStorage.getOAuthProviders()
+          const isOAuth = oauthProviders.some((p) => p.id === provider)
+
+          if (isOAuth && authStorage.has(provider)) {
+            const result = await authStorage.refreshOAuthTokenWithLock(provider)
+            if (result?.apiKey) {
+              return Option.some(result.apiKey)
+            }
+          }
+
+          // 3. Fall back to ModelRegistry.getApiKey (checks env vars, stored static keys)
+          const candidateModel = modelRegistry.getAvailable().find((m) => m.provider === provider)
+          if (candidateModel) {
+            const key = await modelRegistry.getApiKey(candidateModel)
+            if (key) return Option.some(key)
+          }
+
+          // 4. Legacy fallback: resolveOAuthApiKeyFromFile (for oauthAuthFile compat)
+          const legacyKey = await Effect.runPromise(resolveOAuthApiKeyFromFile(provider, config.oauthAuthFile))
+          if (Option.isSome(legacyKey)) {
+            console.warn(
+              `[policy] DEPRECATED: API key for "${provider}" resolved via legacy oauthAuthFile (${config.oauthAuthFile}). ` +
+              `Migrate to AuthStorage: bunx @mariozechner/pi-ai login ${provider}`,
+            )
+            return legacyKey
+          }
+
+          return Option.none<string>()
+        },
+        catch: () => Option.none<string>(),
+      })
+
+    const makeStreamOptions: PiAiPolicyShape['makeStreamOptions'] = ({ thinkingLevel, sessionId, signal, providerOverride }) =>
       Effect.gen(function* () {
         const reasoning = mapThinking(config.defaultReasoning, thinkingLevel)
+        const targetProvider = providerOverride ?? config.provider
 
-        const resolvedApiKey = Option.isSome(config.apiKey)
-          ? Option.some(config.apiKey.value)
-          : config.provider === 'openai-codex'
-            ? yield* resolveOAuthApiKeyFromFile('openai-codex', config.oauthAuthFile)
-            : Option.none<string>()
+        const resolvedApiKey = yield* resolveApiKeyForProvider(targetProvider)
 
-        if (config.provider === 'openai-codex' && Option.isNone(resolvedApiKey)) {
+        if (Option.isNone(resolvedApiKey)) {
           yield* Effect.logWarning(
-            `No OAuth API key resolved for openai-codex. Run: bunx @mariozechner/pi-ai login openai-codex (auth file: ${config.oauthAuthFile})`,
+            `[policy] No API key resolved for provider "${targetProvider}". ` +
+            `OAuth: check \`bunx @mariozechner/pi-ai login ${targetProvider}\`. ` +
+            `Static: set env var or PI_HARNESS_PIAI_API_KEY.`,
           )
         }
 
