@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, Option, Schema, Stream } from 'effect'
 
-import { PiAiHarnessEngine, PiAiHarnessEngineLive } from './PiAiHarnessEngine'
+import { PiAiHarnessEngine, PiAiHarnessEngineLive, type AvailableModelInfo, type ModelOverride } from './PiAiHarnessEngine'
 import {
   type HarnessClientMessageId,
   type HarnessEvent,
@@ -37,7 +37,9 @@ export interface HarnessRuntimeShape {
     clientMessageId: HarnessClientMessageId,
     text: string,
     thinkingLevel: Option.Option<HarnessThinkingLevel>,
+    modelOverride?: ModelOverride,
   ) => Effect.Effect<HarnessSendAck, HarnessRuntimeError>
+  readonly getAvailableModels: () => Effect.Effect<ReadonlyArray<AvailableModelInfo>, HarnessRuntimeError>
   readonly getSnapshot: (
     sessionId: HarnessSessionId,
     fromSeq: Option.Option<number>,
@@ -87,8 +89,8 @@ export const HarnessRuntimeLive = Layer.effect(
           Effect.withSpan('tmnl.harness.runtime.resume-session'),
         ),
 
-      send: (sessionId, clientMessageId, text, thinkingLevel) =>
-        engine.send(sessionId, clientMessageId, text, thinkingLevel).pipe(
+      send: (sessionId, clientMessageId, text, thinkingLevel, modelOverride?) =>
+        engine.send(sessionId, clientMessageId, text, thinkingLevel, modelOverride).pipe(
           Effect.map(
             (ack) =>
               new HarnessSendAck({
@@ -118,6 +120,12 @@ export const HarnessRuntimeLive = Layer.effect(
         engine.respondExtensionUI(sessionId, response).pipe(
           Effect.mapError(toRuntimeError('extension-ui-failed', 'Failed to route harness extension UI response')),
           Effect.withSpan('tmnl.harness.runtime.respond-extension-ui'),
+        ),
+
+      getAvailableModels: () =>
+        engine.getAvailableModels().pipe(
+          Effect.mapError(toRuntimeError('models-failed', 'Failed to get available models')),
+          Effect.withSpan('tmnl.harness.runtime.get-available-models'),
         ),
 
       events: engine.events.pipe(
