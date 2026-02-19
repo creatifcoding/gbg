@@ -8,37 +8,32 @@
  */
 
 import * as React from 'react'
-import { useAtomValue } from '@effect-atom/atom-react'
+import { Atom, useAtomValue } from '@effect-atom/atom-react'
 import { useMorphChatContext } from './surface-context'
 import { ModelSelector, type ModelOption } from '@/lib/chat/shell/header-band'
 
-// =============================================================================
-// View Resolver
-// =============================================================================
+// Stable sentinel atoms — hooks always called, no conditional branching
+const EMPTY_MODELS = Atom.make<ReadonlyArray<ModelOption>>([])
+const NULL_MODEL = Atom.make<string | null>(null)
 
 export function ModelSelectorView() {
   const { adapter } = useMorphChatContext()
 
-  // Read model atoms from adapter — harness adapter wires these
-  const availableModels = adapter.availableModels$
-    ? useAtomValue(adapter.availableModels$)
-    : null
-  const selectedModelId = adapter.selectedModel$
-    ? useAtomValue(adapter.selectedModel$)
-    : null
+  const modelsAtom = adapter.availableModels$ ?? EMPTY_MODELS
+  const selectedAtom = adapter.selectedModel$ ?? NULL_MODEL
 
-  // No models available yet — show nothing (loading state)
-  if (!availableModels || availableModels.length === 0) {
-    return null
-  }
-
-  const models = availableModels as ModelOption[]
-  const currentModelId = selectedModelId ?? models[0]?.id ?? ''
+  const availableModels = useAtomValue(modelsAtom)
+  const selectedModelId = useAtomValue(selectedAtom)
 
   const handleSelect = React.useCallback(
     (modelId: string) => { adapter.selectModel?.(modelId) },
     [adapter],
   )
+
+  if (availableModels.length === 0) return null
+
+  const models = availableModels as ModelOption[]
+  const currentModelId = selectedModelId ?? models[0]?.id ?? ''
 
   return (
     <ModelSelector.Root models={models} selectedId={currentModelId} onSelect={handleSelect}>
