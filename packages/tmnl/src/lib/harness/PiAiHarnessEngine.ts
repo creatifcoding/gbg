@@ -1,4 +1,5 @@
-import { type Context as PiAiContext, type Message as PiAiMessage, type Model as PiAiModel, type ToolCall as PiAiToolCall } from '@mariozechner/pi-ai'
+import { type Context as PiAiContext, type Message as PiAiMessage, type Model as PiAiModel, type ToolCall as PiAiToolCall, getModel as piAiGetModel } from '@mariozechner/pi-ai'
+import { AuthStorage, ModelRegistry } from '@mariozechner/pi-coding-agent'
 import { nanoid } from 'nanoid'
 import { Context, Effect, Fiber, HashMap, HashSet, Layer, Option, PubSub, Ref, Schema, Stream } from 'effect'
 
@@ -64,6 +65,20 @@ type SessionView = {
   readonly headSeq: number
 }
 
+export interface ModelOverride {
+  readonly provider: string
+  readonly modelId: string
+}
+
+export interface AvailableModelInfo {
+  readonly id: string
+  readonly name: string
+  readonly provider: string
+  readonly reasoning: boolean
+  readonly contextWindow: number
+  readonly maxTokens: number
+}
+
 export interface PiAiHarnessEngineShape {
   readonly openSession: (nodeId: string, role: AgentRole) => Effect.Effect<SessionView, PiAiHarnessEngineError>
   readonly send: (
@@ -71,7 +86,9 @@ export interface PiAiHarnessEngineShape {
     clientMessageId: ChatClientMessageId,
     text: string,
     thinkingLevel: Option.Option<ThinkingLevel>,
+    modelOverride?: ModelOverride,
   ) => Effect.Effect<{ readonly accepted: true; readonly sessionId: ChatSessionId }, PiAiHarnessEngineError>
+  readonly getAvailableModels: () => Effect.Effect<ReadonlyArray<AvailableModelInfo>, PiAiHarnessEngineError>
   readonly getSnapshot: (
     sessionId: ChatSessionId,
     fromSeq: Option.Option<number>,
@@ -125,6 +142,10 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
         }),
       ),
     )
+
+    // ── ModelRegistry for available models + per-message override ──
+    const authStorage = new AuthStorage()
+    const modelRegistry = new ModelRegistry(authStorage)
 
     const sessionsRef = yield* Ref.make<HashMap.HashMap<string, SessionRecord>>(HashMap.empty())
     const nodeToSessionRef = yield* Ref.make<HashMap.HashMap<string, string>>(HashMap.empty())
@@ -766,11 +787,32 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
         }
       })
 
-    const send: PiAiHarnessEngineShape['send'] = (sessionId, clientMessageId, text, thinkingLevel) =>
+    const send: PiAiHarnessEngineShape['send'] = (sessionId, clientMessageId, text, thinkingLevel, modelOverride?) =>
       withSession(sessionId, (session) =>
         Effect.gen(function* () {
           if (HashSet.has(session.clientMessageIds, clientMessageId)) {
             return { accepted: true as const, sessionId: session.sessionId }
+          }
+
+          // ── Per-message model override ──
+          if (modelOverride) {
+            const overrideResolved = modelRegistry.find(modelOverride.provider, modelOverride.modelId)
+            if (overrideResolved) {
+              yield* Ref.update(sessionsRef, (current) =>
+                Option.match(HashMap.get(current, sessionId), {
+                  onNone: () => current,
+                  onSome: (existing) =>
+                    HashMap.set(current, sessionId, { ...existing, model: overrideResolved }),
+                }),
+              )
+              yield* Effect.logInfo(
+                `[harness] Model override for session ${sessionId}: ${modelOverride.provider}/${modelOverride.modelId}`,
+              )
+            } else {
+              yield* Effect.logWarning(
+                `[harness] Model override failed — ${modelOverride.provider}/${modelOverride.modelId} not found, using session default`,
+              )
+            }
           }
 
           const sendStartedAtMs = Date.now()
@@ -903,12 +945,34 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
     const respondExtensionUI: PiAiHarnessEngineShape['respondExtensionUI'] = (_sessionId) =>
       Effect.void
 
+    const getAvailableModels: PiAiHarnessEngineShape['getAvailableModels'] = () =>
+      Effect.try({
+        try: () => {
+          modelRegistry.refresh()
+          return modelRegistry.getAvailable().map((m) => ({
+            id: m.id,
+            name: m.name,
+            provider: m.provider,
+            reasoning: m.reasoning,
+            contextWindow: m.contextWindow,
+            maxTokens: m.maxTokens,
+          }))
+        },
+        catch: (cause) =>
+          new PiAiHarnessEngineError({
+            code: 'model-catalog-failed',
+            message: `Failed to get available models: ${cause instanceof Error ? cause.message : String(cause)}`,
+            cause: Option.some(cause),
+          }),
+      }).pipe(Effect.withSpan('tmnl.harness.engine.get-available-models'))
+
     return PiAiHarnessEngine.of({
       openSession,
       send,
       getSnapshot,
       abortSession,
       respondExtensionUI,
+      getAvailableModels,
       events: Stream.fromPubSub(eventsPubSub),
     })
   }),
