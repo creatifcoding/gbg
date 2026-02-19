@@ -1,165 +1,345 @@
 /**
- * useHarnessAdapter — Creates a live MorphChat adapter backed by HarnessRuntime.
+ * useHarnessAdapter — Atom.runtime bridge from HarnessRuntime Layer to MorphChatAdapter.
  *
- * Resolves the HarnessRuntime service from the Effect Layer (WebSocket transport),
- * creates a harness adapter, and manages its lifecycle (connect on mount,
- * dispose on unmount).
+ * Canonical effect-atom pattern:
+ *   const rt = Atom.runtime(Layer)
+ *   const opAtom = rt.fn<Arg>()((arg, ctx) => Effect.gen(function* () { ... }))
+ *   // React: const [result, call] = useAtom(opAtom); call(arg)
  *
- * Usage:
- * ```tsx
- * const { adapter, status, error } = useHarnessAdapter({
- *   nodeId: 'cop-assistant',
- *   role: 'operator',
- * })
- *
- * if (!adapter) return <Connecting... />
- * return <MorphChat.Surface spec={preset} adapter={adapter} />
- * ```
+ * The runtime keeps the Layer scope alive (WebSocket transport stays open).
+ * All harness operations are fn-atoms that yield* HarnessRuntime inside
+ * Effect.gen. ctx.set() mutates the materialized view atoms directly.
  *
  * @module morphchat/hooks/useHarnessAdapter
  */
 
-import { useEffect, useRef, useState } from 'react'
-import { Effect } from 'effect'
+import { useEffect, useRef, useCallback } from 'react'
+import { Atom, useAtomValue, useAtom, Result } from '@effect-atom/atom-react'
+import { Effect, Option, Stream, Fiber } from 'effect'
 import {
   HarnessRuntime,
   HarnessRuntimeBrowserWebSocketDefault,
 } from '@/lib/harness'
-import type { HarnessRuntimeShape } from '@/lib/harness/HarnessRuntime'
-import type { HarnessRole } from '@/lib/harness/schemas'
-import { createHarnessAdapter } from '../adapters/harness-adapter'
+import type {
+  HarnessRole,
+  HarnessSessionId,
+  HarnessClientMessageId,
+  HarnessThinkingLevel,
+  HarnessEvent,
+} from '@/lib/harness/schemas'
 import type { MorphChatAdapter } from '../schemas/adapter-types'
-import type { HarnessAdapterExtensions } from '../adapters/harness-adapter'
+import type {
+  ChatMessage,
+  ConnectionState,
+  StreamingState,
+  AgentInfo,
+  SendParams,
+} from '../schemas/message-types'
+import { DISCONNECTED, STREAMING_IDLE } from '../schemas/message-types'
 
 // =============================================================================
-// Resolve HarnessRuntime shape from the Effect Layer
+// Materialized View Atoms (module-level singletons)
 // =============================================================================
 
-/**
- * Yields the HarnessRuntimeShape from the Layer.
- * Effect.provide closes over the WebSocket transport —
- * the returned shape's methods have zero remaining requirements.
- */
-const resolveRuntime = Effect.gen(function* () {
-  return (yield* HarnessRuntime) as HarnessRuntimeShape
-}).pipe(Effect.provide(HarnessRuntimeBrowserWebSocketDefault))
+export const harnessMessages$ = Atom.make<ReadonlyArray<ChatMessage>>([])
+export const harnessConnection$ = Atom.make<ConnectionState>(DISCONNECTED)
+export const harnessStreaming$ = Atom.make<StreamingState>(STREAMING_IDLE)
+export const harnessAgents$ = Atom.make<ReadonlyArray<AgentInfo>>([])
+
+// Internal bookkeeping
+const harnessSessionId$ = Atom.make<HarnessSessionId | null>(null)
+const harnessEventFiber$ = Atom.make<Fiber.RuntimeFiber<void, unknown> | null>(null)
 
 // =============================================================================
-// Hook Config
+// Runtime Atom — Layer scope stays alive as long as atoms are mounted
 // =============================================================================
 
-export interface UseHarnessAdapterConfig {
-  /** Node ID for session targeting */
-  readonly nodeId: string
-  /** Harness role */
-  readonly role: HarnessRole
-  /** Agent display name */
-  readonly agentName?: string
-  /** Auto-connect on mount */
-  readonly autoConnect?: boolean
-  /** Adapter ID override */
-  readonly adapterId?: string
-  /** Human label */
-  readonly label?: string
+const harnessRuntimeAtom = Atom.runtime(HarnessRuntimeBrowserWebSocketDefault)
+
+// =============================================================================
+// Event Processor (pure function, mutates atoms via ctx.set)
+// =============================================================================
+
+function processEvent(
+  event: HarnessEvent,
+  agentName: string,
+  ctx: { set: <A>(atom: Atom.Writable<A, A>, value: A | ((prev: A) => A)) => void },
+): void {
+  switch (event._tag) {
+    case 'chat:v2/session_opened':
+      ctx.set(harnessSessionId$, event.sessionId)
+      ctx.set(harnessConnection$, { phase: 'connected', endpoint: `harness:${event.nodeId ?? ''}` } as ConnectionState)
+      ctx.set(harnessAgents$, [{ id: event.agentId, name: agentName, isActive: true }])
+      break
+
+    case 'chat:v2/send_accepted':
+      ctx.set(harnessMessages$, ((prev: ReadonlyArray<ChatMessage>) =>
+        prev.map((msg) => msg.status === 'pending' ? { ...msg, status: 'sent' as const } : msg),
+      ) as any)
+      break
+
+    case 'chat:v2/assistant_start': {
+      const streamMsg: ChatMessage = {
+        id: event.messageId as string,
+        role: 'agent',
+        authorName: agentName,
+        content: '',
+        timestamp: new Date(event.at).toISOString(),
+        status: 'streaming',
+      }
+      ctx.set(harnessMessages$, ((prev: ReadonlyArray<ChatMessage>) => [...prev, streamMsg]) as any)
+      ctx.set(harnessStreaming$, { isStreaming: true, buffer: '', messageId: event.messageId as string } as StreamingState)
+      break
+    }
+
+    case 'chat:v2/assistant_delta':
+      ctx.set(harnessStreaming$, ((prev: StreamingState) => ({ ...prev, buffer: prev.buffer + event.delta })) as any)
+      ctx.set(harnessMessages$, ((prev: ReadonlyArray<ChatMessage>) =>
+        prev.map((msg) =>
+          msg.id === (event.messageId as string) && msg.status === 'streaming'
+            ? { ...msg, content: msg.content + event.delta }
+            : msg,
+        ),
+      ) as any)
+      break
+
+    case 'chat:v2/assistant_final':
+      ctx.set(harnessMessages$, ((prev: ReadonlyArray<ChatMessage>) =>
+        prev.map((msg) =>
+          msg.id === (event.messageId as string)
+            ? { ...msg, content: event.text, status: 'complete' as const }
+            : msg,
+        ),
+      ) as any)
+      ctx.set(harnessStreaming$, STREAMING_IDLE)
+      break
+
+    case 'chat:v2/usage':
+      ctx.set(harnessMessages$, ((prev: ReadonlyArray<ChatMessage>) =>
+        prev.map((msg) =>
+          msg.id === (event.messageId as string)
+            ? {
+                ...msg,
+                model: event.model,
+                tokenUsage: {
+                  prompt: event.usage.input,
+                  completion: event.usage.output,
+                  total: event.usage.totalTokens,
+                },
+              }
+            : msg,
+        ),
+      ) as any)
+      break
+
+    case 'chat:v2/error':
+      ctx.set(harnessConnection$, { phase: 'error', error: `[${event.code}] ${event.message}` } as ConnectionState)
+      ctx.set(harnessStreaming$, STREAMING_IDLE)
+      break
+
+    case 'chat:v2/heartbeat': {
+      const latencyMs = Date.now() - event.at
+      ctx.set(harnessConnection$, ((prev: ConnectionState) => ({
+        ...prev,
+        latencyMs: latencyMs > 0 ? latencyMs : (prev as any).latencyMs,
+      })) as any)
+      break
+    }
+
+    default:
+      break
+  }
 }
 
 // =============================================================================
-// Hook Result
+// Operation Atoms — fn<Arg>()((arg, ctx) => Effect.gen(...))
 // =============================================================================
 
-export type HarnessAdapterStatus = 'resolving' | 'ready' | 'connecting' | 'connected' | 'error'
+export const harnessOps = {
+  /**
+   * Connect: open session + fork event stream.
+   * ctx.set() updates materialized view atoms as events arrive.
+   */
+  connect: harnessRuntimeAtom.fn<{
+    nodeId: string
+    role: HarnessRole
+    agentName: string
+  }>()(({ nodeId, role, agentName }, ctx) =>
+    Effect.gen(function* () {
+      const runtime = yield* HarnessRuntime
 
-export interface UseHarnessAdapterResult {
-  /** The adapter — null while the Effect layer is resolving */
-  readonly adapter: (MorphChatAdapter & HarnessAdapterExtensions) | null
-  /** Current resolution status */
-  readonly status: HarnessAdapterStatus
-  /** Error message if resolution/connection failed */
-  readonly error: string | null
+      // Tear down existing fiber
+      const existingFiber = ctx(harnessEventFiber$)
+      if (existingFiber) {
+        yield* Fiber.interrupt(existingFiber)
+        ctx.set(harnessEventFiber$, null)
+      }
+
+      ctx.set(harnessConnection$, { phase: 'connecting', endpoint: `harness:${nodeId}` } as ConnectionState)
+
+      // Open session
+      const session = yield* runtime.openSession(nodeId, role)
+      ctx.set(harnessSessionId$, session.sessionId)
+
+      // Fork event stream — events mutate atoms via processEvent
+      const fiber = yield* Stream.runForEach(runtime.events, (event) =>
+        Effect.sync(() => processEvent(event, agentName, ctx)),
+      ).pipe(
+        Effect.catchAll((err) =>
+          Effect.sync(() => {
+            ctx.set(harnessConnection$, { phase: 'error', error: String(err) } as ConnectionState)
+          }),
+        ),
+        Effect.fork,
+      )
+      ctx.set(harnessEventFiber$, fiber)
+
+      return session.sessionId as string
+    }).pipe(
+      Effect.tapError((error) =>
+        Effect.sync(() => {
+          ctx.set(harnessConnection$, { phase: 'error', error: String(error) } as ConnectionState)
+        }),
+      ),
+    ),
+  ),
+
+  /**
+   * Send a message. Optimistic insert as pending, then send to harness.
+   */
+  send: harnessRuntimeAtom.fn<{
+    content: string
+    thinkingLevel?: number
+  }>()(({ content, thinkingLevel }, ctx) =>
+    Effect.gen(function* () {
+      const runtime = yield* HarnessRuntime
+      const sessionId = ctx(harnessSessionId$)
+      if (!sessionId) return yield* Effect.fail(new Error('No active session'))
+
+      const clientMessageId = `cmid-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` as HarnessClientMessageId
+
+      // Optimistic user message
+      const userMsg: ChatMessage = {
+        id: clientMessageId as string,
+        role: 'operator',
+        content,
+        timestamp: new Date().toISOString(),
+        status: 'pending',
+        thinkingLevel,
+      }
+      ctx.set(harnessMessages$, ((prev: ReadonlyArray<ChatMessage>) => [...prev, userMsg]) as any)
+
+      const tl: Option.Option<HarnessThinkingLevel> =
+        thinkingLevel == null || thinkingLevel === 0 ? Option.none() :
+        thinkingLevel <= 1 ? Option.some('minimal' as HarnessThinkingLevel) :
+        thinkingLevel <= 2 ? Option.some('low' as HarnessThinkingLevel) :
+        thinkingLevel <= 3 ? Option.some('medium' as HarnessThinkingLevel) :
+        Option.some('high' as HarnessThinkingLevel)
+
+      yield* runtime.send(sessionId, clientMessageId, content, tl)
+    }).pipe(
+      Effect.tapError((error) =>
+        Effect.sync(() => {
+          // Mark pending → error
+          ctx.set(harnessMessages$, ((prev: ReadonlyArray<ChatMessage>) =>
+            prev.map((msg) => msg.status === 'pending' ? { ...msg, status: 'error' as const } : msg),
+          ) as any)
+        }),
+      ),
+    ),
+  ),
+
+  /**
+   * Cancel / abort the active session.
+   */
+  cancel: harnessRuntimeAtom.fn<void>()((_arg, ctx) =>
+    Effect.gen(function* () {
+      const runtime = yield* HarnessRuntime
+      const sessionId = ctx(harnessSessionId$)
+      if (!sessionId) return
+      yield* runtime.abortSession(sessionId)
+      ctx.set(harnessStreaming$, STREAMING_IDLE)
+    }),
+  ),
+
+  /**
+   * Clear messages and streaming state.
+   */
+  clear: harnessRuntimeAtom.fn<void>()((_arg, ctx) =>
+    Effect.sync(() => {
+      ctx.set(harnessMessages$, [] as ReadonlyArray<ChatMessage>)
+      ctx.set(harnessStreaming$, STREAMING_IDLE)
+    }),
+  ),
 }
 
 // =============================================================================
 // Hook
 // =============================================================================
 
+export interface UseHarnessAdapterConfig {
+  readonly nodeId: string
+  readonly role: HarnessRole
+  readonly agentName?: string
+  readonly autoConnect?: boolean
+}
+
+export type HarnessAdapterStatus = 'idle' | 'connecting' | 'connected' | 'error'
+
+export interface UseHarnessAdapterResult {
+  readonly adapter: MorphChatAdapter
+  readonly status: HarnessAdapterStatus
+  readonly error: string | null
+  readonly connect: (args: { nodeId: string; role: HarnessRole; agentName: string }) => void
+}
+
 export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAdapterResult {
-  const {
-    nodeId,
-    role,
-    agentName = 'Agent',
-    autoConnect = true,
-    adapterId,
-    label,
-  } = config
+  const { nodeId, role, agentName = 'Agent', autoConnect = true } = config
 
-  const [status, setStatus] = useState<HarnessAdapterStatus>('resolving')
-  const [error, setError] = useState<string | null>(null)
-  const adapterRef = useRef<(MorphChatAdapter & HarnessAdapterExtensions) | null>(null)
-  const [adapterReady, setAdapterReady] = useState(false)
+  // Bind fn-atom setters
+  const [connectResult, doConnect] = useAtom(harnessOps.connect)
+  const [, doSend] = useAtom(harnessOps.send)
+  const [, doCancel] = useAtom(harnessOps.cancel)
+  const [, doClear] = useAtom(harnessOps.clear)
 
+  // Read connection state for status derivation
+  const connectionState = useAtomValue(harnessConnection$)
+
+  const status: HarnessAdapterStatus =
+    (connectionState as any)?.phase === 'connected' ? 'connected' :
+    (connectionState as any)?.phase === 'connecting' ? 'connecting' :
+    (connectionState as any)?.phase === 'error' ? 'error' :
+    'idle'
+
+  const error: string | null = (connectionState as any)?.error ?? null
+
+  // Auto-connect once
+  const hasConnected = useRef(false)
   useEffect(() => {
-    let disposed = false
-
-    async function init() {
-      try {
-        // Step 1: Resolve HarnessRuntimeShape from the Layer
-        const runtimeShape = await Effect.runPromise(resolveRuntime)
-
-        if (disposed) return
-
-        // Step 2: Create the adapter with the resolved shape
-        const adapter = createHarnessAdapter({
-          runtime: runtimeShape,
-          nodeId,
-          role,
-          agentName,
-          adapterId,
-          label,
-          autoReconnect: true,
-          maxReconnectAttempts: 5,
-        })
-
-        adapterRef.current = adapter
-        setStatus('ready')
-        setAdapterReady(true)
-
-        // Step 3: Auto-connect if configured
-        if (autoConnect) {
-          setStatus('connecting')
-          try {
-            await Effect.runPromise(adapter.connect())
-            if (!disposed) setStatus('connected')
-          } catch (connectErr) {
-            if (!disposed) {
-              console.error('[useHarnessAdapter] connect failed:', connectErr)
-              setStatus('ready')
-              setError(`Connection failed: ${connectErr}`)
-            }
-          }
-        }
-      } catch (err) {
-        if (!disposed) {
-          console.error('[useHarnessAdapter] layer resolution failed:', err)
-          setStatus('error')
-          setError(String(err))
-        }
-      }
+    if (autoConnect && !hasConnected.current) {
+      hasConnected.current = true
+      doConnect({ nodeId, role, agentName })
     }
+  }, [autoConnect, nodeId, role, agentName, doConnect])
 
-    init()
-
-    return () => {
-      disposed = true
-      if (adapterRef.current) {
-        Effect.runPromise(adapterRef.current.dispose()).catch(() => {})
-        adapterRef.current = null
-      }
+  // Build adapter (stable ref — atoms are module-level singletons)
+  const adapter = useRef<MorphChatAdapter>(null!)
+  if (!adapter.current) {
+    adapter.current = {
+      adapterId: `harness-${nodeId}`,
+      label: `Harness (${nodeId})`,
+      messages$: harnessMessages$,
+      connection$: harnessConnection$,
+      streaming$: harnessStreaming$,
+      agents$: harnessAgents$,
+      send: (params: SendParams) =>
+        Effect.sync(() => doSend({ content: params.content, thinkingLevel: params.thinkingLevel })),
+      cancel: () => Effect.sync(() => doCancel(undefined as void)),
+      reconnect: () => Effect.sync(() => doConnect({ nodeId, role, agentName })),
+      clear: () => Effect.sync(() => doClear(undefined as void)),
+      dispose: () => Effect.sync(() => doCancel(undefined as void)),
     }
-  }, [nodeId, role, agentName, autoConnect, adapterId, label])
-
-  return {
-    adapter: adapterReady ? adapterRef.current : null,
-    status,
-    error,
   }
+
+  return { adapter: adapter.current, status, error, connect: doConnect }
 }

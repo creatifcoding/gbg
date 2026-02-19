@@ -20,12 +20,12 @@ import {
   createMockChatAdapter,
   createStaticAdapter,
   useHarnessAdapter,
+  type HarnessAdapterStatus,
   PRESET_LIST,
   ALL_PRESETS,
   type ChatSurfaceSpec,
   type MorphChatAdapter,
   type MockChatAdapter,
-  type HarnessAdapterStatus,
 } from '@/lib/morphchat'
 
 // =============================================================================
@@ -65,7 +65,7 @@ interface AdapterEntry {
   kind: AdapterKind
   label: string
   description: string
-  adapter: MorphChatAdapter | null
+  adapter: MorphChatAdapter
   badge?: string
 }
 
@@ -271,7 +271,7 @@ function ControlPanel({
   harnessStatus,
   harnessError,
 }: {
-  adapter: MorphChatAdapter | null
+  adapter: MorphChatAdapter
   activeKind: AdapterKind
   harnessStatus?: HarnessAdapterStatus
   harnessError?: string | null
@@ -511,34 +511,13 @@ export function MorphChatTestbed() {
           className="w-full"
           style={{ maxWidth: activeSpec.maxWidth ? `${activeSpec.maxWidth}px` : '900px' }}
         >
-          {currentAdapter ? (
-            <MorphChat.Surface
-              key={activeKind}
-              spec={activeSpec}
-              adapter={currentAdapter}
-              onMorph={handleMorph}
-              className="h-full min-h-[300px] max-h-[600px]"
-            />
-          ) : (
-            <div className="flex items-center justify-center h-64 border border-neutral-800/50 rounded">
-              <div className="text-center space-y-2">
-                <div
-                  className="font-mono text-neutral-500 animate-pulse"
-                  style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
-                >
-                  {harnessStatus === 'error' ? 'Connection Failed' : 'Resolving Harness Runtime…'}
-                </div>
-                {harnessError && (
-                  <div
-                    className="font-mono text-red-500/70 max-w-md"
-                    style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-                  >
-                    {harnessError}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          <MorphChat.Surface
+            key={activeKind}
+            spec={activeSpec}
+            adapter={currentAdapter}
+            onMorph={handleMorph}
+            className="h-full min-h-[300px] max-h-[600px]"
+          />
         </div>
       </div>
     </div>
