@@ -422,7 +422,7 @@ export function MorphChatTestbed() {
     error: harnessError,
   } = useHarnessAdapter({
     nodeId: 'cop-assistant',
-    role: 'operator',
+    role: 'general',
     agentName: 'Prime-Architect',
     autoConnect: activeKind === 'harness', // only connect when selected
     label: 'Harness (Live)',

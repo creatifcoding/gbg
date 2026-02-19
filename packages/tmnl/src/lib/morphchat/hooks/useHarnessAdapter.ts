@@ -27,6 +27,9 @@ import type {
   HarnessThinkingLevel,
   HarnessEvent,
 } from '@/lib/harness/schemas'
+
+/** Valid harness roles — must match HarnessRole schema */
+export const HARNESS_ROLES = ['scada-analyst', 'code-assistant', 'navigator', 'inspector', 'general'] as const
 import type { MorphChatAdapter } from '../schemas/adapter-types'
 import type {
   ChatMessage,
@@ -166,7 +169,9 @@ export const harnessOps = {
     agentName: string
   }>()(({ nodeId, role, agentName }, ctx) =>
     Effect.gen(function* () {
+      console.log('[harnessOps.connect] yielding HarnessRuntime from Layer...')
       const runtime = yield* HarnessRuntime
+      console.log('[harnessOps.connect] got runtime, backend:', runtime.backend)
 
       // Tear down existing fiber
       const existingFiber = ctx(harnessEventFiber$)
@@ -178,7 +183,9 @@ export const harnessOps = {
       ctx.set(harnessConnection$, { phase: 'connecting', endpoint: `harness:${nodeId}` } as ConnectionState)
 
       // Open session
+      console.log('[harnessOps.connect] opening session:', { nodeId, role })
       const session = yield* runtime.openSession(nodeId, role)
+      console.log('[harnessOps.connect] session opened:', session.sessionId)
       ctx.set(harnessSessionId$, session.sessionId)
 
       // Fork event stream — events mutate atoms via processEvent
@@ -198,6 +205,7 @@ export const harnessOps = {
     }).pipe(
       Effect.tapError((error) =>
         Effect.sync(() => {
+          console.error('[harnessOps.connect] error:', error)
           ctx.set(harnessConnection$, { phase: 'error', error: String(error) } as ConnectionState)
         }),
       ),
@@ -318,6 +326,7 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
   useEffect(() => {
     if (autoConnect && !hasConnected.current) {
       hasConnected.current = true
+      console.log('[useHarnessAdapter] auto-connecting:', { nodeId, role, agentName })
       doConnect({ nodeId, role, agentName })
     }
   }, [autoConnect, nodeId, role, agentName, doConnect])
