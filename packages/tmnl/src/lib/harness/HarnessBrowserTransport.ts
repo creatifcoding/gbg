@@ -5,7 +5,6 @@ import {
   Deferred,
   Effect,
   Either,
-  Fiber,
   HashMap,
   Layer,
   Match,
@@ -48,8 +47,6 @@ export interface HarnessBrowserTransportConfigShape {
 export const HarnessBrowserTransportConfig = Context.GenericTag<HarnessBrowserTransportConfigShape>(
   'tmnl/harness/HarnessBrowserTransportConfig',
 )
-
-type SocketWrite = (chunk: Uint8Array | string | Socket.CloseEvent) => Effect.Effect<void>
 
 const readExplicitHarnessWsUrl = (): string | null => {
   const globalOverride = (globalThis as { __TMNL_HARNESS_WS_URL?: string }).__TMNL_HARNESS_WS_URL
@@ -156,111 +153,85 @@ export const HarnessBrowserTransportLive = Layer.scoped(
       HashMap.empty(),
     )
     const eventsPubSub = yield* PubSub.unbounded<unknown>()
-    const writeRef = yield* Ref.make<Option.Option<SocketWrite>>(Option.none())
-    const messageLoopFiberRef = yield* Ref.make<Option.Option<Fiber.RuntimeFiber<void, never>>>(Option.none())
 
-    const connect =
-      Effect.gen(function* () {
-        const existing = yield* Ref.get(writeRef)
-        if (Option.isSome(existing)) {
-          return existing.value
-        }
-
-        const socket = yield* Socket.fromWebSocket(Effect.sync(() => webSocketConstructor(config.url)), {
-          openTimeout: config.openTimeout,
-        }).pipe(
-          Effect.mapError(
-            (cause) =>
-              new HarnessBrowserTransportError({
-                message: `Failed to open harness websocket transport at ${config.url}`,
-                cause: Option.some(cause),
-              }),
-          ),
-        )
-
-        const write = yield* socket.writer
-        const connected = yield* Deferred.make<void, HarnessBrowserTransportError>()
-
-        const messageLoop = Effect.gen(function* () {
-          yield* socket.runRaw(
-            (chunk) =>
-              decodeChunk(chunk).pipe(
-                Effect.flatMap((envelope) =>
-                  Match.value(envelope).pipe(
-                    Match.tag('remote:ws_event', (evt) => PubSub.publish(eventsPubSub, evt.event).pipe(Effect.asVoid)),
-                    Match.tag('remote:ws_response', (res) =>
-                      Effect.gen(function* () {
-                        const pending = yield* Ref.modify(pendingRef, (map) => {
-                          const deferred = HashMap.get(map, res.requestId)
-                          const next = HashMap.remove(map, res.requestId)
-                          return [deferred, next] as const
-                        })
-
-                        if (Option.isNone(pending)) return
-                        yield* Deferred.succeed(pending.value, res.response)
-                      }),
-                    ),
-                    Match.exhaustive,
-                  ),
-                ),
-                Effect.catchAll((err) =>
-                  Effect.logWarning(`Harness websocket decode failed: ${err.message}`),
-                ),
-              ),
-            {
-              onOpen: Deferred.succeed(connected, undefined),
-            },
-          ).pipe(
-            Effect.catchAll((cause) =>
-              Effect.gen(function* () {
-                const isConnectedDone = yield* Deferred.isDone(connected)
-                if (!isConnectedDone) {
-                  yield* Deferred.fail(
-                    connected,
-                    new HarnessBrowserTransportError({
-                      message: 'Harness websocket failed before opening',
-                      cause: Option.some(cause),
-                    }),
-                  )
-                }
-
-                yield* Ref.set(writeRef, Option.none())
-                yield* failPendingRequests(
-                  pendingRef,
-                  new HarnessBrowserTransportError({
-                    message: 'Harness websocket closed or failed',
-                    cause: Option.some(cause),
-                  }),
-                )
-              }),
-            ),
-            Effect.asVoid,
-          )
-        })
-
-        const messageLoopFiber = yield* Effect.fork(messageLoop)
-        yield* Ref.set(messageLoopFiberRef, Option.some(messageLoopFiber))
-        yield* Effect.yieldNow()
-
-        yield* Deferred.await(connected).pipe(
-          Effect.timeoutFail({
-            duration: config.openTimeout,
-            onTimeout: () =>
-              new HarnessBrowserTransportError({
-                message: `Timed out waiting for websocket open at ${config.url}`,
-                cause: Option.none(),
-              }),
+    // ── Eagerly open socket inside Layer.scoped body ──────────────────
+    // This ensures forkScoped attaches the message loop fiber to the
+    // Layer's scope (not a transient caller scope). Without this, the
+    // message loop fiber gets interrupted when the first runPromise()
+    // call completes, because Effect.fork creates a child scope.
+    const socket = yield* Socket.fromWebSocket(Effect.sync(() => webSocketConstructor(config.url)), {
+      openTimeout: config.openTimeout,
+    }).pipe(
+      Effect.mapError(
+        (cause) =>
+          new HarnessBrowserTransportError({
+            message: `Failed to open harness websocket transport at ${config.url}`,
+            cause: Option.some(cause),
           }),
-        )
+      ),
+    )
 
-        yield* Ref.set(writeRef, Option.some(write))
-        return write
-      })
+    const write = yield* socket.writer
+    const connected = yield* Deferred.make<void, HarnessBrowserTransportError>()
 
+    // ── Fork message loop into the Layer scope via forkScoped ─────────
+    yield* Effect.forkScoped(
+      socket.runRaw(
+        (chunk) =>
+          decodeChunk(chunk).pipe(
+            Effect.flatMap((envelope) =>
+              Match.value(envelope).pipe(
+                Match.tag('remote:ws_event', (evt) => PubSub.publish(eventsPubSub, evt.event).pipe(Effect.asVoid)),
+                Match.tag('remote:ws_response', (res) =>
+                  Effect.gen(function* () {
+                    const pending = yield* Ref.modify(pendingRef, (map) => {
+                      const deferred = HashMap.get(map, res.requestId)
+                      const next = HashMap.remove(map, res.requestId)
+                      return [deferred, next] as const
+                    })
+
+                    if (Option.isNone(pending)) return
+                    yield* Deferred.succeed(pending.value, res.response)
+                  }),
+                ),
+                Match.exhaustive,
+              ),
+            ),
+            Effect.catchAll((err) =>
+              Effect.logWarning(`Harness websocket decode failed: ${err.message}`),
+            ),
+          ),
+        {
+          onOpen: Deferred.succeed(connected, undefined),
+        },
+      ).pipe(
+        Effect.catchAll((cause) =>
+          failPendingRequests(
+            pendingRef,
+            new HarnessBrowserTransportError({
+              message: 'Harness websocket closed or failed',
+              cause: Option.some(cause),
+            }),
+          ),
+        ),
+        Effect.asVoid,
+      ),
+    )
+
+    yield* Deferred.await(connected).pipe(
+      Effect.timeoutFail({
+        duration: config.openTimeout,
+        onTimeout: () =>
+          new HarnessBrowserTransportError({
+            message: `Timed out waiting for websocket open at ${config.url}`,
+            cause: Option.none(),
+          }),
+      }),
+    )
+
+    // ── Request implementation ────────────────────────────────────────
     const request: HarnessBrowserTransportShape['request'] = (command: HarnessRemoteCommand) =>
       Effect.gen(function* () {
-        const write = yield* connect
-
         const requestId = nanoid()
         const deferred = yield* Deferred.make<unknown, HarnessBrowserTransportError>()
 
@@ -297,23 +268,15 @@ export const HarnessBrowserTransportLive = Layer.scoped(
         )
       })
 
+    // ── Finalizer ─────────────────────────────────────────────────────
     yield* Effect.addFinalizer(() =>
-      Effect.gen(function* () {
-        const maybeFiber = yield* Ref.get(messageLoopFiberRef)
-
-        if (Option.isSome(maybeFiber)) {
-          yield* Fiber.interrupt(maybeFiber.value)
-        }
-
-        yield* Ref.set(writeRef, Option.none())
-        yield* failPendingRequests(
-          pendingRef,
-          new HarnessBrowserTransportError({
-            message: 'Harness websocket transport finalized',
-            cause: Option.none(),
-          }),
-        )
-      }),
+      failPendingRequests(
+        pendingRef,
+        new HarnessBrowserTransportError({
+          message: 'Harness websocket transport finalized',
+          cause: Option.none(),
+        }),
+      ),
     )
 
     return {
