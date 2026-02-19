@@ -298,34 +298,36 @@ export function ThreadView() {
 
   if (resolvedMessages.length === 0) {
     return (
-      <ChatThreadBand
-        autoScroll="off"
-        itemCount={0}
-        className={cn(
-          'flex items-center justify-center',
-          spec.thread === 'log' ? 'bg-neutral-950' : '',
-        )}
-      >
-        <span className="text-neutral-600" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
-          No messages yet
-        </span>
-      </ChatThreadBand>
+      <div className="relative flex-1 min-h-0">
+        <div
+          className={cn(
+            'absolute inset-0 flex items-center justify-center overflow-y-auto',
+            spec.thread === 'log' ? 'bg-neutral-950' : '',
+          )}
+        >
+          <span className="text-neutral-600" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
+            No messages yet
+          </span>
+        </div>
+      </div>
     )
   }
 
   return (
-    <ChatThreadBand
-      autoScroll={autoScroll}
-      itemCount={resolvedMessages.length}
-      bottomThreshold={24}
-      renderAfterScroll={tailControls}
-      className={cn(
-        'h-full',
-        spec.thread === 'log' ? 'bg-neutral-950' : '',
-      )}
-    >
-      {resolvedMessages.map(renderMessage)}
-    </ChatThreadBand>
+    <div className="relative flex-1 min-h-0">
+      <ChatThreadBand
+        autoScroll={autoScroll}
+        itemCount={resolvedMessages.length}
+        bottomThreshold={100}
+        renderAfterScroll={tailControls}
+        className={cn(
+          'absolute inset-0',
+          spec.thread === 'log' ? 'bg-neutral-950' : '',
+        )}
+      >
+        {resolvedMessages.map(renderMessage)}
+      </ChatThreadBand>
+    </div>
   )
 }
 
