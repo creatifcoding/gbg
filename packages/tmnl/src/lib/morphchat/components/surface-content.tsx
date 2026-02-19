@@ -160,7 +160,6 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
         className={cn(
           'morphchat-surface relative flex flex-col',
           'bg-black text-neutral-200',
-          'overflow-hidden',
           className,
         )}
         style={{
@@ -223,7 +222,7 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
               animate={enterAnim}
               exit={exitAnim}
               transition={stagger(bandIndex++)}
-              className="flex-1 min-h-0 flex flex-col overflow-hidden"
+              className="flex-1 min-h-0 flex flex-col"
             >
               <ThreadView />
             </motion.div>
