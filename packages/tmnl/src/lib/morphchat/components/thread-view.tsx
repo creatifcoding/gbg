@@ -271,9 +271,10 @@ export function ThreadView() {
   const messageTasks = (adapter as Partial<MockChatAdapter>).messageTasks
 
   // Select renderer per thread mode
+  const messageCount = resolvedMessages.length
   const renderMessage = React.useCallback(
     (msg: ChatMessage, index: number) => {
-      const isLatest = index === resolvedMessages.length - 1
+      const isLatest = index === messageCount - 1
       const key = msg.id
       const tasks = messageTasks?.get(msg.id)
 
@@ -292,7 +293,7 @@ export function ThreadView() {
           return null
       }
     },
-    [spec.thread, resolvedMessages.length],
+    [spec.thread, messageCount, messageTasks],
   )
 
   // Tail controls — rendered inside the ChatThreadBand context scope
