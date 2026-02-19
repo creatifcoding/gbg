@@ -13,8 +13,8 @@
  * @module morphchat/hooks/useHarnessAdapter
  */
 
-import React, { useEffect, useRef, useCallback, useMemo } from 'react'
-import { Atom, useAtomValue, useAtom, Result } from '@effect-atom/atom-react'
+import React, { useEffect, useRef } from 'react'
+import { Atom, useAtom, Result } from '@effect-atom/atom-react'
 import { Effect, Option, Stream, Fiber } from 'effect'
 import {
   HarnessRuntime,
@@ -259,9 +259,9 @@ export const harnessOps = {
   send: harnessRuntimeAtom.fn<{
     content: string
     thinkingLevel?: number
-    sessionId: HarnessSessionId | null
-  }>()(({ content, thinkingLevel, sessionId }, _ctx) =>
+  }>()(({ content, thinkingLevel }, _ctx) =>
     Effect.gen(function* () {
+      const sessionId = morphChatRegistry.get(harnessSessionId$)
       console.log('[harnessOps.send] enter, content:', content?.slice(0, 40), 'sessionId:', sessionId)
       const runtime = yield* HarnessRuntime
       if (!sessionId) return yield* Effect.fail(new Error('No active session'))
@@ -304,9 +304,10 @@ export const harnessOps = {
   /**
    * Cancel / abort the active session.
    */
-  cancel: harnessRuntimeAtom.fn<{ sessionId: HarnessSessionId | null }>()(({ sessionId }, _ctx) =>
+  cancel: harnessRuntimeAtom.fn<void>()((_arg, _ctx) =>
     Effect.gen(function* () {
       const runtime = yield* HarnessRuntime
+      const sessionId = morphChatRegistry.get(harnessSessionId$)
       if (sessionId) yield* runtime.abortSession(sessionId)
       morphChatRegistry.set(harnessStreaming$, STREAMING_IDLE)
     }),
@@ -315,7 +316,7 @@ export const harnessOps = {
   /**
    * Full dispose — interrupt event fiber + abort session.
    */
-  dispose: harnessRuntimeAtom.fn<{ sessionId: HarnessSessionId | null }>()(({ sessionId }, _ctx) =>
+  dispose: harnessRuntimeAtom.fn<void>()((_arg, _ctx) =>
     Effect.gen(function* () {
       const fiber = morphChatRegistry.get(harnessEventFiber$)
       if (fiber) {
@@ -323,6 +324,7 @@ export const harnessOps = {
         morphChatRegistry.set(harnessEventFiber$, null)
       }
       const runtime = yield* HarnessRuntime
+      const sessionId = morphChatRegistry.get(harnessSessionId$)
       if (sessionId) yield* runtime.abortSession(sessionId)
       morphChatRegistry.set(harnessStreaming$, STREAMING_IDLE)
       morphChatRegistry.set(harnessConnection$, DISCONNECTED)
@@ -370,17 +372,36 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
   const [, doClear] = useAtom(harnessOps.clear)
   const [, doDispose] = useAtom(harnessOps.dispose)
 
-  // Read connection + session state for status derivation and passing to ops
-  const connectionState = useAtomValue(harnessConnection$)
-  const sessionId = useAtomValue(harnessSessionId$)
+  // Derive status from connect result — the fn-atom Result tells us
+  // whether connect succeeded or failed. For live connection phase,
+  // we poll morphChatRegistry directly (works outside provider).
+  const connectStatus = Result.isSuccess(connectResult) ? 'connected' as const
+    : Result.isFailure(connectResult) ? 'error' as const
+    : 'idle' as const
 
-  const status: HarnessAdapterStatus =
-    (connectionState as any)?.phase === 'connected' ? 'connected' :
-    (connectionState as any)?.phase === 'connecting' ? 'connecting' :
-    (connectionState as any)?.phase === 'error' ? 'error' :
-    'idle'
+  // Also subscribe to connection atom if we're inside the provider (ThreadView etc.)
+  // But for the testbed badge, derive from connectResult which works anywhere.
+  const [status, setStatus] = React.useState<HarnessAdapterStatus>('idle')
+  const [error, setError] = React.useState<string | null>(null)
 
-  const error: string | null = (connectionState as any)?.error ?? null
+  // Poll morphChatRegistry for connection state (works outside provider)
+  useEffect(() => {
+    const check = () => {
+      const conn = morphChatRegistry.get(harnessConnection$) as any
+      const phase = conn?.phase ?? 'idle'
+      setStatus(
+        phase === 'connected' ? 'connected' :
+        phase === 'connecting' ? 'connecting' :
+        phase === 'error' ? 'error' :
+        'idle'
+      )
+      setError(conn?.error ?? null)
+    }
+    check()
+    // Subscribe to changes on the registry
+    const unsub = morphChatRegistry.subscribe(harnessConnection$, check)
+    return unsub
+  }, [])
 
   // Auto-connect once
   const hasConnected = useRef(false)
@@ -392,11 +413,10 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
     }
   }, [autoConnect, nodeId, role, agentName, doConnect])
 
-  // Build adapter — recreated when sessionId changes so send/cancel/dispose
-  // always capture the current sessionId via closure.
-  const adapterRef = useRef<MorphChatAdapter>(null!)
-  const adapter = useMemo<MorphChatAdapter>(() => {
-    const a: MorphChatAdapter = {
+  // Build adapter — stable identity, all state reads go through morphChatRegistry
+  const adapter = useRef<MorphChatAdapter>(null!)
+  if (!adapter.current) {
+    adapter.current = {
       adapterId: `harness-${nodeId}`,
       label: `Harness (${nodeId})`,
       messages$: harnessMessages$,
@@ -404,15 +424,13 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
       streaming$: harnessStreaming$,
       agents$: harnessAgents$,
       send: (params: SendParams) =>
-        Effect.sync(() => doSend({ content: params.content, thinkingLevel: params.thinkingLevel, sessionId })),
-      cancel: () => Effect.sync(() => doCancel({ sessionId })),
+        Effect.sync(() => doSend({ content: params.content, thinkingLevel: params.thinkingLevel })),
+      cancel: () => Effect.sync(() => doCancel(undefined as void)),
       reconnect: () => Effect.sync(() => doConnect({ nodeId, role, agentName })),
       clear: () => Effect.sync(() => doClear(undefined as void)),
-      dispose: () => Effect.sync(() => doDispose({ sessionId })),
+      dispose: () => Effect.sync(() => doDispose(undefined as void)),
     }
-    adapterRef.current = a
-    return a
-  }, [nodeId, sessionId, doSend, doCancel, doConnect, doClear, doDispose, role, agentName])
+  }
 
-  return { adapter, status, error, connect: doConnect }
+  return { adapter: adapter.current, status, error, connect: doConnect }
 }
