@@ -196,18 +196,13 @@ export const ChatThreadBand = forwardRef<HTMLDivElement, ChatThreadBandProps>(
           {...interruptHandlers}
           {...props}
         >
-          {/* Inner flex wrapper — justify-end gravitates messages to bottom
-              when content is shorter than the scroll container (Discord/Slack style).
-              min-h-full ensures it fills the container when content is sparse. */}
-          <div className="flex flex-col justify-end min-h-full">
-            {/* Head sentinel */}
-            <div ref={tf.head.ref} className="h-px" aria-hidden="true" />
+          {/* Head sentinel */}
+          <div ref={tf.head.ref} className="h-px" aria-hidden="true" />
 
-            {children}
+          {children}
 
-            {/* Tail sentinel */}
-            <div ref={tf.tail.ref} className="h-px" aria-hidden="true" />
-          </div>
+          {/* Tail sentinel */}
+          <div ref={tf.tail.ref} className="h-px" aria-hidden="true" />
         </div>
         {/* Tail controls slot — inside provider scope, outside scroll container */}
         {renderAfterScroll}

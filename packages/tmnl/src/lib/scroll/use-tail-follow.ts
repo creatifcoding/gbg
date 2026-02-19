@@ -199,13 +199,6 @@ export const useTailFollow = (
       resizeObserver.observe(child)
     }
 
-    // Initial scroll-to-bottom: the MutationObserver misses children
-    // already in the DOM at mount time (effects run AFTER first commit).
-    // If we're starting in tail mode and there's content to scroll, snap now.
-    if (isAtBottomRef.current && container.scrollHeight > container.clientHeight) {
-      container.scrollTo({ top: container.scrollHeight, behavior: 'instant' })
-    }
-
     return () => {
       mutationObserver.disconnect()
       resizeObserver.disconnect()
