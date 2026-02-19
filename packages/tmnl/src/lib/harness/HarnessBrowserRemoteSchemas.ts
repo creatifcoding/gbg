@@ -9,7 +9,28 @@ import {
   HarnessThinkingLevel,
 } from './schemas'
 
-// Commands sent over WS to remote control plane.
+// ── Model catalog schema ────────────────────────────────────────────────────
+export const HarnessModelInfo = Schema.Struct({
+  id: Schema.String,
+  name: Schema.String,
+  provider: Schema.String,
+  reasoning: Schema.Boolean,
+  contextWindow: Schema.Number,
+  maxTokens: Schema.Number,
+})
+export type HarnessModelInfo = typeof HarnessModelInfo.Type
+
+export const HarnessModelOverride = Schema.Struct({
+  provider: Schema.String,
+  modelId: Schema.String,
+})
+export type HarnessModelOverride = typeof HarnessModelOverride.Type
+
+export const HarnessRemoteModelListPayload = Schema.Struct({
+  models: Schema.Array(HarnessModelInfo),
+})
+
+// ── Commands sent over WS to remote control plane ──────────────────────────
 export const HarnessRemoteOpenSessionCommand = Schema.TaggedStruct('remote:chat_v2_open_session', {
   nodeId: Schema.String,
   role: HarnessRole,
@@ -25,6 +46,7 @@ export const HarnessRemoteSendCommand = Schema.TaggedStruct('remote:chat_v2_send
   clientMessageId: HarnessClientMessageId,
   text: Schema.String,
   thinkingLevel: Schema.optional(HarnessThinkingLevel),
+  modelOverride: Schema.optional(HarnessModelOverride),
 })
 
 export const HarnessRemoteGetSnapshotCommand = Schema.TaggedStruct('remote:chat_v2_get_snapshot', {
@@ -41,6 +63,8 @@ export const HarnessRemoteRespondExtensionUiCommand = Schema.TaggedStruct('remot
   response: HarnessExtensionUIResponse,
 })
 
+export const HarnessRemoteGetModelsCommand = Schema.TaggedStruct('remote:get_available_models', {})
+
 export const HarnessRemoteCommand = Schema.Union(
   HarnessRemoteOpenSessionCommand,
   HarnessRemoteResumeSessionCommand,
@@ -48,6 +72,7 @@ export const HarnessRemoteCommand = Schema.Union(
   HarnessRemoteGetSnapshotCommand,
   HarnessRemoteAbortCommand,
   HarnessRemoteRespondExtensionUiCommand,
+  HarnessRemoteGetModelsCommand,
 )
 export type HarnessRemoteCommand = typeof HarnessRemoteCommand.Type
 
