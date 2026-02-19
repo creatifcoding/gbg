@@ -99,6 +99,12 @@ export { useMorphChat } from './hooks'
 export { useSurfaceMachine } from './hooks'
 export { useMorphTransition } from './hooks'
 export { useAdapterState } from './hooks'
+export {
+  useHarnessAdapter,
+  type UseHarnessAdapterConfig,
+  type UseHarnessAdapterResult,
+  type HarnessAdapterStatus,
+} from './hooks'
 
 // ── Skins (ARCHIVED — Tailwind-direct styling, no skin indirection) ──
 

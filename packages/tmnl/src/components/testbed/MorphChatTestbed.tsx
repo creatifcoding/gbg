@@ -19,11 +19,13 @@ import {
   MorphChat,
   createMockChatAdapter,
   createStaticAdapter,
+  useHarnessAdapter,
   PRESET_LIST,
   ALL_PRESETS,
   type ChatSurfaceSpec,
   type MorphChatAdapter,
   type MockChatAdapter,
+  type HarnessAdapterStatus,
 } from '@/lib/morphchat'
 
 // =============================================================================
@@ -57,13 +59,14 @@ const STATIC_MESSAGES = [
 // Adapter Types
 // =============================================================================
 
-type AdapterKind = 'mock' | 'static'
+type AdapterKind = 'mock' | 'static' | 'harness'
 
 interface AdapterEntry {
   kind: AdapterKind
   label: string
   description: string
-  adapter: MorphChatAdapter
+  adapter: MorphChatAdapter | null
+  badge?: string
 }
 
 // =============================================================================
@@ -93,7 +96,7 @@ function AdapterSwitcher({
           onClick={() => onSelect(entry.kind)}
           className={cn(
             'px-3 py-1 rounded font-mono border transition-all duration-200',
-            'active:scale-[0.97]',
+            'active:scale-[0.97] flex items-center gap-1.5',
             activeKind === entry.kind
               ? 'border-emerald-800 bg-emerald-500/10 text-emerald-400'
               : 'border-neutral-800 text-neutral-500 hover:border-neutral-700 hover:text-neutral-300',
@@ -102,6 +105,17 @@ function AdapterSwitcher({
           title={entry.description}
         >
           {entry.label}
+          {entry.badge && (
+            <span className={cn(
+              'px-1 rounded text-[10px] leading-tight',
+              entry.badge === 'live' ? 'bg-emerald-500/20 text-emerald-400' :
+              entry.badge === 'connecting' ? 'bg-amber-500/20 text-amber-400 animate-pulse' :
+              entry.badge === 'error' ? 'bg-red-500/20 text-red-400' :
+              'bg-neutral-800 text-neutral-500',
+            )}>
+              {entry.badge}
+            </span>
+          )}
         </button>
       ))}
     </div>
@@ -254,9 +268,13 @@ function MorphLog({ events }: { events: MorphEvent[] }) {
 function ControlPanel({
   adapter,
   activeKind,
+  harnessStatus,
+  harnessError,
 }: {
-  adapter: MorphChatAdapter
+  adapter: MorphChatAdapter | null
   activeKind: AdapterKind
+  harnessStatus?: HarnessAdapterStatus
+  harnessError?: string | null
 }) {
   if (activeKind === 'static') {
     return (
@@ -268,6 +286,47 @@ function ControlPanel({
     )
   }
 
+  if (activeKind === 'harness') {
+    return (
+      <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-neutral-800/50">
+        <span className="text-neutral-600 font-mono uppercase tracking-wider mr-2" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+          Harness
+        </span>
+        <span className={cn(
+          'font-mono',
+          harnessStatus === 'connected' ? 'text-emerald-400' :
+          harnessStatus === 'connecting' || harnessStatus === 'resolving' ? 'text-amber-400' :
+          harnessStatus === 'error' ? 'text-red-400' : 'text-neutral-400',
+        )} style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+          {harnessStatus ?? 'idle'}
+        </span>
+        {harnessError && (
+          <span className="text-red-500 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+            {harnessError}
+          </span>
+        )}
+        {adapter && (
+          <>
+            <ControlButton
+              variant="cyan"
+              onClick={() => Effect.runPromise(adapter.reconnect()).catch(() => {})}
+            >
+              Reconnect
+            </ControlButton>
+            <ControlButton variant="red" onClick={() => Effect.runPromise(adapter.cancel()).catch(() => {})}>
+              Cancel
+            </ControlButton>
+            <ControlButton variant="amber" onClick={() => Effect.runPromise(adapter.clear()).catch(() => {})}>
+              Clear
+            </ControlButton>
+          </>
+        )}
+      </div>
+    )
+  }
+
+  // Mock adapter controls
+  if (!adapter) return null
   const mockAdapter = adapter as MockChatAdapter
 
   return (
@@ -335,7 +394,7 @@ export function MorphChatTestbed() {
   const [demoRunning, setDemoRunning] = React.useState(false)
   const [activeKind, setActiveKind] = React.useState<AdapterKind>('mock')
 
-  // ── Adapters (stable) ───────────────────────────────────
+  // ── Mock Adapter (stable) ───────────────────────────────
 
   const mockAdapter = React.useMemo<MockChatAdapter>(
     () => createMockChatAdapter({
@@ -348,15 +407,39 @@ export function MorphChatTestbed() {
     [],
   )
 
+  // ── Static Adapter (stable) ─────────────────────────────
+
   const staticAdapter = React.useMemo(
     () => createStaticAdapter({ messages: STATIC_MESSAGES, label: 'Static Transcript' }),
     [],
   )
 
+  // ── Harness Adapter (live WebSocket) ────────────────────
+
+  const {
+    adapter: harnessAdapter,
+    status: harnessStatus,
+    error: harnessError,
+  } = useHarnessAdapter({
+    nodeId: 'cop-assistant',
+    role: 'operator',
+    agentName: 'Prime-Architect',
+    autoConnect: activeKind === 'harness', // only connect when selected
+    label: 'Harness (Live)',
+  })
+
+  // ── Adapter Registry ────────────────────────────────────
+
+  const harnessBadge: string | undefined =
+    harnessStatus === 'connected' ? 'live' :
+    harnessStatus === 'connecting' || harnessStatus === 'resolving' ? 'connecting' :
+    harnessStatus === 'error' ? 'error' : undefined
+
   const adapters = React.useMemo<ReadonlyArray<AdapterEntry>>(() => [
     { kind: 'mock', label: 'Mock', description: 'Full-fidelity mock with seeded agents, tasks, streaming', adapter: mockAdapter },
     { kind: 'static', label: 'Static', description: 'Read-only transcript, no interactions', adapter: staticAdapter },
-  ], [mockAdapter, staticAdapter])
+    { kind: 'harness', label: 'Harness', description: 'Live WebSocket connection to pi-ai harness runtime', adapter: harnessAdapter, badge: harnessBadge },
+  ], [mockAdapter, staticAdapter, harnessAdapter, harnessBadge])
 
   const currentAdapter = adapters.find((a) => a.kind === activeKind)?.adapter ?? mockAdapter
 
@@ -412,7 +495,12 @@ export function MorphChatTestbed() {
 
       {/* ── Toolbars ────────────────────────────────── */}
       <AdapterSwitcher entries={adapters} activeKind={activeKind} onSelect={setActiveKind} />
-      <ControlPanel adapter={currentAdapter} activeKind={activeKind} />
+      <ControlPanel
+        adapter={currentAdapter}
+        activeKind={activeKind}
+        harnessStatus={harnessStatus}
+        harnessError={harnessError}
+      />
       <PresetGallery activeTag={activeSpec._tag} onSelect={handlePresetSelect} />
       <SpecInspector spec={activeSpec} />
       <MorphLog events={morphLog} />
@@ -423,13 +511,34 @@ export function MorphChatTestbed() {
           className="w-full"
           style={{ maxWidth: activeSpec.maxWidth ? `${activeSpec.maxWidth}px` : '900px' }}
         >
-          <MorphChat.Surface
-            key={activeKind}
-            spec={activeSpec}
-            adapter={currentAdapter}
-            onMorph={handleMorph}
-            className="h-full min-h-[300px] max-h-[600px]"
-          />
+          {currentAdapter ? (
+            <MorphChat.Surface
+              key={activeKind}
+              spec={activeSpec}
+              adapter={currentAdapter}
+              onMorph={handleMorph}
+              className="h-full min-h-[300px] max-h-[600px]"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-64 border border-neutral-800/50 rounded">
+              <div className="text-center space-y-2">
+                <div
+                  className="font-mono text-neutral-500 animate-pulse"
+                  style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
+                >
+                  {harnessStatus === 'error' ? 'Connection Failed' : 'Resolving Harness Runtime…'}
+                </div>
+                {harnessError && (
+                  <div
+                    className="font-mono text-red-500/70 max-w-md"
+                    style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+                  >
+                    {harnessError}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
