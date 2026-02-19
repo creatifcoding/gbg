@@ -19,8 +19,7 @@
  * @module morphchat/hooks/useHarnessAdapter
  */
 
-import { useEffect, useRef, useState, useMemo } from 'react'
-import { Atom } from '@effect-atom/atom'
+import { useEffect, useRef, useState } from 'react'
 import { Effect } from 'effect'
 import {
   HarnessRuntime,
@@ -28,27 +27,22 @@ import {
 } from '@/lib/harness'
 import type { HarnessRuntimeShape } from '@/lib/harness/HarnessRuntime'
 import type { HarnessRole } from '@/lib/harness/schemas'
-import {
-  createHarnessAdapter,
-} from '../adapters/harness-adapter'
+import { createHarnessAdapter } from '../adapters/harness-adapter'
 import type { MorphChatAdapter } from '../schemas/adapter-types'
 import type { HarnessAdapterExtensions } from '../adapters/harness-adapter'
 
 // =============================================================================
-// Shared Layer Runtime — resolves HarnessRuntime once, reused across hooks
+// Resolve HarnessRuntime shape from the Effect Layer
 // =============================================================================
 
-const harnessRuntimeAtom = Atom.runtime(HarnessRuntimeBrowserWebSocketDefault)
-
 /**
- * Resolve the HarnessRuntime shape from the Effect Layer.
- * This is an atom-fn — call it and Effect.runPromise the result.
+ * Yields the HarnessRuntimeShape from the Layer.
+ * Effect.provide closes over the WebSocket transport —
+ * the returned shape's methods have zero remaining requirements.
  */
-const resolveHarnessRuntime = harnessRuntimeAtom.fn(
-  Effect.gen(function* () {
-    return (yield* HarnessRuntime) as HarnessRuntimeShape
-  }),
-)
+const resolveRuntime = Effect.gen(function* () {
+  return (yield* HarnessRuntime) as HarnessRuntimeShape
+}).pipe(Effect.provide(HarnessRuntimeBrowserWebSocketDefault))
 
 // =============================================================================
 // Hook Config
@@ -108,12 +102,12 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
 
     async function init() {
       try {
-        // Step 1: Resolve the HarnessRuntime shape from the Effect Layer
-        const runtimeShape = await Effect.runPromise(resolveHarnessRuntime())
+        // Step 1: Resolve HarnessRuntimeShape from the Layer
+        const runtimeShape = await Effect.runPromise(resolveRuntime)
 
         if (disposed) return
 
-        // Step 2: Create the harness adapter with the resolved shape
+        // Step 2: Create the adapter with the resolved shape
         const adapter = createHarnessAdapter({
           runtime: runtimeShape,
           nodeId,
@@ -138,7 +132,6 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
           } catch (connectErr) {
             if (!disposed) {
               console.error('[useHarnessAdapter] connect failed:', connectErr)
-              // Adapter is still usable — consumer can retry via adapter.reconnect()
               setStatus('ready')
               setError(`Connection failed: ${connectErr}`)
             }
@@ -148,7 +141,7 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
         if (!disposed) {
           console.error('[useHarnessAdapter] layer resolution failed:', err)
           setStatus('error')
-          setError(`Failed to resolve HarnessRuntime: ${err}`)
+          setError(String(err))
         }
       }
     }
