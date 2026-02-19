@@ -61,8 +61,23 @@ export {
 } from './machines'
 
 // ── Adapters ────────────────────────────────────────────────
-export { createMockChatAdapter, createHarnessAdapter } from './adapters'
-export type { HarnessAdapterConfig, HarnessAdapterExtensions } from './adapters'
+export {
+  createMockChatAdapter,
+  createHarnessAdapter,
+  createStaticAdapter,
+  createReplayAdapter,
+  createConductorAdapter,
+} from './adapters'
+export type {
+  HarnessAdapterConfig,
+  HarnessAdapterExtensions,
+  StaticAdapterConfig,
+  ReplayAdapterConfig,
+  ReplayControls,
+  ReplayStatus,
+  ConductorAdapterConfig,
+  ConductorChatAdapter,
+} from './adapters'
 export type {
   MockChatAdapter,
   MockAdapterFullConfig,

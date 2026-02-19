@@ -9,6 +9,12 @@ export type {
 export { createMockChatAdapter } from './mock-adapter'
 export { createHarnessAdapter } from './harness-adapter'
 export type { HarnessAdapterConfig, HarnessAdapterExtensions } from './harness-adapter'
+export { createStaticAdapter } from './static-adapter'
+export type { StaticAdapterConfig } from './static-adapter'
+export { createReplayAdapter } from './replay-adapter'
+export type { ReplayAdapterConfig, ReplayControls, ReplayStatus } from './replay-adapter'
+export { createConductorAdapter } from './conductor-adapter'
+export type { ConductorAdapterConfig, ConductorChatAdapter } from './conductor-adapter'
 export type {
   MockChatAdapter,
   MockAdapterFullConfig,
