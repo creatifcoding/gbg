@@ -1,48 +1,20 @@
 /**
- * useTailFollow — generic tail-follow controller for scrollable lists.
+ * useTailFollow — auto-scroll-to-bottom for streaming chat messages.
  *
- * Extracted from agent-task log controller. Domain-agnostic: works with
- * any item count and scroll container. No atom dependencies — uses local
- * React state so consumers can bridge to whatever state system they want.
+ * Inspired by Vercel's ai-chatbot `useScrollToBottom`:
+ *   - MutationObserver + ResizeObserver for reliable DOM-change detection
+ *   - Works for streaming deltas (characterData), new messages (childList),
+ *     and growing elements (ResizeObserver)
+ *   - Simple isAtBottom check — no IntersectionObserver complexity
+ *   - User scroll detection prevents disruptive auto-scroll
  *
- * ┌─────────────────────────────────────────────────────────────┐
- * │  ARCHITECTURE                                               │
- * │                                                             │
- * │  Two fixed sentinels (1px divs) at head and tail.           │
- * │  IntersectionObserver on tail sentinel, rooted to the       │
- * │  scroll container, tracks visibility.                       │
- * │                                                             │
- * │  ┌─ <div ref={head.ref} /> ────── 1px ──────────────────┐  │
- * │  │  item 0                                               │  │
- * │  │  item 1                                               │  │
- * │  │  ...                                                  │  │
- * │  │  item N                                               │  │
- * │  └─ <div ref={tail.ref} /> ────── 1px ──────────────────┘  │
- * │                                                             │
- * │  Tail Mode:                                                 │
- * │    tail sentinel visible  → tailMode = 'tail'  (LIVE)       │
- * │    tail sentinel hidden   → tailMode = 'inspect' (PAUSED)   │
- * │                                                             │
- * │  Re-engagement guard: observer only flips to tail if there  │
- * │  was recent downward scroll activity (< reengagementMs).    │
- * │  Prevents false positives from content shrink, filter, or   │
- * │  window resize.                                             │
- * │                                                             │
- * │  Tail Interrupts:                                           │
- * │    onScroll    — scrollTop moves away from tail             │
- * │    onWheel     — deltaY < 0 = wheel up                     │
- * │    onMouseDown — user clicked to inspect                    │
- * │    onTouchStart— mobile grab to scroll                      │
- * │    onKeyDown   — ArrowUp / PageUp / Home                   │
- * │                                                             │
- * │  Non-interrupts: wheel-down, ↓/PageDown/End                │
- * └─────────────────────────────────────────────────────────────┘
+ * Previous implementation relied on `useEffect([itemCount])` which missed
+ * streaming character-by-character updates within the same message element.
  *
  * @module scroll/use-tail-follow
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useScrollAnchor, type ScrollAnchorHandle } from './scroll-anchors'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -51,11 +23,9 @@ import { useScrollAnchor, type ScrollAnchorHandle } from './scroll-anchors'
 export type TailMode = 'tail' | 'inspect'
 
 export interface TailFollowConfig {
-  /** How close to the bottom (px) counts as "at tail". Default: 24 */
+  /** How close to the bottom (px) counts as "at tail". Default: 100 */
   readonly proximityPx?: number
-  /** How recently (ms) the user must have scrolled down for re-engagement. Default: 500 */
-  readonly reengagementMs?: number
-  /** Start in tail mode? Default: true */
+  /** Start in tail mode? Default: 'tail' */
   readonly initialTailMode?: TailMode
 }
 
@@ -75,30 +45,27 @@ export interface TailFollowHandle {
   readonly unreadCount: number
   /** Attach to scroll container */
   readonly scrollRef: React.RefObject<HTMLDivElement | null>
-  /** Fixed anchor at head of list */
-  readonly head: ScrollAnchorHandle
-  /** Fixed anchor at tail of list */
-  readonly tail: ScrollAnchorHandle
+  /** Sentinel ref — place a <div ref={endRef} /> at the bottom of content */
+  readonly endRef: React.RefObject<HTMLDivElement | null>
   /** Spread on the scroll container — handles all interrupt events */
   readonly tailInterruptProps: TailInterruptProps
   /** Imperatively break tail mode */
   readonly interruptTail: () => void
   /** Jump to latest + resume tail mode + clear unread */
   readonly jumpToLatest: () => void
+  /** Scroll to bottom explicitly */
+  readonly scrollToBottom: (behavior?: ScrollBehavior) => void
   /** Set tail mode explicitly */
   readonly setTailMode: (mode: TailMode) => void
   /** Reset unread counter */
   readonly clearUnread: () => void
+  /** Whether the scroll container is currently at the bottom */
+  readonly isAtBottom: boolean
 }
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-
-const PREFERS_REDUCED_MOTION =
-  typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    : false
 
 const INTERRUPT_KEYS: ReadonlySet<string> = new Set(['ArrowUp', 'PageUp', 'Home'])
 
@@ -107,149 +74,159 @@ const INTERRUPT_KEYS: ReadonlySet<string> = new Set(['ArrowUp', 'PageUp', 'Home'
 // ---------------------------------------------------------------------------
 
 /**
- * Generic tail-follow controller.
+ * Auto-scroll-to-bottom with streaming support.
  *
  * ```tsx
- * const tf = useTailFollow(messages.length, { proximityPx: 20 })
+ * const tf = useTailFollow({ proximityPx: 100 })
  *
- * <div ref={tf.scrollRef} {...tf.tailInterruptProps} className="overflow-y-auto">
- *   <div ref={tf.head.ref} className="h-px" />
- *   {messages.map(msg => <Message key={msg.id} ... />)}
- *   <div ref={tf.tail.ref} className="h-px" />
+ * <div className="relative flex-1">
+ *   <div ref={tf.scrollRef} {...tf.tailInterruptProps} className="overflow-y-auto absolute inset-0">
+ *     {messages.map(msg => <Message key={msg.id} ... />)}
+ *     <div ref={tf.endRef} className="h-px shrink-0" />
+ *   </div>
+ *   {!tf.isAtBottom && (
+ *     <button onClick={tf.jumpToLatest}>↓ Jump to latest</button>
+ *   )}
  * </div>
- *
- * {tf.tailMode === 'inspect' && tf.unreadCount > 0 && (
- *   <button onClick={tf.jumpToLatest}>↓ {tf.unreadCount} new</button>
- * )}
  * ```
  */
 export const useTailFollow = (
-  itemCount: number,
+  _itemCount?: number, // kept for backward compat but no longer drives scroll
   config: TailFollowConfig = {},
 ): TailFollowHandle => {
   const {
-    proximityPx = 24,
-    reengagementMs = 500,
+    proximityPx = 100,
     initialTailMode = 'tail',
   } = config
 
   const scrollRef = useRef<HTMLDivElement>(null)
+  const endRef = useRef<HTMLDivElement>(null)
+  const [isAtBottom, setIsAtBottom] = useState(true)
+  const isAtBottomRef = useRef(true)
+  const isUserScrollingRef = useRef(false)
   const [tailMode, setTailMode] = useState<TailMode>(initialTailMode)
   const [unreadCount, setUnreadCount] = useState(0)
 
-  const lastItemCountRef = useRef(itemCount)
-  const lastScrollTopRef = useRef(0)
-  const lastDownwardScrollAtRef = useRef(Date.now())
-
-  // ── Scroll anchors ──────────────────────────────────────
-
-  const head = useScrollAnchor({
-    scrollRef,
-    rootMargin: '0px',
-  })
-
-  const tail = useScrollAnchor({
-    scrollRef,
-    rootMargin: `0px 0px ${proximityPx}px 0px`,
-    onVisibilityChange: useCallback(
-      (visible: boolean) => {
-        if (visible) {
-          const recentActivity =
-            Date.now() - lastDownwardScrollAtRef.current < reengagementMs
-          if (recentActivity) {
-            setTailMode('tail')
-            setUnreadCount(0)
-          }
-        } else {
-          setTailMode('inspect')
-        }
-      },
-      [reengagementMs],
-    ),
-  })
-
-  // ── Scroll to tail (standard direction — scrollTop → max) ──
-
-  const scrollToTail = useCallback(
-    (behavior: ScrollBehavior = 'smooth') => {
-      const container = scrollRef.current
-      if (!container) return
-      lastDownwardScrollAtRef.current = Date.now()
-      container.scrollTo({
-        top: container.scrollHeight,
-        behavior: PREFERS_REDUCED_MOTION ? 'auto' : behavior,
-      })
-    },
-    [],
-  )
-
-  // ── Auto-follow on item count change ──────────────────────
-
+  // Keep ref in sync with state
   useEffect(() => {
-    const appended = Math.max(itemCount - lastItemCountRef.current, 0)
-    lastItemCountRef.current = itemCount
+    isAtBottomRef.current = isAtBottom
+  }, [isAtBottom])
 
-    if (appended === 0) return
+  // ── Core scroll helpers ─────────────────────────────────
 
-    if (tailMode === 'tail') {
-      // Schedule to next frame so DOM has updated
-      requestAnimationFrame(() => scrollToTail())
-      setUnreadCount(0)
-    } else {
-      setUnreadCount((prev) => prev + appended)
-    }
-  }, [itemCount, tailMode, scrollToTail])
+  const checkIfAtBottom = useCallback(() => {
+    const el = scrollRef.current
+    if (!el) return true
+    return el.scrollTop + el.clientHeight >= el.scrollHeight - proximityPx
+  }, [proximityPx])
 
-  // ── Tail interrupt handler ────────────────────────────────
-
-  const interruptTail = useCallback(() => {
-    if (tailMode !== 'tail') return
-    setTailMode('inspect')
-  }, [tailMode])
-
-  const handleScroll = useCallback(() => {
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     const el = scrollRef.current
     if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior })
+  }, [])
 
-    const scrollTop = el.scrollTop
-    const prevScrollTop = lastScrollTopRef.current
-    lastScrollTopRef.current = scrollTop
+  // ── Scroll event handling ───────────────────────────────
 
-    // Distance from bottom
-    const distFromTail = el.scrollHeight - (scrollTop + el.clientHeight)
-    const prevDistFromTail = el.scrollHeight - (prevScrollTop + el.clientHeight)
+  useEffect(() => {
+    const container = scrollRef.current
+    if (!container) return
 
-    if (distFromTail > prevDistFromTail) {
-      // User moved away from tail
-      interruptTail()
-      return
+    let scrollTimeout: ReturnType<typeof setTimeout>
+
+    const handleScroll = () => {
+      isUserScrollingRef.current = true
+      clearTimeout(scrollTimeout)
+
+      const atBottom = checkIfAtBottom()
+      setIsAtBottom(atBottom)
+      isAtBottomRef.current = atBottom
+
+      if (atBottom) {
+        setTailMode('tail')
+        setUnreadCount(0)
+      } else {
+        setTailMode('inspect')
+      }
+
+      // Reset user scrolling flag after scroll ends
+      scrollTimeout = setTimeout(() => {
+        isUserScrollingRef.current = false
+      }, 150)
     }
 
-    if (distFromTail < prevDistFromTail) {
-      // User moved toward tail
-      lastDownwardScrollAtRef.current = Date.now()
+    container.addEventListener('scroll', handleScroll, { passive: true })
+    return () => {
+      container.removeEventListener('scroll', handleScroll)
+      clearTimeout(scrollTimeout)
+    }
+  }, [checkIfAtBottom])
+
+  // ── Auto-scroll on DOM mutations (the key to streaming) ──
+
+  useEffect(() => {
+    const container = scrollRef.current
+    if (!container) return
+
+    const scrollIfNeeded = () => {
+      // Only auto-scroll if user was at bottom and isn't actively scrolling
+      if (isAtBottomRef.current && !isUserScrollingRef.current) {
+        requestAnimationFrame(() => {
+          const el = scrollRef.current
+          if (!el) return
+          el.scrollTo({ top: el.scrollHeight, behavior: 'instant' })
+          setIsAtBottom(true)
+          isAtBottomRef.current = true
+        })
+      }
     }
 
-    // Re-engage if close enough to tail
-    if (tailMode === 'inspect' && distFromTail <= proximityPx) {
-      setTailMode('tail')
-      setUnreadCount(0)
+    // Watch for DOM changes — catches streaming deltas (characterData),
+    // new messages (childList), and any subtree mutations
+    const mutationObserver = new MutationObserver(scrollIfNeeded)
+    mutationObserver.observe(container, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    })
+
+    // Watch for size changes — catches element growth from content
+    const resizeObserver = new ResizeObserver(scrollIfNeeded)
+    resizeObserver.observe(container)
+
+    // Also observe direct children for size changes
+    for (const child of container.children) {
+      resizeObserver.observe(child)
     }
-  }, [interruptTail, tailMode, proximityPx])
+
+    return () => {
+      mutationObserver.disconnect()
+      resizeObserver.disconnect()
+    }
+  }, [])
+
+  // ── Interrupt helpers ───────────────────────────────────
+
+  const interruptTail = useCallback(() => {
+    setTailMode('inspect')
+    setIsAtBottom(false)
+    isAtBottomRef.current = false
+  }, [])
 
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
-      if (e.deltaY < 0) {
-        interruptTail()
-      } else if (e.deltaY > 0) {
-        lastDownwardScrollAtRef.current = Date.now()
-      }
+      if (e.deltaY < 0) interruptTail()
     },
     [interruptTail],
   )
 
-  const handleMouseDown = useCallback(() => interruptTail(), [interruptTail])
-  const handleTouchStart = useCallback(() => interruptTail(), [interruptTail])
+  const handleMouseDown = useCallback(() => {
+    // Don't interrupt — user clicking on a message shouldn't break tail mode
+  }, [])
+
+  const handleTouchStart = useCallback(() => {
+    // Touch start alone shouldn't interrupt — scroll handler will detect direction
+  }, [])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -258,35 +235,52 @@ export const useTailFollow = (
     [interruptTail],
   )
 
-  const tailInterruptProps = useMemo<TailInterruptProps>(
-    () => ({
-      onScroll: handleScroll,
-      onWheel: handleWheel,
-      onMouseDown: handleMouseDown,
-      onTouchStart: handleTouchStart,
-      onKeyDown: handleKeyDown,
-    }),
-    [handleScroll, handleWheel, handleMouseDown, handleTouchStart, handleKeyDown],
+  // Compose onScroll — the scroll event handler does double duty
+  const handleScroll = useCallback(
+    (_e: React.UIEvent<HTMLDivElement>) => {
+      // Already handled by the passive listener above
+    },
+    [],
   )
+
+  const tailInterruptProps: TailInterruptProps = {
+    onScroll: handleScroll,
+    onWheel: handleWheel,
+    onMouseDown: handleMouseDown,
+    onTouchStart: handleTouchStart,
+    onKeyDown: handleKeyDown,
+  }
 
   const jumpToLatest = useCallback(() => {
     setTailMode('tail')
     setUnreadCount(0)
-    scrollToTail('smooth')
-  }, [scrollToTail])
+    setIsAtBottom(true)
+    isAtBottomRef.current = true
+    scrollToBottom('smooth')
+  }, [scrollToBottom])
 
   const clearUnread = useCallback(() => setUnreadCount(0), [])
+
+  // ── Backward compat shims ──────────────────────────────
+
+  // head/tail refs — endRef replaces tail.ref. head is rarely used.
+  const head = { ref: useRef<HTMLDivElement>(null), visible: false }
+  const tail = { ref: endRef, visible: isAtBottom }
 
   return {
     tailMode,
     unreadCount,
     scrollRef,
-    head,
-    tail,
+    endRef,
     tailInterruptProps,
     interruptTail,
     jumpToLatest,
+    scrollToBottom,
     setTailMode,
     clearUnread,
+    isAtBottom,
+    // Backward compat
+    head: head as any,
+    tail: tail as any,
   }
 }
