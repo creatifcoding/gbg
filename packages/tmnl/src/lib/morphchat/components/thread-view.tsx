@@ -234,6 +234,7 @@ export function ThreadView() {
   // Read directly from adapter atoms — adapter IS the state owner
   const messages = useAtomValue(adapter.messages$)
   const streaming = useAtomValue(adapter.streaming$)
+  console.log('[ThreadView] messages:', messages?.length ?? 'null', 'typeof:', typeof messages, 'isArray:', Array.isArray(messages), 'streaming:', streaming?.isStreaming)
 
   // Render streaming buffer as a virtual message when active
   const displayMessages = React.useMemo(() => {

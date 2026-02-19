@@ -39,19 +39,30 @@ import type {
   SendParams,
 } from '../schemas/message-types'
 import { DISCONNECTED, STREAMING_IDLE } from '../schemas/message-types'
+import { morphChatRegistry } from '../atoms/registry'
 
 // =============================================================================
-// Materialized View Atoms (module-level singletons)
+// Materialized View Atoms (module-level singletons, mounted to shared registry)
 // =============================================================================
 
 export const harnessMessages$ = Atom.make<ReadonlyArray<ChatMessage>>([])
+morphChatRegistry.mount(harnessMessages$)
+
 export const harnessConnection$ = Atom.make<ConnectionState>(DISCONNECTED)
+morphChatRegistry.mount(harnessConnection$)
+
 export const harnessStreaming$ = Atom.make<StreamingState>(STREAMING_IDLE)
+morphChatRegistry.mount(harnessStreaming$)
+
 export const harnessAgents$ = Atom.make<ReadonlyArray<AgentInfo>>([])
+morphChatRegistry.mount(harnessAgents$)
 
 // Internal bookkeeping — exported for cross-fn-atom reading via useAtomValue
 export const harnessSessionId$ = Atom.make<HarnessSessionId | null>(null)
+morphChatRegistry.mount(harnessSessionId$)
+
 const harnessEventFiber$ = Atom.make<Fiber.RuntimeFiber<void, unknown> | null>(null)
+morphChatRegistry.mount(harnessEventFiber$)
 
 // =============================================================================
 // Runtime Atom — Layer scope stays alive as long as atoms are mounted
@@ -63,31 +74,26 @@ const harnessRuntimeAtom = Atom.runtime(HarnessRuntimeBrowserWebSocketDefault)
 // Event Processor (pure function, mutates atoms via ctx.set)
 // =============================================================================
 
-/** Atom read/write context from fn-atom callback.
- *  IMPORTANT: ctx.set does NOT support updater functions —
- *  it sets the atom value to whatever you pass, literally.
- *  Always read current value via ctx(atom), compute new value, then set. */
-interface AtomCtx {
-  <A>(atom: Atom.Atom<A>): A
-  set: <A>(atom: Atom.Writable<A, A>, value: A) => void
-}
-
-function processEvent(
-  event: HarnessEvent,
-  agentName: string,
-  ctx: AtomCtx,
-): void {
+/**
+ * Event processor — writes to morphChatRegistry (the shared registry that
+ * React's useAtomValue subscribes to via MorphChatRegistryProvider).
+ *
+ * CRITICAL: Must use morphChatRegistry.get/set, NOT fn-atom ctx.
+ * fn-atom ctx operates on an isolated node context — writes there are
+ * invisible to React's RegistryContext subscriptions.
+ */
+function processEvent(event: HarnessEvent, agentName: string): void {
   console.log('[processEvent]', event._tag, (event as any).messageId ?? (event as any).sessionId ?? '')
   switch (event._tag) {
     case 'chat:v2/session_opened':
-      ctx.set(harnessSessionId$, event.sessionId)
-      ctx.set(harnessConnection$, { phase: 'connected', endpoint: `harness:${event.nodeId ?? ''}` } as ConnectionState)
-      ctx.set(harnessAgents$, [{ id: event.agentId, name: agentName, isActive: true }])
+      morphChatRegistry.set(harnessSessionId$, event.sessionId)
+      morphChatRegistry.set(harnessConnection$, { phase: 'connected', endpoint: `harness:${event.nodeId ?? ''}` } as ConnectionState)
+      morphChatRegistry.set(harnessAgents$, [{ id: event.agentId, name: agentName, isActive: true }])
       break
 
     case 'chat:v2/send_accepted': {
-      const msgs = ctx(harnessMessages$)
-      ctx.set(harnessMessages$, msgs.map((msg) =>
+      const msgs = morphChatRegistry.get(harnessMessages$)
+      morphChatRegistry.set(harnessMessages$, msgs.map((msg) =>
         msg.status === 'pending' ? { ...msg, status: 'sent' as const } : msg,
       ))
       break
@@ -102,16 +108,16 @@ function processEvent(
         timestamp: new Date(event.at).toISOString(),
         status: 'streaming',
       }
-      ctx.set(harnessMessages$, [...ctx(harnessMessages$), streamMsg])
-      ctx.set(harnessStreaming$, { isStreaming: true, buffer: '', messageId: event.messageId as string } as StreamingState)
+      morphChatRegistry.set(harnessMessages$, [...morphChatRegistry.get(harnessMessages$), streamMsg])
+      morphChatRegistry.set(harnessStreaming$, { isStreaming: true, buffer: '', messageId: event.messageId as string } as StreamingState)
       break
     }
 
     case 'chat:v2/assistant_delta': {
-      const prevStreaming = ctx(harnessStreaming$)
-      ctx.set(harnessStreaming$, { ...prevStreaming, buffer: prevStreaming.buffer + event.delta } as StreamingState)
+      const prev = morphChatRegistry.get(harnessStreaming$)
+      morphChatRegistry.set(harnessStreaming$, { ...prev, buffer: prev.buffer + event.delta } as StreamingState)
       const msgId = event.messageId as string
-      ctx.set(harnessMessages$, ctx(harnessMessages$).map((msg) =>
+      morphChatRegistry.set(harnessMessages$, morphChatRegistry.get(harnessMessages$).map((msg) =>
         msg.id === msgId && msg.status === 'streaming'
           ? { ...msg, content: msg.content + event.delta }
           : msg,
@@ -121,18 +127,18 @@ function processEvent(
 
     case 'chat:v2/assistant_final': {
       const finalId = event.messageId as string
-      ctx.set(harnessMessages$, ctx(harnessMessages$).map((msg) =>
+      morphChatRegistry.set(harnessMessages$, morphChatRegistry.get(harnessMessages$).map((msg) =>
         msg.id === finalId
           ? { ...msg, content: event.text, status: 'complete' as const }
           : msg,
       ))
-      ctx.set(harnessStreaming$, STREAMING_IDLE)
+      morphChatRegistry.set(harnessStreaming$, STREAMING_IDLE)
       break
     }
 
     case 'chat:v2/usage': {
       const usageId = event.messageId as string
-      ctx.set(harnessMessages$, ctx(harnessMessages$).map((msg) =>
+      morphChatRegistry.set(harnessMessages$, morphChatRegistry.get(harnessMessages$).map((msg) =>
         msg.id === usageId
           ? {
               ...msg,
@@ -149,14 +155,14 @@ function processEvent(
     }
 
     case 'chat:v2/error':
-      ctx.set(harnessConnection$, { phase: 'error', error: `[${event.code}] ${event.message}` } as ConnectionState)
-      ctx.set(harnessStreaming$, STREAMING_IDLE)
+      morphChatRegistry.set(harnessConnection$, { phase: 'error', error: `[${event.code}] ${event.message}` } as ConnectionState)
+      morphChatRegistry.set(harnessStreaming$, STREAMING_IDLE)
       break
 
     case 'chat:v2/heartbeat': {
-      const prevConn = ctx(harnessConnection$) as any
+      const prevConn = morphChatRegistry.get(harnessConnection$) as any
       const latencyMs = Date.now() - event.at
-      ctx.set(harnessConnection$, {
+      morphChatRegistry.set(harnessConnection$, {
         ...prevConn,
         latencyMs: latencyMs > 0 ? latencyMs : prevConn.latencyMs,
       } as ConnectionState)
@@ -187,34 +193,34 @@ export const harnessOps = {
     nodeId: string
     role: HarnessRole
     agentName: string
-  }>()(({ nodeId, role, agentName }, ctx) =>
+  }>()(({ nodeId, role, agentName }, _ctx) =>
     Effect.gen(function* () {
       const runtime = yield* HarnessRuntime
 
       // Tear down existing event fiber
-      const existingFiber = ctx(harnessEventFiber$)
+      const existingFiber = morphChatRegistry.get(harnessEventFiber$)
       if (existingFiber) {
         yield* Fiber.interrupt(existingFiber)
-        ctx.set(harnessEventFiber$, null)
+        morphChatRegistry.set(harnessEventFiber$, null)
       }
 
-      ctx.set(harnessConnection$, { phase: 'connecting', endpoint: `harness:${nodeId}` } as ConnectionState)
+      morphChatRegistry.set(harnessConnection$, { phase: 'connecting', endpoint: `harness:${nodeId}` } as ConnectionState)
 
       // Subscribe to event stream BEFORE openSession so we don't miss
       // the session_opened event (PubSub drops events with no subscribers).
       // forkDaemon detaches the fiber from this fn-atom's scope so it
       // survives past the connect() call returning.
       const fiber = yield* Stream.runForEach(runtime.events, (event) =>
-        Effect.sync(() => processEvent(event, agentName, ctx)),
+        Effect.sync(() => processEvent(event, agentName)),
       ).pipe(
         Effect.catchAll((err) =>
           Effect.sync(() => {
-            ctx.set(harnessConnection$, { phase: 'error', error: String(err) } as ConnectionState)
+            morphChatRegistry.set(harnessConnection$, { phase: 'error', error: String(err) } as ConnectionState)
           }),
         ),
         Effect.forkDaemon,
       )
-      ctx.set(harnessEventFiber$, fiber)
+      morphChatRegistry.set(harnessEventFiber$, fiber)
 
       // Small yield to let the PubSub subscriber register
       yield* Effect.yieldNow()
@@ -222,17 +228,15 @@ export const harnessOps = {
       // Open session — transport is already connected (eager in Layer)
       const session = yield* runtime.openSession(nodeId, role)
       console.log('[harnessOps.connect] session.sessionId:', session.sessionId)
-      ctx.set(harnessSessionId$, session.sessionId)
-      const readBack = ctx(harnessSessionId$)
-      console.log('[harnessOps.connect] readBack after set:', readBack)
+      morphChatRegistry.set(harnessSessionId$, session.sessionId)
 
       // Set connected directly — don't rely solely on the session_opened
       // event in case the event stream subscription raced the PubSub publish.
-      ctx.set(harnessConnection$, {
+      morphChatRegistry.set(harnessConnection$, {
         phase: 'connected',
         endpoint: `harness:${nodeId}`,
       } as ConnectionState)
-      ctx.set(harnessAgents$, [{
+      morphChatRegistry.set(harnessAgents$, [{
         id: session.agentId ?? nodeId,
         name: agentName,
         isActive: true,
@@ -243,7 +247,7 @@ export const harnessOps = {
       Effect.tapError((error) =>
         Effect.sync(() => {
           console.error('[harnessOps.connect] error:', error)
-          ctx.set(harnessConnection$, { phase: 'error', error: String(error) } as ConnectionState)
+          morphChatRegistry.set(harnessConnection$, { phase: 'error', error: String(error) } as ConnectionState)
         }),
       ),
     ),
@@ -256,7 +260,7 @@ export const harnessOps = {
     content: string
     thinkingLevel?: number
     sessionId: HarnessSessionId | null
-  }>()(({ content, thinkingLevel, sessionId }, ctx) =>
+  }>()(({ content, thinkingLevel, sessionId }, _ctx) =>
     Effect.gen(function* () {
       console.log('[harnessOps.send] enter, content:', content?.slice(0, 40), 'sessionId:', sessionId)
       const runtime = yield* HarnessRuntime
@@ -273,7 +277,7 @@ export const harnessOps = {
         status: 'pending',
         thinkingLevel,
       }
-      ctx.set(harnessMessages$, [...ctx(harnessMessages$), userMsg])
+      morphChatRegistry.set(harnessMessages$, [...morphChatRegistry.get(harnessMessages$), userMsg])
       console.log('[harnessOps.send] optimistic insert done, calling runtime.send...')
 
       const tl: Option.Option<HarnessThinkingLevel> =
@@ -289,8 +293,7 @@ export const harnessOps = {
       Effect.tapError((error) =>
         Effect.sync(() => {
           console.error('[harnessOps.send] ERROR:', error)
-          // Mark pending → error
-          ctx.set(harnessMessages$, ctx(harnessMessages$).map((msg) =>
+          morphChatRegistry.set(harnessMessages$, morphChatRegistry.get(harnessMessages$).map((msg) =>
             msg.status === 'pending' ? { ...msg, status: 'error' as const } : msg,
           ))
         }),
@@ -301,38 +304,38 @@ export const harnessOps = {
   /**
    * Cancel / abort the active session.
    */
-  cancel: harnessRuntimeAtom.fn<{ sessionId: HarnessSessionId | null }>()(({ sessionId }, ctx) =>
+  cancel: harnessRuntimeAtom.fn<{ sessionId: HarnessSessionId | null }>()(({ sessionId }, _ctx) =>
     Effect.gen(function* () {
       const runtime = yield* HarnessRuntime
       if (sessionId) yield* runtime.abortSession(sessionId)
-      ctx.set(harnessStreaming$, STREAMING_IDLE)
+      morphChatRegistry.set(harnessStreaming$, STREAMING_IDLE)
     }),
   ),
 
   /**
    * Full dispose — interrupt event fiber + abort session.
    */
-  dispose: harnessRuntimeAtom.fn<{ sessionId: HarnessSessionId | null }>()(({ sessionId }, ctx) =>
+  dispose: harnessRuntimeAtom.fn<{ sessionId: HarnessSessionId | null }>()(({ sessionId }, _ctx) =>
     Effect.gen(function* () {
-      const fiber = ctx(harnessEventFiber$)
+      const fiber = morphChatRegistry.get(harnessEventFiber$)
       if (fiber) {
         yield* Fiber.interrupt(fiber)
-        ctx.set(harnessEventFiber$, null)
+        morphChatRegistry.set(harnessEventFiber$, null)
       }
       const runtime = yield* HarnessRuntime
       if (sessionId) yield* runtime.abortSession(sessionId)
-      ctx.set(harnessStreaming$, STREAMING_IDLE)
-      ctx.set(harnessConnection$, DISCONNECTED)
+      morphChatRegistry.set(harnessStreaming$, STREAMING_IDLE)
+      morphChatRegistry.set(harnessConnection$, DISCONNECTED)
     }),
   ),
 
   /**
    * Clear messages and streaming state.
    */
-  clear: harnessRuntimeAtom.fn<void>()((_arg, ctx) =>
+  clear: harnessRuntimeAtom.fn<void>()((_arg, _ctx) =>
     Effect.sync(() => {
-      ctx.set(harnessMessages$, [] as ReadonlyArray<ChatMessage>)
-      ctx.set(harnessStreaming$, STREAMING_IDLE)
+      morphChatRegistry.set(harnessMessages$, [] as ReadonlyArray<ChatMessage>)
+      morphChatRegistry.set(harnessStreaming$, STREAMING_IDLE)
     }),
   ),
 }
