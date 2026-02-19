@@ -162,6 +162,12 @@ export const harnessOps = {
   /**
    * Connect: open session + fork event stream.
    * ctx.set() updates materialized view atoms as events arrive.
+   *
+   * IMPORTANT: The event stream is subscribed BEFORE openSession so we
+   * don't miss the session_opened event. The fiber is forked as a daemon
+   * so it survives past this fn-atom's completion — Effect.fork creates
+   * a child scope that dies when the parent effect completes, which is
+   * the same class of bug we fixed in HarnessBrowserTransport.
    */
   connect: harnessRuntimeAtom.fn<{
     nodeId: string
@@ -169,11 +175,9 @@ export const harnessOps = {
     agentName: string
   }>()(({ nodeId, role, agentName }, ctx) =>
     Effect.gen(function* () {
-      console.log('[harnessOps.connect] yielding HarnessRuntime from Layer...')
       const runtime = yield* HarnessRuntime
-      console.log('[harnessOps.connect] got runtime, backend:', runtime.backend)
 
-      // Tear down existing fiber
+      // Tear down existing event fiber
       const existingFiber = ctx(harnessEventFiber$)
       if (existingFiber) {
         yield* Fiber.interrupt(existingFiber)
@@ -182,13 +186,10 @@ export const harnessOps = {
 
       ctx.set(harnessConnection$, { phase: 'connecting', endpoint: `harness:${nodeId}` } as ConnectionState)
 
-      // Open session
-      console.log('[harnessOps.connect] opening session:', { nodeId, role })
-      const session = yield* runtime.openSession(nodeId, role)
-      console.log('[harnessOps.connect] session opened:', session.sessionId)
-      ctx.set(harnessSessionId$, session.sessionId)
-
-      // Fork event stream — events mutate atoms via processEvent
+      // Subscribe to event stream BEFORE openSession so we don't miss
+      // the session_opened event (PubSub drops events with no subscribers).
+      // forkDaemon detaches the fiber from this fn-atom's scope so it
+      // survives past the connect() call returning.
       const fiber = yield* Stream.runForEach(runtime.events, (event) =>
         Effect.sync(() => processEvent(event, agentName, ctx)),
       ).pipe(
@@ -197,9 +198,28 @@ export const harnessOps = {
             ctx.set(harnessConnection$, { phase: 'error', error: String(err) } as ConnectionState)
           }),
         ),
-        Effect.fork,
+        Effect.forkDaemon,
       )
       ctx.set(harnessEventFiber$, fiber)
+
+      // Small yield to let the PubSub subscriber register
+      yield* Effect.yieldNow()
+
+      // Open session — transport is already connected (eager in Layer)
+      const session = yield* runtime.openSession(nodeId, role)
+      ctx.set(harnessSessionId$, session.sessionId)
+
+      // Set connected directly — don't rely solely on the session_opened
+      // event in case the event stream subscription raced the PubSub publish.
+      ctx.set(harnessConnection$, {
+        phase: 'connected',
+        endpoint: `harness:${nodeId}`,
+      } as ConnectionState)
+      ctx.set(harnessAgents$, [{
+        id: session.agentId ?? nodeId,
+        name: agentName,
+        isActive: true,
+      }])
 
       return session.sessionId as string
     }).pipe(
@@ -264,9 +284,26 @@ export const harnessOps = {
     Effect.gen(function* () {
       const runtime = yield* HarnessRuntime
       const sessionId = ctx(harnessSessionId$)
-      if (!sessionId) return
-      yield* runtime.abortSession(sessionId)
+      if (sessionId) yield* runtime.abortSession(sessionId)
       ctx.set(harnessStreaming$, STREAMING_IDLE)
+    }),
+  ),
+
+  /**
+   * Full dispose — interrupt event fiber + abort session.
+   */
+  dispose: harnessRuntimeAtom.fn<void>()((_arg, ctx) =>
+    Effect.gen(function* () {
+      const fiber = ctx(harnessEventFiber$)
+      if (fiber) {
+        yield* Fiber.interrupt(fiber)
+        ctx.set(harnessEventFiber$, null)
+      }
+      const runtime = yield* HarnessRuntime
+      const sessionId = ctx(harnessSessionId$)
+      if (sessionId) yield* runtime.abortSession(sessionId)
+      ctx.set(harnessStreaming$, STREAMING_IDLE)
+      ctx.set(harnessConnection$, DISCONNECTED)
     }),
   ),
 
@@ -309,6 +346,7 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
   const [, doSend] = useAtom(harnessOps.send)
   const [, doCancel] = useAtom(harnessOps.cancel)
   const [, doClear] = useAtom(harnessOps.clear)
+  const [, doDispose] = useAtom(harnessOps.dispose)
 
   // Read connection state for status derivation
   const connectionState = useAtomValue(harnessConnection$)
@@ -346,7 +384,7 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
       cancel: () => Effect.sync(() => doCancel(undefined as void)),
       reconnect: () => Effect.sync(() => doConnect({ nodeId, role, agentName })),
       clear: () => Effect.sync(() => doClear(undefined as void)),
-      dispose: () => Effect.sync(() => doCancel(undefined as void)),
+      dispose: () => Effect.sync(() => doDispose(undefined as void)),
     }
   }
 
