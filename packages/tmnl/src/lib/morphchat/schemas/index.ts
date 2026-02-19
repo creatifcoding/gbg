@@ -24,6 +24,17 @@ export {
   MessageStatus,
   AttachmentKind,
   ChatAttachment,
+  // ── Message Parts (structured content blocks) ──
+  TextPart,
+  ThinkingPart,
+  ToolInvocationState,
+  ToolInvocationPart,
+  FilePart,
+  ChatMessagePart,
+  // ── Part utilities ──
+  flattenPartsToText,
+  getMessageParts,
+  // ── Message ──
   ChatMessage,
   ConnectionPhase,
   ConnectionState,
@@ -37,6 +48,12 @@ export {
 
 export type {
   ChatRole as ChatRoleType,
+  TextPart as TextPartType,
+  ThinkingPart as ThinkingPartType,
+  ToolInvocationState as ToolInvocationStateType,
+  ToolInvocationPart as ToolInvocationPartType,
+  FilePart as FilePartType,
+  ChatMessagePart as ChatMessagePartType,
   ChatMessage as ChatMessageType,
   ConnectionState as ConnectionStateType,
   StreamingState as StreamingStateType,

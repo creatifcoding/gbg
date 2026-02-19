@@ -53,6 +53,18 @@ export { ChatMessageBodyContent } from './body-content'
 export type { ChatMessageBodyContentRootProps, ChatMessageStreamCursorProps } from './body-content'
 
 // ---------------------------------------------------------------------------
+// Thinking Block (Phase A — minimal; Phase B will add compound sub-components)
+// ---------------------------------------------------------------------------
+export { ChatThinkingBlock } from './thinking-block'
+export type { ChatThinkingBlockProps } from './thinking-block'
+
+// ---------------------------------------------------------------------------
+// Tool Block (Phase A — minimal; Phase B will add compound sub-components)
+// ---------------------------------------------------------------------------
+export { ChatToolBlock } from './tool-block'
+export type { ChatToolBlockProps } from './tool-block'
+
+// ---------------------------------------------------------------------------
 // Footer Actions
 // ---------------------------------------------------------------------------
 export { ChatMessageFooterActions } from './footer-actions'

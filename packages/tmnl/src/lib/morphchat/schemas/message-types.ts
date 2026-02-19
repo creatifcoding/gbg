@@ -62,6 +62,127 @@ export const ChatAttachment = Schema.Struct({
 export type ChatAttachment = typeof ChatAttachment.Type
 
 // =============================================================================
+// Chat Message Parts — Structured content blocks within a message
+// =============================================================================
+
+/**
+ * Text part — standard message content (may contain markdown).
+ * The most common part type; a message with only text parts
+ * behaves identically to the legacy flat `content` string.
+ */
+export const TextPart = Schema.TaggedStruct('text', {
+  /** Text content, potentially markdown */
+  content: Schema.String,
+})
+export type TextPart = typeof TextPart.Type
+
+/**
+ * Thinking/reasoning part — collapsible reasoning content.
+ * Maps to harness `assistant_thinking_delta` events and
+ * `provider_marker/thinking_*` markers.
+ *
+ * Mirrors AI Elements' ReasoningUIPart.
+ */
+export const ThinkingPart = Schema.TaggedStruct('thinking', {
+  /** Accumulated thinking content */
+  content: Schema.String,
+  /** Whether thinking is still streaming */
+  isStreaming: Schema.Boolean,
+  /** Duration of thinking in milliseconds (set on completion) */
+  durationMs: Schema.optional(Schema.Number),
+})
+export type ThinkingPart = typeof ThinkingPart.Type
+
+/**
+ * Tool invocation lifecycle states.
+ *
+ * Maps to AI Elements' ToolUIPart.state but using our domain vocabulary:
+ *   AI Elements            → TMNL
+ *   input-streaming        → pending
+ *   input-available        → running
+ *   approval-requested     → approval-required
+ *   approval-responded     → approved
+ *   output-available       → completed
+ *   output-error           → error
+ *   output-denied          → denied
+ */
+export const ToolInvocationState = Schema.Literal(
+  'pending',            // Tool call started, input still streaming
+  'running',            // Input complete, executing
+  'approval-required',  // Awaiting user confirmation
+  'approved',           // User approved, executing
+  'completed',          // Output available
+  'error',              // Error occurred
+  'denied',             // User denied execution
+)
+export type ToolInvocationState = typeof ToolInvocationState.Type
+
+/**
+ * Tool invocation part — tool call with lifecycle state machine.
+ * Maps to harness `tool_event` (start/update/end) events.
+ *
+ * Mirrors AI Elements' ToolUIPart.
+ */
+export const ToolInvocationPart = Schema.TaggedStruct('tool-invocation', {
+  /** Unique tool call ID from the LLM/harness */
+  toolCallId: Schema.String,
+  /** Tool name (e.g., 'read_file', 'execute_command') */
+  toolName: Schema.String,
+  /** Current lifecycle state */
+  state: ToolInvocationState,
+  /** Input parameters (JSON-serializable) */
+  input: Schema.optional(Schema.Unknown),
+  /** Output result (JSON-serializable) */
+  output: Schema.optional(Schema.Unknown),
+  /** Error message when state === 'error' */
+  errorText: Schema.optional(Schema.String),
+})
+export type ToolInvocationPart = typeof ToolInvocationPart.Type
+
+/**
+ * File attachment part — embedded file/image reference.
+ * Maps to AI Elements' FileUIPart.
+ */
+export const FilePart = Schema.TaggedStruct('file', {
+  /** URL or data URI */
+  url: Schema.String,
+  /** MIME type (e.g., 'image/png', 'application/pdf') */
+  mediaType: Schema.String,
+  /** Original filename */
+  filename: Schema.optional(Schema.String),
+  /** File size in bytes */
+  size: Schema.optional(Schema.Number),
+})
+export type FilePart = typeof FilePart.Type
+
+/**
+ * Union of all message part types.
+ *
+ * Each part has a `_tag` discriminant for pattern matching:
+ *   - 'text'            → TextPart
+ *   - 'thinking'        → ThinkingPart
+ *   - 'tool-invocation' → ToolInvocationPart
+ *   - 'file'            → FilePart
+ *
+ * Usage:
+ *   message.parts.map(part => {
+ *     switch (part._tag) {
+ *       case 'text': return <TextBlock>{part.content}</TextBlock>
+ *       case 'thinking': return <ThinkingBlock ...part />
+ *       case 'tool-invocation': return <ToolBlock ...part />
+ *       case 'file': return <FileBlock ...part />
+ *     }
+ *   })
+ */
+export const ChatMessagePart = Schema.Union(
+  TextPart,
+  ThinkingPart,
+  ToolInvocationPart,
+  FilePart,
+)
+export type ChatMessagePart = typeof ChatMessagePart.Type
+
+// =============================================================================
 // Chat Message
 // =============================================================================
 
@@ -78,7 +199,14 @@ export const ChatMessage = Schema.Struct({
   /** Agent ID (when role === 'agent') */
   agentId: Schema.optional(Schema.String),
 
-  /** Message text content (may contain markdown) */
+  /**
+   * Flat text content — backwards-compatible summary.
+   *
+   * When `parts` is populated, this is the concatenation of all TextPart
+   * content. Consumers should prefer iterating `parts` for rich rendering
+   * and fall back to `content` for plain-text contexts (notifications,
+   * search indexing, clipboard copy).
+   */
   content: Schema.String,
 
   /** Timestamp (ISO 8601) */
@@ -86,6 +214,17 @@ export const ChatMessage = Schema.Struct({
 
   /** Current message lifecycle status */
   status: MessageStatus,
+
+  /**
+   * Structured content parts — the rich representation.
+   *
+   * Each element is a tagged union (`_tag` discriminant) that maps to
+   * a purpose-built content block component. When empty/undefined,
+   * falls back to rendering `content` as a single TextPart.
+   *
+   * Populated by adapters from structured event streams.
+   */
+  parts: Schema.optional(Schema.Array(ChatMessagePart)),
 
   /** Attached files, references, task clusters */
   attachments: Schema.optional(Schema.Array(ChatAttachment)),
@@ -110,6 +249,35 @@ export const ChatMessage = Schema.Struct({
   })),
 })
 export type ChatMessage = typeof ChatMessage.Type
+
+// =============================================================================
+// Part Utilities
+// =============================================================================
+
+/**
+ * Extract flat text content from message parts.
+ * Concatenates all TextPart content values, ignoring thinking/tool/file parts.
+ * Used for backwards-compatible `content` field derivation.
+ */
+export function flattenPartsToText(parts: ReadonlyArray<ChatMessagePart>): string {
+  return parts
+    .filter((p): p is TextPart => p._tag === 'text')
+    .map((p) => p.content)
+    .join('')
+}
+
+/**
+ * Get effective parts from a ChatMessage.
+ * If `parts` is populated, returns it.
+ * Otherwise, wraps `content` in a single TextPart for uniform rendering.
+ */
+export function getMessageParts(message: ChatMessage): ReadonlyArray<ChatMessagePart> {
+  if (message.parts && message.parts.length > 0) {
+    return message.parts
+  }
+  // Backwards compat: wrap flat content as a single text part
+  return [{ _tag: 'text' as const, content: message.content }]
+}
 
 // =============================================================================
 // Connection State

@@ -34,12 +34,16 @@ import type {
 } from '../schemas/adapter-types'
 import type {
   ChatMessage,
+  ChatMessagePart,
+  TextPart,
+  ThinkingPart,
+  ToolInvocationPart,
   ConnectionState,
   StreamingState,
   AgentInfo,
   SendParams,
 } from '../schemas/message-types'
-import { CONNECTED, DISCONNECTED, STREAMING_IDLE } from '../schemas/message-types'
+import { CONNECTED, DISCONNECTED, STREAMING_IDLE, flattenPartsToText } from '../schemas/message-types'
 import { morphChatRegistry } from '../atoms/registry'
 
 import type { HarnessRuntimeShape } from '@/lib/harness/HarnessRuntime'
@@ -150,6 +154,111 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
   let eventFiber: Fiber.RuntimeFiber<void, unknown> | null = null
   let reconnectAttempts = 0
 
+  // ── Parts Helpers ────────────────────────────────────────
+
+  /**
+   * Update parts on a specific message by ID.
+   * Uses a mapper function over the current parts array.
+   */
+  function updateMessageParts(
+    messageId: string,
+    mapper: (parts: ReadonlyArray<ChatMessagePart>) => ReadonlyArray<ChatMessagePart>,
+  ): void {
+    morphChatRegistry.set(messages$, (prev) =>
+      prev.map((msg) => {
+        if (msg.id !== messageId) return msg
+        const currentParts = msg.parts ?? []
+        const newParts = mapper(currentParts)
+        // Keep flat content in sync: concatenate all text parts
+        const newContent = flattenPartsToText(newParts)
+        return { ...msg, parts: newParts, content: newContent || msg.content }
+      }),
+    )
+  }
+
+  /**
+   * Append text delta to the last TextPart, or create a new one.
+   * This coalesces adjacent text deltas into a single TextPart.
+   */
+  function appendTextDelta(parts: ReadonlyArray<ChatMessagePart>, delta: string): ReadonlyArray<ChatMessagePart> {
+    const arr = [...parts]
+    const lastIdx = arr.length - 1
+    if (lastIdx >= 0 && arr[lastIdx]._tag === 'text') {
+      // Append to existing text part
+      const textPart = arr[lastIdx] as TextPart
+      arr[lastIdx] = { ...textPart, content: textPart.content + delta }
+    } else {
+      // Create new text part
+      arr.push({ _tag: 'text' as const, content: delta })
+    }
+    return arr
+  }
+
+  /**
+   * Update or create a ThinkingPart in the parts array.
+   * There's at most one active thinking part per message (the latest one).
+   */
+  function appendThinkingDelta(parts: ReadonlyArray<ChatMessagePart>, delta: string): ReadonlyArray<ChatMessagePart> {
+    const arr = [...parts]
+    // Find the last thinking part that's still streaming
+    const thinkingIdx = arr.findLastIndex(
+      (p) => p._tag === 'thinking' && (p as ThinkingPart).isStreaming,
+    )
+    if (thinkingIdx >= 0) {
+      const tp = arr[thinkingIdx] as ThinkingPart
+      arr[thinkingIdx] = { ...tp, content: tp.content + delta }
+    } else {
+      // Create new streaming thinking part
+      arr.push({
+        _tag: 'thinking' as const,
+        content: delta,
+        isStreaming: true,
+      })
+    }
+    return arr
+  }
+
+  /**
+   * Finalize thinking: mark all streaming thinking parts as complete.
+   */
+  function finalizeThinking(parts: ReadonlyArray<ChatMessagePart>, durationMs?: number): ReadonlyArray<ChatMessagePart> {
+    return parts.map((p) =>
+      p._tag === 'thinking' && (p as ThinkingPart).isStreaming
+        ? { ...p, isStreaming: false, durationMs } as ThinkingPart
+        : p,
+    )
+  }
+
+  /**
+   * Upsert a ToolInvocationPart in the parts array.
+   */
+  function upsertToolPart(
+    parts: ReadonlyArray<ChatMessagePart>,
+    toolCallId: string,
+    update: Partial<ToolInvocationPart> & { toolName: string; state: ToolInvocationPart['state'] },
+  ): ReadonlyArray<ChatMessagePart> {
+    const arr = [...parts]
+    const idx = arr.findIndex(
+      (p) => p._tag === 'tool-invocation' && (p as ToolInvocationPart).toolCallId === toolCallId,
+    )
+    if (idx >= 0) {
+      // Update existing
+      arr[idx] = { ...(arr[idx] as ToolInvocationPart), ...update }
+    } else {
+      // Create new
+      arr.push({
+        _tag: 'tool-invocation' as const,
+        toolCallId,
+        ...update,
+      } as ToolInvocationPart)
+    }
+    return arr
+  }
+
+  // ── Thinking timing tracker ────────────────────────────
+
+  let thinkingStartTime: number | null = null
+
   // ── Event Processor ─────────────────────────────────────
 
   function processEvent(event: HarnessEvent): void {
@@ -183,7 +292,7 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
       }
 
       case 'chat:v2/assistant_start': {
-        // Create new streaming message
+        // Create new streaming message with empty parts array
         const streamMsg: ChatMessage = {
           id: event.messageId as string,
           role: 'agent',
@@ -191,6 +300,7 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
           content: '',
           timestamp: new Date(event.at).toISOString(),
           status: 'streaming',
+          parts: [],  // ← structured parts, populated by subsequent events
         }
         morphChatRegistry.set(messages$, (prev) => [...prev, streamMsg])
         morphChatRegistry.set(streaming$, {
@@ -199,40 +309,67 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
           messageId: event.messageId as string,
           tokensReceived: 0,
         })
+        // Reset thinking timer
+        thinkingStartTime = null
         break
       }
 
       case 'chat:v2/assistant_delta': {
-        // Append delta to streaming buffer and message content
+        const msgId = event.messageId as string
+        // Append delta to streaming buffer (legacy)
         morphChatRegistry.set(streaming$, (prev) => ({
           ...prev,
           buffer: prev.buffer + event.delta,
           tokensReceived: (prev.tokensReceived ?? 0) + 1,
         }))
-        morphChatRegistry.set(messages$, (prev) =>
-          prev.map((msg) =>
-            msg.id === (event.messageId as string) && msg.status === 'streaming'
-              ? { ...msg, content: msg.content + event.delta }
-              : msg,
-          ),
-        )
+        // Update parts: append text delta
+        updateMessageParts(msgId, (parts) => appendTextDelta(parts, event.delta))
         break
       }
 
       case 'chat:v2/assistant_thinking_delta': {
-        // Thinking deltas — could surface in a thinking indicator atom
-        // For now, we don't append thinking to message content
+        const msgId = event.messageId as string
+        // Start thinking timer on first thinking delta
+        if (thinkingStartTime === null) {
+          thinkingStartTime = Date.now()
+        }
+        // Update parts: append thinking delta
+        updateMessageParts(msgId, (parts) => appendThinkingDelta(parts, event.delta))
         break
       }
 
       case 'chat:v2/assistant_final': {
-        // Finalize the streaming message
+        const msgId = event.messageId as string
+        // Calculate thinking duration
+        const thinkingDuration = thinkingStartTime != null
+          ? Date.now() - thinkingStartTime
+          : undefined
+        thinkingStartTime = null
+
+        // Finalize: mark thinking complete, set final text content
         morphChatRegistry.set(messages$, (prev) =>
-          prev.map((msg) =>
-            msg.id === (event.messageId as string)
-              ? { ...msg, content: event.text, status: 'complete' as const }
-              : msg,
-          ),
+          prev.map((msg) => {
+            if (msg.id !== msgId) return msg
+            // Finalize thinking parts
+            let finalParts = finalizeThinking(msg.parts ?? [], thinkingDuration)
+            // If the final text differs from accumulated text parts,
+            // reconcile by replacing the last text part or creating one
+            const currentText = flattenPartsToText(finalParts)
+            if (event.text !== currentText) {
+              // Replace all text parts with the authoritative final text
+              const nonTextParts = finalParts.filter((p) => p._tag !== 'text')
+              finalParts = [
+                ...nonTextParts,
+                { _tag: 'text' as const, content: event.text },
+              ]
+            }
+            return {
+              ...msg,
+              content: event.text,
+              status: 'complete' as const,
+              parts: finalParts,
+            }
+          }),
         )
         morphChatRegistry.set(streaming$, STREAMING_IDLE)
         break
@@ -259,7 +396,31 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
       }
 
       case 'chat:v2/tool_event': {
-        // Map tool events to inline task state
+        // Find the currently streaming message to attach tool parts
+        const currentMessages = morphChatRegistry.get(messages$)
+        const streamingMsg = currentMessages.find((m) => m.status === 'streaming')
+        const targetMsgId = streamingMsg?.id
+
+        // Map tool phase → ToolInvocationState
+        const toolState = event.phase === 'start'
+          ? 'pending' as const
+          : event.phase === 'end'
+            ? 'completed' as const
+            : 'running' as const
+
+        // Update parts on the streaming message
+        if (targetMsgId) {
+          updateMessageParts(targetMsgId, (parts) =>
+            upsertToolPart(parts, event.toolCallId, {
+              toolName: event.toolName,
+              state: toolState,
+              input: event.phase === 'start' ? event.payload : undefined,
+              output: event.phase === 'end' ? event.payload : undefined,
+            }),
+          )
+        }
+
+        // Also maintain legacy inlineTasks$ for backward compatibility
         morphChatRegistry.set(inlineTasks$, (prev) => {
           const existing = prev as ReadonlyArray<Record<string, unknown>>
           const idx = existing.findIndex(
@@ -317,8 +478,11 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
       }
 
       case 'chat:v2/provider_marker': {
-        // Provider markers give fine-grained streaming info
-        // We already handle assistant_delta for content, so this is supplementary
+        // Provider markers give fine-grained streaming info.
+        // The coarse events (assistant_delta, assistant_thinking_delta)
+        // already populate parts. Provider markers could be used for
+        // more granular control (e.g., tool_call input streaming)
+        // but aren't needed for MVP parts rendering.
         break
       }
 
@@ -393,7 +557,7 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
 
       const clientMessageId = createClientMessageId()
 
-      // Optimistic: add user message immediately
+      // Optimistic: add user message immediately with parts
       const userMsg: ChatMessage = {
         id: clientMessageId as string,
         role: 'operator',
@@ -401,6 +565,7 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
         timestamp: new Date().toISOString(),
         status: 'pending',
         thinkingLevel: params.thinkingLevel,
+        parts: [{ _tag: 'text' as const, content: params.content }],
       }
       morphChatRegistry.set(messages$, (prev) => [...prev, userMsg])
 

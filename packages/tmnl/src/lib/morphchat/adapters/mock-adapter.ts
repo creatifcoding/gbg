@@ -240,6 +240,7 @@ function createSeedMessages(seedTasks: boolean): ReadonlyArray<ChatMessage> {
       content: 'MorphChat surface initialized. Conductor visual grammar is mounted.',
       timestamp: new Date(Date.now() - 120000).toISOString(),
       status: 'complete',
+      parts: [{ _tag: 'text', content: 'MorphChat surface initialized. Conductor visual grammar is mounted.' }],
     },
     {
       id: 'user-1',
@@ -248,6 +249,7 @@ function createSeedMessages(seedTasks: boolean): ReadonlyArray<ChatMessage> {
       content: 'Compose the shell and inline task lane in isolation.',
       timestamp: new Date(Date.now() - 90000).toISOString(),
       status: 'complete',
+      parts: [{ _tag: 'text', content: 'Compose the shell and inline task lane in isolation.' }],
     },
     {
       id: 'assistant-1',
@@ -257,6 +259,18 @@ function createSeedMessages(seedTasks: boolean): ReadonlyArray<ChatMessage> {
       content: 'Composition complete. Inline task feed attached.',
       timestamp: new Date(Date.now() - 75000).toISOString(),
       status: 'complete',
+      parts: [
+        { _tag: 'thinking', content: 'Analyzing shell structure and inline task lane dependencies...', isStreaming: false, durationMs: 2100 },
+        { _tag: 'text', content: 'Composition complete. Inline task feed attached.' },
+        ...(seedTasks ? [{
+          _tag: 'tool-invocation' as const,
+          toolCallId: 'tc-analysis-setup',
+          toolName: 'dispatch_tasks',
+          state: 'completed' as const,
+          input: { pipeline: 'analysis', taskCount: 3 },
+          output: { dispatched: ANALYSIS_TASKS.map(t => t.taskId) },
+        }] : []),
+      ],
       ...(seedTasks ? { taskIds: ANALYSIS_TASKS.map(t => t.taskId) } : {}),
     },
     {
@@ -266,6 +280,7 @@ function createSeedMessages(seedTasks: boolean): ReadonlyArray<ChatMessage> {
       content: 'Execute remediation protocol. Lock V-4821-A, deploy bypass, confirm pressure decay.',
       timestamp: new Date(Date.now() - 60000).toISOString(),
       status: 'complete',
+      parts: [{ _tag: 'text', content: 'Execute remediation protocol. Lock V-4821-A, deploy bypass, confirm pressure decay.' }],
     },
     {
       id: 'assistant-2',
@@ -275,6 +290,35 @@ function createSeedMessages(seedTasks: boolean): ReadonlyArray<ChatMessage> {
       content: 'Initiating remediation pipeline for Sector 4 intake valve V-4821-A. 5 tasks dispatched.',
       timestamp: new Date(Date.now() - 45000).toISOString(),
       status: 'complete',
+      parts: [
+        { _tag: 'thinking', content: 'Evaluating remediation sequence for V-4821-A. Need to lock valve, deploy bypass, then monitor pressure decay. Standard three-phase protocol.', isStreaming: false, durationMs: 3400 },
+        { _tag: 'text', content: 'Initiating remediation pipeline for Sector 4 intake valve V-4821-A. 5 tasks dispatched.' },
+        ...(seedTasks ? [
+          {
+            _tag: 'tool-invocation' as const,
+            toolCallId: 'tc-valve-lock',
+            toolName: 'lock_valve',
+            state: 'completed' as const,
+            input: { valve: 'V-4821-A', position: '62%' },
+            output: { locked: true, position: '62%' },
+          },
+          {
+            _tag: 'tool-invocation' as const,
+            toolCallId: 'tc-bypass-deploy',
+            toolName: 'deploy_bypass',
+            state: 'completed' as const,
+            input: { circuit: 'PR-4821B' },
+            output: { activated: true },
+          },
+          {
+            _tag: 'tool-invocation' as const,
+            toolCallId: 'tc-monitor-pressure',
+            toolName: 'monitor_pressure',
+            state: 'running' as const,
+            input: { duration: '60s', sampleRate: '1Hz' },
+          },
+        ] : []),
+      ],
       ...(seedTasks ? { taskIds: REMEDIATION_TASKS.map(t => t.taskId) } : {}),
     },
   ]
@@ -494,7 +538,7 @@ export function createMockChatAdapter(
 
         streamTimeout = setTimeout(streamWord, 30 + Math.random() * 60)
       } else {
-        // Streaming complete — finalize message
+        // Streaming complete — finalize message with parts
         appendMessage({
           id: msgId,
           role: 'agent',
@@ -503,6 +547,7 @@ export function createMockChatAdapter(
           content: buffer,
           timestamp: createMockTimestamp(),
           status: 'complete',
+          parts: [{ _tag: 'text', content: buffer }],
         })
 
         morphChatRegistry.set(streaming$, STREAMING_IDLE)
@@ -525,6 +570,7 @@ export function createMockChatAdapter(
         timestamp: createMockTimestamp(),
         status: 'complete',
         thinkingLevel: params.thinkingLevel,
+        parts: [{ _tag: 'text', content: params.content }],
       }
       appendMessage(userMsg)
       morphChatRegistry.set(draft$, '')
@@ -544,14 +590,16 @@ export function createMockChatAdapter(
       }
       const current = morphChatRegistry.get(streaming$)
       if (current.isStreaming && current.messageId) {
+        const cancelledContent = current.buffer + ' [cancelled]'
         appendMessage({
           id: current.messageId,
           role: 'agent',
           authorName: 'Val',
           agentId: 'agent-val',
-          content: current.buffer + ' [cancelled]',
+          content: cancelledContent,
           timestamp: createMockTimestamp(),
           status: 'complete',
+          parts: [{ _tag: 'text', content: cancelledContent }],
         })
       }
       morphChatRegistry.set(streaming$, STREAMING_IDLE)

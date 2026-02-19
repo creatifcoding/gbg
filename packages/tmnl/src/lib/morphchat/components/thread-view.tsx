@@ -17,7 +17,8 @@ import { cn } from '@/lib/utils'
 import { ChatThreadBand, type ChatThreadAutoScrollMode } from '@/lib/chat/shell'
 import { ThreadTailControls } from './thread-tail-controls'
 import { useMorphChatContext } from './surface-context'
-import type { ChatMessage, ChatRole } from '../schemas/message-types'
+import type { ChatMessage, ChatRole, ChatMessagePart } from '../schemas/message-types'
+import { getMessageParts } from '../schemas/message-types'
 import type { MockChatAdapter } from '../adapters/mock-adapter'
 import type { AgentTask } from '@/lib/chat/msg/inline-task-types'
 import { AnalysisCard, RemediationCard } from './artifact-cards'
@@ -29,6 +30,8 @@ import {
   ChatMessageBodyContent,
   ChatMessageFooterActions,
   ChatMessageSeverityRails,
+  ChatThinkingBlock,
+  ChatToolBlock,
 } from '@/lib/chat/msg'
 import type { ChatMessageRole } from '@/lib/chat/msg'
 
@@ -76,6 +79,69 @@ function resolveAutoScroll(scrollBehavior: string): ChatThreadAutoScrollMode {
 // Message Renderers (per thread mode)
 // =============================================================================
 
+// =============================================================================
+// Part Renderer — renders a single ChatMessagePart by _tag discriminant
+// =============================================================================
+
+function PartRenderer({
+  part,
+  isStreaming,
+  isLatest,
+}: {
+  part: ChatMessagePart
+  isStreaming: boolean
+  isLatest: boolean
+}) {
+  switch (part._tag) {
+    case 'text':
+      return (
+        <ChatMessageBodyContent>
+          <ChatMessageBodyContent.Root streaming={isStreaming}>
+            {part.content}
+          </ChatMessageBodyContent.Root>
+          {isStreaming && isLatest && <ChatMessageBodyContent.StreamCursor />}
+        </ChatMessageBodyContent>
+      )
+    case 'thinking':
+      return (
+        <ChatThinkingBlock
+          content={part.content}
+          isStreaming={part.isStreaming}
+          durationMs={part.durationMs}
+        />
+      )
+    case 'tool-invocation':
+      return (
+        <ChatToolBlock
+          toolCallId={part.toolCallId}
+          toolName={part.toolName}
+          state={part.state}
+          input={part.input}
+          output={part.output}
+          errorText={part.errorText}
+        />
+      )
+    case 'file':
+      // Phase C will add a proper FileAttachment component
+      return (
+        <div className="flex items-center gap-2 px-2 py-1 rounded border border-neutral-800 my-1">
+          <span className="text-neutral-500" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>📎</span>
+          <a
+            href={part.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-cyan-400 font-mono truncate hover:underline"
+            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+          >
+            {part.filename ?? part.mediaType}
+          </a>
+        </div>
+      )
+    default:
+      return null
+  }
+}
+
 /** Full fidelity message — role badges, timestamps, task pipelines, animations */
 function FullMessage({
   message,
@@ -93,6 +159,7 @@ function FullMessage({
     : ''
 
   const hasTasks = tasks && tasks.length > 0
+  const parts = getMessageParts(message)
 
   return (
     <ChatMessageShellRoot role={chatRole} streaming={isStreaming}>
@@ -105,10 +172,16 @@ function FullMessage({
           <ChatMessageHeaderCluster.Timestamp>{ts}</ChatMessageHeaderCluster.Timestamp>
           {isStreaming && <ChatMessageHeaderCluster.StreamingBadge streaming role={chatRole} />}
         </ChatMessageHeaderCluster>
-        <ChatMessageBodyContent>
-          <ChatMessageBodyContent.Root>{message.content}</ChatMessageBodyContent.Root>
-          {isStreaming && isLatest && <ChatMessageBodyContent.StreamCursor />}
-        </ChatMessageBodyContent>
+
+        {/* ── Structured Parts Rendering ── */}
+        {parts.map((part, idx) => (
+          <PartRenderer
+            key={`${message.id}-part-${idx}`}
+            part={part}
+            isStreaming={isStreaming}
+            isLatest={isLatest}
+          />
+        ))}
 
         {/* ── Artifact Cards (when message carries tasks) ── */}
         {hasTasks && (
