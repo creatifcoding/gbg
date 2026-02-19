@@ -170,12 +170,25 @@ export const surfaceMachine = setup({
           target: 'active',
           actions: 'clearMorphTarget',
         },
+        // Interruptible: new MORPH during morphing applies current
+        // target immediately then starts the new morph
+        MORPH: [
+          {
+            guard: 'isSameSpec',
+          },
+          {
+            target: 'morphing',
+            guard: 'hasValidMorphTarget',
+            actions: ['applyMorphTarget', 'assignMorphTarget'],
+            reenter: true,
+          },
+        ],
         ERROR: {
           target: 'error',
           actions: ['clearMorphTarget', 'assignError'],
         },
       },
-      // Auto-complete morph after timeout as safety net
+      // Auto-complete morph after safety timeout
       after: {
         3000: {
           target: 'active',
