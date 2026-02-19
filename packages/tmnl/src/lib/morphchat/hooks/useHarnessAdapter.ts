@@ -13,7 +13,7 @@
  * @module morphchat/hooks/useHarnessAdapter
  */
 
-import { useEffect, useRef, useCallback } from 'react'
+import React, { useEffect, useRef, useCallback, useMemo } from 'react'
 import { Atom, useAtomValue, useAtom, Result } from '@effect-atom/atom-react'
 import { Effect, Option, Stream, Fiber } from 'effect'
 import {
@@ -379,7 +379,7 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
   // Build adapter — recreated when sessionId changes so send/cancel/dispose
   // always capture the current sessionId via closure.
   const adapterRef = useRef<MorphChatAdapter>(null!)
-  const adapter = React.useMemo<MorphChatAdapter>(() => {
+  const adapter = useMemo<MorphChatAdapter>(() => {
     const a: MorphChatAdapter = {
       adapterId: `harness-${nodeId}`,
       label: `Harness (${nodeId})`,
