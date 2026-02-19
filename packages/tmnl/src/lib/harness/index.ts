@@ -1,11 +1,6 @@
+// ── Browser-safe exports ──
+// These modules use only browser-compatible APIs (WebSocket, fetch, Effect, etc.)
 export * from './schemas'
-export * from './HarnessSessionStore'
-export * from './HarnessSessionStoreMemory'
-export * from './PiAiPolicy'
-export * from './PiAiEventAdapter'
-export * from './PiAiStreamClient'
-export * from './PiAiToolRuntime'
-export * from './PiAiHarnessEngine'
 export * from './HarnessBrowserRemoteSchemas'
 export * from './HarnessBrowserTransport'
 export * from './HarnessRuntime'
