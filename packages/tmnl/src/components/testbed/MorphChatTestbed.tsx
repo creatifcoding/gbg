@@ -506,7 +506,7 @@ export function MorphChatTestbed() {
       <MorphLog events={morphLog} />
 
       {/* ── Surface ─────────────────────────────────── */}
-      <div className="flex-1 min-h-0 p-6 flex items-start justify-center">
+      <div className="flex-1 min-h-0 p-6 flex items-stretch justify-center">
         <div
           className="w-full"
           style={{ maxWidth: activeSpec.maxWidth ? `${activeSpec.maxWidth}px` : '900px' }}
