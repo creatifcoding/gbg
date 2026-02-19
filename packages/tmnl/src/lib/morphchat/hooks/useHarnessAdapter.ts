@@ -57,6 +57,23 @@ morphChatRegistry.mount(harnessStreaming$)
 export const harnessAgents$ = Atom.make<ReadonlyArray<AgentInfo>>([])
 morphChatRegistry.mount(harnessAgents$)
 
+// Model selection atoms
+export const harnessAvailableModels$ = Atom.make<ReadonlyArray<{
+  readonly id: string
+  readonly label: string
+  readonly provider: string
+  readonly description?: string
+  readonly color?: string
+}>>([])
+morphChatRegistry.mount(harnessAvailableModels$)
+
+export const harnessSelectedModel$ = Atom.make<string | null>(null)
+morphChatRegistry.mount(harnessSelectedModel$)
+
+// Internal: pending model override for next send
+const harnessModelOverride$ = Atom.make<{ provider: string; modelId: string } | null>(null)
+morphChatRegistry.mount(harnessModelOverride$)
+
 // Internal bookkeeping — exported for cross-fn-atom reading via useAtomValue
 export const harnessSessionId$ = Atom.make<HarnessSessionId | null>(null)
 morphChatRegistry.mount(harnessSessionId$)
@@ -254,7 +271,30 @@ export const harnessOps = {
   ),
 
   /**
+   * Fetch available models from the server and populate availableModels$.
+   */
+  fetchModels: harnessRuntimeAtom.fn<void>()((_arg, _ctx) =>
+    Effect.gen(function* () {
+      const runtime = yield* HarnessRuntime
+      const models = yield* runtime.getAvailableModels()
+      morphChatRegistry.set(harnessAvailableModels$, models.map((m) => ({
+        id: m.id,
+        label: m.name,
+        provider: m.provider,
+        description: `${m.provider} · ${m.contextWindow.toLocaleString()} ctx`,
+      })))
+    }).pipe(
+      Effect.catchAll((err) =>
+        Effect.sync(() => {
+          console.warn('[harnessOps.fetchModels] failed:', err)
+        }),
+      ),
+    ),
+  ),
+
+  /**
    * Send a message. Optimistic insert as pending, then send to harness.
+   * If a model override is pending (from selectModel), attaches it to the send.
    */
   send: harnessRuntimeAtom.fn<{
     content: string
@@ -262,7 +302,6 @@ export const harnessOps = {
   }>()(({ content, thinkingLevel }, _ctx) =>
     Effect.gen(function* () {
       const sessionId = morphChatRegistry.get(harnessSessionId$)
-      console.log('[harnessOps.send] enter, content:', content?.slice(0, 40), 'sessionId:', sessionId)
       const runtime = yield* HarnessRuntime
       if (!sessionId) return yield* Effect.fail(new Error('No active session'))
 
@@ -278,7 +317,6 @@ export const harnessOps = {
         thinkingLevel,
       }
       morphChatRegistry.set(harnessMessages$, [...morphChatRegistry.get(harnessMessages$), userMsg])
-      console.log('[harnessOps.send] optimistic insert done, calling runtime.send...')
 
       const tl: Option.Option<HarnessThinkingLevel> =
         thinkingLevel == null || thinkingLevel === 0 ? Option.none() :
@@ -287,8 +325,11 @@ export const harnessOps = {
         thinkingLevel <= 3 ? Option.some('medium' as HarnessThinkingLevel) :
         Option.some('high' as HarnessThinkingLevel)
 
-      yield* runtime.send(sessionId, clientMessageId, content, tl)
-      console.log('[harnessOps.send] ✓ runtime.send completed')
+      // Consume pending model override (one-shot: applied to this message, then cleared)
+      const override = morphChatRegistry.get(harnessModelOverride$)
+      if (override) morphChatRegistry.set(harnessModelOverride$, null)
+
+      yield* runtime.send(sessionId, clientMessageId, content, tl, override ?? undefined)
     }).pipe(
       Effect.tapError((error) =>
         Effect.sync(() => {
@@ -371,6 +412,7 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
   const [, doCancel] = useAtom(harnessOps.cancel)
   const [, doClear] = useAtom(harnessOps.clear)
   const [, doDispose] = useAtom(harnessOps.dispose)
+  const [, doFetchModels] = useAtom(harnessOps.fetchModels)
 
   // Derive status from connect result — the fn-atom Result tells us
   // whether connect succeeded or failed. For live connection phase,
@@ -408,10 +450,18 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
   useEffect(() => {
     if (autoConnect && !hasConnected.current) {
       hasConnected.current = true
-      console.log('[useHarnessAdapter] auto-connecting:', { nodeId, role, agentName })
       doConnect({ nodeId, role, agentName })
     }
   }, [autoConnect, nodeId, role, agentName, doConnect])
+
+  // Fetch models once connected
+  const hasFetchedModels = useRef(false)
+  useEffect(() => {
+    if (status === 'connected' && !hasFetchedModels.current) {
+      hasFetchedModels.current = true
+      doFetchModels(undefined as void)
+    }
+  }, [status, doFetchModels])
 
   // Build adapter — stable identity, all state reads go through morphChatRegistry
   const adapter = useRef<MorphChatAdapter>(null!)
@@ -423,6 +473,17 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
       connection$: harnessConnection$,
       streaming$: harnessStreaming$,
       agents$: harnessAgents$,
+      availableModels$: harnessAvailableModels$,
+      selectedModel$: harnessSelectedModel$,
+      selectModel: (modelId: string) => {
+        // Find provider from available models
+        const models = morphChatRegistry.get(harnessAvailableModels$)
+        const target = models.find((m) => m.id === modelId)
+        if (target) {
+          morphChatRegistry.set(harnessSelectedModel$, modelId)
+          morphChatRegistry.set(harnessModelOverride$, { provider: target.provider, modelId })
+        }
+      },
       send: (params: SendParams) =>
         Effect.sync(() => doSend({ content: params.content, thinkingLevel: params.thinkingLevel })),
       cancel: () => Effect.sync(() => doCancel(undefined as void)),

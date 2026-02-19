@@ -15,10 +15,12 @@ import {
 } from './HarnessBrowserTransport'
 import {
   HarnessRemoteEventEnvelope,
+  HarnessRemoteModelListPayload,
   HarnessRemoteResponse,
   HarnessRemoteSendAckPayload,
   HarnessRemoteSessionPayload,
   HarnessRemoteSnapshotPayload,
+  type HarnessModelOverride,
 } from './HarnessBrowserRemoteSchemas'
 import {
   HarnessRuntime,
@@ -143,15 +145,16 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
         Effect.withSpan('tmnl.harness.runtime.browser.resume-session'),
       )
 
-    const send: HarnessRuntimeShape['send'] = (sessionId, clientMessageId, text, thinkingLevel) =>
+    const send: HarnessRuntimeShape['send'] = (sessionId, clientMessageId, text, thinkingLevel, modelOverride?) =>
       requestData(
         transport,
         {
-          _tag: 'remote:chat_v2_send',
+          _tag: 'remote:chat_v2_send' as const,
           sessionId,
           clientMessageId,
           text,
           thinkingLevel: optionToOptionalField(thinkingLevel),
+          ...(modelOverride ? { modelOverride } : {}),
         },
         HarnessRemoteSendAckPayload,
       ).pipe(
@@ -165,6 +168,17 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
         ),
         Effect.mapError(toRuntimeError('send-failed', 'Failed to send harness browser prompt')),
         Effect.withSpan('tmnl.harness.runtime.browser.send'),
+      )
+
+    const getAvailableModels: HarnessRuntimeShape['getAvailableModels'] = () =>
+      requestData(
+        transport,
+        { _tag: 'remote:get_available_models' as const },
+        HarnessRemoteModelListPayload,
+      ).pipe(
+        Effect.map((payload) => payload.models),
+        Effect.mapError(toRuntimeError('models-failed', 'Failed to get available models from harness')),
+        Effect.withSpan('tmnl.harness.runtime.browser.get-available-models'),
       )
 
     const getSnapshot: HarnessRuntimeShape['getSnapshot'] = (sessionId, fromSeq) =>
@@ -234,6 +248,7 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
       openSession,
       resumeSession,
       send,
+      getAvailableModels,
       getSnapshot,
       abortSession,
       respondExtensionUI,
