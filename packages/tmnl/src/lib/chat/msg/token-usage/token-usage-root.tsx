@@ -9,7 +9,9 @@
 import {
   forwardRef,
   memo,
+  useCallback,
   useMemo,
+  useState,
   type ComponentPropsWithoutRef,
   type ReactNode,
 } from 'react'
@@ -94,13 +96,51 @@ export const ChatTokenUsageRoot = memo(forwardRef<HTMLDivElement, ChatTokenUsage
       )
     }
 
+    // ── Expand/collapse toggle ─────────────────────────
+    const [expanded, setExpanded] = useState(false)
+    const toggleExpanded = useCallback(() => setExpanded((p) => !p), [])
+
+    // Compact density: click-to-expand inline summary → full detail
+    if (density === 'compact' && !expanded) {
+      const label = ctx.modelId
+        ? `${ctx.totalTokens.toLocaleString()} tokens · ${ctx.modelId}`
+        : `${ctx.totalTokens.toLocaleString()} tokens`
+
+      return (
+        <ChatTokenUsageContext.Provider value={ctx}>
+          <button
+            ref={ref as React.Ref<HTMLButtonElement>}
+            type="button"
+            data-slot="tmnl-chat-token-usage"
+            data-density="compact"
+            data-state="collapsed"
+            onClick={toggleExpanded}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-2 py-0.5 rounded',
+              'font-mono text-neutral-500 hover:text-neutral-400',
+              'hover:bg-neutral-800/30 transition-colors duration-150',
+              'cursor-pointer',
+              className,
+            )}
+            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+            title="Click to expand token details"
+            {...(props as React.ComponentPropsWithoutRef<'button'>)}
+          >
+            <span>{label}</span>
+          </button>
+        </ChatTokenUsageContext.Provider>
+      )
+    }
+
     return (
       <ChatTokenUsageContext.Provider value={ctx}>
         <div
           ref={ref}
           data-slot="tmnl-chat-token-usage"
           data-density={density}
+          data-state={expanded ? 'expanded' : undefined}
           className={cn('inline-flex items-center', className)}
+          onClick={density === 'compact' ? toggleExpanded : undefined}
           {...props}
         >
           {children}

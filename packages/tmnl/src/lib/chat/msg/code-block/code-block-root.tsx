@@ -10,6 +10,7 @@
 import {
   forwardRef,
   memo,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -113,6 +114,40 @@ export const ChatCodeBlockRoot = memo(forwardRef<HTMLDivElement, ChatCodeBlockRo
       )
     }
 
+    // ── Line truncation ─────────────────────────────────
+    const VISIBLE_LINES = 12
+    const lines = code.split('\n')
+    const totalLines = lines.length
+    const isTruncatable = totalLines > VISIBLE_LINES && !isStreaming
+    const [expanded, setExpanded] = useState(false)
+    const toggleExpand = useCallback(() => setExpanded((p) => !p), [])
+
+    const displayCode = isTruncatable && !expanded
+      ? lines.slice(0, VISIBLE_LINES).join('\n')
+      : code
+
+    // Re-highlight when truncation toggles
+    const [truncatedHtml, setTruncatedHtml] = useState<string>('')
+    useEffect(() => {
+      if (isStreaming || !isTruncatable) {
+        setTruncatedHtml('')
+        return
+      }
+      let alive = true
+      codeToHtml(displayCode, {
+        lang: language as BundledLanguage,
+        theme: 'one-dark-pro',
+      })
+        .then((html) => { if (alive) setTruncatedHtml(html) })
+        .catch(() => { if (alive) setTruncatedHtml('') })
+      return () => { alive = false }
+    }, [displayCode, language, isStreaming, isTruncatable])
+
+    const activeHtml = isTruncatable ? truncatedHtml : highlightedHtml
+    const activeCode = isTruncatable && !expanded
+      ? displayCode
+      : code
+
     // ── Full/Compact density ─────────────────────────────
     const maxHeight = density === 'compact' ? 'max-h-48 overflow-auto' : ''
 
@@ -133,7 +168,7 @@ export const ChatCodeBlockRoot = memo(forwardRef<HTMLDivElement, ChatCodeBlockRo
           {...props}
         >
           {/* Highlighted code area */}
-          {highlightedHtml ? (
+          {activeHtml ? (
             <div
               className={cn(
                 'overflow-auto',
@@ -142,16 +177,35 @@ export const ChatCodeBlockRoot = memo(forwardRef<HTMLDivElement, ChatCodeBlockRo
                 '[&_code]:font-mono',
               )}
               style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-              dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+              dangerouslySetInnerHTML={{ __html: activeHtml }}
             />
           ) : (
             <pre
               className={cn('m-0 p-3 text-neutral-300 font-mono overflow-auto bg-transparent', maxHeight)}
               style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
             >
-              <code>{code}</code>
+              <code>{activeCode}</code>
             </pre>
           )}
+
+          {/* Line truncation toggle */}
+          {isTruncatable && (
+            <button
+              type="button"
+              onClick={toggleExpand}
+              className={cn(
+                'w-full px-3 py-1.5 text-left font-mono',
+                'text-cyan-500 hover:text-cyan-400 hover:bg-neutral-900/50',
+                'border-t border-neutral-800 transition-colors duration-150',
+              )}
+              style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+            >
+              {expanded
+                ? 'Show less'
+                : `Show ${totalLines - VISIBLE_LINES} more line${totalLines - VISIBLE_LINES !== 1 ? 's' : ''}`}
+            </button>
+          )}
+
           {/* Compound children (Header, CopyButton, etc.) rendered as overlays */}
           {children}
         </div>
