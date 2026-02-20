@@ -162,10 +162,8 @@ function formatTime(ts?: string): string {
 }
 
 // ═══════════════════════════════════════════════════════════
-// UserMessage — right-aligned, full chrome, conversational font
-// Same layout as assistant (icon left, name, timestamp), pushed
-// right via ml-auto on shell. font-chat (Barlow Condensed)
-// differentiates from agent's font-mono (Share Tech Mono).
+// UserMessage — right-aligned, full chrome, mirrored layout
+// Same structure as assistant, pushed right via ml-auto on shell.
 // ═══════════════════════════════════════════════════════════
 
 function UserMessage({ message }: { message: ChatMessage }) {
@@ -177,7 +175,7 @@ function UserMessage({ message }: { message: ChatMessage }) {
         <ChatMessageSeverityRails.RoleIconRail role="user" streaming={false} />
       </ChatMessageSeverityRails>
 
-      <div className="flex-1 min-w-0 font-chat text-right">
+      <div className="flex-1 min-w-0 text-right">
         <ChatMessageHeaderCluster className="justify-end">
           <ChatMessageHeaderCluster.Timestamp>{formatTime(message.timestamp)}</ChatMessageHeaderCluster.Timestamp>
           <ChatMessageHeaderCluster.Role>{message.authorName ?? 'You'}</ChatMessageHeaderCluster.Role>
@@ -281,28 +279,22 @@ function AssistantMessage({
   )
 }
 
-/** Compact message — tighter spacing, role-aware alignment */
+/** Compact message — tighter spacing, left-aligned for all roles */
 function CompactMessage({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'operator'
   return (
-    <div className={cn(
-      'flex gap-2 px-3 py-1 max-w-[85%]',
-      isUser ? 'ml-auto flex-row-reverse' : 'mr-auto',
-    )}>
+    <div className="flex gap-2 px-3 py-1">
       <span
         className={cn(
           'shrink-0',
-          isUser ? 'font-chat text-cyan-500' : 'font-mono text-emerald-500',
+          isUser ? 'text-cyan-500' : 'text-emerald-500',
         )}
         style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
       >
         {isUser ? (message.authorName ?? 'you') : (message.authorName ?? 'agent')}
       </span>
       <span
-        className={cn(
-          'min-w-0 break-words text-neutral-300',
-          isUser ? 'font-chat text-right' : 'font-mono',
-        )}
+        className="text-neutral-300 min-w-0 break-words"
         style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
       >
         {message.content}
@@ -350,45 +342,31 @@ function LogMessage({ message }: { message: ChatMessage }) {
   )
 }
 
-/** Card mode — each message as a distinct card surface, role-aware */
+/** Card mode — each message as a distinct card surface */
 function CardMessage({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'operator'
   return (
-    <div className={cn(
-      'my-2 rounded border border-neutral-800 bg-neutral-950 p-3 max-w-[85%]',
-      isUser ? 'ml-auto' : 'mr-auto',
-    )}>
-      <div className={cn('flex items-center gap-2 mb-2', isUser && 'justify-end')}>
-        {!isUser && (
-          <span
-            className="font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400"
-            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-          >
-            {message.authorName ?? message.role}
-          </span>
-        )}
+    <div className="mx-3 my-2 rounded border border-neutral-800 bg-neutral-950 p-3">
+      <div className="flex items-center gap-2 mb-2">
+        <span
+          className={cn(
+            'px-1.5 py-0.5 rounded',
+            isUser
+              ? 'bg-cyan-500/10 text-cyan-400'
+              : 'bg-emerald-500/10 text-emerald-400',
+          )}
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        >
+          {message.authorName ?? (isUser ? 'You' : message.role)}
+        </span>
         <span
           className="text-neutral-600"
           style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
         >
           {message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : ''}
         </span>
-        {isUser && (
-          <span
-            className="font-chat px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400"
-            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-          >
-            {message.authorName ?? 'You'}
-          </span>
-        )}
       </div>
-      <div
-        className={cn(
-          'text-neutral-200',
-          isUser ? 'font-chat text-right' : 'font-mono',
-        )}
-        style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
-      >
+      <div className="text-neutral-200" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
         {message.content}
       </div>
     </div>
