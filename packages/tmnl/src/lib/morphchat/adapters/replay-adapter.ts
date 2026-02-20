@@ -139,7 +139,7 @@ export function createReplayAdapter(
           timestamp: new Date(event.at).toISOString(),
           status: 'streaming',
         }
-        morphChatRegistry.set(messages$, (prev) => [...prev, msg])
+        morphChatRegistry.update(messages$, (prev) => [...prev, msg])
         morphChatRegistry.set(streaming$, {
           isStreaming: true,
           buffer: '',
@@ -149,11 +149,11 @@ export function createReplayAdapter(
       }
 
       case 'chat:v2/assistant_delta':
-        morphChatRegistry.set(streaming$, (prev) => ({
+        morphChatRegistry.update(streaming$, (prev) => ({
           ...prev,
           buffer: prev.buffer + event.delta,
         }))
-        morphChatRegistry.set(messages$, (prev) =>
+        morphChatRegistry.update(messages$, (prev) =>
           prev.map((msg) =>
             msg.id === (event.messageId as string) && msg.status === 'streaming'
               ? { ...msg, content: msg.content + event.delta }
@@ -163,7 +163,7 @@ export function createReplayAdapter(
         break
 
       case 'chat:v2/assistant_final':
-        morphChatRegistry.set(messages$, (prev) =>
+        morphChatRegistry.update(messages$, (prev) =>
           prev.map((msg) =>
             msg.id === (event.messageId as string)
               ? { ...msg, content: event.text, status: 'complete' as const }
@@ -182,12 +182,12 @@ export function createReplayAdapter(
           timestamp: new Date(event.at).toISOString(),
           status: 'sent',
         }
-        morphChatRegistry.set(messages$, (prev) => [...prev, userMsg])
+        morphChatRegistry.update(messages$, (prev) => [...prev, userMsg])
         break
       }
 
       case 'chat:v2/usage':
-        morphChatRegistry.set(messages$, (prev) =>
+        morphChatRegistry.update(messages$, (prev) =>
           prev.map((msg) =>
             msg.id === (event.messageId as string)
               ? {

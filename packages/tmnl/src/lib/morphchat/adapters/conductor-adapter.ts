@@ -101,14 +101,14 @@ export function createConductorAdapter(
   }
 
   const addAgent = (agent: AgentInfo) => {
-    morphChatRegistry.set(agents$, (prev) => {
+    morphChatRegistry.update(agents$, (prev) => {
       if (prev.some((a) => a.id === agent.id)) return prev
       return [...prev, agent]
     })
   }
 
   const removeAgent = (agentId: string) => {
-    morphChatRegistry.set(agents$, (prev) => prev.filter((a) => a.id !== agentId))
+    morphChatRegistry.update(agents$, (prev) => prev.filter((a) => a.id !== agentId))
     // If removed agent was active, switch to first remaining
     if (morphChatRegistry.get(activeAgentId$) === agentId) {
       const remaining = morphChatRegistry.get(agents$)

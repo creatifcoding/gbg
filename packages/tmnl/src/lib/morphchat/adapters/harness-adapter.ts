@@ -164,7 +164,7 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
     messageId: string,
     mapper: (parts: ReadonlyArray<ChatMessagePart>) => ReadonlyArray<ChatMessagePart>,
   ): void {
-    morphChatRegistry.set(messages$, (prev) =>
+    morphChatRegistry.update(messages$, (prev) =>
       prev.map((msg) => {
         if (msg.id !== messageId) return msg
         const currentParts = msg.parts ?? []
@@ -281,7 +281,7 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
 
       case 'chat:v2/send_accepted': {
         // Update pending message to sent
-        morphChatRegistry.set(messages$, (prev) =>
+        morphChatRegistry.update(messages$, (prev) =>
           prev.map((msg) =>
             msg.status === 'pending'
               ? { ...msg, status: 'sent' as const }
@@ -302,7 +302,7 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
           status: 'streaming',
           parts: [],  // ← structured parts, populated by subsequent events
         }
-        morphChatRegistry.set(messages$, (prev) => [...prev, streamMsg])
+        morphChatRegistry.update(messages$, (prev) => [...prev, streamMsg])
         morphChatRegistry.set(streaming$, {
           isStreaming: true,
           buffer: '',
@@ -317,7 +317,7 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
       case 'chat:v2/assistant_delta': {
         const msgId = event.messageId as string
         // Append delta to streaming buffer (legacy)
-        morphChatRegistry.set(streaming$, (prev) => ({
+        morphChatRegistry.update(streaming$, (prev) => ({
           ...prev,
           buffer: prev.buffer + event.delta,
           tokensReceived: (prev.tokensReceived ?? 0) + 1,
@@ -347,7 +347,7 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
         thinkingStartTime = null
 
         // Finalize: mark thinking complete, set final text content
-        morphChatRegistry.set(messages$, (prev) =>
+        morphChatRegistry.update(messages$, (prev) =>
           prev.map((msg) => {
             if (msg.id !== msgId) return msg
             // Finalize thinking parts
@@ -377,7 +377,7 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
 
       case 'chat:v2/usage': {
         // Patch token usage onto the finalized message
-        morphChatRegistry.set(messages$, (prev) =>
+        morphChatRegistry.update(messages$, (prev) =>
           prev.map((msg) =>
             msg.id === (event.messageId as string)
               ? {
@@ -421,7 +421,7 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
         }
 
         // Also maintain legacy inlineTasks$ for backward compatibility
-        morphChatRegistry.set(inlineTasks$, (prev) => {
+        morphChatRegistry.update(inlineTasks$, (prev) => {
           const existing = prev as ReadonlyArray<Record<string, unknown>>
           const idx = existing.findIndex(
             (t) => t.toolCallId === event.toolCallId,
@@ -465,7 +465,7 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
       case 'chat:v2/heartbeat': {
         // Update latency (at field is server timestamp)
         const latencyMs = Date.now() - event.at
-        morphChatRegistry.set(connection$, (prev) => ({
+        morphChatRegistry.update(connection$, (prev) => ({
           ...prev,
           latencyMs: latencyMs > 0 ? latencyMs : prev.latencyMs,
         }))
@@ -567,7 +567,7 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
         thinkingLevel: params.thinkingLevel,
         parts: [{ _tag: 'text' as const, content: params.content }],
       }
-      morphChatRegistry.set(messages$, (prev) => [...prev, userMsg])
+      morphChatRegistry.update(messages$, (prev) => [...prev, userMsg])
 
       // Send to harness
       yield* runtime.send(
@@ -581,7 +581,7 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
         Effect.sync(() => {
           console.error('[HarnessAdapter] send failed:', err)
           // Mark pending message as error
-          morphChatRegistry.set(messages$, (prev) =>
+          morphChatRegistry.update(messages$, (prev) =>
             prev.map((msg) =>
               msg.status === 'pending'
                 ? { ...msg, status: 'error' as const }

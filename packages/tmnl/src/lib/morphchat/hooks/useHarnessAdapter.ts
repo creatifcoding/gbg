@@ -387,7 +387,19 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
     }
   }, [status, doFetchModels])
 
-  // Build adapter — stable identity, all state reads go through morphChatRegistry
+  // Keep latest fn-atom setters in refs so the stable adapter closure always calls current ones
+  const sendRef = useRef(doSend)
+  sendRef.current = doSend
+  const cancelRef = useRef(doCancel)
+  cancelRef.current = doCancel
+  const connectRef = useRef(doConnect)
+  connectRef.current = doConnect
+  const clearRef = useRef(doClear)
+  clearRef.current = doClear
+  const disposeRef = useRef(doDispose)
+  disposeRef.current = doDispose
+
+  // Build adapter — stable identity, delegates through refs to always-current setters
   const adapter = useRef<MorphChatAdapter>(null!)
   if (!adapter.current) {
     adapter.current = {
@@ -408,12 +420,14 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
           morphChatRegistry.set(harnessModelOverride$, { provider: target.provider, modelId })
         }
       },
-      send: (params: SendParams) =>
-        Effect.sync(() => doSend({ content: params.content, thinkingLevel: params.thinkingLevel })),
-      cancel: () => Effect.sync(() => doCancel(undefined as void)),
-      reconnect: () => Effect.sync(() => doConnect({ nodeId, role, agentName })),
-      clear: () => Effect.sync(() => doClear(undefined as void)),
-      dispose: () => Effect.sync(() => doDispose(undefined as void)),
+      send: (params: SendParams) => {
+        sendRef.current({ content: params.content, thinkingLevel: params.thinkingLevel })
+        return Effect.void
+      },
+      cancel: () => { cancelRef.current(undefined as void); return Effect.void },
+      reconnect: () => { connectRef.current({ nodeId, role, agentName }); return Effect.void },
+      clear: () => { clearRef.current(undefined as void); return Effect.void },
+      dispose: () => { disposeRef.current(undefined as void); return Effect.void },
     }
   }
 

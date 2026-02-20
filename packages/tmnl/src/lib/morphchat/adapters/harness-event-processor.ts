@@ -46,6 +46,21 @@ export interface EventProcessorAtoms {
 }
 
 // =============================================================================
+// Registry Update Helper
+// =============================================================================
+
+/**
+ * effect-atom Registry.set() does NOT support updater functions —
+ * it stores the value literally.
+ *
+ * Use `morphChatRegistry.update(atom, fn)` for read-modify-write.
+ * This alias wraps it for local readability.
+ */
+function registryUpdate<A>(atom: Atom.Atom<A>, fn: (prev: A) => A): void {
+  morphChatRegistry.update(atom, fn)
+}
+
+// =============================================================================
 // Parts Helpers (pure)
 // =============================================================================
 
@@ -54,7 +69,7 @@ function updateMessageParts(
   messageId: string,
   mapper: (parts: ReadonlyArray<ChatMessagePart>) => ReadonlyArray<ChatMessagePart>,
 ): void {
-  morphChatRegistry.set(atoms.messages$, (prev) =>
+  registryUpdate(atoms.messages$, (prev) =>
     prev.map((msg) => {
       if (msg.id !== messageId) return msg
       const currentParts = msg.parts ?? []
@@ -166,7 +181,7 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       }
 
       case 'chat:v2/send_accepted': {
-        morphChatRegistry.set(atoms.messages$, (prev) =>
+        registryUpdate(atoms.messages$, (prev) =>
           prev.map((msg) =>
             msg.status === 'pending'
               ? { ...msg, status: 'sent' as const }
@@ -186,7 +201,7 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
           status: 'streaming',
           parts: [],
         }
-        morphChatRegistry.set(atoms.messages$, (prev) => [...prev, streamMsg])
+        registryUpdate(atoms.messages$, (prev) => [...prev, streamMsg])
         morphChatRegistry.set(atoms.streaming$, {
           isStreaming: true,
           buffer: '',
@@ -200,7 +215,7 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       case 'chat:v2/assistant_delta': {
         const msgId = event.messageId as string
         // Update streaming buffer (legacy compat)
-        morphChatRegistry.set(atoms.streaming$, (prev) => ({
+        registryUpdate(atoms.streaming$, (prev) => ({
           ...prev,
           buffer: prev.buffer + event.delta,
           tokensReceived: (prev.tokensReceived ?? 0) + 1,
@@ -226,7 +241,7 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
           : undefined
         thinkingStartTime = null
 
-        morphChatRegistry.set(atoms.messages$, (prev) =>
+        registryUpdate(atoms.messages$, (prev) =>
           prev.map((msg) => {
             if (msg.id !== msgId) return msg
             let finalParts = finalizeThinking(msg.parts ?? [], thinkingDuration)
@@ -252,7 +267,7 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
 
       case 'chat:v2/usage': {
         const usageId = event.messageId as string
-        morphChatRegistry.set(atoms.messages$, (prev) =>
+        registryUpdate(atoms.messages$, (prev) =>
           prev.map((msg) =>
             msg.id === usageId
               ? {
@@ -294,7 +309,7 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
 
         // Legacy inlineTasks$ compat
         if (atoms.inlineTasks$) {
-          morphChatRegistry.set(atoms.inlineTasks$, (prev) => {
+          registryUpdate(atoms.inlineTasks$, (prev) => {
             const existing = prev as ReadonlyArray<Record<string, unknown>>
             const idx = existing.findIndex((t) => t.toolCallId === event.toolCallId)
             if (event.phase === 'start' && idx === -1) {
@@ -325,7 +340,7 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
 
       case 'chat:v2/heartbeat': {
         const latencyMs = Date.now() - event.at
-        morphChatRegistry.set(atoms.connection$, (prev) => ({
+        registryUpdate(atoms.connection$, (prev) => ({
           ...prev,
           latencyMs: latencyMs > 0 ? latencyMs : (prev as any).latencyMs,
         }) as ConnectionState)

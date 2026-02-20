@@ -37,12 +37,14 @@ const EMPTY_DRAFT = Atom.make<string>('')
 
 export function ComposerView() {
   const { spec, adapter, surfaceId } = useMorphChatContext()
-  // Read directly from adapter atom — no intermediary family
+  // Read directly from adapter atoms — no intermediary family
   const streaming = useAtomValue(adapter.streaming$)
   const isStreaming = streaming.isStreaming
-  // Machine connection state — gate send when not connected
+  const connection = useAtomValue(adapter.connection$)
+  // Machine connection state — for diagnostics
   const machineConnection = useAtomValue(connectionStateFamily(surfaceId))
-  const isConnected = machineConnection === 'connected' || machineConnection === 'idle'
+  // Gate on ADAPTER connection state (source of truth), not machine state (which may lag)
+  const isConnected = connection.phase === 'connected' || connection.phase === 'idle'
 
   // All composers call adapter.send via the same handler
   // Composer passes { value, mode, thinkingLevel, contextChips }
