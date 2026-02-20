@@ -259,23 +259,34 @@ function ReviewBadge({ review }: { review: DocReview }) {
   )
 }
 
-function ScoreSelector({ value, onChange }: { value: Score; onChange: (s: Score) => void }) {
+const SCORE_LABELS = ['', 'WEAK', 'OK', 'STRONG'] as const
+
+function ScoreSelector({ value, onChange, dim }: { value: Score; onChange: (s: Score) => void; dim: string }) {
   return (
-    <div className="flex gap-1">
-      {([1, 2, 3] as const).map((s) => (
-        <button
-          key={s}
-          onClick={() => onChange(s)}
-          className={`w-8 h-8 font-mono border rounded transition-colors ${
-            value === s
-              ? 'bg-cyan-500/30 text-cyan-300 border-cyan-500/50'
-              : 'bg-stone-900 text-stone-500 border-stone-700 hover:border-stone-600 hover:text-stone-400'
-          }`}
-          style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
-        >
-          {s}
-        </button>
-      ))}
+    <div className="flex items-center gap-1">
+      {([1, 2, 3] as const).map((s) => {
+        const isActive = value === s
+        const colors = s === 1
+          ? 'bg-rose-500/25 text-rose-300 border-rose-500/40'
+          : s === 2
+            ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+            : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+        return (
+          <button
+            key={s}
+            onClick={() => onChange(s)}
+            className={`px-3 py-1.5 font-mono border rounded transition-all ${
+              isActive
+                ? colors
+                : 'bg-stone-900/60 text-stone-600 border-stone-800 hover:border-stone-600 hover:text-stone-400'
+            }`}
+            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+            title={`${dim}: ${SCORE_LABELS[s]}`}
+          >
+            {s} {isActive && <span className="ml-1 opacity-80">{SCORE_LABELS[s]}</span>}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -293,87 +304,95 @@ function ReviewPanel({
 }) {
   const setDim = (dim: Dimension, val: Score) => onChange({ ...review, [dim]: val })
 
+  const scoredCount = DIMENSIONS.filter((d) => review[d] > 0).length
+  const allScored = scoredCount === DIMENSIONS.length
+
   const avg = useMemo(() => {
     const scores = DIMENSIONS.map((d) => review[d]).filter((s) => s > 0)
     return scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : '—'
   }, [review])
 
-  const allScored = DIMENSIONS.every((d) => review[d] > 0)
-
   return (
-    <div className="border-t border-stone-800 bg-stone-900/50 px-5 py-4">
-      {/* Dimension scores */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {DIMENSIONS.map((dim) => (
-          <div key={dim} className="flex items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="font-mono text-stone-200"
-                   style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
-                {DIMENSION_LABELS[dim].label}
-              </div>
-              <div className="font-mono text-stone-600 truncate"
-                   style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-                {DIMENSION_LABELS[dim].hint}
-              </div>
-            </div>
-            <ScoreSelector value={review[dim]} onChange={(v) => setDim(dim, v)} />
+    <div className="bg-stone-900/70 px-6 py-5">
+      {/* Compact row: all 5 dimensions + notes + verdict on one horizontal band */}
+      <div className="flex items-start gap-6">
+
+        {/* Dimension scores — vertical stack, compact */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="font-mono text-stone-400" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+              REVIEW
+            </span>
+            <span className="font-mono text-stone-600" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+              {scoredCount}/5 scored
+            </span>
+            {allScored && (
+              <span className="font-mono text-cyan-500" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+                · avg {avg}
+              </span>
+            )}
           </div>
-        ))}
-      </div>
 
-      {/* Notes */}
-      <div className="mt-4">
-        <label className="block font-mono text-stone-400 mb-1"
-               style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-          NOTES (optional)
-        </label>
-        <textarea
-          value={review.notes}
-          onChange={(e) => onChange({ ...review, notes: e.target.value })}
-          placeholder="Issues, questions, or observations..."
-          rows={2}
-          className="w-full bg-stone-950 border border-stone-700 rounded px-3 py-2 font-mono
-                     text-stone-300 placeholder:text-stone-700 resize-y
-                     focus:outline-none focus:border-cyan-500/50"
-          style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
-        />
-      </div>
+          <div className="space-y-2">
+            {DIMENSIONS.map((dim) => (
+              <div key={dim} className="flex items-center gap-4">
+                <div className="w-32 shrink-0">
+                  <span className="font-mono text-stone-200" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
+                    {DIMENSION_LABELS[dim].label}
+                  </span>
+                </div>
+                <ScoreSelector value={review[dim]} onChange={(v) => setDim(dim, v)} dim={DIMENSION_LABELS[dim].label} />
+                <span className="font-mono text-stone-600 hidden lg:inline" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+                  {DIMENSION_LABELS[dim].hint}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
 
-      {/* Verdict bar */}
-      <div className="mt-4 flex items-center gap-4">
-        <span className="font-mono text-stone-500"
-              style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-          AVG: {avg}/3
-        </span>
-        <div className="flex-1" />
-        <button
-          onClick={() => onChange({ ...review, verdict: 'revise' })}
-          disabled={!allScored}
-          className={`px-4 py-2 font-mono border rounded transition-colors ${
-            review.verdict === 'revise'
-              ? 'bg-rose-500/20 text-rose-400 border-rose-500/50'
-              : allScored
-                ? 'bg-stone-900 text-stone-400 border-stone-700 hover:border-rose-500/50 hover:text-rose-400'
-                : 'bg-stone-900/50 text-stone-700 border-stone-800 cursor-not-allowed'
-          }`}
-          style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
-        >
-          ⟳ REVISE
-        </button>
-        <button
-          onClick={() => onChange({ ...review, verdict: 'pass' })}
-          disabled={!allScored}
-          className={`px-4 py-2 font-mono border rounded transition-colors ${
-            review.verdict === 'pass'
-              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
-              : allScored
-                ? 'bg-stone-900 text-stone-400 border-stone-700 hover:border-emerald-500/50 hover:text-emerald-400'
-                : 'bg-stone-900/50 text-stone-700 border-stone-800 cursor-not-allowed'
-          }`}
-          style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
-        >
-          ✓ PASS
-        </button>
+        {/* Right column: notes + verdict */}
+        <div className="w-72 shrink-0 flex flex-col gap-3">
+          <textarea
+            value={review.notes}
+            onChange={(e) => onChange({ ...review, notes: e.target.value })}
+            placeholder="Notes..."
+            rows={3}
+            className="w-full bg-stone-950 border border-stone-800 rounded px-3 py-2 font-mono
+                       text-stone-300 placeholder:text-stone-700 resize-none
+                       focus:outline-none focus:border-cyan-500/40"
+            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={() => onChange({ ...review, verdict: 'revise' })}
+              disabled={!allScored}
+              className={`flex-1 py-2 font-mono border rounded transition-all ${
+                review.verdict === 'revise'
+                  ? 'bg-rose-500/20 text-rose-400 border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.15)]'
+                  : allScored
+                    ? 'bg-stone-900 text-stone-500 border-stone-700 hover:border-rose-500/40 hover:text-rose-400'
+                    : 'bg-stone-900/30 text-stone-800 border-stone-800/50 cursor-not-allowed'
+              }`}
+              style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+            >
+              ⟳ REVISE
+            </button>
+            <button
+              onClick={() => onChange({ ...review, verdict: 'pass' })}
+              disabled={!allScored}
+              className={`flex-1 py-2 font-mono border rounded transition-all ${
+                review.verdict === 'pass'
+                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+                  : allScored
+                    ? 'bg-stone-900 text-stone-500 border-stone-700 hover:border-emerald-500/40 hover:text-emerald-400'
+                    : 'bg-stone-900/30 text-stone-800 border-stone-800/50 cursor-not-allowed'
+              }`}
+              style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+            >
+              ✓ PASS
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -408,36 +427,36 @@ function DocumentRow({
     <div ref={rowRef} className="border-b border-stone-800 last:border-b-0">
       <button
         onClick={onToggle}
-        className={`w-full px-5 py-4 text-left flex items-center gap-4 transition-colors hover:bg-stone-900/50 ${
-          isExpanded ? 'bg-stone-900/80 sticky top-0 z-20 backdrop-blur-sm border-b border-stone-800' : ''
+        className={`w-full text-left transition-colors hover:bg-stone-900/50 ${
+          isExpanded
+            ? 'bg-stone-900/90 sticky top-0 z-20 backdrop-blur-md border-b border-stone-700/80'
+            : ''
         }`}
       >
-        <span className={`text-stone-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-              style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
-          ▶
-        </span>
+        <div className="px-6 py-4 flex items-center gap-5">
+          {/* Chevron */}
+          <span className={`text-stone-500 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+                style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
+            ▶
+          </span>
 
-        <div className="flex-1 min-w-0">
-          <h3 className="font-mono text-stone-100 truncate"
-              style={{ fontSize: 'var(--tmnl-text-base, 16px)' }}>
-            {doc.title}
-          </h3>
-          <div className="font-mono text-stone-500 mt-1 flex items-center gap-3"
-               style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-            <span>{doc.filename}</span>
-            <span className="text-stone-700">│</span>
-            <span>{doc.author}</span>
+          {/* Title + meta */}
+          <div className="flex-1 min-w-0">
+            <h3 className="font-mono text-stone-100"
+                style={{ fontSize: 'var(--tmnl-text-base, 16px)' }}>
+              {doc.title}
+            </h3>
           </div>
-        </div>
 
-        <div className="font-mono text-stone-500 shrink-0"
-             style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-          {doc.date}
-        </div>
-
-        <div className="shrink-0 flex items-center gap-2">
-          <ReviewBadge review={review} />
-          <StatusBadge status={doc.status} />
+          {/* Badges + date */}
+          <div className="shrink-0 flex items-center gap-3">
+            <ReviewBadge review={review} />
+            <StatusBadge status={doc.status} />
+            <span className="font-mono text-stone-600"
+                  style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+              {doc.date}
+            </span>
+          </div>
         </div>
       </button>
 
