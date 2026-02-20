@@ -1,7 +1,9 @@
 /**
- * Surface Machine Bridge (stx pattern)
+ * Surface Machine Bridge (stx pattern) — v2
  *
- * Wires XState machine snapshots into MorphChat atom state.
+ * Syncs XState parallel-state snapshots into MorphChat atoms.
+ * Emitted events from the machine propagate to React via actor.on().
+ *
  * Pattern: same as morph-card/machines/island-stx.ts
  *
  * @module morphchat/machines/surface-stx
@@ -9,11 +11,14 @@
 
 import { Atom } from '@effect-atom/atom'
 import { createActor, type ActorRefFrom, type SnapshotFrom } from 'xstate'
-import { surfaceMachine, type SurfaceMachineEvent } from './surface-machine'
-import type { ChatSurfaceSpec } from '../schemas/surface-spec'
 import {
-  morphChatRegistry,
-} from '../atoms/registry'
+  surfaceMachine,
+  type SurfaceMachineEvent,
+  type SurfaceMachineContext,
+} from './surface-machine'
+import type { ChatSurfaceSpec } from '../schemas/surface-spec'
+import type { ContentViewSpec } from '../schemas/content-view-spec'
+import { morphChatRegistry } from '../atoms/registry'
 import {
   type SurfaceId,
   activeSpecFamily,
@@ -29,26 +34,109 @@ export type SurfaceActor = ActorRefFrom<typeof surfaceMachine>
 export type SurfaceSnapshot = SnapshotFrom<typeof surfaceMachine>
 
 // =============================================================================
+// Additional Atom Families (parallel state regions)
+// =============================================================================
+
+/** Connection region state: 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'disconnecting' | 'error' */
+export const connectionStateFamily = Atom.family((surfId: SurfaceId) => {
+  const atom = Atom.make<string>('idle')
+  morphChatRegistry.mount(atom)
+  return atom
+})
+
+/** Streaming region state: 'idle' | 'active' | 'finalizing' */
+export const streamingStateFamily = Atom.family((surfId: SurfaceId) => {
+  const atom = Atom.make<string>('idle')
+  morphChatRegistry.mount(atom)
+  return atom
+})
+
+/** Presentation region state: 'ready' | 'morphing' | 'settling' */
+export const presentationStateFamily = Atom.family((surfId: SurfaceId) => {
+  const atom = Atom.make<string>('ready')
+  morphChatRegistry.mount(atom)
+  return atom
+})
+
+/** ContentViewSpec derived from active spec (machine-driven) */
+export const contentViewFamily = Atom.family((surfId: SurfaceId) => {
+  const atom = Atom.make<ContentViewSpec | null>(null)
+  morphChatRegistry.mount(atom)
+  return atom
+})
+
+/** Streaming message ID (null when idle) */
+export const streamingMessageIdFamily = Atom.family((surfId: SurfaceId) => {
+  const atom = Atom.make<string | null>(null)
+  morphChatRegistry.mount(atom)
+  return atom
+})
+
+/** Connection error message */
+export const connectionErrorFamily = Atom.family((surfId: SurfaceId) => {
+  const atom = Atom.make<string | null>(null)
+  morphChatRegistry.mount(atom)
+  return atom
+})
+
+/** Whether auto-collapse should fire */
+export const shouldAutoCollapseFamily = Atom.family((surfId: SurfaceId) => {
+  const atom = Atom.make<boolean>(false)
+  morphChatRegistry.mount(atom)
+  return atom
+})
+
+// =============================================================================
 // Actor Registry
 // =============================================================================
 
 const actorRegistry = new Map<SurfaceId, SurfaceActor>()
 
 /**
- * Sync a machine snapshot into the corresponding surface atoms.
+ * Extract parallel state values from a snapshot.
+ * XState v5 parallel state value is: { connection: 'connected', streaming: 'idle', presentation: 'ready' }
+ */
+function getParallelStates(snapshot: SurfaceSnapshot): {
+  connection: string
+  streaming: string
+  presentation: string
+} {
+  const value = snapshot.value
+  if (typeof value === 'string') {
+    return { connection: 'idle', streaming: 'idle', presentation: 'ready' }
+  }
+  const v = value as Record<string, string>
+  return {
+    connection: v.connection ?? 'idle',
+    streaming: v.streaming ?? 'idle',
+    presentation: v.presentation ?? 'ready',
+  }
+}
+
+/**
+ * Sync a machine snapshot into surface atoms.
  */
 function syncSnapshot(surfId: SurfaceId, snapshot: SurfaceSnapshot): void {
-  const ctx = snapshot.context
-  const stateValue = snapshot.value as string
+  const ctx = snapshot.context as SurfaceMachineContext
+  const states = getParallelStates(snapshot)
 
-  // Sync active spec
+  // ── Spec atoms ──────────────────────────────────────────
   morphChatRegistry.set(activeSpecFamily(surfId), ctx.activeSpec)
-
-  // Sync previous spec
   morphChatRegistry.set(previousSpecFamily(surfId), ctx.previousSpec)
+  morphChatRegistry.set(contentViewFamily(surfId), ctx.contentView)
 
-  // Sync morphing state
-  morphChatRegistry.set(isMorphingFamily(surfId), stateValue === 'morphing')
+  // ── Parallel region state atoms ─────────────────────────
+  morphChatRegistry.set(connectionStateFamily(surfId), states.connection)
+  morphChatRegistry.set(streamingStateFamily(surfId), states.streaming)
+  morphChatRegistry.set(presentationStateFamily(surfId), states.presentation)
+  morphChatRegistry.set(isMorphingFamily(surfId), states.presentation === 'morphing')
+
+  // ── Streaming context ───────────────────────────────────
+  morphChatRegistry.set(streamingMessageIdFamily(surfId), ctx.streamingMessageId)
+  morphChatRegistry.set(shouldAutoCollapseFamily(surfId), ctx.shouldAutoCollapse)
+
+  // ── Connection context ──────────────────────────────────
+  morphChatRegistry.set(connectionErrorFamily(surfId), ctx.connectionError)
 }
 
 // =============================================================================
@@ -57,9 +145,6 @@ function syncSnapshot(surfId: SurfaceId, snapshot: SurfaceSnapshot): void {
 
 /**
  * Get or create a surface machine actor.
- *
- * If an actor already exists for this surfaceId, returns it.
- * Otherwise creates a new one, starts it, and subscribes to sync atoms.
  */
 export function getOrCreateSurfaceActor(
   surfId: SurfaceId,
@@ -111,7 +196,7 @@ export function disposeSurfaceActor(surfId: SurfaceId): void {
 }
 
 /**
- * Dispose all surface actors. Call on app teardown.
+ * Dispose all surface actors.
  */
 export function disposeAllSurfaceActors(): void {
   for (const actor of actorRegistry.values()) {
@@ -121,33 +206,23 @@ export function disposeAllSurfaceActors(): void {
 }
 
 // =============================================================================
-// Atom Bridge (reactive snapshot access)
+// Snapshot Atom (raw)
 // =============================================================================
 
-/**
- * Snapshot atom — the raw XState snapshot for a surface.
- */
 export const surfaceSnapshotFamily = Atom.family((surfId: SurfaceId) => {
   const atom = Atom.make<SurfaceSnapshot | null>(null)
   morphChatRegistry.mount(atom)
-
-  // Wire up: ensure actor exists and subscribe
-  const actor = getOrCreateSurfaceActor(surfId, null as unknown as ChatSurfaceSpec)
-  actor.subscribe((snapshot) => {
-    morphChatRegistry.set(atom, snapshot)
-  })
-  morphChatRegistry.set(atom, actor.getSnapshot())
-
   return atom
 })
 
 /**
- * State value atom — just the machine state string (idle, active, morphing, error).
+ * State value atom — the full parallel state object.
  */
 export const surfaceStateValueFamily = Atom.family((surfId: SurfaceId) => {
   const atom = Atom.make((get) => {
     const snapshot = get(surfaceSnapshotFamily(surfId))
-    return (snapshot?.value ?? 'idle') as string
+    if (!snapshot) return { connection: 'idle', streaming: 'idle', presentation: 'ready' }
+    return getParallelStates(snapshot)
   })
   morphChatRegistry.mount(atom)
   return atom

@@ -36,6 +36,8 @@ import {
   disposeSurfaceActor,
 } from '../machines/surface-stx'
 import { MorphChatContext, type MorphChatContextValue } from './surface-context'
+import { deriveContentViewSpec } from '../schemas/content-view-spec'
+import { contentViewFamily } from '../machines/surface-stx'
 import { SurfaceContent } from './surface-content'
 
 // =============================================================================
@@ -136,11 +138,16 @@ function SurfaceProvider({
     sendSurfaceEvent(surfId, { type: 'DISCONNECT' })
   }, [surfId])
 
+  // ContentViewSpec: prefer machine-driven (from atom), fallback to local derivation
+  const machineContentView = useAtomValue(contentViewFamily(surfId))
+  const contentView = machineContentView ?? deriveContentViewSpec(resolvedSpec)
+
   // Build context value (stable reference when deps don't change)
   const contextValue = React.useMemo<MorphChatContextValue>(
     () => ({
       surfaceId: surfId,
       spec: resolvedSpec,
+      contentView,
       adapter,
       actor,
       isMorphing,
@@ -148,7 +155,7 @@ function SurfaceProvider({
       requestMorph,
       requestDisconnect,
     }),
-    [surfId, resolvedSpec, adapter, actor, isMorphing, prevSpec, requestMorph, requestDisconnect],
+    [surfId, resolvedSpec, contentView, adapter, actor, isMorphing, prevSpec, requestMorph, requestDisconnect],
   )
 
   return (

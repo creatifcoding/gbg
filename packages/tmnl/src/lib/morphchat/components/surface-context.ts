@@ -7,8 +7,10 @@
  * @module morphchat/components/surface-context
  */
 
-import { createContext, useContext } from 'react'
+import { createContext, useContext, useMemo } from 'react'
 import type { ChatSurfaceSpec } from '../schemas/surface-spec'
+import type { ContentViewSpec } from '../schemas/content-view-spec'
+import { deriveContentViewSpec } from '../schemas/content-view-spec'
 import type { MorphChatAdapter } from '../schemas/adapter-types'
 import type { SurfaceId } from '../atoms/surface-atoms'
 import type { SurfaceActor } from '../machines/surface-stx'
@@ -23,6 +25,9 @@ export interface MorphChatContextValue {
 
   /** Active surface spec (reactive — changes on morph) */
   readonly spec: ChatSurfaceSpec
+
+  /** Content view spec — derived from surface spec, drives compound density/adaptation */
+  readonly contentView: ContentViewSpec
 
   /** Data adapter */
   readonly adapter: MorphChatAdapter
@@ -67,4 +72,30 @@ export function useMorphChatContext(): MorphChatContextValue {
     )
   }
   return ctx
+}
+
+/**
+ * Read the ContentViewSpec derived from the current surface spec.
+ *
+ * Compounds use this to self-adapt density, interactivity, animation, etc.
+ *
+ * ```tsx
+ * const { density, interactivity } = useContentViewSpec()
+ * if (density === 'pill') return <PillView />
+ * ```
+ */
+export function useContentViewSpec(): ContentViewSpec {
+  const { contentView } = useMorphChatContext()
+  return contentView
+}
+
+/**
+ * Get the effective density for a specific block type,
+ * accounting for per-block overrides.
+ */
+export function useBlockDensity(
+  blockType: 'thinking' | 'tool' | 'code' | 'tokenUsage' | 'fileAttachment',
+): ContentViewSpec['density'] {
+  const { contentView } = useMorphChatContext()
+  return contentView.blockOverrides?.[blockType] ?? contentView.density
 }

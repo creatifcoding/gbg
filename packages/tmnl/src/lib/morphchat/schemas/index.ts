@@ -70,6 +70,28 @@ export type {
   ConductorAdapterConfig,
 } from './adapter-types'
 
+// ── Content View Spec (preset-aware compound rendering) ──────
+export {
+  ContentDensity,
+  InteractivityConfig,
+  AnimationConfig,
+  SpacingConfig,
+  BlockOverrides,
+  ContentViewSpec,
+  DENSITY_TIERS,
+  deriveContentViewSpec,
+  mergeContentViewSpec,
+} from './content-view-spec'
+
+export type {
+  ContentDensity as ContentDensityType,
+  InteractivityConfig as InteractivityConfigType,
+  AnimationConfig as AnimationConfigType,
+  SpacingConfig as SpacingConfigType,
+  BlockOverrides as BlockOverridesType,
+  ContentViewSpec as ContentViewSpecType,
+} from './content-view-spec'
+
 // ── Skin Interface (ARCHIVED — kept for type reference only) ──
 // Skin abstraction killed in favor of Tailwind-direct styling.
 // If theming is needed later, use CSS variables.
