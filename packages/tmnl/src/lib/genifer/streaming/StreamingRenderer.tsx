@@ -155,8 +155,13 @@ export const StreamingRenderer = memo(function StreamingRenderer({
 
   if (identifiedComponents.length === 0 && isParsing) {
     return (
-      <div className="flex items-center gap-3 p-4">
-        <div className="w-2 h-2 rounded-full bg-cyan-500 animate-ping" />
+      <div
+        className="flex items-center gap-3 p-4"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <div className="w-2 h-2 rounded-full bg-cyan-500 animate-ping" aria-hidden="true" />
         <span
           className="font-mono text-stone-400"
           style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
@@ -168,7 +173,13 @@ export const StreamingRenderer = memo(function StreamingRenderer({
   }
 
   return (
-    <div className="space-y-2">
+    <div
+      className="space-y-2"
+      role="region"
+      aria-live="polite"
+      aria-busy={isParsing}
+      aria-label="Generated content"
+    >
       {identifiedComponents.map((id, i) => (
         <StreamingElement
           key={`${id.componentType}-${id.discoveredAtOffset}-${i}`}
@@ -181,8 +192,8 @@ export const StreamingRenderer = memo(function StreamingRenderer({
         />
       ))}
       {isParsing && (
-        <div className="flex items-center gap-2 px-3 py-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/60 animate-pulse" />
+        <div className="flex items-center gap-2 px-3 py-2" role="status" aria-live="polite">
+          <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/60 animate-pulse" aria-hidden="true" />
           <span
             className="font-mono text-stone-600"
             style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}

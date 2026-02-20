@@ -189,6 +189,17 @@ export class UIElement extends Schema.Class<UIElement>("UIElement")({
   visible: Schema.optional(VisibilityCondition),
   /** Entrance animation configuration (LLM-generated or catalog default) */
   entrance: Schema.optional(EntranceAnimation),
+  // --- Accessibility (WCAG 2.1 AA) ---
+  /** ARIA role attribute */
+  role: Schema.optional(Schema.String),
+  /** Accessible label */
+  ariaLabel: Schema.optional(Schema.String),
+  /** ID of element that describes this element */
+  ariaDescribedBy: Schema.optional(Schema.String),
+  /** Live region politeness for streaming updates */
+  ariaLive: Schema.optional(Schema.Literal('polite', 'assertive', 'off')),
+  /** Tab order for keyboard navigation */
+  tabIndex: Schema.optional(Schema.Number),
 }) {}
 
 /** Flat UI tree structure */

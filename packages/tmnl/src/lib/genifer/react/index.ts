@@ -224,3 +224,18 @@ export {
   threadHistoryAtom,
   type ThreadServiceShape,
 } from "./thread-service"
+
+// =============================================================================
+// Accessibility
+// =============================================================================
+
+export { useReducedMotion } from "./useReducedMotion"
+
+// =============================================================================
+// Error Boundary
+// =============================================================================
+
+export {
+  ComponentErrorBoundary,
+  type ComponentErrorBoundaryProps,
+} from "./ErrorBoundary"

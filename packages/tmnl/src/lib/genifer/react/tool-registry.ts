@@ -18,6 +18,7 @@
 import * as Atom from '@effect-atom/atom/Atom'
 import * as Registry from '@effect-atom/atom/Registry'
 import { nanoid } from 'nanoid'
+import { Schema as S, Either } from 'effect'
 import {
   GeniferToolCall,
   GeniferToolResult,
@@ -151,6 +152,49 @@ export function createToolRegistryService(
           results.length >= MAX_RESULTS ? [...results.slice(-100), result] : [...results, result],
         )
         return result
+      }
+
+      // Validate args against parametersSchema if present
+      if (definition.parametersSchema) {
+        try {
+          // parametersSchema is stored as JSON Schema (from TypeBox).
+          // For runtime validation, decode as a Record — the schema itself
+          // is TypeBox, not Effect Schema, so we validate structurally.
+          const schemaObj = definition.parametersSchema as Record<string, unknown>
+          if (schemaObj && typeof schemaObj === 'object' && 'properties' in schemaObj) {
+            const props = schemaObj.properties as Record<string, { type?: string }>
+            const validationErrors: string[] = []
+            for (const [key, spec] of Object.entries(props)) {
+              if (spec.type && args[key] !== undefined) {
+                const actual = typeof args[key]
+                if (spec.type === 'number' && actual !== 'number') {
+                  validationErrors.push(`${key}: expected number, got ${actual}`)
+                } else if (spec.type === 'string' && actual !== 'string') {
+                  validationErrors.push(`${key}: expected string, got ${actual}`)
+                } else if (spec.type === 'boolean' && actual !== 'boolean') {
+                  validationErrors.push(`${key}: expected boolean, got ${actual}`)
+                }
+              }
+            }
+            if (validationErrors.length > 0) {
+              const result = new GeniferToolResult({
+                callId,
+                toolName: name,
+                content: `Args validation failed: ${validationErrors.join('; ')}`,
+                isError: true,
+                timestamp: Date.now(),
+              })
+              const results = registry.get(toolResultsAtom)
+              registry.set(
+                toolResultsAtom,
+                results.length >= MAX_RESULTS ? [...results.slice(-100), result] : [...results, result],
+              )
+              return result
+            }
+          }
+        } catch {
+          // Schema validation setup failed — proceed without validation
+        }
       }
 
       // Create active call (pending)

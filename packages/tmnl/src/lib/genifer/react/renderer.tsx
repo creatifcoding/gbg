@@ -18,6 +18,7 @@ import type { EntranceAnimation } from '../core/animation-schema';
 import { useIsVisible } from './hooks';
 import { useEntrance } from './animation';
 import { renderersAtom, schemasAtom, type SchemaEntry } from './atoms/catalog';
+import { ComponentErrorBoundary } from './ErrorBoundary';
 
 // =============================================================================
 // Types
@@ -175,29 +176,45 @@ const ElementRenderer = memo(function ElementRenderer({
     });
   }, [element.children, elementsVersion, getElement, registry, loading, fallback, onAction, getDefaultEntrance, disableAnimations]);
 
-  // Render component - animation wrapper applies if animation is enabled
+  // Render component - wrapped in error boundary for isolation
   const content = (
-    <Component element={element as any} onAction={onAction} loading={loading}>
-      {children}
-    </Component>
+    <ComponentErrorBoundary componentType={element.type} elementKey={element.key}>
+      <Component element={element as any} onAction={onAction} loading={loading}>
+        {children}
+      </Component>
+    </ComponentErrorBoundary>
   );
 
+  // Build ARIA props from UIElement fields
+  const ariaProps: Record<string, unknown> = {};
+  if (element.role) ariaProps.role = element.role;
+  if (element.ariaLabel) ariaProps['aria-label'] = element.ariaLabel;
+  if (element.ariaDescribedBy) ariaProps['aria-describedby'] = element.ariaDescribedBy;
+  if (element.ariaLive) ariaProps['aria-live'] = element.ariaLive;
+  if (element.tabIndex !== undefined) ariaProps.tabIndex = element.tabIndex;
+
   // Wrap in entrance animation container if animation is enabled
-  // Note: Cannot use display:contents as it removes element from box tree,
-  // preventing opacity/transform animations from rendering
-  // Use display:contents-like behavior where possible, but we need a real element for animation
+  // Animation wrapper is decorative — invisible to assistive tech
   if (animation && !disableAnimations) {
     return (
       <div
         ref={entranceRef}
         style={initialStyle}
+        role="presentation"
+        aria-hidden="true"
       >
-        {content}
+        <div {...ariaProps}>
+          {content}
+        </div>
       </div>
     );
   }
 
-  // No animation - render directly
+  // No animation — render with ARIA props if any
+  if (Object.keys(ariaProps).length > 0) {
+    return <div {...ariaProps}>{content}</div>;
+  }
+
   return content;
 });
 

@@ -317,6 +317,14 @@ export {
   GeniferToolResult,
   ToolInvocationState,
 
+  // Adapters (pi-ai ↔ genifer bridge)
+  toPiAiToolCall,
+  fromPiAiToolCall,
+  toPiAiToolResult,
+  fromPiAiToolResult,
+  type PiAiToolCall,
+  type PiAiToolResultMessage,
+
   // Types
   type GeniferToolHandler,
 } from "./tools"

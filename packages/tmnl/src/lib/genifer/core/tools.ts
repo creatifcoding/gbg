@@ -74,8 +74,10 @@ export class GeniferToolDefinition extends Schema.Class<GeniferToolDefinition>('
 /**
  * A tool invocation request (from LLM or programmatic).
  *
- * Matches pi-ai ToolCall:
- *   { type: "toolCall", id: string, name: string, arguments: Record<string, any> }
+ * Diverges from pi-ai ToolCall by design:
+ *   - Uses `args` instead of `arguments` (reserved word in strict mode)
+ *   - No `type: "toolCall"` discriminator (uses Schema.Class _tag instead)
+ * Use toPiAiToolCall() / fromPiAiToolCall() for harness bridge.
  */
 export class GeniferToolCall extends Schema.Class<GeniferToolCall>('GeniferToolCall')({
   /** Unique call ID (from LLM or generated) */
@@ -99,8 +101,11 @@ export class GeniferToolCall extends Schema.Class<GeniferToolCall>('GeniferToolC
 /**
  * Tool execution result.
  *
- * Matches pi-ai ToolResultMessage content model:
- *   { content: [{type: "text", text: string}], isError: boolean }
+ * Diverges from pi-ai ToolResultMessage by design:
+ *   - `content` is flat string (not array of content parts)
+ *   - `callId` instead of `toolCallId`
+ *   - `data` instead of `details`
+ * Use toPiAiToolResult() / fromPiAiToolResult() for harness bridge.
  */
 export class GeniferToolResult extends Schema.Class<GeniferToolResult>('GeniferToolResult')({
   /** Matches the GeniferToolCall.id */
@@ -135,3 +140,101 @@ export type GeniferToolHandler = (
   args: Record<string, unknown>,
   signal?: AbortSignal,
 ) => Promise<{ content: string; data?: unknown; isError?: boolean }>
+
+// =============================================================================
+// pi-ai ↔ genifer Adapters
+// =============================================================================
+// Genifer maintains its own internal shapes (args, callId, content:string).
+// These adapters bridge to/from pi-ai shapes for harness integration.
+//
+// Divergences (by design):
+//   genifer GeniferToolCall.args      ↔ pi-ai ToolCall.arguments
+//   genifer GeniferToolCall (no type) ↔ pi-ai ToolCall.type = "toolCall"
+//   genifer GeniferToolResult.callId  ↔ pi-ai ToolResultMessage.toolCallId
+//   genifer GeniferToolResult.content ↔ pi-ai ToolResultMessage.content (array)
+//   genifer GeniferToolResult.data    ↔ pi-ai ToolResultMessage.details
+// =============================================================================
+
+/** pi-ai ToolCall shape (subset for adapter — avoids importing pi-ai) */
+export type PiAiToolCall = {
+  readonly type: 'toolCall'
+  readonly id: string
+  readonly name: string
+  readonly arguments: Record<string, unknown>
+  readonly thoughtSignature?: string
+}
+
+/** pi-ai ToolResultMessage shape (subset for adapter) */
+export type PiAiToolResultMessage = {
+  readonly role: 'toolResult'
+  readonly toolCallId: string
+  readonly toolName: string
+  readonly content: ReadonlyArray<{ type: 'text'; text: string }>
+  readonly isError: boolean
+  readonly details?: unknown
+  readonly timestamp: number
+}
+
+/**
+ * Convert genifer tool call → pi-ai ToolCall shape.
+ */
+export function toPiAiToolCall(call: GeniferToolCall): PiAiToolCall {
+  return {
+    type: 'toolCall',
+    id: call.id,
+    name: call.name,
+    arguments: call.args as Record<string, unknown>,
+  }
+}
+
+/**
+ * Convert pi-ai ToolCall → genifer GeniferToolCall.
+ */
+export function fromPiAiToolCall(
+  piCall: PiAiToolCall,
+  options?: { state?: ToolInvocationState; source?: 'llm' | 'user' | 'system' },
+): GeniferToolCall {
+  return new GeniferToolCall({
+    id: piCall.id,
+    name: piCall.name,
+    args: piCall.arguments,
+    state: options?.state ?? 'pending',
+    timestamp: Date.now(),
+    source: options?.source ?? 'llm',
+  })
+}
+
+/**
+ * Convert genifer tool result → pi-ai ToolResultMessage shape.
+ */
+export function toPiAiToolResult(result: GeniferToolResult): PiAiToolResultMessage {
+  return {
+    role: 'toolResult',
+    toolCallId: result.callId,
+    toolName: result.toolName,
+    content: [{ type: 'text', text: result.content }],
+    isError: result.isError,
+    details: result.data,
+    timestamp: result.timestamp,
+  }
+}
+
+/**
+ * Convert pi-ai ToolResultMessage → genifer GeniferToolResult.
+ * Flattens content array into single text string.
+ */
+export function fromPiAiToolResult(piResult: PiAiToolResultMessage): GeniferToolResult {
+  const text = piResult.content
+    .filter((c): c is { type: 'text'; text: string } => c.type === 'text')
+    .map((c) => c.text)
+    .join('')
+
+  return new GeniferToolResult({
+    callId: piResult.toolCallId,
+    toolName: piResult.toolName,
+    content: text,
+    isError: piResult.isError,
+    data: piResult.details,
+    timestamp: piResult.timestamp,
+  })
+}
