@@ -12,7 +12,7 @@
  * @module docs/genifer-research
  */
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -396,12 +396,20 @@ function DocumentRow({
   review: DocReview
   onReviewChange: (r: DocReview) => void
 }) {
+  const rowRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (isExpanded && rowRef.current) {
+      rowRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [isExpanded])
+
   return (
-    <div className="border-b border-stone-800 last:border-b-0">
+    <div ref={rowRef} className="border-b border-stone-800 last:border-b-0">
       <button
         onClick={onToggle}
         className={`w-full px-5 py-4 text-left flex items-center gap-4 transition-colors hover:bg-stone-900/50 ${
-          isExpanded ? 'bg-stone-900/30' : ''
+          isExpanded ? 'bg-stone-900/80 sticky top-0 z-20 backdrop-blur-sm border-b border-stone-800' : ''
         }`}
       >
         <span className={`text-stone-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
@@ -434,18 +442,21 @@ function DocumentRow({
       </button>
 
       {isExpanded && (
-        <>
-          {/* Document content */}
-          <div className="border-t border-stone-800/50 bg-stone-950 max-h-[60vh] overflow-y-auto">
+        <div className="border-t border-stone-800/50 bg-stone-950 flex flex-col"
+             style={{ height: 'calc(100vh - 80px)' }}>
+          {/* Document content — scrollable middle */}
+          <div className="flex-1 overflow-y-auto min-h-0">
             <div className="p-5 prose prose-invert prose-sm max-w-none">
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
                 {doc.content}
               </ReactMarkdown>
             </div>
           </div>
-          {/* Review panel */}
-          <ReviewPanel review={review} onChange={onReviewChange} />
-        </>
+          {/* Review panel — pinned bottom */}
+          <div className="shrink-0 border-t border-stone-800">
+            <ReviewPanel review={review} onChange={onReviewChange} />
+          </div>
+        </div>
       )}
     </div>
   )
