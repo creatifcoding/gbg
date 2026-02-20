@@ -638,8 +638,8 @@ function getRouter() {
 // but preserve current location
 if (import.meta.hot) {
   import.meta.hot.accept(() => {
-    // Router will be recreated on next getRouter() call
-    // but location is preserved by the browser
+    // Clear cached router so getRouter() rebuilds with new route tree
+    router = undefined as any;
   });
 }
 
