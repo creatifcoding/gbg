@@ -6,6 +6,10 @@
  *
  * @module genifer/streaming
  */
+
+// ---------------------------------------------------------------------------
+// Tokenizer (low-level)
+// ---------------------------------------------------------------------------
 export {
   createTokenizer,
   JSONToken,
@@ -22,8 +26,42 @@ export {
 
 export type { JSONToken as JSONTokenType } from './tokenizer.js'
 
+// ---------------------------------------------------------------------------
+// Graph (d2ts dataflow)
+// ---------------------------------------------------------------------------
 export {
   createStreamingGraph,
   type ComponentIdentification,
   type StreamingGraphCallbacks,
 } from './graph.js'
+
+// ---------------------------------------------------------------------------
+// Service (Atom-as-State pattern)
+// ---------------------------------------------------------------------------
+export {
+  createStreamingJsonService,
+  getStreamingJsonService,
+  identifiedComponentsAtom,
+  isParsingAtom,
+  tokensAtom,
+  partialFieldsAtom,
+  streamingErrorAtom,
+  chunkCountAtom,
+  type StreamingJsonServiceShape,
+} from './service.js'
+
+// ---------------------------------------------------------------------------
+// React Hook
+// ---------------------------------------------------------------------------
+export {
+  useStreamingJson,
+  type UseStreamingJsonReturn,
+} from './useStreamingJson.js'
+
+// ---------------------------------------------------------------------------
+// React Renderer
+// ---------------------------------------------------------------------------
+export {
+  StreamingRenderer,
+  type StreamingRendererProps,
+} from './StreamingRenderer.js'

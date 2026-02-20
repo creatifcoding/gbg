@@ -22,3 +22,9 @@ export * as react from "./react"
 // =============================================================================
 
 export * as server from "./server"
+
+// =============================================================================
+// Streaming (d2ts incremental JSON parser, service, hook, renderer)
+// =============================================================================
+
+export * as streaming from "./streaming"
