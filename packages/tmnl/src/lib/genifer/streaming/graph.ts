@@ -16,6 +16,7 @@
  */
 import { D2, v, map, filter, output } from '@electric-sql/d2ts'
 import { createTokenizer, type JSONToken } from './tokenizer.js'
+import { buildGrammar, createBFTAValidator, type ValidationResult, type ComponentRegistration } from './bfta.js'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -33,7 +34,7 @@ export type StreamingGraphCallbacks = {
   /** Called for every token (for partial tree assembly) */
   onToken?: (token: JSONToken) => void
   /** Called when BFTA validates a node (if validator is wired) */
-  onValidation?: (result: import('./bfta.js').ValidationResult) => void
+  onValidation?: (result: ValidationResult) => void
   /** Called when BFTA encounters an unknown component type */
   onUnknownType?: (componentType: string, depth: number) => void
 }
@@ -41,7 +42,7 @@ export type StreamingGraphCallbacks = {
 export type StreamingGraphOptions = {
   callbacks: StreamingGraphCallbacks
   /** Component registrations for BFTA validation. Omit to skip validation. */
-  registrations?: readonly import('./bfta.js').ComponentRegistration[]
+  registrations?: readonly ComponentRegistration[]
 }
 
 // ---------------------------------------------------------------------------
@@ -70,13 +71,11 @@ export function createStreamingGraph(callbacksOrOptions: StreamingGraphCallbacks
   const registrations = isOptions ? (callbacksOrOptions as StreamingGraphOptions).registrations : undefined
 
   // Build BFTA validator if registrations provided
-  let validator: ReturnType<typeof import('./bfta.js').createBFTAValidator> | null = null
+  let validator: ReturnType<typeof createBFTAValidator> | null = null
   if (registrations && registrations.length > 0) {
-    // Dynamic import avoidance: import at top of file
-    const { buildGrammar, createBFTAValidator } = require('./bfta.js')
     const grammar = buildGrammar(registrations)
     validator = createBFTAValidator(grammar, {
-      onValidated: (result: import('./bfta.js').ValidationResult) => {
+      onValidated: (result: ValidationResult) => {
         callbacks.onValidation?.(result)
       },
       onUnknownType: (componentType: string, depth: number) => {
