@@ -22,3 +22,4 @@ export type {
   ChatMessageRoleRailProps,
   ChatMessageRoleIconRailProps,
 }
+export type { SeverityRailPlacement } from './severity-rails-root'

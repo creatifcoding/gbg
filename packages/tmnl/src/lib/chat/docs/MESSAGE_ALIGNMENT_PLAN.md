@@ -18,19 +18,17 @@ Left-aligned, full-width, `px-4 py-3`, `border-b` separator.
 ### User Messages (Right-Aligned)
 
 ```
-                          ┌──────────────────────────┐
-                          │ Message content here.     │
-                          │ Maybe wraps to two lines. │
-                          └──────────────────────────┘
+                          Message content here.
+                          Maybe wraps to two lines.
                                             12:34 PM ← (hover only)
 ```
 
 Styling:
 - `ml-auto` — pushes to right
 - `max-w-[80%]` — prevents full-width
-- `bg-neutral-800/20` — subtle "sent" tint
-- `rounded-2xl` — Apple iMessage bubble radius
-- `px-4 py-2.5` — compact padding
+- No background change — same pure-black canvas, position alone differentiates
+- No border, no bubble — just right-aligned text
+- `px-4 py-2.5` — slightly tighter than agent
 - No role icon (it's you)
 - No header cluster (your name is redundant)
 - No severity rails
@@ -61,20 +59,14 @@ Styling:
 - Full header cluster
 - Parts renderer + footer actions
 
-### System Messages (Center)
+### System Messages (Header Bar — NOT in thread)
 
-```
-              ┌─────────────────────────┐
-              │ ⚠ System notification   │
-              └─────────────────────────┘
-```
+System messages do NOT render in the thread scroll area.
+They live in the top header bar / status band — already handled
+by the frame chrome and connection-view components.
 
-Styling:
-- `mx-auto` — centered
-- `max-w-[90%]`
-- `bg-amber-500/[0.03]` + `border border-amber-500/10`
-- `rounded-xl`
-- Compact, single-line when possible
+If a system message somehow enters the thread (edge case),
+render as a muted centered notice, but this should be rare.
 
 ### Tool Messages (Left, Indented)
 
@@ -103,10 +95,10 @@ const ROLE_MAX_WIDTH: Record<ChatMessageRole, string> = {
 }
 
 const ROLE_SHAPE: Record<ChatMessageRole, string> = {
-  user:      'rounded-2xl bg-neutral-800/20 px-4 py-2.5',
-  assistant: 'rounded-none bg-transparent px-4 py-3',
-  system:    'rounded-xl border border-amber-500/10 bg-amber-500/[0.03] px-4 py-2',
-  tool:      'rounded-none bg-transparent px-4 py-3',
+  user:      'bg-transparent px-4 py-2.5',       // no bubble — position alone differentiates
+  assistant: 'bg-transparent px-4 py-3',
+  system:    'bg-transparent px-4 py-2',          // rare in-thread fallback only
+  tool:      'bg-transparent px-4 py-3',
 }
 ```
 

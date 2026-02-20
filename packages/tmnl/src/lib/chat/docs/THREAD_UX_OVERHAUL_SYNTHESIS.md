@@ -34,16 +34,15 @@ Foundation changes to `message-shell-root.tsx` and spacing tokens.
 | 1 | Add spacing CSS custom properties to `tokens.ts` | `tokens.ts` | — |
 | 2 | Refactor shell to role-aware alignment (`ml-auto`/`mr-auto`/`mx-auto`) | `message-shell-root.tsx` | 1 |
 | 3 | Add role-aware max-width (`max-w-[80%]` user, `85%` agent) | `message-shell-root.tsx` | 2 |
-| 4 | Add role-aware shape (rounded-2xl user, transparent agent, rounded-xl system) | `message-shell-root.tsx` | 2 |
+| 4 | Add role-aware padding (tighter py-2.5 for user, py-3 for agent) | `message-shell-root.tsx` | 2 |
 
-### Phase 2: Thread Renderers (4 tasks)
-New message renderers in thread-view.tsx.
+### Phase 2: Thread Renderers (3 tasks)
+Role-specific renderers in thread-view.tsx. System stays in header bar, not thread.
 
 | # | Task | File(s) | Deps |
 |---|------|---------|------|
-| 5 | Create `UserMessage` renderer — no icon, no header, bubble style | `thread-view.tsx` | 2,3,4 |
+| 5 | Create `UserMessage` renderer — right-aligned, no icon, no header, clean | `thread-view.tsx` | 2,3,4 |
 | 6 | Rename `FullMessage` → `AssistantMessage` — keep full fidelity, adjust spacing | `thread-view.tsx` | 2 |
-| 7 | Create `SystemMessage` renderer — centered, compact | `thread-view.tsx` | 2,3,4 |
 | 8 | Implement turn-gap logic — `mt-5` between role changes, `mt-1` same-role | `thread-view.tsx` | 5,6,7 |
 
 ### Phase 3: Border & Spacing Cleanup (2 tasks)

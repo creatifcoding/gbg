@@ -35,7 +35,6 @@ import {
   ChatToolBlock,
   ChatFileAttachment,
   ChatCodeBlock,
-  ChatTokenUsage,
 } from '@/lib/chat/msg'
 import type { ChatMessageRole } from '@/lib/chat/msg'
 
@@ -152,7 +151,54 @@ function PartRenderer({
 }
 
 /** Full fidelity message — role badges, timestamps, task pipelines, animations */
-function FullMessage({
+// ── Timestamp formatter ──────────────────────────────────
+
+function formatTime(ts?: string): string {
+  if (!ts) return ''
+  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+// ═══════════════════════════════════════════════════════════
+// UserMessage — right-aligned, full chrome, conversational font
+// Same layout as assistant (icon left, name, timestamp), pushed
+// right via ml-auto on shell. font-chat (Barlow Condensed)
+// differentiates from agent's font-mono (Share Tech Mono).
+// ═══════════════════════════════════════════════════════════
+
+function UserMessage({ message }: { message: ChatMessage }) {
+  const parts = getMessageParts(message)
+
+  return (
+    <ChatMessageShellRoot role="user">
+      <ChatMessageSeverityRails role="user" placement="right">
+        <ChatMessageSeverityRails.RoleIconRail role="user" streaming={false} />
+      </ChatMessageSeverityRails>
+
+      <div className="flex-1 min-w-0 font-chat text-right">
+        <ChatMessageHeaderCluster className="justify-end">
+          <ChatMessageHeaderCluster.Timestamp>{formatTime(message.timestamp)}</ChatMessageHeaderCluster.Timestamp>
+          <ChatMessageHeaderCluster.Role>{message.authorName ?? 'You'}</ChatMessageHeaderCluster.Role>
+        </ChatMessageHeaderCluster>
+
+        {parts.map((part, idx) => (
+          <PartRenderer
+            key={`${message.id}-part-${idx}`}
+            part={part}
+            isStreaming={false}
+            isLatest={false}
+          />
+        ))}
+      </div>
+    </ChatMessageShellRoot>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════
+// AssistantMessage — left-aligned, full fidelity
+// Icon rail, header, parts, tasks, footer actions
+// ═══════════════════════════════════════════════════════════
+
+function AssistantMessage({
   message,
   isLatest,
   tasks,
@@ -163,9 +209,6 @@ function FullMessage({
 }) {
   const chatRole = toChatRole(message.role)
   const isStreaming = message.status === 'streaming'
-  const ts = message.timestamp
-    ? new Date(message.timestamp).toLocaleTimeString()
-    : ''
 
   const hasTasks = tasks && tasks.length > 0
   const parts = getMessageParts(message)
@@ -178,7 +221,6 @@ function FullMessage({
       <div className="flex-1 min-w-0">
         <ChatMessageHeaderCluster>
           <ChatMessageHeaderCluster.Role>{message.authorName ?? chatRole}</ChatMessageHeaderCluster.Role>
-          <ChatMessageHeaderCluster.Timestamp>{ts}</ChatMessageHeaderCluster.Timestamp>
           {isStreaming && <ChatMessageHeaderCluster.StreamingBadge streaming role={chatRole} />}
         </ChatMessageHeaderCluster>
 
@@ -191,17 +233,6 @@ function FullMessage({
             isLatest={isLatest}
           />
         ))}
-
-        {/* ── Token Usage (when complete + has usage data) ── */}
-        {message.status === 'complete' && message.tokenUsage && (
-          <ChatTokenUsage
-            inputTokens={message.tokenUsage.prompt}
-            outputTokens={message.tokenUsage.completion}
-            totalTokens={message.tokenUsage.total}
-            maxTokens={200000}
-            modelId={message.model}
-          />
-        )}
 
         {/* ── Artifact Cards (when message carries tasks) ── */}
         {hasTasks && (
@@ -218,11 +249,30 @@ function FullMessage({
               />
         )}
 
-        {message.status === 'complete' && !hasTasks && (
-          <ChatMessageFooterActions>
-            <ChatMessageFooterActions.Group />
-          </ChatMessageFooterActions>
-        )}
+        {/* Metadata row — timestamp always visible, extras on hover */}
+        <div className="flex items-center gap-3 mt-1.5">
+          <span className="font-mono text-neutral-600" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+            {formatTime(message.timestamp)}
+          </span>
+          {message.model && (
+            <span className="font-mono text-neutral-700" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+              {message.model}
+            </span>
+          )}
+          {message.status === 'complete' && message.tokenUsage && (
+            <span className="font-mono text-neutral-700" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+              {message.tokenUsage.total.toLocaleString()} tokens
+            </span>
+          )}
+          {/* Footer actions — hover only */}
+          {message.status === 'complete' && !hasTasks && (
+            <div className="opacity-0 group-hover/message:opacity-100 transition-opacity duration-150">
+              <ChatMessageFooterActions>
+                <ChatMessageFooterActions.Group />
+              </ChatMessageFooterActions>
+            </div>
+          )}
+        </div>
       </div>
     </ChatMessageShellRoot>
   )
@@ -373,22 +423,36 @@ export function ThreadView() {
       const key = msg.id
       const tasks = messageTasks?.get(msg.id)
 
+      // ── Turn gap logic: 20px between role changes, 4px same-role ──
+      const prev = index > 0 ? resolvedMessages[index - 1] : null
+      const isTurnChange = prev != null && prev.role !== msg.role
+      const gapClass = index === 0 ? '' : isTurnChange ? 'mt-5' : 'mt-1'
+
+      let content: React.ReactNode = null
+
       switch (spec.thread) {
         case 'full':
-          return <FullMessage key={key} message={msg} isLatest={isLatest} tasks={tasks} />
+          content = msg.role === 'operator'
+            ? <UserMessage message={msg} />
+            : <AssistantMessage message={msg} isLatest={isLatest} tasks={tasks} />
+          break
         case 'compact':
-          return <CompactMessage key={key} message={msg} />
+          content = <CompactMessage message={msg} />
+          break
         case 'stream-only':
-          return <StreamOnlyMessage key={key} message={msg} />
+          content = <StreamOnlyMessage message={msg} />
+          break
         case 'log':
-          return <LogMessage key={key} message={msg} />
+          content = <LogMessage message={msg} />
+          break
         case 'card':
-          return <CardMessage key={key} message={msg} />
-        default:
-          return null
+          content = <CardMessage message={msg} />
+          break
       }
+
+      return content ? <div key={key} className={gapClass}>{content}</div> : null
     },
-    [spec.thread, messageCount, messageTasks],
+    [spec.thread, messageCount, messageTasks, resolvedMessages],
   )
 
   // Tail controls — rendered inside the ChatThreadBand context scope

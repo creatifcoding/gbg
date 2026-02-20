@@ -66,4 +66,45 @@ export const CHAT_TOKENS = {
     active: 'text-violet-400 bg-violet-500/10',
     idle: 'text-neutral-500 bg-transparent hover:text-neutral-300',
   },
+  // ═══════════════════════════════════════════════════════
+  // Thread spacing — 8pt grid
+  // ═══════════════════════════════════════════════════════
+
+  /** Thread-level spacing */
+  thread: {
+    /** Gap between conversation turns (role change) — visual paragraphing */
+    turnGap: 'mt-5',        // 20px
+    /** Gap between consecutive same-role messages */
+    sameRoleGap: 'mt-1',    // 4px
+    /** Thread horizontal padding */
+    padX: 'px-4',           // 16px
+  },
+
+  /** Per-role message constraints */
+  message: {
+    /** User: right-aligned, tighter padding, no icon */
+    user: {
+      alignment: 'ml-auto',
+      maxWidth: 'max-w-[80%]',
+      padding: 'px-4 py-2.5',
+    },
+    /** Assistant: left-aligned, full fidelity */
+    assistant: {
+      alignment: 'mr-auto',
+      maxWidth: 'max-w-[85%]',
+      padding: 'px-4 py-3',
+    },
+    /** Tool: left-aligned like assistant */
+    tool: {
+      alignment: 'mr-auto',
+      maxWidth: 'max-w-[85%]',
+      padding: 'px-4 py-3',
+    },
+    /** System: edge case fallback (normally in header bar) */
+    system: {
+      alignment: 'mx-auto',
+      maxWidth: 'max-w-[90%]',
+      padding: 'px-4 py-2',
+    },
+  },
 } as const

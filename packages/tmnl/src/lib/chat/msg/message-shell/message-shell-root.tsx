@@ -2,6 +2,7 @@ import { forwardRef, useMemo, type ComponentPropsWithoutRef, type ReactNode } fr
 import { cn } from '@/lib/utils'
 import type { ChatMessageRole } from '../msg-role-rail'
 import { ChatMessageShellContext } from './message-shell-context'
+import { CHAT_TOKENS } from '../../tokens'
 
 export interface ChatMessageShellRootProps extends ComponentPropsWithoutRef<'article'> {
   role: ChatMessageRole
@@ -10,11 +11,27 @@ export interface ChatMessageShellRootProps extends ComponentPropsWithoutRef<'art
   children: ReactNode
 }
 
-const ROLE_BG: Record<ChatMessageRole, string> = {
-  system: 'bg-amber-500/[0.03]',
-  user: 'bg-transparent',
-  assistant: 'bg-neutral-500/[0.03]',
-  tool: 'bg-violet-500/[0.03]',
+// ── Role-aware layout maps (from CHAT_TOKENS) ──────────────
+
+const ROLE_ALIGNMENT: Record<ChatMessageRole, string> = {
+  user:      CHAT_TOKENS.message.user.alignment,
+  assistant: CHAT_TOKENS.message.assistant.alignment,
+  system:    CHAT_TOKENS.message.system.alignment,
+  tool:      CHAT_TOKENS.message.tool.alignment,
+}
+
+const ROLE_MAX_WIDTH: Record<ChatMessageRole, string> = {
+  user:      CHAT_TOKENS.message.user.maxWidth,
+  assistant: CHAT_TOKENS.message.assistant.maxWidth,
+  system:    CHAT_TOKENS.message.system.maxWidth,
+  tool:      CHAT_TOKENS.message.tool.maxWidth,
+}
+
+const ROLE_PADDING: Record<ChatMessageRole, string> = {
+  user:      CHAT_TOKENS.message.user.padding,
+  assistant: CHAT_TOKENS.message.assistant.padding,
+  system:    CHAT_TOKENS.message.system.padding,
+  tool:      CHAT_TOKENS.message.tool.padding,
 }
 
 export const ChatMessageShellRoot = forwardRef<HTMLElement, ChatMessageShellRootProps>(
@@ -32,11 +49,15 @@ export const ChatMessageShellRoot = forwardRef<HTMLElement, ChatMessageShellRoot
           data-role={role}
           data-streaming={streaming || undefined}
           className={cn(
-            'relative flex gap-3 px-4 py-3',
-            'border-b border-neutral-800/30',
+            'relative flex gap-3',
+            role === 'user' ? 'flex-row-reverse' : 'flex-row',
+            ROLE_PADDING[role],
+            ROLE_ALIGNMENT[role],
+            ROLE_MAX_WIDTH[role],
+            role === 'user' ? 'w-fit' : 'w-full',
+            'group/message',
             'transition-colors duration-150',
-            ROLE_BG[role],
-            streaming && 'border-l-2 border-l-cyan-500/40',
+            streaming && (role === 'user' ? 'border-r-2 border-r-cyan-500/40' : 'border-l-2 border-l-cyan-500/40'),
             className,
           )}
           {...props}
