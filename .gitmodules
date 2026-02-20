@@ -157,3 +157,6 @@
 [submodule "submodules/tambo"]
 	path = submodules/tambo
 	url = https://github.com/tambo-ai/tambo
+[submodule "submodules/restty"]
+	path = submodules/restty
+	url = https://github.com/wiedymi/restty

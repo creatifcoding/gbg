@@ -33,6 +33,7 @@ export type { JSONToken as JSONTokenType } from './tokenizer.js'
 export {
   createStreamingGraph,
   type ComponentIdentification,
+  type RawComponentData,
   type StreamingGraphCallbacks,
   type StreamingGraphOptions,
 } from './graph.js'
