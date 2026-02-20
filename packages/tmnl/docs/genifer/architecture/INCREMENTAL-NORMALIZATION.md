@@ -486,20 +486,19 @@ These properties are testable via property-based tests (fast-check).
 
 ---
 
-## 10. Open Questions
+## 10. Design Decisions (Resolved 2026-02-20)
 
-1. **Backpressure**: If normalization is slower than token arrival, do we buffer
-   completed-but-not-yet-normalized elements? Or apply backpressure to the SSE reader?
+Questionnaire ID: `genifer-incremental-pipeline-design`
 
-2. **Speculative parsing**: Can we start normalizing a component before it's fully
-   complete? (e.g., normalize props while children are still streaming)
-
-3. **Format switching mid-stream**: What if the model starts in nested format but
-   switches to flat format mid-response? (Unlikely but theoretically possible.)
-
-4. **Error boundaries per-element**: If one element fails normalization, should we
-   skip it (partial tree) or fail the whole pipeline?
-
-5. **Worker offloading**: Should normalization run in a Web Worker? The streaming
-   tokenizer + d2ts graph already run on the main thread. If normalization is
-   CPU-heavy (schema validation), it might benefit from worker offload.
+| # | Question | Decision | Notes |
+|---|----------|----------|-------|
+| 1 | Backpressure | **Buffer** | Normalization must be fast enough this is a non-issue. Mature impedance matching later. |
+| 2 | Speculative parsing | **Leaves yes, containers no** | Leaves are props-complete = fully-complete. Containers wait for all children. |
+| 3 | Format switching mid-stream | **Per-element detection** | Each completed component gets its own format discrimination. Handles mixed model output. |
+| 4 | Error boundaries per-element | **Quarantine → repair → re-insert** | Failed elements go to quarantine queue. Post-stream global repair attempts re-insertion. |
+| 5 | Worker offloading | **Defer** | Build main-thread first. Profile under real load. Move to worker only if profiling shows need. |
+| 6 | Progressive rendering | **Three-phase** | Skeleton on identify → hydrate on props-complete → finalize on tree-complete. |
+| 7 | Retry budget | **Configurable, default 2** | Caller sets maxRetries. 0 = fire-and-forget, 2 = default, 3+ = high-fidelity. |
+| 8 | Catalog→Schema compiler | **Always include** | JSON Schema auto-generated from catalogs, included in every system prompt. Server-side enforcement where supported. |
+| 9 | Model profiles | **Adaptive** | Start with per-family defaults (openai, anthropic, local). Refine based on observed format compliance. |
+| 10 | Build order | **Phase 1 first** | `normalize.ts` + `repair.ts` — pure functions, testable against spike JSON samples. |
