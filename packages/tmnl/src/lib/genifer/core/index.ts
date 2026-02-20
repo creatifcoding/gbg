@@ -425,6 +425,34 @@ export {
 } from "./prompt-engineering"
 
 // =============================================================================
+// Feedback Loop (Quality scoring, retry, compliance tracking)
+// =============================================================================
+
+export {
+  // Quality scoring
+  scoreResult,
+  type QualityScore,
+  type ScoreOptions,
+
+  // Error classification
+  classifyFailure,
+  type FailureClass,
+  type ClassifiedFailure,
+
+  // Compliance tracking
+  getComplianceStore,
+  recordAttempt,
+  getComplianceRate,
+  resetCompliance,
+  type ComplianceCounters,
+
+  // Retry budget
+  createRetryBudget,
+  type RetryBudgetConfig,
+  type RetryState,
+} from "./feedback-loop"
+
+// =============================================================================
 // Prompt Templating
 // =============================================================================
 
