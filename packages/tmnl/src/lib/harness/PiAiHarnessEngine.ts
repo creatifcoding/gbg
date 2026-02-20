@@ -981,6 +981,7 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
   }),
 )
 
+/** Default engine with empty tool runtime (no tools) */
 export const PiAiHarnessEngineLive = PiAiHarnessEngineCoreLive.pipe(
   Layer.provide(HarnessSessionStoreMemoryLive),
   Layer.provide(PiAiToolRuntimeLive),
@@ -988,3 +989,8 @@ export const PiAiHarnessEngineLive = PiAiHarnessEngineCoreLive.pipe(
   Layer.provide(PiAiEventAdapterLive),
   Layer.provide(PiAiPolicyLive),
 )
+
+/** Engine with all 7 SDK built-in tools (read, bash, edit, write, grep, ls, find) */
+export { PiAiToolRuntimeWithBuiltins, createToolRuntimeLayer } from './PiAiToolRuntimeBuiltins'
+export type { ToolSandboxConfig } from './PiAiToolRuntimeBuiltins'
+

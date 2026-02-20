@@ -73,6 +73,15 @@ morphChatRegistry.mount(harnessSelectedModel$)
 const harnessModelOverride$ = Atom.make<{ provider: string; modelId: string } | null>(null)
 morphChatRegistry.mount(harnessModelOverride$)
 
+// Metrics from chat:v2/metric events
+import type { MetricEntry, ProviderMarker } from '../schemas/metric-types'
+export const harnessMetrics$ = Atom.make<ReadonlyArray<MetricEntry>>([])
+morphChatRegistry.mount(harnessMetrics$)
+
+// Provider marker from chat:v2/provider_marker events
+export const harnessProvider$ = Atom.make<ProviderMarker | null>(null)
+morphChatRegistry.mount(harnessProvider$)
+
 // Internal bookkeeping — exported for cross-fn-atom reading via useAtomValue
 export const harnessSessionId$ = Atom.make<HarnessSessionId | null>(null)
 morphChatRegistry.mount(harnessSessionId$)
@@ -107,6 +116,8 @@ function getProcessor(agentName: string) {
         streaming$: harnessStreaming$,
         agents$: harnessAgents$,
         sessionId$: harnessSessionId$,
+        metrics$: harnessMetrics$,
+        provider$: harnessProvider$,
       },
       agentName,
     })
@@ -409,6 +420,8 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
       connection$: harnessConnection$,
       streaming$: harnessStreaming$,
       agents$: harnessAgents$,
+      metrics$: harnessMetrics$,
+      provider$: harnessProvider$,
       availableModels$: harnessAvailableModels$,
       selectedModel$: harnessSelectedModel$,
       selectModel: (modelId: string) => {

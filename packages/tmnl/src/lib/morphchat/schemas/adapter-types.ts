@@ -119,6 +119,12 @@ export interface MorphChatAdapter {
   /** Select a model — applies to next message */
   readonly selectModel?: (modelId: string) => void
 
+  /** Metrics from harness events (optional — only harness adapter provides) */
+  readonly metrics$?: Atom.Atom<ReadonlyArray<unknown>>
+
+  /** Provider marker (optional — only harness adapter provides) */
+  readonly provider$?: Atom.Atom<unknown>
+
   /** Dispose adapter — cleanup subscriptions, close connections */
   readonly dispose: () => Effect.Effect<void>
 }

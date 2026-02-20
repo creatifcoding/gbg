@@ -31,6 +31,8 @@ import type {
 import { STREAMING_IDLE, flattenPartsToText } from '../schemas/message-types'
 import { morphChatRegistry } from '../atoms/registry'
 import type { HarnessEvent } from '@/lib/harness/schemas'
+import type { MetricEntry, ProviderMarker } from '../schemas/metric-types'
+import { splitPartsCodeFences } from './markdown-code-splitter'
 
 // =============================================================================
 // Config — which atoms to write to
@@ -43,6 +45,10 @@ export interface EventProcessorAtoms {
   readonly agents$: Atom.Atom<ReadonlyArray<AgentInfo>>
   readonly inlineTasks$?: Atom.Atom<ReadonlyArray<unknown>>
   readonly sessionId$?: Atom.Atom<string | null>
+  /** Metrics from chat:v2/metric events */
+  readonly metrics$?: Atom.Atom<ReadonlyArray<MetricEntry>>
+  /** Provider markers from chat:v2/provider_marker events */
+  readonly provider$?: Atom.Atom<ProviderMarker | null>
 }
 
 // =============================================================================
@@ -192,6 +198,17 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       }
 
       case 'chat:v2/assistant_start': {
+        // Finalize any previously streaming message (multi-turn tool loop:
+        // the engine may start a new assistant turn without sending assistant_final
+        // for the intermediate tool-calling turn)
+        registryUpdate(atoms.messages$, (prev) =>
+          prev.map((msg) =>
+            msg.status === 'streaming'
+              ? { ...msg, status: 'complete' as const, content: flattenPartsToText(msg.parts ?? []) || msg.content }
+              : msg,
+          ),
+        )
+
         const streamMsg: ChatMessage = {
           id: event.messageId as string,
           role: 'agent',
@@ -253,6 +270,8 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
                 { _tag: 'text' as const, content: event.text },
               ]
             }
+            // ── Hybrid code splitting: split text→code on final ──
+            finalParts = splitPartsCodeFences(finalParts)
             return {
               ...msg,
               content: event.text,
@@ -273,10 +292,20 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
               ? {
                   ...msg,
                   model: event.model,
+                  provider: event.provider,
                   tokenUsage: {
                     prompt: event.usage.input,
                     completion: event.usage.output,
                     total: event.usage.totalTokens,
+                    cacheRead: event.usage.cacheRead,
+                    cacheWrite: event.usage.cacheWrite,
+                    cost: {
+                      input: event.cost.input,
+                      output: event.cost.output,
+                      cacheRead: event.cost.cacheRead,
+                      cacheWrite: event.cost.cacheWrite,
+                      total: event.cost.total,
+                    },
                   },
                 }
               : msg,
@@ -325,6 +354,45 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
             }
             return prev
           })
+        }
+        break
+      }
+
+      case 'chat:v2/metric': {
+        if (atoms.metrics$) {
+          registryUpdate(atoms.metrics$, (prev) => [
+            ...prev,
+            {
+              metric: event.metric,
+              value: event.value,
+              messageId: event.messageId ?? undefined,
+              toolCallId: event.toolCallId ?? undefined,
+              at: event.at,
+            } as MetricEntry,
+          ])
+        }
+        break
+      }
+
+      case 'chat:v2/provider_marker': {
+        if (atoms.provider$) {
+          morphChatRegistry.set(atoms.provider$, {
+            provider: event.provider,
+            model: event.model ?? undefined,
+            at: event.at,
+          } as ProviderMarker)
+        }
+        // Also patch the provider onto the currently streaming message
+        const msgs = morphChatRegistry.get(atoms.messages$)
+        const streamingMsg = msgs.find((m) => m.status === 'streaming')
+        if (streamingMsg) {
+          registryUpdate(atoms.messages$, (prev) =>
+            prev.map((msg) =>
+              msg.id === streamingMsg.id
+                ? { ...msg, provider: event.provider }
+                : msg,
+            ),
+          )
         }
         break
       }

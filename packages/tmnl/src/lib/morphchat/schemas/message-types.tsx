@@ -258,11 +258,26 @@ export const ChatMessage = Schema.Struct({
   /** Model identifier that produced this message */
   model: Schema.optional(Schema.String),
 
+  /** Provider identifier (e.g. 'anthropic', 'openai') from provider_marker event */
+  provider: Schema.optional(Schema.String),
+
   /** Token usage stats */
   tokenUsage: Schema.optional(Schema.Struct({
     prompt: Schema.Number,
     completion: Schema.Number,
     total: Schema.Number,
+    /** Cache read tokens */
+    cacheRead: Schema.optional(Schema.Number),
+    /** Cache write tokens */
+    cacheWrite: Schema.optional(Schema.Number),
+    /** Cost in USD */
+    cost: Schema.optional(Schema.Struct({
+      input: Schema.Number,
+      output: Schema.Number,
+      cacheRead: Schema.Number,
+      cacheWrite: Schema.Number,
+      total: Schema.Number,
+    })),
   })),
 })
 export type ChatMessage = typeof ChatMessage.Type

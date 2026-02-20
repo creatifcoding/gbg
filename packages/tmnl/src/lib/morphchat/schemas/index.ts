@@ -94,6 +94,10 @@ export type {
   ContentViewSpec as ContentViewSpecType,
 } from './content-view-spec'
 
+// ── Metrics & Provider Markers ──────────────────────────────
+export { MetricEntry, ProviderMarker } from './metric-types'
+export type { MetricEntry as MetricEntryType, ProviderMarker as ProviderMarkerType } from './metric-types'
+
 // ── Skin Interface (ARCHIVED — kept for type reference only) ──
 // Skin abstraction killed in favor of Tailwind-direct styling.
 // If theming is needed later, use CSS variables.

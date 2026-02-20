@@ -35,6 +35,7 @@ import {
   ChatToolBlock,
   ChatFileAttachment,
   ChatCodeBlock,
+  ChatTokenUsage,
   getChatRoleIcon,
   CHAT_ROLE_ICON_SIZE,
   CHAT_ICON_STROKE_WIDTH,
@@ -261,9 +262,14 @@ function AssistantMessage({
             </span>
           )}
           {message.status === 'complete' && message.tokenUsage && (
-            <span className="font-mono text-neutral-700" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-              {message.tokenUsage.total.toLocaleString()} tokens
-            </span>
+            <ChatTokenUsage
+              inputTokens={message.tokenUsage.prompt}
+              outputTokens={message.tokenUsage.completion}
+              totalTokens={message.tokenUsage.total}
+              cachedTokens={message.tokenUsage.cacheRead}
+              modelId={message.model}
+              costUsd={message.tokenUsage.cost?.total}
+            />
           )}
           {/* Footer actions — hover only */}
           {message.status === 'complete' && !hasTasks && (

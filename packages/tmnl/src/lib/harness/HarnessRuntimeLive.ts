@@ -5,7 +5,11 @@
  */
 import { Effect, Layer, Option, Stream } from 'effect'
 
-import { PiAiHarnessEngine, PiAiHarnessEngineLive } from './PiAiHarnessEngine'
+import { PiAiHarnessEngine, PiAiHarnessEngineCoreLive, PiAiToolRuntimeWithBuiltins } from './PiAiHarnessEngine'
+import { PiAiStreamClientLive } from './PiAiStreamClient'
+import { PiAiEventAdapterLive } from './PiAiEventAdapter'
+import { PiAiPolicyLive } from './PiAiPolicy'
+import { HarnessSessionStoreMemoryLive } from './HarnessSessionStoreMemory'
 import { HarnessSendAck, HarnessSessionView, HarnessSnapshot } from './schemas'
 import { HarnessRuntime, HarnessRuntimeError } from './HarnessRuntime'
 
@@ -88,4 +92,14 @@ export const HarnessRuntimeLive = Layer.effect(
       ),
     })
   }),
-).pipe(Layer.provide(PiAiHarnessEngineLive))
+).pipe(
+  Layer.provide(
+    PiAiHarnessEngineCoreLive.pipe(
+      Layer.provide(HarnessSessionStoreMemoryLive),
+      Layer.provide(PiAiToolRuntimeWithBuiltins), // ← SDK built-in tools
+      Layer.provide(PiAiStreamClientLive),
+      Layer.provide(PiAiEventAdapterLive),
+      Layer.provide(PiAiPolicyLive),
+    ),
+  ),
+)
