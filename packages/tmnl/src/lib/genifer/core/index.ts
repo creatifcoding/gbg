@@ -394,6 +394,37 @@ export {
 } from "./incremental-normalize"
 
 // =============================================================================
+// Prompt Engineering (catalog-aware prompt construction)
+// =============================================================================
+
+export {
+  // Full prompt builder
+  buildSystemPrompt,
+  buildPromptEffect,
+
+  // Catalog → JSON Schema compiler
+  compileCatalog,
+  compileComponentSchema,
+
+  // Format specification
+  formatSpecSection,
+
+  // Few-shot generator
+  generateFewShotExample,
+
+  // Model profiles
+  detectModelFamily,
+  resolveProfile,
+  PROFILES,
+
+  // Types
+  type ModelFamily,
+  type ModelProfile,
+  type PromptEngineeringOptions,
+  type CompiledComponentSchema,
+} from "./prompt-engineering"
+
+// =============================================================================
 // Prompt Templating
 // =============================================================================
 
