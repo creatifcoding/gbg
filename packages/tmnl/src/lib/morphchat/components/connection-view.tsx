@@ -19,6 +19,7 @@ import { useMorphChatContext } from './surface-context'
 import { connectionStateFamily } from '../machines/surface-stx'
 import { sendSurfaceEvent } from '../machines/surface-stx'
 import type { ConnectionPhase } from '../schemas/message-types'
+import { useBlockDensity } from '@/lib/chat/msg/density-context'
 
 // =============================================================================
 // Phase → Visual
@@ -62,7 +63,38 @@ export function ConnectionView() {
   // Toast-only mode: render nothing persistently (toast system TBD)
   if (spec.connectionStatus === 'toast-only') return null
 
-  // Badge mode
+  // Badge mode — density-aware
+  const density = useBlockDensity()
+
+  // ── Pill: invisible when OK, border glow on error ──
+  if (density === 'pill') {
+    const glowClass =
+      connection.phase === 'error' ? 'shadow-[0_0_6px_rgba(239,68,68,0.4)]' :
+      connection.phase === 'reconnecting' ? 'shadow-[0_0_6px_rgba(245,158,11,0.4)]' :
+      ''
+    if (!glowClass) return null
+    return <div className={cn('w-2 h-2 rounded-full', PHASE_DOT[connection.phase], glowClass)} title={PHASE_LABEL[connection.phase]} />
+  }
+
+  // ── Compact: dot + tooltip, reconnect on hover ──
+  if (density === 'compact') {
+    return (
+      <div className="group/conn flex items-center gap-1" title={PHASE_LABEL[connection.phase]}>
+        <div className={cn('w-1.5 h-1.5 rounded-full', PHASE_DOT[connection.phase])} />
+        {showReconnect && (
+          <button
+            onClick={handleReconnect}
+            className="opacity-0 group-hover/conn:opacity-100 text-cyan-500 font-mono hover:text-cyan-400 transition-all"
+            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+          >
+            Retry
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  // ── Full: dot + label + latency + reconnect ──
   return (
     <div className="flex items-center gap-1.5">
       <div className={cn('w-1.5 h-1.5 rounded-full', PHASE_DOT[connection.phase])} />

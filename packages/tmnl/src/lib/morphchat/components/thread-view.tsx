@@ -35,6 +35,9 @@ import {
   ChatToolBlock,
   ChatFileAttachment,
   ChatCodeBlock,
+  getChatRoleIcon,
+  CHAT_ROLE_ICON_SIZE,
+  CHAT_ICON_STROKE_WIDTH,
 } from '@/lib/chat/msg'
 import type { ChatMessageRole } from '@/lib/chat/msg'
 
@@ -278,21 +281,28 @@ function AssistantMessage({
   )
 }
 
-/** Compact message — tighter spacing, no role rail */
+/** Compact message — tighter spacing, role-aware alignment */
 function CompactMessage({ message }: { message: ChatMessage }) {
+  const isUser = message.role === 'operator'
   return (
-    <div className="flex gap-2 px-3 py-1">
+    <div className={cn(
+      'flex gap-2 px-3 py-1 max-w-[85%]',
+      isUser ? 'ml-auto flex-row-reverse' : 'mr-auto',
+    )}>
       <span
         className={cn(
-          'shrink-0 font-mono',
-          message.role === 'operator' ? 'text-cyan-500' : 'text-emerald-500',
+          'shrink-0',
+          isUser ? 'font-chat text-cyan-500' : 'font-mono text-emerald-500',
         )}
         style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
       >
-        {message.role === 'operator' ? 'you' : message.authorName ?? 'agent'}
+        {isUser ? (message.authorName ?? 'you') : (message.authorName ?? 'agent')}
       </span>
       <span
-        className="text-neutral-300 min-w-0 break-words"
+        className={cn(
+          'min-w-0 break-words text-neutral-300',
+          isUser ? 'font-chat text-right' : 'font-mono',
+        )}
         style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
       >
         {message.content}
@@ -315,22 +325,24 @@ function StreamOnlyMessage({ message }: { message: ChatMessage }) {
   )
 }
 
-/** Log mode — monospace, timestamped, terminal-style */
+/** Log mode — monospace, timestamped, terminal-style with role icon */
 function LogMessage({ message }: { message: ChatMessage }) {
   const ts = message.timestamp
     ? new Date(message.timestamp).toLocaleTimeString('en-US', { hour12: false })
     : '--:--:--'
 
+  const Icon = getChatRoleIcon(message.role as import('@/lib/chat/msg').ChatRawRole)
+  const roleColor =
+    message.role === 'system' ? 'text-amber-500' :
+    message.role === 'agent' ? 'text-emerald-500' :
+    message.role === 'tool' ? 'text-violet-400' :
+    'text-cyan-500'
+
   return (
-    <div className="flex gap-2 px-3 py-0.5 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+    <div className="flex items-center gap-2 px-3 py-0.5 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
       <span className="text-neutral-600 shrink-0">{ts}</span>
-      <span className={cn(
-        'shrink-0 w-8',
-        message.role === 'system' ? 'text-amber-500' :
-        message.role === 'agent' ? 'text-emerald-500' :
-        message.role === 'tool' ? 'text-violet-400' :
-        'text-cyan-500',
-      )}>
+      <Icon size={12} strokeWidth={CHAT_ICON_STROKE_WIDTH} className={cn('shrink-0', roleColor)} />
+      <span className={cn('shrink-0 w-8', roleColor)}>
         {message.role.slice(0, 4).toUpperCase()}
       </span>
       <span className="text-neutral-400 min-w-0 break-all">{message.content}</span>
@@ -338,30 +350,45 @@ function LogMessage({ message }: { message: ChatMessage }) {
   )
 }
 
-/** Card mode — each message as a distinct card surface */
+/** Card mode — each message as a distinct card surface, role-aware */
 function CardMessage({ message }: { message: ChatMessage }) {
+  const isUser = message.role === 'operator'
   return (
-    <div className="mx-3 my-2 rounded border border-neutral-800 bg-neutral-950 p-3">
-      <div className="flex items-center gap-2 mb-2">
-        <span
-          className={cn(
-            'font-mono px-1.5 py-0.5 rounded',
-            message.role === 'operator'
-              ? 'bg-cyan-500/10 text-cyan-400'
-              : 'bg-emerald-500/10 text-emerald-400',
-          )}
-          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-        >
-          {message.authorName ?? message.role}
-        </span>
+    <div className={cn(
+      'my-2 rounded border border-neutral-800 bg-neutral-950 p-3 max-w-[85%]',
+      isUser ? 'ml-auto' : 'mr-auto',
+    )}>
+      <div className={cn('flex items-center gap-2 mb-2', isUser && 'justify-end')}>
+        {!isUser && (
+          <span
+            className="font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400"
+            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+          >
+            {message.authorName ?? message.role}
+          </span>
+        )}
         <span
           className="text-neutral-600"
           style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
         >
           {message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : ''}
         </span>
+        {isUser && (
+          <span
+            className="font-chat px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400"
+            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+          >
+            {message.authorName ?? 'You'}
+          </span>
+        )}
       </div>
-      <div className="text-neutral-200" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
+      <div
+        className={cn(
+          'text-neutral-200',
+          isUser ? 'font-chat text-right' : 'font-mono',
+        )}
+        style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
+      >
         {message.content}
       </div>
     </div>

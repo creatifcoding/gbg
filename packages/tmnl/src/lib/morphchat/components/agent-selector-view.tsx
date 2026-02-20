@@ -21,6 +21,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { ChevronDown, Bot } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useMorphChatContext } from './surface-context'
+import { useBlockDensity } from '@/lib/chat/msg/density-context'
 import type { MockChatAdapter } from '../adapters/mock-adapter'
 import { Atom } from '@effect-atom/atom'
 import type { AgentInfo } from '../schemas/message-types'
@@ -48,7 +49,25 @@ export function AgentSelectorView() {
     [mockAdapter],
   )
 
+  const density = useBlockDensity()
+
   if (spec.agentSelector === 'hidden' || agents.length === 0) return null
+
+  const active = agents.find((a) => a.id === activeAgentId) ?? agents[0]
+
+  // ── Pill: fixed agent badge, no switching ──
+  if (density === 'pill') {
+    return (
+      <span
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 font-mono text-neutral-500"
+        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        title={active?.name}
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+        {active?.name}
+      </span>
+    )
+  }
 
   if (spec.agentSelector === 'tabs') {
     return (
@@ -56,6 +75,7 @@ export function AgentSelectorView() {
         agents={agents}
         activeId={activeAgentId}
         onSelect={setActiveAgent}
+        compact={density === 'compact'}
       />
     )
   }
@@ -66,6 +86,7 @@ export function AgentSelectorView() {
       agents={agents}
       activeId={activeAgentId}
       onSelect={setActiveAgent}
+      compact={density === 'compact'}
     />
   )
 }
@@ -80,10 +101,12 @@ function AgentTabs({
   agents,
   activeId,
   onSelect,
+  compact = false,
 }: {
   agents: ReadonlyArray<AgentInfo>
   activeId?: string
   onSelect: (id: string) => void
+  compact?: boolean
 }) {
   return (
     <div
@@ -101,7 +124,8 @@ function AgentTabs({
             aria-selected={isActive}
             onClick={() => onSelect(agent.id)}
             className={cn(
-              'relative px-2.5 py-1 rounded font-mono transition-colors duration-200',
+              'relative rounded font-mono transition-colors duration-200',
+              compact ? 'px-1.5 py-0.5' : 'px-2.5 py-1',
               'active:scale-[0.97]',
               isActive
                 ? 'text-cyan-400'
@@ -132,10 +156,12 @@ function AgentDropdown({
   agents,
   activeId,
   onSelect,
+  compact = false,
 }: {
   agents: ReadonlyArray<AgentInfo>
   activeId?: string
   onSelect: (id: string) => void
+  compact?: boolean
 }) {
   const [open, setOpen] = React.useState(false)
   const containerRef = React.useRef<HTMLDivElement>(null)
@@ -179,7 +205,8 @@ function AgentDropdown({
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
         className={cn(
-          'flex items-center gap-1.5 px-2.5 py-1 rounded',
+          'flex items-center gap-1.5 rounded',
+          compact ? 'px-1.5 py-0.5' : 'px-2.5 py-1',
           'font-mono border transition-all duration-200',
           'active:scale-[0.97]',
           open

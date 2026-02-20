@@ -25,6 +25,7 @@ import { useTransferDroppable } from '@/lib/transfer/v2/hooks'
 import type { TransferToken, TransferResult } from '@/lib/transfer/v2/schemas'
 import { Atom } from '@effect-atom/atom'
 import type { MockChatAdapter, MockCommandChip } from '../adapters/mock-adapter'
+import { useBlockDensity } from '@/lib/chat/msg/density-context'
 
 // Module-level sentinel atoms for conditional hook reads (Rules of Hooks)
 const EMPTY_CHIPS = Atom.make<ReadonlyArray<MockCommandChip>>([])
@@ -115,9 +116,56 @@ export function ComposerView() {
       : 'ring-1 ring-red-500/30 bg-red-500/5'
     : ''
 
+  const density = useBlockDensity()
+
   switch (spec.composer) {
     // ── Full: multiline, toolbar, thinking, chips, send/pause, suggestions ──
-    case 'full':
+    case 'full': {
+      // ── Pill density: minimal send-only ──
+      if (density === 'pill') {
+        return (
+          <div ref={composerDropRef} className={cn(dropIndicatorClass, 'transition-all')}>
+            <Composer onSubmit={handleSubmit} isStreaming={isStreaming}>
+              <div className="flex items-center gap-2 px-2 py-1">
+                <div className="flex-1">
+                  <Composer.TextArea placeholder="Message..." />
+                </div>
+                <Composer.SendButton />
+              </div>
+            </Composer>
+          </div>
+        )
+      }
+
+      // ── Compact density: single-line with collapsed toolbar ──
+      if (density === 'compact') {
+        return (
+          <div ref={composerDropRef} className={cn(dropIndicatorClass, 'transition-all')}>
+            <Composer onSubmit={handleSubmit} isStreaming={isStreaming}>
+              {spec.contextChips !== 'hidden' && (
+                <Composer.ContextChips />
+              )}
+              <Composer.TextArea placeholder="Message..." />
+              <Composer.Toolbar>
+                <Composer.ToolbarGroup>
+                  <Composer.ModeToggle />
+                  <Composer.ThinkingLevel />
+                </Composer.ToolbarGroup>
+                <Composer.ToolbarGroup>
+                  <TransportGroup
+                    isStreaming={isStreaming}
+                    onCancel={handleCancel}
+                    onReconnect={() => (adapter as Partial<MockChatAdapter>).toggleConnection?.()}
+                  />
+                  <Composer.SendButton />
+                </Composer.ToolbarGroup>
+              </Composer.Toolbar>
+            </Composer>
+          </div>
+        )
+      }
+
+      // ── Full density: complete toolbar ──
       return (
         <div ref={composerDropRef} className={cn(dropIndicatorClass, 'transition-all')}>
           <Composer onSubmit={handleSubmit} isStreaming={isStreaming}>
@@ -174,6 +222,7 @@ export function ComposerView() {
           </Composer>
         </div>
       )
+    }
 
     // ── Single-line: compact input, enter-to-send ──
     case 'single-line':

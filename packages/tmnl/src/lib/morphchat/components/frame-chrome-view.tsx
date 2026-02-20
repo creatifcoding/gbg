@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils'
 import { useMorphChatContext } from './surface-context'
 import type { MockChatAdapter } from '../adapters/mock-adapter'
 import { morphChatRegistry } from '../atoms/registry'
+import { useBlockDensity } from '@/lib/chat/msg/density-context'
 
 // =============================================================================
 // Icon sizing (TMNL tokens)
@@ -90,8 +91,35 @@ export function FrameChromeView() {
 
   // ── Render ────────────────────────────────────────────────
 
+  const density = useBlockDensity()
+
   switch (spec.frameChrome) {
-    case 'full':
+    case 'full': {
+      // ── Pill density: no chrome ──
+      if (density === 'pill') return null
+
+      // ── Compact density: slim single row ──
+      if (density === 'compact') {
+        return (
+          <div
+            data-slot="morphchat-frame-chrome"
+            className="flex items-center gap-2 px-3 h-8 border-b border-neutral-800/30"
+          >
+            <span
+              className="text-neutral-400 font-mono tracking-wider uppercase truncate flex-1"
+              style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+            >
+              {title}
+            </span>
+            <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', badgeDotColor)} title={badgeState} />
+            <ChromeButton onClick={handleClose} aria-label="Close">
+              <X size={ICON_SIZE} strokeWidth={ICON_STROKE} />
+            </ChromeButton>
+          </div>
+        )
+      }
+
+      // ── Full density: complete header bar ──
       return (
         <div
           data-slot="morphchat-frame-chrome"
@@ -169,8 +197,12 @@ export function FrameChromeView() {
           </div>
         </div>
       )
+    }
 
-    case 'minimal':
+    case 'minimal': {
+      // Pill density: no chrome at all
+      if (density === 'pill') return null
+
       return (
         <div
           data-slot="morphchat-frame-chrome"
@@ -184,6 +216,7 @@ export function FrameChromeView() {
           </span>
         </div>
       )
+    }
 
     case 'none':
     default:
