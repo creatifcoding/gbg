@@ -41,9 +41,11 @@ export class NormalizeError extends Schema.TaggedClass<NormalizeError>()(
  *
  * Ordered strategies:
  *  1. Strip markdown fences (```json ... ```)
- *  2. Strip prose wrapper (find outermost { } or [ ])
+ *  2. Strip single-line // comments (STRING-AWARE — preserves URLs in values)
  *  3. Remove trailing commas before } or ]
- *  4. Strip single-line // comments
+ *  4. Find outermost { } or [ ] bracket pair
+ *  5. If unmatched brackets, attempt partial recovery (close open brackets)
+ *  6. If multiple root objects found, merge into wrapper
  *
  * Returns the cleaned JSON string or a NormalizeError.
  */
@@ -54,14 +56,17 @@ export function extractJson(raw: string): Effect.Effect<string, NormalizeError> 
     // 1. Strip markdown fences
     s = s.replace(/^```(?:json|JSON)?\s*\n?/, "").replace(/\n?\s*```\s*$/, "")
 
-    // 2. Find outermost bracket pair
-    const firstBrace = s.indexOf("{")
-    const firstBracket = s.indexOf("[")
-    let startChar: "{" | "["
-    let endChar: "}" | "]"
-    let startIdx: number
+    // 2. Strip single-line // comments — STRING-AWARE
+    // Walk character by character, only strip // when outside JSON strings
+    s = stripCommentsStringAware(s)
 
-    if (firstBrace === -1 && firstBracket === -1) {
+    // 3. Remove trailing commas before } or ]
+    s = s.replace(/,\s*([}\]])/g, "$1")
+
+    // 4. Find ALL top-level JSON objects/arrays
+    const blocks = findJsonBlocks(s)
+
+    if (blocks.length === 0) {
       throw new NormalizeError({
         stage: "extract",
         message: "No JSON object or array found in response",
@@ -69,49 +74,19 @@ export function extractJson(raw: string): Effect.Effect<string, NormalizeError> 
       })
     }
 
-    if (firstBracket === -1 || (firstBrace !== -1 && firstBrace < firstBracket)) {
-      startChar = "{"
-      endChar = "}"
-      startIdx = firstBrace
-    } else {
-      startChar = "["
-      endChar = "]"
-      startIdx = firstBracket
+    // 6. If multiple root objects, merge into a wrapper
+    if (blocks.length > 1) {
+      // Try: wrap in { "type": "Root", "children": [...] }
+      // But only if each block is an object (not array)
+      const allObjects = blocks.every(b => b.startsWith("{"))
+      if (allObjects) {
+        return `{"type":"Root","key":"multi-root","children":[${blocks.join(",")}]}`
+      }
+      // Fallback: return first block
+      return blocks[0]
     }
 
-    // Find matching closing bracket (respecting nesting + strings)
-    let depth = 0
-    let inString = false
-    let escape = false
-    let endIdx = -1
-
-    for (let i = startIdx; i < s.length; i++) {
-      const ch = s[i]
-      if (escape) { escape = false; continue }
-      if (ch === "\\") { escape = true; continue }
-      if (ch === '"') { inString = !inString; continue }
-      if (inString) continue
-      if (ch === startChar) depth++
-      if (ch === endChar) { depth--; if (depth === 0) { endIdx = i; break } }
-    }
-
-    if (endIdx === -1) {
-      throw new NormalizeError({
-        stage: "extract",
-        message: `Unmatched ${startChar} — no closing ${endChar} found`,
-        raw: raw.slice(0, 200),
-      })
-    }
-
-    s = s.slice(startIdx, endIdx + 1)
-
-    // 3. Remove trailing commas before } or ]
-    s = s.replace(/,\s*([}\]])/g, "$1")
-
-    // 4. Strip single-line comments (outside strings)
-    s = s.replace(/\/\/[^\n]*/g, "")
-
-    return s
+    return blocks[0]
   }).pipe(
     Effect.catchAll((e) =>
       e instanceof NormalizeError
@@ -123,6 +98,141 @@ export function extractJson(raw: string): Effect.Effect<string, NormalizeError> 
           }))
     )
   )
+}
+
+/**
+ * Strip // comments while preserving URLs inside JSON string values.
+ * Walks the string character-by-character tracking string state.
+ * @internal
+ */
+function stripCommentsStringAware(s: string): string {
+  const out: string[] = []
+  let inString = false
+  let escape = false
+
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i]
+
+    if (escape) {
+      out.push(ch)
+      escape = false
+      continue
+    }
+
+    if (ch === "\\") {
+      out.push(ch)
+      escape = true
+      continue
+    }
+
+    if (ch === '"') {
+      inString = !inString
+      out.push(ch)
+      continue
+    }
+
+    if (inString) {
+      out.push(ch)
+      continue
+    }
+
+    // Outside string: check for //
+    if (ch === "/" && i + 1 < s.length && s[i + 1] === "/") {
+      // Skip until end of line
+      while (i < s.length && s[i] !== "\n") i++
+      // Don't skip the \n itself — push it
+      if (i < s.length) out.push("\n")
+      continue
+    }
+
+    out.push(ch)
+  }
+
+  return out.join("")
+}
+
+/**
+ * Find all top-level JSON blocks in a string.
+ * Handles multiple { } objects or [ ] arrays.
+ * Attempts partial recovery for truncated JSON (closes open brackets).
+ * @internal
+ */
+function findJsonBlocks(s: string): string[] {
+  const blocks: string[] = []
+  let i = 0
+
+  while (i < s.length) {
+    // Skip non-JSON characters
+    if (s[i] !== "{" && s[i] !== "[") { i++; continue }
+
+    const startChar = s[i] as "{" | "["
+    const endChar = startChar === "{" ? "}" : "]"
+    const startIdx = i
+
+    // Find matching close
+    let depth = 0
+    let inStr = false
+    let esc = false
+    let endIdx = -1
+    let lastBalancedIdx = -1
+
+    for (let j = startIdx; j < s.length; j++) {
+      const ch = s[j]
+      if (esc) { esc = false; continue }
+      if (ch === "\\") { esc = true; continue }
+      if (ch === '"') { inStr = !inStr; continue }
+      if (inStr) continue
+
+      if (ch === "{" || ch === "[") depth++
+      if (ch === "}" || ch === "]") {
+        depth--
+        if (depth === 0) { endIdx = j; break }
+        // Track last position where depth was 1 and we closed something
+        if (depth === 1 && (ch === "}" || ch === "]")) {
+          lastBalancedIdx = j
+        }
+      }
+    }
+
+    if (endIdx !== -1) {
+      blocks.push(s.slice(startIdx, endIdx + 1))
+      i = endIdx + 1
+    } else {
+      // Truncated JSON — attempt partial recovery
+      // Strategy: find the last balanced sub-object/array close, then force-close
+      let truncated = s.slice(startIdx)
+
+      // If we were inside a string when truncation happened, close the string
+      if (inStr) truncated += '"'
+
+      // Close all open brackets
+      // Count remaining open brackets
+      let openBraces = 0
+      let openBrackets = 0
+      let tInStr = false
+      let tEsc = false
+      for (let k = 0; k < truncated.length; k++) {
+        const ch = truncated[k]
+        if (tEsc) { tEsc = false; continue }
+        if (ch === "\\") { tEsc = true; continue }
+        if (ch === '"') { tInStr = !tInStr; continue }
+        if (tInStr) continue
+        if (ch === "{") openBraces++
+        if (ch === "}") openBraces--
+        if (ch === "[") openBrackets++
+        if (ch === "]") openBrackets--
+      }
+
+      // Close open brackets (inner-most first: ] then })
+      for (let k = 0; k < openBrackets; k++) truncated += "]"
+      for (let k = 0; k < openBraces; k++) truncated += "}"
+
+      blocks.push(truncated)
+      break // No more blocks after a truncation
+    }
+  }
+
+  return blocks
 }
 
 /**
@@ -239,8 +349,11 @@ export function fromNested(obj: Record<string, unknown>): Effect.Effect<UITree, 
       for (const child of children) {
         if (typeof child === "object" && child !== null && !Array.isArray(child)) {
           childKeys.push(walk(child as Record<string, unknown>, key))
+        } else if (typeof child === "string" && child.length > 0) {
+          // String child reference (hybrid-in-nested) — keep as ref
+          childKeys.push(child)
         }
-        // Skip non-object children (malformed)
+        // Skip null, number, boolean children — they're junk
       }
 
       // Extract props: everything except meta-fields

@@ -91,14 +91,52 @@ describe("extractJson", () => {
     expect(() => run(extractJson("no json here"))).toThrow()
   })
 
-  it("fails on unmatched braces", () => {
-    expect(() => run(extractJson('{"type":"Card"'))).toThrow()
+  it("recovers truncated JSON by closing open brackets", () => {
+    // Partial recovery: force-closes the open brace
+    const result = run(extractJson('{"type":"Card"'))
+    const parsed = JSON.parse(result)
+    expect(parsed.type).toBe("Card")
   })
 
   it("extracts array format", () => {
     const raw = '[{"type":"Card"},{"type":"Text"}]'
     const result = run(extractJson(raw))
     expect(JSON.parse(result)).toHaveLength(2)
+  })
+
+  it("preserves URLs inside string values (// in https://)", () => {
+    const raw = '{"type":"Card","props":{"url":"https://example.com/docs","api":"http://localhost:3000/api"}}'
+    const result = run(extractJson(raw))
+    const parsed = JSON.parse(result)
+    expect(parsed.props.url).toBe("https://example.com/docs")
+    expect(parsed.props.api).toBe("http://localhost:3000/api")
+  })
+
+  it("strips // comments while preserving URLs in same object", () => {
+    const raw = '{"type":"Page", // root\n"props":{"url":"https://example.com"}}'
+    const result = run(extractJson(raw))
+    const parsed = JSON.parse(result)
+    expect(parsed.type).toBe("Page")
+    expect(parsed.props.url).toBe("https://example.com")
+  })
+
+  it("merges multiple root objects into wrapper", () => {
+    const raw = '{"type":"A","key":"a1"}\n{"type":"B","key":"b1"}'
+    const result = run(extractJson(raw))
+    const parsed = JSON.parse(result)
+    expect(parsed.type).toBe("Root")
+    expect(parsed.children).toHaveLength(2)
+    expect(parsed.children[0].type).toBe("A")
+    expect(parsed.children[1].type).toBe("B")
+  })
+
+  it("recovers truncated JSON after complete children", () => {
+    const raw = '{"type":"Page","children":[{"type":"Card","key":"c1"}]'
+    // Missing closing }
+    const result = run(extractJson(raw))
+    const parsed = JSON.parse(result)
+    expect(parsed.type).toBe("Page")
+    expect(parsed.children[0].key).toBe("c1")
   })
 })
 
@@ -307,6 +345,19 @@ describe("normalize", () => {
     const raw = '{"type":"Page","key":"p","children":["s"],"s":{"type":"Section","props":{"title":"A"}}}'
     const tree = run(normalize(raw))
     expect(tree.size).toBe(2)
+  })
+})
+
+describe("normalize — multi-root", () => {
+  it("merges two root objects into nested tree", () => {
+    const raw = '{"type":"Section","key":"s1","children":[{"type":"Card","key":"c1"}]}\n{"type":"Section","key":"s2","children":[{"type":"Card","key":"c2"}]}'
+    const tree = run(normalize(raw))
+    expect(tree.root).toBe("multi-root")
+    expect(tree.size).toBeGreaterThanOrEqual(5) // Root + 2 sections + 2 cards
+    expect(Option.isSome(tree.getElement("s1"))).toBe(true)
+    expect(Option.isSome(tree.getElement("s2"))).toBe(true)
+    expect(Option.isSome(tree.getElement("c1"))).toBe(true)
+    expect(Option.isSome(tree.getElement("c2"))).toBe(true)
   })
 })
 
