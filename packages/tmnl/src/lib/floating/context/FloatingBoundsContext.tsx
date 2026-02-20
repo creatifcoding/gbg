@@ -18,6 +18,7 @@ import {
   useRef,
   useEffect,
   useCallback,
+  memo,
   type ReactNode,
   type RefObject,
 } from 'react'
@@ -45,9 +46,37 @@ export type Bounds = typeof Bounds.Type
 
 const boundsState = observable<Bounds | null>(null)
 
-/** Get current bounds (for use in drag/resize handlers) */
+/**
+ * Get current bounds (for use in drag/resize handlers).
+ *
+ * Priority:
+ * 1. Explicit FloatingBoundsProvider (if mounted)
+ * 2. AppShell workspace element (detected by data-shell-workspace attribute).
+ *    With `contain: paint` on the workspace, position:fixed children are
+ *    workspace-relative, so bounds are { 0, 0, width, height }.
+ * 3. null (falls back to window dimensions at call site)
+ */
 export function getBounds(): Bounds | null {
-  return boundsState.get()
+  const explicit = boundsState.get()
+  if (explicit) return explicit
+
+  // Fallback: measure the AppShell workspace
+  if (typeof document !== 'undefined') {
+    const workspace = document.querySelector('[data-shell-workspace]')
+    if (workspace) {
+      const rect = workspace.getBoundingClientRect()
+      return {
+        left: 0,
+        top: 0,
+        right: rect.width,
+        bottom: rect.height,
+        width: rect.width,
+        height: rect.height,
+      }
+    }
+  }
+
+  return null
 }
 
 /** Set bounds (called by provider on resize) */
@@ -190,7 +219,7 @@ export interface FloatingBoundsProviderProps {
  * </FloatingBoundsProvider>
  * ```
  */
-export function FloatingBoundsProvider({
+export const FloatingBoundsProvider = memo(function FloatingBoundsProvider({
   children,
   className = '',
   style,
@@ -199,7 +228,7 @@ export function FloatingBoundsProvider({
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Subscribe to bounds for reactivity
-  const bounds = useSelector(boundsState, (b) => b)
+  const bounds = useSelector(() => boundsState.get())
 
   // Calculate bounds from container rect
   const recalculate = useCallback(() => {
@@ -258,7 +287,7 @@ export function FloatingBoundsProvider({
       </div>
     </FloatingBoundsContext.Provider>
   )
-}
+})
 
 // =============================================================================
 // Hook

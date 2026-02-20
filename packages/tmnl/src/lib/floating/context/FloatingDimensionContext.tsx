@@ -8,7 +8,7 @@
  * @module
  */
 
-import { createContext, useContext, useMemo, type ReactNode } from 'react'
+import { createContext, useContext, useMemo, memo, type ReactNode } from 'react'
 import type { Dimensions, UseFloatingDimensionsReturn } from './types'
 
 // =============================================================================
@@ -35,7 +35,7 @@ interface FloatingDimensionProviderProps {
   isResizing: boolean
 }
 
-export function FloatingDimensionProvider({
+export const FloatingDimensionProvider = memo(function FloatingDimensionProvider({
   children,
   panelId,
   dimensions,
@@ -71,7 +71,7 @@ export function FloatingDimensionProvider({
       </div>
     </FloatingDimensionContext.Provider>
   )
-}
+})
 
 // =============================================================================
 // Hook

@@ -1,125 +1,34 @@
 /**
- * FloatingPanel v2
+ * FloatingPanel v5 — Compound decomposition
  *
- * Draggable, resizable floating panel with window chrome.
- * Uses stx for state, @dnd-kit for drag, custom handles for resize.
+ * Zero animation. dnd-kit owns drag transform. stx owns state.
+ * Header, content, resize handles are separate components.
  *
- * IMPORTANT: Panel must be registered in stx BEFORE rendering this component.
- * Use `registerPanel()` from floating-stx before rendering <FloatingPanel>.
- * This component is a pure consumer - it does NOT self-register.
- *
- * Key fixes from v1:
- * - Motion blur during drag (panel stays visible)
- * - Resize handles (8 directions)
- * - Dock button + double-click title bar toggle
- * - FloatingDimensionContext for content adaptation
- *
- * @pattern stx consumer (no self-registration)
  * @module
  */
 
-import { useState, useEffect, type ReactNode } from 'react'
+import { useCallback, memo, type ReactNode } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 
 import { useSelector } from '@/lib/stx'
-import { COLORS } from '@/lib/capabilities/tokens'
-import { useFloatingPanelContext } from './FloatingPanelProvider'
+import { useFloatingPanelContext } from './context/FloatingPanelContext'
 import { getFloatingStx, maximizePanel, restorePanel } from './floating-stx'
 import { ResizeHandles } from './ResizeHandles'
-import { FloatingDimensionProvider } from './FloatingDimensionContext'
-// Use centralized drag orchestrator for motion blur
-import { useElementBlurStyle } from '@/lib/drag'
-// Drawer slot for per-panel drawers
-import { PanelSlot } from '@/lib/drawer'
-import type { PanelState, Position, Dimensions } from './types'
-
-// =============================================================================
-// Icons
-// =============================================================================
-
-function MinimizeIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
-      <rect x="1" y="4" width="8" height="2" rx="0.5" />
-    </svg>
-  )
-}
-
-function CloseIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
-      <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-function GripIcon() {
-  return (
-    <svg width="6" height="10" viewBox="0 0 6 10" fill="currentColor">
-      <circle cx="1.5" cy="1.5" r="1" />
-      <circle cx="4.5" cy="1.5" r="1" />
-      <circle cx="1.5" cy="5" r="1" />
-      <circle cx="4.5" cy="5" r="1" />
-      <circle cx="1.5" cy="8.5" r="1" />
-      <circle cx="4.5" cy="8.5" r="1" />
-    </svg>
-  )
-}
-
-function DockIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2">
-      <rect x="1" y="1" width="8" height="8" rx="1" />
-      <line x1="1" y1="4" x2="9" y2="4" />
-    </svg>
-  )
-}
-
-function UndockIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2">
-      <rect x="1" y="3" width="6" height="6" rx="1" />
-      <path d="M4 3V2a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H8" />
-    </svg>
-  )
-}
-
-function MaximizeIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2">
-      <rect x="1" y="1" width="8" height="8" rx="1" />
-    </svg>
-  )
-}
-
-function RestoreIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2">
-      {/* Back window */}
-      <rect x="2" y="3" width="5" height="5" rx="0.5" />
-      {/* Front window offset */}
-      <path d="M4 3V2a0.5 0.5 0 01.5-.5h4a0.5 0.5 0 01.5.5v4a0.5 0.5 0 01-.5.5H8" />
-    </svg>
-  )
-}
+import { PANEL } from './tokens'
+import { PanelHeader } from './components/PanelHeader'
+import { PanelContent } from './components/PanelContent'
 
 // =============================================================================
 // Props
 // =============================================================================
 
 export interface FloatingPanelProps {
-  /** Panel ID - must already be registered in stx */
   id: string
-  /** Panel title for display */
   title: string
-  /** Children to render inside panel */
   children: ReactNode
-  /** Callback when close button clicked */
   onClose?: () => void
-  /** Callback when dock/undock toggled */
   onToggleMode?: () => void
-  /** Additional className for panel */
   className?: string
 }
 
@@ -127,351 +36,97 @@ export interface FloatingPanelProps {
 // Component
 // =============================================================================
 
-/**
- * A draggable, resizable floating panel with window chrome.
- *
- * IMPORTANT: Panel must be registered in stx BEFORE rendering.
- * This component is a pure consumer - it does NOT self-register.
- *
- * @example
- * ```tsx
- * // Register first, then render
- * useEffect(() => {
- *   registerPanel({ id: 'settings', title: 'Settings', ... })
- *   return () => unregisterPanel('settings')
- * }, [])
- *
- * // Only render when panel exists
- * const panel = getPanel('settings')
- * if (!panel) return null
- *
- * return (
- *   <FloatingPanelProvider>
- *     <FloatingPanel id="settings" title="Settings">
- *       <SettingsContent />
- *     </FloatingPanel>
- *   </FloatingPanelProvider>
- * )
- * ```
- */
-export function FloatingPanel({
-  id,
-  title,
-  onClose,
-  onToggleMode,
-  children,
-  className = '',
+export const FloatingPanel = memo(function FloatingPanel({
+  id, title, onClose: onCloseProp, onToggleMode: onToggleModeProp, children, className = '',
 }: FloatingPanelProps) {
   const context = useFloatingPanelContext()
-  const stx = getFloatingStx()
 
-  // Animation state for maximize/restore transition (Apple-style subtle)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const [animationPhase, setAnimationPhase] = useState<'idle' | 'lift' | 'settle'>('idle')
+  // ─── Fine-grained field selectors ────────────────────────────
+  const stxPanel = getFloatingStx().data.panels.get(id)
+  const position = useSelector(() => stxPanel?.position.get())
+  const dimensions = useSelector(() => stxPanel?.dimensions.get())
+  const constraints = useSelector(() => stxPanel?.constraints.get())
+  const zIndex = useSelector(() => stxPanel?.zIndex.get())
+  const visibility = useSelector(() => stxPanel?.visibility.get())
+  const isDragging = useSelector(() => stxPanel?.isDragging.get() ?? false)
+  const isResizing = useSelector(() => stxPanel?.isResizing.get() ?? false)
+  const isMaximized = useSelector(() => stxPanel?.isMaximized.get() ?? false)
+  const mode = useSelector(() => stxPanel?.mode.get())
+  const closable = useSelector(() => stxPanel?.closable.get() ?? true)
+  const minimizable = useSelector(() => stxPanel?.minimizable.get() ?? true)
+  const resizable = useSelector(() => stxPanel?.resizable.get() ?? true)
 
-  // Subscribe to this panel's state from stx
-  // NOTE: We select the full Map and extract panel to ensure safe initialization
-  const panelsMap = useSelector(stx.data.panels, (p) => p)
-  const panel = panelsMap?.get(id)
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform } = useDraggable({ id, disabled: isMaximized })
 
-  // Get motion blur style from centralized drag orchestrator
-  const blurStyle = useElementBlurStyle(id)
+  if (!position || !dimensions) return null
+  if (visibility === 'hidden') return null
 
-  // @dnd-kit draggable (transform only - drag state comes from stx)
-  // Disable dragging when maximized
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    setActivatorNodeRef,
-    transform,
-  } = useDraggable({ id, disabled: panel?.isMaximized })
+  const dndTransform = !isMaximized && transform ? CSS.Translate.toString(transform) : undefined
 
-  // Panel must exist in stx - if not, don't render
-  // Caller is responsible for registering before rendering
-  if (!panel) {
-    return null
-  }
+  // ─── Handlers ────────────────────────────────────────────────
+  const handleClose = useCallback(() => { context.closePanel(id); onCloseProp?.() }, [context, id, onCloseProp])
+  const handleMinimize = useCallback(() => { context.setVisibility(id, visibility === 'minimized' ? 'visible' : 'minimized') }, [context, id, visibility])
+  const handleToggleMode = useCallback(() => { context.toggleMode(id); onToggleModeProp?.() }, [context, id, onToggleModeProp])
+  const handleMaximizeToggle = useCallback(() => { isMaximized ? restorePanel(id) : maximizePanel(id) }, [id, isMaximized])
+  const handlePanelClick = useCallback(() => { context.bringToFront(id) }, [context, id])
 
-  // Don't render if panel is hidden
-  if (panel.visibility === 'hidden') {
-    return null
-  }
-
-  // Transform style from @dnd-kit (only when not maximized)
-  const transformStyle = !panel.isMaximized && transform
-    ? CSS.Transform.toString(transform)
-    : undefined
-
-  // Direction-aware motion blur from centralized drag orchestrator
-  // Uses velocity tracking from @/lib/drag which is updated in FloatingPanelProvider.handleDragMove
-  const motionBlur = panel.isDragging ? blurStyle.blurAmount : 0
-  const motionStretch = panel.isDragging ? blurStyle.transform : undefined
-
-  // Apple-style animation: subtle scale lift during transition
-  const animationScale = animationPhase === 'lift' ? 0.98 : 1.0
-
-  // Handle close
-  const handleClose = () => {
-    context.closePanel(id)
-    onClose?.()
-  }
-
-  // Handle minimize
-  const handleMinimize = () => {
-    context.setVisibility(id, panel.visibility === 'minimized' ? 'visible' : 'minimized')
-  }
-
-  // Handle dock/undock toggle
-  const handleToggleMode = () => {
-    context.toggleMode(id)
-    onToggleMode?.()
-  }
-
-  // Handle maximize with animation (Apple-style: lift → expand → settle)
-  const handleMaximize = () => {
-    if (panel.isMaximized || isAnimating) return
-
-    setIsAnimating(true)
-    setAnimationPhase('lift')
-
-    // Phase 1: Lift (subtle scale down, 80ms)
-    setTimeout(() => {
-      setAnimationPhase('settle')
-      maximizePanel(id)
-
-      // Phase 2: Settle (smooth expansion, 200ms)
-      setTimeout(() => {
-        setAnimationPhase('idle')
-        setIsAnimating(false)
-      }, 200)
-    }, 80)
-  }
-
-  // Handle restore with animation (Apple-style: lift → contract → settle)
-  const handleRestore = () => {
-    if (!panel.isMaximized || isAnimating) return
-
-    setIsAnimating(true)
-    setAnimationPhase('lift')
-
-    // Phase 1: Lift (subtle scale down, 80ms)
-    setTimeout(() => {
-      setAnimationPhase('settle')
-      restorePanel(id)
-
-      // Phase 2: Settle (smooth contraction, 200ms)
-      setTimeout(() => {
-        setAnimationPhase('idle')
-        setIsAnimating(false)
-      }, 200)
-    }, 80)
-  }
-
-  // Handle double-click title bar to maximize
-  const handleTitleDoubleClick = () => {
-    if (panel.isMaximized) {
-      handleRestore()
-    } else {
-      handleMaximize()
-    }
-  }
-
-  // Handle click to bring to front
-  const handlePanelClick = () => {
-    context.bringToFront(id)
-  }
-
-  // Handle resize end
-  const handleResizeEnd = (dimensions: Dimensions, position: Position) => {
-    context.updateDimensions(id, dimensions)
-    context.updatePosition(id, position)
-  }
-
-  // Apple-style: subtle shadow elevation during lift phase
-  const liftShadow = animationPhase === 'lift'
-    ? '0 12px 40px rgba(0, 0, 0, 0.6)'
-    : panel.isDragging
-      ? '0 8px 32px rgba(0, 0, 0, 0.7)'
-      : '0 4px 24px rgba(0, 0, 0, 0.5)'
+  const borderColor = (isDragging || isResizing) ? PANEL.borderActive : PANEL.border
 
   return (
     <div
       ref={setNodeRef}
-      className={`fixed ${panel.isMaximized ? '' : 'rounded'} ${className}`}
+      role="dialog"
+      aria-label={title}
+      className={`fp-panel ${className}`.trim()}
+      data-floating-panel
+      data-state={isDragging ? 'dragging' : isResizing ? 'resizing' : isMaximized ? 'maximized' : 'idle'}
       style={{
-        left: panel.position.x,
-        top: panel.position.y,
-        // EXPLICIT width + height — panel dimensions are authoritative, not content
-        width: panel.dimensions.width,
-        height: panel.dimensions.height,
-        minWidth: panel.isMaximized ? undefined : (panel.constraints?.minWidth ?? 200),
-        minHeight: panel.isMaximized ? undefined : (panel.constraints?.minHeight ?? 100),
-        zIndex: panel.isMaximized ? 99999 : panel.zIndex,
-        // Apple-style: combine drag transform with animation scale + motion stretch
-        transform: [
-          transformStyle,
-          animationScale !== 1.0 ? `scale(${animationScale})` : '',
-          motionStretch,
-        ].filter(Boolean).join(' ') || undefined,
-        backgroundColor: COLORS.neutral[950],
-        opacity: 1,
-        border: panel.isMaximized ? 'none' : `1px solid ${COLORS.neutral[800]}`,
-        // Apple-style shadow: elevated during lift, normal otherwise
-        boxShadow: panel.isMaximized ? 'none' : liftShadow,
-        // Subtle motion blur during fast drag (no harsh filters)
-        filter: motionBlur > 0 ? `blur(${motionBlur}px)` : undefined,
-        // Apple-style smooth transitions
-        // NOTE: No transform transition when idle — prevents elastic snap-back on drag end
-        transition: isAnimating
-          ? 'left 0.25s cubic-bezier(0.4, 0, 0.2, 1), top 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1), height 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.08s ease-out, box-shadow 0.15s ease-out'
-          : panel.isDragging
-            ? 'none'
-            : 'box-shadow 0.2s ease-out',
-        // Flex column layout for proper height distribution
-        display: 'flex',
-        flexDirection: 'column',
+        position: 'fixed',
+        left: position.x, top: position.y,
+        width: dimensions.width, height: dimensions.height,
+        minWidth: isMaximized ? undefined : (constraints?.minWidth ?? 220),
+        minHeight: isMaximized ? undefined : (constraints?.minHeight ?? 120),
+        zIndex: isMaximized ? 99999 : zIndex,
+        boxShadow: 'none',
+        backgroundColor: PANEL.bg,
+        border: isMaximized ? 'none' : `1px solid ${borderColor}`,
+        borderRadius: isMaximized ? 0 : PANEL.radius,
+        overflow: 'hidden',
+        transform: dndTransform,
+        willChange: 'transform',
+        display: 'flex', flexDirection: 'column' as const,
       }}
       onClick={handlePanelClick}
       {...attributes}
     >
-      {/* Title Bar - fixed height, no shrink */}
-      <div
-        className="flex items-center justify-between px-2 py-1.5 border-b select-none"
-        style={{
-          backgroundColor: COLORS.neutral[900],
-          borderColor: COLORS.neutral[800],
-          flexShrink: 0,
-        }}
-        onDoubleClick={handleTitleDoubleClick}
-      >
-        {/* Drag Handle + Title */}
-        <div
-          ref={setActivatorNodeRef}
-          className="flex items-center gap-2 cursor-grab active:cursor-grabbing flex-1"
-          {...listeners}
-        >
-          <span style={{ color: COLORS.neutral[600] }}>
-            <GripIcon />
-          </span>
-          <span
-            className="font-mono truncate"
-            style={{
-              fontSize: 'var(--tmnl-text-xs, 12px)',
-              color: COLORS.neutral[400],
-            }}
-          >
-            {title}
-          </span>
-        </div>
+      <PanelHeader
+        title={title}
+        borderColor={borderColor}
+        isMaximized={isMaximized}
+        mode={mode}
+        closable={closable}
+        minimizable={minimizable}
+        onClose={handleClose}
+        onMinimize={handleMinimize}
+        onToggleMode={handleToggleMode}
+        onMaximizeToggle={handleMaximizeToggle}
+        activatorRef={setActivatorNodeRef}
+        listeners={listeners}
+      />
 
-        {/* Window Controls */}
-        <div className="flex items-center gap-1">
-          {/* Dock/Undock toggle */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              handleToggleMode()
-            }}
-            className="p-1 rounded transition-colors hover:bg-white/10"
-            style={{ color: COLORS.neutral[500] }}
-            aria-label={panel.mode === 'floating' ? 'Dock panel' : 'Undock panel'}
-            title={panel.mode === 'floating' ? 'Dock panel' : 'Float panel'}
-          >
-            {panel.mode === 'floating' ? <DockIcon /> : <UndockIcon />}
-          </button>
-
-          {/* Maximize/Restore toggle */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              if (panel.isMaximized) {
-                handleRestore()
-              } else {
-                handleMaximize()
-              }
-            }}
-            className="p-1 rounded transition-colors hover:bg-white/10"
-            style={{ color: COLORS.neutral[500] }}
-            aria-label={panel.isMaximized ? 'Restore panel' : 'Maximize panel'}
-            title={panel.isMaximized ? 'Restore' : 'Maximize'}
-          >
-            {panel.isMaximized ? <RestoreIcon /> : <MaximizeIcon />}
-          </button>
-
-          {panel.minimizable && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                handleMinimize()
-              }}
-              className="p-1 rounded transition-colors hover:bg-white/10"
-              style={{ color: COLORS.neutral[500] }}
-              aria-label="Minimize"
-            >
-              <MinimizeIcon />
-            </button>
-          )}
-
-          {panel.closable && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                handleClose()
-              }}
-              className="p-1 rounded transition-colors hover:bg-red-500/20 hover:text-red-400"
-              style={{ color: COLORS.neutral[500] }}
-              aria-label="Close"
-            >
-              <CloseIcon />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Content (collapsed when minimized) - fills remaining space */}
-      {panel.visibility !== 'minimized' && (
-        <FloatingDimensionProvider
-          panelId={id}
-          dimensions={panel.dimensions}
-          isResizing={panel.isResizing}
-        >
-          {/* Content container with relative positioning for drawer slot */}
-          <div
-            className="overflow-auto relative"
-            style={{
-              // flex: 1 fills remaining height, min-height: 0 allows shrinking below content size
-              flex: 1,
-              minHeight: 0,
-              minWidth: 0,
-            }}
-          >
-            {children}
-            {/* Per-panel drawer slot - renders drawer overlays scoped to this panel */}
-            <PanelSlot panelId={id} />
-          </div>
-        </FloatingDimensionProvider>
+      {visibility !== 'minimized' && (
+        <PanelContent panelId={id} dimensions={dimensions} isResizing={isResizing}>
+          {children}
+        </PanelContent>
       )}
 
-      {/* Resize Handles - wrapped in absolute container for proper positioning */}
-      {panel.resizable && panel.visibility !== 'minimized' && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            pointerEvents: 'none',
-          }}
-        >
-          <ResizeHandles
-            panelId={id}
-            dimensions={panel.dimensions}
-            position={panel.position}
-            onResizeEnd={handleResizeEnd}
-          />
+      {resizable && visibility !== 'minimized' && (
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          <ResizeHandles panelId={id} dimensions={dimensions} position={position} />
         </div>
       )}
     </div>
   )
-}
+})
 
 export default FloatingPanel

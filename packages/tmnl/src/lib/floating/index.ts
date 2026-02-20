@@ -60,13 +60,10 @@ export {
   restorePersistedState,
   maximizePanel,
   restorePanel,
-  // NOTE: Velocity tracking now uses centralized drag orchestrator from @/lib/drag
-  // Legacy exports kept for backwards compatibility
-  startDragVelocityTracking,
-  updateDragVelocity,
-  stopDragVelocityTracking,
-  getDragVelocity,
-  getMotionBlurStyle,
+  // Snap-to-grid configuration
+  setGridSize,
+  toggleSnap,
+  setSnapEnabled,
 } from './floating-stx'
 
 // =============================================================================
@@ -75,10 +72,10 @@ export {
 
 export {
   FloatingPanelProvider,
-  useFloatingPanelContext,
   useFloatingPanel,
   type FloatingPanelProviderProps,
 } from './FloatingPanelProvider'
+export { useFloatingPanelContext } from './context/FloatingPanelContext'
 
 // =============================================================================
 // Components
@@ -92,15 +89,58 @@ export {
   FloatingDimensionProvider,
   useFloatingDimensions,
   FloatingDimensionContext,
-} from './FloatingDimensionContext'
+} from './context/FloatingDimensionContext'
 
 // =============================================================================
 // Hooks
 // =============================================================================
 
 export { useResize, type UseResizeOptions } from './hooks/useResize'
-export { usePanelPersistence } from './hooks/usePanelPersistence'
+
+// =============================================================================
+// Position Utilities
+// =============================================================================
+
+export {
+  cascadePosition,
+  findOpenSlot,
+  snapToGrid,
+  staggerOffset,
+  clampToViewport,
+  applyMagneticSnap,
+  type Viewport,
+  type PanelRect,
+  type MagneticSnapOptions,
+} from './utils/position'
 export { usePanelById } from './hooks/useFloatingPanel'
+
+// =============================================================================
+// Dock Module
+// =============================================================================
+
+export {
+  type DockZone,
+  DOCK_THRESHOLD,
+  approx,
+  classifyDockZone,
+  dockZoneLabel,
+  resolveDockLayout,
+} from './dock'
+
+// =============================================================================
+// Tokens
+// =============================================================================
+
+export { PANEL } from './tokens'
+
+// =============================================================================
+// Compound Components
+// =============================================================================
+
+export { PanelHeader, type PanelHeaderProps } from './components/PanelHeader'
+export { PanelContent, type PanelContentProps } from './components/PanelContent'
+export { DragGuideOverlay, type DragGuideOverlayProps } from './components/DragGuideOverlay'
+export { ChromeBtn, type ChromeBtnProps } from './components/ChromeBtn'
 
 // =============================================================================
 // Types (Schema-based)
@@ -119,7 +159,6 @@ export {
   PersistedPanelState,
   PanelStorage,
   ModifierKeys,
-  DragVelocity,
   // Interfaces
   type FloatingStxData,
   type PanelMachineContext,
@@ -166,4 +205,4 @@ export {
   clampResize,
   Bounds,
   type FloatingBoundsProviderProps,
-} from './FloatingBoundsContext'
+} from './context/FloatingBoundsContext'

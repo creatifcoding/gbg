@@ -9,11 +9,10 @@
  */
 
 import {
-  createContext,
-  useContext,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   type ReactNode,
 } from 'react'
 import {
@@ -24,11 +23,15 @@ import {
   useSensors,
   closestCenter,
   type DragStartEvent,
-  type DragMoveEvent,
   type DragEndEvent,
+  type Modifier,
 } from '@dnd-kit/core'
+import {
+  createSnapModifier,
+} from '@dnd-kit/modifiers'
+import type { ClientRect } from '@dnd-kit/core'
 
-import { useSelector } from '@/lib/stx'
+import { useSelector, batch } from '@/lib/stx'
 import {
   getFloatingStx,
   registerPanel as stxRegisterPanel,
@@ -44,12 +47,8 @@ import {
   restorePersistedState,
   updatePanelDimensions,
 } from './floating-stx'
-// Use centralized drag orchestrator for velocity tracking
-import {
-  startDrag as orchestratorStartDrag,
-  updateDragPosition as orchestratorUpdatePosition,
-  endDrag as orchestratorEndDrag,
-} from '@/lib/drag'
+// NOTE: floating panel drag does not use drag-orchestrator visual effects.
+// Keep drag pipeline single-source (dnd-kit + stx) to avoid competing actors.
 import type {
   PanelState,
   PanelConfig,
@@ -59,7 +58,28 @@ import type {
   UseFloatingPanelReturn,
   PanelStorage,
 } from './types'
-import { getBounds, clampPosition } from './FloatingBoundsContext'
+import {
+  clampToViewport,
+  type PanelRect,
+} from './utils/position'
+import { resolveDockLayout } from './dock'
+import {
+  FloatingPanelContext,
+  useFloatingPanelContext,
+  type FloatingPanelContextValue,
+} from './context/FloatingPanelContext'
+import { useWorkspaceBounds } from './hooks/useWorkspaceBounds'
+import { useSnapGuides } from './hooks/useSnapGuides'
+import { useDockPreview } from './hooks/useDockPreview'
+import { useKeyboardNudge } from './hooks/useKeyboardNudge'
+import {
+  useRestrictToWorkspace,
+  useMagneticSnapModifier,
+  useDockPreviewModifier,
+  type DragSnapState,
+} from './modifiers'
+import { DragGuideOverlay } from './components/DragGuideOverlay'
+
 
 // =============================================================================
 // Storage Key
@@ -67,34 +87,7 @@ import { getBounds, clampPosition } from './FloatingBoundsContext'
 
 const STORAGE_KEY = 'tmnl-floating-panels'
 
-// =============================================================================
-// Context
-// =============================================================================
-
-interface FloatingPanelContextValue {
-  /** Register a new panel */
-  registerPanel: (config: PanelConfig) => void
-  /** Unregister a panel */
-  unregisterPanel: (id: string) => void
-  /** Update panel position */
-  updatePosition: (id: string, position: Position) => void
-  /** Update panel dimensions */
-  updateDimensions: (id: string, dimensions: Dimensions) => void
-  /** Bring panel to front */
-  bringToFront: (id: string) => void
-  /** Send panel to back */
-  sendToBack: (id: string) => void
-  /** Close panel */
-  closePanel: (id: string) => void
-  /** Toggle panel mode (floating/docked) */
-  toggleMode: (id: string) => void
-  /** Get panel by ID */
-  getPanel: (id: string) => PanelState | undefined
-  /** Set panel visibility */
-  setVisibility: (id: string, visibility: PanelVisibility) => void
-}
-
-const FloatingPanelContext = createContext<FloatingPanelContextValue | null>(null)
+// Context type + createContext + hook imported from ./context/FloatingPanelContext
 
 // =============================================================================
 // Provider Props
@@ -122,57 +115,78 @@ export function FloatingPanelProvider({
 }: FloatingPanelProviderProps) {
   const stx = getFloatingStx()
 
-  // Sensors with activation constraints (mouse + touch only)
-  // KeyboardSensor removed: was intercepting Enter from input elements
+  // ─── Extracted hooks ───────────────────────────────────────────
+  const { workspaceRectRef, getLocalViewport } = useWorkspaceBounds()
+  const { guideVRef, guideHRef, hideSnapGuides, paintSnapGuides } = useSnapGuides()
+  const {
+    previewRef: dockPreviewRef,
+    labelRef: dockPreviewLabelRef,
+    hideDockPreview,
+    paintDockPreview,
+  } = useDockPreview()
+  useKeyboardNudge({ getLocalViewport })
+
+  const dragSnapRef = useRef<DragSnapState>({
+    activeId: null,
+    dimensions: null,
+    siblings: [],
+  })
+
+  // ─── dnd-kit Modifiers (extracted) ─────────────────────────────
+  const restrictToWorkspace = useRestrictToWorkspace(workspaceRectRef)
+  const magneticSnap = useMagneticSnapModifier(workspaceRectRef, dragSnapRef, hideSnapGuides, paintSnapGuides)
+  const dockPreviewModifier = useDockPreviewModifier(workspaceRectRef, dragSnapRef, hideDockPreview, paintDockPreview)
+
+  // ─── Sensors ───────────────────────────────────────────────────
   const sensors = useSensors(
-    useSensor(MouseSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 250,
-        tolerance: 5,
-      },
-    })
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
   )
 
+  const snapGridSize = useSelector(() => stx.data.gridSize?.get?.() ?? 0)
+  const snapEnabled = useSelector(() => stx.data.snapEnabled?.get?.() ?? false)
+
+  const dndModifiers = useMemo<Modifier[]>(() => {
+    const mods: Modifier[] = [restrictToWorkspace, dockPreviewModifier]
+    if (snapEnabled) {
+      mods.push(magneticSnap)
+      if (snapGridSize > 0) mods.push(createSnapModifier(snapGridSize))
+    }
+    return mods
+  }, [restrictToWorkspace, dockPreviewModifier, magneticSnap, snapEnabled, snapGridSize])
+
+  useEffect(() => {
+    if (!snapEnabled) hideSnapGuides()
+  }, [snapEnabled, hideSnapGuides])
+
+  // Domain-aware collision detection
+  const collisionDetection = useCallback<typeof closestCenter>((args) => {
+    const id = args.active.id as string
+    if (stxGetPanel(id)) return []
+    return closestCenter(args)
+  }, [])
+
   // =============================================================================
-  // Restore from persistence on mount
+  // Persistence
   // =============================================================================
 
   useEffect(() => {
     if (disablePersistence) return
-
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
         const storage = JSON.parse(stored) as PanelStorage
         restorePersistedState(storage)
       }
-    } catch {
-      // Ignore parse errors
-    }
+    } catch { /* Ignore parse errors */ }
   }, [disablePersistence])
-
-  // =============================================================================
-  // Persist on changes
-  // =============================================================================
 
   useEffect(() => {
     if (disablePersistence) return
-
     const disposer = stx.subscribe(() => {
-      const panels = stx.data.panels.get()
-      const zOrder = stx.data.zOrder.get()
-
-      const storage: PanelStorage = {
-        panels: {},
-        order: zOrder,
-        version: 1,
-      }
-
+      const panels = stx.data.panels.peek()
+      const zOrder = stx.data.zOrder.peek()
+      const storage: PanelStorage = { panels: {}, order: zOrder, version: 1 }
       panels.forEach((panel, id) => {
         storage.panels[id] = {
           position: panel.position,
@@ -181,14 +195,8 @@ export function FloatingPanelProvider({
           mode: panel.mode,
         }
       })
-
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(storage))
-      } catch {
-        // Storage full or unavailable
-      }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(storage)) } catch { /* Storage full */ }
     })
-
     return disposer
   }, [disablePersistence, stx])
 
@@ -242,20 +250,35 @@ export function FloatingPanelProvider({
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
+      hideSnapGuides()
+      hideDockPreview()
+
       const id = event.active.id as string
       const panel = stxGetPanel(id)
 
       if (panel) {
-        // PANEL DRAG: bring to front, set dragging state, start velocity tracking via orchestrator
+        // PANEL DRAG: snapshot snap targets for this drag session (perf)
+        const siblings: PanelRect[] = []
+        stx.data.panels.peek().forEach((p, pid) => {
+          if (pid === id) return
+          if (p.visibility !== 'visible') return
+          if (p.mode !== 'floating') return
+          siblings.push({
+            x: p.position.x,
+            y: p.position.y,
+            width: p.dimensions.width,
+            height: p.dimensions.height,
+          })
+        })
+        dragSnapRef.current = {
+          activeId: id,
+          dimensions: panel.dimensions,
+          siblings,
+        }
+
+        // PANEL DRAG: bring to front + set dragging state
         bringPanelToFront(id)
         setDragging(id, true)
-
-        // Start drag orchestrator for centralized velocity tracking
-        // Use activator event coordinates if available, else fall back to panel position
-        const activatorEvent = event.activatorEvent as PointerEvent | undefined
-        const startX = activatorEvent?.clientX ?? panel.position.x
-        const startY = activatorEvent?.clientY ?? panel.position.y
-        orchestratorStartDrag('floating', id, [id], { x: startX, y: startY })
 
         stx.send?.({ type: 'START_DRAG', panelId: id, position: { x: 0, y: 0 } })
       } else {
@@ -263,27 +286,7 @@ export function FloatingPanelProvider({
         onSortableDragStart?.(event)
       }
     },
-    [stx, onSortableDragStart]
-  )
-
-  const handleDragMove = useCallback(
-    (event: DragMoveEvent) => {
-      const id = event.active.id as string
-      const panel = stxGetPanel(id)
-
-      if (panel) {
-        // PANEL DRAG: update drag orchestrator for velocity tracking
-        const activatorEvent = event.activatorEvent as PointerEvent | undefined
-        if (activatorEvent) {
-          // Calculate current position from delta + initial
-          const currentX = activatorEvent.clientX + event.delta.x
-          const currentY = activatorEvent.clientY + event.delta.y
-          orchestratorUpdatePosition({ x: currentX, y: currentY })
-        }
-      }
-      // Note: No sortable drag move callback - @dnd-kit handles it internally
-    },
-    []
+    [hideSnapGuides, hideDockPreview, stx, onSortableDragStart]
   )
 
   const handleDragEnd = useCallback(
@@ -291,25 +294,31 @@ export function FloatingPanelProvider({
       const id = event.active.id as string
       const panel = stxGetPanel(id)
 
+      // Clear per-drag snap cache + guide overlay
+      dragSnapRef.current = { activeId: null, dimensions: null, siblings: [] }
+      hideSnapGuides()
+
       if (panel) {
-        // PANEL DRAG: update position, clear dragging state, end drag orchestrator
+        // PANEL DRAG: commit final position, optionally dock to workspace zones
         const { delta } = event
-        let newPosition: Position = {
+        const droppedPosition: Position = {
           x: panel.position.x + delta.x,
           y: panel.position.y + delta.y,
         }
 
-        // Clamp position within bounds (if bounds provider exists)
-        const bounds = getBounds()
-        if (bounds) {
-          newPosition = clampPosition(newPosition, panel.dimensions, bounds)
-        }
+        const viewport = getLocalViewport()
+        const clamped = clampToViewport(droppedPosition, panel.dimensions, viewport)
+        const docked = resolveDockLayout(clamped, panel.dimensions, viewport)
 
-        updatePanelPosition(id, newPosition)
-        setDragging(id, false)
-
-        // End drag orchestrator
-        orchestratorEndDrag()
+        batch(() => {
+          if (docked) {
+            updatePanelPosition(id, docked.position)
+            updatePanelDimensions(id, docked.dimensions)
+          } else {
+            updatePanelPosition(id, clamped)
+          }
+          setDragging(id, false)
+        })
 
         stx.send?.({ type: 'END_DRAG' })
       } else {
@@ -317,7 +326,7 @@ export function FloatingPanelProvider({
         onSortableDragEnd?.(event)
       }
     },
-    [stx, onSortableDragEnd]
+    [getLocalViewport, hideSnapGuides, hideDockPreview, stx, onSortableDragEnd]
   )
 
   // =============================================================================
@@ -355,74 +364,28 @@ export function FloatingPanelProvider({
     <FloatingPanelContext.Provider value={contextValue}>
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        modifiers={dndModifiers}
+        collisionDetection={collisionDetection}
         onDragStart={handleDragStart}
-        onDragMove={handleDragMove}
         onDragEnd={handleDragEnd}
       >
         {children}
+
+        <DragGuideOverlay
+          dockPreviewRef={dockPreviewRef}
+          dockPreviewLabelRef={dockPreviewLabelRef}
+          guideVRef={guideVRef}
+          guideHRef={guideHRef}
+        />
       </DndContext>
     </FloatingPanelContext.Provider>
   )
 }
 
-// =============================================================================
-// Hooks
-// =============================================================================
-
-export function useFloatingPanelContext(): FloatingPanelContextValue {
-  const context = useContext(FloatingPanelContext)
-  if (!context) {
-    throw new Error(
-      'useFloatingPanelContext must be used within a FloatingPanelProvider'
-    )
-  }
-  return context
-}
-
-/**
- * Hook to access floating panel state and operations
- */
-export function useFloatingPanel(): UseFloatingPanelReturn {
-  const context = useFloatingPanelContext()
-  const stx = getFloatingStx()
-
-  // Subscribe to panels from stx
-  const panelsMap = useSelector(stx.data.panels, (p) => p)
-  const zOrder = useSelector(stx.data.zOrder, (z) => z)
-  const activePanel = useSelector(stx.data.activePanel, (a) => a)
-  const modifierKeys = useSelector(stx.data.modifierKeys, (m) => m)
-
-  // Sort panels by z-order
-  const panels = useMemo(() => {
-    return zOrder
-      .map((id) => panelsMap.get(id))
-      .filter((p): p is PanelState => p !== undefined)
-  }, [panelsMap, zOrder])
-
-  // Calculate resize sensitivity
-  const resizeSensitivity = useMemo(() => {
-    if (modifierKeys.ctrl && modifierKeys.shift) return 0.01
-    if (modifierKeys.shift) return 0.1
-    return 1.0
-  }, [modifierKeys])
-
-  return {
-    panels,
-    activePanelId: activePanel,
-    registerPanel: context.registerPanel,
-    unregisterPanel: context.unregisterPanel,
-    updatePosition: context.updatePosition,
-    updateDimensions: context.updateDimensions,
-    bringToFront: context.bringToFront,
-    sendToBack: context.sendToBack,
-    closePanel: context.closePanel,
-    toggleMode: context.toggleMode,
-    resizeSensitivity,
-  }
-}
-
-// Legacy hook for backwards compat
-export { useFloatingPanel as usePanelPersistence }
+// Hooks re-exported from context + hooks modules
+// NOTE: useFloatingPanelContext is already imported above for internal use.
+// Re-export from the context module directly in the barrel (index.ts), not here,
+// to avoid duplicate declaration errors in babel/React Fast Refresh transforms.
+export { useFloatingPanel } from './hooks/useFloatingPanel'
 
 export default FloatingPanelProvider

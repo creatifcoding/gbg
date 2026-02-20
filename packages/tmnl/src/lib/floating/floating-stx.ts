@@ -11,7 +11,7 @@
  */
 
 import { Effect } from 'effect'
-import { stx, type Stx } from '@/lib/stx'
+import { stx, batch, type Stx } from '@/lib/stx'
 import { panelMachine } from './machines/panel-machine'
 import type {
   FloatingStxData,
@@ -23,8 +23,9 @@ import type {
   PanelVisibility,
   PanelStorage,
   PersistedPanelState,
-  DragVelocity,
 } from './types'
+import { cascadePosition, type PanelRect, type Viewport } from './utils/position'
+import { getBounds } from './context/FloatingBoundsContext'
 
 // =============================================================================
 // Constants
@@ -34,20 +35,10 @@ const STORAGE_KEY = 'tmnl-floating-panels'
 const DEFAULT_WIDTH = 320
 const DEFAULT_HEIGHT = 240
 const BASE_Z_INDEX = 1000
-const VELOCITY_SMOOTHING = 0.3 // EMA factor (lower = smoother)
 
 // =============================================================================
 // Initial Data
 // =============================================================================
-
-const initialVelocity: DragVelocity = {
-  x: 0,
-  y: 0,
-  smoothedX: 0,
-  smoothedY: 0,
-  magnitude: 0,
-  angle: 0,
-}
 
 const initialData: FloatingStxData = {
   panels: new Map<string, PanelState>(),
@@ -61,9 +52,8 @@ const initialData: FloatingStxData = {
     alt: false,
   },
   baseZIndex: BASE_Z_INDEX,
-  dragVelocity: { ...initialVelocity },
-  lastDragPosition: null,
-  lastDragTimestamp: 0,
+  gridSize: 0,
+  snapEnabled: true,
 }
 
 // =============================================================================
@@ -78,8 +68,8 @@ const floatingEffects = {
     // This will be called with stx instance via closure
     yield* Effect.sync(() => {
       const stx = getFloatingStx()
-      const panels = stx.data.panels.get()
-      const zOrder = stx.data.zOrder.get()
+      const panels = stx.data.panels.peek()
+      const zOrder = stx.data.zOrder.peek()
 
       const storage: PanelStorage = {
         panels: {},
@@ -126,63 +116,24 @@ const floatingEffects = {
    */
   spawnFromModal: (visitorId: string, visitorData: unknown, position?: Position) =>
     Effect.gen(function* () {
-      const stx = getFloatingStx()
       const panelId = `modal-${visitorId}-${Date.now()}`
 
-      const centerX = (typeof window !== 'undefined' ? window.innerWidth : 800) / 2 - DEFAULT_WIDTH / 2
-      const centerY = (typeof window !== 'undefined' ? window.innerHeight : 600) / 2 - DEFAULT_HEIGHT / 2
-
-      const panel: PanelState = {
-        id: panelId,
-        title: visitorId,
-        mode: 'floating',
-        position: position ?? { x: centerX, y: centerY },
-        dimensions: { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT },
-        constraints: { minWidth: 200, minHeight: 150 },
-        zIndex: stx.data.baseZIndex.get() + stx.data.zOrder.get().length,
-        visibility: 'visible',
-        isDragging: false,
-        isResizing: false,
-        isMaximized: false,
-        preMaximizePosition: undefined,
-        preMaximizeDimensions: undefined,
-        closable: true,
-        minimizable: true,
-        resizable: true,
-        visitorId,
-        visitorData,
-      }
-
-      // Add to stx data
+      // Delegate to registerPanel for smart cascade placement
       yield* Effect.sync(() => {
-        const panels = new Map(stx.data.panels.get())
-        panels.set(panelId, panel)
-        stx.data.panels.set(panels)
-        stx.data.zOrder.set([...stx.data.zOrder.get(), panelId])
+        registerPanel({
+          id: panelId,
+          title: visitorId,
+          mode: 'floating',
+          initialPosition: position,
+          visitorId,
+          visitorData,
+        })
       })
 
       return panelId
     }),
 
-  /**
-   * Animate panel open (placeholder for GSAP/anime.js)
-   */
-  animateOpen: (panelId: string) =>
-    Effect.gen(function* () {
-      // TODO: Implement with GSAP or anime.js
-      yield* Effect.sleep('50 millis')
-      return panelId
-    }),
 
-  /**
-   * Animate panel close (placeholder for GSAP/anime.js)
-   */
-  animateClose: (panelId: string) =>
-    Effect.gen(function* () {
-      // TODO: Implement with GSAP or anime.js
-      yield* Effect.sleep('50 millis')
-      return panelId
-    }),
 }
 
 // =============================================================================
@@ -248,49 +199,6 @@ const floatingComputed = {
       .filter((p): p is PanelState => p !== undefined && p.visibility === 'visible')
   },
 
-  /**
-   * Motion blur style based on drag velocity
-   * Returns CSS properties for blur and directional stretch
-   */
-  motionBlurStyle: (get: { data: FloatingStxData }) => {
-    const velocity = typeof get.data.dragVelocity.get === 'function'
-      ? get.data.dragVelocity.get()
-      : get.data.dragVelocity
-    const draggingPanel = typeof get.data.draggingPanel.get === 'function'
-      ? get.data.draggingPanel.get()
-      : get.data.draggingPanel
-
-    const isActive = draggingPanel !== null && velocity.magnitude > 2
-
-    if (!isActive) {
-      return {
-        filter: undefined as string | undefined,
-        transform: undefined as string | undefined,
-        transition: 'filter 0.15s ease-out, transform 0.15s ease-out',
-        isActive: false,
-        blurAmount: 0,
-      }
-    }
-
-    // Calculate blur amount (capped at 6px)
-    const blurAmount = Math.min(velocity.magnitude * 0.08, 6)
-
-    // Directional stretch for motion smear
-    let stretchTransform: string | undefined = undefined
-    if (velocity.magnitude > 4) {
-      const stretchFactor = Math.min(1 + velocity.magnitude * 0.001, 1.03)
-      const angleDeg = (velocity.angle * 180) / Math.PI
-      stretchTransform = `rotate(${angleDeg}deg) scaleX(${stretchFactor}) rotate(${-angleDeg}deg)`
-    }
-
-    return {
-      filter: blurAmount > 0.5 ? `blur(${blurAmount.toFixed(1)}px)` : undefined,
-      transform: stretchTransform,
-      transition: 'none',
-      isActive: true,
-      blurAmount,
-    }
-  },
 }
 
 // =============================================================================
@@ -349,27 +257,56 @@ export function disposeFloatingStx(): void {
 // =============================================================================
 
 /**
- * Register a new panel
+ * Register a new panel.
+ * Uses cascade placement to avoid stacking panels on top of each other.
+ * If `config.initialPosition` is provided, it's used as-is (user override).
  */
 export function registerPanel(config: PanelConfig): PanelState {
   const stx = getFloatingStx()
+  const dims = config.initialDimensions ?? { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT }
 
-  const centerX = (typeof window !== 'undefined' ? window.innerWidth : 800) / 2 - DEFAULT_WIDTH / 2
-  const centerY = (typeof window !== 'undefined' ? window.innerHeight : 600) / 2 - DEFAULT_HEIGHT / 2
+  // ─── Smart placement ─────────────────────────────────────────
+  let position: Position
+  if (config.initialPosition) {
+    // User explicitly set position — respect it
+    position = config.initialPosition
+  } else {
+    // Cascade: collect existing panel rects, find next non-overlapping slot
+    const panelsMap = stx.data.panels.peek()
+    const existingRects: PanelRect[] = []
+    panelsMap.forEach((p) => {
+      if (p.visibility !== 'hidden') {
+        existingRects.push({ x: p.position.x, y: p.position.y, width: p.dimensions.width, height: p.dimensions.height })
+      }
+    })
+
+    // Use bounds container if available, else fall back to window viewport
+    const bounds = getBounds()
+    const viewport: Viewport = bounds
+      ? { x: bounds.left, y: bounds.top, width: bounds.width, height: bounds.height }
+      : {
+          x: 0,
+          y: 0,
+          width: typeof window !== 'undefined' ? window.innerWidth : 800,
+          height: typeof window !== 'undefined' ? window.innerHeight : 600,
+        }
+
+    position = cascadePosition(existingRects, dims, viewport)
+  }
 
   const panel: PanelState = {
     id: config.id,
     title: config.title,
     mode: config.mode ?? 'floating',
-    position: config.initialPosition ?? { x: centerX, y: centerY },
-    dimensions: config.initialDimensions ?? { width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT },
+    position,
+    dimensions: dims,
     constraints: config.constraints ?? { minWidth: 200, minHeight: 150 },
-    zIndex: stx.data.baseZIndex.get() + stx.data.zOrder.get().length,
+    zIndex: stx.data.baseZIndex.peek() + stx.data.zOrder.peek().length,
     visibility: 'visible',
     isDragging: false,
     isResizing: false,
     isMaximized: false,
-    isSnappingBack: false,
+
     preMaximizePosition: undefined,
     preMaximizeDimensions: undefined,
     closable: config.closable ?? true,
@@ -379,10 +316,10 @@ export function registerPanel(config: PanelConfig): PanelState {
     visitorData: config.visitorData,
   }
 
-  const panels = new Map(stx.data.panels.get())
-  panels.set(config.id, panel)
-  stx.data.panels.set(panels)
-  stx.data.zOrder.set([...stx.data.zOrder.get(), config.id])
+  batch(() => {
+    stx.data.panels.set(config.id, panel)
+    stx.data.zOrder.set([...stx.data.zOrder.peek(), config.id])
+  })
 
   return panel
 }
@@ -393,23 +330,24 @@ export function registerPanel(config: PanelConfig): PanelState {
 export function unregisterPanel(id: string): void {
   const stx = getFloatingStx()
 
-  const panels = new Map(stx.data.panels.get())
-  panels.delete(id)
-  stx.data.panels.set(panels)
-  stx.data.zOrder.set(stx.data.zOrder.get().filter((pid: string) => pid !== id))
+  batch(() => {
+    stx.data.panels.delete(id)
+    stx.data.zOrder.set(stx.data.zOrder.peek().filter((pid: string) => pid !== id))
+
+    if (stx.data.activePanel.peek() === id) {
+      const nextTop = stx.data.zOrder.peek()[stx.data.zOrder.peek().length - 1] ?? null
+      stx.data.activePanel.set(nextTop)
+    }
+  })
 }
 
 /**
  * Update panel position
  */
 export function updatePanelPosition(id: string, position: Position): void {
-  const stx = getFloatingStx()
-  const panels = new Map(stx.data.panels.get())
-  const panel = panels.get(id)
-
-  if (panel) {
-    panels.set(id, { ...panel, position })
-    stx.data.panels.set(panels)
+  const panelObs = getFloatingStx().data.panels.get(id)
+  if (panelObs?.peek()) {
+    panelObs.position.set(position)
   }
 }
 
@@ -417,26 +355,23 @@ export function updatePanelPosition(id: string, position: Position): void {
  * Update panel dimensions
  */
 export function updatePanelDimensions(id: string, dimensions: Dimensions): void {
-  const stx = getFloatingStx()
-  const panels = new Map(stx.data.panels.get())
-  const panel = panels.get(id)
+  const panelObs = getFloatingStx().data.panels.get(id)
+  const panel = panelObs?.peek()
+  if (!panel) return
 
-  if (panel) {
-    // Apply constraints
-    const constrained: Dimensions = {
-      width: Math.max(
-        panel.constraints.minWidth ?? 200,
-        Math.min(dimensions.width, panel.constraints.maxWidth ?? Infinity)
-      ),
-      height: Math.max(
-        panel.constraints.minHeight ?? 150,
-        Math.min(dimensions.height, panel.constraints.maxHeight ?? Infinity)
-      ),
-    }
-
-    panels.set(id, { ...panel, dimensions: constrained })
-    stx.data.panels.set(panels)
+  // Apply constraints
+  const constrained: Dimensions = {
+    width: Math.max(
+      panel.constraints.minWidth ?? 200,
+      Math.min(dimensions.width, panel.constraints.maxWidth ?? Infinity)
+    ),
+    height: Math.max(
+      panel.constraints.minHeight ?? 150,
+      Math.min(dimensions.height, panel.constraints.maxHeight ?? Infinity)
+    ),
   }
+
+  panelObs.dimensions.set(constrained)
 }
 
 /**
@@ -444,22 +379,22 @@ export function updatePanelDimensions(id: string, dimensions: Dimensions): void 
  */
 export function bringPanelToFront(id: string): void {
   const stx = getFloatingStx()
-  const zOrder = stx.data.zOrder.get().filter((pid: string) => pid !== id)
-  zOrder.push(id)
-  stx.data.zOrder.set(zOrder)
 
-  // Update z-indices
-  const panels = new Map(stx.data.panels.get())
-  const baseZ = stx.data.baseZIndex.get()
+  batch(() => {
+    const zOrder = stx.data.zOrder.peek().filter((pid: string) => pid !== id)
+    zOrder.push(id)
+    stx.data.zOrder.set(zOrder)
+    stx.data.activePanel.set(id)
 
-  zOrder.forEach((pid, index) => {
-    const panel = panels.get(pid)
-    if (panel) {
-      panels.set(pid, { ...panel, zIndex: baseZ + index })
-    }
+    // Update z-indices (fine-grained per-panel)
+    const baseZ = stx.data.baseZIndex.peek()
+    zOrder.forEach((pid, index) => {
+      const panelObs = stx.data.panels.get(pid)
+      if (panelObs?.peek()) {
+        panelObs.zIndex.set(baseZ + index)
+      }
+    })
   })
-
-  stx.data.panels.set(panels)
 }
 
 /**
@@ -467,35 +402,30 @@ export function bringPanelToFront(id: string): void {
  */
 export function sendPanelToBack(id: string): void {
   const stx = getFloatingStx()
-  const zOrder = stx.data.zOrder.get().filter((pid: string) => pid !== id)
-  zOrder.unshift(id)
-  stx.data.zOrder.set(zOrder)
 
-  // Update z-indices
-  const panels = new Map(stx.data.panels.get())
-  const baseZ = stx.data.baseZIndex.get()
+  batch(() => {
+    const zOrder = stx.data.zOrder.peek().filter((pid: string) => pid !== id)
+    zOrder.unshift(id)
+    stx.data.zOrder.set(zOrder)
 
-  zOrder.forEach((pid, index) => {
-    const panel = panels.get(pid)
-    if (panel) {
-      panels.set(pid, { ...panel, zIndex: baseZ + index })
-    }
+    // Update z-indices (fine-grained per-panel)
+    const baseZ = stx.data.baseZIndex.peek()
+    zOrder.forEach((pid, index) => {
+      const panelObs = stx.data.panels.get(pid)
+      if (panelObs?.peek()) {
+        panelObs.zIndex.set(baseZ + index)
+      }
+    })
   })
-
-  stx.data.panels.set(panels)
 }
 
 /**
  * Set panel visibility
  */
 export function setPanelVisibility(id: string, visibility: PanelVisibility): void {
-  const stx = getFloatingStx()
-  const panels = new Map(stx.data.panels.get())
-  const panel = panels.get(id)
-
-  if (panel) {
-    panels.set(id, { ...panel, visibility })
-    stx.data.panels.set(panels)
+  const panelObs = getFloatingStx().data.panels.get(id)
+  if (panelObs?.peek()) {
+    panelObs.visibility.set(visibility)
   }
 }
 
@@ -510,14 +440,10 @@ export function closePanel(id: string): void {
  * Toggle panel mode between floating and docked
  */
 export function togglePanelMode(id: string): void {
-  const stx = getFloatingStx()
-  const panels = new Map(stx.data.panels.get())
-  const panel = panels.get(id)
-
+  const panelObs = getFloatingStx().data.panels.get(id)
+  const panel = panelObs?.peek()
   if (panel) {
-    const newMode = panel.mode === 'floating' ? 'docked' : 'floating'
-    panels.set(id, { ...panel, mode: newMode })
-    stx.data.panels.set(panels)
+    panelObs.mode.set(panel.mode === 'floating' ? 'docked' : 'floating')
   }
 }
 
@@ -526,7 +452,7 @@ export function togglePanelMode(id: string): void {
  */
 export function updateModifierKeys(keys: Partial<ModifierKeys>): void {
   const stx = getFloatingStx()
-  const current = stx.data.modifierKeys.get()
+  const current = stx.data.modifierKeys.peek()
   stx.data.modifierKeys.set({ ...current, ...keys })
 }
 
@@ -535,15 +461,14 @@ export function updateModifierKeys(keys: Partial<ModifierKeys>): void {
  */
 export function setDragging(id: string, isDragging: boolean): void {
   const stx = getFloatingStx()
-  const panels = new Map(stx.data.panels.get())
-  const panel = panels.get(id)
 
-  if (panel) {
-    panels.set(id, { ...panel, isDragging })
-    stx.data.panels.set(panels)
-  }
-
-  stx.data.draggingPanel.set(isDragging ? id : null)
+  batch(() => {
+    const panelObs = stx.data.panels.get(id)
+    if (panelObs?.peek()) {
+      panelObs.isDragging.set(isDragging)
+    }
+    stx.data.draggingPanel.set(isDragging ? id : null)
+  })
 }
 
 /**
@@ -551,23 +476,43 @@ export function setDragging(id: string, isDragging: boolean): void {
  */
 export function setResizing(id: string, isResizing: boolean): void {
   const stx = getFloatingStx()
-  const panels = new Map(stx.data.panels.get())
-  const panel = panels.get(id)
 
-  if (panel) {
-    panels.set(id, { ...panel, isResizing })
-    stx.data.panels.set(panels)
-  }
-
-  stx.data.resizingPanel.set(isResizing ? id : null)
+  batch(() => {
+    const panelObs = stx.data.panels.get(id)
+    if (panelObs?.peek()) {
+      panelObs.isResizing.set(isResizing)
+    }
+    stx.data.resizingPanel.set(isResizing ? id : null)
+  })
 }
 
 /**
  * Get panel by ID
  */
 export function getPanel(id: string): PanelState | undefined {
+  return getFloatingStx().data.panels.get(id)?.peek()
+}
+
+/**
+ * Set snap-to-grid size (0 = disabled)
+ */
+export function setGridSize(size: number): void {
+  getFloatingStx().data.gridSize.set(Math.max(0, size))
+}
+
+/**
+ * Toggle snap-to-grid on/off
+ */
+export function toggleSnap(): void {
   const stx = getFloatingStx()
-  return stx.data.panels.get().get(id)
+  stx.data.snapEnabled.set(!stx.data.snapEnabled.peek())
+}
+
+/**
+ * Set snap enabled state
+ */
+export function setSnapEnabled(enabled: boolean): void {
+  getFloatingStx().data.snapEnabled.set(enabled)
 }
 
 /**
@@ -575,65 +520,64 @@ export function getPanel(id: string): PanelState | undefined {
  */
 export function restorePersistedState(storage: PanelStorage): void {
   const stx = getFloatingStx()
-  const panels = new Map(stx.data.panels.get())
 
-  // Update existing panels with persisted state
-  for (const [id, persisted] of Object.entries(storage.panels)) {
-    const panel = panels.get(id)
-    if (panel) {
-      panels.set(id, {
-        ...panel,
-        position: persisted.position,
-        dimensions: persisted.dimensions,
-        visibility: persisted.visibility,
-        mode: persisted.mode,
-      })
+  batch(() => {
+    // Update existing panels with persisted state (fine-grained)
+    for (const [id, persisted] of Object.entries(storage.panels)) {
+      const panelObs = stx.data.panels.get(id)
+      if (panelObs?.peek()) {
+        panelObs.position.set(persisted.position)
+        panelObs.dimensions.set(persisted.dimensions)
+        panelObs.visibility.set(persisted.visibility)
+        panelObs.mode.set(persisted.mode)
+      }
     }
-  }
 
-  stx.data.panels.set(panels)
+    // Restore z-order for panels that exist
+    const panelsMap = stx.data.panels.peek()
+    const existingIds = new Set(panelsMap.keys())
+    const validOrder = storage.order.filter(id => existingIds.has(id))
 
-  // Restore z-order for panels that exist
-  const existingIds = new Set(panels.keys())
-  const validOrder = storage.order.filter(id => existingIds.has(id))
+    // Add any panels not in persisted order
+    panelsMap.forEach((_, id) => {
+      if (!validOrder.includes(id)) {
+        validOrder.push(id)
+      }
+    })
 
-  // Add any panels not in persisted order
-  panels.forEach((_, id) => {
-    if (!validOrder.includes(id)) {
-      validOrder.push(id)
-    }
+    stx.data.zOrder.set(validOrder)
   })
-
-  stx.data.zOrder.set(validOrder)
 }
 
 /**
- * Maximize panel to fullscreen
- * Stores current position/dimensions for restore
+ * Maximize panel to fill bounds container (or viewport if no bounds).
+ * Stores current position/dimensions for restore.
  */
 export function maximizePanel(id: string): void {
-  const stx = getFloatingStx()
-  const panels = new Map(stx.data.panels.get())
-  const panel = panels.get(id)
-
+  const panelObs = getFloatingStx().data.panels.get(id)
+  const panel = panelObs?.peek()
   if (!panel || panel.isMaximized) return
 
-  // Store current state for restore
-  const fullscreenDimensions: Dimensions = {
-    width: typeof window !== 'undefined' ? window.innerWidth : 1920,
-    height: typeof window !== 'undefined' ? window.innerHeight : 1080,
-  }
+  // Use bounds container if available, else fall back to viewport
+  const bounds = getBounds()
+  const maxPosition: Position = bounds
+    ? { x: bounds.left, y: bounds.top }
+    : { x: 0, y: 0 }
+  const maxDimensions: Dimensions = bounds
+    ? { width: bounds.width, height: bounds.height }
+    : {
+        width: typeof window !== 'undefined' ? window.innerWidth : 1920,
+        height: typeof window !== 'undefined' ? window.innerHeight : 1080,
+      }
 
-  panels.set(id, {
-    ...panel,
-    isMaximized: true,
-    preMaximizePosition: { ...panel.position },
-    preMaximizeDimensions: { ...panel.dimensions },
-    position: { x: 0, y: 0 },
-    dimensions: fullscreenDimensions,
+  batch(() => {
+    panelObs.isMaximized.set(true)
+    panelObs.preMaximizePosition.set({ ...panel.position })
+    panelObs.preMaximizeDimensions.set({ ...panel.dimensions })
+    panelObs.position.set(maxPosition)
+    panelObs.dimensions.set(maxDimensions)
   })
 
-  stx.data.panels.set(panels)
   bringPanelToFront(id)
 }
 
@@ -641,145 +585,18 @@ export function maximizePanel(id: string): void {
  * Restore panel from maximized state
  */
 export function restorePanel(id: string): void {
-  const stx = getFloatingStx()
-  const panels = new Map(stx.data.panels.get())
-  const panel = panels.get(id)
-
+  const panelObs = getFloatingStx().data.panels.get(id)
+  const panel = panelObs?.peek()
   if (!panel || !panel.isMaximized) return
 
-  // Restore to pre-maximize state
-  panels.set(id, {
-    ...panel,
-    isMaximized: false,
-    position: panel.preMaximizePosition ?? panel.position,
-    dimensions: panel.preMaximizeDimensions ?? panel.dimensions,
-    preMaximizePosition: undefined,
-    preMaximizeDimensions: undefined,
+  batch(() => {
+    panelObs.isMaximized.set(false)
+    panelObs.position.set(panel.preMaximizePosition ?? panel.position)
+    panelObs.dimensions.set(panel.preMaximizeDimensions ?? panel.dimensions)
+    panelObs.preMaximizePosition.set(undefined)
+    panelObs.preMaximizeDimensions.set(undefined)
   })
-
-  stx.data.panels.set(panels)
 }
 
-// =============================================================================
-// Velocity Tracking (for motion blur)
-// =============================================================================
 
-/**
- * Start drag velocity tracking
- * Call this on drag start to initialize velocity tracking
- */
-export function startDragVelocityTracking(x: number, y: number): void {
-  const stx = getFloatingStx()
-  stx.data.lastDragPosition.set({ x, y })
-  stx.data.lastDragTimestamp.set(performance.now())
-  stx.data.dragVelocity.set({ ...initialVelocity })
-}
 
-/**
- * Update drag velocity based on new position
- * Call this on drag move to calculate velocity
- */
-export function updateDragVelocity(x: number, y: number): void {
-  const stx = getFloatingStx()
-  const lastPos = stx.data.lastDragPosition.get()
-  const lastTime = stx.data.lastDragTimestamp.get()
-  const currentVelocity = stx.data.dragVelocity.get()
-
-  if (!lastPos) return
-
-  const now = performance.now()
-  const dt = now - lastTime
-
-  // Avoid division by zero and skip if too fast (< 1ms)
-  if (dt < 1) return
-
-  // Calculate instantaneous velocity (normalized to ~60fps)
-  const rawVelocityX = (x - lastPos.x) / (dt / 16.67)
-  const rawVelocityY = (y - lastPos.y) / (dt / 16.67)
-
-  // Apply EMA smoothing
-  const smoothedX = VELOCITY_SMOOTHING * rawVelocityX + (1 - VELOCITY_SMOOTHING) * currentVelocity.smoothedX
-  const smoothedY = VELOCITY_SMOOTHING * rawVelocityY + (1 - VELOCITY_SMOOTHING) * currentVelocity.smoothedY
-
-  // Calculate magnitude and angle
-  const magnitude = Math.sqrt(smoothedX ** 2 + smoothedY ** 2)
-  const angle = Math.atan2(smoothedY, smoothedX)
-
-  stx.data.dragVelocity.set({
-    x: rawVelocityX,
-    y: rawVelocityY,
-    smoothedX,
-    smoothedY,
-    magnitude,
-    angle,
-  })
-
-  stx.data.lastDragPosition.set({ x, y })
-  stx.data.lastDragTimestamp.set(now)
-}
-
-/**
- * Stop drag velocity tracking
- * Call this on drag end to reset velocity
- */
-export function stopDragVelocityTracking(): void {
-  const stx = getFloatingStx()
-  stx.data.dragVelocity.set({ ...initialVelocity })
-  stx.data.lastDragPosition.set(null)
-  stx.data.lastDragTimestamp.set(0)
-}
-
-/**
- * Get current drag velocity state
- */
-export function getDragVelocity(): DragVelocity {
-  const stx = getFloatingStx()
-  return stx.data.dragVelocity.get()
-}
-
-/**
- * Get motion blur style based on current velocity
- * This is a convenience function that reads from computed
- */
-export function getMotionBlurStyle(): {
-  filter: string | undefined
-  transform: string | undefined
-  transition: string
-  isActive: boolean
-  blurAmount: number
-} {
-  const stx = getFloatingStx()
-  const velocity = stx.data.dragVelocity.get()
-  const draggingPanel = stx.data.draggingPanel.get()
-
-  const isActive = draggingPanel !== null && velocity.magnitude > 2
-
-  if (!isActive) {
-    return {
-      filter: undefined,
-      transform: undefined,
-      transition: 'filter 0.15s ease-out, transform 0.15s ease-out',
-      isActive: false,
-      blurAmount: 0,
-    }
-  }
-
-  // Calculate blur amount (capped at 6px)
-  const blurAmount = Math.min(velocity.magnitude * 0.08, 6)
-
-  // Directional stretch for motion smear
-  let stretchTransform: string | undefined = undefined
-  if (velocity.magnitude > 4) {
-    const stretchFactor = Math.min(1 + velocity.magnitude * 0.001, 1.03)
-    const angleDeg = (velocity.angle * 180) / Math.PI
-    stretchTransform = `rotate(${angleDeg}deg) scaleX(${stretchFactor}) rotate(${-angleDeg}deg)`
-  }
-
-  return {
-    filter: blurAmount > 0.5 ? `blur(${blurAmount.toFixed(1)}px)` : undefined,
-    transform: stretchTransform,
-    transition: 'none',
-    isActive: true,
-    blurAmount,
-  }
-}

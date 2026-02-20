@@ -2,22 +2,26 @@
  * Resize Handles Component
  *
  * 8 invisible handles (4 edges + 4 corners) for panel resize.
- * Captures pointer events and integrates with stx for state.
+ * 
+ * Performance model:
+ * - pointermove writes directly to stx (single source of truth)
+ * - FloatingPanel reads dimensions/position from stx selectors
+ * - no secondary transform/position state
  *
- * @pattern Pointer capture + stx integration
  * @module
  */
 
-import { useCallback, useRef, useEffect } from 'react'
+import { useCallback, useRef, useEffect, memo } from 'react'
+import { batch } from '@/lib/stx'
 import {
   getFloatingStx,
-  updatePanelDimensions,
-  updatePanelPosition,
   setResizing,
   updateModifierKeys,
   bringPanelToFront,
+  updatePanelDimensions,
+  updatePanelPosition,
 } from './floating-stx'
-import { getBounds, clampResize } from './FloatingBoundsContext'
+import { getBounds, clampResize } from './context/FloatingBoundsContext'
 import type { ResizeEdge, Dimensions, Position } from './types'
 
 // =============================================================================
@@ -34,7 +38,6 @@ interface ResizeHandlesProps {
 }
 
 interface ResizeState {
-  panelId: string
   edge: ResizeEdge
   initialDimensions: Dimensions
   initialPosition: Position
@@ -42,7 +45,7 @@ interface ResizeState {
 }
 
 // =============================================================================
-// Edge/Corner Configuration
+// Handle Configuration
 // =============================================================================
 
 interface HandleConfig {
@@ -51,98 +54,23 @@ interface HandleConfig {
   style: React.CSSProperties
 }
 
-// Apple-style: generous hitboxes, corners get priority
-const EDGE_THICKNESS = 6      // Edge handle thickness
-const CORNER_SIZE = 16        // Corner hit area (larger for precision)
-const EDGE_INSET = 4          // How far edge extends into panel
+const EDGE_THICKNESS = 6
+const CORNER_SIZE = 16
+const EDGE_INSET = 4
 
 const HANDLES: HandleConfig[] = [
-  // Edges - thin but generous hit area
-  {
-    edge: 'n',
-    cursor: 'ns-resize',
-    style: {
-      top: -EDGE_INSET,
-      left: CORNER_SIZE,
-      right: CORNER_SIZE,
-      height: EDGE_THICKNESS + EDGE_INSET,
-    },
-  },
-  {
-    edge: 's',
-    cursor: 'ns-resize',
-    style: {
-      bottom: -EDGE_INSET,
-      left: CORNER_SIZE,
-      right: CORNER_SIZE,
-      height: EDGE_THICKNESS + EDGE_INSET,
-    },
-  },
-  {
-    edge: 'e',
-    cursor: 'ew-resize',
-    style: {
-      right: -EDGE_INSET,
-      top: CORNER_SIZE,
-      bottom: CORNER_SIZE,
-      width: EDGE_THICKNESS + EDGE_INSET,
-    },
-  },
-  {
-    edge: 'w',
-    cursor: 'ew-resize',
-    style: {
-      left: -EDGE_INSET,
-      top: CORNER_SIZE,
-      bottom: CORNER_SIZE,
-      width: EDGE_THICKNESS + EDGE_INSET,
-    },
-  },
-  // Corners - larger hit area, higher z-index for priority
-  {
-    edge: 'nw',
-    cursor: 'nwse-resize',
-    style: {
-      top: -EDGE_INSET,
-      left: -EDGE_INSET,
-      width: CORNER_SIZE + EDGE_INSET,
-      height: CORNER_SIZE + EDGE_INSET,
-    },
-  },
-  {
-    edge: 'ne',
-    cursor: 'nesw-resize',
-    style: {
-      top: -EDGE_INSET,
-      right: -EDGE_INSET,
-      width: CORNER_SIZE + EDGE_INSET,
-      height: CORNER_SIZE + EDGE_INSET,
-    },
-  },
-  {
-    edge: 'sw',
-    cursor: 'nesw-resize',
-    style: {
-      bottom: -EDGE_INSET,
-      left: -EDGE_INSET,
-      width: CORNER_SIZE + EDGE_INSET,
-      height: CORNER_SIZE + EDGE_INSET,
-    },
-  },
-  {
-    edge: 'se',
-    cursor: 'nwse-resize',
-    style: {
-      bottom: -EDGE_INSET,
-      right: -EDGE_INSET,
-      width: CORNER_SIZE + EDGE_INSET,
-      height: CORNER_SIZE + EDGE_INSET,
-    },
-  },
+  { edge: 'n', cursor: 'ns-resize', style: { top: -EDGE_INSET, left: CORNER_SIZE, right: CORNER_SIZE, height: EDGE_THICKNESS + EDGE_INSET } },
+  { edge: 's', cursor: 'ns-resize', style: { bottom: -EDGE_INSET, left: CORNER_SIZE, right: CORNER_SIZE, height: EDGE_THICKNESS + EDGE_INSET } },
+  { edge: 'e', cursor: 'ew-resize', style: { right: -EDGE_INSET, top: CORNER_SIZE, bottom: CORNER_SIZE, width: EDGE_THICKNESS + EDGE_INSET } },
+  { edge: 'w', cursor: 'ew-resize', style: { left: -EDGE_INSET, top: CORNER_SIZE, bottom: CORNER_SIZE, width: EDGE_THICKNESS + EDGE_INSET } },
+  { edge: 'nw', cursor: 'nwse-resize', style: { top: -EDGE_INSET, left: -EDGE_INSET, width: CORNER_SIZE + EDGE_INSET, height: CORNER_SIZE + EDGE_INSET } },
+  { edge: 'ne', cursor: 'nesw-resize', style: { top: -EDGE_INSET, right: -EDGE_INSET, width: CORNER_SIZE + EDGE_INSET, height: CORNER_SIZE + EDGE_INSET } },
+  { edge: 'sw', cursor: 'nesw-resize', style: { bottom: -EDGE_INSET, left: -EDGE_INSET, width: CORNER_SIZE + EDGE_INSET, height: CORNER_SIZE + EDGE_INSET } },
+  { edge: 'se', cursor: 'nwse-resize', style: { bottom: -EDGE_INSET, right: -EDGE_INSET, width: CORNER_SIZE + EDGE_INSET, height: CORNER_SIZE + EDGE_INSET } },
 ]
 
 // =============================================================================
-// Resize Calculation
+// Resize Math (pure function, no side effects)
 // =============================================================================
 
 function calculateResize(
@@ -158,28 +86,15 @@ function calculateResize(
   let x = state.initialPosition.x
   let y = state.initialPosition.y
 
-  // Handle horizontal resize
-  if (state.edge.includes('e')) {
-    width = state.initialDimensions.width + deltaX
-  }
+  if (state.edge.includes('e')) width = state.initialDimensions.width + deltaX
   if (state.edge.includes('w')) {
     const newWidth = state.initialDimensions.width - deltaX
-    if (newWidth >= 100) {
-      width = newWidth
-      x = state.initialPosition.x + deltaX
-    }
+    if (newWidth >= 100) { width = newWidth; x = state.initialPosition.x + deltaX }
   }
-
-  // Handle vertical resize
-  if (state.edge.includes('s')) {
-    height = state.initialDimensions.height + deltaY
-  }
+  if (state.edge.includes('s')) height = state.initialDimensions.height + deltaY
   if (state.edge.includes('n')) {
     const newHeight = state.initialDimensions.height - deltaY
-    if (newHeight >= 100) {
-      height = newHeight
-      y = state.initialPosition.y + deltaY
-    }
+    if (newHeight >= 100) { height = newHeight; y = state.initialPosition.y + deltaY }
   }
 
   return {
@@ -192,7 +107,7 @@ function calculateResize(
 // Component
 // =============================================================================
 
-export function ResizeHandles({
+export const ResizeHandles = memo(function ResizeHandles({
   panelId,
   dimensions,
   position,
@@ -201,36 +116,17 @@ export function ResizeHandles({
   onResizeEnd,
 }: ResizeHandlesProps) {
   const resizeStateRef = useRef<ResizeState | null>(null)
-  const currentPositionRef = useRef(position)
-  const currentDimensionsRef = useRef(dimensions)
+  const lastResultRef = useRef<{ dimensions: Dimensions; position: Position } | null>(null)
 
-  // Keep refs in sync
-  useEffect(() => {
-    if (!resizeStateRef.current) {
-      currentPositionRef.current = position
-      currentDimensionsRef.current = dimensions
-    }
-  }, [position, dimensions])
-
-  // Global modifier key tracking (ignore input elements to prevent interference)
+  // Global modifier key tracking
   useEffect(() => {
     const handleKeyChange = (e: KeyboardEvent) => {
-      // Ignore keyboard events from input elements (search, text fields, etc.)
       const target = e.target as HTMLElement
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-        return
-      }
-
-      updateModifierKeys({
-        shift: e.shiftKey,
-        ctrl: e.ctrlKey,
-        alt: e.altKey,
-      })
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+      updateModifierKeys({ shift: e.shiftKey, ctrl: e.ctrlKey, alt: e.altKey })
     }
-
     window.addEventListener('keydown', handleKeyChange)
     window.addEventListener('keyup', handleKeyChange)
-
     return () => {
       window.removeEventListener('keydown', handleKeyChange)
       window.removeEventListener('keyup', handleKeyChange)
@@ -240,29 +136,24 @@ export function ResizeHandles({
   const handlePointerDown = useCallback(
     (e: React.PointerEvent, edge: ResizeEdge) => {
       if (disabled) return
-
       e.preventDefault()
       e.stopPropagation()
 
-      // Bring to front on resize start
       bringPanelToFront(panelId)
-
-      // Capture pointer
       ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
 
-      // Initialize resize state
       resizeStateRef.current = {
-        panelId,
         edge,
-        initialDimensions: currentDimensionsRef.current,
-        initialPosition: currentPositionRef.current,
+        initialDimensions: { ...dimensions },
+        initialPosition: { ...position },
         initialPointer: { x: e.clientX, y: e.clientY },
       }
+      lastResultRef.current = null
 
       setResizing(panelId, true)
       onResizeStart?.(edge)
     },
-    [panelId, disabled, onResizeStart]
+    [panelId, dimensions, position, disabled, onResizeStart]
   )
 
   const handlePointerMove = useCallback(
@@ -270,56 +161,51 @@ export function ResizeHandles({
       const state = resizeStateRef.current
       if (!state) return
 
-      // Get sensitivity from stx modifier keys directly
-      const stx = getFloatingStx()
-      const mods = stx.data.modifierKeys.get()
+      // Read modifier keys without subscribing
+      const mods = getFloatingStx().data.modifierKeys.peek()
       const sensitivity = (mods.ctrl && mods.shift) ? 0.01 : mods.shift ? 0.1 : 1.0
 
-      const currentPointer = { x: e.clientX, y: e.clientY }
-      let result = calculateResize(state, currentPointer, sensitivity)
+      let result = calculateResize(state, { x: e.clientX, y: e.clientY }, sensitivity)
 
-      // Clamp within bounds (if bounds provider exists)
+      // Clamp within bounds
       const bounds = getBounds()
       if (bounds) {
-        const clamped = clampResize(
-          result.position,
-          result.dimensions,
-          { width: 100, height: 100 }, // min dimensions
-          bounds
-        )
+        const clamped = clampResize(result.position, result.dimensions, { width: 100, height: 100 }, bounds)
         result = { dimensions: clamped.dimensions, position: clamped.position }
       }
 
-      // Update via stx
-      updatePanelDimensions(panelId, result.dimensions)
-      updatePanelPosition(panelId, result.position)
+      // Single source of truth: write resize preview directly to stx
+      batch(() => {
+        updatePanelDimensions(panelId, result.dimensions)
+        updatePanelPosition(panelId, result.position)
+      })
 
-      // Track current values
-      currentDimensionsRef.current = result.dimensions
-      currentPositionRef.current = result.position
+      lastResultRef.current = result
     },
     [panelId]
   )
 
   const handlePointerUp = useCallback(
     (e: React.PointerEvent) => {
-      const state = resizeStateRef.current
-      if (!state) return
+      if (!resizeStateRef.current) return
 
-      // Release pointer capture
       ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
 
-      setResizing(panelId, false)
-      onResizeEnd?.(currentDimensionsRef.current, currentPositionRef.current)
+      // Optional completion callback with final stx-backed values
+      const final = lastResultRef.current
+      if (final) {
+        onResizeEnd?.(final.dimensions, final.position)
+      }
 
+      setResizing(panelId, false)
       resizeStateRef.current = null
+      lastResultRef.current = null
     },
     [panelId, onResizeEnd]
   )
 
   if (disabled) return null
 
-  // Corners get higher z-index for priority targeting
   const isCorner = (edge: ResizeEdge) => edge.length === 2
 
   return (
@@ -334,20 +220,15 @@ export function ResizeHandles({
           style={{
             position: 'absolute',
             cursor: handle.cursor,
-            // Corners get higher z-index for easier targeting
             zIndex: isCorner(handle.edge) ? 12 : 10,
-            // Touch-friendly: ensure minimum touch target
             touchAction: 'none',
-            // Re-enable pointer events (wrapper has none)
             pointerEvents: 'auto',
-            // Debug: uncomment to visualize handles
-            // backgroundColor: isCorner(handle.edge) ? 'rgba(0, 255, 0, 0.3)' : 'rgba(255, 0, 0, 0.2)',
             ...handle.style,
           }}
         />
       ))}
     </>
   )
-}
+})
 
 export default ResizeHandles
