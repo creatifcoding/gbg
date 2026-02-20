@@ -175,10 +175,10 @@ function UserMessage({ message }: { message: ChatMessage }) {
         <ChatMessageSeverityRails.RoleIconRail role="user" streaming={false} />
       </ChatMessageSeverityRails>
 
-      <div className="flex-1 min-w-0 text-right">
-        <ChatMessageHeaderCluster className="justify-end">
-          <ChatMessageHeaderCluster.Timestamp>{formatTime(message.timestamp)}</ChatMessageHeaderCluster.Timestamp>
+      <div className="flex-1 min-w-0">
+        <ChatMessageHeaderCluster>
           <ChatMessageHeaderCluster.Role>{message.authorName ?? 'You'}</ChatMessageHeaderCluster.Role>
+          <ChatMessageHeaderCluster.Timestamp>{formatTime(message.timestamp)}</ChatMessageHeaderCluster.Timestamp>
         </ChatMessageHeaderCluster>
 
         {parts.map((part, idx) => (
