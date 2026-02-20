@@ -174,3 +174,21 @@ export {
   getCatalogSchemas,
   registerPluginCatalog,
 } from "./atoms/catalog"
+
+// =============================================================================
+// Bidirectional Component State (StateSyncService + hooks)
+// =============================================================================
+
+export {
+  createStateSyncService,
+  getStateSyncService,
+  elementStatesAtom,
+  changeLogAtom,
+  dirtyElementsAtom,
+  type StateSyncServiceShape,
+} from "./state-sync"
+
+export {
+  useComponentState,
+  type UseComponentStateReturn,
+} from "./useComponentState"
