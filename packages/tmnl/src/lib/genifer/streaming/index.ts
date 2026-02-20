@@ -65,3 +65,21 @@ export {
   StreamingRenderer,
   type StreamingRendererProps,
 } from './StreamingRenderer.js'
+
+// ---------------------------------------------------------------------------
+// BFTA (Bottom-Up Finite Tree Automaton)
+// ---------------------------------------------------------------------------
+export {
+  buildGrammar,
+  isLanguageEmpty,
+  isConstraintDAG,
+  grammarToMermaid,
+  createBFTAValidator,
+  type Grammar,
+  type ComponentRegistration,
+  type ComponentNode,
+  type ConstraintEdge,
+  type BFTAState,
+  type ValidationResult,
+  type BFTACallbacks,
+} from './bfta.js'

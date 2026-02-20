@@ -305,3 +305,18 @@ export {
   // Type guard
   hasStateSchema,
 } from "./interactable"
+
+// =============================================================================
+// Tool Protocol (Client-side tool calling aligned with harness)
+// =============================================================================
+
+export {
+  // Schemas
+  GeniferToolDefinition,
+  GeniferToolCall,
+  GeniferToolResult,
+  ToolInvocationState,
+
+  // Types
+  type GeniferToolHandler,
+} from "./tools"
