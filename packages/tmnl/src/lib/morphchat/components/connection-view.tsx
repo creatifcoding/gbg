@@ -16,6 +16,8 @@ import * as React from 'react'
 import { useAtomValue } from '@effect-atom/atom-react'
 import { cn } from '@/lib/utils'
 import { useMorphChatContext } from './surface-context'
+import { connectionStateFamily } from '../machines/surface-stx'
+import { sendSurfaceEvent } from '../machines/surface-stx'
 import type { ConnectionPhase } from '../schemas/message-types'
 
 // =============================================================================
@@ -43,8 +45,17 @@ const PHASE_LABEL: Record<ConnectionPhase, string> = {
 // =============================================================================
 
 export function ConnectionView() {
-  const { spec, adapter } = useMorphChatContext()
+  const { spec, adapter, surfaceId } = useMorphChatContext()
   const connection = useAtomValue(adapter.connection$)
+  const machineConnectionState = useAtomValue(connectionStateFamily(surfaceId))
+
+  // All hooks ABOVE early returns (Rules of Hooks)
+  const handleReconnect = React.useCallback(() => {
+    sendSurfaceEvent(surfaceId, { type: 'RECONNECT' })
+  }, [surfaceId])
+
+  // Use machine state for reconnect/error display when available
+  const showReconnect = machineConnectionState === 'error' || machineConnectionState === 'reconnecting'
 
   if (spec.connectionStatus === 'hidden') return null
 
@@ -68,6 +79,15 @@ export function ConnectionView() {
         >
           {connection.latencyMs}ms
         </span>
+      )}
+      {showReconnect && (
+        <button
+          onClick={handleReconnect}
+          className="text-cyan-500 font-mono hover:text-cyan-400 transition-colors"
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        >
+          Reconnect
+        </button>
       )}
     </div>
   )

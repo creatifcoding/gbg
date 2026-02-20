@@ -17,6 +17,7 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '@/lib/utils'
+import { useBlockDensity } from '../density-context'
 import { codeToHtml, type BundledLanguage } from 'shiki'
 import { ChatCodeBlockContext, type ChatCodeBlockContextValue } from './code-block-context'
 
@@ -53,6 +54,7 @@ export const ChatCodeBlockRoot = memo(forwardRef<HTMLDivElement, ChatCodeBlockRo
     },
     ref,
   ) => {
+    const density = useBlockDensity('code')
     const [highlightedHtml, setHighlightedHtml] = useState<string>('')
     const mountedRef = useRef(false)
 
@@ -88,15 +90,43 @@ export const ChatCodeBlockRoot = memo(forwardRef<HTMLDivElement, ChatCodeBlockRo
       isStreaming,
     }
 
+    // ── Pill density: inline code badge ─────────────────
+    if (density === 'pill') {
+      return (
+        <ChatCodeBlockContext.Provider value={ctx}>
+          <div
+            ref={ref}
+            data-slot="tmnl-chat-code-block"
+            data-density="pill"
+            className={cn(
+              'inline-flex items-center gap-1 px-2 py-0.5 rounded-full',
+              'border border-neutral-800 bg-neutral-950',
+              className,
+            )}
+            {...props}
+          >
+            <span className="text-neutral-400 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+              {filename ?? language}
+            </span>
+          </div>
+        </ChatCodeBlockContext.Provider>
+      )
+    }
+
+    // ── Full/Compact density ─────────────────────────────
+    const maxHeight = density === 'compact' ? 'max-h-48 overflow-auto' : ''
+
     return (
       <ChatCodeBlockContext.Provider value={ctx}>
         <div
           ref={ref}
           data-slot="tmnl-chat-code-block"
+          data-density={density}
           data-language={language}
           data-streaming={isStreaming || undefined}
           className={cn(
-            'group relative rounded border border-neutral-800 my-1.5 overflow-hidden',
+            'group relative rounded border border-neutral-800 overflow-hidden',
+            density === 'compact' ? 'my-1' : 'my-1.5',
             'bg-neutral-950',
             className,
           )}
@@ -107,6 +137,7 @@ export const ChatCodeBlockRoot = memo(forwardRef<HTMLDivElement, ChatCodeBlockRo
             <div
               className={cn(
                 'overflow-auto',
+                maxHeight,
                 '[&>pre]:m-0 [&>pre]:bg-transparent! [&>pre]:p-3 [&>pre]:text-neutral-300!',
                 '[&_code]:font-mono',
               )}
@@ -115,7 +146,7 @@ export const ChatCodeBlockRoot = memo(forwardRef<HTMLDivElement, ChatCodeBlockRo
             />
           ) : (
             <pre
-              className="m-0 p-3 text-neutral-300 font-mono overflow-auto bg-transparent"
+              className={cn('m-0 p-3 text-neutral-300 font-mono overflow-auto bg-transparent', maxHeight)}
               style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
             >
               <code>{code}</code>

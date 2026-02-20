@@ -16,6 +16,7 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '@/lib/utils'
+import { useBlockDensity, useBlockInteractivity } from '../density-context'
 import type { ToolInvocationState } from '@/lib/morphchat/schemas/message-types'
 import { ChatToolBlockContext, type ChatToolBlockContextValue } from './tool-block-context'
 
@@ -75,13 +76,18 @@ export const ChatToolBlockRoot = memo(forwardRef<HTMLDivElement, ChatToolBlockRo
     },
     ref,
   ) => {
+    // ── Density ───────────────────────────────────────────
+    const density = useBlockDensity('tool')
+    const { expandCollapse } = useBlockInteractivity()
+
     const resolvedDefault = defaultOpen ?? shouldAutoOpen(state)
     const [internalOpen, setInternalOpen] = useState(resolvedDefault)
-    const isOpen = controlledOpen ?? internalOpen
+    const isOpen = controlledOpen ?? (density === 'pill' ? false : internalOpen)
     const setIsOpen = useCallback((next: boolean) => {
+      if (!expandCollapse) return
       setInternalOpen(next)
       onOpenChange?.(next)
-    }, [onOpenChange])
+    }, [onOpenChange, expandCollapse])
 
     const hasDetails = input != null || output != null || errorText != null
 
@@ -105,15 +111,49 @@ export const ChatToolBlockRoot = memo(forwardRef<HTMLDivElement, ChatToolBlockRo
       state === 'completed' ? 'border-neutral-800' :
       'border-neutral-800'
 
+    // ── Pill density: inline badge ───────────────────────
+    if (density === 'pill') {
+      const stateColor =
+        state === 'error' ? 'text-red-400' :
+        state === 'running' ? 'text-cyan-400' :
+        state === 'approval-required' ? 'text-amber-400' :
+        'text-neutral-400'
+
+      return (
+        <ChatToolBlockContext.Provider value={ctx}>
+          <div
+            ref={ref}
+            data-slot="tmnl-chat-tool-block"
+            data-density="pill"
+            data-tool-state={state}
+            className={cn(
+              'inline-flex items-center gap-1 px-2 py-0.5 rounded-full',
+              'border border-neutral-800 bg-neutral-950/50',
+              state === 'running' && 'animate-pulse',
+              className,
+            )}
+            {...props}
+          >
+            <span className={cn('font-mono', stateColor)} style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+              {toolName}
+            </span>
+          </div>
+        </ChatToolBlockContext.Provider>
+      )
+    }
+
+    // ── Full/Compact density ─────────────────────────────
     return (
       <ChatToolBlockContext.Provider value={ctx}>
         <div
           ref={ref}
           data-slot="tmnl-chat-tool-block"
+          data-density={density}
           data-state={isOpen ? 'open' : 'closed'}
           data-tool-state={state}
           className={cn(
-            'rounded border my-1.5 transition-colors duration-200',
+            'rounded border transition-colors duration-200',
+            density === 'compact' ? 'my-1' : 'my-1.5',
             'bg-neutral-950/50',
             borderColor,
             'hover:bg-neutral-900/30',

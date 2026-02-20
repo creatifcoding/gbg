@@ -22,7 +22,11 @@ import { ChevronDown, Bot } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useMorphChatContext } from './surface-context'
 import type { MockChatAdapter } from '../adapters/mock-adapter'
+import { Atom } from '@effect-atom/atom'
 import type { AgentInfo } from '../schemas/message-types'
+
+// Module-level sentinel for conditional hook reads (Rules of Hooks)
+const NULL_AGENT_ID_SELECTOR = Atom.make<string | null>(null)
 
 // =============================================================================
 // Agent Selector View (topology resolver)
@@ -34,9 +38,8 @@ export function AgentSelectorView() {
 
   // Read active agent from mock adapter (duck-typed)
   const mockAdapter = adapter as Partial<MockChatAdapter>
-  const activeAgentId = mockAdapter.activeAgentId$
-    ? useAtomValue(mockAdapter.activeAgentId$)
-    : agents[0]?.id
+  // Module-level sentinel ensures useAtomValue is ALWAYS called (Rules of Hooks)
+  const activeAgentId = useAtomValue(mockAdapter.activeAgentId$ ?? NULL_AGENT_ID_SELECTOR) ?? agents[0]?.id
 
   const setActiveAgent = React.useCallback(
     (id: string) => {

@@ -21,6 +21,7 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '@/lib/utils'
+import { useBlockDensity, useBlockInteractivity } from '../density-context'
 import { ChatThinkingBlockContext, type ChatThinkingBlockContextValue } from './thinking-block-context'
 
 // =============================================================================
@@ -68,6 +69,10 @@ export const ChatThinkingBlockRoot = memo(forwardRef<HTMLDivElement, ChatThinkin
     },
     ref,
   ) => {
+    // ── Density ───────────────────────────────────────────
+    const density = useBlockDensity('thinking')
+    const { expandCollapse } = useBlockInteractivity()
+
     // ── State ────────────────────────────────────────────
     const [internalOpen, setInternalOpen] = useState(defaultOpen)
     const isOpen = controlledOpen ?? internalOpen
@@ -118,20 +123,48 @@ export const ChatThinkingBlockRoot = memo(forwardRef<HTMLDivElement, ChatThinkin
     // ── Context ──────────────────────────────────────────
     const ctx: ChatThinkingBlockContextValue = {
       isStreaming,
-      isOpen,
-      setIsOpen,
+      isOpen: density === 'pill' ? false : isOpen, // pill never expands
+      setIsOpen: expandCollapse ? setIsOpen : () => {}, // gate collapse by interactivity
       durationSec,
     }
 
+    // ── Pill density: single-line indicator ──────────────
+    if (density === 'pill') {
+      return (
+        <ChatThinkingBlockContext.Provider value={ctx}>
+          <div
+            ref={ref}
+            data-slot="tmnl-chat-thinking-block"
+            data-density="pill"
+            data-streaming={isStreaming || undefined}
+            className={cn(
+              'inline-flex items-center gap-1 px-2 py-0.5 rounded-full',
+              'border border-violet-500/20 bg-violet-500/[0.03]',
+              isStreaming && 'animate-pulse',
+              className,
+            )}
+            {...props}
+          >
+            <span className="text-violet-400 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+              {isStreaming ? 'thinking…' : durationSec != null ? `${durationSec}s` : 'thought'}
+            </span>
+          </div>
+        </ChatThinkingBlockContext.Provider>
+      )
+    }
+
+    // ── Full/Compact density ─────────────────────────────
     return (
       <ChatThinkingBlockContext.Provider value={ctx}>
         <div
           ref={ref}
           data-slot="tmnl-chat-thinking-block"
+          data-density={density}
           data-state={isOpen ? 'open' : 'closed'}
           data-streaming={isStreaming || undefined}
           className={cn(
-            'rounded border my-1.5 transition-colors duration-200',
+            'rounded border transition-colors duration-200',
+            density === 'compact' ? 'my-1' : 'my-1.5',
             'border-violet-500/20 bg-violet-500/[0.03]',
             'hover:border-violet-500/30 hover:bg-violet-500/[0.06]',
             className,

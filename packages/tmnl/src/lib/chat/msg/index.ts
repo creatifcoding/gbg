@@ -1,4 +1,14 @@
 // ---------------------------------------------------------------------------
+// Block Density Context (for MorphChat integration)
+// ---------------------------------------------------------------------------
+export {
+  BlockDensityProvider,
+  useBlockDensity,
+  useBlockInteractivity,
+} from './density-context'
+export type { BlockDensity, BlockDensityContextValue } from './density-context'
+
+// ---------------------------------------------------------------------------
 // Iconography
 // ---------------------------------------------------------------------------
 export {

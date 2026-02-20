@@ -19,35 +19,46 @@ import { useAtomValue } from '@effect-atom/atom-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { useMorphChatContext } from './surface-context'
+import { connectionStateFamily } from '../machines/surface-stx'
 import { Composer, useComposer } from '@/lib/chat/composer'
 import { useTransferDroppable } from '@/lib/transfer/v2/hooks'
 import type { TransferToken, TransferResult } from '@/lib/transfer/v2/schemas'
+import { Atom } from '@effect-atom/atom'
 import type { MockChatAdapter, MockCommandChip } from '../adapters/mock-adapter'
+
+// Module-level sentinel atoms for conditional hook reads (Rules of Hooks)
+const EMPTY_CHIPS = Atom.make<ReadonlyArray<MockCommandChip>>([])
+const EMPTY_DRAFT = Atom.make<string>('')
 
 // =============================================================================
 // Composer View
 // =============================================================================
 
 export function ComposerView() {
-  const { spec, adapter } = useMorphChatContext()
+  const { spec, adapter, surfaceId } = useMorphChatContext()
   // Read directly from adapter atom — no intermediary family
   const streaming = useAtomValue(adapter.streaming$)
   const isStreaming = streaming.isStreaming
+  // Machine connection state — gate send when not connected
+  const machineConnection = useAtomValue(connectionStateFamily(surfaceId))
+  const isConnected = machineConnection === 'connected' || machineConnection === 'idle'
 
   // All composers call adapter.send via the same handler
   // Composer passes { value, mode, thinkingLevel, contextChips }
   const handleSubmit = React.useCallback(
     (params: { value: string; mode?: string; thinkingLevel?: number; contextChips?: unknown[] }) => {
-      console.log('[ComposerView.handleSubmit] params:', { value: params.value?.slice(0, 40), thinkingLevel: params.thinkingLevel })
+      if (!isConnected) {
+        console.warn('[ComposerView] Submit blocked — not connected (machine state:', machineConnection, ')')
+        return
+      }
       Effect.runSync(
         adapter.send({
           content: params.value,
           thinkingLevel: params.thinkingLevel as number | undefined,
         }),
       )
-      console.log('[ComposerView.handleSubmit] ✓ Effect.runSync returned')
     },
-    [adapter],
+    [adapter, isConnected, machineConnection],
   )
 
   const handleCancel = React.useCallback(() => {
@@ -325,11 +336,9 @@ function CommandSuggestions({
 }: {
   adapter: { send: any } & Partial<MockChatAdapter>
 }) {
-  const chips = adapter.commandChips$
-    ? useAtomValue(adapter.commandChips$)
-    : []
-
-  const draft = adapter.draft$ ? useAtomValue(adapter.draft$) : ''
+  // Module-level sentinels ensure useAtomValue is ALWAYS called (Rules of Hooks)
+  const chips = useAtomValue(adapter.commandChips$ ?? EMPTY_CHIPS)
+  const draft = useAtomValue(adapter.draft$ ?? EMPTY_DRAFT)
 
   // Only show when draft starts with /
   const isCommandMode = draft.startsWith('/')

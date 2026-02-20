@@ -14,6 +14,7 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '@/lib/utils'
+import { useBlockDensity } from '../density-context'
 import {
   ChatTokenUsageContext,
   type ChatTokenUsageContextValue,
@@ -72,11 +73,33 @@ export const ChatTokenUsageRoot = memo(forwardRef<HTMLDivElement, ChatTokenUsage
       }
     }, [inputTokens, outputTokens, reasoningTokens, cachedTokens, totalProp, maxTokens, modelId, costUsd, isLoading])
 
+    const density = useBlockDensity('tokenUsage')
+
+    // Pill density: token usage is typically hidden (tokenBudgetVisible=false)
+    // but if explicitly rendered, show minimal inline
+    if (density === 'pill') {
+      return (
+        <ChatTokenUsageContext.Provider value={ctx}>
+          <span
+            ref={ref}
+            data-slot="tmnl-chat-token-usage"
+            data-density="pill"
+            className={cn('text-neutral-500 font-mono', className)}
+            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+            {...props}
+          >
+            {ctx.totalTokens.toLocaleString()}t
+          </span>
+        </ChatTokenUsageContext.Provider>
+      )
+    }
+
     return (
       <ChatTokenUsageContext.Provider value={ctx}>
         <div
           ref={ref}
           data-slot="tmnl-chat-token-usage"
+          data-density={density}
           className={cn('inline-flex items-center', className)}
           {...props}
         >

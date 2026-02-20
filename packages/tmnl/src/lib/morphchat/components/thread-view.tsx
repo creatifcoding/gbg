@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils'
 import { ChatThreadBand, type ChatThreadAutoScrollMode } from '@/lib/chat/shell'
 import { ThreadTailControls } from './thread-tail-controls'
 import { useMorphChatContext } from './surface-context'
+import { presentationStateFamily } from '../machines/surface-stx'
 import type { ChatMessage, ChatRole, ChatMessagePart } from '../schemas/message-types'
 import { getMessageParts } from '../schemas/message-types'
 import type { MockChatAdapter } from '../adapters/mock-adapter'
@@ -300,7 +301,9 @@ function CardMessage({ message }: { message: ChatMessage }) {
 // =============================================================================
 
 export function ThreadView() {
-  const { spec, adapter } = useMorphChatContext()
+  const { spec, adapter, surfaceId } = useMorphChatContext()
+  // Read machine presentation state — gate rendering during morph
+  const presentationState = useAtomValue(presentationStateFamily(surfaceId))
   // Read directly from adapter atoms — adapter IS the state owner
   const messages = useAtomValue(adapter.messages$)
   const streaming = useAtomValue(adapter.streaming$)
@@ -371,6 +374,19 @@ export function ThreadView() {
   const tailControls = spec.scrollBehavior !== 'manual'
     ? <ThreadTailControls />
     : undefined
+
+  // Gate: during morph transition, show skeleton to prevent layout jarring
+  if (presentationState === 'morphing') {
+    return (
+      <ChatThreadBand autoScroll="off" itemCount={0} className="h-full">
+        <div className="flex flex-col gap-3 p-4 animate-pulse">
+          <div className="h-4 bg-neutral-800/50 rounded w-2/3" />
+          <div className="h-4 bg-neutral-800/30 rounded w-1/2" />
+          <div className="h-4 bg-neutral-800/20 rounded w-3/4" />
+        </div>
+      </ChatThreadBand>
+    )
+  }
 
   if (resolvedMessages.length === 0) {
     return (

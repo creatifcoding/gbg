@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '@/lib/utils'
+import { useBlockDensity } from '../density-context'
 import { ChatFileAttachmentContext, type ChatFileAttachmentContextValue } from './file-attachment-context'
 
 // =============================================================================
@@ -58,14 +59,42 @@ export const ChatFileAttachmentRoot = memo(forwardRef<HTMLDivElement, ChatFileAt
       isImage: isImageMediaType(mediaType),
     }), [url, mediaType, filename, size])
 
+    const density = useBlockDensity('fileAttachment')
+
+    // ── Pill density: inline filename badge ──────────────
+    if (density === 'pill') {
+      return (
+        <ChatFileAttachmentContext.Provider value={ctx}>
+          <span
+            ref={ref as any}
+            data-slot="tmnl-chat-file-attachment"
+            data-density="pill"
+            className={cn(
+              'inline-flex items-center gap-1 px-2 py-0.5 rounded-full',
+              'border border-neutral-800 bg-neutral-950/50',
+              className,
+            )}
+            {...props}
+          >
+            <span className="text-neutral-400 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+              {ctx.filename}
+            </span>
+          </span>
+        </ChatFileAttachmentContext.Provider>
+      )
+    }
+
+    // ── Full/Compact ─────────────────────────────────────
     return (
       <ChatFileAttachmentContext.Provider value={ctx}>
         <div
           ref={ref}
           data-slot="tmnl-chat-file-attachment"
+          data-density={density}
           className={cn(
-            'flex items-center gap-2 rounded border border-neutral-800 my-1.5',
-            'px-2.5 py-1.5 bg-neutral-950/50',
+            'flex items-center gap-2 rounded border border-neutral-800',
+            density === 'compact' ? 'my-1 px-2 py-1' : 'my-1.5 px-2.5 py-1.5',
+            'bg-neutral-950/50',
             'hover:border-neutral-700 hover:bg-neutral-900/30',
             'transition-colors duration-150',
             className,

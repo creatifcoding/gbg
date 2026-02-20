@@ -222,30 +222,51 @@ export const DENSITY_TIERS = { full: FULL, compact: COMPACT, pill: PILL } as con
  */
 const PRESET_MAP: Record<string, ContentViewSpec> = {
   // ── Full tier ─────────────────────────────────────────────
+  Conductor: { ...FULL },
   conductor: { ...FULL },
+  Monitor: {
+    ...FULL,
+    autoCollapse: true,
+    interactivity: { ...FULL.interactivity, approvalActions: false },
+  },
   monitor: {
     ...FULL,
-    autoCollapse: true, // Monitor watches, doesn't interact
+    autoCollapse: true,
     interactivity: { ...FULL.interactivity, approvalActions: false },
   },
 
   // ── Compact tier ──────────────────────────────────────────
+  Dock: { ...COMPACT },
   dock: { ...COMPACT },
+  Dialog: {
+    ...COMPACT,
+    tokenBudgetVisible: true,
+  },
   dialog: {
     ...COMPACT,
-    tokenBudgetVisible: true, // Dialogs may show cost
+    tokenBudgetVisible: true,
+  },
+  Embed: {
+    ...COMPACT,
+    interactivity: { ...COMPACT.interactivity, expandCollapse: false },
   },
   embed: {
     ...COMPACT,
-    interactivity: { ...COMPACT.interactivity, expandCollapse: false }, // Embedded = no expand
+    interactivity: { ...COMPACT.interactivity, expandCollapse: false },
   },
 
   // ── Pill tier ─────────────────────────────────────────────
+  Widget: { ...PILL },
   widget: { ...PILL },
+  Card: { ...PILL },
   card: { ...PILL },
+  Spotlight: {
+    ...PILL,
+    spacing: { ...PILL.spacing, messageGap: 2 },
+  },
   spotlight: {
     ...PILL,
-    spacing: { ...PILL.spacing, messageGap: 2 }, // Tightest possible
+    spacing: { ...PILL.spacing, messageGap: 2 },
   },
 }
 
@@ -256,7 +277,8 @@ const PRESET_MAP: Record<string, ContentViewSpec> = {
  * Consumers call this once when spec changes; the result is placed
  * into React context for all compounds to read.
  */
-export function deriveContentViewSpec(spec: ChatSurfaceSpec): ContentViewSpec {
+export function deriveContentViewSpec(spec: ChatSurfaceSpec | undefined | null): ContentViewSpec {
+  if (!spec) return COMPACT
   return PRESET_MAP[spec._tag] ?? COMPACT
 }
 

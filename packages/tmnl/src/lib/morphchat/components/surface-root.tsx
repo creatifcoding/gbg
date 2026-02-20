@@ -39,6 +39,9 @@ import { MorphChatContext, type MorphChatContextValue } from './surface-context'
 import { deriveContentViewSpec } from '../schemas/content-view-spec'
 import { contentViewFamily } from '../machines/surface-stx'
 import { SurfaceContent } from './surface-content'
+import { useAdapterMachineBridge } from '../hooks/useAdapterMachineBridge'
+import { useAutoCollapse } from '../hooks/useAutoCollapse'
+import { BlockDensityProvider } from '@/lib/chat/msg/density-context'
 
 // =============================================================================
 // Props
@@ -116,6 +119,12 @@ function SurfaceProvider({
     specRef.current = spec
   }, [spec, surfId, onMorph])
 
+  // Bridge: adapter atom changes → machine events
+  useAdapterMachineBridge(surfId, adapter)
+
+  // Auto-collapse: machine emits → collapse thinking/tool blocks
+  useAutoCollapse(surfId)
+
   // Read reactive atoms
   const activeSpec = useAtomValue(activeSpecFamily(surfId))
   const prevSpec = useAtomValue(previousSpecFamily(surfId))
@@ -158,11 +167,20 @@ function SurfaceProvider({
     [surfId, resolvedSpec, contentView, adapter, actor, isMorphing, prevSpec, requestMorph, requestDisconnect],
   )
 
+  // Block density context — feeds density tier to chat/ compounds
+  const blockDensityValue = React.useMemo(() => ({
+    density: contentView.density,
+    overrides: contentView.blockOverrides,
+    interactivity: contentView.interactivity,
+  }), [contentView.density, contentView.blockOverrides, contentView.interactivity])
+
   return (
     <MorphChatContext.Provider value={contextValue}>
-      <SurfaceContent className={className}>
-        {children}
-      </SurfaceContent>
+      <BlockDensityProvider value={blockDensityValue}>
+        <SurfaceContent className={className}>
+          {children}
+        </SurfaceContent>
+      </BlockDensityProvider>
     </MorphChatContext.Provider>
   )
 }

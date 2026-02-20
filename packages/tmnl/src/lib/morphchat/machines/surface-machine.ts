@@ -265,7 +265,7 @@ export const surfaceMachine = setup({
       event.type === 'MORPH' && event.targetSpec != null,
 
     isSameSpec: ({ context, event }) =>
-      event.type === 'MORPH' && event.targetSpec._tag === context.activeSpec._tag,
+      event.type === 'MORPH' && event.targetSpec != null && event.targetSpec._tag === context.activeSpec._tag,
 
     isConnected: ({ context }) =>
       context.connectionError === null,
@@ -278,6 +278,9 @@ export const surfaceMachine = setup({
 
     hasInteractivity: ({ context }) =>
       context.contentView.interactivity.expandCollapse,
+
+    skipAutoCollapse: ({ context }) =>
+      !context.contentView.autoCollapse,
   },
 
   // ── Delays ──────────────────────────────────────────────
@@ -445,7 +448,7 @@ export const surfaceMachine = setup({
           // If no auto-collapse, just clear immediately
           always: {
             target: 'idle',
-            guard: ({ context }) => !context.contentView.autoCollapse,
+            guard: 'skipAutoCollapse',
             actions: ['clearStream'],
           },
         },
