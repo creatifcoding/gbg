@@ -285,6 +285,12 @@ export const harnessOps = {
       const runtime = yield* HarnessRuntime
       const sessionId = morphChatRegistry.get(harnessSessionId$)
       if (sessionId) yield* runtime.abortSession(sessionId)
+      // Finalize any streaming message as cancelled
+      morphChatRegistry.update(harnessMessages$, (prev) =>
+        prev.map((msg) =>
+          msg.status === 'streaming' ? { ...msg, status: 'complete' as const } : msg,
+        ),
+      )
       morphChatRegistry.set(harnessStreaming$, STREAMING_IDLE)
     }),
   ),

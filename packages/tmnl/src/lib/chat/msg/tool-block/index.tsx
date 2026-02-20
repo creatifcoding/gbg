@@ -24,6 +24,7 @@ import { ChatToolBlockContent, type ChatToolBlockContentProps } from './tool-blo
 import { ChatToolBlockInput, type ChatToolBlockInputProps } from './tool-block-input'
 import { ChatToolBlockOutput, type ChatToolBlockOutputProps } from './tool-block-output'
 import { ChatToolBlockApproval, type ChatToolBlockApprovalProps } from './tool-block-approval'
+import { getToolRenderer, GenericToolRenderer } from './renderers'
 
 // =============================================================================
 // Convenience wrapper
@@ -45,13 +46,22 @@ function ChatToolBlockConvenience({
   if (children) {
     return <ChatToolBlockRoot {...rootProps}>{children}</ChatToolBlockRoot>
   }
-  // Otherwise, render the standard layout
+
+  // Check for specialized renderer
+  const SpecializedRenderer = getToolRenderer(rootProps.toolName)
+  const Renderer = SpecializedRenderer ?? GenericToolRenderer
+
   return (
     <ChatToolBlockRoot {...rootProps}>
       <ChatToolBlockHeader />
       <ChatToolBlockContent>
-        <ChatToolBlockInput />
-        <ChatToolBlockOutput />
+        <Renderer
+          input={rootProps.input}
+          output={rootProps.output}
+          errorText={rootProps.errorText}
+          state={rootProps.state}
+          toolCallId={rootProps.toolCallId}
+        />
         <ChatToolBlockApproval onApprove={onApprove} onDeny={onDeny} />
       </ChatToolBlockContent>
     </ChatToolBlockRoot>

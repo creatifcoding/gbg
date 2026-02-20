@@ -77,6 +77,13 @@ export type {
 // Tool Block (compound: Root, Header, Content, Input, Output, Approval)
 // ---------------------------------------------------------------------------
 export { ChatToolBlock, useChatToolBlock } from './tool-block'
+export {
+  registerToolRenderer,
+  getToolRenderer,
+  hasToolRenderer,
+  GenericToolRenderer,
+} from './tool-block/renderers'
+export type { ToolRendererProps } from './tool-block/renderers'
 export type {
   ChatToolBlockProps,
   ChatToolBlockRootProps,

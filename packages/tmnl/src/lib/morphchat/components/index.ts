@@ -27,4 +27,6 @@ export { StatusBannerView } from './status-banner-view'
 export { CommandBandView } from './command-band-view'
 export { AnalysisCard, RemediationCard } from './artifact-cards'
 export type { AnalysisCardProps, RemediationCardProps } from './artifact-cards'
+export { MetricsPanel } from './metrics-panel'
+export type { MetricsPanelProps } from './metrics-panel'
 // MorphOverlay archived — layout morphing (#F368) will replace it

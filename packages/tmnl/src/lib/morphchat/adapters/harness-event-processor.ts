@@ -398,6 +398,14 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       }
 
       case 'chat:v2/error': {
+        // Mark any streaming message as error
+        registryUpdate(atoms.messages$, (prev) =>
+          prev.map((msg) =>
+            msg.status === 'streaming'
+              ? { ...msg, status: 'error' as const, content: msg.content || flattenPartsToText(msg.parts ?? []) }
+              : msg,
+          ),
+        )
         morphChatRegistry.set(atoms.connection$, {
           phase: 'error',
           error: `[${event.code}] ${event.message}`,
