@@ -330,6 +330,58 @@ export {
 } from "./tools"
 
 // =============================================================================
+// Normalization (Cluster 1+2: Response Extraction + Format Detection)
+// =============================================================================
+
+export {
+  // Pipeline
+  normalize,
+  normalizeWithMeta,
+
+  // Extraction (Cluster 1)
+  extractJson,
+  parseJson,
+
+  // Format Detection (Cluster 2)
+  detectFormat,
+  ResponseFormat,
+
+  // Converters (per-format)
+  fromNested,
+  fromFlat,
+  fromHybrid,
+
+  // Errors
+  NormalizeError,
+
+  // Types
+  type NormalizeResult,
+} from "./normalize"
+
+// =============================================================================
+// Structural Repair (Cluster 3)
+// =============================================================================
+
+export {
+  // Full pipeline
+  repair,
+  repairLocal,
+  repairGlobal,
+
+  // Individual steps
+  assignMissingKeys,
+  deduplicateKeys,
+  resolveOrphans,
+  inferMissingTypes,
+  breakCircularRefs,
+
+  // Types
+  type RepairResult,
+  type RepairAction,
+  type QuarantinedElement,
+} from "./repair"
+
+// =============================================================================
 // Prompt Templating
 // =============================================================================
 
