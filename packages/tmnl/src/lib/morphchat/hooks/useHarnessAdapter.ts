@@ -25,7 +25,6 @@ import type {
   HarnessSessionId,
   HarnessClientMessageId,
   HarnessThinkingLevel,
-  HarnessEvent,
 } from '@/lib/harness/schemas'
 
 /** Valid harness roles — must match HarnessRole schema */
@@ -91,104 +90,28 @@ const harnessRuntimeAtom = Atom.runtime(HarnessRuntimeBrowserWebSocketDefault)
 // Event Processor (pure function, mutates atoms via ctx.set)
 // =============================================================================
 
-/**
- * Event processor — writes to morphChatRegistry (the shared registry that
- * React's useAtomValue subscribes to via MorphChatRegistryProvider).
- *
- * CRITICAL: Must use morphChatRegistry.get/set, NOT fn-atom ctx.
- * fn-atom ctx operates on an isolated node context — writes there are
- * invisible to React's RegistryContext subscriptions.
- */
-function processEvent(event: HarnessEvent, agentName: string): void {
-  console.log('[processEvent]', event._tag, (event as any).messageId ?? (event as any).sessionId ?? '')
-  switch (event._tag) {
-    case 'chat:v2/session_opened':
-      morphChatRegistry.set(harnessSessionId$, event.sessionId)
-      morphChatRegistry.set(harnessConnection$, { phase: 'connected', endpoint: `harness:${event.nodeId ?? ''}` } as ConnectionState)
-      morphChatRegistry.set(harnessAgents$, [{ id: event.agentId, name: agentName, isActive: true }])
-      break
+// ── Shared event processor with full parts support ────────
+import { createEventProcessor } from '../adapters/harness-event-processor'
 
-    case 'chat:v2/send_accepted': {
-      const msgs = morphChatRegistry.get(harnessMessages$)
-      morphChatRegistry.set(harnessMessages$, msgs.map((msg) =>
-        msg.status === 'pending' ? { ...msg, status: 'sent' as const } : msg,
-      ))
-      break
-    }
+// Module-level processor factory — lazily created per agentName
+let _processor: ReturnType<typeof createEventProcessor> | null = null
+let _processorAgentName = ''
 
-    case 'chat:v2/assistant_start': {
-      const streamMsg: ChatMessage = {
-        id: event.messageId as string,
-        role: 'agent',
-        authorName: agentName,
-        content: '',
-        timestamp: new Date(event.at).toISOString(),
-        status: 'streaming',
-      }
-      morphChatRegistry.set(harnessMessages$, [...morphChatRegistry.get(harnessMessages$), streamMsg])
-      morphChatRegistry.set(harnessStreaming$, { isStreaming: true, buffer: '', messageId: event.messageId as string } as StreamingState)
-      break
-    }
-
-    case 'chat:v2/assistant_delta': {
-      const prev = morphChatRegistry.get(harnessStreaming$)
-      morphChatRegistry.set(harnessStreaming$, { ...prev, buffer: prev.buffer + event.delta } as StreamingState)
-      const msgId = event.messageId as string
-      morphChatRegistry.set(harnessMessages$, morphChatRegistry.get(harnessMessages$).map((msg) =>
-        msg.id === msgId && msg.status === 'streaming'
-          ? { ...msg, content: msg.content + event.delta }
-          : msg,
-      ))
-      break
-    }
-
-    case 'chat:v2/assistant_final': {
-      const finalId = event.messageId as string
-      morphChatRegistry.set(harnessMessages$, morphChatRegistry.get(harnessMessages$).map((msg) =>
-        msg.id === finalId
-          ? { ...msg, content: event.text, status: 'complete' as const }
-          : msg,
-      ))
-      morphChatRegistry.set(harnessStreaming$, STREAMING_IDLE)
-      break
-    }
-
-    case 'chat:v2/usage': {
-      const usageId = event.messageId as string
-      morphChatRegistry.set(harnessMessages$, morphChatRegistry.get(harnessMessages$).map((msg) =>
-        msg.id === usageId
-          ? {
-              ...msg,
-              model: event.model,
-              tokenUsage: {
-                prompt: event.usage.input,
-                completion: event.usage.output,
-                total: event.usage.totalTokens,
-              },
-            }
-          : msg,
-      ))
-      break
-    }
-
-    case 'chat:v2/error':
-      morphChatRegistry.set(harnessConnection$, { phase: 'error', error: `[${event.code}] ${event.message}` } as ConnectionState)
-      morphChatRegistry.set(harnessStreaming$, STREAMING_IDLE)
-      break
-
-    case 'chat:v2/heartbeat': {
-      const prevConn = morphChatRegistry.get(harnessConnection$) as any
-      const latencyMs = Date.now() - event.at
-      morphChatRegistry.set(harnessConnection$, {
-        ...prevConn,
-        latencyMs: latencyMs > 0 ? latencyMs : prevConn.latencyMs,
-      } as ConnectionState)
-      break
-    }
-
-    default:
-      break
+function getProcessor(agentName: string) {
+  if (!_processor || _processorAgentName !== agentName) {
+    _processorAgentName = agentName
+    _processor = createEventProcessor({
+      atoms: {
+        messages$: harnessMessages$,
+        connection$: harnessConnection$,
+        streaming$: harnessStreaming$,
+        agents$: harnessAgents$,
+        sessionId$: harnessSessionId$,
+      },
+      agentName,
+    })
   }
+  return _processor
 }
 
 // =============================================================================
@@ -227,8 +150,9 @@ export const harnessOps = {
       // the session_opened event (PubSub drops events with no subscribers).
       // forkDaemon detaches the fiber from this fn-atom's scope so it
       // survives past the connect() call returning.
+      const processor = getProcessor(agentName)
       const fiber = yield* Stream.runForEach(runtime.events, (event) =>
-        Effect.sync(() => processEvent(event, agentName)),
+        Effect.sync(() => processor.processEvent(event)),
       ).pipe(
         Effect.catchAll((err) =>
           Effect.sync(() => {
