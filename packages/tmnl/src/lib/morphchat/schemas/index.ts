@@ -30,6 +30,7 @@ export {
   ToolInvocationState,
   ToolInvocationPart,
   FilePart,
+  CodePart,
   ChatMessagePart,
   // ── Part utilities ──
   flattenPartsToText,
@@ -53,6 +54,7 @@ export type {
   ToolInvocationState as ToolInvocationStateType,
   ToolInvocationPart as ToolInvocationPartType,
   FilePart as FilePartType,
+  CodePart as CodePartType,
   ChatMessagePart as ChatMessagePartType,
   ChatMessage as ChatMessageType,
   ConnectionState as ConnectionStateType,

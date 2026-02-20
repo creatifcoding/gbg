@@ -156,6 +156,20 @@ export const FilePart = Schema.TaggedStruct('file', {
 export type FilePart = typeof FilePart.Type
 
 /**
+ * Code block part — fenced code with optional language and filename.
+ * Rendered by ChatCodeBlock with syntax highlighting (shiki).
+ */
+export const CodePart = Schema.TaggedStruct('code', {
+  /** Source code content */
+  code: Schema.String,
+  /** Language identifier (e.g., 'typescript', 'python', 'json') */
+  language: Schema.optional(Schema.String),
+  /** Optional filename for display in header */
+  filename: Schema.optional(Schema.String),
+})
+export type CodePart = typeof CodePart.Type
+
+/**
  * Union of all message part types.
  *
  * Each part has a `_tag` discriminant for pattern matching:
@@ -163,6 +177,7 @@ export type FilePart = typeof FilePart.Type
  *   - 'thinking'        → ThinkingPart
  *   - 'tool-invocation' → ToolInvocationPart
  *   - 'file'            → FilePart
+ *   - 'code'            → CodePart
  *
  * Usage:
  *   message.parts.map(part => {
@@ -171,6 +186,7 @@ export type FilePart = typeof FilePart.Type
  *       case 'thinking': return <ThinkingBlock ...part />
  *       case 'tool-invocation': return <ToolBlock ...part />
  *       case 'file': return <FileBlock ...part />
+ *       case 'code': return <CodeBlock ...part />
  *     }
  *   })
  */
@@ -179,6 +195,7 @@ export const ChatMessagePart = Schema.Union(
   ThinkingPart,
   ToolInvocationPart,
   FilePart,
+  CodePart,
 )
 export type ChatMessagePart = typeof ChatMessagePart.Type
 

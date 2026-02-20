@@ -34,6 +34,8 @@ import {
   ChatThinkingBlock,
   ChatToolBlock,
   ChatFileAttachment,
+  ChatCodeBlock,
+  ChatTokenUsage,
 } from '@/lib/chat/msg'
 import type { ChatMessageRole } from '@/lib/chat/msg'
 
@@ -135,6 +137,15 @@ function PartRenderer({
           size={part.size}
         />
       )
+    case 'code':
+      return (
+        <ChatCodeBlock
+          code={part.code}
+          language={part.language}
+          filename={part.filename}
+          isStreaming={isStreaming}
+        />
+      )
     default:
       return null
   }
@@ -180,6 +191,17 @@ function FullMessage({
             isLatest={isLatest}
           />
         ))}
+
+        {/* ── Token Usage (when complete + has usage data) ── */}
+        {message.status === 'complete' && message.tokenUsage && (
+          <ChatTokenUsage
+            inputTokens={message.tokenUsage.prompt}
+            outputTokens={message.tokenUsage.completion}
+            totalTokens={message.tokenUsage.total}
+            maxTokens={200000}
+            modelId={message.model}
+          />
+        )}
 
         {/* ── Artifact Cards (when message carries tasks) ── */}
         {hasTasks && (

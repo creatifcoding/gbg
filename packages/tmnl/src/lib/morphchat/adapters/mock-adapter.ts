@@ -321,6 +321,71 @@ function createSeedMessages(seedTasks: boolean): ReadonlyArray<ChatMessage> {
       ],
       ...(seedTasks ? { taskIds: REMEDIATION_TASKS.map(t => t.taskId) } : {}),
     },
+
+    // ── Rich content showcase message (code + file + token usage) ──
+    {
+      id: 'assistant-3',
+      role: 'agent' as const,
+      authorName: 'Val',
+      agentId: 'agent-val',
+      content: 'Pressure decay analysis complete. Generated monitoring script and exported report.',
+      timestamp: new Date(Date.now() - 30000).toISOString(),
+      status: 'complete' as const,
+      model: 'claude-sonnet-4-20250514',
+      tokenUsage: { prompt: 4218, completion: 1847, total: 6065 },
+      parts: [
+        {
+          _tag: 'thinking' as const,
+          content: 'The pressure decay data shows a clear exponential decay curve. I should generate a monitoring script and a summary report.',
+          isStreaming: false,
+          durationMs: 1800,
+        },
+        {
+          _tag: 'text' as const,
+          content: 'Pressure decay analysis complete. Here\'s the monitoring script:',
+        },
+        {
+          _tag: 'code' as const,
+          code: `import { Effect, Stream, Schedule } from "effect"
+import { PressureSensor } from "./sensors"
+
+const monitor = PressureSensor.pipe(
+  Stream.throttle({ strategy: "shape", cost: 1 }),
+  Stream.tap((reading) =>
+    reading.psi > 2100
+      ? Effect.logWarning(\`High pressure: \${reading.psi} PSI\`)
+      : Effect.logInfo(\`Normal: \${reading.psi} PSI\`)
+  ),
+  Stream.retry(Schedule.exponential("1 second")),
+)
+
+// Run with 60s window
+Effect.runPromise(
+  monitor.pipe(Stream.runDrain, Effect.timeout("60 seconds"))
+)`,
+          language: 'typescript',
+          filename: 'pressure-monitor.ts',
+        },
+        {
+          _tag: 'text' as const,
+          content: 'Report exported:',
+        },
+        {
+          _tag: 'file' as const,
+          url: 'data:application/pdf;base64,',
+          mediaType: 'application/pdf',
+          filename: 'V-4821-A_pressure_decay_report.pdf',
+          size: 245760,
+        },
+        {
+          _tag: 'file' as const,
+          url: 'data:text/csv;base64,',
+          mediaType: 'text/csv',
+          filename: 'pressure_readings_sector4.csv',
+          size: 18432,
+        },
+      ],
+    },
   ]
 
   return base
