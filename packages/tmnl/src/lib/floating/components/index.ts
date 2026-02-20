@@ -15,3 +15,15 @@ export {
 export { DragGuideOverlay, type DragGuideOverlayProps } from './DragGuideOverlay'
 export { PanelHeader, type PanelHeaderProps } from './PanelHeader'
 export { PanelContent, type PanelContentProps } from './PanelContent'
+
+// Atomic compound components
+export {
+  PanelTitle,
+  PanelTabClose,
+  PanelTitleTab,
+  PanelModeToggle,
+  PanelMaxToggle,
+  PanelMinimize,
+  PanelControls,
+  PanelResize,
+} from './atoms'

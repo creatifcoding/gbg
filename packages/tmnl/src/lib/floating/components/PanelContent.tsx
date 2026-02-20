@@ -1,41 +1,38 @@
 /**
- * PanelContent
+ * PanelContent — scrollable content area
  *
- * Content area for floating panels — scrollable, dimension-aware.
+ * Reads panelId, dimensions, isResizing from PanelContext.
+ * Wraps children in FloatingDimensionProvider for container query support.
  *
  * @module
  */
 
 import { memo, type ReactNode } from 'react'
-import type { Dimensions } from '../types'
+import { usePanelContext } from '../context/PanelContext'
 import { FloatingDimensionProvider } from '../context/FloatingDimensionContext'
 import { PanelSlot } from '@/lib/drawer'
 
 export interface PanelContentProps {
-  panelId: string
-  dimensions: Dimensions
-  isResizing: boolean
-  children: ReactNode
+  children?: ReactNode
 }
 
-export const PanelContent = memo(function PanelContent({
-  panelId,
-  dimensions,
-  isResizing,
-  children,
-}: PanelContentProps) {
+export const PanelContent = memo(function PanelContent({ children }: PanelContentProps) {
+  const { state, meta } = usePanelContext()
+
+  if (state.visibility === 'minimized') return null
+
   return (
     <FloatingDimensionProvider
-      panelId={panelId}
-      dimensions={dimensions}
-      isResizing={isResizing}
+      panelId={meta.id}
+      dimensions={state.dimensions}
+      isResizing={state.isResizing}
     >
       <div
         data-slot="panel-content"
         style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto', position: 'relative' }}
       >
         {children}
-        <PanelSlot panelId={panelId} />
+        <PanelSlot panelId={meta.id} />
       </div>
     </FloatingDimensionProvider>
   )

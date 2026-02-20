@@ -1,8 +1,24 @@
 /**
- * FloatingPanel v5 — Compound decomposition
+ * FloatingPanel v6 — Full compound decomposition
  *
- * Zero animation. dnd-kit owns drag transform. stx owns state.
- * Header, content, resize handles are separate components.
+ * Every visual atom is a separate component reading from PanelContext.
+ * Consumers compose any subset in any order via FloatingPanel.* namespace.
+ *
+ * Default render:
+ *   <FloatingPanel id="x" title="X">
+ *     {children}
+ *   </FloatingPanel>
+ *
+ * Custom composition:
+ *   <FloatingPanel id="x" title="X">
+ *     <FloatingPanel.Header>
+ *       <FloatingPanel.TitleTab />
+ *       <FloatingPanel.Controls>
+ *         <FloatingPanel.MaxToggle />
+ *       </FloatingPanel.Controls>
+ *     </FloatingPanel.Header>
+ *     <FloatingPanel.Content>{children}</FloatingPanel.Content>
+ *   </FloatingPanel>
  *
  * @module
  */
@@ -11,13 +27,25 @@ import { useCallback, memo, type ReactNode } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 
-import { useSelector } from '@/lib/stx'
 import { useFloatingPanelContext } from './context/FloatingPanelContext'
-import { getFloatingStx, maximizePanel, restorePanel } from './floating-stx'
-import { ResizeHandles } from './ResizeHandles'
+import { PanelContext, type PanelContextValue } from './context/PanelContext'
+import { maximizePanel, restorePanel } from './floating-stx'
+import { usePanelState } from './hooks/usePanelState'
 import { PANEL } from './tokens'
+
+// Compound atoms
 import { PanelHeader } from './components/PanelHeader'
 import { PanelContent } from './components/PanelContent'
+import {
+  PanelTitle,
+  PanelTabClose,
+  PanelTitleTab,
+  PanelModeToggle,
+  PanelMaxToggle,
+  PanelMinimize,
+  PanelControls,
+  PanelResize,
+} from './components/atoms'
 
 // =============================================================================
 // Props
@@ -33,100 +61,126 @@ export interface FloatingPanelProps {
 }
 
 // =============================================================================
-// Component
+// Root Component
 // =============================================================================
 
-export const FloatingPanel = memo(function FloatingPanel({
+const FloatingPanelRoot = memo(function FloatingPanelRoot({
   id, title, onClose: onCloseProp, onToggleMode: onToggleModeProp, children, className = '',
 }: FloatingPanelProps) {
-  const context = useFloatingPanelContext()
+  const systemCtx = useFloatingPanelContext()
+  const state = usePanelState(id)
 
-  // ─── Fine-grained field selectors ────────────────────────────
-  const stxPanel = getFloatingStx().data.panels.get(id)
-  const position = useSelector(() => stxPanel?.position.get())
-  const dimensions = useSelector(() => stxPanel?.dimensions.get())
-  const constraints = useSelector(() => stxPanel?.constraints.get())
-  const zIndex = useSelector(() => stxPanel?.zIndex.get())
-  const visibility = useSelector(() => stxPanel?.visibility.get())
-  const isDragging = useSelector(() => stxPanel?.isDragging.get() ?? false)
-  const isResizing = useSelector(() => stxPanel?.isResizing.get() ?? false)
-  const isMaximized = useSelector(() => stxPanel?.isMaximized.get() ?? false)
-  const mode = useSelector(() => stxPanel?.mode.get())
-  const closable = useSelector(() => stxPanel?.closable.get() ?? true)
-  const minimizable = useSelector(() => stxPanel?.minimizable.get() ?? true)
-  const resizable = useSelector(() => stxPanel?.resizable.get() ?? true)
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform } = useDraggable({
+    id,
+    disabled: state?.isMaximized ?? false,
+  })
 
-  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform } = useDraggable({ id, disabled: isMaximized })
+  // Bail early
+  if (!state) return null
+  if (state.visibility === 'hidden') return null
 
-  if (!position || !dimensions) return null
-  if (visibility === 'hidden') return null
+  const dndTransform = !state.isMaximized && transform ? CSS.Translate.toString(transform) : undefined
+  const borderColor = (state.isDragging || state.isResizing) ? PANEL.borderActive : PANEL.border
 
-  const dndTransform = !isMaximized && transform ? CSS.Translate.toString(transform) : undefined
+  // ─── Build PanelContext value ─────────────────────────────────
+  const panelCtx: PanelContextValue = {
+    state,
+    actions: {
+      close: () => { systemCtx.closePanel(id); onCloseProp?.() },
+      minimize: () => { systemCtx.setVisibility(id, state.visibility === 'minimized' ? 'visible' : 'minimized') },
+      toggleMode: () => { systemCtx.toggleMode(id); onToggleModeProp?.() },
+      maximizeToggle: () => { state.isMaximized ? restorePanel(id) : maximizePanel(id) },
+      bringToFront: () => { systemCtx.bringToFront(id) },
+    },
+    meta: {
+      id,
+      title,
+      borderColor,
+      setNodeRef,
+      setActivatorNodeRef,
+      listeners,
+      attributes,
+      dndTransform,
+    },
+  }
 
-  // ─── Handlers ────────────────────────────────────────────────
-  const handleClose = useCallback(() => { context.closePanel(id); onCloseProp?.() }, [context, id, onCloseProp])
-  const handleMinimize = useCallback(() => { context.setVisibility(id, visibility === 'minimized' ? 'visible' : 'minimized') }, [context, id, visibility])
-  const handleToggleMode = useCallback(() => { context.toggleMode(id); onToggleModeProp?.() }, [context, id, onToggleModeProp])
-  const handleMaximizeToggle = useCallback(() => { isMaximized ? restorePanel(id) : maximizePanel(id) }, [id, isMaximized])
-  const handlePanelClick = useCallback(() => { context.bringToFront(id) }, [context, id])
-
-  const borderColor = (isDragging || isResizing) ? PANEL.borderActive : PANEL.border
+  // ─── Detect compound vs default children ──────────────────────
+  // If children contain compound atoms (Header, Content), render as-is.
+  // Otherwise, wrap in default Header + Content layout.
+  const hasCompoundChildren = isCompoundComposition(children)
 
   return (
-    <div
-      ref={setNodeRef}
-      role="dialog"
-      aria-label={title}
-      className={`fp-panel ${className}`.trim()}
-      data-floating-panel
-      data-state={isDragging ? 'dragging' : isResizing ? 'resizing' : isMaximized ? 'maximized' : 'idle'}
-      style={{
-        position: 'fixed',
-        left: position.x, top: position.y,
-        width: dimensions.width, height: dimensions.height,
-        minWidth: isMaximized ? undefined : (constraints?.minWidth ?? 220),
-        minHeight: isMaximized ? undefined : (constraints?.minHeight ?? 120),
-        zIndex: isMaximized ? 99999 : zIndex,
-        boxShadow: 'none',
-        backgroundColor: PANEL.bg,
-        border: isMaximized ? 'none' : `1px solid ${borderColor}`,
-        borderRadius: isMaximized ? 0 : PANEL.radius,
-        overflow: 'hidden',
-        transform: dndTransform,
-        willChange: 'transform',
-        display: 'flex', flexDirection: 'column' as const,
-      }}
-      onClick={handlePanelClick}
-      {...attributes}
-    >
-      <PanelHeader
-        title={title}
-        borderColor={borderColor}
-        isMaximized={isMaximized}
-        mode={mode}
-        closable={closable}
-        minimizable={minimizable}
-        onClose={handleClose}
-        onMinimize={handleMinimize}
-        onToggleMode={handleToggleMode}
-        onMaximizeToggle={handleMaximizeToggle}
-        activatorRef={setActivatorNodeRef}
-        listeners={listeners}
-      />
-
-      {visibility !== 'minimized' && (
-        <PanelContent panelId={id} dimensions={dimensions} isResizing={isResizing}>
-          {children}
-        </PanelContent>
-      )}
-
-      {resizable && visibility !== 'minimized' && (
-        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-          <ResizeHandles panelId={id} dimensions={dimensions} position={position} />
-        </div>
-      )}
-    </div>
+    <PanelContext.Provider value={panelCtx}>
+      <div
+        ref={setNodeRef}
+        role="dialog"
+        aria-label={title}
+        className={`fp-panel ${className}`.trim()}
+        data-floating-panel
+        data-state={state.isDragging ? 'dragging' : state.isResizing ? 'resizing' : state.isMaximized ? 'maximized' : 'idle'}
+        style={{
+          position: 'fixed',
+          left: state.position.x, top: state.position.y,
+          width: state.dimensions.width, height: state.dimensions.height,
+          minWidth: state.isMaximized ? undefined : (state.constraints?.minWidth ?? 220),
+          minHeight: state.isMaximized ? undefined : (state.constraints?.minHeight ?? 120),
+          zIndex: state.isMaximized ? 99999 : state.zIndex,
+          boxShadow: 'none',
+          backgroundColor: PANEL.bg,
+          border: state.isMaximized ? 'none' : `1px solid ${borderColor}`,
+          borderRadius: state.isMaximized ? 0 : PANEL.radius,
+          overflow: 'hidden',
+          transform: dndTransform,
+          willChange: 'transform',
+          display: 'flex', flexDirection: 'column' as const,
+        }}
+        onClick={panelCtx.actions.bringToFront}
+        {...attributes}
+      >
+        {hasCompoundChildren ? (
+          children
+        ) : (
+          <>
+            <PanelHeader />
+            <PanelContent>{children}</PanelContent>
+            <PanelResize />
+          </>
+        )}
+      </div>
+    </PanelContext.Provider>
   )
+})
+
+// =============================================================================
+// Compound detection
+// =============================================================================
+
+function isCompoundComposition(children: ReactNode): boolean {
+  if (!children || typeof children !== 'object') return false
+  const arr = Array.isArray(children) ? children : [children]
+  return arr.some((child) => {
+    if (!child || typeof child !== 'object' || !('type' in child)) return false
+    const t = child.type
+    return t === PanelHeader || t === PanelContent || t === PanelResize
+  })
+}
+
+// =============================================================================
+// Compound Namespace
+// =============================================================================
+
+export const FloatingPanel = Object.assign(FloatingPanelRoot, {
+  Header: PanelHeader,
+  Content: PanelContent,
+  Resize: PanelResize,
+  // Header atoms
+  TitleTab: PanelTitleTab,
+  Title: PanelTitle,
+  TabClose: PanelTabClose,
+  Controls: PanelControls,
+  ModeToggle: PanelModeToggle,
+  MaxToggle: PanelMaxToggle,
+  Minimize: PanelMinimize,
 })
 
 export default FloatingPanel

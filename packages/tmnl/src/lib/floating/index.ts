@@ -142,6 +142,31 @@ export { PanelContent, type PanelContentProps } from './components/PanelContent'
 export { DragGuideOverlay, type DragGuideOverlayProps } from './components/DragGuideOverlay'
 export { ChromeBtn, type ChromeBtnProps } from './components/ChromeBtn'
 
+// Atomic compound components
+export {
+  PanelTitle,
+  PanelTabClose,
+  PanelTitleTab,
+  PanelModeToggle,
+  PanelMaxToggle,
+  PanelMinimize,
+  PanelControls,
+  PanelResize,
+} from './components/atoms'
+
+// Per-panel context
+export {
+  PanelContext,
+  usePanelContext,
+  type PanelContextValue,
+  type PanelContextState,
+  type PanelContextActions,
+  type PanelContextMeta,
+} from './context/PanelContext'
+
+// Panel state hook
+export { usePanelState } from './hooks/usePanelState'
+
 // =============================================================================
 // Types (Schema-based)
 // =============================================================================

@@ -11,6 +11,15 @@ export {
 } from './FloatingPanelContext'
 
 export {
+  PanelContext,
+  usePanelContext,
+  type PanelContextValue,
+  type PanelContextState,
+  type PanelContextActions,
+  type PanelContextMeta,
+} from './PanelContext'
+
+export {
   FloatingDimensionProvider,
   useFloatingDimensions,
   FloatingDimensionContext,

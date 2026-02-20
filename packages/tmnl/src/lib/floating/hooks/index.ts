@@ -5,6 +5,7 @@
  */
 
 export { useFloatingPanel, usePanelById } from './useFloatingPanel'
+export { usePanelState } from './usePanelState'
 export { useWorkspaceBounds } from './useWorkspaceBounds'
 export { useSnapGuides } from './useSnapGuides'
 export { useDockPreview } from './useDockPreview'
