@@ -1,13 +1,18 @@
 /**
- * @fileoverview Server-Side Registry for genifer Catalog
+ * @fileoverview Unified Registry for genifer Catalog
  *
- * Provides synchronous access to the CatalogComponents service for server code.
- * Uses a singleton Registry pattern - reused across requests.
+ * Single-source catalog backed by CatalogService (COW maps).
+ * Both server code and React atoms read from the same CatalogComponents instance.
  *
- * Usage:
- * - Import getSystemPrompt() in cursor-server.ts for AI prompts
- * - Import getSchemas() for server-side validation
- * - Import registerPluginCatalog() for runtime registration
+ * Before this rewrite, server had `serverRegistry = Registry.make()` and React
+ * had `catalogRuntime` — two independent worlds. Catalogs registered server-side
+ * were invisible to React and vice versa.
+ *
+ * Now:
+ * - `sharedCatalog` is the single CatalogComponents instance
+ * - Server accessors read directly from it (no Registry needed)
+ * - React atoms/runtime also read from it (via catalogRegistry in atoms/catalog.ts)
+ * - `registerPluginCatalog` writes to the shared instance
  *
  * @module genifer/server/registry
  */
@@ -19,23 +24,24 @@ import {
   schemasAtom,
   renderersAtom,
   registerCatalogAtom,
-  type DomainCatalog,
+  catalogRegistry,
   type SchemaEntry,
   type ComponentDef,
 } from "../react/atoms/catalog"
+import type { DomainCatalog } from "../core/CatalogService"
 
 // =============================================================================
-// Singleton Server Registry
+// Shared Registry (same instance React uses)
 // =============================================================================
 
 /**
- * Module-level registry for server-side atom access.
- * Reused across requests (singleton pattern).
+ * The server registry is the SAME registry React's catalog atoms use.
+ * This ensures catalogs registered server-side are visible to React
+ * and vice versa. No more split-brain.
  *
- * Note: We create a separate registry for server-side to ensure isolation
- * from any React-side registries that might be created.
+ * Import path: `@/lib/genifer/server` → `serverRegistry`
  */
-export const serverRegistry = Registry.make()
+export const serverRegistry = catalogRegistry
 
 // =============================================================================
 // Server-Side Accessors
@@ -44,20 +50,6 @@ export const serverRegistry = Registry.make()
 /**
  * Get AI system prompt from catalog.
  * Call this in server handlers to get component documentation for AI.
- *
- * @returns Generated system prompt string
- *
- * @example
- * ```ts
- * import { getSystemPrompt } from '@/lib/genifer/server/registry'
- *
- * const systemPrompt = `You are a UI generator.
- *
- * ${getSystemPrompt()}
- *
- * ## Response Format
- * Return JSON with root and elements...`
- * ```
  */
 export const getSystemPrompt = (): string => {
   const result = serverRegistry.get(promptAtom)
@@ -69,8 +61,6 @@ export const getSystemPrompt = (): string => {
 
 /**
  * Get schemas for server-side validation.
- *
- * @returns Record of component name -> SchemaEntry
  */
 export const getSchemas = (): Record<string, SchemaEntry> => {
   const result = serverRegistry.get(schemasAtom)
@@ -82,8 +72,6 @@ export const getSchemas = (): Record<string, SchemaEntry> => {
 
 /**
  * Get renderers record (useful for SSR scenarios).
- *
- * @returns Record of component name -> Renderer
  */
 export const getRenderers = (): Record<string, ComponentDef["renderer"]> => {
   const result = serverRegistry.get(renderersAtom)
@@ -95,27 +83,8 @@ export const getRenderers = (): Record<string, ComponentDef["renderer"]> => {
 
 /**
  * Register a plugin catalog at runtime.
- * Use this for agent-generated components or hot-reloaded plugins.
- *
- * @param catalog - Domain catalog to register
- *
- * @example
- * ```ts
- * import { registerPluginCatalog } from '@/lib/genifer/server/registry'
- *
- * const agentCatalog: DomainCatalog = {
- *   name: "AgentPlugins",
- *   components: {
- *     DynamicChart: {
- *       schema: Schema.Struct({ data: Schema.Array(Schema.Number) }),
- *       renderer: ({ element }) => <Chart data={element.props.data} />,
- *       description: "Agent-generated chart component",
- *     },
- *   },
- * }
- *
- * registerPluginCatalog(agentCatalog)
- * ```
+ * Writes to the shared CatalogComponents instance — visible to both
+ * server accessors and React atoms.
  */
 export const registerPluginCatalog = (catalog: DomainCatalog): void => {
   const result = serverRegistry.get(registerCatalogAtom)

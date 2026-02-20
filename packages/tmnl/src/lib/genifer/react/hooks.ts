@@ -33,6 +33,9 @@ import {
   decodeErrorStreamIdsAtom,
   decodeErrorsFamily,
   registerDecodeErrorStreamId,
+  getStreamAtoms,
+  type StreamAtoms,
+  type StreamId,
   type PendingConfirmation
 } from "./atoms"
 
@@ -44,12 +47,18 @@ import { resolveAction, type ActionHandler, ResolvedAction } from "../core/actio
 import { TreeWorkerPoolAuto } from "../workers"
 
 // =============================================================================
-// useUIStream - Stream-based UI rendering
+// useUIStream - Stream-based UI rendering (Atom.family isolated)
 // =============================================================================
 
 export interface UseUIStreamOptions {
   /** API endpoint for streaming */
   api: string
+  /**
+   * Stream isolation key. Every distinct streamId gets its own tree, fiber,
+   * error, and streaming-status atoms. Two components with different streamIds
+   * never interfere. Defaults to `"ui-stream:http:<api>"`.
+   */
+  streamId?: StreamId
   /** Callback when stream completes */
   onComplete?: (tree: UITree) => void
   /** Callback on error */
@@ -79,183 +88,167 @@ export interface UseUIStreamReturn {
   clear: () => void
   /** Cancel current stream */
   cancel: () => void
+  /** The stream atoms bundle for this instance (for advanced usage) */
+  atoms: StreamAtoms
 }
 
 /**
- * Hook for streaming UI generation
+ * Hook for streaming UI generation — concurrent-safe via Atom.family.
  *
- * Effect-native alternative to original useUIStream:
- * - Uses Atom for reactive state (not useState)
- * - Uses Fiber.interrupt for cancellation (not AbortController)
- * - Uses Effect.Stream for processing (not manual buffer)
+ * Each call site gets its own isolated state keyed by `streamId`.
+ * Two useUIStream instances with different streamIds operate independently:
+ * their trees, fibers, errors, and streaming flags never collide.
+ *
+ * Architecture:
+ * - State: Atom.family keyed by streamId (not module-level singletons)
+ * - Cancellation: Fiber.interrupt per-stream fiber
+ * - Processing: Effect.Stream for backpressure-aware patch processing
+ * - Yielding: setTimeout(0) macrotask between tree updates for React 18 batching
  */
 export function useUIStream({
   api,
+  streamId: explicitStreamId,
   onComplete,
   onError,
   hybrid = false,
-  batchSize = 1,  // Default 1 for immediate processing
+  batchSize = 1,
 }: UseUIStreamOptions): UseUIStreamReturn {
   const registry = useContext(RegistryContext)
-  const streamId = `ui-stream:http:${api}`
+  const streamId = explicitStreamId ?? `ui-stream:http:${api}`
 
-  // Read reactive state via atoms
-  const tree = useAtomValue(treeAtom)
-  const isStreaming = useAtomValue(isStreamingAtom)
-  const error = useAtomValue(errorAtom)
+  // Resolve the atom family bundle for this stream — stable across renders
+  const atoms = useMemo(() => getStreamAtoms(streamId), [streamId])
+
+  // Read reactive state from family atoms (NOT singletons)
+  const tree = useAtomValue(atoms.tree)
+  const isStreaming = useAtomValue(atoms.isStreaming)
+  const error = useAtomValue(atoms.error)
 
   /**
-   * Send a prompt and stream UI updates
+   * Interrupt the fiber for THIS stream only. Other streams untouched.
+   */
+  const interruptFiber = useCallback(() => {
+    const existingFiber = registry.get(atoms.fiber) as Option.Option<RuntimeFiber<void, Error>>
+    if (Option.isSome(existingFiber)) {
+      Effect.runFork(Fiber.interrupt(existingFiber.value))
+    }
+  }, [registry, atoms.fiber])
+
+  /**
+   * Send a prompt and stream UI updates.
    *
-   * Uses Queue-based progressive streaming (Stream.fromQueue) which processes
-   * items immediately as they arrive, unlike Stream.asyncPush which buffers.
+   * All state mutations target THIS stream's family atoms.
    */
   const send = useCallback(
     (prompt: string, context?: Record<string, unknown>) => {
-      // Cancel any existing stream
-      const existingFiber = registry.get(streamFiberAtom) as Option.Option<RuntimeFiber<void, Error>>
-      if (Option.isSome(existingFiber)) {
-        Effect.runFork(Fiber.interrupt(existingFiber.value))
-      }
+      // Cancel any existing stream for THIS streamId
+      interruptFiber()
 
-      // Reset state
-      registry.set(treeAtom, UITree.empty())
-      registry.set(isStreamingAtom, true)
-      registry.set(errorAtom, Option.none())
+      // Reset THIS stream's state
+      registry.set(atoms.tree, UITree.empty())
+      registry.set(atoms.isStreaming, true)
+      registry.set(atoms.error, Option.none())
+      registry.set(atoms.decodeErrors, [])
+
+      // Register decode error stream ID (global, used for aggregation)
       registry.set(decodeErrorStreamIdsAtom, registerDecodeErrorStreamId(
         registry.get(decodeErrorStreamIdsAtom) as Set<string>,
         streamId
       ))
-      registry.set(decodeErrorsFamily(streamId), [])
 
-      // Create AbortController for fetch cancellation
       const abortController = new AbortController()
 
-      // Create the stream processing effect
       const streamEffect = Effect.gen(function* () {
         let treeStream: Stream.Stream<UITree, Error>
 
+        const errorTracking = {
+          streamId,
+          context: { prompt, transport: "http" as const, api },
+          onDecodeError: (decodeError: any) =>
+            Effect.sync(() => {
+              const current = registry.get(atoms.decodeErrors) as Array<any>
+              registry.set(atoms.decodeErrors, [...current, decodeError])
+            }),
+        }
+
         if (hybrid) {
-          // Hybrid mode: use Tree Worker for near-zero main thread blocking
           treeStream = yield* streamHybrid(
             api,
             { prompt, context, currentTree: UITree.empty() },
             { batchSize },
             abortController.signal,
-            {
-              streamId,
-              context: { prompt, transport: "http", api },
-              onDecodeError: (error) =>
-                Effect.sync(() => {
-                  const current = registry.get(decodeErrorsFamily(streamId)) as Array<typeof error>
-                  registry.set(decodeErrorsFamily(streamId), [...current, error])
-                }),
-            }
+            errorTracking,
           )
         } else {
-          // Standard mode: process patches on main thread
           const patchStream = yield* streamFromFetchProgressive(
             api,
             { prompt, context, currentTree: UITree.empty() },
             abortController.signal,
-            {
-              streamId,
-              context: { prompt, transport: "http", api },
-              onDecodeError: (error) =>
-                Effect.sync(() => {
-                  const current = registry.get(decodeErrorsFamily(streamId)) as Array<typeof error>
-                  registry.set(decodeErrorsFamily(streamId), [...current, error])
-                }),
-            }
+            errorTracking,
           )
           treeStream = processPatches(patchStream)
         }
 
-        // Update atom on each tree update
+        // Update THIS stream's tree atom on each update
         yield* pipe(
           treeStream,
           Stream.runForEach((newTree) =>
             Effect.gen(function* () {
-              registry.set(treeAtom, newTree)
-              // Use setTimeout(0) macrotask to truly yield to browser event loop
-              // React 18 batches microtasks, so Effect.sleep(Duration.zero) isn't enough
+              registry.set(atoms.tree, newTree)
               yield* Effect.promise(() => new Promise<void>(r => setTimeout(r, 0)))
             })
           )
         )
 
-        // Get final tree for callback
-        const finalTree = registry.get(treeAtom) as UITree
+        const finalTree = registry.get(atoms.tree) as UITree
         onComplete?.(finalTree)
       }).pipe(
         Effect.catchAll((err) =>
           Effect.sync(() => {
             const e = err instanceof Error ? err : new Error(String(err))
-            registry.set(errorAtom, Option.some(e))
+            registry.set(atoms.error, Option.some(e))
             onError?.(e)
           })
         ),
         Effect.ensuring(
           Effect.sync(() => {
-            registry.set(isStreamingAtom, false)
-            registry.set(streamFiberAtom, Option.none())
+            registry.set(atoms.isStreaming, false)
+            registry.set(atoms.fiber, Option.none())
           })
         ),
-        // Always provide TreeWorkerPool layer (it's lazy - won't create pool unless needed)
         Effect.provide(TreeWorkerPoolAuto)
       )
 
-      // Fork the stream processing
       const fiber = Effect.runFork(streamEffect) as RuntimeFiber<void, Error>
-      registry.set(streamFiberAtom, Option.some(fiber))
+      registry.set(atoms.fiber, Option.some(fiber))
     },
-    [api, onComplete, onError, registry, hybrid, batchSize]
+    [api, streamId, atoms, onComplete, onError, registry, hybrid, batchSize, interruptFiber]
   )
 
-  /**
-   * Clear the current tree
-   */
   const clear = useCallback(() => {
-    const existingFiber = registry.get(streamFiberAtom) as Option.Option<RuntimeFiber<void, Error>>
-    if (Option.isSome(existingFiber)) {
-      Effect.runFork(Fiber.interrupt(existingFiber.value))
-    }
+    interruptFiber()
+    registry.set(atoms.tree, UITree.empty())
+    registry.set(atoms.error, Option.none())
+    registry.set(atoms.fiber, Option.none())
+  }, [registry, atoms, interruptFiber])
 
-    registry.set(treeAtom, UITree.empty())
-    registry.set(errorAtom, Option.none())
-    registry.set(streamFiberAtom, Option.none())
-  }, [registry])
-
-  /**
-   * Cancel current stream
-   */
   const cancel = useCallback(() => {
-    const existingFiber = registry.get(streamFiberAtom) as Option.Option<RuntimeFiber<void, Error>>
-    if (Option.isSome(existingFiber)) {
-      Effect.runFork(Fiber.interrupt(existingFiber.value))
-    }
-    registry.set(isStreamingAtom, false)
-    registry.set(streamFiberAtom, Option.none())
-  }, [registry])
+    interruptFiber()
+    registry.set(atoms.isStreaming, false)
+    registry.set(atoms.fiber, Option.none())
+  }, [registry, atoms, interruptFiber])
 
-  // Cleanup on unmount
+  // Cleanup THIS stream's fiber on unmount
   useEffect(() => {
     return () => {
-      const existingFiber = registry.get(streamFiberAtom) as Option.Option<RuntimeFiber<void, Error>>
+      const existingFiber = registry.get(atoms.fiber) as Option.Option<RuntimeFiber<void, Error>>
       if (Option.isSome(existingFiber)) {
         Effect.runFork(Fiber.interrupt(existingFiber.value))
       }
     }
-  }, [registry])
+  }, [registry, atoms.fiber])
 
-  return {
-    tree,
-    isStreaming,
-    error,
-    send,
-    clear,
-    cancel
-  }
+  return { tree, isStreaming, error, send, clear, cancel, atoms }
 }
 
 // =============================================================================

@@ -8,6 +8,7 @@
  * - Uses EntityProxy HTTP API (cluster node) at configurable baseUrl
  * - Same NDJSON streaming protocol as cursor server
  * - Card-scoped: each card routes to a specific entity in the cluster
+ * - Stream isolation via Atom.family (same system as useUIStream)
  *
  * EntityProxy Endpoint: POST /cards/stream-ui-generate/:entityId
  *
@@ -16,9 +17,8 @@
 
 "use client"
 
-import { useCallback, useEffect, useContext } from "react"
+import { useCallback, useEffect, useContext, useMemo } from "react"
 import { useAtomValue, RegistryContext } from "@effect-atom/atom-react"
-import { Atom } from "@effect-atom/atom"
 import { Effect, Fiber, Option, pipe, Stream } from "effect"
 import type { RuntimeFiber } from "effect/Fiber"
 
@@ -27,8 +27,9 @@ import { processPatches, streamFromFetchProgressive, streamHybrid } from "../cor
 import { TreeWorkerPoolAuto } from "../workers"
 import {
   decodeErrorStreamIdsAtom,
-  decodeErrorsFamily,
-  registerDecodeErrorStreamId
+  registerDecodeErrorStreamId,
+  getStreamAtoms,
+  type StreamAtoms,
 } from "./atoms"
 
 // =============================================================================
@@ -41,29 +42,40 @@ import {
 export const DEFAULT_CLUSTER_BASE_URL = "http://localhost:8100"
 
 // =============================================================================
-// Cluster-specific Atoms (isolated from HTTP mode atoms)
+// Legacy Singleton Atoms (DEPRECATED — kept for backward compatibility)
 // =============================================================================
+// These forward to the family system under a well-known key.
+// Existing code that imports these will keep working but is NOT concurrent-safe.
+// Migrate to useUIStreamCluster({ cardId: ... }) which is family-backed.
 
-/** Tree state for cluster mode */
-export const clusterTreeAtom = Atom.make<UITree>(UITree.empty())
+import { Atom } from "@effect-atom/atom"
+import {
+  streamTreeFamily,
+  streamIsStreamingFamily,
+  streamErrorFamily,
+  streamFiberFamily,
+} from "./atoms"
 
-/** Streaming state for cluster mode */
-export const clusterIsStreamingAtom = Atom.make<boolean>(false)
+const LEGACY_CLUSTER_KEY = "__legacy_cluster__"
 
-/** Error state for cluster mode */
-export const clusterErrorAtom = Atom.make<Option.Option<Error>>(Option.none())
-
-/** Current fiber for cluster mode (for cancellation) */
-export const clusterStreamFiberAtom = Atom.make<Option.Option<RuntimeFiber<void, Error>>>(Option.none())
+/** @deprecated Use family-backed atoms via getStreamAtoms() */
+export const clusterTreeAtom = streamTreeFamily(LEGACY_CLUSTER_KEY)
+/** @deprecated Use family-backed atoms via getStreamAtoms() */
+export const clusterIsStreamingAtom = streamIsStreamingFamily(LEGACY_CLUSTER_KEY)
+/** @deprecated Use family-backed atoms via getStreamAtoms() */
+export const clusterErrorAtom = streamErrorFamily(LEGACY_CLUSTER_KEY)
+/** @deprecated Use family-backed atoms via getStreamAtoms() */
+export const clusterStreamFiberAtom = streamFiberFamily(LEGACY_CLUSTER_KEY)
 
 // =============================================================================
-// Hook Types (matching useUIStream interface)
+// Hook Types
 // =============================================================================
 
 export interface UseUIStreamClusterOptions {
   /**
-   * Card ID for entity routing
+   * Card ID for entity routing.
    * This becomes the entityId in the URL: /cards/stream-ui-generate/:entityId
+   * Also used as the stream isolation key.
    */
   cardId: string
   /**
@@ -100,6 +112,8 @@ export interface UseUIStreamClusterReturn {
   clear: () => void
   /** Cancel current stream */
   cancel: () => void
+  /** The stream atoms bundle for this instance */
+  atoms: StreamAtoms
 }
 
 // =============================================================================
@@ -107,23 +121,19 @@ export interface UseUIStreamClusterReturn {
 // =============================================================================
 
 /**
- * Hook for streaming UI generation via Effect Cluster EntityProxy
+ * Hook for streaming UI generation via Effect Cluster EntityProxy.
  *
- * Drop-in replacement for useUIStream with same interface.
- * Uses HTTP fetch to EntityProxy endpoints at the cluster node.
+ * Concurrent-safe via Atom.family keyed by `cardId`.
+ * Multiple cards can stream simultaneously without state corruption.
  *
  * @example
  * ```tsx
  * const result = useUIStreamCluster({
  *   cardId: 'my-card',
- *   baseUrl: 'http://localhost:8100', // cluster EntityProxy
+ *   baseUrl: 'http://localhost:8100',
  * })
- *
- * // Send prompt
  * result.send('Create a dashboard with metrics')
- *
- * // Render tree
- * <JsonRenderer tree={result.tree} />
+ * <Renderer tree={result.tree} />
  * ```
  */
 export function useUIStreamCluster({
@@ -137,47 +147,43 @@ export function useUIStreamCluster({
   const registry = useContext(RegistryContext)
   const streamId = `ui-stream:cluster:${cardId}`
 
-  // Read reactive state via atoms
-  const tree = useAtomValue(clusterTreeAtom)
-  const isStreaming = useAtomValue(clusterIsStreamingAtom)
-  const error = useAtomValue(clusterErrorAtom)
+  // Resolve the atom family bundle — scoped to this card
+  const atoms = useMemo(() => getStreamAtoms(streamId), [streamId])
 
-  /**
-   * Construct the EntityProxy API endpoint for UI generation
-   * Format: POST /cards/stream-ui-generate/:entityId
-   */
+  // Read reactive state from family atoms
+  const tree = useAtomValue(atoms.tree)
+  const isStreaming = useAtomValue(atoms.isStreaming)
+  const error = useAtomValue(atoms.error)
+
+  const interruptFiber = useCallback(() => {
+    const existingFiber = registry.get(atoms.fiber) as Option.Option<RuntimeFiber<void, Error>>
+    if (Option.isSome(existingFiber)) {
+      Effect.runFork(Fiber.interrupt(existingFiber.value))
+    }
+  }, [registry, atoms.fiber])
+
   const getApiEndpoint = useCallback(() => {
     return `${baseUrl}/cards/stream-ui-generate/${encodeURIComponent(cardId)}`
   }, [baseUrl, cardId])
 
-  /**
-   * Send a prompt and stream UI updates via EntityProxy HTTP
-   */
   const send = useCallback(
     (prompt: string, context?: Record<string, unknown>) => {
-      // Cancel any existing stream
-      const existingFiber = registry.get(clusterStreamFiberAtom) as Option.Option<RuntimeFiber<void, Error>>
-      if (Option.isSome(existingFiber)) {
-        Effect.runFork(Fiber.interrupt(existingFiber.value))
-      }
+      interruptFiber()
 
-      // Reset state
-      registry.set(clusterTreeAtom, UITree.empty())
-      registry.set(clusterIsStreamingAtom, true)
-      registry.set(clusterErrorAtom, Option.none())
+      // Reset THIS card's state
+      registry.set(atoms.tree, UITree.empty())
+      registry.set(atoms.isStreaming, true)
+      registry.set(atoms.error, Option.none())
+      registry.set(atoms.decodeErrors, [])
+
       registry.set(decodeErrorStreamIdsAtom, registerDecodeErrorStreamId(
         registry.get(decodeErrorStreamIdsAtom) as Set<string>,
         streamId
       ))
-      registry.set(decodeErrorsFamily(streamId), [])
 
-      // Create AbortController for fetch cancellation
       const abortController = new AbortController()
-
-      // Get the EntityProxy endpoint
       const api = getApiEndpoint()
 
-      // Build EntityProxy payload (matches CardEntity.UIGeneratePayload schema)
       const entityProxyPayload = {
         cardId,
         operationId: crypto.randomUUID(),
@@ -186,128 +192,93 @@ export function useUIStreamCluster({
         context,
       }
 
-      // Create the stream processing effect
       const streamEffect = Effect.gen(function* () {
         let treeStream: Stream.Stream<UITree, Error>
 
+        const errorTracking = {
+          streamId,
+          context: { prompt, transport: "cluster" as const, cardId },
+          onDecodeError: (decodeError: any) =>
+            Effect.sync(() => {
+              const current = registry.get(atoms.decodeErrors) as Array<any>
+              registry.set(atoms.decodeErrors, [...current, decodeError])
+            }),
+        }
+
         if (hybrid) {
-          // Hybrid mode: use Tree Worker for near-zero main thread blocking
           treeStream = yield* streamHybrid(
             api,
             entityProxyPayload,
             { batchSize },
             abortController.signal,
-            {
-              streamId,
-              context: { prompt, transport: "cluster", cardId },
-              onDecodeError: (error) =>
-                Effect.sync(() => {
-                  const current = registry.get(decodeErrorsFamily(streamId)) as Array<typeof error>
-                  registry.set(decodeErrorsFamily(streamId), [...current, error])
-                }),
-            }
+            errorTracking,
           )
         } else {
-          // Standard mode: process patches on main thread
           const patchStream = yield* streamFromFetchProgressive(
             api,
             entityProxyPayload,
             abortController.signal,
-            {
-              streamId,
-              context: { prompt, transport: "cluster", cardId },
-              onDecodeError: (error) =>
-                Effect.sync(() => {
-                  const current = registry.get(decodeErrorsFamily(streamId)) as Array<typeof error>
-                  registry.set(decodeErrorsFamily(streamId), [...current, error])
-                }),
-            }
+            errorTracking,
           )
           treeStream = processPatches(patchStream)
         }
 
-        // Update atom on each tree update
         yield* pipe(
           treeStream,
           Stream.runForEach((newTree) =>
             Effect.gen(function* () {
-              registry.set(clusterTreeAtom, newTree)
-              // Use setTimeout(0) macrotask to truly yield to browser event loop
+              registry.set(atoms.tree, newTree)
               yield* Effect.promise(() => new Promise<void>(r => setTimeout(r, 0)))
             })
           )
         )
 
-        // Get final tree for callback
-        const finalTree = registry.get(clusterTreeAtom) as UITree
+        const finalTree = registry.get(atoms.tree) as UITree
         onComplete?.(finalTree)
       }).pipe(
         Effect.catchAll((err) =>
           Effect.sync(() => {
             const e = err instanceof Error ? err : new Error(String(err))
-            registry.set(clusterErrorAtom, Option.some(e))
+            registry.set(atoms.error, Option.some(e))
             onError?.(e)
           })
         ),
         Effect.ensuring(
           Effect.sync(() => {
-            registry.set(clusterIsStreamingAtom, false)
-            registry.set(clusterStreamFiberAtom, Option.none())
+            registry.set(atoms.isStreaming, false)
+            registry.set(atoms.fiber, Option.none())
           })
         ),
-        // Always provide TreeWorkerPool layer (it's lazy - won't create pool unless needed)
         Effect.provide(TreeWorkerPoolAuto)
       )
 
-      // Fork the stream processing
       const fiber = Effect.runFork(streamEffect) as RuntimeFiber<void, Error>
-      registry.set(clusterStreamFiberAtom, Option.some(fiber))
+      registry.set(atoms.fiber, Option.some(fiber))
     },
-    [getApiEndpoint, onComplete, onError, registry, hybrid, batchSize]
+    [getApiEndpoint, streamId, atoms, onComplete, onError, registry, hybrid, batchSize, interruptFiber]
   )
 
-  /**
-   * Clear the current tree
-   */
   const clear = useCallback(() => {
-    const existingFiber = registry.get(clusterStreamFiberAtom) as Option.Option<RuntimeFiber<void, Error>>
-    if (Option.isSome(existingFiber)) {
-      Effect.runFork(Fiber.interrupt(existingFiber.value))
-    }
+    interruptFiber()
+    registry.set(atoms.tree, UITree.empty())
+    registry.set(atoms.error, Option.none())
+    registry.set(atoms.fiber, Option.none())
+  }, [registry, atoms, interruptFiber])
 
-    registry.set(clusterTreeAtom, UITree.empty())
-    registry.set(clusterErrorAtom, Option.none())
-    registry.set(clusterStreamFiberAtom, Option.none())
-  }, [registry])
-
-  /**
-   * Cancel current stream
-   */
   const cancel = useCallback(() => {
-    const existingFiber = registry.get(clusterStreamFiberAtom) as Option.Option<RuntimeFiber<void, Error>>
-    if (Option.isSome(existingFiber)) {
-      Effect.runFork(Fiber.interrupt(existingFiber.value))
-    }
-    registry.set(clusterIsStreamingAtom, false)
-    registry.set(clusterStreamFiberAtom, Option.none())
-  }, [registry])
+    interruptFiber()
+    registry.set(atoms.isStreaming, false)
+    registry.set(atoms.fiber, Option.none())
+  }, [registry, atoms, interruptFiber])
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
-      const existingFiber = registry.get(clusterStreamFiberAtom) as Option.Option<RuntimeFiber<void, Error>>
+      const existingFiber = registry.get(atoms.fiber) as Option.Option<RuntimeFiber<void, Error>>
       if (Option.isSome(existingFiber)) {
         Effect.runFork(Fiber.interrupt(existingFiber.value))
       }
     }
-  }, [registry])
+  }, [registry, atoms.fiber])
 
-  return {
-    tree,
-    isStreaming,
-    error,
-    send,
-    clear,
-    cancel,
-  }
+  return { tree, isStreaming, error, send, clear, cancel, atoms }
 }

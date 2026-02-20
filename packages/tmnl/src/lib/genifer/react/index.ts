@@ -36,6 +36,14 @@ export {
   type GenerativeContainerId,
   type ContainerAtoms,
   type DecodeErrorEntry,
+  // Stream atom families (concurrent-safe, keyed by stream ID)
+  streamTreeFamily,
+  streamIsStreamingFamily,
+  streamErrorFamily,
+  streamFiberFamily,
+  getStreamAtoms,
+  type StreamId,
+  type StreamAtoms,
 } from "./atoms"
 
 // =============================================================================

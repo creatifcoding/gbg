@@ -105,15 +105,83 @@ export const pendingConfirmationAtom = Atom.make<Option.Option<PendingConfirmati
 ).pipe(Atom.keepAlive)
 
 // =============================================================================
-// Stream Control Atoms
+// Stream Control Atoms (Singleton — LEGACY, prefer stream families below)
 // =============================================================================
 
 /**
  * Current streaming fiber (for cancellation via Fiber.interrupt)
+ * @deprecated Use streamFiberFamily(streamId) instead for concurrent safety
  */
 export const streamFiberAtom = Atom.make<Option.Option<Fiber.RuntimeFiber<void, Error>>>(
   Option.none()
 ).pipe(Atom.keepAlive)
+
+// =============================================================================
+// Stream Atom Families (Concurrent-Safe, keyed by stream ID)
+// =============================================================================
+
+/**
+ * Stream ID type — caller-provided key that isolates all stream state.
+ *
+ * Convention:
+ *   - HTTP mode:    `"ui-stream:http:<api>"`  or caller's own ID
+ *   - Cluster mode: `"ui-stream:cluster:<cardId>"`
+ *   - Custom:       any unique string
+ */
+export type StreamId = string
+
+/** Tree state per stream */
+export const streamTreeFamily = Atom.family(
+  (_streamId: StreamId) => Atom.make<UITree>(UITreeClass.empty())
+)
+
+/** Streaming status per stream */
+export const streamIsStreamingFamily = Atom.family(
+  (_streamId: StreamId) => Atom.make<boolean>(false)
+)
+
+/** Error state per stream */
+export const streamErrorFamily = Atom.family(
+  (_streamId: StreamId) => Atom.make<Option.Option<Error>>(Option.none())
+)
+
+/** Fiber ref per stream (for cancellation) */
+export const streamFiberFamily = Atom.family(
+  (_streamId: StreamId) =>
+    Atom.make<Option.Option<Fiber.RuntimeFiber<void, Error>>>(Option.none())
+)
+
+/**
+ * Bundle of atoms for a specific stream instance.
+ * Every field is stream-scoped — two streams never touch each other.
+ */
+export interface StreamAtoms {
+  readonly tree: Atom.Writable<UITree>
+  readonly isStreaming: Atom.Writable<boolean>
+  readonly error: Atom.Writable<Option.Option<Error>>
+  readonly fiber: Atom.Writable<Option.Option<Fiber.RuntimeFiber<void, Error>>>
+  readonly decodeErrors: Atom.Writable<Array<DecodeErrorEntry>>
+}
+
+/**
+ * Get all atoms for a specific stream.
+ *
+ * @example
+ * ```ts
+ * const atoms = getStreamAtoms('my-stream')
+ * registry.set(atoms.isStreaming, true)
+ * const tree = registry.get(atoms.tree)
+ * ```
+ */
+export function getStreamAtoms(streamId: StreamId): StreamAtoms {
+  return {
+    tree: streamTreeFamily(streamId),
+    isStreaming: streamIsStreamingFamily(streamId),
+    error: streamErrorFamily(streamId),
+    fiber: streamFiberFamily(streamId),
+    decodeErrors: decodeErrorsFamily(streamId),
+  }
+}
 
 // =============================================================================
 // Decode Error Atoms (per stream + aggregated)
