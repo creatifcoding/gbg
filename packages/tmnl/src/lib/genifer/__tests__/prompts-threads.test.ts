@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest'
+import { List } from 'effect'
 import * as Registry from '@effect-atom/atom/Registry'
 import { PromptTemplate, PromptSlot } from '../core/prompts.js'
 import {
@@ -84,9 +85,10 @@ describe('ThreadService', () => {
 
     const active = service.getActiveThread()!
     expect(active.messageCount).toBe(2)
-    expect(active.messages[0].role).toBe('user')
-    expect(active.messages[1].role).toBe('assistant')
-    expect(active.messages[1].model).toBe('claude-4')
+    const msgs = active.toArray()
+    expect(msgs[0].role).toBe('user')
+    expect(msgs[1].role).toBe('assistant')
+    expect(msgs[1].model).toBe('claude-4')
   })
 
   it('extracts flat text from messages', () => {

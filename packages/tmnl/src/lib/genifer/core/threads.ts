@@ -11,7 +11,7 @@
  * @module genifer/core/threads
  */
 
-import { Schema } from 'effect'
+import { Schema, List } from 'effect'
 
 // =============================================================================
 // Message Content (tagged union matching morphchat ChatMessagePart)
@@ -122,11 +122,21 @@ export class Turn extends Schema.Class<Turn>('Turn')({
 // Thread
 // =============================================================================
 
+/**
+ * Conversation thread backed by `List<ThreadMessage>`.
+ *
+ * List provides:
+ * - O(1) prepend (natural for chat — newest first, or reversed for display)
+ * - Structural sharing (immutable, safe for atoms)
+ * - Schema.List encodes/decodes as JSON array transparently
+ *
+ * The `turns()` getter materializes to Array for indexed scanning.
+ */
 export class Thread extends Schema.Class<Thread>('Thread')({
   /** Unique thread ID */
   id: Schema.String,
-  /** Ordered messages (append-only) */
-  messages: Schema.Array(ThreadMessage),
+  /** Ordered messages (append-only). List<ThreadMessage> — O(1) prepend. */
+  messages: Schema.List(ThreadMessage),
   /** Thread title (auto-generated or user-set) */
   title: Schema.optional(Schema.String),
   /** Creation timestamp */
@@ -141,11 +151,62 @@ export class Thread extends Schema.Class<Thread>('Thread')({
   forkAtIndex: Schema.optional(Schema.Number),
 }) {
   get messageCount(): number {
-    return this.messages.length
+    return List.size(this.messages)
   }
 
   get lastMessage(): ThreadMessage | undefined {
-    return this.messages[this.messages.length - 1]
+    return List.isCons(this.messages)
+      ? List.unsafeLast(this.messages)
+      : undefined
+  }
+
+  /**
+   * Append a message (returns new Thread). O(n) because List is singly-linked
+   * (prepend is O(1)). For chat, prepend + reverse-on-display is more efficient
+   * but this preserves API compatibility.
+   */
+  appendMessage(message: ThreadMessage): Thread {
+    return new Thread({
+      ...this,
+      messages: List.appendAll(this.messages, List.of(message)),
+    })
+  }
+
+  /**
+   * Prepend a message (returns new Thread). O(1).
+   * Useful for newest-first storage model.
+   */
+  prependMessage(message: ThreadMessage): Thread {
+    return new Thread({
+      ...this,
+      messages: List.prepend(this.messages, message),
+    })
+  }
+
+  /**
+   * Convert messages to Array for indexed access.
+   * Used by turns() and consumers that need random access.
+   */
+  toArray(): ReadonlyArray<ThreadMessage> {
+    return List.toArray(this.messages)
+  }
+
+  /**
+   * Create Thread from an Array of messages (migration helper).
+   */
+  static fromArray(
+    id: string,
+    messages: ReadonlyArray<ThreadMessage>,
+    opts?: Partial<Omit<ConstructorParameters<typeof Thread>[0], 'id' | 'messages'>>
+  ): Thread {
+    const now = new Date().toISOString()
+    return new Thread({
+      id,
+      messages: List.fromIterable(messages),
+      createdAt: opts?.createdAt ?? now,
+      updatedAt: opts?.updatedAt ?? now,
+      ...opts,
+    })
   }
 
   /**
@@ -155,16 +216,16 @@ export class Thread extends Schema.Class<Thread>('Thread')({
    * 'assistant' message (inclusive). Tool/system messages between
    * user→assistant are captured as `intermediate`.
    *
-   * Handles: interleaved tool calls, multiple system messages,
-   * trailing user without response, consecutive assistant messages.
+   * Materializes List to Array for indexed scanning.
    */
   get turns(): Turn[] {
+    const messages = this.toArray()
     const turns: Turn[] = []
     let turnIndex = 0
     let i = 0
 
-    while (i < this.messages.length) {
-      const msg = this.messages[i]
+    while (i < messages.length) {
+      const msg = messages[i]
 
       if (msg.role === 'user') {
         const intermediate: ThreadMessage[] = []
@@ -172,18 +233,16 @@ export class Thread extends Schema.Class<Thread>('Thread')({
 
         // Scan forward for intermediate + assistant
         let j = i + 1
-        while (j < this.messages.length) {
-          const next = this.messages[j]
+        while (j < messages.length) {
+          const next = messages[j]
           if (next.role === 'assistant') {
             assistantMessage = next
             j++
             break
           }
           if (next.role === 'user') {
-            // Next user message — this turn has no assistant response
             break
           }
-          // tool / system — collect as intermediate
           intermediate.push(next)
           j++
         }
@@ -198,7 +257,6 @@ export class Thread extends Schema.Class<Thread>('Thread')({
         )
         i = j
       } else {
-        // Skip non-user messages at the start (system preamble, etc.)
         i++
       }
     }

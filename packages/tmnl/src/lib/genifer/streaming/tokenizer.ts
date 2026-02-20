@@ -168,7 +168,7 @@ export function createTokenizer(options?: TokenizerOptions) {
     return null
   }
 
-  function feed(chunk: string): JSONToken[] {
+  function feed(chunk: string): ReadonlyArray<JSONToken> {
     const tokens: JSONToken[] = []
 
     for (let i = 0; i < chunk.length; i++) {
@@ -329,7 +329,7 @@ export function createTokenizer(options?: TokenizerOptions) {
    * Flush any partial string still in progress (for streaming).
    * Returns a partial StringToken if we're mid-string.
    */
-  function flush(): JSONToken[] {
+  function flush(): ReadonlyArray<JSONToken> {
     const tokens: JSONToken[] = []
 
     // Flush pending literal

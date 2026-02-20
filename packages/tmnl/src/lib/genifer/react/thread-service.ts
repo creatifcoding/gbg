@@ -8,6 +8,7 @@
 
 import * as Atom from '@effect-atom/atom/Atom'
 import * as Registry from '@effect-atom/atom/Registry'
+import { List } from 'effect'
 import { nanoid } from 'nanoid'
 import { Thread, ThreadMessage, type MessageContent, type MessageRole } from '../core/threads.js'
 
@@ -69,7 +70,7 @@ export function createThreadService(
     createThread(title) {
       const thread = new Thread({
         id: nanoid(),
-        messages: [],
+        messages: List.empty<ThreadMessage>(),
         title,
         createdAt: now(),
         updatedAt: now(),
@@ -93,7 +94,7 @@ export function createThreadService(
 
       const updated = new Thread({
         ...active,
-        messages: [...active.messages, message],
+        messages: List.appendAll(active.messages, List.of(message)),
         updatedAt: now(),
       })
 
@@ -121,7 +122,7 @@ export function createThreadService(
       const active = registry.get(activeThreadAtom)
       if (!active) throw new Error('No active thread')
 
-      const forkedMessages = active.messages.slice(0, atIndex + 1)
+      const forkedMessages = List.take(active.messages, atIndex + 1)
       const fork = new Thread({
         id: nanoid(),
         messages: forkedMessages,

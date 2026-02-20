@@ -10,6 +10,7 @@
  * @module genifer/__tests__/type-safety-remediation
  */
 import { describe, it, expect } from 'vitest'
+import { List } from 'effect'
 import * as Registry from '@effect-atom/atom/Registry'
 
 // =============================================================================
@@ -208,11 +209,11 @@ describe('Thread.turns() — Interleaved Messages', () => {
 
     const thread = new Thread({
       id: 't1',
-      messages: [
+      messages: List.fromIterable([
         new ThreadMessage({ id: 'm1', role: 'user', content: [{ _tag: 'text', text: 'hi' }], timestamp: '2026-01-01' }),
         new ThreadMessage({ id: 'm2', role: 'tool', content: [{ _tag: 'tool-result', toolCallId: 'tc1', toolName: 'search', content: 'found', isError: false }], timestamp: '2026-01-01' }),
         new ThreadMessage({ id: 'm3', role: 'assistant', content: [{ _tag: 'text', text: 'done' }], timestamp: '2026-01-01' }),
-      ],
+      ]),
       createdAt: '2026-01-01',
       updatedAt: '2026-01-01',
     })
@@ -230,9 +231,9 @@ describe('Thread.turns() — Interleaved Messages', () => {
 
     const thread = new Thread({
       id: 't2',
-      messages: [
+      messages: List.fromIterable([
         new ThreadMessage({ id: 'm1', role: 'user', content: [{ _tag: 'text', text: 'hello' }], timestamp: '2026-01-01' }),
-      ],
+      ]),
       createdAt: '2026-01-01',
       updatedAt: '2026-01-01',
     })
@@ -249,11 +250,11 @@ describe('Thread.turns() — Interleaved Messages', () => {
 
     const thread = new Thread({
       id: 't3',
-      messages: [
+      messages: List.fromIterable([
         new ThreadMessage({ id: 's1', role: 'system', content: [{ _tag: 'text', text: 'You are helpful' }], timestamp: '2026-01-01' }),
         new ThreadMessage({ id: 'm1', role: 'user', content: [{ _tag: 'text', text: 'hi' }], timestamp: '2026-01-01' }),
         new ThreadMessage({ id: 'm2', role: 'assistant', content: [{ _tag: 'text', text: 'hello' }], timestamp: '2026-01-01' }),
-      ],
+      ]),
       createdAt: '2026-01-01',
       updatedAt: '2026-01-01',
     })
@@ -270,13 +271,13 @@ describe('Thread.turns() — Interleaved Messages', () => {
 
     const thread = new Thread({
       id: 't4',
-      messages: [
+      messages: List.fromIterable([
         new ThreadMessage({ id: 'm1', role: 'user', content: [{ _tag: 'text', text: 'search' }], timestamp: '2026-01-01' }),
         new ThreadMessage({ id: 't1', role: 'tool', content: [{ _tag: 'tool-result', toolCallId: 'tc1', toolName: 'a', content: 'r1', isError: false }], timestamp: '2026-01-01' }),
         new ThreadMessage({ id: 's1', role: 'system', content: [{ _tag: 'text', text: 'context update' }], timestamp: '2026-01-01' }),
         new ThreadMessage({ id: 't2', role: 'tool', content: [{ _tag: 'tool-result', toolCallId: 'tc2', toolName: 'b', content: 'r2', isError: false }], timestamp: '2026-01-01' }),
         new ThreadMessage({ id: 'm2', role: 'assistant', content: [{ _tag: 'text', text: 'done' }], timestamp: '2026-01-01' }),
-      ],
+      ]),
       createdAt: '2026-01-01',
       updatedAt: '2026-01-01',
     })
@@ -292,11 +293,11 @@ describe('Thread.turns() — Interleaved Messages', () => {
 
     const thread = new Thread({
       id: 't5',
-      messages: [
+      messages: List.fromIterable([
         new ThreadMessage({ id: 'm1', role: 'user', content: [{ _tag: 'text', text: 'first' }], timestamp: '2026-01-01' }),
         new ThreadMessage({ id: 'm2', role: 'user', content: [{ _tag: 'text', text: 'second' }], timestamp: '2026-01-01' }),
         new ThreadMessage({ id: 'm3', role: 'assistant', content: [{ _tag: 'text', text: 'response' }], timestamp: '2026-01-01' }),
-      ],
+      ]),
       createdAt: '2026-01-01',
       updatedAt: '2026-01-01',
     })
