@@ -289,3 +289,19 @@ export {
   type ComponentRenderProps,
   type SchemaEntry,
 } from "./CatalogService"
+
+// =============================================================================
+// Interactable (Bidirectional Component State)
+// =============================================================================
+
+export {
+  // Schema types
+  InteractableElement,
+  StateFieldDecl,
+  StateChange,
+  StateChangeBatch,
+  StateSchema,
+
+  // Type guard
+  hasStateSchema,
+} from "./interactable"
