@@ -512,6 +512,12 @@ const overhaulDocsRoute = createRoute({
   component: lazyRouteComponent(() => import('./components/docs/overhaul'), 'OverhaulDocsPage'),
 });
 
+const geniferResearchDocsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/docs/genifer-research',
+  component: lazyRouteComponent(() => import('./components/docs/genifer-research'), 'GeniferResearchPage'),
+});
+
 // ─────────────────────────────────────────────────────────────
 // Lazy Routes: Conductor
 // ─────────────────────────────────────────────────────────────
@@ -609,6 +615,7 @@ const routeTree = rootRoute.addChildren([
   docsRoute,
   diagramsRoute,
   overhaulDocsRoute,
+  geniferResearchDocsRoute,
   // Lazy (conductor)
   conductorRoute,
   conductorLegacyRoute,
