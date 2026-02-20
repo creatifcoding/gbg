@@ -320,3 +320,31 @@ export {
   // Types
   type GeniferToolHandler,
 } from "./tools"
+
+// =============================================================================
+// Prompt Templating
+// =============================================================================
+
+export {
+  PromptTemplate,
+  PromptSlot,
+  CompiledPrompt,
+  PromptSlotType,
+} from "./prompts"
+
+// =============================================================================
+// Conversation Threads
+// =============================================================================
+
+export {
+  Thread,
+  ThreadMessage,
+  Turn,
+  TextContent,
+  UITreeContent,
+  ToolCallContent,
+  ToolResultContent,
+  ThinkingContent,
+  MessageContent,
+  MessageRole,
+} from "./threads"

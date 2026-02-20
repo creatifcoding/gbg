@@ -192,3 +192,35 @@ export {
   useComponentState,
   type UseComponentStateReturn,
 } from "./useComponentState"
+
+// =============================================================================
+// Tool Registry (Client-Side Tool Calling)
+// =============================================================================
+
+export {
+  createToolRegistryService,
+  getToolRegistryService,
+  registeredToolsAtom,
+  activeCallsAtom,
+  toolResultsAtom,
+  type ToolRegistryServiceShape,
+} from "./tool-registry"
+
+export {
+  useToolRegistry,
+  useTool,
+  type UseToolRegistryReturn,
+  type UseToolReturn,
+} from "./useTools"
+
+// =============================================================================
+// Thread Service (Conversation Management)
+// =============================================================================
+
+export {
+  createThreadService,
+  getThreadService,
+  activeThreadAtom,
+  threadHistoryAtom,
+  type ThreadServiceShape,
+} from "./thread-service"
