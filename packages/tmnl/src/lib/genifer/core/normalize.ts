@@ -199,16 +199,14 @@ function findJsonBlocks(s: string): string[] {
       i = endIdx + 1
     } else {
       // Truncated JSON — attempt partial recovery
-      // Strategy: find the last balanced sub-object/array close, then force-close
       let truncated = s.slice(startIdx)
 
-      // If we were inside a string when truncation happened, close the string
+      // If we were inside a string when truncation happened, close it
       if (inStr) truncated += '"'
 
-      // Close all open brackets
-      // Count remaining open brackets
-      let openBraces = 0
-      let openBrackets = 0
+      // Track bracket stack in nesting order to close correctly
+      // Walk the (now string-closed) truncated content and record open brackets
+      const bracketStack: Array<"}" | "]"> = []
       let tInStr = false
       let tEsc = false
       for (let k = 0; k < truncated.length; k++) {
@@ -217,15 +215,15 @@ function findJsonBlocks(s: string): string[] {
         if (ch === "\\") { tEsc = true; continue }
         if (ch === '"') { tInStr = !tInStr; continue }
         if (tInStr) continue
-        if (ch === "{") openBraces++
-        if (ch === "}") openBraces--
-        if (ch === "[") openBrackets++
-        if (ch === "]") openBrackets--
+        if (ch === "{") bracketStack.push("}")
+        else if (ch === "[") bracketStack.push("]")
+        else if (ch === "}" || ch === "]") bracketStack.pop()
       }
 
-      // Close open brackets (inner-most first: ] then })
-      for (let k = 0; k < openBrackets; k++) truncated += "]"
-      for (let k = 0; k < openBraces; k++) truncated += "}"
+      // Close in reverse nesting order (innermost first)
+      while (bracketStack.length > 0) {
+        truncated += bracketStack.pop()
+      }
 
       blocks.push(truncated)
       break // No more blocks after a truncation

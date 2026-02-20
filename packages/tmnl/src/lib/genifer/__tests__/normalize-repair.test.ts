@@ -91,11 +91,23 @@ describe("extractJson", () => {
     expect(() => run(extractJson("no json here"))).toThrow()
   })
 
-  it("recovers truncated JSON by closing open brackets", () => {
+  it("recovers truncated JSON by closing open brackets in correct nesting order", () => {
     // Partial recovery: force-closes the open brace
     const result = run(extractJson('{"type":"Card"'))
     const parsed = JSON.parse(result)
     expect(parsed.type).toBe("Card")
+  })
+
+  it("recovers mid-string truncated JSON with nested brackets", () => {
+    // Truncated inside a string value, inside nested objects/arrays
+    const raw = '{"type":"Page","children":[{"type":"Card","key":"c1","props":{"title":"Stats"}},{"type":"Card","key":"c2","props":{"title":"Trun'
+    const result = run(extractJson(raw))
+    const parsed = JSON.parse(result)
+    expect(parsed.type).toBe("Page")
+    expect(parsed.children).toHaveLength(2)
+    expect(parsed.children[0].key).toBe("c1")
+    expect(parsed.children[1].key).toBe("c2")
+    expect(parsed.children[1].props.title).toBe("Trun") // truncated but recovered
   })
 
   it("extracts array format", () => {
