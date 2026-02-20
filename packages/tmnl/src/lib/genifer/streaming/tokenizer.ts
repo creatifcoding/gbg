@@ -123,8 +123,14 @@ const initialState = (): TokenizerState => ({
  * const tokens2 = tok.feed('d","columns":3}')
  * ```
  */
-export function createTokenizer() {
+export type TokenizerOptions = {
+  /** Called when tokenizer encounters an invalid literal or structural error */
+  onError?: (message: string) => void
+}
+
+export function createTokenizer(options?: TokenizerOptions) {
   let state = initialState()
+  const onError = options?.onError
 
   function flushLiteral(): JSONToken | null {
     const lit = state.literalBuf.trim()
@@ -154,6 +160,10 @@ export function createTokenizer() {
         offset: state.offset - lit.length,
         depth: state.depth,
       }
+    }
+    // Invalid literal — surface via onError callback instead of silently dropping
+    if (onError) {
+      onError(`Invalid literal: '${lit}' at offset ${state.offset - lit.length}`)
     }
     return null
   }
@@ -252,6 +262,10 @@ export function createTokenizer() {
       if (ch === '}') {
         const litToken = flushLiteral()
         if (litToken) tokens.push(litToken)
+        if (state.depth <= 0 || state.containerStack.length === 0) {
+          onError?.(`Structural underflow: stray '}' at offset ${state.offset}`)
+          continue
+        }
         state.depth--
         state.containerStack.pop()
         tokens.push({
@@ -280,6 +294,10 @@ export function createTokenizer() {
       if (ch === ']') {
         const litToken = flushLiteral()
         if (litToken) tokens.push(litToken)
+        if (state.depth <= 0 || state.containerStack.length === 0) {
+          onError?.(`Structural underflow: stray ']' at offset ${state.offset}`)
+          continue
+        }
         state.depth--
         state.containerStack.pop()
         tokens.push({

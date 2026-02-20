@@ -12,6 +12,7 @@
 // ---------------------------------------------------------------------------
 export {
   createTokenizer,
+  type TokenizerOptions,
   JSONToken,
   ObjectStart,
   ObjectEnd,

@@ -232,6 +232,17 @@ export {
 export { useReducedMotion } from "./useReducedMotion"
 
 // =============================================================================
+// Tree Cache (prompt-hash → UITree LRU)
+// =============================================================================
+
+export {
+  TreeCache,
+  getTreeCache,
+  generateCacheKey,
+  type TreeCacheOptions,
+} from "./tree-cache"
+
+// =============================================================================
 // Error Boundary
 // =============================================================================
 

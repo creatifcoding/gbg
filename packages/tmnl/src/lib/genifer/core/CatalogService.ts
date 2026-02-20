@@ -112,31 +112,42 @@ export const CatalogComponents = Context.GenericTag<CatalogComponents>(
 /**
  * Create a CatalogComponents implementation
  *
- * Uses mutable Maps internally to support runtime registration,
- * but exposes an immutable interface via ReadonlyMap.
+ * Copy-on-write: each register() creates new Map snapshots so readers
+ * never see a half-written state. The `renderers` and `schemas` getters
+ * always return the latest snapshot.
  *
  * @param initialCatalogs - Optional catalogs to register at creation time
  */
 export const makeCatalogComponents = (
   initialCatalogs: DomainCatalog[] = []
 ): CatalogComponents => {
-  // Internal mutable state (supports runtime registration)
-  const renderers = new Map<string, ComponentDef["renderer"]>()
-  const schemas = new Map<string, SchemaEntry>()
+  // COW snapshots — swapped atomically on register()
+  let _renderers: ReadonlyMap<string, ComponentDef["renderer"]> = new Map()
+  let _schemas: ReadonlyMap<string, SchemaEntry> = new Map()
 
   /**
-   * Register a domain catalog
+   * Register a domain catalog (copy-on-write)
+   *
+   * Creates new Map instances with merged entries. Existing readers
+   * hold references to the old (still-valid) snapshots.
    */
   const register = (catalog: DomainCatalog): void => {
+    const nextRenderers = new Map(_renderers)
+    const nextSchemas = new Map(_schemas)
+
     for (const [name, def] of Object.entries(catalog.components)) {
-      renderers.set(name, def.renderer)
-      schemas.set(name, {
+      nextRenderers.set(name, def.renderer)
+      nextSchemas.set(name, {
         schema: def.schema,
         description: def.description,
         hasChildren: def.hasChildren,
         defaultEntrance: def.defaultEntrance,
       })
     }
+
+    // Atomic swap — readers see either old or new, never partial
+    _renderers = nextRenderers
+    _schemas = nextSchemas
   }
 
   // Initialize with provided catalogs
@@ -250,7 +261,7 @@ entrance?: {
     // Components section
     lines.push("# Available Components\n")
 
-    for (const [name, entry] of schemas) {
+    for (const [name, entry] of _schemas) {
       lines.push(`### ${name}`)
       if (entry.description) {
         lines.push(entry.description)
@@ -279,8 +290,9 @@ entrance?: {
   }
 
   return {
-    renderers,
-    schemas,
+    // Getters: always return latest COW snapshot
+    get renderers() { return _renderers },
+    get schemas() { return _schemas },
     register,
     generatePrompt,
   }
