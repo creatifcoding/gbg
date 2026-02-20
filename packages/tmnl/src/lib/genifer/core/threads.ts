@@ -112,6 +112,8 @@ export class Turn extends Schema.Class<Turn>('Turn')({
   userMessage: ThreadMessage,
   /** The assistant's response */
   assistantMessage: Schema.optional(ThreadMessage),
+  /** Intermediate messages between user and assistant (tool calls, system, etc.) */
+  intermediate: Schema.Array(ThreadMessage),
   /** Turn index (0-based) */
   index: Schema.Number,
 }) {}
@@ -146,20 +148,58 @@ export class Thread extends Schema.Class<Thread>('Thread')({
     return this.messages[this.messages.length - 1]
   }
 
+  /**
+   * Extract conversation turns with role-aware scanning.
+   *
+   * A turn starts with a 'user' message and extends until the next
+   * 'assistant' message (inclusive). Tool/system messages between
+   * user→assistant are captured as `intermediate`.
+   *
+   * Handles: interleaved tool calls, multiple system messages,
+   * trailing user without response, consecutive assistant messages.
+   */
   get turns(): Turn[] {
     const turns: Turn[] = []
     let turnIndex = 0
-    for (let i = 0; i < this.messages.length; i++) {
+    let i = 0
+
+    while (i < this.messages.length) {
       const msg = this.messages[i]
+
       if (msg.role === 'user') {
-        const next = this.messages[i + 1]
+        const intermediate: ThreadMessage[] = []
+        let assistantMessage: ThreadMessage | undefined
+
+        // Scan forward for intermediate + assistant
+        let j = i + 1
+        while (j < this.messages.length) {
+          const next = this.messages[j]
+          if (next.role === 'assistant') {
+            assistantMessage = next
+            j++
+            break
+          }
+          if (next.role === 'user') {
+            // Next user message — this turn has no assistant response
+            break
+          }
+          // tool / system — collect as intermediate
+          intermediate.push(next)
+          j++
+        }
+
         turns.push(
           new Turn({
             userMessage: msg,
-            assistantMessage: next?.role === 'assistant' ? next : undefined,
+            assistantMessage,
+            intermediate,
             index: turnIndex++,
           }),
         )
+        i = j
+      } else {
+        // Skip non-user messages at the start (system preamble, etc.)
+        i++
       }
     }
     return turns

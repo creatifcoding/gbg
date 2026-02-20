@@ -35,8 +35,7 @@ export const registeredToolsAtom = Atom.make<ReadonlyMap<string, GeniferToolDefi
   new Map(),
 ).pipe(Atom.keepAlive)
 
-/** Tool handlers keyed by name (kept separate from serializable definitions) */
-const toolHandlers = new Map<string, GeniferToolHandler>()
+/** Tool handlers are scoped per-service-instance (see createToolRegistryService) */
 
 /** Active tool calls (in-flight) */
 export const activeCallsAtom = Atom.make<ReadonlyMap<string, GeniferToolCall>>(
@@ -81,6 +80,9 @@ export type ToolRegistryServiceShape = {
 export function createToolRegistryService(
   registry: Registry.Registry = Registry.make(),
 ): ToolRegistryServiceShape {
+  // Per-instance handler map — NOT module-global
+  const toolHandlers = new Map<string, GeniferToolHandler>()
+
   // Helper: update a call's state
   function updateCallState(callId: string, state: ToolInvocationState) {
     const calls = new Map(registry.get(activeCallsAtom))

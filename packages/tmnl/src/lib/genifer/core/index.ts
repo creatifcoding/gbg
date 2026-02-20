@@ -330,6 +330,7 @@ export {
   PromptSlot,
   CompiledPrompt,
   PromptSlotType,
+  PromptCompileError,
 } from "./prompts"
 
 // =============================================================================

@@ -33,6 +33,7 @@ export {
   createStreamingGraph,
   type ComponentIdentification,
   type StreamingGraphCallbacks,
+  type StreamingGraphOptions,
 } from './graph.js'
 
 // ---------------------------------------------------------------------------
@@ -47,7 +48,10 @@ export {
   partialFieldsAtom,
   streamingErrorAtom,
   chunkCountAtom,
+  validationResultsAtom,
+  validationErrorsAtom,
   type StreamingJsonServiceShape,
+  type StreamingJsonServiceOptions,
 } from './service.js'
 
 // ---------------------------------------------------------------------------

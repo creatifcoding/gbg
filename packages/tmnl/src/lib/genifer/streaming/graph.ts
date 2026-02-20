@@ -32,6 +32,16 @@ export type StreamingGraphCallbacks = {
   onComponentIdentified: (id: ComponentIdentification) => void
   /** Called for every token (for partial tree assembly) */
   onToken?: (token: JSONToken) => void
+  /** Called when BFTA validates a node (if validator is wired) */
+  onValidation?: (result: import('./bfta.js').ValidationResult) => void
+  /** Called when BFTA encounters an unknown component type */
+  onUnknownType?: (componentType: string, depth: number) => void
+}
+
+export type StreamingGraphOptions = {
+  callbacks: StreamingGraphCallbacks
+  /** Component registrations for BFTA validation. Omit to skip validation. */
+  registrations?: readonly import('./bfta.js').ComponentRegistration[]
 }
 
 // ---------------------------------------------------------------------------
@@ -49,8 +59,32 @@ type PartialObject = {
  *
  * Feed string chunks via `sendChunk()`. The graph processes them
  * incrementally and fires callbacks when component types are identified.
+ *
+ * Overloads:
+ *   createStreamingGraph(callbacks) — original API (no BFTA)
+ *   createStreamingGraph(options) — with optional BFTA validation
  */
-export function createStreamingGraph(callbacks: StreamingGraphCallbacks) {
+export function createStreamingGraph(callbacksOrOptions: StreamingGraphCallbacks | StreamingGraphOptions) {
+  const isOptions = 'callbacks' in callbacksOrOptions
+  const callbacks: StreamingGraphCallbacks = isOptions ? callbacksOrOptions.callbacks : callbacksOrOptions
+  const registrations = isOptions ? (callbacksOrOptions as StreamingGraphOptions).registrations : undefined
+
+  // Build BFTA validator if registrations provided
+  let validator: ReturnType<typeof import('./bfta.js').createBFTAValidator> | null = null
+  if (registrations && registrations.length > 0) {
+    // Dynamic import avoidance: import at top of file
+    const { buildGrammar, createBFTAValidator } = require('./bfta.js')
+    const grammar = buildGrammar(registrations)
+    validator = createBFTAValidator(grammar, {
+      onValidated: (result: import('./bfta.js').ValidationResult) => {
+        callbacks.onValidation?.(result)
+      },
+      onUnknownType: (componentType: string, depth: number) => {
+        callbacks.onUnknownType?.(componentType, depth)
+      },
+    })
+  }
+
   const graph = new D2({ initialFrontier: 0 })
   const input = graph.newInput<JSONToken>()
   let version = 0
@@ -92,6 +126,13 @@ export function createStreamingGraph(callbacks: StreamingGraphCallbacks) {
           }
           case 'ObjectEnd': {
             const objDepth = token.depth + 1
+            const closingObj = partialObjects.get(objDepth)
+
+            // BFTA: pop node on object close (validates against grammar)
+            if (validator && closingObj && identifiedDepths.has(objDepth)) {
+              validator.popNode(objDepth)
+            }
+
             partialObjects.delete(objDepth)
             identifiedDepths.delete(objDepth)
             break
@@ -102,6 +143,10 @@ export function createStreamingGraph(callbacks: StreamingGraphCallbacks) {
             break
           }
           case 'String': {
+            // GUARD: partial strings from flush must NOT be promoted
+            // as discriminator values — the value is incomplete.
+            if (token.partial) break
+
             const obj = partialObjects.get(token.depth)
             if (obj && obj.currentKey) {
               obj.fields[obj.currentKey] = token.value
@@ -114,10 +159,18 @@ export function createStreamingGraph(callbacks: StreamingGraphCallbacks) {
 
                 if (hasDiscriminator) {
                   identifiedDepths.add(obj.depth)
+                  const componentType = (obj.fields['_tag'] ??
+                    obj.fields['type']) as string
+                  const elementKey = obj.fields['key'] as string | undefined
+
+                  // BFTA: push node on identification
+                  if (validator) {
+                    validator.pushNode(componentType, elementKey, obj.depth)
+                  }
+
                   callbacks.onComponentIdentified({
-                    componentType: (obj.fields['_tag'] ??
-                      obj.fields['type']) as string,
-                    elementKey: obj.fields['key'] as string | undefined,
+                    componentType,
+                    elementKey,
                     discoveredAtOffset: token.offset,
                   })
                 }
@@ -192,6 +245,7 @@ export function createStreamingGraph(callbacks: StreamingGraphCallbacks) {
       tokenizer.reset()
       partialObjects.clear()
       identifiedDepths.clear()
+      validator?.reset()
       // Do NOT reset version — d2ts requires monotonic versions
     },
 

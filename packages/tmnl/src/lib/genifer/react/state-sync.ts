@@ -72,9 +72,6 @@ export type StateSyncServiceShape = {
 // Factory
 // =============================================================================
 
-// Track InteractableElement schemas for validation
-const elementSchemas = new Map<string, InteractableElement>()
-
 /**
  * Creates a StateSyncService bound to a Registry.
  *
@@ -84,6 +81,8 @@ const elementSchemas = new Map<string, InteractableElement>()
 export function createStateSyncService(
   registry: Registry.Registry = Registry.make(),
 ): StateSyncServiceShape {
+  // Per-instance schema map — NOT module-global (prevents cross-instance leaks)
+  const elementSchemas = new Map<string, InteractableElement>()
   return {
     initElement(element: InteractableElement) {
       if (!element.isInteractable) return
@@ -142,10 +141,56 @@ export function createStateSyncService(
     },
 
     setFields(elementKey, fields, source = 'user') {
+      // Phase 1: Validate ALL fields before committing any
+      const schema = elementSchemas.get(elementKey)
+      const currentStates = registry.get(elementStatesAtom)
+      const current = currentStates.get(elementKey)
+      if (!current) return `Element not initialized: ${elementKey}`
+
+      const errors: string[] = []
       for (const [field, value] of Object.entries(fields)) {
-        const error = this.setField(elementKey, field, value, source)
-        if (error) return error
+        if (schema) {
+          const error = schema.validateField(field, value)
+          if (error) errors.push(error)
+        }
       }
+      if (errors.length > 0) return errors.join('; ')
+
+      // Phase 2: All valid — commit as single batch
+      const states = new Map(currentStates)
+      const changes: StateChange[] = []
+      let nextState = { ...current }
+
+      for (const [field, value] of Object.entries(fields)) {
+        const previousValue = nextState[field]
+        nextState = { ...nextState, [field]: value }
+        changes.push(
+          new StateChange({
+            elementKey,
+            field,
+            previousValue,
+            nextValue: value,
+            timestamp: Date.now(),
+            source,
+          }),
+        )
+      }
+
+      states.set(elementKey, nextState)
+      registry.set(elementStatesAtom, states)
+
+      // Batch append changes
+      const log = registry.get(changeLogAtom)
+      const newLog = log.length + changes.length >= MAX_CHANGE_LOG
+        ? [...log.slice(-(MAX_CHANGE_LOG - changes.length)), ...changes]
+        : [...log, ...changes]
+      registry.set(changeLogAtom, newLog)
+
+      // Mark dirty
+      const dirty = new Set(registry.get(dirtyElementsAtom))
+      dirty.add(elementKey)
+      registry.set(dirtyElementsAtom, dirty)
+
       return null
     },
 

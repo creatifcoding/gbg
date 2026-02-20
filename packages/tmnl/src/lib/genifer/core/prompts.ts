@@ -28,6 +28,40 @@ export const PromptSlotType = Schema.Literal('string', 'number', 'boolean', 'cat
 export type PromptSlotType = typeof PromptSlotType.Type
 
 // =============================================================================
+// Compile Error (tagged, not generic Error)
+// =============================================================================
+
+export class PromptCompileError extends Error {
+  readonly _tag = 'PromptCompileError' as const
+  constructor(
+    readonly templateName: string,
+    readonly detail: string,
+  ) {
+    super(`PromptCompileError [${templateName}]: ${detail}`)
+    this.name = 'PromptCompileError'
+  }
+}
+
+// =============================================================================
+// Runtime Slot Type Validation
+// =============================================================================
+
+function validateSlotType(slotName: string, expectedType: PromptSlotType, value: unknown): string | null {
+  switch (expectedType) {
+    case 'string':
+      return typeof value === 'string' ? null : `Slot '${slotName}' expects string, got ${typeof value}`
+    case 'number':
+      return typeof value === 'number' ? null : `Slot '${slotName}' expects number, got ${typeof value}`
+    case 'boolean':
+      return typeof value === 'boolean' ? null : `Slot '${slotName}' expects boolean, got ${typeof value}`
+    case 'json':
+      return typeof value === 'object' ? null : `Slot '${slotName}' expects json (object), got ${typeof value}`
+    case 'catalog':
+      return null // catalog values are handled separately
+  }
+}
+
+// =============================================================================
 // PromptSlot — typed placeholder in a template
 // =============================================================================
 
@@ -76,10 +110,16 @@ export class PromptTemplate extends Schema.Class<PromptTemplate>('PromptTemplate
     return null
   }
 
-  /** Compile the template with slot values. Returns the filled string. */
+  /**
+   * Compile the template with slot values. Returns the filled string.
+   *
+   * Validates slot types at runtime and replaces ALL occurrences of each
+   * placeholder (not just the first). After substitution, scans for
+   * unresolved placeholders and throws a typed PromptCompileError.
+   */
   compile(values: Record<string, unknown>, catalogContext?: string): string {
     const error = this.validateSlots(values)
-    if (error) throw new Error(error)
+    if (error) throw new PromptCompileError(this.name, error)
 
     let result = this.template
 
@@ -87,15 +127,30 @@ export class PromptTemplate extends Schema.Class<PromptTemplate>('PromptTemplate
       const value = values[slot.name] ?? slot.defaultValue
       const placeholder = `{{${slot.name}}}`
 
+      // Runtime type validation
+      if (value !== undefined && slot.type !== 'catalog') {
+        const typeError = validateSlotType(slot.name, slot.type, value)
+        if (typeError) throw new PromptCompileError(this.name, typeError)
+      }
+
       if (slot.type === 'catalog' && catalogContext) {
-        result = result.replace(placeholder, catalogContext)
+        result = result.replaceAll(placeholder, catalogContext)
       } else if (value !== undefined) {
         const str = typeof value === 'object' ? JSON.stringify(value) : String(value)
-        result = result.replace(placeholder, str)
+        result = result.replaceAll(placeholder, str)
       } else {
         // Remove unfilled optional placeholders
-        result = result.replace(placeholder, '')
+        result = result.replaceAll(placeholder, '')
       }
+    }
+
+    // Scan for unresolved placeholders
+    const unresolved = result.match(/\{\{(\w+)\}\}/g)
+    if (unresolved && unresolved.length > 0) {
+      throw new PromptCompileError(
+        this.name,
+        `Unresolved placeholders: ${unresolved.join(', ')}`,
+      )
     }
 
     return result.trim()

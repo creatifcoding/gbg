@@ -18,6 +18,7 @@ import {
   type StreamingGraphCallbacks,
 } from './graph.js'
 import type { JSONToken } from './tokenizer.js'
+import type { ValidationResult, ComponentRegistration } from './bfta.js'
 
 // =============================================================================
 // State Atoms (module-level, Atom-as-State pattern)
@@ -62,6 +63,20 @@ export const streamingErrorAtom = Atom.make<Option.Option<Error>>(Option.none())
  */
 export const chunkCountAtom = Atom.make(0).pipe(Atom.keepAlive)
 
+/**
+ * BFTA validation results emitted during streaming.
+ */
+export const validationResultsAtom = Atom.make<readonly ValidationResult[]>([]).pipe(
+  Atom.keepAlive,
+)
+
+/**
+ * BFTA validation errors (rejected nodes only).
+ */
+export const validationErrorsAtom = Atom.make<readonly ValidationResult[]>([]).pipe(
+  Atom.keepAlive,
+)
+
 // =============================================================================
 // Service
 // =============================================================================
@@ -77,6 +92,13 @@ export type StreamingJsonServiceShape = {
   readonly version: number
   /** The registry used for atom access. */
   readonly registry: Registry.Registry
+}
+
+export type StreamingJsonServiceOptions = {
+  /** Registry for atom state (default: new Registry.make()) */
+  registry?: Registry.Registry
+  /** Component registrations for BFTA validation. Omit to skip validation. */
+  registrations?: readonly ComponentRegistration[]
 }
 
 // =============================================================================
@@ -145,10 +167,23 @@ function createPartialFieldTracker(registry: Registry.Registry) {
  *
  * In React: pass the Registry from context (or let the singleton create one).
  * In tests: pass `Registry.make()` for isolated atom state.
+ *
+ * Overloads:
+ *   createStreamingJsonService() — default singleton registry, no BFTA
+ *   createStreamingJsonService(registry) — custom registry, no BFTA
+ *   createStreamingJsonService(options) — full options with optional BFTA
  */
 export function createStreamingJsonService(
-  registry: Registry.Registry = Registry.make(),
+  registryOrOptions?: Registry.Registry | StreamingJsonServiceOptions,
 ): StreamingJsonServiceShape {
+  const isOptions = registryOrOptions != null && typeof registryOrOptions === 'object' && 'registry' in registryOrOptions || (registryOrOptions != null && typeof registryOrOptions === 'object' && 'registrations' in registryOrOptions)
+  const registry: Registry.Registry = isOptions
+    ? (registryOrOptions as StreamingJsonServiceOptions).registry ?? Registry.make()
+    : (registryOrOptions as Registry.Registry | undefined) ?? Registry.make()
+  const registrations = isOptions
+    ? (registryOrOptions as StreamingJsonServiceOptions).registrations
+    : undefined
+
   const tracker = createPartialFieldTracker(registry)
 
   const callbacks: StreamingGraphCallbacks = {
@@ -166,9 +201,21 @@ export function createStreamingJsonService(
       // Update partial fields
       tracker.update(token)
     },
+    onValidation(result) {
+      const prev = registry.get(validationResultsAtom)
+      registry.set(validationResultsAtom, [...prev, result])
+      if (!result.accepted) {
+        const prevErrors = registry.get(validationErrorsAtom)
+        registry.set(validationErrorsAtom, [...prevErrors, result])
+      }
+    },
   }
 
-  const graph = createStreamingGraph(callbacks)
+  const graph = createStreamingGraph(
+    registrations && registrations.length > 0
+      ? { callbacks, registrations }
+      : callbacks,
+  )
 
   return {
     feedChunk(chunk: string) {
@@ -208,6 +255,8 @@ export function createStreamingJsonService(
       registry.set(streamingErrorAtom, Option.none())
       registry.set(chunkCountAtom, 0)
       registry.set(isParsingAtom, false)
+      registry.set(validationResultsAtom, [])
+      registry.set(validationErrorsAtom, [])
     },
 
     get version() {
