@@ -98,15 +98,27 @@ import d2tsRaw from '/docs/genifer/research/research-d2ts-streaming-json.md?raw'
 import infoTheoryRaw from '/docs/genifer/research/research-info-theory-prompts.md?raw'
 import treeGramRaw from '/docs/genifer/research/research-tree-grammars.md?raw'
 
-const rawDocs: Record<string, string> = {
-  'BIBLIOGRAPHY.md': bibRaw,
-  'DECISION-001-prototype-selection.md': decision001Raw,
-  'd2ts-implementation-plan.md': implPlanRaw,
-  'research-categorical-composition.md': catCompRaw,
-  'research-component-algebra.md': compAlgRaw,
-  'research-d2ts-streaming-json.md': d2tsRaw,
-  'research-info-theory-prompts.md': infoTheoryRaw,
-  'research-tree-grammars.md': treeGramRaw,
+// ─── Adversarial Review imports (glob for optional files) ───
+const reviewGlob = import.meta.glob('/docs/genifer/reviews/*.md', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>
+
+type DocCategory = 'research' | 'review'
+
+const rawDocs: Record<string, { content: string; category: DocCategory }> = {
+  'BIBLIOGRAPHY.md': { content: bibRaw, category: 'research' },
+  'DECISION-001-prototype-selection.md': { content: decision001Raw, category: 'research' },
+  'd2ts-implementation-plan.md': { content: implPlanRaw, category: 'research' },
+  'research-categorical-composition.md': { content: catCompRaw, category: 'research' },
+  'research-component-algebra.md': { content: compAlgRaw, category: 'research' },
+  'research-d2ts-streaming-json.md': { content: d2tsRaw, category: 'research' },
+  'research-info-theory-prompts.md': { content: infoTheoryRaw, category: 'research' },
+  'research-tree-grammars.md': { content: treeGramRaw, category: 'research' },
+  // Dynamically loaded review docs
+  ...Object.fromEntries(
+    Object.entries(reviewGlob).map(([path, content]) => {
+      const filename = path.split('/').pop()!
+      return [filename, { content, category: 'review' as const }]
+    })
+  ),
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -123,6 +135,7 @@ interface DocMeta {
   status: DocStatus
   author: string
   content: string
+  category: DocCategory
 }
 
 type Score = 0 | 1 | 2 | 3 // 0 = unscored
@@ -184,17 +197,23 @@ function extractMetadata(filename: string, content: string): DocMeta {
   const authorMatch = content.match(/(?:Author|Maintained by):\s*(.+)/i)
   const author = authorMatch?.[1]?.trim() ?? 'Unknown'
 
-  return { id, filename, title, date, status, author, content }
+  return { id, filename, title, date, status, author, content, category: 'research' }
 }
 
 function parseAllDocs(): DocMeta[] {
   return Object.entries(rawDocs)
-    .map(([path, content]) => extractMetadata(path, content))
+    .map(([path, entry]) => {
+      const meta = extractMetadata(path, entry.content)
+      return { ...meta, category: entry.category }
+    })
     .sort((a, b) => {
+      // Reviews sort after research
+      if (a.category !== b.category) return a.category === 'review' ? 1 : -1
       const priority = (id: string) => {
         if (id === 'BIBLIOGRAPHY') return 0
         if (id.startsWith('DECISION')) return 1
         if (id.includes('plan')) return 2
+        if (id.startsWith('REVIEW')) return 5
         return 3
       }
       return priority(a.id) - priority(b.id) || a.id.localeCompare(b.id)
@@ -450,6 +469,12 @@ function DocumentRow({
 
           {/* Badges + date */}
           <div className="shrink-0 flex items-center gap-3">
+            {doc.category === 'review' && (
+              <span className="px-2 py-0.5 font-mono border rounded bg-rose-500/15 text-rose-400 border-rose-500/30"
+                    style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+                ADVERSARIAL
+              </span>
+            )}
             <ReviewBadge review={review} />
             <StatusBadge status={doc.status} />
             <span className="font-mono text-stone-600"
@@ -587,12 +612,21 @@ function ExportPanel({
 // ─────────────────────────────────────────────────────────────
 
 export function GeniferResearchPage() {
-  const documents = useMemo(() => parseAllDocs(), [])
+  const allDocuments = useMemo(() => parseAllDocs(), [])
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [reviews, setReviews] = useState<Record<string, DocReview>>(loadReviews)
+  const [activeCategory, setActiveCategory] = useState<'all' | DocCategory>('all')
 
   // Persist on every review change
   useEffect(() => { saveReviews(reviews) }, [reviews])
+
+  const documents = useMemo(() =>
+    activeCategory === 'all' ? allDocuments : allDocuments.filter((d) => d.category === activeCategory),
+    [allDocuments, activeCategory]
+  )
+
+  const researchCount = allDocuments.filter((d) => d.category === 'research').length
+  const reviewCount = allDocuments.filter((d) => d.category === 'review').length
 
   const handleReviewChange = useCallback((docId: string, review: DocReview) => {
     setReviews((prev) => ({ ...prev, [docId]: review }))
@@ -621,11 +655,31 @@ export function GeniferResearchPage() {
             </span>
           </div>
           <h1 className="text-stone-100" style={{ fontSize: 'var(--tmnl-text-lg, 18px)' }}>
-            F443 — Mathematical Theory Foundations
+            Genifer — Research & Adversarial Reviews
           </h1>
           <p className="text-stone-500 mt-1" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
             Read each document → score 5 dimensions (1–3) → pass or revise → export JSON
           </p>
+
+          {/* Category toggle */}
+          <div className="flex items-center gap-2 mt-3">
+            {([['all', 'ALL'], ['research', 'RESEARCH'], ['review', 'REVIEWS']] as const).map(([cat, label]) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat as typeof activeCategory)}
+                className={`px-3 py-1.5 font-mono border rounded transition-colors ${
+                  activeCategory === cat
+                    ? cat === 'review'
+                      ? 'bg-rose-500/20 text-rose-400 border-rose-500/40'
+                      : 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40'
+                    : 'bg-stone-900 text-stone-500 border-stone-800 hover:border-stone-600'
+                }`}
+                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+              >
+                {label} {cat === 'research' ? `(${researchCount})` : cat === 'review' ? `(${reviewCount})` : `(${allDocuments.length})`}
+              </button>
+            ))}
+          </div>
 
           <div className="flex items-center gap-4 mt-4 text-stone-500"
                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
