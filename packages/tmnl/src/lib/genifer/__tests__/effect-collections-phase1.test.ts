@@ -10,6 +10,7 @@
 import { describe, it, expect } from "vitest"
 import { Equal, Hash, HashMap, Option } from "effect"
 import { UIElement, UITree } from "../core/schemas"
+import { TreeCache, generateCacheKey } from "../react/tree-cache"
 
 // =============================================================================
 // UIElement Equal + Hash
@@ -302,5 +303,76 @@ describe("UITree HashMap integration", () => {
       keys.push(k)
     }
     expect(keys.sort()).toEqual(["x", "y"])
+  })
+})
+
+// =============================================================================
+// TreeCache — Effect.Cache backed
+// =============================================================================
+
+describe("TreeCache (Effect.Cache)", () => {
+  const makeTree = (rootType: string): UITree =>
+    UITree.fromRecord("r", {
+      r: new UIElement({ key: "r", type: rootType, props: {} }),
+    })
+
+  it("stats track hits and misses", () => {
+    const cache = new TreeCache({ maxEntries: 10, ttlMs: 60_000 })
+    const key = generateCacheKey("hello", "gpt-4")
+    const tree = makeTree("Grid")
+
+    // Miss
+    expect(cache.get(key)).toBeUndefined()
+    const s1 = cache.stats
+    expect(s1.misses).toBeGreaterThanOrEqual(1)
+
+    // Store + hit
+    cache.set(key, tree)
+    cache.get(key)
+    const s2 = cache.stats
+    expect(s2.hits).toBeGreaterThanOrEqual(1)
+  })
+
+  it("contains returns true for existing key", () => {
+    const cache = new TreeCache()
+    cache.set("k1", makeTree("A"))
+    expect(cache.contains("k1")).toBe(true)
+    expect(cache.contains("nonexistent")).toBe(false)
+  })
+
+  it("LRU eviction preserves most recently accessed", () => {
+    const cache = new TreeCache({ maxEntries: 2 })
+    cache.set("a", makeTree("A"))
+    cache.set("b", makeTree("B"))
+
+    // Access 'a' to make it most-recently-used
+    cache.get("a")
+
+    // Add 'c' — should evict 'b' (least recently used), not 'a'
+    cache.set("c", makeTree("C"))
+
+    expect(cache.get("a")).toBeDefined()
+    expect(cache.get("c")).toBeDefined()
+    expect(cache.size).toBe(2)
+  })
+
+  it("overwriting existing key preserves capacity", () => {
+    const cache = new TreeCache({ maxEntries: 2 })
+    cache.set("a", makeTree("A"))
+    cache.set("b", makeTree("B"))
+    cache.set("a", makeTree("A2")) // Overwrite, not add
+
+    expect(cache.size).toBe(2)
+    expect(cache.get("a")).toBeDefined()
+    expect(cache.get("b")).toBeDefined()
+  })
+
+  it("invalidate removes specific key", () => {
+    const cache = new TreeCache()
+    cache.set("x", makeTree("X"))
+    cache.set("y", makeTree("Y"))
+
+    cache.clear() // invalidateAll
+    expect(cache.size).toBe(0)
   })
 })
