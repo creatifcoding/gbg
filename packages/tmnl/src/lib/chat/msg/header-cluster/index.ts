@@ -34,3 +34,4 @@ export type {
   ChatMessageHeaderRoleBadgeProps,
   ChatMessageHeaderStreamingBadgeProps,
 }
+export type { HeaderClusterAlign } from './header-cluster-root'

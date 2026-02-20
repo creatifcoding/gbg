@@ -176,7 +176,7 @@ function UserMessage({ message }: { message: ChatMessage }) {
       </ChatMessageSeverityRails>
 
       <div className="flex-1 min-w-0">
-        <ChatMessageHeaderCluster>
+        <ChatMessageHeaderCluster align="end">
           <ChatMessageHeaderCluster.Role>{message.authorName ?? 'You'}</ChatMessageHeaderCluster.Role>
           <ChatMessageHeaderCluster.Timestamp>{formatTime(message.timestamp)}</ChatMessageHeaderCluster.Timestamp>
         </ChatMessageHeaderCluster>

@@ -1,14 +1,25 @@
 import { forwardRef, type ComponentPropsWithoutRef } from 'react'
 import { cn } from '@/lib/utils'
 
-export type ChatMessageHeaderClusterRootProps = ComponentPropsWithoutRef<'header'>
+export type HeaderClusterAlign = 'start' | 'end'
+
+export interface ChatMessageHeaderClusterRootProps extends ComponentPropsWithoutRef<'header'> {
+  /** Horizontal alignment of header children. Default: 'start' */
+  align?: HeaderClusterAlign
+}
+
+const ALIGN_CLASS: Record<HeaderClusterAlign, string> = {
+  start: 'justify-start',
+  end: 'justify-end',
+}
 
 export const ChatMessageHeaderClusterRoot = forwardRef<HTMLElement, ChatMessageHeaderClusterRootProps>(
-  ({ className, ...props }, ref) => (
+  ({ align = 'start', className, ...props }, ref) => (
     <header
       ref={ref}
       data-slot="tmnl-chat-message-header-cluster"
-      className={cn('flex items-center gap-2 mb-1', className)}
+      data-align={align}
+      className={cn('flex items-center gap-2 mb-1', ALIGN_CLASS[align], className)}
       {...props}
     />
   ),
