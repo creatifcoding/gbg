@@ -13,6 +13,77 @@
  */
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+
+// ─────────────────────────────────────────────────────────────
+// Markdown component overrides (adapted from DocViewer)
+// ─────────────────────────────────────────────────────────────
+
+const markdownComponents = {
+  code({ className, children, ...props }: any) {
+    const match = /language-(\w+)/.exec(className || '')
+    const isInline = !match
+    return isInline ? (
+      <code className="bg-stone-800 px-1.5 py-0.5 rounded text-cyan-400 font-mono text-sm" {...props}>
+        {children}
+      </code>
+    ) : (
+      <SyntaxHighlighter
+        style={oneDark}
+        language={match[1]}
+        PreTag="div"
+        customStyle={{ margin: 0, borderRadius: '0.5rem', fontSize: '0.8125rem' }}
+      >
+        {String(children).replace(/\n$/, '')}
+      </SyntaxHighlighter>
+    )
+  },
+  table({ children }: any) {
+    return (
+      <div className="overflow-x-auto my-4">
+        <table className="min-w-full border border-stone-800 rounded-lg overflow-hidden">{children}</table>
+      </div>
+    )
+  },
+  th({ children }: any) {
+    return (
+      <th className="px-4 py-2 bg-stone-900 text-left font-medium text-stone-400 border-b border-stone-800"
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+        {children}
+      </th>
+    )
+  },
+  td({ children }: any) {
+    return (
+      <td className="px-4 py-2 text-stone-300 border-b border-stone-800/50"
+          style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
+        {children}
+      </td>
+    )
+  },
+  h1({ children }: any) { return <h1 className="text-stone-100 font-bold mt-6 mb-4" style={{ fontSize: 'var(--tmnl-text-lg, 18px)' }}>{children}</h1> },
+  h2({ children }: any) { return <h2 className="text-stone-100 font-semibold mt-6 mb-3" style={{ fontSize: 'var(--tmnl-text-lg, 18px)' }}>{children}</h2> },
+  h3({ children }: any) { return <h3 className="text-stone-200 font-medium mt-5 mb-2" style={{ fontSize: 'var(--tmnl-text-base, 16px)' }}>{children}</h3> },
+  h4({ children }: any) { return <h4 className="text-stone-300 font-medium mt-4 mb-2" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>{children}</h4> },
+  p({ children }: any) { return <p className="text-stone-300 leading-relaxed mb-3" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>{children}</p> },
+  ul({ children }: any) { return <ul className="list-disc list-inside space-y-1 text-stone-300 mb-3">{children}</ul> },
+  ol({ children }: any) { return <ol className="list-decimal list-inside space-y-1 text-stone-300 mb-3">{children}</ol> },
+  li({ children }: any) { return <li style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>{children}</li> },
+  strong({ children }: any) { return <strong className="text-stone-100 font-semibold">{children}</strong> },
+  em({ children }: any) { return <em className="text-stone-400 italic">{children}</em> },
+  hr() { return <hr className="border-stone-800 my-6" /> },
+  blockquote({ children }: any) { return <blockquote className="border-l-2 border-cyan-500/50 pl-4 my-4 text-stone-400 italic">{children}</blockquote> },
+  a({ href, children }: any) {
+    return (
+      <a href={href} className="text-cyan-400 hover:text-cyan-300 underline" target="_blank" rel="noopener noreferrer">
+        {children}
+      </a>
+    )
+  },
+}
 
 // ─────────────────────────────────────────────────────────────
 // Load markdown files via Vite ?raw imports
@@ -366,10 +437,11 @@ function DocumentRow({
         <>
           {/* Document content */}
           <div className="border-t border-stone-800/50 bg-stone-950 max-h-[60vh] overflow-y-auto">
-            <pre className="p-5 font-mono text-stone-300 whitespace-pre-wrap"
-                 style={{ fontSize: 'var(--tmnl-text-sm, 14px)', lineHeight: '1.6' }}>
-              {doc.content}
-            </pre>
+            <div className="p-5 prose prose-invert prose-sm max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                {doc.content}
+              </ReactMarkdown>
+            </div>
           </div>
           {/* Review panel */}
           <ReviewPanel review={review} onChange={onReviewChange} />
