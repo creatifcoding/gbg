@@ -358,6 +358,14 @@ const CARDS: readonly CardDef[] = [
     label: 'DOCS',
     glow: 'emerald',
   },
+  {
+    title: 'GENIFER RESEARCH',
+    body: 'F443 peer review instrument. Mathematical foundations: d2ts streaming, tree grammars, component algebra, categories, info theory.',
+    route: '/docs/genifer-research',
+    status: 'active',
+    label: 'REVIEW',
+    glow: 'cyan',
+  },
   // Diagnostics
   {
     title: 'TAURI FILESYSTEM',
