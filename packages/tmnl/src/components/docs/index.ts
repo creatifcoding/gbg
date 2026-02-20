@@ -8,3 +8,4 @@
 
 export * from "./diagrams"
 export * from "./overhaul"
+// genifer-research is lazy-loaded via router — no barrel re-export

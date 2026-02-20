@@ -15,14 +15,28 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 
 // ─────────────────────────────────────────────────────────────
-// Load markdown files via Vite glob import
+// Load markdown files via Vite ?raw imports
 // ─────────────────────────────────────────────────────────────
 
-const rawDocs = import.meta.glob('/docs/genifer/research/*.md', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-}) as Record<string, string>
+import bibRaw from '/docs/genifer/research/BIBLIOGRAPHY.md?raw'
+import decision001Raw from '/docs/genifer/research/DECISION-001-prototype-selection.md?raw'
+import implPlanRaw from '/docs/genifer/research/d2ts-implementation-plan.md?raw'
+import catCompRaw from '/docs/genifer/research/research-categorical-composition.md?raw'
+import compAlgRaw from '/docs/genifer/research/research-component-algebra.md?raw'
+import d2tsRaw from '/docs/genifer/research/research-d2ts-streaming-json.md?raw'
+import infoTheoryRaw from '/docs/genifer/research/research-info-theory-prompts.md?raw'
+import treeGramRaw from '/docs/genifer/research/research-tree-grammars.md?raw'
+
+const rawDocs: Record<string, string> = {
+  'BIBLIOGRAPHY.md': bibRaw,
+  'DECISION-001-prototype-selection.md': decision001Raw,
+  'd2ts-implementation-plan.md': implPlanRaw,
+  'research-categorical-composition.md': catCompRaw,
+  'research-component-algebra.md': compAlgRaw,
+  'research-d2ts-streaming-json.md': d2tsRaw,
+  'research-info-theory-prompts.md': infoTheoryRaw,
+  'research-tree-grammars.md': treeGramRaw,
+}
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -84,8 +98,7 @@ const DIMENSION_LABELS: Record<Dimension, { label: string; hint: string }> = {
 // Document metadata extraction
 // ─────────────────────────────────────────────────────────────
 
-function extractMetadata(filepath: string, content: string): DocMeta {
-  const filename = filepath.split('/').pop() ?? 'unknown.md'
+function extractMetadata(filename: string, content: string): DocMeta {
   const id = filename.replace('.md', '')
 
   const titleMatch = content.match(/^#\s+(.+)$/m)
