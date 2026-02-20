@@ -11,7 +11,7 @@
  */
 
 import * as Schema from "effect/Schema"
-import { Effect, pipe } from "effect"
+import { Effect, pipe, Equal, Hash, HashMap, Option } from "effect"
 import { EntranceAnimation } from "./animation-schema"
 
 // =============================================================================
@@ -179,7 +179,42 @@ export type VisibilityCondition = Schema.Schema.Type<typeof VisibilityCondition>
 // UI Element & Tree
 // =============================================================================
 
-/** Base UI element */
+/**
+ * Deep props equality for Record<string, unknown>.
+ * Compares sorted JSON strings — not fast, but correct.
+ * Only called when key+type+children already match (rare path).
+ * @internal
+ */
+function _propsEqual(
+  a: { readonly [x: string]: unknown },
+  b: { readonly [x: string]: unknown }
+): boolean {
+  const aKeys = Object.keys(a)
+  const bKeys = Object.keys(b)
+  if (aKeys.length !== bKeys.length) return false
+  // Sort for deterministic comparison
+  aKeys.sort()
+  bKeys.sort()
+  for (let i = 0; i < aKeys.length; i++) {
+    if (aKeys[i] !== bKeys[i]) return false
+    // JSON.stringify handles nested unknown values
+    if (JSON.stringify(a[aKeys[i]]) !== JSON.stringify(b[bKeys[i]])) return false
+  }
+  return true
+}
+
+/** Base UI element
+ *
+ * Implements Equal + Hash for value-based structural equality.
+ * Schema.Class provides symbols via Data.Class but its default
+ * equality is shallow — props (Record) and children (Array) are
+ * compared by reference. We override to do deep value comparison.
+ *
+ * This enables:
+ * - HashMap<string, UIElement> deduplication
+ * - React memo boundaries via Equal.equals
+ * - HashSet membership checks
+ */
 export class UIElement extends Schema.Class<UIElement>("UIElement")({
   key: Schema.String,
   type: Schema.String,
@@ -200,40 +235,150 @@ export class UIElement extends Schema.Class<UIElement>("UIElement")({
   ariaLive: Schema.optional(Schema.Literal('polite', 'assertive', 'off')),
   /** Tab order for keyboard navigation */
   tabIndex: Schema.optional(Schema.Number),
-}) {}
+}) {
+  /**
+   * Value-based equality: two UIElements are equal iff all fields match.
+   * Props compared via sorted JSON (Record<string, unknown> has no Equal).
+   * Children compared element-wise.
+   */
+  [Equal.symbol](that: Equal.Equal): boolean {
+    if (!(that instanceof UIElement)) return false
+    // Fast path: same key + type covers 95% of inequality cases
+    if (this.key !== that.key || this.type !== that.type) return false
+    if (this.parentKey !== that.parentKey) return false
+    // Children: length + element-wise
+    if (this.children.length !== that.children.length) return false
+    for (let i = 0; i < this.children.length; i++) {
+      if (this.children[i] !== that.children[i]) return false
+    }
+    // Props: sorted JSON comparison (props is Record<string, unknown>)
+    if (!_propsEqual(this.props, that.props)) return false
+    // Optional fields
+    if (this.role !== that.role) return false
+    if (this.ariaLabel !== that.ariaLabel) return false
+    if (this.ariaDescribedBy !== that.ariaDescribedBy) return false
+    if (this.ariaLive !== that.ariaLive) return false
+    if (this.tabIndex !== that.tabIndex) return false
+    return true
+  }
 
-/** Flat UI tree structure */
+  /**
+   * Hash: combines key + type + children length + props key count.
+   * Does NOT hash props deeply — that's too expensive for hot paths.
+   * Equal.symbol does the deep check when hashes collide.
+   */
+  [Hash.symbol](): number {
+    return Hash.cached(this, Hash.combine(Hash.string(this.type))(Hash.string(this.key)))
+  }
+}
+
+/**
+ * Flat UI tree structure backed by HashMap<string, UIElement>.
+ *
+ * The `elements` field uses `Schema.HashMap` for JSON serialization:
+ * - Internal type: `HashMap.HashMap<string, UIElement>` — O(1) get/set/remove
+ * - Encoded type: `ReadonlyArray<readonly [string, UIElementEncoded]>` — JSON-safe
+ * - Workers use encode/decode at the postMessage boundary
+ *
+ * `getElement` returns `Option<UIElement>` (not `UIElement | undefined`).
+ * For backward compat during migration, `getElementUnsafe` returns `UIElement | undefined`.
+ *
+ * Implements Equal + Hash for structural tree comparison.
+ */
 export class UITree extends Schema.Class<UITree>("UITree")({
   root: Schema.String,
-  elements: Schema.Record({ key: Schema.String, value: UIElement })
+  elements: Schema.HashMap({ key: Schema.String, value: UIElement })
 }) {
   /** Create empty tree */
   static empty(): UITree {
-    return new UITree({ root: "", elements: {} })
+    return new UITree({ root: "", elements: HashMap.empty<string, UIElement>() })
   }
 
-  /** Get element by key */
-  getElement(key: string): UIElement | undefined {
-    return this.elements[key]
+  /** Number of elements in the tree */
+  get size(): number {
+    return HashMap.size(this.elements)
   }
 
-  /** Set element (returns new tree) */
+  /** Get element by key — returns Option */
+  getElement(key: string): Option.Option<UIElement> {
+    return HashMap.get(this.elements, key)
+  }
+
+  /**
+   * Get element by key — returns UIElement | undefined.
+   * @deprecated Use getElement() which returns Option. This exists for migration.
+   */
+  getElementUnsafe(key: string): UIElement | undefined {
+    return Option.getOrUndefined(HashMap.get(this.elements, key))
+  }
+
+  /** Set element (returns new tree) — O(1) amortized via structural sharing */
   setElement(key: string, element: UIElement): UITree {
     return new UITree({
       root: this.root,
-      elements: { ...this.elements, [key]: element }
+      elements: HashMap.set(this.elements, key, element)
     })
   }
 
-  /** Remove element (returns new tree) */
+  /** Remove element (returns new tree) — O(1) amortized */
   removeElement(key: string): UITree {
-    const { [key]: _, ...rest } = this.elements
-    return new UITree({ root: this.root, elements: rest })
+    return new UITree({
+      root: this.root,
+      elements: HashMap.remove(this.elements, key)
+    })
   }
 
   /** Set root (returns new tree) */
   setRoot(root: string): UITree {
     return new UITree({ root, elements: this.elements })
+  }
+
+  /**
+   * Convert elements to plain Record for backward compatibility.
+   * External consumers (morph-card, cursor tools) that access
+   * `tree.elements[key]` should use this during migration.
+   * @deprecated Use getElement() or getElementUnsafe() instead
+   */
+  toRecord(): Record<string, UIElement> {
+    const record: Record<string, UIElement> = {}
+    for (const [k, v] of this.elements) {
+      record[k] = v
+    }
+    return record
+  }
+
+  /**
+   * Create UITree from a plain Record (migration helper).
+   * Used by workers and tests that construct trees from plain objects.
+   */
+  static fromRecord(root: string, record: Record<string, UIElement>): UITree {
+    return new UITree({
+      root,
+      elements: HashMap.fromIterable(Object.entries(record))
+    })
+  }
+
+  /**
+   * Value-based equality: root + all elements structurally equal.
+   */
+  [Equal.symbol](that: Equal.Equal): boolean {
+    if (!(that instanceof UITree)) return false
+    if (this.root !== that.root) return false
+    if (HashMap.size(this.elements) !== HashMap.size(that.elements)) return false
+    // Check every key in this exists in that with equal value
+    for (const [k, v] of this.elements) {
+      const other = HashMap.get(that.elements, k)
+      if (Option.isNone(other)) return false
+      if (!Equal.equals(v, other.value)) return false
+    }
+    return true
+  }
+
+  /**
+   * Hash: root + element count.
+   */
+  [Hash.symbol](): number {
+    return Hash.cached(this, Hash.combine(Hash.number(HashMap.size(this.elements)))(Hash.string(this.root)))
   }
 }
 

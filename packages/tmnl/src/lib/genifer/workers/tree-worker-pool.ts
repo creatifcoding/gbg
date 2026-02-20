@@ -40,28 +40,26 @@ interface ApplyPatchesRequest {
 // Serialization Helpers
 // =============================================================================
 
-const treeToJSON = (tree: UITree): UITreeJSON => ({
-  root: tree.root,
-  elements: Object.fromEntries(
-    Object.entries(tree.elements).map(([key, el]) => [
-      key,
-      {
-        key: el.key,
-        type: el.type,
-        props: el.props,
-        children: [...el.children],
-        parentKey: el.parentKey,
-        visible: el.visible,
-        entrance: el.entrance,
-      },
-    ])
-  ),
-})
+const treeToJSON = (tree: UITree): UITreeJSON => {
+  const elements: Record<string, UIElementJSON> = {}
+  for (const [key, el] of tree.elements) {
+    elements[key] = {
+      key: el.key,
+      type: el.type,
+      props: el.props as Record<string, unknown>,
+      children: [...el.children],
+      parentKey: el.parentKey,
+      visible: el.visible,
+      entrance: el.entrance,
+    }
+  }
+  return { root: tree.root, elements }
+}
 
 const treeFromJSON = (json: UITreeJSON): UITree =>
-  new UITree({
-    root: json.root,
-    elements: Object.fromEntries(
+  UITree.fromRecord(
+    json.root,
+    Object.fromEntries(
       Object.entries(json.elements).map(([key, el]) => [
         key,
         new UIElement({
@@ -74,8 +72,8 @@ const treeFromJSON = (json: UITreeJSON): UITree =>
           entrance: el.entrance as UIElement["entrance"],
         }),
       ])
-    ),
-  })
+    )
+  )
 
 const patchToJSON = (patch: JsonPatch): { op: string; path: string; value?: unknown } => ({
   op: patch.op,

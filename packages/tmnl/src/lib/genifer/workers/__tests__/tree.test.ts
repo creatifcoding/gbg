@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { Effect, Stream, Chunk } from "effect"
+import { Effect, Stream, Chunk, HashMap, Option } from "effect"
 import {
   TreeWorker,
   TreeWorkerFallback,
@@ -78,9 +78,9 @@ describe("TreeWorker", () => {
         }).pipe(Effect.provide(TreeWorkerFallback))
       )
 
-      expect(result.elements["box-1"]).toBeDefined()
-      expect(result.elements["box-1"]?.type).toBe("Box")
-      expect(result.elements["box-1"]?.props["color"]).toBe("red")
+      expect(result.getElementUnsafe("box-1")).toBeDefined()
+      expect(result.getElementUnsafe("box-1")?.type).toBe("Box")
+      expect(result.getElementUnsafe("box-1")?.props["color"]).toBe("red")
     })
 
     it("should update element property", async () => {
@@ -101,7 +101,7 @@ describe("TreeWorker", () => {
         }).pipe(Effect.provide(TreeWorkerFallback))
       )
 
-      expect(result.elements["box-1"]?.props["color"]).toBe("blue")
+      expect(result.getElementUnsafe("box-1")?.props["color"]).toBe("blue")
     })
 
     it("should remove element", async () => {
@@ -121,7 +121,7 @@ describe("TreeWorker", () => {
         }).pipe(Effect.provide(TreeWorkerFallback))
       )
 
-      expect(result.elements["box-1"]).toBeUndefined()
+      expect(result.getElementUnsafe("box-1")).toBeUndefined()
     })
 
     it("should apply multiple patches in sequence", async () => {
@@ -151,10 +151,10 @@ describe("TreeWorker", () => {
       )
 
       expect(result.root).toBe("container")
-      expect(Object.keys(result.elements)).toHaveLength(2)
-      expect(result.elements["container"]?.type).toBe("Stack")
-      expect(result.elements["item-1"]?.type).toBe("Text")
-      expect(result.elements["item-1"]?.parentKey).toBe("container")
+      expect(HashMap.size(result.elements)).toBe(2)
+      expect(result.getElementUnsafe("container")?.type).toBe("Stack")
+      expect(result.getElementUnsafe("item-1")?.type).toBe("Text")
+      expect(result.getElementUnsafe("item-1")?.parentKey).toBe("container")
     })
 
     it("should handle empty patch list", async () => {
@@ -210,8 +210,8 @@ describe("TreeWorker", () => {
       // Final tree should have both elements
       const finalTree = trees[trees.length - 1]!
       expect(finalTree.root).toBe("root")
-      expect(finalTree.elements["a"]).toBeDefined()
-      expect(finalTree.elements["b"]).toBeDefined()
+      expect(finalTree.getElementUnsafe("a")).toBeDefined()
+      expect(finalTree.getElementUnsafe("b")).toBeDefined()
     })
 
     it("should handle batch size 1", async () => {
@@ -291,8 +291,8 @@ describe("Patch Operations", () => {
           }).pipe(Effect.provide(TreeWorkerFallback))
         )
 
-        expect(result.elements["el"]).toBeDefined()
-        expect(result.elements["el"]?.type).toBe("Box")
+        expect(result.getElementUnsafe("el")).toBeDefined()
+        expect(result.getElementUnsafe("el")?.type).toBe("Box")
       }
     )
   })
@@ -317,7 +317,7 @@ describe("Patch Operations", () => {
         }).pipe(Effect.provide(TreeWorkerFallback))
       )
 
-      const props = result.elements["box"]?.props as {
+      const props = result.getElementUnsafe("box")?.props as {
         style: { margin: { top: number } }
       }
       expect(props.style.margin.top).toBe(10)
@@ -344,7 +344,7 @@ describe("Patch Operations", () => {
         }).pipe(Effect.provide(TreeWorkerFallback))
       )
 
-      expect(result.elements["parent"]?.children).toEqual(["child-1", "child-2"])
+      expect(result.getElementUnsafe("parent")?.children).toEqual(["child-1", "child-2"])
     })
   })
 })
@@ -363,7 +363,7 @@ describe("Edge Cases", () => {
     )
 
     // Should not throw, tree unchanged
-    expect(Object.keys(result.elements)).toHaveLength(0)
+    expect(HashMap.size(result.elements)).toBe(0)
   })
 
   it("should handle removing non-existent element gracefully", async () => {
@@ -379,7 +379,7 @@ describe("Edge Cases", () => {
     )
 
     // Should not throw
-    expect(Object.keys(result.elements)).toHaveLength(0)
+    expect(HashMap.size(result.elements)).toBe(0)
   })
 
   it("should ignore unknown paths", async () => {

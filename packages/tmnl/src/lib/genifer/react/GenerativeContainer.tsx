@@ -344,7 +344,7 @@ export function GenerativeContainer({
   } = useContainerUIStream(containerId, api ?? DEFAULT_API)
 
   // Debug: Log state changes
-  log(`[GenerativeContainer] STATE depth=${depthContext.depth} streaming=${isStreaming} hasRoot=${!!tree.root} elements=${Object.keys(tree.elements).length} error=${Option.isSome(error)}`)
+  log(`[GenerativeContainer] STATE depth=${depthContext.depth} streaming=${isStreaming} hasRoot=${!!tree.root} elements=${tree.size} error=${Option.isSome(error)}`)
 
   // Trigger generation on mount (only if not at max depth)
   useEffect(() => {
@@ -399,7 +399,7 @@ export function GenerativeContainer({
   }
 
   // 4. Success → render nested tree wrapped in depth provider
-  logDebug(`[GenerativeContainer] RENDER: Success depth=${depthContext.depth} root=${tree.root} elements=${Object.keys(tree.elements).length}`)
+  logDebug(`[GenerativeContainer] RENDER: Success depth=${depthContext.depth} root=${tree.root} elements=${tree.size}`)
   return (
     <GenerativeDepthProvider maxDepth={effectiveMaxDepth} prompt={prompt}>
       <Renderer

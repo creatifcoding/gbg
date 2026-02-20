@@ -252,15 +252,12 @@ describe('CatalogService copy-on-write (#1752)', () => {
 
 describe('TreeCache (#1756)', () => {
   const makeTree = (rootType: string): UITree =>
-    new UITree({
-      root: 'r',
-      elements: {
-        r: new UIElement({
-          key: 'r',
-          type: rootType,
-          props: {},
-        }),
-      },
+    UITree.fromRecord('r', {
+      r: new UIElement({
+        key: 'r',
+        type: rootType,
+        props: {},
+      }),
     })
 
   it('stores and retrieves by key', () => {

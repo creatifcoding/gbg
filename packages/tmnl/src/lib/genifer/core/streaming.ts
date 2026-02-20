@@ -105,8 +105,9 @@ export const applyPatch = (
             return tree.setElement(elementKey, element)
           } else {
             // Setting property of element
-            const existingElement = tree.getElement(elementKey)
-            if (existingElement) {
+            const existingOpt = tree.getElement(elementKey)
+            if (Option.isSome(existingOpt)) {
+              const existingElement = existingOpt.value
               const propPath = "/" + pathParts.slice(1).join("/")
               // Create new element with updated property
               const updated = setByPathSync(
@@ -650,7 +651,7 @@ export const flatToTree = (
     }
   }
 
-  return new UITree({ root, elements: elementMap })
+  return UITree.fromRecord(root, elementMap)
 }
 
 /**

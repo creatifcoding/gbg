@@ -13,6 +13,7 @@
 import { type ComponentType, type ReactNode, useMemo, useCallback, memo, useRef } from 'react';
 import { useAtomValue } from '@effect-atom/atom-react';
 import * as Result from '@effect-atom/atom/Result';
+import { HashMap, Option } from 'effect';
 import type { UIElement, UITree, Action } from '../core/schemas';
 import type { EntranceAnimation } from '../core/animation-schema';
 import { useIsVisible } from './hooks';
@@ -259,7 +260,7 @@ export function Renderer({
   console.log('[Renderer] Render', {
     hasTree: !!tree,
     treeRoot: tree?.root ?? 'no tree',
-    treeElementCount: Object.keys(tree?.elements ?? {}).length,
+    treeElementCount: tree?.size ?? 0,
     loading,
     hasPropRegistry: !!propRegistry,
   });
@@ -302,12 +303,12 @@ export function Renderer({
 
   // OPTIMIZATION: Use ref to keep elements reference stable across renders
   // This allows ElementRenderer's memo to work effectively
-  const elementsRef = useRef(tree?.elements ?? {});
-  elementsRef.current = tree?.elements ?? {};
+  const elementsRef = useRef(tree?.elements ?? HashMap.empty<string, UIElement>());
+  elementsRef.current = tree?.elements ?? HashMap.empty<string, UIElement>();
 
   // Create stable getElement callback that reads from ref
   const getElement = useCallback((key: string): UIElement | undefined => {
-    return elementsRef.current[key];
+    return Option.getOrUndefined(HashMap.get(elementsRef.current, key));
   }, []); // Empty deps = stable reference
 
   // Handle empty/null tree
@@ -317,11 +318,11 @@ export function Renderer({
   }
 
   // Get root element
-  const rootElement = tree.elements[tree.root];
+  const rootElement = tree.getElementUnsafe(tree.root);
   if (!rootElement) {
     console.log('[Renderer] → null (root element not found)', {
       root: tree.root,
-      availableKeys: Object.keys(tree.elements).slice(0, 5)
+      elementCount: HashMap.size(tree.elements)
     });
     return null;
   }
@@ -337,7 +338,7 @@ export function Renderer({
     <ElementRenderer
       element={rootElement}
       getElement={getElement}
-      elementsVersion={Object.keys(tree.elements).length}
+      elementsVersion={HashMap.size(tree.elements)}
       registry={mergedRegistry}
       loading={loading}
       fallback={fallback}

@@ -7,7 +7,7 @@
  * @module genifer/workers/tree-worker-api
  */
 
-import { Effect, Stream, Deferred, Ref, Layer, Context, Chunk } from "effect"
+import { Effect, Stream, Deferred, Ref, Layer, Context, Chunk, HashMap } from "effect"
 import { UITree, UIElement, JsonPatch } from "../core/schemas"
 import type {
   ApplyPatchesRequest,
@@ -38,33 +38,33 @@ interface UITreeJSON {
 // =============================================================================
 
 /**
- * Convert UITree class instance to plain JSON for postMessage
+ * Convert UITree class instance to plain JSON for postMessage.
+ * Iterates HashMap entries → plain Record for structured clone.
  */
-const treeToJSON = (tree: UITree): UITreeJSON => ({
-  root: tree.root,
-  elements: Object.fromEntries(
-    Object.entries(tree.elements).map(([key, el]) => [
-      key,
-      {
-        key: el.key,
-        type: el.type,
-        props: el.props,
-        children: [...el.children],
-        parentKey: el.parentKey,
-        visible: el.visible,
-        entrance: el.entrance,
-      },
-    ])
-  ),
-})
+const treeToJSON = (tree: UITree): UITreeJSON => {
+  const elements: Record<string, UIElementJSON> = {}
+  for (const [key, el] of tree.elements) {
+    elements[key] = {
+      key: el.key,
+      type: el.type,
+      props: el.props as Record<string, unknown>,
+      children: [...el.children],
+      parentKey: el.parentKey,
+      visible: el.visible,
+      entrance: el.entrance,
+    }
+  }
+  return { root: tree.root, elements }
+}
 
 /**
- * Convert plain JSON back to UITree class instance
+ * Convert plain JSON back to UITree class instance.
+ * Record → HashMap via fromIterable.
  */
 const treeFromJSON = (json: UITreeJSON): UITree =>
-  new UITree({
-    root: json.root,
-    elements: Object.fromEntries(
+  UITree.fromRecord(
+    json.root,
+    Object.fromEntries(
       Object.entries(json.elements).map(([key, el]) => [
         key,
         new UIElement({
@@ -73,13 +73,12 @@ const treeFromJSON = (json: UITreeJSON): UITree =>
           props: el.props,
           children: el.children,
           parentKey: el.parentKey,
-          // These fields use complex types - cast from unknown
           visible: el.visible as UIElement["visible"],
           entrance: el.entrance as UIElement["entrance"],
         }),
       ])
-    ),
-  })
+    )
+  )
 
 /**
  * Convert JsonPatch to plain JSON

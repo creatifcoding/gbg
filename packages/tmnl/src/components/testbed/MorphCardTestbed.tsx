@@ -2062,7 +2062,7 @@ function DurableStreamDemo({
           style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
         >
           Root: {tree.root ?? 'none'}
-          {'\n'}Elements: {Object.keys(tree.elements).length}
+          {'\n'}Elements: {tree.size}
         </pre>
       )}
       <div
