@@ -224,6 +224,36 @@ export const makeCatalogComponents = (
 
 `)
 
+    // Styling documentation section
+    lines.push(`# Styling — className
+
+Every component accepts an optional \`className\` string with Tailwind utility classes for layout control.
+
+Use className for: margins, padding, sizing, positioning, display overrides, responsive breakpoints, backgrounds, borders.
+Use component props for: semantic behavior (text content, variant, level).
+
+## Examples
+\`\`\`json
+{ "type": "Heading", "key": "title", "props": { "level": 1, "text": "Dashboard" }, "className": "mb-6 text-center" }
+{ "type": "Card", "key": "hero", "props": { "padding": 24 }, "className": "w-full max-w-2xl mx-auto shadow-lg" }
+{ "type": "Button", "key": "submit", "props": { "label": "Save" }, "className": "mt-4 w-full" }
+\`\`\`
+
+## Common Patterns
+- \`"className": "mt-4 px-6"\` — spacing
+- \`"className": "w-full max-w-md mx-auto"\` — constrained centered width
+- \`"className": "hidden md:block"\` — responsive visibility
+- \`"className": "border border-zinc-700 rounded-lg"\` — borders + radius
+- \`"className": "bg-zinc-900/50 backdrop-blur"\` — backgrounds
+
+## Box Component
+Use the \`Box\` component when you need pure Tailwind layout without semantic component structure:
+\`\`\`json
+{ "type": "Box", "key": "hero-section", "props": { "className": "flex items-center justify-center min-h-[60vh]", "as": "section" }, "children": [...] }
+\`\`\`
+
+`)
+
     // Animation documentation section
     lines.push(`# Entrance Animations
 

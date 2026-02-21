@@ -221,6 +221,8 @@ export class UIElement extends Schema.Class<UIElement>("UIElement")({
   props: Schema.Record({ key: Schema.String, value: Schema.Unknown }),
   children: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
   parentKey: Schema.optionalWith(Schema.NullOr(Schema.String), { default: () => null }),
+  /** Tailwind utility classes for layout styling (universal — every component) */
+  className: Schema.optional(Schema.String),
   visible: Schema.optional(VisibilityCondition),
   /** Entrance animation configuration (LLM-generated or catalog default) */
   entrance: Schema.optional(EntranceAnimation),
@@ -254,6 +256,7 @@ export class UIElement extends Schema.Class<UIElement>("UIElement")({
     // Props: sorted JSON comparison (props is Record<string, unknown>)
     if (!_propsEqual(this.props, that.props)) return false
     // Optional fields
+    if (this.className !== that.className) return false
     if (this.role !== that.role) return false
     if (this.ariaLabel !== that.ariaLabel) return false
     if (this.ariaDescribedBy !== that.ariaDescribedBy) return false

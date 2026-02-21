@@ -194,6 +194,9 @@ const ElementRenderer = memo(function ElementRenderer({
   if (element.ariaLive) ariaProps['aria-live'] = element.ariaLive;
   if (element.tabIndex !== undefined) ariaProps.tabIndex = element.tabIndex;
 
+  // Resolve className from element (Tailwind utility classes for layout)
+  const elementClassName = element.className || undefined;
+
   // Wrap in entrance animation container if animation is enabled
   // Animation wrapper is decorative — invisible to assistive tech
   if (animation && !disableAnimations) {
@@ -201,6 +204,7 @@ const ElementRenderer = memo(function ElementRenderer({
       <div
         ref={entranceRef}
         style={initialStyle}
+        className={elementClassName}
         role="presentation"
         aria-hidden="true"
       >
@@ -211,9 +215,9 @@ const ElementRenderer = memo(function ElementRenderer({
     );
   }
 
-  // No animation — render with ARIA props if any
-  if (Object.keys(ariaProps).length > 0) {
-    return <div {...ariaProps}>{content}</div>;
+  // No animation — render with className and/or ARIA props
+  if (elementClassName || Object.keys(ariaProps).length > 0) {
+    return <div className={elementClassName} {...ariaProps}>{content}</div>;
   }
 
   return content;

@@ -363,7 +363,7 @@ export function fromNested(obj: Record<string, unknown>): Effect.Effect<UITree, 
       }
 
       // Extract props: everything except meta-fields
-      const metaKeys = new Set(["type", "key", "props", "children", "_tag"])
+      const metaKeys = new Set(["type", "key", "props", "children", "_tag", "className", "entrance"])
       const rawProps = typeof node.props === "object" && node.props !== null
         ? (node.props as Record<string, unknown>)
         : {}
@@ -378,12 +378,23 @@ export function fromNested(obj: Record<string, unknown>): Effect.Effect<UITree, 
 
       const props = { ...inlinedProps, ...rawProps }
 
+      // Extract className — can be on the node directly or inside props
+      const className = typeof node.className === "string" ? node.className
+        : typeof rawProps.className === "string" ? rawProps.className
+        : undefined
+
+      // Remove className from props if it was there (it's a UIElement field, not a prop)
+      if (rawProps.className !== undefined) {
+        delete (props as Record<string, unknown>).className
+      }
+
       elements[key] = new UIElement({
         key,
         type: (node.type as string) ?? "Unknown",
         props,
         children: childKeys.length > 0 ? childKeys : [],
         parentKey,
+        ...(className ? { className } : {}),
       })
 
       return key
@@ -419,8 +430,14 @@ export function fromFlat(obj: Record<string, unknown>): Effect.Effect<UITree, No
         : []
 
       const rawProps = typeof val.props === "object" && val.props !== null
-        ? (val.props as Record<string, unknown>)
+        ? { ...(val.props as Record<string, unknown>) }
         : {}
+
+      // Extract className from node or props
+      const className = typeof val.className === "string" ? val.className
+        : typeof rawProps.className === "string" ? rawProps.className
+        : undefined
+      if (rawProps.className !== undefined) delete rawProps.className
 
       elements[key] = new UIElement({
         key,
@@ -428,6 +445,7 @@ export function fromFlat(obj: Record<string, unknown>): Effect.Effect<UITree, No
         props: rawProps,
         children: childArr,
         parentKey: null,
+        ...(className ? { className } : {}),
       })
     }
 
@@ -511,8 +529,14 @@ export function fromHybrid(obj: Record<string, unknown>): Effect.Effect<UITree, 
         : []
 
       const rawProps = typeof val.props === "object" && val.props !== null
-        ? (val.props as Record<string, unknown>)
+        ? { ...(val.props as Record<string, unknown>) }
         : {}
+
+      // Extract className from node or props
+      const className = typeof val.className === "string" ? val.className
+        : typeof rawProps.className === "string" ? rawProps.className
+        : undefined
+      if (rawProps.className !== undefined) delete rawProps.className
 
       elements[key] = new UIElement({
         key,
@@ -520,6 +544,7 @@ export function fromHybrid(obj: Record<string, unknown>): Effect.Effect<UITree, 
         props: rawProps,
         children: childArr,
         parentKey: null,
+        ...(className ? { className } : {}),
       })
     }
 
