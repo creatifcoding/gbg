@@ -5,6 +5,9 @@
   "private": true,
   "scripts": {
     "dev": "bash scripts/dev.sh",
+    "bar:dev": "bash scripts/bar-dev.sh",
+    "bar:build": "bunx vite build --config vite.config.bar.ts",
+    "bar:vite": "bunx vite --config vite.config.bar.ts",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest",
