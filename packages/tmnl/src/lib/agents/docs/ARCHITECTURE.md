@@ -31,7 +31,29 @@ gpt-5.2, gpt-5.2-codex, gpt-5.3-codex, gpt-5.3-codex-spark
 **Limitation**: Codex endpoint requires `stream: true`. Only `streamText()`
 is supported (not `generateText()`).
 
-### Path 2: Environment Variables ✅ WORKING
+### Path 2: OAuth → Anthropic (Bearer Auth) ✅ WORKING
+
+Pi's OAuth token → `api.anthropic.com` with Bearer auth + Claude Code identity.
+
+`@effect/ai-anthropic` uses `x-api-key` by default. The middleware:
+1. Removes `x-api-key` header
+2. Adds `Authorization: Bearer <token>`
+3. Adds beta headers: `claude-code-20250219`, `oauth-2025-04-20`
+4. Adds Claude Code identity: `user-agent: claude-cli/2.1.2`, `x-app: cli`
+
+```ts
+import { makeAnthropicLayer, PiAuthBridgeLive } from '@/lib/agents'
+
+const layer = makeAnthropicLayer('claude-sonnet-4-20250514')
+  .pipe(Layer.provide(PiAuthBridgeLive))
+```
+
+**Requirement**: System prompt MUST include "You are Claude Code, Anthropic's
+official CLI for Claude." — the API validates this for OAuth tokens.
+
+**Both `generateText` and `streamText` work** (unlike Codex which is stream-only).
+
+### Path 3: Environment Variables ✅ WORKING
 
 Standard API keys set via environment variables:
 
@@ -44,17 +66,16 @@ import { makeOpenAiLayerFromEnv } from '@/lib/agents'
 const layer = makeOpenAiLayerFromEnv('gpt-4o-mini')
 ```
 
-### Path 3: OAuth → Standard API ⚠️ LIMITED
+### Path 4: OAuth → Standard API (no middleware) ⚠️ LIMITED
 
-Reads tokens from `~/.pi/agent/auth.json` and sends to standard API endpoints.
+Raw OAuth tokens sent as `x-api-key` / standard auth without middleware.
 
 | Provider       | Token Type         | Standard API     | Status |
 |----------------|--------------------|------------------|--------|
 | `openai-codex` | JWT (ChatGPT Plus) | `api.openai.com` | ❌ 401 "Missing scopes" |
-| `anthropic`    | `sk-ant-oat01-*`   | `api.anthropic.com` | ❌ 401 "invalid x-api-key" |
+| `anthropic`    | `sk-ant-oat01-*`   | `api.anthropic.com` (x-api-key) | ❌ 401 "invalid x-api-key" |
 
-OAuth subscription tokens authenticate you as a **consumer** (ChatGPT Plus,
-Claude Pro), not as an **API developer**. Standard endpoints reject them.
+Without middleware, the tokens are rejected. Use the OAuth paths above instead.
 
 ## Codex Middleware Architecture
 
@@ -136,7 +157,14 @@ strict Schema.Class validation:
 
 The middleware normalizes these in the SSE response stream before parsing.
 
-### D6: Codex requires streaming
+### D6: Anthropic OAuth = Bearer + Claude Code identity
+
+`@effect/ai-anthropic` sends `x-api-key` header. Pi's OAuth tokens use
+`Authorization: Bearer`. The middleware swaps auth and injects beta headers
+(`claude-code-20250219`, `oauth-2025-04-20`). System prompts MUST include
+"You are Claude Code" — the API validates this for OAuth tokens.
+
+### D7: Codex requires streaming
 
 The Codex endpoint returns 400 if `stream` is not `true`. This means only
 `LanguageModel.streamText()` works — `generateText()` will fail since
@@ -169,6 +197,27 @@ const program = Effect.gen(function* () {
 })
 
 const layer = makeOpenAiCodexLayer('gpt-5.2')
+  .pipe(Layer.provide(PiAuthBridgeLive))
+const result = await Effect.runPromise(program.pipe(Effect.provide(layer)))
+```
+
+### OAuth → Anthropic (claude-sonnet-4)
+
+```ts
+import { LanguageModel } from '@effect/ai'
+import { Effect, Layer } from 'effect'
+import { PiAuthBridgeLive, makeAnthropicLayer } from '@/lib/agents'
+
+const program = Effect.gen(function* () {
+  const model = yield* LanguageModel.LanguageModel
+  const response = yield* model.generateText({
+    system: "You are Claude Code, Anthropic's official CLI for Claude. Be concise.",
+    prompt: 'What is the capital of France?',
+  })
+  return response.text // "Paris"
+})
+
+const layer = makeAnthropicLayer('claude-sonnet-4-20250514')
   .pipe(Layer.provide(PiAuthBridgeLive))
 const result = await Effect.runPromise(program.pipe(Effect.provide(layer)))
 ```
