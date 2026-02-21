@@ -48,6 +48,8 @@ export interface PiAiPolicyShape {
     readonly signal: AbortSignal | undefined
     /** Override the provider used for API key resolution (e.g. after model override) */
     readonly providerOverride?: string
+    /** Whether the selected model supports reasoning controls */
+    readonly supportsReasoning?: boolean
   }) => Effect.Effect<SimpleStreamOptions>
 }
 
@@ -235,9 +237,16 @@ export const PiAiPolicyLive = Layer.effect(
         catch: () => Option.none<string>(),
       })
 
-    const makeStreamOptions: PiAiPolicyShape['makeStreamOptions'] = ({ thinkingLevel, sessionId, signal, providerOverride }) =>
+    const makeStreamOptions: PiAiPolicyShape['makeStreamOptions'] = ({
+      thinkingLevel,
+      sessionId,
+      signal,
+      providerOverride,
+      supportsReasoning,
+    }) =>
       Effect.gen(function* () {
-        const reasoning = mapThinking(config.defaultReasoning, thinkingLevel)
+        const requestedReasoning = mapThinking(config.defaultReasoning, thinkingLevel)
+        const reasoning = supportsReasoning === false ? undefined : requestedReasoning
         const targetProvider = providerOverride ?? config.provider
 
         const resolvedApiKey = yield* resolveApiKeyForProvider(targetProvider)
@@ -247,6 +256,12 @@ export const PiAiPolicyLive = Layer.effect(
             `[policy] No API key resolved for provider "${targetProvider}". ` +
             `OAuth: check \`bunx @mariozechner/pi-ai login ${targetProvider}\`. ` +
             `Static: set env var or PI_HARNESS_PIAI_API_KEY.`,
+          )
+        }
+
+        if (supportsReasoning === false && requestedReasoning) {
+          yield* Effect.logDebug(
+            `[policy] Ignoring requested reasoning level "${requestedReasoning}" for model that does not support reasoning`,
           )
         }
 

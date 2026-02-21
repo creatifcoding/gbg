@@ -10,6 +10,7 @@ import { PiAiStreamClientLive } from './PiAiStreamClient'
 import { PiAiEventAdapterLive } from './PiAiEventAdapter'
 import { PiAiPolicyLive } from './PiAiPolicy'
 import { HarnessSessionStoreMemoryLive } from './HarnessSessionStoreMemory'
+import { AgentHarnessConfigDefault } from '@/lib/agents/AgentHarnessConfig'
 import { HarnessSendAck, HarnessSessionView, HarnessSnapshot } from './schemas'
 import { HarnessRuntime, HarnessRuntimeError } from './HarnessRuntime'
 
@@ -96,7 +97,7 @@ export const HarnessRuntimeLive = Layer.effect(
   Layer.provide(
     PiAiHarnessEngineCoreLive.pipe(
       Layer.provide(HarnessSessionStoreMemoryLive),
-      Layer.provide(PiAiToolRuntimeWithBuiltins), // ← SDK built-in tools
+      Layer.provide(PiAiToolRuntimeWithBuiltins.pipe(Layer.provide(AgentHarnessConfigDefault))),
       Layer.provide(PiAiStreamClientLive),
       Layer.provide(PiAiEventAdapterLive),
       Layer.provide(PiAiPolicyLive),

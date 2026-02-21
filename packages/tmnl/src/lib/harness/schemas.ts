@@ -213,11 +213,55 @@ export const HarnessMetricEvent = Schema.TaggedStruct('chat:v2/metric', {
   details: Schema.optional(Schema.Unknown),
 })
 
+// ---------------------------------------------------------------------------
+// Tool Stream Chunk — payload for phase:'stream' tool events
+// ---------------------------------------------------------------------------
+
+export const ToolStreamChunkPayload = Schema.Struct({
+  /** Monotonic sequence number per tool call (server-assigned) */
+  seq: Schema.Number,
+  /** Raw text chunk from stdout/stderr (may contain ANSI) */
+  chunk: Schema.String,
+  /** Stream kind */
+  kind: Schema.Literal('stdout', 'stderr'),
+})
+export type ToolStreamChunkPayload = typeof ToolStreamChunkPayload.Type
+
+// ── Tool event payload schemas (typed per phase) ──
+
+/** phase:'start' — first event has diagnostics, second has arguments */
+export const ToolStartPayload = Schema.Struct({
+  arguments: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
+  diagnostics: Schema.optional(Schema.Struct({
+    toolNameResolved: Schema.optional(Schema.Boolean),
+    adapter: Schema.optional(Schema.Array(Schema.Unknown)),
+  })),
+})
+export type ToolStartPayload = typeof ToolStartPayload.Type
+
+/** phase:'end' — tool result with content array */
+export const ToolEndPayload = Schema.Struct({
+  result: Schema.optional(Schema.Array(Schema.Struct({
+    type: Schema.String,
+    text: Schema.optional(Schema.String),
+  }))),
+  isError: Schema.optional(Schema.Boolean),
+  executionMs: Schema.optional(Schema.Number),
+})
+export type ToolEndPayload = typeof ToolEndPayload.Type
+
+/** phase:'update' — execution metrics (skipped by event processor) */
+export const ToolUpdatePayload = Schema.Struct({
+  executionMs: Schema.optional(Schema.Number),
+  isError: Schema.optional(Schema.Boolean),
+})
+export type ToolUpdatePayload = typeof ToolUpdatePayload.Type
+
 export const HarnessToolEvent = Schema.TaggedStruct('chat:v2/tool_event', {
   ...HarnessEventBase,
   toolCallId: Schema.String,
   toolName: Schema.String,
-  phase: Schema.Literal('start', 'update', 'end'),
+  phase: Schema.Literal('start', 'update', 'end', 'stream'),
   payload: Schema.Unknown,
 })
 

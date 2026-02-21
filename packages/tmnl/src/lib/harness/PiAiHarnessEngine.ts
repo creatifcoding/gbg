@@ -1,7 +1,7 @@
 import { type Context as PiAiContext, type Message as PiAiMessage, type Model as PiAiModel, type ToolCall as PiAiToolCall, getModel as piAiGetModel } from '@mariozechner/pi-ai'
 import { AuthStorage, ModelRegistry } from '@mariozechner/pi-coding-agent'
 import { nanoid } from 'nanoid'
-import { Context, Effect, Fiber, HashMap, HashSet, Layer, Option, PubSub, Ref, Schema, Stream } from 'effect'
+import { Context, Duration, Effect, Fiber, HashMap, HashSet, Layer, Option, PubSub, Ref, Schedule, Schema, Stream } from 'effect'
 
 import { HarnessSessionStore } from './HarnessSessionStore'
 import { HarnessSessionStoreMemoryLive } from './HarnessSessionStoreMemory'
@@ -277,6 +277,9 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
             }),
           )
 
+          // Tracks whether tool-use-without-calls has been retried once per session prompt.
+          let toolUseWithoutCallsRetried = false
+
           const runAssistantRound = (round: number): Effect.Effect<void, PiAiHarnessEngineError> =>
             Effect.gen(function* () {
               if (round >= toolRuntime.maxToolRounds) {
@@ -322,6 +325,7 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                 // Pass session model's provider so API key resolves for the correct provider
                 // (critical when model override changes provider, e.g. openai → anthropic)
                 providerOverride: session.model.provider,
+                supportsReasoning: session.model.reasoning,
               })
 
               const stream = yield* Effect.try({
@@ -471,6 +475,9 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                       }
 
                       if (adapted._tag === 'PiAiAdapterToolEnd') {
+                        // ToolEnd means "LLM finished generating this tool_use block" —
+                        // NOT "tool finished executing". It carries the COMPLETE arguments.
+                        // Emit as phase:'start' so event processor sets input (not output).
                         return yield* appendEvent(sessionId, (seq, s) =>
                           HarnessToolEvent.make({
                             sessionId: s.sessionId,
@@ -478,13 +485,9 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                             at: Date.now(),
                             toolCallId: adapted.toolCallId,
                             toolName: adapted.toolName,
-                            phase: 'end',
+                            phase: 'start',
                             payload: {
                               arguments: adapted.arguments,
-                              diagnostics: {
-                                toolNameResolved: adapted.toolName !== 'unknown',
-                                adapter: adapted.diagnostics,
-                              },
                             },
                           }),
                         )
@@ -591,13 +594,30 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                 const toolCalls = extractAssistantToolCalls(finalMessage)
 
                 if (toolCalls.length === 0) {
+                  if (!toolUseWithoutCallsRetried) {
+                    // Model hallucinated toolUse — retry once on the same round.
+                    toolUseWithoutCallsRetried = true
+                    yield* appendEvent(sessionId, (seq, s) =>
+                      HarnessMetricEvent.make({
+                        sessionId: s.sessionId,
+                        seq,
+                        at: Date.now(),
+                        metric: 'toolUseWithoutCallsRetry',
+                        value: round,
+                        messageId: assistantMessageId,
+                      }),
+                    )
+                    yield* runAssistantRound(round)
+                    return
+                  }
+                  // Already retried once — surface the error.
                   yield* appendEvent(sessionId, (seq, s) =>
                     HarnessErrorEvent.make({
                       sessionId: s.sessionId,
                       seq,
                       at: Date.now(),
                       code: 'tool-use-without-calls',
-                      message: 'stopReason was toolUse but assistant message had no tool calls',
+                      message: 'stopReason was toolUse but assistant message had no tool calls (after retry)',
                     }),
                   )
                   return
@@ -606,7 +626,30 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                 const toolResults = yield* Effect.forEach(toolCalls, (toolCall) =>
                   Effect.gen(function* () {
                     const startedAt = Date.now()
-                    const result = yield* toolRuntime.execute(toolCall).pipe(
+
+                    // NOTE: PiAiAdapterToolEnd already emitted phase:'start' with
+                    // the complete arguments during streaming. No need to re-emit here.
+
+                    // Stream callback: emit phase:'stream' for each output chunk
+                    const onStreamChunk = (chunk: { toolCallId: string; seq: number; chunk: string; kind: 'stdout' | 'stderr' }) => {
+                      return appendEvent(sessionId, (seq, s) =>
+                        HarnessToolEvent.make({
+                          sessionId: s.sessionId,
+                          seq,
+                          at: Date.now(),
+                          toolCallId: chunk.toolCallId,
+                          toolName: toolCall.name,
+                          phase: 'stream' as const,
+                          payload: {
+                            seq: chunk.seq,
+                            chunk: chunk.chunk,
+                            kind: chunk.kind,
+                          },
+                        }),
+                      )
+                    }
+
+                    const result = yield* toolRuntime.execute(toolCall, onStreamChunk).pipe(
                       Effect.catchTag('PiAiToolRuntimeError', (error: PiAiToolRuntimeError) =>
                         Effect.succeed({
                           role: 'toolResult' as const,
@@ -623,6 +666,7 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                     const executionMs = completedAt - startedAt
                     const roundTripMs = completedAt - (toolStartedAtMs.get(toolCall.id) ?? startedAt)
 
+                    // ── Emit phase:'end' WITH tool result ──
                     yield* appendEvent(sessionId, (seq, s) =>
                       HarnessToolEvent.make({
                         sessionId: s.sessionId,
@@ -630,10 +674,11 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                         at: completedAt,
                         toolCallId: toolCall.id,
                         toolName: toolCall.name,
-                        phase: 'update',
+                        phase: 'end',
                         payload: {
-                          executionMs,
+                          result: result.content,
                           isError: result.isError,
+                          executionMs,
                         },
                       }),
                     )
@@ -709,7 +754,24 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
               Effect.withSpan('tmnl.harness.engine.assistant-round'),
             )
 
-          yield* runAssistantRound(0)
+          // Only stream-result-timeout is retryable with backoff.
+          // tool-use-without-calls gets one retry inside runAssistantRound.
+          // Everything else surfaces immediately.
+          const isRetryable = (error: PiAiHarnessEngineError) =>
+            error.code === 'stream-result-timeout' ||
+            error.code === 'pi-ai-stream-result-failed'
+
+          const retrySchedule = Schedule.intersect(
+            Schedule.recurs(policy.config.retryCount),
+            Schedule.exponential(Duration.millis(500), 2),
+          )
+
+          yield* runAssistantRound(0).pipe(
+            Effect.retry({
+              schedule: retrySchedule,
+              while: isRetryable,
+            }),
+          )
         }),
       ).pipe(
         Effect.catchAll((error) =>
@@ -991,6 +1053,5 @@ export const PiAiHarnessEngineLive = PiAiHarnessEngineCoreLive.pipe(
 )
 
 /** Engine with all 7 SDK built-in tools (read, bash, edit, write, grep, ls, find) */
-export { PiAiToolRuntimeWithBuiltins, createToolRuntimeLayer } from './PiAiToolRuntimeBuiltins'
-export type { ToolSandboxConfig } from './PiAiToolRuntimeBuiltins'
+export { PiAiToolRuntimeWithBuiltins } from './PiAiToolRuntimeBuiltins'
 

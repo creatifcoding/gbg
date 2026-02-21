@@ -1,5 +1,6 @@
 import type { Tool as PiAiTool, ToolCall as PiAiToolCall, ToolResultMessage as PiAiToolResultMessage } from '@mariozechner/pi-ai'
 import { Context, Effect, Layer, Option, Schema } from 'effect'
+import type { ToolStreamChunk } from './schemas'
 
 export class PiAiToolRuntimeError extends Schema.TaggedError<PiAiToolRuntimeError>()('PiAiToolRuntimeError', {
   code: Schema.String,
@@ -7,10 +8,19 @@ export class PiAiToolRuntimeError extends Schema.TaggedError<PiAiToolRuntimeErro
   cause: Schema.optionalWith(Schema.Unknown, { as: 'Option' }),
 }) {}
 
+/**
+ * Callback for incremental tool output streaming.
+ * Called per stdout/stderr chunk during tool execution.
+ */
+export type OnToolStreamChunk = (chunk: ToolStreamChunk) => Effect.Effect<void>
+
 export interface PiAiToolRuntimeShape {
   readonly tools: readonly PiAiTool[]
   readonly maxToolRounds: number
-  readonly execute: (toolCall: PiAiToolCall) => Effect.Effect<PiAiToolResultMessage, PiAiToolRuntimeError>
+  readonly execute: (
+    toolCall: PiAiToolCall,
+    onStreamChunk?: OnToolStreamChunk,
+  ) => Effect.Effect<PiAiToolResultMessage, PiAiToolRuntimeError>
 }
 
 export const PiAiToolRuntime = Context.GenericTag<PiAiToolRuntimeShape>('tmnl/harness/PiAiToolRuntime')
@@ -19,8 +29,8 @@ export const PiAiToolRuntimeLive = Layer.succeed(
   PiAiToolRuntime,
   PiAiToolRuntime.of({
     tools: [],
-    maxToolRounds: 4,
-    execute: (toolCall) =>
+    maxToolRounds: Infinity, // Overridden by AgentHarnessConfig via PiAiToolRuntimeWithBuiltins
+    execute: (toolCall, _onStreamChunk) =>
       Effect.succeed({
         role: 'toolResult',
         toolCallId: toolCall.id,
