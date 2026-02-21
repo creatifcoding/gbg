@@ -60,6 +60,8 @@ export {
   restorePersistedState,
   maximizePanel,
   restorePanel,
+  minimizePanel,
+  restoreFromMinimize,
   // Snap-to-grid configuration
   setGridSize,
   toggleSnap,
@@ -153,6 +155,13 @@ export {
   PanelControls,
   PanelResize,
 } from './components/atoms'
+
+// Collapsed strip (minimize → horizontal stack)
+export { CollapsedStrip, type CollapsedStripProps, STRIP_HEIGHT, STRIP_GAP, STRIP_BOTTOM_OFFSET } from './components/CollapsedStrip'
+export { CollapsedStripStack } from './components/CollapsedStripStack'
+
+// Accordion sub-panels (panel-hosting-panels)
+export { AccordionPanel, type AccordionPanelProps, type AccordionSectionProps } from './components/AccordionPanel'
 
 // Per-panel context
 export {

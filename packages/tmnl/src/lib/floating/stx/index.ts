@@ -14,7 +14,7 @@ export { getFloatingStx, resetFloatingStx, disposeFloatingStx } from './instance
 export type { FloatingStx } from './initial'
 
 // Constants
-export { STORAGE_KEY, DEFAULT_WIDTH, DEFAULT_HEIGHT, BASE_Z_INDEX } from './constants'
+export { STORAGE_KEY, DEFAULT_WIDTH, DEFAULT_HEIGHT, BASE_Z_INDEX, MAXIMIZED_Z_INDEX, WORKSPACE_CHROME_Z_INDEX } from './constants'
 
 // Effects & Computed (for advanced consumers / testing)
 export { floatingEffects } from './effects'
@@ -41,4 +41,6 @@ export {
   restorePersistedState,
   maximizePanel,
   restorePanel,
+  minimizePanel,
+  restoreFromMinimize,
 } from './actions'

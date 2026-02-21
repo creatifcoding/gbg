@@ -35,6 +35,7 @@ import { useSnapGuides } from './hooks/useSnapGuides'
 import { useDockPreview } from './hooks/useDockPreview'
 import { useKeyboardNudge } from './hooks/useKeyboardNudge'
 import { DragGuideOverlay } from './components/DragGuideOverlay'
+import { CollapsedStripStack } from './components/CollapsedStripStack'
 import type { DragSnapState } from './modifiers'
 
 // =============================================================================
@@ -112,6 +113,7 @@ export function FloatingPanelProvider({
         onDragEnd={handleDragEnd}
       >
         {children}
+        <CollapsedStripStack />
         <DragGuideOverlay
           dockPreviewRef={dockPreviewRef}
           dockPreviewLabelRef={dockPreviewLabelRef}

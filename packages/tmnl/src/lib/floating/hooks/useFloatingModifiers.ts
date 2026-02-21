@@ -24,7 +24,13 @@ export interface UseFloatingModifiersOptions {
   workspaceRectRef: MutableRefObject<DOMRectReadOnly | null>
   dragSnapRef: MutableRefObject<DragSnapState>
   hideSnapGuides: () => void
-  paintSnapGuides: (axis: 'v' | 'h', pos: number) => void
+  paintSnapGuides: (
+    nextLocal: { x: number; y: number },
+    snappedLocal: { x: number; y: number },
+    boundsRect: { left: number; top: number; width: number; height: number },
+    offsetX: number,
+    offsetY: number,
+  ) => void
   hideDockPreview: () => void
   paintDockPreview: (zone: string, rect: { x: number; y: number; width: number; height: number }, label: string) => void
 }

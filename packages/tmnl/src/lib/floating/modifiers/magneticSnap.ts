@@ -1,21 +1,30 @@
 /**
- * magneticSnap modifier
+ * magneticSnap modifier — Sticky Snap implementation
  *
- * Applies magnetic snapping to nearby viewport edges, centers, and sibling
- * panel alignment lines during drag. Paints snap guides imperatively.
+ * Uses the sticky snap algorithm: panel moves freely until it touches
+ * a snap edge, then sticks until the user drags past escape velocity.
+ * Visual guides are painted imperatively for zero React re-renders.
  *
  * @module
  */
 
-import { useCallback, type RefObject } from 'react'
+import { useCallback, useRef, type RefObject } from 'react'
 import type { ClientRect, Modifier } from '@dnd-kit/core'
-import { applyMagneticSnap, type Viewport, type PanelRect } from '../utils/position'
+import {
+  stickySnap,
+  buildSnapGrid,
+  createStickyState,
+  type StickyState,
+  type SnapEdge,
+  type SnapRect,
+  DEFAULT_SNAP_CONFIG,
+} from '../utils/snap-engine'
 import type { Dimensions, Position } from '../types'
 
 export interface DragSnapState {
   activeId: string | null
   dimensions: Dimensions | null
-  siblings: PanelRect[]
+  siblings: SnapRect[]
 }
 
 export function useMagneticSnapModifier(
@@ -30,10 +39,18 @@ export function useMagneticSnapModifier(
     offsetY: number,
   ) => void,
 ) {
+  // Sticky state persists across frames within one drag session
+  const stickyRef = useRef<StickyState>(createStickyState())
+  // Snap grid is built once per drag session (on first modifier call)
+  const gridRef = useRef<SnapEdge[]>([])
+  const lastActiveRef = useRef<string | null>(null)
+
   return useCallback<Modifier>(({ active, transform, draggingNodeRect, windowRect }) => {
     if (!active || !draggingNodeRect) return transform
 
     const activeId = String(active.id)
+
+    // Not our drag — bail
     if (dragSnapRef.current.activeId !== activeId) {
       hideSnapGuides()
       return transform
@@ -51,26 +68,43 @@ export function useMagneticSnapModifier(
       return transform
     }
 
+    // Reset sticky state + rebuild grid on new drag session
+    if (lastActiveRef.current !== activeId) {
+      lastActiveRef.current = activeId
+      stickyRef.current = createStickyState()
+
+      const viewport: SnapRect = {
+        x: 0, y: 0,
+        width: boundsRect.width,
+        height: boundsRect.height,
+      }
+      gridRef.current = buildSnapGrid(viewport, dragSnapRef.current.siblings)
+    }
+
     const offsetX = workspaceRectRef.current ? boundsRect.left : 0
     const offsetY = workspaceRectRef.current ? boundsRect.top : 0
-    const viewport: Viewport = { x: 0, y: 0, width: boundsRect.width, height: boundsRect.height }
 
-    const nextLocal = {
+    // Panel position in local (workspace) coordinates
+    const nextLocal: Position = {
       x: draggingNodeRect.left + transform.x - offsetX,
       y: draggingNodeRect.top + transform.y - offsetY,
     }
 
-    const snapped = applyMagneticSnap(
-      nextLocal, panelDimensions, viewport, dragSnapRef.current.siblings,
-      { threshold: 10, includeViewportCenter: true, includePanelAlign: true },
+    // Apply sticky snap
+    const result = stickySnap(
+      nextLocal,
+      panelDimensions,
+      gridRef.current,
+      stickyRef.current, // mutated in place
     )
 
-    paintSnapGuides(nextLocal, snapped, boundsRect, offsetX, offsetY)
+    // Paint or hide guides
+    paintSnapGuides(nextLocal, result.position, boundsRect, offsetX, offsetY)
 
     return {
       ...transform,
-      x: snapped.x + offsetX - draggingNodeRect.left,
-      y: snapped.y + offsetY - draggingNodeRect.top,
+      x: result.position.x + offsetX - draggingNodeRect.left,
+      y: result.position.y + offsetY - draggingNodeRect.top,
     }
   }, [workspaceRectRef, dragSnapRef, hideSnapGuides, paintSnapGuides])
 }

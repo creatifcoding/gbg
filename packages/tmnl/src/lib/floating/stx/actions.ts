@@ -123,6 +123,8 @@ export function registerPanel(config: PanelConfig): PanelState {
     isMaximized: false,
     preMaximizePosition: undefined,
     preMaximizeDimensions: undefined,
+    preMinimizePosition: undefined,
+    preMinimizeDimensions: undefined,
     closable: config.closable ?? true,
     minimizable: config.minimizable ?? true,
     resizable: config.resizable ?? true,
@@ -230,6 +232,54 @@ export function sendPanelToBack(id: string): void {
 /** Set panel visibility */
 export function setPanelVisibility(id: string, visibility: PanelVisibility): void {
   getFloatingStx().data.panels.get(id)?.visibility.set(visibility)
+}
+
+/**
+ * Minimize panel to collapsed strip.
+ * Saves current position/dimensions for restore, sets visibility to 'minimized'.
+ */
+export function minimizePanel(id: string): void {
+  const panelObs = getFloatingStx().data.panels.get(id)
+  const panel = panelObs?.peek()
+  if (!panel || panel.visibility === 'minimized') return
+
+  // If maximized, restore first then minimize
+  if (panel.isMaximized) {
+    restorePanel(id)
+  }
+
+  const current = getFloatingStx().data.panels.get(id)?.peek()
+  if (!current) return
+
+  batch(() => {
+    panelObs!.preMinimizePosition.set({ ...current.position })
+    panelObs!.preMinimizeDimensions.set({ ...current.dimensions })
+    panelObs!.visibility.set('minimized')
+  })
+}
+
+/**
+ * Restore panel from minimized (collapsed strip) state.
+ * Reads saved position/dimensions and brings to front.
+ */
+export function restoreFromMinimize(id: string): void {
+  const panelObs = getFloatingStx().data.panels.get(id)
+  const panel = panelObs?.peek()
+  if (!panel || panel.visibility !== 'minimized') return
+
+  batch(() => {
+    panelObs!.visibility.set('visible')
+    if (panel.preMinimizePosition) {
+      panelObs!.position.set(panel.preMinimizePosition)
+    }
+    if (panel.preMinimizeDimensions) {
+      panelObs!.dimensions.set(panel.preMinimizeDimensions)
+    }
+    panelObs!.preMinimizePosition.set(undefined)
+    panelObs!.preMinimizeDimensions.set(undefined)
+  })
+
+  bringPanelToFront(id)
 }
 
 /** Toggle panel mode between floating and docked */

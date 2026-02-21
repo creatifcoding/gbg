@@ -78,12 +78,16 @@ export const PanelState = Schema.Struct({
   isResizing: Schema.Boolean,
   /** Whether panel is maximized (fullscreen) */
   isMaximized: Schema.Boolean,
-  /** Whether panel is snapping back to bounds (for elastic animation) */
-  isSnappingBack: Schema.Boolean,
+
   /** Pre-maximize position (for restore) */
   preMaximizePosition: Schema.optional(Position),
   /** Pre-maximize dimensions (for restore) */
   preMaximizeDimensions: Schema.optional(Dimensions),
+
+  /** Pre-minimize position (for restore from collapsed strip) */
+  preMinimizePosition: Schema.optional(Position),
+  /** Pre-minimize dimensions (for restore from collapsed strip) */
+  preMinimizeDimensions: Schema.optional(Dimensions),
   /** Whether panel can be closed */
   closable: Schema.Boolean,
   /** Whether panel can be minimized */
@@ -147,24 +151,6 @@ export const ModifierKeys = Schema.Struct({
 export type ModifierKeys = typeof ModifierKeys.Type
 
 // =============================================================================
-// Velocity State (for motion blur)
-// =============================================================================
-
-export const DragVelocity = Schema.Struct({
-  /** Current velocity vector (px/frame) */
-  x: Schema.Number,
-  y: Schema.Number,
-  /** Smoothed velocity (EMA) for stable blur */
-  smoothedX: Schema.Number,
-  smoothedY: Schema.Number,
-  /** Velocity magnitude */
-  magnitude: Schema.Number,
-  /** Velocity angle in radians */
-  angle: Schema.Number,
-})
-export type DragVelocity = typeof DragVelocity.Type
-
-// =============================================================================
 // STX Data Shape
 // =============================================================================
 
@@ -184,12 +170,10 @@ export interface FloatingStxData {
   modifierKeys: ModifierKeys
   /** Base z-index for floating layer */
   baseZIndex: number
-  /** Drag velocity for motion blur */
-  dragVelocity: DragVelocity
-  /** Last drag position for velocity calculation */
-  lastDragPosition: Position | null
-  /** Last drag timestamp */
-  lastDragTimestamp: number
+  /** Snap-to-grid size in px (0 = disabled) */
+  gridSize: number
+  /** Whether snap-to-grid is enabled */
+  snapEnabled: boolean
 }
 
 // =============================================================================

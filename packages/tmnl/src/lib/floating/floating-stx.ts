@@ -50,4 +50,6 @@ export {
   restorePersistedState,
   maximizePanel,
   restorePanel,
+  minimizePanel,
+  restoreFromMinimize,
 } from './stx'

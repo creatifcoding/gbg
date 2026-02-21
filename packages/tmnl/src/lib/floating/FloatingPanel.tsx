@@ -23,13 +23,14 @@
  * @module
  */
 
-import { useCallback, memo, type ReactNode } from 'react'
+import { useCallback, useEffect, memo, type ReactNode } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 
 import { useFloatingPanelContext } from './context/FloatingPanelContext'
 import { PanelContext, type PanelContextValue } from './context/PanelContext'
-import { maximizePanel, restorePanel } from './floating-stx'
+import { maximizePanel, restorePanel, minimizePanel } from './floating-stx'
+import { MAXIMIZED_Z_INDEX } from './stx/constants'
 import { usePanelState } from './hooks/usePanelState'
 import { PANEL } from './tokens'
 
@@ -75,9 +76,23 @@ const FloatingPanelRoot = memo(function FloatingPanelRoot({
     disabled: state?.isMaximized ?? false,
   })
 
-  // Bail early
+  // ─── Escape key: always restores maximized panel ──────────────
+  // Must be BEFORE any early returns — hooks run unconditionally
+  useEffect(() => {
+    if (!state?.isMaximized) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        restorePanel(id)
+      }
+    }
+    window.addEventListener('keydown', handler, { capture: true })
+    return () => window.removeEventListener('keydown', handler, { capture: true })
+  }, [state?.isMaximized, id])
+
+  // ─── Early returns AFTER all hooks ────────────────────────────
   if (!state) return null
-  if (state.visibility === 'hidden') return null
+  if (state.visibility === 'hidden' || state.visibility === 'minimized') return null
 
   const dndTransform = !state.isMaximized && transform ? CSS.Translate.toString(transform) : undefined
   const borderColor = (state.isDragging || state.isResizing) ? PANEL.borderActive : PANEL.border
@@ -87,7 +102,7 @@ const FloatingPanelRoot = memo(function FloatingPanelRoot({
     state,
     actions: {
       close: () => { systemCtx.closePanel(id); onCloseProp?.() },
-      minimize: () => { systemCtx.setVisibility(id, state.visibility === 'minimized' ? 'visible' : 'minimized') },
+      minimize: () => { minimizePanel(id) },
       toggleMode: () => { systemCtx.toggleMode(id); onToggleModeProp?.() },
       maximizeToggle: () => { state.isMaximized ? restorePanel(id) : maximizePanel(id) },
       bringToFront: () => { systemCtx.bringToFront(id) },
@@ -113,8 +128,10 @@ const FloatingPanelRoot = memo(function FloatingPanelRoot({
     <PanelContext.Provider value={panelCtx}>
       <div
         ref={setNodeRef}
+        {...attributes}
         role="dialog"
         aria-label={title}
+        aria-roledescription="floating panel"
         className={`fp-panel ${className}`.trim()}
         data-floating-panel
         data-state={state.isDragging ? 'dragging' : state.isResizing ? 'resizing' : state.isMaximized ? 'maximized' : 'idle'}
@@ -124,7 +141,7 @@ const FloatingPanelRoot = memo(function FloatingPanelRoot({
           width: state.dimensions.width, height: state.dimensions.height,
           minWidth: state.isMaximized ? undefined : (state.constraints?.minWidth ?? 220),
           minHeight: state.isMaximized ? undefined : (state.constraints?.minHeight ?? 120),
-          zIndex: state.isMaximized ? 99999 : state.zIndex,
+          zIndex: state.isMaximized ? MAXIMIZED_Z_INDEX : state.zIndex,
           boxShadow: 'none',
           backgroundColor: PANEL.bg,
           border: state.isMaximized ? 'none' : `1px solid ${borderColor}`,
@@ -132,10 +149,10 @@ const FloatingPanelRoot = memo(function FloatingPanelRoot({
           overflow: 'hidden',
           transform: dndTransform,
           willChange: 'transform',
+          transition: 'none',
           display: 'flex', flexDirection: 'column' as const,
         }}
         onClick={panelCtx.actions.bringToFront}
-        {...attributes}
       >
         {hasCompoundChildren ? (
           children
