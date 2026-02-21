@@ -596,9 +596,17 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
   const retentionPolicy = DEFAULT_LOG_RETENTION_POLICY
   const hydrationCachePolicy = DEFAULT_HYDRATION_CACHE_POLICY
 
+  let _streamTriggerCount = 0
   const logStreamTrigger = logRuntimeAtom.fn<string>()(
     (taskId, ctx) =>
       Effect.gen(function* () {
+        _streamTriggerCount++
+        const ts = new Date().toISOString().slice(11, 23)
+        console.log(`[logStreamTrigger] ENTERED #${_streamTriggerCount} for taskId=${taskId} at ${ts}`)
+        if (_streamTriggerCount > 5) {
+          console.error(`[logStreamTrigger] RUNAWAY DETECTED — aborting after ${_streamTriggerCount} entries`)
+          yield* Effect.fail(new Error('runaway guard'))
+        }
         const svc = yield* AgentTaskService
         const outboxOption = yield* Effect.serviceOption(AgentTaskLogOutboxService)
         const archiveStoreOption = yield* Effect.serviceOption(LogArchiveStoreService)
@@ -837,10 +845,12 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
         }
 
         const stream = yield* svc.subscribeLogs(taskId)
+        console.log(`[logStreamTrigger] #${_streamTriggerCount} stream created, entering runForEach`)
 
         yield* stream.pipe(
           Stream.runForEach((entry) =>
             Effect.gen(function* () {
+              console.log(`[logStreamTrigger] #${_streamTriggerCount} GOT ENTRY id=${entry.entry.id}`)
               if (Option.isSome(outboxOption)) {
                 yield* outboxOption.value.enqueue(taskId, entry.entry).pipe(
                   Effect.tap(() =>
@@ -912,6 +922,7 @@ export const createAgentTaskLogAtomSurfaceAtoms = (
           ),
         )
 
+        console.log(`[logStreamTrigger] #${_streamTriggerCount} runForEach completed (stream ended)`)
         return true as const
       }),
   )

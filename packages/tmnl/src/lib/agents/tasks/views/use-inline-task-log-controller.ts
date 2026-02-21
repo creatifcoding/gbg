@@ -255,6 +255,7 @@ export const useInlineTaskLogController = ({
     lastDownwardScrollAtRef.current = Date.now()
     setTailMode('tail')
     setUnreadCount(0)
+    console.log(`[controller] calling setStreamTrigger(${taskId}) triggerMode=${triggerMode} key=${triggerKey}`)
     setStreamTrigger(taskId)
   }, [
     taskId,

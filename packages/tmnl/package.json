@@ -29,9 +29,8 @@
     "durable:server": "bun run scripts/durable-streams-server.ts",
     "search:server": "bun run scripts/search-server.ts",
     "ingestion:server": "bun run scripts/ingestion-server.ts",
-    "ai:extract": "bun run scripts/extract-ai-context.ts",
-    "ai:watch": "bun run scripts/extract-ai-context.ts --watch",
-    "prebuild": "bun run ai:extract",
+    "ai:extract": "echo '[DEPRECATED] ai:extract removed \u2014 see RCA_ROUTE_OPTIMIZATION.md'",
+    "ai:watch": "echo '[DEPRECATED] ai:watch removed \u2014 see RCA_ROUTE_OPTIMIZATION.md'",
     "egui:wasm:build": "bash -c 'cd src-egui/egui-wasm && wasm-pack build --target web --out-dir ../../public/egui --out-name tmnl_egui_wasm'",
     "e2e": "bunx playwright test",
     "e2e:ui": "bunx playwright test --ui",
@@ -48,7 +47,8 @@
     "elixir:test": "DIRENV_DISABLE=1 nix develop .#tmnl-elixir -c tmnl elixir-test",
     "phoenix:init": "DIRENV_DISABLE=1 nix develop .#tmnl-elixir -c tmnl phoenix-init",
     "phoenix:dev": "DIRENV_DISABLE=1 nix develop .#tmnl-elixir -c tmnl phoenix-dev",
-    "phoenix:test": "DIRENV_DISABLE=1 nix develop .#tmnl-elixir -c tmnl phoenix-test"
+    "phoenix:test": "DIRENV_DISABLE=1 nix develop .#tmnl-elixir -c tmnl phoenix-test",
+    "rfc:assemble": "bun run scripts/assemble-rfc.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.14",
@@ -219,7 +219,7 @@
     "diff": "^8.0.2",
     "echarts": "^6.0.0",
     "echarts-for-react": "^3.0.5",
-    "effect": "^3.19.16",
+    "effect": "3.19.18",
     "embla-carousel-react": "^8.6.0",
     "flexsearch": "^0.8.212",
     "framer-motion": "^12.23.24",
@@ -256,6 +256,7 @@
     "recharts": "2.15.4",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
+    "restty": "^0.1.34",
     "rivetkit": "^2.0.33",
     "rxjs": "^7.8.2",
     "scichart": "^5.0.170",
