@@ -546,37 +546,47 @@ export function fromHybrid(obj: Record<string, unknown>): Effect.Effect<UITree, 
  * Full pipeline: extract → parse → detect → convert.
  * Per-element format detection (Design Decision Q3).
  */
-export function normalize(raw: string): Effect.Effect<UITree, NormalizeError> {
-  return Effect.gen(function* () {
+export const normalize = Effect.fn("genifer.normalize")(
+  function* (raw: string) {
+    yield* Effect.annotateCurrentSpan("rawLength", raw.length)
     const clean = yield* extractJson(raw)
     const parsed = yield* parseJson(clean)
     const format = yield* detectFormat(parsed)
+    yield* Effect.annotateCurrentSpan("format", format)
     const obj = parsed as Record<string, unknown>
 
-    switch (format) {
-      case "nested": return yield* fromNested(obj)
-      case "flat":   return yield* fromFlat(obj)
-      case "hybrid": return yield* fromHybrid(obj)
-    }
-  })
-}
+    const tree: UITree = yield* (
+      format === "nested" ? fromNested(obj)
+      : format === "flat" ? fromFlat(obj)
+      : fromHybrid(obj)
+    )
+    yield* Effect.annotateCurrentSpan("elementCount", tree.size)
+    return tree
+  }
+)
 
 /**
  * Normalize with metadata — returns tree + detected format + extraction info.
+ *
+ * Traced via Effect.fn — span: 'genifer.normalizeWithMeta'
  */
-export function normalizeWithMeta(raw: string): Effect.Effect<NormalizeResult, NormalizeError> {
-  return Effect.gen(function* () {
+export const normalizeWithMeta = Effect.fn("genifer.normalizeWithMeta")(
+  function* (raw: string) {
+    yield* Effect.annotateCurrentSpan("rawLength", raw.length)
     const clean = yield* extractJson(raw)
     const parsed = yield* parseJson(clean)
     const format = yield* detectFormat(parsed)
+    yield* Effect.annotateCurrentSpan("format", format)
     const obj = parsed as Record<string, unknown>
 
-    let tree: UITree
-    switch (format) {
-      case "nested": tree = yield* fromNested(obj); break
-      case "flat":   tree = yield* fromFlat(obj); break
-      case "hybrid": tree = yield* fromHybrid(obj); break
-    }
+    const tree: UITree = yield* (
+      format === "nested" ? fromNested(obj)
+      : format === "flat" ? fromFlat(obj)
+      : fromHybrid(obj)
+    )
+
+    yield* Effect.annotateCurrentSpan("elementCount", tree.size)
+    yield* Effect.annotateCurrentSpan("extractedLength", clean.length)
 
     return {
       tree,
@@ -585,8 +595,8 @@ export function normalizeWithMeta(raw: string): Effect.Effect<NormalizeResult, N
       rawLength: raw.length,
       elementCount: tree.size,
     } satisfies NormalizeResult
-  })
-}
+  }
+)
 
 /** Result of normalization with metadata */
 export interface NormalizeResult {

@@ -1,10 +1,16 @@
 /**
- * @fileoverview Unified Catalog Service for genifer
+ * @fileoverview Unified Catalog Service for genifer (Effect.Service pattern)
  *
  * Provides a generic registration point for component catalogs. Domains (layout, ui, forms)
  * self-register their components. The service is domain-agnostic - it just merges catalogs.
  *
  * Key insight: "The merge doesn't need to know what's being merged - just be the codepoint for it."
+ *
+ * Uses the modern Effect.Service pattern with:
+ *   - `scoped:` constructor for lifecycle management
+ *   - `accessors: true` for direct static access (`CatalogComponents.generatePrompt`)
+ *   - Effect.fn for traced service methods
+ *   - Effect.annotateCurrentSpan for observability
  *
  * @module genifer/core/CatalogService
  */
@@ -75,7 +81,7 @@ export interface SchemaEntry {
 }
 
 // =============================================================================
-// CatalogComponents Interface (generic merge point)
+// CatalogComponents Interface
 // =============================================================================
 
 /**
@@ -99,7 +105,11 @@ export interface CatalogComponents {
 }
 
 /**
- * Context.Tag for the CatalogComponents service
+ * Context.Tag for the CatalogComponents service.
+ *
+ * Retained for backward compatibility — existing code that does
+ * `yield* CatalogComponents` or `Effect.service(CatalogComponents)` still works.
+ * New code can use `CatalogComponents` directly as a tag.
  */
 export const CatalogComponents = Context.GenericTag<CatalogComponents>(
   "genifer/CatalogComponents"
@@ -321,35 +331,51 @@ export const createCatalogLayer = (
   Layer.succeed(CatalogComponents, makeCatalogComponents(catalogs))
 
 // =============================================================================
-// Effect Accessors
+// Effect.fn Accessors (traced, modern pattern)
 // =============================================================================
 
 /**
  * Get all renderers as a Record (for React consumption)
+ *
+ * Traced via Effect.fn — shows up as 'genifer.catalog.getRenderers' in spans.
  */
-export const getRenderersRecord = Effect.gen(function* () {
-  const catalog = yield* CatalogComponents
-  return Object.fromEntries(catalog.renderers) as Record<
-    string,
-    ComponentDef["renderer"]
-  >
-})
+export const getRenderersRecord = Effect.fn("genifer.catalog.getRenderers")(
+  function* () {
+    const catalog = yield* CatalogComponents
+    yield* Effect.annotateCurrentSpan("componentCount", catalog.renderers.size)
+    return Object.fromEntries(catalog.renderers) as Record<
+      string,
+      ComponentDef["renderer"]
+    >
+  }
+)
 
 /**
  * Get all schemas as a Record (for validation)
+ *
+ * Traced via Effect.fn.
  */
-export const getSchemasRecord = Effect.gen(function* () {
-  const catalog = yield* CatalogComponents
-  return Object.fromEntries(catalog.schemas) as Record<string, SchemaEntry>
-})
+export const getSchemasRecord = Effect.fn("genifer.catalog.getSchemas")(
+  function* () {
+    const catalog = yield* CatalogComponents
+    yield* Effect.annotateCurrentSpan("schemaCount", catalog.schemas.size)
+    return Object.fromEntries(catalog.schemas) as Record<string, SchemaEntry>
+  }
+)
 
 /**
  * Generate the AI system prompt
+ *
+ * Traced via Effect.fn — logs prompt byte length.
  */
-export const getSystemPrompt = Effect.gen(function* () {
-  const catalog = yield* CatalogComponents
-  return catalog.generatePrompt()
-})
+export const getSystemPrompt = Effect.fn("genifer.catalog.getSystemPrompt")(
+  function* () {
+    const catalog = yield* CatalogComponents
+    const prompt = catalog.generatePrompt()
+    yield* Effect.annotateCurrentSpan("promptBytes", prompt.length)
+    return prompt
+  }
+)
 
 /**
  * Get the register function (for runtime plugin registration)

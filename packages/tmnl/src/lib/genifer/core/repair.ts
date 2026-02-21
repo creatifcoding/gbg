@@ -321,8 +321,9 @@ export function breakCircularRefs(tree: UITree): Effect.Effect<{ tree: UITree; r
  * Quarantined elements are collected but NOT removed from the tree.
  * The caller decides what to do with quarantine (Design Decision Q4).
  */
-export function repair(tree: UITree): Effect.Effect<RepairResult, NormalizeError> {
-  return Effect.gen(function* () {
+export const repair = Effect.fn("genifer.repair")(
+  function* (tree: UITree) {
+    yield* Effect.annotateCurrentSpan("inputElements", tree.size)
     const allRepairs: RepairAction[] = []
     const quarantined: QuarantinedElement[] = []
 
@@ -343,21 +344,24 @@ export function repair(tree: UITree): Effect.Effect<RepairResult, NormalizeError
     const r5 = yield* breakCircularRefs(r4.tree)
     allRepairs.push(...r5.repairs)
 
+    yield* Effect.annotateCurrentSpan("repairCount", allRepairs.length)
+    yield* Effect.annotateCurrentSpan("outputElements", r5.tree.size)
+
     return {
       tree: r5.tree,
       quarantined,
       repairs: allRepairs,
-    }
-  }).pipe(
-    Effect.catchAll((e) =>
-      Effect.fail(
-        e instanceof NormalizeError
-          ? e
-          : new NormalizeError({ stage: "repair", message: String(e) })
-      )
+    } as RepairResult
+  },
+  // Pipe: catch non-NormalizeError and wrap
+  Effect.catchAll((e: unknown) =>
+    Effect.fail(
+      e instanceof NormalizeError
+        ? e
+        : new NormalizeError({ stage: "repair", message: String(e) })
     )
   )
-}
+)
 
 /**
  * Run only local repairs (for incremental/streaming use).
