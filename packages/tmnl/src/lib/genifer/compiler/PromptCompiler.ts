@@ -1,55 +1,53 @@
 /**
- * @fileoverview PromptCompiler — Stage 1 of the two-stage genifer pipeline
+ * @fileoverview PromptCompiler — Context-enriched structured output compiler
  *
- * Takes natural language + operating context, runs a fast model (Haiku) with
- * structural tools (CatalogQuery, SchemaCheck, NormalizePreview, ExampleLookup),
- * and produces a refined, structurally-aware prompt for the generator model.
+ * Uses generateText with a tightly constrained system prompt and golden examples
+ * to produce genifer JSON. The system prompt includes:
+ * - Full component catalog (types, descriptions, container/leaf)
+ * - Golden examples showing exact output format
+ * - Strict output rules (JSON only, no markdown, no explanation)
  *
- * The compiler model is NOT generating the final UI tree — it's preparing
- * the instructions for a stronger model that will.
+ * Post-generation: validate via the normalization pipeline.
+ *
+ * Design choice: generateText over generateObject because:
+ * - OpenAI structured output rejects Schema.Any/Schema.Unknown for props
+ * - The normalization pipeline already validates + repairs the output
+ * - generateText works identically across all providers
  *
  * @module genifer/compiler/PromptCompiler
  */
 import { LanguageModel } from "@effect/ai"
-import { Context, Effect, Layer, Stream } from "effect"
+import { Context, Effect, Layer } from "effect"
+import * as Schema from "effect/Schema"
 
-import { CompilerToolkit } from "./tools"
 import { CatalogComponents } from "../core/CatalogService"
+import { normalizeWithMeta, type NormalizeResult } from "../core/normalize"
 
 // =============================================================================
 // Types
 // =============================================================================
 
-/**
- * Operating context collected for prompt enrichment.
- */
 export interface OperatingContext {
-  /** Available component types from the catalog */
-  readonly availableComponents: ReadonlyArray<string>
-  /** The full catalog system prompt (component schemas + composition rules) */
-  readonly catalogPrompt: string
-  /** Optional: current viewport/screen constraints */
   readonly viewport?: { width: number; height: number }
-  /** Optional: active theme tokens */
   readonly themeTokens?: Record<string, string>
-  /** Optional: additional context from the application */
   readonly additionalContext?: string
 }
 
-/**
- * Result from the prompt compiler.
- */
 export interface CompiledPrompt {
-  /** The refined system prompt for the generator model */
-  readonly systemPrompt: string
-  /** The refined user prompt with structural guidance */
-  readonly userPrompt: string
-  /** Component types the compiler determined are needed */
-  readonly requiredComponents: ReadonlyArray<string>
-  /** Whether the compiler validated the structure via tools */
+  /** The raw model output text */
+  readonly rawOutput: string
+  /** Extracted JSON string (if found) */
+  readonly extractedJson: string | null
+  /** Whether the JSON passed normalization */
   readonly validated: boolean
-  /** Raw compiler model output (for debugging/eval) */
-  readonly compilerTrace: string
+  /** Component types found in the tree */
+  readonly componentTypes: ReadonlyArray<string>
+  /** Element count */
+  readonly elementCount: number
+  /** Duration of the model call in ms */
+  readonly durationMs: number
+  /** Normalization result (format, element count) */
+  readonly normResult?: { format: string; elementCount: number }
 }
 
 // =============================================================================
@@ -69,58 +67,138 @@ export class PromptCompiler extends Context.Tag("genifer/PromptCompiler")<
 >() {}
 
 // =============================================================================
-// Compiler System Prompt
+// Golden Examples
 // =============================================================================
 
-const COMPILER_SYSTEM_PROMPT = `You are a UI Structure Compiler. Your job is to take a natural language UI description and produce a precise, structurally-valid genifer JSON specification.
-
-You have four tools:
-1. **CatalogQuery** — Discover available components, their props schemas, and nesting rules
-2. **SchemaCheck** — Validate that specific props are valid for a component type
-3. **NormalizePreview** — Test if a draft JSON structure would survive the normalization pipeline
-4. **ExampleLookup** — See known-good examples of common UI patterns
-
-## Your Process
-1. Call \`CatalogQuery\` to see what components are available
-2. Call \`ExampleLookup\` with a relevant pattern to see the expected JSON format
-3. Draft a genifer JSON tree using exact component types from the catalog
-4. Call \`NormalizePreview\` with your draft JSON to validate it
-5. If validation fails, fix the issues and re-validate
-6. Output the final validated JSON
-
-## Output Format
-Your final message MUST contain a JSON code block with the genifer tree:
-
-\`\`\`json
-{
+const EXAMPLE_DASHBOARD = `{
   "root": "layout",
   "elements": {
-    "layout": { "type": "Grid", "props": { ... }, "children": ["a", "b"] },
-    "a": { "type": "Heading", "props": { "level": 1, "text": "..." } },
-    "b": { "type": "Text", "props": { "content": "..." } }
+    "layout": { "type": "Grid", "props": { "template": "250px 1fr", "gap": 16 }, "children": ["sidebar", "main"] },
+    "sidebar": { "type": "VStack", "props": { "gap": 8, "padding": 16 }, "children": ["nav-title", "nav-1", "nav-2"] },
+    "nav-title": { "type": "Heading", "props": { "level": 3, "text": "Navigation" } },
+    "nav-1": { "type": "Text", "props": { "content": "Overview" } },
+    "nav-2": { "type": "Text", "props": { "content": "Settings" } },
+    "main": { "type": "VStack", "props": { "gap": 16, "padding": 16 }, "children": ["header", "cards"] },
+    "header": { "type": "Heading", "props": { "level": 1, "text": "Dashboard" } },
+    "cards": { "type": "Grid", "props": { "template": "1fr 1fr", "gap": 16 }, "children": ["card-1", "card-2"] },
+    "card-1": { "type": "Card", "props": { "padding": 16 }, "children": ["metric-1"] },
+    "metric-1": { "type": "Text", "props": { "content": "Metric A: 1,234" } },
+    "card-2": { "type": "Card", "props": { "padding": 16 }, "children": ["metric-2"] },
+    "metric-2": { "type": "Text", "props": { "content": "Metric B: 5,678" } }
   }
-}
-\`\`\`
+}`
 
-Rules:
-- Every element needs a unique key in the \`elements\` object
-- The \`root\` key must reference an existing element
-- Use exact component types from the catalog (case-sensitive)
-- Props must match the component's schema
-- Container components (hasChildren: true) use a \`children\` array of keys`
+const EXAMPLE_FORM = `{
+  "root": "form",
+  "elements": {
+    "form": { "type": "VStack", "props": { "gap": 16, "padding": 24 }, "children": ["title", "name-field", "email-field", "submit"] },
+    "title": { "type": "Heading", "props": { "level": 2, "text": "Contact Form" } },
+    "name-field": { "type": "VStack", "props": { "gap": 4 }, "children": ["name-label", "name-input"] },
+    "name-label": { "type": "Text", "props": { "content": "Name" } },
+    "name-input": { "type": "TextInput", "props": { "placeholder": "Enter your name" } },
+    "email-field": { "type": "VStack", "props": { "gap": 4 }, "children": ["email-label", "email-input"] },
+    "email-label": { "type": "Text", "props": { "content": "Email" } },
+    "email-input": { "type": "TextInput", "props": { "placeholder": "you@example.com", "type": "email" } },
+    "submit": { "type": "Button", "props": { "label": "Submit", "variant": "primary" } }
+  }
+}`
+
+// =============================================================================
+// System Prompt Builder
+// =============================================================================
+
+function buildSystemPrompt(
+  catalog: {
+    schemas: ReadonlyMap<
+      string,
+      { description?: string; hasChildren?: boolean }
+    >
+  },
+  context?: Partial<OperatingContext>
+): string {
+  const lines: string[] = []
+
+  // Identity (required for Anthropic OAuth)
+  lines.push("You are Claude Code.")
+  lines.push("")
+
+  // Core instruction — FIRST LINE after identity
+  lines.push("OUTPUT ONLY A SINGLE JSON OBJECT. No markdown. No explanation. No text before or after the JSON.")
+  lines.push("")
+
+  // Format spec
+  lines.push("The JSON must be a genifer tree with this exact shape:")
+  lines.push('{ "root": "<key>", "elements": { "<key>": { "type": "<ComponentType>", "props": {...}, "children": ["<key>", ...] }, ... } }')
+  lines.push("")
+
+  // Component catalog — compact
+  lines.push("AVAILABLE COMPONENTS:")
+  for (const [type, entry] of catalog.schemas) {
+    const kind = entry.hasChildren ? "CONTAINER" : "LEAF"
+    lines.push(`  ${type} (${kind})${entry.description ? ` — ${entry.description}` : ""}`)
+  }
+  lines.push("")
+
+  // Rules
+  lines.push("RULES:")
+  lines.push("- root must reference an element key")
+  lines.push("- Element keys: kebab-case (nav-title, card-1)")
+  lines.push("- Only CONTAINER types can have children arrays")
+  lines.push("- LEAF types must NOT have children")
+  lines.push("- children values are keys of other elements in the same map")
+  lines.push("- Use ONLY the component types listed above")
+  lines.push("- Every referenced child key must exist in elements")
+  lines.push("")
+
+  // Examples
+  lines.push("EXAMPLE 1 — Dashboard:")
+  lines.push(EXAMPLE_DASHBOARD)
+  lines.push("")
+  lines.push("EXAMPLE 2 — Form:")
+  lines.push(EXAMPLE_FORM)
+
+  if (context?.viewport) {
+    lines.push("")
+    lines.push(`Viewport: ${context.viewport.width}x${context.viewport.height}px`)
+  }
+  if (context?.additionalContext) {
+    lines.push("")
+    lines.push(context.additionalContext)
+  }
+
+  return lines.join("\n")
+}
+
+// =============================================================================
+// JSON Extraction
+// =============================================================================
+
+function extractJson(text: string): string | null {
+  const trimmed = text.trim()
+
+  // Try raw JSON first
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+    return trimmed
+  }
+
+  // Try markdown fences
+  const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/)
+  if (fenceMatch) return fenceMatch[1].trim()
+
+  // Try finding the outermost braces
+  const first = trimmed.indexOf("{")
+  const last = trimmed.lastIndexOf("}")
+  if (first !== -1 && last > first) {
+    return trimmed.slice(first, last + 1)
+  }
+
+  return null
+}
 
 // =============================================================================
 // Implementation
 // =============================================================================
 
-/**
- * Build the PromptCompiler live layer.
- *
- * Requires:
- * - LanguageModel.LanguageModel (the compiler model, e.g., Haiku)
- * - CatalogComponents (component registry)
- * - CompilerToolkit handlers (via CompilerToolkitLive)
- */
 export const PromptCompilerLive = Layer.effect(
   PromptCompiler,
   Effect.gen(function* () {
@@ -129,92 +207,59 @@ export const PromptCompilerLive = Layer.effect(
       context?: Partial<OperatingContext>
     ): Effect.Effect<CompiledPrompt> =>
       Effect.gen(function* () {
-        const model = yield* LanguageModel.LanguageModel
         const catalog = yield* CatalogComponents
+        const systemPrompt = buildSystemPrompt(catalog, context)
 
-        // Build enriched context
-        const catalogPrompt = catalog.generatePrompt()
-        const availableComponents = Array.from(catalog.schemas.keys())
-
-        // Build system prompt with context
-        let systemPrompt = COMPILER_SYSTEM_PROMPT
-        if (context?.additionalContext) {
-          systemPrompt += `\n\n## Additional Context\n${context.additionalContext}`
-        }
-        if (context?.viewport) {
-          systemPrompt += `\n\nViewport: ${context.viewport.width}x${context.viewport.height}px`
-        }
-        systemPrompt += `\n\n## Available Components\n${availableComponents.join(", ")}`
-
-        // Run the compiler model with tools via streamText
-        const toolkit = yield* CompilerToolkit
-
-        const stream = LanguageModel.streamText({
+        const start = Date.now()
+        const response = yield* LanguageModel.generateText({
           system: systemPrompt,
-          prompt: `Create a UI for the following request:\n\n${input}`,
-          toolkit,
+          prompt: input,
         })
+        const durationMs = Date.now() - start
 
-        // Collect the full response, consuming tool calls automatically
-        let compilerOutput = ""
-        yield* Stream.runForEach(stream, (chunk) =>
-          Effect.sync(() => {
-            const part = chunk as any
-            if (part.type === "text-delta" && part.delta) {
-              compilerOutput += part.delta
+        const rawOutput = response.text
+        const extractedJson = extractJson(rawOutput)
+
+        let validated = false
+        let componentTypes: string[] = []
+        let elementCount = 0
+        let normResult: CompiledPrompt["normResult"]
+
+        if (extractedJson) {
+          const result = yield* Effect.either(normalizeWithMeta(extractedJson))
+          if (result._tag === "Right") {
+            validated = true
+            normResult = {
+              format: result.right.format,
+              elementCount: result.right.elementCount,
             }
-          })
-        )
+            elementCount = result.right.elementCount
 
-        // Parse the compiler output
-        const requiredComponents = extractComponentTypes(
-          compilerOutput,
-          availableComponents
-        )
-        const hasJson = compilerOutput.includes("```json")
-        const validated =
-          compilerOutput.includes("NormalizePreview") || hasJson
-
-        // Build the refined prompt for the generator
-        const generatorSystemPrompt = `You are a UI generator. Output ONLY valid genifer JSON — no markdown, no explanation.
-
-${catalogPrompt}
-
-Generate a genifer JSON tree following the specification below. Output raw JSON only.`
-
-        const generatorUserPrompt = hasJson
-          ? extractJsonBlock(compilerOutput)
-          : `Based on this specification, generate genifer JSON:\n\n${compilerOutput}`
+            // Extract component types from the parsed JSON
+            try {
+              const parsed = JSON.parse(extractedJson)
+              if (parsed.elements) {
+                const types = new Set<string>()
+                for (const el of Object.values(parsed.elements) as any[]) {
+                  if (el.type) types.add(el.type)
+                }
+                componentTypes = Array.from(types)
+              }
+            } catch { /* ignore parse errors — normalization already validated */ }
+          }
+        }
 
         return {
-          systemPrompt: generatorSystemPrompt,
-          userPrompt: generatorUserPrompt,
-          requiredComponents,
+          rawOutput,
+          extractedJson,
           validated,
-          compilerTrace: compilerOutput,
+          componentTypes,
+          elementCount,
+          durationMs,
+          normResult,
         } satisfies CompiledPrompt
       })
 
     return { compile } satisfies PromptCompilerShape
   })
 )
-
-// =============================================================================
-// Helpers
-// =============================================================================
-
-function extractComponentTypes(
-  output: string,
-  available: ReadonlyArray<string>
-): ReadonlyArray<string> {
-  const found = new Set<string>()
-  for (const type of available) {
-    if (output.includes(type)) found.add(type)
-  }
-  return Array.from(found)
-}
-
-function extractJsonBlock(output: string): string {
-  const match = output.match(/```json\s*([\s\S]*?)```/)
-  return match ? match[1].trim() : output
-}

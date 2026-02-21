@@ -86,15 +86,13 @@ export function assignMissingKeys(tree: UITree): Effect.Effect<{ tree: UITree; r
 
     const newRoot = tree.root.length === 0
       ? Option.getOrElse(
-          HashMap.keys(newElements).pipe(
-            (iter) => {
-              for (const k of iter) {
-                const el = HashMap.get(newElements, k)
-                if (Option.isSome(el) && el.value.parentKey === null) return Option.some(k)
-              }
-              return Option.none<string>()
+          (() => {
+            for (const k of HashMap.keys(newElements)) {
+              const el = HashMap.get(newElements, k)
+              if (Option.isSome(el) && el.value.parentKey === null) return Option.some(k)
             }
-          ),
+            return Option.none<string>()
+          })(),
           () => "root"
         )
       : tree.root

@@ -1,12 +1,5 @@
 /**
  * @fileoverview Genifer Prompt Compiler — barrel exports
- *
- * Two-stage LLM pipeline:
- * 1. Compiler (fast model + tools) → refined structural prompt
- * 2. Generator (strong model) → streaming genifer JSON → UI tree
- *
- * Plus Raindrop eval harness for A/B testing across models.
- *
  * @module genifer/compiler
  */
 
