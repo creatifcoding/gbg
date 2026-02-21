@@ -1,11 +1,10 @@
 #!/usr/bin/env bun
 /**
- * spike-prompt-compiler.ts — @effect/ai → genifer streaming pipeline E2E
+ * spike-prompt-compiler.ts — Full genifer E2E: generate → refine → retry
  *
- * Wires @effect/ai LanguageModel.streamText into the EXISTING genifer pipeline:
- *   streamText deltas → pipeline.feedChunk → tokenizer → d2ts → normalize → UITree
- *
- * Tests across all available providers.
+ * Tests the complete flow:
+ *   1. generate() — NL prompt → UITree (with automatic retry on failure)
+ *   2. refine()  — "make the sidebar wider" → updated UITree
  *
  * Usage:
  *   bun run scripts/spikes/spike-prompt-compiler.ts
@@ -26,7 +25,8 @@ import {
   type DomainCatalog,
   type ComponentDef,
 } from "../../src/lib/genifer/core/CatalogService"
-import { generate, type GenerateResult } from "../../src/lib/genifer/compiler/ai-adapter"
+import { generate, refine, type GenerateResult } from "../../src/lib/genifer/compiler/ai-adapter"
+import { createThreadService } from "../../src/lib/genifer/react/thread-service"
 
 // =============================================================================
 // Mock Catalog (headless — no React renderers)
@@ -130,69 +130,36 @@ const PROMPT =
   "a project status dashboard showing build health, test coverage, deploy status, and open issues"
 
 // =============================================================================
-// Test runner
+// Helpers
 // =============================================================================
 
-async function testModel(
-  name: string,
-  modelLayer: Layer.Layer<LanguageModel.LanguageModel>,
-  prompt: string
-) {
-  console.log(`\n  ┌─────────────────────────────────────────────────┐`)
-  console.log(`  │  ${name.padEnd(47)} │`)
-  console.log(`  └─────────────────────────────────────────────────┘\n`)
-
-  const layer = MockCatalogLayer.pipe(Layer.provideMerge(modelLayer))
-
-  try {
-    let dotCount = 0
-    process.stdout.write("  Streaming: ")
-
-    const result = await Effect.runPromise(
-      generate({
-        prompt,
-        onDelta: () => {
-          dotCount++
-          if (dotCount % 10 === 0) process.stdout.write("█")
-        },
-        onComponent: (key, type) => {
-          process.stdout.write(`\n  ⚡ ${type} (${key})`)
-        },
-      }).pipe(
-        Effect.provide(layer),
-        Effect.timeout("90 seconds"),
-      )
-    )
-
-    console.log(`\n\n  ⏱  ${result.durationMs}ms`)
-    console.log(`  📦 Elements: ${result.elementCount}`)
-    console.log(`  🧱 Chunks: ${result.chunkCount}`)
-    console.log(`  🏆 Quality: ${(result.qualityScore * 100).toFixed(0)}%`)
-    console.log(`  🔧 Repairs: ${result.repairCount}`)
-    console.log(`  ⚠️  Quarantined: ${result.quarantineCount}`)
-
-    // Show tree root + element keys
-    const treeSize = HashMap.size(result.tree.elements)
-    console.log(`  🌳 Tree: root="${result.tree.root}", ${treeSize} elements`)
-
-    if (treeSize > 0) {
-      const keys: string[] = []
-      for (const [key] of result.tree.elements) keys.push(key)
-      console.log(`  📋 Keys: ${keys.slice(0, 15).join(", ")}${keys.length > 15 ? "..." : ""}`)
+function printResult(label: string, r: GenerateResult) {
+  console.log(`\n  ── ${label} ──`)
+  console.log(`  ⏱  ${r.durationMs}ms`)
+  console.log(`  📦 Elements: ${r.elementCount}`)
+  console.log(`  🧱 Chunks: ${r.chunkCount}`)
+  console.log(`  🏆 Quality: ${(r.qualityScore * 100).toFixed(0)}%`)
+  console.log(`  🔧 Repairs: ${r.repairCount}`)
+  console.log(`  ⚠️  Quarantined: ${r.quarantineCount}`)
+  console.log(`  🔄 Attempts: ${r.attempts + 1} (${r.attempts} retries)`)
+  if (r.retryFailures.length > 0) {
+    for (const f of r.retryFailures) {
+      console.log(`     ↳ Retry: ${f.failureClass} — ${f.retryHint.slice(0, 80)}`)
     }
-
-    // Raw JSON excerpt
-    console.log(`\n  ── Raw (first 400 chars) ──`)
-    for (const line of result.rawJson.slice(0, 400).split("\n")) console.log(`  ${line}`)
-    if (result.rawJson.length > 400) console.log(`  ... (${result.rawJson.length} chars total)`)
-
-    return { name, success: true, ...result }
-  } catch (err: any) {
-    console.log()
-    const msg = err?.message || String(err)
-    console.log(`  ❌ FAILED: ${msg.slice(0, 300)}`)
-    return { name, success: false, error: msg.slice(0, 300) }
   }
+
+  const treeSize = HashMap.size(r.tree.elements)
+  console.log(`  🌳 Tree: root="${r.tree.root}", ${treeSize} elements`)
+
+  if (treeSize > 0) {
+    const keys: string[] = []
+    for (const [key] of r.tree.elements) keys.push(key)
+    console.log(`  📋 Keys: ${keys.slice(0, 12).join(", ")}${keys.length > 12 ? "..." : ""}`)
+  }
+
+  console.log(`\n  ── JSON (first 300 chars) ──`)
+  for (const line of r.rawJson.slice(0, 300).split("\n")) console.log(`  ${line}`)
+  if (r.rawJson.length > 300) console.log(`  ... (${r.rawJson.length} chars total)`)
 }
 
 // =============================================================================
@@ -200,45 +167,103 @@ async function testModel(
 // =============================================================================
 
 async function main() {
-  console.log("\n╔══════════════════════════════════════════════════════╗")
-  console.log("║  @effect/ai → genifer pipeline E2E                  ║")
-  console.log("╚══════════════════════════════════════════════════════╝")
+  console.log("\n╔══════════════════════════════════════════════════════════╗")
+  console.log("║  genifer E2E: generate → refine → retry                 ║")
+  console.log("╚══════════════════════════════════════════════════════════╝")
   console.log(`\n  Prompt: "${PROMPT.slice(0, 90)}${PROMPT.length > 90 ? "..." : ""}"`)
 
-  const results: Array<{ name: string; success: boolean; durationMs?: number; elementCount?: number; qualityScore?: number }> = []
-
-  // ── Anthropic Sonnet 4 (OAuth) ────────────────────────────
-  const sonnetLayer = makeAnthropicLayer("claude-sonnet-4-20250514").pipe(
+  // Pick a model — Sonnet 4 had best quality in previous run
+  const modelLayer = makeAnthropicLayer("claude-sonnet-4-20250514").pipe(
     Layer.provide(PiAuthBridgeLive),
   )
-  results.push(await testModel("Anthropic Sonnet 4 (OAuth)", sonnetLayer, PROMPT))
+  const layer = MockCatalogLayer.pipe(Layer.provideMerge(modelLayer))
 
-  // ── Codex gpt-5.2 (OAuth) ────────────────────────────────
-  const codexLayer = makeOpenAiCodexLayer("gpt-5.2").pipe(
-    Layer.provide(PiAuthBridgeLive),
+  // Shared thread service for generate + refine
+  const threadService = createThreadService()
+
+  // ── Stage 1: generate() ─────────────────────────────────
+  console.log("\n┌─────────────────────────────────────────────────┐")
+  console.log("│  Stage 1: generate()                             │")
+  console.log("└─────────────────────────────────────────────────┘")
+
+  let dots = 0
+  process.stdout.write("  Streaming: ")
+
+  const genResult = await Effect.runPromise(
+    generate({
+      prompt: PROMPT,
+      threadService,
+      onDelta: () => { dots++; if (dots % 10 === 0) process.stdout.write("█") },
+      onRetry: (attempt, failure) => {
+        console.log(`\n  🔄 Retry ${attempt}: ${failure.failureClass}`)
+        process.stdout.write("  Streaming: ")
+        dots = 0
+      },
+    }).pipe(
+      Effect.provide(layer),
+      Effect.timeout("120 seconds"),
+    )
   )
-  results.push(await testModel("Codex gpt-5.2 (OAuth)", codexLayer, PROMPT))
+  console.log()
+  printResult("generate()", genResult)
 
-  // ── OpenAI gpt-4o-mini (API key) ─────────────────────────
-  if (process.env.OPENAI_API_KEY) {
-    const miniLayer = makeOpenAiLayerFromEnv("gpt-4o-mini")
-    results.push(await testModel("OpenAI gpt-4o-mini (API)", miniLayer, PROMPT))
-  } else {
-    console.log("\n  ⏭  Skipping gpt-4o-mini (no OPENAI_API_KEY)")
+  // ── Stage 2: refine() — modify the tree ──────────────────
+  console.log("\n┌─────────────────────────────────────────────────┐")
+  console.log("│  Stage 2: refine() — \"add a search bar at top\"  │")
+  console.log("└─────────────────────────────────────────────────┘")
+
+  dots = 0
+  process.stdout.write("  Streaming: ")
+
+  const refineResult = await Effect.runPromise(
+    refine({
+      prompt: "Add a search bar at the top of the dashboard and change the heading to 'Mission Control'",
+      currentTree: genResult.tree,
+      threadService,
+      onDelta: () => { dots++; if (dots % 10 === 0) process.stdout.write("█") },
+      onRetry: (attempt, failure) => {
+        console.log(`\n  🔄 Retry ${attempt}: ${failure.failureClass}`)
+        process.stdout.write("  Streaming: ")
+        dots = 0
+      },
+    }).pipe(
+      Effect.provide(layer),
+      Effect.timeout("120 seconds"),
+    )
+  )
+  console.log()
+  printResult("refine()", refineResult)
+
+  // ── Stage 3: Check thread state ──────────────────────────
+  console.log("\n┌─────────────────────────────────────────────────┐")
+  console.log("│  Stage 3: Thread state                           │")
+  console.log("└─────────────────────────────────────────────────┘")
+
+  const thread = threadService.getActiveThread()
+  if (thread) {
+    const msgs = thread.toArray()
+    console.log(`\n  Thread: ${thread.id}`)
+    console.log(`  Title: "${thread.title}"`)
+    console.log(`  Messages: ${msgs.length}`)
+    for (const msg of msgs) {
+      const preview = msg.content[0]
+      let text = ""
+      if (preview._tag === "text") text = preview.text.slice(0, 80)
+      else if (preview._tag === "ui-tree") text = `[UITree: ${preview.elementCount} elements]`
+      console.log(`    ${msg.role.padEnd(10)} ${text}${text.length >= 80 ? "..." : ""}`)
+    }
   }
 
   // ── Summary ──────────────────────────────────────────────
-  console.log("\n╔══════════════════════════════════════════════════════╗")
-  console.log("║  RESULTS                                            ║")
-  console.log("╚══════════════════════════════════════════════════════╝\n")
+  console.log("\n╔══════════════════════════════════════════════════════════╗")
+  console.log("║  RESULTS                                                ║")
+  console.log("╚══════════════════════════════════════════════════════════╝\n")
 
-  for (const r of results) {
-    const status = r.success ? "✅" : "❌"
-    const time = r.durationMs ? `${r.durationMs}ms` : "—"
-    const elems = r.elementCount ? `${r.elementCount} elems` : "—"
-    const quality = r.qualityScore != null ? `${(r.qualityScore * 100).toFixed(0)}%` : "—"
-    console.log(`  ${status} ${r.name.padEnd(35)} ${time.padStart(8)}  ${elems.padStart(10)}  ${quality.padStart(5)}`)
-  }
+  const genStatus = genResult.qualityScore >= 0.5 ? "✅" : "❌"
+  const refStatus = refineResult.qualityScore >= 0.5 ? "✅" : "❌"
+
+  console.log(`  ${genStatus} generate()  ${genResult.durationMs}ms  ${genResult.elementCount} elems  ${(genResult.qualityScore * 100).toFixed(0)}%  ${genResult.attempts} retries`)
+  console.log(`  ${refStatus} refine()    ${refineResult.durationMs}ms  ${refineResult.elementCount} elems  ${(refineResult.qualityScore * 100).toFixed(0)}%  ${refineResult.attempts} retries`)
   console.log()
 }
 

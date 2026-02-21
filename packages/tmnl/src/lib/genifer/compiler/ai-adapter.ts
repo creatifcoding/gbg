@@ -4,8 +4,13 @@
  * Bridges @effect/ai's LanguageModel.streamText into the existing genifer
  * streaming pipeline (tokenizer → d2ts graph → normalize → UITree).
  *
- * Uses the existing PromptTemplate + CatalogService to build the prompt —
- * the same prompt engineering that spike-real-llm.ts proved works.
+ * Two modes:
+ *   1. `generate()` — single prompt → UITree with automatic retry on failure
+ *   2. `refine()`   — conversational follow-up on an existing tree
+ *
+ * Uses the existing PromptTemplate + CatalogService to build prompts,
+ * the feedback loop for retry with error-aware hints, and the thread
+ * service for multi-turn conversation state.
  *
  * @module genifer/compiler/ai-adapter
  */
@@ -17,18 +22,24 @@ import { PromptTemplate, PromptSlot } from "../core/prompts"
 import {
   createStreamingPipeline,
   type PipelineConfig,
-  pipelineTreeAtom,
   normalizedElementsAtom,
   quarantinedAtom,
 } from "../streaming/pipeline"
 import { UITree } from "../core/schemas"
+import { classifyFailure, type ClassifiedFailure } from "../core/feedback-loop"
+import {
+  createThreadService,
+  type ThreadServiceShape,
+} from "../react/thread-service"
+import type { TextContent, UITreeContent } from "../core/threads"
 
 // =============================================================================
-// The proven prompt template (from spike-real-llm.ts)
+// Prompt Templates
 // =============================================================================
 
+/** Initial generation — proven format from spike-real-llm.ts */
 const geniferTemplate = new PromptTemplate({
-  name: "genifer-ai-adapter",
+  name: "genifer-generate",
   template: `You are a UI generation engine. You MUST respond with ONLY a valid JSON object, no markdown, no explanation.
 
 The JSON must follow this exact structure:
@@ -56,6 +67,54 @@ Rules:
   ],
 })
 
+/** Refinement — takes previous tree + modification request */
+const refineTemplate = new PromptTemplate({
+  name: "genifer-refine",
+  template: `You are a UI generation engine. You MUST respond with ONLY a valid JSON object, no markdown, no explanation.
+
+The JSON must follow this exact structure:
+{
+  "type": "<ComponentType>",
+  "key": "<unique-id>",
+  "props": { ... },
+  "children": [ ... nested components ... ]
+}
+
+Available components:
+{{catalog}}
+
+Here is the current UI tree (JSON):
+{{currentTree}}
+
+The user wants this modification: {{query}}
+
+Rules:
+- Use ONLY the components listed above
+- Every node MUST have "type", "key", and "props"
+- Preserve existing keys where the component is unchanged
+- Return the COMPLETE updated tree, not a diff
+- Respond with ONLY the JSON object — no prose, no code fences`,
+  slots: [
+    new PromptSlot({ name: "catalog", type: "catalog", required: false }),
+    new PromptSlot({ name: "currentTree", type: "string", required: true }),
+    new PromptSlot({ name: "query", type: "string", required: true }),
+  ],
+})
+
+/** Retry supplement — appended to prompt on retry attempts */
+const retryTemplate = new PromptTemplate({
+  name: "genifer-retry",
+  template: `{{basePrompt}}
+
+{{retryHints}}`,
+  slots: [
+    new PromptSlot({ name: "basePrompt", type: "string", required: true }),
+    new PromptSlot({ name: "retryHints", type: "string", required: true }),
+  ],
+})
+
+const SYSTEM_PROMPT = "You are Claude Code, a JSON-only UI generation engine. Respond with valid JSON only."
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -63,12 +122,23 @@ Rules:
 export interface GenerateOptions {
   /** Natural language UI description */
   readonly prompt: string
-  /** Pipeline config (registrations, quality thresholds, etc.) */
+  /** Pipeline config (quality thresholds, expected elements, etc.) */
   readonly pipelineConfig?: PipelineConfig
+  /** Maximum retry attempts on quality failure (default: 2) */
+  readonly maxRetries?: number
   /** Called on each text delta (for progress UI) */
   readonly onDelta?: (delta: string) => void
-  /** Model temperature (default: 0.3) */
-  readonly temperature?: number
+  /** Called when a component is identified during streaming */
+  readonly onComponent?: (key: string, type: string) => void
+  /** Called on retry attempt (attempt number, failure classification) */
+  readonly onRetry?: (attempt: number, failure: ClassifiedFailure) => void
+  /** Thread service for conversation state (auto-created if omitted) */
+  readonly threadService?: ThreadServiceShape
+}
+
+export interface RefineOptions extends GenerateOptions {
+  /** The current UITree to modify */
+  readonly currentTree: UITree
 }
 
 export interface GenerateResult {
@@ -80,45 +150,36 @@ export interface GenerateResult {
   readonly repairCount: number
   readonly durationMs: number
   readonly rawJson: string
+  /** Number of retry attempts needed (0 = first try succeeded) */
+  readonly attempts: number
+  /** Failure classifications from any retries */
+  readonly retryFailures: readonly ClassifiedFailure[]
+  /** Thread ID for conversation continuity */
+  readonly threadId: string
 }
 
 // =============================================================================
-// Core: Stream @effect/ai deltas → genifer pipeline
+// Internal: Single streaming attempt
 // =============================================================================
 
-/**
- * Generate a UITree from a natural language prompt using @effect/ai.
- *
- * Requires LanguageModel.LanguageModel and CatalogComponents in context.
- *
- * Wires:
- *   CatalogService.generatePrompt() → PromptTemplate.compile()
- *     → LanguageModel.streamText → delta chunks
- *     → pipeline.feedChunk → tokenizer → d2ts → normalize → UITree
- */
-export const generate = (
-  options: GenerateOptions
-): Effect.Effect<GenerateResult, never, LanguageModel.LanguageModel | CatalogComponents> =>
-  Effect.gen(function* () {
-    const start = Date.now()
-
-    // Build the prompt using the EXISTING catalog + template
-    const catalogPrompt = yield* getSystemPrompt
-    const compiled = geniferTemplate.compile(
-      { query: options.prompt },
-      catalogPrompt
-    )
-
-    // Create the streaming pipeline
-    const pipeline = createStreamingPipeline(options.pipelineConfig)
+function streamAttempt(
+  compiled: string,
+  pipelineConfig?: PipelineConfig,
+  onDelta?: (delta: string) => void,
+): Effect.Effect<
+  { tree: UITree; rawJson: string; chunks: number; elementCount: number; quarantineCount: number; repairCount: number; qualityScore: number; passed: boolean; failure: ClassifiedFailure | null },
+  never,
+  LanguageModel.LanguageModel
+> {
+  return Effect.gen(function* () {
+    const pipeline = createStreamingPipeline(pipelineConfig)
     const registry = pipeline.registry
 
-    // Stream from @effect/ai — system is minimal, the compiled prompt does all the work
     let rawJson = ""
     let chunks = 0
 
     const stream = LanguageModel.streamText({
-      system: "You are Claude Code, a JSON-only UI generation engine. Respond with valid JSON only.",
+      system: SYSTEM_PROMPT,
       prompt: compiled,
     })
 
@@ -130,23 +191,236 @@ export const generate = (
           rawJson += delta
           chunks++
           pipeline.feedChunk(delta)
-          options.onDelta?.(delta)
+          onDelta?.(delta)
         }
       })
     )
 
-    // Finalize — triggers repair + quality scoring
     const { tree, score, repairResult } = pipeline.finalize()
-    const durationMs = Date.now() - start
+    const failure = score.passed
+      ? null
+      : classifyFailure(undefined, score, repairResult)
 
     return {
       tree,
-      qualityScore: score.overall,
-      chunkCount: chunks,
+      rawJson,
+      chunks,
       elementCount: registry.get(normalizedElementsAtom).length,
       quarantineCount: registry.get(quarantinedAtom).length,
       repairCount: repairResult.repairs.length,
-      durationMs,
-      rawJson,
-    } satisfies GenerateResult
+      qualityScore: score.overall,
+      passed: score.passed,
+      failure,
+    }
   })
+}
+
+// =============================================================================
+// generate() — Initial prompt → UITree with retry loop
+// =============================================================================
+
+/**
+ * Generate a UITree from a natural language prompt.
+ *
+ * On quality failure, automatically retries with error-aware hints
+ * (up to maxRetries, default 2). Each retry appends targeted
+ * instructions based on what went wrong.
+ *
+ * Records conversation in thread for later refinement.
+ *
+ * Requires: LanguageModel.LanguageModel, CatalogComponents
+ */
+export const generate = (
+  options: GenerateOptions
+): Effect.Effect<GenerateResult, never, LanguageModel.LanguageModel | CatalogComponents> =>
+  Effect.gen(function* () {
+    const start = Date.now()
+    const maxRetries = options.maxRetries ?? 2
+
+    // Thread for conversation state
+    const threads = options.threadService ?? createThreadService()
+    const thread = threads.createThread(options.prompt.slice(0, 60))
+
+    // Build prompt from catalog
+    const catalogPrompt = yield* getSystemPrompt
+    const basePrompt = geniferTemplate.compile(
+      { query: options.prompt },
+      catalogPrompt
+    )
+
+    // Record user message
+    threads.addMessage("user", [{ _tag: "text" as const, text: options.prompt }])
+
+    // Retry loop
+    const failures: ClassifiedFailure[] = []
+    let compiled = basePrompt
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const result = yield* streamAttempt(compiled, options.pipelineConfig, options.onDelta)
+
+      if (result.passed || attempt === maxRetries) {
+        // Record assistant response
+        threads.addMessage("assistant", [
+          { _tag: "ui-tree" as const, treeJson: result.rawJson, componentCount: result.elementCount },
+        ])
+
+        return {
+          tree: result.tree,
+          qualityScore: result.qualityScore,
+          chunkCount: result.chunks,
+          elementCount: result.elementCount,
+          quarantineCount: result.quarantineCount,
+          repairCount: result.repairCount,
+          durationMs: Date.now() - start,
+          rawJson: result.rawJson,
+          attempts: attempt,
+          retryFailures: failures,
+          threadId: thread.id,
+        } satisfies GenerateResult
+      }
+
+      // Failed — classify and build retry prompt
+      const failure = result.failure!
+      failures.push(failure)
+      options.onRetry?.(attempt + 1, failure)
+
+      // Build retry hints from accumulated failures
+      const hints = failures.map((f, i) =>
+        `Attempt ${i + 1} failed: ${f.retryHint}`
+      )
+      const retryHintsText = [
+        "# Previous Attempt Feedback",
+        "",
+        ...hints,
+        "",
+        "Please fix these issues in your next response.",
+      ].join("\n")
+
+      compiled = retryTemplate.compile(
+        { basePrompt, retryHints: retryHintsText },
+        ""
+      )
+    }
+
+    // Unreachable, but TypeScript
+    throw new Error("Unreachable: retry loop exited without return")
+  })
+
+// =============================================================================
+// refine() — Conversational follow-up on existing tree
+// =============================================================================
+
+/**
+ * Refine an existing UITree with a follow-up instruction.
+ *
+ * Sends the current tree JSON + the modification request to the model.
+ * The model returns a complete updated tree (not a diff).
+ *
+ * Uses the same retry loop as generate().
+ *
+ * Requires: LanguageModel.LanguageModel, CatalogComponents
+ */
+export const refine = (
+  options: RefineOptions
+): Effect.Effect<GenerateResult, never, LanguageModel.LanguageModel | CatalogComponents> =>
+  Effect.gen(function* () {
+    const start = Date.now()
+    const maxRetries = options.maxRetries ?? 2
+
+    // Thread — reuse or create
+    const threads = options.threadService ?? createThreadService()
+    if (!threads.getActiveThread()) {
+      threads.createThread("Refinement")
+    }
+
+    // Serialize the current tree
+    const currentTreeJson = JSON.stringify(
+      serializeUITree(options.currentTree),
+      null,
+      2
+    )
+
+    // Build refinement prompt
+    const catalogPrompt = yield* getSystemPrompt
+    const basePrompt = refineTemplate.compile(
+      { query: options.prompt, currentTree: currentTreeJson },
+      catalogPrompt
+    )
+
+    // Record user refinement message
+    threads.addMessage("user", [{ _tag: "text" as const, text: options.prompt }])
+
+    // Same retry loop
+    const failures: ClassifiedFailure[] = []
+    let compiled = basePrompt
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const result = yield* streamAttempt(compiled, options.pipelineConfig, options.onDelta)
+
+      if (result.passed || attempt === maxRetries) {
+        threads.addMessage("assistant", [
+          { _tag: "ui-tree" as const, treeJson: result.rawJson, componentCount: result.elementCount },
+        ])
+
+        return {
+          tree: result.tree,
+          qualityScore: result.qualityScore,
+          chunkCount: result.chunks,
+          elementCount: result.elementCount,
+          quarantineCount: result.quarantineCount,
+          repairCount: result.repairCount,
+          durationMs: Date.now() - start,
+          rawJson: result.rawJson,
+          attempts: attempt,
+          retryFailures: failures,
+          threadId: threads.getActiveThread()!.id,
+        } satisfies GenerateResult
+      }
+
+      const failure = result.failure!
+      failures.push(failure)
+      options.onRetry?.(attempt + 1, failure)
+
+      const hints = failures.map((f, i) =>
+        `Attempt ${i + 1} failed: ${f.retryHint}`
+      )
+      const retryHintsText = [
+        "# Previous Attempt Feedback",
+        "",
+        ...hints,
+        "",
+        "Please fix these issues in your next response.",
+      ].join("\n")
+
+      compiled = retryTemplate.compile(
+        { basePrompt, retryHints: retryHintsText },
+        ""
+      )
+    }
+
+    throw new Error("Unreachable: retry loop exited without return")
+  })
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+/** Serialize UITree to plain JSON-safe object (for embedding in prompt) */
+function serializeUITree(tree: UITree): unknown {
+  function serializeElement(key: string): unknown {
+    const opt = tree.getElement(key)
+    if (opt._tag === "None") return null
+
+    const el = opt.value
+    return {
+      type: el.type,
+      key: el.key,
+      props: el.props,
+      ...(el.children.length > 0
+        ? { children: el.children.map(serializeElement).filter(Boolean) }
+        : {}),
+    }
+  }
+
+  return serializeElement(tree.root)
+}
