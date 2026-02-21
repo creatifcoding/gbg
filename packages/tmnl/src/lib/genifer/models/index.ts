@@ -7,6 +7,9 @@
 // Common types
 export * from './_common'
 
+// Infrastructure DDL
+export { createGeniferSchema, grantGeniferPermissions } from './_infrastructure.ddl'
+
 // Models
 export { GeniferTreeModel } from './GeniferTreeModel'
 export { GeniferElementModel } from './GeniferElementModel'

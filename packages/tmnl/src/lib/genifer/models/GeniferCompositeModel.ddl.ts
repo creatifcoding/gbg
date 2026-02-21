@@ -1,5 +1,5 @@
 /**
- * GeniferCompositeModel DDL — genifer_composites table
+ * GeniferCompositeModel DDL — genifer.composites table
  *
  * Agent-created reusable tree fragments.
  *
@@ -13,7 +13,7 @@ export const createGeniferCompositesTable = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
 
   yield* sql`
-    CREATE TABLE IF NOT EXISTS genifer_composites (
+    CREATE TABLE IF NOT EXISTS genifer.composites (
       id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       name            TEXT UNIQUE NOT NULL,
       description     TEXT,
@@ -31,8 +31,8 @@ export const createGeniferCompositesTable = Effect.gen(function* () {
     )
   `
 
-  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_composites_name    ON genifer_composites(name)`
-  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_composites_quality ON genifer_composites(quality_score DESC)`
-  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_composites_usage   ON genifer_composites(usage_count DESC)`
-  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_composites_creator ON genifer_composites(created_by)`
+  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_composites_name    ON genifer.composites(name)`
+  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_composites_quality ON genifer.composites(quality_score DESC)`
+  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_composites_usage   ON genifer.composites(usage_count DESC)`
+  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_composites_creator ON genifer.composites(created_by)`
 })

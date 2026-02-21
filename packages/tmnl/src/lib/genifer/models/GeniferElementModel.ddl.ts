@@ -1,5 +1,5 @@
 /**
- * GeniferElementModel DDL — genifer_elements table (leaves-as-graph)
+ * GeniferElementModel DDL — genifer.elements table (leaves-as-graph)
  *
  * Every UIElement is a row. parent_key encodes the tree graph.
  * children TEXT[] preserves ordering.
@@ -14,9 +14,9 @@ export const createGeniferElementsTable = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
 
   yield* sql`
-    CREATE TABLE IF NOT EXISTS genifer_elements (
+    CREATE TABLE IF NOT EXISTS genifer.elements (
       id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      tree_id         UUID NOT NULL REFERENCES genifer_trees(id) ON DELETE CASCADE,
+      tree_id         UUID NOT NULL REFERENCES genifer.trees(id) ON DELETE CASCADE,
       element_key     TEXT NOT NULL,
       element_type    TEXT NOT NULL,
       props           JSONB NOT NULL DEFAULT '{}',
@@ -35,10 +35,10 @@ export const createGeniferElementsTable = Effect.gen(function* () {
     )
   `
 
-  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_elements_tree    ON genifer_elements(tree_id)`
-  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_elements_type    ON genifer_elements(element_type)`
-  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_elements_parent  ON genifer_elements(tree_id, parent_key)`
-  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_elements_props   ON genifer_elements USING GIN(props)`
-  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_elements_class   ON genifer_elements(class_name) WHERE class_name IS NOT NULL`
-  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_elements_depth   ON genifer_elements(tree_id, depth)`
+  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_elements_tree    ON genifer.elements(tree_id)`
+  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_elements_type    ON genifer.elements(element_type)`
+  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_elements_parent  ON genifer.elements(tree_id, parent_key)`
+  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_elements_props   ON genifer.elements USING GIN(props)`
+  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_elements_class   ON genifer.elements(class_name) WHERE class_name IS NOT NULL`
+  yield* sql`CREATE INDEX IF NOT EXISTS idx_genifer_elements_depth   ON genifer.elements(tree_id, depth)`
 })
