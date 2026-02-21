@@ -73,6 +73,23 @@ export {
 } from './StreamingRenderer.js'
 
 // ---------------------------------------------------------------------------
+// Pipeline Orchestrator (wires all phases together)
+// ---------------------------------------------------------------------------
+export {
+  createStreamingPipeline,
+  pipelineTreeAtom,
+  normalizedElementsAtom,
+  quarantinedAtom,
+  completionFrontierAtom,
+  qualityScoreAtom,
+  classifiedFailureAtom,
+  pipelineStageAtom,
+  pipelineErrorAtom,
+  type StreamingPipeline,
+  type PipelineConfig,
+} from './pipeline.js'
+
+// ---------------------------------------------------------------------------
 // BFTA (Bottom-Up Finite Tree Automaton)
 // ---------------------------------------------------------------------------
 export {

@@ -40,7 +40,7 @@ function mkRepairResult(repairs: RepairAction[] = []): RepairResult {
   return {
     tree: UITree.empty(),
     repairs,
-    quarantined: [],
+    quarantined: [] as any,
   }
 }
 
@@ -83,8 +83,8 @@ describe('scoreResult', () => {
 
   it('counts repairs', () => {
     const repairs: RepairAction[] = [
-      { action: 'assignKey', elementKey: 'auto-1', details: 'generated key' },
-      { action: 'assignKey', elementKey: 'auto-2', details: 'generated key' },
+      { action: 'assignKey', elementKey: 'auto-1', before: '', after: 'auto-1' },
+      { action: 'assignKey', elementKey: 'auto-2', before: '', after: 'auto-1' },
     ]
     const score = scoreResult(
       mkTree({ p1: { type: 'Page' } }, 'p1'),
@@ -165,7 +165,7 @@ describe('classifyFailure', () => {
 
   it('classifies key repairs', () => {
     const repairs: RepairAction[] = [
-      { action: 'assignKey', elementKey: 'auto-1', details: 'generated' },
+      { action: 'assignKey', elementKey: 'auto-1', before: '', after: 'auto-1' },
     ]
     const result = classifyFailure(undefined, undefined, mkRepairResult(repairs))
     expect(result.failureClass).toBe('missing_key')
@@ -302,7 +302,7 @@ describe('Phase 5 Integration', () => {
       c1: { type: 'Card' },
     }, 'p1')
     const repairResult = mkRepairResult([
-      { action: 'assignKey', elementKey: 'c1', details: 'auto-generated' },
+      { action: 'assignKey', elementKey: 'c1', before: '', after: 'c1' },
     ])
     const score = scoreResult(tree, repairResult, { expectedElements: 5, threshold: 0.5 })
     expect(score.passed).toBe(false)
