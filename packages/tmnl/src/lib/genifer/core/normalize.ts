@@ -26,7 +26,15 @@ import { UIElement, UITree } from "./schemas"
 /**
  * Tagged error for JSON extraction failures.
  */
-export class NormalizeError extends Schema.TaggedClass<NormalizeError>()(
+/**
+ * Genifer normalization error — Schema.TaggedError subclass.
+ *
+ * Extends Error (throwable + catchable) AND can be yielded directly:
+ *   yield* new NormalizeError({ stage: "extract", message: "..." })
+ *
+ * The _tag field is "NormalizeError" for discriminated union matching.
+ */
+export class NormalizeError extends Schema.TaggedError<NormalizeError>()(
   "NormalizeError",
   {
     stage: Schema.Literal("extract", "parse", "detect", "convert", "repair"),

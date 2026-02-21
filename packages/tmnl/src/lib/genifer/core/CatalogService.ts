@@ -337,45 +337,39 @@ export const createCatalogLayer = (
 /**
  * Get all renderers as a Record (for React consumption)
  *
- * Traced via Effect.fn — shows up as 'genifer.catalog.getRenderers' in spans.
+ * Traced via Effect.withSpan — shows up as 'genifer.catalog.getRenderers' in spans.
  */
-export const getRenderersRecord = Effect.fn("genifer.catalog.getRenderers")(
-  function* () {
-    const catalog = yield* CatalogComponents
-    yield* Effect.annotateCurrentSpan("componentCount", catalog.renderers.size)
-    return Object.fromEntries(catalog.renderers) as Record<
-      string,
-      ComponentDef["renderer"]
-    >
-  }
-)
+export const getRenderersRecord = Effect.gen(function* () {
+  const catalog = yield* CatalogComponents
+  yield* Effect.annotateCurrentSpan("componentCount", catalog.renderers.size)
+  return Object.fromEntries(catalog.renderers) as Record<
+    string,
+    ComponentDef["renderer"]
+  >
+}).pipe(Effect.withSpan("genifer.catalog.getRenderers"))
 
 /**
  * Get all schemas as a Record (for validation)
  *
- * Traced via Effect.fn.
+ * Traced via Effect.withSpan.
  */
-export const getSchemasRecord = Effect.fn("genifer.catalog.getSchemas")(
-  function* () {
-    const catalog = yield* CatalogComponents
-    yield* Effect.annotateCurrentSpan("schemaCount", catalog.schemas.size)
-    return Object.fromEntries(catalog.schemas) as Record<string, SchemaEntry>
-  }
-)
+export const getSchemasRecord = Effect.gen(function* () {
+  const catalog = yield* CatalogComponents
+  yield* Effect.annotateCurrentSpan("schemaCount", catalog.schemas.size)
+  return Object.fromEntries(catalog.schemas) as Record<string, SchemaEntry>
+}).pipe(Effect.withSpan("genifer.catalog.getSchemas"))
 
 /**
  * Generate the AI system prompt
  *
- * Traced via Effect.fn — logs prompt byte length.
+ * Traced via Effect.withSpan — logs prompt byte length.
  */
-export const getSystemPrompt = Effect.fn("genifer.catalog.getSystemPrompt")(
-  function* () {
-    const catalog = yield* CatalogComponents
-    const prompt = catalog.generatePrompt()
-    yield* Effect.annotateCurrentSpan("promptBytes", prompt.length)
-    return prompt
-  }
-)
+export const getSystemPrompt = Effect.gen(function* () {
+  const catalog = yield* CatalogComponents
+  const prompt = catalog.generatePrompt()
+  yield* Effect.annotateCurrentSpan("promptBytes", prompt.length)
+  return prompt
+}).pipe(Effect.withSpan("genifer.catalog.getSystemPrompt"))
 
 /**
  * Get the register function (for runtime plugin registration)

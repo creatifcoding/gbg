@@ -425,6 +425,16 @@ export {
 } from "./prompt-engineering"
 
 // =============================================================================
+// Tool Bridge (@effect/ai alignment)
+// =============================================================================
+
+export {
+  makeGeniferTool,
+  type GeniferToolBridge,
+  type GeniferToolConfig,
+} from "./tool-bridge"
+
+// =============================================================================
 // Feedback Loop (Quality scoring, retry, compliance tracking)
 // =============================================================================
 
