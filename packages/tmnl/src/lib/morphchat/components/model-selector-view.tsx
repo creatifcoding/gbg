@@ -9,7 +9,9 @@
 
 import * as React from 'react'
 import { Atom, useAtomValue } from '@effect-atom/atom-react'
+import { Effect } from 'effect'
 import { useMorphChatContext } from './surface-context'
+import { sendSurfaceEvent } from '../machines/surface-stx'
 import { ModelSelector, type ModelOption } from '@/lib/chat/shell/header-band'
 
 // Stable sentinel atoms — hooks always called, no conditional branching
@@ -17,7 +19,7 @@ const EMPTY_MODELS = Atom.make<ReadonlyArray<ModelOption>>([])
 const NULL_MODEL = Atom.make<string | null>(null)
 
 export function ModelSelectorView() {
-  const { adapter } = useMorphChatContext()
+  const { adapter, surfaceId } = useMorphChatContext()
 
   const modelsAtom = adapter.availableModels$ ?? EMPTY_MODELS
   const selectedAtom = adapter.selectedModel$ ?? NULL_MODEL
@@ -26,8 +28,13 @@ export function ModelSelectorView() {
   const selectedModelId = useAtomValue(selectedAtom)
 
   const handleSelect = React.useCallback(
-    (modelId: string) => { adapter.selectModel?.(modelId) },
-    [adapter],
+    (modelId: string) => {
+      adapter.selectModel?.(modelId)
+      // Keep machine topology coherent + trigger transport reconnect immediately.
+      sendSurfaceEvent(surfaceId, { type: 'RECONNECT' })
+      Effect.runPromise(adapter.reconnect()).catch(() => {})
+    },
+    [adapter, surfaceId],
   )
 
   if (availableModels.length === 0) return null

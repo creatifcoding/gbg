@@ -119,18 +119,32 @@ function PartRenderer({
           defaultOpen={part.isStreaming}
         />
       )
-    case 'tool-invocation':
+    case 'tool-invocation': {
       // Convenience wrapper — Root + Header + Content(Input+Output+Approval) in one call
+      // If input not yet populated (tool still generating), try parsing inputDelta
+      const rawDelta = (part as any).inputDelta as string | undefined
+      let resolvedInput = part.input
+      if (resolvedInput == null && rawDelta) {
+        try { resolvedInput = JSON.parse(rawDelta) } catch { /* partial JSON, ignore */ }
+      }
+      // Stash inputDelta on the input object so renderers (e.g. Write) can
+      // extract fields from partial JSON while the LLM is still generating
+      const inputWithDelta = rawDelta && resolvedInput == null
+        ? { inputDelta: rawDelta }
+        : resolvedInput != null
+          ? { ...(typeof resolvedInput === 'object' ? resolvedInput as Record<string, unknown> : {}), inputDelta: rawDelta }
+          : resolvedInput
       return (
         <ChatToolBlock
           toolCallId={part.toolCallId}
           toolName={part.toolName}
           state={part.state}
-          input={part.input}
+          input={inputWithDelta}
           output={part.output}
           errorText={part.errorText}
         />
       )
+    }
     case 'file':
       return (
         <ChatFileAttachment
@@ -146,7 +160,7 @@ function PartRenderer({
           code={part.code}
           language={part.language}
           filename={part.filename}
-          isStreaming={isStreaming}
+          isStreaming={part.isStreaming ?? isStreaming}
         />
       )
     default:

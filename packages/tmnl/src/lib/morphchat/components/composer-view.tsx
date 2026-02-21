@@ -49,15 +49,16 @@ export function ComposerView() {
   // All composers call adapter.send via the same handler
   // Composer passes { value, mode, thinkingLevel, contextChips }
   const handleSubmit = React.useCallback(
-    (params: { value: string; mode?: string; thinkingLevel?: number; contextChips?: unknown[] }) => {
+    (params: { value: string; mode?: string; thinkingLevel?: unknown; contextChips?: unknown[] }) => {
       if (!isConnected) {
         console.warn('[ComposerView] Submit blocked — not connected (machine state:', machineConnection, ')')
         return
       }
+
       Effect.runSync(
         adapter.send({
           content: params.value,
-          thinkingLevel: params.thinkingLevel as number | undefined,
+          thinkingLevel: params.thinkingLevel,
         }),
       )
     },

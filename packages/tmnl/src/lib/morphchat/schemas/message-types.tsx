@@ -166,6 +166,8 @@ export const CodePart = Schema.TaggedStruct('code', {
   language: Schema.optional(Schema.String),
   /** Optional filename for display in header */
   filename: Schema.optional(Schema.String),
+  /** Whether code is still being streamed (fence opened but not closed) */
+  isStreaming: Schema.optional(Schema.Boolean),
 })
 export type CodePart = typeof CodePart.Type
 
