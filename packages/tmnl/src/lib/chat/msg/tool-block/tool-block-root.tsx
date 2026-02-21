@@ -12,6 +12,7 @@ import {
   memo,
   useCallback,
   useState,
+  useEffect,
   type ComponentPropsWithoutRef,
   type ReactNode,
 } from 'react'
@@ -19,6 +20,7 @@ import { cn } from '@/lib/utils'
 import { useBlockDensity, useBlockInteractivity } from '../density-context'
 import type { ToolInvocationState } from '@/lib/morphchat/schemas/message-types'
 import { ChatToolBlockContext, type ChatToolBlockContextValue } from './tool-block-context'
+import { useToolStream } from './renderers/terminal/use-tool-stream'
 
 // =============================================================================
 // Props
@@ -79,9 +81,19 @@ export const ChatToolBlockRoot = memo(forwardRef<HTMLDivElement, ChatToolBlockRo
     // ── Density ───────────────────────────────────────────
     const density = useBlockDensity('tool')
     const { expandCollapse } = useBlockInteractivity()
+    const stream = useToolStream(toolCallId)
 
     const resolvedDefault = defaultOpen ?? shouldAutoOpen(state)
     const [internalOpen, setInternalOpen] = useState(resolvedDefault)
+
+    // Auto-expand when streaming data arrives
+    useEffect(() => {
+      if (stream.hasData && !internalOpen) {
+        setInternalOpen(true)
+        onOpenChange?.(true)
+      }
+    }, [stream.hasData]) // eslint-disable-line react-hooks/exhaustive-deps
+
     const isOpen = controlledOpen ?? (density === 'pill' ? false : internalOpen)
     const setIsOpen = useCallback((next: boolean) => {
       if (!expandCollapse) return
