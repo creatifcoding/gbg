@@ -18,6 +18,7 @@ import {
   makeAnthropicLayerFromEnv,
 } from './anthropic'
 import {
+  makeOpenAiCodexLayer,
   makeOpenAiLayer,
   makeOpenAiLayerFromEnv,
   OpenAiMiniLayerEnv,
@@ -40,9 +41,9 @@ export interface ProviderEntry {
 const PROVIDERS: Record<ProviderId, ProviderEntry> = {
   'openai-codex': {
     id: 'openai-codex',
-    name: 'OpenAI (Codex Subscription)',
-    defaultModel: 'gpt-4o-mini',
-    makeLayer: (modelId) => makeOpenAiLayer(modelId ?? 'gpt-4o-mini') as any,
+    name: 'OpenAI (Codex via ChatGPT)',
+    defaultModel: 'gpt-5.2',
+    makeLayer: (modelId) => makeOpenAiCodexLayer(modelId ?? 'gpt-5.2') as any,
   },
   'anthropic': {
     id: 'anthropic',
@@ -83,6 +84,7 @@ export const listProviders = (): ReadonlyArray<ProviderEntry> =>
 // ── Re-exports ──
 
 export {
+  makeOpenAiCodexLayer,
   makeOpenAiLayer,
   makeOpenAiLayerFromEnv,
   OpenAiMiniLayerEnv,

@@ -4,28 +4,32 @@
  * Specialized agent calling functionality that intercepts Pi's OAuth
  * infrastructure and bridges it into @effect/ai LanguageModel layers.
  *
- * ## Quick Start (with OAuth)
+ * ## Quick Start (OAuth → Codex)
  *
  * ```ts
  * import { LanguageModel } from '@effect/ai'
- * import { Effect } from 'effect'
- * import { PiAuthBridgeLive, makeOpenAiLayer } from '@/lib/agents'
+ * import { Effect, Stream } from 'effect'
+ * import { PiAuthBridgeLive, makeOpenAiCodexLayer } from '@/lib/agents'
  *
  * const program = Effect.gen(function* () {
  *   const model = yield* LanguageModel.LanguageModel
- *   const response = yield* model.generateText({
+ *   const stream = model.streamText({
+ *     system: 'Be concise.',
  *     prompt: 'What is 2 + 2?',
  *   })
- *   return response.text
+ *   let text = ''
+ *   yield* Stream.runForEach(stream, (chunk) =>
+ *     Effect.sync(() => {
+ *       if ((chunk as any).type === 'text-delta') text += (chunk as any).delta
+ *     })
+ *   )
+ *   return text
  * })
  *
- * // Layer composition: LanguageModel ← OpenAiClient ← PiAuthBridge
- * const openAiLayer = makeOpenAiLayer('gpt-4o-mini')
- * const fullLayer = Layer.mergeAll(
- *   PiAuthBridgeLive,
- *   openAiLayer.pipe(Layer.provide(PiAuthBridgeLive)),
- * )
- * await Effect.runPromise(program.pipe(Effect.provide(fullLayer)))
+ * // Layer: LanguageModel ← Codex middleware ← PiAuthBridge
+ * const layer = makeOpenAiCodexLayer('gpt-5.2')
+ *   .pipe(Layer.provide(PiAuthBridgeLive))
+ * await Effect.runPromise(program.pipe(Effect.provide(layer)))
  * ```
  *
  * ## Quick Start (env var, no OAuth)
@@ -41,8 +45,8 @@
  *
  * ```
  * PiAuthBridge (reads ~/.pi/agent/auth.json)
- *   → OpenAiClient.make({ apiKey }) / AnthropicClient.make({ apiKey })
- *     → LanguageModel (unified @effect/ai interface)
+ *   → Codex HttpClient Middleware (headers, body transform, SSE normalization)
+ *     → OpenAiClient → LanguageModel (unified @effect/ai interface)
  *       → Your Effect programs
  * ```
  */
@@ -69,6 +73,7 @@ export {
   listProviders,
   makeAnthropicLayer,
   makeAnthropicLayerFromEnv,
+  makeOpenAiCodexLayer,
   makeOpenAiLayer,
   makeOpenAiLayerFromEnv,
   OpenAiMiniLayerEnv,
