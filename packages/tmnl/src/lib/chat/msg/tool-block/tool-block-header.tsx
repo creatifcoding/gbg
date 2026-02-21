@@ -1,41 +1,63 @@
 /**
- * ChatToolBlock.Header — Clickable trigger showing tool name and state badge.
+ * ChatToolBlock.Header — Clickable trigger with inline tool metadata.
+ *
+ * When collapsed: shows tool name + state badge + contextual metadata
+ * from the renderer's registered HeaderMeta component.
+ *
+ * When expanded: metadata slides out (the renderer shows the full version).
+ *
+ * Header metas are registered per-tool via registerToolHeaderMeta().
+ * Each tool decides what to surface — file path, command, pattern, etc.
  *
  * @module chat/msg/tool-block
  */
 
 import { forwardRef, memo, type ComponentPropsWithoutRef, type ReactNode } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import {
   WrenchIcon,
   CheckCircleIcon,
   CircleIcon,
-  ClockIcon,
   XCircleIcon,
   ShieldAlertIcon,
   ChevronDownIcon,
 } from 'lucide-react'
 import type { ToolInvocationState } from '@/lib/morphchat/schemas/message-types'
 import { useChatToolBlock } from './tool-block-context'
+import { getToolHeaderMeta } from './renderers/registry'
 
 // =============================================================================
 // State config
 // =============================================================================
 
 const STATE_CONFIG: Record<ToolInvocationState, {
-  icon: typeof WrenchIcon
+  icon: typeof WrenchIcon | null
   label: string
   color: string
-  iconColor: string
 }> = {
-  pending:              { icon: CircleIcon,       label: 'Pending',    color: 'text-neutral-500', iconColor: 'text-neutral-500' },
-  running:              { icon: ClockIcon,        label: 'Running',    color: 'text-cyan-400',    iconColor: 'text-cyan-400' },
-  'approval-required':  { icon: ShieldAlertIcon,  label: 'Approval',   color: 'text-amber-400',   iconColor: 'text-amber-400' },
-  approved:             { icon: CheckCircleIcon,  label: 'Approved',   color: 'text-blue-400',    iconColor: 'text-blue-400' },
-  completed:            { icon: CheckCircleIcon,  label: 'Completed',  color: 'text-emerald-400', iconColor: 'text-emerald-400' },
-  error:                { icon: XCircleIcon,      label: 'Error',      color: 'text-red-400',     iconColor: 'text-red-400' },
-  denied:               { icon: XCircleIcon,      label: 'Denied',     color: 'text-orange-400',  iconColor: 'text-orange-400' },
+  pending:              { icon: CircleIcon,       label: 'Pending',    color: 'text-neutral-500' },
+  running:              { icon: null,             label: 'Running',    color: 'text-cyan-400' },
+  'approval-required':  { icon: ShieldAlertIcon,  label: 'Approval',   color: 'text-amber-400' },
+  approved:             { icon: CheckCircleIcon,  label: 'Approved',   color: 'text-blue-400' },
+  completed:            { icon: CheckCircleIcon,  label: 'Done',       color: 'text-emerald-400' },
+  error:                { icon: XCircleIcon,      label: 'Error',      color: 'text-red-400' },
+  denied:               { icon: XCircleIcon,      label: 'Denied',     color: 'text-orange-400' },
 }
+
+/** Live pulsing dot for running state */
+function LiveDot() {
+  return (
+    <span className="relative flex size-2.5 shrink-0">
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-60" />
+      <span className="relative inline-flex size-2.5 rounded-full bg-cyan-400" />
+    </span>
+  )
+}
+
+// ── Motion ────────────────────────────────────────────────
+
+const META_EASE: [number, number, number, number] = [0.32, 0.72, 0, 1]
 
 // =============================================================================
 // Props
@@ -54,9 +76,12 @@ export interface ChatToolBlockHeaderProps extends ComponentPropsWithoutRef<'butt
 
 export const ChatToolBlockHeader = memo(forwardRef<HTMLButtonElement, ChatToolBlockHeaderProps>(
   ({ title, renderBadge, className, children, ...props }, ref) => {
-    const { toolName, state, isOpen, setIsOpen, hasDetails } = useChatToolBlock()
+    const { toolCallId, toolName, state, input, output, errorText, isOpen, setIsOpen, hasDetails } = useChatToolBlock()
     const config = STATE_CONFIG[state]
     const StateIcon = config.icon
+
+    // Look up registered header meta for this tool
+    const HeaderMeta = getToolHeaderMeta(toolName)
 
     return (
       <button
@@ -65,7 +90,7 @@ export const ChatToolBlockHeader = memo(forwardRef<HTMLButtonElement, ChatToolBl
         data-slot="tmnl-chat-tool-header"
         onClick={() => hasDetails && setIsOpen(!isOpen)}
         className={cn(
-          'flex w-full items-center justify-between gap-2 px-3 py-1.5',
+          'flex w-full items-center gap-2 px-3 py-1.5',
           'text-left font-mono transition-colors duration-150',
           hasDetails && 'cursor-pointer hover:bg-neutral-900/50',
           !hasDetails && 'cursor-default',
@@ -78,27 +103,58 @@ export const ChatToolBlockHeader = memo(forwardRef<HTMLButtonElement, ChatToolBl
       >
         {children ?? (
           <>
-            <div className="flex items-center gap-2 min-w-0">
+            {/* ── Left: icon · name · state ── */}
+            <div className="flex items-center gap-2 shrink-0">
               <WrenchIcon className="size-3.5 text-neutral-600 shrink-0" />
-              <span className="text-neutral-400 truncate">
+              <span className="text-neutral-400">
                 {title ?? toolName}
               </span>
-              {/* State badge */}
               {renderBadge ? renderBadge(state) : (
-                <span
-                  className={cn(
-                    'flex items-center gap-1 shrink-0',
-                    config.color,
-                  )}
-                >
-                  <StateIcon className={cn(
-                    'size-3',
-                    state === 'running' && 'animate-pulse',
-                  )} />
+                <span className={cn('flex items-center gap-1.5 shrink-0', config.color)}>
+                  {state === 'running' ? (
+                    <LiveDot />
+                  ) : StateIcon ? (
+                    <StateIcon className="size-3" />
+                  ) : null}
                   <span className={config.color}>{config.label}</span>
                 </span>
               )}
             </div>
+
+            {/* ── Center: contextual metadata from renderer — visible when collapsed ── */}
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <AnimatePresence initial={false}>
+                {!isOpen && HeaderMeta && (
+                  <motion.div
+                    key="header-meta"
+                    initial={{ opacity: 0, x: -6, filter: 'blur(4px)' }}
+                    animate={{
+                      opacity: 1,
+                      x: 0,
+                      filter: 'blur(0px)',
+                      transition: { duration: 0.2, ease: META_EASE, delay: 0.06 },
+                    }}
+                    exit={{
+                      opacity: 0,
+                      x: 6,
+                      filter: 'blur(4px)',
+                      transition: { duration: 0.12, ease: 'easeIn' },
+                    }}
+                    className="truncate"
+                  >
+                    <HeaderMeta
+                      input={input}
+                      output={output}
+                      errorText={errorText}
+                      state={state}
+                      toolCallId={toolCallId}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* ── Right: chevron ── */}
             {hasDetails && (
               <ChevronDownIcon
                 className={cn(
