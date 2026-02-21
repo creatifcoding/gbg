@@ -95,8 +95,15 @@ export type { ChatArtifactCardRootProps } from './card'
 // ---------------------------------------------------------------------------
 // Status (Phase 2)
 // ---------------------------------------------------------------------------
-export { ChatConnectionBadge, ChatTelemetryPill } from './status'
-export type { ChatConnectionBadgeProps, ChatTelemetryPillProps } from './status'
+export { ChatConnectionBadge, ChatTelemetryPill, ChatErrorDetailsModal } from './status'
+export type {
+  ChatConnectionBadgeProps,
+  ChatTelemetryPillProps,
+  ChatErrorDetailsModalProps,
+  ChatErrorModalSeverity,
+  ChatErrorModalViewVariant,
+  ChatErrorModalAdapterVariant,
+} from './status'
 
 // ---------------------------------------------------------------------------
 // Banner + Empty (Phase 2)

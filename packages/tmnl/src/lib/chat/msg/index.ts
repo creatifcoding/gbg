@@ -189,3 +189,6 @@ export type { ChatInlineTaskVirtualizedListProps } from './inline-task-virtualiz
 
 export { ChatInlineTaskThread } from './inline-task-thread'
 export type { ChatInlineTaskThreadProps } from './inline-task-thread'
+
+// Shared utilities
+export { useThrottledHighlight, detectLanguage, resolveFileParts } from './shared/use-throttled-highlight'

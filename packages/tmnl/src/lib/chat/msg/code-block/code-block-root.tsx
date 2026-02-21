@@ -2,7 +2,8 @@
  * ChatCodeBlock.Root — Compound root providing code context.
  *
  * Pure black TMNL styling. Dark-only — no light/dark toggle.
- * Async shiki highlighting with graceful fallback to raw <pre>.
+ * Shiki highlighting with throttled re-highlight during streaming (~300ms).
+ * Live line counter + streaming indicator in header chrome.
  *
  * @module chat/msg/code-block
  */
@@ -19,8 +20,8 @@ import {
 } from 'react'
 import { cn } from '@/lib/utils'
 import { useBlockDensity } from '../density-context'
-import { codeToHtml, type BundledLanguage } from 'shiki'
 import { ChatCodeBlockContext, type ChatCodeBlockContextValue } from './code-block-context'
+import { useThrottledHighlight } from '../shared/use-throttled-highlight'
 
 // =============================================================================
 // Props
@@ -56,33 +57,8 @@ export const ChatCodeBlockRoot = memo(forwardRef<HTMLDivElement, ChatCodeBlockRo
     ref,
   ) => {
     const density = useBlockDensity('code')
-    const [highlightedHtml, setHighlightedHtml] = useState<string>('')
-    const mountedRef = useRef(false)
-
-    // Async shiki highlighting — TMNL uses one-dark-pro (pure-black compatible)
-    useEffect(() => {
-      mountedRef.current = true
-
-      // Don't highlight while streaming — too expensive per delta
-      if (isStreaming) {
-        setHighlightedHtml('')
-        return
-      }
-
-      codeToHtml(code, {
-        lang: language as BundledLanguage,
-        theme: 'one-dark-pro',
-      })
-        .then((html) => {
-          if (mountedRef.current) setHighlightedHtml(html)
-        })
-        .catch(() => {
-          // Fallback: no highlighting
-          if (mountedRef.current) setHighlightedHtml('')
-        })
-
-      return () => { mountedRef.current = false }
-    }, [code, language, isStreaming])
+    const lines = code.split('\n')
+    const totalLines = lines.length
 
     const ctx: ChatCodeBlockContextValue = {
       code,
@@ -114,10 +90,8 @@ export const ChatCodeBlockRoot = memo(forwardRef<HTMLDivElement, ChatCodeBlockRo
       )
     }
 
-    // ── Line truncation ─────────────────────────────────
+    // ── Line truncation (only when NOT streaming) ────────
     const VISIBLE_LINES = 12
-    const lines = code.split('\n')
-    const totalLines = lines.length
     const isTruncatable = totalLines > VISIBLE_LINES && !isStreaming
     const [expanded, setExpanded] = useState(false)
     const toggleExpand = useCallback(() => setExpanded((p) => !p), [])
@@ -126,27 +100,8 @@ export const ChatCodeBlockRoot = memo(forwardRef<HTMLDivElement, ChatCodeBlockRo
       ? lines.slice(0, VISIBLE_LINES).join('\n')
       : code
 
-    // Re-highlight when truncation toggles
-    const [truncatedHtml, setTruncatedHtml] = useState<string>('')
-    useEffect(() => {
-      if (isStreaming || !isTruncatable) {
-        setTruncatedHtml('')
-        return
-      }
-      let alive = true
-      codeToHtml(displayCode, {
-        lang: language as BundledLanguage,
-        theme: 'one-dark-pro',
-      })
-        .then((html) => { if (alive) setTruncatedHtml(html) })
-        .catch(() => { if (alive) setTruncatedHtml('') })
-      return () => { alive = false }
-    }, [displayCode, language, isStreaming, isTruncatable])
-
-    const activeHtml = isTruncatable ? truncatedHtml : highlightedHtml
-    const activeCode = isTruncatable && !expanded
-      ? displayCode
-      : code
+    // ── Throttled shiki highlight (works DURING streaming) ─
+    const highlightedHtml = useThrottledHighlight(displayCode, language, isStreaming)
 
     // ── Full/Compact density ─────────────────────────────
     const maxHeight = density === 'compact' ? 'max-h-48 overflow-auto' : ''
@@ -160,15 +115,55 @@ export const ChatCodeBlockRoot = memo(forwardRef<HTMLDivElement, ChatCodeBlockRo
           data-language={language}
           data-streaming={isStreaming || undefined}
           className={cn(
-            'group relative rounded border border-neutral-800 overflow-hidden',
+            'group relative rounded border overflow-hidden',
             density === 'compact' ? 'my-1' : 'my-1.5',
             'bg-neutral-950',
+            isStreaming ? 'border-cyan-500/30' : 'border-neutral-800',
             className,
           )}
           {...props}
         >
-          {/* Highlighted code area */}
-          {activeHtml ? (
+          {/* ── Inline chrome header ────────────────────── */}
+          <div
+            className={cn(
+              'flex items-center justify-between px-3 py-1 border-b',
+              isStreaming ? 'border-cyan-500/20' : 'border-neutral-800',
+            )}
+          >
+            <div className="flex items-center gap-2">
+              {/* Language badge */}
+              {language && language !== 'text' && (
+                <span className="text-neutral-500 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+                  {filename ?? language}
+                </span>
+              )}
+              {/* Live streaming indicator */}
+              {isStreaming && (
+                <span className="flex items-center gap-1.5">
+                  <span className="relative flex size-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-60" />
+                    <span className="relative inline-flex size-2 rounded-full bg-cyan-400" />
+                  </span>
+                  <span className="text-cyan-400/70 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+                    streaming
+                  </span>
+                </span>
+              )}
+            </div>
+            {/* Line counter — evolves live */}
+            <span
+              className={cn(
+                'font-mono tabular-nums',
+                isStreaming ? 'text-cyan-500/60' : 'text-neutral-600',
+              )}
+              style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+            >
+              {totalLines} line{totalLines !== 1 ? 's' : ''}
+            </span>
+          </div>
+
+          {/* ── Highlighted code area ──────────────────── */}
+          {highlightedHtml ? (
             <div
               className={cn(
                 'overflow-auto',
@@ -177,18 +172,27 @@ export const ChatCodeBlockRoot = memo(forwardRef<HTMLDivElement, ChatCodeBlockRo
                 '[&_code]:font-mono',
               )}
               style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-              dangerouslySetInnerHTML={{ __html: activeHtml }}
+              dangerouslySetInnerHTML={{ __html: highlightedHtml }}
             />
           ) : (
             <pre
               className={cn('m-0 p-3 text-neutral-300 font-mono overflow-auto bg-transparent', maxHeight)}
               style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
             >
-              <code>{activeCode}</code>
+              <code>{displayCode}</code>
             </pre>
           )}
 
-          {/* Line truncation toggle */}
+          {/* ── Streaming cursor at bottom ─────────────── */}
+          {isStreaming && (
+            <div className="px-3 pb-1">
+              <span className="inline-block text-cyan-400 animate-pulse font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+                ▌
+              </span>
+            </div>
+          )}
+
+          {/* ── Line truncation toggle ─────────────────── */}
           {isTruncatable && (
             <button
               type="button"
@@ -206,7 +210,7 @@ export const ChatCodeBlockRoot = memo(forwardRef<HTMLDivElement, ChatCodeBlockRo
             </button>
           )}
 
-          {/* Compound children (Header, CopyButton, etc.) rendered as overlays */}
+          {/* Compound children (CopyButton, etc.) rendered as overlays */}
           {children}
         </div>
       </ChatCodeBlockContext.Provider>
