@@ -16,6 +16,7 @@ import { Schema } from "effect"
 import type { DomainCatalog, ComponentRenderProps } from "@/lib/genifer"
 import type { EntranceAnimation } from "@/lib/genifer"
 import {
+  Box,
   Grid,
   Stack,
   VStack,
@@ -350,6 +351,29 @@ function WrapRenderer({ element, children }: ComponentRenderProps) {
  * Default animations for layout components.
  * These are used when the LLM omits the entrance field on an element.
  */
+// =============================================================================
+// Box — Generic Tailwind container
+// =============================================================================
+
+const BoxPropsSchema = Schema.Struct({
+  /** Tailwind utility classes for layout */
+  className: Schema.optional(Schema.String),
+  /** Semantic HTML element (default: div) */
+  as: Schema.optional(Schema.Literal('div', 'section', 'article', 'aside', 'nav', 'main', 'header', 'footer')),
+})
+
+function BoxRenderer({ element, children }: ComponentRenderProps<{ className?: string; as?: string }>) {
+  return (
+    <Box className={element.props.className} as={(element.props.as as any) ?? 'div'}>
+      {children}
+    </Box>
+  )
+}
+
+// =============================================================================
+// Default Animations
+// =============================================================================
+
 const defaultAnimations = {
   /** Invisible elements - instant (0ms), satisfies schema without visible effect */
   instant: {
@@ -408,6 +432,13 @@ const defaultAnimations = {
 export const layoutDomainCatalog: DomainCatalog = {
   name: "TMNL Layout",
   components: {
+    Box: {
+      schema: BoxPropsSchema,
+      renderer: BoxRenderer,
+      description: 'Generic container with Tailwind className for custom layout. Use when VStack/HStack/Grid don\'t fit. The agent expresses layout intent directly via utility classes. "as" prop changes the HTML element (div, section, article, aside, nav, main, header, footer).',
+      hasChildren: true,
+      defaultEntrance: defaultAnimations.container,
+    },
     Grid: {
       schema: GridPropsSchema,
       renderer: GridRenderer,

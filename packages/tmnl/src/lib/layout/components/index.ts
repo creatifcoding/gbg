@@ -33,5 +33,8 @@ export {
   type WrapProps,
 } from "./Flex"
 
+// Box
+export { Box, type BoxProps } from "./Box"
+
 // ResizeHandle
 export { ResizeHandle, type ResizeHandleProps } from "./ResizeHandle"
