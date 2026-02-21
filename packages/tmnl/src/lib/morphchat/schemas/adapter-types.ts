@@ -119,6 +119,16 @@ export interface MorphChatAdapter {
   /** Select a model — applies to next message */
   readonly selectModel?: (modelId: string) => void
 
+  /** Status/interruption rows for inline banners (optional) */
+  readonly statusRows$?: Atom.Atom<ReadonlyArray<{
+    readonly id: string
+    readonly tone: 'info' | 'warn' | 'error'
+    readonly text: string
+    readonly code?: string
+    readonly details?: unknown
+    readonly source?: 'harness' | 'mock' | 'surface'
+  }>>
+
   /** Metrics from harness events (optional — only harness adapter provides) */
   readonly metrics$?: Atom.Atom<ReadonlyArray<unknown>>
 

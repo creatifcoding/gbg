@@ -106,12 +106,28 @@ function createClientMessageId(): HarnessClientMessageId {
 // Thinking Level Mapping
 // =============================================================================
 
-function toHarnessThinkingLevel(level?: number): Option.Option<HarnessThinkingLevel> {
-  if (level == null || level === 0) return Option.none()
-  if (level <= 1) return Option.some('minimal' as HarnessThinkingLevel)
-  if (level <= 2) return Option.some('low' as HarnessThinkingLevel)
-  if (level <= 3) return Option.some('medium' as HarnessThinkingLevel)
-  return Option.some('high' as HarnessThinkingLevel)
+function toHarnessThinkingLevel(level?: unknown): Option.Option<HarnessThinkingLevel> {
+  if (level == null) return Option.none()
+
+  if (typeof level === 'string') {
+    switch (level) {
+      case 'none': return Option.some('off' as HarnessThinkingLevel)
+      case 'low': return Option.some('low' as HarnessThinkingLevel)
+      case 'medium': return Option.some('medium' as HarnessThinkingLevel)
+      case 'high': return Option.some('high' as HarnessThinkingLevel)
+      default: return Option.none()
+    }
+  }
+
+  if (typeof level === 'number') {
+    if (Number.isNaN(level)) return Option.none()
+    if (level <= 0) return Option.some('off' as HarnessThinkingLevel)
+    if (level <= 1) return Option.some('low' as HarnessThinkingLevel)
+    if (level <= 2) return Option.some('medium' as HarnessThinkingLevel)
+    return Option.some('high' as HarnessThinkingLevel)
+  }
+
+  return Option.none()
 }
 
 // =============================================================================
@@ -147,6 +163,14 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
 
   const inlineTasks$ = Atom.make<ReadonlyArray<unknown>>([])
   morphChatRegistry.mount(inlineTasks$)
+
+  /** Last operational (non-fatal) error from the engine. Null when clear. */
+  const lastError$ = Atom.make<{ code: string; message: string; at: number } | null>(null)
+  morphChatRegistry.mount(lastError$)
+
+  /** Timestamp of last user-initiated cancellation. Null when clear. UI uses this for fading badge. */
+  const cancelledAt$ = Atom.make<number | null>(null)
+  morphChatRegistry.mount(cancelledAt$)
 
   // ── Internal State ──────────────────────────────────────
 
@@ -454,9 +478,35 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
       }
 
       case 'chat:v2/error': {
-        morphChatRegistry.set(connection$, {
-          phase: 'error',
-          error: `[${event.code}] ${event.message}`,
+        // Every chat:v2/error arrives THROUGH the WebSocket — the transport
+        // is alive. These are all session/stream-level failures, not connection
+        // failures. Retryable errors are retried upstream in the engine;
+        // what reaches here is post-retry or non-retryable.
+        // Connection$ stays untouched — only transport-level failures (WS close,
+        // network drop) should set phase:'error'.
+        const code = event.code
+
+        if (code === 'aborted') {
+          // User-initiated cancellation. Partial content stays in messages$.
+          // Set cancelledAt$ so the UI can show a fading badge.
+          morphChatRegistry.set(cancelledAt$, event.at)
+          morphChatRegistry.set(streaming$, STREAMING_IDLE)
+          break
+        }
+
+        if (code === 'adapter-noop-diagnostic') {
+          // Adapter couldn't map an event — console.warn only, no user-visible indicator.
+          console.warn(`[HarnessAdapter] noop diagnostic: ${event.message}`)
+          morphChatRegistry.set(streaming$, STREAMING_IDLE)
+          break
+        }
+
+        // All other operational errors → lastError$ atom for UI consumption.
+        console.warn(`[HarnessAdapter] session error: [${code}] ${event.message}`)
+        morphChatRegistry.set(lastError$, {
+          code,
+          message: event.message,
+          at: event.at,
         })
         morphChatRegistry.set(streaming$, STREAMING_IDLE)
         break
@@ -645,6 +695,8 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
     streaming$,
     agents$,
     inlineTasks$,
+    lastError$,
+    cancelledAt$,
     transferConfig: config.transferConfig,
     send,
     cancel,
@@ -674,4 +726,8 @@ export interface HarnessAdapterExtensions {
   readonly getSnapshot: () => Effect.Effect<unknown>
   /** Current session ID (null if not connected) */
   readonly sessionId: HarnessSessionId | null
+  /** Last operational error atom (null when clear). Subscribe for error banner. */
+  readonly lastError$: typeof Atom.make<{ code: string; message: string; at: number } | null>
+  /** Timestamp of last user cancellation (null when clear). Subscribe for fading badge. */
+  readonly cancelledAt$: typeof Atom.make<number | null>
 }

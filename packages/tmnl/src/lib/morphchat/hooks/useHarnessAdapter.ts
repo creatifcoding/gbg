@@ -17,8 +17,13 @@ import React, { useEffect, useRef } from 'react'
 import { Atom, useAtom, Result } from '@effect-atom/atom-react'
 import { Effect, Option, Stream, Fiber } from 'effect'
 import {
+  toolStreamSink as toolStreamSinkEffect,
+  toolStreamFinalize as toolStreamFinalizeEffect,
+} from '@/lib/chat/msg/tool-block/renderers/terminal/tool-stream-sink'
+import {
   HarnessRuntime,
   HarnessRuntimeBrowserWebSocketDefault,
+  HarnessRuntimeError,
 } from '@/lib/harness'
 import type {
   HarnessRole,
@@ -58,7 +63,10 @@ morphChatRegistry.mount(harnessAgents$)
 
 // Model selection atoms
 export const harnessAvailableModels$ = Atom.make<ReadonlyArray<{
+  /** UI selection key (provider-scoped): `${provider}:${modelId}` */
   readonly id: string
+  /** Raw model id sent to harness runtime (e.g. gpt-5.3-codex-spark) */
+  readonly modelId: string
   readonly label: string
   readonly provider: string
   readonly description?: string
@@ -68,6 +76,18 @@ morphChatRegistry.mount(harnessAvailableModels$)
 
 export const harnessSelectedModel$ = Atom.make<string | null>(null)
 morphChatRegistry.mount(harnessSelectedModel$)
+
+export interface HarnessStatusRow {
+  readonly id: string
+  readonly tone: 'info' | 'warn' | 'error'
+  readonly text: string
+  readonly code?: string
+  readonly details?: unknown
+  readonly source?: 'harness' | 'surface' | 'mock'
+}
+
+export const harnessStatusRows$ = Atom.make<ReadonlyArray<HarnessStatusRow>>([])
+morphChatRegistry.mount(harnessStatusRows$)
 
 // Internal: pending model override for next send
 const harnessModelOverride$ = Atom.make<{ provider: string; modelId: string } | null>(null)
@@ -118,11 +138,140 @@ function getProcessor(agentName: string) {
         sessionId$: harnessSessionId$,
         metrics$: harnessMetrics$,
         provider$: harnessProvider$,
+        statusRows$: harnessStatusRows$,
       },
       agentName,
     })
   }
   return _processor
+}
+
+function pushStatusRow(row: HarnessStatusRow): void {
+  morphChatRegistry.update(harnessStatusRows$, (prev) => [row, ...prev].slice(0, 8))
+}
+
+function formatUnknownErrorPayload(payload: unknown): { code?: string; message: string; details: unknown } {
+  const stringify = (value: unknown) => {
+    try {
+      return JSON.stringify(value, null, 2)
+    } catch {
+      return String(value)
+    }
+  }
+
+  const unwrapOptionLike = (value: unknown): unknown => {
+    if (!value || typeof value !== 'object') return value
+    const rec = value as Record<string, unknown>
+    if (rec._tag === 'Some') return rec.value
+    if (rec._tag === 'None') return undefined
+    return value
+  }
+
+  if (payload instanceof HarnessRuntimeError) {
+    const cause = unwrapOptionLike((payload as any).cause)
+    const structured = {
+      _tag: 'HarnessRuntimeError',
+      code: payload.code,
+      message: payload.message,
+      cause,
+    }
+    return {
+      code: payload.code,
+      message: payload.message,
+      details: structured,
+    }
+  }
+
+  if (payload instanceof Error) {
+    return {
+      code: payload.name,
+      message: payload.message,
+      details: payload.stack ?? `${payload.name}: ${payload.message}`,
+    }
+  }
+
+  if (typeof payload === 'string') {
+    // Try parsing serialized structured error first.
+    try {
+      const parsed = JSON.parse(payload) as { code?: string; message?: string }
+      if (typeof parsed?.message === 'string') {
+        return {
+          code: typeof parsed.code === 'string' ? parsed.code : undefined,
+          message: parsed.message,
+          details: JSON.stringify(parsed, null, 2),
+        }
+      }
+    } catch {
+      // plain string fallback
+    }
+    return { message: payload, details: payload }
+  }
+
+  if (payload && typeof payload === 'object') {
+    const record = payload as Record<string, unknown>
+    const message = typeof record.message === 'string' ? record.message : stringify(record)
+    const code = typeof record.code === 'string' ? record.code : undefined
+    return {
+      code,
+      message,
+      details: record,
+    }
+  }
+
+  return {
+    message: String(payload),
+    details: String(payload),
+  }
+}
+
+function runtimeErrorToStatus(op: string, err: HarnessRuntimeError): HarnessStatusRow {
+  const parsed = formatUnknownErrorPayload(err)
+  const summary = `[${op}] ${parsed.code ? `[${parsed.code}] ` : ''}${parsed.message}`
+  return {
+    id: `status-${Date.now()}-${op}`,
+    tone: 'error',
+    text: summary,
+    code: parsed.code,
+    details: parsed.details,
+    source: 'harness',
+  }
+}
+
+function toNumericThinkingLevel(level?: unknown): number | undefined {
+  if (level == null) return undefined
+  if (typeof level === 'number') return Number.isNaN(level) ? undefined : level
+
+  if (typeof level === 'string') {
+    switch (level) {
+      case 'none': return undefined
+      case 'low': return 1
+      case 'medium': return 2
+      case 'high': return 3
+      default: return undefined
+    }
+  }
+
+  return undefined
+}
+
+function toHarnessThinkingLevel(level?: unknown): Option.Option<HarnessThinkingLevel> {
+  if (typeof level === 'string') {
+    switch (level) {
+      case 'none': return Option.some('off' as HarnessThinkingLevel)
+      case 'low': return Option.some('low' as HarnessThinkingLevel)
+      case 'medium': return Option.some('medium' as HarnessThinkingLevel)
+      case 'high': return Option.some('high' as HarnessThinkingLevel)
+      default: return Option.none()
+    }
+  }
+
+  const numeric = toNumericThinkingLevel(level)
+  if (numeric == null) return Option.none()
+
+  if (numeric <= 0) return Option.some('off' as HarnessThinkingLevel)
+  if (numeric <= 1) return Option.some('low' as HarnessThinkingLevel)
+  if (numeric <= 2) return Option.some('medium' as HarnessThinkingLevel)
+  return Option.some('high' as HarnessThinkingLevel)
 }
 
 // =============================================================================
@@ -162,12 +311,46 @@ export const harnessOps = {
       // forkDaemon detaches the fiber from this fn-atom's scope so it
       // survives past the connect() call returning.
       const processor = getProcessor(agentName)
-      const fiber = yield* Stream.runForEach(runtime.events, (event) =>
-        Effect.sync(() => processor.processEvent(event)),
+      const fiber = yield* runtime.events.pipe(
+        // Side-channel: intercept phase:'stream' tool events → sidecar registry
+        Stream.tap((event) => {
+          if (
+            event._tag === 'chat:v2/tool_event' &&
+            (event as any).phase === 'stream' &&
+            (event as any).payload?.chunk != null
+          ) {
+            return toolStreamSinkEffect({
+              toolCallId: (event as any).toolCallId,
+              toolName: (event as any).toolName,
+              payload: (event as any).payload,
+            })
+          }
+          // Finalize stream on tool end
+          if (
+            event._tag === 'chat:v2/tool_event' &&
+            (event as any).phase === 'end'
+          ) {
+            return toolStreamFinalizeEffect((event as any).toolCallId)
+          }
+          return Effect.void
+        }),
+        Stream.runForEach((event) =>
+          Effect.sync(() => processor.processEvent(event)),
+        ),
       ).pipe(
         Effect.catchAll((err) =>
           Effect.sync(() => {
-            morphChatRegistry.set(harnessConnection$, { phase: 'error', error: String(err) } as ConnectionState)
+            const parsed = formatUnknownErrorPayload(err)
+            const summary = `[events] ${parsed.code ? `[${parsed.code}] ` : ''}${parsed.message}`
+            morphChatRegistry.set(harnessConnection$, { phase: 'error', error: summary } as ConnectionState)
+            pushStatusRow({
+              id: `status-${Date.now()}-events`,
+              tone: 'error',
+              text: summary,
+              code: parsed.code,
+              details: parsed.details,
+              source: 'harness',
+            })
           }),
         ),
         Effect.forkDaemon,
@@ -193,13 +376,37 @@ export const harnessOps = {
         name: agentName,
         isActive: true,
       }])
+      morphChatRegistry.set(harnessStatusRows$, [])
 
       return session.sessionId as string
     }).pipe(
-      Effect.tapError((error) =>
+      Effect.catchTag('HarnessRuntimeError', (error) =>
+        Effect.gen(function* () {
+          yield* Effect.sync(() => {
+            console.error('[harnessOps.connect] runtime error:', error)
+            morphChatRegistry.set(harnessConnection$, {
+              phase: 'error',
+              error: `[${error.code}] ${error.message}`,
+            } as ConnectionState)
+            pushStatusRow(runtimeErrorToStatus('connect', error))
+          })
+          return yield* Effect.fail(error)
+        }),
+      ),
+      Effect.catchAll((error) =>
         Effect.sync(() => {
-          console.error('[harnessOps.connect] error:', error)
-          morphChatRegistry.set(harnessConnection$, { phase: 'error', error: String(error) } as ConnectionState)
+          console.error('[harnessOps.connect] unexpected error:', error)
+          const parsed = formatUnknownErrorPayload(error)
+          const summary = `[connect] ${parsed.code ? `[${parsed.code}] ` : ''}${parsed.message}`
+          morphChatRegistry.set(harnessConnection$, { phase: 'error', error: summary } as ConnectionState)
+          pushStatusRow({
+            id: `status-${Date.now()}-connect-unexpected`,
+            tone: 'error',
+            text: summary,
+            code: parsed.code,
+            details: parsed.details,
+            source: 'harness',
+          })
         }),
       ),
     ),
@@ -212,16 +419,51 @@ export const harnessOps = {
     Effect.gen(function* () {
       const runtime = yield* HarnessRuntime
       const models = yield* runtime.getAvailableModels()
-      morphChatRegistry.set(harnessAvailableModels$, models.map((m) => ({
-        id: m.id,
-        label: m.name,
-        provider: m.provider,
-        description: `${m.provider} · ${m.contextWindow.toLocaleString()} ctx`,
-      })))
+
+      // Disambiguate duplicate model ids across providers (e.g. openai vs openai-codex)
+      const idCounts = new Map<string, number>()
+      for (const m of models) {
+        idCounts.set(m.id, (idCounts.get(m.id) ?? 0) + 1)
+      }
+
+      // Prefer openai-codex entries first when names collide with openai
+      const sorted = [...models].sort((a, b) => {
+        const pa = a.provider === 'openai-codex' ? -1 : 0
+        const pb = b.provider === 'openai-codex' ? -1 : 0
+        if (pa !== pb) return pa - pb
+        return a.name.localeCompare(b.name)
+      })
+
+      morphChatRegistry.set(harnessAvailableModels$, sorted.map((m) => {
+        const duplicated = (idCounts.get(m.id) ?? 0) > 1
+        return {
+          id: `${m.provider}:${m.id}`,
+          modelId: m.id,
+          label: duplicated ? `${m.name} (${m.provider})` : m.name,
+          provider: m.provider,
+          description: `${m.provider} · ${m.contextWindow.toLocaleString()} ctx`,
+        }
+      }))
     }).pipe(
+      Effect.catchTag('HarnessRuntimeError', (error) =>
+        Effect.sync(() => {
+          console.warn('[harnessOps.fetchModels] runtime error:', error)
+          pushStatusRow(runtimeErrorToStatus('models', error))
+        }),
+      ),
       Effect.catchAll((err) =>
         Effect.sync(() => {
           console.warn('[harnessOps.fetchModels] failed:', err)
+          const parsed = formatUnknownErrorPayload(err)
+          const summary = `[models] ${parsed.code ? `[${parsed.code}] ` : ''}${parsed.message}`
+          pushStatusRow({
+            id: `status-${Date.now()}-models-unexpected`,
+            tone: 'warn',
+            text: summary,
+            code: parsed.code,
+            details: parsed.details,
+            source: 'harness',
+          })
         }),
       ),
     ),
@@ -233,7 +475,7 @@ export const harnessOps = {
    */
   send: harnessRuntimeAtom.fn<{
     content: string
-    thinkingLevel?: number
+    thinkingLevel?: unknown
   }>()(({ content, thinkingLevel }, _ctx) =>
     Effect.gen(function* () {
       const sessionId = morphChatRegistry.get(harnessSessionId$)
@@ -242,6 +484,8 @@ export const harnessOps = {
 
       const clientMessageId = `cmid-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` as HarnessClientMessageId
 
+      const numericThinkingLevel = toNumericThinkingLevel(thinkingLevel)
+
       // Optimistic user message
       const userMsg: ChatMessage = {
         id: clientMessageId as string,
@@ -249,16 +493,11 @@ export const harnessOps = {
         content,
         timestamp: new Date().toISOString(),
         status: 'pending',
-        thinkingLevel,
+        ...(numericThinkingLevel == null ? {} : { thinkingLevel: numericThinkingLevel }),
       }
       morphChatRegistry.set(harnessMessages$, [...morphChatRegistry.get(harnessMessages$), userMsg])
 
-      const tl: Option.Option<HarnessThinkingLevel> =
-        thinkingLevel == null || thinkingLevel === 0 ? Option.none() :
-        thinkingLevel <= 1 ? Option.some('minimal' as HarnessThinkingLevel) :
-        thinkingLevel <= 2 ? Option.some('low' as HarnessThinkingLevel) :
-        thinkingLevel <= 3 ? Option.some('medium' as HarnessThinkingLevel) :
-        Option.some('high' as HarnessThinkingLevel)
+      const tl: Option.Option<HarnessThinkingLevel> = toHarnessThinkingLevel(thinkingLevel)
 
       // Consume pending model override (one-shot: applied to this message, then cleared)
       const override = morphChatRegistry.get(harnessModelOverride$)
@@ -266,12 +505,35 @@ export const harnessOps = {
 
       yield* runtime.send(sessionId, clientMessageId, content, tl, override ?? undefined)
     }).pipe(
-      Effect.tapError((error) =>
+      Effect.catchTag('HarnessRuntimeError', (error) =>
         Effect.sync(() => {
-          console.error('[harnessOps.send] ERROR:', error)
+          console.error('[harnessOps.send] runtime error:', error)
           morphChatRegistry.set(harnessMessages$, morphChatRegistry.get(harnessMessages$).map((msg) =>
             msg.status === 'pending' ? { ...msg, status: 'error' as const } : msg,
           ))
+          morphChatRegistry.set(harnessConnection$, {
+            phase: 'error',
+            error: `[${error.code}] ${error.message}`,
+          } as ConnectionState)
+          pushStatusRow(runtimeErrorToStatus('send', error))
+        }),
+      ),
+      Effect.catchAll((error) =>
+        Effect.sync(() => {
+          console.error('[harnessOps.send] unexpected error:', error)
+          const parsed = formatUnknownErrorPayload(error)
+          const summary = `[send] ${parsed.code ? `[${parsed.code}] ` : ''}${parsed.message}`
+          morphChatRegistry.set(harnessMessages$, morphChatRegistry.get(harnessMessages$).map((msg) =>
+            msg.status === 'pending' ? { ...msg, status: 'error' as const } : msg,
+          ))
+          pushStatusRow({
+            id: `status-${Date.now()}-send-unexpected`,
+            tone: 'error',
+            text: summary,
+            code: parsed.code,
+            details: parsed.details,
+            source: 'harness',
+          })
         }),
       ),
     ),
@@ -292,7 +554,13 @@ export const harnessOps = {
         ),
       )
       morphChatRegistry.set(harnessStreaming$, STREAMING_IDLE)
-    }),
+    }).pipe(
+      Effect.catchTag('HarnessRuntimeError', (error) =>
+        Effect.sync(() => {
+          pushStatusRow(runtimeErrorToStatus('cancel', error))
+        }),
+      ),
+    ),
   ),
 
   /**
@@ -310,6 +578,7 @@ export const harnessOps = {
       if (sessionId) yield* runtime.abortSession(sessionId)
       morphChatRegistry.set(harnessStreaming$, STREAMING_IDLE)
       morphChatRegistry.set(harnessConnection$, DISCONNECTED)
+      morphChatRegistry.set(harnessStatusRows$, [])
     }),
   ),
 
@@ -320,6 +589,7 @@ export const harnessOps = {
     Effect.sync(() => {
       morphChatRegistry.set(harnessMessages$, [] as ReadonlyArray<ChatMessage>)
       morphChatRegistry.set(harnessStreaming$, STREAMING_IDLE)
+      morphChatRegistry.set(harnessStatusRows$, [])
     }),
   ),
 }
@@ -428,16 +698,23 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
       agents$: harnessAgents$,
       metrics$: harnessMetrics$,
       provider$: harnessProvider$,
+      statusRows$: harnessStatusRows$,
       availableModels$: harnessAvailableModels$,
       selectedModel$: harnessSelectedModel$,
       selectModel: (modelId: string) => {
-        // Find provider from available models
+        // UI id is provider-scoped (`${provider}:${rawModelId}`)
         const models = morphChatRegistry.get(harnessAvailableModels$)
         const target = models.find((m) => m.id === modelId)
-        if (target) {
-          morphChatRegistry.set(harnessSelectedModel$, modelId)
-          morphChatRegistry.set(harnessModelOverride$, { provider: target.provider, modelId })
-        }
+        if (!target) return
+
+        const rawModelId = target.modelId
+          ?? (target.id.includes(':') ? target.id.slice(target.id.indexOf(':') + 1) : target.id)
+
+        morphChatRegistry.set(harnessSelectedModel$, modelId)
+        morphChatRegistry.set(harnessModelOverride$, {
+          provider: target.provider,
+          modelId: rawModelId,
+        })
       },
       send: (params: SendParams) => {
         sendRef.current({ content: params.content, thinkingLevel: params.thinkingLevel })

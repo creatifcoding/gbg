@@ -24,6 +24,7 @@ import type {
   TextPart,
   ThinkingPart,
   ToolInvocationPart,
+  CodePart,
   ConnectionState,
   StreamingState,
   AgentInfo,
@@ -45,6 +46,15 @@ export interface EventProcessorAtoms {
   readonly agents$: Atom.Atom<ReadonlyArray<AgentInfo>>
   readonly inlineTasks$?: Atom.Atom<ReadonlyArray<unknown>>
   readonly sessionId$?: Atom.Atom<string | null>
+  /** Inline status/interruption rows */
+  readonly statusRows$?: Atom.Atom<ReadonlyArray<{
+    id: string
+    tone: 'info' | 'warn' | 'error'
+    text: string
+    code?: string
+    details?: unknown
+    source?: 'harness' | 'mock' | 'surface'
+  }>>
   /** Metrics from chat:v2/metric events */
   readonly metrics$?: Atom.Atom<ReadonlyArray<MetricEntry>>
   /** Provider markers from chat:v2/provider_marker events */
@@ -86,19 +96,115 @@ function updateMessageParts(
   )
 }
 
+/**
+ * Fence-aware text delta appender.
+ *
+ * Detects ``` fences in the streaming text and splits into TextPart/CodePart
+ * in real-time. Each code block becomes its own CodePart the moment the fence
+ * opens — with language, isStreaming=true, and growing code content.
+ *
+ * When the closing ``` arrives, isStreaming flips to false.
+ */
 export function appendTextDelta(
   parts: ReadonlyArray<ChatMessagePart>,
   delta: string,
 ): ReadonlyArray<ChatMessagePart> {
   const arr = [...parts]
   const lastIdx = arr.length - 1
-  if (lastIdx >= 0 && arr[lastIdx]._tag === 'text') {
-    const textPart = arr[lastIdx] as TextPart
-    arr[lastIdx] = { ...textPart, content: textPart.content + delta }
+  const last = lastIdx >= 0 ? arr[lastIdx] : null
+
+  // Case 1: Currently inside a streaming code block → append to it
+  if (last && last._tag === 'code' && (last as CodePart).isStreaming) {
+    const codePart = last as CodePart
+    const newCode = codePart.code + delta
+
+    // Check if the closing fence arrived in this delta
+    // Look for ``` at start of a line in the NEW content
+    const closeFenceIdx = findClosingFence(newCode)
+    if (closeFenceIdx >= 0) {
+      // Split: code before fence → finalize CodePart, text after fence → new TextPart
+      const codeContent = newCode.slice(0, closeFenceIdx)
+      const afterFence = newCode.slice(closeFenceIdx).replace(/^```\s*\n?/, '')
+
+      arr[lastIdx] = { ...codePart, code: codeContent, isStreaming: false }
+      if (afterFence.length > 0) {
+        arr.push({ _tag: 'text' as const, content: afterFence })
+      }
+    } else {
+      arr[lastIdx] = { ...codePart, code: newCode }
+    }
+    return arr
+  }
+
+  // Case 2: Currently in a text part (or no parts yet) → check for opening fence
+  if (last && last._tag === 'text') {
+    const textPart = last as TextPart
+    const combined = textPart.content + delta
+
+    // Check for opening fence: ```lang\n
+    const openMatch = findOpeningFence(combined)
+    if (openMatch) {
+      // Split: text before fence → keep as TextPart, start new CodePart
+      const textBefore = combined.slice(0, openMatch.index)
+      const codeAfter = combined.slice(openMatch.index + openMatch.fullMatch.length)
+
+      if (textBefore.length > 0) {
+        arr[lastIdx] = { ...textPart, content: textBefore }
+      } else {
+        arr.splice(lastIdx, 1)
+      }
+      arr.push({
+        _tag: 'code' as const,
+        code: codeAfter,
+        language: openMatch.language || undefined,
+        isStreaming: true,
+      })
+    } else {
+      arr[lastIdx] = { ...textPart, content: combined }
+    }
+    return arr
+  }
+
+  // Case 3: Last part is something else (thinking, tool, etc.) → new TextPart
+  // But check if delta starts with a fence
+  const openMatch = findOpeningFence(delta)
+  if (openMatch && openMatch.index === 0) {
+    const codeAfter = delta.slice(openMatch.fullMatch.length)
+    arr.push({
+      _tag: 'code' as const,
+      code: codeAfter,
+      language: openMatch.language || undefined,
+      isStreaming: true,
+    })
   } else {
     arr.push({ _tag: 'text' as const, content: delta })
   }
   return arr
+}
+
+/** Find an opening fence (```lang\n) — returns match info or null */
+function findOpeningFence(text: string): { index: number; fullMatch: string; language: string } | null {
+  // Match ``` optionally followed by a language identifier, then a newline
+  const re = /^```(\w*)\s*\n/m
+  const match = re.exec(text)
+  if (!match) return null
+  return {
+    index: match.index,
+    fullMatch: match[0],
+    language: match[1] ?? '',
+  }
+}
+
+/** Find a closing fence (``` at start of line) in code content */
+function findClosingFence(code: string): number {
+  // The closing fence is ``` at the start of a line (after first line)
+  // We search from the second line onwards to avoid matching the opening
+  const re = /\n```\s*$/m
+  const match = re.exec(code)
+  if (match) return match.index + 1 // +1 to skip the \n, point at ```
+  // Also handle ``` at the very end without trailing newline
+  if (code.endsWith('\n```')) return code.length - 3
+  return -1
 }
 
 export function appendThinkingDelta(
@@ -133,6 +239,9 @@ export function finalizeThinking(
   )
 }
 
+/** Terminal states — once reached, cannot be downgraded by stale events */
+const TERMINAL_TOOL_STATES = new Set(['completed', 'error', 'denied'])
+
 export function upsertToolPart(
   parts: ReadonlyArray<ChatMessagePart>,
   toolCallId: string,
@@ -143,7 +252,18 @@ export function upsertToolPart(
     (p) => p._tag === 'tool-invocation' && (p as ToolInvocationPart).toolCallId === toolCallId,
   )
   if (idx >= 0) {
-    arr[idx] = { ...(arr[idx] as ToolInvocationPart), ...update }
+    const existing = arr[idx] as ToolInvocationPart
+    // Guard: never downgrade from a terminal state (completed/error/denied)
+    if (TERMINAL_TOOL_STATES.has(existing.state) && !TERMINAL_TOOL_STATES.has(update.state)) {
+      return parts // no-op, return original reference
+    }
+    // Merge update into existing — only overwrite defined (non-undefined) fields.
+    // This preserves prior input/output when a later event doesn't carry them.
+    const merged: Record<string, unknown> = { ...existing }
+    for (const [k, v] of Object.entries(update)) {
+      if (v !== undefined) merged[k] = v
+    }
+    arr[idx] = merged as ToolInvocationPart
   } else {
     arr.push({
       _tag: 'tool-invocation' as const,
@@ -164,6 +284,8 @@ export interface HarnessEventProcessorConfig {
   readonly nodeId?: string
 }
 
+
+
 export function createEventProcessor(config: HarnessEventProcessorConfig) {
   const { atoms, agentName, nodeId } = config
   let thinkingStartTime: number | null = null
@@ -183,6 +305,9 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
           name: agentName,
           isActive: true,
         }])
+        if (atoms.statusRows$) {
+          morphChatRegistry.set(atoms.statusRows$, [])
+        }
         break
       }
 
@@ -270,7 +395,13 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
                 { _tag: 'text' as const, content: event.text },
               ]
             }
-            // ── Hybrid code splitting: split text→code on final ──
+            // ── Finalize any streaming code parts ──
+            finalParts = finalParts.map((p) =>
+              p._tag === 'code' && (p as CodePart).isStreaming
+                ? { ...p, isStreaming: false } as CodePart
+                : p,
+            )
+            // ── Safety net: split any remaining text→code fences ──
             finalParts = splitPartsCodeFences(finalParts)
             return {
               ...msg,
@@ -315,23 +446,82 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       }
 
       case 'chat:v2/tool_event': {
-        const currentMessages = morphChatRegistry.get(atoms.messages$)
-        const streamingMsg = currentMessages.find((m) => m.status === 'streaming')
-        const targetMsgId = streamingMsg?.id
+        // phase:'stream' is handled by Stream.tap sidecar → toolStreamSink
+        if (event.phase === 'stream') break
 
-        const toolState = event.phase === 'start'
-          ? 'pending' as const
-          : event.phase === 'end'
-            ? 'completed' as const
-            : 'running' as const
+        const currentMessages = morphChatRegistry.get(atoms.messages$)
+
+        // Find target message: prefer streaming msg, but fall back to any msg
+        // containing this toolCallId (handles race where assistant_final arrives
+        // before tool_event phase:'end', changing status from 'streaming' to 'sent')
+        const streamingMsg = currentMessages.find((m) => m.status === 'streaming')
+        const msgWithTool = streamingMsg ?? currentMessages.findLast((m) =>
+          m.parts?.some((p) => p._tag === 'tool-invocation' && p.toolCallId === event.toolCallId)
+        )
+        const targetMsgId = (msgWithTool ?? currentMessages.findLast((m) => m.role === 'assistant'))?.id
+
+        // ── Decode payload based on phase ──
+        const payload = event.payload as Record<string, unknown> | undefined
+
+        let toolInput: unknown = undefined
+        let toolOutput: unknown = undefined
+        let toolState: ToolInvocationPart['state'] = 'running'
+
+        if (event.phase === 'start') {
+          toolState = 'running'
+          // Multiple start events arrive:
+          //   1st: { diagnostics: {...} }           — from PiAiAdapterToolStart (LLM starts generating tool block)
+          //   2nd: { arguments: { path: "..." } }   — from PiAiAdapterToolEnd (LLM finished generating, has full args)
+          // We want the arguments when available
+          if (payload?.arguments) {
+            toolInput = payload.arguments
+          } else if (payload && !payload.diagnostics) {
+            // Flat arguments (backwards compat)
+            toolInput = payload
+          }
+          // If only diagnostics, toolInput stays undefined — upsert merges with existing
+
+        } else if (event.phase === 'update') {
+          // Tool argument deltas from PiAiAdapterToolDelta — LLM streaming partial args.
+          // Accumulate the delta JSON into the tool part's inputDelta for incremental rendering.
+          // These fire during LLM generation, NOT during tool execution.
+          if (payload?.delta != null && targetMsgId) {
+            updateMessageParts(atoms, targetMsgId, (parts) => {
+              const arr = [...parts]
+              const idx = arr.findIndex(
+                (p) => p._tag === 'tool-invocation' && (p as ToolInvocationPart).toolCallId === event.toolCallId,
+              )
+              if (idx >= 0) {
+                const existing = arr[idx] as ToolInvocationPart
+                // Accumulate JSON delta string for partial argument parsing
+                const prevDelta = ((existing as any).inputDelta as string) ?? ''
+                const newDelta = prevDelta + String(payload.delta)
+                arr[idx] = { ...existing, inputDelta: newDelta } as any
+              }
+              return arr
+            })
+          }
+          break // Don't fall through to upsertToolPart below
+
+        } else if (event.phase === 'end') {
+          // phase:'end' = tool EXECUTION completed (result available).
+          // NOT "LLM finished generating tool block" (that's phase:'start' with arguments now).
+          toolState = (payload?.isError ? 'error' : 'completed') as ToolInvocationPart['state']
+          // End payload: { result: [{ type: 'text', text: '...' }], isError, executionMs }
+          if (payload?.result) {
+            toolOutput = payload.result
+          } else {
+            toolOutput = payload
+          }
+        }
 
         if (targetMsgId) {
           updateMessageParts(atoms, targetMsgId, (parts) =>
             upsertToolPart(parts, event.toolCallId, {
               toolName: event.toolName,
               state: toolState,
-              input: event.phase === 'start' ? event.payload : undefined,
-              output: event.phase === 'end' ? event.payload : undefined,
+              input: toolInput,
+              output: toolOutput,
             }),
           )
         }
@@ -406,10 +596,26 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
               : msg,
           ),
         )
+        const summary = `[${event.code}] ${event.message}`
         morphChatRegistry.set(atoms.connection$, {
           phase: 'error',
-          error: `[${event.code}] ${event.message}`,
+          error: summary,
         } as ConnectionState)
+
+        if (atoms.statusRows$) {
+          registryUpdate(atoms.statusRows$, (prev) => ([
+            {
+              id: `status-${Date.now()}-${event.code}`,
+              tone: 'error' as const,
+              text: summary,
+              code: event.code,
+              details: event,
+              source: 'harness' as const,
+            },
+            ...prev,
+          ].slice(0, 8)))
+        }
+
         morphChatRegistry.set(atoms.streaming$, STREAMING_IDLE)
         break
       }

@@ -35,6 +35,9 @@ export interface MockStatusRow {
   readonly id: string
   readonly tone: 'info' | 'warn' | 'error'
   readonly text: string
+  readonly code?: string
+  readonly details?: unknown
+  readonly source?: 'mock' | 'harness' | 'surface'
 }
 
 // =============================================================================
