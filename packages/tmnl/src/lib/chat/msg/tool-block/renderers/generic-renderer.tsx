@@ -11,6 +11,32 @@ import { memo, type FC } from 'react'
 import { cn } from '@/lib/utils'
 import type { ToolRendererProps } from './registry'
 
+function unwrapInput(input: unknown): unknown {
+  if (input == null) return null
+  if (typeof input === 'string') {
+    try { return unwrapInput(JSON.parse(input)) } catch { return input }
+  }
+  const obj = input as Record<string, unknown>
+  if (obj.arguments && typeof obj.arguments === 'object' && !Array.isArray(obj.arguments)) {
+    return obj.arguments
+  }
+  return input
+}
+
+function unwrapOutput(output: unknown): unknown {
+  if (output == null) return null
+  if (Array.isArray(output)) {
+    const textParts = output.filter((c: any) => c?.type === 'text')
+    if (textParts.length > 0) return textParts.map((c: any) => c.text ?? '').join('\n')
+  }
+  const obj = output as Record<string, unknown>
+  if (Array.isArray(obj?.result)) {
+    const textParts = obj.result.filter((c: any) => c?.type === 'text')
+    if (textParts.length > 0) return textParts.map((c: any) => c.text ?? '').join('\n')
+  }
+  return output
+}
+
 export const GenericToolRenderer: FC<ToolRendererProps> = memo(({
   input,
   output,
@@ -18,10 +44,12 @@ export const GenericToolRenderer: FC<ToolRendererProps> = memo(({
   state,
 }) => {
   const isError = state === 'error' || errorText != null
+  const unwrappedInput = unwrapInput(input)
+  const unwrappedOutput = unwrapOutput(output)
 
   return (
     <div className="space-y-2 px-3 pb-2" data-slot="tmnl-tool-renderer-generic">
-      {input != null && (
+      {unwrappedInput != null && (
         <div className="space-y-1">
           <span
             className="font-mono uppercase tracking-wide text-neutral-600 block"
@@ -33,7 +61,7 @@ export const GenericToolRenderer: FC<ToolRendererProps> = memo(({
             className="bg-neutral-900/50 rounded p-2 text-neutral-400 font-mono overflow-x-auto max-h-48 overflow-y-auto"
             style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
           >
-            {typeof input === 'string' ? input : JSON.stringify(input, null, 2)}
+            {typeof unwrappedInput === 'string' ? unwrappedInput : JSON.stringify(unwrappedInput, null, 2)}
           </pre>
         </div>
       )}
@@ -53,7 +81,7 @@ export const GenericToolRenderer: FC<ToolRendererProps> = memo(({
           </pre>
         </div>
       )}
-      {output != null && !isError && (
+      {unwrappedOutput != null && !isError && (
         <div className="space-y-1">
           <span
             className="font-mono uppercase tracking-wide text-neutral-600 block"
@@ -65,7 +93,7 @@ export const GenericToolRenderer: FC<ToolRendererProps> = memo(({
             className="bg-neutral-900/50 rounded p-2 text-neutral-400 font-mono overflow-x-auto max-h-48 overflow-y-auto"
             style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
           >
-            {typeof output === 'string' ? output : JSON.stringify(output, null, 2)}
+            {typeof unwrappedOutput === 'string' ? unwrappedOutput : JSON.stringify(unwrappedOutput, null, 2)}
           </pre>
         </div>
       )}

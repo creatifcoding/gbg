@@ -1,7 +1,7 @@
 /**
  * Shell & Search Renderers — bash, grep, find, ls tools.
  *
- * BashTool: command + terminal-style output
+ * BashTool: command + restty terminal (streaming) or static fallback
  * GrepTool: pattern + highlighted matches
  * FindTool: glob pattern + file list
  * LsTool: directory listing (tree-style)
@@ -13,26 +13,48 @@ import { memo, useState, useCallback, type FC } from 'react'
 import { cn } from '@/lib/utils'
 import { TerminalIcon, SearchIcon, FolderSearchIcon, FolderTreeIcon } from 'lucide-react'
 import type { ToolRendererProps } from './registry'
+import { TerminalOutput } from './terminal'
+import { useToolStream } from './terminal/use-tool-stream'
 
 // =============================================================================
 // Helpers
 // =============================================================================
 
 function parseInput(input: unknown): Record<string, unknown> {
+  if (input == null) return {}
   if (typeof input === 'string') {
-    try { return JSON.parse(input) } catch { return { raw: input } }
+    try { return parseInput(JSON.parse(input)) } catch { return { raw: input } }
   }
-  return (input as Record<string, unknown>) ?? {}
+  const obj = input as Record<string, unknown>
+  // Unwrap SDK envelope: { arguments: {...} }
+  if (obj.arguments && typeof obj.arguments === 'object' && !Array.isArray(obj.arguments)) {
+    return obj.arguments as Record<string, unknown>
+  }
+  return obj
 }
 
 function extractText(output: unknown): string {
   if (output == null) return ''
   if (typeof output === 'string') return output
+
+  // Direct array: [{ type: 'text', text: '...' }]
+  if (Array.isArray(output)) {
+    const textParts = output.filter((c: any) => c?.type === 'text')
+    if (textParts.length > 0) return textParts.map((c: any) => c.text ?? '').join('\n')
+    return JSON.stringify(output, null, 2)
+  }
+
   const obj = output as Record<string, unknown>
+  // End payload: { result: [...] }
+  if (Array.isArray(obj.result)) {
+    const textParts = obj.result.filter((c: any) => c?.type === 'text')
+    if (textParts.length > 0) return textParts.map((c: any) => c.text ?? '').join('\n')
+  }
+  // Legacy: { content: [...] }
   if (Array.isArray(obj.content)) {
     return obj.content
-      .filter((c: any) => c.type === 'text')
-      .map((c: any) => c.text)
+      .filter((c: any) => c?.type === 'text')
+      .map((c: any) => c.text ?? '')
       .join('\n')
   }
   if (typeof obj.text === 'string') return obj.text
@@ -48,16 +70,29 @@ export const BashToolRenderer: FC<ToolRendererProps> = memo(({
   output,
   errorText,
   state,
+  toolCallId,
 }) => {
   const params = parseInput(input)
-  const command = (params.command as string) ?? ''
+  // Try inputDelta for streaming command during LLM generation
+  let command = (params.command as string) ?? ''
+  if (!command && params.inputDelta) {
+    const delta = params.inputDelta as string
+    try {
+      const parsed = JSON.parse(delta)
+      command = parsed.command ?? ''
+    } catch {
+      // Extract command from partial JSON
+      const m = delta.match(/"command"\s*:\s*"((?:[^"\\]|\\.)*)"?/)
+      if (m) command = m[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\\\/g, '\\')
+    }
+  }
   const text = extractText(output)
-  const [expanded, setExpanded] = useState(false)
-  const toggle = useCallback(() => setExpanded((p) => !p), [])
+  const stream = useToolStream(toolCallId)
 
-  const lines = text.split('\n')
-  const maxPreview = 20
-  const needsTruncation = lines.length > maxPreview && !expanded
+  // Determine rendering mode:
+  // 1. Streaming data exists → restty terminal (live or replayed)
+  // 2. No stream data + completed → static fallback
+  const useTerminal = stream.hasData || state === 'running'
 
   return (
     <div className="px-3 pb-2 space-y-1.5" data-slot="tmnl-tool-renderer-bash">
@@ -67,6 +102,11 @@ export const BashToolRenderer: FC<ToolRendererProps> = memo(({
         <code className="font-mono text-cyan-300 truncate" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
           $ {command}
         </code>
+        {stream.isStreaming && (
+          <span className="text-cyan-500/60 font-mono ml-auto" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+            {(stream.totalBytes / 1024).toFixed(1)} KB · {stream.chunkCount} chunks
+          </span>
+        )}
       </div>
 
       {errorText && (
@@ -75,26 +115,26 @@ export const BashToolRenderer: FC<ToolRendererProps> = memo(({
         </pre>
       )}
 
-      {/* Terminal output */}
-      {text && state === 'completed' && !errorText && (
-        <>
-          <pre
-            className="bg-neutral-950 border border-neutral-800 rounded p-2 text-neutral-400 font-mono overflow-x-auto"
-            style={{ fontSize: 'var(--tmnl-text-xs, 12px)', maxHeight: expanded ? 'none' : '320px', overflowY: 'auto' }}
-          >
-            {needsTruncation ? lines.slice(0, maxPreview).join('\n') : text}
-          </pre>
-          {lines.length > maxPreview && (
-            <button
-              type="button"
-              onClick={toggle}
-              className="text-cyan-500 hover:text-cyan-400 font-mono transition-colors"
-              style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-            >
-              {expanded ? 'Collapse' : `Show ${lines.length - maxPreview} more lines`}
-            </button>
-          )}
-        </>
+      {/* restty terminal (streaming or replay) */}
+      {useTerminal && !errorText && (
+        <TerminalOutput
+          pendingChunk={stream.pendingChunk}
+          ledger={stream.ledger}
+          streaming={stream.isStreaming}
+          content={!stream.hasData && text ? text : undefined}
+          maxHeight={400}
+          fontSize={13}
+        />
+      )}
+
+      {/* Static fallback for completed tools without streaming data */}
+      {!useTerminal && text && state === 'completed' && !errorText && (
+        <TerminalOutput
+          content={text}
+          streaming={false}
+          maxHeight={400}
+          fontSize={13}
+        />
       )}
     </div>
   )
@@ -142,7 +182,7 @@ export const GrepToolRenderer: FC<ToolRendererProps> = memo(({
         </pre>
       )}
 
-      {matchLines.length > 0 && state === 'completed' && (
+      {matchLines.length > 0 && (
         <pre
           className="bg-neutral-900/50 rounded p-2 text-neutral-400 font-mono overflow-x-auto max-h-64 overflow-y-auto"
           style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
@@ -197,7 +237,7 @@ export const FindToolRenderer: FC<ToolRendererProps> = memo(({
         </pre>
       )}
 
-      {files.length > 0 && state === 'completed' && (
+      {files.length > 0 && (
         <div
           className="bg-neutral-900/50 rounded p-2 font-mono overflow-y-auto max-h-48 space-y-0.5"
           style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
@@ -250,7 +290,7 @@ export const LsToolRenderer: FC<ToolRendererProps> = memo(({
         </pre>
       )}
 
-      {entries.length > 0 && state === 'completed' && (
+      {entries.length > 0 && (
         <pre
           className="bg-neutral-900/50 rounded p-2 text-neutral-400 font-mono overflow-x-auto max-h-48 overflow-y-auto"
           style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
