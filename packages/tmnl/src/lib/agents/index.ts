@@ -81,5 +81,13 @@ export {
 } from './providers'
 export type { ProviderId, ProviderEntry } from './providers'
 
+// Agent Harness Config
+export {
+  AgentHarnessConfig,
+  AgentHarnessConfigTag,
+  AgentHarnessConfigDefault,
+  AgentHarnessConfigFrom,
+} from './AgentHarnessConfig'
+
 // Atoms
 export { agentAuthRuntime, availableProvidersAtom, hasAuthAtom } from './atoms'
