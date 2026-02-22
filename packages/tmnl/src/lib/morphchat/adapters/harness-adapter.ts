@@ -14,6 +14,7 @@
  *   error              → connection$ phase: error
  *   heartbeat          → connection$ latency probe
  *   session_opened     → connection$ phase: connected
+ *   tool_manifest      → toolBridge.syncManifest() → auto-register extension renderers
  *   provider_marker    → fine-grained streaming state (text/thinking/tool deltas)
  *
  * Lifecycle:
@@ -54,6 +55,7 @@ import type {
   HarnessThinkingLevel,
   HarnessRole,
 } from '@/lib/harness/schemas'
+import { createExtensionToolBridge, type ExtensionToolBridgeShape } from '@/lib/chat/msg/tool-block/renderers/extension-tool-bridge'
 
 // =============================================================================
 // Config
@@ -171,6 +173,10 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
   /** Timestamp of last user-initiated cancellation. Null when clear. UI uses this for fading badge. */
   const cancelledAt$ = Atom.make<number | null>(null)
   morphChatRegistry.mount(cancelledAt$)
+
+  // ── Extension Tool Bridge ───────────────────────────────
+
+  const toolBridge = createExtensionToolBridge()
 
   // ── Internal State ──────────────────────────────────────
 
@@ -300,6 +306,15 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
           name: agentName,
           isActive: true,
         }])
+        break
+      }
+
+      case 'chat:v2/tool_manifest': {
+        // Sync extension tool renderers from server-side tool catalog
+        const count = toolBridge.syncManifest({ tools: event.tools })
+        if (count > 0) {
+          console.info(`[harness-adapter:${adapterId}] registered ${count} extension tool renderer(s)`)
+        }
         break
       }
 
@@ -672,6 +687,8 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
         yield* runtime.abortSession(sessionId).pipe(Effect.catchAll(() => Effect.void))
         sessionId = null
       }
+      // Teardown extension tool bridge (unregisters auto-generated renderers)
+      toolBridge.clear()
       morphChatRegistry.set(connection$, DISCONNECTED)
       morphChatRegistry.set(streaming$, STREAMING_IDLE)
     })
@@ -708,6 +725,7 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
     connect: () => startEventStream(),
     respondExtensionUI,
     getSnapshot,
+    toolBridge,
     get sessionId() { return sessionId },
   }
 }
@@ -730,4 +748,6 @@ export interface HarnessAdapterExtensions {
   readonly lastError$: typeof Atom.make<{ code: string; message: string; at: number } | null>
   /** Timestamp of last user cancellation (null when clear). Subscribe for fading badge. */
   readonly cancelledAt$: typeof Atom.make<number | null>
+  /** Extension tool bridge — register custom renderers or inspect tool catalog. */
+  readonly toolBridge: ExtensionToolBridgeShape
 }

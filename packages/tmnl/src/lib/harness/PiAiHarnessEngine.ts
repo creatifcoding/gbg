@@ -21,6 +21,7 @@ import {
   HarnessEvent,
   HarnessSendAcceptedEvent,
   HarnessSessionOpenedEvent,
+  HarnessToolManifestEvent,
   HarnessSnapshot,
   HarnessToolEvent,
   HarnessProviderMarkerEvent,
@@ -840,6 +841,20 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
             nodeId: session.nodeId,
             role: session.role,
             agentId: session.agentId,
+          }),
+        )
+
+        // Emit tool manifest so the client knows which tools are available
+        yield* appendEvent(sessionId, (seq, session) =>
+          HarnessToolManifestEvent.make({
+            sessionId: session.sessionId,
+            seq,
+            at: Date.now(),
+            tools: toolRuntime.tools.map((t) => ({
+              name: t.name,
+              description: t.description,
+              parameters: t.parameters,
+            })),
           }),
         )
 

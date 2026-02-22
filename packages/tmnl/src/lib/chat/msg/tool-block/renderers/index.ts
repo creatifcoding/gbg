@@ -34,6 +34,8 @@ export {
 } from './registry'
 
 export { GenericToolRenderer } from './generic-renderer'
+export { SchemaAwareRenderer, SchemaAwareHeaderMeta, type SchemaAwareRendererProps } from './schema-aware-renderer'
+export { createExtensionToolBridge, type ExtensionToolBridgeShape, type ToolManifest } from './extension-tool-bridge'
 export { ReadToolRenderer, WriteToolRenderer, EditToolRenderer } from './file-renderers'
 export { BashToolRenderer, GrepToolRenderer, FindToolRenderer, LsToolRenderer } from './shell-renderers'
 

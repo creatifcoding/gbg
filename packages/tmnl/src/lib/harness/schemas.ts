@@ -257,6 +257,22 @@ export const ToolUpdatePayload = Schema.Struct({
 })
 export type ToolUpdatePayload = typeof ToolUpdatePayload.Type
 
+// ── Tool Manifest (emitted after session_opened) ────────────────────────────
+
+export const ToolManifestEntry = Schema.Struct({
+  name: Schema.String,
+  description: Schema.optional(Schema.String),
+  /** JSON Schema object describing tool parameters (from TypeBox / pi-ai Tool.parameters) */
+  parameters: Schema.optional(Schema.Unknown),
+})
+export type ToolManifestEntry = typeof ToolManifestEntry.Type
+
+export const HarnessToolManifestEvent = Schema.TaggedStruct('chat:v2/tool_manifest', {
+  ...HarnessEventBase,
+  tools: Schema.Array(ToolManifestEntry),
+})
+export type HarnessToolManifestEvent = typeof HarnessToolManifestEvent.Type
+
 export const HarnessToolEvent = Schema.TaggedStruct('chat:v2/tool_event', {
   ...HarnessEventBase,
   toolCallId: Schema.String,
@@ -293,6 +309,7 @@ import {
 export const HarnessEvent = Schema.Union(
   // Existing harness events
   HarnessSessionOpenedEvent,
+  HarnessToolManifestEvent,
   HarnessSendAcceptedEvent,
   HarnessAssistantStartEvent,
   HarnessAssistantDeltaEvent,
