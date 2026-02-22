@@ -331,7 +331,7 @@ function AssistantMessage({
           {/* Footer actions — hover only */}
           {message.status === 'complete' && !hasTasks && message.content && (
             <div className="opacity-0 group-hover/message:opacity-100 transition-opacity duration-150">
-              <ChatMessageFooterActions>
+              <ChatMessageFooterActions className="opacity-100">
                 <ChatMessageFooterActions.Group>
                   <CopyMessageButton text={message.content} />
                 </ChatMessageFooterActions.Group>
