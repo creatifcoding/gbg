@@ -23,9 +23,8 @@ import {
   createFindTool,
   createLsTool,
   discoverAndLoadExtensions,
-  wrapRegisteredTool,
-  createExtensionRuntime,
 } from '@mariozechner/pi-coding-agent'
+import type { RegisteredTool, ExtensionContext } from '@mariozechner/pi-coding-agent'
 import type { ToolCall as PiAiToolCall, ToolResultMessage as PiAiToolResultMessage } from '@mariozechner/pi-ai'
 import { Effect, Layer, Option } from 'effect'
 import { PiAiToolRuntime, PiAiToolRuntimeError, type OnToolStreamChunk } from './PiAiToolRuntime'
@@ -54,9 +53,86 @@ function createSdkTools(config: AgentHarnessConfig) {
 // Discover and load extension tools
 // =============================================================================
 
+/**
+ * Create a minimal ExtensionContext for harness-side tool execution.
+ *
+ * Extension tools receive `ctx: ExtensionContext` as their last argument.
+ * The full SDK provides this via `ExtensionRunner.createContext()`, but
+ * the harness doesn't have a full runner. We provide a minimal context
+ * with `cwd`, `hasUI: false`, and stub methods for UI/session operations
+ * that aren't available in the headless harness environment.
+ */
+function createMinimalExtensionContext(cwd: string): ExtensionContext {
+  const stubUI = {
+    select: async () => undefined,
+    confirm: async () => false,
+    input: async () => undefined,
+    notify: () => {},
+    onTerminalInput: () => () => {},
+    setStatus: () => {},
+    setWorkingMessage: () => {},
+    setWidget: () => {},
+    setFooter: () => {},
+    setHeader: () => {},
+    setTitle: () => {},
+    custom: async () => { throw new Error('UI not available in harness mode') },
+    pasteToEditor: () => {},
+    setEditorText: () => {},
+    getEditorText: () => '',
+    editor: async () => undefined,
+    setEditorComponent: () => {},
+    theme: {} as any,
+    getAllThemes: () => [],
+    getTheme: () => undefined,
+    setTheme: () => ({ success: false, error: 'Not available in harness mode' }),
+    getToolsExpanded: () => false,
+    setToolsExpanded: () => {},
+  }
+
+  return {
+    ui: stubUI as any,
+    hasUI: false,
+    cwd,
+    sessionManager: {} as any, // Extensions that need session access will fail gracefully
+    modelRegistry: {} as any,
+    model: undefined,
+    isIdle: () => true,
+    abort: () => {},
+    hasPendingMessages: () => false,
+    shutdown: () => {},
+    getContextUsage: () => undefined,
+    compact: () => {},
+    getSystemPrompt: () => '',
+  }
+}
+
+/**
+ * Wrap a RegisteredTool into an AgentTool using a minimal ExtensionContext.
+ *
+ * Replaces `wrapRegisteredTool(tool, runner)` from the SDK which requires
+ * a full ExtensionRunner. Our version bakes in a headless context.
+ */
+function wrapRegisteredToolForHarness(
+  registeredTool: RegisteredTool,
+  ctx: ExtensionContext,
+) {
+  const { definition } = registeredTool
+  return {
+    name: definition.name,
+    label: definition.label,
+    description: definition.description,
+    parameters: definition.parameters,
+    execute: (
+      toolCallId: string,
+      params: Record<string, unknown>,
+      signal: AbortSignal | undefined,
+      onUpdate?: (partial: { content: Array<{ type: string; text: string }>; details?: unknown }) => void,
+    ) => definition.execute(toolCallId, params, signal, onUpdate, ctx),
+  }
+}
+
 async function loadExtensionTools(cwd: string) {
   const resolvedCwd = path.resolve(cwd)
-  const runtime = createExtensionRuntime()
 
   const result = await discoverAndLoadExtensions(
     [], // configuredPaths — let it discover from standard locations
@@ -70,17 +146,16 @@ async function loadExtensionTools(cwd: string) {
     }
   }
 
+  // Create a shared minimal context for all extension tools
+  const ctx = createMinimalExtensionContext(resolvedCwd)
+
   // Collect all registered tools from all extensions
-  const wrappedTools: ReturnType<typeof wrapRegisteredTool>[] = []
-  const extensionRunner = result.runtime
+  const wrappedTools: ReturnType<typeof wrapRegisteredToolForHarness>[] = []
 
   for (const ext of result.extensions) {
     for (const [_name, registeredTool] of ext.tools) {
       try {
-        // wrapRegisteredTool needs the ExtensionRunner for context —
-        // but for harness execution we only need the AgentTool shape.
-        // Pass a minimal runner that provides the execute bridge.
-        const wrapped = wrapRegisteredTool(registeredTool, extensionRunner as any)
+        const wrapped = wrapRegisteredToolForHarness(registeredTool, ctx)
         wrappedTools.push(wrapped)
       } catch (err) {
         console.warn(`[harness] failed to wrap tool '${_name}': ${err}`)
@@ -89,7 +164,7 @@ async function loadExtensionTools(cwd: string) {
   }
 
   console.info(`[harness] loaded ${wrappedTools.length} extension tool(s) from ${result.extensions.length} extension(s)`)
-  return { tools: wrappedTools, extensions: result.extensions, runtime: extensionRunner }
+  return { tools: wrappedTools, extensions: result.extensions }
 }
 
 // =============================================================================
