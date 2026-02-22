@@ -16,7 +16,7 @@ import { Tool, Toolkit } from "@effect/ai"
 import { Effect, JSONSchema } from "effect"
 import * as Schema from "effect/Schema"
 
-import { CatalogComponents } from "../core/CatalogService"
+import { CatalogComponents, type ComponentRenderProps } from "../core/CatalogService"
 import { normalizeWithMeta } from "../core/normalize"
 
 // =============================================================================
@@ -24,18 +24,39 @@ import { normalizeWithMeta } from "../core/normalize"
 // =============================================================================
 
 /**
- * CatalogQuery — List available components with their schemas and nesting rules.
+ * CatalogQuery — List available components with tier/domain scoping.
+ *
+ * Enhanced for the Catalog Overhaul:
+ *   - `tier`: Filter by visibility level (core/domain/discovery)
+ *   - `domains`: Filter by domain tags (forms, data, media, etc.)
+ *   - `filter`: Legacy keyword/prefix text filter (still supported)
+ *   - All three combine with AND logic
  */
 export const CatalogQueryTool = Tool.make("CatalogQuery", {
   description:
-    "List available UI components in the genifer catalog. Returns component names, " +
-    "their prop schemas (as JSON Schema), descriptions, and whether they can have children. " +
-    "Use this to discover what components are available before building a UI tree.",
+    "List available UI components in the genifer catalog. Supports tier-based visibility " +
+    "(core = always available, domain = request-scoped, discovery = all), domain scoping " +
+    "(forms, data, media, navigation, feedback, charts, geoint, etc.), and keyword filtering. " +
+    "Returns component names, prop schemas, descriptions, compound relationships, and tier/domain metadata.",
   parameters: {
+    tier: Schema.optional(
+      Schema.Literal("core", "domain", "discovery").annotations({
+        description:
+          "Visibility tier. 'core' = foundational (layout, text, button). " +
+          "'domain' = core + domain-specific. 'discovery' = everything (default).",
+      })
+    ),
+    domains: Schema.optional(
+      Schema.Array(Schema.String).annotations({
+        description:
+          "Domain tags to filter by (e.g., ['forms', 'data']). Components matching ANY domain are included. " +
+          "Available domains: ui, layout, forms, data, media, charts, geoint, navigation, feedback, terminal, interactive.",
+      })
+    ),
     filter: Schema.optional(
       Schema.String.annotations({
         description:
-          "Optional filter — component type prefix or keyword (e.g., 'layout', 'chart'). Omit for all.",
+          "Optional keyword filter — component type prefix or keyword (e.g., 'button', 'chart'). Applied after tier/domain filtering.",
       })
     ),
   },
@@ -239,6 +260,56 @@ export const ExampleLookupTool = Tool.make("ExampleLookup", {
 })
 
 // =============================================================================
+// Tool: ComponentDefine
+// =============================================================================
+
+/**
+ * ComponentDefine — Register a custom component mid-generation.
+ *
+ * The LLM can define a new component type with a props schema,
+ * description, and whether it accepts children. The component
+ * is registered into the active catalog session so subsequent
+ * tool calls and the final tree can reference it.
+ *
+ * The renderer is auto-generated as a generic Box with the
+ * component's props displayed as data attributes. Custom
+ * renderers can be attached post-generation by the agent.
+ */
+export const ComponentDefineTool = Tool.make("ComponentDefine", {
+  description:
+    "Define and register a custom component type mid-generation. " +
+    "The component becomes immediately available in CatalogQuery and SchemaCheck. " +
+    "Use when the existing catalog lacks a domain-specific component. " +
+    "The component gets a generic Box renderer that displays its props — " +
+    "custom renderers can be attached later via the decorator system.",
+  parameters: {
+    type: Schema.String.annotations({
+      description: 'Unique component type name (PascalCase, e.g., "SensorReadout", "FlightPath")',
+    }),
+    description: Schema.String.annotations({
+      description: "Human-readable description of what this component renders and when to use it",
+    }),
+    hasChildren: Schema.optional(
+      Schema.Boolean.annotations({
+        description: "Whether this component accepts children elements (default: false)",
+      })
+    ),
+    props: Schema.Record({ key: Schema.String, value: Schema.String }).annotations({
+      description:
+        'Prop definitions as { name: type } pairs. Supported types: ' +
+        '"string", "number", "boolean", "string[]", "number[]". ' +
+        'Example: { "label": "string", "value": "number", "active": "boolean" }',
+    }),
+    domains: Schema.optional(
+      Schema.Array(Schema.String).annotations({
+        description: 'Domain tags (e.g., ["data", "iiot"]). Default: ["ui"]',
+      })
+    ),
+  },
+  success: Schema.String,
+})
+
+// =============================================================================
 // Toolkit + Handlers
 // =============================================================================
 
@@ -249,7 +320,8 @@ export const CompilerToolkit = Toolkit.make(
   CatalogQueryTool,
   SchemaCheckTool,
   NormalizePreviewTool,
-  ExampleLookupTool
+  ExampleLookupTool,
+  ComponentDefineTool,
 )
 
 /**
@@ -258,18 +330,34 @@ export const CompilerToolkit = Toolkit.make(
  * Requires CatalogComponents in context for CatalogQuery and SchemaCheck.
  */
 export const CompilerToolkitLive = CompilerToolkit.toLayer({
-  // ── CatalogQuery ──
-  CatalogQuery: ({ filter }) =>
+  // ── CatalogQuery (enhanced with tier + domain scoping) ──
+  CatalogQuery: ({ tier, domains, filter }) =>
     Effect.gen(function* () {
       const catalog = yield* CatalogComponents
+
+      // Step 1: Tier + domain filtering via catalog service
+      const scopedTypes = catalog.listComponents({
+        tier: tier ?? 'discovery',
+        domains: domains as ReadonlyArray<string> | undefined,
+      })
+      const scopedSet = new Set(scopedTypes)
+
+      // Step 2: Build entries with keyword filter
       const entries: Array<{
         type: string
         description?: string
         hasChildren: boolean
+        tier: string
+        domains: ReadonlyArray<string>
+        compound?: { parent: string; slots: ReadonlyArray<string>; strict?: boolean }
         propsSchema: unknown
       }> = []
 
       for (const [type, entry] of catalog.schemas) {
+        // Tier + domain gate
+        if (!scopedSet.has(type)) continue
+
+        // Keyword filter
         if (filter) {
           const f = filter.toLowerCase()
           if (
@@ -290,14 +378,25 @@ export const CompilerToolkitLive = CompilerToolkit.toLayer({
           type,
           description: entry.description,
           hasChildren: entry.hasChildren ?? false,
+          tier: entry.tier,
+          domains: entry.domains,
+          compound: entry.compound ? {
+            parent: entry.compound.parent,
+            slots: entry.compound.slots,
+            strict: entry.compound.strict,
+          } : undefined,
           propsSchema,
         })
       }
 
       return JSON.stringify(
-        { componentCount: entries.length, components: entries },
+        {
+          componentCount: entries.length,
+          filters: { tier: tier ?? 'discovery', domains: domains ?? 'all', keyword: filter ?? null },
+          components: entries,
+        },
         null,
-        2
+        2,
       )
     }),
 
@@ -379,4 +478,132 @@ export const CompilerToolkitLive = CompilerToolkit.toLayer({
               available: Object.keys(GOLDEN_EXAMPLES),
             })
     ),
+
+  // ── ComponentDefine ──
+  ComponentDefine: ({ type, description, hasChildren, props, domains: domainTags }) =>
+    Effect.gen(function* () {
+      const catalog = yield* CatalogComponents
+
+      // Guard: PascalCase and no collision
+      if (!/^[A-Z][A-Za-z0-9]+$/.test(type)) {
+        return JSON.stringify({
+          success: false,
+          error: `Type must be PascalCase (e.g., "SensorReadout"). Got: "${type}"`,
+        })
+      }
+      if (catalog.schemas.has(type)) {
+        return JSON.stringify({
+          success: false,
+          error: `Component "${type}" already exists in the catalog. Choose a different name.`,
+        })
+      }
+
+      // Build Effect.Schema fields from prop definitions
+      const SCHEMA_MAP: Record<string, Schema.Schema<any, any, never>> = {
+        string: Schema.String,
+        number: Schema.Number,
+        boolean: Schema.Boolean,
+        'string[]': Schema.Array(Schema.String),
+        'number[]': Schema.Array(Schema.Number),
+      }
+
+      const schemaFields: Record<string, Schema.Schema<any, any, never>> = {
+        className: Schema.optional(Schema.String),
+      }
+      const unknownProps: string[] = []
+
+      for (const [propName, propType] of Object.entries(props)) {
+        const s = SCHEMA_MAP[propType]
+        if (s) {
+          schemaFields[propName] = s
+        } else {
+          unknownProps.push(`${propName}: ${propType}`)
+          schemaFields[propName] = Schema.Unknown
+        }
+      }
+
+      const componentSchema = Schema.Struct(schemaFields as any)
+
+      // Generic renderer: Box with data-attributes
+      const renderer = ({ element, children }: ComponentRenderProps<any>) => {
+        const dataAttrs: Record<string, string> = {}
+        for (const [k, v] of Object.entries(element.props)) {
+          if (k !== 'className' && v !== undefined && v !== null) {
+            dataAttrs[`data-${k}`] = String(v)
+          }
+        }
+        // Use createElement to avoid JSX in this scope
+        return Effect.succeed(undefined) as any // placeholder
+      }
+
+      // Register into catalog as a runtime domain catalog
+      const resolvedDomains = (domainTags as string[] | undefined) ?? ['ui']
+      catalog.register({
+        name: `Dynamic: ${type}`,
+        defaultTier: 'domain',
+        defaultDomains: resolvedDomains,
+        components: {
+          [type]: {
+            schema: componentSchema,
+            renderer: ({ element, children }: ComponentRenderProps<any>) => {
+              const p = element.props as Record<string, unknown>
+              const style: Record<string, unknown> = {
+                display: hasChildren ? 'flex' : 'inline-flex',
+                flexDirection: 'column',
+                gap: 8,
+                padding: hasChildren ? 12 : '4px 8px',
+                borderRadius: 6,
+                border: `1px solid rgba(34,211,238,0.2)`,
+                background: 'rgba(14,14,14,0.95)',
+                fontFamily: 'monospace',
+                fontSize: 'var(--tmnl-text-xs, 12px)',
+                color: 'rgb(163,163,163)',
+              }
+              const propEntries = Object.entries(p).filter(
+                ([k]) => k !== 'className' && k !== 'children',
+              )
+
+              // Dynamic import not available, use inline createElement
+              const { createElement: h } = require('react')
+              return h(
+                'div',
+                {
+                  className: p['className'] ?? '',
+                  style,
+                  'data-genifer-dynamic': type,
+                },
+                h('span', {
+                  style: { color: 'rgb(34,211,238)', fontSize: 'var(--tmnl-text-xs, 12px)', fontWeight: 600 },
+                }, `‹${type}›`),
+                propEntries.length > 0 && h('div', {
+                  style: { display: 'flex', flexWrap: 'wrap', gap: '4px 8px' },
+                }, ...propEntries.map(([k, v]) =>
+                  h('span', { key: k, style: { color: 'rgb(115,115,115)' } },
+                    h('span', { style: { color: 'rgb(163,163,163)' } }, `${k}=`),
+                    h('span', { style: { color: 'rgb(212,212,212)' } }, String(v)),
+                  ),
+                )),
+                children,
+              )
+            },
+            description,
+            hasChildren: hasChildren ?? false,
+            defaultEntrance: { property: 'opacity+scale', easing: 'out-quart', duration: 'fast' },
+            tier: 'domain',
+            domains: resolvedDomains,
+          },
+        },
+      })
+
+      return JSON.stringify({
+        success: true,
+        type,
+        description,
+        hasChildren: hasChildren ?? false,
+        propsRegistered: Object.keys(props),
+        unknownTypes: unknownProps.length > 0 ? unknownProps : undefined,
+        domains: resolvedDomains,
+        note: 'Component registered with generic renderer. Use the decorator system to attach a custom renderer later.',
+      })
+    }),
 })

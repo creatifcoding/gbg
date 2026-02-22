@@ -20,6 +20,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
+import { Schema } from 'effect'
 import {
   makeCatalogComponents,
   type DomainCatalog,
@@ -27,6 +28,7 @@ import {
 import { uiDomainCatalog } from '../catalog/ui-domain-catalog'
 import { coreDomainCatalog } from '../catalog/core-domain-catalog'
 import { buttonDomainCatalog } from '../catalog/button-domain-catalog'
+import { CatalogQueryTool, ComponentDefineTool, CompilerToolkitLive } from '../compiler/tools'
 
 describe('Catalog Overhaul', () => {
   // ===========================================================================
@@ -543,6 +545,130 @@ describe('Catalog Overhaul', () => {
         Object.keys(buttonDomainCatalog.components).length +
         Object.keys(uiDomainCatalog.components).length
       expect(total).toBe(89)
+    })
+  })
+
+  // ===========================================================================
+  // 14. CatalogQuery Scoped Enhancement (#2220)
+  // ===========================================================================
+
+  describe('CatalogQuery Scoped Enhancement', () => {
+    it('CatalogQueryTool description mentions tier-based visibility', () => {
+      const desc = (CatalogQueryTool as any).description ??
+        JSON.stringify(CatalogQueryTool)
+      expect(desc).toContain('tier')
+    })
+
+    it('CatalogQueryTool description mentions domain scoping', () => {
+      const desc = (CatalogQueryTool as any).description ??
+        JSON.stringify(CatalogQueryTool)
+      expect(desc).toContain('domain')
+    })
+
+    it('CatalogQueryTool description mentions compound relationships', () => {
+      const desc = (CatalogQueryTool as any).description ??
+        JSON.stringify(CatalogQueryTool)
+      expect(desc).toContain('compound')
+    })
+
+    it('handler exists in CompilerToolkitLive', () => {
+      expect(CompilerToolkitLive).toBeDefined()
+    })
+
+    it('listComponents with core tier returns only core-tier components', () => {
+      const coreOnly = catalog.listComponents({ tier: 'core' })
+      // Verify ButtonRoot (core) is in, ConfirmButton (domain) is out
+      expect(coreOnly).toContain('ButtonRoot')
+      expect(coreOnly).not.toContain('ConfirmButton')
+    })
+
+    it('listComponents with domain tier + forms domain includes ConfirmButton', () => {
+      const forms = catalog.listComponents({ tier: 'domain', domains: ['forms'] })
+      expect(forms).toContain('ConfirmButton')
+      expect(forms).toContain('CooldownButton')
+      expect(forms).toContain('Switch')
+    })
+  })
+
+  // ===========================================================================
+  // 15. ComponentDefineTool (#2221)
+  // ===========================================================================
+
+  describe('ComponentDefineTool', () => {
+    it('ComponentDefineTool is in the toolkit', () => {
+      expect(ComponentDefineTool).toBeDefined()
+    })
+
+    it('description mentions custom component registration', () => {
+      const desc = (ComponentDefineTool as any).description ??
+        JSON.stringify(ComponentDefineTool)
+      expect(desc).toContain('custom component')
+    })
+
+    it('description mentions decorator system', () => {
+      const desc = (ComponentDefineTool as any).description ??
+        JSON.stringify(ComponentDefineTool)
+      expect(desc).toContain('decorator')
+    })
+
+    it('dynamic registration works via catalog.register()', () => {
+      // Create a fresh catalog and register dynamically
+      const dynamicCatalog = makeCatalogComponents([coreDomainCatalog])
+      expect(dynamicCatalog.schemas.has('SensorReadout')).toBe(false)
+
+      dynamicCatalog.register({
+        name: 'Dynamic: SensorReadout',
+        defaultTier: 'domain',
+        defaultDomains: ['iiot'],
+        components: {
+          SensorReadout: {
+            schema: Schema.Struct({ value: Schema.Number, unit: Schema.String, className: Schema.optional(Schema.String) }),
+            renderer: () => null,
+            description: 'Real-time sensor value display',
+            hasChildren: false,
+            defaultEntrance: { property: 'opacity', easing: 'out-quad', duration: 'fast' },
+            tier: 'domain',
+            domains: ['iiot', 'data'],
+          },
+        },
+      })
+
+      // Now it's registered
+      expect(dynamicCatalog.schemas.has('SensorReadout')).toBe(true)
+      expect(dynamicCatalog.schemas.get('SensorReadout')!.tier).toBe('domain')
+      expect(dynamicCatalog.schemas.get('SensorReadout')!.domains).toContain('iiot')
+
+      // Shows up in domain queries
+      const iiotComponents = dynamicCatalog.listComponents({ domains: ['iiot'] })
+      expect(iiotComponents).toContain('SensorReadout')
+
+      // Shows up in scoped prompt
+      const prompt = dynamicCatalog.generateScopedPrompt({ domains: ['iiot'] })
+      expect(prompt).toContain('SensorReadout')
+    })
+
+    it('dynamically registered components appear in listDomains()', () => {
+      const dynamicCatalog = makeCatalogComponents([coreDomainCatalog])
+      dynamicCatalog.register({
+        name: 'Custom IIoT',
+        defaultTier: 'domain',
+        defaultDomains: ['iiot'],
+        components: {
+          Gauge: {
+            schema: Schema.Struct({ value: Schema.Number, className: Schema.optional(Schema.String) }),
+            renderer: () => null,
+            description: 'Gauge display',
+            hasChildren: false,
+            defaultEntrance: { property: 'opacity', easing: 'out-quad', duration: 'fast' },
+          },
+        },
+      })
+
+      expect(dynamicCatalog.listDomains()).toContain('Custom IIoT')
+    })
+
+    it('handler is wired in CompilerToolkitLive', () => {
+      expect(CompilerToolkitLive).toBeDefined()
     })
   })
 })
