@@ -48,3 +48,46 @@ export {
   type QualityMetrics,
   type CatalogContext,
 } from './atoms'
+
+// DataSource resolver
+export {
+  DataSourceResolver,
+  DataSourceResolverLive,
+  DataSourceError,
+  atomDirectoryAtom,
+  queryDirectoryAtom,
+  rpcDirectoryAtom,
+  type DataSourceResolverShape,
+  type QueryFn,
+  type RpcFn,
+} from './DataSourceResolver'
+
+// Harness service
+export {
+  GeniferHarnessServiceTag,
+  GeniferHarnessServiceLive,
+  GeniferHarnessError,
+  type GeniferHarnessServiceShape,
+  type GenerateOptions,
+  type GenerateResult,
+  type RefineOptions,
+  type RefineResult,
+  type QueryOperation,
+  type QueryResult,
+} from './GeniferHarnessService'
+
+// ToolDefinitions (TypeBox)
+export {
+  GeniferGenerateParams,
+  GeniferRefineParams,
+  GeniferQueryParams,
+  createGeniferGenerateTool,
+  createGeniferRefineTool,
+  createGeniferQueryTool,
+  type GeniferGenerateDetails,
+  type GeniferRefineDetails,
+  type GeniferQueryDetails,
+} from './tools'
+
+// Bridge (wires ToolDefinition.execute → GeniferHarnessService)
+export { createGeniferTools } from './bridge'
