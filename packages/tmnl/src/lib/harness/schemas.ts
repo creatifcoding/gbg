@@ -280,7 +280,18 @@ export const HarnessHeartbeatEvent = Schema.TaggedStruct('chat:v2/heartbeat', {
   ...HarnessEventBase,
 })
 
+// --- Genifer Harness Events (inline alongside existing) ---
+import {
+  GeniferGenerateStartEvent,
+  GeniferStreamDeltaEvent,
+  GeniferGenerateCompleteEvent,
+  GeniferRefineStartEvent,
+  GeniferRefineCompleteEvent,
+  GeniferQualityEvent,
+} from '@/lib/genifer/harness/schemas'
+
 export const HarnessEvent = Schema.Union(
+  // Existing harness events
   HarnessSessionOpenedEvent,
   HarnessSendAcceptedEvent,
   HarnessAssistantStartEvent,
@@ -293,6 +304,13 @@ export const HarnessEvent = Schema.Union(
   HarnessProviderMarkerEvent,
   HarnessErrorEvent,
   HarnessHeartbeatEvent,
+  // Genifer surface events
+  GeniferGenerateStartEvent,
+  GeniferStreamDeltaEvent,
+  GeniferGenerateCompleteEvent,
+  GeniferRefineStartEvent,
+  GeniferRefineCompleteEvent,
+  GeniferQualityEvent,
 )
 export type HarnessEvent = typeof HarnessEvent.Type
 

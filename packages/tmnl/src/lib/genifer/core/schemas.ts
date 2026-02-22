@@ -237,6 +237,28 @@ export class UIElement extends Schema.Class<UIElement>("UIElement")({
   ariaLive: Schema.optional(Schema.Literal('polite', 'assertive', 'off')),
   /** Tab order for keyboard navigation */
   tabIndex: Schema.optional(Schema.Number),
+  // --- Data Bindings (hydration) ---
+  /** Data source bindings: connect element props to live state (atom/query/rpc/static) */
+  dataSources: Schema.optional(
+    Schema.Array(Schema.Struct({
+      type: Schema.Literal('static', 'atom', 'query', 'rpc'),
+      key: Schema.String,
+      targetProp: Schema.String,
+      staticValue: Schema.optional(Schema.Unknown),
+      transform: Schema.optional(Schema.String),
+      refreshMs: Schema.optional(Schema.Number),
+    }))
+  ),
+  /** Action bindings: what happens on user interaction (onClick, onChange, etc.) */
+  actions: Schema.optional(
+    Schema.Array(Schema.Struct({
+      type: Schema.Literal('setState', 'emitEvent', 'callRpc', 'navigate'),
+      trigger: Schema.String,
+      target: Schema.String,
+      payload: Schema.optional(Schema.Unknown),
+      confirmPrompt: Schema.optional(Schema.String),
+    }))
+  ),
 }) {
   /**
    * Value-based equality: two UIElements are equal iff all fields match.
