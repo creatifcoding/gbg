@@ -24,6 +24,8 @@ import {
   useState,
 } from 'react'
 import { cn } from '@/lib/utils'
+import { select } from 'd3-selection'
+import { zoom, zoomIdentity, type ZoomBehavior } from 'd3-zoom'
 import { TMNL_DIAGRAM_THEME } from './tmnl-mermaid-theme'
 
 // =============================================================================
@@ -42,269 +44,155 @@ export interface MermaidBlockProps {
 }
 
 // =============================================================================
-// MermaidCanvas — native SVG viewBox zoom/pan
+// MermaidCanvas — d3-zoom powered SVG viewer
 //
-// WHY viewBox, not CSS transform:
-//   CSS `scale()` + `will-change: transform` rasterizes the SVG at its original
-//   resolution, then stretches the bitmap. Text becomes blurry at high zoom.
-//   SVG viewBox manipulation re-renders all primitives (text, paths, lines) at
-//   native resolution for every frame. Diagram-scale SVGs (~100-500 elements)
-//   render in <1ms — no perceptible jank.
+// WHY d3-zoom:
+//   d3-zoom is the gold standard for pan/zoom. It applies an SVG `transform`
+//   attribute to a <g> wrapper — this is a vector-space transform, not CSS.
+//   The SVG renderer re-renders text/paths at the correct resolution every
+//   frame. Text is pixel-perfect at any zoom level.
 //
-// Interaction design:
-//   - Ref-driven viewBox state (zero React re-renders during gesture)
-//   - Direct SVG attribute writes (no React reconciliation)
-//   - Exponential zoom (multiply scale, not add) — natural feel
-//   - Zoom-to-cursor: viewport-to-SVG coordinate mapping
-//   - Pointer capture for reliable drag across elements
-//   - Double-click to fit-to-view (animated via rAF interpolation)
-//   - Touch-none to prevent browser pinch conflict
-//   - SVG text/paths always pixel-perfect at any zoom level
+// React integration pattern:
+//   - useRef for SVG element — d3 needs direct DOM access
+//   - useEffect to apply zoom on mount, clean up .zoom listeners on unmount
+//   - d3 owns the <g> transform attribute — React doesn't touch it
+//   - Only the zoom badge triggers React re-renders (debounced)
+//   - Programmatic reset via zoom.transform(selection, zoomIdentity)
+//
+// SVG DOM surgery:
+//   beautiful-mermaid outputs a flat SVG (shapes + text at root level).
+//   On mount we wrap all non-<style>/<defs> children in a <g> so d3-zoom
+//   can transform them as a group while leaving CSS and marker defs intact.
 // =============================================================================
 
-const MIN_ZOOM = 0.15
-const MAX_ZOOM = 10
-const ZOOM_FACTOR = 0.003
-const FIT_ANIM_MS = 250
-
-/** The SVG-space rectangle we're looking at */
-interface ViewRect {
-  x: number
-  y: number
-  w: number
-  h: number
-}
-
-function clampZoom(z: number) {
-  return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z))
-}
+const MIN_SCALE = 0.15
+const MAX_SCALE = 10
 
 const MermaidCanvas = memo(function MermaidCanvas({ svgHtml }: { svgHtml: string }) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const svgRef = useRef<SVGSVGElement | null>(null)
+  const zoomRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null)
+  const syncTimer = useRef<ReturnType<typeof setTimeout>>()
 
-  // Original intrinsic SVG dimensions (parsed once)
-  const intrinsic = useRef({ w: 0, h: 0 })
-  // Current view rect in SVG coordinate space
-  const view = useRef<ViewRect>({ x: 0, y: 0, w: 0, h: 0 })
-  // Gesture tracking
-  const dragging = useRef(false)
-  const dragStart = useRef({ px: 0, py: 0, vx: 0, vy: 0 })
-  // Animation
-  const animFrame = useRef(0)
-
-  // Display state — only updated on gesture end
-  const [displayZoom, setDisplayZoom] = useState(1)
+  // Badge display state — debounced, only for the percentage label
+  const [displayScale, setDisplayScale] = useState(1)
   const [isTransformed, setIsTransformed] = useState(false)
 
-  // ── Parse SVG element + intrinsic viewBox on mount ─────
+  // ── Mount: inject SVG, wrap in <g>, apply d3-zoom ──────
   useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const svg = el.querySelector('svg')
-    if (!svg) return
-    svgRef.current = svg
+    const wrapper = containerRef.current
+    if (!wrapper) return
 
-    // Parse the original viewBox from beautiful-mermaid output
-    const vb = svg.getAttribute('viewBox')
-    if (vb) {
-      const parts = vb.split(/\s+/).map(Number)
-      intrinsic.current = { w: parts[2] ?? 0, h: parts[3] ?? 0 }
-    } else {
-      // Fallback to width/height attributes
-      intrinsic.current = {
-        w: parseFloat(svg.getAttribute('width') ?? '800'),
-        h: parseFloat(svg.getAttribute('height') ?? '600'),
-      }
+    // 1. Inject beautiful-mermaid SVG into DOM
+    wrapper.innerHTML = svgHtml
+    const svgEl = wrapper.querySelector('svg') as SVGSVGElement | null
+    if (!svgEl) return
+
+    // 2. Parse intrinsic dimensions from viewBox
+    const vbAttr = svgEl.getAttribute('viewBox')
+    const vbParts = vbAttr?.split(/\s+/).map(Number)
+    const svgW = vbParts?.[2] ?? parseFloat(svgEl.getAttribute('width') ?? '800')
+    const svgH = vbParts?.[3] ?? parseFloat(svgEl.getAttribute('height') ?? '600')
+
+    // 3. Make SVG responsive — fill container width, compute height from aspect
+    svgEl.removeAttribute('width')
+    svgEl.removeAttribute('height')
+    svgEl.style.width = '100%'
+    svgEl.style.display = 'block'
+    // Set a reasonable height that respects aspect ratio, capped at 500px
+    const containerW = wrapper.clientWidth || 600
+    const computedH = Math.min(500, Math.round((svgH / svgW) * containerW))
+    svgEl.style.height = `${computedH}px`
+
+    // 4. Wrap all renderable children in a <g> for d3-zoom to transform.
+    //    Keep <style> and <defs> at SVG root (markers, CSS vars).
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+    g.setAttribute('class', 'diagram-content')
+    const children = Array.from(svgEl.childNodes)
+    for (const child of children) {
+      const tag = (child as Element).tagName?.toLowerCase()
+      if (tag === 'style' || tag === 'defs') continue
+      g.appendChild(child)
     }
+    svgEl.appendChild(g)
 
-    // Make SVG fill container (responsive), remove fixed dimensions
-    svg.removeAttribute('width')
-    svg.removeAttribute('height')
-    svg.style.width = '100%'
-    svg.style.height = '100%'
-    svg.style.display = 'block'
+    // 5. d3 selections
+    const svgSel = select(svgEl)
+    const gSel = select(g)
 
-    // Initialize view to show entire diagram
-    view.current = { x: 0, y: 0, w: intrinsic.current.w, h: intrinsic.current.h }
-    applyViewBox(view.current)
+    // 6. Create zoom behavior
+    const z = zoom<SVGSVGElement, unknown>()
+      .scaleExtent([MIN_SCALE, MAX_SCALE])
+      .on('zoom', ({ transform }) => {
+        // Apply SVG transform attribute — vector-space, always crisp
+        gSel.attr('transform', transform.toString())
+
+        // Debounced badge update (avoids React re-render per frame)
+        clearTimeout(syncTimer.current)
+        syncTimer.current = setTimeout(() => {
+          setDisplayScale(transform.k)
+          setIsTransformed(
+            Math.abs(transform.k - 1) > 0.01 ||
+            Math.abs(transform.x) > 1 ||
+            Math.abs(transform.y) > 1
+          )
+        }, 80)
+      })
+
+    // 7. Apply zoom to SVG — d3 handles wheel, drag, touch, dblclick
+    svgSel.call(z)
+
+    // 8. Override filter to prevent scroll passthrough
+    //    Default d3 filter allows wheel zoom — we preventDefault to stop page scroll
+    z.filter((event: Event) => {
+      ;(event as Event).preventDefault()
+      const e = event as MouseEvent
+      return (!e.ctrlKey || event.type === 'wheel') && !e.button
+    })
+    // Re-apply after filter change
+    svgSel.call(z)
+
+    // 9. Set cursor
+    svgEl.style.cursor = 'grab'
+    svgSel
+      .on('mousedown.cursor', () => { svgEl.style.cursor = 'grabbing' })
+      .on('mouseup.cursor', () => { svgEl.style.cursor = 'grab' })
+      .on('mouseleave.cursor', () => { svgEl.style.cursor = 'grab' })
+
+    zoomRef.current = z
+
+    // Cleanup: remove all d3 zoom event listeners
+    return () => {
+      clearTimeout(syncTimer.current)
+      svgSel.on('.zoom', null)
+      svgSel.on('.cursor', null)
+      zoomRef.current = null
+    }
   }, [svgHtml])
 
-  // ── Apply viewBox to SVG element (no React) ────────────
-  const applyViewBox = useCallback((v: ViewRect) => {
-    const svg = svgRef.current
-    if (!svg) return
-    svg.setAttribute('viewBox', `${v.x} ${v.y} ${v.w} ${v.h}`)
-  }, [])
-
-  // ── Current zoom level (ratio of intrinsic to view) ────
-  const currentZoom = useCallback(() => {
-    if (view.current.w === 0) return 1
-    return intrinsic.current.w / view.current.w
-  }, [])
-
-  // ── Sync display state ─────────────────────────────────
-  const syncDisplay = useCallback(() => {
-    const zoom = currentZoom()
-    setDisplayZoom(zoom)
-    const i = intrinsic.current
-    const v = view.current
-    setIsTransformed(
-      Math.abs(zoom - 1) > 0.01 ||
-      Math.abs(v.x) > 1 ||
-      Math.abs(v.y) > 1 ||
-      Math.abs(v.w - i.w) > 1 ||
-      Math.abs(v.h - i.h) > 1
-    )
-  }, [currentZoom])
-
-  // ── Wheel zoom — toward cursor ─────────────────────────
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-
-      const svg = svgRef.current
-      if (!svg) return
-
-      const rect = el.getBoundingClientRect()
-      // Cursor position as fraction of viewport (0→1)
-      const fx = (e.clientX - rect.left) / rect.width
-      const fy = (e.clientY - rect.top) / rect.height
-
-      // Cursor position in SVG coordinates
-      const v = view.current
-      const svgX = v.x + fx * v.w
-      const svgY = v.y + fy * v.h
-
-      // Exponential zoom
-      const delta = -e.deltaY * ZOOM_FACTOR
-      const factor = Math.exp(delta) // >1 = zoom in, <1 = zoom out
-
-      // New view dimensions
-      const newW = v.w / factor
-      const newH = v.h / factor
-
-      // Clamp zoom
-      const newZoom = intrinsic.current.w / newW
-      if (newZoom < MIN_ZOOM || newZoom > MAX_ZOOM) return
-
-      // Adjust origin so cursor stays on the same SVG point
-      const newX = svgX - fx * newW
-      const newY = svgY - fy * newH
-
-      view.current = { x: newX, y: newY, w: newW, h: newH }
-      applyViewBox(view.current)
-
-      // Debounce display sync
-      clearTimeout((onWheel as any)._t)
-      ;(onWheel as any)._t = setTimeout(syncDisplay, 120)
-    }
-
-    el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
-  }, [applyViewBox, syncDisplay])
-
-  // ── Drag pan ────────────────────────────────────────────
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    if (e.button !== 0) return
-    dragging.current = true
-    dragStart.current = {
-      px: e.clientX,
-      py: e.clientY,
-      vx: view.current.x,
-      vy: view.current.y,
-    }
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-    ;(e.currentTarget as HTMLElement).style.cursor = 'grabbing'
-  }, [])
-
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragging.current) return
-
-    const el = containerRef.current
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-
-    // Convert pixel drag distance to SVG coordinate delta
-    const v = view.current
-    const dxSvg = ((e.clientX - dragStart.current.px) / rect.width) * v.w
-    const dySvg = ((e.clientY - dragStart.current.py) / rect.height) * v.h
-
-    // Pan = move viewBox origin in opposite direction of drag
-    view.current = {
-      ...v,
-      x: dragStart.current.vx - dxSvg,
-      y: dragStart.current.vy - dySvg,
-    }
-    applyViewBox(view.current)
-  }, [applyViewBox])
-
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
-    }
-    ;(e.currentTarget as HTMLElement).style.cursor = 'grab'
-    dragging.current = false
-    syncDisplay()
-  }, [syncDisplay])
-
-  // ── Animated fit-to-view (double-click / reset) ────────
-  const animateToView = useCallback((target: ViewRect) => {
-    cancelAnimationFrame(animFrame.current)
-    const start = { ...view.current }
-    const t0 = performance.now()
-
-    const tick = (now: number) => {
-      const elapsed = now - t0
-      // Ease-out cubic
-      const t = Math.min(elapsed / FIT_ANIM_MS, 1)
-      const ease = 1 - Math.pow(1 - t, 3)
-
-      view.current = {
-        x: start.x + (target.x - start.x) * ease,
-        y: start.y + (target.y - start.y) * ease,
-        w: start.w + (target.w - start.w) * ease,
-        h: start.h + (target.h - start.h) * ease,
-      }
-      applyViewBox(view.current)
-
-      if (t < 1) {
-        animFrame.current = requestAnimationFrame(tick)
-      } else {
-        syncDisplay()
-      }
-    }
-    animFrame.current = requestAnimationFrame(tick)
-  }, [applyViewBox, syncDisplay])
-
+  // ── Programmatic reset — smooth d3 transition ──────────
   const handleReset = useCallback(() => {
-    const i = intrinsic.current
-    animateToView({ x: 0, y: 0, w: i.w, h: i.h })
-  }, [animateToView])
+    const wrapper = containerRef.current
+    const z = zoomRef.current
+    if (!wrapper || !z) return
 
-  // Cleanup animation on unmount
-  useEffect(() => () => cancelAnimationFrame(animFrame.current), [])
+    const svgEl = wrapper.querySelector('svg') as SVGSVGElement | null
+    if (!svgEl) return
+
+    select(svgEl)
+      .transition()
+      .duration(300)
+      .call(z.transform, zoomIdentity)
+  }, [])
 
   return (
     <div className="relative">
-      {/* Viewport — clips content, captures all events */}
+      {/* SVG container — d3-zoom owns all interaction */}
       <div
         ref={containerRef}
         className="overflow-hidden touch-none select-none"
-        style={{ cursor: 'grab', maxHeight: 500 }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        onDoubleClick={handleReset}
-        dangerouslySetInnerHTML={{ __html: svgHtml }}
       />
 
-      {/* Zoom badge — bottom-right */}
+      {/* Zoom badge — bottom-right, hover reveal */}
       <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover/mermaid:opacity-100 transition-opacity duration-150">
         <button
           type="button"
@@ -320,7 +208,7 @@ const MermaidCanvas = memo(function MermaidCanvas({ svgHtml }: { svgHtml: string
           )}
           style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
         >
-          {Math.round(displayZoom * 100)}%
+          {Math.round(displayScale * 100)}%
         </button>
       </div>
 
@@ -333,7 +221,7 @@ const MermaidCanvas = memo(function MermaidCanvas({ svgHtml }: { svgHtml: string
         <span>·</span>
         <span>drag to pan</span>
         <span>·</span>
-        <span>double-click fit</span>
+        <span>double-click reset</span>
       </div>
     </div>
   )
