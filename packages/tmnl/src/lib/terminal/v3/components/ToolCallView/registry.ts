@@ -81,7 +81,7 @@ export function hasToolComponent(toolName: string): boolean {
 // Tool Categories (for grouping in UI)
 // =============================================================================
 
-export type ToolCategory = 'filesystem' | 'search' | 'shell' | 'ai' | 'mcp' | 'other'
+export type ToolCategory = 'filesystem' | 'search' | 'shell' | 'ai' | 'genifer' | 'mcp' | 'other'
 
 const toolCategories: Record<string, ToolCategory> = {
   Read: 'filesystem',
@@ -93,6 +93,9 @@ const toolCategories: Record<string, ToolCategory> = {
   Task: 'ai',
   WebFetch: 'mcp',
   WebSearch: 'mcp',
+  genifer_generate: 'genifer',
+  genifer_refine: 'genifer',
+  genifer_query: 'genifer',
 }
 
 /**
@@ -119,6 +122,8 @@ export function getCategoryInfo(category: ToolCategory): { label: string; color:
       return { label: 'Shell', color: 'text-orange-400' }
     case 'ai':
       return { label: 'AI', color: 'text-magenta-400' }
+    case 'genifer':
+      return { label: 'Genifer', color: 'text-cyan-400' }
     case 'mcp':
       return { label: 'MCP', color: 'text-blue-400' }
     case 'other':

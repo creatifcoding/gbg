@@ -11,6 +11,7 @@ import { BashToolView } from './BashToolView'
 import { EditToolView } from './EditToolView'
 import { GrepToolView } from './GrepToolView'
 import { MapToolView } from './MapToolView'
+import { GeniferGenerateView, GeniferRefineView, GeniferQueryView } from './GeniferToolView'
 import { MAP_PRODUCING_TOOLS } from '../detection/map-detector'
 
 // =============================================================================
@@ -73,6 +74,28 @@ for (const toolName of MAP_PRODUCING_TOOLS) {
   })
 }
 
+// Genifer tools — seamless artifact cards
+registerToolComponent('genifer_generate', {
+  component: GeniferGenerateView,
+  displayName: 'Generate UI',
+  icon: 'Sparkles',
+  description: 'Generate interactive UI from natural language',
+})
+
+registerToolComponent('genifer_refine', {
+  component: GeniferRefineView,
+  displayName: 'Refine UI',
+  icon: 'RefreshCw',
+  description: 'Refine an existing genifer surface',
+})
+
+registerToolComponent('genifer_query', {
+  component: GeniferQueryView,
+  displayName: 'Query UI Library',
+  icon: 'Database',
+  description: 'Query genifer persistence layer',
+})
+
 // =============================================================================
 // Re-exports
 // =============================================================================
@@ -82,3 +105,4 @@ export { BashToolView } from './BashToolView'
 export { EditToolView } from './EditToolView'
 export { GrepToolView } from './GrepToolView'
 export { MapToolView } from './MapToolView'
+export { GeniferGenerateView, GeniferRefineView, GeniferQueryView } from './GeniferToolView'
