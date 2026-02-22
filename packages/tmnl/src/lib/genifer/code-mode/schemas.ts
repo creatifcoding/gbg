@@ -154,6 +154,22 @@ export interface GeniferCodeSDK {
   // --- RPC ---
   readonly callRpc: (tag: string, payload?: unknown) => any
 
+  // --- Surface Manipulation ---
+  readonly surface: {
+    /** Get surface info (id, status, prompt, element count) */
+    readonly get: (surfaceId: string) => { id: string; status: string; prompt: string; elementCount: number } | undefined
+    /** List elements in a surface */
+    readonly listElements: (surfaceId: string) => Array<{ key: string; type: string }>
+    /** Get a specific element's props */
+    readonly getElement: (surfaceId: string, elementKey: string) => Record<string, unknown> | undefined
+    /** Update an element's props — triggers re-render */
+    readonly updateElement: (surfaceId: string, elementKey: string, props: Record<string, unknown>) => void
+    /** Add a child element to a parent */
+    readonly addElement: (surfaceId: string, parentKey: string, element: { key: string; type: string; props?: Record<string, unknown>; children?: string[] }) => void
+    /** Remove an element from the surface */
+    readonly removeElement: (surfaceId: string, elementKey: string) => void
+  }
+
   // --- Logging ---
   readonly log: (...args: any[]) => void
   readonly warn: (...args: any[]) => void

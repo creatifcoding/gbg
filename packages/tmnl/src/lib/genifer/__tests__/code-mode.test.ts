@@ -19,6 +19,8 @@ import {
   getAuditLog,
   getDynamicTools,
   createCodeSDK,
+  getCodeModeAtom,
+  listAtomKeys,
 } from '../code-mode'
 import {
   setDynamicRpcRegistry,
@@ -186,9 +188,10 @@ describe('Code Mode SDK', () => {
     expect(result.success).toBe(true)
     expect(result.exposed).toEqual({ asAtom: 'weather/current' })
 
-    // Verify the atom was set
-    const sdk = createCodeSDK()
-    expect(sdk.atoms.get('weather/current')).toEqual({ temperature: 72, humidity: 45 })
+    // Verify the atom was set in the shared store
+    const keys = listAtomKeys()
+    expect(keys).toContain('weather/current')
+    expect(getCodeModeAtom('weather/current')).toEqual({ temperature: 72, humidity: 45 })
   })
 
   it('expose: asTool registers a function', async () => {

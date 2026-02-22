@@ -41,6 +41,10 @@ import type {
   BehaviorBlock,
   ComponentRef,
 } from '../decorators/generation-schema'
+import {
+  getCodeModeAtom,
+  setCodeModeAtom,
+} from '../code-mode/shared-atoms'
 
 // =============================================================================
 // Context: Active behavior instances per tree
@@ -166,7 +170,10 @@ export const BehaviorProvider: FC<BehaviorProviderProps> = ({ tree, children }) 
       }
 
       if (!instance) {
-        return { props: element.props as Record<string, unknown>, handlers: {} }
+        // No ActionGroupInstance found — try resolving sigils against code-mode atoms
+        const rawProps = element.props as Record<string, unknown>
+        const codeModeResolved = resolveCodeModeProps(rawProps)
+        return { props: codeModeResolved.props, handlers: codeModeResolved.handlers }
       }
 
       const { resolved, handlers } = resolveProps(element.props as Record<string, unknown>, instance)
@@ -179,6 +186,86 @@ export const BehaviorProvider: FC<BehaviorProviderProps> = ({ tree, children }) 
       {children}
     </BehaviorContext.Provider>
   )
+}
+
+// =============================================================================
+// Code Mode Prop Resolution (fallback when no ActionGroupInstance)
+// =============================================================================
+
+/**
+ * Resolves sigil props against the shared code-mode atom store.
+ * Handles: @state:key, bind:key, {{@state:key}} interpolation, @action:tag
+ */
+function resolveCodeModeProps(props: Record<string, unknown>): {
+  props: Record<string, unknown>
+  handlers: Record<string, (payload?: unknown) => void>
+} {
+  const resolved: Record<string, unknown> = {}
+  const handlers: Record<string, (payload?: unknown) => void> = {}
+
+  for (const [key, value] of Object.entries(props)) {
+    if (typeof value !== 'string') {
+      resolved[key] = value
+      continue
+    }
+
+    // @state:fieldName → read from code-mode atom store
+    if (value.startsWith('@state:')) {
+      const atomKey = value.slice(7) // after '@state:'
+      resolved[key] = getCodeModeAtom(atomKey)
+      continue
+    }
+
+    // bind:fieldName → two-way binding (value + onChange handler)
+    if (value.startsWith('bind:')) {
+      const atomKey = value.slice(5) // after 'bind:'
+      resolved[key] = getCodeModeAtom(atomKey)
+      // Create an onChange handler that writes back to the atom
+      const handlerKey = `on${key.charAt(0).toUpperCase()}${key.slice(1)}Change`
+      handlers[handlerKey] = (newValue?: unknown) => {
+        setCodeModeAtom(atomKey, newValue)
+      }
+      // Also set a generic onChange for input elements
+      if (key === 'value') {
+        handlers['onChange'] = (eventOrValue?: unknown) => {
+          // Handle both React events and plain values
+          const v = eventOrValue && typeof eventOrValue === 'object' && 'target' in (eventOrValue as any)
+            ? (eventOrValue as any).target.value
+            : eventOrValue
+          setCodeModeAtom(atomKey, v)
+        }
+      }
+      continue
+    }
+
+    // @action:tag → create an onClick/onAction handler
+    if (value.startsWith('@action:')) {
+      const actionTag = value.slice(8) // after '@action:'
+      handlers[key] = (payload?: unknown) => {
+        // Emit as dynamic event so code-mode can listen
+        import('../code-mode/shared-atoms').then(({ setCodeModeAtom: set }) => {
+          // Set a special action atom to signal the action fired
+          set(`__action:${actionTag}`, { tag: actionTag, payload, timestamp: Date.now() })
+        })
+      }
+      resolved[key] = undefined // clear the sigil from the prop
+      continue
+    }
+
+    // {{@state:key}} interpolation within strings
+    if (value.includes('{{@state:')) {
+      resolved[key] = value.replace(/\{\{@state:([^}]+)\}\}/g, (_match, atomKey) => {
+        const v = getCodeModeAtom(atomKey)
+        return v !== undefined ? String(v) : ''
+      })
+      continue
+    }
+
+    // No sigil — pass through
+    resolved[key] = value
+  }
+
+  return { props: resolved, handlers }
 }
 
 // =============================================================================

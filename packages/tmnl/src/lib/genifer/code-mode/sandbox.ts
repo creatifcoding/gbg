@@ -23,6 +23,15 @@ import {
 } from '../services/DynamicEventService'
 import { RpcDefinition } from '../services/DynamicRpcSchemas'
 import { EventDefinition } from '../services/DynamicEventSchemas'
+import {
+  surfaceGet,
+  surfaceListElements,
+  surfaceGetElement,
+  surfaceUpdateElement,
+  surfaceAddElement,
+  surfaceRemoveElement,
+  resetSurfaceBridge,
+} from './surface-bridge'
 
 // =============================================================================
 // URL Allowlist (security)
@@ -77,20 +86,15 @@ export function clearAuditLog(): void {
 }
 
 // =============================================================================
-// Dynamic Atom Store (session-scoped)
+// Shared Atom Store (effect-atom Registry-backed)
 // =============================================================================
 
-/** Session-scoped dynamic atoms — key → value + subscribers */
-const dynamicAtoms = new Map<string, { value: any; subscribers: Set<(v: any) => void> }>()
-
-function getDynamicAtom(key: string): { value: any; subscribers: Set<(v: any) => void> } {
-  let entry = dynamicAtoms.get(key)
-  if (!entry) {
-    entry = { value: undefined, subscribers: new Set() }
-    dynamicAtoms.set(key, entry)
-  }
-  return entry
-}
+import {
+  setCodeModeAtom,
+  getCodeModeAtom,
+  subscribeCodeModeAtom,
+  resetSharedAtomStore,
+} from './shared-atoms'
 
 // =============================================================================
 // Dynamic Tool Store (session-scoped)
@@ -127,25 +131,19 @@ export function getDynamicComponents(): ReadonlyMap<string, (props: any) => any>
  */
 export function createCodeSDK(): GeniferCodeSDK {
   const sdk: GeniferCodeSDK = {
-    // --- Atoms ---
+    // --- Atoms (backed by shared effect-atom Registry) ---
     atoms: {
       get: <T>(key: string): T | undefined => {
         audit('atoms.get', key)
-        return getDynamicAtom(key).value as T | undefined
+        return getCodeModeAtom<T>(key)
       },
       set: <T>(key: string, value: T): void => {
         audit('atoms.set', `${key} = ${JSON.stringify(value)?.slice(0, 100)}`)
-        const entry = getDynamicAtom(key)
-        entry.value = value
-        for (const fn of entry.subscribers) {
-          try { fn(value) } catch { /* subscriber error — don't crash sandbox */ }
-        }
+        setCodeModeAtom(key, value)
       },
       subscribe: <T>(key: string, fn: (value: T) => void): (() => void) => {
         audit('atoms.subscribe', key)
-        const entry = getDynamicAtom(key)
-        entry.subscribers.add(fn as any)
-        return () => { entry.subscribers.delete(fn as any) }
+        return subscribeCodeModeAtom<T>(key, fn)
       },
     },
 
@@ -224,6 +222,34 @@ export function createCodeSDK(): GeniferCodeSDK {
       return callDynamicRpc(tag, payload)
     },
 
+    // --- Surface Manipulation ---
+    surface: {
+      get: (surfaceId) => {
+        audit('surface.get', surfaceId)
+        return surfaceGet(surfaceId)
+      },
+      listElements: (surfaceId) => {
+        audit('surface.listElements', surfaceId)
+        return surfaceListElements(surfaceId)
+      },
+      getElement: (surfaceId, elementKey) => {
+        audit('surface.getElement', `${surfaceId}/${elementKey}`)
+        return surfaceGetElement(surfaceId, elementKey)
+      },
+      updateElement: (surfaceId, elementKey, props) => {
+        audit('surface.updateElement', `${surfaceId}/${elementKey} ${JSON.stringify(props)?.slice(0, 100)}`)
+        surfaceUpdateElement(surfaceId, elementKey, props)
+      },
+      addElement: (surfaceId, parentKey, element) => {
+        audit('surface.addElement', `${surfaceId}/${parentKey} → ${element.key}`)
+        surfaceAddElement(surfaceId, parentKey, element)
+      },
+      removeElement: (surfaceId, elementKey) => {
+        audit('surface.removeElement', `${surfaceId}/${elementKey}`)
+        surfaceRemoveElement(surfaceId, elementKey)
+      },
+    },
+
     // --- Logging ---
     log: (...args) => { audit('log', args.map(String).join(' ')); console.log('[code-mode]', ...args) },
     warn: (...args) => { audit('warn', args.map(String).join(' ')); console.warn('[code-mode]', ...args) },
@@ -238,7 +264,8 @@ export function createCodeSDK(): GeniferCodeSDK {
 // =============================================================================
 
 export function resetSandboxState(): void {
-  dynamicAtoms.clear()
+  resetSharedAtomStore()
+  resetSurfaceBridge()
   dynamicTools.clear()
   dynamicComponents.clear()
   clearAuditLog()

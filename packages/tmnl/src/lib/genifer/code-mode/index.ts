@@ -28,3 +28,30 @@ export {
 
 // Executor
 export { executeCodeMode } from './executor'
+
+// Surface Bridge
+export { setSurfaceBridge, resetSurfaceBridge } from './surface-bridge'
+
+// Tree Mutator
+export {
+  updateElementProps,
+  addChildElement,
+  removeElement,
+  getElement as getTreeElement,
+  listElements as listTreeElements,
+} from './tree-mutator'
+
+// React hooks
+export { useCodeModeAtom, useCodeModeAtoms } from './useCodeModeAtom'
+
+// Shared Atom Bridge
+export {
+  setCodeModeAtom,
+  getCodeModeAtom,
+  subscribeCodeModeAtom,
+  subscribeStore,
+  getStoreSnapshot,
+  listAtomKeys,
+  hasAtom,
+  resetSharedAtomStore,
+} from './shared-atoms'
