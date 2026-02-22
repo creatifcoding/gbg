@@ -42,190 +42,273 @@ export interface MermaidBlockProps {
 }
 
 // =============================================================================
-// MermaidCanvas — GPU-accelerated zoom/pan SVG viewer
+// MermaidCanvas — native SVG viewBox zoom/pan
 //
-// Smooth interaction design:
-//   - Ref-driven transforms during gestures (zero React re-renders)
-//   - Direct DOM style writes via ref — bypasses reconciliation
-//   - will-change: transform for GPU compositing layer
+// WHY viewBox, not CSS transform:
+//   CSS `scale()` + `will-change: transform` rasterizes the SVG at its original
+//   resolution, then stretches the bitmap. Text becomes blurry at high zoom.
+//   SVG viewBox manipulation re-renders all primitives (text, paths, lines) at
+//   native resolution for every frame. Diagram-scale SVGs (~100-500 elements)
+//   render in <1ms — no perceptible jank.
+//
+// Interaction design:
+//   - Ref-driven viewBox state (zero React re-renders during gesture)
+//   - Direct SVG attribute writes (no React reconciliation)
 //   - Exponential zoom (multiply scale, not add) — natural feel
-//   - Zoom-to-cursor: affine transform keeps point under cursor fixed
-//   - No CSS transition during active gesture — instant feedback
-//   - Transition only on programmatic reset (200ms ease-out)
-//   - Double-click to reset view
+//   - Zoom-to-cursor: viewport-to-SVG coordinate mapping
 //   - Pointer capture for reliable drag across elements
+//   - Double-click to fit-to-view (animated via rAF interpolation)
+//   - Touch-none to prevent browser pinch conflict
+//   - SVG text/paths always pixel-perfect at any zoom level
 // =============================================================================
 
-const MIN_SCALE = 0.15
-const MAX_SCALE = 6
-/** Exponential zoom factor per 100px of wheel delta */
+const MIN_ZOOM = 0.15
+const MAX_ZOOM = 10
 const ZOOM_FACTOR = 0.003
+const FIT_ANIM_MS = 250
 
-interface Transform {
+/** The SVG-space rectangle we're looking at */
+interface ViewRect {
   x: number
   y: number
-  scale: number
+  w: number
+  h: number
 }
 
-function clampScale(s: number) {
-  return Math.max(MIN_SCALE, Math.min(MAX_SCALE, s))
+function clampZoom(z: number) {
+  return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z))
 }
 
 const MermaidCanvas = memo(function MermaidCanvas({ svgHtml }: { svgHtml: string }) {
-  const viewportRef = useRef<HTMLDivElement>(null)
-  const contentRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const svgRef = useRef<SVGSVGElement | null>(null)
 
-  // Transform state lives in a ref — NO useState during gestures.
-  // Only the badge re-renders (via a lightweight display state).
-  const tRef = useRef<Transform>({ x: 0, y: 0, scale: 1 })
-  const gestureActive = useRef(false)
-  const dragStart = useRef({ px: 0, py: 0, tx: 0, ty: 0 })
+  // Original intrinsic SVG dimensions (parsed once)
+  const intrinsic = useRef({ w: 0, h: 0 })
+  // Current view rect in SVG coordinate space
+  const view = useRef<ViewRect>({ x: 0, y: 0, w: 0, h: 0 })
+  // Gesture tracking
+  const dragging = useRef(false)
+  const dragStart = useRef({ px: 0, py: 0, vx: 0, vy: 0 })
+  // Animation
+  const animFrame = useRef(0)
 
-  // Lightweight display state — only updated on gesture end / reset
-  const [displayScale, setDisplayScale] = useState(1)
+  // Display state — only updated on gesture end
+  const [displayZoom, setDisplayZoom] = useState(1)
   const [isTransformed, setIsTransformed] = useState(false)
 
-  // ── Apply transform to DOM (no React) ──────────────────
-  const applyTransform = useCallback((t: Transform, animate: boolean) => {
-    const el = contentRef.current
+  // ── Parse SVG element + intrinsic viewBox on mount ─────
+  useEffect(() => {
+    const el = containerRef.current
     if (!el) return
-    el.style.transition = animate ? 'transform 200ms cubic-bezier(0.32, 0.72, 0, 1)' : 'none'
-    el.style.transform = `translate3d(${t.x}px, ${t.y}px, 0) scale(${t.scale})`
+    const svg = el.querySelector('svg')
+    if (!svg) return
+    svgRef.current = svg
+
+    // Parse the original viewBox from beautiful-mermaid output
+    const vb = svg.getAttribute('viewBox')
+    if (vb) {
+      const parts = vb.split(/\s+/).map(Number)
+      intrinsic.current = { w: parts[2] ?? 0, h: parts[3] ?? 0 }
+    } else {
+      // Fallback to width/height attributes
+      intrinsic.current = {
+        w: parseFloat(svg.getAttribute('width') ?? '800'),
+        h: parseFloat(svg.getAttribute('height') ?? '600'),
+      }
+    }
+
+    // Make SVG fill container (responsive), remove fixed dimensions
+    svg.removeAttribute('width')
+    svg.removeAttribute('height')
+    svg.style.width = '100%'
+    svg.style.height = '100%'
+    svg.style.display = 'block'
+
+    // Initialize view to show entire diagram
+    view.current = { x: 0, y: 0, w: intrinsic.current.w, h: intrinsic.current.h }
+    applyViewBox(view.current)
+  }, [svgHtml])
+
+  // ── Apply viewBox to SVG element (no React) ────────────
+  const applyViewBox = useCallback((v: ViewRect) => {
+    const svg = svgRef.current
+    if (!svg) return
+    svg.setAttribute('viewBox', `${v.x} ${v.y} ${v.w} ${v.h}`)
   }, [])
 
-  // ── Sync display state (after gesture or reset) ────────
-  const syncDisplay = useCallback(() => {
-    const t = tRef.current
-    setDisplayScale(t.scale)
-    setIsTransformed(t.scale !== 1 || t.x !== 0 || t.y !== 0)
+  // ── Current zoom level (ratio of intrinsic to view) ────
+  const currentZoom = useCallback(() => {
+    if (view.current.w === 0) return 1
+    return intrinsic.current.w / view.current.w
   }, [])
+
+  // ── Sync display state ─────────────────────────────────
+  const syncDisplay = useCallback(() => {
+    const zoom = currentZoom()
+    setDisplayZoom(zoom)
+    const i = intrinsic.current
+    const v = view.current
+    setIsTransformed(
+      Math.abs(zoom - 1) > 0.01 ||
+      Math.abs(v.x) > 1 ||
+      Math.abs(v.y) > 1 ||
+      Math.abs(v.w - i.w) > 1 ||
+      Math.abs(v.h - i.h) > 1
+    )
+  }, [currentZoom])
 
   // ── Wheel zoom — toward cursor ─────────────────────────
   useEffect(() => {
-    const vp = viewportRef.current
-    if (!vp) return
+    const el = containerRef.current
+    if (!el) return
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
       e.stopPropagation()
 
-      const rect = vp.getBoundingClientRect()
-      // Cursor position relative to viewport
-      const cx = e.clientX - rect.left
-      const cy = e.clientY - rect.top
+      const svg = svgRef.current
+      if (!svg) return
 
-      const t = tRef.current
-      const oldScale = t.scale
+      const rect = el.getBoundingClientRect()
+      // Cursor position as fraction of viewport (0→1)
+      const fx = (e.clientX - rect.left) / rect.width
+      const fy = (e.clientY - rect.top) / rect.height
 
-      // Exponential zoom — multiply, don't add
-      const zoomDelta = -e.deltaY * ZOOM_FACTOR
-      const newScale = clampScale(oldScale * Math.exp(zoomDelta))
-      const ratio = newScale / oldScale
+      // Cursor position in SVG coordinates
+      const v = view.current
+      const svgX = v.x + fx * v.w
+      const svgY = v.y + fy * v.h
 
-      // Zoom toward cursor: keep the point under cursor fixed
-      // Formula: newOffset = cursor - (cursor - oldOffset) * ratio
-      const newX = cx - (cx - t.x) * ratio
-      const newY = cy - (cy - t.y) * ratio
+      // Exponential zoom
+      const delta = -e.deltaY * ZOOM_FACTOR
+      const factor = Math.exp(delta) // >1 = zoom in, <1 = zoom out
 
-      tRef.current = { x: newX, y: newY, scale: newScale }
-      gestureActive.current = true
-      applyTransform(tRef.current, false)
+      // New view dimensions
+      const newW = v.w / factor
+      const newH = v.h / factor
 
-      // Debounce display sync — only update badge after scrolling settles
-      clearTimeout((onWheel as any)._syncTimer)
-      ;(onWheel as any)._syncTimer = setTimeout(() => {
-        gestureActive.current = false
-        syncDisplay()
-      }, 120)
+      // Clamp zoom
+      const newZoom = intrinsic.current.w / newW
+      if (newZoom < MIN_ZOOM || newZoom > MAX_ZOOM) return
+
+      // Adjust origin so cursor stays on the same SVG point
+      const newX = svgX - fx * newW
+      const newY = svgY - fy * newH
+
+      view.current = { x: newX, y: newY, w: newW, h: newH }
+      applyViewBox(view.current)
+
+      // Debounce display sync
+      clearTimeout((onWheel as any)._t)
+      ;(onWheel as any)._t = setTimeout(syncDisplay, 120)
     }
 
-    vp.addEventListener('wheel', onWheel, { passive: false })
-    return () => vp.removeEventListener('wheel', onWheel)
-  }, [applyTransform, syncDisplay])
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [applyViewBox, syncDisplay])
 
-  // ── Pointer drag pan ────────────────────────────────────
+  // ── Drag pan ────────────────────────────────────────────
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return
-    const t = tRef.current
-    dragStart.current = { px: e.clientX, py: e.clientY, tx: t.x, ty: t.y }
-    gestureActive.current = true
+    dragging.current = true
+    dragStart.current = {
+      px: e.clientX,
+      py: e.clientY,
+      vx: view.current.x,
+      vy: view.current.y,
+    }
     ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-    // Set grabbing cursor immediately
     ;(e.currentTarget as HTMLElement).style.cursor = 'grabbing'
   }, [])
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!gestureActive.current) return
-    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return
+    if (!dragging.current) return
 
-    const dx = e.clientX - dragStart.current.px
-    const dy = e.clientY - dragStart.current.py
+    const el = containerRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
 
-    tRef.current = {
-      ...tRef.current,
-      x: dragStart.current.tx + dx,
-      y: dragStart.current.ty + dy,
+    // Convert pixel drag distance to SVG coordinate delta
+    const v = view.current
+    const dxSvg = ((e.clientX - dragStart.current.px) / rect.width) * v.w
+    const dySvg = ((e.clientY - dragStart.current.py) / rect.height) * v.h
+
+    // Pan = move viewBox origin in opposite direction of drag
+    view.current = {
+      ...v,
+      x: dragStart.current.vx - dxSvg,
+      y: dragStart.current.vy - dySvg,
     }
-    applyTransform(tRef.current, false)
-  }, [applyTransform])
+    applyViewBox(view.current)
+  }, [applyViewBox])
 
   const onPointerUp = useCallback((e: React.PointerEvent) => {
     if (e.currentTarget.hasPointerCapture(e.pointerId)) {
       ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
     }
     ;(e.currentTarget as HTMLElement).style.cursor = 'grab'
-    gestureActive.current = false
+    dragging.current = false
     syncDisplay()
   }, [syncDisplay])
 
-  // ── Double-click to reset ───────────────────────────────
-  const handleDoubleClick = useCallback(() => {
-    tRef.current = { x: 0, y: 0, scale: 1 }
-    applyTransform(tRef.current, true) // animated reset
-    syncDisplay()
-  }, [applyTransform, syncDisplay])
+  // ── Animated fit-to-view (double-click / reset) ────────
+  const animateToView = useCallback((target: ViewRect) => {
+    cancelAnimationFrame(animFrame.current)
+    const start = { ...view.current }
+    const t0 = performance.now()
 
-  // ── Badge click to reset ────────────────────────────────
-  const handleBadgeReset = useCallback(() => {
-    tRef.current = { x: 0, y: 0, scale: 1 }
-    applyTransform(tRef.current, true)
-    syncDisplay()
-  }, [applyTransform, syncDisplay])
+    const tick = (now: number) => {
+      const elapsed = now - t0
+      // Ease-out cubic
+      const t = Math.min(elapsed / FIT_ANIM_MS, 1)
+      const ease = 1 - Math.pow(1 - t, 3)
+
+      view.current = {
+        x: start.x + (target.x - start.x) * ease,
+        y: start.y + (target.y - start.y) * ease,
+        w: start.w + (target.w - start.w) * ease,
+        h: start.h + (target.h - start.h) * ease,
+      }
+      applyViewBox(view.current)
+
+      if (t < 1) {
+        animFrame.current = requestAnimationFrame(tick)
+      } else {
+        syncDisplay()
+      }
+    }
+    animFrame.current = requestAnimationFrame(tick)
+  }, [applyViewBox, syncDisplay])
+
+  const handleReset = useCallback(() => {
+    const i = intrinsic.current
+    animateToView({ x: 0, y: 0, w: i.w, h: i.h })
+  }, [animateToView])
+
+  // Cleanup animation on unmount
+  useEffect(() => () => cancelAnimationFrame(animFrame.current), [])
 
   return (
     <div className="relative">
-      {/* Viewport — clips + captures events */}
+      {/* Viewport — clips content, captures all events */}
       <div
-        ref={viewportRef}
-        className="overflow-hidden touch-none"
-        style={{ cursor: 'grab' }}
+        ref={containerRef}
+        className="overflow-hidden touch-none select-none"
+        style={{ cursor: 'grab', maxHeight: 500 }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        onDoubleClick={handleDoubleClick}
-      >
-        {/* Content — GPU-promoted, directly manipulated */}
-        <div
-          ref={contentRef}
-          className={cn(
-            'select-none',
-            '[&>svg]:w-full [&>svg]:h-auto [&>svg]:max-h-[500px]',
-            '[&>svg]:p-4',
-          )}
-          style={{
-            willChange: 'transform',
-            transformOrigin: '0 0', // top-left — math assumes this
-          }}
-          dangerouslySetInnerHTML={{ __html: svgHtml }}
-        />
-      </div>
+        onDoubleClick={handleReset}
+        dangerouslySetInnerHTML={{ __html: svgHtml }}
+      />
 
-      {/* Zoom badge — bottom-right, hover reveal */}
+      {/* Zoom badge — bottom-right */}
       <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover/mermaid:opacity-100 transition-opacity duration-150">
         <button
           type="button"
-          onClick={handleBadgeReset}
+          onClick={handleReset}
           title="Reset zoom (or double-click)"
           className={cn(
             'px-1.5 py-0.5 rounded font-mono tabular-nums',
@@ -237,11 +320,11 @@ const MermaidCanvas = memo(function MermaidCanvas({ svgHtml }: { svgHtml: string
           )}
           style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
         >
-          {Math.round(displayScale * 100)}%
+          {Math.round(displayZoom * 100)}%
         </button>
       </div>
 
-      {/* Hint — bottom-left, faint */}
+      {/* Hint — bottom-left */}
       <div
         className="absolute bottom-2 left-2 flex items-center gap-1.5 opacity-0 group-hover/mermaid:opacity-100 transition-opacity duration-150 pointer-events-none text-neutral-700"
         style={{ fontSize: '10px' }}
@@ -250,7 +333,7 @@ const MermaidCanvas = memo(function MermaidCanvas({ svgHtml }: { svgHtml: string
         <span>·</span>
         <span>drag to pan</span>
         <span>·</span>
-        <span>double-click reset</span>
+        <span>double-click fit</span>
       </div>
     </div>
   )
