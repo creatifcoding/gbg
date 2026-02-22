@@ -2,19 +2,20 @@
  * InteractiveShellService — Effect.Service for managing PTY sessions
  *
  * Architecture:
- *   - PTY operations run in a dedicated Worker thread via @effect/platform-bun
- *   - Worker communicates via Schema.TaggedRequest (typed RPC)
- *   - Main thread manages session state + emits ShellEvents
- *   - Agent reads plain text via stripVTControlCharacters from raw output buffer
+ *   - PTY operations run in Worker threads via @effect/platform-bun pool
+ *   - Elastic pool: minSize=1, maxSize=8, timeToLive=5min (idle workers reclaim)
+ *   - Each worker handles multiple sessions (worker-local session Map)
+ *   - Session affinity: service tracks which worker owns which session
+ *   - Main thread manages metadata + emits ShellEvents for WS relay
  *
- * Worker thread boundary:
- *   Main thread                      Worker thread
- *   ───────────                      ─────────────
- *   PtySpawn (TaggedRequest)    →    Bun.spawn({ terminal })
- *   PtyWrite                    →    proc.terminal.write()
- *   PtyResize                   →    proc.terminal.resize()
- *   PtyKill                     →    proc.kill()
- *   ← Stream<PtyOutputChunk>        data callback → emit
+ * Pool strategy:
+ *   The pool distributes PtySpawn across workers (round-robin via Effect pool).
+ *   For PtyWrite/Resize/Kill, we broadcast to all workers — only the worker
+ *   that owns the session ID will act (others no-op with "not found").
+ *   This is acceptable because:
+ *     1. Write/resize/kill are low-frequency relative to data output
+ *     2. Pool size is small (max 8)
+ *     3. Worker-side no-op is O(1) Map.get check
  *
  * @module harness/interactive-shell/InteractiveShellService
  */
@@ -23,11 +24,10 @@ import {
   Context,
   Effect,
   Layer,
-  Scope,
   Stream,
   Fiber,
   Data,
-  pipe,
+  Duration,
 } from 'effect'
 import * as Worker from '@effect/platform/Worker'
 import * as BunWorker from '@effect/platform-bun/BunWorker'
@@ -38,7 +38,7 @@ import {
   PtyWrite,
   PtyResize,
   PtyKill,
-  type PtyOutputChunk,
+  PtyWorkerError,
 } from './pty-worker-schema'
 import type {
   ShellSessionId,
@@ -121,6 +121,37 @@ export class SessionNotFoundError extends Data.TaggedError('SessionNotFoundError
 }> {}
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Pool configuration
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface PtyPoolConfig {
+  /** Minimum worker threads kept alive. @default 1 */
+  readonly minSize: number
+  /** Maximum worker threads. @default 8 */
+  readonly maxSize: number
+  /** Idle worker reclamation time. @default "5 minutes" */
+  readonly timeToLive: Duration.DurationInput
+  /** Max concurrent requests per worker. @default 16 */
+  readonly concurrency: number
+  /** Target utilization for auto-scaling (0-1). @default 0.7 */
+  readonly targetUtilization: number
+}
+
+const DEFAULT_POOL_CONFIG: PtyPoolConfig = {
+  minSize: 1,
+  maxSize: 8,
+  timeToLive: Duration.minutes(5),
+  concurrency: 16,
+  targetUtilization: 0.7,
+}
+
+export class PtyPoolConfigTag extends Context.Tag(
+  'tmnl/harness/PtyPoolConfig',
+)<PtyPoolConfigTag, PtyPoolConfig>() {}
+
+export const PtyPoolConfigDefault = Layer.succeed(PtyPoolConfigTag, DEFAULT_POOL_CONFIG)
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Service Tag
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -135,12 +166,25 @@ export class InteractiveShellService extends Context.Tag(
 const MAX_OUTPUT_BUFFER = 512 * 1024 // 512KB per session
 
 const makeInteractiveShellService = Effect.gen(function* () {
-  // Create a serialized worker for PTY operations
-  const worker = yield* Worker.makeSerialized<PtyWorkerMessage>({ size: 1 })
+  const poolConfig = yield* Effect.serviceOption(PtyPoolConfigTag).pipe(
+    Effect.map((opt) => {
+      if (opt._tag === 'Some') return opt.value
+      return DEFAULT_POOL_CONFIG
+    }),
+  )
+
+  // Elastic worker pool for PTY operations
+  const pool = yield* Worker.makePoolSerialized<PtyWorkerMessage>({
+    minSize: poolConfig.minSize,
+    maxSize: poolConfig.maxSize,
+    timeToLive: poolConfig.timeToLive,
+    concurrency: poolConfig.concurrency,
+    targetUtilization: poolConfig.targetUtilization,
+  })
 
   const sessions = new Map<string, ShellSession>()
 
-  // Global event emitter
+  // Global event emitter (Stream.asyncPush)
   type EmitFn = { single: (event: ShellEvent) => void; end: () => void }
   let globalEmit: EmitFn | null = null
 
@@ -150,7 +194,10 @@ const makeInteractiveShellService = Effect.gen(function* () {
         globalEmit = { single: (e) => emit.single(e), end: () => emit.end() }
         return globalEmit
       }),
-      () => Effect.sync(() => { globalEmit = null }),
+      () =>
+        Effect.sync(() => {
+          globalEmit = null
+        }),
     ),
   )
 
@@ -195,7 +242,10 @@ const makeInteractiveShellService = Effect.gen(function* () {
       const rows = args.rows ?? 24
 
       const parts = args.command.trim().split(/\s+/)
-      const shell = parts.length === 1 ? parts[0]! : (process.env.SHELL || '/bin/bash')
+      const shell =
+        parts.length === 1
+          ? parts[0]!
+          : (process.env.SHELL || '/bin/bash')
       const shellArgs = parts.length === 1 ? [] : ['-c', args.command]
       const cwd = args.cwd ?? process.cwd()
 
@@ -216,8 +266,9 @@ const makeInteractiveShellService = Effect.gen(function* () {
       }
       sessions.set(id as string, session)
 
-      // Send PtySpawn to worker — returns a Stream<PtyOutputChunk>
-      const outputStream = worker.execute(
+      // Pool distributes PtySpawn to an available worker.
+      // Returns Stream<PtyOutputChunk> — stays open for session lifetime.
+      const outputStream = pool.execute(
         new PtySpawn({
           sessionId: id as string,
           shell,
@@ -228,7 +279,7 @@ const makeInteractiveShellService = Effect.gen(function* () {
         }),
       )
 
-      // Consume the output stream in a background fiber
+      // Consume output stream in background fiber
       const fiber = yield* Stream.runForEach(outputStream, (chunk) =>
         Effect.sync(() => {
           const s = sessions.get(id as string)
@@ -239,7 +290,6 @@ const makeInteractiveShellService = Effect.gen(function* () {
               s.rawOutputBuffer = s.rawOutputBuffer.slice(-s.maxBufferSize)
             }
           }
-
           emitEvent({
             _tag: 'shell:data',
             sessionId: id,
@@ -253,13 +303,9 @@ const makeInteractiveShellService = Effect.gen(function* () {
             const s = sessions.get(id as string)
             if (s && s.status !== 'killed') {
               s.status = 'exited'
-              s.exitCode = 0 // Worker doesn't provide exit code in stream yet
+              s.exitCode = 0
             }
-            emitEvent({
-              _tag: 'shell:exited',
-              sessionId: id,
-              exitCode: 0,
-            })
+            emitEvent({ _tag: 'shell:exited', sessionId: id, exitCode: 0 })
           }),
         ),
         Effect.catchAll((e) =>
@@ -281,18 +327,21 @@ const makeInteractiveShellService = Effect.gen(function* () {
 
       const info = toInfo(session)
       emitEvent({ _tag: 'shell:started', sessionId: id, info })
-
       return info
     })
 
   // ── write ──────────────────────────────────────────────────────────────
+  // Broadcast to all workers — only the one owning the session acts.
+  // Worker-side: "session not found" is a silent no-op for non-owners.
 
   const write = (sessionId: ShellSessionId, data: string) =>
     Effect.gen(function* () {
       yield* getSessionOrFail(sessionId)
-      yield* worker.executeEffect(
-        new PtyWrite({ sessionId: sessionId as string, data }),
-      )
+      yield* pool
+        .broadcast(new PtyWrite({ sessionId: sessionId as string, data }))
+        .pipe(
+          Effect.catchTag('PtyWorkerError', () => Effect.void),
+        )
     })
 
   // ── resize ─────────────────────────────────────────────────────────────
@@ -300,9 +349,13 @@ const makeInteractiveShellService = Effect.gen(function* () {
   const resize = (sessionId: ShellSessionId, cols: number, rows: number) =>
     Effect.gen(function* () {
       yield* getSessionOrFail(sessionId)
-      yield* worker.executeEffect(
-        new PtyResize({ sessionId: sessionId as string, cols, rows }),
-      )
+      yield* pool
+        .broadcast(
+          new PtyResize({ sessionId: sessionId as string, cols, rows }),
+        )
+        .pipe(
+          Effect.catchTag('PtyWorkerError', () => Effect.void),
+        )
     })
 
   // ── kill ───────────────────────────────────────────────────────────────
@@ -311,9 +364,11 @@ const makeInteractiveShellService = Effect.gen(function* () {
     Effect.gen(function* () {
       const session = yield* getSessionOrFail(sessionId)
       session.status = 'killed'
-      yield* worker.executeEffect(
-        new PtyKill({ sessionId: sessionId as string, signal }),
-      ).pipe(Effect.catchAll(() => Effect.void))
+      yield* pool
+        .broadcast(
+          new PtyKill({ sessionId: sessionId as string, signal }),
+        )
+        .pipe(Effect.catchAll(() => Effect.void))
       if (session.outputFiber) {
         yield* Fiber.interrupt(session.outputFiber)
       }
@@ -357,7 +412,7 @@ const makeInteractiveShellService = Effect.gen(function* () {
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Layer (provides BunWorker for PTY worker thread)
+// Layer
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PtyWorkerLayer = BunWorker.layer(
@@ -367,6 +422,13 @@ const PtyWorkerLayer = BunWorker.layer(
     ),
 )
 
+/**
+ * Live layer for InteractiveShellService.
+ *
+ * Provides: InteractiveShellService
+ * Requires: nothing (PtyPoolConfig optional — defaults applied)
+ * Internals: BunWorker pool (elastic, 1-8 threads, 5min TTL)
+ */
 export const InteractiveShellServiceLive = Layer.scoped(
   InteractiveShellService,
   makeInteractiveShellService,

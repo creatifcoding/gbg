@@ -10,7 +10,10 @@ export {
   InteractiveShellService,
   InteractiveShellServiceLive,
   SessionNotFoundError,
+  PtyPoolConfigTag,
+  PtyPoolConfigDefault,
   type InteractiveShellServiceShape,
+  type PtyPoolConfig,
 } from './InteractiveShellService'
 
 export {
@@ -31,6 +34,18 @@ export {
   PtyExitResult,
   PtyWorkerError,
 } from './pty-worker-schema'
+
+// Client-side shell event bridge (browser only)
+export {
+  subscribeShellEvents,
+  subscribeAllShellEvents,
+  dispatchShellEvent,
+  sendShellInput,
+  sendShellResize,
+  sendShellKill,
+  registerShellCommandSender,
+  clearShellCommandSender,
+} from './shell-client-atoms'
 
 export {
   // Schemas

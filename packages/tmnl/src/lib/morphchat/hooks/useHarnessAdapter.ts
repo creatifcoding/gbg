@@ -25,6 +25,13 @@ import {
   HarnessRuntimeBrowserWebSocketDefault,
   HarnessRuntimeError,
 } from '@/lib/harness'
+import { HarnessBrowserTransport } from '@/lib/harness/HarnessBrowserTransport'
+import {
+  dispatchShellEvent,
+  registerShellCommandSender,
+  clearShellCommandSender,
+} from '@/lib/harness/interactive-shell/shell-client-atoms'
+import type { ShellEvent } from '@/lib/harness/interactive-shell/schemas'
 import type {
   HarnessRole,
   HarnessSessionId,
@@ -367,6 +374,41 @@ export const harnessOps = {
       )
       morphChatRegistry.set(harnessEventFiber$, fiber)
 
+      // ── Shell event bridge ─────────────────────────────────────────
+      // Fork a second daemon fiber that taps the raw transport events
+      // for shell event envelopes and dispatches them to
+      // shell-client-atoms listeners (used by InteractiveShellRenderer).
+      const transport = yield* HarnessBrowserTransport
+      yield* transport.events.pipe(
+        Stream.runForEach((rawEvent) =>
+          Effect.sync(() => {
+            if (
+              rawEvent &&
+              typeof rawEvent === 'object' &&
+              '_tag' in (rawEvent as Record<string, unknown>) &&
+              (rawEvent as { _tag: string })._tag === 'remote:shell_event' &&
+              'event' in (rawEvent as Record<string, unknown>)
+            ) {
+              dispatchShellEvent(
+                (rawEvent as { event: ShellEvent }).event,
+              )
+            }
+          }),
+        ),
+      ).pipe(
+        Effect.catchAll(() => Effect.void),
+        Effect.forkDaemon,
+      )
+
+      // Register shell command sender so renderers can send input/resize/kill
+      registerShellCommandSender((command) => {
+        Effect.runFork(
+          transport.request(command as any).pipe(
+            Effect.catchAll(() => Effect.void),
+          ),
+        )
+      })
+
       // Small yield to let the PubSub subscriber register
       yield* Effect.yieldNow()
 
@@ -588,6 +630,8 @@ export const harnessOps = {
       if (sessionId) yield* runtime.abortSession(sessionId)
       // Teardown extension tool bridge (unregisters auto-generated renderers)
       harnessToolBridge.clear()
+      // Teardown shell command sender
+      clearShellCommandSender()
       morphChatRegistry.set(harnessStreaming$, STREAMING_IDLE)
       morphChatRegistry.set(harnessConnection$, DISCONNECTED)
       morphChatRegistry.set(harnessStatusRows$, [])

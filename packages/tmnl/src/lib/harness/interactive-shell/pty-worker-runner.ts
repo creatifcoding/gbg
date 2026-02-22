@@ -101,16 +101,14 @@ const WorkerLive = WorkerRunner.layerSerialized(PtyWorkerMessage, {
 
   /**
    * PtyWrite → Effect<void>
+   *
+   * Broadcast-safe: silently succeeds if session not on this worker
+   * (another worker in the pool owns it).
    */
   PtyWrite: (req) =>
     Effect.gen(function* () {
       const session = sessions.get(req.sessionId)
-      if (!session) {
-        return yield* new PtyWorkerError({
-          message: `Session ${req.sessionId} not found`,
-          sessionId: req.sessionId,
-        })
-      }
+      if (!session) return // Not our session — no-op (broadcast pattern)
       try {
         session.proc.terminal!.write(req.data)
       } catch (e) {
@@ -123,16 +121,13 @@ const WorkerLive = WorkerRunner.layerSerialized(PtyWorkerMessage, {
 
   /**
    * PtyResize → Effect<void>
+   *
+   * Broadcast-safe: silently succeeds if session not on this worker.
    */
   PtyResize: (req) =>
     Effect.gen(function* () {
       const session = sessions.get(req.sessionId)
-      if (!session) {
-        return yield* new PtyWorkerError({
-          message: `Session ${req.sessionId} not found`,
-          sessionId: req.sessionId,
-        })
-      }
+      if (!session) return // Not our session — no-op (broadcast pattern)
       try {
         session.proc.terminal!.resize(req.cols, req.rows)
       } catch (e) {
@@ -145,16 +140,13 @@ const WorkerLive = WorkerRunner.layerSerialized(PtyWorkerMessage, {
 
   /**
    * PtyKill → Effect<void>
+   *
+   * Broadcast-safe: silently succeeds if session not on this worker.
    */
   PtyKill: (req) =>
     Effect.gen(function* () {
       const session = sessions.get(req.sessionId)
-      if (!session) {
-        return yield* new PtyWorkerError({
-          message: `Session ${req.sessionId} not found`,
-          sessionId: req.sessionId,
-        })
-      }
+      if (!session) return // Not our session — no-op (broadcast pattern)
       try {
         session.proc.kill(req.signal ?? 15)
         session.proc.terminal?.close()
