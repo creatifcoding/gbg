@@ -115,6 +115,52 @@ const retryTemplate = new PromptTemplate({
 
 const SYSTEM_PROMPT = "You are Claude Code, a JSON-only UI generation engine. Respond with valid JSON only."
 
+import { BEHAVIOR_DSL_PROMPT } from "../decorators/generation-schema"
+import { getComponentRegistry } from "../decorators/component"
+import { getActionGroupRegistry } from "../decorators/action-group"
+import { getRpcRegistry } from "../decorators/rpc"
+
+function buildSystemPromptForAdapter(interactive?: boolean): string {
+  if (!interactive) return SYSTEM_PROMPT
+
+  const lines = [SYSTEM_PROMPT, ""]
+  lines.push(BEHAVIOR_DSL_PROMPT)
+
+  // Available decorated components
+  const componentReg = getComponentRegistry()
+  if (componentReg.size > 0) {
+    lines.push("")
+    lines.push("PRE-BUILT INTERACTIVE COMPONENTS (use via ref):")
+    for (const [name, meta] of Array.from(componentReg.entries())) {
+      lines.push(`  ${name} — ${(meta as any).description ?? ""}`)
+    }
+  }
+
+  // Available ActionGroups
+  const agReg = getActionGroupRegistry()
+  if (agReg.size > 0) {
+    lines.push("")
+    lines.push("AVAILABLE ACTION GROUPS:")
+    for (const [name, reg] of Array.from(agReg.entries())) {
+      const stateFields = Array.from((reg as any).stateFields?.keys?.() ?? [])
+      const actions = Array.from((reg as any).actions?.keys?.() ?? [])
+      lines.push(`  ${name}: state=[${stateFields.join(", ")}] actions=[${actions.join(", ")}]`)
+    }
+  }
+
+  // Available RPCs
+  const rpcReg = getRpcRegistry()
+  if (rpcReg.size > 0) {
+    lines.push("")
+    lines.push("AVAILABLE RPCs:")
+    for (const [tag, meta] of Array.from(rpcReg.entries())) {
+      lines.push(`  ${tag} — ${(meta as any).description ?? ""}`)
+    }
+  }
+
+  return lines.join("\n")
+}
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -126,6 +172,8 @@ export interface GenerateOptions {
   readonly pipelineConfig?: PipelineConfig
   /** Maximum retry attempts on quality failure (default: 2) */
   readonly maxRetries?: number
+  /** Enable interactive behavior generation (behavior blocks, sigils, RPCs) */
+  readonly interactive?: boolean
   /** Called on each text delta (for progress UI) */
   readonly onDelta?: (delta: string) => void
   /** Called when a component is identified during streaming */
@@ -166,6 +214,7 @@ function streamAttempt(
   compiled: string,
   pipelineConfig?: PipelineConfig,
   onDelta?: (delta: string) => void,
+  interactive?: boolean,
 ): Effect.Effect<
   { tree: UITree; rawJson: string; chunks: number; elementCount: number; quarantineCount: number; repairCount: number; qualityScore: number; passed: boolean; failure: ClassifiedFailure | null },
   never,
@@ -179,7 +228,7 @@ function streamAttempt(
     let chunks = 0
 
     const stream = LanguageModel.streamText({
-      system: SYSTEM_PROMPT,
+      system: buildSystemPromptForAdapter(interactive),
       prompt: compiled,
     })
 
@@ -256,7 +305,7 @@ export const generate = (
     let compiled = basePrompt
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      const result = yield* streamAttempt(compiled, options.pipelineConfig, options.onDelta)
+      const result = yield* streamAttempt(compiled, options.pipelineConfig, options.onDelta, options.interactive)
 
       if (result.passed || attempt === maxRetries) {
         // Record assistant response
@@ -355,7 +404,7 @@ export const refine = (
     let compiled = basePrompt
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      const result = yield* streamAttempt(compiled, options.pipelineConfig, options.onDelta)
+      const result = yield* streamAttempt(compiled, options.pipelineConfig, options.onDelta, options.interactive)
 
       if (result.passed || attempt === maxRetries) {
         threads.addMessage("assistant", [
