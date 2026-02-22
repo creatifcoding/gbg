@@ -1,8 +1,19 @@
 /**
- * Genifer Dynamic Services — Runtime RPC + Event management via @effect/rpc.
+ * Genifer Services — GeniferService (persistence) + Dynamic RPC + Event management.
  *
  * @module genifer/services
  */
+
+// =============================================================================
+// Core Genifer Service (persistence + repos)
+// =============================================================================
+
+export {
+  GeniferService,
+  GeniferServiceLive,
+} from './GeniferService'
+
+export type { TreeSummary } from './GeniferService'
 
 // =============================================================================
 // Dynamic RPC Service

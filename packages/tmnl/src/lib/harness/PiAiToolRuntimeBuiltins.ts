@@ -32,6 +32,11 @@ import { AgentHarnessConfig, AgentHarnessConfigTag } from '@/lib/agents/AgentHar
 import type { ToolStreamChunk } from './schemas'
 import * as path from 'node:path'
 
+// Genifer harness integration
+import { createGeniferTools } from '@/lib/genifer/harness/bridge'
+import { GeniferHarnessServiceTag, GeniferHarnessServiceLive } from '@/lib/genifer/harness/GeniferHarnessService'
+import { GeniferServiceLive } from '@/lib/genifer/services/GeniferService'
+
 // =============================================================================
 // Create SDK tools configured for project CWD
 // =============================================================================
@@ -203,6 +208,37 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
         continue
       }
       tools.push(extTool)
+    }
+
+    // 4. Genifer tools (generate, refine, query) — optional, requires GeniferHarnessService
+    const geniferResult = yield* Effect.tryPromise({
+      try: async () => {
+        // Construct GeniferHarnessService — depends on GeniferService (needs DB)
+        const service = await Effect.runPromise(
+          Effect.gen(function* () {
+            return yield* GeniferHarnessServiceTag
+          }).pipe(
+            Effect.provide(GeniferHarnessServiceLive),
+            Effect.provide(GeniferServiceLive),
+          ),
+        )
+        // sessionId is overridden per-call in bridge, but we need a default
+        const sessionId = `harness-${Date.now()}`
+        return createGeniferTools(service, sessionId)
+      },
+      catch: (error) => {
+        console.warn(`[harness] genifer tools unavailable (DB may not be connected): ${error instanceof Error ? error.message : error}`)
+        return [] as ReturnType<typeof createGeniferTools>
+      },
+    })
+
+    const allToolNames = new Set(tools.map((t) => t.name))
+    for (const geniferTool of geniferResult) {
+      if (allToolNames.has(geniferTool.name)) {
+        console.warn(`[harness] genifer tool '${geniferTool.name}' shadows existing — skipping`)
+        continue
+      }
+      tools.push(geniferTool as any)
     }
 
     const map = new Map(tools.map((t) => [t.name, t]))

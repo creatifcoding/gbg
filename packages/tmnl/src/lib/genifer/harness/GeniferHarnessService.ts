@@ -11,12 +11,12 @@
  * @module genifer/harness/GeniferHarnessService
  */
 
-import { Context, Effect, Layer, Schema, Option } from 'effect'
+import { Context, Effect, Layer, Schema, Option, HashMap } from 'effect'
+import { LanguageModel } from '@effect/ai'
 import * as Atom from '@effect-atom/atom/Atom'
 import * as AtomRegistry from '@effect-atom/atom/Registry'
 import { nanoid } from 'nanoid'
-import type { GeniferSurface } from './surface'
-import { SurfaceQuality } from './surface'
+import { GeniferSurface, SurfaceQuality } from './surface'
 import type { GeniferEvent } from './schemas'
 import {
   GeniferGenerateStartEvent,
@@ -37,6 +37,10 @@ import {
   type QualityMetrics,
 } from './atoms'
 import { GeniferService, type TreeSummary } from '../services'
+import { generate as adapterGenerate, refine as adapterRefine } from '../compiler/ai-adapter'
+import { CatalogComponents, createCatalogLayer } from '../core/CatalogService'
+import { uiDomainCatalog } from '../catalog/ui-domain-catalog'
+import { createStreamingPipeline } from '../streaming/pipeline'
 
 // =============================================================================
 // Error Type
@@ -160,6 +164,12 @@ export interface GeniferHarnessServiceShape {
   readonly removeSurface: (surfaceId: string) => void
 
   /**
+   * Set the LanguageModel layer for generation.
+   * Called at harness startup when the provider is known.
+   */
+  readonly setModelLayer: (layer: Layer.Layer<LanguageModel.LanguageModel>) => void
+
+  /**
    * The atom registry for direct atom access.
    */
   readonly registry: AtomRegistry.Registry
@@ -182,6 +192,15 @@ export const GeniferHarnessServiceLive = Layer.effect(
 
     let seqCounter = 0
     const nextSeq = () => ++seqCounter
+
+    // ── Model layer (set at runtime when provider is known) ──
+
+    let modelLayer: Layer.Layer<LanguageModel.LanguageModel> | null = null
+    const catalogLayer = createCatalogLayer(uiDomainCatalog)
+
+    const setModelLayer = (layer: Layer.Layer<LanguageModel.LanguageModel>) => {
+      modelLayer = layer
+    }
 
     // ── Helpers: atom mutations ──
 
@@ -262,18 +281,111 @@ export const GeniferHarnessServiceLive = Layer.effect(
         })
         opts.onEvent?.(startEvent)
 
-        // TODO: Wire to ai-adapter.generate() + pipeline
-        // For now, this is the orchestration skeleton.
-        // The actual LLM call + pipeline streaming will be wired in Phase 5
-        // when ToolDefinitions bridge into this service.
+        // ── Call ai-adapter.generate() with LanguageModel + CatalogComponents ──
 
-        // Simulate completion for skeleton
+        if (!modelLayer) {
+          return yield* Effect.fail(new GeniferHarnessError({
+            operation: 'generate',
+            message: 'No LanguageModel layer set — call setModelLayer() at harness startup',
+          }))
+        }
+
+        let streamedElements = 0
+        const adapterResult = yield* adapterGenerate({
+          prompt: opts.prompt,
+          interactive: true,
+          maxRetries: 2,
+          onDelta: (delta) => {
+            // Raw text deltas — used for streaming preview, not element-level events
+            // GeniferStreamDeltaEvent requires element-level fields; raw deltas
+            // are tracked via the stream deltas atom for UI preview
+            streamedElements++ // approximate: count chunks as progress
+            opts.onProgress?.('streaming', streamedElements)
+          },
+          onComponent: (key, type) => {
+            // Element identified during streaming — emit proper delta event
+            const deltaEvent = new GeniferStreamDeltaEvent({
+              seq: nextSeq(),
+              sessionId: opts.sessionId,
+              toolCallId: surfaceId,
+              surfaceId,
+              elementKey: key,
+              elementType: type,
+              parentKey: null,
+              depth: 0,
+              stage: 'tokenized',
+              timestamp: Date.now(),
+            })
+            appendDelta(deltaEvent)
+            opts.onEvent?.(deltaEvent)
+            setActiveGeneration({
+              toolCallId: surfaceId,
+              surfaceId,
+              prompt: opts.prompt,
+              instruction: null,
+              status: 'streaming',
+              model,
+              startedAt: startTime,
+              elementCount: streamedElements,
+              error: null,
+            })
+          },
+          onRetry: (attempt, _failure) => {
+            opts.onProgress?.(`retry-${attempt}`, streamedElements)
+          },
+        }).pipe(
+          Effect.provide(modelLayer),
+          Effect.provide(catalogLayer),
+        )
+
         const durationMs = Date.now() - startTime
-        const elementCount = 0
-        const qualityScore = 0
-        const repairCount = 0
+        const elementCount = adapterResult.elementCount
+        const qualityScore = adapterResult.qualityScore
+        const repairCount = adapterResult.repairCount
 
-        // Update active generation
+        // Create surface from result
+        const surface: GeniferSurface = new GeniferSurface({
+          id: surfaceId,
+          treeId: null, // filled after persist
+          threadId,
+          toolCallId: surfaceId,
+          sessionId: opts.sessionId,
+          treeSnapshot: adapterResult.rawJson,
+          version: 1,
+          parentSurfaceId: null,
+          dataBindings: {},
+          actionBindings: {},
+          quality: new SurfaceQuality({ score: qualityScore, elementCount, repairCount, model, durationMs }),
+          prompt: opts.prompt,
+          instruction: null,
+          status: 'complete',
+          createdAt: startTime,
+        })
+        addSurface(surface)
+
+        // Persist if requested
+        let treeId: string | null = null
+        if (opts.persist !== false) {
+          const saveResult = yield* geniferService.saveTree({
+            tree: adapterResult.tree,
+            prompt: opts.prompt,
+            qualityScore,
+            repairCount,
+            threadId,
+          }).pipe(Effect.either)
+          if (saveResult._tag === 'Right') {
+            treeId = (saveResult.right as any).treeId ?? null
+            if (treeId) {
+              appendSessionTreeId(treeId)
+              updateSurface(surfaceId, { treeId })
+            }
+          } else {
+            // Persistence failure is non-fatal — surface still works from snapshot
+            console.warn(`[genifer] persistence failed for surface ${surfaceId}:`, saveResult.left)
+          }
+        }
+
+        // Update active generation to complete
         setActiveGeneration({
           toolCallId: surfaceId,
           surfaceId,
@@ -292,7 +404,7 @@ export const GeniferHarnessServiceLive = Layer.effect(
           sessionId: opts.sessionId,
           toolCallId: surfaceId,
           surfaceId,
-          treeId: null,
+          treeId,
           elementCount,
           qualityScore,
           repairCount,
@@ -319,7 +431,7 @@ export const GeniferHarnessServiceLive = Layer.effect(
 
         return {
           surfaceId,
-          treeId: null,
+          treeId,
           elementCount,
           qualityScore,
           repairCount,
@@ -383,8 +495,117 @@ export const GeniferHarnessServiceLive = Layer.effect(
         })
         opts.onEvent?.(startEvent)
 
-        // TODO: Wire to ai-adapter.refine() + pipeline
+        // ── Call ai-adapter.refine() with current tree ──
+
+        if (!modelLayer) {
+          return yield* Effect.fail(new GeniferHarnessError({
+            operation: 'refine',
+            message: 'No LanguageModel layer set — call setModelLayer() at harness startup',
+          }))
+        }
+
+        // Reconstruct current tree from snapshot for refinement
+        let currentTree: import('../core/schemas').UITree | null = null
+        if (surface.treeSnapshot && typeof surface.treeSnapshot === 'string') {
+          try {
+            const rebuildPipeline = createStreamingPipeline()
+            rebuildPipeline.feedChunk(surface.treeSnapshot as string)
+            const { tree: rebuilt } = rebuildPipeline.finalize()
+            currentTree = rebuilt
+          } catch {
+            // Fall through
+          }
+        }
+
+        if (!currentTree) {
+          return yield* Effect.fail(new GeniferHarnessError({
+            operation: 'refine',
+            message: `Cannot refine surface ${opts.surfaceId}: no tree snapshot available`,
+          }))
+        }
+
+        let streamedElements = 0
+        const adapterResult = yield* adapterRefine({
+          prompt: opts.instruction,
+          currentTree,
+          interactive: true,
+          maxRetries: 2,
+          onDelta: (_delta) => {
+            streamedElements++
+            opts.onProgress?.('streaming', streamedElements)
+          },
+          onComponent: (key, type) => {
+            const deltaEvent = new GeniferStreamDeltaEvent({
+              seq: nextSeq(),
+              sessionId: opts.sessionId,
+              toolCallId: newSurfaceId,
+              surfaceId: newSurfaceId,
+              elementKey: key ?? `el-${streamedElements}`,
+              elementType: type ?? 'Unknown',
+              parentKey: null,
+              depth: 0,
+              stage: 'tokenized',
+              timestamp: Date.now(),
+            })
+            appendDelta(deltaEvent)
+            opts.onEvent?.(deltaEvent)
+          },
+        }).pipe(
+          Effect.provide(modelLayer),
+          Effect.provide(catalogLayer),
+        )
+
         const durationMs = Date.now() - startTime
+        const elementCount = adapterResult.elementCount
+        const qualityScore = adapterResult.qualityScore
+        const repairCount = adapterResult.repairCount
+
+        // Diff calculation (basic: compare element counts)
+        const sourceElementCount = currentTree ? HashMap.size(currentTree.elements) : 0
+        const addedElements = Math.max(0, elementCount - sourceElementCount)
+        const removedElements = Math.max(0, sourceElementCount - elementCount)
+        const modifiedElements = Math.min(elementCount, sourceElementCount)
+
+        // Create refined surface
+        const refinedSurface: GeniferSurface = new GeniferSurface({
+          id: newSurfaceId,
+          treeId: null,
+          threadId: surface.threadId,
+          toolCallId: newSurfaceId,
+          sessionId: opts.sessionId,
+          treeSnapshot: adapterResult.rawJson,
+          version: surface.version + 1,
+          parentSurfaceId: surface.id,
+          dataBindings: {},
+          actionBindings: {},
+          quality: new SurfaceQuality({ score: qualityScore, elementCount, repairCount, model, durationMs }),
+          prompt: surface.prompt,
+          instruction: opts.instruction,
+          status: 'complete',
+          createdAt: startTime,
+        })
+        addSurface(refinedSurface)
+
+        // Persist
+        let treeId: string | null = null
+        if (opts.persist !== false) {
+          const saveResult = yield* geniferService.saveTree({
+            tree: adapterResult.tree,
+            prompt: surface.prompt,
+            qualityScore,
+            repairCount,
+            threadId: surface.threadId,
+          }).pipe(Effect.either)
+          if (saveResult._tag === 'Right') {
+            treeId = (saveResult.right as any).treeId ?? null
+            if (treeId) {
+              appendSessionTreeId(treeId)
+              updateSurface(newSurfaceId, { treeId })
+            }
+          } else {
+            console.warn(`[genifer] persistence failed for refined surface ${newSurfaceId}:`, saveResult.left)
+          }
+        }
 
         const completeEvent = new GeniferRefineCompleteEvent({
           seq: nextSeq(),
@@ -393,14 +614,14 @@ export const GeniferHarnessServiceLive = Layer.effect(
           surfaceId: newSurfaceId,
           sourceTreeId: surface.treeId ?? '',
           sourceSurfaceId: surface.id,
-          resultTreeId: null,
-          elementCount: 0,
-          qualityScore: 0,
-          repairCount: 0,
+          resultTreeId: treeId,
+          elementCount,
+          qualityScore,
+          repairCount,
           durationMs,
-          addedElements: 0,
-          removedElements: 0,
-          modifiedElements: 0,
+          addedElements,
+          removedElements,
+          modifiedElements,
           error: null,
           timestamp: Date.now(),
         })
@@ -410,16 +631,16 @@ export const GeniferHarnessServiceLive = Layer.effect(
 
         return {
           surfaceId: newSurfaceId,
-          treeId: null,
+          treeId,
           sourceTreeId: surface.treeId ?? '',
           sourceSurfaceId: surface.id,
-          elementCount: 0,
-          qualityScore: 0,
-          repairCount: 0,
+          elementCount,
+          qualityScore,
+          repairCount,
           durationMs,
-          addedElements: 0,
-          removedElements: 0,
-          modifiedElements: 0,
+          addedElements,
+          removedElements,
+          modifiedElements,
         }
       }).pipe(
         Effect.mapError((e) =>
@@ -558,6 +779,7 @@ export const GeniferHarnessServiceLive = Layer.effect(
       getSurface,
       getAllSurfaces,
       removeSurface,
+      setModelLayer,
       registry,
     })
   }),
