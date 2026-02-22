@@ -30,7 +30,6 @@ import {
   ChatMessageShellRoot,
   ChatMessageHeaderCluster,
   ChatMessageBodyContent,
-  ChatMessageFooterActions,
   ChatMessageSeverityRails,
   ChatThinkingBlock,
   ChatToolBlock,
@@ -228,26 +227,47 @@ function CopyMessageButton({ text }: { text: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      title={copied ? 'Copied!' : 'Copy message'}
+      aria-label={copied ? 'Copied!' : 'Copy message'}
       className={cn(
         'inline-flex items-center justify-center rounded',
-        'w-6 h-6',
-        'text-neutral-500 hover:text-neutral-300',
-        'hover:bg-neutral-800/60',
-        'transition-colors duration-150',
-        copied && 'text-emerald-400',
+        'w-5 h-5',
+        'transition-colors duration-150 ease-out',
+        copied
+          ? 'text-emerald-400'
+          : 'text-neutral-600 hover:text-neutral-300',
       )}
     >
-      {copied ? (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      ) : (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="13"
+        height="13"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {/* Clipboard base — fades out when copied */}
+        <g
+          style={{
+            opacity: copied ? 0 : 1,
+            transition: 'opacity 150ms ease-out',
+          }}
+        >
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-        </svg>
-      )}
+        </g>
+        {/* Checkmark — draws in via stroke-dashoffset */}
+        <polyline
+          points="20 6 9 17 4 12"
+          style={{
+            strokeDasharray: 28,
+            strokeDashoffset: copied ? 0 : 28,
+            opacity: copied ? 1 : 0,
+            transition: 'stroke-dashoffset 250ms ease-out 50ms, opacity 100ms ease-out',
+          }}
+        />
+      </svg>
     </button>
   )
 }
@@ -328,15 +348,11 @@ function AssistantMessage({
               costUsd={message.tokenUsage.cost?.total}
             />
           )}
-          {/* Footer actions — hover only */}
-          {message.status === 'complete' && !hasTasks && message.content && (
-            <div className="opacity-0 group-hover/message:opacity-100 transition-opacity duration-150">
-              <ChatMessageFooterActions className="opacity-100">
-                <ChatMessageFooterActions.Group>
-                  <CopyMessageButton text={message.content} />
-                </ChatMessageFooterActions.Group>
-              </ChatMessageFooterActions>
-            </div>
+          {/* Copy — appears on hover, inline with metadata */}
+          {message.status === 'complete' && message.content && (
+            <span className="opacity-0 group-hover/message:opacity-100 transition-opacity duration-150 ease-out">
+              <CopyMessageButton text={message.content} />
+            </span>
           )}
         </div>
       </div>
