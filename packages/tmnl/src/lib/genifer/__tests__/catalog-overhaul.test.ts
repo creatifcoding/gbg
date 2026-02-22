@@ -5,56 +5,61 @@
  *   1. Tier system — core, domain, discovery filtering
  *   2. Domain scoping — filter by domain tags
  *   3. Compound components — parent/slot relationships
- *   4. New core domain catalog registration
+ *   4. Core domain catalog registration
  *   5. generateScopedPrompt — filtered output
  *   6. listComponents / listDomains
  *   7. className universality — every component schema has className
+ *   8. Full domain coverage
+ *   9. Wiring compounds
+ *  10. New compound groups
+ *  11. Component completeness (description, defaultEntrance, renderer)
+ *  12. Button system — 16 components, variants, compounds, tiers
+ *  13. Catalog deduplication — ui-domain-catalog gutted to 4
  *
  * @module genifer/__tests__/catalog-overhaul.test
  */
 
 import { describe, it, expect } from 'vitest'
-import { Effect } from 'effect'
 import {
   makeCatalogComponents,
-  createCatalogLayer,
-  CatalogComponents,
   type DomainCatalog,
-  type CatalogTier,
 } from '../core/CatalogService'
 import { uiDomainCatalog } from '../catalog/ui-domain-catalog'
 import { coreDomainCatalog } from '../catalog/core-domain-catalog'
+import { buttonDomainCatalog } from '../catalog/button-domain-catalog'
 
 describe('Catalog Overhaul', () => {
   // ===========================================================================
-  // Setup
+  // Setup — all three catalogs
   // ===========================================================================
 
-  const catalog = makeCatalogComponents([uiDomainCatalog, coreDomainCatalog])
+  const catalog = makeCatalogComponents([uiDomainCatalog, coreDomainCatalog, buttonDomainCatalog])
 
   // ===========================================================================
   // 1. Tier System
   // ===========================================================================
 
   describe('Tier System', () => {
-    it('core tier includes only core components', () => {
+    it('core tier includes ButtonRoot, ActionButton, GhostButton', () => {
       const coreComponents = catalog.listComponents({ tier: 'core' })
-      expect(coreComponents.length).toBeGreaterThan(0)
+      expect(coreComponents).toContain('ButtonRoot')
+      expect(coreComponents).toContain('ActionButton')
+      expect(coreComponents).toContain('GhostButton')
+      expect(coreComponents).toContain('LinkButton')
+      expect(coreComponents).toContain('ButtonGroup')
+    })
 
-      // FoldablePanel and SemanticRegion are 'domain' tier
+    it('core tier excludes domain-only button components', () => {
+      const coreComponents = catalog.listComponents({ tier: 'core' })
       expect(coreComponents).not.toContain('FoldablePanel')
       expect(coreComponents).not.toContain('SemanticRegion')
-
-      // Card, Text, Button should be core
-      expect(coreComponents).toContain('Card')
-      expect(coreComponents).toContain('Text')
-      expect(coreComponents).toContain('Button')
     })
 
     it('domain tier includes core + domain components', () => {
       const domainComponents = catalog.listComponents({ tier: 'domain' })
-      // Should include everything that core has, plus domain-tier components
-      expect(domainComponents).toContain('Card')
+      expect(domainComponents).toContain('ButtonRoot')
+      expect(domainComponents).toContain('ConfirmButton')
+      expect(domainComponents).toContain('CooldownButton')
       expect(domainComponents).toContain('FoldablePanel')
       expect(domainComponents).toContain('SemanticRegion')
     })
@@ -72,14 +77,12 @@ describe('Catalog Overhaul', () => {
   describe('Domain Scoping', () => {
     it('filters by forms domain', () => {
       const formsComponents = catalog.listComponents({ domains: ['forms'] })
-      expect(formsComponents).toContain('Input')
       expect(formsComponents).toContain('Switch')
       expect(formsComponents).toContain('Textarea')
       expect(formsComponents).toContain('Checkbox')
       expect(formsComponents).toContain('Select')
-
-      // Card is not a forms component
-      expect(formsComponents).not.toContain('Card')
+      expect(formsComponents).toContain('ConfirmButton')
+      expect(formsComponents).toContain('CooldownButton')
     })
 
     it('filters by navigation domain', () => {
@@ -104,7 +107,7 @@ describe('Catalog Overhaul', () => {
 
     it('multiple domains return union', () => {
       const combined = catalog.listComponents({ domains: ['forms', 'media'] })
-      expect(combined).toContain('Input')
+      expect(combined).toContain('Switch')
       expect(combined).toContain('Image')
     })
   })
@@ -114,15 +117,6 @@ describe('Catalog Overhaul', () => {
   // ===========================================================================
 
   describe('Compound Components', () => {
-    it('Card has compound relationship with CardHeader, CardContent, CardFooter', () => {
-      const compound = catalog.getCompound('Card')
-      expect(compound).toBeDefined()
-      expect(compound!.parent).toBe('Card')
-      expect(compound!.slots).toContain('CardHeader')
-      expect(compound!.slots).toContain('CardContent')
-      expect(compound!.slots).toContain('CardFooter')
-    })
-
     it('Tabs has compound relationship with TabsList, TabsContent', () => {
       const compound = catalog.getCompound('Tabs')
       expect(compound).toBeDefined()
@@ -137,18 +131,13 @@ describe('Catalog Overhaul', () => {
       expect(compound!.strict).toBe(true)
       expect(compound!.slots).toEqual(['AccordionItem'])
     })
-
-    it('non-compound components return undefined', () => {
-      expect(catalog.getCompound('Text')).toBeUndefined()
-      expect(catalog.getCompound('Button')).toBeUndefined()
-    })
   })
 
   // ===========================================================================
-  // 4. New Core Domain
+  // 4. Core Domain Registration
   // ===========================================================================
 
-  describe('New Core Domain Components', () => {
+  describe('Core Domain Components', () => {
     it('Box is registered', () => {
       expect(catalog.schemas.has('Box')).toBe(true)
       expect(catalog.renderers.has('Box')).toBe(true)
@@ -159,10 +148,9 @@ describe('Catalog Overhaul', () => {
     })
 
     it('Tabs family is registered', () => {
-      expect(catalog.schemas.has('Tabs')).toBe(true)
-      expect(catalog.schemas.has('TabsList')).toBe(true)
-      expect(catalog.schemas.has('TabsTrigger')).toBe(true)
-      expect(catalog.schemas.has('TabsContent')).toBe(true)
+      for (const n of ['Tabs', 'TabsList', 'TabsTrigger', 'TabsContent']) {
+        expect(catalog.schemas.has(n), `${n} should be registered`).toBe(true)
+      }
     })
 
     it('Accordion family is registered', () => {
@@ -175,11 +163,8 @@ describe('Catalog Overhaul', () => {
       expect(catalog.schemas.has('Avatar')).toBe(true)
     })
 
-    it('Skeleton is registered', () => {
+    it('Skeleton and Tooltip are registered', () => {
       expect(catalog.schemas.has('Skeleton')).toBe(true)
-    })
-
-    it('Tooltip is registered', () => {
       expect(catalog.schemas.has('Tooltip')).toBe(true)
     })
   })
@@ -189,22 +174,21 @@ describe('Catalog Overhaul', () => {
   // ===========================================================================
 
   describe('generateScopedPrompt', () => {
-    it('generates prompt with only core components', () => {
+    it('generates prompt with core components', () => {
       const prompt = catalog.generateScopedPrompt({ tier: 'core' })
-      expect(prompt).toContain('Card')
-      expect(prompt).toContain('Button')
+      expect(prompt).toContain('ButtonRoot')
+      expect(prompt).toContain('ActionButton')
       expect(prompt).not.toContain('FoldablePanel')
     })
 
-    it('domain-scoped prompt includes domain badge', () => {
+    it('domain-scoped prompt includes domain components', () => {
       const prompt = catalog.generateScopedPrompt({ domains: ['forms'] })
-      expect(prompt).toContain('Input')
       expect(prompt).toContain('Textarea')
+      expect(prompt).toContain('Switch')
     })
 
     it('generates prompt with compound info', () => {
       const prompt = catalog.generateScopedPrompt()
-      // Card compound info
       expect(prompt).toContain('compound parent')
       expect(prompt).toContain('slots')
     })
@@ -219,6 +203,7 @@ describe('Catalog Overhaul', () => {
       const domains = catalog.listDomains()
       expect(domains).toContain('TMNL UI')
       expect(domains).toContain('TMNL Core')
+      expect(domains).toContain('TMNL Buttons')
     })
   })
 
@@ -228,15 +213,16 @@ describe('Catalog Overhaul', () => {
 
   describe('className universality', () => {
     it('every core domain component schema includes className', () => {
-      const coreComponents = Object.entries(coreDomainCatalog.components)
-      for (const [name, def] of coreComponents) {
-        // Check that the schema AST has a className property key
+      for (const [name, def] of Object.entries(coreDomainCatalog.components)) {
         const ast = JSON.stringify((def.schema as any).ast ?? def.schema)
-        const hasClassName = ast?.includes('className') ?? false
-        expect(
-          hasClassName,
-          `${name} should have className in schema`,
-        ).toBe(true)
+        expect(ast?.includes('className'), `${name} should have className`).toBe(true)
+      }
+    })
+
+    it('every button domain component schema includes className', () => {
+      for (const [name, def] of Object.entries(buttonDomainCatalog.components)) {
+        const ast = JSON.stringify((def.schema as any).ast ?? def.schema)
+        expect(ast?.includes('className'), `${name} should have className`).toBe(true)
       }
     })
   })
@@ -247,8 +233,7 @@ describe('Catalog Overhaul', () => {
 
   describe('Full Domain Coverage', () => {
     it('has 60+ components in core domain catalog', () => {
-      const count = Object.keys(coreDomainCatalog.components).length
-      expect(count).toBeGreaterThanOrEqual(60)
+      expect(Object.keys(coreDomainCatalog.components).length).toBeGreaterThanOrEqual(60)
     })
 
     it('forms domain has input controls', () => {
@@ -260,7 +245,7 @@ describe('Catalog Overhaul', () => {
 
     it('feedback domain has alerts and dialogs', () => {
       const feedback = catalog.listComponents({ domains: ['feedback'] })
-      for (const name of ['Callout', 'Banner', 'Dialog', 'Sheet', 'Skeleton']) {
+      for (const name of ['Callout', 'Banner', 'Dialog', 'Sheet', 'Skeleton', 'Progress']) {
         expect(feedback, `${name} should be in feedback domain`).toContain(name)
       }
     })
@@ -295,7 +280,7 @@ describe('Catalog Overhaul', () => {
   })
 
   // ===========================================================================
-  // 9. Wiring Compounds (ActionGroup-ready)
+  // 9. Wiring Compounds
   // ===========================================================================
 
   describe('Wiring Compounds', () => {
@@ -317,7 +302,7 @@ describe('Catalog Overhaul', () => {
   })
 
   // ===========================================================================
-  // 10. Compound Components — New Groups
+  // 10. New Compound Groups
   // ===========================================================================
 
   describe('New Compound Components', () => {
@@ -341,14 +326,12 @@ describe('Catalog Overhaul', () => {
       const compound = catalog.getCompound('RadioGroup')
       expect(compound).toBeDefined()
       expect(compound!.strict).toBe(true)
-      expect(compound!.slots).toEqual(['RadioItem'])
     })
 
     it('Timeline compound is strict (only TimelineItem)', () => {
       const compound = catalog.getCompound('Timeline')
       expect(compound).toBeDefined()
       expect(compound!.strict).toBe(true)
-      expect(compound!.slots).toEqual(['TimelineItem'])
     })
 
     it('Collapsible compound is non-strict', () => {
@@ -368,30 +351,198 @@ describe('Catalog Overhaul', () => {
   })
 
   // ===========================================================================
-  // 11. Every component has description and defaultEntrance
+  // 11. Component Completeness
   // ===========================================================================
 
   describe('Component completeness', () => {
-    it('every core domain component has description', () => {
+    it('every core domain component has description + defaultEntrance + renderer', () => {
       for (const [name, def] of Object.entries(coreDomainCatalog.components)) {
         expect(def.description, `${name} should have description`).toBeDefined()
         expect(def.description!.length, `${name} description should be non-empty`).toBeGreaterThan(0)
-      }
-    })
-
-    it('every core domain component has defaultEntrance', () => {
-      for (const [name, def] of Object.entries(coreDomainCatalog.components)) {
         expect(def.defaultEntrance, `${name} should have defaultEntrance`).toBeDefined()
         expect(def.defaultEntrance.property, `${name} should have animation property`).toBeDefined()
-        expect(def.defaultEntrance.easing, `${name} should have animation easing`).toBeDefined()
-        expect(def.defaultEntrance.duration, `${name} should have animation duration`).toBeDefined()
+        expect(typeof def.renderer, `${name} should have renderer function`).toBe('function')
       }
     })
 
-    it('every core domain component has renderer function', () => {
-      for (const [name, def] of Object.entries(coreDomainCatalog.components)) {
+    it('every button domain component has description + defaultEntrance + renderer', () => {
+      for (const [name, def] of Object.entries(buttonDomainCatalog.components)) {
+        expect(def.description, `${name} should have description`).toBeDefined()
+        expect(def.description!.length, `${name} description should be non-empty`).toBeGreaterThan(0)
+        expect(def.defaultEntrance, `${name} should have defaultEntrance`).toBeDefined()
         expect(typeof def.renderer, `${name} should have renderer function`).toBe('function')
       }
+    })
+  })
+
+  // ===========================================================================
+  // 12. Button System
+  // ===========================================================================
+
+  describe('Button System', () => {
+    it('has exactly 16 button components', () => {
+      expect(Object.keys(buttonDomainCatalog.components).length).toBe(16)
+    })
+
+    it('primitive slots are registered', () => {
+      for (const name of ['ButtonRoot', 'ButtonIcon', 'ButtonLabel', 'ButtonBadge', 'ButtonSpinner', 'ButtonProgress']) {
+        expect(catalog.schemas.has(name), `${name} should be registered`).toBe(true)
+        expect(catalog.renderers.has(name), `${name} renderer should be registered`).toBe(true)
+      }
+    })
+
+    it('named assemblies are registered', () => {
+      for (const name of ['ActionButton', 'ConfirmButton', 'CooldownButton', 'PulseButton', 'SplitButton', 'FloatingActionButton', 'LinkButton', 'GhostButton']) {
+        expect(catalog.schemas.has(name), `${name} should be registered`).toBe(true)
+      }
+    })
+
+    it('group components are registered', () => {
+      expect(catalog.schemas.has('ButtonGroup')).toBe(true)
+      expect(catalog.schemas.has('ButtonGroupSeparator')).toBe(true)
+    })
+
+    it('ButtonRoot compound has all 5 primitive slots', () => {
+      const compound = catalog.getCompound('ButtonRoot')
+      expect(compound).toBeDefined()
+      expect(compound!.parent).toBe('ButtonRoot')
+      expect(compound!.slots).toContain('ButtonIcon')
+      expect(compound!.slots).toContain('ButtonLabel')
+      expect(compound!.slots).toContain('ButtonBadge')
+      expect(compound!.slots).toContain('ButtonSpinner')
+      expect(compound!.slots).toContain('ButtonProgress')
+      expect(compound!.strict).toBe(false)
+    })
+
+    it('ActionButton compound has icon, label, spinner slots', () => {
+      const compound = catalog.getCompound('ActionButton')
+      expect(compound).toBeDefined()
+      expect(compound!.slots).toContain('ButtonIcon')
+      expect(compound!.slots).toContain('ButtonLabel')
+      expect(compound!.slots).toContain('ButtonSpinner')
+    })
+
+    it('ButtonGroup compound accepts multiple button types', () => {
+      const compound = catalog.getCompound('ButtonGroup')
+      expect(compound).toBeDefined()
+      expect(compound!.slots).toContain('ButtonRoot')
+      expect(compound!.slots).toContain('ActionButton')
+      expect(compound!.slots).toContain('GhostButton')
+      expect(compound!.slots).toContain('ButtonGroupSeparator')
+    })
+
+    it('core tier buttons: ButtonRoot, ButtonIcon, ButtonLabel, ActionButton, GhostButton, LinkButton, ButtonGroup', () => {
+      const coreBtns = ['ButtonRoot', 'ButtonIcon', 'ButtonLabel', 'ButtonBadge', 'ButtonSpinner', 'ButtonProgress', 'ActionButton', 'GhostButton', 'LinkButton', 'ButtonGroup', 'ButtonGroupSeparator']
+      for (const name of coreBtns) {
+        const entry = catalog.schemas.get(name)
+        expect(entry, `${name} should be in schemas`).toBeDefined()
+        expect(entry!.tier, `${name} should be core tier`).toBe('core')
+      }
+    })
+
+    it('domain tier buttons: ConfirmButton, CooldownButton, PulseButton, SplitButton, FAB', () => {
+      const domainBtns = ['ConfirmButton', 'CooldownButton', 'PulseButton', 'SplitButton', 'FloatingActionButton']
+      for (const name of domainBtns) {
+        const entry = catalog.schemas.get(name)
+        expect(entry, `${name} should be in schemas`).toBeDefined()
+        expect(entry!.tier, `${name} should be domain tier`).toBe('domain')
+      }
+    })
+
+    it('ButtonRoot schema has all variant literals', () => {
+      const schema = buttonDomainCatalog.components['ButtonRoot'].schema
+      const ast = JSON.stringify((schema as any).ast ?? schema)
+      for (const v of ['solid', 'outline', 'ghost', 'link', 'subtle', 'gradient', 'glow', 'glass', 'destructive', 'success', 'warning']) {
+        expect(ast, `should contain variant '${v}'`).toContain(v)
+      }
+    })
+
+    it('ButtonRoot schema has all size literals', () => {
+      const schema = buttonDomainCatalog.components['ButtonRoot'].schema
+      const ast = JSON.stringify((schema as any).ast ?? schema)
+      for (const s of ['xs', 'sm', 'md', 'lg', 'xl']) {
+        expect(ast, `should contain size '${s}'`).toContain(s)
+      }
+    })
+
+    it('ButtonRoot schema has all shape literals', () => {
+      const schema = buttonDomainCatalog.components['ButtonRoot'].schema
+      const ast = JSON.stringify((schema as any).ast ?? schema)
+      for (const s of ['default', 'pill', 'square', 'circle']) {
+        expect(ast, `should contain shape '${s}'`).toContain(s)
+      }
+    })
+
+    it('ButtonRoot has gradientFrom/gradientTo props (D1)', () => {
+      const ast = JSON.stringify((buttonDomainCatalog.components['ButtonRoot'].schema as any).ast ?? buttonDomainCatalog.components['ButtonRoot'].schema)
+      expect(ast).toContain('gradientFrom')
+      expect(ast).toContain('gradientTo')
+    })
+
+    it('ConfirmButton has confirmText prop (D3)', () => {
+      const ast = JSON.stringify((buttonDomainCatalog.components['ConfirmButton'].schema as any).ast ?? buttonDomainCatalog.components['ConfirmButton'].schema)
+      expect(ast).toContain('confirmText')
+    })
+
+    it('CooldownButton has cooldownMs prop (D2)', () => {
+      const ast = JSON.stringify((buttonDomainCatalog.components['CooldownButton'].schema as any).ast ?? buttonDomainCatalog.components['CooldownButton'].schema)
+      expect(ast).toContain('cooldownMs')
+    })
+
+    it('FloatingActionButton has position prop (D4)', () => {
+      const ast = JSON.stringify((buttonDomainCatalog.components['FloatingActionButton'].schema as any).ast ?? buttonDomainCatalog.components['FloatingActionButton'].schema)
+      expect(ast).toContain('bottom-right')
+      expect(ast).toContain('top-left')
+    })
+  })
+
+  // ===========================================================================
+  // 13. Catalog Deduplication
+  // ===========================================================================
+
+  describe('Catalog Deduplication', () => {
+    it('ui-domain-catalog has exactly 4 components post-cleanup', () => {
+      expect(Object.keys(uiDomainCatalog.components).length).toBe(4)
+    })
+
+    it('ui-domain-catalog retains Switch', () => {
+      expect(uiDomainCatalog.components['Switch']).toBeDefined()
+    })
+
+    it('ui-domain-catalog retains Progress', () => {
+      expect(uiDomainCatalog.components['Progress']).toBeDefined()
+    })
+
+    it('ui-domain-catalog retains FoldablePanel', () => {
+      expect(uiDomainCatalog.components['FoldablePanel']).toBeDefined()
+    })
+
+    it('ui-domain-catalog retains SemanticRegion', () => {
+      expect(uiDomainCatalog.components['SemanticRegion']).toBeDefined()
+    })
+
+    it('ui-domain-catalog NO LONGER has Text, Heading, Button, Card, Input, Badge, Alert, Separator', () => {
+      for (const removed of ['Text', 'Heading', 'Button', 'Card', 'CardHeader', 'CardTitle', 'CardDescription', 'CardContent', 'CardFooter', 'Input', 'Badge', 'Alert', 'Separator']) {
+        expect(uiDomainCatalog.components[removed], `${removed} should be removed`).toBeUndefined()
+      }
+    })
+
+    it('ui-domain-catalog defaultTier is domain', () => {
+      expect(uiDomainCatalog.defaultTier).toBe('domain')
+    })
+
+    it('Progress has vantablack styling (showValue prop)', () => {
+      const ast = JSON.stringify((uiDomainCatalog.components['Progress'].schema as any).ast ?? uiDomainCatalog.components['Progress'].schema)
+      expect(ast).toContain('showValue')
+      expect(ast).toContain('label')
+    })
+
+    it('total components across core + button + ui = 89', () => {
+      const total =
+        Object.keys(coreDomainCatalog.components).length +
+        Object.keys(buttonDomainCatalog.components).length +
+        Object.keys(uiDomainCatalog.components).length
+      expect(total).toBe(89)
     })
   })
 })

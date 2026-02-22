@@ -40,6 +40,8 @@ import { GeniferService, type TreeSummary } from '../services'
 import { generate as adapterGenerate, refine as adapterRefine } from '../compiler/ai-adapter'
 import { CatalogComponents, createCatalogLayer } from '../core/CatalogService'
 import { uiDomainCatalog } from '../catalog/ui-domain-catalog'
+import { coreDomainCatalog } from '../catalog/core-domain-catalog'
+import { buttonDomainCatalog } from '../catalog/button-domain-catalog'
 import { createStreamingPipeline } from '../streaming/pipeline'
 
 // =============================================================================
@@ -196,7 +198,7 @@ export const GeniferHarnessServiceLive = Layer.effect(
     // ── Model layer (set at runtime when provider is known) ──
 
     let modelLayer: Layer.Layer<LanguageModel.LanguageModel> | null = null
-    const catalogLayer = createCatalogLayer(uiDomainCatalog)
+    const catalogLayer = createCatalogLayer(uiDomainCatalog, coreDomainCatalog, buttonDomainCatalog)
 
     const setModelLayer = (layer: Layer.Layer<LanguageModel.LanguageModel>) => {
       modelLayer = layer

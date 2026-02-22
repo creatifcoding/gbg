@@ -30,6 +30,8 @@ import {
 
 // Internal genifer catalogs (owned by genifer — no external imports)
 import { uiDomainCatalog } from "@/lib/genifer/catalog/ui-domain-catalog"
+import { coreDomainCatalog } from "@/lib/genifer/catalog/core-domain-catalog"
+import { buttonDomainCatalog } from "@/lib/genifer/catalog/button-domain-catalog"
 import { geointDomainCatalog } from "@/lib/genifer/catalog/geoint-domain-catalog"
 import { rvnDomainCatalog } from "@/lib/genifer/catalog/rvn-domain-catalog"
 
@@ -79,6 +81,8 @@ export const CatalogComponentsLive = (() => {
       if (!_cachedLayer) {
         _cachedLayer = createCatalogLayer(
           uiDomainCatalog,
+          coreDomainCatalog,
+          buttonDomainCatalog,
           geointDomainCatalog,
           rvnDomainCatalog,
           ..._pendingCatalogs,
