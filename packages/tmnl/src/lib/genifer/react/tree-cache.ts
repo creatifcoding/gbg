@@ -1,29 +1,27 @@
 /**
  * TreeCache — prompt-hash → UITree LRU cache
  *
- * Built on Effect.Cache for:
- * - Automatic LRU eviction at capacity
- * - TTL-based expiry (entries become stale after timeToLive)
- * - Concurrent safety (fiber-safe internal state)
- * - Built-in CacheStats (hits, misses, size)
+ * REWRITE: HashMap<string, CacheEntry> + SortedMap<number, string> for LRU.
  *
- * Usage:
- * ```ts
- * const cache = new TreeCache({ maxEntries: 50, ttlMs: 300_000 })
- * cache.set(key, tree)
- * const hit = cache.get(key) // UITree | undefined
- * ```
+ * Why not Effect.Cache?
+ *   - Effect.Cache requires a lookup function (we only do manual set/get)
+ *   - Effect.Cache's getOption doesn't reliably trigger LRU eviction
+ *   - We need explicit control over eviction ordering
+ *   - HashMap + SortedMap are the Effect-canonical immutable collections
  *
- * Internally uses:
- * - `Cache.getOption` — returns cached value without triggering lookup on miss
- * - `Cache.set` — manually stores externally computed values
- * - `Cache.invalidate` / `Cache.invalidateAll` — for clear/eviction
- * - `Effect.runSync` at the boundary — all Cache ops are synchronous
+ * Architecture:
+ *   - `_entries`: HashMap<string, CacheEntry> — O(1) key→value lookup
+ *   - `_lru`: SortedMap<number, string> — sorted by accessTime (oldest first)
+ *   - On get: update accessTime in both structures
+ *   - On set: insert + evict if over capacity (pop oldest from SortedMap)
+ *   - TTL checked on get — stale entries return undefined and are removed
+ *
+ * All operations are synchronous and immutable (COW on mutation).
  *
  * @module genifer/react/tree-cache
  */
 
-import { Cache, Duration, Effect, Option } from 'effect'
+import { HashMap, Option, Order, SortedMap } from 'effect'
 import type { UITree } from '../core/schemas.js'
 
 // =============================================================================
@@ -35,6 +33,12 @@ export type TreeCacheOptions = {
   maxEntries?: number
   /** Time-to-live in milliseconds (default: 5 minutes) */
   ttlMs?: number
+}
+
+interface CacheEntry {
+  readonly tree: UITree
+  readonly createdAt: number
+  readonly accessTime: number
 }
 
 // =============================================================================
@@ -61,121 +65,186 @@ export function generateCacheKey(prompt: string, model?: string, context?: strin
 }
 
 // =============================================================================
-// TreeCache — Effect.Cache backed
+// LRU Ordering — SortedMap key = accessTime (monotonic counter)
+// =============================================================================
+
+/** Numeric order for SortedMap keys (oldest = smallest = evicted first) */
+const NumberOrder: Order.Order<number> = Order.number
+
+// =============================================================================
+// TreeCache — HashMap + SortedMap
 // =============================================================================
 
 /**
- * TreeCache wraps Effect.Cache with a synchronous API.
+ * TreeCache: immutable HashMap for O(1) lookup, SortedMap for LRU eviction.
  *
- * Effect.Cache provides:
- * - Capacity-bound LRU eviction (automatic, fiber-safe)
- * - TTL-based expiry (per-entry, checked on access)
- * - CacheStats (hits, misses, size) built-in
- * - Concurrent safety via internal MutableHashMap + Deferred
- *
- * The lookup function always fails — we only use manual set() + getOption().
- * This means Cache.get() would trigger a miss and call lookup (which fails),
- * so we exclusively use Cache.getOption() which returns Option.none on miss.
+ * Public API is identical to the previous Effect.Cache version.
  */
 export class TreeCache {
-  private readonly _cache: Cache.Cache<string, UITree, never>
+  private readonly _capacity: number
+  private readonly _ttlMs: number
+
+  /** Key → CacheEntry (O(1) lookup) */
+  private _entries: HashMap.HashMap<string, CacheEntry>
+
+  /** accessTime → key (sorted oldest-first for LRU eviction) */
+  private _lru: SortedMap.SortedMap<number, string>
+
+  /** Monotonic counter — ensures unique SortedMap keys even at same ms */
+  private _tick = 0
+
+  /** Stats */
+  private _hits = 0
+  private _misses = 0
 
   constructor(options?: TreeCacheOptions) {
-    const capacity = options?.maxEntries ?? 50
-    const ttlMs = options?.ttlMs ?? 5 * 60 * 1000 // 5 minutes
+    this._capacity = options?.maxEntries ?? 50
+    this._ttlMs = options?.ttlMs ?? 5 * 60 * 1000 // 5 minutes
+    this._entries = HashMap.empty()
+    this._lru = SortedMap.empty(NumberOrder)
+  }
 
-    // Create the Effect.Cache synchronously.
-    // Lookup function is a no-op (always fail) — we only use set() + getOption().
-    // Effect.Cache requires a lookup, so we provide one that returns Effect.die.
-    // It will never be called because we use getOption (not get).
-    this._cache = Effect.runSync(
-      Cache.make({
-        capacity,
-        timeToLive: Duration.millis(ttlMs),
-        lookup: (_key: string): Effect.Effect<UITree, never> =>
-          Effect.die('TreeCache: lookup should never be called — use set() to populate'),
-      })
-    )
+  private nextTick(): number {
+    return ++this._tick
   }
 
   /**
    * Get a cached tree if it exists and is fresh.
-   * Uses Cache.getOption — returns Option.none on miss without triggering lookup.
-   * TTL checked automatically by Effect.Cache internals.
+   * Updates accessTime on hit (promotes in LRU).
    */
   get(key: string): UITree | undefined {
-    const result = Effect.runSync(this._cache.getOption(key))
-    return Option.getOrUndefined(result)
+    const entry = Option.getOrUndefined(HashMap.get(this._entries, key))
+    if (!entry) {
+      this._misses++
+      return undefined
+    }
+
+    // TTL check
+    const now = Date.now()
+    if (now - entry.createdAt > this._ttlMs) {
+      // Expired — evict
+      this._remove(key, entry.accessTime)
+      this._misses++
+      return undefined
+    }
+
+    // Promote in LRU: remove old accessTime, insert new
+    const newAccessTime = this.nextTick()
+    this._lru = SortedMap.remove(this._lru, entry.accessTime)
+    this._lru = SortedMap.set(this._lru, newAccessTime, key)
+    this._entries = HashMap.set(this._entries, key, {
+      ...entry,
+      accessTime: newAccessTime,
+    })
+
+    this._hits++
+    return entry.tree
   }
 
   /**
    * Store a tree in the cache.
-   * Uses Cache.set — manually associates value with key.
-   *
-   * Note: Cache.set does NOT call trackAccess internally, so LRU eviction
-   * won't fire from set alone. We follow set with getOption to trigger
-   * trackAccess → eviction when capacity is exceeded.
+   * Evicts oldest entry if over capacity.
    */
   set(key: string, tree: UITree): void {
-    Effect.runSync(this._cache.set(key, tree))
-    // Trigger trackAccess → LRU eviction by touching the key
-    Effect.runSync(this._cache.getOption(key))
+    const now = Date.now()
+    const accessTime = this.nextTick()
+
+    // If key already exists, remove old LRU entry
+    const existing = Option.getOrUndefined(HashMap.get(this._entries, key))
+    if (existing) {
+      this._lru = SortedMap.remove(this._lru, existing.accessTime)
+    }
+
+    // Insert
+    this._entries = HashMap.set(this._entries, key, {
+      tree,
+      createdAt: now,
+      accessTime,
+    })
+    this._lru = SortedMap.set(this._lru, accessTime, key)
+
+    // Evict if over capacity
+    while (HashMap.size(this._entries) > this._capacity) {
+      const oldest = SortedMap.headOption(this._lru)
+      if (Option.isNone(oldest)) break
+      const [oldestTime, oldestKey] = oldest.value
+      this._remove(oldestKey, oldestTime)
+    }
   }
 
   /**
    * Check if a fresh entry exists for the given key.
    */
   has(key: string): boolean {
-    return this.get(key) !== undefined
+    const entry = Option.getOrUndefined(HashMap.get(this._entries, key))
+    if (!entry) return false
+    if (Date.now() - entry.createdAt > this._ttlMs) {
+      this._remove(key, entry.accessTime)
+      return false
+    }
+    return true
   }
 
   /**
    * Clear the entire cache.
    */
   clear(): void {
-    Effect.runSync(this._cache.invalidateAll)
+    this._entries = HashMap.empty()
+    this._lru = SortedMap.empty(NumberOrder)
+    this._tick = 0
   }
 
   /**
-   * Number of cached entries (approximate — Effect.Cache.size is O(1)).
+   * Number of cached entries.
    */
   get size(): number {
-    return Effect.runSync(this._cache.size)
+    return HashMap.size(this._entries)
   }
 
   /**
    * Evict stale entries.
-   *
-   * Effect.Cache handles TTL lazily (on access), so there's no built-in
-   * "evict all stale" method. We iterate keys and check each — if getOption
-   * returns None, it was already expired and removed by the check.
-   *
    * Returns the count of entries that were expired.
    */
   evictStale(): number {
-    const keys = Effect.runSync(this._cache.keys)
-    const sizeBefore = Effect.runSync(this._cache.size)
-    for (const key of keys) {
-      // getOption triggers TTL check — expired entries get removed
-      Effect.runSync(this._cache.getOption(key))
+    const now = Date.now()
+    let evicted = 0
+    const keysToRemove: Array<[string, number]> = []
+
+    for (const [key, entry] of HashMap.toEntries(this._entries)) {
+      if (now - entry.createdAt > this._ttlMs) {
+        keysToRemove.push([key, entry.accessTime])
+      }
     }
-    const sizeAfter = Effect.runSync(this._cache.size)
-    return sizeBefore - sizeAfter
+
+    for (const [key, accessTime] of keysToRemove) {
+      this._remove(key, accessTime)
+      evicted++
+    }
+
+    return evicted
   }
 
   /**
    * Get cache statistics: hits, misses, current size.
    */
   get stats(): { hits: number; misses: number; size: number } {
-    const s = Effect.runSync(this._cache.cacheStats)
-    return { hits: s.hits, misses: s.misses, size: s.size }
+    return { hits: this._hits, misses: this._misses, size: this.size }
   }
 
   /**
    * Check if cache contains a key (without triggering TTL eviction).
    */
   contains(key: string): boolean {
-    return Effect.runSync(this._cache.contains(key))
+    return HashMap.has(this._entries, key)
+  }
+
+  // ---------------------------------------------------------------------------
+  // Internal
+  // ---------------------------------------------------------------------------
+
+  private _remove(key: string, accessTime: number): void {
+    this._entries = HashMap.remove(this._entries, key)
+    this._lru = SortedMap.remove(this._lru, accessTime)
   }
 }
 
