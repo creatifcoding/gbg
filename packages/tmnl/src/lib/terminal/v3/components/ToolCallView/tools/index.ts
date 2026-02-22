@@ -12,6 +12,13 @@ import { EditToolView } from './EditToolView'
 import { GrepToolView } from './GrepToolView'
 import { MapToolView } from './MapToolView'
 import { GeniferGenerateView, GeniferRefineView, GeniferQueryView } from './GeniferToolView'
+import {
+  GeniferCodeView,
+  GeniferDefineRpcView,
+  GeniferDefineEventView,
+  GeniferDefineToolView,
+  GeniferExportExtensionView,
+} from './GeniferCodeView'
 import { MAP_PRODUCING_TOOLS } from '../detection/map-detector'
 
 // =============================================================================
@@ -96,6 +103,41 @@ registerToolComponent('genifer_query', {
   description: 'Query genifer persistence layer',
 })
 
+registerToolComponent('genifer_code', {
+  component: GeniferCodeView,
+  displayName: 'Code Mode',
+  icon: 'Code2',
+  description: 'Execute sandboxed code with SDK access',
+})
+
+registerToolComponent('genifer_define_rpc', {
+  component: GeniferDefineRpcView,
+  displayName: 'Define RPC',
+  icon: 'Zap',
+  description: 'Register a runtime RPC handler',
+})
+
+registerToolComponent('genifer_define_event', {
+  component: GeniferDefineEventView,
+  displayName: 'Define Event',
+  icon: 'Radio',
+  description: 'Register a custom event type',
+})
+
+registerToolComponent('genifer_define_tool', {
+  component: GeniferDefineToolView,
+  displayName: 'Define Tool',
+  icon: 'Wrench',
+  description: 'Register a dynamic tool',
+})
+
+registerToolComponent('genifer_export_extension', {
+  component: GeniferExportExtensionView,
+  displayName: 'Export Extension',
+  icon: 'Package',
+  description: 'Bundle surface as portable extension',
+})
+
 // =============================================================================
 // Re-exports
 // =============================================================================
@@ -106,3 +148,10 @@ export { EditToolView } from './EditToolView'
 export { GrepToolView } from './GrepToolView'
 export { MapToolView } from './MapToolView'
 export { GeniferGenerateView, GeniferRefineView, GeniferQueryView } from './GeniferToolView'
+export {
+  GeniferCodeView,
+  GeniferDefineRpcView,
+  GeniferDefineEventView,
+  GeniferDefineToolView,
+  GeniferExportExtensionView,
+} from './GeniferCodeView'
