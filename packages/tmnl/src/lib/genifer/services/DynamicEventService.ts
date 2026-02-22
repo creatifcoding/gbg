@@ -42,6 +42,24 @@ export function getDynamicEventDefinitions(): ReadonlyMap<string, EventDefinitio
   return reg().get(eventDefinitionsAtom)
 }
 
+/** Define an event via the service's own registry — avoids module duplication */
+export function defineDynamicEvent(tag: string, def: EventDefinition): void {
+  const r = reg()
+  const current = new Map(r.get(eventDefinitionsAtom))
+  current.set(tag, def)
+  r.set(eventDefinitionsAtom, current)
+}
+
+/** Define multiple events at once */
+export function defineDynamicEvents(defs: ReadonlyMap<string, EventDefinition>): void {
+  const r = reg()
+  const current = new Map(r.get(eventDefinitionsAtom))
+  for (const [tag, def] of defs) {
+    current.set(tag, def)
+  }
+  r.set(eventDefinitionsAtom, current)
+}
+
 // =============================================================================
 // Subscriber Registry (in-process pub/sub)
 // =============================================================================

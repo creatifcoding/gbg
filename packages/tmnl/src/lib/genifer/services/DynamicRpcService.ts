@@ -62,6 +62,29 @@ function reg(): Registry.Registry {
   return _registry
 }
 
+/** Register an RPC definition via the service's own registry — avoids module duplication */
+export function registerDynamicRpc(tag: string, def: RpcDefinition): void {
+  const r = reg()
+  const current = new Map(r.get(rpcRegistryAtom))
+  current.set(tag, def)
+  r.set(rpcRegistryAtom, current)
+}
+
+/** Register multiple RPC definitions at once */
+export function registerDynamicRpcs(defs: ReadonlyMap<string, RpcDefinition>): void {
+  const r = reg()
+  const current = new Map(r.get(rpcRegistryAtom))
+  for (const [tag, def] of defs) {
+    current.set(tag, def)
+  }
+  r.set(rpcRegistryAtom, current)
+}
+
+/** Get all registered RPCs */
+export function getDynamicRpcs(): ReadonlyMap<string, RpcDefinition> {
+  return reg().get(rpcRegistryAtom)
+}
+
 // =============================================================================
 // Handler Dispatch
 // =============================================================================
@@ -80,13 +103,30 @@ function dispatchHandler(
           message: `Custom handler '${handler.handlerId}' not registered`,
         }))
       }
-      return Effect.tryPromise({
-        try: () => fn(payload),
-        catch: (err) => new DynamicRpcHandlerError({
-          tag,
-          message: `Handler error: ${err instanceof Error ? err.message : String(err)}`,
-          cause: err,
-        }),
+      // Invoke handler — supports both sync and async return values
+      return Effect.suspend(() => {
+        try {
+          const result = fn(payload)
+          // If handler returns a thenable, wrap as async Effect
+          if (result && typeof (result as any).then === 'function') {
+            return Effect.tryPromise({
+              try: () => result as Promise<unknown>,
+              catch: (err) => new DynamicRpcHandlerError({
+                tag,
+                message: `Handler error: ${err instanceof Error ? err.message : String(err)}`,
+                cause: err,
+              }),
+            })
+          }
+          // Sync result — return immediately
+          return Effect.succeed(result)
+        } catch (err) {
+          return Effect.fail(new DynamicRpcHandlerError({
+            tag,
+            message: `Handler error: ${err instanceof Error ? err.message : String(err)}`,
+            cause: err,
+          }))
+        }
       })
     }
 

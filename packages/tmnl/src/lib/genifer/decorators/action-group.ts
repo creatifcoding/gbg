@@ -464,19 +464,35 @@ export interface StateOptions {
  * Each @state field becomes an Atom.make() at hydration time.
  * React components subscribe via useAtomValue(instance.atoms.get('fieldName')).
  */
-export function state(options?: StateOptions): PropertyDecorator {
-  return function (target: Object, propertyKey: string | symbol): void {
-    const meta: StateAnnotation = {
-      field: propertyKey as string,
-      defaultValue: options?.defaultValue,
-      reactive: options?.reactive ?? true,
-    }
-
-    Reflect.defineMetadata(StateId, meta, target, propertyKey as string)
-
-    const existing: string[] = Reflect.getMetadata('genifer:state_fields', target) ?? []
-    Reflect.defineMetadata('genifer:state_fields', [...existing, propertyKey as string], target)
+export function state(target: Object, propertyKey: string | symbol): void
+export function state(options?: StateOptions): PropertyDecorator
+export function state(
+  targetOrOptions?: Object | StateOptions,
+  propertyKey?: string | symbol,
+): PropertyDecorator | void {
+  // Called as @state (no parens) — targetOrOptions is the prototype, propertyKey is the field
+  if (targetOrOptions && typeof targetOrOptions === 'object' && propertyKey !== undefined) {
+    applyState(targetOrOptions, propertyKey)
+    return
   }
+  // Called as @state() or @state({ ... }) — return the decorator
+  const options = targetOrOptions as StateOptions | undefined
+  return function (target: Object, key: string | symbol): void {
+    applyState(target, key, options)
+  }
+}
+
+function applyState(target: Object, propertyKey: string | symbol, options?: StateOptions): void {
+  const meta: StateAnnotation = {
+    field: propertyKey as string,
+    defaultValue: options?.defaultValue,
+    reactive: options?.reactive ?? true,
+  }
+
+  Reflect.defineMetadata(StateId, meta, target, propertyKey as string)
+
+  const existing: string[] = Reflect.getMetadata('genifer:state_fields', target) ?? []
+  Reflect.defineMetadata('genifer:state_fields', [...existing, propertyKey as string], target)
 }
 
 // =============================================================================

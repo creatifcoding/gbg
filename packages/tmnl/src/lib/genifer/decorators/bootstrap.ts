@@ -29,6 +29,19 @@ import {
   EventId,
   ToolId,
 } from './annotations'
+import { setRpcExecutor } from './interpreter'
+import {
+  setDynamicRpcRegistry,
+  registerCustomRpcHandler,
+  registerDynamicRpcs,
+  callDynamicRpc,
+} from '../services/DynamicRpcService'
+import {
+  setDynamicEventRegistry,
+  defineDynamicEvents,
+} from '../services/DynamicEventService'
+import { EventDefinition } from '../services/DynamicEventSchemas'
+import { RpcDefinition } from '../services/DynamicRpcSchemas'
 
 // =============================================================================
 // Bootstrap Result — everything that was wired up
@@ -188,61 +201,46 @@ export function bootstrap(): BootstrapResult {
 
   // --- 8. Bridge decorator registries into DynamicRpcService + DynamicEventService ---
   //    Also wires DynamicRpcService.callDynamicRpc as the interpreter's RPC executor.
-  try {
-    const {
-      setDynamicRpcRegistry,
-      registerCustomRpcHandler,
-      callDynamicRpc,
-      rpcRegistryAtom: dynRpcAtom,
-    } = require('../services/DynamicRpcService')
-    const { setDynamicEventRegistry: setEvtReg, eventDefinitionsAtom: dynEventAtom } = require('../services/DynamicEventService')
-    const { EventDefinition } = require('../services/DynamicEventSchemas')
-    const { RpcDefinition } = require('../services/DynamicRpcSchemas')
-    const { setRpcExecutor } = require('./interpreter')
 
-    // Set registries so services use the same atom store
-    setDynamicRpcRegistry(r)
-    setEvtReg(r)
+  // Set registries so services use the same atom store
+  setDynamicRpcRegistry(r)
+  setDynamicEventRegistry(r)
 
-    // Wire DynamicRpcService as the interpreter's RPC executor
-    setRpcExecutor((tag: string, payload: unknown) => callDynamicRpc(tag, payload))
+  // Wire DynamicRpcService as the interpreter's RPC executor
+  setRpcExecutor((tag: string, payload: unknown) => callDynamicRpc(tag, payload))
 
-    // Bridge decorated RPCs → DynamicRpcService
-    const rpcDefs = new Map()
-    for (const [tag, meta] of Array.from(rpcReg.entries())) {
-      const handlerId = `decorator:${tag}`
-      // Register the handler function
-      const handler = (meta as any).handlerFn
-      if (handler && typeof handler === 'function') {
-        registerCustomRpcHandler(handlerId, handler)
-      }
-      rpcDefs.set(tag, new RpcDefinition({
-        tag,
-        description: (meta as any).description,
-        handler: { _tag: 'custom' as const, handlerId },
-        source: 'decorator' as const,
-        registeredAt: Date.now(),
-      }))
+  // Bridge decorated RPCs → DynamicRpcService (via service functions, not atom access)
+  const rpcDefs = new Map<string, InstanceType<typeof RpcDefinition>>()
+  for (const [tag, meta] of Array.from(rpcReg.entries())) {
+    const handlerId = `decorator:${tag}`
+    const handler = (meta as any).handlerFn
+    if (handler && typeof handler === 'function') {
+      registerCustomRpcHandler(handlerId, handler)
     }
-    if (rpcDefs.size > 0) {
-      r.set(dynRpcAtom, rpcDefs)
-    }
+    rpcDefs.set(tag, new RpcDefinition({
+      tag,
+      description: (meta as any).description,
+      handler: { _tag: 'custom' as const, handlerId },
+      source: 'decorator' as const,
+      registeredAt: Date.now(),
+    }))
+  }
+  if (rpcDefs.size > 0) {
+    registerDynamicRpcs(rpcDefs)
+  }
 
-    // Bridge decorated events → DynamicEventService
-    const eventDefs = new Map()
-    for (const [tag, meta] of Array.from(eventReg.entries())) {
-      eventDefs.set(tag, new EventDefinition({
-        tag,
-        description: (meta as any).description,
-        source: 'decorator' as const,
-        definedAt: Date.now(),
-      }))
-    }
-    if (eventDefs.size > 0) {
-      r.set(dynEventAtom, eventDefs)
-    }
-  } catch {
-    // Services not available — optional dependency
+  // Bridge decorated events → DynamicEventService (via service functions, not atom access)
+  const eventDefs = new Map<string, InstanceType<typeof EventDefinition>>()
+  for (const [tag, meta] of Array.from(eventReg.entries())) {
+    eventDefs.set(tag, new EventDefinition({
+      tag,
+      description: (meta as any).description,
+      source: 'decorator' as const,
+      definedAt: Date.now(),
+    }))
+  }
+  if (eventDefs.size > 0) {
+    defineDynamicEvents(eventDefs)
   }
 
   // --- 9. Build result ---
