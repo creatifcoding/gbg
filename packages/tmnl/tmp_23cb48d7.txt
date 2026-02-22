@@ -1,0 +1,2 @@
+This content has been edited.
+Line 2 stays the same.

@@ -434,7 +434,52 @@ export function useIsElementDragged(elementId: string): boolean {
  * Hook to get blur style for a specific element.
  * Returns blur style only if the element is being dragged.
  */
+/**
+ * Lightweight blur hook. When elementId is falsy/empty, returns a static
+ * NO_BLUR_STYLE and subscribes to nothing — zero cost for idle panels.
+ * Only the actively-dragged panel should pass a truthy elementId.
+ */
 export function useElementBlurStyle(elementId: string): MotionBlurOutput {
-  const { blurStyle } = useDragOrchestrator({ elementId })
-  return blurStyle
+  const [blurStyle, setBlurStyle] = useState<MotionBlurOutput>(NO_BLUR_STYLE)
+  const rafRef = useRef<number | null>(null)
+  const active = Boolean(elementId)
+
+  useEffect(() => {
+    if (!active) {
+      setBlurStyle(NO_BLUR_STYLE)
+      return
+    }
+    // Only start the rAF polling loop when this element is being dragged
+    const loop = () => {
+      const op = getActiveDrag()
+      const vel = getDragVelocity()
+      const cfg = getBlurConfig()
+      const now = performance.now()
+      const style = calculateBlurStyle(op, vel, cfg, elementId, now)
+      setBlurStyle(style)
+      if (op !== null) {
+        rafRef.current = requestAnimationFrame(loop)
+      }
+    }
+    rafRef.current = requestAnimationFrame(loop)
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
+      }
+    }
+  }, [active, elementId])
+
+  // When deactivated (drag ended), reset immediately
+  useEffect(() => {
+    if (!active) {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
+      }
+      setBlurStyle(NO_BLUR_STYLE)
+    }
+  }, [active])
+
+  return active ? blurStyle : NO_BLUR_STYLE
 }

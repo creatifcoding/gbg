@@ -75,6 +75,9 @@ pub fn run() {
     }
 
     builder
+        // Tauri plugins
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
         // Terminal server manager state
         .manage(Arc::new(TerminalServerManager::default()))
         // Theia IDE server manager state

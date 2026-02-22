@@ -63,11 +63,11 @@ import type {
 export function useFloatingPanel(): UseFloatingPanelReturn {
   const stx = getFloatingStx()
 
-  // Subscribe to state from stx
-  const panelsMap = useSelector(stx.data.panels, (p) => p)
-  const zOrder = useSelector(stx.data.zOrder, (z) => z)
-  const activePanel = useSelector(stx.data.activePanel, (a) => a)
-  const modifierKeys = useSelector(stx.data.modifierKeys, (m) => m)
+  // Subscribe to state from stx (function-form selectors for correct unwrapping)
+  const panelsMap = useSelector(() => stx.data.panels.get())
+  const zOrder = useSelector(() => stx.data.zOrder.get())
+  const activePanel = useSelector(() => stx.data.activePanel.get())
+  const modifierKeys = useSelector(() => stx.data.modifierKeys.get())
 
   // Sort panels by z-order
   const panels = useMemo(() => {
@@ -161,11 +161,9 @@ export function useFloatingPanel(): UseFloatingPanelReturn {
 export function usePanelById(panelId: string) {
   const stx = getFloatingStx()
 
-  // Subscribe to panels map
-  const panelsMap = useSelector(stx.data.panels, (p) => p)
-  const activePanel = useSelector(stx.data.activePanel, (a) => a)
-
-  const panel = panelsMap.get(panelId)
+  // Fine-grained: subscribe to THIS panel only (not entire Map)
+  const panel = useSelector(() => stx.data.panels.get(panelId)?.get()) as PanelState | undefined
+  const activePanel = useSelector(() => stx.data.activePanel.get())
 
   return useMemo(
     () => ({

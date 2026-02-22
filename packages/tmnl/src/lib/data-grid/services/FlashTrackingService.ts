@@ -219,7 +219,7 @@ const makeFlashTrackingService = (config: FlashTrackingConfig = defaultFlashTrac
 
       subscribe: (handler) =>
         Effect.gen(function* () {
-          const changes = yield* SubscriptionRef.changes(flashesRef)
+          const changes = flashesRef.changes
 
           const fiber = yield* Effect.fork(
             Effect.forEach(changes, (flashes) =>

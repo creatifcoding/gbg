@@ -36,6 +36,7 @@
             "${pkgs.librsvg.dev}/lib/pkgconfig"
             "${pkgs.atk.dev}/lib/pkgconfig"
             "${pkgs.libsoup_3.dev}/lib/pkgconfig"
+            "${pkgs.gtk-layer-shell.dev}/lib/pkgconfig"
           ]
         );
         LD_LIBRARY_PATH = lib.optionalString isLinux (
@@ -51,6 +52,7 @@
             pkgs.atk
             pkgs.libsoup_3
             pkgs.zlib
+            pkgs.gtk-layer-shell  # wlr-layer-shell for TMNL Bar
           ]
         );
         LIBRARY_PATH = lib.optionalString isLinux (
@@ -65,6 +67,7 @@
             pkgs.atk
             pkgs.libsoup_3
             pkgs.zlib
+            pkgs.gtk-layer-shell  # wlr-layer-shell for TMNL Bar
           ]
         );
         CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUSTFLAGS = lib.optionalString isLinux (
@@ -92,6 +95,7 @@
             libsoup_3
             librsvg
             zlib
+            gtk-layer-shell  # wlr-layer-shell protocol for TMNL Bar panel
           ]
           ++ lib.optionals isDarwin [ iconv ];
 
@@ -171,6 +175,90 @@
             cd "$FLAKE_ROOT"
             echo "[tmnl tauri-build] bun run tauri:build"
             bun run tauri:build
+          '';
+        };
+
+        # ── Shell (getbyshell) — systemd-managed layer-shell panel ──────
+
+        shell-install = {
+          description = "Install getbyshell systemd user services (symlink + enable)";
+          category = "Shell";
+          exec = ''
+            set -euo pipefail
+            UNIT_DIR="$FLAKE_ROOT/packages/tmnl/systemd"
+            SD_DIR="$HOME/.config/systemd/user"
+            mkdir -p "$SD_DIR"
+
+            ln -sf "$UNIT_DIR/tmnl-shell-vite.service" "$SD_DIR/tmnl-shell-vite.service"
+            ln -sf "$UNIT_DIR/tmnl-shell.service" "$SD_DIR/tmnl-shell.service"
+            systemctl --user daemon-reload
+            systemctl --user enable tmnl-shell-vite.service tmnl-shell.service
+            echo "✓ getbyshell services installed"
+          '';
+        };
+
+        shell-start = {
+          description = "Start getbyshell (Vite + Tauri) via systemd";
+          category = "Shell";
+          exec = ''
+            set -euo pipefail
+            systemctl --user start tmnl-shell-vite.service
+            echo "⏳ Waiting for Vite on :1421..."
+            for _i in $(seq 1 30); do
+              curl -s http://localhost:1421 > /dev/null 2>&1 && break
+              sleep 0.5
+            done
+            systemctl --user start tmnl-shell.service
+            echo "✓ getbyshell started → shell-logs to tail"
+          '';
+        };
+
+        shell-stop = {
+          description = "Stop getbyshell services";
+          category = "Shell";
+          exec = ''
+            systemctl --user stop tmnl-shell.service 2>/dev/null || true
+            systemctl --user stop tmnl-shell-vite.service 2>/dev/null || true
+            echo "✓ getbyshell stopped"
+          '';
+        };
+
+        shell-restart = {
+          description = "Restart getbyshell services";
+          category = "Shell";
+          exec = ''
+            set -euo pipefail
+            systemctl --user stop tmnl-shell.service 2>/dev/null || true
+            systemctl --user stop tmnl-shell-vite.service 2>/dev/null || true
+            sleep 1
+            systemctl --user start tmnl-shell-vite.service
+            echo "⏳ Waiting for Vite on :1421..."
+            for _i in $(seq 1 30); do
+              curl -s http://localhost:1421 > /dev/null 2>&1 && break
+              sleep 0.5
+            done
+            systemctl --user start tmnl-shell.service
+            echo "✓ getbyshell restarted → shell-logs to tail"
+          '';
+        };
+
+        shell-logs = {
+          description = "Tail getbyshell journald logs (Vite + Tauri + Effect Logger)";
+          category = "Shell";
+          exec = ''
+            journalctl --user -u tmnl-shell -u tmnl-shell-vite -f --no-hostname
+          '';
+        };
+
+        shell-status = {
+          description = "Show getbyshell service status";
+          category = "Shell";
+          exec = ''
+            echo "═══ Vite ═══"
+            systemctl --user status tmnl-shell-vite.service --no-pager 2>/dev/null || echo "(not running)"
+            echo ""
+            echo "═══ Shell ═══"
+            systemctl --user status tmnl-shell.service --no-pager 2>/dev/null || echo "(not running)"
           '';
         };
       };

@@ -15,11 +15,12 @@ export const PanelTitle = memo(function PanelTitle() {
     <span
       data-slot="panel-title"
       style={{
-        fontFamily: 'var(--tmnl-font-mono, monospace)',
+        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
         fontSize: 'var(--tmnl-text-xs, 12px)',
         fontWeight: 500,
-        color: PANEL.textStrong,
-        letterSpacing: '0.01em',
+        color: PANEL.text,
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase' as const,
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap' as const,

@@ -212,6 +212,13 @@
         "command": "bun run telegram:agent",
         "cwd": "packages/tmnl"
       }
+    },
+    "rfc-assemble": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run rfc:assemble",
+        "cwd": "packages/tmnl"
+      }
     }
   }
 }

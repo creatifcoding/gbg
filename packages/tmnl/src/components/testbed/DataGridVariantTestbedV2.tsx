@@ -33,11 +33,11 @@ import {
   GRID_VARIANTS,
   DENSITY_PRESETS,
   extractStatusColors,
-  useMockStream,
   type GridVariantType,
   type DensityTierType,
-  type MockRow,
 } from '@/lib/data-grid'
+import { type MockRow } from '@/lib/data-grid/mocking'
+import { useMockStream } from '@/lib/data-grid/hooks/useMockStream'
 
 // =============================================================================
 // CONSTANTS

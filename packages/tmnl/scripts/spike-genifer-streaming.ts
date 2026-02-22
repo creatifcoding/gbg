@@ -5,9 +5,9 @@
  * Author: Val
  * Date: 2026-01-16
  * Related Files:
- *   - src/lib/json-render/core/streaming.ts
- *   - src/lib/json-render/react/renderer.tsx
- *   - src/lib/json-render/react/hooks.ts
+ *   - src/lib/genifer/core/streaming.ts
+ *   - src/lib/genifer/react/renderer.tsx
+ *   - src/lib/genifer/react/hooks.ts
  * Expected Outcome: Isolate why GenerativeContainers don't render in streaming UI
  *
  * Hypotheses:
@@ -76,7 +76,7 @@ async function fetchAndParseJSONL(prompt: string): Promise<{
 // =============================================================================
 // H1: JSONL line buffering
 // =============================================================================
-async function h1_json_render_streaming() {
+async function h1_genifer_streaming() {
   console.log("\n" + BANNER)
   console.log("H1: JSONL line buffering")
   console.log("Hypothesis: Lines are fragmented but complete data arrives when properly buffered")
@@ -122,7 +122,7 @@ async function h1_json_render_streaming() {
 // =============================================================================
 // H2: GenerativeContainer generation
 // =============================================================================
-async function h2_json_render_streaming() {
+async function h2_genifer_streaming() {
   console.log("\n" + BANNER)
   console.log("H2: GenerativeContainer generation")
   console.log("Hypothesis: AI generates GenerativeContainer nodes when prompted")
@@ -172,7 +172,7 @@ async function h2_json_render_streaming() {
 // =============================================================================
 // H3: UITree building
 // =============================================================================
-async function h3_json_render_streaming() {
+async function h3_genifer_streaming() {
   console.log("\n" + BANNER)
   console.log("H3: UITree building")
   console.log("Hypothesis: Streaming ops correctly build UITree with all elements")
@@ -244,7 +244,7 @@ async function h3_json_render_streaming() {
 // =============================================================================
 // H4: Component rendering
 // =============================================================================
-async function h4_json_render_streaming() {
+async function h4_genifer_streaming() {
   console.log("\n" + BANNER)
   console.log("H4: Component rendering")
   console.log("Hypothesis: Renderer looks up and renders GenerativeContainer from registry")
@@ -312,14 +312,14 @@ async function main() {
   const results: Record<string, boolean> = {}
 
   try {
-    results.H1 = await h1_json_render_streaming()
-    results.H2 = await h2_json_render_streaming()
-    results.H3 = await h3_json_render_streaming()
-    results.H4 = await h4_json_render_streaming()
+    results.H1 = await h1_genifer_streaming()
+    results.H2 = await h2_genifer_streaming()
+    results.H3 = await h3_genifer_streaming()
+    results.H4 = await h4_genifer_streaming()
   } catch (e) {
     console.error("\n❌ Spike failed with error:", e)
-    console.log("\nMake sure the json-render server is running:")
-    console.log("  bun run scripts/json-render-mock-server.ts")
+    console.log("\nMake sure the genifer server is running:")
+    console.log("  bun run scripts/genifer-mock-server.ts")
     process.exit(1)
   }
 

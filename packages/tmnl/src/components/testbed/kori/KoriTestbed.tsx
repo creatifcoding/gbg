@@ -57,12 +57,12 @@ function ManagedPanel({
   children,
 }: ManagedPanelProps) {
   const stx = getFloatingStx()
-  const panelsMap = useSelector(stx.data.panels, (p) => p)
+  const panelsMap = useSelector(() => stx.data.panels.get())
   const panel = panelsMap.get(id)
 
   useEffect(() => {
     if (show) {
-      const existingPanel = getFloatingStx().data.panels.get().get(id)
+      const existingPanel = getFloatingStx().data.panels.get(id)?.peek()
       if (!existingPanel) {
         registerPanel({
           id,

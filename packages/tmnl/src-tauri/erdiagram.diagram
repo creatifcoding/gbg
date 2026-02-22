@@ -1,0 +1,104 @@
+erDiagram
+    webfft {
+        int size "FFT size (power of 2, 4-131072)"
+        string subLibrary "Active backend name"
+        Float32Array outputArr "Reusable output buffer [2xsize]"
+    }
+
+    WebfftWrapper {
+        string name "Backend identifier"
+        string type "JS or WASM"
+    }
+
+    ProfileResult {
+        float[] fftsPerSecond "Throughput per backend"
+        string[] subLibraries "Backend names tested"
+        float totalElapsed "Total profiling time in seconds"
+        string fastestSubLibrary "Winner backend name"
+    }
+
+    BrowserCapabilities {
+        boolean wasm "WebAssembly supported"
+        boolean simd "WASM SIMD supported"
+        boolean relaxedSimd "Relaxed SIMD supported"
+        string browserName "Detected browser"
+        string browserVersion "Browser version"
+        string osName "Operating system"
+        string osVersion "OS version"
+    }
+
+    Float32Array_IO {
+        float[] data "Interleaved Re Im Re Im"
+        int length "2 x size for complex or size for real"
+    }
+
+    LocalStorage {
+        string webfftProfile "Cached ProfileResult JSON"
+    }
+
+    KissFftWrapperWasm {
+        int fcfg "Forward config pointer"
+        int icfg "Inverse config pointer"
+        int inptr "WASM heap input pointer"
+    }
+
+    IndutnyFftWrapperJS {
+        object indutnyFft "Internal FFT instance"
+    }
+
+    IndutnyModifiedFftWrapperJS {
+        object indutnyFft "Optimized FFT fork"
+    }
+
+    CrossFftWrapperWasm {
+        Float64Array real "Real part buffer"
+        Float64Array imag "Imag part buffer"
+    }
+
+    WasmFftWrapperWasm {
+        object instance "WASM module instance"
+        object inptr "Input buffer ref"
+        object outr "Output real ref"
+        object outi "Output imag ref"
+    }
+
+    NayukiFftWrapperJS {
+        int size "FFT size"
+    }
+
+    NayukiWasmFftWrapperWasm {
+        int size "FFT size"
+    }
+
+    NockertFftWrapperJS {
+        int size "FFT size"
+    }
+
+    MljsFftWrapperJS {
+        int size "FFT size"
+    }
+
+    KissFftModifiedWrapperWasm {
+        int size "FFT size"
+    }
+
+    webfft ||--|| WebfftWrapper : "delegates fft to"
+    webfft ||--o| ProfileResult : "produces via profile"
+    webfft ||--o| BrowserCapabilities : "detects via checkBrowserCapabilities"
+    webfft }|--|| Float32Array_IO : "consumes and produces"
+    webfft ||--o| LocalStorage : "caches fastest backend"
+
+    WebfftWrapper ||--|| Float32Array_IO : "fft input to output"
+
+    KissFftWrapperWasm }|--|| WebfftWrapper : "implements"
+    KissFftModifiedWrapperWasm }|--|| WebfftWrapper : "implements"
+    IndutnyFftWrapperJS }|--|| WebfftWrapper : "implements"
+    IndutnyModifiedFftWrapperJS }|--|| WebfftWrapper : "implements"
+    CrossFftWrapperWasm }|--|| WebfftWrapper : "implements"
+    WasmFftWrapperWasm }|--|| WebfftWrapper : "implements"
+    NayukiFftWrapperJS }|--|| WebfftWrapper : "implements"
+    NayukiWasmFftWrapperWasm }|--|| WebfftWrapper : "implements"
+    NockertFftWrapperJS }|--|| WebfftWrapper : "implements"
+    MljsFftWrapperJS }|--|| WebfftWrapper : "implements"
+
+    ProfileResult }|--|| LocalStorage : "persisted to"

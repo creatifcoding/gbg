@@ -1,10 +1,10 @@
 /**
- * JSON-Render Mock Streaming Server
+ * Genifer Mock Streaming Server
  *
  * Simulates an AI backend that streams NDJSON patches to build UI.
- * Used for testing the json-render streaming integration.
+ * Used for testing the genifer streaming integration.
  *
- * Usage: bun run scripts/json-render-mock-server.ts
+ * Usage: bun run scripts/genifer-mock-server.ts
  * Endpoint: POST http://localhost:7683/stream
  *
  * Request body: { prompt: string, context?: object, currentTree?: object }
@@ -235,7 +235,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
  * Stream patches with delays to simulate generation
  */
 async function* streamPatches(prompt: string): AsyncGenerator<string> {
-  console.log(`[json-render-mock] Received prompt: "${prompt}"`)
+  console.log(`[genifer-mock] Received prompt: "${prompt}"`)
 
   // Simulate thinking delay
   await sleep(200)
@@ -251,7 +251,7 @@ async function* streamPatches(prompt: string): AsyncGenerator<string> {
     await sleep(delay)
   }
 
-  console.log(`[json-render-mock] Stream complete (${DEMO_PATCHES.length} patches)`)
+  console.log(`[genifer-mock] Stream complete (${DEMO_PATCHES.length} patches)`)
 }
 
 /**
@@ -324,7 +324,7 @@ const server = Bun.serve({
 
 console.log(`
 ╔════════════════════════════════════════════════════════════╗
-║  JSON-Render Mock Streaming Server                         ║
+║  Genifer Mock Streaming Server                         ║
 ╠════════════════════════════════════════════════════════════╣
 ║  Endpoint: POST http://localhost:${PORT}/stream               ║
 ║  Health:   GET  http://localhost:${PORT}/health               ║

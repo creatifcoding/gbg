@@ -96,36 +96,54 @@ export function useAdapterMachineBridge(
   })
 
   React.useEffect(() => {
-    // ── Subscribe to connection$ (immediate: catch current state) ────
+    // Callback that dispatches connection phase changes to the machine.
+    // Deferred on first call to avoid setState-during-render.
+    let connectionReady = false
+    const handleConnection = (connectionState: ConnectionState) => {
+      const event = connectionPhaseToMachineEvent(
+        connectionState.phase,
+        prevConnectionPhase.current,
+        'error' in connectionState ? (connectionState as any).error : undefined,
+      )
+      if (event) {
+        if (connectionReady) {
+          sendSurfaceEvent(surfaceId, event)
+        } else {
+          // Defer first dispatch to next microtask to avoid setState-during-render
+          queueMicrotask(() => sendSurfaceEvent(surfaceId, event))
+        }
+      }
+      prevConnectionPhase.current = connectionState.phase
+      connectionReady = true
+    }
+
     const unsubConnection = morphChatRegistry.subscribe(
       adapter.connection$,
-      (connectionState: ConnectionState) => {
-        const event = connectionPhaseToMachineEvent(
-          connectionState.phase,
-          prevConnectionPhase.current,
-          'error' in connectionState ? (connectionState as any).error : undefined,
-        )
-        if (event) {
-          sendSurfaceEvent(surfaceId, event)
-        }
-        prevConnectionPhase.current = connectionState.phase
-      },
+      handleConnection,
       { immediate: true },
     )
 
-    // ── Subscribe to streaming$ (immediate: catch current state) ──
+    // Callback that dispatches streaming state changes to the machine.
+    let streamingReady = false
+    const handleStreaming = (streamingState: StreamingState) => {
+      const events = streamingStateToMachineEvents(
+        streamingState,
+        prevStreaming.current,
+      )
+      for (const event of events) {
+        if (streamingReady) {
+          sendSurfaceEvent(surfaceId, event)
+        } else {
+          queueMicrotask(() => sendSurfaceEvent(surfaceId, event))
+        }
+      }
+      prevStreaming.current = { ...streamingState }
+      streamingReady = true
+    }
+
     const unsubStreaming = morphChatRegistry.subscribe(
       adapter.streaming$,
-      (streamingState: StreamingState) => {
-        const events = streamingStateToMachineEvents(
-          streamingState,
-          prevStreaming.current,
-        )
-        for (const event of events) {
-          sendSurfaceEvent(surfaceId, event)
-        }
-        prevStreaming.current = { ...streamingState }
-      },
+      handleStreaming,
       { immediate: true },
     )
 

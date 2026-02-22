@@ -87,8 +87,8 @@ export {
   type AppShellHeaderProps,
   AppShellSidebar,
   type AppShellSidebarProps,
-  AppShellWorkspace,
-  type AppShellWorkspaceProps,
 }
+
+export { AppShellWorkspace, type AppShellWorkspaceProps } from './AppShell/Workspace'
 
 export default AppShell

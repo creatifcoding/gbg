@@ -8,11 +8,12 @@
  * @module
  */
 
-import { memo, type ReactNode } from 'react'
+import { memo, useCallback, type ReactNode } from 'react'
 import { usePanelContext } from '../context/PanelContext'
 import { PANEL } from '../tokens'
 import { PanelTitleTab } from './atoms/PanelTitleTab'
 import { PanelControls } from './atoms/PanelControls'
+import { tilePanel } from '../stx/actions'
 
 export interface PanelHeaderProps {
   children?: ReactNode
@@ -20,6 +21,13 @@ export interface PanelHeaderProps {
 
 export const PanelHeader = memo(function PanelHeader({ children }: PanelHeaderProps) {
   const { state, actions, meta } = usePanelContext()
+
+  // SM §3.5: double-click floating title bar → dock (tile), not maximize
+  const handleDoubleClick = useCallback(() => {
+    if (state.mode === 'floating') {
+      tilePanel(meta.id)
+    }
+  }, [state.mode, meta.id])
 
   return (
     <div
@@ -30,12 +38,13 @@ export const PanelHeader = memo(function PanelHeader({ children }: PanelHeaderPr
         alignItems: 'stretch',
         height: PANEL.headerHeight,
         backgroundColor: PANEL.headerBg,
-        borderBottom: `1px solid ${meta.borderColor}`,
+        // Hairline border — alpha-based (MorphChat frame-chrome style)
+        borderBottom: `1px solid ${PANEL.border}`,
         flexShrink: 0,
         cursor: state.isMaximized ? 'default' : 'grab',
         userSelect: 'none' as const,
       }}
-      onDoubleClick={actions.maximizeToggle}
+      onDoubleClick={handleDoubleClick}
       {...meta.listeners}
     >
       {children ?? (

@@ -1,0 +1,116 @@
+diff --git a/packages/tmnl/agent-browser b/packages/tmnl/agent-browser
+--- a/packages/tmnl/agent-browser
++++ b/packages/tmnl/agent-browser
+@@ -1 +1 @@
+-Subproject commit 32a0207ffa41e60d18033ddda1be3949701fa5e9
++Subproject commit 32a0207ffa41e60d18033ddda1be3949701fa5e9-dirty
+diff --git a/packages/tmnl/src/lib/agents/tasks/services/AgentTaskCommandRouterService.ts b/packages/tmnl/src/lib/agents/tasks/services/AgentTaskCommandRouterService.ts
+index 88305a8..2d730c7 100644
+--- a/packages/tmnl/src/lib/agents/tasks/services/AgentTaskCommandRouterService.ts
++++ b/packages/tmnl/src/lib/agents/tasks/services/AgentTaskCommandRouterService.ts
+@@ -15,7 +15,7 @@
+ import { Context, Data, DateTime, Effect, Layer, Schema } from 'effect'
+ import { nanoid } from 'nanoid'
+ import { AgentTaskService } from './AgentTaskService'
+-import { NatsPubSubService } from '../../holonet/nats/pubsub'
++import { NatsPubSubService } from '../../../holonet/nats/pubsub'
+ import {
+   AgentTaskCommand,
+   AgentTaskCommandAck,
+diff --git a/packages/tmnl/src/lib/agents/tasks/services/AgentTaskMicroHostService.ts b/packages/tmnl/src/lib/agents/tasks/services/AgentTaskMicroHostService.ts
+index 85a5e8b..36ed61e 100644
+--- a/packages/tmnl/src/lib/agents/tasks/services/AgentTaskMicroHostService.ts
++++ b/packages/tmnl/src/lib/agents/tasks/services/AgentTaskMicroHostService.ts
+@@ -16,7 +16,7 @@
+ import { Data, Effect, Schema } from 'effect'
+ import type { ServiceIdentity, ServiceInfo, ServiceStats } from 'nats.ws'
+ 
+-import { NatsMicroService } from '../../holonet/nats/micro'
++import { NatsMicroService } from '../../../holonet/nats/micro'
+ import { AgentTaskCommandRouterService } from './AgentTaskCommandRouterService'
+ import { AgentTaskCommandAckSchema } from '../schemas/command'
+ 
+diff --git a/packages/tmnl/src/lib/agents/tasks/services/NatsTransportService.ts b/packages/tmnl/src/lib/agents/tasks/services/NatsTransportService.ts
+index b5c3a27..56fb86e 100644
+--- a/packages/tmnl/src/lib/agents/tasks/services/NatsTransportService.ts
++++ b/packages/tmnl/src/lib/agents/tasks/services/NatsTransportService.ts
+@@ -24,7 +24,7 @@ import {
+   TransportSubscribeError,
+   TransportPublishError,
+ } from './TransportService'
+-import { NatsPubSubService } from '../../holonet/nats/pubsub'
++import { NatsPubSubService } from '../../../holonet/nats/pubsub'
+ 
+ // ---------------------------------------------------------------------------
+ // Subject convention for agent task logs
+diff --git a/packages/tmnl/src/lib/agents/tasks/services/layers.ts b/packages/tmnl/src/lib/agents/tasks/services/layers.ts
+index eee8ce8..68249c0 100644
+--- a/packages/tmnl/src/lib/agents/tasks/services/layers.ts
++++ b/packages/tmnl/src/lib/agents/tasks/services/layers.ts
+@@ -27,7 +27,7 @@ import {
+ import { NatsTransportServiceLive } from './NatsTransportService'
+ import { AgentTaskCommandRouterServiceLive } from './AgentTaskCommandRouterService'
+ import { AgentTaskMicroHostServiceLive } from './AgentTaskMicroHostService'
+-import { NatsMicroServiceLive } from '../../holonet/nats/micro'
++import { NatsMicroServiceLive } from '../../../holonet/nats/micro'
+ 
+ // ---------------------------------------------------------------------------
+ // Common base: CodecService + LogService + AgentTaskService
+diff --git a/packages/tmnl/src/lib/agents/tasks/views/inline-task-log-view.tsx b/packages/tmnl/src/lib/agents/tasks/views/inline-task-log-view.tsx
+index 611dbdd..32685eb 100644
+--- a/packages/tmnl/src/lib/agents/tasks/views/inline-task-log-view.tsx
++++ b/packages/tmnl/src/lib/agents/tasks/views/inline-task-log-view.tsx
+@@ -12,9 +12,13 @@
+ 
+ import React, { useEffect, useRef, useCallback, memo } from 'react'
+ import type { Atom } from '@effect-atom/atom'
++import * as AtomResult from '@effect-atom/atom/Result'
+ import { useAtomValue, useAtomSet } from '@effect-atom/atom-react'
+ import {
+   agentTaskLogSurfaceMockRuntime,
++  filteredLogBufferFamily,
++  tailModeFamily,
++  logStreamTrigger,
+   type AgentTaskLogAtomSurfaceAtoms,
+ } from '../atoms'
+ import { LogEntryRow } from './log-entry-row'
+@@ -38,11 +42,16 @@ export const InlineTaskLogView = memo(function InlineTaskLogView({
+   maxHeight,
+   atomSurfaceAtom = agentTaskLogSurfaceMockRuntime.atomSurfaceAtom,
+ }: InlineTaskLogViewProps) {
+-  const atoms = useAtomValue(atomSurfaceAtom)
++  const atomSurfaceResult = useAtomValue(atomSurfaceAtom)
++  const atoms = AtomResult.isSuccess(atomSurfaceResult)
++    ? atomSurfaceResult.value
++    : undefined
+ 
+-  const entries = useAtomValue(atoms.filteredLogBufferFamily(taskId))
+-  const tailMode = useAtomValue(atoms.tailModeFamily(taskId))
+-  const setStreamTrigger = useAtomSet(atoms.logStreamTrigger)
++  const entries = useAtomValue(
++    (atoms?.filteredLogBufferFamily ?? filteredLogBufferFamily)(taskId),
++  )
++  const tailMode = useAtomValue((atoms?.tailModeFamily ?? tailModeFamily)(taskId))
++  const setStreamTrigger = useAtomSet(atoms?.logStreamTrigger ?? logStreamTrigger)
+   const scrollRef = useRef<HTMLDivElement>(null)
+   const hasTriggered = useRef(false)
+ 
+diff --git a/packages/tmnl/src/lib/streams/index.ts b/packages/tmnl/src/lib/streams/index.ts
+index b0a472c..6f5d1a5 100644
+--- a/packages/tmnl/src/lib/streams/index.ts
++++ b/packages/tmnl/src/lib/streams/index.ts
+@@ -38,7 +38,13 @@ export {
+ export type { TickerOptions, PulseOptions, StopwatchEvent } from "./primitives/time"
+ 
+ // Legacy re-export (deprecated, use primitives)
+-export { ticker, pulse, counter, heartbeat } from "./factories"
++// NOTE: aliased to avoid duplicate named exports with primitives
++export {
++  ticker as legacyTicker,
++  pulse as legacyPulse,
++  counter as legacyCounter,
++  heartbeat as legacyHeartbeat,
++} from "./factories"
+ export type { TickerOptions as LegacyTickerOptions, PulseOptions as LegacyPulseOptions } from "./factories"
+ 
+ // ============================================================================

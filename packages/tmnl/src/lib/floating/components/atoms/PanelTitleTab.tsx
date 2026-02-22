@@ -1,7 +1,9 @@
 /**
  * PanelTitleTab — tab container with title + close button
  *
- * Compound component. Renders children (defaults to Title + TabClose).
+ * MorphChat DNA: font-mono, tracking-wider, uppercase title.
+ * Hairline borders with alpha. Subtle tab background.
+ *
  * @module
  */
 
@@ -15,11 +17,28 @@ export interface PanelTitleTabProps {
   children?: ReactNode
 }
 
-export const PanelTitleTab = memo(function PanelTitleTab({ children }: PanelTitleTabProps) {
-  const { meta } = usePanelContext()
-
+/** 6-dot grip icon — subtle drag affordance */
+const GripIcon = memo(function GripIcon() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', maxWidth: '70%', minWidth: 0, paddingLeft: 8, paddingRight: 4 }}>
+    <svg
+      width="8" height="14" viewBox="0 0 8 14"
+      fill={PANEL.btnIdle}
+      style={{ opacity: 0.4, flexShrink: 0 }}
+    >
+      <circle cx="2" cy="2" r="1" />
+      <circle cx="6" cy="2" r="1" />
+      <circle cx="2" cy="7" r="1" />
+      <circle cx="6" cy="7" r="1" />
+      <circle cx="2" cy="12" r="1" />
+      <circle cx="6" cy="12" r="1" />
+    </svg>
+  )
+})
+
+export const PanelTitleTab = memo(function PanelTitleTab({ children }: PanelTitleTabProps) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', maxWidth: '70%', minWidth: 0, paddingLeft: 6, paddingRight: 4 }}>
+      <GripIcon />
       <div
         data-slot="panel-title-tab"
         style={{
@@ -30,8 +49,8 @@ export const PanelTitleTab = memo(function PanelTitleTab({ children }: PanelTitl
           minWidth: 0,
           height: '100%',
           paddingInline: 10,
-          borderLeft: `1px solid ${meta.borderColor}`,
-          borderRight: `1px solid ${meta.borderColor}`,
+          borderLeft: `1px solid ${PANEL.border}`,
+          borderRight: `1px solid ${PANEL.border}`,
           backgroundColor: PANEL.tabBg,
         }}
       >

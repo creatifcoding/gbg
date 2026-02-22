@@ -8,65 +8,17 @@
  * @module
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import {
   getFloatingStx,
   updatePanelDimensions,
   setResizing,
   updateModifierKeys,
 } from '../floating-stx'
+import { rafThrottle } from '../utils/raf-throttle'
 import type { ResizeEdge, Dimensions, Position, UseResizeReturn } from '../types'
 
-// =============================================================================
-// Resize Calculation
-// =============================================================================
-
-interface ResizeState {
-  initialDimensions: Dimensions
-  initialPosition: Position
-  initialPointer: Position
-  edge: ResizeEdge
-}
-
-/**
- * Calculate new dimensions based on edge being dragged
- */
-function calculateNewDimensions(
-  state: ResizeState,
-  currentPointer: Position,
-  sensitivity: number
-): { dimensions: Dimensions; position: Position } {
-  const deltaX = (currentPointer.x - state.initialPointer.x) * sensitivity
-  const deltaY = (currentPointer.y - state.initialPointer.y) * sensitivity
-
-  let width = state.initialDimensions.width
-  let height = state.initialDimensions.height
-  let x = state.initialPosition.x
-  let y = state.initialPosition.y
-
-  // Handle horizontal resize
-  if (state.edge.includes('e')) {
-    width = state.initialDimensions.width + deltaX
-  }
-  if (state.edge.includes('w')) {
-    width = state.initialDimensions.width - deltaX
-    x = state.initialPosition.x + deltaX
-  }
-
-  // Handle vertical resize
-  if (state.edge.includes('s')) {
-    height = state.initialDimensions.height + deltaY
-  }
-  if (state.edge.includes('n')) {
-    height = state.initialDimensions.height - deltaY
-    y = state.initialPosition.y + deltaY
-  }
-
-  return {
-    dimensions: { width: Math.max(100, width), height: Math.max(100, height) },
-    position: { x, y },
-  }
-}
+import { calculateNewDimensions, type ResizeState } from './resize-calc'
 
 // =============================================================================
 // Hook
@@ -136,34 +88,48 @@ export function useResize({
     [panelId]
   )
 
-  const handlePointerMove = useCallback(
-    (e: PointerEvent) => {
-      if (!isResizing || !resizeStateRef.current) return
+  // rAF-throttled resize handler — coalesces pointermove to 1/frame
+  const throttledResize = useMemo(
+    () => rafThrottle((clientX: number, clientY: number) => {
+      if (!resizeStateRef.current) return
 
       const stx = getFloatingStx()
       const sensitivity = stx.computed.resizeSensitivity
 
-      const currentPointer = { x: e.clientX, y: e.clientY }
+      const currentPointer = { x: clientX, y: clientY }
       const result = calculateNewDimensions(
         resizeStateRef.current,
         currentPointer,
         sensitivity
       )
 
-      // Update dimensions via stx
+      // Update dimensions via stx (fine-grained, no Map clone)
       updatePanelDimensions(panelId, result.dimensions)
 
       // Store new position
       currentPositionRef.current = result.position
-    },
-    [isResizing, panelId]
+    }),
+    [panelId]
   )
+
+  const handlePointerMove = useCallback(
+    (e: PointerEvent) => {
+      if (!isResizing || !resizeStateRef.current) return
+      throttledResize(e.clientX, e.clientY)
+    },
+    [isResizing, throttledResize]
+  )
+
+  // Cleanup throttle on unmount
+  useEffect(() => () => throttledResize.cancel(), [throttledResize])
 
   const handlePointerUp = useCallback(() => {
     if (!isResizing) return
 
-    const stx = getFloatingStx()
-    const panel = stx.data.panels.get().get(panelId)
+    // Flush any pending rAF frame to ensure final position is applied
+    throttledResize.flush()
+
+    const panel = getFloatingStx().data.panels.get(panelId)?.peek()
 
     setIsResizingState(false)
     setResizeEdge(null)
@@ -173,7 +139,7 @@ export function useResize({
     if (panel && onResizeEnd) {
       onResizeEnd(panel.dimensions, currentPositionRef.current)
     }
-  }, [isResizing, panelId, onResizeEnd])
+  }, [isResizing, panelId, onResizeEnd, throttledResize])
 
   // Initialize resize state when starting
   const handlePointerDown = useCallback(

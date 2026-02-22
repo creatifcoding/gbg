@@ -4,10 +4,12 @@
  * Full showcase: adapter switcher, morph demo, preset gallery,
  * replay controls, spec inspector, morph log.
  *
+ * Chrome lives in a FloatingPanel — surface gets full viewport.
+ *
  * Adapters available:
  * - Mock (full-fidelity, seeded data)
  * - Static (pre-loaded transcript)
- * - Replay (placeholder — needs real snapshot)
+ * - Harness (live WebSocket)
  *
  * Route: /testbed/morphchat
  */
@@ -27,6 +29,14 @@ import {
   type MorphChatAdapter,
   type MockChatAdapter,
 } from '@/lib/morphchat'
+import {
+  FloatingPanelProvider,
+  FloatingPanel,
+  registerPanel,
+  unregisterPanel,
+  setPanelVisibility,
+} from '@/lib/floating'
+import { Settings2 } from 'lucide-react'
 
 // =============================================================================
 // Static Transcript
@@ -385,6 +395,102 @@ function ControlButton({
 }
 
 // =============================================================================
+// Chrome Panel — All testbed controls in a floating panel
+// =============================================================================
+
+const CHROME_PANEL_ID = 'morphchat-chrome'
+
+function ChromePanel({
+  adapters,
+  activeKind,
+  setActiveKind,
+  activeSpec,
+  onPresetSelect,
+  currentAdapter,
+  harnessStatus,
+  harnessError,
+  morphLog,
+  demoRunning,
+  onToggleDemo,
+}: {
+  adapters: ReadonlyArray<AdapterEntry>
+  activeKind: AdapterKind
+  setActiveKind: (kind: AdapterKind) => void
+  activeSpec: ChatSurfaceSpec
+  onPresetSelect: (spec: ChatSurfaceSpec) => void
+  currentAdapter: MorphChatAdapter
+  harnessStatus?: HarnessAdapterStatus
+  harnessError?: string | null
+  morphLog: MorphEvent[]
+  demoRunning: boolean
+  onToggleDemo: () => void
+}) {
+  // Register panel on mount with autoSize — panel locks to content.
+  React.useEffect(() => {
+    registerPanel({
+      id: CHROME_PANEL_ID,
+      position: { x: 16, y: 16 },
+      dimensions: { width: 480, height: 400 },
+      constraints: { minWidth: 320, minHeight: 120 },
+      mode: 'floating',
+      visibility: 'visible',
+      autoSize: true,
+    })
+    return () => { unregisterPanel(CHROME_PANEL_ID) }
+  }, [])
+
+  return (
+    <FloatingPanel id={CHROME_PANEL_ID} title="Testbed Controls">
+      <FloatingPanel.Header>
+        <FloatingPanel.TitleTab />
+        <FloatingPanel.Controls>
+          <FloatingPanel.Minimize />
+        </FloatingPanel.Controls>
+      </FloatingPanel.Header>
+      <FloatingPanel.Content>
+        <div className="flex flex-col text-neutral-200">
+          <AdapterSwitcher entries={adapters} activeKind={activeKind} onSelect={setActiveKind} />
+          <ControlPanel
+            adapter={currentAdapter}
+            activeKind={activeKind}
+            harnessStatus={harnessStatus}
+            harnessError={harnessError}
+          />
+          <PresetGallery activeTag={activeSpec._tag} onSelect={onPresetSelect} />
+          <SpecInspector spec={activeSpec} />
+          <MorphLog events={morphLog} />
+          <div className="px-4 py-2 border-t border-neutral-800/50">
+            <MorphDemo isRunning={demoRunning} onToggle={onToggleDemo} />
+          </div>
+        </div>
+      </FloatingPanel.Content>
+    </FloatingPanel>
+  )
+}
+
+// =============================================================================
+// Toggle Button — FAB to show/hide chrome panel
+// =============================================================================
+
+function ChromeToggle({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'fixed top-4 left-4 z-[999] p-2 rounded',
+        'bg-neutral-900/80 backdrop-blur border border-neutral-800',
+        'text-neutral-500 hover:text-neutral-200 hover:border-neutral-600',
+        'transition-all duration-150 active:scale-95',
+      )}
+      title="Toggle testbed controls"
+    >
+      <Settings2 size={16} />
+    </button>
+  )
+}
+
+// =============================================================================
 // Main Testbed
 // =============================================================================
 
@@ -393,6 +499,7 @@ export function MorphChatTestbed() {
   const [morphLog, setMorphLog] = React.useState<MorphEvent[]>([])
   const [demoRunning, setDemoRunning] = React.useState(false)
   const [activeKind, setActiveKind] = React.useState<AdapterKind>('mock')
+  const [chromeVisible, setChromeVisible] = React.useState(true)
 
   // ── Mock Adapter (stable) ───────────────────────────────
 
@@ -424,8 +531,7 @@ export function MorphChatTestbed() {
     nodeId: 'cop-assistant',
     role: 'general',
     agentName: 'Prime-Architect',
-    autoConnect: activeKind === 'harness', // only connect when selected
-    label: 'Harness (Live)',
+    autoConnect: activeKind === 'harness',
   })
 
   // ── Adapter Registry ────────────────────────────────────
@@ -473,53 +579,53 @@ export function MorphChatTestbed() {
     [],
   )
 
+  const handleToggleChrome = React.useCallback(() => {
+    setChromeVisible((prev) => {
+      const next = !prev
+      setPanelVisibility(CHROME_PANEL_ID, next ? 'visible' : 'hidden')
+      return next
+    })
+  }, [])
+
   return (
-    <div className="h-screen flex flex-col bg-black text-neutral-200">
-      {/* ── Header ──────────────────────────────────── */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-neutral-800/50">
-        <div className="flex items-center gap-3">
-          <h1 className="font-mono text-neutral-200 tracking-wider" style={{ fontSize: 'var(--tmnl-text-lg, 18px)' }}>
-            MorphChat
-          </h1>
-          <span className="font-mono text-neutral-600" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-            Adaptive Chat Surface · Testbed V2
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <MorphDemo isRunning={demoRunning} onToggle={() => setDemoRunning((v) => !v)} />
-          <span className="font-mono text-neutral-700" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-            /testbed/morphchat
-          </span>
-        </div>
-      </div>
+    <FloatingPanelProvider>
+      <div className="h-screen flex flex-col bg-black text-neutral-200">
+        {/* ── FAB toggle ────────────────────────────────── */}
+        {!chromeVisible && <ChromeToggle onClick={handleToggleChrome} />}
 
-      {/* ── Toolbars ────────────────────────────────── */}
-      <AdapterSwitcher entries={adapters} activeKind={activeKind} onSelect={setActiveKind} />
-      <ControlPanel
-        adapter={currentAdapter}
-        activeKind={activeKind}
-        harnessStatus={harnessStatus}
-        harnessError={harnessError}
-      />
-      <PresetGallery activeTag={activeSpec._tag} onSelect={handlePresetSelect} />
-      <SpecInspector spec={activeSpec} />
-      <MorphLog events={morphLog} />
-
-      {/* ── Surface ─────────────────────────────────── */}
-      <div className="flex-1 min-h-0 p-6 flex items-stretch justify-center">
-        <div
-          className="w-full"
-          style={{ maxWidth: activeSpec.maxWidth ? `${activeSpec.maxWidth}px` : '900px' }}
-        >
-          <MorphChat.Surface
-            key={activeKind}
-            spec={activeSpec}
-            adapter={currentAdapter}
-            onMorph={handleMorph}
-            className="h-full min-h-[300px] max-h-[600px]"
+        {/* ── Chrome Panel (floating) ───────────────────── */}
+        {chromeVisible && (
+          <ChromePanel
+            adapters={adapters}
+            activeKind={activeKind}
+            setActiveKind={setActiveKind}
+            activeSpec={activeSpec}
+            onPresetSelect={handlePresetSelect}
+            currentAdapter={currentAdapter}
+            harnessStatus={harnessStatus}
+            harnessError={harnessError}
+            morphLog={morphLog}
+            demoRunning={demoRunning}
+            onToggleDemo={() => setDemoRunning((v) => !v)}
           />
+        )}
+
+        {/* ── Surface (full viewport) ───────────────────── */}
+        <div className="flex-1 min-h-0 flex items-stretch justify-center p-6">
+          <div
+            className="w-full"
+            style={{ maxWidth: activeSpec.maxWidth ? `${activeSpec.maxWidth}px` : '900px' }}
+          >
+            <MorphChat.Surface
+              key={activeKind}
+              spec={activeSpec}
+              adapter={currentAdapter}
+              onMorph={handleMorph}
+              className="h-full"
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </FloatingPanelProvider>
   )
 }

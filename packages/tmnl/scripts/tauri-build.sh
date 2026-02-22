@@ -34,6 +34,9 @@ trap cleanup EXIT INT TERM
 # Start a background process to keep FIFO open and write to log
 cat > "$LOG_PATH" < "$FIFO_PATH" &
 
+# Increase Node.js heap for Vite/Rollup — 18k+ modules OOM at default 4GB
+export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=12288"
+
 # Build Tauri app for production
 # Stderr is tee'd to both terminal and FIFO
 bunx tauri build 2> >(tee "$FIFO_PATH" >&2)

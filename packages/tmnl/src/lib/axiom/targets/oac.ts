@@ -8,8 +8,11 @@
  */
 
 import { Effect } from "effect"
-import { mkdirSync, writeFileSync } from "fs"
-import { join } from "path"
+// Namespace imports — Vite browser-externalizes these as warnings, not fatal errors.
+// Named imports (import { join } from "path") cause Rollup resolution failures.
+// This file is server-only (OaC scaffolding writes to disk) but Rollup still processes it.
+import * as fs from "fs"
+import * as path from "path"
 import type { ObjectSchema, LinkType, LinkCardinality } from "../object"
 import { isLink } from "../object"
 import {
@@ -578,33 +581,33 @@ export const scaffoldOntologyRepo = (
           // Create directory structure
           const dirs = [
             outputPath,
-            join(outputPath, "ontology"),
-            join(outputPath, "ontology", "objects"),
-            join(outputPath, "ontology", "links"),
-            join(outputPath, "scripts"),
+            path.join(outputPath, "ontology"),
+            path.join(outputPath, "ontology", "objects"),
+            path.join(outputPath, "ontology", "links"),
+            path.join(outputPath, "scripts"),
           ]
 
           for (const dir of dirs) {
-            mkdirSync(dir, { recursive: true })
+            fs.mkdirSync(dir, { recursive: true })
           }
 
           // Write package files
-          writeFileSync(
-            join(outputPath, "package.json"),
+          fs.writeFileSync(
+            path.join(outputPath, "package.json"),
             generatePackageJson(config)
           )
-          writeFileSync(join(outputPath, "tsconfig.json"), generateTsConfig())
-          writeFileSync(join(outputPath, "README.md"), generateReadme(config))
+          fs.writeFileSync(path.join(outputPath, "tsconfig.json"), generateTsConfig())
+          fs.writeFileSync(path.join(outputPath, "README.md"), generateReadme(config))
 
           // Write build script
-          writeFileSync(
-            join(outputPath, "scripts", "build.ts"),
+          fs.writeFileSync(
+            path.join(outputPath, "scripts", "build.ts"),
             generateBuildScript(config)
           )
 
           // Write ontology module files
           Array.from(module.files.entries()).forEach(([filePath, content]) => {
-            writeFileSync(join(outputPath, filePath), content)
+            fs.writeFileSync(path.join(outputPath, filePath), content)
           })
 
           console.log(`Ontology as Code repository scaffolded at: ${outputPath}`)

@@ -53,18 +53,16 @@ import {
   type ColumnIntent,
   // Composer (for cell renderers that need variant colors)
   extractStatusColors,
-  // Hooks
-  useMockStream,
   // Flash
   type FlashState,
-  // Types
-  type MockRow,
-  type RowUpdate,
   // Component
   TmnlDataGrid,
   type TmnlDataGridHandle,
   type TmnlGridContext,
 } from '@/lib/data-grid'
+// Mocking imports (separate to avoid eager faker loading via barrel)
+import { type MockRow, type RowUpdate } from '@/lib/data-grid/mocking'
+import { useMockStream } from '@/lib/data-grid/hooks/useMockStream'
 
 // Branded types need workarounds
 type DensityTier = DensityTierType

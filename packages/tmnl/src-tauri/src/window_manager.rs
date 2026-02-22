@@ -179,6 +179,7 @@ pub async fn create_testbed_window(
         .unwrap_or_else(|| format!("TMNL - {}", testbed_id));
 
     // Create new window - match main window settings (borderless, transparent on macOS only)
+    #[allow(unused_mut)]
     let mut builder = WebviewWindowBuilder::new(&app, &label, WebviewUrl::App(url.into()))
         .title(&title)
         .inner_size(config.width.unwrap_or(1200.0), config.height.unwrap_or(800.0))
@@ -478,6 +479,7 @@ fn create_pool_window(app: &AppHandle) -> Result<String, WindowError> {
 
     // Create hidden window with minimal blank page to save memory
     // We'll navigate to the actual testbed URL when the window is claimed
+    #[allow(unused_mut)]
     let mut builder = WebviewWindowBuilder::new(app, &label, WebviewUrl::App("/pool-placeholder".into()))
         .title("TMNL")
         .inner_size(1200.0, 800.0)

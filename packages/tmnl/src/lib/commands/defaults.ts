@@ -10,6 +10,7 @@ import { defineCommand, defineEntityCommand, defineBinding } from './decorators'
 import { forceLockAtom } from '@/components/splash/services'
 import { overlayRegistry } from '@/lib/overlays/atoms'
 import { forceScreensaverAtom } from '@/lib/screensaver'
+import { openCodeEditor } from '@/lib/code-editor/overlay'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // File Commands (global)
@@ -228,6 +229,25 @@ export const openTestbedWindowCommand = defineCommand(
     // NOTE: Actual minibuffer opening handled by useGlobalHotkeys special handling
     // The hotkey layer calls minibuffer.openCommand(TESTBED_WINDOW_PROVIDER_ID)
     // which properly opens the drawer + sends the XState event + fetches completions
+  })
+)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// View Commands (panels)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const openCodeEditorCommand = defineCommand(
+  {
+    id: 'view.codeEditor',
+    name: 'Open Code Editor',
+    description: 'Open Monaco code editor in a floating panel',
+    category: 'view',
+    scope: 'global',
+    keys: 'ctrl+shift+e',
+  },
+  Effect.gen(function* () {
+    yield* Effect.log('view.codeEditor: Opening code editor...')
+    openCodeEditor()
   })
 )
 
@@ -695,6 +715,8 @@ export const allCommands = [
   lockScreenCommand,
   screensaverCommand,
   toggleTerminalPanelCommand,
+  // View
+  openCodeEditorCommand,
   // Window
   openTestbedWindowCommand,
   // Navigation

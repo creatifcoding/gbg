@@ -23,9 +23,11 @@ export function usePanelState(id: string): PanelContextState | null {
   const isResizing = useSelector(() => stxPanel?.isResizing.get() ?? false)
   const isMaximized = useSelector(() => stxPanel?.isMaximized.get() ?? false)
   const mode = useSelector(() => stxPanel?.mode.get())
+  const autoSize = useSelector(() => stxPanel?.autoSize.get() ?? false)
   const closable = useSelector(() => stxPanel?.closable.get() ?? true)
   const minimizable = useSelector(() => stxPanel?.minimizable.get() ?? true)
   const resizable = useSelector(() => stxPanel?.resizable.get() ?? true)
+  const accent = useSelector(() => stxPanel?.accent.get())
 
   if (!position || !dimensions) return null
 
@@ -39,8 +41,10 @@ export function usePanelState(id: string): PanelContextState | null {
     isResizing,
     isMaximized,
     mode,
+    autoSize,
     closable,
     minimizable,
     resizable,
+    accent,
   }
 }

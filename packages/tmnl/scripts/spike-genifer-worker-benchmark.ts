@@ -1,13 +1,13 @@
 #!/usr/bin/env bun
 /**
- * Spike: JSON-Render TreeWorkerPool Performance Benchmark
+ * Spike: Genifer TreeWorkerPool Performance Benchmark
  *
  * Author: Val
  * Date: 2026-01-17
  * Related Files:
- *   - src/lib/json-render/workers/tree-worker-pool.ts (Effect Platform WorkerPool)
- *   - src/lib/json-render/workers/tree.worker.effect.ts (Worker Runner)
- *   - src/lib/json-render/core/streaming.ts
+ *   - src/lib/genifer/workers/tree-worker-pool.ts (Effect Platform WorkerPool)
+ *   - src/lib/genifer/workers/tree.worker.effect.ts (Worker Runner)
+ *   - src/lib/genifer/core/streaming.ts
  * Expected Outcome: Validate TreeWorkerPool implementation and measure baseline performance
  *
  * Hypotheses:
@@ -28,9 +28,9 @@
  */
 
 import { Effect, Chunk, Stream } from "effect"
-import { UITree, JsonPatch } from "../src/lib/json-render/core/schemas"
-import { TreeWorkerPool, TreeWorkerPoolFallback } from "../src/lib/json-render/workers"
-import { applyPatch } from "../src/lib/json-render/core/streaming"
+import { UITree, JsonPatch } from "../src/lib/genifer/core/schemas"
+import { TreeWorkerPool, TreeWorkerPoolFallback } from "../src/lib/genifer/workers"
+import { applyPatch } from "../src/lib/genifer/core/streaming"
 
 const BANNER = "=".repeat(70)
 
@@ -533,7 +533,7 @@ Effect Platform WorkerPool Benefits:
 // =============================================================================
 
 async function main() {
-  console.log("\n🧪 Spike: JSON-Render TreeWorkerPool Performance Benchmark")
+  console.log("\n🧪 Spike: Genifer TreeWorkerPool Performance Benchmark")
   console.log(BANNER)
   console.log("Testing Effect Platform WorkerPool implementation")
   console.log("NOTE: Running in Bun with TreeWorkerPoolFallback (main thread simulation)")

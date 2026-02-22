@@ -52,4 +52,34 @@ export {
   restorePanel,
   minimizePanel,
   restoreFromMinimize,
+  // Panel Tree — tiled layout (SM Migration §14)
+  getPanelTree,
+  setPanelTree,
+  addToTree,
+  removeFromPanelTree,
+  updateSplitRatio,
+  movePanelSeparator,
+  setFocusedPanel,
+  moveFocusInDirection,
+  getTiledPanelIds,
+  setPanelCollapsed,
+  togglePanelCollapsed,
+  setPanelAccent,
+  togglePanelHeader,
+  stashFloatsToEdges,
+  unstashFloats,
+  // Tab management
+  addTab,
+  removeTab,
+  setActiveTab,
+  // Mode transitions (float ↔ tile)
+  floatPanel,
+  tilePanel,
+  dockToEdge,
+  dockToInnerEdge,
+  // Split & Close
+  splitPanelInDirection,
+  closePanelFull,
+  // Spawn
+  spawnPanel,
 } from './stx'

@@ -23,7 +23,7 @@ rustup target add x86_64-pc-windows-gnu 2>&1 | tee -a "$LOG_PATH"
 # Build for Windows
 cd "$PROJECT_DIR/src-tauri"
 echo "[tmnl-windows] Building..."
-cargo build --target x86_64-pc-windows-gnu 2>&1 | tee -a "$LOG_PATH"
+cargo build --bin tmnl --target x86_64-pc-windows-gnu 2>&1 | tee -a "$LOG_PATH"
 
 # Get the exe path
 EXE_PATH="$(pwd)/target/x86_64-pc-windows-gnu/debug/tmnl.exe"

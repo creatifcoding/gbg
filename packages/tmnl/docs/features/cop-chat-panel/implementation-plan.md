@@ -20,7 +20,7 @@ Consolidated from `thoughts/cop-chat-panel/07-FEATURE-PLAN-SUMMARY.md` and `10-P
 | New Effect Schema types | 6 |
 | New effect-atoms | 6 |
 | New Effect.Services | 3 |
-| New json-render catalog components | 6 |
+| New genifer catalog components | 6 |
 | New ToolCallView registrations | 6 |
 | New React components | ~20 |
 
@@ -81,7 +81,7 @@ From the block renderer, work fans out to:
 | `SlashCommandRegistry` | Registers and dispatches `/commands` |
 | `EntityMentionService` | Resolves `@-mention` via Fermion entity search |
 
-### json-render Catalog Components (6)
+### genifer Catalog Components (6)
 
 WorkOrderList, WorkOrderDetail, AlarmSummary, SensorReadings, AssetTree, Timeline
 
@@ -94,7 +94,7 @@ WorkOrder, Alarm, Sensor, Asset, Timeline, Escalate
 | Question | Decision |
 |----------|----------|
 | Which systems merge? | ALL 6 -- total convergence |
-| Tool output rendering? | json-render catalog + terminal blocks + inline panels + breakout |
+| Tool output rendering? | genifer catalog + terminal blocks + inline panels + breakout |
 | Layout position? | FoldablePanel (consistent with other COP panels) |
 | Agent integration model? | Stream-into -- agent output becomes chat blocks |
 

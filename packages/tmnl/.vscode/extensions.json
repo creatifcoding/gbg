@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "effectful-tech.effect-vscode",
+    "vitest.explorer",
+    "ms-vscode.vscode-typescript-next",
+    "bradlc.vscode-tailwindcss",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "yoavbls.pretty-ts-errors"
+  ],
+  "unwantedRecommendations": []
+}

@@ -19,7 +19,9 @@
  *
  * ```typescript
  * // Agent (recommended - actual LLM streaming)
- * import { streamChartStyleAgent } from '@/lib/charts/styler'
+ * // NOTE: Import directly from agent module — NOT re-exported from barrel
+ * // (ai-sdk-provider-claude-code is Node.js-only, breaks browser bundles)
+ * import { streamChartStyleAgent } from '@/lib/charts/styler/agent'
  *
  * for await (const patch of streamChartStyleAgent({
  *   chartId: 'my-chart',
@@ -118,31 +120,10 @@ export {
 // =============================================================================
 // Agent (PRIMARY - LLM streaming)
 // =============================================================================
-
-export {
-  // Core streaming
-  streamChartStyleAgent,
-  streamChartStyleAgentEffect,
-  generateChartStyleViaAgent,
-  // Registry integration
-  streamStyleAgentToRegistry,
-  runStyleAgentToRegistry,
-  // Callback interface
-  streamStyleAgentWithCallbacks,
-  // AI SDK tool
-  createChartStylerAgentTool,
-  // Schemas
-  AgentStylePatchSchema,
-  ChartStylerAgentInputSchema,
-  // Error types
-  StylerLLMError,
-  InvalidPatchError,
-  // Types
-  type AgentStylePatch,
-  type ChartStylerAgentInput,
-  type ChartStylerAgentError,
-  type StreamStyleAgentOptions,
-} from './agent';
+// ⚠️  NOT re-exported from barrel — ai-sdk-provider-claude-code is Node.js-only.
+//     Import directly: import { ... } from '@/lib/charts/styler/agent'
+//     See: docs/RCA_ROUTE_OPTIMIZATION.md (Phase B — Production Build)
+// =============================================================================
 
 // =============================================================================
 // Primitive Services (for local generation)

@@ -66,6 +66,36 @@ export {
   setGridSize,
   toggleSnap,
   setSnapEnabled,
+  // Panel Tree — tiled layout (SM Migration §14)
+  getPanelTree,
+  setPanelTree,
+  addToTree,
+  removeFromPanelTree,
+  updateSplitRatio,
+  movePanelSeparator,
+  setFocusedPanel,
+  moveFocusInDirection,
+  getTiledPanelIds,
+  setPanelCollapsed,
+  togglePanelCollapsed,
+  setPanelAccent,
+  togglePanelHeader,
+  stashFloatsToEdges,
+  unstashFloats,
+  // Tab management
+  addTab,
+  removeTab,
+  setActiveTab,
+  // Mode transitions (float ↔ tile)
+  floatPanel,
+  tilePanel,
+  dockToEdge,
+  dockToInnerEdge,
+  // Split & Close (keyboard-driven panel management)
+  splitPanelInDirection,
+  closePanelFull,
+  // Spawn (content registry integration)
+  spawnPanel,
 } from './floating-stx'
 
 // =============================================================================
@@ -193,6 +223,10 @@ export {
   PersistedPanelState,
   PanelStorage,
   ModifierKeys,
+  // SM Migration: tiled layout primitives
+  FloatOriginSide,
+  DockEdge,
+  SplitDirection,
   // Interfaces
   type FloatingStxData,
   type PanelMachineContext,
@@ -201,6 +235,49 @@ export {
   type UseResizeReturn,
   type UseFloatingDimensionsReturn,
 } from './types'
+
+// =============================================================================
+// Layout (Split Tree)
+// =============================================================================
+
+export {
+  // Types
+  type SplitNode,
+  type SplitLeaf,
+  type SplitBranch,
+  // Constructors
+  leaf,
+  split,
+  // Type guards
+  isLeaf,
+  isSplit,
+  // Queries
+  collectPanelIds,
+  countLeaves,
+  findPath,
+  getAtPath,
+  findParent,
+  findAdjacentPanel,
+  // Mutations
+  insertBySplit,
+  removePanel as removeFromTree,
+  replacePanel as replaceInTree,
+  swapPanels,
+  setSplitRatio,
+  moveSeparator,
+  // Serialization
+  serialize as serializeTree,
+  deserialize as deserializeTree,
+  // Components
+  SplitContainer,
+  type SplitContainerProps,
+  Separator,
+  type SeparatorProps,
+  TiledPanel,
+  type TiledPanelProps,
+  EdgeDropZoneOverlay,
+  type EdgeDropZoneOverlayProps,
+} from './layout'
 
 // =============================================================================
 // Machine
@@ -233,10 +310,32 @@ export {
 export {
   FloatingBoundsProvider,
   useFloatingBounds,
+  type FloatingBoundsProviderProps,
+} from './context/FloatingBoundsContext'
+
+export {
   getBounds,
   clampPosition,
   clampDimensions,
   clampResize,
   Bounds,
-  type FloatingBoundsProviderProps,
-} from './context/FloatingBoundsContext'
+} from './context/bounds'
+
+// ── Panel Content Registry (v2 — visitorId-based) ──────────────────────────
+export { panelRegistry, type PanelContentEntry, type PanelContentProps } from './panel-registry'
+export { PanelContentRenderer as VisitorContentRenderer } from './components/PanelContentRenderer'
+
+// ── Visitors (built-in panel content providers) ────────────────────────────
+export { registerAllVisitors, registerMorphChatVisitors } from './visitors'
+
+// ── Overlay (global panel workspace) ───────────────────────────────────────
+export {
+  PanelWorkspaceOverlay,
+  PanelOverlayToggle,
+  panelOverlayOpenAtom,
+  panelOverlayRegistry,
+  togglePanelOverlay,
+  openPanelOverlay,
+  closePanelOverlay,
+} from './overlay'
+export { PanelWorkspace } from './overlay/PanelWorkspace'

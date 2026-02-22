@@ -50,3 +50,26 @@ export const RestoreIcon = memo(() => (
   </svg>
 ))
 RestoreIcon.displayName = 'RestoreIcon'
+
+// ─── SM Migration: mode transition icons ─────────────────────────────
+
+/** "Float as window" icon (SM §3.2: lucide-maximize2 variant) */
+export const FloatIcon = memo(() => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="15 3 21 3 21 9" />
+    <polyline points="9 21 3 21 3 15" />
+    <line x1="21" y1="3" x2="14" y2="10" />
+    <line x1="3" y1="21" x2="10" y2="14" />
+  </svg>
+))
+FloatIcon.displayName = 'FloatIcon'
+
+/** "Dock to side" icon (SM §3.4: lucide-panel-right-close variant) */
+export const DockIcon = memo(() => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <line x1="15" y1="3" x2="15" y2="21" />
+    <polyline points="10 15 7 12 10 9" />
+  </svg>
+))
+DockIcon.displayName = 'DockIcon'

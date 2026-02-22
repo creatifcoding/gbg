@@ -6,7 +6,7 @@
 
 | Document | Description |
 |----------|-------------|
-| [Chart Integration Q&A](./chart-integration-qa.md) | Chart discriminator + json-render integration |
+| [Chart Integration Q&A](./chart-integration-qa.md) | Chart discriminator + genifer integration |
 
 ## Quick Start
 
@@ -35,7 +35,7 @@ const result = await tools.chart_discriminator.execute({
 //   rationale: "Time-series data with multiple regions → multi-line chart"
 // }
 
-// 4. Render via json-render
+// 4. Render via genifer
 const uiTree = {
   root: "chart1",
   elements: {
@@ -54,7 +54,7 @@ const uiTree = {
 
 ```
 ┌─────────────────────┐     ┌─────────────────────┐     ┌─────────────────────┐
-│    AI Agent         │────▶│ Chart Discriminator │────▶│    json-render      │
+│    AI Agent         │────▶│ Chart Discriminator │────▶│    genifer      │
 │  (any AI SDK)       │     │  (tool wrapper)     │     │  (streaming UI)     │
 └─────────────────────┘     └─────────────────────┘     └─────────────────────┘
          │                           │                           │
@@ -71,7 +71,7 @@ const uiTree = {
 
 - **Chart Discriminator**: LLM-augmented agent that selects optimal chart types
 - **AI SDK Tool**: `createChartDiscriminatorTool()` wraps discriminator for any agent
-- **json-render**: Stream-first component rendering from AI-generated JSON
+- **genifer**: Stream-first component rendering from AI-generated JSON
 - **Chart Catalog**: 35 chart types registered by name (Line, Bar, not "Chart")
 - **Streaming**: `isStreaming` prop enables 60fps debounced updates
 

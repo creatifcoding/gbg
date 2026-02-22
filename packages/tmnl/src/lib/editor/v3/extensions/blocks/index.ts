@@ -86,6 +86,20 @@ export type {
 } from './DataGridBlock';
 
 export {
+  CodeEditorBlock,
+  CodeEditorBlockView,
+  createCodeEditorBlockAtoms,
+  getCodeEditorBlockAtoms,
+  disposeCodeEditorBlockAtoms,
+} from './CodeEditorBlock';
+export type {
+  CodeEditorBlockAttrs,
+  CodeEditorBlockOptions,
+  CodeEditorBlockAtoms,
+  CodeEditorState,
+} from './CodeEditorBlock';
+
+export {
   ChartBlock,
   ChartBlockView,
   createChartBlockAtoms,
@@ -158,6 +172,7 @@ import { MapBlock } from './MapBlock';
 import { Scene3DBlock } from './Scene3DBlock';
 import { DataGridBlock } from './DataGridBlock';
 import { ChartBlock } from './ChartBlock';
+import { CodeEditorBlock } from './CodeEditorBlock';
 import { ColumnLayout, Column } from './ColumnLayout';
 import { ProtectedNodes } from './EmbeddedBlockWrapper/shared/protectedNode';
 import type { AnyExtension } from '@tiptap/core';
@@ -212,6 +227,7 @@ export const customBlockExtensions: AnyExtension[] = [
   MapBlock,
   Scene3DBlock,
   ChartBlock,
+  CodeEditorBlock,
   ColumnLayout,
   Column,
 ];
@@ -220,7 +236,7 @@ export const customBlockExtensions: AnyExtension[] = [
  * Protected node types — cannot be deleted via keyboard.
  * Only deletable via explicit UI (trash button in block header).
  */
-export const protectedNodeTypes = ['mapBlock', 'scene3DBlock', 'dataGridBlock', 'chartBlock'];
+export const protectedNodeTypes = ['mapBlock', 'scene3DBlock', 'dataGridBlock', 'chartBlock', 'codeEditorBlock'];
 
 /**
  * All block extensions combined.

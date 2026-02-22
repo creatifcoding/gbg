@@ -144,7 +144,7 @@ export function InteractiveCard({
 
   // Access floating panel state from stx
   const stx = getFloatingStx()
-  const panelsMap = useSelector(stx.data.panels, (p) => p)
+  const panelsMap = useSelector(() => stx.data.panels.get())
   const panel = panelsMap.get(id)
 
   // For mode === 'floating', register panel on mount

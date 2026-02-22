@@ -244,7 +244,7 @@ export class IdleDetectionService extends Context.Tag(
       const config = yield* IdleConfigTag
       // Same implementation, just different config
       // ... (reuse Default implementation logic)
-      return yield* Effect.service(IdleDetectionService)
+      return yield* IdleDetectionService
     })
   ).pipe(Layer.provide(IdleConfigTag.Development))
 }

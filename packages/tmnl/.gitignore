@@ -62,3 +62,5 @@ auth.json
 # Nix-scoped Elixir caches (reproducible via mix deps.get)
 .nix-hex/
 .nix-mix/
+scripts/panel-regression/runs/*
+!scripts/panel-regression/runs/.gitkeep

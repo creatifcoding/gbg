@@ -9,7 +9,9 @@ import { Effect } from "effect"
 import type { OntologyShape } from "../ontology"
 import type { ObjectTypeDef } from "../object-type"
 import type { CompileError } from "../errors"
-import { ScaffoldError as OaCScaffoldError } from "./oac"
+// ⚠️ type-only import — oac.ts has top-level fs/path imports (Node.js only).
+// Runtime import deferred to dynamic import() in scaffoldFromOntology below.
+import type { ScaffoldError as OaCScaffoldError } from "./oac"
 
 // =============================================================================
 // OSDK Types (re-export)
@@ -377,7 +379,7 @@ const scaffoldFromOntology = (
   // Import dynamically to avoid circular deps
   return Effect.gen(function* () {
     const { scaffoldOntologyRepo } = yield* Effect.promise(() =>
-      import("./oac")
+      import(/* @vite-ignore */ "./oac")
     )
 
     // Convert OntologyShape to legacy format for now

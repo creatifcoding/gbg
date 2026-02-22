@@ -27,9 +27,13 @@ export interface PanelContextState {
   readonly isResizing: boolean
   readonly isMaximized: boolean
   readonly mode: string | undefined
+  /** Panel dimensions track content size */
+  readonly autoSize: boolean
   readonly closable: boolean
   readonly minimizable: boolean
   readonly resizable: boolean
+  /** Panel accent color (SM §10.1) */
+  readonly accent: string | undefined
 }
 
 // =============================================================================

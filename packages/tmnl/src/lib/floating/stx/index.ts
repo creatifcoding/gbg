@@ -43,4 +43,84 @@ export {
   restorePanel,
   minimizePanel,
   restoreFromMinimize,
+  // Panel Tree — tiled layout (SM Migration §14)
+  getPanelTree,
+  setPanelTree,
+  addToTree,
+  removeFromPanelTree,
+  updateSplitRatio,
+  movePanelSeparator,
+  setFocusedPanel,
+  moveFocusInDirection,
+  getTiledPanelIds,
+  setPanelCollapsed,
+  togglePanelCollapsed,
+  setPanelAccent,
+  togglePanelHeader,
+  stashFloatsToEdges,
+  unstashFloats,
+  // Tab management
+  addTab,
+  removeTab,
+  setActiveTab,
+  // Mode transitions (float ↔ tile)
+  floatPanel,
+  tilePanel,
+  dockToEdge,
+  dockToInnerEdge,
+  // Split & Close (keyboard-driven panel management)
+  splitPanelInDirection,
+  closePanelFull,
+  // Spawn (content registry integration)
+  spawnPanel,
 } from './actions'
+
+// ── Strip mutations (Niri flat column model) ────────────────────────────────
+export {
+  // Read
+  peekStrip,
+  getFocusedColumn,
+  getFocusedPanelId,
+  findColumnIndex,
+  getColumnCount,
+  // Insert
+  insertColumn,
+  insertColumns,
+  // Remove
+  removeColumnAt,
+  removeColumn,
+  removeFocusedColumn,
+  // Swap
+  swapColumns,
+  swapFocusedLeft,
+  swapFocusedRight,
+  // Move
+  moveColumn,
+  // Focus
+  setFocusedIndex,
+  focusLeft,
+  focusRight,
+  focusPanelInStrip,
+  // Width
+  cycleColumnWidth,
+  cycleFocusedWidth,
+  setColumnWidth,
+  // Stack
+  pushTreeColumn,
+  popColumn,
+  // Collapse
+  toggleColumnCollapsed,
+  toggleFocusedCollapsed,
+  setColumnCollapsed,
+  // Column tree ops
+  splitInColumn,
+  removeFromColumnTree,
+  normalizeStrip,
+  // Scroll
+  setScrollOffset,
+  // Bulk
+  setStrip,
+  clearStrip,
+  // Types
+  type InsertPosition,
+} from './strip'

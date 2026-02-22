@@ -34,8 +34,13 @@ import { useWorkspaceBounds } from './hooks/useWorkspaceBounds'
 import { useSnapGuides } from './hooks/useSnapGuides'
 import { useDockPreview } from './hooks/useDockPreview'
 import { useKeyboardNudge } from './hooks/useKeyboardNudge'
+import { useKeyboardNav } from './hooks/useKeyboardNav'
 import { DragGuideOverlay } from './components/DragGuideOverlay'
 import { CollapsedStripStack } from './components/CollapsedStripStack'
+import { EdgeDropZoneOverlay } from './layout/EdgeDropZone'
+import { dockToEdge } from './stx/actions'
+import { getFloatingStx } from './stx/instance'
+import type { DockEdge } from './types'
 import type { DragSnapState } from './modifiers'
 
 // =============================================================================
@@ -77,6 +82,7 @@ export function FloatingPanelProvider({
 
   usePanelPersistence({ disabled: disablePersistence })
   useKeyboardNudge({ getLocalViewport })
+  useKeyboardNav()
 
   const modifiers = useFloatingModifiers({
     workspaceRectRef,
@@ -97,9 +103,11 @@ export function FloatingPanelProvider({
   })
 
   // ─── Sensors ───────────────────────────────────────────────────
+  // SM §3.5.1: Distance-based activation — move 8px to start drag.
+  // Prevents accidental drags on click, but doesn't block fast drags.
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
   )
 
   // ─── Render ────────────────────────────────────────────────────
@@ -114,6 +122,10 @@ export function FloatingPanelProvider({
       >
         {children}
         <CollapsedStripStack />
+        <EdgeDropZoneOverlay onDock={(edge: DockEdge) => {
+          const dragging = getFloatingStx().data.draggingPanel.peek()
+          if (dragging) dockToEdge(dragging, edge)
+        }} />
         <DragGuideOverlay
           dockPreviewRef={dockPreviewRef}
           dockPreviewLabelRef={dockPreviewLabelRef}

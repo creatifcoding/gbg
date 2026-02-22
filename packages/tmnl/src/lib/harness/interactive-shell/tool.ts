@@ -14,7 +14,7 @@
  */
 
 import { Effect, Option } from 'effect'
-import { InteractiveShellService, SessionNotFoundError } from './InteractiveShellService'
+import { InteractiveShellService, SessionNotFoundError, type InteractiveShellServiceShape } from './InteractiveShellService'
 import type { ShellSessionId, InteractiveShellToolArgs } from './schemas'
 import { translateInput } from './key-encoding'
 
@@ -83,6 +83,26 @@ export const interactiveShellToolParameters = {
       type: 'number',
       description: 'Terminal height in rows (default: 24).',
     },
+    outputLines: {
+      type: 'number',
+      description: 'Number of lines to return when reading output (default: 20, max: 200).',
+    },
+    outputMaxChars: {
+      type: 'number',
+      description: 'Max chars to return when reading output (default: 5000, max: 50000).',
+    },
+    outputOffset: {
+      type: 'number',
+      description: 'Line offset for pagination (0-indexed). Use with outputLines.',
+    },
+    drain: {
+      type: 'boolean',
+      description: 'If true, return only NEW output since last read.',
+    },
+    incremental: {
+      type: 'boolean',
+      description: 'If true, return next N unseen lines (server tracks position).',
+    },
   },
   required: [],
   additionalProperties: false,
@@ -105,7 +125,54 @@ interface ToolArgs {
   signal?: number
   cols?: number
   rows?: number
+  outputLines?: number
+  outputMaxChars?: number
+  outputOffset?: number
+  drain?: boolean
+  incremental?: boolean
 }
+
+/**
+ * Read session output using dumpScreen (rendered) or readRawOutput (raw).
+ * Falls back to legacy readOutput if pool RPC fails.
+ */
+const readSessionOutput = (
+  shell: InteractiveShellServiceShape,
+  args: ToolArgs,
+) =>
+  Effect.gen(function* () {
+    const sid = args.sessionId as ShellSessionId
+    const lines = Math.min(args.outputLines ?? 20, 200)
+    const maxChars = Math.min(args.outputMaxChars ?? 5000, 50000)
+
+    // Drain / incremental mode → raw output
+    if (args.drain || args.incremental) {
+      const raw = yield* shell.readRawOutput(sid, {
+        drain: args.drain || args.incremental,
+        limit: lines,
+        offset: args.outputOffset,
+      })
+      const meta = `[${raw.sliceLineCount}/${raw.totalLines} lines, ${raw.totalChars} chars total]`
+      return `${meta}\n${raw.text}`
+    }
+
+    // Paginated / default → screen dump (rendered viewport)
+    const mode = args.outputOffset !== undefined ? 'slice' as const : 'tail' as const
+    const dump = yield* shell.dumpScreen(sid, {
+      mode,
+      lines,
+      offset: args.outputOffset,
+      maxChars,
+    })
+
+    const meta = `[${dump.lines.length}/${dump.totalLines} lines${dump.truncated ? ' TRUNCATED' : ''}]`
+    return `${meta}\n${dump.lines.join('\n')}`
+  }).pipe(
+    // Fallback to legacy readOutput if dumpScreen fails
+    Effect.catchAll(() =>
+      shell.readOutput(args.sessionId as ShellSessionId, args.outputLines ?? 50),
+    ),
+  )
 
 /**
  * Execute the interactive_shell tool.
@@ -157,15 +224,15 @@ export const executeInteractiveShell = (
       // Brief wait for output to accumulate
       yield* Effect.sleep('200 millis')
 
-      // Return recent output
-      const output = yield* shell.readOutput(args.sessionId as ShellSessionId, 50)
+      // Return recent output via screen dump
+      const outputText = yield* readSessionOutput(shell, args)
       const info = yield* shell.getSession(args.sessionId as ShellSessionId)
 
       return {
         content: [
           {
             type: 'text' as const,
-            text: `[session:${args.sessionId} status:${info.status} pid:${info.pid ?? 'unknown'}]\n${output}`,
+            text: `[session:${args.sessionId} status:${info.status} pid:${info.pid ?? 'unknown'}]\n${outputText}`,
           },
         ],
         isError: false,
@@ -174,14 +241,14 @@ export const executeInteractiveShell = (
 
     // ── Read output from existing session (status check) ──────────────
     if (args.sessionId && !args.command && !hasStructuredInput) {
-      const output = yield* shell.readOutput(args.sessionId as ShellSessionId, 50)
+      const outputText = yield* readSessionOutput(shell, args)
       const info = yield* shell.getSession(args.sessionId as ShellSessionId)
 
       return {
         content: [
           {
             type: 'text' as const,
-            text: `[session:${args.sessionId} status:${info.status} pid:${info.pid ?? 'unknown'}]\n${output}`,
+            text: `[session:${args.sessionId} status:${info.status} pid:${info.pid ?? 'unknown'}]\n${outputText}`,
           },
         ],
         isError: false,

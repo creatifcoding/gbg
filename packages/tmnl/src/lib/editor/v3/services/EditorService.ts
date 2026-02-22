@@ -10,6 +10,8 @@
 import { Effect, Context, Layer } from 'effect';
 import { Atom } from '@effect-atom/atom';
 import type { Editor, JSONContent } from '@tiptap/core';
+// Import directly from state module to avoid circular dependency:
+// atoms/index.ts → runtime.ts → services → EditorService → atoms/index.ts
 import {
   editorInstanceAtom,
   editorStatusAtom,
@@ -17,7 +19,7 @@ import {
   selectionAtom,
   activeMarksAtom,
   documentContentAtom,
-} from '../atoms';
+} from '../atoms/state';
 import type { MarkType, SelectionState } from '../types';
 
 // =============================================================================

@@ -23,7 +23,7 @@
  * @module
  */
 
-import { useCallback, useEffect, memo, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, memo, type ReactNode } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 
@@ -36,7 +36,10 @@ import { PANEL } from './tokens'
 
 // Compound atoms
 import { PanelHeader } from './components/PanelHeader'
+import { PanelTabBar } from './components/PanelTabBar'
 import { PanelContent } from './components/PanelContent'
+import { PanelContentRenderer } from './components/PanelContentRenderer'
+import { PanelContextMenu } from './components/PanelContextMenu'
 import {
   PanelTitle,
   PanelTabClose,
@@ -90,6 +93,14 @@ const FloatingPanelRoot = memo(function FloatingPanelRoot({
     return () => window.removeEventListener('keydown', handler, { capture: true })
   }, [state?.isMaximized, id])
 
+  // ─── Context menu state ───────────────────────────────────────
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setCtxMenu({ x: e.clientX, y: e.clientY })
+  }, [])
+
   // ─── Early returns AFTER all hooks ────────────────────────────
   if (!state) return null
   if (state.visibility === 'hidden' || state.visibility === 'minimized') return null
@@ -132,38 +143,62 @@ const FloatingPanelRoot = memo(function FloatingPanelRoot({
         role="dialog"
         aria-label={title}
         aria-roledescription="floating panel"
+        aria-disabled={undefined}
         className={`fp-panel ${className}`.trim()}
         data-floating-panel
+        data-floating-window
+        data-panel-id={id}
+        data-panel-mode="floating"
         data-state={state.isDragging ? 'dragging' : state.isResizing ? 'resizing' : state.isMaximized ? 'maximized' : 'idle'}
         style={{
-          position: 'fixed',
+          // Use absolute instead of fixed — the workspace has contain:paint
+          // which creates a containing block, making fixed behave like absolute
+          // but with WSLg compositor hit-test bugs. Absolute avoids this.
+          position: 'absolute',
           left: state.position.x, top: state.position.y,
-          width: state.dimensions.width, height: state.dimensions.height,
+          width: state.autoSize ? 'auto' : state.dimensions.width,
+          height: state.autoSize ? 'auto' : state.dimensions.height,
           minWidth: state.isMaximized ? undefined : (state.constraints?.minWidth ?? 220),
           minHeight: state.isMaximized ? undefined : (state.constraints?.minHeight ?? 120),
           zIndex: state.isMaximized ? MAXIMIZED_Z_INDEX : state.zIndex,
-          boxShadow: 'none',
+          // Elevation: inset glow + outer shadow (MorphCard DNA)
+          boxShadow: state.isMaximized ? 'none' : PANEL.floatGlow,
           backgroundColor: PANEL.bg,
-          border: state.isMaximized ? 'none' : `1px solid ${borderColor}`,
+          border: state.isMaximized ? 'none' : PANEL.floatBorder,
+          borderTop: state.isMaximized ? 'none' : (state.accent ? `2px solid ${state.accent}` : PANEL.floatBorder),
           borderRadius: state.isMaximized ? 0 : PANEL.radius,
           overflow: 'hidden',
           transform: dndTransform,
           willChange: 'transform',
-          transition: 'none',
+          transition: (state.isDragging || state.isResizing) ? 'none' : PANEL.settleTransition,
           display: 'flex', flexDirection: 'column' as const,
         }}
         onClick={panelCtx.actions.bringToFront}
+        onContextMenu={handleContextMenu}
       >
         {hasCompoundChildren ? (
           children
         ) : (
           <>
             <PanelHeader />
-            <PanelContent>{children}</PanelContent>
+            <PanelTabBar panelId={id} />
+            <PanelContent>
+              <PanelContentRenderer panelId={id}>
+                {children}
+              </PanelContentRenderer>
+            </PanelContent>
             <PanelResize />
           </>
         )}
       </div>
+      {ctxMenu && (
+        <PanelContextMenu
+          panelId={id}
+          mode={state.mode ?? 'floating'}
+          position={ctxMenu}
+          onClose={() => setCtxMenu(null)}
+        />
+      )}
     </PanelContext.Provider>
   )
 })
@@ -178,7 +213,7 @@ function isCompoundComposition(children: ReactNode): boolean {
   return arr.some((child) => {
     if (!child || typeof child !== 'object' || !('type' in child)) return false
     const t = child.type
-    return t === PanelHeader || t === PanelContent || t === PanelResize
+    return t === PanelHeader || t === PanelTabBar || t === PanelContent || t === PanelResize
   })
 }
 
@@ -188,6 +223,7 @@ function isCompoundComposition(children: ReactNode): boolean {
 
 export const FloatingPanel = Object.assign(FloatingPanelRoot, {
   Header: PanelHeader,
+  TabBar: PanelTabBar,
   Content: PanelContent,
   Resize: PanelResize,
   // Header atoms

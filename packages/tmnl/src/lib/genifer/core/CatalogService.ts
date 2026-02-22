@@ -39,6 +39,49 @@ export interface ComponentRenderProps<P = Record<string, unknown>> {
   readonly loading?: boolean
 }
 
+// =============================================================================
+// Tier & Domain System
+// =============================================================================
+
+/**
+ * Visibility tier for LLM prompt construction:
+ *   - core: ALWAYS included in the system prompt (layout, text, button, card)
+ *   - domain: included when the domain is active for the request
+ *   - discovery: browsable via catalog query tools but not auto-included
+ */
+export type CatalogTier = 'core' | 'domain' | 'discovery'
+
+/**
+ * Domain tag for scoping catalogs at generation time.
+ * A component can belong to multiple domains.
+ */
+export type CatalogDomain =
+  | 'ui'           // Base UI primitives
+  | 'layout'       // Layout containers
+  | 'forms'        // Form inputs and validation
+  | 'data'         // Data tables, grids, lists
+  | 'media'        // Images, video, audio
+  | 'charts'       // Data visualization
+  | 'geoint'       // Geospatial intelligence
+  | 'iiot'         // Industrial IoT
+  | 'navigation'   // Nav, tabs, breadcrumbs
+  | 'feedback'     // Alerts, toasts, progress
+  | 'terminal'     // Terminal, code blocks
+  | string         // Extensible
+
+/**
+ * Compound component relationship.
+ * Pattern: Card.Header, Card.Content, Card.Footer
+ */
+export interface CompoundRelation {
+  /** Parent component type (e.g., 'Card') */
+  readonly parent: string
+  /** Allowed child types (e.g., ['CardHeader', 'CardContent', 'CardFooter']) */
+  readonly slots: ReadonlyArray<string>
+  /** Whether children MUST be from the slots list */
+  readonly strict?: boolean
+}
+
 /**
  * Component definition with schema and renderer
  *
@@ -55,6 +98,12 @@ export interface ComponentDef {
   readonly hasChildren?: boolean
   /** Default entrance animation - REQUIRED (animations are mandatory) */
   readonly defaultEntrance: EntranceAnimation
+  /** Visibility tier (default: 'core') */
+  readonly tier?: CatalogTier
+  /** Domain tags for scoping (default: ['ui']) */
+  readonly domains?: ReadonlyArray<CatalogDomain>
+  /** Compound component relationship */
+  readonly compound?: CompoundRelation
 }
 
 /**
@@ -65,6 +114,10 @@ export interface DomainCatalog {
   readonly name: string
   /** Component definitions keyed by type name */
   readonly components: Record<string, ComponentDef>
+  /** Default tier for all components in this catalog (default: 'core') */
+  readonly defaultTier?: CatalogTier
+  /** Default domain tags for all components in this catalog */
+  readonly defaultDomains?: ReadonlyArray<CatalogDomain>
 }
 
 /**
@@ -78,6 +131,12 @@ export interface SchemaEntry {
   readonly hasChildren?: boolean
   /** Default entrance animation - REQUIRED (animations are mandatory) */
   readonly defaultEntrance: EntranceAnimation
+  /** Visibility tier */
+  readonly tier: CatalogTier
+  /** Domain tags */
+  readonly domains: ReadonlyArray<CatalogDomain>
+  /** Compound relationship */
+  readonly compound?: CompoundRelation
 }
 
 // =============================================================================
@@ -102,6 +161,32 @@ export interface CatalogComponents {
 
   /** Generate AI prompt from all registered components */
   readonly generatePrompt: () => string
+
+  /**
+   * Generate AI prompt filtered by tier and/or domain.
+   * - tier 'core' → only core components
+   * - tier 'domain' → core + components matching any of the given domains
+   * - tier 'discovery' → everything (for catalog browsing tools)
+   * - domains filter further within the selected tier
+   */
+  readonly generateScopedPrompt: (options?: {
+    /** Include up to this tier level (default: 'domain') */
+    tier?: CatalogTier
+    /** Only include components from these domains */
+    domains?: ReadonlyArray<CatalogDomain>
+  }) => string
+
+  /** List all registered domain names */
+  readonly listDomains: () => ReadonlyArray<string>
+
+  /** Get compound relationships for a component type */
+  readonly getCompound: (type: string) => CompoundRelation | undefined
+
+  /** List all component types matching a tier/domain filter */
+  readonly listComponents: (options?: {
+    tier?: CatalogTier
+    domains?: ReadonlyArray<CatalogDomain>
+  }) => ReadonlyArray<string>
 }
 
 /**
@@ -152,13 +237,23 @@ export const makeCatalogComponents = (
         description: def.description,
         hasChildren: def.hasChildren,
         defaultEntrance: def.defaultEntrance,
+        tier: def.tier ?? catalog.defaultTier ?? 'core',
+        domains: def.domains ?? catalog.defaultDomains ?? ['ui'],
+        compound: def.compound,
       })
+    }
+
+    // Track domain names
+    if (!_domainNames.includes(catalog.name)) {
+      _domainNames = [..._domainNames, catalog.name]
     }
 
     // Atomic swap — readers see either old or new, never partial
     _renderers = nextRenderers
     _schemas = nextSchemas
   }
+
+  let _domainNames: string[] = []
 
   // Initialize with provided catalogs
   initialCatalogs.forEach(register)
@@ -329,12 +424,85 @@ entrance?: {
     return lines.join("\n")
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // Tier/Domain-aware prompt generation
+  // ─────────────────────────────────────────────────────────────
+
+  const TIER_ORDER: Record<CatalogTier, number> = { core: 0, domain: 1, discovery: 2 }
+
+  const filterSchemas = (options?: {
+    tier?: CatalogTier
+    domains?: ReadonlyArray<CatalogDomain>
+  }): Map<string, SchemaEntry> => {
+    const maxTier = TIER_ORDER[options?.tier ?? 'domain']
+    const domainFilter = options?.domains
+
+    const result = new Map<string, SchemaEntry>()
+    for (const [name, entry] of _schemas) {
+      const entryTier = TIER_ORDER[entry.tier ?? 'core']
+      if (entryTier > maxTier) continue
+      if (domainFilter && domainFilter.length > 0) {
+        const entryDomains = entry.domains ?? ['ui']
+        if (!domainFilter.some((d) => entryDomains.includes(d))) continue
+      }
+      result.set(name, entry)
+    }
+    return result
+  }
+
+  const generateScopedPrompt = (options?: {
+    tier?: CatalogTier
+    domains?: ReadonlyArray<CatalogDomain>
+  }): string => {
+    const filtered = filterSchemas(options)
+    const lines: string[] = []
+    lines.push('# Available Components\n')
+
+    for (const [name, entry] of filtered) {
+      const jsonSchema = JSONSchema.make(entry.schema)
+      const tierBadge = entry.tier === 'core' ? '' : ` [${entry.tier}]`
+      const domainBadge = entry.domains?.length ? ` (${entry.domains.join(', ')})` : ''
+      lines.push(`## ${name}${tierBadge}${domainBadge}`)
+      if (entry.description) lines.push(entry.description.split('\n')[0]) // first line only
+      lines.push(`- hasChildren: ${entry.hasChildren ?? false}`)
+      if (entry.compound) {
+        lines.push(`- compound parent: ${entry.compound.parent}`)
+        lines.push(`- slots: ${entry.compound.slots.join(', ')}`)
+      }
+      lines.push(`- props: ${JSON.stringify(jsonSchema, null, 2)}`)
+      lines.push('')
+    }
+
+    return lines.join('\n')
+  }
+
+  const listDomains = (): ReadonlyArray<string> => {
+    return _domainNames
+  }
+
+  const getCompound = (type: string): CompoundRelation | undefined => {
+    const entry = _schemas.get(type)
+    return entry?.compound
+  }
+
+  const listComponents = (options?: {
+    tier?: CatalogTier
+    domains?: ReadonlyArray<CatalogDomain>
+  }): ReadonlyArray<string> => {
+    const filtered = filterSchemas(options)
+    return Array.from(filtered.keys())
+  }
+
   return {
     // Getters: always return latest COW snapshot
     get renderers() { return _renderers },
     get schemas() { return _schemas },
     register,
     generatePrompt,
+    generateScopedPrompt,
+    listDomains,
+    getCompound,
+    listComponents,
   }
 }
 

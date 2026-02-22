@@ -1,0 +1,153 @@
+commit d292debf49131fb59d1d0b124e928b5e5ea35baa
+Author: creatifcoding <the@getbygenius.com>
+Date:   Mon Feb 16 21:42:07 2026 -0500
+
+    fix(infra): use tcp healthcheck for y-sweet container
+
+diff --git a/packages/tmnl/docker/docker-compose.yml b/packages/tmnl/docker/docker-compose.yml
+index 1abbda0..9837f0d 100644
+--- a/packages/tmnl/docker/docker-compose.yml
++++ b/packages/tmnl/docker/docker-compose.yml
+@@ -134,8 +134,8 @@ services:
+       # Y_SWEET_AUTH: your-secret-key
+     restart: unless-stopped
+     healthcheck:
+-      # y-sweet returns 404 on root (WebSocket server), so just check port is open
+-      test: ['CMD-SHELL', 'curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/ | grep -q "404" || exit 1']
++      # y-sweet image doesn't ship curl; probe TCP port directly via bash /dev/tcp
++      test: ['CMD-SHELL', 'bash -lc "echo > /dev/tcp/localhost/8080"']
+       interval: 10s
+       timeout: 5s
+       retries: 3
+diff --git a/packages/tmnl/src/lib/commands/integrate/nu-cmdk.tsx b/packages/tmnl/src/lib/nu-cmdk/integrate/nu-cmdk.tsx
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/integrate/nu-cmdk.tsx
+rename to packages/tmnl/src/lib/nu-cmdk/integrate/nu-cmdk.tsx
+diff --git a/packages/tmnl/src/lib/commands/nu-cmdk/runtime/__tests__/laneAdapters.slice.test.ts b/packages/tmnl/src/lib/nu-cmdk/runtime/__tests__/laneAdapters.slice.test.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/nu-cmdk/runtime/__tests__/laneAdapters.slice.test.ts
+rename to packages/tmnl/src/lib/nu-cmdk/runtime/__tests__/laneAdapters.slice.test.ts
+diff --git a/packages/tmnl/src/lib/commands/nu-cmdk/runtime/__tests__/queryAdapterRouter.slice.test.ts b/packages/tmnl/src/lib/nu-cmdk/runtime/__tests__/queryAdapterRouter.slice.test.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/nu-cmdk/runtime/__tests__/queryAdapterRouter.slice.test.ts
+rename to packages/tmnl/src/lib/nu-cmdk/runtime/__tests__/queryAdapterRouter.slice.test.ts
+diff --git a/packages/tmnl/src/lib/commands/nu-cmdk/runtime/__tests__/querySession.slice.test.ts b/packages/tmnl/src/lib/nu-cmdk/runtime/__tests__/querySession.slice.test.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/nu-cmdk/runtime/__tests__/querySession.slice.test.ts
+rename to packages/tmnl/src/lib/nu-cmdk/runtime/__tests__/querySession.slice.test.ts
+diff --git a/packages/tmnl/src/lib/commands/nu-cmdk/runtime/__tests__/searchBroker.slice.test.ts b/packages/tmnl/src/lib/nu-cmdk/runtime/__tests__/searchBroker.slice.test.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/nu-cmdk/runtime/__tests__/searchBroker.slice.test.ts
+rename to packages/tmnl/src/lib/nu-cmdk/runtime/__tests__/searchBroker.slice.test.ts
+diff --git a/packages/tmnl/src/lib/commands/nu-cmdk/runtime/cacheGuard.ts b/packages/tmnl/src/lib/nu-cmdk/runtime/cacheGuard.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/nu-cmdk/runtime/cacheGuard.ts
+rename to packages/tmnl/src/lib/nu-cmdk/runtime/cacheGuard.ts
+diff --git a/packages/tmnl/src/lib/commands/nu-cmdk/runtime/index.ts b/packages/tmnl/src/lib/nu-cmdk/runtime/index.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/nu-cmdk/runtime/index.ts
+rename to packages/tmnl/src/lib/nu-cmdk/runtime/index.ts
+diff --git a/packages/tmnl/src/lib/commands/nu-cmdk/runtime/laneAdapters.ts b/packages/tmnl/src/lib/nu-cmdk/runtime/laneAdapters.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/nu-cmdk/runtime/laneAdapters.ts
+rename to packages/tmnl/src/lib/nu-cmdk/runtime/laneAdapters.ts
+diff --git a/packages/tmnl/src/lib/commands/nu-cmdk/runtime/metrics.ts b/packages/tmnl/src/lib/nu-cmdk/runtime/metrics.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/nu-cmdk/runtime/metrics.ts
+rename to packages/tmnl/src/lib/nu-cmdk/runtime/metrics.ts
+diff --git a/packages/tmnl/src/lib/commands/nu-cmdk/runtime/policyBundle.ts b/packages/tmnl/src/lib/nu-cmdk/runtime/policyBundle.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/nu-cmdk/runtime/policyBundle.ts
+rename to packages/tmnl/src/lib/nu-cmdk/runtime/policyBundle.ts
+diff --git a/packages/tmnl/src/lib/commands/nu-cmdk/runtime/queryAdapterRouter.ts b/packages/tmnl/src/lib/nu-cmdk/runtime/queryAdapterRouter.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/nu-cmdk/runtime/queryAdapterRouter.ts
+rename to packages/tmnl/src/lib/nu-cmdk/runtime/queryAdapterRouter.ts
+diff --git a/packages/tmnl/src/lib/commands/nu-cmdk/runtime/querySession.ts b/packages/tmnl/src/lib/nu-cmdk/runtime/querySession.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/nu-cmdk/runtime/querySession.ts
+rename to packages/tmnl/src/lib/nu-cmdk/runtime/querySession.ts
+diff --git a/packages/tmnl/src/lib/commands/nu-cmdk/runtime/rendererCompatibility.ts b/packages/tmnl/src/lib/nu-cmdk/runtime/rendererCompatibility.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/nu-cmdk/runtime/rendererCompatibility.ts
+rename to packages/tmnl/src/lib/nu-cmdk/runtime/rendererCompatibility.ts
+diff --git a/packages/tmnl/src/lib/commands/nu-cmdk/runtime/searchBroker.ts b/packages/tmnl/src/lib/nu-cmdk/runtime/searchBroker.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/nu-cmdk/runtime/searchBroker.ts
+rename to packages/tmnl/src/lib/nu-cmdk/runtime/searchBroker.ts
+diff --git a/packages/tmnl/src/lib/commands/nu-cmdk/runtime/types.ts b/packages/tmnl/src/lib/nu-cmdk/runtime/types.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/nu-cmdk/runtime/types.ts
+rename to packages/tmnl/src/lib/nu-cmdk/runtime/types.ts
+diff --git a/packages/tmnl/src/lib/commands/shell/NuCmdkShell.tsx b/packages/tmnl/src/lib/nu-cmdk/shell/NuCmdkShell.tsx
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/shell/NuCmdkShell.tsx
+rename to packages/tmnl/src/lib/nu-cmdk/shell/NuCmdkShell.tsx
+diff --git a/packages/tmnl/src/lib/commands/shell/NuCmdkShellOverlay.tsx b/packages/tmnl/src/lib/nu-cmdk/shell/NuCmdkShellOverlay.tsx
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/shell/NuCmdkShellOverlay.tsx
+rename to packages/tmnl/src/lib/nu-cmdk/shell/NuCmdkShellOverlay.tsx
+diff --git a/packages/tmnl/src/lib/commands/shell/__tests__/ResultsBand.test.tsx b/packages/tmnl/src/lib/nu-cmdk/shell/__tests__/ResultsBand.test.tsx
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/shell/__tests__/ResultsBand.test.tsx
+rename to packages/tmnl/src/lib/nu-cmdk/shell/__tests__/ResultsBand.test.tsx
+diff --git a/packages/tmnl/src/lib/commands/shell/__tests__/item-contract.test.ts b/packages/tmnl/src/lib/nu-cmdk/shell/__tests__/item-contract.test.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/shell/__tests__/item-contract.test.ts
+rename to packages/tmnl/src/lib/nu-cmdk/shell/__tests__/item-contract.test.ts
+diff --git a/packages/tmnl/src/lib/commands/shell/components/FooterBand.tsx b/packages/tmnl/src/lib/nu-cmdk/shell/components/FooterBand.tsx
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/shell/components/FooterBand.tsx
+rename to packages/tmnl/src/lib/nu-cmdk/shell/components/FooterBand.tsx
+diff --git a/packages/tmnl/src/lib/commands/shell/components/KindBand.tsx b/packages/tmnl/src/lib/nu-cmdk/shell/components/KindBand.tsx
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/shell/components/KindBand.tsx
+rename to packages/tmnl/src/lib/nu-cmdk/shell/components/KindBand.tsx
+diff --git a/packages/tmnl/src/lib/commands/shell/components/ModeBand.tsx b/packages/tmnl/src/lib/nu-cmdk/shell/components/ModeBand.tsx
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/shell/components/ModeBand.tsx
+rename to packages/tmnl/src/lib/nu-cmdk/shell/components/ModeBand.tsx
+diff --git a/packages/tmnl/src/lib/commands/shell/components/QueryBand.tsx b/packages/tmnl/src/lib/nu-cmdk/shell/components/QueryBand.tsx
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/shell/components/QueryBand.tsx
+rename to packages/tmnl/src/lib/nu-cmdk/shell/components/QueryBand.tsx
+diff --git a/packages/tmnl/src/lib/commands/shell/components/ResultsBand.tsx b/packages/tmnl/src/lib/nu-cmdk/shell/components/ResultsBand.tsx
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/shell/components/ResultsBand.tsx
+rename to packages/tmnl/src/lib/nu-cmdk/shell/components/ResultsBand.tsx
+diff --git a/packages/tmnl/src/lib/commands/shell/components/index.ts b/packages/tmnl/src/lib/nu-cmdk/shell/components/index.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/shell/components/index.ts
+rename to packages/tmnl/src/lib/nu-cmdk/shell/components/index.ts
+diff --git a/packages/tmnl/src/lib/commands/shell/contracts.ts b/packages/tmnl/src/lib/nu-cmdk/shell/contracts.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/shell/contracts.ts
+rename to packages/tmnl/src/lib/nu-cmdk/shell/contracts.ts
+diff --git a/packages/tmnl/src/lib/commands/shell/index.ts b/packages/tmnl/src/lib/nu-cmdk/shell/index.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/shell/index.ts
+rename to packages/tmnl/src/lib/nu-cmdk/shell/index.ts
+diff --git a/packages/tmnl/src/lib/commands/shell/item-contract.ts b/packages/tmnl/src/lib/nu-cmdk/shell/item-contract.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/shell/item-contract.ts
+rename to packages/tmnl/src/lib/nu-cmdk/shell/item-contract.ts
+diff --git a/packages/tmnl/src/lib/commands/shell/providers/command-provider-context.ts b/packages/tmnl/src/lib/nu-cmdk/shell/providers/command-provider-context.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/shell/providers/command-provider-context.ts
+rename to packages/tmnl/src/lib/nu-cmdk/shell/providers/command-provider-context.ts
+diff --git a/packages/tmnl/src/lib/commands/shell/providers/index.ts b/packages/tmnl/src/lib/nu-cmdk/shell/providers/index.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/shell/providers/index.ts
+rename to packages/tmnl/src/lib/nu-cmdk/shell/providers/index.ts
+diff --git a/packages/tmnl/src/lib/commands/shell/tokens.ts b/packages/tmnl/src/lib/nu-cmdk/shell/tokens.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/shell/tokens.ts
+rename to packages/tmnl/src/lib/nu-cmdk/shell/tokens.ts
+diff --git a/packages/tmnl/src/lib/commands/shell/types.ts b/packages/tmnl/src/lib/nu-cmdk/shell/types.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/shell/types.ts
+rename to packages/tmnl/src/lib/nu-cmdk/shell/types.ts
+diff --git a/packages/tmnl/src/lib/commands/useNuCmdkWire.ts b/packages/tmnl/src/lib/nu-cmdk/wire/useNuCmdkWire.ts
+similarity index 100%
+rename from packages/tmnl/src/lib/commands/useNuCmdkWire.ts
+rename to packages/tmnl/src/lib/nu-cmdk/wire/useNuCmdkWire.ts

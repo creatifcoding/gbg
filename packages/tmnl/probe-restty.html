@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>restty probe v2</title>
+  <style>
+    body { background: #0a0a0a; margin: 20px; font-family: monospace; color: #a3a3a3; }
+    #term-container { width: 800px; height: 400px; border: 1px solid #333; }
+    #log { white-space: pre-wrap; margin-top: 20px; font-size: 12px; color: #999; }
+  </style>
+</head>
+<body>
+  <h3>restty Probe v2 — Force WebGL2</h3>
+  <div id="term-container"></div>
+  <div id="log"></div>
+  <script type="module">
+    const logEl = document.getElementById('log');
+    const log = (msg) => { logEl.textContent += msg + '\n'; console.log('[PROBE]', msg); };
+    window.onerror = (msg) => log('[ERR] ' + msg);
+    window.onunhandledrejection = (e) => log('[REJECT] ' + e.reason);
+
+    try {
+      const { createRestty, parseGhosttyTheme } = await import('restty');
+      const { Terminal } = await import('restty/xterm');
+      log('imports ok');
+
+      const container = document.getElementById('term-container');
+
+      // Try direct createRestty with preferredRenderer
+      log('--- TEST 1: xterm Terminal with appOptions.renderer=webgl2 ---');
+      const term = new Terminal({
+        cols: 80,
+        rows: 20,
+        appOptions: { 
+          fontSize: 14,
+          fontPreset: 'default',
+          renderer: 'webgl2',
+        },
+      });
+      term.open(container);
+      log('opened. Waiting for init...');
+
+      await new Promise(r => setTimeout(r, 1000));
+      
+      // Check backend
+      const ri = term.restty;
+      if (ri && ri.getBackend) {
+        log('backend: ' + ri.getBackend());
+      } else if (ri) {
+        log('restty keys: ' + Object.keys(ri).join(', '));
+      }
+
+      // Check canvas
+      const canvases = container.querySelectorAll('canvas');
+      for (const c of canvases) {
+        const gl = c.getContext('webgl2');
+        log('canvas ' + c.width + 'x' + c.height + ' webgl2=' + !!gl);
+      }
+
+      // Write content
+      term.write('Hello from restty (forced webgl2)!\r\n');
+      term.write('\x1b[36m$ seq 1 5\x1b[0m\r\n');
+      for (let i = 1; i <= 5; i++) term.write(i + '\r\n');
+      term.write('\x1b[32mDONE\x1b[0m\r\n');
+      log('write done');
+
+      await new Promise(r => setTimeout(r, 500));
+
+      // If still black, try test 2: createRestty directly
+      log('--- TEST 2: createRestty directly ---');
+      const container2 = document.createElement('div');
+      container2.style.cssText = 'width:800px;height:200px;border:1px solid #555;margin-top:10px;';
+      document.body.insertBefore(container2, logEl);
+
+      const restty = createRestty({
+        root: container2,
+        appOptions: {
+          fontSize: 14,
+          fontPreset: 'default',
+          renderer: 'webgl2',
+        },
+      });
+      log('createRestty done');
+      
+      await new Promise(r => setTimeout(r, 500));
+      if (restty && restty.sendInput) {
+        restty.sendInput('Direct restty test!\r\n', 'pty');
+        restty.sendInput('\x1b[33mYellow line\x1b[0m\r\n', 'pty');
+        log('sendInput done');
+      }
+      
+      await new Promise(r => setTimeout(r, 1000));
+      const c3 = container2.querySelectorAll('canvas');
+      for (const c of c3) log('test2 canvas ' + c.width + 'x' + c.height);
+      
+      log('[DONE]');
+    } catch(e) {
+      log('[FATAL] ' + e.message + '\n' + e.stack);
+    }
+  </script>
+</body>
+</html>

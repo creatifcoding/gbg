@@ -1,10 +1,10 @@
-# JSON-Render Worker Architecture
+# Genifer Worker Architecture
 
 > Research conducted 2026-01-17. Follow-up research pending.
 
 ## Executive Summary
 
-Effect's `@effect/platform` Worker module can offload CPU-intensive work from the main thread. For json-render, **Parse Worker** is the recommended first implementation - low risk, measurable win.
+Effect's `@effect/platform` Worker module can offload CPU-intensive work from the main thread. For genifer, **Parse Worker** is the recommended first implementation - low risk, measurable win.
 
 ## Research Findings
 
@@ -16,7 +16,7 @@ Effect's `@effect/platform` Worker module can offload CPU-intensive work from th
 | 10KB - 100KB | 1-10ms | Consider workers |
 | 100KB+ | 10-300ms | Use workers + Transferables |
 
-### Current json-render Bottlenecks
+### Current genifer Bottlenecks
 
 | Bottleneck | Location | Impact | Worker Solution |
 |------------|----------|--------|-----------------|
@@ -73,9 +73,9 @@ NDJSON lines → Worker (JSON.parse + Schema.decode) → JsonPatch[] → Main th
 ```
 
 Files:
-- `src/lib/json-render/workers/parse.worker.ts`
-- `src/lib/json-render/workers/worker-api.ts`
-- `src/lib/json-render/workers/__tests__/parse.test.ts`
+- `src/lib/genifer/workers/parse.worker.ts`
+- `src/lib/genifer/workers/worker-api.ts`
+- `src/lib/genifer/workers/__tests__/parse.test.ts`
 
 ### Phase 2: Tree Worker (High Impact)
 
@@ -108,7 +108,7 @@ Network Stream → Parse Worker → Tree Worker → Main thread (render only)
 When resuming this work, invoke the workflow-router skill with Research goal and Aggressive allocation:
 
 ```
-1. User: "Continue json-render worker research"
+1. User: "Continue genifer worker research"
 
 2. Invoke workflow-router skill
 

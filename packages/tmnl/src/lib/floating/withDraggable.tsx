@@ -27,6 +27,7 @@
 
 import {
   useCallback,
+  memo,
   forwardRef,
   type ComponentType,
   type ReactNode,
@@ -44,47 +45,8 @@ import { useSelector } from '@/lib/stx'
 import { FloatingPanel } from './FloatingPanel'
 import type { Dimensions } from './types'
 
-// =============================================================================
-// Types
-// =============================================================================
-
-interface FloatConfig {
-  enabled: boolean
-  title?: string
-}
-
-export interface DraggableConfig {
-  /** Enable float on double-click */
-  float?: FloatConfig | boolean
-  /** Float dimensions */
-  floatDimensions?: Dimensions
-}
-
-export interface DraggableInjectedProps {
-  /** Sortable ref - attach to draggable element */
-  sortableRef: (node: HTMLElement | null) => void
-  /** Sortable attributes - spread on draggable element */
-  sortableAttributes: Record<string, unknown>
-  /** Sortable listeners - spread on drag handle */
-  sortableListeners: Record<string, unknown> | undefined
-  /** Style with transform for drag animation */
-  sortableStyle: CSSProperties
-  /** Whether currently being dragged */
-  isDragging: boolean
-  /** Whether this item is floating */
-  isFloating: boolean
-  /** Double-click handler to float */
-  onDoubleClickToFloat: () => void
-}
-
-export interface DraggableProps {
-  id: string
-  children?: ReactNode
-  className?: string
-  style?: CSSProperties
-  onFloat?: () => void
-  onDock?: () => void
-}
+export type { DraggableConfig, DraggableInjectedProps, DraggableProps } from './draggable-types'
+import type { DraggableConfig, DraggableProps } from './draggable-types'
 
 // =============================================================================
 // HOC
@@ -113,7 +75,7 @@ export function withDraggable<P extends object>(
   }: DraggableProps & Omit<P, keyof DraggableProps>) {
     // STX state - check if this card is floating
     const stx = getFloatingStx()
-    const panelsMap = useSelector(stx.data.panels, (p) => p)
+    const panelsMap = useSelector(() => stx.data.panels.get())
     const isFloating = panelsMap.has(id)
 
     // @dnd-kit sortable (works with CSS Grid)
@@ -127,9 +89,11 @@ export function withDraggable<P extends object>(
     } = useSortable({ id, disabled: isFloating })
 
     // Style for drag transform (works with grid)
-    // When dragging: hide original, DragOverlay shows the ghost
+    // IMPORTANT: translate-only to prevent dnd-kit scale morphing when
+    // dragging across differently sized droppables.
+    // When dragging: hide original, DragOverlay shows the ghost.
     const sortableStyle: CSSProperties = {
-      transform: CSS.Transform.toString(transform),
+      transform: CSS.Translate.toString(transform),
       transition,
       opacity: isDragging ? 0.4 : 1,
       zIndex: isDragging ? 100 : 'auto',
@@ -208,7 +172,10 @@ export function withDraggable<P extends object>(
 
   DraggableComponent.displayName = `withDraggable(${WrappedComponent.displayName || WrappedComponent.name || 'Component'})`
 
-  return DraggableComponent
+  const MemoizedDraggable = memo(DraggableComponent)
+  MemoizedDraggable.displayName = DraggableComponent.displayName
+
+  return MemoizedDraggable
 }
 
 export default withDraggable

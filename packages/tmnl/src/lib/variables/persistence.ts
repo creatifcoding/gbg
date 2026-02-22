@@ -6,8 +6,7 @@
  */
 
 import { Effect, Data, Schema } from 'effect'
-import { Atom } from '@effect-atom/atom'
-import { userValuesAtom, setUserValue, removeUserValue } from './atoms'
+import { userValuesAtom, setUserValue, removeUserValue, variablesRegistry } from './atoms'
 import type { ValueSource } from './types'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -192,7 +191,7 @@ let saveTimeout: ReturnType<typeof setTimeout> | null = null
  * Debounced to avoid excessive writes.
  */
 export function setupAutoSave(debounceMs = 1000): () => void {
-  const unsubscribe = Atom.subscribe(userValuesAtom, () => {
+  const unsubscribe = variablesRegistry.subscribe(userValuesAtom, () => {
     // Clear existing timeout
     if (saveTimeout) {
       clearTimeout(saveTimeout)

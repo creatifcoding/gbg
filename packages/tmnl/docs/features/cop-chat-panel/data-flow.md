@@ -15,7 +15,7 @@ The COP Chat Panel is a `FoldablePanel` (panelId="cop-chat") that merges 6 syste
 
 1. **BlockTerminal v3** -- AI conversation engine with streamRef blocks
 2. **ChatInput** -- Compound input with mode toggle, thinking levels, context chips
-3. **json-render** -- Catalog-driven AI UI with NDJSON streaming
+3. **genifer** -- Catalog-driven AI UI with NDJSON streaming
 4. **CursorChat** -- Dynamic Island chat with messages and attachments
 5. **Conductor** -- Agent PTY view bound to agent sessions
 6. **Kori Inspector** -- Node property inspector
@@ -41,7 +41,7 @@ The COP Chat Panel is a `FoldablePanel` (panelId="cop-chat") that merges 6 syste
 | `agentAtom(id)` | conductor/atoms (family) | Per-agent state |
 | `streamStateByIdAtom(reqId)` | ai-core atoms | Stream progress |
 | `workOrderAtom(id)` | iiot/fermion (family) | Work order data |
-| `catalogAtom` | json-render/atoms | Component catalog |
+| `catalogAtom` | genifer/atoms | Component catalog |
 
 ## Service Dependencies
 
@@ -62,7 +62,7 @@ The COP Chat Panel is a `FoldablePanel` (panelId="cop-chat") that merges 6 syste
 | `AIResponseBlockV3` | `'ai-response'` | AI streaming response |
 | `AgentOutputBlock` | `'agent'` | Conductor agent PTY output |
 | `SlashCommandBlock` | `'slash'` | Slash command results |
-| `JsonRenderBlockV3` | `'json-render'` | Tool output via json-render catalog |
+| `GeniferBlockV3` | `'genifer'` | Tool output via genifer catalog |
 
 ## Data Flow
 
@@ -75,7 +75,7 @@ User Input (ChatInput)
   |     |     |
   |     |     +--> ToolCallView registry lookup
   |     |           |
-  |     |           +--> json-render UIRenderer (catalog)
+  |     |           +--> genifer UIRenderer (catalog)
   |     |                 |
   |     |                 +--> [Breakout Panel] (optional)
   |     |

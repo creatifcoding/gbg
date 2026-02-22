@@ -28,6 +28,8 @@ import {
 import { SidebarItem } from "./SidebarItem"
 import { SidebarDivider } from "./SidebarDivider"
 import { useDrawer } from "@/lib/overlays"
+import { togglePanelOverlay } from "@/lib/floating/overlay"
+import { toggleCodeEditor } from "@/lib/code-editor/overlay"
 
 // ─────────────────────────────────────────────────────────────
 // Constants
@@ -174,8 +176,13 @@ export const Sidebar = memo(function Sidebar({ config, className = "" }: Sidebar
           break
 
         case "CommandAction":
-          // TODO: Integrate with command palette system
-          console.log("Command action:", action.commandId, action.args)
+          if (action.commandId === 'toggle-panel-overlay') {
+            togglePanelOverlay()
+          } else if (action.commandId === 'toggle-code-editor') {
+            toggleCodeEditor()
+          } else {
+            console.log("Unknown command:", action.commandId, action.args)
+          }
           break
 
         case "DrawerAction":

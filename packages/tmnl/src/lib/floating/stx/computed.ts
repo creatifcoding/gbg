@@ -62,4 +62,39 @@ export const floatingComputed = {
       .map((id: string) => panels.get(id))
       .filter((p): p is PanelState => p !== undefined && p.visibility === 'visible')
   },
+
+  // ─── SM Migration: mode-partitioned queries ─────────────────────────
+
+  /**
+   * Panels currently in tiled mode (visible, not collapsed)
+   */
+  tiledPanels: (get: { data: FloatingStxData }) => {
+    const result: PanelState[] = []
+    get.data.panels.forEach((p: PanelState) => {
+      if (p.mode === 'tiled' && p.visibility !== 'hidden') result.push(p)
+    })
+    return result
+  },
+
+  /**
+   * Panels currently in floating mode (ordered by z-index)
+   */
+  floatingPanels: (get: { data: FloatingStxData }) => {
+    const panels = get.data.panels
+    const zOrder = get.data.zOrder
+    return zOrder
+      .map((id: string) => panels.get(id))
+      .filter((p): p is PanelState => p !== undefined && p.mode === 'floating' && p.visibility !== 'hidden')
+  },
+
+  /**
+   * Collapsed tiled panels (vertical strip state)
+   */
+  collapsedPanels: (get: { data: FloatingStxData }) => {
+    const result: PanelState[] = []
+    get.data.panels.forEach((p: PanelState) => {
+      if (p.mode === 'tiled' && p.isCollapsed) result.push(p)
+    })
+    return result
+  },
 }

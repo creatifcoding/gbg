@@ -11,7 +11,8 @@ import { PANEL } from '../../tokens'
 
 export const PanelTabClose = memo(function PanelTabClose() {
   const { state, actions } = usePanelContext()
-  if (!state.closable) return null
+  // SM §3.4: floating panels close via context menu only — no × in title bar
+  if (!state.closable || state.mode === 'floating') return null
 
   return (
     <button

@@ -1,0 +1,26 @@
+# TMNL Shell — Wayland Layer Shell sidecar panel (dev mode)
+#
+# Logs:
+#   journalctl --user -u tmnl-shell -f
+#   journalctl --user -u tmnl-shell -u tmnl-shell-vite -f
+
+[Unit]
+Description=TMNL Shell — Wayland Layer Shell Panel
+Requires=tmnl-shell-vite.service
+After=tmnl-shell-vite.service graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+
+[Service]
+Type=simple
+WorkingDirectory=%h/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src-shell-tauri
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 30); do curl -s http://localhost:1421 > /dev/null 2>&1 && exit 0; sleep 0.5; done; exit 1'
+ExecStart=%h/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/scripts/shell-tauri-systemd.sh
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tmnl-shell
+Restart=on-failure
+RestartSec=3
+MemoryMax=1G
+
+[Install]
+WantedBy=graphical-session.target

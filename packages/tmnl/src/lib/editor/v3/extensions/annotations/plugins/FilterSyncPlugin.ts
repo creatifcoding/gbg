@@ -13,9 +13,7 @@
 
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
-import { Atom } from '@effect-atom/atom-react';
-
-import { visibleMarkIdsAtom, marksAtom } from '../atoms';
+import { visibleMarkIdsAtom, marksAtom, annotationRegistry } from '../atoms';
 import type { AnnotationId } from '../schemas';
 
 // =============================================================================
@@ -111,7 +109,7 @@ export function createFilterSyncPlugin(options: FilterSyncPluginOptions = {}): P
 
       // Set up subscription after initial render
       queueMicrotask(() => {
-        unsubscribe = Atom.subscribe(visibleMarkIdsAtom, () => {
+        unsubscribe = annotationRegistry.subscribe(visibleMarkIdsAtom, () => {
           // Force plugin state update by dispatching empty transaction
           const { state, dispatch } = editorView;
           const tr = state.tr.setMeta(filterSyncPluginKey, { forceUpdate: true });

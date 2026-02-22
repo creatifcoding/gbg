@@ -28,10 +28,14 @@ export {
 export {
   FloatingBoundsProvider,
   useFloatingBounds,
+  type FloatingBoundsProviderProps,
+} from './FloatingBoundsContext'
+
+export {
   getBounds,
+  setBounds,
   clampPosition,
   clampDimensions,
   clampResize,
   Bounds,
-  type FloatingBoundsProviderProps,
-} from './FloatingBoundsContext'
+} from './bounds'

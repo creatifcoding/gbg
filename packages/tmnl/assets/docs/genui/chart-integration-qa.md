@@ -36,15 +36,15 @@ const result = await generateText({
 })
 ```
 
-### Q: How does json-render fit in?
+### Q: How does genifer fit in?
 
-**A:** json-render is our stream-first component rendering system. When an AI emits JSON describing a UI tree, json-render:
+**A:** genifer is our stream-first component rendering system. When an AI emits JSON describing a UI tree, genifer:
 
 1. Validates against registered component schemas
 2. Renders the appropriate React components
 3. Handles streaming updates with animations
 
-Charts are registered in the `chartDomainCatalog` and can be rendered via json-render.
+Charts are registered in the `chartDomainCatalog` and can be rendered via genifer.
 
 ---
 
@@ -67,7 +67,7 @@ USER: "Show me how sales changed over the last year"
          │
          ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  JSON-RENDER STREAMING                                           │
+│  GENIFER STREAMING                                           │
 │  Agent emits JSON patch:                                         │
 │  {                                                               │
 │    "op": "add",                                                  │
@@ -328,7 +328,7 @@ const result = await generateText({
 })
 ```
 
-### Q: How do I render the discriminator's output via json-render?
+### Q: How do I render the discriminator's output via genifer?
 
 **A:** After the discriminator returns, emit a JSON patch:
 
@@ -336,7 +336,7 @@ const result = await generateText({
 // Discriminator returns:
 // { chartType: "Line", config: { xField: "date", yField: "sales" }, ... }
 
-// Emit to json-render:
+// Emit to genifer:
 const patch = {
   op: "add",
   path: "/elements/salesChart",

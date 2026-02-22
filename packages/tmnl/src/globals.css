@@ -313,3 +313,22 @@
   --geoint-intel-width: 380px;
   --geoint-timeline-height: 300px;
 }
+
+/* =============================================================================
+   Floating Panel (Soft-Machine style pass)
+   ============================================================================= */
+
+.fp-panel {
+  background-image: none;
+}
+
+.fp-chrome-btn:hover {
+  color: #d4d4d4;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.fp-panel-tab-close:hover {
+  color: #d4d4d4;
+  background: rgba(255, 255, 255, 0.06);
+}

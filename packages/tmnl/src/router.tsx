@@ -535,6 +535,16 @@ const conductorLegacyRoute = createRoute({
 });
 
 // ─────────────────────────────────────────────────────────────
+// Lazy Routes: Code Editor (Native Editor — Monaco + VANTA + Vim)
+// ─────────────────────────────────────────────────────────────
+
+const codeEditorRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/editor',
+  component: lazyRouteComponent(() => import('./routes/CodeEditorRoute'), 'CodeEditorRoute'),
+});
+
+// ─────────────────────────────────────────────────────────────
 // Route Tree
 // ─────────────────────────────────────────────────────────────
 
@@ -619,6 +629,8 @@ const routeTree = rootRoute.addChildren([
   // Lazy (conductor)
   conductorRoute,
   conductorLegacyRoute,
+  // Lazy (code editor)
+  codeEditorRoute,
 ]);
 
 // ─────────────────────────────────────────────────────────────

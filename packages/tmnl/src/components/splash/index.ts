@@ -1,27 +1,11 @@
 /**
  * Splash Screen Module
  *
- * Q-Branch Brutalist boot sequence:
- * - CRT effects (static, scanlines, moiré, flicker)
- * - Terminal init log (staccato rhythm)
- * - TMNL logo reveal (letter→word expansion)
- * - Morph/dissolve transition
+ * Lock Screen + Authentication + Idle Detection + 3D ASCII Effects.
  *
- * Selfcharters Lock Screen:
- * - ASCII aberration 3D scene (Three.js + postprocessing)
- * - Idle detection with configurable timeout
- * - Multi-strategy authentication (password, biometric, facial, gesture)
- * - MediaPipe hand gesture control (pending)
+ * Old splash components (CRTEffect, LogoReveal, TerminalInit, Splash)
+ * deleted — see SPLASH_V2.md for the replacement architecture.
  */
-
-// Original splash components
-export { Splash, default } from './Splash'
-export { CRTEffect } from './CRTEffect'
-export { TerminalInit } from './TerminalInit'
-export { LogoReveal } from './LogoReveal'
-
-// Tokens for customization
-export * from './tokens'
 
 // Aberration (3D ASCII effect)
 export { AsciiEffect, AsciiScene } from "./aberration"

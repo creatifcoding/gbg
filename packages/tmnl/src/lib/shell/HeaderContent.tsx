@@ -10,7 +10,9 @@
  */
 
 import { useCallback, useState } from 'react';
-import { PanelLeft, Settings, Terminal, User, Zap } from 'lucide-react';
+import { Code2, PanelLeft, Settings, Terminal, User, Zap } from 'lucide-react';
+import { Atom } from '@effect-atom/atom';
+import { codeEditorOpenAtom } from '@/lib/code-editor/overlay/atom';
 import { SelfchartersLogo } from '@/components/brand';
 import { TmnlSettings } from '@/components/static-ui';
 import { useDrawer, useVisualOverlay, overlayId } from '@/lib/overlays';
@@ -318,6 +320,19 @@ export function HeaderContent({
               }}
             />
             CMD
+          </Button>
+          <Button variant="ghost" onClick={() => {
+            const current = Atom.get(codeEditorOpenAtom)
+            console.log('[HeaderContent] CODE clicked, toggling:', !current)
+            Atom.set(codeEditorOpenAtom, !current)
+          }}>
+            <Code2
+              style={{
+                width: 'var(--tmnl-text-xs, 12px)',
+                height: 'var(--tmnl-text-xs, 12px)',
+              }}
+            />
+            CODE
           </Button>
           <Button variant="ghost" onClick={openSettings}>
             <Settings

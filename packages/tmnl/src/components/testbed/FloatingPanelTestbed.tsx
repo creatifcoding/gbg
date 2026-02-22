@@ -1,124 +1,89 @@
 /**
- * Floating Panel Testbed v3 — Vantablack
+ * Floating Panel Testbed v5 — SM Migration Exercise Surface
  *
- * Clean exercise surface for the floating panel system.
- * No clutter, no instruction cards, no sortable grid.
- * Just panels on void.
+ * Default: 3 panels tiled, 2 floating. Tests all SM features:
+ *   - Tiled layout (split tree, separators, collapse, resize)
+ *   - Floating panels (drag, resize, snap, minimize, maximize)
+ *   - Float ↔ Tile transitions (header buttons, toolbar, right-click)
+ *   - Edge drop zones (drag floating panel to workspace edge)
+ *   - Context menus (right-click any panel)
+ *   - Stash / Unstash (minimize/restore all floats)
+ *   - Accent colors, tab bar
  *
  * @module
  */
 
-import { useState, useEffect, useCallback, type ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { useSelector } from '@/lib/stx'
 import {
   FloatingPanelProvider,
   FloatingPanel,
   FloatingDragOverlay,
   useFloatingPanel,
-  useFloatingDimensions,
   registerPanel,
-  unregisterPanel,
   getFloatingStx,
+  tilePanel,
+  floatPanel,
+  dockToEdge,
+  stashFloatsToEdges,
+  unstashFloats,
+  setPanelAccent,
   AccordionPanel,
 } from '@/lib/floating'
-import type { DimensionConstraints } from '@/lib/floating/types'
-import { WORKSPACE_CHROME_Z_INDEX as WORKSPACE_CHROME_Z } from '@/lib/floating/stx/constants'
+import { spawnPanel, registerAllVisitors } from '@/lib/floating'
+import { leaf, split } from '@/lib/floating/layout/split-tree'
+import { SplitContainer } from '@/lib/floating/layout/SplitContainer'
+import { TiledPanel } from '@/lib/floating/layout/TiledPanel'
+import { TabBar, type Tab } from '@/lib/floating/layout/TabBar'
+import { WORKSPACE_CHROME_Z_INDEX as CHROME_Z } from '@/lib/floating/stx/constants'
+import { batch } from '@legendapp/state'
+
+// Register built-in panel visitors (MorphChat, etc.)
+registerAllVisitors()
 
 // =============================================================================
-// Palette — vantablack ground, surgical accents
+// Palette
 // =============================================================================
 
 const V = {
-  void: '#010101',
-  surface: '#0a0a0a',
-  line: '#1a1a1a',
-  lineHover: '#262626',
+  void: 'oklch(0.03 0.005 280)',
+  surface: 'oklch(0.08 0.005 280)',
+  surfaceRaised: 'oklch(0.10 0.005 280)',
+  line: 'rgba(38, 38, 38, 0.5)',
+  lineStrong: 'rgba(255, 255, 255, 0.05)',
   text: '#525252',
   textMid: '#737373',
-  textHigh: '#d4d4d4',
-  accent: '#22c55e',
-  accentDim: 'rgba(34, 197, 94, 0.12)',
-  accentBorder: 'rgba(34, 197, 94, 0.25)',
-  mono: 'var(--tmnl-font-mono, ui-monospace, "SF Mono", monospace)',
+  textHigh: '#e5e5e5',
+  accent: '#06b6d4',
+  accentDim: 'rgba(8, 145, 178, 0.12)',
+  accentBorder: 'rgba(8, 145, 178, 0.3)',
+  mono: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
   xs: 'var(--tmnl-text-xs, 12px)',
   sm: 'var(--tmnl-text-sm, 14px)',
 } as const
 
 // =============================================================================
-// Managed Panel — registration lifecycle
+// Panel Definitions
 // =============================================================================
 
-interface ManagedPanelProps {
-  id: string
-  title: string
-  initialPosition: { x: number; y: number }
-  initialDimensions: { width: number; height: number }
-  constraints?: DimensionConstraints
-  show: boolean
-  children: ReactNode
-}
+/** Panels that start tiled */
+const TILED_DEFS = [
+  { id: 'p-alpha',   title: 'Alpha',   w: 340, h: 260, accent: '#c4a1b1' },
+  { id: 'p-beta',    title: 'Beta',    w: 360, h: 300 },
+  { id: 'p-gamma',   title: 'Gamma',   w: 300, h: 220 },
+] as const
 
-function ManagedPanel({
-  id,
-  title,
-  initialPosition,
-  initialDimensions,
-  constraints,
-  show,
-  children,
-}: ManagedPanelProps) {
-  const stx = getFloatingStx()
-  const panel = useSelector(() => stx.data.panels.get(id)?.get())
+/** Panels that start floating */
+const FLOAT_DEFS = [
+  { id: 'p-delta',   title: 'Delta',   x: 500, y: 120, w: 280, h: 340, accent: '#4ade80' },
+  { id: 'p-epsilon', title: 'Epsilon', x: 620, y: 300, w: 300, h: 200 },
+] as const
 
-  useEffect(() => {
-    if (show) {
-      const existing = getFloatingStx().data.panels.get(id)?.peek()
-      if (!existing) {
-        registerPanel({ id, title, initialPosition, initialDimensions, constraints })
-      }
-    } else {
-      unregisterPanel(id)
-    }
-    return () => { if (show) unregisterPanel(id) }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [show, id])
-
-  if (!show || !panel) return null
-
-  return (
-    <FloatingPanel id={id} title={title}>
-      {children}
-    </FloatingPanel>
-  )
-}
+const ALL_IDS = [...TILED_DEFS.map(d => d.id), ...FLOAT_DEFS.map(d => d.id)]
 
 // =============================================================================
-// Panel content — minimal, functional, zero noise
+// Panel Content
 // =============================================================================
-
-function DimensionReadout() {
-  const { width, height, isResizing, layout } = useFloatingDimensions()
-  return (
-    <div style={{ padding: 16, fontFamily: V.mono, fontSize: V.xs, color: V.text, display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <Row label="size" value={`${Math.round(width)} × ${Math.round(height)}`} />
-      <Row label="layout" value={layout} accent />
-      <Row label="resizing" value={isResizing ? 'true' : 'false'} warn={isResizing} />
-    </div>
-  )
-}
-
-function LogContent({ lines }: { lines: string[] }) {
-  return (
-    <div style={{ padding: 12, fontFamily: V.mono, fontSize: V.xs, color: V.text, overflow: 'auto', height: '100%' }}>
-      {lines.map((l, i) => (
-        <div key={i} style={{ padding: '2px 0', borderBottom: `1px solid ${V.line}` }}>
-          <span style={{ color: V.textMid, marginRight: 8 }}>{String(i).padStart(2, '0')}</span>
-          {l}
-        </div>
-      ))}
-    </div>
-  )
-}
 
 function MetricBlock() {
   const [tick, setTick] = useState(0)
@@ -126,287 +91,499 @@ function MetricBlock() {
     const id = setInterval(() => setTick(t => t + 1), 2000)
     return () => clearInterval(id)
   }, [])
-
   const metrics = [
-    { label: 'REQ', value: (1247 + tick * 7).toLocaleString(), color: V.accent },
-    { label: 'LAT', value: `${(42 + Math.sin(tick) * 3).toFixed(1)}ms`, color: '#00A2FF' },
-    { label: 'ERR', value: String(Math.max(0, 3 + (tick % 5 === 0 ? 1 : 0))), color: '#ef4444' },
-    { label: 'UP', value: '99.9%', color: V.accent },
+    { label: 'REQ/s', value: (1247 + tick * 7).toLocaleString(), color: V.accent, bg: 'rgba(8,145,178,0.08)' },
+    { label: 'LATENCY', value: `${(42 + Math.sin(tick) * 3).toFixed(1)}ms`, color: '#818cf8', bg: 'rgba(129,140,248,0.08)' },
+    { label: 'ERRORS', value: String(Math.max(0, 3 + (tick % 5 === 0 ? 1 : 0))), color: '#f43f5e', bg: 'rgba(244,63,94,0.08)' },
+    { label: 'UPTIME', value: '99.97%', color: '#34d399', bg: 'rgba(52,211,153,0.08)' },
   ]
-
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, padding: 12 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6, padding: 10 }}>
       {metrics.map(m => (
-        <div key={m.label} style={{ background: V.surface, border: `1px solid ${V.line}`, padding: '10px 12px' }}>
-          <div style={{ fontFamily: V.mono, fontSize: V.xs, color: V.text, marginBottom: 4 }}>{m.label}</div>
-          <div style={{ fontFamily: V.mono, fontSize: '18px', fontWeight: 600, color: m.color, letterSpacing: '-0.02em' }}>{m.value}</div>
+        <div key={m.label} style={{
+          background: m.bg,
+          border: `1px solid ${V.line}`,
+          borderRadius: 6,
+          padding: '10px 12px',
+        }}>
+          <div style={{
+            fontFamily: V.mono, fontSize: V.xs, color: V.text,
+            letterSpacing: '0.08em', textTransform: 'uppercase',
+            marginBottom: 6,
+          }}>
+            {m.label}
+          </div>
+          <div style={{
+            fontFamily: V.mono, fontSize: '20px', fontWeight: 600,
+            color: m.color, letterSpacing: '-0.02em',
+          }}>
+            {m.value}
+          </div>
         </div>
       ))}
     </div>
   )
 }
 
-function PropertiesContent() {
-  const rows = [
-    { label: 'x', value: '120' },
-    { label: 'y', value: '80' },
-    { label: 'width', value: '320' },
-    { label: 'height', value: '240' },
-    { label: 'opacity', value: '1.0' },
-    { label: 'rotation', value: '0°' },
+function LogContent() {
+  const lines: Array<{ level: 'info' | 'warn' | 'ok'; msg: string }> = [
+    { level: 'ok',   msg: 'sys.init → stx loaded' },
+    { level: 'info', msg: 'layout.tree → 3 tiled panels' },
+    { level: 'info', msg: 'snap.proximity → threshold: 12px' },
+    { level: 'warn', msg: 'edge.zones → active during drag' },
+    { level: 'info', msg: 'drag.distance → 8px activation' },
+    { level: 'ok',   msg: 'persistence → localStorage v2' },
+    { level: 'info', msg: 'right-click → context menu' },
+    { level: 'ok',   msg: 'runtime → ready' },
   ]
+  const levelColor = { info: V.text, warn: '#fbbf24', ok: '#34d399' }
+  const levelBg = { info: 'transparent', warn: 'rgba(251,191,36,0.04)', ok: 'rgba(52,211,153,0.04)' }
   return (
-    <div style={{ padding: 8, fontFamily: V.mono, fontSize: V.xs, color: V.text, display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {rows.map(r => <Row key={r.label} label={r.label} value={r.value} />)}
+    <div style={{ padding: 4, fontFamily: V.mono, fontSize: V.xs, color: V.text, overflow: 'auto', height: '100%' }}>
+      {lines.map((l, i) => (
+        <div key={i} style={{
+          padding: '4px 8px',
+          borderBottom: `1px solid ${V.line}`,
+          background: levelBg[l.level],
+          display: 'flex', gap: 8, alignItems: 'center',
+        }}>
+          <span style={{ color: V.textMid, width: 20, flexShrink: 0 }}>{String(i).padStart(2, '0')}</span>
+          <span style={{
+            width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+            background: levelColor[l.level],
+          }} />
+          <span style={{ color: levelColor[l.level] }}>{l.msg}</span>
+        </div>
+      ))}
     </div>
   )
 }
 
-function StylesContent() {
-  const swatches = ['#0a0a0a', '#1a1a1a', '#22c55e', '#ef4444', '#3b82f6', '#eab308']
+function InspectorContent() {
   return (
-    <div style={{ padding: 8, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-      {swatches.map(c => (
-        <div key={c} style={{ width: 24, height: 24, background: c, border: `1px solid ${V.line}` }} title={c} />
+    <AccordionPanel>
+      <AccordionPanel.Section title="Properties" defaultOpen>
+        <div style={{ padding: 8, fontFamily: V.mono, fontSize: V.xs, color: V.text, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {[['x', '120'], ['y', '80'], ['width', '320'], ['height', '240'], ['opacity', '1.0']].map(([k, v]) => (
+            <div key={k} style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span>{k}</span><span style={{ color: V.textMid }}>{v}</span>
+            </div>
+          ))}
+        </div>
+      </AccordionPanel.Section>
+      <AccordionPanel.Section title="Styles">
+        <div style={{ padding: 8, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          {['oklch(0.08 0.005 280)', '#06b6d4', '#34d399', '#f43f5e', '#818cf8', '#fbbf24'].map(c => (
+            <div key={c} style={{ width: 24, height: 24, background: c, border: `1px solid ${V.line}` }} />
+          ))}
+        </div>
+      </AccordionPanel.Section>
+    </AccordionPanel>
+  )
+}
+
+function Placeholder({ label }: { label: string }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      height: '100%', fontFamily: V.mono, fontSize: V.xs, color: V.text,
+      flexDirection: 'column', gap: 10,
+    }}>
+      <span style={{ letterSpacing: '0.12em', textTransform: 'uppercase', color: V.textMid }}>{label}</span>
+      <span style={{
+        color: V.text,
+        padding: '3px 10px',
+        border: `1px solid ${V.line}`,
+        borderRadius: 4,
+        fontSize: V.xs,
+        letterSpacing: '0.04em',
+      }}>
+        drag · dock · right-click
+      </span>
+    </div>
+  )
+}
+
+function getPanelContent(id: string): ReactNode {
+  switch (id) {
+    case 'p-alpha':   return <MetricBlock />
+    case 'p-beta':    return <LogContent />
+    case 'p-gamma':   return <Placeholder label="Gamma" />
+    case 'p-delta':   return <InspectorContent />
+    case 'p-epsilon': return <Placeholder label="Epsilon" />
+    default:          return <Placeholder label={id} />
+  }
+}
+
+// =============================================================================
+// Initialization — register panels and build default tiled layout
+// =============================================================================
+
+function useInitializePanels() {
+  useEffect(() => {
+    const stx = getFloatingStx()
+
+    batch(() => {
+      // Register tiled panels with mode: 'tiled' directly
+      for (const def of TILED_DEFS) {
+        const existing = stx.data.panels.get(def.id)?.peek()
+        if (existing) continue
+        stx.data.panels.set(def.id, {
+          id: def.id,
+          title: def.title,
+          mode: 'tiled',
+          position: { x: 0, y: 0 },
+          dimensions: { width: def.w, height: def.h },
+          constraints: { minWidth: 200, minHeight: 150 },
+          zIndex: 0,
+          visibility: 'visible',
+          isDragging: false,
+          isResizing: false,
+          isMaximized: false,
+          preMaximizePosition: undefined,
+          preMaximizeDimensions: undefined,
+          preMinimizePosition: undefined,
+          preMinimizeDimensions: undefined,
+          tiledWidth: def.w,
+          isCollapsed: false,
+          floatOriginSide: undefined,
+          accent: def.accent,
+          headerHidden: false,
+          tabs: [],
+          activeTabId: undefined,
+          closable: true,
+          minimizable: true,
+          resizable: true,
+          visitorId: undefined,
+          visitorData: undefined,
+        })
+      }
+
+      // Build default split tree:
+      //   horizontal(
+      //     Alpha [35%],
+      //     vertical( Beta [60%], Gamma [40%] ) [65%]
+      //   )
+      const rightSide = split('vertical', leaf('p-beta'), leaf('p-gamma'), 0.6)
+      const tree = split('horizontal', leaf('p-alpha'), rightSide, 0.35)
+      stx.data.panelTree.set(tree)
+      stx.data.activePanel.set('p-alpha')
+
+      // Register floating panels normally
+      for (const def of FLOAT_DEFS) {
+        const existing = stx.data.panels.get(def.id)?.peek()
+        if (!existing) {
+          registerPanel({
+            id: def.id,
+            title: def.title,
+            initialPosition: { x: def.x, y: def.y },
+            initialDimensions: { width: def.w, height: def.h },
+            accent: def.accent,
+          })
+        }
+      }
+    })
+
+    return () => {
+      // Cleanup on unmount — idempotent, safe for StrictMode double-invoke
+      batch(() => {
+        for (const id of ALL_IDS) {
+          stx.data.panels.delete(id)
+        }
+        stx.data.panelTree.set(null)
+        stx.data.zOrder.set([])
+        stx.data.activePanel.set(null)
+      })
+    }
+  }, [])
+}
+
+// =============================================================================
+// Tiled Panel Renderer — called by SplitContainer
+// =============================================================================
+
+function renderTiledPanel(panelId: string) {
+  return (
+    <TiledPanel key={`tiled-${panelId}`} id={panelId} onFloat={(id) => floatPanel(id)}>
+      {getPanelContent(panelId)}
+    </TiledPanel>
+  )
+}
+
+// =============================================================================
+// Floating Panels — only renders panels that are in floating mode
+// =============================================================================
+
+function FloatingPanels() {
+  // Collect ALL panel IDs from stx — includes dynamically spawned panels
+  // Use zOrder as source of truth — it's an observable array that tracks
+  // all panel IDs including dynamically spawned ones
+  const allPanelIds = useSelector(() => {
+    const stx = getFloatingStx()
+    return [...(stx.data.zOrder.get() ?? [])]
+  })
+
+  return (
+    <>
+      {allPanelIds.map(id => (
+        <FloatingPanelIfVisible key={id} id={id} />
       ))}
-      <div style={{ width: '100%', marginTop: 4, fontFamily: V.mono, fontSize: V.xs, color: V.text }}>
-        border-radius: 0 · shadow: none
+    </>
+  )
+}
+
+function FloatingPanelIfVisible({ id }: { id: string }) {
+  const mode = useSelector(() => getFloatingStx().data.panels.get(id)?.mode.get())
+  const visibility = useSelector(() => getFloatingStx().data.panels.get(id)?.visibility.get())
+  const title = useSelector(() => getFloatingStx().data.panels.get(id)?.title.get()) ?? id
+
+  if (mode !== 'floating' || !visibility || visibility === 'hidden') return null
+
+  return (
+    <FloatingPanel id={id} title={title}>
+      {getPanelContent(id)}
+    </FloatingPanel>
+  )
+}
+
+// =============================================================================
+// Tab Bar Demo
+// =============================================================================
+
+function TabBarDemo() {
+  const [tabs, setTabs] = useState<Tab[]>([
+    { id: 't1', label: 'main.tsx' },
+    { id: 't2', label: 'types.ts' },
+    { id: 't3', label: 'actions.ts' },
+  ])
+  const [activeTab, setActiveTab] = useState('t1')
+
+  return (
+    <div style={{ fontFamily: V.mono }}>
+      <TabBar
+        tabs={tabs}
+        activeTabId={activeTab}
+        onTabClick={setActiveTab}
+        onTabClose={(id) => {
+          setTabs(prev => prev.filter(t => t.id !== id))
+          if (activeTab === id) setActiveTab(tabs[0]?.id ?? '')
+        }}
+        onTabReorder={(ids) => {
+          setTabs(prev => ids.map(id => prev.find(t => t.id === id)!).filter(Boolean))
+        }}
+        onNewTab={() => {
+          const id = `t${Date.now()}`
+          setTabs(prev => [...prev, { id, label: `new-${tabs.length}.ts` }])
+          setActiveTab(id)
+        }}
+      />
+      <div style={{ padding: 12, fontSize: V.xs, color: V.textMid }}>
+        Active: {activeTab} · Drag tabs to reorder
       </div>
     </div>
   )
 }
 
-function LayersContent() {
-  const layers = ['Background', 'Grid', 'Panel Layer', 'Overlay', 'Chrome']
-  return (
-    <div style={{ padding: 4, fontFamily: V.mono, fontSize: V.xs, color: V.text }}>
-      {layers.map((l, i) => (
-        <div key={l} style={{
-          padding: '4px 8px', borderBottom: `1px solid ${V.line}`,
-          display: 'flex', justifyContent: 'space-between',
-        }}>
-          <span>{l}</span>
-          <span style={{ color: V.textMid }}>z:{i * 10}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
+// =============================================================================
+// Toolbar
+// =============================================================================
 
-function EmptyContent({ label }: { label: string }) {
+function Toolbar() {
+  const panelTree = useSelector(() => getFloatingStx().data.panelTree.get())
+  const hasTiled = panelTree !== null
+
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      height: '100%', fontFamily: V.mono, fontSize: V.xs, color: V.text,
+      height: 40, flexShrink: 0,
+      display: 'flex', alignItems: 'center', gap: 4, padding: '0 12px',
+      background: V.surface, borderBottom: `1px solid ${V.line}`,
+      zIndex: CHROME_Z, fontFamily: V.mono, fontSize: V.xs,
     }}>
-      {label}
+      {/* Quick tile actions */}
+      <ActionBtn label="Float Alpha" onClick={() => floatPanel('p-alpha')} />
+      <ActionBtn label="Float Beta" onClick={() => floatPanel('p-beta')} />
+      <ActionBtn label="Dock Delta→L" onClick={() => dockToEdge('p-delta', 'left', 0.3)} />
+      <ActionBtn label="Dock Epsilon→R" onClick={() => dockToEdge('p-epsilon', 'right', 0.3)} />
+
+      <Divider />
+
+      <ActionBtn label="Float All" onClick={() => {
+        ALL_IDS.forEach(id => {
+          const p = getFloatingStx().data.panels.get(id)?.peek()
+          if (p?.mode === 'tiled') floatPanel(id)
+        })
+      }} />
+      <ActionBtn label="Tile All" onClick={() => {
+        // Reset tree and re-tile
+        const stx = getFloatingStx()
+        batch(() => {
+          stx.data.panelTree.set(null)
+          ALL_IDS.forEach(id => {
+            const p = stx.data.panels.get(id)?.peek()
+            if (p) stx.data.panels.get(id)!.mode.set('floating')
+          })
+        })
+        // Now tile them in order
+        tilePanel('p-alpha')
+        tilePanel('p-beta', 'p-alpha', 'horizontal', 0.35)
+        tilePanel('p-gamma', 'p-beta', 'vertical', 0.6)
+        tilePanel('p-delta')
+        tilePanel('p-epsilon', 'p-delta', 'vertical', 0.5)
+      }} />
+
+      <Divider />
+
+      <ActionBtn label="Stash" onClick={stashFloatsToEdges} />
+      <ActionBtn label="Unstash" onClick={unstashFloats} />
+
+      <Divider />
+
+      <ActionBtn label="Accent Mauve" onClick={() => setPanelAccent('p-alpha', '#c4a1b1')} />
+      <ActionBtn label="Accent Sage" onClick={() => setPanelAccent('p-beta', '#4ade80')} />
+      <ActionBtn label="Clear Accents" onClick={() => ALL_IDS.forEach(id => setPanelAccent(id, undefined))} />
+
+      <Divider />
+
+      <ActionBtn label="+ Chat (Mock)" onClick={() => spawnPanel('morphchat', { mode: 'tiled' })} />
+      <ActionBtn label="+ Chat (Live)" onClick={() => spawnPanel('morphchat:harness', { mode: 'floating' })} />
+
+      <div style={{ marginLeft: 'auto', color: V.textMid }}>
+        {hasTiled ? '🟢 tiled' : '⚫ float-only'}
+      </div>
     </div>
   )
 }
 
-// =============================================================================
-// Inline helpers
-// =============================================================================
-
-function Row({ label, value, accent, warn }: { label: string; value: string; accent?: boolean; warn?: boolean }) {
+function ActionBtn({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-      <span>{label}</span>
-      <span style={{ color: warn ? '#eab308' : accent ? V.accent : V.textMid }}>{value}</span>
-    </div>
+    <button
+      onClick={onClick}
+      style={{
+        padding: '3px 10px',
+        border: `1px solid ${V.line}`,
+        background: 'transparent',
+        color: V.text,
+        cursor: 'pointer',
+        fontFamily: V.mono,
+        fontSize: V.xs,
+        letterSpacing: '0.04em',
+        borderRadius: 4,
+        transition: 'all 200ms ease-out',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.borderColor = V.accentBorder
+        e.currentTarget.style.color = V.textHigh
+        e.currentTarget.style.background = V.accentDim
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.borderColor = V.line
+        e.currentTarget.style.color = V.text
+        e.currentTarget.style.background = 'transparent'
+        e.currentTarget.style.transform = ''
+      }}
+      onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.97)' }}
+      onMouseUp={e => { e.currentTarget.style.transform = '' }}
+    >
+      {label}
+    </button>
   )
 }
 
+function Divider() {
+  return <span style={{ color: V.line, margin: '0 4px' }}>│</span>
+}
+
 // =============================================================================
-// Status bar — bottom HUD
+// Status Bar
 // =============================================================================
 
 function StatusBar() {
   const { panels } = useFloatingPanel()
   const stx = getFloatingStx()
   const activeId = useSelector(() => stx.data.activePanel.get())
-  const snapOn = useSelector(() => stx.data.snapEnabled?.get() ?? false)
+  const panelTree = useSelector(() => stx.data.panelTree.get())
 
-  const visible = panels.filter(p => p.visibility === 'visible').length
+  const floating = panels.filter(p => p.mode === 'floating' && p.visibility === 'visible').length
+  const tiled = panels.filter(p => p.mode === 'tiled').length
+  const minimized = panels.filter(p => p.visibility === 'minimized').length
 
   return (
     <div style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0, height: 28,
+      height: 28, flexShrink: 0,
       display: 'flex', alignItems: 'center', gap: 16, paddingInline: 12,
       background: V.surface, borderTop: `1px solid ${V.line}`,
-      fontFamily: V.mono, fontSize: V.xs, color: V.text, zIndex: WORKSPACE_CHROME_Z,
+      fontFamily: V.mono, fontSize: V.xs, color: V.text, zIndex: CHROME_Z,
     }}>
-      <span>{visible} panel{visible !== 1 ? 's' : ''}</span>
-      <Separator />
-      <span>active: <span style={{ color: activeId ? V.textHigh : V.text }}>{activeId ?? '—'}</span></span>
-      <Separator />
-      <span>snap: <span style={{ color: snapOn ? V.accent : V.text }}>{snapOn ? 'on' : 'off'}</span></span>
-      <Separator />
+      <span>floating: <span style={{ color: V.textHigh }}>{floating}</span></span>
+      <span style={{ color: V.line }}>│</span>
+      <span>tiled: <span style={{ color: V.textHigh }}>{tiled}</span></span>
+      <span style={{ color: V.line }}>│</span>
+      <span>minimized: <span style={{ color: V.textHigh }}>{minimized}</span></span>
+      <span style={{ color: V.line }}>│</span>
+      <span>active: <span style={{ color: activeId ? V.accent : V.text }}>{activeId ?? '—'}</span></span>
+      <span style={{ color: V.line }}>│</span>
+      <span>tree: <span style={{ color: panelTree ? V.accent : V.text }}>{panelTree ? panelTree._tag : 'null'}</span></span>
       <span style={{ color: V.text, marginLeft: 'auto' }}>
-        ⌨ arrows nudge · shift fine · alt coarse · edge dock
+        header buttons toggle mode · right-click for menu · drag separators to resize
       </span>
     </div>
   )
 }
 
-function Separator() {
-  return <span style={{ color: V.line }}>│</span>
-}
-
 // =============================================================================
-// Spawn bar — top-right, minimal
-// =============================================================================
-
-const PANEL_DEFS = [
-  { id: 'p-metrics', title: 'Metrics', x: 80, y: 80, w: 320, h: 240 },
-  { id: 'p-log', title: 'Log', x: 440, y: 80, w: 380, h: 280 },
-  { id: 'p-dim', title: 'Dimensions', x: 80, y: 360, w: 300, h: 200 },
-  { id: 'p-constrained', title: 'Constrained', x: 420, y: 400, w: 300, h: 220 },
-  { id: 'p-empty', title: 'Void', x: 760, y: 160, w: 260, h: 180 },
-  { id: 'p-accordion', title: 'Inspector', x: 860, y: 80, w: 280, h: 400 },
-] as const
-
-const LOG_LINES = [
-  'sys.init → floating-stx loaded',
-  'panel.register → p-metrics (320×240)',
-  'panel.register → p-log (380×280)',
-  'snap.magnetic → threshold: 10px',
-  'dock.zones → edge: 24px',
-  'modifier.chain → restrict → dock → snap',
-  'keyboard.nudge → arrows bound',
-  'persistence → localStorage OK',
-  'runtime → ready',
-]
-
-function SpawnBar({ active, onToggle }: { active: Set<string>; onToggle: (id: string) => void }) {
-  return (
-    <div style={{
-      position: 'fixed', top: 12, right: 12, display: 'flex', gap: 4, zIndex: WORKSPACE_CHROME_Z,
-    }}>
-      {PANEL_DEFS.map(def => {
-        const isActive = active.has(def.id)
-        return (
-          <button
-            key={def.id}
-            onClick={() => onToggle(def.id)}
-            style={{
-              fontFamily: V.mono, fontSize: V.xs, padding: '4px 10px',
-              border: `1px solid ${isActive ? V.accentBorder : V.line}`,
-              background: isActive ? V.accentDim : 'transparent',
-              color: isActive ? V.accent : V.text,
-              cursor: 'pointer',
-            }}
-          >
-            {def.title}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-// =============================================================================
-// Main — void canvas
+// Main Testbed
 // =============================================================================
 
 export function FloatingPanelTestbed() {
-  const [activePanels, setActivePanels] = useState<Set<string>>(
-    () => new Set(PANEL_DEFS.map(d => d.id))
-  )
+  useInitializePanels()
 
-  const toggle = useCallback((id: string) => {
-    setActivePanels(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }, [])
+  const hasTiledLayout = useSelector(() => getFloatingStx().data.panelTree.get() !== null)
 
   return (
     <div style={{
-      position: 'fixed', inset: 0,
+      width: '100%',
+      height: '100%',
       background: V.void,
       overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'relative',
     }}>
       <FloatingPanelProvider>
-        <SpawnBar active={activePanels} onToggle={toggle} />
+        <Toolbar />
 
-        {/* ── Panels ── */}
-        <ManagedPanel
-          id="p-metrics"
-          title="Metrics"
-          initialPosition={{ x: 80, y: 80 }}
-          initialDimensions={{ width: 320, height: 240 }}
-          show={activePanels.has('p-metrics')}
+        {/* Workspace — between toolbar (40px) and status bar (28px) */}
+        <div
+          data-shell-workspace
+          style={{
+            flex: 1,
+            position: 'relative',
+            overflow: 'hidden',
+            contain: 'paint',
+          }}
         >
-          <MetricBlock />
-        </ManagedPanel>
-
-        <ManagedPanel
-          id="p-log"
-          title="Log"
-          initialPosition={{ x: 440, y: 80 }}
-          initialDimensions={{ width: 380, height: 280 }}
-          show={activePanels.has('p-log')}
-        >
-          <LogContent lines={LOG_LINES} />
-        </ManagedPanel>
-
-        <ManagedPanel
-          id="p-dim"
-          title="Dimensions"
-          initialPosition={{ x: 80, y: 360 }}
-          initialDimensions={{ width: 300, height: 200 }}
-          show={activePanels.has('p-dim')}
-        >
-          <DimensionReadout />
-        </ManagedPanel>
-
-        <ManagedPanel
-          id="p-constrained"
-          title="Constrained"
-          initialPosition={{ x: 420, y: 400 }}
-          initialDimensions={{ width: 300, height: 220 }}
-          constraints={{ minWidth: 200, minHeight: 150, maxWidth: 500, maxHeight: 400 }}
-          show={activePanels.has('p-constrained')}
-        >
-          <div style={{ padding: 16, fontFamily: V.mono, fontSize: V.xs, color: V.text, display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <Row label="min" value="200 × 150" />
-            <Row label="max" value="500 × 400" />
-            <div style={{ marginTop: 12, color: V.textMid }}>Resize to test clamping.</div>
+          {/* Tiled base layer — always present, shows empty state or split tree */}
+          <div style={{ position: 'absolute', inset: 0, display: 'flex' }} data-shell-tiled>
+            <SplitContainer renderPanel={renderTiledPanel} />
           </div>
-        </ManagedPanel>
 
-        <ManagedPanel
-          id="p-empty"
-          title="Void"
-          initialPosition={{ x: 760, y: 160 }}
-          initialDimensions={{ width: 260, height: 180 }}
-          show={activePanels.has('p-empty')}
-        >
-          <EmptyContent label="drag me · dock me · snap me" />
-        </ManagedPanel>
+          {/* Floating panels render on top of tiled layer */}
+          <FloatingPanels />
 
-        <ManagedPanel
-          id="p-accordion"
-          title="Inspector"
-          initialPosition={{ x: 860, y: 80 }}
-          initialDimensions={{ width: 280, height: 400 }}
-          show={activePanels.has('p-accordion')}
-        >
-          <AccordionPanel>
-            <AccordionPanel.Section title="Properties" defaultOpen>
-              <PropertiesContent />
-            </AccordionPanel.Section>
-            <AccordionPanel.Section title="Styles">
-              <StylesContent />
-            </AccordionPanel.Section>
-            <AccordionPanel.Section title="Layers">
-              <LayersContent />
-            </AccordionPanel.Section>
-          </AccordionPanel>
-        </ManagedPanel>
+          {/* Tab bar demo — bottom-left corner */}
+          {!hasTiledLayout && (
+            <div style={{
+              position: 'absolute', bottom: 12, left: 12,
+              width: 360, background: V.surface, border: `1px solid ${V.line}`,
+              zIndex: 1,
+            }}>
+              <div style={{ padding: '4px 8px', fontSize: V.xs, color: V.textMid, fontFamily: V.mono, borderBottom: `1px solid ${V.line}` }}>
+                TabBar Demo
+              </div>
+              <TabBarDemo />
+            </div>
+          )}
+        </div>
 
         <FloatingDragOverlay style="ghost" />
         <StatusBar />

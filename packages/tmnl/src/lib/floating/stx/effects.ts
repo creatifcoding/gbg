@@ -13,6 +13,7 @@
 
 import { Effect } from 'effect'
 import type { PanelStorage, Position } from '../types'
+import { serialize, deserialize } from '../layout/split-tree'
 import { STORAGE_KEY } from './constants'
 
 export const floatingEffects = {
@@ -27,10 +28,13 @@ export const floatingEffects = {
       const panels = stx.data.panels.peek()
       const zOrder = stx.data.zOrder.peek()
 
-      const storage: PanelStorage = {
+      const panelTree = stx.data.panelTree.peek()
+
+      const storage: PanelStorage & { panelTree?: unknown } = {
         panels: {},
         order: zOrder,
-        version: 1,
+        version: 2,
+        panelTree: panelTree ? serialize(panelTree) : undefined,
       }
 
       panels.forEach((panel: any, id: string) => {
@@ -39,6 +43,12 @@ export const floatingEffects = {
           dimensions: panel.dimensions,
           visibility: panel.visibility,
           mode: panel.mode,
+          // Tiled persistence (SM Migration §14)
+          tiledWidth: panel.tiledWidth,
+          isCollapsed: panel.isCollapsed,
+          floatOriginSide: panel.floatOriginSide,
+          accent: panel.accent,
+          headerHidden: panel.headerHidden,
         }
       })
 
@@ -56,7 +66,17 @@ export const floatingEffects = {
       try {
         const stored = localStorage.getItem(STORAGE_KEY)
         if (!stored) return null
-        return JSON.parse(stored) as PanelStorage
+        const parsed = JSON.parse(stored) as PanelStorage & { panelTree?: unknown }
+
+        // Restore panel tree if present (v2+)
+        if (parsed.panelTree) {
+          const { getFloatingStx } = require('./instance')
+          const stx = getFloatingStx()
+          const tree = deserialize(parsed.panelTree)
+          if (tree) stx.data.panelTree.set(tree)
+        }
+
+        return parsed
       } catch {
         return null
       }

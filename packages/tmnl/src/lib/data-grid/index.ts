@@ -150,41 +150,22 @@ export {
 } from './theme'
 
 // =============================================================================
-// MOCKING
+// MOCKING — NOT re-exported from barrel (3MB @faker-js/faker penalty)
+// Import directly: import { ... } from '@/lib/data-grid/mocking'
 // =============================================================================
-
-export {
-  // Schemas
-  MockRowStatus,
-  MockRow,
-  RowUpdate,
-  StreamEvent,
-  StreamConfig,
-  DEFAULT_STREAM_CONFIG,
-  // Generators
-  generateMockRow,
-  generateMockRows,
-  applyRandomUpdates,
-  // Streams
-  createMockDataStream,
-  createFiniteMockStream,
-  // Operators
-  filterUpdatesOnly,
-  mapToRows,
-  throttleStream,
-} from './mocking'
 
 // =============================================================================
 // HOOKS
 // =============================================================================
 
-export { useMockStream, useGridDrag } from './hooks'
+export { useGridDrag } from './hooks'
 export type {
-  UseMockStreamOptions,
-  UseMockStreamResult,
   UseGridDragOptions,
   UseGridDragResult,
 } from './hooks'
+
+// useMockStream: NOT re-exported (depends on mocking → faker)
+// Import directly: import { useMockStream } from '@/lib/data-grid/hooks'
 
 // =============================================================================
 // FLASH SYSTEM

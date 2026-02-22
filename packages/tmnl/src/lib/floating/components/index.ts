@@ -23,6 +23,11 @@ export { CollapsedStripStack } from './CollapsedStripStack'
 // Accordion sub-panels
 export { AccordionPanel, type AccordionPanelProps, type AccordionSectionProps } from './AccordionPanel'
 
+// Tab bar (wired to stx, ghost panel model)
+export { PanelTabBar, type PanelTabBarProps } from './PanelTabBar'
+// Visitor palette (cmdk picker for "+")
+export { VisitorPalette, type VisitorPaletteProps } from './VisitorPalette'
+
 // Atomic compound components
 export {
   PanelTitle,
@@ -34,3 +39,10 @@ export {
   PanelControls,
   PanelResize,
 } from './atoms'
+
+// Context menu
+export { PanelContextMenu, usePanelContextMenu, type PanelContextMenuProps } from './PanelContextMenu'
+
+// SM Migration icons
+export { FloatIcon, DockIcon } from './PanelIcons'
+export { PanelContentRenderer } from "./PanelContentRenderer"

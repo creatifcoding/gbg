@@ -1,0 +1,164 @@
+commit 7b92cbd3af0187c39ea9eba18ab658909a92e525
+Author: creatifcoding <the@getbygenius.com>
+Date:   Tue Feb 17 14:38:30 2026 -0500
+
+    chore(psi): bootstrap fork+submodule sync workspace
+
+diff --git a/packages/tmnl/psi/README.md b/packages/tmnl/psi/README.md
+new file mode 100644
+index 0000000..8983ba2
+--- /dev/null
++++ b/packages/tmnl/psi/README.md
+@@ -0,0 +1,32 @@
++# psi fork workspace (inside tmnl repo)
++
++This directory is a staging area to manage forks/submodules for pi upstream work.
++
++## Enumerated upstream repos (via `gh`)
++
++Current query used:
++
++```bash
++gh repo list badlogic --limit 500 --json name,nameWithOwner,url | \
++  jq -r '.[] | select(.name|test("^pi(-|$)")) | [.nameWithOwner,.url] | @tsv'
++```
++
++Mapped repos are in [`repos.json`](./repos.json).
++
++## One-command sync
++
++```bash
++bash psi/sync-forks-and-submodules.sh psi
++```
++
++This script will:
++1. Fork each upstream repo to `psi/<mapped-name>`
++2. Add each fork as a git submodule under `psi/submodules/<mapped-name>`
++3. Add `upstream` remote in each submodule clone
++
++## Permission note
++
++Creating repos under `psi/*` requires GitHub permissions for owner `psi`.
++If you get permission errors, either:
++- run with an owner you control, e.g. `bash psi/sync-forks-and-submodules.sh <your-owner>`
++- or grant your token/account repo-create access in `psi`.
+diff --git a/packages/tmnl/psi/repos.json b/packages/tmnl/psi/repos.json
+new file mode 100644
+index 0000000..a398f0d
+--- /dev/null
++++ b/packages/tmnl/psi/repos.json
+@@ -0,0 +1,42 @@
++[
++  {
++    "upstream": "badlogic/pi",
++    "target": "psi/psi"
++  },
++  {
++    "upstream": "badlogic/pi-mono",
++    "target": "psi/psi-coding-agent"
++  },
++  {
++    "upstream": "badlogic/pi-skills",
++    "target": "psi/psi-skills"
++  },
++  {
++    "upstream": "badlogic/pi-doom",
++    "target": "psi/psi-doom"
++  },
++  {
++    "upstream": "badlogic/pi-dosbox",
++    "target": "psi/psi-dosbox"
++  },
++  {
++    "upstream": "badlogic/pi-gitlab-duo",
++    "target": "psi/psi-gitlab-duo"
++  },
++  {
++    "upstream": "badlogic/pi-guis",
++    "target": "psi/psi-guis"
++  },
++  {
++    "upstream": "badlogic/pi-package-test",
++    "target": "psi/psi-package-test"
++  },
++  {
++    "upstream": "badlogic/pi-rewind-hook",
++    "target": "psi/psi-rewind-hook"
++  },
++  {
++    "upstream": "badlogic/pi-terminal-bench",
++    "target": "psi/psi-terminal-bench"
++  }
++]
+diff --git a/packages/tmnl/psi/sync-forks-and-submodules.sh b/packages/tmnl/psi/sync-forks-and-submodules.sh
+new file mode 100755
+index 0000000..a5056c1
+--- /dev/null
++++ b/packages/tmnl/psi/sync-forks-and-submodules.sh
+@@ -0,0 +1,66 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++# Usage:
++#   bash psi/sync-forks-and-submodules.sh [owner]
++# Default owner: psi
++
++OWNER="${1:-psi}"
++ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
++MAP_FILE="$ROOT_DIR/psi/repos.json"
++SUBMODULE_ROOT="$ROOT_DIR/psi/submodules"
++
++mkdir -p "$SUBMODULE_ROOT"
++
++if ! command -v gh >/dev/null 2>&1; then
++  echo "gh CLI is required" >&2
++  exit 1
++fi
++
++if ! command -v jq >/dev/null 2>&1; then
++  echo "jq is required" >&2
++  exit 1
++fi
++
++echo "[psi] Target owner: $OWNER"
++echo "[psi] Map: $MAP_FILE"
++
++jq -c '.[]' "$MAP_FILE" | while read -r row; do
++  upstream="$(echo "$row" | jq -r '.upstream')"
++  target_template="$(echo "$row" | jq -r '.target')"
++  target_repo="${OWNER}/${target_template#*/}"
++  target_name="${target_repo#*/}"
++
++  echo "\n[psi] Forking $upstream -> $target_repo"
++
++  if gh repo view "$target_repo" >/dev/null 2>&1; then
++    echo "[psi] Repo already exists: $target_repo"
++  else
++    gh repo fork "$upstream" --org "$OWNER" --fork-name "$target_name" --remote=false --clone=false
++    echo "[psi] Fork created: $target_repo"
++  fi
++
++  submodule_path="psi/submodules/$target_name"
++
++  if git -C "$ROOT_DIR" config --file .gitmodules --get-regexp "submodule\.${submodule_path//\//\.}\.path" >/dev/null 2>&1; then
++    echo "[psi] Submodule already configured: $submodule_path"
++  else
++    echo "[psi] Adding submodule $target_repo at $submodule_path"
++    git -C "$ROOT_DIR" submodule add "git@github.com:${target_repo}.git" "$submodule_path"
++  fi
++
++  # Ensure upstream remote exists inside submodule clone
++  if [ -d "$ROOT_DIR/$submodule_path/.git" ] || [ -f "$ROOT_DIR/$submodule_path/.git" ]; then
++    if git -C "$ROOT_DIR/$submodule_path" remote get-url upstream >/dev/null 2>&1; then
++      :
++    else
++      git -C "$ROOT_DIR/$submodule_path" remote add upstream "git@github.com:${upstream}.git"
++      echo "[psi] Added upstream remote in $submodule_path"
++    fi
++  fi
++
++done
++
++echo "\n[psi] Done. Review with:"
++echo "  git status --short"
++echo "  git submodule status"

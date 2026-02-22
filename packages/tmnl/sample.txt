@@ -1,0 +1,2 @@
+Elixir is fun. Elixir is fast.
+Functional programming with Elixir is expressive and fun.

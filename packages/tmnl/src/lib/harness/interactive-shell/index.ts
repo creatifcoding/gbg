@@ -37,10 +37,15 @@ export {
   PtyWrite,
   PtyResize,
   PtyKill,
+  PtyDumpScreen,
+  PtyReadOutput,
   PtyOutputChunk,
   PtySpawnResult,
   PtyExitResult,
+  PtyScreenDumpResult,
+  PtyRawOutputResult,
   PtyWorkerError,
+  ScreenDumpMode,
 } from './pty-worker-schema'
 
 // Client-side shell event bridge (browser only)

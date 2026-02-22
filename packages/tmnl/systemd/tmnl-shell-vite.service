@@ -1,0 +1,21 @@
+# TMNL Shell — Vite Dev Server
+# Serves the shell frontend on :1421 with HMR
+#
+# journalctl --user -u tmnl-shell-vite -f
+
+[Unit]
+Description=TMNL Shell Vite Dev Server
+Before=tmnl-shell.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl
+ExecStart=%h/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/scripts/shell-vite-systemd.sh
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tmnl-shell-vite
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

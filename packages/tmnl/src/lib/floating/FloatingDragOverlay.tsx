@@ -9,6 +9,7 @@
  * @module
  */
 
+import { memo } from 'react'
 import { DragOverlay } from '@dnd-kit/core'
 
 // =============================================================================
@@ -38,7 +39,7 @@ export interface FloatingDragOverlayProps {
  * </FloatingPanelProvider>
  * ```
  */
-export function FloatingDragOverlay({
+export const FloatingDragOverlay = memo(function FloatingDragOverlay({
   style: _style = 'ghost',
   className: _className = '',
 }: FloatingDragOverlayProps) {
@@ -47,6 +48,6 @@ export function FloatingDragOverlay({
   return (
     <DragOverlay dropAnimation={null} />
   )
-}
+})
 
 export default FloatingDragOverlay

@@ -8,19 +8,28 @@ import { ScaleProvider } from './lib/scale';
 import { OverlayRegistryProvider } from './lib/overlays/atoms';
 import { DataplaneRegistryProvider } from './lib/dataplane';
 import { VisualOverlayProvider, GlobalSlot } from './lib/overlays/visual';
+import { CodeEditorWorkspaceOverlay, toggleCodeEditor } from './lib/code-editor/overlay';
 import { BufferProvider } from './lib/buffer';
 import { WindowProvider } from './lib/windows';
 import { AppShell, HeaderContent } from '@/lib/shell';
 import { Sidebar, type SidebarConfig } from './lib/sidebar';
 import { Cursor } from './lib/cursor';
-import { Agentation } from 'agentation';
+import { PanelWorkspaceOverlay } from './lib/floating/overlay';
+import { PanelWorkspace } from './lib/floating/overlay/PanelWorkspace';
 import './index.css';
+
+// Agentation: dev-only lazy import (307KB saved in production)
+const LazyAgentation = import.meta.env.DEV
+  ? React.lazy(() => import('agentation').then(m => ({ default: m.Agentation })))
+  : null;
 
 // Variables v2: Register all variables at startup (side-effect import)
 import '@/lib/variables/v2/config';
 
 // Floating panels: register panel types at startup (side-effect import)
 import '@/lib/egui/panels';
+// Code editor floating panel registration (side-effect)
+import '@/lib/code-editor/panels/CodeEditorPanel';
 
 // React Grab: UI element selector + Claude Code integration (dev only)
 if (import.meta.env.DEV) {
@@ -81,6 +90,14 @@ const defaultSidebarConfig: SidebarConfig = {
       group: 'core',
       action: { _tag: 'RouteAction', path: '/docs' },
       order: 30,
+    },
+    {
+      id: 'panels' as any,
+      label: 'Panels',
+      icon: { type: 'lucide', value: 'PanelLeftClose' },
+      group: 'core',
+      action: { _tag: 'CommandAction', commandId: 'toggle-panel-overlay' },
+      order: 40,
     },
     {
       id: 'settings' as any,
@@ -157,11 +174,19 @@ root.render(
                       <WindowProvider enabled={true}>
                         <RouterProvider router={router} />
                       </WindowProvider>
+                      <CodeEditorWorkspaceOverlay />
                     </AppShell.Workspace>
+                    <PanelWorkspaceOverlay>
+                      <PanelWorkspace />
+                    </PanelWorkspaceOverlay>
                   </AppShell>
                   <GlobalSlot />
                   <Cursor />
-                  {import.meta.env.DEV && <Agentation />}
+                  {import.meta.env.DEV && LazyAgentation && (
+                    <React.Suspense fallback={null}>
+                      <LazyAgentation />
+                    </React.Suspense>
+                  )}
                 </>
               )}
             </BufferProvider>

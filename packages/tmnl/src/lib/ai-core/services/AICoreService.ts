@@ -255,7 +255,7 @@ export class AICoreService extends Context.Tag('tmnl/ai-core/AICoreService')<
           // NOTE: We do NOT run the stream here - the consumer will consume it.
           // The fiber is created as a placeholder that can be used for abort signaling.
           // The actual stream consumption happens in BlockTerminalService.executeAIQuery
-          const fiber = Fiber.unit as unknown as Fiber.RuntimeFiber<void, AICoreStreamError>
+          const fiber = Fiber.succeed(void 0) as unknown as Fiber.RuntimeFiber<void, AICoreStreamError>
 
           console.log('[AICoreService] Stream handle created, requestId:', requestId)
 

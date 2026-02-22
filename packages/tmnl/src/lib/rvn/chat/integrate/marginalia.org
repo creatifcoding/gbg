@@ -1,0 +1,27 @@
+
+* morebetter-inlinetask-muse
+:PROPERTIES:
+:org-remark-file: morebetter-inlinetask-muse.tsx
+:END:
+
+** customStyles, need that
+:PROPERTIES:
+:org-remark-id: e19c67e2
+:org-remark-label: nil
+:org-remark-beg: 43
+:org-remark-end: 306
+:org-remark-link: [[file:morebetter-inlinetask-muse.tsx::3]]
+:org-remark-original-text: const customStyles = {   root: {     '--bg-dark': '#050505',     '--bg-card': '#0A0A0A',     '--bg-hover': '#121212',     '--border': '#1F1F1F',     '--accent-green': '#00FF94',     '--accent-blue': '#00E1FF',     '--text-main': '#E5E5E5',     '--text-dim': '#6B7280'   } };
+:END:
+
+Need these custom styles. It may entirely be possible these exist somewhere, tokenized. If you find the same color, that doesn't necessarily mean you would use that token. Instead,
+
+** tasks destructuring is solved.
+:PROPERTIES:
+:org-remark-id: 09d9d6da
+:org-remark-label: nil
+:org-remark-beg: 344
+:org-remark-end: 359
+:org-remark-link: [[file:morebetter-inlinetask-muse.tsx::17]]
+:org-remark-original-text: const tasks = [   {     id: 'iso-shell-01',     title: 'Hydrate shell bands',     status: 'COMPLETED',     progress: 100,     details: {       assignmentMode: '-',       assignedAgentId: 'agt-alpha-09',       claimedBy: 'system-worker-01',       sessionId: 'sess-8829-x',       nodeId: 'node-us-east-1a',       toolCallId: 'tc-992837',       toolName: 'shell_exec',       lastSeq: '442',       createdAt: '2023-10-24T08:00:00Z',       updatedAt: '2023-10-24T08:00:15Z',       'metadata.phase': 'init',       'metadata.owner': 'root',       'metadata.deliverable': 'core-bundle',       'metadata.note': 'Optimization complete'     }   },   {     id: 'iso-msg-02',     title: 'Attach message shell compounds',     status: 'RUNNING',     progress: 65,     details: {       assignmentMode: 'auto',       assignedAgentId: 'agt-beta-12',       claimedBy: 'system-worker-02',       sessionId: 'sess-9912-y',       nodeId: 'node-us-east-1b',       toolCallId: 'tc-992838',       toolName: 'msg_bus_attach',       lastSeq: '102',       createdAt: '2023-10-24T08:01:00Z',       updatedAt: '2023-10-24T08:01:45Z',       'metadata.phase': 'processing',       'metadata.owner': 'service-bus',       'metadata.deliverable': 'msg-queue',       'metadata.note': 'High latency detected'     }   },   {     id: 'iso-trans-03',     title: 'Finalize transport actions',     status: 'QUEUED',     progress: 0,     details: {       assignmentMode: '-',       assignedAgentId: '-',       claimedBy: '-',       sessionId: '-',       nodeId: '-',       toolCallId: '-',       toolName: '-',       lastSeq: '-',       createdAt: '-',       updatedAt: '-',       'metadata.phase': 'pending',       'metadata.owner': '-',       'metadata.deliverable': '-',       'metadata.note': '-'     }   },   {     id: 'iso-sec-04',     title: 'Security handshake protocol',     status: 'QUEUED',     progress: 0,     details: {}   },   {     id: 'iso-net-05',     title: 'Network latency optimization check',     status: 'FAILED',     progress: 45,     details: {       assignmentMode: 'manual',       error: 'Timeout exceeded (5000ms)'     }   } ]
+:END:

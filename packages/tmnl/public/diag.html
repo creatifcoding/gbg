@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"/><title>Router Diagnostic</title>
+<style>body{margin:0;background:#0a0a0a;color:#ccc;font:13px/1.6 monospace;padding:16px}
+pre{white-space:pre-wrap;word-break:break-all}
+.ok{color:#22c55e}.err{color:#ef4444}.warn{color:#eab308}.info{color:#38bdf8}</style></head>
+<body>
+<h2 style="color:#22d3ee">TMNL Router Diagnostic</h2>
+<div id="log"></div>
+<script type="module">
+const L = document.getElementById('log');
+const log = (cls, msg) => { const d = document.createElement('pre'); d.className = cls; d.textContent = msg; L.appendChild(d); };
+
+try {
+  // Import the router module directly
+  const mod = await import('/src/router.tsx');
+  const router = mod.default;
+  
+  log('ok', `✓ Router imported successfully`);
+  log('info', `  Type: ${typeof router}`);
+  log('info', `  Has routeTree: ${!!router.routeTree}`);
+  
+  // Check route count
+  const routeIds = Object.keys(router.routesById || {});
+  log('info', `  Registered routes: ${routeIds.length}`);
+  
+  // List a few routes
+  const testbedRoutes = routeIds.filter(r => r.includes('testbed'));
+  log('info', `  Testbed routes: ${testbedRoutes.length}`);
+  testbedRoutes.forEach(r => log('info', `    - ${r}`));
+  
+  // Check floating route specifically
+  const floatingRoute = routeIds.find(r => r.includes('floating'));
+  log(floatingRoute ? 'ok' : 'err', `  Floating route: ${floatingRoute || 'NOT FOUND'}`);
+  
+  // Try to match /testbed/floating
+  try {
+    const match = router.matchRoutes({ pathname: '/testbed/floating', search: {} });
+    log('ok', `  Match for /testbed/floating: ${JSON.stringify(match?.map(m => m.routeId))}`);
+  } catch (e) {
+    log('err', `  Match error: ${e.message}`);
+  }
+  
+  // Try to match /testbed/charting  
+  try {
+    const match = router.matchRoutes({ pathname: '/testbed/charting', search: {} });
+    log('ok', `  Match for /testbed/charting: ${JSON.stringify(match?.map(m => m.routeId))}`);
+  } catch (e) {
+    log('err', `  Match error: ${e.message}`);
+  }
+  
+  // Current state
+  if (router.state) {
+    const s = router.state;
+    log('info', `  Current location: ${s.location?.pathname}`);
+    log('info', `  Current matches: ${JSON.stringify(s.matches?.map(m => m.routeId))}`);
+    log('info', `  Status: ${s.status}`);
+  }
+  
+  // Check if router is loaded/hydrated
+  log('info', `  isLoading: ${router.state?.isLoading}`);
+  log('info', `  isTransitioning: ${router.state?.isTransitioning}`);
+
+} catch (e) {
+  log('err', `✗ Router import failed: ${e.message}`);
+  log('err', `  Stack: ${e.stack}`);
+}
+</script></body></html>

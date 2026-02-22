@@ -38,7 +38,12 @@ import {
   PtyWrite,
   PtyResize,
   PtyKill,
+  PtyDumpScreen,
+  PtyReadOutput,
   PtyWorkerError,
+  type PtyScreenDumpResult,
+  type PtyRawOutputResult,
+  type ScreenDumpMode,
 } from './pty-worker-schema'
 import type {
   ShellSessionId,
@@ -103,10 +108,34 @@ export interface InteractiveShellServiceShape {
 
   readonly listSessions: () => Effect.Effect<ReadonlyArray<ShellSessionInfo>>
 
+  /** Legacy simple read — returns stripped plain text (last N lines) */
   readonly readOutput: (
     sessionId: ShellSessionId,
     lines?: number,
   ) => Effect.Effect<string, SessionNotFoundError>
+
+  /** Rendered screen dump from xterm-headless buffer */
+  readonly dumpScreen: (
+    sessionId: ShellSessionId,
+    options?: {
+      mode?: ScreenDumpMode
+      lines?: number
+      offset?: number
+      maxChars?: number
+      ansi?: boolean
+    },
+  ) => Effect.Effect<PtyScreenDumpResult, SessionNotFoundError>
+
+  /** Raw output with pagination + incremental/drain support */
+  readonly readRawOutput: (
+    sessionId: ShellSessionId,
+    options?: {
+      drain?: boolean
+      offset?: number
+      limit?: number
+      stripAnsi?: boolean
+    },
+  ) => Effect.Effect<PtyRawOutputResult, SessionNotFoundError>
 
   readonly events: Stream.Stream<ShellEvent>
 }
@@ -388,7 +417,7 @@ const makeInteractiveShellService = Effect.gen(function* () {
   const listSessions = () =>
     Effect.succeed([...sessions.values()].map(toInfo))
 
-  // ── readOutput ─────────────────────────────────────────────────────────
+  // ── readOutput (legacy — simple stripped text) ──────────────────────────
 
   const readOutput = (sessionId: ShellSessionId, lines?: number) =>
     Effect.gen(function* () {
@@ -399,6 +428,84 @@ const makeInteractiveShellService = Effect.gen(function* () {
       return allLines.slice(-lines).join('\n')
     })
 
+  // ── dumpScreen (xterm-headless rendered buffer) ────────────────────────
+
+  const dumpScreen = (
+    sessionId: ShellSessionId,
+    options?: {
+      mode?: ScreenDumpMode
+      lines?: number
+      offset?: number
+      maxChars?: number
+      ansi?: boolean
+    },
+  ) =>
+    Effect.gen(function* () {
+      yield* getSessionOrFail(sessionId) // Validate session exists
+
+      const result = yield* pool
+        .executeEffect(
+          new PtyDumpScreen({
+            sessionId: sessionId as string,
+            mode: options?.mode ?? 'viewport',
+            lines: options?.lines,
+            offset: options?.offset,
+            maxChars: options?.maxChars,
+            ansi: options?.ansi,
+          }),
+        )
+        .pipe(
+          Effect.catchTag('PtyWorkerError', (e) =>
+            Effect.fail(
+              new SessionNotFoundError({
+                sessionId: sessionId as string,
+                message: e.message,
+              }),
+            ),
+          ),
+        )
+
+      return result
+    })
+
+  // ── readRawOutput (paginated raw buffer) ───────────────────────────────
+
+  const readRawOutput = (
+    sessionId: ShellSessionId,
+    options?: {
+      drain?: boolean
+      offset?: number
+      limit?: number
+      stripAnsi?: boolean
+    },
+  ) =>
+    Effect.gen(function* () {
+      yield* getSessionOrFail(sessionId) // Validate session exists
+
+      const result = yield* pool
+        .executeEffect(
+          new PtyReadOutput({
+            sessionId: sessionId as string,
+            drain: options?.drain,
+            offset: options?.offset,
+            limit: options?.limit,
+            stripAnsi: options?.stripAnsi,
+          }),
+        )
+        .pipe(
+          Effect.catchTag('PtyWorkerError', (e) =>
+            Effect.fail(
+              new SessionNotFoundError({
+                sessionId: sessionId as string,
+                message: e.message,
+              }),
+            ),
+          ),
+        )
+
+      return result
+    })
+
   return InteractiveShellService.of({
     spawn,
     write,
@@ -407,6 +514,8 @@ const makeInteractiveShellService = Effect.gen(function* () {
     getSession,
     listSessions,
     readOutput,
+    dumpScreen,
+    readRawOutput,
     events: globalEventStream,
   })
 })

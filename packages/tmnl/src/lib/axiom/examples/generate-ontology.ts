@@ -4,7 +4,7 @@
  * Run: bunx tsx src/lib/axiom/examples/generate-ontology.ts
  */
 
-import { writeFileSync, mkdirSync } from "fs"
+import * as fs from "fs"
 import { Effect } from "effect"
 import * as A from "../index"
 import { compileAllToOSDK, generateOntologyFile } from "../targets"
@@ -44,17 +44,17 @@ const program = Effect.gen(function* () {
   })
 
   // Create output directory
-  mkdirSync(".ontology", { recursive: true })
+  fs.mkdirSync(".ontology", { recursive: true })
 
   // Write OSDK definitions as JSON
-  writeFileSync(
+  fs.writeFileSync(
     ".ontology/osdk-definitions.json",
     JSON.stringify(osdkDefs, null, 2)
   )
   console.log("✅ Written: .ontology/osdk-definitions.json")
 
   // Write @osdk/maker code
-  writeFileSync(".ontology/ontology.ts", makerCode)
+  fs.writeFileSync(".ontology/ontology.ts", makerCode)
   console.log("✅ Written: .ontology/ontology.ts")
 
   console.log("\nNext steps:")

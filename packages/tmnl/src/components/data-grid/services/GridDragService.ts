@@ -138,7 +138,7 @@ const makeGridDragService = Effect.gen(function* () {
     subscribe: (handler: (state: DragState) => void) =>
       Effect.gen(function* () {
         // Get the subscription stream
-        const changes = yield* SubscriptionRef.changes(stateRef)
+        const changes = stateRef.changes
 
         // Create a fiber that runs the handler on each change
         const fiber = yield* Effect.fork(

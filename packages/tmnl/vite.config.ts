@@ -7,6 +7,7 @@ import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
 import { VitePWA } from 'vite-plugin-pwa'; // Import VitePWA
 import type { Plugin } from 'vite';
 import { sourceExtractPlugin } from './vite-plugin-source-extract';
+import importMetaUrlPlugin from '@codingame/esbuild-import-meta-url-plugin';
 
 const host = process.env.TAURI_DEV_HOST;
 
@@ -98,19 +99,43 @@ export default defineConfig(() => ({
       child_process: path.resolve(__dirname, './src/lib/polyfills/fs-shim.ts'),
       os: path.resolve(__dirname, './src/lib/polyfills/util-shim.ts'),
       url: path.resolve(__dirname, './src/lib/polyfills/url-shim.ts'),
+      // Monaco/VSCode shim — vscode-languageclient requires("vscode") which must
+      // resolve to the @codingame browser-compatible API. Bun only symlinks this
+      // inside @typefox's nested node_modules, so we alias it globally.
+      vscode: path.resolve(
+        __dirname,
+        '../../node_modules/.bun/@codingame+monaco-vscode-extension-api@25.1.2/node_modules/@codingame/monaco-vscode-extension-api',
+      ),
     },
-    dedupe: ['yjs', '@tiptap/pm'], // Ensure single instances for collaboration
+    dedupe: ['yjs', '@tiptap/pm', 'vscode'], // Ensure single instances for collaboration + Monaco vscode shim
   },
   optimizeDeps: {
     include: ['mermaid', 'yjs'],
-    // Exclude wa-sqlite from optimization - it needs to load WASM at runtime
-    exclude: ['@effect/wa-sqlite'],
+    // Exclude packages that need special runtime loading
+    exclude: [
+      '@effect/wa-sqlite', // needs WASM at runtime
+      // Monaco/VSCode ecosystem — these use import.meta.url, CSS imports,
+      // and require("vscode") patterns that esbuild can't handle.
+      // Let Vite serve them as ESM instead of pre-bundling.
+      'monaco-editor',
+      'monaco-languageclient',
+      'vscode-languageclient',
+      'vscode-jsonrpc',
+      'vscode-languageserver-protocol',
+      '@typefox/monaco-editor-react',
+      '@codingame/monaco-vscode-api',
+      '@codingame/monaco-vscode-editor-api',
+      '@codingame/monaco-vscode-extension-api',
+    ],
     esbuildOptions: {
       // Mirror resolve.alias into esbuild's dep optimization pass.
       // Vite's resolve.alias doesn't always propagate to esbuild,
       // causing "No matching export" errors when transitive deps
       // (y18n, escalade, etc.) import Node builtins like 'fs'.
       plugins: [
+        // @codingame/monaco-vscode-api uses import.meta.url for worker loading;
+        // esbuild needs this plugin to resolve those references during dep optimization
+        importMetaUrlPlugin,
         {
           name: 'node-builtins-shim',
           setup(build) {
@@ -131,6 +156,15 @@ export default defineConfig(() => ({
               { filter: /^(fs|path|crypto|util|stream|net|tls|dns|child_process|os|url)$/ },
               (args) => ({ path: shimMap[args.path] }),
             )
+            // Map bare 'vscode' to @codingame browser-compatible shim
+            // vscode-languageclient does require("vscode") which must resolve
+            // to the @codingame/monaco-vscode-extension-api package
+            build.onResolve({ filter: /^vscode$/ }, () => ({
+              path: path.resolve(
+                __dirname,
+                '../../node_modules/.bun/@codingame+monaco-vscode-extension-api@25.1.2/node_modules/@codingame/monaco-vscode-extension-api/extension.api.js',
+              ),
+            }))
           },
         },
       ],

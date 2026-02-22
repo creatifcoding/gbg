@@ -128,7 +128,7 @@ Where:
   P = parallelizable fraction (parsing)
   N = speedup factor (∞ for workers, since it's parallel)
 
-For json-render:
+For genifer:
   P ≈ 0.7 (70% is parsing, 30% is render)
 
   S_max = 1 / (1 - 0.7) = 1 / 0.3 = 3.33x
@@ -142,7 +142,7 @@ For json-render:
 ## Empirical Expectations
 
 ```
-Current json-render bottlenecks (from architecture doc):
+Current genifer bottlenecks (from architecture doc):
 
 ┌────────────────────┬──────────────┬─────────────┬─────────────┐
 │ Bottleneck         │ Location     │ Time/burst  │ Worker?     │

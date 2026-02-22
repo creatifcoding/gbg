@@ -5,7 +5,7 @@
  * Implements scoped value resolution (editor → workspace → user → default).
  */
 
-import { Atom } from '@effect-atom/atom';
+import { Atom, Registry } from '@effect-atom/atom';
 import type {
   VariableId,
   WorkspaceId,
@@ -24,6 +24,13 @@ interface StoredValue<A = unknown> {
   readonly source: ValueSource;
   readonly updatedAt: Date;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Atom Registry (for imperative subscriptions)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Shared registry for the variables domain. Used by persistence auto-save. */
+export const variablesRegistry = Registry.make();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Global Value Storage
