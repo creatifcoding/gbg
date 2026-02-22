@@ -12,6 +12,7 @@
  */
 
 import * as React from 'react'
+import { useState, useCallback } from 'react'
 import { useAtomValue } from '@effect-atom/atom-react'
 import { cn } from '@/lib/utils'
 import { ChatThreadBand, type ChatThreadAutoScrollMode } from '@/lib/chat/shell'
@@ -210,6 +211,48 @@ function UserMessage({ message }: { message: ChatMessage }) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// CopyMessageButton — copies message text to clipboard
+// ═══════════════════════════════════════════════════════════
+
+function CopyMessageButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = useCallback(() => {
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }, [text])
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      title={copied ? 'Copied!' : 'Copy message'}
+      className={cn(
+        'inline-flex items-center justify-center rounded',
+        'w-6 h-6',
+        'text-neutral-500 hover:text-neutral-300',
+        'hover:bg-neutral-800/60',
+        'transition-colors duration-150',
+        copied && 'text-emerald-400',
+      )}
+    >
+      {copied ? (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      ) : (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+      )}
+    </button>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════
 // AssistantMessage — left-aligned, full fidelity
 // Icon rail, header, parts, tasks, footer actions
 // ═══════════════════════════════════════════════════════════
@@ -286,10 +329,12 @@ function AssistantMessage({
             />
           )}
           {/* Footer actions — hover only */}
-          {message.status === 'complete' && !hasTasks && (
+          {message.status === 'complete' && !hasTasks && message.content && (
             <div className="opacity-0 group-hover/message:opacity-100 transition-opacity duration-150">
               <ChatMessageFooterActions>
-                <ChatMessageFooterActions.Group />
+                <ChatMessageFooterActions.Group>
+                  <CopyMessageButton text={message.content} />
+                </ChatMessageFooterActions.Group>
               </ChatMessageFooterActions>
             </div>
           )}
