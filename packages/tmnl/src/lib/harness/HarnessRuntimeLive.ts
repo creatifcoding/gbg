@@ -4,6 +4,7 @@
  * Import from './HarnessRuntimeLive' or '@/lib/harness/index.server', NOT the browser barrel.
  */
 import { Effect, Layer, Option, Stream } from 'effect'
+import { InteractiveShellServiceLive } from './interactive-shell'
 
 import { PiAiHarnessEngine, PiAiHarnessEngineCoreLive, PiAiToolRuntimeWithBuiltins } from './PiAiHarnessEngine'
 import { PiAiStreamClientLive } from './PiAiStreamClient'
@@ -97,10 +98,21 @@ export const HarnessRuntimeLive = Layer.effect(
   Layer.provide(
     PiAiHarnessEngineCoreLive.pipe(
       Layer.provide(HarnessSessionStoreMemoryLive),
-      Layer.provide(PiAiToolRuntimeWithBuiltins.pipe(Layer.provide(AgentHarnessConfigDefault))),
+      // InteractiveShellServiceLive is provided BEFORE PiAiToolRuntimeWithBuiltins
+      // so the tool runtime can yield InteractiveShellService from context.
+      // The same singleton instance is also available to the WS server for event relay.
+      Layer.provide(
+        PiAiToolRuntimeWithBuiltins.pipe(
+          Layer.provide(AgentHarnessConfigDefault),
+          Layer.provide(InteractiveShellServiceLive),
+        ),
+      ),
       Layer.provide(PiAiStreamClientLive),
       Layer.provide(PiAiEventAdapterLive),
       Layer.provide(PiAiPolicyLive),
     ),
   ),
+  // Also merge InteractiveShellService into the output context so the
+  // WS server handler can access it via yield* InteractiveShellService.
+  Layer.provideMerge(InteractiveShellServiceLive),
 )

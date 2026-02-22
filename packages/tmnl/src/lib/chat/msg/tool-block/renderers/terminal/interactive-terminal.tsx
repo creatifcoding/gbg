@@ -18,8 +18,8 @@ import {
   useEffect,
   useState,
   useCallback,
-  memo,
-  type FC,
+  forwardRef,
+  useImperativeHandle,
   type ComponentPropsWithoutRef,
 } from 'react'
 import { cn } from '@/lib/utils'
@@ -95,7 +95,8 @@ const STATUS_DOTS: Record<SessionStatus, string> = {
 // Component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const InteractiveTerminal: FC<InteractiveTerminalProps> = memo(({
+export const InteractiveTerminal = forwardRef<TerminalCoreRef, InteractiveTerminalProps>(
+  function InteractiveTerminal({
   sessionId,
   name,
   status = 'starting',
@@ -107,8 +108,27 @@ export const InteractiveTerminal: FC<InteractiveTerminalProps> = memo(({
   maxHeight = 600,
   className,
   ...divProps
-}) => {
+}, forwardedRef) {
   const coreRef = useRef<TerminalCoreRef>(null)
+
+  // Forward the internal coreRef so parents can write data
+  useImperativeHandle(forwardedRef, () => ({
+    write: (data) => coreRef.current?.write(data),
+    writeln: (data) => coreRef.current?.writeln(data),
+    clear: () => coreRef.current?.clear(),
+    reset: () => coreRef.current?.reset(),
+    resize: (c, r) => coreRef.current?.resize(c, r),
+    focus: () => coreRef.current?.focus(),
+    blur: () => coreRef.current?.blur(),
+    getDimensions: () => coreRef.current?.getDimensions() ?? { cols: 80, rows: 24 },
+    getSelection: () => coreRef.current?.getSelection() ?? '',
+    hasSelection: () => coreRef.current?.hasSelection() ?? false,
+    clearSelection: () => coreRef.current?.clearSelection(),
+    selectAll: () => coreRef.current?.selectAll(),
+    scrollToBottom: () => coreRef.current?.scrollToBottom(),
+    scrollToTop: () => coreRef.current?.scrollToTop(),
+    isReady: () => coreRef.current?.isReady() ?? false,
+  }))
   const [ready, setReady] = useState(false)
   const [noGpu, setNoGpu] = useState(false)
   const isAlive = status === 'starting' || status === 'running'
@@ -232,5 +252,3 @@ export const InteractiveTerminal: FC<InteractiveTerminalProps> = memo(({
     </div>
   )
 })
-
-InteractiveTerminal.displayName = 'InteractiveTerminal'

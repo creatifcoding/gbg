@@ -1,12 +1,10 @@
 import {
-  Context,
   Effect,
   Either,
   Layer,
   Option,
   Queue,
   Schema,
-  Scope,
   Stream,
 } from 'effect'
 import * as HttpRouter from '@effect/platform/HttpRouter'
@@ -25,7 +23,6 @@ import {
 } from '../HarnessBrowserRemoteSchemas'
 import {
   InteractiveShellService,
-  InteractiveShellServiceLive,
   type ShellSessionId,
   type ShellEvent,
 } from '../interactive-shell'
@@ -130,15 +127,13 @@ const handleRemoteWs = Effect.gen(function* () {
   )
 
   // ── Interactive shell service + event relay ──────────────────────────
-  // Build the Layer within this WS connection's scope via Layer.buildWithScope.
-  // Worker pool + PTY sessions are torn down when the connection scope closes.
-  const parentScope = yield* Effect.scope
-  const shellServiceResult = yield* Layer.buildWithScope(InteractiveShellServiceLive, parentScope).pipe(
-    Effect.map((ctx) => Context.get(ctx, InteractiveShellService)),
-    Effect.catchAll((e) => {
-      console.warn(`[harness-ws:${wsId}] shell service unavailable:`, e)
-      return Effect.succeed(null as typeof InteractiveShellService.Service | null)
-    }),
+  // Shared singleton from HarnessRuntimeLive Layer graph — same instance
+  // that the tool executor uses. Events emitted by tool-triggered spawns
+  // are relayed to the WS client via this same service's event stream.
+  const shellServiceResult = yield* InteractiveShellService.pipe(
+    Effect.option,
+    Effect.catchAll(() => Effect.succeed(Option.none())),
+    Effect.map(Option.getOrNull),
   )
 
   const makeShellEventEnvelope = (event: ShellEvent) => ({
