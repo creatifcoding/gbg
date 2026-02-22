@@ -11,6 +11,7 @@
  */
 
 import { Effect } from 'effect'
+import { Type } from '@sinclair/typebox'
 import type { GeniferHarnessServiceShape } from './GeniferHarnessService'
 import type {
   GeniferGenerateParams,
@@ -19,12 +20,30 @@ import type {
   GeniferGenerateDetails,
   GeniferRefineDetails,
   GeniferQueryDetails,
+  GeniferDefineRpcParams,
+  GeniferDefineRpcDetails,
+  GeniferDefineEventParams,
+  GeniferDefineEventDetails,
+  GeniferDefineToolParams,
+  GeniferDefineToolDetails,
 } from './tools'
 import {
   createGeniferGenerateTool,
   createGeniferRefineTool,
   createGeniferQueryTool,
+  createGeniferDefineRpcTool,
+  createGeniferDefineEventTool,
+  createGeniferDefineToolTool,
 } from './tools'
+import {
+  registerDynamicRpc,
+  callDynamicRpc,
+} from '../services/DynamicRpcService'
+import {
+  defineDynamicEvent,
+} from '../services/DynamicEventService'
+import { RpcDefinition, type RpcHandler } from '../services/DynamicRpcSchemas'
+import { EventDefinition } from '../services/DynamicEventSchemas'
 import type { ToolDefinition } from '@mariozechner/pi-coding-agent'
 
 // =============================================================================
@@ -147,5 +166,123 @@ export function createGeniferTools(
     },
   })
 
-  return [generateTool, refineTool, queryTool]
+  // ── Meta-Tools ──
+
+  const defineRpcTool = createGeniferDefineRpcTool({
+    async execute(_callId, params) {
+      try {
+        const def = new RpcDefinition({
+          tag: params.tag,
+          description: params.description ?? '',
+          handler: params.handler as any as RpcHandler,
+          payloadSchema: params.payloadSchema,
+          resultSchema: params.responseSchema,
+          source: 'dynamic',
+          registeredAt: Date.now(),
+        })
+        registerDynamicRpc(params.tag, def)
+        return {
+          content: [{ type: 'text', text: `RPC '${params.tag}' registered. ActionGroups can now reference it via callRpc("${params.tag}", payload).` }],
+          details: { tag: params.tag, registered: true },
+        }
+      } catch (e) {
+        return {
+          content: [{ type: 'text', text: `Failed to register RPC '${params.tag}': ${e instanceof Error ? e.message : e}` }],
+          details: { tag: params.tag, registered: false },
+        }
+      }
+    },
+  })
+
+  const defineEventTool = createGeniferDefineEventTool({
+    async execute(_callId, params) {
+      try {
+        const def = new EventDefinition({
+          tag: params.tag,
+          description: params.description ?? '',
+          payloadSchema: params.payloadSchema,
+          source: 'dynamic',
+          definedAt: Date.now(),
+        })
+        defineDynamicEvent(params.tag, def)
+        return {
+          content: [{ type: 'text', text: `Event '${params.tag}' registered. ActionGroups can now emit it via emitEvent("${params.tag}", payload).` }],
+          details: { tag: params.tag, registered: true },
+        }
+      } catch (e) {
+        return {
+          content: [{ type: 'text', text: `Failed to register event '${params.tag}': ${e instanceof Error ? e.message : e}` }],
+          details: { tag: params.tag, registered: false },
+        }
+      }
+    },
+  })
+
+  /**
+   * Dynamic tools registered during this session.
+   * The LLM can call these in subsequent turns.
+   */
+  const dynamicTools = new Map<string, ToolDefinition>()
+
+  const defineToolTool = createGeniferDefineToolTool({
+    async execute(_callId, params) {
+      try {
+        // Create a ToolDefinition that dispatches based on handler type
+        const newTool: ToolDefinition = {
+          name: params.name,
+          label: params.label,
+          description: params.description,
+          parameters: Type.Record(Type.String(), Type.Unknown()),
+          async execute(toolCallId, toolParams, _signal, _onUpdate, _ctx) {
+            const handler = params.handler
+            switch (handler.type) {
+              case 'http': {
+                const resp = await fetch(handler.url, {
+                  method: handler.method ?? 'GET',
+                  headers: handler.headers ?? {},
+                  ...(handler.method !== 'GET' ? { body: JSON.stringify(toolParams) } : {}),
+                })
+                const text = await resp.text()
+                return { content: [{ type: 'text', text }] }
+              }
+              case 'rpc': {
+                const result = callDynamicRpc(handler.target, toolParams)
+                return { content: [{ type: 'text', text: JSON.stringify(result) }] }
+              }
+              case 'genifer_generate': {
+                // Delegate to the generate tool
+                const genResult = await Effect.runPromise(
+                  service.generate({
+                    prompt: handler.prompt,
+                    sessionId,
+                    persist: false,
+                  }),
+                )
+                return { content: [{ type: 'text', text: `Generated surface ${genResult.surfaceId} with ${genResult.elementCount} elements.` }] }
+              }
+              case 'script': {
+                return { content: [{ type: 'text', text: `Script execution not yet implemented: ${handler.command}` }] }
+              }
+              default:
+                return { content: [{ type: 'text', text: `Unknown handler type` }] }
+            }
+          },
+        }
+
+        dynamicTools.set(params.name, newTool)
+
+        return {
+          content: [{ type: 'text', text: `Tool '${params.name}' registered. You can now call it as a tool in subsequent turns.` }],
+          details: { name: params.name, registered: true },
+        }
+      } catch (e) {
+        return {
+          content: [{ type: 'text', text: `Failed to register tool '${params.name}': ${e instanceof Error ? e.message : e}` }],
+          details: { name: params.name, registered: false },
+        }
+      }
+    },
+  })
+
+  return [generateTool, refineTool, queryTool, defineRpcTool, defineEventTool, defineToolTool]
 }

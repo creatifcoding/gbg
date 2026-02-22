@@ -1,16 +1,21 @@
 /**
  * Genifer ToolDefinitions — TypeBox params for pi harness registration
  *
- * Three tools exposed to the LLM:
- *   genifer_generate — Create UI from natural language prompt
- *   genifer_refine   — Modify an existing surface
- *   genifer_query    — Read/search/rate persisted trees and composites
+ * Eight tools exposed to the LLM:
+ *   genifer_generate      — Create UI from natural language prompt
+ *   genifer_refine        — Modify an existing surface
+ *   genifer_query         — Read/search/rate persisted trees and composites
+ *   genifer_define_rpc    — Register a runtime RPC with handler
+ *   genifer_define_event  — Register a custom event type
+ *   genifer_define_tool   — Register a new callable tool (meta-tool)
+ *   genifer_code          — Write + execute Effect code in sandbox (planned)
+ *   genifer_export_extension — Bundle surface + registrations (planned)
  *
  * Uses SDK's ToolDefinition interface:
  *   { name, label, description, parameters: TSchema, execute(...) }
  *
  * Parameters use TypeBox (constraint D3 from pi-sdk-ref).
- * Execute bridges to GeniferHarnessService.
+ * Execute bridges to GeniferHarnessService or DynamicRpcService/EventService.
  *
  * @module genifer/harness/tools
  */
@@ -181,6 +186,186 @@ export function createGeniferQueryTool(bridge: {
     parameters: GeniferQueryParams,
     async execute(toolCallId, params, signal, onUpdate, _ctx) {
       return bridge.execute(toolCallId, params, signal, undefined)
+    },
+  }
+}
+
+// =============================================================================
+// Meta-Tool: genifer_define_rpc
+// =============================================================================
+
+export const GeniferDefineRpcParams = Type.Object({
+  tag: Type.String({
+    description: 'RPC tag (e.g., "opensky/SearchFlights"). Used to callRpc from ActionGroups.',
+  }),
+  description: Type.Optional(Type.String({
+    description: 'Human-readable description of what this RPC does',
+  })),
+  handler: Type.Object({
+    _tag: Type.Union([
+      Type.Literal('http'),
+      Type.Literal('service'),
+      Type.Literal('llm'),
+      Type.Literal('script'),
+      Type.Literal('custom'),
+    ], { description: 'Handler type' }),
+    url: Type.Optional(Type.String({ description: 'URL for http handlers' })),
+    method: Type.Optional(Type.String({ description: 'HTTP method (default: GET)' })),
+    headers: Type.Optional(Type.Record(Type.String(), Type.String(), {
+      description: 'HTTP headers',
+    })),
+    target: Type.Optional(Type.String({ description: 'Target for service/llm handlers' })),
+    command: Type.Optional(Type.String({ description: 'Command for script handlers' })),
+  }, { description: 'How this RPC executes' }),
+  payloadSchema: Type.Optional(Type.Record(Type.String(), Type.Unknown(), {
+    description: 'JSON schema for the RPC payload (validates input)',
+  })),
+  responseSchema: Type.Optional(Type.Record(Type.String(), Type.Unknown(), {
+    description: 'JSON schema for the RPC response (validates output)',
+  })),
+})
+export type GeniferDefineRpcParams = Static<typeof GeniferDefineRpcParams>
+
+export interface GeniferDefineRpcDetails {
+  readonly tag: string
+  readonly registered: boolean
+}
+
+export function createGeniferDefineRpcTool(bridge: {
+  execute: (
+    callId: string,
+    params: GeniferDefineRpcParams,
+  ) => Promise<{ content: Array<{ type: string; text: string }>; details?: GeniferDefineRpcDetails }>
+}): ToolDefinition<typeof GeniferDefineRpcParams, GeniferDefineRpcDetails> {
+  return {
+    name: 'genifer_define_rpc',
+    label: 'Define RPC',
+    description: `Register a runtime RPC that ActionGroups can call via callRpc. Handlers:
+- http: Makes an HTTP request to a URL
+- service: Calls an internal Effect service
+- llm: Delegates to another LLM call
+- script: Runs a shell command
+- custom: Custom handler registered imperatively
+The registered RPC is immediately available for genifer_generate to reference in behavior blocks.`,
+    parameters: GeniferDefineRpcParams,
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      return bridge.execute(toolCallId, params)
+    },
+  }
+}
+
+// =============================================================================
+// Meta-Tool: genifer_define_event
+// =============================================================================
+
+export const GeniferDefineEventParams = Type.Object({
+  tag: Type.String({
+    description: 'Event tag (e.g., "flight/selected"). Used to emitEvent from ActionGroups.',
+  }),
+  description: Type.Optional(Type.String({
+    description: 'Human-readable description of when this event fires',
+  })),
+  payloadSchema: Type.Optional(Type.Record(Type.String(), Type.Unknown(), {
+    description: 'JSON schema for the event payload (validates before emission)',
+  })),
+})
+export type GeniferDefineEventParams = Static<typeof GeniferDefineEventParams>
+
+export interface GeniferDefineEventDetails {
+  readonly tag: string
+  readonly registered: boolean
+}
+
+export function createGeniferDefineEventTool(bridge: {
+  execute: (
+    callId: string,
+    params: GeniferDefineEventParams,
+  ) => Promise<{ content: Array<{ type: string; text: string }>; details?: GeniferDefineEventDetails }>
+}): ToolDefinition<typeof GeniferDefineEventParams, GeniferDefineEventDetails> {
+  return {
+    name: 'genifer_define_event',
+    label: 'Define Event',
+    description: `Register a custom event type. ActionGroups can emit this event via emitEvent actions. Other surfaces or services can subscribe to receive it. Events are session-scoped by default.`,
+    parameters: GeniferDefineEventParams,
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      return bridge.execute(toolCallId, params)
+    },
+  }
+}
+
+// =============================================================================
+// Meta-Tool: genifer_define_tool
+// =============================================================================
+
+export const GeniferDefineToolParams = Type.Object({
+  name: Type.String({
+    description: 'Tool name (e.g., "search_opensky"). Must be unique in this session.',
+  }),
+  label: Type.String({
+    description: 'Human-readable label shown in tool manifest',
+  }),
+  description: Type.String({
+    description: 'What this tool does — the LLM reads this to decide when to call it',
+  }),
+  parameters: Type.Record(Type.String(), Type.Unknown(), {
+    description: 'TypeBox-compatible parameter schema as JSON',
+  }),
+  handler: Type.Union([
+    Type.Object({
+      type: Type.Literal('http'),
+      url: Type.String(),
+      method: Type.Optional(Type.String()),
+      headers: Type.Optional(Type.Record(Type.String(), Type.String())),
+    }),
+    Type.Object({
+      type: Type.Literal('rpc'),
+      target: Type.String({ description: 'DynamicRpc tag to delegate to' }),
+    }),
+    Type.Object({
+      type: Type.Literal('genifer_generate'),
+      prompt: Type.String({ description: 'Prompt to pass to genifer_generate' }),
+    }),
+    Type.Object({
+      type: Type.Literal('script'),
+      command: Type.String({ description: 'Shell command to execute' }),
+    }),
+  ], { description: 'How this tool executes when called' }),
+  renderer: Type.Optional(Type.Object({
+    style: Type.Optional(Type.Union([
+      Type.Literal('card'),
+      Type.Literal('inline'),
+      Type.Literal('table'),
+      Type.Literal('terminal'),
+    ])),
+    icon: Type.Optional(Type.String()),
+    color: Type.Optional(Type.String()),
+  }, { description: 'How the tool result renders in chat' })),
+})
+export type GeniferDefineToolParams = Static<typeof GeniferDefineToolParams>
+
+export interface GeniferDefineToolDetails {
+  readonly name: string
+  readonly registered: boolean
+}
+
+export function createGeniferDefineToolTool(bridge: {
+  execute: (
+    callId: string,
+    params: GeniferDefineToolParams,
+  ) => Promise<{ content: Array<{ type: string; text: string }>; details?: GeniferDefineToolDetails }>
+}): ToolDefinition<typeof GeniferDefineToolParams, GeniferDefineToolDetails> {
+  return {
+    name: 'genifer_define_tool',
+    label: 'Define Tool',
+    description: `Register a new tool that becomes available in subsequent turns. This is a meta-tool: the LLM can create new capabilities on the fly. Handlers:
+- http: Makes an HTTP request to a URL
+- rpc: Delegates to a registered DynamicRpc
+- genifer_generate: Triggers a genifer UI generation
+- script: Runs a shell command
+The new tool appears in the tool manifest and can be called in later turns.`,
+    parameters: GeniferDefineToolParams,
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      return bridge.execute(toolCallId, params)
     },
   }
 }

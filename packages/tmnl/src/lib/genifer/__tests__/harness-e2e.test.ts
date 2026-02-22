@@ -18,6 +18,11 @@ import {
   GeniferHarnessServiceLive,
 } from '../harness/GeniferHarnessService'
 import { surfaceRegistryAtom } from '../harness/atoms'
+import { createGeniferTools } from '../harness/bridge'
+import { setDynamicRpcRegistry } from '../services/DynamicRpcService'
+import { setDynamicEventRegistry } from '../services/DynamicEventService'
+import { Registry } from '@effect-atom/atom'
+import { beforeEach } from 'vitest'
 
 // =============================================================================
 // Mock LanguageModel
@@ -110,6 +115,13 @@ const MockGeniferServiceLive = Layer.succeed(
 // =============================================================================
 
 describe('Genifer Harness E2E', () => {
+  beforeEach(() => {
+    // Initialize dynamic service registries for meta-tool tests
+    const registry = Registry.make()
+    setDynamicRpcRegistry(registry)
+    setDynamicEventRegistry(registry)
+  })
+
   it('generate() produces a real UITree via mock LLM', async () => {
     const program = Effect.gen(function* () {
       const service = yield* GeniferHarnessServiceTag
@@ -236,6 +248,114 @@ describe('Genifer Harness E2E', () => {
         Effect.provide(MockGeniferServiceLive),
       ),
     )
+  })
+
+  it('meta-tools: genifer_define_rpc registers a callable RPC', async () => {
+    const service = await Effect.runPromise(
+      GeniferHarnessServiceTag.pipe(
+        Effect.provide(GeniferHarnessServiceLive),
+        Effect.provide(MockGeniferServiceLive),
+      ),
+    )
+    service.setModelLayer(MockLanguageModelLive)
+
+    const tools = createGeniferTools(service, 'test-session-meta')
+    const defineRpc = tools.find((t) => t.name === 'genifer_define_rpc')
+    expect(defineRpc).toBeDefined()
+
+    const result = await defineRpc!.execute(
+      'call-001',
+      {
+        tag: 'test/echo',
+        description: 'Echoes the input',
+        handler: { _tag: 'custom', handlerId: 'echo-handler' },
+      } as any,
+      undefined,
+      undefined,
+      undefined as any,
+    )
+
+    expect(result.content[0].text).toContain("RPC 'test/echo' registered")
+    expect((result as any).details?.registered).toBe(true)
+  })
+
+  it('meta-tools: genifer_define_event registers an event', async () => {
+    const service = await Effect.runPromise(
+      GeniferHarnessServiceTag.pipe(
+        Effect.provide(GeniferHarnessServiceLive),
+        Effect.provide(MockGeniferServiceLive),
+      ),
+    )
+    service.setModelLayer(MockLanguageModelLive)
+
+    const tools = createGeniferTools(service, 'test-session-meta2')
+    const defineEvent = tools.find((t) => t.name === 'genifer_define_event')
+    expect(defineEvent).toBeDefined()
+
+    const result = await defineEvent!.execute(
+      'call-002',
+      {
+        tag: 'flight/selected',
+        description: 'User selected a flight from search results',
+      } as any,
+      undefined,
+      undefined,
+      undefined as any,
+    )
+
+    expect(result.content[0].text).toContain("Event 'flight/selected' registered")
+    expect((result as any).details?.registered).toBe(true)
+  })
+
+  it('meta-tools: genifer_define_tool registers a callable tool', async () => {
+    const service = await Effect.runPromise(
+      GeniferHarnessServiceTag.pipe(
+        Effect.provide(GeniferHarnessServiceLive),
+        Effect.provide(MockGeniferServiceLive),
+      ),
+    )
+    service.setModelLayer(MockLanguageModelLive)
+
+    const tools = createGeniferTools(service, 'test-session-meta3')
+    const defineTool = tools.find((t) => t.name === 'genifer_define_tool')
+    expect(defineTool).toBeDefined()
+
+    const result = await defineTool!.execute(
+      'call-003',
+      {
+        name: 'search_opensky',
+        label: 'Search OpenSky',
+        description: 'Search real-time flight data',
+        parameters: { query: { type: 'string' } },
+        handler: { type: 'http', url: 'https://opensky-network.org/api/states/all' },
+      } as any,
+      undefined,
+      undefined,
+      undefined as any,
+    )
+
+    expect(result.content[0].text).toContain("Tool 'search_opensky' registered")
+    expect((result as any).details?.registered).toBe(true)
+  })
+
+  it('createGeniferTools returns 6 tools (3 core + 3 meta)', async () => {
+    const service = await Effect.runPromise(
+      GeniferHarnessServiceTag.pipe(
+        Effect.provide(GeniferHarnessServiceLive),
+        Effect.provide(MockGeniferServiceLive),
+      ),
+    )
+
+    const tools = createGeniferTools(service, 'test')
+
+    expect(tools.length).toBe(6)
+    const names = tools.map((t) => t.name)
+    expect(names).toContain('genifer_generate')
+    expect(names).toContain('genifer_refine')
+    expect(names).toContain('genifer_query')
+    expect(names).toContain('genifer_define_rpc')
+    expect(names).toContain('genifer_define_event')
+    expect(names).toContain('genifer_define_tool')
   })
 
   it('getAllSurfaces returns registered surfaces', async () => {
