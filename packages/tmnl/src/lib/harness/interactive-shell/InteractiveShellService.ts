@@ -433,6 +433,6 @@ export const InteractiveShellServiceLive = Layer.scoped(
   InteractiveShellService,
   makeInteractiveShellService,
 ).pipe(
+  // BunWorker.layer already includes Worker.layerManager + Worker.PlatformWorker
   Layer.provide(PtyWorkerLayer),
-  Layer.provide(Worker.layerManager),
 )

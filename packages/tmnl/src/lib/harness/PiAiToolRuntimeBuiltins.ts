@@ -273,8 +273,8 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
       },
       catch: (error) => error,
     }).pipe(
-      Effect.orElseSucceed(() => {
-        console.warn(`[harness] interactive shell service unavailable`)
+      Effect.orElseSucceed((error) => {
+        console.warn(`[harness] interactive shell service unavailable:`, error)
         return null
       }),
     )
