@@ -1,6 +1,13 @@
 /**
  * PiAiToolRuntimeBuiltins — Wires the pi-coding-agent SDK's 7 built-in tools
- * (read, bash, edit, write, grep, ls, find) into PiAiToolRuntime.
+ * (read, bash, edit, write, grep, ls, find) AND discovered extension tools
+ * into PiAiToolRuntime.
+ *
+ * Extension loading:
+ *   - Uses `discoverAndLoadExtensions()` to scan `.pi/extensions/` dirs
+ *   - Wraps each extension's RegisteredTool via `wrapRegisteredTool()`
+ *   - Merges extension tools into the same dispatch map as built-ins
+ *   - Extension tools flow through `tool_manifest` event → ExtensionToolBridge
  *
  * Bridges from AgentTool.execute (Promise-based) to PiAiToolRuntime.execute (Effect-based).
  *
@@ -15,6 +22,9 @@ import {
   createGrepTool,
   createFindTool,
   createLsTool,
+  discoverAndLoadExtensions,
+  wrapRegisteredTool,
+  createExtensionRuntime,
 } from '@mariozechner/pi-coding-agent'
 import type { ToolCall as PiAiToolCall, ToolResultMessage as PiAiToolResultMessage } from '@mariozechner/pi-ai'
 import { Effect, Layer, Option } from 'effect'
@@ -41,6 +51,48 @@ function createSdkTools(config: AgentHarnessConfig) {
 }
 
 // =============================================================================
+// Discover and load extension tools
+// =============================================================================
+
+async function loadExtensionTools(cwd: string) {
+  const resolvedCwd = path.resolve(cwd)
+  const runtime = createExtensionRuntime()
+
+  const result = await discoverAndLoadExtensions(
+    [], // configuredPaths — let it discover from standard locations
+    resolvedCwd,
+    undefined, // agentDir — uses default ~/.pi/agent
+  )
+
+  if (result.errors.length > 0) {
+    for (const err of result.errors) {
+      console.warn(`[harness] extension load error: ${err.path} — ${err.error}`)
+    }
+  }
+
+  // Collect all registered tools from all extensions
+  const wrappedTools: ReturnType<typeof wrapRegisteredTool>[] = []
+  const extensionRunner = result.runtime
+
+  for (const ext of result.extensions) {
+    for (const [_name, registeredTool] of ext.tools) {
+      try {
+        // wrapRegisteredTool needs the ExtensionRunner for context —
+        // but for harness execution we only need the AgentTool shape.
+        // Pass a minimal runner that provides the execute bridge.
+        const wrapped = wrapRegisteredTool(registeredTool, extensionRunner as any)
+        wrappedTools.push(wrapped)
+      } catch (err) {
+        console.warn(`[harness] failed to wrap tool '${_name}': ${err}`)
+      }
+    }
+  }
+
+  console.info(`[harness] loaded ${wrappedTools.length} extension tool(s) from ${result.extensions.length} extension(s)`)
+  return { tools: wrappedTools, extensions: result.extensions, runtime: extensionRunner }
+}
+
+// =============================================================================
 // Layer Factory + Default
 // =============================================================================
 
@@ -54,7 +106,30 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
   PiAiToolRuntime,
   Effect.gen(function* () {
     const config = yield* AgentHarnessConfigTag
-    const tools = createSdkTools(config)
+
+    // 1. Built-in tools (always available)
+    const builtinTools = createSdkTools(config)
+
+    // 2. Extension tools (discovered from .pi/extensions/)
+    const extensionResult = yield* Effect.tryPromise({
+      try: () => loadExtensionTools(config.cwd),
+      catch: (error) => {
+        console.warn(`[harness] extension discovery failed, continuing with built-ins only: ${error}`)
+        return { tools: [] as ReturnType<typeof createSdkTools>, extensions: [], runtime: undefined }
+      },
+    })
+
+    // 3. Merge into unified tool map (built-ins take precedence on name collision)
+    const tools = [...builtinTools]
+    const builtinNames = new Set(builtinTools.map((t) => t.name))
+    for (const extTool of extensionResult.tools) {
+      if (builtinNames.has(extTool.name)) {
+        console.warn(`[harness] extension tool '${extTool.name}' shadows built-in — skipping`)
+        continue
+      }
+      tools.push(extTool)
+    }
+
     const map = new Map(tools.map((t) => [t.name, t]))
 
     const execute = (
