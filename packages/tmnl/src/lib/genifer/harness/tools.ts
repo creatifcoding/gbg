@@ -15,13 +15,14 @@
  *   { name, label, description, parameters: TSchema, execute(...) }
  *
  * Parameters use TypeBox (constraint D3 from pi-sdk-ref).
- * Execute bridges to GeniferHarnessService or DynamicRpcService/EventService.
+ * Execute bridges to GeniferHarnessService, DynamicRpc/EventService, or CodeModeExecutor.
  *
  * @module genifer/harness/tools
  */
 
 import { Type, type Static, type TObject } from '@sinclair/typebox'
 import type { ToolDefinition } from '@mariozechner/pi-coding-agent'
+import { GeniferCodeParams as GeniferCodeParamsSchema, type GeniferCodeDetails } from '../code-mode/schemas'
 
 // =============================================================================
 // TypeBox Parameter Schemas
@@ -364,6 +365,49 @@ export function createGeniferDefineToolTool(bridge: {
 - script: Runs a shell command
 The new tool appears in the tool manifest and can be called in later turns.`,
     parameters: GeniferDefineToolParams,
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      return bridge.execute(toolCallId, params)
+    },
+  }
+}
+
+// =============================================================================
+// Meta-Tool: genifer_code
+// =============================================================================
+
+// Re-export the TypeBox schema from code-mode/schemas
+export { GeniferCodeParamsSchema as GeniferCodeToolParams }
+
+export function createGeniferCodeTool(bridge: {
+  execute: (
+    callId: string,
+    params: Static<typeof GeniferCodeParamsSchema>,
+  ) => Promise<{ content: Array<{ type: string; text: string }>; details?: GeniferCodeDetails }>
+}): ToolDefinition<typeof GeniferCodeParamsSchema, GeniferCodeDetails> {
+  return {
+    name: 'genifer_code',
+    label: 'Execute Code',
+    description: `Write and execute Effect-TS code in a sandboxed environment with access to genifer services.
+
+Modes:
+- define: Register new handlers, renderers, or services (no return value expected)
+- execute: Run code and return the result
+- pipe: Create a streaming transform pipeline
+
+The \`sdk\` global provides:
+- sdk.atoms.get/set/subscribe — read/write dynamic state
+- sdk.register.tool/rpc/event/component — register new capabilities
+- sdk.http.get/post — make HTTP requests (allowlisted domains)
+- sdk.emit/on — emit and subscribe to events
+- sdk.callRpc — call registered RPCs
+- sdk.log/warn/error — logging
+
+Use \`expose\` to register the result as a reusable capability:
+- asRpc: Register as callable RPC
+- asTool: Register as tool for future turns
+- asAtom: Store as subscribable state
+- asEvent: Register as event type`,
+    parameters: GeniferCodeParamsSchema,
     async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
       return bridge.execute(toolCallId, params)
     },

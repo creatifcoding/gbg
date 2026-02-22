@@ -34,7 +34,9 @@ import {
   createGeniferDefineRpcTool,
   createGeniferDefineEventTool,
   createGeniferDefineToolTool,
+  createGeniferCodeTool,
 } from './tools'
+import { executeCodeMode } from '../code-mode/executor'
 import {
   registerDynamicRpc,
   callDynamicRpc,
@@ -284,5 +286,41 @@ export function createGeniferTools(
     },
   })
 
-  return [generateTool, refineTool, queryTool, defineRpcTool, defineEventTool, defineToolTool]
+  const codeTool = createGeniferCodeTool({
+    async execute(_callId, params) {
+      try {
+        const result = await Effect.runPromise(executeCodeMode(params))
+        const summary = result.success
+          ? `Code executed successfully (${result.mode}, ${result.durationMs}ms).${
+              result.exposed ? ` Exposed: ${JSON.stringify(result.exposed)}` : ''
+            }${result.result !== null && result.result !== undefined ? `\nResult: ${JSON.stringify(result.result).slice(0, 500)}` : ''}`
+          : `Code execution failed: ${result.error}`
+
+        return {
+          content: [{ type: 'text', text: summary }],
+          details: {
+            mode: result.mode,
+            success: result.success,
+            result: result.result,
+            exposed: result.exposed as any,
+            durationMs: result.durationMs,
+            error: result.error,
+          },
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        return {
+          content: [{ type: 'text', text: `Code mode error: ${msg}` }],
+          details: {
+            mode: params.mode,
+            success: false,
+            durationMs: 0,
+            error: msg,
+          },
+        }
+      }
+    },
+  })
+
+  return [generateTool, refineTool, queryTool, defineRpcTool, defineEventTool, defineToolTool, codeTool]
 }

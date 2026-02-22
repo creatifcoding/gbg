@@ -348,7 +348,7 @@ describe('Genifer Harness E2E', () => {
 
     const tools = createGeniferTools(service, 'test')
 
-    expect(tools.length).toBe(6)
+    expect(tools.length).toBe(7)
     const names = tools.map((t) => t.name)
     expect(names).toContain('genifer_generate')
     expect(names).toContain('genifer_refine')
@@ -356,6 +356,7 @@ describe('Genifer Harness E2E', () => {
     expect(names).toContain('genifer_define_rpc')
     expect(names).toContain('genifer_define_event')
     expect(names).toContain('genifer_define_tool')
+    expect(names).toContain('genifer_code')
   })
 
   it('getAllSurfaces returns registered surfaces', async () => {
