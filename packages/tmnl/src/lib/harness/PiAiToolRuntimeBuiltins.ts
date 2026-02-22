@@ -191,13 +191,16 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
     const builtinTools = createSdkTools(config)
 
     // 2. Extension tools (discovered from .pi/extensions/)
+    //    NOTE: Effect.tryPromise `catch` is an error MAPPER, not recovery.
     const extensionResult = yield* Effect.tryPromise({
       try: () => loadExtensionTools(config.cwd),
-      catch: (error) => {
-        console.warn(`[harness] extension discovery failed, continuing with built-ins only: ${error}`)
+      catch: (error) => error,
+    }).pipe(
+      Effect.orElseSucceed(() => {
+        console.warn(`[harness] extension discovery failed, continuing with built-ins only`)
         return { tools: [] as ReturnType<typeof createSdkTools>, extensions: [], runtime: undefined }
-      },
-    })
+      }),
+    )
 
     // 3. Merge into unified tool map (built-ins take precedence on name collision)
     const tools = [...builtinTools]
@@ -211,6 +214,8 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
     }
 
     // 4. Genifer tools (generate, refine, query) — optional, requires GeniferHarnessService
+    //    NOTE: Effect.tryPromise `catch` is an error MAPPER, not a recovery handler.
+    //    Use .pipe(Effect.orElseSucceed(...)) to actually swallow the failure.
     const geniferResult = yield* Effect.tryPromise({
       try: async () => {
         // Construct GeniferHarnessService — depends on GeniferService (needs DB)
@@ -226,11 +231,13 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
         const sessionId = `harness-${Date.now()}`
         return createGeniferTools(service, sessionId)
       },
-      catch: (error) => {
-        console.warn(`[harness] genifer tools unavailable (DB may not be connected): ${error instanceof Error ? error.message : error}`)
+      catch: (error) => error,
+    }).pipe(
+      Effect.orElseSucceed(() => {
+        console.warn(`[harness] genifer tools unavailable (DB may not be connected)`)
         return [] as ReturnType<typeof createGeniferTools>
-      },
-    })
+      }),
+    )
 
     const allToolNames = new Set(tools.map((t) => t.name))
     for (const geniferTool of geniferResult) {
