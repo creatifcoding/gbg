@@ -18,6 +18,7 @@ import type { UIElement, UITree, Action } from '../core/schemas';
 import type { EntranceAnimation } from '../core/animation-schema';
 import { useIsVisible } from './hooks';
 import { useEntrance } from './animation';
+import { getDynamicComponents } from '../code-mode/sandbox';
 import { renderersAtom, schemasAtom, type SchemaEntry } from './atoms/catalog';
 import { ComponentErrorBoundary } from './ErrorBoundary';
 
@@ -299,11 +300,29 @@ export function Renderer({
     [schemas]
   );
 
-  // Merge: catalog renderers as base, prop registry overrides
+  // Get dynamically registered components (from code mode)
+  const dynamicComponents = useMemo(() => {
+    const components = getDynamicComponents();
+    const registry: ComponentRegistry = {};
+    for (const [name, factory] of components) {
+      // Wrap factory as a React component renderer
+      registry[name] = ({ element, children }) => {
+        const result = factory({ ...element.props, children });
+        // If factory returns a React element, render it directly
+        if (result && typeof result === 'object' && 'type' in result) return result;
+        // Otherwise render as string
+        return <>{String(result ?? '')}</>;
+      };
+    }
+    return registry;
+  }, [/* re-evaluated on each render to pick up new registrations */]);
+
+  // Merge: catalog renderers as base, dynamic components, prop registry overrides
   const mergedRegistry: ComponentRegistry = useMemo(() => ({
     ...catalogRenderers,
+    ...dynamicComponents,
     ...propRegistry,
-  }), [catalogRenderers, propRegistry]);
+  }), [catalogRenderers, dynamicComponents, propRegistry]);
 
   // OPTIMIZATION: Use ref to keep elements reference stable across renders
   // This allows ElementRenderer's memo to work effectively

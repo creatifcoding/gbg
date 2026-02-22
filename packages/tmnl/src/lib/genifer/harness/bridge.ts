@@ -38,6 +38,7 @@ import {
   createGeniferExportExtensionTool,
 } from './tools'
 import { executeCodeMode } from '../code-mode/executor'
+import { getDynamicTools as getCodeModeDynamicTools } from '../code-mode/sandbox'
 import {
   registerDynamicRpc,
   callDynamicRpc,
@@ -383,4 +384,49 @@ export function createGeniferTools(
   })
 
   return [generateTool, refineTool, queryTool, defineRpcTool, defineEventTool, defineToolTool, codeTool, exportTool]
+}
+
+// =============================================================================
+// Dynamic Tool Definitions — reads from code-mode sandbox
+// =============================================================================
+
+/**
+ * Get ToolDefinitions for dynamically registered tools.
+ * Call this at turn boundaries to merge into the LLM's tool manifest.
+ *
+ * Tools registered via:
+ *   - genifer_define_tool (bridge.ts dynamicTools Map)
+ *   - sdk.register.tool() (code-mode sandbox dynamicTools Map)
+ */
+export function getDynamicToolDefinitions(): ToolDefinition[] {
+  const tools = getCodeModeDynamicTools() as ReadonlyMap<string, {
+    name: string
+    label: string
+    description: string
+    execute: (params: any) => Promise<any>
+  }>
+
+  const defs: ToolDefinition[] = []
+  for (const [, spec] of tools) {
+    defs.push({
+      name: spec.name,
+      label: spec.label,
+      description: spec.description,
+      parameters: Type.Record(Type.String(), Type.Unknown()),
+      async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+        try {
+          const result = await spec.execute(params)
+          return {
+            content: [{ type: 'text', text: typeof result === 'string' ? result : JSON.stringify(result) }],
+          }
+        } catch (e) {
+          return {
+            content: [{ type: 'text', text: `Dynamic tool error: ${e instanceof Error ? e.message : e}` }],
+          }
+        }
+      },
+    })
+  }
+
+  return defs
 }
