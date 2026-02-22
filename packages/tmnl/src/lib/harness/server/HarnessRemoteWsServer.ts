@@ -1,10 +1,12 @@
 import {
+  Context,
   Effect,
   Either,
   Layer,
   Option,
   Queue,
   Schema,
+  Scope,
   Stream,
 } from 'effect'
 import * as HttpRouter from '@effect/platform/HttpRouter'
@@ -128,13 +130,16 @@ const handleRemoteWs = Effect.gen(function* () {
   )
 
   // ── Interactive shell service + event relay ──────────────────────────
-  const shellServiceResult = yield* Effect.tryPromise({
-    try: () =>
-      Effect.runPromise(
-        InteractiveShellService.pipe(Effect.provide(InteractiveShellServiceLive)),
-      ),
-    catch: (e) => e,
-  }).pipe(Effect.orElseSucceed(() => null))
+  // Build the Layer within this WS connection's scope via Layer.buildWithScope.
+  // Worker pool + PTY sessions are torn down when the connection scope closes.
+  const parentScope = yield* Effect.scope
+  const shellServiceResult = yield* Layer.buildWithScope(InteractiveShellServiceLive, parentScope).pipe(
+    Effect.map((ctx) => Context.get(ctx, InteractiveShellService)),
+    Effect.catchAll((e) => {
+      console.warn(`[harness-ws:${wsId}] shell service unavailable:`, e)
+      return Effect.succeed(null as typeof InteractiveShellService.Service | null)
+    }),
+  )
 
   const makeShellEventEnvelope = (event: ShellEvent) => ({
     _tag: 'remote:ws_event' as const,

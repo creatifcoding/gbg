@@ -260,15 +260,17 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
     }
 
     // 5. Interactive shell tool (PTY-backed terminal sessions)
-    //    Uses InteractiveShellService which wraps Bun.Terminal.
-    //    The tool executor runs Effect programs — we bridge to Promise for the tool map.
-    const shellService = yield* Effect.tryPromise({
-      try: () =>
-        Effect.runPromise(
-          InteractiveShellService.pipe(
-            Effect.provide(InteractiveShellServiceLive),
-          ),
-        ),
+    //    Uses InteractiveShellService which wraps Bun.Terminal via Worker pool.
+    //    ManagedRuntime keeps the Layer scope (worker pool) alive for the
+    //    lifetime of the tool runtime — not scoped to individual tool calls.
+    const shellRuntime = yield* Effect.tryPromise({
+      try: async () => {
+        const { ManagedRuntime } = await import('effect')
+        const rt = ManagedRuntime.make(InteractiveShellServiceLive)
+        // Verify the service is constructible by running a no-op
+        await rt.runPromise(InteractiveShellService)
+        return rt
+      },
       catch: (error) => error,
     }).pipe(
       Effect.orElseSucceed(() => {
@@ -277,7 +279,7 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
       }),
     )
 
-    if (shellService) {
+    if (shellRuntime) {
       tools.push({
         name: INTERACTIVE_SHELL_TOOL_NAME,
         description:
@@ -289,11 +291,9 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
           signal: AbortSignal | undefined,
           onUpdate?: (partial: { content: Array<{ type: string; text: string }>; details?: unknown }) => void,
         ) =>
-          Effect.runPromise(
-            executeInteractiveShell(toolCallId, params, signal, onUpdate).pipe(
-              Effect.provide(InteractiveShellServiceLive),
-            ),
-          ).then((result) => result),
+          shellRuntime.runPromise(
+            executeInteractiveShell(toolCallId, params, signal, onUpdate),
+          ),
       } as any)
       console.info(`[harness] interactive_shell tool registered`)
     }
