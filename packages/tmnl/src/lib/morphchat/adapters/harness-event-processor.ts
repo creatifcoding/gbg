@@ -282,6 +282,8 @@ export interface HarnessEventProcessorConfig {
   readonly atoms: EventProcessorAtoms
   readonly agentName: string
   readonly nodeId?: string
+  /** Called when a tool_manifest event is received. Wired by the adapter to sync the extension bridge. */
+  readonly onToolManifest?: (tools: ReadonlyArray<{ name: string; description?: string; parameters?: unknown }>) => void
 }
 
 
@@ -307,6 +309,13 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
         }])
         if (atoms.statusRows$) {
           morphChatRegistry.set(atoms.statusRows$, [])
+        }
+        break
+      }
+
+      case 'chat:v2/tool_manifest': {
+        if (config.onToolManifest) {
+          config.onToolManifest(event.tools)
         }
         break
       }

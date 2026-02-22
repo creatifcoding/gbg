@@ -121,6 +121,10 @@ const harnessRuntimeAtom = Atom.runtime(HarnessRuntimeBrowserWebSocketDefault)
 
 // ── Shared event processor with full parts support ────────
 import { createEventProcessor } from '../adapters/harness-event-processor'
+import { createExtensionToolBridge } from '@/lib/chat/msg/tool-block/renderers/extension-tool-bridge'
+
+// Module-level extension tool bridge — shared across hook instances
+const harnessToolBridge = createExtensionToolBridge()
 
 // Module-level processor factory — lazily created per agentName
 let _processor: ReturnType<typeof createEventProcessor> | null = null
@@ -141,6 +145,12 @@ function getProcessor(agentName: string) {
         statusRows$: harnessStatusRows$,
       },
       agentName,
+      onToolManifest: (tools) => {
+        const count = harnessToolBridge.syncManifest({ tools })
+        if (count > 0) {
+          console.info(`[useHarnessAdapter] registered ${count} extension tool renderer(s)`)
+        }
+      },
     })
   }
   return _processor
@@ -576,6 +586,8 @@ export const harnessOps = {
       const runtime = yield* HarnessRuntime
       const sessionId = morphChatRegistry.get(harnessSessionId$)
       if (sessionId) yield* runtime.abortSession(sessionId)
+      // Teardown extension tool bridge (unregisters auto-generated renderers)
+      harnessToolBridge.clear()
       morphChatRegistry.set(harnessStreaming$, STREAMING_IDLE)
       morphChatRegistry.set(harnessConnection$, DISCONNECTED)
       morphChatRegistry.set(harnessStatusRows$, [])
