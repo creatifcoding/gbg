@@ -638,12 +638,21 @@ All button components use the same 4 entrance animations from core-domain-catalo
 
 ---
 
-## 14. Open Questions
+## 14. Resolved Decisions
 
-1. **Should the gradient variant support custom color pairs?** Current spec hardcodes cyan→violet. Could expose `gradientFrom`/`gradientTo` props.
-2. **CooldownButton timer display**: Show remaining seconds in the label, or as a circular progress ring?
-3. **ConfirmButton second-click area**: Should the confirm state show two buttons (Confirm / Cancel) or just change the label?
-4. **FloatingActionButton z-index**: Should it be layer-system aware, or just a high static z-index?
+> All four open questions resolved 2026-02-22. Prime accepted Val's defaults.
+
+### D1: Gradient custom colors — YES
+Expose `gradientFrom` / `gradientTo` as optional props on ButtonRoot. Default: `cyan→violet` when omitted. LLMs building brand-themed surfaces need arbitrary color pairs.
+
+### D2: CooldownButton display — LABEL REPLACEMENT
+Label text transforms to show remaining seconds: `'Resend' → 'Wait 4s' → '3s' → 'Resend'`. Monospace countdown in the label itself. No rings, no bars — fights vantablack minimalism.
+
+### D3: ConfirmButton UX — LABEL SWAP + CLICK-AWAY CANCEL
+First click: label changes to `confirmText` (default `'Are you sure?'`), variant tints destructive. Second click: executes action. Click outside or Escape: cancels back to idle. One button stays one button — no expansion, no popover.
+
+### D4: FloatingActionButton z-index — STATIC z-50
+Fixed `z-index: 50`. Above content, below modals (`z-[100+]`). NOT layer-system aware. FABs are always-on-top by definition. Layer integration is a future enhancement if ever needed.
 
 ---
 
