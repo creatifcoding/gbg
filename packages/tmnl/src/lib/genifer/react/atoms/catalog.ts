@@ -33,7 +33,7 @@ import { uiDomainCatalog } from "@/lib/genifer/catalog/ui-domain-catalog"
 import { coreDomainCatalog } from "@/lib/genifer/catalog/core-domain-catalog"
 import { buttonDomainCatalog } from "@/lib/genifer/catalog/button-domain-catalog"
 import { geointDomainCatalog } from "@/lib/genifer/catalog/geoint-domain-catalog"
-import { rvnDomainCatalog } from "@/lib/genifer/catalog/rvn-domain-catalog"
+// rvnDomainCatalog deprecated — not registered in catalog (noise)
 
 // =============================================================================
 // Plugin Registration (external domains register themselves)
@@ -84,7 +84,6 @@ export const CatalogComponentsLive = (() => {
           coreDomainCatalog,
           buttonDomainCatalog,
           geointDomainCatalog,
-          rvnDomainCatalog,
           ..._pendingCatalogs,
         )
       }
