@@ -19,6 +19,19 @@ export {
   executeInteractiveShell,
 } from './tool'
 
+// Worker schema (for tests / direct worker usage)
+export {
+  PtyWorkerMessage,
+  PtySpawn,
+  PtyWrite,
+  PtyResize,
+  PtyKill,
+  PtyOutputChunk,
+  PtySpawnResult,
+  PtyExitResult,
+  PtyWorkerError,
+} from './pty-worker-schema'
+
 export {
   // Schemas
   ShellSessionId,

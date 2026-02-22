@@ -2,13 +2,19 @@
  * InteractiveShellService — Effect.Service for managing PTY sessions
  *
  * Architecture:
- *   - Sessions are scoped TerminalHandle instances from PtyBackend
- *   - Each session has an output Stream that's bridged to ShellEvent emissions
+ *   - PTY operations run in a dedicated Worker thread via @effect/platform-bun
+ *   - Worker communicates via Schema.TaggedRequest (typed RPC)
+ *   - Main thread manages session state + emits ShellEvents
  *   - Agent reads plain text via stripVTControlCharacters from raw output buffer
- *   - TODO: Factor PTY spawn into Worker thread via @effect/platform-bun Worker
  *
- * State is managed via Atom.make() (Atom-as-State pattern per AGENTS.md).
- * React subscribes directly — no Ref→Atom bridge needed.
+ * Worker thread boundary:
+ *   Main thread                      Worker thread
+ *   ───────────                      ─────────────
+ *   PtySpawn (TaggedRequest)    →    Bun.spawn({ terminal })
+ *   PtyWrite                    →    proc.terminal.write()
+ *   PtyResize                   →    proc.terminal.resize()
+ *   PtyKill                     →    proc.kill()
+ *   ← Stream<PtyOutputChunk>        data callback → emit
  *
  * @module harness/interactive-shell/InteractiveShellService
  */
@@ -20,20 +26,20 @@ import {
   Scope,
   Stream,
   Fiber,
-  Deferred,
-  HashMap,
-  Option,
+  Data,
   pipe,
 } from 'effect'
+import * as Worker from '@effect/platform/Worker'
+import * as BunWorker from '@effect/platform-bun/BunWorker'
 import { nanoid } from 'nanoid'
 import {
-  TerminalBackend,
-  type TerminalHandle,
-  TerminalConnectError,
-  TerminalWriteError,
-  TerminalResizeError,
-} from '@/lib/terminal/backend/TerminalBackend'
-import { PtyBackendLive } from '@/lib/terminal/backend/PtyBackend'
+  PtyWorkerMessage,
+  PtySpawn,
+  PtyWrite,
+  PtyResize,
+  PtyKill,
+  type PtyOutputChunk,
+} from './pty-worker-schema'
 import type {
   ShellSessionId,
   ShellSessionInfo,
@@ -50,8 +56,10 @@ import { stripVTControlCharacters } from 'node:util'
 interface ShellSession {
   readonly id: ShellSessionId
   readonly name: string | undefined
-  readonly handle: TerminalHandle
-  readonly scope: Scope.CloseableScope
+  readonly shell: string
+  readonly cwd: string
+  readonly cols: number
+  readonly rows: number
   readonly createdAt: number
   /** Raw output buffer for agent text extraction */
   rawOutputBuffer: string
@@ -59,8 +67,9 @@ interface ShellSession {
   readonly maxBufferSize: number
   status: ShellSessionStatus
   exitCode: number | undefined
-  /** Fiber running the output→event bridge */
-  readonly outputFiber: Fiber.RuntimeFiber<void, never>
+  pid: number | undefined
+  /** Fiber running the output stream consumer */
+  outputFiber: Fiber.RuntimeFiber<void, never> | null
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -68,68 +77,43 @@ interface ShellSession {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface InteractiveShellServiceShape {
-  /** Spawn a new PTY session. Returns session info. */
   readonly spawn: (
     args: InteractiveShellToolArgs,
-  ) => Effect.Effect<ShellSessionInfo, TerminalConnectError>
+  ) => Effect.Effect<ShellSessionInfo>
 
-  /** Write raw input to a session's PTY */
   readonly write: (
     sessionId: ShellSessionId,
     data: string,
-  ) => Effect.Effect<void, TerminalWriteError | SessionNotFoundError>
+  ) => Effect.Effect<void, SessionNotFoundError>
 
-  /** Resize a session's PTY */
   readonly resize: (
     sessionId: ShellSessionId,
     cols: number,
     rows: number,
-  ) => Effect.Effect<void, TerminalResizeError | SessionNotFoundError>
+  ) => Effect.Effect<void, SessionNotFoundError>
 
-  /** Kill a session */
   readonly kill: (
     sessionId: ShellSessionId,
     signal?: number,
   ) => Effect.Effect<void, SessionNotFoundError>
 
-  /** Get session info */
   readonly getSession: (
     sessionId: ShellSessionId,
   ) => Effect.Effect<ShellSessionInfo, SessionNotFoundError>
 
-  /** List all sessions */
   readonly listSessions: () => Effect.Effect<ReadonlyArray<ShellSessionInfo>>
 
-  /**
-   * Read plain text from session's output buffer.
-   * Agent uses this to inspect terminal output without ANSI codes.
-   * @param lines - Number of tail lines to return (default: all)
-   */
   readonly readOutput: (
     sessionId: ShellSessionId,
     lines?: number,
   ) => Effect.Effect<string, SessionNotFoundError>
 
-  /**
-   * Subscribe to shell events (data, started, exited, error).
-   * The returned stream emits ShellEvents for a specific session.
-   */
-  readonly subscribe: (
-    sessionId: ShellSessionId,
-  ) => Effect.Effect<Stream.Stream<ShellEvent>, SessionNotFoundError>
-
-  /**
-   * Global event stream — all shell events from all sessions.
-   * Used by the WS relay to forward events to the client.
-   */
   readonly events: Stream.Stream<ShellEvent>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Errors
 // ─────────────────────────────────────────────────────────────────────────────
-
-import { Data } from 'effect'
 
 export class SessionNotFoundError extends Data.TaggedError('SessionNotFoundError')<{
   readonly sessionId: string
@@ -151,12 +135,12 @@ export class InteractiveShellService extends Context.Tag(
 const MAX_OUTPUT_BUFFER = 512 * 1024 // 512KB per session
 
 const makeInteractiveShellService = Effect.gen(function* () {
-  const backend = yield* TerminalBackend
+  // Create a serialized worker for PTY operations
+  const worker = yield* Worker.makeSerialized<PtyWorkerMessage>({ size: 1 })
 
-  // Session registry — mutable map
-  let sessions = new Map<string, ShellSession>()
+  const sessions = new Map<string, ShellSession>()
 
-  // Global event emitter via Stream.asyncPush
+  // Global event emitter
   type EmitFn = { single: (event: ShellEvent) => void; end: () => void }
   let globalEmit: EmitFn | null = null
 
@@ -166,10 +150,7 @@ const makeInteractiveShellService = Effect.gen(function* () {
         globalEmit = { single: (e) => emit.single(e), end: () => emit.end() }
         return globalEmit
       }),
-      () =>
-        Effect.sync(() => {
-          globalEmit = null
-        }),
+      () => Effect.sync(() => { globalEmit = null }),
     ),
   )
 
@@ -193,11 +174,11 @@ const makeInteractiveShellService = Effect.gen(function* () {
   const toInfo = (s: ShellSession): ShellSessionInfo => ({
     sessionId: s.id,
     name: s.name,
-    pid: s.handle.pid,
-    shell: 'bash', // Could track from spawn args
-    cwd: process.cwd(),
-    cols: s.handle.cols,
-    rows: s.handle.rows,
+    pid: s.pid,
+    shell: s.shell,
+    cwd: s.cwd,
+    cols: s.cols,
+    rows: s.rows,
     status: s.status,
     createdAt: s.createdAt,
     exitCode: s.exitCode,
@@ -207,101 +188,99 @@ const makeInteractiveShellService = Effect.gen(function* () {
 
   const spawn = (
     args: InteractiveShellToolArgs,
-  ): Effect.Effect<ShellSessionInfo, TerminalConnectError> =>
+  ): Effect.Effect<ShellSessionInfo> =>
     Effect.gen(function* () {
       const id = `shell-${nanoid(8)}` as ShellSessionId
       const cols = args.cols ?? 120
       const rows = args.rows ?? 24
 
-      // Parse command into shell + args
-      // If command looks like a path or single word, treat as shell
-      // Otherwise wrap in bash -c
       const parts = args.command.trim().split(/\s+/)
       const shell = parts.length === 1 ? parts[0]! : (process.env.SHELL || '/bin/bash')
       const shellArgs = parts.length === 1 ? [] : ['-c', args.command]
+      const cwd = args.cwd ?? process.cwd()
 
-      // Create a scope for this session's lifecycle
-      const scope = yield* Scope.make()
+      const session: ShellSession = {
+        id,
+        name: args.name,
+        shell,
+        cwd,
+        cols,
+        rows,
+        createdAt: Date.now(),
+        rawOutputBuffer: '',
+        maxBufferSize: MAX_OUTPUT_BUFFER,
+        status: 'starting',
+        exitCode: undefined,
+        pid: undefined,
+        outputFiber: null,
+      }
+      sessions.set(id as string, session)
 
-      const handle = yield* backend
-        .connect({
-          _tag: 'PtyConfig',
+      // Send PtySpawn to worker — returns a Stream<PtyOutputChunk>
+      const outputStream = worker.execute(
+        new PtySpawn({
+          sessionId: id as string,
           shell,
           args: shellArgs,
-          cwd: args.cwd ?? process.cwd(),
+          cwd,
           cols,
           rows,
-          term: 'xterm-256color',
-        })
-        .pipe(Effect.provideService(Scope.Scope, scope))
+        }),
+      )
 
-      // Bridge output stream → global events + raw buffer
-      const outputFiber = yield* Stream.runForEach(handle.output, (data) =>
+      // Consume the output stream in a background fiber
+      const fiber = yield* Stream.runForEach(outputStream, (chunk) =>
         Effect.sync(() => {
-          const session = sessions.get(id as string)
-          if (session) {
-            // Append to raw buffer (trim if too large)
-            session.rawOutputBuffer += data
-            if (session.rawOutputBuffer.length > session.maxBufferSize) {
-              session.rawOutputBuffer = session.rawOutputBuffer.slice(
-                -session.maxBufferSize,
-              )
+          const s = sessions.get(id as string)
+          if (s) {
+            s.status = 'running'
+            s.rawOutputBuffer += chunk.data
+            if (s.rawOutputBuffer.length > s.maxBufferSize) {
+              s.rawOutputBuffer = s.rawOutputBuffer.slice(-s.maxBufferSize)
             }
           }
 
           emitEvent({
             _tag: 'shell:data',
             sessionId: id,
-            data,
+            data: chunk.data,
           })
         }),
       ).pipe(
-        Effect.catchAll(() => Effect.void),
-        Effect.fork,
-      )
-
-      // Watch for exit
-      yield* handle.exited.pipe(
-        Effect.flatMap((exit) =>
+        // Stream ends when PTY exits
+        Effect.flatMap(() =>
           Effect.sync(() => {
-            const session = sessions.get(id as string)
-            if (session) {
-              session.status = 'exited'
-              session.exitCode = exit.exitCode
+            const s = sessions.get(id as string)
+            if (s && s.status !== 'killed') {
+              s.status = 'exited'
+              s.exitCode = 0 // Worker doesn't provide exit code in stream yet
             }
             emitEvent({
               _tag: 'shell:exited',
               sessionId: id,
-              exitCode: exit.exitCode,
-              signal: typeof exit.signal === 'number' ? exit.signal : undefined,
+              exitCode: 0,
+            })
+          }),
+        ),
+        Effect.catchAll((e) =>
+          Effect.sync(() => {
+            const s = sessions.get(id as string)
+            if (s) s.status = 'error'
+            emitEvent({
+              _tag: 'shell:error',
+              sessionId: id,
+              message: String(e),
             })
           }),
         ),
         Effect.fork,
       )
 
-      const session: ShellSession = {
-        id,
-        name: args.name,
-        handle,
-        scope,
-        createdAt: Date.now(),
-        rawOutputBuffer: '',
-        maxBufferSize: MAX_OUTPUT_BUFFER,
-        status: 'running',
-        exitCode: undefined,
-        outputFiber,
-      }
-
-      sessions.set(id as string, session)
+      session.outputFiber = fiber
+      session.status = 'running'
 
       const info = toInfo(session)
-
-      emitEvent({
-        _tag: 'shell:started',
-        sessionId: id,
-        info,
-      })
+      emitEvent({ _tag: 'shell:started', sessionId: id, info })
 
       return info
     })
@@ -310,16 +289,20 @@ const makeInteractiveShellService = Effect.gen(function* () {
 
   const write = (sessionId: ShellSessionId, data: string) =>
     Effect.gen(function* () {
-      const session = yield* getSessionOrFail(sessionId)
-      yield* session.handle.write(data)
+      yield* getSessionOrFail(sessionId)
+      yield* worker.executeEffect(
+        new PtyWrite({ sessionId: sessionId as string, data }),
+      )
     })
 
   // ── resize ─────────────────────────────────────────────────────────────
 
   const resize = (sessionId: ShellSessionId, cols: number, rows: number) =>
     Effect.gen(function* () {
-      const session = yield* getSessionOrFail(sessionId)
-      yield* session.handle.resize(cols, rows)
+      yield* getSessionOrFail(sessionId)
+      yield* worker.executeEffect(
+        new PtyResize({ sessionId: sessionId as string, cols, rows }),
+      )
     })
 
   // ── kill ───────────────────────────────────────────────────────────────
@@ -328,8 +311,12 @@ const makeInteractiveShellService = Effect.gen(function* () {
     Effect.gen(function* () {
       const session = yield* getSessionOrFail(sessionId)
       session.status = 'killed'
-      yield* session.handle.close(signal?.toString())
-      yield* Scope.close(session.scope, Effect.void)
+      yield* worker.executeEffect(
+        new PtyKill({ sessionId: sessionId as string, signal }),
+      ).pipe(Effect.catchAll(() => Effect.void))
+      if (session.outputFiber) {
+        yield* Fiber.interrupt(session.outputFiber)
+      }
       sessions.delete(sessionId as string)
     })
 
@@ -357,20 +344,6 @@ const makeInteractiveShellService = Effect.gen(function* () {
       return allLines.slice(-lines).join('\n')
     })
 
-  // ── subscribe (per-session filtered stream) ────────────────────────────
-
-  const subscribe = (sessionId: ShellSessionId) =>
-    Effect.gen(function* () {
-      yield* getSessionOrFail(sessionId) // validate exists
-      return pipe(
-        globalEventStream,
-        Stream.filter((e) => {
-          if ('sessionId' in e) return (e as any).sessionId === sessionId
-          return false
-        }),
-      )
-    })
-
   return InteractiveShellService.of({
     spawn,
     write,
@@ -379,16 +352,25 @@ const makeInteractiveShellService = Effect.gen(function* () {
     getSession,
     listSessions,
     readOutput,
-    subscribe,
     events: globalEventStream,
   })
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Layer
+// Layer (provides BunWorker for PTY worker thread)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const InteractiveShellServiceLive = Layer.effect(
+const PtyWorkerLayer = BunWorker.layer(
+  (_id: number) =>
+    new globalThis.Worker(
+      new URL('./pty-worker-runner.ts', import.meta.url).href,
+    ),
+)
+
+export const InteractiveShellServiceLive = Layer.scoped(
   InteractiveShellService,
   makeInteractiveShellService,
-).pipe(Layer.provide(PtyBackendLive))
+).pipe(
+  Layer.provide(PtyWorkerLayer),
+  Layer.provide(Worker.layerManager),
+)
