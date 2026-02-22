@@ -26,7 +26,7 @@
     "pty:server": "bun run scripts/pty-server.ts",
     "cursor:server": "bun run scripts/cursor-server.ts",
     "cursor:cluster": "bun run scripts/cursor-cluster-node.ts",
-    "harness:remote-ws": "bun run scripts/harness-remote-ws-server.ts",
+    "harness:remote-ws": "bash scripts/harness-remote-ws.sh",
     "harness:piai:smoke": "bun run scripts/harness-piai-smoke.ts",
     "task-logs:emit": "bun run scripts/task-log-emitter-sidecar.ts",
     "telegram:agent": "bun run scripts/telegram-agent.ts",
