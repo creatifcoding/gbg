@@ -21,6 +21,12 @@ import {
   type HarnessWsResponseEnvelope,
   type HarnessWsEventEnvelope,
 } from '../HarnessBrowserRemoteSchemas'
+import {
+  InteractiveShellService,
+  InteractiveShellServiceLive,
+  type ShellSessionId,
+  type ShellEvent,
+} from '../interactive-shell'
 
 const WS_PORT = 8787
 const WS_PATH = '/api/harness/ws'
@@ -121,6 +127,53 @@ const handleRemoteWs = Effect.gen(function* () {
     ),
   )
 
+  // ── Interactive shell service + event relay ──────────────────────────
+  const shellServiceResult = yield* Effect.tryPromise({
+    try: () =>
+      Effect.runPromise(
+        InteractiveShellService.pipe(Effect.provide(InteractiveShellServiceLive)),
+      ),
+    catch: (e) => e,
+  }).pipe(Effect.orElseSucceed(() => null))
+
+  const makeShellEventEnvelope = (event: ShellEvent) => ({
+    _tag: 'remote:ws_event' as const,
+    event: {
+      _tag: 'remote:shell_event' as const,
+      event,
+    },
+  })
+
+  // Relay shell events to WS client
+  if (shellServiceResult) {
+    yield* Effect.forkScoped(
+      Stream.runForEach(shellServiceResult.events, (event) =>
+        send(makeShellEventEnvelope(event)),
+      ).pipe(
+        Effect.withSpan('harness.ws.shell-events-loop'),
+        Effect.catchAll((cause) =>
+          Effect.logWarning(`[harness-ws:${wsId}] shell event stream stopped: ${String(cause)}`),
+        ),
+      ),
+    )
+  }
+
+  // Shell service helper functions (no-op if service unavailable)
+  const shellWrite = (sessionId: ShellSessionId, data: string) =>
+    shellServiceResult
+      ? shellServiceResult.write(sessionId, data)
+      : Effect.fail({ _tag: 'SessionNotFoundError' as const, sessionId: sessionId as string, message: 'Shell service unavailable' })
+
+  const shellResize = (sessionId: ShellSessionId, cols: number, rows: number) =>
+    shellServiceResult
+      ? shellServiceResult.resize(sessionId, cols, rows)
+      : Effect.fail({ _tag: 'SessionNotFoundError' as const, sessionId: sessionId as string, message: 'Shell service unavailable' })
+
+  const shellKill = (sessionId: ShellSessionId, signal?: number) =>
+    shellServiceResult
+      ? shellServiceResult.kill(sessionId, signal)
+      : Effect.fail({ _tag: 'SessionNotFoundError' as const, sessionId: sessionId as string, message: 'Shell service unavailable' })
+
   const handleIncomingChunk = Effect.fn('harness.ws.handle-incoming-chunk')(function* (chunk: string | Uint8Array) {
     const raw = typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk)
     const decoded = yield* decodeWsRequest(raw).pipe(Effect.either)
@@ -162,6 +215,20 @@ const handleRemoteWs = Effect.gen(function* () {
           return yield* runtime.getAvailableModels().pipe(
             Effect.map((models) => ({ models })),
           )
+
+        // ── Interactive shell commands ──────────────────────────────────
+        case 'remote:shell_input': {
+          yield* shellWrite(command.sessionId as ShellSessionId, command.data)
+          return {}
+        }
+        case 'remote:shell_resize': {
+          yield* shellResize(command.sessionId as ShellSessionId, command.cols, command.rows)
+          return {}
+        }
+        case 'remote:shell_kill': {
+          yield* shellKill(command.sessionId as ShellSessionId, command.signal)
+          return {}
+        }
       }
     }).pipe(Effect.either)
 

@@ -9,6 +9,13 @@ import {
   HarnessThinkingLevel,
 } from './schemas'
 
+import {
+  ShellInputCommand,
+  ShellResizeCommand,
+  ShellKillCommand,
+  ShellEvent,
+} from './interactive-shell/schemas'
+
 // ── Model catalog schema ────────────────────────────────────────────────────
 export const HarnessModelInfo = Schema.Struct({
   id: Schema.String,
@@ -73,6 +80,10 @@ export const HarnessRemoteCommand = Schema.Union(
   HarnessRemoteAbortCommand,
   HarnessRemoteRespondExtensionUiCommand,
   HarnessRemoteGetModelsCommand,
+  // Interactive shell commands (client → server PTY control)
+  ShellInputCommand,
+  ShellResizeCommand,
+  ShellKillCommand,
 )
 export type HarnessRemoteCommand = typeof HarnessRemoteCommand.Type
 
@@ -96,7 +107,14 @@ export const HarnessRemoteChatV2EventEnvelope = Schema.TaggedStruct('remote:chat
   event: HarnessEvent,
 })
 
-export const HarnessRemoteEventEnvelope = Schema.Union(HarnessRemoteChatV2EventEnvelope)
+export const HarnessRemoteShellEventEnvelope = Schema.TaggedStruct('remote:shell_event', {
+  event: ShellEvent,
+})
+
+export const HarnessRemoteEventEnvelope = Schema.Union(
+  HarnessRemoteChatV2EventEnvelope,
+  HarnessRemoteShellEventEnvelope,
+)
 
 export const HarnessWsRequestEnvelope = Schema.TaggedStruct('remote:ws_request', {
   requestId: Schema.String,

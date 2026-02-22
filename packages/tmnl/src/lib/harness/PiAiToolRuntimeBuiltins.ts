@@ -32,6 +32,15 @@ import { AgentHarnessConfig, AgentHarnessConfigTag } from '@/lib/agents/AgentHar
 import type { ToolStreamChunk } from './schemas'
 import * as path from 'node:path'
 
+// Interactive shell tool
+import {
+  INTERACTIVE_SHELL_TOOL_NAME,
+  interactiveShellToolParameters,
+  executeInteractiveShell,
+  InteractiveShellService,
+  InteractiveShellServiceLive,
+} from './interactive-shell'
+
 // Genifer harness integration
 import { createGeniferTools } from '@/lib/genifer/harness/bridge'
 import { GeniferHarnessServiceTag, GeniferHarnessServiceLive } from '@/lib/genifer/harness/GeniferHarnessService'
@@ -248,6 +257,45 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
         continue
       }
       tools.push(geniferTool as any)
+    }
+
+    // 5. Interactive shell tool (PTY-backed terminal sessions)
+    //    Uses InteractiveShellService which wraps Bun.Terminal.
+    //    The tool executor runs Effect programs — we bridge to Promise for the tool map.
+    const shellService = yield* Effect.tryPromise({
+      try: () =>
+        Effect.runPromise(
+          InteractiveShellService.pipe(
+            Effect.provide(InteractiveShellServiceLive),
+          ),
+        ),
+      catch: (error) => error,
+    }).pipe(
+      Effect.orElseSucceed(() => {
+        console.warn(`[harness] interactive shell service unavailable`)
+        return null
+      }),
+    )
+
+    if (shellService) {
+      tools.push({
+        name: INTERACTIVE_SHELL_TOOL_NAME,
+        description:
+          'Start and interact with interactive terminal sessions. Spawn shells, send input, read output, and kill sessions. Supports long-running processes, interactive programs (vim, htop, etc.), and multi-session management.',
+        parameters: interactiveShellToolParameters as any,
+        execute: (
+          toolCallId: string,
+          params: Record<string, unknown>,
+          signal: AbortSignal | undefined,
+          onUpdate?: (partial: { content: Array<{ type: string; text: string }>; details?: unknown }) => void,
+        ) =>
+          Effect.runPromise(
+            executeInteractiveShell(toolCallId, params, signal, onUpdate).pipe(
+              Effect.provide(InteractiveShellServiceLive),
+            ),
+          ).then((result) => result),
+      } as any)
+      console.info(`[harness] interactive_shell tool registered`)
     }
 
     const map = new Map(tools.map((t) => [t.name, t]))

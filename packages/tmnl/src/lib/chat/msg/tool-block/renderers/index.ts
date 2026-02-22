@@ -38,6 +38,7 @@ export { SchemaAwareRenderer, SchemaAwareHeaderMeta, type SchemaAwareRendererPro
 export { createExtensionToolBridge, type ExtensionToolBridgeShape, type ToolManifest } from './extension-tool-bridge'
 export { ReadToolRenderer, WriteToolRenderer, EditToolRenderer } from './file-renderers'
 export { BashToolRenderer, GrepToolRenderer, FindToolRenderer, LsToolRenderer } from './shell-renderers'
+export { InteractiveShellRenderer, InteractiveShellHeaderMeta } from './interactive-shell-renderer'
 
 // =============================================================================
 // Auto-register built-in SDK tools (single batch — one notification)
@@ -46,6 +47,7 @@ export { BashToolRenderer, GrepToolRenderer, FindToolRenderer, LsToolRenderer } 
 import { registerToolDefinitions } from './registry'
 import { ReadToolRenderer, WriteToolRenderer, EditToolRenderer } from './file-renderers'
 import { BashToolRenderer, GrepToolRenderer, FindToolRenderer, LsToolRenderer } from './shell-renderers'
+import { InteractiveShellRenderer, InteractiveShellHeaderMeta } from './interactive-shell-renderer'
 import {
   ReadHeaderMeta,
   WriteHeaderMeta,
@@ -64,4 +66,5 @@ registerToolDefinitions([
   { name: 'Grep',  aliases: ['grep'],  renderer: GrepToolRenderer,  headerMeta: GrepHeaderMeta },
   { name: 'Find',  aliases: ['find'],  renderer: FindToolRenderer,  headerMeta: FindHeaderMeta },
   { name: 'Ls',    aliases: ['ls'],    renderer: LsToolRenderer,    headerMeta: LsHeaderMeta },
+  { name: 'interactive_shell', renderer: InteractiveShellRenderer, headerMeta: InteractiveShellHeaderMeta },
 ])
