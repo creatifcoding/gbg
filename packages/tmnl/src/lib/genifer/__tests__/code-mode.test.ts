@@ -362,6 +362,6 @@ describe('Code Mode SDK', () => {
     const tools = createGeniferTools(service, 'test-code-mode')
     const codeModeTool = tools.find((t) => t.name === 'genifer_code')
     expect(codeModeTool).toBeDefined()
-    expect(tools.length).toBe(7) // 3 core + 3 meta + 1 code
+    expect(tools.length).toBe(8) // 3 core + 3 meta + 1 code + 1 export
   })
 })

@@ -35,6 +35,7 @@ import {
   createGeniferDefineEventTool,
   createGeniferDefineToolTool,
   createGeniferCodeTool,
+  createGeniferExportExtensionTool,
 } from './tools'
 import { executeCodeMode } from '../code-mode/executor'
 import {
@@ -322,5 +323,64 @@ export function createGeniferTools(
     },
   })
 
-  return [generateTool, refineTool, queryTool, defineRpcTool, defineEventTool, defineToolTool, codeTool]
+  const exportTool = createGeniferExportExtensionTool({
+    async execute(_callId, params) {
+      try {
+        const surface = service.getSurface(params.surfaceId)
+        if (!surface) {
+          return {
+            content: [{ type: 'text', text: `Surface '${params.surfaceId}' not found. Use genifer_generate first.` }],
+            details: { name: params.name, surfaceId: params.surfaceId, bundled: { rpcs: 0, events: 0, tools: 0, atoms: 0, elements: 0 } },
+          }
+        }
+
+        // Count what we're bundling
+        const { getDynamicRpcs } = await import('../services/DynamicRpcService')
+        const { getDynamicEventDefinitions } = await import('../services/DynamicEventService')
+        const { getDynamicTools: getCodeTools } = await import('../code-mode/sandbox')
+
+        const rpcs = (params.includeRpcs !== false) ? getDynamicRpcs() : new Map()
+        const events = (params.includeEvents !== false) ? getDynamicEventDefinitions() : new Map()
+        const tools = (params.includeTools !== false) ? getCodeTools() : new Map()
+        const elementCount = surface.treeSnapshot
+          ? Object.keys(surface.treeSnapshot.elements ?? {}).length
+          : 0
+
+        const bundled = {
+          rpcs: rpcs.size,
+          events: events.size,
+          tools: tools.size,
+          atoms: 0, // TODO: if includeAtoms, count session atoms
+          elements: elementCount,
+        }
+
+        // Build extension manifest (portable JSON)
+        const manifest = {
+          name: params.name,
+          description: params.description ?? '',
+          version: '0.1.0',
+          surfaceId: params.surfaceId,
+          surface: surface.treeSnapshot,
+          registrations: {
+            rpcs: params.includeRpcs !== false ? Array.from(rpcs.entries()).map(([tag, def]) => ({ tag, description: (def as any).description ?? '' })) : [],
+            events: params.includeEvents !== false ? Array.from(events.entries()).map(([tag, def]) => ({ tag, description: (def as any).description ?? '' })) : [],
+            tools: params.includeTools !== false ? Array.from(tools.entries()).map(([name, spec]) => ({ name, label: spec.label, description: spec.description })) : [],
+          },
+          exportedAt: Date.now(),
+        }
+
+        return {
+          content: [{ type: 'text', text: `Extension '${params.name}' bundled: ${bundled.elements} elements, ${bundled.rpcs} RPCs, ${bundled.events} events, ${bundled.tools} tools.\n\nManifest:\n${JSON.stringify(manifest, null, 2).slice(0, 2000)}` }],
+          details: { name: params.name, surfaceId: params.surfaceId, bundled },
+        }
+      } catch (e) {
+        return {
+          content: [{ type: 'text', text: `Export failed: ${e instanceof Error ? e.message : e}` }],
+          details: { name: params.name, surfaceId: params.surfaceId, bundled: { rpcs: 0, events: 0, tools: 0, atoms: 0, elements: 0 } },
+        }
+      }
+    },
+  })
+
+  return [generateTool, refineTool, queryTool, defineRpcTool, defineEventTool, defineToolTool, codeTool, exportTool]
 }

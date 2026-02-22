@@ -413,3 +413,67 @@ Use \`expose\` to register the result as a reusable capability:
     },
   }
 }
+
+// =============================================================================
+// Meta-Tool: genifer_export_extension
+// =============================================================================
+
+export const GeniferExportExtensionParams = Type.Object({
+  surfaceId: Type.String({
+    description: 'Surface ID to bundle (contains the tree, bindings, and actions)',
+  }),
+  name: Type.String({
+    description: 'Extension name (e.g., "flight-search-dashboard")',
+  }),
+  description: Type.Optional(Type.String({
+    description: 'Extension description',
+  })),
+  includeRpcs: Type.Optional(Type.Boolean({
+    description: 'Include dynamic RPCs registered during this session (default: true)',
+    default: true,
+  })),
+  includeEvents: Type.Optional(Type.Boolean({
+    description: 'Include dynamic events registered during this session (default: true)',
+    default: true,
+  })),
+  includeTools: Type.Optional(Type.Boolean({
+    description: 'Include dynamic tools registered during this session (default: true)',
+    default: true,
+  })),
+  includeAtoms: Type.Optional(Type.Boolean({
+    description: 'Include session-scoped atoms (default: false)',
+    default: false,
+  })),
+})
+export type GeniferExportExtensionParams = Static<typeof GeniferExportExtensionParams>
+
+export interface GeniferExportExtensionDetails {
+  readonly name: string
+  readonly surfaceId: string
+  readonly bundled: {
+    readonly rpcs: number
+    readonly events: number
+    readonly tools: number
+    readonly atoms: number
+    readonly elements: number
+  }
+}
+
+export function createGeniferExportExtensionTool(bridge: {
+  execute: (
+    callId: string,
+    params: GeniferExportExtensionParams,
+  ) => Promise<{ content: Array<{ type: string; text: string }>; details?: GeniferExportExtensionDetails }>
+}): ToolDefinition<typeof GeniferExportExtensionParams, GeniferExportExtensionDetails> {
+  return {
+    name: 'genifer_export_extension',
+    label: 'Export Extension',
+    description: `Bundle a genifer surface with its registered RPCs, events, tools, and state into a portable pi extension. The extension can be installed in other sessions or shared with other users.
+
+The surface contains the full UI tree, data bindings, and action bindings. Dynamic registrations (RPCs, events, tools) from the current session are included by default.`,
+    parameters: GeniferExportExtensionParams,
+    async execute(toolCallId, params, _signal, _onUpdate, _ctx) {
+      return bridge.execute(toolCallId, params)
+    },
+  }
+}
