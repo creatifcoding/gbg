@@ -1,12 +1,16 @@
 /**
- * PtyBackend — Local PTY terminal backend using bun-pty
+ * PtyBackend — Local PTY terminal backend using Bun.Terminal (native)
  *
- * Implements TerminalBackend using @zenyr/bun-pty.
- * Spawns local shell processes with full PTY support.
+ * Implements TerminalBackend using Bun's built-in Bun.Terminal API (added in Bun 1.3.5).
+ * Zero native addon dependencies — no node-pty, no @zenyr/bun-pty, no node-gyp.
+ *
+ * Bun.Terminal spawns a real pseudo-terminal (PTY) with proper cols/rows,
+ * TERM env, and bidirectional data flow via the `data` callback and `write()`.
+ *
+ * @module terminal/backend/PtyBackend
  */
 
 import { Effect, Layer, Stream, Scope, Deferred } from 'effect'
-import { spawn as bunPtySpawn } from '@zenyr/bun-pty'
 import { nanoid } from 'nanoid'
 import {
   TerminalBackend,
@@ -16,30 +20,23 @@ import {
   TerminalConnectError,
   TerminalWriteError,
   TerminalResizeError,
-  TerminalStreamError,
 } from './TerminalBackend'
 import { PtyConfig } from './schemas'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PTY Backend Implementation
+// Default shell detection
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Get default shell with zsh preference.
- * Uses $SHELL env var, falls back to zsh, then bash.
- */
 function getDefaultShell(): string {
   if (process.platform === 'win32') {
     return 'powershell.exe'
   }
-  // User's configured shell is best
-  const userShell = process.env.SHELL
-  if (userShell) {
-    return userShell
-  }
-  // Default: prefer zsh
-  return 'zsh'
+  return process.env.SHELL || '/bin/bash'
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PTY Backend Implementation (Bun.Terminal)
+// ─────────────────────────────────────────────────────────────────────────────
 
 const makePtyBackend = Effect.gen(function* () {
   const connect = (config: typeof PtyConfig.Type): Effect.Effect<
@@ -54,15 +51,52 @@ const makePtyBackend = Effect.gen(function* () {
       const cols = config.cols ?? 80
       const rows = config.rows ?? 24
 
-      // Spawn PTY
-      const pty = yield* Effect.try({
+      // Create exit deferred
+      const exitDeferred = yield* Deferred.make<TerminalExit>()
+
+      // Build environment
+      const env: Record<string, string> = {
+        ...process.env as Record<string, string>,
+        TERM: config.term ?? 'xterm-256color',
+        COLORTERM: 'truecolor',
+      }
+      if (config.env) {
+        Object.assign(env, config.env)
+      }
+
+      // Create output stream using Stream.asyncPush
+      // The data callback from Bun.Terminal will push into this stream
+      let emitFn: ((data: string) => void) | null = null
+      let endFn: (() => void) | null = null
+
+      const outputStream = Stream.asyncPush<string>((emit) =>
+        Effect.acquireRelease(
+          Effect.sync(() => {
+            emitFn = (data: string) => emit.single(data)
+            endFn = () => emit.end()
+            return { emitFn, endFn }
+          }),
+          () =>
+            Effect.sync(() => {
+              emitFn = null
+              endFn = null
+            }),
+        ),
+      )
+
+      // Spawn with Bun.Terminal
+      const proc = yield* Effect.try({
         try: () =>
-          bunPtySpawn(shell, args, {
-            name: config.term ?? 'xterm-256color',
-            cols,
-            rows,
-            cwd: config.cwd,
-            env: config.env as Record<string, string> | undefined,
+          Bun.spawn([shell, ...args], {
+            cwd: config.cwd ?? process.cwd(),
+            env,
+            terminal: {
+              cols,
+              rows,
+              data(_term: unknown, data: string) {
+                emitFn?.(data)
+              },
+            },
           }),
         catch: (e) =>
           new TerminalConnectError({
@@ -72,63 +106,45 @@ const makePtyBackend = Effect.gen(function* () {
           }),
       })
 
-      // Create deferred for exit tracking
-      const exitDeferred = yield* Deferred.make<TerminalExit>()
-
-      // Create output stream using Stream.asyncPush
-      const outputStream = Stream.asyncPush<string, TerminalStreamError>((emit) =>
-        Effect.acquireRelease(
-          Effect.sync(() => {
-            // Register onData callback
-            const dataDisposable = pty.onData((data) => {
-              emit.single(data)
-            })
-
-            // Register onExit callback
-            const exitDisposable = pty.onExit((event) => {
-              Effect.runSync(
-                Deferred.succeed(exitDeferred, {
-                  exitCode: event.exitCode,
-                  signal: event.signal,
-                  reason: 'exit' as const,
-                })
-              )
-              emit.end()
-            })
-
-            return { dataDisposable, exitDisposable }
+      // Watch for exit in background
+      void proc.exited.then((exitCode: number) => {
+        Effect.runSync(
+          Deferred.succeed(exitDeferred, {
+            exitCode,
+            reason: 'exit' as const,
           }),
-          ({ dataDisposable, exitDisposable }) =>
-            Effect.sync(() => {
-              dataDisposable.dispose()
-              exitDisposable.dispose()
-            })
         )
-      )
+        endFn?.()
+      })
 
       // Register cleanup on scope finalization
       yield* Effect.addFinalizer(() =>
         Effect.sync(() => {
           try {
-            pty.kill()
+            proc.kill()
           } catch {
-            // Already dead, ignore
+            // Already dead
           }
-        })
+          try {
+            proc.terminal?.close()
+          } catch {
+            // Already closed
+          }
+        }),
       )
 
       // Build handle
       const handle: TerminalHandle = {
         id,
         backend: 'pty',
-        cols: pty.cols,
-        rows: pty.rows,
-        pid: pty.pid,
+        cols,
+        rows,
+        pid: proc.pid,
 
         write: (data: string) =>
           Effect.try({
             try: () => {
-              pty.write(data)
+              proc.terminal!.write(data)
             },
             catch: (e) =>
               new TerminalWriteError({
@@ -140,7 +156,7 @@ const makePtyBackend = Effect.gen(function* () {
         resize: (newCols: number, newRows: number) =>
           Effect.try({
             try: () => {
-              pty.resize(newCols, newRows)
+              proc.terminal!.resize(newCols, newRows)
             },
             catch: (e) =>
               new TerminalResizeError({
@@ -151,7 +167,11 @@ const makePtyBackend = Effect.gen(function* () {
 
         close: (signal?: string) =>
           Effect.sync(() => {
-            pty.kill(signal)
+            try {
+              proc.kill(signal ? (parseInt(signal) || 9) : undefined)
+            } catch {
+              // Already dead
+            }
           }),
 
         output: outputStream,
@@ -164,7 +184,7 @@ const makePtyBackend = Effect.gen(function* () {
 
   return {
     connect: (config) => {
-      // Validate config is PTY type (or treat as default PTY if no _tag)
+      // Validate config is PTY type
       if (!('host' in config)) {
         return connect(config as typeof PtyConfig.Type)
       }
@@ -172,7 +192,7 @@ const makePtyBackend = Effect.gen(function* () {
         new TerminalConnectError({
           reason: 'InvalidConfig',
           message: 'Expected PtyConfig but received SshConfig',
-        })
+        }),
       )
     },
     type: 'pty' as const,
