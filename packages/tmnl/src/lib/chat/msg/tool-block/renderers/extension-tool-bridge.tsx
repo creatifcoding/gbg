@@ -154,13 +154,14 @@ export function createExtensionToolBridge(): ExtensionToolBridgeShape {
 function createSchemaAwareRenderer(
   tool: ToolManifestEntry,
 ): ComponentType<ToolRendererProps> {
-  const BoundRenderer: ComponentType<ToolRendererProps> = (props) =>
-    SchemaAwareRenderer({
-      ...props,
-      toolName: tool.name,
-      toolDescription: tool.description,
-      toolParameters: tool.parameters,
-    })
+  const BoundRenderer: ComponentType<ToolRendererProps> = (props) => (
+    <SchemaAwareRenderer
+      {...props}
+      toolName={tool.name}
+      toolDescription={tool.description}
+      toolParameters={tool.parameters}
+    />
+  )
   BoundRenderer.displayName = `SchemaAware(${tool.name})`
   return BoundRenderer
 }
@@ -171,13 +172,14 @@ function createSchemaAwareRenderer(
 function createSchemaAwareHeaderMeta(
   tool: ToolManifestEntry,
 ): ComponentType<ToolRendererProps> {
-  const BoundMeta: ComponentType<ToolRendererProps> = (props) =>
-    SchemaAwareHeaderMeta({
-      ...props,
-      toolName: tool.name,
-      toolDescription: tool.description,
-      toolParameters: tool.parameters,
-    })
+  const BoundMeta: ComponentType<ToolRendererProps> = (props) => (
+    <SchemaAwareHeaderMeta
+      {...props}
+      toolName={tool.name}
+      toolDescription={tool.description}
+      toolParameters={tool.parameters}
+    />
+  )
   BoundMeta.displayName = `SchemaAwareMeta(${tool.name})`
   return BoundMeta
 }
