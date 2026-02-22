@@ -42,6 +42,142 @@ export interface MermaidBlockProps {
 }
 
 // =============================================================================
+// MermaidCanvas — zoom/pan interactive SVG viewer
+// =============================================================================
+
+const MIN_SCALE = 0.25
+const MAX_SCALE = 4
+const ZOOM_SENSITIVITY = 0.0015
+
+const MermaidCanvas = memo(function MermaidCanvas({ svgHtml }: { svgHtml: string }) {
+  const canvasRef = useRef<HTMLDivElement>(null)
+  const innerRef = useRef<HTMLDivElement>(null)
+
+  const [scale, setScale] = useState(1)
+  const [translate, setTranslate] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 })
+
+  // ── Wheel zoom (toward cursor) ─────────────────────────
+  useEffect(() => {
+    const el = canvasRef.current
+    if (!el) return
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const rect = el.getBoundingClientRect()
+      const mx = e.clientX - rect.left - rect.width / 2
+      const my = e.clientY - rect.top - rect.height / 2
+
+      setScale(prev => {
+        const delta = -e.deltaY * ZOOM_SENSITIVITY
+        const next = Math.max(MIN_SCALE, Math.min(MAX_SCALE, prev * (1 + delta)))
+        const factor = next / prev
+        setTranslate(t => ({
+          x: mx - (mx - t.x) * factor,
+          y: my - (my - t.y) * factor,
+        }))
+        return next
+      })
+    }
+
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
+
+  // ── Drag pan ────────────────────────────────────────────
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.button !== 0) return
+    setIsDragging(true)
+    dragStart.current = { x: e.clientX, y: e.clientY, tx: translate.x, ty: translate.y }
+    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+  }, [translate])
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging) return
+    setTranslate({
+      x: dragStart.current.tx + (e.clientX - dragStart.current.x),
+      y: dragStart.current.ty + (e.clientY - dragStart.current.y),
+    })
+  }, [isDragging])
+
+  const onPointerUp = useCallback(() => {
+    setIsDragging(false)
+  }, [])
+
+  // ── Reset ───────────────────────────────────────────────
+  const handleReset = useCallback(() => {
+    setScale(1)
+    setTranslate({ x: 0, y: 0 })
+  }, [])
+
+  const isTransformed = scale !== 1 || translate.x !== 0 || translate.y !== 0
+
+  return (
+    <div className="relative">
+      {/* Canvas area */}
+      <div
+        ref={canvasRef}
+        className="overflow-hidden"
+        style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      >
+        <div
+          ref={innerRef}
+          className={cn(
+            'flex items-center justify-center select-none',
+            '[&>svg]:w-full [&>svg]:h-auto [&>svg]:max-h-[500px]',
+            '[&>svg]:p-4',
+          )}
+          style={{
+            transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
+            transformOrigin: 'center center',
+            transition: isDragging ? 'none' : 'transform 150ms ease-out',
+          }}
+          dangerouslySetInnerHTML={{ __html: svgHtml }}
+        />
+      </div>
+
+      {/* Zoom controls — bottom-right, appear on hover */}
+      <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover/mermaid:opacity-100 transition-opacity duration-150">
+        {/* Zoom percentage / reset */}
+        <button
+          type="button"
+          onClick={handleReset}
+          title="Reset zoom"
+          className={cn(
+            'px-1.5 py-0.5 rounded font-mono tabular-nums',
+            'transition-colors duration-150 ease-out',
+            'bg-neutral-900/80 border border-neutral-800',
+            isTransformed
+              ? 'text-cyan-400 hover:text-cyan-300'
+              : 'text-neutral-600',
+          )}
+          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        >
+          {Math.round(scale * 100)}%
+        </button>
+      </div>
+
+      {/* Hint — bottom-left, faint */}
+      <div
+        className="absolute bottom-2 left-2 flex items-center gap-1.5 opacity-0 group-hover/mermaid:opacity-100 transition-opacity duration-150 pointer-events-none text-neutral-700"
+        style={{ fontSize: '10px' }}
+      >
+        <span>scroll to zoom</span>
+        <span>·</span>
+        <span>drag to pan</span>
+      </div>
+    </div>
+  )
+})
+
+MermaidCanvas.displayName = 'MermaidCanvas'
+
+// =============================================================================
 // Lazy import — beautiful-mermaid is async (layout engine)
 // =============================================================================
 
@@ -302,18 +438,9 @@ export const MermaidBlockRoot = memo(function MermaidBlockRoot({
         </div>
       </div>
 
-      {/* ── SVG diagram ────────────────────────────────── */}
+      {/* ── SVG diagram with zoom/pan ─────────────────── */}
       {svgHtml && (
-        <div
-          ref={containerRef}
-          className={cn(
-            'overflow-auto',
-            // SVG fills container width, height auto
-            '[&>svg]:w-full [&>svg]:h-auto [&>svg]:max-h-[500px]',
-            '[&>svg]:p-4',
-          )}
-          dangerouslySetInnerHTML={{ __html: svgHtml }}
-        />
+        <MermaidCanvas svgHtml={svgHtml} />
       )}
 
       {/* ── Loading state (between streaming end and render complete) ── */}
