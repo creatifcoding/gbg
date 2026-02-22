@@ -24,7 +24,7 @@ import { ChatToolBlockContent, type ChatToolBlockContentProps } from './tool-blo
 import { ChatToolBlockInput, type ChatToolBlockInputProps } from './tool-block-input'
 import { ChatToolBlockOutput, type ChatToolBlockOutputProps } from './tool-block-output'
 import { ChatToolBlockApproval, type ChatToolBlockApprovalProps } from './tool-block-approval'
-import { getToolRenderer, GenericToolRenderer } from './renderers'
+import { useToolRendererComponent, GenericToolRenderer } from './renderers'
 
 // =============================================================================
 // Convenience wrapper
@@ -47,8 +47,8 @@ function ChatToolBlockConvenience({
     return <ChatToolBlockRoot {...rootProps}>{children}</ChatToolBlockRoot>
   }
 
-  // Check for specialized renderer
-  const SpecializedRenderer = getToolRenderer(rootProps.toolName)
+  // Reactive lookup — re-renders when extensions register new renderers
+  const SpecializedRenderer = useToolRendererComponent(rootProps.toolName)
   const Renderer = SpecializedRenderer ?? GenericToolRenderer
 
   return (

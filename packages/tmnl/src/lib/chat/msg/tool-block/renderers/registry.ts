@@ -1,18 +1,44 @@
 /**
- * Tool Renderer Registry — dispatches tool output rendering by toolName.
+ * Tool Renderer Registry — reactive, extensible dispatch for tool rendering.
  *
- * Each SDK tool (read, bash, edit, write, grep, find, ls) can register:
- * - A **renderer** — the expanded detail view
- * - A **header meta** — a small component rendered inline in the collapsed
- *   tool-block header. Receives the same props. Renderer decides what to
- *   surface (file path, command, pattern, line range — anything).
+ * **Extension-ready**: Any code (barrel imports, pi extensions, MCP tool
+ * discovery, consumer components) can register renderers at any time. React
+ * components subscribing via `useToolRenderer()` re-render automatically.
  *
- * Unknown tools fall back to GenericToolRenderer with no header meta.
+ * Backed by `useSyncExternalStore` — no effect-atom dependency. The registry
+ * is infrastructure, not domain state.
+ *
+ * ## Registration
+ *
+ * ```ts
+ * // Single call — renderer + header meta bundled
+ * registerToolRenderer('Read', ReadToolRenderer, ReadHeaderMeta)
+ *
+ * // Definition object — cleaner for extensions
+ * registerToolDefinition({
+ *   name: 'my-custom-tool',
+ *   aliases: ['MyCustomTool'],
+ *   renderer: MyCustomRenderer,
+ *   headerMeta: MyCustomHeaderMeta,
+ * })
+ * ```
+ *
+ * ## Consumption
+ *
+ * ```tsx
+ * // Reactive hook — re-renders when registry changes
+ * const entry = useToolRenderer('Read')
+ * const Renderer = entry?.renderer ?? GenericToolRenderer
+ * const HeaderMeta = entry?.headerMeta
+ *
+ * // Static lookup (non-React, barrel imports, SSR)
+ * const Renderer = getToolRenderer('Read')
+ * ```
  *
  * @module chat/msg/tool-block/renderers/registry
  */
 
-import type { ComponentType } from 'react'
+import { type ComponentType, useSyncExternalStore } from 'react'
 
 // =============================================================================
 // Renderer Props Contract
@@ -32,25 +58,62 @@ export interface ToolRendererProps {
 }
 
 // =============================================================================
-// Registry
+// Entry + Definition shapes
 // =============================================================================
 
-// =============================================================================
-// Registration entry — renderer + optional header meta
-// =============================================================================
-
-interface ToolRendererEntry {
-  renderer: ComponentType<ToolRendererProps>
-  headerMeta: ComponentType<ToolRendererProps> | null
+export interface ToolRendererEntry {
+  readonly renderer: ComponentType<ToolRendererProps>
+  readonly headerMeta: ComponentType<ToolRendererProps> | null
 }
 
+/**
+ * Extension-friendly definition object. Bundle renderer + header meta +
+ * name aliases in a single declaration.
+ */
+export interface ToolRendererDefinition {
+  /** Primary tool name (used as registry key) */
+  readonly name: string
+  /** Additional names that resolve to the same renderer (e.g. cased variants) */
+  readonly aliases?: readonly string[]
+  /** Expanded detail renderer */
+  readonly renderer: ComponentType<ToolRendererProps>
+  /** Collapsed header metadata component (optional) */
+  readonly headerMeta?: ComponentType<ToolRendererProps>
+}
+
+// =============================================================================
+// Reactive store (useSyncExternalStore compatible)
+// =============================================================================
+
 const entries = new Map<string, ToolRendererEntry>()
+const listeners = new Set<() => void>()
+let snapshot = 0
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => { listeners.delete(listener) }
+}
+
+function getSnapshot(): number {
+  return snapshot
+}
+
+// SSR: same as client — registry is module-scoped singleton
+const getServerSnapshot = getSnapshot
+
+function notify(): void {
+  snapshot++
+  listeners.forEach(fn => fn())
+}
+
+// =============================================================================
+// Registration API
+// =============================================================================
 
 /**
- * Register a tool renderer — and optionally its header meta in the same call.
+ * Register a tool renderer — and optionally its header meta.
  *
- * HeaderMeta is a small component rendered inline in the collapsed tool-block
- * header. Each tool decides what contextual metadata to surface there.
+ * Triggers reactive update: components using `useToolRenderer()` re-render.
  *
  * ```ts
  * registerToolRenderer('Read', ReadToolRenderer, ReadHeaderMeta)
@@ -62,21 +125,72 @@ export function registerToolRenderer(
   headerMeta?: ComponentType<ToolRendererProps>,
 ): void {
   entries.set(toolName, { renderer, headerMeta: headerMeta ?? null })
+  notify()
 }
 
-/** @deprecated Use the 3-arg registerToolRenderer. Kept for incremental migration. */
-export function registerToolHeaderMeta(
-  toolName: string,
-  component: ComponentType<ToolRendererProps>,
-): void {
-  const existing = entries.get(toolName)
-  if (existing) {
-    existing.headerMeta = component
-  } else {
-    // Shouldn't happen — renderer should be registered first
-    entries.set(toolName, { renderer: component, headerMeta: component })
+/**
+ * Register from a definition object — cleaner for extensions.
+ *
+ * Automatically registers all aliases to the same entry.
+ *
+ * ```ts
+ * registerToolDefinition({
+ *   name: 'my-tool',
+ *   aliases: ['MyTool', 'MY_TOOL'],
+ *   renderer: MyToolRenderer,
+ *   headerMeta: MyToolHeaderMeta,
+ * })
+ * ```
+ */
+export function registerToolDefinition(def: ToolRendererDefinition): void {
+  const entry: ToolRendererEntry = {
+    renderer: def.renderer,
+    headerMeta: def.headerMeta ?? null,
   }
+  entries.set(def.name, entry)
+  if (def.aliases) {
+    for (const alias of def.aliases) {
+      entries.set(alias, entry)
+    }
+  }
+  notify()
 }
+
+/**
+ * Unregister a tool renderer (and all its aliases).
+ *
+ * Useful for extension teardown / hot-reload.
+ */
+export function unregisterToolRenderer(toolName: string): boolean {
+  const existed = entries.delete(toolName)
+  if (existed) notify()
+  return existed
+}
+
+/**
+ * Batch-register multiple definitions without triggering per-item re-renders.
+ *
+ * Single notification at the end.
+ */
+export function registerToolDefinitions(defs: readonly ToolRendererDefinition[]): void {
+  for (const def of defs) {
+    const entry: ToolRendererEntry = {
+      renderer: def.renderer,
+      headerMeta: def.headerMeta ?? null,
+    }
+    entries.set(def.name, entry)
+    if (def.aliases) {
+      for (const alias of def.aliases) {
+        entries.set(alias, entry)
+      }
+    }
+  }
+  notify()
+}
+
+// =============================================================================
+// Static lookups (non-React, barrel imports, render-time)
+// =============================================================================
 
 /** Get the renderer for a tool name, or null for generic fallback */
 export function getToolRenderer(
@@ -92,7 +206,83 @@ export function getToolHeaderMeta(
   return entries.get(toolName)?.headerMeta ?? null
 }
 
+/** Get the full entry (renderer + headerMeta), or null */
+export function getToolRendererEntry(
+  toolName: string,
+): ToolRendererEntry | null {
+  return entries.get(toolName) ?? null
+}
+
 /** Check if a tool has a specialized renderer */
 export function hasToolRenderer(toolName: string): boolean {
   return entries.has(toolName)
+}
+
+/** Get all registered tool names */
+export function getRegisteredToolNames(): readonly string[] {
+  return [...entries.keys()]
+}
+
+// =============================================================================
+// React hooks (reactive — re-render on registry changes)
+// =============================================================================
+
+/**
+ * Subscribe to the full registry entry for a tool.
+ *
+ * Re-renders when any renderer is registered/unregistered.
+ *
+ * ```tsx
+ * const entry = useToolRenderer('Read')
+ * const Renderer = entry?.renderer ?? GenericToolRenderer
+ * const HeaderMeta = entry?.headerMeta // nullable
+ * ```
+ */
+export function useToolRenderer(
+  toolName: string,
+): ToolRendererEntry | null {
+  useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  return entries.get(toolName) ?? null
+}
+
+/**
+ * Subscribe to the renderer component for a tool.
+ *
+ * Convenience — returns just the renderer, not the full entry.
+ */
+export function useToolRendererComponent(
+  toolName: string,
+): ComponentType<ToolRendererProps> | null {
+  useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  return entries.get(toolName)?.renderer ?? null
+}
+
+/**
+ * Subscribe to the header meta component for a tool.
+ *
+ * Convenience — returns just the header meta, not the full entry.
+ */
+export function useToolHeaderMeta(
+  toolName: string,
+): ComponentType<ToolRendererProps> | null {
+  useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+  return entries.get(toolName)?.headerMeta ?? null
+}
+
+// =============================================================================
+// Deprecated — kept for backward compat
+// =============================================================================
+
+/** @deprecated Use registerToolRenderer(name, renderer, headerMeta) or registerToolDefinition(). */
+export function registerToolHeaderMeta(
+  toolName: string,
+  component: ComponentType<ToolRendererProps>,
+): void {
+  const existing = entries.get(toolName)
+  if (existing) {
+    entries.set(toolName, { ...existing, headerMeta: component })
+  } else {
+    entries.set(toolName, { renderer: component, headerMeta: component })
+  }
+  notify()
 }

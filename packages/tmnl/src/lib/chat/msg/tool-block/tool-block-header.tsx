@@ -25,7 +25,7 @@ import {
 } from 'lucide-react'
 import type { ToolInvocationState } from '@/lib/morphchat/schemas/message-types'
 import { useChatToolBlock } from './tool-block-context'
-import { getToolHeaderMeta } from './renderers/registry'
+import { useToolRenderer } from './renderers/registry'
 
 // =============================================================================
 // State config
@@ -80,8 +80,9 @@ export const ChatToolBlockHeader = memo(forwardRef<HTMLButtonElement, ChatToolBl
     const config = STATE_CONFIG[state]
     const StateIcon = config.icon
 
-    // Look up registered header meta for this tool
-    const HeaderMeta = getToolHeaderMeta(toolName)
+    // Reactive lookup — re-renders when extensions register new renderers
+    const entry = useToolRenderer(toolName)
+    const HeaderMeta = entry?.headerMeta ?? null
 
     return (
       <button

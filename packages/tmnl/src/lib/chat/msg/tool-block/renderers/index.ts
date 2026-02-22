@@ -11,12 +11,26 @@
  */
 
 export {
+  // Registration
   registerToolRenderer,
+  registerToolDefinition,
+  registerToolDefinitions,
+  unregisterToolRenderer,
   registerToolHeaderMeta,
+  // Static lookups
   getToolRenderer,
   getToolHeaderMeta,
+  getToolRendererEntry,
   hasToolRenderer,
+  getRegisteredToolNames,
+  // React hooks (reactive)
+  useToolRenderer,
+  useToolRendererComponent,
+  useToolHeaderMeta,
+  // Types
   type ToolRendererProps,
+  type ToolRendererEntry,
+  type ToolRendererDefinition,
 } from './registry'
 
 export { GenericToolRenderer } from './generic-renderer'
@@ -24,10 +38,10 @@ export { ReadToolRenderer, WriteToolRenderer, EditToolRenderer } from './file-re
 export { BashToolRenderer, GrepToolRenderer, FindToolRenderer, LsToolRenderer } from './shell-renderers'
 
 // =============================================================================
-// Auto-register: renderer + header meta in one call per tool
+// Auto-register built-in SDK tools (single batch — one notification)
 // =============================================================================
 
-import { registerToolRenderer } from './registry'
+import { registerToolDefinitions } from './registry'
 import { ReadToolRenderer, WriteToolRenderer, EditToolRenderer } from './file-renderers'
 import { BashToolRenderer, GrepToolRenderer, FindToolRenderer, LsToolRenderer } from './shell-renderers'
 import {
@@ -40,23 +54,12 @@ import {
   LsHeaderMeta,
 } from './header-metas'
 
-registerToolRenderer('Read',  ReadToolRenderer,  ReadHeaderMeta)
-registerToolRenderer('read',  ReadToolRenderer,  ReadHeaderMeta)
-
-registerToolRenderer('Write', WriteToolRenderer, WriteHeaderMeta)
-registerToolRenderer('write', WriteToolRenderer, WriteHeaderMeta)
-
-registerToolRenderer('Edit',  EditToolRenderer,  EditHeaderMeta)
-registerToolRenderer('edit',  EditToolRenderer,  EditHeaderMeta)
-
-registerToolRenderer('Bash',  BashToolRenderer,  BashHeaderMeta)
-registerToolRenderer('bash',  BashToolRenderer,  BashHeaderMeta)
-
-registerToolRenderer('Grep',  GrepToolRenderer,  GrepHeaderMeta)
-registerToolRenderer('grep',  GrepToolRenderer,  GrepHeaderMeta)
-
-registerToolRenderer('Find',  FindToolRenderer,  FindHeaderMeta)
-registerToolRenderer('find',  FindToolRenderer,  FindHeaderMeta)
-
-registerToolRenderer('Ls',    LsToolRenderer,    LsHeaderMeta)
-registerToolRenderer('ls',    LsToolRenderer,    LsHeaderMeta)
+registerToolDefinitions([
+  { name: 'Read',  aliases: ['read'],  renderer: ReadToolRenderer,  headerMeta: ReadHeaderMeta },
+  { name: 'Write', aliases: ['write'], renderer: WriteToolRenderer, headerMeta: WriteHeaderMeta },
+  { name: 'Edit',  aliases: ['edit'],  renderer: EditToolRenderer,  headerMeta: EditHeaderMeta },
+  { name: 'Bash',  aliases: ['bash'],  renderer: BashToolRenderer,  headerMeta: BashHeaderMeta },
+  { name: 'Grep',  aliases: ['grep'],  renderer: GrepToolRenderer,  headerMeta: GrepHeaderMeta },
+  { name: 'Find',  aliases: ['find'],  renderer: FindToolRenderer,  headerMeta: FindHeaderMeta },
+  { name: 'Ls',    aliases: ['ls'],    renderer: LsToolRenderer,    headerMeta: LsHeaderMeta },
+])
