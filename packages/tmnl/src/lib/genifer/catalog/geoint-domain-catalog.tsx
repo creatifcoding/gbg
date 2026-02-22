@@ -1,5 +1,3 @@
-'use client'
-
 /**
  * @fileoverview GEOINT Domain Catalog for CatalogComponents Service
  *

@@ -1,5 +1,3 @@
-'use client'
-
 /**
  * @fileoverview RVN Domain Catalog for CatalogComponents Service
  *

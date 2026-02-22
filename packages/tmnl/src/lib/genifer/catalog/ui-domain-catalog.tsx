@@ -1,5 +1,3 @@
-'use client'
-
 /**
  * @fileoverview UI Domain Catalog for CatalogComponents Service
  *
@@ -423,6 +421,8 @@ const defaultAnimations = {
  */
 export const uiDomainCatalog: DomainCatalog = {
   name: "TMNL UI",
+  defaultTier: 'core',
+  defaultDomains: ['ui'],
   components: {
     // Typography
     Text: {
@@ -454,6 +454,7 @@ export const uiDomainCatalog: DomainCatalog = {
       description: "Text input field with optional label. Supports types: text, email, password, number, tel, url.",
       hasChildren: false,
       defaultEntrance: defaultAnimations.interactive,
+      domains: ['ui', 'forms'],
     },
     Switch: {
       schema: SwitchPropsSchema,
@@ -461,6 +462,7 @@ export const uiDomainCatalog: DomainCatalog = {
       description: "Toggle switch with optional label. Good for boolean settings.",
       hasChildren: false,
       defaultEntrance: defaultAnimations.interactive,
+      domains: ['ui', 'forms'],
     },
 
     // Card components
@@ -470,6 +472,11 @@ export const uiDomainCatalog: DomainCatalog = {
       description: "Container card with shadow. Use with CardHeader, CardContent, CardFooter children.",
       hasChildren: true,
       defaultEntrance: defaultAnimations.card,
+      compound: {
+        parent: 'Card',
+        slots: ['CardHeader', 'CardContent', 'CardFooter'],
+        strict: false,
+      },
     },
     CardHeader: {
       schema: CardHeaderPropsSchema,
@@ -477,6 +484,11 @@ export const uiDomainCatalog: DomainCatalog = {
       description: "Card header section. Contains CardTitle and CardDescription.",
       hasChildren: true,
       defaultEntrance: defaultAnimations.text,
+      compound: {
+        parent: 'CardHeader',
+        slots: ['CardTitle', 'CardDescription'],
+        strict: false,
+      },
     },
     CardTitle: {
       schema: CardTitlePropsSchema,
@@ -546,6 +558,8 @@ export const uiDomainCatalog: DomainCatalog = {
       description: "Collapsible panel wrapper for interactive content. Use to wrap charts, maps, 3D views, data grids, or any interactive visualization. Tags: 'map' (cyan), '3d' (purple), 'data-grid' (orange), 'chart' (emerald), 'embed' (blue), 'media' (rose), 'custom' (slate). Provides collapse/expand, badge header, and resize handle. REQUIRED for interactive visualizations in interactives mode.",
       hasChildren: true,
       defaultEntrance: defaultAnimations.panel,
+      tier: 'domain',
+      domains: ['ui', 'charts', 'geoint'],
     },
 
     // ==========================================================================
@@ -554,6 +568,8 @@ export const uiDomainCatalog: DomainCatalog = {
     SemanticRegion: {
       schema: SemanticRegionPropsSchema,
       renderer: SemanticRegionRenderer,
+      tier: 'domain',
+      domains: ['ui'],
       description: `CRITICAL INFRASTRUCTURE: Agent-addressable region wrapper for Evolution agent targeting.
 
 ## PURPOSE

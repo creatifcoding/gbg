@@ -1,5 +1,3 @@
-'use client'
-
 /**
  * @fileoverview Layout Domain Catalog for CatalogComponents Service
  *
