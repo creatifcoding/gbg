@@ -132,13 +132,25 @@ export function clearShellCommandSender(): void {
 }
 
 /**
- * Send raw input to a PTY session.
+ * Send input to a PTY session.
+ * Supports raw text, named keys, hex bytes, and bracketed paste.
  */
-export function sendShellInput(sessionId: string, data: string): void {
+export function sendShellInput(
+  sessionId: string,
+  data?: string,
+  options?: {
+    inputKeys?: string[]
+    inputHex?: string[]
+    inputPaste?: string
+  },
+): void {
   _sendCommand?.({
     _tag: 'remote:shell_input',
     sessionId,
-    data,
+    ...(data !== undefined && { data }),
+    ...(options?.inputKeys?.length && { inputKeys: options.inputKeys }),
+    ...(options?.inputHex?.length && { inputHex: options.inputHex }),
+    ...(options?.inputPaste && { inputPaste: options.inputPaste }),
   })
 }
 

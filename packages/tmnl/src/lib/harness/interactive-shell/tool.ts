@@ -16,6 +16,7 @@
 import { Effect, Option } from 'effect'
 import { InteractiveShellService, SessionNotFoundError } from './InteractiveShellService'
 import type { ShellSessionId, InteractiveShellToolArgs } from './schemas'
+import { translateInput } from './key-encoding'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tool JSON Schema (for LLM function calling)
@@ -49,6 +50,23 @@ export const interactiveShellToolParameters = {
       description:
         'Raw terminal input to send to an existing session. Requires sessionId. Include \\n for Enter key.',
     },
+    inputKeys: {
+      type: 'array',
+      items: { type: 'string' },
+      description:
+        'Named keys with modifier support: up, down, enter, ctrl+c, alt+x, shift+tab, ctrl+alt+delete, etc. (requires sessionId)',
+    },
+    inputHex: {
+      type: 'array',
+      items: { type: 'string' },
+      description:
+        'Hex bytes to send as raw escape sequences (e.g., ["0x1b", "0x5b", "0x41"] for ESC[A). (requires sessionId)',
+    },
+    inputPaste: {
+      type: 'string',
+      description:
+        'Text to paste with bracketed paste mode — prevents shells from auto-executing multiline input. (requires sessionId)',
+    },
     kill: {
       type: 'boolean',
       description: 'Kill the session identified by sessionId.',
@@ -80,6 +98,9 @@ interface ToolArgs {
   name?: string
   sessionId?: string
   input?: string
+  inputKeys?: string[]
+  inputHex?: string[]
+  inputPaste?: string
   kill?: boolean
   signal?: number
   cols?: number
@@ -115,8 +136,23 @@ export const executeInteractiveShell = (
     }
 
     // ── Write input to existing session ────────────────────────────────
-    if (args.sessionId && args.input !== undefined) {
-      yield* shell.write(args.sessionId as ShellSessionId, args.input)
+    const hasStructuredInput =
+      args.inputKeys?.length || args.inputHex?.length || args.inputPaste
+    if (
+      args.sessionId &&
+      (args.input !== undefined || hasStructuredInput)
+    ) {
+      // Translate structured input → escape sequences
+      const translated = hasStructuredInput
+        ? translateInput({
+            text: args.input,
+            keys: args.inputKeys,
+            hex: args.inputHex,
+            paste: args.inputPaste,
+          })
+        : args.input!
+
+      yield* shell.write(args.sessionId as ShellSessionId, translated)
 
       // Brief wait for output to accumulate
       yield* Effect.sleep('200 millis')
@@ -137,7 +173,7 @@ export const executeInteractiveShell = (
     }
 
     // ── Read output from existing session (status check) ──────────────
-    if (args.sessionId && !args.command) {
+    if (args.sessionId && !args.command && !hasStructuredInput) {
       const output = yield* shell.readOutput(args.sessionId as ShellSessionId, 50)
       const info = yield* shell.getSession(args.sessionId as ShellSessionId)
 

@@ -23,6 +23,7 @@ import {
 } from '../HarnessBrowserRemoteSchemas'
 import {
   InteractiveShellService,
+  translateInput,
   type ShellSessionId,
   type ShellEvent,
 } from '../interactive-shell'
@@ -218,7 +219,18 @@ const handleRemoteWs = Effect.gen(function* () {
 
         // ── Interactive shell commands ──────────────────────────────────
         case 'remote:shell_input': {
-          yield* shellWrite(command.sessionId as ShellSessionId, command.data)
+          // Translate structured input (inputKeys, inputHex, inputPaste) server-side
+          const hasStructuredInput =
+            command.inputKeys?.length || command.inputHex?.length || command.inputPaste
+          const data = hasStructuredInput
+            ? translateInput({
+                text: command.data,
+                keys: command.inputKeys,
+                hex: command.inputHex,
+                paste: command.inputPaste,
+              })
+            : (command.data ?? '')
+          yield* shellWrite(command.sessionId as ShellSessionId, data)
           return {}
         }
         case 'remote:shell_resize': {

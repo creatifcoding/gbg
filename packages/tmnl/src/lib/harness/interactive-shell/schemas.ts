@@ -32,11 +32,25 @@ export type ShellSessionStatus = typeof ShellSessionStatus.Type
 
 export const InteractiveShellToolArgs = Schema.Struct({
   /** Command to execute (shell, or specific program) */
-  command: Schema.String,
+  command: Schema.optional(Schema.String),
   /** Working directory for the shell */
   cwd: Schema.optional(Schema.String),
   /** Optional session name (for display / reconnect) */
   name: Schema.optional(Schema.String),
+  /** Existing session ID to interact with */
+  sessionId: Schema.optional(Schema.String),
+  /** Raw terminal input text */
+  input: Schema.optional(Schema.String),
+  /** Named keys with modifier support (e.g. "ctrl+c", "up", "enter") */
+  inputKeys: Schema.optional(Schema.Array(Schema.String)),
+  /** Raw hex escape sequences (e.g. "0x1b", "0x5b") */
+  inputHex: Schema.optional(Schema.Array(Schema.String)),
+  /** Bracketed paste text (prevents shell auto-execution) */
+  inputPaste: Schema.optional(Schema.String),
+  /** Kill the session */
+  kill: Schema.optional(Schema.Boolean),
+  /** Signal to send on kill (default: SIGTERM/15) */
+  signal: Schema.optional(Schema.Number),
   /** Initial cols (default: 120) */
   cols: Schema.optional(Schema.Number),
   /** Initial rows (default: 24) */
@@ -69,7 +83,13 @@ export type ShellSessionInfo = typeof ShellSessionInfo.Type
 export const ShellInputCommand = Schema.TaggedStruct('remote:shell_input', {
   sessionId: ShellSessionId,
   /** Raw terminal input data (keystrokes, paste, etc.) */
-  data: Schema.String,
+  data: Schema.optional(Schema.String),
+  /** Named keys with modifier support */
+  inputKeys: Schema.optional(Schema.Array(Schema.String)),
+  /** Raw hex escape sequences */
+  inputHex: Schema.optional(Schema.Array(Schema.String)),
+  /** Bracketed paste text */
+  inputPaste: Schema.optional(Schema.String),
 })
 
 export const ShellResizeCommand = Schema.TaggedStruct('remote:shell_resize', {

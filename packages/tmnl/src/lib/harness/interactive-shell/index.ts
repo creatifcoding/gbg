@@ -22,6 +22,14 @@ export {
   executeInteractiveShell,
 } from './tool'
 
+// Key encoding utilities
+export {
+  translateInput,
+  encodeKeyToken,
+  decodeHexBytes,
+  type StructuredInput,
+} from './key-encoding'
+
 // Worker schema (for tests / direct worker usage)
 export {
   PtyWorkerMessage,
