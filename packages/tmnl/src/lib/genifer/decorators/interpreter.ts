@@ -183,14 +183,18 @@ function executeAction(
         const resolvedPayload = actionDef.payload
           ? resolvePayload(actionDef.payload as Record<string, unknown>, registry, atoms, payload, event)
           : {}
-        subscribeEvent // We need the emit function, not subscribe
-        // Use the bootstrap emitEvent via the event log atom
+        // Write to bootstrap eventLogAtom for backward compat
         const r = bootstrapRegistry
         const log = r.get(eventLogAtom)
         r.set(eventLogAtom as Atom.Writable<any, any>, [
           ...log,
           { tag: actionDef.event, payload: resolvedPayload, timestamp: Date.now() },
         ])
+        // Also emit via DynamicEventService if available (notifies subscribers)
+        try {
+          const { emitDynamicEvent } = require('../services/DynamicEventService')
+          Effect.runSync(emitDynamicEvent(actionDef.event, resolvedPayload, 'interpreter'))
+        } catch { /* DynamicEventService not available — that's ok */ }
       })
     }
 

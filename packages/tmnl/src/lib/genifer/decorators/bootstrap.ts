@@ -186,7 +186,66 @@ export function bootstrap(): BootstrapResult {
   }
   r.set(registeredToolsAtom, toolNames)
 
-  // --- 8. Build result ---
+  // --- 8. Bridge decorator registries into DynamicRpcService + DynamicEventService ---
+  //    Also wires DynamicRpcService.callDynamicRpc as the interpreter's RPC executor.
+  try {
+    const {
+      setDynamicRpcRegistry,
+      registerCustomRpcHandler,
+      callDynamicRpc,
+      rpcRegistryAtom: dynRpcAtom,
+    } = require('../services/DynamicRpcService')
+    const { setDynamicEventRegistry: setEvtReg, eventDefinitionsAtom: dynEventAtom } = require('../services/DynamicEventService')
+    const { EventDefinition } = require('../services/DynamicEventSchemas')
+    const { RpcDefinition } = require('../services/DynamicRpcSchemas')
+    const { setRpcExecutor } = require('./interpreter')
+
+    // Set registries so services use the same atom store
+    setDynamicRpcRegistry(r)
+    setEvtReg(r)
+
+    // Wire DynamicRpcService as the interpreter's RPC executor
+    setRpcExecutor((tag: string, payload: unknown) => callDynamicRpc(tag, payload))
+
+    // Bridge decorated RPCs → DynamicRpcService
+    const rpcDefs = new Map()
+    for (const [tag, meta] of Array.from(rpcReg.entries())) {
+      const handlerId = `decorator:${tag}`
+      // Register the handler function
+      const handler = (meta as any).handlerFn
+      if (handler && typeof handler === 'function') {
+        registerCustomRpcHandler(handlerId, handler)
+      }
+      rpcDefs.set(tag, new RpcDefinition({
+        tag,
+        description: (meta as any).description,
+        handler: { _tag: 'custom' as const, handlerId },
+        source: 'decorator' as const,
+        registeredAt: Date.now(),
+      }))
+    }
+    if (rpcDefs.size > 0) {
+      r.set(dynRpcAtom, rpcDefs)
+    }
+
+    // Bridge decorated events → DynamicEventService
+    const eventDefs = new Map()
+    for (const [tag, meta] of Array.from(eventReg.entries())) {
+      eventDefs.set(tag, new EventDefinition({
+        tag,
+        description: (meta as any).description,
+        source: 'decorator' as const,
+        definedAt: Date.now(),
+      }))
+    }
+    if (eventDefs.size > 0) {
+      r.set(dynEventAtom, eventDefs)
+    }
+  } catch {
+    // Services not available — optional dependency
+  }
+
+  // --- 9. Build result ---
   const result: BootstrapResult = {
     actionGroups,
     componentCount,
