@@ -42,112 +42,191 @@ export interface MermaidBlockProps {
 }
 
 // =============================================================================
-// MermaidCanvas — zoom/pan interactive SVG viewer
+// MermaidCanvas — GPU-accelerated zoom/pan SVG viewer
+//
+// Smooth interaction design:
+//   - Ref-driven transforms during gestures (zero React re-renders)
+//   - Direct DOM style writes via ref — bypasses reconciliation
+//   - will-change: transform for GPU compositing layer
+//   - Exponential zoom (multiply scale, not add) — natural feel
+//   - Zoom-to-cursor: affine transform keeps point under cursor fixed
+//   - No CSS transition during active gesture — instant feedback
+//   - Transition only on programmatic reset (200ms ease-out)
+//   - Double-click to reset view
+//   - Pointer capture for reliable drag across elements
 // =============================================================================
 
-const MIN_SCALE = 0.25
-const MAX_SCALE = 4
-const ZOOM_SENSITIVITY = 0.0015
+const MIN_SCALE = 0.15
+const MAX_SCALE = 6
+/** Exponential zoom factor per 100px of wheel delta */
+const ZOOM_FACTOR = 0.003
+
+interface Transform {
+  x: number
+  y: number
+  scale: number
+}
+
+function clampScale(s: number) {
+  return Math.max(MIN_SCALE, Math.min(MAX_SCALE, s))
+}
 
 const MermaidCanvas = memo(function MermaidCanvas({ svgHtml }: { svgHtml: string }) {
-  const canvasRef = useRef<HTMLDivElement>(null)
-  const innerRef = useRef<HTMLDivElement>(null)
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
 
-  const [scale, setScale] = useState(1)
-  const [translate, setTranslate] = useState({ x: 0, y: 0 })
-  const [isDragging, setIsDragging] = useState(false)
-  const dragStart = useRef({ x: 0, y: 0, tx: 0, ty: 0 })
+  // Transform state lives in a ref — NO useState during gestures.
+  // Only the badge re-renders (via a lightweight display state).
+  const tRef = useRef<Transform>({ x: 0, y: 0, scale: 1 })
+  const gestureActive = useRef(false)
+  const dragStart = useRef({ px: 0, py: 0, tx: 0, ty: 0 })
 
-  // ── Wheel zoom (toward cursor) ─────────────────────────
-  useEffect(() => {
-    const el = canvasRef.current
+  // Lightweight display state — only updated on gesture end / reset
+  const [displayScale, setDisplayScale] = useState(1)
+  const [isTransformed, setIsTransformed] = useState(false)
+
+  // ── Apply transform to DOM (no React) ──────────────────
+  const applyTransform = useCallback((t: Transform, animate: boolean) => {
+    const el = contentRef.current
     if (!el) return
+    el.style.transition = animate ? 'transform 200ms cubic-bezier(0.32, 0.72, 0, 1)' : 'none'
+    el.style.transform = `translate3d(${t.x}px, ${t.y}px, 0) scale(${t.scale})`
+  }, [])
+
+  // ── Sync display state (after gesture or reset) ────────
+  const syncDisplay = useCallback(() => {
+    const t = tRef.current
+    setDisplayScale(t.scale)
+    setIsTransformed(t.scale !== 1 || t.x !== 0 || t.y !== 0)
+  }, [])
+
+  // ── Wheel zoom — toward cursor ─────────────────────────
+  useEffect(() => {
+    const vp = viewportRef.current
+    if (!vp) return
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
-      const rect = el.getBoundingClientRect()
-      const mx = e.clientX - rect.left - rect.width / 2
-      const my = e.clientY - rect.top - rect.height / 2
+      e.stopPropagation()
 
-      setScale(prev => {
-        const delta = -e.deltaY * ZOOM_SENSITIVITY
-        const next = Math.max(MIN_SCALE, Math.min(MAX_SCALE, prev * (1 + delta)))
-        const factor = next / prev
-        setTranslate(t => ({
-          x: mx - (mx - t.x) * factor,
-          y: my - (my - t.y) * factor,
-        }))
-        return next
-      })
+      const rect = vp.getBoundingClientRect()
+      // Cursor position relative to viewport
+      const cx = e.clientX - rect.left
+      const cy = e.clientY - rect.top
+
+      const t = tRef.current
+      const oldScale = t.scale
+
+      // Exponential zoom — multiply, don't add
+      const zoomDelta = -e.deltaY * ZOOM_FACTOR
+      const newScale = clampScale(oldScale * Math.exp(zoomDelta))
+      const ratio = newScale / oldScale
+
+      // Zoom toward cursor: keep the point under cursor fixed
+      // Formula: newOffset = cursor - (cursor - oldOffset) * ratio
+      const newX = cx - (cx - t.x) * ratio
+      const newY = cy - (cy - t.y) * ratio
+
+      tRef.current = { x: newX, y: newY, scale: newScale }
+      gestureActive.current = true
+      applyTransform(tRef.current, false)
+
+      // Debounce display sync — only update badge after scrolling settles
+      clearTimeout((onWheel as any)._syncTimer)
+      ;(onWheel as any)._syncTimer = setTimeout(() => {
+        gestureActive.current = false
+        syncDisplay()
+      }, 120)
     }
 
-    el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
-  }, [])
+    vp.addEventListener('wheel', onWheel, { passive: false })
+    return () => vp.removeEventListener('wheel', onWheel)
+  }, [applyTransform, syncDisplay])
 
-  // ── Drag pan ────────────────────────────────────────────
+  // ── Pointer drag pan ────────────────────────────────────
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return
-    setIsDragging(true)
-    dragStart.current = { x: e.clientX, y: e.clientY, tx: translate.x, ty: translate.y }
-    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
-  }, [translate])
+    const t = tRef.current
+    dragStart.current = { px: e.clientX, py: e.clientY, tx: t.x, ty: t.y }
+    gestureActive.current = true
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    // Set grabbing cursor immediately
+    ;(e.currentTarget as HTMLElement).style.cursor = 'grabbing'
+  }, [])
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDragging) return
-    setTranslate({
-      x: dragStart.current.tx + (e.clientX - dragStart.current.x),
-      y: dragStart.current.ty + (e.clientY - dragStart.current.y),
-    })
-  }, [isDragging])
+    if (!gestureActive.current) return
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return
 
-  const onPointerUp = useCallback(() => {
-    setIsDragging(false)
-  }, [])
+    const dx = e.clientX - dragStart.current.px
+    const dy = e.clientY - dragStart.current.py
 
-  // ── Reset ───────────────────────────────────────────────
-  const handleReset = useCallback(() => {
-    setScale(1)
-    setTranslate({ x: 0, y: 0 })
-  }, [])
+    tRef.current = {
+      ...tRef.current,
+      x: dragStart.current.tx + dx,
+      y: dragStart.current.ty + dy,
+    }
+    applyTransform(tRef.current, false)
+  }, [applyTransform])
 
-  const isTransformed = scale !== 1 || translate.x !== 0 || translate.y !== 0
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
+    }
+    ;(e.currentTarget as HTMLElement).style.cursor = 'grab'
+    gestureActive.current = false
+    syncDisplay()
+  }, [syncDisplay])
+
+  // ── Double-click to reset ───────────────────────────────
+  const handleDoubleClick = useCallback(() => {
+    tRef.current = { x: 0, y: 0, scale: 1 }
+    applyTransform(tRef.current, true) // animated reset
+    syncDisplay()
+  }, [applyTransform, syncDisplay])
+
+  // ── Badge click to reset ────────────────────────────────
+  const handleBadgeReset = useCallback(() => {
+    tRef.current = { x: 0, y: 0, scale: 1 }
+    applyTransform(tRef.current, true)
+    syncDisplay()
+  }, [applyTransform, syncDisplay])
 
   return (
     <div className="relative">
-      {/* Canvas area */}
+      {/* Viewport — clips + captures events */}
       <div
-        ref={canvasRef}
-        className="overflow-hidden"
-        style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+        ref={viewportRef}
+        className="overflow-hidden touch-none"
+        style={{ cursor: 'grab' }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onDoubleClick={handleDoubleClick}
       >
+        {/* Content — GPU-promoted, directly manipulated */}
         <div
-          ref={innerRef}
+          ref={contentRef}
           className={cn(
-            'flex items-center justify-center select-none',
+            'select-none',
             '[&>svg]:w-full [&>svg]:h-auto [&>svg]:max-h-[500px]',
             '[&>svg]:p-4',
           )}
           style={{
-            transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
-            transformOrigin: 'center center',
-            transition: isDragging ? 'none' : 'transform 150ms ease-out',
+            willChange: 'transform',
+            transformOrigin: '0 0', // top-left — math assumes this
           }}
           dangerouslySetInnerHTML={{ __html: svgHtml }}
         />
       </div>
 
-      {/* Zoom controls — bottom-right, appear on hover */}
+      {/* Zoom badge — bottom-right, hover reveal */}
       <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover/mermaid:opacity-100 transition-opacity duration-150">
-        {/* Zoom percentage / reset */}
         <button
           type="button"
-          onClick={handleReset}
-          title="Reset zoom"
+          onClick={handleBadgeReset}
+          title="Reset zoom (or double-click)"
           className={cn(
             'px-1.5 py-0.5 rounded font-mono tabular-nums',
             'transition-colors duration-150 ease-out',
@@ -158,7 +237,7 @@ const MermaidCanvas = memo(function MermaidCanvas({ svgHtml }: { svgHtml: string
           )}
           style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
         >
-          {Math.round(scale * 100)}%
+          {Math.round(displayScale * 100)}%
         </button>
       </div>
 
@@ -170,6 +249,8 @@ const MermaidCanvas = memo(function MermaidCanvas({ svgHtml }: { svgHtml: string
         <span>scroll to zoom</span>
         <span>·</span>
         <span>drag to pan</span>
+        <span>·</span>
+        <span>double-click reset</span>
       </div>
     </div>
   )
