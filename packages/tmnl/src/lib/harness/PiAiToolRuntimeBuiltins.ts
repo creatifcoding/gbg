@@ -36,6 +36,7 @@ import * as path from 'node:path'
 import { createGeniferTools } from '@/lib/genifer/harness/bridge'
 import { GeniferHarnessServiceTag, GeniferHarnessServiceLive } from '@/lib/genifer/harness/GeniferHarnessService'
 import { GeniferServiceLive } from '@/lib/genifer/services/GeniferService'
+import { GeniferDevDbLayer } from '@/lib/genifer/migrations/runner'
 
 // =============================================================================
 // Create SDK tools configured for project CWD
@@ -225,6 +226,7 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
           }).pipe(
             Effect.provide(GeniferHarnessServiceLive),
             Effect.provide(GeniferServiceLive),
+            Effect.provide(GeniferDevDbLayer),
           ),
         )
         // sessionId is overridden per-call in bridge, but we need a default

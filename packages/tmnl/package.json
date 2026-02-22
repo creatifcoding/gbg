@@ -103,6 +103,7 @@
     "@legendapp/state": "^3.0.0-beta.42",
     "@mariozechner/pi-ai": "^0.52.9",
     "@mariozechner/pi-coding-agent": "^0.52.9",
+    "@mariozechner/pi-tui": "0.52.12",
     "@osdk/api": "^2.6.0",
     "@osdk/client": "^2.6.0",
     "@osdk/maker": "^0.14.0",
