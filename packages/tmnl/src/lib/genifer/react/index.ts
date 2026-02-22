@@ -271,6 +271,11 @@ export {
   useBehaviorState,
 } from "./BehaviorBridge"
 
+export {
+  wrapWithBehavior,
+  adaptRegistryForBehavior,
+} from "./BehaviorElementAdapter"
+
 // =============================================================================
 // Harness Integration
 // =============================================================================
