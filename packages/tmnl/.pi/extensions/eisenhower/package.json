@@ -1,0 +1,11 @@
+{
+  "name": "eisenhower",
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@sinclair/typebox": "^0.34.48"
+  },
+  "pi": {
+    "extensions": ["./index.ts"]
+  }
+}

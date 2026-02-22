@@ -1,0 +1,8 @@
+{
+  "name": "log-viewer",
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@mariozechner/pi-tui": "file:/home/getbygenius/.npm-packages/lib/node_modules/@mariozechner/pi-coding-agent/node_modules/@mariozechner/pi-tui"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "mcp-bridge",
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@sinclair/typebox": "^0.34.0"
+  },
+  "pi": {
+    "extensions": ["./index.ts"]
+  }
+}

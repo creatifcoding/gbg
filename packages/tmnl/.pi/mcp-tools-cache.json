@@ -1,0 +1,1445 @@
+{
+  "version": 2,
+  "timestamp": "2026-02-22T07:42:45.082Z",
+  "servers": {
+    "exa": [
+      {
+        "name": "web_search_exa",
+        "description": "Search the web for any topic and get clean, ready-to-use content.\n\nBest for: Finding current information, news, facts, or answering questions about any topic.\nReturns: Clean text content from top search results, ready for LLM use.",
+        "params": {
+          "query": {
+            "type": "string",
+            "description": "Websearch query",
+            "required": true
+          },
+          "numResults": {
+            "type": "number",
+            "description": "Number of search results to return (must be a number, default: 8)",
+            "required": false
+          },
+          "livecrawl": {
+            "type": "string",
+            "description": "Live crawl mode - 'fallback': use live crawling as backup if cached content unavailable, 'preferred': prioritize live crawling (default: 'fallback')",
+            "required": false
+          },
+          "type": {
+            "type": "string",
+            "description": "Search type - 'auto': balanced search (default), 'fast': quick results",
+            "required": false
+          },
+          "contextMaxCharacters": {
+            "type": "number",
+            "description": "Maximum characters for context string optimized for LLMs (must be a number, default: 10000)",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "company_research_exa",
+        "description": "Research any company to get business information, news, and insights.\n\nBest for: Learning about a company's products, services, recent news, or industry position.\nReturns: Company information from trusted business sources.",
+        "params": {
+          "companyName": {
+            "type": "string",
+            "description": "Name of the company to research",
+            "required": true
+          },
+          "numResults": {
+            "type": "number",
+            "description": "Number of search results to return (must be a number, default: 3)",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "crawling_exa",
+        "description": "Get the full content of a specific webpage. Use when you have an exact URL.\n\nBest for: Extracting content from a known URL.\nReturns: Full text content and metadata from the page.",
+        "params": {
+          "url": {
+            "type": "string",
+            "description": "URL to crawl and extract content from",
+            "required": true
+          },
+          "maxCharacters": {
+            "type": "number",
+            "description": "Maximum characters to extract (must be a number, default: 3000)",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "linkedin_search_exa",
+        "description": "⚠️ DEPRECATED: This tool is deprecated. Please use 'people_search_exa' instead. This tool will be removed in a future version. For now, it searches for people on LinkedIn using Exa AI - finds professional profiles and people.",
+        "params": {
+          "query": {
+            "type": "string",
+            "description": "Search query for finding people on LinkedIn",
+            "required": true
+          },
+          "numResults": {
+            "type": "number",
+            "description": "Number of LinkedIn profile results to return (must be a number, default: 5)",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "deep_researcher_start",
+        "description": "Start an AI research agent that searches, reads, and writes a detailed report. Takes 15 seconds to 2 minutes.\n\nBest for: Complex research questions needing deep analysis and synthesis.\nReturns: Research ID - use deep_researcher_check to get results.\nImportant: Call deep_researcher_check with the returned research ID to get the report.",
+        "params": {
+          "instructions": {
+            "type": "string",
+            "description": "Complex research question or detailed instructions for the AI researcher. Be specific about what you want to research and any particular aspects you want covered.",
+            "required": true
+          },
+          "model": {
+            "type": "string",
+            "description": "Research model: 'exa-research-fast' (fastest, ~15s, good for simple queries), 'exa-research' (balanced, 15-45s, good for most queries), or 'exa-research-pro' (most comprehensive, 45s-3min, for complex topics). Default: exa-research-fast",
+            "required": false
+          },
+          "outputSchema": {
+            "type": "object",
+            "description": "Optional JSON Schema for structured output. When provided, the research report will include a 'parsed' field with data matching this schema.",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "deep_researcher_check",
+        "description": "Check status and get results from a deep research task.\n\nBest for: Getting the research report after calling deep_researcher_start.\nReturns: Research report when complete, or status update if still running.\nImportant: Keep calling with the same research ID until status is 'completed'.",
+        "params": {
+          "researchId": {
+            "type": "string",
+            "description": "The research ID returned from deep_researcher_start tool",
+            "required": true
+          }
+        }
+      },
+      {
+        "name": "get_code_context_exa",
+        "description": "Find code examples, documentation, and programming solutions. Searches GitHub, Stack Overflow, and official docs.\n\nBest for: Any programming question - API usage, library examples, code snippets, debugging help.\nReturns: Relevant code and documentation, formatted for easy reading.",
+        "params": {
+          "query": {
+            "type": "string",
+            "description": "Search query to find relevant context for APIs, Libraries, and SDKs. For example, 'React useState hook examples', 'Python pandas dataframe filtering', 'Express.js middleware', 'Next js partial prerendering configuration'",
+            "required": true
+          },
+          "tokensNum": {
+            "type": "number",
+            "description": "Number of tokens to return (must be a number, 1000-50000). Default is 5000 tokens. Adjust this value based on how much context you need - use lower values for focused queries and higher values for comprehensive documentation.",
+            "required": false
+          }
+        }
+      }
+    ],
+    "deepwiki": [
+      {
+        "name": "read_wiki_structure",
+        "description": "Get a list of documentation topics for a GitHub repository.\n\nArgs:\n    repoName: GitHub repository in owner/repo format (e.g. \"facebook/react\")",
+        "params": {
+          "repoName": {
+            "type": "string",
+            "required": true
+          }
+        }
+      },
+      {
+        "name": "read_wiki_contents",
+        "description": "View documentation about a GitHub repository.\n\nArgs:\n    repoName: GitHub repository in owner/repo format (e.g. \"facebook/react\")",
+        "params": {
+          "repoName": {
+            "type": "string",
+            "required": true
+          }
+        }
+      },
+      {
+        "name": "ask_question",
+        "description": "Ask any question about a GitHub repository and get an AI-powered, context-grounded response.\n\nArgs:\n    repoName: GitHub repository or list of repositories (max 10) in owner/repo format\n    question: The question to ask about the repository",
+        "params": {
+          "repoName": {
+            "type": "string",
+            "required": true
+          },
+          "question": {
+            "type": "string",
+            "required": true
+          }
+        }
+      }
+    ],
+    "context7": [
+      {
+        "name": "resolve-library-id",
+        "description": "Resolves a package/product name to a Context7-compatible library ID and returns matching libraries.\n\nYou MUST call this function before 'query-docs' to obtain a valid Context7-compatible library ID UNLESS the user explicitly provides a library ID in the format '/org/project' or '/org/project/version' in their query.\n\nSelection Process:\n1. Analyze the query to understand what library/package the user is looking for\n2. Return the most relevant match based on:\n- Name similarity to the query (exact matches prioritized)\n- Description relevance to the query's intent\n- Documentation coverage (prioritize libraries with higher Code Snippet counts)\n- Source reputation (consider libraries with High or Medium reputation more authoritative)\n- Benchmark Score: Quality indicator (100 is the highest score)\n\nResponse Format:\n- Return the selected library ID in a clearly marked section\n- Provide a brief explanation for why this library was chosen\n- If multiple good matches exist, acknowledge this but proceed with the most relevant one\n- If no good matches exist, clearly state this and suggest query refinements\n\nFor ambiguous queries, request clarification before proceeding with a best-guess match.\n\nIMPORTANT: Do not call this tool more than 3 times per question. If you cannot find what you need after 3 calls, use the best result you have.",
+        "params": {
+          "query": {
+            "type": "string",
+            "description": "The question or task you need help with. This is used to rank library results by relevance to what the user is trying to accomplish. The query is sent to the Context7 API for processing. Do not include any sensitive or confidential information such as API keys, passwords, credentials, personal data, or proprietary code in your query.",
+            "required": true
+          },
+          "libraryName": {
+            "type": "string",
+            "description": "Library name to search for and retrieve a Context7-compatible library ID.",
+            "required": true
+          }
+        }
+      },
+      {
+        "name": "query-docs",
+        "description": "Retrieves and queries up-to-date documentation and code examples from Context7 for any programming library or framework.\n\nYou must call 'resolve-library-id' first to obtain the exact Context7-compatible library ID required to use this tool, UNLESS the user explicitly provides a library ID in the format '/org/project' or '/org/project/version' in their query.\n\nIMPORTANT: Do not call this tool more than 3 times per question. If you cannot find what you need after 3 calls, use the best information you have.",
+        "params": {
+          "libraryId": {
+            "type": "string",
+            "description": "Exact Context7-compatible library ID (e.g., '/mongodb/docs', '/vercel/next.js', '/supabase/supabase', '/vercel/next.js/v14.3.0-canary.87') retrieved from 'resolve-library-id' or directly from user query in the format '/org/project' or '/org/project/version'.",
+            "required": true
+          },
+          "query": {
+            "type": "string",
+            "description": "The question or task you need help with. Be specific and include relevant details. Good: 'How to set up authentication with JWT in Express.js' or 'React useEffect cleanup function examples'. Bad: 'auth' or 'hooks'. The query is sent to the Context7 API for processing. Do not include any sensitive or confidential information such as API keys, passwords, credentials, personal data, or proprietary code in your query.",
+            "required": true
+          }
+        }
+      }
+    ],
+    "effect-docs": [
+      {
+        "name": "effect_docs_search",
+        "description": "Searches the Effect documentation. Result content can be accessed with the `get_effect_doc` tool.",
+        "params": {
+          "query": {
+            "type": "string",
+            "description": "The search query to look for in the documentation.",
+            "required": true
+          }
+        }
+      },
+      {
+        "name": "get_effect_doc",
+        "description": "Get the Effect documentation for a documentId. The content might be paginated. Use the `page` parameter to specify which page to retrieve.",
+        "params": {
+          "documentId": {
+            "type": "number",
+            "description": "The unique identifier for the Effect documentation entry.",
+            "required": true
+          },
+          "page": {
+            "type": "number",
+            "description": "The page number to retrieve for the document content.",
+            "required": false
+          }
+        }
+      }
+    ],
+    "anime-js": [
+      {
+        "name": "get_anime_component",
+        "description": "Get information and examples for a specific Anime.js component or API",
+        "params": {
+          "componentName": {
+            "type": "string",
+            "description": "Name of the Anime.js component or API (e.g., \"anime\", \"timeline\", \"stagger\")",
+            "required": true
+          }
+        }
+      },
+      {
+        "name": "list_anime_components",
+        "description": "Get all available Anime.js components and APIs",
+        "params": {
+          "category": {
+            "type": "string",
+            "description": "Filter by category (core, timeline, utilities, svg)",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "get_anime_example",
+        "description": "Get example code for a specific Anime.js animation pattern",
+        "params": {
+          "exampleType": {
+            "type": "string",
+            "description": "Type of example (e.g., \"basic-transform\", \"timeline-sequence\", \"stagger-grid\")",
+            "required": true
+          }
+        }
+      },
+      {
+        "name": "search_anime_examples",
+        "description": "Search Anime.js examples and code snippets",
+        "params": {
+          "query": {
+            "type": "string",
+            "description": "Search query for examples",
+            "required": true
+          }
+        }
+      },
+      {
+        "name": "get_anime_docs",
+        "description": "Get documentation for Anime.js features and concepts",
+        "params": {
+          "topic": {
+            "type": "string",
+            "description": "Documentation topic (e.g., \"getting-started\", \"animation-controls\", \"performance\")",
+            "required": true
+          }
+        }
+      }
+    ],
+    "nia": [
+      {
+        "name": "index",
+        "description": "Index repo/docs/paper. Auto-detects type. Args: url (GitHub/docs/arXiv/HuggingFace), resource_type (repository|documentation|research_paper|huggingface_dataset), branch (repos only), ref (git ref: branch/tag/commit, takes precedence), add_as_global_source (default: True, set False for private indexing), focus_instructions (docs only: natural language filter for content to include), extract_branding (docs only: extract brand identity - colors, logos, fonts), extract_images (docs only: extract all image URLs from the page).",
+        "params": {
+          "url": {
+            "type": "string",
+            "required": true
+          },
+          "resource_type": {
+            "type": "string",
+            "required": false
+          },
+          "branch": {
+            "type": "string",
+            "required": false
+          },
+          "ref": {
+            "type": "string",
+            "required": false
+          },
+          "add_as_global_source": {
+            "type": "boolean",
+            "required": false
+          },
+          "focus_instructions": {
+            "type": "string",
+            "required": false
+          },
+          "extract_branding": {
+            "type": "boolean",
+            "required": false
+          },
+          "extract_images": {
+            "type": "boolean",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "search",
+        "description": "Search indexed repositories, documentation/research papers, local folders, and Slack workspaces.\n\nOmit `repositories`, `data_sources`, `local_folders`, and `slack_workspaces` to perform universal search across all indexed public sources.\nLocal folders are private (user-specific) and searched separately.\n\nArgs:\n    query: Natural-language question or keyword query\n    repositories: List of repo identifiers (e.g. [\"owner/repo\"])\n    data_sources: List of data source identifiers. Each entry can be:\n      - Data source UUID (recommended)\n      - Display name (if set)\n      - Source URL (docs site URL; for research papers this can be the arXiv abs/pdf URL)\n      - HuggingFace datasets: dataset source UUID or dataset_id (e.g., 'squad', 'openai/gsm8k')\n    sources: Alias for data_sources. Also accepts 'type:identifier' format (e.g., 'huggingface_dataset:openai/gsm8k', 'repository:vercel/ai-sdk', 'slack:installation_id')\n    local_folders: List of local folder IDs (private, user-specific)\n    slack_workspaces: List of Slack installation IDs to search (e.g., [\"a9e51db8-...\"])\n    category: Filter local folder results by classification category (e.g., \"Work\", \"Personal\")\n    search_mode: unified|repositories|sources\n    include_sources: Include retrieved snippets/citations\n    max_tokens: Maximum tokens in response (100-100000). Results truncated when budget reached.\n    source_subtype: Filter local results by source subtype (e.g., 'database', 'telegram_export')\n    db_type: Filter local results by database type (e.g., 'imessage', 'telegram')\n    connector_type: Filter by connector type (e.g., 'imessage', 'whatsapp', 'contacts')\n    conversation_id: Filter to a specific conversation/chat\n    contact_id: Filter to messages with a specific contact\n    sender_role: Filter by sender role: 'self' or 'contact'\n    time_after: Only return results with timestamp after this ISO datetime\n    time_before: Only return results with timestamp before this ISO datetime",
+        "params": {
+          "query": {
+            "type": "string",
+            "required": true
+          },
+          "repositories": {
+            "type": "string",
+            "required": false
+          },
+          "data_sources": {
+            "type": "string",
+            "required": false
+          },
+          "sources": {
+            "type": "string",
+            "required": false
+          },
+          "local_folders": {
+            "type": "string",
+            "required": false
+          },
+          "slack_workspaces": {
+            "type": "string",
+            "required": false
+          },
+          "category": {
+            "type": "string",
+            "required": false
+          },
+          "search_mode": {
+            "type": "string",
+            "required": false
+          },
+          "include_sources": {
+            "type": "boolean",
+            "required": false
+          },
+          "max_tokens": {
+            "type": "string",
+            "required": false
+          },
+          "source_subtype": {
+            "type": "string",
+            "required": false
+          },
+          "db_type": {
+            "type": "string",
+            "required": false
+          },
+          "connector_type": {
+            "type": "string",
+            "required": false
+          },
+          "conversation_id": {
+            "type": "string",
+            "required": false
+          },
+          "contact_id": {
+            "type": "string",
+            "required": false
+          },
+          "sender_role": {
+            "type": "string",
+            "required": false
+          },
+          "time_after": {
+            "type": "string",
+            "required": false
+          },
+          "time_before": {
+            "type": "string",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "manage_resource",
+        "description": "Manage indexed resources and categories.\n\nResource Actions:\n    action: list|status|rename|delete|subscribe\n    resource_type: repository|documentation|research_paper|huggingface_dataset|local_folder (optional for list; required for others)\n    identifier: repo (owner/repo), data-source id/url/name, or local_folder id (required for status/rename/delete); for subscribe: URL of the source\n    new_name: for rename\n    query: optional substring filter to avoid listing everything\n    category_id: filter by category ID when listing (use 'uncategorized' for sources without category)\n    limit/offset: pagination (applies per section when resource_type is omitted)\n    view: auto|summary|compact|detailed\n    show_all: ignore limit/offset and show all matches (can be large)\n\nCategory Actions:\n    action: category_list|category_create|category_assign|category_delete\n    category_name: name for category_create\n    category_color: hex color (e.g., '#FF5733') for category_create\n    category_id: required for category_assign/category_delete\n    identifier: source ID for category_assign (backend auto-detects source type)\n\nExamples:\n    - List resources: manage_resource(action='list', query='stripe')\n    - List categories: manage_resource(action='category_list')\n    - Create category: manage_resource(action='category_create', category_name='ML Papers', category_color='#4CAF50')\n    - Assign category: manage_resource(action='category_assign', category_id='abc123', identifier='def456')\n    - Delete category: manage_resource(action='category_delete', category_id='abc123')\n    - Subscribe: manage_resource(action='subscribe', identifier='https://github.com/vercel/ai-sdk')",
+        "params": {
+          "action": {
+            "type": "string",
+            "required": true
+          },
+          "resource_type": {
+            "type": "string",
+            "required": false
+          },
+          "identifier": {
+            "type": "string",
+            "required": false
+          },
+          "new_name": {
+            "type": "string",
+            "required": false
+          },
+          "query": {
+            "type": "string",
+            "required": false
+          },
+          "category_id": {
+            "type": "string",
+            "required": false
+          },
+          "limit": {
+            "type": "integer",
+            "required": false
+          },
+          "offset": {
+            "type": "integer",
+            "required": false
+          },
+          "view": {
+            "type": "string",
+            "required": false
+          },
+          "show_all": {
+            "type": "boolean",
+            "required": false
+          },
+          "category_name": {
+            "type": "string",
+            "required": false
+          },
+          "category_color": {
+            "type": "string",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "nia_read",
+        "description": "Read content from repo/docs/package/local_folder. For PDFs, includes signed image URLs.\n\nArgs:\n    source_type: repository|documentation|package|local_folder|huggingface_dataset|slack\n    source_identifier: For repo: owner/repo:path/to/file (e.g., \"vercel/ai-sdk:src/index.ts\")\n    doc_source_id: MUST match an indexed source from manage_resource(action='list'). Accepts: source UUID (id field), display_name, or documentation URL. For research papers: also accepts arXiv URL. For HuggingFace datasets: dataset source ID. Returns 'not found' if no match.\n    path: For docs/local_folder: virtual path to page/file. For HuggingFace datasets: split name (e.g., \"train\", \"test\").\n    page: For PDFs with tree index: page number to read\n    tree_node_id: For PDFs with tree index: tree node ID to read (e.g., \"0007\")\n    line_start/line_end/max_length: For docs/local_folder: line range or max chars\n    registry/package_name/filename_sha256/start_line/end_line/version: For package\n    local_folder_id: For local_folder: folder ID from manage_resource(action='list')\n    slack_installation_id: For slack: installation ID from manage_resource(action='list', resource_type='slack')\n    channel: For slack: channel name or ID to read messages from\n    metadata: Optional extra metadata (branch for repo, path/url for docs)\n    max_tokens: Maximum tokens to return. Content truncated if exceeded.\n    return_token_metadata: Include token estimates in response (default: True)\n    include_images: For PDFs: include embedded images in response (default: True)\n    max_images: Maximum number of images to include (default: 5)",
+        "params": {
+          "source_type": {
+            "type": "string",
+            "required": true
+          },
+          "source_identifier": {
+            "type": "string",
+            "required": false
+          },
+          "doc_source_id": {
+            "type": "string",
+            "required": false
+          },
+          "path": {
+            "type": "string",
+            "required": false
+          },
+          "page": {
+            "type": "string",
+            "required": false
+          },
+          "tree_node_id": {
+            "type": "string",
+            "required": false
+          },
+          "line_start": {
+            "type": "string",
+            "required": false
+          },
+          "line_end": {
+            "type": "string",
+            "required": false
+          },
+          "max_length": {
+            "type": "string",
+            "required": false
+          },
+          "registry": {
+            "type": "string",
+            "required": false
+          },
+          "package_name": {
+            "type": "string",
+            "required": false
+          },
+          "filename_sha256": {
+            "type": "string",
+            "required": false
+          },
+          "start_line": {
+            "type": "string",
+            "required": false
+          },
+          "end_line": {
+            "type": "string",
+            "required": false
+          },
+          "version": {
+            "type": "string",
+            "required": false
+          },
+          "local_folder_id": {
+            "type": "string",
+            "required": false
+          },
+          "slack_installation_id": {
+            "type": "string",
+            "required": false
+          },
+          "channel": {
+            "type": "string",
+            "required": false
+          },
+          "metadata": {
+            "type": "string",
+            "required": false
+          },
+          "max_tokens": {
+            "type": "string",
+            "required": false
+          },
+          "return_token_metadata": {
+            "type": "boolean",
+            "required": false
+          },
+          "include_images": {
+            "type": "boolean",
+            "required": false
+          },
+          "max_images": {
+            "type": "integer",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "nia_grep",
+        "description": "Regex search in repo/docs/package/local_folder/huggingface_dataset code.\n\nArgs:\n    source_type: repository|documentation|package|local_folder|huggingface_dataset\n    pattern: Regex pattern to search\n    repository: For repo: owner/repo format (e.g., \"vercel/ai-sdk\"). Must be indexed.\n    doc_source_id: MUST match an indexed source from manage_resource(action='list'). Accepts: source UUID (id field), display_name, or documentation URL. For HuggingFace datasets: dataset source ID. Returns 'not found' if no match.\n    tree_node_id: For PDFs: filter to specific tree section (e.g., \"0007\")\n    page_start/page_end: For PDFs: filter by page range\n    local_folder_id: For local_folder: folder ID from manage_resource(action='list')\n    registry/package_name/version: For package\n    path: Path prefix filter\n    context_lines/-A/-B: Context lines around matches\n    case_sensitive/whole_word/fixed_string: Match options\n    output_mode: content|files_with_matches|count\n    exhaustive: True for full scan (repo only)",
+        "params": {
+          "source_type": {
+            "type": "string",
+            "required": true
+          },
+          "pattern": {
+            "type": "string",
+            "required": true
+          },
+          "repository": {
+            "type": "string",
+            "required": false
+          },
+          "doc_source_id": {
+            "type": "string",
+            "required": false
+          },
+          "tree_node_id": {
+            "type": "string",
+            "required": false
+          },
+          "page_start": {
+            "type": "string",
+            "required": false
+          },
+          "page_end": {
+            "type": "string",
+            "required": false
+          },
+          "registry": {
+            "type": "string",
+            "required": false
+          },
+          "package_name": {
+            "type": "string",
+            "required": false
+          },
+          "version": {
+            "type": "string",
+            "required": false
+          },
+          "local_folder_id": {
+            "type": "string",
+            "required": false
+          },
+          "slack_installation_id": {
+            "type": "string",
+            "required": false
+          },
+          "channel": {
+            "type": "string",
+            "required": false
+          },
+          "path": {
+            "type": "string",
+            "required": false
+          },
+          "context_lines": {
+            "type": "string",
+            "required": false
+          },
+          "A": {
+            "type": "string",
+            "required": false
+          },
+          "B": {
+            "type": "string",
+            "required": false
+          },
+          "case_sensitive": {
+            "type": "boolean",
+            "required": false
+          },
+          "whole_word": {
+            "type": "boolean",
+            "required": false
+          },
+          "fixed_string": {
+            "type": "boolean",
+            "required": false
+          },
+          "max_matches_per_file": {
+            "type": "integer",
+            "required": false
+          },
+          "max_total_matches": {
+            "type": "integer",
+            "required": false
+          },
+          "output_mode": {
+            "type": "string",
+            "required": false
+          },
+          "highlight": {
+            "type": "boolean",
+            "required": false
+          },
+          "exhaustive": {
+            "type": "boolean",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "nia_explore",
+        "description": "Explore file structure of repo, documentation, local folder, or HuggingFace dataset.\n\nArgs:\n    source_type: repository|documentation|local_folder|huggingface_dataset (auto-detected if virtual_path provided)\n    action: tree (full structure) or ls (list directory)\n    repository: For repo: owner/repo format (e.g., \"vercel/ai-sdk\"). Must be indexed.\n    branch/include_paths/exclude_paths/file_extensions/exclude_extensions/show_full_paths: Repo filters\n    doc_source_id: MUST match an indexed source from manage_resource(action='list'). Accepts: source UUID (id field), display_name, or documentation URL. For HuggingFace datasets: dataset source ID. Returns 'not found' if no match.\n    local_folder_id: For local_folder: folder ID from manage_resource(action='list')\n    path: For docs/local_folder ls: directory path to list\n    virtual_path: Unified path format: /repos/{owner}/{repo}[/subpath], /docs/{source_id}[/subpath], /folders/{folder_id}[/subpath], /datasets/{source_id}. The source_id must be from manage_resource(action='list').",
+        "params": {
+          "source_type": {
+            "type": "string",
+            "required": false
+          },
+          "action": {
+            "type": "string",
+            "required": false
+          },
+          "repository": {
+            "type": "string",
+            "required": false
+          },
+          "branch": {
+            "type": "string",
+            "required": false
+          },
+          "include_paths": {
+            "type": "string",
+            "required": false
+          },
+          "exclude_paths": {
+            "type": "string",
+            "required": false
+          },
+          "file_extensions": {
+            "type": "string",
+            "required": false
+          },
+          "exclude_extensions": {
+            "type": "string",
+            "required": false
+          },
+          "show_full_paths": {
+            "type": "boolean",
+            "required": false
+          },
+          "doc_source_id": {
+            "type": "string",
+            "required": false
+          },
+          "path": {
+            "type": "string",
+            "required": false
+          },
+          "local_folder_id": {
+            "type": "string",
+            "required": false
+          },
+          "slack_installation_id": {
+            "type": "string",
+            "required": false
+          },
+          "channel": {
+            "type": "string",
+            "required": false
+          },
+          "virtual_path": {
+            "type": "string",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "nia_research",
+        "description": "AI research: quick (web search), deep (AI agent), oracle (full autonomous research).\n\nArgs:\n    query: Research question\n    mode: quick|deep|oracle\n    num_results: For quick mode (max 10)\n    category: For quick mode (github|company|research paper|news|tweet|pdf)\n    days_back: For quick mode - recency filter\n    find_similar_to: For quick mode - URL for similar content\n    output_format: For deep/oracle mode (e.g. 'comparison table')\n    verbose: For deep mode - include verbose trace\n    repositories: For oracle mode - repos to search\n    data_sources: For oracle mode - docs/papers to search",
+        "params": {
+          "query": {
+            "type": "string",
+            "required": true
+          },
+          "mode": {
+            "type": "string",
+            "required": false
+          },
+          "num_results": {
+            "type": "integer",
+            "required": false
+          },
+          "category": {
+            "type": "string",
+            "required": false
+          },
+          "days_back": {
+            "type": "string",
+            "required": false
+          },
+          "find_similar_to": {
+            "type": "string",
+            "required": false
+          },
+          "output_format": {
+            "type": "string",
+            "required": false
+          },
+          "verbose": {
+            "type": "boolean",
+            "required": false
+          },
+          "repositories": {
+            "type": "string",
+            "required": false
+          },
+          "data_sources": {
+            "type": "string",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "nia_advisor",
+        "description": "Analyze your code against documentation for tailored recommendations.\n\nArgs:\n    query: Your question (e.g., \"How to migrate from React 17 to 18?\")\n    codebase: {files: {path: content}, file_tree?, dependencies?, git_diff?, summary?, focus_paths?}\n    search_scope: {repositories?: [...], data_sources?: [...]}\n    output_format: explanation|checklist|diff|structured",
+        "params": {
+          "query": {
+            "type": "string",
+            "required": true
+          },
+          "codebase": {
+            "type": "object",
+            "required": true
+          },
+          "search_scope": {
+            "type": "string",
+            "required": false
+          },
+          "output_format": {
+            "type": "string",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "context",
+        "description": "Cross-agent context sharing (save/list/retrieve/search/update/delete).\n\nArgs:\n    action: save|list|retrieve|search|semantic-search|keyword-search|update|delete\n    title/summary/content/agent_source: For save action\n    tags: Optional tags for filtering/categorization\n    context_id: For retrieve/update/delete\n    query: For search actions\n    workspace/directory/file_overlap/scope: Workspace-aware filtering\n    nia_references/edited_files/metadata: Structured context data\n    memory_type: Memory classification - scratchpad (1hr), episodic (7d), fact (permanent), procedural (permanent)\n    ttl_seconds: Custom TTL in seconds (overrides memory_type default)\n    lineage: Provenance tracking - source_ids, confidence, derived_from, tool_calls, model_version\n    limit/offset: Pagination",
+        "params": {
+          "action": {
+            "type": "string",
+            "required": true
+          },
+          "title": {
+            "type": "string",
+            "required": false
+          },
+          "summary": {
+            "type": "string",
+            "required": false
+          },
+          "content": {
+            "type": "string",
+            "required": false
+          },
+          "agent_source": {
+            "type": "string",
+            "required": false
+          },
+          "tags": {
+            "type": "string",
+            "required": false
+          },
+          "context_id": {
+            "type": "string",
+            "required": false
+          },
+          "query": {
+            "type": "string",
+            "required": false
+          },
+          "workspace": {
+            "type": "string",
+            "required": false
+          },
+          "directory": {
+            "type": "string",
+            "required": false
+          },
+          "file_overlap": {
+            "type": "string",
+            "required": false
+          },
+          "scope": {
+            "type": "string",
+            "required": false
+          },
+          "nia_references": {
+            "type": "string",
+            "required": false
+          },
+          "edited_files": {
+            "type": "string",
+            "required": false
+          },
+          "metadata": {
+            "type": "string",
+            "required": false
+          },
+          "workspace_override": {
+            "type": "string",
+            "required": false
+          },
+          "memory_type": {
+            "type": "string",
+            "required": false
+          },
+          "ttl_seconds": {
+            "type": "string",
+            "required": false
+          },
+          "lineage": {
+            "type": "string",
+            "required": false
+          },
+          "limit": {
+            "type": "integer",
+            "required": false
+          },
+          "offset": {
+            "type": "integer",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "nia_package_search_hybrid",
+        "description": "Semantic search in package source with optional regex.",
+        "params": {
+          "registry": {
+            "type": "string",
+            "required": true
+          },
+          "package_name": {
+            "type": "string",
+            "required": true
+          },
+          "semantic_queries": {
+            "type": "array",
+            "required": true
+          },
+          "version": {
+            "type": "string",
+            "required": false
+          },
+          "filename_sha256": {
+            "type": "string",
+            "required": false
+          },
+          "pattern": {
+            "type": "string",
+            "required": false
+          },
+          "language": {
+            "type": "string",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "auto_subscribe_dependencies",
+        "description": "Subscribe to documentation for all dependencies in a package manifest.\n\nParses the manifest, maps packages to docs URLs, and subscribes to indexed docs.\nSupports: package.json, requirements.txt, pyproject.toml, Cargo.toml, go.mod, Gemfile\n\nArgs:\n    manifest_content: Raw content of the manifest file (e.g., package.json contents)\n    manifest_type: Manifest type. Auto-detected from content if not provided.\n    include_dev_dependencies: Include devDependencies/dev-dependencies (default: False)\n    max_new_indexes: Max number of new documentation indexes to start (default: 150)\n    dry_run: Preview mode - show what would happen without subscribing (default: False)",
+        "params": {
+          "manifest_content": {
+            "type": "string",
+            "required": true
+          },
+          "manifest_type": {
+            "type": "string",
+            "required": false
+          },
+          "include_dev_dependencies": {
+            "type": "boolean",
+            "required": false
+          },
+          "max_new_indexes": {
+            "type": "integer",
+            "required": false
+          },
+          "dry_run": {
+            "type": "boolean",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "tracer",
+        "description": "Search GitHub repositories live (no indexing needed). Two modes:\n\n**Agent mode** (default): Fires an autonomous AI agent (Claude Opus 4.6) that searches,\nreads, and analyzes code across repositories to answer your question comprehensively.\nThe agent makes multiple tool calls internally (list, search, read, glob) and returns\na complete answer. Use this for complex questions about code.\n\n**Raw modes** (search/list/read/glob): Direct GitHub API calls for quick lookups.\n\nArgs:\n    query: For agent mode: your research question. For search mode: code search query.\n    mode: agent (AI agent) | search (code search) | list (file tree) | read (file content) | glob (pattern match)\n    repositories: For agent mode: list of repos in owner/repo format.\n    repository: For raw modes: single repo in owner/repo format.\n    path: For list/read: file or directory path.\n    ref: Branch, tag, or commit SHA (default: HEAD).\n    start_line: For read: 1-based start line.\n    end_line: For read: 1-based end line.\n    pattern: For glob: file pattern (e.g., '*.py', 'src/**/*.ts').\n    context: For agent mode: additional context about what you're looking for.",
+        "params": {
+          "query": {
+            "type": "string",
+            "required": true
+          },
+          "mode": {
+            "type": "string",
+            "required": false
+          },
+          "repositories": {
+            "type": "string",
+            "required": false
+          },
+          "repository": {
+            "type": "string",
+            "required": false
+          },
+          "path": {
+            "type": "string",
+            "required": false
+          },
+          "ref": {
+            "type": "string",
+            "required": false
+          },
+          "start_line": {
+            "type": "string",
+            "required": false
+          },
+          "end_line": {
+            "type": "string",
+            "required": false
+          },
+          "pattern": {
+            "type": "string",
+            "required": false
+          },
+          "context": {
+            "type": "string",
+            "required": false
+          }
+        }
+      }
+    ],
+    "firecrawl": [
+      {
+        "name": "firecrawl_scrape",
+        "description": "\nScrape content from a single URL with advanced options.\nThis is the most powerful, fastest and most reliable scraper tool, if available you should always default to using this tool for any web scraping needs.\n\n**Best for:** Single page content extraction, when you know exactly which page contains the information.\n**Not recommended for:** Multiple pages (call scrape multiple times or use crawl), unknown page location (use search).\n**Common mistakes:** Using markdown format when extracting specific data points (use JSON instead).\n**Other Features:** Use 'branding' format to extract brand identity (colors, fonts, typography, spacing, UI components) for design analysis or style replication.\n\n**CRITICAL - Format Selection (you MUST follow this):**\nWhen the user asks for SPECIFIC data points, you MUST use JSON format with a schema. Only use markdown when the user needs the ENTIRE page content.\n\n**Use JSON format when user asks for:**\n- Parameters, fields, or specifications (e.g., \"get the header parameters\", \"what are the required fields\")\n- Prices, numbers, or structured data (e.g., \"extract the pricing\", \"get the product details\")\n- API details, endpoints, or technical specs (e.g., \"find the authentication endpoint\")\n- Lists of items or properties (e.g., \"list the features\", \"get all the options\")\n- Any specific piece of information from a page\n\n**Use markdown format ONLY when:**\n- User wants to read/summarize an entire article or blog post\n- User needs to see all content on a page without specific extraction\n- User explicitly asks for the full page content\n\n**Handling JavaScript-rendered pages (SPAs):**\nIf JSON extraction returns empty, minimal, or just navigation content, the page is likely JavaScript-rendered or the content is on a different URL. Try these steps IN ORDER:\n1. **Add waitFor parameter:** Set `waitFor: 5000` to `waitFor: 10000` to allow JavaScript to render before extraction\n2. **Try a different URL:** If the URL has a hash fragment (#section), try the base URL or look for a direct page URL\n3. **Use firecrawl_map to find the correct page:** Large documentation sites or SPAs often spread content across multiple URLs. Use `firecrawl_map` with a `search` parameter to discover the specific page containing your target content, then scrape that URL directly.\n   Example: If scraping \"https://docs.example.com/reference\" fails to find webhook parameters, use `firecrawl_map` with `{\"url\": \"https://docs.example.com/reference\", \"search\": \"webhook\"}` to find URLs like \"/reference/webhook-events\", then scrape that specific page.\n4. **Use firecrawl_agent:** As a last resort for heavily dynamic pages where map+scrape still fails, use the agent which can autonomously navigate and research\n\n**Usage Example (JSON format - REQUIRED for specific data extraction):**\n```json\n{\n  \"name\": \"firecrawl_scrape\",\n  \"arguments\": {\n    \"url\": \"https://example.com/api-docs\",\n    \"formats\": [{\n      \"type\": \"json\",\n      \"prompt\": \"Extract the header parameters for the authentication endpoint\",\n      \"schema\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"parameters\": {\n            \"type\": \"array\",\n            \"items\": {\n              \"type\": \"object\",\n              \"properties\": {\n                \"name\": { \"type\": \"string\" },\n                \"type\": { \"type\": \"string\" },\n                \"required\": { \"type\": \"boolean\" },\n                \"description\": { \"type\": \"string\" }\n              }\n            }\n          }\n        }\n      }\n    }]\n  }\n}\n```\n**Usage Example (markdown format - ONLY when full content genuinely needed):**\n```json\n{\n  \"name\": \"firecrawl_scrape\",\n  \"arguments\": {\n    \"url\": \"https://example.com/article\",\n    \"formats\": [\"markdown\"],\n    \"onlyMainContent\": true\n  }\n}\n```\n**Usage Example (branding format - extract brand identity):**\n```json\n{\n  \"name\": \"firecrawl_scrape\",\n  \"arguments\": {\n    \"url\": \"https://example.com\",\n    \"formats\": [\"branding\"]\n  }\n}\n```\n**Branding format:** Extracts comprehensive brand identity (colors, fonts, typography, spacing, logo, UI components) for design analysis or style replication.\n**Performance:** Add maxAge parameter for 500% faster scrapes using cached data.\n**Returns:** JSON structured data, markdown, branding profile, or other formats as specified.\n\n",
+        "params": {
+          "url": {
+            "type": "string",
+            "required": true
+          },
+          "formats": {
+            "type": "array",
+            "required": false
+          },
+          "parsers": {
+            "type": "array",
+            "required": false
+          },
+          "onlyMainContent": {
+            "type": "boolean",
+            "required": false
+          },
+          "includeTags": {
+            "type": "array",
+            "required": false
+          },
+          "excludeTags": {
+            "type": "array",
+            "required": false
+          },
+          "waitFor": {
+            "type": "number",
+            "required": false
+          },
+          "actions": {
+            "type": "array",
+            "required": false
+          },
+          "mobile": {
+            "type": "boolean",
+            "required": false
+          },
+          "skipTlsVerification": {
+            "type": "boolean",
+            "required": false
+          },
+          "removeBase64Images": {
+            "type": "boolean",
+            "required": false
+          },
+          "location": {
+            "type": "object",
+            "required": false
+          },
+          "storeInCache": {
+            "type": "boolean",
+            "required": false
+          },
+          "zeroDataRetention": {
+            "type": "boolean",
+            "required": false
+          },
+          "maxAge": {
+            "type": "number",
+            "required": false
+          },
+          "proxy": {
+            "type": "string",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "firecrawl_map",
+        "description": "\nMap a website to discover all indexed URLs on the site.\n\n**Best for:** Discovering URLs on a website before deciding what to scrape; finding specific sections or pages within a large site; locating the correct page when scrape returns empty or incomplete results.\n**Not recommended for:** When you already know which specific URL you need (use scrape); when you need the content of the pages (use scrape after mapping).\n**Common mistakes:** Using crawl to discover URLs instead of map; jumping straight to firecrawl_agent when scrape fails instead of using map first to find the right page.\n\n**IMPORTANT - Use map before agent:** If `firecrawl_scrape` returns empty, minimal, or irrelevant content, use `firecrawl_map` with the `search` parameter to find the specific page URL containing your target content. This is faster and cheaper than using `firecrawl_agent`. Only use the agent as a last resort after map+scrape fails.\n\n**Prompt Example:** \"Find the webhook documentation page on this API docs site.\"\n**Usage Example (discover all URLs):**\n```json\n{\n  \"name\": \"firecrawl_map\",\n  \"arguments\": {\n    \"url\": \"https://example.com\"\n  }\n}\n```\n**Usage Example (search for specific content - RECOMMENDED when scrape fails):**\n```json\n{\n  \"name\": \"firecrawl_map\",\n  \"arguments\": {\n    \"url\": \"https://docs.example.com/api\",\n    \"search\": \"webhook events\"\n  }\n}\n```\n**Returns:** Array of URLs found on the site, filtered by search query if provided.\n",
+        "params": {
+          "url": {
+            "type": "string",
+            "required": true
+          },
+          "search": {
+            "type": "string",
+            "required": false
+          },
+          "sitemap": {
+            "type": "string",
+            "required": false
+          },
+          "includeSubdomains": {
+            "type": "boolean",
+            "required": false
+          },
+          "limit": {
+            "type": "number",
+            "required": false
+          },
+          "ignoreQueryParameters": {
+            "type": "boolean",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "firecrawl_search",
+        "description": "\nSearch the web and optionally extract content from search results. This is the most powerful web search tool available, and if available you should always default to using this tool for any web search needs.\n\nThe query also supports search operators, that you can use if needed to refine the search:\n| Operator | Functionality | Examples |\n---|-|-|\n| `\"\"` | Non-fuzzy matches a string of text | `\"Firecrawl\"`\n| `-` | Excludes certain keywords or negates other operators | `-bad`, `-site:firecrawl.dev`\n| `site:` | Only returns results from a specified website | `site:firecrawl.dev`\n| `inurl:` | Only returns results that include a word in the URL | `inurl:firecrawl`\n| `allinurl:` | Only returns results that include multiple words in the URL | `allinurl:git firecrawl`\n| `intitle:` | Only returns results that include a word in the title of the page | `intitle:Firecrawl`\n| `allintitle:` | Only returns results that include multiple words in the title of the page | `allintitle:firecrawl playground`\n| `related:` | Only returns results that are related to a specific domain | `related:firecrawl.dev`\n| `imagesize:` | Only returns images with exact dimensions | `imagesize:1920x1080`\n| `larger:` | Only returns images larger than specified dimensions | `larger:1920x1080`\n\n**Best for:** Finding specific information across multiple websites, when you don't know which website has the information; when you need the most relevant content for a query.\n**Not recommended for:** When you need to search the filesystem. When you already know which website to scrape (use scrape); when you need comprehensive coverage of a single website (use map or crawl.\n**Common mistakes:** Using crawl or map for open-ended questions (use search instead).\n**Prompt Example:** \"Find the latest research papers on AI published in 2023.\"\n**Sources:** web, images, news, default to web unless needed images or news.\n**Scrape Options:** Only use scrapeOptions when you think it is absolutely necessary. When you do so default to a lower limit to avoid timeouts, 5 or lower.\n**Optimal Workflow:** Search first using firecrawl_search without formats, then after fetching the results, use the scrape tool to get the content of the relevantpage(s) that you want to scrape\n\n**Usage Example without formats (Preferred):**\n```json\n{\n  \"name\": \"firecrawl_search\",\n  \"arguments\": {\n    \"query\": \"top AI companies\",\n    \"limit\": 5,\n    \"sources\": [\n      { \"type\": \"web\" }\n    ]\n  }\n}\n```\n**Usage Example with formats:**\n```json\n{\n  \"name\": \"firecrawl_search\",\n  \"arguments\": {\n    \"query\": \"latest AI research papers 2023\",\n    \"limit\": 5,\n    \"lang\": \"en\",\n    \"country\": \"us\",\n    \"sources\": [\n      { \"type\": \"web\" },\n      { \"type\": \"images\" },\n      { \"type\": \"news\" }\n    ],\n    \"scrapeOptions\": {\n      \"formats\": [\"markdown\"],\n      \"onlyMainContent\": true\n    }\n  }\n}\n```\n**Returns:** Array of search results (with optional scraped content).\n",
+        "params": {
+          "query": {
+            "type": "string",
+            "required": true
+          },
+          "limit": {
+            "type": "number",
+            "required": false
+          },
+          "tbs": {
+            "type": "string",
+            "required": false
+          },
+          "filter": {
+            "type": "string",
+            "required": false
+          },
+          "location": {
+            "type": "string",
+            "required": false
+          },
+          "sources": {
+            "type": "array",
+            "required": false
+          },
+          "scrapeOptions": {
+            "type": "object",
+            "required": false
+          },
+          "enterprise": {
+            "type": "array",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "firecrawl_crawl",
+        "description": "\n Starts a crawl job on a website and extracts content from all pages.\n \n **Best for:** Extracting content from multiple related pages, when you need comprehensive coverage.\n **Not recommended for:** Extracting content from a single page (use scrape); when token limits are a concern (use map + batch_scrape); when you need fast results (crawling can be slow).\n **Warning:** Crawl responses can be very large and may exceed token limits. Limit the crawl depth and number of pages, or use map + batch_scrape for better control.\n **Common mistakes:** Setting limit or maxDiscoveryDepth too high (causes token overflow) or too low (causes missing pages); using crawl for a single page (use scrape instead). Using a /* wildcard is not recommended.\n **Prompt Example:** \"Get all blog posts from the first two levels of example.com/blog.\"\n **Usage Example:**\n ```json\n {\n   \"name\": \"firecrawl_crawl\",\n   \"arguments\": {\n     \"url\": \"https://example.com/blog/*\",\n     \"maxDiscoveryDepth\": 5,\n     \"limit\": 20,\n     \"allowExternalLinks\": false,\n     \"deduplicateSimilarURLs\": true,\n     \"sitemap\": \"include\"\n   }\n }\n ```\n **Returns:** Operation ID for status checking; use firecrawl_check_crawl_status to check progress.\n \n ",
+        "params": {
+          "url": {
+            "type": "string",
+            "required": true
+          },
+          "prompt": {
+            "type": "string",
+            "required": false
+          },
+          "excludePaths": {
+            "type": "array",
+            "required": false
+          },
+          "includePaths": {
+            "type": "array",
+            "required": false
+          },
+          "maxDiscoveryDepth": {
+            "type": "number",
+            "required": false
+          },
+          "sitemap": {
+            "type": "string",
+            "required": false
+          },
+          "limit": {
+            "type": "number",
+            "required": false
+          },
+          "allowExternalLinks": {
+            "type": "boolean",
+            "required": false
+          },
+          "allowSubdomains": {
+            "type": "boolean",
+            "required": false
+          },
+          "crawlEntireDomain": {
+            "type": "boolean",
+            "required": false
+          },
+          "delay": {
+            "type": "number",
+            "required": false
+          },
+          "maxConcurrency": {
+            "type": "number",
+            "required": false
+          },
+          "webhook": {
+            "type": "string",
+            "required": false
+          },
+          "deduplicateSimilarURLs": {
+            "type": "boolean",
+            "required": false
+          },
+          "ignoreQueryParameters": {
+            "type": "boolean",
+            "required": false
+          },
+          "scrapeOptions": {
+            "type": "object",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "firecrawl_check_crawl_status",
+        "description": "\nCheck the status of a crawl job.\n\n**Usage Example:**\n```json\n{\n  \"name\": \"firecrawl_check_crawl_status\",\n  \"arguments\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\"\n  }\n}\n```\n**Returns:** Status and progress of the crawl job, including results if available.\n",
+        "params": {
+          "id": {
+            "type": "string",
+            "required": true
+          }
+        }
+      },
+      {
+        "name": "firecrawl_extract",
+        "description": "\nExtract structured information from web pages using LLM capabilities. Supports both cloud AI and self-hosted LLM extraction.\n\n**Best for:** Extracting specific structured data like prices, names, details from web pages.\n**Not recommended for:** When you need the full content of a page (use scrape); when you're not looking for specific structured data.\n**Arguments:**\n- urls: Array of URLs to extract information from\n- prompt: Custom prompt for the LLM extraction\n- schema: JSON schema for structured data extraction\n- allowExternalLinks: Allow extraction from external links\n- enableWebSearch: Enable web search for additional context\n- includeSubdomains: Include subdomains in extraction\n**Prompt Example:** \"Extract the product name, price, and description from these product pages.\"\n**Usage Example:**\n```json\n{\n  \"name\": \"firecrawl_extract\",\n  \"arguments\": {\n    \"urls\": [\"https://example.com/page1\", \"https://example.com/page2\"],\n    \"prompt\": \"Extract product information including name, price, and description\",\n    \"schema\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"name\": { \"type\": \"string\" },\n        \"price\": { \"type\": \"number\" },\n        \"description\": { \"type\": \"string\" }\n      },\n      \"required\": [\"name\", \"price\"]\n    },\n    \"allowExternalLinks\": false,\n    \"enableWebSearch\": false,\n    \"includeSubdomains\": false\n  }\n}\n```\n**Returns:** Extracted structured data as defined by your schema.\n",
+        "params": {
+          "urls": {
+            "type": "array",
+            "required": true
+          },
+          "prompt": {
+            "type": "string",
+            "required": false
+          },
+          "schema": {
+            "type": "object",
+            "required": false
+          },
+          "allowExternalLinks": {
+            "type": "boolean",
+            "required": false
+          },
+          "enableWebSearch": {
+            "type": "boolean",
+            "required": false
+          },
+          "includeSubdomains": {
+            "type": "boolean",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "firecrawl_agent",
+        "description": "\nAutonomous web research agent. This is a separate AI agent layer that independently browses the internet, searches for information, navigates through pages, and extracts structured data based on your query. You describe what you need, and the agent figures out where to find it.\n\n**How it works:** The agent performs web searches, follows links, reads pages, and gathers data autonomously. This runs **asynchronously** - it returns a job ID immediately, and you poll `firecrawl_agent_status` to check when complete and retrieve results.\n\n**IMPORTANT - Async workflow with patient polling:**\n1. Call `firecrawl_agent` with your prompt/schema → returns job ID immediately\n2. Poll `firecrawl_agent_status` with the job ID to check progress\n3. **Keep polling for at least 2-3 minutes** - agent research typically takes 1-5 minutes for complex queries\n4. Poll every 15-30 seconds until status is \"completed\" or \"failed\"\n5. Do NOT give up after just a few polling attempts - the agent needs time to research\n\n**Expected wait times:**\n- Simple queries with provided URLs: 30 seconds - 1 minute\n- Complex research across multiple sites: 2-5 minutes\n- Deep research tasks: 5+ minutes\n\n**Best for:** Complex research tasks where you don't know the exact URLs; multi-source data gathering; finding information scattered across the web; extracting data from JavaScript-heavy SPAs that fail with regular scrape.\n**Not recommended for:** Simple single-page scraping where you know the URL (use scrape with JSON format instead - faster and cheaper).\n\n**Arguments:**\n- prompt: Natural language description of the data you want (required, max 10,000 characters)\n- urls: Optional array of URLs to focus the agent on specific pages\n- schema: Optional JSON schema for structured output\n\n**Prompt Example:** \"Find the founders of Firecrawl and their backgrounds\"\n**Usage Example (start agent, then poll patiently for results):**\n```json\n{\n  \"name\": \"firecrawl_agent\",\n  \"arguments\": {\n    \"prompt\": \"Find the top 5 AI startups founded in 2024 and their funding amounts\",\n    \"schema\": {\n      \"type\": \"object\",\n      \"properties\": {\n        \"startups\": {\n          \"type\": \"array\",\n          \"items\": {\n            \"type\": \"object\",\n            \"properties\": {\n              \"name\": { \"type\": \"string\" },\n              \"funding\": { \"type\": \"string\" },\n              \"founded\": { \"type\": \"string\" }\n            }\n          }\n        }\n      }\n    }\n  }\n}\n```\nThen poll with `firecrawl_agent_status` every 15-30 seconds for at least 2-3 minutes.\n\n**Usage Example (with URLs - agent focuses on specific pages):**\n```json\n{\n  \"name\": \"firecrawl_agent\",\n  \"arguments\": {\n    \"urls\": [\"https://docs.firecrawl.dev\", \"https://firecrawl.dev/pricing\"],\n    \"prompt\": \"Compare the features and pricing information from these pages\"\n  }\n}\n```\n**Returns:** Job ID for status checking. Use `firecrawl_agent_status` to poll for results.\n",
+        "params": {
+          "prompt": {
+            "type": "string",
+            "required": true
+          },
+          "urls": {
+            "type": "array",
+            "required": false
+          },
+          "schema": {
+            "type": "object",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "firecrawl_agent_status",
+        "description": "\nCheck the status of an agent job and retrieve results when complete. Use this to poll for results after starting an agent with `firecrawl_agent`.\n\n**IMPORTANT - Be patient with polling:**\n- Poll every 15-30 seconds\n- **Keep polling for at least 2-3 minutes** before considering the request failed\n- Complex research can take 5+ minutes - do not give up early\n- Only stop polling when status is \"completed\" or \"failed\"\n\n**Usage Example:**\n```json\n{\n  \"name\": \"firecrawl_agent_status\",\n  \"arguments\": {\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\"\n  }\n}\n```\n**Possible statuses:**\n- processing: Agent is still researching - keep polling, do not give up\n- completed: Research finished - response includes the extracted data\n- failed: An error occurred (only stop polling on this status)\n\n**Returns:** Status, progress, and results (if completed) of the agent job.\n",
+        "params": {
+          "id": {
+            "type": "string",
+            "required": true
+          }
+        }
+      },
+      {
+        "name": "firecrawl_browser_create",
+        "description": "\nCreate a persistent browser session for code execution via CDP (Chrome DevTools Protocol).\n\n**Best for:** Running code (Python/JS) that interacts with a live browser page, multi-step browser automation, persistent sessions that survive across multiple tool calls.\n**Not recommended for:** Simple page scraping (use firecrawl_scrape instead).\n\n**Arguments:**\n- ttl: Total session lifetime in seconds (30-3600, optional)\n- activityTtl: Idle timeout in seconds (10-3600, optional)\n- streamWebView: Whether to enable live view streaming (optional)\n\n**Usage Example:**\n```json\n{\n  \"name\": \"firecrawl_browser_create\",\n  \"arguments\": {}\n}\n```\n**Returns:** Session ID, CDP URL, and live view URL.\n",
+        "params": {
+          "ttl": {
+            "type": "number",
+            "required": false
+          },
+          "activityTtl": {
+            "type": "number",
+            "required": false
+          },
+          "streamWebView": {
+            "type": "boolean",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "firecrawl_browser_execute",
+        "description": "\nExecute code in a browser session. Supports agent-browser commands (bash), Python, or JavaScript.\n\n**Best for:** Browser automation, navigating pages, clicking elements, extracting data, multi-step browser workflows.\n**Requires:** An active browser session (create one with firecrawl_browser_create first).\n\n**Arguments:**\n- sessionId: The browser session ID (required)\n- code: The code to execute (required)\n- language: \"bash\", \"python\", or \"node\" (optional, defaults to \"bash\")\n\n**Recommended: Use bash with agent-browser commands** (pre-installed in every sandbox):\n```json\n{\n  \"name\": \"firecrawl_browser_execute\",\n  \"arguments\": {\n    \"sessionId\": \"session-id-here\",\n    \"code\": \"agent-browser open https://example.com\",\n    \"language\": \"bash\"\n  }\n}\n```\n\n**Common agent-browser commands:**\n- `agent-browser open <url>` — Navigate to URL\n- `agent-browser snapshot` — Get accessibility tree with clickable refs (for AI)\n- `agent-browser snapshot -i -c` — Interactive elements only, compact\n- `agent-browser click @e5` — Click element by ref from snapshot\n- `agent-browser type @e3 \"text\"` — Type into element\n- `agent-browser fill @e3 \"text\"` — Clear and fill element\n- `agent-browser get text @e1` — Get text content\n- `agent-browser get title` — Get page title\n- `agent-browser get url` — Get current URL\n- `agent-browser screenshot [path]` — Take screenshot\n- `agent-browser scroll down` — Scroll page\n- `agent-browser wait 2000` — Wait 2 seconds\n- `agent-browser --help` — Full command reference\n\n**For Playwright scripting, use Python** (has proper async/await support):\n```json\n{\n  \"name\": \"firecrawl_browser_execute\",\n  \"arguments\": {\n    \"sessionId\": \"session-id-here\",\n    \"code\": \"await page.goto('https://example.com')\\ntitle = await page.title()\\nprint(title)\",\n    \"language\": \"python\"\n  }\n}\n```\n\n**Note:** Prefer bash (agent-browser) or Python.\n**Returns:** Execution result including stdout, stderr, and exit code.\n",
+        "params": {
+          "sessionId": {
+            "type": "string",
+            "required": true
+          },
+          "code": {
+            "type": "string",
+            "required": true
+          },
+          "language": {
+            "type": "string",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "firecrawl_browser_delete",
+        "description": "\nDestroy a browser session.\n\n**Usage Example:**\n```json\n{\n  \"name\": \"firecrawl_browser_delete\",\n  \"arguments\": {\n    \"sessionId\": \"session-id-here\"\n  }\n}\n```\n**Returns:** Success confirmation.\n",
+        "params": {
+          "sessionId": {
+            "type": "string",
+            "required": true
+          }
+        }
+      },
+      {
+        "name": "firecrawl_browser_list",
+        "description": "\nList browser sessions, optionally filtered by status.\n\n**Usage Example:**\n```json\n{\n  \"name\": \"firecrawl_browser_list\",\n  \"arguments\": {\n    \"status\": \"active\"\n  }\n}\n```\n**Returns:** Array of browser sessions.\n",
+        "params": {
+          "status": {
+            "type": "string",
+            "required": false
+          }
+        }
+      }
+    ],
+    "agentation": [
+      {
+        "name": "agentation_list_sessions",
+        "description": "List all active annotation sessions",
+        "params": {}
+      },
+      {
+        "name": "agentation_get_session",
+        "description": "Get a session with all its annotations",
+        "params": {
+          "sessionId": {
+            "type": "string",
+            "description": "The session ID to get",
+            "required": true
+          }
+        }
+      },
+      {
+        "name": "agentation_get_pending",
+        "description": "Get all pending (unacknowledged) annotations for a session. Use this to see what feedback the human has given that needs attention.",
+        "params": {
+          "sessionId": {
+            "type": "string",
+            "description": "The session ID to get pending annotations for",
+            "required": true
+          }
+        }
+      },
+      {
+        "name": "agentation_get_all_pending",
+        "description": "Get all pending annotations across ALL sessions. Use this to see all unaddressed feedback from the human across all pages they've visited.",
+        "params": {}
+      },
+      {
+        "name": "agentation_acknowledge",
+        "description": "Mark an annotation as acknowledged. Use this to let the human know you've seen their feedback and will address it.",
+        "params": {
+          "annotationId": {
+            "type": "string",
+            "description": "The annotation ID to acknowledge",
+            "required": true
+          }
+        }
+      },
+      {
+        "name": "agentation_resolve",
+        "description": "Mark an annotation as resolved. Use this after you've addressed the feedback. Optionally include a summary of what you did.",
+        "params": {
+          "annotationId": {
+            "type": "string",
+            "description": "The annotation ID to resolve",
+            "required": true
+          },
+          "summary": {
+            "type": "string",
+            "description": "Optional summary of how it was resolved",
+            "required": false
+          }
+        }
+      },
+      {
+        "name": "agentation_dismiss",
+        "description": "Dismiss an annotation. Use this when you've decided not to address the feedback, with a reason why.",
+        "params": {
+          "annotationId": {
+            "type": "string",
+            "description": "The annotation ID to dismiss",
+            "required": true
+          },
+          "reason": {
+            "type": "string",
+            "description": "Reason for dismissing this annotation",
+            "required": true
+          }
+        }
+      },
+      {
+        "name": "agentation_reply",
+        "description": "Add a reply to an annotation's thread. Use this to ask clarifying questions or provide updates to the human.",
+        "params": {
+          "annotationId": {
+            "type": "string",
+            "description": "The annotation ID to reply to",
+            "required": true
+          },
+          "message": {
+            "type": "string",
+            "description": "The reply message",
+            "required": true
+          }
+        }
+      },
+      {
+        "name": "agentation_watch_annotations",
+        "description": "Block until new annotations appear, then collect a batch and return them. Triggers automatically when annotations are created — the user just annotates in the browser and the agent picks them up. After detecting the first new annotation, waits for a batch window to collect more before returning. Use in a loop for hands-free processing. After addressing each annotation, call agentation_resolve with the annotation ID and a summary of what you did. Only resolve annotations the user accepted — if the user rejects your change, leave the annotation open.",
+        "params": {
+          "sessionId": {
+            "type": "string",
+            "description": "Optional session ID to filter. If not provided, watches ALL sessions.",
+            "required": false
+          },
+          "batchWindowSeconds": {
+            "type": "number",
+            "description": "Seconds to wait after first annotation before returning batch (default: 10, max: 60)",
+            "required": false
+          },
+          "timeoutSeconds": {
+            "type": "number",
+            "description": "Max seconds to wait for first annotation (default: 120, max: 300)",
+            "required": false
+          }
+        }
+      }
+    ]
+  }
+}

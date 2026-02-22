@@ -1,0 +1,43 @@
+{
+  "id": "skill-triage",
+  "title": "Skill Migration Triage",
+  "description": "Evaluate a skill for porting from Claude Code to pi",
+  "startId": "q1",
+  "questions": [
+    {
+      "id": "q1",
+      "prompt": "Does this skill reference Claude Code CLI commands?",
+      "type": "confirm",
+      "next": { "yes": "q2_claude", "no": "q2_deps" }
+    },
+    {
+      "id": "q2_claude",
+      "prompt": "What kind of Claude-specific references?",
+      "type": "select",
+      "options": [
+        { "value": "cli", "label": "CLI invocations (`claude ...`)", "description": "Shells out to claude binary" },
+        { "value": "api", "label": "API patterns (MCP, tools)", "description": "Uses Claude Code tool registration" },
+        { "value": "both", "label": "Both CLI and API", "description": "Deeply coupled to Claude Code" }
+      ],
+      "next": { "cli": "q3_action", "api": "q3_action", "both": "q3_action" }
+    },
+    {
+      "id": "q2_deps",
+      "prompt": "Does it depend on external tools (pint, shapely, etc)?",
+      "type": "confirm",
+      "next": { "yes": "q3_action", "no": "q3_action" }
+    },
+    {
+      "id": "q3_action",
+      "prompt": "What should we do with this skill?",
+      "type": "select",
+      "options": [
+        { "value": "copy", "label": "Direct copy", "description": "Works as-is in pi" },
+        { "value": "adapt", "label": "Adapt references", "description": "sed claude→pi, update paths" },
+        { "value": "rewrite", "label": "Rewrite for pi", "description": "Fundamental architecture change" },
+        { "value": "skip", "label": "Skip", "description": "Not relevant for pi" }
+      ],
+      "allowOther": true
+    }
+  ]
+}

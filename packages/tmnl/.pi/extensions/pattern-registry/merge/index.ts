@@ -1,0 +1,15 @@
+export {
+  buildMergeGroup,
+  canonicalKeyOf,
+  classifyPatternSource,
+  groupPatternsByCanonicalKey,
+  mergePatterns,
+  scoreCandidate,
+  sourceRank,
+  summarizeEvidence,
+  type MergeCandidate,
+  type MergeConflictPreview,
+  type MergeEvidence,
+  type MergeGroupPreview,
+  type MergeSourceClass,
+} from './engine.ts'

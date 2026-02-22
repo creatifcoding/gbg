@@ -1,0 +1,50 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/claude-code/main/schemas/mcp-config-schema.json",
+  "mcpServers": {
+    "exa": {
+      "type": "http",
+      "url": "https://mcp.exa.ai/mcp?tools=web_search_exa,get_code_context_exa,crawling_exa,company_research_exa,linkedin_search_exa,deep_researcher_start,deep_researcher_check&exaApiKey=1fb06823-dbc5-4807-a918-4bad42c80221"
+    },
+    "deepwiki": {
+      "type": "http",
+      "url": "https://mcp.deepwiki.com/mcp"
+    },
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "effect-docs": {
+      "type": "stdio", 
+      "command": "bunx",
+      "args": ["effect-mcp@latest"],
+      "env": {}
+    },
+    "anime-js": {
+      "type": "stdio",
+      "command": "bunx",
+      "args": ["anime-js-mcp-server"],
+      "env": {}
+    },
+    "nia": {
+      "type": "http",
+      "url": "https://apigcp.trynia.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer nk_ckU9ikCxZBVBhwaY4bKDIBBfrbRyJSK8"
+      }
+    },
+    "firecrawl": {
+      "type": "stdio",
+      "command": "bunx",
+      "args": ["firecrawl-mcp"],
+      "env": {
+        "FIRECRAWL_API_KEY": "fc-a27a281ff25446b799fe521044eefe65"
+      }
+    },
+    "agentation": {
+      "type": "stdio",
+      "command": "bunx",
+      "args": ["agentation-mcp", "server"],
+      "env": {}
+    }
+  }
+}

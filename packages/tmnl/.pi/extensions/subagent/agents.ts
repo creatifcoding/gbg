@@ -1,0 +1,1 @@
+/home/getbygenius/.npm-packages/lib/node_modules/@mariozechner/pi-coding-agent/examples/extensions/subagent/agents.ts

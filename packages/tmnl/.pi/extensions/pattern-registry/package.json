@@ -1,0 +1,14 @@
+{
+  "name": "pi-pattern-registry",
+  "version": "0.1.0",
+  "type": "module",
+  "dependencies": {
+    "@sinclair/typebox": "^0.34.48",
+    "effect": "^3.19.16"
+  },
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
