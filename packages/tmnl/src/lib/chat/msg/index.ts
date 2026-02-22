@@ -95,6 +95,12 @@ export type {
 } from './tool-block'
 
 // ---------------------------------------------------------------------------
+// Mermaid Block (beautiful-mermaid SVG rendering)
+// ---------------------------------------------------------------------------
+export { ChatMermaidBlock, TMNL_DIAGRAM_THEME } from './mermaid-block'
+export type { ChatMermaidBlockProps } from './mermaid-block'
+
+// ---------------------------------------------------------------------------
 // Code Block (compound: Root, Header, CopyButton)
 // ---------------------------------------------------------------------------
 export { ChatCodeBlock, useChatCodeBlock } from './code-block'

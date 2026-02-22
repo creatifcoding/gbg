@@ -35,6 +35,7 @@ import {
   ChatToolBlock,
   ChatFileAttachment,
   ChatCodeBlock,
+  ChatMermaidBlock,
   ChatTokenUsage,
   getChatRoleIcon,
   CHAT_ROLE_ICON_SIZE,
@@ -155,6 +156,15 @@ function PartRenderer({
         />
       )
     case 'code':
+      // Mermaid code blocks → beautiful SVG diagram
+      if (part.language === 'mermaid') {
+        return (
+          <ChatMermaidBlock
+            source={part.code}
+            isStreaming={part.isStreaming ?? isStreaming}
+          />
+        )
+      }
       return (
         <ChatCodeBlock
           code={part.code}
