@@ -141,7 +141,7 @@ export function getActionGroupRegistry(): ReadonlyMap<string, ActionGroupRegistr
   return _registry
 }
 
-export function getActionGroupInstances(): ReadonlyMap<string, ActionGroupInstance> {
+export function getActionGroupInstances(): Map<string, ActionGroupInstance> {
   return _instances
 }
 

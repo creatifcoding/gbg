@@ -167,3 +167,31 @@ export {
   useGeniferTools,
   useBootstrapResult,
 } from './hooks'
+
+// --- Generation Schema (what LLM outputs) ---
+export {
+  ComponentRef,
+  SetStateAction,
+  CallRpcAction,
+  EmitEventAction,
+  NavigateAction,
+  SequenceAction,
+  ConditionalAction,
+  ActionDef,
+  StateDef,
+  EventSubscription,
+  BindingDef,
+  BehaviorBlock,
+  CodeBlock,
+  BehaviorProps,
+  BEHAVIOR_DSL_PROMPT,
+} from './generation-schema'
+
+// --- Interpreter (JSON → live atoms) ---
+export {
+  interpretComponentRef,
+  interpretBehaviorBlock,
+  interpretBehaviorProps,
+  resolveProps,
+  setRpcExecutor,
+} from './interpreter'
