@@ -31,6 +31,7 @@ import type { GeniferStreamDeltaEvent } from '../harness/schemas'
 import type { UITree } from '../core/schemas'
 import { Renderer, DefaultFallback, type ComponentRegistry } from './renderer'
 import { SurfaceProvider, type SurfaceProviderProps } from './SurfaceProvider'
+import { BehaviorProvider } from './BehaviorBridge'
 import type { GeniferHarnessServiceShape } from '../harness/GeniferHarnessService'
 import type { DataSourceResolverShape } from '../harness/DataSourceResolver'
 
@@ -427,13 +428,15 @@ export const SurfaceRenderer = memo(function SurfaceRenderer({
             }}
           >
             {tree ? (
-              <Renderer
-                tree={tree}
-                registry={registry}
-                loading={isStreaming}
-                fallback={DefaultFallback}
-                disableAnimations={disableAnimations || isStreaming}
-              />
+              <BehaviorProvider tree={tree}>
+                <Renderer
+                  tree={tree}
+                  registry={registry}
+                  loading={isStreaming}
+                  fallback={DefaultFallback}
+                  disableAnimations={disableAnimations || isStreaming}
+                />
+              </BehaviorProvider>
             ) : isStreaming ? (
               /* Streaming skeleton when no tree yet */
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

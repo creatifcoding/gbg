@@ -22,6 +22,10 @@ import * as Schema from "effect/Schema"
 
 import { CatalogComponents } from "../core/CatalogService"
 import { normalizeWithMeta, type NormalizeResult } from "../core/normalize"
+import { BEHAVIOR_DSL_PROMPT } from "../decorators/generation-schema"
+import { getComponentRegistry } from "../decorators/component"
+import { getActionGroupRegistry } from "../decorators/action-group"
+import { getRpcRegistry } from "../decorators/rpc"
 
 // =============================================================================
 // Types
@@ -31,6 +35,8 @@ export interface OperatingContext {
   readonly viewport?: { width: number; height: number }
   readonly themeTokens?: Record<string, string>
   readonly additionalContext?: string
+  /** Enable behavior generation (Tier 1/2/3 DSL) */
+  readonly interactive?: boolean
 }
 
 export interface CompiledPrompt {
@@ -104,6 +110,64 @@ const EXAMPLE_FORM = `{
 }`
 
 // =============================================================================
+// Golden Behavioral Example
+// =============================================================================
+
+const EXAMPLE_INTERACTIVE_SEARCH = `{
+  "root": "search-container",
+  "elements": {
+    "search-container": {
+      "type": "VStack",
+      "props": { "gap": 16, "padding": 24 },
+      "behavior": {
+        "name": "search",
+        "state": [
+          { "field": "query", "initial": "" },
+          { "field": "results", "initial": [] },
+          { "field": "loading", "initial": false },
+          { "field": "error", "initial": null }
+        ],
+        "actions": {
+          "search": {
+            "_tag": "sequence",
+            "actions": [
+              { "_tag": "setState", "values": { "loading": true, "error": null } },
+              { "_tag": "callRpc", "rpc": "search/query",
+                "payload": { "q": "{{@state:query}}" },
+                "resultField": "results", "loadingField": "loading", "errorField": "error" }
+            ]
+          },
+          "clear": { "_tag": "setState", "values": { "query": "", "results": [], "error": null } }
+        }
+      },
+      "children": ["search-bar", "results-list"]
+    },
+    "search-bar": {
+      "type": "HStack",
+      "props": { "gap": 8 },
+      "children": ["query-input", "search-btn"]
+    },
+    "query-input": {
+      "type": "TextInput",
+      "props": { "value": "@state:query", "onChange": "@action:setQuery", "placeholder": "Search..." }
+    },
+    "search-btn": {
+      "type": "Button",
+      "props": { "onClick": "@action:search", "label": "Search", "disabled": "@state:loading" }
+    },
+    "results-list": {
+      "type": "VStack",
+      "props": { "gap": 8, "visible": "@state:results.length > 0" },
+      "children": ["results-count"]
+    },
+    "results-count": {
+      "type": "Text",
+      "props": { "content": "{{@state:results.length}} results found" }
+    }
+  }
+}`
+
+// =============================================================================
 // System Prompt Builder
 // =============================================================================
 
@@ -156,6 +220,49 @@ function buildSystemPrompt(
   lines.push("")
   lines.push("EXAMPLE 2 — Form:")
   lines.push(EXAMPLE_FORM)
+
+  // --- Interactive Behavior DSL (Tier 1/2/3) ---
+  if (context?.interactive) {
+    lines.push("")
+    lines.push(BEHAVIOR_DSL_PROMPT)
+
+    // --- Available decorated components (Tier 1 references) ---
+    const componentReg = getComponentRegistry()
+    if (componentReg.size > 0) {
+      lines.push("")
+      lines.push("PRE-BUILT INTERACTIVE COMPONENTS (use via ref):")
+      for (const [name, meta] of Array.from(componentReg.entries())) {
+        lines.push(`  ${name} — ${(meta as any).description ?? "no description"}`)
+      }
+    }
+
+    // --- Available ActionGroups ---
+    const agReg = getActionGroupRegistry()
+    if (agReg.size > 0) {
+      lines.push("")
+      lines.push("AVAILABLE ACTION GROUPS (attach to behavior blocks):")
+      for (const [name, reg] of Array.from(agReg.entries())) {
+        const stateFields = Array.from((reg as any).stateFields?.keys?.() ?? [])
+        const actions = Array.from((reg as any).actions?.keys?.() ?? [])
+        lines.push(`  ${name}: state=[${stateFields.join(", ")}] actions=[${actions.join(", ")}]`)
+      }
+    }
+
+    // --- Available RPCs ---
+    const rpcReg = getRpcRegistry()
+    if (rpcReg.size > 0) {
+      lines.push("")
+      lines.push("AVAILABLE RPCs (use in callRpc actions):")
+      for (const [tag, meta] of Array.from(rpcReg.entries())) {
+        lines.push(`  ${tag} — ${(meta as any).description ?? "no description"}`)
+      }
+    }
+
+    // --- Behavioral example ---
+    lines.push("")
+    lines.push("EXAMPLE 3 — Interactive Search:")
+    lines.push(EXAMPLE_INTERACTIVE_SEARCH)
+  }
 
   if (context?.viewport) {
     lines.push("")

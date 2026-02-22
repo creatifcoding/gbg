@@ -258,3 +258,28 @@ export {
   ComponentErrorBoundary,
   type ComponentErrorBoundaryProps,
 } from "./ErrorBoundary"
+
+// =============================================================================
+// Behavior Bridge (LLM-generated behavior → live atoms)
+// =============================================================================
+
+export {
+  BehaviorProvider,
+  useBehavior,
+  useBehaviorProps,
+  useBehaviorDispatch,
+  useBehaviorState,
+} from "./BehaviorBridge"
+
+// =============================================================================
+// Harness Integration
+// =============================================================================
+
+export {
+  SurfaceProvider,
+} from "./SurfaceProvider"
+
+export {
+  SurfaceRenderer,
+  SurfaceList,
+} from "./SurfaceRenderer"
