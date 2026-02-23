@@ -204,3 +204,25 @@ export const PanelOverlayToggle = memo(function PanelOverlayToggle() {
     </button>
   )
 })
+
+// =============================================================================
+// Dev-mode test API — exposed on window for agent-browser E2E harness
+// =============================================================================
+
+if (import.meta.env.DEV) {
+  const getStx = () => import('../stx/instance').then(m => m.getFloatingStx())
+
+  ;(window as any).__PANEL_TEST__ = {
+    toggle: togglePanelOverlay,
+    open: openPanelOverlay,
+    close: closePanelOverlay,
+    isOpen: () => panelOverlayRegistry.get(panelOverlayOpenAtom),
+
+    /** Reset all panel state to initial via stx.reset() — batch Legend State .set() */
+    reset: async () => {
+      closePanelOverlay()
+      const s = await getStx()
+      if (s) s.reset()
+    },
+  }
+}

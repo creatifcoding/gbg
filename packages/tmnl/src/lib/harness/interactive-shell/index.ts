@@ -22,6 +22,16 @@ export {
   executeInteractiveShell,
 } from './tool'
 
+// Quiet monitor (hands-free / dispatch lifecycle)
+export {
+  makeCompletionGate,
+  makeHandsFreeUpdates,
+  DEFAULT_HANDS_FREE_CONFIG,
+  type HandsFreeConfig,
+  type CompletionInfo,
+  type HandsFreeUpdate,
+} from './quiet-monitor'
+
 // Key encoding utilities
 export {
   translateInput,
@@ -48,16 +58,27 @@ export {
   ScreenDumpMode,
 } from './pty-worker-schema'
 
-// Client-side shell event bridge (browser only)
+// Client-side Atom.family session state + shell IO bridge
 export {
-  subscribeShellEvents,
-  subscribeAllShellEvents,
+  shellSessionFamily,
+  activeSessionIds$,
+  activeSessionCount$,
+  subscribeShellData,
   dispatchShellEvent,
+  cleanupSession,
+  setShellRegistry,
+  registerShellCommandSender,
+  clearShellCommandSender,
   sendShellInput,
   sendShellResize,
   sendShellKill,
-  registerShellCommandSender,
-  clearShellCommandSender,
+  type ShellSessionAtoms,
+} from './shell-session-atoms'
+
+// Legacy callback bridge (backward compat)
+export {
+  subscribeShellEvents,
+  subscribeAllShellEvents,
 } from './shell-client-atoms'
 
 export {

@@ -17,6 +17,12 @@ import { Effect, Option } from 'effect'
 import { InteractiveShellService, SessionNotFoundError, type InteractiveShellServiceShape } from './InteractiveShellService'
 import type { ShellSessionId, InteractiveShellToolArgs } from './schemas'
 import { translateInput } from './key-encoding'
+import {
+  makeCompletionGate,
+  DEFAULT_HANDS_FREE_CONFIG,
+  type HandsFreeConfig,
+  type CompletionInfo,
+} from './quiet-monitor'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tool JSON Schema (for LLM function calling)
@@ -103,6 +109,28 @@ export const interactiveShellToolParameters = {
       type: 'boolean',
       description: 'If true, return next N unseen lines (server tracks position).',
     },
+    mode: {
+      type: 'string',
+      enum: ['interactive', 'hands-free', 'dispatch'],
+      description:
+        "Session mode. 'interactive' (default): blocking. 'hands-free': returns immediately, periodic updates. 'dispatch': returns immediately, notified on completion.",
+    },
+    timeout: {
+      type: 'number',
+      description: 'Auto-kill process after N milliseconds.',
+    },
+    handsFree: {
+      type: 'object',
+      description: 'Hands-free mode configuration.',
+      properties: {
+        autoExitOnQuiet: { type: 'boolean', description: 'Auto-kill session when output stops. Default: false.' },
+        quietThreshold: { type: 'number', description: 'Silence duration (ms) before quiet detection. Default: 5000.' },
+        updateInterval: { type: 'number', description: 'Max interval between updates (ms). Default: 60000.' },
+        updateMaxChars: { type: 'number', description: 'Max chars per update. Default: 1500.' },
+        maxTotalChars: { type: 'number', description: 'Total char budget. Default: 100000.' },
+        updateMode: { type: 'string', enum: ['on-quiet', 'interval'], description: 'Update trigger mode. Default: on-quiet.' },
+      },
+    },
   },
   required: [],
   additionalProperties: false,
@@ -130,6 +158,16 @@ interface ToolArgs {
   outputOffset?: number
   drain?: boolean
   incremental?: boolean
+  mode?: 'interactive' | 'hands-free' | 'dispatch'
+  timeout?: number
+  handsFree?: {
+    autoExitOnQuiet?: boolean
+    quietThreshold?: number
+    updateInterval?: number
+    updateMaxChars?: number
+    maxTotalChars?: number
+    updateMode?: 'on-quiet' | 'interval'
+  }
 }
 
 /**
@@ -265,11 +303,94 @@ export const executeInteractiveShell = (
         rows: args.rows,
       })
 
-      // Stream initial output to the tool update callback
-      if (onUpdate) {
-        // Wait a bit for initial shell prompt
-        yield* Effect.sleep('500 millis')
+      const mode = args.mode ?? 'interactive'
 
+      // ── Dispatch mode: return immediately, resolve Deferred on exit ──
+      if (mode === 'dispatch') {
+        const hfConfig = args.handsFree ?? {}
+        const autoExit = hfConfig.autoExitOnQuiet ?? true // dispatch defaults to auto-exit
+
+        const { gate, dispose } = yield* makeCompletionGate(
+          info.sessionId,
+          shell.events,
+          {
+            autoExitOnQuiet: autoExit,
+            quietThreshold: hfConfig.quietThreshold ?? DEFAULT_HANDS_FREE_CONFIG.quietThreshold,
+            timeout: args.timeout,
+            killSession: () => shell.kill(info.sessionId).pipe(Effect.catchAll(() => Effect.void)),
+            readOutput: () =>
+              shell.readOutput(info.sessionId, 50).pipe(Effect.catchAll(() => Effect.succeed(''))),
+          },
+        )
+
+        // Fire completion watcher in background — results delivered via
+        // shell events (agent gets notified on next tool call / status check)
+        yield* Effect.fork(
+          Effect.gen(function* () {
+            const result: CompletionInfo = yield* Deferred.await(gate)
+            // Emit completion as tool update if callback available
+            onUpdate?.({
+              content: [
+                {
+                  type: 'text',
+                  text: `[dispatch:complete session:${info.sessionId} exit:${result.exitCode ?? 'null'}${result.timedOut ? ' TIMED_OUT' : ''}${result.autoExitedOnQuiet ? ' AUTO_EXITED_QUIET' : ''}]\n${result.outputSnapshot ?? ''}`,
+                },
+              ],
+            })
+            yield* dispose
+          }),
+        )
+
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Session dispatched (fire-and-forget).\nsessionId: ${info.sessionId}\npid: ${info.pid ?? 'unknown'}\nmode: dispatch\n${args.timeout ? `timeout: ${args.timeout}ms\n` : ''}${autoExit ? `autoExitOnQuiet: true (${hfConfig.quietThreshold ?? DEFAULT_HANDS_FREE_CONFIG.quietThreshold}ms)\n` : ''}\nYou will be notified when the session completes. Query with sessionId for status.`,
+            },
+          ],
+          isError: false,
+        }
+      }
+
+      // ── Hands-free mode: return immediately, periodic updates ────────
+      if (mode === 'hands-free') {
+        // Set up completion gate for timeout/auto-exit
+        if (args.timeout || args.handsFree?.autoExitOnQuiet) {
+          const hfConfig = args.handsFree ?? {}
+          const { dispose } = yield* makeCompletionGate(
+            info.sessionId,
+            shell.events,
+            {
+              autoExitOnQuiet: hfConfig.autoExitOnQuiet,
+              quietThreshold: hfConfig.quietThreshold ?? DEFAULT_HANDS_FREE_CONFIG.quietThreshold,
+              timeout: args.timeout,
+              killSession: () => shell.kill(info.sessionId).pipe(Effect.catchAll(() => Effect.void)),
+              readOutput: () =>
+                shell.readOutput(info.sessionId, 50).pipe(Effect.catchAll(() => Effect.succeed(''))),
+            },
+          )
+          // Cleanup runs when session exits
+          yield* Effect.fork(
+            Effect.gen(function* () {
+              yield* Effect.never // keep alive until scope closes
+            }).pipe(Effect.onInterrupt(() => dispose)),
+          )
+        }
+
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Session started in hands-free mode.\nsessionId: ${info.sessionId}\npid: ${info.pid ?? 'unknown'}\nstatus: ${info.status}\nmode: hands-free\n${args.timeout ? `timeout: ${args.timeout}ms\n` : ''}\nQuery with sessionId for output. Session runs in background.`,
+            },
+          ],
+          isError: false,
+        }
+      }
+
+      // ── Interactive mode (default): stream initial output ────────────
+      if (onUpdate) {
+        yield* Effect.sleep('500 millis')
         const output = yield* shell.readOutput(info.sessionId, 20)
         onUpdate({
           content: [

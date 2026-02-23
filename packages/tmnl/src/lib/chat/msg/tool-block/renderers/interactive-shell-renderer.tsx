@@ -4,28 +4,25 @@
  * For spawn results: shows InteractiveTerminal with live PTY connection.
  * For input/kill/status results: shows text output.
  *
- * Shell IO bridged through shell-client-atoms:
- *   - subscribeShellEvents(sessionId, callback) for data/started/exited/error
- *   - sendShellInput/sendShellResize/sendShellKill for commands
- *
- * These are wired by useHarnessAdapter's connect fn-atom, which:
- *   - Forks a daemon fiber tapping transport.events for shell envelopes
- *   - Registers the command sender with the transport.request() function
+ * Two-channel pattern (Atom.family):
+ *   HOT:  subscribeShellData(sessionId, cb) → terminal.write()
+ *   COLD: useAtomValue(session.status$) → React re-renders
  *
  * @module chat/msg/tool-block/renderers/interactive-shell-renderer
  */
 
-import { memo, useRef, useEffect, useState, useCallback, type FC } from 'react'
+import { memo, useRef, useEffect, useCallback, type FC } from 'react'
+import { useAtomValue } from '@effect-atom/atom-react'
 import type { ToolRendererProps } from './registry'
 import { InteractiveTerminal } from './terminal/interactive-terminal'
 import type { TerminalCoreRef } from './terminal/terminal-core'
 import {
-  subscribeShellEvents,
+  shellSessionFamily,
+  subscribeShellData,
   sendShellInput,
   sendShellResize,
   sendShellKill,
-} from '@/lib/harness/interactive-shell/shell-client-atoms'
-import type { ShellEvent } from '@/lib/harness/interactive-shell/schemas'
+} from '@/lib/harness/interactive-shell/shell-session-atoms'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Session ID extraction from tool output
@@ -102,7 +99,7 @@ export const InteractiveShellRenderer: FC<ToolRendererProps> = memo(
 InteractiveShellRenderer.displayName = 'InteractiveShellRenderer'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Terminal Bridge (subscribeShellEvents → ghostty-web terminal)
+// Terminal Bridge — Atom.family (cold) + direct callback (hot)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const InteractiveShellTerminalView: FC<{
@@ -110,34 +107,21 @@ const InteractiveShellTerminalView: FC<{
   name?: string
 }> = memo(({ sessionId, name }) => {
   const termRef = useRef<TerminalCoreRef>(null)
-  const [status, setStatus] = useState<
-    'starting' | 'running' | 'exited' | 'killed' | 'error'
-  >('starting')
-  const [exitCode, setExitCode] = useState<number | undefined>()
 
-  // Subscribe to shell events for this session
+  // COLD PATH — reactive metadata via Atom.family
+  const session = shellSessionFamily(sessionId)
+  const status = useAtomValue(session.status$)
+  const exitCode = useAtomValue(session.exitCode$)
+
+  // HOT PATH — direct data listener → terminal.write()
   useEffect(() => {
-    const unsub = subscribeShellEvents(sessionId, (event: ShellEvent) => {
-      switch (event._tag) {
-        case 'shell:data':
-          termRef.current?.write(event.data)
-          break
-        case 'shell:started':
-          setStatus('running')
-          break
-        case 'shell:exited':
-          setStatus('exited')
-          setExitCode(event.exitCode)
-          break
-        case 'shell:error':
-          setStatus('error')
-          break
-      }
+    const unsub = subscribeShellData(sessionId, (data: string) => {
+      termRef.current?.write(data)
     })
     return unsub
   }, [sessionId])
 
-  // Callbacks → shell-client-atoms (fire-and-forget via transport.request)
+  // Callbacks → shell command dispatch
   const handleInput = useCallback(
     (_sid: string, data: string) => sendShellInput(sessionId, data),
     [sessionId],
@@ -159,7 +143,7 @@ const InteractiveShellTerminalView: FC<{
       sessionId={sessionId}
       name={name}
       status={status}
-      exitCode={exitCode}
+      exitCode={exitCode ?? undefined}
       onInput={handleInput}
       onResizeRequest={handleResize}
       onKill={handleKill}

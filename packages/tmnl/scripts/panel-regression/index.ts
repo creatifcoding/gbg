@@ -15,7 +15,6 @@
 
 import { mkdir } from 'fs/promises'
 import { join } from 'path'
-import { cpus } from 'os'
 import { PREDEFINED, generateFuzzScenarios } from './scenarios'
 import { runScenarios } from './runner'
 import { runId } from './petnames'
@@ -97,15 +96,8 @@ await mkdir(outputDir, { recursive: true })
 
 // ─── Run ────────────────────────────────────────────────────────────────────
 
-// Fuzz runs default to parallel (cpu count / 2, min 2), predefined default sequential
-const defaultConcurrency = isFuzzRun ? Math.max(2, Math.floor(cpus().length / 2)) : 1
-const concurrency = parseInt(getFlagValue('parallel') ?? String(defaultConcurrency), 10)
-const baseUrl = getFlagValue('url') ?? 'http://localhost:1420'
-
 const report = await runScenarios(scenarios, {
-  baseUrl,
   outputDir,
-  concurrency,
 })
 
 process.exit(report.failed > 0 ? 1 : 0)

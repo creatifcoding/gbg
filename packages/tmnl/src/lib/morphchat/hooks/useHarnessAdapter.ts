@@ -30,7 +30,8 @@ import {
   dispatchShellEvent,
   registerShellCommandSender,
   clearShellCommandSender,
-} from '@/lib/harness/interactive-shell/shell-client-atoms'
+  setShellRegistry,
+} from '@/lib/harness/interactive-shell/shell-session-atoms'
 import type { ShellEvent } from '@/lib/harness/interactive-shell/schemas'
 import type {
   HarnessRole,
@@ -51,6 +52,9 @@ import type {
 } from '../schemas/message-types'
 import { DISCONNECTED, STREAMING_IDLE } from '../schemas/message-types'
 import { morphChatRegistry } from '../atoms/registry'
+
+// Wire shell atoms to the morphchat registry
+setShellRegistry(morphChatRegistry)
 
 // =============================================================================
 // Materialized View Atoms (module-level singletons, mounted to shared registry)
