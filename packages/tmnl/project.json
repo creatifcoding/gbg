@@ -40,6 +40,13 @@
         "cwd": "packages/tmnl"
       }
     },
+    "contracts:e2e:order": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:order",
+        "cwd": "packages/tmnl"
+      }
+    },
     "elixir:init": {
       "executor": "nx:run-commands",
       "options": {
@@ -140,6 +147,13 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "bun run tauri:build",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "panel:dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run panel:dev",
         "cwd": "packages/tmnl"
       }
     },

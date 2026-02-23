@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "bash scripts/dev.sh",
     "shell:dev": "bash scripts/shell-dev.sh",
+    "panel:dev": "bash scripts/panel-dev.sh",
     "genifer:migrate": "bun run scripts/genifer-migrate.ts",
-    "schemas:gen": "bun run src/lib/maidens/runtime-contracts/scripts/gen-order-schemas.ts",
-    "test:order-contract": "bunx vitest run src/lib/maidens/runtime-contracts/domains/order/ts/order.contract.test.ts",
+    "contracts:gen:order": "bun run src/lib/maidens/domains/contracts/order/scripts/gen-order-schemas.ts",
+    "contracts:test:order": "bunx vitest run src/lib/maidens/domains/contracts/order/ts/order.contract.test.ts",
+    "contracts:e2e:order": "bash src/lib/maidens/domains/contracts/order/scripts/contracts-e2e-order.sh",
     "shell:build": "bunx vite build --config vite.config.shell.ts",
     "shell:vite": "bunx vite --config vite.config.shell.ts",
     "build": "tsc && vite build",
