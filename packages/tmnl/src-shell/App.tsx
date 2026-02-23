@@ -1,12 +1,16 @@
 import React from 'react'
 import { Modal, useModal } from '@/lib/getbyshell/modal'
+import { usePanelOpen } from '@/lib/getbyshell'
 import { BarLayout } from './components/BarLayout'
 import { WorkspaceIndicators } from './components/WorkspaceIndicators'
 import { Clock } from './components/Clock'
 import { TMNLStatus } from './components/TMNLStatus'
 import { NetworkStatus } from './components/NetworkStatus'
+import { PanelToggle } from './components/PanelToggle'
 
 export function App() {
+  const panelOpen = usePanelOpen()
+
   return (
     <>
       <BarLayout>
@@ -16,6 +20,7 @@ export function App() {
 
         <BarLayout.Center>
           <TMNLStatus />
+          <PanelToggle active={panelOpen} />
           <NetworkStatus />
         </BarLayout.Center>
 

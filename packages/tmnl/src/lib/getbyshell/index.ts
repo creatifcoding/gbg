@@ -62,4 +62,5 @@ export {
   useFocusWorkspace,
   useActiveWorkspaceCount,
   usePaletteOpen,
+  usePanelOpen,
 } from './hooks'

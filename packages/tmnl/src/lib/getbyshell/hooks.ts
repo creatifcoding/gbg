@@ -173,3 +173,20 @@ export function usePaletteOpen(): boolean {
 
   return open
 }
+
+/** Panel workspace open state — listens to Rust `tmnl:panel-state` event (cross-process) */
+export function usePanelOpen(): boolean {
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    let unlisten: (() => void) | null = null
+
+    listen<boolean>('tmnl:panel-state', (ev) => {
+      setOpen(ev.payload)
+    }).then((fn) => { unlisten = fn })
+
+    return () => { unlisten?.() }
+  }, [])
+
+  return open
+}
