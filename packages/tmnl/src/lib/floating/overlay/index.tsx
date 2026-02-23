@@ -217,78 +217,72 @@ if (import.meta.env.DEV) {
     close: closePanelOverlay,
     isOpen: () => panelOverlayRegistry.get(panelOverlayOpenAtom),
 
-    /** Reset all panel state to initial via stx.reset() — batch Legend State .set() */
+    /** Reset all panel state to initial via stx.reset() + explicit Map clear */
     reset: () => {
       closePanelOverlay()
       const s = getFloatingStx()
-      if (s) s.reset()
+      if (s) {
+        // Legend State Map observable needs .clear() — .set(new Map()) doesn't propagate
+        const panelsObs = (s.data as any).panels
+        if (typeof panelsObs?.clear === 'function') panelsObs.clear()
+        else if (typeof panelsObs?.set === 'function') panelsObs.set(new Map())
+        s.reset()
+      }
     },
 
-    /** Snapshot current state for assertions. Returns plain JSON object (sync). */
+    /** Snapshot: stx.snapshot() deep-resolves all Legend State observables. */
     snapshot: () => {
       const s = getFloatingStx()
       if (!s) return null
 
-      const d = s.data
-      const peek = (field: string) => {
-        const f = (d as any)[field]
-        return (typeof f?.peek === 'function') ? f.peek() : f
-      }
+      // stx.snapshot() → data$.get() → fully resolved plain JS, zero proxies
+      const data = s.snapshot() as any
+      const panelsMap = data.panels as Map<string, any> | undefined
+      const strip = data.strip as any
+      const activeId = data.activePanel as string | null
 
-      const panelsMap = peek('panels') as Map<string, any> | null
-      const strip = peek('strip') as any
-      const activeId = peek('activePanel') as string | null
-      const zOrder = peek('zOrder') as string[]
-
-      // Materialize panels
+      // Materialize panels from Map
       type PInfo = { id: string; mode: string; isCollapsed: boolean }
-      const panels: PInfo[] = []
+      const pList: PInfo[] = []
       if (panelsMap && typeof panelsMap.forEach === 'function') {
-        panelsMap.forEach((p: any) => {
-          const get = (obj: any, key: string) => {
-            const v = obj[key]
-            return (v && typeof v.peek === 'function') ? v.peek() : v
-          }
-          panels.push({ id: get(p, 'id'), mode: get(p, 'mode'), isCollapsed: get(p, 'isCollapsed') })
-        })
+        panelsMap.forEach((p: any) => pList.push({
+          id: p?.id ?? '', mode: p?.mode ?? 'tiled', isCollapsed: !!p?.isCollapsed,
+        }))
       }
 
       // Counts
       let tiled = 0, floating = 0, collapsed = 0, expanded = 0
-      for (const p of panels) {
+      for (const p of pList) {
         if (p.mode === 'tiled') { tiled++; p.isCollapsed ? collapsed++ : expanded++ }
         else if (p.mode === 'floating') floating++
       }
 
-      // Column analysis
+      // Tree walker — Effect TaggedStruct uses _tag
       const collectIds = (node: any): string[] => {
         if (!node) return []
-        const n = (typeof node.peek === 'function') ? node.peek() : node
-        if (n.type === 'leaf') return [n.panelId]
-        if (n.children) return (n.children as any[]).flatMap(collectIds)
+        if (node._tag === 'leaf') return [node.panelId]
+        if (node._tag === 'split' && node.children) return (node.children as any[]).flatMap(collectIds)
         return []
       }
 
-      const columns = strip?.columns ?? []
-      let collapsedColumnCount = 0
+      // Column analysis
+      const columns: any[] = strip?.columns ?? []
+      let collapsedColumnCount = 0, colLevelCollapsed = 0
       for (const col of columns) {
-        const c = (typeof col.peek === 'function') ? col.peek() : col
-        const ids = collectIds(c.tree)
-        if (ids.length > 0 && ids.every(id => panels.find(p => p.id === id)?.isCollapsed))
+        if (col?.isCollapsed) {
           collapsedColumnCount++
+          colLevelCollapsed += collectIds(col.tree).length
+        }
       }
+      if (colLevelCollapsed > collapsed) { collapsed = colLevelCollapsed; expanded = tiled - collapsed }
 
       // Focus position
       let focusPosition = 'none'
       if (activeId) {
         for (let ci = 0; ci < columns.length; ci++) {
-          const c = (typeof columns[ci].peek === 'function') ? columns[ci].peek() : columns[ci]
-          const ids = collectIds(c.tree)
+          const ids = collectIds(columns[ci]?.tree)
           const idx = ids.indexOf(activeId)
-          if (idx >= 0) {
-            focusPosition = ids.length === 1 ? `col:${ci}` : `col:${ci}/row:${idx}`
-            break
-          }
+          if (idx >= 0) { focusPosition = ids.length === 1 ? `col:${ci}` : `col:${ci}/row:${idx}`; break }
         }
       }
 
@@ -296,24 +290,18 @@ if (import.meta.env.DEV) {
       let focusedColumnWidth = 'unknown'
       if (activeId) {
         for (const col of columns) {
-          const c = (typeof col.peek === 'function') ? col.peek() : col
-          if (collectIds(c.tree).includes(activeId)) { focusedColumnWidth = c.width ?? 'unknown'; break }
+          if (collectIds(col?.tree).includes(activeId)) { focusedColumnWidth = col.width ?? 'unknown'; break }
         }
       }
 
       return {
-        totalPanels: panels.length,
-        tiledCount: tiled,
-        floatCount: floating,
-        collapsedCount: collapsed,
-        expandedCount: expanded,
-        columnCount: columns.length,
-        collapsedColumnCount,
-        focusPosition,
-        stripMode: 'unknown',
+        totalPanels: pList.length, tiledCount: tiled, floatCount: floating,
+        collapsedCount: collapsed, expandedCount: expanded,
+        columnCount: columns.length, collapsedColumnCount,
+        focusPosition, stripMode: 'unknown',
         overlayOpen: !!document.querySelector('[data-panel-workspace-overlay]'),
         focusedColumnWidth,
-        raw: { activePanel: activeId, zOrderLen: Array.isArray(zOrder) ? zOrder.length : 0, panelIds: panels.map(p => p.id) },
+        raw: { activePanel: activeId, panelIds: pList.map(p => p.id) },
       }
     },
   }
