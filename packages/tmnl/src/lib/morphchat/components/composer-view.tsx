@@ -181,6 +181,8 @@ export function ComposerView() {
                 setDroppedRefs((prev) => prev.filter((r) => r.id !== id))
               } />
             )}
+            {/* Inline terminal — visible when mode === 'terminal' */}
+            <Composer.TerminalSlot />
             {/* Command suggestions popup above input */}
             <CommandSuggestions adapter={adapter} />
             <Composer.TextArea placeholder="Message..." />

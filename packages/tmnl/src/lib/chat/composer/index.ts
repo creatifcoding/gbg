@@ -33,6 +33,8 @@ import { ComposerThinkingLevel } from './composer-thinking-level'
 import { ComposerSendButton } from './composer-send-button'
 import { ComposerActionButton } from './composer-action-button'
 import { ComposerContextChips } from './composer-context-chips'
+import { ComposerTerminal } from './composer-terminal'
+import { ComposerTerminalSlot } from './composer-terminal-slot'
 
 // Re-export context hook for advanced consumers
 export { useComposer } from './composer-context'
@@ -50,6 +52,8 @@ export type {
   ShadowLayer,
 } from './types'
 export type { ComposerProps as ComposerRootProps } from './composer-root'
+export type { ComposerTerminalProps } from './composer-terminal'
+export type { ComposerTerminalSlotProps } from './composer-terminal-slot'
 
 // =============================================================================
 // Compound Component Assembly
@@ -69,6 +73,8 @@ interface ComposerComponent {
   SendButton: typeof ComposerSendButton
   ActionButton: typeof ComposerActionButton
   ContextChips: typeof ComposerContextChips
+  Terminal: typeof ComposerTerminal
+  TerminalSlot: typeof ComposerTerminalSlot
 }
 
 const Composer = ComposerRoot as unknown as ComposerComponent
@@ -82,5 +88,7 @@ Composer.ThinkingLevel = ComposerThinkingLevel
 Composer.SendButton = ComposerSendButton
 Composer.ActionButton = ComposerActionButton
 Composer.ContextChips = ComposerContextChips
+Composer.Terminal = ComposerTerminal
+Composer.TerminalSlot = ComposerTerminalSlot
 
 export { Composer }
