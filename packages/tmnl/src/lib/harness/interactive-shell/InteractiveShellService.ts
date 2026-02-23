@@ -55,12 +55,54 @@ import type {
 import { stripVTControlCharacters } from 'node:util'
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Query rate limiter (per-session, prevents excessive readOutput/dumpScreen)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const queryTimestamps = new Map<string, number>()
+const MIN_QUERY_INTERVAL_MS = 1000 // 1 second between reads per session
+
+/**
+ * Check if a query is allowed for this session.
+ * Returns remaining wait time in ms, or 0 if allowed.
+ */
+export function checkQueryRate(sessionId: string): number {
+  const now = Date.now()
+  const last = queryTimestamps.get(sessionId) ?? 0
+  const elapsed = now - last
+  if (elapsed >= MIN_QUERY_INTERVAL_MS) {
+    queryTimestamps.set(sessionId, now)
+    return 0
+  }
+  return MIN_QUERY_INTERVAL_MS - elapsed
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Session slug generation (petname-style: adjective-noun)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ADJECTIVES = [
+  'calm', 'bold', 'wild', 'dark', 'warm', 'cool', 'keen', 'pale', 'soft', 'deep',
+  'fast', 'slim', 'rare', 'pure', 'wise', 'blue', 'gold', 'iron', 'gray', 'jade',
+] as const
+const NOUNS = [
+  'reef', 'peak', 'vale', 'cove', 'dusk', 'dawn', 'tide', 'mist', 'gale', 'bark',
+  'pine', 'wolf', 'hawk', 'lynx', 'fox', 'orca', 'moth', 'fern', 'moss', 'sage',
+] as const
+
+function generateSlug(): string {
+  const adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)]
+  const noun = NOUNS[Math.floor(Math.random() * NOUNS.length)]
+  return `${adj}-${noun}`
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Internal session record
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface ShellSession {
   readonly id: ShellSessionId
   readonly name: string | undefined
+  readonly slug: string
   readonly shell: string
   readonly cwd: string
   readonly cols: number
@@ -75,6 +117,8 @@ interface ShellSession {
   pid: number | undefined
   /** Fiber running the output stream consumer */
   outputFiber: Fiber.RuntimeFiber<void, never> | null
+  /** Whether the session is running in the background (no overlay) */
+  background: boolean
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -107,6 +151,19 @@ export interface InteractiveShellServiceShape {
   ) => Effect.Effect<ShellSessionInfo, SessionNotFoundError>
 
   readonly listSessions: () => Effect.Effect<ReadonlyArray<ShellSessionInfo>>
+
+  /** Move session to background (headless, no overlay) */
+  readonly backgroundSession: (
+    sessionId: ShellSessionId,
+  ) => Effect.Effect<void, SessionNotFoundError>
+
+  /** Bring session to foreground (reattach overlay) */
+  readonly foregroundSession: (
+    sessionId: ShellSessionId,
+  ) => Effect.Effect<ShellSessionInfo, SessionNotFoundError>
+
+  /** List background sessions only */
+  readonly listBackgroundSessions: () => Effect.Effect<ReadonlyArray<ShellSessionInfo>>
 
   /** Legacy simple read — returns stripped plain text (last N lines) */
   readonly readOutput: (
@@ -249,7 +306,7 @@ const makeInteractiveShellService = Effect.gen(function* () {
 
   const toInfo = (s: ShellSession): ShellSessionInfo => ({
     sessionId: s.id,
-    name: s.name,
+    name: s.name ?? s.slug,
     pid: s.pid,
     shell: s.shell,
     cwd: s.cwd,
@@ -281,6 +338,7 @@ const makeInteractiveShellService = Effect.gen(function* () {
       const session: ShellSession = {
         id,
         name: args.name,
+        slug: generateSlug(),
         shell,
         cwd,
         cols,
@@ -292,6 +350,7 @@ const makeInteractiveShellService = Effect.gen(function* () {
         exitCode: undefined,
         pid: undefined,
         outputFiber: null,
+        background: false,
       }
       sessions.set(id as string, session)
 
@@ -417,6 +476,29 @@ const makeInteractiveShellService = Effect.gen(function* () {
   const listSessions = () =>
     Effect.succeed([...sessions.values()].map(toInfo))
 
+  // ── background / foreground ──────────────────────────────────────────────
+
+  const backgroundSession = (sessionId: ShellSessionId) =>
+    Effect.gen(function* () {
+      const session = yield* getSessionOrFail(sessionId)
+      session.background = true
+      emitEvent({ _tag: 'shell:data', sessionId, data: '' }) // trigger re-render
+    })
+
+  const foregroundSession = (sessionId: ShellSessionId) =>
+    Effect.gen(function* () {
+      const session = yield* getSessionOrFail(sessionId)
+      session.background = false
+      return toInfo(session)
+    })
+
+  const listBackgroundSessions = () =>
+    Effect.succeed(
+      [...sessions.values()]
+        .filter((s) => s.background)
+        .map(toInfo),
+    )
+
   // ── readOutput (legacy — simple stripped text) ──────────────────────────
 
   const readOutput = (sessionId: ShellSessionId, lines?: number) =>
@@ -513,6 +595,9 @@ const makeInteractiveShellService = Effect.gen(function* () {
     kill,
     getSession,
     listSessions,
+    backgroundSession,
+    foregroundSession,
+    listBackgroundSessions,
     readOutput,
     dumpScreen,
     readRawOutput,

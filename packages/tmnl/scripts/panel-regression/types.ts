@@ -4,6 +4,8 @@
  * @module panel-regression/types
  */
 
+import type { ExpectedPanelState } from './assertions'
+
 // ─── Atomic Operation ────────────────────────────────────────────────────────
 
 export interface Op {
@@ -19,6 +21,8 @@ export interface Checkpoint {
   readonly _type: 'checkpoint'
   readonly name: string
   readonly description?: string
+  /** Expected state assertions — verified against runtime stx snapshot */
+  readonly expect?: ExpectedPanelState
   readonly verifyFn?: (ctx: RunContext) => Promise<VerifyResult>
 }
 

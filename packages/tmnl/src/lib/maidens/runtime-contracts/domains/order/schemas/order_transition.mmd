@@ -1,0 +1,8 @@
+stateDiagram-v2
+  pending --> confirmed
+  pending --> cancelled
+  confirmed --> shipped
+  confirmed --> cancelled
+  shipped --> delivered
+  state delivered
+  state cancelled

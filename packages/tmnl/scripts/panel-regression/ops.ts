@@ -8,6 +8,7 @@
  */
 
 import type { Op, Checkpoint } from './types'
+import type { ExpectedPanelState } from './assertions'
 
 // ─── Panel Lifecycle ─────────────────────────────────────────────────────────
 
@@ -140,9 +141,9 @@ export function repeat(op: Op, n: number): Op[] {
   return Array.from({ length: n }, () => op)
 }
 
-/** Create a checkpoint */
-export function checkpoint(name: string, description?: string): Checkpoint {
-  return { _type: 'checkpoint', name, description }
+/** Create a checkpoint with optional expected state assertions */
+export function checkpoint(name: string, description?: string, expect?: ExpectedPanelState): Checkpoint {
+  return { _type: 'checkpoint', name, description, expect }
 }
 
 /** Navigate to a specific panel by direction sequence */

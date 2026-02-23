@@ -42,11 +42,21 @@ export const basicCollapse = scenario(
   [
     toggleOverlay,
     spawn,
-    checkpoint('spawned', 'Single panel visible'),
+    checkpoint('spawned', 'Single panel visible', {
+      totalPanels: 1, tiledCount: 1, floatCount: 0,
+      collapsedCount: 0, expandedCount: 1, columnCount: 1,
+      overlayOpen: true,
+    }),
     collapse,
-    checkpoint('collapsed', 'Panel collapsed to 36px strip'),
+    checkpoint('collapsed', 'Panel collapsed to 36px strip', {
+      totalPanels: 1, tiledCount: 1, collapsedCount: 1,
+      expandedCount: 0, columnCount: 1, collapsedColumnCount: 1,
+    }),
     collapse,  // toggle back
-    checkpoint('expanded', 'Panel expanded back'),
+    checkpoint('expanded', 'Panel expanded back', {
+      totalPanels: 1, tiledCount: 1, collapsedCount: 0,
+      expandedCount: 1, columnCount: 1, collapsedColumnCount: 0,
+    }),
   ],
   { modes: ['strip', 'tree'], tags: ['collapse', 'smoke'] },
 )
@@ -61,11 +71,17 @@ export const vsplitCollapseBoth = scenario(
     toggleOverlay,
     spawn,
     vsplit,
-    checkpoint('vsplit-done', 'Two panels stacked vertically'),
+    checkpoint('vsplit-done', 'Two panels stacked vertically', {
+      totalPanels: 2, tiledCount: 2, collapsedCount: 0,
+      expandedCount: 2, columnCount: 1,
+    }),
     collapse,
     focusUp,
     collapse,
-    checkpoint('both-collapsed', 'Both panels collapsed — column should auto-collapse in strip'),
+    checkpoint('both-collapsed', 'Both panels collapsed — column should auto-collapse in strip', {
+      totalPanels: 2, tiledCount: 2, collapsedCount: 2,
+      expandedCount: 0, columnCount: 1, collapsedColumnCount: 1,
+    }),
   ],
   { modes: ['both'], tags: ['collapse', 'vsplit'] },
 )
@@ -82,16 +98,25 @@ export const vsplitHsplit = scenario(
     spawn,
     vsplit,
     hsplit,
-    checkpoint('mixed-layout', '3 panels: top + bottom-left + bottom-right'),
+    checkpoint('mixed-layout', '3 panels: top + bottom-left + bottom-right', {
+      totalPanels: 3, tiledCount: 3, collapsedCount: 0,
+      expandedCount: 3, columnCount: 1,
+    }),
     // Collapse bottom two, keep top
     collapse,  // Panel 2 (focused, bottom-right)
     focusLeft,
     collapse,  // Panel 1 (bottom-left)
-    checkpoint('bottom-collapsed', 'Bottom row collapsed, top panel expanded'),
+    checkpoint('bottom-collapsed', 'Bottom row collapsed, top panel expanded', {
+      totalPanels: 3, tiledCount: 3, collapsedCount: 2,
+      expandedCount: 1, columnCount: 1, collapsedColumnCount: 0,
+    }),
     // Collapse top too
     focusUp,
     collapse,
-    checkpoint('all-collapsed', 'All 3 collapsed — column auto-collapses'),
+    checkpoint('all-collapsed', 'All 3 collapsed — column auto-collapses', {
+      totalPanels: 3, tiledCount: 3, collapsedCount: 3,
+      expandedCount: 0, columnCount: 1, collapsedColumnCount: 1,
+    }),
   ],
   { modes: ['both'], tags: ['collapse', 'vsplit', 'hsplit', 'text-rotation'] },
 )
@@ -110,7 +135,10 @@ export const fullTreeRegression = scenario(
     vsplit,
     hsplit,
     vsplit,
-    checkpoint('five-panels', '5 panels in 2 columns, complex tree'),
+    checkpoint('five-panels', '5 panels in 2 columns, complex tree', {
+      totalPanels: 5, tiledCount: 5, floatCount: 0,
+      collapsedCount: 0, expandedCount: 5, columnCount: 2,
+    }),
     // Collapse Panel 3 (focused)
     collapse,
     // Navigate to Panel 2, collapse
@@ -119,13 +147,19 @@ export const fullTreeRegression = scenario(
     // Navigate to Panel 1, collapse
     focusLeft,
     collapse,
-    checkpoint('bottom-3-collapsed', 'Bottom 3 collapsed, both conductors expanded'),
+    checkpoint('bottom-3-collapsed', 'Bottom 3 collapsed, both conductors expanded', {
+      totalPanels: 5, tiledCount: 5, collapsedCount: 3,
+      expandedCount: 2, columnCount: 2,
+    }),
     // Collapse remaining
     focusUp,
     collapse,
     focusLeft,
     collapse,
-    checkpoint('all-5-collapsed', 'All 5 collapsed — two 36px column strips'),
+    checkpoint('all-5-collapsed', 'All 5 collapsed — two 36px column strips', {
+      totalPanels: 5, tiledCount: 5, collapsedCount: 5,
+      expandedCount: 0, columnCount: 2, collapsedColumnCount: 2,
+    }),
   ],
   { modes: ['both'], tags: ['collapse', 'text-rotation', 'tree-structure', 'regression'] },
 )
@@ -142,21 +176,33 @@ export const focusNavSweep = scenario(
     spawn,
     vsplit,  // Column 2 now has 2 panels
     spawn,   // Column 3
-    checkpoint('three-columns', '3 columns, col2 has vsplit'),
+    checkpoint('three-columns', '3 columns, col2 has vsplit', {
+      totalPanels: 4, tiledCount: 4, columnCount: 3,
+    }),
     // Nav right through all columns
     focusLeft,
     focusLeft,
-    checkpoint('at-col1', 'Focus on column 1'),
+    checkpoint('at-col1', 'Focus on column 1', {
+      focusPosition: 'col:0',
+    }),
     focusRight,
-    checkpoint('at-col2-top', 'Focus on column 2 (top)'),
+    checkpoint('at-col2-top', 'Focus on column 2 (top)', {
+      focusPosition: 'col:1/row:0',
+    }),
     focusDown,
-    checkpoint('at-col2-bottom', 'Focus on column 2 (bottom)'),
+    checkpoint('at-col2-bottom', 'Focus on column 2 (bottom)', {
+      focusPosition: 'col:1/row:1',
+    }),
     focusRight,
-    checkpoint('at-col3', 'Focus on column 3'),
+    checkpoint('at-col3', 'Focus on column 3', {
+      focusPosition: 'col:2',
+    }),
     // Nav back
     focusLeft,
     focusUp,
-    checkpoint('back-col2-top', 'Focus back to column 2 top'),
+    checkpoint('back-col2-top', 'Focus back to column 2 top', {
+      focusPosition: 'col:1/row:0',
+    }),
   ],
   { tags: ['focus', 'navigation'] },
 )
@@ -171,11 +217,20 @@ export const swapSweep = scenario(
     toggleOverlay,
     spawn,
     spawn,
-    checkpoint('two-columns', '2 columns side by side'),
+    checkpoint('two-columns', '2 columns side by side', {
+      totalPanels: 2, columnCount: 2,
+      focusPosition: 'col:1',
+    }),
     swapLeft,
-    checkpoint('swapped-left', 'Focused column swapped left'),
+    checkpoint('swapped-left', 'Focused column swapped left', {
+      totalPanels: 2, columnCount: 2,
+      focusPosition: 'col:0',
+    }),
     swapRight,
-    checkpoint('swapped-right', 'Swapped back right'),
+    checkpoint('swapped-right', 'Swapped back right', {
+      totalPanels: 2, columnCount: 2,
+      focusPosition: 'col:1',
+    }),
   ],
   { tags: ['swap'] },
 )
@@ -189,15 +244,25 @@ export const widthCycleSweep = scenario(
   [
     toggleOverlay,
     spawn,
-    checkpoint('initial-half', 'Default width: half'),
+    checkpoint('initial-half', 'Default width: half', {
+      totalPanels: 1, columnCount: 1, focusedColumnWidth: 'half',
+    }),
     widthCycle,
-    checkpoint('width-wide', 'Width cycled to wide'),
+    checkpoint('width-wide', 'Width cycled to wide', {
+      focusedColumnWidth: 'wide',
+    }),
     widthCycle,
-    checkpoint('width-full', 'Width cycled to full'),
+    checkpoint('width-full', 'Width cycled to full', {
+      focusedColumnWidth: 'full',
+    }),
     widthCycle,
-    checkpoint('width-narrow', 'Width cycled to narrow'),
+    checkpoint('width-narrow', 'Width cycled to narrow', {
+      focusedColumnWidth: 'narrow',
+    }),
     widthCycle,
-    checkpoint('width-half-again', 'Width cycled back to half'),
+    checkpoint('width-half-again', 'Width cycled back to half', {
+      focusedColumnWidth: 'half',
+    }),
   ],
   { tags: ['width'] },
 )
@@ -212,9 +277,13 @@ export const closePanelTreeAware = scenario(
     toggleOverlay,
     spawn,
     vsplit,
-    checkpoint('before-close', '2 panels in column'),
+    checkpoint('before-close', '2 panels in column', {
+      totalPanels: 2, tiledCount: 2, columnCount: 1,
+    }),
     close,
-    checkpoint('after-close', '1 panel remaining in column'),
+    checkpoint('after-close', '1 panel remaining in column', {
+      totalPanels: 1, tiledCount: 1, columnCount: 1,
+    }),
   ],
   { modes: ['both'], tags: ['close'] },
 )
@@ -230,12 +299,18 @@ export const modeSwitchCollapsed = scenario(
     spawn,
     vsplit,
     hsplit,
-    checkpoint('complex-strip', 'Complex layout in strip mode'),
+    checkpoint('complex-strip', 'Complex layout in strip mode', {
+      totalPanels: 3, tiledCount: 3, collapsedCount: 0,
+      expandedCount: 3, columnCount: 1,
+    }),
     // Collapse bottom pair
     collapse,
     focusLeft,
     collapse,
-    checkpoint('partial-collapse-strip', 'Bottom collapsed in strip mode'),
+    checkpoint('partial-collapse-strip', 'Bottom collapsed in strip mode', {
+      totalPanels: 3, tiledCount: 3, collapsedCount: 2,
+      expandedCount: 1, columnCount: 1,
+    }),
     // This scenario relies on the external mode switch button
     // which we handle in the runner via snapshot + click
   ],

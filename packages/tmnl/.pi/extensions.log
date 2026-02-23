@@ -3890,3 +3890,16 @@ Saved lockfile
 2026-02-23T03:41:41.818Z [mcp-bridge] INFO: [firecrawl] 12 tools registered
 2026-02-23T03:41:41.819Z [mcp-bridge] INFO: [agentation] 9 tools registered
 2026-02-23T03:41:41.819Z [mcp-bridge] INFO: Total: 52 tools from 8 servers
+2026-02-23T10:50:25.667Z [eisenhower] INFO: extension:loaded
+2026-02-23T10:50:25.984Z [mcp-bridge] INFO: [exa] 7 tools registered
+2026-02-23T10:50:25.985Z [mcp-bridge] INFO: [deepwiki] 3 tools registered
+2026-02-23T10:50:25.985Z [mcp-bridge] INFO: [context7] 2 tools registered
+2026-02-23T10:50:25.986Z [mcp-bridge] INFO: [effect-docs] 2 tools registered
+2026-02-23T10:50:25.986Z [mcp-bridge] INFO: [anime-js] 5 tools registered
+2026-02-23T10:50:25.989Z [mcp-bridge] INFO: [nia] 12 tools registered
+2026-02-23T10:50:25.990Z [mcp-bridge] INFO: [firecrawl] 12 tools registered
+2026-02-23T10:50:25.990Z [mcp-bridge] INFO: [agentation] 9 tools registered
+2026-02-23T10:50:25.991Z [mcp-bridge] INFO: Total: 52 tools from 8 servers
+2026-02-23T10:50:28.292Z [mcp-bridge] INFO: Running tool discovery for 8 servers...
+2026-02-23T10:50:52.207Z [mcp-bridge] INFO: Cache written: 8 servers
+2026-02-23T10:50:52.220Z [mcp-bridge] INFO: [refresh/session_start] +0 ~0 -12 | live applied=12 queued=0 skipped=0 failed=0

@@ -13,8 +13,8 @@
  * @module harness/interactive-shell/tool
  */
 
-import { Effect, Option } from 'effect'
-import { InteractiveShellService, SessionNotFoundError, type InteractiveShellServiceShape } from './InteractiveShellService'
+import { Effect, Duration, Option } from 'effect'
+import { InteractiveShellService, SessionNotFoundError, checkQueryRate, type InteractiveShellServiceShape } from './InteractiveShellService'
 import type { ShellSessionId, InteractiveShellToolArgs } from './schemas'
 import { translateInput } from './key-encoding'
 import {
@@ -131,6 +131,22 @@ export const interactiveShellToolParameters = {
         updateMode: { type: 'string', enum: ['on-quiet', 'interval'], description: 'Update trigger mode. Default: on-quiet.' },
       },
     },
+    background: {
+      type: 'boolean',
+      description: 'Run without overlay (headless). Use with mode=dispatch, or with sessionId to dismiss overlay.',
+    },
+    attach: {
+      type: 'string',
+      description: 'Background session ID to reattach (bring to foreground).',
+    },
+    listBackground: {
+      type: 'boolean',
+      description: 'List all background sessions.',
+    },
+    dismissBackground: {
+      oneOf: [{ type: 'boolean' }, { type: 'string' }],
+      description: 'Dismiss background sessions. true = all, string = specific session ID.',
+    },
   },
   required: [],
   additionalProperties: false,
@@ -160,6 +176,10 @@ interface ToolArgs {
   incremental?: boolean
   mode?: 'interactive' | 'hands-free' | 'dispatch'
   timeout?: number
+  background?: boolean
+  attach?: string
+  listBackground?: boolean
+  dismissBackground?: boolean | string
   handsFree?: {
     autoExitOnQuiet?: boolean
     quietThreshold?: number
@@ -231,6 +251,69 @@ export const executeInteractiveShell = (
     const shell = yield* InteractiveShellService
     const args = params as ToolArgs
 
+    // ── List background sessions ─────────────────────────────────────
+    if (args.listBackground) {
+      const bgSessions = yield* shell.listBackgroundSessions()
+      if (bgSessions.length === 0) {
+        return {
+          content: [{ type: 'text' as const, text: 'No background sessions.' }],
+          isError: false,
+        }
+      }
+      const lines = bgSessions.map(
+        (s) => `  ${s.sessionId} [${s.status}] ${s.name ?? '(unnamed)'} pid:${s.pid ?? '?'} cwd:${s.cwd}`,
+      )
+      return {
+        content: [{ type: 'text' as const, text: `Background sessions:\n${lines.join('\n')}` }],
+        isError: false,
+      }
+    }
+
+    // ── Dismiss background sessions ───────────────────────────────────
+    if (args.dismissBackground !== undefined) {
+      if (typeof args.dismissBackground === 'string') {
+        yield* shell.kill(args.dismissBackground as ShellSessionId).pipe(
+          Effect.catchAll(() => Effect.void),
+        )
+        return {
+          content: [{ type: 'text' as const, text: `Dismissed session ${args.dismissBackground}.` }],
+          isError: false,
+        }
+      }
+      // dismiss all background
+      const bgSessions = yield* shell.listBackgroundSessions()
+      for (const s of bgSessions) {
+        yield* shell.kill(s.sessionId).pipe(Effect.catchAll(() => Effect.void))
+      }
+      return {
+        content: [{ type: 'text' as const, text: `Dismissed ${bgSessions.length} background session(s).` }],
+        isError: false,
+      }
+    }
+
+    // ── Attach (reattach to background session) ───────────────────────
+    if (args.attach) {
+      const info = yield* shell.foregroundSession(args.attach as ShellSessionId)
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Reattached to session.\nsessionId: ${info.sessionId}\nname: ${info.name ?? '(unnamed)'}\nstatus: ${info.status}\npid: ${info.pid ?? 'unknown'}`,
+          },
+        ],
+        isError: false,
+      }
+    }
+
+    // ── Background existing session ───────────────────────────────────
+    if (args.sessionId && args.background && !args.command) {
+      yield* shell.backgroundSession(args.sessionId as ShellSessionId)
+      return {
+        content: [{ type: 'text' as const, text: `Session ${args.sessionId} moved to background.` }],
+        isError: false,
+      }
+    }
+
     // ── Kill session ──────────────────────────────────────────────────
     if (args.sessionId && args.kill) {
       yield* shell.kill(args.sessionId as ShellSessionId, args.signal)
@@ -279,6 +362,12 @@ export const executeInteractiveShell = (
 
     // ── Read output from existing session (status check) ──────────────
     if (args.sessionId && !args.command && !hasStructuredInput) {
+      // Rate limit queries to prevent excessive polling
+      const waitMs = checkQueryRate(args.sessionId)
+      if (waitMs > 0) {
+        yield* Effect.sleep(Duration.millis(waitMs))
+      }
+
       const outputText = yield* readSessionOutput(shell, args)
       const info = yield* shell.getSession(args.sessionId as ShellSessionId)
 

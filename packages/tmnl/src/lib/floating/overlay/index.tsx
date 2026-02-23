@@ -34,6 +34,7 @@ import { memo, useCallback, useEffect, type ReactNode } from 'react'
 import { RegistryContext, useAtomValue } from '@effect-atom/atom-react'
 import { panelOverlayOpenAtom, panelOverlayRegistry } from './atom'
 import { PANEL } from '../tokens'
+import { getFloatingStx } from '../stx/instance'
 
 // =============================================================================
 // Public API — toggle/open/close from anywhere (uses registry)
@@ -210,8 +211,6 @@ export const PanelOverlayToggle = memo(function PanelOverlayToggle() {
 // =============================================================================
 
 if (import.meta.env.DEV) {
-  const getStx = () => import('../stx/instance').then(m => m.getFloatingStx())
-
   ;(window as any).__PANEL_TEST__ = {
     toggle: togglePanelOverlay,
     open: openPanelOverlay,
@@ -219,10 +218,103 @@ if (import.meta.env.DEV) {
     isOpen: () => panelOverlayRegistry.get(panelOverlayOpenAtom),
 
     /** Reset all panel state to initial via stx.reset() — batch Legend State .set() */
-    reset: async () => {
+    reset: () => {
       closePanelOverlay()
-      const s = await getStx()
+      const s = getFloatingStx()
       if (s) s.reset()
+    },
+
+    /** Snapshot current state for assertions. Returns plain JSON object (sync). */
+    snapshot: () => {
+      const s = getFloatingStx()
+      if (!s) return null
+
+      const d = s.data
+      const peek = (field: string) => {
+        const f = (d as any)[field]
+        return (typeof f?.peek === 'function') ? f.peek() : f
+      }
+
+      const panelsMap = peek('panels') as Map<string, any> | null
+      const strip = peek('strip') as any
+      const activeId = peek('activePanel') as string | null
+      const zOrder = peek('zOrder') as string[]
+
+      // Materialize panels
+      type PInfo = { id: string; mode: string; isCollapsed: boolean }
+      const panels: PInfo[] = []
+      if (panelsMap && typeof panelsMap.forEach === 'function') {
+        panelsMap.forEach((p: any) => {
+          const get = (obj: any, key: string) => {
+            const v = obj[key]
+            return (v && typeof v.peek === 'function') ? v.peek() : v
+          }
+          panels.push({ id: get(p, 'id'), mode: get(p, 'mode'), isCollapsed: get(p, 'isCollapsed') })
+        })
+      }
+
+      // Counts
+      let tiled = 0, floating = 0, collapsed = 0, expanded = 0
+      for (const p of panels) {
+        if (p.mode === 'tiled') { tiled++; p.isCollapsed ? collapsed++ : expanded++ }
+        else if (p.mode === 'floating') floating++
+      }
+
+      // Column analysis
+      const collectIds = (node: any): string[] => {
+        if (!node) return []
+        const n = (typeof node.peek === 'function') ? node.peek() : node
+        if (n.type === 'leaf') return [n.panelId]
+        if (n.children) return (n.children as any[]).flatMap(collectIds)
+        return []
+      }
+
+      const columns = strip?.columns ?? []
+      let collapsedColumnCount = 0
+      for (const col of columns) {
+        const c = (typeof col.peek === 'function') ? col.peek() : col
+        const ids = collectIds(c.tree)
+        if (ids.length > 0 && ids.every(id => panels.find(p => p.id === id)?.isCollapsed))
+          collapsedColumnCount++
+      }
+
+      // Focus position
+      let focusPosition = 'none'
+      if (activeId) {
+        for (let ci = 0; ci < columns.length; ci++) {
+          const c = (typeof columns[ci].peek === 'function') ? columns[ci].peek() : columns[ci]
+          const ids = collectIds(c.tree)
+          const idx = ids.indexOf(activeId)
+          if (idx >= 0) {
+            focusPosition = ids.length === 1 ? `col:${ci}` : `col:${ci}/row:${idx}`
+            break
+          }
+        }
+      }
+
+      // Width of focused column
+      let focusedColumnWidth = 'unknown'
+      if (activeId) {
+        for (const col of columns) {
+          const c = (typeof col.peek === 'function') ? col.peek() : col
+          if (collectIds(c.tree).includes(activeId)) { focusedColumnWidth = c.width ?? 'unknown'; break }
+        }
+      }
+
+      return {
+        totalPanels: panels.length,
+        tiledCount: tiled,
+        floatCount: floating,
+        collapsedCount: collapsed,
+        expandedCount: expanded,
+        columnCount: columns.length,
+        collapsedColumnCount,
+        focusPosition,
+        stripMode: 'unknown',
+        overlayOpen: !!document.querySelector('[data-panel-workspace-overlay]'),
+        focusedColumnWidth,
+        raw: { activePanel: activeId, zOrderLen: Array.isArray(zOrder) ? zOrder.length : 0, panelIds: panels.map(p => p.id) },
+      }
     },
   }
 }

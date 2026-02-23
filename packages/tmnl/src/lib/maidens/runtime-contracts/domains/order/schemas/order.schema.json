@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$defs": {
+    "Order": {
+      "type": "object",
+      "required": [
+        "order_id",
+        "customer",
+        "items",
+        "total",
+        "cancelled_reason",
+        "shipped_at",
+        "delivered_at"
+      ],
+      "properties": {
+        "order_id": {
+          "type": "string"
+        },
+        "customer": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OrderItemMap"
+          }
+        },
+        "total": {
+          "type": "number"
+        },
+        "cancelled_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "shipped_at": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {}
+          ]
+        },
+        "delivered_at": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {}
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Canonical order state payload defined in Effect Schema and exported as JSON Schema for Elixir runtime validation.",
+      "title": "Order"
+    },
+    "OrderItemMap": {
+      "type": "object",
+      "required": [],
+      "properties": {},
+      "additionalProperties": {
+        "$id": "/schemas/unknown",
+        "title": "unknown"
+      },
+      "description": "Opaque item payload map (list of maps in OrderSchema.items).",
+      "title": "Order Item Map"
+    }
+  },
+  "$ref": "#/$defs/Order",
+  "$id": "/runtime-contracts/order/order.schema.json",
+  "title": "Order",
+  "description": "Generated from Effect Schema (src/lib/maidens/runtime-contracts/domains/order/ts/order.contract.ts). Canonical order payload contract for TypeScript and Elixir."
+}

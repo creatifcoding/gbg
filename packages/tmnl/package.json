@@ -7,6 +7,8 @@
     "dev": "bash scripts/dev.sh",
     "shell:dev": "bash scripts/shell-dev.sh",
     "genifer:migrate": "bun run scripts/genifer-migrate.ts",
+    "schemas:gen": "bun run src/lib/maidens/runtime-contracts/scripts/gen-order-schemas.ts",
+    "test:order-contract": "bunx vitest run src/lib/maidens/runtime-contracts/domains/order/ts/order.contract.test.ts",
     "shell:build": "bunx vite build --config vite.config.shell.ts",
     "shell:vite": "bunx vite --config vite.config.shell.ts",
     "build": "tsc && vite build",

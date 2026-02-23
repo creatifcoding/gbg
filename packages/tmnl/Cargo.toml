@@ -3,6 +3,7 @@ resolver = "2"
 members = [
   "src-tauri",
   "src-shell-tauri",
+  "src-panel-tauri",
   "src-shared",
 ]
 

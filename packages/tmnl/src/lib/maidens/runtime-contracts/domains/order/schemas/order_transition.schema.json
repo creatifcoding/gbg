@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$defs": {
+    "OrderTransitionEvent": {
+      "type": "object",
+      "required": [
+        "order_id",
+        "from",
+        "to",
+        "at"
+      ],
+      "properties": {
+        "order_id": {
+          "type": "string"
+        },
+        "from": {
+          "$ref": "#/$defs/OrderState"
+        },
+        "to": {
+          "$ref": "#/$defs/OrderState"
+        },
+        "at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Lifecycle transition event payload validated in TS and in Elixir via generated JSON Schema artifacts.",
+      "title": "Order Transition Event"
+    },
+    "OrderState": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "shipped",
+        "delivered",
+        "cancelled"
+      ],
+      "description": "Allowed finite states for an order lifecycle.",
+      "title": "Order State"
+    }
+  },
+  "$ref": "#/$defs/OrderTransitionEvent",
+  "$id": "/runtime-contracts/order/order_transition.schema.json",
+  "title": "OrderTransitionEvent",
+  "description": "Generated from Effect Schema (src/lib/maidens/runtime-contracts/domains/order/ts/order.contract.ts). Canonical transition event contract for TypeScript and Elixir."
+}

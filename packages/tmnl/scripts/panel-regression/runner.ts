@@ -18,6 +18,13 @@ import type {
   Scenario, Step, Op, Checkpoint, RunContext,
   Screenshot, StepLog, ScenarioResult, RunReport,
 } from './types'
+import {
+  buildCheckpointRegression,
+  buildRegressionReport,
+  formatRegressionReport,
+  type ActualPanelState,
+  type CheckpointRegression,
+} from './assertions'
 
 // ─── Agent Browser Shell ────────────────────────────────────────────────────
 
@@ -83,7 +90,7 @@ async function resetPanelState(): Promise<void> {
   const hasApi = await abEval('typeof window.__PANEL_TEST__?.reset')
   if (hasApi === '"function"') {
     await abEval('window.__PANEL_TEST__.reset()')
-    await sleep(300)
+    await sleep(200)
   }
 
   // Clear browser errors from previous run
@@ -127,11 +134,28 @@ async function executeOp(op: Op, ctx: RunContext): Promise<StepLog> {
   }
 }
 
+/**
+ * Capture actual panel state via __PANEL_TEST__.snapshot()
+ * which is defined in the overlay module (no dynamic import needed).
+ */
+async function captureActualState(): Promise<ActualPanelState | null> {
+  try {
+    const raw = await abEval('JSON.stringify(window.__PANEL_TEST__?.snapshot?.())')
+    if (!raw || raw === 'undefined' || raw === 'null') return null
+    const parsed = JSON.parse(raw)
+    if (parsed.error) return null
+    return parsed as ActualPanelState
+  } catch {
+    return null
+  }
+}
+
 async function executeCheckpoint(
   cp: Checkpoint,
   ctx: RunContext,
   stepIdx: number,
-): Promise<Screenshot> {
+  mode: string,
+): Promise<{ screenshot: Screenshot; regression: CheckpointRegression | null }> {
   await sleep(200) // settle time
 
   const name = `${String(stepIdx).padStart(3, '0')}-${cp.name}`
@@ -140,12 +164,31 @@ async function executeCheckpoint(
   await abScreenshot(path)
   ctx.screenshotIndex++
 
-  return {
+  const screenshot: Screenshot = {
     name: cp.name,
     path,
     step: stepIdx,
     timestamp: Date.now(),
   }
+
+  // Capture actual state and compare against expected
+  let regression: CheckpointRegression | null = null
+  if (cp.expect) {
+    const actual = await captureActualState()
+    if (actual) {
+      regression = buildCheckpointRegression(
+        cp.name,
+        cp.description ?? '',
+        ctx.scenarioId,
+        mode,
+        path,
+        cp.expect,
+        actual,
+      )
+    }
+  }
+
+  return { screenshot, regression }
 }
 
 // ─── Scenario Execution ─────────────────────────────────────────────────────
@@ -153,7 +196,7 @@ async function executeCheckpoint(
 export async function executeScenario(
   scenario: Scenario,
   opts: { outputDir: string },
-): Promise<ScenarioResult> {
+): Promise<{ result: ScenarioResult; regressions: CheckpointRegression[] }> {
   const startedAt = new Date().toISOString()
   const start = performance.now()
 
@@ -172,6 +215,7 @@ export async function executeScenario(
   const screenshots: Screenshot[] = []
   const stepLogs: StepLog[] = []
   const errors: string[] = []
+  const regressions: CheckpointRegression[] = []
 
   // Determine modes to run
   const modes = scenario.modes.includes('both')
@@ -194,11 +238,26 @@ export async function executeScenario(
         const step = scenario.steps[i]
 
         if (isCheckpoint(step)) {
-          const shot = await executeCheckpoint(step, ctx, i)
-          screenshots.push(shot)
-          console.log(`    📸 ${step.name}${step.description ? ` — ${step.description}` : ''}`)
+          const { screenshot, regression } = await executeCheckpoint(step, ctx, i, mode)
+          screenshots.push(screenshot)
 
-          // Verify if needed
+          const assertIcon = regression
+            ? (regression.passed ? '✓' : '✗')
+            : '·'
+          console.log(`    📸 ${assertIcon} ${step.name}${step.description ? ` — ${step.description}` : ''}`)
+
+          if (regression) {
+            regressions.push(regression)
+            if (!regression.passed) {
+              const fails = regression.assertions.filter(a => a.status === 'fail')
+              for (const f of fails) {
+                errors.push(`[${mode}] ${step.name}.${f.field}: expected ${f.expected}, got ${f.actual}`)
+                console.log(`      ✗ ${f.field}: expected ${JSON.stringify(f.expected)}, got ${JSON.stringify(f.actual)}`)
+              }
+            }
+          }
+
+          // Legacy verifyFn support
           if (step.verifyFn) {
             const result = await step.verifyFn(ctx)
             if (!result.passed) {
@@ -220,16 +279,16 @@ export async function executeScenario(
         await sleep(300)
         await abClickModeToggle()
         await sleep(500)
-        const shot = await executeCheckpoint(
+        const { screenshot } = await executeCheckpoint(
           { _type: 'checkpoint', name: 'mode-switch-to-tree', description: 'After switching to tree' },
-          ctx, scenario.steps.length,
+          ctx, scenario.steps.length, mode,
         )
-        screenshots.push(shot)
+        screenshots.push(screenshot)
       }
 
       // Collect browser errors (filter known noise)
       const KNOWN_NOISE = [
-        'transformCallback',         // dnd-kit internal
+        'transformCallback',         // Tauri API (not available in browser)
         'ResizeObserver loop',       // browser layout noise
         'Vite HMR',                  // dev only
         'favicon.ico',               // 404 on fresh load
@@ -261,16 +320,19 @@ export async function executeScenario(
   console.log(`  ${icon} ${scenario.id} — ${passed ? 'PASSED' : `FAILED (${errors.length} errors)`}`)
 
   return {
-    scenarioId: scenario.id,
-    title: scenario.title,
-    runId: ctx.runId,
-    mode: modes.join('+'),
-    passed,
-    screenshots,
-    steps: stepLogs,
-    errors,
-    durationMs: performance.now() - start,
-    startedAt,
+    result: {
+      scenarioId: scenario.id,
+      title: scenario.title,
+      runId: ctx.runId,
+      mode: modes.join('+'),
+      passed,
+      screenshots,
+      steps: stepLogs,
+      errors,
+      durationMs: performance.now() - start,
+      startedAt,
+    },
+    regressions,
   }
 }
 
@@ -305,11 +367,14 @@ export async function runScenarios(
   console.log(`   Output: ${opts.outputDir}\n`)
 
   // Sequential execution — all scenarios share the default session
+  const allRegressions: CheckpointRegression[] = []
+
   for (const scenario of scenarios) {
-    const result = await executeScenario(scenario, {
+    const { result, regressions } = await executeScenario(scenario, {
       outputDir: opts.outputDir,
     })
     results.push(result)
+    allRegressions.push(...regressions)
   }
 
   const passed = results.filter(r => r.passed).length
@@ -325,15 +390,26 @@ export async function runScenarios(
     scenarios: results,
   }
 
-  // Write report
+  // Build regression report
+  const regressionReport = buildRegressionReport(report.runId, allRegressions)
+
+  // Write reports
   const reportPath = join(opts.outputDir, 'report.json')
+  const regressionPath = join(opts.outputDir, 'regressions.json')
   await Bun.write(reportPath, JSON.stringify(report, null, 2))
+  await Bun.write(regressionPath, JSON.stringify(regressionReport, null, 2))
 
   // Summary
   console.log(`\n${'─'.repeat(60)}`)
   console.log(`📊 Results: ${passed} passed, ${failed} failed / ${scenarios.length} total`)
+
+  // Regression summary
+  if (allRegressions.length > 0) {
+    console.log(formatRegressionReport(regressionReport))
+  }
+
   if (failed > 0) {
-    console.log(`\n❌ Failures:`)
+    console.log(`\n❌ Scenario Failures:`)
     for (const r of results.filter(r => !r.passed)) {
       console.log(`   ${r.scenarioId}: ${r.title}`)
       for (const err of r.errors) {
@@ -342,6 +418,7 @@ export async function runScenarios(
     }
   }
   console.log(`\n📁 Report: ${reportPath}`)
+  console.log(`📁 Regressions: ${regressionPath}`)
   console.log(`📸 Screenshots: ${opts.outputDir}/`)
 
   return report

@@ -32,6 +32,14 @@ export {
   type HandsFreeUpdate,
 } from './quiet-monitor'
 
+// Config
+export {
+  InteractiveShellConfig,
+  InteractiveShellConfigTag,
+  InteractiveShellConfigDefault,
+  InteractiveShellConfigFromEnv,
+} from './config'
+
 // Key encoding utilities
 export {
   translateInput,
