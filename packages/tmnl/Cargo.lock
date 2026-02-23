@@ -4885,6 +4885,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "tmnl-panel"
+version = "0.1.0"
+dependencies = [
+ "cairo-rs",
+ "gdk",
+ "glib",
+ "gtk",
+ "gtk-layer-shell",
+ "libc",
+ "log",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-log",
+ "tmnl-shared",
+ "tokio",
+]
+
+[[package]]
 name = "tmnl-shared"
 version = "0.1.0"
 dependencies = [
