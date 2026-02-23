@@ -10,10 +10,7 @@ export {
   InteractiveShellService,
   InteractiveShellServiceLive,
   SessionNotFoundError,
-  PtyPoolConfigTag,
-  PtyPoolConfigDefault,
   type InteractiveShellServiceShape,
-  type PtyPoolConfig,
 } from './InteractiveShellService'
 
 export {

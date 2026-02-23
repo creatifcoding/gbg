@@ -271,7 +271,12 @@ const WorkerLive = WorkerRunner.layerSerialized(PtyWorkerMessage, {
               rows: req.rows,
               data(term: unknown, rawData: unknown) {
                 // Capture terminal handle on first data callback
-                if (!termHandle) termHandle = term as BunTerminalHandle
+                if (!termHandle) {
+                  termHandle = term as BunTerminalHandle
+                  // Update session reference so PtyWrite/Resize can reach it
+                  const s = sessions.get(req.sessionId)
+                  if (s) s.termHandle = termHandle
+                }
 
                 const str = decodeTerminalData(rawData)
 
