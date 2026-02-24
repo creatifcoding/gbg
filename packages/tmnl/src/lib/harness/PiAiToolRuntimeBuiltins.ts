@@ -46,6 +46,9 @@ import { GeniferHarnessServiceTag, GeniferHarnessServiceLive } from '@/lib/genif
 import { GeniferServiceLive } from '@/lib/genifer/services/GeniferService'
 import { GeniferDevDbLayer } from '@/lib/genifer/migrations/runner'
 
+// GEOINT harness integration
+import { createGeointTools, GeointHarnessService, GeointHarnessServiceLive } from '@/lib/geoint/harness'
+
 // =============================================================================
 // Create SDK tools configured for project CWD
 // =============================================================================
@@ -256,9 +259,39 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
         continue
       }
       tools.push(geniferTool as any)
+      allToolNames.add(geniferTool.name)
     }
 
-    // 5. Interactive shell tool (PTY-backed terminal sessions)
+    // 5. GEOINT tools — entity spawn/select/search/summary via GeointHarnessService
+    const geointResult = yield* Effect.tryPromise({
+      try: async () => {
+        const service = await Effect.runPromise(
+          Effect.gen(function* () {
+            return yield* GeointHarnessService
+          }).pipe(
+            Effect.provide(GeointHarnessServiceLive),
+          ),
+        )
+        return createGeointTools(service)
+      },
+      catch: (error) => error,
+    }).pipe(
+      Effect.orElseSucceed(() => {
+        console.warn(`[harness] geoint tools unavailable`)
+        return [] as ReturnType<typeof createGeointTools>
+      }),
+    )
+
+    for (const geointTool of geointResult) {
+      if (allToolNames.has(geointTool.name)) {
+        console.warn(`[harness] geoint tool '${geointTool.name}' shadows existing — skipping`)
+        continue
+      }
+      tools.push(geointTool as any)
+      allToolNames.add(geointTool.name)
+    }
+
+    // 6. Interactive shell tool (PTY-backed terminal sessions)
     //    InteractiveShellService is a sibling in the HarnessRuntimeLive Layer
     //    graph — shared singleton between tool execution and WS event relay.
     //    We yield it from context here; tool execute runs via Effect.runPromise
