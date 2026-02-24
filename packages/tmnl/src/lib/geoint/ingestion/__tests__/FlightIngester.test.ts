@@ -263,7 +263,7 @@ describe('adsbLolToFlightPosition', () => {
     expect(result).not.toBeNull()
     expect(result!._tag).toBe('FlightPositionInput')
     expect(result!.icao24).toBe('abc123')
-    expect(result!.source).toBe('adsb_lol')
+    expect(result!.source).toBe('adsb-lol')
     expect(result!.longitude).toBe(-118.24)
     expect(result!.latitude).toBe(34.05)
 

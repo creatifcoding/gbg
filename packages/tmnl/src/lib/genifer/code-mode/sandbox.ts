@@ -15,6 +15,7 @@ import { CodeModeSandboxError, CodeModeTimeoutError } from './schemas'
 import type { GeointHarnessServiceShape } from '@/lib/geoint/harness'
 import { SearchResultItem } from '@/lib/geoint/schemas/search'
 import type { SearchResultItem as SearchResultItemValue } from '@/lib/geoint/schemas/search'
+import { planRegistryQuery, RegistryPlannerLive } from '@/lib/geoint/registry'
 import {
   registerDynamicRpc,
   callDynamicRpc,
@@ -386,6 +387,29 @@ export function createCodeSDK(options: CreateCodeSDKOptions = {}): GeniferCodeSD
           ...(viewport ? { viewport } : {}),
         }
       }),
+
+      plan: async (params) => {
+        audit('geoint.plan', params.strategy ?? 'latency-first')
+
+        return Effect.runPromise(
+          planRegistryQuery({
+            queryId: params.queryId ?? `q-${Date.now()}`,
+            text: params.text,
+            bbox: params.bbox,
+            requestedSources: params.requestedSources as any,
+            strategy: params.strategy,
+            constraints: params.constraints
+              ? {
+                  _tag: 'QueryConstraintV1',
+                  filterLanguage: params.constraints.filterLanguage,
+                  requiresStreaming: params.constraints.requiresStreaming,
+                  requiresTemporalOrdering: params.constraints.requiresTemporalOrdering,
+                  maxSources: params.constraints.maxSources,
+                }
+              : undefined,
+          }).pipe(Effect.provide(RegistryPlannerLive)),
+        )
+      },
 
       select: async (entityId) => withGeoint('select', async (service) => {
         audit('geoint.select', entityId ?? 'null')

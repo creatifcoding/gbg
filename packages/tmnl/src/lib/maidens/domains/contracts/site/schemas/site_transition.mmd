@@ -1,0 +1,9 @@
+stateDiagram-v2
+  planned --> under_construction
+  under_construction --> operational
+  operational --> seasonal_shutdown
+  operational --> closed
+  seasonal_shutdown --> operational
+  closed --> operational
+  closed --> decommissioned
+  state decommissioned

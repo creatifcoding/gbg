@@ -56,7 +56,7 @@ const createMockFlightIngester = (stateRef: Ref.Ref<MockIngesterState>) =>
           }),
         ingestAdsbLol: () =>
           Effect.succeed({
-            source: 'adsb_lol',
+            source: 'adsb-lol',
             region: 'mock',
             recordsIngested: 0,
             latencyMs: 10,
@@ -153,7 +153,7 @@ const createMockWeatherIngester = (stateRef: Ref.Ref<MockIngesterState>) =>
       return WeatherIngesterTag.of({
         ingestGrid: () =>
           Effect.succeed({
-            source: 'weather',
+            source: 'openmeteo',
             region: 'mock',
             recordsIngested: 0,
             latencyMs: 10,

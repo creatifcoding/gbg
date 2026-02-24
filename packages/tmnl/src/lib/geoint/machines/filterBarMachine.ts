@@ -121,10 +121,10 @@ const ALL_SOURCES: readonly IntelSource[] = [
   'osm',
   'opensky',
   'feature',
-  'adsb_lol',
+  'adsb-lol',
   'planet',
   'sentinel',
-  'weather',
+  'openmeteo',
   'custom',
 ]
 
@@ -176,7 +176,7 @@ export const FILTER_PRESETS: readonly FilterPresetConfig[] = [
     id: 'live_feeds',
     label: 'Live Feeds',
     shortcut: '5',
-    sources: ['track', 'opensky', 'adsb_lol', 'weather'],
+    sources: ['track', 'opensky', 'adsb-lol', 'openmeteo'],
     classifications: ALL_CLASSIFICATIONS,
     minConfidence: 0,
     bounds: null,

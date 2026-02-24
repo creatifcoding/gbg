@@ -9,10 +9,10 @@
  * @module
  */
 
-import { Effect, Exit, Cause } from 'effect'
+import { Effect, Exit, Cause, Stream, Fiber, Runtime } from 'effect'
 import { fromPromise, fromCallback, fromObservable, type AnyActorLogic } from 'xstate'
 import { observable, observe, batch, type Observable } from '@legendapp/state'
-import { interval, map, type Observable as RxObservable } from 'rxjs'
+import { Observable as RxObservable } from 'rxjs'
 
 // =============================================================================
 // Effect → XState Actor (fromPromise wrapper)
@@ -337,35 +337,52 @@ export function createTwoWayBridge<TData, TEvent extends { type: string }, TActo
 // =============================================================================
 
 /**
- * Create an XState actor from an Effect Stream.
- * Converts the Effect Stream to an RxJS Observable for XState compatibility.
+ * Convert an Effect Stream to an RxJS Observable.
+ * Each subscriber runs the stream as a fiber; unsubscribe interrupts the fiber.
  *
  * @example
  * ```typescript
- * import { Stream } from 'effect'
+ * import { Stream, Effect } from 'effect'
  *
- * const streamActor = fromEffectStream(
+ * const obs$ = fromEffectStream(
  *   Stream.fromIterable([1, 2, 3]).pipe(
  *     Stream.tap((n) => Effect.log(`Emitting ${n}`))
  *   )
  * )
+ *
+ * obs$.subscribe({ next: console.log, complete: () => console.log('done') })
  * ```
  */
-export function fromEffectStreamToObservable<A, E>(
-  streamEffect: Effect.Effect<A, E, never>
+export function fromEffectStream<A, E = never>(
+  stream: Stream.Stream<A, E, never>
 ): RxObservable<A> {
-  return new (class extends (require('rxjs').Observable as typeof RxObservable<A>) {
-    constructor() {
-      super((subscriber) => {
-        Effect.runPromise(streamEffect)
-          .then((value) => {
+  return new RxObservable<A>((subscriber) => {
+    // Fork a fiber that runs the stream, emitting each value to the subscriber
+    const fiber = Effect.runFork(
+      stream.pipe(
+        Stream.runForEach((value) =>
+          Effect.sync(() => {
             subscriber.next(value)
-            subscriber.complete()
           })
-          .catch((error) => {
-            subscriber.error(error)
-          })
-      })
+        ),
+      )
+    )
+
+    // Handle completion: observe the fiber's exit
+    Effect.runPromise(Fiber.join(fiber)).then(
+      () => subscriber.complete(),
+      (error) => subscriber.error(error),
+    )
+
+    // Teardown: interrupt fiber on unsubscribe
+    return () => {
+      Effect.runFork(Fiber.interrupt(fiber))
     }
-  })()
+  })
 }
+
+/**
+ * @deprecated Use `fromEffectStream` instead. This was renamed for clarity —
+ * the function converts a Stream (not a single Effect) to an RxJS Observable.
+ */
+export const fromEffectStreamToObservable = fromEffectStream

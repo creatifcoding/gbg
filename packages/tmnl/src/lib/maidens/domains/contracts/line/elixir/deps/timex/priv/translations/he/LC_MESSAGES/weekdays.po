@@ -1,0 +1,68 @@
+## "msgid"s in this file come from POT (.pot) files.
+##
+## Do not add, change, or remove "msgid"s manually here as
+## they're tied to the ones in the corresponding POT file
+## (with the same domain).
+##
+## Use "mix gettext.extract --merge" or "mix gettext.merge"
+## to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: he\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: lib/l10n/translator.ex:275
+msgid "Fri"
+msgstr "ו"
+
+#: lib/l10n/translator.ex:283
+msgid "Friday"
+msgstr "שישי"
+
+#: lib/l10n/translator.ex:271
+msgid "Mon"
+msgstr "ב"
+
+#: lib/l10n/translator.ex:279
+msgid "Monday"
+msgstr "שני"
+
+#: lib/l10n/translator.ex:276
+msgid "Sat"
+msgstr "ש"
+
+#: lib/l10n/translator.ex:284
+msgid "Saturday"
+msgstr "שבת"
+
+#: lib/l10n/translator.ex:277
+msgid "Sun"
+msgstr "א"
+
+#: lib/l10n/translator.ex:285
+msgid "Sunday"
+msgstr "ראשון"
+
+#: lib/l10n/translator.ex:274
+msgid "Thu"
+msgstr "ה"
+
+#: lib/l10n/translator.ex:282
+msgid "Thursday"
+msgstr "חמישי"
+
+#: lib/l10n/translator.ex:272
+msgid "Tue"
+msgstr "ג"
+
+#: lib/l10n/translator.ex:280
+msgid "Tuesday"
+msgstr "שלישי"
+
+#: lib/l10n/translator.ex:273
+msgid "Wed"
+msgstr "ד"
+
+#: lib/l10n/translator.ex:281
+msgid "Wednesday"
+msgstr "רביעי"

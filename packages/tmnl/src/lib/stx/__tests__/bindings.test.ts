@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { Effect, Exit, Cause, Fiber, TestClock, Duration } from 'effect'
+import { Effect, Exit, Cause, Fiber, TestClock, Duration, Stream } from 'effect'
 import {
   setup,
   createMachine,
@@ -27,6 +27,7 @@ import { observable, observe, batch, type Observable } from '@legendapp/state'
 import {
   fromEffect,
   fromEffectCallback,
+  fromEffectStream,
   fromLegendState,
   fromLegendStateMulti,
   updateLegendState,
@@ -1356,6 +1357,105 @@ describe('fromEffectStreamToObservable()', () => {
 
     expect(caughtError).toBeInstanceOf(Error)
     expect(caughtError?.message).toBe('Observable error')
+  })
+})
+
+// =============================================================================
+// fromEffectStream() Tests (proper Stream API)
+// =============================================================================
+
+describe('fromEffectStream()', () => {
+  it('converts Stream.fromIterable to RxJS Observable', async () => {
+    const stream = Stream.fromIterable([1, 2, 3])
+    const obs$ = fromEffectStream(stream)
+
+    const values: number[] = []
+
+    await new Promise<void>((resolve) => {
+      obs$.subscribe({
+        next: (v) => values.push(v),
+        complete: () => resolve(),
+      })
+    })
+
+    expect(values).toEqual([1, 2, 3])
+  })
+
+  it('handles empty stream', async () => {
+    const stream = Stream.empty
+    const obs$ = fromEffectStream(stream)
+
+    const values: unknown[] = []
+
+    await new Promise<void>((resolve) => {
+      obs$.subscribe({
+        next: (v) => values.push(v),
+        complete: () => resolve(),
+      })
+    })
+
+    expect(values).toEqual([])
+  })
+
+  it('propagates stream errors to observable', async () => {
+    const stream = Stream.fail(new Error('Stream error'))
+    const obs$ = fromEffectStream(stream)
+
+    let caughtError: Error | null = null
+
+    await new Promise<void>((resolve) => {
+      obs$.subscribe({
+        next: () => {},
+        error: (e) => {
+          caughtError = e
+          resolve()
+        },
+        complete: () => resolve(),
+      })
+    })
+
+    expect(caughtError).toBeInstanceOf(Error)
+    expect(caughtError?.message).toBe('Stream error')
+  })
+
+  it('handles stream with effects', async () => {
+    const stream = Stream.fromIterable([10, 20, 30]).pipe(
+      Stream.mapEffect((n) => Effect.succeed(n * 2))
+    )
+    const obs$ = fromEffectStream(stream)
+
+    const values: number[] = []
+
+    await new Promise<void>((resolve) => {
+      obs$.subscribe({
+        next: (v) => values.push(v),
+        complete: () => resolve(),
+      })
+    })
+
+    expect(values).toEqual([20, 40, 60])
+  })
+
+  it('cleans up fiber on unsubscribe', async () => {
+    // Infinite stream that would hang forever without cleanup
+    const stream = Stream.fromIterable([1, 2, 3]).pipe(
+      Stream.concat(Stream.never)
+    )
+    const obs$ = fromEffectStream(stream)
+
+    const values: number[] = []
+
+    const sub = obs$.subscribe({
+      next: (v) => values.push(v),
+    })
+
+    // Wait for some emissions
+    await new Promise((r) => setTimeout(r, 50))
+
+    // Unsubscribe should interrupt the fiber
+    sub.unsubscribe()
+
+    expect(values).toEqual([1, 2, 3])
   })
 })
 

@@ -15,6 +15,7 @@
 import { Tool, Toolkit } from "@effect/ai"
 import { Effect, JSONSchema } from "effect"
 import * as Schema from "effect/Schema"
+import { createElement as h } from "react"
 
 import { CatalogComponents, type ComponentRenderProps } from "../core/CatalogService"
 import { normalizeWithMeta } from "../core/normalize"
@@ -524,18 +525,6 @@ export const CompilerToolkitLive = CompilerToolkit.toLayer({
 
       const componentSchema = Schema.Struct(schemaFields as any)
 
-      // Generic renderer: Box with data-attributes
-      const renderer = ({ element, children }: ComponentRenderProps<any>) => {
-        const dataAttrs: Record<string, string> = {}
-        for (const [k, v] of Object.entries(element.props)) {
-          if (k !== 'className' && v !== undefined && v !== null) {
-            dataAttrs[`data-${k}`] = String(v)
-          }
-        }
-        // Use createElement to avoid JSX in this scope
-        return Effect.succeed(undefined) as any // placeholder
-      }
-
       // Register into catalog as a runtime domain catalog
       const resolvedDomains = (domainTags as string[] | undefined) ?? ['ui']
       catalog.register({
@@ -563,8 +552,6 @@ export const CompilerToolkitLive = CompilerToolkit.toLayer({
                 ([k]) => k !== 'className' && k !== 'children',
               )
 
-              // Dynamic import not available, use inline createElement
-              const { createElement: h } = require('react')
               return h(
                 'div',
                 {

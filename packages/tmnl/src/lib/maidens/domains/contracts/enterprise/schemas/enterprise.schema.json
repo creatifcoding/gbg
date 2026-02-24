@@ -1,0 +1,254 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Enterprise": {
+      "type": "object",
+      "required": [
+        "enterprise_id",
+        "name",
+        "status",
+        "industry",
+        "legal_name",
+        "tax_id",
+        "headquarters",
+        "description",
+        "metadata",
+        "hierarchy_path",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "enterprise_id": {
+          "$ref": "#/definitions/EnterpriseId"
+        },
+        "name": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "status": {
+          "$ref": "#/definitions/EnterpriseStatus"
+        },
+        "industry": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "legal_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tax_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "headquarters": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "metadata": {
+          "$ref": "#/definitions/EnterpriseMetadata"
+        },
+        "hierarchy_path": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "description": "ISO8601 UTC or offset timestamp string.",
+              "title": "ISO8601 Timestamp",
+              "format": "date-time"
+            }
+          ],
+          "description": "Timestamp value or null.",
+          "title": "Nullable Timestamp"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Canonical enterprise payload generated from Effect Schema and consumed by Elixir runtime validators.",
+      "title": "Enterprise"
+    },
+    "EnterpriseId": {
+      "type": "string",
+      "description": "Enterprise identifier with ENT- prefix and slug.",
+      "title": "Enterprise ID",
+      "pattern": "^ENT-[a-zA-Z0-9-]+$"
+    },
+    "NonEmptyString": {
+      "type": "string",
+      "description": "a non empty string",
+      "title": "nonEmptyString",
+      "minLength": 1
+    },
+    "EnterpriseStatus": {
+      "type": "string",
+      "enum": [
+        "active",
+        "restructuring",
+        "merged",
+        "dissolved"
+      ],
+      "description": "Enterprise lifecycle status per ISA-95 enterprise graph (active ↔ restructuring, active→merged, active|restructuring→dissolved).",
+      "title": "Enterprise Status"
+    },
+    "EnterpriseMetadata": {
+      "type": "object",
+      "required": [],
+      "properties": {},
+      "additionalProperties": {
+        "$id": "/schemas/unknown",
+        "title": "unknown"
+      },
+      "description": "Extensible metadata map.",
+      "title": "Enterprise Metadata"
+    }
+  },
+  "type": "object",
+  "required": [
+    "enterprise_id",
+    "name",
+    "status",
+    "industry",
+    "legal_name",
+    "tax_id",
+    "headquarters",
+    "description",
+    "metadata",
+    "hierarchy_path",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "enterprise_id": {
+      "$ref": "#/definitions/EnterpriseId"
+    },
+    "name": {
+      "$ref": "#/definitions/NonEmptyString"
+    },
+    "status": {
+      "$ref": "#/definitions/EnterpriseStatus"
+    },
+    "industry": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "legal_name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tax_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "headquarters": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "metadata": {
+      "$ref": "#/definitions/EnterpriseMetadata"
+    },
+    "hierarchy_path": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        }
+      ],
+      "description": "Timestamp value or null.",
+      "title": "Nullable Timestamp"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/enterprise/ts/enterprise.contract.ts). Canonical enterprise payload contract for TypeScript and Elixir.",
+  "title": "Enterprise",
+  "$id": "/contracts/enterprise/enterprise.schema.json"
+}

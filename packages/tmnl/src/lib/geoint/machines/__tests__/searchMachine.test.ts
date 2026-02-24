@@ -123,7 +123,7 @@ describe('searchMachine', () => {
         'opensky',
         'planet',
         'sentinel',
-        'weather',
+        'openmeteo',
         'feature',
         'custom',
       ]
@@ -173,10 +173,10 @@ describe('searchMachine', () => {
     it('TOGGLE_SOURCE adds a new source', () => {
       const actor = startActor(createSearchActor())
 
-      actor.send({ type: 'TOGGLE_SOURCE', source: 'weather' })
+      actor.send({ type: 'TOGGLE_SOURCE', source: 'openmeteo' })
 
       const snapshot = actor.getSnapshot()
-      expect(snapshot.context.sources).toContain('weather')
+      expect(snapshot.context.sources).toContain('openmeteo')
     })
 
     it('TOGGLE_SOURCE removes an existing source', () => {
@@ -765,10 +765,10 @@ describe('searchMachine', () => {
       actor.send({ type: 'SEARCH' })
       actor.send({ type: 'SOURCE_COMPLETE', source: 'osm', resultCount: 5 })
       actor.send({ type: 'SEARCH_COMPLETE', totalResults: 5 })
-      actor.send({ type: 'TOGGLE_SOURCE', source: 'weather' })
+      actor.send({ type: 'TOGGLE_SOURCE', source: 'openmeteo' })
 
       const snapshot = actor.getSnapshot()
-      expect(snapshot.context.sources).toContain('weather')
+      expect(snapshot.context.sources).toContain('openmeteo')
     })
 
     it('allows SET_OPTIONS during error', () => {

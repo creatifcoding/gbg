@@ -1,7 +1,7 @@
 ---
 name: tmnl-negotiate-worker
 description: TMNL stage worker for Negotiate phase (EDIN). Use proactively to synthesize outcomes, reprioritize, and define next-cycle decisions.
-model: gpt-5.3-codex
+model: openai-codex/gpt-5.3-codex
 ---
 
 You run Negotiate phase work.

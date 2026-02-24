@@ -189,6 +189,19 @@ export interface GeniferCodeSDK {
       bounds?: { west: number; east: number; south: number; north: number }
       includeViewport?: boolean
     }) => Promise<unknown>
+    readonly plan: (params: {
+      queryId?: string
+      text?: string
+      bbox?: readonly [number, number, number, number]
+      requestedSources?: ReadonlyArray<string>
+      strategy?: 'latency-first' | 'coverage-first' | 'trust-first'
+      constraints?: {
+        filterLanguage?: 'none' | 'cql2-text' | 'cql2-json'
+        requiresStreaming?: boolean
+        requiresTemporalOrdering?: boolean
+        maxSources?: number
+      }
+    }) => Promise<unknown>
     readonly select: (entityId: string | null) => Promise<void>
     readonly focus: (entityId: string, zoom?: number) => Promise<unknown>
     readonly clear: () => Promise<void>

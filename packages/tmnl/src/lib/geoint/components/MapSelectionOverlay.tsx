@@ -83,17 +83,17 @@ function getResultCoordinates(result: SearchResultItem): { lon: number; lat: num
 
 /**
  * Map IntelSource to SOURCE_COLORS key.
- * IntelSource: track, feature, osm, opensky, adsb_lol, planet, sentinel, weather, custom
+ * IntelSource: track, feature, osm, opensky, adsb-lol, planet, sentinel, openmeteo, custom
  */
 const SOURCE_TO_COLOR_KEY: Record<IntelSource, keyof typeof SOURCE_COLORS> = {
   track: 'track',
   feature: 'custom', // features use custom color
   osm: 'osm',
   opensky: 'opensky',
-  adsb_lol: 'adsb_lol',
+  'adsb-lol': 'adsb-lol',
   planet: 'planet',
   sentinel: 'sentinel',
-  weather: 'weather',
+  openmeteo: 'openmeteo',
   custom: 'custom',
 }
 

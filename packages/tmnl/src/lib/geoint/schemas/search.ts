@@ -58,10 +58,10 @@ export const IntelSource = Schema.Literal(
   'feature',    // Static features/geometry
   'osm',        // OpenStreetMap (Overpass API)
   'opensky',    // OpenSky Network (ADS-B)
-  'adsb_lol',   // adsb.lol community feed
+  'adsb-lol',   // adsb.lol community feed
   'planet',     // Planet Labs satellite imagery
   'sentinel',   // Sentinel Hub / Copernicus satellite
-  'weather',    // Open-Meteo weather data
+  'openmeteo',    // Open-Meteo weather data
   'custom'      // User-defined sources
 )
 export type IntelSource = typeof IntelSource.Type

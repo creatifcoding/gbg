@@ -14,8 +14,8 @@
 │   │ • Machines      │   │ • observable()  │   │ • Atom.make()   │          │
 │   │ • Actors        │   │ • .get()/.set() │   │ • Atom.runtime()│          │
 │   │ • Transitions   │   │ • Fine-grained  │   │ • Result<A,E>   │          │
-│   │ • Guards        │   │ • No re-renders │   │ • Effect.gen    │          │
-│   │ • Actions       │   │ • Persistence   │   │ • Services      │          │
+│   │ • Guards        │   │ • Persistence   │   │ • Effect.gen    │          │
+│   │ • Actions       │   │ • syncObservable│   │ • ManagedRuntime│          │
 │   └────────┬────────┘   └────────┬────────┘   └────────┬────────┘          │
 │            │                     │                     │                    │
 │            └──────────┬──────────┴──────────┬──────────┘                    │
@@ -35,370 +35,298 @@
 
 | Library | Role | Responsibility |
 |---------|------|----------------|
-| **XState** | Shape/Logic | Defines valid states, transitions, guards, actions. The "what can happen" and "when". Actors handle IR parsing, rendering decisions. |
+| **XState** | Shape/Logic | Defines valid states, transitions, guards, actions. The "what can happen" and "when". Actors handle async decisions. |
 | **Legend-State** | Hydration/Data | Stores actual data with proxy-based fine-grained reactivity. The "where data lives". No re-renders on unrelated changes. |
 | **effect-atom** | Effect Bridge | Bridges Effect-TS computations into React. Handles async with `Result<A,E>`, service-scoped state, and Effect.gen programs. |
 
-## The `stx({})` API Design
+## File Structure
 
-### Basic Shape
+```
+src/lib/stx/
+├── index.ts                 # Public exports (all APIs)
+├── ARCHITECTURE.md          # This document
+├── types.ts                 # TypeScript types for unified API
+├── primitives.ts            # Re-exports from all three libraries
+├── stx.ts                   # The stx({}) factory
+├── stream.ts                # stxStream({}) progressive state factory
+├── hooks.ts                 # React hooks (useStxValue, useStxStream, etc.)
+├── bindings.ts              # Cross-library bridges (Effect→RxJS, Legend↔XState)
+└── __tests__/
+    ├── stx.test.ts          # 67 tests: core, computed, snapshot, layer, persist
+    ├── bindings.test.ts     # 31 tests: Effect streams, Legend-State, XState
+    ├── hooks.test.ts        # 55 tests: React hook integration (14 env-blocked)
+    └── stream.test.ts       # 11 tests: progressive state, buffer, pause/resume
+```
+
+## Core API: `stx(config)`
+
+### Config Shape
 
 ```typescript
-import { stx } from '@/lib/atoms'
+const instance = stx({
+  // XState machine (optional)
+  machine: counterMachine,
 
-const counter = stx({
-  // XState machine definition (shape/logic)
-  machine: {
-    initial: 'idle',
-    states: {
-      idle: { on: { INCREMENT: 'counting' } },
-      counting: { on: { RESET: 'idle' } },
-    },
-  },
+  // Legend-State observable data (required)
+  data: { count: 0, name: 'hello' },
 
-  // Legend-State observable (hydration/data)
-  data: {
-    count: 0,
-    lastUpdated: null as Date | null,
-  },
-
-  // effect-atom effects (async bridge)
+  // Effect-TS effects (optional) — executed via ManagedRuntime if layer provided
   effects: {
-    fetchInitial: Effect.gen(function* () {
-      const response = yield* HttpClient.get('/api/count')
-      return response.json()
-    }),
-    persist: (data) => Effect.gen(function* () {
-      yield* HttpClient.post('/api/count', { body: data })
-    }),
+    save: Effect.gen(function* () { ... }),
+    fetch: (id: string) => Effect.gen(function* () { ... }),
   },
 
-  // Computed derivations
+  // Derived values as atoms (optional)
   computed: {
-    doubled: (get) => get.data.count * 2,
-    isActive: (get) => get.machine.matches('counting'),
+    doubled: (get) => get.data.count.get() * 2,
+    isActive: (get) => get.state?.matches('active') ?? false,
+  },
+
+  // Bidirectional bindings (optional)
+  bindings: {
+    dataToMachine: { selector: (d) => ({ count: d.count.get() }), toEvent: (v) => ({ type: 'UPDATE', ...v }) },
+    machineToData: { selector: (s) => ({ count: s.context.count }), fields: ['count'] },
+  },
+
+  // Effect Layer for service provision (optional)
+  layer: Layer.mergeAll(HttpClientLive, LoggerLive),
+
+  // Persistence (optional)
+  persist: {
+    name: 'my-counter',           // localStorage key
+    plugin: 'localStorage',       // or 'indexedDB' or plugin instance
+    include: ['count'],           // only persist these fields
+    exclude: ['transient'],       // or exclude these
   },
 })
 ```
 
-### React Usage
+### Instance API
 
 ```typescript
-import { useStxValue, useStxSend, useStxActor } from '@/lib/atoms'
+interface Stx<TMachine, TData, TEffects, TComputed> {
+  // Data (Legend-State observable — fine-grained reactivity)
+  data: ObservableObject<TData>
 
-function Counter() {
-  // Fine-grained data access (Legend-State)
-  const count = useStxValue(counter, s => s.data.count)
+  // Machine (XState v5)
+  actor?: ActorRefFrom<TMachine>
+  send?: (event: EventFromLogic<TMachine>) => void
+  state?: SnapshotFrom<TMachine>
 
-  // Machine state (XState)
-  const isIdle = useStxValue(counter, s => s.machine.matches('idle'))
+  // Effects (wrapped in Result<A, E>)
+  effects: { [K in keyof TEffects]: (...args) => Promise<Result<A, E>> }
 
-  // Computed values
-  const doubled = useStxValue(counter, s => s.computed.doubled)
+  // Computed (effect-atom atoms)
+  computed: { [K in keyof TComputed]: Atom<ReturnType<TComputed[K]>> }
 
-  // Send events (XState)
-  const send = useStxSend(counter)
+  // Effect runtime (if layer provided)
+  runtime?: ManagedRuntime<any, any>
 
-  // Run effects (effect-atom)
-  const runEffect = useStxEffect(counter)
+  // Internal registry for reading atoms outside React
+  registry: Registry
+
+  // Snapshot — captures all three layers as plain JSON
+  snapshot(): StxSnapshot<TData, TMachine, TComputed>
+
+  // Reset — restores initial data, machine context, and actor
+  reset(): void
+
+  // Dispose — stops actor, cleans up subscriptions, disposes runtime
+  dispose(): void | Promise<void>
+}
+```
+
+## Snapshot: Three-Layer Capture
+
+`snapshot()` returns a JSON-serializable object with all three layers:
+
+```typescript
+interface StxSnapshot<TData, TMachine, TComputed> {
+  data: TData                           // Legend-State deep resolve via data$.get()
+  machine?: {
+    value: string                       // Current state name
+    context: Record<string, unknown>    // XState context
+    persisted: unknown                  // Full getPersistedSnapshot() for restore
+  }
+  computed: Record<string, unknown>     // Re-evaluated from factories (not cached atoms)
+}
+```
+
+**Key design decision**: Computed values are re-evaluated from their factory functions at snapshot time, not read from atom cache. This ensures the snapshot always reflects the current data, regardless of React subscription state.
+
+## Effect Layer Provision
+
+When `config.layer` is provided, a `ManagedRuntime` is created and used to execute all effects:
+
+```typescript
+const instance = stx({
+  data: {},
+  layer: Layer.mergeAll(HttpClientLive, LoggerLive),
+  effects: {
+    fetch: (id: string) =>
+      Effect.gen(function* () {
+        const http = yield* HttpClient    // ← Resolved from layer
+        return yield* http.get(`/api/${id}`)
+      }),
+  },
+})
+```
+
+Both standalone effect runners (section 7 in factory) AND `fromPromise` actors (section 2, invoked by XState) route through the ManagedRuntime when available.
+
+## Persistence
+
+Persistence wires `syncObservable` from Legend-State sync:
+
+```typescript
+const instance = stx({
+  data: { settings: { theme: 'dark' }, transient: null },
+  persist: {
+    name: 'app-settings',
+    plugin: 'localStorage',    // async-loads ObservablePersistLocalStorage
+    include: ['settings'],     // only persist these fields
+  },
+})
+```
+
+Plugin resolution:
+1. **Direct instance/class** — wired synchronously
+2. **`'localStorage'`** — async import `@legendapp/state/persist-plugins/local-storage`
+3. **`'indexedDB'`** — async import `@legendapp/state/persist-plugins/indexeddb`
+
+Include/exclude filtering is applied via `transform.save`.
+
+## Reset
+
+`reset()` restores the full initial state:
+
+1. **Data**: `structuredClone(initialData)` → batch-set all fields
+2. **Machine**: `createActor(machine, { snapshot: initialMachineSnapshot })` → `actor.start()`
+3. **Subscriptions**: Machine→Data subscriptions re-established
+
+The initial machine snapshot is captured via `actor.getPersistedSnapshot()` immediately after the first `actor.start()`.
+
+**Object.defineProperty pattern**: `state.actor` and `state.send` are defined as getters (`Object.defineProperty`) to prevent stale reference bugs when `reset()` reassigns the internal `let actor` variable.
+
+## StxStream: Progressive State from Effect Streams
+
+```typescript
+const counter = stxStream({
+  stream: Stream.fromSchedule(Schedule.spaced('100 millis')).pipe(
+    Stream.scan(0, (n) => n + 1),
+  ),
+  initial: 0,
+  buffer: 'all',     // or 'latest' | { size: N }
+})
+```
+
+Architecture: `Stream → Fiber (consumer) → Legend-State observable → derived Atom (React)`
+
+```typescript
+interface StxStream<A, E> {
+  value: Atom<Result<A, E>>           // For React via useAtomValue
+  buffer: Atom<readonly A[]>          // Accumulated values
+  status: Atom<StreamStatus>          // 'idle' | 'streaming' | 'complete' | 'error'
+  state$: Observable<StreamState>     // For direct reads outside React
+  pause(): void                       // Interrupts consumer fiber
+  resume(): void                      // Restarts consumer
+  reset(): void                       // Clears buffer, restores initial
+  dispose(): void                     // Stops consumer
+}
+```
+
+Buffer strategies:
+- **`'latest'`** (default): Only `value` atom updates, no buffer accumulation
+- **`'all'`**: All received values accumulated in buffer
+- **`{ size: N }`**: Ring buffer, keeps last N values
+
+**Key design decision**: Legend-State observables (not effect-atom atoms) are used as the mutable core inside the fiber consumer. Effect fibers writing to Legend-State observables propagate correctly across execution contexts, whereas `Registry.set` inside a fiber does not propagate reads back to the outer context.
+
+## React Hooks
+
+| Hook | Purpose | Reactive Source |
+|------|---------|-----------------|
+| `useStxValue(stx, selector)` | Read observable field | Legend-State `useSelector` |
+| `useStxData(stx)` | Read entire data tree | Legend-State `useSelector` |
+| `useStxSend(stx)` | Get send function | Stable reference |
+| `useStxMachine(stx)` | Machine state + send | XState `useActorSelector` |
+| `useStxMatches(stx, state)` | Check machine state | XState `useActorSelector` |
+| `useStxEffect(stx)` | Run named effect | Effect.runPromiseExit |
+| `useStxComputed(stx, key)` | Read computed atom | effect-atom `useAtomValue` |
+| `useStxStream(stream)` | Subscribe to stream | Legend-State `useSelector` |
+| `useStx(stx)` | All-in-one (convenience) | All three |
+
+### useStxStream Example
+
+```tsx
+function StreamView() {
+  const { value, buffer, status, pause, resume, reset } = useStxStream(myStream)
 
   return (
     <div>
-      <Memo>{() => counter.data.count.get()}</Memo>
-      <button onClick={() => send('INCREMENT')}>+1</button>
-      <button onClick={() => runEffect('fetchInitial')}>Refresh</button>
+      <p>Status: {status}</p>
+      <p>Current: {value}</p>
+      <p>History: {buffer.join(', ')}</p>
+      <button onClick={pause}>⏸</button>
+      <button onClick={resume}>▶</button>
+      <button onClick={reset}>⏹</button>
     </div>
   )
 }
 ```
 
-## AVA-Specific Architecture
+## Bindings: Cross-Library Bridges
 
-For the AVA client, the machine handles IR parsing and rendering decisions:
+| Binding | Direction | Purpose |
+|---------|-----------|---------|
+| `fromEffectStream(stream)` | Effect → RxJS | Convert Effect Stream to Observable (fiber-based) |
+| `fromLegendState(obs$)` | Legend → RxJS | Legend-State → RxJS Observable |
+| `bridgeToActor(obs$, actor)` | Legend → XState | Sync observable changes to machine events |
+| `createTwoWayBridge(obs$, actor)` | Legend ↔ XState | Bidirectional sync with loop prevention |
 
-```typescript
-const avaView = stx({
-  machine: {
-    id: 'avaView',
-    initial: 'disconnected',
-    states: {
-      disconnected: {
-        on: { CONNECT: 'connecting' },
-      },
-      connecting: {
-        invoke: {
-          src: 'connectSession',
-          onDone: 'connected',
-          onError: 'error',
-        },
-      },
-      connected: {
-        initial: 'idle',
-        states: {
-          idle: {
-            on: { SUBSCRIBE: 'subscribing' },
-          },
-          subscribing: {
-            invoke: {
-              src: 'subscribeToView',
-              onDone: 'streaming',
-              onError: 'error',
-            },
-          },
-          streaming: {
-            on: {
-              ARTIFACT: { actions: 'hydrateArtifact' },
-              DELTA: { actions: 'applyDelta' },
-              UNSUBSCRIBE: 'idle',
-            },
-          },
-        },
-        on: { DISCONNECT: 'disconnected' },
-      },
-      error: {
-        on: { RETRY: 'connecting', RESET: 'disconnected' },
-      },
-    },
-  },
+## Testing
 
-  // Fast, fine-grained data store
-  data: {
-    views: [] as ViewSummary[],
-    selectedView: null as ViewSpec | null,
-    artifact: null as ViewArtifact | null,
-    messageLog: [] as MessageLogEntry[],
-    config: {
-      baseUrl: 'http://localhost:3000',
-    },
-  },
+| Suite | Tests | Coverage |
+|-------|-------|----------|
+| `stx.test.ts` | 67 | Core, computed, snapshot, layer, persistence |
+| `bindings.test.ts` | 31 | Effect streams, Legend-State, XState bridges |
+| `hooks.test.ts` | 41/55 | React hooks (14 blocked by Legend-State test env) |
+| `stream.test.ts` | 11 | Progressive state, buffers, pause/resume/reset |
 
-  // Effect-TS operations
-  effects: {
-    connectSession: Effect.gen(function* () {
-      const client = yield* AvaSessionClient
-      yield* client.waitForConnection
-      return { status: 'connected' }
-    }),
-    fetchViews: Effect.gen(function* () {
-      const client = yield* AvaHttpClient
-      return yield* client.listViews()
-    }),
-    subscribeToView: (viewId: string) => Effect.gen(function* () {
-      const client = yield* AvaSessionClient
-      yield* client.subscribe(viewId)
-    }),
-  },
+### Testing Computed Atoms
 
-  // Derived state
-  computed: {
-    isConnected: (get) => get.machine.matches('connected'),
-    viewCount: (get) => get.data.views.length,
-    hasArtifact: (get) => get.data.artifact !== null,
-  },
-})
-```
+effect-atom atoms can't track Legend-State observables (different reactive systems). In tests:
+- Use `Registry.get(computedAtom)` for first-computation value
+- Use factory re-evaluation for current values (snapshot does this)
+- React hooks (`useAtomValue`) work via re-render triggers
 
-## Data Flow
+### Testing Streams
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                              DATA FLOW                                  │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  1. USER ACTION                                                         │
-│     │                                                                   │
-│     ▼                                                                   │
-│  ┌──────────────┐                                                       │
-│  │  XState      │  send('CONNECT')                                      │
-│  │  Machine     │──────────────────┐                                    │
-│  └──────────────┘                  │                                    │
-│                                    ▼                                    │
-│  2. MACHINE INVOKES EFFECT    ┌──────────────┐                         │
-│                               │  effect-atom │                         │
-│                               │  Effect.gen  │                         │
-│                               └──────┬───────┘                         │
-│                                      │                                  │
-│                                      ▼                                  │
-│  3. EFFECT RESOLVES           ┌──────────────┐                         │
-│     Result<A, E>              │   HTTP/WS    │                         │
-│                               │   Response   │                         │
-│                               └──────┬───────┘                         │
-│                                      │                                  │
-│                                      ▼                                  │
-│  4. MACHINE ACTION            ┌──────────────┐                         │
-│     hydrateArtifact           │   XState     │                         │
-│                               │   Action     │                         │
-│                               └──────┬───────┘                         │
-│                                      │                                  │
-│                                      ▼                                  │
-│  5. UPDATE OBSERVABLE         ┌──────────────┐                         │
-│     data.artifact.set(...)    │ Legend-State │                         │
-│                               │  .set()      │                         │
-│                               └──────┬───────┘                         │
-│                                      │                                  │
-│                                      ▼                                  │
-│  6. FINE-GRAINED RE-RENDER    ┌──────────────┐                         │
-│     Only affected <Memo>      │    React     │                         │
-│     components update         │  Components  │                         │
-│                               └──────────────┘                         │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-## Implementation Layers
-
-### Layer 1: Core Primitives (`primitives.ts`)
-
-```typescript
-// Re-exports with TMNL defaults
-export { observable, computed, observe, batch } from '@legendapp/state'
-export { observer, useObservable, Memo, Computed } from '@legendapp/state/react'
-export { Atom, Result } from '@effect-atom/atom'
-export { useAtomValue, useAtom } from '@effect-atom/atom-react'
-export { createMachine, setup } from 'xstate'
-export { useActor, useSelector, createActorContext } from '@xstate/react'
-```
-
-### Layer 2: Composition (`state.ts`)
-
-```typescript
-// The unified stx({}) factory
-export function state<
-  TMachine extends AnyStateMachine,
-  TData extends object,
-  TEffects extends Record<string, Effect.Effect<any, any>>,
-  TComputed extends Record<string, (get: StxGetter<TData, TMachine>) => any>
->(config: StxConfig<TMachine, TData, TEffects, TComputed>): Stx<...>
-```
-
-### Layer 3: React Bindings (`hooks.ts`)
-
-```typescript
-// Hooks that compose all three
-export function useStxValue<S, T>(state: S, selector: (s: S) => T): T
-export function useStxSend<S>(state: S): (event: EventOf<S>) => void
-export function useStxEffect<S>(state: S): (name: keyof EffectsOf<S>) => Promise<void>
-export function useStxMachine<S>(state: S): [SnapshotOf<S>, SendOf<S>]
-```
-
-### Layer 4: Utilities (`utils.ts`)
-
-```typescript
-// Schema validation for data
-export function withSchema<T>(schema: Schema.Schema<T>): DataValidator<T>
-
-// Match-based reducers
-export function reducer<S, E>(match: Match.Match<E, S>): Reducer<S, E>
-
-// Stream atoms for progressive updates
-export function streamAtom<A, E>(stream: Stream.Stream<A, E>): Atom<Result<A, E>>
-
-// Persistence adapter
-export function withPersistence<T>(config: PersistConfig): Observable<T>
-```
-
-## File Structure
-
-```
-src/lib/atoms/
-├── index.ts                 # Public exports
-├── ARCHITECTURE.md          # This document
-├── types.ts                 # TypeScript types for unified API
-├── primitives.ts            # Re-exports from all three libraries
-├── state.ts                 # The stx({}) factory
-├── hooks.ts                 # React hooks (useStxValue, etc.)
-├── utils/
-│   ├── schema.ts            # Schema validation utilities
-│   ├── reducers.ts          # Match-based reducers
-│   ├── streams.ts           # Stream atom utilities
-│   ├── persistence.ts       # Persistence adapters
-│   └── result.ts            # Result type helpers
-└── providers/
-    ├── StateProvider.tsx    # Combined provider
-    └── context.ts           # React contexts
-```
+Stream tests use `state$.get()` (Legend-State direct read) instead of Registry, because Effect fibers writing to atoms via Registry don't propagate back to outer-context reads.
 
 ## Key Design Decisions
 
-### 1. Machine as Shape, Observable as Store
+### 1. Atom-as-State Pattern
 
-The XState machine defines *what states are valid* and *what transitions are allowed*. The Legend-State observable *stores the actual data*. This separation means:
-- Machine logic is testable in isolation
-- Data updates are fine-grained (no full tree re-renders)
-- Effect computations are properly typed and traceable
+When React is the consumer via effect-atom, use `Atom.make()` as the primary state — not `Effect.Ref` inside services. Service methods mutate Atoms directly (`Atom.set`), React subscribes directly. This eliminates the Ref→Atom bridge.
 
-### 2. Effect Bridge via Actors
+### 2. Object.defineProperty for Live References
 
-XState actors invoke effect-atom Effects. This gives us:
-- Fiber-based cancellation
-- Proper error handling via `Result<A, E>`
-- Service injection via `Atom.runtime()`
-- Observability via Effect spans
-
-### 3. Fine-Grained Reactivity Default
-
-Legend-State's proxy-based observables are the default for all data. This means:
-- Components only re-render when their specific data changes
-- `<Memo>` components update text without parent re-renders
-- Batch updates are automatic within a frame
-
-### 4. Schema-Validated Data
-
-All data flowing through `stx({})` can optionally be Schema-validated:
-- Runtime validation before state updates
-- Automatic TypeScript type inference
-- JSON Schema generation for debugging
-
-## Migration Path
-
-### From useState
+XState actor and send are exposed via property getters to prevent stale references after `reset()`:
 
 ```typescript
-// Before
-const [count, setCount] = useState(0)
-const [loading, setLoading] = useState(false)
-
-// After
-const counter = stx({
-  machine: { initial: 'idle', states: { idle: {}, loading: {} } },
-  data: { count: 0 },
-})
-const count = useStxValue(counter, s => s.data.count)
+Object.defineProperty(instance, 'actor', { get: () => actor, enumerable: true })
+Object.defineProperty(instance, 'send', { get: () => (e) => actor?.send(e), enumerable: true })
 ```
 
-### From effect-atom Only
+### 3. Legend-State Inside Effect Fibers
 
-```typescript
-// Before
-const countAtom = Atom.make(0)
-const doubled = Atom.make((get) => get(countAtom) * 2)
+Legend-State observables work inside Effect fibers (`.set()` propagates correctly). effect-atom `Registry.set` inside fibers does NOT propagate to outer-context reads. Always use Legend-State for mutable state that Effect fibers write to.
 
-// After
-const counter = stx({
-  data: { count: 0 },
-  computed: { doubled: (get) => get.data.count * 2 },
-})
-```
+### 4. getPersistedSnapshot for Reset
 
-### From XState Only
+XState v5's `actor.getPersistedSnapshot()` captures full serializable state (value + context). Used at initialization, then passed back via `createActor(machine, { snapshot })` during reset.
 
-```typescript
-// Before
-const [state, send] = useMachine(toggleMachine)
+### 5. Computed Re-evaluation at Snapshot Time
 
-// After
-const toggle = stx({
-  machine: toggleMachine,
-  data: {},  // Legend-State for any extra data
-})
-const [machineState, send] = useStxMachine(toggle)
-```
-
-## Next Steps
-
-1. Install dependencies: `@legendapp/state`, `xstate`, `@xstate/react`
-2. Implement `primitives.ts` with re-exports
-3. Implement `state.ts` factory
-4. Implement React hooks
-5. Build AVA testbed with new patterns
-6. Document patterns in CLAUDE.md
+Snapshot doesn't read from atom cache (which may be stale in non-React contexts). Instead, it re-invokes each computed factory function with a fresh getter, ensuring values always reflect current data.

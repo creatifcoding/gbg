@@ -1,0 +1,112 @@
+{
+  "runId": "20260224T085050Z",
+  "status": "failed",
+  "startAt": "2026-02-24T08:50:50Z",
+  "endAt": "2026-02-24T08:50:59Z",
+  "durationMs": 9028,
+  "projectRoot": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+  "summary": {
+    "gatesTotal": 6,
+    "gatesPassed": 2,
+    "gatesFailed": 1,
+    "gatesSkipped": 3
+  },
+  "steps": [
+    {
+      "id": "ts_contract_tests",
+      "name": "TypeScript contract tests",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 2446,
+      "command": "bun run contracts:test:order",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/order/reports/logs/20260224T085050Z/ts_contract_tests.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "schema_generation_determinism",
+      "name": "JSON Schema generation + determinism",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 701,
+      "command": "bun run contracts:gen:order",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/order/reports/logs/20260224T085050Z/schema_generation_determinism.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": "d9a6eff037fbb303e4296a2f642d37c40e5b0d06e8e8e98a2b348b90ce32e8d3",
+        "fingerprintAfter": "d9a6eff037fbb303e4296a2f642d37c40e5b0d06e8e8e98a2b348b90ce32e8d3",
+        "fingerprintStable": true
+      }
+    },
+    {
+      "id": "elixir_runtime_tests",
+      "name": "Elixir runtime tests (validator + signal/sensor + persistence)",
+      "status": "failed",
+      "exitCode": 2,
+      "durationMs": 5400,
+      "command": "mix deps.get >/dev/null && mix test",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/order/elixir",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/order/reports/logs/20260224T085050Z/elixir_runtime_tests.log",
+      "errorSignature": "03:50:58.085 [notice] Executing Maiden.OrderRuntime.Actions.ShipOrder with params: %{at: \"2026-02-22T06:20:00Z\", to: \"shipped\", from: \"confirmed\", order_id: \"ORD-PERSIST-001-dbb02af7-8425-4074-8051-ee4f572c410b\"} and context: %{state: %{total: 21.0, items: [%{sku: \"SKU-PERSIST\", qty: 2}], order_id: \"ORD-PERSIST-001-dbb02af7-8425-4074-8051-ee4f572c410b\", customer: \"Persist Penny\", cancelled_reason: nil, shipped_at: nil, delivered_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: \"processing\", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: \"idle\", auto_transition: true, current_instruction: %Jido.Instruction{id: \"019c8ed8-2d47-7d87-9212-9cfb73d376c6\", action: Maiden.OrderRuntime.Actions.ShipOrder, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 4, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, model_status: \"idle\", model_request_id: nil, model_name: nil, model_result: nil, model_error: nil, model_options: %{}, model_prompt: nil}, action_metadata: %{name: \"ship_order\", description: \"Ship a confirmed order\", vsn: nil, category: nil, schema: [order_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}",
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "strategy_boundary_tests",
+      "name": "strategy boundary tests (SignalFsm + boundary directives)",
+      "status": "skipped",
+      "exitCode": null,
+      "durationMs": 0,
+      "command": "mix test test/order_strategy_boundary_test.exs",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/order/elixir",
+      "logPath": "",
+      "errorSignature": "skipped_due_to_previous_failure",
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "elixir_persistence_tests",
+      "name": "explicit persistence test file",
+      "status": "skipped",
+      "exitCode": null,
+      "durationMs": 0,
+      "command": "mix test test/order_persistence_test.exs",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/order/elixir",
+      "logPath": "",
+      "errorSignature": "skipped_due_to_previous_failure",
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "negative_gate_assertions",
+      "name": "negative-gate assertions (schema-valid/FSM-illegal rejection)",
+      "status": "skipped",
+      "exitCode": null,
+      "durationMs": 0,
+      "command": "mix test test/order_validator_test.exs --only negative_gate",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/order/elixir",
+      "logPath": "",
+      "errorSignature": "skipped_due_to_previous_failure",
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    }
+  ]
+}

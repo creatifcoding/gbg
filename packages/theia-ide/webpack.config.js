@@ -24,11 +24,18 @@ module.exports = configs.map((config, index) => {
     }
   }
 
-  // Add path aliases for VANTA theme
+  // Add path aliases for VANTA theme + pin inversify to 6.1.6 (6.2.x breaks FrontendStopwatch)
+  const inversifyRoot = (() => {
+    const resolved = require.resolve('inversify');
+    const parts = resolved.split('/node_modules/inversify/');
+    return parts[0] + '/node_modules/inversify';
+  })();
+
   if (config.resolve) {
     config.resolve.alias = {
       ...config.resolve.alias,
       '@vanta': path.resolve(__dirname, 'src/browser/vanta-theme'),
+      'inversify$': inversifyRoot,
     };
   }
 

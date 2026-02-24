@@ -175,8 +175,8 @@ export const IngestFlightByIcaoPayload = Schema.Struct({
     Schema.pattern(/^[0-9a-f]{6}$/),
     Schema.annotations({ description: 'ICAO24 hex code (6 lowercase hex characters)' })
   ),
-  /** Preferred source (defaults to adsb_lol for single-flight queries) */
-  source: Schema.optionalWith(FlightSource, { default: () => 'adsb_lol' as const }),
+  /** Preferred source (defaults to adsb-lol for single-flight queries) */
+  source: Schema.optionalWith(FlightSource, { default: () => 'adsb-lol' as const }),
 })
 
 /**
@@ -495,7 +495,7 @@ const DEFAULT_CONFIG: IngestionConfig = {
  * // Ingest a specific flight by ICAO24
  * const resultAtom = IngestionClient.query(
  *   'ingestFlightByIcao',
- *   { icao24: 'a00001', source: 'adsb_lol' },
+ *   { icao24: 'a00001', source: 'adsb-lol' },
  *   { reactivityKeys: ['ingestion', 'flight', 'a00001'] }
  * )
  *
@@ -568,7 +568,7 @@ export const ingestFlightsByRegionMutation = IngestionClient.mutation('ingestFli
  * Create an atom for ingesting a specific flight
  * Use for on-demand single flight queries
  */
-export const createFlightIngestionAtom = (icao24: string, source: 'opensky' | 'adsb_lol' = 'adsb_lol') =>
+export const createFlightIngestionAtom = (icao24: string, source: 'opensky' | 'adsb-lol' = 'adsb-lol') =>
   IngestionClient.query(
     'ingestFlightByIcao',
     { icao24: icao24.toLowerCase(), source },
@@ -584,7 +584,7 @@ export const createFlightIngestionAtom = (icao24: string, source: 'opensky' | 'a
 export const createRegionIngestionAtom = (
   regionName: string,
   bounds: readonly [number, number, number, number],
-  source: 'opensky' | 'adsb_lol' = 'opensky'
+  source: 'opensky' | 'adsb-lol' = 'opensky'
 ) =>
   IngestionClient.query(
     'ingestFlightsByRegion',

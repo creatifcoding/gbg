@@ -1,0 +1,154 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "SiteTransitionEvent": {
+      "type": "object",
+      "required": [
+        "site_id",
+        "from",
+        "to",
+        "at"
+      ],
+      "properties": {
+        "site_id": {
+          "$ref": "#/definitions/SiteId"
+        },
+        "from": {
+          "$ref": "#/definitions/SiteStatus"
+        },
+        "to": {
+          "$ref": "#/definitions/SiteStatus"
+        },
+        "action": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SiteTransitionAction"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "initiated_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Transition payload contract for site lifecycle events.",
+      "title": "Site Transition Event"
+    },
+    "SiteId": {
+      "type": "string",
+      "description": "Site identifier in SIT-{slug} format.",
+      "title": "Site ID",
+      "pattern": "^SIT-[a-zA-Z0-9-]+$"
+    },
+    "SiteStatus": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "under_construction",
+        "operational",
+        "seasonal_shutdown",
+        "closed",
+        "decommissioned"
+      ],
+      "description": "ISA-95 site lifecycle status from canonical Site schema.",
+      "title": "Site Status"
+    },
+    "SiteTransitionAction": {
+      "type": "string",
+      "enum": [
+        "BeginConstruction",
+        "Commission",
+        "SeasonalShutdown",
+        "Reopen",
+        "Close",
+        "Decommission"
+      ],
+      "description": "Named transition actions from the canonical site lifecycle graph.",
+      "title": "Site Transition Action"
+    }
+  },
+  "type": "object",
+  "required": [
+    "site_id",
+    "from",
+    "to",
+    "at"
+  ],
+  "properties": {
+    "site_id": {
+      "$ref": "#/definitions/SiteId"
+    },
+    "from": {
+      "$ref": "#/definitions/SiteStatus"
+    },
+    "to": {
+      "$ref": "#/definitions/SiteStatus"
+    },
+    "action": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/SiteTransitionAction"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "initiated_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/site/ts/site.contract.ts). Canonical transition event contract for TypeScript and Elixir.",
+  "title": "SiteTransitionEvent",
+  "$id": "/contracts/site/site_transition.schema.json"
+}

@@ -49,7 +49,7 @@ export const SOURCE_COLORS = {
       border: 'border-yellow-500/30',
     },
   },
-  adsb_lol: {
+  'adsb-lol': {
     primary: '#f97316',
     secondary: '#fb923c',
     muted: 'rgba(249, 115, 22, 0.2)',
@@ -82,7 +82,7 @@ export const SOURCE_COLORS = {
       border: 'border-cyan-500/30',
     },
   },
-  weather: {
+  openmeteo: {
     primary: '#ec4899',
     secondary: '#f472b6',
     muted: 'rgba(236, 72, 153, 0.2)',

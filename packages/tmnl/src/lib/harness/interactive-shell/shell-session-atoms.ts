@@ -15,7 +15,22 @@
  */
 
 import { Atom, Registry } from '@effect-atom/atom-react'
-import type { ShellSessionStatus, ShellSessionInfo, ShellEvent } from './schemas'
+import { createActor } from 'xstate'
+import type {
+  ShellSessionStatus,
+  ShellSessionInfo,
+  ShellEvent,
+  ControlMode,
+  ControllerRole,
+  ActivityEntry,
+} from './schemas'
+import {
+  controlMachine,
+  snapshotToMode,
+  snapshotToController,
+  canAgentWrite as machineCanAgentWrite,
+  type ControlMachineActor,
+} from './control-machine'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Registry — shell atoms use a dedicated registry (or the morphchat one)
@@ -54,11 +69,30 @@ export interface ShellSessionAtoms {
   readonly error$: Atom.Writable<string | null>
   /** Monotonic output sequence counter (triggers re-render on new data) */
   readonly outputSeq$: Atom.Writable<number>
+  // ── Control Model ──────────────────────────────────────────────────
+  /** Current control mode (agent-controlled, human-controlled, supervised) */
+  readonly controlMode$: Atom.Writable<ControlMode>
+  /** Who currently holds stdin */
+  readonly controller$: Atom.Writable<ControllerRole>
+  /** Whether the agent is currently writing (typing indicator) */
+  readonly agentWriting$: Atom.Writable<boolean>
+  /** Activity log entries (capped at MAX_ACTIVITY_ENTRIES) */
+  readonly activityLog$: Atom.Writable<ReadonlyArray<ActivityEntry>>
+  /** Bytes written by human + agent */
+  readonly bytesIn$: Atom.Writable<number>
+  /** Bytes received from shell:data */
+  readonly bytesOut$: Atom.Writable<number>
+  /** Number of commands sent (writes ending with \n) */
+  readonly commandCount$: Atom.Writable<number>
+  /** Session creation timestamp */
+  readonly createdAt$: Atom.Writable<number>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The Family — keyed by sessionId
 // ─────────────────────────────────────────────────────────────────────────────
+
+const MAX_ACTIVITY_ENTRIES = 500
 
 /**
  * Atom.family keyed by sessionId.
@@ -72,8 +106,147 @@ export const shellSessionFamily = Atom.family(
     exitCode$: Atom.make<number | null>(null),
     error$: Atom.make<string | null>(null),
     outputSeq$: Atom.make(0),
+    // Control model
+    controlMode$: Atom.make<ControlMode>('agent-controlled'),
+    controller$: Atom.make<ControllerRole>('agent'),
+    agentWriting$: Atom.make(false),
+    activityLog$: Atom.make<ReadonlyArray<ActivityEntry>>([]),
+    // Throughput metrics
+    bytesIn$: Atom.make(0),
+    bytesOut$: Atom.make(0),
+    commandCount$: Atom.make(0),
+    createdAt$: Atom.make(Date.now()),
   }),
 )
+
+// ─────────────────────────────────────────────────────────────────────────────
+// XState Actor Management — one machine actor per session
+// ─────────────────────────────────────────────────────────────────────────────
+
+const controlActors = new Map<string, ControlMachineActor>()
+
+/**
+ * Get or create the control machine actor for a session.
+ * Actor syncs its state into the atom family via subscriptions.
+ */
+export function getControlActor(sessionId: string): ControlMachineActor {
+  let actor = controlActors.get(sessionId)
+  if (actor) return actor
+
+  actor = createActor(controlMachine)
+  controlActors.set(sessionId, actor)
+
+  const session = shellSessionFamily(sessionId)
+  const r = getRegistry()
+
+  // Sync machine state → atoms on every transition
+  actor.subscribe((snapshot) => {
+    r.set(session.controlMode$, snapshotToMode(snapshot))
+    r.set(session.controller$, snapshotToController(snapshot))
+  })
+
+  actor.start()
+  return actor
+}
+
+/**
+ * Stop and remove the control actor for a session.
+ */
+function stopControlActor(sessionId: string): void {
+  const actor = controlActors.get(sessionId)
+  if (actor) {
+    actor.send({ type: 'SESSION_ENDED' })
+    actor.stop()
+    controlActors.delete(sessionId)
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Activity Log Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+function appendActivity(
+  sessionId: string,
+  entry: ActivityEntry,
+): void {
+  const session = shellSessionFamily(sessionId)
+  const r = getRegistry()
+  const log = r.get(session.activityLog$)
+  const updated = [...log, entry]
+  // FIFO cap
+  r.set(
+    session.activityLog$,
+    updated.length > MAX_ACTIVITY_ENTRIES
+      ? updated.slice(updated.length - MAX_ACTIVITY_ENTRIES)
+      : updated,
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Control Commands — dispatch from UI (send over WS)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function sendShellTakeControl(sessionId: string): void {
+  _sendCommand?.({ _tag: 'remote:shell_take_control', sessionId })
+}
+
+export function sendShellYieldControl(sessionId: string): void {
+  _sendCommand?.({ _tag: 'remote:shell_yield_control', sessionId })
+}
+
+export function sendShellSwitchMode(sessionId: string, mode: ControlMode): void {
+  _sendCommand?.({ _tag: 'remote:shell_switch_mode', sessionId, mode })
+}
+
+/**
+ * Notify the control system that the agent wrote (from tool executor).
+ * Dispatches to machine + activity log.
+ */
+export function notifyAgentWrite(sessionId: string, data: string): void {
+  const actor = getControlActor(sessionId)
+  const ts = Date.now()
+  actor.send({ type: 'AGENT_WRITE', timestamp: ts })
+  const r = getRegistry()
+  const session = shellSessionFamily(sessionId)
+  r.set(session.agentWriting$, true)
+  // Track throughput
+  r.set(session.bytesIn$, r.get(session.bytesIn$) + data.length)
+  if (data.includes('\n')) {
+    r.set(session.commandCount$, r.get(session.commandCount$) + 1)
+  }
+  // Activity log
+  const cmdLine = data.trim()
+  if (cmdLine) {
+    appendActivity(sessionId, {
+      source: 'agent',
+      action: 'Sent command',
+      timestamp: ts,
+      command: cmdLine.length > 200 ? cmdLine.slice(0, 200) + '…' : cmdLine,
+    })
+  }
+}
+
+/**
+ * Clear the agent-writing indicator (call when tool call ends).
+ */
+export function clearAgentWriting(sessionId: string): void {
+  const r = getRegistry()
+  const session = shellSessionFamily(sessionId)
+  r.set(session.agentWriting$, false)
+}
+
+/**
+ * Notify the control system that the human typed (from terminal onData).
+ * Dispatches to machine + activity log + throughput.
+ */
+export function notifyHumanKeystroke(sessionId: string, byteCount: number): void {
+  const actor = getControlActor(sessionId)
+  const ts = Date.now()
+  actor.send({ type: 'HUMAN_KEYSTROKE', timestamp: ts })
+  const r = getRegistry()
+  const session = shellSessionFamily(sessionId)
+  r.set(session.bytesIn$, r.get(session.bytesIn$) + byteCount)
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Active Sessions Tracking
@@ -211,22 +384,58 @@ export function dispatchShellEvent(event: ShellEvent): void {
       }
       // Bump sequence counter so components know new data arrived
       r.set(session.outputSeq$, r.get(session.outputSeq$) + 1)
+      // Track bytes out
+      r.set(session.bytesOut$, r.get(session.bytesOut$) + event.data.length)
       break
     }
 
     case 'shell:started':
       r.set(session.status$, 'running')
       r.set(session.info$, event.info)
+      r.set(session.createdAt$, Date.now())
+      // Initialize control actor for this session
+      getControlActor(sessionId)
+      appendActivity(sessionId, {
+        source: 'system',
+        action: 'Session started',
+        timestamp: Date.now(),
+      })
       break
 
     case 'shell:exited':
       r.set(session.status$, 'exited')
       r.set(session.exitCode$, event.exitCode)
+      stopControlActor(sessionId)
+      appendActivity(sessionId, {
+        source: 'system',
+        action: `Exited with code ${event.exitCode}`,
+        timestamp: Date.now(),
+      })
       break
 
     case 'shell:error':
       r.set(session.status$, 'error')
       r.set(session.error$, event.message)
+      appendActivity(sessionId, {
+        source: 'system',
+        action: `Error: ${event.message}`,
+        timestamp: Date.now(),
+      })
+      break
+
+    case 'shell:control_changed':
+      r.set(session.controlMode$, event.mode)
+      r.set(session.controller$, event.controller)
+      // Also sync the XState actor
+      {
+        const actor = getControlActor(sessionId)
+        actor.send({ type: 'SWITCH_MODE', mode: event.mode })
+      }
+      appendActivity(sessionId, {
+        source: 'system',
+        action: `Control: ${event.controller} (${event.mode})`,
+        timestamp: event.timestamp,
+      })
       break
   }
 }
@@ -237,6 +446,7 @@ export function dispatchShellEvent(event: ShellEvent): void {
 export function cleanupSession(sessionId: string): void {
   dataListeners.delete(sessionId)
   replayBuffers.delete(sessionId)
+  stopControlActor(sessionId)
   const r = getRegistry()
   const currentIds = r.get(activeSessionIds$)
   r.set(

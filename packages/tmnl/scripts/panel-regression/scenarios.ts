@@ -9,7 +9,7 @@ import { petname } from './petnames'
 import {
   spawn, vsplit, hsplit, collapse, close,
   focusLeft, focusRight, focusUp, focusDown,
-  swapLeft, swapRight, widthCycle, toggleOverlay,
+  swapLeft, swapRight, widthCycle, floatPanel, toggleOverlay,
   repeat, checkpoint, navigate,
 } from './ops'
 
@@ -317,6 +317,42 @@ export const modeSwitchCollapsed = scenario(
   { modes: ['both'], tags: ['mode-switch', 'collapse'] },
 )
 
+/**
+ * S10: Strip float pop-off + pop-back.
+ */
+export const stripFloatPopBack = scenario(
+  'Strip float pop-off + pop-back',
+  'Float a tiled strip panel and tile it back; verifies strip re-attachment at origin footprint.',
+  [
+    toggleOverlay,
+    spawn,
+    checkpoint('spawned', 'Single tiled strip column', {
+      totalPanels: 1,
+      tiledCount: 1,
+      floatCount: 0,
+      columnCount: 1,
+      overlayOpen: true,
+    }),
+    floatPanel,
+    checkpoint('floated', 'Panel detached to floating; strip column removed', {
+      totalPanels: 1,
+      tiledCount: 0,
+      floatCount: 1,
+      columnCount: 0,
+      overlayOpen: true,
+    }),
+    floatPanel,
+    checkpoint('retiled', 'Panel tiled back and strip column restored', {
+      totalPanels: 1,
+      tiledCount: 1,
+      floatCount: 0,
+      columnCount: 1,
+      overlayOpen: true,
+    }),
+  ],
+  { modes: ['strip'], tags: ['float', 'strip', 'popback'] },
+)
+
 // ─── Combinatorial Generator ────────────────────────────────────────────────
 
 /**
@@ -396,4 +432,5 @@ export const PREDEFINED: Scenario[] = [
   widthCycleSweep,
   closePanelTreeAware,
   modeSwitchCollapsed,
+  stripFloatPopBack,
 ]

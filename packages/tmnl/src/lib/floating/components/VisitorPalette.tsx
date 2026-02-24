@@ -136,6 +136,7 @@ export const VisitorPalette = memo(function VisitorPalette({
     <motion.div
       ref={containerRef}
       data-slot="visitor-palette"
+      data-kb-modal
       variants={paletteVariants}
       initial="hidden"
       animate="visible"

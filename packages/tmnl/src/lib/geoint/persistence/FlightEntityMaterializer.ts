@@ -23,7 +23,7 @@ import { Context, Effect, Layer, Stream, Schedule, Scope } from 'effect'
 import { SqlClient } from '@effect/sql'
 import { DurableStreamClient, type DurableStreamError } from '@/lib/durable-streams/service'
 import { FlightPositionEvent } from '../schemas/flight-events'
-import type { IntelSource } from '@/lib/ecs/schemas/core'
+import { toEcsIntelSource } from '../registry'
 
 // =============================================================================
 // Configuration
@@ -143,11 +143,10 @@ export const FlightEntityMaterializerLive = Layer.scoped(
     let lastEventAt: Date | null = null
 
     /**
-     * Map FlightSource to IntelSource for provenance.
+     * Normalize flight source IDs to ECS canonical IntelSource.
      */
-    const sourceToIntelSource = (source: 'opensky' | 'adsb_lol'): IntelSource => {
-      return source === 'adsb_lol' ? 'adsb-lol' : 'opensky'
-    }
+    const sourceToIntelSource = (source: 'opensky' | 'adsb-lol') =>
+      toEcsIntelSource(source)
 
     /**
      * Upsert a single flight event into ECS tables.

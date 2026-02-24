@@ -16,11 +16,14 @@ import {
   createGeointSpawnTool,
   createGeointSelectTool,
   createGeointSummaryTool,
+  createGeointPlanTool,
   type GeointSearchParams,
   type GeointSpawnParams,
   type GeointSelectParams,
   type GeointSummaryParams,
+  type GeointPlanParams,
 } from './tools'
+import { planRegistryQuery, RegistryPlannerLive } from '../registry'
 
 const decodeSearchResult = Schema.decodeUnknownSync(SearchResultItem)
 const decodeSearchResultArray = Schema.decodeUnknownSync(Schema.Array(SearchResultItem))
@@ -259,5 +262,60 @@ export function createGeointTools(
     },
   })
 
-  return [searchTool, spawnTool, selectTool, summaryTool]
+  const planTool = createGeointPlanTool({
+    async execute(_callId, params: GeointPlanParams) {
+      const queryId = params.queryId?.trim() || `q-${Date.now()}`
+
+      const plan = await Effect.runPromise(
+        planRegistryQuery({
+          queryId,
+          text: params.text,
+          bbox: params.bbox
+            ? [params.bbox[0], params.bbox[1], params.bbox[2], params.bbox[3]] as const
+            : undefined,
+          requestedSources: params.requestedSources as any,
+          strategy: params.strategy,
+          constraints: params.constraints
+            ? {
+                _tag: 'QueryConstraintV1',
+                filterLanguage: params.constraints.filterLanguage,
+                requiresStreaming: params.constraints.requiresStreaming,
+                requiresTemporalOrdering: params.constraints.requiresTemporalOrdering,
+                maxSources: params.constraints.maxSources,
+              }
+            : undefined,
+        }).pipe(Effect.provide(RegistryPlannerLive)),
+      )
+
+      return {
+        content: [{
+          type: 'text',
+          text: `GEOINT plan ${plan.planId}: selected ${plan.decision.selected.length} source(s), rejected ${plan.decision.rejected.length}.`,
+        }],
+        details: {
+          planId: plan.planId,
+          strategy: plan.decision.strategy,
+          selectedCount: plan.decision.selected.length,
+          rejectedCount: plan.decision.rejected.length,
+          selected: plan.decision.selected.map((item) => ({
+            sourceId: String(item.sourceId),
+            canonicalSource: item.canonicalSource,
+            role: item.role,
+            provider: item.provider,
+            rank: item.rank,
+            rationale: item.rationale,
+            fallbackOf: item.fallbackOf ? String(item.fallbackOf) : undefined,
+          })),
+          rejected: plan.decision.rejected.map((item) => ({
+            sourceId: String(item.sourceId),
+            canonicalSource: item.canonicalSource,
+            reason: item.reason,
+          })),
+          plan,
+        },
+      }
+    },
+  })
+
+  return [searchTool, spawnTool, selectTool, summaryTool, planTool]
 }

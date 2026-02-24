@@ -4,9 +4,8 @@
  * Side-effectful operations: persistence, modal spawn.
  * These run inside the Effect runtime, NOT raw JS.
  *
- * NOTE: Effects use late-bound references to avoid import cycles.
- * getFloatingStx() and registerPanel() are resolved at call time,
- * not at import time.
+ * Uses lazy ESM imports (cached) to avoid static import cycles
+ * while remaining browser-safe (no CommonJS require()).
  *
  * @module
  */
@@ -16,18 +15,53 @@ import type { PanelStorage, Position } from '../types'
 import { serialize, deserialize } from '../layout/split-tree'
 import { STORAGE_KEY } from './constants'
 
+let instanceModulePromise: Promise<typeof import('./instance')> | null = null
+let actionsModulePromise: Promise<typeof import('./actions')> | null = null
+
+const loadInstanceModule = () => {
+  if (!instanceModulePromise) instanceModulePromise = import('./instance')
+  return instanceModulePromise
+}
+
+const loadActionsModule = () => {
+  if (!actionsModulePromise) actionsModulePromise = import('./actions')
+  return actionsModulePromise
+}
+
+const getFloatingStxEffect = Effect.tryPromise({
+  try: async () => {
+    const mod = await loadInstanceModule()
+    return mod.getFloatingStx()
+  },
+  catch: (cause) => new Error(`Failed to load floating instance module: ${String(cause)}`),
+})
+
+const registerPanelEffect = (input: {
+  id: string
+  title: string
+  mode: 'floating'
+  initialPosition?: Position
+  visitorId: string
+  visitorData: unknown
+}) =>
+  Effect.tryPromise({
+    try: async () => {
+      const mod = await loadActionsModule()
+      mod.registerPanel(input)
+    },
+    catch: (cause) => new Error(`Failed to load floating actions module: ${String(cause)}`),
+  })
+
 export const floatingEffects = {
   /**
    * Persist panel state to localStorage
    */
   persist: Effect.gen(function* () {
+    const stx = yield* getFloatingStxEffect
+
     yield* Effect.sync(() => {
-      // Late-bind: imported at call time to avoid circular
-      const { getFloatingStx } = require('./instance')
-      const stx = getFloatingStx()
       const panels = stx.data.panels.peek()
       const zOrder = stx.data.zOrder.peek()
-
       const panelTree = stx.data.panelTree.peek()
 
       const storage: PanelStorage & { panelTree?: unknown } = {
@@ -54,7 +88,9 @@ export const floatingEffects = {
 
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(storage))
-      } catch { /* Storage might be full */ }
+      } catch {
+        // Storage might be full
+      }
     })
   }),
 
@@ -62,25 +98,30 @@ export const floatingEffects = {
    * Restore panel state from localStorage
    */
   restore: Effect.gen(function* () {
-    yield* Effect.sync(() => {
+    return yield* Effect.sync(() => {
       try {
         const stored = localStorage.getItem(STORAGE_KEY)
         if (!stored) return null
-        const parsed = JSON.parse(stored) as PanelStorage & { panelTree?: unknown }
-
-        // Restore panel tree if present (v2+)
-        if (parsed.panelTree) {
-          const { getFloatingStx } = require('./instance')
-          const stx = getFloatingStx()
-          const tree = deserialize(parsed.panelTree)
-          if (tree) stx.data.panelTree.set(tree)
-        }
-
-        return parsed
+        return JSON.parse(stored) as PanelStorage & { panelTree?: unknown }
       } catch {
         return null
       }
-    })
+    }).pipe(
+      Effect.flatMap((parsed) =>
+        Effect.gen(function* () {
+          if (!parsed) return null
+
+          // Restore panel tree if present (v2+)
+          if (parsed.panelTree) {
+            const stx = yield* getFloatingStxEffect
+            const tree = deserialize(parsed.panelTree)
+            if (tree) stx.data.panelTree.set(tree)
+          }
+
+          return parsed
+        }),
+      ),
+    )
   }),
 
   /**
@@ -90,17 +131,13 @@ export const floatingEffects = {
     Effect.gen(function* () {
       const panelId = `modal-${visitorId}-${Date.now()}`
 
-      yield* Effect.sync(() => {
-        // Late-bind: imported at call time to avoid circular
-        const { registerPanel } = require('./actions')
-        registerPanel({
-          id: panelId,
-          title: visitorId,
-          mode: 'floating',
-          initialPosition: position,
-          visitorId,
-          visitorData,
-        })
+      yield* registerPanelEffect({
+        id: panelId,
+        title: visitorId,
+        mode: 'floating',
+        initialPosition: position,
+        visitorId,
+        visitorData,
       })
 
       return panelId

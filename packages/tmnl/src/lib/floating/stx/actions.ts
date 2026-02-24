@@ -58,6 +58,7 @@ export {
   removeTab,
   setActiveTab,
   reorderTabs,
+  renamePanel,
 } from './interaction'
 
 // ── Tiling (tree, float↔tile, dock, focus, collapse, accent) ──────────────

@@ -224,7 +224,7 @@ export const adsbLolToFlightPosition = (
     _tag: 'FlightPositionInput',
     time,
     icao24,
-    source: 'adsb_lol' as FlightSource,
+    source: 'adsb-lol' as FlightSource,
     raw,
     longitude: aircraft.lon,
     latitude: aircraft.lat,
@@ -270,7 +270,7 @@ export const adsbLolToFlightPosition = (
 export class FlightIngesterError extends Schema.TaggedError<FlightIngesterError>()(
   'FlightIngesterError',
   {
-    source: Schema.Literal('opensky', 'adsb_lol', 'internal'),
+    source: Schema.Literal('opensky', 'adsb-lol', 'internal'),
     operation: Schema.String,
     message: Schema.String,
     cause: Schema.optional(Schema.Unknown),
@@ -381,7 +381,7 @@ export const makeFlightIngester = Effect.gen(function* () {
    */
   const toFlightEvent = (input: FlightPositionInput): FlightPositionEvent => {
     // Map FlightSource to EventFlightSource
-    const source: EventFlightSource = input.source === 'adsb_lol' ? 'adsb_lol' : 'opensky';
+    const source: EventFlightSource = input.source === 'adsb-lol' ? 'adsb-lol' : 'opensky';
 
     return new FlightPositionEvent({
       icao24: input.icao24.toLowerCase(),
@@ -561,7 +561,7 @@ export const makeFlightIngester = Effect.gen(function* () {
 
       if (Option.isNone(adsbLolClient)) {
         return {
-          source: 'adsb_lol' as FlightSource,
+          source: 'adsb-lol' as FlightSource,
           region: region.name,
           recordsIngested: 0,
           latencyMs: Date.now() - startTime,
@@ -594,7 +594,7 @@ export const makeFlightIngester = Effect.gen(function* () {
       // Check for error in fetch
       if (fetchResult._tag === 'error') {
         const result: IngestionResult = {
-          source: 'adsb_lol',
+          source: 'adsb-lol',
           region: region.name,
           recordsIngested: 0,
           latencyMs: Date.now() - startTime,
@@ -616,10 +616,10 @@ export const makeFlightIngester = Effect.gen(function* () {
       }
 
       // TRANSACTIONAL: Insert into database + Publish to stream
-      const insertedCount = yield* transactionalIngest(positions, 'adsb_lol', region.name);
+      const insertedCount = yield* transactionalIngest(positions, 'adsb-lol', region.name);
 
       const result: IngestionResult = {
-        source: 'adsb_lol',
+        source: 'adsb-lol',
         region: region.name,
         recordsIngested: insertedCount,
         latencyMs: Date.now() - startTime,

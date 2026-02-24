@@ -1,0 +1,14 @@
+stateDiagram-v2
+  idle --> setup
+  idle --> maintenance
+  idle --> decommissioned
+  setup --> running
+  running --> idle
+  running --> blocked
+  running --> faulted
+  blocked --> running
+  faulted --> idle
+  faulted --> maintenance
+  maintenance --> idle
+  maintenance --> decommissioned
+  state decommissioned

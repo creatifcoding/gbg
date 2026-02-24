@@ -87,7 +87,7 @@ function MorphChatHarnessPanel({ panelId }: PanelContentProps) {
           <span>
             {status === 'connecting' ? 'CONNECTING TO HARNESS…'
               : status === 'error' ? `CONNECTION ERROR: ${error ?? 'unknown'}`
-              : 'WAITING FOR HARNESS (ws://127.0.0.1:8787)'}
+              : 'WAITING FOR HARNESS (/api/harness/ws)'}
           </span>
         </div>
       )}

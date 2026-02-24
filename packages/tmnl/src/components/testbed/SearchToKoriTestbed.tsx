@@ -108,7 +108,7 @@ const generateMockFlights = (count: number): SearchResultFlight[] => {
     flights.push(
       SearchResultFlight.make({
         id: SearchResultId.make(`flight-${icao24}`),
-        source: Math.random() > 0.5 ? 'opensky' : 'adsb_lol',
+        source: Math.random() > 0.5 ? 'opensky' : 'adsb-lol',
         score: 0.8 + Math.random() * 0.2,
         retrievedAt: new Date(),
         icao24: Icao24.make(icao24),
@@ -163,7 +163,7 @@ const generateMockWeather = (count: number): SearchResultWeather[] => {
     results.push(
       SearchResultWeather.make({
         id: SearchResultId.make(`weather-${i}`),
-        source: 'weather',
+        source: 'openmeteo',
         score: 0.9,
         retrievedAt: new Date(),
         position: [

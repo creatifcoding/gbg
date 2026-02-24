@@ -69,7 +69,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('ADSB.lol Integration Tests', () => {
         const searchResult = adsbLolToSearchResult(first)
         if (searchResult) {
           expect(searchResult._tag).toBe('SearchResultFlight')
-          expect(searchResult.source).toBe('adsb_lol')
+          expect(searchResult.source).toBe('adsb-lol')
         }
       }
     })
@@ -253,7 +253,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('ADSB.lol Integration Tests', () => {
       if (results && results.length > 0) {
         const first = results[0]
         expect(first._tag).toBe('SearchResultFlight')
-        expect(first.source).toBe('adsb_lol')
+        expect(first.source).toBe('adsb-lol')
         expect(first.position).toBeDefined()
         expect(first.retrievedAt).toBeInstanceOf(Date)
       }

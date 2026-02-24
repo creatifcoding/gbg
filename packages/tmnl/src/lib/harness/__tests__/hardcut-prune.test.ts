@@ -13,7 +13,7 @@ describe('Harness hard-cut prune', () => {
   it('keeps browser transport defaults on harness endpoint only', () => {
     const source = readFileSync(resolve(root, 'src/lib/harness/HarnessBrowserTransport.ts'), 'utf8')
 
-    expect(source).toContain("ws://127.0.0.1:8787/api/harness/ws")
+    expect(source).toContain('/api/harness/ws')
     expect(source).not.toContain('/api/pi-orchestrator/ws')
   })
 })

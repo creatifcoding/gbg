@@ -1,0 +1,15 @@
+[device-e2e] first generation run
+Generated schemas:
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/device/schemas/device.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/device/schemas/device_transition.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/device/schemas/device_agent_state.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/device/schemas/device_transition.mmd
+[device-e2e] fingerprint before rerun: 05de567c2cb5be3a93616c27dab497d5578796309399746897ec4fb691cd8d56
+[device-e2e] second generation run
+Generated schemas:
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/device/schemas/device.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/device/schemas/device_transition.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/device/schemas/device_agent_state.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/device/schemas/device_transition.mmd
+[device-e2e] fingerprint after rerun:  05de567c2cb5be3a93616c27dab497d5578796309399746897ec4fb691cd8d56
+[device-e2e] schema fingerprint stable: 05de567c2cb5be3a93616c27dab497d5578796309399746897ec4fb691cd8d56

@@ -1,0 +1,15 @@
+Running ExUnit with seed: 146491, max_cases: 32
+Including tags: [:live_provider]
+
+
+
+  1) test live provider call round-trips through model boundary (Maiden.OrderRuntime.LiveProviderTest)
+     test/order_live_provider_test.exs:37
+     ORDER_LIVE_PROVIDER is required for live provider E2E
+     stacktrace:
+       test/order_live_provider_test.exs:16: Maiden.OrderRuntime.LiveProviderTest.__ex_unit_setup_0/1
+       test/order_live_provider_test.exs:1: Maiden.OrderRuntime.LiveProviderTest.__ex_unit__/2
+
+
+Finished in 0.1 seconds (0.00s async, 0.1s sync)
+1 test, 1 failure

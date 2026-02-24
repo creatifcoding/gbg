@@ -1,0 +1,7 @@
+Compiling 16 files (.ex)
+Generated maiden_sensor_asset_runtime app
+Running ExUnit with seed: 723082, max_cases: 32
+
+.........
+Finished in 0.06 seconds (0.06s async, 0.00s sync)
+9 tests, 0 failures

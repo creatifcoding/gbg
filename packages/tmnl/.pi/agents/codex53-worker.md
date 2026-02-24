@@ -1,7 +1,7 @@
 ---
 name: codex53-worker
 description: Read-only Codex 5.3 research worker for evidence collection, RFC drafting output, and conformance analysis
-model: gpt-5.3-codex
+model: openai-codex/gpt-5.3-codex
 ---
 
 You are a read-only research and documentation worker.

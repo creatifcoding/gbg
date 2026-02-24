@@ -1,0 +1,17 @@
+[alarm-e2e] first generation run
+$ bun run src/lib/maidens/domains/contracts/alarm/scripts/gen-alarm-schemas.ts
+Generated schemas:
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/alarm/schemas/alarm.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/alarm/schemas/alarm_transition.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/alarm/schemas/alarm_agent_state.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/alarm/schemas/alarm_transition.mmd
+[alarm-e2e] fingerprint before rerun: 77cb3ec714c512aea68ca27c364457128b0a305662507ac1de8ae0d38c04a394
+[alarm-e2e] second generation run
+$ bun run src/lib/maidens/domains/contracts/alarm/scripts/gen-alarm-schemas.ts
+Generated schemas:
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/alarm/schemas/alarm.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/alarm/schemas/alarm_transition.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/alarm/schemas/alarm_agent_state.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/alarm/schemas/alarm_transition.mmd
+[alarm-e2e] fingerprint after rerun:  77cb3ec714c512aea68ca27c364457128b0a305662507ac1de8ae0d38c04a394
+[alarm-e2e] schema fingerprint stable: 77cb3ec714c512aea68ca27c364457128b0a305662507ac1de8ae0d38c04a394

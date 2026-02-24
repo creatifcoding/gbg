@@ -1,0 +1,8 @@
+# Build artifacts
+/target/
+
+# JetStream data (docker volume mount)
+/data/
+
+# Node modules (for provisioning scripts)
+node_modules/

@@ -1,0 +1,303 @@
+==> uniq
+Compiling 4 files (.ex)
+Generated uniq app
+==> crontab
+Compiling 7 files (.ex)
+    warning: Application.get_env/3 is discouraged in the module body, use Application.compile_env/3 instead
+    │
+ 21 │     @max_runs Application.get_env(:crontab, :max_runs, 10_000)
+    │                           ~
+    │
+    └─ lib/crontab/scheduler.ex:21:27: Crontab.Scheduler (module)
+
+Generated crontab app
+==> match_spec
+Compiling 8 files (.ex)
+     warning: variable "what" is unused (if the variable is not meant to be used, prefix it with an underscore)
+     │
+ 182 │   def parse_structured({:@, _, what} = ast, state) do
+     │                                ~~~~
+     │
+     └─ lib/match_spec/fun2ms/head.ex:182:32: MatchSpec.Fun2ms.Head.parse_structured/2
+
+Generated match_spec app
+==> deep_merge
+Compiling 2 files (.ex)
+Generated deep_merge app
+==> maiden_line_runtime
+===> Analyzing applications...
+===> Compiling poolboy
+==> decimal
+Compiling 4 files (.ex)
+Generated decimal app
+==> combine
+Compiling 6 files (.ex)
+Generated combine app
+==> ex_json_schema
+Compiling 40 files (.ex)
+Generated ex_json_schema app
+==> mime
+Compiling 1 file (.ex)
+Generated mime app
+==> nimble_options
+Compiling 3 files (.ex)
+Generated nimble_options app
+==> libgraph
+Compiling 15 files (.ex)
+Generated libgraph app
+==> maiden_line_runtime
+===> Analyzing applications...
+===> Compiling unicode_util_compat
+===> Analyzing applications...
+===> Compiling idna
+===> Analyzing applications...
+===> Compiling telemetry
+==> telemetry_metrics
+Compiling 7 files (.ex)
+Generated telemetry_metrics app
+==> zoi
+Compiling 77 files (.ex)
+Generated zoi app
+==> ok
+Compiling 3 files (.ex)
+Generated ok app
+==> jason
+Compiling 10 files (.ex)
+Generated jason app
+==> expo
+Compiling 2 files (.erl)
+Compiling 22 files (.ex)
+Generated expo app
+==> phoenix_pubsub
+Compiling 12 files (.ex)
+Generated phoenix_pubsub app
+==> plug_crypto
+Compiling 5 files (.ex)
+Generated plug_crypto app
+==> hpax
+Compiling 4 files (.ex)
+Generated hpax app
+==> mint
+Compiling 1 file (.erl)
+Compiling 20 files (.ex)
+Generated mint app
+==> maiden_line_runtime
+===> Analyzing applications...
+===> Compiling mimerl
+===> Analyzing applications...
+===> Compiling luerl
+==> gettext
+Compiling 18 files (.ex)
+Generated gettext app
+==> maiden_line_runtime
+===> Analyzing applications...
+===> Compiling fuse
+==> ssl_verify_fun
+Compiling 7 files (.erl)
+Generated ssl_verify_fun app
+==> json_ptr
+Compiling 1 file (.ex)
+Generated json_ptr app
+==> splode
+Compiling 5 files (.ex)
+Generated splode app
+==> maiden_line_runtime
+===> Analyzing applications...
+===> Compiling certifi
+==> lua
+Compiling 7 files (.ex)
+Generated lua app
+==> plug
+Compiling 1 file (.erl)
+Compiling 42 files (.ex)
+Generated plug app
+==> msgpax
+Compiling 9 files (.ex)
+Generated msgpax app
+==> tz
+Compiling 16 files (.ex)
+Generated tz app
+==> maiden_line_runtime
+===> Analyzing applications...
+===> Compiling parse_trans
+==> abacus
+Compiling 3 files (.erl)
+Compiling 5 files (.ex)
+    warning: Abacus.parse/1 is undefined or private
+    │
+ 36 │       Abacus.parse(without_parantheses),
+    │              ~
+    │
+    └─ lib/format.ex:36:14: Abacus.Format.format/1
+    └─ lib/format.ex:37:14: Abacus.Format.format/1
+    └─ lib/format.ex:38:14: Abacus.Format.format/1
+    └─ lib/format.ex:39:14: Abacus.Format.format/1
+    └─ lib/format.ex:64:14: Abacus.Format.format/1
+    └─ lib/format.ex:65:14: Abacus.Format.format/1
+    └─ lib/format.ex:81:14: Abacus.Format.format/1
+    └─ lib/format.ex:82:14: Abacus.Format.format/1
+    └─ lib/format.ex:100:28: Abacus.Format.format/1
+
+Generated abacus app
+==> nimble_pool
+Compiling 2 files (.ex)
+Generated nimble_pool app
+==> finch
+Compiling 14 files (.ex)
+Generated finch app
+==> req
+Compiling 19 files (.ex)
+Generated req app
+==> exonerate
+Compiling 77 files (.ex)
+     warning: function iterator_clause/4 is unused
+     │
+ 213 │   defp iterator_clause(resource, pointer, opts, needs_combining_seen) do
+     │        ~
+     │
+     └─ lib/exonerate/type/array.ex:213:8: Exonerate.Type.Array (module)
+
+     warning: this clause in cond will always match:
+
+         {_, spec} = List.keyfind(types, filter, 0)
+
+     since it has type:
+
+         dynamic({term(), term()})
+
+     where "filter" was given the type:
+
+         # type: dynamic()
+         # from: lib/exonerate/filter/format.ex:284:22
+         filter
+
+     where "spec" was given the type:
+
+         # type: dynamic()
+         # from: lib/exonerate/filter/format.ex:301:19
+         {_, spec} = List.keyfind(types, filter, 0)
+
+     where "types" was given the type:
+
+         # type: dynamic()
+         # from: lib/exonerate/filter/format.ex:288:13
+         types =
+           List.wrap(
+             case is_list(opts) do
+               false -> nil
+               true -> opts[:types]
+             end
+           )
+
+     typing violation found at:
+     │
+ 301 │         {_, spec} = List.keyfind(types, filter, 0) ->
+     │                                                    ~
+     │
+     └─ lib/exonerate/filter/format.ex:301:52: Exonerate.Filter.Format.build_default/4
+
+     warning: this clause in cond will always match:
+
+         {_, spec} = List.keyfind(pointers, uri, 0)
+
+     since it has type:
+
+         dynamic({term(), term()})
+
+     where "pointers" was given the type:
+
+         # type: dynamic()
+         # from: lib/exonerate/filter/format.ex:289:16
+         pointers =
+           List.wrap(
+             case is_list(opts) do
+               false -> nil
+               true -> opts[:at]
+             end
+           )
+
+     where "spec" was given the type:
+
+         # type: dynamic()
+         # from: lib/exonerate/filter/format.ex:304:19
+         {_, spec} = List.keyfind(pointers, uri, 0)
+
+     where "uri" was given the type:
+
+         # type: dynamic()
+         # from: lib/exonerate/filter/format.ex:291:11
+         uri =
+           Exonerate.Tools.if(
+             String.Chars.to_string(JsonPtr.to_uri(pointer)),
+             String.starts_with?(resource, "exonerate://"),
+             fn capture -> String.replace_leading(capture, resource, "") end
+           )
+
+     typing violation found at:
+     │
+ 304 │         {_, spec} = List.keyfind(pointers, uri, 0) ->
+     │                                                    ~
+     │
+     └─ lib/exonerate/filter/format.ex:304:52: Exonerate.Filter.Format.build_default/4
+
+     warning: nil.select/2 is undefined (module nil is not available or is yet to be defined)
+     │
+ 103 │       mode.select(context, parameters)
+     │            ~
+     │
+     └─ lib/exonerate/type/array/iterator.ex:103:12: Exonerate.Type.Array.Iterator.select/2
+
+     warning: YamlElixir.read_from_string!/1 is undefined (module YamlElixir is not available or is yet to be defined). Make sure the module name is correct and has been specified in full (or that an alias has been defined)
+     │
+ 273 │         YamlElixir.read_from_string!(string)
+     │                    ~
+     │
+     └─ lib/exonerate/tools.ex:273:20: Exonerate.Tools.decode!/2
+
+Generated exonerate app
+==> weather
+Compiling 20 files (.ex)
+Generated weather app
+==> maiden_line_runtime
+===> Analyzing applications...
+===> Compiling metrics
+===> Analyzing applications...
+===> Compiling hackney
+==> tzdata
+Compiling 17 files (.ex)
+Generated tzdata app
+==> timex
+Compiling 62 files (.ex)
+Compiling lib/l10n/gettext.ex (it's taking more than 10s)
+Generated timex app
+==> sched_ex
+Compiling 6 files (.ex)
+Generated sched_ex app
+==> private
+Compiling 1 file (.ex)
+Generated private app
+==> memento
+Compiling 13 files (.ex)
+Generated memento app
+==> jido_signal
+Compiling 65 files (.ex)
+
+23:35:43.049 [debug] Extension registry not started, queued registration of Elixir.Jido.Signal.Ext.Trace
+
+23:35:43.073 [debug] Extension registry not started, queued registration of Elixir.Jido.Signal.Ext.Dispatch
+Generated jido_signal app
+==> httpoison
+Compiling 3 files (.ex)
+Generated httpoison app
+==> tentacat
+Compiling 62 files (.ex)
+Generated tentacat app
+==> jido_action
+Compiling 43 files (.ex)
+Generated jido_action app
+==> jido
+Compiling 102 files (.ex)
+Generated jido app
+==> maiden_line_runtime
+Generated maiden_line_runtime app
+** (Mix) Cannot run tests because test helper file "test/test_helper.exs" does not exist

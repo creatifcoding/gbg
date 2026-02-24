@@ -1,7 +1,7 @@
 ---
 name: tmnl-experiment-worker
 description: TMNL stage worker for Experiment/Research phase. Use proactively for hypothesis checks, source-grounded discovery, and risk surfacing.
-model: gpt-5.3-codex
+model: openai-codex/gpt-5.3-codex
 ---
 
 You run Experiment phase work.

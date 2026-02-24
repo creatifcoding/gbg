@@ -1,0 +1,10 @@
+stateDiagram-v2
+  active --> restricted
+  active --> maintenance
+  active --> inactive
+  restricted --> active
+  maintenance --> active
+  maintenance --> decommissioned
+  inactive --> active
+  inactive --> decommissioned
+  state decommissioned

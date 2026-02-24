@@ -1,0 +1,60 @@
+## This file is a PO Template file.
+##
+## `msgid`s here are often extracted from source code.
+## Add new translations manually only if they're dynamic
+## translations that can't be statically extracted.
+##
+## Run `mix gettext.extract` to bring this file up to
+## date. Leave `msgstr`s empty as changing them here as no
+## effect: edit them in PO (`.po`) files instead.
+msgid ""
+msgstr ""
+"Language: INSERT LANGUAGE HERE\n"
+
+#: lib/l10n/translator.ex:303
+msgid "April"
+msgstr ""
+
+#: lib/l10n/translator.ex:307
+msgid "August"
+msgstr ""
+
+#: lib/l10n/translator.ex:311
+msgid "December"
+msgstr ""
+
+#: lib/l10n/translator.ex:301
+msgid "February"
+msgstr ""
+
+#: lib/l10n/translator.ex:300
+msgid "January"
+msgstr ""
+
+#: lib/l10n/translator.ex:306
+msgid "July"
+msgstr ""
+
+#: lib/l10n/translator.ex:305
+msgid "June"
+msgstr ""
+
+#: lib/l10n/translator.ex:302
+msgid "March"
+msgstr ""
+
+#: lib/l10n/translator.ex:304
+msgid "May"
+msgstr ""
+
+#: lib/l10n/translator.ex:310
+msgid "November"
+msgstr ""
+
+#: lib/l10n/translator.ex:309
+msgid "October"
+msgstr ""
+
+#: lib/l10n/translator.ex:308
+msgid "September"
+msgstr ""

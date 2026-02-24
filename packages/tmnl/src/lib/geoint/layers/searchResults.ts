@@ -48,10 +48,10 @@ const SOURCE_COLORS: Record<IntelSource, [number, number, number, number]> = {
   osm: [64, 156, 255, 200],       // Blue
   opensky: [255, 200, 64, 200],   // Yellow/Gold
   feature: [168, 85, 247, 200],   // Purple
-  adsb_lol: [255, 140, 64, 200],  // Orange
+  'adsb-lol': [255, 140, 64, 200],  // Orange
   planet: [64, 224, 208, 200],    // Teal/Cyan
   sentinel: [0, 191, 255, 200],   // Deep Sky Blue (Copernicus theme)
-  weather: [255, 165, 0, 200],    // Orange (weather theme)
+  openmeteo: [255, 165, 0, 200],  // Orange (weather theme)
   custom: [156, 163, 175, 200],   // Gray
 }
 

@@ -157,7 +157,7 @@ const generateMockResults = (count: number, rangeMs: number): SearchResultItem[]
       results.push(
         SearchResultWeather.make({
           id: SearchResultId.make(`weather-${i}`),
-          source: 'weather',
+          source: 'openmeteo',
           score: 0.9,
           retrievedAt: timestamp,
           position: [

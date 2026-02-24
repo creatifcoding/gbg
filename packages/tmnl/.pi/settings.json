@@ -1,3 +1,5 @@
 {
-  "prompts": ["../.claude/commands"]
+  "prompts": ["../.claude/commands"],
+  "defaultProvider": "openai-codex",
+  "defaultModel": "openai-codex/gpt-5.3-codex"
 }

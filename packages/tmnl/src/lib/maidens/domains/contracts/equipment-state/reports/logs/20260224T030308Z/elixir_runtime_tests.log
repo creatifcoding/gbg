@@ -1,0 +1,372 @@
+==> uniq
+Compiling 4 files (.ex)
+Generated uniq app
+==> crontab
+Compiling 7 files (.ex)
+    warning: Application.get_env/3 is discouraged in the module body, use Application.compile_env/3 instead
+    │
+ 21 │     @max_runs Application.get_env(:crontab, :max_runs, 10_000)
+    │                           ~
+    │
+    └─ lib/crontab/scheduler.ex:21:27: Crontab.Scheduler (module)
+
+Generated crontab app
+==> match_spec
+Compiling 8 files (.ex)
+     warning: variable "what" is unused (if the variable is not meant to be used, prefix it with an underscore)
+     │
+ 182 │   def parse_structured({:@, _, what} = ast, state) do
+     │                                ~~~~
+     │
+     └─ lib/match_spec/fun2ms/head.ex:182:32: MatchSpec.Fun2ms.Head.parse_structured/2
+
+Generated match_spec app
+==> deep_merge
+Compiling 2 files (.ex)
+Generated deep_merge app
+==> maiden_equipment_state_runtime
+===> Analyzing applications...
+===> Compiling poolboy
+==> decimal
+Compiling 4 files (.ex)
+Generated decimal app
+==> combine
+Compiling 6 files (.ex)
+Generated combine app
+==> ex_json_schema
+Compiling 40 files (.ex)
+Generated ex_json_schema app
+==> mime
+Compiling 1 file (.ex)
+Generated mime app
+==> nimble_options
+Compiling 3 files (.ex)
+Generated nimble_options app
+==> libgraph
+Compiling 15 files (.ex)
+Generated libgraph app
+==> maiden_equipment_state_runtime
+===> Analyzing applications...
+===> Compiling unicode_util_compat
+===> Analyzing applications...
+===> Compiling idna
+===> Analyzing applications...
+===> Compiling telemetry
+==> telemetry_metrics
+Compiling 7 files (.ex)
+Generated telemetry_metrics app
+==> zoi
+Compiling 77 files (.ex)
+Generated zoi app
+==> ok
+Compiling 3 files (.ex)
+Generated ok app
+==> jason
+Compiling 10 files (.ex)
+Generated jason app
+==> expo
+Compiling 2 files (.erl)
+Compiling 22 files (.ex)
+Generated expo app
+==> phoenix_pubsub
+Compiling 12 files (.ex)
+Generated phoenix_pubsub app
+==> plug_crypto
+Compiling 5 files (.ex)
+Generated plug_crypto app
+==> hpax
+Compiling 4 files (.ex)
+Generated hpax app
+==> mint
+Compiling 1 file (.erl)
+Compiling 20 files (.ex)
+Generated mint app
+==> maiden_equipment_state_runtime
+===> Analyzing applications...
+===> Compiling mimerl
+===> Analyzing applications...
+===> Compiling luerl
+==> gettext
+Compiling 18 files (.ex)
+Generated gettext app
+==> maiden_equipment_state_runtime
+===> Analyzing applications...
+===> Compiling fuse
+==> ssl_verify_fun
+Compiling 7 files (.erl)
+Generated ssl_verify_fun app
+==> json_ptr
+Compiling 1 file (.ex)
+Generated json_ptr app
+==> splode
+Compiling 5 files (.ex)
+Generated splode app
+==> maiden_equipment_state_runtime
+===> Analyzing applications...
+===> Compiling certifi
+==> lua
+Compiling 7 files (.ex)
+Generated lua app
+==> plug
+Compiling 1 file (.erl)
+Compiling 42 files (.ex)
+Generated plug app
+==> msgpax
+Compiling 9 files (.ex)
+Generated msgpax app
+==> tz
+Compiling 16 files (.ex)
+Generated tz app
+==> maiden_equipment_state_runtime
+===> Analyzing applications...
+===> Compiling parse_trans
+==> abacus
+Compiling 3 files (.erl)
+Compiling 5 files (.ex)
+    warning: Abacus.parse/1 is undefined or private
+    │
+ 36 │       Abacus.parse(without_parantheses),
+    │              ~
+    │
+    └─ lib/format.ex:36:14: Abacus.Format.format/1
+    └─ lib/format.ex:37:14: Abacus.Format.format/1
+    └─ lib/format.ex:38:14: Abacus.Format.format/1
+    └─ lib/format.ex:39:14: Abacus.Format.format/1
+    └─ lib/format.ex:64:14: Abacus.Format.format/1
+    └─ lib/format.ex:65:14: Abacus.Format.format/1
+    └─ lib/format.ex:81:14: Abacus.Format.format/1
+    └─ lib/format.ex:82:14: Abacus.Format.format/1
+    └─ lib/format.ex:100:28: Abacus.Format.format/1
+
+Generated abacus app
+==> nimble_pool
+Compiling 2 files (.ex)
+Generated nimble_pool app
+==> finch
+Compiling 14 files (.ex)
+Generated finch app
+==> req
+Compiling 19 files (.ex)
+Generated req app
+==> exonerate
+Compiling 77 files (.ex)
+     warning: function iterator_clause/4 is unused
+     │
+ 213 │   defp iterator_clause(resource, pointer, opts, needs_combining_seen) do
+     │        ~
+     │
+     └─ lib/exonerate/type/array.ex:213:8: Exonerate.Type.Array (module)
+
+     warning: this clause in cond will always match:
+
+         {_, spec} = List.keyfind(types, filter, 0)
+
+     since it has type:
+
+         dynamic({term(), term()})
+
+     where "filter" was given the type:
+
+         # type: dynamic()
+         # from: lib/exonerate/filter/format.ex:284:22
+         filter
+
+     where "spec" was given the type:
+
+         # type: dynamic()
+         # from: lib/exonerate/filter/format.ex:301:19
+         {_, spec} = List.keyfind(types, filter, 0)
+
+     where "types" was given the type:
+
+         # type: dynamic()
+         # from: lib/exonerate/filter/format.ex:288:13
+         types =
+           List.wrap(
+             case is_list(opts) do
+               false -> nil
+               true -> opts[:types]
+             end
+           )
+
+     typing violation found at:
+     │
+ 301 │         {_, spec} = List.keyfind(types, filter, 0) ->
+     │                                                    ~
+     │
+     └─ lib/exonerate/filter/format.ex:301:52: Exonerate.Filter.Format.build_default/4
+
+     warning: this clause in cond will always match:
+
+         {_, spec} = List.keyfind(pointers, uri, 0)
+
+     since it has type:
+
+         dynamic({term(), term()})
+
+     where "pointers" was given the type:
+
+         # type: dynamic()
+         # from: lib/exonerate/filter/format.ex:289:16
+         pointers =
+           List.wrap(
+             case is_list(opts) do
+               false -> nil
+               true -> opts[:at]
+             end
+           )
+
+     where "spec" was given the type:
+
+         # type: dynamic()
+         # from: lib/exonerate/filter/format.ex:304:19
+         {_, spec} = List.keyfind(pointers, uri, 0)
+
+     where "uri" was given the type:
+
+         # type: dynamic()
+         # from: lib/exonerate/filter/format.ex:291:11
+         uri =
+           Exonerate.Tools.if(
+             String.Chars.to_string(JsonPtr.to_uri(pointer)),
+             String.starts_with?(resource, "exonerate://"),
+             fn capture -> String.replace_leading(capture, resource, "") end
+           )
+
+     typing violation found at:
+     │
+ 304 │         {_, spec} = List.keyfind(pointers, uri, 0) ->
+     │                                                    ~
+     │
+     └─ lib/exonerate/filter/format.ex:304:52: Exonerate.Filter.Format.build_default/4
+
+     warning: nil.select/2 is undefined (module nil is not available or is yet to be defined)
+     │
+ 103 │       mode.select(context, parameters)
+     │            ~
+     │
+     └─ lib/exonerate/type/array/iterator.ex:103:12: Exonerate.Type.Array.Iterator.select/2
+
+     warning: YamlElixir.read_from_string!/1 is undefined (module YamlElixir is not available or is yet to be defined). Make sure the module name is correct and has been specified in full (or that an alias has been defined)
+     │
+ 273 │         YamlElixir.read_from_string!(string)
+     │                    ~
+     │
+     └─ lib/exonerate/tools.ex:273:20: Exonerate.Tools.decode!/2
+
+Generated exonerate app
+==> weather
+Compiling 20 files (.ex)
+Generated weather app
+==> maiden_equipment_state_runtime
+===> Analyzing applications...
+===> Compiling metrics
+===> Analyzing applications...
+===> Compiling hackney
+==> tzdata
+Compiling 17 files (.ex)
+Generated tzdata app
+==> timex
+Compiling 62 files (.ex)
+Compiling lib/l10n/gettext.ex (it's taking more than 10s)
+Generated timex app
+==> sched_ex
+Compiling 6 files (.ex)
+Generated sched_ex app
+==> private
+Compiling 1 file (.ex)
+Generated private app
+==> memento
+Compiling 13 files (.ex)
+Generated memento app
+==> jido_signal
+Compiling 65 files (.ex)
+
+22:04:26.748 [debug] Extension registry not started, queued registration of Elixir.Jido.Signal.Ext.Trace
+
+22:04:26.772 [debug] Extension registry not started, queued registration of Elixir.Jido.Signal.Ext.Dispatch
+Generated jido_signal app
+==> httpoison
+Compiling 3 files (.ex)
+Generated httpoison app
+==> tentacat
+Compiling 62 files (.ex)
+Generated tentacat app
+==> jido_action
+Compiling 43 files (.ex)
+Generated jido_action app
+==> jido
+Compiling 102 files (.ex)
+Generated jido app
+==> maiden_equipment_state_runtime
+Compiling 24 files (.ex)
+Generated maiden_equipment_state_runtime app
+Running ExUnit with seed: 833983, max_cases: 32
+
+
+22:04:37.349 [notice] Executing Maiden.EquipmentStateRuntime.Actions.SetRunningState with params: %{reason: "production", at: "2026-02-24T01:20:00Z", to: "running", from: "blocked", equipment_state_id: "EST-RUN-001-04959c66-eeab-400f-85a9-6162df337b12", machine_id: "MCH-RUN-001", operator_id: "operator-4"} and context: %{state: %{reason: "blocked_downstream", state: "blocked", metadata: %{}, started_at: "2026-02-24T01:05:00Z", __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, pending_instructions: [], current_instruction: %Jido.Instruction{id: "019c8d9b-16c6-7008-89f1-cfaa5ed78887", action: Maiden.EquipmentStateRuntime.Actions.SetRunningState, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 7, type: :map, __truncated_depth__: 4}}, deferred_directives: []}, equipment_state_id: "EST-RUN-001-04959c66-eeab-400f-85a9-6162df337b12", machine_id: "MCH-RUN-001", operator_id: "operator-4", notes: nil, ended_at: nil}, action_metadata: %{name: "set_running_state", description: "Set equipment state to running", vsn: nil, category: nil, schema: [equipment_state_id: %{size: 2, type: :list, __truncated_depth__: 4}, machine_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, reason: %{size: 1, type: :list, __truncated_depth__: 4}, operator_id: %{size: 1, type: :list, __truncated_depth__: 4}, notes: %{size: 1, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+....
+22:04:37.366 [notice] Executing Maiden.EquipmentStateRuntime.Actions.SetIdleState with params: %{reason: "no_order", at: "2026-02-24T01:10:00Z", to: "idle", from: "running", equipment_state_id: "EST-IDLE-001-e3aaf199-e6b6-4b6e-88bf-7e52a8f4c46b", machine_id: "MCH-IDLE-001", operator_id: "operator-2"} and context: %{state: %{reason: "production", state: "running", metadata: %{}, started_at: "2026-02-24T01:00:00Z", __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, pending_instructions: [], current_instruction: %Jido.Instruction{id: "019c8d9b-16f4-7943-96fd-2efece6b50fa", action: Maiden.EquipmentStateRuntime.Actions.SetIdleState, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 7, type: :map, __truncated_depth__: 4}}, deferred_directives: []}, equipment_state_id: "EST-IDLE-001-e3aaf199-e6b6-4b6e-88bf-7e52a8f4c46b", machine_id: "MCH-IDLE-001", operator_id: "operator-2", notes: nil, ended_at: nil}, action_metadata: %{name: "set_idle_state", description: "Set equipment state to idle", vsn: nil, category: nil, schema: [equipment_state_id: %{size: 2, type: :list, __truncated_depth__: 4}, machine_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, reason: %{size: 1, type: :list, __truncated_depth__: 4}, operator_id: %{size: 1, type: :list, __truncated_depth__: 4}, notes: %{size: 1, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+...
+22:04:37.385 [debug] [signal] type=equipment_state.transition.setup directives=1 duration=112μs
+
+22:04:37.397 [notice] Executing Maiden.EquipmentStateRuntime.Actions.SetSetupState with params: %{reason: "changeover", at: "2026-02-24T01:30:00Z", to: "setup", from: "idle", equipment_state_id: "EST-SENSOR-001-acb06490-f39a-4151-8a81-c61a9ae197a8", machine_id: "MCH-SENSOR-001"} and context: %{state: %{reason: "no_order", state: "idle", metadata: %{}, started_at: "2026-02-24T01:00:00Z", __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, pending_instructions: [], current_instruction: %Jido.Instruction{id: "019c8d9b-16fe-7118-b0d1-bdeefa5253f4", action: Maiden.EquipmentStateRuntime.Actions.SetSetupState, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 6, type: :map, __truncated_depth__: 4}}, deferred_directives: []}, equipment_state_id: "EST-SENSOR-001-acb06490-f39a-4151-8a81-c61a9ae197a8", machine_id: "MCH-SENSOR-001", operator_id: "operator-3", notes: nil, ended_at: nil}, action_metadata: %{name: "set_setup_state", description: "Set equipment state to setup", vsn: nil, category: nil, schema: [equipment_state_id: %{size: 2, type: :list, __truncated_depth__: 4}, machine_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, reason: %{size: 1, type: :list, __truncated_depth__: 4}, operator_id: %{size: 1, type: :list, __truncated_depth__: 4}, notes: %{size: 1, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+22:04:37.405 [debug] [directive] type=RunInstruction result=ok duration=15.12ms
+
+22:04:37.428 [debug] [signal] type=equipment_state.transition.running directives=1 duration=246μs
+
+22:04:37.430 [notice] Executing Maiden.EquipmentStateRuntime.Actions.SetRunningState with params: %{reason: "production", at: "2026-02-24T01:40:00Z", to: "running", from: "setup", equipment_state_id: "EST-SENSOR-001-acb06490-f39a-4151-8a81-c61a9ae197a8", machine_id: "MCH-SENSOR-001"} and context: %{state: %{reason: "changeover", state: "setup", metadata: %{}, started_at: "2026-02-24T01:30:00Z", __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: %{size: 6, type: :map, __truncated_depth__: 4}, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 1}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, pending_instructions: [], current_instruction: %Jido.Instruction{id: "019c8d9b-1733-7ddb-a2af-bec8b68b0bf2", action: Maiden.EquipmentStateRuntime.Actions.SetRunningState, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 6, type: :map, __truncated_depth__: 4}}, deferred_directives: []}, equipment_state_id: "EST-SENSOR-001-acb06490-f39a-4151-8a81-c61a9ae197a8", machine_id: "MCH-SENSOR-001", operator_id: nil, notes: nil, ended_at: nil}, action_metadata: %{name: "set_running_state", description: "Set equipment state to running", vsn: nil, category: nil, schema: [equipment_state_id: %{size: 2, type: :list, __truncated_depth__: 4}, machine_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, reason: %{size: 1, type: :list, __truncated_depth__: 4}, operator_id: %{size: 1, type: :list, __truncated_depth__: 4}, notes: %{size: 1, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+..
+22:04:37.483 [notice] Executing Maiden.EquipmentStateRuntime.Actions.SetIdleState with params: %{reason: "no_order", at: "2026-02-24T03:05:00Z", to: "idle", from: "running", equipment_state_id: "EST-BOUNDARY-001-386dc5d7-85c9-436f-8b90-fe19d0dde14e", machine_id: "MCH-B-001", operator_id: "operator-b"} and context: %{state: %{reason: "production", state: "running", metadata: %{}, started_at: "2026-02-24T03:00:00Z", __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, pending_instructions: [], current_instruction: %Jido.Instruction{id: "019c8d9b-176a-7e32-93f5-0f8658e160d9", action: Maiden.EquipmentStateRuntime.Actions.SetIdleState, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 7, type: :map, __truncated_depth__: 4}}, deferred_directives: []}, equipment_state_id: "EST-BOUNDARY-001-386dc5d7-85c9-436f-8b90-fe19d0dde14e", machine_id: "MCH-B-001", operator_id: "operator-b", notes: nil, ended_at: nil}, action_metadata: %{name: "set_idle_state", description: "Set equipment state to idle", vsn: nil, category: nil, schema: [equipment_state_id: %{size: 2, type: :list, __truncated_depth__: 4}, machine_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, reason: %{size: 1, type: :list, __truncated_depth__: 4}, operator_id: %{size: 1, type: :list, __truncated_depth__: 4}, notes: %{size: 1, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+.
+22:04:37.489 [debug] [signal] type=equipment_state.transition.planned_downtime directives=1 duration=138μs
+
+22:04:37.490 [notice] Executing Maiden.EquipmentStateRuntime.Actions.SetPlannedDowntimeState with params: %{reason: "scheduled_maintenance", at: "2026-02-24T03:10:00Z", to: "planned_downtime", from: "idle", equipment_state_id: "EST-BOUNDARY-002-a47d6c82-5af3-4c22-8726-cf481e0f4f75", machine_id: "MCH-B-002"} and context: %{state: %{reason: "no_operator", state: "idle", metadata: %{}, started_at: "2026-02-24T03:00:00Z", __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, pending_instructions: [], current_instruction: %Jido.Instruction{id: "019c8d9b-1771-7a29-ae80-2281d3b3515e", action: Maiden.EquipmentStateRuntime.Actions.SetPlannedDowntimeState, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 6, type: :map, __truncated_depth__: 4}}, deferred_directives: []}, equipment_state_id: "EST-BOUNDARY-002-a47d6c82-5af3-4c22-8726-cf481e0f4f75", machine_id: "MCH-B-002", operator_id: "operator-c", notes: nil, ended_at: nil}, action_metadata: %{name: "set_planned_downtime_state", description: "Set equipment state to planned_downtime", vsn: nil, category: nil, schema: [equipment_state_id: %{size: 2, type: :list, __truncated_depth__: 4}, machine_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, reason: %{size: 1, type: :list, __truncated_depth__: 4}, operator_id: %{size: 1, type: :list, __truncated_depth__: 4}, notes: %{size: 1, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+..
+22:04:37.963 [debug] Persist.hibernate starting for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-delete"
+
+22:04:37.963 [debug] Persist.hibernate completed for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-delete"
+
+22:04:37.963 [debug] Persist.thaw starting for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-delete"
+
+22:04:37.971 [debug] Persist.thaw: checkpoint not found for {Maiden.EquipmentStateRuntime.Agent, "equipment-state-persist-delete"}
+.
+22:04:37.973 [notice] Executing Maiden.EquipmentStateRuntime.Actions.SetIdleState with params: %{reason: "no_order", at: "2026-02-24T02:05:00Z", to: "idle", from: "running", equipment_state_id: "EST-PERSIST-001-e6e2975e-6f69-478d-8571-a1c76240ba15", machine_id: "MCH-PERSIST-001", operator_id: "operator-persist"} and context: %{state: %{reason: "production", state: "running", metadata: %{}, started_at: "2026-02-24T02:00:00Z", __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, pending_instructions: [], current_instruction: %Jido.Instruction{id: "019c8d9b-1954-7377-8f4a-6bdf6a4448a8", action: Maiden.EquipmentStateRuntime.Actions.SetIdleState, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 7, type: :map, __truncated_depth__: 4}}, deferred_directives: []}, equipment_state_id: "EST-PERSIST-001-e6e2975e-6f69-478d-8571-a1c76240ba15", machine_id: "MCH-PERSIST-001", operator_id: "operator-persist", notes: nil, ended_at: nil}, action_metadata: %{name: "set_idle_state", description: "Set equipment state to idle", vsn: nil, category: nil, schema: [equipment_state_id: %{size: 2, type: :list, __truncated_depth__: 4}, machine_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, reason: %{size: 1, type: :list, __truncated_depth__: 4}, operator_id: %{size: 1, type: :list, __truncated_depth__: 4}, notes: %{size: 1, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+22:04:37.974 [debug] Persist.hibernate starting for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-001"
+
+22:04:37.974 [debug] Persist.hibernate completed for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-001"
+
+22:04:37.974 [debug] Persist.thaw starting for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-001"
+
+22:04:37.974 [debug] Persist.thaw completed for Maiden.EquipmentStateRuntime.Agent id=equipment-state-persist-001
+.
+22:04:37.975 [debug] Persist.hibernate starting for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-thread-001"
+
+22:04:37.975 [debug] Persist: flushing 3 new entries for thread equipment-state-thread-94668 from rev=0
+
+22:04:37.975 [debug] Persist.hibernate completed for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-thread-001"
+.
+22:04:37.975 [debug] Persist.thaw starting for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-thread-001"
+
+22:04:37.975 [debug] Persist: rehydrating thread equipment-state-thread-94668 with expected rev=3
+
+22:04:37.975 [debug] Persist.thaw completed for Maiden.EquipmentStateRuntime.Agent id=equipment-state-persist-thread-001
+
+22:04:37.976 [debug] Persist.hibernate starting for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-restart-94796"
+
+22:04:37.976 [debug] Persist.hibernate completed for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-restart-94796"
+
+22:04:37.976 [debug] Persist.thaw starting for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-restart-94796"
+
+22:04:37.976 [debug] Persist.thaw completed for Maiden.EquipmentStateRuntime.Agent id=equipment-state-persist-restart-94796
+
+22:04:37.977 [debug] [signal] type=equipment_state.transition.running directives=1 duration=127μs
+
+22:04:37.978 [notice] Executing Maiden.EquipmentStateRuntime.Actions.SetRunningState with params: %{reason: "production", at: "2026-02-24T02:20:00Z", to: "running", from: "blocked", equipment_state_id: "EST-PERSIST-RESTART-001-963f0c98-c008-47d6-81eb-cc97ce05c0ea", machine_id: "MCH-RESTART"} and context: %{state: %{reason: "blocked_downstream", state: "blocked", metadata: %{}, started_at: "2026-02-24T02:00:00Z", __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, pending_instructions: [], current_instruction: %Jido.Instruction{id: "019c8d9b-1959-7cfb-a8f0-6510ab9b256f", action: Maiden.EquipmentStateRuntime.Actions.SetRunningState, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 6, type: :map, __truncated_depth__: 4}}, deferred_directives: []}, equipment_state_id: "EST-PERSIST-RESTART-001-963f0c98-c008-47d6-81eb-cc97ce05c0ea", machine_id: "MCH-RESTART", operator_id: "operator-r", notes: nil, ended_at: nil}, action_metadata: %{name: "set_running_state", description: "Set equipment state to running", vsn: nil, category: nil, schema: [equipment_state_id: %{size: 2, type: :list, __truncated_depth__: 4}, machine_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, reason: %{size: 1, type: :list, __truncated_depth__: 4}, operator_id: %{size: 1, type: :list, __truncated_depth__: 4}, notes: %{size: 1, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+.
+22:04:38.031 [debug] Persist.thaw starting for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-invalid"
+.
+Finished in 1.1 seconds (0.00s async, 1.1s sync)
+17 tests, 0 failures

@@ -1,7 +1,7 @@
 ---
 name: codex53-conformance-auditor
 description: Read-only Codex 5.3 conformance auditor for checklist-based RFC/spec validation
-model: gpt-5.3-codex
+model: openai-codex/gpt-5.3-codex
 ---
 
 You are a read-only conformance auditor.

@@ -113,7 +113,7 @@ describe('GetSourceHealth Handler', () => {
       // Check planet, sentinel, weather are marked unavailable
       const planetStatus = healthStatuses.find((s: any) => s.source === 'planet')
       const sentinelStatus = healthStatuses.find((s: any) => s.source === 'sentinel')
-      const weatherStatus = healthStatuses.find((s: any) => s.source === 'weather')
+      const weatherStatus = healthStatuses.find((s: any) => s.source === 'openmeteo')
 
       if (planetStatus) expect((planetStatus as any).available).toBe(false)
       if (sentinelStatus) expect((sentinelStatus as any).available).toBe(false)

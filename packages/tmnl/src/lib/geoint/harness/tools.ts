@@ -192,3 +192,71 @@ export function createGeointSummaryTool(bridge: {
     },
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// geoint_plan
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const GeointPlanParams = Type.Object({
+  queryId: Type.Optional(Type.String({ description: 'Caller-supplied query identifier' })),
+  text: Type.Optional(Type.String()),
+  bbox: Type.Optional(Type.Array(Type.Number(), { minItems: 4, maxItems: 4 })),
+  requestedSources: Type.Optional(Type.Array(Type.String())),
+  strategy: Type.Optional(Type.Union([
+    Type.Literal('latency-first'),
+    Type.Literal('coverage-first'),
+    Type.Literal('trust-first'),
+  ])),
+  constraints: Type.Optional(Type.Object({
+    filterLanguage: Type.Optional(Type.Union([
+      Type.Literal('none'),
+      Type.Literal('cql2-text'),
+      Type.Literal('cql2-json'),
+    ])),
+    requiresStreaming: Type.Optional(Type.Boolean()),
+    requiresTemporalOrdering: Type.Optional(Type.Boolean()),
+    maxSources: Type.Optional(Type.Number({ minimum: 1, maximum: 16 })),
+  })),
+})
+export type GeointPlanParams = Static<typeof GeointPlanParams>
+
+export interface GeointPlanDetails {
+  readonly planId: string
+  readonly strategy: 'latency-first' | 'coverage-first' | 'trust-first'
+  readonly selectedCount: number
+  readonly rejectedCount: number
+  readonly selected: Array<{
+    sourceId: string
+    canonicalSource: string
+    role: string
+    provider: string
+    rank: number
+    rationale: string
+    fallbackOf?: string
+  }>
+  readonly rejected: Array<{
+    sourceId: string
+    canonicalSource: string
+    reason: string
+  }>
+  readonly plan: unknown
+}
+
+export function createGeointPlanTool(bridge: {
+  execute: (
+    callId: string,
+    params: GeointPlanParams,
+    signal: AbortSignal | undefined,
+    onUpdate: ((partial: { content: Array<{ type: string; text: string }>; details?: GeointPlanDetails }) => void) | undefined,
+  ) => Promise<{ content: Array<{ type: string; text: string }>; details?: GeointPlanDetails }>
+}): ToolDefinition<typeof GeointPlanParams, GeointPlanDetails> {
+  return {
+    name: 'geoint_plan',
+    label: 'GEOINT Plan',
+    description: 'Build a source-aware query plan with ranked attempts, fallbacks, and explicit rejections.',
+    parameters: GeointPlanParams,
+    async execute(toolCallId, params, signal, onUpdate, _ctx) {
+      return bridge.execute(toolCallId, params, signal, onUpdate)
+    },
+  }
+}

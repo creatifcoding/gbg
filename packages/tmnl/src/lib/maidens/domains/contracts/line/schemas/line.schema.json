@@ -1,0 +1,460 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Line": {
+      "type": "object",
+      "required": [
+        "line_id",
+        "name",
+        "status",
+        "description",
+        "location",
+        "metadata",
+        "hierarchy_path",
+        "enterprise_id",
+        "site_id",
+        "area_id",
+        "plant_id",
+        "capacity",
+        "line_type",
+        "operating_hours_per_day",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "line_id": {
+          "$ref": "#/definitions/LineId"
+        },
+        "name": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "status": {
+          "$ref": "#/definitions/LineStatus"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/LineLocation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "metadata": {
+          "$ref": "#/definitions/LineMetadata"
+        },
+        "hierarchy_path": {
+          "type": "string"
+        },
+        "enterprise_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "site_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "area_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "plant_id": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PlantId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "capacity": {
+          "anyOf": [
+            {
+              "type": "number",
+              "description": "a positive number",
+              "title": "positive",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "line_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operating_hours_per_day": {
+          "anyOf": [
+            {
+              "type": "number",
+              "description": "a number between 0 and 24",
+              "title": "between(0, 24)",
+              "minimum": 0,
+              "maximum": 24
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "description": "ISO8601 UTC or offset timestamp string.",
+              "title": "ISO8601 Timestamp",
+              "format": "date-time"
+            }
+          ],
+          "description": "Timestamp value or null.",
+          "title": "Nullable Timestamp"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Canonical line payload generated from Effect Schema and consumed by Elixir runtime validators.",
+      "title": "Line"
+    },
+    "LineId": {
+      "type": "string",
+      "description": "Line identifier in LIN-{slug} format.",
+      "title": "Line ID",
+      "pattern": "^LIN-[a-zA-Z0-9-]+$"
+    },
+    "NonEmptyString": {
+      "type": "string",
+      "description": "a non empty string",
+      "title": "nonEmptyString",
+      "minLength": 1
+    },
+    "LineStatus": {
+      "type": "string",
+      "enum": [
+        "idle",
+        "running",
+        "changeover",
+        "starved",
+        "blocked",
+        "maintenance",
+        "decommissioned"
+      ],
+      "description": "ISA-95 line operational status.",
+      "title": "Line Status"
+    },
+    "LineLocation": {
+      "type": "object",
+      "required": [
+        "latitude",
+        "longitude",
+        "building",
+        "floor",
+        "zone",
+        "address",
+        "timezone"
+      ],
+      "properties": {
+        "latitude": {
+          "anyOf": [
+            {
+              "type": "number",
+              "description": "a number between -90 and 90",
+              "title": "between(-90, 90)",
+              "minimum": -90,
+              "maximum": 90
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "longitude": {
+          "anyOf": [
+            {
+              "type": "number",
+              "description": "a number between -180 and 180",
+              "title": "between(-180, 180)",
+              "minimum": -180,
+              "maximum": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "building": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "floor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "zone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Physical location details for a production line.",
+      "title": "Line Location"
+    },
+    "LineMetadata": {
+      "type": "object",
+      "required": [],
+      "properties": {},
+      "additionalProperties": {
+        "$id": "/schemas/unknown",
+        "title": "unknown"
+      },
+      "description": "Extensible metadata map for line payloads.",
+      "title": "Line Metadata"
+    },
+    "PlantId": {
+      "type": "string",
+      "description": "Plant identifier in PLT-{slug} format.",
+      "title": "Plant ID",
+      "pattern": "^PLT-[a-zA-Z0-9-]+$"
+    }
+  },
+  "type": "object",
+  "required": [
+    "line_id",
+    "name",
+    "status",
+    "description",
+    "location",
+    "metadata",
+    "hierarchy_path",
+    "enterprise_id",
+    "site_id",
+    "area_id",
+    "plant_id",
+    "capacity",
+    "line_type",
+    "operating_hours_per_day",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "line_id": {
+      "$ref": "#/definitions/LineId"
+    },
+    "name": {
+      "$ref": "#/definitions/NonEmptyString"
+    },
+    "status": {
+      "$ref": "#/definitions/LineStatus"
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "location": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/LineLocation"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "metadata": {
+      "$ref": "#/definitions/LineMetadata"
+    },
+    "hierarchy_path": {
+      "type": "string"
+    },
+    "enterprise_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "site_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "area_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "plant_id": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/PlantId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "capacity": {
+      "anyOf": [
+        {
+          "type": "number",
+          "description": "a positive number",
+          "title": "positive",
+          "exclusiveMinimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "line_type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "operating_hours_per_day": {
+      "anyOf": [
+        {
+          "type": "number",
+          "description": "a number between 0 and 24",
+          "title": "between(0, 24)",
+          "minimum": 0,
+          "maximum": 24
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        }
+      ],
+      "description": "Timestamp value or null.",
+      "title": "Nullable Timestamp"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/line/ts/line.contract.ts). Canonical line payload contract for TypeScript and Elixir.",
+  "title": "Line",
+  "$id": "/contracts/line/line.schema.json"
+}

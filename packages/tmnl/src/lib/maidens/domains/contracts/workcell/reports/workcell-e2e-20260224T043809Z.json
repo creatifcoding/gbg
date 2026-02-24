@@ -1,0 +1,64 @@
+{
+  "runId": "20260224T043809Z",
+  "status": "passed",
+  "startAt": "2026-02-24T04:38:09Z",
+  "endAt": "2026-02-24T04:38:14Z",
+  "durationMs": 5028,
+  "projectRoot": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+  "summary": {
+    "gatesTotal": 3,
+    "gatesPassed": 3,
+    "gatesFailed": 0,
+    "gatesSkipped": 0
+  },
+  "steps": [
+    {
+      "id": "ts_contract_tests",
+      "name": "TypeScript contract tests",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 2351,
+      "command": "bunx vitest run src/lib/maidens/domains/contracts/workcell/ts/workcell.contract.test.ts",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/workcell/reports/logs/20260224T043809Z/ts_contract_tests.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "schema_generation_determinism",
+      "name": "JSON Schema generation + determinism",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 634,
+      "command": "bun run src/lib/maidens/domains/contracts/workcell/scripts/gen-workcell-schemas.ts",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/workcell/reports/logs/20260224T043809Z/schema_generation_determinism.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": "87d2fb209ed124365ee47ed2ea846af6d99a006a052f37916a94374d812cbbe9",
+        "fingerprintAfter": "87d2fb209ed124365ee47ed2ea846af6d99a006a052f37916a94374d812cbbe9",
+        "fingerprintStable": true
+      }
+    },
+    {
+      "id": "elixir_runtime_compile",
+      "name": "Elixir runtime compile",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 1753,
+      "command": "mix deps.get >/dev/null && mix compile",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/workcell/elixir",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/workcell/reports/logs/20260224T043809Z/elixir_runtime_compile.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    }
+  ]
+}

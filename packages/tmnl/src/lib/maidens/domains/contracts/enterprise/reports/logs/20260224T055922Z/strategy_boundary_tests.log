@@ -1,0 +1,12 @@
+    warning: Maiden.EnterpriseRuntime.Agent.preflight_transition/1 is undefined (module Maiden.EnterpriseRuntime.Agent is not available or is yet to be defined)
+    │
+ 34 │     case Agent.preflight_transition(normalized) do
+    │                ~
+    │
+    └─ lib/maiden/enterprise_runtime/sensors/transition_sensor.ex:34:16: Maiden.EnterpriseRuntime.Sensors.TransitionSensor.handle_event/2
+
+Running ExUnit with seed: 515807, max_cases: 32
+
+..
+Finished in 0.1 seconds (0.1s async, 0.00s sync)
+2 tests, 0 failures

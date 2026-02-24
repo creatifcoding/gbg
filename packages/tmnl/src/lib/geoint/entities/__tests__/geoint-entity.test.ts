@@ -78,7 +78,7 @@ describe('GeointEntity.fromSearchResult', () => {
 
     const weather = GeointEntity.fromSearchResult(new SearchResultWeather({
       id: 'sr-weather-1' as any,
-      source: 'weather',
+      source: 'openmeteo',
       score: 0.66,
       retrievedAt: new Date('2026-01-01T10:00:00Z'),
       locationName: 'Boston',

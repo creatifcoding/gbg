@@ -1,0 +1,5 @@
+{"log":
+ [{"message":
+   ".> LEAN_PATH=././.lake/build/lib LD_LIBRARY_PATH=/nix/store/9hc9pmnav373z97qsq7rlqplpha8j0kx-pipewire-1.4.9-jack/lib /home/getbygenius/.elan/toolchains/leanprover--lean4---v4.16.0/bin/lean -DautoImplicit=false ././././AvaWeb/Router/Trie.lean -R ./././. -o ././.lake/build/lib/AvaWeb/Router/Trie.olean -i ././.lake/build/lib/AvaWeb/Router/Trie.ilean -c ././.lake/build/ir/AvaWeb/Router/Trie.c --json",
+   "level": "trace"}],
+ "depHash": "15636903230506793399"}

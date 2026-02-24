@@ -1,0 +1,25 @@
+Running ExUnit with seed: 702715, max_cases: 32
+
+
+01:49:32.150 [notice] Executing Maiden.AssetRuntime.Actions.SetAssetStatus with params: %{reason: "scheduled_overhaul", at: "2026-02-24T02:05:00Z", kind: "machine", action: "StartMaintenance", to: "maintenance", from: "active", asset_id: "MCH-persist-001", initiated_by: "maint-persist"} and context: %{state: %{name: "Persist Machine", status: "active", description: nil, location: nil, metadata: %{}, kind: "machine", created_at: "2026-02-24T02:00:00Z", asset_id: "MCH-persist-001", updated_at: nil, properties: %{}, parent_id: "WCL-demo", hierarchy_path: "/ENT-demo/SIT-demo/ARA-demo/PLT-demo/LIN-demo/WCL-demo/MCH-persist-001", enterprise_id: "ENT-demo", site_id: "SIT-demo", area_id: "ARA-demo", plant_id: "PLT-demo", line_id: "LIN-demo", work_cell_id: "WCL-demo", machine_id: "MCH-persist-001", __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c8e69-0046-7154-ba9e-ab5bf07e9a4f", action: Maiden.AssetRuntime.Actions.SetAssetStatus, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 8, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}}, action_metadata: %{name: "set_asset_status", description: "Set asset status for a validated transition", vsn: nil, category: nil, schema: [asset_id: %{size: 2, type: :list, __truncated_depth__: 4}, kind: %{size: 1, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, action: %{size: 1, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, reason: %{size: 1, type: :list, __truncated_depth__: 4}, initiated_by: %{size: 1, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+01:49:32.188 [debug] Persist.hibernate starting for Maiden.AssetRuntime.Agent key="asset-persist-001"
+
+01:49:32.191 [debug] Persist.hibernate completed for Maiden.AssetRuntime.Agent key="asset-persist-001"
+
+01:49:32.191 [debug] Persist.thaw starting for Maiden.AssetRuntime.Agent key="asset-persist-001"
+
+01:49:32.198 [debug] Persist.thaw completed for Maiden.AssetRuntime.Agent id=asset-persist-001
+.
+01:49:32.198 [debug] Persist.hibernate starting for Maiden.AssetRuntime.Agent key="asset-persist-delete"
+
+01:49:32.198 [debug] Persist.hibernate completed for Maiden.AssetRuntime.Agent key="asset-persist-delete"
+
+01:49:32.198 [debug] Persist.thaw starting for Maiden.AssetRuntime.Agent key="asset-persist-delete"
+
+01:49:32.202 [debug] Persist.thaw: checkpoint not found for {Maiden.AssetRuntime.Agent, "asset-persist-delete"}
+.
+01:49:32.202 [debug] Persist.thaw starting for Maiden.AssetRuntime.Agent key="asset-persist-invalid"
+.
+Finished in 0.4 seconds (0.00s async, 0.4s sync)
+3 tests, 0 failures

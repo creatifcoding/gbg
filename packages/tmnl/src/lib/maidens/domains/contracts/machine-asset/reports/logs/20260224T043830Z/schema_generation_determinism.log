@@ -1,0 +1,15 @@
+[machine-asset-e2e] first generation run
+Generated schemas:
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/machine-asset/schemas/machine_asset.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/machine-asset/schemas/machine_asset_transition.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/machine-asset/schemas/machine_asset_agent_state.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/machine-asset/schemas/machine_asset_transition.mmd
+[machine-asset-e2e] fingerprint before rerun: 0dd0756685f77848940768bef7bc8f6c5a057b54efdc4862371e5b8205aeb7c2
+[machine-asset-e2e] second generation run
+Generated schemas:
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/machine-asset/schemas/machine_asset.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/machine-asset/schemas/machine_asset_transition.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/machine-asset/schemas/machine_asset_agent_state.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/machine-asset/schemas/machine_asset_transition.mmd
+[machine-asset-e2e] fingerprint after rerun:  0dd0756685f77848940768bef7bc8f6c5a057b54efdc4862371e5b8205aeb7c2
+[machine-asset-e2e] schema fingerprint stable: 0dd0756685f77848940768bef7bc8f6c5a057b54efdc4862371e5b8205aeb7c2

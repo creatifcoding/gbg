@@ -68,10 +68,10 @@ const SOURCE_ICONS: Record<IntelSource, typeof MapPin> = {
   osm: Building,
   opensky: Plane,
   feature: Layers,
-  weather: Cloud,
+  openmeteo: Cloud,
   planet: Satellite,
   sentinel: Satellite,
-  adsb_lol: Plane,
+  'adsb-lol': Plane,
   custom: Layers,
 }
 

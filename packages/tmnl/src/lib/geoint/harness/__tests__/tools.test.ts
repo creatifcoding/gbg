@@ -158,4 +158,29 @@ describe('GEOINT harness tools', () => {
     expect((focus.details as any).selectedEntityId).toBe('flight:f0f0f0')
     expect((focus.details as any).viewport.zoom).toBe(11)
   })
+
+  it('geoint_plan returns ranked source attempts and rejections', async () => {
+    const service = await getService()
+    const tools = createGeointTools(service)
+
+    const planTool = getTool(tools, 'geoint_plan')
+
+    const plan = await planTool.execute(
+      'tc-7',
+      {
+        queryId: 'q-tools-plan-1',
+        requestedSources: ['opensky', 'copernicus-stac'],
+        strategy: 'coverage-first',
+        constraints: { filterLanguage: 'cql2-json', maxSources: 2 },
+      } as any,
+      undefined,
+      undefined,
+      undefined as any,
+    )
+
+    expect((plan.details as any).planId).toContain('q-tools-plan-1')
+    expect((plan.details as any).selectedCount).toBeGreaterThanOrEqual(1)
+    expect(Array.isArray((plan.details as any).selected)).toBe(true)
+    expect(Array.isArray((plan.details as any).rejected)).toBe(true)
+  })
 })

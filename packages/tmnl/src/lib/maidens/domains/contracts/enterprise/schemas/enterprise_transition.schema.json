@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "EnterpriseTransitionEvent": {
+      "type": "object",
+      "required": [
+        "enterprise_id",
+        "from",
+        "to",
+        "at"
+      ],
+      "properties": {
+        "enterprise_id": {
+          "$ref": "#/definitions/EnterpriseId"
+        },
+        "from": {
+          "$ref": "#/definitions/EnterpriseStatus"
+        },
+        "to": {
+          "$ref": "#/definitions/EnterpriseStatus"
+        },
+        "at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Transition payload contract for enterprise lifecycle events.",
+      "title": "Enterprise Transition Event"
+    },
+    "EnterpriseId": {
+      "type": "string",
+      "description": "Enterprise identifier with ENT- prefix and slug.",
+      "title": "Enterprise ID",
+      "pattern": "^ENT-[a-zA-Z0-9-]+$"
+    },
+    "EnterpriseStatus": {
+      "type": "string",
+      "enum": [
+        "active",
+        "restructuring",
+        "merged",
+        "dissolved"
+      ],
+      "description": "Enterprise lifecycle status per ISA-95 enterprise graph (active ↔ restructuring, active→merged, active|restructuring→dissolved).",
+      "title": "Enterprise Status"
+    }
+  },
+  "type": "object",
+  "required": [
+    "enterprise_id",
+    "from",
+    "to",
+    "at"
+  ],
+  "properties": {
+    "enterprise_id": {
+      "$ref": "#/definitions/EnterpriseId"
+    },
+    "from": {
+      "$ref": "#/definitions/EnterpriseStatus"
+    },
+    "to": {
+      "$ref": "#/definitions/EnterpriseStatus"
+    },
+    "at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/enterprise/ts/enterprise.contract.ts). Canonical transition event contract for TypeScript and Elixir.",
+  "title": "EnterpriseTransitionEvent",
+  "$id": "/contracts/enterprise/enterprise_transition.schema.json"
+}

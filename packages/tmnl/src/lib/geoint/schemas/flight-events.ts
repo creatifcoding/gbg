@@ -16,7 +16,7 @@ import { Schema } from 'effect'
 /**
  * Flight data source discriminator.
  */
-export const FlightSource = Schema.Literal('opensky', 'adsb_lol').pipe(
+export const FlightSource = Schema.Literal('opensky', 'adsb-lol').pipe(
   Schema.annotations({
     identifier: 'FlightSource',
     title: 'Flight Source',

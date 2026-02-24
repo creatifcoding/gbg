@@ -1,0 +1,417 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Site": {
+      "type": "object",
+      "required": [
+        "site_id",
+        "name",
+        "status",
+        "timezone",
+        "address",
+        "city",
+        "state",
+        "country",
+        "postal_code",
+        "description",
+        "location",
+        "metadata",
+        "hierarchy_path",
+        "enterprise_id",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "site_id": {
+          "$ref": "#/definitions/SiteId"
+        },
+        "name": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "status": {
+          "$ref": "#/definitions/SiteStatus"
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "city": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "country": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "postal_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SiteLocation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "metadata": {
+          "$ref": "#/definitions/SiteMetadata"
+        },
+        "hierarchy_path": {
+          "type": "string"
+        },
+        "enterprise_id": {
+          "$ref": "#/definitions/EnterpriseId"
+        },
+        "created_at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "description": "ISO8601 UTC or offset timestamp string.",
+              "title": "ISO8601 Timestamp",
+              "format": "date-time"
+            }
+          ],
+          "description": "Timestamp value or null.",
+          "title": "Nullable Timestamp"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Canonical site payload generated from Effect Schema and consumed by Elixir runtime validators.",
+      "title": "Site"
+    },
+    "SiteId": {
+      "type": "string",
+      "description": "Site identifier in SIT-{slug} format.",
+      "title": "Site ID",
+      "pattern": "^SIT-[a-zA-Z0-9-]+$"
+    },
+    "NonEmptyString": {
+      "type": "string",
+      "description": "a non empty string",
+      "title": "nonEmptyString",
+      "minLength": 1
+    },
+    "SiteStatus": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "under_construction",
+        "operational",
+        "seasonal_shutdown",
+        "closed",
+        "decommissioned"
+      ],
+      "description": "ISA-95 site lifecycle status from canonical Site schema.",
+      "title": "Site Status"
+    },
+    "SiteLocation": {
+      "type": "object",
+      "required": [
+        "latitude",
+        "longitude",
+        "building",
+        "floor",
+        "zone",
+        "address",
+        "timezone"
+      ],
+      "properties": {
+        "latitude": {
+          "anyOf": [
+            {
+              "type": "number",
+              "description": "a number between -90 and 90",
+              "title": "between(-90, 90)",
+              "minimum": -90,
+              "maximum": 90
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "longitude": {
+          "anyOf": [
+            {
+              "type": "number",
+              "description": "a number between -180 and 180",
+              "title": "between(-180, 180)",
+              "minimum": -180,
+              "maximum": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "building": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "floor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "zone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Physical location payload mirrored from canonical AssetLocation structure.",
+      "title": "Site Location"
+    },
+    "SiteMetadata": {
+      "type": "object",
+      "required": [],
+      "properties": {},
+      "additionalProperties": {
+        "$id": "/schemas/unknown",
+        "title": "unknown"
+      },
+      "description": "Extensible metadata map.",
+      "title": "Site Metadata"
+    },
+    "EnterpriseId": {
+      "type": "string",
+      "description": "Enterprise identifier in ENT-{slug} format.",
+      "title": "Enterprise ID",
+      "pattern": "^ENT-[a-zA-Z0-9-]+$"
+    }
+  },
+  "type": "object",
+  "required": [
+    "site_id",
+    "name",
+    "status",
+    "timezone",
+    "address",
+    "city",
+    "state",
+    "country",
+    "postal_code",
+    "description",
+    "location",
+    "metadata",
+    "hierarchy_path",
+    "enterprise_id",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "site_id": {
+      "$ref": "#/definitions/SiteId"
+    },
+    "name": {
+      "$ref": "#/definitions/NonEmptyString"
+    },
+    "status": {
+      "$ref": "#/definitions/SiteStatus"
+    },
+    "timezone": {
+      "type": "string"
+    },
+    "address": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "city": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "state": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "country": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "postal_code": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "location": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/SiteLocation"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "metadata": {
+      "$ref": "#/definitions/SiteMetadata"
+    },
+    "hierarchy_path": {
+      "type": "string"
+    },
+    "enterprise_id": {
+      "$ref": "#/definitions/EnterpriseId"
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        }
+      ],
+      "description": "Timestamp value or null.",
+      "title": "Nullable Timestamp"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/site/ts/site.contract.ts). Canonical site payload contract for TypeScript and Elixir.",
+  "title": "Site",
+  "$id": "/contracts/site/site.schema.json"
+}

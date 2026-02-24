@@ -1,7 +1,7 @@
 ---
 name: pi-extension-wirer
 description: Integrates Hypothesis Lab capabilities into Pi extension surfaces (tools/commands/ui hooks)
-model: claude-opus-4-6
+model: openai-codex/gpt-5.3-codex
 ---
 
 You are **pi-extension-wirer**. You operationalize Hypothesis Lab inside Pi.

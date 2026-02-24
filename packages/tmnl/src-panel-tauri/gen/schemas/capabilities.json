@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"TMNL Panel capabilities","local":true,"windows":["panel"],"permissions":["core:default","core:window:default","core:window:allow-close","core:window:allow-hide","core:window:allow-show","core:window:allow-set-focus","core:event:default","core:event:allow-emit","core:event:allow-listen"]}}

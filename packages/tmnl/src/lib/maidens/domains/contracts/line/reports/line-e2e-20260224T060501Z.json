@@ -1,0 +1,112 @@
+{
+  "runId": "20260224T060501Z",
+  "status": "failed",
+  "startAt": "2026-02-24T06:05:01Z",
+  "endAt": "2026-02-24T06:05:09Z",
+  "durationMs": 8261,
+  "projectRoot": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+  "summary": {
+    "gatesTotal": 6,
+    "gatesPassed": 2,
+    "gatesFailed": 1,
+    "gatesSkipped": 3
+  },
+  "steps": [
+    {
+      "id": "ts_contract_tests",
+      "name": "TypeScript contract tests",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 2412,
+      "command": "bunx vitest run src/lib/maidens/domains/contracts/line/ts/line.contract.test.ts",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/line/reports/logs/20260224T060501Z/ts_contract_tests.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "schema_generation_determinism",
+      "name": "JSON Schema generation + determinism",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 689,
+      "command": "bun run src/lib/maidens/domains/contracts/line/scripts/gen-line-schemas.ts",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/line/reports/logs/20260224T060501Z/schema_generation_determinism.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": "655c89c1c946081c9f34872bf80510b3e97ddbcdf76332b7f64b536645ad96e2",
+        "fingerprintAfter": "655c89c1c946081c9f34872bf80510b3e97ddbcdf76332b7f64b536645ad96e2",
+        "fingerprintStable": true
+      }
+    },
+    {
+      "id": "elixir_runtime_tests",
+      "name": "Elixir runtime tests (validator + signal/sensor + persistence)",
+      "status": "failed",
+      "exitCode": 2,
+      "durationMs": 4682,
+      "command": "mix deps.get >/dev/null && mix test",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/line/elixir",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/line/reports/logs/20260224T060501Z/elixir_runtime_tests.log",
+      "errorSignature": "Error opening ETS file /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/.nix-hex/cache.ets: :badfile",
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "strategy_boundary_tests",
+      "name": "strategy boundary tests (SignalFsm + boundary directives)",
+      "status": "skipped",
+      "exitCode": null,
+      "durationMs": 0,
+      "command": "mix test test/line_strategy_boundary_test.exs",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/line/elixir",
+      "logPath": "",
+      "errorSignature": "skipped_due_to_previous_failure",
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "elixir_persistence_tests",
+      "name": "explicit persistence test file",
+      "status": "skipped",
+      "exitCode": null,
+      "durationMs": 0,
+      "command": "mix test test/line_persistence_test.exs",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/line/elixir",
+      "logPath": "",
+      "errorSignature": "skipped_due_to_previous_failure",
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "negative_gate_assertions",
+      "name": "negative-gate assertions (schema-valid/FSM-illegal rejection)",
+      "status": "skipped",
+      "exitCode": null,
+      "durationMs": 0,
+      "command": "mix test test/line_validator_test.exs --only negative_gate",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/line/elixir",
+      "logPath": "",
+      "errorSignature": "skipped_due_to_previous_failure",
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    }
+  ]
+}

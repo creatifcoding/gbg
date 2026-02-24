@@ -1,53 +1,80 @@
 /**
- * FloatingDragOverlay v2
+ * FloatingDragOverlay v3
  *
- * Minimal drag overlay for floating panels.
- * Panel itself stays visible with motion blur during drag.
- * This component just provides drop animation cleanup.
+ * Renders context-aware drag ghosts:
+ *   - Panel drags: no ghost (panel stays visible with motion blur)
+ *   - Tab drags: TabDragGhost with tear-off morph
+ *
+ * Reads active drag type from the DndContext via useDndContext.
  *
  * @pattern @dnd-kit DragOverlay + stx
  * @module
  */
 
-import { memo } from 'react'
-import { DragOverlay } from '@dnd-kit/core'
+import { memo, useState, useEffect } from 'react'
+import { DragOverlay, useDndContext } from '@dnd-kit/core'
+import { TabDragGhost } from './layout/TabDragGhost'
 
 // =============================================================================
 // Props
 // =============================================================================
 
 export interface FloatingDragOverlayProps {
-  /** Overlay style (legacy - not used, panel stays visible) */
+  /** Overlay style (legacy - not used) */
   style?: 'ghost' | 'outline'
   /** Custom className */
   className?: string
 }
 
 // =============================================================================
+// Tear-off threshold (px of vertical distance from tab bar)
+// =============================================================================
+
+const TEAR_OFF_THRESHOLD_Y = 40
+
+// =============================================================================
 // Component
 // =============================================================================
 
-/**
- * Minimal drag overlay - panel stays visible during drag.
- * Only provides drop animation cleanup to @dnd-kit.
- *
- * @example
- * ```tsx
- * <FloatingPanelProvider>
- *   <FloatingDragOverlay />
- *   {panels}
- * </FloatingPanelProvider>
- * ```
- */
 export const FloatingDragOverlay = memo(function FloatingDragOverlay({
   style: _style = 'ghost',
   className: _className = '',
 }: FloatingDragOverlayProps) {
-  // Panel is visible with motion blur during drag.
-  // No ghost/overlay needed - dropAnimation disabled to prevent interference.
+  const { active } = useDndContext()
+  const [isTearOff, setIsTearOff] = useState(false)
+
+  // Reset tear-off state when drag ends
+  useEffect(() => {
+    if (!active) {
+      setIsTearOff(false)
+    }
+  }, [active])
+
+  const activeData = active?.data?.current as
+    | { type: 'tab'; label: string; hostPanelId: string; tabId: string }
+    | undefined
+
+  const isTabDrag = activeData?.type === 'tab'
+
   return (
-    <DragOverlay dropAnimation={null} />
+    <DragOverlay dropAnimation={null}>
+      {isTabDrag && (
+        <TabDragGhost
+          label={activeData.label}
+          isTearOff={isTearOff}
+        />
+      )}
+    </DragOverlay>
   )
 })
 
+/**
+ * Hook for the provider to detect tear-off threshold during drag move.
+ * Call from onDragMove in FloatingPanelProvider.
+ */
+export function checkTabTearOff(deltaY: number): boolean {
+  return Math.abs(deltaY) > TEAR_OFF_THRESHOLD_Y
+}
+
+export { TEAR_OFF_THRESHOLD_Y }
 export default FloatingDragOverlay

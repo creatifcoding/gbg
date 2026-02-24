@@ -30,7 +30,7 @@ function asSearchResultId(id: string): typeof import('../../schemas').SearchResu
 }
 
 // Available sources for filter tests
-const AVAILABLE_SOURCES = ['track', 'feature', 'osm', 'opensky', 'adsb_lol', 'planet', 'sentinel', 'weather', 'custom'] as const
+const AVAILABLE_SOURCES = ['track', 'feature', 'osm', 'opensky', 'adsb-lol', 'planet', 'sentinel', 'openmeteo', 'custom'] as const
 
 describe('GEOINT Atom Families', () => {
   let registry: ReturnType<typeof Registry.make>
@@ -149,7 +149,7 @@ describe('GEOINT Atom Families', () => {
       const results2: SearchResultItem[] = [
         new SearchResultWeather({
           id: asSearchResultId('weather-1'),
-          source: 'weather',
+          source: 'openmeteo',
           score: 0.85,
           retrievedAt: new Date('2026-01-20T00:00:00Z'),
           locationName: 'London, UK',
@@ -169,7 +169,7 @@ describe('GEOINT Atom Families', () => {
       expect(retrieved1).toHaveLength(1)
       expect(retrieved2).toHaveLength(1)
       expect(retrieved1[0].source).toBe('planet')
-      expect(retrieved2[0].source).toBe('weather')
+      expect(retrieved2[0].source).toBe('openmeteo')
     })
 
     it('should maintain independent filters per panel', () => {
@@ -192,7 +192,7 @@ describe('GEOINT Atom Families', () => {
 
       // Panel 2: filter by multiple sources
       const filters2: ActiveFilters = {
-        sources: ['weather', 'osm'],
+        sources: ['openmeteo', 'osm'],
         textQuery: 'london',
         geoFilter: 'radius',
         radiusKm: 100,
@@ -206,7 +206,7 @@ describe('GEOINT Atom Families', () => {
       const retrieved2 = registry.get(atoms2.activeFiltersAtom)
 
       expect(retrieved1.sources).toEqual(['planet'])
-      expect(retrieved2.sources).toEqual(['weather', 'osm'])
+      expect(retrieved2.sources).toEqual(['openmeteo', 'osm'])
       expect(retrieved1.textQuery).toBe('')
       expect(retrieved2.textQuery).toBe('london')
     })
@@ -221,7 +221,7 @@ describe('GEOINT Atom Families', () => {
       // Create test results for selection
       const result1 = new SearchResultWeather({
         id: asSearchResultId('weather-1'),
-        source: 'weather',
+        source: 'openmeteo',
         score: 0.9,
         retrievedAt: new Date(),
         locationName: 'Location 1',
@@ -232,7 +232,7 @@ describe('GEOINT Atom Families', () => {
 
       const result2 = new SearchResultWeather({
         id: asSearchResultId('weather-2'),
-        source: 'weather',
+        source: 'openmeteo',
         score: 0.8,
         retrievedAt: new Date(),
         locationName: 'Location 2',

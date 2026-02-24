@@ -449,7 +449,7 @@ const SearchRpcHandlers = Effect.gen(function* () {
       Effect.gen(function* () {
         const startTime = Date.now()
         const bounds = getBoundsFromQuery(request)
-        const sources = request.sources.length > 0 ? request.sources : ['osm', 'opensky', 'track', 'feature', 'planet', 'sentinel', 'weather']
+        const sources = request.sources.length > 0 ? request.sources : ['osm', 'opensky', 'track', 'feature', 'planet', 'sentinel', 'openmeteo']
         const limit = request.limitPerSource ?? 100
 
         const allResults: SearchResultItem[] = []
@@ -505,11 +505,11 @@ const SearchRpcHandlers = Effect.gen(function* () {
         }
 
         // Query Open-Meteo if requested
-        if (sources.includes('weather')) {
+        if (sources.includes('openmeteo')) {
           const { results, error } = yield* searchWeather(bounds, limit)
           allResults.push(...results)
-          sourceCounts['weather'] = results.length
-          if (error) errors['weather'] = `${error._tag}: ${error.userMessage}`
+          sourceCounts['openmeteo'] = results.length
+          if (error) errors['openmeteo'] = `${error._tag}: ${error.userMessage}`
         }
 
         // Add to history
@@ -614,7 +614,7 @@ const SearchRpcHandlers = Effect.gen(function* () {
           (sources.includes('sentinel') || sources.length === 0)
             ? searchSentinelImagery(bounds, limit)
             : emptyResult<SearchResultImagery>(),
-          (sources.includes('weather') || sources.length === 0)
+          (sources.includes('openmeteo') || sources.length === 0)
             ? searchWeather(bounds, limit)
             : emptyResult<SearchResultWeather>(),
         ])
@@ -627,7 +627,7 @@ const SearchRpcHandlers = Effect.gen(function* () {
         sourceCounts['feature'] = features.results.length
         sourceCounts['planet'] = planetImgs.results.length
         sourceCounts['sentinel'] = sentinelImgs.results.length
-        sourceCounts['weather'] = weatherData.results.length
+        sourceCounts['openmeteo'] = weatherData.results.length
 
         // Track errors per source
         if (flights.error) errors['opensky'] = `${flights.error._tag}: ${flights.error.userMessage}`
@@ -636,7 +636,7 @@ const SearchRpcHandlers = Effect.gen(function* () {
         if (features.error) errors['feature'] = `${features.error._tag}: ${features.error.userMessage}`
         if (planetImgs.error) errors['planet'] = `${planetImgs.error._tag}: ${planetImgs.error.userMessage}`
         if (sentinelImgs.error) errors['sentinel'] = `${sentinelImgs.error._tag}: ${sentinelImgs.error.userMessage}`
-        if (weatherData.error) errors['weather'] = `${weatherData.error._tag}: ${weatherData.error.userMessage}`
+        if (weatherData.error) errors['openmeteo'] = `${weatherData.error._tag}: ${weatherData.error.userMessage}`
 
         return new SearchResponse({
           queryId: searchId,
@@ -653,7 +653,7 @@ const SearchRpcHandlers = Effect.gen(function* () {
       const bounds = getBoundsFromQuery(request)
       const sources: IntelSource[] = request.sources.length > 0
         ? [...request.sources]
-        : ['osm', 'opensky', 'track', 'feature', 'planet', 'sentinel', 'weather']
+        : ['osm', 'opensky', 'track', 'feature', 'planet', 'sentinel', 'openmeteo']
       const limit = request.limitPerSource ?? 100
 
       // Build search effect for a single source with error tracking
@@ -705,7 +705,7 @@ const SearchRpcHandlers = Effect.gen(function* () {
                 sourceError = r.error
               }
               break
-            case 'weather':
+            case 'openmeteo':
               if (bounds) {
                 const r = yield* searchWeather(bounds, limit)
                 results = r.results

@@ -95,10 +95,10 @@ const SOURCE_ICONS: Record<IntelSource, typeof MapPin> = {
   osm: Building,
   opensky: Plane,
   feature: Layers,
-  adsb_lol: Plane,
+  'adsb-lol': Plane,
   planet: Satellite,
   sentinel: Satellite,
-  weather: CloudSun,
+  openmeteo: CloudSun,
   custom: MapPin,
 }
 
@@ -107,10 +107,10 @@ const SOURCE_LABELS: Record<IntelSource, string> = {
   osm: 'POI',
   opensky: 'OpenSky',
   feature: 'Features',
-  adsb_lol: 'ADS-B',
+  'adsb-lol': 'ADS-B',
   planet: 'Planet',
   sentinel: 'Sentinel',
-  weather: 'Weather',
+  openmeteo: 'Weather',
   custom: 'Custom',
 }
 

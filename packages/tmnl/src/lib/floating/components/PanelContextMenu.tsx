@@ -97,6 +97,7 @@ export const PanelContextMenu = memo(function PanelContextMenu({
   return (
     <div
       ref={menuRef}
+      data-kb-modal
       style={{
         position: 'fixed',
         left: position.x,

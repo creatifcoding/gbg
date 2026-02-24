@@ -30,7 +30,7 @@
  * @module floating/overlay
  */
 
-import { memo, useCallback, useEffect, type ReactNode } from 'react'
+import { memo, useCallback, type ReactNode } from 'react'
 import { RegistryContext, useAtomValue } from '@effect-atom/atom-react'
 import { panelOverlayOpenAtom, panelOverlayRegistry } from './atom'
 import { PANEL } from '../tokens'
@@ -59,18 +59,12 @@ export function closePanelOverlay(): void {
 // Global hotkey: Alt+P
 // =============================================================================
 
+/**
+ * @deprecated Alt+P overlay toggle is now handled by centralized keyboard dispatch.
+ * This hook is kept as a no-op for backward compatibility.
+ */
 function useOverlayHotkey() {
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.altKey && (e.key === 'p' || e.key === 'P' || e.key === 'π')) {
-        e.preventDefault()
-        e.stopPropagation()
-        togglePanelOverlay()
-      }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [])
+  // No-op — migrated to useKeyboardDispatch
 }
 
 // =============================================================================
@@ -235,8 +229,9 @@ if (import.meta.env.DEV) {
       const s = getFloatingStx()
       if (!s) return null
 
-      // stx.snapshot() → data$.get() → fully resolved plain JS, zero proxies
-      const data = s.snapshot() as any
+      // stx.snapshot() → { data, machine, computed } — all three layers
+      const snap = s.snapshot() as any
+      const data = snap.data
       const panelsMap = data.panels as Map<string, any> | undefined
       const strip = data.strip as any
       const activeId = data.activePanel as string | null

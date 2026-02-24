@@ -1,0 +1,151 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "AlarmTransitionEvent": {
+      "type": "object",
+      "required": [
+        "alarm_id",
+        "from",
+        "to",
+        "at"
+      ],
+      "properties": {
+        "alarm_id": {
+          "$ref": "#/definitions/AlarmId"
+        },
+        "from": {
+          "$ref": "#/definitions/AlarmState"
+        },
+        "to": {
+          "$ref": "#/definitions/AlarmState"
+        },
+        "at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "shelved_until": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "description": "ISO8601 UTC or offset timestamp string.",
+              "title": "ISO8601 Timestamp",
+              "format": "date-time"
+            }
+          ],
+          "description": "Timestamp value or null.",
+          "title": "Nullable Timestamp"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Transition payload contract for alarm lifecycle events.",
+      "title": "Alarm Transition Event"
+    },
+    "AlarmId": {
+      "type": "string",
+      "description": "Slug-prefixed UUID (e.g. ALM-HIGH-TEMP-550e8400-e29b-41d4-a716-446655440000).",
+      "title": "Alarm ID",
+      "pattern": "^[A-Z][A-Z0-9_-]*-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "AlarmState": {
+      "type": "string",
+      "enum": [
+        "unacknowledged",
+        "acknowledged",
+        "shelved",
+        "suppressed",
+        "cleared",
+        "out_of_service"
+      ],
+      "description": "ISA-18.2 alarm lifecycle states.",
+      "title": "Alarm State"
+    }
+  },
+  "type": "object",
+  "required": [
+    "alarm_id",
+    "from",
+    "to",
+    "at"
+  ],
+  "properties": {
+    "alarm_id": {
+      "$ref": "#/definitions/AlarmId"
+    },
+    "from": {
+      "$ref": "#/definitions/AlarmState"
+    },
+    "to": {
+      "$ref": "#/definitions/AlarmState"
+    },
+    "at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "shelved_until": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        }
+      ],
+      "description": "Timestamp value or null.",
+      "title": "Nullable Timestamp"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/alarm/ts/alarm.contract.ts). Canonical transition event contract for TypeScript and Elixir.",
+  "title": "AlarmTransitionEvent",
+  "$id": "/contracts/alarm/alarm_transition.schema.json"
+}

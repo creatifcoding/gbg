@@ -1,0 +1,14 @@
+stateDiagram-v2
+  active --> calibrating
+  active --> needs_calibration
+  active --> faulted
+  active --> offline
+  calibrating --> active
+  calibrating --> faulted
+  needs_calibration --> calibrating
+  faulted --> active
+  faulted --> offline
+  faulted --> decommissioned
+  offline --> active
+  offline --> decommissioned
+  state decommissioned

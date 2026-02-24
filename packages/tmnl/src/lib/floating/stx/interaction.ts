@@ -157,3 +157,10 @@ export function setActiveTab(panelId: string, tabId: string): void {
 export function reorderTabs(panelId: string, tabIds: string[]): void {
   getFloatingStx().data.panels.get(panelId)?.tabs.set(tabIds)
 }
+
+/** Rename a panel (tab title) */
+export function renamePanel(panelId: string, newTitle: string): void {
+  const trimmed = newTitle.trim()
+  if (!trimmed) return
+  getFloatingStx().data.panels.get(panelId)?.title.set(trimmed)
+}

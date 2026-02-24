@@ -135,9 +135,9 @@ CREATE INDEX osm_elements_tags_idx
   USING GIN (tags jsonb_path_ops);
 
 -- Index for cache expiration cleanup
+-- NOTE: avoid volatile NOW() in index predicate (must be immutable)
 CREATE INDEX osm_elements_expires_idx
-  ON raw.osm_elements (expires_at)
-  WHERE expires_at < NOW() + INTERVAL '1 day';
+  ON raw.osm_elements (expires_at);
 
 -- Partial indexes for common amenity types
 CREATE INDEX osm_elements_amenity_restaurant_idx

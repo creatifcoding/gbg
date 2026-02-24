@@ -389,7 +389,7 @@ describe('adsbLolToSearchResult', () => {
 
     expect(result).not.toBeNull()
     expect(result!._tag).toBe('SearchResultFlight')
-    expect(result!.source).toBe('adsb_lol')
+    expect(result!.source).toBe('adsb-lol')
     expect(result!.id).toBe('adsb-abc123') // ID uses normalized lowercase icao24
     expect(result!.icao24).toBe('abc123') // lowercase
     expect(result!.callsign).toBe('UAL456') // trimmed
@@ -676,7 +676,7 @@ describe('weatherForecastToSearchResult', () => {
 
     expect(result).not.toBeNull()
     expect(result!._tag).toBe('SearchResultWeather')
-    expect(result!.source).toBe('weather')
+    expect(result!.source).toBe('openmeteo')
     expect(result!.locationName).toBe('San Francisco')
     expect(result!.position).toEqual([-122.4194, 37.7749])
     expect(result!.elevation).toBe(10)
@@ -792,7 +792,7 @@ describe('geocodingLocationToSearchResult', () => {
 
     expect(result).not.toBeNull()
     expect(result._tag).toBe('SearchResultWeather')
-    expect(result.source).toBe('weather')
+    expect(result.source).toBe('openmeteo')
     expect(result.locationName).toBe('San Francisco, United States')
     expect(result.position).toEqual([-122.4194, 37.7749])
     expect(result.elevation).toBe(16)

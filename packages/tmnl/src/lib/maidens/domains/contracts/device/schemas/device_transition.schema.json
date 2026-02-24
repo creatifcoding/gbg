@@ -1,0 +1,156 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "DeviceTransitionEvent": {
+      "type": "object",
+      "required": [
+        "device_id",
+        "from",
+        "to",
+        "at"
+      ],
+      "properties": {
+        "device_id": {
+          "$ref": "#/definitions/DeviceId"
+        },
+        "from": {
+          "$ref": "#/definitions/DeviceStatus"
+        },
+        "to": {
+          "$ref": "#/definitions/DeviceStatus"
+        },
+        "action": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DeviceTransitionAction"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "initiated_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Transition payload contract for device lifecycle events.",
+      "title": "Device Transition Event"
+    },
+    "DeviceId": {
+      "type": "string",
+      "description": "Device identifier in DEV-{slug} format.",
+      "title": "Device ID",
+      "pattern": "^DEV-[a-zA-Z0-9-]+$"
+    },
+    "DeviceStatus": {
+      "type": "string",
+      "enum": [
+        "provisioned",
+        "online",
+        "offline",
+        "faulted",
+        "firmware_update",
+        "decommissioned"
+      ],
+      "description": "ISA-95 control-module lifecycle status for device assets.",
+      "title": "Device Status"
+    },
+    "DeviceTransitionAction": {
+      "type": "string",
+      "enum": [
+        "GoOnline",
+        "GoOffline",
+        "MarkFaulted",
+        "ClearFault",
+        "StartFirmwareUpdate",
+        "CompleteFirmwareUpdate",
+        "FailFirmwareUpdate",
+        "Decommission"
+      ],
+      "description": "Named transition actions from the canonical device lifecycle graph.",
+      "title": "Device Transition Action"
+    }
+  },
+  "type": "object",
+  "required": [
+    "device_id",
+    "from",
+    "to",
+    "at"
+  ],
+  "properties": {
+    "device_id": {
+      "$ref": "#/definitions/DeviceId"
+    },
+    "from": {
+      "$ref": "#/definitions/DeviceStatus"
+    },
+    "to": {
+      "$ref": "#/definitions/DeviceStatus"
+    },
+    "action": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/DeviceTransitionAction"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "initiated_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/device/ts/device.contract.ts). Canonical transition event contract for TypeScript and Elixir.",
+  "title": "DeviceTransitionEvent",
+  "$id": "/contracts/device/device_transition.schema.json"
+}

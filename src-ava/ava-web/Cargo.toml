@@ -1,0 +1,69 @@
+[package]
+name = "ava-web"
+description = "GenServer-native HTTP framework on asupersync — stateful, supervised, zero-tokio"
+version.workspace = true
+edition = "2021"
+authors.workspace = true
+license.workspace = true
+
+[features]
+default = ["h2"]
+h2 = []
+h3 = []
+simd-json = ["dep:simd-json"]
+lab = []
+full = ["h2", "h3", "lab"]
+
+[dependencies]
+asupersync = { git = "https://github.com/Dicklesworthstone/asupersync", tag = "v0.2.5" }
+matchit = { workspace = true }
+bytes = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+parking_lot = { workspace = true }
+simd-json = { version = "0.14", optional = true }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
+criterion = { workspace = true }
+
+[[bench]]
+name = "router_bench"
+harness = false
+
+[[bench]]
+name = "handler_bench"
+harness = false
+
+[[bench]]
+name = "middleware_bench"
+harness = false
+
+[[bench]]
+name = "multipart_bench"
+harness = false
+
+[[bench]]
+name = "bridge_bench"
+harness = false
+
+[[bench]]
+name = "module_bench"
+harness = false
+
+[[bench]]
+name = "ws_bench"
+harness = false
+
+[[bench]]
+name = "actor_bench"
+harness = false
+
+[[bench]]
+name = "pipeline_bench"
+harness = false
+
+[[example]]
+name = "source_adapter_opensky"

@@ -396,7 +396,7 @@ export function SchemaTransformTestbed() {
       const now = new Date()
       const result = new SearchResultWeather({
         id: `weather-result-${Date.now()}` as SearchResultId,
-        source: 'weather',
+        source: 'openmeteo',
         score: 0.95,
         retrievedAt: now,
         locationName: 'San Francisco, CA',

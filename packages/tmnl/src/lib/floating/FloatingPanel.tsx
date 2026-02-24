@@ -23,7 +23,7 @@
  * @module
  */
 
-import { useCallback, useEffect, useState, memo, type ReactNode } from 'react'
+import { useCallback, useState, memo, type ReactNode } from 'react'
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 
@@ -79,19 +79,9 @@ const FloatingPanelRoot = memo(function FloatingPanelRoot({
     disabled: state?.isMaximized ?? false,
   })
 
-  // ─── Escape key: always restores maximized panel ──────────────
-  // Must be BEFORE any early returns — hooks run unconditionally
-  useEffect(() => {
-    if (!state?.isMaximized) return
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation()
-        restorePanel(id)
-      }
-    }
-    window.addEventListener('keydown', handler, { capture: true })
-    return () => window.removeEventListener('keydown', handler, { capture: true })
-  }, [state?.isMaximized, id])
+  // ─── Escape key: migrated to centralized keyboard dispatch ────
+  // Escape restore is now handled by useKeyboardDispatch at CAPTURE priority.
+  // No local keydown listener needed.
 
   // ─── Context menu state ───────────────────────────────────────
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)

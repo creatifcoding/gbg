@@ -73,6 +73,17 @@ const defaultBrowserWebSocketUrl = (): string => {
   const explicit = readExplicitHarnessWsUrl()
   if (explicit) return explicit
 
+  // Browser/dev: prefer same-origin websocket URL so Vite proxy can forward
+  // /api/harness/ws -> localhost:8787 even when accessing from another device.
+  if (typeof window !== 'undefined' && window.location) {
+    const protocol = window.location.protocol
+    if (protocol === 'http:' || protocol === 'https:') {
+      const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:'
+      return `${wsProtocol}//${window.location.host}/api/harness/ws`
+    }
+  }
+
+  // Non-browser fallback (tests/SSR/CLI)
   return 'ws://127.0.0.1:8787/api/harness/ws'
 }
 

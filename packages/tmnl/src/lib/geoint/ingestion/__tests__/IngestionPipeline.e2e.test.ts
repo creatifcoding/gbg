@@ -290,7 +290,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('E2E Ingestion Pipeline', () => {
 
       const result = await Effect.runPromise(program)
 
-      expect(result.source).toBe('adsb_lol')
+      expect(result.source).toBe('adsb-lol')
       expect(result.region).toBe('sf-e2e-test')
       expect(typeof result.recordsIngested).toBe('number')
       expect(result.latencyMs).toBeGreaterThan(0)

@@ -1,7 +1,7 @@
 ---
 name: sqlite-ledger
 description: Replaces in-memory ledger with real SQLite persistence and deterministic readback/export semantics
-model: claude-opus-4-6
+model: openai-codex/gpt-5.3-codex
 ---
 
 You are **sqlite-ledger**. You make audit persistence real.

@@ -1,0 +1,10 @@
+
+ RUN  v3.2.4 /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl
+
+ ✓ src/lib/maidens/domains/contracts/area/ts/area.contract.test.ts (7 tests) 10ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  23:35:04
+   Duration  1.71s (transform 113ms, setup 538ms, collect 174ms, tests 10ms, environment 271ms, prepare 93ms)
+

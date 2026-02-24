@@ -1,0 +1,39 @@
+Running ExUnit with seed: 705239, max_cases: 32
+
+
+01:07:27.000 [debug] Persist.hibernate starting for Maiden.SiteRuntime.Agent key="site-persist-delete"
+
+01:07:27.006 [debug] Persist.hibernate completed for Maiden.SiteRuntime.Agent key="site-persist-delete"
+
+01:07:27.006 [debug] Persist.thaw starting for Maiden.SiteRuntime.Agent key="site-persist-delete"
+
+01:07:27.012 [debug] Persist.thaw: checkpoint not found for {Maiden.SiteRuntime.Agent, "site-persist-delete"}
+.
+01:07:27.094 [notice] Executing Maiden.SiteRuntime.Actions.BeginConstruction with params: %{at: "2026-02-24T03:10:00Z", action: "BeginConstruction", to: "under_construction", from: "planned", site_id: "SIT-persist-restart"} and context: %{state: %{name: "Persist Site", status: "planned", state: nil, address: nil, description: nil, location: nil, metadata: %{}, timezone: "UTC", site_id: "SIT-persist-restart", updated_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c8e42-7929-700c-9608-cc00e86d1b46", action: Maiden.SiteRuntime.Actions.BeginConstruction, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 5, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, enterprise_id: "ENT-acme", hierarchy_path: "/ENT-acme/SIT-persist-restart", created_at: "2026-02-24T03:00:00Z", city: nil, country: nil, postal_code: nil}, action_metadata: %{name: "begin_construction", description: "Set site status to under_construction", vsn: nil, category: nil, schema: [site_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, action: %{size: 1, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, reason: %{size: 1, type: :list, __truncated_depth__: 4}, initiated_by: %{size: 1, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+01:07:27.108 [debug] Persist.hibernate starting for Maiden.SiteRuntime.Agent key="site-persist-restart-68"
+
+01:07:27.108 [debug] Persist.hibernate completed for Maiden.SiteRuntime.Agent key="site-persist-restart-68"
+
+01:07:27.108 [debug] Persist.thaw starting for Maiden.SiteRuntime.Agent key="site-persist-restart-68"
+
+01:07:27.108 [debug] Persist.thaw completed for Maiden.SiteRuntime.Agent id=site-persist-restart-68
+
+01:07:27.178 [debug] [signal] type=site.transition.commission directives=1 duration=2.04ms
+
+01:07:27.182 [notice] Executing Maiden.SiteRuntime.Actions.Commission with params: %{at: "2026-02-24T03:15:00Z", action: "Commission", to: "operational", from: "under_construction", site_id: "SIT-persist-restart"} and context: %{state: %{name: "Persist Site", status: "under_construction", state: nil, address: nil, description: nil, location: nil, metadata: %{}, timezone: "UTC", site_id: "SIT-persist-restart", updated_at: "2026-02-24T03:10:00Z", __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c8e42-79c2-7585-8c6a-0936eb4a259a", action: Maiden.SiteRuntime.Actions.Commission, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 5, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, enterprise_id: "ENT-acme", hierarchy_path: "/ENT-acme/SIT-persist-restart", created_at: "2026-02-24T03:00:00Z", city: nil, country: nil, postal_code: nil}, action_metadata: %{name: "commission", description: "Set site status to operational after commissioning", vsn: nil, category: nil, schema: [site_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, action: %{size: 1, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, reason: %{size: 1, type: :list, __truncated_depth__: 4}, initiated_by: %{size: 1, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+01:07:27.183 [debug] [directive] type=RunInstruction result=ok duration=5.08ms
+.
+01:07:27.220 [notice] Executing Maiden.SiteRuntime.Actions.BeginConstruction with params: %{at: "2026-02-24T03:00:00Z", action: "BeginConstruction", to: "under_construction", from: "planned", site_id: "SIT-persist-main"} and context: %{state: %{name: "Persist Site", status: "planned", state: nil, address: nil, description: nil, location: nil, metadata: %{}, timezone: "UTC", site_id: "SIT-persist-main", updated_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c8e42-79f3-788d-8519-77da55b416b3", action: Maiden.SiteRuntime.Actions.BeginConstruction, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 5, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, enterprise_id: "ENT-acme", hierarchy_path: "/ENT-acme/SIT-persist-main", created_at: "2026-02-24T03:00:00Z", city: nil, country: nil, postal_code: nil}, action_metadata: %{name: "begin_construction", description: "Set site status to under_construction", vsn: nil, category: nil, schema: [site_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, action: %{size: 1, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, reason: %{size: 1, type: :list, __truncated_depth__: 4}, initiated_by: %{size: 1, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+01:07:27.222 [debug] Persist.hibernate starting for Maiden.SiteRuntime.Agent key="site-persist-001"
+.
+01:07:27.222 [debug] Persist.hibernate completed for Maiden.SiteRuntime.Agent key="site-persist-001"
+
+
+01:07:27.222 [debug] Persist.thaw starting for Maiden.SiteRuntime.Agent key="site-persist-001"
+
+01:07:27.222 [debug] Persist.thaw completed for Maiden.SiteRuntime.Agent id=site-persist-001
+Finished in 0.4 seconds (0.00s async, 0.4s sync)
+3 tests, 0 failures

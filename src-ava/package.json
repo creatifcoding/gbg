@@ -1,0 +1,8 @@
+{
+  "name": "@gbg/ava-fusion-scripts",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "nats": "^2.29.1"
+  }
+}

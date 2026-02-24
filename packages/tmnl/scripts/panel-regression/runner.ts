@@ -137,12 +137,20 @@ async function executeOp(op: Op, ctx: RunContext): Promise<StepLog> {
 /**
  * Capture actual panel state via __PANEL_TEST__.snapshot()
  * which is defined in the overlay module (no dynamic import needed).
+ *
+ * agent-browser eval wraps return values in quotes, so we need to
+ * double-parse: outer JSON.parse strips the eval wrapper, inner
+ * JSON.parse parses the actual snapshot JSON.
  */
 async function captureActualState(): Promise<ActualPanelState | null> {
   try {
     const raw = await abEval('JSON.stringify(window.__PANEL_TEST__?.snapshot?.())')
     if (!raw || raw === 'undefined' || raw === 'null') return null
-    const parsed = JSON.parse(raw)
+    // First parse: unwrap the eval quotes → get the JSON string
+    const jsonStr = JSON.parse(raw)
+    if (!jsonStr || typeof jsonStr !== 'string') return null
+    // Second parse: parse the actual snapshot
+    const parsed = JSON.parse(jsonStr)
     if (parsed.error) return null
     return parsed as ActualPanelState
   } catch {

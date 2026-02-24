@@ -9,10 +9,12 @@
 import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import { useSelector } from '@legendapp/state/react'
 import { useSelector as useActorSelector } from '@xstate/react'
+import { useAtomValue } from '@effect-atom/atom-react'
 import type { AnyStateMachine, EventFromLogic, SnapshotFrom, ActorRefFrom } from 'xstate'
 
 import type {
   Stx,
+  StxStream,
   EffectsConfig,
   ComputedConfig,
   UseStxValueReturn,
@@ -241,19 +243,7 @@ export function useStxComputed<
   key: K
 ): ReturnType<TComputed[K]> {
   const atom = state.computed[key]
-
-  const subscribe = useCallback(
-    (callback: () => void) => state.subscribe(callback),
-    [state]
-  )
-
-  const getSnapshot = useCallback(() => {
-    // Access the atom value - this will depend on how effect-atom exposes it
-    // For now, return undefined and we'll wire this up properly
-    return undefined as ReturnType<TComputed[K]>
-  }, [atom])
-
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+  return useAtomValue(atom) as ReturnType<TComputed[K]>
 }
 
 // =============================================================================
@@ -311,5 +301,67 @@ export function useStx<
       reset: state.reset,
     }),
     [state, send, runEffect, matches]
+  )
+}
+
+// =============================================================================
+// useStxStream — React hook for StxStream progressive state
+// =============================================================================
+
+/**
+ * Subscribe to a StxStream in React.
+ *
+ * Uses Legend-State's useSelector for reactive re-renders when observables change.
+ *
+ * @example
+ * ```tsx
+ * const stream = stxStream({ stream: myEffectStream, initial: 0, buffer: 'all' })
+ *
+ * function MyComponent() {
+ *   const { value, buffer, status, pause, resume, reset } = useStxStream(stream)
+ *
+ *   return (
+ *     <div>
+ *       <p>Status: {status}</p>
+ *       <p>Current: {value}</p>
+ *       <p>Buffer: {buffer.join(', ')}</p>
+ *       <button onClick={pause}>Pause</button>
+ *       <button onClick={resume}>Resume</button>
+ *     </div>
+ *   )
+ * }
+ * ```
+ */
+export function useStxStream<A, E = never>(stream: StxStream<A, E>) {
+  const value = useSelector(() => stream.state$.value.get()) as A | undefined
+  const hasError = useSelector(() => stream.state$.hasError.get())
+  const error = useSelector(() => stream.state$.error.get()) as E | undefined
+  const buffer = useSelector(() => stream.state$.buffer.get()) as readonly A[]
+  const status = useSelector(
+    () => stream.state$.status.get()
+  ) as 'idle' | 'streaming' | 'complete' | 'error'
+
+  return useMemo(
+    () => ({
+      /** Current value (undefined if no value yet) */
+      value,
+      /** Whether an error occurred */
+      hasError,
+      /** Error value (if hasError) */
+      error,
+      /** Buffered values (depends on buffer strategy) */
+      buffer,
+      /** Stream status */
+      status,
+      /** Pause the stream consumer */
+      pause: stream.pause,
+      /** Resume the stream consumer */
+      resume: stream.resume,
+      /** Reset to initial state */
+      reset: stream.reset,
+      /** Dispose the stream */
+      dispose: stream.dispose,
+    }),
+    [value, hasError, error, buffer, status, stream]
   )
 }

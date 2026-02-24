@@ -114,10 +114,10 @@ export const SourceableTrait = Schema.Struct({
     'track',
     'osm',
     'opensky',
-    'adsb_lol',
+    'adsb-lol',
     'planet',
     'sentinel',
-    'weather',
+    'openmeteo',
     'feature',
     'custom'
   ),

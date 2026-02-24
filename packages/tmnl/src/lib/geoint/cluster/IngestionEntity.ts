@@ -175,8 +175,8 @@ export const IngestFlightByIcaoPayload = Schema.Struct({
     Schema.pattern(/^[0-9a-f]{6}$/),
     Schema.annotations({ description: 'ICAO24 hex code (6 lowercase hex characters)' })
   ),
-  /** Preferred source (defaults to adsb_lol for single-flight queries) */
-  source: Schema.optionalWith(FlightSource, { default: () => 'adsb_lol' as const }),
+  /** Preferred source (defaults to adsb-lol for single-flight queries) */
+  source: Schema.optionalWith(FlightSource, { default: () => 'adsb-lol' as const }),
 })
 
 /**

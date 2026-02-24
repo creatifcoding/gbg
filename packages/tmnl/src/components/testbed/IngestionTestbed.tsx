@@ -390,7 +390,7 @@ function IngestionTestbedInner() {
 
     addLog(`Ingesting flight ${icao24.toUpperCase()}...`)
     // Trigger mutation via registry.set(atom, { payload: ... })
-    ingestionTestbedRegistry.set(flightByIcaoMutation, { payload: { icao24, source: 'adsb_lol' as const } })
+    ingestionTestbedRegistry.set(flightByIcaoMutation, { payload: { icao24, source: 'adsb-lol' as const } })
   }, [icao24Input])
 
   const handleIngestFlightsByRegion = useCallback(() => {

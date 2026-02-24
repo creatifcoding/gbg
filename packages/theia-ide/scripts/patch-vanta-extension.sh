@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Patch generated index.js to include VANTA theme extension
 # This runs after theia generate since our local extension isn't auto-discovered
 

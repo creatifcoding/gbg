@@ -22,7 +22,7 @@ import { Context, Effect, Layer, Stream, Schedule, Scope } from 'effect'
 import { SqlClient } from '@effect/sql'
 import { DurableStreamClient, type DurableStreamError } from '@/lib/durable-streams/service'
 import { PoiPositionEvent } from '../schemas/poi-events'
-import type { IntelSource } from '@/lib/ecs/schemas/core'
+import { toEcsIntelSource } from '../registry'
 
 // =============================================================================
 // Configuration
@@ -142,11 +142,10 @@ export const OsmEntityMaterializerLive = Layer.scoped(
     let lastEventAt: Date | null = null
 
     /**
-     * Map PoiSource to IntelSource for provenance.
+     * Normalize POI source IDs to ECS canonical IntelSource.
      */
-    const sourceToIntelSource = (source: 'overpass' | 'nominatim' | 'custom'): IntelSource => {
-      return source === 'overpass' ? 'osm' : 'osm'
-    }
+    const sourceToIntelSource = (source: 'overpass' | 'nominatim' | 'custom') =>
+      toEcsIntelSource(source)
 
     /**
      * Upsert a single POI event into ECS tables.

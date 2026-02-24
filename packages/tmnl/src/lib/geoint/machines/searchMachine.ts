@@ -156,7 +156,7 @@ const ALL_SOURCES: IntelSource[] = [
   'opensky',
   'planet',
   'sentinel',
-  'weather',
+  'openmeteo',
   'feature',
   'custom',
 ]

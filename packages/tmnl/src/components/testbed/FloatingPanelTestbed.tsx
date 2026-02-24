@@ -361,6 +361,7 @@ function TabBarDemo() {
   return (
     <div style={{ fontFamily: V.mono }}>
       <TabBar
+        hostPanelId="demo-panel"
         tabs={tabs}
         activeTabId={activeTab}
         onTabClick={setActiveTab}
@@ -370,6 +371,9 @@ function TabBarDemo() {
         }}
         onTabReorder={(ids) => {
           setTabs(prev => ids.map(id => prev.find(t => t.id === id)!).filter(Boolean))
+        }}
+        onTabRename={(id, newTitle) => {
+          setTabs(prev => prev.map(t => t.id === id ? { ...t, label: newTitle } : t))
         }}
         onNewTab={() => {
           const id = `t${Date.now()}`

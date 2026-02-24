@@ -1,0 +1,13 @@
+{application,crontab,
+             [{modules,['Elixir.Crontab.CronExpression',
+                        'Elixir.Crontab.CronExpression.Composer',
+                        'Elixir.Crontab.CronExpression.Parser',
+                        'Elixir.Crontab.DateChecker',
+                        'Elixir.Crontab.DateHelper',
+                        'Elixir.Crontab.Scheduler',
+                        'Elixir.Inspect.Crontab.CronExpression']},
+              {optional_applications,[ecto]},
+              {applications,[kernel,stdlib,elixir,logger,ecto]},
+              {description,"Elixir library for parsing, writing, and calculating Cron format strings.\n"},
+              {registered,[]},
+              {vsn,"1.1.14"}]}.

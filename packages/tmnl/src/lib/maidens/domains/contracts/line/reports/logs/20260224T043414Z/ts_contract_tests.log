@@ -1,0 +1,10 @@
+
+ RUN  v3.2.4 /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl
+
+ ✓ src/lib/maidens/domains/contracts/line/ts/line.contract.test.ts (7 tests) 11ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  23:34:15
+   Duration  1.59s (transform 74ms, setup 432ms, collect 181ms, tests 11ms, environment 230ms, prepare 114ms)
+

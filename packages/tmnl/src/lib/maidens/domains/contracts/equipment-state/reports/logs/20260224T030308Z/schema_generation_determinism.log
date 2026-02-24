@@ -1,0 +1,17 @@
+[equipment-state-e2e] first generation run
+$ bun run src/lib/maidens/domains/contracts/equipment-state/scripts/gen-equipment-state-schemas.ts
+Generated schemas:
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/equipment-state/schemas/equipment_state.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/equipment-state/schemas/equipment_state_transition.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/equipment-state/schemas/equipment_state_agent_state.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/equipment-state/schemas/equipment_state_transition.mmd
+[equipment-state-e2e] fingerprint before rerun: ea1a68d4c9d50cad1601068990bfec23e95a1b71731b4ecff4371913492b5d06
+[equipment-state-e2e] second generation run
+$ bun run src/lib/maidens/domains/contracts/equipment-state/scripts/gen-equipment-state-schemas.ts
+Generated schemas:
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/equipment-state/schemas/equipment_state.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/equipment-state/schemas/equipment_state_transition.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/equipment-state/schemas/equipment_state_agent_state.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/equipment-state/schemas/equipment_state_transition.mmd
+[equipment-state-e2e] fingerprint after rerun:  ea1a68d4c9d50cad1601068990bfec23e95a1b71731b4ecff4371913492b5d06
+[equipment-state-e2e] schema fingerprint stable: ea1a68d4c9d50cad1601068990bfec23e95a1b71731b4ecff4371913492b5d06

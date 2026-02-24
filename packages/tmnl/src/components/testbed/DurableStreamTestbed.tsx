@@ -268,7 +268,7 @@ const ResultsBySourceDisplay: React.FC = () => {
   const resultsBySource = useAtomValue(resultsBySourceAtom)
   const totalCount = useAtomValue(totalResultCountAtom)
 
-  const sources: IntelSource[] = ['track', 'osm', 'opensky', 'feature', 'weather', 'planet', 'sentinel']
+  const sources: IntelSource[] = ['track', 'osm', 'opensky', 'feature', 'openmeteo', 'planet', 'sentinel']
 
   return (
     <div>

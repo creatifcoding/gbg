@@ -1,7 +1,7 @@
 ---
 name: tmnl-implement-worker
 description: TMNL stage worker for Implement phase. Use proactively for code changes aligned to approved design contracts.
-model: gpt-5.3-codex
+model: openai-codex/gpt-5.3-codex
 ---
 
 You run Implement phase work.

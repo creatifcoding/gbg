@@ -32,7 +32,7 @@ export const FlightData = defineTrait('FlightData', {
   onGround: Schema.Boolean,
   /** Last contact timestamp */
   lastContact: Schema.DateFromSelf,
-  /** Data source (opensky, adsb_lol) */
+  /** Data source (opensky, adsb-lol) */
   source: IntelSource,
   /** Squawk code if available */
   squawk: Schema.optional(Schema.String),

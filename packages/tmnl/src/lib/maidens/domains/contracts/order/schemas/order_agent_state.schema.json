@@ -1,0 +1,137 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "OrderAgentState": {
+      "type": "object",
+      "required": [
+        "order_id",
+        "customer",
+        "items",
+        "total",
+        "cancelled_reason",
+        "shipped_at",
+        "delivered_at"
+      ],
+      "properties": {
+        "order_id": {
+          "$ref": "#/definitions/OrderId"
+        },
+        "customer": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OrderItemMap"
+          }
+        },
+        "total": {
+          "type": "number"
+        },
+        "cancelled_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "shipped_at": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {}
+          ]
+        },
+        "delivered_at": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {}
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Canonical Jido agent state contract generated from Effect Schema and validated in Elixir before Jido.Agent.validate/2 and cmd/2.",
+      "title": "Order Agent State"
+    },
+    "OrderId": {
+      "type": "string",
+      "description": "Slug-prefixed UUID (e.g. ORD-550e8400-e29b-41d4-a716-446655440000).",
+      "title": "Order ID",
+      "pattern": "^[A-Z][A-Z0-9_-]*-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "OrderItemMap": {
+      "type": "object",
+      "required": [],
+      "properties": {},
+      "additionalProperties": {
+        "$id": "/schemas/unknown",
+        "title": "unknown"
+      },
+      "description": "Opaque item payload map (list of maps in OrderSchema.items).",
+      "title": "Order Item Map"
+    }
+  },
+  "type": "object",
+  "required": [
+    "order_id",
+    "customer",
+    "items",
+    "total",
+    "cancelled_reason",
+    "shipped_at",
+    "delivered_at"
+  ],
+  "properties": {
+    "order_id": {
+      "$ref": "#/definitions/OrderId"
+    },
+    "customer": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/OrderItemMap"
+      }
+    },
+    "total": {
+      "type": "number"
+    },
+    "cancelled_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "shipped_at": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {}
+      ]
+    },
+    "delivered_at": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {}
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/order/ts/order.contract.ts). Canonical Jido agent-state contract for Elixir preflight validation.",
+  "title": "OrderAgentState",
+  "$id": "/contracts/order/order_agent_state.schema.json"
+}

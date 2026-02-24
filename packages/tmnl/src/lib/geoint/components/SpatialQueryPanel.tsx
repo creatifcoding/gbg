@@ -156,7 +156,7 @@ const MODE_CONFIG: { mode: DrawMode; label: string; icon: typeof Pentagon; descr
   { mode: 'buffer', label: 'Buffer', icon: Maximize, description: 'Expand selection area' },
 ]
 
-const DEFAULT_SOURCES: IntelSource[] = ['track', 'osm', 'opensky', 'adsb_lol', 'feature']
+const DEFAULT_SOURCES: IntelSource[] = ['track', 'osm', 'opensky', 'adsb-lol', 'feature']
 
 const RADIUS_PRESETS = [
   { label: '1 km', value: 1000 },

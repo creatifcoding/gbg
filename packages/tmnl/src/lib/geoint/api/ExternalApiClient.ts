@@ -726,7 +726,7 @@ export const makeAdsbLolClient = (
   Effect.gen(function* () {
     const httpClient = yield* HttpClient.HttpClient
     const rateLimiter = yield* makeRateLimiter(
-      'adsb_lol',
+      'adsb-lol',
       config.requestsPerMinute,
       10 // Burst size
     )
@@ -747,7 +747,7 @@ export const makeAdsbLolClient = (
           Effect.catchTag('TimeoutException', () =>
             Effect.fail(
               new TimeoutError({
-                source: 'adsb_lol',
+                source: 'adsb-lol',
                 timeoutMs: config.timeoutMs,
                 message: `ADSB.lol API request timed out after ${config.timeoutMs}ms`,
               })
@@ -756,7 +756,7 @@ export const makeAdsbLolClient = (
           Effect.catchAllCause((cause) =>
             Effect.fail(
               new ExternalApiError({
-                source: 'adsb_lol',
+                source: 'adsb-lol',
                 statusCode: 0,
                 message: `ADSB.lol API request failed: ${String(cause)}`,
                 retryable: true,
@@ -769,7 +769,7 @@ export const makeAdsbLolClient = (
           const retryable = response.status === 429 || response.status >= 500
           return yield* Effect.fail(
             new ExternalApiError({
-              source: 'adsb_lol',
+              source: 'adsb-lol',
               statusCode: response.status,
               message: `ADSB.lol API returned ${response.status}`,
               retryable,
@@ -781,7 +781,7 @@ export const makeAdsbLolClient = (
           Effect.catchAll((error) =>
             Effect.fail(
               new ExternalApiError({
-                source: 'adsb_lol',
+                source: 'adsb-lol',
                 statusCode: 0,
                 message: `Failed to parse ADSB.lol response: ${String(error)}`,
                 retryable: false,
@@ -795,7 +795,7 @@ export const makeAdsbLolClient = (
           Effect.catchAll((error) =>
             Effect.fail(
               new ExternalApiError({
-                source: 'adsb_lol',
+                source: 'adsb-lol',
                 statusCode: 0,
                 message: `Invalid ADSB.lol response format: ${String(error)}`,
                 retryable: false,
@@ -2373,7 +2373,7 @@ export const adsbLolToSearchResult = (
 
   return new SearchResultFlight({
     id: `adsb-${icao24Hex}` as SearchResultId,
-    source: 'adsb_lol',
+    source: 'adsb-lol',
     score: 1.0,
     retrievedAt: new Date(),
     icao24: icao24Hex as Icao24,
@@ -2587,7 +2587,7 @@ export const weatherForecastToSearchResult = (
 
   return new SearchResultWeather({
     id: `weather-${forecast.latitude.toFixed(4)}-${forecast.longitude.toFixed(4)}` as SearchResultId,
-    source: 'weather',
+    source: 'openmeteo',
     score: 1.0,
     retrievedAt: new Date(),
     locationName,
@@ -2620,7 +2620,7 @@ export const geocodingLocationToSearchResult = (
 ): SearchResultWeather => {
   return new SearchResultWeather({
     id: `geocode-${location.id}` as SearchResultId,
-    source: 'weather',
+    source: 'openmeteo',
     score: 1.0,
     retrievedAt: new Date(),
     locationName: `${location.name}${location.country ? `, ${location.country}` : ''}`,

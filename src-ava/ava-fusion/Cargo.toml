@@ -1,0 +1,17 @@
+[package]
+name = "ava-fusion"
+description = "Fusion ontology types (TSGC-001) for multi-source data fusion"
+version.workspace = true
+edition = "2021"
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+typeshare = { workspace = true }
+thiserror = { workspace = true }
+franken-kernel = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }

@@ -22,7 +22,7 @@ import { Context, Effect, Layer, Stream, Schedule, Scope } from 'effect'
 import { SqlClient } from '@effect/sql'
 import { DurableStreamClient, type DurableStreamError } from '@/lib/durable-streams/service'
 import { WeatherObservationEvent } from '../schemas/weather-events'
-import type { IntelSource } from '@/lib/ecs/schemas/core'
+import { toEcsIntelSource } from '../registry'
 
 // =============================================================================
 // Configuration
@@ -147,13 +147,10 @@ export const WeatherEntityMaterializerLive = Layer.scoped(
     let lastEventAt: Date | null = null
 
     /**
-     * Map WeatherSource to IntelSource for provenance.
+     * Normalize weather source IDs to ECS canonical IntelSource.
      */
-    const sourceToIntelSource = (source: 'openmeteo' | 'noaa' | 'custom'): IntelSource => {
-      if (source === 'openmeteo') return 'openmeteo'
-      if (source === 'noaa') return 'unknown' // Add 'noaa' to IntelSource if needed
-      return 'unknown'
-    }
+    const sourceToIntelSource = (source: 'openmeteo' | 'noaa' | 'custom') =>
+      toEcsIntelSource(source)
 
     /**
      * Upsert a single weather event into ECS tables.

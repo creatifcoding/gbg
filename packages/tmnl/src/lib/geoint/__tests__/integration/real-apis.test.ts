@@ -216,7 +216,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('Real API Integration Tests', () => {
           if (searchResults.length > 0) {
             const first = searchResults[0]
             expect(first._tag).toBe('SearchResultFlight')
-            expect(first.source).toBe('adsb_lol')
+            expect(first.source).toBe('adsb-lol')
           }
         }
 

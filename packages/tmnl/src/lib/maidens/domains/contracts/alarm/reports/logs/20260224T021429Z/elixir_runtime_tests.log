@@ -1,0 +1,71 @@
+Running ExUnit with seed: 167237, max_cases: 32
+
+...
+21:14:36.871 [notice] Executing Maiden.AlarmRuntime.Actions.AcknowledgeAlarm with params: %{at: "2026-02-24T01:10:00Z", to: "acknowledged", from: "unacknowledged", alarm_id: "ALM-ACK-001-7790b177-f49a-4531-853c-d8aebb5c1edf", by: "operator-2"} and context: %{state: %{message: "warning", state: "unacknowledged", severity: "warning", alarm_id: "ALM-ACK-001-7790b177-f49a-4531-853c-d8aebb5c1edf", device_id: "TMP-ACK-001", asset_id: nil, triggered_at: "2026-02-24T01:00:00Z", acknowledged_at: nil, acknowledged_by: nil, cleared_at: nil, shelved_until: nil, suppression_reason: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c8d6d-4dfd-75db-82ad-df9b1adf56cd", action: Maiden.AlarmRuntime.Actions.AcknowledgeAlarm, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 5, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}}, action_metadata: %{name: "acknowledge_alarm", description: "Acknowledge an unacknowledged alarm", vsn: nil, category: nil, schema: [alarm_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, by: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+.....
+21:14:37.337 [debug] [signal] type=alarm.transition.shelved directives=1 duration=1.9ms
+
+21:14:37.344 [notice] Executing Maiden.AlarmRuntime.Actions.ShelveAlarm with params: %{reason: "maintenance", at: "2026-02-24T03:10:00Z", to: "shelved", from: "acknowledged", alarm_id: "ALM-BOUNDARY-002-f47ee0ba-6080-485d-886b-6b65e15b8dc6", shelved_until: "2026-02-24T04:10:00Z"} and context: %{state: %{message: "critical", state: "acknowledged", severity: "critical", alarm_id: "ALM-BOUNDARY-002-f47ee0ba-6080-485d-886b-6b65e15b8dc6", device_id: "TMP-B-002", asset_id: nil, triggered_at: "2026-02-24T03:00:00Z", acknowledged_at: "2026-02-24T03:01:00Z", acknowledged_by: "operator-c", cleared_at: nil, shelved_until: nil, suppression_reason: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c8d6d-500d-7f1b-8592-942b5aff910c", action: Maiden.AlarmRuntime.Actions.ShelveAlarm, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 6, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}}, action_metadata: %{name: "shelve_alarm", description: "Shelve an active alarm", vsn: nil, category: nil, schema: [alarm_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, shelved_until: %{size: 1, type: :list, __truncated_depth__: 4}, reason: %{size: 1, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+21:14:37.346 [debug] [directive] type=RunInstruction result=ok duration=8.76ms
+.
+21:14:37.362 [notice] Executing Maiden.AlarmRuntime.Actions.AcknowledgeAlarm with params: %{at: "2026-02-24T03:05:00Z", to: "acknowledged", from: "unacknowledged", alarm_id: "ALM-BOUNDARY-001-15234c26-99e4-4265-8e08-f7a5508da5e4", by: "operator-b"} and context: %{state: %{message: "warning", state: "unacknowledged", severity: "warning", alarm_id: "ALM-BOUNDARY-001-15234c26-99e4-4265-8e08-f7a5508da5e4", device_id: "TMP-B-001", asset_id: nil, triggered_at: "2026-02-24T03:00:00Z", acknowledged_at: nil, acknowledged_by: nil, cleared_at: nil, shelved_until: nil, suppression_reason: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c8d6d-5031-7dec-91a5-de3501d3e65e", action: Maiden.AlarmRuntime.Actions.AcknowledgeAlarm, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 5, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}}, action_metadata: %{name: "acknowledge_alarm", description: "Acknowledge an unacknowledged alarm", vsn: nil, category: nil, schema: [alarm_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, by: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+..
+21:14:37.372 [debug] Persist.thaw starting for Maiden.AlarmRuntime.Agent key="alarm-persist-invalid"
+.
+21:14:37.383 [notice] Executing Maiden.AlarmRuntime.Actions.ShelveAlarm with params: %{reason: "maintenance", at: "2026-02-24T02:10:00Z", to: "shelved", from: "acknowledged", alarm_id: "ALM-PERSIST-RESTART-001-9478a087-e543-4b46-82c9-034db38214a4", shelved_until: "2026-02-24T03:10:00Z"} and context: %{state: %{message: "critical alarm", state: "acknowledged", severity: "critical", alarm_id: "ALM-PERSIST-RESTART-001-9478a087-e543-4b46-82c9-034db38214a4", device_id: "TMP-RESTART", asset_id: nil, triggered_at: "2026-02-24T02:00:00Z", acknowledged_at: "2026-02-24T02:01:00Z", acknowledged_by: "operator-r", cleared_at: nil, shelved_until: nil, suppression_reason: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c8d6d-5043-7dda-bbab-910b44fb1e05", action: Maiden.AlarmRuntime.Actions.ShelveAlarm, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 6, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}}, action_metadata: %{name: "shelve_alarm", description: "Shelve an active alarm", vsn: nil, category: nil, schema: [alarm_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, shelved_until: %{size: 1, type: :list, __truncated_depth__: 4}, reason: %{size: 1, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+21:14:37.385 [debug] Persist.hibernate starting for Maiden.AlarmRuntime.Agent key="alarm-persist-restart-72"
+
+21:14:37.385 [debug] Persist.hibernate completed for Maiden.AlarmRuntime.Agent key="alarm-persist-restart-72"
+
+21:14:37.385 [debug] Persist.thaw starting for Maiden.AlarmRuntime.Agent key="alarm-persist-restart-72"
+
+21:14:37.385 [debug] Persist.thaw completed for Maiden.AlarmRuntime.Agent id=alarm-persist-restart-72
+
+
+  1) test restart continuity thaw + AgentServer restart resumes lifecycle transitions (Maiden.AlarmRuntime.PersistenceTest)
+     test/alarm_persistence_test.exs:175
+     ** (EXIT from #PID<0.379.0>) an exception was raised:
+         ** (ArgumentError) unknown registry: Jido.Default.Registry
+             (elixir 1.18.4) lib/registry.ex:1448: Registry.info!/1
+             (elixir 1.18.4) lib/registry.ex:1066: Registry.register/3
+             (jido 2.0.0) lib/jido/agent_server.ex:671: Jido.AgentServer.maybe_register_global/2
+             (jido 2.0.0) lib/jido/agent_server.ex:657: Jido.AgentServer.init/1
+             (stdlib 6.2.2.2) gen_server.erl:2229: :gen_server.init_it/2
+             (stdlib 6.2.2.2) gen_server.erl:2184: :gen_server.init_it/6
+             (stdlib 6.2.2.2) proc_lib.erl:329: :proc_lib.init_p_do_apply/3
+
+
+21:14:37.404 [debug] Persist.hibernate starting for Maiden.AlarmRuntime.Agent key="alarm-persist-thread-001"
+
+21:14:37.404 [debug] Persist: flushing 3 new entries for thread alarm-thread-201 from rev=0
+
+21:14:37.404 [debug] Persist.hibernate completed for Maiden.AlarmRuntime.Agent key="alarm-persist-thread-001"
+
+21:14:37.404 [debug] Persist.thaw starting for Maiden.AlarmRuntime.Agent key="alarm-persist-thread-001"
+
+21:14:37.404 [debug] Persist: rehydrating thread alarm-thread-201 with expected rev=3
+
+21:14:37.404 [debug] Persist.thaw completed for Maiden.AlarmRuntime.Agent id=alarm-persist-thread-001
+.
+21:14:37.406 [notice] Executing Maiden.AlarmRuntime.Actions.AcknowledgeAlarm with params: %{at: "2026-02-24T02:05:00Z", to: "acknowledged", from: "unacknowledged", alarm_id: "ALM-PERSIST-001-27ef3543-1395-4401-8811-76eb5d72b90c", by: "operator-persist"} and context: %{state: %{message: "high temp", state: "unacknowledged", severity: "critical", alarm_id: "ALM-PERSIST-001-27ef3543-1395-4401-8811-76eb5d72b90c", device_id: "TMP-PERSIST-001", asset_id: nil, triggered_at: "2026-02-24T02:00:00Z", acknowledged_at: nil, acknowledged_by: nil, cleared_at: nil, shelved_until: nil, suppression_reason: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c8d6d-505d-7bd6-8452-1e77b0e59398", action: Maiden.AlarmRuntime.Actions.AcknowledgeAlarm, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 5, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}}, action_metadata: %{name: "acknowledge_alarm", description: "Acknowledge an unacknowledged alarm", vsn: nil, category: nil, schema: [alarm_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, by: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+21:14:37.408 [debug] Persist.hibernate starting for Maiden.AlarmRuntime.Agent key="alarm-persist-001"
+
+21:14:37.408 [debug] Persist.hibernate completed for Maiden.AlarmRuntime.Agent key="alarm-persist-001"
+
+21:14:37.408 [debug] Persist.thaw starting for Maiden.AlarmRuntime.Agent key="alarm-persist-001"
+
+21:14:37.408 [debug] Persist.thaw completed for Maiden.AlarmRuntime.Agent id=alarm-persist-001
+.
+21:14:37.408 [debug] Persist.hibernate starting for Maiden.AlarmRuntime.Agent key="alarm-persist-delete"
+
+21:14:37.409 [debug] Persist.hibernate completed for Maiden.AlarmRuntime.Agent key="alarm-persist-delete"
+
+21:14:37.409 [debug] Persist.thaw starting for Maiden.AlarmRuntime.Agent key="alarm-persist-delete"
+
+21:14:37.411 [debug] Persist.thaw: checkpoint not found for {Maiden.AlarmRuntime.Agent, "alarm-persist-delete"}
+.
+Finished in 1.2 seconds (0.00s async, 1.2s sync)
+16 tests, 1 failure

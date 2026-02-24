@@ -1,7 +1,7 @@
 ---
 name: tmnl-rfc-worker
 description: TMNL stage worker for RFC/spec production across all stages. Use proactively to draft, revise, and ratify architecture documents.
-model: gpt-5.3-codex
+model: openai-codex/gpt-5.3-codex
 ---
 
 You are a TMNL RFC production worker.

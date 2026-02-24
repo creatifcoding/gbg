@@ -64,7 +64,7 @@ import { parseIngestionError } from '../schemas/ingestion'
  * Convert FlightPositionInput to FlightPositionEvent for stream publishing.
  */
 const toFlightEvent = (input: FlightPositionInput): FlightPositionEvent => {
-  const source: FlightSource = input.source === 'adsb_lol' ? 'adsb_lol' : 'opensky'
+  const source: FlightSource = input.source === 'adsb-lol' ? 'adsb-lol' : 'opensky'
 
   return new FlightPositionEvent({
     icao24: input.icao24.toLowerCase(),
@@ -237,7 +237,7 @@ const IngestionRpcHandlers = Effect.gen(function* () {
     // On-Demand Ingestion
     // =========================================================================
 
-    ingestFlightByIcao: (request: { icao24: string; source: 'opensky' | 'adsb_lol' }) =>
+    ingestFlightByIcao: (request: { icao24: string; source: 'opensky' | 'adsb-lol' }) =>
       Effect.gen(function* () {
         const startTime = Date.now()
         const { icao24, source } = request
@@ -245,12 +245,12 @@ const IngestionRpcHandlers = Effect.gen(function* () {
         yield* Effect.logInfo(`[IngestionRpc] Ingesting flight ${icao24} from ${source}`)
 
         // Try ADSB.lol first (faster, single-flight API)
-        if (source === 'adsb_lol') {
+        if (source === 'adsb-lol') {
           if (Option.isNone(adsbLolClient)) {
             return yield* Effect.fail(
               new IngestionError({
                 operation: 'ingestFlightByIcao',
-                source: 'adsb_lol',
+                source: 'adsb-lol',
                 message: 'ADSB.lol client not available',
               })
             )
@@ -262,7 +262,7 @@ const IngestionRpcHandlers = Effect.gen(function* () {
               Effect.fail(
                 new IngestionError({
                   operation: 'ingestFlightByIcao',
-                  source: 'adsb_lol',
+                  source: 'adsb-lol',
                   message: `API error: ${error.message}`,
                   cause: error,
                 })
@@ -275,7 +275,7 @@ const IngestionRpcHandlers = Effect.gen(function* () {
             return yield* Effect.fail(
               new FlightNotFoundError({
                 icao24,
-                source: 'adsb_lol',
+                source: 'adsb-lol',
                 message: `No aircraft found with ICAO24 ${icao24}`,
               })
             )
@@ -289,7 +289,7 @@ const IngestionRpcHandlers = Effect.gen(function* () {
             return yield* Effect.fail(
               new FlightNotFoundError({
                 icao24,
-                source: 'adsb_lol',
+                source: 'adsb-lol',
                 message: `Aircraft ${icao24} has no valid position data`,
               })
             )
@@ -297,11 +297,11 @@ const IngestionRpcHandlers = Effect.gen(function* () {
 
           // Persist and publish
           const positions = [positionInput]
-          const insertedCount = yield* transactionalIngest(positions, 'adsb_lol')
+          const insertedCount = yield* transactionalIngest(positions, 'adsb-lol')
 
           const result: FlightIngestionResult = {
             icao24,
-            source: 'adsb_lol',
+            source: 'adsb-lol',
             positionsIngested: insertedCount,
             streamEventsPublished: insertedCount > 0 ? 1 : 0,
             latencyMs: Date.now() - startTime,
@@ -402,7 +402,7 @@ const IngestionRpcHandlers = Effect.gen(function* () {
     ingestFlightsByRegion: (request: {
       readonly regionName: string
       readonly bounds: readonly [number, number, number, number]
-      readonly source: 'opensky' | 'adsb_lol'
+      readonly source: 'opensky' | 'adsb-lol'
       readonly radiusNm: number
     }) =>
       Effect.gen(function* () {
@@ -411,12 +411,12 @@ const IngestionRpcHandlers = Effect.gen(function* () {
 
         yield* Effect.logInfo(`[IngestionRpc] Ingesting region ${regionName} from ${source}`)
 
-        if (source === 'adsb_lol') {
+        if (source === 'adsb-lol') {
           if (Option.isNone(adsbLolClient)) {
             return yield* Effect.fail(
               new IngestionError({
                 operation: 'ingestFlightsByRegion',
-                source: 'adsb_lol',
+                source: 'adsb-lol',
                 message: 'ADSB.lol client not available',
               })
             )
@@ -438,7 +438,7 @@ const IngestionRpcHandlers = Effect.gen(function* () {
               Effect.fail(
                 new IngestionError({
                   operation: 'ingestFlightsByRegion',
-                  source: 'adsb_lol',
+                  source: 'adsb-lol',
                   message: `API error: ${error.message}`,
                   cause: error,
                 })
@@ -456,11 +456,11 @@ const IngestionRpcHandlers = Effect.gen(function* () {
           }
 
           // Persist and publish
-          const insertedCount = yield* transactionalIngest(positions, 'adsb_lol')
+          const insertedCount = yield* transactionalIngest(positions, 'adsb-lol')
 
           const result: RegionIngestionResult = {
             region: regionName,
-            source: 'adsb_lol',
+            source: 'adsb-lol',
             flightsIngested: positions.length,
             positionsIngested: insertedCount,
             streamEventsPublished: insertedCount,

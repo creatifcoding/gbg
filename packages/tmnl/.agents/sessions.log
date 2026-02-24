@@ -1321,3 +1321,10 @@
     ffbbd76d fix(interactive-shell): correct Bun.Terminal API + Layer construction
   Uncommitted changes: 416 files
 
+[2026-02-23T12:13:45.028562] Session ended (reason: prompt_input_exit)
+  Recent commits: 3
+    4bdf663d fix(interactive-shell): single worker, termHandle fix, value imports
+    141acb61 test(interactive-shell): tool executor routing + mode + command parsing — 27 assertions
+    2548c9e0 test(interactive-shell): comprehensive test suite — 155 assertions across 7 files
+  Uncommitted changes: 497 files
+

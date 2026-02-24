@@ -424,7 +424,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('FlightIngester Integration', () => {
         aircraft
       )
 
-      expect(result.source).toBe('adsb_lol')
+      expect(result.source).toBe('adsb-lol')
       expect(result.region).toBe('test-region')
       expect(result.recordsIngested).toBe(1)
       expect(result.error).toBeUndefined()
@@ -545,7 +545,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('FlightIngester Integration', () => {
       expect(openSkyResult.source).toBe('opensky')
       expect(openSkyResult.recordsIngested).toBe(1)
 
-      expect(adsbResult.source).toBe('adsb_lol')
+      expect(adsbResult.source).toBe('adsb-lol')
       expect(adsbResult.recordsIngested).toBe(1)
     })
 

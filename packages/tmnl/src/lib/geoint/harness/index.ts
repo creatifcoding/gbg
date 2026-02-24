@@ -16,8 +16,10 @@ export {
   GeointSpawnParams,
   GeointSelectParams,
   GeointSummaryParams,
+  GeointPlanParams,
   type GeointSearchParams as GeointSearchParamsType,
   type GeointSpawnParams as GeointSpawnParamsType,
   type GeointSelectParams as GeointSelectParamsType,
   type GeointSummaryParams as GeointSummaryParamsType,
+  type GeointPlanParams as GeointPlanParamsType,
 } from './tools'

@@ -1,0 +1,15 @@
+[plant-e2e] first generation run
+Generated schemas:
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/plant/schemas/plant.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/plant/schemas/plant_transition.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/plant/schemas/plant_agent_state.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/plant/schemas/plant_transition.mmd
+[plant-e2e] fingerprint before rerun: 694aae148ada703e50b157a7001561a59cab6911c1bd7c39425b4058647e748f
+[plant-e2e] second generation run
+Generated schemas:
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/plant/schemas/plant.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/plant/schemas/plant_transition.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/plant/schemas/plant_agent_state.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/plant/schemas/plant_transition.mmd
+[plant-e2e] fingerprint after rerun:  694aae148ada703e50b157a7001561a59cab6911c1bd7c39425b4058647e748f
+[plant-e2e] schema fingerprint stable: 694aae148ada703e50b157a7001561a59cab6911c1bd7c39425b4058647e748f

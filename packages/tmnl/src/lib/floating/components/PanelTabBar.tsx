@@ -10,6 +10,11 @@
  *   - Drag a panel onto tab bar → nestPanelAsTab (cross-panel transfer)
  *   - "+" button → opens VisitorPalette (cmdk picker)
  *
+ * v2 additions:
+ *   - Passes hostPanelId to TabBar (unified DndContext)
+ *   - Wires renamePanel for inline tab rename
+ *   - Per-tab context menu with Rename / Float / Close
+ *
  * @module floating/components/PanelTabBar
  */
 
@@ -23,9 +28,11 @@ import {
   liftTabOut,
   reorderTabs,
   floatPanel,
+  renamePanel,
 } from '../stx/actions'
 import { TabBar, type Tab } from '../layout/TabBar'
 import { VisitorPalette } from './VisitorPalette'
+import { TabContextMenu } from './TabContextMenu'
 
 // =============================================================================
 // Types
@@ -45,6 +52,15 @@ export interface PanelTabBarProps {
 export const PanelTabBar = memo(function PanelTabBar({ panelId, rightSlot }: PanelTabBarProps) {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const addBtnRef = useRef<HTMLButtonElement>(null)
+
+  // ─── Tab context menu state ───────────────────────────────────
+  const [tabCtxMenu, setTabCtxMenu] = useState<{
+    tabId: string
+    isHome: boolean
+    position: { x: number; y: number }
+  } | null>(null)
+  // Ref to trigger rename from context menu
+  const [renamingTabId, setRenamingTabId] = useState<string | null>(null)
 
   // ─── Read host panel state ────────────────────────────────────
   const hostState = useSelector(() => {
@@ -86,16 +102,27 @@ export const PanelTabBar = memo(function PanelTabBar({ panelId, rightSlot }: Pan
     reorderTabs(panelId, ghostIds)
   }, [panelId])
 
+  const handleTabRename = useCallback((tabId: string, newTitle: string) => {
+    renamePanel(tabId, newTitle)
+  }, [])
+
+  const handleTabContextMenu = useCallback((tabId: string, event: React.MouseEvent) => {
+    setTabCtxMenu({
+      tabId,
+      isHome: tabId === panelId,
+      position: { x: event.clientX, y: event.clientY },
+    })
+  }, [panelId])
+
   // Stable close — no inline closure recreation
   const closePalette = useCallback(() => setPaletteOpen(false), [])
+  const closeTabCtxMenu = useCallback(() => setTabCtxMenu(null), [])
 
   const handleNewTab = useCallback(() => {
     setPaletteOpen(prev => !prev)
   }, [])
 
   // ─── Compute anchor rect on demand (defer reads to usage point) ──
-  // Coordinates relative to [data-panel-workspace-overlay] — the palette
-  // portals there to escape the panel's overflow:hidden
   function getAnchorRect(): { left: number; bottom: number } {
     const btn = addBtnRef.current
     if (!btn) return { left: 0, bottom: 36 }
@@ -141,26 +168,45 @@ export const PanelTabBar = memo(function PanelTabBar({ panelId, rightSlot }: Pan
   return (
     <>
       <TabBar
+        hostPanelId={panelId}
         tabs={allTabs}
         activeTabId={activeId}
         onTabClick={handleTabClick}
         onTabClose={handleTabClose}
         onTabReorder={handleTabReorder}
+        onTabRename={handleTabRename}
+        onTabContextMenu={handleTabContextMenu}
         onNewTab={handleNewTab}
         addButtonRef={addBtnRef}
         rightSlot={rightSlot}
       />
       {portalTarget && createPortal(
-        <AnimatePresence>
-          {paletteOpen && (
-            <VisitorPalette
-              key="visitor-palette"
+        <>
+          <AnimatePresence>
+            {paletteOpen && (
+              <VisitorPalette
+                key="visitor-palette"
+                hostPanelId={panelId}
+                anchorRect={getAnchorRect()}
+                onClose={closePalette}
+              />
+            )}
+          </AnimatePresence>
+          {tabCtxMenu && (
+            <TabContextMenu
+              tabId={tabCtxMenu.tabId}
               hostPanelId={panelId}
-              anchorRect={getAnchorRect()}
-              onClose={closePalette}
+              isHome={tabCtxMenu.isHome}
+              position={tabCtxMenu.position}
+              onClose={closeTabCtxMenu}
+              onRename={() => {
+                // TODO: trigger inline rename on the tab — requires ref coordination
+                // For now, inline rename is triggered by double-click on the tab itself
+                closeTabCtxMenu()
+              }}
             />
           )}
-        </AnimatePresence>,
+        </>,
         portalTarget,
       )}
     </>

@@ -1,0 +1,208 @@
+{
+  "title": "GEOINT System Coherency Bootstrap",
+  "slides": [
+    {
+      "id": "s1-big-picture",
+      "title": "1) What this system does (without the jargon)",
+      "context": "Goal: convert mixed geospatial feeds into reliable, queryable, on-screen intelligence.",
+      "options": [
+        {
+          "label": "Recommended: 20-second architecture map",
+          "recommended": true,
+          "description": "Start here if you want the whole stack in one glance.",
+          "previewBlocks": [
+            {
+              "type": "mermaid",
+              "content": "flowchart LR\n  A[External Sources\nOpenSky / ADS-B / OSM / Open-Meteo / STAC] --> B[Ingestion + Search Services]\n  B --> C[Schema Validation\n(Effect Schema)]\n  C --> D[Entity Materializers]\n  D --> E[ECS + GEOINT Entity Layer]\n  E --> F[stx Runtime\n(per-entity state)]\n  F --> G[Panels / Map / Lists]\n  G --> H[Harness Tools + sdk.geoint.*]"
+            }
+          ]
+        },
+        {
+          "label": "Domain-first framing",
+          "description": "Same system, framed as mission questions.",
+          "previewBlocks": [
+            {
+              "type": "code",
+              "lang": "text",
+              "code": "Q1: What exists right now?\n  -> Search + ingestion + persisted observations\n\nQ2: Can I trust where this came from?\n  -> Provenance, source normalization, canonical source IDs\n\nQ3: Can I operate it live?\n  -> stx entity lifecycle + floating panel surface + harness tools\n\nQ4: Can an agent use it programmatically?\n  -> geoint_* tools + sdk.geoint.search/select/spawn/summary"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s2-source-coherency",
+      "title": "2) Source coherency: one truth, no alias drift",
+      "context": "Recent refactor intent: stop runtime alias ambiguity.",
+      "options": [
+        {
+          "label": "Canonical source pipeline",
+          "recommended": true,
+          "previewBlocks": [
+            {
+              "type": "mermaid",
+              "content": "flowchart TD\n  I[Incoming source string] --> R[sourceRegistry.resolveCanonicalSource]\n  R --> N[sourceResolver.normalizeToCanonicalSource]\n  N --> E[toEcsIntelSource]\n  E --> P[Persistence + Provenance]\n  N --> U[UI / Search / Filters use canonical IDs]"
+            },
+            {
+              "type": "code",
+              "lang": "ts",
+              "code": "// Runtime expectation now\n'adsb-lol'  // not adsb_lol\n'openmeteo' // not weather (as search source ID)"
+            }
+          ]
+        },
+        {
+          "label": "Failure mode view (why this matters)",
+          "previewBlocks": [
+            {
+              "type": "code",
+              "lang": "text",
+              "code": "Without canonicalization:\n- Source counts split across aliases\n- Filter toggles mismatch actual backend sources\n- Provenance confidence fragmented\n- Tool output inconsistent with UI labels\n\nWith canonicalization:\n- One source ID per concept\n- Stable aggregation and filtering\n- Deterministic provenance and diagnostics"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s3-request-path",
+      "title": "3) What happens when you run a search",
+      "context": "User click, service fan-out, normalized results, UI render.",
+      "options": [
+        {
+          "label": "Sequence trace (recommended)",
+          "recommended": true,
+          "previewBlocks": [
+            {
+              "type": "mermaid",
+              "content": "sequenceDiagram\n  participant UI as Search UI\n  participant M as SearchMachine\n  participant RPC as SearchRpcServer\n  participant H as SearchEntityHandlers\n  participant Repo as Repositories/APIs\n  participant Map as Result Mapper\n\n  UI->>M: execute(bounds, sources)\n  M->>RPC: searchInBounds/searchNearby\n  RPC->>H: dispatch by source\n  H->>Repo: query source backends\n  Repo-->>H: raw records\n  H->>Map: SearchResult* constructors\n  Map-->>RPC: canonical SearchResultItem[]\n  RPC-->>M: grouped results + source counts/errors\n  M-->>UI: render list/map + statuses"
+            }
+          ]
+        },
+        {
+          "label": "Control-plane view",
+          "previewBlocks": [
+            {
+              "type": "code",
+              "lang": "text",
+              "code": "SearchMachine owns interaction state:\n- selected sources\n- in-flight status per source\n- progress + errors\n\nSearch services own data retrieval:\n- source-specific fetch/query\n- transformation to SearchResultItem\n- normalized source accounting"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s4-entity-runtime",
+      "title": "4) From result to living entity (stx + traits)",
+      "context": "How a result becomes stateful, reactive runtime data.",
+      "options": [
+        {
+          "label": "Entity lifecycle map",
+          "recommended": true,
+          "previewBlocks": [
+            {
+              "type": "mermaid",
+              "content": "flowchart LR\n  SR[SearchResultItem] --> GE[GeointEntity.fromSearchResult]\n  GE --> TR[Trait mapping]\n  TR --> SX[entity-stx instance\n(one per entity)]\n  SX --> FM[Trait Fermions\n(one per trait type)]\n  SX --> UI[Map markers / cards / detail panels]\n  SX --> OPS[Entity ops: select, focus, update, remove]"
+            }
+          ]
+        },
+        {
+          "label": "Mental model for beginners",
+          "previewBlocks": [
+            {
+              "type": "code",
+              "lang": "text",
+              "code": "Think of stx as the per-entity brain:\n- identity + lifecycle status\n- current derived view state\n- links to trait-level behavior\n\nThink of Fermions as specialist reflexes:\n- one for flight-like behavior\n- one for weather-like behavior\n- one for imagery/feature behavior"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s5-harness-sdk",
+      "title": "5) How agents/tools interact with GEOINT",
+      "context": "Same runtime, two façades: tool calls and SDK namespace.",
+      "options": [
+        {
+          "label": "Bridge architecture (recommended)",
+          "recommended": true,
+          "previewBlocks": [
+            {
+              "type": "mermaid",
+              "content": "flowchart TD\n  T[geoint_* tools\nsearch/spawn/select/summary] --> B[Geoint Harness Bridge]\n  S[sdk.geoint.* in code-mode] --> B\n  B --> HS[GeointHarnessService]\n  HS --> RT[stx + entity ops + search adapters]\n  RT --> OUT[Structured details + text summary]"
+            },
+            {
+              "type": "code",
+              "lang": "ts",
+              "code": "// Typical code-mode usage\nconst res = await sdk.geoint.search({\n  mode: 'bounds',\n  bounds: { west, south, east, north },\n  limit: 100\n})\n\nawait sdk.geoint.spawn({ mode: 'batch', results: res.items })\nawait sdk.geoint.summary({ scope: 'all' })"
+            }
+          ]
+        },
+        {
+          "label": "Operational contract",
+          "previewBlocks": [
+            {
+              "type": "code",
+              "lang": "text",
+              "code": "Contract guarantees:\n- stable parameter schemas\n- machine-readable details payloads\n- source-aware summaries\n- deterministic behavior under partial source failures"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s6-coherency-check",
+      "title": "6) Coherency check: what we validate to trust the stack",
+      "context": "If these pass, architecture is aligned end-to-end.",
+      "options": [
+        {
+          "label": "Recommended validation matrix",
+          "recommended": true,
+          "previewBlocks": [
+            {
+              "type": "code",
+              "lang": "text",
+              "code": "A. Source ID coherence\n  - no runtime adsb_lol literals\n  - no runtime source:'weather' in SearchResult paths\n  - canonical IDs resolve consistently\n\nB. Search pipeline coherence\n  - SearchMachine sources == schema literals\n  - RPC sourceCounts/sourceErrors keyed by canonical IDs\n\nC. Entity coherence\n  - GeointEntity factory accepts updated source IDs\n  - materializers map source -> ECS intel source deterministically\n\nD. Tooling coherence\n  - geoint_* tools and sdk.geoint.* return consistent source IDs\n\nE. Regression coherence\n  - targeted vitest suites green"
+            }
+          ]
+        },
+        {
+          "label": "Risk hotspots",
+          "previewBlocks": [
+            {
+              "type": "code",
+              "lang": "text",
+              "code": "Most likely drift points:\n1) testbeds and fixture payloads\n2) UI source icon/label maps\n3) registry alias tables\n4) backend source fan-out defaults\n5) docs that still describe legacy IDs as runtime values"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s7-next-steps",
+      "title": "7) Suggested next walkthrough (bootstrap plan)",
+      "context": "A practical path from zero to confident.",
+      "options": [
+        {
+          "label": "Recommended learning path",
+          "recommended": true,
+          "previewBlocks": [
+            {
+              "type": "code",
+              "lang": "text",
+              "code": "Step 1 (10 min): follow one search request in logs\nStep 2 (10 min): inspect one SearchResult -> GeointEntity conversion\nStep 3 (10 min): inspect one entity-stx lifecycle transition\nStep 4 (10 min): run geoint_search + geoint_summary via harness\nStep 5 (10 min): verify source normalization in registry/sourceResolver\n\nOutcome: you can explain the stack without hand-waving."
+            }
+          ]
+        },
+        {
+          "label": "Hands-on debugging drill",
+          "previewBlocks": [
+            {
+              "type": "code",
+              "lang": "text",
+              "code": "Exercise:\n- Trigger a search over mixed sources\n- Force one source failure\n- Verify: UI still renders partial results\n- Verify: sourceErrors and sourceCounts stay coherent\n- Verify: summary tool reports canonical sources only"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

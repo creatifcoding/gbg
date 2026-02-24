@@ -32,7 +32,7 @@ import type { BBox } from '../../schemas'
 /**
  * Flight data source - identifies the API that provided the data
  */
-export const FlightSource = Schema.Literal('opensky', 'adsb_lol')
+export const FlightSource = Schema.Literal('opensky', 'adsb-lol')
 export type FlightSource = typeof FlightSource.Type
 
 /**

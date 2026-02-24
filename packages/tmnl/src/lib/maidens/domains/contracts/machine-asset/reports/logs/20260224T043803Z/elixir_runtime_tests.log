@@ -1,0 +1,8 @@
+Unchecked dependencies for environment test:
+* ex_json_schema (Hex package)
+  the dependency is not available, run "mix deps.get"
+* exonerate (Hex package)
+  the dependency is not available, run "mix deps.get"
+* jason (Hex package)
+  the dependency is not available, run "mix deps.get"
+** (Mix) Can't continue due to errors on dependencies

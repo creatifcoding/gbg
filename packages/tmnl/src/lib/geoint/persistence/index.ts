@@ -196,6 +196,22 @@ export {
   ImageryRepositoryLive,
 } from './postgis/ImageryRepository'
 
+// GEOINT Registry Source Repository - geoint_registry read model
+export {
+  RegistrySourceRepositoryError,
+  RegistryTaxonomyRow,
+  type RegistryTaxonomyRow as RegistryTaxonomyRowType,
+  RegistrySourceRow,
+  type RegistrySourceRow as RegistrySourceRowType,
+  RegistryAliasRow,
+  type RegistryAliasRow as RegistryAliasRowType,
+  buildSourceRegistryEntries,
+  type RegistrySourceRepository,
+  RegistrySourceRepositoryTag,
+  makeRegistrySourceRepository,
+  RegistrySourceRepositoryLive,
+} from './postgis/RegistrySourceRepository'
+
 // GEOINT Repository Facade - Unified access to all domain repositories
 export {
   // Error

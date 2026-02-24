@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { Effect, Exit, Cause, Fiber } from 'effect'
+import { Effect, Exit, Cause, Fiber, Context, Layer } from 'effect'
 import { setup, createMachine, assign, fromPromise } from 'xstate'
 import { observable, observe, batch } from '@legendapp/state'
 
@@ -20,6 +20,7 @@ import {
   stxMachine,
   stxSynced,
 } from '../stx'
+import * as Registry from '@effect-atom/atom/Registry'
 import type { StxConfig, Stx } from '../types'
 
 // =============================================================================
@@ -638,6 +639,194 @@ describe('stx() Factory', () => {
 
       state.dispose()
     })
+
+    it('resets machine context to initial values', () => {
+      const state = stx({
+        machine: counterMachine,
+        data: { count: 0 },
+      })
+
+      state.send!({ type: 'INCREMENT' })
+      state.send!({ type: 'INCREMENT' })
+      state.send!({ type: 'INCREMENT' })
+      expect(state.actor!.getSnapshot().context.count).toBe(3)
+
+      state.reset()
+
+      // Machine context should be restored to initial (count: 0)
+      expect(state.actor!.getSnapshot().context.count).toBe(0)
+      expect(state.actor!.getSnapshot().matches('idle')).toBe(true)
+
+      state.dispose()
+    })
+
+    it('resets toggle machine and restores initial context', () => {
+      const state = stx({
+        machine: toggleMachine,
+        data: { toggleCount: 0 },
+      })
+
+      // Mutate context through transitions
+      state.send!({ type: 'TOGGLE' }) // inactive → active, count: 1
+      state.send!({ type: 'TOGGLE' }) // active → inactive, count: 2
+      state.send!({ type: 'TOGGLE' }) // inactive → active, count: 3
+      expect(state.actor!.getSnapshot().context.toggleCount).toBe(3)
+      expect(state.actor!.getSnapshot().matches('active')).toBe(true)
+
+      state.reset()
+
+      // Both state value AND context should be initial
+      expect(state.actor!.getSnapshot().matches('inactive')).toBe(true)
+      expect(state.actor!.getSnapshot().context.toggleCount).toBe(0)
+
+      state.dispose()
+    })
+  })
+
+  describe('Registry', () => {
+    it('exposes an internal Registry on the stx instance', () => {
+      const state = stx({
+        data: { count: 0 },
+      })
+
+      expect(state.registry).toBeDefined()
+
+      state.dispose()
+    })
+
+    it('Registry can read computed atom values outside React', () => {
+      const state = stx({
+        data: { count: 5 },
+        computed: {
+          doubled: (get) => get.data.count.get() * 2,
+          label: (get) => `Count is ${get.data.count.get()}`,
+        },
+      })
+
+      // Read computed values via registry (non-React context)
+      const doubled = state.registry.get(state.computed.doubled)
+      const label = state.registry.get(state.computed.label)
+
+      expect(doubled).toBe(10)
+      expect(label).toBe('Count is 5')
+
+      state.dispose()
+    })
+
+    it('Registry reflects computed values at read time', () => {
+      const state = stx({
+        data: { count: 3 },
+        computed: {
+          squared: (get) => get.data.count.get() ** 2,
+        },
+      })
+
+      // First read: correct
+      expect(state.registry.get(state.computed.squared)).toBe(9)
+
+      state.dispose()
+    })
+  })
+
+  describe('Snapshot (full three-layer capture)', () => {
+    it('returns { data, machine, computed } structure', () => {
+      const state = stx({
+        machine: counterMachine,
+        data: { count: 5 },
+        computed: {
+          doubled: (get) => get.data.count.get() * 2,
+        },
+      })
+
+      const snap = state.snapshot()
+
+      expect(snap).toHaveProperty('data')
+      expect(snap).toHaveProperty('machine')
+      expect(snap).toHaveProperty('computed')
+
+      expect(snap.data.count).toBe(5)
+      expect(snap.machine).toBeDefined()
+      expect(snap.machine!.value).toBe('idle')
+      expect(snap.machine!.context).toEqual({ count: 0 })
+      expect(snap.machine!.persisted).toBeDefined()
+      expect(snap.computed.doubled).toBe(10)
+
+      state.dispose()
+    })
+
+    it('machine is undefined when no machine provided', () => {
+      const state = stx({
+        data: { count: 3 },
+        computed: {
+          tripled: (get) => get.data.count.get() * 3,
+        },
+      })
+
+      const snap = state.snapshot()
+
+      expect(snap.data.count).toBe(3)
+      expect(snap.machine).toBeUndefined()
+      expect(snap.computed.tripled).toBe(9)
+
+      state.dispose()
+    })
+
+    it('computed reflects current data, not stale cache', () => {
+      const state = stx({
+        data: { count: 2 },
+        computed: {
+          squared: (get) => get.data.count.get() ** 2,
+        },
+      })
+
+      expect(state.snapshot().computed.squared).toBe(4)
+
+      state.data.count.set(7)
+      expect(state.snapshot().computed.squared).toBe(49)
+
+      state.data.count.set(10)
+      expect(state.snapshot().computed.squared).toBe(100)
+
+      state.dispose()
+    })
+
+    it('machine snapshot reflects mutations', () => {
+      const state = stx({
+        machine: counterMachine,
+        data: { count: 0 },
+      })
+
+      state.send!({ type: 'INCREMENT' })
+      state.send!({ type: 'INCREMENT' })
+
+      const snap = state.snapshot()
+      expect(snap.machine!.context.count).toBe(2)
+
+      state.dispose()
+    })
+
+    it('snapshot is JSON-serializable', () => {
+      const state = stx({
+        machine: toggleMachine,
+        data: { toggleCount: 0 },
+        computed: {
+          label: (get) => `Count: ${get.data.toggleCount.get()}`,
+        },
+      })
+
+      state.send!({ type: 'TOGGLE' })
+      const snap = state.snapshot()
+
+      // Should not throw — no proxies, functions, or circular refs
+      const json = JSON.stringify(snap)
+      const parsed = JSON.parse(json)
+
+      expect(parsed.data.toggleCount).toBe(0)
+      expect(parsed.machine.value).toBe('active')
+      expect(parsed.computed.label).toBe('Count: 0')
+
+      state.dispose()
+    })
   })
 
   describe('Dispose', () => {
@@ -1119,6 +1308,236 @@ describe('TypeScript Types', () => {
 // =============================================================================
 // Performance Tests
 // =============================================================================
+
+describe('Layer Provision (ManagedRuntime)', () => {
+  // Define a test service
+  class Calculator extends Context.Tag('test/Calculator')<
+    Calculator,
+    {
+      readonly add: (a: number, b: number) => Effect.Effect<number>
+      readonly multiply: (a: number, b: number) => Effect.Effect<number>
+    }
+  >() {}
+
+  const CalculatorLive = Layer.succeed(Calculator, {
+    add: (a, b) => Effect.succeed(a + b),
+    multiply: (a, b) => Effect.succeed(a * b),
+  })
+
+  it('provides services to standalone effect runners', async () => {
+    const state = stx({
+      data: { result: 0 },
+      layer: CalculatorLive,
+      effects: {
+        calculate: (a: number, b: number) =>
+          Effect.gen(function* () {
+            const calc = yield* Calculator
+            return yield* calc.add(a, b)
+          }),
+      },
+    })
+
+    const result = await state.effects.calculate(3, 4)
+    expect(result._tag).toBe('Success')
+    if (result._tag === 'Success') {
+      expect(result.value).toBe(7)
+    }
+
+    state.dispose()
+  })
+
+  it('provides services to multiple effect runners', async () => {
+    const state = stx({
+      data: {},
+      layer: CalculatorLive,
+      effects: {
+        add: (a: number, b: number) =>
+          Effect.gen(function* () {
+            const calc = yield* Calculator
+            return yield* calc.add(a, b)
+          }),
+        multiply: (a: number, b: number) =>
+          Effect.gen(function* () {
+            const calc = yield* Calculator
+            return yield* calc.multiply(a, b)
+          }),
+      },
+    })
+
+    const addResult = await state.effects.add(5, 3)
+    const mulResult = await state.effects.multiply(5, 3)
+
+    expect(addResult._tag).toBe('Success')
+    expect(mulResult._tag).toBe('Success')
+    if (addResult._tag === 'Success') expect(addResult.value).toBe(8)
+    if (mulResult._tag === 'Success') expect(mulResult.value).toBe(15)
+
+    state.dispose()
+  })
+
+  it('exposes runtime on the instance', () => {
+    const state = stx({
+      data: {},
+      layer: CalculatorLive,
+    })
+
+    expect(state.runtime).toBeDefined()
+
+    state.dispose()
+  })
+
+  it('runtime is undefined when no layer provided', () => {
+    const state = stx({
+      data: {},
+    })
+
+    expect(state.runtime).toBeUndefined()
+
+    state.dispose()
+  })
+
+  it('effects without layer still work (global runtime)', async () => {
+    const state = stx({
+      data: {},
+      effects: {
+        simple: Effect.succeed(42),
+      },
+    })
+
+    const result = await state.effects.simple()
+    expect(result._tag).toBe('Success')
+    if (result._tag === 'Success') expect(result.value).toBe(42)
+
+    state.dispose()
+  })
+
+  it('handles effect failure with layer gracefully', async () => {
+    const state = stx({
+      data: {},
+      layer: CalculatorLive,
+      effects: {
+        failing: Effect.fail(new Error('Layer test error')),
+      },
+    })
+
+    const result = await state.effects.failing()
+    expect(result._tag).toBe('Failure')
+
+    state.dispose()
+  })
+
+  it('merges multiple layers', async () => {
+    class Logger extends Context.Tag('test/Logger')<
+      Logger,
+      { readonly log: (msg: string) => Effect.Effect<string> }
+    >() {}
+
+    const LoggerLive = Layer.succeed(Logger, {
+      log: (msg) => Effect.succeed(`[LOG] ${msg}`),
+    })
+
+    const combined = Layer.mergeAll(CalculatorLive, LoggerLive)
+
+    const state = stx({
+      data: {},
+      layer: combined,
+      effects: {
+        calcAndLog: (a: number, b: number) =>
+          Effect.gen(function* () {
+            const calc = yield* Calculator
+            const logger = yield* Logger
+            const sum = yield* calc.add(a, b)
+            return yield* logger.log(`Sum: ${sum}`)
+          }),
+      },
+    })
+
+    const result = await state.effects.calcAndLog(10, 20)
+    expect(result._tag).toBe('Success')
+    if (result._tag === 'Success') expect(result.value).toBe('[LOG] Sum: 30')
+
+    state.dispose()
+  })
+})
+
+describe('Persistence (syncObservable)', () => {
+  // Use a mock plugin for testing (avoids async import issues in tests)
+  class MockPersistPlugin {
+    private store = new Map<string, any>()
+
+    getTable(table: string) {
+      return this.store.get(table)
+    }
+
+    set(table: string, changes: any[]) {
+      const current = this.store.get(table) || {}
+      for (const change of changes) {
+        if (change.path && change.path.length > 0) {
+          let target = current
+          for (let i = 0; i < change.path.length - 1; i++) {
+            target[change.path[i]] = target[change.path[i]] || {}
+            target = target[change.path[i]]
+          }
+          target[change.path[change.path.length - 1]] = change.valueAtPath
+        } else {
+          Object.assign(current, change.valueAtPath)
+        }
+      }
+      this.store.set(table, current)
+    }
+
+    deleteTable(table: string) {
+      this.store.delete(table)
+    }
+
+    getMetadata() { return undefined }
+    setMetadata() {}
+    deleteMetadata() {}
+  }
+
+  it('accepts plugin instance in persist config', () => {
+    const plugin = new MockPersistPlugin()
+
+    const state = stx({
+      data: { name: 'test', count: 0 },
+      persist: {
+        name: 'test-persist',
+        plugin: plugin,
+      },
+    })
+
+    expect(state.data.name.get()).toBe('test')
+    state.dispose()
+  })
+
+  it('persist config with include filter compiles', () => {
+    const state = stx({
+      data: { secret: 'hidden', public: 'visible' },
+      persist: {
+        name: 'filtered',
+        plugin: new MockPersistPlugin(),
+        include: ['public'],
+      },
+    })
+
+    expect(state.data.secret.get()).toBe('hidden')
+    state.dispose()
+  })
+
+  it('persist config with exclude filter compiles', () => {
+    const state = stx({
+      data: { password: '12345', username: 'admin' },
+      persist: {
+        name: 'excluded',
+        plugin: new MockPersistPlugin(),
+        exclude: ['password'],
+      },
+    })
+
+    expect(state.data.username.get()).toBe('admin')
+    state.dispose()
+  })
+})
 
 describe('Performance', () => {
   it('handles many rapid data updates', () => {

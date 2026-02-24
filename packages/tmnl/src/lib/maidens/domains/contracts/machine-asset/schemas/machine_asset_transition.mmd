@@ -1,0 +1,17 @@
+stateDiagram-v2
+  commissioned --> operational
+  operational --> idle
+  operational --> faulted
+  operational --> scheduled_maintenance
+  operational --> retired
+  idle --> operational
+  idle --> faulted
+  idle --> scheduled_maintenance
+  idle --> retired
+  faulted --> scheduled_maintenance
+  faulted --> unscheduled_maintenance
+  scheduled_maintenance --> operational
+  scheduled_maintenance --> decommissioned
+  unscheduled_maintenance --> operational
+  retired --> decommissioned
+  state decommissioned

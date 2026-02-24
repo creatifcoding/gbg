@@ -170,7 +170,7 @@ function ecsFlightToSearchResult(
   return SearchResultFlight.make({
     // Base fields (from SearchResultBase)
     id: SearchResultId.make(entity.entityId),
-    source: 'adsb_lol', // ECS entities come from ingestion pipeline
+    source: 'adsb-lol', // ECS entities come from ingestion pipeline
     score: Math.max(0, Math.min(1, entity.confidence)), // Clamp to 0-1
     retrievedAt: new Date(),
     // Flight-specific fields

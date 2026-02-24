@@ -1,0 +1,112 @@
+{
+  "runId": "20260224T064512Z",
+  "status": "passed",
+  "startAt": "2026-02-24T06:45:12Z",
+  "endAt": "2026-02-24T06:46:48Z",
+  "durationMs": 95727,
+  "projectRoot": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+  "summary": {
+    "gatesTotal": 6,
+    "gatesPassed": 6,
+    "gatesFailed": 0,
+    "gatesSkipped": 0
+  },
+  "steps": [
+    {
+      "id": "ts_contract_tests",
+      "name": "TypeScript contract tests",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 2468,
+      "command": "bunx vitest run src/lib/maidens/domains/contracts/sensor-asset/ts/sensor-asset.contract.test.ts",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/sensor-asset/reports/logs/20260224T064512Z/ts_contract_tests.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "schema_generation_determinism",
+      "name": "JSON Schema generation + determinism",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 744,
+      "command": "bun src/lib/maidens/domains/contracts/sensor-asset/scripts/gen-sensor-asset-schemas.ts",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/sensor-asset/reports/logs/20260224T064512Z/schema_generation_determinism.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": "79240b040906aa19ba923d927af6266ec4c77640868d8a05f18ac99a953aed11",
+        "fingerprintAfter": "79240b040906aa19ba923d927af6266ec4c77640868d8a05f18ac99a953aed11",
+        "fingerprintStable": true
+      }
+    },
+    {
+      "id": "elixir_runtime_tests",
+      "name": "Elixir runtime tests (validator + strategy + persistence)",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 85734,
+      "command": "mix test",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/sensor-asset/elixir",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/sensor-asset/reports/logs/20260224T064512Z/elixir_runtime_tests.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "strategy_boundary_tests",
+      "name": "strategy boundary tests",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 2415,
+      "command": "mix test test/sensor_asset_strategy_boundary_test.exs",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/sensor-asset/elixir",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/sensor-asset/reports/logs/20260224T064512Z/strategy_boundary_tests.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "elixir_persistence_tests",
+      "name": "explicit persistence test file",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 1985,
+      "command": "mix test test/sensor_asset_persistence_test.exs",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/sensor-asset/elixir",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/sensor-asset/reports/logs/20260224T064512Z/elixir_persistence_tests.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "negative_gate_assertions",
+      "name": "negative-gate assertions (schema-valid/FSM-illegal rejection)",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 1837,
+      "command": "mix test test/sensor_asset_validator_test.exs --only negative_gate",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/sensor-asset/elixir",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/sensor-asset/reports/logs/20260224T064512Z/negative_gate_assertions.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 ---
 name: tmnl-release-worker
 description: TMNL stage worker for Release phase. Use proactively for rollout planning, cutover safety, and rollback readiness.
-model: gpt-5.3-codex
+model: openai-codex/gpt-5.3-codex
 ---
 
 You run Release phase work.

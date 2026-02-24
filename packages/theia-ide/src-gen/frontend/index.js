@@ -60,13 +60,8 @@ async function preload(container) {
 }
 
 module.exports = (async () => {
-    console.log('[TMNL] Starting Theia initialization...');
-    window.onerror = (msg, url, line, col, error) => {
-        console.error('[TMNL] Window error:', msg, url, line, col, error);
-    };
-
     const { messagingFrontendModule } = require('@theia/core/lib/browser/messaging/messaging-frontend-module');
-    const container = new Container();
+    const container = new Container({ skipBaseClassChecks: true });
     container.load(messagingFrontendModule);
     const { messagingFrontendOnlyModule } = require('@theia/core/lib/browser-only/messaging/messaging-frontend-only-module');
     container.load(messagingFrontendOnlyModule);
@@ -115,8 +110,8 @@ module.exports = (async () => {
         await load(container, require('@theia/messages/lib/browser/messages-frontend-module'));
         await load(container, require('@theia/output/lib/browser/output-frontend-module'));
 
-        // TMNL VANTA Theme Extension (local) - disabled for vanilla test
-        // await load(container, require('../../lib/browser/frontend-module'));
+        // TMNL VANTA Theme Extension (local)
+        await load(container, require('../../lib/browser/frontend-module'));
         
         MonacoInit.init(container);
         ;
@@ -124,6 +119,10 @@ module.exports = (async () => {
     } catch (reason) {
         console.error('Failed to start the frontend application.');
         if (reason) {
+            console.error('Error name:', reason?.name);
+            console.error('Error message:', reason?.message);
+            console.error('Error stack:', reason?.stack);
+            console.error('Error stringified:', JSON.stringify(reason, Object.getOwnPropertyNames(reason || {})));
             console.error(reason);
         }
     }

@@ -1,0 +1,11 @@
+Running ExUnit with seed: 178955, max_cases: 32
+Excluding tags: [:test]
+Including tags: [:negative_gate]
+
+.
+20:40:58.943 [debug] [signal] type=order.transition.rejected directives=1 duration=11.88ms
+
+20:40:58.983 [debug] [directive] type=RunInstruction result=ok duration=34.85ms
+..
+Finished in 0.7 seconds (0.00s async, 0.7s sync)
+15 tests, 0 failures, 12 excluded

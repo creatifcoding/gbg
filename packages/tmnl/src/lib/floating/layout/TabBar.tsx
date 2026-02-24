@@ -1,30 +1,23 @@
 /**
- * TabBar — draggable tab strip for multi-tab panels
+ * TabBar v2 — draggable tab strip for multi-tab panels
+ *
+ * Architecture change from v1:
+ *   - NO nested DndContext — SortableContext only, participates in root DndContext
+ *   - Sortable IDs namespaced as `tab:{hostPanelId}:{tabId}` to avoid collisions
+ *   - Data payload on each sortable item enables type-based drag discrimination
+ *   - Tab reorder, cross-panel transfer, and tear-off all flow through the root provider
  *
  * SM §3.7: Terminal and chat panels use a combined header+tab bar.
- * Tabs can be dragged between panels (future: HTML5 drag).
- *
- * For now, renders a static tab bar with close buttons.
- * Tab state is managed by the parent panel via the tabs stx field.
  *
  * @module
  */
 
 import { memo, useCallback, type ReactNode, type RefObject } from 'react'
 import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core'
-import {
   SortableContext,
   horizontalListSortingStrategy,
-  useSortable,
-  arrayMove,
 } from '@dnd-kit/sortable'
+import { LayoutGroup } from 'motion/react'
 import { PANEL } from '../tokens'
 import { SortableTabItem } from './SortableTabItem'
 
@@ -44,6 +37,8 @@ export interface Tab {
 }
 
 export interface TabBarProps {
+  /** Host panel ID — used for sortable ID namespacing and layoutId scoping */
+  hostPanelId: string
   /** Tabs to render */
   tabs: Tab[]
   /** Active tab ID */
@@ -54,6 +49,10 @@ export interface TabBarProps {
   onTabClose?: (tabId: string) => void
   /** Tab reorder handler — receives new ordered array of tab IDs */
   onTabReorder?: (tabIds: string[]) => void
+  /** Tab rename handler — receives tabId and new title */
+  onTabRename?: (tabId: string, newTitle: string) => void
+  /** Tab context menu handler */
+  onTabContextMenu?: (tabId: string, event: React.MouseEvent) => void
   /** New tab handler (renders + button) */
   onNewTab?: () => void
   /** Ref forwarded to the "+" button */
@@ -67,30 +66,20 @@ export interface TabBarProps {
 // =============================================================================
 
 export const TabBar = memo(function TabBar({
+  hostPanelId,
   tabs,
   activeTabId,
   onTabClick,
   onTabClose,
   onTabReorder,
+  onTabRename,
+  onTabContextMenu,
   onNewTab,
   addButtonRef,
   rightSlot,
 }: TabBarProps) {
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-  )
-
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event
-    if (!over || active.id === over.id || !onTabReorder) return
-
-    const oldIndex = tabs.findIndex(t => t.id === active.id)
-    const newIndex = tabs.findIndex(t => t.id === over.id)
-    if (oldIndex === -1 || newIndex === -1) return
-
-    const reordered = arrayMove(tabs.map(t => t.id), oldIndex, newIndex)
-    onTabReorder(reordered)
-  }, [tabs, onTabReorder])
+  // Namespace sortable IDs to avoid collision with panel draggable IDs
+  const sortableIds = tabs.map(t => `tab:${hostPanelId}:${t.id}`)
 
   return (
     <div
@@ -106,32 +95,33 @@ export const TabBar = memo(function TabBar({
         gap: 0,
       }}
     >
-      {/* Tabs — sortable */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
+      {/* Tabs — sortable within root DndContext (no nested DndContext!) */}
+      <SortableContext
+        items={sortableIds}
+        strategy={horizontalListSortingStrategy}
       >
-        <SortableContext
-          items={tabs.map(t => t.id)}
-          strategy={horizontalListSortingStrategy}
-        >
+        <LayoutGroup id={`tab-bar-${hostPanelId}`}>
           <div
+            data-slot="tab-strip"
             style={{
               display: 'flex',
               alignItems: 'stretch',
               flex: 1,
               overflow: 'hidden',
               minWidth: 0,
+              position: 'relative',
             }}
           >
             {tabs.map((tab) => (
               <SortableTabItem
                 key={tab.id}
                 tab={tab}
+                hostPanelId={hostPanelId}
                 isActive={tab.id === activeTabId}
                 onClick={onTabClick}
                 onClose={onTabClose}
+                onRename={onTabRename}
+                onContextMenu={onTabContextMenu}
               />
             ))}
 
@@ -184,8 +174,8 @@ export const TabBar = memo(function TabBar({
               </button>
             )}
           </div>
-        </SortableContext>
-      </DndContext>
+        </LayoutGroup>
+      </SortableContext>
 
       {/* Right slot (for float button, etc.) */}
       {rightSlot && (
@@ -196,5 +186,3 @@ export const TabBar = memo(function TabBar({
     </div>
   )
 })
-
-

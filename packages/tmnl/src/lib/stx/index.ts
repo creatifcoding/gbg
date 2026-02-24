@@ -36,6 +36,7 @@
 // =============================================================================
 
 export { stx, stxData, stxMachine, stxSynced } from './stx'
+export { stxStream } from './stream'
 export type { StxBindingsConfig, StxConfigWithBindings } from './stx'
 
 // =============================================================================
@@ -45,6 +46,8 @@ export type { StxBindingsConfig, StxConfigWithBindings } from './stx'
 export {
   fromEffect,
   fromEffectCallback,
+  fromEffectStream,
+  fromEffectStreamToObservable,
   fromLegendState,
   fromLegendStateMulti,
   updateLegendState,
@@ -65,6 +68,7 @@ export {
   useStxMatches,
   useStxEffect,
   useStxComputed,
+  useStxStream,
   useStx,
 } from './hooks'
 
@@ -75,6 +79,7 @@ export {
 export type {
   StxConfig,
   Stx,
+  StxSnapshot,
   StxGetter,
   StxStream,
   StreamStxConfig,

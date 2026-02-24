@@ -17,7 +17,7 @@ describe('code-mode sdk.geoint', () => {
     )
   })
 
-  it('supports sdk.geoint search/summary/focus operations', async () => {
+  it('supports sdk.geoint search/summary/focus/plan operations', async () => {
     const service = await Effect.runPromise(
       Effect.gen(function* () {
         return yield* GeointHarnessService
@@ -52,11 +52,18 @@ describe('code-mode sdk.geoint', () => {
             const spawned = await sdk.geoint.spawn.one(${JSON.stringify(encoded)})
             const search = await sdk.geoint.search({ mode: 'type', entityType: 'flight' })
             const summary = await sdk.geoint.summary({ scope: 'all', includeViewport: true })
+            const plan = await sdk.geoint.plan({
+              queryId: 'q-sdk-plan-1',
+              requestedSources: ['opensky', 'copernicus-stac'],
+              strategy: 'coverage-first',
+              constraints: { filterLanguage: 'cql2-json', maxSources: 2 },
+            })
             const viewport = await sdk.geoint.focus('flight:abc123', 9)
             return {
               spawnedId: spawned?.entityId,
               searchCount: search.count,
               summaryTotal: summary.total,
+              plannedSources: plan.decision.selected.length,
               viewportZoom: viewport.zoom,
             }
           `,
@@ -69,6 +76,7 @@ describe('code-mode sdk.geoint', () => {
     expect((result.result as any).spawnedId).toBe('flight:abc123')
     expect((result.result as any).searchCount).toBeGreaterThanOrEqual(1)
     expect((result.result as any).summaryTotal).toBeGreaterThanOrEqual(1)
+    expect((result.result as any).plannedSources).toBeGreaterThanOrEqual(1)
     expect((result.result as any).viewportZoom).toBe(9)
   })
 

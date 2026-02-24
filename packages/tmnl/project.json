@@ -47,6 +47,139 @@
         "cwd": "packages/tmnl"
       }
     },
+    "contracts:e2e:alarm": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:alarm",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:equipment-state": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:equipment-state",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:gen:line": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:gen:line",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:test:line": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:test:line",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:line": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:line",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:device": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:device",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:machine-asset": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:machine-asset",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:workcell": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:workcell",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:sensor-asset": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:sensor-asset",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:sensor": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:sensor",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:gen:plant": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:gen:plant",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:test:plant": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:test:plant",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:plant": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:plant",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:gen:enterprise": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:gen:enterprise",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:test:enterprise": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:test:enterprise",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:enterprise": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:enterprise",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:site": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:site",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:area": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:area",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:asset": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:asset",
+        "cwd": "packages/tmnl"
+      }
+    },
     "elixir:init": {
       "executor": "nx:run-commands",
       "options": {
@@ -189,6 +322,27 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "bun run harness:piai:smoke",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "geoint:migrate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run geoint:migrate",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "geoint:registry:diff": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run geoint:registry:diff",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "geoint:rapid": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run geoint:rapid",
         "cwd": "packages/tmnl"
       }
     },

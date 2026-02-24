@@ -24,6 +24,7 @@ import {
   IdentifiableTrait,
   ClassifiedTrait,
 } from '../schemas/traits'
+import { toEcsIntelSource } from '../registry'
 
 // Entity exports
 export {
@@ -128,20 +129,7 @@ function createEntityId(entityType: EntityType): EntityId {
 }
 
 function toIntelSource(source: SearchResultItem['source']): IntelSource {
-  switch (source) {
-    case 'adsb_lol':
-      return 'adsb-lol'
-    case 'weather':
-      return 'openmeteo'
-    case 'feature':
-      return 'derived'
-    case 'track':
-      return 'derived'
-    case 'custom':
-      return 'unknown'
-    default:
-      return source
-  }
+  return toEcsIntelSource(source)
 }
 
 function toObservedAt(result: SearchResultItem): Date {

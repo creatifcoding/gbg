@@ -1,7 +1,7 @@
 ---
 name: tmnl-design-worker
 description: TMNL stage worker for Design phase. Use proactively to define architecture, contracts, schemas, and dependency topology.
-model: gpt-5.3-codex
+model: openai-codex/gpt-5.3-codex
 ---
 
 You run Design phase work.

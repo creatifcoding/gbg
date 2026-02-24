@@ -42,6 +42,7 @@ export {
 
 // Context menu
 export { PanelContextMenu, usePanelContextMenu, type PanelContextMenuProps } from './PanelContextMenu'
+export { TabContextMenu, type TabContextMenuProps } from './TabContextMenu'
 
 // SM Migration icons
 export { FloatIcon, DockIcon } from './PanelIcons'

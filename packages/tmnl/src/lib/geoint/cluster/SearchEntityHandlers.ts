@@ -280,7 +280,7 @@ export const SearchEntityHandlers = SearchEntity.toLayer(
       const lastUpdatedDate = DateTime.toDate(weather.last_updated)
       return new SearchResultWeather({
         id: `weather-${weather.location_id}` as SearchResultId,
-        source: 'weather',
+        source: 'openmeteo',
         score: 1.0,
         retrievedAt: lastUpdatedDate,
         locationName: `Weather at ${weather.latitude.toFixed(2)}, ${weather.longitude.toFixed(2)}`,
@@ -525,7 +525,7 @@ export const SearchEntityHandlers = SearchEntity.toLayer(
               const lastUpdatedDate = DateTime.toDate(row.time)
               return new SearchResultWeather({
                 id: `weather-${row.location_id}` as SearchResultId,
-                source: 'weather',
+                source: 'openmeteo',
                 score: 1.0,
                 retrievedAt: lastUpdatedDate,
                 locationName: `Weather at ${row.latitude.toFixed(2)}, ${row.longitude.toFixed(2)}`,
@@ -886,7 +886,7 @@ export const SearchEntityHandlers = SearchEntity.toLayer(
           const sourcesToQuery: readonly IntelSource[] =
             query.sources.length > 0
               ? query.sources
-              : (['track', 'osm', 'opensky', 'feature', 'planet', 'sentinel', 'weather'] as const)
+              : (['track', 'osm', 'opensky', 'feature', 'planet', 'sentinel', 'openmeteo'] as const)
 
           // Fan-out: Query all sources in parallel using Effect.all
           const sourceErrors: Record<string, string> = {}
@@ -957,7 +957,7 @@ export const SearchEntityHandlers = SearchEntity.toLayer(
                     })
                   )
                 }
-                case 'weather': {
+                case 'openmeteo': {
                   // Construct typed params at boundary - require bounds for spatial search
                   if (!bounds) return Effect.succeed({ source, results: [] })
                   const weatherParams: WeatherSearchParams = { _tag: 'Spatial', bounds, limit }
@@ -965,7 +965,7 @@ export const SearchEntityHandlers = SearchEntity.toLayer(
                     Effect.map(({ results, error }) => {
                       // Record error if present (Effect-idiomatic pattern)
                       if (Option.isSome(error)) {
-                        sourceErrors['weather'] = error.value
+                        sourceErrors['openmeteo'] = error.value
                       }
                       return { source, results }
                     })
@@ -1027,7 +1027,7 @@ export const SearchEntityHandlers = SearchEntity.toLayer(
         const sourcesToQuery: readonly IntelSource[] =
           query.sources.length > 0
             ? query.sources
-            : (['track', 'osm', 'opensky', 'feature', 'planet', 'sentinel', 'weather'] as const)
+            : (['track', 'osm', 'opensky', 'feature', 'planet', 'sentinel', 'openmeteo'] as const)
 
         // DurableStream URL for this search (clients can reconnect and resume)
         const searchStreamUrl = `/search/stream/${queryId}`
@@ -1079,7 +1079,7 @@ export const SearchEntityHandlers = SearchEntity.toLayer(
                   results = imageryResult.results
                 }
                 break
-              case 'weather':
+              case 'openmeteo':
                 // Construct typed params at boundary
                 if (bounds) {
                   const weatherParams: WeatherSearchParams = { _tag: 'Spatial', bounds, limit }
@@ -1163,7 +1163,7 @@ export const SearchEntityHandlers = SearchEntity.toLayer(
         Effect.gen(function* () {
           const sources: IntelSource[] = [
             'track', 'osm', 'opensky', 'feature',
-            'planet', 'sentinel', 'weather'
+            'planet', 'sentinel', 'openmeteo'
           ]
           const now = new Date()
 
@@ -1172,7 +1172,7 @@ export const SearchEntityHandlers = SearchEntity.toLayer(
             let available = true
             if (source === 'planet') available = Option.isSome(planetOption)
             if (source === 'sentinel') available = Option.isSome(sentinelOption)
-            if (source === 'weather') available = Option.isSome(weatherOption)
+            if (source === 'openmeteo') available = Option.isSome(weatherOption)
 
             return {
               source,
@@ -1272,7 +1272,7 @@ export const SearchEntityHandlers = SearchEntity.toLayer(
                 )
               )
             }
-          } else if (source === 'weather') {
+          } else if (source === 'openmeteo') {
             // Check Open-Meteo availability
             if (Option.isNone(weatherOption)) {
               available = false

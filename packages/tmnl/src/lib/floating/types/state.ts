@@ -7,6 +7,7 @@
 import { Schema } from 'effect'
 import { Position, Dimensions, DimensionConstraints } from './geometry'
 import { PanelMode, PanelVisibility, FloatOriginSide, ResizeEdge } from './enums'
+import { ColumnWidth } from './strip'
 
 // =============================================================================
 // Panel State (Schema)
@@ -31,6 +32,14 @@ export const PanelState = Schema.Struct({
   tiledWidth: Schema.optional(Schema.Number),
   isCollapsed: Schema.optionalWith(Schema.Boolean, { default: () => false }),
   floatOriginSide: Schema.optional(FloatOriginSide),
+  /** Strip column index where this panel was detached from (for pop-back docking). */
+  stripOriginIndex: Schema.optional(Schema.Number),
+  /** Strip width preset captured at detach time. */
+  stripOriginWidth: Schema.optional(ColumnWidth),
+  /** Explicit strip width fraction captured at detach time (0..1). */
+  stripOriginWidthPct: Schema.optional(Schema.Number),
+  /** Epoch ms when panel was reattached into strip (for pop-back animation). */
+  stripLastReattachAt: Schema.optional(Schema.Number),
   accent: Schema.optional(Schema.String),
   headerHidden: Schema.optionalWith(Schema.Boolean, { default: () => false }),
   /** Panel IDs hosted as tabs inside this panel */

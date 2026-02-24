@@ -67,10 +67,10 @@ const SOURCE_CONFIG: Record<IntelSource, { icon: typeof MapPin; label: string; d
   osm: { icon: Building, label: 'POI', description: 'OpenStreetMap POIs' },
   opensky: { icon: Plane, label: 'OpenSky', description: 'ADS-B flights' },
   feature: { icon: Layers, label: 'Features', description: 'Static features' },
-  adsb_lol: { icon: Plane, label: 'ADS-B', description: 'Community ADS-B' },
+  'adsb-lol': { icon: Plane, label: 'ADS-B', description: 'Community ADS-B' },
   planet: { icon: Satellite, label: 'Planet', description: 'Satellite imagery' },
   sentinel: { icon: Satellite, label: 'Sentinel', description: 'Copernicus data' },
-  weather: { icon: CloudSun, label: 'Weather', description: 'Open-Meteo weather' },
+  openmeteo: { icon: CloudSun, label: 'Weather', description: 'Open-Meteo weather' },
   custom: { icon: MapPin, label: 'Custom', description: 'User-defined sources' },
 }
 

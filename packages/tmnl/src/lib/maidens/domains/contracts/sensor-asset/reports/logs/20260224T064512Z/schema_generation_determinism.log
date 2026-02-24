@@ -1,0 +1,15 @@
+[sensor-asset-e2e] first generation run
+Generated schemas:
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/sensor-asset/schemas/sensor_asset.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/sensor-asset/schemas/sensor_asset_transition.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/sensor-asset/schemas/sensor_asset_agent_state.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/sensor-asset/schemas/sensor_asset_transition.mmd
+[sensor-asset-e2e] fingerprint before rerun: 79240b040906aa19ba923d927af6266ec4c77640868d8a05f18ac99a953aed11
+[sensor-asset-e2e] second generation run
+Generated schemas:
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/sensor-asset/schemas/sensor_asset.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/sensor-asset/schemas/sensor_asset_transition.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/sensor-asset/schemas/sensor_asset_agent_state.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/sensor-asset/schemas/sensor_asset_transition.mmd
+[sensor-asset-e2e] fingerprint after rerun:  79240b040906aa19ba923d927af6266ec4c77640868d8a05f18ac99a953aed11
+[sensor-asset-e2e] schema fingerprint stable: 79240b040906aa19ba923d927af6266ec4c77640868d8a05f18ac99a953aed11

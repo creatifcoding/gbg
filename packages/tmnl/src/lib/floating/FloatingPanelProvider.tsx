@@ -9,7 +9,7 @@
  * - useWorkspaceBounds    → workspace rect + viewport
  * - useSnapGuides         → snap guide refs + paint/hide
  * - useDockPreview        → dock preview refs + paint/hide
- * - useKeyboardNudge      → arrow key panel nudging
+ * - useKeyboardDispatch   → TanStack hotkeys registration
  *
  * @module
  */
@@ -33,8 +33,7 @@ import { useFloatingModifiers } from './hooks/useFloatingModifiers'
 import { useWorkspaceBounds } from './hooks/useWorkspaceBounds'
 import { useSnapGuides } from './hooks/useSnapGuides'
 import { useDockPreview } from './hooks/useDockPreview'
-import { useKeyboardNudge } from './hooks/useKeyboardNudge'
-import { useKeyboardNav } from './hooks/useKeyboardNav'
+import { useKeyboardDispatch } from './hooks/useKeyboardDispatch'
 import { DragGuideOverlay } from './components/DragGuideOverlay'
 import { CollapsedStripStack } from './components/CollapsedStripStack'
 import { EdgeDropZoneOverlay } from './layout/EdgeDropZone'
@@ -81,8 +80,7 @@ export function FloatingPanelProvider({
   const { previewRef: dockPreviewRef, labelRef: dockPreviewLabelRef, hideDockPreview, paintDockPreview } = useDockPreview()
 
   usePanelPersistence({ disabled: disablePersistence })
-  useKeyboardNudge({ getLocalViewport })
-  useKeyboardNav()
+  useKeyboardDispatch({ getLocalViewport })
 
   const modifiers = useFloatingModifiers({
     workspaceRectRef,

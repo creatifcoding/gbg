@@ -716,14 +716,21 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
     return unsub
   }, [])
 
-  // Auto-connect once
-  const hasConnected = useRef(false)
+  // Auto-connect with retry semantics.
+  // Previous "once" behavior could leave live panels stuck after an initial
+  // failure (e.g. harness starts late): hasConnected=true prevented re-attempts.
   useEffect(() => {
-    if (autoConnect && !hasConnected.current) {
-      hasConnected.current = true
+    if (!autoConnect) return
+
+    if (status === 'connected' || status === 'connecting') return
+
+    // Initial connect + retry-on-error/idle. keep it gentle to avoid tight loops.
+    const timer = setTimeout(() => {
       doConnect({ nodeId, role, agentName })
-    }
-  }, [autoConnect, nodeId, role, agentName, doConnect])
+    }, status === 'error' ? 1500 : 0)
+
+    return () => clearTimeout(timer)
+  }, [autoConnect, status, nodeId, role, agentName, doConnect])
 
   // Fetch models once connected
   const hasFetchedModels = useRef(false)

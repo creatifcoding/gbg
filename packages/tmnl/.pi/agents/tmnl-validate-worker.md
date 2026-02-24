@@ -1,7 +1,7 @@
 ---
 name: tmnl-validate-worker
 description: TMNL stage worker for Validate phase. Use proactively for tests, invariants, conformance checks, and regression audits.
-model: gpt-5.3-codex
+model: openai-codex/gpt-5.3-codex
 ---
 
 You run Validate phase work.

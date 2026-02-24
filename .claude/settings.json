@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(node_modules/**)",
+      "Read(.turbo/**)",
+      "Read(dist/**)",
+      "Read(coverage/**)",
+      "Read(.nx/**)",
+      "Read(.git/objects/**)"
+    ]
+  }
+}

@@ -175,7 +175,7 @@ function addEvent(
 function ecsFlightToSearchResult(entity: FlightEntityWithTraits): typeof SearchResultFlight.Type {
   return SearchResultFlight.make({
     id: SearchResultId.make(entity.entityId),
-    source: 'adsb_lol',
+    source: 'adsb-lol',
     score: Math.max(0, Math.min(1, entity.confidence)),
     retrievedAt: entity.updatedAt,
     icao24: Icao24.make(entity.icao24 || 'unknown'),

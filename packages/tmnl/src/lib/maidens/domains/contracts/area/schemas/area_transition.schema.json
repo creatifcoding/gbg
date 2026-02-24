@@ -1,0 +1,120 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "AreaTransitionEvent": {
+      "type": "object",
+      "required": [
+        "area_id",
+        "from",
+        "to",
+        "at"
+      ],
+      "properties": {
+        "area_id": {
+          "$ref": "#/definitions/AreaId"
+        },
+        "from": {
+          "$ref": "#/definitions/AreaStatus"
+        },
+        "to": {
+          "$ref": "#/definitions/AreaStatus"
+        },
+        "at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Transition payload contract for area lifecycle events.",
+      "title": "Area Transition Event"
+    },
+    "AreaId": {
+      "type": "string",
+      "description": "Area identifier with ARA- prefix and slug.",
+      "title": "Area ID",
+      "pattern": "^ARA-[a-zA-Z0-9-]+$"
+    },
+    "AreaStatus": {
+      "type": "string",
+      "enum": [
+        "active",
+        "restricted",
+        "maintenance",
+        "inactive",
+        "decommissioned"
+      ],
+      "description": "ISA-95 area lifecycle states.",
+      "title": "Area Status"
+    }
+  },
+  "type": "object",
+  "required": [
+    "area_id",
+    "from",
+    "to",
+    "at"
+  ],
+  "properties": {
+    "area_id": {
+      "$ref": "#/definitions/AreaId"
+    },
+    "from": {
+      "$ref": "#/definitions/AreaStatus"
+    },
+    "to": {
+      "$ref": "#/definitions/AreaStatus"
+    },
+    "at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/area/ts/area.contract.ts). Canonical transition event contract for TypeScript and Elixir.",
+  "title": "AreaTransitionEvent",
+  "$id": "/contracts/area/area_transition.schema.json"
+}

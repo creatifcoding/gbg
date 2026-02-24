@@ -99,7 +99,7 @@ export const IngestionEntityHandlers = IngestionEntity.toLayer(
     // IngestFlightByIcao Handler
     // ─────────────────────────────────────────────────────────────────────────
     const IngestFlightByIcao = (envelope: {
-      payload: { icao24: string; source: 'opensky' | 'adsb_lol' }
+      payload: { icao24: string; source: 'opensky' | 'adsb-lol' }
     }) =>
       Effect.gen(function* () {
         const { icao24, source } = envelope.payload
@@ -107,7 +107,7 @@ export const IngestionEntityHandlers = IngestionEntity.toLayer(
 
         // Fetch flight data based on source - using if/else in Effect.gen for type narrowing
         const response: { position?: [number, number, number]; callsign?: string; heading?: number; speed?: number } =
-          yield* Effect.if(source === 'adsb_lol', {
+          yield* Effect.if(source === 'adsb-lol', {
             onTrue: () =>
               pipe(
                 optionToEffect(adsbLolOption, () =>
@@ -246,7 +246,7 @@ export const IngestionEntityHandlers = IngestionEntity.toLayer(
       payload: {
         regionName: string
         bounds: readonly [number, number, number, number]
-        source: 'opensky' | 'adsb_lol'
+        source: 'opensky' | 'adsb-lol'
         radiusNm: number
       }
     }) =>
@@ -256,7 +256,7 @@ export const IngestionEntityHandlers = IngestionEntity.toLayer(
 
         // Fetch flights based on source - separate branches for type safety
         type FlightData = { icao24: string; lon: number; lat: number; alt?: number; callsign?: string; heading?: number; speed?: number; onGround?: boolean }
-        const flights: FlightData[] = yield* Effect.if(source === 'adsb_lol', {
+        const flights: FlightData[] = yield* Effect.if(source === 'adsb-lol', {
           onTrue: () =>
             pipe(
               optionToEffect(adsbLolOption, () =>

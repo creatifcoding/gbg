@@ -1,0 +1,18 @@
+services:
+  nats:
+    image: nats:2.11-alpine
+    ports:
+      - "4222:4222"   # Client connections
+      - "8222:8222"   # HTTP monitoring
+      - "6222:6222"   # Cluster routing
+    volumes:
+      - ./data/jetstream:/data/jetstream
+      - ./nats-server.conf:/etc/nats/nats-server.conf:ro
+    command: ["-c", "/etc/nats/nats-server.conf"]
+    healthcheck:
+      test: ["CMD", "nats-server", "--health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped

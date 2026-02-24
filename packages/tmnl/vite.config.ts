@@ -234,6 +234,10 @@ export default defineConfig(() => ({
         '**/node_modules/.cache/**',
         '**/.nix-profile/**',
         '**/result/**',
+        // Generated/third-party Elixir trees can trigger massive HMR churn.
+        '**/src/lib/maidens/**/elixir/_build/**',
+        '**/src/lib/maidens/**/elixir/deps/**',
+        '**/src/lib/maidens/**/elixir/doc/**',
       ],
     },
     // Proxy requests to avoid CORS issues in development
@@ -261,6 +265,11 @@ export default defineConfig(() => ({
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
       '/api/pi-orchestrator': {
+        target: 'http://localhost:8787',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/api/harness': {
         target: 'http://localhost:8787',
         changeOrigin: true,
         ws: true,

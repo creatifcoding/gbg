@@ -24,6 +24,7 @@ import {
 } from '../layout/split-tree'
 import { DEFAULT_WIDTH, DEFAULT_HEIGHT, WORKSPACE_SENTINEL } from './constants'
 import { getColumnPanelIds } from '../types/strip'
+import { findColumnIndex, removeFromColumnTree, insertColumn } from './strip'
 import { getEdgeLeaf as getEdgeLeafFromTree } from '../layout/split-tree/queries'
 import { getFloatingStx } from './instance'
 import { reassignZIndices, getViewport } from './helpers'
@@ -266,6 +267,10 @@ export function floatPanel(
   if (!panel || panel.mode !== 'tiled') return
 
   const currentTree = stx.data.panelTree.peek()
+  const strip = stx.data.strip.peek()
+  const stripOriginIndex = findColumnIndex(id)
+  const stripOriginColumn = stripOriginIndex >= 0 ? strip.columns[stripOriginIndex] : null
+
   let originSide: 'left' | 'right' = 'left'
   if (currentTree) {
     const ids = collectPanelIds(currentTree).filter(i => i !== WORKSPACE_SENTINEL)
@@ -304,6 +309,20 @@ export function floatPanel(
     panelObs.dimensions.set(floatDims)
     panelObs.floatOriginSide.set(originSide)
     panelObs.isCollapsed.set(false)
+    panelObs.stripLastReattachAt.set(undefined)
+
+    if (stripOriginColumn) {
+      panelObs.stripOriginIndex.set(stripOriginIndex)
+      panelObs.stripOriginWidth.set(stripOriginColumn.width)
+      panelObs.stripOriginWidthPct.set(
+        stripOriginColumn.widthPct > 0 ? stripOriginColumn.widthPct : undefined,
+      )
+      removeFromColumnTree(stripOriginIndex, id)
+    } else {
+      panelObs.stripOriginIndex.set(undefined)
+      panelObs.stripOriginWidth.set(undefined)
+      panelObs.stripOriginWidthPct.set(undefined)
+    }
 
     const zOrder = [...stx.data.zOrder.peek(), id]
     stx.data.zOrder.set(zOrder)
@@ -325,6 +344,10 @@ export function tilePanel(
   const panelObs = stx.data.panels.get(id)
   const panel = panelObs?.peek()
   if (!panel || panel.mode === 'tiled') return
+
+  const stripOriginIndex = panel.stripOriginIndex
+  const stripOriginWidth = panel.stripOriginWidth ?? 'half'
+  const stripOriginWidthPct = panel.stripOriginWidthPct ?? 0
 
   batch(() => {
     panelObs.tiledWidth.set(panel.dimensions.width)
@@ -355,6 +378,28 @@ export function tilePanel(
         if (newTree) stx.data.panelTree.set(newTree)
       }
     }
+
+    // Sync strip model: reinsert tiled panel where it detached from, if known.
+    const existingStripIndex = findColumnIndex(id)
+    if (existingStripIndex === -1) {
+      const insertPos = stripOriginIndex !== undefined
+        ? { at: stripOriginIndex }
+        : { after: 'focused' as const }
+      const insertedIndex = insertColumn(id, stripOriginWidth, insertPos)
+
+      if (stripOriginWidthPct > 0) {
+        const strip = stx.data.strip.peek()
+        const cols = [...strip.columns]
+        const col = cols[insertedIndex]
+        cols[insertedIndex] = { ...col, widthPct: stripOriginWidthPct }
+        stx.data.strip.set({ ...strip, columns: cols, focusedIndex: insertedIndex })
+      }
+    }
+
+    panelObs.stripLastReattachAt.set(Date.now())
+    panelObs.stripOriginIndex.set(undefined)
+    panelObs.stripOriginWidth.set(undefined)
+    panelObs.stripOriginWidthPct.set(undefined)
 
     stx.data.activePanel.set(id)
     reassignZIndices(newZOrder)
