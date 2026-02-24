@@ -98,13 +98,9 @@ export const HarnessRuntimeLive = Layer.effect(
   Layer.provide(
     PiAiHarnessEngineCoreLive.pipe(
       Layer.provide(HarnessSessionStoreMemoryLive),
-      // InteractiveShellServiceLive is provided BEFORE PiAiToolRuntimeWithBuiltins
-      // so the tool runtime can yield InteractiveShellService from context.
-      // The same singleton instance is also available to the WS server for event relay.
       Layer.provide(
         PiAiToolRuntimeWithBuiltins.pipe(
           Layer.provide(AgentHarnessConfigDefault),
-          Layer.provide(InteractiveShellServiceLive),
         ),
       ),
       Layer.provide(PiAiStreamClientLive),
@@ -112,7 +108,10 @@ export const HarnessRuntimeLive = Layer.effect(
       Layer.provide(PiAiPolicyLive),
     ),
   ),
-  // Also merge InteractiveShellService into the output context so the
-  // WS server handler can access it via yield* InteractiveShellService.
+  // InteractiveShellServiceLive is a SHARED SINGLETON (same const ref).
+  // Effect's Layer memoization deduplicates within the same build scope.
+  //   - Tool runtime resolves InteractiveShellService from context
+  //   - WS handler resolves it for shell event relay + I/O commands
+  // provideMerge: provides to inner layers AND merges into output context.
   Layer.provideMerge(InteractiveShellServiceLive),
 )
