@@ -24,6 +24,9 @@ defmodule MaidenOrderRuntime.MixProject do
       {:exonerate, "~> 1.1", runtime: false},
       # Elixir validator behavior (runtime fallback validator)
       {:ex_json_schema, "~> 0.11.2"},
+      # Ecto/Postgres-backed persistence for long-running ORDER agents
+      {:ecto_sql, "~> 3.13"},
+      {:postgrex, "~> 0.20"},
       # Jido library usage: agent schema + cmd/2 + FSM strategy
       {:jido, "~> 2.0"}
     ]

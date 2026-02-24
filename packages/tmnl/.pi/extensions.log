@@ -6133,3 +6133,110 @@ Saved lockfile
 2026-02-24T10:20:56.098Z [mcp-bridge] INFO: Running tool discovery for 8 servers...
 2026-02-24T10:21:19.834Z [mcp-bridge] INFO: Cache written: 8 servers
 2026-02-24T10:21:19.844Z [mcp-bridge] INFO: [refresh/session_start] +0 ~0 -12 | live applied=12 queued=0 skipped=0 failed=0
+2026-02-24T10:30:18.384Z [eisenhower] INFO: extension:loaded
+2026-02-24T10:30:18.711Z [mcp-bridge] INFO: [exa] 7 tools registered
+2026-02-24T10:30:18.712Z [mcp-bridge] INFO: [deepwiki] 3 tools registered
+2026-02-24T10:30:18.713Z [mcp-bridge] INFO: [context7] 2 tools registered
+2026-02-24T10:30:18.713Z [mcp-bridge] INFO: [effect-docs] 2 tools registered
+2026-02-24T10:30:18.714Z [mcp-bridge] INFO: [anime-js] 5 tools registered
+2026-02-24T10:30:18.715Z [mcp-bridge] INFO: [firecrawl] 12 tools registered
+2026-02-24T10:30:18.715Z [mcp-bridge] INFO: [agentation] 9 tools registered
+2026-02-24T10:30:18.716Z [mcp-bridge] INFO: Total: 40 tools from 8 servers
+2026-02-24T10:30:20.383Z [mcp-bridge] INFO: Running tool discovery for 8 servers...
+2026-02-24T10:30:43.928Z [mcp-bridge] INFO: Cache written: 8 servers
+2026-02-24T10:30:43.948Z [mcp-bridge] INFO: [refresh/session_start] +12 ~0 -0 | live applied=12 queued=0 skipped=0 failed=0
+2026-02-24T15:00:52.918Z [eisenhower] INFO: extension:loaded
+2026-02-24T15:00:53.245Z [mcp-bridge] INFO: [exa] 7 tools registered
+2026-02-24T15:00:53.245Z [mcp-bridge] INFO: [deepwiki] 3 tools registered
+2026-02-24T15:00:53.246Z [mcp-bridge] INFO: [context7] 2 tools registered
+2026-02-24T15:00:53.246Z [mcp-bridge] INFO: [effect-docs] 2 tools registered
+2026-02-24T15:00:53.246Z [mcp-bridge] INFO: [anime-js] 5 tools registered
+2026-02-24T15:00:53.247Z [mcp-bridge] INFO: [nia] 12 tools registered
+2026-02-24T15:00:53.248Z [mcp-bridge] INFO: [firecrawl] 12 tools registered
+2026-02-24T15:00:53.248Z [mcp-bridge] INFO: [agentation] 9 tools registered
+2026-02-24T15:00:53.248Z [mcp-bridge] INFO: Total: 52 tools from 8 servers
+2026-02-24T15:00:55.588Z [mcp-bridge] INFO: Running tool discovery for 8 servers...
+2026-02-24T15:01:07.461Z [mcp-bridge] INFO: Cache written: 8 servers
+2026-02-24T15:01:07.467Z [mcp-bridge] INFO: [refresh/session_start] +0 ~2 -0 | live applied=2 queued=0 skipped=0 failed=0
+2026-02-24T15:01:08.012Z [eisenhower] INFO: extension:loaded
+2026-02-24T15:01:08.238Z [mcp-bridge] INFO: [exa] 7 tools registered
+2026-02-24T15:01:08.238Z [mcp-bridge] INFO: [deepwiki] 3 tools registered
+2026-02-24T15:01:08.238Z [mcp-bridge] INFO: [context7] 2 tools registered
+2026-02-24T15:01:08.239Z [mcp-bridge] INFO: [effect-docs] 2 tools registered
+2026-02-24T15:01:08.239Z [mcp-bridge] INFO: [anime-js] 5 tools registered
+2026-02-24T15:01:08.240Z [mcp-bridge] INFO: [nia] 12 tools registered
+2026-02-24T15:01:08.240Z [mcp-bridge] INFO: [firecrawl] 12 tools registered
+2026-02-24T15:01:08.240Z [mcp-bridge] INFO: [agentation] 9 tools registered
+2026-02-24T15:01:08.241Z [mcp-bridge] INFO: Total: 52 tools from 8 servers
+2026-02-24T15:01:08.251Z [eisenhower] INFO: extension:loaded
+2026-02-24T15:01:08.471Z [mcp-bridge] INFO: [exa] 7 tools registered
+2026-02-24T15:01:08.471Z [mcp-bridge] INFO: [deepwiki] 3 tools registered
+2026-02-24T15:01:08.471Z [mcp-bridge] INFO: [context7] 2 tools registered
+2026-02-24T15:01:08.471Z [mcp-bridge] INFO: [effect-docs] 2 tools registered
+2026-02-24T15:01:08.472Z [mcp-bridge] INFO: [anime-js] 5 tools registered
+2026-02-24T15:01:08.472Z [mcp-bridge] INFO: [nia] 12 tools registered
+2026-02-24T15:01:08.473Z [mcp-bridge] INFO: [firecrawl] 12 tools registered
+2026-02-24T15:01:08.473Z [mcp-bridge] INFO: [agentation] 9 tools registered
+2026-02-24T15:01:08.473Z [mcp-bridge] INFO: Total: 52 tools from 8 servers
+2026-02-24T15:01:09.866Z [mcp-bridge] INFO: Running tool discovery for 8 servers...
+2026-02-24T15:01:10.050Z [mcp-bridge] INFO: Running tool discovery for 8 servers...
+2026-02-24T15:01:17.434Z [mcp-bridge] INFO: Cache written: 8 servers
+2026-02-24T15:01:17.436Z [mcp-bridge] INFO: [refresh/session_start] +0 ~0 -0 | live applied=0 queued=0 skipped=0 failed=0
+2026-02-24T15:01:18.931Z [mcp-bridge] INFO: Cache written: 8 servers
+2026-02-24T15:01:18.955Z [mcp-bridge] INFO: [refresh/session_start] +0 ~0 -5 | live applied=5 queued=0 skipped=0 failed=0
+2026-02-24T15:01:19.502Z [eisenhower] INFO: extension:loaded
+2026-02-24T15:01:19.723Z [mcp-bridge] INFO: [exa] 7 tools registered
+2026-02-24T15:01:19.724Z [mcp-bridge] INFO: [deepwiki] 3 tools registered
+2026-02-24T15:01:19.724Z [mcp-bridge] INFO: [context7] 2 tools registered
+2026-02-24T15:01:19.724Z [mcp-bridge] INFO: [effect-docs] 2 tools registered
+2026-02-24T15:01:19.725Z [mcp-bridge] INFO: [nia] 12 tools registered
+2026-02-24T15:01:19.725Z [mcp-bridge] INFO: [firecrawl] 12 tools registered
+2026-02-24T15:01:19.726Z [mcp-bridge] INFO: [agentation] 9 tools registered
+2026-02-24T15:01:19.726Z [mcp-bridge] INFO: Total: 47 tools from 8 servers
+2026-02-24T15:01:21.335Z [mcp-bridge] INFO: Running tool discovery for 8 servers...
+2026-02-24T15:01:27.940Z [eisenhower] INFO: extension:loaded
+2026-02-24T15:01:28.155Z [mcp-bridge] INFO: [exa] 7 tools registered
+2026-02-24T15:01:28.156Z [mcp-bridge] INFO: [deepwiki] 3 tools registered
+2026-02-24T15:01:28.156Z [mcp-bridge] INFO: [context7] 2 tools registered
+2026-02-24T15:01:28.156Z [mcp-bridge] INFO: [effect-docs] 2 tools registered
+2026-02-24T15:01:28.157Z [mcp-bridge] INFO: [nia] 12 tools registered
+2026-02-24T15:01:28.158Z [mcp-bridge] INFO: [firecrawl] 12 tools registered
+2026-02-24T15:01:28.158Z [mcp-bridge] INFO: [agentation] 9 tools registered
+2026-02-24T15:01:28.158Z [mcp-bridge] INFO: Total: 47 tools from 8 servers
+2026-02-24T15:01:29.810Z [mcp-bridge] INFO: Running tool discovery for 8 servers...
+2026-02-24T15:01:31.402Z [mcp-bridge] INFO: Cache written: 8 servers
+2026-02-24T15:01:31.411Z [mcp-bridge] INFO: [refresh/session_start] +5 ~0 -0 | live applied=5 queued=0 skipped=0 failed=0
+2026-02-24T15:01:40.107Z [eisenhower] INFO: extension:loaded
+2026-02-24T15:01:40.110Z [mcp-bridge] INFO: Cache written: 8 servers
+2026-02-24T15:01:40.119Z [mcp-bridge] INFO: [refresh/session_start] +5 ~0 -0 | live applied=5 queued=0 skipped=0 failed=0
+2026-02-24T15:01:40.325Z [mcp-bridge] INFO: [exa] 7 tools registered
+2026-02-24T15:01:40.325Z [mcp-bridge] INFO: [deepwiki] 3 tools registered
+2026-02-24T15:01:40.325Z [mcp-bridge] INFO: [context7] 2 tools registered
+2026-02-24T15:01:40.326Z [mcp-bridge] INFO: [effect-docs] 2 tools registered
+2026-02-24T15:01:40.326Z [mcp-bridge] INFO: [anime-js] 5 tools registered
+2026-02-24T15:01:40.327Z [mcp-bridge] INFO: [nia] 12 tools registered
+2026-02-24T15:01:40.327Z [mcp-bridge] INFO: [firecrawl] 12 tools registered
+2026-02-24T15:01:40.328Z [mcp-bridge] INFO: [agentation] 9 tools registered
+2026-02-24T15:01:40.328Z [mcp-bridge] INFO: Total: 52 tools from 8 servers
+2026-02-24T15:01:41.860Z [mcp-bridge] INFO: Running tool discovery for 8 servers...
+2026-02-24T15:02:10.274Z [mcp-bridge] INFO: Cache written: 8 servers
+2026-02-24T15:02:10.288Z [mcp-bridge] INFO: [refresh/session_start] +0 ~0 -12 | live applied=12 queued=0 skipped=0 failed=0
+2026-02-24T15:03:35.527Z [eisenhower] INFO: extension:loaded
+2026-02-24T15:03:36.657Z [mcp-bridge] INFO: [exa] 7 tools registered
+2026-02-24T15:03:36.658Z [mcp-bridge] INFO: [deepwiki] 3 tools registered
+2026-02-24T15:03:36.658Z [mcp-bridge] INFO: [context7] 2 tools registered
+2026-02-24T15:03:36.658Z [mcp-bridge] INFO: [effect-docs] 2 tools registered
+2026-02-24T15:03:36.658Z [mcp-bridge] INFO: [anime-js] 5 tools registered
+2026-02-24T15:03:36.658Z [mcp-bridge] INFO: [firecrawl] 12 tools registered
+2026-02-24T15:03:36.659Z [mcp-bridge] INFO: [agentation] 9 tools registered
+2026-02-24T15:03:36.659Z [mcp-bridge] INFO: Total: 40 tools from 8 servers
+2026-02-24T15:10:07.637Z [eisenhower] INFO: extension:loaded
+2026-02-24T15:10:07.854Z [mcp-bridge] INFO: [exa] 7 tools registered
+2026-02-24T15:10:07.855Z [mcp-bridge] INFO: [deepwiki] 3 tools registered
+2026-02-24T15:10:07.855Z [mcp-bridge] INFO: [context7] 2 tools registered
+2026-02-24T15:10:07.855Z [mcp-bridge] INFO: [effect-docs] 2 tools registered
+2026-02-24T15:10:07.855Z [mcp-bridge] INFO: [anime-js] 5 tools registered
+2026-02-24T15:10:07.856Z [mcp-bridge] INFO: [firecrawl] 12 tools registered
+2026-02-24T15:10:07.856Z [mcp-bridge] INFO: [agentation] 9 tools registered
+2026-02-24T15:10:07.856Z [mcp-bridge] INFO: Total: 40 tools from 8 servers
+2026-02-24T15:10:09.530Z [mcp-bridge] INFO: Running tool discovery for 8 servers...

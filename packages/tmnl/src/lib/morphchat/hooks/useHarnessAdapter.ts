@@ -304,11 +304,9 @@ export const harnessOps = {
    * Connect: open session + fork event stream.
    * ctx.set() updates materialized view atoms as events arrive.
    *
-   * IMPORTANT: The event stream is subscribed BEFORE openSession so we
-   * don't miss the session_opened event. The fiber is forked as a daemon
-   * so it survives past this fn-atom's completion — Effect.fork creates
-   * a child scope that dies when the parent effect completes, which is
-   * the same class of bug we fixed in HarnessBrowserTransport.
+   * We open with a timeout (fail fast instead of hanging in `connecting`),
+   * then start streaming and backfill with a snapshot so we don't lose
+   * early events like session_opened/tool_manifest.
    */
   connect: harnessRuntimeAtom.fn<{
     nodeId: string
@@ -327,10 +325,34 @@ export const harnessOps = {
 
       morphChatRegistry.set(harnessConnection$, { phase: 'connecting', endpoint: `harness:${nodeId}` } as ConnectionState)
 
-      // Subscribe to event stream BEFORE openSession so we don't miss
-      // the session_opened event (PubSub drops events with no subscribers).
-      // forkDaemon detaches the fiber from this fn-atom's scope so it
-      // survives past the connect() call returning.
+      // Open session first. In dev StrictMode, mount/unmount churn can
+      // interrupt pre-open bookkeeping and leave us stuck in `connecting`.
+      // Timeout converts silent hangs into retriable errors.
+      const session = yield* runtime.openSession(nodeId, role).pipe(
+        Effect.timeoutFail({
+          duration: '12 seconds',
+          onTimeout: () =>
+            new HarnessRuntimeError({
+              code: 'connect-timeout',
+              message: `Timed out opening harness session for node ${nodeId}`,
+              cause: Option.none(),
+            }),
+        }),
+      )
+      morphChatRegistry.set(harnessSessionId$, session.sessionId)
+
+      morphChatRegistry.set(harnessConnection$, {
+        phase: 'connected',
+        endpoint: `harness:${nodeId}`,
+      } as ConnectionState)
+      morphChatRegistry.set(harnessAgents$, [{
+        id: session.agentId ?? nodeId,
+        name: agentName,
+        isActive: true,
+      }])
+      morphChatRegistry.set(harnessStatusRows$, [])
+
+      // Subscribe to runtime event stream after session open.
       const processor = getProcessor(agentName)
       const fiber = yield* runtime.events.pipe(
         // Side-channel: intercept phase:'stream' tool events → sidecar registry
@@ -378,6 +400,17 @@ export const harnessOps = {
       )
       morphChatRegistry.set(harnessEventFiber$, fiber)
 
+      // Backfill snapshot to hydrate any events emitted before stream subscription
+      // (e.g. session_opened/tool_manifest).
+      const snapshot = yield* runtime.getSnapshot(session.sessionId as HarnessSessionId, Option.none()).pipe(
+        Effect.catchAll(() => Effect.succeed(null)),
+      )
+      if (snapshot) {
+        for (const event of snapshot.events) {
+          processor.processEvent(event)
+        }
+      }
+
       // ── Shell event bridge ─────────────────────────────────────────
       // Fork a second daemon fiber that taps the raw transport events
       // for shell event envelopes and dispatches them to
@@ -412,27 +445,6 @@ export const harnessOps = {
           ),
         )
       })
-
-      // Small yield to let the PubSub subscriber register
-      yield* Effect.yieldNow()
-
-      // Open session — transport is already connected (eager in Layer)
-      const session = yield* runtime.openSession(nodeId, role)
-      console.log('[harnessOps.connect] session.sessionId:', session.sessionId)
-      morphChatRegistry.set(harnessSessionId$, session.sessionId)
-
-      // Set connected directly — don't rely solely on the session_opened
-      // event in case the event stream subscription raced the PubSub publish.
-      morphChatRegistry.set(harnessConnection$, {
-        phase: 'connected',
-        endpoint: `harness:${nodeId}`,
-      } as ConnectionState)
-      morphChatRegistry.set(harnessAgents$, [{
-        id: session.agentId ?? nodeId,
-        name: agentName,
-        isActive: true,
-      }])
-      morphChatRegistry.set(harnessStatusRows$, [])
 
       return session.sessionId as string
     }).pipe(

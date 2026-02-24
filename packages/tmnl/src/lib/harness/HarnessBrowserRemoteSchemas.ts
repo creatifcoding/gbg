@@ -13,6 +13,9 @@ import {
   ShellInputCommand,
   ShellResizeCommand,
   ShellKillCommand,
+  ShellTakeControlCommand,
+  ShellYieldControlCommand,
+  ShellSwitchModeCommand,
   ShellEvent,
 } from './interactive-shell/schemas'
 
@@ -84,6 +87,9 @@ export const HarnessRemoteCommand = Schema.Union(
   ShellInputCommand,
   ShellResizeCommand,
   ShellKillCommand,
+  ShellTakeControlCommand,
+  ShellYieldControlCommand,
+  ShellSwitchModeCommand,
 )
 export type HarnessRemoteCommand = typeof HarnessRemoteCommand.Type
 

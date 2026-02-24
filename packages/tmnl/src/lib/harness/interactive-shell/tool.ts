@@ -340,6 +340,21 @@ export const executeInteractiveShell = (
           })
         : args.input!
 
+      // Check if agent is allowed to write
+      const allowed = yield* shell.canAgentWrite(args.sessionId as ShellSessionId)
+      if (!allowed) {
+        const info = yield* shell.getSession(args.sessionId as ShellSessionId)
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `User has taken control of session ${args.sessionId}. Input was not sent. Wait for the user to yield control back, or try again later.`,
+            },
+          ],
+          isError: false,
+        }
+      }
+
       yield* shell.write(args.sessionId as ShellSessionId, translated)
 
       // Brief wait for output to accumulate

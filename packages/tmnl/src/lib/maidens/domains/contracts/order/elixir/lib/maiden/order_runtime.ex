@@ -10,6 +10,7 @@ defmodule Maiden.OrderRuntime do
   """
 
   alias Maiden.OrderRuntime.Agent
+  alias Maiden.OrderRuntime.Persistence.PostgresStorage
 
   @default_storage {Jido.Storage.ETS, [table: :maiden_order_runtime]}
 
@@ -60,7 +61,52 @@ defmodule Maiden.OrderRuntime do
         {adapter, adapter_opts}
 
       nil ->
+        resolve_default_storage(opts)
+    end
+  end
+
+  defp resolve_default_storage(opts) do
+    case storage_adapter_from_opts(opts) do
+      :postgres ->
+        PostgresStorage.storage_from_config(Keyword.drop(opts, [:storage, :table, :adapter]))
+
+      _ ->
         merge_default_storage(opts)
+    end
+  end
+
+  defp storage_adapter_from_opts(opts) do
+    case Keyword.get(opts, :adapter) do
+      :postgres -> :postgres
+      :ets -> :ets
+      "postgres" -> :postgres
+      "ets" -> :ets
+      nil -> default_storage_adapter_from_env()
+      _ -> :ets
+    end
+  end
+
+  defp default_storage_adapter_from_env do
+    case Application.get_env(:maiden_order_runtime, :persistence_adapter) do
+      :postgres ->
+        :postgres
+
+      :ets ->
+        :ets
+
+      "postgres" ->
+        :postgres
+
+      "ets" ->
+        :ets
+
+      nil ->
+        System.get_env("ORDER_PERSISTENCE_ADAPTER", "ets")
+        |> String.downcase()
+        |> case do
+          "postgres" -> :postgres
+          _ -> :ets
+        end
     end
   end
 

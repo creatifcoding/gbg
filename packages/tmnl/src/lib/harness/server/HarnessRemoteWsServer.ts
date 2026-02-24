@@ -175,6 +175,21 @@ const handleRemoteWs = Effect.gen(function* () {
       ? shellServiceResult.kill(sessionId, signal)
       : Effect.fail({ _tag: 'SessionNotFoundError' as const, sessionId: sessionId as string, message: 'Shell service unavailable' })
 
+  const shellTakeControl = (sessionId: ShellSessionId) =>
+    shellServiceResult
+      ? shellServiceResult.takeControl(sessionId)
+      : Effect.fail({ _tag: 'SessionNotFoundError' as const, sessionId: sessionId as string, message: 'Shell service unavailable' })
+
+  const shellYieldControl = (sessionId: ShellSessionId) =>
+    shellServiceResult
+      ? shellServiceResult.yieldControl(sessionId)
+      : Effect.fail({ _tag: 'SessionNotFoundError' as const, sessionId: sessionId as string, message: 'Shell service unavailable' })
+
+  const shellSwitchMode = (sessionId: ShellSessionId, mode: string) =>
+    shellServiceResult
+      ? shellServiceResult.switchMode(sessionId, mode as any)
+      : Effect.fail({ _tag: 'SessionNotFoundError' as const, sessionId: sessionId as string, message: 'Shell service unavailable' })
+
   const handleIncomingChunk = Effect.fn('harness.ws.handle-incoming-chunk')(function* (chunk: string | Uint8Array) {
     const raw = typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk)
     const decoded = yield* decodeWsRequest(raw).pipe(Effect.either)
@@ -239,6 +254,18 @@ const handleRemoteWs = Effect.gen(function* () {
         }
         case 'remote:shell_kill': {
           yield* shellKill(command.sessionId as ShellSessionId, command.signal)
+          return {}
+        }
+        case 'remote:shell_take_control': {
+          yield* shellTakeControl(command.sessionId as ShellSessionId)
+          return {}
+        }
+        case 'remote:shell_yield_control': {
+          yield* shellYieldControl(command.sessionId as ShellSessionId)
+          return {}
+        }
+        case 'remote:shell_switch_mode': {
+          yield* shellSwitchMode(command.sessionId as ShellSessionId, command.mode)
           return {}
         }
       }

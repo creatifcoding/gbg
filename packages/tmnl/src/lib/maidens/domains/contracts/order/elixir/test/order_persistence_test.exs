@@ -7,6 +7,7 @@ defmodule Maiden.OrderRuntime.PersistenceTest do
   alias Maiden.OrderRuntime
   alias Maiden.OrderRuntime.Agent
   alias Maiden.OrderRuntime.OrderId
+  alias Maiden.OrderRuntime.Persistence.PostgresStorage
   alias Maiden.OrderRuntime.Sensors.TransitionSensor
 
   setup_all do
@@ -150,7 +151,10 @@ defmodule Maiden.OrderRuntime.PersistenceTest do
 
     test "file storage keeps checkpoints durable across runtime lifecycle" do
       base_dir =
-        Path.join(System.tmp_dir!(), "order-runtime-file-storage-#{System.unique_integer([:positive])}")
+        Path.join(
+          System.tmp_dir!(),
+          "order-runtime-file-storage-#{System.unique_integer([:positive])}"
+        )
 
       on_exit(fn -> File.rm_rf(base_dir) end)
 
@@ -253,6 +257,112 @@ defmodule Maiden.OrderRuntime.PersistenceTest do
     end
   end
 
+  describe "postgres/ecto storage" do
+    @describetag :postgres_persistence
+
+    setup do
+      {:ok, storage: {PostgresStorage, postgres_storage_opts()}}
+    end
+
+    test "round-trips snapshot/thaw through Postgres adapter", %{storage: storage} do
+      agent_id = "order-persist-pg-#{System.unique_integer([:positive])}"
+
+      agent =
+        Agent.new(
+          id: agent_id,
+          state: %{
+            order_id: order_id("ORD-PERSIST-PG-001"),
+            customer: "Postgres Polly",
+            items: [%{sku: "SKU-PG", qty: 2}],
+            total: 99.0,
+            cancelled_reason: nil,
+            shipped_at: nil,
+            delivered_at: nil
+          }
+        )
+
+      on_exit(fn -> cleanup_snapshot(storage, agent_id) end)
+
+      assert :ok = OrderRuntime.snapshot(agent, storage: storage)
+      assert {:ok, restored} = OrderRuntime.thaw(agent_id, storage: storage)
+      assert restored.state.order_id == order_id("ORD-PERSIST-PG-001")
+      assert restored.state.customer == "Postgres Polly"
+      assert restored.state.total == 99.0
+    end
+
+    test "restart continuity resumes lifecycle transitions after Postgres thaw", %{
+      storage: storage
+    } do
+      agent_id = "order-persist-pg-restart-#{System.unique_integer([:positive])}"
+
+      base_agent =
+        Agent.new(
+          id: agent_id,
+          state: %{
+            order_id: order_id("ORD-PERSIST-PG-RESTART"),
+            customer: "Pg Restart Robin",
+            items: [%{sku: "SKU-PG-RESTART", qty: 1}],
+            total: 64.0,
+            cancelled_reason: nil,
+            shipped_at: nil,
+            delivered_at: nil
+          }
+        )
+
+      {:ok, shipped_agent, []} =
+        Agent.apply_signal_sync(base_agent, "order.transition.shipped", %{
+          "order_id" => order_id("ORD-PERSIST-PG-RESTART"),
+          "from" => "confirmed",
+          "to" => "shipped",
+          "at" => "2026-02-23T08:15:00Z"
+        })
+
+      on_exit(fn -> cleanup_snapshot(storage, agent_id) end)
+
+      assert :ok = OrderRuntime.snapshot(shipped_agent, storage: storage)
+      assert {:ok, restored_agent} = OrderRuntime.thaw(agent_id, storage: storage)
+      assert restored_agent.state.shipped_at == "2026-02-23T08:15:00Z"
+
+      {:ok, agent_server_pid} =
+        AgentServer.start_link(
+          jido: Jido.default_instance(),
+          agent: restored_agent,
+          agent_module: Agent
+        )
+
+      on_exit(fn -> Process.exit(agent_server_pid, :normal) end)
+
+      {:ok, sensor_pid} =
+        SensorRuntime.start_link(
+          sensor: TransitionSensor,
+          config: %{source: "/sensor/order-transition"},
+          context: %{agent_ref: agent_server_pid},
+          id: "sensor-pg-restart-#{System.unique_integer([:positive])}"
+        )
+
+      on_exit(fn -> Process.exit(sensor_pid, :normal) end)
+
+      :ok =
+        SensorRuntime.event(sensor_pid, %{
+          "order_id" => order_id("ORD-PERSIST-PG-RESTART"),
+          "from" => "shipped",
+          "to" => "delivered",
+          "at" => "2026-02-23T08:22:00Z"
+        })
+
+      {:ok, server_state} =
+        await_agent_server_state(agent_server_pid, fn state ->
+          state.agent.state.shipped_at == "2026-02-23T08:15:00Z" and
+            state.agent.state.delivered_at == "2026-02-23T08:22:00Z" and
+            state.agent.state.__strategy__.machine.status == "idle"
+        end)
+
+      assert server_state.agent.state.order_id == order_id("ORD-PERSIST-PG-RESTART")
+      assert server_state.agent.state.shipped_at == "2026-02-23T08:15:00Z"
+      assert server_state.agent.state.delivered_at == "2026-02-23T08:22:00Z"
+    end
+  end
+
   defp await_agent_server_state(agent_server_pid, predicate, attempts \\ 20)
 
   defp await_agent_server_state(_agent_server_pid, _predicate, 0), do: {:error, :timeout}
@@ -269,6 +379,51 @@ defmodule Maiden.OrderRuntime.PersistenceTest do
 
       error ->
         error
+    end
+  end
+
+  defp postgres_storage_opts do
+    [
+      hostname: required_env!("ORDER_POSTGRES_HOST"),
+      port: env_int("ORDER_POSTGRES_PORT", 5432),
+      username: required_env!("ORDER_POSTGRES_USER"),
+      password: System.get_env("ORDER_POSTGRES_PASSWORD"),
+      database: required_env!("ORDER_POSTGRES_DATABASE"),
+      ssl: env_truthy?("ORDER_POSTGRES_SSL"),
+      pool_size: env_int("ORDER_POSTGRES_POOL_SIZE", 5),
+      timeout_ms: env_int("ORDER_POSTGRES_TIMEOUT_MS", 15_000),
+      table_prefix: System.get_env("ORDER_POSTGRES_TABLE_PREFIX", "maiden_order_runtime")
+    ]
+  end
+
+  defp cleanup_snapshot(storage, agent_id) do
+    _ = OrderRuntime.delete_snapshot(agent_id, storage: storage)
+    :ok
+  end
+
+  defp required_env!(name) do
+    case System.get_env(name) do
+      value when is_binary(value) and value != "" -> value
+      _ -> flunk("#{name} is required for Postgres persistence E2E")
+    end
+  end
+
+  defp env_truthy?(name) do
+    System.get_env(name, "")
+    |> String.downcase()
+    |> then(&(&1 in ["1", "true", "yes", "on"]))
+  end
+
+  defp env_int(name, fallback) do
+    case System.get_env(name) do
+      nil ->
+        fallback
+
+      value ->
+        case Integer.parse(value) do
+          {parsed, ""} -> parsed
+          _ -> fallback
+        end
     end
   end
 

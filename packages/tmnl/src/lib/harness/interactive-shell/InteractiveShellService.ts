@@ -48,6 +48,8 @@ import type {
   ShellSessionStatus,
   ShellEvent,
   InteractiveShellToolArgs,
+  ControlMode,
+  ControllerRole,
 } from './schemas'
 import { stripVTControlCharacters } from 'node:util'
 
@@ -118,6 +120,11 @@ interface ShellSession {
   outputFiber: Fiber.RuntimeFiber<void, never> | null
   /** Whether the session is running in the background (no overlay) */
   background: boolean
+  // ── Control Model ──────────────────────────────────────────────────
+  /** Current control mode */
+  controlMode: ControlMode
+  /** Who currently holds stdin */
+  controller: ControllerRole
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -193,6 +200,29 @@ export interface InteractiveShellServiceShape {
     },
   ) => Effect.Effect<PtyRawOutputResult, SessionNotFoundError>
 
+  // ── Control Model ──────────────────────────────────────────────────
+
+  /** Human requests control of the terminal */
+  readonly takeControl: (
+    sessionId: ShellSessionId,
+  ) => Effect.Effect<void, SessionNotFoundError>
+
+  /** Current controller yields back */
+  readonly yieldControl: (
+    sessionId: ShellSessionId,
+  ) => Effect.Effect<void, SessionNotFoundError>
+
+  /** Switch control mode */
+  readonly switchMode: (
+    sessionId: ShellSessionId,
+    mode: ControlMode,
+  ) => Effect.Effect<void, SessionNotFoundError>
+
+  /** Check if agent is allowed to write */
+  readonly canAgentWrite: (
+    sessionId: ShellSessionId,
+  ) => Effect.Effect<boolean, SessionNotFoundError>
+
   readonly events: Stream.Stream<ShellEvent>
 }
 
@@ -202,6 +232,12 @@ export interface InteractiveShellServiceShape {
 
 export class SessionNotFoundError extends Data.TaggedError('SessionNotFoundError')<{
   readonly sessionId: string
+  readonly message: string
+}> {}
+
+export class ControlBlockedError extends Data.TaggedError('ControlBlockedError')<{
+  readonly sessionId: string
+  readonly controller: ControllerRole
   readonly message: string
 }> {}
 
@@ -312,6 +348,8 @@ const makeInteractiveShellService = Effect.gen(function* () {
         pid: undefined,
         outputFiber: null,
         background: false,
+        controlMode: 'agent-controlled' as ControlMode,
+        controller: 'agent' as ControllerRole,
       }
       sessions.set(id as string, session)
 
@@ -587,6 +625,58 @@ const makeInteractiveShellService = Effect.gen(function* () {
       })
     })
 
+  // ── Control Model ──────────────────────────────────────────────────
+
+  const emitControlChanged = (session: ShellSession) => {
+    emitEvent({
+      _tag: 'shell:control_changed',
+      sessionId: session.id,
+      mode: session.controlMode,
+      controller: session.controller,
+      timestamp: Date.now(),
+    })
+  }
+
+  const takeControl = (sessionId: ShellSessionId) =>
+    Effect.gen(function* () {
+      const session = yield* getSessionOrFail(sessionId)
+      session.controller = 'human'
+      if (session.controlMode === 'agent-controlled') {
+        session.controlMode = 'human-controlled'
+      }
+      emitControlChanged(session)
+    })
+
+  const yieldControl = (sessionId: ShellSessionId) =>
+    Effect.gen(function* () {
+      const session = yield* getSessionOrFail(sessionId)
+      session.controller = 'agent'
+      if (session.controlMode === 'human-controlled') {
+        session.controlMode = 'agent-controlled'
+      }
+      emitControlChanged(session)
+    })
+
+  const switchMode = (sessionId: ShellSessionId, mode: ControlMode) =>
+    Effect.gen(function* () {
+      const session = yield* getSessionOrFail(sessionId)
+      session.controlMode = mode
+      // Set initial controller based on mode
+      if (mode === 'agent-controlled') session.controller = 'agent'
+      else if (mode === 'human-controlled') session.controller = 'human'
+      else if (mode === 'supervised') session.controller = 'agent'
+      emitControlChanged(session)
+    })
+
+  const canAgentWriteCheck = (sessionId: ShellSessionId) =>
+    Effect.gen(function* () {
+      const session = yield* getSessionOrFail(sessionId)
+      if (session.controlMode === 'agent-controlled') return true
+      if (session.controlMode === 'human-controlled') return false
+      // supervised: agent can write only when controller is agent
+      return session.controller === 'agent'
+    })
+
   return InteractiveShellService.of({
     spawn,
     write,
@@ -600,6 +690,10 @@ const makeInteractiveShellService = Effect.gen(function* () {
     readOutput,
     dumpScreen,
     readRawOutput,
+    takeControl,
+    yieldControl,
+    switchMode,
+    canAgentWrite: canAgentWriteCheck,
     events: globalEventStream,
   })
 })

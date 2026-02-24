@@ -10,6 +10,7 @@ export {
   InteractiveShellService,
   InteractiveShellServiceLive,
   SessionNotFoundError,
+  ControlBlockedError,
   type InteractiveShellServiceShape,
 } from './InteractiveShellService'
 

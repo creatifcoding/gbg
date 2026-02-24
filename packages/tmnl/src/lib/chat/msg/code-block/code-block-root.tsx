@@ -168,7 +168,7 @@ export const ChatCodeBlockRoot = memo(forwardRef<HTMLDivElement, ChatCodeBlockRo
               className={cn(
                 'overflow-auto',
                 maxHeight,
-                '[&>pre]:m-0 [&>pre]:bg-transparent! [&>pre]:p-3 [&>pre]:text-neutral-300!',
+                '[&>pre]:m-0 [&>pre]:bg-transparent [&>pre]:p-3',
                 '[&_code]:font-mono',
               )}
               style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
