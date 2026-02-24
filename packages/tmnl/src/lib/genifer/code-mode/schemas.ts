@@ -170,6 +170,35 @@ export interface GeniferCodeSDK {
     readonly removeElement: (surfaceId: string, elementKey: string) => void
   }
 
+  // --- GEOINT ---
+  readonly geoint: {
+    readonly spawn: {
+      readonly one: (result: unknown) => Promise<unknown>
+      readonly batch: (results: ReadonlyArray<unknown>) => Promise<unknown>
+    }
+    readonly search: (params: {
+      mode?: 'all' | 'type' | 'bounds' | 'type+bounds'
+      entityType?: 'flight' | 'poi' | 'weather' | 'track' | 'feature' | 'imagery'
+      bounds?: { west: number; east: number; south: number; north: number }
+      limit?: number
+    }) => Promise<unknown>
+    readonly summary: (params: {
+      scope?: 'entity' | 'all' | 'type' | 'bounds'
+      entityId?: string
+      entityType?: 'flight' | 'poi' | 'weather' | 'track' | 'feature' | 'imagery'
+      bounds?: { west: number; east: number; south: number; north: number }
+      includeViewport?: boolean
+    }) => Promise<unknown>
+    readonly select: (entityId: string | null) => Promise<void>
+    readonly focus: (entityId: string, zoom?: number) => Promise<unknown>
+    readonly clear: () => Promise<void>
+    readonly viewport: {
+      readonly get: () => Promise<unknown>
+      readonly set: (viewport: Record<string, unknown>) => Promise<unknown>
+      readonly reset: () => Promise<unknown>
+    }
+  }
+
   // --- Logging ---
   readonly log: (...args: any[]) => void
   readonly warn: (...args: any[]) => void

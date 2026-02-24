@@ -14,6 +14,7 @@
 
 import { Effect } from 'effect'
 import type { GeniferCodeSDK, GeniferCodeParams, ExposeSpec, GeniferCodeDetails } from './schemas'
+import type { GeointHarnessServiceShape } from '@/lib/geoint/harness'
 import { CodeModeSandboxError, CodeModeTimeoutError, CodeModeResult } from './schemas'
 import { createCodeSDK, getDynamicTools, getDynamicComponents } from './sandbox'
 import {
@@ -49,6 +50,10 @@ const BLOCKED_GLOBALS = [
   'module',
   'exports',
 ] as const
+
+export interface ExecuteCodeModeOptions {
+  readonly geointService?: GeointHarnessServiceShape
+}
 
 // =============================================================================
 // Code Validation (parse phase)
@@ -201,6 +206,7 @@ function exposeOutputs(result: unknown, expose: ExposeSpec, sdk: GeniferCodeSDK)
  */
 export function executeCodeMode(
   params: GeniferCodeParams,
+  options: ExecuteCodeModeOptions = {},
 ): Effect.Effect<CodeModeResult, CodeModeSandboxError | CodeModeTimeoutError> {
   return Effect.gen(function* () {
     const start = Date.now()
@@ -230,7 +236,7 @@ export function executeCodeMode(
     }
 
     // Phase 3: Execute — run with timeout
-    const sdk = createCodeSDK()
+    const sdk = createCodeSDK({ geointService: options.geointService })
     let result: unknown
     try {
       result = yield* Effect.tryPromise({

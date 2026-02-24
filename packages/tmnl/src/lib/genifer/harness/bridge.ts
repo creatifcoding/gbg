@@ -49,6 +49,7 @@ import {
 import { RpcDefinition, type RpcHandler } from '../services/DynamicRpcSchemas'
 import { EventDefinition } from '../services/DynamicEventSchemas'
 import type { ToolDefinition } from '@mariozechner/pi-coding-agent'
+import type { GeointHarnessServiceShape } from '@/lib/geoint/harness'
 
 // =============================================================================
 // Bridge Factory
@@ -63,6 +64,9 @@ import type { ToolDefinition } from '@mariozechner/pi-coding-agent'
 export function createGeniferTools(
   service: GeniferHarnessServiceShape,
   sessionId: string,
+  options?: {
+    readonly geointService?: GeointHarnessServiceShape
+  },
 ): ToolDefinition[] {
   const generateTool = createGeniferGenerateTool({
     async execute(callId, params, signal, onUpdate) {
@@ -291,7 +295,9 @@ export function createGeniferTools(
   const codeTool = createGeniferCodeTool({
     async execute(_callId, params) {
       try {
-        const result = await Effect.runPromise(executeCodeMode(params))
+        const result = await Effect.runPromise(
+          executeCodeMode(params, { geointService: options?.geointService }),
+        )
         const summary = result.success
           ? `Code executed successfully (${result.mode}, ${result.durationMs}ms).${
               result.exposed ? ` Exposed: ${JSON.stringify(result.exposed)}` : ''

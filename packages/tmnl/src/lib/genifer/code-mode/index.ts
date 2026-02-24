@@ -27,7 +27,7 @@ export {
 } from './sandbox'
 
 // Executor
-export { executeCodeMode } from './executor'
+export { executeCodeMode, type ExecuteCodeModeOptions } from './executor'
 
 // Surface Bridge
 export { setSurfaceBridge, resetSurfaceBridge } from './surface-bridge'

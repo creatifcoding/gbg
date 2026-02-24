@@ -48,6 +48,7 @@ import { GeniferDevDbLayer } from '@/lib/genifer/migrations/runner'
 
 // GEOINT harness integration
 import { createGeointTools, GeointHarnessService, GeointHarnessServiceLive } from '@/lib/geoint/harness'
+import type { GeointHarnessServiceShape } from '@/lib/geoint/harness'
 
 // =============================================================================
 // Create SDK tools configured for project CWD
@@ -240,9 +241,23 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
             Effect.provide(GeniferDevDbLayer),
           ),
         )
+
+        let geointService: GeointHarnessServiceShape | undefined
+        try {
+          geointService = await Effect.runPromise(
+            Effect.gen(function* () {
+              return yield* GeointHarnessService
+            }).pipe(
+              Effect.provide(GeointHarnessServiceLive),
+            ),
+          )
+        } catch {
+          geointService = undefined
+        }
+
         // sessionId is overridden per-call in bridge, but we need a default
         const sessionId = `harness-${Date.now()}`
-        return createGeniferTools(service, sessionId)
+        return createGeniferTools(service, sessionId, { geointService })
       },
       catch: (error) => error,
     }).pipe(

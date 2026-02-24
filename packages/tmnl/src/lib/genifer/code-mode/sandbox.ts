@@ -9,8 +9,12 @@
  * @module genifer/code-mode/sandbox
  */
 
+import { Effect, Schema } from 'effect'
 import type { GeniferCodeSDK, ExposeSpec } from './schemas'
 import { CodeModeSandboxError, CodeModeTimeoutError } from './schemas'
+import type { GeointHarnessServiceShape } from '@/lib/geoint/harness'
+import { SearchResultItem } from '@/lib/geoint/schemas/search'
+import type { SearchResultItem as SearchResultItemValue } from '@/lib/geoint/schemas/search'
 import {
   registerDynamicRpc,
   callDynamicRpc,
@@ -121,6 +125,38 @@ export function getDynamicComponents(): ReadonlyMap<string, (props: any) => any>
   return dynamicComponents
 }
 
+export interface CreateCodeSDKOptions {
+  readonly geointService?: GeointHarnessServiceShape
+}
+
+const decodeSearchResult = Schema.decodeUnknownSync(SearchResultItem)
+const decodeSearchResultArray = Schema.decodeUnknownSync(Schema.Array(SearchResultItem))
+
+const inBounds = (
+  item: { position: { longitude: number; latitude: number } },
+  bounds: { west: number; east: number; south: number; north: number },
+) =>
+  item.position.longitude >= bounds.west &&
+  item.position.longitude <= bounds.east &&
+  item.position.latitude >= bounds.south &&
+  item.position.latitude <= bounds.north
+
+const normalizeSearchResult = (input: unknown): SearchResultItemValue => {
+  try {
+    return decodeSearchResult(input) as SearchResultItemValue
+  } catch {
+    return input as SearchResultItemValue
+  }
+}
+
+const normalizeSearchResults = (input: ReadonlyArray<unknown>): ReadonlyArray<SearchResultItemValue> => {
+  try {
+    return decodeSearchResultArray(input) as ReadonlyArray<SearchResultItemValue>
+  } catch {
+    return input.map((item) => normalizeSearchResult(item))
+  }
+}
+
 // =============================================================================
 // SDK Factory
 // =============================================================================
@@ -129,7 +165,19 @@ export function getDynamicComponents(): ReadonlyMap<string, (props: any) => any>
  * Creates a GeniferCodeSDK instance for sandbox execution.
  * All operations are audited and sandboxed.
  */
-export function createCodeSDK(): GeniferCodeSDK {
+export function createCodeSDK(options: CreateCodeSDKOptions = {}): GeniferCodeSDK {
+  const geointService = options.geointService
+
+  const withGeoint = async <A>(
+    operation: string,
+    f: (service: GeointHarnessServiceShape) => Promise<A>,
+  ): Promise<A> => {
+    if (!geointService) {
+      throw new Error(`sdk.geoint.${operation} unavailable: GeointHarnessService was not provided`)
+    }
+    return f(geointService)
+  }
+
   const sdk: GeniferCodeSDK = {
     // --- Atoms (backed by shared effect-atom Registry) ---
     atoms: {
@@ -247,6 +295,126 @@ export function createCodeSDK(): GeniferCodeSDK {
       removeElement: (surfaceId, elementKey) => {
         audit('surface.removeElement', `${surfaceId}/${elementKey}`)
         surfaceRemoveElement(surfaceId, elementKey)
+      },
+    },
+
+    // --- GEOINT ---
+    geoint: {
+      spawn: {
+        one: async (result) => withGeoint('spawn.one', async (service) => {
+          audit('geoint.spawn.one', 'spawn from SearchResultItem')
+          const decoded = normalizeSearchResult(result)
+          const stx = await Effect.runPromise(service.spawnFromSearchResult(decoded))
+          return Effect.runPromise(service.getSummary(stx.data.entityId.get()))
+        }),
+        batch: async (results) => withGeoint('spawn.batch', async (service) => {
+          audit('geoint.spawn.batch', `spawn batch size=${results.length}`)
+          const decoded = normalizeSearchResults(results)
+          const spawned = await Effect.runPromise(service.spawnBatchFromSearchResults(decoded))
+          const summaries = await Promise.all(
+            spawned.map((s) => Effect.runPromise(service.getSummary(s.data.entityId.get()))),
+          )
+          return summaries.filter(Boolean)
+        }),
+      },
+
+      search: async (params) => withGeoint('search', async (service) => {
+        const mode = params.mode ?? 'all'
+        audit('geoint.search', mode)
+
+        const all = (await Effect.runPromise(service.getAllSummaries())).filter(Boolean)
+        let filtered = all
+
+        if ((mode === 'type' || mode === 'type+bounds') && params.entityType) {
+          filtered = filtered.filter((s) => s.entityType === params.entityType)
+        }
+        if ((mode === 'bounds' || mode === 'type+bounds') && params.bounds) {
+          filtered = filtered.filter((s) => inBounds(s, params.bounds!))
+        }
+
+        const limit = params.limit ?? 200
+        const items = filtered.slice(0, Math.max(1, Math.min(limit, 5000)))
+
+        return {
+          mode,
+          count: items.length,
+          entityIds: items.map((s) => s.entityId),
+          items,
+        }
+      }),
+
+      summary: async (params) => withGeoint('summary', async (service) => {
+        const scope = params.scope ?? 'all'
+        audit('geoint.summary', scope)
+
+        let entities: ReadonlyArray<any>
+        switch (scope) {
+          case 'entity':
+            entities = [await Effect.runPromise(service.getSummary(params.entityId ?? ''))]
+            break
+          case 'type': {
+            const stx = await Effect.runPromise(service.getByType(params.entityType as any))
+            entities = await Promise.all(stx.map((s) => Effect.runPromise(service.getSummary(s.data.entityId.get()))))
+            break
+          }
+          case 'bounds': {
+            const stx = await Effect.runPromise(service.getInBounds(params.bounds as any))
+            entities = await Promise.all(stx.map((s) => Effect.runPromise(service.getSummary(s.data.entityId.get()))))
+            break
+          }
+          case 'all':
+          default:
+            entities = await Effect.runPromise(service.getAllSummaries())
+            break
+        }
+
+        const normalized = entities.filter(Boolean)
+        const byType = normalized.reduce<Record<string, number>>((acc, item) => {
+          acc[item.entityType] = (acc[item.entityType] ?? 0) + 1
+          return acc
+        }, {})
+
+        const viewport = params.includeViewport
+          ? await Effect.runPromise(service.getViewport())
+          : undefined
+
+        return {
+          scope,
+          total: normalized.length,
+          byType,
+          entities: normalized,
+          ...(viewport ? { viewport } : {}),
+        }
+      }),
+
+      select: async (entityId) => withGeoint('select', async (service) => {
+        audit('geoint.select', entityId ?? 'null')
+        await Effect.runPromise(service.select(entityId))
+      }),
+
+      focus: async (entityId, zoom) => withGeoint('focus', async (service) => {
+        audit('geoint.focus', `${entityId} @ ${zoom ?? 'default'}`)
+        return Effect.runPromise(service.focusEntity(entityId, zoom))
+      }),
+
+      clear: async () => withGeoint('clear', async (service) => {
+        audit('geoint.clear', 'clear all entities')
+        await Effect.runPromise(service.clear())
+      }),
+
+      viewport: {
+        get: async () => withGeoint('viewport.get', async (service) => {
+          audit('geoint.viewport.get', 'get')
+          return Effect.runPromise(service.getViewport())
+        }),
+        set: async (viewport) => withGeoint('viewport.set', async (service) => {
+          audit('geoint.viewport.set', JSON.stringify(viewport).slice(0, 120))
+          return Effect.runPromise(service.setViewport(viewport as any))
+        }),
+        reset: async () => withGeoint('viewport.reset', async (service) => {
+          audit('geoint.viewport.reset', 'reset')
+          return Effect.runPromise(service.resetViewport())
+        }),
       },
     },
 
