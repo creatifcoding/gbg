@@ -100,8 +100,41 @@ type ShellDataListener = (data: string) => void
 const dataListeners = new Map<string, Set<ShellDataListener>>()
 
 /**
+ * Replay buffer per session — captures shell:data that arrives
+ * BEFORE any listener subscribes (e.g. during the 500ms tool execution
+ * window before the React renderer mounts).
+ *
+ * On first subscribeShellData(), the buffer is drained and replayed
+ * into the new listener, then cleared. Subsequent data goes direct.
+ *
+ * Max 64KB per session to prevent unbounded growth on long-running
+ * sessions with no subscriber.
+ */
+const MAX_REPLAY_BUFFER = 64 * 1024
+const replayBuffers = new Map<string, string[]>()
+
+function appendToReplayBuffer(sessionId: string, data: string): void {
+  let buf = replayBuffers.get(sessionId)
+  if (!buf) {
+    buf = []
+    replayBuffers.set(sessionId, buf)
+  }
+  buf.push(data)
+  // Trim from front if we exceed budget
+  let total = 0
+  for (const chunk of buf) total += chunk.length
+  while (total > MAX_REPLAY_BUFFER && buf.length > 1) {
+    total -= buf.shift()!.length
+  }
+}
+
+/**
  * Subscribe to raw PTY data for a specific session (hot path).
  * Data goes directly to terminal.write() — no atom intermediary.
+ *
+ * On first subscriber: replays any buffered data that arrived before
+ * the listener was registered, then clears the buffer.
+ *
  * Returns unsubscribe function.
  */
 export function subscribeShellData(
@@ -114,6 +147,16 @@ export function subscribeShellData(
     dataListeners.set(sessionId, set)
   }
   set.add(listener)
+
+  // Replay buffered data for this session
+  const buf = replayBuffers.get(sessionId)
+  if (buf && buf.length > 0) {
+    for (const chunk of buf) {
+      try { listener(chunk) } catch { /* don't let replay errors propagate */ }
+    }
+    replayBuffers.delete(sessionId)
+  }
+
   return () => {
     set!.delete(listener)
     if (set!.size === 0) dataListeners.delete(sessionId)
@@ -152,7 +195,7 @@ export function dispatchShellEvent(event: ShellEvent): void {
     case 'shell:data': {
       // HOT PATH — fan out to direct listeners (terminal.write)
       const set = dataListeners.get(sessionId)
-      if (set) {
+      if (set && set.size > 0) {
         for (const listener of set) {
           try {
             listener(event.data)
@@ -160,6 +203,11 @@ export function dispatchShellEvent(event: ShellEvent): void {
             // Don't let a bad listener break the fan-out
           }
         }
+      } else {
+        // No listeners yet — buffer for replay on first subscribe.
+        // This covers the window between tool execution start and
+        // React renderer mount (typically ~500ms).
+        appendToReplayBuffer(sessionId, event.data)
       }
       // Bump sequence counter so components know new data arrived
       r.set(session.outputSeq$, r.get(session.outputSeq$) + 1)
@@ -188,6 +236,7 @@ export function dispatchShellEvent(event: ShellEvent): void {
  */
 export function cleanupSession(sessionId: string): void {
   dataListeners.delete(sessionId)
+  replayBuffers.delete(sessionId)
   const r = getRegistry()
   const currentIds = r.get(activeSessionIds$)
   r.set(

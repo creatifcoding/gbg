@@ -30,7 +30,8 @@ import {
 
 function extractSessionId(output: unknown): string | null {
   if (typeof output === 'string') {
-    const match = output.match(/sessionId:\s*(shell-[a-zA-Z0-9_-]+)/)
+    // Match both "sessionId: shell-X" and "[session:shell-X ...]" formats
+    const match = output.match(/(?:sessionId|session):\s*(shell-[a-zA-Z0-9_-]+)/)
     return match?.[1] ?? null
   }
   if (Array.isArray(output)) {

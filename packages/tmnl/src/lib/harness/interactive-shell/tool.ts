@@ -485,7 +485,7 @@ export const executeInteractiveShell = (
           content: [
             {
               type: 'text',
-              text: `[session:${info.sessionId} status:${info.status} pid:${info.pid ?? 'unknown'}]\n${output}`,
+              text: `sessionId: ${info.sessionId}\nstatus: ${info.status}\npid: ${info.pid ?? 'unknown'}\n${output}`,
             },
           ],
         })
