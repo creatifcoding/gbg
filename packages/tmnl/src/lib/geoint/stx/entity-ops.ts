@@ -22,6 +22,7 @@ import {
   getSpawnedEntityIds,
   getAllEntityStx,
   syncEntityAtoms,
+  geointEntityRegistry,
   type EntityStx,
   type SpawnEntityInput,
 } from './entity-stx'
@@ -52,7 +53,7 @@ export const selectedEntityIdsAtom = Atom.make<ReadonlySet<string>>(new Set())
  */
 export function selectEntity(entityId: string | null): void {
   // Deselect previous
-  const prev = Atom.unsafeGet(selectedEntityIdAtom)
+  const prev = geointEntityRegistry.get(selectedEntityIdAtom)
   if (prev && prev !== entityId) {
     const prevStx = getEntityStx(prev)
     if (prevStx) {
@@ -69,7 +70,7 @@ export function selectEntity(entityId: string | null): void {
     }
   }
 
-  Atom.unsafeSet(selectedEntityIdAtom, entityId)
+  geointEntityRegistry.set(selectedEntityIdAtom, entityId)
 }
 
 /**
@@ -82,14 +83,14 @@ export function toggleEntitySelection(entityId: string): void {
   const isSelected = stx.data.selected.get()
   stx.data.selected.set(!isSelected)
 
-  const current = Atom.unsafeGet(selectedEntityIdsAtom)
+  const current = geointEntityRegistry.get(selectedEntityIdsAtom)
   const next = new Set(current)
   if (isSelected) {
     next.delete(entityId)
   } else {
     next.add(entityId)
   }
-  Atom.unsafeSet(selectedEntityIdsAtom, next)
+  geointEntityRegistry.set(selectedEntityIdsAtom, next)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -106,7 +107,7 @@ export const hoveredEntityIdAtom = Atom.make<string | null>(null)
  */
 export function hoverEntity(entityId: string | null): void {
   // Clear previous hover
-  const prev = Atom.unsafeGet(hoveredEntityIdAtom)
+  const prev = geointEntityRegistry.get(hoveredEntityIdAtom)
   if (prev && prev !== entityId) {
     const prevStx = getEntityStx(prev)
     if (prevStx) {
@@ -122,7 +123,7 @@ export function hoverEntity(entityId: string | null): void {
     }
   }
 
-  Atom.unsafeSet(hoveredEntityIdAtom, entityId)
+  geointEntityRegistry.set(hoveredEntityIdAtom, entityId)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

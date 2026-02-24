@@ -14,6 +14,7 @@
 
 import { Effect } from 'effect'
 import { Atom } from '@effect-atom/atom'
+import * as AtomRegistry from '@effect-atom/atom/Registry'
 import type { GeointEntityType } from '../kori/search-result-mapper'
 import { stx, type StxConfigWithBindings } from '../../stx/stx'
 import type { Stx } from '../../stx/types'
@@ -342,6 +343,14 @@ export function entityCount(): number {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
+ * Shared registry for GEOINT entity state atoms.
+ *
+ * We keep this registry module-scoped so imperative operations (spawn/despawn,
+ * select/hover) and React readers observe the same atom graph.
+ */
+export const geointEntityRegistry = AtomRegistry.make()
+
+/**
  * Reactive atom tracking spawned entity IDs.
  * Updated by spawn/despawn operations.
  */
@@ -357,6 +366,6 @@ export const entityCountAtom = Atom.make<number>(0)
  * Call after spawn/despawn for React reactivity.
  */
 export function syncEntityAtoms(): void {
-  Atom.set(spawnedEntityIdsAtom, Array.from(entityStxStore.keys()))
-  Atom.set(entityCountAtom, entityStxStore.size)
+  geointEntityRegistry.set(spawnedEntityIdsAtom, Array.from(entityStxStore.keys()))
+  geointEntityRegistry.set(entityCountAtom, entityStxStore.size)
 }

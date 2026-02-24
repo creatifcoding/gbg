@@ -56,3 +56,6 @@ export * from './animation'
 
 // Streaming - Real-time data integration
 export * from './streaming'
+
+// Harness - tool/runtime orchestration service
+export * from './harness'
