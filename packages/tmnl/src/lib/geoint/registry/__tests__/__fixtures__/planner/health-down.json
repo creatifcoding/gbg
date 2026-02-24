@@ -1,0 +1,71 @@
+{
+  "_tag": "RegistryQueryPlanV1",
+  "version": "geoint.registry.v1",
+  "planId": "plan-golden-health-down-1767225600000",
+  "intent": {
+    "_tag": "PlannerIntentV1",
+    "version": "geoint.registry.v1",
+    "queryId": "golden-health-down",
+    "requestedAt": "2026-01-01T00:00:00.000Z",
+    "requestedSources": [
+      "openmeteo",
+      "noaa"
+    ]
+  },
+  "decision": {
+    "_tag": "PlanDecisionV1",
+    "strategy": "trust-first",
+    "selected": [
+      {
+        "_tag": "SourceAttemptV1",
+        "sourceId": "nws-api",
+        "canonicalSource": "noaa",
+        "role": "trigger",
+        "provider": "native",
+        "priority": 88,
+        "weight": 0.9,
+        "rank": 0,
+        "rationale": "priority=88, weight=0.90, role=trigger, provider=native, strategy=trust-first, health=healthy:0.80"
+      }
+    ],
+    "rejected": [
+      {
+        "_tag": "SourceRejectionV1",
+        "sourceId": "opensky",
+        "canonicalSource": "opensky",
+        "reason": "not requested by caller"
+      },
+      {
+        "_tag": "SourceRejectionV1",
+        "sourceId": "adsb-exchange",
+        "canonicalSource": "adsb-lol",
+        "reason": "not requested by caller"
+      },
+      {
+        "_tag": "SourceRejectionV1",
+        "sourceId": "openmeteo-api",
+        "canonicalSource": "openmeteo",
+        "reason": "source health down"
+      },
+      {
+        "_tag": "SourceRejectionV1",
+        "sourceId": "copernicus-stac",
+        "canonicalSource": "copernicus-stac",
+        "reason": "not requested by caller"
+      },
+      {
+        "_tag": "SourceRejectionV1",
+        "sourceId": "planetary-computer",
+        "canonicalSource": "planetary-computer",
+        "reason": "not requested by caller"
+      },
+      {
+        "_tag": "SourceRejectionV1",
+        "sourceId": "gdacs",
+        "canonicalSource": "gdacs",
+        "reason": "not requested by caller"
+      }
+    ]
+  },
+  "generatedAt": "2026-01-01T00:00:00.000Z"
+}

@@ -81,6 +81,7 @@ import {
   ingesterNotFoundStatus,
   parseIngestionError,
 } from '../schemas/ingestion'
+import { buildRequestResponseDigests } from '../registry/provenance'
 
 // =============================================================================
 // Types
@@ -512,6 +513,8 @@ const SearchRpcHandlers = Effect.gen(function* () {
           if (error) errors['openmeteo'] = `${error._tag}: ${error.userMessage}`
         }
 
+        const historyDigests = buildRequestResponseDigests(request, allResults)
+
         // Add to history
         yield* Ref.update(searchHistory, (store) => ({
           entries: [
@@ -521,6 +524,8 @@ const SearchRpcHandlers = Effect.gen(function* () {
               executedAt: new Date(),
               resultCount: allResults.length,
               executionTimeMs: Date.now() - startTime,
+              requestHash: historyDigests.requestHash,
+              responseHash: historyDigests.responseHash,
             }),
             ...store.entries.slice(0, 99),
           ],

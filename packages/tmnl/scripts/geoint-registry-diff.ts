@@ -4,6 +4,15 @@ import { Console, Effect, Layer, Redacted } from 'effect'
 import { SqlClient } from '@effect/sql'
 import { PgClient } from '@effect/sql-pg'
 import { listSeededSourceRegistry } from '../src/lib/geoint/registry/sourceRegistry'
+import { listSeededSourceTaxonomy } from '../src/lib/geoint/migrations/_registry.ddl'
+
+type DbTaxonomyRow = {
+  canonical_source: string
+  domain: string
+  modality: string
+  description: string
+  active: boolean
+}
 
 type DbSourceRow = {
   source_id: string
@@ -37,8 +46,22 @@ const normalizeAlias = (sourceId: string, adapter: string, externalId: string, c
 const program = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
 
+  const seedTaxonomy = listSeededSourceTaxonomy().map((seed) => ({
+    canonical_source: seed.canonicalSource,
+    domain: seed.domain,
+    modality: seed.modality,
+    description: seed.description,
+    active: true,
+  }))
+
   const seed = listSeededSourceRegistry()
   const seedSourceMap = new Map(seed.map((entry) => [String(entry.sourceId), entry]))
+
+  const dbTaxonomy = yield* sql<DbTaxonomyRow>`
+    SELECT canonical_source, domain, modality, description, active
+    FROM geoint_registry.source_taxonomy
+    ORDER BY canonical_source
+  `
 
   const dbSources = yield* sql<DbSourceRow>`
     SELECT source_id, canonical_source, capabilities
@@ -51,6 +74,33 @@ const program = Effect.gen(function* () {
     FROM geoint_registry.source_aliases
     ORDER BY source_id, adapter, external_id
   `
+
+  const seedTaxonomyMap = new Map(seedTaxonomy.map((row) => [row.canonical_source, row]))
+  const dbTaxonomyMap = new Map(dbTaxonomy.map((row) => [row.canonical_source, row]))
+
+  const seedTaxonomyIds = new Set([...seedTaxonomyMap.keys()])
+  const dbTaxonomyIds = new Set([...dbTaxonomyMap.keys()])
+
+  const missingTaxonomyInDb = [...seedTaxonomyIds].filter((id) => !dbTaxonomyIds.has(id)).sort()
+  const extraTaxonomyInDb = [...dbTaxonomyIds].filter((id) => !seedTaxonomyIds.has(id)).sort()
+
+  const taxonomyMismatches = [...seedTaxonomyIds]
+    .filter((id) => dbTaxonomyIds.has(id))
+    .flatMap((id) => {
+      const seedRow = seedTaxonomyMap.get(id)
+      const dbRow = dbTaxonomyMap.get(id)
+      if (!seedRow || !dbRow) return []
+
+      const drift: string[] = []
+      if (seedRow.domain !== dbRow.domain) drift.push(`domain(seed=${seedRow.domain},db=${dbRow.domain})`)
+      if (seedRow.modality !== dbRow.modality) drift.push(`modality(seed=${seedRow.modality},db=${dbRow.modality})`)
+      if (seedRow.description !== dbRow.description) drift.push('description mismatch')
+      if (seedRow.active !== dbRow.active) drift.push(`active(seed=${seedRow.active},db=${dbRow.active})`)
+
+      return drift.length > 0
+        ? [{ canonicalSource: id, differences: drift }]
+        : []
+    })
 
   const dbSourceMap = new Map(dbSources.map((row) => [row.source_id, row]))
 
@@ -88,18 +138,27 @@ const program = Effect.gen(function* () {
   const missingAliasesInDb = [...seedAliasSet].filter((item) => !dbAliasSet.has(item)).sort()
   const extraAliasesInDb = [...dbAliasSet].filter((item) => !seedAliasSet.has(item)).sort()
 
-  const seedStac = seed.filter((entry) => entry.capabilities.provider === 'stac').map((entry) => String(entry.sourceId)).sort()
+  const seedStac = seed
+    .filter((entry) => entry.capabilities.provider === 'stac')
+    .map((entry) => String(entry.sourceId))
+    .sort()
+
   const dbStac = dbSources
-    .filter((row) => (row.capabilities as any)?.provider === 'stac')
+    .filter((row) => (row.capabilities as { provider?: string })?.provider === 'stac')
     .map((row) => row.source_id)
     .sort()
 
   const summary = {
     strict,
+    seedTaxonomyCount: seedTaxonomy.length,
+    dbTaxonomyCount: dbTaxonomy.length,
     seedSourceCount: seed.length,
     dbSourceCount: dbSources.length,
     seedAliasCount: seedAliasSet.size,
     dbAliasCount: dbAliasSet.size,
+    missingTaxonomyInDb,
+    extraTaxonomyInDb,
+    taxonomyMismatches,
     missingInDb,
     extraInDb,
     canonicalMismatches,
@@ -110,6 +169,9 @@ const program = Effect.gen(function* () {
   }
 
   const hasDrift =
+    missingTaxonomyInDb.length > 0 ||
+    extraTaxonomyInDb.length > 0 ||
+    taxonomyMismatches.length > 0 ||
     missingInDb.length > 0 ||
     extraInDb.length > 0 ||
     canonicalMismatches.length > 0 ||

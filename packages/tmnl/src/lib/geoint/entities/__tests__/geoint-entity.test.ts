@@ -47,6 +47,13 @@ describe('GeointEntity.fromSearchResult', () => {
     expect(entity.isAirborne()).toBe(true)
     expect(entity.toSummary()).toContain('airborne')
     expect(getEntityDisplayLabel(entity)).toBe('TMNL123')
+
+    const rawRef = entity.provenance.sources[0]?.rawRef
+    expect(rawRef?.hash).toMatch(/^[a-f0-9]{64}$/)
+    expect(rawRef?.hash).not.toBe('0'.repeat(64))
+    expect(rawRef?.requestHash).toMatch(/^[a-f0-9]{64}$/)
+    expect(rawRef?.responseHash).toMatch(/^[a-f0-9]{64}$/)
+    expect(rawRef?.hash).toBe(rawRef?.responseHash)
   })
 
   it('builds PoiEntity / TrackEntity / WeatherEntity / ImageryEntity / FeatureEntity', () => {

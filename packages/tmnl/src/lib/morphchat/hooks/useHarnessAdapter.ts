@@ -120,6 +120,9 @@ morphChatRegistry.mount(harnessSessionId$)
 const harnessEventFiber$ = Atom.make<Fiber.RuntimeFiber<void, unknown> | null>(null)
 morphChatRegistry.mount(harnessEventFiber$)
 
+const harnessShellEventFiber$ = Atom.make<Fiber.RuntimeFiber<void, unknown> | null>(null)
+morphChatRegistry.mount(harnessShellEventFiber$)
+
 // =============================================================================
 // Runtime Atom — Layer scope stays alive as long as atoms are mounted
 // =============================================================================
@@ -316,11 +319,16 @@ export const harnessOps = {
     Effect.gen(function* () {
       const runtime = yield* HarnessRuntime
 
-      // Tear down existing event fiber
+      // Tear down existing event fibers
       const existingFiber = morphChatRegistry.get(harnessEventFiber$)
       if (existingFiber) {
         yield* Fiber.interrupt(existingFiber)
         morphChatRegistry.set(harnessEventFiber$, null)
+      }
+      const existingShellFiber = morphChatRegistry.get(harnessShellEventFiber$)
+      if (existingShellFiber) {
+        yield* Fiber.interrupt(existingShellFiber)
+        morphChatRegistry.set(harnessShellEventFiber$, null)
       }
 
       morphChatRegistry.set(harnessConnection$, { phase: 'connecting', endpoint: `harness:${nodeId}` } as ConnectionState)
@@ -341,6 +349,8 @@ export const harnessOps = {
       )
       morphChatRegistry.set(harnessSessionId$, session.sessionId)
 
+      // Session is open — mark connected immediately so stream failures can
+      // transition state to error (rather than being overwritten by connected).
       morphChatRegistry.set(harnessConnection$, {
         phase: 'connected',
         endpoint: `harness:${nodeId}`,
@@ -352,9 +362,23 @@ export const harnessOps = {
       }])
       morphChatRegistry.set(harnessStatusRows$, [])
 
-      // Subscribe to runtime event stream after session open.
+      const activeSessionId = session.sessionId as HarnessSessionId
       const processor = getProcessor(agentName)
+      const seenSeqs = new Set<number>()
+
+      const shouldProcessEvent = (event: { sessionId?: unknown; seq?: unknown }) => {
+        if (event.sessionId !== activeSessionId) return false
+        const seq = typeof event.seq === 'number' ? event.seq : undefined
+        if (seq == null) return true
+        if (seenSeqs.has(seq)) return false
+        seenSeqs.add(seq)
+        return true
+      }
+
+      // Subscribe first, then backfill snapshot through the same dedupe gate.
+      // This avoids snapshot/subscription race windows while preventing replay duplicates.
       const fiber = yield* runtime.events.pipe(
+        Stream.filter((event) => shouldProcessEvent(event as { sessionId?: unknown; seq?: unknown })),
         // Side-channel: intercept phase:'stream' tool events → sidecar registry
         Stream.tap((event) => {
           if (
@@ -400,23 +424,12 @@ export const harnessOps = {
       )
       morphChatRegistry.set(harnessEventFiber$, fiber)
 
-      // Backfill snapshot to hydrate any events emitted before stream subscription
-      // (e.g. session_opened/tool_manifest).
-      const snapshot = yield* runtime.getSnapshot(session.sessionId as HarnessSessionId, Option.none()).pipe(
-        Effect.catchAll(() => Effect.succeed(null)),
-      )
-      if (snapshot) {
-        for (const event of snapshot.events) {
-          processor.processEvent(event)
-        }
-      }
-
       // ── Shell event bridge ─────────────────────────────────────────
       // Fork a second daemon fiber that taps the raw transport events
       // for shell event envelopes and dispatches them to
       // shell-client-atoms listeners (used by InteractiveShellRenderer).
       const transport = yield* HarnessBrowserTransport
-      yield* transport.events.pipe(
+      const shellFiber = yield* transport.events.pipe(
         Stream.runForEach((rawEvent) =>
           Effect.sync(() => {
             if (
@@ -436,6 +449,7 @@ export const harnessOps = {
         Effect.catchAll(() => Effect.void),
         Effect.forkDaemon,
       )
+      morphChatRegistry.set(harnessShellEventFiber$, shellFiber)
 
       // Register shell command sender so renderers can send input/resize/kill
       registerShellCommandSender((command) => {
@@ -445,6 +459,28 @@ export const harnessOps = {
           ),
         )
       })
+
+      // Best-effort snapshot hydration for bootstrap history/tool manifest.
+      // Bounded timeout prevents long 'connecting' stalls from snapshot path.
+      const snapshot = yield* runtime.getSnapshot(activeSessionId, Option.none()).pipe(
+        Effect.timeoutFail({
+          duration: '3 seconds',
+          onTimeout: () =>
+            new HarnessRuntimeError({
+              code: 'snapshot-timeout',
+              message: `Timed out hydrating snapshot for session ${activeSessionId}`,
+              cause: Option.none(),
+            }),
+        }),
+        Effect.catchAll(() => Effect.succeed(null)),
+      )
+      if (snapshot && morphChatRegistry.get(harnessSessionId$) === activeSessionId) {
+        for (const event of snapshot.events) {
+          if (shouldProcessEvent(event as { sessionId?: unknown; seq?: unknown })) {
+            processor.processEvent(event)
+          }
+        }
+      }
 
       return session.sessionId as string
     }).pipe(
@@ -632,7 +668,7 @@ export const harnessOps = {
   ),
 
   /**
-   * Full dispose — interrupt event fiber + abort session.
+   * Full dispose — interrupt event fibers + abort session.
    */
   dispose: harnessRuntimeAtom.fn<void>()((_arg, _ctx) =>
     Effect.gen(function* () {
@@ -640,6 +676,11 @@ export const harnessOps = {
       if (fiber) {
         yield* Fiber.interrupt(fiber)
         morphChatRegistry.set(harnessEventFiber$, null)
+      }
+      const shellFiber = morphChatRegistry.get(harnessShellEventFiber$)
+      if (shellFiber) {
+        yield* Fiber.interrupt(shellFiber)
+        morphChatRegistry.set(harnessShellEventFiber$, null)
       }
       const runtime = yield* HarnessRuntime
       const sessionId = morphChatRegistry.get(harnessSessionId$)

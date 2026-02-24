@@ -92,6 +92,18 @@ export const shouldAutoCollapseFamily = Atom.family((surfId: SurfaceId) => {
 
 const actorRegistry = new Map<SurfaceId, SurfaceActor>()
 
+function scheduleSnapshotSync(
+  surfId: SurfaceId,
+  actor: SurfaceActor,
+  snapshot: SurfaceSnapshot,
+): void {
+  queueMicrotask(() => {
+    // Ignore deferred updates from disposed/replaced actors.
+    if (actorRegistry.get(surfId) !== actor) return
+    syncSnapshot(surfId, snapshot)
+  })
+}
+
 /**
  * Extract parallel state values from a snapshot.
  * XState v5 parallel state value is: { connection: 'connected', streaming: 'idle', presentation: 'ready' }
@@ -158,13 +170,15 @@ export function getOrCreateSurfaceActor(
     actor.start()
     actorRegistry.set(surfId, actor)
 
-    // Subscribe to sync atoms on every snapshot change
+    // Subscribe to sync atoms on every snapshot change.
+    // Deferred to microtask to avoid render-phase atom writes when actor
+    // creation happens during provider render (React warning path).
     actor.subscribe((snapshot) => {
-      syncSnapshot(surfId, snapshot)
+      scheduleSnapshotSync(surfId, actor, snapshot)
     })
 
-    // Sync initial snapshot
-    syncSnapshot(surfId, actor.getSnapshot())
+    // Sync initial snapshot (also deferred for the same reason).
+    scheduleSnapshotSync(surfId, actor, actor.getSnapshot())
   }
   return actor
 }

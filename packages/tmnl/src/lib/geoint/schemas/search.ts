@@ -1818,5 +1818,11 @@ export class SearchHistoryEntry extends Schema.TaggedClass<SearchHistoryEntry>(
   query: SearchQuery,
   resultCount: Schema.Number,
   executionTimeMs: Schema.Number,
-  executedAt: Schema.Date
+  executedAt: Schema.Date,
+  requestHash: Schema.optional(
+    Schema.String.pipe(Schema.pattern(/^[a-f0-9]{64}$/i))
+  ),
+  responseHash: Schema.optional(
+    Schema.String.pipe(Schema.pattern(/^[a-f0-9]{64}$/i))
+  ),
 }) {}

@@ -42,12 +42,38 @@ export class RawAuditRef extends Schema.TaggedClass<RawAuditRef>()(
 
     /**
      * SHA-256 hash of raw data for integrity verification.
+     *
+     * Backward-compatibility alias for responseHash.
      */
     hash: Schema.String.pipe(
       Schema.pattern(/^[a-f0-9]{64}$/i),
       Schema.annotations({
-        description: 'SHA-256 hash of raw data for integrity verification.',
+        description: 'SHA-256 hash of raw data for integrity verification (alias for responseHash).',
       })
+    ),
+
+    /**
+     * SHA-256 digest of upstream request payload/query envelope.
+     */
+    requestHash: Schema.optional(
+      Schema.String.pipe(
+        Schema.pattern(/^[a-f0-9]{64}$/i),
+        Schema.annotations({
+          description: 'SHA-256 digest of request payload/query envelope.',
+        })
+      )
+    ),
+
+    /**
+     * SHA-256 digest of upstream response payload.
+     */
+    responseHash: Schema.optional(
+      Schema.String.pipe(
+        Schema.pattern(/^[a-f0-9]{64}$/i),
+        Schema.annotations({
+          description: 'SHA-256 digest of response payload.',
+        })
+      )
     ),
 
     /**

@@ -273,6 +273,8 @@ const ALIAS_SEEDS: ReadonlyArray<AliasSeed> = [
   { sourceId: 'gdacs', adapter: 'registry', externalId: 'gdacs', canonicalSource: 'gdacs' },
 ]
 
+export const listSeededSourceTaxonomy = (): ReadonlyArray<TaxonomySeed> => TAXONOMY_SEEDS
+
 export const createRegistryInfrastructure = Effect.gen(function* () {
   const sql = yield* SqlClient.SqlClient
 

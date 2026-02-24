@@ -1,0 +1,57 @@
+name: tmnl-geoint-ci
+
+on:
+  push:
+    paths:
+      - "packages/tmnl/src/lib/geoint/**"
+      - "packages/tmnl/scripts/geoint-*.ts"
+      - "packages/tmnl/scripts/geoint-rapid-loop.sh"
+      - "packages/tmnl/package.json"
+      - "packages/tmnl/project.json"
+      - ".github/workflows/tmnl-geoint-ci.yml"
+  pull_request:
+    paths:
+      - "packages/tmnl/src/lib/geoint/**"
+      - "packages/tmnl/scripts/geoint-*.ts"
+      - "packages/tmnl/scripts/geoint-rapid-loop.sh"
+      - "packages/tmnl/package.json"
+      - "packages/tmnl/project.json"
+      - ".github/workflows/tmnl-geoint-ci.yml"
+
+jobs:
+  geoint-registry-repro:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: tmnl
+          POSTGRES_PASSWORD: tmnl_dev_password
+          POSTGRES_DB: tmnl
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tmnl -d tmnl"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 8
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: GEOINT migration + registry reproducibility gate
+        working-directory: packages/tmnl
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: "5432"
+          POSTGRES_DB: tmnl
+          POSTGRES_USER: tmnl
+          POSTGRES_PASSWORD: tmnl_dev_password
+        run: bun run geoint:rapid

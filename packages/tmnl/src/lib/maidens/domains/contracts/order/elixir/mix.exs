@@ -27,6 +27,8 @@ defmodule MaidenOrderRuntime.MixProject do
       # Ecto/Postgres-backed persistence for long-running ORDER agents
       {:ecto_sql, "~> 3.13"},
       {:postgrex, "~> 0.20"},
+      # Runtime config validation (Effect Config-style ergonomics)
+      {:nimble_options, "~> 1.1"},
       # Jido library usage: agent schema + cmd/2 + FSM strategy
       {:jido, "~> 2.0"}
     ]

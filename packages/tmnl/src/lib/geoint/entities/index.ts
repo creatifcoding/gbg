@@ -24,7 +24,7 @@ import {
   IdentifiableTrait,
   ClassifiedTrait,
 } from '../schemas/traits'
-import { toEcsIntelSource } from '../registry'
+import { buildRequestResponseDigests, toEcsIntelSource } from '../registry'
 
 // Entity exports
 export {
@@ -150,6 +150,16 @@ function buildProvenance(result: SearchResultItem): EntityProvenance {
   const source = toIntelSource(result.source)
   const now = result.retrievedAt
 
+  const digests = buildRequestResponseDigests(
+    {
+      source: result.source,
+      searchResultTag: result._tag,
+      searchResultId: result.id,
+      retrievedAt: result.retrievedAt,
+    },
+    result,
+  )
+
   const sourceContribution = new SourceContribution({
     source,
     observedAt,
@@ -159,7 +169,9 @@ function buildProvenance(result: SearchResultItem): EntityProvenance {
     rawRef: new RawAuditRef({
       streamUrl: `/geoint/search/${source}`,
       offset: result.id,
-      hash: '0'.repeat(64),
+      hash: digests.responseHash,
+      requestHash: digests.requestHash,
+      responseHash: digests.responseHash,
       sizeBytes: 0,
     }),
     notes: `Derived from ${result._tag}`,

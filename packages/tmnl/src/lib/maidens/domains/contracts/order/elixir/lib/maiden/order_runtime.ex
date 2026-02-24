@@ -82,7 +82,7 @@ defmodule Maiden.OrderRuntime do
       "postgres" -> :postgres
       "ets" -> :ets
       nil -> default_storage_adapter_from_env()
-      _ -> :ets
+      other -> raise ArgumentError, "unsupported persistence adapter override: #{inspect(other)}"
     end
   end
 
@@ -105,8 +105,13 @@ defmodule Maiden.OrderRuntime do
         |> String.downcase()
         |> case do
           "postgres" -> :postgres
-          _ -> :ets
+          "ets" -> :ets
+          other -> raise ArgumentError, "unsupported ORDER_PERSISTENCE_ADAPTER: #{inspect(other)}"
         end
+
+      other ->
+        raise ArgumentError,
+              "invalid :maiden_order_runtime persistence_adapter config: #{inspect(other)}"
     end
   end
 
