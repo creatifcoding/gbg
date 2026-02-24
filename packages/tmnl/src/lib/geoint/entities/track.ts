@@ -106,4 +106,26 @@ export class TrackEntity extends Schema.TaggedClass<TrackEntity>()(
     title: 'Track Entity',
     description: 'Generic tracked object. Includes all core traits plus classification.',
   }
-) {}
+) {
+  get displayLabel(): string {
+    return this.identifiable.name ?? this.identifiable.callsign ?? this.trackId
+  }
+
+  isLive(now: Date = new Date()): boolean {
+    const ageMs = now.getTime() - this.lastSeen.getTime()
+    return this.status === 'active' && ageMs < 120_000
+  }
+
+  markUpdated(at: Date = new Date()): TrackEntity {
+    return new TrackEntity({
+      ...this,
+      lastSeen: at,
+      updateCount: this.updateCount + 1,
+      status: 'active',
+    })
+  }
+
+  toSummary(): string {
+    return `${this.displayLabel} · ${this.classified.objectType} · ${this.status}`
+  }
+}

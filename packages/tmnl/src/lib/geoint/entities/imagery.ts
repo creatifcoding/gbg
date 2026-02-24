@@ -147,4 +147,21 @@ export class ImageryEntity extends Schema.TaggedClass<ImageryEntity>()(
     title: 'Imagery Entity',
     description: 'Satellite/aerial imagery metadata. Imagery fields embedded directly.',
   }
-) {}
+) {
+  get displayLabel(): string {
+    return `${this.provider}:${this.itemId}`
+  }
+
+  isClearScene(maxCloudCover = 20): boolean {
+    return (this.cloudCover ?? 100) <= maxCloudCover
+  }
+
+  hasAsset(): boolean {
+    return Boolean(this.assetUrl)
+  }
+
+  toSummary(): string {
+    const cloud = this.cloudCover != null ? `${this.cloudCover.toFixed(1)}% cloud` : 'cloud N/A'
+    return `${this.displayLabel} · ${cloud}`
+  }
+}

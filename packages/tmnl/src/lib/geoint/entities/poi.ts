@@ -110,4 +110,20 @@ export class PoiEntity extends Schema.TaggedClass<PoiEntity>()(
     title: 'POI Entity',
     description: 'Point of interest from OSM or manual entry. Includes spatial and identifiable traits.',
   }
-) {}
+) {
+  get displayLabel(): string {
+    return this.identifiable.name ?? this.identifiable.callsign ?? this.category
+  }
+
+  hasContactInfo(): boolean {
+    return Boolean(this.website || this.phone)
+  }
+
+  isAmenity(): boolean {
+    return this.category === 'amenity'
+  }
+
+  toSummary(): string {
+    return `${this.displayLabel} · ${this.category}`
+  }
+}

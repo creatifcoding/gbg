@@ -142,4 +142,20 @@ export class WeatherEntity extends Schema.TaggedClass<WeatherEntity>()(
     title: 'Weather Entity',
     description: 'Meteorological observation. Weather fields embedded directly.',
   }
-) {}
+) {
+  get displayLabel(): string {
+    return this.locationName
+  }
+
+  hasPrecipitation(): boolean {
+    return (this.precipitation ?? 0) > 0
+  }
+
+  isSevere(): boolean {
+    return this.weatherCode === 95 || this.weatherCode === 96 || this.weatherCode === 99
+  }
+
+  toSummary(): string {
+    return `${this.locationName} · ${this.temperature.toFixed(1)}°C`
+  }
+}

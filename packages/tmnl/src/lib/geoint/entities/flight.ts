@@ -125,4 +125,21 @@ export class FlightEntity extends Schema.TaggedClass<FlightEntity>()(
     title: 'Flight Entity',
     description: 'Aircraft tracked via ADS-B. Includes spatial, temporal, kinetic, and identifiable traits.',
   }
-) {}
+) {
+  get displayLabel(): string {
+    const callsign = this.identifiable.callsign?.trim()
+    return callsign && callsign.length > 0 ? callsign : this.icao24
+  }
+
+  isAirborne(): boolean {
+    return !this.onGround
+  }
+
+  hasEmergencySquawk(): boolean {
+    return this.squawk === '7500' || this.squawk === '7600' || this.squawk === '7700'
+  }
+
+  toSummary(): string {
+    return `${this.displayLabel} · ${this.originCountry} · ${this.isAirborne() ? 'airborne' : 'grounded'}`
+  }
+}
