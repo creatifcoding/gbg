@@ -326,7 +326,7 @@ export { panelRegistry, type PanelContentEntry, type PanelContentProps } from '.
 export { PanelContentRenderer as VisitorContentRenderer } from './components/PanelContentRenderer'
 
 // ── Visitors (built-in panel content providers) ────────────────────────────
-export { registerAllVisitors, registerMorphChatVisitors } from './visitors'
+export { registerAllVisitors, registerMorphChatVisitors, registerGeointVisitors } from './visitors'
 
 // ── Overlay (global panel workspace) ───────────────────────────────────────
 export {

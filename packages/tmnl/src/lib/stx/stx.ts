@@ -28,9 +28,11 @@
  * @module
  */
 
-import { Effect, Exit, Cause } from 'effect'
+import { Effect, Exit, Cause, ManagedRuntime } from 'effect'
 import { observable, observe, batch, type ObservableObject } from '@legendapp/state'
+import { syncObservable } from '@legendapp/state/sync'
 import { Atom } from '@effect-atom/atom'
+import * as Registry from '@effect-atom/atom/Registry'
 import { type Result, success as resultSuccess, failure as resultFailure } from '@effect-atom/atom/Result'
 import {
   createActor,
@@ -44,6 +46,7 @@ import {
 import type {
   StxConfig,
   Stx,
+  StxSnapshot,
   EffectsConfig,
   ComputedConfig,
   StxGetter,
@@ -126,9 +129,92 @@ export function stx<
   // Store initial data for reset
   const initialData = structuredClone(config.data)
 
+  // ---------------------------------------------------------------------------
+  // 1a. Wire persistence (if configured)
+  // ---------------------------------------------------------------------------
+  if (config.persist) {
+    const { name, include, exclude } = config.persist
+
+    // Build transform for include/exclude field filtering
+    const transform = (include || exclude) ? {
+      load: (value: any) => value,
+      save: (value: any) => {
+        if (!value || typeof value !== 'object') return value
+        if (include) {
+          const filtered: Record<string, unknown> = {}
+          for (const key of include) {
+            if (key in value) filtered[key] = value[key]
+          }
+          return filtered
+        }
+        if (exclude) {
+          const filtered = { ...value }
+          for (const key of exclude) {
+            delete filtered[key]
+          }
+          return filtered
+        }
+        return value
+      },
+    } : undefined
+
+    // Resolve plugin — accept plugin instance, class, or string shorthand
+    const pluginOption = config.persist.plugin
+    let resolvedPlugin: any
+
+    if (typeof pluginOption === 'object' || typeof pluginOption === 'function') {
+      // Direct plugin instance or class
+      resolvedPlugin = pluginOption
+    } else {
+      // String shorthand or default — lazy import to avoid bundling unused plugins
+      const loadPlugin = async () => {
+        if (pluginOption === 'indexedDB') {
+          const { ObservablePersistIndexedDB } = await import('@legendapp/state/persist-plugins/indexeddb')
+          return ObservablePersistIndexedDB
+        }
+        // Default: localStorage
+        const { ObservablePersistLocalStorage } = await import('@legendapp/state/persist-plugins/local-storage')
+        return ObservablePersistLocalStorage
+      }
+
+      loadPlugin().then((plugin) => {
+        syncObservable(data$ as any, {
+          persist: {
+            name,
+            plugin: plugin as any,
+            transform: transform as any,
+          },
+        })
+      }).catch((err) => {
+        console.warn(`[stx] Failed to load persistence plugin '${pluginOption ?? 'localStorage'}':`, err)
+      })
+    }
+
+    // If plugin already resolved (direct instance/class), wire immediately
+    if (resolvedPlugin) {
+      syncObservable(data$ as any, {
+        persist: {
+          name,
+          plugin: resolvedPlugin as any,
+          transform: transform as any,
+        },
+      })
+    }
+  }
+
+  // Store initial machine snapshot for reset (captured after actor.start())
+  let initialMachineSnapshot: unknown | undefined
+
   // Track if we're in an update cycle (prevent loops)
   let isUpdatingFromMachine = false
   let isUpdatingFromData = false
+
+  // ---------------------------------------------------------------------------
+  // 1b. Create ManagedRuntime for Effect execution (if layer provided)
+  // ---------------------------------------------------------------------------
+  const runtime = config.layer
+    ? ManagedRuntime.make(config.layer)
+    : undefined
 
   // ---------------------------------------------------------------------------
   // 2. Create Effect actors for the machine
@@ -148,7 +234,10 @@ export function stx<
           effect = effectOrFn as Effect.Effect<unknown, unknown, never>
         }
 
-        const exit = await Effect.runPromiseExit(effect)
+        // Use runtime (lazy access) if layer provided, otherwise run globally
+        const exit = runtime
+          ? await runtime.runPromiseExit(effect as any)
+          : await Effect.runPromiseExit(effect)
 
         return Exit.match(exit, {
           onSuccess: (value) => value,
@@ -173,7 +262,9 @@ export function stx<
       actors: effectActors as Record<string, any>,
     })
 
-    actor = createActor(machineWithActors)
+    actor = createActor(machineWithActors, {
+      ...(config.machineInput !== undefined ? { input: config.machineInput } : {}),
+    })
 
     send = (event) => {
       if (!isUpdatingFromData) {
@@ -241,10 +332,18 @@ export function stx<
 
     // Start the actor after bindings are set up
     actor.start()
+
+    // Capture initial persisted snapshot for reset()
+    initialMachineSnapshot = actor.getPersistedSnapshot()
   }
 
   // ---------------------------------------------------------------------------
-  // 5. Create getter context for computed values
+  // 5. Create internal Registry for reading atoms outside React
+  // ---------------------------------------------------------------------------
+  const registry = Registry.make()
+
+  // ---------------------------------------------------------------------------
+  // 5b. Create getter context for computed values
   // ---------------------------------------------------------------------------
   const createGetter = (): StxGetter<TData, TMachine> => ({
     data: data$,
@@ -264,11 +363,15 @@ export function stx<
     [K in keyof TComputed]: Atom.Atom<ReturnType<TComputed[K]>>
   }
 
+  // Store factories for direct re-evaluation (snapshot/non-React reads)
+  const computedFactories = {} as Record<string, (get: StxGetter<TData, TMachine>) => unknown>
+
   if (config.computed) {
     for (const [key, factory] of Object.entries(config.computed)) {
       // Create atom that recomputes when dependencies change
       const atom = Atom.make(() => factory(createGetter()))
       ;(computed as Record<string, Atom.Atom<unknown>>)[key] = atom
+      computedFactories[key] = factory as (get: StxGetter<TData, TMachine>) => unknown
     }
   }
 
@@ -276,6 +379,17 @@ export function stx<
   // 7. Create effect runners (standalone, not via machine)
   // ---------------------------------------------------------------------------
   const effects = {} as Stx<TMachine, TData, TEffects, TComputed>['effects']
+
+  // Helper: run an effect through ManagedRuntime (if available) or globally
+  const runEffect = async (effect: Effect.Effect<unknown, unknown, any>): Promise<Result<unknown, unknown>> => {
+    const exit = runtime
+      ? await runtime.runPromiseExit(effect as Effect.Effect<unknown, unknown, never>)
+      : await Effect.runPromiseExit(effect as Effect.Effect<unknown, unknown, never>)
+    return Exit.match(exit, {
+      onSuccess: (value) => resultSuccess(value),
+      onFailure: (cause) => resultFailure(cause),
+    })
+  }
 
   if (config.effects) {
     for (const [key, effectOrFn] of Object.entries(config.effects)) {
@@ -285,20 +399,12 @@ export function stx<
           ...args: unknown[]
         ) => {
           const effect = (effectOrFn as (...args: unknown[]) => Effect.Effect<unknown, unknown, never>)(...args)
-          const exit = await Effect.runPromiseExit(effect)
-          return Exit.match(exit, {
-            onSuccess: (value) => resultSuccess(value),
-            onFailure: (cause) => resultFailure(cause),
-          })
+          return runEffect(effect)
         }
       } else {
         // Direct effect
         ;(effects as Record<string, () => Promise<Result<unknown, unknown>>>)[key] = async () => {
-          const exit = await Effect.runPromiseExit(effectOrFn as Effect.Effect<unknown, unknown, never>)
-          return Exit.match(exit, {
-            onSuccess: (value) => resultSuccess(value),
-            onFailure: (cause) => resultFailure(cause),
-          })
+          return runEffect(effectOrFn as Effect.Effect<unknown, unknown, never>)
         }
       }
     }
@@ -347,7 +453,7 @@ export function stx<
       }
     })
 
-    // Restart actor if exists
+    // Restart actor if exists — restore from initial persisted snapshot
     if (actor && config.machine) {
       actor.stop()
 
@@ -355,7 +461,10 @@ export function stx<
         actors: effectActors as Record<string, any>,
       })
 
-      actor = createActor(machineWithActors)
+      // Restore from initial snapshot (preserves initial context, state value)
+      actor = createActor(machineWithActors, {
+        snapshot: initialMachineSnapshot as any,
+      })
       actor.start()
       send = (event) => actor!.send(event)
     }
@@ -374,21 +483,84 @@ export function stx<
 
     // Stop actor
     actor?.stop()
+
+    // Dispose ManagedRuntime (async, fire-and-forget from sync dispose)
+    if (runtime) {
+      runtime.dispose().catch(() => {})
+    }
   }
 
   // ---------------------------------------------------------------------------
-  // 10. Return unified instance
+  // 10. Snapshot — capture all three layers as plain JS
   // ---------------------------------------------------------------------------
-  return {
+  /**
+   * Returns a full snapshot of all three stx layers:
+   * - data: deep-resolved Legend-State observables (via .get())
+   * - machine: XState state value + context + persisted snapshot
+   * - computed: re-evaluated from factories (not cached atoms)
+   *
+   * Safe for JSON.stringify, structured clone, or cross-boundary transfer.
+   */
+  const snapshot = (): StxSnapshot<TData, TMachine, ComputedConfig<TData, TMachine>> => {
+    // Data: Legend-State deep resolve
+    const data = data$.get() as TData
+
+    // Machine: XState snapshot (if actor exists)
+    let machine: unknown = undefined
+    if (actor) {
+      const snap = actor.getSnapshot()
+      machine = {
+        value: snap.value,
+        context: snap.context,
+        persisted: actor.getPersistedSnapshot(),
+      }
+    }
+
+    // Computed: re-evaluate factories directly (bypasses atom cache)
+    const computedValues: Record<string, unknown> = {}
+    const getter = createGetter()
+    for (const [key, factory] of Object.entries(computedFactories)) {
+      try {
+        computedValues[key] = factory(getter)
+      } catch {
+        computedValues[key] = undefined
+      }
+    }
+
+    return {
+      data,
+      machine,
+      computed: computedValues,
+    } as StxSnapshot<TData, TMachine, ComputedConfig<TData, TMachine>>
+  }
+
+  // ---------------------------------------------------------------------------
+  // 11. Return unified instance
+  // ---------------------------------------------------------------------------
+  // Use Object.defineProperty for actor/send so reset() reassignment is visible
+  const instance = {
     data: data$,
-    actor: actor as TMachine extends AnyStateMachine ? ActorRefFrom<TMachine> : undefined,
-    send: send as TMachine extends AnyStateMachine ? (event: EventFromLogic<TMachine>) => void : undefined,
+    registry,
+    runtime,
     effects,
     computed,
     subscribe,
+    snapshot,
     reset,
     dispose,
-  }
+  } as Stx<TMachine, TData, TEffects, TComputed>
+
+  Object.defineProperty(instance, 'actor', {
+    get: () => actor as TMachine extends AnyStateMachine ? ActorRefFrom<TMachine> : undefined,
+    enumerable: true,
+  })
+
+  Object.defineProperty(instance, 'send', {
+    get: () => send as TMachine extends AnyStateMachine ? (event: EventFromLogic<TMachine>) => void : undefined,
+    enumerable: true,
+  })
+
+  return instance
 }
 
 // =============================================================================

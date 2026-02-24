@@ -8,10 +8,12 @@
  */
 
 import { registerMorphChatVisitors } from './morphchat-visitor'
+import { registerGeointVisitors } from './geoint-visitor'
 
-export { registerMorphChatVisitors }
+export { registerMorphChatVisitors, registerGeointVisitors }
 
 /** Register all built-in panel visitors */
 export function registerAllVisitors() {
   registerMorphChatVisitors()
+  registerGeointVisitors()
 }
