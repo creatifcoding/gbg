@@ -1,97 +1,45 @@
 /**
  * GEOINT Panel-Scoped Operations Factory
  *
- * Unified operations factory that merges all panel-scoped operation modules.
- * This is the "hydration" step that creates a complete operations object.
+ * Compatibility wrapper retained for search-domain operations.
  *
- * Pattern: Individual modules → Merge → Unified operations
+ * Map/view/layer/selection operations are now owned by `MapController`.
+ * Search/panel-search operations remain here until full search migration.
  *
  * @module geoint/atoms/operations
  */
 
 import type { PanelId } from './families'
-import { createMapOperations } from './mapOperations'
-import { createSearchOperations } from './searchOperations'
-import { createLayerOperations } from './layerOperations'
-import { createSelectionOperations } from './selectionOperations'
-import { createViewOperations } from './viewOperations'
+import {
+  createSearchOperations,
+  type SearchOperations,
+} from './searchOperations'
 
 // =============================================================================
-// UNIFIED OPERATIONS FACTORY
+// OPERATIONS FACTORY (SEARCH-ONLY COMPAT)
 // =============================================================================
 
 /**
- * Create unified panel-scoped operations.
+ * Create panel-scoped operations (search-only compatibility surface).
  *
- * Merges all operation modules (map, search, layer, selection, view) into
- * a single operations object. This is the "hydration" step that prepares
- * operations for binding to hotkeys.
- *
- * All operations are panel-scoped via atom families and use geointRegistry
- * for synchronous state mutations.
- *
- * @param panelId - Panel identifier (slug:uuid format)
- * @returns Unified operations object with all methods
- *
- * @example
- * ```typescript
- * const identity = createPanelIdentity('geoint-main')
- * const panelId = panelIdentityToId(identity)
- * const ops = createGeointOperations(panelId)
- *
- * // All operations available on single object
- * ops.zoomIn()              // Map operation
- * ops.clearSearch()         // Search operation
- * ops.toggleLayer('tracks') // Layer operation
- * ops.selectAll()           // Selection operation
- * ops.fitToSelection()      // View operation
- * ```
+ * @deprecated Prefer direct `createSearchOperations(panelId)` for search and
+ * `MapController` for map/view/layer/selection behavior.
  */
-export function createGeointOperations(panelId: PanelId) {
-  // Create individual operation modules
-  const mapOps = createMapOperations(panelId)
-  const searchOps = createSearchOperations(panelId)
-  const layerOps = createLayerOperations(panelId)
-  const selectionOps = createSelectionOperations(panelId)
-  const viewOps = createViewOperations(panelId)
-
-  // Merge all modules into unified operations object
-  return {
-    ...mapOps,
-    ...searchOps,
-    ...layerOps,
-    ...selectionOps,
-    ...viewOps,
-  }
+export function createGeointOperations(panelId: PanelId): SearchOperations {
+  return createSearchOperations(panelId)
 }
 
 /**
- * Unified operations type.
+ * Compatibility type alias.
  *
- * Combines all operation types from individual modules.
- * Use for type annotations and testing.
+ * Historically represented merged map+search+layer+selection+view operations.
+ * Now narrowed to SearchOperations as MapController owns the rest.
  */
-export type GeointOperations = ReturnType<typeof createGeointOperations>
+export type GeointOperations = SearchOperations
 
 // =============================================================================
 // RE-EXPORTS
 // =============================================================================
 
-// Export individual operation types for granular testing
-export type { MapOperations } from './mapOperations'
 export type { SearchOperations } from './searchOperations'
-export type { LayerOperations } from './layerOperations'
-export type { SelectionOperations } from './selectionOperations'
-export type { ViewOperations, GeoBounds } from './viewOperations'
-
-// Export individual factory functions for custom composition
-export {
-  createMapOperations,
-  createSearchOperations,
-  createLayerOperations,
-  createSelectionOperations,
-  createViewOperations,
-}
-
-// Export view utilities for external use
-export { calculateBounds, boundsToViewport } from './viewOperations'
+export { createSearchOperations }

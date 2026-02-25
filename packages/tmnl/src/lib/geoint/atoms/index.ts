@@ -820,4 +820,4 @@ export * from './layoutAtoms'
 // PANEL-SCOPED OPERATIONS
 // =============================================================================
 
-export * from './mapOperations'
+export * from './operations'

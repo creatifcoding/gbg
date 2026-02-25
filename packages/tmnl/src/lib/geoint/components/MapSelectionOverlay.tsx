@@ -15,6 +15,7 @@ import { useAtomValue } from '@effect-atom/atom-react'
 import { WebMercatorViewport } from '@deck.gl/core'
 import { animate, createTimeline } from 'animejs'
 import { selectedResultAtom, viewportAtom } from '../atoms'
+import { useGeointPanelSafe } from '../context'
 import { TIMING, EASING, SOURCE_COLORS } from '../tokens'
 import type { SearchResultItem, IntelSource } from '../schemas'
 
@@ -115,10 +116,15 @@ function getSourceColor(result: SearchResultItem): string {
 function useProjection(
   lon: number | null,
   lat: number | null,
-  dimensions: { width: number; height: number } | null
+  dimensions: { width: number; height: number } | null,
+  viewport: {
+    longitude: number
+    latitude: number
+    zoom: number
+    pitch: number
+    bearing: number
+  }
 ): ScreenPosition | null {
-  const viewport = useAtomValue(viewportAtom)
-
   if (lon === null || lat === null || !dimensions) return null
 
   try {
@@ -258,14 +264,19 @@ const SelectionRing = memo(function SelectionRing({
 // =============================================================================
 
 function MapSelectionOverlayComponent({ dimensions, className }: SelectionOverlayProps) {
-  const selectedResult = useAtomValue(selectedResultAtom)
+  const panelContext = useGeointPanelSafe()
+  const selectedResultStateAtom = panelContext?.atoms.selectedResultAtom ?? selectedResultAtom
+  const viewportStateAtom = panelContext?.atoms.viewportAtom ?? viewportAtom
+
+  const selectedResult = useAtomValue(selectedResultStateAtom)
+  const viewport = useAtomValue(viewportStateAtom)
   const lastResultIdRef = useRef<string | null>(null)
 
   // Extract coordinates
   const coords = selectedResult ? getResultCoordinates(selectedResult) : null
 
   // Project to screen
-  const position = useProjection(coords?.lon ?? null, coords?.lat ?? null, dimensions)
+  const position = useProjection(coords?.lon ?? null, coords?.lat ?? null, dimensions, viewport)
 
   // Determine if this is a new selection (for animation trigger)
   const resultId = selectedResult?.id ?? null
