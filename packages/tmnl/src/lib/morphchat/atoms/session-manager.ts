@@ -216,11 +216,10 @@ const endOperation = (instanceId: string) =>
 
 const runFetch = (instanceId: string) =>
   Effect.gen(function* () {
-    const runtime = yield* HarnessRuntime
-
     yield* beginOperation(instanceId, 'fetch', null)
     yield* logSessionStatus(instanceId, 'fetch', 'info', 'Fetching latest session index…')
 
+    const runtime = yield* HarnessRuntime
     const hydrated = yield* hydrateSessionList(instanceId, runtime).pipe(Effect.either)
 
     if (Either.isRight(hydrated)) {
@@ -242,8 +241,14 @@ const runFetch = (instanceId: string) =>
     yield* setError(instanceId, message)
     yield* logSessionStatus(instanceId, 'fetch', 'error', message, hydrated.left)
   }).pipe(
+    Effect.catchAll((error) =>
+      Effect.gen(function* () {
+        const message = formatSessionError(error)
+        yield* setError(instanceId, message)
+        yield* logSessionStatus(instanceId, 'fetch', 'error', message, error)
+      }),
+    ),
     Effect.ensuring(endOperation(instanceId)),
-    Effect.catchAll(() => Effect.void),
   )
 
 interface SessionMutationConfig<A> {

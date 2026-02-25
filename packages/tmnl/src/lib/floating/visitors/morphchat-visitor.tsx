@@ -13,12 +13,12 @@
 
 import * as React from 'react'
 import { useState } from 'react'
+import { useAtomValue } from '@effect-atom/atom-react'
 import { MorphChat } from '@/lib/morphchat'
 import { createMockChatAdapter } from '@/lib/morphchat/adapters/mock-adapter'
 import { Conductor } from '@/lib/morphchat/specs/conductor'
 import { useHarnessAdapter } from '@/lib/morphchat/hooks'
 import { sessionId$ } from '@/lib/morphchat/hooks/useHarnessAdapter'
-import { morphChatRegistry } from '@/lib/morphchat/atoms/registry'
 import { SessionDrawer } from '@/lib/morphchat/components/session-drawer'
 import { panelRegistry, type PanelContentProps } from '../panel-registry'
 
@@ -62,7 +62,9 @@ function MorphChatHarnessPanel({ panelId }: PanelContentProps) {
   // The WS transport is shared, but atoms/session/messages are per-instance.
   const { adapter, status, error, newSession, resumeSession, hardReconnect } = useHarnessAdapter({
     instanceId: panelId,
-    nodeId: 'conductor',
+    // Per-panel node identity guarantees isolated sessions (no cross-panel reuse)
+    // while preserving the Conductor role semantics.
+    nodeId: `conductor:${panelId}`,
     role: 'general',
     agentName: 'Panel-Agent',
     autoConnect: true,
@@ -70,9 +72,7 @@ function MorphChatHarnessPanel({ panelId }: PanelContentProps) {
 
   const [isSessionDrawerOpen, setIsSessionDrawerOpen] = useState(false)
 
-  const currentSessionId = React.useMemo(() => {
-    try { return morphChatRegistry.get(sessionId$(panelId)) } catch { return null }
-  }, [panelId, status]) // re-derive when status changes (connect sets sessionId)
+  const currentSessionId = useAtomValue(sessionId$(panelId))
 
   const handleResumeSession = React.useCallback((sid: string) => {
     resumeSession(sid)
@@ -108,6 +108,19 @@ function MorphChatHarnessPanel({ panelId }: PanelContentProps) {
             : status === 'error' ? `ERROR: ${error ?? 'unknown'}`
             : status === 'connected' ? 'CONNECTED'
             : 'WAITING FOR HARNESS'}
+        </span>
+        <span
+          style={{
+            color: 'oklch(0.6 0 0)',
+            fontSize: 'var(--tmnl-text-xs, 12px)',
+            maxWidth: 220,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+          title={currentSessionId ?? 'no active session id'}
+        >
+          SID:{currentSessionId ?? 'none'}
         </span>
 
         {/* Sessions toggle — like AI Assistant button in AutonomousEditorPanel */}
