@@ -78,6 +78,12 @@ export function SessionDrawer({
     refresh()
   }, [isOpen, refresh])
 
+  // Keep session index in sync when session identity changes (new/resume/fork)
+  useEffect(() => {
+    if (!isOpen) return
+    refresh()
+  }, [currentSessionId, isOpen, refresh])
+
   const hasSearch = query.search.trim().length > 0
   const hasFilter = query.filter !== 'all'
   const hasActiveQuery = hasSearch || hasFilter
