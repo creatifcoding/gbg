@@ -76,9 +76,12 @@ const morphchatLogDebug = Effect.fn('tmnl.morphchat.harness.log.debug')(function
   yield* Effect.logDebug(message).pipe(
     payload === undefined
       ? Effect.annotateLogs({ area: 'morphchat-harness-adapter', instanceId })
-      : Effect.annotateLogs({ area: 'morphchat-harness-adapter', instanceId, ...payload }),
+      : Effect.annotateLogs({ ...payload, area: 'morphchat-harness-adapter', instanceId }),
   )
 })
+
+const isInterruptedCause = (cause: unknown): boolean =>
+  Cause.isCause(cause) && Cause.isInterruptedOnly(cause)
 
 const morphchatCauseToMessage = Effect.fn('tmnl.morphchat.harness.cause-to-message')(function* (cause: unknown) {
   if (Cause.isCause(cause)) {
@@ -112,11 +115,16 @@ const morphchatLogWarningCause = Effect.fn('tmnl.morphchat.harness.log.warning-c
   cause: unknown,
   payload?: Record<string, unknown>,
 ) {
+  if (isInterruptedCause(cause)) {
+    yield* morphchatLogDebug(instanceId, `${message}:interrupted`, payload)
+    return
+  }
+
   const causeMessage = yield* morphchatCauseToMessage(cause)
   yield* Effect.logWarning(message).pipe(
     payload === undefined
       ? Effect.annotateLogs({ area: 'morphchat-harness-adapter', instanceId, cause: causeMessage })
-      : Effect.annotateLogs({ area: 'morphchat-harness-adapter', instanceId, cause: causeMessage, ...payload }),
+      : Effect.annotateLogs({ ...payload, area: 'morphchat-harness-adapter', instanceId, cause: causeMessage }),
   )
 })
 
@@ -517,6 +525,13 @@ function wireEventStream(
   ).pipe(
     Effect.catchAllCause((cause) =>
       Effect.gen(function* () {
+        if (isInterruptedCause(cause)) {
+          yield* morphchatLogDebug(id, 'event-stream-interrupted', {
+            sessionId: activeSessionId,
+          })
+          return
+        }
+
         yield* morphchatLogWarningCause(id, 'event-stream-failed', cause, {
           sessionId: activeSessionId,
         })
@@ -699,6 +714,11 @@ const connectOp$ = Atom.family((id: string) =>
         ),
         Effect.catchAllCause((cause) =>
           Effect.gen(function* () {
+            if (isInterruptedCause(cause)) {
+              yield* morphchatLogDebug(id, 'connect-interrupted', { nodeId })
+              return
+            }
+
             yield* morphchatLogWarningCause(id, 'connect-failed', cause, {
               nodeId,
             })
@@ -739,6 +759,11 @@ const fetchModelsOp$ = Atom.family((id: string) =>
     }).pipe(
       Effect.catchAllCause((cause) =>
         Effect.gen(function* () {
+          if (isInterruptedCause(cause)) {
+            yield* morphchatLogDebug(id, 'fetch-models-interrupted')
+            return
+          }
+
           yield* morphchatLogWarningCause(id, 'fetch-models-failed', cause)
           const parsed = formatUnknownErrorPayload(yield* morphchatCauseToMessage(cause))
           pushStatusRow(id, { id: `status-${Date.now()}-models`, tone: 'warn', text: `[models] ${parsed.message}`, source: 'harness' })
@@ -831,6 +856,14 @@ const sendOp$ = Atom.family((id: string) =>
       }).pipe(
         Effect.catchAllCause((cause) =>
           Effect.gen(function* () {
+            if (isInterruptedCause(cause)) {
+              morphChatRegistry.set(messages$(id), morphChatRegistry.get(messages$(id)).map((msg) =>
+                msg.status === 'pending' ? { ...msg, status: 'error' as const } : msg,
+              ))
+              yield* morphchatLogDebug(id, 'send-interrupted')
+              return
+            }
+
             yield* morphchatLogWarningCause(id, 'send-failed', cause)
             morphChatRegistry.set(messages$(id), morphChatRegistry.get(messages$(id)).map((msg) =>
               msg.status === 'pending' ? { ...msg, status: 'error' as const } : msg,
@@ -939,6 +972,11 @@ const newSessionOp$ = Atom.family((id: string) =>
       }).pipe(
         Effect.catchAllCause((cause) =>
           Effect.gen(function* () {
+            if (isInterruptedCause(cause)) {
+              yield* morphchatLogDebug(id, 'new-session-interrupted', { nodeId })
+              return
+            }
+
             yield* morphchatLogWarningCause(id, 'new-session-failed', cause, {
               nodeId,
             })
@@ -1008,6 +1046,13 @@ const resumeSessionOp$ = Atom.family((id: string) =>
         ),
         Effect.catchAllCause((cause) =>
           Effect.gen(function* () {
+            if (isInterruptedCause(cause)) {
+              yield* morphchatLogDebug(id, 'resume-session-interrupted', {
+                requestedSessionId: sessionId,
+              })
+              return
+            }
+
             yield* morphchatLogWarningCause(id, 'resume-session-failed', cause, {
               requestedSessionId: sessionId,
             })

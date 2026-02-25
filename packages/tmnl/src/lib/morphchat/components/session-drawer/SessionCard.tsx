@@ -4,6 +4,7 @@ import {
   Archive,
   Clock,
   Download,
+  GitFork,
   MessageSquare,
   Star,
   Trash2,
@@ -12,21 +13,9 @@ import {
   VANTA_ANIMATION,
   VANTA_TYPOGRAPHY,
 } from '@/components/portal/tokens'
+import type { SessionListItem } from '@/lib/harness/HarnessRuntime'
 
-export interface SessionCardSession {
-  sessionId: string
-  name: string
-  autoTitle: string
-  previewSnippet: string
-  messageCount: number
-  modelId: string
-  provider: string
-  tags: string[]
-  status: 'active' | 'archived' | 'starred'
-  starred: boolean
-  createdAt: number
-  updatedAt: number
-}
+export type SessionCardSession = SessionListItem
 
 export interface SessionCardProps {
   session: SessionCardSession
@@ -37,6 +26,7 @@ export interface SessionCardProps {
   onArchive: () => void
   onDelete: () => void
   onExport: () => void
+  onFork: () => void
 }
 
 const MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace'
@@ -67,6 +57,7 @@ export function SessionCard({
   onArchive,
   onDelete,
   onExport,
+  onFork,
 }: SessionCardProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [isRenaming, setIsRenaming] = useState(false)
@@ -344,6 +335,11 @@ export function SessionCard({
               icon={<Download size={13} />}
               label="Export session"
               onClick={onExport}
+            />
+            <ActionIconButton
+              icon={<GitFork size={13} />}
+              label="Fork session"
+              onClick={onFork}
             />
           </motion.div>
         )}

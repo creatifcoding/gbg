@@ -20,12 +20,14 @@ This drill is non-destructive (no delete/fork/mutation outside opening and repla
 bun run harness:remote-ws
 bunx tsc --noEmit
 bash scripts/spikes/session-restart-replay-smoke.sh
+bash scripts/spikes/session-dual-panel-stress.sh
 ```
 
-Optional: operator-managed server restart mode
+Optional: operator-managed server mode
 
 ```bash
 SESSION_DRILL_MANAGE_SERVER=0 bash scripts/spikes/session-restart-replay-smoke.sh
+SESSION_DRILL_MANAGE_SERVER=0 bash scripts/spikes/session-dual-panel-stress.sh
 ```
 
 ## Preconditions
@@ -123,18 +125,79 @@ SESSION_DRILL_MANAGE_SERVER=0 bash scripts/spikes/session-restart-replay-smoke.s
 
 ---
 
+## Drill D4 — Dual-panel concurrent stress (cross-session + stale-stream suppression)
+
+### Procedure
+
+1. Run `bash scripts/spikes/session-dual-panel-stress.sh`.
+2. Script opens two concurrent sessions (`panel A`, `panel B`) on unique node IDs.
+3. Script interleaves in parallel:
+   - `remote:chat_v2_open_session` (idempotency under race)
+   - `remote:chat_v2_resume_session` (`fromSeq=head` probes)
+   - `remote:chat_v2_send` (distinct clientMessageId prefixes per panel)
+4. Script captures:
+   - final snapshots for both sessions,
+   - incremental replay-at-head checks,
+   - replay re-application idempotency simulation,
+   - stream instrumentation counters (`droppedCross`, `droppedDuplicate`).
+
+### Pass criteria
+
+- `DP1..DP2`: open-session remains idempotent for each panel under interleave.
+- `DP3..DP4`: incremental replay at final head returns zero events for each panel.
+- `DP5..DP6`: no clientMessageId contamination across panel snapshots.
+- `DP7..DP8`: panel apply-path suppresses cross-session events and duplicate replay events.
+- `DP9..DP10`: snapshot sequence is monotonic + unique.
+- `DP11..DP12`: one session per node after stress window.
+
+### Fail criteria
+
+- Any `DP*` check fails.
+- Missing evidence payload (`result.json`, `evidence.md`, `events.ndjson`).
+
+### Rollback actions
+
+1. Disable parallel reconnect/open orchestration for panelized clients.
+2. Force serialized path: `resume -> verify sessionId/headSeq -> enable send`.
+3. Preserve artifact bundle and map failure to matrix IDs (`F-03`, `F-04`, `F-05`, `F-08`).
+
+### Stale-stream suppression invariants (explicit)
+
+These are the invariants that must hold in adapter/runtime apply boundaries:
+
+1. **Session gate first**: apply only if `event.sessionId === activeSessionId`.
+2. **Monotonic dedupe**: do not apply if `seq` already seen for active session.
+3. **Replay idempotency**: applying the same replay payload repeatedly must not mutate visible state after first application.
+4. **Cross-session isolation**: panel A and panel B must never surface each other’s `clientMessageId` lineage.
+
+`session-dual-panel-stress.sh` records counters/evidence for all four invariants.
+
+---
+
 ## Evidence Capture Table (fill per run)
 
 | Run Timestamp | Operator | Git SHA | Command | Artifact Directory | Key Checks | Result | Notes |
 |---|---|---|---|---|---|---|---|
 | 2026-02-25T00:00:00Z | `<name>` | `<sha>` | `bash scripts/spikes/session-restart-replay-smoke.sh` | `artifacts/session-restart-replay/<stamp>` | `R1..R7` | PASS/FAIL | `link to incident / issue` |
+| 2026-02-25T00:00:00Z | `<name>` | `<sha>` | `bash scripts/spikes/session-dual-panel-stress.sh` | `artifacts/session-dual-panel-stress/<stamp>` | `DP1..DP12` | PASS/FAIL | `stale-stream suppression + contamination` |
+| 2026-02-25T05:28:41-05:00 | forge | `b529eb3b` | `bash scripts/spikes/session-dual-panel-stress.sh` | `artifacts/session-dual-panel-stress/20260225-052841` | `DPX` | FAIL | `timeout waiting for remote:chat_v2_open_session; see result.json + harness-remote-ws.log` |
 
 ### Required Evidence Files
+
+For restart/replay (`session-restart-replay-smoke.sh`):
 
 - `baseline.json` — pre-restart session baseline (`sessionId`, `headSeq`, signature)
 - `result.json` — pass/fail evaluation for checks `R1..R7`
 - `checkpoints.log` — timeline markers
 - `harness-remote-ws.log` — server-side startup/runtime logs
+
+For dual-panel stress (`session-dual-panel-stress.sh`):
+
+- `result.json` — pass/fail evaluation for checks `DP1..DP12`
+- `evidence.md` — human-readable assertion table and stale-stream counters
+- `events.ndjson` — raw observed `remote:chat_v2_event` stream evidence
+- `checkpoints.log` — timeline markers
+- `harness-remote-ws.log` — server-side startup/runtime logs (managed mode)
 
 ---
 
@@ -143,8 +206,9 @@ SESSION_DRILL_MANAGE_SERVER=0 bash scripts/spikes/session-restart-replay-smoke.s
 Escalate immediately if any of these are true:
 
 - Restart causes missing history (`R1/R2/R3` failure)
-- Duplicate replay appears at head (`R4/R7` failure)
-- Race mints split sessions (`R5/R6` failure)
+- Duplicate replay appears at head (`R4/R7` or `DP3/DP4/DP7/DP8` failure)
+- Race mints split sessions (`R5/R6` or `DP11/DP12` failure)
+- Cross-session contamination observed (`DP5/DP6/DP7/DP8` failure)
 
 Recovery default posture:
 

@@ -9,6 +9,7 @@ Use this matrix during incident triage and drill review. Pair with:
 
 - `src/lib/harness/docs/SESSION_RESTART_REPLAY_DRILLS.md`
 - `scripts/spikes/session-restart-replay-smoke.sh`
+- `scripts/spikes/session-dual-panel-stress.sh`
 
 ## Failure Matrix
 
@@ -21,13 +22,15 @@ Use this matrix during incident triage and drill review. Pair with:
 | F-05 | Resume response races with stale client state and applies out-of-order | Parallel replay + stale local cursor write | Local state mutates with stale seq ordering or regression | Monotonic seq apply + no duplicate render mutation | Non-monotonic apply, duplicate visible messages | Gate client apply on active session + seq monotonic guard; block stale snapshot apply | client state diff, event seq timeline |
 | F-06 | WS reconnect succeeds but replay request window times out | Transport recovers but command round-trip fails under load | Resume timeout with healthy socket connection | Resume command responds within drill timeout and returns snapshot | Timeout or repeated transient errors after reconnect | Backoff + bounded retry; if repeated, fallback to operator-driven resync and mark degraded mode | timeout traces, ws log, retry counters |
 | F-07 | Recovery drill not reproducible | Non-canonical command usage or missing artifacts | Drill run cannot be audited from saved artifacts | All required artifacts present and linked in run table | Missing baseline/result/checkpoint/server logs | Re-run drill with canonical script; reject unverifiable PASS claims | artifact directory listing + evidence table row |
+| F-08 | Dual-panel cross-session contamination | Concurrent panel sends + replay while sharing transport | Session A snapshot contains panel-B clientMessageId lineage (or vice versa) | `DP5/DP6` pass; `DP7/DP8` maintain session gate | Any foreign lineage appears in opposite snapshot/apply path | Disable concurrent panel send/reconnect lane; enforce serialized panel resume gate | `artifacts/session-dual-panel-stress/<stamp>/result.json`, `evidence.md` |
+| F-09 | Stale-stream / duplicate replay suppression regression | Replay hydration reapplied or stale stream races active session swap | Apply path mutates on second replay pass or duplicate seq accepted | Replay idempotent (`DP7/DP8`) + final head replay empty (`DP3/DP4`) | Applied count grows on repeated replay or head replay emits events | Block release; require session-gate + seen-seq guard patch before re-enable | `result.json` (`DP3/DP4/DP7/DP8`), `events.ndjson` |
 
 ## Escalation Thresholds
 
 Escalate to incident response if any single run shows:
 
-- `F-01`, `F-02`, or `F-04` (high severity), or
-- two consecutive failures for `F-03`, `F-05`, or `F-06`.
+- `F-01`, `F-02`, `F-04`, or `F-08` (high severity), or
+- two consecutive failures for `F-03`, `F-05`, `F-06`, or `F-09`.
 
 ## Rollback Playbook (Operational)
 
@@ -38,9 +41,9 @@ Escalate to incident response if any single run shows:
    - Keep WS server on known-good release.
    - Avoid session migrations during active incident.
 3. **Recover**
-   - Run `bash scripts/spikes/session-restart-replay-smoke.sh` until two consecutive PASS runs.
+   - Run `bash scripts/spikes/session-restart-replay-smoke.sh` and `bash scripts/spikes/session-dual-panel-stress.sh` until two consecutive PASS runs.
 4. **Exit Criteria**
-   - PASS evidence attached for checks `R1..R7`.
+   - PASS evidence attached for checks `R1..R7` and `DP1..DP12`.
    - Incident note includes root cause + prevention action.
 
 ## Evidence Capture Template
@@ -48,3 +51,4 @@ Escalate to incident response if any single run shows:
 | Incident/Run ID | Matrix IDs | Operator | SHA | Artifact Dir | Recovery State | Notes |
 |---|---|---|---|---|---|---|
 | `<id>` | `F-01,F-04` | `<name>` | `<sha>` | `artifacts/session-restart-replay/<stamp>` | contained / recovering / resolved | `<summary>` |
+| `dual-panel-20260225-052841` | `F-06` | `forge` | `b529eb3b` | `artifacts/session-dual-panel-stress/20260225-052841` | recovering | `open_session timed out during stress run (DPX); inspect managed server log parse errors` |

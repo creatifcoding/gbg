@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
+  AlertTriangle,
+  Loader2,
   MessageSquare,
   Plus,
+  RefreshCw,
   Search,
   Sparkles,
   X,
@@ -12,7 +15,8 @@ import {
   VANTA_SPACING,
   VANTA_TYPOGRAPHY,
 } from '@/components/portal/tokens'
-import { SessionCard, type SessionCardSession } from './SessionCard'
+import { useSessionManager } from '@/lib/morphchat/hooks/useSessionManager'
+import { SessionCard } from './SessionCard'
 
 export interface SessionDrawerProps {
   isOpen: boolean
@@ -28,85 +32,19 @@ type SessionFilter = 'all' | 'starred' | 'archived'
 
 const MONO = 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace'
 
-function storageKey(instanceId: string): string {
-  return `tmnl:morphchat:sessions:${instanceId}`
-}
+const FILTERS: ReadonlyArray<{ key: SessionFilter; label: string }> = [
+  { key: 'all', label: 'All' },
+  { key: 'starred', label: 'Starred' },
+  { key: 'archived', label: 'Archived' },
+]
 
-function normalizeSession(input: unknown): SessionCardSession | null {
-  if (!input || typeof input !== 'object') return null
-
-  const value = input as Partial<SessionCardSession>
-  if (!value.sessionId || typeof value.sessionId !== 'string') return null
-
-  const now = Date.now()
-
-  return {
-    sessionId: value.sessionId,
-    name: typeof value.name === 'string' ? value.name : '',
-    autoTitle: typeof value.autoTitle === 'string' ? value.autoTitle : 'Untitled session',
-    previewSnippet: typeof value.previewSnippet === 'string' ? value.previewSnippet : '',
-    messageCount: typeof value.messageCount === 'number' ? value.messageCount : 0,
-    modelId: typeof value.modelId === 'string' ? value.modelId : 'unknown',
-    provider: typeof value.provider === 'string' ? value.provider : 'pi',
-    tags: Array.isArray(value.tags) ? value.tags.filter((tag): tag is string => typeof tag === 'string') : [],
-    status: value.status === 'archived' || value.status === 'starred' ? value.status : 'active',
-    starred: typeof value.starred === 'boolean' ? value.starred : false,
-    createdAt: typeof value.createdAt === 'number' ? value.createdAt : now,
-    updatedAt: typeof value.updatedAt === 'number' ? value.updatedAt : now,
-  }
-}
-
-function readSessionIndex(indexKey: string): SessionCardSession[] {
-  if (typeof window === 'undefined') return []
-
-  try {
-    const raw = window.localStorage.getItem(indexKey)
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    return parsed
-      .map((entry) => normalizeSession(entry))
-      .filter((entry): entry is SessionCardSession => entry !== null)
-      .sort((a, b) => b.updatedAt - a.updatedAt)
-  } catch {
-    return []
-  }
-}
-
-function persistSessionIndex(indexKey: string, sessions: ReadonlyArray<SessionCardSession>): void {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(indexKey, JSON.stringify(sessions))
-}
-
-function makeSessionStub(sessionId: string, timestamp = Date.now()): SessionCardSession {
-  return {
-    sessionId,
-    name: '',
-    autoTitle: `Session ${sessionId.slice(0, 8)}`,
-    previewSnippet: 'New session ready.',
-    messageCount: 0,
-    modelId: 'unknown',
-    provider: 'pi',
-    tags: [],
-    status: 'active',
-    starred: false,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  }
-}
-
-function updateSession(
-  sessions: ReadonlyArray<SessionCardSession>,
-  sessionId: string,
-  updater: (session: SessionCardSession) => SessionCardSession,
-): SessionCardSession[] {
-  return sessions.map((session) => (
-    session.sessionId === sessionId ? updater(session) : session
-  ))
-}
-
-function sortByUpdatedAt(sessions: ReadonlyArray<SessionCardSession>): SessionCardSession[] {
-  return [...sessions].sort((a, b) => b.updatedAt - a.updatedAt)
+const OPERATION_LABELS: Record<string, string> = {
+  fetch: '[session.fetch]',
+  rename: '[session.rename]',
+  star: '[session.star]',
+  archive: '[session.archive]',
+  delete: '[session.delete]',
+  fork: '[session.fork]',
 }
 
 export function SessionDrawer({
@@ -118,119 +56,48 @@ export function SessionDrawer({
   instanceId,
   width = 380,
 }: SessionDrawerProps) {
-  const [query, setQuery] = useState('')
-  const [filter, setFilter] = useState<SessionFilter>('all')
-  const [sessions, setSessions] = useState<SessionCardSession[]>([])
-
-  const indexKey = useMemo(() => storageKey(instanceId), [instanceId])
+  const {
+    sessions,
+    totalSessions,
+    loading,
+    error,
+    operation,
+    query,
+    setSearch,
+    setFilter,
+    rename,
+    star,
+    archive,
+    deleteSession,
+    fork,
+    refresh,
+  } = useSessionManager(instanceId)
 
   useEffect(() => {
-    setSessions(readSessionIndex(indexKey))
-  }, [indexKey])
+    if (!isOpen) return
+    refresh()
+  }, [isOpen, refresh])
 
-  useEffect(() => {
-    persistSessionIndex(indexKey, sessions)
-  }, [indexKey, sessions])
+  const hasSearch = query.search.trim().length > 0
+  const hasFilter = query.filter !== 'all'
+  const hasActiveQuery = hasSearch || hasFilter
 
-  useEffect(() => {
-    if (!currentSessionId) return
+  const showInitialLoading = loading && totalSessions === 0
+  const showErrorState = !showInitialLoading && !!error && sessions.length === 0
+  const showFilteredEmpty = !loading && !error && sessions.length === 0 && totalSessions > 0 && hasActiveQuery
+  const showNoSessions = !loading && !error && sessions.length === 0 && totalSessions === 0
 
-    const now = Date.now()
-    setSessions((previous) => {
-      const existing = previous.find((session) => session.sessionId === currentSessionId)
-      if (!existing) {
-        return sortByUpdatedAt([
-          makeSessionStub(currentSessionId, now),
-          ...previous,
-        ])
-      }
+  const operationLabel = operation.inFlight && operation.op !== 'idle'
+    ? OPERATION_LABELS[operation.op] ?? `[session.${operation.op}]`
+    : null
 
-      return sortByUpdatedAt(
-        updateSession(previous, currentSessionId, (session) => ({
-          ...session,
-          updatedAt: now,
-          status: session.starred ? 'starred' : 'active',
-        })),
-      )
-    })
-  }, [currentSessionId])
-
-  const filteredSessions = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase()
-
-    return sortByUpdatedAt(sessions).filter((session) => {
-      const statusMatch =
-        filter === 'all'
-          ? true
-          : filter === 'starred'
-            ? session.starred || session.status === 'starred'
-            : session.status === 'archived'
-
-      if (!statusMatch) return false
-      if (!normalizedQuery) return true
-
-      const haystack = [
-        session.name,
-        session.autoTitle,
-        session.previewSnippet,
-        session.modelId,
-        session.provider,
-        ...session.tags,
-      ]
-        .join(' ')
-        .toLowerCase()
-
-      return haystack.includes(normalizedQuery)
-    })
-  }, [filter, query, sessions])
+  const resetFilters = () => {
+    setSearch('')
+    setFilter('all')
+  }
 
   const selectSession = (sessionId: string) => {
-    setSessions((previous) => sortByUpdatedAt(updateSession(previous, sessionId, (session) => ({
-      ...session,
-      updatedAt: Date.now(),
-      status: session.starred ? 'starred' : session.status === 'archived' ? 'archived' : 'active',
-    }))))
-
     onResumeSession(sessionId)
-  }
-
-  const renameSession = (sessionId: string, name: string) => {
-    setSessions((previous) => sortByUpdatedAt(updateSession(previous, sessionId, (session) => ({
-      ...session,
-      name,
-      updatedAt: Date.now(),
-    }))))
-  }
-
-  const toggleStar = (sessionId: string) => {
-    setSessions((previous) => sortByUpdatedAt(updateSession(previous, sessionId, (session) => {
-      const starred = !session.starred
-      return {
-        ...session,
-        starred,
-        status: session.status === 'archived'
-          ? 'archived'
-          : starred
-            ? 'starred'
-            : 'active',
-        updatedAt: Date.now(),
-      }
-    })))
-  }
-
-  const toggleArchive = (sessionId: string) => {
-    setSessions((previous) => sortByUpdatedAt(updateSession(previous, sessionId, (session) => {
-      const archived = session.status !== 'archived'
-      return {
-        ...session,
-        status: archived ? 'archived' : session.starred ? 'starred' : 'active',
-        updatedAt: Date.now(),
-      }
-    })))
-  }
-
-  const deleteSession = (sessionId: string) => {
-    setSessions((previous) => previous.filter((session) => session.sessionId !== sessionId))
   }
 
   const exportSession = (sessionId: string) => {
@@ -246,12 +113,6 @@ export function SessionDrawer({
     anchor.click()
     window.URL.revokeObjectURL(url)
   }
-
-  const filters: ReadonlyArray<{ key: SessionFilter; label: string }> = [
-    { key: 'all', label: 'All' },
-    { key: 'starred', label: 'Starred' },
-    { key: 'archived', label: 'Archived' },
-  ]
 
   return (
     <AnimatePresence>
@@ -298,6 +159,28 @@ export function SessionDrawer({
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                type="button"
+                onClick={refresh}
+                aria-label="Refresh sessions"
+                title="Refresh sessions"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 28,
+                  height: 28,
+                  borderRadius: 6,
+                  border: '1px solid oklch(0.14 0 0)',
+                  background: 'oklch(0.08 0 0)',
+                  color: 'oklch(0.62 0 0)',
+                  cursor: 'pointer',
+                  transition: VANTA_ANIMATION.transition.colors,
+                }}
+              >
+                <RefreshCw size={14} className={loading ? 'animate-spin' : undefined} />
+              </button>
+
               <button
                 type="button"
                 onClick={onNewSession}
@@ -370,8 +253,8 @@ export function SessionDrawer({
             >
               <Search size={14} style={{ color: 'oklch(0.52 0 0)' }} />
               <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                value={query.search}
+                onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search"
                 style={{
                   width: '100%',
@@ -396,8 +279,8 @@ export function SessionDrawer({
                 padding: 3,
               }}
             >
-              {filters.map((item) => {
-                const active = filter === item.key
+              {FILTERS.map((item) => {
+                const active = query.filter === item.key
                 return (
                   <button
                     key={item.key}
@@ -424,43 +307,81 @@ export function SessionDrawer({
           </div>
 
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 12 }}>
-            {filteredSessions.length === 0 ? (
+            {(operationLabel || error) && sessions.length > 0 && (
               <div
                 style={{
-                  height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  color: 'oklch(0.42 0 0)',
-                  textAlign: 'center',
-                  padding: 16,
+                  gap: 4,
+                  marginBottom: 10,
+                  borderRadius: 8,
+                  border: '1px solid oklch(0.14 0 0)',
+                  background: 'oklch(0.065 0 0)',
+                  padding: 8,
                 }}
               >
-                <Sparkles size={18} style={{ color: 'oklch(0.5 0 0)' }} />
-                <span
-                  style={{
-                    fontFamily: MONO,
-                    fontSize: 'var(--tmnl-text-sm, 14px)',
-                    color: 'oklch(0.62 0 0)',
-                  }}
-                >
-                  No sessions yet
-                </span>
-                <span
-                  style={{
-                    fontFamily: VANTA_TYPOGRAPHY.family.sans,
-                    fontSize: 'var(--tmnl-text-xs, 12px)',
-                    color: 'oklch(0.5 0 0)',
-                  }}
-                >
-                  Start a new run to populate this panel.
-                </span>
+                {operationLabel && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      color: 'oklch(0.66 0 0)',
+                      fontFamily: MONO,
+                      fontSize: 'var(--tmnl-text-xs, 12px)',
+                    }}
+                  >
+                    <Loader2 size={12} className="animate-spin" />
+                    {operationLabel} syncing session state…
+                  </div>
+                )}
+                {error && (
+                  <div
+                    style={{
+                      color: 'oklch(0.72 0.14 20)',
+                      fontFamily: VANTA_TYPOGRAPHY.family.sans,
+                      fontSize: 'var(--tmnl-text-xs, 12px)',
+                      lineHeight: 1.35,
+                    }}
+                  >
+                    Operator guidance: sync failed — verify harness connectivity, then refresh.
+                  </div>
+                )}
               </div>
+            )}
+
+            {showInitialLoading ? (
+              <StateBlock
+                icon={<Loader2 size={18} className="animate-spin" />}
+                title="Loading sessions"
+                body="Operator guidance: waiting for authoritative session index from runtime."
+                action={{ label: 'Retry Fetch', onClick: refresh }}
+              />
+            ) : showErrorState ? (
+              <StateBlock
+                icon={<AlertTriangle size={18} />}
+                title="Session index unavailable"
+                body={`Operator guidance: verify harness connection and retry fetch.${error ? `\n\nLast error: ${error}` : ''}`}
+                tone="error"
+                action={{ label: 'Retry Fetch', onClick: refresh }}
+              />
+            ) : showFilteredEmpty ? (
+              <StateBlock
+                icon={<Sparkles size={18} />}
+                title="No sessions match current filters"
+                body="Operator guidance: clear search/filter constraints to reveal indexed sessions."
+                action={{ label: 'Reset Filters', onClick: resetFilters }}
+              />
+            ) : showNoSessions ? (
+              <StateBlock
+                icon={<Sparkles size={18} />}
+                title="No sessions yet"
+                body="Operator guidance: start a new run to seed the session index, then return here to resume or fork."
+                action={{ label: 'New Session', onClick: onNewSession }}
+              />
             ) : (
               <AnimatePresence mode="popLayout">
-                {filteredSessions.map((session) => (
+                {sessions.map((session) => (
                   <motion.div
                     key={session.sessionId}
                     layout
@@ -474,11 +395,12 @@ export function SessionDrawer({
                       session={session}
                       isActive={currentSessionId === session.sessionId}
                       onResume={() => selectSession(session.sessionId)}
-                      onRename={(name) => renameSession(session.sessionId, name)}
-                      onStar={() => toggleStar(session.sessionId)}
-                      onArchive={() => toggleArchive(session.sessionId)}
+                      onRename={(name) => rename(session.sessionId, name)}
+                      onStar={() => star(session.sessionId)}
+                      onArchive={() => archive(session.sessionId)}
                       onDelete={() => deleteSession(session.sessionId)}
                       onExport={() => exportSession(session.sessionId)}
+                      onFork={() => fork(session.sessionId)}
                     />
                   </motion.div>
                 ))}
@@ -488,6 +410,94 @@ export function SessionDrawer({
         </motion.div>
       )}
     </AnimatePresence>
+  )
+}
+
+interface StateBlockProps {
+  readonly icon: ReactNode
+  readonly title: string
+  readonly body: string
+  readonly tone?: 'default' | 'error'
+  readonly action?: {
+    readonly label: string
+    readonly onClick: () => void
+  }
+}
+
+function StateBlock({
+  icon,
+  title,
+  body,
+  tone = 'default',
+  action,
+}: StateBlockProps) {
+  return (
+    <div
+      style={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        textAlign: 'center',
+        padding: 16,
+      }}
+    >
+      <div
+        style={{
+          color: tone === 'error' ? 'oklch(0.72 0.14 20)' : 'oklch(0.5 0 0)',
+        }}
+      >
+        {icon}
+      </div>
+
+      <span
+        style={{
+          fontFamily: MONO,
+          fontSize: 'var(--tmnl-text-sm, 14px)',
+          color: tone === 'error' ? 'oklch(0.8 0.1 20)' : 'oklch(0.62 0 0)',
+          lineHeight: 1.3,
+        }}
+      >
+        {title}
+      </span>
+
+      <span
+        style={{
+          fontFamily: VANTA_TYPOGRAPHY.family.sans,
+          fontSize: 'var(--tmnl-text-xs, 12px)',
+          color: tone === 'error' ? 'oklch(0.66 0.08 20)' : 'oklch(0.5 0 0)',
+          lineHeight: 1.45,
+          whiteSpace: 'pre-line',
+        }}
+      >
+        {body}
+      </span>
+
+      {action && (
+        <button
+          type="button"
+          onClick={action.onClick}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: 6,
+            border: '1px solid oklch(0.16 0 0)',
+            background: 'oklch(0.08 0 0)',
+            color: tone === 'error' ? 'oklch(0.76 0.08 20)' : 'oklch(0.72 0.14 195)',
+            fontFamily: MONO,
+            fontSize: 'var(--tmnl-text-xs, 12px)',
+            padding: '6px 10px',
+            cursor: 'pointer',
+            transition: VANTA_ANIMATION.transition.colors,
+          }}
+        >
+          {action.label}
+        </button>
+      )}
+    </div>
   )
 }
 
