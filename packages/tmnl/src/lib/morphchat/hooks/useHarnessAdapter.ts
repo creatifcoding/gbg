@@ -299,7 +299,9 @@ function wireEventStream(
 
         if (rawEvent?._tag === 'remote:panel_event' && rawEvent.event) {
           const event = rawEvent.event as PanelEvent & { surface?: unknown }
+
           if (event._tag === 'panel:spawned') {
+            if (!event.surfaceId || !event.panelId) return
             registerGeniferPanelVisitor()
             if (event.surface) {
               setGeniferPanelSurface(event.surfaceId, event.surface as any)
@@ -321,6 +323,7 @@ function wireEventStream(
           }
 
           if (event._tag === 'panel:closed') {
+            if (!event.panelId) return
             const localId = remoteToLocalPanelIds.get(event.panelId) ?? event.panelId
             closePanel(localId)
             remoteToLocalPanelIds.delete(event.panelId)
@@ -328,6 +331,7 @@ function wireEventStream(
           }
 
           if (event._tag === 'panel:surface_updated') {
+            if (!event.surfaceId || !event.surface) return
             setGeniferPanelSurface(event.surfaceId, event.surface as any)
           }
         }

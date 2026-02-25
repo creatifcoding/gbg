@@ -18,6 +18,8 @@ import { useAtomValue, Atom, Registry } from '@effect-atom/atom-react'
 import type { PanelContentProps } from '@/lib/floating/panel-registry'
 import { panelRegistry } from '@/lib/floating/panel-registry'
 import type { GeniferSurface } from './surface'
+import { SurfaceRenderer } from '@/lib/genifer/react/SurfaceRenderer'
+import type { UITree } from '@/lib/genifer/core/schemas'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Panel data shape
@@ -41,7 +43,7 @@ export const geniferPanelSurfaces = Atom.family(
   (_surfaceId: string) => Atom.make<GeniferSurface | null>(null),
 )
 
-let _registry: Registry.Registry | null = null
+var _registry: Registry.Registry | null = null
 
 export function setGeniferPanelRegistry(registry: Registry.Registry): void {
   _registry = registry
@@ -118,27 +120,27 @@ const GeniferPanelContent: FC<{ surfaceId: string; prompt?: string }> = ({ surfa
 // ─────────────────────────────────────────────────────────────────────────────
 
 const GeniferSurfaceRenderer: FC<{ surface: GeniferSurface }> = ({ surface }) => {
-  // The surface object contains the UITree + metadata
-  // For now, render a JSON tree view as MVP — the full Renderer integration
-  // will be wired once we confirm the data flow works end-to-end
-  const tree = (surface as any).tree ?? (surface as any).uiTree
+  const rawTree = (surface as any).treeSnapshot
 
-  if (!tree) {
-    return (
-      <div className="text-neutral-500 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-        Empty surface
-      </div>
-    )
+  let tree: UITree | null = null
+  if (rawTree && typeof rawTree === 'object') {
+    tree = rawTree as UITree
+  } else if (typeof rawTree === 'string') {
+    try {
+      tree = JSON.parse(rawTree) as UITree
+    } catch {
+      tree = null
+    }
   }
 
-  // Render as formatted JSON for MVP — upgrade to full Renderer in next pass
   return (
-    <pre
-      className="text-neutral-300 font-mono overflow-auto whitespace-pre-wrap"
-      style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-    >
-      {JSON.stringify(tree, null, 2)}
-    </pre>
+    <SurfaceRenderer
+      surface={surface}
+      tree={tree}
+      showRefineBar={false}
+      disableAnimations={false}
+      className="m-0"
+    />
   )
 }
 
@@ -146,7 +148,11 @@ const GeniferSurfaceRenderer: FC<{ surface: GeniferSurface }> = ({ surface }) =>
 // Registration — call once at app startup
 // ─────────────────────────────────────────────────────────────────────────────
 
+let _visitorRegistered = false
+
 export function registerGeniferPanelVisitor(): void {
+  if (_visitorRegistered && panelRegistry.has('genifer:surface')) return
+
   panelRegistry.register('genifer:surface', {
     label: 'Genifer Surface',
     icon: '✨',
@@ -161,4 +167,6 @@ export function registerGeniferPanelVisitor(): void {
       accent: '#22d3ee', // cyan
     },
   })
+
+  _visitorRegistered = true
 }
