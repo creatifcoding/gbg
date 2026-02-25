@@ -104,6 +104,18 @@ Acceptance:
 
 ## 3) Validation plan
 
+## TESTING_MATRIX (dual-run + failure injection)
+
+| Lane | Mode | Scenario | Expected |
+|---|---|---|---|
+| T1 Subject parity | `nats_primary` | publish/subscribe on `tmnl.ava.invalidate.*`, `tmnl.ava.subscribe.*`, `tmnl.ava.unsubscribe.*` | bridge subscriptions match TS subjects exactly |
+| T2 Payload casing | `nats_primary` | send command payloads with `view_id` and with `viewId` (negative) | `view_id` accepted, `viewId` rejected |
+| T3 Dual-run parity | `nats_primary` + observer on fallback | run same command sequence for sampled `view_id` cohort | status/artifact parity within tolerance |
+| T4 Failure injection: bridge crash/restart | dual-run | restart bridge during active command flow | no data loss after recovery window; replay catches up |
+| T5 Failure injection: malformed envelope | `nats_primary` | inject missing required envelope keys | validation failure + no downstream corruption |
+| T6 Failure injection: queue pressure | `nats_primary` | throttle projection workers and burst commands | command queue remains bounded; rollback threshold not exceeded |
+| T7 Rollback drill | switch to `phoenix_fallback` | trigger rollback criteria and flip runtime mode | service continuity maintained; incident playbook validated |
+
 ## Gate V1 — Subject parity
 - Assert every TS command subject has matching Elixir bridge subscription.
 
