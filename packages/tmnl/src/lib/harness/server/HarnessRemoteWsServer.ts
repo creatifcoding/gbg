@@ -27,6 +27,8 @@ import {
   type ShellSessionId,
   type ShellEvent,
 } from '../interactive-shell'
+import { PanelEventBus } from '../panel-events/PanelEventBus'
+import type { PanelEvent } from '@/lib/genifer/harness/panel-events'
 
 const WS_PORT = 8787
 const WS_PATH = '/api/harness/ws'
@@ -145,6 +147,14 @@ const handleRemoteWs = Effect.gen(function* () {
     },
   })
 
+  const makePanelEventEnvelope = (event: PanelEvent) => ({
+    _tag: 'remote:ws_event' as const,
+    event: {
+      _tag: 'remote:panel_event' as const,
+      event,
+    },
+  })
+
   // Relay shell events to WS client
   if (shellServiceResult) {
     yield* Effect.forkScoped(
@@ -154,6 +164,26 @@ const handleRemoteWs = Effect.gen(function* () {
         Effect.withSpan('harness.ws.shell-events-loop'),
         Effect.catchAll((cause) =>
           Effect.logWarning(`[harness-ws:${wsId}] shell event stream stopped: ${String(cause)}`),
+        ),
+      ),
+    )
+  }
+
+  // Panel event bus + relay (spawn_panel tool emits here)
+  const panelEventBus = yield* PanelEventBus.pipe(
+    Effect.option,
+    Effect.catchAll(() => Effect.succeed(Option.none())),
+    Effect.map(Option.getOrNull),
+  )
+
+  if (panelEventBus) {
+    yield* Effect.forkScoped(
+      Stream.runForEach(panelEventBus.events, (event) =>
+        send(makePanelEventEnvelope(event)),
+      ).pipe(
+        Effect.withSpan('harness.ws.panel-events-loop'),
+        Effect.catchAll((cause) =>
+          Effect.logWarning(`[harness-ws:${wsId}] panel event stream stopped: ${String(cause)}`),
         ),
       ),
     )
@@ -231,6 +261,22 @@ const handleRemoteWs = Effect.gen(function* () {
           return yield* runtime.getAvailableModels().pipe(
             Effect.map((models) => ({ models })),
           )
+        case 'remote:list_sessions': {
+          const sessions = yield* runtime.listSessions()
+          return { sessions }
+        }
+        case 'remote:update_session_meta': {
+          yield* runtime.updateSessionMeta(command.sessionId, command.patch)
+          return { ok: true }
+        }
+        case 'remote:delete_session': {
+          yield* runtime.deleteSession(command.sessionId)
+          return { ok: true }
+        }
+        case 'remote:fork_session': {
+          const result = yield* runtime.forkSession(command.sessionId, command.atSeq)
+          return result
+        }
 
         // ── Interactive shell commands ──────────────────────────────────
         case 'remote:shell_input': {

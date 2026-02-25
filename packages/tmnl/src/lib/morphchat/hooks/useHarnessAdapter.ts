@@ -33,6 +33,9 @@ import {
   setShellRegistry,
 } from '@/lib/harness/interactive-shell/shell-session-atoms'
 import type { ShellEvent } from '@/lib/harness/interactive-shell/schemas'
+import type { PanelEvent } from '@/lib/genifer/harness/panel-events'
+import { registerGeniferPanelVisitor, setGeniferPanelRegistry, setGeniferPanelSurface } from '@/lib/genifer/harness/panel-visitor'
+import { spawnPanel, closePanel } from '@/lib/floating'
 import type {
   HarnessRole,
   HarnessSessionId,
@@ -41,6 +44,9 @@ import type {
 } from '@/lib/harness/schemas'
 
 export const HARNESS_ROLES = ['scada-analyst', 'code-assistant', 'navigator', 'inspector', 'general'] as const
+
+// Server panelId -> local floating panelId mapping (for remote close events)
+const remoteToLocalPanelIds = new Map<string, string>()
 
 import type { MorphChatAdapter } from '../schemas/adapter-types'
 import type {
@@ -57,6 +63,7 @@ import { createExtensionToolBridge } from '@/lib/chat/msg/tool-block/renderers/e
 import type { MetricEntry, ProviderMarker } from '../schemas/metric-types'
 
 setShellRegistry(morphChatRegistry)
+setGeniferPanelRegistry(morphChatRegistry)
 
 // =============================================================================
 // Types
@@ -84,7 +91,7 @@ export interface HarnessStatusRow {
 // Shared Runtime — one WS transport for ALL instances
 // =============================================================================
 
-const harnessRuntimeAtom = Atom.runtime(HarnessRuntimeBrowserWebSocketDefault)
+export const harnessRuntimeAtom = Atom.runtime(HarnessRuntimeBrowserWebSocketDefault)
 
 // =============================================================================
 // Per-Instance State Atoms — Atom.family keyed by instanceId
@@ -287,6 +294,42 @@ function wireEventStream(
       Effect.sync(() => {
         if (rawEvent?._tag === 'remote:shell_event' && rawEvent.event) {
           dispatchShellEvent(rawEvent.event as ShellEvent)
+          return
+        }
+
+        if (rawEvent?._tag === 'remote:panel_event' && rawEvent.event) {
+          const event = rawEvent.event as PanelEvent & { surface?: unknown }
+          if (event._tag === 'panel:spawned') {
+            registerGeniferPanelVisitor()
+            if (event.surface) {
+              setGeniferPanelSurface(event.surfaceId, event.surface as any)
+            }
+            const localPanelId = spawnPanel('genifer:surface', {
+              mode: event.mode ?? 'floating',
+              title: event.title,
+              data: {
+                surfaceId: event.surfaceId,
+                prompt: event.prompt,
+                threadId: event.threadId,
+              },
+              accent: '#22d3ee',
+            })
+            if (localPanelId) {
+              remoteToLocalPanelIds.set(event.panelId, localPanelId)
+            }
+            return
+          }
+
+          if (event._tag === 'panel:closed') {
+            const localId = remoteToLocalPanelIds.get(event.panelId) ?? event.panelId
+            closePanel(localId)
+            remoteToLocalPanelIds.delete(event.panelId)
+            return
+          }
+
+          if (event._tag === 'panel:surface_updated') {
+            setGeniferPanelSurface(event.surfaceId, event.surface as any)
+          }
         }
       }),
     ),
