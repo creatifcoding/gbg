@@ -177,6 +177,8 @@ export {
   InvalidationReasonManual,
   InvalidationEvent,
   InvalidationRequest,
+  SubscribeRequest,
+  UnsubscribeRequest,
 } from './status'
 
 // ============================================================================
@@ -287,4 +289,6 @@ export type {
   InvalidationReason as InvalidationReasonType,
   InvalidationEvent as InvalidationEventType,
   InvalidationRequest as InvalidationRequestType,
+  SubscribeRequest as SubscribeRequestType,
+  UnsubscribeRequest as UnsubscribeRequestType,
 } from './status'

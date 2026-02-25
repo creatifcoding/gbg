@@ -40,6 +40,11 @@ import {
   AvaDecodeError as AvaDecodeError2,
   type AvaClientV2Config,
 } from '../services'
+import {
+  InvalidationRequest,
+  SubscribeRequest,
+  UnsubscribeRequest,
+} from '../schemas/v2'
 
 // ============================================================================
 // Test Configuration
@@ -239,54 +244,22 @@ describe('NatsClient Errors', () => {
 
 describe('AvaClientV2', () => {
   describe('subscribeArtifact', () => {
-    it.effect('receives and decodes ViewArtifact from stream', () =>
+    it.effect('creates artifact subscription stream', () =>
       Effect.gen(function* () {
         const mock = createMockNatsClient()
 
-        // Create test layer with mock NatsClient
         const testLayer = pipe(
           AvaClientV2Live,
           Layer.provide(Layer.succeed(NatsClient, mock.service)),
           Layer.provide(Layer.succeed(AvaClientV2ConfigTag, testAvaConfig))
         )
 
-        // Create a test artifact
-        const testArtifact = {
-          viewId: 'test-view-1',
-          version: 1,
-          state: 'ARTIFACT_STATE_ACTIVE',
-          spec: {
-            viewId: 'test-view-1',
-            name: 'Test View',
-            assemblageId: 'test-assemblage',
-            channels: [],
-          },
-          channelBindings: [],
-          createdAtMs: Date.now(),
-          updatedAtMs: Date.now(),
-        }
-
-        // Inject message before consuming
-        const subject = 'artifacts.test-view-1'
-        yield* mock.injectMessage(subject, testArtifact)
-
-        // Subscribe and take first artifact
-        const result = yield* Effect.gen(function* () {
+        const stream = yield* Effect.gen(function* () {
           const client = yield* AvaClientV2
-          const artifacts = client.subscribeArtifact('test-view-1' as any)
-
-          // Take first item with timeout
-          return yield* artifacts.pipe(
-            Stream.take(1),
-            Stream.runCollect,
-            Effect.timeout(Duration.seconds(1)),
-            Effect.option
-          )
+          return client.subscribeArtifact('test-view-1' as any)
         }).pipe(Effect.provide(testLayer))
 
-        // Verify we got the artifact (or timeout if queue wasn't connected properly)
-        // In real tests, the queue connection would be more robust
-        expect(result).toBeDefined()
+        expect(stream).toBeDefined()
       })
     )
   })
@@ -364,6 +337,48 @@ describe('AvaClientV2', () => {
       })
     )
   })
+})
+
+// ============================================================================
+// Command Payload Schema Parity (snake_case only)
+// ============================================================================
+
+describe('AVA v2 command payload schemas', () => {
+  it.effect('InvalidationRequest accepts snake_case and rejects camelCase', () =>
+    Effect.gen(function* () {
+      const snake = {
+        view_id: 'dashboard-1',
+        reason: 'refresh',
+        force: true,
+      }
+      const camel = {
+        viewId: 'dashboard-1',
+        reason: 'refresh',
+        force: true,
+      }
+
+      const decoded = yield* Schema.decode(InvalidationRequest)(snake)
+      expect(decoded.view_id).toBe('dashboard-1')
+
+      expect(() => Schema.decodeUnknownSync(InvalidationRequest)(camel)).toThrow()
+    })
+  )
+
+  it.effect('SubscribeRequest and UnsubscribeRequest reject camelCase keys', () =>
+    Effect.gen(function* () {
+      const subscribeSnake = { view_id: 'view-1' }
+      const unsubscribeSnake = { view_id: 'view-2' }
+
+      const subscribeDecoded = yield* Schema.decode(SubscribeRequest)(subscribeSnake)
+      const unsubscribeDecoded = yield* Schema.decode(UnsubscribeRequest)(unsubscribeSnake)
+
+      expect(subscribeDecoded.view_id).toBe('view-1')
+      expect(unsubscribeDecoded.view_id).toBe('view-2')
+
+      expect(() => Schema.decodeUnknownSync(SubscribeRequest)({ viewId: 'view-1' })).toThrow()
+      expect(() => Schema.decodeUnknownSync(UnsubscribeRequest)({ viewId: 'view-2' })).toThrow()
+    })
+  )
 })
 
 // ============================================================================

@@ -187,8 +187,8 @@ export type InvalidationEvent = typeof InvalidationEvent.Type
  * Simpler than InvalidationEvent, used for client commands.
  */
 export const InvalidationRequest = Schema.Struct({
-  /** View to invalidate */
-  viewId: ViewId,
+  /** View to invalidate (canonical snake_case for runtime command payloads) */
+  view_id: ViewId,
   /** Optional reason string */
   reason: Schema.optional(Schema.String),
   /** Force recomputation even if not stale */
@@ -200,3 +200,31 @@ export const InvalidationRequest = Schema.Struct({
   })
 )
 export type InvalidationRequest = typeof InvalidationRequest.Type
+
+/**
+ * SubscribeRequest - Client command to subscribe to a view
+ */
+export const SubscribeRequest = Schema.Struct({
+  /** View to subscribe (canonical snake_case for runtime command payloads) */
+  view_id: ViewId,
+}).pipe(
+  Schema.annotations({
+    title: 'SubscribeRequest',
+    description: 'Subscribe command payload from client',
+  })
+)
+export type SubscribeRequest = typeof SubscribeRequest.Type
+
+/**
+ * UnsubscribeRequest - Client command to unsubscribe from a view
+ */
+export const UnsubscribeRequest = Schema.Struct({
+  /** View to unsubscribe (canonical snake_case for runtime command payloads) */
+  view_id: ViewId,
+}).pipe(
+  Schema.annotations({
+    title: 'UnsubscribeRequest',
+    description: 'Unsubscribe command payload from client',
+  })
+)
+export type UnsubscribeRequest = typeof UnsubscribeRequest.Type
