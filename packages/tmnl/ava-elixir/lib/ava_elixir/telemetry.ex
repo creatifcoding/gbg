@@ -14,6 +14,7 @@ defmodule AvaElixir.Telemetry do
 
   @type ingress_status :: :ok | :error
   @type parity_status :: :match | :mismatch | :missing_expected | :missing_actual | :error
+  @type redrive_enqueue_status :: :ok | :error
 
   @spec emit_nif_call(operation(), non_neg_integer(), :ok | :error, AvaElixir.runtime_mode()) ::
           :ok
@@ -64,6 +65,33 @@ defmodule AvaElixir.Telemetry do
         expected_hash: expected_hash,
         actual_hash: actual_hash
       }
+    )
+  end
+
+  @spec emit_redrive_selection(non_neg_integer(), boolean(), boolean()) :: :ok
+  def emit_redrive_selection(count, dry_run, all) do
+    :telemetry.execute(
+      [:ava_elixir, :outbox, :redrive, :selection],
+      %{count: count},
+      %{dry_run: dry_run, all: all}
+    )
+  end
+
+  @spec emit_redrive_enqueue(redrive_enqueue_status(), String.t()) :: :ok
+  def emit_redrive_enqueue(status, outbox_id) do
+    :telemetry.execute(
+      [:ava_elixir, :outbox, :redrive, :enqueue],
+      %{count: 1},
+      %{status: status, outbox_id: outbox_id}
+    )
+  end
+
+  @spec emit_redrive_summary(non_neg_integer(), non_neg_integer(), non_neg_integer(), boolean()) :: :ok
+  def emit_redrive_summary(selected, enqueued, failed, dry_run) do
+    :telemetry.execute(
+      [:ava_elixir, :outbox, :redrive, :summary],
+      %{selected: selected, enqueued: enqueued, failed: failed},
+      %{dry_run: dry_run}
     )
   end
 end

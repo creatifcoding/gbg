@@ -19,6 +19,7 @@ defmodule Mix.Tasks.Ava.Outbox.Redrive do
   use Mix.Task
 
   alias AvaElixir.Repo
+  alias AvaElixir.Telemetry
   alias AvaElixir.Workers.AvaOutboxWorker
 
   @switches [limit: :integer, dry_run: :boolean, all: :boolean]
@@ -34,22 +35,28 @@ defmodule Mix.Tasks.Ava.Outbox.Redrive do
     all? = Keyword.get(opts, :all, false)
 
     rows = fetch_rows(limit, all?)
+    selected = length(rows)
+
+    Telemetry.emit_redrive_selection(selected, dry_run?, all?)
 
     sample_ids = rows |> Enum.take(10) |> Enum.map_join(", ", & &1.id)
 
     Mix.shell().info(
-      "[ava.outbox.redrive] selected=#{length(rows)} limit=#{limit} dry_run=#{dry_run?} all=#{all?}"
+      "[ava.outbox.redrive] selected=#{selected} limit=#{limit} dry_run=#{dry_run?} all=#{all?}"
     )
 
     Mix.shell().info("[ava.outbox.redrive] sample_ids=#{if(sample_ids == "", do: "(none)", else: sample_ids)}")
 
     if dry_run? do
-      Mix.shell().info("[ava.outbox.redrive] dry-run: would enqueue #{length(rows)} jobs")
-      {:ok, %{selected: length(rows), enqueued: 0, dry_run: true, all: all?}}
+      Mix.shell().info("[ava.outbox.redrive] dry-run: would enqueue #{selected} jobs")
+      Telemetry.emit_redrive_summary(selected, 0, 0, true)
+      {:ok, %{selected: selected, enqueued: 0, dry_run: true, all: all?}}
     else
       enqueued = enqueue_rows(rows)
+      failed = selected - enqueued
       Mix.shell().info("[ava.outbox.redrive] enqueued #{enqueued} jobs")
-      {:ok, %{selected: length(rows), enqueued: enqueued, dry_run: false, all: all?}}
+      Telemetry.emit_redrive_summary(selected, enqueued, failed, false)
+      {:ok, %{selected: selected, enqueued: enqueued, dry_run: false, all: all?}}
     end
   end
 
@@ -95,8 +102,12 @@ defmodule Mix.Tasks.Ava.Outbox.Redrive do
       }
 
       case Oban.insert(AvaOutboxWorker.new(args)) do
-        {:ok, _job} -> acc + 1
+        {:ok, _job} ->
+          Telemetry.emit_redrive_enqueue(:ok, row.id)
+          acc + 1
+
         {:error, reason} ->
+          Telemetry.emit_redrive_enqueue(:error, row.id)
           Mix.shell().error("[ava.outbox.redrive] failed outbox_id=#{row.id} reason=#{inspect(reason)}")
           acc
       end

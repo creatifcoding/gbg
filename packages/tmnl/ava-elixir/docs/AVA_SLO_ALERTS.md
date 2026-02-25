@@ -3,6 +3,12 @@
 Status: Operational baseline
 Owner: AVA runtime operators
 
+## Canonical artifacts (Task #2792)
+
+- Metrics contract: `docs/AVA_REDRIVE_METRICS_CONTRACT.md` (`AVA_REDRIVE_METRICS_CONTRACT`)
+- Dashboard JSON: `docs/dashboards/ava_redrive_projection_dashboard.json`
+- Alert rules: `docs/dashboards/ava_alert_rules.yaml`
+
 ## Service objectives
 
 ### SLO-1 Command ingestion reliability
@@ -39,9 +45,13 @@ Owner: AVA runtime operators
 | P2 | backlog growth, transient publish degradation | team channel + on-call ack | response < 15m |
 | P3 | warning-only config drift | ticket queue | response < 24h |
 
+Alert rule artifact: `docs/dashboards/ava_alert_rules.yaml`
+
 ---
 
 ## Dashboard panels (minimum)
+
+Dashboard artifact: `docs/dashboards/ava_redrive_projection_dashboard.json`
 
 1. Ingress OK vs ERROR count/time window
 2. Ingress error ratio
