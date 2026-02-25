@@ -1032,36 +1032,44 @@ const disposeOp$ = Atom.family((id: string) =>
 /** New session — keeps transport, opens fresh session */
 const newSessionOp$ = Atom.family((id: string) =>
   harnessRuntimeAtom.fn<{ nodeId: string; role: HarnessRole; agentName: string }>()(
-    ({ nodeId, role, agentName }, _ctx) =>
-      Effect.gen(function* () {
+    ({ nodeId, role, agentName }, _ctx) => {
+      let previousSid: HarnessSessionId | null = null
+
+      return Effect.gen(function* () {
         setInstanceConfig(id, { nodeId, role, agentName })
         const runtime = yield* HarnessRuntime
 
+        previousSid = getSessionId(id)
         yield* interruptInstanceFibers(id)
 
-        // Abort old session
-        const oldSid = getSessionId(id)
-        if (oldSid) {
-          yield* runtime.abortSession(oldSid).pipe(
+        // Abort old session (non-fatal)
+        if (previousSid) {
+          yield* runtime.abortSession(previousSid).pipe(
             Effect.catchAllCause((cause) =>
-              morphchatLogWarningCause(id, 'new-session-abort-old-failed', cause, { sessionId: oldSid }).pipe(Effect.asVoid),
+              morphchatLogWarningCause(id, 'new-session-abort-old-failed', cause, { sessionId: previousSid }).pipe(Effect.asVoid),
             ),
           )
         }
 
-        // Clear state
-        morphChatRegistry.set(messages$(id), [] as ReadonlyArray<ChatMessage>)
-        morphChatRegistry.set(streaming$(id), STREAMING_IDLE)
-        morphChatRegistry.set(statusRows$(id), [])
-        setSessionId(id, null, 'newSessionOp.clear')
-        getToolBridge(id).clear()
-        processors.delete(id) // Force new processor
+        pushStatusRow(id, {
+          id: `status-${Date.now()}-new-session-start`,
+          tone: 'info',
+          text: `[new-session] opening fresh session${previousSid ? ` (prev ${previousSid})` : ''}`,
+          source: 'harness',
+        })
 
-        // Open fresh session
+        // Open fresh session first; keep prior SID until success to avoid null-session limbo.
         morphChatRegistry.set(connection$(id), { phase: 'connecting', endpoint: `harness:${nodeId}` } as ConnectionState)
         const session = yield* runtime.openSession(nodeId, role, { forceNew: true }).pipe(
           Effect.timeoutFail({ duration: '12 seconds', onTimeout: () => new HarnessRuntimeError({ code: 'new-session-timeout', message: 'Timeout', cause: Option.none() }) }),
         )
+
+        // Clear UI buffers only after session create succeeds.
+        morphChatRegistry.set(messages$(id), [] as ReadonlyArray<ChatMessage>)
+        morphChatRegistry.set(streaming$(id), STREAMING_IDLE)
+        morphChatRegistry.set(statusRows$(id), [])
+        getToolBridge(id).clear()
+        processors.delete(id) // Force new processor
 
         yield* activateSessionWiring(id, session.sessionId as HarnessSessionId, nodeId, agentName, runtime, undefined, session.agentId)
         pushStatusRow(id, {
@@ -1081,13 +1089,21 @@ const newSessionOp$ = Atom.family((id: string) =>
 
             yield* morphchatLogWarningCause(id, 'new-session-failed', cause, {
               nodeId,
+              previousSessionId: previousSid ?? undefined,
             })
             const parsed = formatUnknownErrorPayload(yield* morphchatCauseToMessage(cause))
+
+            // Roll back SID visibility so we do not strand the panel in SID:none.
+            if (previousSid) {
+              setSessionId(id, previousSid, 'newSessionOp.rollback')
+            }
+
             morphChatRegistry.set(connection$(id), { phase: 'error', error: parsed.message } as ConnectionState)
             pushStatusRow(id, { id: `status-${Date.now()}-new-session`, tone: 'error', text: `[new-session] ${parsed.message}`, source: 'harness' })
           }),
         ),
-      ),
+      )
+    },
   ),
 )
 
