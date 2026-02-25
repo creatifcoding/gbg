@@ -155,32 +155,31 @@ Rollback exit criteria:
 
 ---
 
-## 8) Local validation script (copy/paste)
+## 8) Local validation script
+
+Canonical executable script:
+
+```bash
+./ava-elixir/scripts/track_a_canary.sh
+```
+
+If needed, copy/paste equivalent inline form:
 
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Phase-1 local validation (docs-aligned gate smoke)
-# Canonical assumptions: tmnl.ava.* subjects + view_id payload key.
-
 export AVA_RUNTIME_MODE="${AVA_RUNTIME_MODE:-nats_primary}"
 export AVA_NATS_PREFIX="${AVA_NATS_PREFIX:-tmnl.ava}"
 export AVA_OBAN_MAX_ATTEMPTS="${AVA_OBAN_MAX_ATTEMPTS:-10}"
 
-echo "[ava] runtime_mode=${AVA_RUNTIME_MODE} prefix=${AVA_NATS_PREFIX}"
-
-# 1) Contracts/docs sanity gate
 bunx tsc --noEmit
+bunx vitest run src/lib/ava/__tests__/ava-v2-services.test.ts
 
-# 2) AVA phase-1 docs/contract test lane
-bun test src/lib/ava --runInBand
-
-# 3) Subject/casing smoke (expected canonical strings)
-rg -n "tmnl\.ava\.(invalidate|subscribe|unsubscribe|artifacts|deltas|status)" src/lib/ava || true
-rg -n "view_id" src/lib/ava ava-elixir || true
-
-echo "[ava] local validation complete"
+cd ava-elixir
+mix test test/ava_elixir/bridge/nats_ingress_test.exs
+mix test test/ava_elixir/workers/ava_command_worker_test.exs test/ava_elixir/workers/ava_outbox_worker_test.exs
+mix test
 ```
 
 ---
