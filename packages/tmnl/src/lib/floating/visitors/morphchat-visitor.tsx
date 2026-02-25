@@ -19,6 +19,7 @@ import { createMockChatAdapter } from '@/lib/morphchat/adapters/mock-adapter'
 import { Conductor } from '@/lib/morphchat/specs/conductor'
 import { useHarnessAdapter } from '@/lib/morphchat/hooks'
 import { sessionId$ } from '@/lib/morphchat/hooks/useHarnessAdapter'
+import { morphChatRegistry } from '@/lib/morphchat/atoms/registry'
 import { SessionDrawer } from '@/lib/morphchat/components/session-drawer'
 import { panelRegistry, type PanelContentProps } from '../panel-registry'
 
@@ -72,7 +73,7 @@ function MorphChatHarnessPanel({ panelId }: PanelContentProps) {
 
   const [isSessionDrawerOpen, setIsSessionDrawerOpen] = useState(false)
 
-  const currentSessionId = useAtomValue(sessionId$(panelId))
+  const currentSessionId = useAtomValue(sessionId$(panelId), { registry: morphChatRegistry })
 
   const handleResumeSession = React.useCallback((sid: string) => {
     resumeSession(sid)

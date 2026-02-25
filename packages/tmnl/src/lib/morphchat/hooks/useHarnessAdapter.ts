@@ -135,6 +135,8 @@ const runHarnessLog = (effect: Effect.Effect<unknown, unknown, never>) => {
   Effect.runFork(effect.pipe(Effect.catchAllCause(() => Effect.void)))
 }
 
+const MORPHCHAT_ATOM_OPTIONS = { registry: morphChatRegistry } as const
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -1252,18 +1254,18 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
   const { instanceId, nodeId, role, agentName = 'Agent', autoConnect = true } = config
 
   // Bind per-instance fn-atom ops
-  const [, doConnect] = useAtom(connectOp$(instanceId))
-  const [, doSend] = useAtom(sendOp$(instanceId))
-  const [, doCancel] = useAtom(cancelOp$(instanceId))
-  const [, doClear] = useAtom(clearOp$(instanceId))
-  const [, doDispose] = useAtom(disposeOp$(instanceId))
-  const [, doFetchModels] = useAtom(fetchModelsOp$(instanceId))
-  const [, doNewSession] = useAtom(newSessionOp$(instanceId))
-  const [, doResumeSession] = useAtom(resumeSessionOp$(instanceId))
+  const [, doConnect] = useAtom(connectOp$(instanceId), MORPHCHAT_ATOM_OPTIONS)
+  const [, doSend] = useAtom(sendOp$(instanceId), MORPHCHAT_ATOM_OPTIONS)
+  const [, doCancel] = useAtom(cancelOp$(instanceId), MORPHCHAT_ATOM_OPTIONS)
+  const [, doClear] = useAtom(clearOp$(instanceId), MORPHCHAT_ATOM_OPTIONS)
+  const [, doDispose] = useAtom(disposeOp$(instanceId), MORPHCHAT_ATOM_OPTIONS)
+  const [, doFetchModels] = useAtom(fetchModelsOp$(instanceId), MORPHCHAT_ATOM_OPTIONS)
+  const [, doNewSession] = useAtom(newSessionOp$(instanceId), MORPHCHAT_ATOM_OPTIONS)
+  const [, doResumeSession] = useAtom(resumeSessionOp$(instanceId), MORPHCHAT_ATOM_OPTIONS)
 
   // Pin session atom subscription so session identity remains stable across
   // transient registry/GC cycles while panel stays mounted.
-  useAtomValue(sessionId$(instanceId))
+  useAtomValue(sessionId$(instanceId), MORPHCHAT_ATOM_OPTIONS)
 
   // Connection status from per-instance atom
   const [status, setStatus] = React.useState<HarnessAdapterStatus>('idle')

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { useAtom, useAtomValue } from '@effect-atom/atom-react'
 import { morphChatRegistry } from '../atoms/registry'
+
+const MORPHCHAT_ATOM_OPTIONS = { registry: morphChatRegistry } as const
 import {
   archiveSessionOp$,
   deleteSessionOp$,
@@ -41,19 +43,19 @@ export interface UseSessionManagerResult {
 }
 
 export function useSessionManager(instanceId: string): UseSessionManagerResult {
-  const [, fetchSessions] = useAtom(fetchSessionsOp$)
-  const [, renameFn] = useAtom(renameSessionOp$)
-  const [, starFn] = useAtom(starSessionOp$)
-  const [, archiveFn] = useAtom(archiveSessionOp$)
-  const [, deleteFn] = useAtom(deleteSessionOp$)
-  const [, forkFn] = useAtom(forkSessionOp$)
+  const [, fetchSessions] = useAtom(fetchSessionsOp$, MORPHCHAT_ATOM_OPTIONS)
+  const [, renameFn] = useAtom(renameSessionOp$, MORPHCHAT_ATOM_OPTIONS)
+  const [, starFn] = useAtom(starSessionOp$, MORPHCHAT_ATOM_OPTIONS)
+  const [, archiveFn] = useAtom(archiveSessionOp$, MORPHCHAT_ATOM_OPTIONS)
+  const [, deleteFn] = useAtom(deleteSessionOp$, MORPHCHAT_ATOM_OPTIONS)
+  const [, forkFn] = useAtom(forkSessionOp$, MORPHCHAT_ATOM_OPTIONS)
 
-  const allSessions = useAtomValue(sessionList$(instanceId))
-  const query = useAtomValue(sessionQuery$(instanceId))
-  const loading = useAtomValue(sessionLoading$(instanceId))
-  const error = useAtomValue(sessionError$(instanceId))
-  const operation = useAtomValue(sessionOperation$(instanceId))
-  const diagnostics = useAtomValue(sessionFetchDiagnostics$(instanceId))
+  const allSessions = useAtomValue(sessionList$(instanceId), MORPHCHAT_ATOM_OPTIONS)
+  const query = useAtomValue(sessionQuery$(instanceId), MORPHCHAT_ATOM_OPTIONS)
+  const loading = useAtomValue(sessionLoading$(instanceId), MORPHCHAT_ATOM_OPTIONS)
+  const error = useAtomValue(sessionError$(instanceId), MORPHCHAT_ATOM_OPTIONS)
+  const operation = useAtomValue(sessionOperation$(instanceId), MORPHCHAT_ATOM_OPTIONS)
+  const diagnostics = useAtomValue(sessionFetchDiagnostics$(instanceId), MORPHCHAT_ATOM_OPTIONS)
 
   const filteredSessions = useMemo(() => {
     const normalizedSearch = query.search.trim().toLowerCase()
