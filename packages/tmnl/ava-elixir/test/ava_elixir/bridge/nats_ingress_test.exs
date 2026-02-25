@@ -48,9 +48,22 @@ defmodule AvaElixir.Bridge.NatsIngressTest do
       assert is_map(job.args["payload"])
     end
 
-    test "rejects camelCase viewId payload" do
-      assert {:error, :missing_view_id} =
-               NatsIngress.ingest("tmnl.ava.invalidate.view-123", %{"viewId" => "view-123"})
+    test "rejects camelCase viewId payload aliases for all command subjects" do
+      for {subject, view_id} <- [
+            {"tmnl.ava.invalidate.view-123", "view-123"},
+            {"tmnl.ava.subscribe.view-456", "view-456"},
+            {"tmnl.ava.unsubscribe.view-789", "view-789"}
+          ] do
+        assert {:error, :missing_view_id} =
+                 NatsIngress.ingest(subject, %{"viewId" => view_id})
+      end
+
+      command_count =
+        Job
+        |> where([j], j.queue == "ava_commands")
+        |> Repo.aggregate(:count, :id)
+
+      assert command_count == 0
     end
 
     test "rejects subject/payload view_id mismatch" do

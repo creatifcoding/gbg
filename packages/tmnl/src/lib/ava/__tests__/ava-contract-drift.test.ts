@@ -72,7 +72,7 @@ describe('AVA contract drift gate', () => {
 })
 
 describe('AVA command payload casing contract', () => {
-  it.effect('requires view_id and rejects viewId alias by schema decode', () =>
+  it.effect('accepts canonical snake_case command payloads', () =>
     Effect.gen(function* () {
       const invalidationDecoded = yield* Schema.decode(InvalidationRequest)({
         view_id: 'view-1',
@@ -89,29 +89,39 @@ describe('AVA command payload casing contract', () => {
       expect(invalidationDecoded.view_id).toBe('view-1')
       expect(subscribeDecoded.view_id).toBe('view-1')
       expect(unsubscribeDecoded.view_id).toBe('view-1')
-
-      expect(() =>
-        Schema.decodeUnknownSync(InvalidationRequest)({
-          reason: 'missing view_id',
-          force: false,
-        })
-      ).toThrow()
-      expect(() => Schema.decodeUnknownSync(SubscribeRequest)({})).toThrow()
-      expect(() => Schema.decodeUnknownSync(UnsubscribeRequest)({})).toThrow()
-
-      expect(() =>
-        Schema.decodeUnknownSync(InvalidationRequest)({
-          viewId: 'view-1',
-          reason: 'camel case key',
-          force: false,
-        })
-      ).toThrow()
-      expect(() =>
-        Schema.decodeUnknownSync(SubscribeRequest)({ viewId: 'view-1' })
-      ).toThrow()
-      expect(() =>
-        Schema.decodeUnknownSync(UnsubscribeRequest)({ viewId: 'view-1' })
-      ).toThrow()
     })
   )
+
+  it('requires view_id on invalidation, subscribe, and unsubscribe payloads', () => {
+    expect(() =>
+      Schema.decodeUnknownSync(InvalidationRequest)({
+        reason: 'missing view_id',
+        force: false,
+      })
+    ).toThrow()
+    expect(() => Schema.decodeUnknownSync(SubscribeRequest)({})).toThrow()
+    expect(() => Schema.decodeUnknownSync(UnsubscribeRequest)({})).toThrow()
+  })
+
+  it('rejects viewId alias for invalidate command payload', () => {
+    expect(() =>
+      Schema.decodeUnknownSync(InvalidationRequest)({
+        viewId: 'view-1',
+        reason: 'camel case key',
+        force: false,
+      })
+    ).toThrow()
+  })
+
+  it('rejects viewId alias for subscribe command payload', () => {
+    expect(() =>
+      Schema.decodeUnknownSync(SubscribeRequest)({ viewId: 'view-1' })
+    ).toThrow()
+  })
+
+  it('rejects viewId alias for unsubscribe command payload', () => {
+    expect(() =>
+      Schema.decodeUnknownSync(UnsubscribeRequest)({ viewId: 'view-1' })
+    ).toThrow()
+  })
 })
