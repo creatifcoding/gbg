@@ -53,3 +53,4 @@ Escalate to incident response if any single run shows:
 | `<id>` | `F-01,F-04` | `<name>` | `<sha>` | `artifacts/session-restart-replay/<stamp>` | contained / recovering / resolved | `<summary>` |
 | `dual-panel-20260225-052841` | `F-06` | `forge` | `b529eb3b` | `artifacts/session-dual-panel-stress/20260225-052841` | recovering | `open_session timed out during stress run (DPX); inspect managed server log parse errors` |
 | `dual-panel-20260225-053640` | `F-09 (validated)` | `Val` | `local-run` | `artifacts/session-dual-panel-stress/20260225-053640` | resolved | `DP1..DP12 pass after store error payload fix (cause Option.none())` |
+| `restart-replay-20260225-054046` | `F-01/F-02/F-04 validated` | `Val` | `local-run` | `artifacts/session-restart-replay/20260225-054046` | resolved | `R1..R7 pass after lazy session hydration fallback in PiAiHarnessEngine.withSession` |

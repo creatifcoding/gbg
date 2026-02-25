@@ -182,6 +182,7 @@ These are the invariants that must hold in adapter/runtime apply boundaries:
 | 2026-02-25T00:00:00Z | `<name>` | `<sha>` | `bash scripts/spikes/session-dual-panel-stress.sh` | `artifacts/session-dual-panel-stress/<stamp>` | `DP1..DP12` | PASS/FAIL | `stale-stream suppression + contamination` |
 | 2026-02-25T05:28:41-05:00 | forge | `b529eb3b` | `bash scripts/spikes/session-dual-panel-stress.sh` | `artifacts/session-dual-panel-stress/20260225-052841` | `DPX` | FAIL | `timeout waiting for remote:chat_v2_open_session; see result.json + harness-remote-ws.log` |
 | 2026-02-25T05:36:40-05:00 | Val | `local-run` | `bash scripts/spikes/session-dual-panel-stress.sh` | `artifacts/session-dual-panel-stress/20260225-053640` | `DP1..DP12` | PASS | `post-fix run after HarnessSessionStoreError cause Option.none() patch` |
+| 2026-02-25T05:40:46-05:00 | Val | `local-run` | `bash scripts/spikes/session-restart-replay-smoke.sh` | `artifacts/session-restart-replay/20260225-054046` | `R1..R7` | PASS | `resume hydration fallback validated after server restart` |
 
 ### Required Evidence Files
 

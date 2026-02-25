@@ -3,8 +3,8 @@ import { AuthStorage, ModelRegistry } from '@mariozechner/pi-coding-agent'
 import { nanoid } from 'nanoid'
 import { Context, Duration, Effect, Fiber, HashMap, HashSet, Layer, Option, PubSub, Ref, Schedule, Schema, Stream } from 'effect'
 
-import { HarnessSessionStore } from './HarnessSessionStore'
 import { HarnessSessionStoreMemoryLive } from './HarnessSessionStoreMemory'
+import { HarnessSessionStoreExtended } from './session/SessionStore'
 import { PiAiEventAdapter, PiAiEventAdapterLive } from './PiAiEventAdapter'
 import { PiAiPolicy, PiAiPolicyLive } from './PiAiPolicy'
 import { PiAiStreamClient, PiAiStreamClientLive } from './PiAiStreamClient'
@@ -32,6 +32,7 @@ import {
   HarnessEventEnvelope,
   HarnessSessionEnvelope,
 } from './schemas'
+import type { HarnessSessionMeta } from './session/schemas'
 
 export class PiAiHarnessEngineError extends Schema.TaggedError<PiAiHarnessEngineError>()(
   'PiAiHarnessEngineError',
@@ -99,6 +100,18 @@ export interface PiAiHarnessEngineShape {
     sessionId: ChatSessionId,
     _response: HarnessExtensionUIResponse,
   ) => Effect.Effect<void, PiAiHarnessEngineError>
+  readonly listSessions: () => Effect.Effect<ReadonlyArray<HarnessSessionMeta>, PiAiHarnessEngineError>
+  readonly updateSessionMeta: (
+    sessionId: string,
+    patch: {
+      name?: string
+      tags?: ReadonlyArray<string>
+      status?: 'active' | 'archived' | 'starred'
+      starred?: boolean
+    },
+  ) => Effect.Effect<void, PiAiHarnessEngineError>
+  readonly deleteSession: (sessionId: string) => Effect.Effect<void, PiAiHarnessEngineError>
+  readonly forkSession: (sessionId: string, atSeq?: number) => Effect.Effect<{ sessionId: string }, PiAiHarnessEngineError>
   readonly events: Stream.Stream<typeof HarnessEvent.Type, PiAiHarnessEngineError>
 }
 
@@ -132,7 +145,7 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
     const adapter = yield* PiAiEventAdapter
     const streamClient = yield* PiAiStreamClient
     const toolRuntime = yield* PiAiToolRuntime
-    const store = yield* HarnessSessionStore
+    const store = yield* HarnessSessionStoreExtended
 
     const model = yield* policy.resolveModel.pipe(
       Effect.mapError((error) =>
@@ -208,13 +221,13 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
         yield* persistSession(session)
       })
 
-    const withSession = <A>(
-      sessionId: string,
-      f: (session: SessionRecord) => Effect.Effect<A, PiAiHarnessEngineError>,
-    ) =>
+    const hydrateSessionFromStore = (sessionId: string): Effect.Effect<SessionRecord, PiAiHarnessEngineError> =>
       Effect.gen(function* () {
-        const maybe = yield* Ref.get(sessionsRef).pipe(Effect.map((map) => HashMap.get(map, sessionId)))
-        if (Option.isNone(maybe)) {
+        const loaded = yield* store.loadSession(sessionId as ChatSessionId).pipe(
+          Effect.mapError(toEngineError('session-load-failed', `Failed to load session ${sessionId} from store`)),
+        )
+
+        if (Option.isNone(loaded)) {
           return yield* Effect.fail(
             new PiAiHarnessEngineError({
               code: 'session-missing',
@@ -224,7 +237,65 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
           )
         }
 
-        return yield* f(maybe.value)
+        const persistedEvents = yield* store.loadEventsAfter(loaded.value.sessionId, Option.none()).pipe(
+          Effect.mapError(
+            toEngineError('session-events-load-failed', `Failed to load persisted events for ${sessionId}`),
+          ),
+        )
+
+        const events = persistedEvents.map((entry) => entry.event)
+        const headSeq = events.length > 0
+          ? events[events.length - 1].seq
+          : loaded.value.headSeq
+
+        const clientMessageIds = HashSet.fromIterable(
+          events.flatMap((event) =>
+            event._tag === 'chat:v2/send_accepted'
+              && 'clientMessageId' in event
+              && typeof event.clientMessageId === 'string'
+              ? [event.clientMessageId]
+              : []),
+        )
+
+        const restored: SessionRecord = {
+          sessionId: loaded.value.sessionId,
+          nodeId: loaded.value.nodeId,
+          role: loaded.value.role,
+          agentId: loaded.value.agentId,
+          headSeq,
+          createdAt: loaded.value.createdAt,
+          events,
+          clientMessageIds,
+          activeAssistantMessageId: null,
+          activeAbortController: null,
+          abortRequestedAtMs: null,
+          model,
+          context: {
+            systemPrompt: policy.config.systemPrompt,
+            messages: [] as PiAiMessage[],
+            tools: [...toolRuntime.tools],
+          },
+        }
+
+        yield* Ref.update(sessionsRef, HashMap.set(restored.sessionId, restored))
+        yield* Ref.update(nodeToSessionRef, HashMap.set(restored.nodeId, restored.sessionId))
+
+        return restored
+      })
+
+    const withSession = <A>(
+      sessionId: string,
+      f: (session: SessionRecord) => Effect.Effect<A, PiAiHarnessEngineError>,
+    ) =>
+      Effect.gen(function* () {
+        const maybe = yield* Ref.get(sessionsRef).pipe(Effect.map((map) => HashMap.get(map, sessionId)))
+        const sessionEffect = Option.match(maybe, {
+          onNone: () => hydrateSessionFromStore(sessionId),
+          onSome: (value) => Effect.succeed(value),
+        })
+
+        const session = yield* sessionEffect
+        return yield* f(session)
       })
 
     const runSessionPrompt = (
@@ -1046,6 +1117,163 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
     const respondExtensionUI: PiAiHarnessEngineShape['respondExtensionUI'] = (_sessionId) =>
       Effect.void
 
+    const listSessions: PiAiHarnessEngineShape['listSessions'] = () =>
+      store.listSessions().pipe(
+        Effect.mapError(toEngineError('list-sessions-failed', 'Failed to list harness sessions')),
+        Effect.withSpan('tmnl.harness.engine.list-sessions'),
+      )
+
+    const updateSessionMeta: PiAiHarnessEngineShape['updateSessionMeta'] = (sessionId, patch) =>
+      store.updateMeta(sessionId as ChatSessionId, patch).pipe(
+        Effect.mapError(toEngineError('update-session-meta-failed', `Failed to update metadata for session ${sessionId}`)),
+        Effect.withSpan('tmnl.harness.engine.update-session-meta'),
+      )
+
+    const deleteSession: PiAiHarnessEngineShape['deleteSession'] = (sessionId) =>
+      Effect.gen(function* () {
+        const brandedSessionId = sessionId as ChatSessionId
+
+        const activeRun = yield* Ref.modify(activeRunsRef, (current) => {
+          const existing = HashMap.get(current, brandedSessionId)
+          return [existing, HashMap.remove(current, brandedSessionId)] as const
+        })
+
+        if (Option.isSome(activeRun)) {
+          yield* Fiber.interrupt(activeRun.value)
+        }
+
+        const maybeSession = yield* Ref.get(sessionsRef).pipe(
+          Effect.map((sessions) => HashMap.get(sessions, brandedSessionId)),
+        )
+
+        if (Option.isSome(maybeSession)) {
+          maybeSession.value.activeAbortController?.abort()
+        }
+
+        yield* store.deleteSession(brandedSessionId).pipe(
+          Effect.mapError(toEngineError('delete-session-failed', `Failed to delete session ${sessionId}`)),
+        )
+
+        yield* Ref.update(sessionsRef, HashMap.remove(brandedSessionId))
+
+        if (Option.isSome(maybeSession)) {
+          yield* Ref.update(nodeToSessionRef, HashMap.remove(maybeSession.value.nodeId))
+        }
+      }).pipe(Effect.withSpan('tmnl.harness.engine.delete-session'))
+
+    const forkSession: PiAiHarnessEngineShape['forkSession'] = (sessionId, atSeq) =>
+      Effect.gen(function* () {
+        const sourceSessionId = sessionId as ChatSessionId
+
+        const sourceSession = yield* store.loadSession(sourceSessionId).pipe(
+          Effect.mapError(toEngineError('fork-session-load-failed', `Failed to load source session ${sessionId}`)),
+        )
+
+        if (Option.isNone(sourceSession)) {
+          return yield* Effect.fail(
+            new PiAiHarnessEngineError({
+              code: 'session-missing',
+              message: `Cannot fork missing session ${sessionId}`,
+              cause: Option.none(),
+            }),
+          )
+        }
+
+        const sourceEvents = yield* store.loadEventsAfter(sourceSessionId, Option.none()).pipe(
+          Effect.mapError(toEngineError('fork-session-events-failed', `Failed to load events for source session ${sessionId}`)),
+        )
+
+        const eventsToFork = atSeq === undefined
+          ? sourceEvents
+          : sourceEvents.filter((entry) => entry.seq <= atSeq)
+
+        const now = Date.now()
+        const nextSessionId = `${policy.config.sessionIdPrefix}-${nanoid()}` as ChatSessionId
+
+        const sourceHeadSeq = eventsToFork.length === 0
+          ? 0
+          : eventsToFork[eventsToFork.length - 1].seq
+
+        const sourceLiveSession = yield* Ref.get(sessionsRef).pipe(
+          Effect.map((sessions) => HashMap.get(sessions, sourceSessionId)),
+        )
+
+        const nextModel = Option.match(sourceLiveSession, {
+          onNone: () => model,
+          onSome: (session) => session.model,
+        })
+
+        const nextContext = Option.match(sourceLiveSession, {
+          onNone: () => ({
+            systemPrompt: policy.config.systemPrompt,
+            messages: [] as PiAiMessage[],
+            tools: [...toolRuntime.tools],
+          }),
+          onSome: (session) => session.context,
+        })
+
+        const clonedEvents = eventsToFork.map((entry) => {
+          const event = {
+            ...entry.event,
+            sessionId: nextSessionId,
+          } as typeof HarnessEvent.Type
+
+          return new HarnessEventEnvelope({
+            sessionId: nextSessionId,
+            seq: entry.seq,
+            event,
+            persistedAt: Date.now(),
+          })
+        })
+
+        yield* store.upsertSession(
+          new HarnessSessionEnvelope({
+            sessionId: nextSessionId,
+            nodeId: sourceSession.value.nodeId,
+            role: sourceSession.value.role,
+            agentId: sourceSession.value.agentId,
+            backend: 'pi-ai',
+            headSeq: sourceHeadSeq,
+            status: 'active',
+            createdAt: now,
+            updatedAt: now,
+          }),
+        ).pipe(
+          Effect.mapError(toEngineError('fork-session-upsert-failed', `Failed to persist forked session ${nextSessionId}`)),
+        )
+
+        yield* Effect.forEach(
+          clonedEvents,
+          (envelope) =>
+            store.appendEvent(envelope).pipe(
+              Effect.mapError(toEngineError('fork-session-append-failed', `Failed to persist forked events for ${nextSessionId}`)),
+            ),
+          { concurrency: 1 },
+        )
+
+        const nextRecord: SessionRecord = {
+          sessionId: nextSessionId,
+          nodeId: sourceSession.value.nodeId,
+          role: sourceSession.value.role,
+          agentId: sourceSession.value.agentId,
+          headSeq: sourceHeadSeq,
+          createdAt: now,
+          events: clonedEvents.map((entry) => entry.event),
+          clientMessageIds: HashSet.empty<string>(),
+          activeAssistantMessageId: null,
+          activeAbortController: null,
+          abortRequestedAtMs: null,
+          model: nextModel,
+          context: nextContext,
+        }
+
+        yield* Ref.update(sessionsRef, HashMap.set(nextSessionId, nextRecord))
+
+        return {
+          sessionId: nextSessionId,
+        }
+      }).pipe(Effect.withSpan('tmnl.harness.engine.fork-session'))
+
     const getAvailableModels: PiAiHarnessEngineShape['getAvailableModels'] = () =>
       Effect.try({
         try: () => {
@@ -1073,6 +1301,10 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
       getSnapshot,
       abortSession,
       respondExtensionUI,
+      listSessions,
+      updateSessionMeta,
+      deleteSession,
+      forkSession,
       getAvailableModels,
       events: Stream.fromPubSub(eventsPubSub),
     })
