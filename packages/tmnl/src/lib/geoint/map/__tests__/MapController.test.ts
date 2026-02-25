@@ -64,7 +64,8 @@ function mockPoiResult(
 
 beforeEach(() => {
   // Use the global geointRegistry (module-level singleton)
-  panelId = asPanelId(`test-panel-${Date.now()}`)
+  // Include randomness to avoid panel ID collisions across rapid test runs/timers.
+  panelId = asPanelId(`test-panel-${Date.now()}-${Math.random().toString(36).slice(2)}`)
   controller = new MapController(panelId)
 })
 
@@ -169,12 +170,47 @@ describe('Camera', () => {
     expect(result.zoom).toBeGreaterThan(0)
   })
 
-  it('cancelAnimation sets isAnimating to false', () => {
+  it('flyTo emits flyToTarget atom for DeckGL interpolator path', async () => {
     const atoms = getPanelAtoms(panelId)
-    // Note: In Phase 1, flyTo is synchronous so isAnimating flips instantly
+
+    const flyPromise = controller.flyTo({
+      longitude: -73.9857,
+      latitude: 40.7484,
+      zoom: 15,
+      transitionDuration: 750,
+      easing: 'ease-out',
+    })
+
+    // Check immediately after dispatch, before registry quiescence resets atom state.
+    const flyTarget = geointRegistry.get(atoms.flyToTargetAtom)
+    expect(flyTarget).toEqual(
+      expect.objectContaining({
+        longitude: -73.9857,
+        latitude: 40.7484,
+        zoom: 15,
+        transitionDuration: 750,
+        easing: 'ease-out',
+      })
+    )
+    expect(geointRegistry.get(atoms.isAnimatingAtom)).toBe(true)
+
+    await flyPromise
+  })
+
+  it('cancelAnimation clears flyToTarget and sets isAnimating false', () => {
+    const atoms = getPanelAtoms(panelId)
+
+    geointRegistry.set(atoms.isAnimatingAtom, true)
+    geointRegistry.set(atoms.flyToTargetAtom, {
+      longitude: 1,
+      latitude: 2,
+      zoom: 3,
+    })
+
     controller.cancelAnimation()
-    // Can't easily test mid-flight in Phase 1, but method shouldn't throw
-    expect(() => controller.cancelAnimation()).not.toThrow()
+
+    expect(geointRegistry.get(atoms.isAnimatingAtom)).toBe(false)
+    expect(geointRegistry.get(atoms.flyToTargetAtom)).toBeNull()
   })
 
   it('flyToEntity returns null for unknown entity', async () => {

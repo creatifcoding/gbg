@@ -25,6 +25,7 @@ import {
   pipe,
 } from 'effect'
 import type { SearchResultItem } from '../schemas/search'
+import { extractSearchResultPosition } from '../utils/extractPosition'
 import {
   mapSearchResultToTraits,
   getEntityType,
@@ -193,7 +194,7 @@ export const GeointKoriBridgeLive = Layer.effect(
         const entityId = traits.entityId
 
         // Initialize live data atom
-        const position = extractPosition(result)
+        const position = extractSearchResultPosition(result) ?? { lon: 0, lat: 0 }
         const liveData: EntityLiveData = {
           entityId,
           entityType,
@@ -243,7 +244,7 @@ export const GeointKoriBridgeLive = Layer.effect(
           // Skip if already spawned
           if (HashSet.has(spawnedEntities, entityId)) {
             // Update existing entity with fresh data
-            const position = extractPosition(result)
+            const position = extractSearchResultPosition(result) ?? { lon: 0, lat: 0 }
             entityOps.updateLiveData(entityId, {
               position,
               heading: extractHeading(result),
@@ -253,7 +254,7 @@ export const GeointKoriBridgeLive = Layer.effect(
           }
 
           // Initialize live data atom
-          const position = extractPosition(result)
+          const position = extractSearchResultPosition(result) ?? { lon: 0, lat: 0 }
           const liveData: EntityLiveData = {
             entityId,
             entityType,
@@ -459,28 +460,6 @@ export const GeointKoriBridgeLive = Layer.effect(
 // Helper Functions
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Extract position from search result.
- */
-function extractPosition(result: SearchResultItem): EntityPosition {
-  switch (result._tag) {
-    case 'SearchResultFlight':
-    case 'SearchResultTrack':
-      return {
-        lon: result.position[0],
-        lat: result.position[1],
-        altitudeM: result.position[2],
-      }
-    case 'SearchResultPoi':
-    case 'SearchResultFeature':
-    case 'SearchResultWeather':
-    case 'SearchResultImagery':
-      return {
-        lon: result.position[0],
-        lat: result.position[1],
-      }
-  }
-}
 
 /**
  * Extract heading from search result (if applicable).

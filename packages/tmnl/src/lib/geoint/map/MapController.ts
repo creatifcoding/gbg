@@ -47,6 +47,7 @@ import {
 } from './geodesic'
 
 import type { LayerVisibility } from '../atoms/index'
+import { extractSearchResultPosition } from '../utils/extractPosition'
 
 // =============================================================================
 // MapController Class
@@ -166,31 +167,45 @@ export class MapController {
 
   /**
    * Animate camera to target position.
-   * Sets isAnimating during transition.
+   * Sets panel flyTo target atom consumed by GeointMap's DeckGL interpolator.
    *
-   * Phase 2: Will bridge to positioningOps.flyTo() for smooth interpolation.
-   * Current: synchronous viewport set (instant move).
+   * If no map consumer is mounted, falls back to direct viewport mutation after timeout.
    *
-   * @returns Resulting viewport state
+   * @returns Target viewport state
    */
   async flyTo(target: FlyToTarget): Promise<ViewportState> {
-    geointRegistry.set(this.atoms.isAnimatingAtom, true)
-    try {
-      // Phase 1: Synchronous instant move
-      // Phase 2: Bridge to positioningOps for animated interpolation
-      const current = geointRegistry.get(this.atoms.viewportAtom)
-      const next: ViewportState = {
-        longitude: target.longitude,
-        latitude: target.latitude,
-        zoom: target.zoom ?? current.zoom,
-        pitch: target.pitch ?? current.pitch,
-        bearing: target.bearing ?? current.bearing,
-      }
-      geointRegistry.set(this.atoms.viewportAtom, next)
-      return next
-    } finally {
-      geointRegistry.set(this.atoms.isAnimatingAtom, false)
+    const current = geointRegistry.get(this.atoms.viewportAtom)
+    const next: ViewportState = {
+      longitude: target.longitude,
+      latitude: target.latitude,
+      zoom: target.zoom ?? current.zoom,
+      pitch: target.pitch ?? current.pitch,
+      bearing: target.bearing ?? current.bearing,
     }
+
+    // Start animation cycle
+    geointRegistry.set(this.atoms.isAnimatingAtom, true)
+    geointRegistry.set(this.atoms.flyToTargetAtom, {
+      longitude: next.longitude,
+      latitude: next.latitude,
+      zoom: next.zoom,
+      pitch: next.pitch,
+      bearing: next.bearing,
+      transitionDuration: target.transitionDuration,
+      easing: target.easing,
+    })
+
+    // Fallback: if no map consumer clears animation state, snap after timeout.
+    const fallbackMs = target.transitionDuration ?? 1200
+    setTimeout(() => {
+      if (geointRegistry.get(this.atoms.isAnimatingAtom)) {
+        geointRegistry.set(this.atoms.viewportAtom, next)
+        geointRegistry.set(this.atoms.isAnimatingAtom, false)
+        geointRegistry.set(this.atoms.flyToTargetAtom, null)
+      }
+    }, fallbackMs)
+
+    return next
   }
 
   /**
@@ -218,7 +233,7 @@ export class MapController {
     const entity = results.find((r) => r.id === entityId)
     if (!entity) return null
 
-    const pos = extractPosition(entity)
+    const pos = extractSearchResultPosition(entity)
     if (!pos) return null
 
     return this.flyTo({
@@ -238,7 +253,7 @@ export class MapController {
     const results = geointRegistry.get(this.atoms.resultsAtom)
     const entities = results.filter((r) => entityIds.includes(r.id))
     const positions = entities
-      .map(extractPosition)
+      .map(extractSearchResultPosition)
       .filter((p): p is { lon: number; lat: number } => p !== null)
 
     if (positions.length === 0) return null
@@ -255,16 +270,31 @@ export class MapController {
 
   /**
    * Cancel in-flight camera animation.
-   * Snaps viewport to current position and clears isAnimating.
+   * Clears animation state and pending fly-to target.
    * Hotkey: `Escape` (during animation)
    */
   cancelAnimation(): void {
     geointRegistry.set(this.atoms.isAnimatingAtom, false)
+    geointRegistry.set(this.atoms.flyToTargetAtom, null)
   }
 
   // ===========================================================================
-  // Domain 3: Layers (7 methods)
+  // Domain 3: Layers (9 methods)
   // ===========================================================================
+
+  /**
+   * Toggle layer controls panel visibility.
+   * Hotkey: `g l`
+   */
+  toggleLayerPanel(): void {
+    const current = geointRegistry.get(this.atoms.panelStateAtom)
+    const newIntelPanelMode = current.intelPanel === 'default' ? 'collapsed' : 'default'
+
+    geointRegistry.set(this.atoms.panelStateAtom, {
+      ...current,
+      intelPanel: newIntelPanelMode,
+    })
+  }
 
   /**
    * Toggle visibility of a specific layer.
@@ -358,7 +388,7 @@ export class MapController {
   }
 
   // ===========================================================================
-  // Domain 4: Selection (7 methods)
+  // Domain 4: Selection (8 methods)
   // ===========================================================================
 
   /**
@@ -388,6 +418,21 @@ export class MapController {
     const selectedIds = new Set(currentSelection.map((item) => item.id))
     const inverted = allResults.filter((item) => !selectedIds.has(item.id))
     geointRegistry.set(this.atoms.selectedResultsAtom, inverted)
+  }
+
+  /**
+   * Delete selected results and clear selection.
+   * Hotkey: `Delete` / `Backspace`
+   */
+  deleteSelected(): void {
+    const allResults = geointRegistry.get(this.atoms.resultsAtom)
+    const selectedItems = geointRegistry.get(this.atoms.selectedResultsAtom)
+    const selectedIds = new Set(selectedItems.map((item) => item.id))
+
+    const remaining = allResults.filter((item) => !selectedIds.has(item.id))
+
+    geointRegistry.set(this.atoms.resultsAtom, remaining)
+    geointRegistry.set(this.atoms.selectedResultsAtom, [])
   }
 
   /**
@@ -560,7 +605,7 @@ export class MapController {
     const features: GeoJSON.Feature[] = []
 
     for (const result of results) {
-      const pos = extractPosition(result)
+      const pos = extractSearchResultPosition(result)
       if (!pos) continue
 
       features.push({
@@ -650,39 +695,10 @@ export class MapController {
     results: readonly SearchResultItem[]
   ): GeoCoord[] {
     return results
-      .map(extractPosition)
+      .map(extractSearchResultPosition)
       .filter((p): p is { lon: number; lat: number } => p !== null)
       .map((p) => ({ longitude: p.lon, latitude: p.lat }))
   }
 }
 
-// =============================================================================
-// Position Extraction (shared utility)
-// =============================================================================
-
-/**
- * Extract position from search result.
- * Handles all result types with their Position3D [lon, lat, alt] tuples.
- */
-function extractPosition(
-  result: SearchResultItem
-): { lon: number; lat: number } | null {
-  switch (result._tag) {
-    case 'SearchResultTrack':
-    case 'SearchResultPoi':
-    case 'SearchResultFlight':
-      if ('position' in result && result.position) {
-        return {
-          lon: (result.position as readonly number[])[0],
-          lat: (result.position as readonly number[])[1],
-        }
-      }
-      break
-    case 'SearchResultFeature':
-    case 'SearchResultWeather':
-    case 'SearchResultImagery':
-      // TODO: Extract from geometry/center fields
-      break
-  }
-  return null
-}
+// Position extraction utility is centralized in ../utils/extractPosition.ts

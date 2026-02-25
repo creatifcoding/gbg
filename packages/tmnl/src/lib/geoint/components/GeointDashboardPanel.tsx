@@ -270,8 +270,8 @@ const GeointDashboardPanelContent: FC<GeointDashboardPanelContentProps> = ({
   // Access panel-scoped atoms (safe because we're inside GeointPanelProvider)
   const { atoms, panelId } = useGeointPanel()
 
-  // Create panel-scoped operations (legacy — being superseded by MapController)
-  const operations = useMemo(
+  // Search operations (map/view/layer/selection are handled by MapController)
+  const searchOperations = useMemo(
     () => createGeointOperations(panelId),
     [panelId]
   )
@@ -280,7 +280,7 @@ const GeointDashboardPanelContent: FC<GeointDashboardPanelContentProps> = ({
   const mapController = useMapController()
 
   // Wire panel-scoped hotkeys with focus/blur management
-  const { containerRef } = useGeointPanelHotkeys(identity, operations, mapController)
+  const { containerRef } = useGeointPanelHotkeys(identity, searchOperations, mapController)
 
   // Subscribe to panel-scoped atoms
   const viewport = useAtomValue(atoms.viewportAtom)
@@ -379,7 +379,7 @@ const GeointDashboardPanelContent: FC<GeointDashboardPanelContentProps> = ({
 
         {/* Map - the main map with minimap overlay */}
         <GeointShell.Map>
-          <GeointMap instanceId={`${panelId}-map`} />
+          <GeointMap instanceId={`${panelId}-map`} panelId={panelId} />
 
           {/* Minimap - floating navigation overview */}
           <div

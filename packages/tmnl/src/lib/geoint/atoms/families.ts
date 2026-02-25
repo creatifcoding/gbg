@@ -340,7 +340,7 @@ export const timelinePlaybackFamily = Atom.family((panelId: PanelId) =>
 // MAP CONTROLLER ATOM FAMILIES (Phase 1)
 // =============================================================================
 
-import type { MapStyle } from '../map/schemas'
+import type { FlyToTarget, MapStyle } from '../map/schemas'
 
 /**
  * Basemap style per panel.
@@ -376,6 +376,16 @@ export const homeViewportFamily = Atom.family((panelId: PanelId) =>
  */
 export const isAnimatingFamily = Atom.family((panelId: PanelId) =>
   Atom.make<boolean>(false)
+)
+
+/**
+ * Fly-to target per panel.
+ *
+ * When non-null, GeointMap applies DeckGL FlyToInterpolator and then clears it.
+ * This is the panel-scoped animation trigger path consumed by MapController.flyTo().
+ */
+export const flyToTargetFamily = Atom.family((panelId: PanelId) =>
+  Atom.make<FlyToTarget | null>(null)
 )
 
 // =============================================================================
@@ -424,6 +434,7 @@ export interface GeointPanelAtoms {
   readonly mapStyleAtom: ReturnType<typeof mapStyleFamily>
   readonly homeViewportAtom: ReturnType<typeof homeViewportFamily>
   readonly isAnimatingAtom: ReturnType<typeof isAnimatingFamily>
+  readonly flyToTargetAtom: ReturnType<typeof flyToTargetFamily>
 }
 
 /**
@@ -481,5 +492,6 @@ export function getPanelAtoms(panelId: PanelId): GeointPanelAtoms {
     mapStyleAtom: mapStyleFamily(panelId),
     homeViewportAtom: homeViewportFamily(panelId),
     isAnimatingAtom: isAnimatingFamily(panelId),
+    flyToTargetAtom: flyToTargetFamily(panelId),
   }
 }

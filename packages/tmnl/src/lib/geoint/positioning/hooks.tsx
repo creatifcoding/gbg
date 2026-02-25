@@ -7,11 +7,13 @@
  * @module geoint/positioning/hooks
  */
 
-import { useCallback, useEffect, createContext, useContext, type ReactNode } from 'react'
+import { useCallback, useEffect, createContext, useContext, useMemo, useSyncExternalStore, type ReactNode } from 'react'
 import { Effect, Layer, Scope } from 'effect'
 import { Atom, Registry } from '@effect-atom/atom'
 import { useAtomValue, RegistryContext } from '@effect-atom/atom-react'
 import { KoriWorld, KoriWorldLive, type TraitId } from '@/lib/kori'
+import { geointRegistry } from '../atoms'
+import { asPanelId, getPanelAtoms } from '../atoms/families'
 import {
   GeoPositionService,
   GeoPositionServiceLive,
@@ -216,11 +218,13 @@ interface UpdatePositionInput {
 interface FlyToInput {
   entityId: string
   options?: Partial<CameraBehavior>
+  panelId?: string
 }
 
 interface FlyToBoundsInput {
   entityIds: readonly string[]
   options?: { padding?: number; maxZoom?: number; transitionDuration?: number }
+  panelId?: string
 }
 
 /**
@@ -519,7 +523,7 @@ export const getCameraTargetAtom = positioningRuntimeAtom.fn<FlyToInput>()(
  * Use via positioningOps.flyTo() or useAtomSet(flyToAtom).
  */
 export const flyToAtom = positioningRuntimeAtom.fn<FlyToInput>()(
-  ({ entityId, options }) =>
+  ({ entityId, options, panelId }) =>
     Effect.gen(function* () {
       const service = yield* GeoPositionService
       const projection = yield* MapProjectionService
@@ -545,7 +549,29 @@ export const flyToAtom = positioningRuntimeAtom.fn<FlyToInput>()(
         height: current.height,
       }
 
-      // Set viewport (this triggers projection sync)
+      // Panel-scoped animation path (if provided)
+      if (panelId) {
+        const panelAtoms = getPanelAtoms(asPanelId(panelId))
+        geointRegistry.set(panelAtoms.isAnimatingAtom, true)
+        geointRegistry.set(panelAtoms.flyToTargetAtom, {
+          longitude: targetViewport.longitude,
+          latitude: targetViewport.latitude,
+          zoom: targetViewport.zoom,
+          pitch: targetViewport.pitch,
+          bearing: targetViewport.bearing,
+          transitionDuration: behavior.transitionDuration,
+          easing: behavior.easing === 'ease-in-out'
+            ? 'ease-in-out'
+            : behavior.easing === 'ease-in'
+              ? 'ease-in'
+              : behavior.easing === 'linear'
+                ? 'linear'
+                : 'ease-out',
+        })
+        syncPanelViewport(panelId, targetViewport)
+      }
+
+      // Set positioning viewport (this triggers projection sync)
       yield* projection.setViewport(targetViewport)
       positioningRegistry.set(viewportAtom, targetViewport)
 
@@ -567,7 +593,7 @@ export const flyToAtom = positioningRuntimeAtom.fn<FlyToInput>()(
  * Use via positioningOps.flyToBounds() or useAtomSet(flyToBoundsAtom).
  */
 export const flyToBoundsAtom = positioningRuntimeAtom.fn<FlyToBoundsInput>()(
-  ({ entityIds, options }) =>
+  ({ entityIds, options, panelId }) =>
     Effect.gen(function* () {
       const service = yield* GeoPositionService
       const projection = yield* MapProjectionService
@@ -620,6 +646,21 @@ export const flyToBoundsAtom = positioningRuntimeAtom.fn<FlyToBoundsInput>()(
         bearing: 0,
         width: current.width,
         height: current.height,
+      }
+
+      if (panelId) {
+        const panelAtoms = getPanelAtoms(asPanelId(panelId))
+        geointRegistry.set(panelAtoms.isAnimatingAtom, true)
+        geointRegistry.set(panelAtoms.flyToTargetAtom, {
+          longitude: targetViewport.longitude,
+          latitude: targetViewport.latitude,
+          zoom: targetViewport.zoom,
+          pitch: targetViewport.pitch,
+          bearing: targetViewport.bearing,
+          transitionDuration: options?.transitionDuration,
+          easing: 'ease-out',
+        })
+        syncPanelViewport(panelId, targetViewport)
       }
 
       yield* projection.setViewport(targetViewport)
@@ -725,14 +766,19 @@ export const positioningOps = {
   getCameraTarget: (entityId: string, options?: Partial<CameraBehavior>): Promise<ViewportState> =>
     runOp(getCameraTargetAtom, { entityId, options }),
 
-  flyTo: (entityId: string, options?: Partial<CameraBehavior>): Promise<ViewportState> =>
-    runOp(flyToAtom, { entityId, options }),
+  flyTo: (
+    entityId: string,
+    options?: Partial<CameraBehavior>,
+    panelId?: string
+  ): Promise<ViewportState> =>
+    runOp(flyToAtom, { entityId, options, panelId }),
 
   flyToBounds: (
     entityIds: readonly string[],
-    options?: { padding?: number; maxZoom?: number; transitionDuration?: number }
+    options?: { padding?: number; maxZoom?: number; transitionDuration?: number },
+    panelId?: string
   ): Promise<ViewportState> =>
-    runOp(flyToBoundsAtom, { entityIds, options }),
+    runOp(flyToBoundsAtom, { entityIds, options, panelId }),
 
   /**
    * Spawn a positioned entity with a 3D model.
@@ -757,11 +803,60 @@ export const positioningOps = {
 // React Hooks (must be used within PositioningProvider)
 // =============================================================================
 
+function syncPanelViewport(panelId: string | undefined, viewport: ViewportState): void {
+  if (!panelId) return
+  const atoms = getPanelAtoms(asPanelId(panelId))
+  geointRegistry.set(atoms.viewportAtom, {
+    longitude: viewport.longitude,
+    latitude: viewport.latitude,
+    zoom: viewport.zoom,
+    pitch: viewport.pitch,
+    bearing: viewport.bearing,
+  })
+}
+
+function usePanelViewportState(panelId?: string): {
+  longitude: number
+  latitude: number
+  zoom: number
+  pitch: number
+  bearing: number
+} | null {
+  const panelAtoms = useMemo(
+    () => (panelId ? getPanelAtoms(asPanelId(panelId)) : null),
+    [panelId]
+  )
+
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      if (!panelAtoms) return () => {}
+      return geointRegistry.subscribe(panelAtoms.viewportAtom, () => onStoreChange())
+    },
+    () => (panelAtoms ? geointRegistry.get(panelAtoms.viewportAtom) : null),
+    () => (panelAtoms ? geointRegistry.get(panelAtoms.viewportAtom) : null)
+  )
+}
+
 /**
- * Hook to get the current viewport state.
+ * Hook to get the current positioning viewport state.
+ *
+ * When panelId is provided, longitude/latitude/zoom/pitch/bearing are derived
+ * from panel-scoped viewport atoms while width/height remain positioning-owned.
  */
-export function useViewport(): ViewportState {
-  return useAtomValue(viewportAtom)
+export function useViewport(panelId?: string): ViewportState {
+  const positioningViewport = useAtomValue(viewportAtom)
+  const panelViewport = usePanelViewportState(panelId)
+
+  if (!panelViewport) return positioningViewport
+
+  return {
+    ...positioningViewport,
+    longitude: panelViewport.longitude,
+    latitude: panelViewport.latitude,
+    zoom: panelViewport.zoom,
+    pitch: panelViewport.pitch,
+    bearing: panelViewport.bearing,
+  }
 }
 
 /**
@@ -805,18 +900,21 @@ export function useSpawnEntity() {
 /**
  * Hook for managing viewport with automatic layer updates.
  */
-export function usePositioningViewport(initialViewport?: Partial<ViewportState>) {
-  const viewport = useViewport()
+export function usePositioningViewport(initialViewport?: Partial<ViewportState>, panelId?: string) {
+  const viewport = useViewport(panelId)
 
   const setViewport = useCallback(
-    (newViewport: ViewportState) => positioningOps.setViewport(newViewport),
-    []
+    (newViewport: ViewportState) => {
+      syncPanelViewport(panelId, newViewport)
+      return positioningOps.setViewport(newViewport)
+    },
+    [panelId]
   )
 
   // Initialize viewport if provided
   useEffect(() => {
     if (initialViewport) {
-      positioningOps.setViewport({
+      const next: ViewportState = {
         longitude: initialViewport.longitude ?? -122.4,
         latitude: initialViewport.latitude ?? 37.8,
         zoom: initialViewport.zoom ?? 12,
@@ -824,9 +922,11 @@ export function usePositioningViewport(initialViewport?: Partial<ViewportState>)
         bearing: initialViewport.bearing ?? 0,
         width: initialViewport.width ?? 800,
         height: initialViewport.height ?? 600,
-      })
+      }
+      syncPanelViewport(panelId, next)
+      positioningOps.setViewport(next)
     }
-  }, []) // Only on mount
+  }, [initialViewport, panelId])
 
   return { viewport, setViewport }
 }
@@ -835,7 +935,7 @@ export function usePositioningViewport(initialViewport?: Partial<ViewportState>)
  * Hook that syncs viewport changes from deck.gl/mapbox.
  * Call this in your map component's onViewStateChange handler.
  */
-export function useViewportSync() {
+export function useViewportSync(panelId?: string) {
   const syncViewport = useCallback(
     (viewState: {
       longitude: number
@@ -845,24 +945,28 @@ export function useViewportSync() {
       bearing?: number
     }) => {
       const current = positioningRegistry.get(viewportAtom)
-      positioningOps.setViewport({
+      const next: ViewportState = {
         ...current,
         longitude: viewState.longitude,
         latitude: viewState.latitude,
         zoom: viewState.zoom,
         pitch: viewState.pitch ?? current.pitch,
         bearing: viewState.bearing ?? current.bearing,
-      })
+      }
+      syncPanelViewport(panelId, next)
+      positioningOps.setViewport(next)
     },
-    []
+    [panelId]
   )
 
   const syncDimensions = useCallback((width: number, height: number) => {
     const current = positioningRegistry.get(viewportAtom)
     if (current.width !== width || current.height !== height) {
-      positioningOps.setViewport({ ...current, width, height })
+      const next: ViewportState = { ...current, width, height }
+      syncPanelViewport(panelId, next)
+      positioningOps.setViewport(next)
     }
-  }, [])
+  }, [panelId])
 
   return { syncViewport, syncDimensions }
 }
@@ -871,11 +975,11 @@ export function useViewportSync() {
  * Complete hook for integrating positioning with a map component.
  * Returns everything needed to render positioned entities.
  */
-export function usePositioningSystem(initialViewport?: Partial<ViewportState>) {
-  const { viewport, setViewport } = usePositioningViewport(initialViewport)
+export function usePositioningSystem(initialViewport?: Partial<ViewportState>, panelId?: string) {
+  const { viewport, setViewport } = usePositioningViewport(initialViewport, panelId)
   const entities = usePositionedEntities()
   const layers = useLayerConfigs()
-  const { syncViewport, syncDimensions } = useViewportSync()
+  const { syncViewport, syncDimensions } = useViewportSync(panelId)
   const { spawn, spawnBatch } = useSpawnEntity()
 
   return {
@@ -894,8 +998,12 @@ export function usePositioningSystem(initialViewport?: Partial<ViewportState>) {
     rebuildLayers: positioningOps.rebuildLayers,
     query: positioningOps.query,
     // Camera navigation
-    flyTo: positioningOps.flyTo,
-    flyToBounds: positioningOps.flyToBounds,
+    flyTo: (entityId: string, options?: Partial<CameraBehavior>) =>
+      positioningOps.flyTo(entityId, options, panelId),
+    flyToBounds: (
+      entityIds: readonly string[],
+      options?: { padding?: number; maxZoom?: number; transitionDuration?: number }
+    ) => positioningOps.flyToBounds(entityIds, options, panelId),
     getCameraTarget: positioningOps.getCameraTarget,
   }
 }

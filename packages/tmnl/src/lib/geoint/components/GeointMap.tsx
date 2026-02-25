@@ -29,10 +29,16 @@ import {
 } from '@deck.gl/layers'
 import { HeatmapLayer, HexagonLayer, GridLayer, ContourLayer } from '@deck.gl/aggregation-layers'
 import { TripsLayer } from '@deck.gl/geo-layers'
-import { Atom } from '@effect-atom/atom'
 import { useAtom, useAtomValue } from '@effect-atom/atom-react'
 import { VANTA_COLORS } from '@/components/portal/tokens'
 import type { Track, ThreatVolume } from '../schemas'
+import { asPanelId, getPanelAtoms, geointRegistry } from '../atoms'
+import {
+  createGeointInstanceAtoms,
+  disposeGeointInstanceAtoms,
+  DEFAULT_VISIBILITY,
+  type GeointLayerVisibility,
+} from './geointMapState'
 import {
   createTrackPathLayer,
   createTrackPositionLayer,
@@ -59,39 +65,6 @@ import type { LayerConfig } from '../positioning/SceneGraphBridge'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || ''
 const DEFAULT_MAP_STYLE = 'mapbox://styles/mapbox/dark-v11'
-
-const DEFAULT_VIEW_STATE: MapViewState = {
-  longitude: -122.42,
-  latitude: 37.78,
-  zoom: 12,
-  pitch: 0,
-  bearing: 0,
-}
-
-// =============================================================================
-// Layer Visibility Type
-// =============================================================================
-
-export interface GeointLayerVisibility {
-  paths: boolean
-  positions: boolean
-  headings: boolean
-  heatmap: boolean
-  trips: boolean
-  labels: boolean
-  /** Enable Kori ECS positioned entities layer */
-  positionedEntities: boolean
-}
-
-const DEFAULT_VISIBILITY: GeointLayerVisibility = {
-  paths: true,
-  positions: true,
-  headings: false,
-  heatmap: false,
-  trips: false,
-  labels: true,
-  positionedEntities: true,
-}
 
 // =============================================================================
 // Positioning Layer Conversion
@@ -143,41 +116,11 @@ function convertPositioningLayers(configs: readonly LayerConfig[]): Layer[] {
 }
 
 // =============================================================================
-// Atom Factories (Headless Core)
+// Instance Atom State (extracted)
 // =============================================================================
-
-// Individual atom families for each piece of state
-const viewStateFamily = Atom.family((_id: string) => Atom.make<MapViewState>(DEFAULT_VIEW_STATE))
-const tracksFamily = Atom.family((_id: string) => Atom.make<readonly Track[]>([]))
-const threatsFamily = Atom.family((_id: string) => Atom.make<readonly ThreatVolume[]>([]))
-const visibilityFamily = Atom.family((_id: string) => Atom.make<GeointLayerVisibility>(DEFAULT_VISIBILITY))
-const selectedTrackFamily = Atom.family((_id: string) => Atom.make<Track | null>(null))
-const dimensionsFamily = Atom.family((_id: string) => Atom.make<{ width: number; height: number } | null>(null))
-const mapLoadedFamily = Atom.family((_id: string) => Atom.make<boolean>(false))
-const errorFamily = Atom.family((_id: string) => Atom.make<string | null>(null))
-
-/**
- * Get or create atoms for a specific instance
- */
-export function createGeointInstanceAtoms(instanceId: string) {
-  return {
-    viewStateAtom: viewStateFamily(instanceId),
-    tracksAtom: tracksFamily(instanceId),
-    threatsAtom: threatsFamily(instanceId),
-    visibilityAtom: visibilityFamily(instanceId),
-    selectedTrackAtom: selectedTrackFamily(instanceId),
-    dimensionsAtom: dimensionsFamily(instanceId),
-    mapLoadedAtom: mapLoadedFamily(instanceId),
-    errorAtom: errorFamily(instanceId),
-  }
-}
-
-/**
- * Dispose instance atoms (no-op with Atom.family - GC handles it)
- */
-export function disposeGeointInstanceAtoms(_instanceId: string): void {
-  // Atom.family uses WeakRef, atoms are GC'd when no subscribers
-}
+//
+// Instance-scoped map state for non-panel consumers is maintained in
+// `geointMapState.ts` and imported above via createGeointInstanceAtoms().
 
 // =============================================================================
 // Registry Export
@@ -204,15 +147,22 @@ export interface FlyToTarget {
   pitch?: number
   /** Target bearing (rotation) */
   bearing?: number
-  /** Animation speed (default: 1.5) */
+  /** Animation speed (legacy prop path, default: 1.5) */
   speed?: number
-  /** Unique key to trigger new animations (change to re-fly to same location) */
+  /** Explicit transition duration in ms (panel/controller path) */
+  transitionDuration?: number
+  /** Optional easing label (panel/controller path) */
+  easing?: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out'
+  /** Unique key to trigger new animations (legacy prop path) */
   key?: string | number
 }
 
 export interface GeointMapProps {
   /** Unique instance ID for atom-based state */
   instanceId: string
+
+  /** Optional panel ID for panel-scoped viewport source-of-truth */
+  panelId?: string
 
   /** Tracks to display (controlled mode) */
   tracks?: readonly Track[]
@@ -266,6 +216,7 @@ export interface GeointMapProps {
 
 function GeointMapComponent({
   instanceId,
+  panelId,
   tracks: propTracks,
   threats: propThreats,
   initialViewState,
@@ -288,8 +239,13 @@ function GeointMapComponent({
   // Get instance atoms
   const atoms = useMemo(() => createGeointInstanceAtoms(instanceId), [instanceId])
 
+  const panelAtoms = useMemo(
+    () => (panelId ? getPanelAtoms(asPanelId(panelId)) : null),
+    [panelId]
+  )
+
   // Subscribe to atoms
-  const [viewState, setViewState] = useAtom(atoms.viewStateAtom)
+  const [viewState, setViewState] = useAtom(panelAtoms?.viewportAtom ?? atoms.viewStateAtom)
   const [tracks, setTracks] = useAtom(atoms.tracksAtom)
   const [threats, setThreats] = useAtom(atoms.threatsAtom)
   const visibility = useAtomValue(atoms.visibilityAtom)
@@ -297,11 +253,13 @@ function GeointMapComponent({
   const [dimensions, setDimensions] = useAtom(atoms.dimensionsAtom)
   const [mapLoaded, setMapLoaded] = useAtom(atoms.mapLoadedAtom)
   const [error, setError] = useAtom(atoms.errorAtom)
+  const [panelFlyToTarget, setPanelFlyToTarget] = useAtom(panelAtoms?.flyToTargetAtom ?? atoms.flyToTargetAtom)
+  const [, setIsAnimating] = useAtom(panelAtoms?.isAnimatingAtom ?? atoms.isAnimatingAtom)
 
   // Positioning system integration
   const positioningLayerConfigs = useLayerConfigs()
   const positionedEntities = usePositionedEntities()
-  const { syncViewport, syncDimensions } = useViewportSync()
+  const { syncViewport, syncDimensions } = useViewportSync(panelId)
 
   // Sync props to atoms
   useEffect(() => {
@@ -325,20 +283,44 @@ function GeointMapComponent({
   }, []) // Only on mount
 
   // Fly-to animation effect
+  // Priority: panel-scoped controller target > legacy prop target
   useEffect(() => {
-    if (!flyToTarget) return
+    const target: FlyToTarget | null = panelFlyToTarget
+      ? {
+          longitude: panelFlyToTarget.longitude,
+          latitude: panelFlyToTarget.latitude,
+          zoom: panelFlyToTarget.zoom,
+          pitch: panelFlyToTarget.pitch,
+          bearing: panelFlyToTarget.bearing,
+          transitionDuration: panelFlyToTarget.transitionDuration,
+          easing: panelFlyToTarget.easing,
+        }
+      : flyToTarget
+
+    if (!target) return
+
+    // Panel path: mark animation active; completion is handled by DeckGL interactionState
+    if (panelFlyToTarget) {
+      setIsAnimating(true)
+    }
 
     setViewState((prev) => ({
       ...prev,
-      longitude: flyToTarget.longitude,
-      latitude: flyToTarget.latitude,
-      zoom: flyToTarget.zoom ?? prev.zoom,
-      pitch: flyToTarget.pitch ?? prev.pitch,
-      bearing: flyToTarget.bearing ?? prev.bearing,
-      transitionInterpolator: new FlyToInterpolator({ speed: flyToTarget.speed ?? 1.5 }),
-      transitionDuration: 'auto',
+      longitude: target.longitude,
+      latitude: target.latitude,
+      zoom: target.zoom ?? prev.zoom,
+      pitch: target.pitch ?? prev.pitch,
+      bearing: target.bearing ?? prev.bearing,
+      transitionInterpolator: new FlyToInterpolator({ speed: target.speed ?? 1.5 }),
+      transitionDuration: target.transitionDuration ?? 'auto',
     }))
-  }, [flyToTarget?.longitude, flyToTarget?.latitude, flyToTarget?.zoom, flyToTarget?.key, setViewState])
+  }, [
+    flyToTarget,
+    panelFlyToTarget,
+    setViewState,
+    setPanelFlyToTarget,
+    setIsAnimating,
+  ])
 
   // Animation loop
   useEffect(() => {
@@ -399,7 +381,10 @@ function GeointMapComponent({
 
   // Event handlers
   const handleViewStateChange = useCallback(
-    (params: { viewState: MapViewState }) => {
+    (params: {
+      viewState: MapViewState
+      interactionState?: { inTransition?: boolean }
+    }) => {
       if (!dimensions) return
       setViewState(params.viewState)
       onViewStateChange?.(params.viewState)
@@ -412,8 +397,28 @@ function GeointMapComponent({
         pitch: params.viewState.pitch,
         bearing: params.viewState.bearing,
       })
+
+      // DeckGL transition lifecycle for panel-scoped flyTo path
+      if (panelAtoms) {
+        const inTransition = Boolean(params.interactionState?.inTransition)
+        if (inTransition) {
+          setIsAnimating(true)
+        } else if (panelFlyToTarget) {
+          setPanelFlyToTarget(null)
+          setIsAnimating(false)
+        }
+      }
     },
-    [dimensions, setViewState, onViewStateChange, syncViewport]
+    [
+      dimensions,
+      setViewState,
+      onViewStateChange,
+      syncViewport,
+      panelAtoms,
+      panelFlyToTarget,
+      setPanelFlyToTarget,
+      setIsAnimating,
+    ]
   )
 
   const handleClick = useCallback(
@@ -689,4 +694,6 @@ function GeointMapWithPositioning(props: GeointMapProps) {
 export const GeointMap = memo(GeointMapComponent)
 export const GeointMapPositioned = memo(GeointMapWithPositioning)
 export { positioningOps }
+export { createGeointInstanceAtoms, disposeGeointInstanceAtoms }
+export type { GeointLayerVisibility }
 export default GeointMap
