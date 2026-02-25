@@ -2,21 +2,49 @@ import { describe, it, expect } from 'bun:test'
 import { createSpawnPanelTool, type SpawnPanelBridge } from '../spawn-panel-tool'
 
 describe('spawn_panel tool', () => {
+  const LEGIT_SURFACE = {
+    _tag: 'GeniferSurface',
+    id: 'surf-1',
+    treeId: null,
+    threadId: 'thread-1',
+    toolCallId: 'call-1',
+    sessionId: 'session-1',
+    treeSnapshot: { root: 'root', elements: {}, metadata: {} },
+    version: 1,
+    parentSurfaceId: null,
+    dataBindings: {},
+    actionBindings: {},
+    quality: { score: 0.92, repairs: 0, model: 'claude-sonnet-4', durationMs: 1200 },
+    prompt: 'build ui',
+    instruction: null,
+    status: 'complete',
+    createdAt: Date.now(),
+  }
+
   const makeBridge = (): SpawnPanelBridge => ({
-    generate: async () => ({ surfaceId: 'surf-1', surface: { _tag: 'MockSurface' } }),
+    generate: async () => ({ surfaceId: 'surf-1', surface: LEGIT_SURFACE }),
     refine: async () => {},
     spawnPanel: () => 'panel-1',
     closePanel: () => {},
   })
 
-  it('spawns from prompt', async () => {
-    const tool = createSpawnPanelTool(makeBridge())
+  it('spawns from prompt and forwards legitimate surface payload', async () => {
+    let receivedSurface: unknown = null
+    const tool = createSpawnPanelTool({
+      ...makeBridge(),
+      spawnPanel: (_surfaceId, opts) => {
+        receivedSurface = opts.surface
+        return 'panel-1'
+      },
+    })
     const onUpdateCalls: any[] = []
     const result = await tool.execute('call-1', { prompt: 'build ui' } as any, undefined, (u) => onUpdateCalls.push(u))
 
     expect(result.details?.operation).toBe('spawn')
     expect(result.details?.surfaceId).toBe('surf-1')
     expect(result.details?.panelId).toBe('panel-1')
+    expect((receivedSurface as any)?._tag).toBe('GeniferSurface')
+    expect((receivedSurface as any)?.id).toBe('surf-1')
     expect(onUpdateCalls.length).toBe(1)
   })
 

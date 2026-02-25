@@ -36,6 +36,7 @@ import type { ShellEvent } from '@/lib/harness/interactive-shell/schemas'
 import type { PanelEvent } from '@/lib/genifer/harness/panel-events'
 import { registerGeniferPanelVisitor, setGeniferPanelRegistry, setGeniferPanelSurface } from '@/lib/genifer/harness/panel-visitor'
 import { spawnPanel, closePanel } from '@/lib/floating'
+import { applyRemotePanelEvent } from './panel-event-handler'
 import type {
   HarnessRole,
   HarnessSessionId,
@@ -298,42 +299,13 @@ function wireEventStream(
         }
 
         if (rawEvent?._tag === 'remote:panel_event' && rawEvent.event) {
-          const event = rawEvent.event as PanelEvent & { surface?: unknown }
-
-          if (event._tag === 'panel:spawned') {
-            if (!event.surfaceId || !event.panelId) return
-            registerGeniferPanelVisitor()
-            if (event.surface) {
-              setGeniferPanelSurface(event.surfaceId, event.surface as any)
-            }
-            const localPanelId = spawnPanel('genifer:surface', {
-              mode: event.mode ?? 'floating',
-              title: event.title,
-              data: {
-                surfaceId: event.surfaceId,
-                prompt: event.prompt,
-                threadId: event.threadId,
-              },
-              accent: '#22d3ee',
-            })
-            if (localPanelId) {
-              remoteToLocalPanelIds.set(event.panelId, localPanelId)
-            }
-            return
-          }
-
-          if (event._tag === 'panel:closed') {
-            if (!event.panelId) return
-            const localId = remoteToLocalPanelIds.get(event.panelId) ?? event.panelId
-            closePanel(localId)
-            remoteToLocalPanelIds.delete(event.panelId)
-            return
-          }
-
-          if (event._tag === 'panel:surface_updated') {
-            if (!event.surfaceId || !event.surface) return
-            setGeniferPanelSurface(event.surfaceId, event.surface as any)
-          }
+          applyRemotePanelEvent(rawEvent.event as PanelEvent & { surface?: unknown }, {
+            registerGeniferPanelVisitor,
+            setGeniferPanelSurface: (surfaceId, surface) => setGeniferPanelSurface(surfaceId, surface as any),
+            spawnPanel,
+            closePanel,
+            remoteToLocalPanelIds,
+          })
         }
       }),
     ),
