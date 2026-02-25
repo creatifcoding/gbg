@@ -33,6 +33,12 @@ defmodule AvaElixir.MixProject do
       {:phoenix_html, "~> 4.1"},
       {:phoenix_pubsub, "~> 2.1"},
       {:plug_cowboy, "~> 2.7"},
+      {:ash, "~> 3.0"},
+      {:ash_postgres, "~> 2.0"},
+      {:oban, "~> 2.19"},
+      {:ecto_sql, "~> 3.12"},
+      {:postgrex, ">= 0.0.0"},
+      {:gnat, "~> 1.10"},
       {:lazy_html, ">= 0.1.0", only: :test},
       {:rustler, "~> 0.37", runtime: false},
       {:deps_nix, "~> 2.0", only: :dev, runtime: false}

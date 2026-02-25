@@ -6,6 +6,9 @@ members = [
   "src-panel-tauri",
   "src-shared",
 ]
+exclude = [
+  "ava-elixir/native/ava_bridge",
+]
 
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }
