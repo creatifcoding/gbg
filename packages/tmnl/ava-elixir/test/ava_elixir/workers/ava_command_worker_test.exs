@@ -1,8 +1,15 @@
 defmodule AvaElixir.Workers.AvaCommandWorkerTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
+  alias AvaElixir.Repo
   alias AvaElixir.Workers.AvaCommandWorker
+  alias Ecto.Adapters.SQL
   alias Oban.Job
+
+  setup do
+    Repo.query!("TRUNCATE TABLE ava_outbox, ava_events, ava_commands RESTART IDENTITY CASCADE")
+    :ok
+  end
 
   describe "new/2 uniqueness semantics" do
     test "worker config encodes idempotency keys for duplicate args" do
@@ -58,6 +65,29 @@ defmodule AvaElixir.Workers.AvaCommandWorkerTest do
       for args <- malformed do
         assert :ok = AvaCommandWorker.perform(%Job{args: args})
       end
+    end
+
+    test "valid command persists command/event/outbox through ash boundary" do
+      args = %{"action" => "invalidate", "view_id" => "view-ash-1", "trace" => "trace-1"}
+
+      assert :ok = AvaCommandWorker.perform(%Job{args: args})
+
+      command_count =
+        SQL.query!(Repo, "SELECT count(*) FROM ava_commands WHERE payload->>'view_id' = $1", ["view-ash-1"]).rows
+
+      event_count =
+        SQL.query!(Repo, "SELECT count(*) FROM ava_events WHERE payload->>'view_id' = $1", ["view-ash-1"]).rows
+
+      outbox_rows =
+        SQL.query!(
+          Repo,
+          "SELECT topic, payload->>'view_id' FROM ava_outbox WHERE topic = $1",
+          ["tmnl.ava.invalidate.view-ash-1"]
+        ).rows
+
+      assert [[1]] = command_count
+      assert [[1]] = event_count
+      assert [["tmnl.ava.invalidate.view-ash-1", "view-ash-1"]] = outbox_rows
     end
   end
 end

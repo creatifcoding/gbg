@@ -1,8 +1,37 @@
 defmodule AvaElixir.Workers.AvaOutboxWorkerTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
+  alias AvaElixir.Ash.Api
+  alias AvaElixir.Repo
+  alias AvaElixir.Resources.AvaOutbox
   alias AvaElixir.Workers.AvaOutboxWorker
+  alias Ecto.Adapters.SQL
   alias Oban.Job
+
+  setup do
+    Repo.query!("TRUNCATE TABLE ava_outbox RESTART IDENTITY CASCADE")
+    :ok
+  end
+
+  defp insert_outbox!(event_id) do
+    attrs = %{
+      event_id: event_id,
+      topic: "tmnl.ava.invalidate.view-outbox-1",
+      partition_key: "view-outbox-1",
+      payload: %{"view_id" => "view-outbox-1", "event_id" => event_id},
+      headers: %{"source" => "test"},
+      publish_attempts: 0,
+      available_at: DateTime.utc_now(),
+      last_error: nil
+    }
+
+    changeset = Ash.Changeset.for_create(AvaOutbox, :create, attrs)
+
+    case Api.create(changeset, Api.job_context_opts(%{"source" => "worker_test"})) do
+      {:ok, record} -> record
+      {:error, reason} -> flunk("failed to insert outbox fixture: #{inspect(reason)}")
+    end
+  end
 
   describe "new/2 uniqueness semantics" do
     test "worker config encodes idempotency keys for duplicate args" do
@@ -58,6 +87,59 @@ defmodule AvaElixir.Workers.AvaOutboxWorkerTest do
       for args <- malformed do
         assert :ok = AvaOutboxWorker.perform(%Job{args: args})
       end
+    end
+
+    test "marks outbox row published on successful publish" do
+      event_id = Ecto.UUID.generate()
+      _row = insert_outbox!(event_id)
+
+      args = %{
+        "subject" => "tmnl.ava.invalidate.view-outbox-1",
+        "payload" => %{"view_id" => "view-outbox-1"},
+        "event_id" => event_id
+      }
+
+      assert :ok = AvaOutboxWorker.perform(%Job{args: args})
+
+      rows =
+        SQL.query!(
+          Repo,
+          "SELECT published_at IS NOT NULL, publish_attempts, last_error FROM ava_outbox WHERE event_id::text = $1",
+          [event_id]
+        ).rows
+
+      assert [[true, 0, nil]] = rows
+    end
+
+    test "records publish failure metadata when egress is disabled" do
+      event_id = Ecto.UUID.generate()
+      _row = insert_outbox!(event_id)
+
+      previous = Application.get_env(:ava_elixir, :nats_egress_disabled, false)
+      Application.put_env(:ava_elixir, :nats_egress_disabled, true)
+
+      on_exit(fn ->
+        Application.put_env(:ava_elixir, :nats_egress_disabled, previous)
+      end)
+
+      args = %{
+        "subject" => "tmnl.ava.invalidate.view-outbox-1",
+        "payload" => %{"view_id" => "view-outbox-1"},
+        "event_id" => event_id
+      }
+
+      assert :ok = AvaOutboxWorker.perform(%Job{args: args})
+
+      rows =
+        SQL.query!(
+          Repo,
+          "SELECT publish_attempts, last_error FROM ava_outbox WHERE event_id::text = $1",
+          [event_id]
+        ).rows
+
+      assert [[1, last_error]] = rows
+      assert is_binary(last_error)
+      assert String.contains?(last_error, "egress_disabled")
     end
   end
 end

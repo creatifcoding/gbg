@@ -13,7 +13,35 @@ defmodule AvaElixir.Resources.AvaOutbox do
   end
 
   actions do
-    defaults [:create, :read, :update, :destroy]
+    defaults [:read, :destroy]
+
+    create :create do
+      accept [
+        :event_id,
+        :topic,
+        :partition_key,
+        :payload,
+        :headers,
+        :publish_attempts,
+        :available_at,
+        :published_at,
+        :last_error
+      ]
+    end
+
+    update :update do
+      accept [
+        :event_id,
+        :topic,
+        :partition_key,
+        :payload,
+        :headers,
+        :publish_attempts,
+        :available_at,
+        :published_at,
+        :last_error
+      ]
+    end
   end
 
   attributes do

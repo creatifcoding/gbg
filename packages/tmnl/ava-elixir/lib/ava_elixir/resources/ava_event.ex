@@ -13,7 +13,37 @@ defmodule AvaElixir.Resources.AvaEvent do
   end
 
   actions do
-    defaults [:create, :read, :update, :destroy]
+    defaults [:read, :destroy]
+
+    create :create do
+      accept [
+        :command_id,
+        :event_type,
+        :stream_name,
+        :stream_key,
+        :stream_version,
+        :global_position,
+        :causation_id,
+        :correlation_id,
+        :payload,
+        :metadata
+      ]
+    end
+
+    update :update do
+      accept [
+        :command_id,
+        :event_type,
+        :stream_name,
+        :stream_key,
+        :stream_version,
+        :global_position,
+        :causation_id,
+        :correlation_id,
+        :payload,
+        :metadata
+      ]
+    end
   end
 
   attributes do

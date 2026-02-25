@@ -13,7 +13,31 @@ defmodule AvaElixir.Resources.AvaCommand do
   end
 
   actions do
-    defaults [:create, :read, :update, :destroy]
+    defaults [:read, :destroy]
+
+    create :create do
+      accept [
+        :command_type,
+        :idempotency_key,
+        :stream_name,
+        :stream_key,
+        :expected_stream_version,
+        :payload,
+        :metadata
+      ]
+    end
+
+    update :update do
+      accept [
+        :command_type,
+        :idempotency_key,
+        :stream_name,
+        :stream_key,
+        :expected_stream_version,
+        :payload,
+        :metadata
+      ]
+    end
   end
 
   attributes do
