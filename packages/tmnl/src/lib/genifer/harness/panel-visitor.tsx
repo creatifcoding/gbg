@@ -13,9 +13,8 @@
  * @module genifer/harness/panel-visitor
  */
 
-import { type FC, useEffect, useState, useMemo } from 'react'
-import { useAtomValue, useAtom, RegistryContext } from '@effect-atom/atom-react'
-import { Atom } from '@effect-atom/atom-react'
+import { type FC, useMemo } from 'react'
+import { useAtomValue, Atom, Registry } from '@effect-atom/atom-react'
 import type { PanelContentProps } from '@/lib/floating/panel-registry'
 import { panelRegistry } from '@/lib/floating/panel-registry'
 import type { GeniferSurface } from './surface'
@@ -41,6 +40,18 @@ export interface GeniferPanelData {
 export const geniferPanelSurfaces = Atom.family(
   (_surfaceId: string) => Atom.make<GeniferSurface | null>(null),
 )
+
+let _registry: Registry.Registry | null = null
+
+export function setGeniferPanelRegistry(registry: Registry.Registry): void {
+  _registry = registry
+}
+
+export function setGeniferPanelSurface(surfaceId: string, surface: GeniferSurface): void {
+  const registry = _registry
+  if (!registry) return
+  registry.set(geniferPanelSurfaces(surfaceId), surface)
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Visitor Component

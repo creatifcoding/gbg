@@ -42,6 +42,7 @@ import {
 
 // Genifer harness integration
 import { createGeniferTools } from '@/lib/genifer/harness/bridge'
+import { createSpawnPanelTool } from '@/lib/genifer/harness/spawn-panel-tool'
 import { GeniferHarnessServiceTag, GeniferHarnessServiceLive } from '@/lib/genifer/harness/GeniferHarnessService'
 import { GeniferServiceLive } from '@/lib/genifer/services/GeniferService'
 import { GeniferDevDbLayer } from '@/lib/genifer/migrations/runner'
@@ -53,6 +54,7 @@ import { PiAuthBridgeLive } from '@/lib/agents/auth/PiAuthBridge'
 // GEOINT harness integration
 import { createGeointTools, GeointHarnessService, GeointHarnessServiceLive } from '@/lib/geoint/harness'
 import type { GeointHarnessServiceShape } from '@/lib/geoint/harness'
+import { PanelEventBus } from './panel-events/PanelEventBus'
 
 // =============================================================================
 // Create SDK tools configured for project CWD
@@ -285,6 +287,99 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
       }
       tools.push(geniferTool as any)
       allToolNames.add(geniferTool.name)
+    }
+
+    // 4b. spawn_panel tool (Genifer surface → floating panel via panel event bus)
+    const panelBusOpt = yield* PanelEventBus.pipe(
+      Effect.option,
+      Effect.catchAll(() => Effect.succeed(Option.none())),
+    )
+
+    const geniferServiceOpt = yield* Effect.tryPromise({
+      try: async () => {
+        const service = await Effect.runPromise(
+          Effect.gen(function* () {
+            return yield* GeniferHarnessServiceTag
+          }).pipe(
+            Effect.provide(GeniferHarnessServiceLive),
+            Effect.provide(GeniferServiceLive),
+            Effect.provide(GeniferDevDbLayer),
+          ),
+        )
+        const geniferModelLayer = makeAnthropicLayer('claude-sonnet-4-20250514')
+          .pipe(Layer.provide(PiAuthBridgeLive))
+        service.setModelLayer(geniferModelLayer)
+        return Option.some(service)
+      },
+      catch: () => Option.none<typeof GeniferHarnessServiceTag.Service>(),
+    }).pipe(Effect.orElseSucceed(() => Option.none()))
+
+    if (Option.isSome(panelBusOpt) && Option.isSome(geniferServiceOpt) && !allToolNames.has('spawn_panel')) {
+      let panelCounter = 0
+      const spawnPanelTool = createSpawnPanelTool({
+        generate: async (prompt, threadId) => {
+          const result = await Effect.runPromise(
+            geniferServiceOpt.value.generate({
+              prompt,
+              sessionId: `harness-${Date.now()}`,
+              threadId,
+              persist: true,
+            }),
+          )
+          const surface = geniferServiceOpt.value.getSurface(result.surfaceId)
+          return { surfaceId: result.surfaceId, surface: surface ?? undefined }
+        },
+        refine: async (surfaceId, instruction) => {
+          await Effect.runPromise(
+            geniferServiceOpt.value.refine({
+              surfaceId,
+              instruction,
+              sessionId: `harness-${Date.now()}`,
+              persist: true,
+            }),
+          )
+          const updatedSurface = geniferServiceOpt.value.getSurface(surfaceId)
+          if (updatedSurface) {
+            Effect.runFork(
+              panelBusOpt.value.emit({
+                _tag: 'panel:surface_updated',
+                surfaceId,
+                surface: updatedSurface,
+              }),
+            )
+          }
+        },
+        spawnPanel: (surfaceId, opts) => {
+          const panelId = `p-genifer-${++panelCounter}-${Date.now().toString(36)}`
+          const surface = (opts.surface ?? geniferServiceOpt.value.getSurface(surfaceId)) as unknown
+          Effect.runFork(
+            panelBusOpt.value.emit({
+              _tag: 'panel:spawned',
+              surfaceId,
+              panelId,
+              title: opts.title,
+              prompt: opts.prompt,
+              threadId: opts.threadId,
+              width: opts.width,
+              height: opts.height,
+              mode: opts.mode,
+              surface,
+            }),
+          )
+          return panelId
+        },
+        closePanel: (panelId) => {
+          Effect.runFork(
+            panelBusOpt.value.emit({
+              _tag: 'panel:closed',
+              panelId,
+            }),
+          )
+        },
+      })
+      tools.push(spawnPanelTool as any)
+      allToolNames.add('spawn_panel')
+      console.info('[harness] spawn_panel tool registered')
     }
 
     // 5. GEOINT tools — entity spawn/select/search/summary via GeointHarnessService

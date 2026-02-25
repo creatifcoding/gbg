@@ -71,7 +71,7 @@ export interface SpawnPanelDetails {
 
 export interface SpawnPanelBridge {
   /** Generate a new Genifer surface from a prompt */
-  generate: (prompt: string, threadId?: string) => Promise<{ surfaceId: string }>
+  generate: (prompt: string, threadId?: string) => Promise<{ surfaceId: string; surface?: unknown }>
   /** Refine an existing surface */
   refine: (surfaceId: string, instruction: string) => Promise<void>
   /** Spawn a floating panel with a Genifer surface */
@@ -82,6 +82,7 @@ export interface SpawnPanelBridge {
     width?: number
     height?: number
     mode?: 'floating' | 'tiled'
+    surface?: unknown
   }) => string | null
   /** Close a floating panel */
   closePanel: (panelId: string) => void
@@ -138,7 +139,7 @@ export function createSpawnPanelTool(
           content: [{ type: 'text', text: `Generating UI: "${params.prompt}"…` }],
         })
 
-        const { surfaceId } = await bridge.generate(params.prompt, params.threadId)
+        const { surfaceId, surface } = await bridge.generate(params.prompt, params.threadId)
 
         const panelId = bridge.spawnPanel(surfaceId, {
           title: params.title ?? params.prompt.slice(0, 50),
@@ -147,6 +148,7 @@ export function createSpawnPanelTool(
           width: params.width,
           height: params.height,
           mode: params.mode,
+          surface,
         })
 
         return {
