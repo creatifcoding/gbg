@@ -14,7 +14,7 @@
  */
 
 import React, { useEffect, useRef } from 'react'
-import { Atom, useAtom } from '@effect-atom/atom-react'
+import { Atom, useAtom, useAtomValue } from '@effect-atom/atom-react'
 import { Cause, Effect, Layer, Option, Stream, Fiber } from 'effect'
 import {
   toolStreamSink as toolStreamSinkEffect,
@@ -50,6 +50,9 @@ export const HARNESS_ROLES = ['scada-analyst', 'code-assistant', 'navigator', 'i
 const remoteToLocalPanelIds = new Map<string, string>()
 const remotePanelSurfaceIds = new Map<string, string>()
 const surfaceToLocalPanelIds = new Map<string, string>()
+const pendingDisposeTimers = new Map<string, ReturnType<typeof setTimeout>>()
+const instanceConfigCache = new Map<string, HarnessInstanceConfig>()
+const sessionIdCache = new Map<string, HarnessSessionId>()
 
 import type { MorphChatAdapter } from '../schemas/adapter-types'
 import type {
@@ -164,8 +167,6 @@ interface HarnessInstanceConfig {
 // Shared Runtime — one WS transport for ALL instances
 // =============================================================================
 
-// Keep HarnessBrowserTransport in the runtime context as well as HarnessRuntime.
-// This avoids missing-service failures when any op/effect path resolves transport directly.
 const HarnessRuntimeBrowserSharedLayer = HarnessRuntimeBrowserLive.pipe(
   Layer.provideMerge(HarnessBrowserTransportWebSocketDefault),
 )
@@ -219,12 +220,37 @@ const instanceConfig$ = Atom.family((_id: string) =>
   Atom.make<HarnessInstanceConfig | null>(null),
 )
 
+const setInstanceConfig = (id: string, cfg: HarnessInstanceConfig) => {
+  instanceConfigCache.set(id, cfg)
+  morphChatRegistry.set(instanceConfig$(id), cfg)
+}
+
+const getInstanceConfig = (id: string): HarnessInstanceConfig | null =>
+  morphChatRegistry.get(instanceConfig$(id)) ?? instanceConfigCache.get(id) ?? null
+
+const setSessionId = (id: string, value: HarnessSessionId | null, _reason: string) => {
+  if (value == null) {
+    sessionIdCache.delete(id)
+  } else {
+    sessionIdCache.set(id, value)
+  }
+  morphChatRegistry.set(sessionId$(id), value)
+}
+
+const getSessionId = (id: string): HarnessSessionId | null =>
+  morphChatRegistry.get(sessionId$(id)) ?? sessionIdCache.get(id) ?? null
+
 // =============================================================================
 // Per-Instance Infrastructure (tool bridges, event processors)
 // =============================================================================
 
 const toolBridges = new Map<string, ReturnType<typeof createExtensionToolBridge>>()
 const processors = new Map<string, ReturnType<typeof createEventProcessor>>()
+const activeWiring = new Map<string, {
+  sessionId: HarnessSessionId
+  shouldProcess: (event: { sessionId?: unknown; seq?: unknown }) => boolean
+  processor: ReturnType<typeof createEventProcessor>
+}>()
 
 function getToolBridge(id: string) {
   let bridge = toolBridges.get(id)
@@ -521,13 +547,13 @@ function wireEventStream(
       }
       return Effect.void
     }),
-    Stream.runForEach((event: any) => Effect.sync(() => processor.processEvent(event))),
     Stream.withSpan('tmnl.morphchat.harness.event-stream', {
       attributes: {
         instanceId: id,
         sessionId: activeSessionId,
       },
     }),
+    Stream.runForEach((event: any) => Effect.sync(() => processor.processEvent(event))),
   ).pipe(
     Effect.catchAllCause((cause) =>
       Effect.gen(function* () {
@@ -542,13 +568,15 @@ function wireEventStream(
           sessionId: activeSessionId,
         })
 
-        // Only push errors if this session is still active — stale fibers must not corrupt new sessions
-        const currentSid = morphChatRegistry.get(sessionId$(id))
+        // Only annotate the active session; do NOT hard-flip connection to error here.
+        // Event stream fibers can be interrupted during layout/runtime churn and we recover
+        // via snapshot replay on send. Escalating this to connection=error causes reconnect
+        // thrash and clears the active session mid-turn.
+        const currentSid = getSessionId(id)
         if (currentSid !== activeSessionId) return
 
         const parsed = formatUnknownErrorPayload(yield* morphchatCauseToMessage(cause))
-        morphChatRegistry.set(connection$(id), { phase: 'error', error: `[events] ${parsed.message}` } as ConnectionState)
-        pushStatusRow(id, { id: `status-${Date.now()}-events`, tone: 'error', text: `[events] ${parsed.message}`, source: 'harness' })
+        pushStatusRow(id, { id: `status-${Date.now()}-events`, tone: 'warn', text: `[events] ${parsed.message}`, source: 'harness' })
       }),
     ),
     Effect.forkDaemon,
@@ -556,6 +584,12 @@ function wireEventStream(
 
   const shellFiberEffect = transport
     ? transport.events.pipe(
+        Stream.withSpan('tmnl.morphchat.harness.transport-events', {
+          attributes: {
+            instanceId: id,
+            sessionId: activeSessionId,
+          },
+        }),
         Stream.runForEach((rawEvent: any) =>
           Effect.sync(() => {
             if (rawEvent?._tag === 'remote:shell_event' && rawEvent.event) {
@@ -577,12 +611,6 @@ function wireEventStream(
             }
           }),
         ),
-        Stream.withSpan('tmnl.morphchat.harness.transport-events', {
-          attributes: {
-            instanceId: id,
-            sessionId: activeSessionId,
-          },
-        }),
       ).pipe(
         Effect.catchAllCause((cause) =>
           morphchatLogWarningCause(id, 'transport-events-stream-failed', cause, {
@@ -646,6 +674,8 @@ function interruptInstanceFibers(id: string): Effect.Effect<void> {
       yield* Fiber.interrupt(oldShellFiber)
       morphChatRegistry.set(shellEventFiber$(id), null)
     }
+
+    activeWiring.delete(id)
   })
 }
 
@@ -659,11 +689,16 @@ function activateSessionWiring(
   agentId?: string,
 ): Effect.Effect<void> {
   return Effect.gen(function* () {
-    morphChatRegistry.set(sessionId$(id), activeSessionId)
+    setSessionId(id, activeSessionId, 'activateSessionWiring')
     morphChatRegistry.set(connection$(id), { phase: 'connected', endpoint: `harness:${nodeId}` } as ConnectionState)
     morphChatRegistry.set(agents$(id), [{ id: agentId ?? nodeId, name: agentName, isActive: true }])
 
     const wired = wireEventStream(id, activeSessionId, agentName, runtime)
+    activeWiring.set(id, {
+      sessionId: activeSessionId,
+      shouldProcess: wired.shouldProcess,
+      processor: wired.processor,
+    })
 
     const fiber = yield* wired.eventFiberEffect
     morphChatRegistry.set(eventFiber$(id), fiber)
@@ -675,7 +710,7 @@ function activateSessionWiring(
       ? yield* wired.snapshotEffect
       : snapshotOverride
 
-    if (snapshot && morphChatRegistry.get(sessionId$(id)) === activeSessionId) {
+    if (snapshot && getSessionId(id) === activeSessionId) {
       for (const event of snapshot.events) {
         if (wired.shouldProcess(event as any)) wired.processor.processEvent(event)
       }
@@ -692,7 +727,7 @@ const connectOp$ = Atom.family((id: string) =>
   harnessRuntimeAtom.fn<{ nodeId: string; role: HarnessRole; agentName: string }>()(
     ({ nodeId, role, agentName }, _ctx) =>
       Effect.gen(function* () {
-        morphChatRegistry.set(instanceConfig$(id), { nodeId, role, agentName })
+        setInstanceConfig(id, { nodeId, role, agentName })
         const runtime = yield* HarnessRuntime
 
         yield* interruptInstanceFibers(id)
@@ -789,7 +824,7 @@ const sendOp$ = Atom.family((id: string) =>
   harnessRuntimeAtom.fn<{ content: string; thinkingLevel?: unknown }>()(
     ({ content, thinkingLevel }, _ctx) =>
       Effect.gen(function* () {
-        let sid = morphChatRegistry.get(sessionId$(id))
+        let sid = getSessionId(id)
         const conn = morphChatRegistry.get(connection$(id)) as ConnectionState
         const runtime = yield* HarnessRuntime
         yield* morphchatLogDebug(id, 'send-start', {
@@ -807,7 +842,7 @@ const sendOp$ = Atom.family((id: string) =>
 
           for (let attempt = 0; attempt < 10; attempt++) {
             yield* Effect.sleep('50 millis')
-            sid = morphChatRegistry.get(sessionId$(id))
+            sid = getSessionId(id)
             if (sid) break
 
             const phase = (morphChatRegistry.get(connection$(id)) as ConnectionState)?.phase
@@ -816,7 +851,7 @@ const sendOp$ = Atom.family((id: string) =>
         }
 
         if (!sid) {
-          const cfg = morphChatRegistry.get(instanceConfig$(id))
+          const cfg = getInstanceConfig(id)
           if (!cfg) {
             return yield* Effect.fail(new Error('No active session and no harness config available for auto-heal'))
           }
@@ -864,6 +899,24 @@ const sendOp$ = Atom.family((id: string) =>
         if (override) morphChatRegistry.set(modelOverride$(id), null)
 
         yield* runtime.send(sid as HarnessSessionId, clientMessageId, content, tl, override ?? undefined)
+
+        // Stream healing: if event-stream fiber was interrupted/replaced during UI layout churn,
+        // pull a snapshot shortly after send and replay unseen events through the same processor.
+        const wiring = activeWiring.get(id)
+        if (wiring && wiring.sessionId === sid) {
+          yield* Effect.sleep('900 millis')
+          const snapshot = yield* runtime.getSnapshot(sid as HarnessSessionId, Option.none()).pipe(
+            Effect.catchAllCause(() => Effect.succeed(null)),
+          )
+
+          if (snapshot && getSessionId(id) === sid) {
+            for (const event of snapshot.events) {
+              if (wiring.shouldProcess(event as any)) {
+                wiring.processor.processEvent(event as any)
+              }
+            }
+          }
+        }
       }).pipe(
         Effect.catchAllCause((cause) =>
           Effect.gen(function* () {
@@ -892,7 +945,7 @@ const cancelOp$ = Atom.family((id: string) =>
   harnessRuntimeAtom.fn<void>()((_arg, _ctx) =>
     Effect.gen(function* () {
       const runtime = yield* HarnessRuntime
-      const sid = morphChatRegistry.get(sessionId$(id))
+      const sid = getSessionId(id)
       if (sid) yield* runtime.abortSession(sid)
       morphChatRegistry.update(messages$(id), (prev) =>
         prev.map((msg) => msg.status === 'streaming' ? { ...msg, status: 'complete' as const } : msg),
@@ -923,7 +976,7 @@ const disposeOp$ = Atom.family((id: string) =>
     Effect.gen(function* () {
       yield* interruptInstanceFibers(id)
       const runtime = yield* HarnessRuntime
-      const sid = morphChatRegistry.get(sessionId$(id))
+      const sid = getSessionId(id)
       if (sid) {
         yield* runtime.abortSession(sid).pipe(
           Effect.catchAllCause((cause) =>
@@ -931,15 +984,18 @@ const disposeOp$ = Atom.family((id: string) =>
           ),
         )
       }
+      setSessionId(id, null, 'disposeOp.clear')
       getToolBridge(id).clear()
       clearShellCommandSender()
       morphChatRegistry.set(streaming$(id), STREAMING_IDLE)
       morphChatRegistry.set(connection$(id), DISCONNECTED)
       morphChatRegistry.set(statusRows$(id), [])
+      instanceConfigCache.delete(id)
 
       // Cleanup infrastructure caches
       toolBridges.delete(id)
       processors.delete(id)
+      activeWiring.delete(id)
     }),
   ),
 )
@@ -949,13 +1005,13 @@ const newSessionOp$ = Atom.family((id: string) =>
   harnessRuntimeAtom.fn<{ nodeId: string; role: HarnessRole; agentName: string }>()(
     ({ nodeId, role, agentName }, _ctx) =>
       Effect.gen(function* () {
-        morphChatRegistry.set(instanceConfig$(id), { nodeId, role, agentName })
+        setInstanceConfig(id, { nodeId, role, agentName })
         const runtime = yield* HarnessRuntime
 
         yield* interruptInstanceFibers(id)
 
         // Abort old session
-        const oldSid = morphChatRegistry.get(sessionId$(id))
+        const oldSid = getSessionId(id)
         if (oldSid) {
           yield* runtime.abortSession(oldSid).pipe(
             Effect.catchAllCause((cause) =>
@@ -968,7 +1024,7 @@ const newSessionOp$ = Atom.family((id: string) =>
         morphChatRegistry.set(messages$(id), [] as ReadonlyArray<ChatMessage>)
         morphChatRegistry.set(streaming$(id), STREAMING_IDLE)
         morphChatRegistry.set(statusRows$(id), [])
-        morphChatRegistry.set(sessionId$(id), null)
+        setSessionId(id, null, 'newSessionOp.clear')
         getToolBridge(id).clear()
         processors.delete(id) // Force new processor
 
@@ -1006,7 +1062,7 @@ const resumeSessionOp$ = Atom.family((id: string) =>
     ({ sessionId }, _ctx) =>
       Effect.gen(function* () {
         const runtime = yield* HarnessRuntime
-        const cfg = morphChatRegistry.get(instanceConfig$(id))
+        const cfg = getInstanceConfig(id)
         if (!cfg) return yield* Effect.fail(new Error(`Missing harness config for instance: ${id}`))
 
         yield* interruptInstanceFibers(id)
@@ -1014,7 +1070,7 @@ const resumeSessionOp$ = Atom.family((id: string) =>
         morphChatRegistry.set(messages$(id), [] as ReadonlyArray<ChatMessage>)
         morphChatRegistry.set(streaming$(id), STREAMING_IDLE)
         morphChatRegistry.set(statusRows$(id), [])
-        morphChatRegistry.set(sessionId$(id), null)
+        setSessionId(id, null, 'resumeSessionOp.clear')
         getToolBridge(id).clear()
         processors.delete(id)
 
@@ -1101,7 +1157,7 @@ function hardReconnect(
   morphChatRegistry.set(shellEventFiber$(id), null)
 
   // Clear state
-  morphChatRegistry.set(sessionId$(id), null)
+  setSessionId(id, null, 'hardReconnect.clear')
   morphChatRegistry.set(messages$(id), [] as ReadonlyArray<ChatMessage>)
   morphChatRegistry.set(streaming$(id), STREAMING_IDLE)
   morphChatRegistry.set(connection$(id), DISCONNECTED)
@@ -1154,6 +1210,10 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
   const [, doNewSession] = useAtom(newSessionOp$(instanceId))
   const [, doResumeSession] = useAtom(resumeSessionOp$(instanceId))
 
+  // Pin session atom subscription so session identity remains stable across
+  // transient registry/GC cycles while panel stays mounted.
+  useAtomValue(sessionId$(instanceId))
+
   // Connection status from per-instance atom
   const [status, setStatus] = React.useState<HarnessAdapterStatus>('idle')
   const [error, setError] = React.useState<string | null>(null)
@@ -1174,7 +1234,7 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
   }, [instanceId])
 
   useEffect(() => {
-    morphChatRegistry.set(instanceConfig$(instanceId), { nodeId, role, agentName })
+    setInstanceConfig(instanceId, { nodeId, role, agentName })
   }, [instanceId, nodeId, role, agentName])
 
   // Auto-connect with backoff
@@ -1205,10 +1265,24 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
     }
   }, [status, doFetchModels])
 
-  // Dispose on unmount
+  // Dispose on unmount (debounced): layout transitions can transiently unmount/remount
+  // the same instance during split/dock operations. Delay disposal to avoid tearing down
+  // live sessions during those structural moves.
   useEffect(() => {
-    return () => { doDispose(undefined as void) }
-  }, [instanceId]) // eslint-disable-line react-hooks/exhaustive-deps
+    const pending = pendingDisposeTimers.get(instanceId)
+    if (pending) {
+      clearTimeout(pending)
+      pendingDisposeTimers.delete(instanceId)
+    }
+
+    return () => {
+      const timer = setTimeout(() => {
+        pendingDisposeTimers.delete(instanceId)
+        doDispose(undefined as void)
+      }, 1500)
+      pendingDisposeTimers.set(instanceId, timer)
+    }
+  }, [instanceId, doDispose])
 
   // Stable refs for adapter
   const sendRef = useRef(doSend); sendRef.current = doSend
