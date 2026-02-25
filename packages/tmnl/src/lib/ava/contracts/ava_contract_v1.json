@@ -1,0 +1,45 @@
+{
+  "version": "1.0.0",
+  "namespacePrefix": "tmnl.ava",
+  "commands": {
+    "invalidate": {
+      "subjectTemplate": "tmnl.ava.invalidate.{view_id}",
+      "payloadRules": {
+        "requiredKeys": ["view_id"],
+        "optionalKeys": ["reason", "force"]
+      }
+    },
+    "subscribe": {
+      "subjectTemplate": "tmnl.ava.subscribe.{view_id}",
+      "payloadRules": {
+        "requiredKeys": ["view_id"],
+        "optionalKeys": []
+      }
+    },
+    "unsubscribe": {
+      "subjectTemplate": "tmnl.ava.unsubscribe.{view_id}",
+      "payloadRules": {
+        "requiredKeys": ["view_id"],
+        "optionalKeys": []
+      }
+    }
+  },
+  "streams": {
+    "artifacts": {
+      "singleTemplate": "tmnl.ava.artifacts.{view_id}",
+      "wildcardTemplate": "tmnl.ava.artifacts.*"
+    },
+    "deltas": {
+      "singleTemplate": "tmnl.ava.deltas.{view_id}",
+      "wildcardTemplate": "tmnl.ava.deltas.*"
+    },
+    "status": {
+      "singleTemplate": "tmnl.ava.status.{view_id}",
+      "wildcardTemplate": "tmnl.ava.status.*"
+    }
+  },
+  "casingContract": {
+    "commandKey": "view_id",
+    "forbiddenAliases": ["viewId"]
+  }
+}

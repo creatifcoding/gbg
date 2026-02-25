@@ -38,6 +38,14 @@ import {
   ViewStatusEvent,
   ViewId,
 } from '../schemas/v2'
+import {
+  AVA_CONTRACT_V1,
+  getAvaCommandSubject,
+  getAvaStreamSubject,
+  getAvaStreamWildcardSubject,
+  type AvaCommandName,
+  type AvaStreamName,
+} from '../contracts'
 
 // ============================================================================
 // Configuration
@@ -91,7 +99,50 @@ export type AvaClientV2Error =
 // ============================================================================
 
 /**
- * NATS subject patterns for AVA v2
+ * Stable canonical AVA subject templates.
+ *
+ * These are intentionally sourced from the typed contract mirror to provide
+ * a drift-checkable API surface for tests and tooling.
+ */
+export const AvaSubjectTemplates = {
+  commands: {
+    invalidate: AVA_CONTRACT_V1.commands.invalidate.subjectTemplate,
+    subscribe: AVA_CONTRACT_V1.commands.subscribe.subjectTemplate,
+    unsubscribe: AVA_CONTRACT_V1.commands.unsubscribe.subjectTemplate,
+  },
+  streams: {
+    artifacts: {
+      single: AVA_CONTRACT_V1.streams.artifacts.singleTemplate,
+      wildcard: AVA_CONTRACT_V1.streams.artifacts.wildcardTemplate,
+    },
+    deltas: {
+      single: AVA_CONTRACT_V1.streams.deltas.singleTemplate,
+      wildcard: AVA_CONTRACT_V1.streams.deltas.wildcardTemplate,
+    },
+    status: {
+      single: AVA_CONTRACT_V1.streams.status.singleTemplate,
+      wildcard: AVA_CONTRACT_V1.streams.status.wildcardTemplate,
+    },
+  },
+} as const
+
+/**
+ * Stable canonical AVA subject builders.
+ *
+ * NOTE: These builders are exported for contract drift tests and tooling.
+ * Runtime AvaClientV2 transport behavior continues to use `subjects` below.
+ */
+export const avaSubjects = {
+  command: (command: AvaCommandName, viewId: string) =>
+    getAvaCommandSubject(command, viewId),
+  stream: (stream: AvaStreamName, viewId: string) =>
+    getAvaStreamSubject(stream, viewId),
+  streamWildcard: (stream: AvaStreamName) =>
+    getAvaStreamWildcardSubject(stream),
+} as const
+
+/**
+ * NATS runtime subject patterns for AVA v2 transport.
  * Matches Rust NatsConfig subject structure exactly:
  * - artifacts_subject: `{prefix}.artifacts.{view_id}`
  * - deltas_subject: `{prefix}.deltas.{view_id}`

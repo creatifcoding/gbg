@@ -40,6 +40,9 @@ export {
   type AvaClientV2Error,
   // Service
   AvaClientV2,
+  // Stable contract subject exports
+  AvaSubjectTemplates,
+  avaSubjects,
   // Layers
   AvaClientV2Live,
   AvaClientV2WithNats,
