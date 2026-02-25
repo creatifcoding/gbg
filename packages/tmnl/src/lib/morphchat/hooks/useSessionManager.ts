@@ -8,11 +8,13 @@ import {
   forkSessionOp$,
   renameSessionOp$,
   sessionError$,
+  sessionFetchDiagnostics$,
   sessionList$,
   sessionLoading$,
   sessionOperation$,
   sessionQuery$,
   starSessionOp$,
+  type SessionFetchDiagnostics,
   type SessionManagerFilter,
   type SessionManagerQuery,
   type SessionOperationState,
@@ -22,9 +24,11 @@ import type { SessionListItem } from '@/lib/harness/HarnessRuntime'
 export interface UseSessionManagerResult {
   readonly sessions: ReadonlyArray<SessionListItem>
   readonly totalSessions: number
+  readonly visibleSessions: number
   readonly loading: boolean
   readonly error: string | null
   readonly operation: SessionOperationState
+  readonly diagnostics: SessionFetchDiagnostics
   readonly query: SessionManagerQuery
   readonly setSearch: (search: string) => void
   readonly setFilter: (filter: SessionManagerFilter) => void
@@ -49,6 +53,7 @@ export function useSessionManager(instanceId: string): UseSessionManagerResult {
   const loading = useAtomValue(sessionLoading$(instanceId))
   const error = useAtomValue(sessionError$(instanceId))
   const operation = useAtomValue(sessionOperation$(instanceId))
+  const diagnostics = useAtomValue(sessionFetchDiagnostics$(instanceId))
 
   const filteredSessions = useMemo(() => {
     const normalizedSearch = query.search.trim().toLowerCase()
@@ -123,9 +128,11 @@ export function useSessionManager(instanceId: string): UseSessionManagerResult {
   return {
     sessions: filteredSessions,
     totalSessions: allSessions.length,
+    visibleSessions: filteredSessions.length,
     loading,
     error,
     operation,
+    diagnostics,
     query,
     setSearch,
     setFilter,

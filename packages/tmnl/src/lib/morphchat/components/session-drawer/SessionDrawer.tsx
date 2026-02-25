@@ -59,9 +59,11 @@ export function SessionDrawer({
   const {
     sessions,
     totalSessions,
+    visibleSessions,
     loading,
     error,
     operation,
+    diagnostics,
     query,
     setSearch,
     setFilter,
@@ -97,6 +99,10 @@ export function SessionDrawer({
     ? OPERATION_LABELS[operation.op] ?? `[session.${operation.op}]`
     : null
 
+  const diagnosticLabel = diagnostics.lastFetchAt
+    ? new Date(diagnostics.lastFetchAt).toLocaleTimeString()
+    : 'never'
+
   const resetFilters = () => {
     setSearch('')
     setFilter('all')
@@ -118,6 +124,21 @@ export function SessionDrawer({
     anchor.download = `${target.name || target.autoTitle || 'session'}.json`
     anchor.click()
     window.URL.revokeObjectURL(url)
+  }
+
+  const dumpSessionDebug = () => {
+    if (typeof console === 'undefined') return
+    console.info('[session-drawer:debug]', {
+      instanceId,
+      currentSessionId,
+      query,
+      operation,
+      diagnostics,
+      totalSessions,
+      visibleSessions,
+      visibleSessionIds: sessions.map((session) => session.sessionId),
+      diagnosticSampleSessionIds: diagnostics.sampleSessionIds,
+    })
   }
 
   return (
@@ -310,6 +331,42 @@ export function SessionDrawer({
                 )
               })}
             </div>
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              padding: '6px 12px',
+              borderBottom: '1px solid oklch(0.1 0 0)',
+              background: 'oklch(0.05 0 0)',
+              color: 'oklch(0.54 0 0)',
+              fontFamily: MONO,
+              fontSize: 'var(--tmnl-text-xs, 12px)',
+              lineHeight: 1.2,
+            }}
+          >
+            <span>
+              server:{diagnostics.serverCount} · visible:{visibleSessions} · fetched:{diagnosticLabel}
+            </span>
+            <button
+              type="button"
+              onClick={dumpSessionDebug}
+              style={{
+                border: '1px solid oklch(0.14 0 0)',
+                borderRadius: 6,
+                background: 'oklch(0.07 0 0)',
+                color: 'oklch(0.68 0 0)',
+                cursor: 'pointer',
+                fontFamily: MONO,
+                fontSize: 'var(--tmnl-text-xs, 12px)',
+                padding: '2px 8px',
+              }}
+            >
+              dump
+            </button>
           </div>
 
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 12 }}>

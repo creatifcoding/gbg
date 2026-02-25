@@ -35,6 +35,13 @@ export interface SessionManagerQuery {
   readonly filter: SessionManagerFilter
 }
 
+export interface SessionFetchDiagnostics {
+  readonly lastFetchAt: number | null
+  readonly serverCount: number
+  readonly sampleSessionIds: ReadonlyArray<string>
+  readonly source: 'remote:list_sessions'
+}
+
 export const sessionList$ = Atom.family((_instanceId: string) =>
   Atom.make<ReadonlyArray<SessionListItem>>([]),
 )
@@ -60,6 +67,15 @@ export const sessionOperation$ = Atom.family((_instanceId: string) =>
     op: 'idle',
     sessionId: null,
     startedAt: null,
+  }),
+)
+
+export const sessionFetchDiagnostics$ = Atom.family((_instanceId: string) =>
+  Atom.make<SessionFetchDiagnostics>({
+    lastFetchAt: null,
+    serverCount: 0,
+    sampleSessionIds: [],
+    source: 'remote:list_sessions',
   }),
 )
 
@@ -120,6 +136,14 @@ const setOperation = (
     morphChatRegistry.set(sessionOperation$(instanceId), operation)
   })
 
+const setFetchDiagnostics = (
+  instanceId: string,
+  diagnostics: SessionFetchDiagnostics,
+) =>
+  Effect.sync(() => {
+    morphChatRegistry.set(sessionFetchDiagnostics$(instanceId), diagnostics)
+  })
+
 const pushSessionStatusRow = (
   instanceId: string,
   row: SessionStatusRow,
@@ -149,9 +173,17 @@ const hydrateSessionList = (
 ) =>
   runtime.listSessions().pipe(
     Effect.tap((sessions) =>
-      Effect.sync(() => {
-        morphChatRegistry.set(sessionList$(instanceId), sessions)
-      }),
+      Effect.all([
+        Effect.sync(() => {
+          morphChatRegistry.set(sessionList$(instanceId), sessions)
+        }),
+        setFetchDiagnostics(instanceId, {
+          lastFetchAt: Date.now(),
+          serverCount: sessions.length,
+          sampleSessionIds: sessions.slice(0, 5).map((session) => session.sessionId),
+          source: 'remote:list_sessions',
+        }),
+      ], { concurrency: 'unbounded' }).pipe(Effect.asVoid),
     ),
   )
 
@@ -192,7 +224,17 @@ const runFetch = (instanceId: string) =>
     const hydrated = yield* hydrateSessionList(instanceId, runtime).pipe(Effect.either)
 
     if (Either.isRight(hydrated)) {
-      yield* logSessionStatus(instanceId, 'fetch', 'info', 'Session index synchronized.')
+      const sessions = hydrated.right
+      yield* logSessionStatus(
+        instanceId,
+        'fetch',
+        'info',
+        `Session index synchronized (${sessions.length} sessions).`,
+        {
+          serverCount: sessions.length,
+          sampleSessionIds: sessions.slice(0, 5).map((session) => session.sessionId),
+        },
+      )
       return
     }
 
