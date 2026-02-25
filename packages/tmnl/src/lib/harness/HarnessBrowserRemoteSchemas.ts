@@ -18,6 +18,7 @@ import {
   ShellSwitchModeCommand,
   ShellEvent,
 } from './interactive-shell/schemas'
+import { PanelEvent } from '@/lib/genifer/harness/panel-events'
 
 // ── Model catalog schema ────────────────────────────────────────────────────
 export const HarnessModelInfo = Schema.Struct({
@@ -47,7 +48,7 @@ export const HarnessRemoteSessionListItem = Schema.Struct({
   name: Schema.String,
   autoTitle: Schema.String,
   tags: Schema.Array(Schema.String),
-  status: HarnessRemoteSessionStatus,
+  status: Schema.String,
   starred: Schema.Boolean,
   createdAt: Schema.Number,
   updatedAt: Schema.Number,
@@ -122,17 +123,17 @@ export const HarnessRemoteGetModelsCommand = Schema.TaggedStruct('remote:get_ava
 export const HarnessRemoteListSessionsCommand = Schema.TaggedStruct('remote:list_sessions', {})
 
 export const HarnessRemoteUpdateSessionMetaCommand = Schema.TaggedStruct('remote:update_session_meta', {
-  sessionId: HarnessSessionId,
+  sessionId: Schema.String,
   patch: HarnessRemoteSessionMetaPatch,
 })
 
 export const HarnessRemoteDeleteSessionCommand = Schema.TaggedStruct('remote:delete_session', {
-  sessionId: HarnessSessionId,
+  sessionId: Schema.String,
 })
 
 export const HarnessRemoteForkSessionCommand = Schema.TaggedStruct('remote:fork_session', {
-  sessionId: HarnessSessionId,
-  atSeq: Schema.optional(Schema.Number.pipe(Schema.nonNegative())),
+  sessionId: Schema.String,
+  atSeq: Schema.optional(Schema.Number),
 })
 
 export const HarnessRemoteCommand = Schema.Union(
@@ -181,9 +182,14 @@ export const HarnessRemoteShellEventEnvelope = Schema.TaggedStruct('remote:shell
   event: ShellEvent,
 })
 
+export const HarnessRemotePanelEventEnvelope = Schema.TaggedStruct('remote:panel_event', {
+  event: PanelEvent,
+})
+
 export const HarnessRemoteEventEnvelope = Schema.Union(
   HarnessRemoteChatV2EventEnvelope,
   HarnessRemoteShellEventEnvelope,
+  HarnessRemotePanelEventEnvelope,
 )
 
 export const HarnessWsRequestEnvelope = Schema.TaggedStruct('remote:ws_request', {

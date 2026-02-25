@@ -96,9 +96,25 @@ export { createGeniferTools } from './bridge'
 export {
   GeniferPanelVisitor,
   geniferPanelSurfaces,
+  setGeniferPanelRegistry,
+  setGeniferPanelSurface,
   registerGeniferPanelVisitor,
   type GeniferPanelData,
 } from './panel-visitor'
+
+// Panel events
+export {
+  PanelMode,
+  PanelSpawnedEvent,
+  PanelClosedEvent,
+  PanelSurfaceUpdatedEvent,
+  PanelEvent,
+  type PanelMode as PanelModeType,
+  type PanelSpawnedEvent as PanelSpawnedEventType,
+  type PanelClosedEvent as PanelClosedEventType,
+  type PanelSurfaceUpdatedEvent as PanelSurfaceUpdatedEventType,
+  type PanelEvent as PanelEventType,
+} from './panel-events'
 
 // spawn_panel tool
 export {

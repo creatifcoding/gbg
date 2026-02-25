@@ -4,13 +4,15 @@
  * Import from './HarnessRuntimeLive' or '@/lib/harness/index.server', NOT the browser barrel.
  */
 import { Effect, Layer, Option, Stream } from 'effect'
+import * as BunFileSystem from '@effect/platform-bun/BunFileSystem'
 import { InteractiveShellServiceLive } from './interactive-shell'
+import { PanelEventBusLive } from './panel-events/PanelEventBus'
 
 import { PiAiHarnessEngine, PiAiHarnessEngineCoreLive, PiAiToolRuntimeWithBuiltins } from './PiAiHarnessEngine'
 import { PiAiStreamClientLive } from './PiAiStreamClient'
 import { PiAiEventAdapterLive } from './PiAiEventAdapter'
 import { PiAiPolicyLive } from './PiAiPolicy'
-import { HarnessSessionStoreMemoryLive } from './HarnessSessionStoreMemory'
+import { HarnessSessionStoreJSONLLive } from './session/SessionStoreJSONL'
 import { AgentHarnessConfigDefault } from '@/lib/agents/AgentHarnessConfig'
 import { HarnessSendAck, HarnessSessionView, HarnessSnapshot } from './schemas'
 import { HarnessRuntime, HarnessRuntimeError } from './HarnessRuntime'
@@ -26,24 +28,6 @@ export const HarnessRuntimeLive = Layer.effect(
   HarnessRuntime,
   Effect.gen(function* () {
     const engine = yield* PiAiHarnessEngine
-
-    const callEngineMethod = <A>(
-      name: string,
-      ...args: ReadonlyArray<unknown>
-    ): Effect.Effect<A, HarnessRuntimeError> =>
-      Effect.gen(function* () {
-        const fn = (engine as Record<string, unknown>)[name]
-        if (typeof fn !== 'function') {
-          return yield* Effect.fail(
-            new HarnessRuntimeError({
-              code: 'engine-method-missing',
-              message: `Harness engine method is unavailable: ${name}`,
-              cause: Option.none(),
-            }),
-          )
-        }
-        return yield* (fn as (...innerArgs: ReadonlyArray<unknown>) => Effect.Effect<A, unknown>)(...args)
-      })
 
     return HarnessRuntime.of({
       backend: 'pi-ai',
@@ -101,6 +85,30 @@ export const HarnessRuntimeLive = Layer.effect(
           Effect.withSpan('tmnl.harness.runtime.respond-extension-ui'),
         ),
 
+      listSessions: () =>
+        engine.listSessions().pipe(
+          Effect.mapError(toRuntimeError('list-sessions-failed', 'Failed to list harness sessions')),
+          Effect.withSpan('tmnl.harness.runtime.list-sessions'),
+        ),
+
+      updateSessionMeta: (sessionId, patch) =>
+        engine.updateSessionMeta(sessionId, patch).pipe(
+          Effect.mapError(toRuntimeError('update-session-meta-failed', 'Failed to update harness session metadata')),
+          Effect.withSpan('tmnl.harness.runtime.update-session-meta'),
+        ),
+
+      deleteSession: (sessionId) =>
+        engine.deleteSession(sessionId).pipe(
+          Effect.mapError(toRuntimeError('delete-session-failed', 'Failed to delete harness session')),
+          Effect.withSpan('tmnl.harness.runtime.delete-session'),
+        ),
+
+      forkSession: (sessionId, atSeq) =>
+        engine.forkSession(sessionId, atSeq).pipe(
+          Effect.mapError(toRuntimeError('fork-session-failed', 'Failed to fork harness session')),
+          Effect.withSpan('tmnl.harness.runtime.fork-session'),
+        ),
+
       getAvailableModels: () =>
         engine.getAvailableModels().pipe(
           Effect.mapError(toRuntimeError('models-failed', 'Failed to get available models')),
@@ -115,7 +123,8 @@ export const HarnessRuntimeLive = Layer.effect(
 ).pipe(
   Layer.provide(
     PiAiHarnessEngineCoreLive.pipe(
-      Layer.provide(HarnessSessionStoreMemoryLive),
+      Layer.provide(HarnessSessionStoreJSONLLive),
+      Layer.provide(BunFileSystem.layer),
       Layer.provide(
         PiAiToolRuntimeWithBuiltins.pipe(
           Layer.provide(AgentHarnessConfigDefault),
@@ -132,4 +141,5 @@ export const HarnessRuntimeLive = Layer.effect(
   //   - WS handler resolves it for shell event relay + I/O commands
   // provideMerge: provides to inner layers AND merges into output context.
   Layer.provideMerge(InteractiveShellServiceLive),
+  Layer.provideMerge(PanelEventBusLive),
 )
