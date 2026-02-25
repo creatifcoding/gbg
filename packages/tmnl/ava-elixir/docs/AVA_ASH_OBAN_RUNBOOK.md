@@ -224,3 +224,21 @@ For dual-run observability and low-risk ingress health monitoring, the bridge em
   - `parity_status`: `:match | :mismatch | :missing_expected | :missing_actual | :error`
 
 These names are the canonical Phase-1 metrics to wire into dashboards/alerts for ingress failures and sampled dual-run parity drift.
+
+---
+
+## 12) SLO + failure drill references
+
+- SLO and alert matrix: `docs/AVA_SLO_ALERTS.md`
+- Deterministic failure drill runner: `scripts/chaos_drill.sh`
+
+Run the drill pack:
+
+```bash
+./ava-elixir/scripts/chaos_drill.sh
+```
+
+This validates three critical failure paths:
+1. malformed ingress rejection,
+2. outbox publish failure handling,
+3. rollback alias smoke (`AVA_RUNTIME_MODE=phoenix_fallback`).
