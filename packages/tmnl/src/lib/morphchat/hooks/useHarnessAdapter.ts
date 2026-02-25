@@ -228,13 +228,36 @@ const setInstanceConfig = (id: string, cfg: HarnessInstanceConfig) => {
 const getInstanceConfig = (id: string): HarnessInstanceConfig | null =>
   morphChatRegistry.get(instanceConfig$(id)) ?? instanceConfigCache.get(id) ?? null
 
-const setSessionId = (id: string, value: HarnessSessionId | null, _reason: string) => {
+const setSessionId = (id: string, value: HarnessSessionId | null, reason: string) => {
   if (value == null) {
     sessionIdCache.delete(id)
   } else {
     sessionIdCache.set(id, value)
   }
   morphChatRegistry.set(sessionId$(id), value)
+
+  const sidText = value ?? 'none'
+  morphChatRegistry.update(statusRows$(id), (prev) => [
+    {
+      id: `status-${Date.now()}-sid`,
+      tone: 'info',
+      text: `[sid] ${sidText} (${reason})`,
+      source: 'harness',
+      details: {
+        reason,
+        sessionId: value,
+      },
+    },
+    ...prev,
+  ].slice(0, 8))
+
+  if (typeof console !== 'undefined') {
+    console.info('[harness:sid]', {
+      instanceId: id,
+      sessionId: value,
+      reason,
+    })
+  }
 }
 
 const getSessionId = (id: string): HarnessSessionId | null =>
@@ -749,6 +772,12 @@ const connectOp$ = Atom.family((id: string) =>
         })
 
         yield* activateSessionWiring(id, session.sessionId as HarnessSessionId, nodeId, agentName, runtime, undefined, session.agentId)
+        pushStatusRow(id, {
+          id: `status-${Date.now()}-connect-session`,
+          tone: 'info',
+          text: `[connect] active session ${session.sessionId}`,
+          source: 'harness',
+        })
 
         return session.sessionId as string
       }).pipe(
@@ -1035,6 +1064,12 @@ const newSessionOp$ = Atom.family((id: string) =>
         )
 
         yield* activateSessionWiring(id, session.sessionId as HarnessSessionId, nodeId, agentName, runtime, undefined, session.agentId)
+        pushStatusRow(id, {
+          id: `status-${Date.now()}-new-session`,
+          tone: 'info',
+          text: `[new-session] active session ${session.sessionId}`,
+          source: 'harness',
+        })
         return session.sessionId as string
       }).pipe(
         Effect.catchAllCause((cause) =>
