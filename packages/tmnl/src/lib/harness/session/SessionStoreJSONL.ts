@@ -221,6 +221,7 @@ export const HarnessSessionStoreJSONLLive = Layer.effect(
             new HarnessSessionStoreError({
               code: 'invalid-session-file',
               message: `Session file for ${sessionId} does not contain a metadata header`,
+              cause: Option.none(),
             }),
           )
         }
@@ -405,6 +406,7 @@ export const HarnessSessionStoreJSONLLive = Layer.effect(
             new HarnessSessionStoreError({
               code: 'session-not-found',
               message: `Cannot append event. Session ${normalizeSessionId(envelope.sessionId)} does not exist`,
+              cause: Option.none(),
             }),
           )
         }
@@ -524,6 +526,7 @@ export const HarnessSessionStoreJSONLLive = Layer.effect(
             new HarnessSessionStoreError({
               code: 'session-not-found',
               message: `Cannot save cursor. Session ${normalizeSessionId(cursor.sessionId)} does not exist`,
+              cause: Option.none(),
             }),
           )
         }
@@ -592,6 +595,7 @@ export const HarnessSessionStoreJSONLLive = Layer.effect(
                   new HarnessSessionStoreError({
                     code: 'invalid-session-file',
                     message: `Session file ${fileName} is empty`,
+                    cause: Option.none(),
                   }),
                 )
               }
@@ -621,6 +625,7 @@ export const HarnessSessionStoreJSONLLive = Layer.effect(
             new HarnessSessionStoreError({
               code: 'session-not-found',
               message: `Cannot update metadata. Session ${id} does not exist`,
+              cause: Option.none(),
             }),
           )
         }
@@ -636,6 +641,7 @@ export const HarnessSessionStoreJSONLLive = Layer.effect(
             new HarnessSessionStoreError({
               code: 'invalid-session-file',
               message: `Session file for ${id} does not contain a metadata header`,
+              cause: Option.none(),
             }),
           )
         }
