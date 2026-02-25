@@ -60,7 +60,7 @@ function MorphChatMockPanel({ panelId }: PanelContentProps) {
 function MorphChatHarnessPanel({ panelId }: PanelContentProps) {
   // Each panel is an isolated session — like Cursor agent tabs.
   // The WS transport is shared, but atoms/session/messages are per-instance.
-  const { adapter, status, error, newSession, hardReconnect } = useHarnessAdapter({
+  const { adapter, status, error, newSession, resumeSession, hardReconnect } = useHarnessAdapter({
     instanceId: panelId,
     nodeId: 'conductor',
     role: 'general',
@@ -74,11 +74,10 @@ function MorphChatHarnessPanel({ panelId }: PanelContentProps) {
     try { return morphChatRegistry.get(sessionId$(panelId)) } catch { return null }
   }, [panelId, status]) // re-derive when status changes (connect sets sessionId)
 
-  const handleResumeSession = React.useCallback((_sid: string) => {
-    // TODO: Wire to runtime.resumeSession once WS protocol is extended
-    // For now, just close the drawer
+  const handleResumeSession = React.useCallback((sid: string) => {
+    resumeSession(sid)
     setIsSessionDrawerOpen(false)
-  }, [])
+  }, [resumeSession])
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
