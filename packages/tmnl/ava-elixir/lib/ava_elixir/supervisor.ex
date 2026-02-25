@@ -11,6 +11,10 @@ defmodule AvaElixir.Supervisor do
   @impl true
   def init(:ok) do
     children = [
+      AvaElixir.Repo,
+      {Oban, Application.fetch_env!(:ava_elixir, Oban)},
+      {AvaElixir.Bridge.NatsConsumer, []},
+      {AvaElixir.Bridge.NatsDispatcher, []},
       {Phoenix.PubSub, name: AvaElixir.PubSub},
       AvaElixirWeb.Endpoint,
       {AvaElixir.FailureProbe, []},

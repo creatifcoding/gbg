@@ -12,6 +12,9 @@ defmodule AvaElixir.Telemetry do
           | :unsubscribe
           | :list_subscriptions
 
+  @type ingress_status :: :ok | :error
+  @type parity_status :: :match | :mismatch | :missing_expected | :missing_actual | :error
+
   @spec emit_nif_call(operation(), non_neg_integer(), :ok | :error, AvaElixir.runtime_mode()) ::
           :ok
   def emit_nif_call(operation, duration_us, status, runtime_mode) do
@@ -37,6 +40,30 @@ defmodule AvaElixir.Telemetry do
       [:ava_elixir, :channel, :lifecycle],
       %{count: 1},
       %{action: action, topic: topic, user_id: user_id}
+    )
+  end
+
+  @spec emit_bridge_ingress(String.t(), ingress_status(), AvaElixir.runtime_mode(), String.t() | nil) ::
+          :ok
+  def emit_bridge_ingress(subject, status, runtime_mode, view_id) do
+    :telemetry.execute(
+      [:ava_elixir, :bridge, :ingress],
+      %{count: 1},
+      %{subject: subject, status: status, runtime_mode: runtime_mode, view_id: view_id}
+    )
+  end
+
+  @spec emit_dual_run_parity(String.t(), parity_status(), String.t(), String.t()) :: :ok
+  def emit_dual_run_parity(view_id, parity_status, expected_hash, actual_hash) do
+    :telemetry.execute(
+      [:ava_elixir, :bridge, :dual_run, :parity],
+      %{count: 1},
+      %{
+        view_id: view_id,
+        parity_status: parity_status,
+        expected_hash: expected_hash,
+        actual_hash: actual_hash
+      }
     )
   end
 end
