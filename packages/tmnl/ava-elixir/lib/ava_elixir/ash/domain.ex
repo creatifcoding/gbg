@@ -10,5 +10,6 @@ defmodule AvaElixir.Ash.Domain do
     resource AvaElixir.Resources.AvaEvent
     resource AvaElixir.Resources.AvaOutbox
     resource AvaElixir.Resources.AvaCheckpoint
+    resource AvaElixir.Resources.AvaProjection
   end
 end

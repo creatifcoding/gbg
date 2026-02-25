@@ -11,7 +11,8 @@ defmodule AvaElixir.Ash.Registry do
     AvaElixir.Resources.AvaCommand,
     AvaElixir.Resources.AvaEvent,
     AvaElixir.Resources.AvaOutbox,
-    AvaElixir.Resources.AvaCheckpoint
+    AvaElixir.Resources.AvaCheckpoint,
+    AvaElixir.Resources.AvaProjection
   ]
 
   @spec resources() :: [module()]
