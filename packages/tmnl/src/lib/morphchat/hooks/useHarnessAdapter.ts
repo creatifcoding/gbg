@@ -15,17 +15,17 @@
 
 import React, { useEffect, useRef } from 'react'
 import { Atom, useAtom } from '@effect-atom/atom-react'
-import { Cause, Effect, Option, Stream, Fiber } from 'effect'
+import { Cause, Effect, Layer, Option, Stream, Fiber } from 'effect'
 import {
   toolStreamSink as toolStreamSinkEffect,
   toolStreamFinalize as toolStreamFinalizeEffect,
 } from '@/lib/chat/msg/tool-block/renderers/terminal/tool-stream-sink'
 import {
+  HarnessBrowserTransportWebSocketDefault,
   HarnessRuntime,
-  HarnessRuntimeBrowserWebSocketDefault,
+  HarnessRuntimeBrowserLive,
   HarnessRuntimeError,
 } from '@/lib/harness'
-import { HarnessBrowserTransport } from '@/lib/harness/HarnessBrowserTransport'
 import {
   dispatchShellEvent,
   registerShellCommandSender,
@@ -164,7 +164,13 @@ interface HarnessInstanceConfig {
 // Shared Runtime — one WS transport for ALL instances
 // =============================================================================
 
-export const harnessRuntimeAtom = Atom.runtime(HarnessRuntimeBrowserWebSocketDefault)
+// Keep HarnessBrowserTransport in the runtime context as well as HarnessRuntime.
+// This avoids missing-service failures when any op/effect path resolves transport directly.
+const HarnessRuntimeBrowserSharedLayer = HarnessRuntimeBrowserLive.pipe(
+  Layer.provideMerge(HarnessBrowserTransportWebSocketDefault),
+)
+
+export const harnessRuntimeAtom = Atom.runtime(HarnessRuntimeBrowserSharedLayer)
 
 // =============================================================================
 // Per-Instance State Atoms — Atom.family keyed by instanceId
@@ -489,7 +495,7 @@ function wireEventStream(
   activeSessionId: HarnessSessionId,
   agentName: string,
   runtime: { events: Stream.Stream<any, any>; getSnapshot: (...args: any[]) => Effect.Effect<any, any> },
-  transport: { events: Stream.Stream<unknown, any>; request: (cmd: unknown) => Effect.Effect<unknown, any> },
+  transport?: { events: Stream.Stream<unknown, any>; request: (cmd: unknown) => Effect.Effect<unknown, any> },
 ) {
   const processor = getProcessor(id, agentName)
   const seenSeqs = new Set<number>()
@@ -548,63 +554,68 @@ function wireEventStream(
     Effect.forkDaemon,
   )
 
-  // Shell event relay fiber
-  const shellFiberEffect = transport.events.pipe(
-    Stream.runForEach((rawEvent: any) =>
-      Effect.sync(() => {
-        if (rawEvent?._tag === 'remote:shell_event' && rawEvent.event) {
-          dispatchShellEvent(rawEvent.event as ShellEvent)
-          return
-        }
+  const shellFiberEffect = transport
+    ? transport.events.pipe(
+        Stream.runForEach((rawEvent: any) =>
+          Effect.sync(() => {
+            if (rawEvent?._tag === 'remote:shell_event' && rawEvent.event) {
+              dispatchShellEvent(rawEvent.event as ShellEvent)
+              return
+            }
 
-        if (rawEvent?._tag === 'remote:panel_event' && rawEvent.event) {
-          applyReplaySafeRemotePanelEvent(rawEvent.event as PanelEvent & { surface?: unknown }, {
-            registerGeniferPanelVisitor,
-            setGeniferPanelSurface: (surfaceId, surface) => setGeniferPanelSurface(surfaceId, surface as any),
-            spawnPanel,
-            closePanel,
-            remoteToLocalPanelIds,
-            remotePanelSurfaceIds,
-            surfaceToLocalPanelIds,
-            panelExists: (panelId) => getPanel(panelId) != null,
-          })
-        }
-      }),
-    ),
-    Stream.withSpan('tmnl.morphchat.harness.transport-events', {
-      attributes: {
-        instanceId: id,
-        sessionId: activeSessionId,
-      },
-    }),
-  ).pipe(
-    Effect.catchAllCause((cause) =>
-      morphchatLogWarningCause(id, 'transport-events-stream-failed', cause, {
-        sessionId: activeSessionId,
-      }).pipe(Effect.asVoid),
-    ),
-    Effect.forkDaemon,
-  )
-
-  // Register shell command sender
-  registerShellCommandSender((command) => {
-    runHarnessLog(
-      transport.request(command as any).pipe(
-        Effect.withSpan('tmnl.morphchat.harness.shell-command-dispatch', {
-          attributes: {
-            instanceId: id,
-            command: (command as { _tag?: unknown })._tag ?? 'unknown',
-          },
-        }),
-        Effect.tapErrorCause((cause) =>
-          morphchatLogWarningCause(id, 'shell-command-dispatch-failed', cause, {
-            command: (command as { _tag?: unknown })._tag ?? 'unknown',
+            if (rawEvent?._tag === 'remote:panel_event' && rawEvent.event) {
+              applyReplaySafeRemotePanelEvent(rawEvent.event as PanelEvent & { surface?: unknown }, {
+                registerGeniferPanelVisitor,
+                setGeniferPanelSurface: (surfaceId, surface) => setGeniferPanelSurface(surfaceId, surface as any),
+                spawnPanel,
+                closePanel,
+                remoteToLocalPanelIds,
+                remotePanelSurfaceIds,
+                surfaceToLocalPanelIds,
+                panelExists: (panelId) => getPanel(panelId) != null,
+              })
+            }
           }),
         ),
-        Effect.asVoid,
-      ),
-    )
-  })
+        Stream.withSpan('tmnl.morphchat.harness.transport-events', {
+          attributes: {
+            instanceId: id,
+            sessionId: activeSessionId,
+          },
+        }),
+      ).pipe(
+        Effect.catchAllCause((cause) =>
+          morphchatLogWarningCause(id, 'transport-events-stream-failed', cause, {
+            sessionId: activeSessionId,
+          }).pipe(Effect.asVoid),
+        ),
+        Effect.forkDaemon,
+      )
+    : Effect.succeed(null)
+
+  if (transport) {
+    // Register shell command sender
+    registerShellCommandSender((command) => {
+      runHarnessLog(
+        transport.request(command as any).pipe(
+          Effect.withSpan('tmnl.morphchat.harness.shell-command-dispatch', {
+            attributes: {
+              instanceId: id,
+              command: (command as { _tag?: unknown })._tag ?? 'unknown',
+            },
+          }),
+          Effect.tapErrorCause((cause) =>
+            morphchatLogWarningCause(id, 'shell-command-dispatch-failed', cause, {
+              command: (command as { _tag?: unknown })._tag ?? 'unknown',
+            }),
+          ),
+          Effect.asVoid,
+        ),
+      )
+    })
+  } else {
+    clearShellCommandSender()
+  }
 
   // Snapshot hydration
   const snapshotEffect = runtime.getSnapshot(activeSessionId, Option.none()).pipe(
@@ -652,8 +663,7 @@ function activateSessionWiring(
     morphChatRegistry.set(connection$(id), { phase: 'connected', endpoint: `harness:${nodeId}` } as ConnectionState)
     morphChatRegistry.set(agents$(id), [{ id: agentId ?? nodeId, name: agentName, isActive: true }])
 
-    const transport = yield* HarnessBrowserTransport
-    const wired = wireEventStream(id, activeSessionId, agentName, runtime, transport)
+    const wired = wireEventStream(id, activeSessionId, agentName, runtime)
 
     const fiber = yield* wired.eventFiberEffect
     morphChatRegistry.set(eventFiber$(id), fiber)
@@ -682,6 +692,7 @@ const connectOp$ = Atom.family((id: string) =>
   harnessRuntimeAtom.fn<{ nodeId: string; role: HarnessRole; agentName: string }>()(
     ({ nodeId, role, agentName }, _ctx) =>
       Effect.gen(function* () {
+        morphChatRegistry.set(instanceConfig$(id), { nodeId, role, agentName })
         const runtime = yield* HarnessRuntime
 
         yield* interruptInstanceFibers(id)
@@ -925,7 +936,6 @@ const disposeOp$ = Atom.family((id: string) =>
       morphChatRegistry.set(streaming$(id), STREAMING_IDLE)
       morphChatRegistry.set(connection$(id), DISCONNECTED)
       morphChatRegistry.set(statusRows$(id), [])
-      morphChatRegistry.set(instanceConfig$(id), null)
 
       // Cleanup infrastructure caches
       toolBridges.delete(id)
@@ -939,6 +949,7 @@ const newSessionOp$ = Atom.family((id: string) =>
   harnessRuntimeAtom.fn<{ nodeId: string; role: HarnessRole; agentName: string }>()(
     ({ nodeId, role, agentName }, _ctx) =>
       Effect.gen(function* () {
+        morphChatRegistry.set(instanceConfig$(id), { nodeId, role, agentName })
         const runtime = yield* HarnessRuntime
 
         yield* interruptInstanceFibers(id)
@@ -1180,8 +1191,7 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
     }
 
     reconnectAttempts.current = 0
-    const timer = setTimeout(() => doConnect({ nodeId, role, agentName }), 0)
-    return () => clearTimeout(timer)
+    doConnect({ nodeId, role, agentName })
   }, [autoConnect, status, nodeId, role, agentName, instanceId, doConnect])
 
   useEffect(() => { if (status === 'connected') reconnectAttempts.current = 0 }, [status])
