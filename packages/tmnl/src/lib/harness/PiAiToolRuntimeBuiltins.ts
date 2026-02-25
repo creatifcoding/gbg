@@ -46,6 +46,10 @@ import { GeniferHarnessServiceTag, GeniferHarnessServiceLive } from '@/lib/genif
 import { GeniferServiceLive } from '@/lib/genifer/services/GeniferService'
 import { GeniferDevDbLayer } from '@/lib/genifer/migrations/runner'
 
+// LanguageModel layer for genifer generation (uses Pi OAuth auth)
+import { makeAnthropicLayer } from '@/lib/agents/providers/anthropic'
+import { PiAuthBridgeLive } from '@/lib/agents/auth/PiAuthBridge'
+
 // GEOINT harness integration
 import { createGeointTools, GeointHarnessService, GeointHarnessServiceLive } from '@/lib/geoint/harness'
 import type { GeointHarnessServiceShape } from '@/lib/geoint/harness'
@@ -242,6 +246,12 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
           ),
         )
 
+        // Wire LanguageModel layer for genifer generation via Pi OAuth
+        // makeAnthropicLayer requires PiAuthBridge → uses Pi's OAuth token
+        const geniferModelLayer = makeAnthropicLayer('claude-sonnet-4-20250514')
+          .pipe(Layer.provide(PiAuthBridgeLive))
+        service.setModelLayer(geniferModelLayer)
+
         let geointService: GeointHarnessServiceShape | undefined
         try {
           geointService = await Effect.runPromise(
@@ -372,8 +382,15 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
         //      SDK's onUpdate is synchronous — fire-and-forget with runPromise.
         let chunkSeq = 0
         let prevLength = 0
+        // Track latest details from onUpdate for the progress event
+        let latestDetails: unknown = undefined
         const sdkOnUpdate = onStreamChunk
           ? (partial: { content: Array<{ type: string; text: string }>; details?: unknown }) => {
+              // Capture details (e.g., treeSnapshot from genifer streaming)
+              if (partial.details) {
+                latestDetails = partial.details
+              }
+
               const fullText = partial.content
                 .filter((c) => c.type === 'text')
                 .map((c) => c.text)
@@ -388,14 +405,15 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
                 prevLength = fullText.length
               }
 
-              if (!delta) return
+              if (!delta && !partial.details) return
 
               chunkSeq++
               const chunk: ToolStreamChunk = {
                 toolCallId: toolCall.id,
                 seq: chunkSeq,
-                chunk: delta,
-                kind: 'stdout', // SDK merges stdout+stderr into one stream
+                chunk: delta || '',
+                kind: 'stdout',
+                details: partial.details,
               }
               // Fire-and-forget — don't block SDK's exec loop.
               Effect.runPromise(onStreamChunk(chunk)).catch(() => {})
@@ -422,6 +440,7 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
           toolCallId: toolCall.id,
           toolName: toolCall.name,
           content: result.content,
+          details: (result as any).details,
           isError: false,
           timestamp: Date.now(),
         }

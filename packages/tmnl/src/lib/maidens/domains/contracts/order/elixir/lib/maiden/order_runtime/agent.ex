@@ -88,7 +88,14 @@ defmodule Maiden.OrderRuntime.Agent do
     :total,
     :cancelled_reason,
     :shipped_at,
-    :delivered_at
+    :delivered_at,
+    :model_request_id,
+    :model_name,
+    :model_prompt,
+    :model_options,
+    :model_status,
+    :model_result,
+    :model_error
   ]
 
   @doc """

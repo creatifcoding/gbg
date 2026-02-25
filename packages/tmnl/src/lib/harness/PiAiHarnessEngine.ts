@@ -632,7 +632,27 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                     // the complete arguments during streaming. No need to re-emit here.
 
                     // Stream callback: emit phase:'stream' for each output chunk
-                    const onStreamChunk = (chunk: { toolCallId: string; seq: number; chunk: string; kind: 'stdout' | 'stderr' }) => {
+                    const onStreamChunk = (chunk: { toolCallId: string; seq: number; chunk: string; kind: 'stdout' | 'stderr'; details?: unknown }) => {
+                      // If chunk carries details (e.g., genifer partial tree), also emit a
+                      // phase:'update' event so the chat renderer can progressively render.
+                      if (chunk.details) {
+                        Effect.runPromise(
+                          appendEvent(sessionId, (seq, s) =>
+                            HarnessToolEvent.make({
+                              sessionId: s.sessionId,
+                              seq,
+                              at: Date.now(),
+                              toolCallId: chunk.toolCallId,
+                              toolName: toolCall.name,
+                              phase: 'update' as const,
+                              payload: {
+                                details: chunk.details,
+                              },
+                            }),
+                          ),
+                        ).catch(() => {})
+                      }
+
                       return appendEvent(sessionId, (seq, s) =>
                         HarnessToolEvent.make({
                           sessionId: s.sessionId,
@@ -678,6 +698,7 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                         phase: 'end',
                         payload: {
                           result: result.content,
+                          details: (result as any).details,
                           isError: result.isError,
                           executionMs,
                         },

@@ -89,6 +89,7 @@ export interface GeointHarnessServiceShape {
     entity: GeointEntityValue,
     options?: {
       readonly entityId?: string
+      readonly source?: string
       readonly traits?: Record<string, unknown>
     },
   ) => Effect.Effect<EntityStx, GeointHarnessServiceError>
@@ -181,16 +182,20 @@ const spawnFromEntityUnsafe = (
   entity: GeointEntityValue,
   options?: {
     readonly entityId?: string
+    readonly source?: string
     readonly traits?: Record<string, unknown>
   },
 ): EntityStx => {
   const entityId = options?.entityId ?? String(entity.id)
+  const sourceFromMetadata =
+    typeof entity.metadata?.source === 'string' ? entity.metadata.source : undefined
 
   const stx = spawnEntity({
     entityId,
     entityType: toEntityType(entity),
     displayLabel: getEntityDisplayLabel(entity),
     category: toCategory(entity),
+    source: options?.source ?? sourceFromMetadata,
     position: toPosition(entity),
     traits: options?.traits,
   })
@@ -209,6 +214,7 @@ const spawnFromSearchResultUnsafe = (result: SearchResultItem): EntityStx => {
 
   return spawnFromEntityUnsafe(entity, {
     entityId: bundle.entityId,
+    source: result.source,
     traits,
   })
 }

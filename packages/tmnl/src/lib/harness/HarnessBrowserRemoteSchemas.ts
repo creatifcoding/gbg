@@ -40,6 +40,50 @@ export const HarnessRemoteModelListPayload = Schema.Struct({
   models: Schema.Array(HarnessModelInfo),
 })
 
+export const HarnessRemoteSessionStatus = Schema.Literal('active', 'archived', 'starred')
+
+export const HarnessRemoteSessionListItem = Schema.Struct({
+  sessionId: Schema.String,
+  name: Schema.String,
+  autoTitle: Schema.String,
+  tags: Schema.Array(Schema.String),
+  status: HarnessRemoteSessionStatus,
+  starred: Schema.Boolean,
+  createdAt: Schema.Number,
+  updatedAt: Schema.Number,
+  messageCount: Schema.Number,
+  modelId: Schema.String,
+  provider: Schema.String,
+  previewSnippet: Schema.String,
+  nodeId: Schema.String,
+  role: Schema.String,
+})
+export type HarnessRemoteSessionListItem = typeof HarnessRemoteSessionListItem.Type
+
+export const HarnessRemoteSessionListPayload = Schema.Struct({
+  sessions: Schema.Array(HarnessRemoteSessionListItem),
+})
+
+export const HarnessRemoteSessionMetaPatch = Schema.Struct({
+  name: Schema.optional(Schema.String),
+  tags: Schema.optional(Schema.Array(Schema.String)),
+  status: Schema.optional(HarnessRemoteSessionStatus),
+  starred: Schema.optional(Schema.Boolean),
+})
+export type HarnessRemoteSessionMetaPatch = typeof HarnessRemoteSessionMetaPatch.Type
+
+export const HarnessRemoteSessionMetaUpdatedPayload = Schema.Struct({
+  ok: Schema.Boolean,
+})
+
+export const HarnessRemoteSessionDeletedPayload = Schema.Struct({
+  ok: Schema.Boolean,
+})
+
+export const HarnessRemoteSessionForkedPayload = Schema.Struct({
+  sessionId: Schema.String,
+})
+
 // ── Commands sent over WS to remote control plane ──────────────────────────
 export const HarnessRemoteOpenSessionCommand = Schema.TaggedStruct('remote:chat_v2_open_session', {
   nodeId: Schema.String,
@@ -75,6 +119,22 @@ export const HarnessRemoteRespondExtensionUiCommand = Schema.TaggedStruct('remot
 
 export const HarnessRemoteGetModelsCommand = Schema.TaggedStruct('remote:get_available_models', {})
 
+export const HarnessRemoteListSessionsCommand = Schema.TaggedStruct('remote:list_sessions', {})
+
+export const HarnessRemoteUpdateSessionMetaCommand = Schema.TaggedStruct('remote:update_session_meta', {
+  sessionId: HarnessSessionId,
+  patch: HarnessRemoteSessionMetaPatch,
+})
+
+export const HarnessRemoteDeleteSessionCommand = Schema.TaggedStruct('remote:delete_session', {
+  sessionId: HarnessSessionId,
+})
+
+export const HarnessRemoteForkSessionCommand = Schema.TaggedStruct('remote:fork_session', {
+  sessionId: HarnessSessionId,
+  atSeq: Schema.optional(Schema.Number.pipe(Schema.nonNegative())),
+})
+
 export const HarnessRemoteCommand = Schema.Union(
   HarnessRemoteOpenSessionCommand,
   HarnessRemoteResumeSessionCommand,
@@ -83,6 +143,10 @@ export const HarnessRemoteCommand = Schema.Union(
   HarnessRemoteAbortCommand,
   HarnessRemoteRespondExtensionUiCommand,
   HarnessRemoteGetModelsCommand,
+  HarnessRemoteListSessionsCommand,
+  HarnessRemoteUpdateSessionMetaCommand,
+  HarnessRemoteDeleteSessionCommand,
+  HarnessRemoteForkSessionCommand,
   // Interactive shell commands (client → server PTY control)
   ShellInputCommand,
   ShellResizeCommand,

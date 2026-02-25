@@ -12,10 +12,14 @@
  */
 
 import * as React from 'react'
+import { useState } from 'react'
 import { MorphChat } from '@/lib/morphchat'
 import { createMockChatAdapter } from '@/lib/morphchat/adapters/mock-adapter'
 import { Conductor } from '@/lib/morphchat/specs/conductor'
 import { useHarnessAdapter } from '@/lib/morphchat/hooks'
+import { sessionId$ } from '@/lib/morphchat/hooks/useHarnessAdapter'
+import { morphChatRegistry } from '@/lib/morphchat/atoms/registry'
+import { SessionDrawer } from '@/lib/morphchat/components/session-drawer'
 import { panelRegistry, type PanelContentProps } from '../panel-registry'
 
 // =============================================================================
@@ -54,49 +58,141 @@ function MorphChatMockPanel({ panelId }: PanelContentProps) {
 // =============================================================================
 
 function MorphChatHarnessPanel({ panelId }: PanelContentProps) {
-  // NOTE: useHarnessAdapter is a singleton — all instances share one WS connection.
-  // If the harness server isn't running, this will stay in 'idle' or 'error'.
-  const { adapter, status, error } = useHarnessAdapter({
+  // Each panel is an isolated session — like Cursor agent tabs.
+  // The WS transport is shared, but atoms/session/messages are per-instance.
+  const { adapter, status, error, newSession, hardReconnect } = useHarnessAdapter({
+    instanceId: panelId,
     nodeId: 'conductor',
     role: 'general',
     agentName: 'Panel-Agent',
     autoConnect: true,
   })
 
+  const [isSessionDrawerOpen, setIsSessionDrawerOpen] = useState(false)
+
+  const currentSessionId = React.useMemo(() => {
+    try { return morphChatRegistry.get(sessionId$(panelId)) } catch { return null }
+  }, [panelId, status]) // re-derive when status changes (connect sets sessionId)
+
+  const handleResumeSession = React.useCallback((_sid: string) => {
+    // TODO: Wire to runtime.resumeSession once WS protocol is extended
+    // For now, just close the drawer
+    setIsSessionDrawerOpen(false)
+  }, [])
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {status !== 'connected' && (
-        <div
-          style={{
-            padding: '8px 12px',
-            fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
-            fontSize: 'var(--tmnl-text-xs, 12px)',
-            color: status === 'error' ? '#f43f5e' : '#737373',
-            borderBottom: '1px solid rgba(38,38,38,0.5)',
-            letterSpacing: '0.04em',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}
-        >
-          <span style={{
-            width: 6, height: 6, borderRadius: '50%',
-            background: status === 'error' ? '#f43f5e' : status === 'connecting' ? '#fbbf24' : '#525252',
-            flexShrink: 0,
-          }} />
-          <span>
-            {status === 'connecting' ? 'CONNECTING TO HARNESS…'
-              : status === 'error' ? `CONNECTION ERROR: ${error ?? 'unknown'}`
-              : 'WAITING FOR HARNESS (/api/harness/ws)'}
-          </span>
+      {/* Status bar */}
+      <div
+        style={{
+          padding: '4px 12px',
+          fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
+          fontSize: 'var(--tmnl-text-xs, 12px)',
+          color: status === 'error' ? '#f43f5e' : status === 'connected' ? '#525252' : '#737373',
+          borderBottom: '1px solid rgba(38,38,38,0.5)',
+          letterSpacing: '0.04em',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <span style={{
+          width: 6, height: 6, borderRadius: '50%',
+          background: status === 'connected' ? '#22d3ee'
+            : status === 'error' ? '#f43f5e'
+            : status === 'connecting' ? '#fbbf24'
+            : '#525252',
+          flexShrink: 0,
+        }} />
+        <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {status === 'connecting' ? 'CONNECTING…'
+            : status === 'error' ? `ERROR: ${error ?? 'unknown'}`
+            : status === 'connected' ? 'CONNECTED'
+            : 'WAITING FOR HARNESS'}
+        </span>
+
+        {/* Sessions toggle — like AI Assistant button in AutonomousEditorPanel */}
+        {status === 'connected' && (
+          <button
+            onClick={() => setIsSessionDrawerOpen(!isSessionDrawerOpen)}
+            style={{
+              background: isSessionDrawerOpen ? 'rgba(34,211,238,0.12)' : 'rgba(120,113,108,0.06)',
+              border: `1px solid ${isSessionDrawerOpen ? 'rgba(34,211,238,0.25)' : 'rgba(120,113,108,0.15)'}`,
+              color: isSessionDrawerOpen ? '#67e8f9' : '#a8a29e',
+              borderRadius: 4,
+              padding: '1px 8px',
+              cursor: 'pointer',
+              fontSize: 'var(--tmnl-text-xs, 12px)',
+              fontFamily: 'inherit',
+              letterSpacing: '0.04em',
+              transition: 'all 0.15s ease',
+            }}
+            title={isSessionDrawerOpen ? 'Close sessions drawer' : 'Browse sessions'}
+          >
+            SESSIONS
+          </button>
+        )}
+        {status === 'connected' && (
+          <button
+            onClick={newSession}
+            style={{
+              background: 'rgba(34,211,238,0.08)',
+              border: '1px solid rgba(34,211,238,0.2)',
+              color: '#67e8f9',
+              borderRadius: 4,
+              padding: '1px 8px',
+              cursor: 'pointer',
+              fontSize: 'var(--tmnl-text-xs, 12px)',
+              fontFamily: 'inherit',
+              letterSpacing: '0.04em',
+            }}
+            title="Start a new chat session (clears messages)"
+          >
+            NEW
+          </button>
+        )}
+        {(status === 'error' || status === 'connected') && (
+          <button
+            onClick={hardReconnect}
+            style={{
+              background: status === 'error' ? 'rgba(244,63,94,0.08)' : 'rgba(120,113,108,0.08)',
+              border: `1px solid ${status === 'error' ? 'rgba(244,63,94,0.2)' : 'rgba(120,113,108,0.2)'}`,
+              color: status === 'error' ? '#fda4af' : '#a8a29e',
+              borderRadius: 4,
+              padding: '1px 8px',
+              cursor: 'pointer',
+              fontSize: 'var(--tmnl-text-xs, 12px)',
+              fontFamily: 'inherit',
+              letterSpacing: '0.04em',
+            }}
+            title="Reconnect to harness (rebuilds WebSocket transport)"
+          >
+            RECONNECT
+          </button>
+        )}
+      </div>
+
+      {/* Content + Session Drawer — horizontal flex for split pane (like AutonomousEditorPanel) */}
+      <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
+        {/* Main chat area */}
+        <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+          <MorphChat.Surface
+            spec={Conductor}
+            adapter={adapter}
+            surfaceId={`harness-panel-${panelId}`}
+            className="h-full"
+          />
         </div>
-      )}
-      <div style={{ flex: 1, minHeight: 0 }}>
-        <MorphChat.Surface
-          spec={Conductor}
-          adapter={adapter}
-          surfaceId={`harness-panel-${panelId}`}
-          className="h-full"
+
+        {/* Session drawer — slides in from right, split pane */}
+        <SessionDrawer
+          isOpen={isSessionDrawerOpen}
+          onClose={() => setIsSessionDrawerOpen(false)}
+          onResumeSession={handleResumeSession}
+          onNewSession={newSession}
+          currentSessionId={currentSessionId}
+          instanceId={panelId}
+          width={340}
         />
       </div>
     </div>

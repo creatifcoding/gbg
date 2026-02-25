@@ -41,18 +41,47 @@ describe('OrderSchema (Effect Schema)', () => {
     ).toThrow();
   });
 
-  it('accepts valid Jido agent-state payload shape', () => {
-    const decoded = decodeOrderAgentStateSync(
-      makeOrder({
+  it('accepts valid Jido agent-state payload shape with model runtime fields', () => {
+    const decoded = decodeOrderAgentStateSync({
+      ...makeOrder({
         slug: 'ORD-AGENT',
         uuid: '550e8400-e29b-41d4-a716-446655440003',
         customer: 'Agent Alice',
         items: [{ sku: 'SKU-X', qty: 1 }],
         total: 10,
-      })
-    );
+      }),
+      model_request_id: 'req-agent-003',
+      model_name: 'noop-model',
+      model_prompt: 'classify order risk',
+      model_options: { temperature: 0.1 },
+      model_status: 'pending',
+      model_result: null,
+      model_error: null,
+    });
 
     expect(decoded.order_id).toBe('ORD-AGENT-550e8400-e29b-41d4-a716-446655440003');
+    expect(decoded.model_status).toBe('pending');
+  });
+
+  it('rejects invalid model_status in agent-state payload', () => {
+    expect(() =>
+      decodeOrderAgentStateSync({
+        ...makeOrder({
+          slug: 'ORD-AGENT',
+          uuid: '550e8400-e29b-41d4-a716-446655440099',
+          customer: 'Agent Bad',
+          items: [{ sku: 'SKU-BAD', qty: 1 }],
+          total: 2,
+        }),
+        model_request_id: null,
+        model_name: null,
+        model_prompt: null,
+        model_options: {},
+        model_status: 'stalled',
+        model_result: null,
+        model_error: null,
+      })
+    ).toThrow();
   });
 });
 

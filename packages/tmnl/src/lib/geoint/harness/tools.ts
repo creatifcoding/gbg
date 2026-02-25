@@ -44,6 +44,7 @@ export const GeointSearchParams = Type.Object({
   ]),
   entityType: Type.Optional(GeointEntityTypeSchema),
   bounds: Type.Optional(GeointBoundsSchema),
+  sources: Type.Optional(Type.Array(Type.String())),
   limit: Type.Optional(Type.Number({ minimum: 1, maximum: 5000 })),
 })
 export type GeointSearchParams = Static<typeof GeointSearchParams>
@@ -255,6 +256,118 @@ export function createGeointPlanTool(bridge: {
     label: 'GEOINT Plan',
     description: 'Build a source-aware query plan with ranked attempts, fallbacks, and explicit rejections.',
     parameters: GeointPlanParams,
+    async execute(toolCallId, params, signal, onUpdate, _ctx) {
+      return bridge.execute(toolCallId, params, signal, onUpdate)
+    },
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// geoint_map_fly_to  (MapController Phase 4)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const GeointMapFlyToParams = Type.Object({
+  longitude: Type.Number({ minimum: -180, maximum: 180 }),
+  latitude: Type.Number({ minimum: -90, maximum: 90 }),
+  zoom: Type.Optional(Type.Number({ minimum: 0, maximum: 22 })),
+  pitch: Type.Optional(Type.Number({ minimum: 0, maximum: 85 })),
+  bearing: Type.Optional(Type.Number()),
+})
+export type GeointMapFlyToParams = Static<typeof GeointMapFlyToParams>
+
+export interface GeointMapFlyToDetails {
+  readonly viewport: { longitude: number; latitude: number; zoom: number; pitch: number; bearing: number }
+}
+
+export function createGeointMapFlyToTool(bridge: {
+  execute: (
+    callId: string,
+    params: GeointMapFlyToParams,
+    signal: AbortSignal | undefined,
+    onUpdate: ((partial: { content: Array<{ type: string; text: string }>; details?: GeointMapFlyToDetails }) => void) | undefined,
+  ) => Promise<{ content: Array<{ type: string; text: string }>; details?: GeointMapFlyToDetails }>
+}): ToolDefinition<typeof GeointMapFlyToParams, GeointMapFlyToDetails> {
+  return {
+    name: 'geoint_map_fly_to',
+    label: 'Map: Fly To',
+    description: 'Animate the map camera to a specific geographic coordinate. Returns resulting viewport state.',
+    parameters: GeointMapFlyToParams,
+    async execute(toolCallId, params, signal, onUpdate, _ctx) {
+      return bridge.execute(toolCallId, params, signal, onUpdate)
+    },
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// geoint_map_measure  (MapController Phase 4)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const GeointMapMeasureParams = Type.Object({
+  mode: Type.Union([Type.Literal('distance'), Type.Literal('bearing')]),
+  from: Type.Object({
+    longitude: Type.Number({ minimum: -180, maximum: 180 }),
+    latitude: Type.Number({ minimum: -90, maximum: 90 }),
+  }),
+  to: Type.Object({
+    longitude: Type.Number({ minimum: -180, maximum: 180 }),
+    latitude: Type.Number({ minimum: -90, maximum: 90 }),
+  }),
+})
+export type GeointMapMeasureParams = Static<typeof GeointMapMeasureParams>
+
+export interface GeointMapMeasureDetails {
+  readonly mode: 'distance' | 'bearing'
+  readonly distance?: { meters: number; kilometers: number; nauticalMiles: number }
+  readonly bearing?: { degrees: number; cardinal: string }
+}
+
+export function createGeointMapMeasureTool(bridge: {
+  execute: (
+    callId: string,
+    params: GeointMapMeasureParams,
+    signal: AbortSignal | undefined,
+    onUpdate: ((partial: { content: Array<{ type: string; text: string }>; details?: GeointMapMeasureDetails }) => void) | undefined,
+  ) => Promise<{ content: Array<{ type: string; text: string }>; details?: GeointMapMeasureDetails }>
+}): ToolDefinition<typeof GeointMapMeasureParams, GeointMapMeasureDetails> {
+  return {
+    name: 'geoint_map_measure',
+    label: 'Map: Measure',
+    description: 'Measure distance (meters/km/nm) or bearing (degrees/cardinal) between two geographic coordinates.',
+    parameters: GeointMapMeasureParams,
+    async execute(toolCallId, params, signal, onUpdate, _ctx) {
+      return bridge.execute(toolCallId, params, signal, onUpdate)
+    },
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// geoint_map_export  (MapController Phase 4)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const GeointMapExportParams = Type.Object({
+  format: Type.Union([Type.Literal('geojson')]),
+})
+export type GeointMapExportParams = Static<typeof GeointMapExportParams>
+
+export interface GeointMapExportDetails {
+  readonly format: 'geojson'
+  readonly featureCount: number
+  readonly geojson: unknown
+}
+
+export function createGeointMapExportTool(bridge: {
+  execute: (
+    callId: string,
+    params: GeointMapExportParams,
+    signal: AbortSignal | undefined,
+    onUpdate: ((partial: { content: Array<{ type: string; text: string }>; details?: GeointMapExportDetails }) => void) | undefined,
+  ) => Promise<{ content: Array<{ type: string; text: string }>; details?: GeointMapExportDetails }>
+}): ToolDefinition<typeof GeointMapExportParams, GeointMapExportDetails> {
+  return {
+    name: 'geoint_map_export',
+    label: 'Map: Export',
+    description: 'Export current map results as GeoJSON FeatureCollection.',
+    parameters: GeointMapExportParams,
     async execute(toolCallId, params, signal, onUpdate, _ctx) {
       return bridge.execute(toolCallId, params, signal, onUpdate)
     },

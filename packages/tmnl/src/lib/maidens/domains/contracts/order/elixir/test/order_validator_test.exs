@@ -44,7 +44,7 @@ defmodule Maiden.OrderRuntime.ValidatorTest do
   end
 
   describe "agent_state_validate/2" do
-    test "accepts valid Jido agent state payload" do
+    test "accepts valid Jido agent state payload with model runtime fields" do
       payload = %{
         "order_id" => order_id("ORD-STATE-001"),
         "customer" => "Stateful Alice",
@@ -52,11 +52,39 @@ defmodule Maiden.OrderRuntime.ValidatorTest do
         "total" => 11.0,
         "cancelled_reason" => nil,
         "shipped_at" => nil,
-        "delivered_at" => nil
+        "delivered_at" => nil,
+        "model_request_id" => "req-state-001",
+        "model_name" => "noop-model",
+        "model_prompt" => "classify order risk",
+        "model_options" => %{"temperature" => 0.1},
+        "model_status" => "pending",
+        "model_result" => nil,
+        "model_error" => nil
       }
 
       assert :ok = OrderValidator.agent_state_validate(payload)
       assert :ok = Agent.preflight_agent_state(payload)
+    end
+
+    test "rejects invalid model_status for agent state payload" do
+      payload = %{
+        "order_id" => order_id("ORD-STATE-002"),
+        "customer" => "Stateful Bob",
+        "items" => [%{"sku" => "SKU-STATE", "qty" => 1}],
+        "total" => 7.0,
+        "cancelled_reason" => nil,
+        "shipped_at" => nil,
+        "delivered_at" => nil,
+        "model_request_id" => nil,
+        "model_name" => nil,
+        "model_prompt" => nil,
+        "model_options" => %{},
+        "model_status" => "stale",
+        "model_result" => nil,
+        "model_error" => nil
+      }
+
+      assert {:error, %{errors: _errors}} = OrderValidator.agent_state_validate(payload)
     end
   end
 

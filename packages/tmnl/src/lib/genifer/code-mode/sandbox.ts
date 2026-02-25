@@ -12,10 +12,14 @@
 import { Effect, Schema } from 'effect'
 import type { GeniferCodeSDK, ExposeSpec } from './schemas'
 import { CodeModeSandboxError, CodeModeTimeoutError } from './schemas'
-import type { GeointHarnessServiceShape } from '@/lib/geoint/harness'
+// Direct import to avoid barrel pulling in server-only transitive deps
+import type { GeointHarnessServiceShape } from '@/lib/geoint/harness/GeointHarnessService'
 import { SearchResultItem } from '@/lib/geoint/schemas/search'
 import type { SearchResultItem as SearchResultItemValue } from '@/lib/geoint/schemas/search'
-import { planRegistryQuery, RegistryPlannerLive } from '@/lib/geoint/registry'
+// Import directly from planner module — the registry barrel re-exports
+// server-only modules (sourceResolver, runtimeSourceRegistry) that pull
+// in @effect/sql-pg which crashes in the browser.
+import { planRegistryQuery, RegistryPlannerLive } from '@/lib/geoint/registry/planner'
 import {
   registerDynamicRpc,
   callDynamicRpc,
@@ -331,6 +335,14 @@ export function createCodeSDK(options: CreateCodeSDKOptions = {}): GeniferCodeSD
         }
         if ((mode === 'bounds' || mode === 'type+bounds') && params.bounds) {
           filtered = filtered.filter((s) => inBounds(s, params.bounds!))
+        }
+
+        if (params.sources && params.sources.length > 0) {
+          const wantedSources = new Set(params.sources.map((source) => source.toLowerCase()))
+          filtered = filtered.filter((s) => {
+            const source = (s as { source?: string | null }).source
+            return typeof source === 'string' && wantedSources.has(source.toLowerCase())
+          })
         }
 
         const limit = params.limit ?? 200

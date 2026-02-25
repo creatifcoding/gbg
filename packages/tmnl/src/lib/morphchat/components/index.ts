@@ -29,4 +29,10 @@ export { AnalysisCard, RemediationCard } from './artifact-cards'
 export type { AnalysisCardProps, RemediationCardProps } from './artifact-cards'
 export { MetricsPanel } from './metrics-panel'
 export type { MetricsPanelProps } from './metrics-panel'
+export { SessionDrawer, SessionCard } from './session-drawer'
+export type {
+  SessionDrawerProps,
+  SessionCardProps,
+  SessionCardSession,
+} from './session-drawer'
 // MorphOverlay archived — layout morphing (#F368) will replace it

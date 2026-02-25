@@ -119,6 +119,20 @@ describe('GEOINT harness tools', () => {
 
     expect((search.details as any).count).toBe(1)
     expect((search.details as any).entityIds).toEqual(['flight:def456'])
+
+    const bySource = await searchTool.execute(
+      'tc-4b',
+      {
+        mode: 'all',
+        sources: ['opensky'],
+      } as any,
+      undefined,
+      undefined,
+      undefined as any,
+    )
+
+    expect((bySource.details as any).count).toBe(1)
+    expect((bySource.details as any).entityIds).toEqual(['flight:def456'])
   })
 
   it('geoint_select focus updates selection and returns viewport', async () => {

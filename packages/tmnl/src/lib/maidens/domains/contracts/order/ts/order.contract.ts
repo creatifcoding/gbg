@@ -76,11 +76,51 @@ export const OrderSchema = Schema.Struct({
 
 export type Order = typeof OrderSchema.Type;
 
+const ModelOptionsSchema = Schema.Record({
+  key: Schema.String,
+  value: Schema.Unknown,
+}).annotations({
+  identifier: 'OrderModelOptions',
+  title: 'Order Model Options',
+  description: 'Runtime model adapter options map.',
+});
+
+const OrderModelStatusSchema = Schema.Literal(
+  'idle',
+  'pending',
+  'completed',
+  'failed'
+).annotations({
+  identifier: 'OrderModelStatus',
+  title: 'Order Model Status',
+  description: 'Runtime model inference lifecycle status for the order agent.',
+});
+
+const NullableModelRuntimeValue = Schema.Union(Schema.Null, Schema.Unknown).annotations({
+  title: 'Nullable Model Runtime Value',
+  description: 'Model runtime payload fields (result/error) represented as nil-or-any.',
+  jsonSchema: {
+    anyOf: [{ type: 'null' }, {}],
+  },
+});
+
 /**
  * Jido agent schema contract (TS canonical):
  * mirrors agent state fields configured in Elixir `use Jido.Agent, schema: [...]`.
  */
-export const OrderAgentStateSchema = OrderSchema.annotations({
+export const OrderAgentStateSchema = OrderSchema.pipe(
+  Schema.extend(
+    Schema.Struct({
+      model_request_id: Schema.NullOr(Schema.String),
+      model_name: Schema.NullOr(Schema.String),
+      model_prompt: Schema.NullOr(Schema.String),
+      model_options: ModelOptionsSchema,
+      model_status: OrderModelStatusSchema,
+      model_result: NullableModelRuntimeValue,
+      model_error: NullableModelRuntimeValue,
+    })
+  )
+).annotations({
   identifier: 'OrderAgentState',
   title: 'Order Agent State',
   description:

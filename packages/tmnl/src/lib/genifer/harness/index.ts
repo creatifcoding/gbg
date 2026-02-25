@@ -91,3 +91,20 @@ export {
 
 // Bridge (wires ToolDefinition.execute → GeniferHarnessService)
 export { createGeniferTools } from './bridge'
+
+// Panel visitor (Genifer surface in floating panel)
+export {
+  GeniferPanelVisitor,
+  geniferPanelSurfaces,
+  registerGeniferPanelVisitor,
+  type GeniferPanelData,
+} from './panel-visitor'
+
+// spawn_panel tool
+export {
+  SpawnPanelParams,
+  createSpawnPanelTool,
+  type SpawnPanelParams as SpawnPanelParamsType,
+  type SpawnPanelDetails,
+  type SpawnPanelBridge,
+} from './spawn-panel-tool'

@@ -20,6 +20,7 @@ import { hotkeyActions, KeyParser, type CommandError } from '@/lib/hotkeys'
 import type { PanelIdentity } from '../atoms/families'
 import { panelIdentityToScopeId } from '../atoms/families'
 import type { GeointOperations } from '../atoms/operations'
+import type { MapController } from '../map/MapController'
 
 // =============================================================================
 // TYPES
@@ -50,7 +51,8 @@ export interface UseGeointPanelHotkeysReturn {
  * Activates scope when panel gains focus, deactivates on blur.
  *
  * @param identity - Panel identity (UUID + slug)
- * @param operations - Unified operations object
+ * @param operations - Unified operations object (legacy — search ops)
+ * @param mapController - Optional MapController for unified map ops
  * @returns Container ref to attach to DOM element
  *
  * @example
@@ -58,7 +60,8 @@ export interface UseGeointPanelHotkeysReturn {
  * function GeointDashboardPanel({ identity }: { identity: PanelIdentity }) {
  *   const panelId = panelIdentityToId(identity)
  *   const ops = createGeointOperations(panelId)
- *   const { containerRef } = useGeointPanelHotkeys(identity, ops)
+ *   const controller = useMapController()
+ *   const { containerRef } = useGeointPanelHotkeys(identity, ops, controller)
  *
  *   return (
  *     <div ref={containerRef} tabIndex={-1} className="geoint-panel">
@@ -70,7 +73,8 @@ export interface UseGeointPanelHotkeysReturn {
  */
 export function useGeointPanelHotkeys(
   identity: PanelIdentity,
-  operations: GeointOperations
+  operations: GeointOperations,
+  mapController?: MapController
 ): UseGeointPanelHotkeysReturn {
   const registry = useContext(RegistryContext)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -86,15 +90,15 @@ export function useGeointPanelHotkeys(
     // This requires Effect-based registration which we'll implement later
 
     // Register commands with panel-specific scope
-    registerCommands(registry, scopeId, operations)
+    registerCommands(registry, scopeId, operations, mapController)
 
     // Register bindings asynchronously (need to parse key strings)
-    registerBindings(registry, scopeId).catch((e) => {
+    registerBindings(registry, scopeId, !!mapController).catch((e) => {
       console.error(`[useGeointPanelHotkeys] Failed to register bindings for ${scopeId}:`, e)
     })
 
     console.log(`[useGeointPanelHotkeys] Registered commands for ${scopeId}`)
-  }, [identity, operations, registry, scopeId])
+  }, [identity, operations, registry, scopeId, mapController])
 
   // Handle focus/blur for scope activation
   useEffect(() => {
@@ -134,9 +138,10 @@ export function useGeointPanelHotkeys(
 function registerCommands(
   registry: any,
   scopeId: string,
-  ops: GeointOperations
+  ops: GeointOperations,
+  mapController?: MapController
 ): void {
-  const commands = createPanelCommands(ops)
+  const commands = createPanelCommands(ops, mapController)
 
   for (const cmd of commands) {
     const handler = Effect.sync(() => {
@@ -159,8 +164,8 @@ function registerCommands(
 /**
  * Register all GEOINT keybindings for a panel.
  */
-async function registerBindings(registry: any, scopeId: string): Promise<void> {
-  const bindings = getPanelBindings()
+async function registerBindings(registry: any, scopeId: string, hasMapController: boolean): Promise<void> {
+  const bindings = getPanelBindings(hasMapController)
 
   for (const binding of bindings) {
     try {
@@ -204,38 +209,54 @@ interface PanelCommand {
   readonly handler: () => void
 }
 
-function createPanelCommands(ops: GeointOperations): PanelCommand[] {
-  return [
-    // Map operations
-    { id: 'map.zoomIn', name: 'Zoom In', category: 'Map', handler: () => ops.zoomIn() },
-    { id: 'map.zoomOut', name: 'Zoom Out', category: 'Map', handler: () => ops.zoomOut() },
-    { id: 'map.resetView', name: 'Reset View', category: 'Map', handler: () => ops.resetView() },
+function createPanelCommands(ops: GeointOperations, mc?: MapController): PanelCommand[] {
+  const commands: PanelCommand[] = [
+    // Map operations — prefer MapController when available
+    { id: 'map.zoomIn', name: 'Zoom In', category: 'Map', handler: () => (mc ?? ops).zoomIn() },
+    { id: 'map.zoomOut', name: 'Zoom Out', category: 'Map', handler: () => (mc ?? ops).zoomOut() },
+    { id: 'map.resetView', name: 'Reset View', category: 'Map', handler: () => (mc ?? ops).resetView() },
 
-    // Search operations
+    // Search operations — still on legacy ops (MapController doesn't absorb search)
     { id: 'search.focus', name: 'Focus Search', category: 'Search', handler: () => ops.focusSearch() },
     { id: 'search.clear', name: 'Clear Search', category: 'Search', handler: () => ops.clearSearch() },
     { id: 'search.execute', name: 'Execute Search', category: 'Search', handler: () => ops.executeSearch() },
     { id: 'search.togglePanel', name: 'Toggle Search Panel', category: 'Search', handler: () => ops.toggleSearchPanel() },
 
-    // Layer operations
+    // Layer operations — prefer MapController when available
     { id: 'layers.togglePanel', name: 'Toggle Layers Panel', category: 'Layers', handler: () => ops.toggleLayerPanel() },
-    { id: 'layers.showAll', name: 'Show All Layers', category: 'Layers', handler: () => ops.showAllLayers() },
-    { id: 'layers.hideAll', name: 'Hide All Layers', category: 'Layers', handler: () => ops.hideAllLayers() },
-    { id: 'layers.cycleMapStyle', name: 'Cycle Map Style', category: 'Layers', handler: () => ops.cycleMapStyle() },
-    { id: 'layers.toggleTracks', name: 'Toggle Tracks Layer', category: 'Layers', handler: () => ops.toggleLayer('tracks') },
-    { id: 'layers.togglePois', name: 'Toggle POIs Layer', category: 'Layers', handler: () => ops.toggleLayer('pois') },
-    { id: 'layers.toggleFlights', name: 'Toggle Flights Layer', category: 'Layers', handler: () => ops.toggleLayer('flights') },
+    { id: 'layers.showAll', name: 'Show All Layers', category: 'Layers', handler: () => (mc ?? ops).showAllLayers() },
+    { id: 'layers.hideAll', name: 'Hide All Layers', category: 'Layers', handler: () => (mc ?? ops).hideAllLayers() },
+    { id: 'layers.cycleMapStyle', name: 'Cycle Map Style', category: 'Layers', handler: () => mc ? mc.cycleMapStyle() : ops.cycleMapStyle() },
+    { id: 'layers.toggleTracks', name: 'Toggle Tracks Layer', category: 'Layers', handler: () => (mc ?? ops).toggleLayer('tracks') },
+    { id: 'layers.togglePois', name: 'Toggle POIs Layer', category: 'Layers', handler: () => (mc ?? ops).toggleLayer('pois') },
+    { id: 'layers.toggleFlights', name: 'Toggle Flights Layer', category: 'Layers', handler: () => (mc ?? ops).toggleLayer('flights') },
 
-    // Selection operations
-    { id: 'selection.all', name: 'Select All', category: 'Selection', handler: () => ops.selectAll() },
-    { id: 'selection.clear', name: 'Clear Selection', category: 'Selection', handler: () => ops.clearSelection() },
-    { id: 'selection.invert', name: 'Invert Selection', category: 'Selection', handler: () => ops.invertSelection() },
+    // Selection operations — prefer MapController when available
+    { id: 'selection.all', name: 'Select All', category: 'Selection', handler: () => (mc ?? ops).selectAll() },
+    { id: 'selection.clear', name: 'Clear Selection', category: 'Selection', handler: () => (mc ?? ops).clearSelection() },
+    { id: 'selection.invert', name: 'Invert Selection', category: 'Selection', handler: () => (mc ?? ops).invertSelection() },
     { id: 'selection.delete', name: 'Delete Selected', category: 'Selection', handler: () => ops.deleteSelected() },
 
-    // View operations
-    { id: 'view.fitToSelection', name: 'Fit to Selection', category: 'View', handler: () => ops.fitToSelection() },
-    { id: 'view.fitToAll', name: 'Fit to All', category: 'View', handler: () => ops.fitToAll() },
+    // View operations — prefer MapController when available
+    { id: 'view.fitToSelection', name: 'Fit to Selection', category: 'View', handler: () => (mc ?? ops).fitToSelection() },
+    { id: 'view.fitToAll', name: 'Fit to All', category: 'View', handler: () => (mc ?? ops).fitToAll() },
   ]
+
+  // MapController-exclusive commands
+  if (mc) {
+    commands.push(
+      { id: 'map.setHome', name: 'Set Home Position', category: 'Map', handler: () => mc.setHome() },
+      { id: 'map.cancelAnimation', name: 'Cancel Camera Animation', category: 'Map', handler: () => mc.cancelAnimation() },
+      { id: 'map.exportGeoJSON', name: 'Export as GeoJSON', category: 'Export', handler: () => {
+        const geojson = mc.toGeoJSON()
+        console.log('[GEOINT] GeoJSON export:', geojson.features.length, 'features')
+        // Copy to clipboard
+        navigator.clipboard?.writeText(JSON.stringify(geojson, null, 2)).catch(() => {})
+      }},
+    )
+  }
+
+  return commands
 }
 
 // =============================================================================
@@ -248,8 +269,8 @@ interface PanelBinding {
   readonly description?: string
 }
 
-function getPanelBindings(): PanelBinding[] {
-  return [
+function getPanelBindings(hasMapController: boolean): PanelBinding[] {
+  const bindings: PanelBinding[] = [
     // Map navigation
     { keys: '=', commandId: 'map.zoomIn', description: 'Zoom in' },
     { keys: '-', commandId: 'map.zoomOut', description: 'Zoom out' },
@@ -281,4 +302,14 @@ function getPanelBindings(): PanelBinding[] {
     { keys: 'z f', commandId: 'view.fitToSelection', description: 'Fit to selection' },
     { keys: 'z a', commandId: 'view.fitToAll', description: 'Fit to all' },
   ]
+
+  // MapController-exclusive bindings
+  if (hasMapController) {
+    bindings.push(
+      { keys: 'ctrl+h', commandId: 'map.setHome', description: 'Set home position' },
+      { keys: 'ctrl+e', commandId: 'map.exportGeoJSON', description: 'Export GeoJSON to clipboard' },
+    )
+  }
+
+  return bindings
 }

@@ -50,7 +50,7 @@ describe('code-mode sdk.geoint', () => {
           mode: 'execute',
           code: `
             const spawned = await sdk.geoint.spawn.one(${JSON.stringify(encoded)})
-            const search = await sdk.geoint.search({ mode: 'type', entityType: 'flight' })
+            const search = await sdk.geoint.search({ mode: 'type', entityType: 'flight', sources: ['opensky'] })
             const summary = await sdk.geoint.summary({ scope: 'all', includeViewport: true })
             const plan = await sdk.geoint.plan({
               queryId: 'q-sdk-plan-1',

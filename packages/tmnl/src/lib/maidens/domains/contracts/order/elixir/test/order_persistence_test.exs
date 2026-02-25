@@ -28,15 +28,16 @@ defmodule Maiden.OrderRuntime.PersistenceTest do
       base_agent =
         Agent.new(
           id: "order-persist-001",
-          state: %{
-            order_id: order_id("ORD-PERSIST-001"),
-            customer: "Persist Penny",
-            items: [%{sku: "SKU-PERSIST", qty: 2}],
-            total: 21.0,
-            cancelled_reason: nil,
-            shipped_at: nil,
-            delivered_at: nil
-          }
+          state:
+            with_model_runtime_fields(%{
+              order_id: order_id("ORD-PERSIST-001"),
+              customer: "Persist Penny",
+              items: [%{sku: "SKU-PERSIST", qty: 2}],
+              total: 21.0,
+              cancelled_reason: nil,
+              shipped_at: nil,
+              delivered_at: nil
+            })
         )
 
       {:ok, transitioned_agent, []} =
@@ -69,16 +70,17 @@ defmodule Maiden.OrderRuntime.PersistenceTest do
       agent =
         Agent.new(
           id: "order-persist-thread-001",
-          state: %{
-            order_id: order_id("ORD-PERSIST-THREAD-001"),
-            customer: "Thread Theo",
-            items: [%{sku: "SKU-THREAD", qty: 1}],
-            total: 55.0,
-            cancelled_reason: nil,
-            shipped_at: nil,
-            delivered_at: nil,
-            __thread__: thread
-          }
+          state:
+            with_model_runtime_fields(%{
+              order_id: order_id("ORD-PERSIST-THREAD-001"),
+              customer: "Thread Theo",
+              items: [%{sku: "SKU-THREAD", qty: 1}],
+              total: 55.0,
+              cancelled_reason: nil,
+              shipped_at: nil,
+              delivered_at: nil,
+              __thread__: thread
+            })
         )
 
       assert :ok = OrderRuntime.snapshot(agent, table: table)
@@ -110,15 +112,16 @@ defmodule Maiden.OrderRuntime.PersistenceTest do
         version: 1,
         agent_module: Agent,
         id: "order-persist-invalid",
-        state: %{
-          order_id: order_id("ORD-PERSIST-INVALID"),
-          customer: "Bad Payload",
-          items: [],
-          total: "not-a-number",
-          cancelled_reason: nil,
-          shipped_at: nil,
-          delivered_at: nil
-        }
+        state:
+          with_model_runtime_fields(%{
+            order_id: order_id("ORD-PERSIST-INVALID"),
+            customer: "Bad Payload",
+            items: [],
+            total: "not-a-number",
+            cancelled_reason: nil,
+            shipped_at: nil,
+            delivered_at: nil
+          })
       }
 
       assert :ok = Jido.Storage.ETS.put_checkpoint(key, invalid_checkpoint, table: table)
@@ -133,15 +136,16 @@ defmodule Maiden.OrderRuntime.PersistenceTest do
       agent =
         Agent.new(
           id: "order-persist-delete",
-          state: %{
-            order_id: order_id("ORD-PERSIST-DELETE"),
-            customer: "Delete Dana",
-            items: [%{sku: "SKU-DEL", qty: 1}],
-            total: 3.0,
-            cancelled_reason: nil,
-            shipped_at: nil,
-            delivered_at: nil
-          }
+          state:
+            with_model_runtime_fields(%{
+              order_id: order_id("ORD-PERSIST-DELETE"),
+              customer: "Delete Dana",
+              items: [%{sku: "SKU-DEL", qty: 1}],
+              total: 3.0,
+              cancelled_reason: nil,
+              shipped_at: nil,
+              delivered_at: nil
+            })
         )
 
       assert :ok = OrderRuntime.snapshot(agent, table: table)
@@ -163,15 +167,16 @@ defmodule Maiden.OrderRuntime.PersistenceTest do
       agent =
         Agent.new(
           id: "order-persist-file-001",
-          state: %{
-            order_id: order_id("ORD-PERSIST-FILE-001"),
-            customer: "File Fiona",
-            items: [%{sku: "SKU-FILE", qty: 1}],
-            total: 88.0,
-            cancelled_reason: nil,
-            shipped_at: nil,
-            delivered_at: nil
-          }
+          state:
+            with_model_runtime_fields(%{
+              order_id: order_id("ORD-PERSIST-FILE-001"),
+              customer: "File Fiona",
+              items: [%{sku: "SKU-FILE", qty: 1}],
+              total: 88.0,
+              cancelled_reason: nil,
+              shipped_at: nil,
+              delivered_at: nil
+            })
         )
 
       assert :ok = OrderRuntime.snapshot(agent, storage: storage)
@@ -194,15 +199,16 @@ defmodule Maiden.OrderRuntime.PersistenceTest do
       base_agent =
         Agent.new(
           id: agent_id,
-          state: %{
-            order_id: order_id("ORD-PERSIST-RESTART-001"),
-            customer: "Restart Robin",
-            items: [%{sku: "SKU-RESTART", qty: 1}],
-            total: 31.0,
-            cancelled_reason: nil,
-            shipped_at: nil,
-            delivered_at: nil
-          }
+          state:
+            with_model_runtime_fields(%{
+              order_id: order_id("ORD-PERSIST-RESTART-001"),
+              customer: "Restart Robin",
+              items: [%{sku: "SKU-RESTART", qty: 1}],
+              total: 31.0,
+              cancelled_reason: nil,
+              shipped_at: nil,
+              delivered_at: nil
+            })
         )
 
       {:ok, shipped_agent, []} =
@@ -270,15 +276,16 @@ defmodule Maiden.OrderRuntime.PersistenceTest do
       agent =
         Agent.new(
           id: agent_id,
-          state: %{
-            order_id: order_id("ORD-PERSIST-PG-001"),
-            customer: "Postgres Polly",
-            items: [%{sku: "SKU-PG", qty: 2}],
-            total: 99.0,
-            cancelled_reason: nil,
-            shipped_at: nil,
-            delivered_at: nil
-          }
+          state:
+            with_model_runtime_fields(%{
+              order_id: order_id("ORD-PERSIST-PG-001"),
+              customer: "Postgres Polly",
+              items: [%{sku: "SKU-PG", qty: 2}],
+              total: 99.0,
+              cancelled_reason: nil,
+              shipped_at: nil,
+              delivered_at: nil
+            })
         )
 
       on_exit(fn -> cleanup_snapshot(storage, agent_id) end)
@@ -298,15 +305,16 @@ defmodule Maiden.OrderRuntime.PersistenceTest do
       base_agent =
         Agent.new(
           id: agent_id,
-          state: %{
-            order_id: order_id("ORD-PERSIST-PG-RESTART"),
-            customer: "Pg Restart Robin",
-            items: [%{sku: "SKU-PG-RESTART", qty: 1}],
-            total: 64.0,
-            cancelled_reason: nil,
-            shipped_at: nil,
-            delivered_at: nil
-          }
+          state:
+            with_model_runtime_fields(%{
+              order_id: order_id("ORD-PERSIST-PG-RESTART"),
+              customer: "Pg Restart Robin",
+              items: [%{sku: "SKU-PG-RESTART", qty: 1}],
+              total: 64.0,
+              cancelled_reason: nil,
+              shipped_at: nil,
+              delivered_at: nil
+            })
         )
 
       {:ok, shipped_agent, []} =
@@ -397,8 +405,14 @@ defmodule Maiden.OrderRuntime.PersistenceTest do
   end
 
   defp cleanup_snapshot(storage, agent_id) do
-    _ = OrderRuntime.delete_snapshot(agent_id, storage: storage)
-    :ok
+    try do
+      _ = OrderRuntime.delete_snapshot(agent_id, storage: storage)
+      :ok
+    rescue
+      _ -> :ok
+    catch
+      :exit, _ -> :ok
+    end
   end
 
   defp required_env!(name) do
@@ -425,6 +439,21 @@ defmodule Maiden.OrderRuntime.PersistenceTest do
           _ -> fallback
         end
     end
+  end
+
+  defp with_model_runtime_fields(state) do
+    Map.merge(
+      %{
+        model_request_id: nil,
+        model_name: nil,
+        model_prompt: nil,
+        model_options: %{},
+        model_status: "idle",
+        model_result: nil,
+        model_error: nil
+      },
+      state
+    )
   end
 
   defp unique_table(prefix) do

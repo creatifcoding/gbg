@@ -17,13 +17,22 @@ import {
   createGeointSelectTool,
   createGeointSummaryTool,
   createGeointPlanTool,
+  createGeointMapFlyToTool,
+  createGeointMapMeasureTool,
+  createGeointMapExportTool,
   type GeointSearchParams,
   type GeointSpawnParams,
   type GeointSelectParams,
   type GeointSummaryParams,
   type GeointPlanParams,
+  type GeointMapFlyToParams,
+  type GeointMapMeasureParams,
+  type GeointMapExportParams,
 } from './tools'
 import { planRegistryQuery, RegistryPlannerLive } from '../registry'
+import { MapController } from '../map/MapController'
+import { computeDistance, computeBearing } from '../map/geodesic'
+import { asPanelId } from '../atoms/families'
 
 const decodeSearchResult = Schema.decodeUnknownSync(SearchResultItem)
 const decodeSearchResultArray = Schema.decodeUnknownSync(Schema.Array(SearchResultItem))
@@ -66,6 +75,7 @@ const summarizeForList = (
 
 export function createGeointTools(
   service: GeointHarnessServiceShape,
+  options?: { panelId?: string },
 ): ToolDefinition[] {
   const searchTool = createGeointSearchTool({
     async execute(_callId, params: GeointSearchParams) {
@@ -84,6 +94,14 @@ export function createGeointTools(
           throw new Error('geoint_search mode bounds/type+bounds requires bounds')
         }
         filtered = filtered.filter((s) => inBounds(s, params.bounds!))
+      }
+
+      if (params.sources && params.sources.length > 0) {
+        const wantedSources = new Set(params.sources.map((source) => source.toLowerCase()))
+        filtered = filtered.filter((s) => {
+          const source = (s as { source?: string | null }).source
+          return typeof source === 'string' && wantedSources.has(source.toLowerCase())
+        })
       }
 
       const limit = params.limit ? clamp(params.limit, 1, 5000) : 200
@@ -317,5 +335,71 @@ export function createGeointTools(
     },
   })
 
-  return [searchTool, spawnTool, selectTool, summaryTool, planTool]
+  // ─── MapController tools (Phase 4) ──────────────────────────────────────────
+
+  const mapFlyToTool = createGeointMapFlyToTool({
+    async execute(_callId, params: GeointMapFlyToParams) {
+      const pid = asPanelId(options?.panelId ?? 'default')
+      const mc = new MapController(pid)
+      const viewport = await mc.flyTo({
+        longitude: params.longitude,
+        latitude: params.latitude,
+        zoom: params.zoom,
+        pitch: params.pitch,
+        bearing: params.bearing,
+      })
+      return {
+        content: [{
+          type: 'text',
+          text: `Flew to ${params.latitude.toFixed(4)}°, ${params.longitude.toFixed(4)}° at zoom ${viewport.zoom}.`,
+        }],
+        details: { viewport },
+      }
+    },
+  })
+
+  const mapMeasureTool = createGeointMapMeasureTool({
+    async execute(_callId, params: GeointMapMeasureParams) {
+      if (params.mode === 'distance') {
+        const result = computeDistance(params.from, params.to)
+        return {
+          content: [{
+            type: 'text',
+            text: `Distance: ${result.kilometers.toFixed(2)} km (${result.nauticalMiles.toFixed(2)} nm, ${Math.round(result.meters)} m).`,
+          }],
+          details: { mode: 'distance', distance: result },
+        }
+      } else {
+        const result = computeBearing(params.from, params.to)
+        return {
+          content: [{
+            type: 'text',
+            text: `Bearing: ${result.degrees.toFixed(1)}° ${result.cardinal}.`,
+          }],
+          details: { mode: 'bearing', bearing: result },
+        }
+      }
+    },
+  })
+
+  const mapExportTool = createGeointMapExportTool({
+    async execute(_callId, params: GeointMapExportParams) {
+      const pid = asPanelId(options?.panelId ?? 'default')
+      const mc = new MapController(pid)
+      const geojson = mc.toGeoJSON()
+      return {
+        content: [{
+          type: 'text',
+          text: `Exported ${geojson.features.length} features as GeoJSON.`,
+        }],
+        details: {
+          format: params.format,
+          featureCount: geojson.features.length,
+          geojson,
+        },
+      }
+    },
+  })
+
+  return [searchTool, spawnTool, selectTool, summaryTool, planTool, mapFlyToTool, mapMeasureTool, mapExportTool]
 }

@@ -18,16 +18,20 @@ bun run geoint:migrate
 echo "[geoint:rapid] 3/5 diff seeded registry vs DB"
 bun run geoint:registry:diff --strict
 
-echo "[geoint:rapid] 4/5 run registry + planner + parity tests"
+echo "[geoint:rapid] 4/5 run registry + planner + parity + map tests"
 bunx vitest run \
   src/lib/geoint/registry/__tests__/schemas.test.ts \
   src/lib/geoint/registry/__tests__/sourceRegistry.test.ts \
   src/lib/geoint/registry/__tests__/sourceResolver.test.ts \
   src/lib/geoint/registry/__tests__/runtimeSourceRegistry.test.ts \
   src/lib/geoint/registry/__tests__/planner.test.ts \
+  src/lib/geoint/registry/__tests__/provenance.test.ts \
+  src/lib/geoint/entities/__tests__/geoint-entity.test.ts \
   src/lib/geoint/persistence/postgis/__tests__/RegistrySourceRepository.test.ts \
   src/lib/geoint/harness/__tests__/tools.test.ts \
-  src/lib/geoint/harness/__tests__/code-mode-geoint-sdk.test.ts
+  src/lib/geoint/harness/__tests__/code-mode-geoint-sdk.test.ts \
+  src/lib/geoint/map/__tests__/geodesic.test.ts \
+  src/lib/geoint/map/__tests__/MapController.test.ts
 
 if [[ "$WITH_INGEST" == "1" ]]; then
   echo "[geoint:rapid] 5/5 run live ingest smoke (RUN_INTEGRATION_TESTS=1)"

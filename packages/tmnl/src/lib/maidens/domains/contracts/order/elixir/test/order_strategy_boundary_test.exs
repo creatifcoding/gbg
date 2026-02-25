@@ -303,6 +303,37 @@ defmodule Maiden.OrderRuntime.StrategyBoundaryTest do
     assert server_state.agent.state.model_result == nil
   end
 
+  test "stale order.model.result request_id mismatch leaves pending model state" do
+    agent = Agent.new(id: "order-agent-model-stale-result")
+
+    {:ok, pending_agent, [%Maiden.OrderRuntime.Directives.CallModelInference{}]} =
+      Agent.apply_signal_sync(agent, "order.model.request", %{
+        request_id: "req-model-stale-001",
+        model: "noop-model",
+        prompt: "classify order risk",
+        options: %{}
+      })
+
+    assert pending_agent.state.model_status == "pending"
+    assert pending_agent.state.model_request_id == "req-model-stale-001"
+    assert pending_agent.state.model_result == nil
+    assert pending_agent.state.model_error == nil
+
+    assert {:error, reason} =
+             Agent.apply_signal_sync(pending_agent, "order.model.result", %{
+               request_id: "req-model-stale-999",
+               model: "noop-model",
+               result: %{content: "stale"}
+             })
+
+    assert match?(%Jido.Error.ExecutionError{}, reason)
+
+    assert pending_agent.state.model_status == "pending"
+    assert pending_agent.state.model_request_id == "req-model-stale-001"
+    assert pending_agent.state.model_result == nil
+    assert pending_agent.state.model_error == nil
+  end
+
   test "strategy routes reserve high priority for orchestration signals" do
     routes = SignalFsm.signal_routes(%{agent_module: Agent, strategy_opts: []})
 

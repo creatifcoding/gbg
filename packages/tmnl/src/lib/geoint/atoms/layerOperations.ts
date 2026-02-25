@@ -20,18 +20,13 @@ import { getPanelAtoms } from './families'
 /**
  * Create panel-scoped layer operations.
  *
- * Returns an object with layer manipulation methods that operate on
- * panel-specific atoms via geointRegistry.
- *
- * @example
+ * @deprecated Use `MapController` from `geoint/map` instead.
+ * MapController consolidates all layer operations (toggle, show/hide, opacity, style).
  * ```typescript
- * const panelId = asPanelId('panel-1')
- * const ops = createLayerOperations(panelId)
- *
- * ops.toggleLayerPanel()        // Show/hide layer controls panel
- * ops.toggleLayer('tracks')     // Toggle tracks layer visibility
- * ops.showAllLayers()           // Enable all layers
- * ops.hideAllLayers()           // Disable all layers
+ * import { MapController } from '@/lib/geoint/map'
+ * const controller = new MapController(panelId)
+ * controller.toggleLayer('flights')
+ * controller.cycleMapStyle()
  * ```
  */
 export function createLayerOperations(panelId: PanelId) {

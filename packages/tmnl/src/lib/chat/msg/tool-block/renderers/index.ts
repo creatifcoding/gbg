@@ -39,6 +39,16 @@ export { createExtensionToolBridge, type ExtensionToolBridgeShape, type ToolMani
 export { ReadToolRenderer, WriteToolRenderer, EditToolRenderer } from './file-renderers'
 export { BashToolRenderer, GrepToolRenderer, FindToolRenderer, LsToolRenderer } from './shell-renderers'
 export { InteractiveShellRenderer, InteractiveShellHeaderMeta } from './interactive-shell-renderer'
+export {
+  GeniferGenerateRenderer,
+  GeniferRefineRenderer,
+  GeniferQueryRenderer,
+  GeniferCodeRenderer,
+  GeniferDefineRpcRenderer,
+  GeniferDefineEventRenderer,
+  GeniferDefineToolRenderer,
+  GeniferExportRenderer,
+} from './genifer-renderers'
 
 // =============================================================================
 // Auto-register built-in SDK tools (single batch — one notification)
@@ -57,6 +67,16 @@ import {
   FindHeaderMeta,
   LsHeaderMeta,
 } from './header-metas'
+import {
+  GeniferGenerateRenderer,
+  GeniferRefineRenderer,
+  GeniferQueryRenderer,
+  GeniferCodeRenderer,
+  GeniferDefineRpcRenderer,
+  GeniferDefineEventRenderer,
+  GeniferDefineToolRenderer,
+  GeniferExportRenderer,
+} from './genifer-renderers'
 
 registerToolDefinitions([
   { name: 'Read',  aliases: ['read'],  renderer: ReadToolRenderer,  headerMeta: ReadHeaderMeta },
@@ -67,4 +87,13 @@ registerToolDefinitions([
   { name: 'Find',  aliases: ['find'],  renderer: FindToolRenderer,  headerMeta: FindHeaderMeta },
   { name: 'Ls',    aliases: ['ls'],    renderer: LsToolRenderer,    headerMeta: LsHeaderMeta },
   { name: 'interactive_shell', renderer: InteractiveShellRenderer, headerMeta: InteractiveShellHeaderMeta },
+  // Genifer tools — artifact cards with inline UITree rendering
+  { name: 'genifer_generate',        renderer: GeniferGenerateRenderer },
+  { name: 'genifer_refine',          renderer: GeniferRefineRenderer },
+  { name: 'genifer_query',           renderer: GeniferQueryRenderer },
+  { name: 'genifer_code',            renderer: GeniferCodeRenderer },
+  { name: 'genifer_define_rpc',      renderer: GeniferDefineRpcRenderer },
+  { name: 'genifer_define_event',    renderer: GeniferDefineEventRenderer },
+  { name: 'genifer_define_tool',     renderer: GeniferDefineToolRenderer },
+  { name: 'genifer_export_extension', renderer: GeniferExportRenderer },
 ])

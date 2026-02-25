@@ -78,13 +78,14 @@ export function createGeniferTools(
           rootClassName: params.rootClassName,
           persist: params.persist ?? true,
           onProgress: onUpdate
-            ? (status, elementCount) => {
+            ? (status, elementCount, partialTree) => {
                 onUpdate({
                   content: [{ type: 'text', text: `Generating... ${elementCount} elements (${status})` }],
                   details: {
                     stage: status as any,
                     surfaceId: callId,
                     elementCount,
+                    treeSnapshot: partialTree ?? undefined,
                   },
                 })
               }
@@ -107,6 +108,7 @@ export function createGeniferTools(
           durationMs: result.durationMs,
           treeId: result.treeId,
           threadId: result.threadId,
+          treeSnapshot: result.treeSnapshot,
         },
       }
     },
@@ -121,7 +123,7 @@ export function createGeniferTools(
           sessionId,
           persist: params.persist ?? true,
           onProgress: onUpdate
-            ? (status, elementCount) => {
+            ? (status, elementCount, partialTree) => {
                 onUpdate({
                   content: [{ type: 'text', text: `Refining... ${elementCount} elements (${status})` }],
                   details: {
@@ -129,6 +131,7 @@ export function createGeniferTools(
                     surfaceId: callId,
                     sourceSurfaceId: params.surfaceId,
                     elementCount,
+                    treeSnapshot: partialTree ?? undefined,
                   },
                 })
               }
@@ -150,6 +153,7 @@ export function createGeniferTools(
           modifiedElements: result.modifiedElements,
           qualityScore: result.qualityScore,
           treeId: result.treeId,
+          treeSnapshot: result.treeSnapshot,
         },
       }
     },

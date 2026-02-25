@@ -27,6 +27,24 @@ export const HarnessRuntimeLive = Layer.effect(
   Effect.gen(function* () {
     const engine = yield* PiAiHarnessEngine
 
+    const callEngineMethod = <A>(
+      name: string,
+      ...args: ReadonlyArray<unknown>
+    ): Effect.Effect<A, HarnessRuntimeError> =>
+      Effect.gen(function* () {
+        const fn = (engine as Record<string, unknown>)[name]
+        if (typeof fn !== 'function') {
+          return yield* Effect.fail(
+            new HarnessRuntimeError({
+              code: 'engine-method-missing',
+              message: `Harness engine method is unavailable: ${name}`,
+              cause: Option.none(),
+            }),
+          )
+        }
+        return yield* (fn as (...innerArgs: ReadonlyArray<unknown>) => Effect.Effect<A, unknown>)(...args)
+      })
+
     return HarnessRuntime.of({
       backend: 'pi-ai',
 

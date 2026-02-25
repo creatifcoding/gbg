@@ -180,6 +180,7 @@ export interface GeniferCodeSDK {
       mode?: 'all' | 'type' | 'bounds' | 'type+bounds'
       entityType?: 'flight' | 'poi' | 'weather' | 'track' | 'feature' | 'imagery'
       bounds?: { west: number; east: number; south: number; north: number }
+      sources?: ReadonlyArray<string>
       limit?: number
     }) => Promise<unknown>
     readonly summary: (params: {

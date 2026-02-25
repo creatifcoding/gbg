@@ -21,18 +21,13 @@ import type { SearchResultItem } from '../schemas'
 /**
  * Create panel-scoped selection operations.
  *
- * Returns an object with selection manipulation methods that operate on
- * panel-specific atoms via geointRegistry.
- *
- * @example
+ * @deprecated Use `MapController` from `geoint/map` instead.
+ * MapController consolidates all selection operations.
  * ```typescript
- * const panelId = asPanelId('panel-1')
- * const ops = createSelectionOperations(panelId)
- *
- * ops.selectAll()           // Select all results
- * ops.clearSelection()      // Clear selection
- * ops.invertSelection()     // Invert current selection
- * ops.deleteSelected()      // Delete selected results
+ * import { MapController } from '@/lib/geoint/map'
+ * const controller = new MapController(panelId)
+ * controller.selectAll()
+ * controller.invertSelection()
  * ```
  */
 export function createSelectionOperations(panelId: PanelId) {

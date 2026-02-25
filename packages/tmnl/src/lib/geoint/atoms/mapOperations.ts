@@ -36,17 +36,12 @@ const DEFAULT_VIEWPORT: ViewportState = {
 /**
  * Create panel-scoped map operations.
  *
- * Returns an object with viewport manipulation methods that operate on
- * panel-specific atoms via geointRegistry.
- *
- * @example
+ * @deprecated Use `MapController` from `geoint/map` instead.
+ * MapController consolidates all map operations into a single class.
  * ```typescript
- * const panelId = asPanelId('panel-1')
- * const ops = createMapOperations(panelId)
- *
- * ops.zoomIn()  // Increments zoom by 1
- * ops.zoomOut() // Decrements zoom by 1
- * ops.resetView() // Resets to default viewport
+ * import { MapController } from '@/lib/geoint/map'
+ * const controller = new MapController(panelId)
+ * controller.zoomIn()
  * ```
  */
 export function createMapOperations(panelId: PanelId) {

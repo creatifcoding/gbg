@@ -92,6 +92,11 @@ export {
   type MorphChatSurfaceProps,
   useMorphChatContext,
   type MorphChatContextValue,
+  SessionDrawer,
+  SessionCard,
+  type SessionDrawerProps,
+  type SessionCardProps,
+  type SessionCardSession,
 } from './components'
 
 // ── Hooks ───────────────────────────────────────────────────

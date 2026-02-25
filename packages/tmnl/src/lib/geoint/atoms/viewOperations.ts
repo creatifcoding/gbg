@@ -35,16 +35,13 @@ export interface GeoBounds {
 /**
  * Create panel-scoped view operations.
  *
- * Returns an object with viewport manipulation methods that operate on
- * panel-specific atoms via geointRegistry.
- *
- * @example
+ * @deprecated Use `MapController` from `geoint/map` instead.
+ * MapController consolidates all view operations (fitTo*, bounds).
  * ```typescript
- * const panelId = asPanelId('panel-1')
- * const ops = createViewOperations(panelId)
- *
- * ops.fitToSelection()      // Fit viewport to selected results
- * ops.fitToAll()            // Fit viewport to all results
+ * import { MapController } from '@/lib/geoint/map'
+ * const controller = new MapController(panelId)
+ * controller.fitToSelection()
+ * controller.fitToAll()
  * ```
  */
 export function createViewOperations(panelId: PanelId) {

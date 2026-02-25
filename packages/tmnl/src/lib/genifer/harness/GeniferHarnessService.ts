@@ -71,7 +71,7 @@ export interface GenerateOptions {
   /** Callback for each event (injected by ToolDefinition bridge) */
   readonly onEvent?: (event: GeniferEvent) => void
   /** Callback for streaming progress (injected by ToolDefinition bridge) */
-  readonly onProgress?: (status: string, elementCount: number) => void
+  readonly onProgress?: (status: string, elementCount: number, partialTree?: unknown) => void
 }
 
 export interface GenerateResult {
@@ -83,6 +83,8 @@ export interface GenerateResult {
   readonly durationMs: number
   readonly model: string
   readonly threadId: string
+  /** Serialized UITree snapshot for inline rendering */
+  readonly treeSnapshot: unknown
 }
 
 export interface RefineOptions {
@@ -92,7 +94,7 @@ export interface RefineOptions {
   readonly model?: string
   readonly persist?: boolean
   readonly onEvent?: (event: GeniferEvent) => void
-  readonly onProgress?: (status: string, elementCount: number) => void
+  readonly onProgress?: (status: string, elementCount: number, partialTree?: unknown) => void
 }
 
 export interface RefineResult {
@@ -107,6 +109,8 @@ export interface RefineResult {
   readonly addedElements: number
   readonly removedElements: number
   readonly modifiedElements: number
+  /** Serialized UITree snapshot for inline rendering */
+  readonly treeSnapshot: unknown
 }
 
 export type QueryOperation =
@@ -298,11 +302,24 @@ export const GeniferHarnessServiceLive = Layer.effect(
           interactive: true,
           maxRetries: 2,
           onDelta: (delta) => {
-            // Raw text deltas — used for streaming preview, not element-level events
-            // GeniferStreamDeltaEvent requires element-level fields; raw deltas
-            // are tracked via the stream deltas atom for UI preview
-            streamedElements++ // approximate: count chunks as progress
-            opts.onProgress?.('streaming', streamedElements)
+            // Raw text deltas — count chunks as progress
+            streamedElements++
+          },
+          onTreeUpdate: (partialTree, elementCount) => {
+            // Incremental tree update — new element completed in pipeline
+            // Serialize UITree → plain JSON-safe object for WS transport
+            streamedElements = elementCount
+            try {
+              const plainTree = {
+                root: partialTree.root,
+                elements: Object.fromEntries(
+                  [...partialTree.elements].map(([k, v]) => [k, { ...v }])
+                ),
+              }
+              opts.onProgress?.('streaming', elementCount, plainTree)
+            } catch {
+              opts.onProgress?.('streaming', elementCount)
+            }
           },
           onComponent: (key, type) => {
             // Element identified during streaming — emit proper delta event
@@ -440,6 +457,7 @@ export const GeniferHarnessServiceLive = Layer.effect(
           durationMs,
           model,
           threadId,
+          treeSnapshot: adapterResult.rawJson,
         }
       }).pipe(
         Effect.mapError((e) =>
@@ -534,7 +552,20 @@ export const GeniferHarnessServiceLive = Layer.effect(
           maxRetries: 2,
           onDelta: (_delta) => {
             streamedElements++
-            opts.onProgress?.('streaming', streamedElements)
+          },
+          onTreeUpdate: (partialTree, elementCount) => {
+            streamedElements = elementCount
+            try {
+              const plainTree = {
+                root: partialTree.root,
+                elements: Object.fromEntries(
+                  [...partialTree.elements].map(([k, v]) => [k, { ...v }])
+                ),
+              }
+              opts.onProgress?.('streaming', elementCount, plainTree)
+            } catch {
+              opts.onProgress?.('streaming', elementCount)
+            }
           },
           onComponent: (key, type) => {
             const deltaEvent = new GeniferStreamDeltaEvent({
@@ -643,6 +674,7 @@ export const GeniferHarnessServiceLive = Layer.effect(
           addedElements,
           removedElements,
           modifiedElements,
+          treeSnapshot: adapterResult.rawJson,
         }
       }).pipe(
         Effect.mapError((e) =>

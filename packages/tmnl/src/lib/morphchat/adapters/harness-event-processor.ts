@@ -491,10 +491,12 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
           // If only diagnostics, toolInput stays undefined — upsert merges with existing
 
         } else if (event.phase === 'update') {
-          // Tool argument deltas from PiAiAdapterToolDelta — LLM streaming partial args.
-          // Accumulate the delta JSON into the tool part's inputDelta for incremental rendering.
-          // These fire during LLM generation, NOT during tool execution.
+          // Two kinds of update events:
+          // 1. Tool argument deltas (payload.delta) — LLM streaming partial args
+          // 2. Tool execution details (payload.details) — progressive output (e.g., genifer partial tree)
+
           if (payload?.delta != null && targetMsgId) {
+            // Argument deltas — accumulate for incremental rendering
             updateMessageParts(atoms, targetMsgId, (parts) => {
               const arr = [...parts]
               const idx = arr.findIndex(
@@ -502,7 +504,6 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
               )
               if (idx >= 0) {
                 const existing = arr[idx] as ToolInvocationPart
-                // Accumulate JSON delta string for partial argument parsing
                 const prevDelta = ((existing as any).inputDelta as string) ?? ''
                 const newDelta = prevDelta + String(payload.delta)
                 arr[idx] = { ...existing, inputDelta: newDelta } as any
@@ -510,15 +511,40 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
               return arr
             })
           }
+
+          if (payload?.details != null && targetMsgId) {
+            // Progressive output details — update tool part output with latest details
+            // This enables genifer renderers to show partial tree as elements stream in
+            updateMessageParts(atoms, targetMsgId, (parts) => {
+              const arr = [...parts]
+              const idx = arr.findIndex(
+                (p) => p._tag === 'tool-invocation' && (p as ToolInvocationPart).toolCallId === event.toolCallId,
+              )
+              if (idx >= 0) {
+                const existing = arr[idx] as ToolInvocationPart
+                // Merge details into output — renderer reads output.details.treeSnapshot
+                const prevOutput = (existing.output ?? {}) as Record<string, unknown>
+                arr[idx] = {
+                  ...existing,
+                  output: { ...prevOutput, details: payload.details },
+                } as any
+              }
+              return arr
+            })
+          }
+
           break // Don't fall through to upsertToolPart below
 
         } else if (event.phase === 'end') {
           // phase:'end' = tool EXECUTION completed (result available).
           // NOT "LLM finished generating tool block" (that's phase:'start' with arguments now).
           toolState = (payload?.isError ? 'error' : 'completed') as ToolInvocationPart['state']
-          // End payload: { result: [{ type: 'text', text: '...' }], isError, executionMs }
+          // End payload: { result: [{ type: 'text', text: '...' }], details: {...}, isError, executionMs }
           if (payload?.result) {
-            toolOutput = payload.result
+            // Merge details into output so renderers can access treeSnapshot etc.
+            toolOutput = payload.details
+              ? { result: payload.result, details: payload.details }
+              : payload.result
           } else {
             toolOutput = payload
           }

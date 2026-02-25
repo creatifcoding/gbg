@@ -528,6 +528,7 @@ export function MorphChatTestbed() {
     status: harnessStatus,
     error: harnessError,
   } = useHarnessAdapter({
+    instanceId: 'testbed-harness',
     nodeId: 'cop-assistant',
     role: 'general',
     agentName: 'Prime-Architect',

@@ -18,17 +18,28 @@ defmodule Maiden.OrderRuntime.Actions.RecordModelInferenceResult do
     model = fetch_param(params, :model)
     result = fetch_param(params, :result)
 
-    if context.state[:model_request_id] in [nil, request_id] do
-      {:ok,
-       %{
-         model_request_id: request_id,
-         model_name: model || context.state[:model_name],
-         model_status: "completed",
-         model_result: result,
-         model_error: nil
-       }}
-    else
-      {:error, "model request_id mismatch for result"}
+    state_request_id = context.state[:model_request_id]
+    state_status = context.state[:model_status]
+
+    cond do
+      state_status != "pending" ->
+        {:error, "model inference result rejected: no pending request"}
+
+      state_request_id == nil ->
+        {:error, "model inference result rejected: pending request_id missing"}
+
+      state_request_id != request_id ->
+        {:error, "model inference result request_id mismatch"}
+
+      true ->
+        {:ok,
+         %{
+           model_request_id: request_id,
+           model_name: model || context.state[:model_name],
+           model_status: "completed",
+           model_result: result,
+           model_error: nil
+         }}
     end
   end
 

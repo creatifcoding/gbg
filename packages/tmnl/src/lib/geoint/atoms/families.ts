@@ -337,6 +337,48 @@ export const timelinePlaybackFamily = Atom.family((panelId: PanelId) =>
 )
 
 // =============================================================================
+// MAP CONTROLLER ATOM FAMILIES (Phase 1)
+// =============================================================================
+
+import type { MapStyle } from '../map/schemas'
+
+/**
+ * Basemap style per panel.
+ * Controls which Mapbox style URL is used.
+ * Default: 'dark'
+ *
+ * @see MapController.cycleMapStyle()
+ * @see MapController.setMapStyle()
+ */
+export const mapStyleFamily = Atom.family((panelId: PanelId) =>
+  Atom.make<MapStyle>('dark' as MapStyle)
+)
+
+/**
+ * Custom home viewport per panel.
+ * Overrides DEFAULT_VIEWPORT when user calls `setHome()`.
+ * null = use DEFAULT_VIEWPORT as home.
+ *
+ * @see MapController.setHome()
+ * @see MapController.resetView()
+ */
+export const homeViewportFamily = Atom.family((panelId: PanelId) =>
+  Atom.make<ViewportState | null>(null)
+)
+
+/**
+ * Camera animation state per panel.
+ * true when a flyTo/flyToBounds transition is in progress.
+ * Used by cancelAnimation() and hotkey guards.
+ *
+ * @see MapController.flyTo()
+ * @see MapController.cancelAnimation()
+ */
+export const isAnimatingFamily = Atom.family((panelId: PanelId) =>
+  Atom.make<boolean>(false)
+)
+
+// =============================================================================
 // AGGREGATE ACCESSOR
 // =============================================================================
 
@@ -377,6 +419,11 @@ export interface GeointPanelAtoms {
 
   // Timeline
   readonly timelinePlaybackAtom: ReturnType<typeof timelinePlaybackFamily>
+
+  // MapController (Phase 1)
+  readonly mapStyleAtom: ReturnType<typeof mapStyleFamily>
+  readonly homeViewportAtom: ReturnType<typeof homeViewportFamily>
+  readonly isAnimatingAtom: ReturnType<typeof isAnimatingFamily>
 }
 
 /**
@@ -429,5 +476,10 @@ export function getPanelAtoms(panelId: PanelId): GeointPanelAtoms {
 
     // Timeline
     timelinePlaybackAtom: timelinePlaybackFamily(panelId),
+
+    // MapController (Phase 1)
+    mapStyleAtom: mapStyleFamily(panelId),
+    homeViewportAtom: homeViewportFamily(panelId),
+    isAnimatingAtom: isAnimatingFamily(panelId),
   }
 }

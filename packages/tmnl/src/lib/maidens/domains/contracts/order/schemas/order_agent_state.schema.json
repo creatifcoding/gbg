@@ -10,7 +10,14 @@
         "total",
         "cancelled_reason",
         "shipped_at",
-        "delivered_at"
+        "delivered_at",
+        "model_request_id",
+        "model_name",
+        "model_prompt",
+        "model_options",
+        "model_status",
+        "model_result",
+        "model_error"
       ],
       "properties": {
         "order_id": {
@@ -53,6 +60,58 @@
             },
             {}
           ]
+        },
+        "model_request_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "model_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "model_prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "model_options": {
+          "$ref": "#/definitions/OrderModelOptions"
+        },
+        "model_status": {
+          "$ref": "#/definitions/OrderModelStatus"
+        },
+        "model_result": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {}
+          ]
+        },
+        "model_error": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {}
+          ]
         }
       },
       "additionalProperties": false,
@@ -75,6 +134,28 @@
       },
       "description": "Opaque item payload map (list of maps in OrderSchema.items).",
       "title": "Order Item Map"
+    },
+    "OrderModelOptions": {
+      "type": "object",
+      "required": [],
+      "properties": {},
+      "additionalProperties": {
+        "$id": "/schemas/unknown",
+        "title": "unknown"
+      },
+      "description": "Runtime model adapter options map.",
+      "title": "Order Model Options"
+    },
+    "OrderModelStatus": {
+      "type": "string",
+      "enum": [
+        "idle",
+        "pending",
+        "completed",
+        "failed"
+      ],
+      "description": "Runtime model inference lifecycle status for the order agent.",
+      "title": "Order Model Status"
     }
   },
   "type": "object",
@@ -85,7 +166,14 @@
     "total",
     "cancelled_reason",
     "shipped_at",
-    "delivered_at"
+    "delivered_at",
+    "model_request_id",
+    "model_name",
+    "model_prompt",
+    "model_options",
+    "model_status",
+    "model_result",
+    "model_error"
   ],
   "properties": {
     "order_id": {
@@ -122,6 +210,58 @@
       ]
     },
     "delivered_at": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {}
+      ]
+    },
+    "model_request_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "model_name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "model_prompt": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "model_options": {
+      "$ref": "#/definitions/OrderModelOptions"
+    },
+    "model_status": {
+      "$ref": "#/definitions/OrderModelStatus"
+    },
+    "model_result": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {}
+      ]
+    },
+    "model_error": {
       "anyOf": [
         {
           "type": "null"

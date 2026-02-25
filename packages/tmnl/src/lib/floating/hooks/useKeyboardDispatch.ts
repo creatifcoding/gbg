@@ -107,6 +107,33 @@ function useKeyboardModalOpen(): boolean {
   return open
 }
 
+type ShiftedPunctuationHotkeyOptions = NonNullable<Parameters<typeof useHotkey>[2]>
+
+/**
+ * Register Alt+Shift punctuation bindings for both runtime key shapes:
+ * - shifted glyph (`_`, `~`) from `event.key`
+ * - base punctuation fallback (`-`, `` ` ``) on some layouts/runtimes
+ *
+ * Must be called unconditionally (custom hook; invokes hooks internally).
+ */
+function useShiftedAltPunctuationHotkey(
+  baseKey: string,
+  shiftedKey: string,
+  handler: () => void,
+  options: ShiftedPunctuationHotkeyOptions,
+): void {
+  const handledEventsRef = useRef<WeakSet<KeyboardEvent>>(new WeakSet())
+
+  const dedupedHandler = useCallback((event: KeyboardEvent) => {
+    if (handledEventsRef.current.has(event)) return
+    handledEventsRef.current.add(event)
+    handler()
+  }, [handler])
+
+  useHotkey({ key: shiftedKey, alt: true, shift: true }, dedupedHandler, options)
+  useHotkey({ key: baseKey, alt: true, shift: true }, dedupedHandler, options)
+}
+
 // =============================================================================
 // Hook
 // =============================================================================
@@ -334,10 +361,15 @@ export function useKeyboardDispatch({ getLocalViewport }: UseKeyboardDispatchOpt
     splitPanelInDirection(activePanelId, 'horizontal')
   }, { ...hotkeyCommon, enabled: withActive })
 
-  useHotkey({ key: '-', alt: true, shift: true }, () => {
-    if (!activePanelId || !isTiled(activePanelId) || !shouldFire('vsplit', 80)) return
-    splitPanelInDirection(activePanelId, 'vertical')
-  }, { ...hotkeyCommon, enabled: withActive })
+  useShiftedAltPunctuationHotkey(
+    '-',
+    '_',
+    () => {
+      if (!activePanelId || !isTiled(activePanelId) || !shouldFire('vsplit', 80)) return
+      splitPanelInDirection(activePanelId, 'vertical')
+    },
+    { ...hotkeyCommon, enabled: withActive },
+  )
 
   // ── Tabs ───────────────────────────────────────────────────────
   useHotkey({ key: '`', alt: true }, () => {
@@ -345,10 +377,15 @@ export function useKeyboardDispatch({ getLocalViewport }: UseKeyboardDispatchOpt
     cycleTab(activePanelId, 1)
   }, { ...hotkeyCommon, enabled: withActive })
 
-  useHotkey({ key: '`', alt: true, shift: true }, () => {
-    if (!activePanelId || !shouldFire('tab-prev', 120)) return
-    cycleTab(activePanelId, -1)
-  }, { ...hotkeyCommon, enabled: withActive })
+  useShiftedAltPunctuationHotkey(
+    '`',
+    '~',
+    () => {
+      if (!activePanelId || !shouldFire('tab-prev', 120)) return
+      cycleTab(activePanelId, -1)
+    },
+    { ...hotkeyCommon, enabled: withActive },
+  )
 
   useHotkey({ key: '1', alt: true }, () => activePanelId && jumpToTab(activePanelId, 1), {
     ...hotkeyCommon,

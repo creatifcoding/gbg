@@ -23,6 +23,7 @@ import {
   createStreamingPipeline,
   type PipelineConfig,
   normalizedElementsAtom,
+  pipelineTreeAtom,
   quarantinedAtom,
 } from "../streaming/pipeline"
 import { UITree } from "../core/schemas"
@@ -176,6 +177,8 @@ export interface GenerateOptions {
   readonly interactive?: boolean
   /** Called on each text delta (for progress UI) */
   readonly onDelta?: (delta: string) => void
+  /** Called when the incremental tree updates (new element complete) */
+  readonly onTreeUpdate?: (partialTree: UITree, elementCount: number) => void
   /** Called when a component is identified during streaming */
   readonly onComponent?: (key: string, type: string) => void
   /** Called on retry attempt (attempt number, failure classification) */
@@ -214,6 +217,7 @@ function streamAttempt(
   compiled: string,
   pipelineConfig?: PipelineConfig,
   onDelta?: (delta: string) => void,
+  onTreeUpdate?: (partialTree: UITree, elementCount: number) => void,
   interactive?: boolean,
 ): Effect.Effect<
   { tree: UITree; rawJson: string; chunks: number; elementCount: number; quarantineCount: number; repairCount: number; qualityScore: number; passed: boolean; failure: ClassifiedFailure | null },
@@ -232,6 +236,7 @@ function streamAttempt(
       prompt: compiled,
     })
 
+    let lastElementCount = 0
     yield* Stream.runForEach(stream, (part) =>
       Effect.sync(() => {
         const p = part as any
@@ -241,6 +246,16 @@ function streamAttempt(
           chunks++
           pipeline.feedChunk(delta)
           onDelta?.(delta)
+
+          // Check if new elements were added → emit partial tree
+          if (onTreeUpdate) {
+            const currentCount = registry.get(normalizedElementsAtom).length
+            if (currentCount > lastElementCount) {
+              lastElementCount = currentCount
+              const partialTree = registry.get(pipelineTreeAtom)
+              onTreeUpdate(partialTree, currentCount)
+            }
+          }
         }
       })
     )
@@ -305,7 +320,7 @@ export const generate = (
     let compiled = basePrompt
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      const result = yield* streamAttempt(compiled, options.pipelineConfig, options.onDelta, options.interactive)
+      const result = yield* streamAttempt(compiled, options.pipelineConfig, options.onDelta, options.onTreeUpdate, options.interactive)
 
       if (result.passed || attempt === maxRetries) {
         // Record assistant response
@@ -404,7 +419,7 @@ export const refine = (
     let compiled = basePrompt
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      const result = yield* streamAttempt(compiled, options.pipelineConfig, options.onDelta, options.interactive)
+      const result = yield* streamAttempt(compiled, options.pipelineConfig, options.onDelta, options.onTreeUpdate, options.interactive)
 
       if (result.passed || attempt === maxRetries) {
         threads.addMessage("assistant", [

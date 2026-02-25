@@ -28,8 +28,13 @@ import { UITree, UIElement } from '@/lib/genifer/core/schemas'
 function parseTree(details: unknown): UITree | null {
   if (!details || typeof details !== 'object') return null
   const d = details as Record<string, unknown>
-  const snapshot = d.treeSnapshot
-  if (!snapshot || typeof snapshot !== 'object') return null
+  let snapshot = d.treeSnapshot
+  if (!snapshot) return null
+  // rawJson from ai-adapter is a string — parse it
+  if (typeof snapshot === 'string') {
+    try { snapshot = JSON.parse(snapshot) } catch { return null }
+  }
+  if (typeof snapshot !== 'object' || snapshot === null) return null
   try {
     // Snapshot is a serialized UITree — rebuild it
     const snap = snapshot as Record<string, unknown>

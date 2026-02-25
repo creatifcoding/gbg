@@ -20,6 +20,10 @@ import {
   HarnessRemoteSendAckPayload,
   HarnessRemoteSessionPayload,
   HarnessRemoteSnapshotPayload,
+  HarnessRemoteSessionListPayload,
+  HarnessRemoteSessionMetaUpdatedPayload,
+  HarnessRemoteSessionDeletedPayload,
+  HarnessRemoteSessionForkedPayload,
   type HarnessModelOverride,
 } from './HarnessBrowserRemoteSchemas'
 import {
@@ -225,6 +229,61 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
         Effect.withSpan('tmnl.harness.runtime.browser.respond-extension-ui'),
       )
 
+    const listSessions: HarnessRuntimeShape['listSessions'] = () =>
+      requestData(
+        transport,
+        { _tag: 'remote:list_sessions' as const },
+        HarnessRemoteSessionListPayload,
+      ).pipe(
+        Effect.map((payload) => payload.sessions),
+        Effect.mapError(toRuntimeError('list-sessions-failed', 'Failed to list harness browser sessions')),
+        Effect.withSpan('tmnl.harness.runtime.browser.list-sessions'),
+      )
+
+    const updateSessionMeta: HarnessRuntimeShape['updateSessionMeta'] = (sessionId, patch) =>
+      requestData(
+        transport,
+        {
+          _tag: 'remote:update_session_meta' as const,
+          sessionId,
+          patch,
+        },
+        HarnessRemoteSessionMetaUpdatedPayload,
+      ).pipe(
+        Effect.asVoid,
+        Effect.mapError(toRuntimeError('update-session-meta-failed', 'Failed to update harness browser session metadata')),
+        Effect.withSpan('tmnl.harness.runtime.browser.update-session-meta'),
+      )
+
+    const deleteSession: HarnessRuntimeShape['deleteSession'] = (sessionId) =>
+      requestData(
+        transport,
+        {
+          _tag: 'remote:delete_session' as const,
+          sessionId,
+        },
+        HarnessRemoteSessionDeletedPayload,
+      ).pipe(
+        Effect.asVoid,
+        Effect.mapError(toRuntimeError('delete-session-failed', 'Failed to delete harness browser session')),
+        Effect.withSpan('tmnl.harness.runtime.browser.delete-session'),
+      )
+
+    const forkSession: HarnessRuntimeShape['forkSession'] = (sessionId, atSeq?) =>
+      requestData(
+        transport,
+        {
+          _tag: 'remote:fork_session' as const,
+          sessionId,
+          ...(atSeq != null ? { atSeq } : {}),
+        },
+        HarnessRemoteSessionForkedPayload,
+      ).pipe(
+        Effect.map((payload) => ({ sessionId: payload.sessionId })),
+        Effect.mapError(toRuntimeError('fork-session-failed', 'Failed to fork harness browser session')),
+        Effect.withSpan('tmnl.harness.runtime.browser.fork-session'),
+      )
+
     const events = transport.events.pipe(
       Stream.flatMap((raw) =>
         Stream.fromEffect(
@@ -252,6 +311,10 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
       getSnapshot,
       abortSession,
       respondExtensionUI,
+      listSessions,
+      updateSessionMeta,
+      deleteSession,
+      forkSession,
       events,
     } satisfies HarnessRuntimeShape)
   }),

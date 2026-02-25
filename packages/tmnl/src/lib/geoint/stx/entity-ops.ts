@@ -154,6 +154,7 @@ export function spawnFromSearchResult(result: {
   entityType: GeointEntityType
   displayLabel: string
   category?: string
+  source?: string
   position?: { longitude: number; latitude: number; altitude?: number | null }
   traits?: Record<string, unknown>
 }): EntityStx {
@@ -162,6 +163,7 @@ export function spawnFromSearchResult(result: {
     entityType: result.entityType,
     displayLabel: result.displayLabel,
     category: result.category,
+    source: result.source,
     position: result.position,
     traits: result.traits,
   })
@@ -178,6 +180,7 @@ export function batchSpawnFromSearch(results: Array<{
   entityType: GeointEntityType
   displayLabel: string
   category?: string
+  source?: string
   position?: { longitude: number; latitude: number; altitude?: number | null }
   traits?: Record<string, unknown>
 }>): EntityStx[] {
@@ -186,6 +189,7 @@ export function batchSpawnFromSearch(results: Array<{
     entityType: r.entityType,
     displayLabel: r.displayLabel,
     category: r.category,
+    source: r.source,
     position: r.position,
     traits: r.traits,
   }))
@@ -237,6 +241,7 @@ export function getEntitySummary(entityId: string) {
     entityType: data.entityType,
     displayLabel: data.displayLabel,
     category: data.category,
+    source: data.source,
     state: snapshot?.value ?? 'unknown',
     selected: data.selected,
     hovered: data.hovered,

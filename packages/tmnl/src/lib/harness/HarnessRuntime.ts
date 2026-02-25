@@ -28,6 +28,30 @@ export interface ModelOverride {
   readonly modelId: string
 }
 
+export interface SessionListItem {
+  readonly sessionId: string
+  readonly name: string
+  readonly autoTitle: string
+  readonly tags: ReadonlyArray<string>
+  readonly status: 'active' | 'archived' | 'starred'
+  readonly starred: boolean
+  readonly createdAt: number
+  readonly updatedAt: number
+  readonly messageCount: number
+  readonly modelId: string
+  readonly provider: string
+  readonly previewSnippet: string
+  readonly nodeId: string
+  readonly role: string
+}
+
+export interface SessionMetaPatch {
+  readonly name?: string
+  readonly tags?: ReadonlyArray<string>
+  readonly status?: 'active' | 'archived' | 'starred'
+  readonly starred?: boolean
+}
+
 export class HarnessRuntimeError extends Schema.TaggedError<HarnessRuntimeError>()(
   'HarnessRuntimeError',
   {
@@ -64,6 +88,16 @@ export interface HarnessRuntimeShape {
     sessionId: HarnessSessionId,
     response: HarnessExtensionUIResponse,
   ) => Effect.Effect<void, HarnessRuntimeError>
+  readonly listSessions: () => Effect.Effect<ReadonlyArray<SessionListItem>, HarnessRuntimeError>
+  readonly updateSessionMeta: (
+    sessionId: HarnessSessionId,
+    patch: SessionMetaPatch,
+  ) => Effect.Effect<void, HarnessRuntimeError>
+  readonly deleteSession: (sessionId: HarnessSessionId) => Effect.Effect<void, HarnessRuntimeError>
+  readonly forkSession: (
+    sessionId: HarnessSessionId,
+    atSeq?: number,
+  ) => Effect.Effect<{ sessionId: string }, HarnessRuntimeError>
   readonly events: Stream.Stream<HarnessEvent, HarnessRuntimeError>
 }
 

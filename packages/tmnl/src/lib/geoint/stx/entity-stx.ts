@@ -47,6 +47,8 @@ export interface EntityData {
   displayLabel: string
   /** Category/sub-type label */
   category: string
+  /** Canonical source ID when known (opensky, osm, openmeteo, etc.) */
+  source: string | null
 
   // ── UI State (direct mutation, not through machine) ──
   selected: boolean
@@ -118,6 +120,8 @@ export interface SpawnEntityInput {
   displayLabel: string
   /** Category/sub-type */
   category?: string
+  /** Canonical source ID when known */
+  source?: string
   /** Initial position (if known) */
   position?: {
     longitude: number
@@ -147,6 +151,7 @@ export function createEntityStx(input: SpawnEntityInput): EntityStx {
     entityType,
     displayLabel,
     category = entityType,
+    source,
     position,
     traits,
   } = input
@@ -159,6 +164,7 @@ export function createEntityStx(input: SpawnEntityInput): EntityStx {
     entityType,
     displayLabel,
     category,
+    source: source ?? null,
     selected: false,
     hovered: false,
     pinned: false,

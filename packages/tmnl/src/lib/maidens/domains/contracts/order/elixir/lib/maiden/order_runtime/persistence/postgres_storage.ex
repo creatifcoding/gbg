@@ -595,7 +595,7 @@ defmodule Maiden.OrderRuntime.Persistence.PostgresStorage do
   defp parse_optional_bool(value) when is_binary(value) do
     value
     |> String.downcase()
-    |> MapSet.member?(@truthy)
+    |> then(&MapSet.member?(@truthy, &1))
   end
 
   defp now_ms, do: System.system_time(:millisecond)

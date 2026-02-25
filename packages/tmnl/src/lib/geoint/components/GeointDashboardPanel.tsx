@@ -39,6 +39,7 @@ import {
 } from '../atoms'
 import { createGeointOperations } from '../atoms/operations'
 import { useGeointPanelHotkeys } from '../hooks/useGeointPanelHotkeys'
+import { useMapController } from '../hooks/useMapController'
 import { useAtomValue } from '@effect-atom/atom-react'
 import type { SearchResultItem } from '../schemas'
 
@@ -269,14 +270,17 @@ const GeointDashboardPanelContent: FC<GeointDashboardPanelContentProps> = ({
   // Access panel-scoped atoms (safe because we're inside GeointPanelProvider)
   const { atoms, panelId } = useGeointPanel()
 
-  // Create panel-scoped operations
+  // Create panel-scoped operations (legacy — being superseded by MapController)
   const operations = useMemo(
     () => createGeointOperations(panelId),
     [panelId]
   )
 
+  // MapController — unified map operations abstraction
+  const mapController = useMapController()
+
   // Wire panel-scoped hotkeys with focus/blur management
-  const { containerRef } = useGeointPanelHotkeys(identity, operations)
+  const { containerRef } = useGeointPanelHotkeys(identity, operations, mapController)
 
   // Subscribe to panel-scoped atoms
   const viewport = useAtomValue(atoms.viewportAtom)
@@ -301,18 +305,12 @@ const GeointDashboardPanelContent: FC<GeointDashboardPanelContentProps> = ({
   // Convert search results to minimap entities
   const minimapEntities = toMinimapEntities(filteredResults)
 
-  // Viewport change handler for Minimap
+  // Viewport change handler for Minimap — delegates to MapController
   const handleViewportChange = useCallback(
     (newViewport: { longitude: number; latitude: number; zoom: number; pitch?: number; bearing?: number }) => {
-      const current = geointRegistry.get(atoms.viewportAtom)
-      geointRegistry.set(atoms.viewportAtom, {
-        ...current,
-        ...newViewport,
-        pitch: newViewport.pitch ?? current.pitch,
-        bearing: newViewport.bearing ?? current.bearing,
-      })
+      mapController.setViewport(newViewport)
     },
-    [atoms]
+    [mapController]
   )
 
   // Keyboard shortcuts overlay state
