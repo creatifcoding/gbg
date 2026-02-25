@@ -14,12 +14,11 @@
 import * as React from 'react'
 import { useState } from 'react'
 import { useAtomValue } from '@effect-atom/atom-react'
-import { MorphChat } from '@/lib/morphchat'
+import { MorphChat, MorphChatRegistryProvider } from '@/lib/morphchat'
 import { createMockChatAdapter } from '@/lib/morphchat/adapters/mock-adapter'
 import { Conductor } from '@/lib/morphchat/specs/conductor'
 import { useHarnessAdapter } from '@/lib/morphchat/hooks'
 import { sessionId$ } from '@/lib/morphchat/hooks/useHarnessAdapter'
-import { morphChatRegistry } from '@/lib/morphchat/atoms/registry'
 import { SessionDrawer } from '@/lib/morphchat/components/session-drawer'
 import { panelRegistry, type PanelContentProps } from '../panel-registry'
 
@@ -58,7 +57,7 @@ function MorphChatMockPanel({ panelId }: PanelContentProps) {
 // Live Harness Conductor Panel
 // =============================================================================
 
-function MorphChatHarnessPanel({ panelId }: PanelContentProps) {
+function MorphChatHarnessPanelInner({ panelId }: PanelContentProps) {
   // Each panel is an isolated session — like Cursor agent tabs.
   // The WS transport is shared, but atoms/session/messages are per-instance.
   const { adapter, status, error, newSession, resumeSession, hardReconnect } = useHarnessAdapter({
@@ -73,7 +72,7 @@ function MorphChatHarnessPanel({ panelId }: PanelContentProps) {
 
   const [isSessionDrawerOpen, setIsSessionDrawerOpen] = useState(false)
 
-  const currentSessionId = useAtomValue(sessionId$(panelId), { registry: morphChatRegistry })
+  const currentSessionId = useAtomValue(sessionId$(panelId))
 
   const handleResumeSession = React.useCallback((sid: string) => {
     resumeSession(sid)
@@ -209,6 +208,14 @@ function MorphChatHarnessPanel({ panelId }: PanelContentProps) {
         />
       </div>
     </div>
+  )
+}
+
+function MorphChatHarnessPanel(props: PanelContentProps) {
+  return (
+    <MorphChatRegistryProvider>
+      <MorphChatHarnessPanelInner {...props} />
+    </MorphChatRegistryProvider>
   )
 }
 
