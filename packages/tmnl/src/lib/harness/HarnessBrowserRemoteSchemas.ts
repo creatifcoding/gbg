@@ -182,9 +182,20 @@ export const HarnessRemoteShellEventEnvelope = Schema.TaggedStruct('remote:shell
   event: ShellEvent,
 })
 
-export const HarnessRemotePanelEventEnvelope = Schema.TaggedStruct('remote:panel_event', {
+const HarnessRemotePanelEventEnvelopeBase = Schema.TaggedStruct('remote:panel_event', {
   event: PanelEvent,
+  // Optional compatibility mirror for payload-style listeners.
+  payload: Schema.optional(PanelEvent),
 })
+
+export const HarnessRemotePanelEventEnvelope = HarnessRemotePanelEventEnvelopeBase.pipe(
+  Schema.filter(
+    (envelope) => envelope.payload == null || envelope.payload._tag === envelope.event._tag,
+    {
+      message: () => 'remote:panel_event payload._tag must match event._tag when payload is provided',
+    },
+  ),
+)
 
 export const HarnessRemoteEventEnvelope = Schema.Union(
   HarnessRemoteChatV2EventEnvelope,

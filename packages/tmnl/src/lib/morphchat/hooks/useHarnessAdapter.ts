@@ -35,7 +35,7 @@ import {
 import type { ShellEvent } from '@/lib/harness/interactive-shell/schemas'
 import type { PanelEvent } from '@/lib/genifer/harness/panel-events'
 import { registerGeniferPanelVisitor, setGeniferPanelRegistry, setGeniferPanelSurface } from '@/lib/genifer/harness/panel-visitor'
-import { spawnPanel, closePanel } from '@/lib/floating'
+import { spawnPanel, closePanel, getPanel } from '@/lib/floating'
 import { applyRemotePanelEvent } from './panel-event-handler'
 import type {
   HarnessRole,
@@ -46,8 +46,10 @@ import type {
 
 export const HARNESS_ROLES = ['scada-analyst', 'code-assistant', 'navigator', 'inspector', 'general'] as const
 
-// Server panelId -> local floating panelId mapping (for remote close events)
+// Remote panel lifecycle maps (module-scoped so reconnect/replay can remain idempotent)
 const remoteToLocalPanelIds = new Map<string, string>()
+const remotePanelSurfaceIds = new Map<string, string>()
+const surfaceToLocalPanelIds = new Map<string, string>()
 
 import type { MorphChatAdapter } from '../schemas/adapter-types'
 import type {
@@ -239,6 +241,168 @@ function toHarnessThinkingLevel(level?: unknown): Option.Option<HarnessThinkingL
   return Option.none()
 }
 
+export interface ReplaySafePanelEventDeps {
+  registerGeniferPanelVisitor: () => void
+  setGeniferPanelSurface: (surfaceId: string, surface: unknown) => void
+  spawnPanel: (visitorId: string, opts: {
+    mode?: 'floating' | 'tiled'
+    title?: string
+    data?: unknown
+    accent?: string
+  }) => string | null
+  closePanel: (panelId: string) => void
+  remoteToLocalPanelIds: Map<string, string>
+  panelExists?: (panelId: string) => boolean
+  remotePanelSurfaceIds?: Map<string, string>
+  surfaceToLocalPanelIds?: Map<string, string>
+}
+
+function dropPanelMapping(
+  remotePanelId: string,
+  remoteToLocal: Map<string, string>,
+  remoteToSurface: Map<string, string>,
+  surfaceToLocal: Map<string, string>,
+): { localId?: string; surfaceId?: string } {
+  const localId = remoteToLocal.get(remotePanelId)
+  const surfaceId = remoteToSurface.get(remotePanelId)
+  remoteToLocal.delete(remotePanelId)
+  remoteToSurface.delete(remotePanelId)
+
+  if (surfaceId && localId && surfaceToLocal.get(surfaceId) === localId) {
+    surfaceToLocal.delete(surfaceId)
+  }
+
+  return { localId, surfaceId }
+}
+
+function prunePanelLifecycleMaps(
+  remoteToLocal: Map<string, string>,
+  remoteToSurface: Map<string, string>,
+  surfaceToLocal: Map<string, string>,
+  panelExists: (panelId: string) => boolean,
+): void {
+  for (const [remoteId, localId] of remoteToLocal.entries()) {
+    if (panelExists(localId)) continue
+    dropPanelMapping(remoteId, remoteToLocal, remoteToSurface, surfaceToLocal)
+  }
+
+  for (const [surfaceId, localId] of surfaceToLocal.entries()) {
+    if (!panelExists(localId)) surfaceToLocal.delete(surfaceId)
+  }
+}
+
+function dropAliasesForLocalPanel(
+  localPanelId: string,
+  keepRemoteId: string | null,
+  remoteToLocal: Map<string, string>,
+  remoteToSurface: Map<string, string>,
+  surfaceToLocal: Map<string, string>,
+): void {
+  for (const [remoteId, candidateLocalId] of remoteToLocal.entries()) {
+    if (candidateLocalId !== localPanelId) continue
+    if (keepRemoteId != null && remoteId === keepRemoteId) continue
+    dropPanelMapping(remoteId, remoteToLocal, remoteToSurface, surfaceToLocal)
+  }
+}
+
+/**
+ * Replay-safe wrapper around panel event handling.
+ *
+ * Guarantees:
+ * - Duplicate/replayed panel:spawned events do not spawn duplicate local panels.
+ * - Stale remote->local mappings are pruned when local panels disappear.
+ * - panel:surface_updated remains idempotent and does not affect spawn lifecycle.
+ */
+export function applyReplaySafeRemotePanelEvent(
+  event: PanelEvent & { surface?: unknown },
+  deps: ReplaySafePanelEventDeps,
+): void {
+  const panelExists = deps.panelExists ?? (() => true)
+  const remoteToLocal = deps.remoteToLocalPanelIds
+  const remoteToSurface = deps.remotePanelSurfaceIds ?? new Map<string, string>()
+  const surfaceToLocal = deps.surfaceToLocalPanelIds ?? new Map<string, string>()
+
+  prunePanelLifecycleMaps(remoteToLocal, remoteToSurface, surfaceToLocal, panelExists)
+
+  if (event._tag === 'panel:spawned') {
+    if (!event.panelId || !event.surfaceId) return
+
+    const existingLocalId = remoteToLocal.get(event.panelId)
+    if (existingLocalId && panelExists(existingLocalId)) {
+      remoteToSurface.set(event.panelId, event.surfaceId)
+      surfaceToLocal.set(event.surfaceId, existingLocalId)
+      if (event.surface) deps.setGeniferPanelSurface(event.surfaceId, event.surface)
+      return
+    }
+
+    if (existingLocalId) {
+      dropPanelMapping(event.panelId, remoteToLocal, remoteToSurface, surfaceToLocal)
+    }
+
+    const reusedLocalId = surfaceToLocal.get(event.surfaceId)
+    if (reusedLocalId && panelExists(reusedLocalId)) {
+      remoteToLocal.set(event.panelId, reusedLocalId)
+      remoteToSurface.set(event.panelId, event.surfaceId)
+      if (event.surface) deps.setGeniferPanelSurface(event.surfaceId, event.surface)
+      return
+    }
+
+    if (reusedLocalId && !panelExists(reusedLocalId)) {
+      surfaceToLocal.delete(event.surfaceId)
+    }
+
+    applyRemotePanelEvent(event, {
+      registerGeniferPanelVisitor: deps.registerGeniferPanelVisitor,
+      setGeniferPanelSurface: deps.setGeniferPanelSurface,
+      spawnPanel: deps.spawnPanel,
+      closePanel: deps.closePanel,
+      remoteToLocalPanelIds: remoteToLocal,
+    })
+
+    const localPanelId = remoteToLocal.get(event.panelId)
+    if (localPanelId) {
+      remoteToSurface.set(event.panelId, event.surfaceId)
+      surfaceToLocal.set(event.surfaceId, localPanelId)
+    }
+    return
+  }
+
+  if (event._tag === 'panel:closed') {
+    if (!event.panelId) return
+
+    const mappedLocalId = remoteToLocal.get(event.panelId)
+    const directLocalId = panelExists(event.panelId) ? event.panelId : undefined
+    const localPanelId = mappedLocalId ?? directLocalId
+
+    if (!localPanelId) {
+      dropPanelMapping(event.panelId, remoteToLocal, remoteToSurface, surfaceToLocal)
+      return
+    }
+
+    deps.closePanel(localPanelId)
+    dropPanelMapping(event.panelId, remoteToLocal, remoteToSurface, surfaceToLocal)
+    dropAliasesForLocalPanel(localPanelId, null, remoteToLocal, remoteToSurface, surfaceToLocal)
+    return
+  }
+
+  if (event._tag === 'panel:surface_updated') {
+    if (!event.surfaceId || event.surface == null) return
+
+    const localPanelId = surfaceToLocal.get(event.surfaceId)
+    if (localPanelId && !panelExists(localPanelId)) {
+      surfaceToLocal.delete(event.surfaceId)
+    }
+
+    applyRemotePanelEvent(event, {
+      registerGeniferPanelVisitor: deps.registerGeniferPanelVisitor,
+      setGeniferPanelSurface: deps.setGeniferPanelSurface,
+      spawnPanel: deps.spawnPanel,
+      closePanel: deps.closePanel,
+      remoteToLocalPanelIds: remoteToLocal,
+    })
+  }
+}
+
 // =============================================================================
 // Shared: Wire event stream + snapshot for a session
 // =============================================================================
@@ -299,12 +463,15 @@ function wireEventStream(
         }
 
         if (rawEvent?._tag === 'remote:panel_event' && rawEvent.event) {
-          applyRemotePanelEvent(rawEvent.event as PanelEvent & { surface?: unknown }, {
+          applyReplaySafeRemotePanelEvent(rawEvent.event as PanelEvent & { surface?: unknown }, {
             registerGeniferPanelVisitor,
             setGeniferPanelSurface: (surfaceId, surface) => setGeniferPanelSurface(surfaceId, surface as any),
             spawnPanel,
             closePanel,
             remoteToLocalPanelIds,
+            remotePanelSurfaceIds,
+            surfaceToLocalPanelIds,
+            panelExists: (panelId) => getPanel(panelId) != null,
           })
         }
       }),
