@@ -357,4 +357,39 @@ describe('PiAiHarnessEngine (headless integration)', () => {
       expect(events.some((event) => event._tag === 'chat:v2/provider_marker')).toBe(true)
     }),
   )
+
+  it.effect('keeps node-idempotent openSession by default but allows forceNew session creation', () =>
+    Effect.gen(function* () {
+      const layer = withEngine(() =>
+        makeImmediateStream(
+          [
+            {
+              type: 'text_delta',
+              contentIndex: 0,
+              delta: 'noop',
+              partial: makePartialAssistant([{ type: 'text', text: 'noop' }]),
+            },
+          ],
+          makeAssistant({
+            content: [{ type: 'text', text: 'noop' }],
+            stopReason: 'stop',
+          }),
+        ),
+      )
+
+      const engine = yield* PiAiHarnessEngine.pipe(Effect.provide(layer))
+      const nodeId = 'node-force-new'
+
+      const first = yield* engine.openSession(nodeId, 'general')
+      const second = yield* engine.openSession(nodeId, 'general')
+      const third = yield* engine.openSession(nodeId, 'general', { forceNew: true })
+
+      expect(second.sessionId).toBe(first.sessionId)
+      expect(third.sessionId).not.toBe(first.sessionId)
+
+      const sessions = yield* engine.listSessions()
+      const nodeSessions = sessions.filter((session) => session.nodeId === nodeId)
+      expect(nodeSessions.length).toBe(2)
+    }),
+  )
 })

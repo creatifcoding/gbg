@@ -1,5 +1,5 @@
 import {
-  Context,
+  Cause,
   Effect,
   Either,
   Layer,
@@ -24,7 +24,6 @@ import {
   HarnessRemoteSessionMetaUpdatedPayload,
   HarnessRemoteSessionDeletedPayload,
   HarnessRemoteSessionForkedPayload,
-  type HarnessModelOverride,
 } from './HarnessBrowserRemoteSchemas'
 import {
   HarnessRuntime,
@@ -75,6 +74,64 @@ const optionToOptionalField = <A>(value: Option.Option<A>): A | undefined =>
     onSome: (next) => next,
   })
 
+const browserLogDebug = Effect.fn('tmnl.harness.runtime.browser.log.debug')(function* (
+  message: string,
+  payload?: Record<string, unknown>,
+) {
+  yield* Effect.logDebug(message).pipe(
+    payload === undefined
+      ? Effect.annotateLogs({ area: 'harness-runtime-browser' })
+      : Effect.annotateLogs({ ...payload, area: 'harness-runtime-browser' }),
+  )
+})
+
+const isInterruptedCause = (cause: unknown): boolean =>
+  Cause.isCause(cause) && Cause.isInterruptedOnly(cause)
+
+const browserCauseToMessage = Effect.fn('tmnl.harness.runtime.browser.cause-to-message')(function* (cause: unknown) {
+  if (Cause.isCause(cause)) {
+    return Cause.pretty(cause)
+  }
+
+  if (typeof cause === 'string') {
+    return cause
+  }
+
+  if (cause instanceof Error) {
+    return cause.message
+  }
+
+  return yield* Effect.sync(() => {
+    if (cause == null) {
+      return 'unknown'
+    }
+
+    try {
+      return JSON.stringify(cause)
+    } catch {
+      return String(cause)
+    }
+  })
+})
+
+const browserLogWarningCause = Effect.fn('tmnl.harness.runtime.browser.log.warning-cause')(function* (
+  message: string,
+  cause: unknown,
+  payload?: Record<string, unknown>,
+) {
+  if (isInterruptedCause(cause)) {
+    yield* browserLogDebug(`${message}:interrupted`, payload)
+    return
+  }
+
+  const causeMessage = yield* browserCauseToMessage(cause)
+  yield* Effect.logWarning(message).pipe(
+    payload === undefined
+      ? Effect.annotateLogs({ area: 'harness-runtime-browser', cause: causeMessage })
+      : Effect.annotateLogs({ ...payload, area: 'harness-runtime-browser', cause: causeMessage }),
+  )
+})
+
 const requestData = <A>(
   transport: {
     readonly request: (command: unknown) => Effect.Effect<unknown, HarnessBrowserTransportError>
@@ -83,10 +140,26 @@ const requestData = <A>(
   dataSchema: Schema.Schema<A>,
 ): Effect.Effect<A, HarnessBrowserTransportError | HarnessBrowserProtocolError> =>
   Effect.gen(function* () {
-    const rawResponse = yield* transport.request(command)
+    yield* browserLogDebug('request:dispatch', {
+      command: command._tag,
+    })
+
+    const rawResponse = yield* transport.request(command).pipe(
+      Effect.withSpan('tmnl.harness.runtime.browser.transport.request', {
+        attributes: {
+          command: command._tag,
+        },
+      }),
+    )
+
     const response = yield* decodeOrFail(HarnessRemoteResponse, rawResponse, command._tag)
 
     if (!response.ok) {
+      yield* browserLogDebug('request:remote-failure', {
+        command: command._tag,
+        message: response.message,
+      })
+
       return yield* Effect.fail(
         new HarnessBrowserProtocolError({
           message: response.message,
@@ -97,7 +170,13 @@ const requestData = <A>(
     }
 
     return yield* decodeOrFail(dataSchema, response.data, command._tag)
-  })
+  }).pipe(
+    Effect.withSpan('tmnl.harness.runtime.browser.request-data', {
+      attributes: {
+        command: command._tag,
+      },
+    }),
+  )
 
 const toRuntimeError =
   (code: string, message: string) =>
@@ -108,18 +187,27 @@ const toRuntimeError =
       cause: Option.some(cause),
     })
 
+const traceRuntimeFailure = (op: string, command: string) =>
+  Effect.tapErrorCause((cause) =>
+    browserLogWarningCause('runtime-op-failed', cause, {
+      op,
+      command,
+    }),
+  )
+
 export const HarnessRuntimeBrowserLive = Layer.effect(
   HarnessRuntime,
   Effect.gen(function* () {
     const transport = yield* HarnessBrowserTransport
 
-    const openSession: HarnessRuntimeShape['openSession'] = (nodeId, role) =>
+    const openSession: HarnessRuntimeShape['openSession'] = (nodeId, role, options) =>
       requestData(
         transport,
         {
           _tag: 'remote:chat_v2_open_session',
           nodeId,
           role,
+          ...(options?.forceNew === undefined ? {} : { forceNew: options.forceNew }),
         },
         HarnessRemoteSessionPayload,
       ).pipe(
@@ -130,6 +218,7 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
               backend: 'pi-ai',
             }),
         ),
+        traceRuntimeFailure('open-session', 'remote:chat_v2_open_session'),
         Effect.mapError(toRuntimeError('open-session-failed', 'Failed to open harness browser session')),
         Effect.withSpan('tmnl.harness.runtime.browser.open-session'),
       )
@@ -145,6 +234,7 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
         HarnessRemoteSnapshotPayload,
       ).pipe(
         Effect.map((snapshot) => new HarnessSnapshot(snapshot)),
+        traceRuntimeFailure('resume-session', 'remote:chat_v2_resume_session'),
         Effect.mapError(toRuntimeError('resume-session-failed', 'Failed to resume harness browser session')),
         Effect.withSpan('tmnl.harness.runtime.browser.resume-session'),
       )
@@ -170,6 +260,7 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
               backend: 'pi-ai',
             }),
         ),
+        traceRuntimeFailure('send', 'remote:chat_v2_send'),
         Effect.mapError(toRuntimeError('send-failed', 'Failed to send harness browser prompt')),
         Effect.withSpan('tmnl.harness.runtime.browser.send'),
       )
@@ -181,6 +272,7 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
         HarnessRemoteModelListPayload,
       ).pipe(
         Effect.map((payload) => payload.models),
+        traceRuntimeFailure('get-available-models', 'remote:get_available_models'),
         Effect.mapError(toRuntimeError('models-failed', 'Failed to get available models from harness')),
         Effect.withSpan('tmnl.harness.runtime.browser.get-available-models'),
       )
@@ -196,6 +288,7 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
         HarnessRemoteSnapshotPayload,
       ).pipe(
         Effect.map((snapshot) => new HarnessSnapshot(snapshot)),
+        traceRuntimeFailure('get-snapshot', 'remote:chat_v2_get_snapshot'),
         Effect.mapError(toRuntimeError('snapshot-failed', 'Failed to get harness browser snapshot')),
         Effect.withSpan('tmnl.harness.runtime.browser.get-snapshot'),
       )
@@ -210,6 +303,7 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
         Schema.Unknown,
       ).pipe(
         Effect.asVoid,
+        traceRuntimeFailure('abort-session', 'remote:chat_v2_abort'),
         Effect.mapError(toRuntimeError('abort-failed', 'Failed to abort harness browser session')),
         Effect.withSpan('tmnl.harness.runtime.browser.abort-session'),
       )
@@ -225,6 +319,7 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
         Schema.Unknown,
       ).pipe(
         Effect.asVoid,
+        traceRuntimeFailure('respond-extension-ui', 'remote:chat_v2_respond_extension_ui'),
         Effect.mapError(toRuntimeError('extension-ui-failed', 'Failed to route harness browser extension UI response')),
         Effect.withSpan('tmnl.harness.runtime.browser.respond-extension-ui'),
       )
@@ -236,6 +331,7 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
         HarnessRemoteSessionListPayload,
       ).pipe(
         Effect.map((payload) => payload.sessions),
+        traceRuntimeFailure('list-sessions', 'remote:list_sessions'),
         Effect.mapError(toRuntimeError('list-sessions-failed', 'Failed to list harness browser sessions')),
         Effect.withSpan('tmnl.harness.runtime.browser.list-sessions'),
       )
@@ -251,6 +347,7 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
         HarnessRemoteSessionMetaUpdatedPayload,
       ).pipe(
         Effect.asVoid,
+        traceRuntimeFailure('update-session-meta', 'remote:update_session_meta'),
         Effect.mapError(toRuntimeError('update-session-meta-failed', 'Failed to update harness browser session metadata')),
         Effect.withSpan('tmnl.harness.runtime.browser.update-session-meta'),
       )
@@ -265,6 +362,7 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
         HarnessRemoteSessionDeletedPayload,
       ).pipe(
         Effect.asVoid,
+        traceRuntimeFailure('delete-session', 'remote:delete_session'),
         Effect.mapError(toRuntimeError('delete-session-failed', 'Failed to delete harness browser session')),
         Effect.withSpan('tmnl.harness.runtime.browser.delete-session'),
       )
@@ -280,6 +378,7 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
         HarnessRemoteSessionForkedPayload,
       ).pipe(
         Effect.map((payload) => ({ sessionId: payload.sessionId })),
+        traceRuntimeFailure('fork-session', 'remote:fork_session'),
         Effect.mapError(toRuntimeError('fork-session-failed', 'Failed to fork harness browser session')),
         Effect.withSpan('tmnl.harness.runtime.browser.fork-session'),
       )
@@ -299,7 +398,14 @@ export const HarnessRuntimeBrowserLive = Layer.effect(
         ),
       ),
       Stream.filterMap((maybe) => maybe),
+      Stream.tapErrorCause((cause) =>
+        browserLogWarningCause('events-stream-failed', cause, {
+          op: 'events',
+          command: 'remote:chat_v2_event',
+        }),
+      ),
       Stream.mapError(toRuntimeError('events-failed', 'Harness browser event stream failed')),
+      Stream.withSpan('tmnl.harness.runtime.browser.events-stream'),
     )
 
     return HarnessRuntime.of({

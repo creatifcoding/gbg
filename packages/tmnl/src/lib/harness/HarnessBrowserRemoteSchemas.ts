@@ -89,6 +89,7 @@ export const HarnessRemoteSessionForkedPayload = Schema.Struct({
 export const HarnessRemoteOpenSessionCommand = Schema.TaggedStruct('remote:chat_v2_open_session', {
   nodeId: Schema.String,
   role: HarnessRole,
+  forceNew: Schema.optional(Schema.Boolean),
 })
 
 export const HarnessRemoteResumeSessionCommand = Schema.TaggedStruct('remote:chat_v2_resume_session', {

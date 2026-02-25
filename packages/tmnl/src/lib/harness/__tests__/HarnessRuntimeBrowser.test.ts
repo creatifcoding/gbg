@@ -64,7 +64,7 @@ describe('HarnessRuntimeBrowser', () => {
       const [session, ack, snapshot, commandLog] = yield* Effect.gen(function* () {
         const runtime = yield* HarnessRuntime
 
-        const session = yield* runtime.openSession('node-browser', 'general')
+        const session = yield* runtime.openSession('node-browser', 'general', { forceNew: true })
         const ack = yield* runtime.send(
           session.sessionId,
           'client-1' as any,
@@ -82,6 +82,7 @@ describe('HarnessRuntimeBrowser', () => {
       expect(snapshot.headSeq).toBe(2)
 
       expect(commandLog.some((entry) => entry._tag === 'remote:chat_v2_open_session')).toBe(true)
+      expect(commandLog.some((entry) => entry._tag === 'remote:chat_v2_open_session' && entry.forceNew === true)).toBe(true)
       expect(commandLog.some((entry) => entry._tag === 'remote:chat_v2_send')).toBe(true)
       expect(commandLog.some((entry) => entry._tag === 'remote:chat_v2_get_snapshot')).toBe(true)
     }),

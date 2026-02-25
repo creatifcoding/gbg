@@ -32,8 +32,8 @@ export const HarnessRuntimeLive = Layer.effect(
     return HarnessRuntime.of({
       backend: 'pi-ai',
 
-      openSession: (nodeId, role) =>
-        engine.openSession(nodeId, role).pipe(
+      openSession: (nodeId, role, options) =>
+        engine.openSession(nodeId, role, options).pipe(
           Effect.map(
             (view) =>
               new HarnessSessionView({

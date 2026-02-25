@@ -1,4 +1,5 @@
 import {
+  Cause,
   Effect,
   Either,
   Layer,
@@ -93,38 +94,146 @@ const makeEventEnvelope = (event: Parameters<typeof makeSuccessResponse>[1]): Ha
 
 const makeWsId = (): string => `hws-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 
+const logDebug = Effect.fn('harness.ws.log.debug')(function* (
+  wsId: string,
+  message: string,
+  payload?: Record<string, unknown>,
+) {
+  const annotations = payload === undefined ? { wsId } : { wsId, ...payload }
+  yield* Effect.logDebug(message).pipe(Effect.annotateLogs(annotations))
+})
+
+const causeToMessage = Effect.fn('harness.ws.cause-to-message')(function* (cause: unknown) {
+  if (Cause.isCause(cause)) {
+    return Cause.pretty(cause)
+  }
+
+  if (typeof cause === 'string') {
+    return cause
+  }
+
+  if (cause instanceof Error) {
+    return cause.message
+  }
+
+  return yield* Effect.sync(() => {
+    if (cause === undefined || cause === null) {
+      return 'unknown'
+    }
+
+    try {
+      return JSON.stringify(cause)
+    } catch {
+      if (typeof cause === 'object' && 'toString' in cause) {
+        return String(cause.toString())
+      }
+      return String(cause)
+    }
+  })
+})
+
+const logWarningCause = Effect.fn('harness.ws.log.warning-cause')(function* (
+  wsId: string,
+  message: string,
+  cause: unknown,
+  payload?: Record<string, unknown>,
+) {
+  const causeMessage = yield* causeToMessage(cause)
+  const annotations = payload === undefined
+    ? { wsId, cause: causeMessage }
+    : { wsId, cause: causeMessage, ...payload }
+  yield* Effect.logWarning(message).pipe(Effect.annotateLogs(annotations))
+})
+
+const normalizeCommandTag = (value: unknown) => (typeof value === 'string' ? value : 'unknown')
+
+const decodeChunkPayload = Effect.fn('harness.ws.decode-inbound')(function* (raw: string) {
+  return yield* decodeWsRequest(raw).pipe(
+    Effect.withSpan('harness.ws.decode-inbound', {
+      attributes: {
+        direction: 'inbound',
+      },
+    }),
+  )
+})
+
 const handleRemoteWs = Effect.gen(function* () {
   const runtime = yield* HarnessRuntime
   const request = yield* HttpServerRequest.HttpServerRequest
   const wsId = makeWsId()
 
   const socket = yield* request.upgrade
-  yield* Effect.logInfo(`[harness-ws:${wsId}] connected`)
+  yield* logDebug(wsId, 'connected')
 
   const outbound = yield* Queue.unbounded<string>()
 
   const send = Effect.fn('harness.ws.send')(function* (payload: unknown) {
-    const json = yield* encodeJson(payload)
+    yield* logDebug(wsId, 'queue-push', {
+      kind: 'outbound',
+      tag: (payload as { _tag?: unknown })._tag ?? 'payload',
+    })
+    const json = yield* encodeJson(payload).pipe(
+      Effect.withSpan('harness.ws.encode.outbound'),
+    )
     yield* Queue.offer(outbound, json)
   })
+
+  const safeSend = (payload: unknown, tag: string) =>
+    send(payload).pipe(
+      Effect.withSpan('harness.ws.outbound-send', { attributes: { kind: 'response', tag } }),
+      Effect.catchAllCause((cause) =>
+        logWarningCause(
+          wsId,
+          'send-effect-failed',
+          cause,
+          {
+            kind: 'outbound-send',
+            tag,
+          },
+        ).pipe(Effect.asVoid),
+      ),
+    )
 
   yield* Effect.forkScoped(
     Effect.gen(function* () {
       const write = yield* socket.writer
-      yield* Stream.runForEach(Stream.fromQueue(outbound), (json) => write(json).pipe(Effect.asVoid))
+      yield* Stream.runForEach(
+        Stream.fromQueue(outbound),
+        (json) => write(json).pipe(Effect.asVoid).pipe(Effect.withSpan('harness.ws.writer-frame')),
+      )
     }).pipe(
       Effect.withSpan('harness.ws.outbound-writer-loop'),
-      Effect.catchAll((cause) =>
-        Effect.logWarning(`[harness-ws:${wsId}] outbound writer loop stopped: ${String(cause)}`),
+      Effect.catchAllCause((cause) =>
+        logWarningCause(
+          wsId,
+          'outbound-writer-loop-stopped',
+          cause,
+        ),
       ),
     ),
   )
 
+  const emitRuntimeEvent = (event: unknown) =>
+    safeSend(makeEventEnvelope(event), 'runtime:event').pipe(
+      Effect.withSpan('harness.ws.runtime-events-send'),
+      Effect.catchAllCause((cause) =>
+        logWarningCause(
+          wsId,
+          'runtime-event-relay-failed',
+          cause,
+        ).pipe(Effect.asVoid),
+      ),
+    )
+
   yield* Effect.forkScoped(
-    Stream.runForEach(runtime.events, (event) => send(makeEventEnvelope(event))).pipe(
+    Stream.runForEach(runtime.events, emitRuntimeEvent).pipe(
       Effect.withSpan('harness.ws.runtime-events-loop'),
-      Effect.catchAll((cause) =>
-        Effect.logWarning(`[harness-ws:${wsId}] runtime event stream stopped: ${String(cause)}`),
+      Effect.catchAllCause((cause) =>
+        logWarningCause(
+          wsId,
+          'runtime-events-stream-stopped',
+          cause,
+        ),
       ),
     ),
   )
@@ -156,14 +265,28 @@ const handleRemoteWs = Effect.gen(function* () {
   })
 
   // Relay shell events to WS client
+  const emitShellEvent = (event: unknown) =>
+    safeSend(makeShellEventEnvelope(event), 'shell:event').pipe(
+      Effect.withSpan('harness.ws.shell-events-send'),
+      Effect.catchAllCause((cause) =>
+        logWarningCause(
+          wsId,
+          'shell-event-relay-failed',
+          cause,
+        ).pipe(Effect.asVoid),
+      ),
+    )
+
   if (shellServiceResult) {
     yield* Effect.forkScoped(
-      Stream.runForEach(shellServiceResult.events, (event) =>
-        send(makeShellEventEnvelope(event)),
-      ).pipe(
+      Stream.runForEach(shellServiceResult.events, emitShellEvent).pipe(
         Effect.withSpan('harness.ws.shell-events-loop'),
-        Effect.catchAll((cause) =>
-          Effect.logWarning(`[harness-ws:${wsId}] shell event stream stopped: ${String(cause)}`),
+        Effect.catchAllCause((cause) =>
+          logWarningCause(
+            wsId,
+            'shell-events-stream-stopped',
+            cause,
+          ),
         ),
       ),
     )
@@ -176,14 +299,28 @@ const handleRemoteWs = Effect.gen(function* () {
     Effect.map(Option.getOrNull),
   )
 
+  const emitPanelEvent = (event: unknown) =>
+    safeSend(makePanelEventEnvelope(event), 'panel:event').pipe(
+      Effect.withSpan('harness.ws.panel-events-send'),
+      Effect.catchAllCause((cause) =>
+        logWarningCause(
+          wsId,
+          'panel-event-relay-failed',
+          cause,
+        ).pipe(Effect.asVoid),
+      ),
+    )
+
   if (panelEventBus) {
     yield* Effect.forkScoped(
-      Stream.runForEach(panelEventBus.events, (event) =>
-        send(makePanelEventEnvelope(event)),
-      ).pipe(
+      Stream.runForEach(panelEventBus.events, emitPanelEvent).pipe(
         Effect.withSpan('harness.ws.panel-events-loop'),
-        Effect.catchAll((cause) =>
-          Effect.logWarning(`[harness-ws:${wsId}] panel event stream stopped: ${String(cause)}`),
+        Effect.catchAllCause((cause) =>
+          logWarningCause(
+            wsId,
+            'panel-events-stream-stopped',
+            cause,
+          ),
         ),
       ),
     )
@@ -222,21 +359,42 @@ const handleRemoteWs = Effect.gen(function* () {
 
   const handleIncomingChunk = Effect.fn('harness.ws.handle-incoming-chunk')(function* (chunk: string | Uint8Array) {
     const raw = typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk)
-    const decoded = yield* decodeWsRequest(raw).pipe(Effect.either)
+    yield* logDebug(
+      wsId,
+      'inbound-chunk-received',
+      {
+        rawBytes: raw.length,
+      },
+    )
+
+    const decoded = yield* decodeChunkPayload(raw).pipe(Effect.either)
 
     if (decoded._tag === 'Left') {
-      yield* send(makeFailureResponse('invalid-request', 'Malformed harness websocket envelope'))
+      yield* logWarningCause(
+        wsId,
+        'inbound-chunk-decode-failed',
+        decoded.left,
+      )
+      yield* safeSend(makeFailureResponse('invalid-request', 'Malformed harness websocket envelope'), 'response:invalid-envelope')
       return
     }
 
     const envelope = decoded.right
+    const commandTag = normalizeCommandTag((envelope as { command?: unknown }).command?._tag)
+
+    yield* logDebug(wsId, 'inbound-command', {
+      requestId: envelope.requestId,
+      command: commandTag,
+    })
 
     const result = yield* Effect.gen(function* () {
       const command = envelope.command
 
       switch (command._tag) {
         case 'remote:chat_v2_open_session':
-          return yield* runtime.openSession(command.nodeId, command.role)
+          return yield* runtime.openSession(command.nodeId, command.role, {
+            forceNew: command.forceNew,
+          })
         case 'remote:chat_v2_resume_session':
           return yield* runtime.resumeSession(command.sessionId, Option.fromNullable(command.fromSeq))
         case 'remote:chat_v2_send':
@@ -315,27 +473,70 @@ const handleRemoteWs = Effect.gen(function* () {
           return {}
         }
       }
-    }).pipe(Effect.either)
+    }).pipe(
+      Effect.withSpan('harness.ws.command-handler', {
+        attributes: {
+          command: commandTag,
+          requestId: envelope.requestId,
+        },
+      }),
+      Effect.either,
+    )
 
     if (result._tag === 'Left') {
-      const message = typeof (result.left as { message?: unknown }).message === 'string'
-        ? (result.left as { message: string }).message
-        : String(result.left)
-      yield* send(makeFailureResponse(envelope.requestId, message))
+      const message = yield* causeToMessage(result.left)
+      yield* logWarningCause(
+        wsId,
+        'command-failed',
+        result.left,
+        {
+          requestId: envelope.requestId,
+          command: commandTag,
+          message,
+        },
+      )
+      yield* safeSend(makeFailureResponse(envelope.requestId, message), `response:${commandTag}:failure`)
       return
     }
 
-    yield* send(makeSuccessResponse(envelope.requestId, result.right))
+    yield* logDebug(
+      wsId,
+      'command-succeeded',
+      {
+        requestId: envelope.requestId,
+        command: commandTag,
+      },
+    )
+    yield* safeSend(makeSuccessResponse(envelope.requestId, result.right), `response:${commandTag}:ok`)
   })
 
-  yield* socket.runRaw(handleIncomingChunk).pipe(
+  yield* socket.runRaw(
+    (chunk) =>
+      handleIncomingChunk(chunk).pipe(
+        Effect.withSpan('harness.ws.socket.inbound-chunk', { attributes: { connection: wsId } }),
+        Effect.catchAllCause((cause) =>
+          logWarningCause(
+            wsId,
+            'socket-run-loop-frame-error',
+            cause,
+            {
+              requestSize: (typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk)).length,
+            },
+          ).pipe(Effect.asVoid),
+        ),
+      ),
+  ).pipe(
     Effect.withSpan('harness.ws.socket-run-loop'),
-    Effect.catchAll((cause) =>
-      Effect.logWarning(`[harness-ws:${wsId}] socket loop terminated: ${String(cause)}`),
+    Effect.catchAllCause((cause) =>
+      logWarningCause(
+        wsId,
+        'socket-loop-terminated',
+        cause,
+      ),
     ),
   )
 
-  yield* Effect.logInfo(`[harness-ws:${wsId}] disconnected`)
+  yield* logDebug(wsId, 'disconnected')
   return HttpServerResponse.empty()
 }).pipe(
   Effect.withSpan('harness.ws.connection'),

@@ -33,7 +33,7 @@ export interface SessionListItem {
   readonly name: string
   readonly autoTitle: string
   readonly tags: ReadonlyArray<string>
-  readonly status: 'active' | 'archived' | 'starred'
+  readonly status: string
   readonly starred: boolean
   readonly createdAt: number
   readonly updatedAt: number
@@ -66,6 +66,9 @@ export interface HarnessRuntimeShape {
   readonly openSession: (
     nodeId: string,
     role: HarnessRole,
+    options?: {
+      readonly forceNew?: boolean
+    },
   ) => Effect.Effect<HarnessSessionView, HarnessRuntimeError>
   readonly resumeSession: (
     sessionId: HarnessSessionId,
@@ -97,7 +100,7 @@ export interface HarnessRuntimeShape {
   readonly forkSession: (
     sessionId: HarnessSessionId,
     atSeq?: number,
-  ) => Effect.Effect<{ sessionId: string }, HarnessRuntimeError>
+  ) => Effect.Effect<{ readonly sessionId: string }, HarnessRuntimeError>
   readonly events: Stream.Stream<HarnessEvent, HarnessRuntimeError>
 }
 

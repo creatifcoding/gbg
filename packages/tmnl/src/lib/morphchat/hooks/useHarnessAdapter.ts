@@ -1030,7 +1030,7 @@ const newSessionOp$ = Atom.family((id: string) =>
 
         // Open fresh session
         morphChatRegistry.set(connection$(id), { phase: 'connecting', endpoint: `harness:${nodeId}` } as ConnectionState)
-        const session = yield* runtime.openSession(nodeId, role).pipe(
+        const session = yield* runtime.openSession(nodeId, role, { forceNew: true }).pipe(
           Effect.timeoutFail({ duration: '12 seconds', onTimeout: () => new HarnessRuntimeError({ code: 'new-session-timeout', message: 'Timeout', cause: Option.none() }) }),
         )
 

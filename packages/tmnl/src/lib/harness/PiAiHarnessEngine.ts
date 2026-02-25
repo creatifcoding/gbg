@@ -82,7 +82,13 @@ export interface AvailableModelInfo {
 }
 
 export interface PiAiHarnessEngineShape {
-  readonly openSession: (nodeId: string, role: AgentRole) => Effect.Effect<SessionView, PiAiHarnessEngineError>
+  readonly openSession: (
+    nodeId: string,
+    role: AgentRole,
+    options?: {
+      readonly forceNew?: boolean
+    },
+  ) => Effect.Effect<SessionView, PiAiHarnessEngineError>
   readonly send: (
     sessionId: ChatSessionId,
     clientMessageId: ChatClientMessageId,
@@ -883,11 +889,11 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
       )
     }
 
-    const openSession: PiAiHarnessEngineShape['openSession'] = (nodeId, role) =>
+    const openSession: PiAiHarnessEngineShape['openSession'] = (nodeId, role, options) =>
       Effect.gen(function* () {
         const mapped = yield* Ref.get(nodeToSessionRef).pipe(Effect.map((map) => HashMap.get(map, nodeId)))
 
-        if (Option.isSome(mapped)) {
+        if (!options?.forceNew && Option.isSome(mapped)) {
           return yield* withSession(mapped.value as ChatSessionId, (session) =>
             Effect.succeed({
               sessionId: session.sessionId,

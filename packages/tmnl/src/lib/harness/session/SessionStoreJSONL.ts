@@ -27,9 +27,17 @@ import {
 } from './schemas'
 
 const SESSION_FILE_EXTENSION = '.jsonl'
+const SESSION_INDEX_FILE = '.session-index.json'
 const SESSION_STORE_DIRECTORY = '~/.tmnl/harness-sessions/'
 
 type JsonRecord = Record<string, unknown>
+
+const HarnessSessionIndexPayload = Schema.Struct({
+  _tag: Schema.Literal('HarnessSessionIndex'),
+  version: Schema.Literal(1),
+  updatedAt: Schema.Number,
+  sessions: Schema.Array(HarnessSessionMeta),
+})
 
 const splitJsonLines = (content: string): ReadonlyArray<string> =>
   content
@@ -352,6 +360,126 @@ export const HarnessSessionStoreJSONLLive = Layer.effect(
       })
     }
 
+    const sortMetas = (metas: ReadonlyArray<HarnessSessionMeta>): ReadonlyArray<HarnessSessionMeta> =>
+      [...metas].sort((a, b) => b.updatedAt - a.updatedAt)
+
+    const sessionIndexPath = `${storeDirectory}/${SESSION_INDEX_FILE}`
+
+    const scanSessionMetasFromFiles = (): Effect.Effect<ReadonlyArray<HarnessSessionMeta>, HarnessSessionStoreError> =>
+      Effect.gen(function* () {
+        const entries = yield* fs.readDirectory(storeDirectory).pipe(
+          Effect.mapError(toStoreError('list-sessions-failed', 'Failed to list session directory entries')),
+        )
+
+        const sessionFiles = entries.filter((entry) => entry.endsWith(SESSION_FILE_EXTENSION))
+
+        const metas = yield* Effect.forEach(
+          sessionFiles,
+          (fileName) =>
+            Effect.gen(function* () {
+              const filePath = `${storeDirectory}/${fileName}`
+              const lines = yield* readLines(
+                filePath,
+                'read-session-file-failed',
+                `Failed to read session file ${fileName}`,
+              )
+
+              if (lines.length === 0) {
+                return yield* Effect.fail(
+                  new HarnessSessionStoreError({
+                    code: 'invalid-session-file',
+                    message: `Session file ${fileName} is empty`,
+                    cause: Option.none(),
+                  }),
+                )
+              }
+
+              return yield* decodeMeta(
+                lines[0],
+                'decode-session-header-failed',
+                `Failed to decode session metadata in ${fileName}`,
+              )
+            }),
+          { concurrency: 1 },
+        )
+
+        return sortMetas(metas)
+      })
+
+    const writeSessionIndex = (sessions: ReadonlyArray<HarnessSessionMeta>) =>
+      fs.writeFileString(
+        sessionIndexPath,
+        `${JSON.stringify({
+          _tag: 'HarnessSessionIndex',
+          version: 1,
+          updatedAt: Date.now(),
+          sessions: sortMetas(sessions),
+        }, null, 2)}\n`,
+      ).pipe(
+        Effect.mapError(toStoreError('write-session-index-failed', 'Failed to write session index file')),
+      )
+
+    const readSessionIndex = (): Effect.Effect<Option.Option<ReadonlyArray<HarnessSessionMeta>>, HarnessSessionStoreError> =>
+      Effect.gen(function* () {
+        const exists = yield* fs.exists(sessionIndexPath).pipe(
+          Effect.mapError(toStoreError('session-index-exists-check-failed', 'Failed to check session index existence')),
+        )
+
+        if (!exists) {
+          return Option.none<ReadonlyArray<HarnessSessionMeta>>()
+        }
+
+        const raw = yield* fs.readFileString(sessionIndexPath).pipe(
+          Effect.mapError(toStoreError('read-session-index-failed', 'Failed to read session index file')),
+        )
+
+        const parsed = yield* Effect.try({
+          try: () => JSON.parse(raw) as unknown,
+          catch: (cause) =>
+            new HarnessSessionStoreError({
+              code: 'decode-session-index-failed',
+              message: 'Failed to parse session index file',
+              cause: Option.some(cause),
+            }),
+        })
+
+        const decoded = yield* Schema.decodeUnknown(HarnessSessionIndexPayload)(parsed).pipe(
+          Effect.mapError(toStoreError('decode-session-index-failed', 'Failed to decode session index payload')),
+        )
+
+        return Option.some(sortMetas(decoded.sessions))
+      })
+
+    const readSessionIndexLenient = () =>
+      readSessionIndex().pipe(Effect.catchAll(() => Effect.succeed(Option.none<ReadonlyArray<HarnessSessionMeta>>())))
+
+    const upsertSessionIndexMeta = (meta: HarnessSessionMeta) =>
+      Effect.gen(function* () {
+        const current = yield* readSessionIndexLenient()
+        const base = Option.isSome(current)
+          ? current.value
+          : yield* scanSessionMetasFromFiles().pipe(
+              Effect.catchAll(() => Effect.succeed([] as ReadonlyArray<HarnessSessionMeta>)),
+            )
+
+        const filtered = base.filter((entry) => entry.sessionId !== meta.sessionId)
+        const next = [...filtered, meta] as ReadonlyArray<HarnessSessionMeta>
+
+        yield* writeSessionIndex(next)
+      })
+
+    const removeSessionIndexMeta = (sessionId: HarnessSessionIdType | string) =>
+      Effect.gen(function* () {
+        const current = yield* readSessionIndexLenient()
+        const base = Option.isSome(current)
+          ? current.value
+          : yield* scanSessionMetasFromFiles().pipe(
+              Effect.catchAll(() => Effect.succeed([] as ReadonlyArray<HarnessSessionMeta>)),
+            )
+        const next = base.filter((entry) => entry.sessionId !== normalizeSessionId(sessionId))
+        yield* writeSessionIndex(next)
+      })
+
     const upsertSession: HarnessSessionStoreShape['upsertSession'] = (session) =>
       Effect.gen(function* () {
         yield* fs.makeDirectory(storeDirectory, { recursive: true }).pipe(
@@ -392,6 +520,8 @@ export const HarnessSessionStoreJSONLLive = Layer.effect(
             toStoreError('upsert-session-failed', `Failed to upsert session ${normalizeSessionId(session.sessionId)}`),
           ),
         )
+
+        yield* upsertSessionIndexMeta(nextMeta)
       })
 
     const appendEvent: HarnessSessionStoreShape['appendEvent'] = (envelope) =>
@@ -450,6 +580,8 @@ export const HarnessSessionStoreJSONLLive = Layer.effect(
             toStoreError('update-meta-after-event-failed', 'Failed to update metadata after appending event'),
           ),
         )
+
+        yield* upsertSessionIndexMeta(nextMeta).pipe(Effect.catchAll(() => Effect.void))
       })
 
     const loadSession: HarnessSessionStoreShape['loadSession'] = (sessionId) =>
@@ -559,11 +691,15 @@ export const HarnessSessionStoreJSONLLive = Layer.effect(
       })
 
     const deleteSession: HarnessSessionStoreShape['deleteSession'] = (sessionId) =>
-      fs.remove(sessionPath(sessionId), { force: true }).pipe(
-        Effect.mapError(
-          toStoreError('delete-session-failed', `Failed to delete session ${normalizeSessionId(sessionId)}`),
-        ),
-      )
+      Effect.gen(function* () {
+        yield* fs.remove(sessionPath(sessionId), { force: true }).pipe(
+          Effect.mapError(
+            toStoreError('delete-session-failed', `Failed to delete session ${normalizeSessionId(sessionId)}`),
+          ),
+        )
+
+        yield* removeSessionIndexMeta(sessionId).pipe(Effect.catchAll(() => Effect.void))
+      })
 
     const listSessions: HarnessSessionStoreExtendedShape['listSessions'] = () =>
       Effect.gen(function* () {
@@ -573,43 +709,22 @@ export const HarnessSessionStoreJSONLLive = Layer.effect(
           ),
         )
 
-        const entries = yield* fs.readDirectory(storeDirectory).pipe(
-          Effect.mapError(toStoreError('list-sessions-failed', 'Failed to list session directory entries')),
-        )
+        const indexed = yield* readSessionIndexLenient()
+        if (Option.isSome(indexed)) {
+          const entries = yield* fs.readDirectory(storeDirectory).pipe(
+            Effect.mapError(toStoreError('list-sessions-failed', 'Failed to list session directory entries')),
+          )
+          const sessionFileCount = entries.filter((entry) => entry.endsWith(SESSION_FILE_EXTENSION)).length
 
-        const sessionFiles = entries.filter((entry) => entry.endsWith(SESSION_FILE_EXTENSION))
+          if (indexed.value.length >= sessionFileCount) {
+            return sortMetas(indexed.value)
+          }
+        }
 
-        const metas = yield* Effect.forEach(
-          sessionFiles,
-          (fileName) =>
-            Effect.gen(function* () {
-              const filePath = `${storeDirectory}/${fileName}`
-              const lines = yield* readLines(
-                filePath,
-                'read-session-file-failed',
-                `Failed to read session file ${fileName}`,
-              )
+        const sorted = yield* scanSessionMetasFromFiles()
+        yield* writeSessionIndex(sorted).pipe(Effect.catchAll(() => Effect.void))
 
-              if (lines.length === 0) {
-                return yield* Effect.fail(
-                  new HarnessSessionStoreError({
-                    code: 'invalid-session-file',
-                    message: `Session file ${fileName} is empty`,
-                    cause: Option.none(),
-                  }),
-                )
-              }
-
-              return yield* decodeMeta(
-                lines[0],
-                'decode-session-header-failed',
-                `Failed to decode session metadata in ${fileName}`,
-              )
-            }),
-          { concurrency: 1 },
-        )
-
-        return [...metas].sort((a, b) => b.updatedAt - a.updatedAt)
+        return sorted
       })
 
     const updateMeta: HarnessSessionStoreExtendedShape['updateMeta'] = (sessionId, partial) =>
@@ -660,6 +775,8 @@ export const HarnessSessionStoreJSONLLive = Layer.effect(
             toStoreError('update-meta-failed', `Failed to update session metadata for ${id}`),
           ),
         )
+
+        yield* upsertSessionIndexMeta(nextMeta)
       })
 
     yield* fs.makeDirectory(storeDirectory, { recursive: true }).pipe(
