@@ -85,6 +85,7 @@ function updateMessageParts(
   atoms: EventProcessorAtoms,
   messageId: string,
   mapper: (parts: ReadonlyArray<ChatMessagePart>) => ReadonlyArray<ChatMessagePart>,
+  getMessageAtom?: (messageId: string) => Atom.WritableAtom<ChatMessage | null>,
 ): void {
   registryUpdate(atoms.messages$, (prev) =>
     prev.map((msg) => {
@@ -95,6 +96,16 @@ function updateMessageParts(
       return { ...msg, parts: newParts, content: newContent || msg.content }
     }),
   )
+
+  if (getMessageAtom) {
+    morphChatRegistry.update(getMessageAtom(messageId), (prev) => {
+      if (!prev) return prev
+      const currentParts = prev.parts ?? []
+      const newParts = mapper(currentParts)
+      const newContent = flattenPartsToText(newParts)
+      return { ...prev, parts: newParts, content: newContent || prev.content }
+    })
+  }
 }
 
 /**
@@ -283,6 +294,10 @@ export interface HarnessEventProcessorConfig {
   readonly atoms: EventProcessorAtoms
   readonly agentName: string
   readonly nodeId?: string
+  /** Per-message atom IDs — only updated on add/remove */
+  readonly messageIds$?: Atom.WritableAtom<ReadonlyArray<string>>
+  /** Get per-message atom for isolated writes */
+  readonly getMessageAtom?: (messageId: string) => Atom.WritableAtom<ChatMessage | null>
   /** Called when a tool_manifest event is received. Wired by the adapter to sync the extension bridge. */
   readonly onToolManifest?: (tools: ReadonlyArray<{ name: string; description?: string; parameters?: unknown }>) => void
 }
@@ -324,15 +339,28 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       }
     })
 
-    registryUpdate(atoms.messages$, (prev) =>
-      prev.map((msg) => {
-        const delta = deltas.get(msg.id)
-        if (!delta) return msg
-        const nextParts = appendTextDelta(msg.parts ?? [], delta)
-        const nextContent = flattenPartsToText(nextParts)
-        return { ...msg, parts: nextParts, content: nextContent || msg.content }
-      }),
-    )
+    for (const [msgId, delta] of deltas) {
+      if (config.getMessageAtom) {
+        // Per-message atom path — isolated, only this message's subscribers re-render
+        const msgAtom = config.getMessageAtom(msgId)
+        morphChatRegistry.update(msgAtom, (prev) => {
+          if (!prev) return prev
+          const nextParts = appendTextDelta(prev.parts ?? [], delta)
+          const nextContent = flattenPartsToText(nextParts)
+          return { ...prev, parts: nextParts, content: nextContent || prev.content }
+        })
+      } else {
+        // Legacy array path — updates entire messages$ array
+        registryUpdate(atoms.messages$, (prev) =>
+          prev.map((msg) => {
+            if (msg.id !== msgId) return msg
+            const nextParts = appendTextDelta(msg.parts ?? [], delta)
+            const nextContent = flattenPartsToText(nextParts)
+            return { ...msg, parts: nextParts, content: nextContent || msg.content }
+          }),
+        )
+      }
+    }
 
     // Latency probe: stamp all seq values in this rAF batch
     if (flushSeqs) {
@@ -349,6 +377,33 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
     rafHandle = typeof requestAnimationFrame !== 'undefined'
       ? requestAnimationFrame(flushPendingDeltas)
       : (setTimeout(flushPendingDeltas, 16) as unknown as number) // SSR fallback
+  }
+
+  const updateMessageEverywhere = (
+    messageId: string,
+    updater: (message: ChatMessage) => ChatMessage,
+  ): ChatMessage | null => {
+    let updated: ChatMessage | null = null
+
+    registryUpdate(atoms.messages$, (prev) =>
+      prev.map((msg) => {
+        if (msg.id !== messageId) return msg
+        const next = updater(msg)
+        updated = next
+        return next
+      }),
+    )
+
+    if (config.getMessageAtom) {
+      morphChatRegistry.update(config.getMessageAtom(messageId), (prev) => {
+        if (!prev) return prev
+        const next = updater(prev)
+        updated = next
+        return next
+      })
+    }
+
+    return updated
   }
 
   function processEvent(event: HarnessEvent): void {
@@ -380,13 +435,32 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       }
 
       case 'chat:v2/send_accepted': {
+        const acceptedMessages: ChatMessage[] = []
         registryUpdate(atoms.messages$, (prev) =>
-          prev.map((msg) =>
-            msg.status === 'pending'
-              ? { ...msg, status: 'sent' as const }
-              : msg,
-          ),
+          prev.map((msg) => {
+            if (msg.status !== 'pending') return msg
+            const accepted = { ...msg, status: 'sent' as const }
+            acceptedMessages.push(accepted)
+            return accepted
+          }),
         )
+
+        if (config.messageIds$ && acceptedMessages.length > 0) {
+          const acceptedIdSet = new Set(acceptedMessages.map((msg) => msg.id))
+          morphChatRegistry.update(config.messageIds$, (prev) => {
+            const next = [...prev]
+            for (const msgId of acceptedIdSet) {
+              if (!next.includes(msgId)) next.push(msgId)
+            }
+            return next
+          })
+        }
+
+        if (config.getMessageAtom) {
+          for (const msg of acceptedMessages) {
+            morphChatRegistry.set(config.getMessageAtom(msg.id), msg)
+          }
+        }
         break
       }
 
@@ -394,13 +468,25 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
         // Finalize any previously streaming message (multi-turn tool loop:
         // the engine may start a new assistant turn without sending assistant_final
         // for the intermediate tool-calling turn)
+        const finalizedStreaming: ChatMessage[] = []
         registryUpdate(atoms.messages$, (prev) =>
-          prev.map((msg) =>
-            msg.status === 'streaming'
-              ? { ...msg, status: 'complete' as const, content: flattenPartsToText(msg.parts ?? []) || msg.content }
-              : msg,
-          ),
+          prev.map((msg) => {
+            if (msg.status !== 'streaming') return msg
+            const finalized = {
+              ...msg,
+              status: 'complete' as const,
+              content: flattenPartsToText(msg.parts ?? []) || msg.content,
+            }
+            finalizedStreaming.push(finalized)
+            return finalized
+          }),
         )
+
+        if (config.getMessageAtom) {
+          for (const msg of finalizedStreaming) {
+            morphChatRegistry.set(config.getMessageAtom(msg.id), msg)
+          }
+        }
 
         const streamMsg: ChatMessage = {
           id: event.messageId as string,
@@ -412,6 +498,12 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
           parts: [],
         }
         registryUpdate(atoms.messages$, (prev) => [...prev, streamMsg])
+        if (config.messageIds$) {
+          morphChatRegistry.update(config.messageIds$, (prev) => [...prev, streamMsg.id])
+        }
+        if (config.getMessageAtom) {
+          morphChatRegistry.set(config.getMessageAtom(streamMsg.id), streamMsg)
+        }
         morphChatRegistry.set(atoms.streaming$, {
           isStreaming: true,
           buffer: '',
@@ -447,7 +539,7 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
         if (thinkingStartTime === null) {
           thinkingStartTime = Date.now()
         }
-        updateMessageParts(atoms, msgId, (parts) => appendThinkingDelta(parts, event.delta))
+        updateMessageParts(atoms, msgId, (parts) => appendThinkingDelta(parts, event.delta), config.getMessageAtom)
         break
       }
 
@@ -465,65 +557,79 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
           : undefined
         thinkingStartTime = null
 
-        registryUpdate(atoms.messages$, (prev) =>
-          prev.map((msg) => {
-            if (msg.id !== msgId) return msg
-            let finalParts = finalizeThinking(msg.parts ?? [], thinkingDuration)
-            const currentText = flattenPartsToText(finalParts)
-            if (event.text !== currentText) {
-              const nonTextParts = finalParts.filter((p) => p._tag !== 'text')
-              finalParts = [
-                ...nonTextParts,
-                { _tag: 'text' as const, content: event.text },
-              ]
-            }
-            // ── Finalize any streaming code parts ──
-            finalParts = finalParts.map((p) =>
-              p._tag === 'code' && (p as CodePart).isStreaming
-                ? { ...p, isStreaming: false } as CodePart
-                : p,
+        const finalizeMessage = (msg: ChatMessage): ChatMessage => {
+          let finalParts = finalizeThinking(msg.parts ?? [], thinkingDuration)
+          const currentText = flattenPartsToText(finalParts)
+          if (event.text !== currentText) {
+            const nonTextParts = finalParts.filter((p) => p._tag !== 'text')
+            finalParts = [
+              ...nonTextParts,
+              { _tag: 'text' as const, content: event.text },
+            ]
+          }
+          // ── Finalize any streaming code parts ──
+          finalParts = finalParts.map((p) =>
+            p._tag === 'code' && (p as CodePart).isStreaming
+              ? { ...p, isStreaming: false } as CodePart
+              : p,
+          )
+          // ── Safety net: split any remaining text→code fences ──
+          finalParts = splitPartsCodeFences(finalParts)
+          return {
+            ...msg,
+            content: event.text,
+            status: 'complete' as const,
+            parts: finalParts,
+          }
+        }
+
+        let finalizedMsg: ChatMessage | null = null
+        if (config.getMessageAtom) {
+          // Per-message atom path: finalize from the per-message atom (canonical during streaming),
+          // then sync back to messages$ for serialization.
+          const msgAtom = config.getMessageAtom(msgId)
+          const current = morphChatRegistry.get(msgAtom)
+          if (current) {
+            finalizedMsg = finalizeMessage(current)
+            morphChatRegistry.set(msgAtom, finalizedMsg)
+          }
+          // Sync finalized state back to messages$ (one write, not updateMessageEverywhere)
+          if (finalizedMsg) {
+            const nextFinalized = finalizedMsg
+            registryUpdate(atoms.messages$, (prev) =>
+              prev.map((msg) => (msg.id === msgId ? nextFinalized : msg)),
             )
-            // ── Safety net: split any remaining text→code fences ──
-            finalParts = splitPartsCodeFences(finalParts)
-            return {
-              ...msg,
-              content: event.text,
-              status: 'complete' as const,
-              parts: finalParts,
-            }
-          }),
-        )
+          }
+        } else {
+          // Legacy path: finalize via messages$ array
+          finalizedMsg = updateMessageEverywhere(msgId, finalizeMessage)
+        }
+
         morphChatRegistry.set(atoms.streaming$, STREAMING_IDLE)
         break
       }
 
       case 'chat:v2/usage': {
         const usageId = event.messageId as string
-        registryUpdate(atoms.messages$, (prev) =>
-          prev.map((msg) =>
-            msg.id === usageId
-              ? {
-                  ...msg,
-                  model: event.model,
-                  provider: event.provider,
-                  tokenUsage: {
-                    prompt: event.usage.input,
-                    completion: event.usage.output,
-                    total: event.usage.totalTokens,
-                    cacheRead: event.usage.cacheRead,
-                    cacheWrite: event.usage.cacheWrite,
-                    cost: {
-                      input: event.cost.input,
-                      output: event.cost.output,
-                      cacheRead: event.cost.cacheRead,
-                      cacheWrite: event.cost.cacheWrite,
-                      total: event.cost.total,
-                    },
-                  },
-                }
-              : msg,
-          ),
-        )
+        updateMessageEverywhere(usageId, (msg) => ({
+          ...msg,
+          model: event.model,
+          provider: event.provider,
+          tokenUsage: {
+            prompt: event.usage.input,
+            completion: event.usage.output,
+            total: event.usage.totalTokens,
+            cacheRead: event.usage.cacheRead,
+            cacheWrite: event.usage.cacheWrite,
+            cost: {
+              input: event.cost.input,
+              output: event.cost.output,
+              cacheRead: event.cost.cacheRead,
+              cacheWrite: event.cost.cacheWrite,
+              total: event.cost.total,
+            },
+          },
+        }))
         break
       }
 
@@ -633,7 +739,7 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
             const prevDelta = ((upserted as any).inputDelta as string | undefined) ?? ''
             arr[idx] = { ...upserted, inputDelta: prevDelta + deltaChunk } as any
             return arr
-          })
+          }, config.getMessageAtom)
 
           break // Don't fall through to upsertToolPart below
 
@@ -664,13 +770,17 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
         }
 
         if (targetMsgId) {
-          updateMessageParts(atoms, targetMsgId, (parts) =>
-            upsertToolPart(parts, event.toolCallId, {
-              toolName: event.toolName,
-              state: toolState,
-              input: toolInput,
-              output: toolOutput,
-            }),
+          updateMessageParts(
+            atoms,
+            targetMsgId,
+            (parts) =>
+              upsertToolPart(parts, event.toolCallId, {
+                toolName: event.toolName,
+                state: toolState,
+                input: toolInput,
+                output: toolOutput,
+              }),
+            config.getMessageAtom,
           )
         }
 
@@ -741,26 +851,36 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
         const msgs = morphChatRegistry.get(atoms.messages$)
         const streamingMsg = msgs.find((m) => m.status === 'streaming')
         if (streamingMsg && streamingMsg.provider !== event.provider) {
-          registryUpdate(atoms.messages$, (prev) =>
-            prev.map((msg) =>
-              msg.id === streamingMsg.id
-                ? { ...msg, provider: event.provider }
-                : msg,
-            ),
-          )
+          updateMessageEverywhere(streamingMsg.id, (msg) => ({
+            ...msg,
+            provider: event.provider,
+          }))
         }
         break
       }
 
       case 'chat:v2/error': {
         // Mark any streaming message as error
+        const erroredMessages: ChatMessage[] = []
         registryUpdate(atoms.messages$, (prev) =>
-          prev.map((msg) =>
-            msg.status === 'streaming'
-              ? { ...msg, status: 'error' as const, content: msg.content || flattenPartsToText(msg.parts ?? []) }
-              : msg,
-          ),
+          prev.map((msg) => {
+            if (msg.status !== 'streaming') return msg
+            const errored = {
+              ...msg,
+              status: 'error' as const,
+              content: msg.content || flattenPartsToText(msg.parts ?? []),
+            }
+            erroredMessages.push(errored)
+            return errored
+          }),
         )
+
+        if (config.getMessageAtom) {
+          for (const msg of erroredMessages) {
+            morphChatRegistry.set(config.getMessageAtom(msg.id), msg)
+          }
+        }
+
         const summary = `[${event.code}] ${event.message}`
         morphChatRegistry.set(atoms.connection$, {
           phase: 'error',

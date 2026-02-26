@@ -13,15 +13,17 @@
 
 import * as React from 'react'
 import { useState, useCallback } from 'react'
-import { useAtomValue } from '@effect-atom/atom-react'
+import { Atom, useAtomValue } from '@effect-atom/atom-react'
 import { cn } from '@/lib/utils'
 import { ChatThreadBand, type ChatThreadAutoScrollMode } from '@/lib/chat/shell'
 import { ThreadTailControls } from './thread-tail-controls'
 import { useMorphChatContext } from './surface-context'
 import { presentationStateFamily } from '../machines/surface-stx'
-import type { ChatMessage, ChatRole, ChatMessagePart } from '../schemas/message-types'
+import type { ChatMessage, ChatRole, ChatMessagePart, StreamingState } from '../schemas/message-types'
 import { getMessageParts } from '../schemas/message-types'
 import type { MockChatAdapter } from '../adapters/mock-adapter'
+import type { MorphChatAdapter } from '../schemas/adapter-types'
+import { getMessageAtom } from '../hooks/useHarnessAdapter'
 import type { AgentTask } from '@/lib/chat/msg/inline-task-types'
 import { AnalysisCard, RemediationCard } from './artifact-cards'
 
@@ -83,6 +85,83 @@ function resolveAutoScroll(scrollBehavior: string): ChatThreadAutoScrollMode {
   }
 }
 
+// Sentinel atoms for unconditional hook calls (Rules of Hooks compliance)
+const NULL_MESSAGE_ATOM = Atom.make<ChatMessage | null>(null)
+const NULL_IDS_ATOM = Atom.make<ReadonlyArray<string>>([])
+const NULL_MESSAGES_ATOM = Atom.make<ReadonlyArray<ChatMessage>>([])
+const NULL_STREAMING_ATOM = Atom.make<StreamingState>({
+  isStreaming: false, buffer: '', tokensReceived: 0,
+})
+const legacyMessageAtomCache = new WeakMap<MorphChatAdapter, Map<string, Atom.Atom<ChatMessage | null>>>()
+
+/**
+ * Narrowed streaming$ projection: only isStreaming + messageId.
+ * Changes only at stream start/end — NOT on every delta buffer concat.
+ * Prevents ThreadView from re-rendering on every token.
+ */
+const streamingSignalCache = new WeakMap<MorphChatAdapter, Atom.Atom<{ isStreaming: boolean; messageId: string | null }>>()
+
+function getStreamingSignalAtom(adapter: MorphChatAdapter): Atom.Atom<{ isStreaming: boolean; messageId: string | null }> {
+  let cached = streamingSignalCache.get(adapter)
+  if (cached) return cached
+
+  let prevIsStreaming = false
+  let prevMessageId: string | null = null
+  let prevResult = { isStreaming: false, messageId: null as string | null }
+
+  cached = Atom.make((get) => {
+    const s = get(adapter.streaming$)
+    const nextIsStreaming = s.isStreaming
+    const nextMessageId = s.messageId ?? null
+    // Return same reference if signal hasn't changed — atom won't notify subscribers
+    if (nextIsStreaming === prevIsStreaming && nextMessageId === prevMessageId) {
+      return prevResult
+    }
+    prevIsStreaming = nextIsStreaming
+    prevMessageId = nextMessageId
+    prevResult = { isStreaming: nextIsStreaming, messageId: nextMessageId }
+    return prevResult
+  })
+  streamingSignalCache.set(adapter, cached)
+  return cached
+}
+
+function resolveHarnessInstanceId(adapterId: string): string | null {
+  return adapterId.startsWith('harness-') ? adapterId.slice('harness-'.length) : null
+}
+
+function getLegacyMessageAtom(adapter: MorphChatAdapter, messageId: string): Atom.Atom<ChatMessage | null> {
+  let cache = legacyMessageAtomCache.get(adapter)
+  if (!cache) {
+    cache = new Map()
+    legacyMessageAtomCache.set(adapter, cache)
+  }
+
+  const cached = cache.get(messageId)
+  if (cached) return cached
+
+  const atom = Atom.make((get) => get(adapter.messages$).find((message) => message.id === messageId) ?? null)
+  cache.set(messageId, atom)
+  return atom
+}
+
+function resolveMessageAtom(adapter: MorphChatAdapter, messageId: string): Atom.Atom<ChatMessage | null> {
+  if (adapter.messageAtom) {
+    return adapter.messageAtom(messageId)
+  }
+
+  if (adapter.getMessageAtom) {
+    return adapter.getMessageAtom(messageId)
+  }
+
+  const harnessInstanceId = resolveHarnessInstanceId(adapter.adapterId)
+  if (harnessInstanceId) {
+    return getMessageAtom(harnessInstanceId, messageId)
+  }
+
+  return getLegacyMessageAtom(adapter, messageId)
+}
+
 // =============================================================================
 // Message Renderers (per thread mode)
 // =============================================================================
@@ -91,7 +170,7 @@ function resolveAutoScroll(scrollBehavior: string): ChatThreadAutoScrollMode {
 // Part Renderer — renders a single ChatMessagePart by _tag discriminant
 // =============================================================================
 
-function PartRenderer({
+const PartRenderer = React.memo(function PartRenderer({
   part,
   isStreaming,
   isLatest,
@@ -176,7 +255,9 @@ function PartRenderer({
     default:
       return null
   }
-}
+},
+(prev, next) => prev.part === next.part && prev.isStreaming === next.isStreaming && prev.isLatest === next.isLatest,
+)
 
 /** Full fidelity message — role badges, timestamps, task pipelines, animations */
 // ── Timestamp formatter ──────────────────────────────────
@@ -191,7 +272,7 @@ function formatTime(ts?: string): string {
 // Same structure as assistant, pushed right via ml-auto on shell.
 // ═══════════════════════════════════════════════════════════
 
-function UserMessage({ message }: { message: ChatMessage }) {
+const UserMessage = React.memo(function UserMessage({ message }: { message: ChatMessage }) {
   const parts = getMessageParts(message)
 
   return (
@@ -217,7 +298,7 @@ function UserMessage({ message }: { message: ChatMessage }) {
       </div>
     </ChatMessageShellRoot>
   )
-}
+}, (prev, next) => prev.message === next.message)
 
 // ═══════════════════════════════════════════════════════════
 // CopyMessageButton — copies message text to clipboard
@@ -287,7 +368,7 @@ function CopyMessageButton({ text }: { text: string }) {
 // Icon rail, header, parts, tasks, footer actions
 // ═══════════════════════════════════════════════════════════
 
-function AssistantMessage({
+const AssistantMessage = React.memo(function AssistantMessage({
   message,
   isLatest,
   tasks,
@@ -368,10 +449,12 @@ function AssistantMessage({
       </div>
     </ChatMessageShellRoot>
   )
-}
+},
+(prev, next) => prev.message === next.message && prev.isLatest === next.isLatest,
+)
 
 /** Compact message — tighter spacing, left-aligned for all roles */
-function CompactMessage({ message }: { message: ChatMessage }) {
+const CompactMessage = React.memo(function CompactMessage({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'operator'
   return (
     <div className="flex gap-2 px-3 py-1">
@@ -392,10 +475,10 @@ function CompactMessage({ message }: { message: ChatMessage }) {
       </span>
     </div>
   )
-}
+}, (prev, next) => prev.message === next.message)
 
 /** Stream-only — just the current streaming response */
-function StreamOnlyMessage({ message }: { message: ChatMessage }) {
+const StreamOnlyMessage = React.memo(function StreamOnlyMessage({ message }: { message: ChatMessage }) {
   return (
     <div className="px-4 py-3">
       <span
@@ -406,10 +489,10 @@ function StreamOnlyMessage({ message }: { message: ChatMessage }) {
       </span>
     </div>
   )
-}
+}, (prev, next) => prev.message === next.message)
 
 /** Log mode — monospace, timestamped, terminal-style with role icon */
-function LogMessage({ message }: { message: ChatMessage }) {
+const LogMessage = React.memo(function LogMessage({ message }: { message: ChatMessage }) {
   const ts = message.timestamp
     ? new Date(message.timestamp).toLocaleTimeString('en-US', { hour12: false })
     : '--:--:--'
@@ -431,10 +514,10 @@ function LogMessage({ message }: { message: ChatMessage }) {
       <span className="text-neutral-400 min-w-0 break-all">{message.content}</span>
     </div>
   )
-}
+}, (prev, next) => prev.message === next.message)
 
 /** Card mode — each message as a distinct card surface */
-function CardMessage({ message }: { message: ChatMessage }) {
+const CardMessage = React.memo(function CardMessage({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'operator'
   return (
     <div className="mx-3 my-2 rounded border border-neutral-800 bg-neutral-950 p-3">
@@ -462,94 +545,141 @@ function CardMessage({ message }: { message: ChatMessage }) {
       </div>
     </div>
   )
-}
+}, (prev, next) => prev.message === next.message)
 
 // =============================================================================
 // Thread View
 // =============================================================================
 
+const MessageRow = React.memo(function MessageRow({
+  messageId,
+  prevMessageId,
+  adapter,
+  index,
+  isLatest,
+  threadMode,
+  syntheticMessage,
+}: {
+  messageId: string
+  prevMessageId: string | null
+  adapter: MorphChatAdapter
+  index: number
+  isLatest: boolean
+  threadMode: string
+  syntheticMessage: ChatMessage | null
+}) {
+  const message = useAtomValue(resolveMessageAtom(adapter, messageId)) ?? syntheticMessage
+  const previousMessage = useAtomValue(
+    prevMessageId ? resolveMessageAtom(adapter, prevMessageId) : NULL_MESSAGE_ATOM,
+  )
+
+  if (!message) return null
+
+  const isTurnChange = previousMessage != null && previousMessage.role !== message.role
+  const gapClass = index === 0 ? '' : isTurnChange ? 'mt-5' : 'mt-1'
+  const tasks = (adapter as Partial<MockChatAdapter>).messageTasks?.get(message.id)
+
+  let content: React.ReactNode = null
+  switch (threadMode) {
+    case 'full':
+      content = message.role === 'operator'
+        ? <UserMessage message={message} />
+        : <AssistantMessage message={message} isLatest={isLatest} tasks={tasks} />
+      break
+    case 'compact':
+      content = <CompactMessage message={message} />
+      break
+    case 'stream-only':
+      content = <StreamOnlyMessage message={message} />
+      break
+    case 'log':
+      content = <LogMessage message={message} />
+      break
+    case 'card':
+      content = <CardMessage message={message} />
+      break
+  }
+
+  return content ? <div className={gapClass}>{content}</div> : null
+}, (prev, next) => (
+  prev.messageId === next.messageId
+  && prev.prevMessageId === next.prevMessageId
+  && prev.adapter === next.adapter
+  && prev.index === next.index
+  && prev.isLatest === next.isLatest
+  && prev.threadMode === next.threadMode
+  && prev.syntheticMessage === next.syntheticMessage
+))
+
 export function ThreadView() {
   const { spec, adapter, surfaceId } = useMorphChatContext()
   // Read machine presentation state — gate rendering during morph
   const presentationState = useAtomValue(presentationStateFamily(surfaceId))
-  // Read directly from adapter atoms — adapter IS the state owner
-  const messages = useAtomValue(adapter.messages$)
-  const streaming = useAtomValue(adapter.streaming$)
 
-  // Render streaming buffer as a virtual message when active.
-  // Some adapters (harness) manage streaming messages directly in messages$.
-  // Others (mock) only use streaming$ buffer. We only overlay the buffer when
-  // messages$ doesn't already contain the streaming message.
-  const displayMessages = React.useMemo(() => {
-    if (!streaming.isStreaming || !streaming.buffer) return messages
-    const streamingId = streaming.messageId ?? 'stream-buffer'
-    const alreadyInMessages = messages.some((m) => m.id === streamingId)
-    if (alreadyInMessages) return messages
-    const streamMsg: ChatMessage = {
+  // ── Atom subscriptions (unconditional — Rules of Hooks) ──
+  // Per-message atom path: subscribe to messageIds$ (stable during streaming).
+  // Legacy path: subscribe to messages$ (full array, changes every delta).
+  // Both hooks always fire; we branch on which value to use.
+  const hasPerMessageAtoms = !!adapter.messageIds$
+  const perMessageIds = useAtomValue(adapter.messageIds$ ?? NULL_IDS_ATOM)
+  const legacyMessages = useAtomValue(hasPerMessageAtoms ? NULL_MESSAGES_ATOM : adapter.messages$)
+
+  // Narrowed streaming signal — only isStreaming + messageId.
+  // Changes twice per response (start + end), NOT on every delta.
+  // Legacy adapters still need full streaming$ for buffer overlay.
+  const streamingSignal = useAtomValue(getStreamingSignalAtom(adapter))
+  const legacyStreaming = useAtomValue(hasPerMessageAtoms ? NULL_STREAMING_ATOM : adapter.streaming$)
+
+  // Synthetic streaming message — only for legacy adapters that don't put
+  // the streaming message in messages$ (mock adapter, etc.)
+  const syntheticStreamingMessage = React.useMemo(() => {
+    if (hasPerMessageAtoms || !legacyMessages) return null
+    if (!legacyStreaming.isStreaming || !legacyStreaming.buffer) return null
+
+    const streamingId = legacyStreaming.messageId ?? 'stream-buffer'
+    const alreadyInMessages = legacyMessages.some((m) => m.id === streamingId)
+    if (alreadyInMessages) return null
+
+    return {
       id: streamingId,
       role: 'agent',
       authorName: 'Agent',
-      content: streaming.buffer,
+      content: legacyStreaming.buffer,
       timestamp: new Date().toISOString(),
       status: 'streaming',
+    } satisfies ChatMessage
+  }, [hasPerMessageAtoms, legacyMessages, legacyStreaming.isStreaming, legacyStreaming.messageId, legacyStreaming.buffer])
+
+  const syntheticStreamingId = syntheticStreamingMessage?.id ?? null
+
+  // Derive display IDs — only changes when messages are added/removed.
+  const displayIds = React.useMemo(() => {
+    if (hasPerMessageAtoms) {
+      // Per-message atom path: messageIds$ is stable during streaming content updates.
+      // Only check if streaming message needs to be appended (edge case: message not yet in list).
+      if (streamingSignal.isStreaming && streamingSignal.messageId) {
+        const hasStreaming = perMessageIds.includes(streamingSignal.messageId)
+        if (!hasStreaming) return [...perMessageIds, streamingSignal.messageId]
+      }
+      return perMessageIds
     }
-    return [...messages, streamMsg]
-  }, [messages, streaming])
 
-  // For stream-only mode, show only the latest streaming or last message
-  const streamOnlyMessages = React.useMemo(() => {
-    if (spec.thread !== 'stream-only') return displayMessages
-    const latest = displayMessages[displayMessages.length - 1]
+    // Legacy path: derive from full messages array.
+    const ids = legacyMessages!.map((m) => m.id)
+    if (syntheticStreamingId && !ids.includes(syntheticStreamingId)) {
+      return [...ids, syntheticStreamingId]
+    }
+    return ids
+  }, [hasPerMessageAtoms, perMessageIds, legacyMessages, syntheticStreamingId, streamingSignal.isStreaming, streamingSignal.messageId])
+
+  const resolvedIds = React.useMemo(() => {
+    if (spec.thread !== 'stream-only') return displayIds
+    const latest = displayIds[displayIds.length - 1]
     return latest ? [latest] : []
-  }, [spec.thread, displayMessages])
-
-  const resolvedMessages = spec.thread === 'stream-only' ? streamOnlyMessages : displayMessages
+  }, [spec.thread, displayIds])
 
   // Map spec.scrollBehavior → ChatThreadBand autoScroll
   const autoScroll = resolveAutoScroll(spec.scrollBehavior)
-
-  // Task map from adapter (mock-specific, duck-typed)
-  const messageTasks = (adapter as Partial<MockChatAdapter>).messageTasks
-
-  // Select renderer per thread mode
-  const messageCount = resolvedMessages.length
-  const renderMessage = React.useCallback(
-    (msg: ChatMessage, index: number) => {
-      const isLatest = index === messageCount - 1
-      const key = msg.id
-      const tasks = messageTasks?.get(msg.id)
-
-      // ── Turn gap logic: 20px between role changes, 4px same-role ──
-      const prev = index > 0 ? resolvedMessages[index - 1] : null
-      const isTurnChange = prev != null && prev.role !== msg.role
-      const gapClass = index === 0 ? '' : isTurnChange ? 'mt-5' : 'mt-1'
-
-      let content: React.ReactNode = null
-
-      switch (spec.thread) {
-        case 'full':
-          content = msg.role === 'operator'
-            ? <UserMessage message={msg} />
-            : <AssistantMessage message={msg} isLatest={isLatest} tasks={tasks} />
-          break
-        case 'compact':
-          content = <CompactMessage message={msg} />
-          break
-        case 'stream-only':
-          content = <StreamOnlyMessage message={msg} />
-          break
-        case 'log':
-          content = <LogMessage message={msg} />
-          break
-        case 'card':
-          content = <CardMessage message={msg} />
-          break
-      }
-
-      return content ? <div key={key} className={gapClass}>{content}</div> : null
-    },
-    [spec.thread, messageCount, messageTasks, resolvedMessages],
-  )
 
   // Tail controls — rendered inside the ChatThreadBand context scope
   // but outside the scroll container
@@ -570,7 +700,7 @@ export function ThreadView() {
     )
   }
 
-  if (resolvedMessages.length === 0) {
+  if (resolvedIds.length === 0) {
     return (
       <ChatThreadBand
         autoScroll="off"
@@ -590,7 +720,7 @@ export function ThreadView() {
   return (
     <ChatThreadBand
       autoScroll={autoScroll}
-      itemCount={resolvedMessages.length}
+      itemCount={resolvedIds.length}
       bottomThreshold={24}
       renderAfterScroll={tailControls}
       className={cn(
@@ -598,7 +728,18 @@ export function ThreadView() {
         spec.thread === 'log' ? 'bg-neutral-950' : '',
       )}
     >
-      {resolvedMessages.map(renderMessage)}
+      {resolvedIds.map((id, index) => (
+        <MessageRow
+          key={id}
+          messageId={id}
+          prevMessageId={index > 0 ? resolvedIds[index - 1] : null}
+          adapter={adapter}
+          index={index}
+          isLatest={index === resolvedIds.length - 1}
+          threadMode={spec.thread}
+          syntheticMessage={syntheticStreamingId === id ? syntheticStreamingMessage : null}
+        />
+      ))}
     </ChatThreadBand>
   )
 }

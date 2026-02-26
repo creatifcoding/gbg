@@ -181,6 +181,35 @@ export const harnessRuntimeAtom = Atom.runtime(HarnessRuntimeBrowserSharedLayer)
 export const messages$ = Atom.family((_id: string) =>
   Atom.make<ReadonlyArray<ChatMessage>>([]),
 )
+
+// Per-message atom isolation — messages own their own rendering
+export const messageIds$ = Atom.family((_id: string) =>
+  Atom.make<ReadonlyArray<string>>([]),
+)
+
+// Nested family: getMessageAtom(instanceId, messageId) → per-message atom
+const messageAtomMaps = new Map<string, Map<string, Atom.WritableAtom<ChatMessage | null>>>()
+
+export function getMessageAtom(instanceId: string, messageId: string): Atom.WritableAtom<ChatMessage | null> {
+  let map = messageAtomMaps.get(instanceId)
+  if (!map) {
+    map = new Map()
+    messageAtomMaps.set(instanceId, map)
+  }
+
+  let atom = map.get(messageId)
+  if (!atom) {
+    atom = Atom.make<ChatMessage | null>(null)
+    map.set(messageId, atom)
+  }
+
+  return atom
+}
+
+export function clearMessageAtoms(instanceId: string): void {
+  messageAtomMaps.delete(instanceId)
+}
+
 export const connection$ = Atom.family((_id: string) =>
   Atom.make<ConnectionState>(DISCONNECTED),
 )
@@ -301,6 +330,8 @@ function getProcessor(id: string, agentName: string) {
         statusRows$: statusRows$(id),
       },
       agentName,
+      messageIds$: messageIds$(id),
+      getMessageAtom: (msgId: string) => getMessageAtom(id, msgId),
       onToolManifest: (tools) => {
         const count = bridge.syncManifest({ tools })
         if (count > 0) {
@@ -353,6 +384,14 @@ function formatUnknownErrorPayload(payload: unknown): { code?: string; message: 
 function runtimeErrorToStatus(id: string, op: string, err: HarnessRuntimeError): HarnessStatusRow {
   const parsed = formatUnknownErrorPayload(err)
   return { id: `status-${Date.now()}-${op}`, tone: 'error', text: `[${op}] ${parsed.code ? `[${parsed.code}] ` : ''}${parsed.message}`, code: parsed.code, details: parsed.details, source: 'harness' }
+}
+
+function hasMessageTopologyChanged(prev: ReadonlyArray<string>, next: ReadonlyArray<string>): boolean {
+  if (prev.length !== next.length) return true
+  for (let i = 0; i < prev.length; i++) {
+    if (prev[i] !== next[i]) return true
+  }
+  return false
 }
 
 function toHarnessThinkingLevel(level?: unknown): Option.Option<HarnessThinkingLevel> {
@@ -997,6 +1036,8 @@ const clearOp$ = Atom.family((_id: string) =>
   harnessRuntimeAtom.fn<void>()((_arg, _ctx) =>
     Effect.sync(() => {
       morphChatRegistry.set(messages$(_id), [] as ReadonlyArray<ChatMessage>)
+      clearMessageAtoms(_id)
+      morphChatRegistry.set(messageIds$(_id), [])
       morphChatRegistry.set(streaming$(_id), STREAMING_IDLE)
       morphChatRegistry.set(statusRows$(_id), [])
     }),
@@ -1020,6 +1061,8 @@ const disposeOp$ = Atom.family((id: string) =>
       setSessionId(id, null, 'disposeOp.clear')
       getToolBridge(id).clear()
       clearShellCommandSender()
+      clearMessageAtoms(id)
+      morphChatRegistry.set(messageIds$(id), [])
       morphChatRegistry.set(streaming$(id), STREAMING_IDLE)
       morphChatRegistry.set(connection$(id), DISCONNECTED)
       morphChatRegistry.set(statusRows$(id), [])
@@ -1071,6 +1114,8 @@ const newSessionOp$ = Atom.family((id: string) =>
 
         // Clear UI buffers only after session create succeeds.
         morphChatRegistry.set(messages$(id), [] as ReadonlyArray<ChatMessage>)
+        clearMessageAtoms(id)
+        morphChatRegistry.set(messageIds$(id), [])
         morphChatRegistry.set(streaming$(id), STREAMING_IDLE)
         morphChatRegistry.set(statusRows$(id), [])
         getToolBridge(id).clear()
@@ -1125,6 +1170,8 @@ const resumeSessionOp$ = Atom.family((id: string) =>
         yield* interruptInstanceFibers(id)
 
         morphChatRegistry.set(messages$(id), [] as ReadonlyArray<ChatMessage>)
+        clearMessageAtoms(id)
+        morphChatRegistry.set(messageIds$(id), [])
         morphChatRegistry.set(streaming$(id), STREAMING_IDLE)
         morphChatRegistry.set(statusRows$(id), [])
         setSessionId(id, null, 'resumeSessionOp.clear')
@@ -1217,6 +1264,8 @@ function hardReconnect(
   // Clear state
   setSessionId(id, null, 'hardReconnect.clear')
   morphChatRegistry.set(messages$(id), [] as ReadonlyArray<ChatMessage>)
+  clearMessageAtoms(id)
+  morphChatRegistry.set(messageIds$(id), [])
   morphChatRegistry.set(streaming$(id), STREAMING_IDLE)
   morphChatRegistry.set(connection$(id), DISCONNECTED)
   morphChatRegistry.set(statusRows$(id), [])
@@ -1271,6 +1320,49 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
   // Pin session atom subscription so session identity remains stable across
   // transient registry/GC cycles while panel stays mounted.
   useAtomValue(sessionId$(instanceId))
+
+  // Per-message atom sync: update topology atom only on add/remove/reorder,
+  // while streaming content updates touch only the specific message atom.
+  const previousMessageIdsRef = useRef<ReadonlyArray<string>>([])
+  const previousMessagesByIdRef = useRef<Map<string, ChatMessage>>(new Map())
+  useEffect(() => {
+    const syncMessageAtoms = () => {
+      const messages = morphChatRegistry.get(messages$(instanceId))
+      const nextIds = messages.map((message) => message.id)
+
+      if (hasMessageTopologyChanged(previousMessageIdsRef.current, nextIds)) {
+        morphChatRegistry.set(messageIds$(instanceId), nextIds)
+
+        const nextIdSet = new Set(nextIds)
+        const atomMap = messageAtomMaps.get(instanceId)
+        if (atomMap) {
+          for (const [messageId, atom] of atomMap.entries()) {
+            if (!nextIdSet.has(messageId)) {
+              morphChatRegistry.set(atom, null)
+              atomMap.delete(messageId)
+            }
+          }
+        }
+
+        previousMessageIdsRef.current = nextIds
+      }
+
+      const previousById = previousMessagesByIdRef.current
+      const nextById = new Map<string, ChatMessage>()
+
+      for (const message of messages) {
+        nextById.set(message.id, message)
+        if (previousById.get(message.id) !== message) {
+          morphChatRegistry.set(getMessageAtom(instanceId, message.id), message)
+        }
+      }
+
+      previousMessagesByIdRef.current = nextById
+    }
+
+    syncMessageAtoms()
+    return morphChatRegistry.subscribe(messages$(instanceId), syncMessageAtoms)
+  }, [instanceId])
 
   // Connection status from per-instance atom
   const [status, setStatus] = React.useState<HarnessAdapterStatus>('idle')
@@ -1355,6 +1447,9 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
     adapterId: `harness-${instanceId}`,
     label: `Harness (${instanceId})`,
     messages$: messages$(instanceId),
+    messageIds$: messageIds$(instanceId),
+    messageAtom: (messageId: string) => getMessageAtom(instanceId, messageId),
+    getMessageAtom: (messageId: string) => getMessageAtom(instanceId, messageId),
     connection$: connection$(instanceId),
     streaming$: streaming$(instanceId),
     agents$: agents$(instanceId),

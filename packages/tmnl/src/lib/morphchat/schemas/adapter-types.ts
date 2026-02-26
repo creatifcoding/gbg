@@ -70,6 +70,15 @@ export interface MorphChatAdapter {
   /** Message list — the full conversation history */
   readonly messages$: Atom.Atom<ReadonlyArray<ChatMessage>>
 
+  /** Message IDs (stable ordering) — enables per-message subscriptions */
+  readonly messageIds$?: Atom.Atom<ReadonlyArray<string>>
+
+  /** Per-message atom lookup — returns a message atom by ID */
+  readonly messageAtom?: (messageId: string) => Atom.Atom<ChatMessage | null>
+
+  /** Backward-compatible alias for per-message atom lookup */
+  readonly getMessageAtom?: (messageId: string) => Atom.Atom<ChatMessage | null>
+
   /** Connection lifecycle state */
   readonly connection$: Atom.Atom<ConnectionState>
 
