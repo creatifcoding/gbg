@@ -181,6 +181,7 @@ const MarkdownBody = memo(function MarkdownBody({
       mode={streaming ? 'streaming' : 'static'}
       components={components}
       remarkPlugins={remarkPlugins}
+      controls={{ code: false, table: false }}
     >
       {text}
     </Streamdown>
