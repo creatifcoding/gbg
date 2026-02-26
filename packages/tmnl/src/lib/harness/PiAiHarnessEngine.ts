@@ -36,6 +36,8 @@ import {
   HarnessSessionEnvelope,
 } from './schemas'
 import type { HarnessSessionMeta } from './session/schemas'
+import { makeDefaultRegistry, type PromptRegistryShape } from './prompt'
+import { PROMPT_CONTEXT_TOOL_NAME, executePromptContextCode, promptContextToolParameters, PROMPT_CONTEXT_API_DOCS } from './prompt/tools/prompt-context-tool'
 
 export class PiAiHarnessEngineError extends Schema.TaggedError<PiAiHarnessEngineError>()(
   'PiAiHarnessEngineError',
@@ -60,6 +62,7 @@ type SessionRecord = {
   readonly abortRequestedAtMs: number | null
   readonly model: PiAiModel<any>
   readonly context: PiAiContext
+  readonly promptRegistry: PromptRegistryShape | null  // EPOCH-0003: null until migration complete
 }
 
 type SessionView = {
@@ -295,6 +298,26 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
               : []),
         )
 
+        // EPOCH-0003: Create registry for hydrated session (same as openSession)
+        const hydratedRegistry = yield* Effect.tryPromise({
+          try: () =>
+            Effect.runPromise(
+              makeDefaultRegistry({
+                cwd: process.cwd(),
+                tools: toolRuntime.tools,
+                promptContextDocs: PROMPT_CONTEXT_API_DOCS,
+              }).pipe(Effect.flatMap((base) => base.fork())),
+            ),
+          catch: () => null,
+        }).pipe(Effect.orElseSucceed(() => null))
+
+        const hydratedSystemPrompt = hydratedRegistry
+          ? yield* Effect.tryPromise({
+              try: () => Effect.runPromise(hydratedRegistry.build()),
+              catch: () => policy.config.systemPrompt,
+            }).pipe(Effect.orElseSucceed(() => policy.config.systemPrompt))
+          : policy.config.systemPrompt
+
         const restored: SessionRecord = {
           sessionId: loaded.value.sessionId,
           nodeId: loaded.value.nodeId,
@@ -309,10 +332,18 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
           abortRequestedAtMs: null,
           model,
           context: {
-            systemPrompt: policy.config.systemPrompt,
+            systemPrompt: hydratedSystemPrompt,
             messages: [] as PiAiMessage[],
-            tools: [...toolRuntime.tools],
+            tools: [
+              ...toolRuntime.tools,
+              ...(hydratedRegistry ? [{
+                name: PROMPT_CONTEXT_TOOL_NAME,
+                description: 'Execute JavaScript code against your system prompt registry. The `promptContext` object is in scope with methods: list(), get(key), has(key), keys(), budget(), set(key, content, opts?), delete(key). Use to manage working memory, task focus, and conventions.',
+                parameters: promptContextToolParameters,
+              }] : []),
+            ],
           },
+          promptRegistry: hydratedRegistry,
         }
 
         yield* Ref.update(sessionsRef, HashMap.set(restored.sessionId, restored))
@@ -438,8 +469,26 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                 supportsReasoning: session.model.reasoning,
               })
 
+              // EPOCH-0003: Per-turn prompt rebuild from session registry
+              // If registry exists, rebuild system prompt (picks up agent self-modifications).
+              // If registry is null (fallback), use existing session.context.systemPrompt as-is.
+              const streamContext = session.promptRegistry
+                ? yield* Effect.tryPromise({
+                    try: () => Effect.runPromise(session.promptRegistry!.build()),
+                    catch: () => session.context.systemPrompt,
+                  }).pipe(
+                    Effect.orElseSucceed(() => session.context.systemPrompt),
+                    Effect.map((freshPrompt) => ({
+                      ...session.context,
+                      systemPrompt: freshPrompt,
+                    })),
+                  )
+                : Effect.succeed(session.context)
+
+              const resolvedContext = yield* streamContext
+
               const stream = yield* Effect.try({
-                try: () => streamClient.stream(session.model, session.context, streamOptions),
+                try: () => streamClient.stream(session.model, resolvedContext, streamOptions),
                 catch: (cause) =>
                   new PiAiHarnessEngineError({
                     code: 'pi-ai-stream-init-failed',
@@ -805,17 +854,48 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                       )
                     }
 
-                    const result = yield* toolRuntime.execute(toolCall, onStreamChunk).pipe(
-                      Effect.catchTag('PiAiToolRuntimeError', (error: PiAiToolRuntimeError) =>
-                        Effect.succeed({
-                          role: 'toolResult' as const,
-                          toolCallId: toolCall.id,
-                          toolName: toolCall.name,
-                          content: [{ type: 'text' as const, text: `Tool execution failed: ${error.message}` }],
-                          isError: true,
-                          timestamp: Date.now(),
-                        }),
-                      ),
+                    // EPOCH-0003: Intercept prompt_context tool calls — execute against session registry
+                    const result = yield* (
+                      toolCall.name === PROMPT_CONTEXT_TOOL_NAME && session.promptRegistry
+                        ? Effect.gen(function* () {
+                            const code = (toolCall.arguments as { code?: string })?.code
+                            if (typeof code !== 'string') {
+                              return {
+                                role: 'toolResult' as const,
+                                toolCallId: toolCall.id,
+                                toolName: toolCall.name,
+                                content: [{ type: 'text' as const, text: 'prompt_context requires a `code` parameter (string).' }],
+                                isError: true,
+                                timestamp: Date.now(),
+                              }
+                            }
+                            const evalResult = yield* executePromptContextCode(session.promptRegistry!, code).pipe(
+                              Effect.catchAll((error) =>
+                                Effect.succeed({ error: true, message: String(error) }),
+                              ),
+                            )
+                            const resultText = evalResult === undefined ? 'OK' : JSON.stringify(evalResult, null, 2)
+                            return {
+                              role: 'toolResult' as const,
+                              toolCallId: toolCall.id,
+                              toolName: toolCall.name,
+                              content: [{ type: 'text' as const, text: resultText }],
+                              isError: false,
+                              timestamp: Date.now(),
+                            }
+                          })
+                        : toolRuntime.execute(toolCall, onStreamChunk).pipe(
+                            Effect.catchTag('PiAiToolRuntimeError', (error: PiAiToolRuntimeError) =>
+                              Effect.succeed({
+                                role: 'toolResult' as const,
+                                toolCallId: toolCall.id,
+                                toolName: toolCall.name,
+                                content: [{ type: 'text' as const, text: `Tool execution failed: ${error.message}` }],
+                                isError: true,
+                                timestamp: Date.now(),
+                              }),
+                            ),
+                          )
                     )
 
                     const completedAt = Date.now()
@@ -966,6 +1046,32 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
         const sessionId = `${policy.config.sessionIdPrefix}-${nanoid()}` as ChatSessionId
         const createdAt = Date.now()
 
+        // EPOCH-0003: Create session-scoped prompt registry
+        const sessionRegistry = yield* Effect.tryPromise({
+          try: () =>
+            Effect.runPromise(
+              makeDefaultRegistry({
+                cwd: process.cwd(),
+                tools: toolRuntime.tools,
+                promptContextDocs: PROMPT_CONTEXT_API_DOCS,
+              }).pipe(Effect.flatMap((base) => base.fork())),
+            ),
+          catch: (cause) => {
+            console.warn(`[harness] prompt registry init failed, falling back to static prompt:`, cause)
+            return cause
+          },
+        }).pipe(
+          Effect.orElseSucceed(() => null),
+        )
+
+        // Build initial system prompt from registry (or fall back to static)
+        const initialSystemPrompt = sessionRegistry
+          ? yield* Effect.tryPromise({
+              try: () => Effect.runPromise(sessionRegistry.build()),
+              catch: () => policy.config.systemPrompt,
+            }).pipe(Effect.orElseSucceed(() => policy.config.systemPrompt))
+          : policy.config.systemPrompt
+
         const created: SessionRecord = {
           sessionId,
           nodeId,
@@ -980,10 +1086,19 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
           abortRequestedAtMs: null,
           model,
           context: {
-            systemPrompt: policy.config.systemPrompt,
+            systemPrompt: initialSystemPrompt,
             messages: [],
-            tools: [...toolRuntime.tools],
+            tools: [
+              ...toolRuntime.tools,
+              // EPOCH-0003: Add prompt_context to tool list so LLM can call it
+              ...(sessionRegistry ? [{
+                name: PROMPT_CONTEXT_TOOL_NAME,
+                description: 'Execute JavaScript code against your system prompt registry. The `promptContext` object is in scope with methods: list(), get(key), has(key), keys(), budget(), set(key, content, opts?), delete(key). Use to manage working memory, task focus, and conventions.',
+                parameters: promptContextToolParameters,
+              }] : []),
+            ],
           },
+          promptRegistry: sessionRegistry,
         }
 
         yield* Ref.update(sessionsRef, HashMap.set(sessionId, created))
