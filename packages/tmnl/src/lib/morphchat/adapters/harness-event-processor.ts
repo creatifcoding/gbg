@@ -34,6 +34,7 @@ import { morphChatRegistry } from '../atoms/registry'
 import type { HarnessEvent } from '@/lib/harness/schemas'
 import type { MetricEntry, ProviderMarker } from '../schemas/metric-types'
 import { splitPartsCodeFences } from './markdown-code-splitter'
+import { streamingLatencyProbe } from '@/lib/harness/perf/StreamingLatencyProbe'
 
 // =============================================================================
 // Config — which atoms to write to
@@ -296,6 +297,7 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
 
   const pendingTextDeltaByMessage = new Map<string, string>()
   const pendingTokenCountByMessage = new Map<string, number>()
+  let pendingSeqsByMessage: Map<string, number[]> | null = null
   let pendingFlushTimer: ReturnType<typeof setTimeout> | null = null
 
   const flushPendingAssistantDeltas = () => {
@@ -310,8 +312,10 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
 
     const deltas = new Map(pendingTextDeltaByMessage)
     const tokenCounts = new Map(pendingTokenCountByMessage)
+    const flushSeqs = pendingSeqsByMessage  // snapshot before clear
     pendingTextDeltaByMessage.clear()
     pendingTokenCountByMessage.clear()
+    pendingSeqsByMessage = null
 
     registryUpdate(atoms.streaming$, (prev) => {
       const msgId = prev.messageId ?? ''
@@ -344,6 +348,15 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
         }
       }),
     )
+
+    // Latency probe: stamp all seq values in this coalesce batch as atom_flush
+    if (flushSeqs) {
+      for (const seqs of flushSeqs.values()) {
+        for (const seq of seqs) {
+          streamingLatencyProbe.stamp(seq, 'atom_flush')
+        }
+      }
+    }
   }
 
   const scheduleAssistantDeltaFlush = () => {
@@ -427,9 +440,18 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       }
 
       case 'chat:v2/assistant_delta': {
+        // Latency probe: stamp processor entry
+        if (typeof event.seq === 'number') {
+          streamingLatencyProbe.stamp(event.seq, 'processor')
+        }
         const msgId = event.messageId as string
         pendingTextDeltaByMessage.set(msgId, (pendingTextDeltaByMessage.get(msgId) ?? '') + event.delta)
         pendingTokenCountByMessage.set(msgId, (pendingTokenCountByMessage.get(msgId) ?? 0) + 1)
+        // Track seq values in this coalesce batch for probe
+        if (!pendingSeqsByMessage) pendingSeqsByMessage = new Map()
+        const seqs = pendingSeqsByMessage.get(msgId) ?? []
+        if (typeof event.seq === 'number') seqs.push(event.seq)
+        pendingSeqsByMessage.set(msgId, seqs)
         scheduleAssistantDeltaFlush()
         break
       }

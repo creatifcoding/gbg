@@ -213,8 +213,15 @@ const handleRemoteWs = Effect.gen(function* () {
     ),
   )
 
-  const emitRuntimeEvent = (event: unknown) =>
-    safeSend(makeEventEnvelope(event), 'runtime:event').pipe(
+  const emitRuntimeEvent = (event: unknown) => {
+    // Latency probe: stamp before WS frame write
+    const seq = (event as { seq?: number })?.seq
+    if (typeof seq === 'number') {
+      const { streamingLatencyProbe } = require('../perf/StreamingLatencyProbe')
+      streamingLatencyProbe.stamp(seq, 'ws_send')
+    }
+
+    return safeSend(makeEventEnvelope(event), 'runtime:event').pipe(
       Effect.withSpan('harness.ws.runtime-events-send'),
       Effect.catchAllCause((cause) =>
         logWarningCause(
@@ -224,6 +231,7 @@ const handleRemoteWs = Effect.gen(function* () {
         ).pipe(Effect.asVoid),
       ),
     )
+  }
 
   yield* Effect.forkScoped(
     Stream.runForEach(runtime.events, emitRuntimeEvent).pipe(

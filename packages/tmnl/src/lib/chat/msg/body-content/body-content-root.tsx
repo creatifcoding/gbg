@@ -2,6 +2,7 @@ import {
   forwardRef,
   memo,
   useCallback,
+  useEffect,
   useMemo,
   type ComponentPropsWithoutRef,
 } from 'react'
@@ -157,6 +158,16 @@ const MarkdownBody = memo(function MarkdownBody({
   text: string
   streaming: boolean
 }) {
+  // Latency probe: stamp react_render after DOM commit during streaming
+  useEffect(() => {
+    if (!streaming) return
+    try {
+      const { streamingLatencyProbe } = require('@/lib/harness/perf/StreamingLatencyProbe')
+      // Stamps all traces that have atom_flush but no react_render yet
+      streamingLatencyProbe.stampReactRender()
+    } catch {}
+  })
+
   // During streaming, stabilize unclosed fences so react-markdown doesn't choke
   const safeText = useMemo(() => {
     if (!streaming) return text

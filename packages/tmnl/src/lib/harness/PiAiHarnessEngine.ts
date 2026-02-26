@@ -3,6 +3,8 @@ import { AuthStorage, ModelRegistry } from '@mariozechner/pi-coding-agent'
 import { nanoid } from 'nanoid'
 import { Context, Duration, Effect, Fiber, HashMap, HashSet, Layer, Option, PubSub, Ref, Schedule, Schema, Stream } from 'effect'
 
+import { streamingLatencyProbe } from './perf/StreamingLatencyProbe'
+
 import { HarnessSessionStoreMemoryLive } from './HarnessSessionStoreMemory'
 import { HarnessSessionStoreExtended } from './session/SessionStore'
 import { PiAiEventAdapter, PiAiEventAdapterLive } from './PiAiEventAdapter'
@@ -232,6 +234,7 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
     const emitDelta = (
       sessionId: string,
       build: (nextSeq: number, sessionId: ChatSessionId) => typeof HarnessEvent.Type,
+      wireAt?: number,
     ) =>
       Effect.gen(function* () {
         // Read the session record once (no modify — we mutate in place)
@@ -243,9 +246,22 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
         const nextSeq = ++session.headSeq        // ← mutable bump, zero allocation
         const event = build(nextSeq, session.sessionId)
 
+        // Latency probe: stamp wire arrival + engine completion
+        if (wireAt != null) {
+          streamingLatencyProbe.stamp(nextSeq, 'wire')
+          // Overwrite with the actual SSE arrival time (not Date.now())
+          const idx = (streamingLatencyProbe as any).seqToIdx?.get(nextSeq)
+          if (idx != null && (streamingLatencyProbe as any).ring?.[idx]) {
+            ;(streamingLatencyProbe as any).ring[idx].wire = wireAt
+          }
+        }
+
         // Publish to downstream consumers (WS transport, harness-adapter)
         // Skip: events array push, store.appendEvent, persistSession
         yield* PubSub.publish(eventsPubSub, event)
+
+        // Latency probe: stamp after PubSub publish
+        streamingLatencyProbe.stamp(nextSeq, 'engine')
       })
 
     const hydrateSessionFromStore = (sessionId: string): Effect.Effect<SessionRecord, PiAiHarnessEngineError> =>
@@ -445,6 +461,9 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
               ).pipe(
                 Stream.mapEffect((event) =>
                   Effect.gen(function* () {
+                    // ── Latency probe: stamp SSE arrival time ──
+                    const _wireAt = Date.now()
+
                     // ── Fast-path classification: check raw event type string ──
                     // Skip Schema.decode, skip toProviderMarker, skip appendEvent.
                     const rawType = (event as { type?: string })?.type
@@ -481,10 +500,10 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                         _tag: 'chat:v2/assistant_delta' as const,
                         sessionId: sid,
                         seq,
-                        at: Date.now(),
+                        at: _wireAt,
                         messageId: assistantMessageId,
                         delta,
-                      }))
+                      }), _wireAt)
                     }
 
                     if (rawType === 'thinking_delta') {
@@ -517,10 +536,10 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                         _tag: 'chat:v2/assistant_thinking_delta' as const,
                         sessionId: sid,
                         seq,
-                        at: Date.now(),
+                        at: _wireAt,
                         messageId: assistantMessageId,
                         delta,
-                      }))
+                      }), _wireAt)
                     }
 
                     // ── Structural events: full path (adapt + provider marker + persistence) ──

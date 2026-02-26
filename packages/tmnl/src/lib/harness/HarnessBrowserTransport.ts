@@ -192,7 +192,18 @@ export const HarnessBrowserTransportLive = Layer.scoped(
           decodeChunk(chunk).pipe(
             Effect.flatMap((envelope) =>
               Match.value(envelope).pipe(
-                Match.tag('remote:ws_event', (evt) => PubSub.publish(eventsPubSub, evt.event).pipe(Effect.asVoid)),
+                Match.tag('remote:ws_event', (evt) => {
+                  // Latency probe: stamp WS receive on browser side
+                  const innerEvt = (evt.event as { event?: unknown })?.event ?? evt.event
+                  const seq = (innerEvt as { seq?: number })?.seq
+                  if (typeof seq === 'number') {
+                    try {
+                      const { streamingLatencyProbe } = require('./perf/StreamingLatencyProbe')
+                      streamingLatencyProbe.stamp(seq, 'ws_recv')
+                    } catch {}
+                  }
+                  return PubSub.publish(eventsPubSub, evt.event).pipe(Effect.asVoid)
+                }),
                 Match.tag('remote:ws_response', (res) =>
                   Effect.gen(function* () {
                     const pending = yield* Ref.modify(pendingRef, (map) => {
