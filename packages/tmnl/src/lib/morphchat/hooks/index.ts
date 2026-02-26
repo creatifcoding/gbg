@@ -11,3 +11,4 @@ export {
   type UseHarnessAdapterResult,
   type HarnessAdapterStatus,
 } from './useHarnessAdapter'
+export { useSessionManager, type UseSessionManagerResult } from './useSessionManager'

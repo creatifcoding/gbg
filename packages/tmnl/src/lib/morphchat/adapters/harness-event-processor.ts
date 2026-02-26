@@ -76,6 +76,8 @@ function registryUpdate<A>(atom: Atom.Atom<A>, fn: (prev: A) => A): void {
   morphChatRegistry.update(atom, fn)
 }
 
+const ASSISTANT_DELTA_FLUSH_MS = 48
+
 // =============================================================================
 // Parts Helpers (pure)
 // =============================================================================
@@ -292,6 +294,65 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
   const { atoms, agentName, nodeId } = config
   let thinkingStartTime: number | null = null
 
+  const pendingTextDeltaByMessage = new Map<string, string>()
+  const pendingTokenCountByMessage = new Map<string, number>()
+  let pendingFlushTimer: ReturnType<typeof setTimeout> | null = null
+
+  const flushPendingAssistantDeltas = () => {
+    if (pendingFlushTimer) {
+      clearTimeout(pendingFlushTimer)
+      pendingFlushTimer = null
+    }
+
+    if (pendingTextDeltaByMessage.size === 0 && pendingTokenCountByMessage.size === 0) {
+      return
+    }
+
+    const deltas = new Map(pendingTextDeltaByMessage)
+    const tokenCounts = new Map(pendingTokenCountByMessage)
+    pendingTextDeltaByMessage.clear()
+    pendingTokenCountByMessage.clear()
+
+    registryUpdate(atoms.streaming$, (prev) => {
+      const msgId = prev.messageId ?? ''
+      const delta = deltas.get(msgId) ?? ''
+      const tokenCount = tokenCounts.get(msgId) ?? 0
+
+      if (delta.length === 0 && tokenCount === 0) {
+        return prev
+      }
+
+      return {
+        ...prev,
+        buffer: prev.buffer + delta,
+        tokensReceived: (prev.tokensReceived ?? 0) + tokenCount,
+      }
+    })
+
+    registryUpdate(atoms.messages$, (prev) =>
+      prev.map((msg) => {
+        const delta = deltas.get(msg.id)
+        if (!delta) return msg
+
+        const nextParts = appendTextDelta(msg.parts ?? [], delta)
+        const nextContent = flattenPartsToText(nextParts)
+
+        return {
+          ...msg,
+          parts: nextParts,
+          content: nextContent || msg.content,
+        }
+      }),
+    )
+  }
+
+  const scheduleAssistantDeltaFlush = () => {
+    if (pendingFlushTimer != null) return
+    pendingFlushTimer = setTimeout(() => {
+      flushPendingAssistantDeltas()
+    }, ASSISTANT_DELTA_FLUSH_MS)
+  }
+
   function processEvent(event: HarnessEvent): void {
     switch (event._tag) {
       case 'chat:v2/session_opened': {
@@ -332,6 +393,8 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       }
 
       case 'chat:v2/assistant_start': {
+        flushPendingAssistantDeltas()
+
         // Finalize any previously streaming message (multi-turn tool loop:
         // the engine may start a new assistant turn without sending assistant_final
         // for the intermediate tool-calling turn)
@@ -365,14 +428,9 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
 
       case 'chat:v2/assistant_delta': {
         const msgId = event.messageId as string
-        // Update streaming buffer (legacy compat)
-        registryUpdate(atoms.streaming$, (prev) => ({
-          ...prev,
-          buffer: prev.buffer + event.delta,
-          tokensReceived: (prev.tokensReceived ?? 0) + 1,
-        }))
-        // Update structured parts
-        updateMessageParts(atoms, msgId, (parts) => appendTextDelta(parts, event.delta))
+        pendingTextDeltaByMessage.set(msgId, (pendingTextDeltaByMessage.get(msgId) ?? '') + event.delta)
+        pendingTokenCountByMessage.set(msgId, (pendingTokenCountByMessage.get(msgId) ?? 0) + 1)
+        scheduleAssistantDeltaFlush()
         break
       }
 
@@ -386,6 +444,7 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       }
 
       case 'chat:v2/assistant_final': {
+        flushPendingAssistantDeltas()
         const msgId = event.messageId as string
         const thinkingDuration = thinkingStartTime != null
           ? Date.now() - thinkingStartTime
@@ -467,7 +526,13 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
         const msgWithTool = streamingMsg ?? currentMessages.findLast((m) =>
           m.parts?.some((p) => p._tag === 'tool-invocation' && p.toolCallId === event.toolCallId)
         )
-        const targetMsgId = (msgWithTool ?? currentMessages.findLast((m) => m.role === 'assistant'))?.id
+        const targetMsgId = (msgWithTool ?? currentMessages.findLast((m) => m.role === 'agent' || m.role === 'assistant'))?.id
+
+        const existingToolPart = targetMsgId
+          ? currentMessages
+              .find((m) => m.id === targetMsgId)
+              ?.parts?.find((p) => p._tag === 'tool-invocation' && (p as ToolInvocationPart).toolCallId === event.toolCallId) as ToolInvocationPart | undefined
+          : undefined
 
         // ── Decode payload based on phase ──
         const payload = event.payload as Record<string, unknown> | undefined
@@ -494,44 +559,67 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
           // Two kinds of update events:
           // 1. Tool argument deltas (payload.delta) — LLM streaming partial args
           // 2. Tool execution details (payload.details) — progressive output (e.g., genifer partial tree)
+          //
+          // Old behavior only patched existing parts and bypassed terminal-state guards.
+          // This caused dropped streams when start raced, and stale updates could clobber
+          // completed outputs. We now route update writes through upsertToolPart.
+          if (!targetMsgId) break
 
-          if (payload?.delta != null && targetMsgId) {
-            // Argument deltas — accumulate for incremental rendering
-            updateMessageParts(atoms, targetMsgId, (parts) => {
-              const arr = [...parts]
-              const idx = arr.findIndex(
-                (p) => p._tag === 'tool-invocation' && (p as ToolInvocationPart).toolCallId === event.toolCallId,
-              )
-              if (idx >= 0) {
-                const existing = arr[idx] as ToolInvocationPart
-                const prevDelta = ((existing as any).inputDelta as string) ?? ''
-                const newDelta = prevDelta + String(payload.delta)
-                arr[idx] = { ...existing, inputDelta: newDelta } as any
-              }
-              return arr
-            })
-          }
+          const deltaChunk = payload?.delta != null ? String(payload.delta) : null
+          const detailsChunk = payload?.details != null ? payload.details : null
 
-          if (payload?.details != null && targetMsgId) {
-            // Progressive output details — update tool part output with latest details
-            // This enables genifer renderers to show partial tree as elements stream in
-            updateMessageParts(atoms, targetMsgId, (parts) => {
-              const arr = [...parts]
-              const idx = arr.findIndex(
-                (p) => p._tag === 'tool-invocation' && (p as ToolInvocationPart).toolCallId === event.toolCallId,
-              )
-              if (idx >= 0) {
-                const existing = arr[idx] as ToolInvocationPart
-                // Merge details into output — renderer reads output.details.treeSnapshot
-                const prevOutput = (existing.output ?? {}) as Record<string, unknown>
-                arr[idx] = {
-                  ...existing,
-                  output: { ...prevOutput, details: payload.details },
-                } as any
+          if (deltaChunk == null && detailsChunk == null) break
+
+          updateMessageParts(atoms, targetMsgId, (parts) => {
+            const existing = parts.find(
+              (p) => p._tag === 'tool-invocation' && (p as ToolInvocationPart).toolCallId === event.toolCallId,
+            ) as ToolInvocationPart | undefined
+
+            const nextState: ToolInvocationPart['state'] =
+              existing && !TERMINAL_TOOL_STATES.has(existing.state)
+                ? existing.state
+                : 'running'
+
+            let nextOutput: unknown = undefined
+            if (detailsChunk != null) {
+              const prevOutput = (existing?.output ?? null) as Record<string, unknown> | null
+              const prevDetails = prevOutput && typeof prevOutput === 'object'
+                ? ('details' in prevOutput
+                    ? (prevOutput.details as Record<string, unknown> | undefined)
+                    : prevOutput)
+                : undefined
+
+              const mergedDetails = detailsChunk && typeof detailsChunk === 'object'
+                ? { ...(prevDetails ?? {}), ...(detailsChunk as Record<string, unknown>) }
+                : prevDetails
+
+              if (mergedDetails) {
+                nextOutput = { ...(prevOutput ?? {}), details: mergedDetails }
               }
-              return arr
+            }
+
+            const baseUpdated = upsertToolPart(parts, event.toolCallId, {
+              toolName: event.toolName,
+              state: nextState,
+              output: nextOutput,
             })
-          }
+
+            if (deltaChunk == null) {
+              return baseUpdated
+            }
+
+            const arr = [...baseUpdated]
+            const idx = arr.findIndex(
+              (p) => p._tag === 'tool-invocation' && (p as ToolInvocationPart).toolCallId === event.toolCallId,
+            )
+
+            if (idx < 0) return baseUpdated
+
+            const upserted = arr[idx] as ToolInvocationPart
+            const prevDelta = ((upserted as any).inputDelta as string | undefined) ?? ''
+            arr[idx] = { ...upserted, inputDelta: prevDelta + deltaChunk } as any
+            return arr
+          })
 
           break // Don't fall through to upsertToolPart below
 
@@ -541,9 +629,20 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
           toolState = (payload?.isError ? 'error' : 'completed') as ToolInvocationPart['state']
           // End payload: { result: [{ type: 'text', text: '...' }], details: {...}, isError, executionMs }
           if (payload?.result) {
-            // Merge details into output so renderers can access treeSnapshot etc.
-            toolOutput = payload.details
-              ? { result: payload.result, details: payload.details }
+            const prevOutput = (existingToolPart?.output ?? null) as Record<string, unknown> | null
+            const prevDetails = prevOutput && typeof prevOutput === 'object'
+              ? ('details' in prevOutput
+                  ? (prevOutput.details as Record<string, unknown> | undefined)
+                  : prevOutput)
+              : undefined
+
+            const nextDetails = payload.details && typeof payload.details === 'object'
+              ? { ...(prevDetails ?? {}), ...(payload.details as Record<string, unknown>) }
+              : prevDetails
+
+            // Preserve prior treeSnapshot/details if end payload omits them.
+            toolOutput = nextDetails
+              ? { result: payload.result, details: nextDetails }
               : payload.result
           } else {
             toolOutput = payload
@@ -600,17 +699,34 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       }
 
       case 'chat:v2/provider_marker': {
-        if (atoms.provider$) {
-          morphChatRegistry.set(atoms.provider$, {
-            provider: event.provider,
-            model: event.model ?? undefined,
-            at: event.at,
-          } as ProviderMarker)
+        const markerTag = (event.marker as { _tag?: unknown } | undefined)?._tag
+        const isHighFrequencyMarker = markerTag === 'provider:marker/text_delta'
+
+        // text_delta markers are extremely hot-path; skip all state work for them.
+        if (isHighFrequencyMarker) {
+          break
         }
-        // Also patch the provider onto the currently streaming message
+
+        // Provider metadata is effectively stable for a run; update only on change.
+        if (atoms.provider$) {
+          const currentProvider = morphChatRegistry.get(atoms.provider$)
+          if (
+            !currentProvider ||
+            currentProvider.provider !== event.provider ||
+            currentProvider.model !== (event.model ?? undefined)
+          ) {
+            morphChatRegistry.set(atoms.provider$, {
+              provider: event.provider,
+              model: event.model ?? undefined,
+              at: event.at,
+            } as ProviderMarker)
+          }
+        }
+
+        // Patch provider onto active streaming message only when it changes.
         const msgs = morphChatRegistry.get(atoms.messages$)
         const streamingMsg = msgs.find((m) => m.status === 'streaming')
-        if (streamingMsg) {
+        if (streamingMsg && streamingMsg.provider !== event.provider) {
           registryUpdate(atoms.messages$, (prev) =>
             prev.map((msg) =>
               msg.id === streamingMsg.id

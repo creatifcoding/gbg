@@ -40,21 +40,14 @@ export function ComposerView() {
   // Read directly from adapter atoms — no intermediary family
   const streaming = useAtomValue(adapter.streaming$)
   const isStreaming = streaming.isStreaming
-  const connection = useAtomValue(adapter.connection$)
-  // Machine connection state — for diagnostics
-  const machineConnection = useAtomValue(connectionStateFamily(surfaceId))
-  // Gate on ADAPTER connection state (source of truth), not machine state (which may lag)
-  const isConnected = connection.phase === 'connected' || connection.phase === 'idle'
+  // Machine connection state — for diagnostics only (kept subscribed so diagnostics remain visible)
+  useAtomValue(connectionStateFamily(surfaceId))
 
-  // All composers call adapter.send via the same handler
-  // Composer passes { value, mode, thinkingLevel, contextChips }
+  // All composers call adapter.send via the same handler.
+  // Connectivity/autorecovery is handled in the adapter layer (sendOp auto-heal),
+  // so UI should never hard-block submission solely on current connection phase.
   const handleSubmit = React.useCallback(
     (params: { value: string; mode?: string; thinkingLevel?: unknown; contextChips?: unknown[] }) => {
-      if (!isConnected) {
-        console.warn('[ComposerView] Submit blocked — not connected (machine state:', machineConnection, ')')
-        return
-      }
-
       Effect.runSync(
         adapter.send({
           content: params.value,
@@ -62,7 +55,7 @@ export function ComposerView() {
         }),
       )
     },
-    [adapter, isConnected, machineConnection],
+    [adapter],
   )
 
   const handleCancel = React.useCallback(() => {

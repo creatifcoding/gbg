@@ -21,6 +21,7 @@ import {
   toolStreamFinalize as toolStreamFinalizeEffect,
 } from '@/lib/chat/msg/tool-block/renderers/terminal/tool-stream-sink'
 import {
+  HarnessBrowserTransport,
   HarnessBrowserTransportWebSocketDefault,
   HarnessRuntime,
   HarnessRuntimeBrowserLive,
@@ -708,6 +709,7 @@ function activateSessionWiring(
   nodeId: string,
   agentName: string,
   runtime: { events: Stream.Stream<any, any>; getSnapshot: (...args: any[]) => Effect.Effect<any, any> },
+  transport?: { events: Stream.Stream<unknown, any>; request: (cmd: unknown) => Effect.Effect<unknown, any> },
   snapshotOverride?: { events: ReadonlyArray<any> } | null,
   agentId?: string,
 ): Effect.Effect<void> {
@@ -716,7 +718,7 @@ function activateSessionWiring(
     morphChatRegistry.set(connection$(id), { phase: 'connected', endpoint: `harness:${nodeId}` } as ConnectionState)
     morphChatRegistry.set(agents$(id), [{ id: agentId ?? nodeId, name: agentName, isActive: true }])
 
-    const wired = wireEventStream(id, activeSessionId, agentName, runtime)
+    const wired = wireEventStream(id, activeSessionId, agentName, runtime, transport)
     activeWiring.set(id, {
       sessionId: activeSessionId,
       shouldProcess: wired.shouldProcess,
@@ -752,6 +754,7 @@ const connectOp$ = Atom.family((id: string) =>
       Effect.gen(function* () {
         setInstanceConfig(id, { nodeId, role, agentName })
         const runtime = yield* HarnessRuntime
+        const transport = yield* HarnessBrowserTransport
 
         yield* interruptInstanceFibers(id)
 
@@ -771,7 +774,7 @@ const connectOp$ = Atom.family((id: string) =>
           agentId: session.agentId,
         })
 
-        yield* activateSessionWiring(id, session.sessionId as HarnessSessionId, nodeId, agentName, runtime, undefined, session.agentId)
+        yield* activateSessionWiring(id, session.sessionId as HarnessSessionId, nodeId, agentName, runtime, transport, undefined, session.agentId)
         pushStatusRow(id, {
           id: `status-${Date.now()}-connect-session`,
           tone: 'info',
@@ -856,6 +859,7 @@ const sendOp$ = Atom.family((id: string) =>
         let sid = getSessionId(id)
         const conn = morphChatRegistry.get(connection$(id)) as ConnectionState
         const runtime = yield* HarnessRuntime
+        const transport = yield* HarnessBrowserTransport
         yield* morphchatLogDebug(id, 'send-start', {
           sessionId: sid ?? 'none',
           phase: conn?.phase ?? 'unknown',
@@ -906,7 +910,7 @@ const sendOp$ = Atom.family((id: string) =>
           )
 
           sid = opened.sessionId as HarnessSessionId
-          yield* activateSessionWiring(id, sid, cfg.nodeId, cfg.agentName, runtime, undefined, opened.agentId)
+          yield* activateSessionWiring(id, sid, cfg.nodeId, cfg.agentName, runtime, transport, undefined, opened.agentId)
 
           pushStatusRow(id, {
             id: `status-${Date.now()}-send-autoheal-recovered`,
@@ -1038,6 +1042,7 @@ const newSessionOp$ = Atom.family((id: string) =>
       return Effect.gen(function* () {
         setInstanceConfig(id, { nodeId, role, agentName })
         const runtime = yield* HarnessRuntime
+        const transport = yield* HarnessBrowserTransport
 
         previousSid = getSessionId(id)
         yield* interruptInstanceFibers(id)
@@ -1071,7 +1076,7 @@ const newSessionOp$ = Atom.family((id: string) =>
         getToolBridge(id).clear()
         processors.delete(id) // Force new processor
 
-        yield* activateSessionWiring(id, session.sessionId as HarnessSessionId, nodeId, agentName, runtime, undefined, session.agentId)
+        yield* activateSessionWiring(id, session.sessionId as HarnessSessionId, nodeId, agentName, runtime, transport, undefined, session.agentId)
         pushStatusRow(id, {
           id: `status-${Date.now()}-new-session`,
           tone: 'info',
@@ -1113,6 +1118,7 @@ const resumeSessionOp$ = Atom.family((id: string) =>
     ({ sessionId }, _ctx) =>
       Effect.gen(function* () {
         const runtime = yield* HarnessRuntime
+        const transport = yield* HarnessBrowserTransport
         const cfg = getInstanceConfig(id)
         if (!cfg) return yield* Effect.fail(new Error(`Missing harness config for instance: ${id}`))
 
@@ -1144,6 +1150,7 @@ const resumeSessionOp$ = Atom.family((id: string) =>
           cfg.nodeId,
           cfg.agentName,
           runtime,
+          transport,
           resumed,
         )
 
