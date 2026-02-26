@@ -520,19 +520,25 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
           let finalParts = finalizeThinking(msg.parts ?? [], thinkingDuration)
           const currentText = flattenPartsToText(finalParts)
           if (event.text !== currentText) {
-            const nonTextParts = finalParts.filter((p) => p._tag !== 'text')
+            // Server text is canonical. Rebuild parts from scratch —
+            // keep only non-text, non-code parts (thinking, tool, etc.).
+            // Code parts will be re-extracted by splitPartsCodeFences below.
+            const structuralParts = finalParts.filter(
+              (p) => p._tag !== 'text' && p._tag !== 'code',
+            )
             finalParts = [
-              ...nonTextParts,
+              ...structuralParts,
               { _tag: 'text' as const, content: event.text },
             ]
+          } else {
+            // Text matches — finalize any streaming code parts in-place
+            finalParts = finalParts.map((p) =>
+              p._tag === 'code' && (p as CodePart).isStreaming
+                ? { ...p, isStreaming: false } as CodePart
+                : p,
+            )
           }
-          // ── Finalize any streaming code parts ──
-          finalParts = finalParts.map((p) =>
-            p._tag === 'code' && (p as CodePart).isStreaming
-              ? { ...p, isStreaming: false } as CodePart
-              : p,
-          )
-          // ── Safety net: split any remaining text→code fences ──
+          // ── Canonical split: text → interleaved text + code parts ──
           finalParts = splitPartsCodeFences(finalParts)
           return {
             ...msg,
