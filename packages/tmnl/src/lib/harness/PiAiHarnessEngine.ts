@@ -48,9 +48,9 @@ type SessionRecord = {
   readonly nodeId: string
   readonly role: AgentRole
   readonly agentId: string
-  readonly headSeq: number
+  headSeq: number                                        // ← mutable: hot-path seq bump
   readonly createdAt: number
-  readonly events: ReadonlyArray<typeof HarnessEvent.Type>
+  readonly events: Array<typeof HarnessEvent.Type>       // ← mutable: push() instead of [...spread]
   readonly clientMessageIds: HashSet.HashSet<string>
   readonly activeAssistantMessageId: ChatMessageId | null
   readonly activeAbortController: AbortController | null
@@ -188,6 +188,7 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
         }),
       ).pipe(Effect.catchAll(() => Effect.void))
 
+    // ── appendEvent: full path for structural events (persisted + published) ──
     const appendEvent = (
       sessionId: string,
       build: (nextSeq: number, session: SessionRecord) => typeof HarnessEvent.Type,
@@ -199,13 +200,11 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
             onSome: (session) => {
               const nextSeq = session.headSeq + 1
               const event = build(nextSeq, session)
-              const nextSession: SessionRecord = {
-                ...session,
-                headSeq: nextSeq,
-                events: [...session.events, event],
-              }
+              // Mutable push — eliminates O(n) array copy per event
+              session.headSeq = nextSeq
+              session.events.push(event)
 
-              return [Option.some({ event, session: nextSession }), HashMap.set(current, sessionId, nextSession)] as const
+              return [Option.some({ event, session }), HashMap.set(current, sessionId, session)] as const
             },
           }),
         )
@@ -225,6 +224,28 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
         ).pipe(Effect.catchAll(() => Effect.void))
 
         yield* persistSession(session)
+      })
+
+    // ── emitDelta: fast path for text/thinking deltas (published only, no persistence) ──
+    // No Ref.modify of the HashMap. No store write. No persistSession. No Schema.make.
+    // Just: bump seq on the mutable record, construct a plain object, publish.
+    const emitDelta = (
+      sessionId: string,
+      build: (nextSeq: number, sessionId: ChatSessionId) => typeof HarnessEvent.Type,
+    ) =>
+      Effect.gen(function* () {
+        // Read the session record once (no modify — we mutate in place)
+        const current = yield* Ref.get(sessionsRef)
+        const maybeSession = HashMap.get(current, sessionId)
+        if (Option.isNone(maybeSession)) return
+
+        const session = maybeSession.value
+        const nextSeq = ++session.headSeq        // ← mutable bump, zero allocation
+        const event = build(nextSeq, session.sessionId)
+
+        // Publish to downstream consumers (WS transport, harness-adapter)
+        // Skip: events array push, store.appendEvent, persistSession
+        yield* PubSub.publish(eventsPubSub, event)
       })
 
     const hydrateSessionFromStore = (sessionId: string): Effect.Effect<SessionRecord, PiAiHarnessEngineError> =>
@@ -424,6 +445,85 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
               ).pipe(
                 Stream.mapEffect((event) =>
                   Effect.gen(function* () {
+                    // ── Fast-path classification: check raw event type string ──
+                    // Skip Schema.decode, skip toProviderMarker, skip appendEvent.
+                    const rawType = (event as { type?: string })?.type
+
+                    if (rawType === 'text_delta') {
+                      const delta = (event as { delta?: string })?.delta
+                      if (typeof delta !== 'string') {
+                        return yield* Effect.fail(
+                          new PiAiHarnessEngineError({
+                            code: 'adapter-invalid-text-delta',
+                            message: 'text_delta event missing string delta',
+                            cause: Option.none(),
+                          }),
+                        )
+                      }
+
+                      // First-delta metric (once per run, uses full appendEvent for persistence)
+                      if (!firstDeltaMetricEmitted) {
+                        firstDeltaMetricEmitted = true
+                        yield* appendEvent(sessionId, (seq, s) =>
+                          HarnessMetricEvent.make({
+                            sessionId: s.sessionId,
+                            seq,
+                            at: Date.now(),
+                            metric: 'firstDeltaLagMs',
+                            value: Date.now() - runStartedAtMs,
+                            messageId: assistantMessageId,
+                          }),
+                        )
+                      }
+
+                      // Fast path: plain object, PubSub only, no persistence
+                      return yield* emitDelta(sessionId, (seq, sid) => ({
+                        _tag: 'chat:v2/assistant_delta' as const,
+                        sessionId: sid,
+                        seq,
+                        at: Date.now(),
+                        messageId: assistantMessageId,
+                        delta,
+                      }))
+                    }
+
+                    if (rawType === 'thinking_delta') {
+                      const delta = (event as { delta?: string })?.delta
+                      if (typeof delta !== 'string') {
+                        return yield* Effect.fail(
+                          new PiAiHarnessEngineError({
+                            code: 'adapter-invalid-thinking-delta',
+                            message: 'thinking_delta event missing string delta',
+                            cause: Option.none(),
+                          }),
+                        )
+                      }
+
+                      if (!firstDeltaMetricEmitted) {
+                        firstDeltaMetricEmitted = true
+                        yield* appendEvent(sessionId, (seq, s) =>
+                          HarnessMetricEvent.make({
+                            sessionId: s.sessionId,
+                            seq,
+                            at: Date.now(),
+                            metric: 'firstDeltaLagMs',
+                            value: Date.now() - runStartedAtMs,
+                            messageId: assistantMessageId,
+                          }),
+                        )
+                      }
+
+                      return yield* emitDelta(sessionId, (seq, sid) => ({
+                        _tag: 'chat:v2/assistant_thinking_delta' as const,
+                        sessionId: sid,
+                        seq,
+                        at: Date.now(),
+                        messageId: assistantMessageId,
+                        delta,
+                      }))
+                    }
+
+                    // ── Structural events: full path (adapt + provider marker + persistence) ──
                     const providerMarker = yield* adapter.toProviderMarker(event).pipe(
                       Effect.mapError((error) =>
                         new PiAiHarnessEngineError({
@@ -453,63 +553,7 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                       ),
                     )
 
-                    if (adapted._tag === 'PiAiAdapterTextDelta') {
-                        return yield* Effect.gen(function* () {
-                          if (!firstDeltaMetricEmitted) {
-                            firstDeltaMetricEmitted = true
-                            yield* appendEvent(sessionId, (seq, s) =>
-                              HarnessMetricEvent.make({
-                                sessionId: s.sessionId,
-                                seq,
-                                at: Date.now(),
-                                metric: 'firstDeltaLagMs',
-                                value: Date.now() - runStartedAtMs,
-                                messageId: assistantMessageId,
-                              }),
-                            )
-                          }
-
-                          yield* appendEvent(sessionId, (seq, s) =>
-                            HarnessAssistantDeltaEvent.make({
-                              sessionId: s.sessionId,
-                              seq,
-                              at: Date.now(),
-                              messageId: assistantMessageId,
-                              delta: adapted.delta,
-                            }),
-                          )
-                        })
-                      }
-
-                      if (adapted._tag === 'PiAiAdapterThinkingDelta') {
-                        return yield* Effect.gen(function* () {
-                          if (!firstDeltaMetricEmitted) {
-                            firstDeltaMetricEmitted = true
-                            yield* appendEvent(sessionId, (seq, s) =>
-                              HarnessMetricEvent.make({
-                                sessionId: s.sessionId,
-                                seq,
-                                at: Date.now(),
-                                metric: 'firstDeltaLagMs',
-                                value: Date.now() - runStartedAtMs,
-                                messageId: assistantMessageId,
-                              }),
-                            )
-                          }
-
-                          yield* appendEvent(sessionId, (seq, s) =>
-                            HarnessAssistantThinkingDeltaEvent.make({
-                              sessionId: s.sessionId,
-                              seq,
-                              at: Date.now(),
-                              messageId: assistantMessageId,
-                              delta: adapted.delta,
-                            }),
-                          )
-                        })
-                      }
-
-                      if (adapted._tag === 'PiAiAdapterToolStart') {
+                    if (adapted._tag === 'PiAiAdapterToolStart') {
                         return yield* Effect.gen(function* () {
                           toolStartedAtMs.set(adapted.toolCallId, Date.now())
 
