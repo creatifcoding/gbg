@@ -3,11 +3,10 @@ import {
   memo,
   useCallback,
   useEffect,
-  useMemo,
   type ComponentPropsWithoutRef,
 } from 'react'
-import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { Streamdown } from 'streamdown'
 import { cn } from '@/lib/utils'
 import { ChatCodeBlock } from '../code-block/index'
 
@@ -167,34 +166,15 @@ const MarkdownBody = memo(function MarkdownBody({
     }
   })
 
-  // During streaming, stabilize unclosed fences so react-markdown doesn't choke
-  const safeText = useMemo(() => {
-    if (!streaming) return text
-    return stabilizeStreamingMarkdown(text)
-  }, [text, streaming])
-
   const components = streaming ? MD_COMPONENTS_STREAMING : MD_COMPONENTS_STATIC
 
   return (
-    <ReactMarkdown
-      remarkPlugins={remarkPlugins}
+    <Streamdown
+      mode={streaming ? 'streaming' : 'static'}
       components={components}
+      remarkPlugins={remarkPlugins}
     >
-      {safeText}
-    </ReactMarkdown>
+      {text}
+    </Streamdown>
   )
 })
-
-/**
- * Stabilize streaming markdown by closing any unclosed fenced code block.
- * Prevents react-markdown from rendering ``` as paragraph text mid-stream.
- */
-function stabilizeStreamingMarkdown(text: string): string {
-  // Count unmatched triple backticks
-  const fenceMatches = text.match(/^```/gm)
-  if (fenceMatches && fenceMatches.length % 2 !== 0) {
-    // Odd number = unclosed fence. Close it so the block renders.
-    return text + '\n```'
-  }
-  return text
-}

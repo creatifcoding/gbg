@@ -77,8 +77,6 @@ function registryUpdate<A>(atom: Atom.Atom<A>, fn: (prev: A) => A): void {
   morphChatRegistry.update(atom, fn)
 }
 
-const ASSISTANT_DELTA_FLUSH_MS = 48
-
 // =============================================================================
 // Parts Helpers (pure)
 // =============================================================================
@@ -295,77 +293,6 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
   const { atoms, agentName, nodeId } = config
   let thinkingStartTime: number | null = null
 
-  const pendingTextDeltaByMessage = new Map<string, string>()
-  const pendingTokenCountByMessage = new Map<string, number>()
-  let pendingSeqsByMessage: Map<string, number[]> | null = null
-  let pendingFlushTimer: ReturnType<typeof setTimeout> | null = null
-
-  const flushPendingAssistantDeltas = () => {
-    if (pendingFlushTimer) {
-      clearTimeout(pendingFlushTimer)
-      pendingFlushTimer = null
-    }
-
-    if (pendingTextDeltaByMessage.size === 0 && pendingTokenCountByMessage.size === 0) {
-      return
-    }
-
-    const deltas = new Map(pendingTextDeltaByMessage)
-    const tokenCounts = new Map(pendingTokenCountByMessage)
-    const flushSeqs = pendingSeqsByMessage  // snapshot before clear
-    pendingTextDeltaByMessage.clear()
-    pendingTokenCountByMessage.clear()
-    pendingSeqsByMessage = null
-
-    registryUpdate(atoms.streaming$, (prev) => {
-      const msgId = prev.messageId ?? ''
-      const delta = deltas.get(msgId) ?? ''
-      const tokenCount = tokenCounts.get(msgId) ?? 0
-
-      if (delta.length === 0 && tokenCount === 0) {
-        return prev
-      }
-
-      return {
-        ...prev,
-        buffer: prev.buffer + delta,
-        tokensReceived: (prev.tokensReceived ?? 0) + tokenCount,
-      }
-    })
-
-    registryUpdate(atoms.messages$, (prev) =>
-      prev.map((msg) => {
-        const delta = deltas.get(msg.id)
-        if (!delta) return msg
-
-        const nextParts = appendTextDelta(msg.parts ?? [], delta)
-        const nextContent = flattenPartsToText(nextParts)
-
-        return {
-          ...msg,
-          parts: nextParts,
-          content: nextContent || msg.content,
-        }
-      }),
-    )
-
-    // Latency probe: stamp all seq values in this coalesce batch as atom_flush
-    if (flushSeqs) {
-      for (const seqs of flushSeqs.values()) {
-        for (const seq of seqs) {
-          streamingLatencyProbe.stamp(seq, 'atom_flush')
-        }
-      }
-    }
-  }
-
-  const scheduleAssistantDeltaFlush = () => {
-    if (pendingFlushTimer != null) return
-    pendingFlushTimer = setTimeout(() => {
-      flushPendingAssistantDeltas()
-    }, ASSISTANT_DELTA_FLUSH_MS)
-  }
-
   function processEvent(event: HarnessEvent): void {
     switch (event._tag) {
       case 'chat:v2/session_opened': {
@@ -406,8 +333,6 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       }
 
       case 'chat:v2/assistant_start': {
-        flushPendingAssistantDeltas()
-
         // Finalize any previously streaming message (multi-turn tool loop:
         // the engine may start a new assistant turn without sending assistant_final
         // for the intermediate tool-calling turn)
@@ -440,19 +365,30 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       }
 
       case 'chat:v2/assistant_delta': {
-        // Latency probe: stamp processor entry
         if (typeof event.seq === 'number') {
           streamingLatencyProbe.stamp(event.seq, 'processor')
         }
         const msgId = event.messageId as string
-        pendingTextDeltaByMessage.set(msgId, (pendingTextDeltaByMessage.get(msgId) ?? '') + event.delta)
-        pendingTokenCountByMessage.set(msgId, (pendingTokenCountByMessage.get(msgId) ?? 0) + 1)
-        // Track seq values in this coalesce batch for probe
-        if (!pendingSeqsByMessage) pendingSeqsByMessage = new Map()
-        const seqs = pendingSeqsByMessage.get(msgId) ?? []
-        if (typeof event.seq === 'number') seqs.push(event.seq)
-        pendingSeqsByMessage.set(msgId, seqs)
-        scheduleAssistantDeltaFlush()
+        const delta = event.delta as string
+
+        registryUpdate(atoms.streaming$, (prev) => ({
+          ...prev,
+          buffer: prev.buffer + delta,
+          tokensReceived: (prev.tokensReceived ?? 0) + 1,
+        }))
+
+        registryUpdate(atoms.messages$, (prev) =>
+          prev.map((msg) => {
+            if (msg.id !== msgId) return msg
+            const nextParts = appendTextDelta(msg.parts ?? [], delta)
+            const nextContent = flattenPartsToText(nextParts)
+            return { ...msg, parts: nextParts, content: nextContent || msg.content }
+          }),
+        )
+
+        if (typeof event.seq === 'number') {
+          streamingLatencyProbe.stamp(event.seq, 'atom_flush')
+        }
         break
       }
 
@@ -466,7 +402,6 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       }
 
       case 'chat:v2/assistant_final': {
-        flushPendingAssistantDeltas()
         const msgId = event.messageId as string
         const thinkingDuration = thinkingStartTime != null
           ? Date.now() - thinkingStartTime

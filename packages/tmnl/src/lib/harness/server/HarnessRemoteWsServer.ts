@@ -172,15 +172,12 @@ const handleRemoteWs = Effect.gen(function* () {
       kind: 'outbound',
       tag: (payload as { _tag?: unknown })._tag ?? 'payload',
     })
-    const json = yield* encodeJson(payload).pipe(
-      Effect.withSpan('harness.ws.encode.outbound'),
-    )
+    const json = yield* encodeJson(payload)
     yield* Queue.offer(outbound, json)
   })
 
   const safeSend = (payload: unknown, tag: string) =>
     send(payload).pipe(
-      Effect.withSpan('harness.ws.outbound-send', { attributes: { kind: 'response', tag } }),
       Effect.catchAllCause((cause) =>
         logWarningCause(
           wsId,
@@ -199,7 +196,7 @@ const handleRemoteWs = Effect.gen(function* () {
       const write = yield* socket.writer
       yield* Stream.runForEach(
         Stream.fromQueue(outbound),
-        (json) => write(json).pipe(Effect.asVoid).pipe(Effect.withSpan('harness.ws.writer-frame')),
+        (json) => write(json).pipe(Effect.asVoid),
       )
     }).pipe(
       Effect.withSpan('harness.ws.outbound-writer-loop'),
@@ -218,7 +215,6 @@ const handleRemoteWs = Effect.gen(function* () {
     ;(event as any)._wsSendAt = Date.now()
 
     return safeSend(makeEventEnvelope(event), 'runtime:event').pipe(
-      Effect.withSpan('harness.ws.runtime-events-send'),
       Effect.catchAllCause((cause) =>
         logWarningCause(
           wsId,
