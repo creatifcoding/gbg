@@ -81,11 +81,14 @@ function registryUpdate<A>(atom: Atom.Atom<A>, fn: (prev: A) => A): void {
 // Parts Helpers (pure)
 // =============================================================================
 
+/**
+ * Update message parts in messages$ only.
+ * Sync bridge propagates to per-message atoms automatically.
+ */
 function updateMessageParts(
   atoms: EventProcessorAtoms,
   messageId: string,
   mapper: (parts: ReadonlyArray<ChatMessagePart>) => ReadonlyArray<ChatMessagePart>,
-  getMessageAtom?: (messageId: string) => Atom.WritableAtom<ChatMessage | null>,
 ): void {
   registryUpdate(atoms.messages$, (prev) =>
     prev.map((msg) => {
@@ -96,16 +99,6 @@ function updateMessageParts(
       return { ...msg, parts: newParts, content: newContent || msg.content }
     }),
   )
-
-  if (getMessageAtom) {
-    morphChatRegistry.update(getMessageAtom(messageId), (prev) => {
-      if (!prev) return prev
-      const currentParts = prev.parts ?? []
-      const newParts = mapper(currentParts)
-      const newContent = flattenPartsToText(newParts)
-      return { ...prev, parts: newParts, content: newContent || prev.content }
-    })
-  }
 }
 
 /**
@@ -379,7 +372,14 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       : (setTimeout(flushPendingDeltas, 16) as unknown as number) // SSR fallback
   }
 
-  const updateMessageEverywhere = (
+  /**
+   * Update a message in messages$ only. The sync bridge in useHarnessAdapter
+   * handles propagation to per-message atoms and messageIds$.
+   *
+   * Do NOT write to per-message atoms here — that races with the sync bridge
+   * and causes double notifications (duplicate renders).
+   */
+  const updateMessageInArray = (
     messageId: string,
     updater: (message: ChatMessage) => ChatMessage,
   ): ChatMessage | null => {
@@ -393,15 +393,6 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
         return next
       }),
     )
-
-    if (config.getMessageAtom) {
-      morphChatRegistry.update(config.getMessageAtom(messageId), (prev) => {
-        if (!prev) return prev
-        const next = updater(prev)
-        updated = next
-        return next
-      })
-    }
 
     return updated
   }
@@ -435,58 +426,30 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       }
 
       case 'chat:v2/send_accepted': {
-        const acceptedMessages: ChatMessage[] = []
+        // Write to messages$ only — sync bridge handles messageIds$ + per-message atoms.
+        // Direct writes here would race with the sync bridge and cause duplicates.
         registryUpdate(atoms.messages$, (prev) =>
-          prev.map((msg) => {
-            if (msg.status !== 'pending') return msg
-            const accepted = { ...msg, status: 'sent' as const }
-            acceptedMessages.push(accepted)
-            return accepted
-          }),
+          prev.map((msg) =>
+            msg.status === 'pending'
+              ? { ...msg, status: 'sent' as const }
+              : msg,
+          ),
         )
-
-        if (config.messageIds$ && acceptedMessages.length > 0) {
-          const acceptedIdSet = new Set(acceptedMessages.map((msg) => msg.id))
-          morphChatRegistry.update(config.messageIds$, (prev) => {
-            const next = [...prev]
-            for (const msgId of acceptedIdSet) {
-              if (!next.includes(msgId)) next.push(msgId)
-            }
-            return next
-          })
-        }
-
-        if (config.getMessageAtom) {
-          for (const msg of acceptedMessages) {
-            morphChatRegistry.set(config.getMessageAtom(msg.id), msg)
-          }
-        }
         break
       }
 
       case 'chat:v2/assistant_start': {
         // Finalize any previously streaming message (multi-turn tool loop:
         // the engine may start a new assistant turn without sending assistant_final
-        // for the intermediate tool-calling turn)
-        const finalizedStreaming: ChatMessage[] = []
+        // for the intermediate tool-calling turn).
+        // Write to messages$ only — sync bridge handles messageIds$ + per-message atoms.
         registryUpdate(atoms.messages$, (prev) =>
-          prev.map((msg) => {
-            if (msg.status !== 'streaming') return msg
-            const finalized = {
-              ...msg,
-              status: 'complete' as const,
-              content: flattenPartsToText(msg.parts ?? []) || msg.content,
-            }
-            finalizedStreaming.push(finalized)
-            return finalized
-          }),
+          prev.map((msg) =>
+            msg.status === 'streaming'
+              ? { ...msg, status: 'complete' as const, content: flattenPartsToText(msg.parts ?? []) || msg.content }
+              : msg,
+          ),
         )
-
-        if (config.getMessageAtom) {
-          for (const msg of finalizedStreaming) {
-            morphChatRegistry.set(config.getMessageAtom(msg.id), msg)
-          }
-        }
 
         const streamMsg: ChatMessage = {
           id: event.messageId as string,
@@ -498,12 +461,8 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
           parts: [],
         }
         registryUpdate(atoms.messages$, (prev) => [...prev, streamMsg])
-        if (config.messageIds$) {
-          morphChatRegistry.update(config.messageIds$, (prev) => [...prev, streamMsg.id])
-        }
-        if (config.getMessageAtom) {
-          morphChatRegistry.set(config.getMessageAtom(streamMsg.id), streamMsg)
-        }
+        // Sync bridge fires on messages$ change → updates messageIds$ and per-message atoms.
+        // Do NOT write to messageIds$/getMessageAtom here — that races with the sync bridge.
         morphChatRegistry.set(atoms.streaming$, {
           isStreaming: true,
           buffer: '',
@@ -539,7 +498,7 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
         if (thinkingStartTime === null) {
           thinkingStartTime = Date.now()
         }
-        updateMessageParts(atoms, msgId, (parts) => appendThinkingDelta(parts, event.delta), config.getMessageAtom)
+        updateMessageParts(atoms, msgId, (parts) => appendThinkingDelta(parts, event.delta))
         break
       }
 
@@ -593,7 +552,7 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
             finalizedMsg = finalizeMessage(current)
             morphChatRegistry.set(msgAtom, finalizedMsg)
           }
-          // Sync finalized state back to messages$ (one write, not updateMessageEverywhere)
+          // Sync finalized state back to messages$ (one write, not updateMessageInArray)
           if (finalizedMsg) {
             const nextFinalized = finalizedMsg
             registryUpdate(atoms.messages$, (prev) =>
@@ -602,7 +561,7 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
           }
         } else {
           // Legacy path: finalize via messages$ array
-          finalizedMsg = updateMessageEverywhere(msgId, finalizeMessage)
+          finalizedMsg = updateMessageInArray(msgId, finalizeMessage)
         }
 
         morphChatRegistry.set(atoms.streaming$, STREAMING_IDLE)
@@ -611,7 +570,7 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
 
       case 'chat:v2/usage': {
         const usageId = event.messageId as string
-        updateMessageEverywhere(usageId, (msg) => ({
+        updateMessageInArray(usageId, (msg) => ({
           ...msg,
           model: event.model,
           provider: event.provider,
@@ -739,7 +698,7 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
             const prevDelta = ((upserted as any).inputDelta as string | undefined) ?? ''
             arr[idx] = { ...upserted, inputDelta: prevDelta + deltaChunk } as any
             return arr
-          }, config.getMessageAtom)
+          })
 
           break // Don't fall through to upsertToolPart below
 
@@ -780,7 +739,6 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
                 input: toolInput,
                 output: toolOutput,
               }),
-            config.getMessageAtom,
           )
         }
 
@@ -851,7 +809,7 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
         const msgs = morphChatRegistry.get(atoms.messages$)
         const streamingMsg = msgs.find((m) => m.status === 'streaming')
         if (streamingMsg && streamingMsg.provider !== event.provider) {
-          updateMessageEverywhere(streamingMsg.id, (msg) => ({
+          updateMessageInArray(streamingMsg.id, (msg) => ({
             ...msg,
             provider: event.provider,
           }))
@@ -860,26 +818,15 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       }
 
       case 'chat:v2/error': {
-        // Mark any streaming message as error
-        const erroredMessages: ChatMessage[] = []
+        // Mark any streaming message as error.
+        // Write to messages$ only — sync bridge handles per-message atoms.
         registryUpdate(atoms.messages$, (prev) =>
-          prev.map((msg) => {
-            if (msg.status !== 'streaming') return msg
-            const errored = {
-              ...msg,
-              status: 'error' as const,
-              content: msg.content || flattenPartsToText(msg.parts ?? []),
-            }
-            erroredMessages.push(errored)
-            return errored
-          }),
+          prev.map((msg) =>
+            msg.status === 'streaming'
+              ? { ...msg, status: 'error' as const, content: msg.content || flattenPartsToText(msg.parts ?? []) }
+              : msg,
+          ),
         )
-
-        if (config.getMessageAtom) {
-          for (const msg of erroredMessages) {
-            morphChatRegistry.set(config.getMessageAtom(msg.id), msg)
-          }
-        }
 
         const summary = `[${event.code}] ${event.message}`
         morphChatRegistry.set(atoms.connection$, {
