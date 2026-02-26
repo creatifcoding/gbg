@@ -102,54 +102,6 @@ function updateMessageParts(
 }
 
 /**
- * Rebuild parts array from canonical server text, preserving structural part
- * positions. Called when `event.text !== flattenPartsToText(streamingParts)`.
- *
- * Strategy:
- * 1. Walk the streaming parts. Structural parts (thinking, tool, file, image)
- *    keep their relative order — they're anchored.
- * 2. Text + code parts are discarded entirely (they were built from deltas
- *    that didn't match the canonical text).
- * 3. The canonical text is inserted as a single text part. Its position:
- *    after the last structural part, or at the end if no structural parts.
- *    splitPartsCodeFences (called after this) handles text→code splitting.
- *
- * This preserves: [thinking, tool] ordering relative to text boundaries.
- * Known limitation: if text appeared BETWEEN two structural parts during
- * streaming, that interleave is lost — text goes after all structural parts.
- * Acceptable because this is an error-recovery path (text didn't match).
- */
-function rebuildPartsFromCanonicalText(
-  streamingParts: ReadonlyArray<ChatMessagePart>,
-  canonicalText: string,
-): ChatMessagePart[] {
-  const result: ChatMessagePart[] = []
-  let textInserted = false
-
-  for (const part of streamingParts) {
-    if (part._tag === 'text' || part._tag === 'code') {
-      // Drop old text/code — will be replaced by canonical text.
-      // Insert the canonical text at the position of the FIRST text/code part
-      // to best approximate the original ordering.
-      if (!textInserted) {
-        result.push({ _tag: 'text' as const, content: canonicalText })
-        textInserted = true
-      }
-    } else {
-      // Structural parts (thinking, tool, file, image) — keep in place
-      result.push(part)
-    }
-  }
-
-  // Edge case: no text/code parts existed (pure structural message?)
-  if (!textInserted && canonicalText) {
-    result.push({ _tag: 'text' as const, content: canonicalText })
-  }
-
-  return result
-}
-
-/**
  * Fence-aware text delta appender.
  *
  * Detects ``` fences in the streaming text and splits into TextPart/CodePart
@@ -566,24 +518,16 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
 
         const finalizeMessage = (msg: ChatMessage): ChatMessage => {
           let finalParts = finalizeThinking(msg.parts ?? [], thinkingDuration)
-          const currentText = flattenPartsToText(finalParts)
-          if (event.text !== currentText) {
-            // Server text is canonical but structural parts (thinking, tool,
-            // file, image) must keep their positions relative to each other.
-            // Strategy: strip text+code parts, note where each structural
-            // part sat in the sequence, then re-interleave with the canonical
-            // text split at those boundaries.
-            finalParts = rebuildPartsFromCanonicalText(finalParts, event.text)
-          } else {
-            // Text matches — finalize any streaming code parts in-place
-            finalParts = finalParts.map((p) =>
-              p._tag === 'code' && (p as CodePart).isStreaming
-                ? { ...p, isStreaming: false } as CodePart
-                : p,
-            )
-          }
-          // ── Canonical split: text → interleaved text + code parts ──
+          // Finalize any streaming code parts in-place
+          finalParts = finalParts.map((p) =>
+            p._tag === 'code' && (p as CodePart).isStreaming
+              ? { ...p, isStreaming: false } as CodePart
+              : p,
+          )
+          // Split any remaining text parts that contain code fences
           finalParts = splitPartsCodeFences(finalParts)
+          // content = canonical server text (for serialization/search/copy).
+          // parts = what was actually streamed, finalized.
           return {
             ...msg,
             content: event.text,
