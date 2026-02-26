@@ -8,40 +8,42 @@ import {
 import remarkGfm from 'remark-gfm'
 import { Streamdown } from 'streamdown'
 import { cn } from '@/lib/utils'
-import { ChatCodeBlock } from '../code-block/index'
-
 // =============================================================================
-// Streaming-aware code component — delegates to ChatCodeBlock compound
+// Streaming-aware markdown components
 // =============================================================================
 
 function createMdComponents(streaming: boolean): Record<string, React.FC<any>> {
   return {
-    // ── Code: inline + fenced ──────────────────────────────
+    // ── Code ─────────────────────────────────────────────────
+    // Fenced code blocks are owned by the parts system:
+    //   appendTextDelta splits fences → PartRenderer renders ChatCodeBlock.
+    // Streamdown only handles inline code. If a partial fence leaks into a
+    // text part mid-stream, render it as minimal monospace — not ChatCodeBlock.
     code({ inline, className, children, ...props }: any) {
-      const match = /language-(\w+)/.exec(className || '')
-      const lang = match?.[1]
-      const codeStr = String(children).replace(/\n$/, '')
-
-      // Fenced code block → ChatCodeBlock compound (shiki, copy, header)
-      if (!inline && (lang || codeStr.includes('\n'))) {
+      // Inline code → styled span
+      if (inline) {
         return (
-          <ChatCodeBlock
-            code={codeStr}
-            language={lang ?? 'text'}
-            isStreaming={streaming}
-          />
+          <code
+            className="px-1 py-0.5 rounded bg-neutral-800/60 text-cyan-400 font-mono"
+            style={{ fontSize: '0.9em' }}
+            {...props}
+          >
+            {children}
+          </code>
         )
       }
 
-      // Inline code
+      // Fenced block leaked into text part (partial fence during streaming).
+      // Minimal fallback — parts system will pick it up once the fence closes.
       return (
-        <code
-          className="px-1 py-0.5 rounded bg-neutral-800/60 text-cyan-400 font-mono"
-          style={{ fontSize: '0.9em' }}
-          {...props}
-        >
-          {children}
-        </code>
+        <pre className="my-2 p-3 rounded bg-neutral-900/80 overflow-x-auto">
+          <code
+            className="font-mono text-neutral-300"
+            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+          >
+            {children}
+          </code>
+        </pre>
       )
     },
 
