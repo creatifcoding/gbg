@@ -15,13 +15,16 @@ import { cn } from '@/lib/utils'
 function createMdComponents(streaming: boolean): Record<string, React.FC<any>> {
   return {
     // ── Code ─────────────────────────────────────────────────
-    // Fenced code blocks are owned by the parts system:
-    //   appendTextDelta splits fences → PartRenderer renders ChatCodeBlock.
-    // Streamdown only handles inline code. If a partial fence leaks into a
-    // text part mid-stream, render it as minimal monospace — not ChatCodeBlock.
-    code({ inline, className, children, ...props }: any) {
+    // Fenced code blocks: owned by the parts system (appendTextDelta →
+    // PartRenderer → ChatCodeBlock with shiki). Streamdown never renders them.
+    //
+    // Streamdown derives `inline` from node.position (start.line === end.line),
+    // NOT from a direct prop. We must extract it from the node ourselves.
+    code({ node, className, children, ...props }: any) {
+      const isInline = node?.position?.start.line === node?.position?.end.line
+
       // Inline code → styled span
-      if (inline) {
+      if (isInline) {
         return (
           <code
             className="px-1 py-0.5 rounded bg-neutral-800/60 text-cyan-400 font-mono"
