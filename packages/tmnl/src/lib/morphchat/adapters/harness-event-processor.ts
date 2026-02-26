@@ -293,6 +293,64 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
   const { atoms, agentName, nodeId } = config
   let thinkingStartTime: number | null = null
 
+  // ── rAF-coalesced delta flush (S4 strategy from coalescing research) ──
+  // Accumulate deltas, flush once per animation frame (~16ms at 60fps).
+  // Prevents main-thread starvation while keeping latency minimal.
+  const pendingDeltaByMessage = new Map<string, string>()
+  const pendingTokenCountByMessage = new Map<string, number>()
+  let pendingSeqsByMessage: Map<string, number[]> | null = null
+  let rafHandle: number | null = null
+
+  const flushPendingDeltas = () => {
+    rafHandle = null
+    if (pendingDeltaByMessage.size === 0 && pendingTokenCountByMessage.size === 0) return
+
+    const deltas = new Map(pendingDeltaByMessage)
+    const tokenCounts = new Map(pendingTokenCountByMessage)
+    const flushSeqs = pendingSeqsByMessage
+    pendingDeltaByMessage.clear()
+    pendingTokenCountByMessage.clear()
+    pendingSeqsByMessage = null
+
+    registryUpdate(atoms.streaming$, (prev) => {
+      const msgId = prev.messageId ?? ''
+      const delta = deltas.get(msgId) ?? ''
+      const tokenCount = tokenCounts.get(msgId) ?? 0
+      if (delta.length === 0 && tokenCount === 0) return prev
+      return {
+        ...prev,
+        buffer: prev.buffer + delta,
+        tokensReceived: (prev.tokensReceived ?? 0) + tokenCount,
+      }
+    })
+
+    registryUpdate(atoms.messages$, (prev) =>
+      prev.map((msg) => {
+        const delta = deltas.get(msg.id)
+        if (!delta) return msg
+        const nextParts = appendTextDelta(msg.parts ?? [], delta)
+        const nextContent = flattenPartsToText(nextParts)
+        return { ...msg, parts: nextParts, content: nextContent || msg.content }
+      }),
+    )
+
+    // Latency probe: stamp all seq values in this rAF batch
+    if (flushSeqs) {
+      for (const seqs of flushSeqs.values()) {
+        for (const seq of seqs) {
+          streamingLatencyProbe.stamp(seq, 'atom_flush')
+        }
+      }
+    }
+  }
+
+  const scheduleRafFlush = () => {
+    if (rafHandle != null) return
+    rafHandle = typeof requestAnimationFrame !== 'undefined'
+      ? requestAnimationFrame(flushPendingDeltas)
+      : (setTimeout(flushPendingDeltas, 16) as unknown as number) // SSR fallback
+  }
+
   function processEvent(event: HarnessEvent): void {
     switch (event._tag) {
       case 'chat:v2/session_opened': {
@@ -371,24 +429,16 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
         const msgId = event.messageId as string
         const delta = event.delta as string
 
-        registryUpdate(atoms.streaming$, (prev) => ({
-          ...prev,
-          buffer: prev.buffer + delta,
-          tokensReceived: (prev.tokensReceived ?? 0) + 1,
-        }))
+        // Accumulate delta text — rAF flush writes to atoms once per paint frame
+        pendingDeltaByMessage.set(msgId, (pendingDeltaByMessage.get(msgId) ?? '') + delta)
+        pendingTokenCountByMessage.set(msgId, (pendingTokenCountByMessage.get(msgId) ?? 0) + 1)
+        // Track seq values for latency probe
+        if (!pendingSeqsByMessage) pendingSeqsByMessage = new Map()
+        const seqs = pendingSeqsByMessage.get(msgId) ?? []
+        if (typeof event.seq === 'number') seqs.push(event.seq)
+        pendingSeqsByMessage.set(msgId, seqs)
 
-        registryUpdate(atoms.messages$, (prev) =>
-          prev.map((msg) => {
-            if (msg.id !== msgId) return msg
-            const nextParts = appendTextDelta(msg.parts ?? [], delta)
-            const nextContent = flattenPartsToText(nextParts)
-            return { ...msg, parts: nextParts, content: nextContent || msg.content }
-          }),
-        )
-
-        if (typeof event.seq === 'number') {
-          streamingLatencyProbe.stamp(event.seq, 'atom_flush')
-        }
+        scheduleRafFlush()
         break
       }
 
@@ -402,6 +452,13 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
       }
 
       case 'chat:v2/assistant_final': {
+        // Flush any pending rAF-coalesced deltas before finalizing
+        if (rafHandle != null) {
+          cancelAnimationFrame(rafHandle)
+          rafHandle = null
+        }
+        flushPendingDeltas()
+
         const msgId = event.messageId as string
         const thinkingDuration = thinkingStartTime != null
           ? Date.now() - thinkingStartTime

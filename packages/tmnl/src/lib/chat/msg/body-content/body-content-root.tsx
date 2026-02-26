@@ -158,11 +158,14 @@ const MarkdownBody = memo(function MarkdownBody({
   streaming: boolean
 }) {
   // Latency probe: stamp react_render after DOM commit during streaming
+  // Use requestAnimationFrame to stamp AFTER Streamdown's useTransition commits
   useEffect(() => {
     if (!streaming) return
     const probe = (globalThis as any).__streamingLatencyProbe
     if (probe?.enabled) {
-      probe.stampReactRender()
+      requestAnimationFrame(() => {
+        probe.stampReactRender()
+      })
     }
   })
 
