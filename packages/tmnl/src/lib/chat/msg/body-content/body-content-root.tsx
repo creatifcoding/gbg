@@ -15,17 +15,15 @@ import { cn } from '@/lib/utils'
 function createMdComponents(streaming: boolean): Record<string, React.FC<any>> {
   return {
     // ── Code ─────────────────────────────────────────────────
-    // Fenced code blocks are owned by the parts system:
-    //   appendTextDelta splits fences → PartRenderer renders ChatCodeBlock.
-    // Streamdown only handles inline code. If a partial fence leaks into a
-    // text part mid-stream, render it as minimal monospace — not ChatCodeBlock.
-    code({ inline, className, children, ...props }: any) {
-      // Inline code → styled span
+    // Fenced code blocks: owned by the parts system (appendTextDelta →
+    // PartRenderer → ChatCodeBlock with shiki). Streamdown never renders them.
+    // Inline code: styled here to match the TMNL design system.
+    code({ inline, children, ...props }: any) {
       if (inline) {
         return (
           <code
-            className="px-1 py-0.5 rounded bg-neutral-800/60 text-cyan-400 font-mono"
-            style={{ fontSize: '0.9em' }}
+            className="px-1.5 py-0.5 rounded border border-neutral-800 bg-neutral-950 text-cyan-400 font-mono"
+            style={{ fontSize: '0.85em' }}
             {...props}
           >
             {children}
@@ -33,14 +31,11 @@ function createMdComponents(streaming: boolean): Record<string, React.FC<any>> {
         )
       }
 
-      // Fenced block leaked into text part (partial fence during streaming).
-      // Minimal fallback — parts system will pick it up once the fence closes.
+      // Fenced block leaked into text part (partial fence mid-stream).
+      // Transparent fallback — parts system takes over once the fence closes.
       return (
-        <pre className="my-2 p-3 rounded bg-neutral-900/80 overflow-x-auto">
-          <code
-            className="font-mono text-neutral-300"
-            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-          >
+        <pre className="my-2 p-3 rounded border border-neutral-800/50 bg-neutral-950/60 overflow-x-auto">
+          <code className="font-mono text-neutral-400" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
             {children}
           </code>
         </pre>
