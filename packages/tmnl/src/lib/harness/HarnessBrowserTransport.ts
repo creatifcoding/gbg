@@ -188,19 +188,50 @@ export const HarnessBrowserTransportLive = Layer.scoped(
     // ── Fork message loop into the Layer scope via forkScoped ─────────
     yield* Effect.forkScoped(
       socket.runRaw(
-        (chunk) =>
-          decodeChunk(chunk).pipe(
+        (chunk) => {
+          // Latency probe: extract server timestamps from raw JSON BEFORE Schema.decode strips them
+          let _probeTimestamps: { seq?: number; wireAt?: number; engineAt?: number; wsSendAt?: number } | null = null
+          const probe = (globalThis as any).__streamingLatencyProbe
+          if (probe?.enabled) {
+            try {
+              const raw = typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk)
+              const parsed = JSON.parse(raw)
+              // Dig into the envelope: { event: { event: { seq, _wireAt, _engineAt, _wsSendAt } } }
+              const inner = parsed?.event?.event ?? parsed?.event ?? parsed
+              if (typeof inner?.seq === 'number') {
+                _probeTimestamps = {
+                  seq: inner.seq,
+                  wireAt: inner._wireAt,
+                  engineAt: inner._engineAt,
+                  wsSendAt: inner._wsSendAt,
+                }
+              }
+            } catch {}
+          }
+
+          return decodeChunk(chunk).pipe(
             Effect.flatMap((envelope) =>
               Match.value(envelope).pipe(
                 Match.tag('remote:ws_event', (evt) => {
-                  // Latency probe: stamp WS receive on browser side
-                  const innerEvt = (evt.event as { event?: unknown })?.event ?? evt.event
-                  const seq = (innerEvt as { seq?: number })?.seq
-                  if (typeof seq === 'number') {
-                    try {
-                      const { streamingLatencyProbe } = require('./perf/StreamingLatencyProbe')
-                      streamingLatencyProbe.stamp(seq, 'ws_recv')
-                    } catch {}
+                  // Latency probe: reconstruct server-side timestamps from pre-decode extraction
+                  if (_probeTimestamps && typeof _probeTimestamps.seq === 'number') {
+                    const seq = _probeTimestamps.seq
+                    if (typeof _probeTimestamps.wireAt === 'number') {
+                      probe.stamp(seq, 'wire')
+                      const idx = probe.seqToIdx?.get(seq)
+                      if (idx != null && probe.ring?.[idx]) probe.ring[idx].wire = _probeTimestamps.wireAt
+                    }
+                    if (typeof _probeTimestamps.engineAt === 'number') {
+                      probe.stamp(seq, 'engine')
+                      const idx = probe.seqToIdx?.get(seq)
+                      if (idx != null && probe.ring?.[idx]) probe.ring[idx].engine = _probeTimestamps.engineAt
+                    }
+                    if (typeof _probeTimestamps.wsSendAt === 'number') {
+                      probe.stamp(seq, 'ws_send')
+                      const idx = probe.seqToIdx?.get(seq)
+                      if (idx != null && probe.ring?.[idx]) probe.ring[idx].ws_send = _probeTimestamps.wsSendAt
+                    }
+                    probe.stamp(seq, 'ws_recv')
                   }
                   return PubSub.publish(eventsPubSub, evt.event).pipe(Effect.asVoid)
                 }),
@@ -222,7 +253,8 @@ export const HarnessBrowserTransportLive = Layer.scoped(
             Effect.catchAll((err) =>
               Effect.logWarning(`Harness websocket decode failed: ${err.message}`),
             ),
-          ),
+          )
+        },
         {
           onOpen: Deferred.succeed(connected, undefined),
         },

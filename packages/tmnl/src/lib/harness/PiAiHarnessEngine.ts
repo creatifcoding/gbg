@@ -3,7 +3,8 @@ import { AuthStorage, ModelRegistry } from '@mariozechner/pi-coding-agent'
 import { nanoid } from 'nanoid'
 import { Context, Duration, Effect, Fiber, HashMap, HashSet, Layer, Option, PubSub, Ref, Schedule, Schema, Stream } from 'effect'
 
-import { streamingLatencyProbe } from './perf/StreamingLatencyProbe'
+// streamingLatencyProbe: server-side timestamps (_wireAt, _engineAt) are embedded
+// directly in event objects and reconstructed by the browser-side probe instance.
 
 import { HarnessSessionStoreMemoryLive } from './HarnessSessionStoreMemory'
 import { HarnessSessionStoreExtended } from './session/SessionStore'
@@ -246,22 +247,16 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
         const nextSeq = ++session.headSeq        // ← mutable bump, zero allocation
         const event = build(nextSeq, session.sessionId)
 
-        // Latency probe: stamp wire arrival + engine completion
+        // Latency probe: embed server-side timestamps in event for cross-process reconstruction
+        // These travel through WS JSON to the browser-side probe
         if (wireAt != null) {
-          streamingLatencyProbe.stamp(nextSeq, 'wire')
-          // Overwrite with the actual SSE arrival time (not Date.now())
-          const idx = (streamingLatencyProbe as any).seqToIdx?.get(nextSeq)
-          if (idx != null && (streamingLatencyProbe as any).ring?.[idx]) {
-            ;(streamingLatencyProbe as any).ring[idx].wire = wireAt
-          }
+          ;(event as any)._wireAt = wireAt
         }
+        ;(event as any)._engineAt = Date.now()
 
         // Publish to downstream consumers (WS transport, harness-adapter)
         // Skip: events array push, store.appendEvent, persistSession
         yield* PubSub.publish(eventsPubSub, event)
-
-        // Latency probe: stamp after PubSub publish
-        streamingLatencyProbe.stamp(nextSeq, 'engine')
       })
 
     const hydrateSessionFromStore = (sessionId: string): Effect.Effect<SessionRecord, PiAiHarnessEngineError> =>

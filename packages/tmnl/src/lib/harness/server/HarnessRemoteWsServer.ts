@@ -214,12 +214,8 @@ const handleRemoteWs = Effect.gen(function* () {
   )
 
   const emitRuntimeEvent = (event: unknown) => {
-    // Latency probe: stamp before WS frame write
-    const seq = (event as { seq?: number })?.seq
-    if (typeof seq === 'number') {
-      const { streamingLatencyProbe } = require('../perf/StreamingLatencyProbe')
-      streamingLatencyProbe.stamp(seq, 'ws_send')
-    }
+    // Latency probe: embed ws_send timestamp in event for cross-process reconstruction
+    ;(event as any)._wsSendAt = Date.now()
 
     return safeSend(makeEventEnvelope(event), 'runtime:event').pipe(
       Effect.withSpan('harness.ws.runtime-events-send'),

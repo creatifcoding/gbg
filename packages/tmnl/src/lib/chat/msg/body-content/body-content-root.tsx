@@ -161,11 +161,10 @@ const MarkdownBody = memo(function MarkdownBody({
   // Latency probe: stamp react_render after DOM commit during streaming
   useEffect(() => {
     if (!streaming) return
-    try {
-      const { streamingLatencyProbe } = require('@/lib/harness/perf/StreamingLatencyProbe')
-      // Stamps all traces that have atom_flush but no react_render yet
-      streamingLatencyProbe.stampReactRender()
-    } catch {}
+    const probe = (globalThis as any).__streamingLatencyProbe
+    if (probe?.enabled) {
+      probe.stampReactRender()
+    }
   })
 
   // During streaming, stabilize unclosed fences so react-markdown doesn't choke
