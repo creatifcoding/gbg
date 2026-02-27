@@ -852,23 +852,25 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                       )
                     }
 
-                    // ── Tool timeout: bounded tools get toolTimeoutMs, unbounded tools run free ──
-                    const isUnbounded = policy.config.unboundedToolPatterns.some((pattern) =>
+                    // ── Tool timeout: 0 = unbounded (default). Positive value = hard cap. ──
+                    // unboundedToolPatterns exempts specific tools even when a global timeout is set.
+                    const toolTimeout = policy.config.toolTimeoutMs
+                    const isExempt = toolTimeout > 0 && policy.config.unboundedToolPatterns.some((pattern) =>
                       pattern.endsWith('*')
                         ? toolCall.name.startsWith(pattern.slice(0, -1))
                         : toolCall.name === pattern,
                     )
 
                     const wrapTimeout = <A, E>(effect: Effect.Effect<A, E>) =>
-                      isUnbounded
+                      (toolTimeout <= 0 || isExempt)
                         ? effect
                         : effect.pipe(
                             Effect.timeoutFail({
-                              duration: Duration.millis(policy.config.toolTimeoutMs),
+                              duration: Duration.millis(toolTimeout),
                               onTimeout: () =>
                                 new PiAiToolRuntimeError({
                                   code: 'tool-timeout',
-                                  message: `Tool '${toolCall.name}' timed out after ${policy.config.toolTimeoutMs}ms`,
+                                  message: `Tool '${toolCall.name}' timed out after ${toolTimeout}ms`,
                                   cause: Option.none(),
                                 }),
                             }),

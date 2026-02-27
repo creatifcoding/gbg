@@ -26,8 +26,8 @@ export class PiAiPolicyConfig extends Schema.Class<PiAiPolicyConfig>('PiAiPolicy
   cacheRetention: PiAiCacheRetention,
   maxRetryDelayMs: Schema.optionalWith(Schema.Number.pipe(Schema.positive()), { as: 'Option' }),
   requestTimeoutMs: Schema.Number.pipe(Schema.positive()),
-  /** Per-tool execution timeout in ms. Tools in unboundedTools are exempt. Default: 300_000 (5min) */
-  toolTimeoutMs: Schema.Number.pipe(Schema.positive()),
+  /** Per-tool execution timeout in ms. 0 = no timeout (default). Tools in unboundedToolPatterns are exempt when > 0. */
+  toolTimeoutMs: Schema.Number.pipe(Schema.nonNegative()),
   /** Tool names exempt from toolTimeoutMs (they run unbounded). Default: interactive_shell, genifer_*, geoint_* */
   unboundedToolPatterns: Schema.Array(Schema.String),
   retryCount: Schema.Number.pipe(Schema.int(), Schema.nonNegative()),
@@ -99,8 +99,8 @@ const PiAiPolicyConfigSource = Config.all({
     ),
   ),
   requestTimeoutMs: positiveIntegerConfig('PI_HARNESS_PIAI_REQUEST_TIMEOUT_MS', 120_000),
-  toolTimeoutMs: positiveIntegerConfig('PI_HARNESS_PIAI_TOOL_TIMEOUT_MS', 300_000),
-  unboundedToolPatterns: Effect.succeed(['interactive_shell', 'genifer_*', 'geoint_*', 'spawn_panel']),
+  toolTimeoutMs: positiveIntegerConfig('PI_HARNESS_PIAI_TOOL_TIMEOUT_MS', 0),
+  unboundedToolPatterns: Effect.succeed([] as string[]),
   retryCount: nonNegativeIntegerConfig('PI_HARNESS_PIAI_RETRY_COUNT', 1),
   maxConcurrentStreams: positiveIntegerConfig('PI_HARNESS_PIAI_MAX_CONCURRENT_STREAMS', 8),
   sessionIdPrefix: Config.string('PI_HARNESS_PIAI_SESSION_PREFIX').pipe(Config.withDefault('chat-v2-piai')),
