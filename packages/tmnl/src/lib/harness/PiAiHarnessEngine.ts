@@ -852,8 +852,30 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                       )
                     }
 
+                    // ── Tool timeout: bounded tools get toolTimeoutMs, unbounded tools run free ──
+                    const isUnbounded = policy.config.unboundedToolPatterns.some((pattern) =>
+                      pattern.endsWith('*')
+                        ? toolCall.name.startsWith(pattern.slice(0, -1))
+                        : toolCall.name === pattern,
+                    )
+
+                    const wrapTimeout = <A, E>(effect: Effect.Effect<A, E>) =>
+                      isUnbounded
+                        ? effect
+                        : effect.pipe(
+                            Effect.timeoutFail({
+                              duration: Duration.millis(policy.config.toolTimeoutMs),
+                              onTimeout: () =>
+                                new PiAiToolRuntimeError({
+                                  code: 'tool-timeout',
+                                  message: `Tool '${toolCall.name}' timed out after ${policy.config.toolTimeoutMs}ms`,
+                                  cause: Option.none(),
+                                }),
+                            }),
+                          )
+
                     // EPOCH-0003: Intercept prompt_context tool calls — execute against session registry
-                    const result = yield* (
+                    const result = yield* wrapTimeout(
                       toolCall.name === PROMPT_CONTEXT_TOOL_NAME && session.promptRegistry
                         ? Effect.gen(function* () {
                             const code = (toolCall.arguments as { code?: string })?.code
@@ -893,7 +915,19 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                                 timestamp: Date.now(),
                               }),
                             ),
-                          )
+                          ),
+                    ).pipe(
+                      // Catch tool-timeout and surface as error result (don't blow up the round)
+                      Effect.catchTag('PiAiToolRuntimeError', (error: PiAiToolRuntimeError) =>
+                        Effect.succeed({
+                          role: 'toolResult' as const,
+                          toolCallId: toolCall.id,
+                          toolName: toolCall.name,
+                          content: [{ type: 'text' as const, text: `Tool timed out: ${error.message}` }],
+                          isError: true,
+                          timestamp: Date.now(),
+                        }),
+                      ),
                     )
 
                     const completedAt = Date.now()
