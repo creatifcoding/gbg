@@ -37,7 +37,7 @@ import {
 } from './schemas'
 import type { HarnessSessionMeta } from './session/schemas'
 import { makeDefaultRegistry, type PromptRegistryShape } from './prompt'
-import { PROMPT_CONTEXT_TOOL_NAME, executePromptContextCode, promptContextToolParameters, PROMPT_CONTEXT_API_DOCS } from './prompt/tools/prompt-context-tool'
+import { PROMPT_CONTEXT_TOOL_NAME, PROMPT_CONTEXT_TOOL_DESCRIPTION, executePromptContextCode, promptContextToolParameters, PROMPT_CONTEXT_API_DOCS } from './prompt/tools/prompt-context-tool'
 
 export class PiAiHarnessEngineError extends Schema.TaggedError<PiAiHarnessEngineError>()(
   'PiAiHarnessEngineError',
@@ -338,7 +338,7 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
               ...toolRuntime.tools,
               ...(hydratedRegistry ? [{
                 name: PROMPT_CONTEXT_TOOL_NAME,
-                description: 'Execute JavaScript code against your system prompt registry. The `promptContext` object is in scope with methods: list(), get(key), has(key), keys(), budget(), set(key, content, opts?), delete(key). Use to manage working memory, task focus, and conventions.',
+                description: PROMPT_CONTEXT_TOOL_DESCRIPTION,
                 parameters: promptContextToolParameters,
               }] : []),
             ],
@@ -1093,7 +1093,7 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
               // EPOCH-0003: Add prompt_context to tool list so LLM can call it
               ...(sessionRegistry ? [{
                 name: PROMPT_CONTEXT_TOOL_NAME,
-                description: 'Execute JavaScript code against your system prompt registry. The `promptContext` object is in scope with methods: list(), get(key), has(key), keys(), budget(), set(key, content, opts?), delete(key). Use to manage working memory, task focus, and conventions.',
+                description: PROMPT_CONTEXT_TOOL_DESCRIPTION,
                 parameters: promptContextToolParameters,
               }] : []),
             ],
@@ -1130,7 +1130,7 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
               })),
               ...(session.promptRegistry ? [{
                 name: PROMPT_CONTEXT_TOOL_NAME,
-                description: 'Execute JavaScript code against your system prompt registry.',
+                description: PROMPT_CONTEXT_TOOL_DESCRIPTION,
                 parameters: promptContextToolParameters,
               }] : []),
             ],

@@ -50,13 +50,70 @@ Your entries are session-scoped (lost when session ends).
 
 export const PROMPT_CONTEXT_TOOL_NAME = 'prompt_context'
 
+/**
+ * Rich tool description — this is what the LLM reads to understand the tool.
+ * Must be comprehensive enough that the agent can use the full API without
+ * any other documentation.
+ */
+export const PROMPT_CONTEXT_TOOL_DESCRIPTION = `Manage your system prompt registry — a key-value store of prompt entries that shape your behavior each turn.
+
+Your system prompt is assembled from keyed entries sorted by priority. Some keys are system-reserved (read-only to you). You can freely create, update, and delete your own entries within a 16KB budget. Changes take effect on the NEXT turn.
+
+Call this tool with a \`code\` parameter containing JavaScript. The \`promptContext\` object is in scope with these methods:
+
+READ OPERATIONS:
+  promptContext.list()           → Array<{ key, priority, sizeBytes }> (all entries, including system)
+  promptContext.get(key)         → { key, priority, content, sizeBytes } | null
+  promptContext.has(key)         → boolean
+  promptContext.keys()           → string[] (your entries only, not system keys)
+  promptContext.budget()         → { usedBytes, limitBytes, remainingBytes, entryCount }
+
+WRITE OPERATIONS (your entries only):
+  promptContext.set(key, content)                    → void (creates or updates)
+  promptContext.set(key, content, { priority: 550 }) → void (with custom priority, default 600)
+  promptContext.delete(key)                          → boolean
+
+ERRORS:
+  - Writing to a system-reserved key throws (identity, tool-manifest, guidelines, project-context, runtime-stamp)
+  - Exceeding your 16KB budget throws — check budget() first, consolidate or delete entries to make room
+
+USE CASES:
+  - Working memory: remember findings, debug state, hypotheses across turns
+  - Task focus: set("task-focus", "Fixing auth bug in login.ts") so every turn stays on track
+  - Conventions: set("conventions", "Use Effect.gen, prefer Schema over raw types") for persistent style rules
+  - Consolidation: when budget is tight, merge multiple small entries into one summary
+
+EXAMPLES:
+  // Check what's in your prompt
+  return promptContext.list()
+
+  // Set working memory
+  promptContext.set("task-focus", "Migrate database schema from v2 to v3")
+  promptContext.set("findings", "The users table has a stale index on email column")
+
+  // Check budget before writing
+  const b = promptContext.budget()
+  if (b.remainingBytes < 500) {
+    // Consolidate
+    const keys = promptContext.keys()
+    const summary = keys.map(k => promptContext.get(k).content).join("\\n")
+    keys.forEach(k => promptContext.delete(k))
+    promptContext.set("consolidated", summary)
+  }
+
+  // Return values are sent back as tool result
+  return { entries: promptContext.keys().length, budget: promptContext.budget() }
+
+Your entries persist for the session lifetime. Use \`return\` to send data back as the tool result.`
+
 export const promptContextToolParameters = {
   type: 'object' as const,
   properties: {
     code: {
       type: 'string' as const,
       description:
-        'JavaScript code to execute. `promptContext` is in scope. ' +
+        'JavaScript code to execute with `promptContext` in scope. Use promptContext.set(key, content) to write, ' +
+        'promptContext.get(key) to read, promptContext.list() to see all entries, promptContext.budget() to check usage. ' +
         'Return value (if any) is sent back as the tool result.',
     },
   },
