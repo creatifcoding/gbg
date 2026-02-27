@@ -49,6 +49,7 @@ export {
   GeniferDefineToolRenderer,
   GeniferExportRenderer,
 } from './genifer-renderers'
+export { PromptContextRenderer, PromptContextHeaderMeta } from './prompt-context-renderer'
 
 // =============================================================================
 // Auto-register built-in SDK tools (single batch — one notification)
@@ -77,6 +78,7 @@ import {
   GeniferDefineToolRenderer,
   GeniferExportRenderer,
 } from './genifer-renderers'
+import { PromptContextRenderer, PromptContextHeaderMeta } from './prompt-context-renderer'
 
 registerToolDefinitions([
   { name: 'Read',  aliases: ['read'],  renderer: ReadToolRenderer,  headerMeta: ReadHeaderMeta },
@@ -96,4 +98,6 @@ registerToolDefinitions([
   { name: 'genifer_define_event',    renderer: GeniferDefineEventRenderer },
   { name: 'genifer_define_tool',     renderer: GeniferDefineToolRenderer },
   { name: 'genifer_export_extension', renderer: GeniferExportRenderer },
+  // EPOCH-0003: System prompt registry tool
+  { name: 'prompt_context', renderer: PromptContextRenderer, headerMeta: PromptContextHeaderMeta },
 ])
