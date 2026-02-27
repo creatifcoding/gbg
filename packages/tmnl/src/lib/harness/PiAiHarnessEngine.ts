@@ -705,16 +705,20 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                       return yield* Effect.void
                   }),
                 ),
-                Stream.runDrain,
-                Effect.timeoutFail({
+                // Inactivity timeout: resets on every stream element.
+                // A long-running stream that's actively emitting tokens will
+                // never hit this. Only fires when the stream goes SILENT for
+                // the full duration (e.g. provider stall, network drop).
+                Stream.timeoutFail({
                   duration: policy.config.requestTimeoutMs,
                   onTimeout: () =>
                     new PiAiHarnessEngineError({
                       code: 'stream-timeout',
-                      message: `pi-ai stream timed out after ${policy.config.requestTimeoutMs}ms (round ${round + 1})`,
+                      message: `pi-ai stream timed out after ${policy.config.requestTimeoutMs}ms of inactivity (round ${round + 1})`,
                       cause: Option.none(),
                     }),
                 }),
+                Stream.runDrain,
               )
 
               const finalMessage = yield* Effect.tryPromise({
