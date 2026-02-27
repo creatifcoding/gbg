@@ -472,7 +472,7 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
               // EPOCH-0003: Per-turn prompt rebuild from session registry
               // If registry exists, rebuild system prompt (picks up agent self-modifications).
               // If registry is null (fallback), use existing session.context.systemPrompt as-is.
-              const streamContext = session.promptRegistry
+              const resolvedContext = session.promptRegistry
                 ? yield* Effect.tryPromise({
                     try: () => Effect.runPromise(session.promptRegistry!.build()),
                     catch: () => session.context.systemPrompt,
@@ -483,9 +483,7 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                       systemPrompt: freshPrompt,
                     })),
                   )
-                : Effect.succeed(session.context)
-
-              const resolvedContext = yield* streamContext
+                : session.context
 
               const stream = yield* Effect.try({
                 try: () => streamClient.stream(session.model, resolvedContext, streamOptions),
