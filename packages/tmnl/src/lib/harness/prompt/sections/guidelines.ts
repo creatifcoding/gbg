@@ -14,33 +14,39 @@ export const makeGuidelinesSection = (tools: readonly PiAiTool[]): PromptEntry =
   const toolNames = new Set(tools.map((t) => t.name))
   const rules: string[] = []
 
-  // Core guidelines (always present)
-  rules.push('- Be concise and direct in your responses')
-  rules.push('- Show file paths clearly when working with files')
+  // ── Execution discipline ──
+  rules.push('- When asked to do something, DO it with tools. Don\'t describe what you\'d do.')
+  rules.push('- Complete multi-step tasks without stopping to ask permission between steps.')
+  rules.push('- When summarizing your actions, output plain text directly — do NOT use cat or bash to display what you did.')
 
-  // Conditional on read tool
+  // ── File operations ──
   if (toolNames.has('read')) {
-    rules.push('- Use read to examine files before editing. Do not guess file contents')
+    rules.push('- ALWAYS read a file before editing it. Never guess at contents, line numbers, or surrounding code.')
   }
-
-  // Conditional on edit tool
   if (toolNames.has('edit')) {
-    rules.push('- Use edit for precise changes (old text must match exactly)')
-    rules.push('- Use write only for new files or complete rewrites')
+    rules.push('- Use edit for precise changes. The oldText must match EXACTLY — whitespace, indentation, everything. Read first.')
+    rules.push('- Use write only for new files or complete rewrites, never for surgical edits.')
   }
-
-  // Conditional on bash tool
   if (toolNames.has('bash')) {
-    rules.push('- Use bash for file operations like ls, rg, find')
-    rules.push('- Prefer rg (ripgrep) over grep for code search')
+    rules.push('- Use bash for builds, tests, git, and package management.')
+    if (toolNames.has('grep') || toolNames.has('find') || toolNames.has('ls')) {
+      rules.push('- Prefer grep/find/ls tools over bash for file exploration — they\'re faster and respect .gitignore.')
+    }
   }
-
-  // Conditional on grep tool
   if (toolNames.has('grep')) {
-    rules.push('- Grep before cutting — verify all usages before removing imports or code')
+    rules.push('- Grep before cutting — verify all usages of a symbol/import before removing anything.')
   }
 
-  const content = `Guidelines:\n${rules.join('\n')}`
+  // ── Error handling ──
+  rules.push('- If a tool call fails, read the error, diagnose the cause, and fix it. Don\'t just report the error.')
+  rules.push('- If an edit fails because oldText didn\'t match, re-read the file and try again with the correct text.')
+  rules.push('- If a build/test fails, read the error output, make the fix, and re-run to verify.')
+
+  // ── Quality ──
+  rules.push('- After making code changes, verify they compile (tsc, build) when appropriate.')
+  rules.push('- When making changes across multiple files, check all of them compile together.')
+
+  const content = `# Guidelines\n\n${rules.join('\n')}`
   const sizeBytes = new TextEncoder().encode(content).byteLength
 
   return {
