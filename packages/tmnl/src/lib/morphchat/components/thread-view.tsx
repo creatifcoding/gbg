@@ -44,6 +44,7 @@ import {
   CHAT_ICON_STROKE_WIDTH,
 } from '@/lib/chat/msg'
 import type { ChatMessageRole } from '@/lib/chat/msg'
+import { CompactionBoundary } from '@/lib/chat/msg/md-components'
 
 // =============================================================================
 // Pipeline detection — determines which artifact card to render

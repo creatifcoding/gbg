@@ -19,14 +19,16 @@ import { useAtomValue } from '@effect-atom/atom-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { ChevronDown, RotateCcw, X } from 'lucide-react'
 import { Effect } from 'effect'
-
-// Module-level sentinel for conditional hook reads (Rules of Hooks)
-const NULL_AGENT_ID = Atom.make<string | null>(null)
 import { cn } from '@/lib/utils'
 import { useMorphChatContext } from './surface-context'
 import type { MockChatAdapter } from '../adapters/mock-adapter'
+import type { ContextUsage } from '../hooks/useHarnessAdapter'
 import { morphChatRegistry } from '../atoms/registry'
 import { useBlockDensity } from '@/lib/chat/msg/density-context'
+
+// Module-level sentinels for conditional hook reads (Rules of Hooks)
+const NULL_AGENT_ID = Atom.make<string | null>(null)
+const NULL_CONTEXT_USAGE = Atom.make<ContextUsage | null>(null)
 
 // =============================================================================
 // Icon sizing (TMNL tokens)
@@ -34,6 +36,18 @@ import { useBlockDensity } from '@/lib/chat/msg/density-context'
 
 const ICON_SIZE = 14
 const ICON_STROKE = 1.5
+
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
+  return String(n)
+}
+
+function contextPercentColor(percent: number): string {
+  if (percent > 90) return 'text-red-400'
+  if (percent > 70) return 'text-amber-400'
+  return 'text-neutral-400'
+}
 
 // =============================================================================
 // Frame Chrome View
@@ -73,6 +87,7 @@ export function FrameChromeView() {
   // Module-level sentinel ensures useAtomValue is ALWAYS called (Rules of Hooks)
   const activeAgentId = useAtomValue(mockAdapter.activeAgentId$ ?? NULL_AGENT_ID) ?? undefined
   const activeAgent = agents.find(a => a.id === activeAgentId) ?? agents[0]
+  const contextUsage = useAtomValue((adapter as any).contextUsage$ ?? NULL_CONTEXT_USAGE)
 
   // ── Operations ────────────────────────────────────────────
 
@@ -112,6 +127,15 @@ export function FrameChromeView() {
               {title}
             </span>
             <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', badgeDotColor)} title={badgeState} />
+            {contextUsage && (
+              <span
+                className={cn('font-mono', contextPercentColor(contextUsage.contextPercent))}
+                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+                title={`Context: ${contextUsage.contextPercent.toFixed(1)}%`}
+              >
+                {contextUsage.contextPercent.toFixed(0)}%
+              </span>
+            )}
             <ChromeButton onClick={handleClose} aria-label="Close">
               <X size={ICON_SIZE} strokeWidth={ICON_STROKE} />
             </ChromeButton>
@@ -169,6 +193,35 @@ export function FrameChromeView() {
                 style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
               >
                 {sessionLabel}
+              </span>
+            )}
+
+            {/* ── Context Usage ─────────────────── */}
+            {contextUsage && (
+              <span
+                className="inline-flex items-center gap-2 px-2 py-0.5 rounded-md font-mono border border-neutral-800/50"
+                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+                title={`Context: ${contextUsage.contextTokens.toLocaleString()} / ${contextUsage.contextWindow.toLocaleString()} tokens`}
+              >
+                <span className="text-neutral-600">↑</span>
+                <span className="text-neutral-400">{formatTokens(contextUsage.totalInput)}</span>
+                <span className="text-neutral-600">↓</span>
+                <span className="text-neutral-400">{formatTokens(contextUsage.totalOutput)}</span>
+                {contextUsage.totalCacheRead > 0 && (
+                  <>
+                    <span className="text-neutral-600">R</span>
+                    <span className="text-neutral-400">{formatTokens(contextUsage.totalCacheRead)}</span>
+                  </>
+                )}
+                {contextUsage.totalCost > 0 && (
+                  <span className="text-neutral-500">${contextUsage.totalCost.toFixed(3)}</span>
+                )}
+                <span className={contextPercentColor(contextUsage.contextPercent)}>
+                  {contextUsage.contextPercent.toFixed(1)}%/{formatTokens(contextUsage.contextWindow)}
+                </span>
+                {contextUsage.compactionMode !== 'disabled' && (
+                  <span className="text-neutral-600">({contextUsage.compactionMode})</span>
+                )}
               </span>
             )}
           </div>
