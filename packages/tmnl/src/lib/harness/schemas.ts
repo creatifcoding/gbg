@@ -193,6 +193,21 @@ export const HarnessUsageEvent = Schema.TaggedStruct('chat:v2/usage', {
   }),
 })
 
+export const HarnessContextEvent = Schema.TaggedStruct('chat:v2/context', {
+  ...HarnessEventBase,
+  contextTokens: Schema.Number,
+  contextWindow: Schema.Number,
+  contextPercent: Schema.Number,
+  totalInput: Schema.Number,
+  totalOutput: Schema.Number,
+  totalCacheRead: Schema.Number,
+  totalCacheWrite: Schema.Number,
+  totalCost: Schema.Number,
+  compactionMode: Schema.Literal('auto', 'manual', 'disabled'),
+  compactionStatus: Schema.Literal('idle', 'compacting', 'completed'),
+  compactionCount: Schema.Number,
+})
+
 export const HarnessMetricName = Schema.Literal(
   'ackLatencyMs',
   'firstDeltaLagMs',
@@ -316,6 +331,7 @@ export const HarnessEvent = Schema.Union(
   HarnessAssistantThinkingDeltaEvent,
   HarnessAssistantFinalEvent,
   HarnessUsageEvent,
+  HarnessContextEvent,
   HarnessMetricEvent,
   HarnessToolEvent,
   HarnessProviderMarkerEvent,

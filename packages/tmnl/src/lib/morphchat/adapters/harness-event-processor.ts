@@ -60,6 +60,20 @@ export interface EventProcessorAtoms {
   readonly metrics$?: Atom.Atom<ReadonlyArray<MetricEntry>>
   /** Provider markers from chat:v2/provider_marker events */
   readonly provider$?: Atom.Atom<ProviderMarker | null>
+  /** Context usage from chat:v2/context events */
+  readonly contextUsage$?: Atom.Atom<{
+    readonly contextTokens: number
+    readonly contextWindow: number
+    readonly contextPercent: number
+    readonly totalInput: number
+    readonly totalOutput: number
+    readonly totalCacheRead: number
+    readonly totalCacheWrite: number
+    readonly totalCost: number
+    readonly compactionMode: 'auto' | 'manual' | 'disabled'
+    readonly compactionStatus: 'idle' | 'compacting' | 'completed'
+    readonly compactionCount: number
+  } | null>
 }
 
 // =============================================================================
@@ -583,6 +597,25 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
             },
           },
         }))
+        break
+      }
+
+      case 'chat:v2/context': {
+        if (!atoms.contextUsage$) break
+
+        morphChatRegistry.set(atoms.contextUsage$, {
+          contextTokens: event.contextTokens,
+          contextWindow: event.contextWindow,
+          contextPercent: event.contextPercent,
+          totalInput: event.totalInput,
+          totalOutput: event.totalOutput,
+          totalCacheRead: event.totalCacheRead,
+          totalCacheWrite: event.totalCacheWrite,
+          totalCost: event.totalCost,
+          compactionMode: event.compactionMode,
+          compactionStatus: event.compactionStatus,
+          compactionCount: event.compactionCount,
+        })
         break
       }
 

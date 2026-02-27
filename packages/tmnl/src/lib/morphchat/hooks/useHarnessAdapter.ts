@@ -158,6 +158,20 @@ export interface HarnessStatusRow {
   readonly source?: 'harness' | 'surface' | 'mock'
 }
 
+export interface ContextUsage {
+  readonly contextTokens: number
+  readonly contextWindow: number
+  readonly contextPercent: number
+  readonly totalInput: number
+  readonly totalOutput: number
+  readonly totalCacheRead: number
+  readonly totalCacheWrite: number
+  readonly totalCost: number
+  readonly compactionMode: 'auto' | 'manual' | 'disabled'
+  readonly compactionStatus: 'idle' | 'compacting' | 'completed'
+  readonly compactionCount: number
+}
+
 interface HarnessInstanceConfig {
   readonly nodeId: string
   readonly role: HarnessRole
@@ -233,6 +247,9 @@ export const metrics$ = Atom.family((_id: string) =>
 )
 export const provider$ = Atom.family((_id: string) =>
   Atom.make<ProviderMarker | null>(null),
+)
+export const contextUsage$ = Atom.family((_id: string) =>
+  Atom.make<ContextUsage | null>(null),
 )
 export const statusRows$ = Atom.family((_id: string) =>
   Atom.make<ReadonlyArray<HarnessStatusRow>>([]),
@@ -327,6 +344,7 @@ function getProcessor(id: string, agentName: string) {
         sessionId$: sessionId$(id),
         metrics$: metrics$(id),
         provider$: provider$(id),
+        contextUsage$: contextUsage$(id),
         statusRows$: statusRows$(id),
       },
       agentName,

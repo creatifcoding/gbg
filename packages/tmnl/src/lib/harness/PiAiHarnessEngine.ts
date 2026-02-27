@@ -19,6 +19,7 @@ import {
   HarnessAssistantFinalEvent,
   HarnessAssistantStartEvent,
   HarnessUsageEvent,
+  HarnessContextEvent,
   HarnessMetricEvent,
   HarnessErrorEvent,
   HarnessEvent,
@@ -55,6 +56,12 @@ type SessionRecord = {
   readonly agentId: string
   headSeq: number                                        // ← mutable: hot-path seq bump
   readonly createdAt: number
+  readonly totalInput: number
+  readonly totalOutput: number
+  readonly totalCacheRead: number
+  readonly totalCacheWrite: number
+  readonly totalCost: number
+  readonly compactionCount: number
   readonly events: Array<typeof HarnessEvent.Type>       // ← mutable: push() instead of [...spread]
   readonly clientMessageIds: HashSet.HashSet<string>
   readonly activeAssistantMessageId: ChatMessageId | null
@@ -325,6 +332,12 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
           agentId: loaded.value.agentId,
           headSeq,
           createdAt: loaded.value.createdAt,
+          totalInput: 0,
+          totalOutput: 0,
+          totalCacheRead: 0,
+          totalCacheWrite: 0,
+          totalCost: 0,
+          compactionCount: 0,
           events,
           clientMessageIds,
           activeAssistantMessageId: null,
@@ -720,19 +733,15 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
 
               const finalText = extractAssistantText(finalMessage)
 
-              yield* Ref.update(sessionsRef, (current) =>
-                Option.match(HashMap.get(current, sessionId), {
-                  onNone: () => current,
-                  onSome: (state) =>
-                    HashMap.set(current, sessionId, {
-                      ...state,
-                      context: {
-                        ...state.context,
-                        messages: [...state.context.messages, finalMessage],
-                      },
-                    }),
-                }),
-              )
+              const updatedTotalInput = session.totalInput + finalMessage.usage.input
+              const updatedTotalOutput = session.totalOutput + finalMessage.usage.output
+              const updatedTotalCacheRead = session.totalCacheRead + finalMessage.usage.cacheRead
+              const updatedTotalCacheWrite = session.totalCacheWrite + finalMessage.usage.cacheWrite
+              const updatedTotalCost = session.totalCost + finalMessage.usage.cost.total
+
+              const contextTokens = finalMessage.usage.input + finalMessage.usage.output
+              const contextWindow = session.model.contextWindow
+              const contextPercent = contextWindow > 0 ? (contextTokens / contextWindow) * 100 : 0
 
               if (finalText.length > 0) {
                 yield* appendEvent(sessionId, (seq, s) =>
@@ -770,6 +779,44 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                     cacheWrite: finalMessage.usage.cost.cacheWrite,
                     total: finalMessage.usage.cost.total,
                   },
+                }),
+              )
+
+              yield* appendEvent(sessionId, (seq, s) =>
+                HarnessContextEvent.make({
+                  sessionId: s.sessionId,
+                  seq,
+                  at: Date.now(),
+                  contextTokens,
+                  contextWindow,
+                  contextPercent,
+                  totalInput: updatedTotalInput,
+                  totalOutput: updatedTotalOutput,
+                  totalCacheRead: updatedTotalCacheRead,
+                  totalCacheWrite: updatedTotalCacheWrite,
+                  totalCost: updatedTotalCost,
+                  compactionMode: 'disabled' as const,
+                  compactionStatus: 'idle' as const,
+                  compactionCount: session.compactionCount,
+                }),
+              )
+
+              yield* Ref.update(sessionsRef, (current) =>
+                Option.match(HashMap.get(current, sessionId), {
+                  onNone: () => current,
+                  onSome: (state) =>
+                    HashMap.set(current, sessionId, {
+                      ...state,
+                      totalInput: updatedTotalInput,
+                      totalOutput: updatedTotalOutput,
+                      totalCacheRead: updatedTotalCacheRead,
+                      totalCacheWrite: updatedTotalCacheWrite,
+                      totalCost: updatedTotalCost,
+                      context: {
+                        ...state.context,
+                        messages: [...state.context.messages, finalMessage],
+                      },
+                    }),
                 }),
               )
 
@@ -1113,6 +1160,12 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
           agentId: `${policy.config.agentIdPrefix}-${nanoid(8)}`,
           headSeq: 0,
           createdAt,
+          totalInput: 0,
+          totalOutput: 0,
+          totalCacheRead: 0,
+          totalCacheWrite: 0,
+          totalCost: 0,
+          compactionCount: 0,
           events: [],
           clientMessageIds: HashSet.empty<string>(),
           activeAssistantMessageId: null,
@@ -1479,6 +1532,12 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
           agentId: sourceSession.value.agentId,
           headSeq: sourceHeadSeq,
           createdAt: now,
+          totalInput: 0,
+          totalOutput: 0,
+          totalCacheRead: 0,
+          totalCacheWrite: 0,
+          totalCost: 0,
+          compactionCount: 0,
           events: clonedEvents.map((entry) => entry.event),
           clientMessageIds: HashSet.empty<string>(),
           activeAssistantMessageId: null,
