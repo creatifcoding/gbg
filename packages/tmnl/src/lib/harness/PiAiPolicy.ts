@@ -35,6 +35,10 @@ export class PiAiPolicyConfig extends Schema.Class<PiAiPolicyConfig>('PiAiPolicy
   sessionIdPrefix: Schema.String,
   agentIdPrefix: Schema.String,
   defaultReasoning: Schema.optionalWith(PiAiReasoningLevel, { as: 'Option' }),
+  compactionEnabled: Schema.Boolean,
+  compactionReserveTokens: Schema.Number.pipe(Schema.positive()),
+  compactionKeepRecentTokens: Schema.Number.pipe(Schema.positive()),
+  compactionSummaryModel: Schema.optionalWith(Schema.String, { as: 'Option' }),
 }) {}
 
 export class PiAiPolicyError extends Schema.TaggedError<PiAiPolicyError>()('PiAiPolicyError', {
@@ -108,6 +112,10 @@ const PiAiPolicyConfigSource = Config.all({
   defaultReasoning: Config.option(
     Config.literal('minimal', 'low', 'medium', 'high', 'xhigh')('PI_HARNESS_PIAI_DEFAULT_REASONING'),
   ),
+  compactionEnabled: Config.boolean('PI_HARNESS_COMPACTION_ENABLED').pipe(Config.withDefault(true)),
+  compactionReserveTokens: positiveIntegerConfig('PI_HARNESS_COMPACTION_RESERVE_TOKENS', 16_384),
+  compactionKeepRecentTokens: positiveIntegerConfig('PI_HARNESS_COMPACTION_KEEP_RECENT_TOKENS', 20_000),
+  compactionSummaryModel: Config.option(Config.string('PI_HARNESS_COMPACTION_SUMMARY_MODEL')),
 })
 
 export const PiAiPolicyConfigDefault = Layer.effect(

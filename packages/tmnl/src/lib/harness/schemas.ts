@@ -216,6 +216,7 @@ export const HarnessMetricName = Schema.Literal(
   'retryCount',
   'renderTransformBatchMs',
   'renderBacklogDepth',
+  'compactionTokensSaved',
 )
 export type HarnessMetricName = typeof HarnessMetricName.Type
 

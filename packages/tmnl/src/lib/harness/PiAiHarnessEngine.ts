@@ -38,6 +38,7 @@ import {
 } from './schemas'
 import type { HarnessSessionMeta } from './session/schemas'
 import { makeDefaultRegistry, type PromptRegistryShape } from './prompt'
+import { executeCompaction } from './compaction'
 import { PROMPT_CONTEXT_TOOL_NAME, PROMPT_CONTEXT_TOOL_DESCRIPTION, executePromptContextCode, promptContextToolParameters, PROMPT_CONTEXT_API_DOCS } from './prompt/tools/prompt-context-tool'
 
 export class PiAiHarnessEngineError extends Schema.TaggedError<PiAiHarnessEngineError>()(
@@ -795,7 +796,7 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                   totalCacheRead: updatedTotalCacheRead,
                   totalCacheWrite: updatedTotalCacheWrite,
                   totalCost: updatedTotalCost,
-                  compactionMode: 'disabled' as const,
+                  compactionMode: policy.config.compactionEnabled ? 'auto' as const : 'disabled' as const,
                   compactionStatus: 'idle' as const,
                   compactionCount: session.compactionCount,
                 }),
@@ -819,6 +820,93 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                     }),
                 }),
               )
+
+              // ── EPOCH-0004: Auto-compaction threshold check ──
+              if (policy.config.compactionEnabled && contextTokens > contextWindow - policy.config.compactionReserveTokens && contextWindow > 0) {
+                yield* appendEvent(sessionId, (seq, s) =>
+                  HarnessContextEvent.make({
+                    sessionId: s.sessionId, seq, at: Date.now(),
+                    contextTokens, contextWindow, contextPercent,
+                    totalInput: updatedTotalInput, totalOutput: updatedTotalOutput,
+                    totalCacheRead: updatedTotalCacheRead, totalCacheWrite: updatedTotalCacheWrite,
+                    totalCost: updatedTotalCost,
+                    compactionMode: 'auto' as const,
+                    compactionStatus: 'compacting' as const,
+                    compactionCount: session.compactionCount,
+                  }),
+                )
+
+                const compactionResult = yield* executeCompaction(
+                  session.context.messages,
+                  session.model,
+                  policy.config.compactionKeepRecentTokens,
+                ).pipe(
+                  Effect.catchAll((error) =>
+                    Effect.gen(function* () {
+                      yield* appendEvent(sessionId, (seq, s) =>
+                        HarnessErrorEvent.make({
+                          sessionId: s.sessionId, seq, at: Date.now(),
+                          code: 'compaction-failed',
+                          message: `Auto-compaction failed: ${error.message}`,
+                        }),
+                      )
+                      return null
+                    }),
+                  ),
+                )
+
+                if (compactionResult) {
+                  // Inject compaction summary into prompt registry
+                  if (session.promptRegistry) {
+                    const summaryContent = `# Previous Conversation Summary\n\n${compactionResult.summaryText}\n\n_${compactionResult.messagesSummarized} messages compacted. Tokens: ${compactionResult.tokensBefore} → ${compactionResult.tokensAfter}_`
+                    yield* session.promptRegistry.set({
+                      key: 'compaction-summary',
+                      priority: 50, // After identity (0), before tool-manifest (100)
+                      content: summaryContent,
+                      sizeBytes: new TextEncoder().encode(summaryContent).byteLength,
+                    }).pipe(Effect.catchAll(() => Effect.void))
+                  }
+
+                  // Replace session messages with compacted version
+                  yield* Ref.update(sessionsRef, (current) =>
+                    Option.match(HashMap.get(current, sessionId), {
+                      onNone: () => current,
+                      onSome: (state) =>
+                        HashMap.set(current, sessionId, {
+                          ...state,
+                          compactionCount: state.compactionCount + 1,
+                          context: {
+                            ...state.context,
+                            messages: [...compactionResult.newMessages],
+                          },
+                        }),
+                    }),
+                  )
+
+                  yield* appendEvent(sessionId, (seq, s) =>
+                    HarnessContextEvent.make({
+                      sessionId: s.sessionId, seq, at: Date.now(),
+                      contextTokens: compactionResult.tokensAfter,
+                      contextWindow,
+                      contextPercent: contextWindow > 0 ? (compactionResult.tokensAfter / contextWindow) * 100 : 0,
+                      totalInput: updatedTotalInput, totalOutput: updatedTotalOutput,
+                      totalCacheRead: updatedTotalCacheRead, totalCacheWrite: updatedTotalCacheWrite,
+                      totalCost: updatedTotalCost,
+                      compactionMode: 'auto' as const,
+                      compactionStatus: 'completed' as const,
+                      compactionCount: session.compactionCount + 1,
+                    }),
+                  )
+
+                  yield* appendEvent(sessionId, (seq, s) =>
+                    HarnessMetricEvent.make({
+                      sessionId: s.sessionId, seq, at: Date.now(),
+                      metric: 'compactionTokensSaved' as any,
+                      value: compactionResult.tokensBefore - compactionResult.tokensAfter,
+                    }),
+                  )
+                }
+              }
 
               if (finalMessage.stopReason === 'toolUse') {
                 const toolCalls = extractAssistantToolCalls(finalMessage)
@@ -1055,6 +1143,47 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                         messageId: assistantMessageId,
                       }),
                     )
+                  }
+                }
+
+                // ── EPOCH-0004: Overflow recovery ──
+                if (finalMessage.stopReason === 'error' && finalMessage.errorMessage?.includes('context') && policy.config.compactionEnabled) {
+                  // Likely context overflow — try compaction + retry
+                  const overflowCompaction = yield* executeCompaction(
+                    session.context.messages,
+                    session.model,
+                    policy.config.compactionKeepRecentTokens,
+                  ).pipe(Effect.catchAll(() => Effect.succeed(null)))
+
+                  if (overflowCompaction) {
+                    // Inject compaction summary into prompt registry
+                    if (session.promptRegistry) {
+                      const summaryContent = `# Previous Conversation Summary\n\n${overflowCompaction.summaryText}\n\n_${overflowCompaction.messagesSummarized} messages compacted. Tokens: ${overflowCompaction.tokensBefore} → ${overflowCompaction.tokensAfter}_`
+                      yield* session.promptRegistry.set({
+                        key: 'compaction-summary',
+                        priority: 50, // After identity (0), before tool-manifest (100)
+                        content: summaryContent,
+                        sizeBytes: new TextEncoder().encode(summaryContent).byteLength,
+                      }).pipe(Effect.catchAll(() => Effect.void))
+                    }
+
+                    yield* Ref.update(sessionsRef, (current) =>
+                      Option.match(HashMap.get(current, sessionId), {
+                        onNone: () => current,
+                        onSome: (state) =>
+                          HashMap.set(current, sessionId, {
+                            ...state,
+                            compactionCount: state.compactionCount + 1,
+                            context: {
+                              ...state.context,
+                              messages: [...overflowCompaction.newMessages],
+                            },
+                          }),
+                      }),
+                    )
+                    // Retry the round after compaction
+                    yield* runAssistantRound(round)
+                    return
                   }
                 }
 

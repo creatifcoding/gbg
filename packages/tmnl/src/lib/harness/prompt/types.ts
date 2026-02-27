@@ -18,9 +18,10 @@ export const RESERVED_KEYS = new Set([
   'guidelines',
   'project-context',
   'runtime-stamp',
+  'compaction-summary',
 ] as const)
 
-export type ReservedKey = 'identity' | 'tool-manifest' | 'guidelines' | 'project-context' | 'runtime-stamp'
+export type ReservedKey = 'identity' | 'tool-manifest' | 'guidelines' | 'project-context' | 'runtime-stamp' | 'compaction-summary'
 
 export const isReservedKey = (key: string): key is ReservedKey =>
   RESERVED_KEYS.has(key as ReservedKey)
