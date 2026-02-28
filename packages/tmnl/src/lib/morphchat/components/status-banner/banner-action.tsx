@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 
 interface BannerActionProps {
   children: ReactNode
-  onClick: () => void
+  onClick: (e: React.MouseEvent) => void
   title?: string
 }
 

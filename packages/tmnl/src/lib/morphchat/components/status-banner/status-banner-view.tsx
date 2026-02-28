@@ -1,8 +1,8 @@
 /**
  * Status Banner View — compact card-stack toasts (orchestrator).
  *
- * Thin shell: wires hooks to ToastCard components + error details modal.
- * All logic lives in hooks/ and sub-components.
+ * Thin shell: wires hooks to ToastCard components.
+ * Inline expansion replaces the modal — the toast IS the detail view.
  *
  * @module morphchat/components/status-banner/status-banner-view
  */
@@ -10,7 +10,6 @@
 import { useState, useCallback, useRef, useEffect, useMemo, useDeferredValue, useTransition } from 'react'
 import { Effect } from 'effect'
 import { AnimatePresence } from 'motion/react'
-import { ChatErrorDetailsModal } from '@/lib/chat/status'
 import { useMorphChatContext } from '../surface-context'
 import type { StatusRowLike } from './types'
 import { TOAST_NARROW_PX } from './constants'
@@ -23,7 +22,6 @@ export function StatusBannerView() {
   // ── Data ────────────────────────────────────────────────────────────────
   const { toastRows, cancelledToastId, showRecoveryActions } = useStatusRows(adapter)
   const { dismissedIds, dismissToast } = useDismiss(toastRows, cancelledToastId)
-  const [activeRow, setActiveRow] = useState<StatusRowLike | null>(null)
 
   // ── Narrow detection ────────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null)
@@ -41,19 +39,40 @@ export function StatusBannerView() {
   }, [])
 
   // ── Stack expand (hover) ────────────────────────────────────────────────
-  const [expanded, setExpanded] = useState(false)
-  const deferredExpanded = useDeferredValue(expanded)
+  const [stackExpanded, setStackExpanded] = useState(false)
+  const deferredStackExpanded = useDeferredValue(stackExpanded)
   const [, startTransition] = useTransition()
 
   const handleMouseEnter = useCallback(() => {
     containerRef.current?.setAttribute('data-expanded', 'true')
-    startTransition(() => setExpanded(true))
+    startTransition(() => setStackExpanded(true))
   }, [startTransition])
 
   const handleMouseLeave = useCallback(() => {
     containerRef.current?.setAttribute('data-expanded', 'false')
-    startTransition(() => setExpanded(false))
+    startTransition(() => setStackExpanded(false))
   }, [startTransition])
+
+  // ── Inline expansion (one card at a time) ──────────────────────────────
+  const [inlineExpandedId, setInlineExpandedId] = useState<string | null>(null)
+
+  const handleInlineExpand = useCallback((id: string | null) => {
+    setInlineExpandedId(id)
+    // Auto-expand stack when a card is inline-expanded
+    if (id) startTransition(() => setStackExpanded(true))
+  }, [startTransition])
+
+  // ── Adapter actions ────────────────────────────────────────────────────
+  const handleReconnect = useCallback(
+    () => Effect.runPromise(adapter.reconnect()).catch(() => {}),
+    [adapter],
+  )
+
+  // newSession: not yet on adapter interface — reconnect as fallback
+  const handleNewSession = useCallback(
+    () => Effect.runPromise(adapter.reconnect()).catch(() => {}),
+    [adapter],
+  )
 
   // ── Visible items ───────────────────────────────────────────────────────
   const allItems = useMemo<StatusRowLike[]>(() => {
@@ -70,47 +89,37 @@ export function StatusBannerView() {
   if (allItems.length === 0) return null
 
   return (
-    <>
-      <div
-        ref={containerRef}
-        data-slot="morphchat-status-toasts"
-        data-expanded={expanded}
-        data-count={allItems.length}
-        className="relative flex flex-col"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      >
-        <AnimatePresence mode="popLayout">
-          {allItems.map((item, index) => (
-            <ToastCard
-              key={item.id}
-              item={item}
-              index={index}
-              totalCount={allItems.length}
-              isCancelled={item.id === cancelledToastId}
-              expanded={deferredExpanded}
-              narrow={narrow}
-              showRecoveryActions={showRecoveryActions}
-              onExpand={setActiveRow}
-              onDismiss={dismissToast}
-              onReconnect={() => Effect.runPromise(adapter.reconnect()).catch(() => {})}
-            />
-          ))}
-        </AnimatePresence>
-      </div>
-
-      <ChatErrorDetailsModal
-        open={activeRow != null}
-        onOpenChange={open => { if (!open) setActiveRow(null) }}
-        title={activeRow?.code ? `Harness Error [${activeRow.code}]` : 'Harness Error'}
-        summary={activeRow?.text ?? ''}
-        details={activeRow?.details ?? activeRow?.text ?? ''}
-        severity={(activeRow?.tone ?? 'error') as 'info' | 'warn' | 'error'}
-        viewVariant="surface"
-        adapterVariant={activeRow?.source === 'mock' ? 'mock' : activeRow?.source === 'harness' ? 'harness' : 'generic'}
-        onReconnect={() => Effect.runPromise(adapter.reconnect()).catch(() => {})}
-      />
-    </>
+    <div
+      ref={containerRef}
+      data-slot="morphchat-status-toasts"
+      data-expanded={stackExpanded}
+      data-count={allItems.length}
+      className="relative flex flex-col"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <AnimatePresence mode="popLayout">
+        {allItems.map((item, index) => (
+          <ToastCard
+            key={item.id}
+            item={item}
+            index={index}
+            totalCount={allItems.length}
+            isCancelled={item.id === cancelledToastId}
+            stackExpanded={deferredStackExpanded}
+            narrow={narrow}
+            showRecoveryActions={showRecoveryActions}
+            inlineExpandedId={inlineExpandedId}
+            onInlineExpand={handleInlineExpand}
+            onDismiss={dismissToast}
+            onReconnect={handleReconnect}
+            onNewSession={handleNewSession}
+            sessionId={(adapter as any).sessionId ?? null}
+            allItems={allItems}
+          />
+        ))}
+      </AnimatePresence>
+    </div>
   )
 }
 
