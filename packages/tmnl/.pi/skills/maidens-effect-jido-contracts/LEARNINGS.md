@@ -100,6 +100,100 @@
   - queue port (Oban adapter)
 - Default adapters should be no-op to keep unit/integration harness deterministic before infra wiring.
 
+## 2026-02-26
+
+### 17) jido_ai v2.0.0-rc.0 API diverges significantly from DeepWiki-indexed version
+
+- **Symptom**: `Jido.AI.ReActAgent` module does not exist, compile errors
+- **Root cause**: DeepWiki indexed an older version of agentjido/jido_ai. The v2.0.0-rc.0 (released on Hex) has a different API surface.
+- **Library provenance**: jido_ai 2.0.0-rc.0 on Hex
+- **Key divergences**:
+  - Macro: `use Jido.AI.Agent` (NOT `use Jido.AI.ReActAgent`)
+  - Start: `Jido.AgentServer.start(agent: Module)` (NOT `Jido.start_agent/2`)
+  - Action schema: NimbleOptions keyword list in `use Jido.Action, schema: [...]` (NOT JSON Schema map in `schema/0`)
+  - Request model: `ask/2,3` → `await/1,2` or `ask_sync/2,3` with `Jido.AI.Request` tracking
+  - ReAct architecture: Delegated worker pattern (parent agent → spawned `:react_worker` child) not direct state machine execution
+  - Tool adapter: `Jido.AI.ToolAdapter` auto-converts Action schemas to LLM-compatible tool definitions
+- **Fix**: Always read vendored deps source code. Use `deps/jido_ai/lib/examples/` as the canonical reference. DeepWiki is useful for architectural overview but unreliable for exact API details.
+- **Core tooling update**: SKILL.md and LEARNINGS.md updated with correct patterns.
+
+### 18) Jido.AI.Agent macro provides full request lifecycle
+
+- The `use Jido.AI.Agent` macro generates:
+  - `ask/2,3` — async, returns `{:ok, %Request.Handle{}}`
+  - `await/1,2` — blocks until request completes
+  - `ask_sync/2,3` — convenience sync wrapper
+  - `cancel/1,2` — advisory cancellation
+  - `on_before_cmd/2` + `on_after_cmd/3` — lifecycle hooks for request state management
+- Request tracking is concurrent-safe: multiple in-flight requests tracked by `request_id`
+- Worker crash during active request → request marked failed automatically
+
+### 19) Jido.Action schema uses NimbleOptions, NOT JSON Schema
+
+- `use Jido.Action, schema: [field: [type: :string, required: true, doc: "..."]]`
+- Supported types: `:string`, `:integer`, `:float`, `:boolean`, `:atom`, `{:list, :string}`, `{:in, [:a, :b]}`, etc.
+- The ToolAdapter converts these to JSON Schema for LLM tool definitions automatically
+- `run/2` receives `params` as a map with atom keys (validated by NimbleOptions)
+
+### 20) ReAct strategy uses delegated worker pattern in v2.0
+
+- Parent agent receives `"ai.react.query"` signal
+- Lazily spawns internal `:react_worker` child (one per parent)
+- Worker streams events back to parent via `"ai.react.worker.event"` signals
+- Parent applies events to parent state and emits external lifecycle signals
+- Single active run enforced (`:reject` busy policy)
+- Request trace cap: 2000 events per request
+
+### 21) Model aliases resolve via Jido.AI.resolve_model/1
+
+- `:fast` → typically resolves to `anthropic:claude-haiku-4-5`
+- `:capable` → typically resolves to `anthropic:claude-sonnet-4`
+- `:planning` → typically resolves to `anthropic:claude-sonnet-4`
+- Config via `config :jido_ai, :models, anthropic: [api_key: ...]`
+- API key from env: `System.get_env("ANTHROPIC_API_KEY")`
+
+### 22) ReqLLM Anthropic provider does NOT support OAuth tokens natively
+
+- **Symptom**: `401 invalid x-api-key` when using Pi's OAuth token (`sk-ant-oat...`)
+- **Root cause**: ReqLLM's `ReqLLM.Providers.Anthropic` hardcodes `x-api-key` header in:
+  - `attach/3` (line 281, Req pipeline for non-streaming requests)
+  - `build_request_headers/2` (line 352, used by `attach_stream/4` for Finch streaming)
+- **OAuth tokens require different headers**:
+  - `Authorization: Bearer <token>` (not `x-api-key: <token>`)
+  - `anthropic-beta: oauth-2025-04-20` (additional beta header)
+- **Fix**: Created `OAuthAnthropic` provider that:
+  1. Implements `ReqLLM.Provider` behaviour with `id: :anthropic`
+  2. Delegates ALL callbacks to upstream `ReqLLM.Providers.Anthropic`
+  3. Post-processes `attach/3` result: transforms Req.Request headers
+  4. Post-processes `attach_stream/4` result: transforms Finch.Request headers
+  5. Registered via `ReqLLM.Providers.register/1` which overwrites `:anthropic` in the persistent_term registry
+- **Location**: `lib/maiden/maiden_melanie/providers/oauth_anthropic.ex`
+- **Provenance**: ReqLLM provider, Pi AuthStorage, Anthropic OAuth API
+
+### 23) Pi AuthStorage credential resolution chain
+
+- **Location**: `~/.pi/agent/auth.json`
+- **Structure**: `{ "anthropic": { "type": "oauth", "access": "sk-ant-oat...", "refresh": "...", "expires": <ms_epoch> } }`
+- **Token lifecycle**: OAuth tokens have TTL (~24h), stored as millisecond epoch in `expires` field
+- **Resolution precedence in AuthBridge**:
+  1. `ANTHROPIC_API_KEY` env var (non-empty)
+  2. Pi AuthStorage (`~/.pi/agent/auth.json` → `anthropic.access`)
+- **AuthBridge startup sequence**:
+  1. Resolve key
+  2. Validate expiry (warn if <5min, error if expired)
+  3. Store in ReqLLM config (`Application.put_env(:req_llm, :anthropic_api_key, key)`)
+  4. If OAuth token: register `OAuthAnthropic` provider
+- **Location**: `lib/maiden/maiden_melanie/auth_bridge.ex`
+
+### 24) ReqLLM provider registry is mutable via persistent_term
+
+- `ReqLLM.Providers` stores provider_id → module mapping in `:persistent_term`
+- `ReqLLM.Providers.register/1` validates the module implements `ReqLLM.Provider` behaviour, extracts `provider_id/0`, then overwrites the registry entry
+- This is the sanctioned extension point — no monkeypatching required
+- Provider modules must `use ReqLLM.Provider, id: :atom, default_base_url: "...", default_env_key: "..."`
+- The `id:` field determines which registry slot the module occupies
+- Two modules with same `id:` = last one registered wins
+
 ## Update Protocol
 
 When new issues appear, append:
