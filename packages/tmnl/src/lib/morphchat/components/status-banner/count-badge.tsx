@@ -6,18 +6,19 @@
  * Icon: 9px Lucide, strokeWidth 2.5.
  * Count: 9px font-weight 500.
  *
+ * Colors derived from tokens — no hardcoded hex.
+ *
  * @module morphchat/components/status-banner/count-badge
  */
 
 import { memo, useMemo } from 'react'
 import type { StatusRowLike } from './types'
 import { categoryOf, SEVERITY_WEIGHT } from '@/lib/harness/error-detail/category-registry'
+import { badgeBgColor, badgeBorderColor } from '@/lib/harness/error-detail/tokens'
 import type { HarnessErrorCode } from '@/lib/harness/error-codes'
 
 export interface CountBadgeProps {
-  /** Number of toasts in stack */
   readonly count: number
-  /** All visible items — used to derive worst severity */
   readonly items?: ReadonlyArray<StatusRowLike>
 }
 
@@ -26,18 +27,18 @@ export const CountBadge = memo(function CountBadge({ count, items }: CountBadgeP
 
   const worstCategory = useMemo(() => {
     if (!items || items.length === 0) return null
-    let worst = items[0]
     let worstWeight = 0
+    let worstConfig = items[0]?.code ? categoryOf(items[0].code as HarnessErrorCode) : null
     for (const item of items) {
       if (!item.code) continue
       const config = categoryOf(item.code as HarnessErrorCode)
       const weight = SEVERITY_WEIGHT[config.severityLabel] ?? 0
       if (weight > worstWeight) {
         worstWeight = weight
-        worst = item
+        worstConfig = config
       }
     }
-    return worst?.code ? categoryOf(worst.code as HarnessErrorCode) : null
+    return worstConfig
   }, [items])
 
   const IconComponent = worstCategory?.Icon
@@ -53,8 +54,8 @@ export const CountBadge = memo(function CountBadge({ count, items }: CountBadgeP
         fontSize: '9px',
         fontWeight: 500,
         color: accent,
-        background: `${accent}1f`, // 0.12 alpha
-        border: `1px solid ${accent}33`, // 0.2 alpha
+        background: badgeBgColor(accent),
+        border: `1px solid ${badgeBorderColor(accent)}`,
       }}
     >
       {IconComponent && (

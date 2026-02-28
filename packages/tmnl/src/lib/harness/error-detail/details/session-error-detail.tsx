@@ -1,19 +1,15 @@
 /**
  * SessionErrorDetail — session-missing, not-found, load-failed, events-load-failed.
  *
+ * Shows truncated session ID + recovery actions.
+ * Actions derived from config.actions.
+ *
  * @module harness/error-detail/details/session-error-detail
  */
 
 import { memo, useMemo } from 'react'
 import { useErrorDetail } from '../detail-context'
 import { DetailHeader, DetailMessage, MetadataGrid, RawAccordion, ActionFooter, formatTimestamp, type MetadataRow } from '../detail-parts'
-import type { ActionDef } from '../types'
-
-const ACTIONS: ReadonlyArray<ActionDef> = [
-  { label: 'Reload Session', action: 'reconnect', primary: true },
-  { label: 'New Session', action: 'new-session', accent: '#22c55e' },
-  { label: 'Dismiss', action: 'dismiss' },
-]
 
 /** Truncate session ID for display */
 function truncateSid(sid: string | null | undefined): string {
@@ -36,9 +32,7 @@ export const SessionErrorDetail = memo(function SessionErrorDetail() {
       <DetailMessage />
       <MetadataGrid rows={rows} />
       <RawAccordion />
-      <ActionFooter defs={ACTIONS} />
+      <ActionFooter />
     </>
   )
 })
-
-export { ACTIONS as SESSION_ACTIONS }

@@ -3,6 +3,7 @@
  *
  * Shared parts composed by each category variant.
  * All access state via ErrorDetailContext — no prop drilling.
+ * All colors from tokens — no hardcoded hex.
  *
  * @module harness/error-detail/detail-parts
  */
@@ -11,6 +12,7 @@ import { memo, useState, useCallback, type ReactNode } from 'react'
 import { ChevronRight, X, Copy, Check } from 'lucide-react'
 import { useErrorDetail } from './detail-context'
 import type { ActionDef } from './types'
+import { SEMANTIC, separatorColor, actionBorderColor } from './tokens'
 
 // ─── Header ──────────────────────────────────────────────────────────────────
 
@@ -66,7 +68,7 @@ export const DetailMessage = memo(function DetailMessage() {
       style={{
         fontSize: 'var(--tmnl-text-xs, 12px)',
         color: config.accent,
-        borderBottom: `1px solid ${config.borderTint.replace('0.2', '0.08')}`,
+        borderBottom: `1px solid ${separatorColor(config.accent)}`,
       }}
     >
       {state.message}
@@ -96,15 +98,15 @@ export const MetadataGrid = memo(function MetadataGrid({ rows }: { rows: Readonl
         gridTemplateColumns: '72px 1fr',
         gap: '2px 8px',
         fontSize: '9px',
-        borderBottom: `1px solid ${config.borderTint.replace('0.2', '0.08')}`,
+        borderBottom: `1px solid ${separatorColor(config.accent)}`,
       }}
     >
       {rows.map((row) => (
         <div key={row.label} className="contents">
-          <span className="font-mono text-neutral-600 truncate">{row.label}</span>
+          <span className="font-mono truncate" style={{ color: SEMANTIC.label }}>{row.label}</span>
           <span
             className="font-mono truncate"
-            style={{ color: row.accent ? config.accent : '#737373' }}
+            style={{ color: row.accent ? config.accent : SEMANTIC.value }}
           >
             {row.value}
           </span>
@@ -129,8 +131,8 @@ export const RawAccordion = memo(function RawAccordion() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 px-2 py-1 w-full text-left font-mono text-neutral-600 hover:text-neutral-400 transition-colors"
-        style={{ fontSize: '9px' }}
+        className="flex items-center gap-1 px-2 py-1 w-full text-left font-mono transition-colors"
+        style={{ fontSize: '9px', color: SEMANTIC.label }}
       >
         <ChevronRight
           size={9}
@@ -142,10 +144,11 @@ export const RawAccordion = memo(function RawAccordion() {
       </button>
       {open && (
         <pre
-          className="mx-2 mb-1 max-h-[120px] overflow-auto rounded font-mono text-neutral-400"
+          className="mx-2 mb-1 max-h-[120px] overflow-auto rounded font-mono"
           style={{
             fontSize: '9px',
             padding: '4px 6px',
+            color: SEMANTIC.secondary,
             background: 'rgba(255,255,255,0.02)',
             border: '1px solid rgba(255,255,255,0.04)',
           }}
@@ -168,7 +171,7 @@ export const InlineRawCause = memo(function InlineRawCause({ cause }: { cause: s
       style={{
         fontSize: '9px',
         padding: '4px 6px',
-        color: '#737373',
+        color: SEMANTIC.secondary,
         background: `${config.accent}08`,
         border: `1px solid ${config.accent}14`,
       }}
@@ -180,8 +183,13 @@ export const InlineRawCause = memo(function InlineRawCause({ cause }: { cause: s
 
 // ─── Action footer ───────────────────────────────────────────────────────────
 
-export const ActionFooter = memo(function ActionFooter({ defs }: { defs: ReadonlyArray<ActionDef> }) {
+/**
+ * Renders action buttons from the CATEGORY's action defs (from config.actions).
+ * If custom defs are passed, they take precedence.
+ */
+export const ActionFooter = memo(function ActionFooter({ defs }: { defs?: ReadonlyArray<ActionDef> }) {
   const { actions, meta: { config } } = useErrorDetail()
+  const actionDefs = defs ?? config.actions
 
   const dispatch = useCallback((action: ActionDef['action']) => {
     switch (action) {
@@ -190,23 +198,22 @@ export const ActionFooter = memo(function ActionFooter({ defs }: { defs: Readonl
       case 'new-session': return actions.onNewSession?.()
       case 'copy-diagnostic': return actions.onCopyDiagnostic?.()
       case 'retry-catalog': return actions.onReconnect?.()
-      case 'switch-model': return void 0 // future: open model selector
-      case 'resume': return void 0 // future: resume message
+      case 'switch-model': return void 0
+      case 'resume': return void 0
     }
   }, [actions])
 
-  // Separate primary (left-aligned) from dismiss (right-aligned)
-  const primary = defs.filter((d) => d.action !== 'dismiss')
-  const dismiss = defs.find((d) => d.action === 'dismiss')
+  const primary = actionDefs.filter((d) => d.action !== 'dismiss')
+  const dismiss = actionDefs.find((d) => d.action === 'dismiss')
 
   return (
     <div
       className="flex items-center gap-1 px-2 py-1"
-      style={{ borderTop: `1px solid ${config.borderTint.replace('0.2', '0.06')}` }}
+      style={{ borderTop: `1px solid ${separatorColor(config.accent)}` }}
     >
       {primary.map((def) => (
         <ActionButton
-          key={def.action}
+          key={`${def.action}-${def.label}`}
           def={def}
           accent={def.accent ?? config.accent}
           onClick={() => dispatch(def.action)}
@@ -216,7 +223,7 @@ export const ActionFooter = memo(function ActionFooter({ defs }: { defs: Readonl
       {dismiss && (
         <ActionButton
           def={dismiss}
-          accent="#404040"
+          accent={SEMANTIC.muted}
           onClick={() => dispatch('dismiss')}
         />
       )}
@@ -226,7 +233,7 @@ export const ActionFooter = memo(function ActionFooter({ defs }: { defs: Readonl
 
 // ─── Action button ───────────────────────────────────────────────────────────
 
-const ActionButton = memo(function ActionButton({
+export const ActionButton = memo(function ActionButton({
   def,
   accent,
   onClick,
@@ -243,7 +250,7 @@ const ActionButton = memo(function ActionButton({
       style={{
         fontSize: '9px',
         color: accent,
-        border: `1px solid ${accent}33`,
+        border: `1px solid ${actionBorderColor(accent)}`,
         borderRadius: 2,
         padding: '1px 6px',
       }}
@@ -279,7 +286,7 @@ export const CopyDiagnosticButton = memo(function CopyDiagnosticButton() {
       style={{
         fontSize: '9px',
         color: config.accent,
-        border: `1px solid ${config.accent}33`,
+        border: `1px solid ${actionBorderColor(config.accent)}`,
         borderRadius: 2,
         padding: '1px 6px',
       }}

@@ -1,19 +1,15 @@
 /**
  * ToolErrorDetail — tool execution, not-found, timeout, round-limit.
  *
+ * Parses tool name and round limit from message text.
+ * Actions derived from config.actions.
+ *
  * @module harness/error-detail/details/tool-error-detail
  */
 
 import { memo, useMemo } from 'react'
 import { useErrorDetail } from '../detail-context'
 import { DetailHeader, DetailMessage, MetadataGrid, RawAccordion, ActionFooter, formatTimestamp, type MetadataRow } from '../detail-parts'
-import type { ActionDef } from '../types'
-
-const ACTIONS: ReadonlyArray<ActionDef> = [
-  { label: 'Re-run Tool', action: 'reconnect', primary: true },
-  { label: 'Skip', action: 'dismiss' },
-  { label: 'Dismiss', action: 'dismiss' },
-]
 
 /** Parse tool name from message: "Tool 'execute_code' failed" */
 function parseToolName(msg: string): string | null {
@@ -28,7 +24,7 @@ function parseRoundLimit(msg: string): string | null {
 }
 
 export const ToolErrorDetail = memo(function ToolErrorDetail() {
-  const { state, meta: { config } } = useErrorDetail()
+  const { state } = useErrorDetail()
 
   const toolName = useMemo(() => parseToolName(state.message), [state.message])
   const roundLimit = useMemo(() => parseRoundLimit(state.message), [state.message])
@@ -48,9 +44,7 @@ export const ToolErrorDetail = memo(function ToolErrorDetail() {
       <DetailMessage />
       <MetadataGrid rows={rows} />
       <RawAccordion />
-      <ActionFooter defs={ACTIONS} />
+      <ActionFooter />
     </>
   )
 })
-
-export { ACTIONS as TOOL_ACTIONS }

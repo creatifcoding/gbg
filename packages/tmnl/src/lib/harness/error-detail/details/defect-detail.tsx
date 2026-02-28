@@ -4,19 +4,16 @@
  * 4 codes: stream-defect, assistant-round-defect,
  *          session-prompt-defect, daemon-defect.
  *
+ * Custom footer: CopyDiagnosticButton + remaining config.actions.
+ * Actions derived from config.actions.
+ *
  * @module harness/error-detail/details/defect-detail
  */
 
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useCallback } from 'react'
 import { useErrorDetail } from '../detail-context'
-import { DetailHeader, DetailMessage, MetadataGrid, InlineRawCause, CopyDiagnosticButton, formatTimestamp, type MetadataRow } from '../detail-parts'
-import type { ActionDef } from '../types'
-
-const ACTIONS: ReadonlyArray<ActionDef> = [
-  { label: 'Copy Diagnostic', action: 'copy-diagnostic', primary: true },
-  { label: 'Reconnect', action: 'reconnect' },
-  { label: 'Dismiss', action: 'dismiss' },
-]
+import { DetailHeader, DetailMessage, MetadataGrid, InlineRawCause, CopyDiagnosticButton, ActionButton, formatTimestamp, type MetadataRow } from '../detail-parts'
+import { SEMANTIC, separatorColor } from '../tokens'
 
 /** Extract cause string from details payload */
 function extractCause(details: unknown): string {
@@ -51,50 +48,49 @@ export const DefectDetail = memo(function DefectDetail() {
 
   const cause = useMemo(() => extractCause(state.details), [state.details])
 
+  // Non-diagnostic, non-dismiss actions from config
+  const middleActions = useMemo(
+    () => config.actions.filter((a) => a.action !== 'copy-diagnostic' && a.action !== 'dismiss'),
+    [config.actions],
+  )
+  const dismissAction = config.actions.find((a) => a.action === 'dismiss')
+
+  const dispatch = useCallback((action: string) => {
+    switch (action) {
+      case 'reconnect': return actions.onReconnect?.()
+      case 'dismiss': return actions.onDismiss()
+    }
+  }, [actions])
+
   return (
     <>
       <DetailHeader />
       <DetailMessage />
       {cause && <InlineRawCause cause={cause} />}
       <MetadataGrid rows={rows} />
-      {/* Custom footer: CopyDiagnostic (special button) + Reconnect + Dismiss */}
+      {/* Custom footer: CopyDiagnostic (special) + config-derived actions */}
       <div
         className="flex items-center gap-1 px-2 py-1"
-        style={{ borderTop: `1px solid ${config.borderTint.replace('0.3', '0.06')}` }}
+        style={{ borderTop: `1px solid ${separatorColor(config.accent)}` }}
       >
         <CopyDiagnosticButton />
-        <button
-          type="button"
-          onClick={() => actions.onReconnect?.()}
-          className="font-mono transition-colors hover:brightness-125"
-          style={{
-            fontSize: '9px',
-            color: '#f87171',
-            border: '1px solid rgba(248,113,113,0.2)',
-            borderRadius: 2,
-            padding: '1px 6px',
-          }}
-        >
-          Reconnect
-        </button>
+        {middleActions.map((def) => (
+          <ActionButton
+            key={def.action}
+            def={def}
+            accent={def.accent ?? config.accent}
+            onClick={() => dispatch(def.action)}
+          />
+        ))}
         <span className="flex-1" />
-        <button
-          type="button"
-          onClick={actions.onDismiss}
-          className="font-mono transition-colors hover:brightness-125"
-          style={{
-            fontSize: '9px',
-            color: '#404040',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: 2,
-            padding: '1px 6px',
-          }}
-        >
-          Dismiss
-        </button>
+        {dismissAction && (
+          <ActionButton
+            def={dismissAction}
+            accent={SEMANTIC.muted}
+            onClick={actions.onDismiss}
+          />
+        )}
       </div>
     </>
   )
 })
-
-export { ACTIONS as DEFECT_ACTIONS }

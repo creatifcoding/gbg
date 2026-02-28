@@ -1,19 +1,15 @@
 /**
  * ModelErrorDetail — model-catalog-failed, model-resolution-failed.
  *
+ * Parses model name from message text.
+ * Actions derived from config.actions.
+ *
  * @module harness/error-detail/details/model-error-detail
  */
 
 import { memo, useMemo } from 'react'
 import { useErrorDetail } from '../detail-context'
 import { DetailHeader, DetailMessage, MetadataGrid, RawAccordion, ActionFooter, formatTimestamp, type MetadataRow } from '../detail-parts'
-import type { ActionDef } from '../types'
-
-const ACTIONS: ReadonlyArray<ActionDef> = [
-  { label: 'Retry Catalog', action: 'retry-catalog', primary: true },
-  { label: 'Switch Model', action: 'switch-model' },
-  { label: 'Dismiss', action: 'dismiss' },
-]
 
 /** Parse model name from message: "Model 'claude-opus-4'" or "model claude-opus-4" */
 function parseModelName(msg: string): string | null {
@@ -40,9 +36,7 @@ export const ModelErrorDetail = memo(function ModelErrorDetail() {
       <DetailMessage />
       <MetadataGrid rows={rows} />
       <RawAccordion />
-      <ActionFooter defs={ACTIONS} />
+      <ActionFooter />
     </>
   )
 })
-
-export { ACTIONS as MODEL_ACTIONS }

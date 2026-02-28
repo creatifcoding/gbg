@@ -2,24 +2,28 @@
  * InterruptionDetail — minimal card for user-initiated abort.
  *
  * 1 code: aborted.
- * No metadata grid, no raw payload. Just header + resume.
+ * No metadata grid, no raw payload. Just header + actions.
+ * Actions derived from config.actions.
  *
  * @module harness/error-detail/details/interruption-detail
  */
 
-import { memo } from 'react'
+import { memo, useCallback } from 'react'
 import { useErrorDetail } from '../detail-context'
-import { formatTimestamp } from '../detail-parts'
-import type { ActionDef } from '../types'
-
-const ACTIONS: ReadonlyArray<ActionDef> = [
-  { label: 'Resume', action: 'resume', primary: true },
-  { label: 'Dismiss', action: 'dismiss' },
-]
+import { ActionButton, formatTimestamp } from '../detail-parts'
+import { SEMANTIC, separatorColor } from '../tokens'
 
 export const InterruptionDetail = memo(function InterruptionDetail() {
   const { state, actions, meta: { config } } = useErrorDetail()
   const IconComponent = config.Icon
+
+  const primaryActions = config.actions.filter((a) => a.action !== 'dismiss')
+  const dismissAction = config.actions.find((a) => a.action === 'dismiss')
+
+  const dispatch = useCallback((action: string) => {
+    if (action === 'dismiss') actions.onDismiss()
+    // 'resume' — future
+  }, [actions])
 
   return (
     <>
@@ -33,7 +37,7 @@ export const InterruptionDetail = memo(function InterruptionDetail() {
           className="font-mono font-medium"
           style={{ fontSize: 'var(--tmnl-text-xs, 12px)', color: config.accent }}
         >
-          Cancelled
+          {config.label}
         </span>
         <span className="ml-auto font-mono" style={{ fontSize: '9px', color: config.accent }}>
           {formatTimestamp(state.at)}
@@ -47,42 +51,28 @@ export const InterruptionDetail = memo(function InterruptionDetail() {
           <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
         </button>
       </div>
-      {/* Actions — Resume + Dismiss */}
+      {/* Actions — from config */}
       <div
         className="flex items-center gap-1 px-2 py-1"
-        style={{ borderTop: `1px solid ${config.borderTint.replace('0.2', '0.06')}` }}
+        style={{ borderTop: `1px solid ${separatorColor(config.accent)}` }}
       >
-        <button
-          type="button"
-          className="font-mono transition-colors hover:brightness-125"
-          style={{
-            fontSize: '9px',
-            color: config.accent,
-            border: `1px solid ${config.borderTint}`,
-            borderRadius: 2,
-            padding: '1px 6px',
-          }}
-        >
-          Resume
-        </button>
+        {primaryActions.map((def) => (
+          <ActionButton
+            key={def.action}
+            def={def}
+            accent={def.accent ?? config.accent}
+            onClick={() => dispatch(def.action)}
+          />
+        ))}
         <span className="flex-1" />
-        <button
-          type="button"
-          onClick={actions.onDismiss}
-          className="font-mono transition-colors hover:brightness-125"
-          style={{
-            fontSize: '9px',
-            color: '#404040',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: 2,
-            padding: '1px 6px',
-          }}
-        >
-          Dismiss
-        </button>
+        {dismissAction && (
+          <ActionButton
+            def={dismissAction}
+            accent={SEMANTIC.muted}
+            onClick={actions.onDismiss}
+          />
+        )}
       </div>
     </>
   )
 })
-
-export { ACTIONS as INTERRUPTION_ACTIONS }
