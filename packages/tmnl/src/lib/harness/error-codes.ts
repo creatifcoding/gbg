@@ -1,12 +1,14 @@
 /**
  * Harness Engine Error Codes — single source of truth.
  *
- * Architecture:
- *   1. Category literals — each a Schema.Literal union
- *   2. HarnessErrorCode — Schema.Union of all categories
- *   3. Severity derived from category membership (not a parallel map)
+ * Taxonomy follows Effect's error model:
  *
- * Adding a new code to a category automatically classifies its severity.
+ *   Error        — Expected, recoverable. Part of the API contract.
+ *   Defect       — Unexpected, bugs. Shouldn't happen in correct code.
+ *   Interruption — User-initiated cancellation.
+ *
+ * Within each class, codes are grouped by operational domain.
+ * Severity is derived from class + domain via Schema.is guards.
  *
  * @module harness/error-codes
  */
@@ -18,9 +20,12 @@ import { Schema } from 'effect'
 export const ErrorSeverity = Schema.Literal('error', 'warn', 'info', 'silent')
 export type ErrorSeverity = typeof ErrorSeverity.Type
 
-// ─── Category: Stream Lifecycle (→ error) ────────────────────────────────────
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  ERRORS — Expected, recoverable. Caller can handle or retry.
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-export const StreamErrorCode = Schema.Literal(
+/** Stream lifecycle failures — connection dropped, timeout, init failure. → error */
+export const StreamError = Schema.Literal(
   'pi-ai-stream-init-failed',
   'pi-ai-stream-failed',
   'pi-ai-stream-result-failed',
@@ -29,31 +34,26 @@ export const StreamErrorCode = Schema.Literal(
   'stream-wallclock-timeout',
   'stream-fetch-timeout',
   'stream-error',
-  'stream-defect',
 )
-export type StreamErrorCode = typeof StreamErrorCode.Type
+export type StreamError = typeof StreamError.Type
 
-// ─── Category: Network (→ error) ─────────────────────────────────────────────
-
-export const NetworkErrorCode = Schema.Literal(
+/** Network-level failures — no connectivity. → error */
+export const NetworkError = Schema.Literal(
   'network-unavailable',
 )
-export type NetworkErrorCode = typeof NetworkErrorCode.Type
+export type NetworkError = typeof NetworkError.Type
 
-// ─── Category: Session Lifecycle (→ error) ───────────────────────────────────
-
-export const SessionLifecycleErrorCode = Schema.Literal(
+/** Session lifecycle — missing, not found, failed to load. → error */
+export const SessionError = Schema.Literal(
   'session-missing',
   'session-not-found',
   'session-load-failed',
   'session-events-load-failed',
-  'session-prompt-defect',
 )
-export type SessionLifecycleErrorCode = typeof SessionLifecycleErrorCode.Type
+export type SessionError = typeof SessionError.Type
 
-// ─── Category: Session CRUD (→ warn) ─────────────────────────────────────────
-
-export const SessionCrudErrorCode = Schema.Literal(
+/** Session CRUD — list/update/delete/fork failures. Operational. → warn */
+export const SessionCrudError = Schema.Literal(
   'list-sessions-failed',
   'update-session-meta-failed',
   'delete-session-failed',
@@ -62,21 +62,10 @@ export const SessionCrudErrorCode = Schema.Literal(
   'fork-session-upsert-failed',
   'fork-session-append-failed',
 )
-export type SessionCrudErrorCode = typeof SessionCrudErrorCode.Type
+export type SessionCrudError = typeof SessionCrudError.Type
 
-// ─── Category: Store / Codec (→ silent) ──────────────────────────────────────
-
-export const StoreCodecErrorCode = Schema.Literal(
-  'decode-session-index-failed',
-  'invalid-raw-event',
-  'invalid-session-file',
-  'provider-marker-decode-failed',
-)
-export type StoreCodecErrorCode = typeof StoreCodecErrorCode.Type
-
-// ─── Category: Tool Execution (→ warn) ───────────────────────────────────────
-
-export const ToolErrorCode = Schema.Literal(
+/** Tool execution — round limits, timeouts, resolution. → warn */
+export const ToolError = Schema.Literal(
   'tool-round-limit-exceeded',
   'tool-use-without-calls',
   'tool-execution-failed',
@@ -84,19 +73,42 @@ export const ToolErrorCode = Schema.Literal(
   'tool-name-unresolved',
   'tool-timeout',
 )
-export type ToolErrorCode = typeof ToolErrorCode.Type
+export type ToolError = typeof ToolError.Type
 
-// ─── Category: Model / Catalog (→ warn) ──────────────────────────────────────
-
-export const ModelErrorCode = Schema.Literal(
+/** Model/catalog resolution — failed to load model list. → warn */
+export const ModelError = Schema.Literal(
   'model-catalog-failed',
   'model-resolution-failed',
 )
-export type ModelErrorCode = typeof ModelErrorCode.Type
+export type ModelError = typeof ModelError.Type
 
-// ─── Category: Adapter Diagnostics (→ silent) ────────────────────────────────
+/** Generic timeout — something took too long. → error */
+export const TimeoutError = Schema.Literal(
+  'timeout',
+)
+export type TimeoutError = typeof TimeoutError.Type
 
-export const AdapterDiagnosticCode = Schema.Literal(
+/** Compaction — background maintenance failure. → warn */
+export const CompactionError = Schema.Literal(
+  'compaction-failed',
+)
+export type CompactionError = typeof CompactionError.Type
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  DEFECTS — Unexpected, bugs. These shouldn't happen in correct code.
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/** Critical defects — structural failures that surface to the user. → error */
+export const CriticalDefect = Schema.Literal(
+  'stream-defect',
+  'assistant-round-defect',
+  'session-prompt-defect',
+  'daemon-defect',
+)
+export type CriticalDefect = typeof CriticalDefect.Type
+
+/** Adapter diagnostic defects — malformed deltas, noop events. → silent */
+export const AdapterDefect = Schema.Literal(
   'adapter-invalid-text-delta',
   'adapter-invalid-thinking-delta',
   'adapter-noop-diagnostic',
@@ -104,70 +116,65 @@ export const AdapterDiagnosticCode = Schema.Literal(
   'invalid-thinking-delta',
   'invalid-toolcall-delta',
 )
-export type AdapterDiagnosticCode = typeof AdapterDiagnosticCode.Type
+export type AdapterDefect = typeof AdapterDefect.Type
 
-// ─── Category: Internal / Structural (mixed) ─────────────────────────────────
-
-export const InternalErrorCode = Schema.Literal(
-  'assistant-round-defect',
-  'daemon-defect',
-  'timeout',
+/** Store/codec defects — serialization, decode failures. → silent */
+export const StoreDefect = Schema.Literal(
+  'decode-session-index-failed',
+  'invalid-raw-event',
+  'invalid-session-file',
+  'provider-marker-decode-failed',
 )
-export type InternalErrorCode = typeof InternalErrorCode.Type
+export type StoreDefect = typeof StoreDefect.Type
 
-export const InternalWarnCode = Schema.Literal(
-  'compaction-failed',
-)
-export type InternalWarnCode = typeof InternalWarnCode.Type
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  INTERRUPTIONS — User-initiated cancellation.
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-export const InternalInfoCode = Schema.Literal(
+export const Interruption = Schema.Literal(
   'aborted',
 )
-export type InternalInfoCode = typeof InternalInfoCode.Type
+export type Interruption = typeof Interruption.Type
 
 // ─── Union: All error codes ──────────────────────────────────────────────────
 
 export const HarnessErrorCode = Schema.Union(
-  StreamErrorCode,
-  NetworkErrorCode,
-  SessionLifecycleErrorCode,
-  SessionCrudErrorCode,
-  StoreCodecErrorCode,
-  ToolErrorCode,
-  ModelErrorCode,
-  AdapterDiagnosticCode,
-  InternalErrorCode,
-  InternalWarnCode,
-  InternalInfoCode,
+  // Errors
+  StreamError,
+  NetworkError,
+  SessionError,
+  SessionCrudError,
+  ToolError,
+  ModelError,
+  TimeoutError,
+  CompactionError,
+  // Defects
+  CriticalDefect,
+  AdapterDefect,
+  StoreDefect,
+  // Interruptions
+  Interruption,
 )
 export type HarnessErrorCode = typeof HarnessErrorCode.Type
 
-// ─── Category → severity (Schema.is guards) ─────────────────────────────────
+// ─── Severity (derived from class + domain) ──────────────────────────────────
 //
-// Each guard derives from its category literal. Adding a code to a category
-// automatically routes it to the correct severity — one place to maintain.
+// Schema.is derives directly from the category literals.
+// Add a code to a category → severity follows. One place to maintain.
 
-const isError  = Schema.is(Schema.Union(StreamErrorCode, NetworkErrorCode, SessionLifecycleErrorCode, InternalErrorCode))
-const isWarn   = Schema.is(Schema.Union(SessionCrudErrorCode, ToolErrorCode, ModelErrorCode, InternalWarnCode))
-const isInfo   = Schema.is(InternalInfoCode)
-const isSilent = Schema.is(Schema.Union(StoreCodecErrorCode, AdapterDiagnosticCode))
+const isCriticalError = Schema.is(Schema.Union(StreamError, NetworkError, SessionError, TimeoutError, CriticalDefect))
+const isWarn          = Schema.is(Schema.Union(SessionCrudError, ToolError, ModelError, CompactionError))
+const isInfo          = Schema.is(Interruption)
+const isSilent        = Schema.is(Schema.Union(AdapterDefect, StoreDefect))
 
-/**
- * Derive severity from category membership.
- * Falls back to 'error' for unknown codes (defensive).
- */
 export function severityOf(code: string): ErrorSeverity {
-  if (isError(code))  return 'error'
-  if (isWarn(code))   return 'warn'
-  if (isInfo(code))   return 'info'
-  if (isSilent(code)) return 'silent'
+  if (isCriticalError(code)) return 'error'
+  if (isWarn(code))           return 'warn'
+  if (isInfo(code))           return 'info'
+  if (isSilent(code))         return 'silent'
   return 'error'
 }
 
-/**
- * Whether this code should appear in the UI banner.
- * 'silent' codes are suppressed (internal diagnostics).
- */
 export function isBannerVisible(code: string): boolean {
   return severityOf(code) !== 'silent'
 }
