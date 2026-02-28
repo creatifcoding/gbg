@@ -1,20 +1,22 @@
 /**
- * ModelSelectorView — morphchat view resolver for the model selector.
+ * ModelSelectorView — composes ModelSelector compound component
+ * into the dual-zone header strip's right zone.
  *
- * Reads adapter state, composes ModelSelector compound component
- * into the header band's center slot.
+ * Passes through loading/error state from adapter to drive
+ * the Full Capsule Morph trigger states.
+ *
+ * Inherits `group-hover/right` from FrameChromeView for idle
+ * text brightening on zone hover.
  *
  * @module morphchat/components/model-selector-view
  */
 
 import * as React from 'react'
 import { Atom, useAtomValue } from '@effect-atom/atom-react'
-import { Effect } from 'effect'
 import { useMorphChatContext } from './surface-context'
-import { sendSurfaceEvent } from '../machines/surface-stx'
 import { ModelSelector, type ModelOption } from '@/lib/chat/shell/header-band'
 
-// Stable sentinel atoms — hooks always called, no conditional branching
+// Stable sentinel atoms
 const EMPTY_MODELS = Atom.make<ReadonlyArray<ModelOption>>([])
 const NULL_MODEL = Atom.make<string | null>(null)
 
@@ -27,24 +29,39 @@ export function ModelSelectorView() {
   const availableModels = useAtomValue(modelsAtom)
   const selectedModelId = useAtomValue(selectedAtom)
 
+  // Model loading/error state (duck-typed from harness adapter)
+  const modelLoading = (adapter as any).modelsLoading ?? false
+  const modelError = (adapter as any).modelsError ?? null
+
   const handleSelect = React.useCallback(
     (modelId: string) => {
+      // Model override is per-message: the engine applies it on the next
+      // send() call. No reconnection, no session tear-down, no fiber
+      // interruption needed. Just write the two atoms.
       adapter.selectModel?.(modelId)
-      // Keep machine topology coherent + trigger transport reconnect immediately.
-      sendSurfaceEvent(surfaceId, { type: 'RECONNECT' })
-      Effect.runPromise(adapter.reconnect()).catch(() => {})
     },
-    [adapter, surfaceId],
+    [adapter],
   )
 
-  if (availableModels.length === 0) return null
+  const handleRetry = React.useCallback(() => {
+    ;(adapter as any).retryModelCatalog?.()
+  }, [adapter])
+
+  if (availableModels.length === 0 && !modelLoading && !modelError) return null
 
   const models = availableModels as ModelOption[]
   const currentModelId = selectedModelId ?? models[0]?.id ?? ''
 
   return (
-    <ModelSelector.Root models={models} selectedId={currentModelId} onSelect={handleSelect}>
-      <ModelSelector.Trigger />
+    <ModelSelector.Root
+      models={models}
+      selectedId={currentModelId}
+      onSelect={handleSelect}
+      loading={modelLoading}
+      error={modelError}
+      onRetry={modelError ? handleRetry : null}
+    >
+      <ModelSelector.Trigger className="text-neutral-700 group-hover/right:text-neutral-500 [&_[data-name]]:text-neutral-700 [&_[data-name]]:group-hover/right:text-neutral-500" />
       <ModelSelector.Content>
         <ModelSelector.Search />
         <ModelSelector.List />
