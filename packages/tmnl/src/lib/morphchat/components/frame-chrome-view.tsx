@@ -1,25 +1,21 @@
 /**
- * Frame Chrome View — Dual-Zone Header Strip
+ * Frame Chrome View — Dual-Zone Header Strip (Responsive)
  *
- * Single 28px row replacing both the old Frame Chrome AND the old Header band.
+ * Single 28px row with 3 responsive tiers via CSS container queries:
  *
- * ┌──────────────────────┬──────────────────────────────────┐
- * │ LEFT ZONE            │ RIGHT ZONE                       │
- * │ [●]                  │ claude-sonnet-4 ▾  val  ↻  ✕    │
- * │ hover → [● | ↑1.2K…]│ ghost text, brighten on hover    │
- * └──────────────────────┴──────────────────────────────────┘
+ *   ≥480px (full):    [● capsule] | [model ▾] [agent] [↻] [✕]
+ *   380–479px (compact): [● capsule] | [model ▾] [↻] [✕]
+ *   <380px (minimal):    [●] [model… ▾] [⋯]
  *
- * Left: capsule only at rest. Hover → tokenomics reveal (progressive disclosure).
- * Right: flush text model name, ghost controls (neutral-700 → neutral-300 on hover).
- * Zones flex independently. 1px vertical divider.
+ * Progressive shed: agent name → tokenomics hover → zone divider → controls → overflow.
  *
  * @module morphchat/components/frame-chrome-view
  */
 
-import * as React from 'react'
+import { useState, useCallback, useRef, type ReactNode, type ComponentPropsWithoutRef } from 'react'
 import { Atom } from '@effect-atom/atom'
 import { useAtomValue } from '@effect-atom/atom-react'
-import { RotateCcw, X } from 'lucide-react'
+import { RotateCcw, X, MoreHorizontal } from 'lucide-react'
 import { Effect } from 'effect'
 import { cn } from '@/lib/utils'
 import { useMorphChatContext } from './surface-context'
@@ -38,8 +34,49 @@ const NULL_AGENT_ID = Atom.make<string | null>(null)
 
 const ICON_SIZE = 13
 const ICON_STROKE = 1.5
+const ICON_SIZE_SM = 11
 const REVEAL_MS = 200
 const REVEAL_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)'
+
+// ─── Container query breakpoints ─────────────────────────────────────────────
+
+/** Injected once into DOM. Defines the responsive tiers. */
+const CONTAINER_STYLES = `
+@container frame-chrome (min-width: 480px) {
+  [data-tier="agent"]     { display: flex !important; }
+  [data-tier="divider"]   { display: block !important; }
+  [data-tier="controls"]  { display: flex !important; }
+  [data-tier="overflow"]  { display: none !important; }
+  [data-tier="left-zone"] { padding-inline: 12px; }
+  [data-tier="right-zone"]{ padding-inline: 12px; gap: 8px; }
+}
+@container frame-chrome (min-width: 380px) and (max-width: 479px) {
+  [data-tier="agent"]     { display: none !important; }
+  [data-tier="divider"]   { display: block !important; }
+  [data-tier="controls"]  { display: flex !important; }
+  [data-tier="overflow"]  { display: none !important; }
+  [data-tier="left-zone"] { padding-inline: 12px; }
+  [data-tier="right-zone"]{ padding-inline: 12px; gap: 6px; }
+}
+@container frame-chrome (max-width: 379px) {
+  [data-tier="agent"]     { display: none !important; }
+  [data-tier="divider"]   { display: none !important; }
+  [data-tier="controls"]  { display: none !important; }
+  [data-tier="overflow"]  { display: flex !important; }
+  [data-tier="left-zone"] { padding-inline: 8px; }
+  [data-tier="right-zone"]{ padding-inline: 8px; gap: 4px; }
+}
+` as const
+
+let stylesInjected = false
+function ensureContainerStyles(): void {
+  if (stylesInjected || typeof document === 'undefined') return
+  const el = document.createElement('style')
+  el.setAttribute('data-frame-chrome', '')
+  el.textContent = CONTAINER_STYLES
+  document.head.appendChild(el)
+  stylesInjected = true
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -61,6 +98,8 @@ export function FrameChromeView() {
   const { spec, adapter } = useMorphChatContext()
   const density = useBlockDensity()
 
+  ensureContainerStyles()
+
   // Agent name (duck-typed mock adapter)
   const mockAdapter = adapter as Partial<MockChatAdapter>
   const agents = useAtomValue(adapter.agents$)
@@ -71,30 +110,32 @@ export function FrameChromeView() {
   const contextUsage = useAtomValue((adapter as any).contextUsage$ ?? NULL_CONTEXT_USAGE)
 
   // Left zone hover state — drives progressive disclosure of tokenomics
-  const [leftHovered, setLeftHovered] = React.useState(false)
+  const [leftHovered, setLeftHovered] = useState(false)
+
+  // Overflow menu state (minimal tier)
+  const [overflowOpen, setOverflowOpen] = useState(false)
+  const overflowRef = useRef<HTMLDivElement>(null)
 
   // Chrome actions
-  const handleReset = React.useCallback(() => {
+  const handleReset = useCallback(() => {
     Effect.runSync(adapter.clear())
   }, [adapter])
 
-  const handleClose = React.useCallback(() => {
+  const handleClose = useCallback(() => {
     Effect.runSync(adapter.dispose())
   }, [adapter])
 
-  // ── Bail on none ──────────────────────────────────────────
+  // ── Bail on none / pill ───────────────────────────────────
   if (spec.frameChrome === 'none') return null
-
-  // ── Pill density: no chrome ───────────────────────────────
   if (density === 'pill') return null
 
-  // ── Minimal: capsule + model, no context/controls ─────────
+  // ── Minimal spec: capsule + model only ────────────────────
   if (spec.frameChrome === 'minimal') {
     return (
       <div
         data-slot="morphchat-frame-chrome"
         className="flex items-center gap-2 px-3 border-b border-neutral-800/30"
-        style={{ height: 28 }}
+        style={{ height: 28, containerType: 'inline-size', containerName: 'frame-chrome' }}
       >
         <ConnectionCapsule />
         <div className="flex-1 flex justify-center min-w-0">
@@ -104,24 +145,25 @@ export function FrameChromeView() {
     )
   }
 
-  // ── Full: Dual-Zone Strip ─────────────────────────────────
+  // ── Full spec: Dual-Zone Strip (responsive) ───────────────
   const showAgent = density !== 'compact' && activeAgent && spec.agentSelector !== 'hidden'
 
   return (
     <div
       data-slot="morphchat-frame-chrome"
       className="flex items-center border-b border-neutral-800/30"
-      style={{ height: 28 }}
+      style={{ height: 28, containerType: 'inline-size', containerName: 'frame-chrome' }}
     >
-      {/* ── LEFT ZONE: Capsule + progressive disclosure tokenomics ── */}
+      {/* ── LEFT ZONE: Capsule + tokenomics ────────────────── */}
       <div
-        className="flex items-center gap-0 px-3 shrink-0"
+        data-tier="left-zone"
+        className="flex items-center gap-0 shrink-0 px-3"
         onMouseEnter={() => setLeftHovered(true)}
         onMouseLeave={() => setLeftHovered(false)}
       >
         <ConnectionCapsule />
 
-        {/* Tokenomics — revealed on hover, slides in from behind capsule */}
+        {/* Tokenomics — disabled at compact/minimal, revealed on hover at full */}
         {contextUsage && (
           <div
             className="flex items-center overflow-hidden"
@@ -134,7 +176,6 @@ export function FrameChromeView() {
               ].join(', '),
             }}
           >
-            {/* Divider between capsule and tokenomics */}
             <div
               className="w-px self-stretch my-1 shrink-0 ml-2"
               style={{
@@ -169,34 +210,89 @@ export function FrameChromeView() {
         )}
       </div>
 
-      {/* ── DIVIDER ───────────────────────────────────────── */}
-      <div className="w-px self-stretch my-1.5 bg-white/[0.06] shrink-0" />
+      {/* ── DIVIDER (hidden at minimal) ───────────────────── */}
+      <div
+        data-tier="divider"
+        className="w-px self-stretch my-1.5 bg-white/[0.06] shrink-0"
+      />
 
-      {/* ── RIGHT ZONE: Flush text model + ghost controls ── */}
-      <div className="group/right flex items-center gap-2 px-3 flex-1 justify-end min-w-0">
+      {/* ── RIGHT ZONE: Model + agent + controls ──────────── */}
+      <div
+        data-tier="right-zone"
+        className="group/right flex items-center gap-2 px-3 flex-1 justify-end min-w-0"
+      >
         {/* Model selector — flush text, no border/bg */}
         <div className="flex-1 flex justify-end min-w-0">
           <ModelSelectorView />
         </div>
 
-        {/* Agent name — ghost, brightens on zone hover */}
+        {/* Agent name — shed at compact (hidden by container query) */}
         {showAgent && (
           <span
+            data-tier="agent"
             className="font-mono shrink-0 text-neutral-700 group-hover/right:text-neutral-500 transition-colors duration-150"
-            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+            style={{ fontSize: 'var(--tmnl-text-xs, 12px)', display: 'none' }}
           >
             {activeAgent.name}
           </span>
         )}
 
-        {/* Chrome controls — ghost, brighten on zone hover */}
-        <div className="flex items-center gap-0.5 shrink-0">
+        {/* Chrome controls — shed at minimal (hidden by container query) */}
+        <div
+          data-tier="controls"
+          className="flex items-center gap-0.5 shrink-0"
+          style={{ display: 'none' }}
+        >
           <ChromeButton onClick={handleReset} aria-label="Reset session">
             <RotateCcw size={ICON_SIZE} strokeWidth={ICON_STROKE} />
           </ChromeButton>
           <ChromeButton onClick={handleClose} aria-label="Close">
             <X size={ICON_SIZE} strokeWidth={ICON_STROKE} />
           </ChromeButton>
+        </div>
+
+        {/* Overflow menu — visible at minimal only */}
+        <div
+          data-tier="overflow"
+          className="relative shrink-0"
+          style={{ display: 'none' }}
+          ref={overflowRef}
+        >
+          <ChromeButton
+            onClick={() => setOverflowOpen(prev => !prev)}
+            aria-label="More actions"
+          >
+            <MoreHorizontal size={ICON_SIZE_SM} strokeWidth={ICON_STROKE} />
+          </ChromeButton>
+
+          {overflowOpen && (
+            <>
+              {/* Backdrop */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setOverflowOpen(false)}
+              />
+              {/* Menu */}
+              <div
+                className="absolute right-0 top-full mt-1 z-50 rounded-[4px] border border-white/[0.06] py-1"
+                style={{
+                  background: 'rgba(2,2,4,0.98)',
+                  backdropFilter: 'blur(20px)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                  minWidth: 120,
+                }}
+              >
+                <OverflowItem onClick={() => { handleReset(); setOverflowOpen(false) }}>
+                  <RotateCcw size={ICON_SIZE_SM} strokeWidth={ICON_STROKE} />
+                  <span>Reset</span>
+                </OverflowItem>
+                <OverflowItem onClick={() => { handleClose(); setOverflowOpen(false) }}>
+                  <X size={ICON_SIZE_SM} strokeWidth={ICON_STROKE} />
+                  <span>Close</span>
+                </OverflowItem>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -207,8 +303,8 @@ FrameChromeView.displayName = 'MorphChat.FrameChromeView'
 
 // ─── Chrome Button — ghost at rest, visible on zone hover ────────────────────
 
-interface ChromeButtonProps extends React.ComponentPropsWithoutRef<'button'> {
-  children: React.ReactNode
+interface ChromeButtonProps extends ComponentPropsWithoutRef<'button'> {
+  children: ReactNode
 }
 
 function ChromeButton({ children, className, ...props }: ChromeButtonProps) {
@@ -224,6 +320,21 @@ function ChromeButton({ children, className, ...props }: ChromeButtonProps) {
         className,
       )}
       {...props}
+    >
+      {children}
+    </button>
+  )
+}
+
+// ─── Overflow Menu Item ──────────────────────────────────────────────────────
+
+function OverflowItem({ children, onClick }: { children: ReactNode; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-2 w-full px-3 py-1.5 text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.04] transition-colors duration-100 font-mono"
+      style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
     >
       {children}
     </button>
