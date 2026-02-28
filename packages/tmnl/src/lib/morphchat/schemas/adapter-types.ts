@@ -120,6 +120,8 @@ export interface MorphChatAdapter {
     readonly provider: string
     readonly description?: string
     readonly color?: string
+    /** Whether this model supports reasoning/thinking controls */
+    readonly reasoning?: boolean
   }>>
 
   /** Currently selected model ID */

@@ -57,6 +57,10 @@ export function ComposerThinkingLevel({
   const isActive = thinkingLevel !== 'none'
   const t = CHAT_TOKENS.thinking
 
+  // Model doesn't support reasoning — hide entirely
+  // (thinkingLevels will be empty or contain only 'none' when model has reasoning=false)
+  if (thinkingLevels.length <= 1) return null
+
   const { ref: scrambleRef } = useScrambleText({
     text: isActive ? currentOption.name : '',
     preset: 'cyber',
@@ -209,7 +213,7 @@ export function ComposerThinkingLevel({
               exit={{ opacity: 0, y: 8, scale: 0.95 }}
               transition={{ duration: 0.15, ease: 'easeOut' }}
               className={cn(
-                'absolute bottom-full left-0 mb-2 z-[999999] w-48 p-1.5 rounded-lg',
+                'absolute bottom-full left-0 mb-2 z-[999999] w-56 p-1.5 rounded-lg',
                 'bg-black/90 backdrop-blur-xl',
                 'border border-neutral-700 shadow-xl',
               )}
@@ -228,7 +232,7 @@ export function ComposerThinkingLevel({
                     setShowPicker(false)
                   }}
                   className={cn(
-                    'w-full flex items-center justify-between px-2 py-1.5 rounded-md',
+                    'w-full flex items-start gap-2 px-2 py-1.5 rounded-md text-left',
                     'border-none cursor-pointer transition-all duration-150',
                     thinkingLevel === level.id
                       ? 'bg-violet-500/15 text-violet-300'
@@ -236,10 +240,22 @@ export function ComposerThinkingLevel({
                   )}
                   style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
                 >
-                  <span className="font-medium">{level.name}</span>
-                  <span className="text-neutral-600 font-mono">
-                    {level.tokens}
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{level.name}</span>
+                      <span className="text-neutral-600 font-mono flex-shrink-0 ml-2">
+                        {level.tokens}
+                      </span>
+                    </div>
+                    {level.description && (
+                      <div
+                        className="text-neutral-500 mt-0.5 leading-tight"
+                        style={{ fontSize: '10px' }}
+                      >
+                        {level.description}
+                      </div>
+                    )}
+                  </div>
                 </button>
               ))}
             </motion.div>

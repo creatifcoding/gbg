@@ -889,6 +889,7 @@ const fetchModelsOp$ = Atom.family((id: string) =>
           id: `${m.provider}:${m.id}`, modelId: m.id,
           label: dup ? `${m.name} (${m.provider})` : m.name,
           provider: m.provider, description: `${m.provider} · ${m.contextWindow.toLocaleString()} ctx`,
+          reasoning: m.reasoning,
         }
       }))
     }).pipe(

@@ -26,10 +26,14 @@ import type { TransferToken, TransferResult } from '@/lib/transfer/v2/schemas'
 import { Atom } from '@effect-atom/atom'
 import type { MockChatAdapter, MockCommandChip } from '../adapters/mock-adapter'
 import { useBlockDensity } from '@/lib/chat/msg/density-context'
+import { deriveThinkingLevels, reconcileThinkingLevel } from '@/lib/chat/composer/thinking-levels'
+import type { ModelOption } from '@/lib/chat/shell/header-band'
 
 // Module-level sentinel atoms for conditional hook reads (Rules of Hooks)
 const EMPTY_CHIPS = Atom.make<ReadonlyArray<MockCommandChip>>([])
 const EMPTY_DRAFT = Atom.make<string>('')
+const EMPTY_MODELS_TYPED = Atom.make<ReadonlyArray<ModelOption>>([])
+const EMPTY_MODEL_ID = Atom.make<string | null>(null)
 
 // =============================================================================
 // Composer View
@@ -42,6 +46,23 @@ export function ComposerView() {
   const isStreaming = streaming.isStreaming
   // Machine connection state — for diagnostics only (kept subscribed so diagnostics remain visible)
   useAtomValue(connectionStateFamily(surfaceId))
+
+  // ── Model-aware thinking levels ────────────────────────
+  // Derive available thinking levels from the selected model's provider
+  // and reasoning capability. When model doesn't support reasoning,
+  // levels are null and the ThinkingLevel button hides itself.
+  const modelsAtom = adapter.availableModels$ ?? EMPTY_MODELS_TYPED
+  const selectedModelAtom = adapter.selectedModel$ ?? EMPTY_MODEL_ID
+  const availableModels = useAtomValue(modelsAtom) as ReadonlyArray<ModelOption>
+  const selectedModelId = useAtomValue(selectedModelAtom)
+  const selectedModel = React.useMemo(
+    () => availableModels.find((m) => m.id === selectedModelId) ?? null,
+    [availableModels, selectedModelId],
+  )
+  const modelThinkingLevels = React.useMemo(
+    () => deriveThinkingLevels(selectedModel?.provider, selectedModel?.reasoning),
+    [selectedModel?.provider, selectedModel?.reasoning],
+  )
 
   // All composers call adapter.send via the same handler.
   // Connectivity/autorecovery is handled in the adapter layer (sendOp auto-heal),
@@ -112,6 +133,13 @@ export function ComposerView() {
       : 'ring-1 ring-red-500/30 bg-red-500/5'
     : ''
 
+  // ── Shared composer props (model-derived) ──────────────
+  const composerModelProps = React.useMemo(() => ({
+    ...(modelThinkingLevels ? { thinkingLevels: modelThinkingLevels } : {}),
+    // When model doesn't support reasoning, force 'none'
+    ...(modelThinkingLevels === null ? { defaultThinkingLevel: 'none' as const } : {}),
+  }), [modelThinkingLevels])
+
   const density = useBlockDensity()
 
   switch (spec.composer) {
@@ -121,7 +149,7 @@ export function ComposerView() {
       if (density === 'pill') {
         return (
           <div ref={composerDropRef} className={cn(dropIndicatorClass, 'transition-all')}>
-            <Composer onSubmit={handleSubmit} isStreaming={isStreaming}>
+            <Composer onSubmit={handleSubmit} isStreaming={isStreaming} {...composerModelProps}>
               <div className="flex items-center gap-2 px-2 py-1">
                 <div className="flex-1">
                   <Composer.TextArea placeholder="Message..." />
@@ -137,7 +165,7 @@ export function ComposerView() {
       if (density === 'compact') {
         return (
           <div ref={composerDropRef} className={cn(dropIndicatorClass, 'transition-all')}>
-            <Composer onSubmit={handleSubmit} isStreaming={isStreaming}>
+            <Composer onSubmit={handleSubmit} isStreaming={isStreaming} {...composerModelProps}>
               {spec.contextChips !== 'hidden' && (
                 <Composer.ContextChips />
               )}
@@ -164,7 +192,7 @@ export function ComposerView() {
       // ── Full density: complete toolbar ──
       return (
         <div ref={composerDropRef} className={cn(dropIndicatorClass, 'transition-all')}>
-          <Composer onSubmit={handleSubmit} isStreaming={isStreaming}>
+          <Composer onSubmit={handleSubmit} isStreaming={isStreaming} {...composerModelProps}>
             {spec.contextChips !== 'hidden' && (
               <Composer.ContextChips />
             )}
@@ -226,7 +254,7 @@ export function ComposerView() {
     case 'single-line':
       return (
         <div ref={composerDropRef} className={cn(dropIndicatorClass, 'transition-all')}>
-          <Composer onSubmit={handleSubmit} isStreaming={isStreaming}>
+          <Composer onSubmit={handleSubmit} isStreaming={isStreaming} {...composerModelProps}>
             {spec.contextChips !== 'hidden' && (
               <Composer.ContextChips />
             )}
@@ -249,7 +277,7 @@ export function ComposerView() {
     case 'command':
       return (
         <div ref={composerDropRef} className={cn(dropIndicatorClass, 'transition-all')}>
-          <Composer onSubmit={handleSubmit} isStreaming={isStreaming}>
+          <Composer onSubmit={handleSubmit} isStreaming={isStreaming} {...composerModelProps}>
             {spec.contextChips !== 'hidden' && (
               <Composer.ContextChips />
             )}
@@ -278,7 +306,7 @@ export function ComposerView() {
     case 'structured':
       return (
         <div ref={composerDropRef} className={cn(dropIndicatorClass, 'transition-all')}>
-          <Composer onSubmit={handleSubmit} isStreaming={isStreaming}>
+          <Composer onSubmit={handleSubmit} isStreaming={isStreaming} {...composerModelProps}>
             <div className="px-3 py-2 space-y-2">
               <Composer.TextArea placeholder="Structured input..." />
               <div className="flex justify-end">

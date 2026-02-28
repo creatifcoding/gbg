@@ -40,6 +40,9 @@ import { ComposerTerminalSlot } from './composer-terminal-slot'
 export { useComposer } from './composer-context'
 export type { ComposerContextValue } from './composer-context'
 
+// Re-export model-aware thinking level derivation
+export { deriveThinkingLevels, reconcileThinkingLevel } from './thinking-levels'
+
 // Re-export types
 export type {
   ComposerProps,

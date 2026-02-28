@@ -66,6 +66,8 @@ export interface ThinkingLevelOption {
   id: ThinkingLevel
   name: string
   tokens: string
+  /** Provider-specific description of what this level does */
+  description?: string
   animation: ThinkingAnimationPreset
 }
 

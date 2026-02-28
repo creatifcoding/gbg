@@ -27,6 +27,8 @@ export interface ModelOption {
   readonly provider: string
   readonly description?: string
   readonly color?: string
+  /** Whether this model supports reasoning/thinking controls */
+  readonly reasoning?: boolean
 }
 
 interface ContextValue {
