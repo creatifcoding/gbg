@@ -142,74 +142,26 @@ export const HarnessErrorCode = Schema.Union(
 )
 export type HarnessErrorCode = typeof HarnessErrorCode.Type
 
-// ─── Severity lookup ─────────────────────────────────────────────────────────
+// ─── Category → severity (Schema.is guards) ─────────────────────────────────
+//
+// Each guard derives from its category literal. Adding a code to a category
+// automatically routes it to the correct severity — one place to maintain.
+
+const isError  = Schema.is(Schema.Union(StreamErrorCode, NetworkErrorCode, SessionLifecycleErrorCode, InternalErrorCode))
+const isWarn   = Schema.is(Schema.Union(SessionCrudErrorCode, ToolErrorCode, ModelErrorCode, InternalWarnCode))
+const isInfo   = Schema.is(InternalInfoCode)
+const isSilent = Schema.is(Schema.Union(StoreCodecErrorCode, AdapterDiagnosticCode))
 
 /**
- * Derive severity from error code. Exhaustive switch.
+ * Derive severity from category membership.
  * Falls back to 'error' for unknown codes (defensive).
  */
 export function severityOf(code: string): ErrorSeverity {
-  switch (code) {
-    // ── error ──────────────────────────────────
-    case 'pi-ai-stream-init-failed':
-    case 'pi-ai-stream-failed':
-    case 'pi-ai-stream-result-failed':
-    case 'stream-timeout':
-    case 'stream-result-timeout':
-    case 'stream-wallclock-timeout':
-    case 'stream-fetch-timeout':
-    case 'stream-error':
-    case 'stream-defect':
-    case 'network-unavailable':
-    case 'session-missing':
-    case 'session-not-found':
-    case 'session-load-failed':
-    case 'session-events-load-failed':
-    case 'session-prompt-defect':
-    case 'assistant-round-defect':
-    case 'daemon-defect':
-    case 'timeout':
-      return 'error'
-
-    // ── warn ───────────────────────────────────
-    case 'list-sessions-failed':
-    case 'update-session-meta-failed':
-    case 'delete-session-failed':
-    case 'fork-session-load-failed':
-    case 'fork-session-events-failed':
-    case 'fork-session-upsert-failed':
-    case 'fork-session-append-failed':
-    case 'tool-round-limit-exceeded':
-    case 'tool-use-without-calls':
-    case 'tool-execution-failed':
-    case 'tool-not-found':
-    case 'tool-name-unresolved':
-    case 'tool-timeout':
-    case 'model-catalog-failed':
-    case 'model-resolution-failed':
-    case 'compaction-failed':
-      return 'warn'
-
-    // ── info ───────────────────────────────────
-    case 'aborted':
-      return 'info'
-
-    // ── silent (internal diagnostics) ──────────
-    case 'decode-session-index-failed':
-    case 'invalid-raw-event':
-    case 'invalid-session-file':
-    case 'provider-marker-decode-failed':
-    case 'adapter-invalid-text-delta':
-    case 'adapter-invalid-thinking-delta':
-    case 'adapter-noop-diagnostic':
-    case 'invalid-text-delta':
-    case 'invalid-thinking-delta':
-    case 'invalid-toolcall-delta':
-      return 'silent'
-
-    default:
-      return 'error'
-  }
+  if (isError(code))  return 'error'
+  if (isWarn(code))   return 'warn'
+  if (isInfo(code))   return 'info'
+  if (isSilent(code)) return 'silent'
+  return 'error'
 }
 
 /**
