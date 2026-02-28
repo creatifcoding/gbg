@@ -31,9 +31,6 @@ import { ComposerView } from './composer-view'
 import { ThreadView } from './thread-view'
 import { InlineTasksView } from './inline-tasks-view'
 import { FrameChromeView } from './frame-chrome-view'
-import { ConnectionView } from './connection-view'
-import { AgentSelectorView } from './agent-selector-view'
-import { ModelSelectorView } from './model-selector-view'
 import { StatusBannerView } from './status-banner-view'
 import { CommandBandView } from './command-band-view'
 
@@ -44,14 +41,14 @@ import { CommandBandView } from './command-band-view'
 /** iOS-style easing curve */
 const EASE_MORPH = [0.32, 0.72, 0, 1] as const
 
-/** Morph duration in seconds */
-const MORPH_DURATION = 0.333
+/** Morph duration in seconds (strict snappiness budget) */
+const MORPH_DURATION = 0.16
 
-/** Stagger delay between bands (seconds) */
-const STAGGER_DELAY = 0.05
+/** Keep stagger disabled on operational surfaces */
+const STAGGER_DELAY = 0
 
-/** Spring config for container bounds */
-const SPRING_BOUNDS = { type: 'spring' as const, stiffness: 400, damping: 30, mass: 0.8 }
+/** Bounds transition for intentional morph only */
+const SPRING_BOUNDS = { type: 'spring' as const, stiffness: 520, damping: 48, mass: 0.75 }
 
 /** Band exit animation */
 const BAND_EXIT = { opacity: 0, scale: 0.95 }
@@ -82,14 +79,15 @@ export interface SurfaceContentProps {
 export function SurfaceContent({ children, className }: SurfaceContentProps) {
   const { spec, adapter, surfaceId, isMorphing } = useMorphChatContext()
   const prefersReducedMotion = useReducedMotion()
+  const shouldAnimateMorph = isMorphing && !prefersReducedMotion
 
   // Emit MORPH_DONE after animation settles
   const morphTimerRef = React.useRef<ReturnType<typeof setTimeout>>()
   React.useEffect(() => {
     if (isMorphing) {
       clearTimeout(morphTimerRef.current)
-      // Wait for animation duration + stagger to finish, then signal machine
-      const totalMs = (MORPH_DURATION + STAGGER_DELAY * 7) * 1000 + 50
+      // Fast completion for routine preset shifts
+      const totalMs = (MORPH_DURATION + STAGGER_DELAY * 7) * 1000 + 40
       morphTimerRef.current = setTimeout(() => {
         sendSurfaceEvent(surfaceId, { type: 'MORPH_DONE' })
       }, totalMs)
@@ -121,19 +119,19 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
     adapter,
   })
 
-  // Select animation variants based on reduced motion
-  const exitAnim = prefersReducedMotion ? REDUCED_EXIT : BAND_EXIT
-  const enterAnim = prefersReducedMotion ? REDUCED_ENTER : BAND_ENTER
-  const initialAnim = prefersReducedMotion ? REDUCED_INITIAL : BAND_INITIAL
-  const transition = prefersReducedMotion
-    ? { duration: 0.15, ease: 'easeOut' as const }
-    : { duration: MORPH_DURATION, ease: EASE_MORPH }
+  // Select animation variants based on policy + reduced motion
+  const exitAnim = shouldAnimateMorph ? BAND_EXIT : REDUCED_EXIT
+  const enterAnim = shouldAnimateMorph ? BAND_ENTER : REDUCED_ENTER
+  const initialAnim = shouldAnimateMorph ? BAND_INITIAL : REDUCED_INITIAL
+  const transition = shouldAnimateMorph
+    ? { duration: MORPH_DURATION, ease: EASE_MORPH }
+    : { duration: 0.1, ease: 'linear' as const }
 
-  // Stagger delay factory
+  // Stagger delay factory (disabled for operational snappiness)
   const stagger = (index: number) =>
-    prefersReducedMotion
-      ? { duration: 0.15, ease: 'easeOut' as const }
-      : { duration: MORPH_DURATION, ease: EASE_MORPH, delay: index * STAGGER_DELAY }
+    shouldAnimateMorph
+      ? { duration: MORPH_DURATION, ease: EASE_MORPH, delay: index * STAGGER_DELAY }
+      : { duration: 0.1, ease: 'linear' as const }
 
   // Layout constraints from spec — animated with spring bounds
   const constraintStyle = React.useMemo(() => ({
@@ -145,7 +143,6 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
   // ── Band visibility from spec ─────────────────────────
 
   const showFrameChrome = spec.frameChrome !== 'none'
-  const showHeader = spec.connectionStatus !== 'hidden' || spec.agentSelector !== 'hidden'
   const showThread = spec.thread !== 'none'
   const showInlineTasks = spec.inlineTasks !== 'hidden'
   const showComposer = spec.composer !== 'none'
@@ -156,8 +153,8 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
   return (
     <LayoutGroup id={`morphchat-${surfaceId}`}>
       <motion.div
-        layout={!prefersReducedMotion}
-        transition={prefersReducedMotion ? transition : SPRING_BOUNDS}
+        layout={shouldAnimateMorph}
+        transition={shouldAnimateMorph ? SPRING_BOUNDS : transition}
         className={cn(
           'morphchat-surface relative flex flex-col',
           'bg-black text-neutral-200',
@@ -172,7 +169,7 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
         onKeyDown={onKeyDown}
         tabIndex={-1}
       >
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence mode={shouldAnimateMorph ? 'popLayout' : 'sync'}>
           {/* ── Band 1: Frame Chrome ─────────────────── */}
           {showFrameChrome && (
             <motion.div
@@ -187,35 +184,12 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
             </motion.div>
           )}
 
-          {/* ── Band 2: Header (connection + agent) ──── */}
-          {showHeader && (
-            <motion.div
-              key="band-header"
-              layoutId="morphchat-header"
-              initial={initialAnim}
-              animate={enterAnim}
-              exit={exitAnim}
-              transition={stagger(bandIndex++)}
-              className="flex items-center gap-2 px-3 py-1.5 border-b border-neutral-800/50"
-            >
-              {spec.connectionStatus !== 'hidden' && <ConnectionView />}
-              <div className="flex-1 flex items-center justify-center min-w-0">
-                <ModelSelectorView />
-              </div>
-              {spec.agentSelector !== 'hidden' && <AgentSelectorView />}
-            </motion.div>
-          )}
-
-          {/* ── Band 3: Status Banners ───────────────── */}
-          <motion.div
-            key="band-status"
-            layoutId="morphchat-status"
-            transition={stagger(bandIndex++)}
-          >
+          {/* ── Band 2: Status toasts (card stack) ────── */}
+          <div key="band-status" className="px-3 py-1 overflow-visible">
             <StatusBannerView />
-          </motion.div>
+          </div>
 
-          {/* ── Band 4: Thread ───────────────────────── */}
+          {/* ── Band 3: Thread ───────────────────────── */}
           {showThread && (
             <motion.div
               key="band-thread"
@@ -231,7 +205,7 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
             </motion.div>
           )}
 
-          {/* ── Band 5: Inline Tasks ─────────────────── */}
+          {/* ── Band 4: Inline Tasks ─────────────────── */}
           {showInlineTasks && (
             <motion.div
               key="band-inline-tasks"
@@ -245,7 +219,7 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
             </motion.div>
           )}
 
-          {/* ── Band 6: Command Band ─────────────────── */}
+          {/* ── Band 5: Command Band ─────────────────── */}
           <motion.div
             key="band-commands"
             layoutId="morphchat-commands"
@@ -254,7 +228,7 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
             <CommandBandView />
           </motion.div>
 
-          {/* ── Band 7: Composer ──────────────────────── */}
+          {/* ── Band 6: Composer ──────────────────────── */}
           {showComposer && (
             <motion.div
               key="band-composer"

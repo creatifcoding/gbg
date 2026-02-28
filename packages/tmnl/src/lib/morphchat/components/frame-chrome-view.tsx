@@ -1,14 +1,17 @@
 /**
- * Frame Chrome View — MorphChat Header Bar
+ * Frame Chrome View — Dual-Zone Header Strip
  *
- * Composes ChatHeaderBand from src/lib/chat/shell/ into MorphChat's
- * spec-driven topology. Reads adapter config for title/subtitle/session,
- * adapter atoms for connection state and agents.
+ * Single 28px row replacing both the old Frame Chrome AND the old Header band.
  *
- * spec.frameChrome axis:
- *   - full: Title bar with title/subtitle, connection badge, agent selector, controls
- *   - minimal: Title only, no controls or badges
- *   - none: (not rendered — handled by SurfaceContent)
+ * ┌──────────────────────┬──────────────────────────────────┐
+ * │ LEFT ZONE            │ RIGHT ZONE                       │
+ * │ [●]                  │ claude-sonnet-4 ▾  val  ↻  ✕    │
+ * │ hover → [● | ↑1.2K…]│ ghost text, brighten on hover    │
+ * └──────────────────────┴──────────────────────────────────┘
+ *
+ * Left: capsule only at rest. Hover → tokenomics reveal (progressive disclosure).
+ * Right: flush text model name, ghost controls (neutral-700 → neutral-300 on hover).
+ * Zones flex independently. 1px vertical divider.
  *
  * @module morphchat/components/frame-chrome-view
  */
@@ -16,26 +19,29 @@
 import * as React from 'react'
 import { Atom } from '@effect-atom/atom'
 import { useAtomValue } from '@effect-atom/atom-react'
-import { AnimatePresence, motion } from 'motion/react'
-import { ChevronDown, RotateCcw, X } from 'lucide-react'
+import { RotateCcw, X } from 'lucide-react'
 import { Effect } from 'effect'
 import { cn } from '@/lib/utils'
 import { useMorphChatContext } from './surface-context'
+import { ConnectionCapsule } from './connection-capsule'
+import { ModelSelectorView } from './model-selector-view'
 import type { MockChatAdapter } from '../adapters/mock-adapter'
 import type { ContextUsage } from '../hooks/useHarnessAdapter'
-import { morphChatRegistry } from '../atoms/registry'
 import { useBlockDensity } from '@/lib/chat/msg/density-context'
 
-// Module-level sentinels for conditional hook reads (Rules of Hooks)
-const NULL_AGENT_ID = Atom.make<string | null>(null)
+// ─── Sentinels ───────────────────────────────────────────────────────────────
+
 const NULL_CONTEXT_USAGE = Atom.make<ContextUsage | null>(null)
+const NULL_AGENT_ID = Atom.make<string | null>(null)
 
-// =============================================================================
-// Icon sizing (TMNL tokens)
-// =============================================================================
+// ─── Constants ───────────────────────────────────────────────────────────────
 
-const ICON_SIZE = 14
+const ICON_SIZE = 13
 const ICON_STROKE = 1.5
+const REVEAL_MS = 200
+const REVEAL_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)'
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -46,56 +52,28 @@ function formatTokens(n: number): string {
 function contextPercentColor(percent: number): string {
   if (percent > 90) return 'text-red-400'
   if (percent > 70) return 'text-amber-400'
-  return 'text-neutral-400'
+  return 'text-neutral-500'
 }
 
-// =============================================================================
-// Frame Chrome View
-// =============================================================================
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export function FrameChromeView() {
   const { spec, adapter } = useMorphChatContext()
+  const density = useBlockDensity()
 
-  // Read connection state for badge
-  const connectionResult = useAtomValue(adapter.connection$)
-
-  // Resolve connection phase to badge display
-  const connectionPhase = connectionResult.phase
-  const badgeState: 'online' | 'offline' | 'checking' =
-    connectionPhase === 'connected' ? 'online'
-    : connectionPhase === 'connecting' || connectionPhase === 'reconnecting' ? 'checking'
-    : 'offline'
-
-  const badgeDotColor =
-    badgeState === 'online' ? 'bg-emerald-400'
-    : badgeState === 'checking' ? 'bg-amber-400'
-    : 'bg-red-400'
-
-  const badgeTextColor =
-    badgeState === 'online' ? 'text-emerald-400'
-    : badgeState === 'checking' ? 'text-amber-400'
-    : 'text-red-400'
-
-  // Try to read surface config from mock adapter (safe cast — duck-typed)
+  // Agent name (duck-typed mock adapter)
   const mockAdapter = adapter as Partial<MockChatAdapter>
-  const title = mockAdapter.surfaceConfig?.title ?? spec._tag
-  const subtitle = mockAdapter.surfaceConfig?.subtitle
-  const sessionLabel = mockAdapter.surfaceConfig?.sessionLabel
-
-  // Active agent name (if available)
   const agents = useAtomValue(adapter.agents$)
-  // Module-level sentinel ensures useAtomValue is ALWAYS called (Rules of Hooks)
   const activeAgentId = useAtomValue(mockAdapter.activeAgentId$ ?? NULL_AGENT_ID) ?? undefined
   const activeAgent = agents.find(a => a.id === activeAgentId) ?? agents[0]
+
+  // Context usage
   const contextUsage = useAtomValue((adapter as any).contextUsage$ ?? NULL_CONTEXT_USAGE)
 
-  // ── Operations ────────────────────────────────────────────
+  // Left zone hover state — drives progressive disclosure of tokenomics
+  const [leftHovered, setLeftHovered] = React.useState(false)
 
-  const handleCollapse = React.useCallback(() => {
-    // Placeholder — will wire to adapter.onCollapse when available
-    console.log('[MorphChat] Collapse requested')
-  }, [])
-
+  // Chrome actions
   const handleReset = React.useCallback(() => {
     Effect.runSync(adapter.clear())
   }, [adapter])
@@ -104,184 +82,130 @@ export function FrameChromeView() {
     Effect.runSync(adapter.dispose())
   }, [adapter])
 
-  // ── Render ────────────────────────────────────────────────
+  // ── Bail on none ──────────────────────────────────────────
+  if (spec.frameChrome === 'none') return null
 
-  const density = useBlockDensity()
+  // ── Pill density: no chrome ───────────────────────────────
+  if (density === 'pill') return null
 
-  switch (spec.frameChrome) {
-    case 'full': {
-      // ── Pill density: no chrome ──
-      if (density === 'pill') return null
+  // ── Minimal: capsule + model, no context/controls ─────────
+  if (spec.frameChrome === 'minimal') {
+    return (
+      <div
+        data-slot="morphchat-frame-chrome"
+        className="flex items-center gap-2 px-3 border-b border-neutral-800/30"
+        style={{ height: 28 }}
+      >
+        <ConnectionCapsule />
+        <div className="flex-1 flex justify-center min-w-0">
+          <ModelSelectorView />
+        </div>
+      </div>
+    )
+  }
 
-      // ── Compact density: slim single row ──
-      if (density === 'compact') {
-        return (
+  // ── Full: Dual-Zone Strip ─────────────────────────────────
+  const showAgent = density !== 'compact' && activeAgent && spec.agentSelector !== 'hidden'
+
+  return (
+    <div
+      data-slot="morphchat-frame-chrome"
+      className="flex items-center border-b border-neutral-800/30"
+      style={{ height: 28 }}
+    >
+      {/* ── LEFT ZONE: Capsule + progressive disclosure tokenomics ── */}
+      <div
+        className="flex items-center gap-0 px-3 shrink-0"
+        onMouseEnter={() => setLeftHovered(true)}
+        onMouseLeave={() => setLeftHovered(false)}
+      >
+        <ConnectionCapsule />
+
+        {/* Tokenomics — revealed on hover, slides in from behind capsule */}
+        {contextUsage && (
           <div
-            data-slot="morphchat-frame-chrome"
-            className="flex items-center gap-2 px-3 h-8 border-b border-neutral-800/30"
+            className="flex items-center overflow-hidden"
+            style={{
+              maxWidth: leftHovered ? 260 : 0,
+              opacity: leftHovered ? 1 : 0,
+              transition: [
+                `max-width ${REVEAL_MS}ms ${REVEAL_EASE}`,
+                `opacity ${REVEAL_MS}ms ${REVEAL_EASE}`,
+              ].join(', '),
+            }}
           >
-            <span
-              className="text-neutral-400 font-mono tracking-wider uppercase truncate flex-1"
+            {/* Divider between capsule and tokenomics */}
+            <div
+              className="w-px self-stretch my-1 shrink-0 ml-2"
+              style={{
+                background: 'rgba(52,211,153,0.1)',
+                opacity: leftHovered ? 1 : 0,
+                transition: `opacity ${REVEAL_MS}ms ${REVEAL_EASE}`,
+              }}
+            />
+            <div
+              className="flex items-center gap-1.5 font-mono whitespace-nowrap pl-2"
               style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+              title={`Context: ${contextUsage.contextTokens.toLocaleString()} / ${contextUsage.contextWindow.toLocaleString()} tokens`}
             >
-              {title}
-            </span>
-            <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', badgeDotColor)} title={badgeState} />
-            {contextUsage && (
-              <span
-                className={cn('font-mono', contextPercentColor(contextUsage.contextPercent))}
-                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-                title={`Context: ${contextUsage.contextPercent.toFixed(1)}%`}
-              >
+              <span className="text-neutral-600">↑</span>
+              <span className="text-neutral-500">{formatTokens(contextUsage.totalInput)}</span>
+              <span className="text-neutral-600">↓</span>
+              <span className="text-neutral-500">{formatTokens(contextUsage.totalOutput)}</span>
+              {contextUsage.totalCacheRead > 0 && (
+                <>
+                  <span className="text-neutral-600">R</span>
+                  <span className="text-neutral-500">{formatTokens(contextUsage.totalCacheRead)}</span>
+                </>
+              )}
+              <span className={contextPercentColor(contextUsage.contextPercent)}>
                 {contextUsage.contextPercent.toFixed(0)}%
               </span>
-            )}
-            <ChromeButton onClick={handleClose} aria-label="Close">
-              <X size={ICON_SIZE} strokeWidth={ICON_STROKE} />
-            </ChromeButton>
-          </div>
-        )
-      }
-
-      // ── Full density: complete header bar ──
-      return (
-        <div
-          data-slot="morphchat-frame-chrome"
-          className="flex items-center gap-2 px-3 py-1.5 border-b border-neutral-800/50"
-        >
-          {/* ── Left: Title + Subtitle ──────────────── */}
-          <div className="flex items-center gap-2 min-w-0">
-            <span
-              className="text-neutral-200 font-mono tracking-wider uppercase truncate"
-              style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
-            >
-              {title}
-            </span>
-            {subtitle && (
-              <span
-                className="text-neutral-600 font-mono truncate hidden sm:inline"
-                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-              >
-                {subtitle}
-              </span>
-            )}
-          </div>
-
-          {/* ── Center: Connection + Session ────────── */}
-          <div className="flex items-center gap-2 mx-auto">
-            {/* Connection badge */}
-            <span
-              className={cn(
-                'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md',
-                'font-mono border border-neutral-800',
-                badgeTextColor,
+              {contextUsage.totalCost > 0 && (
+                <span className="text-neutral-600">${contextUsage.totalCost.toFixed(3)}</span>
               )}
-              style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-              role="status"
-            >
-              <span className={cn('w-1.5 h-1.5 rounded-full', badgeDotColor)} />
-              <span className="uppercase tracking-wider">{badgeState}</span>
-              {connectionResult.latencyMs != null && (
-                <span className="text-neutral-600">{connectionResult.latencyMs}ms</span>
-              )}
-            </span>
-
-            {/* Session label */}
-            {sessionLabel && (
-              <span
-                className="inline-flex items-center px-2 py-0.5 rounded-md font-mono border border-neutral-800 text-neutral-500"
-                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-              >
-                {sessionLabel}
-              </span>
-            )}
-
-            {/* ── Context Usage ─────────────────── */}
-            {contextUsage && (
-              <span
-                className="inline-flex items-center gap-2 px-2 py-0.5 rounded-md font-mono border border-neutral-800/50"
-                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-                title={`Context: ${contextUsage.contextTokens.toLocaleString()} / ${contextUsage.contextWindow.toLocaleString()} tokens`}
-              >
-                <span className="text-neutral-600">↑</span>
-                <span className="text-neutral-400">{formatTokens(contextUsage.totalInput)}</span>
-                <span className="text-neutral-600">↓</span>
-                <span className="text-neutral-400">{formatTokens(contextUsage.totalOutput)}</span>
-                {contextUsage.totalCacheRead > 0 && (
-                  <>
-                    <span className="text-neutral-600">R</span>
-                    <span className="text-neutral-400">{formatTokens(contextUsage.totalCacheRead)}</span>
-                  </>
-                )}
-                {contextUsage.totalCost > 0 && (
-                  <span className="text-neutral-500">${contextUsage.totalCost.toFixed(3)}</span>
-                )}
-                <span className={contextPercentColor(contextUsage.contextPercent)}>
-                  {contextUsage.contextPercent.toFixed(1)}%/{formatTokens(contextUsage.contextWindow)}
-                </span>
-                {contextUsage.compactionMode !== 'disabled' && (
-                  <span className="text-neutral-600">({contextUsage.compactionMode})</span>
-                )}
-              </span>
-            )}
+            </div>
           </div>
+        )}
+      </div>
 
-          {/* ── Right: Controls ─────────────────────── */}
-          <div className="flex items-center gap-1 ml-auto shrink-0">
-            {/* Active agent indicator (if agents available) */}
-            {activeAgent && spec.agentSelector !== 'hidden' && (
-              <span
-                className="text-neutral-600 font-mono mr-2 hidden md:inline"
-                style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-              >
-                agent: {activeAgent.name}
-              </span>
-            )}
+      {/* ── DIVIDER ───────────────────────────────────────── */}
+      <div className="w-px self-stretch my-1.5 bg-white/[0.06] shrink-0" />
 
-            <ChromeButton onClick={handleCollapse} aria-label="Collapse">
-              <ChevronDown size={ICON_SIZE} strokeWidth={ICON_STROKE} />
-            </ChromeButton>
-            <ChromeButton onClick={handleReset} aria-label="Reset session">
-              <RotateCcw size={ICON_SIZE} strokeWidth={ICON_STROKE} />
-            </ChromeButton>
-            <ChromeButton onClick={handleClose} aria-label="Close">
-              <X size={ICON_SIZE} strokeWidth={ICON_STROKE} />
-            </ChromeButton>
-          </div>
+      {/* ── RIGHT ZONE: Flush text model + ghost controls ── */}
+      <div className="group/right flex items-center gap-2 px-3 flex-1 justify-end min-w-0">
+        {/* Model selector — flush text, no border/bg */}
+        <div className="flex-1 flex justify-end min-w-0">
+          <ModelSelectorView />
         </div>
-      )
-    }
 
-    case 'minimal': {
-      // Pill density: no chrome at all
-      if (density === 'pill') return null
-
-      return (
-        <div
-          data-slot="morphchat-frame-chrome"
-          className="flex items-center px-3 py-1 border-b border-neutral-800/30"
-        >
+        {/* Agent name — ghost, brightens on zone hover */}
+        {showAgent && (
           <span
-            className="text-neutral-500 font-mono tracking-wider uppercase"
+            className="font-mono shrink-0 text-neutral-700 group-hover/right:text-neutral-500 transition-colors duration-150"
             style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
           >
-            {title}
+            {activeAgent.name}
           </span>
-        </div>
-      )
-    }
+        )}
 
-    case 'none':
-    default:
-      return null
-  }
+        {/* Chrome controls — ghost, brighten on zone hover */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          <ChromeButton onClick={handleReset} aria-label="Reset session">
+            <RotateCcw size={ICON_SIZE} strokeWidth={ICON_STROKE} />
+          </ChromeButton>
+          <ChromeButton onClick={handleClose} aria-label="Close">
+            <X size={ICON_SIZE} strokeWidth={ICON_STROKE} />
+          </ChromeButton>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 FrameChromeView.displayName = 'MorphChat.FrameChromeView'
 
-// =============================================================================
-// Chrome Button — small icon button with scale(0.97) press
-// =============================================================================
+// ─── Chrome Button — ghost at rest, visible on zone hover ────────────────────
 
 interface ChromeButtonProps extends React.ComponentPropsWithoutRef<'button'> {
   children: React.ReactNode
@@ -292,8 +216,9 @@ function ChromeButton({ children, className, ...props }: ChromeButtonProps) {
     <button
       type="button"
       className={cn(
-        'p-1.5 rounded transition-all duration-200',
-        'text-neutral-600 hover:text-neutral-300',
+        'p-1 rounded transition-colors duration-150',
+        'text-neutral-700 hover:text-neutral-300',
+        'group-hover/right:text-neutral-500',
         'hover:bg-neutral-800/50',
         'active:scale-[0.97]',
         className,
