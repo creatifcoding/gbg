@@ -149,9 +149,9 @@ export function SessionDrawer({
           animate={{ width, opacity: 1 }}
           exit={{ width: 0, opacity: 0 }}
           transition={{
-            type: 'spring',
-            stiffness: 400,
-            damping: 40,
+            type: 'tween',
+            duration: 0.14,
+            ease: [0.22, 0.0, 0.0, 1],
           }}
           className="h-full flex flex-col overflow-hidden flex-shrink-0"
           style={{
@@ -443,31 +443,21 @@ export function SessionDrawer({
                 action={{ label: 'New Session', onClick: onNewSession }}
               />
             ) : (
-              <AnimatePresence mode="popLayout">
-                {sessions.map((session) => (
-                  <motion.div
-                    key={session.sessionId}
-                    layout
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.16 }}
-                    style={{ marginBottom: 8 }}
-                  >
-                    <SessionCard
-                      session={session}
-                      isActive={currentSessionId === session.sessionId}
-                      onResume={() => selectSession(session.sessionId)}
-                      onRename={(name) => rename(session.sessionId, name)}
-                      onStar={() => star(session.sessionId)}
-                      onArchive={() => archive(session.sessionId)}
-                      onDelete={() => deleteSession(session.sessionId)}
-                      onExport={() => exportSession(session.sessionId)}
-                      onFork={() => fork(session.sessionId)}
-                    />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+              sessions.map((session) => (
+                <div key={session.sessionId} style={{ marginBottom: 8 }}>
+                  <SessionCard
+                    session={session}
+                    isActive={currentSessionId === session.sessionId}
+                    onResume={() => selectSession(session.sessionId)}
+                    onRename={(name) => rename(session.sessionId, name)}
+                    onStar={() => star(session.sessionId)}
+                    onArchive={() => archive(session.sessionId)}
+                    onDelete={() => deleteSession(session.sessionId)}
+                    onExport={() => exportSession(session.sessionId)}
+                    onFork={() => fork(session.sessionId)}
+                  />
+                </div>
+              ))
             )}
           </div>
         </motion.div>

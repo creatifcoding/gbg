@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
 import {
   Archive,
   Clock,
@@ -97,12 +96,9 @@ export function SessionCard({
   }
 
   return (
-    <motion.div
-      layout
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
-      whileHover={{ y: -2 }}
-      transition={{ duration: 0.16 }}
+    <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onClick={onResume}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -120,14 +116,13 @@ export function SessionCard({
         padding: 12,
         borderRadius: 8,
         background: 'oklch(0.07 0 0)',
-        border: `1px solid ${isHovered ? 'oklch(0.18 0 0)' : 'oklch(0.12 0 0)'}`,
-        borderLeft: isActive ? '3px solid oklch(0.7 0.15 195)' : `1px solid ${isHovered ? 'oklch(0.18 0 0)' : 'oklch(0.12 0 0)'}`,
+        border: `1.4px solid ${isHovered ? 'oklch(0.252 0 0)' : 'oklch(0.168 0 0)'}`,
+        borderLeft: isActive ? '4.2px solid oklch(0.7 0.15 195)' : `1.4px solid ${isHovered ? 'oklch(0.252 0 0)' : 'oklch(0.168 0 0)'}`,
         boxShadow: isHovered ? '0 8px 24px rgba(0, 0, 0, 0.35)' : '0 2px 10px rgba(0, 0, 0, 0.2)',
         cursor: 'pointer',
         transition: [
           VANTA_ANIMATION.transition.colors,
           VANTA_ANIMATION.transition.shadow,
-          VANTA_ANIMATION.transition.transform,
         ].join(', '),
       }}
     >
@@ -305,46 +300,40 @@ export function SessionCard({
         ))}
       </div>
 
-      <AnimatePresence>
-        {isHovered && !isRenaming && (
-          <motion.div
-            initial={{ opacity: 0, x: 16 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 12 }}
-            transition={{ duration: 0.18 }}
-            style={{
-              position: 'absolute',
-              right: 10,
-              bottom: 10,
-              display: 'flex',
-              gap: 4,
-            }}
-          >
-            <ActionIconButton
-              icon={<Archive size={13} />}
-              label={session.status === 'archived' ? 'Unarchive session' : 'Archive session'}
-              onClick={onArchive}
-            />
-            <ActionIconButton
-              icon={<Trash2 size={13} />}
-              label="Delete session"
-              onClick={onDelete}
-              danger
-            />
-            <ActionIconButton
-              icon={<Download size={13} />}
-              label="Export session"
-              onClick={onExport}
-            />
-            <ActionIconButton
-              icon={<GitFork size={13} />}
-              label="Fork session"
-              onClick={onFork}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+      {isHovered && !isRenaming && (
+        <div
+          style={{
+            position: 'absolute',
+            right: 10,
+            bottom: 10,
+            display: 'flex',
+            gap: 4,
+          }}
+        >
+          <ActionIconButton
+            icon={<Archive size={13} />}
+            label={session.status === 'archived' ? 'Unarchive session' : 'Archive session'}
+            onClick={onArchive}
+          />
+          <ActionIconButton
+            icon={<Trash2 size={13} />}
+            label="Delete session"
+            onClick={onDelete}
+            danger
+          />
+          <ActionIconButton
+            icon={<Download size={13} />}
+            label="Export session"
+            onClick={onExport}
+          />
+          <ActionIconButton
+            icon={<GitFork size={13} />}
+            label="Fork session"
+            onClick={onFork}
+          />
+        </div>
+      )}
+    </div>
   )
 }
 
