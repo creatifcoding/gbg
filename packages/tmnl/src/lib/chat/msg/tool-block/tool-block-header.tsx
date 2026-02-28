@@ -22,10 +22,12 @@ import {
   XCircleIcon,
   ShieldAlertIcon,
   ChevronDownIcon,
+  CircleSlashIcon,
 } from 'lucide-react'
 import type { ToolInvocationState } from '@/lib/morphchat/schemas/message-types'
 import { useChatToolBlock } from './tool-block-context'
 import { useToolRenderer } from './renderers/registry'
+import { useBlockDensity } from '../density-context'
 
 // =============================================================================
 // State config
@@ -43,6 +45,7 @@ const STATE_CONFIG: Record<ToolInvocationState, {
   completed:            { icon: CheckCircleIcon,  label: 'Done',       color: 'text-emerald-400' },
   error:                { icon: XCircleIcon,      label: 'Error',      color: 'text-red-400' },
   denied:               { icon: XCircleIcon,      label: 'Denied',     color: 'text-orange-400' },
+  cancelled:            { icon: CircleSlashIcon,  label: 'Cancelled',  color: 'text-amber-400' },
 }
 
 /** Live pulsing dot for running state */
@@ -79,6 +82,7 @@ export const ChatToolBlockHeader = memo(forwardRef<HTMLButtonElement, ChatToolBl
     const { toolCallId, toolName, state, input, output, errorText, isOpen, setIsOpen, hasDetails } = useChatToolBlock()
     const config = STATE_CONFIG[state]
     const StateIcon = config.icon
+    const density = useBlockDensity('tool')
 
     // Reactive lookup — re-renders when extensions register new renderers
     const entry = useToolRenderer(toolName)
@@ -91,13 +95,14 @@ export const ChatToolBlockHeader = memo(forwardRef<HTMLButtonElement, ChatToolBl
         data-slot="tmnl-chat-tool-header"
         onClick={() => hasDetails && setIsOpen(!isOpen)}
         className={cn(
-          'flex w-full items-center gap-2 px-3 py-1.5',
+          'flex w-full items-center gap-2',
+          density === 'compact' ? 'px-2 py-1' : 'px-3 py-1.5',
           'text-left font-mono transition-colors duration-150',
           hasDetails && 'cursor-pointer hover:bg-neutral-900/50',
           !hasDetails && 'cursor-default',
           className,
         )}
-        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
         aria-expanded={hasDetails ? isOpen : undefined}
         disabled={!hasDetails}
         {...props}

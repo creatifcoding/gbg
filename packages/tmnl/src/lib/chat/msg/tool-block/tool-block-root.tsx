@@ -118,6 +118,7 @@ export const ChatToolBlockRoot = memo(forwardRef<HTMLDivElement, ChatToolBlockRo
     // State-dependent border color
     const borderColor =
       state === 'error' ? 'border-red-500/20' :
+      state === 'cancelled' ? 'border-amber-500/20' :
       state === 'running' ? 'border-cyan-500/20' :
       state === 'approval-required' ? 'border-amber-500/20' :
       state === 'completed' ? 'border-neutral-800' :
@@ -127,6 +128,7 @@ export const ChatToolBlockRoot = memo(forwardRef<HTMLDivElement, ChatToolBlockRo
     if (density === 'pill') {
       const stateColor =
         state === 'error' ? 'text-red-400' :
+        state === 'cancelled' ? 'text-amber-400' :
         state === 'running' ? 'text-cyan-400' :
         state === 'approval-required' ? 'text-amber-400' :
         'text-neutral-400'
@@ -146,7 +148,7 @@ export const ChatToolBlockRoot = memo(forwardRef<HTMLDivElement, ChatToolBlockRo
             )}
             {...props}
           >
-            <span className={cn('font-mono', stateColor)} style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+            <span className={cn('font-mono', stateColor)} style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
               {toolName}
             </span>
           </div>

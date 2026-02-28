@@ -12,8 +12,9 @@
  * @module morphchat/components/composer-view
  */
 
-import * as React from 'react'
-import { AtSign, Command, Mic, Paperclip, Pause, RotateCcw } from 'lucide-react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { AtSign, Command, Loader2, Mic, Paperclip, Pause, RotateCcw, Square } from 'lucide-react'
+import type { StreamPhase } from '../schemas/message-types'
 import { Effect } from 'effect'
 import { useAtomValue } from '@effect-atom/atom-react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -43,7 +44,7 @@ export function ComposerView() {
   const { spec, adapter, surfaceId } = useMorphChatContext()
   // Read directly from adapter atoms — no intermediary family
   const streaming = useAtomValue(adapter.streaming$)
-  const isStreaming = streaming.isStreaming
+  const isStreaming = streaming.phase !== 'idle' && streaming.phase !== 'error-recovery'
   // Machine connection state — for diagnostics only (kept subscribed so diagnostics remain visible)
   useAtomValue(connectionStateFamily(surfaceId))
 
@@ -55,11 +56,11 @@ export function ComposerView() {
   const selectedModelAtom = adapter.selectedModel$ ?? EMPTY_MODEL_ID
   const availableModels = useAtomValue(modelsAtom) as ReadonlyArray<ModelOption>
   const selectedModelId = useAtomValue(selectedModelAtom)
-  const selectedModel = React.useMemo(
+  const selectedModel = useMemo(
     () => availableModels.find((m) => m.id === selectedModelId) ?? null,
     [availableModels, selectedModelId],
   )
-  const modelThinkingLevels = React.useMemo(
+  const modelThinkingLevels = useMemo(
     () => deriveThinkingLevels(selectedModel?.provider, selectedModel?.reasoning),
     [selectedModel?.provider, selectedModel?.reasoning],
   )
@@ -67,7 +68,7 @@ export function ComposerView() {
   // All composers call adapter.send via the same handler.
   // Connectivity/autorecovery is handled in the adapter layer (sendOp auto-heal),
   // so UI should never hard-block submission solely on current connection phase.
-  const handleSubmit = React.useCallback(
+  const handleSubmit = useCallback(
     (params: { value: string; mode?: string; thinkingLevel?: unknown; contextChips?: unknown[] }) => {
       Effect.runSync(
         adapter.send({
@@ -79,15 +80,15 @@ export function ComposerView() {
     [adapter],
   )
 
-  const handleCancel = React.useCallback(() => {
+  const handleCancel = useCallback(() => {
     Effect.runSync(adapter.cancel())
   }, [adapter])
 
   // ── Transfer drop zone ───────────────────────────────────
-  const composerDropRef = React.useRef<HTMLDivElement>(null)
-  const [droppedRefs, setDroppedRefs] = React.useState<ReadonlyArray<{ id: string; label: string }>>([])
+  const composerDropRef = useRef<HTMLDivElement>(null)
+  const [droppedRefs, setDroppedRefs] = useState<ReadonlyArray<{ id: string; label: string }>>([])
 
-  const evaluate = React.useCallback(
+  const evaluate = useCallback(
     (token: TransferToken): TransferResult => {
       // Accept task and task-cluster kinds as inline-chip references
       if (token.ref._tag === 'TaskRef' || token.ref._tag === 'ClusterRef') {
@@ -106,7 +107,7 @@ export function ComposerView() {
     [adapter.adapterId],
   )
 
-  const onAccept = React.useCallback(
+  const onAccept = useCallback(
     (tokens: ReadonlyArray<TransferToken>) => {
       const newRefs = tokens.map((t) => ({
         id: t.ref._tag === 'TaskRef' ? t.ref.taskId : t.ref._tag === 'ClusterRef' ? t.ref.clusterId : t.tokenId,
@@ -134,7 +135,7 @@ export function ComposerView() {
     : ''
 
   // ── Shared composer props (model-derived) ──────────────
-  const composerModelProps = React.useMemo(() => ({
+  const composerModelProps = useMemo(() => ({
     ...(modelThinkingLevels ? { thinkingLevels: modelThinkingLevels } : {}),
     // When model doesn't support reasoning, force 'none'
     ...(modelThinkingLevels === null ? { defaultThinkingLevel: 'none' as const } : {}),
@@ -178,6 +179,7 @@ export function ComposerView() {
                 <Composer.ToolbarGroup>
                   <TransportGroup
                     isStreaming={isStreaming}
+                    streamPhase={streaming.phase}
                     onCancel={handleCancel}
                     onReconnect={() => (adapter as Partial<MockChatAdapter>).toggleConnection?.()}
                   />
@@ -239,6 +241,7 @@ export function ComposerView() {
                 {/* Transport group: reconnect / pause / send */}
                 <TransportGroup
                   isStreaming={isStreaming}
+                  streamPhase={streaming.phase}
                   onCancel={handleCancel}
                   onReconnect={() => (adapter as Partial<MockChatAdapter>).toggleConnection?.()}
                 />
@@ -289,7 +292,7 @@ export function ComposerView() {
             <div className="flex items-center gap-2 px-3 py-2">
               <span
                 className="text-cyan-500 font-mono shrink-0"
-                style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
+                style={{ fontSize: 'var(--tmnl-text-sm, 12px)' }}
               >
                 /
               </span>
@@ -349,7 +352,7 @@ function CharacterCounter({ maxChars = 4096 }: { maxChars?: number }) {
           'text-right px-3 py-0.5 font-mono transition-colors duration-150',
           isOverLimit ? 'text-red-400' : isNearLimit ? 'text-amber-400' : 'text-neutral-600',
         )}
-        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
         aria-live="polite"
       >
         {len.toLocaleString()} / {maxChars.toLocaleString()}
@@ -366,13 +369,31 @@ function CharacterCounter({ maxChars = 4096 }: { maxChars?: number }) {
 
 function TransportGroup({
   isStreaming,
+  streamPhase,
   onCancel,
   onReconnect,
 }: {
   isStreaming: boolean
+  streamPhase: StreamPhase
   onCancel: () => void
   onReconnect: () => void
 }) {
+  // Phase-appropriate icon and label
+  const phaseIcon = streamPhase === 'waiting'
+    ? <Loader2 size={14} className="animate-spin" />
+    : streamPhase === 'finalizing'
+      ? <Loader2 size={14} className="animate-spin opacity-60" />
+      : streamPhase === 'cancelling'
+        ? <Loader2 size={14} className="animate-spin text-amber-400" />
+        : <Square size={14} />
+  const phaseTitle = streamPhase === 'waiting'
+    ? 'Thinking…'
+    : streamPhase === 'finalizing'
+      ? 'Wrapping up…'
+      : streamPhase === 'cancelling'
+        ? 'Cancelling…'
+        : 'Stop generation'
+
   return (
     <>
       {/* Reconnect — always visible, toggles connection */}
@@ -381,7 +402,7 @@ function TransportGroup({
         title="Toggle connection"
         onClick={onReconnect}
       />
-      {/* Pause/Cancel — only during streaming */}
+      {/* Phase-aware cancel/indicator — only during active streaming */}
       <AnimatePresence>
         {isStreaming && (
           <motion.div
@@ -391,8 +412,8 @@ function TransportGroup({
             transition={{ duration: 0.15, ease: [0.32, 0.72, 0, 1] }}
           >
             <Composer.ActionButton
-              icon={<Pause size={14} />}
-              title="Cancel generation"
+              icon={phaseIcon}
+              title={phaseTitle}
               onClick={onCancel}
             />
           </motion.div>
@@ -419,7 +440,7 @@ function CommandSuggestions({
   const isCommandMode = draft.startsWith('/')
   const query = draft.slice(1).toLowerCase()
 
-  const matchedChips = React.useMemo(() => {
+  const matchedChips = useMemo(() => {
     if (!isCommandMode || !chips.length) return []
     if (query.length === 0) return chips.slice(0, 5)
     return chips.filter(
@@ -455,7 +476,7 @@ function CommandSuggestions({
                 'hover:border-cyan-800/50 hover:text-cyan-400',
                 'transition-all duration-150 active:scale-[0.97]',
               )}
-              style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+              style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
             >
               <span className="text-cyan-600">/</span>
               <span>{chip.label}</span>
@@ -491,7 +512,7 @@ function DroppedRefChips({
             'bg-cyan-500/10 text-cyan-400 border border-cyan-800/30',
             'font-mono',
           )}
-          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+          style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
         >
           <span>@{r.label}</span>
           <button

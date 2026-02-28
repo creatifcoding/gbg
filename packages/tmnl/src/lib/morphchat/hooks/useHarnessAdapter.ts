@@ -13,7 +13,7 @@
  * @module morphchat/hooks/useHarnessAdapter
  */
 
-import React, { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Atom, useAtom, useAtomValue } from '@effect-atom/atom-react'
 import { Cause, Effect, Layer, Option, Stream, Fiber } from 'effect'
 import {
@@ -63,7 +63,8 @@ import type {
   AgentInfo,
   SendParams,
 } from '../schemas/message-types'
-import { DISCONNECTED, STREAMING_IDLE } from '../schemas/message-types'
+import { DISCONNECTED, STREAMING_IDLE, finalizeAllStreamingParts, flattenPartsToText } from '../schemas/message-types'
+import type { StreamPhase } from '../schemas/message-types'
 import { morphChatRegistry } from '../atoms/registry'
 import { createEventProcessor } from '../adapters/harness-event-processor'
 import { createExtensionToolBridge } from '@/lib/chat/msg/tool-block/renderers/extension-tool-bridge'
@@ -282,6 +283,15 @@ const setSessionId = (id: string, value: HarnessSessionId | null, reason: string
     sessionIdCache.set(id, value)
   }
   morphChatRegistry.set(sessionId$(id), value)
+
+  // ── Session-scoped streaming reconciliation guard ──────────────────
+  // If the session changes while streaming is active, the stream belongs
+  // to the old session and must be force-reset. This single guard replaces
+  // the need for manual STREAMING_IDLE resets on every lifecycle path.
+  const streaming = morphChatRegistry.get(streaming$(id))
+  if (streaming.phase !== 'idle' && streaming.sessionId !== (value ?? undefined)) {
+    morphChatRegistry.set(streaming$(id), STREAMING_IDLE)
+  }
 
   const sidText = value ?? 'none'
   morphChatRegistry.update(statusRows$(id), (prev) => [
@@ -983,7 +993,11 @@ const sendOp$ = Atom.family((id: string) =>
           id: clientMessageId as string, role: 'operator', content,
           timestamp: new Date().toISOString(), status: 'pending',
         }
-        morphChatRegistry.set(messages$(id), [...morphChatRegistry.get(messages$(id)), userMsg])
+        // Dedup guard: don't append if this messageId already exists
+        const prev = morphChatRegistry.get(messages$(id))
+        if (!prev.some((m) => m.id === userMsg.id)) {
+          morphChatRegistry.set(messages$(id), [...prev, userMsg])
+        }
 
         const tl = toHarnessThinkingLevel(thinkingLevel)
         const override = morphChatRegistry.get(modelOverride$(id))
@@ -1031,16 +1045,64 @@ const sendOp$ = Atom.family((id: string) =>
   ),
 )
 
-/** Cancel/abort active session */
+/** Cancel/abort active session — full lifecycle:
+ *  1. Phase → 'cancelling' (instant UI feedback, blocks stale events)
+ *  2. cancelledAt$ → now (amber badge)
+ *  3. Stop watchdog fiber
+ *  4. Finalize all streaming parts (thinking, code, tool-invocation)
+ *  5. Message status → 'cancelled'
+ *  6. Server abort (best-effort)
+ *  7. Phase → 'idle'
+ */
 const cancelOp$ = Atom.family((id: string) =>
   harnessRuntimeAtom.fn<void>()((_arg, _ctx) =>
     Effect.gen(function* () {
       const runtime = yield* HarnessRuntime
       const sid = getSessionId(id)
-      if (sid) yield* runtime.abortSession(sid)
+
+      // 1. Phase → 'cancelling' BEFORE server round-trip
+      const current = morphChatRegistry.get(streaming$(id))
+      if (current.phase !== 'idle' && current.phase !== 'error-recovery') {
+        morphChatRegistry.set(streaming$(id), {
+          ...current,
+          phase: 'cancelling' as StreamPhase,
+        })
+      }
+
+      // 2. Stop watchdog fiber via event processor
+      const proc = processors.get(id)
+      if (proc) proc.stopWatchdog()
+
+      // 3. Finalize parts + set message status to 'cancelled'
       morphChatRegistry.update(messages$(id), (prev) =>
-        prev.map((msg) => msg.status === 'streaming' ? { ...msg, status: 'complete' as const } : msg),
+        prev.map((msg) =>
+          msg.status === 'streaming'
+            ? {
+                ...msg,
+                status: 'cancelled' as const,
+                parts: finalizeAllStreamingParts(msg.parts ?? []),
+                content: msg.content || flattenPartsToText(msg.parts ?? []),
+              }
+            : msg,
+        ),
       )
+      // Also update per-message atoms if they exist
+      const currentMessages = morphChatRegistry.get(messages$(id))
+      for (const msg of currentMessages) {
+        if (msg.status === 'cancelled') {
+          const msgAtom = getMessageAtom(id, msg.id)
+          morphChatRegistry.set(msgAtom, msg)
+        }
+      }
+
+      // 4. Server abort (best-effort, don't fail cancel on network error)
+      if (sid) {
+        yield* runtime.abortSession(sid).pipe(
+          Effect.catchAll(() => Effect.void),
+        )
+      }
+
+      // 5. Phase → 'idle'
       morphChatRegistry.set(streaming$(id), STREAMING_IDLE)
     }).pipe(
       Effect.catchAllCause((cause) =>
@@ -1384,8 +1446,8 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
   }, [instanceId])
 
   // Connection status from per-instance atom
-  const [status, setStatus] = React.useState<HarnessAdapterStatus>('idle')
-  const [error, setError] = React.useState<string | null>(null)
+  const [status, setStatus] = useState<HarnessAdapterStatus>('idle')
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const check = () => {
@@ -1462,7 +1524,7 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
   const resumeSessionRef = useRef(doResumeSession); resumeSessionRef.current = doResumeSession
 
   // Build adapter — per-instance atoms
-  const adapter = React.useMemo<MorphChatAdapter>(() => ({
+  const adapter = useMemo<MorphChatAdapter>(() => ({
     adapterId: `harness-${instanceId}`,
     label: `Harness (${instanceId})`,
     messages$: messages$(instanceId),

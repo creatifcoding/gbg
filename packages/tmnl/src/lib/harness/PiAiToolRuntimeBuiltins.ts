@@ -26,8 +26,8 @@ import {
 } from '@mariozechner/pi-coding-agent'
 import type { RegisteredTool, ExtensionContext } from '@mariozechner/pi-coding-agent'
 import type { ToolCall as PiAiToolCall, ToolResultMessage as PiAiToolResultMessage } from '@mariozechner/pi-ai'
-import { Effect, Layer, Option } from 'effect'
-import { PiAiToolRuntime, PiAiToolRuntimeError, type OnToolStreamChunk } from './PiAiToolRuntime'
+import { Effect, HashSet, Layer, Option, Schema } from 'effect'
+import { PiAiToolRuntime, PiAiToolRuntimeError, type OnToolStreamChunk, type ToolName, ToolName as ToolNameSchema } from './PiAiToolRuntime'
 import { AgentHarnessConfig, AgentHarnessConfigTag } from '@/lib/agents/AgentHarnessConfig'
 import type { ToolStreamChunk } from './schemas'
 import * as path from 'node:path'
@@ -46,6 +46,9 @@ import { createSpawnPanelTool } from '@/lib/genifer/harness/spawn-panel-tool'
 import { GeniferHarnessServiceTag, GeniferHarnessServiceLive } from '@/lib/genifer/harness/GeniferHarnessService'
 import { GeniferServiceLive } from '@/lib/genifer/services/GeniferService'
 import { GeniferDevDbLayer } from '@/lib/genifer/migrations/runner'
+import { makeSessionId, makePanelId, type SurfaceId, type PanelId } from '@/lib/genifer/identifiers'
+import { setGeniferPanelSurface, registerGeniferPanelVisitor } from '@/lib/genifer/harness/panel-visitor'
+import { spawnPanel as spawnFloatingPanel, closePanel as closeFloatingPanel } from '@/lib/floating'
 
 // LanguageModel layer for genifer generation (uses Pi OAuth auth)
 import { makeAnthropicLayer } from '@/lib/agents/providers/anthropic'
@@ -55,6 +58,7 @@ import { PiAuthBridgeLive } from '@/lib/agents/auth/PiAuthBridge'
 import { createGeointTools, GeointHarnessService, GeointHarnessServiceLive } from '@/lib/geoint/harness'
 import type { GeointHarnessServiceShape } from '@/lib/geoint/harness'
 import { PanelEventBus } from './panel-events/PanelEventBus'
+import { SubscriptionManagerService } from '@/lib/panels/subscriptions/schemas'
 
 // =============================================================================
 // Create SDK tools configured for project CWD
@@ -314,34 +318,92 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
       catch: () => Option.none<typeof GeniferHarnessServiceTag.Service>(),
     }).pipe(Effect.orElseSucceed(() => Option.none()))
 
+    const subscriptionManager = yield* Effect.serviceOption(SubscriptionManagerService).pipe(
+      Effect.map(Option.getOrNull),
+    )
+
     if (Option.isSome(panelBusOpt) && Option.isSome(geniferServiceOpt) && !allToolNames.has('spawn_panel')) {
       let panelCounter = 0
+      const geniferSvc = geniferServiceOpt.value
+      const panelBus = panelBusOpt.value
       const spawnPanelTool = createSpawnPanelTool({
+        // ── Fire-and-forget: allocate a real streaming GeniferSurface ──
+        // The service creates a proper GeniferSurface in status:'streaming'
+        // and registers it in the atom registry. Then generation runs as
+        // a detached fiber. As tokens stream in, onSurfaceUpdate fires
+        // panel:surface_updated events — the panel visitor subscribes to
+        // these via geniferPanelSurfaces atom and renders incrementally.
+        // On completion, the surface promotes to status:'complete' with
+        // materialized bindings. The panel re-renders with full
+        // SurfaceProvider + BehaviorProvider + ElementRenderer stack.
+        generateAsync: (prompt, threadId) => {
+          const sessionId = makeSessionId()
+          const { surfaceId, threadId: resolvedThreadId } = geniferSvc.allocateStreamingSurface({
+            prompt,
+            sessionId,
+            // Bridge boundary: tool params are raw strings, service expects branded.
+            // ThreadId is optional — if provided from tool, cast at the boundary.
+            ...(threadId ? { threadId: threadId as unknown as import('@/lib/genifer/identifiers').ThreadId } : {}),
+          })
+
+          // Detached fiber: generation runs in background
+          Effect.runFork(
+            geniferSvc.generateInBackground({
+              prompt,
+              sessionId,
+              surfaceId,
+              threadId: resolvedThreadId,
+              persist: true,
+              onSurfaceUpdate: (sid, surface) => {
+                // Direct atom write — instant panel reactivity, no indirection
+                setGeniferPanelSurface(sid, surface)
+                // Event bus relay — observability + remote sync
+                Effect.runFork(
+                  panelBus.emit({
+                    _tag: 'panel:surface_updated',
+                    surfaceId: sid,
+                    surface,
+                  }),
+                )
+              },
+            }).pipe(
+              Effect.catchAll((error) =>
+                Effect.sync(() => {
+                  console.error(`[spawn_panel] background generation failed for ${surfaceId}:`, error)
+                }),
+              ),
+            ),
+          )
+
+          return { surfaceId }
+        },
+
+        // ── Legacy synchronous generate (fallback for tests/compat) ──
         generate: async (prompt, threadId) => {
           const result = await Effect.runPromise(
-            geniferServiceOpt.value.generate({
+            geniferSvc.generate({
               prompt,
               sessionId: `harness-${Date.now()}`,
               threadId,
               persist: true,
             }),
           )
-          const surface = geniferServiceOpt.value.getSurface(result.surfaceId)
+          const surface = geniferSvc.getSurface(result.surfaceId)
           return { surfaceId: result.surfaceId, surface: surface ?? undefined }
         },
         refine: async (surfaceId, instruction) => {
           await Effect.runPromise(
-            geniferServiceOpt.value.refine({
+            geniferSvc.refine({
               surfaceId,
               instruction,
               sessionId: `harness-${Date.now()}`,
               persist: true,
             }),
           )
-          const updatedSurface = geniferServiceOpt.value.getSurface(surfaceId)
+          const updatedSurface = geniferSvc.getSurface(surfaceId)
           if (updatedSurface) {
             Effect.runFork(
-              panelBusOpt.value.emit({
+              panelBus.emit({
                 _tag: 'panel:surface_updated',
                 surfaceId,
                 surface: updatedSurface,
@@ -350,13 +412,37 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
           }
         },
         spawnPanel: (surfaceId, opts) => {
-          const panelId = `p-genifer-${++panelCounter}-${Date.now().toString(36)}`
-          const surface = (opts.surface ?? geniferServiceOpt.value.getSurface(surfaceId)) as unknown
+          const remotePanelId = makePanelId() as unknown as string
+          // For async path: surface is already in registry as streaming.
+          // For legacy path: opts.surface carries the completed surface.
+          const surface = (opts.surface ?? geniferSvc.getSurface(surfaceId)) as unknown
+
+          // ── Direct local spawn (works without WS round-trip) ──
+          // Register the panel visitor, write the surface to the panel
+          // atom, and spawn the floating panel directly. This ensures
+          // panels render in local/embedded mode where the event bus
+          // → WS → transport stream loop isn't connected.
+          registerGeniferPanelVisitor()
+          if (surface) {
+            setGeniferPanelSurface(surfaceId, surface as any)
+          }
+          const localPanelId = spawnFloatingPanel('genifer:surface', {
+            mode: opts.mode ?? 'floating',
+            title: opts.title,
+            data: {
+              surfaceId,
+              prompt: opts.prompt,
+              threadId: opts.threadId,
+            },
+            accent: '#22d3ee',
+          })
+
+          // ── Event bus relay (for remote/WS consumers + observability) ──
           Effect.runFork(
-            panelBusOpt.value.emit({
+            panelBus.emit({
               _tag: 'panel:spawned',
               surfaceId,
-              panelId,
+              panelId: remotePanelId,
               title: opts.title,
               prompt: opts.prompt,
               threadId: opts.threadId,
@@ -366,16 +452,19 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
               surface,
             }),
           )
-          return panelId
+
+          return localPanelId ?? remotePanelId
         },
         closePanel: (panelId) => {
+          closeFloatingPanel(panelId)
           Effect.runFork(
-            panelBusOpt.value.emit({
+            panelBus.emit({
               _tag: 'panel:closed',
               panelId,
             }),
           )
         },
+        subscriptionManager,
       })
       tools.push(spawnPanelTool as any)
       allToolNames.add('spawn_panel')
@@ -449,6 +538,7 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
     const execute = (
       toolCall: PiAiToolCall,
       onStreamChunk?: OnToolStreamChunk,
+      signal?: AbortSignal,
     ): Effect.Effect<PiAiToolResultMessage, PiAiToolRuntimeError> =>
       Effect.gen(function* () {
         const agentTool = map.get(toolCall.name)
@@ -520,7 +610,7 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
             agentTool.execute(
               toolCall.id,
               toolCall.arguments as Record<string, unknown>,
-              undefined, // signal (TODO: wire AbortController)
+              signal, // AbortSignal from session AbortController
               sdkOnUpdate,
             ),
           catch: (error) =>
@@ -541,11 +631,22 @@ export const PiAiToolRuntimeWithBuiltins = Layer.effect(
         }
       })
 
+    // ── Concurrent-friendly tool set ──
+    // Tools that opt in to parallel execution within a single tool-call round.
+    // Default is sequential (safe). Only tools that return instantly (e.g.
+    // spawn_panel with fire-and-forget generation) should be listed here.
+    // Brand at the TMNL boundary — pi-ai uses raw string for Tool.name.
+    const brandName = (name: string) => Schema.decodeSync(ToolNameSchema)(name)
+    const concurrentFriendlyNames: ToolName[] = []
+    if (allToolNames.has('spawn_panel')) concurrentFriendlyNames.push(brandName('spawn_panel'))
+    const concurrentFriendly = HashSet.fromIterable(concurrentFriendlyNames)
+
     return PiAiToolRuntime.of({
       tools: tools.map((t) => ({ name: t.name, description: t.description, parameters: t.parameters })) as any,
       maxToolRounds: config.maxToolRounds,
-      execute: (toolCall, onStreamChunk) =>
-        execute(toolCall, onStreamChunk).pipe(
+      concurrentFriendlyTools: concurrentFriendly,
+      execute: (toolCall, onStreamChunk, signal) =>
+        execute(toolCall, onStreamChunk, signal).pipe(
           Effect.catchTag('PiAiToolRuntimeError', (error) =>
             Effect.succeed({
               role: 'toolResult' as const,

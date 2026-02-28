@@ -29,12 +29,14 @@ import type {
   StreamingState,
   AgentInfo,
 } from '../schemas/message-types'
-import { STREAMING_IDLE, flattenPartsToText } from '../schemas/message-types'
+import { STREAMING_IDLE, isStreamingActive, flattenPartsToText } from '../schemas/message-types'
+import type { StreamPhase } from '../schemas/message-types'
 import { morphChatRegistry } from '../atoms/registry'
 import type { HarnessEvent } from '@/lib/harness/schemas'
 import type { MetricEntry, ProviderMarker } from '../schemas/metric-types'
 import { splitPartsCodeFences } from './markdown-code-splitter'
 import { streamingLatencyProbe } from '@/lib/harness/perf/StreamingLatencyProbe'
+import { startWatchdog, type WatchdogHandle } from './stream-watchdog'
 
 // =============================================================================
 // Config — which atoms to write to
@@ -259,7 +261,7 @@ export function finalizeThinking(
 }
 
 /** Terminal states — once reached, cannot be downgraded by stale events */
-const TERMINAL_TOOL_STATES = new Set(['completed', 'error', 'denied'])
+const TERMINAL_TOOL_STATES = new Set(['completed', 'error', 'denied', 'cancelled'])
 
 export function upsertToolPart(
   parts: ReadonlyArray<ChatMessagePart>,
@@ -314,6 +316,19 @@ export interface HarnessEventProcessorConfig {
 export function createEventProcessor(config: HarnessEventProcessorConfig) {
   const { atoms, agentName, nodeId } = config
   let thinkingStartTime: number | null = null
+  let watchdog: WatchdogHandle | null = null
+
+  // ── Watchdog status row helper ──────────────────────────────────────
+  const pushWatchdogStatusRow = (row: {
+    id: string
+    tone: 'info' | 'warn' | 'error'
+    text: string
+    source: 'harness' | 'mock' | 'surface'
+  }) => {
+    if (atoms.statusRows$) {
+      registryUpdate(atoms.statusRows$, (prev) => [row, ...prev].slice(0, 8))
+    }
+  }
 
   // ── rAF-coalesced delta flush (S4 strategy from coalescing research) ──
   // Accumulate deltas, flush once per animation frame (~16ms at 60fps).
@@ -412,6 +427,29 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
   }
 
   function processEvent(event: HarnessEvent): void {
+    // ── Phase guard: 'cancelling' blocks stale events ──────────────────
+    // During user-initiated cancellation, only terminal events are allowed.
+    // Delta/thinking/tool events arriving after local cancel are dropped.
+    const currentPhase = morphChatRegistry.get(atoms.streaming$).phase
+    if (currentPhase === 'cancelling') {
+      const TERMINAL_EVENTS = new Set([
+        'chat:v2/response_done',
+        'chat:v2/error',
+        'chat:v2/usage',
+        'chat:v2/heartbeat',
+        'chat:v2/session_opened',
+      ])
+      if (!TERMINAL_EVENTS.has(event._tag)) return
+
+      // Special: 'aborted' error during 'cancelling' = expected confirmation.
+      // Skip error UI — just finalize to idle.
+      if (event._tag === 'chat:v2/error' && (event as any).code === 'aborted') {
+        if (watchdog) { watchdog.stop(); watchdog = null }
+        morphChatRegistry.set(atoms.streaming$, STREAMING_IDLE)
+        return
+      }
+    }
+
     switch (event._tag) {
       case 'chat:v2/session_opened': {
         if (atoms.sessionId$) {
@@ -474,16 +512,32 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
           status: 'streaming',
           parts: [],
         }
-        registryUpdate(atoms.messages$, (prev) => [...prev, streamMsg])
+        // Dedup guard: don't append if a message with this ID already exists
+        // (seenSeqs should prevent this, but defensive against edge cases)
+        registryUpdate(atoms.messages$, (prev) =>
+          prev.some((m) => m.id === streamMsg.id) ? prev : [...prev, streamMsg],
+        )
         // Sync bridge fires on messages$ change → updates messageIds$ and per-message atoms.
         // Do NOT write to messageIds$/getMessageAtom here — that races with the sync bridge.
+        const now = Date.now()
+        const currentSessionId = atoms.sessionId$
+          ? morphChatRegistry.get(atoms.sessionId$) ?? undefined
+          : undefined
         morphChatRegistry.set(atoms.streaming$, {
-          isStreaming: true,
+          phase: 'waiting' as StreamPhase,
           buffer: '',
           messageId: event.messageId as string,
           tokensReceived: 0,
+          sessionId: currentSessionId,
+          startedAt: now,
+          lastEventAt: now,
         })
         thinkingStartTime = null
+
+        // ── Fork streaming watchdog fiber ──────────────────────────────
+        if (watchdog) watchdog.stop() // Stop any stale watchdog from previous stream
+        watchdog = startWatchdog(atoms.streaming$, atoms.messages$, pushWatchdogStatusRow)
+
         break
       }
 
@@ -493,6 +547,20 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
         }
         const msgId = event.messageId as string
         const delta = event.delta as string
+
+        // Phase transition: waiting → receiving on first delta + touch watchdog
+        if (watchdog) watchdog.touch()
+        {
+          const cur = morphChatRegistry.get(atoms.streaming$)
+          if (cur.phase === 'waiting' || cur.phase === 'receiving') {
+            morphChatRegistry.set(atoms.streaming$, {
+              ...cur,
+              phase: 'receiving' as StreamPhase,
+              lastEventAt: Date.now(),
+              tokensReceived: (cur.tokensReceived ?? 0) + 1,
+            })
+          }
+        }
 
         // Accumulate delta text — rAF flush writes to atoms once per paint frame
         pendingDeltaByMessage.set(msgId, (pendingDeltaByMessage.get(msgId) ?? '') + delta)
@@ -512,11 +580,35 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
         if (thinkingStartTime === null) {
           thinkingStartTime = Date.now()
         }
+        // Touch watchdog — thinking deltas keep the stream alive
+        if (watchdog) watchdog.touch()
+        {
+          const cur = morphChatRegistry.get(atoms.streaming$)
+          if (cur.phase === 'waiting' || cur.phase === 'receiving') {
+            morphChatRegistry.set(atoms.streaming$, {
+              ...cur,
+              phase: 'receiving' as StreamPhase,
+              lastEventAt: Date.now(),
+            })
+          }
+        }
         updateMessageParts(atoms, msgId, (parts) => appendThinkingDelta(parts, event.delta))
         break
       }
 
       case 'chat:v2/assistant_final': {
+        // Phase transition: receiving → finalizing (awaiting response_done)
+        {
+          const cur = morphChatRegistry.get(atoms.streaming$)
+          if (cur.phase === 'waiting' || cur.phase === 'receiving') {
+            morphChatRegistry.set(atoms.streaming$, {
+              ...cur,
+              phase: 'finalizing' as StreamPhase,
+              lastEventAt: Date.now(),
+            })
+          }
+        }
+
         // Flush any pending rAF-coalesced deltas before finalizing
         if (rafHandle != null) {
           cancelAnimationFrame(rafHandle)
@@ -572,6 +664,8 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
           finalizedMsg = updateMessageInArray(msgId, finalizeMessage)
         }
 
+        // ── Stop watchdog fiber — stream completed normally ──────────
+        if (watchdog) { watchdog.stop(); watchdog = null }
         morphChatRegistry.set(atoms.streaming$, STREAMING_IDLE)
         break
       }
@@ -676,7 +770,7 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
 
           if (deltaChunk == null && detailsChunk == null) break
 
-          updateMessageParts(atoms, targetMsgId, (parts) => {
+          const updateParts = (parts: ReadonlyArray<ChatMessagePart>) => {
             const existing = parts.find(
               (p) => p._tag === 'tool-invocation' && (p as ToolInvocationPart).toolCallId === event.toolCallId,
             ) as ToolInvocationPart | undefined
@@ -725,7 +819,19 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
             const prevDelta = ((upserted as any).inputDelta as string | undefined) ?? ''
             arr[idx] = { ...upserted, inputDelta: prevDelta + deltaChunk } as any
             return arr
-          })
+          }
+
+          if (config.getMessageAtom) {
+            const msgAtom = config.getMessageAtom(targetMsgId)
+            morphChatRegistry.update(msgAtom, (prev) => {
+              if (!prev) return prev
+              const nextParts = updateParts(prev.parts ?? [])
+              const nextContent = flattenPartsToText(nextParts)
+              return { ...prev, parts: nextParts, content: nextContent || prev.content }
+            })
+          } else {
+            updateMessageParts(atoms, targetMsgId, updateParts)
+          }
 
           break // Don't fall through to upsertToolPart below
 
@@ -875,11 +981,15 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
           ].slice(0, 8)))
         }
 
+        // ── Stop watchdog fiber — error received ──────────────────────
+        if (watchdog) { watchdog.stop(); watchdog = null }
         morphChatRegistry.set(atoms.streaming$, STREAMING_IDLE)
         break
       }
 
       case 'chat:v2/heartbeat': {
+        // Touch watchdog — heartbeats keep the stream alive during thinking pauses
+        if (watchdog) watchdog.touch()
         const latencyMs = Date.now() - event.at
         registryUpdate(atoms.connection$, (prev) => ({
           ...prev,
@@ -893,5 +1003,10 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
     }
   }
 
-  return { processEvent }
+  /** Stop the watchdog fiber (called from adapter.cancel()) */
+  const stopWatchdog = () => {
+    if (watchdog) { watchdog.stop(); watchdog = null }
+  }
+
+  return { processEvent, stopWatchdog }
 }

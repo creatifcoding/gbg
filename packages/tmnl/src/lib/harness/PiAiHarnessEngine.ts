@@ -1,4 +1,4 @@
-import { type Context as PiAiContext, type Message as PiAiMessage, type Model as PiAiModel, type ToolCall as PiAiToolCall, getModel as piAiGetModel } from '@mariozechner/pi-ai'
+import { type Context as PiAiContext, type Message as PiAiMessage, type Model as PiAiModel, type ToolCall as PiAiToolCall, type ToolResultMessage as PiAiToolResultMessage, getModel as piAiGetModel } from '@mariozechner/pi-ai'
 import { AuthStorage, ModelRegistry } from '@mariozechner/pi-coding-agent'
 import { nanoid } from 'nanoid'
 import { Cause, Context, Duration, Effect, Fiber, HashMap, HashSet, Layer, Option, PubSub, Ref, Schedule, Schema, Stream } from 'effect'
@@ -41,6 +41,9 @@ import { makeDefaultRegistry, type PromptRegistryShape } from './prompt'
 import { executeCompaction } from './compaction'
 import { HarnessErrorCode } from './error-codes'
 import { PROMPT_CONTEXT_TOOL_NAME, PROMPT_CONTEXT_TOOL_DESCRIPTION, executePromptContextCode, promptContextToolParameters, PROMPT_CONTEXT_API_DOCS } from './prompt/tools/prompt-context-tool'
+import { PanelQueryService, type PanelQueryServiceShape } from '../panels/query/schemas'
+import { SubscriptionManagerService } from '../panels/subscriptions/schemas'
+import { PANEL_EVAL_TOOL_NAME, executePanelEvalCode, PanelEvalToolSpec } from '../panels/query/panel-eval-tool'
 
 export class PiAiHarnessEngineError extends Schema.TaggedError<PiAiHarnessEngineError>()(
   'PiAiHarnessEngineError',
@@ -72,6 +75,7 @@ type SessionRecord = {
   readonly model: PiAiModel<any>
   readonly context: PiAiContext
   readonly promptRegistry: PromptRegistryShape | null  // EPOCH-0003: null until migration complete
+  readonly panelQueryService: PanelQueryServiceShape | null
 }
 
 type SessionView = {
@@ -221,6 +225,12 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
     const streamClient = yield* PiAiStreamClient
     const toolRuntime = yield* PiAiToolRuntime
     const store = yield* HarnessSessionStoreExtended
+    const panelQueryService = yield* Effect.serviceOption(PanelQueryService).pipe(
+      Effect.map(Option.getOrNull),
+    )
+    const subscriptionManagerService = yield* Effect.serviceOption(SubscriptionManagerService).pipe(
+      Effect.map(Option.getOrNull),
+    )
 
     const model = yield* policy.resolveModel.pipe(
       Effect.mapError((error) =>
@@ -410,9 +420,11 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                 description: PROMPT_CONTEXT_TOOL_DESCRIPTION,
                 parameters: promptContextToolParameters,
               }] : []),
+              ...(panelQueryService ? [PanelEvalToolSpec] : []),
             ],
           },
           promptRegistry: hydratedRegistry,
+          panelQueryService,
         }
 
         yield* Ref.update(sessionsRef, HashMap.set(restored.sessionId, restored))
@@ -1139,7 +1151,14 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                   return
                 }
 
-                const toolResults = yield* Effect.forEach(toolCalls, (toolCall) =>
+                // ── Partitioned tool execution ──
+                // Tools that opt in to concurrent execution (concurrentFriendlyTools)
+                // run in parallel with each other AND with the sequential batch.
+                // Sequential tools (the default) execute one-at-a-time in order.
+                // Results are merged back in original tool-call order so the
+                // conversation context stays deterministic.
+
+                const executeTool = (toolCall: (typeof toolCalls)[number]) =>
                   Effect.gen(function* () {
                     const startedAt = Date.now()
 
@@ -1209,7 +1228,7 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                             }),
                           )
 
-                    // EPOCH-0003: Intercept prompt_context tool calls — execute against session registry
+                    // EPOCH-0003: Intercept codemode tools before normal runtime dispatch.
                     const result = yield* wrapTimeout(
                       toolCall.name === PROMPT_CONTEXT_TOOL_NAME && session.promptRegistry
                         ? Effect.gen(function* () {
@@ -1239,18 +1258,46 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                               timestamp: Date.now(),
                             }
                           })
-                        : toolRuntime.execute(toolCall, onStreamChunk).pipe(
-                            Effect.catchTag('PiAiToolRuntimeError', (error: PiAiToolRuntimeError) =>
-                              Effect.succeed({
+                        : toolCall.name === PANEL_EVAL_TOOL_NAME && session.panelQueryService
+                          ? Effect.gen(function* () {
+                              const code = (toolCall.arguments as { code?: string })?.code
+                              if (typeof code !== 'string') {
+                                return {
+                                  role: 'toolResult' as const,
+                                  toolCallId: toolCall.id,
+                                  toolName: toolCall.name,
+                                  content: [{ type: 'text' as const, text: 'panel_eval requires a `code` parameter (string).' }],
+                                  isError: true,
+                                  timestamp: Date.now(),
+                                }
+                              }
+                              const resultText = yield* executePanelEvalCode(
+                                code,
+                                session.panelQueryService!,
+                                undefined,
+                                subscriptionManagerService,
+                              )
+                              return {
                                 role: 'toolResult' as const,
                                 toolCallId: toolCall.id,
                                 toolName: toolCall.name,
-                                content: [{ type: 'text' as const, text: `Tool execution failed: ${error.message}` }],
-                                isError: true,
+                                content: [{ type: 'text' as const, text: resultText }],
+                                isError: false,
                                 timestamp: Date.now(),
-                              }),
+                              }
+                            })
+                          : toolRuntime.execute(toolCall, onStreamChunk, abortController.signal).pipe(
+                              Effect.catchTag('PiAiToolRuntimeError', (error: PiAiToolRuntimeError) =>
+                                Effect.succeed({
+                                  role: 'toolResult' as const,
+                                  toolCallId: toolCall.id,
+                                  toolName: toolCall.name,
+                                  content: [{ type: 'text' as const, text: `Tool execution failed: ${error.message}` }],
+                                  isError: true,
+                                  timestamp: Date.now(),
+                                }),
+                              ),
                             ),
-                          ),
                     ).pipe(
                       // Catch tool-timeout and surface as error result (don't blow up the round)
                       Effect.catchTag('PiAiToolRuntimeError', (error: PiAiToolRuntimeError) =>
@@ -1300,8 +1347,42 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                     )
 
                     return result
-                  }),
-                )
+                  })
+
+                // Partition tool calls: concurrent-friendly run in parallel,
+                // sequential tools run one-at-a-time in order.
+                const concurrentFriendly = toolRuntime.concurrentFriendlyTools
+                const asToolName = (name: string) => name as unknown as import('./PiAiToolRuntime').ToolName
+                const hasConcurrent = toolCalls.some((tc) => HashSet.has(concurrentFriendly, asToolName(tc.name)))
+
+                let toolResults: PiAiToolResultMessage[]
+                if (!hasConcurrent) {
+                  // Fast path: all sequential (most common case — no partitioning overhead)
+                  toolResults = yield* Effect.forEach(toolCalls, executeTool)
+                } else {
+                  // Partition into indexed slots so we can reassemble in original order
+                  const indexed = toolCalls.map((tc, i) => ({ tc, i, concurrent: HashSet.has(concurrentFriendly, asToolName(tc.name)) }))
+                  const concurrentSlots = indexed.filter((s) => s.concurrent)
+                  const sequentialSlots = indexed.filter((s) => !s.concurrent)
+
+                  // Run both batches in parallel:
+                  //   - concurrent batch: all in parallel (unbounded)
+                  //   - sequential batch: one-at-a-time in order
+                  const [concurrentResults, sequentialResults] = yield* Effect.all([
+                    Effect.forEach(concurrentSlots, (s) =>
+                      executeTool(s.tc).pipe(Effect.map((r) => ({ i: s.i, result: r }))),
+                      { concurrency: 'unbounded' },
+                    ),
+                    Effect.forEach(sequentialSlots, (s) =>
+                      executeTool(s.tc).pipe(Effect.map((r) => ({ i: s.i, result: r }))),
+                    ),
+                  ], { concurrency: 2 })
+
+                  // Merge back in original tool-call order
+                  const merged = [...concurrentResults, ...sequentialResults]
+                  merged.sort((a, b) => a.i - b.i)
+                  toolResults = merged.map((m) => m.result)
+                }
 
                 yield* Ref.update(sessionsRef, (current) =>
                   Option.match(HashMap.get(current, sessionId), {
@@ -1628,9 +1709,11 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                 description: PROMPT_CONTEXT_TOOL_DESCRIPTION,
                 parameters: promptContextToolParameters,
               }] : []),
+              ...(panelQueryService ? [PanelEvalToolSpec] : []),
             ],
           },
           promptRegistry: sessionRegistry,
+          panelQueryService,
         }
 
         yield* Ref.update(sessionsRef, HashMap.set(sessionId, created))
@@ -1665,6 +1748,7 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                 description: PROMPT_CONTEXT_TOOL_DESCRIPTION,
                 parameters: promptContextToolParameters,
               }] : []),
+              ...(session.panelQueryService ? [PanelEvalToolSpec] : []),
             ],
           }),
         )
@@ -1949,11 +2033,29 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
           onSome: (session) => session.model,
         })
 
+        const nextPromptRegistry = Option.match(sourceLiveSession, {
+          onNone: () => null,
+          onSome: (session) => session.promptRegistry,
+        })
+
+        const nextPanelQueryService = Option.match(sourceLiveSession, {
+          onNone: () => panelQueryService,
+          onSome: (session) => session.panelQueryService,
+        })
+
         const nextContext = Option.match(sourceLiveSession, {
           onNone: () => ({
             systemPrompt: policy.config.systemPrompt,
             messages: [] as PiAiMessage[],
-            tools: [...toolRuntime.tools],
+            tools: [
+              ...toolRuntime.tools,
+              ...(nextPromptRegistry ? [{
+                name: PROMPT_CONTEXT_TOOL_NAME,
+                description: PROMPT_CONTEXT_TOOL_DESCRIPTION,
+                parameters: promptContextToolParameters,
+              }] : []),
+              ...(nextPanelQueryService ? [PanelEvalToolSpec] : []),
+            ],
           }),
           onSome: (session) => session.context,
         })
@@ -2017,6 +2119,8 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
           abortRequestedAtMs: null,
           model: nextModel,
           context: nextContext,
+          promptRegistry: nextPromptRegistry,
+          panelQueryService: nextPanelQueryService,
         }
 
         yield* Ref.update(sessionsRef, HashMap.set(nextSessionId, nextRecord))

@@ -44,7 +44,8 @@ import type {
   AgentInfo,
   SendParams,
 } from '../schemas/message-types'
-import { CONNECTED, DISCONNECTED, STREAMING_IDLE, flattenPartsToText } from '../schemas/message-types'
+import { CONNECTED, DISCONNECTED, STREAMING_IDLE, flattenPartsToText, finalizeAllStreamingParts } from '../schemas/message-types'
+import type { StreamPhase } from '../schemas/message-types'
 import { morphChatRegistry } from '../atoms/registry'
 
 import type { HarnessRuntimeShape } from '@/lib/harness/HarnessRuntime'
@@ -342,7 +343,10 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
           status: 'streaming',
           parts: [],  // ← structured parts, populated by subsequent events
         }
-        morphChatRegistry.update(messages$, (prev) => [...prev, streamMsg])
+        // Dedup guard: don't append if this messageId already exists
+        morphChatRegistry.update(messages$, (prev) =>
+          prev.some((m) => m.id === streamMsg.id) ? prev : [...prev, streamMsg],
+        )
         morphChatRegistry.set(streaming$, {
           isStreaming: true,
           buffer: '',
@@ -661,7 +665,30 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
   const cancel = (): Effect.Effect<void> =>
     Effect.gen(function* () {
       if (!sessionId) return
-      yield* runtime.abortSession(sessionId)
+      // Phase → 'cancelling' before server round-trip
+      const current = morphChatRegistry.get(streaming$)
+      if (current.phase !== 'idle' && current.phase !== 'error-recovery') {
+        morphChatRegistry.set(streaming$, {
+          ...current,
+          phase: 'cancelling' as StreamPhase,
+        })
+      }
+      morphChatRegistry.set(cancelledAt$, Date.now())
+      // Finalize parts + message status
+      morphChatRegistry.update(messages$, (prev) =>
+        prev.map((msg) =>
+          msg.status === 'streaming'
+            ? {
+                ...msg,
+                status: 'cancelled' as const,
+                parts: finalizeAllStreamingParts(msg.parts ?? []),
+                content: msg.content || flattenPartsToText(msg.parts ?? []),
+              }
+            : msg,
+        ),
+      )
+      // Server abort (best-effort)
+      yield* runtime.abortSession(sessionId).pipe(Effect.catchAll(() => Effect.void))
       morphChatRegistry.set(streaming$, STREAMING_IDLE)
     }).pipe(Effect.catchAll(() => Effect.void))
 

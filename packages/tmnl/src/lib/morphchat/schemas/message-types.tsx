@@ -7,7 +7,7 @@
  * @module morphchat/schemas/message-types
  */
 
-import { Schema } from 'effect'
+import { Match, Schema } from 'effect'
 
 // =============================================================================
 // Role
@@ -34,6 +34,7 @@ export const MessageStatus = Schema.Literal(
   'streaming',  // Receiving streaming response
   'complete',   // Final
   'error',      // Send/receive failure
+  'cancelled',  // User-initiated cancellation (partial content preserved)
 )
 export type MessageStatus = typeof MessageStatus.Type
 
@@ -114,6 +115,7 @@ export const ToolInvocationState = Schema.Literal(
   'completed',          // Output available
   'error',              // Error occurred
   'denied',             // User denied execution
+  'cancelled',          // User aborted while tool was running/pending
 )
 export type ToolInvocationState = typeof ToolInvocationState.Type
 
@@ -301,6 +303,45 @@ export function flattenPartsToText(parts: ReadonlyArray<ChatMessagePart>): strin
 }
 
 /**
+ * Finalize all streaming parts on cancellation.
+ *
+ * Walks every part in a message and transitions streaming/running parts
+ * to their terminal cancelled state. Uses Match.exhaustive on `_tag`
+ * for compile-time safety — adding a new part type forces handling here.
+ *
+ * - ThinkingPart: isStreaming → false (no durationMs = visual cancel signal)
+ * - CodePart: isStreaming → false (close the fence)
+ * - ToolInvocationPart: running/pending → 'cancelled'
+ * - TextPart, FilePart: pass through (no streaming state)
+ */
+const finalizePart = Match.type<ChatMessagePart>().pipe(
+  Match.tag('thinking', (part) =>
+    part.isStreaming
+      ? { ...part, isStreaming: false } as ThinkingPart
+      : part,
+  ),
+  Match.tag('code', (part) =>
+    part.isStreaming
+      ? { ...part, isStreaming: false } as CodePart
+      : part,
+  ),
+  Match.tag('tool-invocation', (part) =>
+    part.state === 'running' || part.state === 'pending'
+      ? { ...part, state: 'cancelled' as const } as ToolInvocationPart
+      : part,
+  ),
+  Match.tag('text', (part) => part),
+  Match.tag('file', (part) => part),
+  Match.exhaustive,
+)
+
+export function finalizeAllStreamingParts(
+  parts: ReadonlyArray<ChatMessagePart>,
+): ReadonlyArray<ChatMessagePart> {
+  return parts.map(finalizePart)
+}
+
+/**
  * Get effective parts from a ChatMessage.
  * If `parts` is populated, returns it.
  * Otherwise, wraps `content` in a single TextPart for uniform rendering.
@@ -367,24 +408,47 @@ export const AgentInfo = Schema.Struct({
 export type AgentInfo = typeof AgentInfo.Type
 
 // =============================================================================
-// Streaming State
+// Streaming State — Phase-discriminated for resilience
 // =============================================================================
 
+/** Streaming lifecycle phase (Schema.Literal union per Schema Discipline) */
+export const StreamPhase = Schema.Literal(
+  'idle',            // Not streaming — ready to send
+  'waiting',         // Sent to server, awaiting first token (TTFB window)
+  'receiving',       // Actively receiving deltas
+  'finalizing',      // Last delta received, awaiting response_done
+  'cancelling',      // User-initiated cancel — cleanup in progress, blocks stale events
+  'error-recovery',  // Error surfaced, UI recovering before reset to idle
+)
+export type StreamPhase = typeof StreamPhase.Type
+
 export const StreamingState = Schema.Struct({
-  /** Whether a response is currently streaming */
-  isStreaming: Schema.Boolean,
+  /** Discriminated phase — replaces boolean isStreaming */
+  phase: StreamPhase,
   /** Partial content buffer for current stream */
   buffer: Schema.String,
   /** Message ID being streamed */
   messageId: Schema.optional(Schema.String),
   /** Token count so far */
   tokensReceived: Schema.optional(Schema.Number),
+  /** Session that owns this streaming state (for reconciliation guard) */
+  sessionId: Schema.optional(Schema.String),
+  /** Epoch ms when streaming started (for watchdog) */
+  startedAt: Schema.optional(Schema.Number),
+  /** Epoch ms of last received event (for watchdog staleness check) */
+  lastEventAt: Schema.optional(Schema.Number),
 })
 export type StreamingState = typeof StreamingState.Type
 
+/** Backward-compatible helper: true when in any active streaming phase (including cancelling) */
+export const isStreamingActive = (s: StreamingState): boolean =>
+  s.phase !== 'idle' && s.phase !== 'error-recovery'
+// Note: 'cancelling' is considered active — cancel is still in-flight,
+// composer should remain in non-send state until cleanup completes.
+
 /** Default idle streaming state */
 export const STREAMING_IDLE: StreamingState = {
-  isStreaming: false,
+  phase: 'idle',
   buffer: '',
 }
 
