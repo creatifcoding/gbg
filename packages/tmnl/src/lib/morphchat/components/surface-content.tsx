@@ -31,7 +31,7 @@ import { ComposerView } from './composer-view'
 import { ThreadView } from './thread-view'
 import { InlineTasksView } from './inline-tasks-view'
 import { FrameChromeView } from './frame-chrome-view'
-import { StatusBannerView } from './status-banner-view'
+import { StatusBannerView } from './status-banner'
 import { CommandBandView } from './command-band-view'
 
 // =============================================================================
