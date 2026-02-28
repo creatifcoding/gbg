@@ -16,12 +16,12 @@
  * @module morphchat/components/status-banner-view
  */
 
-import * as React from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo, useDeferredValue, useTransition, memo, type ReactNode, type PointerEvent as RPointerEvent } from 'react'
 import { Atom } from '@effect-atom/atom'
 import { useAtomValue } from '@effect-atom/atom-react'
 import { Effect } from 'effect'
 import { AnimatePresence, motion } from 'motion/react'
-import { AlertTriangle, Ban, Info, Maximize2, X, XCircle } from 'lucide-react'
+import { AlertTriangle, Ban, Info, Maximize2, RefreshCw, X, XCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ChatErrorDetailsModal } from '@/lib/chat/status'
 import { useMorphChatContext } from './surface-context'
@@ -229,6 +229,9 @@ function toneForCode(code: string): BannerTone {
 const EMPTY_LAST_ERROR = Atom.make<{ code: string; message: string; at: number } | null>(null)
 const EMPTY_CANCELLED_AT = Atom.make<number | null>(null)
 
+/** Narrow threshold for toast card responsive behavior */
+const TOAST_NARROW_PX = 400
+
 export function StatusBannerView() {
   const { adapter } = useMorphChatContext()
 
@@ -240,10 +243,13 @@ export function StatusBannerView() {
   const cancelledAtAtom = ((adapter as any).cancelledAt$ as typeof EMPTY_CANCELLED_AT | undefined) ?? EMPTY_CANCELLED_AT
   const cancelledAt = useAtomValue(cancelledAtAtom)
 
-  const [activeRow, setActiveRow] = React.useState<StatusRowLike | null>(null)
+  const [activeRow, setActiveRow] = useState<StatusRowLike | null>(null)
+
+  // ── Narrow detection ────────────────────────────────────────────────────
+  const [narrow, setNarrow] = useState(false)
 
   // ── Row assembly ────────────────────────────────────────────────────────
-  const rows = React.useMemo<ReadonlyArray<StatusRowLike>>(() => {
+  const rows = useMemo<ReadonlyArray<StatusRowLike>>(() => {
     if (adapterRows.length > 0) return adapterRows
     const out: StatusRowLike[] = []
     if (lastError) {
@@ -279,28 +285,40 @@ export function StatusBannerView() {
   // The container data-attribute drives CSS visual stacking (margin/scale/opacity)
   // immediately. React content changes (text expand, action buttons) are deferred
   // via useTransition so the compositor isn't blocked by React reconciliation.
-  const containerRef = React.useRef<HTMLDivElement>(null)
-  const [expanded, setExpanded] = React.useState(false)
-  const deferredExpanded = React.useDeferredValue(expanded)
-  const [, startTransition] = React.useTransition()
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [expanded, setExpanded] = useState(false)
+  const deferredExpanded = useDeferredValue(expanded)
+  const [, startTransition] = useTransition()
 
-  const handleMouseEnter = React.useCallback(() => {
+  // Measure container for narrow responsive
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      if (entry) setNarrow(entry.contentRect.width < TOAST_NARROW_PX)
+    })
+    ro.observe(el)
+    setNarrow(el.clientWidth < TOAST_NARROW_PX)
+    return () => ro.disconnect()
+  }, [])
+
+  const handleMouseEnter = useCallback(() => {
     // Immediate: toggle data-attr for CSS-driven visual animation
     containerRef.current?.setAttribute('data-expanded', 'true')
     // Deferred: React content expansion (actions, full text, badge hide)
     startTransition(() => setExpanded(true))
   }, [startTransition])
 
-  const handleMouseLeave = React.useCallback(() => {
+  const handleMouseLeave = useCallback(() => {
     containerRef.current?.setAttribute('data-expanded', 'false')
     startTransition(() => setExpanded(false))
   }, [startTransition])
 
   // ── Dismiss lifecycle ───────────────────────────────────────────────────
-  const dismissTimersRef = React.useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
-  const [dismissedIds, setDismissedIds] = React.useState<ReadonlySet<string>>(new Set())
+  const dismissTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  const [dismissedIds, setDismissedIds] = useState<ReadonlySet<string>>(new Set())
 
-  const dismissToast = React.useCallback((id: string) => {
+  const dismissToast = useCallback((id: string) => {
     setDismissedIds((prev) => {
       if (prev.has(id)) return prev
       const next = new Set(prev)
@@ -311,14 +329,14 @@ export function StatusBannerView() {
     if (timer) { clearTimeout(timer); dismissTimersRef.current.delete(id) }
   }, [])
 
-  const toastRows = React.useMemo(
+  const toastRows = useMemo(
     () => rows.filter((r) => !r.text.startsWith('[sid]')),
     [rows],
   )
   const cancelledToastId = cancelledAt != null ? `cancelled-${cancelledAt}` : null
 
   // GC dismissed IDs
-  React.useEffect(() => {
+  useEffect(() => {
     const knownIds = new Set(toastRows.map((r) => r.id))
     if (cancelledToastId) knownIds.add(cancelledToastId)
     setDismissedIds((prev) => {
@@ -333,7 +351,7 @@ export function StatusBannerView() {
   }, [toastRows, cancelledToastId])
 
   // Auto-dismiss timers — errors NEVER auto-dismiss, everything else 30s
-  React.useEffect(() => {
+  useEffect(() => {
     for (const row of toastRows) {
       if (dismissedIds.has(row.id) || dismissTimersRef.current.has(row.id)) continue
       // Errors persist until manually dismissed or swiped away
@@ -343,13 +361,13 @@ export function StatusBannerView() {
     }
   }, [toastRows, dismissedIds, dismissToast])
 
-  React.useEffect(() => () => {
+  useEffect(() => () => {
     for (const timer of dismissTimersRef.current.values()) clearTimeout(timer)
     dismissTimersRef.current.clear()
   }, [])
 
   // ── Visible items ───────────────────────────────────────────────────────
-  const allItems: StatusRowLike[] = React.useMemo(() => {
+  const allItems: StatusRowLike[] = useMemo(() => {
     const items: StatusRowLike[] = []
     if (cancelledToastId && !dismissedIds.has(cancelledToastId)) {
       items.push({ id: cancelledToastId, tone: 'info', text: 'Cancelled', source: 'harness' })
@@ -388,6 +406,7 @@ export function StatusBannerView() {
               totalCount={allItems.length}
               isCancelled={item.id === cancelledToastId}
               expanded={deferredExpanded}
+              narrow={narrow}
               showRecoveryActions={showRecoveryActions}
               onExpand={setActiveRow}
               onDismiss={dismissToast}
@@ -424,6 +443,8 @@ interface ToastCardProps {
   isCancelled: boolean
   /** Deferred expanded state — controls content (text, actions), not visual stack */
   expanded: boolean
+  /** Container is below narrow threshold — tighter padding, icon-only reconnect */
+  narrow: boolean
   showRecoveryActions: boolean
   onExpand: (row: StatusRowLike) => void
   onDismiss: (id: string) => void
@@ -436,8 +457,8 @@ interface ToastCardProps {
  * CSS via the parent container's `data-expanded` attribute — no React
  * re-render needed for the hover animation itself.
  */
-const ToastCard = React.memo(function ToastCard({
-  item, index, totalCount, isCancelled, expanded,
+const ToastCard = memo(function ToastCard({
+  item, index, totalCount, isCancelled, expanded, narrow,
   showRecoveryActions, onExpand, onDismiss, onReconnect,
 }: ToastCardProps) {
   const depth = Math.min(index, VISIBLE_CARDS - 1)
@@ -451,19 +472,19 @@ const ToastCard = React.memo(function ToastCard({
   const staggerDelay = `${index * STAGGER_MS}ms`
 
   // ── Swipe-to-dismiss gesture ───────────────────────────────────────────
-  const pointerStartRef = React.useRef<{ x: number; y: number; t: number } | null>(null)
-  const [swipeX, setSwipeX] = React.useState(0)
-  const [swiping, setSwiping] = React.useState(false)
-  const [swipedOut, setSwipedOut] = React.useState(false)
+  const pointerStartRef = useRef<{ x: number; y: number; t: number } | null>(null)
+  const [swipeX, setSwipeX] = useState(0)
+  const [swiping, setSwiping] = useState(false)
+  const [swipedOut, setSwipedOut] = useState(false)
 
-  const handlePointerDown = React.useCallback((e: React.PointerEvent) => {
+  const handlePointerDown = useCallback((e: RPointerEvent) => {
     // Pointer capture: drag continues even if cursor leaves the card
     (e.target as HTMLElement).setPointerCapture(e.pointerId)
     pointerStartRef.current = { x: e.clientX, y: e.clientY, t: performance.now() }
     setSwiping(true)
   }, [])
 
-  const handlePointerMove = React.useCallback((e: React.PointerEvent) => {
+  const handlePointerMove = useCallback((e: RPointerEvent) => {
     if (!pointerStartRef.current || !swiping) return
     const dx = e.clientX - pointerStartRef.current.x
     const dy = e.clientY - pointerStartRef.current.y
@@ -476,7 +497,7 @@ const ToastCard = React.memo(function ToastCard({
     setSwipeX(dampedX)
   }, [swiping])
 
-  const handlePointerUp = React.useCallback((e: React.PointerEvent) => {
+  const handlePointerUp = useCallback((e: RPointerEvent) => {
     (e.target as HTMLElement).releasePointerCapture(e.pointerId)
     if (!pointerStartRef.current || !swiping) {
       setSwiping(false)
@@ -541,7 +562,8 @@ const ToastCard = React.memo(function ToastCard({
       // ── Card styling ───────────────────────────────────
       className={cn(
         'relative overflow-hidden touch-pan-y',
-        'flex items-center gap-2 px-3 py-1.5 rounded-lg border font-mono min-w-0',
+        'flex items-center rounded-lg border font-mono min-w-0',
+        narrow ? 'gap-1.5 px-2 py-1' : 'gap-2 px-3 py-1.5',
         tone.card,
         isHidden && 'invisible pointer-events-none',
         swiping && 'cursor-grabbing select-none',
@@ -609,7 +631,10 @@ const ToastCard = React.memo(function ToastCard({
           )}
           {!isCancelled && item.source === 'harness' && (showRecoveryActions || item.code === 'session-missing') && (
             <BannerAction onClick={onReconnect} title="Reconnect">
-              Reconnect
+              {narrow
+                ? <RefreshCw size={13} strokeWidth={1.5} />
+                : 'Reconnect'
+              }
             </BannerAction>
           )}
           <BannerAction onClick={() => onDismiss(item.id)} title="Dismiss">
@@ -645,7 +670,7 @@ function BannerAction({
   onClick,
   title,
 }: {
-  children: React.ReactNode
+  children: ReactNode
   onClick: () => void
   title?: string
 }) {
