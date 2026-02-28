@@ -211,23 +211,11 @@ describe('Surface Machine — Streaming Region', () => {
     actor.send({ type: 'STREAM_START', messageId: 'msg-1' })
     expect(getParallelStates(actor).streaming).toBe('active')
     expect(actor.getSnapshot().context.streamingMessageId).toBe('msg-1')
-    expect(actor.getSnapshot().context.streamDeltaCount).toBe(0)
 
     actor.stop()
   })
 
-  it('active increments delta count on STREAM_DELTA', () => {
-    const actor = createTestActor()
-    actor.start()
-
-    actor.send({ type: 'STREAM_START', messageId: 'msg-1' })
-    actor.send({ type: 'STREAM_DELTA', messageId: 'msg-1' })
-    actor.send({ type: 'STREAM_DELTA', messageId: 'msg-1' })
-    actor.send({ type: 'STREAM_DELTA', messageId: 'msg-1' })
-    expect(actor.getSnapshot().context.streamDeltaCount).toBe(3)
-
-    actor.stop()
-  })
+  // STREAM_DELTA removed — incrementDeltaCount was dead work (no UI consumer)
 
   it('active → finalizing on STREAM_END (with autoCollapse preset)', () => {
     // Dock has autoCollapse=true, so it stays in finalizing waiting for delay

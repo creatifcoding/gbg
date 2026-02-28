@@ -60,15 +60,10 @@ function streamingStateToMachineEvents(
     events.push({ type: 'STREAM_START', messageId: current.messageId })
   }
 
-  // Detect stream delta: both streaming, buffer grew
-  if (
-    prev.isStreaming &&
-    current.isStreaming &&
-    current.buffer !== prev.buffer &&
-    current.messageId
-  ) {
-    events.push({ type: 'STREAM_DELTA', messageId: current.messageId })
-  }
+  // STREAM_DELTA removed — it only incremented a counter nobody reads in React.
+  // Each delta was: streaming$ change → bridge detect → sendSurfaceEvent →
+  // machine context bump → snapshot → syncSnapshot → 10 atom equality checks.
+  // At ~20 tokens/sec that's 200 atom-set calls/sec of pure dead work.
 
   // Detect stream end: was streaming, now not
   if (prev.isStreaming && !current.isStreaming && prev.messageId) {

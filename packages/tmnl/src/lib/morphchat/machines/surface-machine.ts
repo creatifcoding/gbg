@@ -10,7 +10,7 @@
  *
  * Events flow IN from:
  *   - React props (MORPH, SET_SPEC)
- *   - Adapter (ADAPTER_CONNECTED, ADAPTER_DISCONNECTED, STREAM_START, STREAM_DELTA, STREAM_END)
+ *   - Adapter (ADAPTER_CONNECTED, ADAPTER_DISCONNECTED, STREAM_START, STREAM_END)
  *   - User (SEND, CANCEL, RECONNECT)
  *
  * The machine DRIVES:
@@ -63,9 +63,6 @@ export interface SurfaceMachineContext {
   /** Streaming message ID (null when not streaming) */
   streamingMessageId: string | null
 
-  /** Count of messages received during current stream */
-  streamDeltaCount: number
-
   /** Whether auto-collapse should fire (set true after stream completes) */
   shouldAutoCollapse: boolean
 
@@ -90,7 +87,7 @@ export type SurfaceMachineEvent =
 
   // ── Streaming ───────────────────────────────────────────
   | { type: 'STREAM_START'; messageId: string }
-  | { type: 'STREAM_DELTA'; messageId: string }
+  // STREAM_DELTA removed — dead work (incrementDeltaCount was never read by UI)
   | { type: 'STREAM_END'; messageId: string }
   | { type: 'STREAM_ERROR'; messageId: string; error: string }
 
@@ -229,17 +226,13 @@ export const surfaceMachine = setup({
     // Streaming management
     assignStreamStart: assign(({ event }) => ({
       streamingMessageId: event.type === 'STREAM_START' ? event.messageId : null,
-      streamDeltaCount: 0,
       shouldAutoCollapse: false,
     })),
 
-    incrementDeltaCount: assign(({ context }) => ({
-      streamDeltaCount: context.streamDeltaCount + 1,
-    })),
+    // incrementDeltaCount removed — streamDeltaCount was never read by any React consumer
 
     clearStream: assign({
       streamingMessageId: null,
-      streamDeltaCount: 0,
     }),
 
     markAutoCollapse: assign({ shouldAutoCollapse: true }),
@@ -313,7 +306,6 @@ export const surfaceMachine = setup({
     morphTarget: null,
     connectionError: null,
     streamingMessageId: null,
-    streamDeltaCount: 0,
     shouldAutoCollapse: false,
     error: null,
   }),
@@ -418,9 +410,7 @@ export const surfaceMachine = setup({
 
         active: {
           on: {
-            STREAM_DELTA: {
-              actions: ['incrementDeltaCount'],
-            },
+            // STREAM_DELTA removed — see useAdapterMachineBridge.ts
             STREAM_END: {
               target: 'finalizing',
               actions: ['markAutoCollapse'],
