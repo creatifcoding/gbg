@@ -142,33 +142,74 @@ export const HarnessErrorCode = Schema.Union(
 )
 export type HarnessErrorCode = typeof HarnessErrorCode.Type
 
-// ─── Category → severity guards ──────────────────────────────────────────────
-//
-// Schema.is returns a type guard. Adding a code to a category literal
-// automatically routes it to the correct severity — no map to update.
-
-const isStream           = Schema.is(StreamErrorCode)
-const isNetwork          = Schema.is(NetworkErrorCode)
-const isSessionLifecycle = Schema.is(SessionLifecycleErrorCode)
-const isSessionCrud      = Schema.is(SessionCrudErrorCode)
-const isStoreCodec       = Schema.is(StoreCodecErrorCode)
-const isTool             = Schema.is(ToolErrorCode)
-const isModel            = Schema.is(ModelErrorCode)
-const isAdapterDiag      = Schema.is(AdapterDiagnosticCode)
-const isInternalError    = Schema.is(InternalErrorCode)
-const isInternalWarn     = Schema.is(InternalWarnCode)
-const isInternalInfo     = Schema.is(InternalInfoCode)
+// ─── Severity lookup ─────────────────────────────────────────────────────────
 
 /**
- * Derive severity from category membership.
+ * Derive severity from error code. Exhaustive switch.
  * Falls back to 'error' for unknown codes (defensive).
  */
 export function severityOf(code: string): ErrorSeverity {
-  if (isStream(code) || isNetwork(code) || isSessionLifecycle(code) || isInternalError(code)) return 'error'
-  if (isSessionCrud(code) || isTool(code) || isModel(code) || isInternalWarn(code)) return 'warn'
-  if (isInternalInfo(code)) return 'info'
-  if (isStoreCodec(code) || isAdapterDiag(code)) return 'silent'
-  return 'error'
+  switch (code) {
+    // ── error ──────────────────────────────────
+    case 'pi-ai-stream-init-failed':
+    case 'pi-ai-stream-failed':
+    case 'pi-ai-stream-result-failed':
+    case 'stream-timeout':
+    case 'stream-result-timeout':
+    case 'stream-wallclock-timeout':
+    case 'stream-fetch-timeout':
+    case 'stream-error':
+    case 'stream-defect':
+    case 'network-unavailable':
+    case 'session-missing':
+    case 'session-not-found':
+    case 'session-load-failed':
+    case 'session-events-load-failed':
+    case 'session-prompt-defect':
+    case 'assistant-round-defect':
+    case 'daemon-defect':
+    case 'timeout':
+      return 'error'
+
+    // ── warn ───────────────────────────────────
+    case 'list-sessions-failed':
+    case 'update-session-meta-failed':
+    case 'delete-session-failed':
+    case 'fork-session-load-failed':
+    case 'fork-session-events-failed':
+    case 'fork-session-upsert-failed':
+    case 'fork-session-append-failed':
+    case 'tool-round-limit-exceeded':
+    case 'tool-use-without-calls':
+    case 'tool-execution-failed':
+    case 'tool-not-found':
+    case 'tool-name-unresolved':
+    case 'tool-timeout':
+    case 'model-catalog-failed':
+    case 'model-resolution-failed':
+    case 'compaction-failed':
+      return 'warn'
+
+    // ── info ───────────────────────────────────
+    case 'aborted':
+      return 'info'
+
+    // ── silent (internal diagnostics) ──────────
+    case 'decode-session-index-failed':
+    case 'invalid-raw-event':
+    case 'invalid-session-file':
+    case 'provider-marker-decode-failed':
+    case 'adapter-invalid-text-delta':
+    case 'adapter-invalid-thinking-delta':
+    case 'adapter-noop-diagnostic':
+    case 'invalid-text-delta':
+    case 'invalid-thinking-delta':
+    case 'invalid-toolcall-delta':
+      return 'silent'
+
+    default:
+      return 'error'
+  }
 }
 
 /**
