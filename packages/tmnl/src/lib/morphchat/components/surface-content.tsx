@@ -184,12 +184,7 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
             </motion.div>
           )}
 
-          {/* ── Band 2: Status toasts (card stack) ────── */}
-          <div key="band-status" className="px-3 py-1 overflow-visible">
-            <StatusBannerView />
-          </div>
-
-          {/* ── Band 3: Thread ───────────────────────── */}
+          {/* ── Band 2+3: Status toasts overlay thread ─ */}
           {showThread && (
             <motion.div
               key="band-thread"
@@ -199,8 +194,14 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
               animate={enterAnim}
               exit={exitAnim}
               transition={stagger(bandIndex++)}
-              className="flex-1 min-h-0 flex flex-col"
+              className="flex-1 min-h-0 flex flex-col relative"
             >
+              {/* Status toasts — absolute overlay, no layout shift */}
+              <div className="absolute inset-x-0 top-0 z-10 px-3 py-1 pointer-events-none">
+                <div className="pointer-events-auto">
+                  <StatusBannerView />
+                </div>
+              </div>
               <ThreadView />
             </motion.div>
           )}
