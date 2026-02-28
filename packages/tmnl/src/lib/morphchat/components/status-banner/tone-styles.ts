@@ -1,14 +1,15 @@
 /**
  * Tone styling — visual treatment per severity level.
  *
- * Vantablack base with tone-tinted borders. No backdrop-blur (compact mode).
- * Solid backgrounds so stacked cards never bleed through each other.
+ * Consumes severity from the canonical harness error-codes registry.
+ * No duplicate severity mapping here.
  *
  * @module morphchat/components/status-banner/tone-styles
  */
 
 import { Info, AlertTriangle, XCircle } from 'lucide-react'
 import type { BannerTone } from './types'
+import { severityOf } from '@/lib/harness/error-codes'
 
 // ─── Per-tone visual config ──────────────────────────────────────────────────
 
@@ -45,21 +46,15 @@ export const TONE_BG: Record<BannerTone, string> = {
   error: 'rgba(10, 3, 3, 0.95)',
 }
 
-// ─── Error code → tone ───────────────────────────────────────────────────────
+// ─── Error code → tone (delegates to harness/error-codes) ────────────────────
 
-const ERROR_SEVERITY: Record<string, BannerTone> = {
-  'pi-ai-stream-init-failed': 'error',
-  'pi-ai-stream-failed': 'error',
-  'stream-timeout': 'error',
-  'stream-result-timeout': 'error',
-  'pi-ai-stream-result-failed': 'error',
-  'session-missing': 'error',
-  'stream-error': 'error',
-  'tool-round-limit-exceeded': 'warn',
-  'tool-use-without-calls': 'warn',
-  'model-catalog-failed': 'warn',
-}
-
+/**
+ * Map an error code to a banner tone.
+ * Delegates to the canonical severity registry in harness/error-codes.
+ * 'silent' severity maps to 'info' (caller should filter with isBannerVisible).
+ */
 export function toneForCode(code: string): BannerTone {
-  return ERROR_SEVERITY[code] ?? 'error'
+  const severity = severityOf(code)
+  if (severity === 'silent') return 'info'
+  return severity
 }

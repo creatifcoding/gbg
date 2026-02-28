@@ -1,4 +1,5 @@
 import { Schema } from 'effect'
+import { HarnessErrorCode } from './error-codes'
 
 // Local harness domain model (standalone rewrite lane)
 
@@ -304,7 +305,7 @@ export const HarnessProviderMarkerEvent = Schema.TaggedStruct('chat:v2/provider_
 
 export const HarnessErrorEvent = Schema.TaggedStruct('chat:v2/error', {
   ...HarnessEventBase,
-  code: Schema.String,
+  code: HarnessErrorCode,
   message: Schema.String,
 })
 

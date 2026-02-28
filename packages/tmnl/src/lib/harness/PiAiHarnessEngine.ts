@@ -1,7 +1,7 @@
 import { type Context as PiAiContext, type Message as PiAiMessage, type Model as PiAiModel, type ToolCall as PiAiToolCall, getModel as piAiGetModel } from '@mariozechner/pi-ai'
 import { AuthStorage, ModelRegistry } from '@mariozechner/pi-coding-agent'
 import { nanoid } from 'nanoid'
-import { Context, Duration, Effect, Fiber, HashMap, HashSet, Layer, Option, PubSub, Ref, Schedule, Schema, Stream } from 'effect'
+import { Cause, Context, Duration, Effect, Fiber, HashMap, HashSet, Layer, Option, PubSub, Ref, Schedule, Schema, Stream } from 'effect'
 
 // streamingLatencyProbe: server-side timestamps (_wireAt, _engineAt) are embedded
 // directly in event objects and reconstructed by the browser-side probe instance.
@@ -39,12 +39,13 @@ import {
 import type { HarnessSessionMeta } from './session/schemas'
 import { makeDefaultRegistry, type PromptRegistryShape } from './prompt'
 import { executeCompaction } from './compaction'
+import { HarnessErrorCode } from './error-codes'
 import { PROMPT_CONTEXT_TOOL_NAME, PROMPT_CONTEXT_TOOL_DESCRIPTION, executePromptContextCode, promptContextToolParameters, PROMPT_CONTEXT_API_DOCS } from './prompt/tools/prompt-context-tool'
 
 export class PiAiHarnessEngineError extends Schema.TaggedError<PiAiHarnessEngineError>()(
   'PiAiHarnessEngineError',
   {
-    code: Schema.String,
+    code: HarnessErrorCode,
     message: Schema.String,
     cause: Schema.optionalWith(Schema.Unknown, { as: 'Option' }),
   },
@@ -137,12 +138,66 @@ export interface PiAiHarnessEngineShape {
 
 export const PiAiHarnessEngine = Context.GenericTag<PiAiHarnessEngineShape>('tmnl/harness/PiAiHarnessEngine')
 
-const toEngineError = (code: string, message: string) => (cause: unknown) =>
-  new PiAiHarnessEngineError({
+// ── Network error classification ──────────────────────────────────────────────
+// Detects DNS failures, connection refused, timeout aborts, and generic fetch
+// errors that indicate "no internet" rather than a provider-side issue.
+// These are non-retryable: hammering a dead connection wastes time and confuses users.
+const NETWORK_ERROR_PATTERNS = [
+  'Unable to connect',      // Bun: DNS failure / connection refused
+  'ConnectionRefused',      // Bun: error.code
+  'ECONNREFUSED',           // Node: connection refused
+  'ENOTFOUND',              // Node: DNS lookup failed
+  'ENETUNREACH',            // Node: network unreachable
+  'ETIMEDOUT',              // Node: connection timed out
+  'EAI_AGAIN',              // Node: DNS lookup timed out
+  'fetch failed',           // Node: generic fetch failure
+  'network error',          // Generic
+  'Failed to fetch',        // Browser-style
+] as const
+
+const isNetworkError = (cause: unknown): boolean => {
+  if (!(cause instanceof Error)) return false
+  const msg = cause.message ?? ''
+  const code = (cause as any).code ?? ''
+  // Match on message content or error code — NOT DOMException AbortError,
+  // which could be user-initiated cancellation vs network timeout.
+  return NETWORK_ERROR_PATTERNS.some(
+    (pattern) => msg.includes(pattern) || code.includes(pattern),
+  )
+}
+
+const isFetchTimeout = (cause: unknown): boolean => {
+  if (!(cause instanceof Error)) return false
+  const msg = cause.message ?? ''
+  return msg.includes('Fetch-level timeout') ||
+    msg.includes('The operation was aborted') ||
+    msg.includes('The user aborted a request') ||
+    (cause instanceof DOMException && cause.name === 'AbortError')
+}
+
+const toEngineError = (code: string, message: string) => (cause: unknown) => {
+  // Classify network errors with a specific code so retry logic can skip them
+  if (isNetworkError(cause)) {
+    return new PiAiHarnessEngineError({
+      code: 'network-unavailable',
+      message: `Network unavailable: ${cause instanceof Error ? cause.message : String(cause)}`,
+      cause: Option.some(cause),
+    })
+  }
+  // Classify fetch-level timeouts (AbortController fired before any response)
+  if (isFetchTimeout(cause)) {
+    return new PiAiHarnessEngineError({
+      code: 'stream-fetch-timeout',
+      message: `LLM API request timed out: ${cause instanceof Error ? cause.message : String(cause)}`,
+      cause: Option.some(cause),
+    })
+  }
+  return new PiAiHarnessEngineError({
     code,
     message,
     cause: Option.some(cause),
   })
+}
 
 const extractAssistantText = (message: PiAiMessage): string => {
   if (message.role !== 'assistant') return ''
@@ -416,6 +471,23 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
             (controller) => Effect.sync(() => controller.abort()),
           )
 
+          // ── Fetch-level timeout: abort the underlying HTTP request ──────
+          // Effect.timeoutFail can't interrupt blocked Promises (fetch inside
+          // streamSimple). This timer aborts the AbortController, which cancels
+          // the fetch and unblocks the async iterable. The wall-clock timeout
+          // is defense-in-depth for anything that escapes this.
+          const fetchTimeoutMs = policy.config.requestTimeoutMs
+          const fetchTimer = setTimeout(() => {
+            if (!abortController.signal.aborted) {
+              abortController.abort(new Error(
+                `Fetch-level timeout: no response from LLM API after ${fetchTimeoutMs}ms`,
+              ))
+            }
+          }, fetchTimeoutMs)
+          yield* Effect.addFinalizer(() =>
+            Effect.sync(() => clearTimeout(fetchTimer)),
+          )
+
           yield* Ref.update(sessionsRef, (current) =>
             Option.match(HashMap.get(current, sessionId), {
               onNone: () => current,
@@ -437,6 +509,9 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
 
           const runAssistantRound = (round: number): Effect.Effect<void, PiAiHarnessEngineError> =>
             Effect.gen(function* () {
+              yield* Effect.logInfo('engine.assistant-round.start').pipe(
+                Effect.annotateLogs({ sessionId, round }),
+              )
               if (round >= toolRuntime.maxToolRounds) {
                 yield* appendEvent(sessionId, (seq, s) =>
                   HarnessErrorEvent.make({
@@ -473,6 +548,16 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
               )
 
               const session = yield* withSession(sessionId, Effect.succeed)
+              yield* Effect.logInfo('engine.assistant-round.stream-options.start').pipe(
+                Effect.annotateLogs({
+                  sessionId,
+                  round,
+                  model: session.model.id,
+                  provider: session.model.provider,
+                  api: session.model.api,
+                }),
+              )
+              const streamOptionsStartMs = Date.now()
               const streamOptions = yield* policy.makeStreamOptions({
                 thinkingLevel,
                 sessionId,
@@ -482,6 +567,12 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                 providerOverride: session.model.provider,
                 supportsReasoning: session.model.reasoning,
               })
+              yield* Effect.logInfo('engine.assistant-round.stream-options.done').pipe(
+                Effect.annotateLogs({
+                  sessionId,
+                  elapsedMs: Date.now() - streamOptionsStartMs,
+                }),
+              )
 
               // EPOCH-0003: Per-turn prompt rebuild from session registry
               // If registry exists, rebuild system prompt (picks up agent self-modifications).
@@ -499,6 +590,16 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                   )
                 : session.context
 
+              yield* Effect.logInfo('engine.assistant-round.stream.create').pipe(
+                Effect.annotateLogs({
+                  sessionId,
+                  model: session.model.id,
+                  provider: session.model.provider,
+                  contextMessages: resolvedContext.messages.length,
+                  hasTools: (resolvedContext.tools?.length ?? 0) > 0,
+                }),
+              )
+              const streamCreateAtMs = Date.now()
               const stream = yield* Effect.try({
                 try: () => streamClient.stream(session.model, resolvedContext, streamOptions),
                 catch: (cause) =>
@@ -511,6 +612,14 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                   }),
               })
 
+              yield* Effect.logInfo('engine.assistant-round.stream.consume-start').pipe(
+                Effect.annotateLogs({
+                  sessionId,
+                  streamCreateElapsedMs: Date.now() - streamCreateAtMs,
+                }),
+              )
+              let streamEventCount = 0
+              const streamConsumeStartMs = Date.now()
               yield* Stream.fromAsyncIterable(
                 stream,
                 toEngineError('pi-ai-stream-failed', `pi-ai stream failed for session ${sessionId}`),
@@ -519,6 +628,16 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                   Effect.gen(function* () {
                     // ── Latency probe: stamp SSE arrival time ──
                     const _wireAt = Date.now()
+                    streamEventCount++
+                    if (streamEventCount === 1) {
+                      yield* Effect.logInfo('engine.assistant-round.stream.first-event').pipe(
+                        Effect.annotateLogs({
+                          sessionId,
+                          eventType: (event as any)?.type ?? 'unknown',
+                          firstEventLatencyMs: _wireAt - streamConsumeStartMs,
+                        }),
+                      )
+                    }
 
                     // ── Fast-path classification: check raw event type string ──
                     // Skip Schema.decode, skip toProviderMarker, skip appendEvent.
@@ -705,20 +824,84 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                       return yield* Effect.void
                   }),
                 ),
-                // Inactivity timeout: resets on every stream element.
-                // A long-running stream that's actively emitting tokens will
-                // never hit this. Only fires when the stream goes SILENT for
-                // the full duration (e.g. provider stall, network drop).
-                Stream.timeoutFail({
-                  duration: policy.config.requestTimeoutMs,
-                  onTimeout: () =>
+                // Per-element inactivity timeout (correct positional API: error, duration).
+                // Fires when the stream goes SILENT for the full duration.
+                Stream.timeoutFail(
+                  () =>
                     new PiAiHarnessEngineError({
                       code: 'stream-timeout',
                       message: `pi-ai stream timed out after ${policy.config.requestTimeoutMs}ms of inactivity (round ${round + 1})`,
                       cause: Option.none(),
                     }),
-                }),
+                  policy.config.requestTimeoutMs,
+                ),
                 Stream.runDrain,
+              ).pipe(
+                // Wall-clock defense-in-depth: if Stream.timeoutFail doesn't fire
+                // (e.g. blocked in fromAsyncIterable's first pull), this catches it.
+                // Extra 30s headroom lets the per-element timeout fire first if it can.
+                Effect.timeoutFail({
+                  duration: policy.config.requestTimeoutMs + 30_000,
+                  onTimeout: () =>
+                    new PiAiHarnessEngineError({
+                      code: 'stream-wallclock-timeout',
+                      message: `pi-ai stream wall-clock timeout after ${policy.config.requestTimeoutMs + 30_000}ms (round ${round + 1}). Stream never yielded or was blocked.`,
+                      cause: Option.none(),
+                    }),
+                }),
+                Effect.tap(() =>
+                  Effect.logInfo('engine.assistant-round.stream.consume-done').pipe(
+                    Effect.annotateLogs({
+                      sessionId,
+                      round,
+                      totalEvents: streamEventCount,
+                      totalMs: Date.now() - streamConsumeStartMs,
+                    }),
+                  ),
+                ),
+                Effect.tapError((err) =>
+                  Effect.logWarning('engine.assistant-round.stream.failed').pipe(
+                    Effect.annotateLogs({
+                      sessionId,
+                      round,
+                      errorCode: err.code,
+                      errorMessage: err.message,
+                      eventsBeforeFailure: streamEventCount,
+                      elapsedMs: Date.now() - streamConsumeStartMs,
+                    }),
+                  ),
+                ),
+                // Catch defects from stream-internal fibers (e.g. Option.None → NoSuchElementException)
+                Effect.catchAllDefect((defect) => {
+                  const defectStr = defect instanceof Error
+                    ? `${defect.constructor?.name ?? 'Error'}: ${defect.message}`
+                    : typeof defect === 'object' && defect !== null
+                      ? JSON.stringify(defect).substring(0, 500)
+                      : String(defect)
+                  return Effect.logError('engine.assistant-round.stream.DEFECT').pipe(
+                    Effect.annotateLogs({
+                      sessionId,
+                      round,
+                      defect: defectStr,
+                      defectStack: defect instanceof Error ? (defect.stack ?? '').substring(0, 800) : 'no-stack',
+                      eventsBeforeDefect: streamEventCount,
+                      elapsedMs: Date.now() - streamConsumeStartMs,
+                    }),
+                    Effect.zipRight(
+                      Effect.fail(
+                        new PiAiHarnessEngineError({
+                          code: 'stream-defect',
+                          message: `Stream pipeline defect: ${defectStr}`,
+                          cause: Option.some(defect),
+                        }),
+                      ),
+                    ),
+                  )
+                }),
+              )
+
+              yield* Effect.logInfo('engine.assistant-round.post-stream.start').pipe(
+                Effect.annotateLogs({ sessionId, round, totalEvents: streamEventCount }),
               )
 
               const finalMessage = yield* Effect.tryPromise({
@@ -733,6 +916,17 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                       message: `pi-ai stream result timed out after ${policy.config.requestTimeoutMs}ms (round ${round + 1})`,
                       cause: Option.none(),
                     }),
+                }),
+              )
+
+              yield* Effect.logInfo('engine.assistant-round.post-stream.finalMessage').pipe(
+                Effect.annotateLogs({
+                  sessionId,
+                  round,
+                  stopReason: finalMessage.stopReason,
+                  usageInput: finalMessage.usage.input,
+                  usageOutput: finalMessage.usage.output,
+                  textLength: extractAssistantText(finalMessage).length,
                 }),
               )
 
@@ -1202,15 +1396,65 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
                 )
               }
             }).pipe(
+              // Catch typed errors
+              Effect.tapErrorCause((cause) =>
+                Effect.logError('engine.assistant-round.typed-failure').pipe(
+                  Effect.annotateLogs({
+                    sessionId,
+                    round,
+                    causeType: Cause.isFailType(cause) ? 'fail' : Cause.isDieType(cause) ? 'die' : 'other',
+                    prettyError: Cause.pretty(cause).substring(0, 500),
+                  }),
+                ),
+              ),
+              // Catch defects (e.g. Option.None yielded in Effect.gen → NoSuchElementException)
+              Effect.catchAllDefect((defect) =>
+                Effect.gen(function* () {
+                  const defectStr = defect instanceof Error
+                    ? defect.message
+                    : typeof defect === 'object' && defect !== null
+                      ? JSON.stringify(defect).substring(0, 300)
+                      : String(defect)
+                  yield* Effect.logError('engine.assistant-round.DEFECT').pipe(
+                    Effect.annotateLogs({
+                      sessionId,
+                      round,
+                      defect: defectStr,
+                      defectStack: defect instanceof Error ? (defect.stack ?? '').substring(0, 500) : 'no-stack',
+                    }),
+                  )
+                  return yield* Effect.fail(
+                    new PiAiHarnessEngineError({
+                      code: 'assistant-round-defect',
+                      message: `Assistant round defect: ${defectStr}`,
+                      cause: Option.some(defect),
+                    }),
+                  )
+                }),
+              ),
               Effect.withSpan('tmnl.harness.engine.assistant-round'),
             )
 
-          // Only stream-result-timeout is retryable with backoff.
-          // tool-use-without-calls gets one retry inside runAssistantRound.
-          // Everything else surfaces immediately.
+          // ── Retry discipline ──────────────────────────────────────────────
+          // Only transient failures are retryable. Network-down is NOT transient:
+          // no point hammering a dead connection. Tool-use-without-calls gets one
+          // retry inside runAssistantRound (not here).
+          const NON_RETRYABLE_CODES = new Set([
+            'network-unavailable',          // No internet — stop immediately
+            'assistant-round-defect',       // Code bug — retry won't help
+            'stream-defect',                // Code bug — retry won't help
+            'daemon-defect',                // Code bug — retry won't help
+            'pi-ai-stream-init-failed',     // Stream constructor threw — structural
+            'tool-use-without-calls',       // Handled internally with 1 retry
+          ])
+
           const isRetryable = (error: PiAiHarnessEngineError) =>
-            error.code === 'stream-result-timeout' ||
-            error.code === 'pi-ai-stream-result-failed'
+            !NON_RETRYABLE_CODES.has(error.code) && (
+              error.code === 'stream-result-timeout' ||
+              error.code === 'pi-ai-stream-result-failed' ||
+              error.code === 'stream-wallclock-timeout' ||
+              error.code === 'stream-fetch-timeout'       // Transient: may succeed on retry
+            )
 
           const retrySchedule = Schedule.intersect(
             Schedule.recurs(policy.config.retryCount),
@@ -1218,6 +1462,15 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
           )
 
           yield* runAssistantRound(0).pipe(
+            Effect.tapError((error) =>
+              isRetryable(error)
+                ? Effect.logWarning('engine.run-session-prompt.retrying').pipe(
+                    Effect.annotateLogs({ sessionId, code: error.code, message: error.message.substring(0, 200) }),
+                  )
+                : Effect.logInfo('engine.run-session-prompt.not-retryable').pipe(
+                    Effect.annotateLogs({ sessionId, code: error.code, reason: NON_RETRYABLE_CODES.has(error.code) ? 'non-retryable-code' : 'not-in-retryable-set' }),
+                  ),
+            ),
             Effect.retry({
               schedule: retrySchedule,
               while: isRetryable,
@@ -1225,17 +1478,76 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
           )
         }),
       ).pipe(
-        Effect.catchAll((error) =>
-          appendEvent(sessionId, (seq, s) =>
-            HarnessErrorEvent.make({
-              sessionId: s.sessionId,
-              seq,
-              at: Date.now(),
-              code: error.code,
-              message: error.message,
+        // catchAllCause: catches typed errors, defects, AND interruptions
+        Effect.catchAllCause((cause) => {
+          // Extract the typed error if present
+          const failOption = Cause.failureOption(cause)
+          const defectOption = Cause.defectOption(cause)
+
+          if (Option.isSome(failOption)) {
+            const error = failOption.value as PiAiHarnessEngineError
+            const isNetwork = error.code === 'network-unavailable'
+
+            return Effect.gen(function* () {
+              if (isNetwork) {
+                yield* Effect.logWarning('engine.run-session-prompt.network-unavailable').pipe(
+                  Effect.annotateLogs({ sessionId, errorMessage: error.message }),
+                )
+              }
+
+              // Emit chat:v2/error — the event processor sets streaming$ = IDLE,
+              // marks any streaming message as error, and shows the error in status rows.
+              yield* appendEvent(sessionId, (seq, s) =>
+                HarnessErrorEvent.make({
+                  sessionId: s.sessionId,
+                  seq,
+                  at: Date.now(),
+                  code: error.code ?? 'unknown-error',
+                  message: isNetwork
+                    ? 'Network unavailable — check your internet connection and try again.'
+                    : (error.message ?? Cause.pretty(cause).substring(0, 500)),
+                }),
+              )
+            })
+          }
+
+          if (Option.isSome(defectOption)) {
+            const defect = defectOption.value
+            const defectStr = defect instanceof Error
+              ? `${defect.constructor?.name}: ${defect.message}`
+              : typeof defect === 'object' && defect !== null
+                ? JSON.stringify(defect).substring(0, 300)
+                : String(defect)
+
+            return Effect.logError('engine.run-session-prompt.DEFECT-CAUGHT').pipe(
+              Effect.annotateLogs({
+                sessionId,
+                defect: defectStr,
+                defectStack: defect instanceof Error ? (defect.stack ?? '').substring(0, 500) : 'no-stack',
+                prettyCause: Cause.pretty(cause).substring(0, 500),
+              }),
+              Effect.zipRight(
+                appendEvent(sessionId, (seq, s) =>
+                  HarnessErrorEvent.make({
+                    sessionId: s.sessionId,
+                    seq,
+                    at: Date.now(),
+                    code: 'session-prompt-defect',
+                    message: `Defect in session prompt: ${defectStr}`,
+                  }),
+                ),
+              ),
+            )
+          }
+
+          // Interruption or other cause
+          return Effect.logWarning('engine.run-session-prompt.interrupted').pipe(
+            Effect.annotateLogs({
+              sessionId,
+              prettyCause: Cause.pretty(cause).substring(0, 300),
             }),
-          ),
-        ),
+          )
+        }),
         Effect.ensuring(clearActiveState),
         Effect.withSpan('tmnl.harness.engine.run-session-prompt'),
       )
@@ -1455,6 +1767,33 @@ export const PiAiHarnessEngineCoreLive = Layer.effect(
 
           const runFiber = yield* Effect.forkDaemon(
             streamSemaphore.withPermits(1)(runSessionPrompt(sessionId, text, thinkingLevel)).pipe(
+              // Catch defects (e.g. Option.None → NoSuchElementException) that escape catchAll.
+              // Without this, daemon fibers silently crash with "Fiber terminated with unhandled error".
+              Effect.catchAllDefect((defect) => {
+                const defectStr = defect instanceof Error
+                  ? defect.message
+                  : typeof defect === 'object' && defect !== null
+                    ? JSON.stringify(defect).substring(0, 300)
+                    : String(defect)
+                return Effect.logError('engine.daemon.DEFECT').pipe(
+                  Effect.annotateLogs({
+                    sessionId,
+                    defect: defectStr,
+                    defectStack: defect instanceof Error ? (defect.stack ?? '').substring(0, 500) : 'no-stack',
+                  }),
+                  Effect.zipRight(
+                    appendEvent(sessionId, (seq, s) =>
+                      HarnessErrorEvent.make({
+                        sessionId: s.sessionId,
+                        seq,
+                        at: Date.now(),
+                        code: 'daemon-defect',
+                        message: `Daemon fiber defect: ${defectStr}`,
+                      }),
+                    ),
+                  ),
+                )
+              }),
               Effect.ensuring(
                 Ref.update(activeRunsRef, HashMap.remove(sessionId)),
               ),

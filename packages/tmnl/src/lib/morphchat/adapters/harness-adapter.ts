@@ -56,6 +56,7 @@ import type {
   HarnessRole,
 } from '@/lib/harness/schemas'
 import { createExtensionToolBridge, type ExtensionToolBridgeShape } from '@/lib/chat/msg/tool-block/renderers/extension-tool-bridge'
+import type { HarnessErrorCode } from '@/lib/harness/error-codes'
 
 // =============================================================================
 // Config
@@ -167,7 +168,7 @@ export function createHarnessAdapter(config: HarnessAdapterConfig): MorphChatAda
   morphChatRegistry.mount(inlineTasks$)
 
   /** Last operational (non-fatal) error from the engine. Null when clear. */
-  const lastError$ = Atom.make<{ code: string; message: string; at: number } | null>(null)
+  const lastError$ = Atom.make<{ code: HarnessErrorCode; message: string; at: number } | null>(null)
   morphChatRegistry.mount(lastError$)
 
   /** Timestamp of last user-initiated cancellation. Null when clear. UI uses this for fading badge. */
@@ -745,7 +746,7 @@ export interface HarnessAdapterExtensions {
   /** Current session ID (null if not connected) */
   readonly sessionId: HarnessSessionId | null
   /** Last operational error atom (null when clear). Subscribe for error banner. */
-  readonly lastError$: typeof Atom.make<{ code: string; message: string; at: number } | null>
+  readonly lastError$: typeof Atom.make<{ code: HarnessErrorCode; message: string; at: number } | null>
   /** Timestamp of last user cancellation (null when clear). Subscribe for fading badge. */
   readonly cancelledAt$: typeof Atom.make<number | null>
   /** Extension tool bridge — register custom renderers or inspect tool catalog. */

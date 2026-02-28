@@ -10,6 +10,7 @@ import { useAtomValue } from '@effect-atom/atom-react'
 import type { StatusRowLike } from '../types'
 import { toneForCode } from '../tone-styles'
 import { parseErrorPayload } from '../parse-error'
+import { isBannerVisible } from '@/lib/harness/error-codes'
 import type { MorphChatAdapter } from '../../adapters/types'
 
 const EMPTY_ROWS = Atom.make<ReadonlyArray<StatusRowLike>>([])
@@ -35,7 +36,7 @@ export function useStatusRows(adapter: MorphChatAdapter): StatusRowsResult {
   const rows = useMemo<ReadonlyArray<StatusRowLike>>(() => {
     if (adapterRows.length > 0) return adapterRows
     const out: StatusRowLike[] = []
-    if (lastError) {
+    if (lastError && isBannerVisible(lastError.code)) {
       out.push({
         id: `last-error-${lastError.code}-${lastError.at}`,
         tone: toneForCode(lastError.code),
