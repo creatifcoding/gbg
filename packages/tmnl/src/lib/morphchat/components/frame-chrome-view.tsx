@@ -1,18 +1,22 @@
 /**
  * Frame Chrome View — Dual-Zone Header Strip (Responsive)
  *
- * Single 28px row with 3 responsive tiers via CSS container queries:
+ * Single 28px row with 3 responsive tiers:
  *
- *   ≥480px (full):    [● capsule] | [model ▾] [agent] [↻] [✕]
- *   380–479px (compact): [● capsule] | [model ▾] [↻] [✕]
+ *   ≥480px (full):       [● capsule] | [model ▾] [agent] [↻] [✕]
+ *   380–479px (compact): [●]         | [model ▾] [↻] [✕]
  *   <380px (minimal):    [●] [model… ▾] [⋯]
  *
- * Progressive shed: agent name → tokenomics hover → zone divider → controls → overflow.
+ * Tier is measured via ResizeObserver on the container.
+ * Progressive shed: capsule mode → agent name → tokenomics → zone divider → controls → overflow.
  *
  * @module morphchat/components/frame-chrome-view
  */
 
-import { useState, useCallback, useRef, type ReactNode, type ComponentPropsWithoutRef } from 'react'
+import {
+  useState, useCallback, useRef, useEffect,
+  type ReactNode, type ComponentPropsWithoutRef,
+} from 'react'
 import { Atom } from '@effect-atom/atom'
 import { useAtomValue } from '@effect-atom/atom-react'
 import { RotateCcw, X, MoreHorizontal } from 'lucide-react'
@@ -20,6 +24,8 @@ import { Effect } from 'effect'
 import { cn } from '@/lib/utils'
 import { useMorphChatContext } from './surface-context'
 import { ConnectionCapsule } from './connection-capsule'
+import { viewModeFamily } from './connection-capsule'
+import { morphChatRegistry } from '../atoms/registry'
 import { ModelSelectorView } from './model-selector-view'
 import type { MockChatAdapter } from '../adapters/mock-adapter'
 import type { ContextUsage } from '../hooks/useHarnessAdapter'
@@ -38,44 +44,35 @@ const ICON_SIZE_SM = 11
 const REVEAL_MS = 200
 const REVEAL_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)'
 
-// ─── Container query breakpoints ─────────────────────────────────────────────
+// ─── Responsive Tiers ────────────────────────────────────────────────────────
 
-/** Injected once into DOM. Defines the responsive tiers. */
-const CONTAINER_STYLES = `
-@container frame-chrome (min-width: 480px) {
-  [data-tier="agent"]     { display: flex !important; }
-  [data-tier="divider"]   { display: block !important; }
-  [data-tier="controls"]  { display: flex !important; }
-  [data-tier="overflow"]  { display: none !important; }
-  [data-tier="left-zone"] { padding-inline: 12px; }
-  [data-tier="right-zone"]{ padding-inline: 12px; gap: 8px; }
-}
-@container frame-chrome (min-width: 380px) and (max-width: 479px) {
-  [data-tier="agent"]     { display: none !important; }
-  [data-tier="divider"]   { display: block !important; }
-  [data-tier="controls"]  { display: flex !important; }
-  [data-tier="overflow"]  { display: none !important; }
-  [data-tier="left-zone"] { padding-inline: 12px; }
-  [data-tier="right-zone"]{ padding-inline: 12px; gap: 6px; }
-}
-@container frame-chrome (max-width: 379px) {
-  [data-tier="agent"]     { display: none !important; }
-  [data-tier="divider"]   { display: none !important; }
-  [data-tier="controls"]  { display: none !important; }
-  [data-tier="overflow"]  { display: flex !important; }
-  [data-tier="left-zone"] { padding-inline: 8px; }
-  [data-tier="right-zone"]{ padding-inline: 8px; gap: 4px; }
-}
-` as const
+type Tier = 'full' | 'compact' | 'minimal'
 
-let stylesInjected = false
-function ensureContainerStyles(): void {
-  if (stylesInjected || typeof document === 'undefined') return
-  const el = document.createElement('style')
-  el.setAttribute('data-frame-chrome', '')
-  el.textContent = CONTAINER_STYLES
-  document.head.appendChild(el)
-  stylesInjected = true
+const TIER_BREAKPOINTS = { full: 480, compact: 380 } as const
+
+function widthToTier(w: number): Tier {
+  if (w >= TIER_BREAKPOINTS.full) return 'full'
+  if (w >= TIER_BREAKPOINTS.compact) return 'compact'
+  return 'minimal'
+}
+
+function useContainerTier(): { ref: React.RefObject<HTMLDivElement | null>; tier: Tier } {
+  const ref = useRef<HTMLDivElement | null>(null)
+  const [tier, setTier] = useState<Tier>('full')
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      if (entry) setTier(widthToTier(entry.contentRect.width))
+    })
+    ro.observe(el)
+    // Initial measurement
+    setTier(widthToTier(el.clientWidth))
+    return () => ro.disconnect()
+  }, [])
+
+  return { ref, tier }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -95,10 +92,9 @@ function contextPercentColor(percent: number): string {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function FrameChromeView() {
-  const { spec, adapter } = useMorphChatContext()
+  const { spec, adapter, surfaceId } = useMorphChatContext()
   const density = useBlockDensity()
-
-  ensureContainerStyles()
+  const { ref: containerRef, tier } = useContainerTier()
 
   // Agent name (duck-typed mock adapter)
   const mockAdapter = adapter as Partial<MockChatAdapter>
@@ -111,10 +107,18 @@ export function FrameChromeView() {
 
   // Left zone hover state — drives progressive disclosure of tokenomics
   const [leftHovered, setLeftHovered] = useState(false)
+  // Tokenomics only at full tier
+  const showTokenomics = tier === 'full' && leftHovered && !!contextUsage
 
   // Overflow menu state (minimal tier)
   const [overflowOpen, setOverflowOpen] = useState(false)
-  const overflowRef = useRef<HTMLDivElement>(null)
+
+  // Force capsule to dot mode when not at full tier
+  useEffect(() => {
+    if (tier !== 'full') {
+      morphChatRegistry.set(viewModeFamily(surfaceId), 'dot')
+    }
+  }, [tier, surfaceId])
 
   // Chrome actions
   const handleReset = useCallback(() => {
@@ -133,9 +137,10 @@ export function FrameChromeView() {
   if (spec.frameChrome === 'minimal') {
     return (
       <div
+        ref={containerRef}
         data-slot="morphchat-frame-chrome"
         className="flex items-center gap-2 px-3 border-b border-neutral-800/30"
-        style={{ height: 28, containerType: 'inline-size', containerName: 'frame-chrome' }}
+        style={{ height: 28 }}
       >
         <ConnectionCapsule />
         <div className="flex-1 flex justify-center min-w-0">
@@ -145,31 +150,40 @@ export function FrameChromeView() {
     )
   }
 
-  // ── Full spec: Dual-Zone Strip (responsive) ───────────────
-  const showAgent = density !== 'compact' && activeAgent && spec.agentSelector !== 'hidden'
+  // ── Derived visibility ────────────────────────────────────
+  const showAgent = tier === 'full' && density !== 'compact' && activeAgent && spec.agentSelector !== 'hidden'
+  const showDivider = tier !== 'minimal'
+  const showControls = tier !== 'minimal'
+  const showOverflow = tier === 'minimal'
+
+  // ── Tier-dependent padding/gap ────────────────────────────
+  const leftPx = tier === 'minimal' ? 'px-2' : 'px-3'
+  const rightPx = tier === 'minimal' ? 'px-2' : 'px-3'
+  const rightGap = tier === 'minimal' ? 'gap-1' : tier === 'compact' ? 'gap-1.5' : 'gap-2'
 
   return (
     <div
+      ref={containerRef}
       data-slot="morphchat-frame-chrome"
+      data-tier={tier}
       className="flex items-center border-b border-neutral-800/30"
-      style={{ height: 28, containerType: 'inline-size', containerName: 'frame-chrome' }}
+      style={{ height: 28 }}
     >
       {/* ── LEFT ZONE: Capsule + tokenomics ────────────────── */}
       <div
-        data-tier="left-zone"
-        className="flex items-center gap-0 shrink-0 px-3"
+        className={cn('flex items-center gap-0 shrink-0', leftPx)}
         onMouseEnter={() => setLeftHovered(true)}
         onMouseLeave={() => setLeftHovered(false)}
       >
         <ConnectionCapsule />
 
-        {/* Tokenomics — disabled at compact/minimal, revealed on hover at full */}
+        {/* Tokenomics — only at full tier, revealed on hover */}
         {contextUsage && (
           <div
             className="flex items-center overflow-hidden"
             style={{
-              maxWidth: leftHovered ? 260 : 0,
-              opacity: leftHovered ? 1 : 0,
+              maxWidth: showTokenomics ? 260 : 0,
+              opacity: showTokenomics ? 1 : 0,
               transition: [
                 `max-width ${REVEAL_MS}ms ${REVEAL_EASE}`,
                 `opacity ${REVEAL_MS}ms ${REVEAL_EASE}`,
@@ -180,7 +194,7 @@ export function FrameChromeView() {
               className="w-px self-stretch my-1 shrink-0 ml-2"
               style={{
                 background: 'rgba(52,211,153,0.1)',
-                opacity: leftHovered ? 1 : 0,
+                opacity: showTokenomics ? 1 : 0,
                 transition: `opacity ${REVEAL_MS}ms ${REVEAL_EASE}`,
               }}
             />
@@ -211,89 +225,74 @@ export function FrameChromeView() {
       </div>
 
       {/* ── DIVIDER (hidden at minimal) ───────────────────── */}
-      <div
-        data-tier="divider"
-        className="w-px self-stretch my-1.5 bg-white/[0.06] shrink-0"
-      />
+      {showDivider && (
+        <div className="w-px self-stretch my-1.5 bg-white/[0.06] shrink-0" />
+      )}
 
       {/* ── RIGHT ZONE: Model + agent + controls ──────────── */}
-      <div
-        data-tier="right-zone"
-        className="group/right flex items-center gap-2 px-3 flex-1 justify-end min-w-0"
-      >
-        {/* Model selector — flush text, no border/bg */}
+      <div className={cn('group/right flex items-center flex-1 justify-end min-w-0', rightPx, rightGap)}>
+        {/* Model selector */}
         <div className="flex-1 flex justify-end min-w-0">
           <ModelSelectorView />
         </div>
 
-        {/* Agent name — shed at compact (hidden by container query) */}
+        {/* Agent name — full tier only */}
         {showAgent && (
           <span
-            data-tier="agent"
             className="font-mono shrink-0 text-neutral-700 group-hover/right:text-neutral-500 transition-colors duration-150"
-            style={{ fontSize: 'var(--tmnl-text-xs, 12px)', display: 'none' }}
+            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
           >
             {activeAgent.name}
           </span>
         )}
 
-        {/* Chrome controls — shed at minimal (hidden by container query) */}
-        <div
-          data-tier="controls"
-          className="flex items-center gap-0.5 shrink-0"
-          style={{ display: 'none' }}
-        >
-          <ChromeButton onClick={handleReset} aria-label="Reset session">
-            <RotateCcw size={ICON_SIZE} strokeWidth={ICON_STROKE} />
-          </ChromeButton>
-          <ChromeButton onClick={handleClose} aria-label="Close">
-            <X size={ICON_SIZE} strokeWidth={ICON_STROKE} />
-          </ChromeButton>
-        </div>
+        {/* Chrome controls — full + compact tiers */}
+        {showControls && (
+          <div className="flex items-center gap-0.5 shrink-0">
+            <ChromeButton onClick={handleReset} aria-label="Reset session">
+              <RotateCcw size={ICON_SIZE} strokeWidth={ICON_STROKE} />
+            </ChromeButton>
+            <ChromeButton onClick={handleClose} aria-label="Close">
+              <X size={ICON_SIZE} strokeWidth={ICON_STROKE} />
+            </ChromeButton>
+          </div>
+        )}
 
-        {/* Overflow menu — visible at minimal only */}
-        <div
-          data-tier="overflow"
-          className="relative shrink-0"
-          style={{ display: 'none' }}
-          ref={overflowRef}
-        >
-          <ChromeButton
-            onClick={() => setOverflowOpen(prev => !prev)}
-            aria-label="More actions"
-          >
-            <MoreHorizontal size={ICON_SIZE_SM} strokeWidth={ICON_STROKE} />
-          </ChromeButton>
+        {/* Overflow menu — minimal tier only */}
+        {showOverflow && (
+          <div className="relative shrink-0">
+            <ChromeButton
+              onClick={() => setOverflowOpen(prev => !prev)}
+              aria-label="More actions"
+            >
+              <MoreHorizontal size={ICON_SIZE_SM} strokeWidth={ICON_STROKE} />
+            </ChromeButton>
 
-          {overflowOpen && (
-            <>
-              {/* Backdrop */}
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setOverflowOpen(false)}
-              />
-              {/* Menu */}
-              <div
-                className="absolute right-0 top-full mt-1 z-50 rounded-[4px] border border-white/[0.06] py-1"
-                style={{
-                  background: 'rgba(2,2,4,0.98)',
-                  backdropFilter: 'blur(20px)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-                  minWidth: 120,
-                }}
-              >
-                <OverflowItem onClick={() => { handleReset(); setOverflowOpen(false) }}>
-                  <RotateCcw size={ICON_SIZE_SM} strokeWidth={ICON_STROKE} />
-                  <span>Reset</span>
-                </OverflowItem>
-                <OverflowItem onClick={() => { handleClose(); setOverflowOpen(false) }}>
-                  <X size={ICON_SIZE_SM} strokeWidth={ICON_STROKE} />
-                  <span>Close</span>
-                </OverflowItem>
-              </div>
-            </>
-          )}
-        </div>
+            {overflowOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setOverflowOpen(false)} />
+                <div
+                  className="absolute right-0 top-full mt-1 z-50 rounded-[4px] border border-white/[0.06] py-1"
+                  style={{
+                    background: 'rgba(2,2,4,0.98)',
+                    backdropFilter: 'blur(20px)',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                    minWidth: 120,
+                  }}
+                >
+                  <OverflowItem onClick={() => { handleReset(); setOverflowOpen(false) }}>
+                    <RotateCcw size={ICON_SIZE_SM} strokeWidth={ICON_STROKE} />
+                    <span>Reset</span>
+                  </OverflowItem>
+                  <OverflowItem onClick={() => { handleClose(); setOverflowOpen(false) }}>
+                    <X size={ICON_SIZE_SM} strokeWidth={ICON_STROKE} />
+                    <span>Close</span>
+                  </OverflowItem>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -301,7 +300,7 @@ export function FrameChromeView() {
 
 FrameChromeView.displayName = 'MorphChat.FrameChromeView'
 
-// ─── Chrome Button — ghost at rest, visible on zone hover ────────────────────
+// ─── Chrome Button ───────────────────────────────────────────────────────────
 
 interface ChromeButtonProps extends ComponentPropsWithoutRef<'button'> {
   children: ReactNode
