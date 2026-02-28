@@ -1,0 +1,137 @@
+[
+  {
+    "id": "dl-001",
+    "query": "What happened with the Jido agent framework research on February 24th?",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {"semantic_search": ["contains_keyword:Jido", "contains_keyword:Feb"]},
+      "should_not_call": ["find_connections"]
+    }
+  },
+  {
+    "id": "dl-002",
+    "query": "Find all notes about OAuth integration with Anthropic",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {"semantic_search": ["contains_keyword:OAuth"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "dl-003",
+    "query": "What do we know about the alarm FSM contract?",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {"semantic_search": ["contains_keyword:alarm"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "dl-004",
+    "query": "Show me the research directives that were formalized",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {"semantic_search": ["contains_keyword:research directive"]},
+      "should_not_call": ["summarize"]
+    }
+  },
+  {
+    "id": "dl-005",
+    "query": "What is the order domain's current status?",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {"semantic_search": ["contains_keyword:order"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "dl-006",
+    "query": "Find tasks related to the ReAct strategy spike",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {"semantic_search": ["contains_keyword:ReAct"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "dl-007",
+    "query": "What entities mention PiAuthModelAdapter?",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {"semantic_search": ["contains_keyword:PiAuth"]},
+      "should_not_call": ["find_connections"]
+    }
+  },
+  {
+    "id": "dl-008",
+    "query": "List all events from February 26th",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {"semantic_search": ["contains_keyword:Feb 26"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "dl-009",
+    "query": "What notes exist about the SignalFsm pattern?",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {"semantic_search": ["contains_keyword:SignalFsm"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "dl-010",
+    "query": "Find information about the Maidens contract fabric",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {"semantic_search": ["contains_keyword:Maiden"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "dl-011",
+    "query": "What cards discuss Jido's deliberative strategies?",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {"semantic_search": ["contains_keyword:deliberative"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "dl-012",
+    "query": "Find the live provider test results",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {"semantic_search": ["contains_keyword:live provider"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "dl-013",
+    "query": "What do we know about the workcell runtime?",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {"semantic_search": ["contains_keyword:workcell"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "dl-014",
+    "query": "Find notes about AVA NATS integration",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {"semantic_search": ["contains_keyword:AVA"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "dl-015",
+    "query": "What is known about the site domain contract?",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {"semantic_search": ["contains_keyword:site"]},
+      "should_not_call": []
+    }
+  }
+]

@@ -1,0 +1,92 @@
+[
+  {
+    "id": "mh-001",
+    "query": "Find everything about Jido's agent architecture, then summarize the key patterns, and show how they connect to the Maidens boundary design",
+    "gold": {
+      "tool_sequence": ["semantic_search", "summarize", "find_connections"],
+      "param_shapes": {"semantic_search": ["contains_keyword:Jido"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "mh-002",
+    "query": "Search for OAuth integration notes, find what connects to them, and give me a brief overview",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:OAuth"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "mh-003",
+    "query": "Look up the alarm domain, find its connections to the order domain, then summarize the relationship",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:alarm"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "mh-004",
+    "query": "What do we know about sensors? Find any related entities and summarize the full picture.",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:sensor"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "mh-005",
+    "query": "Find the research directives, trace connections between them, and compile the dependencies into a brief",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:research directive"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "mh-006",
+    "query": "Search for notes from February 25th, discover what connects to those notes, and give me a narrative overview",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:Feb 25"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "mh-007",
+    "query": "What entities mention the workcell domain? Find their connections and summarize the network.",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:workcell"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "mh-008",
+    "query": "Look up everything about Melanie's tools, then find connections to the ReAct strategy, and brief me on the integration status",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:Melanie"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "mh-009",
+    "query": "Find notes about the enterprise runtime, search for connected entities, summarize the architecture",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:enterprise"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "mh-010",
+    "query": "Search for the site persistence work, discover related patterns, and give me the executive summary",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:site"]},
+      "should_not_call": []
+    }
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "name": "scaled_15",
+  "description": "All available tools — tests tool selection at scale (15 tools, near confusion threshold)",
+  "tool_count": 15,
+  "tools": [
+    "semantic_search",
+    "summarize",
+    "find_connections",
+    "timeline_query",
+    "entity_lookup",
+    "keyword_search",
+    "topic_summary",
+    "graph_traverse",
+    "semantic_search_minimal",
+    "semantic_search_rich",
+    "summarize_minimal",
+    "summarize_rich",
+    "find_connections_minimal",
+    "find_connections_rich",
+    "keyword_search"
+  ],
+  "note": "Includes variant modules as separate tools — the model must pick the right base tool"
+}

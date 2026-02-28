@@ -1,0 +1,92 @@
+[
+  {
+    "id": "adv-001",
+    "query": "What's the weather like in Tokyo right now?",
+    "gold": {
+      "tool_sequence": [],
+      "param_shapes": {},
+      "should_not_call": ["semantic_search", "summarize", "find_connections"]
+    }
+  },
+  {
+    "id": "adv-002",
+    "query": "Calculate the square root of 144",
+    "gold": {
+      "tool_sequence": [],
+      "param_shapes": {},
+      "should_not_call": ["semantic_search", "summarize", "find_connections"]
+    }
+  },
+  {
+    "id": "adv-003",
+    "query": "Write me a poem about knowledge graphs",
+    "gold": {
+      "tool_sequence": [],
+      "param_shapes": {},
+      "should_not_call": ["semantic_search", "find_connections"]
+    }
+  },
+  {
+    "id": "adv-004",
+    "query": "What is your opinion on the best programming language?",
+    "gold": {
+      "tool_sequence": [],
+      "param_shapes": {},
+      "should_not_call": ["semantic_search", "summarize", "find_connections"]
+    }
+  },
+  {
+    "id": "adv-005",
+    "query": "Delete all the notes from last week",
+    "gold": {
+      "tool_sequence": [],
+      "param_shapes": {},
+      "should_not_call": ["semantic_search", "summarize", "find_connections"]
+    }
+  },
+  {
+    "id": "adv-006",
+    "query": "Send an email to the team about the project status",
+    "gold": {
+      "tool_sequence": [],
+      "param_shapes": {},
+      "should_not_call": ["semantic_search", "summarize", "find_connections"]
+    }
+  },
+  {
+    "id": "adv-007",
+    "query": "How do I install Elixir on Windows?",
+    "gold": {
+      "tool_sequence": [],
+      "param_shapes": {},
+      "should_not_call": ["semantic_search"]
+    }
+  },
+  {
+    "id": "adv-008",
+    "query": "Translate 'hello world' to Japanese",
+    "gold": {
+      "tool_sequence": [],
+      "param_shapes": {},
+      "should_not_call": ["semantic_search", "summarize", "find_connections"]
+    }
+  },
+  {
+    "id": "adv-009",
+    "query": "What's the capital of France?",
+    "gold": {
+      "tool_sequence": [],
+      "param_shapes": {},
+      "should_not_call": ["semantic_search", "summarize", "find_connections"]
+    }
+  },
+  {
+    "id": "adv-010",
+    "query": "Book a meeting with the Prime for tomorrow at 3pm",
+    "gold": {
+      "tool_sequence": [],
+      "param_shapes": {},
+      "should_not_call": ["semantic_search", "summarize", "find_connections"]
+    }
+  }
+]

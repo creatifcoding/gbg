@@ -1,0 +1,12 @@
+{
+  "name": "core_5",
+  "description": "Core tools + timeline and entity lookup (tests distraction from similar tools)",
+  "tool_count": 5,
+  "tools": [
+    "semantic_search",
+    "summarize",
+    "find_connections",
+    "timeline_query",
+    "entity_lookup"
+  ]
+}
