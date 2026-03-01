@@ -1,0 +1,50 @@
+---
+source: src/lib/harness/pragma/pragma-ipc/tests/snapshot_error_codes.rs
+expression: codes
+---
+[
+  {
+    "code": -32700,
+    "name": "Parse error"
+  },
+  {
+    "code": -32601,
+    "name": "Method not found"
+  },
+  {
+    "code": -32602,
+    "name": "Invalid params"
+  },
+  {
+    "code": -32603,
+    "name": "Internal error"
+  },
+  {
+    "code": -40001,
+    "name": "Model unavailable"
+  },
+  {
+    "code": -40002,
+    "name": "Tokenization failed"
+  },
+  {
+    "code": -40003,
+    "name": "Inference timeout"
+  },
+  {
+    "code": -40004,
+    "name": "Catalog stale"
+  },
+  {
+    "code": -40005,
+    "name": "Model corrupt"
+  },
+  {
+    "code": -40006,
+    "name": "Dimension mismatch"
+  },
+  {
+    "code": -40007,
+    "name": "Payload too large"
+  }
+]
