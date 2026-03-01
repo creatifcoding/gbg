@@ -33,11 +33,15 @@ import {
   ENTER_TRANSITION, EXIT_TRANSITION, EXIT_CURVE,
 } from './constants'
 
+import { Schema } from 'effect'
 import { categoryOf } from '@/lib/harness/error-detail/category-registry'
 import { matchCategory } from '@/lib/harness/error-detail/category-matcher'
 import { ErrorDetailProvider } from '@/lib/harness/error-detail/detail-context'
-import type { HarnessErrorCode } from '@/lib/harness/error-codes'
+import { HarnessErrorCode } from '@/lib/harness/error-codes'
 import type { ErrorDetailActions, ErrorDetailMeta, ErrorDetailState } from '@/lib/harness/error-detail/types'
+
+type HarnessErrorCodeT = typeof HarnessErrorCode.Type
+const isHarnessCode = Schema.is(HarnessErrorCode)
 
 export interface ToastCardProps {
   item: StatusRowLike
@@ -74,18 +78,24 @@ export const ToastCard = memo(function ToastCard({
   const staggerDelay = `${index * STAGGER_MS}ms`
   const isInlineExpanded = inlineExpandedId === item.id
 
+  // Validate code is a known HarnessErrorCode before dispatching
+  const validCode: HarnessErrorCodeT | null = useMemo(
+    () => (item.code && isHarnessCode(item.code)) ? item.code : null,
+    [item.code],
+  )
+
   // Category visual config
   const catConfig = useMemo(
-    () => item.code ? categoryOf(item.code as HarnessErrorCode) : null,
-    [item.code],
+    () => validCode ? categoryOf(validCode) : null,
+    [validCode],
   )
   const CategoryIcon = isCancelled ? Ban : (catConfig?.Icon ?? tone.IconComponent)
   const iconColor = isCancelled ? undefined : (catConfig?.accent ?? undefined)
 
   // Match dispatch for expanded detail component
   const categoryMatch = useMemo(
-    () => item.code ? matchCategory(item.code as HarnessErrorCode) : null,
-    [item.code],
+    () => validCode ? matchCategory(validCode) : null,
+    [validCode],
   )
 
   const swipe = useSwipe(() => onDismiss(item.id))
@@ -98,12 +108,13 @@ export const ToastCard = memo(function ToastCard({
 
   // Detail provider state
   const detailState = useMemo<ErrorDetailState | null>(() => {
-    if (!item.code) return null
+    if (!validCode) return null
     return {
-      code: item.code as HarnessErrorCode,
+      code: validCode,
       message: item.text.replace(/^\[[^\]]+\]\s*/, ''), // strip [code] prefix
       at: typeof item.details === 'object' && item.details && 'at' in item.details
-        ? (item.details as any).at as number
+          && typeof (item.details as Record<string, unknown>).at === 'number'
+        ? (item.details as Record<string, unknown>).at as number
         : Date.now(),
       details: item.details,
     }
@@ -153,7 +164,7 @@ export const ToastCard = memo(function ToastCard({
         !isInlineExpanded && 'cursor-pointer',
       )}
       style={{
-        fontSize: 'var(--tmnl-text-xs, 12px)',
+        fontSize: 'var(--tmnl-text-xs, 10px)',
         zIndex: isInlineExpanded ? 110 : 100 - index,
         background: catConfig?.bgTint ?? bg,
         border: `1px solid ${catConfig?.borderTint ?? 'rgba(255,255,255,0.06)'}`,
@@ -168,53 +179,69 @@ export const ToastCard = memo(function ToastCard({
           `opacity 200ms ease-out ${staggerDelay}`,
         ].join(', '),
         willChange: 'transform, opacity, margin-top',
-        // Accent stripe on collapsed cards
-        borderLeft: isInlineExpanded ? undefined : `2px solid ${catConfig?.accent ?? 'transparent'}`,
+        // Accent stripe — always visible
+        borderLeft: `2px solid ${catConfig?.accent ?? 'transparent'}`,
       }}
       onPointerDown={isInlineExpanded ? undefined : swipe.handlePointerDown}
       onPointerMove={isInlineExpanded ? undefined : swipe.handlePointerMove}
       onPointerUp={isInlineExpanded ? undefined : swipe.handlePointerUp}
       onClick={isInlineExpanded ? undefined : handleCardClick}
     >
-      {/* ─── Collapsed row (always visible) ─── */}
-      {!isInlineExpanded && (
-        <div className={cn(
-          'flex items-center min-w-0',
-          narrow ? 'gap-1 px-1.5 py-px' : 'gap-1.5 px-2 py-0.5',
-        )} style={{ height: 22 }}>
-          {/* Category icon */}
-          <CategoryIcon
-            size={11}
-            strokeWidth={CARD_ICON_STROKE}
-            className="shrink-0 relative"
-            style={{ color: iconColor }}
-          />
+      <AnimatePresence mode="wait" initial={false}>
+        {!isInlineExpanded ? (
+          /* ─── Collapsed row ─── */
+          <motion.div
+            key="collapsed"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 22 }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+            className={cn(
+              'flex items-center min-w-0 overflow-hidden',
+              narrow ? 'gap-1 px-1.5 py-px' : 'gap-1.5 px-2 py-0.5',
+            )}
+          >
+            {/* Category icon */}
+            <CategoryIcon
+              size={11}
+              strokeWidth={CARD_ICON_STROKE}
+              className="shrink-0 relative"
+              style={{ color: iconColor }}
+            />
 
-          {/* Text */}
-          <span className="flex-1 min-w-0 truncate relative">
-            {displayText}
-          </span>
+            {/* Text */}
+            <span className="flex-1 min-w-0 truncate relative">
+              {displayText}
+            </span>
 
-          {/* Dismiss */}
-          {(stackExpanded || isFront) && (
-            <BannerAction onClick={(e) => { e.stopPropagation(); onDismiss(item.id) }} title="Dismiss">
-              <X size={11} strokeWidth={1.5} />
-            </BannerAction>
-          )}
+            {/* Dismiss */}
+            {(stackExpanded || isFront) && (
+              <BannerAction onClick={(e) => { e.stopPropagation(); onDismiss(item.id) }} title="Dismiss">
+                <X size={11} strokeWidth={1.5} />
+              </BannerAction>
+            )}
 
-          {/* Collapsed badge — front card only */}
-          {!stackExpanded && isFront && (
-            <CountBadge count={totalCount} items={allItems} />
-          )}
-        </div>
-      )}
-
-      {/* ─── Inline expanded detail ─── */}
-      {isInlineExpanded && categoryMatch && detailState && (
-        <ErrorDetailProvider state={detailState} actions={detailActions} meta={detailMeta}>
-          <categoryMatch.DetailComponent />
-        </ErrorDetailProvider>
-      )}
+            {/* Collapsed badge — front card only */}
+            {!stackExpanded && isFront && (
+              <CountBadge count={totalCount} items={allItems} />
+            )}
+          </motion.div>
+        ) : categoryMatch && detailState ? (
+          /* ─── Inline expanded detail ─── */
+          <motion.div
+            key="expanded"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+            className="overflow-hidden"
+          >
+            <ErrorDetailProvider state={detailState} actions={detailActions} meta={detailMeta}>
+              <categoryMatch.DetailComponent />
+            </ErrorDetailProvider>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </motion.div>
   )
 })

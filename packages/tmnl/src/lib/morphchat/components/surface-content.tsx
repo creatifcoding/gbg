@@ -33,7 +33,6 @@ import { ThreadView } from './thread-view'
 import { InlineTasksView } from './inline-tasks-view'
 import { FrameChromeView } from './frame-chrome-view'
 import { StatusBannerView } from './status-banner'
-import { CommandBandView } from './command-band-view'
 import { useSurfaceWidth } from '@/lib/chat/hooks/use-surface-width'
 
 // =============================================================================
@@ -228,14 +227,6 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
           )}
 
           {/* ── Band 5: Command Band ─────────────────── */}
-          <motion.div
-            key="band-commands"
-            layoutId="morphchat-commands"
-            transition={stagger(bandIndex++)}
-          >
-            <CommandBandView />
-          </motion.div>
-
           {/* ── Band 6: Composer ──────────────────────── */}
           {showComposer && (
             <motion.div

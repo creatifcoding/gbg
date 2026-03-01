@@ -14,7 +14,7 @@ import { isBannerVisible } from '@/lib/harness/error-codes'
 import type { MorphChatAdapter } from '../../adapters/types'
 
 const EMPTY_ROWS = Atom.make<ReadonlyArray<StatusRowLike>>([])
-const EMPTY_LAST_ERROR = Atom.make<{ code: string; message: string; at: number } | null>(null)
+const EMPTY_LAST_ERROR = Atom.make<{ code: string; message: string; at: number; details?: unknown } | null>(null)
 const EMPTY_CANCELLED_AT = Atom.make<number | null>(null)
 
 export interface StatusRowsResult {
@@ -28,10 +28,8 @@ export function useStatusRows(adapter: MorphChatAdapter): StatusRowsResult {
   const connection = useAtomValue(adapter.connection$)
   const statusRowsAtom = (adapter.statusRows$ as typeof EMPTY_ROWS | undefined) ?? EMPTY_ROWS
   const adapterRows = useAtomValue(statusRowsAtom)
-  const lastErrorAtom = ((adapter as any).lastError$ as typeof EMPTY_LAST_ERROR | undefined) ?? EMPTY_LAST_ERROR
-  const lastError = useAtomValue(lastErrorAtom)
-  const cancelledAtAtom = ((adapter as any).cancelledAt$ as typeof EMPTY_CANCELLED_AT | undefined) ?? EMPTY_CANCELLED_AT
-  const cancelledAt = useAtomValue(cancelledAtAtom)
+  const lastError = useAtomValue(adapter.lastError$ ?? EMPTY_LAST_ERROR)
+  const cancelledAt = useAtomValue(adapter.cancelledAt$ ?? EMPTY_CANCELLED_AT)
 
   const rows = useMemo<ReadonlyArray<StatusRowLike>>(() => {
     if (adapterRows.length > 0) return adapterRows
@@ -45,7 +43,7 @@ export function useStatusRows(adapter: MorphChatAdapter): StatusRowsResult {
       })
     }
     if (connection.phase === 'error') {
-      const parsed = parseErrorPayload((connection as any).error ?? 'stream error')
+      const parsed = parseErrorPayload(connection.error ?? 'stream error')
       out.push({
         id: `conn-error-${parsed.code ?? 'unknown'}-${parsed.summary}`,
         tone: 'error', text: `HARNESS ${parsed.summary}`,
@@ -61,7 +59,7 @@ export function useStatusRows(adapter: MorphChatAdapter): StatusRowsResult {
       })
     }
     return out
-  }, [adapterRows, connection.phase, connection.reconnectAttempt, (connection as any).error, lastError])
+  }, [adapterRows, connection.phase, connection.reconnectAttempt, connection.error, lastError])
 
   const toastRows = useMemo(
     () => rows.filter(r => !r.text.startsWith('[sid]')),

@@ -11,7 +11,7 @@
  * @module morphchat/components/model-selector-view
  */
 
-import * as React from 'react'
+import { useCallback } from 'react'
 import { Atom, useAtomValue } from '@effect-atom/atom-react'
 import { useMorphChatContext } from './surface-context'
 import { ModelSelector, type ModelOption } from '@/lib/chat/shell/header-band'
@@ -19,6 +19,8 @@ import { ModelSelector, type ModelOption } from '@/lib/chat/shell/header-band'
 // Stable sentinel atoms
 const EMPTY_MODELS = Atom.make<ReadonlyArray<ModelOption>>([])
 const NULL_MODEL = Atom.make<string | null>(null)
+const FALSE_ATOM = Atom.make<boolean>(false)
+const NULL_STRING_ATOM = Atom.make<string | null>(null)
 
 export function ModelSelectorView() {
   const { adapter, surfaceId } = useMorphChatContext()
@@ -29,11 +31,11 @@ export function ModelSelectorView() {
   const availableModels = useAtomValue(modelsAtom)
   const selectedModelId = useAtomValue(selectedAtom)
 
-  // Model loading/error state (duck-typed from harness adapter)
-  const modelLoading = (adapter as any).modelsLoading ?? false
-  const modelError = (adapter as any).modelsError ?? null
+  // Model loading/error state (typed optional from adapter interface)
+  const modelLoading = useAtomValue(adapter.modelsLoading$ ?? FALSE_ATOM)
+  const modelError = useAtomValue(adapter.modelsError$ ?? NULL_STRING_ATOM)
 
-  const handleSelect = React.useCallback(
+  const handleSelect = useCallback(
     (modelId: string) => {
       // Model override is per-message: the engine applies it on the next
       // send() call. No reconnection, no session tear-down, no fiber
@@ -43,8 +45,8 @@ export function ModelSelectorView() {
     [adapter],
   )
 
-  const handleRetry = React.useCallback(() => {
-    ;(adapter as any).retryModelCatalog?.()
+  const handleRetry = useCallback(() => {
+    adapter.retryModelCatalog?.()
   }, [adapter])
 
   if (availableModels.length === 0 && !modelLoading && !modelError) return null

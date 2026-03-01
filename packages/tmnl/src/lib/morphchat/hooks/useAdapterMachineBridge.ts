@@ -13,7 +13,7 @@
  * @module morphchat/hooks/useAdapterMachineBridge
  */
 
-import * as React from 'react'
+import { useEffect, useRef } from 'react'
 import { morphChatRegistry } from '../atoms/registry'
 import { sendSurfaceEvent } from '../machines/surface-stx'
 import type { MorphChatAdapter } from '../schemas/adapter-types'
@@ -55,8 +55,10 @@ function streamingStateToMachineEvents(
 ): SurfaceMachineEvent[] {
   const events: SurfaceMachineEvent[] = []
 
-  // Detect stream start: was not streaming, now is
-  if (!prev.isStreaming && current.isStreaming && current.messageId) {
+  // Detect stream start: was idle/error-recovery, now active
+  const prevActive = prev.phase !== 'idle' && prev.phase !== 'error-recovery'
+  const currActive = current.phase !== 'idle' && current.phase !== 'error-recovery'
+  if (!prevActive && currActive && current.messageId) {
     events.push({ type: 'STREAM_START', messageId: current.messageId })
   }
 
@@ -65,8 +67,8 @@ function streamingStateToMachineEvents(
   // machine context bump → snapshot → syncSnapshot → 10 atom equality checks.
   // At ~20 tokens/sec that's 200 atom-set calls/sec of pure dead work.
 
-  // Detect stream end: was streaming, now not
-  if (prev.isStreaming && !current.isStreaming && prev.messageId) {
+  // Detect stream end: was active, now idle/error-recovery
+  if (prevActive && !currActive && prev.messageId) {
     events.push({ type: 'STREAM_END', messageId: prev.messageId })
   }
 
@@ -82,15 +84,15 @@ export function useAdapterMachineBridge(
   adapter: MorphChatAdapter,
 ): void {
   // Track previous values to detect changes
-  const prevConnectionPhase = React.useRef<ConnectionState['phase'] | null>(null)
-  const prevStreaming = React.useRef<StreamingState>({
-    isStreaming: false,
+  const prevConnectionPhase = useRef<ConnectionState['phase'] | null>(null)
+  const prevStreaming = useRef<StreamingState>({
+    phase: 'idle',
     buffer: '',
-    messageId: null,
+    messageId: undefined,
     tokensReceived: 0,
   })
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Callback that dispatches connection phase changes to the machine.
     // Deferred on first call to avoid setState-during-render.
     let connectionReady = false
@@ -98,7 +100,7 @@ export function useAdapterMachineBridge(
       const event = connectionPhaseToMachineEvent(
         connectionState.phase,
         prevConnectionPhase.current,
-        'error' in connectionState ? (connectionState as any).error : undefined,
+        connectionState.error,
       )
       if (event) {
         if (connectionReady) {

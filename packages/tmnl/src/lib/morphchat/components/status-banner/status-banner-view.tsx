@@ -8,6 +8,8 @@
  */
 
 import { useState, useCallback, useRef, useEffect, useMemo, useDeferredValue, useTransition } from 'react'
+import { Atom } from '@effect-atom/atom'
+import { useAtomValue } from '@effect-atom/atom-react'
 import { Effect } from 'effect'
 import { AnimatePresence } from 'motion/react'
 import { useMorphChatContext } from '../surface-context'
@@ -16,8 +18,11 @@ import { TOAST_NARROW_PX } from './constants'
 import { ToastCard } from './toast-card'
 import { useStatusRows, useDismiss } from './hooks'
 
+const NULL_SESSION = Atom.make<string | null>(null)
+
 export function StatusBannerView() {
   const { adapter } = useMorphChatContext()
+  const sessionId = useAtomValue(adapter.sessionId$ ?? NULL_SESSION)
 
   // ── Data ────────────────────────────────────────────────────────────────
   const { toastRows, cancelledToastId, showRecoveryActions } = useStatusRows(adapter)
@@ -114,7 +119,7 @@ export function StatusBannerView() {
             onDismiss={dismissToast}
             onReconnect={handleReconnect}
             onNewSession={handleNewSession}
-            sessionId={(adapter as any).sessionId ?? null}
+            sessionId={sessionId}
             allItems={allItems}
           />
         ))}

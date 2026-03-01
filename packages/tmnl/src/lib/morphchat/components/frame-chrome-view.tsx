@@ -15,7 +15,7 @@
 
 import {
   useState, useCallback, useRef, useEffect,
-  type ReactNode, type ComponentPropsWithoutRef,
+  type ReactNode, type RefObject, type ComponentPropsWithoutRef,
 } from 'react'
 import { Atom } from '@effect-atom/atom'
 import { useAtomValue } from '@effect-atom/atom-react'
@@ -27,13 +27,11 @@ import { ConnectionCapsule } from './connection-capsule'
 import { viewModeFamily } from './connection-capsule'
 import { morphChatRegistry } from '../atoms/registry'
 import { ModelSelectorView } from './model-selector-view'
-import type { MockChatAdapter } from '../adapters/mock-adapter'
-import type { ContextUsage } from '../hooks/useHarnessAdapter'
 import { useBlockDensity } from '@/lib/chat/msg/density-context'
 
 // ─── Sentinels ───────────────────────────────────────────────────────────────
 
-const NULL_CONTEXT_USAGE = Atom.make<ContextUsage | null>(null)
+const NULL_CONTEXT_USAGE = Atom.make<{ used: number; budget: number } | null>(null)
 const NULL_AGENT_ID = Atom.make<string | null>(null)
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -56,7 +54,7 @@ function widthToTier(w: number): Tier {
   return 'minimal'
 }
 
-function useContainerTier(): { ref: React.RefObject<HTMLDivElement | null>; tier: Tier } {
+function useContainerTier(): { ref: RefObject<HTMLDivElement | null>; tier: Tier } {
   const ref = useRef<HTMLDivElement | null>(null)
   const [tier, setTier] = useState<Tier>('full')
 
@@ -96,14 +94,13 @@ export function FrameChromeView() {
   const density = useBlockDensity()
   const { ref: containerRef, tier } = useContainerTier()
 
-  // Agent name (duck-typed mock adapter)
-  const mockAdapter = adapter as Partial<MockChatAdapter>
+  // Agent name
   const agents = useAtomValue(adapter.agents$)
-  const activeAgentId = useAtomValue(mockAdapter.activeAgentId$ ?? NULL_AGENT_ID) ?? undefined
+  const activeAgentId = useAtomValue(adapter.activeAgentId$ ?? NULL_AGENT_ID) ?? undefined
   const activeAgent = agents.find(a => a.id === activeAgentId) ?? agents[0]
 
-  // Context usage
-  const contextUsage = useAtomValue((adapter as any).contextUsage$ ?? NULL_CONTEXT_USAGE)
+  // Context usage (typed optional from adapter interface)
+  const contextUsage = useAtomValue(adapter.contextUsage$ ?? NULL_CONTEXT_USAGE)
 
   // Left zone hover state — drives progressive disclosure of tokenomics
   const [leftHovered, setLeftHovered] = useState(false)
@@ -200,7 +197,7 @@ export function FrameChromeView() {
             />
             <div
               className="flex items-center gap-1.5 font-mono whitespace-nowrap pl-2"
-              style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+              style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
               title={`Context: ${contextUsage.contextTokens.toLocaleString()} / ${contextUsage.contextWindow.toLocaleString()} tokens`}
             >
               <span className="text-neutral-600">↑</span>
@@ -240,7 +237,7 @@ export function FrameChromeView() {
         {showAgent && (
           <span
             className="font-mono shrink-0 text-neutral-700 group-hover/right:text-neutral-500 transition-colors duration-150"
-            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+            style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
           >
             {activeAgent.name}
           </span>
@@ -333,7 +330,7 @@ function OverflowItem({ children, onClick }: { children: ReactNode; onClick: () 
       type="button"
       onClick={onClick}
       className="flex items-center gap-2 w-full px-3 py-1.5 text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.04] transition-colors duration-100 font-mono"
-      style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+      style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
     >
       {children}
     </button>

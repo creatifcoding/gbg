@@ -22,7 +22,6 @@ import { useMorphChatContext } from './surface-context'
 import { presentationStateFamily } from '../machines/surface-stx'
 import type { ChatMessage, ChatRole, ChatMessagePart, StreamingState } from '../schemas/message-types'
 import { getMessageParts } from '../schemas/message-types'
-import type { MockChatAdapter } from '../adapters/mock-adapter'
 import type { MorphChatAdapter } from '../schemas/adapter-types'
 import { getMessageAtom } from '../hooks/useHarnessAdapter'
 import { streamingMetrics$, idleMetricsAtom } from '../atoms/streaming-metrics'
@@ -137,6 +136,7 @@ const NULL_MESSAGES_ATOM = Atom.make<ReadonlyArray<ChatMessage>>([])
 const NULL_STREAMING_ATOM = Atom.make<StreamingState>({
   phase: 'idle', buffer: '', tokensReceived: 0,
 })
+const EMPTY_TASKS_MAP = Atom.make<ReadonlyMap<string, ReadonlyArray<unknown>>>(new Map())
 const legacyMessageAtomCache = new WeakMap<MorphChatAdapter, Map<string, Atom.Atom<ChatMessage | null>>>()
 
 /**
@@ -259,7 +259,7 @@ const PartRenderer = memo(function PartRenderer({
     case 'tool-invocation': {
       // Convenience wrapper — Root + Header + Content(Input+Output+Approval) in one call
       // If input not yet populated (tool still generating), try parsing inputDelta
-      const rawDelta = (part as any).inputDelta as string | undefined
+      const rawDelta = 'inputDelta' in part ? (part as { inputDelta?: string }).inputDelta : undefined
       let resolvedInput = part.input
       if (resolvedInput == null && rawDelta) {
         try { resolvedInput = JSON.parse(rawDelta) } catch { /* partial JSON, ignore */ }
@@ -715,7 +715,8 @@ const MessageRow = memo(function MessageRow({
 
   const isTurnChange = previousMessage != null && previousMessage.role !== message.role
   const gapClass = index === 0 ? '' : isTurnChange ? TURN_GAP[widthTier] : MSG_GAP[widthTier]
-  const tasks = (adapter as Partial<MockChatAdapter>).messageTasks?.get(message.id)
+  const allTasks = useAtomValue(adapter.messageTasks$ ?? EMPTY_TASKS_MAP)
+  const tasks = allTasks.get(message.id) as ReadonlyArray<AgentTask> | undefined
 
   let content: ReactNode = null
   switch (threadMode) {

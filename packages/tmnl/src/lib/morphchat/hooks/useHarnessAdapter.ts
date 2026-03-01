@@ -36,6 +36,7 @@ import {
 import type { ShellEvent } from '@/lib/harness/interactive-shell/schemas'
 import type { PanelEvent } from '@/lib/genifer/harness/panel-events'
 import { registerGeniferPanelVisitor, setGeniferPanelRegistry, setGeniferPanelSurface } from '@/lib/genifer/harness/panel-visitor'
+import type { GeniferSurface } from '@/lib/genifer/harness/surface'
 import { spawnPanel, closePanel, getPanel } from '@/lib/floating'
 import { applyRemotePanelEvent } from './panel-event-handler'
 import type {
@@ -310,6 +311,18 @@ export const selectedModel$ = Atom.family((_id: string) =>
 const modelOverride$ = Atom.family((_id: string) =>
   Atom.make<{ provider: string; modelId: string } | null>(null),
 )
+export const lastError$ = Atom.family((_id: string) =>
+  Atom.make<{ code: string; message: string; at: number; details?: unknown } | null>(null),
+)
+export const cancelledAt$ = Atom.family((_id: string) =>
+  Atom.make<number | null>(null),
+)
+export const modelsLoading$ = Atom.family((_id: string) =>
+  Atom.make<boolean>(false),
+)
+export const modelsError$ = Atom.family((_id: string) =>
+  Atom.make<string | null>(null),
+)
 const instanceConfig$ = Atom.family((_id: string) =>
   Atom.make<HarnessInstanceConfig | null>(null),
 )
@@ -430,6 +443,15 @@ function getProcessor(id: string, agentName: string) {
 
 function pushStatusRow(id: string, row: HarnessStatusRow): void {
   morphChatRegistry.update(statusRows$(id), (prev) => [row, ...prev].slice(0, 8))
+  // Track last error for enrichment atoms
+  if (row.tone === 'error') {
+    morphChatRegistry.set(lastError$(id), {
+      code: row.code ?? 'UNKNOWN',
+      message: row.text,
+      at: Date.now(),
+      details: row.details,
+    })
+  }
 }
 
 function formatUnknownErrorPayload(payload: unknown): { code?: string; message: string; details: unknown } {
@@ -443,7 +465,7 @@ function formatUnknownErrorPayload(payload: unknown): { code?: string; message: 
   }
 
   if (payload instanceof HarnessRuntimeError) {
-    return { code: payload.code, message: payload.message, details: { _tag: 'HarnessRuntimeError', code: payload.code, message: payload.message, cause: unwrap((payload as any).cause) } }
+    return { code: payload.code, message: payload.message, details: { _tag: 'HarnessRuntimeError', code: payload.code, message: payload.message, cause: unwrap(payload.cause) } }
   }
   if (payload instanceof Error) return { code: payload.name, message: payload.message, details: payload.stack ?? `${payload.name}: ${payload.message}` }
   if (typeof payload === 'string') {
@@ -739,7 +761,7 @@ function wireEventStream(
             if (rawEvent?._tag === 'remote:panel_event' && rawEvent.event) {
               applyReplaySafeRemotePanelEvent(rawEvent.event as PanelEvent & { surface?: unknown }, {
                 registerGeniferPanelVisitor,
-                setGeniferPanelSurface: (surfaceId, surface) => setGeniferPanelSurface(surfaceId, surface as any),
+                setGeniferPanelSurface: (surfaceId, surface) => setGeniferPanelSurface(surfaceId, surface as GeniferSurface),
                 spawnPanel,
                 closePanel,
                 remoteToLocalPanelIds,
@@ -1208,7 +1230,10 @@ const cancelOp$ = Atom.family((id: string) =>
         )
       }
 
-      // 5. Phase → 'idle'
+      // 5. Track cancellation timestamp
+      morphChatRegistry.set(cancelledAt$(id), Date.now())
+
+      // 6. Phase → 'idle'
       morphChatRegistry.set(streaming$(id), STREAMING_IDLE)
     }).pipe(
       Effect.catchAllCause((cause) =>
@@ -1415,6 +1440,7 @@ const resumeSessionOp$ = Atom.family((id: string) =>
           }),
         ),
       )
+    },
   ),
 )
 
@@ -1550,8 +1576,8 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
 
   useEffect(() => {
     const check = () => {
-      const conn = morphChatRegistry.get(connection$(instanceId)) as any
-      const phase = conn?.phase ?? 'idle'
+      const conn = morphChatRegistry.get(connection$(instanceId))
+      const phase = conn.phase ?? 'idle'
       setStatus(
         phase === 'connected' ? 'connected' :
         phase === 'connecting' || phase === 'reconnecting' ? 'connecting' :
@@ -1646,6 +1672,12 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
       morphChatRegistry.set(selectedModel$(instanceId), modelId)
       morphChatRegistry.set(modelOverride$(instanceId), { provider: target.provider, modelId: rawModelId })
     },
+    contextUsage$: contextUsage$(instanceId),
+    lastError$: lastError$(instanceId),
+    cancelledAt$: cancelledAt$(instanceId),
+    modelsLoading$: modelsLoading$(instanceId),
+    modelsError$: modelsError$(instanceId),
+    sessionId$: sessionId$(instanceId),
     send: (params: SendParams) => { sendRef.current({ content: params.content, thinkingLevel: params.thinkingLevel }); return Effect.void },
     cancel: () => { cancelRef.current(undefined as void); return Effect.void },
     reconnect: () => { hardReconnect(instanceId, nodeId, role, agentName, connectRef.current); return Effect.void },

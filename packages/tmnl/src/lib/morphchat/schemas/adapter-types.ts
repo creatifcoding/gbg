@@ -146,6 +146,46 @@ export interface MorphChatAdapter {
   /** Provider marker (optional — only harness adapter provides) */
   readonly provider$?: Atom.Atom<unknown>
 
+  // ── Enrichment Atoms (Optional) ──────────────────────────
+
+  /** Token budget tracking — context window usage for tokenomics display */
+  readonly contextUsage$?: Atom.Atom<{
+    readonly used: number
+    readonly budget: number
+  } | null>
+
+  /** Last error payload — enriches status banner with most recent error */
+  readonly lastError$?: Atom.Atom<{
+    readonly code: string
+    readonly message: string
+    readonly at: number
+    readonly details?: unknown
+  } | null>
+
+  /** Timestamp of last cancellation — drives amber cancellation badge */
+  readonly cancelledAt$?: Atom.Atom<number | null>
+
+  /** Model catalog loading state — drives loading spinner in model selector */
+  readonly modelsLoading$?: Atom.Atom<boolean>
+
+  /** Model catalog error — drives error + retry UI in model selector */
+  readonly modelsError$?: Atom.Atom<string | null>
+
+  /** Retry model catalog fetch — triggered by error retry button */
+  readonly retryModelCatalog?: () => void
+
+  /** Active agent ID — when multi-agent, tracks which agent is selected */
+  readonly activeAgentId$?: Atom.Atom<string | null>
+
+  /** Set active agent — multi-agent switching */
+  readonly setActiveAgent?: (agentId: string) => void
+
+  /** Per-message task annotations — enriches thread with inline task data */
+  readonly messageTasks$?: Atom.Atom<ReadonlyMap<string, ReadonlyArray<unknown>>>
+
+  /** Current session ID — for diagnostic display in status banners */
+  readonly sessionId$?: Atom.Atom<string | null>
+
   /** Dispose adapter — cleanup subscriptions, close connections */
   readonly dispose: () => Effect.Effect<void>
 }
