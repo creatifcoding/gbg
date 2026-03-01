@@ -13,8 +13,8 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }
 pragma-ipc = { path = "../pragma-ipc" }
-pragma-core = { path = "../pragma-core" }
-pragma-automata = { path = "../pragma-automata" }
+# pragma-core and pragma-automata wired in P4 when handlers go live.
+# Until then, the dispatch loop only uses pragma-ipc types.
 
 # Error handling
 thiserror = { workspace = true }
