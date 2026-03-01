@@ -102,3 +102,37 @@ export {
   makeSessionTree,
   countEntriesByTag,
 } from './tree'
+
+// Tree ops — pure functions
+export {
+  appendEntry,
+  branchFrom,
+  getBranch,
+  getEntry,
+  getChildren,
+  getBranchPoints,
+  buildContext,
+  makeMessageEntry,
+  makeCompactionEntry,
+  generateEntryId,
+  resetEntryCounter,
+  type ContextMessage,
+} from './tree-ops'
+
+// Requests — Schema.TaggedRequest for Machine procedures
+export {
+  SessionError,
+  AppendMessage,
+  AppendEntry,
+  BranchFrom,
+  GetBranch,
+  GetTree,
+  Compact,
+  CheckCompaction,
+} from './requests'
+
+// Machine — the session actor
+export {
+  SessionMachine,
+  SessionMachineInput,
+} from './machine'
