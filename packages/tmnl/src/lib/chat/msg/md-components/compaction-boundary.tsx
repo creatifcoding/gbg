@@ -44,7 +44,7 @@ export const CompactionBoundary = React.memo(function CompactionBoundary({
 
       {/* Center badge */}
       <span
-        className="inline-flex items-center gap-2 px-3 py-1 rounded-md font-mono border border-amber-900/30 bg-amber-950/20 text-amber-500/80"
+        className="inline-flex items-center gap-2 px-3 py-1 rounded-md font-data border border-amber-900/30 bg-amber-950/20 text-amber-500/80"
         style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
       >
         <span className="uppercase tracking-wider">Compacted</span>

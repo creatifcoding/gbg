@@ -8,6 +8,7 @@ import remarkGfm from 'remark-gfm'
 import { Streamdown } from 'streamdown'
 import { cn } from '@/lib/utils'
 import { tmnlMdComponents } from '../md-components'
+import { MdProvider } from '../md-components/md-context'
 
 // Stable references — never recreated
 const remarkPlugins = [remarkGfm]
@@ -34,10 +35,14 @@ export const ChatMessageBodyContentRoot = forwardRef<HTMLDivElement, ChatMessage
         data-slot="tmnl-chat-message-body-content"
         data-streaming={streaming || undefined}
         className={cn(
-          'flex-1 min-w-0 font-mono text-neutral-200 leading-relaxed',
+          'flex-1 min-w-0 font-chat text-neutral-200 leading-relaxed',
+          'break-words',
           className,
         )}
-        style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
+        style={{
+          fontSize: 'var(--tmnl-text-sm, 12px)',
+          overflowWrap: 'anywhere',
+        }}
         {...props}
       >
         {content}
@@ -72,13 +77,15 @@ const MarkdownBody = memo(function MarkdownBody({
   })
 
   return (
-    <Streamdown
-      mode={streaming ? 'streaming' : 'static'}
-      components={tmnlMdComponents}
-      remarkPlugins={remarkPlugins}
-      controls={{ code: false, table: false }}
-    >
-      {text}
-    </Streamdown>
+    <MdProvider value={{ streaming }}>
+      <Streamdown
+        mode={streaming ? 'streaming' : 'static'}
+        components={tmnlMdComponents}
+        remarkPlugins={remarkPlugins}
+        controls={{ code: false, table: false }}
+      >
+        {text}
+      </Streamdown>
+    </MdProvider>
   )
 })

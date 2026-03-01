@@ -4,6 +4,9 @@
  * Design: Custom markers via CSS, proper nesting indentation,
  * neutral-300 text with relaxed leading.
  *
+ * Vector 3 fix: Explicit nesting selectors replace [li_&]:pl-5.
+ * Marker styling for consistent list bullet/number appearance.
+ *
  * @module chat/msg/md-components/lists
  */
 
@@ -20,8 +23,8 @@ export const MdOl = memo<OlProps>(
     <ol
       className={cn(
         'list-decimal list-inside mb-2 space-y-0.5 text-neutral-300',
-        // Nested lists get indentation
-        '[li_&]:pl-5',
+        // Explicit nested list indentation
+        '[&_ol]:pl-5 [&_ul]:pl-5',
         className,
       )}
       data-tmnl-md="ordered-list"
@@ -43,7 +46,8 @@ export const MdUl = memo<UlProps>(
     <ul
       className={cn(
         'list-disc list-inside mb-2 space-y-0.5 text-neutral-300',
-        '[li_&]:pl-5',
+        // Explicit nested list indentation
+        '[&_ol]:pl-5 [&_ul]:pl-5',
         className,
       )}
       data-tmnl-md="unordered-list"
@@ -67,6 +71,8 @@ export const MdLi = memo<LiProps>(
         'leading-relaxed',
         // Inline paragraphs inside list items (GFM)
         '[&>p]:inline',
+        // Marker inherits text color for consistency
+        '[&::marker]:text-inherit',
         className,
       )}
       data-tmnl-md="list-item"

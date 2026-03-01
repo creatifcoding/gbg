@@ -2,11 +2,10 @@
  * TMNL Markdown Tables — table, thead, tbody, tr, th, td.
  *
  * Design: AG-Grid–inspired aesthetic — neutral-950 background, neutral-800
- * borders, monospace text, compact cells. Scrollable overflow container.
+ * borders, data font (Share Tech Mono), compact cells. Scrollable overflow.
  *
- * Animated:
- *   table wrapper — fade + subtle rise. Tables are visually heavy;
- *   a gentle entrance softens the "wall of data" impact.
+ * Animation gated on static mode (Vector 7) — tables appear instantly
+ * during streaming, get gentle entrance when settled.
  *
  * @module chat/msg/md-components/tables
  */
@@ -15,29 +14,35 @@ import { memo } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { sameClassAndNode, type WithNode } from './types'
+import { useMdContext } from './md-context'
 import { EASE_OUT, DURATION_ENTER_HEAVY } from './motion'
 
 // ─── Table wrapper ──────────────────────────────────────────────────────────
-// Purpose: heavy visual element gets a gentle entrance. The 4px rise
-// communicates "this just materialized" without being theatrical.
+// Conditional motion wrapper: animated in static mode, plain div during streaming.
 
 type TableProps = WithNode<JSX.IntrinsicElements['table']>
 
 export const MdTable = memo<TableProps>(
   ({ children, className, node, ...props }) => {
+    const { streaming } = useMdContext()
     const reduced = useReducedMotion()
 
+    const Wrapper = streaming ? 'div' : motion.div
+    const motionProps = streaming ? {} : {
+      initial: reduced ? { opacity: 0 } : { opacity: 0, y: 4 },
+      animate: { opacity: 1, y: 0 },
+      transition: { duration: DURATION_ENTER_HEAVY, ease: EASE_OUT },
+    }
+
     return (
-      <motion.div
-        initial={reduced ? { opacity: 0 } : { opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: DURATION_ENTER_HEAVY, ease: EASE_OUT }}
+      <Wrapper
+        {...motionProps as any}
         className="overflow-x-auto my-3 rounded border border-neutral-800/60"
         data-tmnl-md="table-wrapper"
       >
         <table
           className={cn(
-            'w-full border-collapse font-mono',
+            'w-full border-collapse font-data',
             className,
           )}
           style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
@@ -45,7 +50,7 @@ export const MdTable = memo<TableProps>(
         >
           {children}
         </table>
-      </motion.div>
+      </Wrapper>
     )
   },
   sameClassAndNode,

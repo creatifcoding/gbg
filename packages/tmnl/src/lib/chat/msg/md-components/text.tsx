@@ -13,6 +13,7 @@ import { isValidElement, memo } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { sameClassAndNode, type WithNode, type MarkdownNode } from './types'
+import { useMdContext } from './md-context'
 import { EASE_OUT, DURATION_MICRO } from './motion'
 
 // ─── Paragraph ──────────────────────────────────────────────────────────────
@@ -37,7 +38,7 @@ export const MdParagraph = memo<ParagraphProps>(
 
     return (
       <p
-        className={cn('mb-2 last:mb-0 leading-relaxed', className)}
+        className={cn('mb-2 last:mb-0 leading-relaxed break-words', className)}
         data-tmnl-md="paragraph"
         {...props}
       >
@@ -93,8 +94,39 @@ type LinkProps = WithNode<JSX.IntrinsicElements['a']> & { href?: string }
 
 export const MdLink = memo<LinkProps>(
   ({ children, className, href, node, ...props }) => {
+    const { streaming } = useMdContext()
     const reduced = useReducedMotion()
     const isIncomplete = href === 'streamdown:incomplete-link'
+
+    const linkClasses = cn(
+      'text-cyan-400 hover:text-cyan-300',
+      'underline underline-offset-2',
+      'transition-colors',
+      isIncomplete && 'opacity-50 pointer-events-none',
+      className,
+    )
+
+    const externalIcon = !isIncomplete && (
+      <span className="inline-block ml-0.5 opacity-40 text-[0.7em]" aria-hidden>↗</span>
+    )
+
+    // During streaming: plain <a> without motion wrapper
+    if (streaming) {
+      return (
+        <a
+          href={isIncomplete ? undefined : href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={linkClasses}
+          data-tmnl-md="link"
+          data-incomplete={isIncomplete || undefined}
+          {...props}
+        >
+          {children}
+          {externalIcon}
+        </a>
+      )
+    }
 
     return (
       <motion.a
@@ -106,21 +138,13 @@ export const MdLink = memo<LinkProps>(
           : { y: -1, filter: 'brightness(1.15)' }
         }
         transition={{ duration: DURATION_MICRO, ease: EASE_OUT }}
-        className={cn(
-          'text-cyan-400 hover:text-cyan-300',
-          'underline underline-offset-2',
-          'transition-colors',
-          isIncomplete && 'opacity-50 pointer-events-none',
-          className,
-        )}
+        className={linkClasses}
         data-tmnl-md="link"
         data-incomplete={isIncomplete || undefined}
         {...props}
       >
         {children}
-        {!isIncomplete && (
-          <span className="inline-block ml-0.5 opacity-40 text-[0.7em]" aria-hidden>↗</span>
-        )}
+        {externalIcon}
       </motion.a>
     )
   },

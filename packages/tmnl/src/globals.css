@@ -2,8 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* AI Elements: streamdown for streaming markdown */
-@source "../node_modules/streamdown/dist/*.js";
+/* Streamdown: TMNL overrides ALL Streamdown components via tmnlMdComponents.
+ * Only infrastructure classes (space-y-4, whitespace-normal) are needed,
+ * which are already generated from our own src/ usage.
+ * Removed @source scan to eliminate ~2-3KB of ghost CSS. */
 
 /* Custom scrollbars */
 ::-webkit-scrollbar {

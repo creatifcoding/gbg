@@ -33,12 +33,12 @@ interface HeadingConfig {
 }
 
 const HEADING_CONFIGS: Record<HeadingTag, HeadingConfig> = {
-  h1: { tag: 'h1', fontSize: 'var(--tmnl-text-lg, 18px)', weight: 'font-bold', mt: 'mt-5', mb: 'mb-2', accent: true },
-  h2: { tag: 'h2', fontSize: 'var(--tmnl-text-base, 16px)', weight: 'font-bold', mt: 'mt-4', mb: 'mb-1.5', accent: true },
-  h3: { tag: 'h3', fontSize: 'var(--tmnl-text-sm, 14px)', weight: 'font-semibold', mt: 'mt-3', mb: 'mb-1' },
-  h4: { tag: 'h4', fontSize: 'var(--tmnl-text-sm, 14px)', weight: 'font-semibold', mt: 'mt-2.5', mb: 'mb-1' },
-  h5: { tag: 'h5', fontSize: 'var(--tmnl-text-xs, 12px)', weight: 'font-semibold', mt: 'mt-2', mb: 'mb-0.5' },
-  h6: { tag: 'h6', fontSize: 'var(--tmnl-text-xs, 12px)', weight: 'font-medium', mt: 'mt-2', mb: 'mb-0.5' },
+  h1: { tag: 'h1', fontSize: 'var(--tmnl-heading-1, 18px)', weight: 'font-bold', mt: 'mt-5', mb: 'mb-2', accent: true },
+  h2: { tag: 'h2', fontSize: 'var(--tmnl-heading-2, 15px)', weight: 'font-bold', mt: 'mt-4', mb: 'mb-1.5', accent: true },
+  h3: { tag: 'h3', fontSize: 'var(--tmnl-heading-3, 13px)', weight: 'font-semibold', mt: 'mt-3', mb: 'mb-1' },
+  h4: { tag: 'h4', fontSize: 'var(--tmnl-heading-4, 12px)', weight: 'font-semibold', mt: 'mt-2.5', mb: 'mb-1' },
+  h5: { tag: 'h5', fontSize: 'var(--tmnl-heading-5, 12px)', weight: 'font-semibold', mt: 'mt-2', mb: 'mb-0.5' },
+  h6: { tag: 'h6', fontSize: 'var(--tmnl-heading-6, 12px)', weight: 'font-medium', mt: 'mt-2', mb: 'mb-0.5' },
 }
 
 // ─── Factory ────────────────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ function createHeading(config: HeadingConfig) {
           config.weight,
           config.mt,
           config.mb,
-          'text-neutral-100 font-mono leading-tight',
+          'text-neutral-100 font-heading leading-tight',
           config.accent && 'pl-2.5 border-l-2 border-cyan-500/40',
           className,
         )}

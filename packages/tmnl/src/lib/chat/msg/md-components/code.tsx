@@ -1,13 +1,13 @@
 /**
- * TMNL Markdown Code — inline spans + fenced block fallback.
+ * TMNL Markdown Code — inline spans only.
  *
  * Ownership model:
  *   Fenced code blocks → parts system (appendTextDelta → ChatCodeBlock w/ shiki)
  *   Inline code        → this component
- *   Fenced fallback    → partial fence leaked mid-stream, minimal pre/code
+ *   Fenced detected    → minimal placeholder until parts system takes over
  *
- * Streamdown derives `inline` from node.position (start.line === end.line),
- * NOT from a direct prop like ReactMarkdown.
+ * Detection (Vector 6): className-based first (language-* = always fenced),
+ * position fallback (start.line === end.line = inline).
  *
  * @module chat/msg/md-components/code
  */
@@ -29,7 +29,13 @@ interface MdCodeProps {
 
 export const MdCode = memo<MdCodeProps>(
   ({ node, className, children, ...props }) => {
-    const isInline = node?.position?.start.line === node?.position?.end.line
+    // Primary signal: language-* class = always fenced (from remark)
+    const hasLanguageClass = className?.startsWith('language-')
+    // Fallback: position-based (start.line === end.line → inline)
+    const positionIsInline = node?.position?.start.line === node?.position?.end.line
+
+    // Inline if no language class AND position says single line
+    const isInline = !hasLanguageClass && positionIsInline
 
     if (isInline) {
       return (
@@ -47,21 +53,16 @@ export const MdCode = memo<MdCodeProps>(
       )
     }
 
-    // Fenced block leaked into text part (partial fence during streaming).
-    // Minimal fallback — parts system takes over once the fence closes.
+    // Fenced: minimal placeholder — Parts system takes over with ChatCodeBlock
     return (
-      <pre
-        className="my-2 p-3 rounded border border-neutral-800/40 bg-neutral-950/60 overflow-x-auto"
-        data-tmnl-md="code-fallback"
+      <div
+        className="my-2 p-3 rounded border border-neutral-800/20 bg-neutral-950/30 font-mono text-neutral-600"
+        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        data-tmnl-md="code-pending"
       >
-        <code
-          className={cn('font-mono text-neutral-400', className)}
-          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
-          {...props}
-        >
-          {children}
-        </code>
-      </pre>
+        {/* Parts system will replace this with ChatCodeBlock + Shiki */}
+        ···
+      </div>
     )
   },
   (p, n) => p.className === n.className && (
