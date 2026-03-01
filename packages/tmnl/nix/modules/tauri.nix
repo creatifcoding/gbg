@@ -99,12 +99,18 @@
           ]
           ++ lib.optionals isDarwin [ iconv ];
 
-        buildInputs =
-          with pkgs;
-          lib.optionals isLinux [
-            pkgsCross.mingwW64.stdenv.cc
-            pkgsCross.mingwW64.windows.pthreads
-          ];
+        # MinGW cross-compile toolchain for Windows target.
+        # These MUST NOT go in buildInputs — that leaks mingw C++ headers
+        # (pthread.h, process.h) into native g++ include paths, breaking
+        # any crate with C++ build deps (tokenizers/esaxx-rs, ort, etc.).
+        #
+        # Instead, the mingw linker + pthreads lib paths are injected ONLY
+        # into the Windows cross-compile target via CARGO_TARGET env vars
+        # and a wrapper script. Native builds never see them.
+        CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER = lib.optionalString isLinux
+          "${pkgs.pkgsCross.mingwW64.stdenv.cc}/bin/x86_64-w64-mingw32-gcc";
+
+        buildInputs = [ ];  # Intentionally empty — no cross-compile header pollution
 
         shellHook = ''
           echo "[tmnl-tauri] Tauri development environment with GTK/WebKit dependencies layered over tmnl-core."
