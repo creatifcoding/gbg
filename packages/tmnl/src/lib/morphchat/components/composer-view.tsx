@@ -230,7 +230,8 @@ export function ComposerView({ widthTier = 'full' }: { widthTier?: ChatWidthTier
     }
 
     // ── Single-line: compact input, enter-to-send ──
-    case 'single-line':
+    case 'single-line': {
+      const slPad = effectiveTier === 'compact' ? 'gap-1 px-2 py-1' : effectiveTier === 'squeeze' ? 'gap-1.5 px-2 py-1.5' : 'gap-2 px-3 py-2'
       return (
         <div ref={composerDropRef} className={cn(dropIndicatorClass, 'transition-all')}>
           <Composer onSubmit={handleSubmit} isStreaming={isStreaming} {...composerModelProps}>
@@ -242,7 +243,7 @@ export function ComposerView({ widthTier = 'full' }: { widthTier?: ChatWidthTier
                 setDroppedRefs((prev) => prev.filter((r) => r.id !== id))
               } />
             )}
-            <div className="flex items-center gap-2 px-3 py-2">
+            <div className={cn('flex items-center', slPad)}>
               <div className="flex-1">
                 <Composer.TextArea placeholder="Type a message..." />
               </div>
@@ -251,9 +252,11 @@ export function ComposerView({ widthTier = 'full' }: { widthTier?: ChatWidthTier
           </Composer>
         </div>
       )
+    }
 
     // ── Command: slash-command input, autocomplete ──
-    case 'command':
+    case 'command': {
+      const cmdPad = effectiveTier === 'compact' ? 'gap-1 px-2 py-1' : effectiveTier === 'squeeze' ? 'gap-1.5 px-2 py-1.5' : 'gap-2 px-3 py-2'
       return (
         <div ref={composerDropRef} className={cn(dropIndicatorClass, 'transition-all')}>
           <Composer onSubmit={handleSubmit} isStreaming={isStreaming} {...composerModelProps}>
@@ -265,7 +268,7 @@ export function ComposerView({ widthTier = 'full' }: { widthTier?: ChatWidthTier
                 setDroppedRefs((prev) => prev.filter((r) => r.id !== id))
               } />
             )}
-            <div className="flex items-center gap-2 px-3 py-2">
+            <div className={cn('flex items-center', cmdPad)}>
               <span
                 className="text-cyan-500 font-mono shrink-0"
                 style={{ fontSize: 'var(--tmnl-text-sm, 12px)' }}
@@ -280,6 +283,7 @@ export function ComposerView({ widthTier = 'full' }: { widthTier?: ChatWidthTier
           </Composer>
         </div>
       )
+    }
 
     // ── Structured: form-like fields ──
     case 'structured':
@@ -411,10 +415,14 @@ function CharacterCounter({ maxChars = 4096 }: { maxChars?: number }) {
 
     if (len === 0) return null
 
+    const { widthTier } = useComposer()
+    const pad = widthTier === 'compact' ? 'px-2' : widthTier === 'squeeze' ? 'px-2' : 'px-3'
+
     return (
       <div
         className={cn(
-          'text-right px-3 py-0.5 font-mono transition-colors duration-150',
+          'text-right py-0.5 font-mono transition-colors duration-150',
+          pad,
           isOverLimit ? 'text-red-400' : isNearLimit ? 'text-amber-400' : 'text-neutral-600',
         )}
         style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
@@ -517,10 +525,13 @@ function CommandSuggestions({
 
   if (!isCommandMode || matchedChips.length === 0) return null
 
+  const { widthTier } = useComposer()
+  const sizing = COMPOSER_SIZING[widthTier]
+
   return (
     <div
       data-slot="morphchat-command-suggestions"
-      className="px-3 py-1.5 border-b border-neutral-800/30"
+      className={cn(sizing.chipPad, 'border-b border-neutral-800/30')}
     >
       <AnimatePresence>
         <motion.div
@@ -567,8 +578,10 @@ function DroppedRefChips({
   refs: ReadonlyArray<{ id: string; label: string }>
   onRemove: (id: string) => void
 }) {
+  const { widthTier } = useComposer()
+  const sizing = COMPOSER_SIZING[widthTier]
   return (
-    <div className="flex flex-wrap gap-1 px-3 py-1">
+    <div className={cn('flex flex-wrap', sizing.chipPad)}>
       {refs.map((r) => (
         <span
           key={r.id}

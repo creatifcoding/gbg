@@ -245,7 +245,7 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
               animate={enterAnim}
               exit={exitAnim}
               transition={stagger(bandIndex++)}
-              className="border-t border-neutral-800/50"
+              className=""
             >
               <ComposerView widthTier={widthTier} />
             </motion.div>
