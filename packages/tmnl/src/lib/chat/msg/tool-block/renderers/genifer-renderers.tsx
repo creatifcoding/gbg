@@ -34,7 +34,9 @@ import {
 } from 'lucide-react'
 import type { ToolRendererProps } from './registry'
 import { Renderer, DefaultFallback } from '@/lib/genifer/react/renderer'
-import { UITree, UIElement } from '@/lib/genifer/core/schemas'
+import { BehaviorProvider } from '@/lib/genifer/react/BehaviorBridge'
+import { SurfaceProvider } from '@/lib/genifer/catalog/context'
+import { useIncrementalTree } from '@/lib/genifer/react/incremental-tree'
 
 // =============================================================================
 // Helpers
@@ -79,37 +81,6 @@ function extractText(output: unknown): string {
   return ''
 }
 
-/** Parse a UITree from treeSnapshot (string or object) */
-function parseTree(snapshot: unknown): UITree | null {
-  if (!snapshot) return null
-  let snap: Record<string, unknown>
-  if (typeof snapshot === 'string') {
-    try { snap = JSON.parse(snapshot) } catch { return null }
-  } else if (typeof snapshot === 'object' && snapshot !== null) {
-    snap = snapshot as Record<string, unknown>
-  } else {
-    return null
-  }
-  try {
-    const root = snap.root as string
-    const elements = snap.elements
-    if (!root || !elements) return null
-
-    if (Array.isArray(elements)) {
-      const entries = elements.map(([k, v]: [string, unknown]) => [k, new UIElement(v as any)] as const)
-      return new UITree({ root, elements: HashMap.fromIterable(entries) })
-    }
-    if (typeof elements === 'object' && !Array.isArray(elements)) {
-      const entries = Object.entries(elements as Record<string, unknown>).map(
-        ([k, v]) => [k, new UIElement(v as any)] as const,
-      )
-      return new UITree({ root, elements: HashMap.fromIterable(entries) })
-    }
-    return null
-  } catch {
-    return null
-  }
-}
 
 // =============================================================================
 // Tokens — Q-Branch palette
@@ -141,9 +112,15 @@ export const GeniferGenerateRenderer: FC<ToolRendererProps> = memo(({
   const [collapsed, setCollapsed] = useState(false)
   const parsed = useMemo(() => parseInput(input), [input])
   const details = useMemo(() => extractDetails(output), [output])
-  const tree = useMemo(() => parseTree(details?.treeSnapshot), [details])
+  const incrementalDetails = useMemo(() => {
+    const surface = typeof details?.surfaceId === 'string' ? details.surfaceId : ''
+    return details
+      ? { ...details, streamKey: `${toolCallId ?? 'genifer-generate'}:${surface}` }
+      : { streamKey: toolCallId ?? 'genifer-generate' }
+  }, [details, toolCallId])
+  const tree = useIncrementalTree(incrementalDetails)
   const prompt = (parsed.prompt as string) ?? ''
-  const isRunning = state === 'running'
+  const isRunning = state === 'running' || state === 'pending'
   const isError = state === 'error' || errorText != null
   const elementCount = (details?.elementCount as number) ?? (tree ? HashMap.size(tree.elements) : 0)
   const qualityPct = details?.qualityScore != null ? Math.round((details.qualityScore as number) * 100) : null
@@ -195,7 +172,7 @@ export const GeniferGenerateRenderer: FC<ToolRendererProps> = memo(({
           )}
           <span
             className="font-mono text-stone-200 truncate"
-            style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
+            style={{ fontSize: 'var(--tmnl-text-sm, 12px)' }}
           >
             {prompt.length > 72 ? prompt.slice(0, 69) + '…' : (prompt || 'Generate UI')}
           </span>
@@ -203,7 +180,7 @@ export const GeniferGenerateRenderer: FC<ToolRendererProps> = memo(({
 
         <div className="flex items-center gap-2 flex-shrink-0 ml-2">
           {elementCount > 0 && (
-            <span className="font-mono text-stone-500" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+            <span className="font-mono text-stone-500" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
               {elementCount} el
             </span>
           )}
@@ -211,7 +188,7 @@ export const GeniferGenerateRenderer: FC<ToolRendererProps> = memo(({
             <span
               className="font-mono px-1.5 py-0.5 rounded"
               style={{
-                fontSize: 'var(--tmnl-text-xs, 12px)',
+                fontSize: 'var(--tmnl-text-xs, 10px)',
                 background: qualityPct >= 80 ? 'rgba(34,211,238,0.12)' : 'rgba(239,68,68,0.12)',
                 color: qualityPct >= 80 ? 'rgb(103,232,249)' : 'rgb(252,165,165)',
               }}
@@ -231,12 +208,16 @@ export const GeniferGenerateRenderer: FC<ToolRendererProps> = memo(({
       {!collapsed && (
         <div className="p-3" style={{ minHeight: isRunning ? 64 : undefined }}>
           {tree ? (
-            <Renderer
-              tree={tree}
-              loading={isRunning}
-              fallback={DefaultFallback}
-              disableAnimations={isRunning}
-            />
+            <SurfaceProvider tier="panel">
+              <BehaviorProvider tree={tree}>
+                <Renderer
+                  tree={tree}
+                  loading={isRunning}
+                  fallback={DefaultFallback}
+                  disableAnimations={isRunning}
+                />
+              </BehaviorProvider>
+            </SurfaceProvider>
           ) : isRunning ? (
             <div className="flex flex-col gap-2">
               {[0, 1, 2].map(i => (
@@ -248,13 +229,13 @@ export const GeniferGenerateRenderer: FC<ToolRendererProps> = memo(({
               ))}
             </div>
           ) : isError ? (
-            <div className="text-red-300/80 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+            <div className="text-red-300/80 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
               {errorText ?? (extractText(output) || 'Generation failed')}
             </div>
           ) : (
             <pre
               className="text-stone-400 font-mono overflow-x-auto"
-              style={{ fontSize: 'var(--tmnl-text-xs, 12px)', maxHeight: 200, overflowY: 'auto' }}
+              style={{ fontSize: 'var(--tmnl-text-xs, 10px)', maxHeight: 200, overflowY: 'auto' }}
             >
               {extractText(output) || 'No content'}
             </pre>
@@ -266,7 +247,7 @@ export const GeniferGenerateRenderer: FC<ToolRendererProps> = memo(({
       {!collapsed && !isRunning && surfaceId && (
         <div
           className="flex items-center justify-between px-3 py-1 font-mono text-stone-600"
-          style={{ fontSize: 'var(--tmnl-text-xs, 12px)', background: T.footer, borderTop: `1px solid ${T.border}` }}
+          style={{ fontSize: 'var(--tmnl-text-xs, 10px)', background: T.footer, borderTop: `1px solid ${T.border}` }}
         >
           <span>
             {model ?? '—'} · {durationMs ?? 0}ms
@@ -301,10 +282,17 @@ export const GeniferRefineRenderer: FC<ToolRendererProps> = memo(({
   const [collapsed, setCollapsed] = useState(false)
   const parsed = useMemo(() => parseInput(input), [input])
   const details = useMemo(() => extractDetails(output), [output])
-  const tree = useMemo(() => parseTree(details?.treeSnapshot), [details])
+  const incrementalDetails = useMemo(() => {
+    const source = typeof details?.sourceSurfaceId === 'string' ? details.sourceSurfaceId : ''
+    const surface = typeof details?.surfaceId === 'string' ? details.surfaceId : ''
+    return details
+      ? { ...details, streamKey: `${toolCallId ?? 'genifer-refine'}:${source}:${surface}` }
+      : { streamKey: toolCallId ?? 'genifer-refine' }
+  }, [details, toolCallId])
+  const tree = useIncrementalTree(incrementalDetails)
   const instruction = (parsed.instruction as string) ?? ''
   const sourceSurfaceId = (parsed.surfaceId as string) ?? ''
-  const isRunning = state === 'running'
+  const isRunning = state === 'running' || state === 'pending'
   const isError = state === 'error' || errorText != null
   const added = (details?.addedElements as number) ?? 0
   const removed = (details?.removedElements as number) ?? 0
@@ -347,12 +335,12 @@ export const GeniferRefineRenderer: FC<ToolRendererProps> = memo(({
           ) : (
             <RefreshCw size={13} className="text-cyan-400 flex-shrink-0" />
           )}
-          <span className="font-mono text-stone-500 flex-shrink-0" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+          <span className="font-mono text-stone-500 flex-shrink-0" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
             {sourceSurfaceId.slice(0, 8)} →
           </span>
           <span
             className="font-mono text-stone-200 truncate"
-            style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
+            style={{ fontSize: 'var(--tmnl-text-sm, 12px)' }}
           >
             {instruction.length > 60 ? instruction.slice(0, 57) + '…' : (instruction || 'Refine UI')}
           </span>
@@ -361,14 +349,14 @@ export const GeniferRefineRenderer: FC<ToolRendererProps> = memo(({
         <div className="flex items-center gap-2 flex-shrink-0 ml-2">
           {/* Diff badges */}
           {!isRunning && (added > 0 || removed > 0 || modified > 0) && (
-            <div className="flex items-center gap-1.5 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+            <div className="flex items-center gap-1.5 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
               {added > 0 && <span className="text-green-400">+{added}</span>}
               {removed > 0 && <span className="text-red-400">−{removed}</span>}
               {modified > 0 && <span className="text-amber-400">~{modified}</span>}
             </div>
           )}
           {elementCount > 0 && (
-            <span className="font-mono text-stone-500" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+            <span className="font-mono text-stone-500" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
               {elementCount} el
             </span>
           )}
@@ -384,12 +372,16 @@ export const GeniferRefineRenderer: FC<ToolRendererProps> = memo(({
       {!collapsed && (
         <div className="p-3" style={{ minHeight: isRunning ? 64 : undefined }}>
           {tree ? (
-            <Renderer
-              tree={tree}
-              loading={isRunning}
-              fallback={DefaultFallback}
-              disableAnimations={isRunning}
-            />
+            <SurfaceProvider tier="panel">
+              <BehaviorProvider tree={tree}>
+                <Renderer
+                  tree={tree}
+                  loading={isRunning}
+                  fallback={DefaultFallback}
+                  disableAnimations={isRunning}
+                />
+              </BehaviorProvider>
+            </SurfaceProvider>
           ) : isRunning ? (
             <div className="flex flex-col gap-2">
               {[0, 1].map(i => (
@@ -397,13 +389,13 @@ export const GeniferRefineRenderer: FC<ToolRendererProps> = memo(({
               ))}
             </div>
           ) : isError ? (
-            <div className="text-red-300/80 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+            <div className="text-red-300/80 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
               {errorText ?? 'Refinement failed'}
             </div>
           ) : (
             <pre
               className="text-stone-400 font-mono overflow-x-auto"
-              style={{ fontSize: 'var(--tmnl-text-xs, 12px)', maxHeight: 200, overflowY: 'auto' }}
+              style={{ fontSize: 'var(--tmnl-text-xs, 10px)', maxHeight: 200, overflowY: 'auto' }}
             >
               {extractText(output) || 'No content'}
             </pre>
@@ -415,7 +407,7 @@ export const GeniferRefineRenderer: FC<ToolRendererProps> = memo(({
       {!collapsed && !isRunning && surfaceId && (
         <div
           className="flex items-center justify-between px-3 py-1 font-mono text-stone-600"
-          style={{ fontSize: 'var(--tmnl-text-xs, 12px)', background: T.footer, borderTop: `1px solid ${T.border}` }}
+          style={{ fontSize: 'var(--tmnl-text-xs, 10px)', background: T.footer, borderTop: `1px solid ${T.border}` }}
         >
           <span>{sourceSurfaceId.slice(0, 8)} → {surfaceId.slice(0, 8)}</span>
           {qualityPct != null && <span>{qualityPct}%</span>}
@@ -440,7 +432,7 @@ export const GeniferQueryRenderer: FC<ToolRendererProps> = memo(({
   const [collapsed, setCollapsed] = useState(false)
   const parsed = useMemo(() => parseInput(input), [input])
   const operation = (parsed.operation as string) ?? 'query'
-  const isRunning = state === 'running'
+  const isRunning = state === 'running' || state === 'pending'
   const isError = state === 'error' || errorText != null
   const text = extractText(output)
 
@@ -463,7 +455,7 @@ export const GeniferQueryRenderer: FC<ToolRendererProps> = memo(({
           ) : (
             <Database size={13} className="text-stone-400" />
           )}
-          <span className="font-mono text-stone-300" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
+          <span className="font-mono text-stone-300" style={{ fontSize: 'var(--tmnl-text-sm, 12px)' }}>
             {operation}
           </span>
         </div>
@@ -477,14 +469,14 @@ export const GeniferQueryRenderer: FC<ToolRendererProps> = memo(({
       {!collapsed && !isRunning && text && (
         <pre
           className="px-3 py-2 font-mono text-stone-400 overflow-x-auto"
-          style={{ fontSize: 'var(--tmnl-text-xs, 12px)', maxHeight: 240, overflowY: 'auto' }}
+          style={{ fontSize: 'var(--tmnl-text-xs, 10px)', maxHeight: 240, overflowY: 'auto' }}
         >
           {text.length > 3000 ? text.slice(0, 3000) + '\n…' : text}
         </pre>
       )}
 
       {isError && errorText && (
-        <div className="px-3 py-2 text-red-300/80 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+        <div className="px-3 py-2 text-red-300/80 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
           {errorText}
         </div>
       )}
@@ -509,7 +501,7 @@ export const GeniferCodeRenderer: FC<ToolRendererProps> = memo(({
   const details = useMemo(() => extractDetails(output), [output])
   const code = (parsed.code as string) ?? ''
   const mode = (parsed.mode as string) ?? (details?.mode as string) ?? 'execute'
-  const isRunning = state === 'running'
+  const isRunning = state === 'running' || state === 'pending'
   const isError = state === 'error' || errorText != null
   const success = details?.success as boolean | undefined
   const durationMs = details?.durationMs as number | undefined
@@ -536,17 +528,17 @@ export const GeniferCodeRenderer: FC<ToolRendererProps> = memo(({
           ) : (
             <Code2 size={13} className="text-cyan-400" />
           )}
-          <span className="font-mono text-stone-300" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
+          <span className="font-mono text-stone-300" style={{ fontSize: 'var(--tmnl-text-sm, 12px)' }}>
             {mode}
           </span>
           {durationMs != null && (
-            <span className="font-mono text-stone-600" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+            <span className="font-mono text-stone-600" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
               {durationMs}ms
             </span>
           )}
         </div>
         {success != null && (
-          <span className={cn('font-mono', success ? 'text-green-400' : 'text-red-400')} style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+          <span className={cn('font-mono', success ? 'text-green-400' : 'text-red-400')} style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
             {success ? '✓ OK' : '✗ FAIL'}
           </span>
         )}
@@ -565,14 +557,14 @@ export const GeniferCodeRenderer: FC<ToolRendererProps> = memo(({
               className="text-stone-600 transition-transform"
               style={{ transform: showCode ? 'rotate(90deg)' : 'rotate(0deg)' }}
             />
-            <span className="font-mono text-stone-600" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+            <span className="font-mono text-stone-600" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
               Code
             </span>
           </div>
           {showCode && (
             <pre
               className="px-3 py-2 font-mono text-stone-400 overflow-x-auto"
-              style={{ fontSize: 'var(--tmnl-text-xs, 12px)', maxHeight: 300, overflowY: 'auto', background: T.bgInner }}
+              style={{ fontSize: 'var(--tmnl-text-xs, 10px)', maxHeight: 300, overflowY: 'auto', background: T.bgInner }}
             >
               {code}
             </pre>
@@ -583,13 +575,13 @@ export const GeniferCodeRenderer: FC<ToolRendererProps> = memo(({
       {/* Result */}
       <div className="px-3 py-2">
         {isError ? (
-          <pre className="text-red-300/80 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+          <pre className="text-red-300/80 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
             {errorText ?? (details?.error as string) ?? 'Execution failed'}
           </pre>
         ) : resultText ? (
           <pre
             className="text-stone-400 font-mono overflow-x-auto"
-            style={{ fontSize: 'var(--tmnl-text-xs, 12px)', maxHeight: 200, overflowY: 'auto' }}
+            style={{ fontSize: 'var(--tmnl-text-xs, 10px)', maxHeight: 200, overflowY: 'auto' }}
           >
             {resultText.length > 2000 ? resultText.slice(0, 2000) + '\n…' : resultText}
           </pre>
@@ -644,24 +636,24 @@ const MetaToolRenderer: FC<ToolRendererProps & { icon: typeof Zap; label: string
         ) : (
           <Icon size={13} className="text-stone-400 flex-shrink-0" />
         )}
-        <span className="font-mono text-stone-300" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
+        <span className="font-mono text-stone-300" style={{ fontSize: 'var(--tmnl-text-sm, 12px)' }}>
           {label}
         </span>
         <code
           className="font-mono text-cyan-300/80 truncate"
-          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+          style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
         >
           {tag}
         </code>
         {registered && (
-          <span className="font-mono text-green-400/60 ml-auto flex-shrink-0" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+          <span className="font-mono text-green-400/60 ml-auto flex-shrink-0" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
             ✓ registered
           </span>
         )}
       </div>
 
       {expanded && (description || errorText) && (
-        <div className="px-3 py-2 font-mono text-stone-500" style={{ fontSize: 'var(--tmnl-text-xs, 12px)', borderTop: `1px solid ${T.border}` }}>
+        <div className="px-3 py-2 font-mono text-stone-500" style={{ fontSize: 'var(--tmnl-text-xs, 10px)', borderTop: `1px solid ${T.border}` }}>
           {errorText ?? description}
         </div>
       )}
@@ -714,10 +706,10 @@ export const GeniferExportRenderer: FC<ToolRendererProps> = memo(({
         ) : (
           <Package size={13} className="text-cyan-400" />
         )}
-        <span className="font-mono text-stone-300" style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}>
+        <span className="font-mono text-stone-300" style={{ fontSize: 'var(--tmnl-text-sm, 12px)' }}>
           Export
         </span>
-        <code className="font-mono text-cyan-300/80" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+        <code className="font-mono text-cyan-300/80" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
           {name}
         </code>
       </div>
@@ -725,7 +717,7 @@ export const GeniferExportRenderer: FC<ToolRendererProps> = memo(({
       {bundled && (
         <div
           className="flex items-center gap-3 px-3 py-1.5 font-mono text-stone-500"
-          style={{ fontSize: 'var(--tmnl-text-xs, 12px)', borderTop: `1px solid ${T.border}` }}
+          style={{ fontSize: 'var(--tmnl-text-xs, 10px)', borderTop: `1px solid ${T.border}` }}
         >
           <span>{bundled.elements ?? 0} elements</span>
           <span>{bundled.rpcs ?? 0} RPCs</span>
@@ -735,7 +727,7 @@ export const GeniferExportRenderer: FC<ToolRendererProps> = memo(({
       )}
 
       {isError && errorText && (
-        <div className="px-3 py-2 text-red-300/80 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
+        <div className="px-3 py-2 text-red-300/80 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
           {errorText}
         </div>
       )}

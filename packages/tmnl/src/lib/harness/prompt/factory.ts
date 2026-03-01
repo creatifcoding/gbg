@@ -11,6 +11,7 @@ import { makePromptRegistry, type PromptRegistryShape, type PromptRegistryConfig
 import { makeIdentitySection, type IdentitySectionConfig } from './sections/identity'
 import { makeToolManifestSection } from './sections/tool-manifest'
 import { makeGuidelinesSection } from './sections/guidelines'
+import { makeInlineUISection } from './sections/inline-ui'
 import { makeProjectContextSection } from './sections/project-context'
 import { makeRuntimeStampSection } from './sections/runtime-stamp'
 import type { PromptEntry } from './types'
@@ -52,6 +53,9 @@ export const makeDefaultRegistry = (
 
     // 3. Guidelines (priority 200)
     systemEntries.push(makeGuidelinesSection(config.tools))
+
+    // 3.5. Inline UI — component catalog + NDJSON fence format (priority 250)
+    systemEntries.push(makeInlineUISection())
 
     // 4. Project context — AGENTS.md walk (priority 300)
     const projectContext = yield* makeProjectContextSection(config.cwd)

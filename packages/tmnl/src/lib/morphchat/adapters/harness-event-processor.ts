@@ -25,6 +25,7 @@ import type {
   ThinkingPart,
   ToolInvocationPart,
   CodePart,
+  UITreePart,
   ConnectionState,
   StreamingState,
   AgentInfo,
@@ -37,6 +38,7 @@ import type { MetricEntry, ProviderMarker } from '../schemas/metric-types'
 import { splitPartsCodeFences } from './markdown-code-splitter'
 import { streamingLatencyProbe } from '@/lib/harness/perf/StreamingLatencyProbe'
 import { startWatchdog, type WatchdogHandle } from './stream-watchdog'
+import { UIElement, UITree } from '@/lib/genifer/core/schemas'
 
 // =============================================================================
 // Config — which atoms to write to
@@ -147,7 +149,19 @@ export function appendTextDelta(
       const codeContent = newCode.slice(0, closeFenceIdx)
       const afterFence = newCode.slice(closeFenceIdx).replace(/^```\s*\n?/, '')
 
-      arr[lastIdx] = { ...codePart, code: codeContent, isStreaming: false }
+      // ── ```ui fence intercept: attempt UITree parse on close ──
+      if (codePart.language === 'ui') {
+        const uiTreePart = tryParseUITreePart(codeContent)
+        if (uiTreePart) {
+          arr[lastIdx] = uiTreePart
+        } else {
+          // Parse failed — keep as normal code block (graceful fallback)
+          arr[lastIdx] = { ...codePart, code: codeContent, isStreaming: false }
+        }
+      } else {
+        arr[lastIdx] = { ...codePart, code: codeContent, isStreaming: false }
+      }
+
       if (afterFence.length > 0) {
         arr.push({ _tag: 'text' as const, content: afterFence })
       }
@@ -201,6 +215,56 @@ export function appendTextDelta(
     arr.push({ _tag: 'text' as const, content: delta })
   }
   return arr
+}
+
+/**
+ * Attempt to parse a ```ui fence body (NDJSON) as a UITree.
+ * Returns a UITreePart on success, null on any failure.
+ * Failures are silent — the caller falls back to a normal CodePart.
+ *
+ * NDJSON format: each line is a JSON object.
+ *   {"root":"key"}                                    — sets root
+ *   {"key":"x","type":"y","props":{...},"children":[]} — adds element
+ */
+function tryParseUITreePart(source: string): UITreePart | null {
+  try {
+    const lines = source.split('\n')
+    let root = ''
+    const elements: Record<string, InstanceType<typeof UIElement>> = {}
+
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed || !trimmed.startsWith('{')) continue
+      const obj = JSON.parse(trimmed)
+
+      // Root declaration
+      if (typeof obj.root === 'string' && !obj.type) {
+        root = obj.root
+        continue
+      }
+
+      // Element addition
+      if (typeof obj.type === 'string') {
+        const key = typeof obj.key === 'string' ? obj.key : ''
+        if (!key) continue
+        elements[key] = new UIElement({
+          type: obj.type,
+          key,
+          props: (obj.props && typeof obj.props === 'object' ? obj.props : {}) as Record<string, unknown>,
+          children: Array.isArray(obj.children) ? obj.children.filter((c: unknown) => typeof c === 'string') : [],
+          parentKey: typeof obj.parentKey === 'string' ? obj.parentKey : undefined,
+          className: typeof obj.className === 'string' ? obj.className : undefined,
+        })
+      }
+    }
+
+    if (!root || Object.keys(elements).length === 0) return null
+
+    const tree = UITree.fromRecord(root, elements)
+    return { _tag: 'ui-tree' as const, tree, source: source.trim() }
+  } catch {
+    return null
+  }
 }
 
 /** Find an opening fence (```lang\n) — returns match info or null */

@@ -39,6 +39,8 @@ export const makeToolManifestSection = (
       categories['System Prompt'].push(tool)
     } else if (name.startsWith('genifer_') || name === 'spawn_panel') {
       categories['UI Generation'].push(tool)
+    } else if (name === 'panel_eval' || name === 'arrange_panels') {
+      categories['UI Generation'].push(tool)
     } else if (name.startsWith('geoint_')) {
       categories['Geospatial Intelligence'].push(tool)
     } else {

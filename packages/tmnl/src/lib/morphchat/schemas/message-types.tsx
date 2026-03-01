@@ -8,6 +8,7 @@
  */
 
 import { Match, Schema } from 'effect'
+import { UITree } from '@/lib/genifer/core/schemas'
 
 // =============================================================================
 // Role
@@ -174,6 +175,24 @@ export const CodePart = Schema.TaggedStruct('code', {
 export type CodePart = typeof CodePart.Type
 
 /**
+ * Inline UI tree part — rendered genifer UITree from a ```ui code fence.
+ *
+ * When the model emits a ```ui fenced block containing valid UITree JSON,
+ * the fence parser converts it from a CodePart into a UITreePart.
+ * The renderer displays the live UI inline in the chat thread using
+ * BehaviorProvider + Renderer from the genifer react infrastructure.
+ *
+ * If the JSON fails to parse, the block stays as a CodePart (graceful fallback).
+ */
+export const UITreePart = Schema.TaggedStruct('ui-tree', {
+  /** The parsed UITree (Effect HashMap-backed) */
+  tree: UITree,
+  /** Original JSON source (for clipboard/debug/copy) */
+  source: Schema.String,
+})
+export type UITreePart = typeof UITreePart.Type
+
+/**
  * Union of all message part types.
  *
  * Each part has a `_tag` discriminant for pattern matching:
@@ -182,6 +201,7 @@ export type CodePart = typeof CodePart.Type
  *   - 'tool-invocation' → ToolInvocationPart
  *   - 'file'            → FilePart
  *   - 'code'            → CodePart
+ *   - 'ui-tree'         → UITreePart
  *
  * Usage:
  *   message.parts.map(part => {
@@ -191,6 +211,7 @@ export type CodePart = typeof CodePart.Type
  *       case 'tool-invocation': return <ToolBlock ...part />
  *       case 'file': return <FileBlock ...part />
  *       case 'code': return <CodeBlock ...part />
+ *       case 'ui-tree': return <InlineUITreeCard ...part />
  *     }
  *   })
  */
@@ -200,6 +221,7 @@ export const ChatMessagePart = Schema.Union(
   ToolInvocationPart,
   FilePart,
   CodePart,
+  UITreePart,
 )
 export type ChatMessagePart = typeof ChatMessagePart.Type
 
