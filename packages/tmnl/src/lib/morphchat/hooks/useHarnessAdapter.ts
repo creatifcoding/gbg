@@ -55,6 +55,51 @@ const pendingDisposeTimers = new Map<string, ReturnType<typeof setTimeout>>()
 const instanceConfigCache = new Map<string, HarnessInstanceConfig>()
 const sessionIdCache = new Map<string, HarnessSessionId>()
 
+// =============================================================================
+// Content Persistence — debounced write-through to localStorage
+// =============================================================================
+const persistTimers = new Map<string, ReturnType<typeof setTimeout>>()
+const PERSIST_DEBOUNCE_MS = 500
+
+/** Schedule a debounced content write for a given instance */
+function schedulePersist(id: string): void {
+  const existing = persistTimers.get(id)
+  if (existing) clearTimeout(existing)
+
+  persistTimers.set(id, setTimeout(() => {
+    persistTimers.delete(id)
+    const msgs = morphChatRegistry.get(messages$(id))
+    const ids = morphChatRegistry.get(messageIds$(id))
+    const sid = getSessionId(id)
+    // Fire-and-forget with ContentStoreLive
+    Effect.runPromise(
+      writeContent(id, sid, msgs, ids).pipe(
+        Effect.provide(ContentStoreLive),
+      ),
+    ).catch(() => { /* best-effort persistence */ })
+  }, PERSIST_DEBOUNCE_MS))
+}
+
+/** Hydrate content from localStorage for a given instance.
+ *  Returns true if content was restored, false otherwise. */
+async function hydrateContent(id: string): Promise<boolean> {
+  try {
+    const result = await Effect.runPromise(
+      readContent(id).pipe(Effect.provide(ContentStoreLive)),
+    )
+    if (result._tag === 'None') return false
+    const snapshot = result.value
+    morphChatRegistry.set(messages$(id), snapshot.messages)
+    morphChatRegistry.set(messageIds$(id), snapshot.messageIds)
+    for (const msg of snapshot.messages) {
+      morphChatRegistry.set(getMessageAtom(id, msg.id), msg)
+    }
+    return true
+  } catch {
+    return false
+  }
+}
+
 import type { MorphChatAdapter } from '../schemas/adapter-types'
 import type {
   ChatMessage,
@@ -69,6 +114,7 @@ import { morphChatRegistry } from '../atoms/registry'
 import { createEventProcessor } from '../adapters/harness-event-processor'
 import { createExtensionToolBridge } from '@/lib/chat/msg/tool-block/renderers/extension-tool-bridge'
 import type { MetricEntry, ProviderMarker } from '../schemas/metric-types'
+import { writeContent, readContent, clearContent, ContentStoreLive } from '../persistence/content-store'
 
 setShellRegistry(morphChatRegistry)
 setGeniferPanelRegistry(morphChatRegistry)
@@ -778,12 +824,17 @@ function resetSession(id: string, reason: string): void {
 }
 
 /** Reset content: messages, per-message atoms, IDs, tool bridge.
- *  This is destructive — call only for intentional clears (new session, explicit clear). */
+ *  This is destructive — call only for intentional clears (new session, explicit clear).
+ *  Also clears persisted content from localStorage. */
 function resetContent(id: string): void {
   morphChatRegistry.set(messages$(id), [] as ReadonlyArray<ChatMessage>)
   clearMessageAtoms(id)
   morphChatRegistry.set(messageIds$(id), [])
   getToolBridge(id).clear()
+  // Clear persisted content (fire-and-forget)
+  Effect.runPromise(
+    clearContent(id).pipe(Effect.provide(ContentStoreLive)),
+  ).catch(() => { /* best-effort */ })
 }
 
 /** Snapshot content atoms for transactional rollback.
@@ -1480,6 +1531,17 @@ export function useHarnessAdapter(config: UseHarnessAdapterConfig): UseHarnessAd
 
     syncMessageAtoms()
     return morphChatRegistry.subscribe(messages$(instanceId), syncMessageAtoms)
+  }, [instanceId])
+
+  // ── Content persistence: debounced write-through on message changes ──
+  useEffect(() => {
+    // Hydrate from localStorage on mount (async, non-blocking)
+    hydrateContent(instanceId)
+
+    // Subscribe to message changes → debounced persist
+    return morphChatRegistry.subscribe(messages$(instanceId), () => {
+      schedulePersist(instanceId)
+    })
   }, [instanceId])
 
   // Connection status from per-instance atom
