@@ -198,18 +198,16 @@ export const COMPOSER_SIZING: Record<ChatWidthTier, {
 /**
  * Progressive overflow priority — higher index = first to collapse into ··· menu.
  * Index 0 (Send) never overflows.
+ *
+ * Removed (ghost/mock-only): voice, attach, command, mention, divider
  */
 export const COMPOSER_OVERFLOW_PRIORITY = [
   'send',         // 0 — never overflows
   'mode-toggle',  // 1
   'thinking',     // 2
   'cancel',       // 3
-  'reconnect',    // 4
-  'divider',      // 5 — always hidden at squeeze+
-  'attach',       // 6
-  'voice',        // 7
-  'mention',      // 8
-  'command',      // 9 — first into overflow
+  'reconnect',    // 4 — adapter.reconnect()
+  'clear',        // 5 — adapter.clear()
 ] as const
 
 export type ComposerActionId = typeof COMPOSER_OVERFLOW_PRIORITY[number]
