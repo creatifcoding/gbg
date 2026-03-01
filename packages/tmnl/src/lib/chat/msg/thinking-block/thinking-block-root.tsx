@@ -34,6 +34,40 @@ const AUTO_CLOSE_DELAY = 1200
 const MS_IN_S = 1000
 
 // =============================================================================
+// EPOCH-0005: Thinking Heatmap — duration-keyed border/bg colors
+// =============================================================================
+
+/**
+ * Heatmap color scale for thinking duration.
+ *
+ * Communicates cognitive effort visually:
+ * - Violet (0s): fresh start — model just entered reasoning
+ * - Blue (2s): warming up — light reasoning
+ * - Blue-400 (5s): engaged — moderate effort
+ * - Amber (15s): deep reasoning — extended chain-of-thought
+ * - Rose (30s): extreme effort — complex multi-step reasoning
+ *
+ * Colors persist after collapse — the heatmap is a visible record of effort.
+ * transition-colors duration-700 in the component smooths shifts.
+ */
+const THINKING_HEATMAP = [
+  { threshold: 0,  border: 'border-violet-500/20', bg: 'bg-violet-500/[0.03]', hoverBorder: 'hover:border-violet-500/30', hoverBg: 'hover:bg-violet-500/[0.06]' },
+  { threshold: 2,  border: 'border-blue-500/20',   bg: 'bg-blue-500/[0.03]',   hoverBorder: 'hover:border-blue-500/30',   hoverBg: 'hover:bg-blue-500/[0.06]' },
+  { threshold: 5,  border: 'border-blue-400/20',   bg: 'bg-blue-400/[0.03]',   hoverBorder: 'hover:border-blue-400/30',   hoverBg: 'hover:bg-blue-400/[0.06]' },
+  { threshold: 15, border: 'border-amber-500/20',  bg: 'bg-amber-500/[0.03]',  hoverBorder: 'hover:border-amber-500/30',  hoverBg: 'hover:bg-amber-500/[0.06]' },
+  { threshold: 30, border: 'border-rose-500/20',   bg: 'bg-rose-500/[0.03]',   hoverBorder: 'hover:border-rose-500/30',   hoverBg: 'hover:bg-rose-500/[0.06]' },
+] as const
+
+function getHeatmapColors(elapsedSec: number) {
+  let entry = THINKING_HEATMAP[0]
+  for (const h of THINKING_HEATMAP) {
+    if (elapsedSec >= h.threshold) entry = h
+    else break
+  }
+  return entry
+}
+
+// =============================================================================
 // Props
 // =============================================================================
 
@@ -88,6 +122,10 @@ export const ChatThinkingBlockRoot = memo(forwardRef<HTMLDivElement, ChatThinkin
     const startTimeRef = useRef<number | null>(null)
     const hasAutoClosedRef = useRef(false)
 
+    // EPOCH-0005: Live elapsed counter during streaming (drives heatmap)
+    // Local state, not atom — this is pure display state for the timer.
+    const [liveElapsed, setLiveElapsed] = useState(0)
+
     // Track streaming start/end for duration
     useEffect(() => {
       if (isStreaming) {
@@ -101,6 +139,26 @@ export const ChatThinkingBlockRoot = memo(forwardRef<HTMLDivElement, ChatThinkin
         startTimeRef.current = null
       }
     }, [isStreaming])
+
+    // EPOCH-0005: 1s interval for live elapsed (drives heatmap color shifts)
+    useEffect(() => {
+      if (!isStreaming) {
+        setLiveElapsed(0)
+        return
+      }
+      const tick = () => {
+        if (startTimeRef.current != null) {
+          setLiveElapsed(Math.floor((Date.now() - startTimeRef.current) / MS_IN_S))
+        }
+      }
+      tick() // Initial
+      const id = setInterval(tick, 1000)
+      return () => clearInterval(id)
+    }, [isStreaming])
+
+    // EPOCH-0005: Resolve heatmap colors from elapsed time
+    const heatmapElapsed = isStreaming ? liveElapsed : (durationSec ?? 0)
+    const heatmap = getHeatmapColors(heatmapElapsed)
 
     // Sync external durationMs prop
     useEffect(() => {
@@ -121,11 +179,13 @@ export const ChatThinkingBlockRoot = memo(forwardRef<HTMLDivElement, ChatThinkin
     }, [isStreaming, isOpen, defaultOpen, setIsOpen])
 
     // ── Context ──────────────────────────────────────────
+    // EPOCH-0005: During streaming, expose liveElapsed as durationSec so
+    // the trigger shows "Thinking… 12s" in real-time.
     const ctx: ChatThinkingBlockContextValue = {
       isStreaming,
       isOpen: density === 'pill' ? false : isOpen, // pill never expands
       setIsOpen: expandCollapse ? setIsOpen : () => {}, // gate collapse by interactivity
-      durationSec,
+      durationSec: isStreaming ? (liveElapsed > 0 ? liveElapsed : undefined) : durationSec,
     }
 
     // ── Pill density: single-line indicator ──────────────
@@ -139,14 +199,15 @@ export const ChatThinkingBlockRoot = memo(forwardRef<HTMLDivElement, ChatThinkin
             data-streaming={isStreaming || undefined}
             className={cn(
               'inline-flex items-center gap-1 px-2 py-0.5 rounded-full',
-              'border border-violet-500/20 bg-violet-500/[0.03]',
+              'border transition-colors duration-700',
+              heatmap.border, heatmap.bg,
               isStreaming && 'animate-pulse',
               className,
             )}
             {...props}
           >
-            <span className="text-violet-400 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>
-              {isStreaming ? 'thinking…' : durationSec != null ? `${durationSec}s` : 'thought'}
+            <span className="text-violet-400 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
+              {isStreaming ? `thinking… ${liveElapsed}s` : durationSec != null ? `${durationSec}s` : 'thought'}
             </span>
           </div>
         </ChatThinkingBlockContext.Provider>
@@ -163,10 +224,10 @@ export const ChatThinkingBlockRoot = memo(forwardRef<HTMLDivElement, ChatThinkin
           data-state={isOpen ? 'open' : 'closed'}
           data-streaming={isStreaming || undefined}
           className={cn(
-            'rounded border transition-colors duration-200',
+            'rounded border transition-colors duration-700',
             density === 'compact' ? 'my-1' : 'my-1.5',
-            'border-violet-500/20 bg-violet-500/[0.03]',
-            'hover:border-violet-500/30 hover:bg-violet-500/[0.06]',
+            heatmap.border, heatmap.bg,
+            heatmap.hoverBorder, heatmap.hoverBg,
             className,
           )}
           {...props}

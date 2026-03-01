@@ -7,6 +7,58 @@
  * which are already generated from our own src/ usage.
  * Removed @source scan to eliminate ~2-3KB of ghost CSS. */
 
+/* =============================================================================
+   EPOCH-0005: Streaming cursor animations — velocity-adaptive
+   ============================================================================= */
+
+/* Fast cursor: brisk step-end blink (≥20 tok/s) — signals high bandwidth */
+@keyframes tmnl-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.tmnl-cursor-fast {
+  animation: tmnl-blink 300ms step-end infinite;
+}
+
+/* Normal cursor: breathing pulse (5–19 tok/s) — comfortable streaming pace */
+@keyframes tmnl-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.tmnl-cursor-normal {
+  animation: tmnl-pulse 900ms ease-in-out infinite;
+}
+
+/* Slow / waiting: orbital dots with stagger (<5 tok/s) — model is thinking */
+@keyframes tmnl-orbital {
+  0%, 100% { transform: translateY(0); opacity: 0.3; }
+  50% { transform: translateY(-4px); opacity: 1; }
+}
+
+.tmnl-cursor-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: #22d3ee; /* cyan-400 */
+  animation: tmnl-orbital 1.4s ease-in-out infinite;
+}
+
+/* Respect prefers-reduced-motion: kill all cursor animation */
+@media (prefers-reduced-motion: reduce) {
+  .tmnl-cursor-fast,
+  .tmnl-cursor-normal {
+    animation: none;
+    opacity: 1;
+  }
+  .tmnl-cursor-dot {
+    animation: none;
+    opacity: 0.7;
+    transform: none;
+  }
+}
+
 /* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 4px;

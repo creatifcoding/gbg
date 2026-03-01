@@ -29,7 +29,7 @@ function defaultGetLabel(isStreaming: boolean, durationSec?: number): ReactNode 
   if (isStreaming) {
     return (
       <span className="text-violet-400 animate-pulse">
-        Thinking…
+        Thinking… {durationSec != null && durationSec > 0 ? `${durationSec}s` : ''}
       </span>
     )
   }
@@ -63,7 +63,7 @@ export const ChatThinkingBlockTrigger = memo(forwardRef<HTMLButtonElement, ChatT
           'hover:bg-violet-500/[0.04]',
           className,
         )}
-        style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+        style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
         aria-expanded={isOpen}
         {...props}
       >
