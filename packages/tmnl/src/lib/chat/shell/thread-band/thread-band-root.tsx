@@ -195,40 +195,38 @@ export const ChatThreadBand = forwardRef<HTMLDivElement, ChatThreadBandProps>(
 
     return (
       <ThreadTailCtx.Provider value={tailCtx}>
-        {/* Relative container for scroll area + absolute footer overlay */}
-        <div className="relative flex-1 min-h-0 flex flex-col">
-          <div
-            ref={setRefs}
-            data-slot="tmnl-chat-shell-thread-band"
-            data-scroll-contract={CHAT_SHELL_SCROLL_CONTRACT.id}
-            data-tail-mode={tailCtx.tailMode}
-            className={cn('flex-1 min-h-0 px-4 py-2', className)}
-            style={resolveChatShellThreadScrollStyle(style)}
-            onScroll={composedOnScroll}
-            {...interruptHandlers}
-            {...props}
-          >
-            {/* Head sentinel */}
-            <div ref={tf.head.ref} className="h-px" aria-hidden="true" />
+        <div
+          ref={setRefs}
+          data-slot="tmnl-chat-shell-thread-band"
+          data-scroll-contract={CHAT_SHELL_SCROLL_CONTRACT.id}
+          data-tail-mode={tailCtx.tailMode}
+          className={cn('flex-1 min-h-0 px-4 py-2', className)}
+          style={resolveChatShellThreadScrollStyle(style)}
+          onScroll={composedOnScroll}
+          {...interruptHandlers}
+          {...props}
+        >
+          {/* Head sentinel */}
+          <div ref={tf.head.ref} className="h-px" aria-hidden="true" />
 
-            {children}
+          {children}
 
-            {/* Tail sentinel */}
-            <div ref={tf.tail.ref} className="h-px" aria-hidden="true" />
-          </div>
+          {/* Tail sentinel */}
+          <div ref={tf.tail.ref} className="h-px" aria-hidden="true" />
 
-          {/* Footer overlay — absolute bottom, mirrors header overlay pattern */}
+          {/* Footer overlay — sticky bottom inside scroll container.
+              Stays pinned at the viewport bottom as content scrolls.
+              pointer-events-none container, auto on pill. */}
           {renderFooterOverlay && (
-            <div className="absolute inset-x-0 bottom-3 z-10 flex justify-center pointer-events-none">
+            <div className="sticky bottom-3 z-10 flex justify-center pointer-events-none">
               <div className="pointer-events-auto">
                 {renderFooterOverlay}
               </div>
             </div>
           )}
-
-          {/* @deprecated — tail controls in normal flow */}
-          {renderAfterScroll && !renderFooterOverlay && renderAfterScroll}
         </div>
+        {/* @deprecated — tail controls in normal flow, outside scroll */}
+        {renderAfterScroll && !renderFooterOverlay && renderAfterScroll}
       </ThreadTailCtx.Provider>
     )
   },
