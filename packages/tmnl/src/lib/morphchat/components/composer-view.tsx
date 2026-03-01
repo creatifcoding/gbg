@@ -21,8 +21,8 @@ import { AnimatePresence, motion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { useMorphChatContext } from './surface-context'
 import { connectionStateFamily } from '../machines/surface-stx'
-import { Composer, useComposer } from '@/lib/chat/composer'
-import type { ChatWidthTier } from '@/lib/chat/tokens'
+import { Composer, useComposer, type OverflowAction } from '@/lib/chat/composer'
+import { COMPOSER_INLINE_ACTIONS, COMPOSER_SIZING, type ChatWidthTier, type ComposerActionId } from '@/lib/chat/tokens'
 import { useTransferDroppable } from '@/lib/transfer/v2/hooks'
 import type { TransferToken, TransferResult } from '@/lib/transfer/v2/schemas'
 import { Atom } from '@effect-atom/atom'
@@ -218,43 +218,12 @@ export function ComposerView({ widthTier = 'full' }: { widthTier?: ChatWidthTier
             <Composer.TextArea placeholder="Message..." />
             {/* Character counter */}
             <CharacterCounter maxChars={(adapter as Partial<MockChatAdapter>).surfaceConfig?.maxChars} />
-            <Composer.Toolbar>
-              <Composer.ToolbarGroup>
-                <Composer.ModeToggle />
-                <Composer.Divider />
-                <Composer.ThinkingLevel />
-                <Composer.Divider />
-                {/* Insert buttons: /cmd, @entity, mic */}
-                <Composer.ActionButton
-                  icon={<Command size={14} />}
-                  title="Insert command"
-                  onClick={() => (adapter as Partial<MockChatAdapter>).setDraft?.('/')}
-                />
-                <Composer.ActionButton
-                  icon={<AtSign size={14} />}
-                  title="Mention entity"
-                  onClick={() => (adapter as Partial<MockChatAdapter>).setDraft?.('@')}
-                />
-                <Composer.ActionButton
-                  icon={<Mic size={14} />}
-                  title="Voice input"
-                />
-              </Composer.ToolbarGroup>
-              <Composer.ToolbarGroup>
-                <Composer.ActionButton
-                  icon={<Paperclip size={14} />}
-                  title="Attach"
-                />
-                {/* Transport group: reconnect / pause / send */}
-                <TransportGroup
-                  isStreaming={isStreaming}
-                  streamPhase={streaming.phase}
-                  onCancel={handleCancel}
-                  onReconnect={() => (adapter as Partial<MockChatAdapter>).toggleConnection?.()}
-                />
-                <Composer.SendButton />
-              </Composer.ToolbarGroup>
-            </Composer.Toolbar>
+            <TierAwareToolbar
+              adapter={adapter}
+              isStreaming={isStreaming}
+              streaming={streaming}
+              onCancel={handleCancel}
+            />
           </Composer>
         </div>
       )
@@ -337,6 +306,95 @@ export function ComposerView({ widthTier = 'full' }: { widthTier?: ChatWidthTier
 }
 
 ComposerView.displayName = 'MorphChat.ComposerView'
+
+// =============================================================================
+// TierAwareToolbar — progressive overflow based on COMPOSER_INLINE_ACTIONS
+// =============================================================================
+
+function TierAwareToolbar({
+  adapter,
+  isStreaming,
+  streaming,
+  onCancel,
+}: {
+  adapter: MorphChatAdapter
+  isStreaming: boolean
+  streaming: { phase: StreamPhase }
+  onCancel: () => void
+}) {
+  const { widthTier } = useComposer()
+  const sizing = COMPOSER_SIZING[widthTier]
+  const inline = COMPOSER_INLINE_ACTIONS[widthTier]
+
+  const show = (id: ComposerActionId) => inline.has(id)
+
+  // Build overflow items for anything not inline
+  const overflowItems = useMemo(() => {
+    const items: OverflowAction[] = []
+    if (!show('command'))
+      items.push({ id: 'command', icon: <Command size={12} />, label: '/Command', onClick: () => (adapter as Partial<MockChatAdapter>).setDraft?.('/') })
+    if (!show('mention'))
+      items.push({ id: 'mention', icon: <AtSign size={12} />, label: '@Mention', onClick: () => (adapter as Partial<MockChatAdapter>).setDraft?.('@') })
+    if (!show('voice'))
+      items.push({ id: 'voice', icon: <Mic size={12} />, label: 'Voice input' })
+    if (!show('attach'))
+      items.push({ id: 'attach', icon: <Paperclip size={12} />, label: 'Attach file' })
+    if (!show('reconnect'))
+      items.push({ id: 'reconnect', icon: <RotateCcw size={12} />, label: 'Toggle connection', onClick: () => (adapter as Partial<MockChatAdapter>).toggleConnection?.() })
+    return items
+  }, [widthTier, adapter])
+
+  return (
+    <Composer.Toolbar>
+      <Composer.ToolbarGroup>
+        {show('mode-toggle') && <Composer.ModeToggle />}
+        {show('divider') && <Composer.Divider />}
+        {show('thinking') && <Composer.ThinkingLevel />}
+        {show('divider') && <Composer.Divider />}
+        {show('command') && (
+          <Composer.ActionButton
+            icon={<Command size={sizing.actionIcon} />}
+            title="Insert command"
+            onClick={() => (adapter as Partial<MockChatAdapter>).setDraft?.('/')}
+          />
+        )}
+        {show('mention') && (
+          <Composer.ActionButton
+            icon={<AtSign size={sizing.actionIcon} />}
+            title="Mention entity"
+            onClick={() => (adapter as Partial<MockChatAdapter>).setDraft?.('@')}
+          />
+        )}
+        {show('voice') && (
+          <Composer.ActionButton
+            icon={<Mic size={sizing.actionIcon} />}
+            title="Voice input"
+          />
+        )}
+      </Composer.ToolbarGroup>
+      <Composer.ToolbarGroup>
+        {show('attach') && (
+          <Composer.ActionButton
+            icon={<Paperclip size={sizing.actionIcon} />}
+            title="Attach"
+          />
+        )}
+        {show('reconnect') && (
+          <TransportGroup
+            isStreaming={isStreaming}
+            streamPhase={streaming.phase}
+            onCancel={onCancel}
+            onReconnect={() => (adapter as Partial<MockChatAdapter>).toggleConnection?.()}
+          />
+        )}
+        {overflowItems.length > 0 && (
+          <Composer.OverflowMenu items={overflowItems} />
+        )}
+        <Composer.SendButton />
+      </Composer.ToolbarGroup>
+    </Composer.Toolbar>
+  )
+}
 
 // =============================================================================
 // Character Counter — shows current / max chars

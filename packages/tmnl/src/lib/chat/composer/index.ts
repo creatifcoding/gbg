@@ -35,6 +35,7 @@ import { ComposerActionButton } from './composer-action-button'
 import { ComposerContextChips } from './composer-context-chips'
 import { ComposerTerminal } from './composer-terminal'
 import { ComposerTerminalSlot } from './composer-terminal-slot'
+import { ComposerOverflowMenu } from './composer-overflow-menu'
 
 // Re-export context hook for advanced consumers
 export { useComposer } from './composer-context'
@@ -57,6 +58,7 @@ export type {
 export type { ComposerProps as ComposerRootProps } from './composer-root'
 export type { ComposerTerminalProps } from './composer-terminal'
 export type { ComposerTerminalSlotProps } from './composer-terminal-slot'
+export type { OverflowAction, ComposerOverflowMenuProps } from './composer-overflow-menu'
 
 // =============================================================================
 // Compound Component Assembly
@@ -78,6 +80,7 @@ interface ComposerComponent {
   ContextChips: typeof ComposerContextChips
   Terminal: typeof ComposerTerminal
   TerminalSlot: typeof ComposerTerminalSlot
+  OverflowMenu: typeof ComposerOverflowMenu
 }
 
 const Composer = ComposerRoot as unknown as ComposerComponent
@@ -93,5 +96,6 @@ Composer.ActionButton = ComposerActionButton
 Composer.ContextChips = ComposerContextChips
 Composer.Terminal = ComposerTerminal
 Composer.TerminalSlot = ComposerTerminalSlot
+Composer.OverflowMenu = ComposerOverflowMenu
 
 export { Composer }
