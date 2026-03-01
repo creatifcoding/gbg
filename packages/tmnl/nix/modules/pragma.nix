@@ -98,6 +98,26 @@
             cargo run -p pragma-sidecar
           '';
         };
+
+        pragma-provision = {
+          description = "Download and quantize PRAGMA inference models (~200MB).";
+          category = "PRAGMA";
+          exec = ''
+            set -euo pipefail
+            cd "$FLAKE_ROOT/packages/tmnl"
+            python3 src/lib/harness/pragma/scripts/provision-models.py "$@"
+          '';
+        };
+
+        pragma-provision-status = {
+          description = "Show PRAGMA model provisioning status.";
+          category = "PRAGMA";
+          exec = ''
+            set -euo pipefail
+            cd "$FLAKE_ROOT/packages/tmnl"
+            python3 src/lib/harness/pragma/scripts/provision-models.py --status
+          '';
+        };
       };
     };
 }
