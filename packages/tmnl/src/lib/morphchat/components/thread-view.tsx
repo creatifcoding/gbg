@@ -847,9 +847,9 @@ export function ThreadView() {
   // Map spec.scrollBehavior → ChatThreadBand autoScroll
   const autoScroll = resolveAutoScroll(spec.scrollBehavior)
 
-  // EPOCH-0005: Floating pill replaces docked tail controls.
-  // Rendered inside the ChatThreadBand context scope for tail state access.
-  const tailControls = spec.scrollBehavior !== 'manual'
+  // EPOCH-0005: Floating pill as footer overlay — mirrors header overlay pattern.
+  // Rendered inside the ChatThreadBand tail context scope.
+  const footerOverlay = spec.scrollBehavior !== 'manual'
     ? <FloatingScrollPill />
     : undefined
 
@@ -893,7 +893,7 @@ export function ThreadView() {
         autoScroll={autoScroll}
         itemCount={resolvedIds.length}
         bottomThreshold={24}
-        renderAfterScroll={tailControls}
+        renderFooterOverlay={footerOverlay}
         className={cn(
           'h-full',
           spec.thread === 'log' ? 'bg-neutral-950' : '',

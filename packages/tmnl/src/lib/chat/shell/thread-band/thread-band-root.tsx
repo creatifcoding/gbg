@@ -41,8 +41,17 @@ export interface ChatThreadBandProps extends ComponentPropsWithoutRef<'div'> {
   /**
    * Content rendered inside the tail-follow context scope but OUTSIDE
    * the scroll container. Use for tail controls (LIVE/PAUSED badge).
+   * @deprecated Use renderFooterOverlay for non-layout-displacing overlays.
    */
   renderAfterScroll?: React.ReactNode
+  /**
+   * Footer overlay — absolute-positioned at bottom of the thread container.
+   * Mirrors the header overlay pattern (StatusBannerView at top-0).
+   * Rendered inside TailCtx scope, pointer-events-none container with auto children.
+   *
+   * Use for: scroll pills, streaming indicators, etc.
+   */
+  renderFooterOverlay?: React.ReactNode
 }
 
 // =============================================================================
@@ -89,6 +98,7 @@ export const ChatThreadBand = forwardRef<HTMLDivElement, ChatThreadBandProps>(
       bottomThreshold = 24,
       itemCount = 0,
       renderAfterScroll,
+      renderFooterOverlay,
       onScroll,
       ...props
     },
@@ -185,27 +195,40 @@ export const ChatThreadBand = forwardRef<HTMLDivElement, ChatThreadBandProps>(
 
     return (
       <ThreadTailCtx.Provider value={tailCtx}>
-        <div
-          ref={setRefs}
-          data-slot="tmnl-chat-shell-thread-band"
-          data-scroll-contract={CHAT_SHELL_SCROLL_CONTRACT.id}
-          data-tail-mode={tailCtx.tailMode}
-          className={cn('flex-1 min-h-0 px-4 py-2', className)}
-          style={resolveChatShellThreadScrollStyle(style)}
-          onScroll={composedOnScroll}
-          {...interruptHandlers}
-          {...props}
-        >
-          {/* Head sentinel */}
-          <div ref={tf.head.ref} className="h-px" aria-hidden="true" />
+        {/* Relative container for scroll area + absolute footer overlay */}
+        <div className="relative flex-1 min-h-0 flex flex-col">
+          <div
+            ref={setRefs}
+            data-slot="tmnl-chat-shell-thread-band"
+            data-scroll-contract={CHAT_SHELL_SCROLL_CONTRACT.id}
+            data-tail-mode={tailCtx.tailMode}
+            className={cn('flex-1 min-h-0 px-4 py-2', className)}
+            style={resolveChatShellThreadScrollStyle(style)}
+            onScroll={composedOnScroll}
+            {...interruptHandlers}
+            {...props}
+          >
+            {/* Head sentinel */}
+            <div ref={tf.head.ref} className="h-px" aria-hidden="true" />
 
-          {children}
+            {children}
 
-          {/* Tail sentinel */}
-          <div ref={tf.tail.ref} className="h-px" aria-hidden="true" />
+            {/* Tail sentinel */}
+            <div ref={tf.tail.ref} className="h-px" aria-hidden="true" />
+          </div>
+
+          {/* Footer overlay — absolute bottom, mirrors header overlay pattern */}
+          {renderFooterOverlay && (
+            <div className="absolute inset-x-0 bottom-3 z-10 flex justify-center pointer-events-none">
+              <div className="pointer-events-auto">
+                {renderFooterOverlay}
+              </div>
+            </div>
+          )}
+
+          {/* @deprecated — tail controls in normal flow */}
+          {renderAfterScroll && !renderFooterOverlay && renderAfterScroll}
         </div>
-        {/* Tail controls slot — inside provider scope, outside scroll container */}
-        {renderAfterScroll}
       </ThreadTailCtx.Provider>
     )
   },
