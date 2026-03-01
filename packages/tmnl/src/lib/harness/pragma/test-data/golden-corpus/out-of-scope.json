@@ -1,0 +1,12 @@
+[
+  { "id": "oos-01", "prompt": "what is the capital of France?", "expected_intent": "IDLE", "alternatives": [], "expected_confidence_min": 0.0, "category": "out-of-scope", "tags": ["trivia"] },
+  { "id": "oos-02", "prompt": "write me a Python function to sort a list", "expected_intent": "IDLE", "alternatives": [], "expected_confidence_min": 0.0, "category": "out-of-scope", "tags": ["code-gen"] },
+  { "id": "oos-03", "prompt": "explain quantum entanglement in simple terms", "expected_intent": "IDLE", "alternatives": [], "expected_confidence_min": 0.0, "category": "out-of-scope", "tags": ["education"] },
+  { "id": "oos-04", "prompt": "translate 'hello world' to Spanish", "expected_intent": "IDLE", "alternatives": [], "expected_confidence_min": 0.0, "category": "out-of-scope", "tags": ["translation"] },
+  { "id": "oos-05", "prompt": "tell me a joke about programmers", "expected_intent": "IDLE", "alternatives": [], "expected_confidence_min": 0.0, "category": "out-of-scope", "tags": ["humor"] },
+  { "id": "oos-06", "prompt": "how do I fix a memory leak in Rust?", "expected_intent": "IDLE", "alternatives": [], "expected_confidence_min": 0.0, "category": "out-of-scope", "tags": ["debugging"] },
+  { "id": "oos-07", "prompt": "summarize the latest news about AI", "expected_intent": "IDLE", "alternatives": [], "expected_confidence_min": 0.0, "category": "out-of-scope", "tags": ["news"] },
+  { "id": "oos-08", "prompt": "calculate 15% tip on a $85 dinner", "expected_intent": "IDLE", "alternatives": [], "expected_confidence_min": 0.0, "category": "out-of-scope", "tags": ["math"] },
+  { "id": "oos-09", "prompt": "what's the weather in New York today?", "expected_intent": "IDLE", "alternatives": [], "expected_confidence_min": 0.0, "category": "out-of-scope", "tags": ["weather"] },
+  { "id": "oos-10", "prompt": "recommend a good sci-fi book", "expected_intent": "IDLE", "alternatives": [], "expected_confidence_min": 0.0, "category": "out-of-scope", "tags": ["recommendation"] }
+]

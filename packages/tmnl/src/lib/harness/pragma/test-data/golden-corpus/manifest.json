@@ -1,0 +1,21 @@
+{
+  "version": "1.0.0",
+  "description": "PRAGMA golden corpus for intent classification and scoring evaluation",
+  "generated_by": "manual + scripts/pragma-golden-gen.py",
+  "schema": {
+    "id": "string — unique entry identifier",
+    "prompt": "string — user prompt text",
+    "expected_intent": "DATA | FORM | LAYOUT | FEEDBACK | MIXED | IDLE",
+    "alternatives": "[string] — acceptable alternative intents",
+    "expected_confidence_min": "number — minimum expected confidence",
+    "category": "core | edge | adversarial | out-of-scope",
+    "tags": "[string] — classification tags"
+  },
+  "files": {
+    "core.json": "Core UI generation prompts (data, form, layout, feedback)",
+    "mixed.json": "Multi-intent / mixed prompts",
+    "edge.json": "Boundary and ambiguous prompts",
+    "adversarial.json": "Adversarial inputs (injection, Unicode, overflow)",
+    "out-of-scope.json": "Non-UI prompts that must be classified as IDLE"
+  }
+}

@@ -1,0 +1,26 @@
+[
+  { "id": "core-data-01", "prompt": "show me a bar chart of monthly revenue", "expected_intent": "DATA", "alternatives": [], "expected_confidence_min": 0.6, "category": "core", "tags": ["chart", "data-viz"] },
+  { "id": "core-data-02", "prompt": "create a line graph tracking temperature over time", "expected_intent": "DATA", "alternatives": [], "expected_confidence_min": 0.6, "category": "core", "tags": ["graph", "time-series"] },
+  { "id": "core-data-03", "prompt": "render a pie chart showing market share breakdown", "expected_intent": "DATA", "alternatives": [], "expected_confidence_min": 0.6, "category": "core", "tags": ["chart", "breakdown"] },
+  { "id": "core-data-04", "prompt": "display a scatter plot of height vs weight", "expected_intent": "DATA", "alternatives": [], "expected_confidence_min": 0.5, "category": "core", "tags": ["chart", "scatter"] },
+  { "id": "core-data-05", "prompt": "build a data table with sortable columns", "expected_intent": "DATA", "alternatives": [], "expected_confidence_min": 0.6, "category": "core", "tags": ["table", "data"] },
+  { "id": "core-data-06", "prompt": "visualize the sales data as a heatmap", "expected_intent": "DATA", "alternatives": [], "expected_confidence_min": 0.6, "category": "core", "tags": ["heatmap", "data-viz"] },
+
+  { "id": "core-form-01", "prompt": "create a login form with email and password", "expected_intent": "FORM", "alternatives": [], "expected_confidence_min": 0.6, "category": "core", "tags": ["form", "auth"] },
+  { "id": "core-form-02", "prompt": "build a registration form with name, email, and phone", "expected_intent": "FORM", "alternatives": [], "expected_confidence_min": 0.6, "category": "core", "tags": ["form", "registration"] },
+  { "id": "core-form-03", "prompt": "make a settings page with toggle switches and dropdowns", "expected_intent": "FORM", "alternatives": [], "expected_confidence_min": 0.5, "category": "core", "tags": ["form", "settings"] },
+  { "id": "core-form-04", "prompt": "create a contact form with message textarea and submit button", "expected_intent": "FORM", "alternatives": [], "expected_confidence_min": 0.6, "category": "core", "tags": ["form", "contact"] },
+  { "id": "core-form-05", "prompt": "build a search form with autocomplete input", "expected_intent": "FORM", "alternatives": [], "expected_confidence_min": 0.5, "category": "core", "tags": ["form", "search"] },
+
+  { "id": "core-layout-01", "prompt": "create a dashboard with three columns", "expected_intent": "LAYOUT", "alternatives": [], "expected_confidence_min": 0.6, "category": "core", "tags": ["dashboard", "grid"] },
+  { "id": "core-layout-02", "prompt": "build a sidebar navigation with main content area", "expected_intent": "LAYOUT", "alternatives": [], "expected_confidence_min": 0.6, "category": "core", "tags": ["navigation", "sidebar"] },
+  { "id": "core-layout-03", "prompt": "design a two-panel split view layout", "expected_intent": "LAYOUT", "alternatives": [], "expected_confidence_min": 0.5, "category": "core", "tags": ["layout", "split"] },
+  { "id": "core-layout-04", "prompt": "create a card grid layout with 4 cards per row", "expected_intent": "LAYOUT", "alternatives": [], "expected_confidence_min": 0.5, "category": "core", "tags": ["layout", "cards"] },
+  { "id": "core-layout-05", "prompt": "build a tabbed interface with three tabs", "expected_intent": "LAYOUT", "alternatives": [], "expected_confidence_min": 0.5, "category": "core", "tags": ["layout", "tabs"] },
+
+  { "id": "core-feedback-01", "prompt": "show an error alert when the form submission fails", "expected_intent": "FEEDBACK", "alternatives": [], "expected_confidence_min": 0.6, "category": "core", "tags": ["alert", "error"] },
+  { "id": "core-feedback-02", "prompt": "display a success toast notification", "expected_intent": "FEEDBACK", "alternatives": [], "expected_confidence_min": 0.6, "category": "core", "tags": ["toast", "success"] },
+  { "id": "core-feedback-03", "prompt": "add a loading spinner while data is fetching", "expected_intent": "FEEDBACK", "alternatives": [], "expected_confidence_min": 0.5, "category": "core", "tags": ["loading", "spinner"] },
+  { "id": "core-feedback-04", "prompt": "show a progress bar for file upload", "expected_intent": "FEEDBACK", "alternatives": [], "expected_confidence_min": 0.5, "category": "core", "tags": ["progress", "upload"] },
+  { "id": "core-feedback-05", "prompt": "display a warning banner at the top of the page", "expected_intent": "FEEDBACK", "alternatives": [], "expected_confidence_min": 0.5, "category": "core", "tags": ["banner", "warning"] }
+]
