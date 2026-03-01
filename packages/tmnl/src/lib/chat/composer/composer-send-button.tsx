@@ -6,7 +6,7 @@
 
 import { cn } from '@/lib/utils'
 import { Send } from 'lucide-react'
-import { CHAT_TOKENS } from '../tokens'
+import { CHAT_TOKENS, COMPOSER_SIZING } from '../tokens'
 import { useComposer } from './composer-context'
 
 export interface ComposerSendButtonProps {
@@ -14,9 +14,10 @@ export interface ComposerSendButtonProps {
 }
 
 export function ComposerSendButton({ className }: ComposerSendButtonProps) {
-  const { value, isSubmitting, submit } = useComposer()
+  const { value, isSubmitting, submit, widthTier } = useComposer()
   const hasInput = value.trim().length > 0
   const isReady = hasInput && !isSubmitting
+  const sizing = COMPOSER_SIZING[widthTier]
 
   const t = CHAT_TOKENS.send
 
@@ -26,14 +27,15 @@ export function ComposerSendButton({ className }: ComposerSendButtonProps) {
       disabled={!isReady}
       data-slot="tmnl-composer-send"
       className={cn(
-        'flex items-center justify-center w-9 h-9 rounded-lg',
+        'flex items-center justify-center',
+        sizing.sendBtn,
         'border-none cursor-pointer transition-all duration-200',
         isReady ? t.ready : t.idle,
         className,
       )}
       title={isSubmitting ? 'Sending...' : 'Send'}
     >
-      <Send size={16} />
+      <Send size={sizing.sendIcon} />
     </button>
   )
 }

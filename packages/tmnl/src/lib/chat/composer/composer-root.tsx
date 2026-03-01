@@ -13,7 +13,7 @@ import {
   type ReactNode,
 } from 'react'
 import { cn } from '@/lib/utils'
-import { CHAT_TOKENS } from '../tokens'
+import { CHAT_TOKENS, type ChatWidthTier } from '../tokens'
 import { ComposerContext, type ComposerContextValue } from './composer-context'
 import {
   DEFAULT_THINKING_LEVELS,
@@ -34,6 +34,8 @@ export interface ComposerProps {
   defaultThinkingLevel?: ThinkingLevel
   /** Custom thinking level options with animation presets */
   thinkingLevels?: ThinkingLevelOption[]
+  /** Width tier for responsive sizing */
+  widthTier?: ChatWidthTier
   /** Additional class name */
   className?: string
 }
@@ -46,6 +48,7 @@ export const ComposerRoot = forwardRef<HTMLDivElement, ComposerProps>(
       defaultMode = 'ai',
       defaultThinkingLevel = 'none',
       thinkingLevels = DEFAULT_THINKING_LEVELS,
+      widthTier = 'full',
       className,
     },
     ref,
@@ -100,6 +103,7 @@ export const ComposerRoot = forwardRef<HTMLDivElement, ComposerProps>(
       isSubmitting,
       contextChips,
       thinkingLevels,
+      widthTier,
       setValue,
       setMode,
       setThinkingLevel,
@@ -117,16 +121,11 @@ export const ComposerRoot = forwardRef<HTMLDivElement, ComposerProps>(
         <div
           ref={ref}
           data-slot="tmnl-composer"
+          data-tier={widthTier}
           className={cn(
             'relative',
             t.bg,
-            t.backdrop,
-            t.radius,
-            'border',
             t.border,
-            t.borderHover,
-            t.borderFocus,
-            'transition-colors duration-200',
             className,
           )}
         >

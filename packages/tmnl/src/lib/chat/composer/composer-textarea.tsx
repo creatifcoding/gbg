@@ -12,23 +12,20 @@ import {
   type KeyboardEvent,
 } from 'react'
 import { cn } from '@/lib/utils'
-import { CHAT_TOKENS } from '../tokens'
+import { CHAT_TOKENS, COMPOSER_SIZING } from '../tokens'
 import { useComposer } from './composer-context'
 
 export interface ComposerTextAreaProps {
   placeholder?: string
-  minHeight?: number
-  maxHeight?: number
   className?: string
 }
 
 export function ComposerTextArea({
   placeholder = 'Type a message...',
-  minHeight = 48,
-  maxHeight = 200,
   className,
 }: ComposerTextAreaProps) {
-  const { value, setValue, submit, isSubmitting, inputRef } = useComposer()
+  const { value, setValue, submit, isSubmitting, inputRef, widthTier } = useComposer()
+  const sizing = COMPOSER_SIZING[widthTier]
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const setRef = useCallback(
@@ -44,9 +41,9 @@ export function ComposerTextArea({
       setValue(e.target.value)
       const textarea = e.target
       textarea.style.height = 'auto'
-      textarea.style.height = `${Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight)}px`
+      textarea.style.height = `${Math.min(Math.max(textarea.scrollHeight, sizing.minH), sizing.maxH)}px`
     },
-    [setValue, minHeight, maxHeight],
+    [setValue, sizing.minH, sizing.maxH],
   )
 
   const handleKeyDown = useCallback(
@@ -62,7 +59,7 @@ export function ComposerTextArea({
   const t = CHAT_TOKENS.input
 
   return (
-    <div className={cn('px-3 py-2', className)}>
+    <div className={cn(sizing.textarea, className)}>
       <textarea
         ref={setRef}
         value={value}
@@ -79,9 +76,9 @@ export function ComposerTextArea({
           isSubmitting && 'opacity-50',
         )}
         style={{
-          fontSize: 'var(--tmnl-text-sm, 14px)',
-          minHeight,
-          maxHeight,
+          fontSize: 'var(--tmnl-text-sm, 12px)',
+          minHeight: sizing.minH,
+          maxHeight: sizing.maxH,
         }}
         rows={1}
       />

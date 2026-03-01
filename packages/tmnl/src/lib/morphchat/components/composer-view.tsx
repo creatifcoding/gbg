@@ -135,14 +135,20 @@ export function ComposerView({ widthTier = 'full' }: { widthTier?: ChatWidthTier
       : 'ring-1 ring-red-500/30 bg-red-500/5'
     : ''
 
-  // ── Shared composer props (model-derived) ──────────────
+  const density = useBlockDensity()
+
+  // ── Density/tier resolution: density overrides, tier drives layout ──
+  const effectiveTier: ChatWidthTier = density === 'compact'
+    ? (widthTier === 'full' ? 'squeeze' : widthTier)
+    : widthTier
+
+  // ── Shared composer props (model-derived + tier) ──────
   const composerModelProps = useMemo(() => ({
+    widthTier: effectiveTier,
     ...(modelThinkingLevels ? { thinkingLevels: modelThinkingLevels } : {}),
     // When model doesn't support reasoning, force 'none'
     ...(modelThinkingLevels === null ? { defaultThinkingLevel: 'none' as const } : {}),
-  }), [modelThinkingLevels])
-
-  const density = useBlockDensity()
+  }), [modelThinkingLevels, effectiveTier])
 
   switch (spec.composer) {
     // ── Full: multiline, toolbar, thinking, chips, send/pause, suggestions ──

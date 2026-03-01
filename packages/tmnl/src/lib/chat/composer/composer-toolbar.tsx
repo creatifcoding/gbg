@@ -6,7 +6,8 @@
 
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
-import { CHAT_TOKENS } from '../tokens'
+import { CHAT_TOKENS, COMPOSER_SIZING } from '../tokens'
+import { useComposer } from './composer-context'
 
 // =============================================================================
 // Toolbar
@@ -18,15 +19,17 @@ export interface ComposerToolbarProps {
 }
 
 export function ComposerToolbar({ children, className }: ComposerToolbarProps) {
+  const { widthTier } = useComposer()
+  const sizing = COMPOSER_SIZING[widthTier]
   const t = CHAT_TOKENS.toolbar
 
   return (
     <div
       data-slot="tmnl-composer-toolbar"
       className={cn(
-        'flex items-center justify-between px-2 py-1.5 min-h-[36px]',
+        'flex items-center justify-between',
+        sizing.toolbar,
         t.border,
-        t.gap,
         className,
       )}
     >
@@ -50,8 +53,10 @@ export function ComposerToolbarGroup({
   children,
   className,
 }: ComposerToolbarGroupProps) {
+  const { widthTier } = useComposer()
+  const sizing = COMPOSER_SIZING[widthTier]
   return (
-    <div className={cn('flex items-center gap-1.5', className)}>{children}</div>
+    <div className={cn('flex items-center', sizing.toolbarGap, className)}>{children}</div>
   )
 }
 

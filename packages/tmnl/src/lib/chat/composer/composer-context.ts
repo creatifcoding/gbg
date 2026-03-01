@@ -12,6 +12,7 @@ import type {
   ContextChip,
   ThinkingLevelOption,
 } from './types'
+import type { ChatWidthTier } from '../tokens'
 
 export interface ComposerContextValue {
   // State
@@ -21,6 +22,7 @@ export interface ComposerContextValue {
   isSubmitting: boolean
   contextChips: ContextChip[]
   thinkingLevels: ThinkingLevelOption[]
+  widthTier: ChatWidthTier
 
   // Actions
   setValue: (value: string) => void

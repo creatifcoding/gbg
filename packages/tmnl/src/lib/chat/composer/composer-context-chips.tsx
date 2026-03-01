@@ -7,7 +7,7 @@
 
 import { cn } from '@/lib/utils'
 import { Hash, X } from 'lucide-react'
-import { CHAT_TOKENS } from '../tokens'
+import { CHAT_TOKENS, COMPOSER_SIZING } from '../tokens'
 import { useComposer } from './composer-context'
 
 export interface ComposerContextChipsProps {
@@ -17,7 +17,8 @@ export interface ComposerContextChipsProps {
 export function ComposerContextChips({
   className,
 }: ComposerContextChipsProps) {
-  const { contextChips, removeContextChip, toggleContextChip } = useComposer()
+  const { contextChips, removeContextChip, toggleContextChip, widthTier } = useComposer()
+  const sizing = COMPOSER_SIZING[widthTier]
 
   if (contextChips.length === 0) return null
 
@@ -27,7 +28,8 @@ export function ComposerContextChips({
     <div
       data-slot="tmnl-composer-chips"
       className={cn(
-        'flex items-center gap-2 px-3 py-2 border-b border-neutral-800/60 flex-wrap',
+        'flex items-center flex-wrap border-b border-neutral-800/40',
+        sizing.chipPad,
         className,
       )}
     >
@@ -49,7 +51,7 @@ export function ComposerContextChips({
               'font-mono transition-all duration-150',
               variant,
             )}
-            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+            style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
           >
             <button
               onClick={() => toggleContextChip(chip.id)}
