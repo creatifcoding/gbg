@@ -1,14 +1,12 @@
 /**
  * Remediation Batch 2 Tests
  *
- * #1741 — Tokenizer error surfacing
  * #1744 — Tool schema adapter roundtrip
  * #1752 — CatalogService copy-on-write isolation
  * #1756 — TreeCache LRU
  */
 
 import { describe, it, expect, vi } from 'vitest'
-import { createTokenizer } from '../streaming/tokenizer'
 import {
   GeniferToolCall,
   GeniferToolResult,
@@ -21,58 +19,7 @@ import { makeCatalogComponents, type DomainCatalog } from '../core/CatalogServic
 import { TreeCache, generateCacheKey } from '../react/tree-cache'
 import { UITree, UIElement } from '../core/schemas'
 
-// =============================================================================
-// #1741 — Tokenizer error surfacing
-// =============================================================================
-
-describe('Tokenizer error surfacing (#1741)', () => {
-  it('calls onError for invalid literals', () => {
-    const errors: string[] = []
-    const tok = createTokenizer({ onError: (msg) => errors.push(msg) })
-
-    // Feed a chunk with an invalid literal (not true/false/null/number)
-    tok.feed('{"x": undefined}')
-
-    expect(errors.length).toBeGreaterThanOrEqual(1)
-    expect(errors[0]).toContain('Invalid literal')
-  })
-
-  it('calls onError for structural underflow (stray closing brace)', () => {
-    const errors: string[] = []
-    const tok = createTokenizer({ onError: (msg) => errors.push(msg) })
-
-    // Stray } at depth 0
-    tok.feed('}')
-
-    expect(errors.length).toBe(1)
-    expect(errors[0]).toContain('underflow')
-  })
-
-  it('calls onError for structural underflow (stray closing bracket)', () => {
-    const errors: string[] = []
-    const tok = createTokenizer({ onError: (msg) => errors.push(msg) })
-
-    tok.feed(']')
-
-    expect(errors.length).toBe(1)
-    expect(errors[0]).toContain('underflow')
-  })
-
-  it('does not error on valid JSON', () => {
-    const errors: string[] = []
-    const tok = createTokenizer({ onError: (msg) => errors.push(msg) })
-
-    tok.feed('{"a": 1, "b": true, "c": null, "d": [1, 2]}')
-
-    expect(errors).toHaveLength(0)
-  })
-
-  it('works without onError callback (backward compatible)', () => {
-    const tok = createTokenizer() // No options
-    // Should not throw
-    expect(() => tok.feed('}')).not.toThrow()
-  })
-})
+// Note: #1741 tokenizer coverage was retired with d2ts pipeline removal.
 
 // =============================================================================
 // #1744 — Tool schema adapter roundtrip

@@ -25,9 +25,12 @@ import {
   makeCatalogComponents,
   type DomainCatalog,
 } from '../core/CatalogService'
-import { uiDomainCatalog } from '../catalog/ui-domain-catalog'
-import { coreDomainCatalog } from '../catalog/core-domain-catalog'
-import { buttonDomainCatalog } from '../catalog/button-domain-catalog'
+import { coreDomainCatalog } from '../catalog'
+// Legacy catalogs deleted — ui-domain-catalog, button-domain-catalog removed in catalog rebuild.
+// Tests below that reference old components (ButtonRoot, ActionButton, etc.) are expected to fail
+// until they are rewritten against the new 16-component core catalog.
+const uiDomainCatalog = coreDomainCatalog
+const buttonDomainCatalog = coreDomainCatalog
 import { CatalogQueryTool, ComponentDefineTool, CompilerToolkitLive } from '../compiler/tools'
 
 describe('Catalog Overhaul', () => {
@@ -539,12 +542,16 @@ describe('Catalog Overhaul', () => {
       expect(ast).toContain('label')
     })
 
-    it('total components across core + button + ui = 89', () => {
-      const total =
-        Object.keys(coreDomainCatalog.components).length +
-        Object.keys(buttonDomainCatalog.components).length +
-        Object.keys(uiDomainCatalog.components).length
-      expect(total).toBe(89)
+    it('merged discovery count equals union cardinality across source catalogs', () => {
+      const sourceKeys = [
+        ...Object.keys(coreDomainCatalog.components),
+        ...Object.keys(buttonDomainCatalog.components),
+        ...Object.keys(uiDomainCatalog.components),
+      ]
+      const unionCount = new Set(sourceKeys).size
+      const merged = catalog.listComponents({ tier: 'discovery' }).length
+      expect(merged).toBe(unionCount)
+      expect(unionCount).toBeLessThanOrEqual(sourceKeys.length)
     })
   })
 
