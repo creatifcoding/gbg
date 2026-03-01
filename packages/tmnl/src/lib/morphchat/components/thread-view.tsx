@@ -13,10 +13,11 @@
 
 import { memo, useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import type { ReactNode, RefObject } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import { Atom, useAtomValue } from '@effect-atom/atom-react'
 import { cn } from '@/lib/utils'
 import { ChatThreadBand, type ChatThreadAutoScrollMode } from '@/lib/chat/shell'
-import { ThreadTailControls } from './thread-tail-controls'
+import { FloatingScrollPill } from './floating-scroll-pill'
 import { useMorphChatContext } from './surface-context'
 import { presentationStateFamily } from '../machines/surface-stx'
 import type { ChatMessage, ChatRole, ChatMessagePart, StreamingState } from '../schemas/message-types'
@@ -26,6 +27,8 @@ import type { MorphChatAdapter } from '../schemas/adapter-types'
 import { getMessageAtom } from '../hooks/useHarnessAdapter'
 import { streamingMetrics$, idleMetricsAtom } from '../atoms/streaming-metrics'
 import { StreamingMetricsProvider } from './streaming-metrics-provider'
+import { StreamEntryPlaceholder } from '@/lib/chat/msg/body-content/stream-entry-placeholder'
+import { MessageActionBar } from '@/lib/chat/msg/action-bar'
 import type { AgentTask } from '@/lib/chat/msg/inline-task-types'
 import { AnalysisCard, RemediationCard } from './artifact-cards'
 import { InlineUITreeCard } from '@/lib/chat/msg/inline-ui-tree-card'
@@ -251,7 +254,19 @@ const PartRenderer = memo(function PartRenderer({
           <ChatMessageBodyContent.Root streaming={isStreaming}>
             {part.content}
           </ChatMessageBodyContent.Root>
-          {isStreaming && isLatest && <ChatMessageBodyContent.StreamCursor />}
+          {/* EPOCH-0005: AnimatePresence for graceful cursor exit on stream completion */}
+          <AnimatePresence>
+            {isStreaming && isLatest && (
+              <motion.span
+                key="stream-cursor"
+                initial={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.1, ease: 'easeOut' }}
+              >
+                <ChatMessageBodyContent.StreamCursor />
+              </motion.span>
+            )}
+          </AnimatePresence>
         </ChatMessageBodyContent>
       )
     case 'thinking':
@@ -516,6 +531,12 @@ const AssistantMessage = memo(function AssistantMessage({
             )}
           </ChatMessageHeaderCluster>
 
+          {/* ── EPOCH-0005: Phased Entry Placeholder ── */}
+          {/* Shows skeleton/thinking dots until first text content arrives */}
+          {isStreaming && parts.every(p => p._tag === 'text' && !p.content) && (
+            <StreamEntryPlaceholder />
+          )}
+
           {/* ── Structured Parts Rendering ── */}
           {parts.map((part, idx) => (
             <PartRenderer
@@ -553,24 +574,36 @@ const AssistantMessage = memo(function AssistantMessage({
                 {message.model}
               </span>
             )}
-            {/* Token usage — full tier only */}
-            {widthTier === 'full' && message.status === 'complete' && message.tokenUsage && (
-              <ChatTokenUsage
-                inputTokens={message.tokenUsage.prompt}
-                outputTokens={message.tokenUsage.completion}
-                totalTokens={message.tokenUsage.total}
-                cachedTokens={message.tokenUsage.cacheRead}
-                modelId={message.model}
-                costUsd={message.tokenUsage.cost?.total}
-              />
-            )}
-            {/* Copy — squeeze + full (hidden at compact) */}
-            {widthTier !== 'compact' && message.status === 'complete' && message.content && (
-              <span className="opacity-0 group-hover/message:opacity-100 transition-opacity duration-150 ease-out">
-                <CopyMessageButton text={message.content} />
-              </span>
-            )}
+            {/* Token usage — full tier only, slides in on completion (EPOCH-0005) */}
+            <AnimatePresence>
+              {widthTier === 'full' && message.status === 'complete' && message.tokenUsage && (
+                <motion.span
+                  key="token-usage"
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: 0.15, ease: [0.32, 0.72, 0, 1] }}
+                >
+                  <ChatTokenUsage
+                    inputTokens={message.tokenUsage.prompt}
+                    outputTokens={message.tokenUsage.completion}
+                    totalTokens={message.tokenUsage.total}
+                    cachedTokens={message.tokenUsage.cacheRead}
+                    modelId={message.model}
+                    costUsd={message.tokenUsage.cost?.total}
+                  />
+                </motion.span>
+              )}
+            </AnimatePresence>
           </div>
+
+          {/* EPOCH-0005: Progressive Action Bar — replaces standalone copy button */}
+          {widthTier !== 'compact' && message.status === 'complete' && message.content && (
+            <MessageActionBar
+              content={message.content}
+              onRetry={undefined} // TODO: wire adapter.send with last user message
+              onContinue={undefined} // TODO: wire adapter.send with continuation prompt
+            />
+          )}
         </div>
       </ChatMessageShellRoot>
     </StreamingMetricsProvider>
@@ -814,10 +847,10 @@ export function ThreadView() {
   // Map spec.scrollBehavior → ChatThreadBand autoScroll
   const autoScroll = resolveAutoScroll(spec.scrollBehavior)
 
-  // Tail controls — rendered inside the ChatThreadBand context scope
-  // but outside the scroll container
+  // EPOCH-0005: Floating pill replaces docked tail controls.
+  // Rendered inside the ChatThreadBand context scope for tail state access.
   const tailControls = spec.scrollBehavior !== 'manual'
-    ? <ThreadTailControls />
+    ? <FloatingScrollPill />
     : undefined
 
   // Gate: during morph transition, show skeleton to prevent layout jarring
