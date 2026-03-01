@@ -8,3 +8,8 @@ description = "PRAGMA IPC protocol — JSON-RPC schemas, error codes, and result
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+
+[dev-dependencies]
+proptest = "1"
+insta = { version = "1", features = ["json", "redactions"] }
+pretty_assertions = "1"

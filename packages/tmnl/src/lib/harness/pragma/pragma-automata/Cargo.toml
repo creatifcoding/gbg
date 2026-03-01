@@ -12,3 +12,8 @@ thiserror = { workspace = true }
 pragma-ipc = { path = "../pragma-ipc" }
 # pragma-core wired in P4 when tiered router needs embedding ops.
 # FSM classification is pure logic over IntentType (from pragma-ipc).
+
+[dev-dependencies]
+proptest = "1"
+insta = { version = "1", features = ["json", "redactions"] }
+pretty_assertions = "1"
