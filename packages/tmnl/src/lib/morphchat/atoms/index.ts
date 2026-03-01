@@ -23,3 +23,13 @@ export {
   unregisterAdapter,
   getAdapter,
 } from './data-atoms'
+
+// ── Streaming Metrics (EPOCH-0005) ──────────────────────────
+export {
+  type CursorVelocity,
+  type StreamingMetrics,
+  IDLE_METRICS,
+  deriveVelocity,
+  streamingMetrics$,
+  idleMetricsAtom,
+} from './streaming-metrics'

@@ -24,8 +24,11 @@ import { getMessageParts } from '../schemas/message-types'
 import type { MockChatAdapter } from '../adapters/mock-adapter'
 import type { MorphChatAdapter } from '../schemas/adapter-types'
 import { getMessageAtom } from '../hooks/useHarnessAdapter'
+import { streamingMetrics$, idleMetricsAtom } from '../atoms/streaming-metrics'
+import { StreamingMetricsProvider } from './streaming-metrics-provider'
 import type { AgentTask } from '@/lib/chat/msg/inline-task-types'
 import { AnalysisCard, RemediationCard } from './artifact-cards'
+import { InlineUITreeCard } from '@/lib/chat/msg/inline-ui-tree-card'
 import { RESPONSIVE_MAX_W, RESPONSIVE_MSG_PAD, type ChatWidthTier } from '@/lib/chat/tokens'
 
 // Compose from src/lib/chat/msg/ — the TMNL-styled implementation library
@@ -297,6 +300,15 @@ const PartRenderer = memo(function PartRenderer({
         />
       )
     case 'code':
+      // ```ui code blocks → progressive inline UI rendering (NDJSON format)
+      if (part.language === 'ui') {
+        return (
+          <InlineUITreeCard
+            ndjsonSource={part.code}
+            isStreaming={part.isStreaming ?? isStreaming}
+          />
+        )
+      }
       // Mermaid code blocks → beautiful SVG diagram
       if (part.language === 'mermaid') {
         return (
@@ -312,6 +324,13 @@ const PartRenderer = memo(function PartRenderer({
           language={part.language}
           filename={part.filename}
           isStreaming={part.isStreaming ?? isStreaming}
+        />
+      )
+    case 'ui-tree':
+      return (
+        <InlineUITreeCard
+          tree={part.tree}
+          isStreaming={false}
         />
       )
     default:
@@ -463,88 +482,98 @@ const AssistantMessage = memo(function AssistantMessage({
   const hasTasks = tasks && tasks.length > 0
   const parts = getMessageParts(message)
 
+  // ── Streaming Metrics (EPOCH-0005) ───────────────────────
+  // Derive from harness instanceId when available; non-harness adapters
+  // get IDLE_METRICS (stable reference, zero re-renders).
+  const { adapter } = useMorphChatContext()
+  const harnessId = resolveHarnessInstanceId(adapter.adapterId)
+  const metricsAtom = harnessId ? streamingMetrics$(harnessId) : idleMetricsAtom
+  const metrics = useAtomValue(metricsAtom)
+
   return (
-    <ChatMessageShellRoot
-      role={chatRole}
-      streaming={isStreaming}
-      className={cn(RESPONSIVE_MAX_W.assistant[widthTier], RESPONSIVE_MSG_PAD.assistant[widthTier])}
-    >
-      {/* Hide role icon rail at compact width */}
-      {!compact && (
-        <ChatMessageSeverityRails role={chatRole}>
-          <ChatMessageSeverityRails.RoleIconRail role={chatRole} streaming={isStreaming} />
-        </ChatMessageSeverityRails>
-      )}
-      <div className="flex-1 min-w-0">
-        <ChatMessageHeaderCluster className={compact ? 'gap-1 mb-0.5' : undefined}>
-          <ChatMessageHeaderCluster.Role>
-            {compact
-              ? (message.role === 'agent' ? 'Agt' : (message.authorName ?? chatRole).slice(0, 3))
-              : (message.authorName ?? chatRole)}
-          </ChatMessageHeaderCluster.Role>
-          {isStreaming && <ChatMessageHeaderCluster.StreamingBadge streaming role={chatRole} />}
-          {message.status === 'cancelled' && (
-            <span className="text-amber-400 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>⊘ Cancelled</span>
-          )}
-        </ChatMessageHeaderCluster>
-
-        {/* ── Structured Parts Rendering ── */}
-        {parts.map((part, idx) => (
-          <PartRenderer
-            key={`${message.id}-part-${idx}`}
-            part={part}
-            isStreaming={isStreaming}
-            isLatest={isLatest}
-          />
-        ))}
-
-        {/* ── Artifact Cards (when message carries tasks) ── */}
-        {hasTasks && (
-          isRemediationPipeline(tasks!)
-            ? <RemediationCard
-                summary={message.content}
-                messageId={message.id}
-                tasks={tasks!}
-              />
-            : <AnalysisCard
-                summary={message.content}
-                messageId={message.id}
-                tasks={tasks}
-              />
+    <StreamingMetricsProvider value={metrics}>
+      <ChatMessageShellRoot
+        role={chatRole}
+        streaming={isStreaming}
+        className={cn(RESPONSIVE_MAX_W.assistant[widthTier], RESPONSIVE_MSG_PAD.assistant[widthTier])}
+      >
+        {/* Hide role icon rail at compact width */}
+        {!compact && (
+          <ChatMessageSeverityRails role={chatRole}>
+            <ChatMessageSeverityRails.RoleIconRail role={chatRole} streaming={isStreaming} />
+          </ChatMessageSeverityRails>
         )}
+        <div className="flex-1 min-w-0">
+          <ChatMessageHeaderCluster className={compact ? 'gap-1 mb-0.5' : undefined}>
+            <ChatMessageHeaderCluster.Role>
+              {compact
+                ? (message.role === 'agent' ? 'Agt' : (message.authorName ?? chatRole).slice(0, 3))
+                : (message.authorName ?? chatRole)}
+            </ChatMessageHeaderCluster.Role>
+            {isStreaming && <ChatMessageHeaderCluster.StreamingBadge streaming role={chatRole} />}
+            {message.status === 'cancelled' && (
+              <span className="text-amber-400 font-mono" style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}>⊘ Cancelled</span>
+            )}
+          </ChatMessageHeaderCluster>
 
-        {/* Metadata row — progressive disclosure by tier */}
-        <div className={cn('flex items-center mt-1.5', compact ? 'gap-1' : 'gap-3')}>
-          {/* Timestamp — always visible */}
-          <span className="font-mono text-neutral-600" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
-            {formatTime(message.timestamp)}
-          </span>
-          {/* Model name — full tier only */}
-          {widthTier === 'full' && message.model && (
-            <span className="font-mono text-neutral-700 truncate max-w-[120px]" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
-              {message.model}
-            </span>
-          )}
-          {/* Token usage — full tier only */}
-          {widthTier === 'full' && message.status === 'complete' && message.tokenUsage && (
-            <ChatTokenUsage
-              inputTokens={message.tokenUsage.prompt}
-              outputTokens={message.tokenUsage.completion}
-              totalTokens={message.tokenUsage.total}
-              cachedTokens={message.tokenUsage.cacheRead}
-              modelId={message.model}
-              costUsd={message.tokenUsage.cost?.total}
+          {/* ── Structured Parts Rendering ── */}
+          {parts.map((part, idx) => (
+            <PartRenderer
+              key={`${message.id}-part-${idx}`}
+              part={part}
+              isStreaming={isStreaming}
+              isLatest={isLatest}
             />
+          ))}
+
+          {/* ── Artifact Cards (when message carries tasks) ── */}
+          {hasTasks && (
+            isRemediationPipeline(tasks!)
+              ? <RemediationCard
+                  summary={message.content}
+                  messageId={message.id}
+                  tasks={tasks!}
+                />
+              : <AnalysisCard
+                  summary={message.content}
+                  messageId={message.id}
+                  tasks={tasks}
+                />
           )}
-          {/* Copy — squeeze + full (hidden at compact) */}
-          {widthTier !== 'compact' && message.status === 'complete' && message.content && (
-            <span className="opacity-0 group-hover/message:opacity-100 transition-opacity duration-150 ease-out">
-              <CopyMessageButton text={message.content} />
+
+          {/* Metadata row — progressive disclosure by tier */}
+          <div className={cn('flex items-center mt-1.5', compact ? 'gap-1' : 'gap-3')}>
+            {/* Timestamp — always visible */}
+            <span className="font-mono text-neutral-600" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
+              {formatTime(message.timestamp)}
             </span>
-          )}
+            {/* Model name — full tier only */}
+            {widthTier === 'full' && message.model && (
+              <span className="font-mono text-neutral-700 truncate max-w-[120px]" style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}>
+                {message.model}
+              </span>
+            )}
+            {/* Token usage — full tier only */}
+            {widthTier === 'full' && message.status === 'complete' && message.tokenUsage && (
+              <ChatTokenUsage
+                inputTokens={message.tokenUsage.prompt}
+                outputTokens={message.tokenUsage.completion}
+                totalTokens={message.tokenUsage.total}
+                cachedTokens={message.tokenUsage.cacheRead}
+                modelId={message.model}
+                costUsd={message.tokenUsage.cost?.total}
+              />
+            )}
+            {/* Copy — squeeze + full (hidden at compact) */}
+            {widthTier !== 'compact' && message.status === 'complete' && message.content && (
+              <span className="opacity-0 group-hover/message:opacity-100 transition-opacity duration-150 ease-out">
+                <CopyMessageButton text={message.content} />
+              </span>
+            )}
+          </div>
         </div>
-      </div>
-    </ChatMessageShellRoot>
+      </ChatMessageShellRoot>
+    </StreamingMetricsProvider>
   )
 },
 (prev, next) => prev.message === next.message && prev.isLatest === next.isLatest && prev.widthTier === next.widthTier,
