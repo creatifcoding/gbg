@@ -13,3 +13,4 @@
 
 pub mod models;
 pub mod tokenizer;
+pub mod loader;
