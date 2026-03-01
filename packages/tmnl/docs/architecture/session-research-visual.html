@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Session Research — Design Primitives</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+:root {
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  --bg: #0a0c10;
+  --surface: #12151c;
+  --surface2: #1a1e28;
+  --surface3: #222836;
+  --border: rgba(255,255,255,0.06);
+  --border-bright: rgba(255,255,255,0.12);
+  --text: #e0e4ef;
+  --text-dim: #5e6580;
+  --amber: #f59e0b;
+  --amber-dim: rgba(245,158,11,0.1);
+  --cyan: #22d3ee;
+  --cyan-dim: rgba(34,211,238,0.08);
+  --rose: #fb7185;
+  --rose-dim: rgba(251,113,133,0.08);
+  --green: #4ade80;
+  --green-dim: rgba(74,222,128,0.08);
+  --violet: #a78bfa;
+  --violet-dim: rgba(167,139,250,0.08);
+  --blue: #60a5fa;
+  --blue-dim: rgba(96,165,250,0.08);
+  --lime: #a3e635;
+  --lime-dim: rgba(163,230,53,0.08);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f7f8fb; --surface: #fff; --surface2: #f0f2f7; --surface3: #e8ebf2;
+    --border: rgba(0,0,0,0.07); --border-bright: rgba(0,0,0,0.14);
+    --text: #1a1d2e; --text-dim: #6b7394;
+    --amber: #d97706; --amber-dim: rgba(217,119,6,0.08);
+    --cyan: #0891b2; --cyan-dim: rgba(8,145,178,0.06);
+    --rose: #e11d48; --rose-dim: rgba(225,29,72,0.06);
+    --green: #16a34a; --green-dim: rgba(22,163,74,0.06);
+    --violet: #7c3aed; --violet-dim: rgba(124,58,237,0.06);
+    --blue: #2563eb; --blue-dim: rgba(37,99,235,0.06);
+    --lime: #65a30d; --lime-dim: rgba(101,163,13,0.06);
+  }
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-body); background: var(--bg); color: var(--text); line-height: 1.6; }
+.container { max-width: 1140px; margin: 0 auto; padding: 3rem 2rem; }
+h1 { font-size: 2.2rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.3em; }
+h1 span { color: var(--cyan); }
+h2 { font-size: 1.4rem; font-weight: 600; margin: 2.5rem 0 1rem; letter-spacing: -0.02em; }
+h3 { font-size: 1rem; font-weight: 600; margin: 1.2rem 0 0.4rem; }
+p { color: var(--text-dim); margin-bottom: 0.8em; max-width: 68ch; font-size: 0.95rem; }
+.subtitle { font-size: 1rem; color: var(--text-dim); margin-bottom: 2rem; }
+.divider { display: flex; align-items: center; gap: 1rem; margin: 2.5rem 0 1rem; color: var(--text-dim); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border-bright); }
+
+/* Tier diagram */
+.tier-stack { display: flex; flex-direction: column; gap: 2px; margin: 1.5rem 0; }
+.tier { display: grid; grid-template-columns: 100px 1fr 180px 80px; align-items: center; padding: 1rem 1.2rem; border-radius: 8px; font-size: 0.9rem; }
+.tier:nth-child(1) { background: linear-gradient(90deg, var(--rose-dim), transparent 60%); border-left: 3px solid var(--rose); }
+.tier:nth-child(2) { background: linear-gradient(90deg, var(--amber-dim), transparent 60%); border-left: 3px solid var(--amber); }
+.tier:nth-child(3) { background: linear-gradient(90deg, var(--cyan-dim), transparent 60%); border-left: 3px solid var(--cyan); }
+.tier:nth-child(4) { background: linear-gradient(90deg, var(--green-dim), transparent 60%); border-left: 3px solid var(--green); }
+.tier-label { font-weight: 600; font-family: var(--font-mono); font-size: 0.8rem; }
+.tier-tech { color: var(--text-dim); font-size: 0.85rem; }
+.tier-pattern { color: var(--text-dim); font-size: 0.8rem; font-family: var(--font-mono); }
+.tier-ttl { color: var(--text-dim); font-size: 0.8rem; text-align: right; }
+
+/* Primitives grid */
+.prim-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+.prim-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.2rem; position: relative; }
+.prim-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; border-radius: 10px 10px 0 0; }
+.prim-card.tree::before { background: var(--green); }
+.prim-card.lifecycle::before { background: var(--amber); }
+.prim-card.integration::before { background: var(--cyan); }
+.prim-card.authority::before { background: var(--violet); }
+.prim-card h4 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem; }
+.prim-card h4 .icon { font-size: 1.1rem; }
+.prim-card p { font-size: 0.82rem; margin-bottom: 0.3em; }
+.prim-card .source { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-dim); margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+
+/* Mermaid */
+.mermaid-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0; overflow-x: auto; }
+.mermaid { text-align: center; }
+
+/* Authority table */
+table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.88rem; }
+th, td { text-align: left; padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--border); }
+th { color: var(--text-dim); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+td code { font-family: var(--font-mono); font-size: 0.78rem; background: var(--surface2); padding: 0.1em 0.3em; border-radius: 3px; }
+.auth-server { color: var(--amber); font-weight: 600; }
+.auth-client { color: var(--cyan); font-weight: 600; }
+.auth-both { color: var(--violet); font-weight: 600; }
+
+/* Frontier badges */
+.frontier-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0; }
+.frontier-badge { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3em 0.7em; border-radius: 999px; font-size: 0.75rem; font-weight: 600; font-family: var(--font-mono); border: 1px solid var(--border); background: var(--surface); }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.prim-card, .tier, .mermaid-wrap { animation: fadeUp 0.35s ease-out both; animation-delay: calc(var(--i, 0) * 60ms); }
+@media (prefers-reduced-motion: reduce) { .prim-card, .tier, .mermaid-wrap { animation: none; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Research Synthesis — <span>Design Primitives</span></h1>
+<p class="subtitle">Distilled from 12 research frontiers into the irreducible building blocks for a SessionCapable API.</p>
+
+<div class="frontier-row">
+  <span class="frontier-badge" style="color:var(--green)">🌳 pi SessionManager</span>
+  <span class="frontier-badge" style="color:var(--green)">🔄 pi AgentSession</span>
+  <span class="frontier-badge" style="color:var(--green)">🌐 pi-web-ui</span>
+  <span class="frontier-badge" style="color:var(--green)">⚡ pi-ai streaming</span>
+  <span class="frontier-badge" style="color:var(--blue)">🏗️ Effect.Service</span>
+  <span class="frontier-badge" style="color:var(--blue)">📜 EventLog</span>
+  <span class="frontier-badge" style="color:var(--blue)">🤖 Machine</span>
+  <span class="frontier-badge" style="color:var(--blue)">💬 @effect/ai Chat</span>
+  <span class="frontier-badge" style="color:var(--violet)">🧪 effect-atom</span>
+  <span class="frontier-badge" style="color:var(--amber)">🤝 Multi-Agent</span>
+  <span class="frontier-badge" style="color:var(--rose)">📊 Event Sourcing</span>
+  <span class="frontier-badge" style="color:var(--lime)">🎹 DAW Sessions</span>
+</div>
+
+<!-- Multi-Tier Persistence -->
+<div class="divider">Multi-Tier Persistence Model</div>
+
+<div class="tier-stack">
+  <div class="tier" style="--i:0">
+    <span class="tier-label" style="color:var(--rose)">HOT</span>
+    <span class="tier-tech">Atom.make / Atom.family — reactive subscriptions</span>
+    <span class="tier-pattern">instant read/write</span>
+    <span class="tier-ttl">volatile</span>
+  </div>
+  <div class="tier" style="--i:1">
+    <span class="tier-label" style="color:var(--amber)">WARM</span>
+    <span class="tier-tech">Atom.kvs (localStorage) — survives refresh</span>
+    <span class="tier-pattern">debounced write-through</span>
+    <span class="tier-ttl">24h TTL</span>
+  </div>
+  <div class="tier" style="--i:2">
+    <span class="tier-label" style="color:var(--cyan)">COLD</span>
+    <span class="tier-tech">IndexedDB via Effect KeyValueStore — structured</span>
+    <span class="tier-pattern">explicit save / lazy load</span>
+    <span class="tier-ttl">session life</span>
+  </div>
+  <div class="tier" style="--i:3">
+    <span class="tier-label" style="color:var(--green)">FROZEN</span>
+    <span class="tier-tech">Server JSONL (pi tree format) — permanent</span>
+    <span class="tier-pattern">sync on reconnect</span>
+    <span class="tier-ttl">permanent</span>
+  </div>
+</div>
+
+<!-- Session Tree Model -->
+<div class="divider">Session Tree — The Core Data Structure</div>
+
+<div class="mermaid-wrap" style="--i:2">
+<pre class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#1a1e28', 'primaryTextColor': '#e0e4ef', 'primaryBorderColor': '#4ade80', 'lineColor': '#5e6580', 'background': '#12151c', 'mainBkg': '#1a1e28', 'nodeBorder': '#4ade80'}}}%%
+graph TB
+    H["📋 SessionHeader<br/><code>v3 · id · cwd</code>"]
+    M1["💬 user: Hello"]
+    M2["🤖 assistant: Hi there"]
+    M3["💬 user: Explain X"]
+    M4["🤖 assistant: X is..."]
+    C["📦 CompactionEntry<br/><code>summary · firstKeptEntryId→M5</code>"]
+    M5["💬 user: Now do Y"]
+    M6["🤖 assistant: Here's Y..."]
+    
+    B1["💬 user: Actually, try Z instead"]
+    B2["🤖 assistant: Here's Z..."]
+    BS["📝 BranchSummary<br/><code>fromId: M4 · summary</code>"]
+    
+    L["🏷️ Label: 'good approach'"]
+    
+    H --> M1 --> M2 --> M3 --> M4
+    M4 --> C --> M5 --> M6
+    M4 -.->|"branch(M4)"| BS
+    BS --> B1 --> B2
+    M6 -.-> L
+    
+    style H fill:#4ade8022,stroke:#4ade80
+    style C fill:#f59e0b22,stroke:#f59e0b
+    style BS fill:#a78bfa22,stroke:#a78bfa
+    style L fill:#22d3ee22,stroke:#22d3ee
+    style B1 fill:#fb718522,stroke:#fb7185
+    style B2 fill:#fb718522,stroke:#fb7185
+</pre>
+</div>
+
+<p>The session is a <strong>tree</strong>, not a flat log. Messages form branches via <code>parentId</code>. Compaction summarizes old context without destroying it. Branching enables exploration. Labels bookmark interesting points. This is the model from pi, DAWs, and event sourcing — converged.</p>
+
+<!-- Core Primitives -->
+<div class="divider">Core Primitives</div>
+
+<div class="prim-grid">
+  <div class="prim-card tree" style="--i:3">
+    <h4><span class="icon">🌳</span> Session Tree</h4>
+    <p>Append-only tree with <code>parentId</code>. Branching is first-class. Nothing is ever deleted.</p>
+    <div class="source">pi · DAW · Event Sourcing</div>
+  </div>
+  <div class="prim-card tree" style="--i:4">
+    <h4><span class="icon">👆</span> Leaf Pointer</h4>
+    <p>Mutable cursor to current tip. <code>branch(entryId)</code> moves it. New entries grow from leaf.</p>
+    <div class="source">pi SessionManager</div>
+  </div>
+  <div class="prim-card tree" style="--i:5">
+    <h4><span class="icon">📦</span> Compaction</h4>
+    <p>Summarize old entries → <code>CompactionEntry</code>. Preserves full history, manages context window.</p>
+    <div class="source">pi · Event Sourcing snapshots</div>
+  </div>
+  <div class="prim-card tree" style="--i:6">
+    <h4><span class="icon">🔮</span> Context Projection</h4>
+    <p><code>buildContext(leafId)</code> — walk tree, apply compaction, emit messages. The LLM's view.</p>
+    <div class="source">pi · CQRS read models</div>
+  </div>
+  <div class="prim-card tree" style="--i:7">
+    <h4><span class="icon">🏷️</span> Entry Type Union</h4>
+    <p>Schema.TaggedStruct discriminated union. Extensible: message, compaction, branch_summary, custom, label...</p>
+    <div class="source">pi · Effect Schema</div>
+  </div>
+  <div class="prim-card tree" style="--i:8">
+    <h4><span class="icon">🪪</span> Session Identity</h4>
+    <p><code>TmnlSessionId</code> wrapping <code>PiSessionId</code>. Separate ID spaces with explicit mapping table.</p>
+    <div class="source">Split authority decision</div>
+  </div>
+</div>
+
+<!-- Lifecycle Primitives -->
+<div class="divider">Lifecycle Primitives</div>
+
+<div class="prim-grid">
+  <div class="prim-card lifecycle" style="--i:9">
+    <h4><span class="icon">✨</span> Create</h4>
+    <p>New session with config. Generate IDs, initial header, first leaf. Persist to cold tier.</p>
+    <div class="source">pi · Effect.Service</div>
+  </div>
+  <div class="prim-card lifecycle" style="--i:10">
+    <h4><span class="icon">▶️</span> Resume</h4>
+    <p>Load from persistence, rebuild in-memory index (<code>byId</code> map), set <code>leafId</code>, hydrate atoms.</p>
+    <div class="source">pi · pi-web-ui</div>
+  </div>
+  <div class="prim-card lifecycle" style="--i:11">
+    <h4><span class="icon">🌿</span> Branch</h4>
+    <p>Move leafId to earlier entry. New entries grow new branch. Old branch preserved. Summary optional.</p>
+    <div class="source">pi · DAW · Multi-Agent</div>
+  </div>
+  <div class="prim-card lifecycle" style="--i:12">
+    <h4><span class="icon">🍴</span> Fork</h4>
+    <p>Extract root→entry path into new session file. Independent copy. Used for agent spawning.</p>
+    <div class="source">pi · Multi-Agent fan-out</div>
+  </div>
+  <div class="prim-card lifecycle" style="--i:13">
+    <h4><span class="icon">📐</span> Compact</h4>
+    <p>Find cut point, summarize old messages via LLM, append CompactionEntry, keep recent.</p>
+    <div class="source">pi auto-compaction</div>
+  </div>
+  <div class="prim-card lifecycle" style="--i:14">
+    <h4><span class="icon">🗑️</span> Dispose</h4>
+    <p>Release resources via Effect.Scope finalizer. Close subscriptions. Flush warm→cold.</p>
+    <div class="source">Effect · Scope</div>
+  </div>
+</div>
+
+<!-- Authority Model -->
+<div class="divider">Split Authority Model</div>
+
+<table>
+<thead><tr><th>Domain</th><th>Authority</th><th>Technology</th><th>Rationale</th></tr></thead>
+<tbody>
+<tr><td>Execution state</td><td class="auth-server">Server</td><td><code>PiAiHarnessEngine</code></td><td>Only server runs pi-ai, has LLM context</td></tr>
+<tr><td>Presentation state</td><td class="auth-client">Client</td><td><code>Atom.make</code></td><td>Browser knows which session user is viewing</td></tr>
+<tr><td>Content persistence</td><td class="auth-both">Both</td><td>Server JSONL + client warm cache</td><td>Server canonical, client fast hydration</td></tr>
+<tr><td>Session identity</td><td class="auth-both">Mapped</td><td><code>TmnlSessionId ↔ PiSessionId</code></td><td>Separate ID spaces, explicit mapping</td></tr>
+<tr><td>Session metadata</td><td class="auth-client">Client</td><td><code>Atom.kvs</code> + IndexedDB</td><td>Title, star, archive — UI concerns</td></tr>
+<tr><td>Session lifecycle</td><td class="auth-both">Coordinated</td><td><code>Machine</code> state machine</td><td>Server validates, client drives transitions</td></tr>
+</tbody>
+</table>
+
+<!-- Integration Stack -->
+<div class="divider">Effect Integration Stack</div>
+
+<div class="mermaid-wrap" style="--i:15">
+<pre class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#1a1e28', 'primaryTextColor': '#e0e4ef', 'primaryBorderColor': '#60a5fa', 'lineColor': '#5e6580', 'background': '#12151c', 'mainBkg': '#1a1e28', 'nodeBorder': '#60a5fa'}}}%%
+graph TB
+    subgraph React["⚛️ React Components"]
+        UV["useAtomValue(sessionsAtom)"]
+        US["useAtomSet(createSessionAtom)"]
+        UF["Atom.family(sessionAtom)"]
+    end
+    
+    subgraph Atoms["🔮 effect-atom Layer"]
+        RA["Atom.runtime(SessionService.Live)"]
+        DA["Derived atoms (list, active, metadata)"]
+        MA["Mutation atoms (create, branch, compact)"]
+        KV["Atom.kvs (warm localStorage)"]
+    end
+    
+    subgraph Service["⚡ Effect Service Layer"]
+        SM["SessionService<br/><code>Effect.Service&lt;&gt;()</code>"]
+        REF["Ref&lt;SessionState&gt;"]
+        PS["PubSub&lt;SessionEvent&gt;"]
+        MC["Machine (lifecycle FSM)"]
+    end
+    
+    subgraph Persistence["💾 Persistence Layer"]
+        BP["BackingPersistence"]
+        IDB["IndexedDB (cold)"]
+        LS["localStorage (warm)"]
+        JSONL["Server JSONL (frozen)"]
+    end
+    
+    React --> Atoms
+    Atoms --> Service
+    Service --> Persistence
+    
+    RA --> SM
+    DA --> REF
+    MA --> PS
+    KV --> LS
+    SM --> REF
+    SM --> PS
+    SM --> MC
+    BP --> IDB
+    BP --> JSONL
+    
+    style React fill:#22d3ee11,stroke:#22d3ee44
+    style Atoms fill:#a78bfa11,stroke:#a78bfa44
+    style Service fill:#f59e0b11,stroke:#f59e0b44
+    style Persistence fill:#4ade8011,stroke:#4ade8044
+</pre>
+</div>
+
+</div>
+
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  securityLevel: 'loose',
+  flowchart: { curve: 'basis', padding: 15, useMaxWidth: true }
+});
+</script>
+</body>
+</html>
