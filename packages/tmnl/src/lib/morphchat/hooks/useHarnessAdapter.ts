@@ -288,8 +288,10 @@ const setSessionId = (id: string, value: HarnessSessionId | null, reason: string
   // If the session changes while streaming is active, the stream belongs
   // to the old session and must be force-reset. This single guard replaces
   // the need for manual STREAMING_IDLE resets on every lifecycle path.
+  // Skip when already idle/error-recovery/cancelling (cancelling has its own lifecycle).
   const streaming = morphChatRegistry.get(streaming$(id))
-  if (streaming.phase !== 'idle' && streaming.sessionId !== (value ?? undefined)) {
+  const activePhases = new Set(['waiting', 'receiving', 'finalizing'] as const)
+  if ((activePhases as Set<string>).has(streaming.phase) && streaming.sessionId !== (value ?? undefined)) {
     morphChatRegistry.set(streaming$(id), STREAMING_IDLE)
   }
 
@@ -1125,7 +1127,10 @@ const clearOp$ = Atom.family((_id: string) =>
   ),
 )
 
-/** Dispose — interrupt fibers + abort session */
+/** Dispose — interrupt fibers + abort session.
+ *  Content layer (messages, atoms, IDs, toolBridge) is PRESERVED.
+ *  Only transport + session state is torn down.
+ *  This allows remount to rewire transport without losing conversation. */
 const disposeOp$ = Atom.family((id: string) =>
   harnessRuntimeAtom.fn<void>()((_arg, _ctx) =>
     Effect.gen(function* () {
@@ -1140,17 +1145,16 @@ const disposeOp$ = Atom.family((id: string) =>
         )
       }
       setSessionId(id, null, 'disposeOp.clear')
-      getToolBridge(id).clear()
       clearShellCommandSender()
-      clearMessageAtoms(id)
-      morphChatRegistry.set(messageIds$(id), [])
+      // Transport + session reset — content survives
       morphChatRegistry.set(streaming$(id), STREAMING_IDLE)
       morphChatRegistry.set(connection$(id), DISCONNECTED)
       morphChatRegistry.set(statusRows$(id), [])
-      instanceConfigCache.delete(id)
+      // NOTE: messages$, messageIds$, messageAtoms, toolBridge → PRESERVED
+      // Content survives dispose so panel remount doesn't lose conversation.
+      // instanceConfig kept so reconnect knows where to point.
 
-      // Cleanup infrastructure caches
-      toolBridges.delete(id)
+      // Cleanup infrastructure caches (processor/wiring are transport-level)
       processors.delete(id)
       activeWiring.delete(id)
     }),
@@ -1238,11 +1242,30 @@ const newSessionOp$ = Atom.family((id: string) =>
   ),
 )
 
-/** Resume an existing session */
+/** Resume an existing session — transactional with content rollback on failure.
+ *  Snapshots messages/IDs before clearing, restores on any error. */
 const resumeSessionOp$ = Atom.family((id: string) =>
   harnessRuntimeAtom.fn<{ sessionId: string }>()(
-    ({ sessionId }, _ctx) =>
-      Effect.gen(function* () {
+    ({ sessionId }, _ctx) => {
+      // ── Snapshot content for rollback ─────────────────────
+      const prevMessages = morphChatRegistry.get(messages$(id))
+      const prevMessageIds = morphChatRegistry.get(messageIds$(id))
+      const prevSessionId = getSessionId(id)
+
+      /** Restore content atoms on failure — transactional rollback */
+      const rollbackContent = () => {
+        morphChatRegistry.set(messages$(id), prevMessages)
+        morphChatRegistry.set(messageIds$(id), prevMessageIds)
+        // Re-sync per-message atoms
+        for (const msg of prevMessages) {
+          morphChatRegistry.set(getMessageAtom(id, msg.id), msg)
+        }
+        if (prevSessionId) {
+          setSessionId(id, prevSessionId, 'resumeSessionOp.rollback')
+        }
+      }
+
+      return Effect.gen(function* () {
         const runtime = yield* HarnessRuntime
         const transport = yield* HarnessBrowserTransport
         const cfg = getInstanceConfig(id)
@@ -1250,6 +1273,7 @@ const resumeSessionOp$ = Atom.family((id: string) =>
 
         yield* interruptInstanceFibers(id)
 
+        // Clear content for resume (will be repopulated from snapshot replay)
         morphChatRegistry.set(messages$(id), [] as ReadonlyArray<ChatMessage>)
         clearMessageAtoms(id)
         morphChatRegistry.set(messageIds$(id), [])
@@ -1293,6 +1317,7 @@ const resumeSessionOp$ = Atom.family((id: string) =>
       }).pipe(
         Effect.catchTag('HarnessRuntimeError', (error) =>
           Effect.sync(() => {
+            rollbackContent()
             morphChatRegistry.set(connection$(id), { phase: 'error', error: `[${error.code}] ${error.message}` } as ConnectionState)
             pushStatusRow(id, runtimeErrorToStatus(id, 'resume-session', error))
           }),
@@ -1300,12 +1325,14 @@ const resumeSessionOp$ = Atom.family((id: string) =>
         Effect.catchAllCause((cause) =>
           Effect.gen(function* () {
             if (isInterruptedCause(cause)) {
+              rollbackContent()
               yield* morphchatLogDebug(id, 'resume-session-interrupted', {
                 requestedSessionId: sessionId,
               })
               return
             }
 
+            rollbackContent()
             yield* morphchatLogWarningCause(id, 'resume-session-failed', cause, {
               requestedSessionId: sessionId,
             })
@@ -1319,7 +1346,7 @@ const resumeSessionOp$ = Atom.family((id: string) =>
             })
           }),
         ),
-      ),
+      )
   ),
 )
 
@@ -1342,15 +1369,15 @@ function hardReconnect(
   if (sFiber) Effect.runFork(Fiber.interrupt(sFiber))
   morphChatRegistry.set(shellEventFiber$(id), null)
 
-  // Clear state
+  // Reset transport + session state — but PRESERVE content (messages, tools)
+  // Content layer is independent of transport lifecycle. Messages survive reconnect.
   setSessionId(id, null, 'hardReconnect.clear')
-  morphChatRegistry.set(messages$(id), [] as ReadonlyArray<ChatMessage>)
-  clearMessageAtoms(id)
-  morphChatRegistry.set(messageIds$(id), [])
   morphChatRegistry.set(streaming$(id), STREAMING_IDLE)
   morphChatRegistry.set(connection$(id), DISCONNECTED)
+  // NOTE: messages$, messageIds$, messageAtoms, toolBridge → UNTOUCHED
+  // These survive reconnect so the user doesn't lose conversation history.
+  // statusRows are transient transport-level indicators — safe to clear.
   morphChatRegistry.set(statusRows$(id), [])
-  getToolBridge(id).clear()
   clearShellCommandSender()
 
   // Refresh runtime atom — rebuilds WS transport
