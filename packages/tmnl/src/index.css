@@ -85,16 +85,25 @@
   --font-cmdk-mono: var(--font-label), 'Share Tech Mono', monospace;
 
   /* ─────────────────────────────────────────────────────────────
-     TYPOGRAPHY SCALE (12px floor per CLAUDE.md)
+     TYPOGRAPHY SCALE — Compact (−2px shift, 10px floor)
+     Body: sm=12px. Chrome: xs=10px. Headings: decoupled.
      ───────────────────────────────────────────────────────────── */
-  --tmnl-text-xs: 12px;
-  --tmnl-text-sm: 14px;
-  --tmnl-text-base: 16px;
-  --tmnl-text-lg: 18px;
-  --tmnl-text-xl: 20px;
-  --tmnl-text-2xl: 24px;
-  --tmnl-text-3xl: 30px;
-  --tmnl-text-4xl: 36px;
+  --tmnl-text-xs: 10px;
+  --tmnl-text-sm: 12px;
+  --tmnl-text-base: 14px;
+  --tmnl-text-lg: 16px;
+  --tmnl-text-xl: 18px;
+  --tmnl-text-2xl: 22px;
+  --tmnl-text-3xl: 28px;
+  --tmnl-text-4xl: 34px;
+
+  /* ─── Heading scale (decoupled — stays visually prominent) ── */
+  --tmnl-heading-1: 18px;
+  --tmnl-heading-2: 15px;
+  --tmnl-heading-3: 13px;
+  --tmnl-heading-4: 12px;
+  --tmnl-heading-5: 11px;
+  --tmnl-heading-6: 10px;
 
   /* Tauri/WebKitGTK overscroll fix */
   overscroll-behavior: none;

@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils'
 import { useMorphChatContext } from './surface-context'
 import { connectionStateFamily } from '../machines/surface-stx'
 import { Composer, useComposer } from '@/lib/chat/composer'
+import type { ChatWidthTier } from '@/lib/chat/tokens'
 import { useTransferDroppable } from '@/lib/transfer/v2/hooks'
 import type { TransferToken, TransferResult } from '@/lib/transfer/v2/schemas'
 import { Atom } from '@effect-atom/atom'
@@ -40,7 +41,7 @@ const EMPTY_MODEL_ID = Atom.make<string | null>(null)
 // Composer View
 // =============================================================================
 
-export function ComposerView() {
+export function ComposerView({ widthTier = 'full' }: { widthTier?: ChatWidthTier } = {}) {
   const { spec, adapter, surfaceId } = useMorphChatContext()
   // Read directly from adapter atoms — no intermediary family
   const streaming = useAtomValue(adapter.streaming$)

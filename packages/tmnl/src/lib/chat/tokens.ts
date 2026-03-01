@@ -6,15 +6,10 @@
  */
 
 export const CHAT_TOKENS = {
-  /** Composer surface */
+  /** Composer surface — flush borderless inline */
   composer: {
-    bg: 'bg-black/40',
-    bgHover: 'hover:bg-black/50',
-    border: 'border-neutral-800',
-    borderHover: 'hover:border-neutral-600',
-    borderFocus: 'focus-within:border-neutral-500',
-    backdrop: 'backdrop-blur-xl',
-    radius: 'rounded-xl',
+    bg: 'bg-transparent',
+    border: 'border-t border-neutral-800/40',
   },
 
   /** Text input area */
@@ -107,4 +102,124 @@ export const CHAT_TOKENS = {
       padding: 'px-4 py-2',
     },
   },
+} as const
+
+// =============================================================================
+// Responsive Message Tokens — keyed by ThreadWidthTier
+// =============================================================================
+
+/** Width tier discriminant — mirrors thread-view.tsx ThreadWidthTier */
+export type ChatWidthTier = 'compact' | 'squeeze' | 'full'
+
+/**
+ * Tier-aware max-width per role.
+ * compact: full width (no cap — every pixel counts)
+ * squeeze: relaxed percentages
+ * full: original design intent
+ */
+export const RESPONSIVE_MAX_W: Record<'user' | 'assistant' | 'tool' | 'system', Record<ChatWidthTier, string>> = {
+  user:      { compact: 'max-w-full', squeeze: 'max-w-[90%]', full: 'max-w-[80%]' },
+  assistant: { compact: 'max-w-full', squeeze: 'max-w-[95%]', full: 'max-w-[85%]' },
+  tool:      { compact: 'max-w-full', squeeze: 'max-w-[95%]', full: 'max-w-[85%]' },
+  system:    { compact: 'max-w-full', squeeze: 'max-w-[95%]', full: 'max-w-[90%]' },
+} as const
+
+/**
+ * Tier-aware message padding per role.
+ * compact: tighter horizontal, slightly tighter vertical
+ * squeeze: intermediate
+ * full: original design intent
+ */
+export const RESPONSIVE_MSG_PAD: Record<'user' | 'assistant' | 'tool' | 'system', Record<ChatWidthTier, string>> = {
+  user:      { compact: 'px-2 py-2',   squeeze: 'px-3 py-2',   full: 'px-4 py-2.5' },
+  assistant: { compact: 'px-2 py-2',   squeeze: 'px-3 py-2.5', full: 'px-4 py-3' },
+  tool:      { compact: 'px-2 py-2',   squeeze: 'px-3 py-2.5', full: 'px-4 py-3' },
+  system:    { compact: 'px-2 py-1.5', squeeze: 'px-3 py-2',   full: 'px-4 py-2' },
+} as const
+
+// =============================================================================
+// Composer Sizing Tokens — keyed by ChatWidthTier
+// =============================================================================
+
+/**
+ * Tier-aware composer primitive dimensions.
+ * Drives progressive collapse at narrow widths.
+ */
+export const COMPOSER_SIZING: Record<ChatWidthTier, {
+  textarea:   string
+  minH:       number
+  maxH:       number
+  toolbar:    string
+  toolbarGap: string
+  sendBtn:    string
+  actionBtn:  string
+  sendIcon:   number
+  actionIcon: number
+  chipPad:    string
+}> = {
+  compact: {
+    textarea:   'px-2 py-1',
+    minH:       36,
+    maxH:       120,
+    toolbar:    'px-1.5 py-1 min-h-[28px]',
+    toolbarGap: 'gap-1',
+    sendBtn:    'w-7 h-7 rounded-md',
+    actionBtn:  'w-6 h-6 rounded',
+    sendIcon:   14,
+    actionIcon: 12,
+    chipPad:    'px-1.5 py-0.5 gap-1',
+  },
+  squeeze: {
+    textarea:   'px-2 py-1.5',
+    minH:       40,
+    maxH:       160,
+    toolbar:    'px-2 py-1 min-h-[32px]',
+    toolbarGap: 'gap-1',
+    sendBtn:    'w-8 h-8 rounded-lg',
+    actionBtn:  'w-6 h-6 rounded-md',
+    sendIcon:   14,
+    actionIcon: 13,
+    chipPad:    'px-2 py-0.5 gap-1.5',
+  },
+  full: {
+    textarea:   'px-3 py-2',
+    minH:       48,
+    maxH:       200,
+    toolbar:    'px-2 py-1.5 min-h-[36px]',
+    toolbarGap: 'gap-1.5',
+    sendBtn:    'w-9 h-9 rounded-lg',
+    actionBtn:  'w-7 h-7 rounded-md',
+    sendIcon:   16,
+    actionIcon: 14,
+    chipPad:    'px-2 py-1 gap-2',
+  },
+} as const
+
+/**
+ * Progressive overflow priority — higher index = first to collapse into ··· menu.
+ * Index 0 (Send) never overflows.
+ */
+export const COMPOSER_OVERFLOW_PRIORITY = [
+  'send',         // 0 — never overflows
+  'mode-toggle',  // 1
+  'thinking',     // 2
+  'cancel',       // 3
+  'reconnect',    // 4
+  'divider',      // 5 — always hidden at squeeze+
+  'attach',       // 6
+  'voice',        // 7
+  'mention',      // 8
+  'command',      // 9 — first into overflow
+] as const
+
+export type ComposerActionId = typeof COMPOSER_OVERFLOW_PRIORITY[number]
+
+/**
+ * Actions visible inline per tier (everything else goes to overflow menu).
+ * Derived from COMPOSER_OVERFLOW_PRIORITY.
+ */
+export const COMPOSER_INLINE_ACTIONS: Record<ChatWidthTier, ReadonlySet<ComposerActionId>> = {
+  compact: new Set(['send']),
+  squeeze: new Set(['send', 'mode-toggle', 'thinking', 'cancel', 'reconnect']),
+  full:    new Set(COMPOSER_OVERFLOW_PRIORITY),
 } as const

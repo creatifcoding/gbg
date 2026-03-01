@@ -16,7 +16,8 @@
  * @module morphchat/components/surface-content
  */
 
-import * as React from 'react'
+import { useMemo, useRef } from 'react'
+import type { ReactNode } from 'react'
 import {
   AnimatePresence,
   LayoutGroup,
@@ -33,6 +34,7 @@ import { InlineTasksView } from './inline-tasks-view'
 import { FrameChromeView } from './frame-chrome-view'
 import { StatusBannerView } from './status-banner'
 import { CommandBandView } from './command-band-view'
+import { useSurfaceWidth } from '@/lib/chat/hooks/use-surface-width'
 
 // =============================================================================
 // Animation Constants
@@ -72,7 +74,7 @@ const REDUCED_INITIAL = { opacity: 0 }
 // =============================================================================
 
 export interface SurfaceContentProps {
-  children?: React.ReactNode
+  children?: ReactNode
   className?: string
 }
 
@@ -81,9 +83,13 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
   const prefersReducedMotion = useReducedMotion()
   const shouldAnimateMorph = isMorphing && !prefersReducedMotion
 
+  // ── Width-tier measurement (shared by thread + composer) ──
+  const surfaceRef = useRef<HTMLDivElement>(null)
+  const widthTier = useSurfaceWidth(surfaceRef)
+
   // Emit MORPH_DONE after animation settles
-  const morphTimerRef = React.useRef<ReturnType<typeof setTimeout>>()
-  React.useEffect(() => {
+  const morphTimerRef = useRef<ReturnType<typeof setTimeout>>()
+  useEffect(() => {
     if (isMorphing) {
       clearTimeout(morphTimerRef.current)
       // Fast completion for routine preset shifts
@@ -96,18 +102,18 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
   }, [isMorphing, surfaceId])
 
   // Scroll position preservation
-  const threadScrollRef = React.useRef<number>(0)
-  const threadContainerRef = React.useRef<HTMLDivElement>(null)
+  const threadScrollRef = useRef<number>(0)
+  const threadContainerRef = useRef<HTMLDivElement>(null)
 
   // Save scroll position before morph
-  React.useEffect(() => {
+  useEffect(() => {
     if (threadContainerRef.current) {
       threadScrollRef.current = threadContainerRef.current.scrollTop
     }
   }, [spec._tag]) // trigger on spec change
 
   // Restore scroll position after morph
-  React.useEffect(() => {
+  useEffect(() => {
     if (threadContainerRef.current && threadScrollRef.current > 0) {
       threadContainerRef.current.scrollTop = threadScrollRef.current
     }
@@ -134,7 +140,7 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
       : { duration: 0.1, ease: 'linear' as const }
 
   // Layout constraints from spec — animated with spring bounds
-  const constraintStyle = React.useMemo(() => ({
+  const constraintStyle = useMemo(() => ({
     maxHeight: spec.maxHeight ?? undefined,
     maxWidth: spec.maxWidth ?? undefined,
     minHeight: spec.minHeight ?? undefined,
@@ -153,6 +159,7 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
   return (
     <LayoutGroup id={`morphchat-${surfaceId}`}>
       <motion.div
+        ref={surfaceRef}
         layout={shouldAnimateMorph}
         transition={shouldAnimateMorph ? SPRING_BOUNDS : transition}
         className={cn(
@@ -202,7 +209,7 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
                   <StatusBannerView />
                 </div>
               </div>
-              <ThreadView />
+              <ThreadView widthTier={widthTier} />
             </motion.div>
           )}
 
@@ -240,7 +247,7 @@ export function SurfaceContent({ children, className }: SurfaceContentProps) {
               transition={stagger(bandIndex++)}
               className="border-t border-neutral-800/50"
             >
-              <ComposerView />
+              <ComposerView widthTier={widthTier} />
             </motion.div>
           )}
         </AnimatePresence>

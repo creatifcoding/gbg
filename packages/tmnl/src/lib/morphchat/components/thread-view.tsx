@@ -33,6 +33,7 @@ import type { AgentTask } from '@/lib/chat/msg/inline-task-types'
 import { AnalysisCard, RemediationCard } from './artifact-cards'
 import { InlineUITreeCard } from '@/lib/chat/msg/inline-ui-tree-card'
 import { RESPONSIVE_MAX_W, RESPONSIVE_MSG_PAD, type ChatWidthTier } from '@/lib/chat/tokens'
+import { useSurfaceWidth } from '@/lib/chat/hooks/use-surface-width'
 
 // Compose from src/lib/chat/msg/ — the TMNL-styled implementation library
 import {
@@ -73,50 +74,26 @@ function isRemediationPipeline(tasks: ReadonlyArray<AgentTask>): boolean {
  *   squeeze  (350–500) — normal padding, icons visible, compact token usage
  *   full     (≥500px)  — full chrome, full metadata
  */
-type ThreadWidthTier = 'compact' | 'squeeze' | 'full'
-
-const THREAD_COMPACT_PX = 350
-const THREAD_SQUEEZE_PX = 500
-
-function classifyThreadWidth(w: number): ThreadWidthTier {
-  if (w < THREAD_COMPACT_PX) return 'compact'
-  if (w < THREAD_SQUEEZE_PX) return 'squeeze'
-  return 'full'
-}
-
-function useThreadWidth(ref: RefObject<HTMLDivElement | null>): ThreadWidthTier {
-  const [tier, setTier] = useState<ThreadWidthTier>('full')
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const ro = new ResizeObserver(([entry]) => {
-      if (entry) setTier(classifyThreadWidth(entry.contentRect.width))
-    })
-    ro.observe(el)
-    setTier(classifyThreadWidth(el.clientWidth))
-    return () => ro.disconnect()
-  }, [ref])
-
-  return tier
-}
+// Width-tier classification via shared hook (useSurfaceWidth).
+// When ThreadView manages its own ref it measures locally;
+// when surface-content passes widthTier prop, measurement is shared.
 
 /** Padding per tier */
-const THREAD_PAD: Record<ThreadWidthTier, string> = {
+const THREAD_PAD: Record<ChatWidthTier, string> = {
   compact: 'px-2',
   squeeze: 'px-3',
   full: 'px-4',
 }
 
 /** Turn gap per tier */
-const TURN_GAP: Record<ThreadWidthTier, string> = {
+const TURN_GAP: Record<ChatWidthTier, string> = {
   compact: 'mt-3',
   squeeze: 'mt-4',
   full: 'mt-5',
 }
 
 /** Message gap per tier */
-const MSG_GAP: Record<ThreadWidthTier, string> = {
+const MSG_GAP: Record<ChatWidthTier, string> = {
   compact: 'mt-0.5',
   squeeze: 'mt-1',
   full: 'mt-1',
@@ -727,7 +704,7 @@ const MessageRow = memo(function MessageRow({
   isLatest: boolean
   threadMode: string
   syntheticMessage: ChatMessage | null
-  widthTier: ThreadWidthTier
+  widthTier: ChatWidthTier
 }) {
   const message = useAtomValue(resolveMessageAtom(adapter, messageId)) ?? syntheticMessage
   const previousMessage = useAtomValue(
@@ -773,14 +750,15 @@ const MessageRow = memo(function MessageRow({
   && prev.syntheticMessage === next.syntheticMessage
 ))
 
-export function ThreadView() {
+export function ThreadView({ widthTier: externalTier }: { widthTier?: ChatWidthTier } = {}) {
   const { spec, adapter, surfaceId } = useMorphChatContext()
   // Read machine presentation state — gate rendering during morph
   const presentationState = useAtomValue(presentationStateFamily(surfaceId))
 
   // ── Responsive width tier ──
   const threadRef = useRef<HTMLDivElement>(null)
-  const widthTier = useThreadWidth(threadRef)
+  const measuredTier = useSurfaceWidth(threadRef)
+  const widthTier = externalTier ?? measuredTier
 
   // ── Atom subscriptions (unconditional — Rules of Hooks) ──
   // Per-message atom path: subscribe to messageIds$ (stable during streaming).
