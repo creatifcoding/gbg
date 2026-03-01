@@ -33,7 +33,7 @@ interface UITreeJSON {
 
 interface ApplyPatchesRequest {
   tree: UITreeJSON
-  patches: Array<{ op: string; path: string; value?: unknown }>
+  patches: Array<{ op: string; path: string; from?: string; value?: unknown }>
 }
 
 // =============================================================================
@@ -75,9 +75,10 @@ const treeFromJSON = (json: UITreeJSON): UITree =>
     )
   )
 
-const patchToJSON = (patch: JsonPatch): { op: string; path: string; value?: unknown } => ({
+const patchToJSON = (patch: JsonPatch): { op: string; path: string; from?: string; value?: unknown } => ({
   op: patch.op,
   path: patch.path,
+  from: patch.from,
   value: patch.value,
 })
 

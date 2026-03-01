@@ -1,49 +1,12 @@
 /**
- * Workers Module
+ * Workers Module (canonical)
  *
- * Effect-wrapped web workers for offloading CPU-intensive work.
+ * Genifer now standardizes on TreeWorkerPool (Effect Platform worker pool)
+ * for patch application off-main-thread.
  *
- * @module genifer/workers
+ * Legacy single-worker parse/tree APIs were removed during worker dedupe.
  */
 
-// Re-export Parse Worker API
-export {
-  type ParseWorkerService,
-  ParseWorker,
-  ParseWorkerLive,
-  ParseWorkerFallback,
-  ParseWorkerAuto,
-  makeParseWorkerFallback,
-} from "./worker-api"
-
-// Re-export Parse Worker types for external use
-export type {
-  ParseRequest,
-  ParseResponse,
-  ParseBatchRequest,
-  WorkerRequest,
-  WorkerResponse,
-} from "./parse.worker"
-
-// Re-export Tree Worker API
-export {
-  type TreeWorkerService,
-  TreeWorker,
-  TreeWorkerLive,
-  TreeWorkerFallback,
-  TreeWorkerAuto,
-  makeTreeWorkerFallback,
-} from "./tree-worker-api"
-
-// Re-export Tree Worker types for external use
-export type {
-  ApplyPatchesRequest,
-  ApplyPatchesResponse,
-  TreeWorkerRequest,
-  TreeWorkerResponse,
-} from "./tree.worker"
-
-// Re-export Tree Worker Pool (Effect Platform - proper pooling)
 export {
   type TreeWorkerPoolService,
   type TreeWorkerPoolConfig,
