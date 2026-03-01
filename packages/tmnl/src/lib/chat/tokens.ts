@@ -208,6 +208,8 @@ export const COMPOSER_OVERFLOW_PRIORITY = [
   'cancel',       // 3
   'reconnect',    // 4 — adapter.reconnect()
   'clear',        // 5 — adapter.clear()
+  'attach',       // 6 — disabled, future subsystem
+  'voice',        // 7 — disabled, future subsystem
 ] as const
 
 export type ComposerActionId = typeof COMPOSER_OVERFLOW_PRIORITY[number]
@@ -219,5 +221,5 @@ export type ComposerActionId = typeof COMPOSER_OVERFLOW_PRIORITY[number]
 export const COMPOSER_INLINE_ACTIONS: Record<ChatWidthTier, ReadonlySet<ComposerActionId>> = {
   compact: new Set(['send']),
   squeeze: new Set(['send', 'mode-toggle', 'thinking', 'cancel', 'reconnect']),
-  full:    new Set(COMPOSER_OVERFLOW_PRIORITY),
+  full:    new Set(COMPOSER_OVERFLOW_PRIORITY),  // attach + voice visible but disabled at full
 } as const

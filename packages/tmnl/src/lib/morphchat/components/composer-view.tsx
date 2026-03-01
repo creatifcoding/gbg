@@ -13,7 +13,7 @@
  */
 
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { Loader2, RotateCcw, Square, Trash2 } from 'lucide-react'
+import { Loader2, Mic, Paperclip, RotateCcw, Square, Trash2 } from 'lucide-react'
 import type { StreamPhase } from '../schemas/message-types'
 import { Effect } from 'effect'
 import { useAtomValue } from '@effect-atom/atom-react'
@@ -337,6 +337,8 @@ function TierAwareToolbar({
     Effect.runSync(adapter.clear())
   }, [adapter])
 
+  const sz = COMPOSER_SIZING[widthTier]
+
   // Build overflow items for anything not inline
   const overflowItems = useMemo(() => {
     const items: OverflowAction[] = []
@@ -344,6 +346,10 @@ function TierAwareToolbar({
       items.push({ id: 'reconnect', icon: <RotateCcw size={12} />, label: 'Reconnect', onClick: handleReconnect })
     if (!show('clear'))
       items.push({ id: 'clear', icon: <Trash2 size={12} />, label: 'Clear conversation', onClick: handleClear })
+    if (!show('attach'))
+      items.push({ id: 'attach', icon: <Paperclip size={12} />, label: 'Attach file', disabled: true })
+    if (!show('voice'))
+      items.push({ id: 'voice', icon: <Mic size={12} />, label: 'Voice input', disabled: true })
     return items
   }, [widthTier, handleReconnect, handleClear])
 
@@ -354,9 +360,23 @@ function TierAwareToolbar({
         {show('thinking') && <Composer.ThinkingLevel />}
       </Composer.ToolbarGroup>
       <Composer.ToolbarGroup>
+        {show('attach') && (
+          <Composer.ActionButton
+            icon={<Paperclip size={sz.actionIcon} />}
+            title="Attach file (coming soon)"
+            disabled
+          />
+        )}
+        {show('voice') && (
+          <Composer.ActionButton
+            icon={<Mic size={sz.actionIcon} />}
+            title="Voice input (coming soon)"
+            disabled
+          />
+        )}
         {show('clear') && (
           <Composer.ActionButton
-            icon={<Trash2 size={COMPOSER_SIZING[widthTier].actionIcon} />}
+            icon={<Trash2 size={sz.actionIcon} />}
             title="Clear conversation"
             onClick={handleClear}
           />
