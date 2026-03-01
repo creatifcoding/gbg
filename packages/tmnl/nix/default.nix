@@ -19,6 +19,7 @@
     ./modules/ctl.nix # CLI tools (ctl)
     ./modules/getbyshell/default.nix # GetByShell — systemd-managed layer-shell surfaces (bar + panel)
     ./modules/sparkplug.nix # Sparkplug B adapter scripts (Epic 27)
+    ./modules/pragma.nix # PRAGMA NLP sidecar (Candle + ort + tokenizers)
     ./modules/default.nix # Unified tmnl shell
     ./modules/tests.nix # Test suite
   ];

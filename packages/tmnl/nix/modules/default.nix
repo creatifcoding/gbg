@@ -23,6 +23,7 @@
             config.devShells.tmnl-ui
             config.devShells.tmnl-fonts
             config.devShells.tmnl-tauri
+            config.devShells.tmnl-pragma
             config.devShells.tmnl-k8s
             config.devShells.tmnl-grpc
           ];

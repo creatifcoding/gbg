@@ -1,0 +1,13 @@
+[package]
+name = "pragma-automata"
+version = "0.1.0"
+edition = "2021"
+description = "PRAGMA automata — FSM intent classifier, ambiguity detector, prefix block builder"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+log = { workspace = true }
+thiserror = { workspace = true }
+pragma-ipc = { path = "../pragma-ipc" }
+pragma-core = { path = "../pragma-core" }

@@ -1,0 +1,24 @@
+[package]
+name = "pragma-sidecar"
+version = "0.1.0"
+edition = "2021"
+description = "PRAGMA sidecar binary — JSON-RPC stdio main loop for Tauri sidecar integration"
+
+[[bin]]
+name = "pragma-sidecar"
+path = "src/main.rs"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+log = { workspace = true }
+pragma-ipc = { path = "../pragma-ipc" }
+pragma-core = { path = "../pragma-core" }
+pragma-automata = { path = "../pragma-automata" }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = "1"
+
+# Logging
+env_logger = "0.11"
