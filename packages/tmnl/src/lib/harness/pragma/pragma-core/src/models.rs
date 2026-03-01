@@ -19,7 +19,7 @@
 //!   - `tokenizer.json`
 //!   - `config.json`
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use pragma_ipc::types::ModelTier;
 

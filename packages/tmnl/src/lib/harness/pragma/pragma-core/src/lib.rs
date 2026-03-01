@@ -12,3 +12,4 @@
 //! - Embedding drift detection
 
 pub mod models;
+pub mod tokenizer;
