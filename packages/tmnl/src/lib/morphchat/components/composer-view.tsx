@@ -13,27 +13,26 @@
  */
 
 import { useCallback, useMemo, useRef, useState } from 'react'
-import { AtSign, Command, Loader2, Mic, Paperclip, Pause, RotateCcw, Square } from 'lucide-react'
+import { Loader2, RotateCcw, Square, Trash2 } from 'lucide-react'
 import type { StreamPhase } from '../schemas/message-types'
 import { Effect } from 'effect'
 import { useAtomValue } from '@effect-atom/atom-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { useMorphChatContext } from './surface-context'
+import type { MorphChatAdapter } from '../schemas/adapter-types'
 import { connectionStateFamily } from '../machines/surface-stx'
 import { Composer, useComposer, type OverflowAction } from '@/lib/chat/composer'
 import { COMPOSER_INLINE_ACTIONS, COMPOSER_SIZING, type ChatWidthTier, type ComposerActionId } from '@/lib/chat/tokens'
 import { useTransferDroppable } from '@/lib/transfer/v2/hooks'
 import type { TransferToken, TransferResult } from '@/lib/transfer/v2/schemas'
 import { Atom } from '@effect-atom/atom'
-import type { MockChatAdapter, MockCommandChip } from '../adapters/mock-adapter'
+
 import { useBlockDensity } from '@/lib/chat/msg/density-context'
 import { deriveThinkingLevels, reconcileThinkingLevel } from '@/lib/chat/composer/thinking-levels'
 import type { ModelOption } from '@/lib/chat/shell/header-band'
 
 // Module-level sentinel atoms for conditional hook reads (Rules of Hooks)
-const EMPTY_CHIPS = Atom.make<ReadonlyArray<MockCommandChip>>([])
-const EMPTY_DRAFT = Atom.make<string>('')
 const EMPTY_MODELS_TYPED = Atom.make<ReadonlyArray<ModelOption>>([])
 const EMPTY_MODEL_ID = Atom.make<string | null>(null)
 
@@ -102,7 +101,7 @@ export function ComposerView({ widthTier = 'full' }: { widthTier?: ChatWidthTier
       return {
         _tag: 'TransferReject' as const,
         targetId: adapter.adapterId,
-        reason: `Unknown ref type: ${(token.ref as any)._tag}`,
+        reason: `Unknown ref type: ${'_tag' in token.ref ? token.ref._tag : 'unknown'}`,
       }
     },
     [adapter.adapterId],
@@ -185,10 +184,10 @@ export function ComposerView({ widthTier = 'full' }: { widthTier?: ChatWidthTier
                 </Composer.ToolbarGroup>
                 <Composer.ToolbarGroup>
                   <TransportGroup
+                    adapter={adapter}
                     isStreaming={isStreaming}
                     streamPhase={streaming.phase}
                     onCancel={handleCancel}
-                    onReconnect={() => (adapter as Partial<MockChatAdapter>).toggleConnection?.()}
                   />
                   <Composer.SendButton />
                 </Composer.ToolbarGroup>
@@ -213,11 +212,10 @@ export function ComposerView({ widthTier = 'full' }: { widthTier?: ChatWidthTier
             )}
             {/* Inline terminal — visible when mode === 'terminal' */}
             <Composer.TerminalSlot />
-            {/* Command suggestions popup above input */}
-            <CommandSuggestions adapter={adapter} />
-            <Composer.TextArea placeholder="Message..." />
-            {/* Character counter */}
-            <CharacterCounter maxChars={(adapter as Partial<MockChatAdapter>).surfaceConfig?.maxChars} />
+            <div className="relative">
+              <Composer.TextArea placeholder="Message..." />
+              <CharacterCounter />
+            </div>
             <TierAwareToolbar
               adapter={adapter}
               isStreaming={isStreaming}
@@ -327,68 +325,48 @@ function TierAwareToolbar({
   onCancel: () => void
 }) {
   const { widthTier } = useComposer()
-  const sizing = COMPOSER_SIZING[widthTier]
   const inline = COMPOSER_INLINE_ACTIONS[widthTier]
 
   const show = (id: ComposerActionId) => inline.has(id)
 
+  const handleReconnect = useCallback(() => {
+    Effect.runSync(adapter.reconnect())
+  }, [adapter])
+
+  const handleClear = useCallback(() => {
+    Effect.runSync(adapter.clear())
+  }, [adapter])
+
   // Build overflow items for anything not inline
   const overflowItems = useMemo(() => {
     const items: OverflowAction[] = []
-    if (!show('command'))
-      items.push({ id: 'command', icon: <Command size={12} />, label: '/Command', onClick: () => (adapter as Partial<MockChatAdapter>).setDraft?.('/') })
-    if (!show('mention'))
-      items.push({ id: 'mention', icon: <AtSign size={12} />, label: '@Mention', onClick: () => (adapter as Partial<MockChatAdapter>).setDraft?.('@') })
-    if (!show('voice'))
-      items.push({ id: 'voice', icon: <Mic size={12} />, label: 'Voice input' })
-    if (!show('attach'))
-      items.push({ id: 'attach', icon: <Paperclip size={12} />, label: 'Attach file' })
     if (!show('reconnect'))
-      items.push({ id: 'reconnect', icon: <RotateCcw size={12} />, label: 'Toggle connection', onClick: () => (adapter as Partial<MockChatAdapter>).toggleConnection?.() })
+      items.push({ id: 'reconnect', icon: <RotateCcw size={12} />, label: 'Reconnect', onClick: handleReconnect })
+    if (!show('clear'))
+      items.push({ id: 'clear', icon: <Trash2 size={12} />, label: 'Clear conversation', onClick: handleClear })
     return items
-  }, [widthTier, adapter])
+  }, [widthTier, handleReconnect, handleClear])
 
   return (
     <Composer.Toolbar>
       <Composer.ToolbarGroup>
         {show('mode-toggle') && <Composer.ModeToggle />}
-        {show('divider') && <Composer.Divider />}
         {show('thinking') && <Composer.ThinkingLevel />}
-        {show('divider') && <Composer.Divider />}
-        {show('command') && (
-          <Composer.ActionButton
-            icon={<Command size={sizing.actionIcon} />}
-            title="Insert command"
-            onClick={() => (adapter as Partial<MockChatAdapter>).setDraft?.('/')}
-          />
-        )}
-        {show('mention') && (
-          <Composer.ActionButton
-            icon={<AtSign size={sizing.actionIcon} />}
-            title="Mention entity"
-            onClick={() => (adapter as Partial<MockChatAdapter>).setDraft?.('@')}
-          />
-        )}
-        {show('voice') && (
-          <Composer.ActionButton
-            icon={<Mic size={sizing.actionIcon} />}
-            title="Voice input"
-          />
-        )}
       </Composer.ToolbarGroup>
       <Composer.ToolbarGroup>
-        {show('attach') && (
+        {show('clear') && (
           <Composer.ActionButton
-            icon={<Paperclip size={sizing.actionIcon} />}
-            title="Attach"
+            icon={<Trash2 size={COMPOSER_SIZING[widthTier].actionIcon} />}
+            title="Clear conversation"
+            onClick={handleClear}
           />
         )}
         {show('reconnect') && (
           <TransportGroup
+            adapter={adapter}
             isStreaming={isStreaming}
             streamPhase={streaming.phase}
             onCancel={onCancel}
-            onReconnect={() => (adapter as Partial<MockChatAdapter>).toggleConnection?.()}
           />
         )}
         {overflowItems.length > 0 && (
@@ -401,39 +379,38 @@ function TierAwareToolbar({
 }
 
 // =============================================================================
-// Character Counter — shows current / max chars
+// Character Counter — absolute overlay inside textarea wrapper, no layout shift
 // =============================================================================
 
-function CharacterCounter({ maxChars = 4096 }: { maxChars?: number }) {
-  // We read the composer value from context if available, else return null
-  // This must be rendered inside <Composer> to access context
-  try {
-    const { value } = useComposer()
-    const len = value.length
-    const isNearLimit = len > maxChars * 0.9
-    const isOverLimit = len > maxChars
+const CHAR_COUNTER_MAX = 4096
 
-    if (len === 0) return null
+function CharacterCounter({ maxChars = CHAR_COUNTER_MAX }: { maxChars?: number }) {
+  const { value } = useComposer()
+  const len = value.length
+  const isNearLimit = len > maxChars * 0.9
+  const isOverLimit = len > maxChars
+  const visible = len > 0
 
-    const { widthTier } = useComposer()
-    const pad = widthTier === 'compact' ? 'px-2' : widthTier === 'squeeze' ? 'px-2' : 'px-3'
-
-    return (
-      <div
-        className={cn(
-          'text-right py-0.5 font-mono transition-colors duration-150',
-          pad,
-          isOverLimit ? 'text-red-400' : isNearLimit ? 'text-amber-400' : 'text-neutral-600',
-        )}
-        style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
-        aria-live="polite"
-      >
-        {len.toLocaleString()} / {maxChars.toLocaleString()}
-      </div>
-    )
-  } catch {
-    return null
-  }
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.12, ease: [0.32, 0.72, 0, 1] }}
+          className={cn(
+            'absolute bottom-1 right-2 font-mono pointer-events-none select-none',
+            isOverLimit ? 'text-red-400' : isNearLimit ? 'text-amber-400' : 'text-neutral-700',
+          )}
+          style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
+          aria-live="polite"
+        >
+          {len.toLocaleString()}/{maxChars.toLocaleString()}
+        </motion.span>
+      )}
+    </AnimatePresence>
+  )
 }
 
 // =============================================================================
@@ -441,15 +418,15 @@ function CharacterCounter({ maxChars = 4096 }: { maxChars?: number }) {
 // =============================================================================
 
 function TransportGroup({
+  adapter,
   isStreaming,
   streamPhase,
   onCancel,
-  onReconnect,
 }: {
+  adapter: MorphChatAdapter
   isStreaming: boolean
   streamPhase: StreamPhase
   onCancel: () => void
-  onReconnect: () => void
 }) {
   // Phase-appropriate icon and label
   const phaseIcon = streamPhase === 'waiting'
@@ -469,11 +446,11 @@ function TransportGroup({
 
   return (
     <>
-      {/* Reconnect — always visible, toggles connection */}
+      {/* Reconnect — always visible, forces reconnect */}
       <Composer.ActionButton
         icon={<RotateCcw size={14} />}
-        title="Toggle connection"
-        onClick={onReconnect}
+        title="Reconnect"
+        onClick={() => Effect.runSync(adapter.reconnect())}
       />
       {/* Phase-aware cancel/indicator — only during active streaming */}
       <AnimatePresence>
@@ -493,77 +470,6 @@ function TransportGroup({
         )}
       </AnimatePresence>
     </>
-  )
-}
-
-// =============================================================================
-// Command Suggestions — popup above input showing matching /commands
-// =============================================================================
-
-function CommandSuggestions({
-  adapter,
-}: {
-  adapter: { send: any } & Partial<MockChatAdapter>
-}) {
-  // Module-level sentinels ensure useAtomValue is ALWAYS called (Rules of Hooks)
-  const chips = useAtomValue(adapter.commandChips$ ?? EMPTY_CHIPS)
-  const draft = useAtomValue(adapter.draft$ ?? EMPTY_DRAFT)
-
-  // Only show when draft starts with /
-  const isCommandMode = draft.startsWith('/')
-  const query = draft.slice(1).toLowerCase()
-
-  const matchedChips = useMemo(() => {
-    if (!isCommandMode || !chips.length) return []
-    if (query.length === 0) return chips.slice(0, 5)
-    return chips.filter(
-      (c) =>
-        c.label.toLowerCase().includes(query) ||
-        c.command.toLowerCase().includes(query),
-    ).slice(0, 5)
-  }, [isCommandMode, query, chips])
-
-  if (!isCommandMode || matchedChips.length === 0) return null
-
-  const { widthTier } = useComposer()
-  const sizing = COMPOSER_SIZING[widthTier]
-
-  return (
-    <div
-      data-slot="morphchat-command-suggestions"
-      className={cn(sizing.chipPad, 'border-b border-neutral-800/30')}
-    >
-      <AnimatePresence>
-        <motion.div
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 4 }}
-          transition={{ duration: 0.15, ease: [0.32, 0.72, 0, 1] }}
-          className="flex flex-wrap gap-1"
-        >
-          {matchedChips.map((chip) => (
-            <button
-              key={chip.id}
-              type="button"
-              onClick={() => adapter.setDraft?.(chip.command + ' ')}
-              className={cn(
-                'inline-flex items-center gap-1 px-2 py-0.5 rounded',
-                'font-mono border border-neutral-800 text-neutral-400',
-                'hover:border-cyan-800/50 hover:text-cyan-400',
-                'transition-all duration-150 active:scale-[0.97]',
-              )}
-              style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
-            >
-              <span className="text-cyan-600">/</span>
-              <span>{chip.label}</span>
-              {chip.description && (
-                <span className="text-neutral-700 ml-1">— {chip.description}</span>
-              )}
-            </button>
-          ))}
-        </motion.div>
-      </AnimatePresence>
-    </div>
   )
 }
 
