@@ -188,28 +188,53 @@ fn handle_annotate(id: u64, params: &Option<serde_json::Value>) -> JsonRpcRespon
 
     log::debug!("annotate: prompt_len={}", annotate_params.prompt.len());
 
-    // Stub response — P4 will wire to real FSM + encoder
-    let resp: DomainResult<AnnotateResponse> = DomainResult::Ok {
-        value: AnnotateResponse {
-            intent: IntentClassification {
-                intent_type: IntentType::Idle,
-                confidence: 0.0,
-                model_used: ModelTier::Minilm,
-                tier_escalated: false,
-            },
-            candidates: vec![],
-            disambiguation: vec![],
-            hints: GenerationHints {
-                temperature: 0.7,
-                note: "stub — no model loaded".to_string(),
-            },
-            prefix_block: String::new(),
-            sideband: Sideband {
-                models_used: vec![],
-                latency_ms: 0.0,
-                catalog_recomputed: false,
-            },
+    let start = std::time::Instant::now();
+
+    // Phase 1: FSM classification (deterministic, <1ms)
+    let fsm_result = pragma_automata::fsm::classify(&annotate_params.prompt);
+
+    // Phase 2: Ambiguity analysis
+    let ambiguity = pragma_automata::ambiguity::analyze(&fsm_result);
+
+    // Phase 3: Build response
+    // Note: Embedding-based ranking (pragma-core) is not yet wired.
+    // For now, confidence comes from FSM scores + ambiguity analysis.
+    // Candidates will be populated when pragma-core encoder is integrated.
+    let confidence = ambiguity.confidence;
+    let should_escalate = ambiguity.should_escalate;
+
+    let intent_classification = IntentClassification {
+        intent_type: fsm_result.intent,
+        confidence,
+        model_used: ModelTier::Minilm, // Will be real when encoder is wired
+        tier_escalated: should_escalate,
+    };
+
+    let hints = GenerationHints {
+        temperature: if confidence > 0.8 { 0.3 } else if confidence > 0.5 { 0.5 } else { 0.7 },
+        note: ambiguity.reason.clone(),
+    };
+
+    let annotate_response = AnnotateResponse {
+        intent: intent_classification,
+        candidates: vec![], // Populated when pragma-core catalog is wired
+        disambiguation: ambiguity.disambiguation,
+        hints: hints.clone(),
+        prefix_block: String::new(), // Will be set below
+        sideband: Sideband {
+            models_used: vec![ModelTier::Minilm],
+            latency_ms: start.elapsed().as_secs_f64() * 1000.0,
+            catalog_recomputed: false,
         },
+    };
+
+    // Phase 4: Build prefix block
+    let prefix_block = pragma_automata::prefix::build_prefix_block(&annotate_response);
+    let mut final_response = annotate_response;
+    final_response.prefix_block = prefix_block;
+
+    let resp: DomainResult<AnnotateResponse> = DomainResult::Ok {
+        value: final_response,
     };
 
     JsonRpcResponse::success(id, serde_json::to_value(resp).unwrap())
