@@ -62,13 +62,13 @@ export class ComponentErrorBoundary extends Component<ComponentErrorBoundaryProp
           <div className="flex items-center gap-2">
             <span
               className="font-mono text-red-400"
-              style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+              style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
             >
               ⚠ {this.props.componentType}
             </span>
             <span
               className="font-mono text-red-500/60"
-              style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+              style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
             >
               {this.state.error.message}
             </span>

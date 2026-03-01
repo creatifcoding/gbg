@@ -524,8 +524,21 @@ export function resolveProps(
       const atom = instance.atoms.get(field)
       if (atom) {
         resolved[key] = instance.registry.get(atom)
-        handlers[`on${key.charAt(0).toUpperCase()}${key.slice(1)}Change`] = (newValue?: unknown) => {
+
+        const write = (newValue?: unknown) => {
           instance.registry.set(atom, newValue)
+        }
+
+        handlers[`on${key.charAt(0).toUpperCase()}${key.slice(1)}Change`] = write
+
+        // Common React input contract: value + onChange(event)
+        if (key === 'value' && handlers.onChange === undefined) {
+          handlers.onChange = (eventOrValue?: unknown) => {
+            const extracted = eventOrValue && typeof eventOrValue === 'object' && 'target' in (eventOrValue as any)
+              ? (eventOrValue as any).target?.value
+              : eventOrValue
+            write(extracted)
+          }
         }
       }
       continue

@@ -48,20 +48,20 @@ export function FlightSearchUI() {
           onKeyDown={e => e.key === 'Enter' && dispatch('search')}
           placeholder="Search flights (e.g., DLH, UAL)..."
           className="flex-1 px-4 py-2 bg-stone-900 border border-stone-700 rounded-lg text-stone-200 font-mono placeholder:text-stone-600"
-          style={{ fontSize: 'var(--tmnl-text-base, 16px)' }}
+          style={{ fontSize: 'var(--tmnl-text-base, 14px)' }}
         />
         <button
           onClick={() => dispatch('search')}
           disabled={state.loading}
           className="px-6 py-2 bg-cyan-900/50 border border-cyan-700/50 rounded-lg text-cyan-300 font-mono hover:bg-cyan-800/50 disabled:opacity-50"
-          style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
+          style={{ fontSize: 'var(--tmnl-text-sm, 12px)' }}
         >
           {state.loading ? 'Searching...' : 'Search'}
         </button>
         <button
           onClick={() => dispatch('clear')}
           className="px-4 py-2 bg-stone-900 border border-stone-700 rounded-lg text-stone-400 font-mono hover:bg-stone-800"
-          style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
+          style={{ fontSize: 'var(--tmnl-text-sm, 12px)' }}
         >
           Clear
         </button>
@@ -71,7 +71,7 @@ export function FlightSearchUI() {
       {state.error && (
         <div
           className="px-4 py-2 bg-red-950/50 border border-red-800/50 rounded-lg text-red-400 font-mono"
-          style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
+          style={{ fontSize: 'var(--tmnl-text-sm, 12px)' }}
         >
           {state.error}
         </div>
@@ -81,20 +81,20 @@ export function FlightSearchUI() {
       <div className="flex gap-4 items-center">
         <span
           className="text-stone-500 font-mono"
-          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+          style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
         >
           {derived.resultCount ?? 0} flights
         </span>
         <span
           className="text-stone-500 font-mono"
-          style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+          style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
         >
           {derived.airborneCount ?? 0} airborne
         </span>
         {state.lastSearchMs > 0 && (
           <span
             className="text-stone-600 font-mono"
-            style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+            style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
           >
             {state.lastSearchMs}ms
           </span>
@@ -111,7 +111,7 @@ export function FlightSearchUI() {
                   <th
                     key={h}
                     className="px-3 py-2 text-left text-stone-400 font-mono border-b border-stone-800"
-                    style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+                    style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
                   >
                     {h}
                   </th>
@@ -126,25 +126,25 @@ export function FlightSearchUI() {
                 >
                   <td
                     className="px-3 py-1.5 text-cyan-400 font-mono"
-                    style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
+                    style={{ fontSize: 'var(--tmnl-text-sm, 12px)' }}
                   >
                     {flight.callsign?.trim() || flight.icao24}
                   </td>
                   <td
                     className="px-3 py-1.5 text-stone-300 font-mono"
-                    style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
+                    style={{ fontSize: 'var(--tmnl-text-sm, 12px)' }}
                   >
                     {flight.originCountry}
                   </td>
                   <td
                     className="px-3 py-1.5 text-stone-400 font-mono"
-                    style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
+                    style={{ fontSize: 'var(--tmnl-text-sm, 12px)' }}
                   >
                     {flight.altitude?.toFixed(0) ?? '—'}
                   </td>
                   <td
                     className="px-3 py-1.5 text-stone-400 font-mono"
-                    style={{ fontSize: 'var(--tmnl-text-sm, 14px)' }}
+                    style={{ fontSize: 'var(--tmnl-text-sm, 12px)' }}
                   >
                     {flight.velocity?.toFixed(1) ?? '—'}
                   </td>
@@ -156,7 +156,7 @@ export function FlightSearchUI() {
                     />
                     <span
                       className="ml-2 text-stone-500 font-mono"
-                      style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+                      style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
                     >
                       {flight.onGround ? 'Ground' : 'Airborne'}
                     </span>
@@ -190,7 +190,7 @@ export function FlightSearchInput() {
       onKeyDown={e => e.key === 'Enter' && dispatch('search')}
       placeholder="Search flights..."
       className="px-4 py-2 bg-stone-900 border border-stone-700 rounded-lg text-stone-200 font-mono"
-      style={{ fontSize: 'var(--tmnl-text-base, 16px)' }}
+      style={{ fontSize: 'var(--tmnl-text-base, 14px)' }}
     />
   )
 }
@@ -201,7 +201,7 @@ export function FlightResultCount() {
   return (
     <span
       className="text-stone-500 font-mono"
-      style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+      style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
     >
       {results?.length ?? 0} flights
     </span>
@@ -221,7 +221,7 @@ export function FlightSearchTrace() {
   return (
     <div
       className="px-3 py-1.5 bg-stone-900/50 rounded border border-stone-800 text-stone-600 font-mono"
-      style={{ fontSize: 'var(--tmnl-text-xs, 12px)' }}
+      style={{ fontSize: 'var(--tmnl-text-xs, 10px)' }}
     >
       Last: "{lastSearch.query}" → {lastSearch.resultCount} results in {lastSearch.durationMs}ms
     </div>

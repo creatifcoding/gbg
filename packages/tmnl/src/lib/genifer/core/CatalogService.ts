@@ -268,10 +268,10 @@ export const makeCatalogComponents = (
     lines.push(`# Component Composition
 
 ## Core Principle
-**Any component can be a child of any container.** Layout components (Grid, VStack, HStack, Flex, etc.) are containers that can hold ANY other component, including:
-- Other layout components (nested layouts)
-- Domain-specific components (GeointDashboard, forms, etc.)
-- UI primitives (Text, Heading, Button, etc.)
+**Any component can be a child of any container.** Containers (Grid, VStack, HStack, Flex, Box, Card, etc.) can hold any component listed in the current scoped catalog:
+- Nested containers (layout-in-layout)
+- Text/content primitives (Heading, Text, Code, List)
+- Interactive controls (Button, Input, Textarea, Select, ActionButton)
 
 ## Container vs Leaf Components
 - **Containers** (hasChildren: true): Can wrap other components. Use \`children\` array.
@@ -279,7 +279,7 @@ export const makeCatalogComponents = (
 
 ## Common Patterns
 
-### Dashboard in Layout
+### Dashboard Shell
 \`\`\`json
 {
   "root": "layout",
@@ -287,15 +287,21 @@ export const makeCatalogComponents = (
     "layout": {
       "type": "VStack",
       "props": { "gap": 16 },
-      "children": ["header", "dashboard"]
+      "children": ["header", "cta-row"]
     },
-    "header": { "type": "Heading", "props": { "level": 1, "text": "Operations" } },
-    "dashboard": { "type": "GeointDashboard", "props": { "panelId": "main" } }
+    "header": { "type": "Heading", "props": { "text": "Operations", "level": 1 }, "className": "font-mono text-cyan-300" },
+    "cta-row": {
+      "type": "HStack",
+      "props": { "gap": 8 },
+      "children": ["refresh", "export"]
+    },
+    "refresh": { "type": "Button", "props": { "label": "Refresh" } },
+    "export": { "type": "Button", "props": { "label": "Export", "variant": "outline" } }
   }
 }
 \`\`\`
 
-### Side-by-Side Dashboards
+### Card Grid Pattern
 \`\`\`json
 {
   "root": "layout",
@@ -303,10 +309,12 @@ export const makeCatalogComponents = (
     "layout": {
       "type": "Grid",
       "props": { "template": "1fr 1fr", "gap": 16 },
-      "children": ["left", "right"]
+      "children": ["card-a", "card-b"]
     },
-    "left": { "type": "GeointDashboard", "props": { "panelId": "geoint-1" } },
-    "right": { "type": "GeointDashboard", "props": { "panelId": "geoint-2" } }
+    "card-a": { "type": "Card", "props": { "title": "Latency" }, "children": ["a-value"] },
+    "a-value": { "type": "Text", "props": { "text": "247ms" } },
+    "card-b": { "type": "Card", "props": { "title": "Throughput" }, "children": ["b-value"] },
+    "b-value": { "type": "Text", "props": { "text": "2,847 req/min" } }
   }
 }
 \`\`\`
@@ -316,6 +324,11 @@ export const makeCatalogComponents = (
 2. Reference children by their key strings in the \`children\` array
 3. Leaf components (hasChildren: false) should NOT have a \`children\` array
 4. The \`root\` must reference a key that exists in \`elements\`
+
+## Catalog Scope + Compatibility Aliases
+Use only component types present in the generated **Available Components** section for this request scope.
+Legacy aliases are supported for backward compatibility: \`Heading\`, \`Text\`, \`Card\`, \`Button\`, \`Input\`, \`TextInput\`, \`Badge\`, \`Alert\`, \`Separator\`, \`VStack\`, \`HStack\`, \`Grid\`, \`ActionButton\`, \`ButtonLabel\`, \`ButtonIcon\`.
+Prefer canonical components in new outputs when possible.
 
 `)
 
@@ -329,9 +342,9 @@ Use component props for: semantic behavior (text content, variant, level).
 
 ## Examples
 \`\`\`json
-{ "type": "Heading", "key": "title", "props": { "level": 1, "text": "Dashboard" }, "className": "mb-6 text-center" }
-{ "type": "Card", "key": "hero", "props": { "padding": 24 }, "className": "w-full max-w-2xl mx-auto shadow-lg" }
-{ "type": "Button", "key": "submit", "props": { "label": "Save" }, "className": "mt-4 w-full" }
+{ "type": "Text", "key": "title", "props": { "text": "Dashboard" }, "className": "mb-6 text-center font-mono text-cyan-300" }
+{ "type": "InfoCard", "key": "hero", "props": { "title": "Overview", "value": "Ready" }, "className": "w-full max-w-2xl mx-auto" }
+{ "type": "ActionButton", "key": "submit", "props": { "label": "Save" }, "className": "mt-4 w-full" }
 \`\`\`
 
 ## Common Patterns
@@ -454,22 +467,75 @@ entrance?: {
     tier?: CatalogTier
     domains?: ReadonlyArray<CatalogDomain>
   }): string => {
+    const requestedTier = options?.tier ?? 'domain'
+    const requestedDomains = options?.domains
     const filtered = filterSchemas(options)
+
     const lines: string[] = []
-    lines.push('# Available Components\n')
+
+    lines.push('# Scoped Component Brief')
+    lines.push('')
+    lines.push(`Scope tier: ${requestedTier}`)
+    lines.push(`Scope domains: ${requestedDomains && requestedDomains.length > 0 ? requestedDomains.join(', ') : 'all'}`)
+    lines.push(`Component count: ${filtered.size}`)
+    lines.push('')
+
+    lines.push('## Guardrails')
+    lines.push('- Use ONLY component types listed below for this scope.')
+    lines.push('- Every element MUST have unique `key`, valid `type`, and optional `props` object.')
+    lines.push('- Use `children` only for components where `hasChildren: true`.')
+    lines.push('- Include all required props shown in each component contract.')
+    lines.push('- `className` is optional and available for layout/styling overrides.')
+    lines.push('')
+
+    lines.push('# Available Components')
+    lines.push('')
 
     for (const [name, entry] of filtered) {
-      const jsonSchema = JSONSchema.make(entry.schema)
       const tierBadge = entry.tier === 'core' ? '' : ` [${entry.tier}]`
       const domainBadge = entry.domains?.length ? ` (${entry.domains.join(', ')})` : ''
       lines.push(`## ${name}${tierBadge}${domainBadge}`)
-      if (entry.description) lines.push(entry.description.split('\n')[0]) // first line only
+
+      if (entry.description) {
+        lines.push(entry.description)
+      }
+
+      let jsonSchema: Record<string, unknown> | null = null
+      try {
+        jsonSchema = JSONSchema.make(entry.schema) as Record<string, unknown>
+      } catch {
+        jsonSchema = null
+      }
+
+      const required = Array.isArray(jsonSchema?.required)
+        ? (jsonSchema?.required as ReadonlyArray<string>)
+        : []
+      const propKeys = jsonSchema?.properties && typeof jsonSchema.properties === 'object'
+        ? Object.keys(jsonSchema.properties as Record<string, unknown>)
+        : []
+
+      lines.push('### Usage Contract')
       lines.push(`- hasChildren: ${entry.hasChildren ?? false}`)
+      lines.push(`- requiredProps: ${required.length > 0 ? required.join(', ') : 'none'}`)
+      lines.push(`- availableProps: ${propKeys.length > 0 ? propKeys.join(', ') : 'unknown (complex schema)'}`)
+
       if (entry.compound) {
         lines.push(`- compound parent: ${entry.compound.parent}`)
-        lines.push(`- slots: ${entry.compound.slots.join(', ')}`)
+        lines.push(`- allowed slots: ${entry.compound.slots.join(', ')}`)
+        if (entry.compound.strict) {
+          lines.push('- slot mode: strict')
+        }
       }
-      lines.push(`- props: ${JSON.stringify(jsonSchema, null, 2)}`)
+
+      lines.push('')
+      lines.push('### Props Schema')
+      if (jsonSchema) {
+        lines.push('```json')
+        lines.push(JSON.stringify(jsonSchema, null, 2))
+        lines.push('```')
+      } else {
+        lines.push('*(Complex schema - see TypeScript definition)*')
+      }
       lines.push('')
     }
 

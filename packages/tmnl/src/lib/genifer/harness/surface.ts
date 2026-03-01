@@ -20,6 +20,13 @@
  */
 
 import { Schema } from 'effect'
+import {
+  SurfaceId,
+  TreeId,
+  ThreadId,
+  ToolCallId,
+  SessionId,
+} from '../identifiers'
 
 // =============================================================================
 // DataSource Binding
@@ -147,25 +154,33 @@ export class SurfaceQuality extends Schema.TaggedClass<SurfaceQuality>()(
  *   user promotes bindings → Surface v1 (live data)
  *   genifer_refine → Surface v2 (linked to v1)
  */
+/** Surface status — Schema.Literal for runtime validation */
+export const SurfaceStatus = Schema.Literal('streaming', 'complete', 'error', 'collapsed')
+export type SurfaceStatus = typeof SurfaceStatus.Type
+
 export class GeniferSurface extends Schema.TaggedClass<GeniferSurface>()(
   'GeniferSurface',
   {
     /** Unique surface ID (stable across versions) */
-    id: Schema.String,
+    id: SurfaceId,
     /** Database tree ID (null until persisted) */
-    treeId: Schema.NullOr(Schema.String),
+    treeId: Schema.NullOr(TreeId),
     /** Thread this surface belongs to */
-    threadId: Schema.String,
+    threadId: ThreadId,
     /** Tool call ID that created this surface */
-    toolCallId: Schema.String,
+    toolCallId: ToolCallId,
     /** Session ID */
-    sessionId: Schema.String,
+    sessionId: SessionId,
     /** The serialized UITree JSON (live tree lives in atoms, this is snapshot) */
     treeSnapshot: Schema.Unknown,
+    /** Latest incremental patch for streaming UI hydration */
+    treePatch: Schema.optional(Schema.Unknown),
+    /** Monotonic sequence number for treePatch de-duplication */
+    patchSeq: Schema.optional(Schema.Number),
     /** Surface version (increments on refine) */
     version: Schema.Number,
     /** Parent surface ID (if refined from another) */
-    parentSurfaceId: Schema.NullOr(Schema.String),
+    parentSurfaceId: Schema.NullOr(SurfaceId),
     /** Active data source bindings (keyed by elementKey:propName) */
     dataBindings: Schema.Record({
       key: Schema.String,
@@ -183,7 +198,7 @@ export class GeniferSurface extends Schema.TaggedClass<GeniferSurface>()(
     /** Refinement instruction (if this is a refinement) */
     instruction: Schema.NullOr(Schema.String),
     /** Current display status */
-    status: Schema.Literal('streaming', 'complete', 'error', 'collapsed'),
+    status: SurfaceStatus,
     /** Creation timestamp */
     createdAt: Schema.Number,
   },

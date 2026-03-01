@@ -76,7 +76,7 @@ function QualityBadge({ score, repairCount }: { score: number; repairCount: numb
         gap: 4,
         padding: '2px 8px',
         borderRadius: 4,
-        fontSize: 'var(--tmnl-text-xs, 12px)',
+        fontSize: 'var(--tmnl-text-xs, 10px)',
         fontFamily: 'var(--tmnl-font-mono, "JetBrains Mono", monospace)',
         background: isPerfect
           ? 'rgba(34, 197, 94, 0.15)'
@@ -153,7 +153,7 @@ function SurfaceHeader({ surface, isCollapsed, onToggle, elementCount }: Surface
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
         <span
           style={{
-            fontSize: 'var(--tmnl-text-xs, 12px)',
+            fontSize: 'var(--tmnl-text-xs, 10px)',
             fontFamily: 'var(--tmnl-font-mono, monospace)',
             color: statusColor,
             letterSpacing: '0.05em',
@@ -165,7 +165,7 @@ function SurfaceHeader({ surface, isCollapsed, onToggle, elementCount }: Surface
         </span>
         <span
           style={{
-            fontSize: 'var(--tmnl-text-sm, 14px)',
+            fontSize: 'var(--tmnl-text-sm, 12px)',
             color: SURFACE_TOKENS.textPrimary,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -181,7 +181,7 @@ function SurfaceHeader({ surface, isCollapsed, onToggle, elementCount }: Surface
         {surface.isRefinement && (
           <span
             style={{
-              fontSize: 'var(--tmnl-text-xs, 12px)',
+              fontSize: 'var(--tmnl-text-xs, 10px)',
               fontFamily: 'var(--tmnl-font-mono, monospace)',
               color: SURFACE_TOKENS.textMuted,
             }}
@@ -191,7 +191,7 @@ function SurfaceHeader({ surface, isCollapsed, onToggle, elementCount }: Surface
         )}
         <span
           style={{
-            fontSize: 'var(--tmnl-text-xs, 12px)',
+            fontSize: 'var(--tmnl-text-xs, 10px)',
             fontFamily: 'var(--tmnl-font-mono, monospace)',
             color: SURFACE_TOKENS.textSecondary,
           }}
@@ -206,7 +206,7 @@ function SurfaceHeader({ surface, isCollapsed, onToggle, elementCount }: Surface
         )}
         <span
           style={{
-            fontSize: 'var(--tmnl-text-xs, 12px)',
+            fontSize: 'var(--tmnl-text-xs, 10px)',
             color: SURFACE_TOKENS.textMuted,
             transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
             transition: 'transform 150ms ease',
@@ -284,7 +284,7 @@ function RefineBar({ onRefine }: { onRefine: (instruction: string) => void }) {
           background: 'transparent',
           border: 'none',
           outline: 'none',
-          fontSize: 'var(--tmnl-text-sm, 14px)',
+          fontSize: 'var(--tmnl-text-sm, 12px)',
           fontFamily: 'var(--tmnl-font-mono, monospace)',
           color: SURFACE_TOKENS.textPrimary,
           caretColor: SURFACE_TOKENS.refineAccent,
@@ -300,7 +300,7 @@ function RefineBar({ onRefine }: { onRefine: (instruction: string) => void }) {
           border: `1px solid ${SURFACE_TOKENS.refineAccent}`,
           background: 'transparent',
           color: SURFACE_TOKENS.badgeText,
-          fontSize: 'var(--tmnl-text-xs, 12px)',
+          fontSize: 'var(--tmnl-text-xs, 10px)',
           fontFamily: 'var(--tmnl-font-mono, monospace)',
           cursor: instruction.trim() ? 'pointer' : 'default',
           opacity: instruction.trim() ? 1 : 0.4,
@@ -458,7 +458,7 @@ export const SurfaceRenderer = memo(function SurfaceRenderer({
                   textAlign: 'center',
                   padding: 24,
                   color: SURFACE_TOKENS.textMuted,
-                  fontSize: 'var(--tmnl-text-sm, 14px)',
+                  fontSize: 'var(--tmnl-text-sm, 12px)',
                   fontFamily: 'var(--tmnl-font-mono, monospace)',
                 }}
               >
@@ -474,7 +474,7 @@ export const SurfaceRenderer = memo(function SurfaceRenderer({
             style={{
               padding: '4px 12px',
               color: SURFACE_TOKENS.textMuted,
-              fontSize: 'var(--tmnl-text-xs, 12px)',
+              fontSize: 'var(--tmnl-text-xs, 10px)',
               fontFamily: 'var(--tmnl-font-mono, monospace)',
             }}
           >
@@ -496,7 +496,7 @@ export const SurfaceRenderer = memo(function SurfaceRenderer({
               justifyContent: 'space-between',
               padding: '4px 12px',
               borderTop: `1px solid ${SURFACE_TOKENS.border}`,
-              fontSize: 'var(--tmnl-text-xs, 12px)',
+              fontSize: 'var(--tmnl-text-xs, 10px)',
               fontFamily: 'var(--tmnl-font-mono, monospace)',
               color: SURFACE_TOKENS.textMuted,
             }}

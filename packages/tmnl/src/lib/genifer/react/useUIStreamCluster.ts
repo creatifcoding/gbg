@@ -24,7 +24,7 @@ import type { RuntimeFiber } from "effect/Fiber"
 
 import { UITree } from "../core/schemas"
 import { processPatches, streamFromFetchProgressive, streamHybrid } from "../core/streaming"
-import { TreeWorkerPoolAuto } from "../workers"
+import { TreeWorkerPoolAuto } from "../workers/tree-worker-pool"
 import {
   decodeErrorStreamIdsAtom,
   registerDecodeErrorStreamId,

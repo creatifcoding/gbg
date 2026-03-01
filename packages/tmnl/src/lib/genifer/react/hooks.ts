@@ -44,7 +44,7 @@ import type { DataModel, AuthState, VisibilityCondition } from "../core/schemas"
 import { evaluateVisibilitySync } from "../core/visibility"
 import { streamFromFetchProgressive, processPatches, streamHybrid } from "../core/streaming"
 import { resolveAction, type ActionHandler, ResolvedAction } from "../core/actions"
-import { TreeWorkerPoolAuto } from "../workers"
+import { TreeWorkerPoolAuto } from "../workers/tree-worker-pool"
 
 // =============================================================================
 // useUIStream - Stream-based UI rendering (Atom.family isolated)

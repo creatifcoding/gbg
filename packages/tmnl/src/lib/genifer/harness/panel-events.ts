@@ -1,14 +1,15 @@
 import { Schema } from 'effect'
+import { SurfaceId, PanelId, ThreadId } from '../identifiers'
 
 export const PanelMode = Schema.Literal('floating', 'tiled')
 export type PanelMode = typeof PanelMode.Type
 
 export const PanelSpawnedPayload = Schema.Struct({
-  surfaceId: Schema.String,
-  panelId: Schema.String,
+  surfaceId: SurfaceId,
+  panelId: PanelId,
   title: Schema.optional(Schema.String),
   prompt: Schema.optional(Schema.String),
-  threadId: Schema.optional(Schema.String),
+  threadId: Schema.optional(ThreadId),
   width: Schema.optional(Schema.Number),
   height: Schema.optional(Schema.Number),
   mode: Schema.optional(PanelMode),
@@ -17,11 +18,11 @@ export const PanelSpawnedPayload = Schema.Struct({
 export type PanelSpawnedPayload = typeof PanelSpawnedPayload.Type
 
 const PanelSpawnedEventBase = Schema.TaggedStruct('panel:spawned', {
-  surfaceId: Schema.String,
-  panelId: Schema.String,
+  surfaceId: SurfaceId,
+  panelId: PanelId,
   title: Schema.optional(Schema.String),
   prompt: Schema.optional(Schema.String),
-  threadId: Schema.optional(Schema.String),
+  threadId: Schema.optional(ThreadId),
   width: Schema.optional(Schema.Number),
   height: Schema.optional(Schema.Number),
   mode: Schema.optional(PanelMode),
@@ -43,12 +44,12 @@ export const PanelSpawnedEvent = PanelSpawnedEventBase.pipe(
 export type PanelSpawnedEvent = typeof PanelSpawnedEvent.Type
 
 export const PanelClosedPayload = Schema.Struct({
-  panelId: Schema.String,
+  panelId: PanelId,
 })
 export type PanelClosedPayload = typeof PanelClosedPayload.Type
 
 const PanelClosedEventBase = Schema.TaggedStruct('panel:closed', {
-  panelId: Schema.String,
+  panelId: PanelId,
   // Optional compatibility mirror for older payload-style consumers.
   payload: Schema.optional(PanelClosedPayload),
 })
@@ -64,13 +65,13 @@ export const PanelClosedEvent = PanelClosedEventBase.pipe(
 export type PanelClosedEvent = typeof PanelClosedEvent.Type
 
 export const PanelSurfaceUpdatedPayload = Schema.Struct({
-  surfaceId: Schema.String,
+  surfaceId: SurfaceId,
   surface: Schema.Unknown,
 })
 export type PanelSurfaceUpdatedPayload = typeof PanelSurfaceUpdatedPayload.Type
 
 const PanelSurfaceUpdatedEventBase = Schema.TaggedStruct('panel:surface_updated', {
-  surfaceId: Schema.String,
+  surfaceId: SurfaceId,
   surface: Schema.Unknown,
   // Optional compatibility mirror for older payload-style consumers.
   payload: Schema.optional(PanelSurfaceUpdatedPayload),

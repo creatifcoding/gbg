@@ -19,8 +19,9 @@ import type { EntranceAnimation } from '../core/animation-schema';
 import { useIsVisible } from './hooks';
 import { useEntrance } from './animation';
 import { getDynamicComponents } from '../code-mode/sandbox';
-import { renderersAtom, schemasAtom, type SchemaEntry } from './atoms/catalog';
+import { renderersAtom, schemasAtom, getCatalogRenderers, type SchemaEntry } from './atoms/catalog';
 import { ComponentErrorBoundary } from './ErrorBoundary';
+import { useBehavior } from './BehaviorBridge';
 
 // =============================================================================
 // Types
@@ -82,8 +83,6 @@ interface ElementRendererProps {
   element: UIElement;
   /** Element lookup function (stable across renders) */
   getElement: (key: string) => UIElement | undefined;
-  /** Element map version to invalidate cached children */
-  elementsVersion: number;
   registry: ComponentRegistry;
   loading?: boolean;
   fallback?: ComponentRenderer;
@@ -109,7 +108,6 @@ interface ElementRendererProps {
 const ElementRenderer = memo(function ElementRenderer({
   element,
   getElement,
-  elementsVersion,
   registry,
   loading,
   fallback,
@@ -121,10 +119,34 @@ const ElementRenderer = memo(function ElementRenderer({
   // Check visibility via atom-based hook
   const isVisible = useIsVisible(element.visible);
 
+  // Resolve behavior sigils (@state, @action, bind) into concrete props/handlers
+  const { resolveElementProps } = useBehavior();
+  const { props: resolvedBehaviorProps, handlers: resolvedBehaviorHandlers } = useMemo(
+    () => resolveElementProps(element),
+    [resolveElementProps, element],
+  );
+
+  const effectiveElement = useMemo(() => {
+    const mergedProps: Record<string, unknown> = {
+      ...(element.props as Record<string, unknown>),
+      ...resolvedBehaviorProps,
+      ...resolvedBehaviorHandlers,
+    };
+
+    if (mergedProps.action === undefined && typeof mergedProps.onClick === 'function') {
+      mergedProps.action = { name: 'click' };
+    }
+
+    return {
+      ...element,
+      props: mergedProps,
+    } as UIElement;
+  }, [element, resolvedBehaviorProps, resolvedBehaviorHandlers]);
+
   // Resolve animation: element.entrance OR catalog default
   const animation: EntranceAnimation | undefined = useMemo(
-    () => element.entrance ?? getDefaultEntrance?.(element.type),
-    [element.entrance, element.type, getDefaultEntrance]
+    () => effectiveElement.entrance ?? getDefaultEntrance?.(effectiveElement.type),
+    [effectiveElement.entrance, effectiveElement.type, getDefaultEntrance]
   );
 
   // Entrance animation hook
@@ -140,22 +162,22 @@ const ElementRenderer = memo(function ElementRenderer({
   }
 
   // Get the component renderer from registry
-  const Component = registry[element.type] ?? fallback;
+  const Component = registry[effectiveElement.type] ?? fallback;
 
   if (!Component) {
     // Only warn in non-production builds (Vite strips this in prod)
-    console.warn(`[genifer] No renderer for component type: ${element.type}`);
+    console.warn(`[genifer] No renderer for component type: ${effectiveElement.type}`);
     return null;
   }
 
   // Recursively render children with index tracking for stagger
   // OPTIMIZATION: Dependencies don't include getElement (stable function)
   const children = useMemo(() => {
-    if (!element.children || element.children.length === 0) {
+    if (!effectiveElement.children || effectiveElement.children.length === 0) {
       return undefined;
     }
 
-    return element.children.map((childKey, childIndex) => {
+    return effectiveElement.children.map((childKey, childIndex) => {
       const childElement = getElement(childKey);
       if (!childElement) {
         return null;
@@ -165,7 +187,6 @@ const ElementRenderer = memo(function ElementRenderer({
           key={childKey}
           element={childElement}
           getElement={getElement}
-          elementsVersion={elementsVersion}
           registry={registry}
           loading={loading}
           fallback={fallback}
@@ -176,12 +197,12 @@ const ElementRenderer = memo(function ElementRenderer({
         />
       );
     });
-  }, [element.children, elementsVersion, getElement, registry, loading, fallback, onAction, getDefaultEntrance, disableAnimations]);
+  }, [effectiveElement.children, getElement, registry, loading, fallback, onAction, getDefaultEntrance, disableAnimations]);
 
   // Render component - wrapped in error boundary for isolation
   const content = (
-    <ComponentErrorBoundary componentType={element.type} elementKey={element.key}>
-      <Component element={element as any} onAction={onAction} loading={loading}>
+    <ComponentErrorBoundary componentType={effectiveElement.type} elementKey={effectiveElement.key}>
+      <Component element={effectiveElement as any} onAction={onAction} loading={loading}>
         {children}
       </Component>
     </ComponentErrorBoundary>
@@ -189,14 +210,14 @@ const ElementRenderer = memo(function ElementRenderer({
 
   // Build ARIA props from UIElement fields
   const ariaProps: Record<string, unknown> = {};
-  if (element.role) ariaProps.role = element.role;
-  if (element.ariaLabel) ariaProps['aria-label'] = element.ariaLabel;
-  if (element.ariaDescribedBy) ariaProps['aria-describedby'] = element.ariaDescribedBy;
-  if (element.ariaLive) ariaProps['aria-live'] = element.ariaLive;
-  if (element.tabIndex !== undefined) ariaProps.tabIndex = element.tabIndex;
+  if (effectiveElement.role) ariaProps.role = effectiveElement.role;
+  if (effectiveElement.ariaLabel) ariaProps['aria-label'] = effectiveElement.ariaLabel;
+  if (effectiveElement.ariaDescribedBy) ariaProps['aria-describedby'] = effectiveElement.ariaDescribedBy;
+  if (effectiveElement.ariaLive) ariaProps['aria-live'] = effectiveElement.ariaLive;
+  if (effectiveElement.tabIndex !== undefined) ariaProps.tabIndex = effectiveElement.tabIndex;
 
   // Resolve className from element (Tailwind utility classes for layout)
-  const elementClassName = element.className || undefined;
+  const elementClassName = effectiveElement.className || undefined;
 
   // Wrap in entrance animation container if animation is enabled
   // Animation wrapper is decorative — invisible to assistive tech
@@ -222,7 +243,17 @@ const ElementRenderer = memo(function ElementRenderer({
   }
 
   return content;
-});
+}, (prev, next) => (
+  prev.element === next.element
+  && prev.getElement === next.getElement
+  && prev.registry === next.registry
+  && prev.loading === next.loading
+  && prev.fallback === next.fallback
+  && prev.onAction === next.onAction
+  && prev.index === next.index
+  && prev.getDefaultEntrance === next.getDefaultEntrance
+  && prev.disableAnimations === next.disableAnimations
+));
 
 // =============================================================================
 // Renderer - Main entry point
@@ -261,26 +292,21 @@ export function Renderer({
   onAction,
   disableAnimations = false,
 }: RendererProps) {
-  // LOGGING: Track Renderer mount and tree state
-  console.log('[Renderer] Render', {
-    hasTree: !!tree,
-    treeRoot: tree?.root ?? 'no tree',
-    treeElementCount: tree?.size ?? 0,
-    loading,
-    hasPropRegistry: !!propRegistry,
-  });
-
   // Get renderers from catalog (Result<Record, Error>)
   const catalogResult = useAtomValue(renderersAtom);
 
   // Get schemas from catalog for default entrance lookup
   const schemasResult = useAtomValue(schemasAtom);
 
-  // Extract catalog renderers (empty object if not available)
+  // Extract catalog renderers (falls back to getCatalogRenderers() if atom context unavailable)
   const catalogRenderers = useMemo(() => {
-    if (Result.isSuccess(catalogResult)) {
+    if (Result.isSuccess(catalogResult) && Object.keys(catalogResult.value).length > 0) {
       return catalogResult.value;
     }
+    // Fallback: direct registry access bypasses atom context scope issues
+    // (e.g., when rendered inside MorphChat's registry instead of genifer's)
+    const direct = getCatalogRenderers();
+    if (direct && Object.keys(direct).length > 0) return direct;
     return {};
   }, [catalogResult]);
 
@@ -336,32 +362,19 @@ export function Renderer({
 
   // Handle empty/null tree
   if (!tree || !tree.root) {
-    console.log('[Renderer] → null (no tree or no root)', { tree, root: tree?.root });
     return null;
   }
 
   // Get root element
   const rootElement = tree.getElementUnsafe(tree.root);
   if (!rootElement) {
-    console.log('[Renderer] → null (root element not found)', {
-      root: tree.root,
-      elementCount: HashMap.size(tree.elements)
-    });
     return null;
   }
-
-  console.log('[Renderer] Rendering root element', {
-    root: tree.root,
-    rootElementType: rootElement.type,
-    rootElementChildren: rootElement.children?.length ?? 0,
-    registryTypes: Object.keys(mergedRegistry).slice(0, 10),
-  });
 
   return (
     <ElementRenderer
       element={rootElement}
       getElement={getElement}
-      elementsVersion={HashMap.size(tree.elements)}
       registry={mergedRegistry}
       loading={loading}
       fallback={fallback}

@@ -79,6 +79,17 @@ export type GeniferQueryParams = Static<typeof GeniferQueryParams>
 // Tool Details (TDetails for onUpdate + result)
 // =============================================================================
 
+export interface GeniferPromptEvalSummary {
+  readonly promptHash: string
+  readonly utilityScore: number
+  readonly steeringScore: number
+  readonly costIndex: number
+  readonly totalTokens?: number
+  readonly estimatedTotalTokens: number
+  readonly unknownTypeCount: number
+  readonly requiredPropMissCount: number
+}
+
 export interface GeniferGenerateDetails {
   readonly stage: 'streaming' | 'normalizing' | 'persisting' | 'complete' | 'error'
   readonly surfaceId: string
@@ -89,6 +100,19 @@ export interface GeniferGenerateDetails {
   readonly treeId?: string | null
   readonly threadId?: string
   readonly treeSnapshot?: unknown
+  /** Incremental patch payload for progressive rendering */
+  readonly treePatch?: unknown
+  /** Monotonic patch sequence for de-duplication */
+  readonly patchSeq?: number
+  /** Operation start timestamp (epoch ms) */
+  readonly startTs?: number
+  /** Timestamp of first patch observed in harness stream (epoch ms) */
+  readonly firstPatchReceivedTs?: number
+  /** Milliseconds from operation start until first patch emitted */
+  readonly firstPatchLatencyMs?: number
+  /** Structured malformed-line evidence from patch parsing/decoding */
+  readonly quarantineEntries?: ReadonlyArray<unknown>
+  readonly promptEval?: GeniferPromptEvalSummary
 }
 
 export interface GeniferRefineDetails {
@@ -102,6 +126,19 @@ export interface GeniferRefineDetails {
   readonly qualityScore?: number
   readonly treeId?: string | null
   readonly treeSnapshot?: unknown
+  /** Incremental patch payload for progressive rendering */
+  readonly treePatch?: unknown
+  /** Monotonic patch sequence for de-duplication */
+  readonly patchSeq?: number
+  /** Operation start timestamp (epoch ms) */
+  readonly startTs?: number
+  /** Timestamp of first patch observed in harness stream (epoch ms) */
+  readonly firstPatchReceivedTs?: number
+  /** Milliseconds from operation start until first patch emitted */
+  readonly firstPatchLatencyMs?: number
+  /** Structured malformed-line evidence from patch parsing/decoding */
+  readonly quarantineEntries?: ReadonlyArray<unknown>
+  readonly promptEval?: GeniferPromptEvalSummary
 }
 
 export interface GeniferQueryDetails {

@@ -1,54 +1,70 @@
 /**
- * @fileoverview @effect/ai → genifer streaming pipeline adapter
+ * @fileoverview @effect/ai → Genifer JSONL patch-stream adapter
  *
- * Bridges @effect/ai's LanguageModel.streamText into the existing genifer
- * streaming pipeline (tokenizer → d2ts graph → normalize → UITree).
+ * Bridges @effect/ai's LanguageModel.streamText into a JSONL patch compiler.
+ * Model output is expected as newline-delimited patch objects that are applied
+ * incrementally to UITree for progressive updates.
  *
  * Two modes:
- *   1. `generate()` — single prompt → UITree with automatic retry on failure
- *   2. `refine()`   — conversational follow-up on an existing tree
+ *   1. `generate()` — prompt → patch stream → UITree
+ *   2. `refine()`   — current tree + instruction → patch stream → UITree
  *
- * Uses the existing PromptTemplate + CatalogService to build prompts,
- * the feedback loop for retry with error-aware hints, and the thread
- * service for multi-turn conversation state.
+ * Includes a normalization fallback when the model emits full JSON instead of
+ * patch lines, so migration remains resilient while prompts harden.
  *
  * @module genifer/compiler/ai-adapter
  */
 import { LanguageModel } from "@effect/ai"
-import { Effect, Stream, Option } from "effect"
+import { Effect, Stream, Option, JSONSchema } from "effect"
 
 import { CatalogComponents, getSystemPrompt } from "../core/CatalogService"
 import { PromptTemplate, PromptSlot } from "../core/prompts"
-import {
-  createStreamingPipeline,
-  type PipelineConfig,
-  normalizedElementsAtom,
-  pipelineTreeAtom,
-  quarantinedAtom,
-} from "../streaming/pipeline"
-import { UITree } from "../core/schemas"
-import { classifyFailure, type ClassifiedFailure } from "../core/feedback-loop"
+import { applyPatch, parsePatchLine } from "../core/streaming"
+import { normalize } from "../core/normalize"
+import { JsonPatch, UITree } from "../core/schemas"
+import { type ClassifiedFailure } from "../core/feedback-loop"
 import {
   createThreadService,
   type ThreadServiceShape,
 } from "../react/thread-service"
-import type { TextContent, UITreeContent } from "../core/threads"
+import {
+  type PromptBlockTrace,
+  type PromptSteeringTrace,
+  type PromptTokenomicsTrace,
+  type PromptUtilityScore,
+  type PromptExtractionSource,
+  createPromptBlockTrace,
+  createTokenomicsTrace,
+  computePromptUtility,
+  extractUsageFromResponse,
+  hashText,
+} from "./prompt-eval"
 
 // =============================================================================
 // Prompt Templates
 // =============================================================================
 
-/** Initial generation — proven format from spike-real-llm.ts */
+/** Initial generation — JSONL patch-stream (one patch per line) */
 const geniferTemplate = new PromptTemplate({
   name: "genifer-generate",
-  template: `You are a UI generation engine. You MUST respond with ONLY a valid JSON object, no markdown, no explanation.
+  template: `You are a UI generation engine. You MUST respond with ONLY NDJSON patch lines (one JSON object per line). No markdown, no prose, no code fences.
 
-The JSON must follow this exact structure:
+Patch format:
+{"op":"set|add|replace|remove","path":"<json-pointer>","value":<any>}
+
+Build a FLAT UITree using these paths:
+- /root -> string root key
+- /elements/<key> -> full element object
+- /elements/<key>/props/<prop> -> prop updates
+- /elements/<key>/children -> array of child keys
+
+Element object shape at /elements/<key>:
 {
+  "key": "<same key>",
   "type": "<ComponentType>",
-  "key": "<unique-id>",
   "props": { ... },
-  "children": [ ... nested components ... ]
+  "children": ["child-key", ...],
+  "parentKey": null | "<parent-key>"
 }
 
 Available components:
@@ -57,44 +73,39 @@ Available components:
 User request: {{query}}
 
 Rules:
-- Use ONLY the components listed above
-- Every node MUST have "type", "key", and "props"
-- Nest children inside "children" arrays
-- Return a single root component
-- Respond with ONLY the JSON object — no prose, no code fences`,
+- Use ONLY listed components
+- First patch MUST set /root
+- Every referenced child key must exist in /elements
+- Emit only patch lines, newline-delimited`,
   slots: [
     new PromptSlot({ name: "catalog", type: "catalog", required: false }),
     new PromptSlot({ name: "query", type: "string", required: true }),
   ],
 })
 
-/** Refinement — takes previous tree + modification request */
+/** Refinement — current tree + instruction → JSONL patch stream */
 const refineTemplate = new PromptTemplate({
   name: "genifer-refine",
-  template: `You are a UI generation engine. You MUST respond with ONLY a valid JSON object, no markdown, no explanation.
+  template: `You are a UI generation engine. You MUST respond with ONLY NDJSON patch lines (one JSON object per line). No markdown, no prose, no code fences.
 
-The JSON must follow this exact structure:
-{
-  "type": "<ComponentType>",
-  "key": "<unique-id>",
-  "props": { ... },
-  "children": [ ... nested components ... ]
-}
+Patch format:
+{"op":"set|add|replace|remove","path":"<json-pointer>","value":<any>}
 
 Available components:
 {{catalog}}
 
-Here is the current UI tree (JSON):
+Current flat UITree snapshot:
 {{currentTree}}
 
-The user wants this modification: {{query}}
+Requested modification:
+{{query}}
 
 Rules:
-- Use ONLY the components listed above
-- Every node MUST have "type", "key", and "props"
-- Preserve existing keys where the component is unchanged
-- Return the COMPLETE updated tree, not a diff
-- Respond with ONLY the JSON object — no prose, no code fences`,
+- Emit only the patches needed to transform the current tree
+- Preserve existing keys where unchanged
+- Keep /root valid
+- Every referenced child key must exist in /elements
+- Emit only patch lines, newline-delimited`,
   slots: [
     new PromptSlot({ name: "catalog", type: "catalog", required: false }),
     new PromptSlot({ name: "currentTree", type: "string", required: true }),
@@ -114,7 +125,7 @@ const retryTemplate = new PromptTemplate({
   ],
 })
 
-const SYSTEM_PROMPT = "You are Claude Code, a JSON-only UI generation engine. Respond with valid JSON only."
+const SYSTEM_PROMPT = "You are Claude Code, a JSONL patch-stream UI generation engine. Respond with newline-delimited JSON patch objects only."
 
 import { BEHAVIOR_DSL_PROMPT } from "../decorators/generation-schema"
 import { getComponentRegistry } from "../decorators/component"
@@ -169,8 +180,6 @@ function buildSystemPromptForAdapter(interactive?: boolean): string {
 export interface GenerateOptions {
   /** Natural language UI description */
   readonly prompt: string
-  /** Pipeline config (quality thresholds, expected elements, etc.) */
-  readonly pipelineConfig?: PipelineConfig
   /** Maximum retry attempts on quality failure (default: 2) */
   readonly maxRetries?: number
   /** Enable interactive behavior generation (behavior blocks, sigils, RPCs) */
@@ -181,6 +190,8 @@ export interface GenerateOptions {
   readonly onTreeUpdate?: (partialTree: UITree, elementCount: number) => void
   /** Called when a component is identified during streaming */
   readonly onComponent?: (key: string, type: string) => void
+  /** Called for every decoded patch line after applyPatch (json-render style incremental feed) */
+  readonly onPatch?: (patch: JsonPatch, tree: UITree, elementCount: number) => void
   /** Called on retry attempt (attempt number, failure classification) */
   readonly onRetry?: (attempt: number, failure: ClassifiedFailure) => void
   /** Thread service for conversation state (auto-created if omitted) */
@@ -192,12 +203,31 @@ export interface RefineOptions extends GenerateOptions {
   readonly currentTree: UITree
 }
 
+export interface PromptEvalTrace {
+  readonly promptHash: string
+  readonly promptBlocks: ReadonlyArray<PromptBlockTrace>
+  readonly tokenomics: PromptTokenomicsTrace
+  readonly steering: PromptSteeringTrace
+  readonly utility: PromptUtilityScore
+}
+
+export interface QuarantineEntry {
+  readonly stage: 'parse' | 'decode'
+  readonly message: string
+  readonly line: string
+  readonly lineIndex: number
+  readonly timestamp: number
+  readonly streamId?: string
+  readonly context?: unknown
+}
+
 export interface GenerateResult {
   readonly tree: UITree
   readonly qualityScore: number
   readonly chunkCount: number
   readonly elementCount: number
   readonly quarantineCount: number
+  readonly quarantineEntries: ReadonlyArray<QuarantineEntry>
   readonly repairCount: number
   readonly durationMs: number
   readonly rawJson: string
@@ -207,6 +237,8 @@ export interface GenerateResult {
   readonly retryFailures: readonly ClassifiedFailure[]
   /** Thread ID for conversation continuity */
   readonly threadId: string
+  /** Prompt eval trace for tokenomics + steering effectiveness */
+  readonly promptEval: PromptEvalTrace
 }
 
 // =============================================================================
@@ -215,68 +247,379 @@ export interface GenerateResult {
 
 function streamAttempt(
   compiled: string,
-  pipelineConfig?: PipelineConfig,
+  systemPrompt: string,
   onDelta?: (delta: string) => void,
   onTreeUpdate?: (partialTree: UITree, elementCount: number) => void,
-  interactive?: boolean,
+  onComponent?: (key: string, type: string) => void,
+  onPatch?: (patch: JsonPatch, tree: UITree, elementCount: number) => void,
+  initialTree?: UITree,
 ): Effect.Effect<
-  { tree: UITree; rawJson: string; chunks: number; elementCount: number; quarantineCount: number; repairCount: number; qualityScore: number; passed: boolean; failure: ClassifiedFailure | null },
+  {
+    tree: UITree
+    /** Flat snapshot JSON for persistence + tool rendering */
+    rawJson: string
+    /** Raw model output (JSONL/text) for eval telemetry */
+    rawOutput: string
+    chunks: number
+    elementCount: number
+    quarantineCount: number
+    quarantineEntries: ReadonlyArray<QuarantineEntry>
+    repairCount: number
+    qualityScore: number
+    passed: boolean
+    failure: ClassifiedFailure | null
+    extractionSource: PromptExtractionSource
+    usage: {
+      inputTokens?: number
+      outputTokens?: number
+      totalTokens?: number
+      reasoningTokens?: number
+      cachedInputTokens?: number
+    }
+  },
   never,
   LanguageModel.LanguageModel
 > {
   return Effect.gen(function* () {
-    const pipeline = createStreamingPipeline(pipelineConfig)
-    const registry = pipeline.registry
-
-    let rawJson = ""
+    let tree = initialTree ?? UITree.empty()
+    let rawOutput = ""
     let chunks = 0
+    let usage: {
+      inputTokens?: number
+      outputTokens?: number
+      totalTokens?: number
+      reasoningTokens?: number
+      cachedInputTokens?: number
+    } = {}
+
+    let buffer = ""
+    let lineIndex = 0
+    let appliedPatches = 0
+    let parseIssues = 0
+    const quarantineEntries: QuarantineEntry[] = []
+    let lastElementCount = 0
+    let inPatchFence = false
+
+    const processLine = (line: string, chunk: string) =>
+      Effect.gen(function* () {
+        const trimmed = line.trim()
+        if (!trimmed) return
+
+        if (trimmed.startsWith("```")) {
+          if (!inPatchFence) {
+            inPatchFence = true
+            return
+          }
+          inPatchFence = false
+          return
+        }
+
+        const shouldParse = inPatchFence || trimmed.startsWith("{")
+        if (!shouldParse) return
+
+        lineIndex += 1
+        const maybePatch = yield* parsePatchLine(trimmed, {
+          chunk,
+          lineIndex,
+          streamId: "genifer-ai-adapter",
+          context: { mode: "patch-stream" },
+          onDecodeError: (error) =>
+            Effect.sync(() => {
+              if (quarantineEntries.length >= 32) return
+              quarantineEntries.push({
+                stage: error.stage,
+                message: error.message,
+                line: error.line,
+                lineIndex: error.lineIndex ?? lineIndex,
+                timestamp: error.timestamp,
+                streamId: error.streamId,
+                context: error.context,
+              })
+            }),
+        })
+
+        if (Option.isNone(maybePatch)) {
+          parseIssues += 1
+          return
+        }
+
+        const patch = maybePatch.value
+        tree = yield* applyPatch(tree, patch)
+        appliedPatches += 1
+        onPatch?.(patch, tree, tree.size)
+
+        // Per-element progress callback
+        if (onComponent && patch.path.startsWith("/elements/")) {
+          const elementKey = patch.path.slice("/elements/".length).split("/")[0]
+          const patchValue = patch.value as Record<string, unknown> | undefined
+          const elementType = typeof patchValue?.type === "string"
+            ? patchValue.type
+            : tree.getElementUnsafe(elementKey)?.type
+          if (elementKey && elementType) {
+            onComponent(elementKey, elementType)
+          }
+        }
+
+        // Tree update callback only when element count grows
+        const currentCount = tree.size
+        if (currentCount > lastElementCount) {
+          lastElementCount = currentCount
+          onTreeUpdate?.(tree, currentCount)
+        }
+      })
 
     const stream = LanguageModel.streamText({
-      system: buildSystemPromptForAdapter(interactive),
+      system: systemPrompt,
       prompt: compiled,
     })
 
-    let lastElementCount = 0
     yield* Stream.runForEach(stream, (part) =>
-      Effect.sync(() => {
+      Effect.gen(function* () {
         const p = part as any
+
         if (p.type === "text-delta" && p.delta) {
           const delta: string = p.delta
-          rawJson += delta
-          chunks++
-          pipeline.feedChunk(delta)
+          rawOutput += delta
+          chunks += 1
           onDelta?.(delta)
 
-          // Check if new elements were added → emit partial tree
-          if (onTreeUpdate) {
-            const currentCount = registry.get(normalizedElementsAtom).length
-            if (currentCount > lastElementCount) {
-              lastElementCount = currentCount
-              const partialTree = registry.get(pipelineTreeAtom)
-              onTreeUpdate(partialTree, currentCount)
-            }
+          buffer += delta
+          const lines = buffer.split("\n")
+          buffer = lines.pop() ?? ""
+
+          for (const line of lines) {
+            yield* processLine(line, delta)
           }
         }
-      })
+
+        if (p.type === "finish") {
+          usage = extractUsageFromResponse(p)
+        }
+      }),
     )
 
-    const { tree, score, repairResult } = pipeline.finalize()
-    const failure = score.passed
+    // Flush trailing line
+    if (buffer.trim()) {
+      yield* processLine(buffer, buffer)
+    }
+
+    // Fallback: if model ignored patch protocol, attempt classic normalization.
+    if (appliedPatches === 0 && rawOutput.trim().length > 0) {
+      const normalized = yield* normalize(rawOutput).pipe(Effect.either)
+      if (normalized._tag === "Right") {
+        tree = normalized.right
+        if (tree.size > lastElementCount) {
+          lastElementCount = tree.size
+          onTreeUpdate?.(tree, tree.size)
+        }
+      }
+    }
+
+    const hasRoot = tree.root.trim().length > 0
+    const hasRootElement = hasRoot && Option.isSome(tree.getElement(tree.root))
+    const denominator = Math.max(1, appliedPatches + parseIssues)
+    const parseRate = parseIssues / denominator
+    const qualityScore = clamp01(
+      (hasRoot ? 0.35 : 0) +
+      (tree.size > 0 ? 0.35 : 0) +
+      (hasRootElement ? 0.2 : 0) +
+      (appliedPatches > 0 ? 0.1 : 0) -
+      Math.min(0.6, parseRate * 0.6),
+    )
+
+    const passed = hasRootElement && tree.size > 0 && qualityScore >= 0.55
+    const failure = passed
       ? null
-      : classifyFailure(undefined, score, repairResult)
+      : classifyPatchFailure({
+          appliedPatches,
+          parseIssues,
+          hasRoot,
+          hasRootElement,
+          elementCount: tree.size,
+        })
 
     return {
       tree,
-      rawJson,
+      rawJson: serializeFlatSnapshot(tree),
+      rawOutput,
       chunks,
-      elementCount: registry.get(normalizedElementsAtom).length,
-      quarantineCount: registry.get(quarantinedAtom).length,
-      repairCount: repairResult.repairs.length,
-      qualityScore: score.overall,
-      passed: score.passed,
+      elementCount: tree.size,
+      quarantineCount: parseIssues,
+      quarantineEntries,
+      repairCount: 0,
+      qualityScore,
+      passed,
       failure,
+      extractionSource: inferExtractionSource(rawOutput),
+      usage,
     }
   })
+}
+
+const clamp01 = (value: number): number => Math.max(0, Math.min(1, value))
+
+const classifyPatchFailure = (params: {
+  appliedPatches: number
+  parseIssues: number
+  hasRoot: boolean
+  hasRootElement: boolean
+  elementCount: number
+}): ClassifiedFailure => {
+  if (params.appliedPatches === 0) {
+    return {
+      failureClass: "empty_response",
+      retryHint: "No valid JSONL patch lines were produced. Return newline-delimited patch objects only.",
+    }
+  }
+
+  if (params.parseIssues > params.appliedPatches) {
+    return {
+      failureClass: "parse_error",
+      retryHint: "Too many invalid patch lines. Emit one valid JSON object per line with op/path/value.",
+    }
+  }
+
+  if (!params.hasRoot || !params.hasRootElement) {
+    return {
+      failureClass: "wrong_format",
+      retryHint: "Set /root first and ensure /elements/<rootKey> exists.",
+    }
+  }
+
+  if (params.elementCount === 0) {
+    return {
+      failureClass: "partial_tree",
+      retryHint: "Tree is empty. Add /elements entries for requested components.",
+    }
+  }
+
+  return {
+    failureClass: "unknown",
+    retryHint: "Return complete newline-delimited JSON patch operations with valid paths.",
+  }
+}
+
+const inferExtractionSource = (raw: string): PromptExtractionSource => {
+  const trimmed = raw.trim()
+  if (trimmed.length === 0) return "none"
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) return "raw"
+  if (trimmed.includes("```") && trimmed.includes("{")) return "fence"
+  if (trimmed.includes("{") && trimmed.includes("}")) return "brace-slice"
+  return "none"
+}
+
+type CatalogRuntime = {
+  readonly schemas: ReadonlyMap<string, { readonly schema: unknown }>
+}
+
+const evaluateSteering = (
+  tree: UITree,
+  catalog: CatalogRuntime,
+  extractionSource: PromptExtractionSource,
+): PromptSteeringTrace => {
+  const componentTypes = new Set<string>()
+  const unknownTypes = new Set<string>()
+  let requiredPropMissCount = 0
+
+  for (const [, element] of tree.elements) {
+    const type = element.type
+    componentTypes.add(type)
+
+    const entry = catalog.schemas.get(type)
+    if (!entry) {
+      unknownTypes.add(type)
+      continue
+    }
+
+    const props = (element.props && typeof element.props === "object")
+      ? (element.props as Record<string, unknown>)
+      : {}
+
+    try {
+      const jsonSchema = JSONSchema.make(entry.schema) as Record<string, unknown>
+      const required = Array.isArray(jsonSchema.required)
+        ? (jsonSchema.required as ReadonlyArray<string>)
+        : []
+      for (const key of required) {
+        if (!(key in props)) {
+          requiredPropMissCount++
+        }
+      }
+    } catch {
+      // Complex schema fallback — skip required-prop analysis for this component.
+    }
+  }
+
+  return {
+    extractionSource,
+    validated: true,
+    elementCount: tree.size,
+    componentTypes: Array.from(componentTypes),
+    unknownTypeCount: unknownTypes.size,
+    unknownTypes: Array.from(unknownTypes),
+    requiredPropMissCount,
+    slotViolationCount: 0,
+  }
+}
+
+const steeringScoreFromTrace = (trace: PromptSteeringTrace): number => {
+  const denom = Math.max(1, trace.elementCount)
+  const unknownRate = trace.unknownTypeCount / denom
+  const requiredMissRate = trace.requiredPropMissCount / denom
+  const slotRate = trace.slotViolationCount / denom
+  return clamp01(1 - (0.7 * unknownRate + 0.2 * requiredMissRate + 0.1 * slotRate))
+}
+
+const buildPromptEvalTrace = (params: {
+  systemPrompt: string
+  compiledPrompt: string
+  userPrompt: string
+  rawOutput: string
+  durationMs: number
+  qualityScore: number
+  tree: UITree
+  extractionSource: PromptExtractionSource
+  usage: {
+    inputTokens?: number
+    outputTokens?: number
+    totalTokens?: number
+    reasoningTokens?: number
+    cachedInputTokens?: number
+  }
+  catalog: CatalogRuntime
+}): PromptEvalTrace => {
+  const promptBlocks: PromptBlockTrace[] = [
+    createPromptBlockTrace("system", params.systemPrompt),
+    createPromptBlockTrace("compiled", params.compiledPrompt),
+  ]
+
+  const tokenomics = createTokenomicsTrace({
+    systemPromptChars: params.systemPrompt.length,
+    userPromptChars: params.userPrompt.length,
+    outputChars: params.rawOutput.length,
+    latencyMs: params.durationMs,
+    inputTokens: params.usage.inputTokens,
+    outputTokens: params.usage.outputTokens,
+    totalTokens: params.usage.totalTokens,
+    reasoningTokens: params.usage.reasoningTokens,
+    cachedInputTokens: params.usage.cachedInputTokens,
+  })
+
+  const steering = evaluateSteering(params.tree, params.catalog, params.extractionSource)
+  const steeringScore = steeringScoreFromTrace(steering)
+  const utility = computePromptUtility({
+    qualityScore: params.qualityScore,
+    steeringScore,
+    tokenomics,
+  })
+
+  return {
+    promptHash: hashText(`${params.systemPrompt}\n\n${params.compiledPrompt}`),
+    promptBlocks,
+    tokenomics,
+    steering,
+    utility,
+  }
 }
 
 // =============================================================================
@@ -305,8 +648,11 @@ export const generate = (
     const threads = options.threadService ?? createThreadService()
     const thread = threads.createThread(options.prompt.slice(0, 60))
 
+    const catalog = yield* CatalogComponents
+
     // Build prompt from catalog
     const catalogPrompt = yield* getSystemPrompt
+    const systemPrompt = buildSystemPromptForAdapter(options.interactive)
     const basePrompt = geniferTemplate.compile(
       { query: options.prompt },
       catalogPrompt
@@ -320,7 +666,7 @@ export const generate = (
     let compiled = basePrompt
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      const result = yield* streamAttempt(compiled, options.pipelineConfig, options.onDelta, options.onTreeUpdate, options.interactive)
+      const result = yield* streamAttempt(compiled, systemPrompt, options.onDelta, options.onTreeUpdate, options.onComponent, options.onPatch)
 
       if (result.passed || attempt === maxRetries) {
         // Record assistant response
@@ -328,18 +674,34 @@ export const generate = (
           { _tag: "ui-tree" as const, treeJson: result.rawJson, componentCount: result.elementCount },
         ])
 
+        const durationMs = Date.now() - start
+        const promptEval = buildPromptEvalTrace({
+          systemPrompt,
+          compiledPrompt: compiled,
+          userPrompt: options.prompt,
+          rawOutput: result.rawOutput,
+          durationMs,
+          qualityScore: result.qualityScore,
+          tree: result.tree,
+          extractionSource: result.extractionSource,
+          usage: result.usage,
+          catalog,
+        })
+
         return {
           tree: result.tree,
           qualityScore: result.qualityScore,
           chunkCount: result.chunks,
           elementCount: result.elementCount,
           quarantineCount: result.quarantineCount,
+          quarantineEntries: result.quarantineEntries,
           repairCount: result.repairCount,
-          durationMs: Date.now() - start,
+          durationMs,
           rawJson: result.rawJson,
           attempts: attempt,
           retryFailures: failures,
           threadId: thread.id,
+          promptEval,
         } satisfies GenerateResult
       }
 
@@ -378,7 +740,7 @@ export const generate = (
  * Refine an existing UITree with a follow-up instruction.
  *
  * Sends the current tree JSON + the modification request to the model.
- * The model returns a complete updated tree (not a diff).
+ * The model returns newline-delimited patch operations against the current tree.
  *
  * Uses the same retry loop as generate().
  *
@@ -397,15 +759,14 @@ export const refine = (
       threads.createThread("Refinement")
     }
 
-    // Serialize the current tree
-    const currentTreeJson = JSON.stringify(
-      serializeUITree(options.currentTree),
-      null,
-      2
-    )
+    // Serialize current tree as flat snapshot for patch-diff refinement
+    const currentTreeJson = serializeFlatSnapshot(options.currentTree)
+
+    const catalog = yield* CatalogComponents
 
     // Build refinement prompt
     const catalogPrompt = yield* getSystemPrompt
+    const systemPrompt = buildSystemPromptForAdapter(options.interactive)
     const basePrompt = refineTemplate.compile(
       { query: options.prompt, currentTree: currentTreeJson },
       catalogPrompt
@@ -419,12 +780,26 @@ export const refine = (
     let compiled = basePrompt
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      const result = yield* streamAttempt(compiled, options.pipelineConfig, options.onDelta, options.onTreeUpdate, options.interactive)
+      const result = yield* streamAttempt(compiled, systemPrompt, options.onDelta, options.onTreeUpdate, options.onComponent, options.onPatch, options.currentTree)
 
       if (result.passed || attempt === maxRetries) {
         threads.addMessage("assistant", [
           { _tag: "ui-tree" as const, treeJson: result.rawJson, componentCount: result.elementCount },
         ])
+
+        const durationMs = Date.now() - start
+        const promptEval = buildPromptEvalTrace({
+          systemPrompt,
+          compiledPrompt: compiled,
+          userPrompt: options.prompt,
+          rawOutput: result.rawOutput,
+          durationMs,
+          qualityScore: result.qualityScore,
+          tree: result.tree,
+          extractionSource: result.extractionSource,
+          usage: result.usage,
+          catalog,
+        })
 
         return {
           tree: result.tree,
@@ -432,12 +807,14 @@ export const refine = (
           chunkCount: result.chunks,
           elementCount: result.elementCount,
           quarantineCount: result.quarantineCount,
+          quarantineEntries: result.quarantineEntries,
           repairCount: result.repairCount,
-          durationMs: Date.now() - start,
+          durationMs,
           rawJson: result.rawJson,
           attempts: attempt,
           retryFailures: failures,
           threadId: threads.getActiveThread()!.id,
+          promptEval,
         } satisfies GenerateResult
       }
 
@@ -469,22 +846,10 @@ export const refine = (
 // Helpers
 // =============================================================================
 
-/** Serialize UITree to plain JSON-safe object (for embedding in prompt) */
-function serializeUITree(tree: UITree): unknown {
-  function serializeElement(key: string): unknown {
-    const opt = tree.getElement(key)
-    if (opt._tag === "None") return null
-
-    const el = opt.value
-    return {
-      type: el.type,
-      key: el.key,
-      props: el.props,
-      ...(el.children.length > 0
-        ? { children: el.children.map(serializeElement).filter(Boolean) }
-        : {}),
-    }
-  }
-
-  return serializeElement(tree.root)
+/** Serialize UITree as canonical flat snapshot { root, elements } */
+function serializeFlatSnapshot(tree: UITree): string {
+  const elements = Object.fromEntries(
+    [...tree.elements].map(([key, element]) => [key, { ...element }]),
+  )
+  return JSON.stringify({ root: tree.root, elements }, null, 2)
 }

@@ -87,6 +87,7 @@ export {
   type GeniferGenerateDetails,
   type GeniferRefineDetails,
   type GeniferQueryDetails,
+  type GeniferPromptEvalSummary,
 } from './tools'
 
 // Bridge (wires ToolDefinition.execute → GeniferHarnessService)
@@ -119,8 +120,30 @@ export {
 // spawn_panel tool
 export {
   SpawnPanelParams,
+  SpawnPanelSubscriptionParams,
   createSpawnPanelTool,
   type SpawnPanelParams as SpawnPanelParamsType,
+  type SpawnPanelSubscriptionParams as SpawnPanelSubscriptionParamsType,
   type SpawnPanelDetails,
   type SpawnPanelBridge,
 } from './spawn-panel-tool'
+
+// Branded identifiers
+export {
+  SurfaceId,
+  ThreadId,
+  SessionId,
+  TreeId,
+  PanelId,
+  ToolCallId,
+  makeSurfaceId,
+  makeThreadId,
+  makeSessionId,
+  makePanelId,
+  type SurfaceId as SurfaceIdType,
+  type ThreadId as ThreadIdType,
+  type SessionId as SessionIdType,
+  type TreeId as TreeIdType,
+  type PanelId as PanelIdType,
+  type ToolCallId as ToolCallIdType,
+} from '../identifiers'

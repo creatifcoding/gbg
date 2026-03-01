@@ -382,18 +382,6 @@ export {
 } from "./repair"
 
 // =============================================================================
-// Incremental Normalization (Streaming pipeline per-element)
-// =============================================================================
-
-export {
-  normalizeElement,
-  resetAutoKeyCounter,
-  createQuarantineQueue,
-  createIncrementalTreeBuilder,
-  type QuarantineEntry,
-} from "./incremental-normalize"
-
-// =============================================================================
 // Prompt Engineering (catalog-aware prompt construction)
 // =============================================================================
 

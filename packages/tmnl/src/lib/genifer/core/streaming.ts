@@ -62,15 +62,218 @@ export interface DecodeErrorOptions {
 // Patch Application (using UITree class methods)
 // =============================================================================
 
-const normalizeElement = (value: Record<string, unknown>) => ({
-  key: value['key'] as string,
-  type: value['type'] as string,
+const normalizeElement = (
+  value: Record<string, unknown>,
+  fallbackKey?: string,
+) => ({
+  key: typeof value['key'] === 'string' ? value['key'] : (fallbackKey ?? ''),
+  type: typeof value['type'] === 'string' ? value['type'] : 'Unknown',
   props: (value['props'] as Record<string, unknown>) ?? {},
   children: (value['children'] as string[]) ?? [],
   parentKey: (value['parentKey'] as string | null) ?? null,
   visible: value['visible'] as unknown,
   entrance: value['entrance'] as unknown,
+  className: value['className'] as unknown,
+  ref: value['ref'] as unknown,
+  behavior: value['behavior'] as unknown,
+  bindings: value['bindings'] as unknown,
+  dataSources: value['dataSources'] as unknown,
+  actions: value['actions'] as unknown,
+  role: value['role'] as unknown,
+  ariaLabel: value['ariaLabel'] as unknown,
+  ariaDescribedBy: value['ariaDescribedBy'] as unknown,
+  ariaLive: value['ariaLive'] as unknown,
+  tabIndex: value['tabIndex'] as unknown,
 })
+
+const elementToRecord = (element: UIElement): Record<string, unknown> => ({
+  ...(element as unknown as Record<string, unknown>),
+  props: { ...(element.props as Record<string, unknown>) },
+  children: Array.isArray(element.children) ? [...element.children] : [],
+})
+
+const touchAncestorRefs = (tree: UITree, startKey: string): UITree => {
+  let nextTree = tree
+  let cursorKey: string | null = startKey
+
+  while (cursorKey) {
+    const currentOpt = nextTree.getElement(cursorKey)
+    if (Option.isNone(currentOpt)) break
+
+    const current = currentOpt.value
+    const cloned = new UIElement(elementToRecord(current) as any)
+    nextTree = nextTree.setElement(cursorKey, cloned)
+    cursorKey = current.parentKey ?? null
+  }
+
+  return nextTree
+}
+
+const decodePointerToken = (token: string): string =>
+  token.replace(/~1/g, "/").replace(/~0/g, "~")
+
+const pointerSegments = (path: string): string[] => {
+  if (!path || path === "/") return []
+  return path
+    .split("/")
+    .slice(1)
+    .map(decodePointerToken)
+}
+
+const cloneValue = <A>(value: A): A => {
+  if (typeof globalThis.structuredClone === "function") {
+    return globalThis.structuredClone(value)
+  }
+  return JSON.parse(JSON.stringify(value)) as A
+}
+
+const treeToMutableRecord = (tree: UITree): Record<string, unknown> => ({
+  root: tree.root,
+  elements: Object.fromEntries(
+    [...tree.elements].map(([key, element]) => [key, normalizeElement(element as unknown as Record<string, unknown>)]),
+  ),
+})
+
+const mutableRecordToTree = (record: Record<string, unknown>): UITree => {
+  const root = typeof record.root === "string" ? record.root : ""
+  const elementsInput = (record.elements && typeof record.elements === "object")
+    ? (record.elements as Record<string, unknown>)
+    : {}
+
+  const elements: Record<string, UIElement> = {}
+  for (const [key, value] of Object.entries(elementsInput)) {
+    if (!value || typeof value !== "object") continue
+
+    const normalized = normalizeElement(value as Record<string, unknown>, key)
+    if (!normalized.key || typeof normalized.key !== "string") continue
+    if (!normalized.type || typeof normalized.type !== "string") continue
+
+    elements[key] = new UIElement(normalized as any)
+  }
+
+  return UITree.fromRecord(root, elements)
+}
+
+const getByPointer = (target: unknown, path: string): unknown => {
+  const segments = pointerSegments(path)
+  let current: unknown = target
+
+  for (const segment of segments) {
+    if (Array.isArray(current)) {
+      const index = Number(segment)
+      if (!Number.isInteger(index) || index < 0 || index >= current.length) return undefined
+      current = current[index]
+      continue
+    }
+
+    if (!current || typeof current !== "object") return undefined
+    current = (current as Record<string, unknown>)[segment]
+  }
+
+  return current
+}
+
+const setByPointer = (
+  target: Record<string, unknown>,
+  path: string,
+  value: unknown,
+  mode: "add" | "replace" | "set",
+): boolean => {
+  const segments = pointerSegments(path)
+  if (segments.length === 0) return false
+
+  let current: unknown = target
+  for (let i = 0; i < segments.length - 1; i++) {
+    const segment = segments[i]
+
+    if (Array.isArray(current)) {
+      const index = Number(segment)
+      if (!Number.isInteger(index) || index < 0 || index >= current.length) return false
+      current = current[index]
+      continue
+    }
+
+    if (!current || typeof current !== "object") return false
+
+    const record = current as Record<string, unknown>
+    const next = record[segment]
+    if (next === undefined) {
+      record[segment] = {}
+      current = record[segment]
+    } else {
+      current = next
+    }
+  }
+
+  const last = segments[segments.length - 1]
+
+  if (Array.isArray(current)) {
+    if (last === "-") {
+      current.push(value)
+      return true
+    }
+
+    const index = Number(last)
+    if (!Number.isInteger(index) || index < 0) return false
+
+    if (mode === "replace") {
+      if (index >= current.length) return false
+      current[index] = value
+      return true
+    }
+
+    if (mode === "add") {
+      if (index > current.length) return false
+      current.splice(index, 0, value)
+      return true
+    }
+
+    current[index] = value
+    return true
+  }
+
+  if (!current || typeof current !== "object") return false
+
+  const record = current as Record<string, unknown>
+  if (mode === "replace" && !(last in record)) return false
+  record[last] = value
+  return true
+}
+
+const removeByPointer = (target: Record<string, unknown>, path: string): boolean => {
+  const segments = pointerSegments(path)
+  if (segments.length === 0) return false
+
+  let current: unknown = target
+  for (let i = 0; i < segments.length - 1; i++) {
+    const segment = segments[i]
+
+    if (Array.isArray(current)) {
+      const index = Number(segment)
+      if (!Number.isInteger(index) || index < 0 || index >= current.length) return false
+      current = current[index]
+      continue
+    }
+
+    if (!current || typeof current !== "object") return false
+    current = (current as Record<string, unknown>)[segment]
+  }
+
+  const last = segments[segments.length - 1]
+
+  if (Array.isArray(current)) {
+    const index = Number(last)
+    if (!Number.isInteger(index) || index < 0 || index >= current.length) return false
+    current.splice(index, 1)
+    return true
+  }
+
+  if (!current || typeof current !== "object") return false
+  const record = current as Record<string, unknown>
+  if (!(last in record)) return false
+  delete record[last]
+  return true
+}
 
 /**
  * Apply a JSON patch to a UI tree (uses immutable UITree methods)
@@ -87,54 +290,137 @@ export const applyPatch = (
       case "set":
       case "add":
       case "replace": {
-        // Handle root path
+        // Fast path for root assignment
         if (path === "/root") {
           return tree.setRoot(patch.value as string)
         }
 
-        // Handle elements paths
+        // Fast path for element paths
         if (path.startsWith("/elements/")) {
-          const pathParts = path.slice("/elements/".length).split("/")
+          const pathParts = path.slice("/elements/".length).split("/").map(decodePointerToken)
           const elementKey = pathParts[0]
 
           if (!elementKey) return tree
 
           if (pathParts.length === 1) {
             // Setting entire element - normalize defaults before constructing
-            const element = new UIElement(normalizeElement(patch.value as Record<string, unknown>) as any)
-            return tree.setElement(elementKey, element)
-          } else {
-            // Setting property of element
-            const existingOpt = tree.getElement(elementKey)
-            if (Option.isSome(existingOpt)) {
-              const existingElement = existingOpt.value
-              const propPath = "/" + pathParts.slice(1).join("/")
-              // Create new element with updated property
-              const updated = setByPathSync(
-                normalizeElement(existingElement as unknown as Record<string, unknown>) as Record<string, unknown>,
-                propPath,
-                patch.value
-              )
-              const newElement = new UIElement(updated as any)
-              return tree.setElement(elementKey, newElement)
-            }
+            const element = new UIElement(normalizeElement(patch.value as Record<string, unknown>, elementKey) as any)
+            const updatedTree = tree.setElement(elementKey, element)
+            return touchAncestorRefs(updatedTree, elementKey)
           }
+
+          // Setting property of an existing element.
+          // Never auto-create partial element records for nested element paths.
+          const existingOpt = tree.getElement(elementKey)
+          if (Option.isNone(existingOpt)) {
+            return tree
+          }
+
+          const existingElement = existingOpt.value
+          const propPath = "/" + pathParts.slice(1).join("/")
+          const updated = setByPathSync(
+            elementToRecord(existingElement),
+            propPath,
+            patch.value,
+          )
+          const newElement = new UIElement(normalizeElement(updated, elementKey) as any)
+          const updatedTree = tree.setElement(elementKey, newElement)
+          return touchAncestorRefs(updatedTree, elementKey)
         }
-        return tree
+
+        // RFC-style generic fallback for non-fast-path pointers
+        const mutable = treeToMutableRecord(tree)
+        const mode = op === "set" ? "set" : op
+        const applied = setByPointer(mutable, path, patch.value, mode)
+        return applied ? mutableRecordToTree(mutable) : tree
       }
 
       case "remove": {
+        // Fast path remove whole element
         if (path.startsWith("/elements/")) {
-          const elementKey = path.slice("/elements/".length).split("/")[0]
-          if (elementKey) {
-            return tree.removeElement(elementKey)
+          const pathParts = path.slice("/elements/".length).split("/").map(decodePointerToken)
+          const elementKey = pathParts[0]
+          if (!elementKey) return tree
+
+          if (pathParts.length === 1) {
+            const existingOpt = tree.getElement(elementKey)
+            const parentKey = Option.isSome(existingOpt) ? existingOpt.value.parentKey ?? null : null
+            const removed = tree.removeElement(elementKey)
+            return parentKey ? touchAncestorRefs(removed, parentKey) : removed
+          }
+
+          // Never remove structural fields that violate UIElement invariants.
+          if (pathParts.length === 2 && (pathParts[1] === "key" || pathParts[1] === "type")) {
+            return tree
+          }
+
+          // Don't auto-create/remove nested data for missing elements.
+          if (Option.isNone(tree.getElement(elementKey))) {
+            return tree
           }
         }
-        return tree
+
+        const mutable = treeToMutableRecord(tree)
+        const applied = removeByPointer(mutable, path)
+        return applied ? mutableRecordToTree(mutable) : tree
+      }
+
+      case "move": {
+        if (!patch.from) return tree
+
+        if (patch.from.startsWith('/elements/')) {
+          const fromParts = patch.from.slice('/elements/'.length).split('/').map(decodePointerToken)
+          if (fromParts.length === 2 && (fromParts[1] === 'key' || fromParts[1] === 'type')) {
+            return tree
+          }
+        }
+
+        if (path.startsWith('/elements/')) {
+          const toParts = path.slice('/elements/'.length).split('/').map(decodePointerToken)
+          const toKey = toParts[0]
+          if (!toKey) return tree
+          if (toParts.length > 1 && Option.isNone(tree.getElement(toKey))) {
+            return tree
+          }
+        }
+
+        const mutable = treeToMutableRecord(tree)
+        const value = getByPointer(mutable, patch.from)
+        if (value === undefined) return tree
+        const removed = removeByPointer(mutable, patch.from)
+        if (!removed) return tree
+        const added = setByPointer(mutable, path, value, "add")
+        return added ? mutableRecordToTree(mutable) : tree
+      }
+
+      case "copy": {
+        if (!patch.from) return tree
+
+        if (path.startsWith('/elements/')) {
+          const toParts = path.slice('/elements/'.length).split('/').map(decodePointerToken)
+          const toKey = toParts[0]
+          if (!toKey) return tree
+          if (toParts.length > 1 && Option.isNone(tree.getElement(toKey))) {
+            return tree
+          }
+        }
+
+        const mutable = treeToMutableRecord(tree)
+        const value = getByPointer(mutable, patch.from)
+        if (value === undefined) return tree
+        const added = setByPointer(mutable, path, cloneValue(value), "add")
+        return added ? mutableRecordToTree(mutable) : tree
+      }
+
+      case "test": {
+        const mutable = treeToMutableRecord(tree)
+        const actual = getByPointer(mutable, path)
+        return Object.is(actual, patch.value) || JSON.stringify(actual) === JSON.stringify(patch.value)
+          ? tree
+          : tree
       }
 
       default:
-        // Exhaustive check - if we reach here, PatchOp type was extended
         return tree
     }
   })

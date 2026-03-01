@@ -25,39 +25,31 @@ import { normalizeWithMeta } from "../core/normalize"
 // =============================================================================
 
 /**
- * CatalogQuery — List available components with tier/domain scoping.
+ * CatalogQuery — List available components with progressive disclosure filters.
  *
- * Enhanced for the Catalog Overhaul:
- *   - `tier`: Filter by visibility level (core/domain/discovery)
- *   - `domains`: Filter by domain tags (forms, data, media, etc.)
- *   - `filter`: Legacy keyword/prefix text filter (still supported)
- *   - All three combine with AND logic
+ * Works with tier/domain scoping when additional catalogs are registered.
  */
 export const CatalogQueryTool = Tool.make("CatalogQuery", {
   description:
-    "List available UI components in the genifer catalog. Supports tier-based visibility " +
-    "(core = always available, domain = request-scoped, discovery = all), domain scoping " +
-    "(forms, data, media, navigation, feedback, charts, geoint, etc.), and keyword filtering. " +
+    "List available UI components in the currently registered catalog set. Supports tier/domain/keyword filtering. " +
     "Returns component names, prop schemas, descriptions, compound relationships, and tier/domain metadata.",
   parameters: {
     tier: Schema.optional(
       Schema.Literal("core", "domain", "discovery").annotations({
         description:
-          "Visibility tier. 'core' = foundational (layout, text, button). " +
-          "'domain' = core + domain-specific. 'discovery' = everything (default).",
+          "Visibility tier. 'core' = foundational only, 'domain' = core + scoped domain entries, 'discovery' = all registered entries.",
       })
     ),
     domains: Schema.optional(
       Schema.Array(Schema.String).annotations({
         description:
-          "Domain tags to filter by (e.g., ['forms', 'data']). Components matching ANY domain are included. " +
-          "Available domains: ui, layout, forms, data, media, charts, geoint, navigation, feedback, terminal, interactive.",
+          "Domain tags to filter by (components matching ANY domain are included).",
       })
     ),
     filter: Schema.optional(
       Schema.String.annotations({
         description:
-          "Optional keyword filter — component type prefix or keyword (e.g., 'button', 'chart'). Applied after tier/domain filtering.",
+          "Optional keyword filter — component type prefix or keyword (e.g., 'button', 'card', 'input').",
       })
     ),
   },
@@ -280,7 +272,7 @@ export const ComponentDefineTool = Tool.make("ComponentDefine", {
   description:
     "Define and register a custom component type mid-generation. " +
     "The component becomes immediately available in CatalogQuery and SchemaCheck. " +
-    "Use when the existing catalog lacks a domain-specific component. " +
+    "Use when the existing catalog lacks a component needed for the current UI shape. " +
     "The component gets a generic Box renderer that displays its props — " +
     "custom renderers can be attached later via the decorator system.",
   parameters: {
@@ -331,19 +323,20 @@ export const CompilerToolkit = Toolkit.make(
  * Requires CatalogComponents in context for CatalogQuery and SchemaCheck.
  */
 export const CompilerToolkitLive = CompilerToolkit.toLayer({
-  // ── CatalogQuery (enhanced with tier + domain scoping) ──
+  // ── CatalogQuery (tier/domain/keyword progressive disclosure) ──
   CatalogQuery: ({ tier, domains, filter }) =>
     Effect.gen(function* () {
       const catalog = yield* CatalogComponents
 
-      // Step 1: Tier + domain filtering via catalog service
+      const requestedTier = tier ?? 'discovery'
+      const requestedDomains = domains as ReadonlyArray<string> | undefined
+
       const scopedTypes = catalog.listComponents({
-        tier: tier ?? 'discovery',
-        domains: domains as ReadonlyArray<string> | undefined,
+        tier: requestedTier,
+        domains: requestedDomains,
       })
       const scopedSet = new Set(scopedTypes)
 
-      // Step 2: Build entries with keyword filter
       const entries: Array<{
         type: string
         description?: string
@@ -355,7 +348,6 @@ export const CompilerToolkitLive = CompilerToolkit.toLayer({
       }> = []
 
       for (const [type, entry] of catalog.schemas) {
-        // Tier + domain gate
         if (!scopedSet.has(type)) continue
 
         // Keyword filter
@@ -392,8 +384,13 @@ export const CompilerToolkitLive = CompilerToolkit.toLayer({
 
       return JSON.stringify(
         {
+          mode: 'catalog-scoped',
           componentCount: entries.length,
-          filters: { tier: tier ?? 'discovery', domains: domains ?? 'all', keyword: filter ?? null },
+          filters: {
+            tier: requestedTier,
+            domains: requestedDomains ?? 'all',
+            keyword: filter ?? null,
+          },
           components: entries,
         },
         null,
@@ -545,7 +542,7 @@ export const CompilerToolkitLive = CompilerToolkit.toLayer({
                 border: `1px solid rgba(34,211,238,0.2)`,
                 background: 'rgba(14,14,14,0.95)',
                 fontFamily: 'monospace',
-                fontSize: 'var(--tmnl-text-xs, 12px)',
+                fontSize: 'var(--tmnl-text-xs, 10px)',
                 color: 'rgb(163,163,163)',
               }
               const propEntries = Object.entries(p).filter(
@@ -560,7 +557,7 @@ export const CompilerToolkitLive = CompilerToolkit.toLayer({
                   'data-genifer-dynamic': type,
                 },
                 h('span', {
-                  style: { color: 'rgb(34,211,238)', fontSize: 'var(--tmnl-text-xs, 12px)', fontWeight: 600 },
+                  style: { color: 'rgb(34,211,238)', fontSize: 'var(--tmnl-text-xs, 10px)', fontWeight: 600 },
                 }, `‹${type}›`),
                 propEntries.length > 0 && h('div', {
                   style: { display: 'flex', flexWrap: 'wrap', gap: '4px 8px' },

@@ -188,6 +188,7 @@ function buildSystemPrompt(
 
   // Core instruction — FIRST LINE after identity
   lines.push("OUTPUT ONLY A SINGLE JSON OBJECT. No markdown. No explanation. No text before or after the JSON.")
+  lines.push("Use only component types listed in AVAILABLE COMPONENTS for the current request scope. Do not invent component names.")
   lines.push("")
 
   // Format spec
@@ -315,7 +316,9 @@ export const PromptCompilerLive = Layer.effect(
     ): Effect.Effect<CompiledPrompt> =>
       Effect.gen(function* () {
         const catalog = yield* CatalogComponents
-        const systemPrompt = buildSystemPrompt(catalog, context)
+        const basePrompt = buildSystemPrompt(catalog, context)
+        const scopedDisclosure = catalog.generateScopedPrompt({ tier: 'domain' })
+        const systemPrompt = `${basePrompt}\n\n# Scoped Disclosure\n\n${scopedDisclosure}`
 
         const start = Date.now()
         const response = yield* LanguageModel.generateText({

@@ -24,7 +24,5 @@ export * as react from "./react"
 export * as server from "./server"
 
 // =============================================================================
-// Streaming (d2ts incremental JSON parser, service, hook, renderer)
+// Streaming primitives are exported from ./core (patch-stream canonical).
 // =============================================================================
-
-export * as streaming from "./streaming"

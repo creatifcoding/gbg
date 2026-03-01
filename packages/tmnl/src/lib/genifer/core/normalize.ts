@@ -363,7 +363,7 @@ export function fromNested(obj: Record<string, unknown>): Effect.Effect<UITree, 
       }
 
       // Extract props: everything except meta-fields
-      const metaKeys = new Set(["type", "key", "props", "children", "_tag", "className", "entrance"])
+      const metaKeys = new Set(["type", "key", "props", "children", "_tag", "className", "entrance", "ref", "behavior", "bindings"])
       const rawProps = typeof node.props === "object" && node.props !== null
         ? (node.props as Record<string, unknown>)
         : {}
@@ -388,6 +388,18 @@ export function fromNested(obj: Record<string, unknown>): Effect.Effect<UITree, 
         delete (props as Record<string, unknown>).className
       }
 
+      const ref = node.ref ?? rawProps.ref
+      const behavior = node.behavior ?? rawProps.behavior
+      const bindings = Array.isArray(node.bindings)
+        ? node.bindings
+        : Array.isArray(rawProps.bindings)
+          ? rawProps.bindings
+          : undefined
+
+      if (rawProps.ref !== undefined) delete (props as Record<string, unknown>).ref
+      if (rawProps.behavior !== undefined) delete (props as Record<string, unknown>).behavior
+      if (rawProps.bindings !== undefined) delete (props as Record<string, unknown>).bindings
+
       elements[key] = new UIElement({
         key,
         type: (node.type as string) ?? "Unknown",
@@ -395,6 +407,9 @@ export function fromNested(obj: Record<string, unknown>): Effect.Effect<UITree, 
         children: childKeys.length > 0 ? childKeys : [],
         parentKey,
         ...(className ? { className } : {}),
+        ...(ref !== undefined ? { ref } : {}),
+        ...(behavior !== undefined ? { behavior } : {}),
+        ...(bindings !== undefined ? { bindings } : {}),
       })
 
       return key
@@ -439,6 +454,17 @@ export function fromFlat(obj: Record<string, unknown>): Effect.Effect<UITree, No
         : undefined
       if (rawProps.className !== undefined) delete rawProps.className
 
+      const ref = (val as any).ref ?? (rawProps as any).ref
+      const behavior = (val as any).behavior ?? (rawProps as any).behavior
+      const bindings = Array.isArray((val as any).bindings)
+        ? (val as any).bindings
+        : Array.isArray((rawProps as any).bindings)
+          ? (rawProps as any).bindings
+          : undefined
+      if ((rawProps as any).ref !== undefined) delete (rawProps as any).ref
+      if ((rawProps as any).behavior !== undefined) delete (rawProps as any).behavior
+      if ((rawProps as any).bindings !== undefined) delete (rawProps as any).bindings
+
       elements[key] = new UIElement({
         key,
         type: (val.type as string) ?? "Unknown",
@@ -446,6 +472,9 @@ export function fromFlat(obj: Record<string, unknown>): Effect.Effect<UITree, No
         children: childArr,
         parentKey: null,
         ...(className ? { className } : {}),
+        ...(ref !== undefined ? { ref } : {}),
+        ...(behavior !== undefined ? { behavior } : {}),
+        ...(bindings !== undefined ? { bindings } : {}),
       })
     }
 
@@ -481,7 +510,7 @@ export function fromFlat(obj: Record<string, unknown>): Effect.Effect<UITree, No
 export function fromHybrid(obj: Record<string, unknown>): Effect.Effect<UITree, NormalizeError> {
   return Effect.sync(() => {
     const rootKey = (obj.key as string) ?? "root"
-    const metaKeys = new Set(["type", "key", "props", "children", "_tag"])
+    const metaKeys = new Set(["type", "key", "props", "children", "_tag", "className", "ref", "behavior", "bindings"])
 
     // Collect all element definitions
     const flatElements: Record<string, Record<string, unknown>> = {}
@@ -493,6 +522,10 @@ export function fromHybrid(obj: Record<string, unknown>): Effect.Effect<UITree, 
         children: Array.isArray(node.children)
           ? (node.children as unknown[]).filter((c): c is string => typeof c === "string")
           : [],
+        className: node.className,
+        ref: node.ref,
+        behavior: node.behavior,
+        bindings: node.bindings,
       }
 
       // Sibling definitions: non-meta keys holding objects with `type`
@@ -538,6 +571,17 @@ export function fromHybrid(obj: Record<string, unknown>): Effect.Effect<UITree, 
         : undefined
       if (rawProps.className !== undefined) delete rawProps.className
 
+      const ref = (val as any).ref ?? (rawProps as any).ref
+      const behavior = (val as any).behavior ?? (rawProps as any).behavior
+      const bindings = Array.isArray((val as any).bindings)
+        ? (val as any).bindings
+        : Array.isArray((rawProps as any).bindings)
+          ? (rawProps as any).bindings
+          : undefined
+      if ((rawProps as any).ref !== undefined) delete (rawProps as any).ref
+      if ((rawProps as any).behavior !== undefined) delete (rawProps as any).behavior
+      if ((rawProps as any).bindings !== undefined) delete (rawProps as any).bindings
+
       elements[key] = new UIElement({
         key,
         type: (val.type as string) ?? "Unknown",
@@ -545,6 +589,9 @@ export function fromHybrid(obj: Record<string, unknown>): Effect.Effect<UITree, 
         children: childArr,
         parentKey: null,
         ...(className ? { className } : {}),
+        ...(ref !== undefined ? { ref } : {}),
+        ...(behavior !== undefined ? { behavior } : {}),
+        ...(bindings !== undefined ? { bindings } : {}),
       })
     }
 

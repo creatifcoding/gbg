@@ -221,11 +221,19 @@ export class UIElement extends Schema.Class<UIElement>("UIElement")({
   props: Schema.Record({ key: Schema.String, value: Schema.Unknown }),
   children: Schema.optionalWith(Schema.Array(Schema.String), { default: () => [] }),
   parentKey: Schema.optionalWith(Schema.NullOr(Schema.String), { default: () => null }),
+  /** Text content — used by content components (Text, Heading, Code, Badge, etc.) */
+  content: Schema.optional(Schema.String),
   /** Tailwind utility classes for layout styling (universal — every component) */
   className: Schema.optional(Schema.String),
   visible: Schema.optional(VisibilityCondition),
   /** Entrance animation configuration (LLM-generated or catalog default) */
   entrance: Schema.optional(EntranceAnimation),
+  /** Tier 1 behavior reference payload (ComponentRef) */
+  ref: Schema.optional(Schema.Unknown),
+  /** Tier 2 behavior block payload (BehaviorBlock) */
+  behavior: Schema.optional(Schema.Unknown),
+  /** Sigil binding declarations (BindingDef[]) */
+  bindings: Schema.optional(Schema.Array(Schema.Unknown)),
   // --- Accessibility (WCAG 2.1 AA) ---
   /** ARIA role attribute */
   role: Schema.optional(Schema.String),
@@ -279,6 +287,9 @@ export class UIElement extends Schema.Class<UIElement>("UIElement")({
     if (!_propsEqual(this.props, that.props)) return false
     // Optional fields
     if (this.className !== that.className) return false
+    if (JSON.stringify(this.ref) !== JSON.stringify(that.ref)) return false
+    if (JSON.stringify(this.behavior) !== JSON.stringify(that.behavior)) return false
+    if (JSON.stringify(this.bindings) !== JSON.stringify(that.bindings)) return false
     if (this.role !== that.role) return false
     if (this.ariaLabel !== that.ariaLabel) return false
     if (this.ariaDescribedBy !== that.ariaDescribedBy) return false
@@ -490,14 +501,15 @@ export class ValidationConfig extends Schema.Class<ValidationConfig>("Validation
 // JSON Patch
 // =============================================================================
 
-/** Patch operation types */
-export const PatchOp = Schema.Literal("add", "remove", "replace", "set")
+/** Patch operation types (RFC 6902 + legacy "set" alias) */
+export const PatchOp = Schema.Literal("add", "remove", "replace", "set", "move", "copy", "test")
 export type PatchOp = Schema.Schema.Type<typeof PatchOp>
 
 /** JSON patch operation */
 export class JsonPatch extends Schema.Class<JsonPatch>("JsonPatch")({
   op: PatchOp,
   path: Schema.String,
+  from: Schema.optional(Schema.String),
   value: Schema.optional(Schema.Unknown)
 }) {}
 

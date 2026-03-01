@@ -20,6 +20,7 @@ import type {
   GeniferGenerateDetails,
   GeniferRefineDetails,
   GeniferQueryDetails,
+  GeniferPromptEvalSummary,
   GeniferDefineRpcParams,
   GeniferDefineRpcDetails,
   GeniferDefineEventParams,
@@ -51,6 +52,25 @@ import { EventDefinition } from '../services/DynamicEventSchemas'
 import type { ToolDefinition } from '@mariozechner/pi-coding-agent'
 import type { GeointHarnessServiceShape } from '@/lib/geoint/harness'
 
+const toPromptEvalSummary = (trace: any): GeniferPromptEvalSummary | undefined => {
+  if (!trace || typeof trace !== 'object') return undefined
+  const tokenomics = trace.tokenomics
+  const utility = trace.utility
+  const steering = trace.steering
+  if (!tokenomics || !utility || !steering) return undefined
+
+  return {
+    promptHash: String(trace.promptHash ?? ''),
+    utilityScore: Number(utility.utilityScore ?? 0),
+    steeringScore: Number(utility.steeringScore ?? 0),
+    costIndex: Number(utility.costIndex ?? 0),
+    totalTokens: typeof tokenomics.totalTokens === 'number' ? tokenomics.totalTokens : undefined,
+    estimatedTotalTokens: Number(tokenomics.estimatedTotalTokens ?? 0),
+    unknownTypeCount: Number(steering.unknownTypeCount ?? 0),
+    requiredPropMissCount: Number(steering.requiredPropMissCount ?? 0),
+  }
+}
+
 // =============================================================================
 // Bridge Factory
 // =============================================================================
@@ -78,14 +98,19 @@ export function createGeniferTools(
           rootClassName: params.rootClassName,
           persist: params.persist ?? true,
           onProgress: onUpdate
-            ? (status, elementCount, partialTree) => {
+            ? (status, elementCount, progress) => {
                 onUpdate({
                   content: [{ type: 'text', text: `Generating... ${elementCount} elements (${status})` }],
                   details: {
                     stage: status as any,
                     surfaceId: callId,
                     elementCount,
-                    treeSnapshot: partialTree ?? undefined,
+                    ...(progress?.treeSnapshot !== undefined ? { treeSnapshot: progress.treeSnapshot } : {}),
+                    ...(progress?.treePatch !== undefined ? { treePatch: progress.treePatch } : {}),
+                    ...(typeof progress?.patchSeq === 'number' ? { patchSeq: progress.patchSeq } : {}),
+                    ...(typeof progress?.startTs === 'number' ? { startTs: progress.startTs } : {}),
+                    ...(typeof progress?.firstPatchReceivedTs === 'number' ? { firstPatchReceivedTs: progress.firstPatchReceivedTs } : {}),
+                    ...(typeof progress?.firstPatchLatencyMs === 'number' ? { firstPatchLatencyMs: progress.firstPatchLatencyMs } : {}),
                   },
                 })
               }
@@ -93,9 +118,13 @@ export function createGeniferTools(
         }),
       )
 
+      const promptEval = toPromptEvalSummary(result.promptEval)
+      const evalSuffix = promptEval
+        ? ` Utility: ${promptEval.utilityScore.toFixed(3)} (steering=${promptEval.steeringScore.toFixed(3)}, cost=${promptEval.costIndex.toFixed(3)}).`
+        : ''
       const summary = result.treeId
-        ? `Generated UI surface with ${result.elementCount} elements. Quality: ${(result.qualityScore * 100).toFixed(0)}%. ${result.repairCount} repairs. Model: ${result.model}. Duration: ${result.durationMs}ms. Tree ID: ${result.treeId}. Surface ID: ${result.surfaceId}. Thread: ${result.threadId}.`
-        : `Generated UI surface with ${result.elementCount} elements. Quality: ${(result.qualityScore * 100).toFixed(0)}%. Model: ${result.model}. Duration: ${result.durationMs}ms. Surface ID: ${result.surfaceId}. Thread: ${result.threadId}. (not persisted)`
+        ? `Generated UI surface with ${result.elementCount} elements. Quality: ${(result.qualityScore * 100).toFixed(0)}%. ${result.repairCount} repairs. Model: ${result.model}. Duration: ${result.durationMs}ms. Tree ID: ${result.treeId}. Surface ID: ${result.surfaceId}. Thread: ${result.threadId}.${evalSuffix}`
+        : `Generated UI surface with ${result.elementCount} elements. Quality: ${(result.qualityScore * 100).toFixed(0)}%. Model: ${result.model}. Duration: ${result.durationMs}ms. Surface ID: ${result.surfaceId}. Thread: ${result.threadId}. (not persisted)${evalSuffix}`
 
       return {
         content: [{ type: 'text', text: summary }],
@@ -108,7 +137,13 @@ export function createGeniferTools(
           durationMs: result.durationMs,
           treeId: result.treeId,
           threadId: result.threadId,
+          startTs: result.startTs,
+          firstPatchReceivedTs: result.firstPatchReceivedTs,
+          firstPatchLatencyMs: result.firstPatchLatencyMs,
+          quarantineEntries: result.quarantineEntries,
           treeSnapshot: result.treeSnapshot,
+          treePatch: null,
+          promptEval,
         },
       }
     },
@@ -123,7 +158,7 @@ export function createGeniferTools(
           sessionId,
           persist: params.persist ?? true,
           onProgress: onUpdate
-            ? (status, elementCount, partialTree) => {
+            ? (status, elementCount, progress) => {
                 onUpdate({
                   content: [{ type: 'text', text: `Refining... ${elementCount} elements (${status})` }],
                   details: {
@@ -131,7 +166,12 @@ export function createGeniferTools(
                     surfaceId: callId,
                     sourceSurfaceId: params.surfaceId,
                     elementCount,
-                    treeSnapshot: partialTree ?? undefined,
+                    ...(progress?.treeSnapshot !== undefined ? { treeSnapshot: progress.treeSnapshot } : {}),
+                    ...(progress?.treePatch !== undefined ? { treePatch: progress.treePatch } : {}),
+                    ...(typeof progress?.patchSeq === 'number' ? { patchSeq: progress.patchSeq } : {}),
+                    ...(typeof progress?.startTs === 'number' ? { startTs: progress.startTs } : {}),
+                    ...(typeof progress?.firstPatchReceivedTs === 'number' ? { firstPatchReceivedTs: progress.firstPatchReceivedTs } : {}),
+                    ...(typeof progress?.firstPatchLatencyMs === 'number' ? { firstPatchLatencyMs: progress.firstPatchLatencyMs } : {}),
                   },
                 })
               }
@@ -139,7 +179,11 @@ export function createGeniferTools(
         }),
       )
 
-      const summary = `Refined surface ${result.sourceSurfaceId} → ${result.surfaceId}. ${result.elementCount} elements. +${result.addedElements} added, -${result.removedElements} removed, ~${result.modifiedElements} modified. Quality: ${(result.qualityScore * 100).toFixed(0)}%. Duration: ${result.durationMs}ms.`
+      const promptEval = toPromptEvalSummary(result.promptEval)
+      const evalSuffix = promptEval
+        ? ` Utility: ${promptEval.utilityScore.toFixed(3)} (steering=${promptEval.steeringScore.toFixed(3)}, cost=${promptEval.costIndex.toFixed(3)}).`
+        : ''
+      const summary = `Refined surface ${result.sourceSurfaceId} → ${result.surfaceId}. ${result.elementCount} elements. +${result.addedElements} added, -${result.removedElements} removed, ~${result.modifiedElements} modified. Quality: ${(result.qualityScore * 100).toFixed(0)}%. Duration: ${result.durationMs}ms.${evalSuffix}`
 
       return {
         content: [{ type: 'text', text: summary }],
@@ -152,8 +196,14 @@ export function createGeniferTools(
           removedElements: result.removedElements,
           modifiedElements: result.modifiedElements,
           qualityScore: result.qualityScore,
+          startTs: result.startTs,
+          firstPatchReceivedTs: result.firstPatchReceivedTs,
+          firstPatchLatencyMs: result.firstPatchLatencyMs,
+          quarantineEntries: result.quarantineEntries,
           treeId: result.treeId,
           treeSnapshot: result.treeSnapshot,
+          treePatch: null,
+          promptEval,
         },
       }
     },

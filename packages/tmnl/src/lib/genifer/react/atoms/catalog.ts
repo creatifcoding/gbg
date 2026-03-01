@@ -28,50 +28,30 @@ import {
   type SchemaEntry,
 } from "../../core/CatalogService"
 
-// Internal genifer catalogs (owned by genifer — no external imports)
-import { uiDomainCatalog } from "@/lib/genifer/catalog/ui-domain-catalog"
-import { coreDomainCatalog } from "@/lib/genifer/catalog/core-domain-catalog"
-import { buttonDomainCatalog } from "@/lib/genifer/catalog/button-domain-catalog"
-import { geointDomainCatalog } from "@/lib/genifer/catalog/geoint-domain-catalog"
-// rvnDomainCatalog deprecated — not registered in catalog (noise)
+// Core-only catalog composition (now points to VANTA-grounded rebuild)
+import { coreDomainCatalog } from "@/lib/genifer/catalog"
 
 // =============================================================================
-// Plugin Registration (external domains register themselves)
+// Domain Registration (core-only mode)
 // =============================================================================
 
 /**
- * Register a domain catalog for inclusion in the genifer catalog system.
+ * Runtime domain registration hook.
  *
- * External domain modules call this at module initialization time.
- * Catalogs are accumulated and consumed when CatalogComponentsLive
- * is first created (lazy initialization via getter).
- *
- * @example
- * ```ts
- * // In @/lib/layout/catalog/domain-catalog.tsx
- * import { registerDomainCatalog } from '@/lib/genifer/react'
- * registerDomainCatalog(layoutDomainCatalog)
- * ```
+ * Default runtime starts with coreDomainCatalog only, then expands with any
+ * explicitly registered domain catalogs.
  */
 const _pendingCatalogs: DomainCatalog[] = []
 export const registerDomainCatalog = (catalog: DomainCatalog): void => {
   _pendingCatalogs.push(catalog)
+  // Invalidate lazy cache so newly registered catalogs are included.
+  _cachedLayer = null
 }
 
 // =============================================================================
-// Build-time Layer (genifer-internal + plugin-registered domains)
+// Build-time Layer (core + registered domains)
 // =============================================================================
 
-/**
- * Default CatalogComponents layer with all registered domains.
- *
- * Uses a lazy getter to ensure external `registerDomainCatalog()` calls
- * have completed before the layer is materialized. The getter is called
- * by `catalogRuntime` on first atom access.
- *
- * Internal catalogs: ui, geoint, rvn (owned by genifer)
- * External catalogs: layout, charts, morph-card (registered via plugin API)
- */
 let _cachedLayer: ReturnType<typeof createCatalogLayer> | null = null
 
 export const CatalogComponentsLive = (() => {
@@ -79,13 +59,7 @@ export const CatalogComponentsLive = (() => {
   return new Proxy({} as ReturnType<typeof createCatalogLayer>, {
     get(_target, prop, receiver) {
       if (!_cachedLayer) {
-        _cachedLayer = createCatalogLayer(
-          uiDomainCatalog,
-          coreDomainCatalog,
-          buttonDomainCatalog,
-          geointDomainCatalog,
-          ..._pendingCatalogs,
-        )
+        _cachedLayer = createCatalogLayer(coreDomainCatalog, ..._pendingCatalogs)
       }
       return Reflect.get(_cachedLayer, prop, receiver)
     },

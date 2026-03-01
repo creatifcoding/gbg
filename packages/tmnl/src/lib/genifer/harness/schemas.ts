@@ -22,6 +22,7 @@ import { Schema } from 'effect'
 
 /** Pipeline processing stage for a single element */
 export const GeniferStreamStage = Schema.Literal(
+  'tokenized',    // Raw tokenizer/component detection stage
   'identified',   // Tokenizer identified element boundaries
   'normalized',   // Normalizer processed element
   'repaired',     // Repair pass fixed element
