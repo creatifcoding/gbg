@@ -239,6 +239,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn models_dir_override() {
         std::env::set_var("PRAGMA_MODELS_DIR", "/custom/path");
         assert_eq!(models_dir(), PathBuf::from("/custom/path"));
@@ -246,6 +247,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn model_dir_structure() {
         std::env::set_var("PRAGMA_MODELS_DIR", "/test");
         assert_eq!(
@@ -264,6 +266,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn missing_models_returns_all_when_no_dir() {
         std::env::set_var("PRAGMA_MODELS_DIR", "/nonexistent/path/for/testing");
         let missing = missing_models();
@@ -272,6 +275,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn catalog_and_drift_paths() {
         std::env::set_var("PRAGMA_MODELS_DIR", "/test");
         assert_eq!(

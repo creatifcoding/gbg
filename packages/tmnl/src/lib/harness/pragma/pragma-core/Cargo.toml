@@ -24,3 +24,9 @@ tokenizers = "0.21"
 
 # Math — drift detection, cosine similarity, centroid computation
 ndarray = "0.16"
+
+[dev-dependencies]
+proptest = "1"
+insta = { version = "1", features = ["json", "redactions"] }
+pretty_assertions = "1"
+serial_test = "3"
