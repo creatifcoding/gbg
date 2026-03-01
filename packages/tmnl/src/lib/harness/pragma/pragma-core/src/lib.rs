@@ -1,18 +1,14 @@
 //! # pragma-core
 //!
-//! Core inference and scoring engine for PRAGMA.
+//! Inference and embedding engine for PRAGMA sidecar.
 //!
-//! - BERT encoder (MiniLM-L6-v2 + bert-base-uncased) via Candle
-//! - BERTScore computation
-//! - BLEURT scoring via ONNX Runtime (ort)
-//! - Catalog embedding cache + cosine similarity ranking
-//! - Embedding drift detection (CSDD)
+//! Provides:
+//! - Model provisioning and path resolution
+//! - BERT tokenization (via `tokenizers`)
+//! - Embedding via Candle (MiniLM, bert-base)
+//! - BERTScore computation (greedy bipartite matching)
+//! - BLEURT scoring via ort (ONNX Runtime)
+//! - Catalog embedding cache
+//! - Embedding drift detection
 
-// Modules will be populated in P2/P3 implementation phases
-// pub mod tokenizer;
-// pub mod bert;
-// pub mod bertscore;
-// pub mod bleurt;
-// pub mod cosine;
-// pub mod drift;
-// pub mod catalog;
+pub mod models;
