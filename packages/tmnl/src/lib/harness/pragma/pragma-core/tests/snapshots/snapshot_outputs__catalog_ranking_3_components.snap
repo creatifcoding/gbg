@@ -1,0 +1,18 @@
+---
+source: src/lib/harness/pragma/pragma-core/tests/snapshot_outputs.rs
+expression: snapshot
+---
+[
+  {
+    "name": "BarChart",
+    "similarity": 0.9939000010490417
+  },
+  {
+    "name": "Dashboard",
+    "similarity": 0.9190999865531921
+  },
+  {
+    "name": "LoginForm",
+    "similarity": 0.0
+  }
+]

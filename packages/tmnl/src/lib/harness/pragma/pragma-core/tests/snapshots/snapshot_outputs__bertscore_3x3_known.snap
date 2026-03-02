@@ -1,0 +1,9 @@
+---
+source: src/lib/harness/pragma/pragma-core/tests/snapshot_outputs.rs
+expression: "serde_json::json!({\n    \"precision\": (result.precision * 10000.0).round() / 10000.0, \"recall\":\n    (result.recall * 10000.0).round() / 10000.0, \"f1\":\n    (result.f1 * 10000.0).round() / 10000.0,\n})"
+---
+{
+  "f1": 0.9860000014305115,
+  "precision": 0.9860000014305115,
+  "recall": 0.9860000014305115
+}

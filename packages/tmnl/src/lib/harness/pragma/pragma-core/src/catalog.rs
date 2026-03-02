@@ -49,6 +49,11 @@ impl CatalogEmbeddings {
         }
     }
 
+    /// Create a catalog from pre-built entries (for testing/integration).
+    pub fn from_entries(entries: Vec<CatalogEntry>) -> Self {
+        Self { entries }
+    }
+
     /// Compute embeddings for all component descriptions.
     pub fn compute(
         encoder: &BertEncoder,
