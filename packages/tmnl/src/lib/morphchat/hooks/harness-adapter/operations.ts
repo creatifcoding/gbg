@@ -45,6 +45,7 @@ import {
   interruptInstanceFibers, activateSessionWiring, activeWiring,
   getProcessor,
 } from './lifecycle'
+import { appendToSessionV2, unwireSessionV2 } from '@/lib/harness/session/v2/facade'
 
 // ─── Connect ──────────────────────────────────────────────────────────────────
 
@@ -235,6 +236,9 @@ export const sendOp$ = Atom.family((id: string) =>
           morphChatRegistry.set(messages$(id), [...prev, userMsg])
         }
 
+        // Session V2: shadow-write user message
+        appendToSessionV2(id, { role: 'user', content, providerMessageId: clientMessageId } as any)
+
         const tl = toHarnessThinkingLevel(thinkingLevel)
         const override = morphChatRegistry.get(modelOverride$(id))
         if (override) morphChatRegistry.set(modelOverride$(id), null)
@@ -409,7 +413,7 @@ export const newSessionOp$ = Atom.family((id: string) =>
         )
 
         resetTransport(id)
-        resetContent(id)
+        resetContent(id) // Also unwires session v2 via resetContent
 
         yield* activateSessionWiring(id, session.sessionId as HarnessSessionId, nodeId, agentName, runtime, transport, undefined, session.agentId)
         pushStatusRow(id, {

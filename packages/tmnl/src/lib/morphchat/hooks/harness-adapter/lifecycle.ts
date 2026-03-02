@@ -32,6 +32,7 @@ import { createExtensionToolBridge } from '@/lib/chat/msg/tool-block/renderers/e
 import type { ChatMessage, ConnectionState } from '../../schemas/message-types'
 import { DISCONNECTED, STREAMING_IDLE } from '../../schemas/message-types'
 import { clearContent, ContentStoreLive } from '../../persistence/content-store'
+import { wireSessionV2, unwireSessionV2, disposeSessionV2 } from '@/lib/harness/session/v2/facade'
 
 import {
   messages$, messageIds$, connection$, streaming$, agents$,
@@ -85,6 +86,7 @@ export function getProcessor(id: string, agentName: string) {
         statusRows$: statusRows$(id),
       },
       agentName,
+      instanceId: id,
       messageIds$: messageIds$(id),
       getMessageAtom: (msgId: string) => getMessageAtom(id, msgId),
       onToolManifest: (tools) => {
@@ -275,6 +277,8 @@ export function resetContent(id: string): void {
   Effect.runPromise(
     clearContent(id).pipe(Effect.provide(ContentStoreLive)),
   ).catch(() => { /* best-effort */ })
+  // Session V2: unwire shadow (flush + disconnect, session persists for replay)
+  unwireSessionV2(id)
 }
 
 /** Snapshot content atoms for transactional rollback. */
@@ -329,6 +333,9 @@ export function activateSessionWiring(
     setSessionId(id, activeSessionId, 'activateSessionWiring')
     morphChatRegistry.set(connection$(id), { phase: 'connected', endpoint: `harness:${nodeId}` } as ConnectionState)
     morphChatRegistry.set(agents$(id), [{ id: agentId ?? nodeId, name: agentName, isActive: true }])
+
+    // Session V2: wire shadow session for this instance
+    wireSessionV2(id, { cwd: '.' })
 
     const wired = wireEventStream(id, activeSessionId, agentName, runtime, transport)
     activeWiring.set(id, {

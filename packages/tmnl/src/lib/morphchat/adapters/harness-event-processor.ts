@@ -39,6 +39,7 @@ import { splitPartsCodeFences } from './markdown-code-splitter'
 import { streamingLatencyProbe } from '@/lib/harness/perf/StreamingLatencyProbe'
 import { startWatchdog, type WatchdogHandle } from './stream-watchdog'
 import { UIElement, UITree } from '@/lib/genifer/core/schemas'
+import { appendToSessionV2, chatMessageToSessionMessage } from '@/lib/harness/session/v2/facade'
 
 // =============================================================================
 // Config — which atoms to write to
@@ -373,6 +374,8 @@ export interface HarnessEventProcessorConfig {
   readonly getMessageAtom?: (messageId: string) => Atom.WritableAtom<ChatMessage | null>
   /** Called when a tool_manifest event is received. Wired by the adapter to sync the extension bridge. */
   readonly onToolManifest?: (tools: ReadonlyArray<{ name: string; description?: string; parameters?: unknown }>) => void
+  /** Morphchat instance ID — used for session v2 shadow writes */
+  readonly instanceId?: string
 }
 
 
@@ -726,6 +729,11 @@ export function createEventProcessor(config: HarnessEventProcessorConfig) {
         } else {
           // Legacy path: finalize via messages$ array
           finalizedMsg = updateMessageInArray(msgId, finalizeMessage)
+        }
+
+        // ── Session V2: shadow-write finalized assistant message ──────
+        if (config.instanceId && finalizedMsg) {
+          appendToSessionV2(config.instanceId, chatMessageToSessionMessage(finalizedMsg))
         }
 
         // ── Stop watchdog fiber — stream completed normally ──────────

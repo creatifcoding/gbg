@@ -195,8 +195,10 @@ export { useSession, type UseSessionResult } from './useSession'
 
 // Facade — bridge to existing harness-adapter
 export {
+  chatMessageToSessionMessage,
   wireSessionV2,
   appendToSessionV2,
+  unwireSessionV2,
   disposeSessionV2,
   getSessionV2Id,
   hasSessionV2,
