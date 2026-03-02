@@ -136,3 +136,25 @@ export {
   SessionMachine,
   SessionMachineInput,
 } from './machine'
+
+// Serialization — JSONL frozen format + JSON blob
+export {
+  treeToJsonl,
+  jsonlToTree,
+  treeToJson,
+  jsonToTree,
+  extractMetadata,
+} from './serialization'
+
+// Session Store — DI-able persistence service
+export {
+  SessionStore,
+  type SessionStoreOps,
+} from './session-store'
+
+// Tier Orchestrator — multi-tier persistence coordination
+export {
+  TierOrchestrator,
+  type TierOrchestratorOps,
+  makeTierOrchestratorLayer,
+} from './tier-orchestrator'
