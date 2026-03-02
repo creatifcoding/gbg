@@ -158,3 +158,37 @@ export {
   type TierOrchestratorOps,
   makeTierOrchestratorLayer,
 } from './tier-orchestrator'
+
+// Atoms — React bridge (Atom-as-State pattern)
+export {
+  // Registry + Provider
+  sessionRegistry,
+  SessionRegistryProvider,
+  // Runtime
+  sessionRuntime,
+  // Global state
+  activeSessionId$,
+  sessionList$,
+  sessionLoading$,
+  // Per-session state families
+  sessionTree$,
+  sessionBranch$,
+  sessionContext$,
+  sessionMeta$,
+  sessionDirty$,
+  // Mutation operations
+  createSession,
+  resumeSession,
+  appendMessage,
+  appendRawEntry,
+  branchSession,
+  compactSession,
+  disposeSession,
+  exportSession,
+  importSession,
+  refreshSessionList,
+  flushSession,
+} from './atoms'
+
+// useSession hook — typed consumer API
+export { useSession, type UseSessionResult } from './useSession'
