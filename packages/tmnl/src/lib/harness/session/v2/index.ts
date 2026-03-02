@@ -192,3 +192,13 @@ export {
 
 // useSession hook — typed consumer API
 export { useSession, type UseSessionResult } from './useSession'
+
+// Facade — bridge to existing harness-adapter
+export {
+  wireSessionV2,
+  appendToSessionV2,
+  disposeSessionV2,
+  getSessionV2Id,
+  hasSessionV2,
+  getSessionV2Map,
+} from './facade'
