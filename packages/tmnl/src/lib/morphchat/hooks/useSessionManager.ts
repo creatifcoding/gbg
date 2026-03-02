@@ -20,6 +20,7 @@ import {
   type SessionOperationState,
 } from '../atoms/session-manager'
 import type { SessionListItem } from '@/lib/harness/HarnessRuntime'
+import { mergeSessionSources, getV2Diagnostics } from '@/lib/harness/session/v2/session-drawer-bridge'
 
 export interface UseSessionManagerResult {
   readonly sessions: ReadonlyArray<SessionListItem>
@@ -29,6 +30,7 @@ export interface UseSessionManagerResult {
   readonly error: string | null
   readonly operation: SessionOperationState
   readonly diagnostics: SessionFetchDiagnostics
+  readonly v2Diagnostics: ReturnType<typeof getV2Diagnostics>
   readonly query: SessionManagerQuery
   readonly setSearch: (search: string) => void
   readonly setFilter: (filter: SessionManagerFilter) => void
@@ -48,7 +50,12 @@ export function useSessionManager(instanceId: string): UseSessionManagerResult {
   const [, deleteFn] = useAtom(deleteSessionOp$)
   const [, forkFn] = useAtom(forkSessionOp$)
 
-  const allSessions = useAtomValue(sessionList$(instanceId))
+  const serverSessions = useAtomValue(sessionList$(instanceId))
+  // Merge server sessions with v2 local data (enrichment + fallback)
+  const allSessions = useMemo(
+    () => mergeSessionSources(serverSessions),
+    [serverSessions],
+  )
   const query = useAtomValue(sessionQuery$(instanceId))
   const loading = useAtomValue(sessionLoading$(instanceId))
   const error = useAtomValue(sessionError$(instanceId))
@@ -133,6 +140,7 @@ export function useSessionManager(instanceId: string): UseSessionManagerResult {
     error,
     operation,
     diagnostics,
+    v2Diagnostics: getV2Diagnostics(),
     query,
     setSearch,
     setFilter,

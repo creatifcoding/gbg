@@ -64,6 +64,7 @@ export function SessionDrawer({
     error,
     operation,
     diagnostics,
+    v2Diagnostics,
     query,
     setSearch,
     setFilter,
@@ -134,6 +135,7 @@ export function SessionDrawer({
       query,
       operation,
       diagnostics,
+      v2Diagnostics,
       totalSessions,
       visibleSessions,
       visibleSessionIds: sessions.map((session) => session.sessionId),
@@ -177,7 +179,7 @@ export function SessionDrawer({
                 style={{
                   color: 'oklch(0.72 0 0)',
                   fontFamily: MONO,
-                  fontSize: 'var(--tmnl-text-sm, 14px)',
+                  fontSize: 'var(--tmnl-text-sm, 12px)',
                   lineHeight: 1.2,
                 }}
               >
@@ -220,7 +222,7 @@ export function SessionDrawer({
                   background: 'oklch(0.08 0 0)',
                   color: 'oklch(0.72 0.14 195)',
                   fontFamily: MONO,
-                  fontSize: 'var(--tmnl-text-xs, 12px)',
+                  fontSize: 'var(--tmnl-text-xs, 10px)',
                   padding: '5px 8px',
                   cursor: 'pointer',
                   transition: VANTA_ANIMATION.transition.colors,
@@ -290,7 +292,7 @@ export function SessionDrawer({
                   background: 'transparent',
                   color: 'oklch(0.88 0 0)',
                   fontFamily: VANTA_TYPOGRAPHY.family.sans,
-                  fontSize: 'var(--tmnl-text-xs, 12px)',
+                  fontSize: 'var(--tmnl-text-xs, 10px)',
                 }}
               />
             </div>
@@ -319,7 +321,7 @@ export function SessionDrawer({
                       background: active ? 'oklch(0.12 0 0)' : 'transparent',
                       color: active ? 'oklch(0.86 0 0)' : 'oklch(0.56 0 0)',
                       fontFamily: MONO,
-                      fontSize: 'var(--tmnl-text-xs, 12px)',
+                      fontSize: 'var(--tmnl-text-xs, 10px)',
                       padding: '4px 8px',
                       lineHeight: 1.1,
                       cursor: 'pointer',
@@ -344,12 +346,12 @@ export function SessionDrawer({
               background: 'oklch(0.05 0 0)',
               color: 'oklch(0.54 0 0)',
               fontFamily: MONO,
-              fontSize: 'var(--tmnl-text-xs, 12px)',
+              fontSize: 'var(--tmnl-text-xs, 10px)',
               lineHeight: 1.2,
             }}
           >
             <span>
-              server:{diagnostics.serverCount} · visible:{visibleSessions} · fetched:{diagnosticLabel}
+              server:{diagnostics.serverCount} · local:{v2Diagnostics.localSessionCount} · visible:{visibleSessions} · fetched:{diagnosticLabel}
             </span>
             <button
               type="button"
@@ -361,7 +363,7 @@ export function SessionDrawer({
                 color: 'oklch(0.68 0 0)',
                 cursor: 'pointer',
                 fontFamily: MONO,
-                fontSize: 'var(--tmnl-text-xs, 12px)',
+                fontSize: 'var(--tmnl-text-xs, 10px)',
                 padding: '2px 8px',
               }}
             >
@@ -391,7 +393,7 @@ export function SessionDrawer({
                       gap: 6,
                       color: 'oklch(0.66 0 0)',
                       fontFamily: MONO,
-                      fontSize: 'var(--tmnl-text-xs, 12px)',
+                      fontSize: 'var(--tmnl-text-xs, 10px)',
                     }}
                   >
                     <Loader2 size={12} className="animate-spin" />
@@ -403,7 +405,7 @@ export function SessionDrawer({
                     style={{
                       color: 'oklch(0.72 0.14 20)',
                       fontFamily: VANTA_TYPOGRAPHY.family.sans,
-                      fontSize: 'var(--tmnl-text-xs, 12px)',
+                      fontSize: 'var(--tmnl-text-xs, 10px)',
                       lineHeight: 1.35,
                     }}
                   >
@@ -508,7 +510,7 @@ function StateBlock({
       <span
         style={{
           fontFamily: MONO,
-          fontSize: 'var(--tmnl-text-sm, 14px)',
+          fontSize: 'var(--tmnl-text-sm, 12px)',
           color: tone === 'error' ? 'oklch(0.8 0.1 20)' : 'oklch(0.62 0 0)',
           lineHeight: 1.3,
         }}
@@ -519,7 +521,7 @@ function StateBlock({
       <span
         style={{
           fontFamily: VANTA_TYPOGRAPHY.family.sans,
-          fontSize: 'var(--tmnl-text-xs, 12px)',
+          fontSize: 'var(--tmnl-text-xs, 10px)',
           color: tone === 'error' ? 'oklch(0.66 0.08 20)' : 'oklch(0.5 0 0)',
           lineHeight: 1.45,
           whiteSpace: 'pre-line',
@@ -541,7 +543,7 @@ function StateBlock({
             background: 'oklch(0.08 0 0)',
             color: tone === 'error' ? 'oklch(0.76 0.08 20)' : 'oklch(0.72 0.14 195)',
             fontFamily: MONO,
-            fontSize: 'var(--tmnl-text-xs, 12px)',
+            fontSize: 'var(--tmnl-text-xs, 10px)',
             padding: '6px 10px',
             cursor: 'pointer',
             transition: VANTA_ANIMATION.transition.colors,

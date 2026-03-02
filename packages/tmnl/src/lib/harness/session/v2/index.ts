@@ -204,3 +204,11 @@ export {
   hasSessionV2,
   getSessionV2Map,
 } from './facade'
+
+// Session Drawer Bridge — local-first enrichment
+export {
+  sessionMetadataToListItem,
+  getLocalSessionListItems,
+  mergeSessionSources,
+  getV2Diagnostics,
+} from './session-drawer-bridge'
