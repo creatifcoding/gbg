@@ -91,14 +91,14 @@ fn bench_prefix_build(c: &mut Criterion) {
 
     let response = AnnotateResponse {
         intent: IntentClassification {
-            r#type: IntentType::Data,
+            intent_type: IntentType::Data,
             confidence: 0.85,
             model_used: ModelTier::Minilm,
             tier_escalated: false,
         },
         candidates: vec![],
         disambiguation: vec![],
-        hints: Hints {
+        hints: GenerationHints {
             temperature: 0.3,
             note: "high confidence".into(),
         },

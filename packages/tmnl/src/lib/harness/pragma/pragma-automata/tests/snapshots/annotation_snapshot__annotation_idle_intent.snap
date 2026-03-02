@@ -1,0 +1,26 @@
+---
+source: src/lib/harness/pragma/pragma-automata/tests/annotation_snapshot.rs
+expression: resp
+---
+{
+  "intent": {
+    "type": "IDLE",
+    "confidence": 0.0,
+    "model_used": "minilm",
+    "tier_escalated": false
+  },
+  "candidates": [],
+  "disambiguation": [],
+  "hints": {
+    "temperature": 0.7,
+    "note": "Idle intent, conf=0.00"
+  },
+  "prefix_block": "```generation-context\n{\n  \"components\": [],\n  \"confidence\": 0.0,\n  \"hints\": {\n    \"model_tier\": \"Minilm\",\n    \"note\": \"Idle intent, conf=0.00\",\n    \"temperature\": 0.699999988079071\n  },\n  \"intent\": \"Idle\"\n}\n```",
+  "sideband": {
+    "models_used": [
+      "minilm"
+    ],
+    "latency_ms": "[latency]",
+    "catalog_recomputed": false
+  }
+}

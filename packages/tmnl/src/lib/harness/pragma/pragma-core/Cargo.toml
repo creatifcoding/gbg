@@ -31,6 +31,7 @@ insta = { version = "1", features = ["json", "redactions"] }
 pretty_assertions = "1"
 serial_test = "3"
 criterion = { version = "0.5", features = ["html_reports"] }
+pragma-automata = { path = "../pragma-automata" }
 
 [[bench]]
 name = "inference"

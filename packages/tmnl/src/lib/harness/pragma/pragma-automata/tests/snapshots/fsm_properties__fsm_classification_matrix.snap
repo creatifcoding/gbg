@@ -1,0 +1,11 @@
+---
+source: src/lib/harness/pragma/pragma-automata/tests/fsm_properties.rs
+expression: matrix
+---
+show me a bar chart            → Data       (expected: DATA)
+create a login form            → Form       (expected: FORM)
+build a dashboard layout       → Layout     (expected: LAYOUT)
+display an error alert         → Feedback   (expected: FEEDBACK)
+dashboard with charts and forms → Layout     (expected: MIXED)
+what is the meaning of life?   → Idle       (expected: IDLE)
+                               → Idle       (expected: IDLE)
