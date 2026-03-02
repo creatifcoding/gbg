@@ -212,3 +212,6 @@ export {
   mergeSessionSources,
   getV2Diagnostics,
 } from './session-drawer-bridge'
+
+// IndexedDB KeyValueStore Layer — cold-tier backing
+export { layerIndexedDB } from './idb-kvs'

@@ -21,7 +21,6 @@ import { createElement } from 'react'
 import type { ReactElement, ReactNode } from 'react'
 import { Effect, Layer, ManagedRuntime, Option } from 'effect'
 import { KeyValueStore } from '@effect/platform'
-import { BrowserKeyValueStore } from '@effect/platform-browser'
 import { SessionTree, makeSessionTree } from './tree'
 import { SessionMetadata } from './metadata'
 import { SessionStore } from './session-store'
@@ -76,12 +75,20 @@ export function SessionRegistryProvider({
  * Persistence runtime: TierOrchestrator + SessionStore + KVS.
  *
  * ManagedRuntime gives us .runPromise() for fire-and-forget persistence.
- * Swap the KVS layer for IndexedDB/SQLite by providing a different layer:
- *   sessionPersistenceRuntime = ManagedRuntime.make(makeTierOrchestratorLayer(mySqliteLayer))
+ * Browser → IndexedDB (survives restarts). SSR/tests → in-memory.
+ * Swap to SQLite by providing a different KVS layer.
  */
-const defaultPersistenceLayer = makeTierOrchestratorLayer(
-  KeyValueStore.layerMemory, // Memory for SSR/test safety; browser code provides localStorage
-)
+function selectKvsLayer(): Layer.Layer<KeyValueStore.KeyValueStore> {
+  if (typeof window !== 'undefined' && typeof indexedDB !== 'undefined') {
+    // Lazy import to avoid bundling idb-keyval in SSR
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { layerIndexedDB } = require('./idb-kvs') as typeof import('./idb-kvs')
+    return layerIndexedDB
+  }
+  return KeyValueStore.layerMemory
+}
+
+const defaultPersistenceLayer = makeTierOrchestratorLayer(selectKvsLayer())
 export const sessionPersistenceRuntime = ManagedRuntime.make(defaultPersistenceLayer)
 
 /**
@@ -418,3 +425,45 @@ export function flushSession(id: HarnessSessionId): void {
 
   sessionRegistry.set(sessionDirty$(id), false)
 }
+
+// =============================================================================
+// Startup Hydration
+// =============================================================================
+
+/**
+ * Hydrate session metadata from cold storage into sessionList$ atom.
+ *
+ * Called once on module init. Populates the drawer with previously
+ * persisted sessions before any new session is created.
+ * Also evicts expired warm-tier entries.
+ *
+ * Fire-and-forget — silently swallows errors.
+ */
+function hydrateOnStartup(): void {
+  if (typeof window === 'undefined') return // SSR guard
+
+  // Delay slightly to let the runtime initialize
+  setTimeout(() => {
+    sessionPersistenceRuntime.runPromise(
+      Effect.gen(function* () {
+        const orch = yield* TierOrchestrator
+        // Load metadata index from cold storage
+        const metas = yield* orch.listSessions()
+        if (metas.length > 0) {
+          sessionRegistry.set(sessionList$, metas)
+          console.info('[session-v2] hydrated', { sessionCount: metas.length })
+        }
+        // Evict expired warm entries
+        const evicted = yield* orch.evictWarm()
+        if (evicted > 0) {
+          console.info('[session-v2] evicted warm entries', { count: evicted })
+        }
+      }),
+    ).catch(() => {
+      // Persistence never blocks — silently handle startup failures
+    })
+  }, 100)
+}
+
+// Trigger hydration on module load (browser only)
+hydrateOnStartup()
