@@ -28,6 +28,8 @@ import { streamingMetrics$, idleMetricsAtom } from '../atoms/streaming-metrics'
 import { StreamingMetricsProvider } from './streaming-metrics-provider'
 import { StreamEntryPlaceholder } from '@/lib/chat/msg/body-content/stream-entry-placeholder'
 import { MessageActionBar } from '@/lib/chat/msg/action-bar'
+import { BranchIndicator } from './branch-indicator'
+import { useSessionBranch } from '@/lib/harness/session/v2/useSessionBranch'
 import type { AgentTask } from '@/lib/chat/msg/inline-task-types'
 import { AnalysisCard, RemediationCard } from './artifact-cards'
 import { InlineUITreeCard } from '@/lib/chat/msg/inline-ui-tree-card'
@@ -696,6 +698,7 @@ const MessageRow = memo(function MessageRow({
   threadMode,
   syntheticMessage,
   widthTier,
+  branchHook,
 }: {
   messageId: string
   prevMessageId: string | null
@@ -705,6 +708,7 @@ const MessageRow = memo(function MessageRow({
   threadMode: string
   syntheticMessage: ChatMessage | null
   widthTier: ChatWidthTier
+  branchHook: ReturnType<typeof useSessionBranch> | null
 }) {
   const message = useAtomValue(resolveMessageAtom(adapter, messageId)) ?? syntheticMessage
   const previousMessage = useAtomValue(
@@ -717,6 +721,10 @@ const MessageRow = memo(function MessageRow({
   const gapClass = index === 0 ? '' : isTurnChange ? TURN_GAP[widthTier] : MSG_GAP[widthTier]
   const allTasks = useAtomValue(adapter.messageTasks$ ?? EMPTY_TASKS_MAP)
   const tasks = allTasks.get(message.id) as ReadonlyArray<AgentTask> | undefined
+
+  // Branch indicator — only for 'full' mode with harness adapter
+  const branchInfo = branchHook?.getBranchInfo(messageId) ?? null
+  const branches = branchInfo ? branchHook!.getBranchesAt(messageId) : []
 
   let content: ReactNode = null
   switch (threadMode) {
@@ -739,7 +747,24 @@ const MessageRow = memo(function MessageRow({
       break
   }
 
-  return content ? <div className={gapClass}>{content}</div> : null
+  if (!content) return null
+
+  return (
+    <div className={gapClass}>
+      {content}
+      {branchInfo && branches.length > 1 && (
+        <div style={{ paddingLeft: 48, paddingTop: 4 }}>
+          <BranchIndicator
+            branchInfo={branchInfo}
+            branches={branches}
+            onSelectBranch={(firstEntryId) => {
+              branchHook?.branchFromMessage(messageId)
+            }}
+          />
+        </div>
+      )}
+    </div>
+  )
 }, (prev, next) => (
   prev.messageId === next.messageId
   && prev.prevMessageId === next.prevMessageId
@@ -747,6 +772,7 @@ const MessageRow = memo(function MessageRow({
   && prev.index === next.index
   && prev.widthTier === next.widthTier
   && prev.isLatest === next.isLatest
+  && prev.branchHook === next.branchHook
   && prev.threadMode === next.threadMode
   && prev.syntheticMessage === next.syntheticMessage
 ))
@@ -755,6 +781,11 @@ export function ThreadView({ widthTier: externalTier }: { widthTier?: ChatWidthT
   const { spec, adapter, surfaceId } = useMorphChatContext()
   // Read machine presentation state — gate rendering during morph
   const presentationState = useAtomValue(presentationStateFamily(surfaceId))
+
+  // ── Session V2 Branch Support ──
+  const harnessInstanceId = resolveHarnessInstanceId(adapter.adapterId)
+  const branchHook = useSessionBranch(harnessInstanceId ?? '__no-harness__')
+  const activeBranchHook = branchHook.available ? branchHook : null
 
   // ── Responsive width tier ──
   const threadRef = useRef<HTMLDivElement>(null)
@@ -889,6 +920,7 @@ export function ThreadView({ widthTier: externalTier }: { widthTier?: ChatWidthT
             threadMode={spec.thread}
             syntheticMessage={syntheticStreamingId === id ? syntheticStreamingMessage : null}
             widthTier={widthTier}
+            branchHook={activeBranchHook}
           />
         ))}
       </ChatThreadBand>

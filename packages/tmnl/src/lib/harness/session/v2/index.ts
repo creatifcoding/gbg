@@ -215,3 +215,6 @@ export {
 
 // IndexedDB KeyValueStore Layer — cold-tier backing
 export { layerIndexedDB } from './idb-kvs'
+
+// Branch hook — thread view integration
+export { useSessionBranch, type UseSessionBranchResult, type BranchInfo, type BranchOption } from './useSessionBranch'
