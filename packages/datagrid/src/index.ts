@@ -77,6 +77,48 @@ export {
   type CellVisual, type CellPhaseInput,
 } from "./services/cell-renderer"
 
+// ── Stack VM (Formula DSL) ──────────────────────────
+export {
+  // Value types + constructors
+  VMValue, VMNum, VMStr, VMBool, VMError,
+  num as vmNum, str as vmStr, bool as vmBool,
+  vmError, err as vmErr, isVMError, isNumeric, toNumber, asNum, vmEq, vmDisplay,
+  propagateError,
+  // Error codes + display
+  VMErrorCode, errorCodeDisplay,
+  // Effect E channel errors
+  CompileError, EvalError, ResourceError, type VMFailure,
+  failureToVMError, timeoutToVMError, catchToErrorState,
+  // Opcodes
+  Opcode, type StackIR,
+  PUSH_NUM, PUSH_STR, PUSH_BOOL,
+  ADD, SUB, MUL, DIV, DUP, SWAP, DROP, NEG,
+  EQ, LT, GT, NOT, SUM_N, HALT,
+  READ_CELL, WRITE_CELL,
+  // VM State
+  type VMState, type TrailEntry,
+  VMStateSchema, TrailEntrySchema, vmStateDiffer,
+  emptyState, MAX_EVAL_STEPS,
+  // Cell Context
+  type CellContext, emptyCellContext,
+  // Execution
+  execOpcode, runIR, runEffect,
+  evalProgram, evalExpr, compileExpr, compileExprSync,
+  type EvalInput, dualEval,
+  // Service
+  StackVM, StackVMLive, type StackVMConfig,
+  // Metrics
+  evalCounter, evalErrorCounter, compileErrorCounter, evalLatency, cacheHitCounter,
+} from "./services/stack-vm"
+export {
+  cellToVM, vmToCell, cellsToVM, vmsToCell,
+  cellDisplayVM, isLosslessRoundTrip,
+} from "./services/vm-cell-bridge"
+export {
+  DepGraph, makeDepGraph, CircularDepError,
+  type CellNode,
+} from "./services/dep-graph"
+
 // ── Bridge ──────────────────────────────────────────
 export {
   TransactionCollector,

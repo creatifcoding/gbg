@@ -14,7 +14,7 @@
 import { describe, it, expect } from "vitest"
 import * as Effect from "effect-v4/Effect"
 
-import { num, str, bool, vmError, isVMError, evalProgram, compileExprSync, type StackIR, type VMValue, type VMState } from "../src/services/stack-vm"
+import { num, str, bool, vmError, isVMError, evalProgram, compileExprSync, type StackIR, type VMValue, type VMState, type CellContext } from "../src/services/stack-vm"
 import { cellToVM, vmToCell } from "../src/services/vm-cell-bridge"
 import { makeDepGraph, CircularDepError } from "../src/services/dep-graph"
 import * as CV from "../src/schemas/cell-value"
@@ -57,37 +57,29 @@ interface FormulaEntry {
 // ═══════════════════════════════════════════════════════
 
 /**
- * Evaluate a formula by reading dep values from the sheet,
- * pushing them onto the stack, then running the expression IR.
+ * Evaluate a formula using READ_CELL opcodes and CellContext.
  *
- * This is the core recalc step:
- * 1. Read dep cell values from sheet → VMValues
- * 2. Build StackIR: PUSH each dep value, then run expression ops
- * 3. Eval the combined IR
- * 4. Write top of stack back to sheet as CellValue
+ * The IR uses READ_CELL to resolve deps at eval time. CellContext
+ * is wired from the sheet, so the VM reads live cell values.
  */
 function evalFormula(
   sheet: ReturnType<typeof makeSheet>,
   addr: string,
   entry: FormulaEntry,
 ): void {
-  // Build combined IR: push deps, then run expression
+  // Build CellContext from sheet
+  const ctx = {
+    readCell: (a: string) => sheet.getVM(a),
+    writeCell: (a: string, v: VMValue) => sheet.set(a, vmToCell(v)),
+  }
+
+  // Build IR: READ_CELL for each dep, then expression ops
   const ir: StackIR = [
-    // Push each dependency value onto the stack
-    ...entry.deps.map((dep): StackIR[number] => {
-      const vm = sheet.getVM(dep)
-      switch (vm._tag) {
-        case "num": return { _tag: "PUSH_NUM", value: vm.value }
-        case "str": return { _tag: "PUSH_STR", value: vm.value }
-        case "bool": return { _tag: "PUSH_BOOL", value: vm.value }
-        case "error": return { _tag: "PUSH_NUM", value: 0 } // error deps → 0
-      }
-    }),
-    // Then run the expression opcodes
+    ...entry.deps.map((dep): StackIR[number] => ({ _tag: "READ_CELL", addr: dep })),
     ...entry.ir,
   ]
 
-  const state = Effect.runSync(evalProgram(ir))
+  const state = Effect.runSync(evalProgram(ir, ctx))
   const result = state.stack[state.stack.length - 1] ?? num(0)
   sheet.set(addr, vmToCell(result))
 }
@@ -216,12 +208,10 @@ describe("VM Integration — full pipeline", () => {
     expect(c1._tag).toBe("Error")
 
     // D1 should also be an error (propagated from C1)
-    // Since C1 becomes CellError → cellToVM returns vmError("GENERAL") →
-    // the PUSH_NUM uses 0 for error deps, so D1 = 0 + 1 = 1
-    // This is the spreadsheet convention: error cells read as 0 in arithmetic
-    // To get true error propagation, we'd need the VM to handle error deps
+    // READ_CELL reads C1's CellError → cellToVM converts to vmError("GENERAL") →
+    // ADD propagates the error (error propagation rule in dispatch)
     const d1 = sheet.get("D1")
-    expect(d1._tag).toBe("Number") // 0 (from error) + 1 = 1
+    expect(d1._tag).toBe("Error") // Error propagated from C1 through ADD
   })
 
   it("circular dependency rejected", async () => {
