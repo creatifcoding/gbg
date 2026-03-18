@@ -50,6 +50,7 @@ import * as Scope from "effect-v4/Scope"
 import * as Exit from "effect-v4/Exit"
 import * as Cause from "effect-v4/Cause"
 import * as Semaphore from "effect-v4/Semaphore"
+import * as Pool from "effect-v4/Pool"
 import { pipe } from "effect-v4/Function"
 
 // ═══════════════════════════════════════════════════════
@@ -1693,6 +1694,88 @@ describe("F1b: Effect-Native Stack VM", () => {
 
       // All 5 formulas should evaluate (order may vary due to concurrency)
       expect(results.sort((a, b) => a - b)).toEqual([3, 10, 11, 12, 56])
+    })
+  })
+
+  // ─── H19: Pool for WASM instance reuse ────────────
+  //
+  // Pool.make({ acquire, size }) — managed resource pool.
+  // Pool.get returns scoped instance, auto-returns on scope close.
+  // Proves WASM instance pooling for amortized cold-start.
+
+  describe("H19: Pool for WASM instance reuse", () => {
+    // Simulate a WASM sandbox instance
+    interface Sandbox {
+      readonly id: number
+      evaluate: (ir: StackIR) => VMState
+    }
+
+    let nextId = 0
+    let acquireCount = 0
+
+    const makeSandbox = Effect.sync((): Sandbox => {
+      acquireCount++
+      const id = nextId++
+      return {
+        id,
+        evaluate: (ir) => Effect.runSync(evalProgram(ir)),
+      }
+    })
+
+    it("pool reuses instances across scoped gets", async () => {
+      nextId = 0
+      acquireCount = 0
+
+      const result = await Effect.runPromise(Effect.scoped(
+        Effect.gen(function*() {
+          const pool = yield* Pool.make({ acquire: makeSandbox, size: 2 })
+          const results: number[] = []
+
+          // Use pool 4 times — should reuse the 2 instances
+          for (let i = 0; i < 4; i++) {
+            yield* Effect.scoped(Effect.gen(function*() {
+              const sandbox = yield* Pool.get(pool)
+              const state = sandbox.evaluate([
+                { _tag: "PUSH_NUM", value: i + 1 },
+                { _tag: "PUSH_NUM", value: 10 },
+                { _tag: "MUL" },
+              ])
+              if (state.stack[0]?._tag === "num") results.push(state.stack[0].value)
+            }))
+          }
+
+          return { results, acquireCount }
+        })
+      ))
+
+      expect(result.results).toEqual([10, 20, 30, 40])
+      // Pool should create at most size instances (2), reusing them
+      expect(result.acquireCount).toBeLessThanOrEqual(2)
+    })
+
+    it("pool get is scoped — returns instance on scope close", async () => {
+      nextId = 100
+      acquireCount = 0
+
+      await Effect.runPromise(Effect.scoped(
+        Effect.gen(function*() {
+          const pool = yield* Pool.make({ acquire: makeSandbox, size: 1 })
+
+          // First use
+          const id1 = yield* Effect.scoped(Effect.gen(function*() {
+            const s = yield* Pool.get(pool)
+            return s.id
+          }))
+
+          // Second use — should get same instance back (pool size 1)
+          const id2 = yield* Effect.scoped(Effect.gen(function*() {
+            const s = yield* Pool.get(pool)
+            return s.id
+          }))
+
+          expect(id1).toBe(id2) // Same pooled instance
+        })
+      ))
     })
   })
 })
