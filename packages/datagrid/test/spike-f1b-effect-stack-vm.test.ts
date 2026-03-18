@@ -50,6 +50,7 @@ import * as Scope from "effect-v4/Scope"
 import * as Exit from "effect-v4/Exit"
 import * as Cause from "effect-v4/Cause"
 import * as Semaphore from "effect-v4/Semaphore"
+import * as Schedule from "effect-v4/Schedule"
 import * as Pool from "effect-v4/Pool"
 import * as TxQueue from "effect-v4/TxQueue"
 import * as TxHashMap from "effect-v4/TxHashMap"
@@ -2071,6 +2072,50 @@ describe("F1b: Effect-Native Stack VM", () => {
       )
 
       expect(results.sort((a, b) => a - b)).toEqual([2, 4, 6, 8, 10, 12, 14, 16])
+    })
+  })
+
+  // ─── H25: Schedule + retry for resilient eval ─────
+  //
+  // Effect.retry with Schedule for transient failures.
+  // Useful for WASM sandbox init failures, network cell lookups.
+
+  describe("H25: Schedule + retry for resilient eval", () => {
+    it("retries transient failure with Schedule.recurs", async () => {
+      let attempts = 0
+
+      const flakyEval = Effect.gen(function*() {
+        attempts++
+        if (attempts < 3) yield* Effect.fail("transient error")
+        return yield* evalProgram([
+          { _tag: "PUSH_NUM", value: 42 },
+        ])
+      })
+
+      const result = await Effect.runPromise(
+        Effect.retry(flakyEval, Schedule.recurs(5))
+      )
+
+      expect(result.stack[0]).toEqual(num(42))
+      expect(attempts).toBe(3) // Failed twice, succeeded on third
+    })
+
+    it("gives up after max retries", async () => {
+      let attempts = 0
+
+      const alwaysFails = Effect.gen(function*() {
+        attempts++
+        return yield* Effect.fail("permanent error")
+      })
+
+      const result = await Effect.runPromise(
+        Effect.retry(alwaysFails, Schedule.recurs(2)).pipe(
+          Effect.catch(() => Effect.succeed("gave-up" as const))
+        )
+      )
+
+      expect(result).toBe("gave-up")
+      expect(attempts).toBe(3) // Initial + 2 retries
     })
   })
 })
