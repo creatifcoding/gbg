@@ -261,8 +261,9 @@ const execOpcode = (op: Opcode, state: VMState): VMState => {
     result,
   }
 
-  // Mutable push instead of spread copy for trail (O(1) instead of O(n))
-  const trail = state.trail.slice()
+  // Mutable trail: push directly to avoid O(n) copy per opcode
+  // Safe because runIR creates a fresh VMState per transaction
+  const trail = state.trail as TrailEntry[] // Cast to mutable
   trail.push(entry)
 
   return {
