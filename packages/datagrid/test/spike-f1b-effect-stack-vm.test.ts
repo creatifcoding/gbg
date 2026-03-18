@@ -43,6 +43,8 @@ import * as Result from "effect-v4/Result"
 import * as Graph from "effect-v4/Graph"
 import * as Cache from "effect-v4/Cache"
 import * as Duration from "effect-v4/Duration"
+import * as ServiceMap from "effect-v4/ServiceMap"
+import * as Layer from "effect-v4/Layer"
 import { pipe } from "effect-v4/Function"
 
 // ═══════════════════════════════════════════════════════
@@ -1326,6 +1328,78 @@ describe("F1b: Effect-Native Stack VM", () => {
       expect(result.r3.stack[0]).toEqual(num(5))
       expect(evalCount).toBe(2) // Only 2 unique formulas evaluated
       expect(result.size).toBe(2)
+    })
+  })
+
+  // ─── H14: ServiceMap.Service for VM engine ────────
+  //
+  // StackVM as a proper Effect service via ServiceMap.Service.
+  // Layer provides the implementation; yield* to consume.
+  // This is the capstone: proves the VM can be DI'd.
+
+  describe("H14: ServiceMap.Service for StackVM", () => {
+    // Define the StackVM service interface
+    class StackVM extends ServiceMap.Service<StackVM, {
+      readonly eval: (ir: StackIR) => Effect.Effect<VMState>
+      readonly evalExpr: (expr: string) => Effect.Effect<VMState>
+    }>()("tmnl/datagrid/StackVM") {}
+
+    // Layer implementation
+    const StackVMLive = Layer.succeed(StackVM, StackVM.of({
+      eval: (ir) => evalProgram(ir),
+      evalExpr: (expr) => evalProgram(compileExpr(expr)),
+    }))
+
+    it("service yields via yield* and evaluates IR", async () => {
+      const result = await Effect.runPromise(
+        Effect.gen(function*() {
+          const vm = yield* StackVM
+          return yield* vm.eval([
+            { _tag: "PUSH_NUM", value: 10 },
+            { _tag: "PUSH_NUM", value: 20 },
+            { _tag: "ADD" },
+          ])
+        }).pipe(Effect.provide(StackVMLive))
+      )
+
+      expect(result.stack[0]).toEqual(num(30))
+    })
+
+    it("service evalExpr parses and evaluates string", async () => {
+      const result = await Effect.runPromise(
+        Effect.gen(function*() {
+          const vm = yield* StackVM
+          return yield* vm.evalExpr("7 DUP *")
+        }).pipe(Effect.provide(StackVMLive))
+      )
+
+      expect(result.stack[0]).toEqual(num(49))
+    })
+
+    it("Layer.mergeAll composes multiple services", async () => {
+      // Demonstrate composability with a second service
+      class Logger extends ServiceMap.Service<Logger, {
+        readonly log: (msg: string) => Effect.Effect<void>
+      }>()("tmnl/datagrid/Logger") {}
+
+      const logs: string[] = []
+      const LoggerLive = Layer.succeed(Logger, Logger.of({
+        log: (msg) => Effect.sync(() => { logs.push(msg) }),
+      }))
+
+      const result = await Effect.runPromise(
+        Effect.gen(function*() {
+          const vm = yield* StackVM
+          const logger = yield* Logger
+          yield* logger.log("Evaluating formula...")
+          const state = yield* vm.evalExpr("2 3 * 4 +")
+          yield* logger.log(`Result: ${state.stack[0]?._tag === "num" ? state.stack[0].value : "?"}`)
+          return state
+        }).pipe(Effect.provide(Layer.mergeAll(StackVMLive, LoggerLive)))
+      )
+
+      expect(result.stack[0]).toEqual(num(10))
+      expect(logs).toEqual(["Evaluating formula...", "Result: 10"])
     })
   })
 })
