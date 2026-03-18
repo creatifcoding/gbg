@@ -1908,4 +1908,60 @@ describe("F1b: Effect-Native Stack VM", () => {
       expect(c1Idx).toBeLessThan(d1Idx)
     })
   })
+
+  // ─── H22: Effect.withSpan for formula tracing ─────
+  //
+  // Wraps eval in spans for structured tracing.
+  // Proves formula execution is traceable/debuggable.
+
+  describe("H22: Effect.withSpan for formula tracing", () => {
+    it("withSpan wraps eval — span is accessible inside", async () => {
+      const result = await Effect.runPromise(
+        Effect.gen(function*() {
+          const span = yield* Effect.currentSpan
+          return {
+            spanName: span.name,
+            hasAttributes: typeof span.attributes === "object",
+          }
+        }).pipe(
+          Effect.withSpan("formula.eval", { attributes: { formula: "3 4 +" } }),
+          Effect.catch(() => Effect.succeed({ spanName: "no-span", hasAttributes: false })),
+        )
+      )
+
+      expect(result.spanName).toBe("formula.eval")
+      expect(result.hasAttributes).toBe(true)
+    })
+
+    it("nested spans for pipeline stages", async () => {
+      const stages: string[] = []
+
+      await Effect.runPromise(
+        Effect.gen(function*() {
+          // Compile stage
+          yield* Effect.gen(function*() {
+            const span = yield* Effect.currentSpan
+            stages.push(span.name)
+          }).pipe(Effect.withSpan("formula.compile"))
+
+          // Execute stage
+          yield* Effect.gen(function*() {
+            const span = yield* Effect.currentSpan
+            stages.push(span.name)
+            yield* evalProgram([
+              { _tag: "PUSH_NUM", value: 5 },
+              { _tag: "PUSH_NUM", value: 5 },
+              { _tag: "MUL" },
+            ])
+          }).pipe(Effect.withSpan("formula.execute"))
+        }).pipe(
+          Effect.withSpan("formula.pipeline"),
+          Effect.catch(() => Effect.void),
+        )
+      )
+
+      expect(stages).toContain("formula.compile")
+      expect(stages).toContain("formula.execute")
+    })
+  })
 })

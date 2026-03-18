@@ -1,49 +1,30 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ PROVEN (prune — already in spike)
-- H2: Schema TaggedStruct unions for opcodes
-- H3: Match.tagsExhaustive dispatch
-- H8: JSONL patches (Schema.toDifferJsonPatch)
-- H9: Schema.TaggedUnion.match()
+## ✅ PROVEN (in spike — 21 hypotheses, 72/72 tests)
+
+### Core VM (H1–H7)
+- H1: TxRef transactional stack — H2: Schema opcodes — H3: Match dispatch
+- H4: Effect program eval — H5: String eval — H6: Concurrent TxRef — H7: Performance
+
+### Trail & Observation (H8–H10, H20)
+- H8: JSONL patches (Schema.toDifferJsonPatch) — H9: TaggedUnion.match()
 - H10: PubSub + Stream trail observation
-- H11: Optic stack access
-- H12: Graph for cell deps (topo sort, cycle detect, mutate)
+- H20: TxQueue append-only trail (TxQueue + TxRef in SAME transaction = atomic)
+
+### Data & Access (H11–H13)
+- H11: Optic stack access — H12: Graph for cell deps (topo+cycle+mutate)
 - H13: Cache memoized formula eval
-- H14: ServiceMap.Service for VM engine
-- H15: Metric observability (counter, gauge, histogram, snapshot)
-- H16: Scope/acquireRelease for sandbox lifecycle
 
-## 🔬 NEXT — Unexplored Effect v4 Modules
+### Architecture (H14–H16)
+- H14: ServiceMap.Service for VM — H15: Metric observability — H16: Scope/acquireRelease
 
-### H17: Effect.timeout + fiber cancellation for runaway formulas
-- `Effect.timeoutFail(evalProgram, Duration.millis(100))` — kills slow formulas
-- `Effect.interruptible` / `Effect.uninterruptible` boundary control
-- Proves formula execution can be safely deadline-bounded
-- Critical for WASM sandbox: untrusted code MUST be cancellable
+### Concurrency & Resources (H17–H19)
+- H17: Effect.timeout + Fiber.interrupt — H18: Semaphore throttling — H19: Pool instance reuse
 
-### H18: Semaphore for concurrent eval throttling
-- `Effect.makeSemaphore(4)` — limit to N concurrent formula evals
-- `semaphore.withPermits(1)(evalProgram)` — acquire before eval
-- Prevents thread pool exhaustion from bulk formula recalcs
-- Pair with Graph topo order for priority scheduling
+### Integration (H21)
+- H21: Graph topo → Semaphore throttle → Cell recalc pipeline
 
-### H19: Pool for WASM instance reuse
-- `Pool.make({ acquire, release, size: 4 })` — WASM instance pool
-- `Pool.get(pool)` returns scoped instance, auto-returns on scope close
-- Avoids cold-start overhead for repeated sandbox evals
-- Builds on H16 (acquireRelease) + H18 (Semaphore)
-
-### H20: Channel for eval pipeline
-- `Channel.make<StackIR, VMState>()` — typed input→output pipeline
-- Pipeline stages: parse → validate → compile → execute → trail
-- `Channel.pipeTo` for composing stages
-- Backpressure-aware: slow consumers don't lose events
-
-### H21: TxQueue for append-only trail persistence
-- `TxQueue.unbounded<TrailEntry>()` — transactional append
-- Commits with eval transaction (TxRef) — trail is consistent with state
-- `TxQueue.takeAll` to drain for persistence
-- Alternative to PubSub (H10) when durability matters more than broadcast
+## 🔬 NEXT — Remaining Ideas
 
 ### H22: Fiber supervision tree for multi-cell recalc
 - `Effect.forkChild` for supervised formula fibers
@@ -51,33 +32,43 @@
 - `Fiber.awaitAll([fiber1, fiber2])` — wait for batch
 - Supervision tree mirrors dependency graph (H12)
 
-## 🧩 INTEGRATION IDEAS (Post-Spike)
+### H23: Effect.withSpan for formula tracing
+- `Effect.withSpan("eval", { attributes: { formula: "..." } })`
+- Nested spans: compile → validate → execute → trail
+- DevTools integration for formula debugging
 
-### Extract VM to production service
-- Move from test file to `packages/datagrid/src/services/stack-vm.ts`
-- Service interface: `eval(ir)`, `evalExpr(str)`, `evalEffect(program)`
-- Layer with Cache + Graph + Metric baked in
+### H24: TxHashMap for multi-cell transactional state
+- `TxHashMap.make<CellAddress, CellValue>()`
+- Multi-cell reads/writes in single transaction
+- Conflict detection between concurrent formula evals
+
+## 🧩 POST-SPIKE (Extract to Production)
+
+### Extract VM to `packages/datagrid/src/services/stack-vm.ts`
+- ServiceMap.Service interface: eval(ir), evalExpr(str), evalEffect(program)
+- Layer with Cache + Graph + Metric + Semaphore baked in
 - Tests move to `packages/datagrid/test/stack-vm.test.ts`
 
 ### @tmnl/jsonl-patch utility package
 - JSONL streaming: append patch per line, compact on threshold
 - Replay: fold patches to reconstruct any state
-- `Schema.toDifferJsonPatch` integration for type-safe differs
-- Storage adapter: IndexedDB, file, memory
 
 ### EventLog for event-sourced formula audit
-- `Event.make({ tag: "FormulaEvaluated", payload: ... })`
-- EventJournal persistence (memory for dev, SQL for prod)
-- Replay + compaction for state reconstruction
+- Event.make({ tag: "FormulaEvaluated", payload: ... })
 - Requires further research on effect-smol unstable/eventlog API
 
-## 📊 v4 API Gotchas (Reference)
+## 📊 v4 API Gotchas (Complete Reference)
 - `Schema.Union([array])` not spread
 - `Schema.Record(key, value)` positional
 - `TxRef.make` inside `Effect.transaction()` only
 - `Effect.yieldNow` is a value (no `()`)
 - `Result.success` not `.value`; `Result.failure` not `.error`
 - `Optic.at()` → Optional (`.getResult()` not `.get()`)
-- `Effect.catchAll` → **`Effect.catch`** in v4
-- `Effect.catchAllCause` → `Effect.catchCause`
+- **`Effect.catchAll` → `Effect.catch`** in v4
+- **`Effect.catchAllCause` → `Effect.catchCause`**
+- **`Effect.catchAllDefect` → `Effect.catchDefect`**
+- **`Effect.fork` → `Effect.forkChild`** (no bare fork in v4)
 - `Graph.topo()` = dependents-first; reverse for eval order
+- `TxQueue.unbounded()` requires `Effect.Transaction` context
+- `Pool.make()` requires `Scope` in context (use Effect.scoped)
+- `Semaphore.make(n)` returns Effect<Semaphore> (yield* to unwrap)
