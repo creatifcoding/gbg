@@ -52,6 +52,8 @@ import * as Cause from "effect-v4/Cause"
 import * as Semaphore from "effect-v4/Semaphore"
 import * as Pool from "effect-v4/Pool"
 import * as TxQueue from "effect-v4/TxQueue"
+import * as TxHashMap from "effect-v4/TxHashMap"
+import * as Option from "effect-v4/Option"
 import { pipe } from "effect-v4/Function"
 
 // ═══════════════════════════════════════════════════════
@@ -1962,6 +1964,85 @@ describe("F1b: Effect-Native Stack VM", () => {
 
       expect(stages).toContain("formula.compile")
       expect(stages).toContain("formula.execute")
+    })
+  })
+
+  // ─── H23: TxHashMap for multi-cell transactional state ─
+  //
+  // TxHashMap<CellAddr, CellValue> for atomic multi-cell ops.
+  // All reads/writes in same transaction = snapshot isolation.
+
+  describe("H23: TxHashMap for multi-cell transactional state", () => {
+    it("multi-cell read/write in single transaction", async () => {
+      const result = await Effect.runPromise(Effect.transaction(
+        Effect.gen(function*() {
+          const cells = yield* TxHashMap.make<string, number>(
+            ["A1", 10],
+            ["B1", 20],
+          )
+
+          // Read both cells
+          const a1 = yield* TxHashMap.get(cells, "A1")
+          const b1 = yield* TxHashMap.get(cells, "B1")
+
+          // Compute and write C1 = A1 + B1
+          const sum = Option.getOrElse(a1, () => 0) + Option.getOrElse(b1, () => 0)
+          yield* TxHashMap.set(cells, "C1", sum)
+
+          const c1 = yield* TxHashMap.get(cells, "C1")
+          const size = yield* TxHashMap.size(cells)
+
+          return {
+            c1: Option.getOrElse(c1, () => 0),
+            size,
+          }
+        })
+      ))
+
+      expect(result.c1).toBe(30)
+      expect(result.size).toBe(3)
+    })
+
+    it("TxHashMap + TxRef + TxQueue in same transaction", async () => {
+      // The holy trinity: cells + vm state + audit trail — all atomic
+      const result = await Effect.runPromise(Effect.transaction(
+        Effect.gen(function*() {
+          const cells = yield* TxHashMap.make<string, number>(["A1", 5])
+          const vmStack = yield* TxRef.make<number[]>([])
+          const trail = yield* TxQueue.unbounded<string>()
+
+          // Read A1 → push to stack → compute → write B1
+          const a1Val = Option.getOrElse(yield* TxHashMap.get(cells, "A1"), () => 0)
+          yield* TxRef.update(vmStack, (s) => [...s, a1Val])
+          yield* TxQueue.offer(trail, `read A1 = ${a1Val}`)
+
+          yield* TxRef.update(vmStack, (s) => [...s, 3])
+          yield* TxQueue.offer(trail, "push 3")
+
+          // Multiply top two
+          const stack = yield* TxRef.get(vmStack)
+          const [b, a, ...rest] = [...stack].reverse()
+          const product = a * b
+          yield* TxRef.set(vmStack, [...rest.reverse(), product])
+          yield* TxQueue.offer(trail, `mul → ${product}`)
+
+          // Write result to B1
+          yield* TxHashMap.set(cells, "B1", product)
+          yield* TxQueue.offer(trail, `write B1 = ${product}`)
+
+          return {
+            b1: Option.getOrElse(yield* TxHashMap.get(cells, "B1"), () => 0),
+            stack: yield* TxRef.get(vmStack),
+            trail: yield* TxQueue.takeAll(trail),
+          }
+        })
+      ))
+
+      expect(result.b1).toBe(15)       // 5 * 3
+      expect(result.stack).toEqual([15])
+      expect(result.trail).toEqual([
+        "read A1 = 5", "push 3", "mul → 15", "write B1 = 15",
+      ])
     })
   })
 })
