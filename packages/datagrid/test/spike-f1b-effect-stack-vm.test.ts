@@ -194,138 +194,83 @@ function vmEq(a: VMValue, b: VMValue): boolean {
 /**
  * Execute a single opcode against VMState within a transaction.
  * Uses Match.tagsExhaustive for compiler-enforced exhaustive dispatch.
+ * Dispatch function hoisted outside for reuse (avoids per-call Match creation).
  */
+
+// HOISTED: dispatch created once, reused for all execOpcode calls
+const opcodeDispatch = pipe(
+  Match.type<Opcode>(),
+  Match.tagsExhaustive({
+    PUSH_NUM: (o) => { const v = num(o.value); return { result: v, pushVal: v } },
+    PUSH_STR: (o) => { const v = str(o.value); return { result: v, pushVal: v } },
+    PUSH_BOOL: (o) => { const v = bool(o.value); return { result: v, pushVal: v } },
+    ADD: () => ({ binop: (a: VMValue, b: VMValue) => num(asNum(a) + asNum(b)), need: 2, errMsg: "ADD: need 2" }),
+    SUB: () => ({ binop: (a: VMValue, b: VMValue) => num(asNum(a) - asNum(b)), need: 2, errMsg: "SUB: need 2" }),
+    MUL: () => ({ binop: (a: VMValue, b: VMValue) => num(asNum(a) * asNum(b)), need: 2, errMsg: "MUL: need 2" }),
+    DIV: () => ({ binop: (a: VMValue, b: VMValue) => { const bn = asNum(b); return bn === 0 ? err("DIV/0!") : num(asNum(a) / bn) }, need: 2, errMsg: "DIV: need 2" }),
+    DUP: () => ({ dup: true }),
+    SWAP: () => ({ swap: true }),
+    DROP: () => ({ drop: true }),
+    NEG: () => ({ unop: (a: VMValue) => num(-asNum(a)), errMsg: "NEG: empty" }),
+    EQ: () => ({ binop: (a: VMValue, b: VMValue) => bool(vmEq(a, b)), need: 2, errMsg: "EQ: need 2" }),
+    LT: () => ({ binop: (a: VMValue, b: VMValue) => bool(asNum(a) < asNum(b)), need: 2, errMsg: "LT: need 2" }),
+    GT: () => ({ binop: (a: VMValue, b: VMValue) => bool(asNum(a) > asNum(b)), need: 2, errMsg: "GT: need 2" }),
+    NOT: () => ({ unop: (a: VMValue) => bool(a._tag === "bool" ? !a.value : a._tag === "num" ? a.value === 0 : false), errMsg: "NOT: empty" }),
+    SUM_N: (o) => ({ sumN: o.n }),
+    HALT: () => ({ halt: true }),
+  })
+)
+
 const execOpcode = (op: Opcode, state: VMState): VMState => {
   const s = [...state.stack]
   const depthBefore = s.length
 
-  const dispatch = pipe(
-    Match.type<Opcode>(),
-    Match.tagsExhaustive({
-      PUSH_NUM: (o) => {
-        const v = num(o.value)
-        s.push(v)
-        return { result: v }
-      },
-      PUSH_STR: (o) => {
-        const v = str(o.value)
-        s.push(v)
-        return { result: v }
-      },
-      PUSH_BOOL: (o) => {
-        const v = bool(o.value)
-        s.push(v)
-        return { result: v }
-      },
-      ADD: () => {
-        if (s.length < 2) { s.push(err("ADD: need 2")); return { result: s[s.length - 1] } }
-        const b = s.pop()!; const a = s.pop()!
-        const v = num(asNum(a) + asNum(b))
-        s.push(v)
-        return { result: v }
-      },
-      SUB: () => {
-        if (s.length < 2) { s.push(err("SUB: need 2")); return { result: s[s.length - 1] } }
-        const b = s.pop()!; const a = s.pop()!
-        const v = num(asNum(a) - asNum(b))
-        s.push(v)
-        return { result: v }
-      },
-      MUL: () => {
-        if (s.length < 2) { s.push(err("MUL: need 2")); return { result: s[s.length - 1] } }
-        const b = s.pop()!; const a = s.pop()!
-        const v = num(asNum(a) * asNum(b))
-        s.push(v)
-        return { result: v }
-      },
-      DIV: () => {
-        if (s.length < 2) { s.push(err("DIV: need 2")); return { result: s[s.length - 1] } }
-        const b = s.pop()!; const a = s.pop()!
-        const bn = asNum(b)
-        const v = bn === 0 ? err("DIV/0!") : num(asNum(a) / bn)
-        s.push(v)
-        return { result: v }
-      },
-      DUP: () => {
-        if (s.length === 0) { s.push(err("DUP: empty")); return { result: s[s.length - 1] } }
-        const v = s[s.length - 1]
-        s.push(v)
-        return { result: v }
-      },
-      SWAP: () => {
-        if (s.length < 2) { s.push(err("SWAP: need 2")); return { result: s[s.length - 1] } }
-        const b = s.pop()!; const a = s.pop()!
-        s.push(b, a)
-        return {}
-      },
-      DROP: () => {
-        if (s.length === 0) { s.push(err("DROP: empty")); return { result: s[s.length - 1] } }
-        s.pop()
-        return {}
-      },
-      NEG: () => {
-        if (s.length === 0) { s.push(err("NEG: empty")); return { result: s[s.length - 1] } }
-        const a = s.pop()!
-        const v = num(-asNum(a))
-        s.push(v)
-        return { result: v }
-      },
-      EQ: () => {
-        if (s.length < 2) { s.push(err("EQ: need 2")); return { result: s[s.length - 1] } }
-        const b = s.pop()!; const a = s.pop()!
-        const v = bool(vmEq(a, b))
-        s.push(v)
-        return { result: v }
-      },
-      LT: () => {
-        if (s.length < 2) { s.push(err("LT: need 2")); return { result: s[s.length - 1] } }
-        const b = s.pop()!; const a = s.pop()!
-        const v = bool(asNum(a) < asNum(b))
-        s.push(v)
-        return { result: v }
-      },
-      GT: () => {
-        if (s.length < 2) { s.push(err("GT: need 2")); return { result: s[s.length - 1] } }
-        const b = s.pop()!; const a = s.pop()!
-        const v = bool(asNum(a) > asNum(b))
-        s.push(v)
-        return { result: v }
-      },
-      NOT: () => {
-        if (s.length === 0) { s.push(err("NOT: empty")); return { result: s[s.length - 1] } }
-        const a = s.pop()!
-        const v = bool(a._tag === "bool" ? !a.value : a._tag === "num" ? a.value === 0 : false)
-        s.push(v)
-        return { result: v }
-      },
-      SUM_N: (o) => {
-        if (s.length < o.n) { s.push(err(`SUM_N: need ${o.n}`)); return { result: s[s.length - 1] } }
-        let total = 0
-        for (let i = 0; i < o.n; i++) total += asNum(s.pop()!)
-        const v = num(total)
-        s.push(v)
-        return { result: v }
-      },
-      HALT: () => ({ halt: true }),
-    })
-  )
+  const cmd = opcodeDispatch(op) as any
+  let result: VMValue | undefined
 
-  const out = dispatch(op) as { result?: VMValue; halt?: boolean }
+  if (cmd.halt) {
+    // noop
+  } else if (cmd.pushVal) {
+    s.push(cmd.pushVal); result = cmd.result
+  } else if (cmd.binop) {
+    if (s.length < cmd.need) { const e = err(cmd.errMsg); s.push(e); result = e }
+    else { const b = s.pop()!; const a = s.pop()!; const v = cmd.binop(a, b); s.push(v); result = v }
+  } else if (cmd.unop) {
+    if (s.length === 0) { const e = err(cmd.errMsg); s.push(e); result = e }
+    else { const a = s.pop()!; const v = cmd.unop(a); s.push(v); result = v }
+  } else if (cmd.dup) {
+    if (s.length === 0) { const e = err("DUP: empty"); s.push(e); result = e }
+    else { const v = s[s.length - 1]; s.push(v); result = v }
+  } else if (cmd.swap) {
+    if (s.length < 2) { const e = err("SWAP: need 2"); s.push(e); result = e }
+    else { const b = s.pop()!; const a = s.pop()!; s.push(b, a) }
+  } else if (cmd.drop) {
+    if (s.length === 0) { const e = err("DROP: empty"); s.push(e); result = e }
+    else { s.pop() }
+  } else if (cmd.sumN !== undefined) {
+    const n = cmd.sumN
+    if (s.length < n) { const e = err(`SUM_N: need ${n}`); s.push(e); result = e }
+    else { let t = 0; for (let i = 0; i < n; i++) t += asNum(s.pop()!); const v = num(t); s.push(v); result = v }
+  }
 
   const entry: TrailEntry = {
     step: state.step,
     opcode: op._tag,
     stackDepthBefore: depthBefore,
     stackDepthAfter: s.length,
-    result: out.result,
+    result,
   }
+
+  // Mutable push instead of spread copy for trail (O(1) instead of O(n))
+  const trail = state.trail.slice()
+  trail.push(entry)
 
   return {
     stack: s,
     registers: state.registers,
-    trail: [...state.trail, entry],
+    trail,
     step: state.step + 1,
-    halted: out.halt === true,
+    halted: cmd.halt === true,
   }
 }
 
