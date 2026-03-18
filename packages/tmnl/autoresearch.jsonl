@@ -1,0 +1,1 @@
+{"run":10,"commit":"3afa5a3","metric":888,"metrics":{},"status":"keep","description":"H15: Metric observability — counter (eval count), gauge (cache size), histogram (latency distribution with linearBoundaries), snapshot (read all). 59/59 tests, 15 hypotheses, 15 v4 modules. Formula DSL spike complete.","timestamp":1773875043433,"segment":0}

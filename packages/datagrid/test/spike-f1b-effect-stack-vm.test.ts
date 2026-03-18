@@ -46,6 +46,8 @@ import * as Duration from "effect-v4/Duration"
 import * as ServiceMap from "effect-v4/ServiceMap"
 import * as Layer from "effect-v4/Layer"
 import * as Metric from "effect-v4/Metric"
+import * as Scope from "effect-v4/Scope"
+import * as Exit from "effect-v4/Exit"
 import { pipe } from "effect-v4/Function"
 
 // ═══════════════════════════════════════════════════════
@@ -1471,6 +1473,101 @@ describe("F1b: Effect-Native Stack VM", () => {
         expect(counterSnap).toBeDefined()
         expect(gaugeSnap).toBeDefined()
       }))
+    })
+  })
+
+  // ─── H16: Scope/acquireRelease for sandbox lifecycle ─
+  //
+  // Effect.acquireRelease for WASM sandbox init/cleanup.
+  // Effect.scoped auto-closes. Effect.addFinalizer for guards.
+  // Proves resource safety for sandboxed formula eval.
+
+  describe("H16: Scope/acquireRelease for sandbox lifecycle", () => {
+    // Simulate a WASM sandbox context
+    interface SandboxContext {
+      readonly id: string
+      readonly memory: number
+      evaluate: (ir: StackIR) => VMState
+    }
+
+    it("acquireRelease manages sandbox lifecycle", async () => {
+      const lifecycle: string[] = []
+
+      const sandbox = Effect.acquireRelease(
+        // Acquire: create sandbox
+        Effect.sync(() => {
+          lifecycle.push("acquire")
+          const ctx: SandboxContext = {
+            id: "sandbox-1",
+            memory: 256,
+            evaluate: (ir) => Effect.runSync(evalProgram(ir)),
+          }
+          return ctx
+        }),
+        // Release: cleanup sandbox
+        (ctx, exit) => Effect.sync(() => {
+          lifecycle.push(`release:${Exit.isSuccess(exit) ? "ok" : "fail"}`)
+        }),
+      )
+
+      const result = await Effect.runPromise(Effect.scoped(
+        Effect.gen(function*() {
+          const ctx = yield* sandbox
+          lifecycle.push("use")
+          return ctx.evaluate([
+            { _tag: "PUSH_NUM", value: 42 },
+            { _tag: "PUSH_NUM", value: 8 },
+            { _tag: "ADD" },
+          ])
+        })
+      ))
+
+      expect(result.stack[0]).toEqual(num(50))
+      expect(lifecycle).toEqual(["acquire", "use", "release:ok"])
+    })
+
+    it("release runs even on failure", async () => {
+      const lifecycle: string[] = []
+
+      const sandbox = Effect.acquireRelease(
+        Effect.sync(() => {
+          lifecycle.push("acquire")
+          return { id: "sandbox-fail" }
+        }),
+        (_ctx, exit) => Effect.sync(() => {
+          lifecycle.push(`release:${Exit.isSuccess(exit) ? "ok" : "fail"}`)
+        }),
+      )
+
+      const result = await Effect.runPromise(
+        Effect.scoped(
+          Effect.gen(function*() {
+            yield* sandbox
+            lifecycle.push("use")
+            yield* Effect.fail("intentional error")
+          })
+        ).pipe(Effect.catch(() => Effect.succeed("caught")))
+      )
+
+      expect(result).toBe("caught")
+      expect(lifecycle).toEqual(["acquire", "use", "release:fail"])
+    })
+
+    it("addFinalizer registers cleanup in scope", async () => {
+      const cleanups: string[] = []
+
+      await Effect.runPromise(Effect.scoped(
+        Effect.gen(function*() {
+          yield* Effect.addFinalizer((exit) =>
+            Effect.sync(() => {
+              cleanups.push(`finalizer:${Exit.isSuccess(exit) ? "ok" : "fail"}`)
+            })
+          )
+          cleanups.push("main work")
+        })
+      ))
+
+      expect(cleanups).toEqual(["main work", "finalizer:ok"])
     })
   })
 })
