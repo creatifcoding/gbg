@@ -51,6 +51,7 @@ import * as Exit from "effect-v4/Exit"
 import * as Cause from "effect-v4/Cause"
 import * as Semaphore from "effect-v4/Semaphore"
 import * as Pool from "effect-v4/Pool"
+import * as TxQueue from "effect-v4/TxQueue"
 import { pipe } from "effect-v4/Function"
 
 // ═══════════════════════════════════════════════════════
@@ -1776,6 +1777,67 @@ describe("F1b: Effect-Native Stack VM", () => {
           expect(id1).toBe(id2) // Same pooled instance
         })
       ))
+    })
+  })
+
+  // ─── H20: TxQueue for append-only trail ───────────
+  //
+  // TxQueue.unbounded inside Effect.transaction — trail entries
+  // committed atomically with VM state changes.
+  // Proves transactional append-only trail for formula audit.
+
+  describe("H20: TxQueue for append-only trail", () => {
+    it("offer entries inside transaction, takeAll to drain", async () => {
+      const result = await Effect.runPromise(Effect.transaction(
+        Effect.gen(function*() {
+          const trail = yield* TxQueue.unbounded<{ step: number; op: string }>()
+
+          yield* TxQueue.offer(trail, { step: 0, op: "PUSH_NUM(3)" })
+          yield* TxQueue.offer(trail, { step: 1, op: "PUSH_NUM(4)" })
+          yield* TxQueue.offer(trail, { step: 2, op: "ADD" })
+
+          const entries = yield* TxQueue.takeAll(trail)
+          return entries
+        })
+      ))
+
+      expect(result).toEqual([
+        { step: 0, op: "PUSH_NUM(3)" },
+        { step: 1, op: "PUSH_NUM(4)" },
+        { step: 2, op: "ADD" },
+      ])
+    })
+
+    it("TxQueue + TxRef in same transaction — atomic state+trail", async () => {
+      const result = await Effect.runPromise(Effect.transaction(
+        Effect.gen(function*() {
+          const stack = yield* TxRef.make<number[]>([])
+          const trail = yield* TxQueue.unbounded<string>()
+
+          // Push 10
+          yield* TxRef.update(stack, (s) => [...s, 10])
+          yield* TxQueue.offer(trail, "push(10)")
+
+          // Push 20
+          yield* TxRef.update(stack, (s) => [...s, 20])
+          yield* TxQueue.offer(trail, "push(20)")
+
+          // Add
+          yield* TxRef.update(stack, (s) => {
+            const [a, b, ...rest] = [...s].reverse()
+            return [...rest.reverse(), a + b]
+          })
+          yield* TxQueue.offer(trail, "add -> 30")
+
+          return {
+            stack: yield* TxRef.get(stack),
+            trail: yield* TxQueue.takeAll(trail),
+          }
+        })
+      ))
+
+      expect(result.stack).toEqual([30])
+      expect(result.trail).toEqual(["push(10)", "push(20)", "add -> 30"])
     })
   })
 })
