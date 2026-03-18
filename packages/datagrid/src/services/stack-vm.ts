@@ -1,0 +1,848 @@
+/**
+ * Stack VM — Effect-native formula evaluation engine.
+ *
+ * Extracted from spike-f1b (25 hypotheses proven across 23 Effect v4 modules).
+ *
+ * ## Error Architecture
+ *
+ * Three error channels, each with distinct consumers and recovery semantics:
+ *
+ * ### 1. VMValue errors (inline, on the stack)
+ * - `VMError { _tag: "error", message, code }` — lives ON the value stack
+ * - Consumer: Cell UI (renders as #ERROR!, #DIV/0!, #REF!, etc.)
+ * - Recovery: None needed — it IS the result. Downstream formulas propagate it.
+ * - Examples: DIV/0, stack underflow, type mismatch, circular ref
+ * - These are NOT failures — the VM succeeded, the result is an error value.
+ *
+ * ### 2. Effect E channel (typed, recoverable failures)
+ * - Tagged error classes in the Effect<A, E, R> error channel
+ * - Consumer: Service layer, formula bar UI, retry logic
+ * - Recovery: `catchTag` / `catchTags` for structured handling
+ * - `CompileError`  — malformed expression, unknown token (show in formula bar)
+ * - `EvalError`     — runtime eval failure (corrupt state, assertion violation)
+ * - `TimeoutError`  — formula exceeded deadline (cancel, show timeout in cell)
+ * - `ResourceError` — sandbox/pool exhausted (backpressure, retry later)
+ *
+ * ### 3. Defects (unexpected, unrecoverable)
+ * - `Effect.die` / thrown exceptions — bugs in the VM itself
+ * - Consumer: Error log, crash reporter, developer
+ * - Recovery: None — indicates a bug. Log and propagate.
+ * - Examples: Match exhaustive miss (impossible), TxRef corruption
+ *
+ * ## Error Code Registry
+ *
+ * VMValue errors carry a `code` field for machine-readable categorization:
+ * - `STACK_UNDERFLOW` — operation requires more values than available
+ * - `DIV_ZERO`        — division by zero
+ * - `TYPE_MISMATCH`   — operand type not compatible with operation
+ * - `CIRCULAR_REF`    — formula dependency cycle detected
+ * - `UNKNOWN_TOKEN`   — compiler encountered unrecognized token
+ * - `EVAL_OVERFLOW`   — step limit exceeded (infinite loop guard)
+ *
+ * @module stack-vm
+ */
+
+import * as Effect from "effect-v4/Effect"
+import * as Schema from "effect-v4/Schema"
+import * as TxRef from "effect-v4/TxRef"
+import * as Match from "effect-v4/Match"
+import * as Data from "effect-v4/Data"
+import * as ServiceMap from "effect-v4/ServiceMap"
+import * as Layer from "effect-v4/Layer"
+import * as Cache from "effect-v4/Cache"
+import * as Duration from "effect-v4/Duration"
+import * as Metric from "effect-v4/Metric"
+import * as Semaphore from "effect-v4/Semaphore"
+import * as Cause from "effect-v4/Cause"
+import { pipe } from "effect-v4/Function"
+
+// ═══════════════════════════════════════════════════════
+// ERROR CODE REGISTRY
+// ═══════════════════════════════════════════════════════
+
+/**
+ * Machine-readable error codes for VMValue errors.
+ * These are the codes that appear in cells (e.g., #DIV/0!, #REF!)
+ */
+export const VMErrorCode = Schema.Literal(
+  "STACK_UNDERFLOW",
+  "DIV_ZERO",
+  "TYPE_MISMATCH",
+  "CIRCULAR_REF",
+  "UNKNOWN_TOKEN",
+  "EVAL_OVERFLOW",
+  "GENERAL",
+)
+export type VMErrorCode = typeof VMErrorCode.Type
+
+/**
+ * Human-readable display labels for cell UI.
+ * Maps error codes to spreadsheet-convention display strings.
+ */
+export const errorCodeDisplay: Record<VMErrorCode, string> = {
+  STACK_UNDERFLOW: "#VALUE!",
+  DIV_ZERO: "#DIV/0!",
+  TYPE_MISMATCH: "#TYPE!",
+  CIRCULAR_REF: "#REF!",
+  UNKNOWN_TOKEN: "#NAME?",
+  EVAL_OVERFLOW: "#CALC!",
+  GENERAL: "#ERROR!",
+}
+
+// ═══════════════════════════════════════════════════════
+// VMVALUE SCHEMAS (channel 1: inline on stack)
+// ═══════════════════════════════════════════════════════
+
+export const VMNum = Schema.TaggedStruct("num", { value: Schema.Number })
+export const VMStr = Schema.TaggedStruct("str", { value: Schema.String })
+export const VMBool = Schema.TaggedStruct("bool", { value: Schema.Boolean })
+export const VMError = Schema.TaggedStruct("error", {
+  message: Schema.String,
+  code: VMErrorCode,
+})
+
+export const VMValue = Schema.Union([VMNum, VMStr, VMBool, VMError])
+export type VMValue = typeof VMValue.Type
+
+// ─── Constructors ───────────────────────────────────
+
+export const num = (v: number): VMValue => ({ _tag: "num", value: v })
+export const str = (v: string): VMValue => ({ _tag: "str", value: v })
+export const bool = (v: boolean): VMValue => ({ _tag: "bool", value: v })
+
+/** Create an inline error value with code + message */
+export const vmError = (code: VMErrorCode, message: string): VMValue =>
+  ({ _tag: "error", message, code })
+
+/** Legacy shorthand — uses GENERAL code */
+export const err = (msg: string): VMValue => vmError("GENERAL", msg)
+
+// ─── VMValue utilities ──────────────────────────────
+
+/** Check if a VMValue is an error */
+export const isVMError = (v: VMValue): v is typeof VMError.Type =>
+  v._tag === "error"
+
+/** Check if a VMValue is numeric (num or bool-as-num) */
+export const isNumeric = (v: VMValue): boolean =>
+  v._tag === "num" || v._tag === "bool"
+
+/** Extract numeric value, or return undefined if not numeric */
+export const toNumber = (v: VMValue): number | undefined => {
+  if (v._tag === "num") return v.value
+  if (v._tag === "bool") return v.value ? 1 : 0
+  return undefined
+}
+
+/** Extract numeric value, throwing on non-numeric (defect in caller) */
+export function asNum(v: VMValue): number {
+  if (v._tag === "num") return v.value
+  if (v._tag === "bool") return v.value ? 1 : 0
+  throw new Error(`Expected num, got ${v._tag}`)
+}
+
+/** Structural equality for VMValues */
+export function vmEq(a: VMValue, b: VMValue): boolean {
+  if (a._tag !== b._tag) return false
+  if (a._tag === "num" && b._tag === "num") return a.value === b.value
+  if (a._tag === "str" && b._tag === "str") return a.value === b.value
+  if (a._tag === "bool" && b._tag === "bool") return a.value === b.value
+  return false
+}
+
+/** Get display string for a VMValue (for cell rendering) */
+export const vmDisplay = (v: VMValue): string => {
+  switch (v._tag) {
+    case "num": return String(v.value)
+    case "str": return v.value
+    case "bool": return v.value ? "TRUE" : "FALSE"
+    case "error": return errorCodeDisplay[v.code] ?? `#ERROR!`
+  }
+}
+
+/** Propagate error: if any input is error, return it (error propagation rule) */
+export const propagateError = (...values: VMValue[]): VMValue | undefined =>
+  values.find(isVMError)
+
+// ═══════════════════════════════════════════════════════
+// EFFECT ERROR TYPES (channel 2: typed E channel)
+// ═══════════════════════════════════════════════════════
+
+/**
+ * Compile-time error — malformed expression or unknown token.
+ *
+ * **Consumer**: Formula bar UI (red underline, error tooltip)
+ * **Recovery**: User fixes the expression. No retry.
+ * **When**: compileExpr() encounters bad input
+ */
+export class CompileError extends Data.TaggedError("CompileError")<{
+  readonly expr: string
+  readonly token?: string
+  readonly position?: number
+  readonly reason: string
+}> {}
+
+/**
+ * Runtime evaluation error — VM entered an unexpected state.
+ *
+ * **Consumer**: Error log, developer debugging
+ * **Recovery**: Possible retry with fresh state. Usually indicates a bug.
+ * **When**: Assertion failure inside eval loop, state corruption
+ */
+export class EvalError extends Data.TaggedError("EvalError")<{
+  readonly step: number
+  readonly opcode: string
+  readonly reason: string
+  readonly snapshot?: VMState
+}> {}
+
+/**
+ * Resource exhaustion — sandbox pool empty, semaphore full.
+ *
+ * **Consumer**: Service layer retry logic, backpressure system
+ * **Recovery**: Retry with exponential backoff, or queue for later eval
+ * **When**: All WASM sandbox instances busy, concurrent eval limit hit
+ */
+export class ResourceError extends Data.TaggedError("ResourceError")<{
+  readonly resource: string
+  readonly reason: string
+}> {}
+
+/**
+ * Union of all recoverable VM errors for the Effect E channel.
+ *
+ * Use with `Effect.catchTags` for exhaustive handling:
+ * ```ts
+ * pipe(
+ *   vm.evalExpr("bad formula"),
+ *   Effect.catchTags({
+ *     CompileError: (e) => Effect.succeed(vmError("UNKNOWN_TOKEN", e.reason)),
+ *     EvalError: (e) => Effect.succeed(vmError("GENERAL", e.reason)),
+ *     ResourceError: (e) => Effect.retry(original, Schedule.exponential("100 millis")),
+ *   })
+ * )
+ * ```
+ *
+ * TimeoutError is from Effect.timeout — Cause.TimeoutError, not in this union.
+ */
+export type VMFailure = CompileError | EvalError | ResourceError
+
+// ─── Error utilities for Effect channel ─────────────
+
+/** Convert an Effect channel error into an inline VMValue error for cell display */
+export const failureToVMError = (failure: VMFailure): VMValue => {
+  switch (failure._tag) {
+    case "CompileError":
+      return vmError("UNKNOWN_TOKEN", failure.reason)
+    case "EvalError":
+      return vmError("GENERAL", failure.reason)
+    case "ResourceError":
+      return vmError("GENERAL", `Resource unavailable: ${failure.resource}`)
+  }
+}
+
+/** Convert a Cause.TimeoutError into an inline VMValue error */
+export const timeoutToVMError = (): VMValue =>
+  vmError("EVAL_OVERFLOW", "Formula evaluation timed out")
+
+/**
+ * Catch all VM failures and convert to inline error state.
+ * Use at the service boundary to ensure cells always get a value.
+ *
+ * ```ts
+ * const safeResult = pipe(
+ *   vm.evalExpr(formula),
+ *   StackVM.catchToErrorState,
+ * )
+ * ```
+ */
+export const catchToErrorState = <R>(
+  self: Effect.Effect<VMState, VMFailure | Cause.TimeoutError, R>,
+): Effect.Effect<VMState, never, R> =>
+  self.pipe(
+    Effect.catch((error) => {
+      const errorValue = Cause.isTimeoutError(error)
+        ? timeoutToVMError()
+        : failureToVMError(error as VMFailure)
+      return Effect.succeed({
+        stack: [errorValue],
+        registers: {},
+        trail: [],
+        step: 0,
+        halted: true,
+      })
+    }),
+  )
+
+// ═══════════════════════════════════════════════════════
+// OPCODES
+// ═══════════════════════════════════════════════════════
+
+export const PUSH_NUM = Schema.TaggedStruct("PUSH_NUM", { value: Schema.Number })
+export const PUSH_STR = Schema.TaggedStruct("PUSH_STR", { value: Schema.String })
+export const PUSH_BOOL = Schema.TaggedStruct("PUSH_BOOL", { value: Schema.Boolean })
+export const ADD = Schema.TaggedStruct("ADD", {})
+export const SUB = Schema.TaggedStruct("SUB", {})
+export const MUL = Schema.TaggedStruct("MUL", {})
+export const DIV = Schema.TaggedStruct("DIV", {})
+export const DUP = Schema.TaggedStruct("DUP", {})
+export const SWAP = Schema.TaggedStruct("SWAP", {})
+export const DROP = Schema.TaggedStruct("DROP", {})
+export const NEG = Schema.TaggedStruct("NEG", {})
+export const EQ = Schema.TaggedStruct("EQ", {})
+export const LT = Schema.TaggedStruct("LT", {})
+export const GT = Schema.TaggedStruct("GT", {})
+export const NOT = Schema.TaggedStruct("NOT", {})
+export const SUM_N = Schema.TaggedStruct("SUM_N", { n: Schema.Number })
+export const HALT = Schema.TaggedStruct("HALT", {})
+
+export const Opcode = Schema.Union([
+  PUSH_NUM, PUSH_STR, PUSH_BOOL,
+  ADD, SUB, MUL, DIV,
+  DUP, SWAP, DROP, NEG,
+  EQ, LT, GT, NOT,
+  SUM_N, HALT,
+])
+export type Opcode = typeof Opcode.Type
+
+export type StackIR = ReadonlyArray<Opcode>
+
+// ═══════════════════════════════════════════════════════
+// TRAIL + VM STATE
+// ═══════════════════════════════════════════════════════
+
+export interface TrailEntry {
+  readonly step: number
+  readonly opcode: string
+  readonly stackDepthBefore: number
+  readonly stackDepthAfter: number
+  readonly result?: VMValue
+}
+
+export interface VMState {
+  readonly stack: VMValue[]
+  readonly registers: Record<string, VMValue>
+  readonly trail: TrailEntry[]
+  readonly step: number
+  readonly halted: boolean
+}
+
+export const emptyState = (): VMState => ({
+  stack: [],
+  registers: {},
+  trail: [],
+  step: 0,
+  halted: false,
+})
+
+// ─── Schema-backed VMState for differ / serialization ─
+
+export const TrailEntrySchema = Schema.Struct({
+  step: Schema.Number,
+  opcode: Schema.String,
+  stackDepthBefore: Schema.Number,
+  stackDepthAfter: Schema.Number,
+  result: Schema.optional(VMValue),
+})
+
+export const VMStateSchema = Schema.Struct({
+  stack: Schema.Array(VMValue),
+  registers: Schema.Record(Schema.String, VMValue),
+  trail: Schema.Array(TrailEntrySchema),
+  step: Schema.Number,
+  halted: Schema.Boolean,
+})
+
+export const vmStateDiffer = Schema.toDifferJsonPatch(VMStateSchema)
+
+// ═══════════════════════════════════════════════════════
+// DISPATCH (hoisted for performance)
+// ═══════════════════════════════════════════════════════
+
+/**
+ * @internal Hoisted Match dispatch — created once, reused for all evals.
+ *
+ * Each handler returns a command descriptor. The execOpcode interpreter
+ * reads the descriptor and mutates the stack. This two-phase design
+ * keeps Match pure while allowing mutable stack ops.
+ *
+ * Error propagation rule: if any operand is a VMError, propagate it
+ * instead of computing. This mirrors spreadsheet semantics.
+ */
+const opcodeDispatch = pipe(
+  Match.type<Opcode>(),
+  Match.tagsExhaustive({
+    PUSH_NUM: (o) => ({ result: num(o.value), pushVal: num(o.value) }),
+    PUSH_STR: (o) => ({ result: str(o.value), pushVal: str(o.value) }),
+    PUSH_BOOL: (o) => ({ result: bool(o.value), pushVal: bool(o.value) }),
+    ADD: () => ({
+      binop: (a: VMValue, b: VMValue) => {
+        const pe = propagateError(a, b); if (pe) return pe
+        return num(asNum(a) + asNum(b))
+      },
+      need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "ADD requires 2 operands",
+    }),
+    SUB: () => ({
+      binop: (a: VMValue, b: VMValue) => {
+        const pe = propagateError(a, b); if (pe) return pe
+        return num(asNum(a) - asNum(b))
+      },
+      need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "SUB requires 2 operands",
+    }),
+    MUL: () => ({
+      binop: (a: VMValue, b: VMValue) => {
+        const pe = propagateError(a, b); if (pe) return pe
+        return num(asNum(a) * asNum(b))
+      },
+      need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "MUL requires 2 operands",
+    }),
+    DIV: () => ({
+      binop: (a: VMValue, b: VMValue) => {
+        const pe = propagateError(a, b); if (pe) return pe
+        const bn = asNum(b)
+        return bn === 0 ? vmError("DIV_ZERO", "Division by zero") : num(asNum(a) / bn)
+      },
+      need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "DIV requires 2 operands",
+    }),
+    DUP: () => ({ dup: true }),
+    SWAP: () => ({ swap: true }),
+    DROP: () => ({ drop: true }),
+    NEG: () => ({
+      unop: (a: VMValue) => {
+        if (isVMError(a)) return a
+        return num(-asNum(a))
+      },
+      errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "NEG requires 1 operand",
+    }),
+    EQ: () => ({
+      binop: (a: VMValue, b: VMValue) => {
+        const pe = propagateError(a, b); if (pe) return pe
+        return bool(vmEq(a, b))
+      },
+      need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "EQ requires 2 operands",
+    }),
+    LT: () => ({
+      binop: (a: VMValue, b: VMValue) => {
+        const pe = propagateError(a, b); if (pe) return pe
+        return bool(asNum(a) < asNum(b))
+      },
+      need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "LT requires 2 operands",
+    }),
+    GT: () => ({
+      binop: (a: VMValue, b: VMValue) => {
+        const pe = propagateError(a, b); if (pe) return pe
+        return bool(asNum(a) > asNum(b))
+      },
+      need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "GT requires 2 operands",
+    }),
+    NOT: () => ({
+      unop: (a: VMValue) => {
+        if (isVMError(a)) return a
+        return bool(a._tag === "bool" ? !a.value : a._tag === "num" ? a.value === 0 : false)
+      },
+      errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "NOT requires 1 operand",
+    }),
+    SUM_N: (o) => ({ sumN: o.n }),
+    HALT: () => ({ halt: true }),
+  })
+)
+
+// ═══════════════════════════════════════════════════════
+// OPCODE EXECUTION
+// ═══════════════════════════════════════════════════════
+
+/** Maximum steps per eval to prevent infinite loops */
+export const MAX_EVAL_STEPS = 100_000
+
+/**
+ * Execute a single opcode against VMState, returning new state.
+ *
+ * Error handling:
+ * - Stack underflow → pushes VMError with STACK_UNDERFLOW code
+ * - DIV/0 → pushes VMError with DIV_ZERO code
+ * - Error propagation → if operand is error, result is that error
+ * - Step overflow → sets halted=true, pushes EVAL_OVERFLOW error
+ *
+ * These are all inline errors (channel 1) — the eval itself succeeds.
+ */
+export const execOpcode = (op: Opcode, state: VMState): VMState => {
+  // Step overflow guard
+  if (state.step >= MAX_EVAL_STEPS) {
+    return {
+      ...state,
+      stack: [...state.stack, vmError("EVAL_OVERFLOW", `Exceeded ${MAX_EVAL_STEPS} steps`)],
+      halted: true,
+    }
+  }
+
+  const s = [...state.stack]
+  const depthBefore = s.length
+  const cmd = opcodeDispatch(op) as any
+  let result: VMValue | undefined
+
+  if (cmd.halt) {
+    // noop — halted flag set below
+  } else if (cmd.pushVal) {
+    s.push(cmd.pushVal); result = cmd.result
+  } else if (cmd.binop) {
+    if (s.length < cmd.need) {
+      const e = vmError(cmd.errCode, cmd.errMsg); s.push(e); result = e
+    } else {
+      const b = s.pop()!; const a = s.pop()!
+      const v = cmd.binop(a, b); s.push(v); result = v
+    }
+  } else if (cmd.unop) {
+    if (s.length === 0) {
+      const e = vmError(cmd.errCode, cmd.errMsg); s.push(e); result = e
+    } else {
+      const a = s.pop()!; const v = cmd.unop(a); s.push(v); result = v
+    }
+  } else if (cmd.dup) {
+    if (s.length === 0) {
+      const e = vmError("STACK_UNDERFLOW", "DUP requires 1 operand"); s.push(e); result = e
+    } else {
+      const v = s[s.length - 1]; s.push(v); result = v
+    }
+  } else if (cmd.swap) {
+    if (s.length < 2) {
+      const e = vmError("STACK_UNDERFLOW", "SWAP requires 2 operands"); s.push(e); result = e
+    } else {
+      const b = s.pop()!; const a = s.pop()!; s.push(b, a)
+    }
+  } else if (cmd.drop) {
+    if (s.length === 0) {
+      const e = vmError("STACK_UNDERFLOW", "DROP requires 1 operand"); s.push(e); result = e
+    } else {
+      s.pop()
+    }
+  } else if (cmd.sumN !== undefined) {
+    const n = cmd.sumN
+    if (s.length < n) {
+      const e = vmError("STACK_UNDERFLOW", `SUM_N requires ${n} operands`); s.push(e); result = e
+    } else {
+      // Error propagation: if any value is error, result is that error
+      const values: VMValue[] = []
+      for (let i = 0; i < n; i++) values.push(s.pop()!)
+      const firstErr = values.find(isVMError)
+      if (firstErr) {
+        s.push(firstErr); result = firstErr
+      } else {
+        let t = 0
+        for (const v of values) t += asNum(v)
+        const r = num(t); s.push(r); result = r
+      }
+    }
+  }
+
+  const entry: TrailEntry = {
+    step: state.step,
+    opcode: op._tag,
+    stackDepthBefore: depthBefore,
+    stackDepthAfter: s.length,
+    result,
+  }
+
+  const trail = state.trail as TrailEntry[]
+  trail.push(entry)
+
+  return {
+    stack: s,
+    registers: state.registers,
+    trail,
+    step: state.step + 1,
+    halted: cmd.halt === true,
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// TRANSACTIONAL EVAL
+// ═══════════════════════════════════════════════════════
+
+/** Run StackIR transactionally against a TxRef<VMState> */
+export const runIR = (
+  ref: TxRef.TxRef<VMState>,
+  ir: StackIR,
+): Effect.Effect<VMState, never, Effect.Transaction> =>
+  Effect.gen(function*() {
+    for (const op of ir) {
+      const current = yield* TxRef.get(ref)
+      if (current.halted) break
+      yield* TxRef.set(ref, execOpcode(op, current))
+    }
+    return yield* TxRef.get(ref)
+  })
+
+/** Run an Effect<VMValue> program, pushing result onto stack */
+export const runEffect = (
+  ref: TxRef.TxRef<VMState>,
+  program: Effect.Effect<VMValue>,
+): Effect.Effect<VMState, never, Effect.Transaction> =>
+  Effect.gen(function*() {
+    const value = yield* Effect.orDie(program)
+    const state = yield* TxRef.get(ref)
+    const newStack = [...state.stack, value]
+    const entry: TrailEntry = {
+      step: state.step,
+      opcode: "EFFECT",
+      stackDepthBefore: state.stack.length,
+      stackDepthAfter: newStack.length,
+      result: value,
+    }
+    const trail = state.trail as TrailEntry[]
+    trail.push(entry)
+    yield* TxRef.set(ref, { ...state, stack: newStack, trail, step: state.step + 1 })
+    return yield* TxRef.get(ref)
+  })
+
+// ═══════════════════════════════════════════════════════
+// COMPILER (Shunting-Yard, string → StackIR)
+// ═══════════════════════════════════════════════════════
+
+/**
+ * Compile RPN expression string to StackIR.
+ *
+ * Fails with CompileError (Effect E channel) on invalid tokens.
+ * This is a recoverable error — the user should fix the expression.
+ */
+export const compileExpr = (expr: string): Effect.Effect<StackIR, CompileError> => {
+  const tokens = expr.trim().split(/\s+/)
+  const ops: Opcode[] = []
+
+  for (let i = 0; i < tokens.length; i++) {
+    const tok = tokens[i]
+    if (tok === "") continue
+
+    const n = Number(tok)
+    if (!Number.isNaN(n)) {
+      ops.push({ _tag: "PUSH_NUM", value: n })
+      continue
+    }
+
+    switch (tok) {
+      case "+": ops.push({ _tag: "ADD" }); break
+      case "-": ops.push({ _tag: "SUB" }); break
+      case "*": ops.push({ _tag: "MUL" }); break
+      case "/": ops.push({ _tag: "DIV" }); break
+      case "DUP": ops.push({ _tag: "DUP" }); break
+      case "SWAP": ops.push({ _tag: "SWAP" }); break
+      case "DROP": ops.push({ _tag: "DROP" }); break
+      case "NEG": ops.push({ _tag: "NEG" }); break
+      case "HALT": ops.push({ _tag: "HALT" }); break
+      case "true": ops.push({ _tag: "PUSH_BOOL", value: true }); break
+      case "false": ops.push({ _tag: "PUSH_BOOL", value: false }); break
+      default:
+        return Effect.fail(new CompileError({
+          expr,
+          token: tok,
+          position: i,
+          reason: `Unknown token: "${tok}"`,
+        }))
+    }
+  }
+
+  return Effect.succeed(ops)
+}
+
+/**
+ * Compile RPN expression synchronously.
+ * Throws CompileError on failure (for use in hot paths where Effect overhead is unwanted).
+ */
+export const compileExprSync = (expr: string): StackIR => {
+  const tokens = expr.trim().split(/\s+/)
+  const ops: Opcode[] = []
+
+  for (let i = 0; i < tokens.length; i++) {
+    const tok = tokens[i]
+    if (tok === "") continue
+    const n = Number(tok)
+    if (!Number.isNaN(n)) { ops.push({ _tag: "PUSH_NUM", value: n }); continue }
+    switch (tok) {
+      case "+": ops.push({ _tag: "ADD" }); break
+      case "-": ops.push({ _tag: "SUB" }); break
+      case "*": ops.push({ _tag: "MUL" }); break
+      case "/": ops.push({ _tag: "DIV" }); break
+      case "DUP": ops.push({ _tag: "DUP" }); break
+      case "SWAP": ops.push({ _tag: "SWAP" }); break
+      case "DROP": ops.push({ _tag: "DROP" }); break
+      case "NEG": ops.push({ _tag: "NEG" }); break
+      case "HALT": ops.push({ _tag: "HALT" }); break
+      case "true": ops.push({ _tag: "PUSH_BOOL", value: true }); break
+      case "false": ops.push({ _tag: "PUSH_BOOL", value: false }); break
+      default:
+        throw new CompileError({ expr, token: tok, position: i, reason: `Unknown token: "${tok}"` })
+    }
+  }
+  return ops
+}
+
+// ═══════════════════════════════════════════════════════
+// DUAL EVAL
+// ═══════════════════════════════════════════════════════
+
+export type EvalInput =
+  | { readonly _tag: "ir"; readonly program: StackIR }
+  | { readonly _tag: "effect"; readonly program: Effect.Effect<VMValue> }
+  | { readonly _tag: "string"; readonly expr: string }
+
+/** Dual eval — StackIR | Effect<VMValue> | string */
+export const dualEval = (
+  ref: TxRef.TxRef<VMState>,
+  input: EvalInput,
+): Effect.Effect<VMState, CompileError, Effect.Transaction> => {
+  switch (input._tag) {
+    case "ir": return runIR(ref, input.program)
+    case "effect": return runEffect(ref, input.program)
+    case "string":
+      return Effect.gen(function*() {
+        const ir = yield* compileExpr(input.expr)
+        return yield* runIR(ref, ir)
+      })
+  }
+}
+
+/** Run a StackIR program with fresh state */
+export const evalProgram = (ir: StackIR): Effect.Effect<VMState> =>
+  Effect.transaction(
+    Effect.gen(function*() {
+      const ref = yield* TxRef.make(emptyState())
+      return yield* runIR(ref, ir)
+    })
+  )
+
+/** Run an expression string with fresh state (can fail with CompileError) */
+export const evalExpr = (expr: string): Effect.Effect<VMState, CompileError> =>
+  Effect.gen(function*() {
+    const ir = yield* compileExpr(expr)
+    return yield* evalProgram(ir)
+  })
+
+// ═══════════════════════════════════════════════════════
+// SERVICE
+// ═══════════════════════════════════════════════════════
+
+/** StackVM service interface */
+export class StackVM extends ServiceMap.Service<StackVM, {
+  /** Evaluate compiled StackIR */
+  readonly eval: (ir: StackIR) => Effect.Effect<VMState>
+  /** Evaluate RPN expression string (may fail with CompileError) */
+  readonly evalExpr: (expr: string) => Effect.Effect<VMState, CompileError | Cause.TimeoutError>
+  /** Evaluate an Effect program that produces a VMValue */
+  readonly evalEffect: (program: Effect.Effect<VMValue>) => Effect.Effect<VMState>
+  /** Compile expression without evaluating (may fail with CompileError) */
+  readonly compile: (expr: string) => Effect.Effect<StackIR, CompileError>
+  /** Invalidate cached result for an expression */
+  readonly invalidate: (expr: string) => Effect.Effect<void>
+}>()("tmnl/datagrid/StackVM") {
+  /**
+   * Convenience: catch all failures and return error VMState.
+   * Use at service boundaries to guarantee cells always get a displayable value.
+   */
+  static catchToErrorState = catchToErrorState
+}
+
+// ─── Metrics ────────────────────────────────────────
+
+export const evalCounter = Metric.counter("tmnl.formula.eval_count")
+export const evalErrorCounter = Metric.counter("tmnl.formula.eval_error_count")
+export const compileErrorCounter = Metric.counter("tmnl.formula.compile_error_count")
+export const evalLatency = Metric.histogram("tmnl.formula.eval_latency_ms", {
+  boundaries: Metric.linearBoundaries({ start: 0, width: 10, count: 20 }),
+})
+export const cacheHitCounter = Metric.counter("tmnl.formula.cache_hit_count")
+
+// ─── Service Configuration ──────────────────────────
+
+export interface StackVMConfig {
+  readonly cacheCapacity?: number
+  readonly cacheTtlSeconds?: number
+  readonly maxConcurrency?: number
+  readonly evalTimeoutMs?: number
+  readonly maxSteps?: number
+}
+
+const defaultConfig: Required<StackVMConfig> = {
+  cacheCapacity: 256,
+  cacheTtlSeconds: 60,
+  maxConcurrency: 4,
+  evalTimeoutMs: 5000,
+  maxSteps: MAX_EVAL_STEPS,
+}
+
+// ─── Layer ──────────────────────────────────────────
+
+/** Create StackVM Layer with full pipeline: Cache + Metric + Semaphore + Span + Timeout */
+export const StackVMLive = (config?: StackVMConfig): Layer.Layer<StackVM> => {
+  const c = { ...defaultConfig, ...config }
+
+  return Layer.effect(StackVM, Effect.gen(function*() {
+    const cache = yield* Cache.make({
+      capacity: c.cacheCapacity,
+      timeToLive: Duration.seconds(c.cacheTtlSeconds),
+      lookup: (expr: string) =>
+        Effect.gen(function*() {
+          const ir = compileExprSync(expr)
+          return yield* evalProgram(ir)
+        }),
+    })
+
+    const sem = yield* Semaphore.make(c.maxConcurrency)
+
+    return StackVM.of({
+      eval: (ir) =>
+        sem.withPermits(1)(
+          Effect.gen(function*() {
+            yield* Metric.update(evalCounter, 1)
+            const state = yield* evalProgram(ir)
+            // Track error values in metrics
+            if (state.stack.some(isVMError)) {
+              yield* Metric.update(evalErrorCounter, 1)
+            }
+            return state
+          }).pipe(
+            Effect.timeout(`${c.evalTimeoutMs} millis`),
+            Effect.withSpan("formula.eval"),
+          )
+        ),
+
+      evalExpr: (expr) =>
+        sem.withPermits(1)(
+          Effect.gen(function*() {
+            yield* Metric.update(evalCounter, 1)
+            const state = yield* Cache.get(cache, expr)
+            if (state.stack.some(isVMError)) {
+              yield* Metric.update(evalErrorCounter, 1)
+            }
+            return state
+          }).pipe(
+            Effect.timeout(`${c.evalTimeoutMs} millis`),
+            Effect.withSpan("formula.evalExpr", { attributes: { formula: expr } }),
+          )
+        ),
+
+      evalEffect: (program) =>
+        sem.withPermits(1)(
+          Effect.transaction(
+            Effect.gen(function*() {
+              yield* Metric.update(evalCounter, 1)
+              const ref = yield* TxRef.make(emptyState())
+              return yield* runEffect(ref, program)
+            })
+          ).pipe(
+            Effect.timeout(`${c.evalTimeoutMs} millis`),
+            Effect.withSpan("formula.evalEffect"),
+          )
+        ),
+
+      compile: (expr) =>
+        compileExpr(expr).pipe(
+          Effect.tapError(() => Metric.update(compileErrorCounter, 1)),
+          Effect.withSpan("formula.compile", { attributes: { formula: expr } }),
+        ),
+
+      invalidate: (expr) =>
+        Cache.invalidate(cache, expr).pipe(
+          Effect.withSpan("formula.invalidate", { attributes: { formula: expr } }),
+        ),
+    })
+  }))
+}

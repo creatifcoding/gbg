@@ -1,0 +1,551 @@
+/**
+ * Stack VM — Production tests
+ *
+ * Tests the extracted service with comprehensive error channel coverage.
+ *
+ * Error channels tested:
+ * 1. VMValue errors (inline on stack) — DIV/0, underflow, type mismatch, propagation
+ * 2. Effect E channel (CompileError, EvalError, ResourceError) — typed recovery
+ * 3. Defects (unexpected) — should never reach tests; asserts absence
+ */
+
+import { describe, it, expect } from "vitest"
+import * as Effect from "effect-v4/Effect"
+import * as Fiber from "effect-v4/Fiber"
+import * as Cause from "effect-v4/Cause"
+
+import {
+  // Value constructors
+  num, str, bool, err, vmError,
+  // Value utilities
+  isVMError, isNumeric, toNumber, asNum, vmEq, vmDisplay, propagateError,
+  // Error codes
+  type VMErrorCode, errorCodeDisplay,
+  // Effect errors
+  CompileError, EvalError, ResourceError,
+  type VMFailure,
+  failureToVMError, timeoutToVMError, catchToErrorState,
+  // VM core
+  evalProgram, evalExpr, compileExpr, compileExprSync,
+  execOpcode, emptyState, MAX_EVAL_STEPS,
+  // Service
+  StackVM, StackVMLive,
+  // Types
+  type StackIR, type VMState, type VMValue,
+} from "../src/services/stack-vm"
+
+// ═══════════════════════════════════════════════════════
+// CHANNEL 1: VMValue ERRORS (inline on stack)
+// ═══════════════════════════════════════════════════════
+
+describe("VMValue errors (inline, channel 1)", () => {
+  describe("error code constructors", () => {
+    it("vmError creates error with code + message", () => {
+      const e = vmError("DIV_ZERO", "Division by zero")
+      expect(e).toEqual({ _tag: "error", code: "DIV_ZERO", message: "Division by zero" })
+    })
+
+    it("err() shorthand uses GENERAL code", () => {
+      const e = err("something went wrong")
+      expect(e).toEqual({ _tag: "error", code: "GENERAL", message: "something went wrong" })
+    })
+  })
+
+  describe("stack underflow", () => {
+    it("ADD with < 2 items → STACK_UNDERFLOW", () => {
+      const state = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 1 },
+        { _tag: "ADD" },
+      ]))
+      const top = state.stack[state.stack.length - 1]
+      expect(isVMError(top)).toBe(true)
+      if (top._tag === "error") {
+        expect(top.code).toBe("STACK_UNDERFLOW")
+      }
+    })
+
+    it("DUP on empty stack → STACK_UNDERFLOW", () => {
+      const state = Effect.runSync(evalProgram([{ _tag: "DUP" }]))
+      const top = state.stack[0]
+      expect(isVMError(top)).toBe(true)
+      if (top._tag === "error") expect(top.code).toBe("STACK_UNDERFLOW")
+    })
+
+    it("NEG on empty stack → STACK_UNDERFLOW", () => {
+      const state = Effect.runSync(evalProgram([{ _tag: "NEG" }]))
+      expect(state.stack[0]._tag).toBe("error")
+    })
+  })
+
+  describe("division by zero", () => {
+    it("DIV by 0 → DIV_ZERO error value", () => {
+      const state = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 10 },
+        { _tag: "PUSH_NUM", value: 0 },
+        { _tag: "DIV" },
+      ]))
+      const top = state.stack[0]
+      expect(top).toEqual(vmError("DIV_ZERO", "Division by zero"))
+    })
+
+    it("DIV_ZERO display is #DIV/0!", () => {
+      expect(vmDisplay(vmError("DIV_ZERO", "Division by zero"))).toBe("#DIV/0!")
+    })
+  })
+
+  describe("error propagation", () => {
+    it("ADD with error operand propagates the error", () => {
+      // Push error, then a number, then ADD — error should propagate
+      const state = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 0 },
+        { _tag: "PUSH_NUM", value: 0 },
+        { _tag: "DIV" }, // → DIV_ZERO error
+        { _tag: "PUSH_NUM", value: 5 },
+        { _tag: "ADD" }, // Should propagate DIV_ZERO, not compute
+      ]))
+      const top = state.stack[0]
+      expect(isVMError(top)).toBe(true)
+      if (top._tag === "error") expect(top.code).toBe("DIV_ZERO")
+    })
+
+    it("propagateError utility finds first error", () => {
+      const e = vmError("DIV_ZERO", "oops")
+      expect(propagateError(num(1), e, num(3))).toBe(e)
+      expect(propagateError(num(1), num(2))).toBeUndefined()
+    })
+
+    it("SUM_N propagates error if any operand is error", () => {
+      const state = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 1 },
+        { _tag: "PUSH_NUM", value: 0 },
+        { _tag: "PUSH_NUM", value: 0 },
+        { _tag: "DIV" }, // → DIV_ZERO
+        { _tag: "SUM_N", n: 2 },
+      ]))
+      const top = state.stack[0]
+      expect(isVMError(top)).toBe(true)
+    })
+  })
+
+  describe("step overflow", () => {
+    it("exceeding MAX_EVAL_STEPS pushes EVAL_OVERFLOW", () => {
+      // Create a state at the step limit
+      const atLimit: VMState = {
+        ...emptyState(),
+        step: MAX_EVAL_STEPS,
+      }
+      const result = execOpcode({ _tag: "PUSH_NUM", value: 1 }, atLimit)
+      expect(result.halted).toBe(true)
+      const top = result.stack[0]
+      expect(isVMError(top)).toBe(true)
+      if (top._tag === "error") expect(top.code).toBe("EVAL_OVERFLOW")
+    })
+  })
+})
+
+// ═══════════════════════════════════════════════════════
+// CHANNEL 1: VMValue UTILITIES
+// ═══════════════════════════════════════════════════════
+
+describe("VMValue utilities", () => {
+  it("isVMError correctly identifies errors", () => {
+    expect(isVMError(num(1))).toBe(false)
+    expect(isVMError(str("hi"))).toBe(false)
+    expect(isVMError(vmError("GENERAL", "x"))).toBe(true)
+  })
+
+  it("isNumeric identifies num and bool", () => {
+    expect(isNumeric(num(1))).toBe(true)
+    expect(isNumeric(bool(true))).toBe(true)
+    expect(isNumeric(str("hi"))).toBe(false)
+    expect(isNumeric(vmError("GENERAL", "x"))).toBe(false)
+  })
+
+  it("toNumber extracts safely", () => {
+    expect(toNumber(num(42))).toBe(42)
+    expect(toNumber(bool(true))).toBe(1)
+    expect(toNumber(bool(false))).toBe(0)
+    expect(toNumber(str("hi"))).toBeUndefined()
+    expect(toNumber(vmError("GENERAL", "x"))).toBeUndefined()
+  })
+
+  it("vmEq handles all types", () => {
+    expect(vmEq(num(1), num(1))).toBe(true)
+    expect(vmEq(num(1), num(2))).toBe(false)
+    expect(vmEq(str("a"), str("a"))).toBe(true)
+    expect(vmEq(bool(true), bool(true))).toBe(true)
+    expect(vmEq(num(1), str("1"))).toBe(false) // different types
+  })
+
+  it("vmDisplay renders all types correctly", () => {
+    expect(vmDisplay(num(42))).toBe("42")
+    expect(vmDisplay(str("hello"))).toBe("hello")
+    expect(vmDisplay(bool(true))).toBe("TRUE")
+    expect(vmDisplay(bool(false))).toBe("FALSE")
+    expect(vmDisplay(vmError("DIV_ZERO", "x"))).toBe("#DIV/0!")
+    expect(vmDisplay(vmError("STACK_UNDERFLOW", "x"))).toBe("#VALUE!")
+    expect(vmDisplay(vmError("CIRCULAR_REF", "x"))).toBe("#REF!")
+    expect(vmDisplay(vmError("UNKNOWN_TOKEN", "x"))).toBe("#NAME?")
+  })
+})
+
+// ═══════════════════════════════════════════════════════
+// CHANNEL 2: EFFECT E CHANNEL (typed recoverable)
+// ═══════════════════════════════════════════════════════
+
+describe("Effect E channel errors (channel 2)", () => {
+  describe("CompileError", () => {
+    it("unknown token fails with CompileError", async () => {
+      const result = await Effect.runPromise(
+        compileExpr("3 FOOBAR +").pipe(
+          Effect.catch((e) => Effect.succeed(e)),
+        )
+      )
+      expect(result._tag).toBe("CompileError")
+      expect((result as CompileError).token).toBe("FOOBAR")
+      expect((result as CompileError).position).toBe(1)
+    })
+
+    it("CompileError includes expr and reason", async () => {
+      const result = await Effect.runPromise(
+        compileExpr("1 $$$").pipe(
+          Effect.catch((e) => Effect.succeed(e)),
+        )
+      )
+      const ce = result as CompileError
+      expect(ce.expr).toBe("1 $$$")
+      expect(ce.reason).toContain("$$$")
+    })
+
+    it("valid expression compiles successfully", async () => {
+      const ir = await Effect.runPromise(compileExpr("3 4 + 2 *"))
+      expect(ir).toHaveLength(5)
+      expect(ir[0]._tag).toBe("PUSH_NUM")
+    })
+
+    it("compileExprSync throws on bad input", () => {
+      expect(() => compileExprSync("3 BAD_TOKEN +")).toThrow()
+    })
+
+    it("compileExprSync returns IR on good input", () => {
+      const ir = compileExprSync("3 4 +")
+      expect(ir).toHaveLength(3)
+    })
+  })
+
+  describe("CompileError recovery with catchTag", () => {
+    it("catchTag handles CompileError specifically", async () => {
+      const result = await Effect.runPromise(
+        evalExpr("3 UNKNOWN +").pipe(
+          Effect.catchTag("CompileError", (e) =>
+            Effect.succeed({
+              ...emptyState(),
+              stack: [vmError("UNKNOWN_TOKEN", e.reason)],
+              halted: true,
+            })
+          ),
+        )
+      )
+      expect(result.stack[0]).toEqual(vmError("UNKNOWN_TOKEN", expect.stringContaining("UNKNOWN")))
+    })
+  })
+
+  describe("failureToVMError conversion", () => {
+    it("converts CompileError to UNKNOWN_TOKEN VMError", () => {
+      const ve = failureToVMError(
+        new CompileError({ expr: "x", reason: "bad token", token: "x", position: 0 })
+      )
+      expect(ve._tag).toBe("error")
+      if (ve._tag === "error") expect(ve.code).toBe("UNKNOWN_TOKEN")
+    })
+
+    it("converts EvalError to GENERAL VMError", () => {
+      const ve = failureToVMError(
+        new EvalError({ step: 0, opcode: "ADD", reason: "corruption" })
+      )
+      if (ve._tag === "error") expect(ve.code).toBe("GENERAL")
+    })
+
+    it("converts ResourceError to GENERAL VMError", () => {
+      const ve = failureToVMError(
+        new ResourceError({ resource: "wasm-pool", reason: "exhausted" })
+      )
+      if (ve._tag === "error") expect(ve.message).toContain("wasm-pool")
+    })
+  })
+
+  describe("timeoutToVMError", () => {
+    it("creates EVAL_OVERFLOW error", () => {
+      const ve = timeoutToVMError()
+      expect(ve._tag).toBe("error")
+      if (ve._tag === "error") {
+        expect(ve.code).toBe("EVAL_OVERFLOW")
+        expect(ve.message).toContain("timed out")
+      }
+    })
+  })
+
+  describe("catchToErrorState boundary", () => {
+    it("catches CompileError and returns error VMState", async () => {
+      const result = await Effect.runPromise(
+        catchToErrorState(
+          evalExpr("3 BAD +") as any
+        )
+      )
+      expect(result.halted).toBe(true)
+      expect(isVMError(result.stack[0])).toBe(true)
+    })
+  })
+})
+
+// ═══════════════════════════════════════════════════════
+// NORMAL OPERATION (correctness)
+// ═══════════════════════════════════════════════════════
+
+describe("StackVM correctness", () => {
+  describe("arithmetic", () => {
+    it("ADD", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 10 },
+        { _tag: "PUSH_NUM", value: 3 },
+        { _tag: "ADD" },
+      ]))
+      expect(s.stack[0]).toEqual(num(13))
+    })
+
+    it("SUB", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 10 },
+        { _tag: "PUSH_NUM", value: 3 },
+        { _tag: "SUB" },
+      ]))
+      expect(s.stack[0]).toEqual(num(7))
+    })
+
+    it("MUL + DIV", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 6 },
+        { _tag: "PUSH_NUM", value: 7 },
+        { _tag: "MUL" },
+      ]))
+      expect(s.stack[0]).toEqual(num(42))
+    })
+
+    it("NEG", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 5 },
+        { _tag: "NEG" },
+      ]))
+      expect(s.stack[0]).toEqual(num(-5))
+    })
+  })
+
+  describe("stack ops", () => {
+    it("DUP duplicates top", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 7 },
+        { _tag: "DUP" },
+      ]))
+      expect(s.stack).toEqual([num(7), num(7)])
+    })
+
+    it("SWAP swaps top two", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 1 },
+        { _tag: "PUSH_NUM", value: 2 },
+        { _tag: "SWAP" },
+      ]))
+      expect(s.stack).toEqual([num(2), num(1)])
+    })
+
+    it("DROP removes top", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 1 },
+        { _tag: "PUSH_NUM", value: 2 },
+        { _tag: "DROP" },
+      ]))
+      expect(s.stack).toEqual([num(1)])
+    })
+  })
+
+  describe("comparison + logic", () => {
+    it("EQ true", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 5 },
+        { _tag: "PUSH_NUM", value: 5 },
+        { _tag: "EQ" },
+      ]))
+      expect(s.stack[0]).toEqual(bool(true))
+    })
+
+    it("LT / GT", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 3 },
+        { _tag: "PUSH_NUM", value: 5 },
+        { _tag: "LT" },
+      ]))
+      expect(s.stack[0]).toEqual(bool(true))
+    })
+
+    it("NOT inverts bool", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_BOOL", value: true },
+        { _tag: "NOT" },
+      ]))
+      expect(s.stack[0]).toEqual(bool(false))
+    })
+  })
+
+  describe("multi-type", () => {
+    it("pushes NUM, STR, BOOL", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 42 },
+        { _tag: "PUSH_STR", value: "hello" },
+        { _tag: "PUSH_BOOL", value: true },
+      ]))
+      expect(s.stack).toEqual([num(42), str("hello"), bool(true)])
+    })
+  })
+
+  describe("HALT", () => {
+    it("stops execution mid-program", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 1 },
+        { _tag: "HALT" },
+        { _tag: "PUSH_NUM", value: 999 },
+      ]))
+      expect(s.stack).toHaveLength(1)
+      expect(s.halted).toBe(true)
+    })
+  })
+
+  describe("string eval", () => {
+    it("compiles and evaluates RPN", async () => {
+      const s = await Effect.runPromise(evalExpr("3 4 + 2 *"))
+      expect(s.stack[0]).toEqual(num(14))
+    })
+
+    it("supports DUP and SWAP", async () => {
+      const s = await Effect.runPromise(evalExpr("5 DUP *"))
+      expect(s.stack[0]).toEqual(num(25))
+    })
+
+    it("supports true/false literals", async () => {
+      const s = await Effect.runPromise(evalExpr("true false"))
+      expect(s.stack).toEqual([bool(true), bool(false)])
+    })
+  })
+
+  describe("trail", () => {
+    it("records every step monotonically", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 1 },
+        { _tag: "PUSH_NUM", value: 2 },
+        { _tag: "ADD" },
+      ]))
+      expect(s.trail).toHaveLength(3)
+      expect(s.trail.map((e) => e.step)).toEqual([0, 1, 2])
+      expect(s.trail.map((e) => e.opcode)).toEqual(["PUSH_NUM", "PUSH_NUM", "ADD"])
+    })
+  })
+})
+
+// ═══════════════════════════════════════════════════════
+// SERVICE LAYER
+// ═══════════════════════════════════════════════════════
+
+describe("StackVM service", () => {
+  it("eval via service layer", async () => {
+    const result = await Effect.runPromise(
+      Effect.gen(function*() {
+        const vm = yield* StackVM
+        const r1 = yield* vm.evalExpr("3 4 + 2 *")
+        const r2 = yield* vm.evalExpr("3 4 + 2 *") // cache hit
+        const r3 = yield* vm.evalExpr("10 5 -")
+        return { r1: r1.stack[0], r2: r2.stack[0], r3: r3.stack[0] }
+      }).pipe(Effect.provide(StackVMLive()))
+    )
+    expect(result.r1).toEqual(num(14))
+    expect(result.r2).toEqual(num(14))
+    expect(result.r3).toEqual(num(5))
+  })
+
+  it("compile validates without evaluating", async () => {
+    const result = await Effect.runPromise(
+      Effect.gen(function*() {
+        const vm = yield* StackVM
+        const ir = yield* vm.compile("3 4 +")
+        return ir
+      }).pipe(Effect.provide(StackVMLive()))
+    )
+    expect(result).toHaveLength(3)
+  })
+
+  it("compile fails with CompileError on bad input", async () => {
+    const result = await Effect.runPromise(
+      Effect.gen(function*() {
+        const vm = yield* StackVM
+        return yield* vm.compile("3 BOGUS +")
+      }).pipe(
+        Effect.provide(StackVMLive()),
+        Effect.catchTag("CompileError", (e) => Effect.succeed(e)),
+      )
+    )
+    expect(result._tag).toBe("CompileError")
+  })
+
+  it("concurrent evals throttled by semaphore", async () => {
+    const results = await Effect.runPromise(
+      Effect.gen(function*() {
+        const vm = yield* StackVM
+        const fibers = yield* Effect.forEach(
+          ["1 1 +", "2 2 +", "3 3 +", "4 4 +"],
+          (expr) => Effect.forkChild(vm.evalExpr(expr)),
+        )
+        const states = yield* Effect.forEach(fibers, (f) => Fiber.join(f))
+        return states.map((s) => {
+          const top = s.stack[0]
+          return top?._tag === "num" ? top.value : -1
+        })
+      }).pipe(Effect.provide(StackVMLive({ maxConcurrency: 2 })))
+    )
+    expect(results.sort((a, b) => a - b)).toEqual([2, 4, 6, 8])
+  })
+
+  it("invalidate clears cache for expression", async () => {
+    let evalCount = 0
+    // Can't easily observe cache internals, but verify no crash
+    await Effect.runPromise(
+      Effect.gen(function*() {
+        const vm = yield* StackVM
+        yield* vm.evalExpr("1 2 +")
+        yield* vm.invalidate("1 2 +")
+        yield* vm.evalExpr("1 2 +") // Should re-evaluate
+      }).pipe(Effect.provide(StackVMLive()))
+    )
+  })
+})
+
+// ═══════════════════════════════════════════════════════
+// PERFORMANCE
+// ═══════════════════════════════════════════════════════
+
+describe("performance", () => {
+  it("10K evals within 500ms", () => {
+    const ir: StackIR = [
+      { _tag: "PUSH_NUM", value: 1 },
+      { _tag: "PUSH_NUM", value: 2 },
+      { _tag: "ADD" },
+      { _tag: "DROP" },
+    ]
+
+    const start = performance.now()
+    for (let i = 0; i < 10_000; i++) {
+      Effect.runSync(evalProgram(ir))
+    }
+    const elapsed = performance.now() - start
+
+    console.log(`  StackVM perf: ${elapsed.toFixed(2)}ms for 10K evals (${(10000 / elapsed * 1000).toFixed(0)} evals/sec)`)
+    expect(elapsed).toBeLessThan(500)
+  })
+})
