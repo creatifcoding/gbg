@@ -41,6 +41,8 @@ import * as Fiber from "effect-v4/Fiber"
 import * as Optic from "effect-v4/Optic"
 import * as Result from "effect-v4/Result"
 import * as Graph from "effect-v4/Graph"
+import * as Cache from "effect-v4/Cache"
+import * as Duration from "effect-v4/Duration"
 import { pipe } from "effect-v4/Function"
 
 // ═══════════════════════════════════════════════════════
@@ -1243,6 +1245,87 @@ describe("F1b: Effect-Native Stack VM", () => {
 
       expect(Graph.nodeCount(updated)).toBe(3)
       expect(Graph.edgeCount(updated)).toBe(2)
+    })
+  })
+
+  // ─── H13: Cache for memoized formula evaluation ───
+  //
+  // Cache.make with lookup function caches formula results by key.
+  // Prevents redundant computation; invalidate on dependency change.
+
+  describe("H13: Cache for memoized formula eval", () => {
+    it("caches formula result by key — second call skips eval", async () => {
+      let evalCount = 0
+
+      const result = await Effect.runPromise(Effect.gen(function*() {
+        const cache = yield* Cache.make({
+          capacity: 100,
+          timeToLive: Duration.seconds(30),
+          lookup: (formula: string) => Effect.sync(() => {
+            evalCount++
+            return Effect.runSync(evalProgram(compileExpr(formula)))
+          }),
+        })
+
+        const r1 = yield* Cache.get(cache, "3 4 +")
+        const r2 = yield* Cache.get(cache, "3 4 +") // Should hit cache
+
+        const size = yield* Cache.size(cache)
+
+        return { r1, r2, size }
+      }))
+
+      expect(result.r1.stack[0]).toEqual(num(7))
+      expect(result.r2.stack[0]).toEqual(num(7))
+      expect(evalCount).toBe(1) // Only evaluated once!
+      expect(result.size).toBe(1)
+    })
+
+    it("invalidate forces re-evaluation", async () => {
+      let evalCount = 0
+
+      await Effect.runPromise(Effect.gen(function*() {
+        const cache = yield* Cache.make({
+          capacity: 50,
+          lookup: (formula: string) => Effect.sync(() => {
+            evalCount++
+            return Effect.runSync(evalProgram(compileExpr(formula)))
+          }),
+        })
+
+        yield* Cache.get(cache, "5 5 *")
+        expect(evalCount).toBe(1)
+
+        yield* Cache.invalidate(cache, "5 5 *")
+        yield* Cache.get(cache, "5 5 *") // Re-evaluates after invalidation
+        expect(evalCount).toBe(2)
+      }))
+    })
+
+    it("different formulas cached independently", async () => {
+      let evalCount = 0
+
+      const result = await Effect.runPromise(Effect.gen(function*() {
+        const cache = yield* Cache.make({
+          capacity: 100,
+          lookup: (formula: string) => Effect.sync(() => {
+            evalCount++
+            return Effect.runSync(evalProgram(compileExpr(formula)))
+          }),
+        })
+
+        const r1 = yield* Cache.get(cache, "2 3 +")
+        const r2 = yield* Cache.get(cache, "2 3 *")
+        const r3 = yield* Cache.get(cache, "2 3 +") // Cache hit
+
+        return { r1, r2, r3, size: yield* Cache.size(cache) }
+      }))
+
+      expect(result.r1.stack[0]).toEqual(num(5))
+      expect(result.r2.stack[0]).toEqual(num(6))
+      expect(result.r3.stack[0]).toEqual(num(5))
+      expect(evalCount).toBe(2) // Only 2 unique formulas evaluated
+      expect(result.size).toBe(2)
     })
   })
 })

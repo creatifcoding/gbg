@@ -11,12 +11,14 @@
 - **Utility package idea**: `@tmnl/jsonl-patch` — small module for JSONL patch streaming, replay, compaction
 - Integrates naturally with EventLog (events ARE patches) and PubSub (broadcast patches to observers)
 
-### Graph Module for Cell Dependencies
+### Graph Module for Cell Dependencies ✅ PROVEN (H12)
 - `Graph.directed<CellAddress, EdgeData>()` for dependency DAG
-- `Graph.topo()` — Kahn's algorithm for recalc order
+- `Graph.topo()` — Kahn's algorithm — **returns dependents-first order** (reverse for eval order!)
+- **GOTCHA**: Topo sort starts with nodes that have 0 incoming edges. For "A depends on B", A→B edge means A comes FIRST in topo. Reverse topo = eval order (leaves first).
 - `Graph.isAcyclic()` — detect circular references at formula entry time
-- `Graph.dfsPostOrder()` — evaluate dependencies bottom-up
+- `Graph.dfsPostOrder()` — evaluate dependencies bottom-up (alternative to reversed topo)
 - `Graph.mutate()` for incremental updates when formulas change
+- `Graph.values(Graph.topo(graph))` — get node data from iterator
 
 ### Optic for Stack Access
 - `Optic.id<VMState>().key("stack").at(0)` — focus on stack top
