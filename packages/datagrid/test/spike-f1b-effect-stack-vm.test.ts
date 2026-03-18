@@ -48,6 +48,8 @@ import * as Layer from "effect-v4/Layer"
 import * as Metric from "effect-v4/Metric"
 import * as Scope from "effect-v4/Scope"
 import * as Exit from "effect-v4/Exit"
+import * as Cause from "effect-v4/Cause"
+import * as Semaphore from "effect-v4/Semaphore"
 import { pipe } from "effect-v4/Function"
 
 // ═══════════════════════════════════════════════════════
@@ -1568,6 +1570,129 @@ describe("F1b: Effect-Native Stack VM", () => {
       ))
 
       expect(cleanups).toEqual(["main work", "finalizer:ok"])
+    })
+  })
+
+  // ─── H17: Effect.timeout for runaway formula cancellation ─
+  //
+  // Effect.timeout(duration) raises Cause.TimeoutError on expiry.
+  // Formula evaluation MUST be cancellable — untrusted code safety.
+
+  describe("H17: Effect.timeout for runaway formula cancellation", () => {
+    it("fast formula completes within timeout", async () => {
+      const result = await Effect.runPromise(
+        evalProgram([
+          { _tag: "PUSH_NUM", value: 6 },
+          { _tag: "PUSH_NUM", value: 7 },
+          { _tag: "MUL" },
+        ]).pipe(Effect.timeout("5 seconds"))
+      )
+      expect(result.stack[0]).toEqual(num(42))
+    })
+
+    it("timeout raises TimeoutError for slow effect", async () => {
+      const slowFormula = Effect.gen(function*() {
+        yield* Effect.sleep("10 seconds")
+        return Effect.runSync(evalProgram([{ _tag: "PUSH_NUM", value: 999 }]))
+      })
+
+      const result = await Effect.runPromise(
+        slowFormula.pipe(
+          Effect.timeout("50 millis"),
+          Effect.catch((error) =>
+            Cause.isTimeoutError(error)
+              ? Effect.succeed("timed-out" as const)
+              : Effect.fail(error)
+          ),
+        )
+      )
+
+      expect(result).toBe("timed-out")
+    })
+
+    it("interruptible formula can be cancelled by parent fiber", async () => {
+      let started = false
+      let completed = false
+
+      const longFormula = Effect.gen(function*() {
+        started = true
+        yield* Effect.sleep("10 seconds")
+        completed = true
+      }).pipe(Effect.interruptible)
+
+      await Effect.runPromise(Effect.gen(function*() {
+        const fiber = yield* Effect.forkChild(longFormula)
+        yield* Effect.sleep("50 millis")
+        yield* Fiber.interrupt(fiber)
+      }))
+
+      expect(started).toBe(true)
+      expect(completed).toBe(false) // Never finishes
+    })
+  })
+
+  // ─── H18: Semaphore for concurrent eval throttling ─
+  //
+  // Semaphore.make(n) limits concurrent formula evals.
+  // Prevents thread pool exhaustion from bulk recalcs.
+
+  describe("H18: Semaphore for concurrent eval throttling", () => {
+    it("semaphore limits concurrency to N permits", async () => {
+      let peak = 0
+      let current = 0
+
+      await Effect.runPromise(Effect.gen(function*() {
+        const sem = yield* Semaphore.make(2)
+
+        const task = (id: number) => sem.withPermits(1)(
+          Effect.gen(function*() {
+            current++
+            peak = Math.max(peak, current)
+            yield* Effect.yieldNow // Let other fibers run
+            yield* Effect.sleep("10 millis")
+            current--
+            return id
+          })
+        )
+
+        // Launch 5 tasks — only 2 can run at a time
+        const fibers = yield* Effect.forEach(
+          [1, 2, 3, 4, 5],
+          (id) => Effect.forkChild(task(id)),
+        )
+
+        yield* Effect.forEach(fibers, (f) => Fiber.join(f))
+      }))
+
+      expect(peak).toBeLessThanOrEqual(2)
+    })
+
+    it("semaphore with eval pipeline", async () => {
+      const results: number[] = []
+
+      await Effect.runPromise(Effect.gen(function*() {
+        const sem = yield* Semaphore.make(3) // Max 3 concurrent evals
+
+        const evalWithThrottle = (expr: string) =>
+          sem.withPermits(1)(
+            Effect.gen(function*() {
+              const state = yield* evalProgram(compileExpr(expr))
+              const top = state.stack[0]
+              if (top?._tag === "num") results.push(top.value)
+              return state
+            })
+          )
+
+        const fibers = yield* Effect.forEach(
+          ["1 2 +", "3 4 *", "5 6 +", "7 8 *", "9 1 +"],
+          (expr) => Effect.forkChild(evalWithThrottle(expr)),
+        )
+
+        yield* Effect.forEach(fibers, (f) => Fiber.join(f))
+      }))
+
+      // All 5 formulas should evaluate (order may vary due to concurrency)
+      expect(results.sort((a, b) => a - b)).toEqual([3, 10, 11, 12, 56])
     })
   })
 })
