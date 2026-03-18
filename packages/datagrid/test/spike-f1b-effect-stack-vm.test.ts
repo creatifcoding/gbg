@@ -35,6 +35,9 @@ import * as Schema from "effect-v4/Schema"
 import * as TxRef from "effect-v4/TxRef"
 import * as Match from "effect-v4/Match"
 import * as JsonPatch from "effect-v4/JsonPatch"
+import * as PubSub from "effect-v4/PubSub"
+import * as Stream from "effect-v4/Stream"
+import * as Fiber from "effect-v4/Fiber"
 import { pipe } from "effect-v4/Function"
 
 // ═══════════════════════════════════════════════════════
@@ -901,6 +904,134 @@ describe("F1b: Effect-Native Stack VM", () => {
 
       const result = JsonPatch.apply(patch, oldJson)
       expect(result).toEqual(newJson)
+    })
+  })
+
+  // ─── H10: PubSub + Stream Trail Observation ───────
+  //
+  // Trail entries published to PubSub, observers consume via Stream.
+  // Combines with JSONL patches: publish patches → Stream<JsonPatch[]>.
+  // Multiple consumers (debug panel, undo stack, CRDT sync) each get own stream.
+
+  describe("H10: PubSub + Stream trail observation", () => {
+    it("trail entries published to PubSub and consumed via Stream", async () => {
+      const result = await Effect.runPromise(Effect.scoped(Effect.gen(function*() {
+        // Create PubSub for trail entries
+        const trailPub = yield* PubSub.unbounded<TrailEntry>()
+
+        // Fork a consumer that collects trail entries from stream
+        const consumerFiber = yield* Stream.fromPubSub(trailPub).pipe(
+          Stream.take(3),
+          Stream.runCollect,
+          Effect.forkScoped,
+        )
+
+        // Yield to let consumer fiber register its subscription
+        yield* Effect.yieldNow
+
+        // Run VM and publish trail entries
+        const vmResult = yield* Effect.transaction(Effect.gen(function*() {
+          const ref = yield* TxRef.make(emptyState())
+          const ir: StackIR = [
+            { _tag: "PUSH_NUM", value: 5 },
+            { _tag: "PUSH_NUM", value: 3 },
+            { _tag: "ADD" },
+          ]
+          for (const op of ir) {
+            const current = yield* TxRef.get(ref)
+            if (current.halted) break
+            yield* TxRef.set(ref, execOpcode(op, current))
+          }
+          const finalState = yield* TxRef.get(ref)
+
+          // Publish each trail entry to PubSub
+          for (const entry of finalState.trail) {
+            yield* PubSub.publish(trailPub, entry)
+          }
+          return finalState
+        }))
+
+        // Collect what the consumer observed
+        const observed = yield* Fiber.join(consumerFiber)
+
+        return { vmResult, observed: Array.from(observed) }
+      })))
+
+      expect(result.vmResult.stack).toEqual([num(8)])
+      expect(result.observed).toHaveLength(3)
+      expect(result.observed.map((e: TrailEntry) => e.opcode)).toEqual(["PUSH_NUM", "PUSH_NUM", "ADD"])
+    })
+
+    it("JSONL patches published to PubSub for streaming diff observation", async () => {
+      const result = await Effect.runPromise(Effect.scoped(Effect.gen(function*() {
+        // PubSub for JSON patches (one patch array per opcode step)
+        const patchPub = yield* PubSub.unbounded<JsonPatch.JsonPatch>()
+
+        // Consumer collects patches
+        const patchFiber = yield* Stream.fromPubSub(patchPub).pipe(
+          Stream.take(2),
+          Stream.runCollect,
+          Effect.forkScoped,
+        )
+
+        yield* Effect.yieldNow
+
+        // Compute two incremental states and publish diffs
+        const s0 = emptyState()
+        const s1 = Effect.runSync(evalProgram([{ _tag: "PUSH_NUM", value: 10 }]))
+        const s2 = Effect.runSync(evalProgram([
+          { _tag: "PUSH_NUM", value: 10 },
+          { _tag: "PUSH_NUM", value: 20 },
+          { _tag: "ADD" },
+        ]))
+
+        const patch1 = vmStateDiffer.diff(s0, s1)
+        const patch2 = vmStateDiffer.diff(s1, s2)
+
+        yield* PubSub.publish(patchPub, patch1)
+        yield* PubSub.publish(patchPub, patch2)
+
+        const collected = yield* Fiber.join(patchFiber)
+        return Array.from(collected)
+      })))
+
+      expect(result).toHaveLength(2)
+      // Each element is a JsonPatch[] — an array of RFC 6902 operations
+      expect(result[0].length).toBeGreaterThan(0)
+      expect(result[1].length).toBeGreaterThan(0)
+
+      // Verify patches are valid JSONL-serializable
+      for (const patch of result) {
+        const line = JSON.stringify(patch)
+        expect(JSON.parse(line)).toEqual(patch)
+      }
+    })
+
+    it("multiple consumers each get their own stream copy", async () => {
+      const result = await Effect.runPromise(Effect.scoped(Effect.gen(function*() {
+        const pub = yield* PubSub.unbounded<string>()
+
+        // Two independent consumers
+        const c1 = yield* Stream.fromPubSub(pub).pipe(
+          Stream.take(2), Stream.runCollect, Effect.forkScoped,
+        )
+        const c2 = yield* Stream.fromPubSub(pub).pipe(
+          Stream.take(2), Stream.runCollect, Effect.forkScoped,
+        )
+
+        yield* Effect.yieldNow
+
+        yield* PubSub.publish(pub, "a")
+        yield* PubSub.publish(pub, "b")
+
+        const r1 = yield* Fiber.join(c1)
+        const r2 = yield* Fiber.join(c2)
+        return { r1: Array.from(r1), r2: Array.from(r2) }
+      })))
+
+      // Both consumers receive the same messages independently
+      expect(result.r1).toEqual(["a", "b"])
+      expect(result.r2).toEqual(["a", "b"])
     })
   })
 })
