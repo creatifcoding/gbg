@@ -40,6 +40,7 @@ import * as Stream from "effect-v4/Stream"
 import * as Fiber from "effect-v4/Fiber"
 import * as Optic from "effect-v4/Optic"
 import * as Result from "effect-v4/Result"
+import * as Graph from "effect-v4/Graph"
 import { pipe } from "effect-v4/Function"
 
 // ═══════════════════════════════════════════════════════
@@ -1147,6 +1148,101 @@ describe("F1b: Effect-Native Stack VM", () => {
 
       expect(result.stack[0]).toEqual(num(100))
       expect(result.stack[1]).toEqual(num(2)) // Unchanged
+    })
+  })
+
+  // ─── H12: Graph module for cell dependency DAG ────
+  //
+  // Directed acyclic graph for formula dependencies.
+  // Topological sort determines recalculation order.
+  // Cycle detection prevents circular references.
+
+  describe("H12: Graph for cell dependency DAG", () => {
+    it("builds directed dependency graph with topo sort", () => {
+      // Model: A1 depends on B1, B1 depends on C1
+      // Topo order: C1 → B1 → A1 (evaluate leaves first)
+      const graph = Graph.directed<string, string>((m) => {
+        const c1 = Graph.addNode(m, "C1")
+        const b1 = Graph.addNode(m, "B1")
+        const a1 = Graph.addNode(m, "A1")
+        Graph.addEdge(m, a1, b1, "A1→B1") // A1 depends on B1
+        Graph.addEdge(m, b1, c1, "B1→C1") // B1 depends on C1
+      })
+
+      expect(Graph.isAcyclic(graph)).toBe(true)
+      expect(Graph.nodeCount(graph)).toBe(3)
+      expect(Graph.edgeCount(graph)).toBe(2)
+
+      // Topo sort: A1 first (no incoming edges), then B1, then C1
+      // For eval order (leaves first), reverse the topo sort
+      const topoOrder = Array.from(Graph.values(Graph.topo(graph)))
+      expect(topoOrder).toEqual(["A1", "B1", "C1"])
+
+      // Reversed = evaluation order (dependencies first)
+      const evalOrder = [...topoOrder].reverse()
+      expect(evalOrder).toEqual(["C1", "B1", "A1"])
+    })
+
+    it("detects circular references", () => {
+      const graph = Graph.directed<string, string>((m) => {
+        const a = Graph.addNode(m, "A1")
+        const b = Graph.addNode(m, "B1")
+        Graph.addEdge(m, a, b, "A1→B1")
+        Graph.addEdge(m, b, a, "B1→A1") // Circular!
+      })
+
+      expect(Graph.isAcyclic(graph)).toBe(false)
+
+      // Topo sort should throw on cyclic graph
+      expect(() => Array.from(Graph.values(Graph.topo(graph)))).toThrow()
+    })
+
+    it("diamond dependency evaluates shared dep once", () => {
+      // A1 depends on B1 and C1; both B1 and C1 depend on D1
+      // Topo: D1 → B1/C1 (either order) → A1
+      const graph = Graph.directed<string, string>((m) => {
+        const d1 = Graph.addNode(m, "D1")
+        const b1 = Graph.addNode(m, "B1")
+        const c1 = Graph.addNode(m, "C1")
+        const a1 = Graph.addNode(m, "A1")
+        Graph.addEdge(m, b1, d1, "B1→D1")
+        Graph.addEdge(m, c1, d1, "C1→D1")
+        Graph.addEdge(m, a1, b1, "A1→B1")
+        Graph.addEdge(m, a1, c1, "A1→C1")
+      })
+
+      expect(Graph.isAcyclic(graph)).toBe(true)
+
+      const topoOrder = Array.from(Graph.values(Graph.topo(graph)))
+      // Topo: A1 first (depends on others, no incoming), D1 last (leaf, most depended on)
+      // A1 must come before B1 and C1 in topo order
+      expect(topoOrder[0]).toBe("A1")
+
+      // Reversed = eval order: D1 first, A1 last
+      const evalOrder = [...topoOrder].reverse()
+      expect(evalOrder[0]).toBe("D1")
+      expect(evalOrder[evalOrder.length - 1]).toBe("A1")
+      // D1 before both B1 and C1 in eval order
+      expect(evalOrder.indexOf("D1")).toBeLessThan(evalOrder.indexOf("B1"))
+      expect(evalOrder.indexOf("D1")).toBeLessThan(evalOrder.indexOf("C1"))
+    })
+
+    it("incremental graph update via Graph.mutate", () => {
+      const base = Graph.directed<string, string>((m) => {
+        const a = Graph.addNode(m, "A1")
+        const b = Graph.addNode(m, "B1")
+        Graph.addEdge(m, a, b, "dep")
+      })
+
+      // Add a new node and edge
+      const updated = Graph.mutate(base, (m) => {
+        const c = Graph.addNode(m, "C1")
+        // B1 is node index 1
+        Graph.addEdge(m, 1 as any, c, "B1→C1")
+      })
+
+      expect(Graph.nodeCount(updated)).toBe(3)
+      expect(Graph.edgeCount(updated)).toBe(2)
     })
   })
 })
