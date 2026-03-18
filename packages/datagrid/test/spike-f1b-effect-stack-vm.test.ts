@@ -38,6 +38,8 @@ import * as JsonPatch from "effect-v4/JsonPatch"
 import * as PubSub from "effect-v4/PubSub"
 import * as Stream from "effect-v4/Stream"
 import * as Fiber from "effect-v4/Fiber"
+import * as Optic from "effect-v4/Optic"
+import * as Result from "effect-v4/Result"
 import { pipe } from "effect-v4/Function"
 
 // ═══════════════════════════════════════════════════════
@@ -1032,6 +1034,119 @@ describe("F1b: Effect-Native Stack VM", () => {
       // Both consumers receive the same messages independently
       expect(result.r1).toEqual(["a", "b"])
       expect(result.r2).toEqual(["a", "b"])
+    })
+  })
+
+  // ─── H11: Optic for immutable stack access ────────
+  //
+  // Composable lenses/prisms for reading and updating VMState
+  // without mutation. Enables: transactional stack manipulation,
+  // focused reads on specific stack positions, variant narrowing.
+
+  describe("H11: Optic-based stack access", () => {
+    // Define optics for VMState structure — Lens from .key()
+    const _stack = Optic.id<VMState>().key("stack")
+    const _step = Optic.id<VMState>().key("step")
+    const _halted = Optic.id<VMState>().key("halted")
+
+    it("lens reads stack from VMState", () => {
+      const state: VMState = {
+        ...emptyState(),
+        stack: [num(10), num(20)],
+        step: 2,
+      }
+      expect(_stack.get(state)).toEqual([num(10), num(20)])
+      expect(_step.get(state)).toBe(2)
+      expect(_halted.get(state)).toBe(false)
+    })
+
+    it("optional reads specific array position with .at()", () => {
+      // Test .at() directly on a ReadonlyArray optic
+      type Stack = ReadonlyArray<VMValue>
+      const _top = Optic.id<Stack>().at(0)
+      const _second = Optic.id<Stack>().at(1)
+      const _oob = Optic.id<Stack>().at(10)
+
+      const stack: Stack = [num(100), str("hello"), bool(true)]
+
+      const top = _top.getResult(stack)
+      expect(Result.isSuccess(top)).toBe(true)
+      if (Result.isSuccess(top)) expect(top.success).toEqual(num(100))
+
+      const second = _second.getResult(stack)
+      expect(Result.isSuccess(second)).toBe(true)
+      if (Result.isSuccess(second)) expect(second.success).toEqual(str("hello"))
+
+      // Out of bounds returns failure
+      expect(Result.isFailure(_oob.getResult(stack))).toBe(true)
+    })
+
+    it("optional immutably replaces array value via .at()", () => {
+      type Stack = ReadonlyArray<VMValue>
+      const _top = Optic.id<Stack>().at(0)
+
+      const stack: Stack = [num(10), num(20)]
+      const updated = _top.replace(num(99), stack)
+
+      // Updated stack has new value
+      expect(updated[0]).toEqual(num(99))
+      expect(updated[1]).toEqual(num(20))
+
+      // Original unchanged
+      expect(stack[0]).toEqual(num(10))
+    })
+
+    it("optional modifies array value with function via .at()", () => {
+      type Stack = ReadonlyArray<VMValue>
+      const _top = Optic.id<Stack>().at(0)
+
+      const stack: Stack = [num(5)]
+      // Double the top-of-stack value
+      const doubled = _top.modify((v: VMValue) => {
+        if (v._tag === "num") return num(v.value * 2)
+        return v
+      })(stack)
+
+      expect(doubled[0]).toEqual(num(10))
+      expect(stack[0]).toEqual(num(5)) // Original unchanged
+    })
+
+    it("optic preserves referential identity for unmodified branches", () => {
+      const state: VMState = {
+        ...emptyState(),
+        stack: [num(42)],
+        registers: { acc: num(0) },
+      }
+      const updated = _step.replace(1, state)
+
+      // Step changed
+      expect(updated.step).toBe(1)
+      // Stack and registers are referentially identical (no clone)
+      expect(updated.stack).toBe(state.stack)
+      expect(updated.registers).toBe(state.registers)
+    })
+
+    it("optic composes with TxRef for transactional lens updates", () => {
+      const result = Effect.runSync(Effect.transaction(Effect.gen(function*() {
+        const ref = yield* TxRef.make<VMState>({
+          ...emptyState(),
+          stack: [num(1), num(2), num(3)],
+        })
+
+        // Read via Lens (.key always succeeds)
+        const state = yield* TxRef.get(ref)
+        const stack = _stack.get(state)
+        expect(stack[0]).toEqual(num(1))
+
+        // Update via Lens (.key) + TxRef.set — replace entire stack
+        const newState = _stack.replace([num(100), num(2), num(3)], state)
+        yield* TxRef.set(ref, newState)
+
+        return yield* TxRef.get(ref)
+      })))
+
+      expect(result.stack[0]).toEqual(num(100))
+      expect(result.stack[1]).toEqual(num(2)) // Unchanged
     })
   })
 })
