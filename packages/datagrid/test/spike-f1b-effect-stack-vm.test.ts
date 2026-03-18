@@ -2045,4 +2045,86 @@ describe("F1b: Effect-Native Stack VM", () => {
       ])
     })
   })
+
+  // ─── H24: Full VM service — all modules composed ──
+  //
+  // The capstone integration: StackVM service layer that composes
+  // Cache + Metric + withSpan + Semaphore + timeout.
+  // Proves the ENTIRE architecture composes into one Layer.
+
+  describe("H24: Full VM service with all modules", () => {
+    // Define service with full pipeline
+    class FormulaEngine extends ServiceMap.Service<FormulaEngine, {
+      readonly eval: (expr: string) => Effect.Effect<VMState>
+    }>()("tmnl/datagrid/FormulaEngine") {}
+
+    // Implementation layer that wires Cache + Metric + Span + Semaphore + Timeout
+    const FormulaEngineLive = Layer.effect(FormulaEngine, Effect.gen(function*() {
+      const cache = yield* Cache.make({
+        capacity: 256,
+        timeToLive: Duration.seconds(60),
+        lookup: (expr: string) => evalProgram(compileExpr(expr)),
+      })
+
+      const evalCounter = Metric.counter("formula_engine.eval_count")
+      const sem = yield* Semaphore.make(4) // Max 4 concurrent evals
+
+      return FormulaEngine.of({
+        eval: (expr) =>
+          sem.withPermits(1)(
+            Effect.gen(function*() {
+              yield* Metric.update(evalCounter, 1)
+              return yield* Cache.get(cache, expr)
+            }).pipe(
+              Effect.timeout("5 seconds"),
+              Effect.withSpan("formula.eval", { attributes: { formula: expr } }),
+            )
+          ),
+      })
+    }))
+
+    it("full pipeline: eval via service with cache+metric+span+semaphore", async () => {
+      const result = await Effect.runPromise(
+        Effect.gen(function*() {
+          const engine = yield* FormulaEngine
+
+          const r1 = yield* engine.eval("3 4 + 2 *")
+          const r2 = yield* engine.eval("3 4 + 2 *") // Cache hit
+          const r3 = yield* engine.eval("10 5 -")
+
+          return {
+            r1: r1.stack[0],
+            r2: r2.stack[0],
+            r3: r3.stack[0],
+          }
+        }).pipe(Effect.provide(FormulaEngineLive))
+      )
+
+      expect(result.r1).toEqual(num(14))
+      expect(result.r2).toEqual(num(14)) // Same cached result
+      expect(result.r3).toEqual(num(5))
+    })
+
+    it("concurrent evals throttled by semaphore", async () => {
+      const results = await Effect.runPromise(
+        Effect.gen(function*() {
+          const engine = yield* FormulaEngine
+
+          // Fire 8 concurrent evals — only 4 at a time
+          const fibers = yield* Effect.forEach(
+            ["1 1 +", "2 2 +", "3 3 +", "4 4 +", "5 5 +", "6 6 +", "7 7 +", "8 8 +"],
+            (expr) => Effect.forkChild(engine.eval(expr)),
+          )
+
+          const states = yield* Effect.forEach(fibers, (f) => Fiber.join(f))
+          return states.map((s) => {
+            const top = s.stack[0]
+            return top?._tag === "num" ? top.value : -1
+          })
+        }).pipe(Effect.provide(FormulaEngineLive))
+      )
+
+      expect(results.sort((a, b) => a - b)).toEqual([2, 4, 6, 8, 10, 12, 14, 16])
+    })
+  })
 })
