@@ -10,32 +10,50 @@
 ### Observability: H15, H22
 ### Integration: H21, H24 (full FormulaEngine service)
 
-## ✅ EXTRACTED — Production Service
+## ✅ EXTRACTED — Production Services (4 modules, 98 tests)
 
-### `packages/datagrid/src/services/stack-vm.ts` (29KB, 49 tests)
+### stack-vm.ts (32KB, 49 tests)
 - ServiceMap.Service: eval(ir), evalExpr(str), evalEffect(program), compile(expr), invalidate(expr)
 - 3 error channels: VMValue inline (6 codes), Effect E (CompileError/EvalError/ResourceError), defects
 - Layer.effect: Cache + Metric + Semaphore + Span + Timeout
 - Error utilities: catchToErrorState, failureToVMError, timeoutToVMError, vmDisplay, propagateError
-- Step overflow guard (MAX_EVAL_STEPS)
+- Step overflow guard (MAX_EVAL_STEPS), error propagation rule
 
-### Cell state: TxHashMap<CellAddr, CellValue>
-- Multi-cell reads/writes in single Effect.transaction
-- TxRef for VM stack, TxQueue for trail — all atomic
+### vm-cell-bridge.ts (5KB, 24 tests)
+- Bidirectional CellValue ↔ VMValue conversion
+- Empty→0 spreadsheet convention, Formula→cached, error code→display mapping
+- Round-trip checks (isLosslessRoundTrip), batch ops, cellDisplayVM
 
-### Dependency recalc: Graph + topo order
-- Graph.directed for dep DAG, reversed topo for eval order
-- isAcyclic check on formula entry
-- Semaphore.withPermits for throttled parallel recalc
+### dep-graph.ts (9KB, 17 tests)
+- Effect v4 Graph-backed topo sort for eval order
+- Cycle detection (CircularDepError) before registration
+- Diamond deps, BFS affected set, Graph.topo Walker [NodeIndex, N]
 
-### WASM sandbox: Pool + Scope + acquireRelease
+### vm-integration.test.ts (8 tests)
+- Full pipeline: data change → topo sort → eval → bridge → write-back
+- Chained formulas, diamond deps, error propagation, multi-dirty, unregister
+
+## 🔜 NEXT — Production Wiring
+
+### READ_CELL opcode (extends VM with cell context)
+- New opcode: `READ_CELL { addr: string }` — reads cell value into stack
+- Requires `CellContext` service (Effect DI) providing `getCell(addr) → VMValue`
+- Enables formulas to reference cells at eval time, not just at compile time
+- Test: `PUSH_STR "A1" READ_CELL` reads A1's value onto stack
+
+### Replace formula-engine.ts
+- Wire DepGraph into FormulaEngine or replace the service
+- FormulaConsistency should use StackVM for recalc instead of raw compute callbacks
+- Public barrel export from index.ts
+
+### TxHashMap cell state (production)
+- Replace Map<string, CellValue> with TxHashMap inside Effect.transaction
+- Multi-cell atomic reads/writes for bulk paste, undo
+
+### WASM sandbox (Domain B)
 - Pool.make for QuickJS-WASM instances
-- acquireRelease for lifecycle, addFinalizer for cleanup
+- acquireRelease lifecycle, addFinalizer cleanup
 - timeout for untrusted code safety
-
-### Observability: Metric + Span
-- counter(eval_count), histogram(latency), gauge(cache_size)
-- withSpan per pipeline stage: compile → validate → execute → trail
 
 ## 📊 v4 API Gotchas (Complete — 14 discoveries)
 | Wrong | Correct |

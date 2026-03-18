@@ -527,6 +527,121 @@ describe("StackVM service", () => {
 })
 
 // ═══════════════════════════════════════════════════════
+// READ_CELL / WRITE_CELL OPCODES
+// ═══════════════════════════════════════════════════════
+
+describe("cell I/O opcodes", () => {
+  function makeTestContext(cells: Record<string, VMValue>): {
+    ctx: import("../src/services/stack-vm").CellContext,
+    written: Record<string, VMValue>,
+  } {
+    const written: Record<string, VMValue> = {}
+    return {
+      ctx: {
+        readCell: (addr) => cells[addr] ?? num(0),
+        writeCell: (addr, v) => { written[addr] = v },
+      },
+      written,
+    }
+  }
+
+  describe("READ_CELL", () => {
+    it("reads a cell value onto the stack", () => {
+      const { ctx } = makeTestContext({ A1: num(42), B1: str("hello") })
+      const state = Effect.runSync(evalProgram([
+        { _tag: "READ_CELL", addr: "A1" },
+      ], ctx))
+      expect(state.stack[0]).toEqual(num(42))
+    })
+
+    it("reads multiple cells for formula", () => {
+      const { ctx } = makeTestContext({ A1: num(10), B1: num(20) })
+      const state = Effect.runSync(evalProgram([
+        { _tag: "READ_CELL", addr: "A1" },
+        { _tag: "READ_CELL", addr: "B1" },
+        { _tag: "ADD" },
+      ], ctx))
+      expect(state.stack[0]).toEqual(num(30))
+    })
+
+    it("missing cell returns num(0)", () => {
+      const { ctx } = makeTestContext({})
+      const state = Effect.runSync(evalProgram([
+        { _tag: "READ_CELL", addr: "Z99" },
+      ], ctx))
+      expect(state.stack[0]).toEqual(num(0))
+    })
+
+    it("no context returns error", () => {
+      // No ctx passed — uses emptyCellContext
+      const state = Effect.runSync(evalProgram([
+        { _tag: "READ_CELL", addr: "A1" },
+      ]))
+      expect(state.stack[0]._tag).toBe("error")
+    })
+  })
+
+  describe("WRITE_CELL", () => {
+    it("pops value and writes to cell", () => {
+      const { ctx, written } = makeTestContext({})
+      const state = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 42 },
+        { _tag: "WRITE_CELL", addr: "C1" },
+      ], ctx))
+      expect(written["C1"]).toEqual(num(42))
+      expect(state.stack).toHaveLength(0) // value was popped
+    })
+
+    it("underflow on empty stack", () => {
+      const { ctx, written } = makeTestContext({})
+      const state = Effect.runSync(evalProgram([
+        { _tag: "WRITE_CELL", addr: "C1" },
+      ], ctx))
+      expect(state.stack[0]._tag).toBe("error")
+      expect(written["C1"]).toBeUndefined() // nothing written
+    })
+  })
+
+  describe("READ_CELL + formula", () => {
+    it("=A1+B1 using READ_CELL opcodes", () => {
+      const { ctx } = makeTestContext({ A1: num(100), B1: num(200) })
+      const state = Effect.runSync(evalProgram([
+        { _tag: "READ_CELL", addr: "A1" },
+        { _tag: "READ_CELL", addr: "B1" },
+        { _tag: "ADD" },
+      ], ctx))
+      expect(state.stack[0]).toEqual(num(300))
+    })
+
+    it("=A1*B1+C1 complex formula", () => {
+      const { ctx } = makeTestContext({ A1: num(3), B1: num(4), C1: num(5) })
+      const state = Effect.runSync(evalProgram([
+        { _tag: "READ_CELL", addr: "A1" },
+        { _tag: "READ_CELL", addr: "B1" },
+        { _tag: "MUL" },
+        { _tag: "READ_CELL", addr: "C1" },
+        { _tag: "ADD" },
+      ], ctx))
+      expect(state.stack[0]).toEqual(num(17)) // 3*4+5
+    })
+
+    it("error in cell propagates through formula", () => {
+      const { ctx } = makeTestContext({
+        A1: num(10),
+        B1: vmError("DIV_ZERO", "oops"),
+      })
+      const state = Effect.runSync(evalProgram([
+        { _tag: "READ_CELL", addr: "A1" },
+        { _tag: "READ_CELL", addr: "B1" },
+        { _tag: "ADD" },
+      ], ctx))
+      // B1 is an error → ADD propagates it
+      expect(state.stack[0]._tag).toBe("error")
+    })
+  })
+})
+
+// ═══════════════════════════════════════════════════════
 // PERFORMANCE
 // ═══════════════════════════════════════════════════════
 

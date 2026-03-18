@@ -296,16 +296,62 @@ export const NOT = Schema.TaggedStruct("NOT", {})
 export const SUM_N = Schema.TaggedStruct("SUM_N", { n: Schema.Number })
 export const HALT = Schema.TaggedStruct("HALT", {})
 
+/**
+ * READ_CELL — read a cell value onto the stack.
+ *
+ * Takes a cell address string. At eval time, resolves the address
+ * via CellContext and pushes the VMValue.
+ *
+ * If no CellContext is provided, pushes vmError("GENERAL", "no cell context").
+ * If the cell doesn't exist, pushes num(0) (empty = zero convention).
+ */
+export const READ_CELL = Schema.TaggedStruct("READ_CELL", { addr: Schema.String })
+
+/**
+ * WRITE_CELL — pop a value and write it to a cell.
+ *
+ * Takes a cell address string. At eval time, pops the top value
+ * from the stack and writes it via CellContext.
+ */
+export const WRITE_CELL = Schema.TaggedStruct("WRITE_CELL", { addr: Schema.String })
+
 export const Opcode = Schema.Union([
   PUSH_NUM, PUSH_STR, PUSH_BOOL,
   ADD, SUB, MUL, DIV,
   DUP, SWAP, DROP, NEG,
   EQ, LT, GT, NOT,
   SUM_N, HALT,
+  READ_CELL, WRITE_CELL,
 ])
 export type Opcode = typeof Opcode.Type
 
 export type StackIR = ReadonlyArray<Opcode>
+
+// ═══════════════════════════════════════════════════════
+// CELL CONTEXT (injected for READ_CELL / WRITE_CELL)
+// ═══════════════════════════════════════════════════════
+
+/**
+ * CellContext — injected dependency for cell I/O opcodes.
+ *
+ * The VM itself doesn't know about the cell layer. CellContext
+ * is a simple callback interface passed at eval time.
+ *
+ * In production, this is wired from CellCache + VMCellBridge.
+ * In tests, it can be a plain Map.
+ */
+export interface CellContext {
+  /** Read a cell value. Returns the VMValue for the cell, or num(0) for empty. */
+  readonly readCell: (addr: string) => VMValue
+  /** Write a value to a cell. */
+  readonly writeCell: (addr: string, value: VMValue) => void
+}
+
+/** No-op CellContext — all reads return error, writes are dropped */
+export const emptyCellContext: CellContext = {
+  readCell: () => vmError("GENERAL", "No cell context available"),
+  writeCell: () => {},
+}
 
 // ═══════════════════════════════════════════════════════
 // TRAIL + VM STATE
@@ -444,6 +490,8 @@ const opcodeDispatch = pipe(
     }),
     SUM_N: (o) => ({ sumN: o.n }),
     HALT: () => ({ halt: true }),
+    READ_CELL: (o) => ({ readCell: o.addr }),
+    WRITE_CELL: (o) => ({ writeCell: o.addr }),
   })
 )
 
@@ -464,8 +512,10 @@ export const MAX_EVAL_STEPS = 100_000
  * - Step overflow → sets halted=true, pushes EVAL_OVERFLOW error
  *
  * These are all inline errors (channel 1) — the eval itself succeeds.
+ *
+ * @param ctx Optional CellContext for READ_CELL/WRITE_CELL opcodes
  */
-export const execOpcode = (op: Opcode, state: VMState): VMState => {
+export const execOpcode = (op: Opcode, state: VMState, ctx?: CellContext): VMState => {
   // Step overflow guard
   if (state.step >= MAX_EVAL_STEPS) {
     return {
@@ -532,6 +582,19 @@ export const execOpcode = (op: Opcode, state: VMState): VMState => {
         const r = num(t); s.push(r); result = r
       }
     }
+  } else if (cmd.readCell !== undefined) {
+    const cellCtx = ctx ?? emptyCellContext
+    const v = cellCtx.readCell(cmd.readCell)
+    s.push(v); result = v
+  } else if (cmd.writeCell !== undefined) {
+    const cellCtx = ctx ?? emptyCellContext
+    if (s.length === 0) {
+      const e = vmError("STACK_UNDERFLOW", "WRITE_CELL requires 1 operand"); s.push(e); result = e
+    } else {
+      const v = s.pop()!
+      cellCtx.writeCell(cmd.writeCell, v)
+      result = v
+    }
   }
 
   const entry: TrailEntry = {
@@ -562,12 +625,13 @@ export const execOpcode = (op: Opcode, state: VMState): VMState => {
 export const runIR = (
   ref: TxRef.TxRef<VMState>,
   ir: StackIR,
+  ctx?: CellContext,
 ): Effect.Effect<VMState, never, Effect.Transaction> =>
   Effect.gen(function*() {
     for (const op of ir) {
       const current = yield* TxRef.get(ref)
       if (current.halted) break
-      yield* TxRef.set(ref, execOpcode(op, current))
+      yield* TxRef.set(ref, execOpcode(op, current, ctx))
     }
     return yield* TxRef.get(ref)
   })
@@ -701,11 +765,11 @@ export const dualEval = (
 }
 
 /** Run a StackIR program with fresh state */
-export const evalProgram = (ir: StackIR): Effect.Effect<VMState> =>
+export const evalProgram = (ir: StackIR, ctx?: CellContext): Effect.Effect<VMState> =>
   Effect.transaction(
     Effect.gen(function*() {
       const ref = yield* TxRef.make(emptyState())
-      return yield* runIR(ref, ir)
+      return yield* runIR(ref, ir, ctx)
     })
   )
 
