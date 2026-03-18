@@ -34,6 +34,7 @@ import * as Effect from "effect-v4/Effect"
 import * as Schema from "effect-v4/Schema"
 import * as TxRef from "effect-v4/TxRef"
 import * as Match from "effect-v4/Match"
+import * as JsonPatch from "effect-v4/JsonPatch"
 import { pipe } from "effect-v4/Function"
 
 // ═══════════════════════════════════════════════════════
@@ -86,6 +87,20 @@ type Opcode = typeof Opcode.Type
 
 type StackIR = ReadonlyArray<Opcode>
 
+// ─── Schema.TaggedUnion alternative (has built-in .match()) ──
+
+const OpcodeV2 = Schema.TaggedUnion({
+  PUSH_NUM: { value: Schema.Number },
+  PUSH_STR: { value: Schema.String },
+  PUSH_BOOL: { value: Schema.Boolean },
+  ADD: {}, SUB: {}, MUL: {}, DIV: {},
+  DUP: {}, SWAP: {}, DROP: {}, NEG: {},
+  EQ: {}, LT: {}, GT: {}, NOT: {},
+  SUM_N: { n: Schema.Number },
+  HALT: {},
+})
+type OpcodeV2 = typeof OpcodeV2.Type
+
 // ─── Trail Entry ────────────────────────────────────
 
 interface TrailEntry {
@@ -105,6 +120,27 @@ interface VMState {
   readonly step: number
   readonly halted: boolean
 }
+
+// ─── Schema-backed VMState for JsonPatch differ ─────
+
+const TrailEntrySchema = Schema.Struct({
+  step: Schema.Number,
+  opcode: Schema.String,
+  stackDepthBefore: Schema.Number,
+  stackDepthAfter: Schema.Number,
+  result: Schema.optional(VMValue),
+})
+
+const VMStateSchema = Schema.Struct({
+  stack: Schema.Array(VMValue),
+  registers: Schema.Record(Schema.String, VMValue),
+  trail: Schema.Array(TrailEntrySchema),
+  step: Schema.Number,
+  halted: Schema.Boolean,
+})
+
+// Create differ for computing JSONL patches between VM state snapshots
+const vmStateDiffer = Schema.toDifferJsonPatch(VMStateSchema)
 
 const emptyState = (): VMState => ({
   stack: [],
@@ -737,6 +773,134 @@ describe("F1b: Effect-Native Stack VM", () => {
       expect(result.trail[0].stackDepthAfter).toBe(1)
       expect(result.trail[2].stackDepthBefore).toBe(2)
       expect(result.trail[2].stackDepthAfter).toBe(1)
+    })
+  })
+
+  // ─── H9: Schema.TaggedUnion with .match() ──────────
+
+  describe("H9: Schema.TaggedUnion built-in match", () => {
+    it("OpcodeV2.match dispatches exhaustively", () => {
+      const op: OpcodeV2 = { _tag: "PUSH_NUM", value: 99 }
+      const result = OpcodeV2.match(op, {
+        PUSH_NUM: (o) => `push ${o.value}`,
+        PUSH_STR: (o) => `push "${o.value}"`,
+        PUSH_BOOL: (o) => `push ${o.value}`,
+        ADD: () => "add", SUB: () => "sub", MUL: () => "mul", DIV: () => "div",
+        DUP: () => "dup", SWAP: () => "swap", DROP: () => "drop", NEG: () => "neg",
+        EQ: () => "eq", LT: () => "lt", GT: () => "gt", NOT: () => "not",
+        SUM_N: (o) => `sum_${o.n}`,
+        HALT: () => "halt",
+      })
+      expect(result).toBe("push 99")
+    })
+
+    it("TaggedUnion is interchangeable with Union for decode", () => {
+      const decoded = Schema.decodeUnknownSync(OpcodeV2)({ _tag: "ADD" })
+      expect(decoded._tag).toBe("ADD")
+    })
+  })
+
+  // ─── H8: JSONL Patch Trail ────────────────────────
+  //
+  // Trail as RFC 6902 JSON Patches between VM state snapshots.
+  // Each opcode produces a JsonPatch[] diff, serializable as one JSONL line.
+  // Enables: streaming replay, append-only log, CRDT sync, compact storage.
+
+  describe("H8: JSONL patch trail (Schema.toDifferJsonPatch)", () => {
+    it("differ computes patch from empty → one push", () => {
+      const before = emptyState()
+      const after = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 42 },
+      ]))
+      const patch = vmStateDiffer.diff(before, after)
+
+      // Patch should contain operations for stack, trail, step changes
+      expect(patch.length).toBeGreaterThan(0)
+      expect(patch.some(op => op.path.startsWith("/stack"))).toBe(true)
+      expect(patch.some(op => op.path.startsWith("/step"))).toBe(true)
+    })
+
+    it("patch can reconstruct state from empty + diff", () => {
+      const before = emptyState()
+      const after = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 7 },
+        { _tag: "PUSH_NUM", value: 3 },
+        { _tag: "ADD" },
+      ]))
+      const patch = vmStateDiffer.diff(before, after)
+      const reconstructed = vmStateDiffer.patch(before, patch)
+
+      expect(reconstructed.stack).toEqual(after.stack)
+      expect(reconstructed.step).toBe(after.step)
+      expect(reconstructed.halted).toBe(after.halted)
+    })
+
+    it("incremental patches between steps are combinable", () => {
+      // Execute step by step, collecting patches
+      const s0 = emptyState()
+      const s1 = Effect.runSync(evalProgram([{ _tag: "PUSH_NUM", value: 10 }]))
+      const s2 = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 10 },
+        { _tag: "PUSH_NUM", value: 20 },
+      ]))
+      const s3 = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 10 },
+        { _tag: "PUSH_NUM", value: 20 },
+        { _tag: "ADD" },
+      ]))
+
+      const p01 = vmStateDiffer.diff(s0, s1)
+      const p12 = vmStateDiffer.diff(s1, s2)
+      const p23 = vmStateDiffer.diff(s2, s3)
+
+      // Combine all patches
+      const combined = vmStateDiffer.combine(vmStateDiffer.combine(p01, p12), p23)
+
+      // Combined patch applied to initial state should match final
+      const reconstructed = vmStateDiffer.patch(s0, combined)
+      expect(reconstructed.stack).toEqual(s3.stack)
+      expect(reconstructed.step).toBe(s3.step)
+    })
+
+    it("patches serialize as JSONL lines", () => {
+      const before = emptyState()
+      const after = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 5 },
+        { _tag: "DUP" },
+        { _tag: "MUL" },
+      ]))
+      const patch = vmStateDiffer.diff(before, after)
+
+      // Each patch is an array of JsonPatchOperation — serialize as one JSONL line
+      const jsonlLine = JSON.stringify(patch)
+      const deserialized = JSON.parse(jsonlLine) as JsonPatch.JsonPatch
+
+      // Verify round-trip
+      expect(deserialized).toEqual(patch)
+
+      // Verify it's valid RFC 6902
+      for (const op of deserialized) {
+        expect(["add", "remove", "replace"]).toContain(op.op)
+        expect(typeof op.path).toBe("string")
+      }
+    })
+
+    it("empty differ produces no patches", () => {
+      const state = emptyState()
+      const patch = vmStateDiffer.diff(state, state)
+      expect(patch).toEqual([])
+    })
+
+    it("raw JsonPatch.get/apply works on serialized VM state", () => {
+      // Demonstrate the lower-level JsonPatch API directly
+      const oldJson = { stack: [], step: 0, halted: false }
+      const newJson = { stack: [{ _tag: "num", value: 42 }], step: 1, halted: false }
+
+      const patch = JsonPatch.get(oldJson, newJson)
+      expect(patch.length).toBeGreaterThan(0)
+
+      const result = JsonPatch.apply(patch, oldJson)
+      expect(result).toEqual(newJson)
     })
   })
 })
