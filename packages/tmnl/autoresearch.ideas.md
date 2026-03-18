@@ -10,12 +10,14 @@
 ### Observability: H15, H22
 ### Integration: H21, H24 (full FormulaEngine service)
 
-## 🧩 POST-SPIKE — Production Extraction
+## ✅ EXTRACTED — Production Service
 
-### Extract to `packages/datagrid/src/services/stack-vm.ts`
-- ServiceMap.Service interface: eval(ir), evalExpr(str), evalEffect(program)
-- Layer.effect wiring: Cache + Metric + Semaphore + Span + Timeout
-- Config via service: max concurrency, cache size/ttl, eval timeout
+### `packages/datagrid/src/services/stack-vm.ts` (29KB, 49 tests)
+- ServiceMap.Service: eval(ir), evalExpr(str), evalEffect(program), compile(expr), invalidate(expr)
+- 3 error channels: VMValue inline (6 codes), Effect E (CompileError/EvalError/ResourceError), defects
+- Layer.effect: Cache + Metric + Semaphore + Span + Timeout
+- Error utilities: catchToErrorState, failureToVMError, timeoutToVMError, vmDisplay, propagateError
+- Step overflow guard (MAX_EVAL_STEPS)
 
 ### Cell state: TxHashMap<CellAddr, CellValue>
 - Multi-cell reads/writes in single Effect.transaction
