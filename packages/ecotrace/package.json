@@ -1,0 +1,68 @@
+{
+  "name": "@tmnl/ecotrace",
+  "version": "0.0.1",
+  "author": "GBG",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gbg/gbg.git",
+    "directory": "packages/ecotrace"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./attribution": {
+      "import": "./dist/attribution.js",
+      "types": "./dist/attribution.d.ts"
+    },
+    "./proxy": {
+      "import": "./dist/proxy.js",
+      "types": "./dist/proxy.d.ts"
+    },
+    "./data": {
+      "import": "./dist/data.js",
+      "types": "./dist/data.d.ts"
+    }
+  },
+  "description": "Environmental impact tracing for LLM requests — per-request carbon, water, and network path attribution via traceroute + MITM proxy",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "llm",
+    "carbon",
+    "water",
+    "environmental",
+    "impact",
+    "tracing",
+    "proxy",
+    "traceroute",
+    "sustainability",
+    "effect-ts",
+    "ai"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ci": "vitest run --reporter=junit --outputFile=reports/junit.xml",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist reports",
+    "prepublishOnly": "bun run clean && bun run build"
+  },
+  "dependencies": {
+    "effect": "3.19.18"
+  },
+  "devDependencies": {
+    "@effect/vitest": "^0.17.4",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

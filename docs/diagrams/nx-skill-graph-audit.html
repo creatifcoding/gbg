@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NX Skill — Structure Audit & Gap Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Space Grotesk', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    --bg: #0c0e14;
+    --surface: #13161f;
+    --surface2: #1a1e2a;
+    --surface-elevated: #1f2436;
+    --border: rgba(255, 255, 255, 0.06);
+    --border-bright: rgba(255, 255, 255, 0.14);
+    --text: #e2e8f0;
+    --text-dim: #64748b;
+    --accent: #a78bfa;
+    --accent-dim: rgba(167, 139, 250, 0.1);
+    --green: #4ade80;
+    --green-dim: rgba(74, 222, 128, 0.1);
+    --amber: #fbbf24;
+    --amber-dim: rgba(251, 191, 36, 0.1);
+    --red: #f87171;
+    --red-dim: rgba(248, 113, 113, 0.1);
+    --cyan: #22d3ee;
+    --cyan-dim: rgba(34, 211, 238, 0.1);
+    --rose: #fb7185;
+    --rose-dim: rgba(251, 113, 133, 0.1);
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f8f9fc;
+      --surface: #ffffff;
+      --surface2: #f1f3f8;
+      --surface-elevated: #ffffff;
+      --border: rgba(0, 0, 0, 0.07);
+      --border-bright: rgba(0, 0, 0, 0.14);
+      --text: #1e1b3a;
+      --text-dim: #6b7280;
+      --accent: #7c3aed;
+      --accent-dim: rgba(124, 58, 237, 0.08);
+      --green: #16a34a;
+      --green-dim: rgba(22, 163, 74, 0.08);
+      --amber: #d97706;
+      --amber-dim: rgba(217, 119, 6, 0.08);
+      --red: #dc2626;
+      --red-dim: rgba(220, 38, 38, 0.08);
+      --cyan: #0891b2;
+      --cyan-dim: rgba(8, 145, 178, 0.08);
+      --rose: #e11d48;
+      --rose-dim: rgba(225, 29, 72, 0.08);
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 25% 0%, var(--accent-dim) 0%, transparent 50%),
+      radial-gradient(ellipse at 75% 100%, var(--cyan-dim) 0%, transparent 40%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 40px;
+    min-height: 100vh;
+  }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .anim { animation: fadeUp 0.5s ease-out both; animation-delay: calc(var(--i, 0) * 80ms); }
+  @media (prefers-reduced-motion: reduce) { .anim { animation: none; } }
+
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 32px; font-weight: 700; margin-bottom: 6px; }
+  .subtitle { color: var(--text-dim); font-size: 15px; margin-bottom: 32px; }
+  h2 { font-size: 20px; font-weight: 600; margin: 36px 0 16px; display: flex; align-items: center; gap: 10px; }
+  h2 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  h3 { font-size: 15px; font-weight: 600; margin: 20px 0 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; font-family: var(--font-mono); font-size: 11px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 22px; margin-bottom: 12px; }
+  .card--hero { background: var(--surface-elevated); border-color: var(--border-bright); box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
+  .card--recessed { background: var(--surface2); box-shadow: inset 0 1px 3px rgba(0,0,0,0.06); }
+  .label { font-family: var(--font-mono); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .label::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+  /* Two-col grid */
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 768px) { .cols { grid-template-columns: 1fr; } }
+  .cols > * { min-width: 0; }
+
+  /* Three-col */
+  .cols3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  @media (max-width: 900px) { .cols3 { grid-template-columns: 1fr; } }
+  .cols3 > * { min-width: 0; }
+
+  /* Status badges */
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; }
+  .badge--done { background: var(--green-dim); color: var(--green); }
+  .badge--gap { background: var(--red-dim); color: var(--red); }
+  .badge--partial { background: var(--amber-dim); color: var(--amber); }
+  .badge--info { background: var(--cyan-dim); color: var(--cyan); }
+
+  /* Graph nodes */
+  .graph { display: flex; flex-direction: column; gap: 2px; }
+  .gnode { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-family: var(--font-mono); border: 1px solid var(--border); background: var(--surface); }
+  .gnode .arrow { color: var(--text-dim); font-size: 11px; margin-left: auto; }
+  .gnode--root { background: var(--accent-dim); border-color: var(--accent); font-weight: 600; }
+  .gnode--index { background: var(--cyan-dim); border-color: var(--cyan); }
+  .gnode--leaf { background: var(--surface2); }
+  .gnode--missing { background: var(--red-dim); border-color: var(--red); border-style: dashed; }
+  .indent { margin-left: 24px; border-left: 2px solid var(--border-bright); padding-left: 12px; }
+  .indent .indent { margin-left: 20px; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); padding: 10px 14px; border-bottom: 2px solid var(--border-bright); }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:hover td { background: var(--accent-dim); }
+  code { font-family: var(--font-mono); font-size: 12px; background: var(--surface2); padding: 2px 6px; border-radius: 4px; }
+
+  .req { font-weight: 600; color: var(--accent); }
+  .has { color: var(--green); }
+  .miss { color: var(--red); }
+  .part { color: var(--amber); }
+  .note { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+  .mono { font-family: var(--font-mono); font-size: 12px; }
+  p { line-height: 1.6; margin-bottom: 8px; font-size: 14px; }
+  ul { margin: 6px 0 6px 18px; font-size: 13px; line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1 class="anim" style="--i:0">NX Skill — Structure Audit</h1>
+<p class="subtitle anim" style="--i:1">Mapping what you asked for → what exists → what's missing</p>
+
+<!-- ========== SECTION 1: REQUEST MAP ========== -->
+<h2 class="anim" style="--i:2"><span class="dot" style="background:var(--accent)"></span> What You Requested</h2>
+
+<div class="cols anim" style="--i:3">
+  <div class="card card--hero">
+    <div class="label" style="color:var(--accent)">Requirements</div>
+    <ul>
+      <li><span class="req">Standardized plugin briefings</span> — each plugin follows the same shape</li>
+      <li><span class="req">Meta-template</span> — "how to write a reference doc" for any entity type</li>
+      <li><span class="req">DAG dependency language</span> — explicit prereqs between nodes, not just "Back to"</li>
+      <li><span class="req">Skill graph observability</span> — agent sees the full topology and routes through it</li>
+      <li><span class="req">Entity-type standardization</span> — generators, plugins, boundaries each have a canonical doc shape</li>
+    </ul>
+  </div>
+  <div class="card card--hero">
+    <div class="label" style="color:var(--cyan)">Design Principle</div>
+    <p>Treat the skill like component decomposition. Each doc node is a "component" with:</p>
+    <ul>
+      <li><strong>Props</strong> — what it expects (prereqs/deps)</li>
+      <li><strong>Renders</strong> — what it provides (knowledge surface)</li>
+      <li><strong>Children</strong> — what it links to (deeper nodes)</li>
+      <li><strong>Shape</strong> — standardized template per entity type</li>
+    </ul>
+    <p class="note">Progressive disclosure. Agent bounces through indexes. No node over ~80 lines. DAG, not a tree — cross-links are explicit.</p>
+  </div>
+</div>
+
+<!-- ========== SECTION 2: GAP TABLE ========== -->
+<h2 class="anim" style="--i:4"><span class="dot" style="background:var(--amber)"></span> Gap Analysis</h2>
+
+<div class="card card--recessed anim" style="--i:5">
+<table>
+  <thead>
+    <tr>
+      <th>Requirement</th>
+      <th>Status</th>
+      <th>What Exists</th>
+      <th>Gap</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="req">Plugin inventory</td>
+      <td><span class="badge badge--partial">PARTIAL</span></td>
+      <td><code>plugins/INDEX.md</code> — lists all 8 plugins with targets</td>
+      <td class="miss">Not standardized. Each plugin is a markdown heading, not a structured brief. No consistent shape (Options, Infers From, Targets, When To Care).</td>
+    </tr>
+    <tr>
+      <td class="req">Meta-template</td>
+      <td><span class="badge badge--gap">MISSING</span></td>
+      <td>Nothing</td>
+      <td class="miss">No <code>TEMPLATE.md</code> or doc-shape guide. A new agent writing a "boundaries" doc has no canonical shape to follow.</td>
+    </tr>
+    <tr>
+      <td class="req">DAG dependency language</td>
+      <td><span class="badge badge--gap">MISSING</span></td>
+      <td>Docs have "Back to: INDEX.md" breadcrumbs</td>
+      <td class="miss">Breadcrumbs are parent links only. No <strong>prereqs</strong> ("Requires: understanding of tags → boundaries/INDEX.md"). No <strong>cross-links</strong> between sibling topics. No <strong>depends-on</strong> frontmatter.</td>
+    </tr>
+    <tr>
+      <td class="req">Skill graph observability</td>
+      <td><span class="badge badge--gap">MISSING</span></td>
+      <td><code>references/INDEX.md</code> is a flat directory listing</td>
+      <td class="miss">No <code>GRAPH.md</code> or topology section. Agent can't see all nodes + edges at a glance. No way to answer "what depends on what" without reading each file.</td>
+    </tr>
+    <tr>
+      <td class="req">Entity-type templates</td>
+      <td><span class="badge badge--gap">MISSING</span></td>
+      <td>Each doc is freeform</td>
+      <td class="miss">No canonical shape for "a plugin brief" vs "a generator doc" vs "a boundary rule doc." Each doc was written ad-hoc.</td>
+    </tr>
+    <tr>
+      <td class="req">Decision-tree router</td>
+      <td><span class="badge badge--done">DONE</span></td>
+      <td><code>SKILL.md</code> has a router block with arrows</td>
+      <td class="has">Clean. Agent lands, picks a branch. ✓</td>
+    </tr>
+    <tr>
+      <td class="req">Progressive disclosure</td>
+      <td><span class="badge badge--done">DONE</span></td>
+      <td>SKILL → INDEX → topic INDEX → leaf</td>
+      <td class="has">4-level depth, no file over 92 lines. ✓</td>
+    </tr>
+    <tr>
+      <td class="req">Lightweight SKILL.md</td>
+      <td><span class="badge badge--done">DONE</span></td>
+      <td>80 lines, commands + router + tags + diagnostics</td>
+      <td class="has">Slim. No redundant detail. ✓</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ========== SECTION 3: CURRENT GRAPH ========== -->
+<h2 class="anim" style="--i:6"><span class="dot" style="background:var(--cyan)"></span> Current Skill Graph</h2>
+
+<div class="cols anim" style="--i:7">
+  <div class="card">
+    <div class="label" style="color:var(--green)">What Exists (16 files)</div>
+    <div class="graph">
+      <div class="gnode gnode--root">SKILL.md <span class="arrow">→ refs/INDEX</span></div>
+      <div class="indent">
+        <div class="gnode gnode--index">references/INDEX.md <span class="arrow">→ 4 dirs</span></div>
+        <div class="indent">
+          <div class="gnode gnode--index">plugins/INDEX.md</div>
+          <div class="indent">
+            <div class="gnode gnode--leaf">createNodesV2.md</div>
+            <div class="gnode gnode--leaf">local-plugin.md</div>
+          </div>
+          <div class="gnode gnode--index">generators/INDEX.md</div>
+          <div class="indent">
+            <div class="gnode gnode--leaf">registration.md</div>
+            <div class="gnode gnode--leaf">schema.md</div>
+            <div class="gnode gnode--leaf">tree-api.md</div>
+          </div>
+          <div class="gnode gnode--index">boundaries/INDEX.md</div>
+          <div class="indent">
+            <div class="gnode gnode--leaf">dep-constraints.md</div>
+            <div class="gnode gnode--leaf">migration-pattern.md</div>
+          </div>
+          <div class="gnode gnode--index">effect-v4/INDEX.md</div>
+          <div class="indent">
+            <div class="gnode gnode--leaf">why-not-alternatives.md</div>
+            <div class="gnode gnode--leaf">ga-migration.md</div>
+            <div class="gnode gnode--leaf">version-bumping.md</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label" style="color:var(--red)">Missing Nodes</div>
+    <div class="graph">
+      <div class="gnode gnode--missing">TEMPLATE.md — canonical shapes per entity type</div>
+      <div class="gnode gnode--missing">GRAPH.md — full topology with edges + prereqs</div>
+      <div class="gnode gnode--missing">Frontmatter on every doc (prereqs, provides, children)</div>
+      <div class="gnode gnode--missing">plugins/*.md — standardized per-plugin briefs</div>
+    </div>
+    <div class="label" style="color:var(--amber); margin-top: 16px;">Missing Edges</div>
+    <div class="graph">
+      <div class="gnode gnode--missing">boundaries/ → effect-v4/ (cross-dep: rules reference alias strategy)</div>
+      <div class="gnode gnode--missing">generators/ → plugins/ (cross-dep: generator lives inside plugin)</div>
+      <div class="gnode gnode--missing">migration-pattern → version-bumping (prerequisite chain)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SECTION 4: PROPOSED IMPROVEMENTS ========== -->
+<h2 class="anim" style="--i:8"><span class="dot" style="background:var(--green)"></span> Proposed Improvements</h2>
+
+<div class="cols3 anim" style="--i:9">
+  <div class="card">
+    <div class="label" style="color:var(--accent)">1. Frontmatter Protocol</div>
+    <p>Every doc gets a YAML-style header block:</p>
+    <pre style="background:var(--surface2);padding:12px;border-radius:6px;font-family:var(--font-mono);font-size:11px;line-height:1.6;overflow-x:auto;margin-top:8px"><code># Title
+
+> up: ../INDEX.md
+> prereqs: boundaries/INDEX.md, effect-v4/INDEX.md
+> provides: plugin-writing, createNodesV2-api
+> children: createNodesV2.md, local-plugin.md</code></pre>
+    <p class="note">Agent reads header → knows prereqs to load first, children to drill into, and what knowledge this node provides.</p>
+  </div>
+
+  <div class="card">
+    <div class="label" style="color:var(--cyan)">2. TEMPLATE.md — Entity Shapes</div>
+    <p>Canonical doc shape per entity type:</p>
+    <ul>
+      <li><strong>Plugin Brief</strong>: Name, Source, Infers From, Targets, Options, When To Care</li>
+      <li><strong>Generator Doc</strong>: Name, Usage, Creates, Updates, Options, Example</li>
+      <li><strong>Boundary Rule</strong>: Rule, Source Tag, Constraint, Rationale, Violation Message</li>
+      <li><strong>Strategy Doc</strong>: Problem, Solution, Why Not X, Migration Path</li>
+    </ul>
+    <p class="note">New agent copies the shape. Consistency emerges from templates, not memory.</p>
+  </div>
+
+  <div class="card">
+    <div class="label" style="color:var(--green)">3. GRAPH.md — Topology Map</div>
+    <p>Machine-readable + human-readable graph at skill root:</p>
+    <pre style="background:var(--surface2);padding:12px;border-radius:6px;font-family:var(--font-mono);font-size:11px;line-height:1.6;overflow-x:auto;margin-top:8px"><code>SKILL.md
+├──[routes]─→ references/INDEX.md
+│   ├──[contains]─→ plugins/INDEX.md
+│   │   ├── createNodesV2.md
+│   │   │   prereqs: [boundaries/INDEX]
+│   │   └── local-plugin.md
+│   │       prereqs: [generators/registration]
+│   ├──[contains]─→ generators/INDEX.md
+│   │   prereqs: [plugins/local-plugin]
+│   ├──[contains]─→ boundaries/INDEX.md
+│   │   cross: [effect-v4/INDEX]
+│   └──[contains]─→ effect-v4/INDEX.md
+│       cross: [boundaries/INDEX]</code></pre>
+    <p class="note">Agent reads GRAPH.md first to plan traversal. Edges are typed: routes, contains, prereqs, cross.</p>
+  </div>
+</div>
+
+<div class="card anim" style="--i:10; margin-top: 12px;">
+  <div class="label" style="color:var(--rose)">4. Plugin Briefs — Standardized</div>
+  <p>Each plugin gets its own file under <code>plugins/</code> following the Plugin Brief template:</p>
+  <div class="cols" style="margin-top: 12px;">
+    <div class="card card--recessed">
+      <h3>Current (plugins/INDEX.md)</h3>
+      <pre style="font-family:var(--font-mono);font-size:11px;line-height:1.5"><code>### 1. @nx/vite/plugin
+**Infers from**: vite.config.* / vitest.config.*
+**Targets**: build, test, serve, dev...</code></pre>
+      <p class="note">Flat list. No options. No "when to care." No cross-refs.</p>
+    </div>
+    <div class="card card--recessed">
+      <h3>Proposed (plugins/vite.md)</h3>
+      <pre style="font-family:var(--font-mono);font-size:11px;line-height:1.5"><code># @nx/vite/plugin
+
+> up: INDEX.md
+> prereqs: none
+> provides: build, test, dev targets
+
+## Infers From
+vite.config.* / vitest.config.*
+
+## Targets
+| Target | Executor | Cache |
+|---|---|---|
+| build | vite build | ✓ |
+| test | vitest run | ✓ |
+
+## Options (nx.json)
+buildTargetName, testTargetName...
+
+## When To Care
+Creating a Vite-based library or app.</code></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ========== SECTION 5: PRIORITY ========== -->
+<h2 class="anim" style="--i:11"><span class="dot" style="background:var(--amber)"></span> Implementation Priority</h2>
+
+<div class="card anim" style="--i:12">
+<table>
+  <thead>
+    <tr><th>#</th><th>Change</th><th>Impact</th><th>Effort</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="mono">1</td>
+      <td><strong>TEMPLATE.md</strong> — entity shapes for plugin/generator/boundary/strategy docs</td>
+      <td><span class="badge badge--info">HIGH</span> — Every future doc follows it. Consistency for free.</td>
+      <td><span class="badge badge--partial">~20 min</span></td>
+    </tr>
+    <tr>
+      <td class="mono">2</td>
+      <td><strong>Frontmatter protocol</strong> — add up/prereqs/provides/children to all 16 docs</td>
+      <td><span class="badge badge--info">HIGH</span> — Agent can plan traversal. Dependencies explicit.</td>
+      <td><span class="badge badge--partial">~15 min</span></td>
+    </tr>
+    <tr>
+      <td class="mono">3</td>
+      <td><strong>GRAPH.md</strong> — full topology at skill root</td>
+      <td><span class="badge badge--info">MEDIUM</span> — Agent observability. Single-glance routing.</td>
+      <td><span class="badge badge--done">~5 min</span></td>
+    </tr>
+    <tr>
+      <td class="mono">4</td>
+      <td><strong>Plugin briefs</strong> — break INDEX.md inventory into per-plugin files following template</td>
+      <td><span class="badge badge--partial">MEDIUM</span> — Better per-plugin detail. INDEX stays as router.</td>
+      <td><span class="badge badge--partial">~15 min</span></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+</div><!-- /wrap -->
+</body>
+</html>

@@ -1,0 +1,53 @@
+{
+  "name": "@tmnl/db",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./electric": {
+      "import": "./dist/electric.js",
+      "types": "./dist/electric.d.ts"
+    },
+    "./stream": {
+      "import": "./dist/stream-bridge.js",
+      "types": "./dist/stream-bridge.d.ts"
+    }
+  },
+  "description": "Principled client-side data management — TanStack DB × ElectricSQL × STX",
+  "files": ["dist", "README.md"],
+  "keywords": ["tanstack", "db", "electric", "stx", "reactive", "collections", "sync"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@tanstack/db": "^0.5.32",
+    "@tanstack/store": "^0.9.2",
+    "@tanstack/react-db": "^0.1.76",
+    "@tanstack/electric-db-collection": "^0.2.40",
+    "@tmnl/entity": "workspace:*",
+    "effect-v4": "npm:effect@4.0.0-beta.23"
+  },
+  "peerDependencies": {
+    "react": "^19.2.4"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "effect-vitest-v4": "npm:@effect/vitest@4.0.0-beta.23",
+    "jsdom": "^28.1.0",
+    "react-dom": "^19.2.4",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

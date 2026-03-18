@@ -1,0 +1,112 @@
+{
+  "name": "@tmnl/codemode",
+  "version": "0.0.1",
+  "description": "Domain SDK — persistent knowledge, procedures, plugin system, eval sandbox",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./store": {
+      "import": "./dist/store/index.js",
+      "types": "./dist/store/index.d.ts"
+    },
+    "./overlay": {
+      "import": "./dist/overlay.js",
+      "types": "./dist/overlay.d.ts"
+    },
+    "./plugin": {
+      "import": "./dist/plugin.js",
+      "types": "./dist/plugin.d.ts"
+    },
+    "./manifest": {
+      "import": "./dist/manifest.js",
+      "types": "./dist/manifest.d.ts"
+    },
+    "./manifest-sections": {
+      "import": "./dist/manifest-sections.js",
+      "types": "./dist/manifest-sections.d.ts"
+    },
+    "./history": {
+      "import": "./dist/history.js",
+      "types": "./dist/history.d.ts"
+    },
+    "./llm-bridge": {
+      "import": "./dist/llm-bridge.js",
+      "types": "./dist/llm-bridge.d.ts"
+    },
+    "./host": {
+      "import": "./dist/host.js",
+      "types": "./dist/host.d.ts"
+    },
+    "./primitives": {
+      "import": "./dist/primitives/types.js",
+      "types": "./dist/primitives/types.d.ts"
+    },
+    "./adapters/sqlite-node": {
+      "import": "./src/adapters/sqlite-node.ts"
+    },
+    "./adapters/sqlite-bun": {
+      "import": "./src/adapters/sqlite-bun.ts"
+    },
+    "./adapters/filesystem-node": {
+      "import": "./src/adapters/filesystem-node.ts"
+    },
+    "./plugins/metaskill": {
+      "import": "./dist/plugins/metaskill.js",
+      "types": "./dist/plugins/metaskill.d.ts"
+    },
+    "./plugins/metaskill-api": {
+      "import": "./dist/plugins/metaskill-api.js",
+      "types": "./dist/plugins/metaskill-api.d.ts"
+    },
+    "./api-surface": {
+      "import": "./dist/api-surface.js",
+      "types": "./dist/api-surface.d.ts"
+    },
+    "./plugins/odk": {
+      "import": "./dist/plugins/odk/index.js",
+      "types": "./dist/plugins/odk/index.d.ts"
+    },
+    "./plugins": {
+      "import": "./dist/plugins/index.js",
+      "types": "./dist/plugins/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ci": "vitest run --reporter=junit --outputFile=reports/junit.xml",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist reports",
+    "prepublishOnly": "bun run clean && bun run build"
+  },
+  "dependencies": {
+    "effect-v4": "npm:effect@4.0.0-beta.23",
+    "flexsearch": "^0.8.212"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18",
+    "effect-vitest-v4": "npm:@effect/vitest@4.0.0-beta.23"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "GBG",
+  "keywords": [
+    "effect-ts",
+    "effect-v4",
+    "codemode"
+  ]
+}

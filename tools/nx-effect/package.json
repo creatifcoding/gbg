@@ -1,0 +1,9 @@
+{
+  "name": "@gbg/nx-effect",
+  "version": "0.0.1",
+  "private": true,
+  "description": "NX plugin for Effect v4 workspace packages — generators, module boundary enforcement, migration tracking",
+  "type": "module",
+  "main": "./src/index.ts",
+  "generators": "./generators.json"
+}

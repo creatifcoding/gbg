@@ -1,0 +1,10 @@
+{
+  "generators": {
+    "effect-v4-lib": {
+      "factory": "./src/generators/effect-v4-lib/generator",
+      "schema": "./src/generators/effect-v4-lib/schema.json",
+      "description": "Scaffold a new @tmnl/* Effect v4 library with aliased deps, vitest, tsconfig, and NX project.json",
+      "x-type": "library"
+    }
+  }
+}

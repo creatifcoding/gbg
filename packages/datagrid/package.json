@@ -1,0 +1,56 @@
+{
+  "name": "@tmnl/datagrid",
+  "version": "0.0.1",
+  "author": "GBG",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gbg/gbg.git",
+    "directory": "packages/datagrid"
+  },
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "description": "Reactive spreadsheet abstraction — agentic state primitive with AG-Grid rendering, Effect formulas, CRDT collaboration",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "spreadsheet",
+    "reactive",
+    "datagrid",
+    "effect",
+    "stx",
+    "ag-grid",
+    "crdt",
+    "agentic"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "bunx vitest",
+    "test:run": "bunx vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@tmnl/stx": "workspace:*",
+    "ag-grid-community": "^34.0.0",
+    "effect-v4": "npm:effect@4.0.0-beta.23",
+    "hyperformula": "^3.2.0",
+    "quickjs-emscripten": "^0.32.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.0",
+    "happy-dom": "^17.4.4",
+    "@testing-library/react": "^16.3.2"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  }
+}

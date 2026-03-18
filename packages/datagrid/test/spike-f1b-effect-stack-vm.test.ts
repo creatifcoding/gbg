@@ -45,6 +45,7 @@ import * as Cache from "effect-v4/Cache"
 import * as Duration from "effect-v4/Duration"
 import * as ServiceMap from "effect-v4/ServiceMap"
 import * as Layer from "effect-v4/Layer"
+import * as Metric from "effect-v4/Metric"
 import { pipe } from "effect-v4/Function"
 
 // ═══════════════════════════════════════════════════════
@@ -1400,6 +1401,76 @@ describe("F1b: Effect-Native Stack VM", () => {
 
       expect(result.stack[0]).toEqual(num(10))
       expect(logs).toEqual(["Evaluating formula...", "Result: 10"])
+    })
+  })
+
+  // ─── H15: Metric for formula engine observability ─
+  //
+  // Metric.counter for eval count, Metric.histogram for latency.
+  // Metric.snapshot reads all metrics for testing/reporting.
+
+  describe("H15: Metric for formula engine observability", () => {
+    it("counter tracks formula evaluation count", async () => {
+      const evalCounter = Metric.counter("test.formula.eval_count")
+
+      await Effect.runPromise(Effect.gen(function*() {
+        yield* Metric.update(evalCounter, 1)
+        yield* Metric.update(evalCounter, 1)
+        yield* Metric.update(evalCounter, 1)
+
+        const state = yield* Metric.value(evalCounter)
+        expect(state.count).toBe(3)
+      }))
+    })
+
+    it("gauge tracks current cache size", async () => {
+      const cacheGauge = Metric.gauge("test.formula.cache_size")
+
+      await Effect.runPromise(Effect.gen(function*() {
+        yield* Metric.update(cacheGauge, 5)
+        const s1 = yield* Metric.value(cacheGauge)
+        expect(s1.value).toBe(5)
+
+        yield* Metric.update(cacheGauge, 3) // Set to 3 (gauges set, not add)
+        const s2 = yield* Metric.value(cacheGauge)
+        expect(s2.value).toBe(3)
+      }))
+    })
+
+    it("histogram records eval latency distribution", async () => {
+      const latencyHist = Metric.histogram("test.formula.eval_latency_ms", {
+        boundaries: Metric.linearBoundaries({ start: 0, width: 10, count: 10 }),
+      })
+
+      await Effect.runPromise(Effect.gen(function*() {
+        // Record some latency values
+        yield* Metric.update(latencyHist, 5)
+        yield* Metric.update(latencyHist, 15)
+        yield* Metric.update(latencyHist, 25)
+
+        const state = yield* Metric.value(latencyHist)
+        expect(state.count).toBe(3)
+        expect(state.min).toBe(5)
+        expect(state.max).toBe(25)
+      }))
+    })
+
+    it("snapshot reads all metrics at once", async () => {
+      const counter = Metric.counter("test.snapshot.counter")
+      const gauge = Metric.gauge("test.snapshot.gauge")
+
+      await Effect.runPromise(Effect.gen(function*() {
+        yield* Metric.update(counter, 42)
+        yield* Metric.update(gauge, 99)
+
+        const snapshots = yield* Metric.snapshot
+        expect(snapshots.length).toBeGreaterThanOrEqual(2)
+
+        const counterSnap = snapshots.find(s => s.id === "test.snapshot.counter")
+        const gaugeSnap = snapshots.find(s => s.id === "test.snapshot.gauge")
+        expect(counterSnap).toBeDefined()
+        expect(gaugeSnap).toBeDefined()
+      }))
     })
   })
 })

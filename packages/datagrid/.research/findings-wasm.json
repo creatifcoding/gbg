@@ -1,0 +1,190 @@
+{
+  "domain": "B",
+  "title": "WASM Sandbox & Runtime",
+  "date": "2026-03-15",
+  "status": "complete",
+  "spike": "spike-f2-wasm-sandbox.test.ts",
+  "spikeResult": "PASSED — 15/15 tests",
+
+  "verdict": {
+    "recommendation": "QuickJS-Emscripten (quickjs-emscripten@0.32.0)",
+    "confidence": "HIGH",
+    "summary": "QuickJS-Emscripten is the recommended WASM sandbox for @tmnl/datagrid Formula DSL. All Spike F2 hypotheses confirmed. No blockers. Sub-millisecond warm eval, clean host function injection, deadline-based CPU interruption, Effect.promise() integration confirmed."
+  },
+
+  "runtimes": {
+    "quickjs-emscripten": {
+      "verdict": "RECOMMENDED",
+      "jsVersion": "ES2020",
+      "bundleSize": "~505KB gzip",
+      "warmEvalMs": "<0.1ms",
+      "coldStartMs": "20-100ms first load, 1-5ms cached module",
+      "hostFunctions": "ctx.newFunction() + ctx.setProp(global) — synchronous, zero-overhead",
+      "cpuLimit": "ctx.runtime.setInterruptHandler(() => Date.now() > deadline ? 1 : 0)",
+      "memoryLimit": "ctx.runtime.setMemoryLimit(bytes) + setMaxStackSize(bytes)",
+      "browserSupport": true,
+      "bunSupport": true,
+      "typescriptBindings": true,
+      "productionUse": ["Figma", "val.town", "Wasmer"],
+      "notes": "Use newQuickJSWASMModule(RELEASE_SYNC) in vitest — getQuickJS() lazy singleton hangs in vitest worker threads. Module-level beforeAll also hangs; use describe-scoped beforeAll."
+    },
+    "duktape": {
+      "verdict": "FALLBACK",
+      "jsVersion": "ES5.1",
+      "bundleSize": "~200KB gzip",
+      "warmEvalMs": "<0.5ms",
+      "hostFunctions": "C API only (duk_push_c_function) — requires manual Emscripten build",
+      "notes": "No async/await. Sparsely maintained since 2022. Good for ultra-constrained environments only."
+    },
+    "javy": {
+      "verdict": "WRONG_FIT",
+      "jsVersion": "Modern (SpiderMonkey)",
+      "bundleSize": "~4MB",
+      "notes": "AOT compilation — no dynamic eval at runtime. WASI-only, no browser support. Good for build-time compiled WASM CLI tools, not formula eval."
+    },
+    "extism": {
+      "verdict": "OVERKILL",
+      "notes": "Plugin framework on WASM, not a JS runtime. 2-10ms overhead. JS PDK support is limited. Potential future use for multi-language user plugins."
+    }
+  },
+
+  "spikeFindings": {
+    "H1_basicEval": {
+      "status": "PASSED",
+      "finding": "QuickJS evaluates arithmetic, Math functions, string ops correctly. ES2020 subset fully functional."
+    },
+    "H2_hostFunctions": {
+      "status": "PASSED",
+      "finding": "ctx.newFunction() + ctx.setProp(global) injects readCell, writeCell, getRange cleanly. RPN-style compound formulas work: (readCell('A0') + readCell('B0')) * 2 = 70. Every QuickJSHandle MUST be disposed after setProp."
+    },
+    "H3_isolation": {
+      "status": "PASSED",
+      "finding": "Guest has no access to process, fetch, globalThis. Function constructor is sandboxed within QuickJS's own global scope — no host escape possible."
+    },
+    "H4_performance": {
+      "status": "PASSED",
+      "finding": "Warm eval: 0.020ms/eval (100 iterations in 1.97ms). Module init + newContext + eval: 3ms (WASM module already cached). Target <5ms: EXCEEDED by 250x."
+    },
+    "H5_interruption": {
+      "status": "PASSED",
+      "critical_insight": "MUST use Date.now()-based deadline in interrupt handler, NOT a setTimeout flag. ctx.evalCode() is SYNCHRONOUS and blocks the JS event loop — setTimeout callbacks cannot fire while it runs. Deadline check in interrupt handler is called synchronously from within WASM bytecode loop.",
+      "finding": "Infinite loop interrupted in ~31ms for 30ms deadline. Error: InternalError: interrupted. Eval returns error result, does NOT throw."
+    },
+    "H6_effectBridge": {
+      "status": "PASSED",
+      "finding": "Effect.promise() wraps WASM eval cleanly. fiber interruption via deadline works. Effect service pattern (WasmSandbox) sketch confirmed: evalEffect(store, code).pipe(Effect.map(...)) returns correct value 202."
+    }
+  },
+
+  "criticalFindings": [
+    {
+      "severity": "HIGH",
+      "category": "vitest_compatibility",
+      "finding": "getQuickJS() lazy singleton HANGS in vitest worker threads. Use newQuickJSWASMModule(RELEASE_SYNC) instead.",
+      "fix": "const { newQuickJSWASMModule, RELEASE_SYNC } = await import('quickjs-emscripten'); QuickJS = await newQuickJSWASMModule(RELEASE_SYNC)"
+    },
+    {
+      "severity": "HIGH",
+      "category": "vitest_compatibility",
+      "finding": "Module-level beforeAll() hangs in vitest. Must use describe-scoped beforeAll().",
+      "fix": "Move beforeAll() inside the describe() block"
+    },
+    {
+      "severity": "HIGH",
+      "category": "interrupt_handler",
+      "finding": "setTimeout-based interrupt flags DO NOT WORK. ctx.evalCode() blocks the event loop synchronously. setTimeout callbacks cannot fire during WASM eval.",
+      "fix": "Use: const deadline = Date.now() + timeoutMs; ctx.runtime.setInterruptHandler(() => Date.now() > deadline ? 1 : 0)"
+    },
+    {
+      "severity": "HIGH",
+      "category": "handle_lifetime",
+      "finding": "Every QuickJSHandle returned by newFunction, newNumber, newString, etc. MUST be disposed. Failure to dispose causes WASM memory leaks.",
+      "fix": "Call .dispose() after every setProp or when done with a handle. Consider using ctx.newObject() + scope pattern."
+    },
+    {
+      "severity": "MED",
+      "category": "evalCode_return_type",
+      "finding": "ctx.evalCode() returns DisposableSuccess | DisposableFail — NOT a QuickJSHandle directly. Use ctx.unwrapResult() to extract the handle, or check .error property first.",
+      "fix": "const result = ctx.evalCode(code); if (result.error) { ... } else { const h = ctx.unwrapResult(result); ... }"
+    }
+  ],
+
+  "architectureDecisions": {
+    "hostCellAPI": {
+      "decision": "Direct global injection via Pattern A (readCell, writeCell, getRange)",
+      "rationale": "Simplest API surface. Formula code reads naturally: readCell('A0') + readCell('B0'). No namespace overhead.",
+      "alternative": "Namespaced $cell.read() — adds one more call level, cleaner but unnecessary for v1"
+    },
+    "interruptStrategy": {
+      "decision": "Deadline-based: Date.now() > deadline checked in interrupt handler",
+      "rationale": "Only correct approach for synchronous WASM eval in single-threaded JS runtime",
+      "alternative": "Worker thread with SharedArrayBuffer for multi-threaded interrupt — overkill for v1"
+    },
+    "contextLifetime": {
+      "decision": "Two modes: ephemeral per Cell RPC, long-lived per REPL session",
+      "rationale": "Cell RPC benefits from isolation (no state leaks). REPL needs persistent stack/registers.",
+      "implementation": "WasmSandboxService holds module singleton + context pool (4 warm)"
+    },
+    "determinismStrategy": {
+      "decision": "Patch Math.random (Mulberry32 PRNG) + Date.now (frozen epoch) at context init",
+      "rationale": "CRDT consistency requires f(inputs) = output always. QuickJS computation is deterministic; only entropy sources need patching.",
+      "seed": "Formula hash or cell address hash — reproducible across agents"
+    },
+    "effectBridge": {
+      "decision": "Effect.promise(() => new Promise()) wrapper with deadline interrupt",
+      "rationale": "Clean Effect integration. Fiber-cancellable via deadline. No AbortSignal needed — deadline is sufficient.",
+      "serviceShape": "WasmSandbox extends Service('formula/WasmSandbox') { eval, repl }"
+    }
+  },
+
+  "openQuestions": [
+    {
+      "id": "OQ1",
+      "question": "Can Effect fiber finalizers propagate interruption to a running WASM eval mid-context?",
+      "suggestion": "Use Effect.addFinalizer to set the deadline to now — test in Spike F3",
+      "priority": "HIGH"
+    },
+    {
+      "id": "OQ2",
+      "question": "Cost of context-per-eval vs long-lived REPL context for concurrent formula cascades?",
+      "suggestion": "Benchmark 1000 formulas: ephemeral vs pooled context strategies",
+      "priority": "HIGH"
+    },
+    {
+      "id": "OQ3",
+      "question": "Shared WASM memory between main thread and Worker threads for formula parallelism?",
+      "suggestion": "QuickJS can run in a Worker; SharedArrayBuffer could share cell state",
+      "priority": "MED"
+    },
+    {
+      "id": "OQ4",
+      "question": "Domain A's JS_EVAL opcode: should it call WasmSandbox.eval or share context?",
+      "suggestion": "Stack VM dispatches JS_EVAL to WasmSandbox — context is created fresh per dispatch",
+      "priority": "HIGH",
+      "affectedDomains": ["A", "B"]
+    }
+  ],
+
+  "crossDomainSignals": {
+    "domainA": "Stack VM needs JS_EVAL opcode that dispatches to WasmSandbox.eval(). The opcode pops a code string from the stack, evals it, pushes result back. WASM bridge is a Stack VM opcode handler.",
+    "domainC": "HyperFormula's function set maps to host functions injected into QuickJS. SUM, AVERAGE, etc. can be implemented as host fn + getRange() call.",
+    "domainD": "REPL sessions hold a long-lived QuickJSContext. WasmSandbox.repl(sessionId) returns a session-scoped context. Formula eval in REPL is: push stack value → eval JS → push result."
+  },
+
+  "performanceNumbers": {
+    "warmEvalMs": 0.020,
+    "warmEvalPercentile": "p50",
+    "coldStartMs": 3.11,
+    "interruptLatencyMs": 31,
+    "targetEvalMs": 5,
+    "targetMet": true,
+    "targetExceededBy": "250x"
+  },
+
+  "artifacts": {
+    "researchVisual": "~/.agent/diagrams/formula-dsl-research-wasm.html",
+    "slideDeck": "~/.agent/diagrams/formula-dsl-slides-wasm.html",
+    "spike": "packages/datagrid/test/spike-f2-wasm-sandbox.test.ts",
+    "findings": "packages/datagrid/.research/findings-wasm.json"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/schema",
+  "$id": "EffectV4Lib",
+  "title": "Scaffold an Effect v4 Library",
+  "description": "Create a new @tmnl/* package with effect-v4 alias, vitest, tsconfig, and NX project.json",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Package name without @tmnl/ prefix (e.g., 'stx', 'grid', 'layers')",
+      "$default": { "$source": "argv", "index": 0 },
+      "x-prompt": "What should the package be called? (without @tmnl/ prefix)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Package description",
+      "default": ""
+    },
+    "domain": {
+      "type": "string",
+      "description": "Domain tag for NX project (e.g., state, ui, data, canvas)",
+      "default": "lib"
+    },
+    "withXState": {
+      "type": "boolean",
+      "description": "Include XState dependency and @xstate/react",
+      "default": false
+    },
+    "withReact": {
+      "type": "boolean",
+      "description": "Include React hooks and effect-atom-react-v4",
+      "default": true
+    }
+  },
+  "required": ["name"]
+}

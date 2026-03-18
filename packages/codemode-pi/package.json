@@ -1,0 +1,52 @@
+{
+  "name": "@tmnl/codemode-pi",
+  "version": "0.0.1",
+  "description": "Pi host adapter for @tmnl/codemode — TUI primitives, rendering, layout, steer formatting",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./render": {
+      "import": "./dist/render.js",
+      "types": "./dist/render.d.ts"
+    },
+    "./primitives": {
+      "import": "./dist/primitives/index.js",
+      "types": "./dist/primitives/index.d.ts"
+    },
+    "./layout": {
+      "import": "./dist/layout.js",
+      "types": "./dist/layout.d.ts"
+    },
+    "./steer": {
+      "import": "./dist/steer.js",
+      "types": "./dist/steer.d.ts"
+    },
+    "./tool-guide": {
+      "import": "./dist/tool-guide.js",
+      "types": "./dist/tool-guide.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "test:run": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*",
+    "@tmnl/codemode": "workspace:*"
+  },
+  "devDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*",
+    "@tmnl/codemode": "workspace:*",
+    "vitest": "^4.0.0",
+    "typescript": "^5.8.0"
+  }
+}
