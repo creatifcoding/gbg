@@ -1434,6 +1434,12 @@ describe("infix parser", () => {
     expect(decompileIR(compileInfixSync("=UPPER(A1)"))).toBe("=UPPER(A1)")
   })
 
+  it("VAR: sample variance", () => {
+    // VAR(2,4,4,4,5,5,7,9) = STDEV(...)² = 2.138²... ≈ 4.571
+    const v = evalProgramDirect(compileInfixSync("=ROUND(VAR(2,4,4,4,5,5,7,9), 3)")).stack[0]
+    expect(v).toEqual(num(4.571))
+  })
+
   it("PERCENTILE: k-th percentile", () => {
     // Sorted: [1,2,3,4,5], 0.5 percentile → 3 (median)
     expect(evalProgramDirect(compileInfixSync("=PERCENTILE(0.5, 1, 2, 3, 4, 5)")).stack[0]).toEqual(num(3))
