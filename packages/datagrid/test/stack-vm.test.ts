@@ -1296,6 +1296,15 @@ describe("infix parser", () => {
     expect(v.value).toBeLessThan(1)
   })
 
+  it("complex nested: =IF(AND(A1>0, B1>0), ROUND(SQRT(A1^2+B1^2), 2), 0)", () => {
+    // Pythagorean theorem with validation
+    const cells: Record<string, any> = { A1: num(3), B1: num(4) }
+    const ctx = { readCell: (a: string) => cells[a] ?? num(0), writeCell: () => {} }
+    const ir = compileInfixSync("=IF(AND(A1>0, B1>0), ROUND(SQRT(A1^2+B1^2), 2), 0)")
+    const s = Effect.runSync(evalProgram(ir, ctx))
+    expect(s.stack[0]).toEqual(num(5)) // sqrt(9+16) = sqrt(25) = 5
+  })
+
   it("rejects mismatched parentheses", async () => {
     await expect(
       Effect.runPromise(compileInfix("=(A1+B1"))
