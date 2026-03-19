@@ -1704,6 +1704,17 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("NEGBINOMDIST/BETADIST: advanced distributions", () => {
+    // NEGBINOMDIST: P(1 failure before 10th success at p=0.5) 
+    const nb = (evalProgramDirect(compileInfixSync("=ROUND(NEGBINOMDIST(1, 10, 0.5), 4)")).stack[0] as any).value
+    expect(nb).toBeGreaterThan(0.004)
+    expect(nb).toBeLessThan(0.015) // ~0.0049
+    // BETADIST(0.5, 2, 5) via numerical integration
+    const bd = (evalProgramDirect(compileInfixSync("=ROUND(BETADIST(0.5, 2, 5), 2)")).stack[0] as any).value
+    expect(bd).toBeGreaterThan(0.85)
+    expect(bd).toBeLessThan(0.99)
+  })
+
   it("HYPGEOMDIST/ISNA/SHEET: distribution + info", () => {
     // HYPGEOMDIST: draw 2 from pop 10, 5 successes, P(X≤1)
     const hg = (evalProgramDirect(compileInfixSync("=ROUND(HYPGEOMDIST(1, 2, 5, 10), 4)")).stack[0] as any).value

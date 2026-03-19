@@ -422,6 +422,8 @@ export const ISERROR_OP = Schema.TaggedStruct("ISERROR_OP", {})
 export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
 
 /** More text functions */
+export const NEGBINOMDIST_OP = Schema.TaggedStruct("NEGBINOMDIST_OP", {})
+export const BETADIST_OP = Schema.TaggedStruct("BETADIST_OP", {})
 export const HYPGEOMDIST_OP = Schema.TaggedStruct("HYPGEOMDIST_OP", {})
 export const ISNA_OP = Schema.TaggedStruct("ISNA_OP", {})
 export const SHEET_OP = Schema.TaggedStruct("SHEET_OP", {})
@@ -657,7 +659,7 @@ export const Opcode = Schema.Union([
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
-  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, IFNA_OP, EOMONTH_OP, DATEDIF_OP, PERMUT_OP, FACTDOUBLE_OP, MATCH_N, INDEX_N, MODE_N, HARMEAN_N, GEOMEAN_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, HYPGEOMDIST_OP, ISNA_OP, SHEET_OP, TEXTSPLIT_N, DATESTRING_OP, WORKDAY_OP, TEXTBEFORE_OP, TEXTAFTER_OP, VALUETOTEXT_OP, ISPMT_OP, DISC_OP, INTRATE_OP, SYD_OP, EFFECT_OP, NOMINAL_OP, NORMINV_OP, DDB_OP, PERCENTRANK_N, QUARTILE_N, WEIBULL_OP, GAMMADIST_OP, EXPONDIST_OP, POISSON_OP, BINOMDIST_OP, LOGNORMDIST_OP, STANDARDIZE_OP, CONFIDENCE_OP, NORMDIST_OP, STEYX_N, FISHER_OP, FISHERINV_OP, KURT_N, SKEW_N, CONVERT_OP, SLOPE_N, INTERCEPT_N, RSQ_N, COVAR_N, FORECAST_N, STDEVP_N, VARP_N, CORREL_N, SUMSQ_N, DEVSQ_N, AVEDEV_N, TRIMMEAN_N, XOR_N, ISOWEEKNUM_OP, NETWORKDAYS_OP, SUBTOTAL_N, DELTA_OP, GESTEP_OP, MULTINOMIAL_N, SERIESSUM_N, SEC_OP, CSC_OP, COTH_OP, SECH_OP, CSCH_OP, SUMIFS_N, AVERAGEIFS_N, NA_OP, COT_OP, ACOT_OP, UNICODE_OP, UNICHAR_OP, ENCODEURL_OP, DAYS_OP, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
+  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, IFNA_OP, EOMONTH_OP, DATEDIF_OP, PERMUT_OP, FACTDOUBLE_OP, MATCH_N, INDEX_N, MODE_N, HARMEAN_N, GEOMEAN_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, NEGBINOMDIST_OP, BETADIST_OP, HYPGEOMDIST_OP, ISNA_OP, SHEET_OP, TEXTSPLIT_N, DATESTRING_OP, WORKDAY_OP, TEXTBEFORE_OP, TEXTAFTER_OP, VALUETOTEXT_OP, ISPMT_OP, DISC_OP, INTRATE_OP, SYD_OP, EFFECT_OP, NOMINAL_OP, NORMINV_OP, DDB_OP, PERCENTRANK_N, QUARTILE_N, WEIBULL_OP, GAMMADIST_OP, EXPONDIST_OP, POISSON_OP, BINOMDIST_OP, LOGNORMDIST_OP, STANDARDIZE_OP, CONFIDENCE_OP, NORMDIST_OP, STEYX_N, FISHER_OP, FISHERINV_OP, KURT_N, SKEW_N, CONVERT_OP, SLOPE_N, INTERCEPT_N, RSQ_N, COVAR_N, FORECAST_N, STDEVP_N, VARP_N, CORREL_N, SUMSQ_N, DEVSQ_N, AVEDEV_N, TRIMMEAN_N, XOR_N, ISOWEEKNUM_OP, NETWORKDAYS_OP, SUBTOTAL_N, DELTA_OP, GESTEP_OP, MULTINOMIAL_N, SERIESSUM_N, SEC_OP, CSC_OP, COTH_OP, SECH_OP, CSCH_OP, SUMIFS_N, AVERAGEIFS_N, NA_OP, COT_OP, ACOT_OP, UNICODE_OP, UNICHAR_OP, ENCODEURL_OP, DAYS_OP, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
   IFS_N, SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
@@ -973,6 +975,36 @@ const EXEC: Record<string, Executor> = {
   }, "ROMAN") }),
   // PROB_N: probability that values are within limits. PROB(lower, upper, prob1, ..., probK, v1, ..., vK) n=2+2K
   // Actually too complex. Let's do NORMDIST approximation instead.
+  // NEGBINOMDIST_OP: negative binomial. P(X failures before k-th success)
+  NEGBINOMDIST_OP: (_o, s) => {
+    if (s.length < 3) { s.push(vmError("STACK_UNDERFLOW", "NEGBINOMDIST")); return { result: s[s.length-1] } }
+    const prob = asNum(s.pop()!), successes = Math.round(asNum(s.pop()!)), failures = Math.round(asNum(s.pop()!))
+    if (prob <= 0 || prob >= 1 || failures < 0 || successes < 1) { s.push(vmError("TYPE_MISMATCH", "NEGBINOMDIST")); return { result: s[s.length-1] } }
+    // C(failures+successes-1, successes-1) * p^successes * (1-p)^failures
+    let coeff = 1; for (let i = 0; i < successes - 1; i++) coeff *= (failures + successes - 1 - i) / (i + 1)
+    const result = num(coeff * Math.pow(prob, successes) * Math.pow(1 - prob, failures))
+    s.push(result); return { result }
+  },
+  // BETADIST_OP: beta distribution CDF (uses incomplete beta via series). BETADIST(x, alpha, beta)
+  // Simplified using numerical integration (trapezoidal)
+  BETADIST_OP: (_o, s) => {
+    if (s.length < 3) { s.push(vmError("STACK_UNDERFLOW", "BETADIST")); return { result: s[s.length-1] } }
+    const beta2 = asNum(s.pop()!), alpha = asNum(s.pop()!), x = asNum(s.pop()!)
+    if (x < 0 || x > 1 || alpha <= 0 || beta2 <= 0) { s.push(vmError("TYPE_MISMATCH", "BETADIST")); return { result: s[s.length-1] } }
+    // Trapezoidal integration of B(t; α, β) from 0 to x
+    const steps = 200
+    const h = x / steps
+    const f = (t: number) => Math.pow(t, alpha - 1) * Math.pow(1 - t, beta2 - 1)
+    let integral = (f(0) + f(x)) / 2
+    for (let i = 1; i < steps; i++) integral += f(i * h)
+    integral *= h
+    // Normalize by B(α, β) = integral from 0 to 1
+    const h2 = 1 / steps
+    let betaFull = (f(0) + f(1)) / 2
+    for (let i = 1; i < steps; i++) betaFull += f(i * h2)
+    betaFull *= h2
+    const result = num(betaFull > 0 ? integral / betaFull : 0); s.push(result); return { result }
+  },
   // HYPGEOMDIST_OP: hypergeometric distribution CDF. P(X=k) = C(K,k)*C(N-K,n-k)/C(N,n)
   HYPGEOMDIST_OP: (_o, s) => {
     if (s.length < 4) { s.push(vmError("STACK_UNDERFLOW", "HYPGEOMDIST")); return { result: s[s.length-1] } }
@@ -2764,7 +2796,7 @@ const _OP: Record<string, Opcode> = {
   ISERROR_OP: { _tag: "ISERROR_OP" }, ISBLANK_OP: { _tag: "ISBLANK_OP" },
   IFNA_OP: { _tag: "IFNA_OP" }, EOMONTH_OP: { _tag: "EOMONTH_OP" }, DATEDIF_OP: { _tag: "DATEDIF_OP" },
   PERMUT_OP: { _tag: "PERMUT_OP" }, FACTDOUBLE_OP: { _tag: "FACTDOUBLE_OP" },
-  HYPGEOMDIST_OP: { _tag: "HYPGEOMDIST_OP" }, ISNA_OP: { _tag: "ISNA_OP" }, SHEET_OP: { _tag: "SHEET_OP" }, DATESTRING_OP: { _tag: "DATESTRING_OP" }, WORKDAY_OP: { _tag: "WORKDAY_OP" }, TEXTBEFORE_OP: { _tag: "TEXTBEFORE_OP" }, TEXTAFTER_OP: { _tag: "TEXTAFTER_OP" }, VALUETOTEXT_OP: { _tag: "VALUETOTEXT_OP" }, ISPMT_OP: { _tag: "ISPMT_OP" }, DISC_OP: { _tag: "DISC_OP" }, INTRATE_OP: { _tag: "INTRATE_OP" }, SYD_OP: { _tag: "SYD_OP" }, EFFECT_OP: { _tag: "EFFECT_OP" }, NOMINAL_OP: { _tag: "NOMINAL_OP" }, NORMINV_OP: { _tag: "NORMINV_OP" }, DDB_OP: { _tag: "DDB_OP" }, WEIBULL_OP: { _tag: "WEIBULL_OP" }, GAMMADIST_OP: { _tag: "GAMMADIST_OP" }, EXPONDIST_OP: { _tag: "EXPONDIST_OP" }, POISSON_OP: { _tag: "POISSON_OP" }, BINOMDIST_OP: { _tag: "BINOMDIST_OP" }, LOGNORMDIST_OP: { _tag: "LOGNORMDIST_OP" }, STANDARDIZE_OP: { _tag: "STANDARDIZE_OP" }, CONFIDENCE_OP: { _tag: "CONFIDENCE_OP" }, NORMDIST_OP: { _tag: "NORMDIST_OP" }, FISHER_OP: { _tag: "FISHER_OP" }, FISHERINV_OP: { _tag: "FISHERINV_OP" }, CONVERT_OP: { _tag: "CONVERT_OP" }, ISOWEEKNUM_OP: { _tag: "ISOWEEKNUM_OP" }, NETWORKDAYS_OP: { _tag: "NETWORKDAYS_OP" },
+  NEGBINOMDIST_OP: { _tag: "NEGBINOMDIST_OP" }, BETADIST_OP: { _tag: "BETADIST_OP" }, HYPGEOMDIST_OP: { _tag: "HYPGEOMDIST_OP" }, ISNA_OP: { _tag: "ISNA_OP" }, SHEET_OP: { _tag: "SHEET_OP" }, DATESTRING_OP: { _tag: "DATESTRING_OP" }, WORKDAY_OP: { _tag: "WORKDAY_OP" }, TEXTBEFORE_OP: { _tag: "TEXTBEFORE_OP" }, TEXTAFTER_OP: { _tag: "TEXTAFTER_OP" }, VALUETOTEXT_OP: { _tag: "VALUETOTEXT_OP" }, ISPMT_OP: { _tag: "ISPMT_OP" }, DISC_OP: { _tag: "DISC_OP" }, INTRATE_OP: { _tag: "INTRATE_OP" }, SYD_OP: { _tag: "SYD_OP" }, EFFECT_OP: { _tag: "EFFECT_OP" }, NOMINAL_OP: { _tag: "NOMINAL_OP" }, NORMINV_OP: { _tag: "NORMINV_OP" }, DDB_OP: { _tag: "DDB_OP" }, WEIBULL_OP: { _tag: "WEIBULL_OP" }, GAMMADIST_OP: { _tag: "GAMMADIST_OP" }, EXPONDIST_OP: { _tag: "EXPONDIST_OP" }, POISSON_OP: { _tag: "POISSON_OP" }, BINOMDIST_OP: { _tag: "BINOMDIST_OP" }, LOGNORMDIST_OP: { _tag: "LOGNORMDIST_OP" }, STANDARDIZE_OP: { _tag: "STANDARDIZE_OP" }, CONFIDENCE_OP: { _tag: "CONFIDENCE_OP" }, NORMDIST_OP: { _tag: "NORMDIST_OP" }, FISHER_OP: { _tag: "FISHER_OP" }, FISHERINV_OP: { _tag: "FISHERINV_OP" }, CONVERT_OP: { _tag: "CONVERT_OP" }, ISOWEEKNUM_OP: { _tag: "ISOWEEKNUM_OP" }, NETWORKDAYS_OP: { _tag: "NETWORKDAYS_OP" },
   DELTA_OP: { _tag: "DELTA_OP" }, GESTEP_OP: { _tag: "GESTEP_OP" }, SEC_OP: { _tag: "SEC_OP" }, CSC_OP: { _tag: "CSC_OP" }, COTH_OP: { _tag: "COTH_OP" },
   SECH_OP: { _tag: "SECH_OP" }, CSCH_OP: { _tag: "CSCH_OP" },
   NA_OP: { _tag: "NA_OP" }, COT_OP: { _tag: "COT_OP" }, ACOT_OP: { _tag: "ACOT_OP" },
@@ -2910,6 +2942,8 @@ function classifyToken(tok: string): Opcode | null {
     case "DATEDIF_OP": return _OP.DATEDIF_OP
     case "PERMUT_OP": return _OP.PERMUT_OP
     case "FACTDOUBLE_OP": return _OP.FACTDOUBLE_OP
+    case "NEGBINOMDIST_OP": return _OP.NEGBINOMDIST_OP
+    case "BETADIST_OP": return _OP.BETADIST_OP
     case "HYPGEOMDIST_OP": return _OP.HYPGEOMDIST_OP
     case "ISNA_OP": return _OP.ISNA_OP
     case "SHEET_OP": return _OP.SHEET_OP
@@ -3287,7 +3321,7 @@ const FUNC_MAP: Record<string, string> = {
   NPV: "NPV_N", VAR: "VAR_N", PERCENTILE: "PERCENTILE_N", COUNTA: "COUNTA_N", COUNTBLANK: "COUNTBLANK_N",
   SUMPRODUCT: "SUMPRODUCT_N", MATCH: "MATCH_N", INDEX: "INDEX_N", MODE: "MODE_N", HARMEAN: "HARMEAN_N", GEOMEAN: "GEOMEAN_N", AGGREGATE: "AGGREGATE_N", COUNTIF: "COUNTIF_N", COUNTIFS: "COUNTIFS_N", SUMIF: "SUMIF_N", MAXIFS: "MAXIFS_N", MINIFS: "MINIFS_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
   STDEV: "STDEV_N", MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
-  IFNA: "IFNA_OP", HYPGEOMDIST: "HYPGEOMDIST_OP", ISNA: "ISNA_OP", SHEET: "SHEET_OP", TEXTSPLIT: "TEXTSPLIT_N", DATESTRING: "DATESTRING_OP", WORKDAY: "WORKDAY_OP", TEXTBEFORE: "TEXTBEFORE_OP", TEXTAFTER: "TEXTAFTER_OP", VALUETOTEXT: "VALUETOTEXT_OP", ISPMT: "ISPMT_OP", DISC: "DISC_OP", INTRATE: "INTRATE_OP", SYD: "SYD_OP", EFFECT: "EFFECT_OP", NOMINAL: "NOMINAL_OP", NORMINV: "NORMINV_OP", DDB: "DDB_OP", PERCENTRANK: "PERCENTRANK_N", QUARTILE: "QUARTILE_N", WEIBULL: "WEIBULL_OP", GAMMADIST: "GAMMADIST_OP", EXPONDIST: "EXPONDIST_OP", POISSON: "POISSON_OP", BINOMDIST: "BINOMDIST_OP", LOGNORMDIST: "LOGNORMDIST_OP", STANDARDIZE: "STANDARDIZE_OP", CONFIDENCE: "CONFIDENCE_OP", NORMDIST: "NORMDIST_OP", STEYX: "STEYX_N", FISHER: "FISHER_OP", FISHERINV: "FISHERINV_OP", KURT: "KURT_N", SKEW: "SKEW_N", CONVERT: "CONVERT_OP", SLOPE: "SLOPE_N", INTERCEPT: "INTERCEPT_N", RSQ: "RSQ_N", COVAR: "COVAR_N", FORECAST: "FORECAST_N", "STDEV.P": "STDEVP_N", "VAR.P": "VARP_N", CORREL: "CORREL_N", SUMSQ: "SUMSQ_N", DEVSQ: "DEVSQ_N", AVEDEV: "AVEDEV_N", TRIMMEAN: "TRIMMEAN_N", XOR: "XOR_N", ISOWEEKNUM: "ISOWEEKNUM_OP", NETWORKDAYS: "NETWORKDAYS_OP", SUBTOTAL: "SUBTOTAL_N", DELTA: "DELTA_OP", GESTEP: "GESTEP_OP", MULTINOMIAL: "MULTINOMIAL_N", SERIESSUM: "SERIESSUM_N", SEC: "SEC_OP", CSC: "CSC_OP", COTH: "COTH_OP", SECH: "SECH_OP", CSCH: "CSCH_OP", SUMIFS: "SUMIFS_N", AVERAGEIFS: "AVERAGEIFS_N", NA: "NA_OP", COT: "COT_OP", ACOT: "ACOT_OP", UNICODE: "UNICODE_OP", UNICHAR: "UNICHAR_OP", ENCODEURL: "ENCODEURL_OP", DAYS: "DAYS_OP", EOMONTH: "EOMONTH_OP", DATEDIF: "DATEDIF_OP", PERMUT: "PERMUT_OP", FACTDOUBLE: "FACTDOUBLE_OP",
+  IFNA: "IFNA_OP", NEGBINOMDIST: "NEGBINOMDIST_OP", BETADIST: "BETADIST_OP", HYPGEOMDIST: "HYPGEOMDIST_OP", ISNA: "ISNA_OP", SHEET: "SHEET_OP", TEXTSPLIT: "TEXTSPLIT_N", DATESTRING: "DATESTRING_OP", WORKDAY: "WORKDAY_OP", TEXTBEFORE: "TEXTBEFORE_OP", TEXTAFTER: "TEXTAFTER_OP", VALUETOTEXT: "VALUETOTEXT_OP", ISPMT: "ISPMT_OP", DISC: "DISC_OP", INTRATE: "INTRATE_OP", SYD: "SYD_OP", EFFECT: "EFFECT_OP", NOMINAL: "NOMINAL_OP", NORMINV: "NORMINV_OP", DDB: "DDB_OP", PERCENTRANK: "PERCENTRANK_N", QUARTILE: "QUARTILE_N", WEIBULL: "WEIBULL_OP", GAMMADIST: "GAMMADIST_OP", EXPONDIST: "EXPONDIST_OP", POISSON: "POISSON_OP", BINOMDIST: "BINOMDIST_OP", LOGNORMDIST: "LOGNORMDIST_OP", STANDARDIZE: "STANDARDIZE_OP", CONFIDENCE: "CONFIDENCE_OP", NORMDIST: "NORMDIST_OP", STEYX: "STEYX_N", FISHER: "FISHER_OP", FISHERINV: "FISHERINV_OP", KURT: "KURT_N", SKEW: "SKEW_N", CONVERT: "CONVERT_OP", SLOPE: "SLOPE_N", INTERCEPT: "INTERCEPT_N", RSQ: "RSQ_N", COVAR: "COVAR_N", FORECAST: "FORECAST_N", "STDEV.P": "STDEVP_N", "VAR.P": "VARP_N", CORREL: "CORREL_N", SUMSQ: "SUMSQ_N", DEVSQ: "DEVSQ_N", AVEDEV: "AVEDEV_N", TRIMMEAN: "TRIMMEAN_N", XOR: "XOR_N", ISOWEEKNUM: "ISOWEEKNUM_OP", NETWORKDAYS: "NETWORKDAYS_OP", SUBTOTAL: "SUBTOTAL_N", DELTA: "DELTA_OP", GESTEP: "GESTEP_OP", MULTINOMIAL: "MULTINOMIAL_N", SERIESSUM: "SERIESSUM_N", SEC: "SEC_OP", CSC: "CSC_OP", COTH: "COTH_OP", SECH: "SECH_OP", CSCH: "CSCH_OP", SUMIFS: "SUMIFS_N", AVERAGEIFS: "AVERAGEIFS_N", NA: "NA_OP", COT: "COT_OP", ACOT: "ACOT_OP", UNICODE: "UNICODE_OP", UNICHAR: "UNICHAR_OP", ENCODEURL: "ENCODEURL_OP", DAYS: "DAYS_OP", EOMONTH: "EOMONTH_OP", DATEDIF: "DATEDIF_OP", PERMUT: "PERMUT_OP", FACTDOUBLE: "FACTDOUBLE_OP",
   DATEVALUE: "DATEVALUE_OP", EDATE: "EDATE_OP", WEEKDAY: "WEEKDAY_OP", WEEKNUM: "WEEKNUM_OP", ROMAN: "ROMAN_OP", ARABIC: "ARABIC_OP", TEXT: "TEXT_OP", NUMBERVALUE: "NUMBERVALUE_OP", REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
   IFS: "IFS_N", SWITCH: "SWITCH_N", VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
   YEAR: "YEAR_OP", MONTH: "MONTH_OP", DAY: "DAY_OP",
@@ -3666,6 +3700,8 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "COMBIN", args: "n, k", description: "Combinations (n choose k)", category: "math" },
   { name: "SUBSTITUTE", args: "text, old, new", description: "Replace all occurrences", category: "text" },
   { name: "IFNA", args: "value, alt", description: "Return alt if value is error", category: "logic" },
+  { name: "NEGBINOMDIST", args: "failures, successes, prob", description: "Negative binomial distribution PMF", category: "stat" },
+  { name: "BETADIST", args: "x, alpha, beta", description: "Beta distribution CDF", category: "stat" },
   { name: "HYPGEOMDIST", args: "k, draws, pop_success, pop_size", description: "Hypergeometric distribution CDF", category: "stat" },
   { name: "ISNA", args: "value", description: "Check if value is #N/A error", category: "info" },
   { name: "SHEET", args: "(none)", description: "Sheet number (always 1)", category: "info" },
