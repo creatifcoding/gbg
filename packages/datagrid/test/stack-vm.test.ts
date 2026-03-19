@@ -1704,6 +1704,17 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("HYPGEOMDIST/ISNA/SHEET: distribution + info", () => {
+    // HYPGEOMDIST: draw 2 from pop 10, 5 successes, P(X≤1)
+    const hg = (evalProgramDirect(compileInfixSync("=ROUND(HYPGEOMDIST(1, 2, 5, 10), 4)")).stack[0] as any).value
+    expect(hg).toBeGreaterThan(0.5) // should be ~0.6667
+    expect(hg).toBeLessThan(0.8)
+    // ISNA: NA() is #N/A
+    expect(evalProgramDirect(compileInfixSync("=ISNA(NA())")).stack[0]).toEqual(bool(true))
+    // SHEET
+    expect(evalProgramDirect(compileInfixSync("=SHEET()")).stack[0]).toEqual(num(1))
+  })
+
   it("TEXTSPLIT/DATESTRING/WORKDAY: text split + date utilities", () => {
     // TEXTSPLIT: split "a-b-c" by "-", get 2nd piece → "b"
     expect(evalProgramDirect(compileInfixSync('=TEXTSPLIT("a-b-c", "-", 2)')).stack[0]).toEqual(str("b"))
