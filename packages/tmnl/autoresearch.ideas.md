@@ -43,10 +43,14 @@
 - Error propagation through cell refs proven (DIV/0 → chain → Error)
 - E2E: compile → extractDeps → DepGraph → topo recalc → eval → write-back
 
-### Replace formula-engine.ts
-- Wire DepGraph + StackVM into FormulaEngine or create FormulaEngineV2
-- FormulaConsistency should use StackVM for recalc instead of raw compute callbacks
-- Potentially deprecate old FormulaEngine in favor of StackVM + DepGraph combo
+### ✅ FormulaEngineV2 + Range Opcodes (DONE)
+- FormulaEngineV2: register(addr, expr) → auto compile + dep extract + cycle check
+- recalcDirty/recalcAll with topo-sorted eval + CellContext
+- READ_RANGE + SUM_DYN/MIN_DYN/MAX_DYN/AVG_DYN for SUM(A1:A10) style
+- extractDeps expands ranges to individual cell deps
+- 1K formula perf benchmark: 45ms for 1000 recalcs
+- 20-deep chain cascade proven
+- Next: wire into FormulaConsistency, replace old FormulaEngine callers
 
 ### TxHashMap cell state (production)
 - Replace Map<string, CellValue> with TxHashMap inside Effect.transaction

@@ -97,7 +97,8 @@ export {
   DUP, SWAP, DROP, NEG,
   EQ, LT, GT, NOT, IF,
   SUM_N, MIN_N, MAX_N, AVG_N,
-  HALT, READ_CELL, WRITE_CELL,
+  SUM_DYN, MIN_DYN, MAX_DYN, AVG_DYN,
+  HALT, READ_CELL, WRITE_CELL, READ_RANGE,
   // VM State
   type VMState, type TrailEntry,
   VMStateSchema, TrailEntrySchema, vmStateDiffer,
