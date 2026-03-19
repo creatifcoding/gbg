@@ -2491,6 +2491,71 @@ describe("range operations", () => {
 })
 
 // ═══════════════════════════════════════════════════════
+// POST-450 FUNCTIONS (coverage for 450→502 expansion)
+// ═══════════════════════════════════════════════════════
+
+describe("post-450 function coverage", () => {
+  const d = (expr: string) => (evalProgramDirect(compileInfixSync(expr)).stack[0] as any).value
+  // Trig: SEC, CSC, ACOT, ACOTH
+  it("SEC = 1/cos", () => expect(d("=ROUND(SEC(0), 1)")).toBe(1))
+  it("CSC = 1/sin(1)", () => expect(d("=ROUND(CSC(1), 3)")).toBe(1.188))
+  it("ACOT inverse cot", () => expect(d("=ROUND(ACOT(1), 4)")).toBe(0.7854))
+  
+  // Text: ENDSWITH, TEXTREVERSE, TEXTREMOVE, REGEX, ENCODEURL, UNICODE
+  it("ENDSWITH true", () => expect(d("=ENDSWITH(\"hello.pdf\", \".pdf\")")).toBe(true))
+  it("ENDSWITH false", () => expect(d("=ENDSWITH(\"hello.txt\", \".pdf\")")).toBe(false))
+  it("TEXTREVERSE", () => expect(d("=TEXTREVERSE(\"abc\")")).toBe("cba"))
+  it("TEXTREMOVE removes all", () => expect(d("=TEXTREMOVE(\"abcabc\", \"a\")")).toBe("bcbc"))
+  it("REGEXMATCH true", () => expect(d("=REGEXMATCH(\"abc123\", \"[0-9]+\")")).toBe(true))
+  it("REGEXMATCH false", () => expect(d("=REGEXMATCH(\"abcdef\", \"^[0-9]+$\")")).toBe(false))
+  it("REGEXEXTRACT", () => expect(d("=REGEXEXTRACT(\"price: $42.50\", \"[0-9.]+\")")).toBe("42.50"))
+  it("ENCODEURL", () => expect(d("=ENCODEURL(\"hello world\")")).toBe("hello%20world"))
+  it("UNICODE of A", () => expect(d("=UNICODE(\"A\")")).toBe(65))
+  it("UNICHAR(65) = A", () => expect(d("=UNICHAR(65)")).toBe("A"))
+  it("TEXTSQUEEZE collapses spaces", () => expect(d("=TEXTSQUEEZE(\"  a   b  c  \")")).toBe("a b c"))
+  it("CONTAINS true", () => expect(d("=CONTAINS(\"Hello World\", \"world\")")).toBe(true))
+  it("STARTSWITH true", () => expect(d("=STARTSWITH(\"Hello World\", \"hello\")")).toBe(true))
+
+  // Logic: IMPLIES, BETWEEN, COALESCE
+  it("IMPLIES true→true = true", () => expect(d("=IMPLIES(1, 1)")).toBe(true))
+  it("IMPLIES true→false = false", () => expect(d("=IMPLIES(1, 0)")).toBe(false))
+  it("IMPLIES false→anything = true", () => expect(d("=IMPLIES(0, 0)")).toBe(true))
+  it("BETWEEN in range", () => expect(d("=BETWEEN(5, 1, 10)")).toBe(true))
+  it("BETWEEN out of range", () => expect(d("=BETWEEN(15, 1, 10)")).toBe(false))
+  it("NAND gate", () => { expect(d("=NAND(1, 1)")).toBe(false); expect(d("=NAND(1, 0)")).toBe(true) })
+  it("NOR gate", () => { expect(d("=NOR(0, 0)")).toBe(true); expect(d("=NOR(1, 0)")).toBe(false) })
+  
+  // Info: TYPE, ISBINARY, ISHEX, ISURL, ISEMAIL, ISFORMULA
+  it("TYPE number = number", () => expect(d("=TYPE(42)")).toBe("number"))
+  it("TYPE text = text", () => expect(d("=TYPE(\"hello\")")).toBe("text"))
+  it("ISBINARY true", () => expect(d("=ISBINARY(\"101010\")")).toBe(true))
+  it("ISBINARY false", () => expect(d("=ISBINARY(\"12345\")")).toBe(false))
+  it("ISHEX true", () => expect(d("=ISHEX(\"DEADBEEF\")")).toBe(true))
+  it("ISURL true", () => expect(d("=ISURL(\"https://example.com\")")).toBe(true))
+  it("ISEMAIL true", () => expect(d("=ISEMAIL(\"user@example.com\")")).toBe(true))
+  it("ISEMAIL false", () => expect(d("=ISEMAIL(\"not-an-email\")")).toBe(false))
+
+  // Math: HYPOT, GESTEP, DELTA, ARABIC, HASH, SQRTPI, COMBINA
+  it("HYPOT(3,4) = 5", () => expect(d("=HYPOT(3, 4)")).toBe(5))
+  it("GESTEP(5, 3) = 1", () => expect(d("=GESTEP(5, 3)")).toBe(1))
+  it("GESTEP(2, 3) = 0", () => expect(d("=GESTEP(2, 3)")).toBe(0))
+  it("DELTA(5, 5) = 1", () => expect(d("=DELTA(5, 5)")).toBe(1))
+  it("DELTA(5, 3) = 0", () => expect(d("=DELTA(5, 3)")).toBe(0))
+  it("ARABIC(XIV) = 14", () => expect(d("=ARABIC(\"XIV\")")).toBe(14))
+  it("ARABIC(MCMLXXXIV) = 1984", () => expect(d("=ARABIC(\"MCMLXXXIV\")")).toBe(1984))
+  it("HASH returns number", () => expect(typeof d("=HASH(\"hello\")")).toBe("number"))
+  it("SQRTPI(1) ≈ 1.7725", () => expect(d("=ROUND(SQRTPI(1), 4)")).toBe(1.7725))
+  it("COMBINA(4,2) = C(5,2) = 10", () => expect(d("=COMBINA(4, 2)")).toBe(10))
+  it("PERMUTATIONA(3,2) = 9", () => expect(d("=PERMUTATIONA(3, 2)")).toBe(9))
+
+  // Financial: quick sanity checks
+  it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
+  it("ISERR on error = true", () => expect(d("=ISERR(1/0)")).toBe(true))
+  it("ISNULL on empty = true", () => expect(d("=ISNULL(\"\")")).toBe(true))
+  it("ISNULL on text = false", () => expect(d("=ISNULL(\"hi\")")).toBe(false))
+})
+
+// ═══════════════════════════════════════════════════════
 // PERFORMANCE
 // ═══════════════════════════════════════════════════════
 
