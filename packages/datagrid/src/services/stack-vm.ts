@@ -1162,6 +1162,14 @@ const INFIX_OP_MAP: Record<string, string> = {
   "<": "LT", ">": "GT", ">=": "GTE", "<=": "LTE", "!=": "NEQ", "^": "POWER",
 }
 const RIGHT_ASSOC = new Set<string>(["UNARY_NEG", "^"])
+const ZERO_ARG_FNS = new Set(["NOW", "RAND", "PI"])
+const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N"])
+const N_VARIANTS: Record<string, string> = {
+  SUM_DYN: "SUM_N", MIN_DYN: "MIN_N", MAX_DYN: "MAX_N", AVG_DYN: "AVG_N",
+  PRODUCT_DYN: "PRODUCT_N",
+  AND_N: "AND_N", OR_N: "OR_N", CHOOSE_N: "CHOOSE_N",
+}
+const FN_VARIANTS: Record<string, string> = { IF: "IF_FN", IFERROR: "IFERROR_FN" }
 
 /** Tokenize an infix expression */
 function tokenizeInfix(expr: string): string[] {
@@ -1310,7 +1318,7 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
     }
 
     // Zero-arg function: NOW(), RAND() — emit immediately and skip parens
-    const ZERO_ARG_FNS = new Set(["NOW", "RAND", "PI"])
+    // ZERO_ARG_FNS hoisted to module level
     if (ZERO_ARG_FNS.has(tok) && i + 2 < tokens.length && tokens[i + 1] === "(" && tokens[i + 2] === ")") {
       const opcodeName = FUNC_MAP[tok]
       if (opcodeName) { const op = classifyToken(opcodeName); if (op) output.push(op) }
@@ -1379,22 +1387,14 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
         const opcodeName = FUNC_MAP[fnName]
         if (opcodeName) {
           // For aggregate functions: if multiple args, use _N variant.
-          // If single arg, use _DYN variant (could be a range that pushed count).
-          const N_VARIANTS: Record<string, string> = {
-            SUM_DYN: "SUM_N", MIN_DYN: "MIN_N", MAX_DYN: "MAX_N", AVG_DYN: "AVG_N",
-            PRODUCT_DYN: "PRODUCT_N",
-            AND_N: "AND_N", OR_N: "OR_N", CHOOSE_N: "CHOOSE_N",
-          }
-          // IF/IFERROR from infix: args are in function-call order on the stack,
-          // which is the OPPOSITE of RPN order. Emit _FN variant that pops correctly.
-          const FN_VARIANTS: Record<string, string> = { IF: "IF_FN", IFERROR: "IFERROR_FN" }
+          // N_VARIANTS, FN_VARIANTS hoisted to module level
           const fnVariant = FN_VARIANTS[opcodeName]
           const nVariant = N_VARIANTS[opcodeName]
           // N-ary functions that always use _N variant regardless of arg count
-          const ALWAYS_N = new Set(["AND_N", "OR_N", "CHOOSE_N"])
+          // ALWAYS_N_FNS hoisted to module level
           if (fnVariant) {
             output.push(_OP[fnVariant] ?? { _tag: fnVariant } as any)
-          } else if (nVariant && (nArgs > 1 || ALWAYS_N.has(nVariant))) {
+          } else if (nVariant && (nArgs > 1 || ALWAYS_N_FNS.has(nVariant))) {
             output.push({ _tag: nVariant, n: nArgs } as any)
           } else {
             const op = classifyToken(opcodeName)
