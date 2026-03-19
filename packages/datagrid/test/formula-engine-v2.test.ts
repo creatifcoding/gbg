@@ -676,6 +676,33 @@ describe("FormulaEngineV2", () => {
         expect(r2.recalculated.length).toBeGreaterThanOrEqual(3)
       }).pipe(Effect.provide(layer)))
     })
+    it("invoice generator: TEXTJOIN + IFS + ROUND + SUM", async () => {
+      const store = makeStore({
+        A1: CV.num(100), A2: CV.num(250), A3: CV.num(75),  // line items
+        B1: CV.num(2),   B2: CV.num(1),   B3: CV.num(4),   // quantities
+      })
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.registerInfix("C1", "=A1*B1")               // line 1 total
+        yield* e.registerInfix("C2", "=A2*B2")               // line 2 total
+        yield* e.registerInfix("C3", "=A3*B3")               // line 3 total
+        yield* e.registerInfix("D1", "=SUM(C1,C2,C3)")       // subtotal
+        yield* e.registerInfix("D2", "=ROUND(D1*0.08, 2)")   // 8% tax
+        yield* e.registerInfix("D3", "=D1+D2")               // grand total
+        yield* e.registerInfix("D4", '=IFS(D3>1000,"PREMIUM", D3>500,"STANDARD", TRUE,"BASIC")')
+
+        const r = yield* e.recalcAll()
+        expect(store.cells.get("C1")).toEqual(CV.num(200))
+        expect(store.cells.get("C2")).toEqual(CV.num(250))
+        expect(store.cells.get("C3")).toEqual(CV.num(300))
+        expect(store.cells.get("D1")).toEqual(CV.num(750))
+        expect(store.cells.get("D2")).toEqual(CV.num(60))     // 750 * 0.08
+        expect(store.cells.get("D3")).toEqual(CV.num(810))    // 750 + 60
+        expect(store.cells.get("D4")).toEqual(CV.str("STANDARD")) // 810 > 500
+        expect(r.errors.length).toBe(0)
+      }))
+    })
+
     it("mini financial model: multi-level formulas with named ranges", async () => {
       const store = makeStore({
         A1: CV.num(100), A2: CV.num(200), A3: CV.num(150),  // Q1 sales
