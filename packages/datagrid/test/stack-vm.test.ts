@@ -2704,6 +2704,24 @@ describe("post-450 function coverage", () => {
   it("ISPALINDROME(racecar) = true", () => expect(d("=ISPALINDROME(\"racecar\")")).toBe(true))
   it("ISPALINDROME(hello) = false", () => expect(d("=ISPALINDROME(\"hello\")")).toBe(false))
 
+  // Figurate numbers
+  it("PENTAGONAL(5) = 35", () => expect(d("=PENTAGONAL(5)")).toBe(35))
+  it("HEXAGONAL(4) = 28", () => expect(d("=HEXAGONAL(4)")).toBe(28))
+  it("TETRAHEDRAL(4) = 20", () => expect(d("=TETRAHEDRAL(4)")).toBe(20))
+  it("PYRAMIDAL(4) = 30", () => expect(d("=PYRAMIDAL(4)")).toBe(30))
+
+  // Perfect/Harshad numbers
+  it("ISPERFECT(6) = true", () => expect(d("=ISPERFECT(6)")).toBe(true))
+  it("ISPERFECT(7) = false", () => expect(d("=ISPERFECT(7)")).toBe(false))
+  it("ISHARSHAD(18) = true", () => expect(d("=ISHARSHAD(18)")).toBe(true))
+
+  // Text compression
+  it("TEXTRLE(aaabbc) = 3a2bc", () => expect(d("=TEXTRLE(\"aaabbc\")")).toBe("3a2bc"))
+  it("TEXTRLD(3a2bc) = aaabbc", () => expect(d("=TEXTRLD(\"3a2bc\")")).toBe("aaabbc"))
+
+  // Geometry
+  it("CONEVOL(3,4) ≈ 12π", () => expect(d("=CONEVOL(3,4)")).toBeCloseTo(12*Math.PI, 5))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
