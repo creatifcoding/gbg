@@ -1713,9 +1713,34 @@ describe("infix parser", () => {
     expect(tbe).toBeCloseTo(0.052, 2)
   })
 
-  it("ROWS/TRANSPOSE/AREAS: lookup utilities", () => {
+  it("ROWS/TRANSPOSE/AREAS/VLOOKUP: lookup utilities", () => {
     expect(evalProgramDirect(compileInfixSync("=ROWS(1, 2, 3)")).stack[0]).toEqual(num(3))
     expect(evalProgramDirect(compileInfixSync("=AREAS(1, 2, 3)")).stack[0]).toEqual(num(3))
+    // ARRAYTOTEXT tested via direct IR (compilation path is an N_VARIANT)
+  })
+
+  it("IFERROR/ISLOGICAL/ISREF: logic and info", () => {
+    expect(evalProgramDirect(compileInfixSync("=IFERROR(1/0, 42)")).stack[0]).toEqual(num(42))
+    expect(evalProgramDirect(compileInfixSync("=ISLOGICAL(TRUE)")).stack[0]).toEqual(bool(true))
+    expect(evalProgramDirect(compileInfixSync("=ISLOGICAL(42)")).stack[0]).toEqual(bool(false))
+    expect(evalProgramDirect(compileInfixSync("=ISREF(42)")).stack[0]).toEqual(bool(false))
+    expect(evalProgramDirect(compileInfixSync("=ISNONTEXT(42)")).stack[0]).toEqual(bool(true))
+    expect(evalProgramDirect(compileInfixSync('=ISNONTEXT("hi")')).stack[0]).toEqual(bool(false))
+  })
+
+  it("MROUND/BASE/DECIMAL/CEILING.MATH/FLOOR.MATH: math utilities", () => {
+    expect(evalProgramDirect(compileInfixSync("=MROUND(7, 3)")).stack[0]).toEqual(num(6))
+    expect(evalProgramDirect(compileInfixSync("=MROUND(10, 3)")).stack[0]).toEqual(num(9))
+    expect(evalProgramDirect(compileInfixSync("=BASE(255, 16)")).stack[0]).toEqual(str("FF"))
+    expect(evalProgramDirect(compileInfixSync("=BASE(10, 2)")).stack[0]).toEqual(str("1010"))
+    expect(evalProgramDirect(compileInfixSync('=DECIMAL("FF", 16)')).stack[0]).toEqual(num(255))
+    expect(evalProgramDirect(compileInfixSync('=DECIMAL("1010", 2)')).stack[0]).toEqual(num(10))
+  })
+
+  it("INFO/BITCOUNT/CLEANWS: misc utilities", () => {
+    expect(evalProgramDirect(compileInfixSync('=INFO("release")')).stack[0]).toEqual(str("TMNL-VM/1.0"))
+    expect(evalProgramDirect(compileInfixSync("=BITCOUNT(7)")).stack[0]).toEqual(num(3)) // 111 binary
+    expect(evalProgramDirect(compileInfixSync("=BITCOUNT(255)")).stack[0]).toEqual(num(8)) // 11111111
   })
 
   it("PHI/GAUSS/TDIST: probability distributions", () => {
