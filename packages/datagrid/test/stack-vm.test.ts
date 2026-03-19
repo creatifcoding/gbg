@@ -1704,6 +1704,13 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("COVAR/FORECAST: covariance and linear forecasting", () => {
+    // COVAR([1,2,3],[2,4,6]): meanX=2,meanY=4, cov=4/3≈1.333
+    expect(evalProgramDirect(compileInfixSync("=ROUND(COVAR(1, 2, 3, 2, 4, 6), 4)")).stack[0]).toEqual(num(1.3333))
+    // FORECAST: x=4, xs=[1,2,3], ys=[2,4,6] → y=2x → y(4)=8
+    expect(evalProgramDirect(compileInfixSync("=FORECAST(4, 1, 2, 3, 2, 4, 6)")).stack[0]).toEqual(num(8))
+  })
+
   it("STDEV.P/VAR.P/CORREL: population stats and correlation", () => {
     // STDEV.P(2,4,4,4,5,5,7,9) = 2.0 (population σ)
     expect(evalProgramDirect(compileInfixSync("=STDEV.P(2, 4, 4, 4, 5, 5, 7, 9)")).stack[0]).toEqual(num(2))
