@@ -1704,6 +1704,17 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("SUMSQ/DEVSQ/AVEDEV/TRIMMEAN: advanced statistics", () => {
+    // SUMSQ(3, 4) = 9 + 16 = 25
+    expect(evalProgramDirect(compileInfixSync("=SUMSQ(3, 4)")).stack[0]).toEqual(num(25))
+    // DEVSQ(2, 4, 6): mean=4, deviations: -2,0,2, squares: 4,0,4 → 8
+    expect(evalProgramDirect(compileInfixSync("=DEVSQ(2, 4, 6)")).stack[0]).toEqual(num(8))
+    // AVEDEV(2, 4, 6): mean=4, abs devs: 2,0,2, avg → 4/3 ≈ 1.333
+    expect(evalProgramDirect(compileInfixSync("=ROUND(AVEDEV(2, 4, 6), 3)")).stack[0]).toEqual(num(1.333))
+    // TRIMMEAN(0.4, 1, 2, 3, 4, 5): trim 20% each end → remove 1 from each → mean(2,3,4) = 3
+    expect(evalProgramDirect(compileInfixSync("=TRIMMEAN(0.4, 1, 2, 3, 4, 5)")).stack[0]).toEqual(num(3))
+  })
+
   it("XOR/ISOWEEKNUM/NETWORKDAYS/SUBTOTAL: utility expansion", () => {
     // XOR: odd # true = true
     expect(evalProgramDirect(compileInfixSync("=XOR(1, 0, 1)")).stack[0]).toEqual(bool(false)) // 2 true = even
