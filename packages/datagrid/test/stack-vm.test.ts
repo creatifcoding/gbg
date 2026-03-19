@@ -1434,6 +1434,13 @@ describe("infix parser", () => {
     expect(decompileIR(compileInfixSync("=UPPER(A1)"))).toBe("=UPPER(A1)")
   })
 
+  it("COUNTA/COUNTBLANK: non-blank and blank counting", () => {
+    // COUNTA counts non-blank values (nums, strings, bools)
+    expect(evalProgramDirect(compileInfixSync('=COUNTA(1, "a", TRUE)')).stack[0]).toEqual(num(3))
+    // COUNTBLANK not testable without blank values in flat args, but basic test
+    expect(evalProgramDirect(compileInfixSync("=COUNTBLANK(1, 2, 3)")).stack[0]).toEqual(num(0))
+  })
+
   it("SUMPRODUCT: pairwise multiply + sum", () => {
     // SUMPRODUCT(1,2,3, 4,5,6) = 1*4 + 2*5 + 3*6 = 4+10+18 = 32
     expect(evalProgramDirect(compileInfixSync("=SUMPRODUCT(1,2,3, 4,5,6)")).stack[0]).toEqual(num(32))
