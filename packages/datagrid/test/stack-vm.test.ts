@@ -1704,6 +1704,20 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("COMPLEX/IMREAL/IMAGINARY/IMABS/BESSELJ: engineering functions", () => {
+    // COMPLEX: create complex string
+    expect(evalProgramDirect(compileInfixSync("=COMPLEX(3, 4)")).stack[0]).toEqual(str("3+4i"))
+    expect(evalProgramDirect(compileInfixSync("=COMPLEX(3, -2)")).stack[0]).toEqual(str("3-2i"))
+    // IMREAL: extract real part
+    expect(evalProgramDirect(compileInfixSync('=IMREAL("3+4i")')).stack[0]).toEqual(num(3))
+    // IMAGINARY: extract imaginary part
+    expect(evalProgramDirect(compileInfixSync('=IMAGINARY("3+4i")')).stack[0]).toEqual(num(4))
+    // IMABS: |3+4i| = 5
+    expect(evalProgramDirect(compileInfixSync('=IMABS("3+4i")')).stack[0]).toEqual(num(5))
+    // BESSELJ: J0(0) = 1
+    expect(evalProgramDirect(compileInfixSync("=ROUND(BESSELJ(0, 0), 4)")).stack[0]).toEqual(num(1))
+  })
+
   it("TAKE/DROP/ISFORMULA: dynamic array manipulation", () => {
     // TAKE: take first 2 from [10, 20, 30]
     const t = evalProgramDirect(compileInfixSync("=TAKE(2, 10, 20, 30)"))

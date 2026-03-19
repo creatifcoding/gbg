@@ -424,6 +424,11 @@ export const ISERROR_OP = Schema.TaggedStruct("ISERROR_OP", {})
 export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
 
 /** More text functions */
+export const BESSELJ_OP = Schema.TaggedStruct("BESSELJ_OP", {})
+export const COMPLEX_OP = Schema.TaggedStruct("COMPLEX_OP", {})
+export const IMREAL_OP = Schema.TaggedStruct("IMREAL_OP", {})
+export const IMAGINARY_OP = Schema.TaggedStruct("IMAGINARY_OP", {})
+export const IMABS_OP = Schema.TaggedStruct("IMABS_OP", {})
 export const TAKE_N = Schema.TaggedStruct("TAKE_N", { n: Schema.Number })
 export const DROP_N = Schema.TaggedStruct("DROP_N", { n: Schema.Number })
 export const HSTACK_N = Schema.TaggedStruct("HSTACK_N", { n: Schema.Number })
@@ -701,7 +706,7 @@ export const Opcode = Schema.Union([
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
-  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, IFNA_OP, EOMONTH_OP, DATEDIF_OP, PERMUT_OP, FACTDOUBLE_OP, MATCH_N, INDEX_N, MODE_N, HARMEAN_N, GEOMEAN_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, ISNUMBER_OP, ISTEXT_OP, ISEVEN_OP, ISODD_OP, N_OP, T_OP, TAKE_N, DROP_N, HSTACK_N, WRAPROWS_N, ISFORMULA_OP, REGEXMATCH_OP, REGEXEXTRACT_OP, REGEXREPLACE_OP, LET_N, CHOOSECOLS_N, SUMXMY2_N, SUMX2PY2_N, SUMX2MY2_N, ERF_OP, ERFC_OP, YEARFRAC_OP, COUPDAYBS_OP, TBILLYIELD_OP, RECEIVED_OP, PRICEDISC_OP, MIRR_N, XNPV_N, ACCRINT_OP, COUPDAYS_OP, DOLLARDE_OP, DOLLARFR_OP, SORT_N, UNIQUE_N, FILTER_N, PPMT_OP, IPMT_OP, CELL_OP, ROWS_N, RANDARRAY_N, SEQUENCE_N, XMATCH_N, CEILING_PRECISE_OP, FLOOR_PRECISE_OP, AVERAGEA_N, MAXA_N, MINA_N, NEGBINOMDIST_OP, BETADIST_OP, HYPGEOMDIST_OP, ISNA_OP, SHEET_OP, TEXTSPLIT_N, DATESTRING_OP, WORKDAY_OP, TEXTBEFORE_OP, TEXTAFTER_OP, VALUETOTEXT_OP, ISPMT_OP, DISC_OP, INTRATE_OP, SYD_OP, EFFECT_OP, NOMINAL_OP, NORMINV_OP, DDB_OP, PERCENTRANK_N, QUARTILE_N, WEIBULL_OP, GAMMADIST_OP, EXPONDIST_OP, POISSON_OP, BINOMDIST_OP, LOGNORMDIST_OP, STANDARDIZE_OP, CONFIDENCE_OP, NORMDIST_OP, STEYX_N, FISHER_OP, FISHERINV_OP, KURT_N, SKEW_N, CONVERT_OP, SLOPE_N, INTERCEPT_N, RSQ_N, COVAR_N, FORECAST_N, STDEVP_N, VARP_N, CORREL_N, SUMSQ_N, DEVSQ_N, AVEDEV_N, TRIMMEAN_N, XOR_N, ISOWEEKNUM_OP, NETWORKDAYS_OP, SUBTOTAL_N, DELTA_OP, GESTEP_OP, MULTINOMIAL_N, SERIESSUM_N, SEC_OP, CSC_OP, COTH_OP, SECH_OP, CSCH_OP, SUMIFS_N, AVERAGEIFS_N, NA_OP, COT_OP, ACOT_OP, UNICODE_OP, UNICHAR_OP, ENCODEURL_OP, DAYS_OP, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
+  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, IFNA_OP, EOMONTH_OP, DATEDIF_OP, PERMUT_OP, FACTDOUBLE_OP, MATCH_N, INDEX_N, MODE_N, HARMEAN_N, GEOMEAN_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, ISNUMBER_OP, ISTEXT_OP, ISEVEN_OP, ISODD_OP, N_OP, T_OP, BESSELJ_OP, COMPLEX_OP, IMREAL_OP, IMAGINARY_OP, IMABS_OP, TAKE_N, DROP_N, HSTACK_N, WRAPROWS_N, ISFORMULA_OP, REGEXMATCH_OP, REGEXEXTRACT_OP, REGEXREPLACE_OP, LET_N, CHOOSECOLS_N, SUMXMY2_N, SUMX2PY2_N, SUMX2MY2_N, ERF_OP, ERFC_OP, YEARFRAC_OP, COUPDAYBS_OP, TBILLYIELD_OP, RECEIVED_OP, PRICEDISC_OP, MIRR_N, XNPV_N, ACCRINT_OP, COUPDAYS_OP, DOLLARDE_OP, DOLLARFR_OP, SORT_N, UNIQUE_N, FILTER_N, PPMT_OP, IPMT_OP, CELL_OP, ROWS_N, RANDARRAY_N, SEQUENCE_N, XMATCH_N, CEILING_PRECISE_OP, FLOOR_PRECISE_OP, AVERAGEA_N, MAXA_N, MINA_N, NEGBINOMDIST_OP, BETADIST_OP, HYPGEOMDIST_OP, ISNA_OP, SHEET_OP, TEXTSPLIT_N, DATESTRING_OP, WORKDAY_OP, TEXTBEFORE_OP, TEXTAFTER_OP, VALUETOTEXT_OP, ISPMT_OP, DISC_OP, INTRATE_OP, SYD_OP, EFFECT_OP, NOMINAL_OP, NORMINV_OP, DDB_OP, PERCENTRANK_N, QUARTILE_N, WEIBULL_OP, GAMMADIST_OP, EXPONDIST_OP, POISSON_OP, BINOMDIST_OP, LOGNORMDIST_OP, STANDARDIZE_OP, CONFIDENCE_OP, NORMDIST_OP, STEYX_N, FISHER_OP, FISHERINV_OP, KURT_N, SKEW_N, CONVERT_OP, SLOPE_N, INTERCEPT_N, RSQ_N, COVAR_N, FORECAST_N, STDEVP_N, VARP_N, CORREL_N, SUMSQ_N, DEVSQ_N, AVEDEV_N, TRIMMEAN_N, XOR_N, ISOWEEKNUM_OP, NETWORKDAYS_OP, SUBTOTAL_N, DELTA_OP, GESTEP_OP, MULTINOMIAL_N, SERIESSUM_N, SEC_OP, CSC_OP, COTH_OP, SECH_OP, CSCH_OP, SUMIFS_N, AVERAGEIFS_N, NA_OP, COT_OP, ACOT_OP, UNICODE_OP, UNICHAR_OP, ENCODEURL_OP, DAYS_OP, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
   IFS_N, SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
@@ -1016,6 +1021,54 @@ const EXEC: Record<string, Executor> = {
     return str(result)
   }, "ROMAN") }),
   // PROB_N: probability that values are within limits. PROB(lower, upper, prob1, ..., probK, v1, ..., vK) n=2+2K
+  // BESSELJ_OP: Bessel function J0(x) approximation. BESSELJ(x, order)
+  BESSELJ_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "BESSELJ")); return { result: s[s.length-1] } }
+    const order = Math.round(asNum(s.pop()!)), x = asNum(s.pop()!)
+    // J0 approximation for order 0, otherwise simple series
+    if (order === 0) {
+      let sum = 1, term = 1
+      for (let k = 1; k <= 20; k++) { term *= -(x*x) / (4*k*k); sum += term }
+      const result = num(sum); s.push(result); return { result }
+    }
+    // Higher orders: rough series approximation
+    let fac = 1; for (let i = 2; i <= order; i++) fac *= i
+    let sum = 0, term = Math.pow(x/2, order) / fac
+    sum = term
+    for (let k = 1; k <= 20; k++) {
+      term *= -(x*x) / (4*k*(k+order))
+      sum += term
+    }
+    const result = num(sum); s.push(result); return { result }
+  },
+  // COMPLEX_OP: create complex string from real, imaginary. COMPLEX(real, imag)
+  COMPLEX_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "COMPLEX")); return { result: s[s.length-1] } }
+    const imag = asNum(s.pop()!), real = asNum(s.pop()!)
+    const sign = imag >= 0 ? "+" : ""
+    const result = str(`${real}${sign}${imag}i`); s.push(result); return { result }
+  },
+  // IMREAL_OP: extract real part from complex string. IMREAL("3+4i")
+  IMREAL_OP: (_o, s) => ({ result: unop(s, a => {
+    const s2 = vmDisplay(a)
+    const m = s2.match(/^([-+]?\d*\.?\d+)/)
+    return m ? num(parseFloat(m[1])) : vmError("TYPE_MISMATCH", "IMREAL: not complex")
+  }, "IMREAL") }),
+  // IMAGINARY_OP: extract imaginary part. IMAGINARY("3+4i")
+  IMAGINARY_OP: (_o, s) => ({ result: unop(s, a => {
+    const s2 = vmDisplay(a)
+    const m = s2.match(/([-+]?\d*\.?\d+)i/)
+    return m ? num(parseFloat(m[1])) : vmError("TYPE_MISMATCH", "IMAGINARY: not complex")
+  }, "IMAGINARY") }),
+  // IMABS_OP: absolute value of complex. |a+bi| = sqrt(a²+b²)
+  IMABS_OP: (_o, s) => ({ result: unop(s, a => {
+    const s2 = vmDisplay(a)
+    const mr = s2.match(/^([-+]?\d*\.?\d+)/)
+    const mi = s2.match(/([-+]?\d*\.?\d+)i/)
+    if (!mr || !mi) return vmError("TYPE_MISMATCH", "IMABS: not complex")
+    const real = parseFloat(mr[1]), imag = parseFloat(mi[1])
+    return num(Math.sqrt(real*real + imag*imag))
+  }, "IMABS") }),
   // Actually too complex. Let's do NORMDIST approximation instead.
   // TAKE_N: take first K values from stack. TAKE(count, v1, ..., vN) → first count values
   TAKE_N: (op: any, s) => {
@@ -3254,7 +3307,7 @@ const _OP: Record<string, Opcode> = {
   ISERROR_OP: { _tag: "ISERROR_OP" }, ISBLANK_OP: { _tag: "ISBLANK_OP" },
   IFNA_OP: { _tag: "IFNA_OP" }, EOMONTH_OP: { _tag: "EOMONTH_OP" }, DATEDIF_OP: { _tag: "DATEDIF_OP" },
   PERMUT_OP: { _tag: "PERMUT_OP" }, FACTDOUBLE_OP: { _tag: "FACTDOUBLE_OP" },
-  ISNUMBER_OP: { _tag: "ISNUMBER_OP" }, ISTEXT_OP: { _tag: "ISTEXT_OP" }, ISEVEN_OP: { _tag: "ISEVEN_OP" }, ISODD_OP: { _tag: "ISODD_OP" }, N_OP: { _tag: "N_OP" }, T_OP: { _tag: "T_OP" }, ISFORMULA_OP: { _tag: "ISFORMULA_OP" }, REGEXMATCH_OP: { _tag: "REGEXMATCH_OP" }, REGEXEXTRACT_OP: { _tag: "REGEXEXTRACT_OP" }, REGEXREPLACE_OP: { _tag: "REGEXREPLACE_OP" }, ERF_OP: { _tag: "ERF_OP" }, ERFC_OP: { _tag: "ERFC_OP" }, YEARFRAC_OP: { _tag: "YEARFRAC_OP" }, COUPDAYBS_OP: { _tag: "COUPDAYBS_OP" }, TBILLYIELD_OP: { _tag: "TBILLYIELD_OP" }, RECEIVED_OP: { _tag: "RECEIVED_OP" }, PRICEDISC_OP: { _tag: "PRICEDISC_OP" }, ACCRINT_OP: { _tag: "ACCRINT_OP" }, COUPDAYS_OP: { _tag: "COUPDAYS_OP" }, DOLLARDE_OP: { _tag: "DOLLARDE_OP" }, DOLLARFR_OP: { _tag: "DOLLARFR_OP" }, PPMT_OP: { _tag: "PPMT_OP" }, IPMT_OP: { _tag: "IPMT_OP" }, CELL_OP: { _tag: "CELL_OP" }, CEILING_PRECISE_OP: { _tag: "CEILING_PRECISE_OP" }, FLOOR_PRECISE_OP: { _tag: "FLOOR_PRECISE_OP" }, NEGBINOMDIST_OP: { _tag: "NEGBINOMDIST_OP" }, BETADIST_OP: { _tag: "BETADIST_OP" }, HYPGEOMDIST_OP: { _tag: "HYPGEOMDIST_OP" }, ISNA_OP: { _tag: "ISNA_OP" }, SHEET_OP: { _tag: "SHEET_OP" }, DATESTRING_OP: { _tag: "DATESTRING_OP" }, WORKDAY_OP: { _tag: "WORKDAY_OP" }, TEXTBEFORE_OP: { _tag: "TEXTBEFORE_OP" }, TEXTAFTER_OP: { _tag: "TEXTAFTER_OP" }, VALUETOTEXT_OP: { _tag: "VALUETOTEXT_OP" }, ISPMT_OP: { _tag: "ISPMT_OP" }, DISC_OP: { _tag: "DISC_OP" }, INTRATE_OP: { _tag: "INTRATE_OP" }, SYD_OP: { _tag: "SYD_OP" }, EFFECT_OP: { _tag: "EFFECT_OP" }, NOMINAL_OP: { _tag: "NOMINAL_OP" }, NORMINV_OP: { _tag: "NORMINV_OP" }, DDB_OP: { _tag: "DDB_OP" }, WEIBULL_OP: { _tag: "WEIBULL_OP" }, GAMMADIST_OP: { _tag: "GAMMADIST_OP" }, EXPONDIST_OP: { _tag: "EXPONDIST_OP" }, POISSON_OP: { _tag: "POISSON_OP" }, BINOMDIST_OP: { _tag: "BINOMDIST_OP" }, LOGNORMDIST_OP: { _tag: "LOGNORMDIST_OP" }, STANDARDIZE_OP: { _tag: "STANDARDIZE_OP" }, CONFIDENCE_OP: { _tag: "CONFIDENCE_OP" }, NORMDIST_OP: { _tag: "NORMDIST_OP" }, FISHER_OP: { _tag: "FISHER_OP" }, FISHERINV_OP: { _tag: "FISHERINV_OP" }, CONVERT_OP: { _tag: "CONVERT_OP" }, ISOWEEKNUM_OP: { _tag: "ISOWEEKNUM_OP" }, NETWORKDAYS_OP: { _tag: "NETWORKDAYS_OP" },
+  ISNUMBER_OP: { _tag: "ISNUMBER_OP" }, ISTEXT_OP: { _tag: "ISTEXT_OP" }, ISEVEN_OP: { _tag: "ISEVEN_OP" }, ISODD_OP: { _tag: "ISODD_OP" }, N_OP: { _tag: "N_OP" }, T_OP: { _tag: "T_OP" }, BESSELJ_OP: { _tag: "BESSELJ_OP" }, COMPLEX_OP: { _tag: "COMPLEX_OP" }, IMREAL_OP: { _tag: "IMREAL_OP" }, IMAGINARY_OP: { _tag: "IMAGINARY_OP" }, IMABS_OP: { _tag: "IMABS_OP" }, ISFORMULA_OP: { _tag: "ISFORMULA_OP" }, REGEXMATCH_OP: { _tag: "REGEXMATCH_OP" }, REGEXEXTRACT_OP: { _tag: "REGEXEXTRACT_OP" }, REGEXREPLACE_OP: { _tag: "REGEXREPLACE_OP" }, ERF_OP: { _tag: "ERF_OP" }, ERFC_OP: { _tag: "ERFC_OP" }, YEARFRAC_OP: { _tag: "YEARFRAC_OP" }, COUPDAYBS_OP: { _tag: "COUPDAYBS_OP" }, TBILLYIELD_OP: { _tag: "TBILLYIELD_OP" }, RECEIVED_OP: { _tag: "RECEIVED_OP" }, PRICEDISC_OP: { _tag: "PRICEDISC_OP" }, ACCRINT_OP: { _tag: "ACCRINT_OP" }, COUPDAYS_OP: { _tag: "COUPDAYS_OP" }, DOLLARDE_OP: { _tag: "DOLLARDE_OP" }, DOLLARFR_OP: { _tag: "DOLLARFR_OP" }, PPMT_OP: { _tag: "PPMT_OP" }, IPMT_OP: { _tag: "IPMT_OP" }, CELL_OP: { _tag: "CELL_OP" }, CEILING_PRECISE_OP: { _tag: "CEILING_PRECISE_OP" }, FLOOR_PRECISE_OP: { _tag: "FLOOR_PRECISE_OP" }, NEGBINOMDIST_OP: { _tag: "NEGBINOMDIST_OP" }, BETADIST_OP: { _tag: "BETADIST_OP" }, HYPGEOMDIST_OP: { _tag: "HYPGEOMDIST_OP" }, ISNA_OP: { _tag: "ISNA_OP" }, SHEET_OP: { _tag: "SHEET_OP" }, DATESTRING_OP: { _tag: "DATESTRING_OP" }, WORKDAY_OP: { _tag: "WORKDAY_OP" }, TEXTBEFORE_OP: { _tag: "TEXTBEFORE_OP" }, TEXTAFTER_OP: { _tag: "TEXTAFTER_OP" }, VALUETOTEXT_OP: { _tag: "VALUETOTEXT_OP" }, ISPMT_OP: { _tag: "ISPMT_OP" }, DISC_OP: { _tag: "DISC_OP" }, INTRATE_OP: { _tag: "INTRATE_OP" }, SYD_OP: { _tag: "SYD_OP" }, EFFECT_OP: { _tag: "EFFECT_OP" }, NOMINAL_OP: { _tag: "NOMINAL_OP" }, NORMINV_OP: { _tag: "NORMINV_OP" }, DDB_OP: { _tag: "DDB_OP" }, WEIBULL_OP: { _tag: "WEIBULL_OP" }, GAMMADIST_OP: { _tag: "GAMMADIST_OP" }, EXPONDIST_OP: { _tag: "EXPONDIST_OP" }, POISSON_OP: { _tag: "POISSON_OP" }, BINOMDIST_OP: { _tag: "BINOMDIST_OP" }, LOGNORMDIST_OP: { _tag: "LOGNORMDIST_OP" }, STANDARDIZE_OP: { _tag: "STANDARDIZE_OP" }, CONFIDENCE_OP: { _tag: "CONFIDENCE_OP" }, NORMDIST_OP: { _tag: "NORMDIST_OP" }, FISHER_OP: { _tag: "FISHER_OP" }, FISHERINV_OP: { _tag: "FISHERINV_OP" }, CONVERT_OP: { _tag: "CONVERT_OP" }, ISOWEEKNUM_OP: { _tag: "ISOWEEKNUM_OP" }, NETWORKDAYS_OP: { _tag: "NETWORKDAYS_OP" },
   DELTA_OP: { _tag: "DELTA_OP" }, GESTEP_OP: { _tag: "GESTEP_OP" }, SEC_OP: { _tag: "SEC_OP" }, CSC_OP: { _tag: "CSC_OP" }, COTH_OP: { _tag: "COTH_OP" },
   SECH_OP: { _tag: "SECH_OP" }, CSCH_OP: { _tag: "CSCH_OP" },
   NA_OP: { _tag: "NA_OP" }, COT_OP: { _tag: "COT_OP" }, ACOT_OP: { _tag: "ACOT_OP" },
@@ -3400,6 +3453,11 @@ function classifyToken(tok: string): Opcode | null {
     case "DATEDIF_OP": return _OP.DATEDIF_OP
     case "PERMUT_OP": return _OP.PERMUT_OP
     case "FACTDOUBLE_OP": return _OP.FACTDOUBLE_OP
+    case "BESSELJ_OP": return _OP.BESSELJ_OP
+    case "COMPLEX_OP": return _OP.COMPLEX_OP
+    case "IMREAL_OP": return _OP.IMREAL_OP
+    case "IMAGINARY_OP": return _OP.IMAGINARY_OP
+    case "IMABS_OP": return _OP.IMABS_OP
     case "TAKE_N": return { _tag: "TAKE_N", n: 0 } as any
     case "DROP_N": return { _tag: "DROP_N", n: 0 } as any
     case "HSTACK_N": return { _tag: "HSTACK_N", n: 0 } as any
@@ -3820,7 +3878,7 @@ const FUNC_MAP: Record<string, string> = {
   NPV: "NPV_N", VAR: "VAR_N", PERCENTILE: "PERCENTILE_N", COUNTA: "COUNTA_N", COUNTBLANK: "COUNTBLANK_N",
   SUMPRODUCT: "SUMPRODUCT_N", MATCH: "MATCH_N", INDEX: "INDEX_N", MODE: "MODE_N", HARMEAN: "HARMEAN_N", GEOMEAN: "GEOMEAN_N", AGGREGATE: "AGGREGATE_N", COUNTIF: "COUNTIF_N", COUNTIFS: "COUNTIFS_N", SUMIF: "SUMIF_N", MAXIFS: "MAXIFS_N", MINIFS: "MINIFS_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
   STDEV: "STDEV_N", MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
-  TAKE: "TAKE_N", DROP: "DROP_N", HSTACK: "HSTACK_N", WRAPROWS: "WRAPROWS_N", ISFORMULA: "ISFORMULA_OP", REGEXMATCH: "REGEXMATCH_OP", REGEXEXTRACT: "REGEXEXTRACT_OP", REGEXREPLACE: "REGEXREPLACE_OP", LET: "LET_N", CHOOSECOLS: "CHOOSECOLS_N", SUMXMY2: "SUMXMY2_N", SUMX2PY2: "SUMX2PY2_N", SUMX2MY2: "SUMX2MY2_N", ERF: "ERF_OP", ERFC: "ERFC_OP", YEARFRAC: "YEARFRAC_OP", COUPDAYBS: "COUPDAYBS_OP", TBILLYIELD: "TBILLYIELD_OP", RECEIVED: "RECEIVED_OP", PRICEDISC: "PRICEDISC_OP", MIRR: "MIRR_N", XNPV: "XNPV_N", ACCRINT: "ACCRINT_OP", COUPDAYS: "COUPDAYS_OP", DOLLARDE: "DOLLARDE_OP", DOLLARFR: "DOLLARFR_OP", SORT: "SORT_N", UNIQUE: "UNIQUE_N", FILTER: "FILTER_N", PPMT: "PPMT_OP", IPMT: "IPMT_OP", CELL: "CELL_OP", ROWS: "ROWS_N", RANDARRAY: "RANDARRAY_N", SEQUENCE: "SEQUENCE_N", XMATCH: "XMATCH_N", "CEILING.PRECISE": "CEILING_PRECISE_OP", "FLOOR.PRECISE": "FLOOR_PRECISE_OP",
+  BESSELJ: "BESSELJ_OP", COMPLEX: "COMPLEX_OP", IMREAL: "IMREAL_OP", IMAGINARY: "IMAGINARY_OP", IMABS: "IMABS_OP", TAKE: "TAKE_N", DROP: "DROP_N", HSTACK: "HSTACK_N", WRAPROWS: "WRAPROWS_N", ISFORMULA: "ISFORMULA_OP", REGEXMATCH: "REGEXMATCH_OP", REGEXEXTRACT: "REGEXEXTRACT_OP", REGEXREPLACE: "REGEXREPLACE_OP", LET: "LET_N", CHOOSECOLS: "CHOOSECOLS_N", SUMXMY2: "SUMXMY2_N", SUMX2PY2: "SUMX2PY2_N", SUMX2MY2: "SUMX2MY2_N", ERF: "ERF_OP", ERFC: "ERFC_OP", YEARFRAC: "YEARFRAC_OP", COUPDAYBS: "COUPDAYBS_OP", TBILLYIELD: "TBILLYIELD_OP", RECEIVED: "RECEIVED_OP", PRICEDISC: "PRICEDISC_OP", MIRR: "MIRR_N", XNPV: "XNPV_N", ACCRINT: "ACCRINT_OP", COUPDAYS: "COUPDAYS_OP", DOLLARDE: "DOLLARDE_OP", DOLLARFR: "DOLLARFR_OP", SORT: "SORT_N", UNIQUE: "UNIQUE_N", FILTER: "FILTER_N", PPMT: "PPMT_OP", IPMT: "IPMT_OP", CELL: "CELL_OP", ROWS: "ROWS_N", RANDARRAY: "RANDARRAY_N", SEQUENCE: "SEQUENCE_N", XMATCH: "XMATCH_N", "CEILING.PRECISE": "CEILING_PRECISE_OP", "FLOOR.PRECISE": "FLOOR_PRECISE_OP",
   IFNA: "IFNA_OP", AVERAGEA: "AVERAGEA_N", MAXA: "MAXA_N", MINA: "MINA_N", NEGBINOMDIST: "NEGBINOMDIST_OP", BETADIST: "BETADIST_OP", HYPGEOMDIST: "HYPGEOMDIST_OP", ISNA: "ISNA_OP", SHEET: "SHEET_OP", TEXTSPLIT: "TEXTSPLIT_N", DATESTRING: "DATESTRING_OP", WORKDAY: "WORKDAY_OP", TEXTBEFORE: "TEXTBEFORE_OP", TEXTAFTER: "TEXTAFTER_OP", VALUETOTEXT: "VALUETOTEXT_OP", ISPMT: "ISPMT_OP", DISC: "DISC_OP", INTRATE: "INTRATE_OP", SYD: "SYD_OP", EFFECT: "EFFECT_OP", NOMINAL: "NOMINAL_OP", NORMINV: "NORMINV_OP", DDB: "DDB_OP", PERCENTRANK: "PERCENTRANK_N", QUARTILE: "QUARTILE_N", WEIBULL: "WEIBULL_OP", GAMMADIST: "GAMMADIST_OP", EXPONDIST: "EXPONDIST_OP", POISSON: "POISSON_OP", BINOMDIST: "BINOMDIST_OP", LOGNORMDIST: "LOGNORMDIST_OP", STANDARDIZE: "STANDARDIZE_OP", CONFIDENCE: "CONFIDENCE_OP", NORMDIST: "NORMDIST_OP", STEYX: "STEYX_N", FISHER: "FISHER_OP", FISHERINV: "FISHERINV_OP", KURT: "KURT_N", SKEW: "SKEW_N", CONVERT: "CONVERT_OP", SLOPE: "SLOPE_N", INTERCEPT: "INTERCEPT_N", RSQ: "RSQ_N", COVAR: "COVAR_N", FORECAST: "FORECAST_N", "STDEV.P": "STDEVP_N", "VAR.P": "VARP_N", CORREL: "CORREL_N", SUMSQ: "SUMSQ_N", DEVSQ: "DEVSQ_N", AVEDEV: "AVEDEV_N", TRIMMEAN: "TRIMMEAN_N", XOR: "XOR_N", ISOWEEKNUM: "ISOWEEKNUM_OP", NETWORKDAYS: "NETWORKDAYS_OP", SUBTOTAL: "SUBTOTAL_N", DELTA: "DELTA_OP", GESTEP: "GESTEP_OP", MULTINOMIAL: "MULTINOMIAL_N", SERIESSUM: "SERIESSUM_N", SEC: "SEC_OP", CSC: "CSC_OP", COTH: "COTH_OP", SECH: "SECH_OP", CSCH: "CSCH_OP", SUMIFS: "SUMIFS_N", AVERAGEIFS: "AVERAGEIFS_N", NA: "NA_OP", COT: "COT_OP", ACOT: "ACOT_OP", UNICODE: "UNICODE_OP", UNICHAR: "UNICHAR_OP", ENCODEURL: "ENCODEURL_OP", DAYS: "DAYS_OP", EOMONTH: "EOMONTH_OP", DATEDIF: "DATEDIF_OP", PERMUT: "PERMUT_OP", FACTDOUBLE: "FACTDOUBLE_OP",
   DATEVALUE: "DATEVALUE_OP", EDATE: "EDATE_OP", WEEKDAY: "WEEKDAY_OP", WEEKNUM: "WEEKNUM_OP", ROMAN: "ROMAN_OP", ARABIC: "ARABIC_OP", TEXT: "TEXT_OP", NUMBERVALUE: "NUMBERVALUE_OP", REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
   IFS: "IFS_N", SWITCH: "SWITCH_N", VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
@@ -4200,6 +4258,11 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "COMBIN", args: "n, k", description: "Combinations (n choose k)", category: "math" },
   { name: "SUBSTITUTE", args: "text, old, new", description: "Replace all occurrences", category: "text" },
   { name: "IFNA", args: "value, alt", description: "Return alt if value is error", category: "logic" },
+  { name: "BESSELJ", args: "x, order", description: "Bessel function of first kind Jn(x)", category: "math" },
+  { name: "COMPLEX", args: "real, imaginary", description: "Create complex number string", category: "math" },
+  { name: "IMREAL", args: "complex_string", description: "Extract real part of complex", category: "math" },
+  { name: "IMAGINARY", args: "complex_string", description: "Extract imaginary part of complex", category: "math" },
+  { name: "IMABS", args: "complex_string", description: "Absolute value of complex number", category: "math" },
   { name: "TAKE", args: "count, values...", description: "Take first N values", category: "lookup" },
   { name: "DROP", args: "count, values...", description: "Drop first N values, keep rest", category: "lookup" },
   { name: "HSTACK", args: "values...", description: "Horizontal stack (combine values)", category: "lookup" },
