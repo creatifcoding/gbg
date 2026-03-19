@@ -1469,6 +1469,18 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync("=ISODD(6)")).stack[0]).toEqual(bool(false))
   })
 
+  it("TRUNC: truncate toward zero", () => {
+    expect(evalProgramDirect(compileInfixSync("=TRUNC(3.7)")).stack[0]).toEqual(num(3))
+    expect(evalProgramDirect(compileInfixSync("=TRUNC(-3.7)")).stack[0]).toEqual(num(-3)) // toward zero, not floor
+  })
+
+  it("COMBIN: combinations nCr", () => {
+    expect(evalProgramDirect(compileInfixSync("=COMBIN(5, 2)")).stack[0]).toEqual(num(10)) // 5!/(2!*3!) = 10
+    expect(evalProgramDirect(compileInfixSync("=COMBIN(10, 3)")).stack[0]).toEqual(num(120))
+    expect(evalProgramDirect(compileInfixSync("=COMBIN(5, 0)")).stack[0]).toEqual(num(1))
+    expect(evalProgramDirect(compileInfixSync("=COMBIN(3, 5)")).stack[0]._tag).toBe("error") // k > n
+  })
+
   it("INT/EVEN/ODD: rounding functions", () => {
     expect(evalProgramDirect(compileInfixSync("=INT(3.7)")).stack[0]).toEqual(num(3))
     expect(evalProgramDirect(compileInfixSync("=INT(-3.2)")).stack[0]).toEqual(num(-4)) // floor toward -∞
