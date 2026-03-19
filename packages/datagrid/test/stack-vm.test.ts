@@ -3033,6 +3033,27 @@ describe("post-450 function coverage", () => {
   it("ISNAT(5) = true", () => expect(d("=ISNAT(5)")).toBe(true))
   it("ISNAT(-1) = false", () => expect(d("=ISNAT(-1)")).toBe(false))
 
+  // ── 1047 batch tests ──
+  it("HEAVISIDE(5) = 1", () => expect(d("=HEAVISIDE(5)")).toBe(1))
+  it("HEAVISIDE(-1) = 0", () => expect(d("=HEAVISIDE(-1)")).toBe(0))
+  it("RAMP(3) = 3", () => expect(d("=RAMP(3)")).toBe(3))
+  it("RAMP(-2) = 0", () => expect(d("=RAMP(-2)")).toBe(0))
+  it("GAUSSIAN2(0) = 1", () => expect(d("=GAUSSIAN2(0)")).toBe(1))
+  it("SAWTOOTH2(1.5) = 0.5", () => expect(d("=SAWTOOTH2(1.5)")).toBe(0.5))
+  it("ISCUBE(27) = true", () => expect(d("=ISCUBE(27)")).toBe(true))
+  it("ISCUBE(26) = false", () => expect(d("=ISCUBE(26)")).toBe(false))
+  it("ISTRIANGULAR(6) = true", () => expect(d("=ISTRIANGULAR(6)")).toBe(true))
+  it("ISHARSHAD(18) = true", () => expect(d("=ISHARSHAD(18)")).toBe(true))
+  it("RULE72(8) = 9", () => expect(d("=RULE72(8)")).toBe(9))
+  it("NOR2(0,0) = true", () => expect(d("=NOR2(0,0)")).toBe(true))
+  it("NOR2(1,0) = false", () => expect(d("=NOR2(1,0)")).toBe(false))
+  it("NAND2(1,1) = false", () => expect(d("=NAND2(1,1)")).toBe(false))
+  it("TOPK(2, 10, 30, 20) = 20", () => expect(d("=TOPK(2, 10, 30, 20)")).toBe(20))
+  it("BOTTOMK(1, 10, 5, 20) = 5", () => expect(d("=BOTTOMK(1, 10, 5, 20)")).toBe(5))
+  it("UNIQUE2(1,2,2,3) = 3", () => expect(d("=UNIQUE2(1,2,2,3)")).toBe(3))
+  it("MARKUPRATE(80, 100) = 0.25", () => expect(d("=MARKUPRATE(80, 100)")).toBe(0.25))
+  it("MARGINRATE(80, 100) = 0.2", () => expect(d("=MARGINRATE(80, 100)")).toBe(0.2))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
