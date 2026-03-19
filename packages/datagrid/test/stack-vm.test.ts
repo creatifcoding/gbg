@@ -1704,6 +1704,17 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("NA/COT/ACOT: error generation and trig completions", () => {
+    // NA() generates error
+    expect(evalProgramDirect(compileInfixSync("=NA()")).stack[0]._tag).toBe("error")
+    // IFNA catches NA
+    expect(evalProgramDirect(compileInfixSync("=IFNA(NA(), 42)")).stack[0]).toEqual(num(42))
+    // COT(PI/4) = 1/tan(PI/4) = 1
+    expect(evalProgramDirect(compileInfixSync("=ROUND(COT(PI()/4), 5)")).stack[0]).toEqual(num(1))
+    // ACOT(1) = PI/4
+    expect(evalProgramDirect(compileInfixSync("=ROUND(ACOT(1), 5)")).stack[0]).toEqual(num(0.7854))
+  })
+
   it("UNICODE/UNICHAR: full Unicode support", () => {
     expect(evalProgramDirect(compileInfixSync('=UNICODE("A")')).stack[0]).toEqual(num(65))
     expect(evalProgramDirect(compileInfixSync("=UNICHAR(128512)")).stack[0]).toEqual(str("😀"))

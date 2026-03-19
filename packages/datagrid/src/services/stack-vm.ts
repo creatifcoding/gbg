@@ -422,6 +422,9 @@ export const ISERROR_OP = Schema.TaggedStruct("ISERROR_OP", {})
 export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
 
 /** More text functions */
+export const NA_OP = Schema.TaggedStruct("NA_OP", {})
+export const COT_OP = Schema.TaggedStruct("COT_OP", {})
+export const ACOT_OP = Schema.TaggedStruct("ACOT_OP", {})
 export const UNICODE_OP = Schema.TaggedStruct("UNICODE_OP", {})
 export const UNICHAR_OP = Schema.TaggedStruct("UNICHAR_OP", {})
 export const ENCODEURL_OP = Schema.TaggedStruct("ENCODEURL_OP", {})
@@ -593,7 +596,7 @@ export const Opcode = Schema.Union([
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
-  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, IFNA_OP, EOMONTH_OP, DATEDIF_OP, PERMUT_OP, FACTDOUBLE_OP, MATCH_N, INDEX_N, MODE_N, HARMEAN_N, GEOMEAN_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, UNICODE_OP, UNICHAR_OP, ENCODEURL_OP, DAYS_OP, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
+  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, IFNA_OP, EOMONTH_OP, DATEDIF_OP, PERMUT_OP, FACTDOUBLE_OP, MATCH_N, INDEX_N, MODE_N, HARMEAN_N, GEOMEAN_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, NA_OP, COT_OP, ACOT_OP, UNICODE_OP, UNICHAR_OP, ENCODEURL_OP, DAYS_OP, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
   IFS_N, SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
@@ -907,6 +910,12 @@ const EXEC: Record<string, Executor> = {
     for (let i = 0; i < vals.length; i++) { while (n >= vals[i]) { result += syms[i]; n -= vals[i] } }
     return str(result)
   }, "ROMAN") }),
+  // NA_OP: generate #N/A error
+  NA_OP: (_o, s) => { const result = vmError("TYPE_MISMATCH", "#N/A"); s.push(result); return { result } },
+  // COT_OP: cotangent
+  COT_OP: (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const n = asNum(a); return n === 0 ? vmError("DIV_ZERO", "COT(0)") : num(1 / Math.tan(n)) }, "COT") }),
+  // ACOT_OP: inverse cotangent = PI/2 - atan(x)
+  ACOT_OP: (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; return num(Math.PI / 2 - Math.atan(asNum(a))) }, "ACOT") }),
   // UNICODE_OP: get unicode code point of first char
   UNICODE_OP: (_o, s) => ({ result: unop(s, a => {
     if (isVMError(a)) return a
@@ -2045,6 +2054,7 @@ const _OP: Record<string, Opcode> = {
   ISERROR_OP: { _tag: "ISERROR_OP" }, ISBLANK_OP: { _tag: "ISBLANK_OP" },
   IFNA_OP: { _tag: "IFNA_OP" }, EOMONTH_OP: { _tag: "EOMONTH_OP" }, DATEDIF_OP: { _tag: "DATEDIF_OP" },
   PERMUT_OP: { _tag: "PERMUT_OP" }, FACTDOUBLE_OP: { _tag: "FACTDOUBLE_OP" },
+  NA_OP: { _tag: "NA_OP" }, COT_OP: { _tag: "COT_OP" }, ACOT_OP: { _tag: "ACOT_OP" },
   UNICODE_OP: { _tag: "UNICODE_OP" }, UNICHAR_OP: { _tag: "UNICHAR_OP" }, ENCODEURL_OP: { _tag: "ENCODEURL_OP" }, DAYS_OP: { _tag: "DAYS_OP" }, DATEVALUE_OP: { _tag: "DATEVALUE_OP" }, EDATE_OP: { _tag: "EDATE_OP" },
   WEEKDAY_OP: { _tag: "WEEKDAY_OP" }, WEEKNUM_OP: { _tag: "WEEKNUM_OP" },
   ROMAN_OP: { _tag: "ROMAN_OP" }, ARABIC_OP: { _tag: "ARABIC_OP" },
@@ -2187,6 +2197,9 @@ function classifyToken(tok: string): Opcode | null {
     case "DATEDIF_OP": return _OP.DATEDIF_OP
     case "PERMUT_OP": return _OP.PERMUT_OP
     case "FACTDOUBLE_OP": return _OP.FACTDOUBLE_OP
+    case "NA_OP": return _OP.NA_OP
+    case "COT_OP": return _OP.COT_OP
+    case "ACOT_OP": return _OP.ACOT_OP
     case "UNICODE_OP": return _OP.UNICODE_OP
     case "UNICHAR_OP": return _OP.UNICHAR_OP
     case "ENCODEURL_OP": return _OP.ENCODEURL_OP
@@ -2496,7 +2509,7 @@ const FUNC_MAP: Record<string, string> = {
   NPV: "NPV_N", VAR: "VAR_N", PERCENTILE: "PERCENTILE_N", COUNTA: "COUNTA_N", COUNTBLANK: "COUNTBLANK_N",
   SUMPRODUCT: "SUMPRODUCT_N", MATCH: "MATCH_N", INDEX: "INDEX_N", MODE: "MODE_N", HARMEAN: "HARMEAN_N", GEOMEAN: "GEOMEAN_N", AGGREGATE: "AGGREGATE_N", COUNTIF: "COUNTIF_N", COUNTIFS: "COUNTIFS_N", SUMIF: "SUMIF_N", MAXIFS: "MAXIFS_N", MINIFS: "MINIFS_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
   STDEV: "STDEV_N", MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
-  IFNA: "IFNA_OP", UNICODE: "UNICODE_OP", UNICHAR: "UNICHAR_OP", ENCODEURL: "ENCODEURL_OP", DAYS: "DAYS_OP", EOMONTH: "EOMONTH_OP", DATEDIF: "DATEDIF_OP", PERMUT: "PERMUT_OP", FACTDOUBLE: "FACTDOUBLE_OP",
+  IFNA: "IFNA_OP", NA: "NA_OP", COT: "COT_OP", ACOT: "ACOT_OP", UNICODE: "UNICODE_OP", UNICHAR: "UNICHAR_OP", ENCODEURL: "ENCODEURL_OP", DAYS: "DAYS_OP", EOMONTH: "EOMONTH_OP", DATEDIF: "DATEDIF_OP", PERMUT: "PERMUT_OP", FACTDOUBLE: "FACTDOUBLE_OP",
   DATEVALUE: "DATEVALUE_OP", EDATE: "EDATE_OP", WEEKDAY: "WEEKDAY_OP", WEEKNUM: "WEEKNUM_OP", ROMAN: "ROMAN_OP", ARABIC: "ARABIC_OP", TEXT: "TEXT_OP", NUMBERVALUE: "NUMBERVALUE_OP", REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
   IFS: "IFS_N", SWITCH: "SWITCH_N", VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
   YEAR: "YEAR_OP", MONTH: "MONTH_OP", DAY: "DAY_OP",
@@ -2875,6 +2888,9 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "COMBIN", args: "n, k", description: "Combinations (n choose k)", category: "math" },
   { name: "SUBSTITUTE", args: "text, old, new", description: "Replace all occurrences", category: "text" },
   { name: "IFNA", args: "value, alt", description: "Return alt if value is error", category: "logic" },
+  { name: "NA", args: "(none)", description: "Generate #N/A error value", category: "info" },
+  { name: "COT", args: "number", description: "Cotangent (1/tan)", category: "math" },
+  { name: "ACOT", args: "number", description: "Inverse cotangent", category: "math" },
   { name: "UNICODE", args: "text", description: "Unicode code point of first character", category: "text" },
   { name: "UNICHAR", args: "number", description: "Unicode code point to character", category: "text" },
   { name: "ENCODEURL", args: "text", description: "Percent-encode text for URLs", category: "text" },
