@@ -3054,6 +3054,33 @@ describe("post-450 function coverage", () => {
   it("MARKUPRATE(80, 100) = 0.25", () => expect(d("=MARKUPRATE(80, 100)")).toBe(0.25))
   it("MARGINRATE(80, 100) = 0.2", () => expect(d("=MARGINRATE(80, 100)")).toBe(0.2))
 
+  // ── 1100 batch tests ──
+  it("RECIP(4) = 0.25", () => expect(d("=RECIP(4)")).toBe(0.25))
+  it("RECIP(0) = 0", () => expect(d("=RECIP(0)")).toBe(0))
+  it("SQRDIFF(5, 3) = 4", () => expect(d("=SQRDIFF(5, 3)")).toBe(4))
+  it("CBRT2(27) = 3", () => expect(d("=CBRT2(27)")).toBe(3))
+  it("DIVSAFE(10, 0) = 0", () => expect(d("=DIVSAFE(10, 0)")).toBe(0))
+  it("DIVSAFE(10, 2) = 5", () => expect(d("=DIVSAFE(10, 2)")).toBe(5))
+  it("FRAC2(3.75) = 0.75", () => expect(d("=FRAC2(3.75)")).toBe(0.75))
+  it("WHOLEFRAC(3.75) = 3", () => expect(d("=WHOLEFRAC(3.75)")).toBe(3))
+  it("ROUNDN(3.14159, 2) = 3.14", () => expect(d("=ROUNDN(3.14159, 2)")).toBe(3.14))
+  it("CUMMAX(1, 5, 3, 7, 2) = 7", () => expect(d("=CUMMAX(1, 5, 3, 7, 2)")).toBe(7))
+  it("CUMMIN(5, 3, 7, 1, 4) = 1", () => expect(d("=CUMMIN(5, 3, 7, 1, 4)")).toBe(1))
+  it("CUMSUM2(1, 2, 3) = 6", () => expect(d("=CUMSUM2(1, 2, 3)")).toBe(6))
+  it("CUMPROD2(2, 3, 4) = 24", () => expect(d("=CUMPROD2(2, 3, 4)")).toBe(24))
+  it("TEXTORDINAL(1) = 1st", () => expect(d("=TEXTORDINAL(1)")).toBe("1st"))
+  it("TEXTORDINAL(2) = 2nd", () => expect(d("=TEXTORDINAL(2)")).toBe("2nd"))
+  it("TEXTCAPS capitalizes", () => expect(d('=TEXTCAPS("hello")')).toBe("HELLO"))
+  it("TEXTNOCAPS lowercases", () => expect(d('=TEXTNOCAPS("HELLO")')).toBe("hello"))
+  it("ISSCALAR always true", () => expect(d("=ISSCALAR(42)")).toBe(true))
+  it("BITWIDTH(255) = 8", () => expect(d("=BITWIDTH(255)")).toBe(8))
+  it("NUMCLASS(42) = integer", () => expect(d("=NUMCLASS(42)")).toBe("integer"))
+  it("GROSSPROFIT(100, 60) = 40", () => expect(d("=GROSSPROFIT(100, 60)")).toBe(40))
+  it("TERNARY(1, 10, 20) = 10", () => expect(d("=TERNARY(1, 10, 20)")).toBe(10))
+  it("TERNARY(0, 10, 20) = 20", () => expect(d("=TERNARY(0, 10, 20)")).toBe(20))
+  it("BOOLFLIP(1) = false", () => expect(d("=BOOLFLIP(1)")).toBe(false))
+  it("BOOLFLIP(0) = true", () => expect(d("=BOOLFLIP(0)")).toBe(true))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
