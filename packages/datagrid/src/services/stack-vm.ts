@@ -1107,6 +1107,213 @@ export const extractDepsFromIR = (ir: StackIR): ReadonlyArray<string> => {
 }
 
 // ═══════════════════════════════════════════════════════
+// INFIX PARSER (Shunting-Yard, =A1+B1*2 → StackIR)
+// ═══════════════════════════════════════════════════════
+
+/** Operator precedence for shunting-yard */
+const PREC: Record<string, number> = {
+  "+": 1, "-": 1,
+  "*": 2, "/": 2, "%": 2,
+}
+const RIGHT_ASSOC = new Set<string>() // none currently
+
+/** Tokenize an infix expression */
+function tokenizeInfix(expr: string): string[] {
+  const tokens: string[] = []
+  let i = 0
+  while (i < expr.length) {
+    const ch = expr[i]
+    if (ch === " " || ch === "\t") { i++; continue }
+    // Operators and parens
+    if ("+-*/%(),:".includes(ch)) { tokens.push(ch); i++; continue }
+    // Number (including decimals and negative literals at start/after operator)
+    if (ch >= "0" && ch <= "9" || (ch === "." && i + 1 < expr.length && expr[i + 1] >= "0" && expr[i + 1] <= "9")) {
+      let num = ""
+      while (i < expr.length && (expr[i] >= "0" && expr[i] <= "9" || expr[i] === ".")) { num += expr[i]; i++ }
+      tokens.push(num)
+      continue
+    }
+    // Identifiers (cell refs, function names, booleans)
+    if ((ch >= "A" && ch <= "Z") || (ch >= "a" && ch <= "z") || ch === "_") {
+      let id = ""
+      while (i < expr.length && ((expr[i] >= "A" && expr[i] <= "Z") || (expr[i] >= "a" && expr[i] <= "z") || (expr[i] >= "0" && expr[i] <= "9") || expr[i] === "_")) {
+        id += expr[i]; i++
+      }
+      // Check for range: A1:B10
+      if (i < expr.length && expr[i] === ":") {
+        id += ":"
+        i++
+        while (i < expr.length && ((expr[i] >= "A" && expr[i] <= "Z") || (expr[i] >= "0" && expr[i] <= "9"))) {
+          id += expr[i]; i++
+        }
+      }
+      tokens.push(id)
+      continue
+    }
+    // Unknown character — skip
+    i++
+  }
+  return tokens
+}
+
+/** Known functions → opcode mapping */
+const FUNC_MAP: Record<string, string> = {
+  SUM: "SUM_DYN", MIN: "MIN_DYN", MAX: "MAX_DYN", AVG: "AVG_DYN",
+  ABS: "ABS", NEG: "NEG", IF: "IF",
+  CONCAT: "CONCAT", TO_NUM: "TO_NUM", TO_STR: "TO_STR",
+}
+
+/**
+ * Compile an infix expression to StackIR.
+ *
+ * Supports:
+ * - Arithmetic: `A1 + B1 * 2`
+ * - Functions: `SUM(A1:A5)`, `IF(A1, B1, C1)`
+ * - Cell refs: `A1`, `B2`
+ * - Ranges: `A1:A10`
+ * - Parentheses: `(A1 + B1) * 2`
+ * - Booleans: `true`, `false`
+ *
+ * Strips leading `=` if present.
+ */
+export const compileInfix = (expr: string): Effect.Effect<StackIR, CompileError> => {
+  try {
+    return Effect.succeed(compileInfixSync(expr))
+  } catch (e) {
+    if (e instanceof CompileError) return Effect.fail(e)
+    return Effect.fail(new CompileError({ expr, token: "", position: 0, reason: String(e) }))
+  }
+}
+
+/**
+ * Compile infix expression synchronously.
+ */
+export const compileInfixSync = (rawExpr: string): StackIR => {
+  const expr = rawExpr.startsWith("=") ? rawExpr.slice(1) : rawExpr
+  const tokens = tokenizeInfix(expr)
+  const output: Opcode[] = []
+  const opStack: string[] = []
+  const argCounts: number[] = [] // for function call arity tracking
+
+  const pushOp = (tok: string) => {
+    const op = classifyToken(tok)
+    if (!op) throw new CompileError({ expr: rawExpr, token: tok, position: 0, reason: `Unknown operator: ${tok}` })
+    output.push(op)
+  }
+
+  for (let i = 0; i < tokens.length; i++) {
+    const tok = tokens[i]
+
+    // Number literal
+    const n = Number(tok)
+    if (!isNaN(n) && tok !== "") {
+      output.push({ _tag: "PUSH_NUM", value: n })
+      continue
+    }
+
+    // Boolean
+    if (tok === "true" || tok === "false") {
+      output.push({ _tag: "PUSH_BOOL", value: tok === "true" })
+      continue
+    }
+
+    // Function call: next token is "("
+    if (FUNC_MAP[tok] && i + 1 < tokens.length && tokens[i + 1] === "(") {
+      opStack.push(`FN:${tok}`)
+      argCounts.push(1) // at least 1 arg
+      continue
+    }
+
+    // Range ref (A1:A10) or cell ref (A1)
+    const rangeMatch = RANGE_PATTERN.exec(tok)
+    if (rangeMatch) {
+      output.push({
+        _tag: "READ_RANGE",
+        startCol: rangeMatch[1],
+        startRow: parseInt(rangeMatch[2], 10),
+        endCol: rangeMatch[3],
+        endRow: parseInt(rangeMatch[4], 10),
+      })
+      continue
+    }
+    if (A1_PATTERN.test(tok)) {
+      output.push({ _tag: "READ_CELL", addr: tok })
+      continue
+    }
+
+    // Comma (function arg separator)
+    if (tok === ",") {
+      while (opStack.length > 0 && opStack[opStack.length - 1] !== "(" && !opStack[opStack.length - 1].startsWith("FN:")) {
+        pushOp(opStack.pop()!)
+      }
+      if (argCounts.length > 0) argCounts[argCounts.length - 1]++
+      continue
+    }
+
+    // Open paren
+    if (tok === "(") {
+      opStack.push("(")
+      continue
+    }
+
+    // Close paren
+    if (tok === ")") {
+      while (opStack.length > 0 && opStack[opStack.length - 1] !== "(" && !opStack[opStack.length - 1].startsWith("FN:")) {
+        pushOp(opStack.pop()!)
+      }
+      if (opStack.length > 0 && opStack[opStack.length - 1] === "(") opStack.pop()
+      // Check if top is a function
+      if (opStack.length > 0 && opStack[opStack.length - 1].startsWith("FN:")) {
+        const fnTok = opStack.pop()!
+        const fnName = fnTok.slice(3)
+        const opcodeName = FUNC_MAP[fnName]
+        if (opcodeName) {
+          const op = classifyToken(opcodeName)
+          if (op) output.push(op)
+        }
+        argCounts.pop()
+      }
+      continue
+    }
+
+    // Operator
+    if (PREC[tok] !== undefined) {
+      while (
+        opStack.length > 0 &&
+        PREC[opStack[opStack.length - 1]] !== undefined &&
+        (PREC[opStack[opStack.length - 1]] > PREC[tok] ||
+          (PREC[opStack[opStack.length - 1]] === PREC[tok] && !RIGHT_ASSOC.has(tok)))
+      ) {
+        pushOp(opStack.pop()!)
+      }
+      opStack.push(tok)
+      continue
+    }
+
+    throw new CompileError({ expr: rawExpr, token: tok, position: i, reason: `Unknown token: "${tok}"` })
+  }
+
+  // Flush remaining operators
+  while (opStack.length > 0) {
+    const top = opStack.pop()!
+    if (top === "(") throw new CompileError({ expr: rawExpr, token: "(", position: 0, reason: "Mismatched parentheses" })
+    pushOp(top)
+  }
+
+  return output
+}
+
+/**
+ * Extract deps from an infix expression.
+ * Handles both cell refs and ranges.
+ */
+export const extractDepsInfix = (rawExpr: string): ReadonlyArray<string> => {
+  const expr = rawExpr.startsWith("=") ? rawExpr.slice(1) : rawExpr
+  const tokens = tokenizeInfix(expr)
+  return extractDeps(tokens.join(" "))
+}
+
+// ═══════════════════════════════════════════════════════
 // DUAL EVAL
 // ═══════════════════════════════════════════════════════
 

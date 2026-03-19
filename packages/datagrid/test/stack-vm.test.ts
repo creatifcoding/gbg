@@ -27,6 +27,7 @@ import {
   failureToVMError, timeoutToVMError, catchToErrorState,
   // VM core
   evalProgram, evalExpr, compileExpr, compileExprSync,
+  compileInfix, compileInfixSync, extractDepsInfix,
   execOpcode, emptyState, MAX_EVAL_STEPS,
   // Dependency extraction
   extractDeps, extractDepsFromIR,
@@ -917,6 +918,98 @@ describe("dependency extraction", () => {
       { _tag: "ADD" },
     ]
     expect(extractDepsFromIR(ir)).toEqual(["A1"])
+  })
+})
+
+// ═══════════════════════════════════════════════════════
+// INFIX PARSER
+// ═══════════════════════════════════════════════════════
+
+describe("infix parser", () => {
+  const cellCtx = {
+    readCell: (addr: string) => {
+      const m = addr.match(/^([A-Z]+)(\d+)$/)
+      if (!m) return num(0)
+      const col = m[1].charCodeAt(0) - 64 // A=1, B=2, ...
+      const row = parseInt(m[2], 10)
+      return num(col * 10 + row) // A1=11, B1=21, C2=32
+    },
+    writeCell: () => {},
+  }
+
+  it("simple addition: =A1+B1", () => {
+    const ir = compileInfixSync("=A1+B1")
+    const s = Effect.runSync(evalProgram(ir, cellCtx))
+    expect(s.stack[0]).toEqual(num(32)) // A1(11) + B1(21)
+  })
+
+  it("operator precedence: =A1+B1*2", () => {
+    const ir = compileInfixSync("=A1+B1*2")
+    const s = Effect.runSync(evalProgram(ir, cellCtx))
+    expect(s.stack[0]).toEqual(num(53)) // A1(11) + B1(21)*2 = 11+42
+  })
+
+  it("parentheses: =(A1+B1)*2", () => {
+    const ir = compileInfixSync("=(A1+B1)*2")
+    const s = Effect.runSync(evalProgram(ir, cellCtx))
+    expect(s.stack[0]).toEqual(num(64)) // (11+21)*2
+  })
+
+  it("function call: =SUM(A1:A3)", () => {
+    const ir = compileInfixSync("=SUM(A1:A3)")
+    const s = Effect.runSync(evalProgram(ir, cellCtx))
+    // A1=11, A2=12, A3=13 → SUM=36
+    expect(s.stack[0]).toEqual(num(36))
+  })
+
+  it("nested: =SUM(A1:A3)+B1*2", () => {
+    const ir = compileInfixSync("=SUM(A1:A3)+B1*2")
+    const s = Effect.runSync(evalProgram(ir, cellCtx))
+    // SUM(A1:A3)=36, B1*2=42 → 78
+    expect(s.stack[0]).toEqual(num(78))
+  })
+
+  it("division: =A1/B1", () => {
+    const ir = compileInfixSync("=A1/B1")
+    const s = Effect.runSync(evalProgram(ir, cellCtx))
+    expect(s.stack[0]).toEqual(num(11 / 21))
+  })
+
+  it("strips leading =", () => {
+    const ir1 = compileInfixSync("=A1+1")
+    const ir2 = compileInfixSync("A1+1")
+    // Both should produce the same IR
+    expect(ir1.length).toBe(ir2.length)
+  })
+
+  it("numeric literals: =10+20", () => {
+    const ir = compileInfixSync("=10+20")
+    const s = Effect.runSync(evalProgram(ir))
+    expect(s.stack[0]).toEqual(num(30))
+  })
+
+  it("extractDepsInfix finds cell refs", () => {
+    expect(extractDepsInfix("=A1+B1*C1")).toEqual(["A1", "B1", "C1"])
+  })
+
+  it("extractDepsInfix expands ranges", () => {
+    const deps = extractDepsInfix("=SUM(A1:A3)+B1")
+    expect(deps).toContain("A1")
+    expect(deps).toContain("A2")
+    expect(deps).toContain("A3")
+    expect(deps).toContain("B1")
+  })
+
+  it("async compileInfix works", async () => {
+    const ir = await Effect.runPromise(compileInfix("=1+2"))
+    const s = Effect.runSync(evalProgram(ir))
+    expect(s.stack[0]).toEqual(num(3))
+  })
+
+  it("rejects mismatched parentheses", async () => {
+    await expect(
+      Effect.runPromise(compileInfix("=(A1+B1"))
+    ).rejects.toThrow()
   })
 })
 
