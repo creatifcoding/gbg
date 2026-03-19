@@ -1704,6 +1704,14 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("MIRR/XNPV/DOLLARDE/DOLLARFR/YEARFRAC: advanced financial", () => {
+    // DOLLARDE: 1.02 with fraction 16 → 1 + 0.02*10/16 = 1.0125
+    expect(evalProgramDirect(compileInfixSync("=DOLLARDE(1.02, 16)")).stack[0]).toEqual(num(1.0125))
+    // YEARFRAC: 365 days ≈ 1 year
+    const yf = (evalProgramDirect(compileInfixSync("=ROUND(YEARFRAC(1000, 1365), 2)")).stack[0] as any).value
+    expect(yf).toBeCloseTo(1, 1)
+  })
+
   it("SORT/UNIQUE/FILTER/PPMT/IPMT: dynamic arrays + financial", () => {
     // FILTER: keep values > 3 → [4, 5]
     const f = evalProgramDirect(compileInfixSync('=FILTER(">3", 1, 2, 3, 4, 5)'))
