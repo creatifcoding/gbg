@@ -1704,6 +1704,16 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("IMPOWER/IMEXP/IMLN/IMSIN/IMCOS: complex transcendental functions", () => {
+    // IMPOWER: (1+1i)^2 = 0+2i (since (1+i)² = 1+2i-1 = 2i)
+    const p = evalProgramDirect(compileInfixSync('=IMPOWER("1+1i", 2)')).stack[0]
+    expect(p).toHaveProperty("_tag", "str")
+    // IMEXP: e^(0+0i) = 1+0i
+    const e = evalProgramDirect(compileInfixSync('=IMEXP("0+0i")')).stack[0]
+    expect(e).toHaveProperty("_tag", "str")
+    expect(vmDisplay(e)).toContain("1") // should start with 1
+  })
+
   it("IMSUM/IMPRODUCT/IMCONJUGATE/IMSQRT: complex arithmetic", () => {
     // IMSUM: (1+2i) + (3+4i) = 4+6i
     expect(evalProgramDirect(compileInfixSync('=IMSUM("1+2i", "3+4i")')).stack[0]).toEqual(str("4+6i"))
