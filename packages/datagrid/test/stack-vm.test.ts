@@ -1474,6 +1474,20 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync("=TRUNC(-3.7)")).stack[0]).toEqual(num(-3)) // toward zero, not floor
   })
 
+  it("TRIG: SIN/COS/TAN/ASIN/ACOS/ATAN/ATAN2/RADIANS/DEGREES", () => {
+    // SIN(PI/2) = 1, COS(0) = 1
+    expect(evalProgramDirect(compileInfixSync("=ROUND(SIN(RADIANS(90)), 5)")).stack[0]).toEqual(num(1))
+    expect(evalProgramDirect(compileInfixSync("=ROUND(COS(0), 5)")).stack[0]).toEqual(num(1))
+    // TAN(PI/4) ≈ 1
+    expect(evalProgramDirect(compileInfixSync("=ROUND(TAN(RADIANS(45)), 5)")).stack[0]).toEqual(num(1))
+    // ASIN(1) = PI/2, DEGREES(PI) = 180
+    expect(evalProgramDirect(compileInfixSync("=ROUND(DEGREES(ASIN(1)), 1)")).stack[0]).toEqual(num(90))
+    // ATAN2(1, 1) = PI/4
+    expect(evalProgramDirect(compileInfixSync("=ROUND(DEGREES(ATAN2(1, 1)), 1)")).stack[0]).toEqual(num(45))
+    // Domain error
+    expect(evalProgramDirect(compileInfixSync("=ASIN(2)")).stack[0]._tag).toBe("error")
+  })
+
   it("FACT: factorial", () => {
     expect(evalProgramDirect(compileInfixSync("=FACT(5)")).stack[0]).toEqual(num(120))
     expect(evalProgramDirect(compileInfixSync("=FACT(0)")).stack[0]).toEqual(num(1))
