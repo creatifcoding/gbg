@@ -3125,6 +3125,28 @@ describe("post-450 function coverage", () => {
   it("SELECTIF counts above threshold", () => expect(d("=SELECTIF(5, 1, 7, 3, 8, 2)")).toBe(2))
   it("TAKEWHILE counts truthy prefix", () => expect(d("=TAKEWHILE(1, 1, 1, 0, 1)")).toBe(3))
 
+  // ── 1250 batch tests ──
+  it("MIDPOINT(10, 20) = 15", () => expect(d("=MIDPOINT(10, 20)")).toBe(15))
+  it("PERPSLOPE(2) = -0.5", () => expect(d("=PERPSLOPE(2)")).toBe(-0.5))
+  it("MAGNITUDE2(3, 4) = 5", () => expect(d("=MAGNITUDE2(3, 4)")).toBe(5))
+  it("HERON valid triangle", () => { const v = d("=HERON(3, 4, 5)") as number; expect(Math.abs(v - 6)).toBeLessThan(0.01) })
+  it("L1NORM(3, -4, 5) = 12", () => expect(d("=L1NORM(3, -4, 5)")).toBe(12))
+  it("L2NORM(3, 4) = 5", () => expect(d("=L2NORM(3, 4)")).toBe(5))
+  it("LINFNORM(3, -7, 5) = 7", () => expect(d("=LINFNORM(3, -7, 5)")).toBe(7))
+  it("COSINESIM identical ≈ 1", () => expect(Math.abs(d("=COSINESIM(1, 2, 1, 2)") as number - 1)).toBeLessThan(0.001))
+  it("ISNARCISSISTIC(153) = true", () => expect(d("=ISNARCISSISTIC(153)")).toBe(true))
+  it("ISAUTOMORPHIC(25) = true", () => expect(d("=ISAUTOMORPHIC(25)")).toBe(true))
+  it("ISKAPREKAR(1) = true", () => expect(d("=ISKAPREKAR(1)")).toBe(true))
+  it("TEXTINCLUDES checks", () => expect(d('=TEXTINCLUDES("hello world", "world")')).toBe(true))
+  it("TEXTUNIQCHARS counts unique", () => expect(d('=TEXTUNIQCHARS("aabb")')).toBe(2))
+  it("COUNTRUE(1,0,1,1) = 3", () => expect(d("=COUNTRUE(1,0,1,1)")).toBe(3))
+  it("ALLEQ(5, 5, 5, 5) = true", () => expect(d("=ALLEQ(5, 5, 5, 5)")).toBe(true))
+  it("ALLGT(3, 5, 6, 7) = true", () => expect(d("=ALLGT(3, 5, 6, 7)")).toBe(true))
+  it("MEDIAN2(1, 3, 5) = 3", () => expect(d("=MEDIAN2(1, 3, 5)")).toBe(3))
+  it("GORDONMODEL(2, 0.10, 0.05) = 40", () => expect(d("=GORDONMODEL(2, 0.10, 0.05)")).toBe(40))
+  it("RETENTIONRATE consistent", () => expect(d("=RETENTIONRATE(0.4)")).toBe(0.6))
+  it("TEXTOCCURRENCES counts", () => expect(d('=TEXTOCCURRENCES("abcabc", "abc")')).toBe(2))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
