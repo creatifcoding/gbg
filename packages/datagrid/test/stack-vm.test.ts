@@ -1445,6 +1445,14 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=PROPER("HELLO WORLD")')).stack[0]).toEqual(str("Hello World"))
   })
 
+  it("CHAR/CODE: character ↔ code point", () => {
+    expect(evalProgramDirect(compileInfixSync("=CHAR(65)")).stack[0]).toEqual(str("A"))
+    expect(evalProgramDirect(compileInfixSync("=CHAR(10)")).stack[0]).toEqual(str("\n"))
+    expect(evalProgramDirect(compileInfixSync('=CODE("A")')).stack[0]).toEqual(num(65))
+    expect(evalProgramDirect(compileInfixSync('=CODE("abc")')).stack[0]).toEqual(num(97)) // first char
+    expect(evalProgramDirect(compileInfixSync("=CHAR(0)")).stack[0]._tag).toBe("error") // out of range
+  })
+
   it("CLEAN: strip non-printable", () => {
     // Compile with embedded control char via CONCATENATE + CHAR... actually just test inline
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
