@@ -1318,6 +1318,15 @@ describe("infix parser", () => {
     expect(s.stack[0]).toEqual(num(5)) // sqrt(9+16) = sqrt(25) = 5
   })
 
+  it("ISNUM/ISTEXT/ISERROR/ISBLANK predicates", () => {
+    expect(Effect.runSync(evalProgram(compileInfixSync("=ISNUM(42)"))).stack[0]).toEqual(bool(true))
+    expect(Effect.runSync(evalProgram(compileInfixSync('=ISTEXT("hello")'))).stack[0]).toEqual(bool(true))
+    expect(Effect.runSync(evalProgram(compileInfixSync("=ISNUM(\"hello\")"))).stack[0]).toEqual(bool(false))
+    expect(Effect.runSync(evalProgram(compileInfixSync("=ISERROR(1/0)"))).stack[0]).toEqual(bool(true))
+    expect(Effect.runSync(evalProgram(compileInfixSync('=ISBLANK("")'))).stack[0]).toEqual(bool(true))
+    expect(Effect.runSync(evalProgram(compileInfixSync('=ISBLANK("x")'))).stack[0]).toEqual(bool(false))
+  })
+
   it("FUNCTION_CATALOG has all registered functions", () => {
     expect(FUNCTION_CATALOG.length).toBeGreaterThanOrEqual(30)
     const names = FUNCTION_CATALOG.map(f => f.name)

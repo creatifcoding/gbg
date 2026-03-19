@@ -366,6 +366,12 @@ export const CHOOSE_N = Schema.TaggedStruct("CHOOSE_N", { n: Schema.Number })
 export const AND_N = Schema.TaggedStruct("AND_N", { n: Schema.Number })
 export const OR_N = Schema.TaggedStruct("OR_N", { n: Schema.Number })
 
+/** Type predicates: ISNUM, ISTEXT, ISERROR, ISBLANK */
+export const ISNUM_OP = Schema.TaggedStruct("ISNUM_OP", {})
+export const ISTEXT_OP = Schema.TaggedStruct("ISTEXT_OP", {})
+export const ISERROR_OP = Schema.TaggedStruct("ISERROR_OP", {})
+export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
+
 /** PRODUCT_DYN — multiply all values (like SUM but multiplication) */
 export const PRODUCT_DYN = Schema.TaggedStruct("PRODUCT_DYN", {})
 export const PRODUCT_N = Schema.TaggedStruct("PRODUCT_N", { n: Schema.Number })
@@ -460,7 +466,9 @@ export const Opcode = Schema.Union([
   EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR,
   AND_N, OR_N, CHOOSE_N,
   LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, SUBSTITUTE_OP,
-  PRODUCT_DYN, PRODUCT_N, NOW_OP, RAND_OP, PI_OP,
+  PRODUCT_DYN, PRODUCT_N,
+  ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
+  NOW_OP, RAND_OP, PI_OP,
   SUM_N, MIN_N, MAX_N, AVG_N,
   SUM_DYN, MIN_DYN, MAX_DYN, AVG_DYN, COUNT_DYN, POWER,
   ROUND, FLOOR_OP, CEIL_OP, SQRT_OP, SIGN_OP, LOG_OP, LOG10_OP,
@@ -669,6 +677,12 @@ const EXEC: Record<string, Executor> = {
   SIGN_OP:  (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.sign(asNum(a))), "SIGN") }),
   LOG_OP:   (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const n = asNum(a); return n <= 0 ? vmError("TYPE_MISMATCH", "LOG of non-positive") : num(Math.log(n)) }, "LOG") }),
   LOG10_OP: (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const n = asNum(a); return n <= 0 ? vmError("TYPE_MISMATCH", "LOG10 of non-positive") : num(Math.log10(n)) }, "LOG10") }),
+
+  // ── Type predicates ──
+  ISNUM_OP:   (_o, s) => ({ result: unop(s, a => bool(a._tag === "num"), "ISNUM") }),
+  ISTEXT_OP:  (_o, s) => ({ result: unop(s, a => bool(a._tag === "str"), "ISTEXT") }),
+  ISERROR_OP: (_o, s) => ({ result: unop(s, a => bool(isVMError(a)), "ISERROR") }),
+  ISBLANK_OP: (_o, s) => ({ result: unop(s, a => bool(a._tag === "str" && a.value === ""), "ISBLANK") }),
 
   // ── Stack manipulation ──
   DUP: (_o, s) => {
@@ -995,6 +1009,8 @@ const _OP: Record<string, Opcode> = {
   COUNT_DYN: { _tag: "COUNT_DYN" }, PRODUCT_DYN: { _tag: "PRODUCT_DYN" },
   POWER: { _tag: "POWER" }, ROUND: { _tag: "ROUND" },
   FLOOR_OP: { _tag: "FLOOR_OP" }, CEIL_OP: { _tag: "CEIL_OP" },
+  ISNUM_OP: { _tag: "ISNUM_OP" }, ISTEXT_OP: { _tag: "ISTEXT_OP" },
+  ISERROR_OP: { _tag: "ISERROR_OP" }, ISBLANK_OP: { _tag: "ISBLANK_OP" },
   NOW_OP: { _tag: "NOW_OP" }, RAND_OP: { _tag: "RAND_OP" }, PI_OP: { _tag: "PI_OP" },
   HALT: { _tag: "HALT" },
   IF_FN: { _tag: "IF_FN" } as any, IFERROR_FN: { _tag: "IFERROR_FN" } as any,
@@ -1040,6 +1056,10 @@ function classifyToken(tok: string): Opcode | null {
     case "UPPER_OP": return _OP.UPPER_OP
     case "LOWER_OP": return _OP.LOWER_OP
     case "SUBSTITUTE_OP": return _OP.SUBSTITUTE_OP
+    case "ISNUM_OP": return _OP.ISNUM_OP
+    case "ISTEXT_OP": return _OP.ISTEXT_OP
+    case "ISERROR_OP": return _OP.ISERROR_OP
+    case "ISBLANK_OP": return _OP.ISBLANK_OP
     case "SQRT_OP": return _OP.SQRT_OP
     case "SIGN_OP": return _OP.SIGN_OP
     case "LOG_OP": return _OP.LOG_OP
@@ -1298,6 +1318,7 @@ const FUNC_MAP: Record<string, string> = {
   CONCAT: "CONCAT", TO_NUM: "TO_NUM", TO_STR: "TO_STR",
   LEN: "LEN_OP", LEFT: "LEFT_OP", RIGHT: "RIGHT_OP", MID: "MID_OP",
   TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", SUBSTITUTE: "SUBSTITUTE_OP",
+  ISNUM: "ISNUM_OP", ISTEXT: "ISTEXT_OP", ISERROR: "ISERROR_OP", ISBLANK: "ISBLANK_OP",
 }
 
 /**
@@ -1563,6 +1584,11 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "NOT", args: "value", description: "Logical negation", category: "logic" },
   // Lookup
   { name: "CHOOSE", args: "index, values...", description: "Pick by 1-based index", category: "lookup" },
+  // Info / Type predicates
+  { name: "ISNUM", args: "value", description: "True if value is a number", category: "info" },
+  { name: "ISTEXT", args: "value", description: "True if value is text", category: "info" },
+  { name: "ISERROR", args: "value", description: "True if value is an error", category: "info" },
+  { name: "ISBLANK", args: "value", description: "True if value is empty text", category: "info" },
   // Volatile
   { name: "NOW", args: "", description: "Current timestamp (ms)", category: "volatile" },
   { name: "RAND", args: "", description: "Random number 0..1", category: "volatile" },
