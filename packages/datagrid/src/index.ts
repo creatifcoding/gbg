@@ -123,6 +123,13 @@ export {
   type CellNode,
 } from "./services/dep-graph"
 
+// ── FormulaEngine V2 (StackVM-powered) ─────────────
+export {
+  FormulaEngineV2, FormulaEngineV2Config, FormulaEngineV2Live,
+  type FormulaEngineV2Shape, type FormulaEngineV2ConfigShape,
+  type FormulaRecord, type RecalcResult, type CellStore,
+} from "./services/formula-engine-v2"
+
 // ── Bridge ──────────────────────────────────────────
 export {
   TransactionCollector,
