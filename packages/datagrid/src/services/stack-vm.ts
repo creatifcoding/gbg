@@ -422,6 +422,8 @@ export const ISERROR_OP = Schema.TaggedStruct("ISERROR_OP", {})
 export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
 
 /** More text functions */
+export const WEEKDAY_OP = Schema.TaggedStruct("WEEKDAY_OP", {})
+export const WEEKNUM_OP = Schema.TaggedStruct("WEEKNUM_OP", {})
 export const ROMAN_OP = Schema.TaggedStruct("ROMAN_OP", {})
 export const ARABIC_OP = Schema.TaggedStruct("ARABIC_OP", {})
 export const TEXT_OP = Schema.TaggedStruct("TEXT_OP", {})
@@ -575,7 +577,7 @@ export const Opcode = Schema.Union([
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
-  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
+  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
   IFS_N, SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
@@ -889,6 +891,26 @@ const EXEC: Record<string, Executor> = {
     for (let i = 0; i < vals.length; i++) { while (n >= vals[i]) { result += syms[i]; n -= vals[i] } }
     return str(result)
   }, "ROMAN") }),
+  // WEEKDAY_OP: day of week (1=Sun ... 7=Sat) from Excel serial date
+  WEEKDAY_OP: (_o, s) => ({ result: unop(s, a => {
+    if (isVMError(a)) return a
+    // Excel serial: day 1 = Jan 1, 1900 (Monday). Day 0 is a bug but convention.
+    // (serial + 6) % 7 + 1 maps to 1=Sun...7=Sat
+    const serial = Math.floor(asNum(a))
+    return num((serial + 6) % 7 + 1)
+  }, "WEEKDAY") }),
+  // WEEKNUM_OP: week number of the year
+  WEEKNUM_OP: (_o, s) => ({ result: unop(s, a => {
+    if (isVMError(a)) return a
+    const serial = Math.floor(asNum(a))
+    // Approximate: week = ceil(dayOfYear / 7)
+    // For Excel serial: Jan 1, 1900 = 1
+    // Use modular approach: week number within year
+    const d = new Date(1900, 0, serial) // serial 1 = Jan 1, 1900
+    const jan1 = new Date(d.getFullYear(), 0, 1)
+    const dayOfYear = Math.floor((d.getTime() - jan1.getTime()) / 86400000) + 1
+    return num(Math.ceil(dayOfYear / 7))
+  }, "WEEKNUM") }),
   // ARABIC_OP: convert Roman numerals to number
   ARABIC_OP: (_o, s) => ({ result: unop(s, a => {
     if (isVMError(a)) return a
@@ -1850,6 +1872,7 @@ const _OP: Record<string, Opcode> = {
   FLOOR_OP: { _tag: "FLOOR_OP" }, CEIL_OP: { _tag: "CEIL_OP" },
   ISNUM_OP: { _tag: "ISNUM_OP" }, ISTEXT_OP: { _tag: "ISTEXT_OP" },
   ISERROR_OP: { _tag: "ISERROR_OP" }, ISBLANK_OP: { _tag: "ISBLANK_OP" },
+  WEEKDAY_OP: { _tag: "WEEKDAY_OP" }, WEEKNUM_OP: { _tag: "WEEKNUM_OP" },
   ROMAN_OP: { _tag: "ROMAN_OP" }, ARABIC_OP: { _tag: "ARABIC_OP" },
   TEXT_OP: { _tag: "TEXT_OP" }, NUMBERVALUE_OP: { _tag: "NUMBERVALUE_OP" },
   REPT_OP: { _tag: "REPT_OP" }, EXACT_OP: { _tag: "EXACT_OP" }, FIND_OP: { _tag: "FIND_OP" },
@@ -1980,6 +2003,8 @@ function classifyToken(tok: string): Opcode | null {
     case "RANK_N": return { _tag: "RANK_N", n: 0 } as any
     case "CONCATENATE_N": return { _tag: "CONCATENATE_N", n: 0 } as any
     case "TEXTJOIN_N": return { _tag: "TEXTJOIN_N", n: 0 } as any
+    case "WEEKDAY_OP": return _OP.WEEKDAY_OP
+    case "WEEKNUM_OP": return _OP.WEEKNUM_OP
     case "ROMAN_OP": return _OP.ROMAN_OP
     case "ARABIC_OP": return _OP.ARABIC_OP
     case "TEXT_OP": return _OP.TEXT_OP
@@ -2281,7 +2306,7 @@ const FUNC_MAP: Record<string, string> = {
   NPV: "NPV_N", VAR: "VAR_N", PERCENTILE: "PERCENTILE_N", COUNTA: "COUNTA_N", COUNTBLANK: "COUNTBLANK_N",
   SUMPRODUCT: "SUMPRODUCT_N", AGGREGATE: "AGGREGATE_N", COUNTIF: "COUNTIF_N", COUNTIFS: "COUNTIFS_N", SUMIF: "SUMIF_N", MAXIFS: "MAXIFS_N", MINIFS: "MINIFS_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
   STDEV: "STDEV_N", MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
-  ROMAN: "ROMAN_OP", ARABIC: "ARABIC_OP", TEXT: "TEXT_OP", NUMBERVALUE: "NUMBERVALUE_OP", REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
+  WEEKDAY: "WEEKDAY_OP", WEEKNUM: "WEEKNUM_OP", ROMAN: "ROMAN_OP", ARABIC: "ARABIC_OP", TEXT: "TEXT_OP", NUMBERVALUE: "NUMBERVALUE_OP", REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
   IFS: "IFS_N", SWITCH: "SWITCH_N", VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
   YEAR: "YEAR_OP", MONTH: "MONTH_OP", DAY: "DAY_OP",
   HOUR: "HOUR_OP", MINUTE: "MINUTE_OP", SECOND: "SECOND_OP",
@@ -2658,6 +2683,8 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "LCM", args: "a, b", description: "Least common multiple", category: "math" },
   { name: "COMBIN", args: "n, k", description: "Combinations (n choose k)", category: "math" },
   { name: "SUBSTITUTE", args: "text, old, new", description: "Replace all occurrences", category: "text" },
+  { name: "WEEKDAY", args: "serial_date", description: "Day of week (1=Sun...7=Sat)", category: "info" },
+  { name: "WEEKNUM", args: "serial_date", description: "Week number of the year", category: "info" },
   { name: "ROMAN", args: "number", description: "Convert number to Roman numerals", category: "text" },
   { name: "ARABIC", args: "roman_text", description: "Convert Roman numerals to number", category: "text" },
   { name: "TEXT", args: "number, format", description: "Format number as text (0.00, #,##0, 0%)", category: "text" },

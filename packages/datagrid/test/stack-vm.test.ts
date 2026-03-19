@@ -1780,6 +1780,15 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=SEARCH("xyz","ABCDEF")')).stack[0]._tag).toBe("error")
   })
 
+  it("WEEKDAY/WEEKNUM: date utilities from serial", () => {
+    // Excel serial 1 = Jan 1, 1900 (Sunday in Excel's convention)
+    // (1 + 6) % 7 + 1 = 1 → Sunday
+    expect(evalProgramDirect(compileInfixSync("=WEEKDAY(1)")).stack[0]).toEqual(num(1)) // Sunday
+    expect(evalProgramDirect(compileInfixSync("=WEEKDAY(7)")).stack[0]).toEqual(num(7)) // Saturday
+    // WEEKNUM: serial 1 → Jan 1, 1900 → week 1
+    expect(evalProgramDirect(compileInfixSync("=WEEKNUM(1)")).stack[0]).toEqual(num(1))
+  })
+
   it("ROMAN/ARABIC: Roman numeral conversion", () => {
     expect(evalProgramDirect(compileInfixSync("=ROMAN(2024)")).stack[0]).toEqual(str("MMXXIV"))
     expect(evalProgramDirect(compileInfixSync("=ROMAN(99)")).stack[0]).toEqual(str("XCIX"))
