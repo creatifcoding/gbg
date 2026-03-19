@@ -1408,6 +1408,12 @@ describe("infix parser", () => {
     expect(decompileIR(compileInfixSync("=UPPER(A1)"))).toBe("=UPPER(A1)")
   })
 
+  it("TEXTJOIN: join with delimiter", () => {
+    expect(evalProgramDirect(compileInfixSync('=TEXTJOIN(",",TRUE,"a","b","c")')).stack[0]).toEqual(str("a,b,c"))
+    expect(evalProgramDirect(compileInfixSync('=TEXTJOIN("-",FALSE,"x","","y")')).stack[0]).toEqual(str("x--y"))
+    expect(evalProgramDirect(compileInfixSync('=TEXTJOIN("-",TRUE,"x","","y")')).stack[0]).toEqual(str("x-y")) // skip empty
+  })
+
   it("REPLACE: replace by position", () => {
     expect(evalProgramDirect(compileInfixSync('=REPLACE("Hello",2,3,"XY")')).stack[0]).toEqual(str("HXYo"))
     expect(evalProgramDirect(compileInfixSync('=REPLACE("abcdef",3,2,"XX")')).stack[0]).toEqual(str("abXXef"))
