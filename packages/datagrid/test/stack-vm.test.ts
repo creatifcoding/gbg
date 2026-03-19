@@ -1704,6 +1704,13 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("TEXTBEFORE/TEXTAFTER/VALUETOTEXT: modern text functions", () => {
+    expect(evalProgramDirect(compileInfixSync('=TEXTBEFORE("hello@world.com", "@")')).stack[0]).toEqual(str("hello"))
+    expect(evalProgramDirect(compileInfixSync('=TEXTAFTER("hello@world.com", "@")')).stack[0]).toEqual(str("world.com"))
+    expect(evalProgramDirect(compileInfixSync("=VALUETOTEXT(42)")).stack[0]).toEqual(str("42"))
+    expect(evalProgramDirect(compileInfixSync("=VALUETOTEXT(TRUE)")).stack[0]).toEqual(str("TRUE"))
+  })
+
   it("ISPMT/DISC/INTRATE: bond and interest functions", () => {
     // ISPMT(0.1, 1, 3, 8000000) = 8000000*0.1*(1/3-1) = -533333.33
     const ip = (evalProgramDirect(compileInfixSync("=ROUND(ISPMT(0.1, 1, 3, 8000000), 0)")).stack[0] as any).value
