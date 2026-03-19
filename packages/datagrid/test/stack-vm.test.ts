@@ -1481,6 +1481,19 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync("=TRUNC(-3.7)")).stack[0]).toEqual(num(-3)) // toward zero, not floor
   })
 
+  it("LOG2/RANDBETWEEN/FIXED/DOLLAR", () => {
+    expect(evalProgramDirect(compileInfixSync("=LOG2(8)")).stack[0]).toEqual(num(3))
+    // RANDBETWEEN returns integer in range
+    const rb = evalProgramDirect(compileInfixSync("=RANDBETWEEN(1, 10)")).stack[0]
+    expect(rb._tag).toBe("num")
+    expect((rb as any).value).toBeGreaterThanOrEqual(1)
+    expect((rb as any).value).toBeLessThanOrEqual(10)
+    // FIXED
+    expect(evalProgramDirect(compileInfixSync("=FIXED(3.14159, 2)")).stack[0]).toEqual(str("3.14"))
+    // DOLLAR
+    expect(evalProgramDirect(compileInfixSync("=DOLLAR(1234.5, 2)")).stack[0]).toEqual(str("$1234.50"))
+  })
+
   it("EXP/LN: natural exponential and logarithm", () => {
     expect(evalProgramDirect(compileInfixSync("=ROUND(EXP(1), 5)")).stack[0]).toEqual(num(2.71828)) // e
     expect(evalProgramDirect(compileInfixSync("=ROUND(LN(EXP(2)), 5)")).stack[0]).toEqual(num(2)) // roundtrip
