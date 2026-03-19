@@ -108,6 +108,7 @@ export {
   // Execution
   execOpcode, runIR, runEffect,
   evalProgram, evalExpr, compileExpr, compileExprSync,
+  compileInfix, compileInfixSync, extractDepsInfix,
   extractDeps, extractDepsFromIR,
   type EvalInput, dualEval,
   // Service
