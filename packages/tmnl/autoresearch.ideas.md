@@ -1,19 +1,19 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ STATUS — 252 experiments, 928 tests, 1149 UNIQUE CATALOG, ~12,187 LOC
+## ✅ STATUS — 254 experiments, 946 tests, 1199 UNIQUE CATALOG, ~12,394 LOC
 
-### Category breakdown (1149 unique)
-math:290 | stat:219 | text:186 | info:142 | financial:128 | logic:96 | lookup:86 | volatile:23
+### Category breakdown (1199 unique)
+math:302 | stat:229 | text:194 | info:148 | financial:134 | logic:100 | lookup:90 | volatile:24
 
-### This session progress
-- Deduped 58 phantoms → honest 942 → grew to 1149 unique
-- 881 → 928 tests (47 new, all passing)
-- Key domains: waveforms, windowing, ML metrics, time-series, financial ratios, number theory, signal analysis
+### This session progress (244→254)
+- Deduped 58 phantoms → honest 942 → grew to 1199 unique
+- 838 → 946 tests (108 new, all passing)
+- Key domains added: physics constants, DSP/autocorrelation, temporal logic, number theory classification, financial valuation ratios, ML activation functions
 
 ## 🔜 NEXT
-1. Push to 1200 unique catalog
+1. Push to 1250+ unique catalog
 2. More tests toward 1000
-3. Compiler constant folding optimization
+3. Compiler constant folding optimization (promising — can fold NUM_PUSH + unary combos)
 
 ## 📌 DEFERRED
 - MMULT/MINVERSE with true 2D matrix
