@@ -1704,6 +1704,16 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("ZTEST/COVARIANCE.S/STDEV.S: hypothesis testing + sample stats", () => {
+    // STDEV.S of [2, 4, 4, 4, 5, 5, 7, 9] = 2.138...
+    const sd = (evalProgramDirect(compileInfixSync("=ROUND(STDEV.S(2, 4, 4, 4, 5, 5, 7, 9), 2)")).stack[0] as any).value
+    expect(sd).toBeCloseTo(2.14, 1)
+    // ZTEST: p-value should be between 0 and 1
+    const p = (evalProgramDirect(compileInfixSync("=ZTEST(1, 5, 4, 5, 6)")).stack[0] as any).value
+    expect(p).toBeGreaterThan(0)
+    expect(p).toBeLessThan(1)
+  })
+
   it("TIME/TIMEVALUE/HOUR/MINUTE/SECOND: time functions", () => {
     // TIME(12, 30, 0) = 0.520833...
     const t = (evalProgramDirect(compileInfixSync("=ROUND(TIME(12, 30, 0), 4)")).stack[0] as any).value
