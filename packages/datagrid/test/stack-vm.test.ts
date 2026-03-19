@@ -1704,6 +1704,19 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("TIME/TIMEVALUE/HOUR/MINUTE/SECOND: time functions", () => {
+    // TIME(12, 30, 0) = 0.520833...
+    const t = (evalProgramDirect(compileInfixSync("=ROUND(TIME(12, 30, 0), 4)")).stack[0] as any).value
+    expect(t).toBeCloseTo(0.5208, 3)
+    // HOUR(0.5) = 12 (noon)
+    expect(evalProgramDirect(compileInfixSync("=HOUR(0.5)")).stack[0]).toEqual(num(12))
+    // MINUTE(0.5) = 0
+    expect(evalProgramDirect(compileInfixSync("=MINUTE(0.5)")).stack[0]).toEqual(num(0))
+    // TIMEVALUE("12:30") ≈ 0.5208
+    const tv = (evalProgramDirect(compileInfixSync('=ROUND(TIMEVALUE("12:30"), 4)')).stack[0] as any).value
+    expect(tv).toBeCloseTo(0.5208, 3)
+  })
+
   it("GROWTH/TREND/PROB: predictive statistics", () => {
     // TREND: linear prediction on 1,2,3 → next ≈ 4
     const t = (evalProgramDirect(compileInfixSync("=ROUND(TREND(1, 2, 3), 0)")).stack[0] as any).value
