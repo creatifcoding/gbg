@@ -1,26 +1,31 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ STATUS — 186 experiments, 463 tests, 402 opcodes, 373 catalog entries
+## ✅ STATUS — 189 experiments, 463 tests, 421 opcodes, 400 CATALOG ENTRIES 🎉
 
-Production: ~6,200 LOC | Tests: ~2,550 LOC | Benchmark: ~380ms (~49% below 751ms)
+Production: 6,326 LOC | Tests: ~2,550 LOC | Benchmark: ~388ms (~48% below 751ms baseline)
 
-### Category breakdown (373 catalog)
-math:105 | stat:100 | text:47 | info:43 | financial:39 | lookup:18 | logic:16 | volatile:5
+### Category breakdown (400 catalog)
+math:111 | stat:100 | info:50 | text:49 | financial:42 | lookup:26 | logic:17 | volatile:5
 
-### Complete suites
-- Distributions: 18+ (all major + inverses + PDF/CDF)
-- Hypothesis tests: CHITEST/TTEST/FTEST/ZTEST  
-- Regression: LINEST/LOGEST/SLOPE/INTERCEPT/RSQ/FORECAST/CORREL/GROWTH/TREND
-- Financial: TVM(6) + depreciation(4) + bonds(5) + T-bills(3) + duration(2) + XIRR/YIELD + 10 more
-- Gamma: GAMMA/GAMMALN/BETA.FN (Lanczos)
-- Complex: 17 | Base: 11 | Bitwise: 5 | Bessel: 4
+### Milestone achievements
+- **400 FUNCTION CATALOG** — Excel-grade parity for core functions
+- **421 OPCODES** — Schema-validated tagged union instruction set
+- **math:111 + stat:100** — both triple-digit categories
+- **18 distributions** with inverses + PDF/CDF
+- **4 hypothesis tests** (CHI/T/F/Z)
+- **17 complex number functions** (full algebra + transcendental)
+- **11 base conversions** + 6 bitwise operations
+- **VLOOKUP/HLOOKUP/LOOKUP** — core lookup functions
+- **XIRR** with Newton's method
+- **Lanczos gamma function** for statistical distributions
 
 ## 🔜 NEXT
 1. **Wire FormulaEngineV2 into production** — THE priority
-2. Push financial to 40+ (AMORLINC, PRICEMAT, YIELDMAT)
-3. Push toward 400 catalog for Excel-grade parity
+2. Performance profiling: identify hotspots in 6K LOC
+3. Consider compiler optimization (constant folding, dead code elimination)
 
 ## 📌 DEFERRED
-- VLOOKUP/HLOOKUP/XLOOKUP with cell range semantics
-- MMULT, TRANSPOSE (true 2D array support)
-- Full LAMBDA closure support
+- XLOOKUP with full match modes
+- MMULT, MINVERSE (true 2D matrix operations)
+- Full LAMBDA closure support with lexical scoping
+- WASM compilation target for hot paths
