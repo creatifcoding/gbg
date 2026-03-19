@@ -1526,6 +1526,18 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync("=TRUNC(-3.7)")).stack[0]).toEqual(num(-3)) // toward zero, not floor
   })
 
+  it("IRR: internal rate of return via Newton-Raphson", () => {
+    // Initial invest -1000, then returns 300, 420, 680 → IRR ≈ 18.6%
+    const irr = evalProgramDirect(compileInfixSync("=ROUND(IRR(-1000, 300, 420, 680) * 100, 1)")).stack[0]
+    expect((irr as any).value).toBeGreaterThan(15) // ~18.6%
+    expect((irr as any).value).toBeLessThan(22)
+  })
+
+  it("SLN: straight-line depreciation", () => {
+    // Asset $30K, salvage $7.5K, 10 year life → $2,250/year
+    expect(evalProgramDirect(compileInfixSync("=SLN(30000, 7500, 10)")).stack[0]).toEqual(num(2250))
+  })
+
   it("NPV: net present value", () => {
     // NPV(10%, -1000, 300, 420, 680) = initial investment + discounted returns
     const npv = evalProgramDirect(compileInfixSync("=ROUND(NPV(0.1, -1000, 300, 420, 680), 2)")).stack[0]
