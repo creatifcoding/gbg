@@ -676,6 +676,33 @@ describe("FormulaEngineV2", () => {
         expect(r2.recalculated.length).toBeGreaterThanOrEqual(3)
       }).pipe(Effect.provide(layer)))
     })
+    it("data analysis: COUNTIF + SUMIF + AVERAGEIF + STDEV + MEDIAN", async () => {
+      const store = makeStore({
+        A1: CV.num(85), A2: CV.num(92), A3: CV.num(67), A4: CV.num(91),
+        A5: CV.num(78), A6: CV.num(95), A7: CV.num(55), A8: CV.num(88),
+      })
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        // Count passing scores (>=70)
+        yield* e.registerInfix("B1", '=COUNTIF(">=70", A1, A2, A3, A4, A5, A6, A7, A8)')
+        // Sum of passing scores
+        yield* e.registerInfix("B2", '=SUMIF(">=70", A1, A2, A3, A4, A5, A6, A7, A8)')
+        // Average of passing scores
+        yield* e.registerInfix("B3", '=ROUND(AVERAGEIF(">=70", A1, A2, A3, A4, A5, A6, A7, A8), 1)')
+        // Median of all scores
+        yield* e.registerInfix("B4", "=MEDIAN(A1, A2, A3, A4, A5, A6, A7, A8)")
+        // Top score
+        yield* e.registerInfix("B5", "=LARGE(1, A1, A2, A3, A4, A5, A6, A7, A8)")
+
+        yield* e.recalcAll()
+        expect(store.cells.get("B1")).toEqual(CV.num(6))     // 85,92,91,78,95,88 pass
+        expect(store.cells.get("B2")).toEqual(CV.num(529))    // sum of those 6
+        expect(store.cells.get("B3")).toEqual(CV.num(88.2))   // 529/6 = 88.166...
+        expect(store.cells.get("B4")).toEqual(CV.num(86.5))   // sorted: 55,67,78,85,88,91,92,95 → (85+88)/2
+        expect(store.cells.get("B5")).toEqual(CV.num(95))     // max
+      }))
+    })
+
     it("percent-of-total pattern: =ROUND(A1/SUM(A1:A3)*100,1)", async () => {
       const store = makeStore({ A1: CV.num(30), A2: CV.num(50), A3: CV.num(20) })
       await run(store, Effect.gen(function*() {
