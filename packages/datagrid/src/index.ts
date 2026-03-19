@@ -113,6 +113,7 @@ export {
   compileInfix, compileInfixSync, extractDepsInfix,
   isVolatileIR,
   evalProgramDirect,
+  decompileIR,
   FUNCTION_CATALOG,
   completeFunctions,
   type FunctionSignature,

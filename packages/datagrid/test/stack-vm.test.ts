@@ -26,7 +26,7 @@ import {
   type VMFailure,
   failureToVMError, timeoutToVMError, catchToErrorState,
   // VM core
-  evalProgram, evalProgramDirect, evalExpr, compileExpr, compileExprSync, isVolatileIR,
+  evalProgram, evalProgramDirect, evalExpr, compileExpr, compileExprSync, isVolatileIR, decompileIR,
   compileInfix, compileInfixSync, extractDepsInfix,
   FUNCTION_CATALOG, completeFunctions,
   execOpcode, emptyState, MAX_EVAL_STEPS,
@@ -1390,6 +1390,14 @@ describe("infix parser", () => {
     const ir = compileInfixSync("=5>3")
     expect(ir.length).toBe(1)
     expect(ir[0]).toEqual({ _tag: "PUSH_BOOL", value: true })
+  })
+
+  it("decompileIR: roundtrip simple expressions", () => {
+    expect(decompileIR(compileInfixSync("=2+3"))).toBe("=5") // constant folded!
+    expect(decompileIR(compileInfixSync("=A1+B1"))).toBe("=(A1+B1)")
+    expect(decompileIR(compileInfixSync("=SUM(1,2,3)"))).toBe("=SUM(1,2,3)")
+    expect(decompileIR(compileInfixSync("=IF(A1>0,1,0)"))).toBe("=IF((A1>0),1,0)")
+    expect(decompileIR(compileInfixSync("=UPPER(A1)"))).toBe("=UPPER(A1)")
   })
 
   it("REPT/EXACT/FIND text functions", () => {

@@ -1899,6 +1899,101 @@ export const evalProgramDirect = (ir: StackIR, ctx?: CellContext): VMState => {
   return { stack: s, registers: {}, trail: [], step, halted }
 }
 
+/**
+ * Decompile StackIR back to a readable formula string.
+ * Useful for formula bar display and debugging.
+ */
+export const decompileIR = (ir: StackIR): string => {
+  const stack: string[] = []
+  const BIN: Record<string, string> = {
+    ADD: "+", SUB: "-", MUL: "*", DIV: "/", MOD: "%",
+    EQ: "=", LT: "<", GT: ">", GTE: ">=", LTE: "<=", NEQ: "!=",
+    POWER: "^", CONCAT: "&",
+  }
+  const UNARY_FN: Record<string, string> = {
+    ABS: "ABS", NEG: "-", NOT: "NOT", SQRT_OP: "SQRT", SIGN_OP: "SIGN",
+    LOG_OP: "LOG", LOG10_OP: "LOG10", FLOOR_OP: "FLOOR", CEIL_OP: "CEIL",
+    LEN_OP: "LEN", TRIM_OP: "TRIM", UPPER_OP: "UPPER", LOWER_OP: "LOWER",
+    ISNUM_OP: "ISNUM", ISTEXT_OP: "ISTEXT", ISERROR_OP: "ISERROR", ISBLANK_OP: "ISBLANK",
+    YEAR_OP: "YEAR", MONTH_OP: "MONTH", DAY_OP: "DAY",
+    HOUR_OP: "HOUR", MINUTE_OP: "MINUTE", SECOND_OP: "SECOND",
+    VALUE_OP: "VALUE", TYPE_OP: "TYPE", N_OP: "N",
+  }
+  const BINARY_FN: Record<string, string> = {
+    ROUND: "ROUND", LEFT_OP: "LEFT", RIGHT_OP: "RIGHT", REPT_OP: "REPT",
+    EXACT_OP: "EXACT", FIND_OP: "FIND",
+  }
+
+  for (const op of ir) {
+    if (op._tag === "PUSH_NUM") { stack.push(String((op as any).value)); continue }
+    if (op._tag === "PUSH_STR") { stack.push(`"${(op as any).value}"`); continue }
+    if (op._tag === "PUSH_BOOL") { stack.push((op as any).value ? "TRUE" : "FALSE"); continue }
+    if (op._tag === "READ_CELL") { stack.push((op as any).addr); continue }
+    if (op._tag === "NOW_OP") { stack.push("NOW()"); continue }
+    if (op._tag === "RAND_OP") { stack.push("RAND()"); continue }
+    if (op._tag === "PI_OP") { stack.push("PI()"); continue }
+    if (op._tag === "TODAY_OP") { stack.push("TODAY()"); continue }
+    if (op._tag === "HALT") break
+
+    const binOp = BIN[op._tag]
+    if (binOp) {
+      const b = stack.pop() ?? "?"
+      const a = stack.pop() ?? "?"
+      stack.push(`(${a}${binOp}${b})`)
+      continue
+    }
+    const unaryFn = UNARY_FN[op._tag]
+    if (unaryFn) {
+      const a = stack.pop() ?? "?"
+      if (unaryFn === "-") stack.push(`(-${a})`)
+      else stack.push(`${unaryFn}(${a})`)
+      continue
+    }
+    const binaryFn = BINARY_FN[op._tag]
+    if (binaryFn) {
+      const b = stack.pop() ?? "?"
+      const a = stack.pop() ?? "?"
+      stack.push(`${binaryFn}(${a},${b})`)
+      continue
+    }
+    if (op._tag === "MID_OP") {
+      const c = stack.pop() ?? "?"; const b = stack.pop() ?? "?"; const a = stack.pop() ?? "?"
+      stack.push(`MID(${a},${b},${c})`)
+      continue
+    }
+    if (op._tag === "SUBSTITUTE_OP") {
+      const c = stack.pop() ?? "?"; const b = stack.pop() ?? "?"; const a = stack.pop() ?? "?"
+      stack.push(`SUBSTITUTE(${a},${b},${c})`)
+      continue
+    }
+    if (op._tag === "IF" || op._tag === "IF_FN") {
+      const c = stack.pop() ?? "?"; const b = stack.pop() ?? "?"; const a = stack.pop() ?? "?"
+      stack.push(`IF(${a},${b},${c})`)
+      continue
+    }
+    if (op._tag === "IFERROR" || op._tag === "IFERROR_FN") {
+      const b = stack.pop() ?? "?"; const a = stack.pop() ?? "?"
+      stack.push(`IFERROR(${a},${b})`)
+      continue
+    }
+    // N-ary: SUM_N, AND_N, etc.
+    const nTag = op._tag
+    if (nTag.endsWith("_N") || nTag.endsWith("_DYN")) {
+      const n = (op as any).n ?? (op as any).count
+      if (typeof n === "number" && n > 0) {
+        const args = []
+        for (let i = 0; i < n; i++) args.unshift(stack.pop() ?? "?")
+        const name = nTag.replace(/_N$|_DYN$/, "")
+        stack.push(`${name}(${args.join(",")})`)
+        continue
+      }
+    }
+    // Fallback: opcode name
+    stack.push(`[${op._tag}]`)
+  }
+  return stack.length === 1 ? `=${stack[0]}` : `=${stack.join(", ")}`
+}
+
 /** Run an expression string with fresh state (can fail with CompileError) */
 export const evalExpr = (expr: string): Effect.Effect<VMState, CompileError> =>
   Effect.gen(function*() {
