@@ -1495,6 +1495,13 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync("=TRUNC(-3.7)")).stack[0]).toEqual(num(-3)) // toward zero, not floor
   })
 
+  it("NPER: number of periods", () => {
+    // How many months to pay off $10,000 at 5%/12 with $200/month payments?
+    const nper = evalProgramDirect(compileInfixSync("=ROUND(NPER(0.05/12, -200, 10000), 1)")).stack[0]
+    expect((nper as any).value).toBeGreaterThan(50) // ~54 months
+    expect((nper as any).value).toBeLessThan(60)
+  })
+
   it("PMT/FV/PV: financial functions", () => {
     // PMT: 5% annual rate, 30 year mortgage, $200K loan
     // Monthly rate = 0.05/12 = 0.004167, nper = 360
