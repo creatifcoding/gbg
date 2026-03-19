@@ -1,23 +1,31 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ STATUS — 207 experiments, 554 tests, 545 opcodes, 552 CATALOG ENTRIES
+## ✅ STATUS — 216 experiments, 604 tests, 572 opcodes, 600 CATALOG ENTRIES
 
-Production: 7,924 LOC | Tests: ~3,200 LOC | Benchmark: ~289-320ms (~57-62% below 751ms)
+Production: 8,489 LOC | Tests: ~3,500 LOC | Benchmark: ~290-350ms (~53-61% below 751ms)
 
-### Category breakdown (552 catalog)
-math:145 | stat:131 | text:82 | info:74 | financial:52 | lookup:38 | logic:24 | volatile:6
+### Category breakdown (600 catalog)
+math:158 | stat:137 | text:91 | info:79 | financial:61 | lookup:40 | logic:28 | volatile:6
 
-### Milestone achievements
-- **552 FUNCTION CATALOG** — significantly past Excel 365 (~500)
-- **554 TESTS** — comprehensive coverage
-- ML activation functions, time series, case converters, REGEX, dynamic arrays
+### Session achievements (208→216)
+- Hit **600 CATALOG** milestone at experiment #215
+- Added number theory (ISPRIME/NEXTPRIME/PRIMECOUNT/TOTIENT/DIVISORS)
+- Added string distance (TEXTHAMMING/TEXTLEV — Levenshtein!)
+- Added financial depreciation (SLN/SYD/DDB) + rates (CAGR/EFFECT.RATE/NOMINAL)
+- Added logic gates (NAND/NOR/XNOR)
+- Added text utilities (TEXTPADSTART/TEXTPADEND/TEXTWRAP/CHARCODE/FROMCHARCODE)
+- Added math (DIGSUM/DIGROOT/NTHROOT/FIBONACCI/COLLATZ)
+- Added stat (ENTROPY/GINI/WINSORIZE/COEFVAR/ZSCORE/PERCENTRANK)
+- Added info validators (ISALPHANUM/ISALPHA/CELLTYPE/CHECKSUM)
 
 ## 🔜 NEXT
 1. **Wire FormulaEngineV2 into production** — connect to CellCache + AG-Grid
-2. Compiler optimizations (constant folding)
-3. Push toward 600 catalog
+2. Compiler optimizations (constant folding, dead code elimination)
+3. Clean up accumulated duplicate _OP pool entries from prior sessions
+4. Push toward 650+ catalog
 
 ## 📌 DEFERRED
 - MMULT/MINVERSE with true 2D matrix
 - Full LAMBDA closure support  
 - WASM compilation target
+- Worker thread offloading
