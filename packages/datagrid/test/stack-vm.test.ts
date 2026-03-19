@@ -1704,6 +1704,15 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("STANDARDIZE/CONFIDENCE: z-score and confidence intervals", () => {
+    // STANDARDIZE(75, 50, 10) = (75-50)/10 = 2.5
+    expect(evalProgramDirect(compileInfixSync("=STANDARDIZE(75, 50, 10)")).stack[0]).toEqual(num(2.5))
+    // CONFIDENCE(0.05, 1, 100) ≈ 0.196 (z≈1.96, σ=1, √100=10)
+    const conf = (evalProgramDirect(compileInfixSync("=ROUND(CONFIDENCE(0.05, 1, 100), 2)")).stack[0] as any).value
+    expect(conf).toBeGreaterThan(0.15) // rough check — approx varies
+    expect(conf).toBeLessThan(0.35)
+  })
+
   it("NORMDIST: cumulative normal distribution", () => {
     // NORMDIST(0, 0, 1) = 0.5 (50th percentile)
     expect(evalProgramDirect(compileInfixSync("=ROUND(NORMDIST(0, 0, 1), 2)")).stack[0]).toEqual(num(0.5))
