@@ -1688,6 +1688,11 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("COUNTIFS: multi-criteria count (AND logic)", () => {
+    // Count values >3 AND <8: from 1,2,3,4,5,6,7,8,9 → 4,5,6,7 = 4
+    expect(evalProgramDirect(compileInfixSync('=COUNTIFS(">3", "<8", 1, 2, 3, 4, 5, 6, 7, 8, 9)')).stack[0]).toEqual(num(4))
+  })
+
   it("MAXIFS/MINIFS: conditional max and min", () => {
     expect(evalProgramDirect(compileInfixSync('=MAXIFS(">5", 3, 7, 2, 10, 5)')).stack[0]).toEqual(num(10))
     expect(evalProgramDirect(compileInfixSync('=MINIFS(">5", 3, 7, 2, 10, 5)')).stack[0]).toEqual(num(7))
