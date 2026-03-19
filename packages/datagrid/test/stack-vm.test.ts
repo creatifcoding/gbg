@@ -2620,6 +2620,23 @@ describe("post-450 function coverage", () => {
   it("TYPEOF2(\"hi\") = text", () => expect(d("=TYPEOF2(\"hi\")")).toBe("text"))
   it("TYPEOF2(TRUE) = boolean", () => expect(d("=TYPEOF2(TRUE)")).toBe("boolean"))
 
+  // Number theory
+  it("ISPRIME(7) = true", () => expect(d("=ISPRIME(7)")).toBe(true))
+  it("ISPRIME(4) = false", () => expect(d("=ISPRIME(4)")).toBe(false))
+  it("ISPRIME(2) = true", () => expect(d("=ISPRIME(2)")).toBe(true))
+  it("NEXTPRIME(4) = 5", () => expect(d("=NEXTPRIME(4)")).toBe(5))
+  it("NEXTPRIME(7) = 7", () => expect(d("=NEXTPRIME(7)")).toBe(7))
+  it("PRIMECOUNT(10) = 4", () => expect(d("=PRIMECOUNT(10)")).toBe(4))
+  it("TOTIENT(12) = 4", () => expect(d("=TOTIENT(12)")).toBe(4))
+  it("DIVISORS(12) = 6", () => expect(d("=DIVISORS(12)")).toBe(6))
+  it("DIVISORS(1) = 1", () => expect(d("=DIVISORS(1)")).toBe(1))
+
+  // Text: pad, charcode
+  it("CHARCODE(A) = 65", () => expect(d("=CHARCODE(\"A\")")).toBe(65))
+  it("FROMCHARCODE(65) = A", () => expect(d("=FROMCHARCODE(65)")).toBe("A"))
+  it("CELLTYPE(5) = 1", () => expect(d("=CELLTYPE(5)")).toBe(1))
+  it("CELLTYPE(text) = 2", () => expect(d("=CELLTYPE(\"hi\")")).toBe(2))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
