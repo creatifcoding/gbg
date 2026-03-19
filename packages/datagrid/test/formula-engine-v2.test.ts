@@ -676,6 +676,29 @@ describe("FormulaEngineV2", () => {
         expect(r2.recalculated.length).toBeGreaterThanOrEqual(3)
       }).pipe(Effect.provide(layer)))
     })
+    it("EXPERIMENT 132 CAPSTONE: analytics dashboard (INDEX+MATCH+AGGREGATE+TEXT)", async () => {
+      const store = makeStore({
+        A1: CV.num(100),  A2: CV.num(200),  A3: CV.num(150),  A4: CV.num(300),  A5: CV.num(250),
+      })
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.registerInfix("B1", "=AGGREGATE(9, A1, A2, A3, A4, A5)")     // SUM = 1000
+        yield* e.registerInfix("B2", "=AGGREGATE(1, A1, A2, A3, A4, A5)")     // AVG = 200
+        yield* e.registerInfix("B3", "=AGGREGATE(4, A1, A2, A3, A4, A5)")     // MAX = 300
+        yield* e.registerInfix("B4", '=TEXT(B1, "#,##0")')                      // formatted sum
+        yield* e.registerInfix("B5", "=ROUND(PERCENTILE(0.75, A1, A2, A3, A4, A5), 0)") // P75
+
+        yield* e.recalcAll()
+        expect((store.cells.get("B1") as any)?.value).toBe(1000) // SUM
+        expect((store.cells.get("B2") as any)?.value).toBe(200)  // AVG
+        expect((store.cells.get("B3") as any)?.value).toBe(300)  // MAX
+        expect((store.cells.get("B4") as any)?.value).toBe("1,000") // formatted
+        const p75 = (store.cells.get("B5") as any)?.value
+        expect(p75).toBeGreaterThan(240)
+        expect(p75).toBeLessThan(260)
+      }))
+    })
+
     it("EXPERIMENT 122 CAPSTONE: investment analysis (NPV+IRR+TEXT)", async () => {
       const store = makeStore({
         A1: CV.num(-50000),   // initial investment
