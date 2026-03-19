@@ -559,6 +559,40 @@ describe("FormulaEngineV2", () => {
       }))
     })
 
+    it("validate: valid formula returns deps and IR info", async () => {
+      const store = makeStore()
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        const result = yield* e.validate("=A1+B1*2")
+        expect(result.valid).toBe(true)
+        expect(result.deps).toContain("A1")
+        expect(result.deps).toContain("B1")
+        expect(result.irLength).toBeGreaterThan(0)
+        expect(result.volatile).toBe(false)
+      }))
+    })
+
+    it("validate: invalid formula returns error", async () => {
+      const store = makeStore()
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        const result = yield* e.validate("=((A1+")
+        expect(result.valid).toBe(false)
+        expect(result.error).toBeDefined()
+        expect(result.deps).toEqual([])
+      }))
+    })
+
+    it("validate: volatile formula detected", async () => {
+      const store = makeStore()
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        const result = yield* e.validate("=NOW()")
+        expect(result.valid).toBe(true)
+        expect(result.volatile).toBe(true)
+      }))
+    })
+
     it("comparison chain: =IF(A1>=10, 1, 0) with >= operator", async () => {
       const store = makeStore({ A1: CV.num(10) })
       await run(store, Effect.gen(function*() {

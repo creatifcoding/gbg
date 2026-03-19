@@ -99,6 +99,7 @@ export {
   SUM_N, MIN_N, MAX_N, AVG_N,
   SUM_DYN, MIN_DYN, MAX_DYN, AVG_DYN, COUNT_DYN,
   POWER, ROUND, FLOOR_OP, CEIL_OP,
+  NOW_OP, RAND_OP,
   HALT, READ_CELL, WRITE_CELL, READ_RANGE,
   // VM State
   type VMState, type TrailEntry,
@@ -110,6 +111,7 @@ export {
   execOpcode, runIR, runEffect,
   evalProgram, evalExpr, compileExpr, compileExprSync,
   compileInfix, compileInfixSync, extractDepsInfix,
+  isVolatileIR,
   extractDeps, extractDepsFromIR,
   type EvalInput, dualEval,
   // Service

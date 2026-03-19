@@ -142,6 +142,19 @@ export interface FormulaEngineV2Shape {
   readonly dependenciesOf: (addr: string) => ReadonlyArray<string>
 
   /**
+   * Validate a formula without registering it.
+   * Returns deps, IR length, volatile flag, and any compile errors.
+   * Used by the formula bar for real-time validation UX.
+   */
+  readonly validate: (expr: string) => Effect.Effect<{
+    readonly valid: boolean
+    readonly deps: ReadonlyArray<string>
+    readonly irLength: number
+    readonly volatile: boolean
+    readonly error?: string
+  }>
+
+  /**
    * Define a named range alias: "Revenue" → "A1:A100"
    */
   readonly defineRange: (name: string, target: string) => void
@@ -301,6 +314,19 @@ export const FormulaEngineV2Live = Layer.effect(
         Effect.sync(() => graph.dependents(addr)),
 
       dependenciesOf: (addr) => formulas.get(addr)?.deps.slice() ?? [],
+
+      validate: (expr) =>
+        Effect.sync(() => {
+          try {
+            const expanded = expandNamedRanges(expr)
+            const ir = compileInfixSync(expanded)
+            const deps = extractDepsInfix(expanded)
+            return { valid: true, deps, irLength: ir.length, volatile: isVolatileIR(ir) }
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e)
+            return { valid: false, deps: [], irLength: 0, volatile: false, error: msg }
+          }
+        }),
 
       defineRange: (name, target) => { ranges.set(name, target) },
 
