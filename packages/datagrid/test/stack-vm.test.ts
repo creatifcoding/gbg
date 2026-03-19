@@ -2548,6 +2548,36 @@ describe("post-450 function coverage", () => {
   it("COMBINA(4,2) = C(5,2) = 10", () => expect(d("=COMBINA(4, 2)")).toBe(10))
   it("PERMUTATIONA(3,2) = 9", () => expect(d("=PERMUTATIONA(3, 2)")).toBe(9))
 
+  // Math interpolation
+  it("CLAMP(5, 1, 10) = 5", () => expect(d("=CLAMP(5, 1, 10)")).toBe(5))
+  it("CLAMP(15, 1, 10) = 10", () => expect(d("=CLAMP(15, 1, 10)")).toBe(10))
+  it("CLAMP(-5, 1, 10) = 1", () => expect(d("=CLAMP(-5, 1, 10)")).toBe(1))
+  it("LERP(0, 100, 0.5) = 50", () => expect(d("=LERP(0, 100, 0.5)")).toBe(50))
+  it("LERP(0, 100, 0) = 0", () => expect(d("=LERP(0, 100, 0)")).toBe(0))
+  it("LERP(0, 100, 1) = 100", () => expect(d("=LERP(0, 100, 1)")).toBe(100))
+  it("SMOOTHSTEP(0, 1, 0.5) = 0.5", () => expect(d("=SMOOTHSTEP(0, 1, 0.5)")).toBe(0.5))
+  it("ROUNDSIG(1234, 2) = 1200", () => expect(d("=ROUNDSIG(1234, 2)")).toBe(1200))
+  it("ROUNDSIG(0.001234, 2) ≈ 0.0012", () => expect(d("=ROUNDSIG(0.001234, 2)")).toBe(0.0012))
+
+  // Text: TEXTINDEXOF, TEXTSLICE
+  it("TEXTINDEXOF found", () => expect(d("=TEXTINDEXOF(\"hello world\", \"world\")")).toBe(7))
+  it("TEXTINDEXOF not found = 0", () => expect(d("=TEXTINDEXOF(\"hello\", \"xyz\")")).toBe(0))
+  it("TEXTSLICE(hello, 2, 4) = ell", () => expect(d("=TEXTSLICE(\"hello\", 2, 4)")).toBe("ell"))
+
+  // Info validators
+  it("ISINTEGER(5) = true", () => expect(d("=ISINTEGER(5)")).toBe(true))
+  it("ISINTEGER(5.5) = false", () => expect(d("=ISINTEGER(5.5)")).toBe(false))
+  it("ISFLOAT(5.5) = true", () => expect(d("=ISFLOAT(5.5)")).toBe(true))
+  it("ISPOSITIVE(5) = true", () => expect(d("=ISPOSITIVE(5)")).toBe(true))
+  it("ISPOSITIVE(-5) = false", () => expect(d("=ISPOSITIVE(-5)")).toBe(false))
+  it("ISNEGATIVE(-5) = true", () => expect(d("=ISNEGATIVE(-5)")).toBe(true))
+  it("ISLEAPYEAR(2024) = true", () => expect(d("=ISLEAPYEAR(2024)")).toBe(true))
+  it("ISLEAPYEAR(2023) = false", () => expect(d("=ISLEAPYEAR(2023)")).toBe(false))
+  it("DAYSINYEAR(2024) = 366", () => expect(d("=DAYSINYEAR(2024)")).toBe(366))
+  it("DAYSINYEAR(2023) = 365", () => expect(d("=DAYSINYEAR(2023)")).toBe(365))
+  it("DAYSINMONTH(2024, 2) = 29", () => expect(d("=DAYSINMONTH(2024, 2)")).toBe(29))
+  it("DAYSINMONTH(2023, 2) = 28", () => expect(d("=DAYSINMONTH(2023, 2)")).toBe(28))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   it("ISERR on error = true", () => expect(d("=ISERR(1/0)")).toBe(true))
