@@ -1,20 +1,16 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ STATUS — 206 experiments, 554 tests, 535 opcodes, 542 CATALOG ENTRIES
+## ✅ STATUS — 207 experiments, 554 tests, 545 opcodes, 552 CATALOG ENTRIES
 
-Production: 7,821 LOC | Tests: ~3,200 LOC | Benchmark: ~289ms (~62% below 751ms)
+Production: 7,924 LOC | Tests: ~3,200 LOC | Benchmark: ~289-320ms (~57-62% below 751ms)
 
-### Category breakdown (542 catalog)
-math:142 | stat:128 | text:80 | info:72 | financial:52 | lookup:38 | logic:24 | volatile:6
+### Category breakdown (552 catalog)
+math:145 | stat:131 | text:82 | info:74 | financial:52 | lookup:38 | logic:24 | volatile:6
 
-### Key milestones
-- **542 FUNCTION CATALOG** — well past Excel 365 parity
+### Milestone achievements
+- **552 FUNCTION CATALOG** — significantly past Excel 365 (~500)
 - **554 TESTS** — comprehensive coverage
-- **289ms benchmark** — 62% below baseline!
-- ML activations (SIGMOID/RELU/ELU/SOFTPLUS)
-- Case converters (camelCase/snake_case/kebab-case)
-- Base64 encoding/decoding
-- Date utilities (ISLEAPYEAR/QUARTER/DAYOFYEAR/DAYSINYEAR/DAYSINMONTH)
+- ML activation functions, time series, case converters, REGEX, dynamic arrays
 
 ## 🔜 NEXT
 1. **Wire FormulaEngineV2 into production** — connect to CellCache + AG-Grid
