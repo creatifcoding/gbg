@@ -1,79 +1,61 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ PROVEN (24 hypotheses, 78/78 tests, 22 v4 modules)
+## ✅ DONE (prune — no longer actionable)
 
-### Core VM: H1–H7
-### Trail: H8–H10, H20
-### Data: H11–H13, H23
-### Architecture: H14–H16
-### Concurrency: H17–H19
-### Observability: H15, H22
-### Integration: H21, H24 (full FormulaEngine service)
+- 25 hypotheses proven, 80 spike tests, 22 Effect v4 modules
+- Production services: stack-vm.ts, vm-cell-bridge.ts, dep-graph.ts, formula-engine-v2.ts
+- READ_CELL/WRITE_CELL + CellContext, A1 compiler, extractDeps/extractDepsFromIR
+- FormulaEngineV2: register/registerInfix/recalcDirty/recalcAll
+- Infix shunting-yard parser: precedence, functions, ranges, parens
+- READ_RANGE + dynamic aggregates (SUM/MIN/MAX/AVG/COUNT)_DYN
+- Unary minus, string literals, & concat operator
+- Comparison operators < > in infix
+- POWER/COUNT_DYN/ROUND/FLOOR/CEIL opcodes (38 total)
+- Flat EXEC dispatch table replacing Match+if-else ladder
 
-## ✅ EXTRACTED — Production Services (4 modules, 98 tests)
+## 🔜 NEXT — High-value paths
 
-### stack-vm.ts (32KB, 49 tests)
-- ServiceMap.Service: eval(ir), evalExpr(str), evalEffect(program), compile(expr), invalidate(expr)
-- 3 error channels: VMValue inline (6 codes), Effect E (CompileError/EvalError/ResourceError), defects
-- Layer.effect: Cache + Metric + Semaphore + Span + Timeout
-- Error utilities: catchToErrorState, failureToVMError, timeoutToVMError, vmDisplay, propagateError
-- Step overflow guard (MAX_EVAL_STEPS), error propagation rule
+### Comparison operators: >=, <=, != in infix
+- Tokenizer needs 2-char lookahead for >= <= !=
+- Maps to GTE/LTE/NEQ opcodes (or compound: NOT+LT for GTE)
+- Common spreadsheet need, cheap to add
 
-### vm-cell-bridge.ts (5KB, 24 tests)
-- Bidirectional CellValue ↔ VMValue conversion
-- Empty→0 spreadsheet convention, Formula→cached, error code→display mapping
-- Round-trip checks (isLosslessRoundTrip), batch ops, cellDisplayVM
+### Multi-char column support in READ_RANGE
+- Currently READ_RANGE only handles single-char cols (A-Z)
+- Should support AA1:AZ100 like the compiler already handles for READ_CELL
+- Expand range iteration to use column index math
 
-### dep-graph.ts (9KB, 17 tests)
-- Effect v4 Graph-backed topo sort for eval order
-- Cycle detection (CircularDepError) before registration
-- Diamond deps, BFS affected set, Graph.topo Walker [NodeIndex, N]
+### Nested function calls: =SUM(A1, MAX(B1:B3))
+- Currently functions only accept flat args or ranges
+- Shunting-yard needs function arg tracking to handle nested calls
+- Key for production-grade formulas
 
-### vm-integration.test.ts (8 tests)
-- Full pipeline: data change → topo sort → eval → bridge → write-back
-- Chained formulas, diamond deps, error propagation, multi-dirty, unregister
-
-## 🔜 NEXT — Production Wiring
-
-### ✅ READ_CELL + WRITE_CELL + barrel export + A1 compiler + dep extraction (DONE)
-- READ_CELL/WRITE_CELL opcodes with CellContext injection
-- A1-aware compiler: cell refs compile to READ_CELL
-- extractDeps/extractDepsFromIR for auto dep registration
-- Full barrel export in index.ts
-- Error propagation through cell refs proven (DIV/0 → chain → Error)
-- E2E: compile → extractDeps → DepGraph → topo recalc → eval → write-back
-
-### ✅ FormulaEngineV2 + Range + Infix Parser (DONE)
-- FormulaEngineV2: register/registerInfix/registerIR + recalcDirty/recalcAll
-- Infix shunting-yard: =A1+B1*2, =SUM(A1:A5)+B1, operator precedence, parens
-- READ_RANGE + SUM_DYN/MIN_DYN/MAX_DYN/AVG_DYN for SUM(A1:A10) style
-- extractDeps/extractDepsInfix expands ranges
-- 1K formula perf: 45ms, 20-deep chain cascade
-- Next: wire into FormulaConsistency, replace old FormulaEngine callers
+### Boolean literals in infix: =IF(TRUE, A1, B1)
+- Tokenizer should recognize TRUE/FALSE keywords
+- Maps to PUSH_BOOL
 
 ### Wire FormulaEngineV2 into production
 - Replace FormulaConsistency's dependency on old FormulaEngine
 - Wire registerInfix as the primary formula input path
 - Connect to CellCache atoms for reactive UI updates
 
+### Error function: =IFERROR(A1/B1, 0)
+- Common spreadsheet pattern for error handling
+- VM already has isVMError — needs IFERROR opcode
+- Pop 2: value, fallback. If value is error, push fallback
+
+## 📌 DEFERRED — Lower priority
+
 ### TxHashMap cell state (production)
 - Replace Map<string, CellValue> with TxHashMap inside Effect.transaction
 - Multi-cell atomic reads/writes for bulk paste, undo
-
-### Negation in infix parser
-- Unary minus: =-A1, =-(A1+B1)
-- Currently only binary minus works
+- Blocked on: need production wiring first
 
 ### WASM sandbox (Domain B)
 - Pool.make for QuickJS-WASM instances
-- acquireRelease lifecycle, addFinalizer cleanup
-- timeout for untrusted code safety
+- Deferred until core formula DSL is production-ready
 
-### String literal support in infix
-- Quoted strings: ="hello" & A1
-- Currently only RPN supports PUSH_STR via raw tokens
-
-## 📊 v4 API Gotchas (Complete — 14 discoveries)
+## 📊 v4 API Gotchas (Reference — 14 discoveries)
 | Wrong | Correct |
 |---|---|
 | `Schema.Union(A, B, C)` | `Schema.Union([A, B, C])` |

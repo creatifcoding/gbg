@@ -292,6 +292,9 @@ export const NEG = Schema.TaggedStruct("NEG", {})
 export const EQ = Schema.TaggedStruct("EQ", {})
 export const LT = Schema.TaggedStruct("LT", {})
 export const GT = Schema.TaggedStruct("GT", {})
+export const GTE = Schema.TaggedStruct("GTE", {})
+export const LTE = Schema.TaggedStruct("LTE", {})
+export const NEQ = Schema.TaggedStruct("NEQ", {})
 export const NOT = Schema.TaggedStruct("NOT", {})
 export const SUM_N = Schema.TaggedStruct("SUM_N", { n: Schema.Number })
 export const HALT = Schema.TaggedStruct("HALT", {})
@@ -328,6 +331,9 @@ export const COUNT_DYN = Schema.TaggedStruct("COUNT_DYN", {})
 
 /** POWER — raise base to exponent */
 export const POWER = Schema.TaggedStruct("POWER", {})
+
+/** IFERROR — if value is error, use fallback */
+export const IFERROR = Schema.TaggedStruct("IFERROR", {})
 
 /** ROUND — round to N decimal places */
 export const ROUND = Schema.TaggedStruct("ROUND", {})
@@ -401,7 +407,7 @@ export const Opcode = Schema.Union([
   ADD, SUB, MUL, DIV, MOD, ABS,
   CONCAT, TO_NUM, TO_STR,
   DUP, SWAP, DROP, NEG,
-  EQ, LT, GT, NOT, IF,
+  EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR,
   SUM_N, MIN_N, MAX_N, AVG_N,
   SUM_DYN, MIN_DYN, MAX_DYN, AVG_DYN, COUNT_DYN, POWER,
   ROUND, FLOOR_OP, CEIL_OP,
@@ -571,9 +577,12 @@ const EXEC: Record<string, Executor> = {
   ROUND:(_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); if (pe) return pe; const f = Math.pow(10, asNum(b)); return num(Math.round(asNum(a) * f) / f) }, "ROUND") }),
 
   // ── Comparison (binary) ──
-  EQ: (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); return pe ?? bool(vmEq(a, b)) }, "EQ") }),
-  LT: (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); return pe ?? bool(asNum(a) < asNum(b)) }, "LT") }),
-  GT: (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); return pe ?? bool(asNum(a) > asNum(b)) }, "GT") }),
+  EQ:  (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); return pe ?? bool(vmEq(a, b)) }, "EQ") }),
+  LT:  (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); return pe ?? bool(asNum(a) < asNum(b)) }, "LT") }),
+  GT:  (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); return pe ?? bool(asNum(a) > asNum(b)) }, "GT") }),
+  GTE: (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); return pe ?? bool(asNum(a) >= asNum(b)) }, "GTE") }),
+  LTE: (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); return pe ?? bool(asNum(a) <= asNum(b)) }, "LTE") }),
+  NEQ: (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); return pe ?? bool(!vmEq(a, b)) }, "NEQ") }),
 
   // ── String (binary) ──
   CONCAT: (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); return pe ?? str(vmDisplay(a) + vmDisplay(b)) }, "CONCAT") }),
@@ -608,6 +617,11 @@ const EXEC: Record<string, Executor> = {
     const pe = propagateError(condition); if (pe) { s.push(pe); return { result: pe } }
     const isTruthy = condition._tag === "bool" ? condition.value : condition._tag === "num" ? condition.value !== 0 : true
     const v = isTruthy ? trueVal : falseVal; s.push(v); return { result: v }
+  },
+  IFERROR: (_o, s) => {
+    if (s.length < 2) { const e = vmError("STACK_UNDERFLOW", "IFERROR requires 2 operands"); s.push(e); return { result: e } }
+    const fallback = s.pop()!; const val = s.pop()!
+    const v = isVMError(val) ? fallback : val; s.push(v); return { result: v }
   },
 
   // ── Fixed-N aggregates ──
@@ -795,7 +809,11 @@ function classifyToken(tok: string): Opcode | null {
     case "EQ": return { _tag: "EQ" }
     case "LT": return { _tag: "LT" }
     case "GT": return { _tag: "GT" }
+    case "GTE": return { _tag: "GTE" }
+    case "LTE": return { _tag: "LTE" }
+    case "NEQ": return { _tag: "NEQ" }
     case "NOT": return { _tag: "NOT" }
+    case "IFERROR": return { _tag: "IFERROR" }
     case "IF": return { _tag: "IF" }
     case "SUM_DYN": return { _tag: "SUM_DYN" }
     case "MIN_DYN": return { _tag: "MIN_DYN" }
@@ -968,7 +986,7 @@ export const extractDepsFromIR = (ir: StackIR): ReadonlyArray<string> => {
 
 /** Operator precedence for shunting-yard */
 const PREC: Record<string, number> = {
-  "<": 0, ">": 0,  // comparison
+  "<": 0, ">": 0, ">=": 0, "<=": 0, "!=": 0,  // comparison
   "+": 1, "-": 1,
   "*": 2, "/": 2, "%": 2,
   "^": 3, // exponent: right-associative, high precedence
@@ -980,7 +998,7 @@ const PREC: Record<string, number> = {
  * Needed because some infix operators differ from RPN tokens.
  */
 const INFIX_OP_MAP: Record<string, string> = {
-  "<": "LT", ">": "GT", "^": "POWER",
+  "<": "LT", ">": "GT", ">=": "GTE", "<=": "LTE", "!=": "NEQ", "^": "POWER",
 }
 const RIGHT_ASSOC = new Set<string>(["UNARY_NEG", "^"])
 
@@ -999,8 +1017,15 @@ function tokenizeInfix(expr: string): string[] {
       tokens.push(`"${s}"`)
       continue
     }
+    // 2-char operators: >=, <=, !=, <>
+    if (i + 1 < expr.length) {
+      const two = ch + expr[i + 1]
+      if (two === ">=" || two === "<=" || two === "!=" || two === "<>") {
+        tokens.push(two === "<>" ? "!=" : two); i += 2; continue
+      }
+    }
     // Operators and parens
-    if ("+-*/%(),:=<>&^".includes(ch)) { tokens.push(ch); i++; continue }
+    if ("+-*/%(),:=<>&^!".includes(ch)) { tokens.push(ch); i++; continue }
     // Number (including decimals)
     if (ch >= "0" && ch <= "9" || (ch === "." && i + 1 < expr.length && expr[i + 1] >= "0" && expr[i + 1] <= "9")) {
       let num = ""
@@ -1036,7 +1061,7 @@ const FUNC_MAP: Record<string, string> = {
   SUM: "SUM_DYN", MIN: "MIN_DYN", MAX: "MAX_DYN", AVG: "AVG_DYN",
   COUNT: "COUNT_DYN", POWER: "POWER",
   ROUND: "ROUND", FLOOR: "FLOOR", CEIL: "CEIL",
-  ABS: "ABS", NEG: "NEG", IF: "IF",
+  ABS: "ABS", NEG: "NEG", IF: "IF", IFERROR: "IFERROR",
   CONCAT: "CONCAT", TO_NUM: "TO_NUM", TO_STR: "TO_STR",
 }
 
