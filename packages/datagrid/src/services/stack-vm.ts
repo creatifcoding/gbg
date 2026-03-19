@@ -422,6 +422,8 @@ export const ISERROR_OP = Schema.TaggedStruct("ISERROR_OP", {})
 export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
 
 /** More text functions */
+export const ROMAN_OP = Schema.TaggedStruct("ROMAN_OP", {})
+export const ARABIC_OP = Schema.TaggedStruct("ARABIC_OP", {})
 export const TEXT_OP = Schema.TaggedStruct("TEXT_OP", {})
 export const NUMBERVALUE_OP = Schema.TaggedStruct("NUMBERVALUE_OP", {})
 export const REPT_OP = Schema.TaggedStruct("REPT_OP", {})
@@ -573,7 +575,7 @@ export const Opcode = Schema.Union([
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
-  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
+  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
   IFS_N, SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
@@ -876,6 +878,29 @@ const EXEC: Record<string, Executor> = {
     const err = vmError("TYPE_MISMATCH", "SWITCH: no match"); s.push(err); return { result: err }
   },
 
+  // ROMAN_OP: convert number to Roman numerals
+  ROMAN_OP: (_o, s) => ({ result: unop(s, a => {
+    if (isVMError(a)) return a
+    let n = Math.floor(asNum(a))
+    if (n <= 0 || n > 3999) return vmError("TYPE_MISMATCH", `ROMAN: ${n} out of [1,3999]`)
+    const vals = [1000,900,500,400,100,90,50,40,10,9,5,4,1]
+    const syms = ["M","CM","D","CD","C","XC","L","XL","X","IX","V","IV","I"]
+    let result = ""
+    for (let i = 0; i < vals.length; i++) { while (n >= vals[i]) { result += syms[i]; n -= vals[i] } }
+    return str(result)
+  }, "ROMAN") }),
+  // ARABIC_OP: convert Roman numerals to number
+  ARABIC_OP: (_o, s) => ({ result: unop(s, a => {
+    if (isVMError(a)) return a
+    const roman = (a._tag === "str" ? a.value : vmDisplay(a)).toUpperCase()
+    const map: Record<string, number> = { I:1, V:5, X:10, L:50, C:100, D:500, M:1000 }
+    let result = 0
+    for (let i = 0; i < roman.length; i++) {
+      const curr = map[roman[i]] ?? 0, next = map[roman[i+1]] ?? 0
+      result += curr < next ? -curr : curr
+    }
+    return num(result)
+  }, "ARABIC") }),
   // TEXT_OP: format number as text. TEXT(number, format). Supports: "0.00", "#,##0", "0%"
   TEXT_OP: (_o, s) => {
     if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "TEXT")); return { result: s[s.length-1] } }
@@ -1825,6 +1850,7 @@ const _OP: Record<string, Opcode> = {
   FLOOR_OP: { _tag: "FLOOR_OP" }, CEIL_OP: { _tag: "CEIL_OP" },
   ISNUM_OP: { _tag: "ISNUM_OP" }, ISTEXT_OP: { _tag: "ISTEXT_OP" },
   ISERROR_OP: { _tag: "ISERROR_OP" }, ISBLANK_OP: { _tag: "ISBLANK_OP" },
+  ROMAN_OP: { _tag: "ROMAN_OP" }, ARABIC_OP: { _tag: "ARABIC_OP" },
   TEXT_OP: { _tag: "TEXT_OP" }, NUMBERVALUE_OP: { _tag: "NUMBERVALUE_OP" },
   REPT_OP: { _tag: "REPT_OP" }, EXACT_OP: { _tag: "EXACT_OP" }, FIND_OP: { _tag: "FIND_OP" },
   REPLACE_OP: { _tag: "REPLACE_OP" }, SEARCH_OP: { _tag: "SEARCH_OP" },
@@ -1954,6 +1980,8 @@ function classifyToken(tok: string): Opcode | null {
     case "RANK_N": return { _tag: "RANK_N", n: 0 } as any
     case "CONCATENATE_N": return { _tag: "CONCATENATE_N", n: 0 } as any
     case "TEXTJOIN_N": return { _tag: "TEXTJOIN_N", n: 0 } as any
+    case "ROMAN_OP": return _OP.ROMAN_OP
+    case "ARABIC_OP": return _OP.ARABIC_OP
     case "TEXT_OP": return _OP.TEXT_OP
     case "NUMBERVALUE_OP": return _OP.NUMBERVALUE_OP
     case "REPT_OP": return _OP.REPT_OP
@@ -2253,7 +2281,7 @@ const FUNC_MAP: Record<string, string> = {
   NPV: "NPV_N", VAR: "VAR_N", PERCENTILE: "PERCENTILE_N", COUNTA: "COUNTA_N", COUNTBLANK: "COUNTBLANK_N",
   SUMPRODUCT: "SUMPRODUCT_N", AGGREGATE: "AGGREGATE_N", COUNTIF: "COUNTIF_N", COUNTIFS: "COUNTIFS_N", SUMIF: "SUMIF_N", MAXIFS: "MAXIFS_N", MINIFS: "MINIFS_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
   STDEV: "STDEV_N", MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
-  TEXT: "TEXT_OP", NUMBERVALUE: "NUMBERVALUE_OP", REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
+  ROMAN: "ROMAN_OP", ARABIC: "ARABIC_OP", TEXT: "TEXT_OP", NUMBERVALUE: "NUMBERVALUE_OP", REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
   IFS: "IFS_N", SWITCH: "SWITCH_N", VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
   YEAR: "YEAR_OP", MONTH: "MONTH_OP", DAY: "DAY_OP",
   HOUR: "HOUR_OP", MINUTE: "MINUTE_OP", SECOND: "SECOND_OP",
@@ -2630,6 +2658,8 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "LCM", args: "a, b", description: "Least common multiple", category: "math" },
   { name: "COMBIN", args: "n, k", description: "Combinations (n choose k)", category: "math" },
   { name: "SUBSTITUTE", args: "text, old, new", description: "Replace all occurrences", category: "text" },
+  { name: "ROMAN", args: "number", description: "Convert number to Roman numerals", category: "text" },
+  { name: "ARABIC", args: "roman_text", description: "Convert Roman numerals to number", category: "text" },
   { name: "TEXT", args: "number, format", description: "Format number as text (0.00, #,##0, 0%)", category: "text" },
   { name: "NUMBERVALUE", args: "text", description: "Parse text to number (strips $, commas, %)", category: "text" },
   { name: "REPT", args: "text, count", description: "Repeat text N times", category: "text" },

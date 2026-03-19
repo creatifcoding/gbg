@@ -1780,6 +1780,13 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=SEARCH("xyz","ABCDEF")')).stack[0]._tag).toBe("error")
   })
 
+  it("ROMAN/ARABIC: Roman numeral conversion", () => {
+    expect(evalProgramDirect(compileInfixSync("=ROMAN(2024)")).stack[0]).toEqual(str("MMXXIV"))
+    expect(evalProgramDirect(compileInfixSync("=ROMAN(99)")).stack[0]).toEqual(str("XCIX"))
+    expect(evalProgramDirect(compileInfixSync('=ARABIC("MMXXIV")')).stack[0]).toEqual(num(2024))
+    expect(evalProgramDirect(compileInfixSync('=ARABIC("XLII")')).stack[0]).toEqual(num(42))
+  })
+
   it("TEXT: format number as text", () => {
     expect(evalProgramDirect(compileInfixSync('=TEXT(1234.5, "0.00")')).stack[0]).toEqual(str("1234.50"))
     expect(evalProgramDirect(compileInfixSync('=TEXT(1234567, "#,##0")')).stack[0]).toEqual(str("1,234,567"))
