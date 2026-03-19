@@ -355,6 +355,8 @@ export const MID_OP = Schema.TaggedStruct("MID_OP", {})
 export const TRIM_OP = Schema.TaggedStruct("TRIM_OP", {})
 export const UPPER_OP = Schema.TaggedStruct("UPPER_OP", {})
 export const LOWER_OP = Schema.TaggedStruct("LOWER_OP", {})
+export const PROPER_OP = Schema.TaggedStruct("PROPER_OP", {})
+export const CLEAN_OP = Schema.TaggedStruct("CLEAN_OP", {})
 
 /** SUBSTITUTE — find & replace: (text, old, new) → modified text */
 export const SUBSTITUTE_OP = Schema.TaggedStruct("SUBSTITUTE_OP", {})
@@ -502,7 +504,7 @@ export const Opcode = Schema.Union([
   DUP, SWAP, DROP, NEG,
   EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR,
   AND_N, OR_N, CHOOSE_N,
-  LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, SUBSTITUTE_OP,
+  LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, PROPER_OP, CLEAN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
   COUNTIF_N, SUMIF_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
@@ -1095,6 +1097,8 @@ const EXEC: Record<string, Executor> = {
   TRIM_OP:  (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : str(vmDisplay(a).trim()), "TRIM") }),
   UPPER_OP: (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : str(vmDisplay(a).toUpperCase()), "UPPER") }),
   LOWER_OP: (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : str(vmDisplay(a).toLowerCase()), "LOWER") }),
+  PROPER_OP: (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : str(vmDisplay(a).toLowerCase().replace(/(?:^|\s)\S/g, c => c.toUpperCase())), "PROPER") }),
+  CLEAN_OP: (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : str(vmDisplay(a).replace(/[\x00-\x1F\x7F]/g, "")), "CLEAN") }),
   SUBSTITUTE_OP: (_o, s) => {
     if (s.length < 3) { const e = vmError("STACK_UNDERFLOW", "SUBSTITUTE requires 3 operands"); s.push(e); return { result: e } }
     const newStr = s.pop()!; const oldStr = s.pop()!; const text = s.pop()!
@@ -1318,7 +1322,7 @@ const _OP: Record<string, Opcode> = {
   LEN_OP: { _tag: "LEN_OP" }, LEFT_OP: { _tag: "LEFT_OP" },
   RIGHT_OP: { _tag: "RIGHT_OP" }, MID_OP: { _tag: "MID_OP" },
   TRIM_OP: { _tag: "TRIM_OP" }, UPPER_OP: { _tag: "UPPER_OP" },
-  LOWER_OP: { _tag: "LOWER_OP" }, SUBSTITUTE_OP: { _tag: "SUBSTITUTE_OP" },
+  LOWER_OP: { _tag: "LOWER_OP" }, PROPER_OP: { _tag: "PROPER_OP" }, CLEAN_OP: { _tag: "CLEAN_OP" }, SUBSTITUTE_OP: { _tag: "SUBSTITUTE_OP" },
   SQRT_OP: { _tag: "SQRT_OP" }, SIGN_OP: { _tag: "SIGN_OP" },
   LOG_OP: { _tag: "LOG_OP" }, LOG10_OP: { _tag: "LOG10_OP" },
   SUM_DYN: { _tag: "SUM_DYN" }, MIN_DYN: { _tag: "MIN_DYN" },
@@ -1378,6 +1382,8 @@ function classifyToken(tok: string): Opcode | null {
     case "TRIM_OP": return _OP.TRIM_OP
     case "UPPER_OP": return _OP.UPPER_OP
     case "LOWER_OP": return _OP.LOWER_OP
+    case "PROPER_OP": return _OP.PROPER_OP
+    case "CLEAN_OP": return _OP.CLEAN_OP
     case "SUBSTITUTE_OP": return _OP.SUBSTITUTE_OP
     case "ISNUM_OP": return _OP.ISNUM_OP
     case "ISTEXT_OP": return _OP.ISTEXT_OP
@@ -1669,7 +1675,7 @@ const FUNC_MAP: Record<string, string> = {
   NOW: "NOW_OP", RAND: "RAND_OP", PI: "PI_OP", TODAY: "TODAY_OP",
   CONCAT: "CONCAT", TO_NUM: "TO_NUM", TO_STR: "TO_STR",
   LEN: "LEN_OP", LEFT: "LEFT_OP", RIGHT: "RIGHT_OP", MID: "MID_OP",
-  TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", SUBSTITUTE: "SUBSTITUTE_OP",
+  TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", PROPER: "PROPER_OP", CLEAN: "CLEAN_OP", SUBSTITUTE: "SUBSTITUTE_OP",
   ISNUM: "ISNUM_OP", ISTEXT: "ISTEXT_OP", ISERROR: "ISERROR_OP", ISBLANK: "ISBLANK_OP",
   COUNTIF: "COUNTIF_N", SUMIF: "SUMIF_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
   STDEV: "STDEV_N", MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
@@ -1993,6 +1999,8 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "TRIM", args: "text", description: "Remove leading/trailing spaces", category: "text" },
   { name: "UPPER", args: "text", description: "Convert to uppercase", category: "text" },
   { name: "LOWER", args: "text", description: "Convert to lowercase", category: "text" },
+  { name: "PROPER", args: "text", description: "Title case (capitalize first letter of each word)", category: "text" },
+  { name: "CLEAN", args: "text", description: "Remove non-printable characters", category: "text" },
   { name: "SUBSTITUTE", args: "text, old, new", description: "Replace all occurrences", category: "text" },
   { name: "REPT", args: "text, count", description: "Repeat text N times", category: "text" },
   { name: "EXACT", args: "text1, text2", description: "Case-sensitive equality", category: "text" },
@@ -2138,7 +2146,7 @@ export const decompileIR = (ir: StackIR): string => {
   const UNARY_FN: Record<string, string> = {
     ABS: "ABS", NEG: "-", NOT: "NOT", SQRT_OP: "SQRT", SIGN_OP: "SIGN",
     LOG_OP: "LOG", LOG10_OP: "LOG10", FLOOR_OP: "FLOOR", CEIL_OP: "CEIL",
-    LEN_OP: "LEN", TRIM_OP: "TRIM", UPPER_OP: "UPPER", LOWER_OP: "LOWER",
+    LEN_OP: "LEN", TRIM_OP: "TRIM", UPPER_OP: "UPPER", LOWER_OP: "LOWER", PROPER_OP: "PROPER", CLEAN_OP: "CLEAN",
     ISNUM_OP: "ISNUM", ISTEXT_OP: "ISTEXT", ISERROR_OP: "ISERROR", ISBLANK_OP: "ISBLANK",
     YEAR_OP: "YEAR", MONTH_OP: "MONTH", DAY_OP: "DAY",
     HOUR_OP: "HOUR", MINUTE_OP: "MINUTE", SECOND_OP: "SECOND",

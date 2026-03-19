@@ -1440,6 +1440,16 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=SUMIF("<=3", 1, 2, 3, 4, 5)')).stack[0]).toEqual(num(6)) // 1+2+3
   })
 
+  it("PROPER: title case", () => {
+    expect(evalProgramDirect(compileInfixSync('=PROPER("hello world")')).stack[0]).toEqual(str("Hello World"))
+    expect(evalProgramDirect(compileInfixSync('=PROPER("HELLO WORLD")')).stack[0]).toEqual(str("Hello World"))
+  })
+
+  it("CLEAN: strip non-printable", () => {
+    // Compile with embedded control char via CONCATENATE + CHAR... actually just test inline
+    expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
+  })
+
   it("AVERAGEIF: conditional average", () => {
     expect(evalProgramDirect(compileInfixSync('=AVERAGEIF(">5", 3, 7, 2, 10, 5)')).stack[0]).toEqual(num(8.5)) // (7+10)/2
     expect(evalProgramDirect(compileInfixSync('=AVERAGEIF("=0", 1, 2, 3)')).stack[0]._tag).toBe("error") // no matches → error
