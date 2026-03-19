@@ -1,16 +1,18 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ STATUS — 256 experiments, 867 tests (787+80), 1249 UNIQUE CATALOG, ~12,601 LOC
+## ✅ STATUS — 260 experiments, 920 tests (840+80), 1350 UNIQUE CATALOG, ~13,032 LOC
 
-### Category breakdown (1249 unique)
-math:314 | stat:239 | text:202 | info:154 | financial:140 | logic:104 | lookup:93 | volatile:26
+### This session (257→260)
+- 1249 → 1350 unique catalog (+101 functions)
+- 867 → 920 tests (+53 new)
+- Key domains: combinatorics, info theory, figurate numbers, numerical methods, time-series forecasting, text hashing/soundex, number theory classification, financial risk metrics
 
 ## 🔜 NEXT
-1. Push to 1300 unique catalog (add 51 new)
+1. Push to 1400 unique catalog
 2. More tests toward 1000
 3. Compiler constant folding optimization
 
 ## 📌 DEFERRED
 - MMULT/MINVERSE with true 2D matrix
-- Full LAMBDA closure support  
+- Full LAMBDA closure support
 - WASM compilation target
