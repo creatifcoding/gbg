@@ -1743,6 +1743,18 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=SEARCH("xyz","ABCDEF")')).stack[0]._tag).toBe("error")
   })
 
+  it("TEXT: format number as text", () => {
+    expect(evalProgramDirect(compileInfixSync('=TEXT(1234.5, "0.00")')).stack[0]).toEqual(str("1234.50"))
+    expect(evalProgramDirect(compileInfixSync('=TEXT(1234567, "#,##0")')).stack[0]).toEqual(str("1,234,567"))
+    expect(evalProgramDirect(compileInfixSync('=TEXT(0.085, "0%")')).stack[0]).toEqual(str("9%"))
+  })
+
+  it("NUMBERVALUE: parse text to number", () => {
+    expect(evalProgramDirect(compileInfixSync('=NUMBERVALUE("1,234.56")')).stack[0]).toEqual(num(1234.56))
+    expect(evalProgramDirect(compileInfixSync('=NUMBERVALUE("$42")')).stack[0]).toEqual(num(42))
+    expect(evalProgramDirect(compileInfixSync('=NUMBERVALUE("50%")')).stack[0]).toEqual(num(0.5))
+  })
+
   it("REPT/EXACT/FIND text functions", () => {
     expect(evalProgramDirect(compileInfixSync('=REPT("ab",3)')).stack[0]).toEqual(str("ababab"))
     expect(evalProgramDirect(compileInfixSync('=EXACT("Hello","Hello")')).stack[0]).toEqual(bool(true))
