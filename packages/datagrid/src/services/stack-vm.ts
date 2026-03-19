@@ -915,67 +915,93 @@ const RANGE_PATTERN = /^([A-Z]+)(\d+):([A-Z]+)(\d+)$/
  * 3. A1 cell reference → READ_CELL
  * 4. Unknown → CompileError
  */
+// ── Interned opcode singletons (zero-alloc dispatch) ──
+const _OP: Record<string, Opcode> = {
+  ADD: { _tag: "ADD" }, SUB: { _tag: "SUB" }, MUL: { _tag: "MUL" },
+  DIV: { _tag: "DIV" }, MOD: { _tag: "MOD" }, ABS: { _tag: "ABS" },
+  CONCAT: { _tag: "CONCAT" }, TO_NUM: { _tag: "TO_NUM" }, TO_STR: { _tag: "TO_STR" },
+  DUP: { _tag: "DUP" }, SWAP: { _tag: "SWAP" }, DROP: { _tag: "DROP" }, NEG: { _tag: "NEG" },
+  EQ: { _tag: "EQ" }, LT: { _tag: "LT" }, GT: { _tag: "GT" },
+  GTE: { _tag: "GTE" }, LTE: { _tag: "LTE" }, NEQ: { _tag: "NEQ" }, NOT: { _tag: "NOT" },
+  IFERROR: { _tag: "IFERROR" }, IF: { _tag: "IF" },
+  LEN_OP: { _tag: "LEN_OP" }, LEFT_OP: { _tag: "LEFT_OP" },
+  RIGHT_OP: { _tag: "RIGHT_OP" }, MID_OP: { _tag: "MID_OP" },
+  TRIM_OP: { _tag: "TRIM_OP" }, UPPER_OP: { _tag: "UPPER_OP" },
+  LOWER_OP: { _tag: "LOWER_OP" }, SUBSTITUTE_OP: { _tag: "SUBSTITUTE_OP" },
+  SQRT_OP: { _tag: "SQRT_OP" }, SIGN_OP: { _tag: "SIGN_OP" },
+  LOG_OP: { _tag: "LOG_OP" }, LOG10_OP: { _tag: "LOG10_OP" },
+  SUM_DYN: { _tag: "SUM_DYN" }, MIN_DYN: { _tag: "MIN_DYN" },
+  MAX_DYN: { _tag: "MAX_DYN" }, AVG_DYN: { _tag: "AVG_DYN" },
+  COUNT_DYN: { _tag: "COUNT_DYN" }, PRODUCT_DYN: { _tag: "PRODUCT_DYN" },
+  POWER: { _tag: "POWER" }, ROUND: { _tag: "ROUND" },
+  FLOOR_OP: { _tag: "FLOOR_OP" }, CEIL_OP: { _tag: "CEIL_OP" },
+  NOW_OP: { _tag: "NOW_OP" }, RAND_OP: { _tag: "RAND_OP" }, PI_OP: { _tag: "PI_OP" },
+  HALT: { _tag: "HALT" },
+  IF_FN: { _tag: "IF_FN" } as any, IFERROR_FN: { _tag: "IFERROR_FN" } as any,
+  PUSH_TRUE: { _tag: "PUSH_BOOL", value: true }, PUSH_FALSE: { _tag: "PUSH_BOOL", value: false },
+} as any
+
 function classifyToken(tok: string): Opcode | null {
   // 1. Numeric literal
   const n = Number(tok)
   if (!Number.isNaN(n)) return { _tag: "PUSH_NUM", value: n }
 
-  // 2. Keywords
+  // 2. Keywords — use interned singletons where possible
   switch (tok) {
-    case "+": return { _tag: "ADD" }
-    case "-": return { _tag: "SUB" }
-    case "*": return { _tag: "MUL" }
-    case "/": return { _tag: "DIV" }
-    case "%": return { _tag: "MOD" }
-    case "ABS": return { _tag: "ABS" }
-    case "CONCAT": return { _tag: "CONCAT" }
-    case "TO_NUM": return { _tag: "TO_NUM" }
-    case "TO_STR": return { _tag: "TO_STR" }
-    case "DUP": return { _tag: "DUP" }
-    case "SWAP": return { _tag: "SWAP" }
-    case "DROP": return { _tag: "DROP" }
-    case "NEG": return { _tag: "NEG" }
-    case "EQ": return { _tag: "EQ" }
-    case "LT": return { _tag: "LT" }
-    case "GT": return { _tag: "GT" }
-    case "GTE": return { _tag: "GTE" }
-    case "LTE": return { _tag: "LTE" }
-    case "NEQ": return { _tag: "NEQ" }
-    case "NOT": return { _tag: "NOT" }
-    case "IFERROR": return { _tag: "IFERROR" }
+    case "+": return _OP.ADD
+    case "-": return _OP.SUB
+    case "*": return _OP.MUL
+    case "/": return _OP.DIV
+    case "%": return _OP.MOD
+    case "ABS": return _OP.ABS
+    case "CONCAT": return _OP.CONCAT
+    case "TO_NUM": return _OP.TO_NUM
+    case "TO_STR": return _OP.TO_STR
+    case "DUP": return _OP.DUP
+    case "SWAP": return _OP.SWAP
+    case "DROP": return _OP.DROP
+    case "NEG": return _OP.NEG
+    case "EQ": return _OP.EQ
+    case "LT": return _OP.LT
+    case "GT": return _OP.GT
+    case "GTE": return _OP.GTE
+    case "LTE": return _OP.LTE
+    case "NEQ": return _OP.NEQ
+    case "NOT": return _OP.NOT
+    case "IFERROR": return _OP.IFERROR
     case "AND_N": return { _tag: "AND_N", n: 0 } as any
     case "OR_N": return { _tag: "OR_N", n: 0 } as any
     case "CHOOSE_N": return { _tag: "CHOOSE_N", n: 0 } as any
-    case "LEN_OP": return { _tag: "LEN_OP" }
-    case "LEFT_OP": return { _tag: "LEFT_OP" }
-    case "RIGHT_OP": return { _tag: "RIGHT_OP" }
-    case "MID_OP": return { _tag: "MID_OP" }
-    case "TRIM_OP": return { _tag: "TRIM_OP" }
-    case "UPPER_OP": return { _tag: "UPPER_OP" }
-    case "LOWER_OP": return { _tag: "LOWER_OP" }
-    case "SUBSTITUTE_OP": return { _tag: "SUBSTITUTE_OP" }
-    case "SQRT_OP": return { _tag: "SQRT_OP" }
-    case "SIGN_OP": return { _tag: "SIGN_OP" }
-    case "LOG_OP": return { _tag: "LOG_OP" }
-    case "LOG10_OP": return { _tag: "LOG10_OP" }
-    case "PRODUCT_DYN": return { _tag: "PRODUCT_DYN" }
+    case "LEN_OP": return _OP.LEN_OP
+    case "LEFT_OP": return _OP.LEFT_OP
+    case "RIGHT_OP": return _OP.RIGHT_OP
+    case "MID_OP": return _OP.MID_OP
+    case "TRIM_OP": return _OP.TRIM_OP
+    case "UPPER_OP": return _OP.UPPER_OP
+    case "LOWER_OP": return _OP.LOWER_OP
+    case "SUBSTITUTE_OP": return _OP.SUBSTITUTE_OP
+    case "SQRT_OP": return _OP.SQRT_OP
+    case "SIGN_OP": return _OP.SIGN_OP
+    case "LOG_OP": return _OP.LOG_OP
+    case "LOG10_OP": return _OP.LOG10_OP
+    case "PRODUCT_DYN": return _OP.PRODUCT_DYN
     case "PRODUCT_N": return { _tag: "PRODUCT_N", n: 0 } as any
-    case "NOW_OP": return { _tag: "NOW_OP" }
-    case "RAND_OP": return { _tag: "RAND_OP" }
-    case "PI_OP": return { _tag: "PI_OP" }
-    case "IF": return { _tag: "IF" }
-    case "SUM_DYN": return { _tag: "SUM_DYN" }
-    case "MIN_DYN": return { _tag: "MIN_DYN" }
-    case "MAX_DYN": return { _tag: "MAX_DYN" }
-    case "AVG_DYN": return { _tag: "AVG_DYN" }
-    case "COUNT_DYN": return { _tag: "COUNT_DYN" }
-    case "POWER": return { _tag: "POWER" }
-    case "ROUND": return { _tag: "ROUND" }
-    case "FLOOR": return { _tag: "FLOOR_OP" }
-    case "CEIL": return { _tag: "CEIL_OP" }
-    case "HALT": return { _tag: "HALT" }
-    case "true": return { _tag: "PUSH_BOOL", value: true }
-    case "false": return { _tag: "PUSH_BOOL", value: false }
+    case "NOW_OP": return _OP.NOW_OP
+    case "RAND_OP": return _OP.RAND_OP
+    case "PI_OP": return _OP.PI_OP
+    case "IF": return _OP.IF
+    case "SUM_DYN": return _OP.SUM_DYN
+    case "MIN_DYN": return _OP.MIN_DYN
+    case "MAX_DYN": return _OP.MAX_DYN
+    case "AVG_DYN": return _OP.AVG_DYN
+    case "COUNT_DYN": return _OP.COUNT_DYN
+    case "POWER": return _OP.POWER
+    case "ROUND": return _OP.ROUND
+    case "FLOOR": return _OP.FLOOR_OP
+    case "CEIL": return _OP.CEIL_OP
+    case "HALT": return _OP.HALT
+    case "true": return _OP.PUSH_TRUE
+    case "false": return _OP.PUSH_FALSE
   }
 
   // 3. Range reference (A1:A10)
@@ -1239,7 +1265,7 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
   const argCounts: number[] = [] // for function call arity tracking
 
   const pushOp = (tok: string) => {
-    if (tok === "UNARY_NEG") { output.push({ _tag: "NEG" }); return }
+    if (tok === "UNARY_NEG") { output.push(_OP.NEG); return }
     // Map infix operators to RPN opcodes if needed
     const mapped = INFIX_OP_MAP[tok] ?? tok
     const op = classifyToken(mapped)
@@ -1271,7 +1297,7 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
     // Boolean
     const tokUpper = tok.toUpperCase()
     if (tokUpper === "TRUE" || tokUpper === "FALSE") {
-      output.push({ _tag: "PUSH_BOOL", value: tokUpper === "TRUE" })
+      output.push(tokUpper === "TRUE" ? _OP.PUSH_TRUE : _OP.PUSH_FALSE)
       prevWasOperand = true
       continue
     }
@@ -1341,7 +1367,7 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
     if (tok === ")") {
       while (opStack.length > 0 && opStack[opStack.length - 1] !== "(" && !opStack[opStack.length - 1].startsWith("FN:")) {
         const top = opStack.pop()!
-        if (top === "UNARY_NEG") output.push({ _tag: "NEG" })
+        if (top === "UNARY_NEG") output.push(_OP.NEG)
         else pushOp(top)
       }
       if (opStack.length > 0 && opStack[opStack.length - 1] === "(") opStack.pop()
@@ -1367,7 +1393,7 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
           // N-ary functions that always use _N variant regardless of arg count
           const ALWAYS_N = new Set(["AND_N", "OR_N", "CHOOSE_N"])
           if (fnVariant) {
-            output.push({ _tag: fnVariant } as any)
+            output.push(_OP[fnVariant] ?? { _tag: fnVariant } as any)
           } else if (nVariant && (nArgs > 1 || ALWAYS_N.has(nVariant))) {
             output.push({ _tag: nVariant, n: nArgs } as any)
           } else {
@@ -1417,7 +1443,7 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
   while (opStack.length > 0) {
     const top = opStack.pop()!
     if (top === "(") throw new CompileError({ expr: rawExpr, token: "(", position: 0, reason: "Mismatched parentheses" })
-    if (top === "UNARY_NEG") { output.push({ _tag: "NEG" }); continue }
+    if (top === "UNARY_NEG") { output.push(_OP.NEG); continue }
     pushOp(top)
   }
 
