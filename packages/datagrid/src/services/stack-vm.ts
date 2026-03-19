@@ -422,6 +422,10 @@ export const ISERROR_OP = Schema.TaggedStruct("ISERROR_OP", {})
 export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
 
 /** More text functions */
+export const XOR_N = Schema.TaggedStruct("XOR_N", { n: Schema.Number })
+export const ISOWEEKNUM_OP = Schema.TaggedStruct("ISOWEEKNUM_OP", {})
+export const NETWORKDAYS_OP = Schema.TaggedStruct("NETWORKDAYS_OP", {})
+export const SUBTOTAL_N = Schema.TaggedStruct("SUBTOTAL_N", { n: Schema.Number })
 export const DELTA_OP = Schema.TaggedStruct("DELTA_OP", {})
 export const GESTEP_OP = Schema.TaggedStruct("GESTEP_OP", {})
 export const MULTINOMIAL_N = Schema.TaggedStruct("MULTINOMIAL_N", { n: Schema.Number })
@@ -607,7 +611,7 @@ export const Opcode = Schema.Union([
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
-  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, IFNA_OP, EOMONTH_OP, DATEDIF_OP, PERMUT_OP, FACTDOUBLE_OP, MATCH_N, INDEX_N, MODE_N, HARMEAN_N, GEOMEAN_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, DELTA_OP, GESTEP_OP, MULTINOMIAL_N, SERIESSUM_N, SEC_OP, CSC_OP, COTH_OP, SECH_OP, CSCH_OP, SUMIFS_N, AVERAGEIFS_N, NA_OP, COT_OP, ACOT_OP, UNICODE_OP, UNICHAR_OP, ENCODEURL_OP, DAYS_OP, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
+  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, IFNA_OP, EOMONTH_OP, DATEDIF_OP, PERMUT_OP, FACTDOUBLE_OP, MATCH_N, INDEX_N, MODE_N, HARMEAN_N, GEOMEAN_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, XOR_N, ISOWEEKNUM_OP, NETWORKDAYS_OP, SUBTOTAL_N, DELTA_OP, GESTEP_OP, MULTINOMIAL_N, SERIESSUM_N, SEC_OP, CSC_OP, COTH_OP, SECH_OP, CSCH_OP, SUMIFS_N, AVERAGEIFS_N, NA_OP, COT_OP, ACOT_OP, UNICODE_OP, UNICHAR_OP, ENCODEURL_OP, DAYS_OP, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
   IFS_N, SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
@@ -921,6 +925,60 @@ const EXEC: Record<string, Executor> = {
     for (let i = 0; i < vals.length; i++) { while (n >= vals[i]) { result += syms[i]; n -= vals[i] } }
     return str(result)
   }, "ROMAN") }),
+  // XOR_N: exclusive OR — true if odd number of TRUE args
+  XOR_N: (op: any, s) => {
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "XOR")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    let trueCount = 0
+    for (const v of args) { if (!isVMError(v) && asNum(v) !== 0) trueCount++ }
+    const result = bool(trueCount % 2 === 1); s.push(result); return { result }
+  },
+  // ISOWEEKNUM_OP: ISO 8601 week number from serial date
+  ISOWEEKNUM_OP: (_o, s) => ({ result: unop(s, a => {
+    if (isVMError(a)) return a
+    const serial = Math.round(asNum(a))
+    const epoch = new Date(1899, 11, 30)
+    const d = new Date(epoch.getTime() + serial * 86400000)
+    // ISO week: week containing Thursday determines the week number
+    const jan4 = new Date(d.getFullYear(), 0, 4)
+    const dayOfYear = Math.floor((d.getTime() - new Date(d.getFullYear(), 0, 1).getTime()) / 86400000) + 1
+    const dayOfWeek = d.getDay() || 7 // Mon=1..Sun=7
+    const weekNum = Math.ceil((dayOfYear - dayOfWeek + 10) / 7)
+    return num(weekNum)
+  }, "ISOWEEKNUM") }),
+  // NETWORKDAYS_OP: business days between two serial dates (excludes weekends)
+  NETWORKDAYS_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "NETWORKDAYS")); return { result: s[s.length-1] } }
+    const end = Math.round(asNum(s.pop()!)), start = Math.round(asNum(s.pop()!))
+    const epoch = new Date(1899, 11, 30)
+    let count = 0
+    const dir = start <= end ? 1 : -1
+    for (let d = start; dir > 0 ? d <= end : d >= end; d += dir) {
+      const dt = new Date(epoch.getTime() + d * 86400000)
+      const dow = dt.getDay()
+      if (dow !== 0 && dow !== 6) count++
+    }
+    const result = num(count * dir); s.push(result); return { result }
+  },
+  // SUBTOTAL_N: Excel SUBTOTAL dispatcher. SUBTOTAL(function_num, values...)
+  SUBTOTAL_N: (op: any, s) => {
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "SUBTOTAL")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const funcNum = Math.round(asNum(args[0]))
+    const values = args.slice(1).filter(v => !isVMError(v)).map(asNum)
+    let val: number
+    switch (funcNum) {
+      case 1: case 101: val = values.reduce((a, b) => a + b, 0) / values.length; break // AVG
+      case 2: case 102: val = values.length; break // COUNT
+      case 4: case 104: val = Math.max(...values); break // MAX
+      case 5: case 105: val = Math.min(...values); break // MIN
+      case 9: case 109: val = values.reduce((a, b) => a + b, 0); break // SUM
+      default: { s.push(vmError("TYPE_MISMATCH", `SUBTOTAL: unknown func ${funcNum}`)); return { result: s[s.length-1] } }
+    }
+    const result = num(val); s.push(result); return { result }
+  },
   // DELTA_OP: Kronecker delta. DELTA(a, b) = 1 if a==b, 0 otherwise
   DELTA_OP: (_o, s) => {
     if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "DELTA")); return { result: s[s.length-1] } }
@@ -2132,6 +2190,7 @@ const _OP: Record<string, Opcode> = {
   ISERROR_OP: { _tag: "ISERROR_OP" }, ISBLANK_OP: { _tag: "ISBLANK_OP" },
   IFNA_OP: { _tag: "IFNA_OP" }, EOMONTH_OP: { _tag: "EOMONTH_OP" }, DATEDIF_OP: { _tag: "DATEDIF_OP" },
   PERMUT_OP: { _tag: "PERMUT_OP" }, FACTDOUBLE_OP: { _tag: "FACTDOUBLE_OP" },
+  ISOWEEKNUM_OP: { _tag: "ISOWEEKNUM_OP" }, NETWORKDAYS_OP: { _tag: "NETWORKDAYS_OP" },
   DELTA_OP: { _tag: "DELTA_OP" }, GESTEP_OP: { _tag: "GESTEP_OP" }, SEC_OP: { _tag: "SEC_OP" }, CSC_OP: { _tag: "CSC_OP" }, COTH_OP: { _tag: "COTH_OP" },
   SECH_OP: { _tag: "SECH_OP" }, CSCH_OP: { _tag: "CSCH_OP" },
   NA_OP: { _tag: "NA_OP" }, COT_OP: { _tag: "COT_OP" }, ACOT_OP: { _tag: "ACOT_OP" },
@@ -2277,6 +2336,10 @@ function classifyToken(tok: string): Opcode | null {
     case "DATEDIF_OP": return _OP.DATEDIF_OP
     case "PERMUT_OP": return _OP.PERMUT_OP
     case "FACTDOUBLE_OP": return _OP.FACTDOUBLE_OP
+    case "XOR_N": return { _tag: "XOR_N", n: 0 } as any
+    case "ISOWEEKNUM_OP": return _OP.ISOWEEKNUM_OP
+    case "NETWORKDAYS_OP": return _OP.NETWORKDAYS_OP
+    case "SUBTOTAL_N": return { _tag: "SUBTOTAL_N", n: 0 } as any
     case "DELTA_OP": return _OP.DELTA_OP
     case "GESTEP_OP": return _OP.GESTEP_OP
     case "MULTINOMIAL_N": return { _tag: "MULTINOMIAL_N", n: 0 } as any
@@ -2503,13 +2566,14 @@ const INFIX_OP_MAP: Record<string, string> = {
 }
 const RIGHT_ASSOC = new Set<string>(["UNARY_NEG", "^"])
 const ZERO_ARG_FNS = new Set(["NOW", "RAND", "PI", "TODAY"])
-const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N", "SWITCH_N", "IFS_N", "IRR_N", "NPV_N", "VAR_N", "PERCENTILE_N", "COUNTA_N", "COUNTBLANK_N", "SUMPRODUCT_N", "MATCH_N", "INDEX_N", "MODE_N", "HARMEAN_N", "GEOMEAN_N", "AGGREGATE_N", "COUNTIF_N", "COUNTIFS_N", "MULTINOMIAL_N", "SERIESSUM_N", "SUMIFS_N", "AVERAGEIFS_N", "SUMIF_N", "MAXIFS_N", "MINIFS_N", "AVERAGEIF_N", "LARGE_N", "SMALL_N", "STDEV_N", "MEDIAN_N", "RANK_N", "CONCATENATE_N", "TEXTJOIN_N"])
+const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N", "SWITCH_N", "IFS_N", "IRR_N", "NPV_N", "VAR_N", "PERCENTILE_N", "COUNTA_N", "COUNTBLANK_N", "SUMPRODUCT_N", "MATCH_N", "INDEX_N", "MODE_N", "HARMEAN_N", "GEOMEAN_N", "AGGREGATE_N", "COUNTIF_N", "COUNTIFS_N", "XOR_N", "SUBTOTAL_N", "MULTINOMIAL_N", "SERIESSUM_N", "SUMIFS_N", "AVERAGEIFS_N", "SUMIF_N", "MAXIFS_N", "MINIFS_N", "AVERAGEIF_N", "LARGE_N", "SMALL_N", "STDEV_N", "MEDIAN_N", "RANK_N", "CONCATENATE_N", "TEXTJOIN_N"])
 const N_VARIANTS: Record<string, string> = {
   SUM_DYN: "SUM_N", MIN_DYN: "MIN_N", MAX_DYN: "MAX_N", AVG_DYN: "AVG_N",
   PRODUCT_DYN: "PRODUCT_N",
   AND_N: "AND_N", OR_N: "OR_N", CHOOSE_N: "CHOOSE_N", SWITCH_N: "SWITCH_N", IFS_N: "IFS_N",
   IRR_N: "IRR_N", NPV_N: "NPV_N", VAR_N: "VAR_N", PERCENTILE_N: "PERCENTILE_N", COUNTA_N: "COUNTA_N", COUNTBLANK_N: "COUNTBLANK_N",
   SUMPRODUCT_N: "SUMPRODUCT_N", MATCH_N: "MATCH_N", INDEX_N: "INDEX_N", MODE_N: "MODE_N", HARMEAN_N: "HARMEAN_N", GEOMEAN_N: "GEOMEAN_N", AGGREGATE_N: "AGGREGATE_N", COUNTIF_N: "COUNTIF_N", COUNTIFS_N: "COUNTIFS_N", SUMIF_N: "SUMIF_N", MAXIFS_N: "MAXIFS_N", MINIFS_N: "MINIFS_N", AVERAGEIF_N: "AVERAGEIF_N", LARGE_N: "LARGE_N", SMALL_N: "SMALL_N",
+  XOR_N: "XOR_N", SUBTOTAL_N: "SUBTOTAL_N",
   MULTINOMIAL_N: "MULTINOMIAL_N", SERIESSUM_N: "SERIESSUM_N",
   SUMIFS_N: "SUMIFS_N", AVERAGEIFS_N: "AVERAGEIFS_N",
   STDEV_N: "STDEV_N", MEDIAN_N: "MEDIAN_N", RANK_N: "RANK_N", CONCATENATE_N: "CONCATENATE_N", TEXTJOIN_N: "TEXTJOIN_N",
@@ -2602,7 +2666,7 @@ const FUNC_MAP: Record<string, string> = {
   NPV: "NPV_N", VAR: "VAR_N", PERCENTILE: "PERCENTILE_N", COUNTA: "COUNTA_N", COUNTBLANK: "COUNTBLANK_N",
   SUMPRODUCT: "SUMPRODUCT_N", MATCH: "MATCH_N", INDEX: "INDEX_N", MODE: "MODE_N", HARMEAN: "HARMEAN_N", GEOMEAN: "GEOMEAN_N", AGGREGATE: "AGGREGATE_N", COUNTIF: "COUNTIF_N", COUNTIFS: "COUNTIFS_N", SUMIF: "SUMIF_N", MAXIFS: "MAXIFS_N", MINIFS: "MINIFS_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
   STDEV: "STDEV_N", MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
-  IFNA: "IFNA_OP", DELTA: "DELTA_OP", GESTEP: "GESTEP_OP", MULTINOMIAL: "MULTINOMIAL_N", SERIESSUM: "SERIESSUM_N", SEC: "SEC_OP", CSC: "CSC_OP", COTH: "COTH_OP", SECH: "SECH_OP", CSCH: "CSCH_OP", SUMIFS: "SUMIFS_N", AVERAGEIFS: "AVERAGEIFS_N", NA: "NA_OP", COT: "COT_OP", ACOT: "ACOT_OP", UNICODE: "UNICODE_OP", UNICHAR: "UNICHAR_OP", ENCODEURL: "ENCODEURL_OP", DAYS: "DAYS_OP", EOMONTH: "EOMONTH_OP", DATEDIF: "DATEDIF_OP", PERMUT: "PERMUT_OP", FACTDOUBLE: "FACTDOUBLE_OP",
+  IFNA: "IFNA_OP", XOR: "XOR_N", ISOWEEKNUM: "ISOWEEKNUM_OP", NETWORKDAYS: "NETWORKDAYS_OP", SUBTOTAL: "SUBTOTAL_N", DELTA: "DELTA_OP", GESTEP: "GESTEP_OP", MULTINOMIAL: "MULTINOMIAL_N", SERIESSUM: "SERIESSUM_N", SEC: "SEC_OP", CSC: "CSC_OP", COTH: "COTH_OP", SECH: "SECH_OP", CSCH: "CSCH_OP", SUMIFS: "SUMIFS_N", AVERAGEIFS: "AVERAGEIFS_N", NA: "NA_OP", COT: "COT_OP", ACOT: "ACOT_OP", UNICODE: "UNICODE_OP", UNICHAR: "UNICHAR_OP", ENCODEURL: "ENCODEURL_OP", DAYS: "DAYS_OP", EOMONTH: "EOMONTH_OP", DATEDIF: "DATEDIF_OP", PERMUT: "PERMUT_OP", FACTDOUBLE: "FACTDOUBLE_OP",
   DATEVALUE: "DATEVALUE_OP", EDATE: "EDATE_OP", WEEKDAY: "WEEKDAY_OP", WEEKNUM: "WEEKNUM_OP", ROMAN: "ROMAN_OP", ARABIC: "ARABIC_OP", TEXT: "TEXT_OP", NUMBERVALUE: "NUMBERVALUE_OP", REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
   IFS: "IFS_N", SWITCH: "SWITCH_N", VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
   YEAR: "YEAR_OP", MONTH: "MONTH_OP", DAY: "DAY_OP",
@@ -2981,6 +3045,10 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "COMBIN", args: "n, k", description: "Combinations (n choose k)", category: "math" },
   { name: "SUBSTITUTE", args: "text, old, new", description: "Replace all occurrences", category: "text" },
   { name: "IFNA", args: "value, alt", description: "Return alt if value is error", category: "logic" },
+  { name: "XOR", args: "values...", description: "Exclusive OR (true if odd # TRUE)", category: "logic" },
+  { name: "ISOWEEKNUM", args: "serial_date", description: "ISO 8601 week number", category: "info" },
+  { name: "NETWORKDAYS", args: "start, end", description: "Business days between dates (excl. weekends)", category: "info" },
+  { name: "SUBTOTAL", args: "function_num, values...", description: "SUBTOTAL dispatcher (1=AVG,2=COUNT,4=MAX,5=MIN,9=SUM)", category: "stat" },
   { name: "DELTA", args: "a, b", description: "Kronecker delta (1 if a=b, 0 otherwise)", category: "math" },
   { name: "GESTEP", args: "x, step", description: "Step function (1 if x≥step, 0 otherwise)", category: "math" },
   { name: "MULTINOMIAL", args: "values...", description: "Multinomial coefficient (a+b+c)!/(a!·b!·c!)", category: "math" },

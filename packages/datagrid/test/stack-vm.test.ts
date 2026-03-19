@@ -1704,6 +1704,16 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("XOR/ISOWEEKNUM/NETWORKDAYS/SUBTOTAL: utility expansion", () => {
+    // XOR: odd # true = true
+    expect(evalProgramDirect(compileInfixSync("=XOR(1, 0, 1)")).stack[0]).toEqual(bool(false)) // 2 true = even
+    expect(evalProgramDirect(compileInfixSync("=XOR(1, 0, 0)")).stack[0]).toEqual(bool(true))  // 1 true = odd
+    // SUBTOTAL: 9=SUM
+    expect(evalProgramDirect(compileInfixSync("=SUBTOTAL(9, 10, 20, 30)")).stack[0]).toEqual(num(60))
+    // SUBTOTAL: 1=AVG
+    expect(evalProgramDirect(compileInfixSync("=SUBTOTAL(1, 10, 20, 30)")).stack[0]).toEqual(num(20))
+  })
+
   it("DELTA/GESTEP/MULTINOMIAL/SERIESSUM: engineering functions", () => {
     // DELTA: Kronecker
     expect(evalProgramDirect(compileInfixSync("=DELTA(5, 5)")).stack[0]).toEqual(num(1))
