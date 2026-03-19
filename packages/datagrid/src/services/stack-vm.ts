@@ -945,6 +945,10 @@ function classifyToken(tok: string): Opcode | null {
     case "SWAP": return { _tag: "SWAP" }
     case "DROP": return { _tag: "DROP" }
     case "NEG": return { _tag: "NEG" }
+    case "EQ": return { _tag: "EQ" }
+    case "LT": return { _tag: "LT" }
+    case "GT": return { _tag: "GT" }
+    case "NOT": return { _tag: "NOT" }
     case "IF": return { _tag: "IF" }
     case "SUM_DYN": return { _tag: "SUM_DYN" }
     case "MIN_DYN": return { _tag: "MIN_DYN" }
@@ -1112,8 +1116,17 @@ export const extractDepsFromIR = (ir: StackIR): ReadonlyArray<string> => {
 
 /** Operator precedence for shunting-yard */
 const PREC: Record<string, number> = {
+  "<": 0, ">": 0,  // comparison
   "+": 1, "-": 1,
   "*": 2, "/": 2, "%": 2,
+}
+
+/**
+ * Map infix operator tokens to RPN opcodes.
+ * Needed because some infix operators differ from RPN tokens.
+ */
+const INFIX_OP_MAP: Record<string, string> = {
+  "<": "LT", ">": "GT",
 }
 const RIGHT_ASSOC = new Set<string>() // none currently
 
@@ -1125,7 +1138,7 @@ function tokenizeInfix(expr: string): string[] {
     const ch = expr[i]
     if (ch === " " || ch === "\t") { i++; continue }
     // Operators and parens
-    if ("+-*/%(),:".includes(ch)) { tokens.push(ch); i++; continue }
+    if ("+-*/%(),:=<>".includes(ch)) { tokens.push(ch); i++; continue }
     // Number (including decimals and negative literals at start/after operator)
     if (ch >= "0" && ch <= "9" || (ch === "." && i + 1 < expr.length && expr[i + 1] >= "0" && expr[i + 1] <= "9")) {
       let num = ""
@@ -1196,7 +1209,9 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
   const argCounts: number[] = [] // for function call arity tracking
 
   const pushOp = (tok: string) => {
-    const op = classifyToken(tok)
+    // Map infix operators to RPN opcodes if needed
+    const mapped = INFIX_OP_MAP[tok] ?? tok
+    const op = classifyToken(mapped)
     if (!op) throw new CompileError({ expr: rawExpr, token: tok, position: 0, reason: `Unknown operator: ${tok}` })
     output.push(op)
   }

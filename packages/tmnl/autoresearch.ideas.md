@@ -43,13 +43,12 @@
 - Error propagation through cell refs proven (DIV/0 → chain → Error)
 - E2E: compile → extractDeps → DepGraph → topo recalc → eval → write-back
 
-### ✅ FormulaEngineV2 + Range Opcodes (DONE)
-- FormulaEngineV2: register(addr, expr) → auto compile + dep extract + cycle check
-- recalcDirty/recalcAll with topo-sorted eval + CellContext
+### ✅ FormulaEngineV2 + Range + Infix Parser (DONE)
+- FormulaEngineV2: register/registerInfix/registerIR + recalcDirty/recalcAll
+- Infix shunting-yard: =A1+B1*2, =SUM(A1:A5)+B1, operator precedence, parens
 - READ_RANGE + SUM_DYN/MIN_DYN/MAX_DYN/AVG_DYN for SUM(A1:A10) style
-- extractDeps expands ranges to individual cell deps
-- 1K formula perf benchmark: 45ms for 1000 recalcs
-- 20-deep chain cascade proven
+- extractDeps/extractDepsInfix expands ranges
+- 1K formula perf: 45ms, 20-deep chain cascade
 - Next: wire into FormulaConsistency, replace old FormulaEngine callers
 
 ### TxHashMap cell state (production)

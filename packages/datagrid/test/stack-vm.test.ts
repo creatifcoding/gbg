@@ -1006,6 +1006,20 @@ describe("infix parser", () => {
     expect(s.stack[0]).toEqual(num(3))
   })
 
+  it("comparison: =A1>10", () => {
+    const ir = compileInfixSync("=A1>10")
+    const ctx = { readCell: () => num(15), writeCell: () => {} }
+    const s = Effect.runSync(evalProgram(ir, ctx))
+    expect(s.stack[0]).toEqual(bool(true))
+  })
+
+  it("comparison: =A1<B1", () => {
+    const ir = compileInfixSync("=A1<B1")
+    const ctx = { readCell: (a: string) => a === "A1" ? num(5) : num(10), writeCell: () => {} }
+    const s = Effect.runSync(evalProgram(ir, ctx))
+    expect(s.stack[0]).toEqual(bool(true))
+  })
+
   it("rejects mismatched parentheses", async () => {
     await expect(
       Effect.runPromise(compileInfix("=(A1+B1"))
