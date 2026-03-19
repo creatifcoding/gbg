@@ -2885,6 +2885,43 @@ describe("post-450 function coverage", () => {
   // Financial
   it("TBILL2(0.05, 180) = 97.5", () => expect(d("=TBILL2(0.05, 180)")).toBe(97.5))
 
+  // ── 850 batch tests ──
+  // Lookup: array ops
+  it("DISTINCT(1,2,2,3,3,3) = 3", () => expect(d("=DISTINCT(1,2,2,3,3,3)")).toBe(3))
+  it("ARRAYMIN(5,3,8,1) = 1", () => expect(d("=ARRAYMIN(5,3,8,1)")).toBe(1))
+  it("ARRAYMAX(5,3,8,1) = 8", () => expect(d("=ARRAYMAX(5,3,8,1)")).toBe(8))
+  it("ARRAYSUM(1,2,3,4) = 10", () => expect(d("=ARRAYSUM(1,2,3,4)")).toBe(10))
+  it("ARRAYAVG(2,4,6) = 4", () => expect(d("=ARRAYAVG(2,4,6)")).toBe(4))
+  it("ARRAYJOIN(sep, 1, 2, 3) = joined", () => expect(d('=ARRAYJOIN(",", 1, 2, 3)')).toBe("1,2,3"))
+  // Logic: conditional
+  it("ALLEQUAL(5,5,5) = true", () => expect(d("=ALLEQUAL(5,5,5)")).toBe(true))
+  it("ALLEQUAL(5,5,6) = false", () => expect(d("=ALLEQUAL(5,5,6)")).toBe(false))
+  it("ISALL(1,1,1) = true", () => expect(d("=ISALL(1,1,1)")).toBe(true))
+  it("ISALL(1,0,1) = false", () => expect(d("=ISALL(1,0,1)")).toBe(false))
+  it("ISANY(0,0,1) = true", () => expect(d("=ISANY(0,0,1)")).toBe(true))
+  it("ISNONE(0,0,0) = true", () => expect(d("=ISNONE(0,0,0)")).toBe(true))
+  it("ISNONE(0,1,0) = false", () => expect(d("=ISNONE(0,1,0)")).toBe(false))
+  // Math: special functions
+  it("GUDERMANN(0) = 0", () => expect(d("=GUDERMANN(0)")).toBe(0))
+  it("POCHHAMMER(3, 4) = 360", () => expect(d("=POCHHAMMER(3, 4)")).toBe(360))
+  it("DIGAMMA(1) is approx -0.577", () => expect(Math.abs(d("=DIGAMMA(1)") as number - (-0.5))).toBeLessThan(0.1))
+  // Stat: moments
+  it("GINICOEF(1,2,3,4,5) is valid", () => { const v = d("=GINICOEF(1,2,3,4,5)") as number; expect(v).toBeGreaterThan(0); expect(v).toBeLessThan(1); })
+  it("ENTROPY2(1,1,1,1) = 2 (uniform)", () => expect(d("=ENTROPY2(1,1,1,1)")).toBe(2))
+  it("MOMENT(2, 1, 2, 3) = 4.666...", () => expect(Math.abs(d("=MOMENT(2, 1, 2, 3)") as number - 4.666667)).toBeLessThan(0.01))
+  // Text: formatting
+  it("TEXTHASH(hello) is hex string", () => expect(typeof d('=TEXTHASH("hello")')).toBe("string"))
+  it("TEXTMASK2(1234567890, 4) masks", () => expect(d('=TEXTMASK2("1234567890", 4)')).toBe("******7890"))
+  it("TEXTJUSTIFY(hi, 5) pads", () => expect(d('=TEXTJUSTIFY("hi", 5)')).toBe("hi   "))
+  // Financial: ratios
+  it("DRAWDOWN(80, 100) = 0.2", () => expect(d("=DRAWDOWN(80, 100)")).toBe(0.2))
+  it("CALMAR(0.12, 0.3) = 0.4", () => expect(d("=CALMAR(0.12, 0.3)")).toBe(0.4))
+  it("TREYNOR(0.15, 0.03, 1.2) = 0.1", () => expect(d("=TREYNOR(0.15, 0.03, 1.2)")).toBe(0.1))
+  // Info: type checks
+  it("ISFINITE2(42) = true", () => expect(d("=ISFINITE2(42)")).toBe(true))
+  it("ISWHOLE(3) = true", () => expect(d("=ISWHOLE(3)")).toBe(true))
+  it("ISWHOLE(3.5) = false", () => expect(d("=ISWHOLE(3.5)")).toBe(false))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions

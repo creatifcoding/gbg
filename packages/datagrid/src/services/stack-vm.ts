@@ -3099,228 +3099,228 @@ const EXEC: Record<string, Executor> = {
   }, "TBILL2") }),
 
   // ── 850 batch implementations ──
+  // _N variadic: pop n VMValues, operate, push result
   DISTINCT_N: (op: any, s) => {
-    const n = op.n; const seen = new Set<number|string|boolean>(); for (let i = 0; i < n; i++) { seen.add(s.pop()); } s.push(seen.size);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "DISTINCT")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const seen = new Set<any>(); for (const a of args) seen.add(a._tag === "num" ? a.value : a._tag === "str" ? a.value : a._tag === "bool" ? a.value : a)
+    const r = num(seen.size); s.push(r); return { result: r }
   },
   ARRAYSLICE_N: (op: any, s) => {
-    const n = op.n; const vals: any[] = []; for (let i = 0; i < n; i++) vals.unshift(s.pop()); const end = vals.pop(); const start = vals.pop(); s.push(vals.slice(start, end).length > 0 ? vals.slice(start, end)[0] : 0);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ARRAYSLICE")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const end = asNum(args.pop()!); const start = asNum(args.pop()!)
+    const sliced = args.slice(start, end)
+    const r = sliced.length > 0 ? sliced[0] : num(0); s.push(r); return { result: r }
   },
   ARRAYJOIN_N: (op: any, s) => {
-    const n = op.n; const vals: any[] = []; for (let i = 0; i < n; i++) vals.unshift(s.pop()); const sep = String(vals.shift()); s.push(vals.join(sep));
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ARRAYJOIN")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const sep = vmDisplay(args.shift()!)
+    const r = str(args.map(a => a._tag === "str" ? a.value : String(asNum(a))).join(sep)); s.push(r); return { result: r }
   },
   ARRAYREVERSE_N: (op: any, s) => {
-    const n = op.n; const vals: any[] = []; for (let i = 0; i < n; i++) vals.unshift(s.pop()); vals.reverse(); s.push(vals[0] ?? 0);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ARRAYREVERSE")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n); args.reverse()
+    const r = args[0] ?? num(0); s.push(r); return { result: r }
   },
   ARRAYFLATTEN_N: (op: any, s) => {
-    const n = op.n; let sum = 0; for (let i = 0; i < n; i++) sum += Number(s.pop()) || 0; s.push(sum);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ARRAYFLATTEN")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    let sum = 0; for (const a of args) sum += asNum(a)
+    const r = num(sum); s.push(r); return { result: r }
   },
   ARRAYZIP_N: (op: any, s) => {
-    const n = op.n; const vals: any[] = []; for (let i = 0; i < n; i++) vals.unshift(s.pop()); s.push(vals.length >= 2 ? vals[0] + vals[1] : vals[0] ?? 0);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ARRAYZIP")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const r = args.length >= 2 ? num(asNum(args[0]) + asNum(args[1])) : (args[0] ?? num(0)); s.push(r); return { result: r }
   },
   ARRAYMIN_N: (op: any, s) => {
-    const n = op.n; let mn = Infinity; for (let i = 0; i < n; i++) { const v = Number(s.pop()); if (v < mn) mn = v; } s.push(mn);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ARRAYMIN")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    let mn = Infinity; for (const a of args) { const v = asNum(a); if (v < mn) mn = v; }
+    const r = num(mn); s.push(r); return { result: r }
   },
   ARRAYMAX_N: (op: any, s) => {
-    const n = op.n; let mx = -Infinity; for (let i = 0; i < n; i++) { const v = Number(s.pop()); if (v > mx) mx = v; } s.push(mx);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ARRAYMAX")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    let mx = -Infinity; for (const a of args) { const v = asNum(a); if (v > mx) mx = v; }
+    const r = num(mx); s.push(r); return { result: r }
   },
   ARRAYSUM_N: (op: any, s) => {
-    const n = op.n; let sum = 0; for (let i = 0; i < n; i++) sum += Number(s.pop()) || 0; s.push(sum);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ARRAYSUM")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    let sum = 0; for (const a of args) sum += asNum(a)
+    const r = num(sum); s.push(r); return { result: r }
   },
   ARRAYAVG_N: (op: any, s) => {
-    const n = op.n; let sum = 0; for (let i = 0; i < n; i++) sum += Number(s.pop()) || 0; s.push(n > 0 ? sum / n : 0);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ARRAYAVG")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    let sum = 0; for (const a of args) sum += asNum(a)
+    const r = num(n > 0 ? sum / n : 0); s.push(r); return { result: r }
   },
+  // _OP fixed-arg: use unop/binop helpers
   NIFF_OP: (_o: any, s) => {
-    // NIFF(cond, falseVal, trueVal) — negated IF
-    const t = s.pop(); const f = s.pop(); const c = s.pop(); s.push(c ? f : t);
+    if (s.length < 3) { s.push(vmError("STACK_UNDERFLOW", "NIFF")); return { result: s[s.length-1] } }
+    const t = s.pop()!; const f = s.pop()!; const c = s.pop()!
+    const r = asNum(c) ? f : t; s.push(r); return { result: r }
   },
   SWITCHIF_OP: (_o: any, s) => {
-    // SWITCHIF(val, threshold, ifAbove, ifBelow) — conditional switch
-    const below = s.pop(); const above = s.pop(); const threshold = Number(s.pop()); const val = Number(s.pop()); s.push(val > threshold ? above : below);
+    if (s.length < 4) { s.push(vmError("STACK_UNDERFLOW", "SWITCHIF")); return { result: s[s.length-1] } }
+    const below = s.pop()!; const above = s.pop()!; const threshold = s.pop()!; const val = s.pop()!
+    const r = asNum(val) > asNum(threshold) ? above : below; s.push(r); return { result: r }
   },
   COND_N: (op: any, s) => {
-    // COND(c1, v1, c2, v2, ..., default) — like SWITCH with condition pairs
-    const n = op.n; const vals: any[] = []; for (let i = 0; i < n; i++) vals.unshift(s.pop());
-    const def = vals.length % 2 === 1 ? vals.pop() : 0;
-    for (let i = 0; i < vals.length - 1; i += 2) { if (vals[i]) { s.push(vals[i + 1]); return; } }
-    s.push(def);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "COND")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const def = args.length % 2 === 1 ? args.pop()! : num(0)
+    for (let i = 0; i < args.length - 1; i += 2) { if (asNum(args[i])) { s.push(args[i + 1]); return { result: args[i + 1] } } }
+    s.push(def); return { result: def }
   },
   ALLEQUAL_N: (op: any, s) => {
-    const n = op.n; const vals: any[] = []; for (let i = 0; i < n; i++) vals.push(s.pop());
-    s.push(vals.every(v => v === vals[0]) ? true : false);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ALLEQUAL")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const first = asNum(args[0]); const eq = args.every(a => asNum(a) === first)
+    const r = bool(eq); s.push(r); return { result: r }
   },
   ANYGT_N: (op: any, s) => {
-    const n = op.n; const vals: any[] = []; for (let i = 0; i < n; i++) vals.unshift(s.pop());
-    const threshold = Number(vals.shift()); s.push(vals.some(v => Number(v) > threshold) ? true : false);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ANYGT")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const threshold = asNum(args[0]); const any = args.slice(1).some(a => asNum(a) > threshold)
+    const r = bool(any); s.push(r); return { result: r }
   },
   ANYLT_N: (op: any, s) => {
-    const n = op.n; const vals: any[] = []; for (let i = 0; i < n; i++) vals.unshift(s.pop());
-    const threshold = Number(vals.shift()); s.push(vals.some(v => Number(v) < threshold) ? true : false);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ANYLT")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const threshold = asNum(args[0]); const any = args.slice(1).some(a => asNum(a) < threshold)
+    const r = bool(any); s.push(r); return { result: r }
   },
   ANYNE_N: (op: any, s) => {
-    const n = op.n; const vals: any[] = []; for (let i = 0; i < n; i++) vals.unshift(s.pop());
-    const target = vals.shift(); s.push(vals.some(v => v !== target) ? true : false);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ANYNE")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const target = asNum(args[0]); const any = args.slice(1).some(a => asNum(a) !== target)
+    const r = bool(any); s.push(r); return { result: r }
   },
   ISALL_N: (op: any, s) => {
-    const n = op.n; let all = true; for (let i = 0; i < n; i++) { if (!s.pop()) all = false; } s.push(all);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ISALL")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const r = bool(args.every(a => !!asNum(a))); s.push(r); return { result: r }
   },
   ISANY_N: (op: any, s) => {
-    const n = op.n; let any = false; for (let i = 0; i < n; i++) { if (s.pop()) any = true; } s.push(any);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ISANY")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const r = bool(args.some(a => !!asNum(a))); s.push(r); return { result: r }
   },
   ISNONE_N: (op: any, s) => {
-    const n = op.n; let none = true; for (let i = 0; i < n; i++) { if (s.pop()) none = false; } s.push(none);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ISNONE")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const r = bool(args.every(a => !asNum(a))); s.push(r); return { result: r }
   },
-  RANDNORM_OP: (_o: any, s) => {
-    // Box-Muller: RANDNORM(mean, stdev)
-    const sd = Number(s.pop()); const mu = Number(s.pop());
-    const u1 = Math.random(); const u2 = Math.random();
-    s.push(mu + sd * Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2));
-  },
-  RANDEXP_OP: (_o: any, s) => {
-    // RANDEXP(lambda)
-    const lam = Number(s.pop()); s.push(-Math.log(1 - Math.random()) / lam);
-  },
-  RANDINT_OP: (_o: any, s) => {
-    // RANDINT(lo, hi) inclusive
-    const hi = Number(s.pop()); const lo = Number(s.pop());
-    s.push(Math.floor(Math.random() * (hi - lo + 1)) + lo);
-  },
-  COINFLIP_OP: (_o: any, s) => {
-    s.push(Math.random() < 0.5 ? true : false);
-  },
-  GUDERMANN_OP: (_o: any, s) => {
-    // Gudermannian: gd(x) = 2*atan(tanh(x/2))
-    const x = Number(s.pop()); s.push(2 * Math.atan(Math.tanh(x / 2)));
-  },
-  INVERSEGUD_OP: (_o: any, s) => {
-    // Inverse Gudermannian: gd^-1(x) = ln(tan(pi/4 + x/2))
-    const x = Number(s.pop()); s.push(Math.log(Math.tan(Math.PI / 4 + x / 2)));
-  },
-  LANCZOS_OP: (_o: any, s) => {
-    // Lanczos approx for Gamma(x+1) — just push Gamma(x)
-    const x = Number(s.pop());
-    const g = 7; const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
-    if (x < 0.5) { s.push(Math.PI / (Math.sin(Math.PI * x) * Number((() => { const z = 1 - x; let sum = c[0]; for (let i = 1; i < g + 2; i++) sum += c[i] / (z + i - 1); const t = z + g - 0.5; return Math.sqrt(2 * Math.PI) * Math.pow(t, z - 0.5) * Math.exp(-t) * sum; })()))); }
-    else { const z = x - 1; let sum = c[0]; for (let i = 1; i < g + 2; i++) sum += c[i] / (z + i); const t = z + g + 0.5; s.push(Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * sum); }
-  },
-  DIGAMMA_OP: (_o: any, s) => {
-    // Digamma approximation: psi(x) ≈ ln(x) - 1/(2x) - 1/(12x²)
-    const x = Number(s.pop()); s.push(Math.log(x) - 1 / (2 * x) - 1 / (12 * x * x));
-  },
-  POLYGAMMA_OP: (_o: any, s) => {
-    // Polygamma(n, x) — simplified: psi_1(x) ≈ 1/x + 1/(2x²) + 1/(6x³)
-    const x = Number(s.pop()); const n = Number(s.pop());
-    if (n === 0) { s.push(Math.log(x) - 1 / (2 * x) - 1 / (12 * x * x)); }
-    else if (n === 1) { s.push(1 / x + 1 / (2 * x * x) + 1 / (6 * x * x * x)); }
-    else { s.push(0); }
-  },
-  ZETA2_OP: (_o: any, s) => {
-    // Riemann zeta(s) — partial sum for s>1
-    const sv = Number(s.pop()); let sum = 0; for (let k = 1; k <= 1000; k++) sum += Math.pow(k, -sv); s.push(sum);
-  },
-  BETAFN_OP: (_o: any, s) => {
-    // Beta(a,b) = Gamma(a)*Gamma(b)/Gamma(a+b) — simple approx
-    const b = Number(s.pop()); const a = Number(s.pop());
-    const lgamma = (z: number) => { if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - lgamma(1 - z); z -= 1; let x = 0.99999999999980993; const g = 7; const c = [676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7]; for (let i = 0; i < 8; i++) x += c[i] / (z + i + 1); const t = z + g + 0.5; return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x); };
-    s.push(Math.exp(lgamma(a) + lgamma(b) - lgamma(a + b)));
-  },
-  POCHHAMMER_OP: (_o: any, s) => {
-    // Pochhammer(x, n) = x*(x+1)*(x+2)*...*(x+n-1)
-    const n = Math.round(Number(s.pop())); const x = Number(s.pop());
-    let p = 1; for (let i = 0; i < n; i++) p *= (x + i); s.push(p);
-  },
+  RANDNORM_OP: (_o: any, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); if (pe) return pe; const mu = asNum(a), sd = asNum(b); const u1 = Math.random(), u2 = Math.random(); return num(mu + sd * Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)) }, "RANDNORM") }),
+  RANDEXP_OP: (_o: any, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const lam = asNum(a); return num(-Math.log(1 - Math.random()) / lam) }, "RANDEXP") }),
+  RANDINT_OP: (_o: any, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); if (pe) return pe; const lo = Math.round(asNum(a)), hi = Math.round(asNum(b)); return num(Math.floor(Math.random() * (hi - lo + 1)) + lo) }, "RANDINT") }),
+  COINFLIP_OP: (_o: any, s) => { const r = bool(Math.random() < 0.5); s.push(r); return { result: r } },
+  GUDERMANN_OP: (_o: any, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; return num(2 * Math.atan(Math.tanh(asNum(a) / 2))) }, "GUDERMANN") }),
+  INVERSEGUD_OP: (_o: any, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; return num(Math.log(Math.tan(Math.PI / 4 + asNum(a) / 2))) }, "INVERSEGUD") }),
+  LANCZOS_OP: (_o: any, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const x = asNum(a); const g = 7; const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7]; if (x < 0.5) { const z2 = 1 - x; let sm = c[0]; for (let i = 1; i < g + 2; i++) sm += c[i] / (z2 + i - 1); const t = z2 + g - 0.5; return num(Math.PI / (Math.sin(Math.PI * x) * Math.sqrt(2 * Math.PI) * Math.pow(t, z2 - 0.5) * Math.exp(-t) * sm)) } const z = x - 1; let sm = c[0]; for (let i = 1; i < g + 2; i++) sm += c[i] / (z + i); const t = z + g + 0.5; return num(Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * sm) }, "LANCZOS") }),
+  DIGAMMA_OP: (_o: any, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const x = asNum(a); return num(Math.log(x) - 1 / (2 * x) - 1 / (12 * x * x)) }, "DIGAMMA") }),
+  POLYGAMMA_OP: (_o: any, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); if (pe) return pe; const n = asNum(a), x = asNum(b); if (n === 0) return num(Math.log(x) - 1 / (2 * x) - 1 / (12 * x * x)); if (n === 1) return num(1 / x + 1 / (2 * x * x) + 1 / (6 * x * x * x)); return num(0) }, "POLYGAMMA") }),
+  ZETA2_OP: (_o: any, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const sv = asNum(a); let sum = 0; for (let k = 1; k <= 1000; k++) sum += Math.pow(k, -sv); return num(sum) }, "ZETA2") }),
+  BETAFN_OP: (_o: any, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); if (pe) return pe; const av = asNum(a), bv = asNum(b); const lgamma = (z: number): number => { if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - lgamma(1 - z); z -= 1; let x = 0.99999999999980993; const cc = [676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7]; for (let i = 0; i < 8; i++) x += cc[i] / (z + i + 1); const t = z + 7.5; return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x) }; return num(Math.exp(lgamma(av) + lgamma(bv) - lgamma(av + bv))) }, "BETAFN") }),
+  POCHHAMMER_OP: (_o: any, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); if (pe) return pe; const x = asNum(a), n = Math.round(asNum(b)); let p = 1; for (let i = 0; i < n; i++) p *= (x + i); return num(p) }, "POCHHAMMER") }),
   ENTROPY2_N: (op: any, s) => {
-    // Shannon entropy of a set of values
-    const n = op.n; const vals: number[] = []; for (let i = 0; i < n; i++) vals.push(Number(s.pop()));
-    const total = vals.reduce((a, b) => a + b, 0);
-    if (total === 0) { s.push(0); return; }
-    let H = 0; for (const v of vals) { const p = v / total; if (p > 0) H -= p * Math.log2(p); } s.push(H);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ENTROPY2")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const vals = args.map(a => asNum(a)); const total = vals.reduce((a, b) => a + b, 0)
+    if (total === 0) { const r = num(0); s.push(r); return { result: r } }
+    let H = 0; for (const v of vals) { const p = v / total; if (p > 0) H -= p * Math.log2(p) }
+    const r = num(H); s.push(r); return { result: r }
   },
   GINICOEF_N: (op: any, s) => {
-    const n = op.n; const vals: number[] = []; for (let i = 0; i < n; i++) vals.push(Number(s.pop()));
-    vals.sort((a, b) => a - b); const mu = vals.reduce((a, b) => a + b, 0) / n;
-    if (mu === 0) { s.push(0); return; }
-    let sum = 0; for (let i = 0; i < n; i++) sum += (2 * (i + 1) - n - 1) * vals[i];
-    s.push(sum / (n * n * mu));
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "GINICOEF")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const vals = args.map(a => asNum(a)).sort((a, b) => a - b); const mu = vals.reduce((a, b) => a + b, 0) / n
+    if (mu === 0) { const r = num(0); s.push(r); return { result: r } }
+    let sum = 0; for (let i = 0; i < n; i++) sum += (2 * (i + 1) - n - 1) * vals[i]
+    const r = num(sum / (n * n * mu)); s.push(r); return { result: r }
   },
   MOMENT_N: (op: any, s) => {
-    // kth raw moment about zero: E[X^k]
-    const n = op.n; const vals: number[] = []; for (let i = 0; i < n; i++) vals.unshift(Number(s.pop()));
-    const k = vals.shift()!; const sum = vals.reduce((a, v) => a + Math.pow(v, k), 0);
-    s.push(sum / vals.length);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "MOMENT")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const k = asNum(args[0]); const vals = args.slice(1).map(a => asNum(a))
+    const sum = vals.reduce((a, v) => a + Math.pow(v, k), 0)
+    const r = num(sum / vals.length); s.push(r); return { result: r }
   },
   CMOMENT_N: (op: any, s) => {
-    // kth central moment: E[(X - mu)^k]
-    const n = op.n; const vals: number[] = []; for (let i = 0; i < n; i++) vals.unshift(Number(s.pop()));
-    const k = vals.shift()!; const mu = vals.reduce((a, b) => a + b, 0) / vals.length;
-    s.push(vals.reduce((a, v) => a + Math.pow(v - mu, k), 0) / vals.length);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "CMOMENT")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const k = asNum(args[0]); const vals = args.slice(1).map(a => asNum(a))
+    const mu = vals.reduce((a, b) => a + b, 0) / vals.length
+    const r = num(vals.reduce((a, v) => a + Math.pow(v - mu, k), 0) / vals.length); s.push(r); return { result: r }
   },
   ZSCORE3_N: (op: any, s) => {
-    // ZSCORE3(value, vals...) — z-score of first value against the rest
-    const n = op.n; const vals: number[] = []; for (let i = 0; i < n; i++) vals.unshift(Number(s.pop()));
-    const target = vals.shift()!; const mu = vals.reduce((a, b) => a + b, 0) / vals.length;
-    const sigma = Math.sqrt(vals.reduce((a, v) => a + (v - mu) * (v - mu), 0) / vals.length);
-    s.push(sigma === 0 ? 0 : (target - mu) / sigma);
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "ZSCORE3")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const target = asNum(args[0]); const vals = args.slice(1).map(a => asNum(a))
+    const mu = vals.reduce((a, b) => a + b, 0) / vals.length
+    const sigma = Math.sqrt(vals.reduce((a, v) => a + (v - mu) * (v - mu), 0) / vals.length)
+    const r = num(sigma === 0 ? 0 : (target - mu) / sigma); s.push(r); return { result: r }
   },
   PERCENTILE2_N: (op: any, s) => {
-    // PERCENTILE2(k, vals...) — percentile of k-th fraction from values
-    const n = op.n; const vals: number[] = []; for (let i = 0; i < n; i++) vals.unshift(Number(s.pop()));
-    const k = Number(vals.shift()!); vals.sort((a, b) => a - b);
-    const idx = k * (vals.length - 1); const lo = Math.floor(idx); const hi = Math.ceil(idx);
-    s.push(lo === hi ? vals[lo] : vals[lo] + (vals[hi] - vals[lo]) * (idx - lo));
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "PERCENTILE2")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const k = asNum(args[0]); const vals = args.slice(1).map(a => asNum(a)).sort((a, b) => a - b)
+    const idx = k * (vals.length - 1); const lo = Math.floor(idx); const hi = Math.ceil(idx)
+    const r = num(lo === hi ? vals[lo] : vals[lo] + (vals[hi] - vals[lo]) * (idx - lo)); s.push(r); return { result: r }
   },
-  TEXTFORMAT_OP: (_o: any, s) => {
-    // TEXTFORMAT(template, value) — simple {0} replacement
-    const val = s.pop(); const tpl = String(s.pop()); s.push(tpl.replace(/\{0\}/g, String(val)));
-  },
-  TEXTJUSTIFY_OP: (_o: any, s) => {
-    // TEXTJUSTIFY(text, width) — pad to width
-    const w = Number(s.pop()); const t = String(s.pop()); s.push(t.length >= w ? t : t + " ".repeat(w - t.length));
-  },
-  TEXTMASK2_OP: (_o: any, s) => {
-    // TEXTMASK2(text, showLast) — mask all but last N chars
-    const n = Number(s.pop()); const t = String(s.pop());
-    s.push(n >= t.length ? t : "*".repeat(t.length - n) + t.slice(-n));
-  },
-  TEXTHASH_OP: (_o: any, s) => {
-    // Simple DJB2 hash → hex string
-    const t = String(s.pop()); let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) >>> 0;
-    s.push(h.toString(16));
-  },
+  TEXTFORMAT_OP: (_o: any, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); if (pe) return pe; return str(vmDisplay(a).replace(/\{0\}/g, String(asNum(b) !== 0 ? asNum(b) : vmDisplay(b)))) }, "TEXTFORMAT") }),
+  TEXTJUSTIFY_OP: (_o: any, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); if (pe) return pe; const t = vmDisplay(a), w = asNum(b); return str(t.length >= w ? t : t + " ".repeat(w - t.length)) }, "TEXTJUSTIFY") }),
+  TEXTMASK2_OP: (_o: any, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); if (pe) return pe; const t = vmDisplay(a), n = asNum(b); return str(n >= t.length ? t : "*".repeat(t.length - n) + t.slice(-n)) }, "TEXTMASK2") }),
+  TEXTHASH_OP: (_o: any, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const t = vmDisplay(a); let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) >>> 0; return str(h.toString(16)) }, "TEXTHASH") }),
   TEXTREPLACE2_OP: (_o: any, s) => {
-    // TEXTREPLACE2(text, old, new) — replace all occurrences
-    const nw = String(s.pop()); const old = String(s.pop()); const t = String(s.pop());
-    s.push(t.split(old).join(nw));
+    if (s.length < 3) { s.push(vmError("STACK_UNDERFLOW", "TEXTREPLACE2")); return { result: s[s.length-1] } }
+    const nw = s.pop()!; const old = s.pop()!; const t = s.pop()!
+    const r = str(vmDisplay(t).split(vmDisplay(old)).join(vmDisplay(nw))); s.push(r); return { result: r }
   },
-  TEXTFILL_OP: (_o: any, s) => {
-    // TEXTFILL(template, v1) — fills {1} placeholder
-    const v1 = s.pop(); const tpl = String(s.pop()); s.push(tpl.replace(/\{1\}/g, String(v1)));
-  },
+  TEXTFILL_OP: (_o: any, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); if (pe) return pe; return str(vmDisplay(a).replace(/\{1\}/g, vmDisplay(b))) }, "TEXTFILL") }),
   CAGR2_OP: (_o: any, s) => {
-    // CAGR2(beginValue, endValue, years)
-    const years = Number(s.pop()); const end = Number(s.pop()); const begin = Number(s.pop());
-    s.push(begin === 0 ? 0 : Math.pow(end / begin, 1 / years) - 1);
+    if (s.length < 3) { s.push(vmError("STACK_UNDERFLOW", "CAGR2")); return { result: s[s.length-1] } }
+    const years = s.pop()!; const end = s.pop()!; const begin = s.pop()!
+    const bv = asNum(begin); const r = num(bv === 0 ? 0 : Math.pow(asNum(end) / bv, 1 / asNum(years)) - 1); s.push(r); return { result: r }
   },
-  DRAWDOWN_OP: (_o: any, s) => {
-    // DRAWDOWN(currentValue, peakValue) — drawdown percentage
-    const peak = Number(s.pop()); const curr = Number(s.pop());
-    s.push(peak === 0 ? 0 : (peak - curr) / peak);
-  },
-  CALMAR_OP: (_o: any, s) => {
-    // CALMAR(annualReturn, maxDrawdown)
-    const dd = Number(s.pop()); const ret = Number(s.pop());
-    s.push(dd === 0 ? 0 : ret / Math.abs(dd));
-  },
+  DRAWDOWN_OP: (_o: any, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); if (pe) return pe; const curr = asNum(a), peak = asNum(b); return num(peak === 0 ? 0 : (peak - curr) / peak) }, "DRAWDOWN") }),
+  CALMAR_OP: (_o: any, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); if (pe) return pe; const ret = asNum(a), dd = asNum(b); return num(dd === 0 ? 0 : ret / Math.abs(dd)) }, "CALMAR") }),
   TREYNOR_OP: (_o: any, s) => {
-    // TREYNOR(portfolioReturn, riskFreeRate, beta)
-    const beta = Number(s.pop()); const rf = Number(s.pop()); const rp = Number(s.pop());
-    s.push(beta === 0 ? 0 : (rp - rf) / beta);
+    if (s.length < 3) { s.push(vmError("STACK_UNDERFLOW", "TREYNOR")); return { result: s[s.length-1] } }
+    const beta = s.pop()!; const rf = s.pop()!; const rp = s.pop()!
+    const bv = asNum(beta); const r = num(bv === 0 ? 0 : (asNum(rp) - asNum(rf)) / bv); s.push(r); return { result: r }
   },
-  ISFINITE2_OP: (_o: any, s) => {
-    const v = Number(s.pop()); s.push(Number.isFinite(v) ? true : false);
-  },
-  ISWHOLE_OP: (_o: any, s) => {
-    const v = Number(s.pop()); s.push(Number.isInteger(v) ? true : false);
-  },
+  ISFINITE2_OP: (_o: any, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; return bool(Number.isFinite(asNum(a))) }, "ISFINITE2") }),
+  ISWHOLE_OP: (_o: any, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; return bool(Number.isInteger(asNum(a))) }, "ISWHOLE") }),
   MACAULAY_OP: (_o, s) => {
     if (s.length < 3) { s.push(vmError("STACK_UNDERFLOW", "MACAULAY")); return { result: s[s.length-1] } }
     const n2 = asNum(s.pop()!), ytm = asNum(s.pop()!), coupon = asNum(s.pop()!)
@@ -8169,6 +8169,32 @@ function classifyToken(tok: string): Opcode | null {
     case "BONDYIELD_OP": return _OP.BONDYIELD_OP
     case "TBILL2_OP": return _OP.TBILL2_OP
     case "MACAULAY_OP": return _OP.MACAULAY_OP
+    case "NIFF_OP": return { _tag: "NIFF_OP" } as any
+    case "SWITCHIF_OP": return { _tag: "SWITCHIF_OP" } as any
+    case "RANDNORM_OP": return { _tag: "RANDNORM_OP" } as any
+    case "RANDEXP_OP": return { _tag: "RANDEXP_OP" } as any
+    case "RANDINT_OP": return { _tag: "RANDINT_OP" } as any
+    case "COINFLIP_OP": return { _tag: "COINFLIP_OP" } as any
+    case "GUDERMANN_OP": return { _tag: "GUDERMANN_OP" } as any
+    case "INVERSEGUD_OP": return { _tag: "INVERSEGUD_OP" } as any
+    case "LANCZOS_OP": return { _tag: "LANCZOS_OP" } as any
+    case "DIGAMMA_OP": return { _tag: "DIGAMMA_OP" } as any
+    case "POLYGAMMA_OP": return { _tag: "POLYGAMMA_OP" } as any
+    case "ZETA2_OP": return { _tag: "ZETA2_OP" } as any
+    case "BETAFN_OP": return { _tag: "BETAFN_OP" } as any
+    case "POCHHAMMER_OP": return { _tag: "POCHHAMMER_OP" } as any
+    case "TEXTFORMAT_OP": return { _tag: "TEXTFORMAT_OP" } as any
+    case "TEXTJUSTIFY_OP": return { _tag: "TEXTJUSTIFY_OP" } as any
+    case "TEXTMASK2_OP": return { _tag: "TEXTMASK2_OP" } as any
+    case "TEXTHASH_OP": return { _tag: "TEXTHASH_OP" } as any
+    case "TEXTREPLACE2_OP": return { _tag: "TEXTREPLACE2_OP" } as any
+    case "TEXTFILL_OP": return { _tag: "TEXTFILL_OP" } as any
+    case "CAGR2_OP": return { _tag: "CAGR2_OP" } as any
+    case "DRAWDOWN_OP": return { _tag: "DRAWDOWN_OP" } as any
+    case "CALMAR_OP": return { _tag: "CALMAR_OP" } as any
+    case "TREYNOR_OP": return { _tag: "TREYNOR_OP" } as any
+    case "ISFINITE2_OP": return { _tag: "ISFINITE2_OP" } as any
+    case "ISWHOLE_OP": return { _tag: "ISWHOLE_OP" } as any
     case "FIBONACCI2_OP": return _OP.FIBONACCI2_OP
     case "MOTZKIN_OP": return _OP.MOTZKIN_OP
     case "DERANGEMENT_OP": return _OP.DERANGEMENT_OP
