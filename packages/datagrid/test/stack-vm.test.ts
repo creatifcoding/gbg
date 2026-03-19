@@ -2652,6 +2652,33 @@ describe("post-450 function coverage", () => {
   it("ISALPHA(hello) = true", () => expect(d("=ISALPHA(\"hello\")")).toBe(true))
   it("ISALPHA(hello1) = false", () => expect(d("=ISALPHA(\"hello1\")")).toBe(false))
 
+  // Geometry
+  it("CIRCLEAREA(1) ≈ π", () => expect(d("=CIRCLEAREA(1)")).toBeCloseTo(Math.PI, 5))
+  it("SPHEREVOL(1) ≈ 4/3π", () => expect(d("=SPHEREVOL(1)")).toBeCloseTo(4/3*Math.PI, 5))
+  it("CYLINDERVOL(2,3) ≈ 12π", () => expect(d("=CYLINDERVOL(2,3)")).toBeCloseTo(12*Math.PI, 5))
+
+  // Stat: kurtosis/skewness
+  it("KURTOSIS(1,2,3,4,5) ≈ -1.3", () => expect(d("=KURTOSIS(1,2,3,4,5)")).toBeCloseTo(-1.3, 1))
+  it("SKEWNESS(1,2,3,4,5) ≈ 0", () => expect(d("=SKEWNESS(1,2,3,4,5)")).toBeCloseTo(0, 5))
+  it("GEOMEAN2(2,8) = 4", () => expect(d("=GEOMEAN2(2,8)")).toBeCloseTo(4, 5))
+  it("HARMEAN2(1,3) = 1.5", () => expect(d("=HARMEAN2(1,3)")).toBeCloseTo(1.5, 5))
+
+  // Text
+  it("TEXTSLUG(Hello World!) = hello-world", () => expect(d("=TEXTSLUG(\"Hello World!\")")).toBe("hello-world"))
+  it("TEXTASCII strips unicode", () => expect(d("=TEXTASCII(\"café\")")).toBe("caf"))
+  it("ISNUMSTR(42) = true", () => expect(d("=ISNUMSTR(\"42\")")).toBe(true))
+  it("ISNUMSTR(abc) = false", () => expect(d("=ISNUMSTR(\"abc\")")).toBe(false))
+
+  // Financial
+  it("ROI(150, 100) = 0.5", () => expect(d("=ROI(150, 100)")).toBe(0.5))
+  it("PAYBACK(1000, 250) = 4", () => expect(d("=PAYBACK(1000, 250)")).toBe(4))
+
+  // Logic: ALL/ANY/NONE
+  it("ALL2(TRUE,TRUE) = true", () => expect(d("=ALL2(TRUE,TRUE)")).toBe(true))
+  it("ALL2(TRUE,FALSE) = false", () => expect(d("=ALL2(TRUE,FALSE)")).toBe(false))
+  it("ANY2(FALSE,TRUE) = true", () => expect(d("=ANY2(FALSE,TRUE)")).toBe(true))
+  it("NONE2(FALSE,FALSE) = true", () => expect(d("=NONE2(FALSE,FALSE)")).toBe(true))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
