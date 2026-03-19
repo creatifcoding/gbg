@@ -1704,6 +1704,19 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("DELTA/GESTEP/MULTINOMIAL/SERIESSUM: engineering functions", () => {
+    // DELTA: Kronecker
+    expect(evalProgramDirect(compileInfixSync("=DELTA(5, 5)")).stack[0]).toEqual(num(1))
+    expect(evalProgramDirect(compileInfixSync("=DELTA(5, 4)")).stack[0]).toEqual(num(0))
+    // GESTEP
+    expect(evalProgramDirect(compileInfixSync("=GESTEP(3, 2)")).stack[0]).toEqual(num(1))
+    expect(evalProgramDirect(compileInfixSync("=GESTEP(1, 2)")).stack[0]).toEqual(num(0))
+    // MULTINOMIAL(2,3,4) = 9!/(2!*3!*4!) = 1260
+    expect(evalProgramDirect(compileInfixSync("=MULTINOMIAL(2, 3, 4)")).stack[0]).toEqual(num(1260))
+    // SERIESSUM: x=2, n=0, m=1, coeffs=[1,2,3] → 1*2^0 + 2*2^1 + 3*2^2 = 1+4+12 = 17
+    expect(evalProgramDirect(compileInfixSync("=SERIESSUM(2, 0, 1, 1, 2, 3)")).stack[0]).toEqual(num(17))
+  })
+
   it("SEC/CSC/COTH/SECH/CSCH: trig & hyp completions", () => {
     // SEC(0) = 1/cos(0) = 1
     expect(evalProgramDirect(compileInfixSync("=SEC(0)")).stack[0]).toEqual(num(1))

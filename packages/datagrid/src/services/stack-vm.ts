@@ -422,6 +422,10 @@ export const ISERROR_OP = Schema.TaggedStruct("ISERROR_OP", {})
 export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
 
 /** More text functions */
+export const DELTA_OP = Schema.TaggedStruct("DELTA_OP", {})
+export const GESTEP_OP = Schema.TaggedStruct("GESTEP_OP", {})
+export const MULTINOMIAL_N = Schema.TaggedStruct("MULTINOMIAL_N", { n: Schema.Number })
+export const SERIESSUM_N = Schema.TaggedStruct("SERIESSUM_N", { n: Schema.Number })
 export const SEC_OP = Schema.TaggedStruct("SEC_OP", {})
 export const CSC_OP = Schema.TaggedStruct("CSC_OP", {})
 export const COTH_OP = Schema.TaggedStruct("COTH_OP", {})
@@ -603,7 +607,7 @@ export const Opcode = Schema.Union([
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
-  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, IFNA_OP, EOMONTH_OP, DATEDIF_OP, PERMUT_OP, FACTDOUBLE_OP, MATCH_N, INDEX_N, MODE_N, HARMEAN_N, GEOMEAN_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, SEC_OP, CSC_OP, COTH_OP, SECH_OP, CSCH_OP, SUMIFS_N, AVERAGEIFS_N, NA_OP, COT_OP, ACOT_OP, UNICODE_OP, UNICHAR_OP, ENCODEURL_OP, DAYS_OP, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
+  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, IFNA_OP, EOMONTH_OP, DATEDIF_OP, PERMUT_OP, FACTDOUBLE_OP, MATCH_N, INDEX_N, MODE_N, HARMEAN_N, GEOMEAN_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, DELTA_OP, GESTEP_OP, MULTINOMIAL_N, SERIESSUM_N, SEC_OP, CSC_OP, COTH_OP, SECH_OP, CSCH_OP, SUMIFS_N, AVERAGEIFS_N, NA_OP, COT_OP, ACOT_OP, UNICODE_OP, UNICHAR_OP, ENCODEURL_OP, DAYS_OP, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
   IFS_N, SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
@@ -917,6 +921,38 @@ const EXEC: Record<string, Executor> = {
     for (let i = 0; i < vals.length; i++) { while (n >= vals[i]) { result += syms[i]; n -= vals[i] } }
     return str(result)
   }, "ROMAN") }),
+  // DELTA_OP: Kronecker delta. DELTA(a, b) = 1 if a==b, 0 otherwise
+  DELTA_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "DELTA")); return { result: s[s.length-1] } }
+    const b = asNum(s.pop()!), a = asNum(s.pop()!)
+    const result = num(a === b ? 1 : 0); s.push(result); return { result }
+  },
+  // GESTEP_OP: step function. GESTEP(x, step) = 1 if x>=step, 0 otherwise
+  GESTEP_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "GESTEP")); return { result: s[s.length-1] } }
+    const step = asNum(s.pop()!), x = asNum(s.pop()!)
+    const result = num(x >= step ? 1 : 0); s.push(result); return { result }
+  },
+  // MULTINOMIAL_N: multinomial(a,b,c) = (a+b+c)! / (a!*b!*c!)
+  MULTINOMIAL_N: (op: any, s) => {
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "MULTINOMIAL")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n).map(v => Math.round(asNum(v)))
+    const total = args.reduce((a, b) => a + b, 0)
+    const factorial = (n: number) => { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r }
+    const denom = args.reduce((p, v) => p * factorial(v), 1)
+    const result = num(factorial(total) / denom); s.push(result); return { result }
+  },
+  // SERIESSUM_N: power series sum. SERIESSUM(x, n, m, coeff...) = Σ coeff_i * x^(n + i*m)
+  SERIESSUM_N: (op: any, s) => {
+    const nArgs = op.n as number
+    if (s.length < nArgs) { s.push(vmError("STACK_UNDERFLOW", "SERIESSUM")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - nArgs, nArgs)
+    const x = asNum(args[0]), n2 = asNum(args[1]), m = asNum(args[2])
+    let total = 0
+    for (let i = 3; i < args.length; i++) { total += asNum(args[i]) * Math.pow(x, n2 + (i - 3) * m) }
+    const result = num(total); s.push(result); return { result }
+  },
   // SEC_OP: secant = 1/cos
   SEC_OP: (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const c = Math.cos(asNum(a)); return c === 0 ? vmError("DIV_ZERO", "SEC") : num(1 / c) }, "SEC") }),
   // CSC_OP: cosecant = 1/sin
@@ -2096,7 +2132,7 @@ const _OP: Record<string, Opcode> = {
   ISERROR_OP: { _tag: "ISERROR_OP" }, ISBLANK_OP: { _tag: "ISBLANK_OP" },
   IFNA_OP: { _tag: "IFNA_OP" }, EOMONTH_OP: { _tag: "EOMONTH_OP" }, DATEDIF_OP: { _tag: "DATEDIF_OP" },
   PERMUT_OP: { _tag: "PERMUT_OP" }, FACTDOUBLE_OP: { _tag: "FACTDOUBLE_OP" },
-  SEC_OP: { _tag: "SEC_OP" }, CSC_OP: { _tag: "CSC_OP" }, COTH_OP: { _tag: "COTH_OP" },
+  DELTA_OP: { _tag: "DELTA_OP" }, GESTEP_OP: { _tag: "GESTEP_OP" }, SEC_OP: { _tag: "SEC_OP" }, CSC_OP: { _tag: "CSC_OP" }, COTH_OP: { _tag: "COTH_OP" },
   SECH_OP: { _tag: "SECH_OP" }, CSCH_OP: { _tag: "CSCH_OP" },
   NA_OP: { _tag: "NA_OP" }, COT_OP: { _tag: "COT_OP" }, ACOT_OP: { _tag: "ACOT_OP" },
   UNICODE_OP: { _tag: "UNICODE_OP" }, UNICHAR_OP: { _tag: "UNICHAR_OP" }, ENCODEURL_OP: { _tag: "ENCODEURL_OP" }, DAYS_OP: { _tag: "DAYS_OP" }, DATEVALUE_OP: { _tag: "DATEVALUE_OP" }, EDATE_OP: { _tag: "EDATE_OP" },
@@ -2241,6 +2277,10 @@ function classifyToken(tok: string): Opcode | null {
     case "DATEDIF_OP": return _OP.DATEDIF_OP
     case "PERMUT_OP": return _OP.PERMUT_OP
     case "FACTDOUBLE_OP": return _OP.FACTDOUBLE_OP
+    case "DELTA_OP": return _OP.DELTA_OP
+    case "GESTEP_OP": return _OP.GESTEP_OP
+    case "MULTINOMIAL_N": return { _tag: "MULTINOMIAL_N", n: 0 } as any
+    case "SERIESSUM_N": return { _tag: "SERIESSUM_N", n: 0 } as any
     case "SEC_OP": return _OP.SEC_OP
     case "CSC_OP": return _OP.CSC_OP
     case "COTH_OP": return _OP.COTH_OP
@@ -2463,13 +2503,14 @@ const INFIX_OP_MAP: Record<string, string> = {
 }
 const RIGHT_ASSOC = new Set<string>(["UNARY_NEG", "^"])
 const ZERO_ARG_FNS = new Set(["NOW", "RAND", "PI", "TODAY"])
-const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N", "SWITCH_N", "IFS_N", "IRR_N", "NPV_N", "VAR_N", "PERCENTILE_N", "COUNTA_N", "COUNTBLANK_N", "SUMPRODUCT_N", "MATCH_N", "INDEX_N", "MODE_N", "HARMEAN_N", "GEOMEAN_N", "AGGREGATE_N", "COUNTIF_N", "COUNTIFS_N", "SUMIFS_N", "AVERAGEIFS_N", "SUMIF_N", "MAXIFS_N", "MINIFS_N", "AVERAGEIF_N", "LARGE_N", "SMALL_N", "STDEV_N", "MEDIAN_N", "RANK_N", "CONCATENATE_N", "TEXTJOIN_N"])
+const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N", "SWITCH_N", "IFS_N", "IRR_N", "NPV_N", "VAR_N", "PERCENTILE_N", "COUNTA_N", "COUNTBLANK_N", "SUMPRODUCT_N", "MATCH_N", "INDEX_N", "MODE_N", "HARMEAN_N", "GEOMEAN_N", "AGGREGATE_N", "COUNTIF_N", "COUNTIFS_N", "MULTINOMIAL_N", "SERIESSUM_N", "SUMIFS_N", "AVERAGEIFS_N", "SUMIF_N", "MAXIFS_N", "MINIFS_N", "AVERAGEIF_N", "LARGE_N", "SMALL_N", "STDEV_N", "MEDIAN_N", "RANK_N", "CONCATENATE_N", "TEXTJOIN_N"])
 const N_VARIANTS: Record<string, string> = {
   SUM_DYN: "SUM_N", MIN_DYN: "MIN_N", MAX_DYN: "MAX_N", AVG_DYN: "AVG_N",
   PRODUCT_DYN: "PRODUCT_N",
   AND_N: "AND_N", OR_N: "OR_N", CHOOSE_N: "CHOOSE_N", SWITCH_N: "SWITCH_N", IFS_N: "IFS_N",
   IRR_N: "IRR_N", NPV_N: "NPV_N", VAR_N: "VAR_N", PERCENTILE_N: "PERCENTILE_N", COUNTA_N: "COUNTA_N", COUNTBLANK_N: "COUNTBLANK_N",
   SUMPRODUCT_N: "SUMPRODUCT_N", MATCH_N: "MATCH_N", INDEX_N: "INDEX_N", MODE_N: "MODE_N", HARMEAN_N: "HARMEAN_N", GEOMEAN_N: "GEOMEAN_N", AGGREGATE_N: "AGGREGATE_N", COUNTIF_N: "COUNTIF_N", COUNTIFS_N: "COUNTIFS_N", SUMIF_N: "SUMIF_N", MAXIFS_N: "MAXIFS_N", MINIFS_N: "MINIFS_N", AVERAGEIF_N: "AVERAGEIF_N", LARGE_N: "LARGE_N", SMALL_N: "SMALL_N",
+  MULTINOMIAL_N: "MULTINOMIAL_N", SERIESSUM_N: "SERIESSUM_N",
   SUMIFS_N: "SUMIFS_N", AVERAGEIFS_N: "AVERAGEIFS_N",
   STDEV_N: "STDEV_N", MEDIAN_N: "MEDIAN_N", RANK_N: "RANK_N", CONCATENATE_N: "CONCATENATE_N", TEXTJOIN_N: "TEXTJOIN_N",
 }
@@ -2561,7 +2602,7 @@ const FUNC_MAP: Record<string, string> = {
   NPV: "NPV_N", VAR: "VAR_N", PERCENTILE: "PERCENTILE_N", COUNTA: "COUNTA_N", COUNTBLANK: "COUNTBLANK_N",
   SUMPRODUCT: "SUMPRODUCT_N", MATCH: "MATCH_N", INDEX: "INDEX_N", MODE: "MODE_N", HARMEAN: "HARMEAN_N", GEOMEAN: "GEOMEAN_N", AGGREGATE: "AGGREGATE_N", COUNTIF: "COUNTIF_N", COUNTIFS: "COUNTIFS_N", SUMIF: "SUMIF_N", MAXIFS: "MAXIFS_N", MINIFS: "MINIFS_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
   STDEV: "STDEV_N", MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
-  IFNA: "IFNA_OP", SEC: "SEC_OP", CSC: "CSC_OP", COTH: "COTH_OP", SECH: "SECH_OP", CSCH: "CSCH_OP", SUMIFS: "SUMIFS_N", AVERAGEIFS: "AVERAGEIFS_N", NA: "NA_OP", COT: "COT_OP", ACOT: "ACOT_OP", UNICODE: "UNICODE_OP", UNICHAR: "UNICHAR_OP", ENCODEURL: "ENCODEURL_OP", DAYS: "DAYS_OP", EOMONTH: "EOMONTH_OP", DATEDIF: "DATEDIF_OP", PERMUT: "PERMUT_OP", FACTDOUBLE: "FACTDOUBLE_OP",
+  IFNA: "IFNA_OP", DELTA: "DELTA_OP", GESTEP: "GESTEP_OP", MULTINOMIAL: "MULTINOMIAL_N", SERIESSUM: "SERIESSUM_N", SEC: "SEC_OP", CSC: "CSC_OP", COTH: "COTH_OP", SECH: "SECH_OP", CSCH: "CSCH_OP", SUMIFS: "SUMIFS_N", AVERAGEIFS: "AVERAGEIFS_N", NA: "NA_OP", COT: "COT_OP", ACOT: "ACOT_OP", UNICODE: "UNICODE_OP", UNICHAR: "UNICHAR_OP", ENCODEURL: "ENCODEURL_OP", DAYS: "DAYS_OP", EOMONTH: "EOMONTH_OP", DATEDIF: "DATEDIF_OP", PERMUT: "PERMUT_OP", FACTDOUBLE: "FACTDOUBLE_OP",
   DATEVALUE: "DATEVALUE_OP", EDATE: "EDATE_OP", WEEKDAY: "WEEKDAY_OP", WEEKNUM: "WEEKNUM_OP", ROMAN: "ROMAN_OP", ARABIC: "ARABIC_OP", TEXT: "TEXT_OP", NUMBERVALUE: "NUMBERVALUE_OP", REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
   IFS: "IFS_N", SWITCH: "SWITCH_N", VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
   YEAR: "YEAR_OP", MONTH: "MONTH_OP", DAY: "DAY_OP",
@@ -2940,6 +2981,10 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "COMBIN", args: "n, k", description: "Combinations (n choose k)", category: "math" },
   { name: "SUBSTITUTE", args: "text, old, new", description: "Replace all occurrences", category: "text" },
   { name: "IFNA", args: "value, alt", description: "Return alt if value is error", category: "logic" },
+  { name: "DELTA", args: "a, b", description: "Kronecker delta (1 if a=b, 0 otherwise)", category: "math" },
+  { name: "GESTEP", args: "x, step", description: "Step function (1 if x≥step, 0 otherwise)", category: "math" },
+  { name: "MULTINOMIAL", args: "values...", description: "Multinomial coefficient (a+b+c)!/(a!·b!·c!)", category: "math" },
+  { name: "SERIESSUM", args: "x, n, m, coeffs...", description: "Power series Σ(coeff·x^(n+i·m))", category: "math" },
   { name: "SEC", args: "number", description: "Secant (1/cos)", category: "math" },
   { name: "CSC", args: "number", description: "Cosecant (1/sin)", category: "math" },
   { name: "COTH", args: "number", description: "Hyperbolic cotangent", category: "math" },
