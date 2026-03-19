@@ -115,6 +115,8 @@ export {
   evalProgramDirect,
   decompileIR,
   evalProgramBulk,
+  analyzeIR,
+  type IRMetrics,
   FUNCTION_CATALOG,
   completeFunctions,
   type FunctionSignature,

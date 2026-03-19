@@ -2073,6 +2073,41 @@ export const evalProgramBulk = (
     })
   )
 
+/** Analyze IR complexity for optimization decisions */
+export interface IRMetrics {
+  readonly opcodeCount: number
+  readonly cellRefs: number
+  readonly rangeRefs: number
+  readonly functionCalls: number
+  readonly maxStackDepth: number
+  readonly volatile: boolean
+  readonly constantFolded: boolean
+}
+export const analyzeIR = (ir: StackIR): IRMetrics => {
+  let cellRefs = 0, rangeRefs = 0, functionCalls = 0, maxDepth = 0, depth = 0
+  const fns = new Set(Object.values(FUNC_MAP))
+  for (const op of ir) {
+    if (op._tag === "READ_CELL") { cellRefs++; depth++ }
+    else if (op._tag === "READ_RANGE") { rangeRefs++; depth++ }
+    else if (op._tag.startsWith("PUSH_")) depth++
+    else if (fns.has(op._tag) || op._tag.endsWith("_OP") || op._tag.endsWith("_N") || op._tag.endsWith("_DYN") || op._tag.endsWith("_FN")) {
+      functionCalls++
+      depth = Math.max(1, depth - 1) // rough estimate
+    }
+    else depth = Math.max(1, depth - 1)
+    if (depth > maxDepth) maxDepth = depth
+  }
+  return {
+    opcodeCount: ir.length,
+    cellRefs,
+    rangeRefs,
+    functionCalls,
+    maxStackDepth: maxDepth,
+    volatile: isVolatileIR(ir),
+    constantFolded: ir.length === 1 && ir[0]._tag.startsWith("PUSH_"),
+  }
+}
+
 /** Run an expression string with fresh state (can fail with CompileError) */
 export const evalExpr = (expr: string): Effect.Effect<VMState, CompileError> =>
   Effect.gen(function*() {

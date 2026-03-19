@@ -26,7 +26,7 @@ import {
   type VMFailure,
   failureToVMError, timeoutToVMError, catchToErrorState,
   // VM core
-  evalProgram, evalProgramDirect, evalProgramBulk, evalExpr, compileExpr, compileExprSync, isVolatileIR, decompileIR,
+  evalProgram, evalProgramDirect, evalProgramBulk, evalExpr, compileExpr, compileExprSync, isVolatileIR, decompileIR, analyzeIR,
   compileInfix, compileInfixSync, extractDepsInfix,
   FUNCTION_CATALOG, completeFunctions,
   execOpcode, emptyState, MAX_EVAL_STEPS,
@@ -1398,6 +1398,20 @@ describe("infix parser", () => {
     const ir = compileInfixSync("=5>3")
     expect(ir.length).toBe(1)
     expect(ir[0]).toEqual({ _tag: "PUSH_BOOL", value: true })
+  })
+
+  it("analyzeIR: complexity metrics", () => {
+    const m1 = analyzeIR(compileInfixSync("=2+3"))
+    expect(m1.constantFolded).toBe(true)  // folded to single PUSH_NUM
+    expect(m1.opcodeCount).toBe(1)
+
+    const m2 = analyzeIR(compileInfixSync("=SUM(A1,B1,C1)+A2*2"))
+    expect(m2.cellRefs).toBe(4)           // A1, B1, C1, A2
+    expect(m2.functionCalls).toBeGreaterThanOrEqual(1)
+    expect(m2.volatile).toBe(false)
+
+    const m3 = analyzeIR(compileInfixSync("=NOW()"))
+    expect(m3.volatile).toBe(true)
   })
 
   it("decompileIR: roundtrip simple expressions", () => {

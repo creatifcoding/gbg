@@ -676,6 +676,20 @@ describe("FormulaEngineV2", () => {
         expect(r2.recalculated.length).toBeGreaterThanOrEqual(3)
       }).pipe(Effect.provide(layer)))
     })
+    it("percent-of-total pattern: =ROUND(A1/SUM(A1:A3)*100,1)", async () => {
+      const store = makeStore({ A1: CV.num(30), A2: CV.num(50), A3: CV.num(20) })
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.registerInfix("B1", "=ROUND(A1/SUM(A1,A2,A3)*100, 1)")
+        yield* e.registerInfix("B2", "=ROUND(A2/SUM(A1,A2,A3)*100, 1)")
+        yield* e.registerInfix("B3", "=ROUND(A3/SUM(A1,A2,A3)*100, 1)")
+        yield* e.recalcAll()
+        expect(store.cells.get("B1")).toEqual(CV.num(30))   // 30/100*100 = 30%
+        expect(store.cells.get("B2")).toEqual(CV.num(50))   // 50/100*100 = 50%
+        expect(store.cells.get("B3")).toEqual(CV.num(20))   // 20/100*100 = 20%
+      }))
+    })
+
     it("invoice generator: TEXTJOIN + IFS + ROUND + SUM", async () => {
       const store = makeStore({
         A1: CV.num(100), A2: CV.num(250), A3: CV.num(75),  // line items
