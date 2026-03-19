@@ -2840,6 +2840,51 @@ describe("post-450 function coverage", () => {
   // Financial
   it("EFFECTRATE(0.12, 12) ≈ 0.1268", () => expect(d("=EFFECTRATE(0.12, 12)")).toBeCloseTo(0.1268, 3))
 
+  // --- 800 batch tests ---
+  // Lookup
+  it("COUNTUNIQ(1,2,2,3) = 3", () => expect(d("=COUNTUNIQ(1,2,2,3)")).toBe(3))
+  it("ARRAYCONTAINS(3, 1, 2, 3, 4) = true", () => expect(d("=ARRAYCONTAINS(3, 1, 2, 3, 4)")).toBe(true))
+  it("ARRAYCONTAINS(5, 1, 2, 3) = false", () => expect(d("=ARRAYCONTAINS(5, 1, 2, 3)")).toBe(false))
+  it("ARRAYPOS(3, 1, 2, 3, 4) = 3", () => expect(d("=ARRAYPOS(3, 1, 2, 3, 4)")).toBe(3))
+  it("FINDALL(2, 1, 2, 3, 2) = 2", () => expect(d("=FINDALL(2, 1, 2, 3, 2)")).toBe(2))
+
+  // Logic
+  it("IFF(1, 10, 20) = 10", () => expect(d("=IFF(1, 10, 20)")).toBe(10))
+  it("IFF(0, 10, 20) = 20", () => expect(d("=IFF(0, 10, 20)")).toBe(20))
+  it("XORALL(1, 0, 1) = false", () => expect(d("=XORALL(1, 0, 1)")).toBe(false))
+  it("XORALL(1, 0, 0) = true", () => expect(d("=XORALL(1, 0, 0)")).toBe(true))
+  it("NANDALL(1, 1, 1) = false", () => expect(d("=NANDALL(1, 1, 1)")).toBe(false))
+  it("NANDALL(1, 0, 1) = true", () => expect(d("=NANDALL(1, 0, 1)")).toBe(true))
+  it("NORALL(0, 0, 0) = true", () => expect(d("=NORALL(0, 0, 0)")).toBe(true))
+  it("UNLESS(0, 42) = 42", () => expect(d("=UNLESS(0, 42)")).toBe(42))
+  it("UNLESS(5, 42) = 5", () => expect(d("=UNLESS(5, 42)")).toBe(5))
+
+  // Trig
+  it("VERSINE(0) = 0", () => expect(d("=VERSINE(0)")).toBe(0))
+  it("HAVERSINE(0) = 0", () => expect(d("=HAVERSINE(0)")).toBe(0))
+  it("POWMOD(2, 10, 1000) = 24", () => expect(d("=POWMOD(2, 10, 1000)")).toBe(24))
+
+  // Stats
+  it("FSTAT(4, 2) = 2", () => expect(d("=FSTAT(4, 2)")).toBe(2))
+  it("CHISQSTAT(30, 25) = 1", () => expect(d("=CHISQSTAT(30, 25)")).toBe(1))
+
+  // Text
+  it("TEXTZFILL(42, 5) = 00042", () => expect(d("=TEXTZFILL(42, 5)")).toBe("00042"))
+  it("TEXTABBREV(hello world, 8) = hello...", () => expect(d("=TEXTABBREV(\"hello world\", 8)")).toBe("hello..."))
+  it("TEXTMIRROR(abc) = abccba", () => expect(d("=TEXTMIRROR(\"abc\")")).toBe("abccba"))
+  it("TEXTCOUNTCHAR(banana, a) = 3", () => expect(d("=TEXTCOUNTCHAR(\"banana\", \"a\")")).toBe(3))
+
+  // Info
+  it("ISTRUTHY(1) = true", () => expect(d("=ISTRUTHY(1)")).toBe(true))
+  it("ISFALSY(0) = true", () => expect(d("=ISFALSY(0)")).toBe(true))
+  it("ISFRACTION(3.5) = true", () => expect(d("=ISFRACTION(3.5)")).toBe(true))
+  it("ISFRACTION(3) = false", () => expect(d("=ISFRACTION(3)")).toBe(false))
+  it("ISDIVISIBLE(12, 4) = true", () => expect(d("=ISDIVISIBLE(12, 4)")).toBe(true))
+  it("ISDIVISIBLE(13, 4) = false", () => expect(d("=ISDIVISIBLE(13, 4)")).toBe(false))
+
+  // Financial
+  it("TBILL2(0.05, 180) = 97.5", () => expect(d("=TBILL2(0.05, 180)")).toBe(97.5))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
