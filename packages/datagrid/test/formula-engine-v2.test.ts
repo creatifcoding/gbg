@@ -676,6 +676,31 @@ describe("FormulaEngineV2", () => {
         expect(r2.recalculated.length).toBeGreaterThanOrEqual(3)
       }).pipe(Effect.provide(layer)))
     })
+    it("EXPERIMENT 150 CAPSTONE: statistical hypothesis testing pipeline", async () => {
+      // Scenario: Compare 5 measurements against target, compute z-score, confidence
+      const store = makeStore({
+        A1: CV.num(48), A2: CV.num(51), A3: CV.num(49), A4: CV.num(52), A5: CV.num(50),
+        B1: CV.num(50), // target mean
+      })
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        // Sample mean
+        yield* e.registerInfix("C1", "=AVG(A1, A2, A3, A4, A5)")
+        // Population stdev
+        yield* e.registerInfix("C2", "=ROUND(STDEV.P(A1, A2, A3, A4, A5), 2)")
+        // Standardize: z-score of sample mean vs target
+        yield* e.registerInfix("C3", "=ROUND(STANDARDIZE(C1, B1, C2), 4)")
+        // NORMDIST: probability
+        yield* e.registerInfix("C4", "=ROUND(NORMDIST(C1, B1, C2, 1), 4)")
+
+        yield* e.recalcAll()
+        expect((store.cells.get("C1") as any)?.value).toBe(50) // mean = 50
+        expect((store.cells.get("C2") as any)?.value).toBeGreaterThan(1) // stdev ≈ 1.41
+        // z-score should be near 0 since mean ≈ target
+        expect(Math.abs((store.cells.get("C3") as any)?.value)).toBeLessThan(0.1)
+      }))
+    })
+
     it("EXPERIMENT 144 CAPSTONE: regression analysis dashboard", async () => {
       const store = makeStore({
         A1: CV.num(1), A2: CV.num(2), A3: CV.num(3), A4: CV.num(4), A5: CV.num(5),
