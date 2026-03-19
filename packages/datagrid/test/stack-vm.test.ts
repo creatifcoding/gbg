@@ -1704,6 +1704,15 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("AGGREGATE: versatile aggregation dispatcher", () => {
+    // funcNum 9 = SUM
+    expect(evalProgramDirect(compileInfixSync("=AGGREGATE(9, 10, 20, 30)")).stack[0]).toEqual(num(60))
+    // funcNum 4 = MAX
+    expect(evalProgramDirect(compileInfixSync("=AGGREGATE(4, 5, 15, 10)")).stack[0]).toEqual(num(15))
+    // funcNum 1 = AVG
+    expect(evalProgramDirect(compileInfixSync("=AGGREGATE(1, 10, 20, 30)")).stack[0]).toEqual(num(20))
+  })
+
   it("COUNTIFS: multi-criteria count (AND logic)", () => {
     // Count values >3 AND <8: from 1,2,3,4,5,6,7,8,9 → 4,5,6,7 = 4
     expect(evalProgramDirect(compileInfixSync('=COUNTIFS(">3", "<8", 1, 2, 3, 4, 5, 6, 7, 8, 9)')).stack[0]).toEqual(num(4))
