@@ -676,6 +676,27 @@ describe("FormulaEngineV2", () => {
         expect(r2.recalculated.length).toBeGreaterThanOrEqual(3)
       }).pipe(Effect.provide(layer)))
     })
+    it("EXPERIMENT 144 CAPSTONE: regression analysis dashboard", async () => {
+      const store = makeStore({
+        A1: CV.num(1), A2: CV.num(2), A3: CV.num(3), A4: CV.num(4), A5: CV.num(5),
+        B1: CV.num(2.1), B2: CV.num(3.9), B3: CV.num(6.2), B4: CV.num(7.8), B5: CV.num(10.1),
+      })
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.registerInfix("C1", "=ROUND(SLOPE(A1, A2, A3, A4, A5, B1, B2, B3, B4, B5), 2)")
+        yield* e.registerInfix("C2", "=ROUND(INTERCEPT(A1, A2, A3, A4, A5, B1, B2, B3, B4, B5), 2)")
+        yield* e.registerInfix("C3", "=ROUND(RSQ(A1, A2, A3, A4, A5, B1, B2, B3, B4, B5), 4)")
+        yield* e.registerInfix("C4", "=ROUND(CORREL(A1, A2, A3, A4, A5, B1, B2, B3, B4, B5), 4)")
+
+        yield* e.recalcAll()
+        const slope = (store.cells.get("C1") as any)?.value
+        expect(slope).toBeGreaterThan(1.5)
+        expect(slope).toBeLessThan(2.5)
+        const r2 = (store.cells.get("C3") as any)?.value
+        expect(r2).toBeGreaterThan(0.99)
+      }))
+    })
+
     it("EXPERIMENT 136 CAPSTONE: full-breadth formula chain (10 categories)", async () => {
       const store = makeStore({
         A1: CV.num(42),       // input value
