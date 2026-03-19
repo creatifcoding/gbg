@@ -1704,6 +1704,24 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("SEC/CSC/COTH/SECH/CSCH: trig & hyp completions", () => {
+    // SEC(0) = 1/cos(0) = 1
+    expect(evalProgramDirect(compileInfixSync("=SEC(0)")).stack[0]).toEqual(num(1))
+    // CSC(PI/2) = 1/sin(PI/2) = 1
+    expect(evalProgramDirect(compileInfixSync("=ROUND(CSC(PI()/2), 5)")).stack[0]).toEqual(num(1))
+    // SECH(0) = 1/cosh(0) = 1
+    expect(evalProgramDirect(compileInfixSync("=SECH(0)")).stack[0]).toEqual(num(1))
+    // COTH(1) ≈ 1.3130
+    expect(evalProgramDirect(compileInfixSync("=ROUND(COTH(1), 4)")).stack[0]).toEqual(num(1.313))
+  })
+
+  it("SUMIFS/AVERAGEIFS: multi-criteria aggregation", () => {
+    // SUMIFS: sum values >2 AND <5 → 3+4 = 7
+    expect(evalProgramDirect(compileInfixSync('=SUMIFS(">2", "<5", 1, 2, 3, 4, 5)')).stack[0]).toEqual(num(7))
+    // AVERAGEIFS: avg values >=10 AND <=30 → (10+20+30)/3 = 20
+    expect(evalProgramDirect(compileInfixSync('=AVERAGEIFS(">=10", "<=30", 5, 10, 20, 30, 40)')).stack[0]).toEqual(num(20))
+  })
+
   it("NA/COT/ACOT: error generation and trig completions", () => {
     // NA() generates error
     expect(evalProgramDirect(compileInfixSync("=NA()")).stack[0]._tag).toBe("error")
