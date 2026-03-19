@@ -424,6 +424,20 @@ export const ISERROR_OP = Schema.TaggedStruct("ISERROR_OP", {})
 export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
 
 /** More text functions */
+export const IMDIV_OP = Schema.TaggedStruct("IMDIV_OP", {})
+export const IMSUB_OP = Schema.TaggedStruct("IMSUB_OP", {})
+export const BIN2DEC_OP = Schema.TaggedStruct("BIN2DEC_OP", {})
+export const DEC2BIN_OP = Schema.TaggedStruct("DEC2BIN_OP", {})
+export const BIN2HEX_OP = Schema.TaggedStruct("BIN2HEX_OP", {})
+export const HEX2DEC_OP = Schema.TaggedStruct("HEX2DEC_OP", {})
+export const DEC2HEX_OP = Schema.TaggedStruct("DEC2HEX_OP", {})
+export const OCT2DEC_OP = Schema.TaggedStruct("OCT2DEC_OP", {})
+export const DEC2OCT_OP = Schema.TaggedStruct("DEC2OCT_OP", {})
+export const BITAND_OP = Schema.TaggedStruct("BITAND_OP", {})
+export const BITOR_OP = Schema.TaggedStruct("BITOR_OP", {})
+export const BITXOR_OP = Schema.TaggedStruct("BITXOR_OP", {})
+export const BITLSHIFT_OP = Schema.TaggedStruct("BITLSHIFT_OP", {})
+export const BITRSHIFT_OP = Schema.TaggedStruct("BITRSHIFT_OP", {})
 export const IMPOWER_OP = Schema.TaggedStruct("IMPOWER_OP", {})
 export const IMEXP_OP = Schema.TaggedStruct("IMEXP_OP", {})
 export const IMLN_OP = Schema.TaggedStruct("IMLN_OP", {})
@@ -716,7 +730,7 @@ export const Opcode = Schema.Union([
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
-  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, IFNA_OP, EOMONTH_OP, DATEDIF_OP, PERMUT_OP, FACTDOUBLE_OP, MATCH_N, INDEX_N, MODE_N, HARMEAN_N, GEOMEAN_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, ISNUMBER_OP, ISTEXT_OP, ISEVEN_OP, ISODD_OP, N_OP, T_OP, IMPOWER_OP, IMEXP_OP, IMLN_OP, IMSIN_OP, IMCOS_OP, IMSUM_OP, IMPRODUCT_OP, IMARGUMENT_OP, IMCONJUGATE_OP, IMSQRT_OP, BESSELJ_OP, COMPLEX_OP, IMREAL_OP, IMAGINARY_OP, IMABS_OP, TAKE_N, DROP_N, HSTACK_N, WRAPROWS_N, ISFORMULA_OP, REGEXMATCH_OP, REGEXEXTRACT_OP, REGEXREPLACE_OP, LET_N, CHOOSECOLS_N, SUMXMY2_N, SUMX2PY2_N, SUMX2MY2_N, ERF_OP, ERFC_OP, YEARFRAC_OP, COUPDAYBS_OP, TBILLYIELD_OP, RECEIVED_OP, PRICEDISC_OP, MIRR_N, XNPV_N, ACCRINT_OP, COUPDAYS_OP, DOLLARDE_OP, DOLLARFR_OP, SORT_N, UNIQUE_N, FILTER_N, PPMT_OP, IPMT_OP, CELL_OP, ROWS_N, RANDARRAY_N, SEQUENCE_N, XMATCH_N, CEILING_PRECISE_OP, FLOOR_PRECISE_OP, AVERAGEA_N, MAXA_N, MINA_N, NEGBINOMDIST_OP, BETADIST_OP, HYPGEOMDIST_OP, ISNA_OP, SHEET_OP, TEXTSPLIT_N, DATESTRING_OP, WORKDAY_OP, TEXTBEFORE_OP, TEXTAFTER_OP, VALUETOTEXT_OP, ISPMT_OP, DISC_OP, INTRATE_OP, SYD_OP, EFFECT_OP, NOMINAL_OP, NORMINV_OP, DDB_OP, PERCENTRANK_N, QUARTILE_N, WEIBULL_OP, GAMMADIST_OP, EXPONDIST_OP, POISSON_OP, BINOMDIST_OP, LOGNORMDIST_OP, STANDARDIZE_OP, CONFIDENCE_OP, NORMDIST_OP, STEYX_N, FISHER_OP, FISHERINV_OP, KURT_N, SKEW_N, CONVERT_OP, SLOPE_N, INTERCEPT_N, RSQ_N, COVAR_N, FORECAST_N, STDEVP_N, VARP_N, CORREL_N, SUMSQ_N, DEVSQ_N, AVEDEV_N, TRIMMEAN_N, XOR_N, ISOWEEKNUM_OP, NETWORKDAYS_OP, SUBTOTAL_N, DELTA_OP, GESTEP_OP, MULTINOMIAL_N, SERIESSUM_N, SEC_OP, CSC_OP, COTH_OP, SECH_OP, CSCH_OP, SUMIFS_N, AVERAGEIFS_N, NA_OP, COT_OP, ACOT_OP, UNICODE_OP, UNICHAR_OP, ENCODEURL_OP, DAYS_OP, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
+  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, IFNA_OP, EOMONTH_OP, DATEDIF_OP, PERMUT_OP, FACTDOUBLE_OP, MATCH_N, INDEX_N, MODE_N, HARMEAN_N, GEOMEAN_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, ISNUMBER_OP, ISTEXT_OP, ISEVEN_OP, ISODD_OP, N_OP, T_OP, IMDIV_OP, IMSUB_OP, BIN2DEC_OP, DEC2BIN_OP, BIN2HEX_OP, HEX2DEC_OP, DEC2HEX_OP, OCT2DEC_OP, DEC2OCT_OP, BITAND_OP, BITOR_OP, BITXOR_OP, BITLSHIFT_OP, BITRSHIFT_OP, IMPOWER_OP, IMEXP_OP, IMLN_OP, IMSIN_OP, IMCOS_OP, IMSUM_OP, IMPRODUCT_OP, IMARGUMENT_OP, IMCONJUGATE_OP, IMSQRT_OP, BESSELJ_OP, COMPLEX_OP, IMREAL_OP, IMAGINARY_OP, IMABS_OP, TAKE_N, DROP_N, HSTACK_N, WRAPROWS_N, ISFORMULA_OP, REGEXMATCH_OP, REGEXEXTRACT_OP, REGEXREPLACE_OP, LET_N, CHOOSECOLS_N, SUMXMY2_N, SUMX2PY2_N, SUMX2MY2_N, ERF_OP, ERFC_OP, YEARFRAC_OP, COUPDAYBS_OP, TBILLYIELD_OP, RECEIVED_OP, PRICEDISC_OP, MIRR_N, XNPV_N, ACCRINT_OP, COUPDAYS_OP, DOLLARDE_OP, DOLLARFR_OP, SORT_N, UNIQUE_N, FILTER_N, PPMT_OP, IPMT_OP, CELL_OP, ROWS_N, RANDARRAY_N, SEQUENCE_N, XMATCH_N, CEILING_PRECISE_OP, FLOOR_PRECISE_OP, AVERAGEA_N, MAXA_N, MINA_N, NEGBINOMDIST_OP, BETADIST_OP, HYPGEOMDIST_OP, ISNA_OP, SHEET_OP, TEXTSPLIT_N, DATESTRING_OP, WORKDAY_OP, TEXTBEFORE_OP, TEXTAFTER_OP, VALUETOTEXT_OP, ISPMT_OP, DISC_OP, INTRATE_OP, SYD_OP, EFFECT_OP, NOMINAL_OP, NORMINV_OP, DDB_OP, PERCENTRANK_N, QUARTILE_N, WEIBULL_OP, GAMMADIST_OP, EXPONDIST_OP, POISSON_OP, BINOMDIST_OP, LOGNORMDIST_OP, STANDARDIZE_OP, CONFIDENCE_OP, NORMDIST_OP, STEYX_N, FISHER_OP, FISHERINV_OP, KURT_N, SKEW_N, CONVERT_OP, SLOPE_N, INTERCEPT_N, RSQ_N, COVAR_N, FORECAST_N, STDEVP_N, VARP_N, CORREL_N, SUMSQ_N, DEVSQ_N, AVEDEV_N, TRIMMEAN_N, XOR_N, ISOWEEKNUM_OP, NETWORKDAYS_OP, SUBTOTAL_N, DELTA_OP, GESTEP_OP, MULTINOMIAL_N, SERIESSUM_N, SEC_OP, CSC_OP, COTH_OP, SECH_OP, CSCH_OP, SUMIFS_N, AVERAGEIFS_N, NA_OP, COT_OP, ACOT_OP, UNICODE_OP, UNICHAR_OP, ENCODEURL_OP, DAYS_OP, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
   IFS_N, SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
@@ -1031,6 +1045,96 @@ const EXEC: Record<string, Executor> = {
     return str(result)
   }, "ROMAN") }),
   // PROB_N: probability that values are within limits. PROB(lower, upper, prob1, ..., probK, v1, ..., vK) n=2+2K
+  // IMDIV_OP: divide two complex. (a+bi)/(c+di) = ((ac+bd)+(bc-ad)i)/(c²+d²)
+  IMDIV_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "IMDIV")); return { result: s[s.length-1] } }
+    const bs = vmDisplay(s.pop()!), as2 = vmDisplay(s.pop()!)
+    const parseC = (s2: string) => {
+      const mr = s2.match(/^([-+]?\d*\.?\d+)/), mi = s2.match(/([-+]?\d*\.?\d+)i/)
+      return { r: mr ? parseFloat(mr[1]) : 0, i: mi ? parseFloat(mi[1]) : 0 }
+    }
+    const ca = parseC(as2), cb = parseC(bs)
+    const denom = cb.r*cb.r + cb.i*cb.i
+    if (denom === 0) { s.push(vmError("DIV_ZERO", "IMDIV")); return { result: s[s.length-1] } }
+    const rr = +((ca.r*cb.r + ca.i*cb.i) / denom).toFixed(10)
+    const ri = +((ca.i*cb.r - ca.r*cb.i) / denom).toFixed(10)
+    const sign = ri >= 0 ? "+" : ""
+    const result = str(`${rr}${sign}${ri}i`); s.push(result); return { result }
+  },
+  // IMSUB_OP: subtract two complex
+  IMSUB_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "IMSUB")); return { result: s[s.length-1] } }
+    const bs = vmDisplay(s.pop()!), as2 = vmDisplay(s.pop()!)
+    const parseC = (s2: string) => {
+      const mr = s2.match(/^([-+]?\d*\.?\d+)/), mi = s2.match(/([-+]?\d*\.?\d+)i/)
+      return { r: mr ? parseFloat(mr[1]) : 0, i: mi ? parseFloat(mi[1]) : 0 }
+    }
+    const ca = parseC(as2), cb = parseC(bs)
+    const rr = ca.r - cb.r, ri = ca.i - cb.i
+    const sign = ri >= 0 ? "+" : ""
+    const result = str(`${rr}${sign}${ri}i`); s.push(result); return { result }
+  },
+  // BIN2DEC_OP: binary string to decimal
+  BIN2DEC_OP: (_o, s) => ({ result: unop(s, a => {
+    const b = vmDisplay(a)
+    const n = parseInt(b, 2)
+    return isNaN(n) ? vmError("TYPE_MISMATCH", "BIN2DEC: invalid binary") : num(n)
+  }, "BIN2DEC") }),
+  // DEC2BIN_OP: decimal to binary string
+  DEC2BIN_OP: (_o, s) => ({ result: unop(s, a => {
+    if (isVMError(a)) return a
+    return str((asNum(a) >>> 0).toString(2))
+  }, "DEC2BIN") }),
+  // BIN2HEX_OP: binary string to hex
+  BIN2HEX_OP: (_o, s) => ({ result: unop(s, a => {
+    const n = parseInt(vmDisplay(a), 2)
+    return isNaN(n) ? vmError("TYPE_MISMATCH", "BIN2HEX") : str(n.toString(16).toUpperCase())
+  }, "BIN2HEX") }),
+  // HEX2DEC_OP: hex string to decimal
+  HEX2DEC_OP: (_o, s) => ({ result: unop(s, a => {
+    const n = parseInt(vmDisplay(a), 16)
+    return isNaN(n) ? vmError("TYPE_MISMATCH", "HEX2DEC") : num(n)
+  }, "HEX2DEC") }),
+  // DEC2HEX_OP: decimal to hex string
+  DEC2HEX_OP: (_o, s) => ({ result: unop(s, a => {
+    if (isVMError(a)) return a
+    return str(Math.round(asNum(a)).toString(16).toUpperCase())
+  }, "DEC2HEX") }),
+  // OCT2DEC_OP: octal string to decimal
+  OCT2DEC_OP: (_o, s) => ({ result: unop(s, a => {
+    const n = parseInt(vmDisplay(a), 8)
+    return isNaN(n) ? vmError("TYPE_MISMATCH", "OCT2DEC") : num(n)
+  }, "OCT2DEC") }),
+  // DEC2OCT_OP: decimal to octal string
+  DEC2OCT_OP: (_o, s) => ({ result: unop(s, a => {
+    if (isVMError(a)) return a
+    return str(Math.round(asNum(a)).toString(8))
+  }, "DEC2OCT") }),
+  // BITAND_OP: bitwise AND
+  BITAND_OP: (_o, s) => ({ result: binop(s, (a, b) => {
+    const pe = propagateError(a, b); if (pe) return pe
+    return num((Math.round(asNum(a)) & Math.round(asNum(b))) >>> 0)
+  }, "BITAND") }),
+  // BITOR_OP: bitwise OR
+  BITOR_OP: (_o, s) => ({ result: binop(s, (a, b) => {
+    const pe = propagateError(a, b); if (pe) return pe
+    return num((Math.round(asNum(a)) | Math.round(asNum(b))) >>> 0)
+  }, "BITOR") }),
+  // BITXOR_OP: bitwise XOR
+  BITXOR_OP: (_o, s) => ({ result: binop(s, (a, b) => {
+    const pe = propagateError(a, b); if (pe) return pe
+    return num((Math.round(asNum(a)) ^ Math.round(asNum(b))) >>> 0)
+  }, "BITXOR") }),
+  // BITLSHIFT_OP: bitwise left shift
+  BITLSHIFT_OP: (_o, s) => ({ result: binop(s, (a, b) => {
+    const pe = propagateError(a, b); if (pe) return pe
+    return num((Math.round(asNum(a)) << Math.round(asNum(b))) >>> 0)
+  }, "BITLSHIFT") }),
+  // BITRSHIFT_OP: bitwise right shift
+  BITRSHIFT_OP: (_o, s) => ({ result: binop(s, (a, b) => {
+    const pe = propagateError(a, b); if (pe) return pe
+    return num(Math.round(asNum(a)) >>> Math.round(asNum(b)))
+  }, "BITRSHIFT") }),
   // IMPOWER_OP: raise complex to integer power. IMPOWER(complex, n)
   IMPOWER_OP: (_o, s) => {
     if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "IMPOWER")); return { result: s[s.length-1] } }
@@ -3429,7 +3533,7 @@ const _OP: Record<string, Opcode> = {
   ISERROR_OP: { _tag: "ISERROR_OP" }, ISBLANK_OP: { _tag: "ISBLANK_OP" },
   IFNA_OP: { _tag: "IFNA_OP" }, EOMONTH_OP: { _tag: "EOMONTH_OP" }, DATEDIF_OP: { _tag: "DATEDIF_OP" },
   PERMUT_OP: { _tag: "PERMUT_OP" }, FACTDOUBLE_OP: { _tag: "FACTDOUBLE_OP" },
-  ISNUMBER_OP: { _tag: "ISNUMBER_OP" }, ISTEXT_OP: { _tag: "ISTEXT_OP" }, ISEVEN_OP: { _tag: "ISEVEN_OP" }, ISODD_OP: { _tag: "ISODD_OP" }, N_OP: { _tag: "N_OP" }, T_OP: { _tag: "T_OP" }, IMPOWER_OP: { _tag: "IMPOWER_OP" }, IMEXP_OP: { _tag: "IMEXP_OP" }, IMLN_OP: { _tag: "IMLN_OP" }, IMSIN_OP: { _tag: "IMSIN_OP" }, IMCOS_OP: { _tag: "IMCOS_OP" }, IMSUM_OP: { _tag: "IMSUM_OP" }, IMPRODUCT_OP: { _tag: "IMPRODUCT_OP" }, IMARGUMENT_OP: { _tag: "IMARGUMENT_OP" }, IMCONJUGATE_OP: { _tag: "IMCONJUGATE_OP" }, IMSQRT_OP: { _tag: "IMSQRT_OP" }, BESSELJ_OP: { _tag: "BESSELJ_OP" }, COMPLEX_OP: { _tag: "COMPLEX_OP" }, IMREAL_OP: { _tag: "IMREAL_OP" }, IMAGINARY_OP: { _tag: "IMAGINARY_OP" }, IMABS_OP: { _tag: "IMABS_OP" }, ISFORMULA_OP: { _tag: "ISFORMULA_OP" }, REGEXMATCH_OP: { _tag: "REGEXMATCH_OP" }, REGEXEXTRACT_OP: { _tag: "REGEXEXTRACT_OP" }, REGEXREPLACE_OP: { _tag: "REGEXREPLACE_OP" }, ERF_OP: { _tag: "ERF_OP" }, ERFC_OP: { _tag: "ERFC_OP" }, YEARFRAC_OP: { _tag: "YEARFRAC_OP" }, COUPDAYBS_OP: { _tag: "COUPDAYBS_OP" }, TBILLYIELD_OP: { _tag: "TBILLYIELD_OP" }, RECEIVED_OP: { _tag: "RECEIVED_OP" }, PRICEDISC_OP: { _tag: "PRICEDISC_OP" }, ACCRINT_OP: { _tag: "ACCRINT_OP" }, COUPDAYS_OP: { _tag: "COUPDAYS_OP" }, DOLLARDE_OP: { _tag: "DOLLARDE_OP" }, DOLLARFR_OP: { _tag: "DOLLARFR_OP" }, PPMT_OP: { _tag: "PPMT_OP" }, IPMT_OP: { _tag: "IPMT_OP" }, CELL_OP: { _tag: "CELL_OP" }, CEILING_PRECISE_OP: { _tag: "CEILING_PRECISE_OP" }, FLOOR_PRECISE_OP: { _tag: "FLOOR_PRECISE_OP" }, NEGBINOMDIST_OP: { _tag: "NEGBINOMDIST_OP" }, BETADIST_OP: { _tag: "BETADIST_OP" }, HYPGEOMDIST_OP: { _tag: "HYPGEOMDIST_OP" }, ISNA_OP: { _tag: "ISNA_OP" }, SHEET_OP: { _tag: "SHEET_OP" }, DATESTRING_OP: { _tag: "DATESTRING_OP" }, WORKDAY_OP: { _tag: "WORKDAY_OP" }, TEXTBEFORE_OP: { _tag: "TEXTBEFORE_OP" }, TEXTAFTER_OP: { _tag: "TEXTAFTER_OP" }, VALUETOTEXT_OP: { _tag: "VALUETOTEXT_OP" }, ISPMT_OP: { _tag: "ISPMT_OP" }, DISC_OP: { _tag: "DISC_OP" }, INTRATE_OP: { _tag: "INTRATE_OP" }, SYD_OP: { _tag: "SYD_OP" }, EFFECT_OP: { _tag: "EFFECT_OP" }, NOMINAL_OP: { _tag: "NOMINAL_OP" }, NORMINV_OP: { _tag: "NORMINV_OP" }, DDB_OP: { _tag: "DDB_OP" }, WEIBULL_OP: { _tag: "WEIBULL_OP" }, GAMMADIST_OP: { _tag: "GAMMADIST_OP" }, EXPONDIST_OP: { _tag: "EXPONDIST_OP" }, POISSON_OP: { _tag: "POISSON_OP" }, BINOMDIST_OP: { _tag: "BINOMDIST_OP" }, LOGNORMDIST_OP: { _tag: "LOGNORMDIST_OP" }, STANDARDIZE_OP: { _tag: "STANDARDIZE_OP" }, CONFIDENCE_OP: { _tag: "CONFIDENCE_OP" }, NORMDIST_OP: { _tag: "NORMDIST_OP" }, FISHER_OP: { _tag: "FISHER_OP" }, FISHERINV_OP: { _tag: "FISHERINV_OP" }, CONVERT_OP: { _tag: "CONVERT_OP" }, ISOWEEKNUM_OP: { _tag: "ISOWEEKNUM_OP" }, NETWORKDAYS_OP: { _tag: "NETWORKDAYS_OP" },
+  ISNUMBER_OP: { _tag: "ISNUMBER_OP" }, ISTEXT_OP: { _tag: "ISTEXT_OP" }, ISEVEN_OP: { _tag: "ISEVEN_OP" }, ISODD_OP: { _tag: "ISODD_OP" }, N_OP: { _tag: "N_OP" }, T_OP: { _tag: "T_OP" }, IMDIV_OP: { _tag: "IMDIV_OP" }, IMSUB_OP: { _tag: "IMSUB_OP" }, BIN2DEC_OP: { _tag: "BIN2DEC_OP" }, DEC2BIN_OP: { _tag: "DEC2BIN_OP" }, BIN2HEX_OP: { _tag: "BIN2HEX_OP" }, HEX2DEC_OP: { _tag: "HEX2DEC_OP" }, DEC2HEX_OP: { _tag: "DEC2HEX_OP" }, OCT2DEC_OP: { _tag: "OCT2DEC_OP" }, DEC2OCT_OP: { _tag: "DEC2OCT_OP" }, BITAND_OP: { _tag: "BITAND_OP" }, BITOR_OP: { _tag: "BITOR_OP" }, BITXOR_OP: { _tag: "BITXOR_OP" }, BITLSHIFT_OP: { _tag: "BITLSHIFT_OP" }, BITRSHIFT_OP: { _tag: "BITRSHIFT_OP" }, IMPOWER_OP: { _tag: "IMPOWER_OP" }, IMEXP_OP: { _tag: "IMEXP_OP" }, IMLN_OP: { _tag: "IMLN_OP" }, IMSIN_OP: { _tag: "IMSIN_OP" }, IMCOS_OP: { _tag: "IMCOS_OP" }, IMSUM_OP: { _tag: "IMSUM_OP" }, IMPRODUCT_OP: { _tag: "IMPRODUCT_OP" }, IMARGUMENT_OP: { _tag: "IMARGUMENT_OP" }, IMCONJUGATE_OP: { _tag: "IMCONJUGATE_OP" }, IMSQRT_OP: { _tag: "IMSQRT_OP" }, BESSELJ_OP: { _tag: "BESSELJ_OP" }, COMPLEX_OP: { _tag: "COMPLEX_OP" }, IMREAL_OP: { _tag: "IMREAL_OP" }, IMAGINARY_OP: { _tag: "IMAGINARY_OP" }, IMABS_OP: { _tag: "IMABS_OP" }, ISFORMULA_OP: { _tag: "ISFORMULA_OP" }, REGEXMATCH_OP: { _tag: "REGEXMATCH_OP" }, REGEXEXTRACT_OP: { _tag: "REGEXEXTRACT_OP" }, REGEXREPLACE_OP: { _tag: "REGEXREPLACE_OP" }, ERF_OP: { _tag: "ERF_OP" }, ERFC_OP: { _tag: "ERFC_OP" }, YEARFRAC_OP: { _tag: "YEARFRAC_OP" }, COUPDAYBS_OP: { _tag: "COUPDAYBS_OP" }, TBILLYIELD_OP: { _tag: "TBILLYIELD_OP" }, RECEIVED_OP: { _tag: "RECEIVED_OP" }, PRICEDISC_OP: { _tag: "PRICEDISC_OP" }, ACCRINT_OP: { _tag: "ACCRINT_OP" }, COUPDAYS_OP: { _tag: "COUPDAYS_OP" }, DOLLARDE_OP: { _tag: "DOLLARDE_OP" }, DOLLARFR_OP: { _tag: "DOLLARFR_OP" }, PPMT_OP: { _tag: "PPMT_OP" }, IPMT_OP: { _tag: "IPMT_OP" }, CELL_OP: { _tag: "CELL_OP" }, CEILING_PRECISE_OP: { _tag: "CEILING_PRECISE_OP" }, FLOOR_PRECISE_OP: { _tag: "FLOOR_PRECISE_OP" }, NEGBINOMDIST_OP: { _tag: "NEGBINOMDIST_OP" }, BETADIST_OP: { _tag: "BETADIST_OP" }, HYPGEOMDIST_OP: { _tag: "HYPGEOMDIST_OP" }, ISNA_OP: { _tag: "ISNA_OP" }, SHEET_OP: { _tag: "SHEET_OP" }, DATESTRING_OP: { _tag: "DATESTRING_OP" }, WORKDAY_OP: { _tag: "WORKDAY_OP" }, TEXTBEFORE_OP: { _tag: "TEXTBEFORE_OP" }, TEXTAFTER_OP: { _tag: "TEXTAFTER_OP" }, VALUETOTEXT_OP: { _tag: "VALUETOTEXT_OP" }, ISPMT_OP: { _tag: "ISPMT_OP" }, DISC_OP: { _tag: "DISC_OP" }, INTRATE_OP: { _tag: "INTRATE_OP" }, SYD_OP: { _tag: "SYD_OP" }, EFFECT_OP: { _tag: "EFFECT_OP" }, NOMINAL_OP: { _tag: "NOMINAL_OP" }, NORMINV_OP: { _tag: "NORMINV_OP" }, DDB_OP: { _tag: "DDB_OP" }, WEIBULL_OP: { _tag: "WEIBULL_OP" }, GAMMADIST_OP: { _tag: "GAMMADIST_OP" }, EXPONDIST_OP: { _tag: "EXPONDIST_OP" }, POISSON_OP: { _tag: "POISSON_OP" }, BINOMDIST_OP: { _tag: "BINOMDIST_OP" }, LOGNORMDIST_OP: { _tag: "LOGNORMDIST_OP" }, STANDARDIZE_OP: { _tag: "STANDARDIZE_OP" }, CONFIDENCE_OP: { _tag: "CONFIDENCE_OP" }, NORMDIST_OP: { _tag: "NORMDIST_OP" }, FISHER_OP: { _tag: "FISHER_OP" }, FISHERINV_OP: { _tag: "FISHERINV_OP" }, CONVERT_OP: { _tag: "CONVERT_OP" }, ISOWEEKNUM_OP: { _tag: "ISOWEEKNUM_OP" }, NETWORKDAYS_OP: { _tag: "NETWORKDAYS_OP" },
   DELTA_OP: { _tag: "DELTA_OP" }, GESTEP_OP: { _tag: "GESTEP_OP" }, SEC_OP: { _tag: "SEC_OP" }, CSC_OP: { _tag: "CSC_OP" }, COTH_OP: { _tag: "COTH_OP" },
   SECH_OP: { _tag: "SECH_OP" }, CSCH_OP: { _tag: "CSCH_OP" },
   NA_OP: { _tag: "NA_OP" }, COT_OP: { _tag: "COT_OP" }, ACOT_OP: { _tag: "ACOT_OP" },
@@ -3575,6 +3679,20 @@ function classifyToken(tok: string): Opcode | null {
     case "DATEDIF_OP": return _OP.DATEDIF_OP
     case "PERMUT_OP": return _OP.PERMUT_OP
     case "FACTDOUBLE_OP": return _OP.FACTDOUBLE_OP
+    case "IMDIV_OP": return _OP.IMDIV_OP
+    case "IMSUB_OP": return _OP.IMSUB_OP
+    case "BIN2DEC_OP": return _OP.BIN2DEC_OP
+    case "DEC2BIN_OP": return _OP.DEC2BIN_OP
+    case "BIN2HEX_OP": return _OP.BIN2HEX_OP
+    case "HEX2DEC_OP": return _OP.HEX2DEC_OP
+    case "DEC2HEX_OP": return _OP.DEC2HEX_OP
+    case "OCT2DEC_OP": return _OP.OCT2DEC_OP
+    case "DEC2OCT_OP": return _OP.DEC2OCT_OP
+    case "BITAND_OP": return _OP.BITAND_OP
+    case "BITOR_OP": return _OP.BITOR_OP
+    case "BITXOR_OP": return _OP.BITXOR_OP
+    case "BITLSHIFT_OP": return _OP.BITLSHIFT_OP
+    case "BITRSHIFT_OP": return _OP.BITRSHIFT_OP
     case "IMPOWER_OP": return _OP.IMPOWER_OP
     case "IMEXP_OP": return _OP.IMEXP_OP
     case "IMLN_OP": return _OP.IMLN_OP
@@ -4010,7 +4128,7 @@ const FUNC_MAP: Record<string, string> = {
   NPV: "NPV_N", VAR: "VAR_N", PERCENTILE: "PERCENTILE_N", COUNTA: "COUNTA_N", COUNTBLANK: "COUNTBLANK_N",
   SUMPRODUCT: "SUMPRODUCT_N", MATCH: "MATCH_N", INDEX: "INDEX_N", MODE: "MODE_N", HARMEAN: "HARMEAN_N", GEOMEAN: "GEOMEAN_N", AGGREGATE: "AGGREGATE_N", COUNTIF: "COUNTIF_N", COUNTIFS: "COUNTIFS_N", SUMIF: "SUMIF_N", MAXIFS: "MAXIFS_N", MINIFS: "MINIFS_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
   STDEV: "STDEV_N", MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
-  IMPOWER: "IMPOWER_OP", IMEXP: "IMEXP_OP", IMLN: "IMLN_OP", IMSIN: "IMSIN_OP", IMCOS: "IMCOS_OP", IMSUM: "IMSUM_OP", IMPRODUCT: "IMPRODUCT_OP", IMARGUMENT: "IMARGUMENT_OP", IMCONJUGATE: "IMCONJUGATE_OP", IMSQRT: "IMSQRT_OP", BESSELJ: "BESSELJ_OP", COMPLEX: "COMPLEX_OP", IMREAL: "IMREAL_OP", IMAGINARY: "IMAGINARY_OP", IMABS: "IMABS_OP", TAKE: "TAKE_N", DROP: "DROP_N", HSTACK: "HSTACK_N", WRAPROWS: "WRAPROWS_N", ISFORMULA: "ISFORMULA_OP", REGEXMATCH: "REGEXMATCH_OP", REGEXEXTRACT: "REGEXEXTRACT_OP", REGEXREPLACE: "REGEXREPLACE_OP", LET: "LET_N", CHOOSECOLS: "CHOOSECOLS_N", SUMXMY2: "SUMXMY2_N", SUMX2PY2: "SUMX2PY2_N", SUMX2MY2: "SUMX2MY2_N", ERF: "ERF_OP", ERFC: "ERFC_OP", YEARFRAC: "YEARFRAC_OP", COUPDAYBS: "COUPDAYBS_OP", TBILLYIELD: "TBILLYIELD_OP", RECEIVED: "RECEIVED_OP", PRICEDISC: "PRICEDISC_OP", MIRR: "MIRR_N", XNPV: "XNPV_N", ACCRINT: "ACCRINT_OP", COUPDAYS: "COUPDAYS_OP", DOLLARDE: "DOLLARDE_OP", DOLLARFR: "DOLLARFR_OP", SORT: "SORT_N", UNIQUE: "UNIQUE_N", FILTER: "FILTER_N", PPMT: "PPMT_OP", IPMT: "IPMT_OP", CELL: "CELL_OP", ROWS: "ROWS_N", RANDARRAY: "RANDARRAY_N", SEQUENCE: "SEQUENCE_N", XMATCH: "XMATCH_N", "CEILING.PRECISE": "CEILING_PRECISE_OP", "FLOOR.PRECISE": "FLOOR_PRECISE_OP",
+  IMDIV: "IMDIV_OP", IMSUB: "IMSUB_OP", BIN2DEC: "BIN2DEC_OP", DEC2BIN: "DEC2BIN_OP", BIN2HEX: "BIN2HEX_OP", HEX2DEC: "HEX2DEC_OP", DEC2HEX: "DEC2HEX_OP", OCT2DEC: "OCT2DEC_OP", DEC2OCT: "DEC2OCT_OP", BITAND: "BITAND_OP", BITOR: "BITOR_OP", BITXOR: "BITXOR_OP", BITLSHIFT: "BITLSHIFT_OP", BITRSHIFT: "BITRSHIFT_OP", IMPOWER: "IMPOWER_OP", IMEXP: "IMEXP_OP", IMLN: "IMLN_OP", IMSIN: "IMSIN_OP", IMCOS: "IMCOS_OP", IMSUM: "IMSUM_OP", IMPRODUCT: "IMPRODUCT_OP", IMARGUMENT: "IMARGUMENT_OP", IMCONJUGATE: "IMCONJUGATE_OP", IMSQRT: "IMSQRT_OP", BESSELJ: "BESSELJ_OP", COMPLEX: "COMPLEX_OP", IMREAL: "IMREAL_OP", IMAGINARY: "IMAGINARY_OP", IMABS: "IMABS_OP", TAKE: "TAKE_N", DROP: "DROP_N", HSTACK: "HSTACK_N", WRAPROWS: "WRAPROWS_N", ISFORMULA: "ISFORMULA_OP", REGEXMATCH: "REGEXMATCH_OP", REGEXEXTRACT: "REGEXEXTRACT_OP", REGEXREPLACE: "REGEXREPLACE_OP", LET: "LET_N", CHOOSECOLS: "CHOOSECOLS_N", SUMXMY2: "SUMXMY2_N", SUMX2PY2: "SUMX2PY2_N", SUMX2MY2: "SUMX2MY2_N", ERF: "ERF_OP", ERFC: "ERFC_OP", YEARFRAC: "YEARFRAC_OP", COUPDAYBS: "COUPDAYBS_OP", TBILLYIELD: "TBILLYIELD_OP", RECEIVED: "RECEIVED_OP", PRICEDISC: "PRICEDISC_OP", MIRR: "MIRR_N", XNPV: "XNPV_N", ACCRINT: "ACCRINT_OP", COUPDAYS: "COUPDAYS_OP", DOLLARDE: "DOLLARDE_OP", DOLLARFR: "DOLLARFR_OP", SORT: "SORT_N", UNIQUE: "UNIQUE_N", FILTER: "FILTER_N", PPMT: "PPMT_OP", IPMT: "IPMT_OP", CELL: "CELL_OP", ROWS: "ROWS_N", RANDARRAY: "RANDARRAY_N", SEQUENCE: "SEQUENCE_N", XMATCH: "XMATCH_N", "CEILING.PRECISE": "CEILING_PRECISE_OP", "FLOOR.PRECISE": "FLOOR_PRECISE_OP",
   IFNA: "IFNA_OP", AVERAGEA: "AVERAGEA_N", MAXA: "MAXA_N", MINA: "MINA_N", NEGBINOMDIST: "NEGBINOMDIST_OP", BETADIST: "BETADIST_OP", HYPGEOMDIST: "HYPGEOMDIST_OP", ISNA: "ISNA_OP", SHEET: "SHEET_OP", TEXTSPLIT: "TEXTSPLIT_N", DATESTRING: "DATESTRING_OP", WORKDAY: "WORKDAY_OP", TEXTBEFORE: "TEXTBEFORE_OP", TEXTAFTER: "TEXTAFTER_OP", VALUETOTEXT: "VALUETOTEXT_OP", ISPMT: "ISPMT_OP", DISC: "DISC_OP", INTRATE: "INTRATE_OP", SYD: "SYD_OP", EFFECT: "EFFECT_OP", NOMINAL: "NOMINAL_OP", NORMINV: "NORMINV_OP", DDB: "DDB_OP", PERCENTRANK: "PERCENTRANK_N", QUARTILE: "QUARTILE_N", WEIBULL: "WEIBULL_OP", GAMMADIST: "GAMMADIST_OP", EXPONDIST: "EXPONDIST_OP", POISSON: "POISSON_OP", BINOMDIST: "BINOMDIST_OP", LOGNORMDIST: "LOGNORMDIST_OP", STANDARDIZE: "STANDARDIZE_OP", CONFIDENCE: "CONFIDENCE_OP", NORMDIST: "NORMDIST_OP", STEYX: "STEYX_N", FISHER: "FISHER_OP", FISHERINV: "FISHERINV_OP", KURT: "KURT_N", SKEW: "SKEW_N", CONVERT: "CONVERT_OP", SLOPE: "SLOPE_N", INTERCEPT: "INTERCEPT_N", RSQ: "RSQ_N", COVAR: "COVAR_N", FORECAST: "FORECAST_N", "STDEV.P": "STDEVP_N", "VAR.P": "VARP_N", CORREL: "CORREL_N", SUMSQ: "SUMSQ_N", DEVSQ: "DEVSQ_N", AVEDEV: "AVEDEV_N", TRIMMEAN: "TRIMMEAN_N", XOR: "XOR_N", ISOWEEKNUM: "ISOWEEKNUM_OP", NETWORKDAYS: "NETWORKDAYS_OP", SUBTOTAL: "SUBTOTAL_N", DELTA: "DELTA_OP", GESTEP: "GESTEP_OP", MULTINOMIAL: "MULTINOMIAL_N", SERIESSUM: "SERIESSUM_N", SEC: "SEC_OP", CSC: "CSC_OP", COTH: "COTH_OP", SECH: "SECH_OP", CSCH: "CSCH_OP", SUMIFS: "SUMIFS_N", AVERAGEIFS: "AVERAGEIFS_N", NA: "NA_OP", COT: "COT_OP", ACOT: "ACOT_OP", UNICODE: "UNICODE_OP", UNICHAR: "UNICHAR_OP", ENCODEURL: "ENCODEURL_OP", DAYS: "DAYS_OP", EOMONTH: "EOMONTH_OP", DATEDIF: "DATEDIF_OP", PERMUT: "PERMUT_OP", FACTDOUBLE: "FACTDOUBLE_OP",
   DATEVALUE: "DATEVALUE_OP", EDATE: "EDATE_OP", WEEKDAY: "WEEKDAY_OP", WEEKNUM: "WEEKNUM_OP", ROMAN: "ROMAN_OP", ARABIC: "ARABIC_OP", TEXT: "TEXT_OP", NUMBERVALUE: "NUMBERVALUE_OP", REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
   IFS: "IFS_N", SWITCH: "SWITCH_N", VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
@@ -4390,6 +4508,20 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "COMBIN", args: "n, k", description: "Combinations (n choose k)", category: "math" },
   { name: "SUBSTITUTE", args: "text, old, new", description: "Replace all occurrences", category: "text" },
   { name: "IFNA", args: "value, alt", description: "Return alt if value is error", category: "logic" },
+  { name: "IMDIV", args: "complex1, complex2", description: "Divide two complex numbers", category: "math" },
+  { name: "IMSUB", args: "complex1, complex2", description: "Subtract two complex numbers", category: "math" },
+  { name: "BIN2DEC", args: "binary_string", description: "Binary to decimal", category: "math" },
+  { name: "DEC2BIN", args: "number", description: "Decimal to binary string", category: "math" },
+  { name: "BIN2HEX", args: "binary_string", description: "Binary to hexadecimal", category: "math" },
+  { name: "HEX2DEC", args: "hex_string", description: "Hexadecimal to decimal", category: "math" },
+  { name: "DEC2HEX", args: "number", description: "Decimal to hexadecimal string", category: "math" },
+  { name: "OCT2DEC", args: "octal_string", description: "Octal to decimal", category: "math" },
+  { name: "DEC2OCT", args: "number", description: "Decimal to octal string", category: "math" },
+  { name: "BITAND", args: "a, b", description: "Bitwise AND", category: "math" },
+  { name: "BITOR", args: "a, b", description: "Bitwise OR", category: "math" },
+  { name: "BITXOR", args: "a, b", description: "Bitwise XOR", category: "math" },
+  { name: "BITLSHIFT", args: "number, shift", description: "Bitwise left shift", category: "math" },
+  { name: "BITRSHIFT", args: "number, shift", description: "Bitwise right shift", category: "math" },
   { name: "IMPOWER", args: "complex, n", description: "Raise complex to integer power", category: "math" },
   { name: "IMEXP", args: "complex_string", description: "Complex exponential e^z", category: "math" },
   { name: "IMLN", args: "complex_string", description: "Complex natural logarithm", category: "math" },

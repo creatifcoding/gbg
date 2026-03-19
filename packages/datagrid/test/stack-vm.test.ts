@@ -1704,6 +1704,17 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("BIN2DEC/DEC2BIN/HEX2DEC/DEC2HEX/BITAND/BITOR: base conversion + bitwise", () => {
+    expect(evalProgramDirect(compileInfixSync('=BIN2DEC("1010")')).stack[0]).toEqual(num(10))
+    expect(evalProgramDirect(compileInfixSync("=DEC2BIN(10)")).stack[0]).toEqual(str("1010"))
+    expect(evalProgramDirect(compileInfixSync('=HEX2DEC("FF")')).stack[0]).toEqual(num(255))
+    expect(evalProgramDirect(compileInfixSync("=DEC2HEX(255)")).stack[0]).toEqual(str("FF"))
+    expect(evalProgramDirect(compileInfixSync('=OCT2DEC("17")')).stack[0]).toEqual(num(15))
+    expect(evalProgramDirect(compileInfixSync("=BITAND(12, 10)")).stack[0]).toEqual(num(8)) // 1100 & 1010 = 1000
+    expect(evalProgramDirect(compileInfixSync("=BITOR(12, 10)")).stack[0]).toEqual(num(14)) // 1100 | 1010 = 1110
+    expect(evalProgramDirect(compileInfixSync("=BITLSHIFT(1, 4)")).stack[0]).toEqual(num(16))
+  })
+
   it("IMPOWER/IMEXP/IMLN/IMSIN/IMCOS: complex transcendental functions", () => {
     // IMPOWER: (1+1i)^2 = 0+2i (since (1+i)² = 1+2i-1 = 2i)
     const p = evalProgramDirect(compileInfixSync('=IMPOWER("1+1i", 2)')).stack[0]
