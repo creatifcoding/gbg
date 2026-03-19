@@ -1704,6 +1704,15 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("TAKE/DROP/ISFORMULA: dynamic array manipulation", () => {
+    // TAKE: take first 2 from [10, 20, 30]
+    const t = evalProgramDirect(compileInfixSync("=TAKE(2, 10, 20, 30)"))
+    expect(t.stack).toContainEqual(num(10))
+    expect(t.stack).toContainEqual(num(20))
+    // ISFORMULA always true
+    expect(evalProgramDirect(compileInfixSync("=ISFORMULA(42)")).stack[0]).toEqual(bool(true))
+  })
+
   it("ISNUMBER/ISTEXT/ISEVEN/ISODD/N/T: type checking + conversion", () => {
     expect(evalProgramDirect(compileInfixSync("=ISNUMBER(42)")).stack[0]).toEqual(bool(true))
     expect(evalProgramDirect(compileInfixSync('=ISNUMBER("hi")')).stack[0]).toEqual(bool(false))
