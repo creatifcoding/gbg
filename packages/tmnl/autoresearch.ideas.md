@@ -1,20 +1,23 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ STATUS — 179 experiments, 459 tests, 351 opcodes, 320 catalog entries
+## ✅ STATUS — 180 experiments, 459 tests, 356 opcodes, 325 catalog entries
 
-Production: 5,496 LOC | Tests: 2,460 LOC | Benchmark: ~380ms (~49% below 751ms)
+Production: 5,545 LOC | Tests: 2,460 LOC | Benchmark: ~370ms (~50% below 751ms)
 
-### Milestones
-- 🎉 300+ opcodes (171→351), 300+ catalog (174→320)
-- 🎉 math:100 | stat:75 — both at round milestones
+### Category breakdown (325 catalog)
+math:100 | stat:75 | text:42 | info:42 | financial:30 | logic:16 | lookup:15 | volatile:5
 
-### Category breakdown (320 catalog)
-math:100 | stat:75 | text:42 | info:41 | financial:28 | logic:16 | lookup:13 | volatile:5
+### Complete suites
+- Complex numbers: 17 functions | Base conversion: 9 | Bitwise: 5 | Bessel: 2
+- Dynamic arrays: SORT/UNIQUE/FILTER/TAKE/DROP/HSTACK/WRAPROWS/SEQUENCE/RANDARRAY
+- Functional: LAMBDA/MAP/REDUCE/SCAN/BYROW/BYCOL
+- Regex: MATCH/EXTRACT/REPLACE
+- Time: HOUR/MINUTE/SECOND/TIME/TIMEVALUE
+- Hypothesis testing: ZTEST/NORMDIST/NORMINV/CONFIDENCE
 
 ## 🔜 NEXT
 1. **Wire FormulaEngineV2 into production** — connect to CellCache + AG-Grid
-2. Push to 350 catalog with remaining Excel parity functions
-3. Performance: profile compilation of complex formulas
+2. Push to 350 catalog if needed post-wiring
 
 ## 📌 DEFERRED
 - VLOOKUP/HLOOKUP/XLOOKUP with cell range semantics
