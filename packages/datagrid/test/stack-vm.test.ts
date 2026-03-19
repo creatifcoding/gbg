@@ -2766,6 +2766,26 @@ describe("post-450 function coverage", () => {
   // Financial
   it("RULEOF72(0.06) ≈ 12", () => expect(d("=RULEOF72(0.06)")).toBe(12))
 
+  // Constants
+  it("GOLDEN() ≈ 1.618", () => expect(d("=GOLDEN()")).toBeCloseTo(1.618, 2))
+  it("TAU() ≈ 6.283", () => expect(d("=TAU()")).toBeCloseTo(2 * Math.PI, 5))
+
+  // Math utilities
+  it("CUBEROOT(27) = 3", () => expect(d("=CUBEROOT(27)")).toBe(3))
+  it("DIGITCOUNT(12345) = 5", () => expect(d("=DIGITCOUNT(12345)")).toBe(5))
+
+  // Text
+  it("TEXTPREFIX(hello, 3) = hel", () => expect(d("=TEXTPREFIX(\"hello\", 3)")).toBe("hel"))
+  it("TEXTSUFFIX(hello, 3) = llo", () => expect(d("=TEXTSUFFIX(\"hello\", 3)")).toBe("llo"))
+  it("TEXTROT13(hello) round-trip", () => expect(d("=TEXTROT13(TEXTROT13(\"hello\"))")).toBe("hello"))
+
+  // Stat
+  it("RMS(3,4) = 2.5 (√12.5)", () => expect(d("=RMS(3,4)")).toBeCloseTo(Math.sqrt(12.5), 5))
+  it("RANGE2(1,5,3) = 4", () => expect(d("=RANGE2(1,5,3)")).toBe(4))
+  it("ISZERO(0) = true", () => expect(d("=ISZERO(0)")).toBe(true))
+  it("ISZERO(5) = false", () => expect(d("=ISZERO(5)")).toBe(false))
+  it("ANNUITY(0.05, 10) ≈ 7.72", () => expect(d("=ANNUITY(0.05, 10)")).toBeCloseTo(7.7217, 3))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
