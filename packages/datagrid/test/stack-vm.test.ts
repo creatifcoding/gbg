@@ -1422,6 +1422,14 @@ describe("infix parser", () => {
     expect(decompileIR(compileInfixSync("=UPPER(A1)"))).toBe("=UPPER(A1)")
   })
 
+  it("STDEV: sample standard deviation", () => {
+    // STDEV(2, 4, 4, 4, 5, 5, 7, 9) = 2.138...
+    const state = evalProgramDirect(compileInfixSync("=ROUND(STDEV(2,4,4,4,5,5,7,9), 3)"))
+    expect(state.stack[0]).toEqual(num(2.138))
+    // STDEV of single value → error
+    expect(evalProgramDirect(compileInfixSync("=STDEV(5)")).stack[0]._tag).toBe("error")
+  })
+
   it("MEDIAN: odd and even count", () => {
     expect(evalProgramDirect(compileInfixSync("=MEDIAN(3,1,2)")).stack[0]).toEqual(num(2)) // sorted: [1,2,3] → 2
     expect(evalProgramDirect(compileInfixSync("=MEDIAN(4,1,2,3)")).stack[0]).toEqual(num(2.5)) // sorted: [1,2,3,4] → (2+3)/2
