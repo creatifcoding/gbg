@@ -366,6 +366,8 @@ export const INT_OP = Schema.TaggedStruct("INT_OP", {})
 export const EVEN_OP = Schema.TaggedStruct("EVEN_OP", {})
 export const ODD_OP = Schema.TaggedStruct("ODD_OP", {})
 export const TRUNC_OP = Schema.TaggedStruct("TRUNC_OP", {})
+export const FACT_OP = Schema.TaggedStruct("FACT_OP", {})
+export const QUOTIENT_OP = Schema.TaggedStruct("QUOTIENT_OP", {})
 export const GCD_OP = Schema.TaggedStruct("GCD_OP", {})
 export const LCM_OP = Schema.TaggedStruct("LCM_OP", {})
 export const COMBIN_OP = Schema.TaggedStruct("COMBIN_OP", {})
@@ -516,7 +518,7 @@ export const Opcode = Schema.Union([
   DUP, SWAP, DROP, NEG,
   EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR,
   AND_N, OR_N, CHOOSE_N,
-  LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, PROPER_OP, CLEAN_OP, CHAR_OP, CODE_OP, T_OP, ISEVEN_OP, ISODD_OP, INT_OP, EVEN_OP, ODD_OP, TRUNC_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
+  LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, PROPER_OP, CLEAN_OP, CHAR_OP, CODE_OP, T_OP, ISEVEN_OP, ISODD_OP, INT_OP, EVEN_OP, ODD_OP, TRUNC_OP, FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
   COUNTIF_N, SUMIF_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
@@ -1119,6 +1121,20 @@ const EXEC: Record<string, Executor> = {
   // Financial: INT (truncate to integer toward 0), TRUNC (truncate decimal places)
   INT_OP:    (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.floor(asNum(a))), "INT") }),
   TRUNC_OP:  (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.trunc(asNum(a))), "TRUNC") }),
+  FACT_OP: (_o, s) => ({ result: unop(s, a => {
+    if (isVMError(a)) return a
+    const n = Math.round(asNum(a))
+    if (n < 0) return vmError("TYPE_MISMATCH", "FACT: negative")
+    if (n > 170) return vmError("TYPE_MISMATCH", "FACT: overflow >170")
+    let r = 1; for (let i = 2; i <= n; i++) r *= i
+    return num(r)
+  }, "FACT") }),
+  QUOTIENT_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "QUOTIENT")); return { result: s[s.length-1] } }
+    const b = asNum(s.pop()!), a = asNum(s.pop()!)
+    if (b === 0) { const err = vmError("DIV_ZERO", "QUOTIENT /0"); s.push(err); return { result: err } }
+    const result = num(Math.trunc(a / b)); s.push(result); return { result }
+  },
   GCD_OP: (_o, s) => {
     if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "GCD")); return { result: s[s.length-1] } }
     let b = Math.abs(Math.round(asNum(s.pop()!))), a = Math.abs(Math.round(asNum(s.pop()!)))
@@ -1370,7 +1386,8 @@ const _OP: Record<string, Opcode> = {
   CHAR_OP: { _tag: "CHAR_OP" }, CODE_OP: { _tag: "CODE_OP" }, T_OP: { _tag: "T_OP" },
   ISEVEN_OP: { _tag: "ISEVEN_OP" }, ISODD_OP: { _tag: "ISODD_OP" },
   INT_OP: { _tag: "INT_OP" }, EVEN_OP: { _tag: "EVEN_OP" }, ODD_OP: { _tag: "ODD_OP" },
-  TRUNC_OP: { _tag: "TRUNC_OP" }, GCD_OP: { _tag: "GCD_OP" }, LCM_OP: { _tag: "LCM_OP" }, COMBIN_OP: { _tag: "COMBIN_OP" }, SUBSTITUTE_OP: { _tag: "SUBSTITUTE_OP" },
+  TRUNC_OP: { _tag: "TRUNC_OP" }, FACT_OP: { _tag: "FACT_OP" }, QUOTIENT_OP: { _tag: "QUOTIENT_OP" },
+  GCD_OP: { _tag: "GCD_OP" }, LCM_OP: { _tag: "LCM_OP" }, COMBIN_OP: { _tag: "COMBIN_OP" }, SUBSTITUTE_OP: { _tag: "SUBSTITUTE_OP" },
   SQRT_OP: { _tag: "SQRT_OP" }, SIGN_OP: { _tag: "SIGN_OP" },
   LOG_OP: { _tag: "LOG_OP" }, LOG10_OP: { _tag: "LOG10_OP" },
   SUM_DYN: { _tag: "SUM_DYN" }, MIN_DYN: { _tag: "MIN_DYN" },
@@ -1441,6 +1458,8 @@ function classifyToken(tok: string): Opcode | null {
     case "EVEN_OP": return _OP.EVEN_OP
     case "ODD_OP": return _OP.ODD_OP
     case "TRUNC_OP": return _OP.TRUNC_OP
+    case "FACT_OP": return _OP.FACT_OP
+    case "QUOTIENT_OP": return _OP.QUOTIENT_OP
     case "GCD_OP": return _OP.GCD_OP
     case "LCM_OP": return _OP.LCM_OP
     case "COMBIN_OP": return _OP.COMBIN_OP
@@ -1737,7 +1756,7 @@ const FUNC_MAP: Record<string, string> = {
   LEN: "LEN_OP", LEFT: "LEFT_OP", RIGHT: "RIGHT_OP", MID: "MID_OP",
   TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", PROPER: "PROPER_OP", CLEAN: "CLEAN_OP", CHAR: "CHAR_OP", CODE: "CODE_OP", T: "T_OP",
   ISEVEN: "ISEVEN_OP", ISODD: "ISODD_OP", ISNUMBER: "ISNUM_OP",
-  INT: "INT_OP", EVEN: "EVEN_OP", ODD: "ODD_OP", TRUNC: "TRUNC_OP", GCD: "GCD_OP", LCM: "LCM_OP", COMBIN: "COMBIN_OP", SUBSTITUTE: "SUBSTITUTE_OP",
+  INT: "INT_OP", EVEN: "EVEN_OP", ODD: "ODD_OP", TRUNC: "TRUNC_OP", FACT: "FACT_OP", QUOTIENT: "QUOTIENT_OP", GCD: "GCD_OP", LCM: "LCM_OP", COMBIN: "COMBIN_OP", SUBSTITUTE: "SUBSTITUTE_OP",
   ISNUM: "ISNUM_OP", ISTEXT: "ISTEXT_OP", ISERROR: "ISERROR_OP", ISBLANK: "ISBLANK_OP",
   COUNTIF: "COUNTIF_N", SUMIF: "SUMIF_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
   STDEV: "STDEV_N", MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
@@ -2073,6 +2092,8 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "EVEN", args: "number", description: "Round up to nearest even integer", category: "math" },
   { name: "ODD", args: "number", description: "Round up to nearest odd integer", category: "math" },
   { name: "TRUNC", args: "number", description: "Truncate toward zero", category: "math" },
+  { name: "FACT", args: "number", description: "Factorial (n!)", category: "math" },
+  { name: "QUOTIENT", args: "numerator, denominator", description: "Integer part of division", category: "math" },
   { name: "GCD", args: "a, b", description: "Greatest common divisor", category: "math" },
   { name: "LCM", args: "a, b", description: "Least common multiple", category: "math" },
   { name: "COMBIN", args: "n, k", description: "Combinations (n choose k)", category: "math" },
@@ -2221,7 +2242,7 @@ export const decompileIR = (ir: StackIR): string => {
   const UNARY_FN: Record<string, string> = {
     ABS: "ABS", NEG: "-", NOT: "NOT", SQRT_OP: "SQRT", SIGN_OP: "SIGN",
     LOG_OP: "LOG", LOG10_OP: "LOG10", FLOOR_OP: "FLOOR", CEIL_OP: "CEIL",
-    LEN_OP: "LEN", TRIM_OP: "TRIM", UPPER_OP: "UPPER", LOWER_OP: "LOWER", PROPER_OP: "PROPER", CLEAN_OP: "CLEAN", CHAR_OP: "CHAR", CODE_OP: "CODE", T_OP: "T", ISEVEN_OP: "ISEVEN", ISODD_OP: "ISODD", INT_OP: "INT", EVEN_OP: "EVEN", ODD_OP: "ODD", TRUNC_OP: "TRUNC",
+    LEN_OP: "LEN", TRIM_OP: "TRIM", UPPER_OP: "UPPER", LOWER_OP: "LOWER", PROPER_OP: "PROPER", CLEAN_OP: "CLEAN", CHAR_OP: "CHAR", CODE_OP: "CODE", T_OP: "T", ISEVEN_OP: "ISEVEN", ISODD_OP: "ISODD", INT_OP: "INT", EVEN_OP: "EVEN", ODD_OP: "ODD", TRUNC_OP: "TRUNC", FACT_OP: "FACT",
     ISNUM_OP: "ISNUM", ISTEXT_OP: "ISTEXT", ISERROR_OP: "ISERROR", ISBLANK_OP: "ISBLANK",
     YEAR_OP: "YEAR", MONTH_OP: "MONTH", DAY_OP: "DAY",
     HOUR_OP: "HOUR", MINUTE_OP: "MINUTE", SECOND_OP: "SECOND",

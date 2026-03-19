@@ -1474,6 +1474,18 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync("=TRUNC(-3.7)")).stack[0]).toEqual(num(-3)) // toward zero, not floor
   })
 
+  it("FACT: factorial", () => {
+    expect(evalProgramDirect(compileInfixSync("=FACT(5)")).stack[0]).toEqual(num(120))
+    expect(evalProgramDirect(compileInfixSync("=FACT(0)")).stack[0]).toEqual(num(1))
+    expect(evalProgramDirect(compileInfixSync("=FACT(-1)")).stack[0]._tag).toBe("error")
+  })
+
+  it("QUOTIENT: integer division", () => {
+    expect(evalProgramDirect(compileInfixSync("=QUOTIENT(7, 3)")).stack[0]).toEqual(num(2))
+    expect(evalProgramDirect(compileInfixSync("=QUOTIENT(-7, 3)")).stack[0]).toEqual(num(-2)) // toward zero
+    expect(evalProgramDirect(compileInfixSync("=QUOTIENT(7, 0)")).stack[0]._tag).toBe("error")
+  })
+
   it("GCD/LCM: divisor and multiple", () => {
     expect(evalProgramDirect(compileInfixSync("=GCD(12, 8)")).stack[0]).toEqual(num(4))
     expect(evalProgramDirect(compileInfixSync("=GCD(15, 25)")).stack[0]).toEqual(num(5))
