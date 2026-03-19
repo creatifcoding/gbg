@@ -1704,6 +1704,15 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("NORMDIST: cumulative normal distribution", () => {
+    // NORMDIST(0, 0, 1) = 0.5 (50th percentile)
+    expect(evalProgramDirect(compileInfixSync("=ROUND(NORMDIST(0, 0, 1), 2)")).stack[0]).toEqual(num(0.5))
+    // NORMDIST(1.96, 0, 1) ≈ 0.975 (97.5th percentile, ~2σ)
+    const p = (evalProgramDirect(compileInfixSync("=ROUND(NORMDIST(1.96, 0, 1), 3)")).stack[0] as any).value
+    expect(p).toBeGreaterThan(0.97)
+    expect(p).toBeLessThan(0.98)
+  })
+
   it("FISHER/FISHERINV/KURT/SKEW/STEYX: advanced statistical analysis", () => {
     // FISHER(0.5) ≈ 0.5493
     expect(evalProgramDirect(compileInfixSync("=ROUND(FISHER(0.5), 4)")).stack[0]).toEqual(num(0.5493))
