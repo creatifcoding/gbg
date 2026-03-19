@@ -1168,6 +1168,22 @@ describe("infix parser", () => {
     expect(Effect.runSync(evalProgram(ir2)).stack[0]).toEqual(num(0))
   })
 
+  it("multi-char column range: =SUM(AA1:AA3)", () => {
+    const ir = compileInfixSync("=SUM(AA1:AA3)")
+    const cells: Record<string, any> = { AA1: num(10), AA2: num(20), AA3: num(30) }
+    const ctx = { readCell: (a: string) => cells[a] ?? num(0), writeCell: () => {} }
+    const s = Effect.runSync(evalProgram(ir, ctx))
+    expect(s.stack[0]).toEqual(num(60))
+  })
+
+  it("multi-char column range deps: AA1:AC1", () => {
+    const deps = extractDepsInfix("=SUM(AA1:AC1)")
+    expect(deps).toContain("AA1")
+    expect(deps).toContain("AB1")
+    expect(deps).toContain("AC1")
+    expect(deps.length).toBe(3)
+  })
+
   it("rejects mismatched parentheses", async () => {
     await expect(
       Effect.runPromise(compileInfix("=(A1+B1"))

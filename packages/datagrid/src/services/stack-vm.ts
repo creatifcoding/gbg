@@ -555,6 +555,23 @@ const minReduce = (vals: VMValue[]) => { let m = asNum(vals[0]); for (let i = 1;
 const maxReduce = (vals: VMValue[]) => { let m = asNum(vals[0]); for (let i = 1; i < vals.length; i++) { const v = asNum(vals[i]); if (v > m) m = v }; return num(m) }
 const avgReduce = (vals: VMValue[], n: number) => { let t = 0; for (const v of vals) t += asNum(v); return num(t / n) }
 
+// ── Column index helpers (A=0, B=1, ..., Z=25, AA=26, AZ=51, ...) ──
+
+/** Convert column letters to zero-based index: A→0, Z→25, AA→26, AZ→51 */
+const colToIdx = (col: string): number => {
+  let idx = 0
+  for (let i = 0; i < col.length; i++) idx = idx * 26 + (col.charCodeAt(i) - 64)
+  return idx - 1
+}
+
+/** Convert zero-based index to column letters: 0→A, 25→Z, 26→AA */
+const idxToCol = (idx: number): string => {
+  let s = ""
+  let n = idx + 1
+  while (n > 0) { n--; s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26) }
+  return s
+}
+
 // ── Flat dispatch table ────────────────────────────────
 // Each entry: (op, stack, ctx) → { result?, halted? }
 
@@ -667,15 +684,13 @@ const EXEC: Record<string, Executor> = {
   },
   READ_RANGE: (o: any, s, ctx) => {
     const { startCol, startRow, endCol, endRow } = o
+    const loCol = Math.min(colToIdx(startCol), colToIdx(endCol))
+    const hiCol = Math.max(colToIdx(startCol), colToIdx(endCol))
+    const loRow = Math.min(startRow, endRow)
+    const hiRow = Math.max(startRow, endRow)
     let count = 0
-    if (startCol === endCol) {
-      for (let r = Math.min(startRow, endRow); r <= Math.max(startRow, endRow); r++) { s.push(ctx.readCell(`${startCol}${r}`)); count++ }
-    } else if (startRow === endRow) {
-      for (let c = Math.min(startCol.charCodeAt(0), endCol.charCodeAt(0)); c <= Math.max(startCol.charCodeAt(0), endCol.charCodeAt(0)); c++) { s.push(ctx.readCell(`${String.fromCharCode(c)}${startRow}`)); count++ }
-    } else {
-      for (let r = Math.min(startRow, endRow); r <= Math.max(startRow, endRow); r++)
-        for (let c = Math.min(startCol.charCodeAt(0), endCol.charCodeAt(0)); c <= Math.max(startCol.charCodeAt(0), endCol.charCodeAt(0)); c++) { s.push(ctx.readCell(`${String.fromCharCode(c)}${r}`)); count++ }
-    }
+    for (let r = loRow; r <= hiRow; r++)
+      for (let c = loCol; c <= hiCol; c++) { s.push(ctx.readCell(`${idxToCol(c)}${r}`)); count++ }
     const cv = num(count); s.push(cv); return { result: cv }
   },
 
@@ -949,26 +964,12 @@ export const extractDeps = (expr: string): ReadonlyArray<string> => {
     const rangeMatch = RANGE_PATTERN.exec(tok)
     if (rangeMatch) {
       const [, sc, sr, ec, er] = rangeMatch
-      const startRow = parseInt(sr, 10)
-      const endRow = parseInt(er, 10)
-      if (sc === ec) {
-        // Column range
-        for (let r = Math.min(startRow, endRow); r <= Math.max(startRow, endRow); r++) {
-          addDep(`${sc}${r}`)
-        }
-      } else if (startRow === endRow) {
-        // Row range
-        for (let c = Math.min(sc.charCodeAt(0), ec.charCodeAt(0)); c <= Math.max(sc.charCodeAt(0), ec.charCodeAt(0)); c++) {
-          addDep(`${String.fromCharCode(c)}${startRow}`)
-        }
-      } else {
-        // 2D range
-        for (let r = Math.min(startRow, endRow); r <= Math.max(startRow, endRow); r++) {
-          for (let c = Math.min(sc.charCodeAt(0), ec.charCodeAt(0)); c <= Math.max(sc.charCodeAt(0), ec.charCodeAt(0)); c++) {
-            addDep(`${String.fromCharCode(c)}${r}`)
-          }
-        }
-      }
+      const loCol = Math.min(colToIdx(sc), colToIdx(ec))
+      const hiCol = Math.max(colToIdx(sc), colToIdx(ec))
+      const loRow = Math.min(parseInt(sr, 10), parseInt(er, 10))
+      const hiRow = Math.max(parseInt(sr, 10), parseInt(er, 10))
+      for (let r = loRow; r <= hiRow; r++)
+        for (let c = loCol; c <= hiCol; c++) addDep(`${idxToCol(c)}${r}`)
       continue
     }
     // Single cell ref
