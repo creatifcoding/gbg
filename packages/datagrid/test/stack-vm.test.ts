@@ -2812,6 +2812,34 @@ describe("post-450 function coverage", () => {
   it("SHARPE(0.12, 0.02, 0.15) ≈ 0.667", () => expect(d("=SHARPE(0.12, 0.02, 0.15)")).toBeCloseTo(0.6667, 3))
   it("CHEBYSHEV(-3, 5) = 5", () => expect(d("=CHEBYSHEV(-3, 5)")).toBe(5))
 
+  // Number theory
+  it("COPRIME(8, 15) = true", () => expect(d("=COPRIME(8, 15)")).toBe(true))
+  it("COPRIME(6, 9) = false", () => expect(d("=COPRIME(6, 9)")).toBe(false))
+  it("COLLATZ(6) = 8", () => expect(d("=COLLATZ(6)")).toBe(8))
+  it("PREVPRIME(10) = 7", () => expect(d("=PREVPRIME(10)")).toBe(7))
+  it("TOTIENT2(12) = 4", () => expect(d("=TOTIENT2(12)")).toBe(4))
+  it("FIBONACCI2(10) = 55", () => expect(d("=FIBONACCI2(10)")).toBe(55))
+  it("DERANGEMENT(4) = 9", () => expect(d("=DERANGEMENT(4)")).toBe(9))
+  it("ISFIBBISH(8) = true", () => expect(d("=ISFIBBISH(8)")).toBe(true))
+  it("ISFIBBISH(9) = false", () => expect(d("=ISFIBBISH(9)")).toBe(false))
+
+  // Text
+  it("TEXTMASK(secret, 2) = se****", () => expect(d("=TEXTMASK(\"secret\", 2)")).toBe("se****"))
+  it("TEXTOBFUSCATE(hello) = h***o", () => expect(d("=TEXTOBFUSCATE(\"hello\")")).toBe("h***o"))
+  it("TEXTCOUNT2(banana, an) = 2", () => expect(d("=TEXTCOUNT2(\"banana\", \"an\")")).toBe(2))
+  it("WORDSCOUNT(hello world) = 2", () => expect(d("=WORDSCOUNT(\"hello world\")")).toBe(2))
+  it("TEXTISEMAIL(a@b.c) = true", () => expect(d("=TEXTISEMAIL(\"a@b.c\")")).toBe(true))
+  it("TEXTISURL(https://x.com) = true", () => expect(d("=TEXTISURL(\"https://x.com\")")).toBe(true))
+
+  // Info/dates
+  it("ISLEAPYEAR(2024) = true", () => expect(d("=ISLEAPYEAR(2024)")).toBe(true))
+  it("ISLEAPYEAR(2023) = false", () => expect(d("=ISLEAPYEAR(2023)")).toBe(false))
+  it("QUARTERNO(7) = 3", () => expect(d("=QUARTERNO(7)")).toBe(3))
+  it("SEMESTERNO(3) = 1", () => expect(d("=SEMESTERNO(3)")).toBe(1))
+
+  // Financial
+  it("EFFECTRATE(0.12, 12) ≈ 0.1268", () => expect(d("=EFFECTRATE(0.12, 12)")).toBeCloseTo(0.1268, 3))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
