@@ -1434,6 +1434,17 @@ describe("infix parser", () => {
     expect(decompileIR(compileInfixSync("=UPPER(A1)"))).toBe("=UPPER(A1)")
   })
 
+  it("PERCENTILE: k-th percentile", () => {
+    // Sorted: [1,2,3,4,5], 0.5 percentile → 3 (median)
+    expect(evalProgramDirect(compileInfixSync("=PERCENTILE(0.5, 1, 2, 3, 4, 5)")).stack[0]).toEqual(num(3))
+    // 0.25 percentile → 2
+    expect(evalProgramDirect(compileInfixSync("=PERCENTILE(0.25, 1, 2, 3, 4, 5)")).stack[0]).toEqual(num(2))
+    // 1.0 → max
+    expect(evalProgramDirect(compileInfixSync("=PERCENTILE(1, 10, 20, 30)")).stack[0]).toEqual(num(30))
+    // Out of range
+    expect(evalProgramDirect(compileInfixSync("=PERCENTILE(1.5, 1, 2)")).stack[0]._tag).toBe("error")
+  })
+
   it("COUNTA/COUNTBLANK: non-blank and blank counting", () => {
     // COUNTA counts non-blank values (nums, strings, bools)
     expect(evalProgramDirect(compileInfixSync('=COUNTA(1, "a", TRUE)')).stack[0]).toEqual(num(3))

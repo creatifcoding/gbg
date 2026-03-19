@@ -418,6 +418,7 @@ export const EXACT_OP = Schema.TaggedStruct("EXACT_OP", {})
 export const FIND_OP = Schema.TaggedStruct("FIND_OP", {})
 export const COUNTIF_N = Schema.TaggedStruct("COUNTIF_N", { n: Schema.Number })
 export const SUMIF_N = Schema.TaggedStruct("SUMIF_N", { n: Schema.Number })
+export const PERCENTILE_N = Schema.TaggedStruct("PERCENTILE_N", { n: Schema.Number })
 export const COUNTA_N = Schema.TaggedStruct("COUNTA_N", { n: Schema.Number })
 export const COUNTBLANK_N = Schema.TaggedStruct("COUNTBLANK_N", { n: Schema.Number })
 export const SUMPRODUCT_N = Schema.TaggedStruct("SUMPRODUCT_N", { n: Schema.Number })
@@ -551,7 +552,7 @@ export const Opcode = Schema.Union([
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
-  COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, COUNTIF_N, SUMIF_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
+  PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, COUNTIF_N, SUMIF_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
   IFS_N, SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
@@ -922,6 +923,21 @@ const EXEC: Record<string, Executor> = {
     let total = 0
     for (const v of values) { if (pred(v)) total += asNum(v) }
     const result = num(total)
+    s.push(result); return { result }
+  },
+
+  // PERCENTILE_N: k-th percentile (0-1). Stack: [k, v1, ..., vN]
+  PERCENTILE_N: (op: any, s) => {
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "PERCENTILE")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const k = asNum(args[0])
+    if (k < 0 || k > 1) { const err = vmError("TYPE_MISMATCH", `PERCENTILE: k=${k} out of [0,1]`); s.push(err); return { result: err } }
+    const nums = args.slice(1).filter(v => !isVMError(v)).map(asNum).sort((a, b) => a - b)
+    if (nums.length === 0) { s.push(vmError("TYPE_MISMATCH", "PERCENTILE: empty")); return { result: s[s.length-1] } }
+    const index = k * (nums.length - 1)
+    const lo = Math.floor(index), hi = Math.ceil(index)
+    const result = lo === hi ? num(nums[lo]) : num(nums[lo] + (nums[hi] - nums[lo]) * (index - lo))
     s.push(result); return { result }
   },
 
@@ -1648,6 +1664,7 @@ function classifyToken(tok: string): Opcode | null {
     case "ISTEXT_OP": return _OP.ISTEXT_OP
     case "ISERROR_OP": return _OP.ISERROR_OP
     case "ISBLANK_OP": return _OP.ISBLANK_OP
+    case "PERCENTILE_N": return { _tag: "PERCENTILE_N", n: 0 } as any
     case "COUNTA_N": return { _tag: "COUNTA_N", n: 0 } as any
     case "COUNTBLANK_N": return { _tag: "COUNTBLANK_N", n: 0 } as any
     case "SUMPRODUCT_N": return { _tag: "SUMPRODUCT_N", n: 0 } as any
@@ -1861,12 +1878,12 @@ const INFIX_OP_MAP: Record<string, string> = {
 }
 const RIGHT_ASSOC = new Set<string>(["UNARY_NEG", "^"])
 const ZERO_ARG_FNS = new Set(["NOW", "RAND", "PI", "TODAY"])
-const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N", "SWITCH_N", "IFS_N", "COUNTA_N", "COUNTBLANK_N", "SUMPRODUCT_N", "COUNTIF_N", "SUMIF_N", "AVERAGEIF_N", "LARGE_N", "SMALL_N", "STDEV_N", "MEDIAN_N", "RANK_N", "CONCATENATE_N", "TEXTJOIN_N"])
+const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N", "SWITCH_N", "IFS_N", "PERCENTILE_N", "COUNTA_N", "COUNTBLANK_N", "SUMPRODUCT_N", "COUNTIF_N", "SUMIF_N", "AVERAGEIF_N", "LARGE_N", "SMALL_N", "STDEV_N", "MEDIAN_N", "RANK_N", "CONCATENATE_N", "TEXTJOIN_N"])
 const N_VARIANTS: Record<string, string> = {
   SUM_DYN: "SUM_N", MIN_DYN: "MIN_N", MAX_DYN: "MAX_N", AVG_DYN: "AVG_N",
   PRODUCT_DYN: "PRODUCT_N",
   AND_N: "AND_N", OR_N: "OR_N", CHOOSE_N: "CHOOSE_N", SWITCH_N: "SWITCH_N", IFS_N: "IFS_N",
-  COUNTA_N: "COUNTA_N", COUNTBLANK_N: "COUNTBLANK_N",
+  PERCENTILE_N: "PERCENTILE_N", COUNTA_N: "COUNTA_N", COUNTBLANK_N: "COUNTBLANK_N",
   SUMPRODUCT_N: "SUMPRODUCT_N", COUNTIF_N: "COUNTIF_N", SUMIF_N: "SUMIF_N", AVERAGEIF_N: "AVERAGEIF_N", LARGE_N: "LARGE_N", SMALL_N: "SMALL_N",
   STDEV_N: "STDEV_N", MEDIAN_N: "MEDIAN_N", RANK_N: "RANK_N", CONCATENATE_N: "CONCATENATE_N", TEXTJOIN_N: "TEXTJOIN_N",
 }
@@ -1946,7 +1963,7 @@ const FUNC_MAP: Record<string, string> = {
   SIN: "SIN_OP", COS: "COS_OP", TAN: "TAN_OP", ASIN: "ASIN_OP", ACOS: "ACOS_OP", ATAN: "ATAN_OP", ATAN2: "ATAN2_OP", RADIANS: "RADIANS_OP", DEGREES: "DEGREES_OP",
   FACT: "FACT_OP", QUOTIENT: "QUOTIENT_OP", GCD: "GCD_OP", LCM: "LCM_OP", COMBIN: "COMBIN_OP", SUBSTITUTE: "SUBSTITUTE_OP",
   ISNUM: "ISNUM_OP", ISTEXT: "ISTEXT_OP", ISERROR: "ISERROR_OP", ISBLANK: "ISBLANK_OP",
-  COUNTA: "COUNTA_N", COUNTBLANK: "COUNTBLANK_N",
+  PERCENTILE: "PERCENTILE_N", COUNTA: "COUNTA_N", COUNTBLANK: "COUNTBLANK_N",
   SUMPRODUCT: "SUMPRODUCT_N", COUNTIF: "COUNTIF_N", SUMIF: "SUMIF_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
   STDEV: "STDEV_N", MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
   REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
@@ -2326,6 +2343,7 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "OR", args: "values...", description: "Any condition true", category: "logic" },
   { name: "NOT", args: "value", description: "Logical negation", category: "logic" },
   // Lookup / Ranking
+  { name: "PERCENTILE", args: "k, values...", description: "K-th percentile (0-1)", category: "stat" },
   { name: "COUNTA", args: "values...", description: "Count non-blank values", category: "stat" },
   { name: "COUNTBLANK", args: "values...", description: "Count blank values", category: "stat" },
   { name: "SUMPRODUCT", args: "a1,...aN, b1,...bN", description: "Sum of pairwise products", category: "math" },
