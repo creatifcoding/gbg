@@ -1318,6 +1318,22 @@ describe("infix parser", () => {
     expect(s.stack[0]).toEqual(num(5)) // sqrt(9+16) = sqrt(25) = 5
   })
 
+  it("equality operator: =A1=5 checks if A1 equals 5", () => {
+    const cells: Record<string, any> = { A1: num(5) }
+    const ctx = { readCell: (a: string) => cells[a] ?? num(0), writeCell: () => {} }
+    const ir = compileInfixSync("=A1=5")
+    expect(Effect.runSync(evalProgram(ir, ctx)).stack[0]).toEqual(bool(true))
+    cells.A1 = num(3)
+    expect(Effect.runSync(evalProgram(ir, ctx)).stack[0]).toEqual(bool(false))
+  })
+
+  it("equality in IF: =IF(A1=1, \"yes\", \"no\")", () => {
+    const cells: Record<string, any> = { A1: num(1) }
+    const ctx = { readCell: (a: string) => cells[a] ?? num(0), writeCell: () => {} }
+    const ir = compileInfixSync('=IF(A1=1, "yes", "no")')
+    expect(Effect.runSync(evalProgram(ir, ctx)).stack[0]).toEqual(str("yes"))
+  })
+
   it("constant folding: =2+3 compiles to single PUSH_NUM(5)", () => {
     const ir = compileInfixSync("=2+3")
     expect(ir.length).toBe(1) // folded to single PUSH_NUM

@@ -1227,7 +1227,7 @@ export const extractDepsFromIR = (ir: StackIR): ReadonlyArray<string> => {
 
 /** Operator precedence for shunting-yard */
 const PREC: Record<string, number> = {
-  "<": 0, ">": 0, ">=": 0, "<=": 0, "!=": 0,  // comparison
+  "=": 0, "<": 0, ">": 0, ">=": 0, "<=": 0, "!=": 0,  // comparison
   "+": 1, "-": 1,
   "*": 2, "/": 2, "%": 2,
   "^": 3, // exponent: right-associative, high precedence
@@ -1239,7 +1239,7 @@ const PREC: Record<string, number> = {
  * Needed because some infix operators differ from RPN tokens.
  */
 const INFIX_OP_MAP: Record<string, string> = {
-  "<": "LT", ">": "GT", ">=": "GTE", "<=": "LTE", "!=": "NEQ", "^": "POWER",
+  "=": "EQ", "<": "LT", ">": "GT", ">=": "GTE", "<=": "LTE", "!=": "NEQ", "^": "POWER",
 }
 const RIGHT_ASSOC = new Set<string>(["UNARY_NEG", "^"])
 const ZERO_ARG_FNS = new Set(["NOW", "RAND", "PI"])
