@@ -2597,6 +2597,16 @@ describe("post-450 function coverage", () => {
   it("ISERR on error = true", () => expect(d("=ISERR(1/0)")).toBe(true))
   it("ISNULL on empty = true", () => expect(d("=ISNULL(\"\")")).toBe(true))
   it("ISNULL on text = false", () => expect(d("=ISNULL(\"hi\")")).toBe(false))
+
+  // Case conversion
+  it("TEXTCAMELCASE", () => expect(d("=TEXTCAMELCASE(\"hello world\")")).toBe("helloWorld"))
+  it("TEXTSNAKECASE", () => expect(d("=TEXTSNAKECASE(\"helloWorld\")")).toBe("hello_world"))
+  it("TEXTKEBABCASE", () => expect(d("=TEXTKEBABCASE(\"hello world\")")).toBe("hello-world"))
+  it("TEXTINITIALS", () => expect(d("=TEXTINITIALS(\"John Doe Smith\")")).toBe("JDS"))
+  
+  // Base64
+  it("BASE64.ENCODE", () => expect(d("=BASE64.ENCODE(\"hello\")")).toBe("aGVsbG8="))
+  it("BASE64.DECODE", () => expect(d("=BASE64.DECODE(\"aGVsbG8=\")")).toBe("hello"))
 })
 
 // ═══════════════════════════════════════════════════════
