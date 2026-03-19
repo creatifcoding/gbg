@@ -1,17 +1,18 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ STATUS — 236 experiments, 744 tests, 800 CATALOG, ~10,360 LOC
+## ✅ STATUS — 238 experiments, 772 tests, 850 CATALOG, ~10,713 LOC
 
-### Category breakdown (800 catalog)
-math:217 | stat:158 | text:134 | info:108 | financial:88 | lookup:50 | logic:39 | volatile:6
+### Category breakdown (850 catalog)
+math:225 | stat:164 | text:140 | info:110 | financial:92 | lookup:60 | logic:49 | volatile:10
 
-### This session (235→236)
-- Hit **800 CATALOG** at experiment #235
-- 50-function batch: Lookup (BINSEARCH/INDEXMATCH/LASTINDEXOF/FINDALL/COUNTUNIQ/ARRAYCONTAINS/ARRAYPOS/FLATTEN2), Logic (IFF/SWITCH2/XORALL/NANDALL/NORALL/COALESCE2/UNLESS), Math (SECANT/COSECANT/VERSINE/HAVERSINE/EXSECANT/LEMNISCATE/AGM2/POWMOD), Stat (MAD2/ZSCORE2/TSTAT/FSTAT/CHISQSTAT/SEM/POOLEDVAR), Text (TEXTCOUNTCHAR/TEXTZFILL/TEXTLPAD/TEXTRPAD/TEXTABBREV/TEXTWORDFREQ/TEXTSANITIZE/TEXTMIRROR), Info (TYPEOF3/ISBLANK2/ISTRUTHY/ISFALSY/ISFRACTION/ISDIVISIBLE), Financial (PVANNUITY/ANNUITYPMT/BONDPRICE/BONDYIELD/TBILL2/MACAULAY)
-- Fixed N_VARIANTS wiring bug for new variadic functions
+### This session (236→238)
+- Hit **850 CATALOG** at experiment #237
+- 50-function batch: Lookup (DISTINCT/ARRAYSLICE/ARRAYJOIN/ARRAYREVERSE/ARRAYFLATTEN/ARRAYZIP/ARRAYMIN/ARRAYMAX/ARRAYSUM/ARRAYAVG), Logic (NIFF/SWITCHIF/COND/ALLEQUAL/ANYGT/ANYLT/ANYNE/ISALL/ISANY/ISNONE), Volatile (RANDNORM/RANDEXP/RANDINT/COINFLIP), Math (GUDERMANN/INVERSEGUD/LANCZOS/DIGAMMA/POLYGAMMA/ZETA2/BETAFN/POCHHAMMER), Stat (ENTROPY2/GINICOEF/MOMENT/CMOMENT/ZSCORE3/PERCENTILE2), Text (TEXTFORMAT/TEXTJUSTIFY/TEXTMASK2/TEXTHASH/TEXTREPLACE2/TEXTFILL), Financial (CAGR2/DRAWDOWN/CALMAR/TREYNOR), Info (ISFINITE2/ISWHOLE)
+- Fixed classifyToken wiring + VMValue handling (must use binop/unop/vmDisplay, not raw s.pop)
+- 28 new tests for 850 batch at experiment #238
 
 ## 🔜 NEXT
-1. Push toward 850 catalog
+1. Push toward 900 catalog (50 more functions)
 2. Compiler optimizations (constant folding, dead code elimination)
 
 ## 📌 DEFERRED
@@ -20,3 +21,10 @@ math:217 | stat:158 | text:134 | info:108 | financial:88 | lookup:50 | logic:39 
 - WASM compilation target
 - Worker thread offloading
 - Wire FormulaEngineV2 into production (CellCache + AG-Grid)
+
+## ⚠ WIRING LESSONS LEARNED
+- New _OP functions MUST have classifyToken case entries
+- New _N functions MUST have N_VARIANTS + ALWAYS_N_FNS entries  
+- EXEC implementations MUST return { result: VMValue } (use binop/unop)
+- VMValue is tagged ({_tag:"num",value:X}) — use asNum(), vmDisplay(), NOT raw Number()
+- Always check for duplicate keys in object literals (esbuild warnings)
