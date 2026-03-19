@@ -399,6 +399,58 @@ describe("FormulaEngineV2", () => {
   })
 
   // ═══════════════════════════════════════════════════════
+  // INFIX FORMULAS
+  // ═══════════════════════════════════════════════════════
+
+  describe("infix formulas", () => {
+    it("registerInfix: =A1+B1", async () => {
+      const store = makeStore({ A1: CV.num(10), B1: CV.num(20) })
+
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.registerInfix("C1", "=A1+B1")
+        yield* e.recalcDirty(["A1", "B1"])
+        expect(store.get("C1")).toEqual(CV.num(30))
+      }))
+    })
+
+    it("registerInfix: =A1+B1*2 (precedence)", async () => {
+      const store = makeStore({ A1: CV.num(10), B1: CV.num(5) })
+
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.registerInfix("C1", "=A1+B1*2")
+        yield* e.recalcDirty(["A1", "B1"])
+        expect(store.get("C1")).toEqual(CV.num(20)) // 10 + 5*2
+      }))
+    })
+
+    it("registerInfix: =SUM(A1:A3)+B1", async () => {
+      const store = makeStore({ A1: CV.num(1), A2: CV.num(2), A3: CV.num(3), B1: CV.num(10) })
+
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.registerInfix("C1", "=SUM(A1:A3)+B1")
+        yield* e.recalcDirty(["A1", "A2", "A3", "B1"])
+        expect(store.get("C1")).toEqual(CV.num(16)) // (1+2+3)+10
+      }))
+    })
+
+    it("registerInfix: cascading with infix", async () => {
+      const store = makeStore({ A1: CV.num(10) })
+
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.registerInfix("B1", "=A1*2")
+        yield* e.registerInfix("C1", "=B1+5")
+        yield* e.recalcDirty(["A1"])
+        expect(store.get("B1")).toEqual(CV.num(20))
+        expect(store.get("C1")).toEqual(CV.num(25))
+      }))
+    })
+  })
+
+  // ═══════════════════════════════════════════════════════
   // CONDITIONAL FORMULAS
   // ═══════════════════════════════════════════════════════
 

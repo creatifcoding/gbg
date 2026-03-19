@@ -29,7 +29,7 @@ import { Effect, ServiceMap, Layer, Schema } from "effect-v4"
 import type { CellValue } from "../schemas/cell-value"
 import { cellToVM, vmToCell } from "./vm-cell-bridge"
 import {
-  compileExprSync, extractDeps, evalProgram,
+  compileExprSync, compileInfixSync, extractDeps, extractDepsInfix, evalProgram,
   type StackIR, type VMValue, type CellContext,
   num, vmError,
   CompileError,
@@ -73,7 +73,7 @@ export class FormulaEngineV2Config extends ServiceMap.Service<FormulaEngineV2Con
 
 export interface FormulaEngineV2Shape {
   /**
-   * Register a formula.
+   * Register a formula using RPN notation.
    *
    * Compiles the expression, extracts deps, registers in DepGraph.
    * Returns the compiled FormulaRecord.
@@ -82,6 +82,14 @@ export interface FormulaEngineV2Shape {
    * @throws CircularDepError if formula creates a cycle
    */
   readonly register: (addr: string, expr: string) => Effect.Effect<FormulaRecord, CompileError | CircularDepError>
+
+  /**
+   * Register a formula using infix notation (=A1+B1*2).
+   *
+   * Uses shunting-yard parser for operator precedence.
+   * Strips leading `=` if present.
+   */
+  readonly registerInfix: (addr: string, expr: string) => Effect.Effect<FormulaRecord, CompileError | CircularDepError>
 
   /**
    * Register with explicit deps (for pre-compiled IR).
@@ -199,13 +207,19 @@ export const FormulaEngineV2Live = Layer.effect(
     return FormulaEngineV2.of({
       register: (addr, expr) =>
         Effect.gen(function*() {
-          // Compile expression
-          const ir = compileExprSync(expr) // throws CompileError on failure
+          const ir = compileExprSync(expr)
           const deps = extractDeps(expr)
-
-          // Register in DepGraph (may throw CircularDepError)
           yield* graph.registerFormula(addr, expr, deps)
+          const record: FormulaRecord = { addr, expr, deps, ir }
+          formulas.set(addr, record)
+          return record
+        }),
 
+      registerInfix: (addr, expr) =>
+        Effect.gen(function*() {
+          const ir = compileInfixSync(expr)
+          const deps = extractDepsInfix(expr)
+          yield* graph.registerFormula(addr, expr, deps)
           const record: FormulaRecord = { addr, expr, deps, ir }
           formulas.set(addr, record)
           return record
