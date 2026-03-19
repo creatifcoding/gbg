@@ -422,6 +422,7 @@ export const ISERROR_OP = Schema.TaggedStruct("ISERROR_OP", {})
 export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
 
 /** More text functions */
+export const DAYS_OP = Schema.TaggedStruct("DAYS_OP", {})
 export const DATEVALUE_OP = Schema.TaggedStruct("DATEVALUE_OP", {})
 export const EDATE_OP = Schema.TaggedStruct("EDATE_OP", {})
 export const WEEKDAY_OP = Schema.TaggedStruct("WEEKDAY_OP", {})
@@ -445,6 +446,11 @@ export const PERCENTILE_N = Schema.TaggedStruct("PERCENTILE_N", { n: Schema.Numb
 export const COUNTA_N = Schema.TaggedStruct("COUNTA_N", { n: Schema.Number })
 export const COUNTBLANK_N = Schema.TaggedStruct("COUNTBLANK_N", { n: Schema.Number })
 export const SUMPRODUCT_N = Schema.TaggedStruct("SUMPRODUCT_N", { n: Schema.Number })
+export const IFNA_OP = Schema.TaggedStruct("IFNA_OP", {})
+export const EOMONTH_OP = Schema.TaggedStruct("EOMONTH_OP", {})
+export const DATEDIF_OP = Schema.TaggedStruct("DATEDIF_OP", {})
+export const PERMUT_OP = Schema.TaggedStruct("PERMUT_OP", {})
+export const FACTDOUBLE_OP = Schema.TaggedStruct("FACTDOUBLE_OP", {})
 export const MATCH_N = Schema.TaggedStruct("MATCH_N", { n: Schema.Number })
 export const INDEX_N = Schema.TaggedStruct("INDEX_N", { n: Schema.Number })
 export const MODE_N = Schema.TaggedStruct("MODE_N", { n: Schema.Number })
@@ -584,7 +590,7 @@ export const Opcode = Schema.Union([
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
-  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, MATCH_N, INDEX_N, MODE_N, HARMEAN_N, GEOMEAN_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
+  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, IFNA_OP, EOMONTH_OP, DATEDIF_OP, PERMUT_OP, FACTDOUBLE_OP, MATCH_N, INDEX_N, MODE_N, HARMEAN_N, GEOMEAN_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, DAYS_OP, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
   IFS_N, SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
@@ -898,6 +904,12 @@ const EXEC: Record<string, Executor> = {
     for (let i = 0; i < vals.length; i++) { while (n >= vals[i]) { result += syms[i]; n -= vals[i] } }
     return str(result)
   }, "ROMAN") }),
+  // DAYS_OP: days between two serial dates. DAYS(end, start) = end - start
+  DAYS_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "DAYS")); return { result: s[s.length-1] } }
+    const start = Math.round(asNum(s.pop()!)), end = Math.round(asNum(s.pop()!))
+    const result = num(end - start); s.push(result); return { result }
+  },
   // DATEVALUE_OP: parse date string to Excel serial number
   DATEVALUE_OP: (_o, s) => ({ result: unop(s, a => {
     if (isVMError(a)) return a
@@ -1213,6 +1225,55 @@ const EXEC: Record<string, Executor> = {
     if (!found) { const err = vmError("TYPE_MISMATCH", "MINIFS: no matches"); s.push(err); return { result: err } }
     const result = num(min); s.push(result); return { result }
   },
+  // IFNA_OP: return alt value if error is N/A (or any error for simplicity)
+  IFNA_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "IFNA")); return { result: s[s.length-1] } }
+    const alt = s.pop()!, val = s.pop()!
+    const result = isVMError(val) ? alt : val; s.push(result); return { result }
+  },
+  // EOMONTH_OP: end of month + months offset. EOMONTH(serial, months)
+  EOMONTH_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "EOMONTH")); return { result: s[s.length-1] } }
+    const months = Math.round(asNum(s.pop()!)), serial = Math.round(asNum(s.pop()!))
+    const epoch = new Date(1899, 11, 30)
+    const d = new Date(epoch.getTime() + serial * 86400000)
+    d.setMonth(d.getMonth() + months + 1, 0) // day 0 of next month = last day of target month
+    const result = num(Math.floor((d.getTime() - epoch.getTime()) / 86400000))
+    s.push(result); return { result }
+  },
+  // DATEDIF_OP: date difference. DATEDIF(start, end, unit). unit: "d"=days, "m"=months, "y"=years
+  DATEDIF_OP: (_o, s) => {
+    if (s.length < 3) { s.push(vmError("STACK_UNDERFLOW", "DATEDIF")); return { result: s[s.length-1] } }
+    const unitVal = s.pop()!, endSerial = Math.round(asNum(s.pop()!)), startSerial = Math.round(asNum(s.pop()!))
+    const unit = (unitVal._tag === "str" ? unitVal.value : vmDisplay(unitVal)).toUpperCase()
+    const epoch = new Date(1899, 11, 30)
+    const start = new Date(epoch.getTime() + startSerial * 86400000)
+    const end = new Date(epoch.getTime() + endSerial * 86400000)
+    let val: number
+    switch (unit) {
+      case "D": val = endSerial - startSerial; break
+      case "M": val = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()); break
+      case "Y": val = end.getFullYear() - start.getFullYear(); break
+      default: { s.push(vmError("TYPE_MISMATCH", `DATEDIF: unknown unit "${unit}"`)); return { result: s[s.length-1] } }
+    }
+    const result = num(val); s.push(result); return { result }
+  },
+  // PERMUT_OP: permutations. PERMUT(n, k) = n!/(n-k)!
+  PERMUT_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "PERMUT")); return { result: s[s.length-1] } }
+    const k = Math.round(asNum(s.pop()!)), n = Math.round(asNum(s.pop()!))
+    if (k < 0 || k > n) { s.push(vmError("TYPE_MISMATCH", `PERMUT: k=${k}, n=${n}`)); return { result: s[s.length-1] } }
+    let p = 1; for (let i = n; i > n - k; i--) p *= i
+    const result = num(p); s.push(result); return { result }
+  },
+  // FACTDOUBLE_OP: double factorial. n!! = n*(n-2)*(n-4)*...
+  FACTDOUBLE_OP: (_o, s) => ({ result: unop(s, a => {
+    if (isVMError(a)) return a
+    let n = Math.round(asNum(a))
+    if (n < 0) return vmError("TYPE_MISMATCH", `FACTDOUBLE: ${n}<0`)
+    let result = 1; while (n > 1) { result *= n; n -= 2 }
+    return num(result)
+  }, "FACTDOUBLE") }),
   // MATCH_N: find position of value in list. Stack: [lookup, v1, ..., vN] → 1-based position
   MATCH_N: (op: any, s) => {
     const n = op.n as number
@@ -1960,7 +2021,9 @@ const _OP: Record<string, Opcode> = {
   FLOOR_OP: { _tag: "FLOOR_OP" }, CEIL_OP: { _tag: "CEIL_OP" },
   ISNUM_OP: { _tag: "ISNUM_OP" }, ISTEXT_OP: { _tag: "ISTEXT_OP" },
   ISERROR_OP: { _tag: "ISERROR_OP" }, ISBLANK_OP: { _tag: "ISBLANK_OP" },
-  DATEVALUE_OP: { _tag: "DATEVALUE_OP" }, EDATE_OP: { _tag: "EDATE_OP" },
+  IFNA_OP: { _tag: "IFNA_OP" }, EOMONTH_OP: { _tag: "EOMONTH_OP" }, DATEDIF_OP: { _tag: "DATEDIF_OP" },
+  PERMUT_OP: { _tag: "PERMUT_OP" }, FACTDOUBLE_OP: { _tag: "FACTDOUBLE_OP" },
+  DAYS_OP: { _tag: "DAYS_OP" }, DATEVALUE_OP: { _tag: "DATEVALUE_OP" }, EDATE_OP: { _tag: "EDATE_OP" },
   WEEKDAY_OP: { _tag: "WEEKDAY_OP" }, WEEKNUM_OP: { _tag: "WEEKNUM_OP" },
   ROMAN_OP: { _tag: "ROMAN_OP" }, ARABIC_OP: { _tag: "ARABIC_OP" },
   TEXT_OP: { _tag: "TEXT_OP" }, NUMBERVALUE_OP: { _tag: "NUMBERVALUE_OP" },
@@ -2097,6 +2160,12 @@ function classifyToken(tok: string): Opcode | null {
     case "RANK_N": return { _tag: "RANK_N", n: 0 } as any
     case "CONCATENATE_N": return { _tag: "CONCATENATE_N", n: 0 } as any
     case "TEXTJOIN_N": return { _tag: "TEXTJOIN_N", n: 0 } as any
+    case "IFNA_OP": return _OP.IFNA_OP
+    case "EOMONTH_OP": return _OP.EOMONTH_OP
+    case "DATEDIF_OP": return _OP.DATEDIF_OP
+    case "PERMUT_OP": return _OP.PERMUT_OP
+    case "FACTDOUBLE_OP": return _OP.FACTDOUBLE_OP
+    case "DAYS_OP": return _OP.DAYS_OP
     case "DATEVALUE_OP": return _OP.DATEVALUE_OP
     case "EDATE_OP": return _OP.EDATE_OP
     case "WEEKDAY_OP": return _OP.WEEKDAY_OP
@@ -2402,6 +2471,7 @@ const FUNC_MAP: Record<string, string> = {
   NPV: "NPV_N", VAR: "VAR_N", PERCENTILE: "PERCENTILE_N", COUNTA: "COUNTA_N", COUNTBLANK: "COUNTBLANK_N",
   SUMPRODUCT: "SUMPRODUCT_N", MATCH: "MATCH_N", INDEX: "INDEX_N", MODE: "MODE_N", HARMEAN: "HARMEAN_N", GEOMEAN: "GEOMEAN_N", AGGREGATE: "AGGREGATE_N", COUNTIF: "COUNTIF_N", COUNTIFS: "COUNTIFS_N", SUMIF: "SUMIF_N", MAXIFS: "MAXIFS_N", MINIFS: "MINIFS_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
   STDEV: "STDEV_N", MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
+  IFNA: "IFNA_OP", DAYS: "DAYS_OP", EOMONTH: "EOMONTH_OP", DATEDIF: "DATEDIF_OP", PERMUT: "PERMUT_OP", FACTDOUBLE: "FACTDOUBLE_OP",
   DATEVALUE: "DATEVALUE_OP", EDATE: "EDATE_OP", WEEKDAY: "WEEKDAY_OP", WEEKNUM: "WEEKNUM_OP", ROMAN: "ROMAN_OP", ARABIC: "ARABIC_OP", TEXT: "TEXT_OP", NUMBERVALUE: "NUMBERVALUE_OP", REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
   IFS: "IFS_N", SWITCH: "SWITCH_N", VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
   YEAR: "YEAR_OP", MONTH: "MONTH_OP", DAY: "DAY_OP",
@@ -2779,6 +2849,12 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "LCM", args: "a, b", description: "Least common multiple", category: "math" },
   { name: "COMBIN", args: "n, k", description: "Combinations (n choose k)", category: "math" },
   { name: "SUBSTITUTE", args: "text, old, new", description: "Replace all occurrences", category: "text" },
+  { name: "IFNA", args: "value, alt", description: "Return alt if value is error", category: "logic" },
+  { name: "DAYS", args: "end_serial, start_serial", description: "Days between two serial dates", category: "info" },
+  { name: "EOMONTH", args: "start_serial, months", description: "End of month + months offset", category: "info" },
+  { name: "DATEDIF", args: "start, end, unit", description: "Date difference (D/M/Y)", category: "info" },
+  { name: "PERMUT", args: "n, k", description: "Permutations n!/(n-k)!", category: "math" },
+  { name: "FACTDOUBLE", args: "number", description: "Double factorial n!!", category: "math" },
   { name: "DATEVALUE", args: "date_text", description: "Parse date string to Excel serial", category: "info" },
   { name: "EDATE", args: "start_serial, months", description: "Add months to serial date", category: "info" },
   { name: "WEEKDAY", args: "serial_date", description: "Day of week (1=Sun...7=Sat)", category: "info" },

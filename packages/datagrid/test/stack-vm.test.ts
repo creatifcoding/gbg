@@ -1704,6 +1704,18 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("IFNA/EOMONTH/DATEDIF/PERMUT/FACTDOUBLE: mixed new functions", () => {
+    // IFNA: return alt on error
+    expect(evalProgramDirect(compileInfixSync("=IFNA(42, 0)")).stack[0]).toEqual(num(42)) // no error
+    // PERMUT: P(5,2) = 5!/(5-2)! = 20
+    expect(evalProgramDirect(compileInfixSync("=PERMUT(5, 2)")).stack[0]).toEqual(num(20))
+    // FACTDOUBLE: 7!! = 7*5*3*1 = 105
+    expect(evalProgramDirect(compileInfixSync("=FACTDOUBLE(7)")).stack[0]).toEqual(num(105))
+    // DATEDIF: days between two serials (45292 = 2024-01-01, 45473 = 2024-07-01 approx)
+    const days = evalProgramDirect(compileInfixSync('=DATEDIF(45292, 45475, "D")')).stack[0]
+    expect((days as any).value).toBe(183)
+  })
+
   it("MATCH/INDEX: lookup primitives", () => {
     // MATCH: find "banana" in list → position 2
     expect(evalProgramDirect(compileInfixSync('=MATCH("banana", "apple", "banana", "cherry")')).stack[0]).toEqual(num(2))
