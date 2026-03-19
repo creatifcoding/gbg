@@ -1704,6 +1704,16 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("SUMXMY2/ERF/ERFC: paired stats + error functions", () => {
+    // SUMXMY2([1,2,3], [4,5,6]) = (1-4)²+(2-5)²+(3-6)² = 9+9+9 = 27
+    expect(evalProgramDirect(compileInfixSync("=SUMXMY2(1, 2, 3, 4, 5, 6)")).stack[0]).toEqual(num(27))
+    // ERF(0) = 0, ERF(∞) → 1
+    expect(evalProgramDirect(compileInfixSync("=ROUND(ERF(0), 4)")).stack[0]).toEqual(num(0))
+    expect(evalProgramDirect(compileInfixSync("=ROUND(ERF(3), 4)")).stack[0]).toEqual(num(1)) // erf(3)≈0.9999
+    // ERFC(0) = 1
+    expect(evalProgramDirect(compileInfixSync("=ROUND(ERFC(0), 4)")).stack[0]).toEqual(num(1))
+  })
+
   it("MIRR/XNPV/DOLLARDE/DOLLARFR/YEARFRAC: advanced financial", () => {
     // DOLLARDE: 1.02 with fraction 16 → 1 + 0.02*10/16 = 1.0125
     expect(evalProgramDirect(compileInfixSync("=DOLLARDE(1.02, 16)")).stack[0]).toEqual(num(1.0125))
