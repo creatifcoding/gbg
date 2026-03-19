@@ -92,9 +92,11 @@ export {
   // Opcodes
   Opcode, type StackIR,
   PUSH_NUM, PUSH_STR, PUSH_BOOL,
-  ADD, SUB, MUL, DIV, DUP, SWAP, DROP, NEG,
-  EQ, LT, GT, NOT, SUM_N, HALT,
-  READ_CELL, WRITE_CELL,
+  ADD, SUB, MUL, DIV, MOD, ABS,
+  DUP, SWAP, DROP, NEG,
+  EQ, LT, GT, NOT, IF,
+  SUM_N, MIN_N, MAX_N, AVG_N,
+  HALT, READ_CELL, WRITE_CELL,
   // VM State
   type VMState, type TrailEntry,
   VMStateSchema, TrailEntrySchema, vmStateDiffer,
