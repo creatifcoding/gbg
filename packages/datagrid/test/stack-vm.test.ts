@@ -1457,6 +1457,23 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=PROPER("HELLO WORLD")')).stack[0]).toEqual(str("Hello World"))
   })
 
+  it("T: return text or empty", () => {
+    expect(evalProgramDirect(compileInfixSync('=T("hello")')).stack[0]).toEqual(str("hello"))
+    expect(evalProgramDirect(compileInfixSync("=T(42)")).stack[0]).toEqual(str(""))  // non-text → ""
+  })
+
+  it("ISEVEN/ISODD: parity checks", () => {
+    expect(evalProgramDirect(compileInfixSync("=ISEVEN(4)")).stack[0]).toEqual(bool(true))
+    expect(evalProgramDirect(compileInfixSync("=ISEVEN(3)")).stack[0]).toEqual(bool(false))
+    expect(evalProgramDirect(compileInfixSync("=ISODD(7)")).stack[0]).toEqual(bool(true))
+    expect(evalProgramDirect(compileInfixSync("=ISODD(6)")).stack[0]).toEqual(bool(false))
+  })
+
+  it("ISNUMBER: alias for ISNUM", () => {
+    expect(evalProgramDirect(compileInfixSync("=ISNUMBER(42)")).stack[0]).toEqual(bool(true))
+    expect(evalProgramDirect(compileInfixSync('=ISNUMBER("abc")')).stack[0]).toEqual(bool(false))
+  })
+
   it("CHAR/CODE: character ↔ code point", () => {
     expect(evalProgramDirect(compileInfixSync("=CHAR(65)")).stack[0]).toEqual(str("A"))
     expect(evalProgramDirect(compileInfixSync("=CHAR(10)")).stack[0]).toEqual(str("\n"))

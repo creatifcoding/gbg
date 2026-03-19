@@ -359,6 +359,9 @@ export const PROPER_OP = Schema.TaggedStruct("PROPER_OP", {})
 export const CLEAN_OP = Schema.TaggedStruct("CLEAN_OP", {})
 export const CHAR_OP = Schema.TaggedStruct("CHAR_OP", {})
 export const CODE_OP = Schema.TaggedStruct("CODE_OP", {})
+export const T_OP = Schema.TaggedStruct("T_OP", {})
+export const ISEVEN_OP = Schema.TaggedStruct("ISEVEN_OP", {})
+export const ISODD_OP = Schema.TaggedStruct("ISODD_OP", {})
 
 /** SUBSTITUTE — find & replace: (text, old, new) → modified text */
 export const SUBSTITUTE_OP = Schema.TaggedStruct("SUBSTITUTE_OP", {})
@@ -506,7 +509,7 @@ export const Opcode = Schema.Union([
   DUP, SWAP, DROP, NEG,
   EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR,
   AND_N, OR_N, CHOOSE_N,
-  LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, PROPER_OP, CLEAN_OP, CHAR_OP, CODE_OP, SUBSTITUTE_OP,
+  LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, PROPER_OP, CLEAN_OP, CHAR_OP, CODE_OP, T_OP, ISEVEN_OP, ISODD_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
   COUNTIF_N, SUMIF_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
@@ -1103,6 +1106,9 @@ const EXEC: Record<string, Executor> = {
   CLEAN_OP: (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : str(vmDisplay(a).replace(/[\x00-\x1F\x7F]/g, "")), "CLEAN") }),
   CHAR_OP:  (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const n = Math.round(asNum(a)); return n < 1 || n > 65535 ? vmError("TYPE_MISMATCH", `CHAR: ${n} out of range`) : str(String.fromCharCode(n)) }, "CHAR") }),
   CODE_OP:  (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const s2 = vmDisplay(a); return s2.length === 0 ? vmError("TYPE_MISMATCH", "CODE: empty string") : num(s2.charCodeAt(0)) }, "CODE") }),
+  T_OP:     (_o, s) => ({ result: unop(s, a => a._tag === "str" ? a : str(""), "T") }),  // Excel T(): returns text or ""
+  ISEVEN_OP:  (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : bool(Math.round(asNum(a)) % 2 === 0), "ISEVEN") }),
+  ISODD_OP:   (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : bool(Math.round(asNum(a)) % 2 !== 0), "ISODD") }),
   SUBSTITUTE_OP: (_o, s) => {
     if (s.length < 3) { const e = vmError("STACK_UNDERFLOW", "SUBSTITUTE requires 3 operands"); s.push(e); return { result: e } }
     const newStr = s.pop()!; const oldStr = s.pop()!; const text = s.pop()!
@@ -1327,7 +1333,8 @@ const _OP: Record<string, Opcode> = {
   RIGHT_OP: { _tag: "RIGHT_OP" }, MID_OP: { _tag: "MID_OP" },
   TRIM_OP: { _tag: "TRIM_OP" }, UPPER_OP: { _tag: "UPPER_OP" },
   LOWER_OP: { _tag: "LOWER_OP" }, PROPER_OP: { _tag: "PROPER_OP" }, CLEAN_OP: { _tag: "CLEAN_OP" },
-  CHAR_OP: { _tag: "CHAR_OP" }, CODE_OP: { _tag: "CODE_OP" }, SUBSTITUTE_OP: { _tag: "SUBSTITUTE_OP" },
+  CHAR_OP: { _tag: "CHAR_OP" }, CODE_OP: { _tag: "CODE_OP" }, T_OP: { _tag: "T_OP" },
+  ISEVEN_OP: { _tag: "ISEVEN_OP" }, ISODD_OP: { _tag: "ISODD_OP" }, SUBSTITUTE_OP: { _tag: "SUBSTITUTE_OP" },
   SQRT_OP: { _tag: "SQRT_OP" }, SIGN_OP: { _tag: "SIGN_OP" },
   LOG_OP: { _tag: "LOG_OP" }, LOG10_OP: { _tag: "LOG10_OP" },
   SUM_DYN: { _tag: "SUM_DYN" }, MIN_DYN: { _tag: "MIN_DYN" },
@@ -1391,6 +1398,9 @@ function classifyToken(tok: string): Opcode | null {
     case "CLEAN_OP": return _OP.CLEAN_OP
     case "CHAR_OP": return _OP.CHAR_OP
     case "CODE_OP": return _OP.CODE_OP
+    case "T_OP": return _OP.T_OP
+    case "ISEVEN_OP": return _OP.ISEVEN_OP
+    case "ISODD_OP": return _OP.ISODD_OP
     case "SUBSTITUTE_OP": return _OP.SUBSTITUTE_OP
     case "ISNUM_OP": return _OP.ISNUM_OP
     case "ISTEXT_OP": return _OP.ISTEXT_OP
@@ -1682,7 +1692,8 @@ const FUNC_MAP: Record<string, string> = {
   NOW: "NOW_OP", RAND: "RAND_OP", PI: "PI_OP", TODAY: "TODAY_OP",
   CONCAT: "CONCAT", TO_NUM: "TO_NUM", TO_STR: "TO_STR",
   LEN: "LEN_OP", LEFT: "LEFT_OP", RIGHT: "RIGHT_OP", MID: "MID_OP",
-  TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", PROPER: "PROPER_OP", CLEAN: "CLEAN_OP", CHAR: "CHAR_OP", CODE: "CODE_OP", SUBSTITUTE: "SUBSTITUTE_OP",
+  TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", PROPER: "PROPER_OP", CLEAN: "CLEAN_OP", CHAR: "CHAR_OP", CODE: "CODE_OP", T: "T_OP",
+  ISEVEN: "ISEVEN_OP", ISODD: "ISODD_OP", ISNUMBER: "ISNUM_OP", SUBSTITUTE: "SUBSTITUTE_OP",
   ISNUM: "ISNUM_OP", ISTEXT: "ISTEXT_OP", ISERROR: "ISERROR_OP", ISBLANK: "ISBLANK_OP",
   COUNTIF: "COUNTIF_N", SUMIF: "SUMIF_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
   STDEV: "STDEV_N", MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
@@ -2010,6 +2021,10 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "CLEAN", args: "text", description: "Remove non-printable characters", category: "text" },
   { name: "CHAR", args: "number", description: "Character from code point", category: "text" },
   { name: "CODE", args: "text", description: "Code point of first character", category: "text" },
+  { name: "T", args: "value", description: "Return text or empty string", category: "text" },
+  { name: "ISEVEN", args: "number", description: "TRUE if even", category: "info" },
+  { name: "ISODD", args: "number", description: "TRUE if odd", category: "info" },
+  { name: "ISNUMBER", args: "value", description: "Alias for ISNUM", category: "info" },
   { name: "SUBSTITUTE", args: "text, old, new", description: "Replace all occurrences", category: "text" },
   { name: "REPT", args: "text, count", description: "Repeat text N times", category: "text" },
   { name: "EXACT", args: "text1, text2", description: "Case-sensitive equality", category: "text" },
@@ -2155,7 +2170,7 @@ export const decompileIR = (ir: StackIR): string => {
   const UNARY_FN: Record<string, string> = {
     ABS: "ABS", NEG: "-", NOT: "NOT", SQRT_OP: "SQRT", SIGN_OP: "SIGN",
     LOG_OP: "LOG", LOG10_OP: "LOG10", FLOOR_OP: "FLOOR", CEIL_OP: "CEIL",
-    LEN_OP: "LEN", TRIM_OP: "TRIM", UPPER_OP: "UPPER", LOWER_OP: "LOWER", PROPER_OP: "PROPER", CLEAN_OP: "CLEAN", CHAR_OP: "CHAR", CODE_OP: "CODE",
+    LEN_OP: "LEN", TRIM_OP: "TRIM", UPPER_OP: "UPPER", LOWER_OP: "LOWER", PROPER_OP: "PROPER", CLEAN_OP: "CLEAN", CHAR_OP: "CHAR", CODE_OP: "CODE", T_OP: "T", ISEVEN_OP: "ISEVEN", ISODD_OP: "ISODD",
     ISNUM_OP: "ISNUM", ISTEXT_OP: "ISTEXT", ISERROR_OP: "ISERROR", ISBLANK_OP: "ISBLANK",
     YEAR_OP: "YEAR", MONTH_OP: "MONTH", DAY_OP: "DAY",
     HOUR_OP: "HOUR", MINUTE_OP: "MINUTE", SECOND_OP: "SECOND",
