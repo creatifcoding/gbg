@@ -1474,6 +1474,13 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync("=TRUNC(-3.7)")).stack[0]).toEqual(num(-3)) // toward zero, not floor
   })
 
+  it("GCD/LCM: divisor and multiple", () => {
+    expect(evalProgramDirect(compileInfixSync("=GCD(12, 8)")).stack[0]).toEqual(num(4))
+    expect(evalProgramDirect(compileInfixSync("=GCD(15, 25)")).stack[0]).toEqual(num(5))
+    expect(evalProgramDirect(compileInfixSync("=LCM(4, 6)")).stack[0]).toEqual(num(12))
+    expect(evalProgramDirect(compileInfixSync("=LCM(3, 7)")).stack[0]).toEqual(num(21))
+  })
+
   it("COMBIN: combinations nCr", () => {
     expect(evalProgramDirect(compileInfixSync("=COMBIN(5, 2)")).stack[0]).toEqual(num(10)) // 5!/(2!*3!) = 10
     expect(evalProgramDirect(compileInfixSync("=COMBIN(10, 3)")).stack[0]).toEqual(num(120))
