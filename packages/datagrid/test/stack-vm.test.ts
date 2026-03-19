@@ -3001,6 +3001,38 @@ describe("post-450 function coverage", () => {
   it("TEXTISEMPTY with empty = true", () => expect(d('=TEXTISEMPTY("")')).toBe(true))
   it("TEXTHEADER creates header", () => expect(d('=TEXTHEADER("Title")')).toBe("=== Title ==="))
 
+  // ── honest-1000 batch tests ──
+  // Activation functions
+  it("GELU(0) = 0", () => expect(Math.abs(d("=GELU(0)") as number)).toBeLessThan(0.01))
+  it("MISH(0) = 0", () => expect(Math.abs(d("=MISH(0)") as number)).toBeLessThan(0.01))
+  it("SWISH(0) = 0", () => expect(d("=SWISH(0)")).toBe(0))
+  it("SOFTSIGN(0) = 0", () => expect(d("=SOFTSIGN(0)")).toBe(0))
+  it("LOGISTIC2(0) = 0.5", () => expect(d("=LOGISTIC2(0)")).toBe(0.5))
+  it("RIEMANN(2) converges", () => { const v = d("=RIEMANN(2)") as number; expect(Math.abs(v - Math.PI*Math.PI/6)).toBeLessThan(0.01) })
+  // Stat
+  it("SAMPLEVAR(2, 4, 6) = 4", () => expect(d("=SAMPLEVAR(2, 4, 6)")).toBe(4))
+  it("POPVAR(2, 4, 6) valid", () => expect(Math.abs(d("=POPVAR(2, 4, 6)") as number - 8/3)).toBeLessThan(0.01))
+  it("RANGESTAT(1, 5, 9) = 8", () => expect(d("=RANGESTAT(1, 5, 9)")).toBe(8))
+  it("RMSVAL(3, 4) valid", () => expect(d("=RMSVAL(3, 4)")).toBe(Math.sqrt((9+16)/2)))
+  // Financial
+  it("EFFECTIVERATE(0.12, 12) valid", () => { const v = d("=EFFECTIVERATE(0.12, 12)") as number; expect(v).toBeGreaterThan(0.126) })
+  it("BASISPOINTS result consistent", () => expect(d("=BASISPOINTS(0.01)")).toBe(100))
+  // Logic
+  it("COMPARE3(3, 5) = -1", () => expect(d("=COMPARE3(3, 5)")).toBe(-1))
+  it("COMPARE3(5, 5) = 0", () => expect(d("=COMPARE3(5, 5)")).toBe(0))
+  it("HALFADD(1, 0) = 1", () => expect(d("=HALFADD(1, 0)")).toBe(1))
+  it("XNOR2(1, 1) = true", () => expect(d("=XNOR2(1, 1)")).toBe(true))
+  // Text
+  it("TEXTISALPHA checks alpha", () => expect(d('=TEXTISALPHA("hello")')).toBe(true))
+  it("TEXTISDIGIT checks digits", () => expect(d('=TEXTISDIGIT("123")')).toBe(true))
+  it("TEXTSWAP swaps case", () => expect(d('=TEXTSWAP("Hello")')).toBe("hELLO"))
+  // Info
+  it("ISPALINDROME detects", () => expect(d('=ISPALINDROME("racecar")')).toBe(true))
+  it("PARITY of 4 = even", () => expect(d("=PARITY(4)")).toBe("even"))
+  it("PARITY of 7 = odd", () => expect(d("=PARITY(7)")).toBe("odd"))
+  it("ISNAT(5) = true", () => expect(d("=ISNAT(5)")).toBe(true))
+  it("ISNAT(-1) = false", () => expect(d("=ISNAT(-1)")).toBe(false))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
