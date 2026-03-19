@@ -1119,6 +1119,7 @@ const PREC: Record<string, number> = {
   "<": 0, ">": 0,  // comparison
   "+": 1, "-": 1,
   "*": 2, "/": 2, "%": 2,
+  "UNARY_NEG": 3, "CONCAT": 1, // unary neg highest; concat same as +
 }
 
 /**
@@ -1128,7 +1129,7 @@ const PREC: Record<string, number> = {
 const INFIX_OP_MAP: Record<string, string> = {
   "<": "LT", ">": "GT",
 }
-const RIGHT_ASSOC = new Set<string>() // none currently
+const RIGHT_ASSOC = new Set<string>(["UNARY_NEG"])
 
 /** Tokenize an infix expression */
 function tokenizeInfix(expr: string): string[] {
@@ -1137,9 +1138,17 @@ function tokenizeInfix(expr: string): string[] {
   while (i < expr.length) {
     const ch = expr[i]
     if (ch === " " || ch === "\t") { i++; continue }
+    // String literal: "hello"
+    if (ch === '"') {
+      let s = ""; i++
+      while (i < expr.length && expr[i] !== '"') { s += expr[i]; i++ }
+      if (i < expr.length) i++ // skip closing "
+      tokens.push(`"${s}"`)
+      continue
+    }
     // Operators and parens
-    if ("+-*/%(),:=<>".includes(ch)) { tokens.push(ch); i++; continue }
-    // Number (including decimals and negative literals at start/after operator)
+    if ("+-*/%(),:=<>&".includes(ch)) { tokens.push(ch); i++; continue }
+    // Number (including decimals)
     if (ch >= "0" && ch <= "9" || (ch === "." && i + 1 < expr.length && expr[i + 1] >= "0" && expr[i + 1] <= "9")) {
       let num = ""
       while (i < expr.length && (expr[i] >= "0" && expr[i] <= "9" || expr[i] === ".")) { num += expr[i]; i++ }
@@ -1209,6 +1218,7 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
   const argCounts: number[] = [] // for function call arity tracking
 
   const pushOp = (tok: string) => {
+    if (tok === "UNARY_NEG") { output.push({ _tag: "NEG" }); return }
     // Map infix operators to RPN opcodes if needed
     const mapped = INFIX_OP_MAP[tok] ?? tok
     const op = classifyToken(mapped)
@@ -1216,19 +1226,38 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
     output.push(op)
   }
 
+  /** Track whether the previous token was an operand (number, cell, close paren) */
+  let prevWasOperand = false
+
   for (let i = 0; i < tokens.length; i++) {
     const tok = tokens[i]
+
+    // String literal: "hello"
+    if (tok.startsWith('"') && tok.endsWith('"')) {
+      output.push({ _tag: "PUSH_STR", value: tok.slice(1, -1) })
+      prevWasOperand = true
+      continue
+    }
 
     // Number literal
     const n = Number(tok)
     if (!isNaN(n) && tok !== "") {
       output.push({ _tag: "PUSH_NUM", value: n })
+      prevWasOperand = true
       continue
     }
 
     // Boolean
     if (tok === "true" || tok === "false") {
       output.push({ _tag: "PUSH_BOOL", value: tok === "true" })
+      prevWasOperand = true
+      continue
+    }
+
+    // Unary minus: - at start, after operator, or after (
+    if (tok === "-" && !prevWasOperand) {
+      // Push as high-precedence unary: use sentinel
+      opStack.push("UNARY_NEG")
       continue
     }
 
@@ -1236,6 +1265,7 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
     if (FUNC_MAP[tok] && i + 1 < tokens.length && tokens[i + 1] === "(") {
       opStack.push(`FN:${tok}`)
       argCounts.push(1) // at least 1 arg
+      prevWasOperand = false
       continue
     }
 
@@ -1249,15 +1279,18 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
         endCol: rangeMatch[3],
         endRow: parseInt(rangeMatch[4], 10),
       })
+      prevWasOperand = true
       continue
     }
     if (A1_PATTERN.test(tok)) {
       output.push({ _tag: "READ_CELL", addr: tok })
+      prevWasOperand = true
       continue
     }
 
     // Comma (function arg separator)
     if (tok === ",") {
+      prevWasOperand = false
       while (opStack.length > 0 && opStack[opStack.length - 1] !== "(" && !opStack[opStack.length - 1].startsWith("FN:")) {
         pushOp(opStack.pop()!)
       }
@@ -1268,13 +1301,16 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
     // Open paren
     if (tok === "(") {
       opStack.push("(")
+      prevWasOperand = false
       continue
     }
 
     // Close paren
     if (tok === ")") {
       while (opStack.length > 0 && opStack[opStack.length - 1] !== "(" && !opStack[opStack.length - 1].startsWith("FN:")) {
-        pushOp(opStack.pop()!)
+        const top = opStack.pop()!
+        if (top === "UNARY_NEG") output.push({ _tag: "NEG" })
+        else pushOp(top)
       }
       if (opStack.length > 0 && opStack[opStack.length - 1] === "(") opStack.pop()
       // Check if top is a function
@@ -1288,6 +1324,22 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
         }
         argCounts.pop()
       }
+      prevWasOperand = true
+      continue
+    }
+
+    // & operator → CONCAT
+    if (tok === "&") {
+      // Treat like a binary operator with precedence 1 (same as +)
+      while (
+        opStack.length > 0 &&
+        PREC[opStack[opStack.length - 1]] !== undefined &&
+        PREC[opStack[opStack.length - 1]] >= 1
+      ) {
+        pushOp(opStack.pop()!)
+      }
+      opStack.push("CONCAT")
+      prevWasOperand = false
       continue
     }
 
@@ -1302,6 +1354,7 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
         pushOp(opStack.pop()!)
       }
       opStack.push(tok)
+      prevWasOperand = false
       continue
     }
 
@@ -1312,6 +1365,7 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
   while (opStack.length > 0) {
     const top = opStack.pop()!
     if (top === "(") throw new CompileError({ expr: rawExpr, token: "(", position: 0, reason: "Mismatched parentheses" })
+    if (top === "UNARY_NEG") { output.push({ _tag: "NEG" }); continue }
     pushOp(top)
   }
 

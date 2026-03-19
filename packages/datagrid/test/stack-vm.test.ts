@@ -1020,6 +1020,39 @@ describe("infix parser", () => {
     expect(s.stack[0]).toEqual(bool(true))
   })
 
+  it("unary minus: =-A1", () => {
+    const ir = compileInfixSync("=-A1")
+    const ctx = { readCell: () => num(10), writeCell: () => {} }
+    const s = Effect.runSync(evalProgram(ir, ctx))
+    expect(s.stack[0]).toEqual(num(-10))
+  })
+
+  it("unary minus: =-(A1+B1)", () => {
+    const ir = compileInfixSync("=-(A1+B1)")
+    const ctx = { readCell: (a: string) => a === "A1" ? num(3) : num(7), writeCell: () => {} }
+    const s = Effect.runSync(evalProgram(ir, ctx))
+    expect(s.stack[0]).toEqual(num(-10))
+  })
+
+  it("unary minus with multiplication: =-A1*2", () => {
+    const ir = compileInfixSync("=-A1*2")
+    const ctx = { readCell: () => num(5), writeCell: () => {} }
+    const s = Effect.runSync(evalProgram(ir, ctx))
+    expect(s.stack[0]).toEqual(num(-10)) // -(5)*2 = -10
+  })
+
+  it("string literal: =\"hello\"", () => {
+    const ir = compileInfixSync('="hello"')
+    const s = Effect.runSync(evalProgram(ir))
+    expect(s.stack[0]).toEqual(str("hello"))
+  })
+
+  it("string concat: =\"hi\" & \" there\"", () => {
+    const ir = compileInfixSync('="hi" & " there"')
+    const s = Effect.runSync(evalProgram(ir))
+    expect(s.stack[0]).toEqual(str("hi there"))
+  })
+
   it("rejects mismatched parentheses", async () => {
     await expect(
       Effect.runPromise(compileInfix("=(A1+B1"))
