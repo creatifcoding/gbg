@@ -28,6 +28,7 @@ import {
   // VM core
   evalProgram, evalExpr, compileExpr, compileExprSync,
   compileInfix, compileInfixSync, extractDepsInfix,
+  FUNCTION_CATALOG, completeFunctions,
   execOpcode, emptyState, MAX_EVAL_STEPS,
   // Dependency extraction
   extractDeps, extractDepsFromIR,
@@ -1315,6 +1316,21 @@ describe("infix parser", () => {
     const ir = compileInfixSync("=IF(AND(A1>0, B1>0), ROUND(SQRT(A1^2+B1^2), 2), 0)")
     const s = Effect.runSync(evalProgram(ir, ctx))
     expect(s.stack[0]).toEqual(num(5)) // sqrt(9+16) = sqrt(25) = 5
+  })
+
+  it("FUNCTION_CATALOG has all registered functions", () => {
+    expect(FUNCTION_CATALOG.length).toBeGreaterThanOrEqual(30)
+    const names = FUNCTION_CATALOG.map(f => f.name)
+    expect(names).toContain("SUM")
+    expect(names).toContain("IF")
+    expect(names).toContain("SQRT")
+    expect(names).toContain("TRIM")
+  })
+
+  it("completeFunctions filters by prefix", () => {
+    const results = completeFunctions("SU")
+    expect(results.length).toBeGreaterThanOrEqual(2) // SUM, SUBSTITUTE
+    expect(results.every(f => f.name.startsWith("SU"))).toBe(true)
   })
 
   it("rejects mismatched parentheses", async () => {

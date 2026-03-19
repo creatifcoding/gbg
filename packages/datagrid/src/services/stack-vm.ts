@@ -1517,6 +1517,63 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
 /** Tags that mark a formula as volatile (must recalc every cycle) */
 const VOLATILE_TAGS = new Set(["NOW_OP", "RAND_OP"])
 
+/** Formula function catalog for autocomplete/validation UX */
+export interface FunctionSignature {
+  readonly name: string
+  readonly args: string
+  readonly description: string
+  readonly category: "math" | "stat" | "text" | "logic" | "lookup" | "info" | "volatile"
+}
+
+export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
+  // Math
+  { name: "ABS", args: "value", description: "Absolute value", category: "math" },
+  { name: "SQRT", args: "value", description: "Square root", category: "math" },
+  { name: "SIGN", args: "value", description: "Sign (-1, 0, or 1)", category: "math" },
+  { name: "LOG", args: "value", description: "Natural logarithm", category: "math" },
+  { name: "LOG10", args: "value", description: "Base-10 logarithm", category: "math" },
+  { name: "POWER", args: "base, exponent", description: "Raise to power", category: "math" },
+  { name: "ROUND", args: "value, decimals", description: "Round to N decimals", category: "math" },
+  { name: "FLOOR", args: "value", description: "Round down", category: "math" },
+  { name: "CEIL", args: "value", description: "Round up", category: "math" },
+  { name: "MOD", args: "a, b", description: "Modulo (remainder)", category: "math" },
+  { name: "PI", args: "", description: "Mathematical constant π", category: "math" },
+  // Statistics / Aggregation
+  { name: "SUM", args: "range | values...", description: "Sum of values", category: "stat" },
+  { name: "AVG", args: "range | values...", description: "Average of values", category: "stat" },
+  { name: "MIN", args: "range | values...", description: "Minimum value", category: "stat" },
+  { name: "MAX", args: "range | values...", description: "Maximum value", category: "stat" },
+  { name: "COUNT", args: "range", description: "Count of values", category: "stat" },
+  { name: "PRODUCT", args: "values...", description: "Product of values", category: "stat" },
+  // Text
+  { name: "LEN", args: "text", description: "Length of string", category: "text" },
+  { name: "LEFT", args: "text, n", description: "First N characters", category: "text" },
+  { name: "RIGHT", args: "text, n", description: "Last N characters", category: "text" },
+  { name: "MID", args: "text, start, length", description: "Substring (1-based start)", category: "text" },
+  { name: "TRIM", args: "text", description: "Remove leading/trailing spaces", category: "text" },
+  { name: "UPPER", args: "text", description: "Convert to uppercase", category: "text" },
+  { name: "LOWER", args: "text", description: "Convert to lowercase", category: "text" },
+  { name: "SUBSTITUTE", args: "text, old, new", description: "Replace all occurrences", category: "text" },
+  { name: "CONCAT", args: "a, b", description: "Join two strings", category: "text" },
+  // Logic
+  { name: "IF", args: "condition, true_val, false_val", description: "Conditional value", category: "logic" },
+  { name: "IFERROR", args: "value, fallback", description: "Fallback on error", category: "logic" },
+  { name: "AND", args: "values...", description: "All conditions true", category: "logic" },
+  { name: "OR", args: "values...", description: "Any condition true", category: "logic" },
+  { name: "NOT", args: "value", description: "Logical negation", category: "logic" },
+  // Lookup
+  { name: "CHOOSE", args: "index, values...", description: "Pick by 1-based index", category: "lookup" },
+  // Volatile
+  { name: "NOW", args: "", description: "Current timestamp (ms)", category: "volatile" },
+  { name: "RAND", args: "", description: "Random number 0..1", category: "volatile" },
+]
+
+/** Get function names matching a prefix (for autocomplete) */
+export const completeFunctions = (prefix: string): ReadonlyArray<FunctionSignature> => {
+  const p = prefix.toUpperCase()
+  return FUNCTION_CATALOG.filter(f => f.name.startsWith(p))
+}
+
 /** Check if IR contains any volatile opcodes */
 export const isVolatileIR = (ir: StackIR): boolean =>
   ir.some(op => VOLATILE_TAGS.has(op._tag))
