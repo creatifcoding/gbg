@@ -3105,6 +3105,26 @@ describe("post-450 function coverage", () => {
   it("TEXTAPPEND joins", () => expect(d('=TEXTAPPEND("foo", "bar")')).toBe("foobar"))
   it("PERPETUITY(100, 0.05) = 2000", () => expect(d("=PERPETUITY(100, 0.05)")).toBe(2000))
 
+  // ── 1200 batch tests ──
+  it("KELVIN(0) = 273.15", () => expect(d("=KELVIN(0)")).toBe(273.15))
+  it("CELSIUS(273.15) = 0", () => expect(d("=CELSIUS(273.15)")).toBe(0))
+  it("FAHRENHEIT(0) = 32", () => expect(d("=FAHRENHEIT(0)")).toBe(32))
+  it("HOOKE(10, 0.5) = -5", () => expect(d("=HOOKE(10, 0.5)")).toBe(-5))
+  it("OHMS(5, 10) = 50", () => expect(d("=OHMS(5, 10)")).toBe(50))
+  it("RETENTIONRATE(0.3) = 0.7", () => expect(d("=RETENTIONRATE(0.3)")).toBe(0.7))
+  it("RISING(3, 5) = true", () => expect(d("=RISING(3, 5)")).toBe(true))
+  it("FALLING(5, 3) = true", () => expect(d("=FALLING(5, 3)")).toBe(true))
+  it("CHANGED(3, 5) = true", () => expect(d("=CHANGED(3, 5)")).toBe(true))
+  it("STABLE(5, 5) = true", () => expect(d("=STABLE(5, 5)")).toBe(true))
+  it("ISDEFICIENT(8) = true", () => expect(d("=ISDEFICIENT(8)")).toBe(true))
+  it("ISABUNDANT(12) = true", () => expect(d("=ISABUNDANT(12)")).toBe(true))
+  it("ISSEMIPRIME(6) = true", () => expect(d("=ISSEMIPRIME(6)")).toBe(true))
+  it("ISSQUAREFREE(6) = true", () => expect(d("=ISSQUAREFREE(6)")).toBe(true))
+  it("ISSQUAREFREE(12) = false", () => expect(d("=ISSQUAREFREE(12)")).toBe(false))
+  it("TEXTWORDS counts words", () => expect(d('=TEXTWORDS("hello world foo")')).toBe(3))
+  it("SELECTIF counts above threshold", () => expect(d("=SELECTIF(5, 1, 7, 3, 8, 2)")).toBe(2))
+  it("TAKEWHILE counts truthy prefix", () => expect(d("=TAKEWHILE(1, 1, 1, 0, 1)")).toBe(3))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
