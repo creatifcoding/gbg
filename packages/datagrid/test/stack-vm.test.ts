@@ -3179,6 +3179,31 @@ describe("post-450 function coverage", () => {
   it("STAR(3) = 37", () => expect(d("=STAR(3)")).toBe(37))
   it("FREQUENCY counts", () => { const v = d("=FREQUENCY(3, 1, 3, 3, 5)") as number; expect(typeof v).toBe("number") })
 
+  // ── 1350 batch tests ──
+  it("TAYLOR_SIN(0, 5) ≈ 0", () => expect(Math.abs(d("=TAYLOR_SIN(0, 5)") as number)).toBeLessThan(0.001))
+  it("TAYLOR_COS(0, 5) ≈ 1", () => expect(Math.abs(d("=TAYLOR_COS(0, 5)") as number - 1)).toBeLessThan(0.001))
+  it("TAYLOR_EXP(0, 5) ≈ 1", () => expect(Math.abs(d("=TAYLOR_EXP(0, 5)") as number - 1)).toBeLessThan(0.001))
+  it("BISECT(2, 8) = 5", () => expect(d("=BISECT(2, 8)")).toBe(5))
+  it("TRAPEZOID(3, 7) = 5", () => expect(d("=TRAPEZOID(3, 7)")).toBe(5))
+  it("GOLDEN_SECTION valid", () => { const v = d("=GOLDEN_SECTION(0, 10)") as number; expect(v).toBeGreaterThan(5) })
+  it("EXPSMOOTH(0.5, 10, 20, 30) smooths", () => { const v = d("=EXPSMOOTH(0.5, 10, 20, 30)") as number; expect(v).toBeGreaterThan(10) })
+  it("MOVMEDIAN(2, 1, 3, 5, 7) valid", () => { const v = d("=MOVMEDIAN(2, 1, 3, 5, 7)") as number; expect(v).toBe(6) })
+  it("TEXTCRC32 returns number", () => { const v = d('=TEXTCRC32("hello")') as number; expect(typeof v).toBe("number"); expect(v).toBeGreaterThan(0) })
+  it("TEXTSOUNDEX(Robert) = R163", () => expect(d('=TEXTSOUNDEX("Robert")')).toBe("R163"))
+  it("TEXTALPHANUM strips", () => expect(d('=TEXTALPHANUM("a-b.c!")')).toBe("abc"))
+  it("TEXTUNICODE(A) = 65", () => expect(d('=TEXTUNICODE("A")')).toBe(65))
+  it("TEXTFROMUNI(65) = A", () => expect(d("=TEXTFROMUNI(65)")).toBe("A"))
+  it("ISHAPPY2(7) = true", () => expect(d("=ISHAPPY2(7)")).toBe(true))
+  it("ISSAD(2) = true", () => expect(d("=ISSAD(2)")).toBe(true))
+  it("ISREGULAR(30) = true", () => expect(d("=ISREGULAR(30)")).toBe(true))
+  it("ISREGULAR(7) = false", () => expect(d("=ISREGULAR(7)")).toBe(false))
+  it("MAJORITY3(1,1,0) = true", () => expect(d("=MAJORITY3(1,1,0)")).toBe(true))
+  it("CONSENSUS2(1,1,1) = true", () => expect(d("=CONSENSUS2(1,1,1)")).toBe(true))
+  it("CONSENSUS2(1,0,1) = false", () => expect(d("=CONSENSUS2(1,0,1)")).toBe(false))
+  it("QUORUM2(2, 1, 1, 0) = true", () => expect(d("=QUORUM2(2, 1, 1, 0)")).toBe(true))
+  it("CDF(3, 1, 2, 3, 4, 5) = 0.6", () => expect(d("=CDF(3, 1, 2, 3, 4, 5)")).toBe(0.6))
+  it("ECDF(2, 1, 2, 3, 4) = 0.5", () => expect(d("=ECDF(2, 1, 2, 3, 4)")).toBe(0.5))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
