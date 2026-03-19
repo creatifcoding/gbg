@@ -2744,6 +2744,28 @@ describe("post-450 function coverage", () => {
   it("SIMPLEINT(1000, 0.05, 3) = 150", () => expect(d("=SIMPLEINT(1000, 0.05, 3)")).toBeCloseTo(150, 5))
   it("DEPRECIATION(10000, 1000, 5) = 1800", () => expect(d("=DEPRECIATION(10000, 1000, 5)")).toBe(1800))
 
+  // Sequences: Lucas, Bell
+  it("LUCAS(6) = 18", () => expect(d("=LUCAS(6)")).toBe(18))
+  it("BELL(4) = 15", () => expect(d("=BELL(4)")).toBe(15))
+
+  // Bit operations
+  it("INTLOG2(8) = 3", () => expect(d("=INTLOG2(8)")).toBe(3))
+  it("INTLOG10(1000) = 3", () => expect(d("=INTLOG10(1000)")).toBe(3))
+  it("BITLEN(255) = 8", () => expect(d("=BITLEN(255)")).toBe(8))
+
+  // Text
+  it("TEXTREPEAT(ab, 3) = ababab", () => expect(d("=TEXTREPEAT(\"ab\", 3)")).toBe("ababab"))
+  it("TEXTNTH(hello, 2) = e", () => expect(d("=TEXTNTH(\"hello\", 2)")).toBe("e"))
+  it("TEXTUNIQUE(aabbcc) = abc", () => expect(d("=TEXTUNIQUE(\"aabbcc\")")).toBe("abc"))
+  it("TEXTDISTINCT(hello) = 4", () => expect(d("=TEXTDISTINCT(\"hello\")")).toBe(4))
+
+  // Info
+  it("CHARCOUNT(banana, a) = 3", () => expect(d("=CHARCOUNT(\"banana\", \"a\")")).toBe(3))
+  it("ISEMPTYTEXT(  ) = true", () => expect(d("=ISEMPTYTEXT(\"  \")")).toBe(true))
+
+  // Financial
+  it("RULEOF72(0.06) ≈ 12", () => expect(d("=RULEOF72(0.06)")).toBe(12))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
