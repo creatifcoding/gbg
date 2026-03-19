@@ -1495,6 +1495,21 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync("=TRUNC(-3.7)")).stack[0]).toEqual(num(-3)) // toward zero, not floor
   })
 
+  it("PMT/FV/PV: financial functions", () => {
+    // PMT: 5% annual rate, 30 year mortgage, $200K loan
+    // Monthly rate = 0.05/12 = 0.004167, nper = 360
+    const pmt = evalProgramDirect(compileInfixSync("=ROUND(PMT(0.05/12, 360, 200000), 2)")).stack[0]
+    expect(pmt).toEqual(num(-1073.64)) // ~$1,073.64/month
+    // PMT with 0% rate
+    expect(evalProgramDirect(compileInfixSync("=PMT(0, 12, 1200)")).stack[0]).toEqual(num(-100))
+    // FV: save $100/month at 5% for 30 years
+    const fv = evalProgramDirect(compileInfixSync("=ROUND(FV(0.05/12, 360, -100), 0)")).stack[0]
+    expect((fv as any).value).toBeGreaterThan(80000) // ~$83,226
+    // PV: what's $100/month for 30y at 5% worth today?
+    const pv = evalProgramDirect(compileInfixSync("=ROUND(PV(0.05/12, 360, -100), 0)")).stack[0]
+    expect((pv as any).value).toBeGreaterThan(18000) // ~$18,632
+  })
+
   it("MROUND: round to nearest multiple", () => {
     expect(evalProgramDirect(compileInfixSync("=MROUND(7, 5)")).stack[0]).toEqual(num(5))    // 7 → nearest 5
     expect(evalProgramDirect(compileInfixSync("=MROUND(8, 5)")).stack[0]).toEqual(num(10))   // 8 → nearest 5 = 10
