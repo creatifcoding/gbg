@@ -1204,6 +1204,17 @@ describe("infix parser", () => {
     expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(str("ell"))
   })
 
+  it("CHOOSE: =CHOOSE(2, \"a\", \"b\", \"c\") → \"b\"", () => {
+    const ir = compileInfixSync('=CHOOSE(2, "a", "b", "c")')
+    expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(str("b"))
+  })
+
+  it("CHOOSE out of range → error", () => {
+    const ir = compileInfixSync('=CHOOSE(5, "a", "b")')
+    const v = Effect.runSync(evalProgram(ir)).stack[0] as any
+    expect(v._tag).toBe("error")
+  })
+
   it("AND function: =AND(TRUE, TRUE) → true", () => {
     const ir = compileInfixSync("=AND(TRUE, TRUE)")
     expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(bool(true))

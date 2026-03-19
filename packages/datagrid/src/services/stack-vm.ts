@@ -347,6 +347,9 @@ export const RIGHT_OP = Schema.TaggedStruct("RIGHT_OP", {})
 /** MID_OP — substring (pops str, start, length) */
 export const MID_OP = Schema.TaggedStruct("MID_OP", {})
 
+/** CHOOSE_N — pop index + N values, push value at index. =CHOOSE(2, "a", "b", "c") → "b" */
+export const CHOOSE_N = Schema.TaggedStruct("CHOOSE_N", { n: Schema.Number })
+
 /** AND_N / OR_N — logical N-ary: pop N booleans, push AND/OR */
 export const AND_N = Schema.TaggedStruct("AND_N", { n: Schema.Number })
 export const OR_N = Schema.TaggedStruct("OR_N", { n: Schema.Number })
@@ -430,7 +433,7 @@ export const Opcode = Schema.Union([
   CONCAT, TO_NUM, TO_STR,
   DUP, SWAP, DROP, NEG,
   EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR,
-  AND_N, OR_N, LEN_OP, LEFT_OP, RIGHT_OP, MID_OP,
+  AND_N, OR_N, CHOOSE_N, LEN_OP, LEFT_OP, RIGHT_OP, MID_OP,
   NOW_OP, RAND_OP,
   SUM_N, MIN_N, MAX_N, AVG_N,
   SUM_DYN, MIN_DYN, MAX_DYN, AVG_DYN, COUNT_DYN, POWER,
@@ -729,6 +732,21 @@ const EXEC: Record<string, Executor> = {
     const r = str(vmDisplay(val).substr(asNum(start) - 1, asNum(len))); s.push(r); return { result: r }
   },
 
+  // ── Selection ──
+  CHOOSE_N: (o: any, s) => {
+    // Stack: [index, val1, val2, ..., valN] where N = o.n - 1 (first arg is index)
+    const total = o.n // total args including index
+    if (s.length < total) { const e = vmError("STACK_UNDERFLOW", `CHOOSE requires ${total} operands`); s.push(e); return { result: e } }
+    const values: VMValue[] = []; for (let i = 0; i < total; i++) values.push(s.pop()!)
+    values.reverse() // now [index, val1, val2, ...]
+    const idx = values[0]; if (isVMError(idx)) { s.push(idx); return { result: idx } }
+    const i = Math.round(asNum(idx))
+    if (i < 1 || i >= total) {
+      const e = vmError("TYPE_MISMATCH", `CHOOSE index ${i} out of range 1-${total - 1}`); s.push(e); return { result: e }
+    }
+    const v = values[i]; s.push(v); return { result: v }
+  },
+
   // ── Logical N-ary ──
   AND_N: (o: any, s) => ({ result: aggregateN(s, o.n, vals => bool(vals.every(v => v._tag === "bool" ? v.value : v._tag === "num" ? v.value !== 0 : true)), "AND") }),
   OR_N:  (o: any, s) => ({ result: aggregateN(s, o.n, vals => bool(vals.some(v => v._tag === "bool" ? v.value : v._tag === "num" ? v.value !== 0 : true)), "OR") }),
@@ -888,6 +906,7 @@ function classifyToken(tok: string): Opcode | null {
     case "IFERROR": return { _tag: "IFERROR" }
     case "AND_N": return { _tag: "AND_N", n: 0 } as any
     case "OR_N": return { _tag: "OR_N", n: 0 } as any
+    case "CHOOSE_N": return { _tag: "CHOOSE_N", n: 0 } as any
     case "LEN_OP": return { _tag: "LEN_OP" }
     case "LEFT_OP": return { _tag: "LEFT_OP" }
     case "RIGHT_OP": return { _tag: "RIGHT_OP" }
@@ -1128,7 +1147,7 @@ const FUNC_MAP: Record<string, string> = {
   COUNT: "COUNT_DYN", POWER: "POWER",
   ROUND: "ROUND", FLOOR: "FLOOR", CEIL: "CEIL",
   ABS: "ABS", NEG: "NEG", IF: "IF", IFERROR: "IFERROR",
-  AND: "AND_N", OR: "OR_N",
+  AND: "AND_N", OR: "OR_N", CHOOSE: "CHOOSE_N",
   NOW: "NOW_OP", RAND: "RAND_OP",
   CONCAT: "CONCAT", TO_NUM: "TO_NUM", TO_STR: "TO_STR",
   LEN: "LEN_OP", LEFT: "LEFT_OP", RIGHT: "RIGHT_OP", MID: "MID_OP",
@@ -1284,7 +1303,7 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
           // If single arg, use _DYN variant (could be a range that pushed count).
           const N_VARIANTS: Record<string, string> = {
             SUM_DYN: "SUM_N", MIN_DYN: "MIN_N", MAX_DYN: "MAX_N", AVG_DYN: "AVG_N",
-            AND_N: "AND_N", OR_N: "OR_N",
+            AND_N: "AND_N", OR_N: "OR_N", CHOOSE_N: "CHOOSE_N",
           }
           // IF/IFERROR from infix: args are in function-call order on the stack,
           // which is the OPPOSITE of RPN order. Emit _FN variant that pops correctly.
@@ -1292,7 +1311,7 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
           const fnVariant = FN_VARIANTS[opcodeName]
           const nVariant = N_VARIANTS[opcodeName]
           // N-ary functions that always use _N variant regardless of arg count
-          const ALWAYS_N = new Set(["AND_N", "OR_N"])
+          const ALWAYS_N = new Set(["AND_N", "OR_N", "CHOOSE_N"])
           if (fnVariant) {
             output.push({ _tag: fnVariant } as any)
           } else if (nVariant && (nArgs > 1 || ALWAYS_N.has(nVariant))) {
