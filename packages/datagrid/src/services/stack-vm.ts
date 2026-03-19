@@ -335,6 +335,12 @@ export const POWER = Schema.TaggedStruct("POWER", {})
 /** IFERROR — if value is error, use fallback */
 export const IFERROR = Schema.TaggedStruct("IFERROR", {})
 
+/** NOW — pushes current timestamp (ms since epoch) */
+export const NOW_OP = Schema.TaggedStruct("NOW_OP", {})
+
+/** RAND — pushes random number between 0 and 1 */
+export const RAND_OP = Schema.TaggedStruct("RAND_OP", {})
+
 /** ROUND — round to N decimal places */
 export const ROUND = Schema.TaggedStruct("ROUND", {})
 
@@ -407,7 +413,7 @@ export const Opcode = Schema.Union([
   ADD, SUB, MUL, DIV, MOD, ABS,
   CONCAT, TO_NUM, TO_STR,
   DUP, SWAP, DROP, NEG,
-  EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR,
+  EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR, NOW_OP, RAND_OP,
   SUM_N, MIN_N, MAX_N, AVG_N,
   SUM_DYN, MIN_DYN, MAX_DYN, AVG_DYN, COUNT_DYN, POWER,
   ROUND, FLOOR_OP, CEIL_OP,
@@ -694,6 +700,10 @@ const EXEC: Record<string, Executor> = {
     const cv = num(count); s.push(cv); return { result: cv }
   },
 
+  // ── Volatile (zero-arg, side-effecting) ──
+  NOW_OP:  (_o, s) => { const v = num(Date.now()); s.push(v); return { result: v } },
+  RAND_OP: (_o, s) => { const v = num(Math.random()); s.push(v); return { result: v } },
+
   // ── Control ──
   HALT: () => ({ halted: true }),
 }
@@ -843,6 +853,8 @@ function classifyToken(tok: string): Opcode | null {
     case "NEQ": return { _tag: "NEQ" }
     case "NOT": return { _tag: "NOT" }
     case "IFERROR": return { _tag: "IFERROR" }
+    case "NOW_OP": return { _tag: "NOW_OP" }
+    case "RAND_OP": return { _tag: "RAND_OP" }
     case "IF": return { _tag: "IF" }
     case "SUM_DYN": return { _tag: "SUM_DYN" }
     case "MIN_DYN": return { _tag: "MIN_DYN" }
@@ -1077,6 +1089,7 @@ const FUNC_MAP: Record<string, string> = {
   COUNT: "COUNT_DYN", POWER: "POWER",
   ROUND: "ROUND", FLOOR: "FLOOR", CEIL: "CEIL",
   ABS: "ABS", NEG: "NEG", IF: "IF", IFERROR: "IFERROR",
+  NOW: "NOW_OP", RAND: "RAND_OP",
   CONCAT: "CONCAT", TO_NUM: "TO_NUM", TO_STR: "TO_STR",
 }
 
@@ -1154,6 +1167,16 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
     if (tok === "-" && !prevWasOperand) {
       // Push as high-precedence unary: use sentinel
       opStack.push("UNARY_NEG")
+      continue
+    }
+
+    // Zero-arg function: NOW(), RAND() — emit immediately and skip parens
+    const ZERO_ARG_FNS = new Set(["NOW", "RAND"])
+    if (ZERO_ARG_FNS.has(tok) && i + 2 < tokens.length && tokens[i + 1] === "(" && tokens[i + 2] === ")") {
+      const opcodeName = FUNC_MAP[tok]
+      if (opcodeName) { const op = classifyToken(opcodeName); if (op) output.push(op) }
+      i += 2 // skip ( and )
+      prevWasOperand = true
       continue
     }
 
@@ -1288,6 +1311,13 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
  * Extract deps from an infix expression.
  * Handles both cell refs and ranges.
  */
+/** Tags that mark a formula as volatile (must recalc every cycle) */
+const VOLATILE_TAGS = new Set(["NOW_OP", "RAND_OP"])
+
+/** Check if IR contains any volatile opcodes */
+export const isVolatileIR = (ir: StackIR): boolean =>
+  ir.some(op => VOLATILE_TAGS.has(op._tag))
+
 export const extractDepsInfix = (rawExpr: string): ReadonlyArray<string> => {
   const expr = rawExpr.startsWith("=") ? rawExpr.slice(1) : rawExpr
   const tokens = tokenizeInfix(expr)

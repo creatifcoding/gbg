@@ -1184,6 +1184,26 @@ describe("infix parser", () => {
     expect(deps.length).toBe(3)
   })
 
+  it("NOW() pushes a timestamp", () => {
+    const ir = compileInfixSync("=NOW()")
+    const before = Date.now()
+    const s = Effect.runSync(evalProgram(ir))
+    const after = Date.now()
+    const v = s.stack[0] as any
+    expect(v._tag).toBe("num")
+    expect(v.value).toBeGreaterThanOrEqual(before)
+    expect(v.value).toBeLessThanOrEqual(after)
+  })
+
+  it("RAND() pushes a number between 0 and 1", () => {
+    const ir = compileInfixSync("=RAND()")
+    const s = Effect.runSync(evalProgram(ir))
+    const v = s.stack[0] as any
+    expect(v._tag).toBe("num")
+    expect(v.value).toBeGreaterThanOrEqual(0)
+    expect(v.value).toBeLessThan(1)
+  })
+
   it("rejects mismatched parentheses", async () => {
     await expect(
       Effect.runPromise(compileInfix("=(A1+B1"))

@@ -504,6 +504,31 @@ describe("FormulaEngineV2", () => {
       }))
     })
 
+    it("volatile: =NOW() recalcs on every dirty cycle", async () => {
+      const store = makeStore({ A1: CV.num(1) })
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.registerInfix("B1", "=NOW()")
+        const r1 = yield* e.recalcAll()
+        const v1 = store.cells.get("B1")
+        expect(v1?._tag).toBe("Number")
+
+        // Volatile formulas recalc even when unrelated cell changes
+        store.cells.set("A1", CV.num(2))
+        yield* e.recalcDirty(["A1"])
+        const v2 = store.cells.get("B1")
+        expect(v2?._tag).toBe("Number")
+        // NOW() should have recalced (value >= previous)
+        if (v1?._tag === "Number" && v2?._tag === "Number") {
+          expect(v2.value).toBeGreaterThanOrEqual(v1.value)
+        }
+
+        // Check volatile flag on record
+        const rec = e.getFormula("B1")
+        expect(rec?.volatile).toBe(true)
+      }))
+    })
+
     it("comparison chain: =IF(A1>=10, 1, 0) with >= operator", async () => {
       const store = makeStore({ A1: CV.num(10) })
       await run(store, Effect.gen(function*() {

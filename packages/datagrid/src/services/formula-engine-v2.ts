@@ -30,6 +30,7 @@ import type { CellValue } from "../schemas/cell-value"
 import { cellToVM, vmToCell } from "./vm-cell-bridge"
 import {
   compileExprSync, compileInfixSync, extractDeps, extractDepsInfix, evalProgram,
+  isVolatileIR,
   type StackIR, type VMValue, type CellContext,
   num, vmError,
   CompileError,
@@ -44,6 +45,7 @@ export interface FormulaRecord {
   readonly expr: string
   readonly deps: ReadonlyArray<string>
   readonly ir: StackIR
+  readonly volatile: boolean
 }
 
 /** Result of a recalc pass */
@@ -210,7 +212,7 @@ export const FormulaEngineV2Live = Layer.effect(
           const ir = compileExprSync(expr)
           const deps = extractDeps(expr)
           yield* graph.registerFormula(addr, expr, deps)
-          const record: FormulaRecord = { addr, expr, deps, ir }
+          const record: FormulaRecord = { addr, expr, deps, ir, volatile: isVolatileIR(ir) }
           formulas.set(addr, record)
           return record
         }),
@@ -220,7 +222,7 @@ export const FormulaEngineV2Live = Layer.effect(
           const ir = compileInfixSync(expr)
           const deps = extractDepsInfix(expr)
           yield* graph.registerFormula(addr, expr, deps)
-          const record: FormulaRecord = { addr, expr, deps, ir }
+          const record: FormulaRecord = { addr, expr, deps, ir, volatile: isVolatileIR(ir) }
           formulas.set(addr, record)
           return record
         }),
@@ -228,7 +230,7 @@ export const FormulaEngineV2Live = Layer.effect(
       registerIR: (addr, ir, deps) =>
         Effect.gen(function*() {
           yield* graph.registerFormula(addr, `[IR:${ir.length}ops]`, deps)
-          const record: FormulaRecord = { addr, expr: `[IR:${ir.length}ops]`, deps, ir }
+          const record: FormulaRecord = { addr, expr: `[IR:${ir.length}ops]`, deps, ir, volatile: isVolatileIR(ir) }
           formulas.set(addr, record)
           return record
         }),
@@ -241,22 +243,28 @@ export const FormulaEngineV2Live = Layer.effect(
 
       recalcDirty: (dirtyCells) =>
         Effect.sync(() => {
-          // evalOrder returns affected formula cells in topo order
           const topoOrder = graph.evalOrder(dirtyCells)
-          return runRecalc(topoOrder)
+          // Volatile formulas always recalc — append any not already in order
+          const orderSet = new Set(topoOrder)
+          const volatiles = Array.from(formulas.values())
+            .filter(r => r.volatile && !orderSet.has(r.addr))
+            .map(r => r.addr)
+          return runRecalc([...topoOrder, ...volatiles])
         }),
 
       recalcAll: () =>
         Effect.sync(() => {
-          // Get all formula addrs, feed them as "dirty" to get full topo order
+          // Get all formula addrs — evalOrder returns topo-sorted subset
           const allAddrs = graph.allFormulas()
-          // Also include all data deps to ensure full propagation
           const allNodes = new Set<string>()
           for (const addr of allAddrs) {
             for (const dep of graph.dependencies(addr)) allNodes.add(dep)
           }
           const topoOrder = graph.evalOrder([...allNodes])
-          return runRecalc(topoOrder)
+          // Also include formulas with no deps (volatile, constants) that topo missed
+          const orderSet = new Set(topoOrder)
+          const missed = allAddrs.filter(a => !orderSet.has(a))
+          return runRecalc([...missed, ...topoOrder])
         }),
 
       getFormula: (addr) => formulas.get(addr),
