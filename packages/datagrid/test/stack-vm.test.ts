@@ -1704,6 +1704,19 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("EXPONDIST/POISSON/BINOMDIST/LOGNORMDIST: distribution family", () => {
+    // EXPONDIST(1, 1) = 1 - e^(-1) ≈ 0.6321
+    expect(evalProgramDirect(compileInfixSync("=ROUND(EXPONDIST(1, 1), 4)")).stack[0]).toEqual(num(0.6321))
+    // POISSON(2, 3) ≈ 0.4232 (P(X≤2) with λ=3)
+    const p = (evalProgramDirect(compileInfixSync("=ROUND(POISSON(2, 3), 4)")).stack[0] as any).value
+    expect(p).toBeGreaterThan(0.4)
+    expect(p).toBeLessThan(0.45)
+    // BINOMDIST(3, 10, 0.5) ≈ 0.1719 cumulative
+    const b = (evalProgramDirect(compileInfixSync("=ROUND(BINOMDIST(3, 10, 0.5), 3)")).stack[0] as any).value
+    expect(b).toBeGreaterThan(0.15)
+    expect(b).toBeLessThan(0.2)
+  })
+
   it("STANDARDIZE/CONFIDENCE: z-score and confidence intervals", () => {
     // STANDARDIZE(75, 50, 10) = (75-50)/10 = 2.5
     expect(evalProgramDirect(compileInfixSync("=STANDARDIZE(75, 50, 10)")).stack[0]).toEqual(num(2.5))
