@@ -1469,6 +1469,15 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync("=ISODD(6)")).stack[0]).toEqual(bool(false))
   })
 
+  it("INT/EVEN/ODD: rounding functions", () => {
+    expect(evalProgramDirect(compileInfixSync("=INT(3.7)")).stack[0]).toEqual(num(3))
+    expect(evalProgramDirect(compileInfixSync("=INT(-3.2)")).stack[0]).toEqual(num(-4)) // floor toward -∞
+    expect(evalProgramDirect(compileInfixSync("=EVEN(3)")).stack[0]).toEqual(num(4))
+    expect(evalProgramDirect(compileInfixSync("=EVEN(4)")).stack[0]).toEqual(num(4))    // already even
+    expect(evalProgramDirect(compileInfixSync("=ODD(4)")).stack[0]).toEqual(num(5))
+    expect(evalProgramDirect(compileInfixSync("=ODD(3)")).stack[0]).toEqual(num(3))     // already odd
+  })
+
   it("ISNUMBER: alias for ISNUM", () => {
     expect(evalProgramDirect(compileInfixSync("=ISNUMBER(42)")).stack[0]).toEqual(bool(true))
     expect(evalProgramDirect(compileInfixSync('=ISNUMBER("abc")')).stack[0]).toEqual(bool(false))
