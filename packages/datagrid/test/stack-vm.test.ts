@@ -2679,6 +2679,31 @@ describe("post-450 function coverage", () => {
   it("ANY2(FALSE,TRUE) = true", () => expect(d("=ANY2(FALSE,TRUE)")).toBe(true))
   it("NONE2(FALSE,FALSE) = true", () => expect(d("=NONE2(FALSE,FALSE)")).toBe(true))
 
+  // Trig & conversions
+  it("DEG2RAD(180) ≈ π", () => expect(d("=DEG2RAD(180)")).toBeCloseTo(Math.PI, 5))
+  it("RAD2DEG(PI()) ≈ 180", () => expect(d("=RAD2DEG(PI())")).toBeCloseTo(180, 5))
+  it("SINC(0) = 1", () => expect(d("=SINC(0)")).toBe(1))
+
+  // Combinatorics
+  it("BINOMCOEF(5,2) = 10", () => expect(d("=BINOMCOEF(5,2)")).toBe(10))
+  it("CATALAN(5) = 42", () => expect(d("=CATALAN(5)")).toBe(42))
+  it("TRIANGLENUM(10) = 55", () => expect(d("=TRIANGLENUM(10)")).toBe(55))
+
+  // Text
+  it("TEXTSTRIP strips HTML", () => expect(d("=TEXTSTRIP(\"<b>hi</b>\")")).toBe("hi"))
+  it("TEXTNORM collapses whitespace", () => expect(d("=TEXTNORM(\"  a  b  \")")).toBe("a b"))
+
+  // Financial
+  it("PROFITMARGIN(100, 60) = 0.4", () => expect(d("=PROFITMARGIN(100, 60)")).toBe(0.4))
+  it("MARKUP(150, 100) = 0.5", () => expect(d("=MARKUP(150, 100)")).toBe(0.5))
+  it("BREAKEVEN(10000, 50, 30) = 500", () => expect(d("=BREAKEVEN(10000, 50, 30)")).toBe(500))
+
+  // Info
+  it("ISUPPER(ABC) = true", () => expect(d("=ISUPPER(\"ABC\")")).toBe(true))
+  it("ISLOWER(abc) = true", () => expect(d("=ISLOWER(\"abc\")")).toBe(true))
+  it("ISPALINDROME(racecar) = true", () => expect(d("=ISPALINDROME(\"racecar\")")).toBe(true))
+  it("ISPALINDROME(hello) = false", () => expect(d("=ISPALINDROME(\"hello\")")).toBe(false))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
