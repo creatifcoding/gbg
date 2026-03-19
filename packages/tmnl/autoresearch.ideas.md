@@ -1,55 +1,48 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ DONE (prune — no longer actionable)
+## ✅ DONE — No longer actionable
 
-- 25 hypotheses proven, 80 spike tests, 22 Effect v4 modules
-- Production services: stack-vm.ts, vm-cell-bridge.ts, dep-graph.ts, formula-engine-v2.ts
-- READ_CELL/WRITE_CELL + CellContext, A1 compiler, extractDeps/extractDepsFromIR
-- FormulaEngineV2: register/registerInfix/recalcDirty/recalcAll
-- Infix shunting-yard parser: precedence, functions, ranges, parens
-- READ_RANGE + dynamic aggregates (SUM/MIN/MAX/AVG/COUNT)_DYN
-- Unary minus, string literals, & concat operator
-- Comparison operators < > in infix
-- POWER/COUNT_DYN/ROUND/FLOOR/CEIL opcodes (38 total)
-- Flat EXEC dispatch table replacing Match+if-else ladder
+- 25 hypotheses, 80 spike tests, 22 Effect v4 modules
+- 4 production services: stack-vm.ts, vm-cell-bridge.ts, dep-graph.ts, formula-engine-v2.ts
+- Flat EXEC dispatch table (O(1)), 44+ opcodes
+- Infix shunting-yard: precedence, nested functions, ranges, boolean literals
+- Comparison: < > >= <= != <>, unary minus, string literals, & concat, ^ power
+- Aggregate: SUM/MIN/MAX/AVG/COUNT (both _N and _DYN), IFERROR
+- Multi-char columns (AA-AZ+) in READ_RANGE and dep extraction
+- IF_FN/IFERROR_FN for infix arg order
+- colToIdx/idxToCol helpers
 
 ## 🔜 NEXT — High-value paths
 
-### Comparison operators: >=, <=, != in infix
-- Tokenizer needs 2-char lookahead for >= <= !=
-- Maps to GTE/LTE/NEQ opcodes (or compound: NOT+LT for GTE)
-- Common spreadsheet need, cheap to add
+### FormulaEngineV2 IFERROR integration
+- Test: =IFERROR(A1/B1, 0) where B1=0 → should get 0 not #DIV/0!
+- Validates full pipeline: register → recalc → error handling → fallback
 
-### Multi-char column support in READ_RANGE
-- Currently READ_RANGE only handles single-char cols (A-Z)
-- Should support AA1:AZ100 like the compiler already handles for READ_CELL
-- Expand range iteration to use column index math
+### Volatile function support
+- Functions like NOW(), RAND() that must recalc every cycle
+- DepGraph needs "always-dirty" flag for volatile formulas
+- FormulaEngineV2.recalcAll already exists — need volatile detection
 
-### Nested function calls: =SUM(A1, MAX(B1:B3))
-- Currently functions only accept flat args or ranges
-- Shunting-yard needs function arg tracking to handle nested calls
-- Key for production-grade formulas
-
-### Boolean literals in infix: =IF(TRUE, A1, B1)
-- Tokenizer should recognize TRUE/FALSE keywords
-- Maps to PUSH_BOOL
+### Named ranges / cell aliases
+- "Revenue" instead of "A1:A100"
+- Compiler resolves aliases to addresses before dep extraction
+- Could use a simple Map<string, string> registry
 
 ### Wire FormulaEngineV2 into production
 - Replace FormulaConsistency's dependency on old FormulaEngine
-- Wire registerInfix as the primary formula input path
+- Wire registerInfix as primary formula input path
 - Connect to CellCache atoms for reactive UI updates
 
-### Error function: =IFERROR(A1/B1, 0)
-- Common spreadsheet pattern for error handling
-- VM already has isVMError — needs IFERROR opcode
-- Pop 2: value, fallback. If value is error, push fallback
+### Barrel exports audit
+- Ensure all new opcodes/types exported from index.ts
+- GTE, LTE, NEQ, IFERROR, ROUND, FLOOR_OP, CEIL_OP, POWER, COUNT_DYN
+- colToIdx, idxToCol utility exports
 
 ## 📌 DEFERRED — Lower priority
 
 ### TxHashMap cell state (production)
-- Replace Map<string, CellValue> with TxHashMap inside Effect.transaction
+- Replace Map with TxHashMap inside Effect.transaction
 - Multi-cell atomic reads/writes for bulk paste, undo
-- Blocked on: need production wiring first
 
 ### WASM sandbox (Domain B)
 - Pool.make for QuickJS-WASM instances

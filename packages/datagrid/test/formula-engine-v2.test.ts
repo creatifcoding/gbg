@@ -475,5 +475,47 @@ describe("FormulaEngineV2", () => {
         expect(store.get("D1")).toEqual(CV.num(200)) // A1=0 (falsy) → C1
       }))
     })
+
+    it("IFERROR: =IFERROR(A1/B1, 0) handles div-by-zero gracefully", async () => {
+      const store = makeStore({ A1: CV.num(10), B1: CV.num(0) })
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.registerInfix("C1", "=IFERROR(A1/B1, 0)")
+        const r1 = yield* e.recalcAll()
+        expect(store.cells.get("C1")).toEqual(CV.num(0))
+        expect(r1.errors.length).toBe(0)
+
+        // Fix B1 → should now compute normally
+        store.cells.set("B1", CV.num(2))
+        const r2 = yield* e.recalcDirty(["B1"])
+        expect(store.cells.get("C1")).toEqual(CV.num(5))
+        expect(r2.errors.length).toBe(0)
+      }))
+    })
+
+    it("nested: =ROUND(SUM(A1, A2, A3) / 3, 2) averages with rounding", async () => {
+      const store = makeStore({ A1: CV.num(1), A2: CV.num(2), A3: CV.num(3) })
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.registerInfix("B1", "=ROUND(SUM(A1, A2, A3) / 3, 2)")
+        const r = yield* e.recalcAll()
+        expect(store.cells.get("B1")).toEqual(CV.num(2))
+        expect(r.errors.length).toBe(0)
+      }))
+    })
+
+    it("comparison chain: =IF(A1>=10, 1, 0) with >= operator", async () => {
+      const store = makeStore({ A1: CV.num(10) })
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.registerInfix("B1", "=IF(A1>=10, 1, 0)")
+        yield* e.recalcAll()
+        expect(store.cells.get("B1")).toEqual(CV.num(1))
+
+        store.cells.set("A1", CV.num(9))
+        yield* e.recalcDirty(["A1"])
+        expect(store.cells.get("B1")).toEqual(CV.num(0))
+      }))
+    })
   })
 })
