@@ -1,18 +1,21 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ STATUS — 191 experiments, 466 tests, 427 opcodes, 407 catalog entries
+## ✅ STATUS — 193 experiments, 466 tests, 438 opcodes, 418 catalog entries
 
-Production: ~6,500 LOC | Tests: ~2,600 LOC | Benchmark: ~380ms (~49% below 751ms)
+Production: 6,543 LOC | Tests: ~2,600 LOC | Benchmark: ~371ms (~51% below 751ms)
 
-### Category breakdown (407 catalog)
-math:115 | stat:100 | info:50 | text:49 | financial:44 | lookup:26 | logic:17 | volatile:6
+### Category breakdown (418 catalog)
+math:115 | stat:100 | text:52 | info:50 | financial:44 | lookup:30 | logic:21 | volatile:6
+
+### ALL categories at meaningful thresholds!
 
 ## 🔜 NEXT
 1. **Wire FormulaEngineV2 into production** — connect to CellCache + AG-Grid
-2. Push toward 450 catalog (text:50+, lookup:30+, logic:20+)
+2. Push to 450+ catalog (approaching Google Sheets parity)
+3. Compiler optimizations (constant folding, strength reduction)
 
 ## 📌 DEFERRED
-- XLOOKUP with full match modes  
 - MMULT, MINVERSE (true 2D matrix)
-- Full LAMBDA closure support
-- WASM compilation target
+- Full LAMBDA closure support with lexical scoping
+- WASM compilation target for hot paths
+- Worker thread offloading for heavy computations
