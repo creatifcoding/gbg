@@ -422,6 +422,8 @@ export const ISERROR_OP = Schema.TaggedStruct("ISERROR_OP", {})
 export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
 
 /** More text functions */
+export const DATEVALUE_OP = Schema.TaggedStruct("DATEVALUE_OP", {})
+export const EDATE_OP = Schema.TaggedStruct("EDATE_OP", {})
 export const WEEKDAY_OP = Schema.TaggedStruct("WEEKDAY_OP", {})
 export const WEEKNUM_OP = Schema.TaggedStruct("WEEKNUM_OP", {})
 export const ROMAN_OP = Schema.TaggedStruct("ROMAN_OP", {})
@@ -577,7 +579,7 @@ export const Opcode = Schema.Union([
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
-  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
+  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
   IFS_N, SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
@@ -891,6 +893,26 @@ const EXEC: Record<string, Executor> = {
     for (let i = 0; i < vals.length; i++) { while (n >= vals[i]) { result += syms[i]; n -= vals[i] } }
     return str(result)
   }, "ROMAN") }),
+  // DATEVALUE_OP: parse date string to Excel serial number
+  DATEVALUE_OP: (_o, s) => ({ result: unop(s, a => {
+    if (isVMError(a)) return a
+    const text = a._tag === "str" ? a.value : vmDisplay(a)
+    const d = new Date(text)
+    if (isNaN(d.getTime())) return vmError("TYPE_MISMATCH", `DATEVALUE: "${text}"`)
+    // Excel serial: days since Dec 30, 1899
+    const epoch = new Date(1899, 11, 30)
+    return num(Math.floor((d.getTime() - epoch.getTime()) / 86400000))
+  }, "DATEVALUE") }),
+  // EDATE_OP: add months to serial date. EDATE(start_serial, months)
+  EDATE_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "EDATE")); return { result: s[s.length-1] } }
+    const months = Math.round(asNum(s.pop()!)), serial = Math.round(asNum(s.pop()!))
+    const epoch = new Date(1899, 11, 30)
+    const d = new Date(epoch.getTime() + serial * 86400000)
+    d.setMonth(d.getMonth() + months)
+    const resultSerial = Math.floor((d.getTime() - epoch.getTime()) / 86400000)
+    const result = num(resultSerial); s.push(result); return { result }
+  },
   // WEEKDAY_OP: day of week (1=Sun ... 7=Sat) from Excel serial date
   WEEKDAY_OP: (_o, s) => ({ result: unop(s, a => {
     if (isVMError(a)) return a
@@ -1872,6 +1894,7 @@ const _OP: Record<string, Opcode> = {
   FLOOR_OP: { _tag: "FLOOR_OP" }, CEIL_OP: { _tag: "CEIL_OP" },
   ISNUM_OP: { _tag: "ISNUM_OP" }, ISTEXT_OP: { _tag: "ISTEXT_OP" },
   ISERROR_OP: { _tag: "ISERROR_OP" }, ISBLANK_OP: { _tag: "ISBLANK_OP" },
+  DATEVALUE_OP: { _tag: "DATEVALUE_OP" }, EDATE_OP: { _tag: "EDATE_OP" },
   WEEKDAY_OP: { _tag: "WEEKDAY_OP" }, WEEKNUM_OP: { _tag: "WEEKNUM_OP" },
   ROMAN_OP: { _tag: "ROMAN_OP" }, ARABIC_OP: { _tag: "ARABIC_OP" },
   TEXT_OP: { _tag: "TEXT_OP" }, NUMBERVALUE_OP: { _tag: "NUMBERVALUE_OP" },
@@ -2003,6 +2026,8 @@ function classifyToken(tok: string): Opcode | null {
     case "RANK_N": return { _tag: "RANK_N", n: 0 } as any
     case "CONCATENATE_N": return { _tag: "CONCATENATE_N", n: 0 } as any
     case "TEXTJOIN_N": return { _tag: "TEXTJOIN_N", n: 0 } as any
+    case "DATEVALUE_OP": return _OP.DATEVALUE_OP
+    case "EDATE_OP": return _OP.EDATE_OP
     case "WEEKDAY_OP": return _OP.WEEKDAY_OP
     case "WEEKNUM_OP": return _OP.WEEKNUM_OP
     case "ROMAN_OP": return _OP.ROMAN_OP
@@ -2306,7 +2331,7 @@ const FUNC_MAP: Record<string, string> = {
   NPV: "NPV_N", VAR: "VAR_N", PERCENTILE: "PERCENTILE_N", COUNTA: "COUNTA_N", COUNTBLANK: "COUNTBLANK_N",
   SUMPRODUCT: "SUMPRODUCT_N", AGGREGATE: "AGGREGATE_N", COUNTIF: "COUNTIF_N", COUNTIFS: "COUNTIFS_N", SUMIF: "SUMIF_N", MAXIFS: "MAXIFS_N", MINIFS: "MINIFS_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
   STDEV: "STDEV_N", MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
-  WEEKDAY: "WEEKDAY_OP", WEEKNUM: "WEEKNUM_OP", ROMAN: "ROMAN_OP", ARABIC: "ARABIC_OP", TEXT: "TEXT_OP", NUMBERVALUE: "NUMBERVALUE_OP", REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
+  DATEVALUE: "DATEVALUE_OP", EDATE: "EDATE_OP", WEEKDAY: "WEEKDAY_OP", WEEKNUM: "WEEKNUM_OP", ROMAN: "ROMAN_OP", ARABIC: "ARABIC_OP", TEXT: "TEXT_OP", NUMBERVALUE: "NUMBERVALUE_OP", REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
   IFS: "IFS_N", SWITCH: "SWITCH_N", VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
   YEAR: "YEAR_OP", MONTH: "MONTH_OP", DAY: "DAY_OP",
   HOUR: "HOUR_OP", MINUTE: "MINUTE_OP", SECOND: "SECOND_OP",
@@ -2683,6 +2708,8 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "LCM", args: "a, b", description: "Least common multiple", category: "math" },
   { name: "COMBIN", args: "n, k", description: "Combinations (n choose k)", category: "math" },
   { name: "SUBSTITUTE", args: "text, old, new", description: "Replace all occurrences", category: "text" },
+  { name: "DATEVALUE", args: "date_text", description: "Parse date string to Excel serial", category: "info" },
+  { name: "EDATE", args: "start_serial, months", description: "Add months to serial date", category: "info" },
   { name: "WEEKDAY", args: "serial_date", description: "Day of week (1=Sun...7=Sat)", category: "info" },
   { name: "WEEKNUM", args: "serial_date", description: "Week number of the year", category: "info" },
   { name: "ROMAN", args: "number", description: "Convert number to Roman numerals", category: "text" },

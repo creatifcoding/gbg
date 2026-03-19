@@ -1780,6 +1780,15 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=SEARCH("xyz","ABCDEF")')).stack[0]._tag).toBe("error")
   })
 
+  it("DATEVALUE/EDATE: date parsing and month arithmetic", () => {
+    // Jan 1, 2024 serial number should be > 45000
+    const dv = evalProgramDirect(compileInfixSync('=DATEVALUE("2024-01-01")')).stack[0]
+    expect((dv as any).value).toBeGreaterThan(45000)
+    // EDATE: add 6 months to serial
+    const ed = evalProgramDirect(compileInfixSync('=EDATE(DATEVALUE("2024-01-01"), 6)')).stack[0]
+    expect((ed as any).value).toBeGreaterThan((dv as any).value + 150) // ~180 days
+  })
+
   it("WEEKDAY/WEEKNUM: date utilities from serial", () => {
     // Excel serial 1 = Jan 1, 1900 (Sunday in Excel's convention)
     // (1 + 6) % 7 + 1 = 1 → Sunday
