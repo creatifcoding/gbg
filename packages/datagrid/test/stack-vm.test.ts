@@ -2637,6 +2637,21 @@ describe("post-450 function coverage", () => {
   it("CELLTYPE(5) = 1", () => expect(d("=CELLTYPE(5)")).toBe(1))
   it("CELLTYPE(text) = 2", () => expect(d("=CELLTYPE(\"hi\")")).toBe(2))
 
+  // Digit functions
+  it("DIGSUM(1234) = 10", () => expect(d("=DIGSUM(1234)")).toBe(10))
+  it("DIGROOT(493) = 7", () => expect(d("=DIGROOT(493)")).toBe(7))
+  it("NTHROOT(27, 3) = 3", () => expect(d("=NTHROOT(27, 3)")).toBe(3))
+
+  // Text distance
+  it("TEXTHAMMING(abc, axc) = 1", () => expect(d("=TEXTHAMMING(\"abc\", \"axc\")")).toBe(1))
+  it("TEXTLEV(kitten, sitting) = 3", () => expect(d("=TEXTLEV(\"kitten\", \"sitting\")")).toBe(3))
+
+  // Info validators
+  it("ISALPHANUM(abc123) = true", () => expect(d("=ISALPHANUM(\"abc123\")")).toBe(true))
+  it("ISALPHANUM(abc 123) = false", () => expect(d("=ISALPHANUM(\"abc 123\")")).toBe(false))
+  it("ISALPHA(hello) = true", () => expect(d("=ISALPHA(\"hello\")")).toBe(true))
+  it("ISALPHA(hello1) = false", () => expect(d("=ISALPHA(\"hello1\")")).toBe(false))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
