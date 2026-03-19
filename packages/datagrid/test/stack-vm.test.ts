@@ -1704,6 +1704,18 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("SORT/UNIQUE/FILTER/PPMT/IPMT: dynamic arrays + financial", () => {
+    // FILTER: keep values > 3 → [4, 5]
+    const f = evalProgramDirect(compileInfixSync('=FILTER(">3", 1, 2, 3, 4, 5)'))
+    // FILTER pushes matches [4, 5] then returns count=2 on top
+    expect(f.stack.length).toBe(2) // 4 and 5 pushed, count replaces
+    expect(f.stack).toContainEqual(num(4))
+    // PPMT: first period principal on 100k at 1%/mo for 12 months
+    const pp = (evalProgramDirect(compileInfixSync("=ROUND(PPMT(0.01, 1, 12, 100000), 0)")).stack[0] as any).value
+    expect(pp).toBeLessThan(-5000) // principal portion is negative
+    expect(pp).toBeGreaterThan(-15000)
+  })
+
   it("CELL/ROWS/SEQUENCE: info and dynamic array functions", () => {
     // CELL: numeric value → "v"
     expect(evalProgramDirect(compileInfixSync("=CELL(42)")).stack[0]).toEqual(str("v"))
