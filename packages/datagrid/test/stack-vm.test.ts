@@ -1704,6 +1704,15 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("AVERAGEA/MAXA/MINA: A-variants with mixed types", () => {
+    // AVERAGEA with text: text counts as 0, TRUE as 1
+    expect(evalProgramDirect(compileInfixSync('=AVERAGEA(10, "text", TRUE)')).stack[0]).toEqual(num(11 / 3))
+    // MAXA: TRUE=1, so max(0, TRUE) = 1
+    expect(evalProgramDirect(compileInfixSync('=MAXA(0, TRUE, "hello")')).stack[0]).toEqual(num(1))
+    // MINA: text=0, FALSE=0
+    expect(evalProgramDirect(compileInfixSync('=MINA(5, FALSE, "text")')).stack[0]).toEqual(num(0))
+  })
+
   it("NEGBINOMDIST/BETADIST: advanced distributions", () => {
     // NEGBINOMDIST: P(1 failure before 10th success at p=0.5) 
     const nb = (evalProgramDirect(compileInfixSync("=ROUND(NEGBINOMDIST(1, 10, 0.5), 4)")).stack[0] as any).value
