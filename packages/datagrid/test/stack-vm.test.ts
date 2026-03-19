@@ -2580,6 +2580,20 @@ describe("post-450 function coverage", () => {
 
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
+  // ML activation functions
+  it("SIGMOID(0) = 0.5", () => expect(d("=SIGMOID(0)")).toBe(0.5))
+  it("RELU(5) = 5", () => expect(d("=RELU(5)")).toBe(5))
+  it("RELU(-5) = 0", () => expect(d("=RELU(-5)")).toBe(0))
+  it("SOFTPLUS(0) ≈ 0.6931", () => expect(d("=ROUND(SOFTPLUS(0), 4)")).toBe(0.6931))
+  it("ELU(5) = 5", () => expect(d("=ELU(5)")).toBe(5))
+  it("ELU(-1) ≈ -0.6321", () => expect(d("=ROUND(ELU(-1), 4)")).toBe(-0.6321))
+  it("NORMALIZE(50, 0, 100) = 0.5", () => expect(d("=NORMALIZE(50, 0, 100)")).toBe(0.5))
+  it("WORDCOUNT of text", () => expect(d("=WORDCOUNT(\"hello world foo\")")).toBe(3))
+  it("WORDCOUNT empty = 0", () => expect(d("=WORDCOUNT(\"\")")).toBe(0))
+  it("DIGITS(12345) = 5", () => expect(d("=DIGITS(12345)")).toBe(5))
+  it("DIGITS(0) = 1", () => expect(d("=DIGITS(0)")).toBe(1))
+  it("DECODEURL roundtrip", () => expect(d("=DECODEURL(\"hello%20world\")")).toBe("hello world"))
+
   it("ISERR on error = true", () => expect(d("=ISERR(1/0)")).toBe(true))
   it("ISNULL on empty = true", () => expect(d("=ISNULL(\"\")")).toBe(true))
   it("ISNULL on text = false", () => expect(d("=ISNULL(\"hi\")")).toBe(false))
