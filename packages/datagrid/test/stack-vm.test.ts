@@ -1464,6 +1464,13 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=PROPER("HELLO WORLD")')).stack[0]).toEqual(str("Hello World"))
   })
 
+  it("ERRORTYPE: numeric error code", () => {
+    // DIV/0 = 2, #VALUE! = 3
+    expect(evalProgramDirect(compileInfixSync("=ERRORTYPE(1/0)")).stack[0]).toEqual(num(2))
+    // Non-error → error
+    expect(evalProgramDirect(compileInfixSync("=ERRORTYPE(42)")).stack[0]._tag).toBe("error")
+  })
+
   it("T: return text or empty", () => {
     expect(evalProgramDirect(compileInfixSync('=T("hello")')).stack[0]).toEqual(str("hello"))
     expect(evalProgramDirect(compileInfixSync("=T(42)")).stack[0]).toEqual(str(""))  // non-text → ""

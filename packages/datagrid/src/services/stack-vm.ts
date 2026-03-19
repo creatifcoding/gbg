@@ -360,6 +360,7 @@ export const CLEAN_OP = Schema.TaggedStruct("CLEAN_OP", {})
 export const CHAR_OP = Schema.TaggedStruct("CHAR_OP", {})
 export const CODE_OP = Schema.TaggedStruct("CODE_OP", {})
 export const T_OP = Schema.TaggedStruct("T_OP", {})
+export const ERROR_TYPE_OP = Schema.TaggedStruct("ERROR_TYPE_OP", {})
 export const ISEVEN_OP = Schema.TaggedStruct("ISEVEN_OP", {})
 export const ISODD_OP = Schema.TaggedStruct("ISODD_OP", {})
 export const INT_OP = Schema.TaggedStruct("INT_OP", {})
@@ -534,7 +535,7 @@ export const Opcode = Schema.Union([
   DUP, SWAP, DROP, NEG,
   EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR,
   AND_N, OR_N, CHOOSE_N,
-  LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, PROPER_OP, CLEAN_OP, CHAR_OP, CODE_OP, T_OP, ISEVEN_OP, ISODD_OP,
+  LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, PROPER_OP, CLEAN_OP, CHAR_OP, CODE_OP, T_OP, ERROR_TYPE_OP, ISEVEN_OP, ISODD_OP,
   INT_OP, EVEN_OP, ODD_OP, TRUNC_OP, EXP_OP, LN_OP, LOG2_OP, RAND_BETWEEN, FIXED_OP, DOLLAR_OP, SIN_OP, COS_OP, TAN_OP, ASIN_OP, ACOS_OP, ATAN_OP, ATAN2_OP, RADIANS_OP, DEGREES_OP,
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
@@ -1149,6 +1150,12 @@ const EXEC: Record<string, Executor> = {
   CHAR_OP:  (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const n = Math.round(asNum(a)); return n < 1 || n > 65535 ? vmError("TYPE_MISMATCH", `CHAR: ${n} out of range`) : str(String.fromCharCode(n)) }, "CHAR") }),
   CODE_OP:  (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const s2 = vmDisplay(a); return s2.length === 0 ? vmError("TYPE_MISMATCH", "CODE: empty string") : num(s2.charCodeAt(0)) }, "CODE") }),
   T_OP:     (_o, s) => ({ result: unop(s, a => a._tag === "str" ? a : str(""), "T") }),  // Excel T(): returns text or ""
+  ERROR_TYPE_OP: (_o, s) => ({ result: unop(s, a => {
+    if (a._tag !== "error") return vmError("TYPE_MISMATCH", "ERROR.TYPE: not an error")
+    const code = (a as any).code as string
+    const map: Record<string, number> = { TYPE_MISMATCH: 3, REF_ERROR: 4, NAME_ERROR: 5, STACK_UNDERFLOW: 3, DIV_ZERO: 2, CIRCULAR_REF: 4 }
+    return num(map[code] ?? 1)
+  }, "ERROR.TYPE") }),
   ISEVEN_OP:  (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : bool(Math.round(asNum(a)) % 2 === 0), "ISEVEN") }),
   ISODD_OP:   (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : bool(Math.round(asNum(a)) % 2 !== 0), "ISODD") }),
   // Financial: INT (truncate to integer toward 0), TRUNC (truncate decimal places)
@@ -1448,7 +1455,7 @@ const _OP: Record<string, Opcode> = {
   RIGHT_OP: { _tag: "RIGHT_OP" }, MID_OP: { _tag: "MID_OP" },
   TRIM_OP: { _tag: "TRIM_OP" }, UPPER_OP: { _tag: "UPPER_OP" },
   LOWER_OP: { _tag: "LOWER_OP" }, PROPER_OP: { _tag: "PROPER_OP" }, CLEAN_OP: { _tag: "CLEAN_OP" },
-  CHAR_OP: { _tag: "CHAR_OP" }, CODE_OP: { _tag: "CODE_OP" }, T_OP: { _tag: "T_OP" },
+  CHAR_OP: { _tag: "CHAR_OP" }, CODE_OP: { _tag: "CODE_OP" }, T_OP: { _tag: "T_OP" }, ERROR_TYPE_OP: { _tag: "ERROR_TYPE_OP" },
   ISEVEN_OP: { _tag: "ISEVEN_OP" }, ISODD_OP: { _tag: "ISODD_OP" },
   INT_OP: { _tag: "INT_OP" }, EVEN_OP: { _tag: "EVEN_OP" }, ODD_OP: { _tag: "ODD_OP" },
   TRUNC_OP: { _tag: "TRUNC_OP" }, EXP_OP: { _tag: "EXP_OP" }, LN_OP: { _tag: "LN_OP" }, LOG2_OP: { _tag: "LOG2_OP" },
@@ -1522,6 +1529,7 @@ function classifyToken(tok: string): Opcode | null {
     case "CHAR_OP": return _OP.CHAR_OP
     case "CODE_OP": return _OP.CODE_OP
     case "T_OP": return _OP.T_OP
+    case "ERROR_TYPE_OP": return _OP.ERROR_TYPE_OP
     case "ISEVEN_OP": return _OP.ISEVEN_OP
     case "ISODD_OP": return _OP.ISODD_OP
     case "INT_OP": return _OP.INT_OP
@@ -1840,7 +1848,7 @@ const FUNC_MAP: Record<string, string> = {
   NOW: "NOW_OP", RAND: "RAND_OP", PI: "PI_OP", TODAY: "TODAY_OP",
   CONCAT: "CONCAT", TO_NUM: "TO_NUM", TO_STR: "TO_STR",
   LEN: "LEN_OP", LEFT: "LEFT_OP", RIGHT: "RIGHT_OP", MID: "MID_OP",
-  TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", PROPER: "PROPER_OP", CLEAN: "CLEAN_OP", CHAR: "CHAR_OP", CODE: "CODE_OP", T: "T_OP",
+  TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", PROPER: "PROPER_OP", CLEAN: "CLEAN_OP", CHAR: "CHAR_OP", CODE: "CODE_OP", T: "T_OP", ERRORTYPE: "ERROR_TYPE_OP",
   ISEVEN: "ISEVEN_OP", ISODD: "ISODD_OP", ISNUMBER: "ISNUM_OP",
   INT: "INT_OP", EVEN: "EVEN_OP", ODD: "ODD_OP", TRUNC: "TRUNC_OP", EXP: "EXP_OP", LN: "LN_OP", LOG2: "LOG2_OP",
   RANDBETWEEN: "RAND_BETWEEN", FIXED: "FIXED_OP", DOLLAR: "DOLLAR_OP",
@@ -2174,6 +2182,7 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "CHAR", args: "number", description: "Character from code point", category: "text" },
   { name: "CODE", args: "text", description: "Code point of first character", category: "text" },
   { name: "T", args: "value", description: "Return text or empty string", category: "text" },
+  { name: "ERRORTYPE", args: "error_value", description: "Numeric error type code", category: "info" },
   { name: "ISEVEN", args: "number", description: "TRUE if even", category: "info" },
   { name: "ISODD", args: "number", description: "TRUE if odd", category: "info" },
   { name: "ISNUMBER", args: "value", description: "Alias for ISNUM", category: "info" },
@@ -2347,7 +2356,7 @@ export const decompileIR = (ir: StackIR): string => {
   const UNARY_FN: Record<string, string> = {
     ABS: "ABS", NEG: "-", NOT: "NOT", SQRT_OP: "SQRT", SIGN_OP: "SIGN",
     LOG_OP: "LOG", LOG10_OP: "LOG10", FLOOR_OP: "FLOOR", CEIL_OP: "CEIL",
-    LEN_OP: "LEN", TRIM_OP: "TRIM", UPPER_OP: "UPPER", LOWER_OP: "LOWER", PROPER_OP: "PROPER", CLEAN_OP: "CLEAN", CHAR_OP: "CHAR", CODE_OP: "CODE", T_OP: "T", ISEVEN_OP: "ISEVEN", ISODD_OP: "ISODD",
+    LEN_OP: "LEN", TRIM_OP: "TRIM", UPPER_OP: "UPPER", LOWER_OP: "LOWER", PROPER_OP: "PROPER", CLEAN_OP: "CLEAN", CHAR_OP: "CHAR", CODE_OP: "CODE", T_OP: "T", ERROR_TYPE_OP: "ERRORTYPE", ISEVEN_OP: "ISEVEN", ISODD_OP: "ISODD",
     INT_OP: "INT", EVEN_OP: "EVEN", ODD_OP: "ODD", TRUNC_OP: "TRUNC", EXP_OP: "EXP", LN_OP: "LN", LOG2_OP: "LOG2", FACT_OP: "FACT",
     SIN_OP: "SIN", COS_OP: "COS", TAN_OP: "TAN", ASIN_OP: "ASIN", ACOS_OP: "ACOS", ATAN_OP: "ATAN", RADIANS_OP: "RADIANS", DEGREES_OP: "DEGREES",
     ISNUM_OP: "ISNUM", ISTEXT_OP: "ISTEXT", ISERROR_OP: "ISERROR", ISBLANK_OP: "ISBLANK",
