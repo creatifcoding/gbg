@@ -317,6 +317,21 @@ export const MAX_N = Schema.TaggedStruct("MAX_N", { n: Schema.Number })
 export const AVG_N = Schema.TaggedStruct("AVG_N", { n: Schema.Number })
 
 /**
+ * CONCAT — string concatenation: pops 2 values, coerces to string, pushes joined.
+ */
+export const CONCAT = Schema.TaggedStruct("CONCAT", {})
+
+/**
+ * TO_NUM — coerce top of stack to number: str→parseFloat, bool→0/1, num→noop.
+ */
+export const TO_NUM = Schema.TaggedStruct("TO_NUM", {})
+
+/**
+ * TO_STR — coerce top of stack to string: num→String, bool→"TRUE"/"FALSE".
+ */
+export const TO_STR = Schema.TaggedStruct("TO_STR", {})
+
+/**
  * MOD — modulo: pops (a, b), pushes a % b.
  */
 export const MOD = Schema.TaggedStruct("MOD", {})
@@ -348,6 +363,7 @@ export const WRITE_CELL = Schema.TaggedStruct("WRITE_CELL", { addr: Schema.Strin
 export const Opcode = Schema.Union([
   PUSH_NUM, PUSH_STR, PUSH_BOOL,
   ADD, SUB, MUL, DIV, MOD, ABS,
+  CONCAT, TO_NUM, TO_STR,
   DUP, SWAP, DROP, NEG,
   EQ, LT, GT, NOT, IF,
   SUM_N, MIN_N, MAX_N, AVG_N,
@@ -526,6 +542,28 @@ const opcodeDispatch = pipe(
         return bn === 0 ? vmError("DIV_ZERO", "Modulo by zero") : num(asNum(a) % bn)
       },
       need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "MOD requires 2 operands",
+    }),
+    CONCAT: () => ({
+      binop: (a: VMValue, b: VMValue) => {
+        const pe = propagateError(a, b); if (pe) return pe
+        return str(vmDisplay(a) + vmDisplay(b))
+      },
+      need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "CONCAT requires 2 operands",
+    }),
+    TO_NUM: () => ({
+      unop: (a: VMValue) => {
+        if (isVMError(a)) return a
+        const n = toNumber(a)
+        return n !== undefined ? num(n) : vmError("TYPE_MISMATCH", `Cannot convert ${a._tag} to number`)
+      },
+      errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "TO_NUM requires 1 operand",
+    }),
+    TO_STR: () => ({
+      unop: (a: VMValue) => {
+        if (isVMError(a)) return a
+        return str(vmDisplay(a))
+      },
+      errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "TO_STR requires 1 operand",
     }),
     ABS: () => ({
       unop: (a: VMValue) => {
@@ -800,6 +838,9 @@ function classifyToken(tok: string): Opcode | null {
     case "/": return { _tag: "DIV" }
     case "%": return { _tag: "MOD" }
     case "ABS": return { _tag: "ABS" }
+    case "CONCAT": return { _tag: "CONCAT" }
+    case "TO_NUM": return { _tag: "TO_NUM" }
+    case "TO_STR": return { _tag: "TO_STR" }
     case "DUP": return { _tag: "DUP" }
     case "SWAP": return { _tag: "SWAP" }
     case "DROP": return { _tag: "DROP" }

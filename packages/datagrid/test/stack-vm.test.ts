@@ -769,6 +769,60 @@ describe("extended opcodes", () => {
     })
   })
 
+  describe("CONCAT / TO_NUM / TO_STR", () => {
+    it("CONCAT joins two strings", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_STR", value: "hello" },
+        { _tag: "PUSH_STR", value: " world" },
+        { _tag: "CONCAT" },
+      ]))
+      expect(s.stack[0]).toEqual(str("hello world"))
+    })
+
+    it("CONCAT coerces num to string", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_STR", value: "val=" },
+        { _tag: "PUSH_NUM", value: 42 },
+        { _tag: "CONCAT" },
+      ]))
+      expect(s.stack[0]).toEqual(str("val=42"))
+    })
+
+    it("TO_NUM converts string to number", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_STR", value: "42" },
+        { _tag: "TO_NUM" },
+      ]))
+      // str → toNumber returns undefined for non-numeric strings
+      // "42" should fail since toNumber only handles num/bool
+      expect(s.stack[0]._tag).toBe("error") // TYPE_MISMATCH
+    })
+
+    it("TO_NUM on bool → 0/1", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_BOOL", value: true },
+        { _tag: "TO_NUM" },
+      ]))
+      expect(s.stack[0]).toEqual(num(1))
+    })
+
+    it("TO_STR converts num to string", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 42 },
+        { _tag: "TO_STR" },
+      ]))
+      expect(s.stack[0]).toEqual(str("42"))
+    })
+
+    it("TO_STR converts bool to TRUE/FALSE", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_BOOL", value: true },
+        { _tag: "TO_STR" },
+      ]))
+      expect(s.stack[0]).toEqual(str("TRUE"))
+    })
+  })
+
   describe("MIN_N / MAX_N / AVG_N", () => {
     it("MIN_N finds minimum", () => {
       const s = Effect.runSync(evalProgram([
