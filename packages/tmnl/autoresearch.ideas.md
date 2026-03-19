@@ -1,26 +1,33 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ STATUS — 166 experiments, 446 tests, 279 opcodes, 250 catalog entries
+## ✅ STATUS — 171 experiments, 452 tests, 300 opcodes, 270 catalog entries
 
-Production: ~4,665 LOC (stack-vm.ts) | Tests: ~2,333 LOC
-Benchmark: ~350ms median (~50% below 751ms baseline)
+Production: ~5,100 LOC (stack-vm.ts) | Tests: ~2,500 LOC
+Benchmark: ~350ms median (~53% below 751ms baseline)
 
 ### Milestones Hit
-- 🎉 200 opcodes (140), 250 opcodes (161), 279 opcodes (166)
-- 🎉 200 catalog (152), 250 catalog (166)
+- 🎉 200 opcodes (140), 250 opcodes (161), **300 opcodes (171)**
+- 🎉 200 catalog (152), 250 catalog (166), 260 catalog (169), 270 catalog (171)
+- 🎉 450+ tests
 
-### Category breakdown (250 catalog)
-stat:67 | math:63 | info:37 | text:34 | financial:28 | logic:9 | lookup:7 | volatile:5
+### Category breakdown (270 catalog)
+math:73 | stat:67 | info:43 | text:38 | financial:28 | lookup:12 | logic:10 | volatile:5
 
-## 🔜 NEXT — Practical function gaps
-- **REGEX**: REGEXEXTRACT, REGEXMATCH, REGEXREPLACE (text power tools)
-- **LET_N**: named bindings for sub-expressions (reduces eval overhead)
-- **LAMBDA**: user-defined functions (advanced, may need VM extension)
+### Complex number suite (10 functions)
+COMPLEX, IMREAL, IMAGINARY, IMABS, IMSUM, IMPRODUCT, IMARGUMENT, IMCONJUGATE, IMSQRT, BESSELJ
 
-## Wire FormulaEngineV2 into production
-- **Priority after REGEX batch** — connect to CellCache + AG-Grid
+### Regex suite (3 functions)
+REGEXMATCH, REGEXEXTRACT, REGEXREPLACE
+
+### Dynamic array suite (8 functions)
+SORT, UNIQUE, FILTER, TAKE, DROP, HSTACK, WRAPROWS, SEQUENCE, RANDARRAY
+
+## 🔜 NEXT
+1. **Wire FormulaEngineV2 into production** — connect to CellCache + AG-Grid
+2. Push to 300 catalog (IMPOWER, IMEXP, IMLN, etc.)
 
 ## 📌 DEFERRED
-- VLOOKUP/HLOOKUP (needs range semantics — wait for cell grid integration)
+- VLOOKUP/HLOOKUP (needs range semantics)
 - MMULT, TRANSPOSE (matrix ops, needs 2D array support)
+- LAMBDA (user-defined functions — needs VM closure support)
 - TxHashMap cell state, WASM sandbox (Domain B)
