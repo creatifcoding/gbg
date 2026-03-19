@@ -1204,6 +1204,21 @@ describe("infix parser", () => {
     expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(str("ell"))
   })
 
+  it("TRIM: =TRIM(\"  hello  \") → \"hello\"", () => {
+    const ir = compileInfixSync('=TRIM("  hello  ")')
+    expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(str("hello"))
+  })
+
+  it("UPPER/LOWER: case conversion", () => {
+    expect(Effect.runSync(evalProgram(compileInfixSync('=UPPER("hello")'))).stack[0]).toEqual(str("HELLO"))
+    expect(Effect.runSync(evalProgram(compileInfixSync('=LOWER("WORLD")'))).stack[0]).toEqual(str("world"))
+  })
+
+  it("SUBSTITUTE: =SUBSTITUTE(\"hello world\", \"world\", \"there\")", () => {
+    const ir = compileInfixSync('=SUBSTITUTE("hello world", "world", "there")')
+    expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(str("hello there"))
+  })
+
   it("CHOOSE: =CHOOSE(2, \"a\", \"b\", \"c\") → \"b\"", () => {
     const ir = compileInfixSync('=CHOOSE(2, "a", "b", "c")')
     expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(str("b"))

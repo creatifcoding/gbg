@@ -347,6 +347,14 @@ export const RIGHT_OP = Schema.TaggedStruct("RIGHT_OP", {})
 /** MID_OP — substring (pops str, start, length) */
 export const MID_OP = Schema.TaggedStruct("MID_OP", {})
 
+/** TRIM/UPPER/LOWER — text cleanup (unary) */
+export const TRIM_OP = Schema.TaggedStruct("TRIM_OP", {})
+export const UPPER_OP = Schema.TaggedStruct("UPPER_OP", {})
+export const LOWER_OP = Schema.TaggedStruct("LOWER_OP", {})
+
+/** SUBSTITUTE — find & replace: (text, old, new) → modified text */
+export const SUBSTITUTE_OP = Schema.TaggedStruct("SUBSTITUTE_OP", {})
+
 /** CHOOSE_N — pop index + N values, push value at index. =CHOOSE(2, "a", "b", "c") → "b" */
 export const CHOOSE_N = Schema.TaggedStruct("CHOOSE_N", { n: Schema.Number })
 
@@ -433,7 +441,8 @@ export const Opcode = Schema.Union([
   CONCAT, TO_NUM, TO_STR,
   DUP, SWAP, DROP, NEG,
   EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR,
-  AND_N, OR_N, CHOOSE_N, LEN_OP, LEFT_OP, RIGHT_OP, MID_OP,
+  AND_N, OR_N, CHOOSE_N,
+  LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, SUBSTITUTE_OP,
   NOW_OP, RAND_OP,
   SUM_N, MIN_N, MAX_N, AVG_N,
   SUM_DYN, MIN_DYN, MAX_DYN, AVG_DYN, COUNT_DYN, POWER,
@@ -731,6 +740,15 @@ const EXEC: Record<string, Executor> = {
     const pe = propagateError(val, start, len); if (pe) { s.push(pe); return { result: pe } }
     const r = str(vmDisplay(val).substr(asNum(start) - 1, asNum(len))); s.push(r); return { result: r }
   },
+  TRIM_OP:  (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : str(vmDisplay(a).trim()), "TRIM") }),
+  UPPER_OP: (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : str(vmDisplay(a).toUpperCase()), "UPPER") }),
+  LOWER_OP: (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : str(vmDisplay(a).toLowerCase()), "LOWER") }),
+  SUBSTITUTE_OP: (_o, s) => {
+    if (s.length < 3) { const e = vmError("STACK_UNDERFLOW", "SUBSTITUTE requires 3 operands"); s.push(e); return { result: e } }
+    const newStr = s.pop()!; const oldStr = s.pop()!; const text = s.pop()!
+    const pe = propagateError(text, oldStr, newStr); if (pe) { s.push(pe); return { result: pe } }
+    const r = str(vmDisplay(text).split(vmDisplay(oldStr)).join(vmDisplay(newStr))); s.push(r); return { result: r }
+  },
 
   // ── Selection ──
   CHOOSE_N: (o: any, s) => {
@@ -911,6 +929,10 @@ function classifyToken(tok: string): Opcode | null {
     case "LEFT_OP": return { _tag: "LEFT_OP" }
     case "RIGHT_OP": return { _tag: "RIGHT_OP" }
     case "MID_OP": return { _tag: "MID_OP" }
+    case "TRIM_OP": return { _tag: "TRIM_OP" }
+    case "UPPER_OP": return { _tag: "UPPER_OP" }
+    case "LOWER_OP": return { _tag: "LOWER_OP" }
+    case "SUBSTITUTE_OP": return { _tag: "SUBSTITUTE_OP" }
     case "NOW_OP": return { _tag: "NOW_OP" }
     case "RAND_OP": return { _tag: "RAND_OP" }
     case "IF": return { _tag: "IF" }
@@ -1151,6 +1173,7 @@ const FUNC_MAP: Record<string, string> = {
   NOW: "NOW_OP", RAND: "RAND_OP",
   CONCAT: "CONCAT", TO_NUM: "TO_NUM", TO_STR: "TO_STR",
   LEN: "LEN_OP", LEFT: "LEFT_OP", RIGHT: "RIGHT_OP", MID: "MID_OP",
+  TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", SUBSTITUTE: "SUBSTITUTE_OP",
 }
 
 /**
