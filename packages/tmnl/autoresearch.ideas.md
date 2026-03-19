@@ -1,19 +1,19 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ STATUS — 238 experiments, 772 tests, 850 CATALOG, ~10,713 LOC
+## ✅ STATUS — 240 experiments, 800 tests, 900 CATALOG, ~10,935 LOC
 
-### Category breakdown (850 catalog)
-math:225 | stat:164 | text:140 | info:110 | financial:92 | lookup:60 | logic:49 | volatile:10
+### Category breakdown (900 catalog)
+math:233 | stat:170 | text:146 | info:114 | financial:98 | lookup:65 | logic:60 | volatile:14
 
-### This session (236→238)
-- Hit **850 CATALOG** at experiment #237
-- 50-function batch: Lookup (DISTINCT/ARRAYSLICE/ARRAYJOIN/ARRAYREVERSE/ARRAYFLATTEN/ARRAYZIP/ARRAYMIN/ARRAYMAX/ARRAYSUM/ARRAYAVG), Logic (NIFF/SWITCHIF/COND/ALLEQUAL/ANYGT/ANYLT/ANYNE/ISALL/ISANY/ISNONE), Volatile (RANDNORM/RANDEXP/RANDINT/COINFLIP), Math (GUDERMANN/INVERSEGUD/LANCZOS/DIGAMMA/POLYGAMMA/ZETA2/BETAFN/POCHHAMMER), Stat (ENTROPY2/GINICOEF/MOMENT/CMOMENT/ZSCORE3/PERCENTILE2), Text (TEXTFORMAT/TEXTJUSTIFY/TEXTMASK2/TEXTHASH/TEXTREPLACE2/TEXTFILL), Financial (CAGR2/DRAWDOWN/CALMAR/TREYNOR), Info (ISFINITE2/ISWHOLE)
-- Fixed classifyToken wiring + VMValue handling (must use binop/unop/vmDisplay, not raw s.pop)
-- 28 new tests for 850 batch at experiment #238
+### This session (236→240)
+- Hit **850** at #237, **900** at #239
+- Session total: 150 new functions + 84 new tests
+- Wiring lessons codified: classifyToken, N_VARIANTS, ALWAYS_N_FNS, VMValue handling
 
 ## 🔜 NEXT
-1. Push toward 900 catalog (50 more functions)
-2. Compiler optimizations (constant folding, dead code elimination)
+1. Push toward **950** catalog (50 more)
+2. Push toward **1000** (another 50 after that — iconic milestone)
+3. Consider compiler optimizations after 1000
 
 ## 📌 DEFERRED
 - MMULT/MINVERSE with true 2D matrix
@@ -24,7 +24,7 @@ math:225 | stat:164 | text:140 | info:110 | financial:92 | lookup:60 | logic:49 
 
 ## ⚠ WIRING LESSONS LEARNED
 - New _OP functions MUST have classifyToken case entries
-- New _N functions MUST have N_VARIANTS + ALWAYS_N_FNS entries  
+- New _N functions MUST have N_VARIANTS + ALWAYS_N_FNS entries
 - EXEC implementations MUST return { result: VMValue } (use binop/unop)
 - VMValue is tagged ({_tag:"num",value:X}) — use asNum(), vmDisplay(), NOT raw Number()
 - Always check for duplicate keys in object literals (esbuild warnings)
