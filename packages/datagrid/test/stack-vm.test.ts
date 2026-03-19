@@ -1704,6 +1704,11 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("ENCODEURL: percent-encode text", () => {
+    expect(evalProgramDirect(compileInfixSync('=ENCODEURL("hello world")')).stack[0]).toEqual(str("hello%20world"))
+    expect(evalProgramDirect(compileInfixSync('=ENCODEURL("a&b=c")')).stack[0]).toEqual(str("a%26b%3Dc"))
+  })
+
   it("IFNA/EOMONTH/DATEDIF/PERMUT/FACTDOUBLE: mixed new functions", () => {
     // IFNA: return alt on error
     expect(evalProgramDirect(compileInfixSync("=IFNA(42, 0)")).stack[0]).toEqual(num(42)) // no error
