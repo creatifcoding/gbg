@@ -1440,6 +1440,19 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=SUMIF("<=3", 1, 2, 3, 4, 5)')).stack[0]).toEqual(num(6)) // 1+2+3
   })
 
+  it("AVERAGEIF: conditional average", () => {
+    expect(evalProgramDirect(compileInfixSync('=AVERAGEIF(">5", 3, 7, 2, 10, 5)')).stack[0]).toEqual(num(8.5)) // (7+10)/2
+    expect(evalProgramDirect(compileInfixSync('=AVERAGEIF("=0", 1, 2, 3)')).stack[0]._tag).toBe("error") // no matches → error
+  })
+
+  it("LARGE/SMALL: k-th value", () => {
+    expect(evalProgramDirect(compileInfixSync("=LARGE(1, 3, 7, 2, 10, 5)")).stack[0]).toEqual(num(10)) // 1st largest
+    expect(evalProgramDirect(compileInfixSync("=LARGE(2, 3, 7, 2, 10, 5)")).stack[0]).toEqual(num(7))  // 2nd largest
+    expect(evalProgramDirect(compileInfixSync("=SMALL(1, 3, 7, 2, 10, 5)")).stack[0]).toEqual(num(2))  // 1st smallest
+    expect(evalProgramDirect(compileInfixSync("=SMALL(3, 3, 7, 2, 10, 5)")).stack[0]).toEqual(num(5))  // 3rd smallest
+    expect(evalProgramDirect(compileInfixSync("=LARGE(99, 1, 2, 3)")).stack[0]._tag).toBe("error") // out of range
+  })
+
   it("STDEV: sample standard deviation", () => {
     // STDEV(2, 4, 4, 4, 5, 5, 7, 9) = 2.138...
     const state = evalProgramDirect(compileInfixSync("=ROUND(STDEV(2,4,4,4,5,5,7,9), 3)"))
