@@ -1704,6 +1704,13 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("SLOPE/INTERCEPT/RSQ: linear regression suite", () => {
+    // xs=[1,2,3], ys=[2,4,6] → y=2x → slope=2, intercept=0, R²=1
+    expect(evalProgramDirect(compileInfixSync("=SLOPE(1, 2, 3, 2, 4, 6)")).stack[0]).toEqual(num(2))
+    expect(evalProgramDirect(compileInfixSync("=INTERCEPT(1, 2, 3, 2, 4, 6)")).stack[0]).toEqual(num(0))
+    expect(evalProgramDirect(compileInfixSync("=RSQ(1, 2, 3, 2, 4, 6)")).stack[0]).toEqual(num(1))
+  })
+
   it("COVAR/FORECAST: covariance and linear forecasting", () => {
     // COVAR([1,2,3],[2,4,6]): meanX=2,meanY=4, cov=4/3≈1.333
     expect(evalProgramDirect(compileInfixSync("=ROUND(COVAR(1, 2, 3, 2, 4, 6), 4)")).stack[0]).toEqual(num(1.3333))
