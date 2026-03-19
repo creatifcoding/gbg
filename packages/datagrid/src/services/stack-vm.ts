@@ -335,6 +335,18 @@ export const POWER = Schema.TaggedStruct("POWER", {})
 /** IFERROR — if value is error, use fallback */
 export const IFERROR = Schema.TaggedStruct("IFERROR", {})
 
+/** LEN_OP — string length */
+export const LEN_OP = Schema.TaggedStruct("LEN_OP", {})
+
+/** LEFT_OP — left N chars of string (pops str, n) */
+export const LEFT_OP = Schema.TaggedStruct("LEFT_OP", {})
+
+/** RIGHT_OP — right N chars of string (pops str, n) */
+export const RIGHT_OP = Schema.TaggedStruct("RIGHT_OP", {})
+
+/** MID_OP — substring (pops str, start, length) */
+export const MID_OP = Schema.TaggedStruct("MID_OP", {})
+
 /** AND_N / OR_N — logical N-ary: pop N booleans, push AND/OR */
 export const AND_N = Schema.TaggedStruct("AND_N", { n: Schema.Number })
 export const OR_N = Schema.TaggedStruct("OR_N", { n: Schema.Number })
@@ -417,7 +429,9 @@ export const Opcode = Schema.Union([
   ADD, SUB, MUL, DIV, MOD, ABS,
   CONCAT, TO_NUM, TO_STR,
   DUP, SWAP, DROP, NEG,
-  EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR, AND_N, OR_N, NOW_OP, RAND_OP,
+  EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR,
+  AND_N, OR_N, LEN_OP, LEFT_OP, RIGHT_OP, MID_OP,
+  NOW_OP, RAND_OP,
   SUM_N, MIN_N, MAX_N, AVG_N,
   SUM_DYN, MIN_DYN, MAX_DYN, AVG_DYN, COUNT_DYN, POWER,
   ROUND, FLOOR_OP, CEIL_OP,
@@ -704,6 +718,17 @@ const EXEC: Record<string, Executor> = {
     const cv = num(count); s.push(cv); return { result: cv }
   },
 
+  // ── String functions ──
+  LEN_OP:   (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(vmDisplay(a).length), "LEN") }),
+  LEFT_OP:  (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); if (pe) return pe; return str(vmDisplay(a).slice(0, asNum(b))) }, "LEFT") }),
+  RIGHT_OP: (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); if (pe) return pe; const s_ = vmDisplay(a); return str(s_.slice(Math.max(0, s_.length - asNum(b)))) }, "RIGHT") }),
+  MID_OP:   (_o, s) => {
+    if (s.length < 3) { const e = vmError("STACK_UNDERFLOW", "MID requires 3 operands"); s.push(e); return { result: e } }
+    const len = s.pop()!; const start = s.pop()!; const val = s.pop()!
+    const pe = propagateError(val, start, len); if (pe) { s.push(pe); return { result: pe } }
+    const r = str(vmDisplay(val).substr(asNum(start) - 1, asNum(len))); s.push(r); return { result: r }
+  },
+
   // ── Logical N-ary ──
   AND_N: (o: any, s) => ({ result: aggregateN(s, o.n, vals => bool(vals.every(v => v._tag === "bool" ? v.value : v._tag === "num" ? v.value !== 0 : true)), "AND") }),
   OR_N:  (o: any, s) => ({ result: aggregateN(s, o.n, vals => bool(vals.some(v => v._tag === "bool" ? v.value : v._tag === "num" ? v.value !== 0 : true)), "OR") }),
@@ -863,6 +888,10 @@ function classifyToken(tok: string): Opcode | null {
     case "IFERROR": return { _tag: "IFERROR" }
     case "AND_N": return { _tag: "AND_N", n: 0 } as any
     case "OR_N": return { _tag: "OR_N", n: 0 } as any
+    case "LEN_OP": return { _tag: "LEN_OP" }
+    case "LEFT_OP": return { _tag: "LEFT_OP" }
+    case "RIGHT_OP": return { _tag: "RIGHT_OP" }
+    case "MID_OP": return { _tag: "MID_OP" }
     case "NOW_OP": return { _tag: "NOW_OP" }
     case "RAND_OP": return { _tag: "RAND_OP" }
     case "IF": return { _tag: "IF" }
@@ -1102,6 +1131,7 @@ const FUNC_MAP: Record<string, string> = {
   AND: "AND_N", OR: "OR_N",
   NOW: "NOW_OP", RAND: "RAND_OP",
   CONCAT: "CONCAT", TO_NUM: "TO_NUM", TO_STR: "TO_STR",
+  LEN: "LEN_OP", LEFT: "LEFT_OP", RIGHT: "RIGHT_OP", MID: "MID_OP",
 }
 
 /**

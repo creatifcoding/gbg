@@ -1184,6 +1184,26 @@ describe("infix parser", () => {
     expect(deps.length).toBe(3)
   })
 
+  it("LEN: =LEN(\"hello\") → 5", () => {
+    const ir = compileInfixSync('=LEN("hello")')
+    expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(num(5))
+  })
+
+  it("LEFT: =LEFT(\"hello\", 3) → \"hel\"", () => {
+    const ir = compileInfixSync('=LEFT("hello", 3)')
+    expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(str("hel"))
+  })
+
+  it("RIGHT: =RIGHT(\"hello\", 2) → \"lo\"", () => {
+    const ir = compileInfixSync('=RIGHT("hello", 2)')
+    expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(str("lo"))
+  })
+
+  it("MID: =MID(\"hello\", 2, 3) → \"ell\"", () => {
+    const ir = compileInfixSync('=MID("hello", 2, 3)')
+    expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(str("ell"))
+  })
+
   it("AND function: =AND(TRUE, TRUE) → true", () => {
     const ir = compileInfixSync("=AND(TRUE, TRUE)")
     expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(bool(true))
