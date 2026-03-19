@@ -2922,6 +2922,43 @@ describe("post-450 function coverage", () => {
   it("ISWHOLE(3) = true", () => expect(d("=ISWHOLE(3)")).toBe(true))
   it("ISWHOLE(3.5) = false", () => expect(d("=ISWHOLE(3.5)")).toBe(false))
 
+  // ── 900 batch tests ──
+  // Logic
+  it("EQUIV(5, 5) = true", () => expect(d("=EQUIV(5, 5)")).toBe(true))
+  it("EQUIV(5, 6) = false", () => expect(d("=EQUIV(5, 6)")).toBe(false))
+  it("TOGGLE(0) = true", () => expect(d("=TOGGLE(0)")).toBe(true))
+  it("TOGGLE(1) = false", () => expect(d("=TOGGLE(1)")).toBe(false))
+  it("SATURATE(1.5) = 1", () => expect(d("=SATURATE(1.5)")).toBe(1))
+  it("SATURATE(-0.5) = 0", () => expect(d("=SATURATE(-0.5)")).toBe(0))
+  it("THRESHOLD(10, 5) = true", () => expect(d("=THRESHOLD(10, 5)")).toBe(true))
+  it("THRESHOLD(3, 5) = false", () => expect(d("=THRESHOLD(3, 5)")).toBe(false))
+  it("WHICHMAX(10, 30, 20) = 2", () => expect(d("=WHICHMAX(10, 30, 20)")).toBe(2))
+  it("WHICHMIN(10, 5, 20) = 2", () => expect(d("=WHICHMIN(10, 5, 20)")).toBe(2))
+  it("FIRSTTRUTHY(0, 0, 7, 3) = 7", () => expect(d("=FIRSTTRUTHY(0, 0, 7, 3)")).toBe(7))
+  it("COUNTIF3(5, 1, 5, 3, 5) = 2", () => expect(d("=COUNTIF3(5, 1, 5, 3, 5)")).toBe(2))
+  // Lookup
+  it("NTHLARGEST(2, 10, 30, 20) = 20", () => expect(d("=NTHLARGEST(2, 10, 30, 20)")).toBe(20))
+  it("FIRSTNONZERO(0, 0, 5, 3) = 5", () => expect(d("=FIRSTNONZERO(0, 0, 5, 3)")).toBe(5))
+  it("ENUMERATE(1, 2, 3) = 3", () => expect(d("=ENUMERATE(1, 2, 3)")).toBe(3))
+  // Math: orthogonal polynomials
+  it("LEGENDRE(0, 0.5) = 1", () => expect(d("=LEGENDRE(0, 0.5)")).toBe(1))
+  it("LEGENDRE(1, 0.5) = 0.5", () => expect(d("=LEGENDRE(1, 0.5)")).toBe(0.5))
+  it("HERMITE(0, 1) = 1", () => expect(d("=HERMITE(0, 1)")).toBe(1))
+  it("HERMITE(1, 3) = 6", () => expect(d("=HERMITE(1, 3)")).toBe(6))
+  it("LAGUERRE(0, 2) = 1", () => expect(d("=LAGUERRE(0, 2)")).toBe(1))
+  // Stat
+  it("MIDRANGE(1, 5, 9) = 5", () => expect(d("=MIDRANGE(1, 5, 9)")).toBe(5))
+  it("MEANDEV(2, 4, 6) is ~1.33", () => expect(Math.abs(d("=MEANDEV(2, 4, 6)") as number - 1.333)).toBeLessThan(0.01))
+  // Financial
+  it("DAILYRETURN(100, 105) = 0.05", () => expect(d("=DAILYRETURN(100, 105)")).toBe(0.05))
+  it("INFORMRATIO(0.05, 0.1) = 0.5", () => expect(d("=INFORMRATIO(0.05, 0.1)")).toBe(0.5))
+  // Text
+  it("TEXTCOUNTWORDS counts words", () => expect(d('=TEXTCOUNTWORDS("hello world foo")')).toBe(3))
+  it("TEXTFIRSTWORD gets first", () => expect(d('=TEXTFIRSTWORD("hello world")')).toBe("hello"))
+  // Info: type checks
+  it("ISNUMTYPE(42) = true", () => expect(d("=ISNUMTYPE(42)")).toBe(true))
+  it("ISBOOLTYPE(42) = false", () => expect(d("=ISBOOLTYPE(42)")).toBe(false))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
