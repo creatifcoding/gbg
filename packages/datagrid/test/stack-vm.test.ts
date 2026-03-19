@@ -1704,6 +1704,14 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("TEXTSPLIT/DATESTRING/WORKDAY: text split + date utilities", () => {
+    // TEXTSPLIT: split "a-b-c" by "-", get 2nd piece → "b"
+    expect(evalProgramDirect(compileInfixSync('=TEXTSPLIT("a-b-c", "-", 2)')).stack[0]).toEqual(str("b"))
+    // DATESTRING: serial 45292 (≈2024-01-01)
+    const ds = evalProgramDirect(compileInfixSync("=DATESTRING(45292)")).stack[0]
+    expect((ds as any).value).toMatch(/2024-01-0[12]/) // within 1 day of Jan 1
+  })
+
   it("TEXTBEFORE/TEXTAFTER/VALUETOTEXT: modern text functions", () => {
     expect(evalProgramDirect(compileInfixSync('=TEXTBEFORE("hello@world.com", "@")')).stack[0]).toEqual(str("hello"))
     expect(evalProgramDirect(compileInfixSync('=TEXTAFTER("hello@world.com", "@")')).stack[0]).toEqual(str("world.com"))
