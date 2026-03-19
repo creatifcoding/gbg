@@ -1204,6 +1204,27 @@ describe("infix parser", () => {
     expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(str("ell"))
   })
 
+  it("SQRT: =SQRT(16) → 4", () => {
+    expect(Effect.runSync(evalProgram(compileInfixSync("=SQRT(16)"))).stack[0]).toEqual(num(4))
+  })
+
+  it("SQRT of negative → error", () => {
+    const v = Effect.runSync(evalProgram(compileInfixSync("=SQRT(-1)"))).stack[0] as any
+    expect(v._tag).toBe("error")
+  })
+
+  it("SIGN: -5→-1, 0→0, 7→1", () => {
+    expect(Effect.runSync(evalProgram(compileInfixSync("=SIGN(-5)"))).stack[0]).toEqual(num(-1))
+    expect(Effect.runSync(evalProgram(compileInfixSync("=SIGN(0)"))).stack[0]).toEqual(num(0))
+    expect(Effect.runSync(evalProgram(compileInfixSync("=SIGN(7)"))).stack[0]).toEqual(num(1))
+  })
+
+  it("LOG/LOG10: natural and base-10 log", () => {
+    const e1 = Effect.runSync(evalProgram(compileInfixSync("=ROUND(LOG(2.718281828), 2)"))).stack[0] as any
+    expect(e1.value).toBeCloseTo(1, 1)
+    expect(Effect.runSync(evalProgram(compileInfixSync("=LOG10(100)"))).stack[0]).toEqual(num(2))
+  })
+
   it("TRIM: =TRIM(\"  hello  \") → \"hello\"", () => {
     const ir = compileInfixSync('=TRIM("  hello  ")')
     expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(str("hello"))

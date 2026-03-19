@@ -374,6 +374,12 @@ export const ROUND = Schema.TaggedStruct("ROUND", {})
 export const FLOOR_OP = Schema.TaggedStruct("FLOOR_OP", {})
 export const CEIL_OP = Schema.TaggedStruct("CEIL_OP", {})
 
+/** Math functions (unary) */
+export const SQRT_OP = Schema.TaggedStruct("SQRT_OP", {})
+export const SIGN_OP = Schema.TaggedStruct("SIGN_OP", {})
+export const LOG_OP = Schema.TaggedStruct("LOG_OP", {})
+export const LOG10_OP = Schema.TaggedStruct("LOG10_OP", {})
+
 /**
  * CONCAT — string concatenation: pops 2 values, coerces to string, pushes joined.
  */
@@ -445,7 +451,7 @@ export const Opcode = Schema.Union([
   NOW_OP, RAND_OP,
   SUM_N, MIN_N, MAX_N, AVG_N,
   SUM_DYN, MIN_DYN, MAX_DYN, AVG_DYN, COUNT_DYN, POWER,
-  ROUND, FLOOR_OP, CEIL_OP,
+  ROUND, FLOOR_OP, CEIL_OP, SQRT_OP, SIGN_OP, LOG_OP, LOG10_OP,
   HALT,
   READ_CELL, WRITE_CELL, READ_RANGE,
 ])
@@ -647,6 +653,10 @@ const EXEC: Record<string, Executor> = {
   TO_STR: (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : str(vmDisplay(a)), "TO_STR") }),
   FLOOR_OP: (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.floor(asNum(a))), "FLOOR") }),
   CEIL_OP:  (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.ceil(asNum(a))), "CEIL") }),
+  SQRT_OP:  (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const n = asNum(a); return n < 0 ? vmError("TYPE_MISMATCH", "SQRT of negative") : num(Math.sqrt(n)) }, "SQRT") }),
+  SIGN_OP:  (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.sign(asNum(a))), "SIGN") }),
+  LOG_OP:   (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const n = asNum(a); return n <= 0 ? vmError("TYPE_MISMATCH", "LOG of non-positive") : num(Math.log(n)) }, "LOG") }),
+  LOG10_OP: (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const n = asNum(a); return n <= 0 ? vmError("TYPE_MISMATCH", "LOG10 of non-positive") : num(Math.log10(n)) }, "LOG10") }),
 
   // ── Stack manipulation ──
   DUP: (_o, s) => {
@@ -932,6 +942,10 @@ function classifyToken(tok: string): Opcode | null {
     case "UPPER_OP": return { _tag: "UPPER_OP" }
     case "LOWER_OP": return { _tag: "LOWER_OP" }
     case "SUBSTITUTE_OP": return { _tag: "SUBSTITUTE_OP" }
+    case "SQRT_OP": return { _tag: "SQRT_OP" }
+    case "SIGN_OP": return { _tag: "SIGN_OP" }
+    case "LOG_OP": return { _tag: "LOG_OP" }
+    case "LOG10_OP": return { _tag: "LOG10_OP" }
     case "NOW_OP": return { _tag: "NOW_OP" }
     case "RAND_OP": return { _tag: "RAND_OP" }
     case "IF": return { _tag: "IF" }
@@ -1167,6 +1181,7 @@ const FUNC_MAP: Record<string, string> = {
   SUM: "SUM_DYN", MIN: "MIN_DYN", MAX: "MAX_DYN", AVG: "AVG_DYN",
   COUNT: "COUNT_DYN", POWER: "POWER",
   ROUND: "ROUND", FLOOR: "FLOOR", CEIL: "CEIL",
+  SQRT: "SQRT_OP", SIGN: "SIGN_OP", LOG: "LOG_OP", LOG10: "LOG10_OP",
   ABS: "ABS", NEG: "NEG", IF: "IF", IFERROR: "IFERROR",
   AND: "AND_N", OR: "OR_N", CHOOSE: "CHOOSE_N",
   NOW: "NOW_OP", RAND: "RAND_OP",
