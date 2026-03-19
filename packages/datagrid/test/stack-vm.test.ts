@@ -1704,6 +1704,18 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("ISNUMBER/ISTEXT/ISEVEN/ISODD/N/T: type checking + conversion", () => {
+    expect(evalProgramDirect(compileInfixSync("=ISNUMBER(42)")).stack[0]).toEqual(bool(true))
+    expect(evalProgramDirect(compileInfixSync('=ISNUMBER("hi")')).stack[0]).toEqual(bool(false))
+    expect(evalProgramDirect(compileInfixSync('=ISTEXT("hello")')).stack[0]).toEqual(bool(true))
+    expect(evalProgramDirect(compileInfixSync("=ISEVEN(4)")).stack[0]).toEqual(bool(true))
+    expect(evalProgramDirect(compileInfixSync("=ISODD(3)")).stack[0]).toEqual(bool(true))
+    expect(evalProgramDirect(compileInfixSync("=N(TRUE)")).stack[0]).toEqual(num(1))
+    expect(evalProgramDirect(compileInfixSync('=N("text")')).stack[0]).toEqual(num(0))
+    expect(evalProgramDirect(compileInfixSync('=T("hello")')).stack[0]).toEqual(str("hello"))
+    expect(evalProgramDirect(compileInfixSync("=T(42)")).stack[0]).toEqual(str(""))
+  })
+
   it("REGEXMATCH/REGEXEXTRACT/REGEXREPLACE: regex text power tools", () => {
     // REGEXMATCH: test pattern
     expect(evalProgramDirect(compileInfixSync('=REGEXMATCH("hello world", "world")')).stack[0]).toEqual(bool(true))
