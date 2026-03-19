@@ -1704,6 +1704,15 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("STDEV.P/VAR.P/CORREL: population stats and correlation", () => {
+    // STDEV.P(2,4,4,4,5,5,7,9) = 2.0 (population σ)
+    expect(evalProgramDirect(compileInfixSync("=STDEV.P(2, 4, 4, 4, 5, 5, 7, 9)")).stack[0]).toEqual(num(2))
+    // VAR.P(2,4,4,4,5,5,7,9) = 4.0 (population σ²)
+    expect(evalProgramDirect(compileInfixSync("=VAR.P(2, 4, 4, 4, 5, 5, 7, 9)")).stack[0]).toEqual(num(4))
+    // CORREL: perfect positive correlation
+    expect(evalProgramDirect(compileInfixSync("=CORREL(1, 2, 3, 2, 4, 6)")).stack[0]).toEqual(num(1))
+  })
+
   it("SUMSQ/DEVSQ/AVEDEV/TRIMMEAN: advanced statistics", () => {
     // SUMSQ(3, 4) = 9 + 16 = 25
     expect(evalProgramDirect(compileInfixSync("=SUMSQ(3, 4)")).stack[0]).toEqual(num(25))
