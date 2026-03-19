@@ -1392,6 +1392,17 @@ describe("infix parser", () => {
     expect(ir[0]).toEqual({ _tag: "PUSH_BOOL", value: true })
   })
 
+  it("IFS: multi-condition branching", () => {
+    // =IFS(FALSE,"no", TRUE,"yes") → "yes"
+    expect(evalProgramDirect(compileInfixSync('=IFS(FALSE,"no", TRUE,"yes")')).stack[0]).toEqual(str("yes"))
+    // First true wins
+    expect(evalProgramDirect(compileInfixSync('=IFS(TRUE,"first", TRUE,"second")')).stack[0]).toEqual(str("first"))
+    // With expressions: =IFS(1>2,"a", 3>2,"b") → "b"
+    expect(evalProgramDirect(compileInfixSync('=IFS(1>2,"a", 3>2,"b")')).stack[0]).toEqual(str("b"))
+    // No condition met → error
+    expect(evalProgramDirect(compileInfixSync('=IFS(FALSE,"a", FALSE,"b")')).stack[0]._tag).toBe("error")
+  })
+
   it("SWITCH: multi-way branching", () => {
     // =SWITCH(2, 1,"one", 2,"two", 3,"three") → "two"
     expect(evalProgramDirect(compileInfixSync('=SWITCH(2, 1,"one", 2,"two", 3,"three")')).stack[0]).toEqual(str("two"))
