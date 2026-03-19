@@ -1514,6 +1514,13 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync("=ISODD(6)")).stack[0]).toEqual(bool(false))
   })
 
+  it("CEILING.MATH/FLOOR.MATH: round to significance", () => {
+    expect(evalProgramDirect(compileInfixSync("=CEILING.MATH(6.3, 5)")).stack[0]).toEqual(num(10))
+    expect(evalProgramDirect(compileInfixSync("=CEILING.MATH(4.42, 0.05)")).stack[0]).toEqual(num(4.45))
+    expect(evalProgramDirect(compileInfixSync("=FLOOR.MATH(6.7, 5)")).stack[0]).toEqual(num(5))
+    expect(evalProgramDirect(compileInfixSync("=FLOOR.MATH(-4.1, 2)")).stack[0]).toEqual(num(-6))
+  })
+
   it("ROUNDUP/ROUNDDOWN: directional rounding", () => {
     expect(evalProgramDirect(compileInfixSync("=ROUNDUP(3.141, 2)")).stack[0]).toEqual(num(3.15))   // up
     expect(evalProgramDirect(compileInfixSync("=ROUNDUP(-3.141, 2)")).stack[0]).toEqual(num(-3.15)) // away from zero

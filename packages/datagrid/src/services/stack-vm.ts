@@ -366,6 +366,8 @@ export const ERROR_TYPE_OP = Schema.TaggedStruct("ERROR_TYPE_OP", {})
 export const ISEVEN_OP = Schema.TaggedStruct("ISEVEN_OP", {})
 export const ISODD_OP = Schema.TaggedStruct("ISODD_OP", {})
 export const INT_OP = Schema.TaggedStruct("INT_OP", {})
+export const CEILING_MATH_OP = Schema.TaggedStruct("CEILING_MATH_OP", {})
+export const FLOOR_MATH_OP = Schema.TaggedStruct("FLOOR_MATH_OP", {})
 export const ROUNDUP_OP = Schema.TaggedStruct("ROUNDUP_OP", {})
 export const ROUNDDOWN_OP = Schema.TaggedStruct("ROUNDDOWN_OP", {})
 export const EVEN_OP = Schema.TaggedStruct("EVEN_OP", {})
@@ -561,7 +563,7 @@ export const Opcode = Schema.Union([
   EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR,
   AND_N, OR_N, CHOOSE_N,
   LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, PROPER_OP, CLEAN_OP, CHAR_OP, CODE_OP, T_OP, ISLOGICAL_OP, ISNONTEXT_OP, ERROR_TYPE_OP, ISEVEN_OP, ISODD_OP,
-  INT_OP, ROUNDUP_OP, ROUNDDOWN_OP, EVEN_OP, ODD_OP, TRUNC_OP, EXP_OP, LN_OP, LOG2_OP, RAND_BETWEEN, RATE_OP, DB_OP, NPER_OP, SLN_OP, PMT_OP, FV_OP, PV_OP, MROUND_OP, FIXED_OP, DOLLAR_OP,
+  INT_OP, CEILING_MATH_OP, FLOOR_MATH_OP, ROUNDUP_OP, ROUNDDOWN_OP, EVEN_OP, ODD_OP, TRUNC_OP, EXP_OP, LN_OP, LOG2_OP, RAND_BETWEEN, RATE_OP, DB_OP, NPER_OP, SLN_OP, PMT_OP, FV_OP, PV_OP, MROUND_OP, FIXED_OP, DOLLAR_OP,
   SINH_OP, COSH_OP, TANH_OP, SIN_OP, COS_OP, TAN_OP, ASIN_OP, ACOS_OP, ATAN_OP, ATAN2_OP, RADIANS_OP, DEGREES_OP,
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
@@ -1480,6 +1482,20 @@ const EXEC: Record<string, Executor> = {
     for (let i = 0; i < k; i++) result = result * (n - i) / (i + 1)
     const r = num(Math.round(result)); s.push(r); return { result: r }
   },
+  // CEILING_MATH: round up to nearest significance. CEILING.MATH(number, significance)
+  CEILING_MATH_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "CEILING.MATH")); return { result: s[s.length-1] } }
+    const sig = asNum(s.pop()!), value = asNum(s.pop()!)
+    if (sig === 0) { const result = num(0); s.push(result); return { result } }
+    const result = num(Math.ceil(value / sig) * sig); s.push(result); return { result }
+  },
+  // FLOOR_MATH: round down to nearest significance
+  FLOOR_MATH_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "FLOOR.MATH")); return { result: s[s.length-1] } }
+    const sig = asNum(s.pop()!), value = asNum(s.pop()!)
+    if (sig === 0) { const result = num(0); s.push(result); return { result } }
+    const result = num(Math.floor(value / sig) * sig); s.push(result); return { result }
+  },
   // ROUNDUP/ROUNDDOWN: round away from / toward zero (2-arg: number, digits)
   ROUNDUP_OP: (_o, s) => {
     if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "ROUNDUP")); return { result: s[s.length-1] } }
@@ -1725,6 +1741,7 @@ const _OP: Record<string, Opcode> = {
   ISLOGICAL_OP: { _tag: "ISLOGICAL_OP" }, ISNONTEXT_OP: { _tag: "ISNONTEXT_OP" }, ERROR_TYPE_OP: { _tag: "ERROR_TYPE_OP" },
   ISEVEN_OP: { _tag: "ISEVEN_OP" }, ISODD_OP: { _tag: "ISODD_OP" },
   INT_OP: { _tag: "INT_OP" }, EVEN_OP: { _tag: "EVEN_OP" }, ODD_OP: { _tag: "ODD_OP" },
+  CEILING_MATH_OP: { _tag: "CEILING_MATH_OP" }, FLOOR_MATH_OP: { _tag: "FLOOR_MATH_OP" },
   ROUNDUP_OP: { _tag: "ROUNDUP_OP" }, ROUNDDOWN_OP: { _tag: "ROUNDDOWN_OP" },
   TRUNC_OP: { _tag: "TRUNC_OP" }, EXP_OP: { _tag: "EXP_OP" }, LN_OP: { _tag: "LN_OP" }, LOG2_OP: { _tag: "LOG2_OP" },
   RAND_BETWEEN: { _tag: "RAND_BETWEEN" }, RATE_OP: { _tag: "RATE_OP" }, DB_OP: { _tag: "DB_OP" }, NPER_OP: { _tag: "NPER_OP" }, SLN_OP: { _tag: "SLN_OP" }, PMT_OP: { _tag: "PMT_OP" }, FV_OP: { _tag: "FV_OP" }, PV_OP: { _tag: "PV_OP" },
@@ -1805,6 +1822,8 @@ function classifyToken(tok: string): Opcode | null {
     case "ERROR_TYPE_OP": return _OP.ERROR_TYPE_OP
     case "ISEVEN_OP": return _OP.ISEVEN_OP
     case "ISODD_OP": return _OP.ISODD_OP
+    case "CEILING_MATH_OP": return _OP.CEILING_MATH_OP
+    case "FLOOR_MATH_OP": return _OP.FLOOR_MATH_OP
     case "ROUNDUP_OP": return _OP.ROUNDUP_OP
     case "ROUNDDOWN_OP": return _OP.ROUNDDOWN_OP
     case "INT_OP": return _OP.INT_OP
@@ -2116,6 +2135,14 @@ function tokenizeInfix(expr: string): string[] {
       while (i < expr.length && ((expr[i] >= "A" && expr[i] <= "Z") || (expr[i] >= "a" && expr[i] <= "z") || (expr[i] >= "0" && expr[i] <= "9") || expr[i] === "_")) {
         id += expr[i]; i++
       }
+      // Check for dotted function name: CEILING.MATH, FLOOR.MATH etc.
+      if (i < expr.length && expr[i] === "." && i + 1 < expr.length && ((expr[i+1] >= "A" && expr[i+1] <= "Z") || (expr[i+1] >= "a" && expr[i+1] <= "z"))) {
+        id += "."
+        i++
+        while (i < expr.length && ((expr[i] >= "A" && expr[i] <= "Z") || (expr[i] >= "a" && expr[i] <= "z") || (expr[i] >= "0" && expr[i] <= "9") || expr[i] === "_")) {
+          id += expr[i]; i++
+        }
+      }
       // Check for range: A1:B10
       if (i < expr.length && expr[i] === ":") {
         id += ":"
@@ -2148,7 +2175,7 @@ const FUNC_MAP: Record<string, string> = {
   TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", PROPER: "PROPER_OP", CLEAN: "CLEAN_OP", CHAR: "CHAR_OP", CODE: "CODE_OP", T: "T_OP",
   ISLOGICAL: "ISLOGICAL_OP", ISNONTEXT: "ISNONTEXT_OP", ERRORTYPE: "ERROR_TYPE_OP",
   ISEVEN: "ISEVEN_OP", ISODD: "ISODD_OP", ISNUMBER: "ISNUM_OP",
-  INT: "INT_OP", ROUNDUP: "ROUNDUP_OP", ROUNDDOWN: "ROUNDDOWN_OP", EVEN: "EVEN_OP", ODD: "ODD_OP", TRUNC: "TRUNC_OP", EXP: "EXP_OP", LN: "LN_OP", LOG2: "LOG2_OP",
+  INT: "INT_OP", "CEILING.MATH": "CEILING_MATH_OP", "FLOOR.MATH": "FLOOR_MATH_OP", ROUNDUP: "ROUNDUP_OP", ROUNDDOWN: "ROUNDDOWN_OP", EVEN: "EVEN_OP", ODD: "ODD_OP", TRUNC: "TRUNC_OP", EXP: "EXP_OP", LN: "LN_OP", LOG2: "LOG2_OP",
   RANDBETWEEN: "RAND_BETWEEN", IRR: "IRR_N", RATE: "RATE_OP", DB: "DB_OP", NPER: "NPER_OP", SLN: "SLN_OP", PMT: "PMT_OP", FV: "FV_OP", PV: "PV_OP", MROUND: "MROUND_OP", FIXED: "FIXED_OP", DOLLAR: "DOLLAR_OP",
   SINH: "SINH_OP", COSH: "COSH_OP", TANH: "TANH_OP",
   SIN: "SIN_OP", COS: "COS_OP", TAN: "TAN_OP", ASIN: "ASIN_OP", ACOS: "ACOS_OP", ATAN: "ATAN_OP", ATAN2: "ATAN2_OP", RADIANS: "RADIANS_OP", DEGREES: "DEGREES_OP",
@@ -2488,6 +2515,8 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "ISEVEN", args: "number", description: "TRUE if even", category: "info" },
   { name: "ISODD", args: "number", description: "TRUE if odd", category: "info" },
   { name: "ISNUMBER", args: "value", description: "Alias for ISNUM", category: "info" },
+  { name: "CEILING.MATH", args: "number, significance", description: "Round up to nearest significance", category: "math" },
+  { name: "FLOOR.MATH", args: "number, significance", description: "Round down to nearest significance", category: "math" },
   { name: "ROUNDUP", args: "number, digits", description: "Round away from zero", category: "math" },
   { name: "ROUNDDOWN", args: "number, digits", description: "Round toward zero", category: "math" },
   { name: "INT", args: "number", description: "Truncate to integer (toward negative infinity)", category: "math" },

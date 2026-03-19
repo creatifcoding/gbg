@@ -676,6 +676,28 @@ describe("FormulaEngineV2", () => {
         expect(r2.recalculated.length).toBeGreaterThanOrEqual(3)
       }).pipe(Effect.provide(layer)))
     })
+    it("EXPERIMENT 122 CAPSTONE: investment analysis (NPV+IRR+TEXT)", async () => {
+      const store = makeStore({
+        A1: CV.num(-50000),   // initial investment
+        A2: CV.num(15000),    // year 1 return
+        A3: CV.num(20000),    // year 2 return
+        A4: CV.num(25000),    // year 3 return
+      })
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.registerInfix("B1", '=ROUND(NPV(0.08, A1, A2, A3, A4), 2)')   // NPV at 8%
+        yield* e.registerInfix("B2", '=ROUND(IRR(A1, A2, A3, A4)*100, 1)')      // IRR as %
+        yield* e.registerInfix("B3", '=IF(B1>0, "ACCEPT", "REJECT")')           // decision
+        yield* e.registerInfix("B4", '=TEXT(B1, "#,##0.00")')                    // formatted NPV
+
+        yield* e.recalcAll()
+        const npv = (store.cells.get("B1") as any)?.value
+        expect(npv).toBeGreaterThan(500) // positive NPV → good investment
+        const decision = (store.cells.get("B3") as any)?.value
+        expect(decision).toBe("ACCEPT")
+      }))
+    })
+
     it("mortgage calculator: PMT + interest breakdown", async () => {
       const store = makeStore({
         A1: CV.num(250000),   // loan amount
