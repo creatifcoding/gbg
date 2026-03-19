@@ -606,5 +606,43 @@ describe("FormulaEngineV2", () => {
         expect(store.cells.get("B1")).toEqual(CV.num(0))
       }))
     })
+
+    it("realistic: tax calc with ROUND, IF, SUM, named range", async () => {
+      const store = makeStore({
+        A1: CV.num(1000),  // Income
+        A2: CV.num(2000),
+        A3: CV.num(500),
+        B1: CV.num(0.2),   // Tax rate
+      })
+      const layer = FormulaEngineV2Live.pipe(
+        Layer.provide(Layer.succeed(FormulaEngineV2Config, FormulaEngineV2Config.of({
+          cellStore: store,
+          namedRanges: { Income: "A1:A3" },
+        }))),
+      )
+      await Effect.runPromise(Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        // C1: Total income
+        yield* e.registerInfix("C1", "=SUM(Income)")
+        // C2: Tax (20% of income, rounded to 2 decimals)
+        yield* e.registerInfix("C2", "=ROUND(C1 * B1, 2)")
+        // C3: Net (income - tax), with error protection
+        yield* e.registerInfix("C3", "=IFERROR(C1 - C2, 0)")
+
+        const r = yield* e.recalcAll()
+        expect(store.cells.get("C1")).toEqual(CV.num(3500))  // 1000+2000+500
+        expect(store.cells.get("C2")).toEqual(CV.num(700))   // 3500*0.2
+        expect(store.cells.get("C3")).toEqual(CV.num(2800))  // 3500-700
+        expect(r.errors.length).toBe(0)
+
+        // Change income → cascading recalc
+        store.cells.set("A2", CV.num(3000))
+        const r2 = yield* e.recalcDirty(["A2"])
+        expect(store.cells.get("C1")).toEqual(CV.num(4500))  // 1000+3000+500
+        expect(store.cells.get("C2")).toEqual(CV.num(900))   // 4500*0.2
+        expect(store.cells.get("C3")).toEqual(CV.num(3600))  // 4500-900
+        expect(r2.recalculated.length).toBeGreaterThanOrEqual(3)
+      }).pipe(Effect.provide(layer)))
+    })
   })
 })
