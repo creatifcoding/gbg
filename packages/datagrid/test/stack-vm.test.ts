@@ -1392,6 +1392,25 @@ describe("infix parser", () => {
     expect(ir[0]).toEqual({ _tag: "PUSH_BOOL", value: true })
   })
 
+  it("VALUE: text to number conversion", () => {
+    expect(evalProgramDirect(compileInfixSync('=VALUE("42.5")')).stack[0]).toEqual(num(42.5))
+    expect(evalProgramDirect(compileInfixSync('=VALUE("abc")')).stack[0]._tag).toBe("error")
+    expect(evalProgramDirect(compileInfixSync("=VALUE(100)")).stack[0]).toEqual(num(100)) // passthrough
+  })
+
+  it("TYPE: returns type name", () => {
+    expect(evalProgramDirect(compileInfixSync("=TYPE(42)")).stack[0]).toEqual(str("number"))
+    expect(evalProgramDirect(compileInfixSync('=TYPE("hi")')).stack[0]).toEqual(str("text"))
+    expect(evalProgramDirect(compileInfixSync("=TYPE(TRUE)")).stack[0]).toEqual(str("boolean"))
+  })
+
+  it("N: converts to number (Excel N)", () => {
+    expect(evalProgramDirect(compileInfixSync("=N(TRUE)")).stack[0]).toEqual(num(1))
+    expect(evalProgramDirect(compileInfixSync("=N(FALSE)")).stack[0]).toEqual(num(0))
+    expect(evalProgramDirect(compileInfixSync('=N("hello")')).stack[0]).toEqual(num(0))
+    expect(evalProgramDirect(compileInfixSync("=N(42)")).stack[0]).toEqual(num(42))
+  })
+
   it("date extraction: YEAR/MONTH/DAY from NOW()", () => {
     const state = evalProgramDirect(compileInfixSync("=YEAR(NOW())"))
     expect((state.stack[0] as any).value).toBe(new Date().getFullYear())

@@ -372,6 +372,11 @@ export const ISTEXT_OP = Schema.TaggedStruct("ISTEXT_OP", {})
 export const ISERROR_OP = Schema.TaggedStruct("ISERROR_OP", {})
 export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
 
+/** Coercion */
+export const VALUE_OP = Schema.TaggedStruct("VALUE_OP", {})
+export const TYPE_OP = Schema.TaggedStruct("TYPE_OP", {})
+export const N_OP = Schema.TaggedStruct("N_OP", {})
+
 /** Date/Time extraction */
 export const YEAR_OP = Schema.TaggedStruct("YEAR_OP", {})
 export const MONTH_OP = Schema.TaggedStruct("MONTH_OP", {})
@@ -477,6 +482,7 @@ export const Opcode = Schema.Union([
   LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
+  VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
   SUM_N, MIN_N, MAX_N, AVG_N,
@@ -703,6 +709,31 @@ const EXEC: Record<string, Executor> = {
   SECOND_OP:(_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; return num(new Date(asNum(a)).getSeconds()) }, "SECOND") }),
   // TODAY_OP = millisecond timestamp at midnight today
   TODAY_OP: (_o, s) => { const d = new Date(); d.setHours(0,0,0,0); s.push(num(d.getTime())); return { result: s[s.length-1] } },
+
+  // ── Coercion ──
+  VALUE_OP: (_o, s) => ({ result: unop(s, a => {
+    if (isVMError(a)) return a
+    if (a._tag === "num") return a
+    const n = parseFloat(a._tag === "str" ? a.value : String((a as any).value))
+    return isNaN(n) ? vmError("TYPE_MISMATCH", `VALUE: cannot convert "${vmDisplay(a)}" to number`) : num(n)
+  }, "VALUE") }),
+  // TYPE: returns type name as string
+  TYPE_OP: (_o, s) => ({ result: unop(s, a => {
+    if (isVMError(a)) return str("error")
+    switch (a._tag) {
+      case "num": return str("number")
+      case "str": return str("text")
+      case "bool": return str("boolean")
+      default: return str("unknown")
+    }
+  }, "TYPE") }),
+  // N: converts any value to number (Excel N function)
+  N_OP: (_o, s) => ({ result: unop(s, a => {
+    if (isVMError(a)) return a
+    if (a._tag === "num") return a
+    if (a._tag === "bool") return num(a.value ? 1 : 0)
+    return num(0) // text → 0
+  }, "N") }),
 
   // ── Stack manipulation ──
   DUP: (_o, s) => {
@@ -1031,6 +1062,7 @@ const _OP: Record<string, Opcode> = {
   FLOOR_OP: { _tag: "FLOOR_OP" }, CEIL_OP: { _tag: "CEIL_OP" },
   ISNUM_OP: { _tag: "ISNUM_OP" }, ISTEXT_OP: { _tag: "ISTEXT_OP" },
   ISERROR_OP: { _tag: "ISERROR_OP" }, ISBLANK_OP: { _tag: "ISBLANK_OP" },
+  VALUE_OP: { _tag: "VALUE_OP" }, TYPE_OP: { _tag: "TYPE_OP" }, N_OP: { _tag: "N_OP" },
   YEAR_OP: { _tag: "YEAR_OP" }, MONTH_OP: { _tag: "MONTH_OP" }, DAY_OP: { _tag: "DAY_OP" },
   HOUR_OP: { _tag: "HOUR_OP" }, MINUTE_OP: { _tag: "MINUTE_OP" }, SECOND_OP: { _tag: "SECOND_OP" },
   TODAY_OP: { _tag: "TODAY_OP" },
@@ -1083,6 +1115,9 @@ function classifyToken(tok: string): Opcode | null {
     case "ISTEXT_OP": return _OP.ISTEXT_OP
     case "ISERROR_OP": return _OP.ISERROR_OP
     case "ISBLANK_OP": return _OP.ISBLANK_OP
+    case "VALUE_OP": return _OP.VALUE_OP
+    case "TYPE_OP": return _OP.TYPE_OP
+    case "N_OP": return _OP.N_OP
     case "YEAR_OP": return _OP.YEAR_OP
     case "MONTH_OP": return _OP.MONTH_OP
     case "DAY_OP": return _OP.DAY_OP
@@ -1349,6 +1384,7 @@ const FUNC_MAP: Record<string, string> = {
   LEN: "LEN_OP", LEFT: "LEFT_OP", RIGHT: "RIGHT_OP", MID: "MID_OP",
   TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", SUBSTITUTE: "SUBSTITUTE_OP",
   ISNUM: "ISNUM_OP", ISTEXT: "ISTEXT_OP", ISERROR: "ISERROR_OP", ISBLANK: "ISBLANK_OP",
+  VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
   YEAR: "YEAR_OP", MONTH: "MONTH_OP", DAY: "DAY_OP",
   HOUR: "HOUR_OP", MINUTE: "MINUTE_OP", SECOND: "SECOND_OP",
 }
@@ -1677,6 +1713,10 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "NOT", args: "value", description: "Logical negation", category: "logic" },
   // Lookup
   { name: "CHOOSE", args: "index, values...", description: "Pick by 1-based index", category: "lookup" },
+  // Coercion
+  { name: "VALUE", args: "text", description: "Convert text to number", category: "info" },
+  { name: "TYPE", args: "value", description: "Return type name as text", category: "info" },
+  { name: "N", args: "value", description: "Convert to number (TRUE=1, text=0)", category: "info" },
   // Date/Time
   { name: "YEAR", args: "timestamp", description: "Extract year from timestamp", category: "info" },
   { name: "MONTH", args: "timestamp", description: "Extract month (1-12) from timestamp", category: "info" },
