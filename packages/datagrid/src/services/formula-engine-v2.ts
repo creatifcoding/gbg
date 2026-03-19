@@ -65,6 +65,8 @@ export interface CellStore {
 
 export interface FormulaEngineV2ConfigShape {
   readonly cellStore: CellStore
+  /** Named ranges: e.g. { Revenue: "A1:A100", Tax: "B1" } */
+  readonly namedRanges?: Record<string, string>
 }
 
 export class FormulaEngineV2Config extends ServiceMap.Service<FormulaEngineV2Config, FormulaEngineV2ConfigShape>()(
@@ -138,6 +140,16 @@ export interface FormulaEngineV2Shape {
    * Get direct dependencies of a formula.
    */
   readonly dependenciesOf: (addr: string) => ReadonlyArray<string>
+
+  /**
+   * Define a named range alias: "Revenue" → "A1:A100"
+   */
+  readonly defineRange: (name: string, target: string) => void
+
+  /**
+   * Get all named range definitions.
+   */
+  readonly namedRanges: () => Record<string, string>
 }
 
 // ─── Service tag ────────────────────────────────────
@@ -157,6 +169,19 @@ export const FormulaEngineV2Live = Layer.effect(
     // Internal state
     const formulas = new Map<string, FormulaRecord>()
     const graph = makeDepGraph()
+    const ranges = new Map<string, string>(
+      Object.entries(config.namedRanges ?? {})
+    )
+
+    /** Expand named ranges in an expression: replace tokens like Revenue → A1:A100 */
+    function expandNamedRanges(expr: string): string {
+      let result = expr
+      for (const [name, target] of ranges) {
+        // Replace whole-word occurrences (case-insensitive)
+        result = result.replace(new RegExp(`\\b${name}\\b`, "gi"), target)
+      }
+      return result
+    }
 
     // Build CellContext from cellStore
     const makeCellContext = (): CellContext => ({
@@ -219,8 +244,9 @@ export const FormulaEngineV2Live = Layer.effect(
 
       registerInfix: (addr, expr) =>
         Effect.gen(function*() {
-          const ir = compileInfixSync(expr)
-          const deps = extractDepsInfix(expr)
+          const expanded = expandNamedRanges(expr)
+          const ir = compileInfixSync(expanded)
+          const deps = extractDepsInfix(expanded)
           yield* graph.registerFormula(addr, expr, deps)
           const record: FormulaRecord = { addr, expr, deps, ir, volatile: isVolatileIR(ir) }
           formulas.set(addr, record)
@@ -275,6 +301,10 @@ export const FormulaEngineV2Live = Layer.effect(
         Effect.sync(() => graph.dependents(addr)),
 
       dependenciesOf: (addr) => formulas.get(addr)?.deps.slice() ?? [],
+
+      defineRange: (name, target) => { ranges.set(name, target) },
+
+      namedRanges: () => Object.fromEntries(ranges),
     })
   }),
 )

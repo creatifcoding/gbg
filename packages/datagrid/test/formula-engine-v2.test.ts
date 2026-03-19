@@ -529,6 +529,36 @@ describe("FormulaEngineV2", () => {
       }))
     })
 
+    it("named range: =SUM(Revenue) where Revenue=A1:A3", async () => {
+      const store = makeStore({ A1: CV.num(100), A2: CV.num(200), A3: CV.num(300) })
+      const layer = FormulaEngineV2Live.pipe(
+        Layer.provide(Layer.succeed(FormulaEngineV2Config, FormulaEngineV2Config.of({
+          cellStore: store,
+          namedRanges: { Revenue: "A1:A3" },
+        }))),
+      )
+      await Effect.runPromise(Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.registerInfix("B1", "=SUM(Revenue)")
+        yield* e.recalcAll()
+        expect(store.cells.get("B1")).toEqual(CV.num(600))
+      }).pipe(Effect.provide(layer)))
+    })
+
+    it("named range: defineRange at runtime", async () => {
+      const store = makeStore({ A1: CV.num(10), A2: CV.num(20) })
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        e.defineRange("Prices", "A1:A2")
+        yield* e.registerInfix("B1", "=SUM(Prices)")
+        yield* e.recalcAll()
+        expect(store.cells.get("B1")).toEqual(CV.num(30))
+
+        const ranges = e.namedRanges()
+        expect(ranges["Prices"]).toBe("A1:A2")
+      }))
+    })
+
     it("comparison chain: =IF(A1>=10, 1, 0) with >= operator", async () => {
       const store = makeStore({ A1: CV.num(10) })
       await run(store, Effect.gen(function*() {
