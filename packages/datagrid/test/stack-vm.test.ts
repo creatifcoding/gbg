@@ -1704,6 +1704,21 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("REGEXMATCH/REGEXEXTRACT/REGEXREPLACE: regex text power tools", () => {
+    // REGEXMATCH: test pattern
+    expect(evalProgramDirect(compileInfixSync('=REGEXMATCH("hello world", "world")')).stack[0]).toEqual(bool(true))
+    expect(evalProgramDirect(compileInfixSync('=REGEXMATCH("hello", "xyz")')).stack[0]).toEqual(bool(false))
+    // REGEXEXTRACT: extract with capture group
+    expect(evalProgramDirect(compileInfixSync('=REGEXEXTRACT("Order #12345", "(\\d+)")')).stack[0]).toEqual(str("12345"))
+    // REGEXREPLACE: global replace
+    expect(evalProgramDirect(compileInfixSync('=REGEXREPLACE("a1b2c3", "\\d", "X")')).stack[0]).toEqual(str("aXbXcX"))
+  })
+
+  it("LET: named bindings (simplified stack eval)", () => {
+    // LET returns the last value (simplified — in stack VM, bindings are positional)
+    expect(evalProgramDirect(compileInfixSync('=LET("x", 10, "y", 20, 30)')).stack[0]).toEqual(num(30))
+  })
+
   it("SUMXMY2/ERF/ERFC: paired stats + error functions", () => {
     // SUMXMY2([1,2,3], [4,5,6]) = (1-4)²+(2-5)²+(3-6)² = 9+9+9 = 27
     expect(evalProgramDirect(compileInfixSync("=SUMXMY2(1, 2, 3, 4, 5, 6)")).stack[0]).toEqual(num(27))
