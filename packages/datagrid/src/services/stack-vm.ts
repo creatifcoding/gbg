@@ -1537,7 +1537,7 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
  */
 const FOLDABLE = new Set(["ADD", "SUB", "MUL", "DIV", "MOD", "POWER", "EQ", "LT", "GT", "GTE", "LTE", "NEQ"])
 function optimizeIR(ir: StackIR): StackIR {
-  if (ir.length < 3) return ir
+  if (ir.length < 2) return ir
   const out: Opcode[] = []
   for (let i = 0; i < ir.length; i++) {
     const op = ir[i]
@@ -1570,6 +1570,20 @@ function optimizeIR(ir: StackIR): StackIR {
           continue
         }
       }
+    }
+    // Unary constant folding: PUSH_NUM(a), NEG → PUSH_NUM(-a)
+    if (op._tag === "NEG" && out.length >= 1 && out[out.length - 1]._tag === "PUSH_NUM") {
+      const a = out[out.length - 1] as any
+      out.pop()
+      out.push({ _tag: "PUSH_NUM", value: -a.value })
+      continue
+    }
+    // Unary constant folding: PUSH_NUM(a), ABS → PUSH_NUM(abs(a))
+    if (op._tag === "ABS" && out.length >= 1 && out[out.length - 1]._tag === "PUSH_NUM") {
+      const a = out[out.length - 1] as any
+      out.pop()
+      out.push({ _tag: "PUSH_NUM", value: Math.abs(a.value) })
+      continue
     }
     // Dead code: truncate after HALT
     if (op._tag === "HALT") { out.push(op); break }

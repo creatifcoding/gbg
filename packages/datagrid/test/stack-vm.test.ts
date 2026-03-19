@@ -1331,6 +1331,12 @@ describe("infix parser", () => {
     expect(ir[0]).toEqual({ _tag: "PUSH_NUM", value: 10 })
   })
 
+  it("constant folding: unary =-5 folds to PUSH_NUM(-5)", () => {
+    const ir = compileInfixSync("=-5")
+    expect(ir.length).toBe(1)
+    expect(ir[0]).toEqual({ _tag: "PUSH_NUM", value: -5 })
+  })
+
   it("constant folding: comparison =5>3 folds to PUSH_BOOL(true)", () => {
     const ir = compileInfixSync("=5>3")
     expect(ir.length).toBe(1)
