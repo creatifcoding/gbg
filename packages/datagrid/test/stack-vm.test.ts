@@ -1392,6 +1392,14 @@ describe("infix parser", () => {
     expect(ir[0]).toEqual({ _tag: "PUSH_BOOL", value: true })
   })
 
+  it("REPT/EXACT/FIND text functions", () => {
+    expect(evalProgramDirect(compileInfixSync('=REPT("ab",3)')).stack[0]).toEqual(str("ababab"))
+    expect(evalProgramDirect(compileInfixSync('=EXACT("Hello","Hello")')).stack[0]).toEqual(bool(true))
+    expect(evalProgramDirect(compileInfixSync('=EXACT("Hello","hello")')).stack[0]).toEqual(bool(false))
+    expect(evalProgramDirect(compileInfixSync('=FIND("cd","abcdef")')).stack[0]).toEqual(num(3))
+    expect(evalProgramDirect(compileInfixSync('=FIND("xyz","abcdef")')).stack[0]._tag).toBe("error")
+  })
+
   it("IFS: multi-condition branching", () => {
     // =IFS(FALSE,"no", TRUE,"yes") → "yes"
     expect(evalProgramDirect(compileInfixSync('=IFS(FALSE,"no", TRUE,"yes")')).stack[0]).toEqual(str("yes"))

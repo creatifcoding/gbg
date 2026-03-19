@@ -372,6 +372,11 @@ export const ISTEXT_OP = Schema.TaggedStruct("ISTEXT_OP", {})
 export const ISERROR_OP = Schema.TaggedStruct("ISERROR_OP", {})
 export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
 
+/** More text functions */
+export const REPT_OP = Schema.TaggedStruct("REPT_OP", {})
+export const EXACT_OP = Schema.TaggedStruct("EXACT_OP", {})
+export const FIND_OP = Schema.TaggedStruct("FIND_OP", {})
+
 /** IFS — multi-condition branching */
 export const IFS_N = Schema.TaggedStruct("IFS_N", { n: Schema.Number })
 
@@ -488,6 +493,7 @@ export const Opcode = Schema.Union([
   LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
+  REPT_OP, EXACT_OP, FIND_OP,
   IFS_N, SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
@@ -769,6 +775,27 @@ const EXEC: Record<string, Executor> = {
     if (hasDefault) { const d = pairs[pairs.length - 1]; s.push(d); return { result: d } }
     const err = vmError("TYPE_MISMATCH", "SWITCH: no match"); s.push(err); return { result: err }
   },
+
+  // REPT: repeat string N times
+  REPT_OP: (_o, s) => ({ result: binop(s, (a, b) => {
+    const pe = propagateError(a, b); if (pe) return pe
+    const text = a._tag === "str" ? a.value : vmDisplay(a)
+    const n = Math.max(0, Math.floor(asNum(b)))
+    return n > 10000 ? vmError("EVAL_OVERFLOW", "REPT: too many repetitions") : str(text.repeat(n))
+  }, "REPT") }),
+  // EXACT: case-sensitive string equality (different from EQ which coerces)
+  EXACT_OP: (_o, s) => ({ result: binop(s, (a, b) => {
+    const pe = propagateError(a, b); if (pe) return pe
+    return bool(vmDisplay(a) === vmDisplay(b))
+  }, "EXACT") }),
+  // FIND: find substring position (case-sensitive, 1-based)
+  FIND_OP: (_o, s) => ({ result: binop(s, (a, b) => {
+    const pe = propagateError(a, b); if (pe) return pe
+    const needle = a._tag === "str" ? a.value : vmDisplay(a)
+    const haystack = b._tag === "str" ? b.value : vmDisplay(b)
+    const pos = haystack.indexOf(needle)
+    return pos === -1 ? vmError("TYPE_MISMATCH", "FIND: not found") : num(pos + 1)
+  }, "FIND") }),
 
   // N: converts any value to number (Excel N function)
   N_OP: (_o, s) => ({ result: unop(s, a => {
@@ -1105,6 +1132,7 @@ const _OP: Record<string, Opcode> = {
   FLOOR_OP: { _tag: "FLOOR_OP" }, CEIL_OP: { _tag: "CEIL_OP" },
   ISNUM_OP: { _tag: "ISNUM_OP" }, ISTEXT_OP: { _tag: "ISTEXT_OP" },
   ISERROR_OP: { _tag: "ISERROR_OP" }, ISBLANK_OP: { _tag: "ISBLANK_OP" },
+  REPT_OP: { _tag: "REPT_OP" }, EXACT_OP: { _tag: "EXACT_OP" }, FIND_OP: { _tag: "FIND_OP" },
   VALUE_OP: { _tag: "VALUE_OP" }, TYPE_OP: { _tag: "TYPE_OP" }, N_OP: { _tag: "N_OP" },
   YEAR_OP: { _tag: "YEAR_OP" }, MONTH_OP: { _tag: "MONTH_OP" }, DAY_OP: { _tag: "DAY_OP" },
   HOUR_OP: { _tag: "HOUR_OP" }, MINUTE_OP: { _tag: "MINUTE_OP" }, SECOND_OP: { _tag: "SECOND_OP" },
@@ -1158,6 +1186,9 @@ function classifyToken(tok: string): Opcode | null {
     case "ISTEXT_OP": return _OP.ISTEXT_OP
     case "ISERROR_OP": return _OP.ISERROR_OP
     case "ISBLANK_OP": return _OP.ISBLANK_OP
+    case "REPT_OP": return _OP.REPT_OP
+    case "EXACT_OP": return _OP.EXACT_OP
+    case "FIND_OP": return _OP.FIND_OP
     case "IFS_N": return { _tag: "IFS_N", n: 0 } as any
     case "SWITCH_N": return { _tag: "SWITCH_N", n: 0 } as any
     case "VALUE_OP": return _OP.VALUE_OP
@@ -1429,6 +1460,7 @@ const FUNC_MAP: Record<string, string> = {
   LEN: "LEN_OP", LEFT: "LEFT_OP", RIGHT: "RIGHT_OP", MID: "MID_OP",
   TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", SUBSTITUTE: "SUBSTITUTE_OP",
   ISNUM: "ISNUM_OP", ISTEXT: "ISTEXT_OP", ISERROR: "ISERROR_OP", ISBLANK: "ISBLANK_OP",
+  REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP",
   IFS: "IFS_N", SWITCH: "SWITCH_N", VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
   YEAR: "YEAR_OP", MONTH: "MONTH_OP", DAY: "DAY_OP",
   HOUR: "HOUR_OP", MINUTE: "MINUTE_OP", SECOND: "SECOND_OP",
@@ -1749,6 +1781,9 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "UPPER", args: "text", description: "Convert to uppercase", category: "text" },
   { name: "LOWER", args: "text", description: "Convert to lowercase", category: "text" },
   { name: "SUBSTITUTE", args: "text, old, new", description: "Replace all occurrences", category: "text" },
+  { name: "REPT", args: "text, count", description: "Repeat text N times", category: "text" },
+  { name: "EXACT", args: "text1, text2", description: "Case-sensitive equality", category: "text" },
+  { name: "FIND", args: "find_text, within_text", description: "Position of substring (1-based)", category: "text" },
   { name: "CONCAT", args: "a, b", description: "Join two strings", category: "text" },
   // Logic
   { name: "IF", args: "condition, true_val, false_val", description: "Conditional value", category: "logic" },
