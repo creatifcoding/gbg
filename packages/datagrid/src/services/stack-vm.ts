@@ -105,9 +105,14 @@ export type VMValue = typeof VMValue.Type
 
 // ─── Constructors ───────────────────────────────────
 
-export const num = (v: number): VMValue => ({ _tag: "num", value: v })
+const _NUM_CACHE: VMValue[] = []
+for (let i = -1; i <= 100; i++) _NUM_CACHE[i + 1] = { _tag: "num", value: i }
+export const num = (v: number): VMValue =>
+  Number.isInteger(v) && v >= -1 && v <= 100 ? _NUM_CACHE[v + 1] : { _tag: "num", value: v }
 export const str = (v: string): VMValue => ({ _tag: "str", value: v })
-export const bool = (v: boolean): VMValue => ({ _tag: "bool", value: v })
+const _TRUE: VMValue = { _tag: "bool", value: true }
+const _FALSE: VMValue = { _tag: "bool", value: false }
+export const bool = (v: boolean): VMValue => v ? _TRUE : _FALSE
 
 /** Create an inline error value with code + message */
 export const vmError = (code: VMErrorCode, message: string): VMValue =>
