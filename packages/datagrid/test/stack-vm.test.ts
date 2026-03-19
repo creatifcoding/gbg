@@ -1422,6 +1422,11 @@ describe("infix parser", () => {
     expect(decompileIR(compileInfixSync("=UPPER(A1)"))).toBe("=UPPER(A1)")
   })
 
+  it("CONCATENATE: join N strings (legacy Excel)", () => {
+    expect(evalProgramDirect(compileInfixSync('=CONCATENATE("a","b","c")')).stack[0]).toEqual(str("abc"))
+    expect(evalProgramDirect(compileInfixSync('=CONCATENATE("hello"," ","world")')).stack[0]).toEqual(str("hello world"))
+  })
+
   it("TEXTJOIN: join with delimiter", () => {
     expect(evalProgramDirect(compileInfixSync('=TEXTJOIN(",",TRUE,"a","b","c")')).stack[0]).toEqual(str("a,b,c"))
     expect(evalProgramDirect(compileInfixSync('=TEXTJOIN("-",FALSE,"x","","y")')).stack[0]).toEqual(str("x--y"))
