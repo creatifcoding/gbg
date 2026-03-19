@@ -2722,6 +2722,28 @@ describe("post-450 function coverage", () => {
   // Geometry
   it("CONEVOL(3,4) ≈ 12π", () => expect(d("=CONEVOL(3,4)")).toBeCloseTo(12*Math.PI, 5))
 
+  // Waves
+  it("SQUAREWAVE(0.25, 1) = 1", () => expect(d("=SQUAREWAVE(0.25, 1)")).toBe(1))
+  it("SQUAREWAVE(0.75, 1) = -1", () => expect(d("=SQUAREWAVE(0.75, 1)")).toBe(-1))
+
+  // AGM
+  it("AGM(1, 2) ≈ 1.4567", () => expect(d("=AGM(1, 2)")).toBeCloseTo(1.4567, 3))
+
+  // Gamma
+  it("GAMMA2(5) = 24", () => expect(d("=GAMMA2(5)")).toBeCloseTo(24, 5))
+
+  // Ciphers
+  it("TEXTROT13(hello) = uryyb", () => expect(d("=TEXTROT13(\"hello\")")).toBe("uryyb"))
+  it("TEXTCAESAR(abc, 3) = def", () => expect(d("=TEXTCAESAR(\"abc\", 3)")).toBe("def"))
+
+  // Info
+  it("ISASCII(hello) = true", () => expect(d("=ISASCII(\"hello\")")).toBe(true))
+  it("ISPRINTABLE(hello) = true", () => expect(d("=ISPRINTABLE(\"hello\")")).toBe(true))
+
+  // Financial
+  it("SIMPLEINT(1000, 0.05, 3) = 150", () => expect(d("=SIMPLEINT(1000, 0.05, 3)")).toBeCloseTo(150, 5))
+  it("DEPRECIATION(10000, 1000, 5) = 1800", () => expect(d("=DEPRECIATION(10000, 1000, 5)")).toBe(1800))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
