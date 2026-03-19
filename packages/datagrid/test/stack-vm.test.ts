@@ -1474,6 +1474,13 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync("=TRUNC(-3.7)")).stack[0]).toEqual(num(-3)) // toward zero, not floor
   })
 
+  it("EXP/LN: natural exponential and logarithm", () => {
+    expect(evalProgramDirect(compileInfixSync("=ROUND(EXP(1), 5)")).stack[0]).toEqual(num(2.71828)) // e
+    expect(evalProgramDirect(compileInfixSync("=ROUND(LN(EXP(2)), 5)")).stack[0]).toEqual(num(2)) // roundtrip
+    expect(evalProgramDirect(compileInfixSync("=EXP(0)")).stack[0]).toEqual(num(1))
+    expect(evalProgramDirect(compileInfixSync("=LN(0)")).stack[0]._tag).toBe("error") // non-positive
+  })
+
   it("TRIG: SIN/COS/TAN/ASIN/ACOS/ATAN/ATAN2/RADIANS/DEGREES", () => {
     // SIN(PI/2) = 1, COS(0) = 1
     expect(evalProgramDirect(compileInfixSync("=ROUND(SIN(RADIANS(90)), 5)")).stack[0]).toEqual(num(1))

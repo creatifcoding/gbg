@@ -366,6 +366,8 @@ export const INT_OP = Schema.TaggedStruct("INT_OP", {})
 export const EVEN_OP = Schema.TaggedStruct("EVEN_OP", {})
 export const ODD_OP = Schema.TaggedStruct("ODD_OP", {})
 export const TRUNC_OP = Schema.TaggedStruct("TRUNC_OP", {})
+export const EXP_OP = Schema.TaggedStruct("EXP_OP", {})
+export const LN_OP = Schema.TaggedStruct("LN_OP", {})
 export const SIN_OP = Schema.TaggedStruct("SIN_OP", {})
 export const COS_OP = Schema.TaggedStruct("COS_OP", {})
 export const TAN_OP = Schema.TaggedStruct("TAN_OP", {})
@@ -528,7 +530,7 @@ export const Opcode = Schema.Union([
   EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR,
   AND_N, OR_N, CHOOSE_N,
   LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, PROPER_OP, CLEAN_OP, CHAR_OP, CODE_OP, T_OP, ISEVEN_OP, ISODD_OP,
-  INT_OP, EVEN_OP, ODD_OP, TRUNC_OP, SIN_OP, COS_OP, TAN_OP, ASIN_OP, ACOS_OP, ATAN_OP, ATAN2_OP, RADIANS_OP, DEGREES_OP,
+  INT_OP, EVEN_OP, ODD_OP, TRUNC_OP, EXP_OP, LN_OP, SIN_OP, COS_OP, TAN_OP, ASIN_OP, ACOS_OP, ATAN_OP, ATAN2_OP, RADIANS_OP, DEGREES_OP,
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
@@ -1132,6 +1134,8 @@ const EXEC: Record<string, Executor> = {
   // Financial: INT (truncate to integer toward 0), TRUNC (truncate decimal places)
   INT_OP:    (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.floor(asNum(a))), "INT") }),
   TRUNC_OP:  (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.trunc(asNum(a))), "TRUNC") }),
+  EXP_OP:    (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.exp(asNum(a))), "EXP") }),
+  LN_OP:     (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const n = asNum(a); return n <= 0 ? vmError("TYPE_MISMATCH", "LN: non-positive") : num(Math.log(n)) }, "LN") }),
   // Trigonometry
   SIN_OP:     (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.sin(asNum(a))), "SIN") }),
   COS_OP:     (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.cos(asNum(a))), "COS") }),
@@ -1411,7 +1415,7 @@ const _OP: Record<string, Opcode> = {
   CHAR_OP: { _tag: "CHAR_OP" }, CODE_OP: { _tag: "CODE_OP" }, T_OP: { _tag: "T_OP" },
   ISEVEN_OP: { _tag: "ISEVEN_OP" }, ISODD_OP: { _tag: "ISODD_OP" },
   INT_OP: { _tag: "INT_OP" }, EVEN_OP: { _tag: "EVEN_OP" }, ODD_OP: { _tag: "ODD_OP" },
-  TRUNC_OP: { _tag: "TRUNC_OP" },
+  TRUNC_OP: { _tag: "TRUNC_OP" }, EXP_OP: { _tag: "EXP_OP" }, LN_OP: { _tag: "LN_OP" },
   SIN_OP: { _tag: "SIN_OP" }, COS_OP: { _tag: "COS_OP" }, TAN_OP: { _tag: "TAN_OP" },
   ASIN_OP: { _tag: "ASIN_OP" }, ACOS_OP: { _tag: "ACOS_OP" }, ATAN_OP: { _tag: "ATAN_OP" }, ATAN2_OP: { _tag: "ATAN2_OP" },
   RADIANS_OP: { _tag: "RADIANS_OP" }, DEGREES_OP: { _tag: "DEGREES_OP" },
@@ -1496,6 +1500,8 @@ function classifyToken(tok: string): Opcode | null {
     case "ATAN2_OP": return _OP.ATAN2_OP
     case "RADIANS_OP": return _OP.RADIANS_OP
     case "DEGREES_OP": return _OP.DEGREES_OP
+    case "EXP_OP": return _OP.EXP_OP
+    case "LN_OP": return _OP.LN_OP
     case "FACT_OP": return _OP.FACT_OP
     case "QUOTIENT_OP": return _OP.QUOTIENT_OP
     case "GCD_OP": return _OP.GCD_OP
@@ -1794,7 +1800,7 @@ const FUNC_MAP: Record<string, string> = {
   LEN: "LEN_OP", LEFT: "LEFT_OP", RIGHT: "RIGHT_OP", MID: "MID_OP",
   TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", PROPER: "PROPER_OP", CLEAN: "CLEAN_OP", CHAR: "CHAR_OP", CODE: "CODE_OP", T: "T_OP",
   ISEVEN: "ISEVEN_OP", ISODD: "ISODD_OP", ISNUMBER: "ISNUM_OP",
-  INT: "INT_OP", EVEN: "EVEN_OP", ODD: "ODD_OP", TRUNC: "TRUNC_OP",
+  INT: "INT_OP", EVEN: "EVEN_OP", ODD: "ODD_OP", TRUNC: "TRUNC_OP", EXP: "EXP_OP", LN: "LN_OP",
   SIN: "SIN_OP", COS: "COS_OP", TAN: "TAN_OP", ASIN: "ASIN_OP", ACOS: "ACOS_OP", ATAN: "ATAN_OP", ATAN2: "ATAN2_OP", RADIANS: "RADIANS_OP", DEGREES: "DEGREES_OP",
   FACT: "FACT_OP", QUOTIENT: "QUOTIENT_OP", GCD: "GCD_OP", LCM: "LCM_OP", COMBIN: "COMBIN_OP", SUBSTITUTE: "SUBSTITUTE_OP",
   ISNUM: "ISNUM_OP", ISTEXT: "ISTEXT_OP", ISERROR: "ISERROR_OP", ISBLANK: "ISBLANK_OP",
@@ -2132,6 +2138,8 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "EVEN", args: "number", description: "Round up to nearest even integer", category: "math" },
   { name: "ODD", args: "number", description: "Round up to nearest odd integer", category: "math" },
   { name: "TRUNC", args: "number", description: "Truncate toward zero", category: "math" },
+  { name: "EXP", args: "number", description: "e raised to power", category: "math" },
+  { name: "LN", args: "number", description: "Natural logarithm", category: "math" },
   { name: "SIN", args: "angle_rad", description: "Sine", category: "math" },
   { name: "COS", args: "angle_rad", description: "Cosine", category: "math" },
   { name: "TAN", args: "angle_rad", description: "Tangent", category: "math" },
@@ -2292,7 +2300,7 @@ export const decompileIR = (ir: StackIR): string => {
     ABS: "ABS", NEG: "-", NOT: "NOT", SQRT_OP: "SQRT", SIGN_OP: "SIGN",
     LOG_OP: "LOG", LOG10_OP: "LOG10", FLOOR_OP: "FLOOR", CEIL_OP: "CEIL",
     LEN_OP: "LEN", TRIM_OP: "TRIM", UPPER_OP: "UPPER", LOWER_OP: "LOWER", PROPER_OP: "PROPER", CLEAN_OP: "CLEAN", CHAR_OP: "CHAR", CODE_OP: "CODE", T_OP: "T", ISEVEN_OP: "ISEVEN", ISODD_OP: "ISODD",
-    INT_OP: "INT", EVEN_OP: "EVEN", ODD_OP: "ODD", TRUNC_OP: "TRUNC", FACT_OP: "FACT",
+    INT_OP: "INT", EVEN_OP: "EVEN", ODD_OP: "ODD", TRUNC_OP: "TRUNC", EXP_OP: "EXP", LN_OP: "LN", FACT_OP: "FACT",
     SIN_OP: "SIN", COS_OP: "COS", TAN_OP: "TAN", ASIN_OP: "ASIN", ACOS_OP: "ACOS", ATAN_OP: "ATAN", RADIANS_OP: "RADIANS", DEGREES_OP: "DEGREES",
     ISNUM_OP: "ISNUM", ISTEXT_OP: "ISTEXT", ISERROR_OP: "ISERROR", ISBLANK_OP: "ISBLANK",
     YEAR_OP: "YEAR", MONTH_OP: "MONTH", DAY_OP: "DAY",
