@@ -1488,6 +1488,13 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=PROPER("HELLO WORLD")')).stack[0]).toEqual(str("Hello World"))
   })
 
+  it("ISLOGICAL/ISNONTEXT: type checks", () => {
+    expect(evalProgramDirect(compileInfixSync("=ISLOGICAL(TRUE)")).stack[0]).toEqual(bool(true))
+    expect(evalProgramDirect(compileInfixSync("=ISLOGICAL(42)")).stack[0]).toEqual(bool(false))
+    expect(evalProgramDirect(compileInfixSync("=ISNONTEXT(42)")).stack[0]).toEqual(bool(true))
+    expect(evalProgramDirect(compileInfixSync('=ISNONTEXT("abc")')).stack[0]).toEqual(bool(false))
+  })
+
   it("ERRORTYPE: numeric error code", () => {
     // DIV/0 = 2, #VALUE! = 3
     expect(evalProgramDirect(compileInfixSync("=ERRORTYPE(1/0)")).stack[0]).toEqual(num(2))
