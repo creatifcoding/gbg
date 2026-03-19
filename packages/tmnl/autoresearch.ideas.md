@@ -51,14 +51,27 @@
 - 1K formula perf: 45ms, 20-deep chain cascade
 - Next: wire into FormulaConsistency, replace old FormulaEngine callers
 
+### Wire FormulaEngineV2 into production
+- Replace FormulaConsistency's dependency on old FormulaEngine
+- Wire registerInfix as the primary formula input path
+- Connect to CellCache atoms for reactive UI updates
+
 ### TxHashMap cell state (production)
 - Replace Map<string, CellValue> with TxHashMap inside Effect.transaction
 - Multi-cell atomic reads/writes for bulk paste, undo
+
+### Negation in infix parser
+- Unary minus: =-A1, =-(A1+B1)
+- Currently only binary minus works
 
 ### WASM sandbox (Domain B)
 - Pool.make for QuickJS-WASM instances
 - acquireRelease lifecycle, addFinalizer cleanup
 - timeout for untrusted code safety
+
+### String literal support in infix
+- Quoted strings: ="hello" & A1
+- Currently only RPN supports PUSH_STR via raw tokens
 
 ## 📊 v4 API Gotchas (Complete — 14 discoveries)
 | Wrong | Correct |
