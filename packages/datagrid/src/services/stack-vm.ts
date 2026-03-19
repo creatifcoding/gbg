@@ -324,6 +324,10 @@ export const SUM_DYN = Schema.TaggedStruct("SUM_DYN", {})
 export const MIN_DYN = Schema.TaggedStruct("MIN_DYN", {})
 export const MAX_DYN = Schema.TaggedStruct("MAX_DYN", {})
 export const AVG_DYN = Schema.TaggedStruct("AVG_DYN", {})
+export const COUNT_DYN = Schema.TaggedStruct("COUNT_DYN", {})
+
+/** POWER — raise base to exponent */
+export const POWER = Schema.TaggedStruct("POWER", {})
 
 /**
  * CONCAT — string concatenation: pops 2 values, coerces to string, pushes joined.
@@ -392,7 +396,7 @@ export const Opcode = Schema.Union([
   DUP, SWAP, DROP, NEG,
   EQ, LT, GT, NOT, IF,
   SUM_N, MIN_N, MAX_N, AVG_N,
-  SUM_DYN, MIN_DYN, MAX_DYN, AVG_DYN,
+  SUM_DYN, MIN_DYN, MAX_DYN, AVG_DYN, COUNT_DYN, POWER,
   HALT,
   READ_CELL, WRITE_CELL, READ_RANGE,
 ])
@@ -607,6 +611,8 @@ const opcodeDispatch = pipe(
     MIN_DYN: () => ({ minDyn: true }),
     MAX_DYN: () => ({ maxDyn: true }),
     AVG_DYN: () => ({ avgDyn: true }),
+    COUNT_DYN: () => ({ countDyn: true }),
+    POWER: () => ({ power: true }),
     HALT: () => ({ halt: true }),
     READ_CELL: (o) => ({ readCell: o.addr }),
     WRITE_CELL: (o) => ({ writeCell: o.addr }),
@@ -763,6 +769,26 @@ export const execOpcode = (op: Opcode, state: VMState, ctx?: CellContext): VMSta
         for (const v of values) sum += asNum(v)
         const r = num(sum / n); s.push(r); result = r
       }
+    }
+  } else if (cmd.power) {
+    if (s.length < 2) {
+      const e = vmError("STACK_UNDERFLOW", "POWER requires 2 operands"); s.push(e); result = e
+    } else {
+      const exp = s.pop()!; const base = s.pop()!
+      const pe = propagateError(base, exp)
+      if (pe) { s.push(pe); result = pe }
+      else { const r = num(Math.pow(asNum(base), asNum(exp))); s.push(r); result = r }
+    }
+  } else if (cmd.countDyn) {
+    // Pop count from stack — that IS the result (count of items in range)
+    if (s.length === 0) {
+      const e = vmError("STACK_UNDERFLOW", "COUNT_DYN requires count on stack"); s.push(e); result = e
+    } else {
+      const countVal = s.pop()!
+      const n = countVal._tag === "num" ? countVal.value : 0
+      // Pop the n values (discard them, we just want the count)
+      for (let i = 0; i < n && s.length > 0; i++) s.pop()
+      const r = num(n); s.push(r); result = r
     }
   } else if (cmd.sumDyn || cmd.minDyn || cmd.maxDyn || cmd.avgDyn) {
     // Pop count from stack, then aggregate that many values
@@ -954,6 +980,8 @@ function classifyToken(tok: string): Opcode | null {
     case "MIN_DYN": return { _tag: "MIN_DYN" }
     case "MAX_DYN": return { _tag: "MAX_DYN" }
     case "AVG_DYN": return { _tag: "AVG_DYN" }
+    case "COUNT_DYN": return { _tag: "COUNT_DYN" }
+    case "POWER": return { _tag: "POWER" }
     case "HALT": return { _tag: "HALT" }
     case "true": return { _tag: "PUSH_BOOL", value: true }
     case "false": return { _tag: "PUSH_BOOL", value: false }
@@ -1119,7 +1147,8 @@ const PREC: Record<string, number> = {
   "<": 0, ">": 0,  // comparison
   "+": 1, "-": 1,
   "*": 2, "/": 2, "%": 2,
-  "UNARY_NEG": 3, "CONCAT": 1, // unary neg highest; concat same as +
+  "^": 3, // exponent: right-associative, high precedence
+  "UNARY_NEG": 4, "CONCAT": 1, // unary neg highest; concat same as +
 }
 
 /**
@@ -1127,9 +1156,9 @@ const PREC: Record<string, number> = {
  * Needed because some infix operators differ from RPN tokens.
  */
 const INFIX_OP_MAP: Record<string, string> = {
-  "<": "LT", ">": "GT",
+  "<": "LT", ">": "GT", "^": "POWER",
 }
-const RIGHT_ASSOC = new Set<string>(["UNARY_NEG"])
+const RIGHT_ASSOC = new Set<string>(["UNARY_NEG", "^"])
 
 /** Tokenize an infix expression */
 function tokenizeInfix(expr: string): string[] {
@@ -1147,7 +1176,7 @@ function tokenizeInfix(expr: string): string[] {
       continue
     }
     // Operators and parens
-    if ("+-*/%(),:=<>&".includes(ch)) { tokens.push(ch); i++; continue }
+    if ("+-*/%(),:=<>&^".includes(ch)) { tokens.push(ch); i++; continue }
     // Number (including decimals)
     if (ch >= "0" && ch <= "9" || (ch === "." && i + 1 < expr.length && expr[i + 1] >= "0" && expr[i + 1] <= "9")) {
       let num = ""
@@ -1181,6 +1210,7 @@ function tokenizeInfix(expr: string): string[] {
 /** Known functions → opcode mapping */
 const FUNC_MAP: Record<string, string> = {
   SUM: "SUM_DYN", MIN: "MIN_DYN", MAX: "MAX_DYN", AVG: "AVG_DYN",
+  COUNT: "COUNT_DYN", POWER: "POWER",
   ABS: "ABS", NEG: "NEG", IF: "IF",
   CONCAT: "CONCAT", TO_NUM: "TO_NUM", TO_STR: "TO_STR",
 }

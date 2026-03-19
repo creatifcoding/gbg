@@ -115,3 +115,4 @@ packages/theia-ide/lib/
 
 # Repomix outputs
 .agents/context/repomix/
+packages/tmnl/agent-browser

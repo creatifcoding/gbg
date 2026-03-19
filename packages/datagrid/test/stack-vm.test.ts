@@ -1053,6 +1053,25 @@ describe("infix parser", () => {
     expect(s.stack[0]).toEqual(str("hi there"))
   })
 
+  it("power operator: =2^3", () => {
+    const ir = compileInfixSync("=2^3")
+    const s = Effect.runSync(evalProgram(ir))
+    expect(s.stack[0]).toEqual(num(8))
+  })
+
+  it("power right-assoc: =2^3^2 = 2^(3^2) = 512", () => {
+    const ir = compileInfixSync("=2^3^2")
+    const s = Effect.runSync(evalProgram(ir))
+    expect(s.stack[0]).toEqual(num(512)) // 2^(3^2) = 2^9 = 512
+  })
+
+  it("COUNT function: =COUNT(A1:A3)", () => {
+    const ir = compileInfixSync("=COUNT(A1:A3)")
+    const ctx = { readCell: (a: string) => num(parseInt(a.slice(1))), writeCell: () => {} }
+    const s = Effect.runSync(evalProgram(ir, ctx))
+    expect(s.stack[0]).toEqual(num(3))
+  })
+
   it("rejects mismatched parentheses", async () => {
     await expect(
       Effect.runPromise(compileInfix("=(A1+B1"))
