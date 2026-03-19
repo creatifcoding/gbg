@@ -1704,6 +1704,16 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("SYD/EFFECT/NOMINAL: financial completions", () => {
+    // SYD(10000, 1000, 5, 1): first year = 9000 * 5/15 = 3000
+    expect(evalProgramDirect(compileInfixSync("=SYD(10000, 1000, 5, 1)")).stack[0]).toEqual(num(3000))
+    // EFFECT(0.1, 4) = (1+0.025)^4 - 1 ≈ 0.10381
+    expect(evalProgramDirect(compileInfixSync("=ROUND(EFFECT(0.1, 4), 5)")).stack[0]).toEqual(num(0.10381))
+    // NOMINAL round-trip
+    const nom = (evalProgramDirect(compileInfixSync("=ROUND(NOMINAL(EFFECT(0.1, 4), 4), 4)")).stack[0] as any).value
+    expect(nom).toBeCloseTo(0.1, 3)
+  })
+
   it("NORMINV/DDB: inverse normal + depreciation", () => {
     // NORMINV(0.5, 0, 1) = 0 (median of standard normal)
     const nv = (evalProgramDirect(compileInfixSync("=ROUND(NORMINV(0.5, 0, 1), 4)")).stack[0] as any).value
