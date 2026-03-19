@@ -1422,6 +1422,13 @@ describe("infix parser", () => {
     expect(decompileIR(compileInfixSync("=UPPER(A1)"))).toBe("=UPPER(A1)")
   })
 
+  it("RANK: rank value within set", () => {
+    // Descending: highest=1
+    expect(evalProgramDirect(compileInfixSync("=RANK(30, 10, 20, 30, 40, 50)")).stack[0]).toEqual(num(3)) // 40,50 are higher
+    expect(evalProgramDirect(compileInfixSync("=RANK(50, 10, 20, 30, 40, 50)")).stack[0]).toEqual(num(1))
+    expect(evalProgramDirect(compileInfixSync("=RANK(10, 10, 20, 30)")).stack[0]).toEqual(num(3))
+  })
+
   it("CONCATENATE: join N strings (legacy Excel)", () => {
     expect(evalProgramDirect(compileInfixSync('=CONCATENATE("a","b","c")')).stack[0]).toEqual(str("abc"))
     expect(evalProgramDirect(compileInfixSync('=CONCATENATE("hello"," ","world")')).stack[0]).toEqual(str("hello world"))
