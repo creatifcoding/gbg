@@ -1704,6 +1704,15 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("GROWTH/TREND/PROB: predictive statistics", () => {
+    // TREND: linear prediction on 1,2,3 → next ≈ 4
+    const t = (evalProgramDirect(compileInfixSync("=ROUND(TREND(1, 2, 3), 0)")).stack[0] as any).value
+    expect(t).toBe(4)
+    // PROB: fraction in range [2,4] of [1,2,3,4,5] = 3/5 = 0.6
+    const p = (evalProgramDirect(compileInfixSync("=PROB(2, 4, 1, 2, 3, 4, 5)")).stack[0] as any).value
+    expect(p).toBe(0.6)
+  })
+
   it("LAMBDA/REDUCE/SCAN: functional programming primitives", () => {
     // REDUCE: sum with initial 0
     expect(evalProgramDirect(compileInfixSync("=REDUCE(0, 1, 2, 3, 4)")).stack[0]).toEqual(num(10))
