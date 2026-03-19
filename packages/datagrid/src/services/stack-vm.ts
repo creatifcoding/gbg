@@ -445,6 +445,8 @@ export const PERCENTILE_N = Schema.TaggedStruct("PERCENTILE_N", { n: Schema.Numb
 export const COUNTA_N = Schema.TaggedStruct("COUNTA_N", { n: Schema.Number })
 export const COUNTBLANK_N = Schema.TaggedStruct("COUNTBLANK_N", { n: Schema.Number })
 export const SUMPRODUCT_N = Schema.TaggedStruct("SUMPRODUCT_N", { n: Schema.Number })
+export const MATCH_N = Schema.TaggedStruct("MATCH_N", { n: Schema.Number })
+export const INDEX_N = Schema.TaggedStruct("INDEX_N", { n: Schema.Number })
 export const MODE_N = Schema.TaggedStruct("MODE_N", { n: Schema.Number })
 export const HARMEAN_N = Schema.TaggedStruct("HARMEAN_N", { n: Schema.Number })
 export const GEOMEAN_N = Schema.TaggedStruct("GEOMEAN_N", { n: Schema.Number })
@@ -582,7 +584,7 @@ export const Opcode = Schema.Union([
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
-  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, MODE_N, HARMEAN_N, GEOMEAN_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
+  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, MATCH_N, INDEX_N, MODE_N, HARMEAN_N, GEOMEAN_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
   IFS_N, SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
@@ -1210,6 +1212,34 @@ const EXEC: Record<string, Executor> = {
     for (const v of args.slice(1)) { if (pred(v)) { const n = asNum(v); if (n < min) { min = n; found = true } } }
     if (!found) { const err = vmError("TYPE_MISMATCH", "MINIFS: no matches"); s.push(err); return { result: err } }
     const result = num(min); s.push(result); return { result }
+  },
+  // MATCH_N: find position of value in list. Stack: [lookup, v1, ..., vN] → 1-based position
+  MATCH_N: (op: any, s) => {
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "MATCH")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const lookup = args[0]
+    const lookupNum = lookup._tag === "num" ? lookup.value : NaN
+    const lookupStr = lookup._tag === "str" ? lookup.value.toLowerCase() : ""
+    for (let i = 1; i < args.length; i++) {
+      const v = args[i]
+      if (lookup._tag === "num" && v._tag === "num" && v.value === lookupNum) {
+        const result = num(i); s.push(result); return { result }
+      }
+      if (lookup._tag === "str" && v._tag === "str" && v.value.toLowerCase() === lookupStr) {
+        const result = num(i); s.push(result); return { result }
+      }
+    }
+    s.push(vmError("TYPE_MISMATCH", "MATCH: not found")); return { result: s[s.length-1] }
+  },
+  // INDEX_N: return value at position. Stack: [position, v1, ..., vN]
+  INDEX_N: (op: any, s) => {
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "INDEX")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const pos = Math.round(asNum(args[0]))
+    if (pos < 1 || pos >= args.length) { s.push(vmError("TYPE_MISMATCH", `INDEX: position ${pos} out of range`)); return { result: s[s.length-1] } }
+    const result = args[pos]; s.push(result); return { result }
   },
   // MODE_N: statistical mode (most frequent value)
   MODE_N: (op: any, s) => {
@@ -2047,6 +2077,8 @@ function classifyToken(tok: string): Opcode | null {
     case "PERCENTILE_N": return { _tag: "PERCENTILE_N", n: 0 } as any
     case "COUNTA_N": return { _tag: "COUNTA_N", n: 0 } as any
     case "COUNTBLANK_N": return { _tag: "COUNTBLANK_N", n: 0 } as any
+    case "MATCH_N": return { _tag: "MATCH_N", n: 0 } as any
+    case "INDEX_N": return { _tag: "INDEX_N", n: 0 } as any
     case "MODE_N": return { _tag: "MODE_N", n: 0 } as any
     case "HARMEAN_N": return { _tag: "HARMEAN_N", n: 0 } as any
     case "GEOMEAN_N": return { _tag: "GEOMEAN_N", n: 0 } as any
@@ -2273,13 +2305,13 @@ const INFIX_OP_MAP: Record<string, string> = {
 }
 const RIGHT_ASSOC = new Set<string>(["UNARY_NEG", "^"])
 const ZERO_ARG_FNS = new Set(["NOW", "RAND", "PI", "TODAY"])
-const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N", "SWITCH_N", "IFS_N", "IRR_N", "NPV_N", "VAR_N", "PERCENTILE_N", "COUNTA_N", "COUNTBLANK_N", "SUMPRODUCT_N", "MODE_N", "HARMEAN_N", "GEOMEAN_N", "AGGREGATE_N", "COUNTIF_N", "COUNTIFS_N", "SUMIF_N", "MAXIFS_N", "MINIFS_N", "AVERAGEIF_N", "LARGE_N", "SMALL_N", "STDEV_N", "MEDIAN_N", "RANK_N", "CONCATENATE_N", "TEXTJOIN_N"])
+const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N", "SWITCH_N", "IFS_N", "IRR_N", "NPV_N", "VAR_N", "PERCENTILE_N", "COUNTA_N", "COUNTBLANK_N", "SUMPRODUCT_N", "MATCH_N", "INDEX_N", "MODE_N", "HARMEAN_N", "GEOMEAN_N", "AGGREGATE_N", "COUNTIF_N", "COUNTIFS_N", "SUMIF_N", "MAXIFS_N", "MINIFS_N", "AVERAGEIF_N", "LARGE_N", "SMALL_N", "STDEV_N", "MEDIAN_N", "RANK_N", "CONCATENATE_N", "TEXTJOIN_N"])
 const N_VARIANTS: Record<string, string> = {
   SUM_DYN: "SUM_N", MIN_DYN: "MIN_N", MAX_DYN: "MAX_N", AVG_DYN: "AVG_N",
   PRODUCT_DYN: "PRODUCT_N",
   AND_N: "AND_N", OR_N: "OR_N", CHOOSE_N: "CHOOSE_N", SWITCH_N: "SWITCH_N", IFS_N: "IFS_N",
   IRR_N: "IRR_N", NPV_N: "NPV_N", VAR_N: "VAR_N", PERCENTILE_N: "PERCENTILE_N", COUNTA_N: "COUNTA_N", COUNTBLANK_N: "COUNTBLANK_N",
-  SUMPRODUCT_N: "SUMPRODUCT_N", MODE_N: "MODE_N", HARMEAN_N: "HARMEAN_N", GEOMEAN_N: "GEOMEAN_N", AGGREGATE_N: "AGGREGATE_N", COUNTIF_N: "COUNTIF_N", COUNTIFS_N: "COUNTIFS_N", SUMIF_N: "SUMIF_N", MAXIFS_N: "MAXIFS_N", MINIFS_N: "MINIFS_N", AVERAGEIF_N: "AVERAGEIF_N", LARGE_N: "LARGE_N", SMALL_N: "SMALL_N",
+  SUMPRODUCT_N: "SUMPRODUCT_N", MATCH_N: "MATCH_N", INDEX_N: "INDEX_N", MODE_N: "MODE_N", HARMEAN_N: "HARMEAN_N", GEOMEAN_N: "GEOMEAN_N", AGGREGATE_N: "AGGREGATE_N", COUNTIF_N: "COUNTIF_N", COUNTIFS_N: "COUNTIFS_N", SUMIF_N: "SUMIF_N", MAXIFS_N: "MAXIFS_N", MINIFS_N: "MINIFS_N", AVERAGEIF_N: "AVERAGEIF_N", LARGE_N: "LARGE_N", SMALL_N: "SMALL_N",
   STDEV_N: "STDEV_N", MEDIAN_N: "MEDIAN_N", RANK_N: "RANK_N", CONCATENATE_N: "CONCATENATE_N", TEXTJOIN_N: "TEXTJOIN_N",
 }
 const FN_VARIANTS: Record<string, string> = { IF: "IF_FN", IFERROR: "IFERROR_FN" }
@@ -2368,7 +2400,7 @@ const FUNC_MAP: Record<string, string> = {
   FACT: "FACT_OP", QUOTIENT: "QUOTIENT_OP", GCD: "GCD_OP", LCM: "LCM_OP", COMBIN: "COMBIN_OP", SUBSTITUTE: "SUBSTITUTE_OP",
   ISNUM: "ISNUM_OP", ISTEXT: "ISTEXT_OP", ISERROR: "ISERROR_OP", ISBLANK: "ISBLANK_OP",
   NPV: "NPV_N", VAR: "VAR_N", PERCENTILE: "PERCENTILE_N", COUNTA: "COUNTA_N", COUNTBLANK: "COUNTBLANK_N",
-  SUMPRODUCT: "SUMPRODUCT_N", MODE: "MODE_N", HARMEAN: "HARMEAN_N", GEOMEAN: "GEOMEAN_N", AGGREGATE: "AGGREGATE_N", COUNTIF: "COUNTIF_N", COUNTIFS: "COUNTIFS_N", SUMIF: "SUMIF_N", MAXIFS: "MAXIFS_N", MINIFS: "MINIFS_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
+  SUMPRODUCT: "SUMPRODUCT_N", MATCH: "MATCH_N", INDEX: "INDEX_N", MODE: "MODE_N", HARMEAN: "HARMEAN_N", GEOMEAN: "GEOMEAN_N", AGGREGATE: "AGGREGATE_N", COUNTIF: "COUNTIF_N", COUNTIFS: "COUNTIFS_N", SUMIF: "SUMIF_N", MAXIFS: "MAXIFS_N", MINIFS: "MINIFS_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
   STDEV: "STDEV_N", MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
   DATEVALUE: "DATEVALUE_OP", EDATE: "EDATE_OP", WEEKDAY: "WEEKDAY_OP", WEEKNUM: "WEEKNUM_OP", ROMAN: "ROMAN_OP", ARABIC: "ARABIC_OP", TEXT: "TEXT_OP", NUMBERVALUE: "NUMBERVALUE_OP", REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
   IFS: "IFS_N", SWITCH: "SWITCH_N", VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
@@ -2777,6 +2809,8 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "SUMPRODUCT", args: "a1,...aN, b1,...bN", description: "Sum of pairwise products", category: "math" },
   { name: "COUNTIF", args: "criteria, values...", description: "Count values matching criteria", category: "stat" },
   { name: "SUMIF", args: "criteria, values...", description: "Sum values matching criteria", category: "stat" },
+  { name: "MATCH", args: "lookup, values...", description: "Position of value in list (1-based)", category: "lookup" },
+  { name: "INDEX", args: "position, values...", description: "Return value at position", category: "lookup" },
   { name: "MODE", args: "values...", description: "Most frequent value", category: "stat" },
   { name: "HARMEAN", args: "values...", description: "Harmonic mean (N / Σ(1/xi))", category: "stat" },
   { name: "GEOMEAN", args: "values...", description: "Geometric mean ((x1·x2·...·xn)^(1/n))", category: "stat" },

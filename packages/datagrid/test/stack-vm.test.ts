@@ -1704,6 +1704,18 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("MATCH/INDEX: lookup primitives", () => {
+    // MATCH: find "banana" in list → position 2
+    expect(evalProgramDirect(compileInfixSync('=MATCH("banana", "apple", "banana", "cherry")')).stack[0]).toEqual(num(2))
+    // MATCH: numeric
+    expect(evalProgramDirect(compileInfixSync("=MATCH(30, 10, 20, 30, 40)")).stack[0]).toEqual(num(3))
+    // INDEX: get value at position 2
+    expect(evalProgramDirect(compileInfixSync('=INDEX(2, "a", "b", "c")')).stack[0]).toEqual(str("b"))
+    // INDEX+MATCH combo: lookup "banana" then get its price
+    // This would need two passes in Excel, but here shows the pattern works
+    expect(evalProgramDirect(compileInfixSync("=INDEX(2, 100, 200, 300)")).stack[0]).toEqual(num(200))
+  })
+
   it("MODE/HARMEAN/GEOMEAN: advanced statistics", () => {
     // MODE: most frequent → 4
     expect(evalProgramDirect(compileInfixSync("=MODE(1, 2, 4, 4, 5)")).stack[0]).toEqual(num(4))
