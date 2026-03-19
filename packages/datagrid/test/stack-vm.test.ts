@@ -1392,6 +1392,15 @@ describe("infix parser", () => {
     expect(ir[0]).toEqual({ _tag: "PUSH_BOOL", value: true })
   })
 
+  it("SWITCH: multi-way branching", () => {
+    // =SWITCH(2, 1,"one", 2,"two", 3,"three") → "two"
+    expect(evalProgramDirect(compileInfixSync('=SWITCH(2, 1,"one", 2,"two", 3,"three")')).stack[0]).toEqual(str("two"))
+    // With default: =SWITCH(99, 1,"one", "other") → "other"
+    expect(evalProgramDirect(compileInfixSync('=SWITCH(99, 1,"one", "other")')).stack[0]).toEqual(str("other"))
+    // No match, no default → error
+    expect(evalProgramDirect(compileInfixSync('=SWITCH(99, 1,"one")')).stack[0]._tag).toBe("error")
+  })
+
   it("VALUE: text to number conversion", () => {
     expect(evalProgramDirect(compileInfixSync('=VALUE("42.5")')).stack[0]).toEqual(num(42.5))
     expect(evalProgramDirect(compileInfixSync('=VALUE("abc")')).stack[0]._tag).toBe("error")

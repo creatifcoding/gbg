@@ -372,6 +372,9 @@ export const ISTEXT_OP = Schema.TaggedStruct("ISTEXT_OP", {})
 export const ISERROR_OP = Schema.TaggedStruct("ISERROR_OP", {})
 export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
 
+/** SWITCH — multi-way branching */
+export const SWITCH_N = Schema.TaggedStruct("SWITCH_N", { n: Schema.Number })
+
 /** Coercion */
 export const VALUE_OP = Schema.TaggedStruct("VALUE_OP", {})
 export const TYPE_OP = Schema.TaggedStruct("TYPE_OP", {})
@@ -482,7 +485,7 @@ export const Opcode = Schema.Union([
   LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
-  VALUE_OP, TYPE_OP, N_OP,
+  SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
   SUM_N, MIN_N, MAX_N, AVG_N,
@@ -727,6 +730,27 @@ const EXEC: Record<string, Executor> = {
       default: return str("unknown")
     }
   }, "TYPE") }),
+  // SWITCH_N: multi-way branching. Stack: [..., value, match1, result1, match2, result2, ..., default?]
+  // n = total arg count (including value). If odd, last is default.
+  SWITCH_N: (op: any, s) => {
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "SWITCH")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const value = args[0]
+    const pairs = args.slice(1)
+    const hasDefault = pairs.length % 2 === 1
+    const pairCount = Math.floor(pairs.length / 2)
+    for (let i = 0; i < pairCount; i++) {
+      const match = pairs[i * 2]
+      const result = pairs[i * 2 + 1]
+      if (value._tag === match._tag && (value as any).value === (match as any).value) {
+        s.push(result); return { result }
+      }
+    }
+    if (hasDefault) { const d = pairs[pairs.length - 1]; s.push(d); return { result: d } }
+    const err = vmError("TYPE_MISMATCH", "SWITCH: no match"); s.push(err); return { result: err }
+  },
+
   // N: converts any value to number (Excel N function)
   N_OP: (_o, s) => ({ result: unop(s, a => {
     if (isVMError(a)) return a
@@ -1115,6 +1139,7 @@ function classifyToken(tok: string): Opcode | null {
     case "ISTEXT_OP": return _OP.ISTEXT_OP
     case "ISERROR_OP": return _OP.ISERROR_OP
     case "ISBLANK_OP": return _OP.ISBLANK_OP
+    case "SWITCH_N": return { _tag: "SWITCH_N", n: 0 } as any
     case "VALUE_OP": return _OP.VALUE_OP
     case "TYPE_OP": return _OP.TYPE_OP
     case "N_OP": return _OP.N_OP
@@ -1308,11 +1333,11 @@ const INFIX_OP_MAP: Record<string, string> = {
 }
 const RIGHT_ASSOC = new Set<string>(["UNARY_NEG", "^"])
 const ZERO_ARG_FNS = new Set(["NOW", "RAND", "PI", "TODAY"])
-const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N"])
+const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N", "SWITCH_N"])
 const N_VARIANTS: Record<string, string> = {
   SUM_DYN: "SUM_N", MIN_DYN: "MIN_N", MAX_DYN: "MAX_N", AVG_DYN: "AVG_N",
   PRODUCT_DYN: "PRODUCT_N",
-  AND_N: "AND_N", OR_N: "OR_N", CHOOSE_N: "CHOOSE_N",
+  AND_N: "AND_N", OR_N: "OR_N", CHOOSE_N: "CHOOSE_N", SWITCH_N: "SWITCH_N",
 }
 const FN_VARIANTS: Record<string, string> = { IF: "IF_FN", IFERROR: "IFERROR_FN" }
 
@@ -1384,7 +1409,7 @@ const FUNC_MAP: Record<string, string> = {
   LEN: "LEN_OP", LEFT: "LEFT_OP", RIGHT: "RIGHT_OP", MID: "MID_OP",
   TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", SUBSTITUTE: "SUBSTITUTE_OP",
   ISNUM: "ISNUM_OP", ISTEXT: "ISTEXT_OP", ISERROR: "ISERROR_OP", ISBLANK: "ISBLANK_OP",
-  VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
+  SWITCH: "SWITCH_N", VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
   YEAR: "YEAR_OP", MONTH: "MONTH_OP", DAY: "DAY_OP",
   HOUR: "HOUR_OP", MINUTE: "MINUTE_OP", SECOND: "SECOND_OP",
 }
@@ -1713,6 +1738,8 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "NOT", args: "value", description: "Logical negation", category: "logic" },
   // Lookup
   { name: "CHOOSE", args: "index, values...", description: "Pick by 1-based index", category: "lookup" },
+  // Branching
+  { name: "SWITCH", args: "value, match1, result1, ..., [default]", description: "Multi-way match (like nested IF)", category: "logic" },
   // Coercion
   { name: "VALUE", args: "text", description: "Convert text to number", category: "info" },
   { name: "TYPE", args: "value", description: "Return type name as text", category: "info" },
