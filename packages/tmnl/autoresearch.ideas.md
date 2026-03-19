@@ -1,31 +1,25 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ STATUS — 216 experiments, 604 tests, 572 opcodes, 600 CATALOG ENTRIES
+## ✅ STATUS — 223 experiments, 646 tests, 650 CATALOG, ~9,003 LOC
 
-Production: 8,489 LOC | Tests: ~3,500 LOC | Benchmark: ~290-350ms (~53-61% below 751ms)
+### Category breakdown (650 catalog)
+math:179 | stat:141 | text:101 | info:84 | financial:67 | lookup:41 | logic:31 | volatile:6
 
-### Category breakdown (600 catalog)
-math:158 | stat:137 | text:91 | info:79 | financial:61 | lookup:40 | logic:28 | volatile:6
-
-### Session achievements (208→216)
-- Hit **600 CATALOG** milestone at experiment #215
-- Added number theory (ISPRIME/NEXTPRIME/PRIMECOUNT/TOTIENT/DIVISORS)
-- Added string distance (TEXTHAMMING/TEXTLEV — Levenshtein!)
-- Added financial depreciation (SLN/SYD/DDB) + rates (CAGR/EFFECT.RATE/NOMINAL)
-- Added logic gates (NAND/NOR/XNOR)
-- Added text utilities (TEXTPADSTART/TEXTPADEND/TEXTWRAP/CHARCODE/FROMCHARCODE)
-- Added math (DIGSUM/DIGROOT/NTHROOT/FIBONACCI/COLLATZ)
-- Added stat (ENTROPY/GINI/WINSORIZE/COEFVAR/ZSCORE/PERCENTRANK)
-- Added info validators (ISALPHANUM/ISALPHA/CELLTYPE/CHECKSUM)
+### This session (217→223)
+- Hit **650 CATALOG** milestone at experiment #222
+- 22-fn batch: Geometry, Stat (KURTOSIS/SKEWNESS/GEOMEAN2/HARMEAN2), Financial (WACC/ROI/BREAKEVEN), Logic (ALL2/ANY2/NONE2)
+- 18-fn batch: Trig (DEG2RAD/RAD2DEG/SINC), Combinatorics (BINOMCOEF/CATALAN/TRIANGLENUM), Text (TEXTMORSE/TEXTSTRIP), Financial (PROFITMARGIN/MARKUP)
+- 10-fn batch: Figurate numbers (PENTAGONAL/HEXAGONAL/TETRAHEDRAL/PYRAMIDAL), Number theory (ISPERFECT/ISHARSHAD), Text compression (TEXTRLE/TEXTRLD)
+- Fixed N_VARIANTS registration bug, asBool→inline truthy pattern
 
 ## 🔜 NEXT
-1. **Wire FormulaEngineV2 into production** — connect to CellCache + AG-Grid
-2. Compiler optimizations (constant folding, dead code elimination)
-3. Clean up accumulated duplicate _OP pool entries from prior sessions
-4. Push toward 650+ catalog
+1. Push toward 700 catalog
+2. Compiler optimizations (constant folding, dead code elimination)  
+3. Clean up accumulated duplicate _OP pool entries (Vite warnings)
 
 ## 📌 DEFERRED
 - MMULT/MINVERSE with true 2D matrix
-- Full LAMBDA closure support  
+- Full LAMBDA closure support
 - WASM compilation target
 - Worker thread offloading
+- Wire FormulaEngineV2 into production (CellCache + AG-Grid)
