@@ -1704,6 +1704,17 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("XMATCH/CEILING.PRECISE/FLOOR.PRECISE: modern Excel functions", () => {
+    // XMATCH: exact match → position 3
+    expect(evalProgramDirect(compileInfixSync("=XMATCH(30, 10, 20, 30, 40)")).stack[0]).toEqual(num(3))
+    // XMATCH: approximate (nearest)
+    expect(evalProgramDirect(compileInfixSync("=XMATCH(25, 10, 20, 30, 40)")).stack[0]).toEqual(num(2)) // closest to 20
+    // CEILING.PRECISE(2.5, 1) = 3
+    expect(evalProgramDirect(compileInfixSync("=CEILING.PRECISE(2.5, 1)")).stack[0]).toEqual(num(3))
+    // FLOOR.PRECISE(2.5, 1) = 2
+    expect(evalProgramDirect(compileInfixSync("=FLOOR.PRECISE(2.5, 1)")).stack[0]).toEqual(num(2))
+  })
+
   it("AVERAGEA/MAXA/MINA: A-variants with mixed types", () => {
     // AVERAGEA with text: text counts as 0, TRUE as 1
     expect(evalProgramDirect(compileInfixSync('=AVERAGEA(10, "text", TRUE)')).stack[0]).toEqual(num(11 / 3))
