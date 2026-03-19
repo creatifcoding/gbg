@@ -556,9 +556,12 @@ export interface VMState {
   readonly halted: boolean
 }
 
+/** Shared empty registers object (reused, never mutated) */
+const _EMPTY_REGS: Record<string, VMValue> = {}
+
 export const emptyState = (): VMState => ({
   stack: [],
-  registers: {},
+  registers: _EMPTY_REGS,
   trail: [],
   step: 0,
   halted: false,
