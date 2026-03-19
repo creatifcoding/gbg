@@ -2786,6 +2786,32 @@ describe("post-450 function coverage", () => {
   it("ISZERO(5) = false", () => expect(d("=ISZERO(5)")).toBe(false))
   it("ANNUITY(0.05, 10) ≈ 7.72", () => expect(d("=ANNUITY(0.05, 10)")).toBeCloseTo(7.7217, 3))
 
+  // Roman numerals
+  it("TOROMAN(42) = XLII", () => expect(d("=TOROMAN(42)")).toBe("XLII"))
+  it("FROMROMAN(XLII) = 42", () => expect(d("=FROMROMAN(\"XLII\")")).toBe(42))
+  it("TOROMAN→FROMROMAN round-trip", () => expect(d("=FROMROMAN(TOROMAN(1999))")).toBe(1999))
+
+  // Ordinals
+  it("TOORDINAL(1) = 1st", () => expect(d("=TOORDINAL(1)")).toBe("1st"))
+  it("TOORDINAL(3) = 3rd", () => expect(d("=TOORDINAL(3)")).toBe("3rd"))
+
+  // Hex text encoding
+  it("TEXTHEX(AB) = 4142", () => expect(d("=TEXTHEX(\"AB\")")).toBe("4142"))
+  it("TEXTFROMHEX(4142) = AB", () => expect(d("=TEXTFROMHEX(\"4142\")")).toBe("AB"))
+
+  // Text utilities
+  it("TEXTDEDUPE(aaabbb) = ab", () => expect(d("=TEXTDEDUPE(\"aaabbb\")")).toBe("ab"))
+  it("TEXTPASCALCASE(hello world) = HelloWorld", () => expect(d("=TEXTPASCALCASE(\"hello world\")")).toBe("HelloWorld"))
+
+  // Number theory / info
+  it("ISPOWEROFTWO(8) = true", () => expect(d("=ISPOWEROFTWO(8)")).toBe(true))
+  it("ISPOWEROFTWO(6) = false", () => expect(d("=ISPOWEROFTWO(6)")).toBe(false))
+  it("ISPRIMEFAST(97) = true", () => expect(d("=ISPRIMEFAST(97)")).toBe(true))
+
+  // Financial ratios
+  it("SHARPE(0.12, 0.02, 0.15) ≈ 0.667", () => expect(d("=SHARPE(0.12, 0.02, 0.15)")).toBeCloseTo(0.6667, 3))
+  it("CHEBYSHEV(-3, 5) = 5", () => expect(d("=CHEBYSHEV(-3, 5)")).toBe(5))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
