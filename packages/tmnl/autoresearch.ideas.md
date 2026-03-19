@@ -1,13 +1,13 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ COMPLETE — 87 experiments, 353 tests, 90 opcodes
+## ✅ COMPLETE — 90 experiments, 356 tests, 93 opcodes
 
-Production: 3,069 LOC (stack-vm.ts 2,198 + vm-cell-bridge 154 + dep-graph 314 + formula-engine-v2 338)
-Tests: 5,236 LOC across 6 files (353 tests: 180 production + 80 spike + 93 engine/integration)
+Production: 3,119 LOC (stack-vm.ts ~2,250 + vm-cell-bridge 154 + dep-graph 314 + formula-engine-v2 338)
+Tests: 5,257 LOC across 6 files (356 tests: 183 production + 80 spike + 93 engine/integration)
 
-Architecture highlights:
-- Flat EXEC dispatch table (86 entries, O(1))
-- _OP singleton interning (57+ parameterless opcodes)
+### Architecture highlights
+- Flat EXEC dispatch table (90+ entries, O(1))
+- _OP singleton interning (58+ parameterless opcodes)
 - VMValue interning (bool singletons, num(-1..100) cache)
 - evalProgramDirect: zero-Effect eval (71x faster, 0.17µs/eval)
 - evalProgramBulk: batch N in single transaction
@@ -16,10 +16,17 @@ Architecture highlights:
 - decompileIR: IR → readable formula (roundtrip)
 - analyzeIR: complexity metrics for optimization decisions
 - Infix shunting-yard: nested functions, operator precedence, ranges, booleans, = equality
-- FUNCTION_CATALOG: 58 entries with completeFunctions() autocomplete
+- FUNCTION_CATALOG: 61 entries with completeFunctions() autocomplete
 - FormulaEngineV2: register/validate/recalcDirty/recalcAll, named ranges, volatile, direct eval
 
-Function categories: math (11), stat (6), text (14), logic (5), lookup (1), info (10), volatile (3)
+### Function categories (61 functions)
+- **Math** (11): ABS, SQRT, SIGN, LOG, LOG10, POWER, ROUND, FLOOR, CEIL, MOD, PI
+- **Stat** (8): SUM, AVG, MIN, MAX, COUNT, PRODUCT, MEDIAN, STDEV, RANK
+- **Text** (17): LEN, LEFT, RIGHT, MID, TRIM, UPPER, LOWER, SUBSTITUTE, CONCAT, CONCATENATE, REPT, EXACT, FIND, SEARCH, REPLACE, TEXTJOIN
+- **Logic** (7): IF, IFERROR, AND, OR, NOT, IFS, SWITCH
+- **Lookup** (1): CHOOSE
+- **Info** (14): ISNUM, ISTEXT, ISERROR, ISBLANK, VALUE, TYPE, N, YEAR, MONTH, DAY, HOUR, MINUTE, SECOND
+- **Volatile** (3): NOW, RAND, TODAY
 
 ## 🔜 NEXT — Remaining high-value work
 
@@ -37,13 +44,10 @@ Function categories: math (11), stat (6), text (14), logic (5), lookup (1), info
 - =ARRAYFORMULA(A1:A10 * B1:B10)
 - Element-wise operations on ranges
 
-### Conditional formatting via formulas
-- =IF(A1>100, "red", "green") style rules evaluated by FormulaEngineV2
-- Cell renderer reads format from formula result
-
 ## 📌 DEFERRED
 - TxHashMap cell state (needs production wiring first)
 - WASM sandbox (Domain B, deferred until core is production-ready)
+- Conditional formatting via formulas
 
 ## 📊 v4 API Gotchas (Reference — 14 discoveries)
 | Wrong | Correct |

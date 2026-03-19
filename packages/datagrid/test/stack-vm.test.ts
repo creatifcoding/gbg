@@ -1422,6 +1422,24 @@ describe("infix parser", () => {
     expect(decompileIR(compileInfixSync("=UPPER(A1)"))).toBe("=UPPER(A1)")
   })
 
+  it("COUNTIF: criteria-based counting", () => {
+    // Count values > 5
+    expect(evalProgramDirect(compileInfixSync('=COUNTIF(">5", 3, 7, 2, 10, 5)')).stack[0]).toEqual(num(2)) // 7,10
+    // Count values equal to "abc"
+    expect(evalProgramDirect(compileInfixSync('=COUNTIF("abc", "abc", "def", "abc")')).stack[0]).toEqual(num(2))
+    // Count not-equal
+    expect(evalProgramDirect(compileInfixSync('=COUNTIF("<>0", 0, 1, 2, 0, 3)')).stack[0]).toEqual(num(3)) // 1,2,3
+    // Wildcard
+    expect(evalProgramDirect(compileInfixSync('=COUNTIF("app*", "apple", "banana", "application")')).stack[0]).toEqual(num(2))
+  })
+
+  it("SUMIF: criteria-based summation", () => {
+    // Sum values > 10
+    expect(evalProgramDirect(compileInfixSync('=SUMIF(">10", 5, 15, 8, 20)')).stack[0]).toEqual(num(35)) // 15+20
+    // Sum values <= 3
+    expect(evalProgramDirect(compileInfixSync('=SUMIF("<=3", 1, 2, 3, 4, 5)')).stack[0]).toEqual(num(6)) // 1+2+3
+  })
+
   it("STDEV: sample standard deviation", () => {
     // STDEV(2, 4, 4, 4, 5, 5, 7, 9) = 2.138...
     const state = evalProgramDirect(compileInfixSync("=ROUND(STDEV(2,4,4,4,5,5,7,9), 3)"))

@@ -376,6 +376,8 @@ export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
 export const REPT_OP = Schema.TaggedStruct("REPT_OP", {})
 export const EXACT_OP = Schema.TaggedStruct("EXACT_OP", {})
 export const FIND_OP = Schema.TaggedStruct("FIND_OP", {})
+export const COUNTIF_N = Schema.TaggedStruct("COUNTIF_N", { n: Schema.Number })
+export const SUMIF_N = Schema.TaggedStruct("SUMIF_N", { n: Schema.Number })
 export const STDEV_N = Schema.TaggedStruct("STDEV_N", { n: Schema.Number })
 export const MEDIAN_N = Schema.TaggedStruct("MEDIAN_N", { n: Schema.Number })
 export const RANK_N = Schema.TaggedStruct("RANK_N", { n: Schema.Number })
@@ -500,7 +502,7 @@ export const Opcode = Schema.Union([
   LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
-  STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
+  COUNTIF_N, SUMIF_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
   IFS_N, SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
@@ -648,6 +650,23 @@ const aggregateDyn = (
 }
 
 // ── Reducers ────────────────────────────────────────────
+
+/** Parse Excel criteria string into a predicate: ">5", "<=10", "<>0", "abc", "abc*" */
+const parseCriteria = (raw: string): (v: VMValue) => boolean => {
+  // Operator prefixes
+  if (raw.startsWith(">=")) { const n = Number(raw.slice(2)); return v => asNum(v) >= n }
+  if (raw.startsWith("<=")) { const n = Number(raw.slice(2)); return v => asNum(v) <= n }
+  if (raw.startsWith("<>")) { const s = raw.slice(2); const n = Number(s); return isNaN(n) ? v => (v._tag === "str" ? v.value : vmDisplay(v)) !== s : v => asNum(v) !== n }
+  if (raw.startsWith(">"))  { const n = Number(raw.slice(1)); return v => asNum(v) > n }
+  if (raw.startsWith("<"))  { const n = Number(raw.slice(1)); return v => asNum(v) < n }
+  if (raw.startsWith("="))  { const s = raw.slice(1); const n = Number(s); return isNaN(n) ? v => (v._tag === "str" ? v.value : vmDisplay(v)) === s : v => asNum(v) === n }
+  // Wildcard suffix
+  if (raw.endsWith("*"))    { const prefix = raw.slice(0, -1).toLowerCase(); return v => (v._tag === "str" ? v.value : vmDisplay(v)).toLowerCase().startsWith(prefix) }
+  // Plain number or exact match
+  const n = Number(raw)
+  if (!isNaN(n)) return v => asNum(v) === n
+  return v => (v._tag === "str" ? v.value : vmDisplay(v)).toLowerCase() === raw.toLowerCase()
+}
 
 const sumReduce = (vals: VMValue[]) => { let t = 0; for (const v of vals) t += asNum(v); return num(t) }
 const minReduce = (vals: VMValue[]) => { let m = asNum(vals[0]); for (let i = 1; i < vals.length; i++) { const v = asNum(vals[i]); if (v < m) m = v }; return num(m) }
@@ -825,6 +844,38 @@ const EXEC: Record<string, Executor> = {
     const result = str(t.substring(0, si) + nt + t.substring(si + l))
     s.push(result); return { result }
   },
+  // --- Criteria parsing for COUNTIF/SUMIF ---
+  // Criteria: ">5", "<=10", "<>0", "abc", "abc*" (wildcard suffix), "=5", plain number
+  // Returns a predicate (VMValue) => boolean
+
+  // COUNTIF_N: count values matching criteria. Stack: [criteria, v1, v2, ..., vN]
+  COUNTIF_N: (op: any, s) => {
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "COUNTIF")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const criteriaRaw = args[0]._tag === "str" ? args[0].value : vmDisplay(args[0])
+    const pred = parseCriteria(criteriaRaw)
+    const values = args.slice(1)
+    let count = 0
+    for (const v of values) { if (pred(v)) count++ }
+    const result = num(count)
+    s.push(result); return { result }
+  },
+
+  // SUMIF_N: sum values matching criteria. Stack: [criteria, v1, v2, ..., vN]
+  SUMIF_N: (op: any, s) => {
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "SUMIF")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const criteriaRaw = args[0]._tag === "str" ? args[0].value : vmDisplay(args[0])
+    const pred = parseCriteria(criteriaRaw)
+    const values = args.slice(1)
+    let total = 0
+    for (const v of values) { if (pred(v)) total += asNum(v) }
+    const result = num(total)
+    s.push(result); return { result }
+  },
+
   // STDEV_N: sample standard deviation of N values
   STDEV_N: (op: any, s) => {
     const n = op.n as number
@@ -1290,6 +1341,8 @@ function classifyToken(tok: string): Opcode | null {
     case "ISTEXT_OP": return _OP.ISTEXT_OP
     case "ISERROR_OP": return _OP.ISERROR_OP
     case "ISBLANK_OP": return _OP.ISBLANK_OP
+    case "COUNTIF_N": return { _tag: "COUNTIF_N", n: 0 } as any
+    case "SUMIF_N": return { _tag: "SUMIF_N", n: 0 } as any
     case "STDEV_N": return { _tag: "STDEV_N", n: 0 } as any
     case "MEDIAN_N": return { _tag: "MEDIAN_N", n: 0 } as any
     case "RANK_N": return { _tag: "RANK_N", n: 0 } as any
@@ -1495,11 +1548,12 @@ const INFIX_OP_MAP: Record<string, string> = {
 }
 const RIGHT_ASSOC = new Set<string>(["UNARY_NEG", "^"])
 const ZERO_ARG_FNS = new Set(["NOW", "RAND", "PI", "TODAY"])
-const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N", "SWITCH_N", "IFS_N", "STDEV_N", "MEDIAN_N", "RANK_N", "CONCATENATE_N", "TEXTJOIN_N"])
+const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N", "SWITCH_N", "IFS_N", "COUNTIF_N", "SUMIF_N", "STDEV_N", "MEDIAN_N", "RANK_N", "CONCATENATE_N", "TEXTJOIN_N"])
 const N_VARIANTS: Record<string, string> = {
   SUM_DYN: "SUM_N", MIN_DYN: "MIN_N", MAX_DYN: "MAX_N", AVG_DYN: "AVG_N",
   PRODUCT_DYN: "PRODUCT_N",
   AND_N: "AND_N", OR_N: "OR_N", CHOOSE_N: "CHOOSE_N", SWITCH_N: "SWITCH_N", IFS_N: "IFS_N",
+  COUNTIF_N: "COUNTIF_N", SUMIF_N: "SUMIF_N",
   STDEV_N: "STDEV_N", MEDIAN_N: "MEDIAN_N", RANK_N: "RANK_N", CONCATENATE_N: "CONCATENATE_N", TEXTJOIN_N: "TEXTJOIN_N",
 }
 const FN_VARIANTS: Record<string, string> = { IF: "IF_FN", IFERROR: "IFERROR_FN" }
@@ -1572,6 +1626,7 @@ const FUNC_MAP: Record<string, string> = {
   LEN: "LEN_OP", LEFT: "LEFT_OP", RIGHT: "RIGHT_OP", MID: "MID_OP",
   TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", SUBSTITUTE: "SUBSTITUTE_OP",
   ISNUM: "ISNUM_OP", ISTEXT: "ISTEXT_OP", ISERROR: "ISERROR_OP", ISBLANK: "ISBLANK_OP",
+  COUNTIF: "COUNTIF_N", SUMIF: "SUMIF_N",
   STDEV: "STDEV_N", MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
   REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
   IFS: "IFS_N", SWITCH: "SWITCH_N", VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
@@ -1909,6 +1964,8 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "OR", args: "values...", description: "Any condition true", category: "logic" },
   { name: "NOT", args: "value", description: "Logical negation", category: "logic" },
   // Lookup / Ranking
+  { name: "COUNTIF", args: "criteria, values...", description: "Count values matching criteria", category: "stat" },
+  { name: "SUMIF", args: "criteria, values...", description: "Sum values matching criteria", category: "stat" },
   { name: "STDEV", args: "values...", description: "Sample standard deviation", category: "stat" },
   { name: "MEDIAN", args: "values...", description: "Middle value (sorted)", category: "stat" },
   { name: "RANK", args: "value, values...", description: "Rank value (1=highest)", category: "stat" },
