@@ -29,7 +29,7 @@ import { Effect, ServiceMap, Layer, Schema } from "effect-v4"
 import type { CellValue } from "../schemas/cell-value"
 import { cellToVM, vmToCell } from "./vm-cell-bridge"
 import {
-  compileExprSync, compileInfixSync, extractDeps, extractDepsInfix, evalProgram,
+  compileExprSync, compileInfixSync, extractDeps, extractDepsInfix, evalProgram, evalProgramDirect,
   isVolatileIR,
   type StackIR, type VMValue, type CellContext,
   num, vmError,
@@ -209,7 +209,9 @@ export const FormulaEngineV2Live = Layer.effect(
     function evalFormula(record: FormulaRecord): string | null {
       try {
         const ctx = makeCellContext()
-        const state = Effect.runSync(evalProgram(record.ir, ctx))
+        // Direct eval — no Effect/TxRef/transaction overhead.
+        // Safe: recalc is single-threaded, no contention.
+        const state = evalProgramDirect(record.ir, ctx)
         const result = state.stack[state.stack.length - 1] ?? num(0)
         cellStore.set(record.addr, vmToCell(result))
         return null

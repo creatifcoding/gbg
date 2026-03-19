@@ -26,7 +26,7 @@ import {
   type VMFailure,
   failureToVMError, timeoutToVMError, catchToErrorState,
   // VM core
-  evalProgram, evalExpr, compileExpr, compileExprSync,
+  evalProgram, evalProgramDirect, evalExpr, compileExpr, compileExprSync,
   compileInfix, compileInfixSync, extractDepsInfix,
   FUNCTION_CATALOG, completeFunctions,
   execOpcode, emptyState, MAX_EVAL_STEPS,
@@ -1316,6 +1316,39 @@ describe("infix parser", () => {
     const ir = compileInfixSync("=IF(AND(A1>0, B1>0), ROUND(SQRT(A1^2+B1^2), 2), 0)")
     const s = Effect.runSync(evalProgram(ir, ctx))
     expect(s.stack[0]).toEqual(num(5)) // sqrt(9+16) = sqrt(25) = 5
+  })
+
+  it("evalProgramDirect: zero-overhead eval matches evalProgram", () => {
+    const ir = compileInfixSync("=2+3*4")
+    const direct = evalProgramDirect(ir)
+    const effect = Effect.runSync(evalProgram(ir))
+    expect(direct.stack).toEqual(effect.stack)
+    expect(direct.halted).toBe(effect.halted)
+  })
+
+  it("evalProgramDirect: 10K evals faster than Effect path", () => {
+    const ir = compileInfixSync("=2+3*4-1")
+    const N = 10_000
+
+    const t0 = performance.now()
+    for (let i = 0; i < N; i++) evalProgramDirect(ir)
+    const directMs = performance.now() - t0
+
+    const t1 = performance.now()
+    for (let i = 0; i < N; i++) Effect.runSync(evalProgram(ir))
+    const effectMs = performance.now() - t1
+
+    // Direct should be significantly faster (typically 5-20x)
+    expect(directMs).toBeLessThan(effectMs)
+    console.log(`  Direct: ${directMs.toFixed(1)}ms, Effect: ${effectMs.toFixed(1)}ms (${(effectMs / directMs).toFixed(1)}x)`)
+  })
+
+  it("evalProgramDirect: with cell context", () => {
+    const cells: Record<string, any> = { A1: num(10), B1: num(3) }
+    const ctx = { readCell: (a: string) => cells[a] ?? num(0), writeCell: () => {} }
+    const ir = compileInfixSync("=A1*B1+5")
+    const state = evalProgramDirect(ir, ctx)
+    expect(state.stack[0]).toEqual(num(35))
   })
 
   it("equality operator: =A1=5 checks if A1 equals 5", () => {

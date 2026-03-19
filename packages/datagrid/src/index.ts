@@ -112,6 +112,7 @@ export {
   evalProgram, evalExpr, compileExpr, compileExprSync,
   compileInfix, compileInfixSync, extractDepsInfix,
   isVolatileIR,
+  evalProgramDirect,
   FUNCTION_CATALOG,
   completeFunctions,
   type FunctionSignature,

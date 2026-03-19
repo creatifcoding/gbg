@@ -1705,6 +1705,46 @@ export const evalProgram = (ir: StackIR, ctx?: CellContext): Effect.Effect<VMSta
     })
   )
 
+/**
+ * Direct eval — zero Effect overhead.
+ * Runs StackIR on a plain JS array stack. No TxRef, no transaction, no generator.
+ * Use for production recalc loops where transactional guarantees are not needed
+ * (single-threaded, no contention).
+ */
+export const evalProgramDirect = (ir: StackIR, ctx?: CellContext): VMState => {
+  const s: VMValue[] = []
+  const trail: TrailEntry[] = []
+  const cellCtx = ctx ?? emptyCellContext
+  let step = 0
+  let halted = false
+
+  for (const op of ir) {
+    if (halted) break
+    if (step >= MAX_EVAL_STEPS) {
+      s.push(vmError("EVAL_OVERFLOW", `Exceeded ${MAX_EVAL_STEPS} steps`))
+      halted = true
+      break
+    }
+
+    const depthBefore = s.length
+    const exec = EXEC[op._tag]
+    const r = exec ? exec(op as any, s, cellCtx) : {}
+
+    trail.push({
+      step,
+      opcode: op._tag,
+      stackDepthBefore: depthBefore,
+      stackDepthAfter: s.length,
+      result: r.result,
+    })
+
+    if (r.halted === true) halted = true
+    step++
+  }
+
+  return { stack: s, registers: {}, trail, step, halted }
+}
+
 /** Run an expression string with fresh state (can fail with CompileError) */
 export const evalExpr = (expr: string): Effect.Effect<VMState, CompileError> =>
   Effect.gen(function*() {
