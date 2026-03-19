@@ -366,6 +366,9 @@ export const ERROR_TYPE_OP = Schema.TaggedStruct("ERROR_TYPE_OP", {})
 export const ISEVEN_OP = Schema.TaggedStruct("ISEVEN_OP", {})
 export const ISODD_OP = Schema.TaggedStruct("ISODD_OP", {})
 export const INT_OP = Schema.TaggedStruct("INT_OP", {})
+export const SQRTPI_OP = Schema.TaggedStruct("SQRTPI_OP", {})
+export const BASE_OP = Schema.TaggedStruct("BASE_OP", {})
+export const DECIMAL_OP = Schema.TaggedStruct("DECIMAL_OP", {})
 export const CEILING_MATH_OP = Schema.TaggedStruct("CEILING_MATH_OP", {})
 export const FLOOR_MATH_OP = Schema.TaggedStruct("FLOOR_MATH_OP", {})
 export const ROUNDUP_OP = Schema.TaggedStruct("ROUNDUP_OP", {})
@@ -564,7 +567,7 @@ export const Opcode = Schema.Union([
   EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR,
   AND_N, OR_N, CHOOSE_N,
   LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, PROPER_OP, CLEAN_OP, CHAR_OP, CODE_OP, T_OP, ISLOGICAL_OP, ISNONTEXT_OP, ERROR_TYPE_OP, ISEVEN_OP, ISODD_OP,
-  INT_OP, CEILING_MATH_OP, FLOOR_MATH_OP, ROUNDUP_OP, ROUNDDOWN_OP, EVEN_OP, ODD_OP, TRUNC_OP, EXP_OP, LN_OP, LOG2_OP, RAND_BETWEEN, RATE_OP, DB_OP, NPER_OP, SLN_OP, PMT_OP, FV_OP, PV_OP, MROUND_OP, FIXED_OP, DOLLAR_OP,
+  INT_OP, SQRTPI_OP, BASE_OP, DECIMAL_OP, CEILING_MATH_OP, FLOOR_MATH_OP, ROUNDUP_OP, ROUNDDOWN_OP, EVEN_OP, ODD_OP, TRUNC_OP, EXP_OP, LN_OP, LOG2_OP, RAND_BETWEEN, RATE_OP, DB_OP, NPER_OP, SLN_OP, PMT_OP, FV_OP, PV_OP, MROUND_OP, FIXED_OP, DOLLAR_OP,
   SINH_OP, COSH_OP, TANH_OP, SIN_OP, COS_OP, TAN_OP, ASIN_OP, ACOS_OP, ATAN_OP, ATAN2_OP, RADIANS_OP, DEGREES_OP,
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
@@ -1497,6 +1500,24 @@ const EXEC: Record<string, Executor> = {
     for (let i = 0; i < k; i++) result = result * (n - i) / (i + 1)
     const r = num(Math.round(result)); s.push(r); return { result: r }
   },
+  // SQRTPI: square root of (PI * number)
+  SQRTPI_OP: (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; return num(Math.sqrt(Math.PI * asNum(a))) }, "SQRTPI") }),
+  // BASE: convert number to string in given base. BASE(number, radix)
+  BASE_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "BASE")); return { result: s[s.length-1] } }
+    const radix = Math.round(asNum(s.pop()!)), value = Math.round(asNum(s.pop()!))
+    if (radix < 2 || radix > 36) { s.push(vmError("TYPE_MISMATCH", `BASE: radix ${radix} out of [2,36]`)); return { result: s[s.length-1] } }
+    const result = str(value.toString(radix).toUpperCase()); s.push(result); return { result }
+  },
+  // DECIMAL_OP: parse string in given base to number. DECIMAL("FF", 16) → 255
+  DECIMAL_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "DECIMAL")); return { result: s[s.length-1] } }
+    const radix = Math.round(asNum(s.pop()!))
+    const textVal = s.pop()!, text = textVal._tag === "str" ? textVal.value : vmDisplay(textVal)
+    const n = parseInt(text, radix)
+    if (isNaN(n)) { s.push(vmError("TYPE_MISMATCH", `DECIMAL: "${text}" base ${radix}`)); return { result: s[s.length-1] } }
+    const result = num(n); s.push(result); return { result }
+  },
   // CEILING_MATH: round up to nearest significance. CEILING.MATH(number, significance)
   CEILING_MATH_OP: (_o, s) => {
     if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "CEILING.MATH")); return { result: s[s.length-1] } }
@@ -1756,6 +1777,7 @@ const _OP: Record<string, Opcode> = {
   ISLOGICAL_OP: { _tag: "ISLOGICAL_OP" }, ISNONTEXT_OP: { _tag: "ISNONTEXT_OP" }, ERROR_TYPE_OP: { _tag: "ERROR_TYPE_OP" },
   ISEVEN_OP: { _tag: "ISEVEN_OP" }, ISODD_OP: { _tag: "ISODD_OP" },
   INT_OP: { _tag: "INT_OP" }, EVEN_OP: { _tag: "EVEN_OP" }, ODD_OP: { _tag: "ODD_OP" },
+  SQRTPI_OP: { _tag: "SQRTPI_OP" }, BASE_OP: { _tag: "BASE_OP" }, DECIMAL_OP: { _tag: "DECIMAL_OP" },
   CEILING_MATH_OP: { _tag: "CEILING_MATH_OP" }, FLOOR_MATH_OP: { _tag: "FLOOR_MATH_OP" },
   ROUNDUP_OP: { _tag: "ROUNDUP_OP" }, ROUNDDOWN_OP: { _tag: "ROUNDDOWN_OP" },
   TRUNC_OP: { _tag: "TRUNC_OP" }, EXP_OP: { _tag: "EXP_OP" }, LN_OP: { _tag: "LN_OP" }, LOG2_OP: { _tag: "LOG2_OP" },
@@ -1837,6 +1859,9 @@ function classifyToken(tok: string): Opcode | null {
     case "ERROR_TYPE_OP": return _OP.ERROR_TYPE_OP
     case "ISEVEN_OP": return _OP.ISEVEN_OP
     case "ISODD_OP": return _OP.ISODD_OP
+    case "SQRTPI_OP": return _OP.SQRTPI_OP
+    case "BASE_OP": return _OP.BASE_OP
+    case "DECIMAL_OP": return _OP.DECIMAL_OP
     case "CEILING_MATH_OP": return _OP.CEILING_MATH_OP
     case "FLOOR_MATH_OP": return _OP.FLOOR_MATH_OP
     case "ROUNDUP_OP": return _OP.ROUNDUP_OP
@@ -2178,7 +2203,7 @@ function tokenizeInfix(expr: string): string[] {
 
 /** Known functions → opcode mapping */
 const FUNC_MAP: Record<string, string> = {
-  SUM: "SUM_DYN", MIN: "MIN_DYN", MAX: "MAX_DYN", AVG: "AVG_DYN",
+  SUM: "SUM_DYN", MIN: "MIN_DYN", MAX: "MAX_DYN", AVG: "AVG_DYN", AVERAGE: "AVG_DYN",
   COUNT: "COUNT_DYN", POWER: "POWER",
   ROUND: "ROUND", FLOOR: "FLOOR", CEIL: "CEIL",
   SQRT: "SQRT_OP", SIGN: "SIGN_OP", LOG: "LOG_OP", LOG10: "LOG10_OP",
@@ -2191,7 +2216,7 @@ const FUNC_MAP: Record<string, string> = {
   TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", PROPER: "PROPER_OP", CLEAN: "CLEAN_OP", CHAR: "CHAR_OP", CODE: "CODE_OP", T: "T_OP",
   ISLOGICAL: "ISLOGICAL_OP", ISNONTEXT: "ISNONTEXT_OP", ERRORTYPE: "ERROR_TYPE_OP",
   ISEVEN: "ISEVEN_OP", ISODD: "ISODD_OP", ISNUMBER: "ISNUM_OP",
-  INT: "INT_OP", "CEILING.MATH": "CEILING_MATH_OP", "FLOOR.MATH": "FLOOR_MATH_OP", ROUNDUP: "ROUNDUP_OP", ROUNDDOWN: "ROUNDDOWN_OP", EVEN: "EVEN_OP", ODD: "ODD_OP", TRUNC: "TRUNC_OP", EXP: "EXP_OP", LN: "LN_OP", LOG2: "LOG2_OP",
+  INT: "INT_OP", SQRTPI: "SQRTPI_OP", BASE: "BASE_OP", DECIMAL: "DECIMAL_OP", "CEILING.MATH": "CEILING_MATH_OP", "FLOOR.MATH": "FLOOR_MATH_OP", ROUNDUP: "ROUNDUP_OP", ROUNDDOWN: "ROUNDDOWN_OP", EVEN: "EVEN_OP", ODD: "ODD_OP", TRUNC: "TRUNC_OP", EXP: "EXP_OP", LN: "LN_OP", LOG2: "LOG2_OP",
   RANDBETWEEN: "RAND_BETWEEN", IRR: "IRR_N", RATE: "RATE_OP", DB: "DB_OP", NPER: "NPER_OP", SLN: "SLN_OP", PMT: "PMT_OP", FV: "FV_OP", PV: "PV_OP", MROUND: "MROUND_OP", FIXED: "FIXED_OP", DOLLAR: "DOLLAR_OP",
   SINH: "SINH_OP", COSH: "COSH_OP", TANH: "TANH_OP",
   SIN: "SIN_OP", COS: "COS_OP", TAN: "TAN_OP", ASIN: "ASIN_OP", ACOS: "ACOS_OP", ATAN: "ATAN_OP", ATAN2: "ATAN2_OP", RADIANS: "RADIANS_OP", DEGREES: "DEGREES_OP",
@@ -2508,6 +2533,7 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   // Statistics / Aggregation
   { name: "SUM", args: "range | values...", description: "Sum of values", category: "stat" },
   { name: "AVG", args: "range | values...", description: "Average of values", category: "stat" },
+  { name: "AVERAGE", args: "range | values...", description: "Average of values (alias for AVG)", category: "stat" },
   { name: "MIN", args: "range | values...", description: "Minimum value", category: "stat" },
   { name: "MAX", args: "range | values...", description: "Maximum value", category: "stat" },
   { name: "COUNT", args: "range", description: "Count of values", category: "stat" },
@@ -2531,6 +2557,9 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "ISEVEN", args: "number", description: "TRUE if even", category: "info" },
   { name: "ISODD", args: "number", description: "TRUE if odd", category: "info" },
   { name: "ISNUMBER", args: "value", description: "Alias for ISNUM", category: "info" },
+  { name: "SQRTPI", args: "number", description: "Square root of (PI × number)", category: "math" },
+  { name: "BASE", args: "number, radix", description: "Convert number to text in given base", category: "math" },
+  { name: "DECIMAL", args: "text, radix", description: "Parse text in given base to number", category: "math" },
   { name: "CEILING.MATH", args: "number, significance", description: "Round up to nearest significance", category: "math" },
   { name: "FLOOR.MATH", args: "number, significance", description: "Round down to nearest significance", category: "math" },
   { name: "ROUNDUP", args: "number, digits", description: "Round away from zero", category: "math" },

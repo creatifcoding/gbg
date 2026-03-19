@@ -1514,6 +1514,22 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync("=ISODD(6)")).stack[0]).toEqual(bool(false))
   })
 
+  it("AVERAGE alias for AVG", () => {
+    expect(evalProgramDirect(compileInfixSync("=AVERAGE(10, 20, 30)")).stack[0]).toEqual(num(20))
+  })
+
+  it("SQRTPI: square root of PI*x", () => {
+    expect(evalProgramDirect(compileInfixSync("=ROUND(SQRTPI(1), 5)")).stack[0]).toEqual(num(1.77245))
+    expect(evalProgramDirect(compileInfixSync("=ROUND(SQRTPI(2), 5)")).stack[0]).toEqual(num(2.50663))
+  })
+
+  it("BASE/DECIMAL: number base conversion", () => {
+    expect(evalProgramDirect(compileInfixSync("=BASE(255, 16)")).stack[0]).toEqual(str("FF"))
+    expect(evalProgramDirect(compileInfixSync("=BASE(10, 2)")).stack[0]).toEqual(str("1010"))
+    expect(evalProgramDirect(compileInfixSync('=DECIMAL("FF", 16)')).stack[0]).toEqual(num(255))
+    expect(evalProgramDirect(compileInfixSync('=DECIMAL("1010", 2)')).stack[0]).toEqual(num(10))
+  })
+
   it("CEILING.MATH/FLOOR.MATH: round to significance", () => {
     expect(evalProgramDirect(compileInfixSync("=CEILING.MATH(6.3, 5)")).stack[0]).toEqual(num(10))
     expect(evalProgramDirect(compileInfixSync("=CEILING.MATH(4.42, 0.05)")).stack[0]).toEqual(num(4.45))
