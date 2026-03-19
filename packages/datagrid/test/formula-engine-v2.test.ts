@@ -676,6 +676,43 @@ describe("FormulaEngineV2", () => {
         expect(r2.recalculated.length).toBeGreaterThanOrEqual(3)
       }).pipe(Effect.provide(layer)))
     })
+    it("EXPERIMENT 100 CAPSTONE: full spreadsheet capabilities chain", async () => {
+      // Simulates: product pricing sheet with derived metrics
+      const store = makeStore({
+        A1: CV.str("Widget A"), A2: CV.str("Widget B"), A3: CV.str("Widget C"),
+        B1: CV.num(25.50), B2: CV.num(42.00), B3: CV.num(18.75),   // prices
+        C1: CV.num(100),   C2: CV.num(50),    C3: CV.num(200),      // quantities
+      })
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        // Line totals (price × quantity)
+        yield* e.registerInfix("D1", "=B1*C1")     // 2550
+        yield* e.registerInfix("D2", "=B2*C2")     // 2100
+        yield* e.registerInfix("D3", "=B3*C3")     // 3750
+        // Aggregates
+        yield* e.registerInfix("E1", "=SUM(D1,D2,D3)")          // total revenue: 8400
+        yield* e.registerInfix("E2", "=ROUND(AVG(B1,B2,B3), 2)")  // avg price: 28.75
+        yield* e.registerInfix("E3", "=MEDIAN(B1,B2,B3)")         // median price: 25.50
+        // Derived text
+        yield* e.registerInfix("F1", '=CONCATENATE(UPPER(LEFT(A1,1)),LOWER(MID(A1,2,99)))')  // "Widget a" formatting
+        // Conditional
+        yield* e.registerInfix("F2", '=IFS(E1>10000,"EXCELLENT",E1>5000,"GOOD",TRUE,"FAIR")')
+        // Info
+        yield* e.registerInfix("F3", "=ISEVEN(SUM(C1,C2,C3))")   // 100+50+200=350, is even
+
+        const r = yield* e.recalcAll()
+        expect(store.cells.get("D1")).toEqual(CV.num(2550))
+        expect(store.cells.get("D2")).toEqual(CV.num(2100))
+        expect(store.cells.get("D3")).toEqual(CV.num(3750))
+        expect(store.cells.get("E1")).toEqual(CV.num(8400))
+        expect(store.cells.get("E2")).toEqual(CV.num(28.75))
+        expect(store.cells.get("E3")).toEqual(CV.num(25.5))
+        expect(store.cells.get("F2")).toEqual(CV.str("GOOD")) // 8400 > 5000
+        expect(store.cells.get("F3")).toEqual(CV.bool(true))  // 350 is even
+        expect(r.errors.length).toBe(0)
+      }))
+    })
+
     it("data analysis: COUNTIF + SUMIF + AVERAGEIF + STDEV + MEDIAN", async () => {
       const store = makeStore({
         A1: CV.num(85), A2: CV.num(92), A3: CV.num(67), A4: CV.num(91),
