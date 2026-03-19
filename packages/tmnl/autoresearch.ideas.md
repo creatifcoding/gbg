@@ -1,32 +1,29 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ COMPLETE — 68 experiments, 328 tests, 70 opcodes
+## ✅ COMPLETE — 80 experiments, 345 tests, 85 opcodes
 
-Production: stack-vm.ts (1,700+ LOC) + vm-cell-bridge.ts + dep-graph.ts + formula-engine-v2.ts = ~2,600 LOC
-Tests: ~5,000 LOC across 6 files (328 tests), 80 spike tests
+Production: 2,939 LOC (stack-vm.ts 2,133 + vm-cell-bridge 154 + dep-graph 314 + formula-engine-v2 338)
+Tests: 5,151 LOC across 6 files (345 tests: 177 production + 80 spike + 88 engine/integration)
 
 Architecture highlights:
-- Flat EXEC dispatch table (68 entries, O(1))
-- _OP singleton interning (47 parameterless opcodes)
+- Flat EXEC dispatch table (O(1) lookup)
+- _OP singleton interning (54 parameterless opcodes)
 - VMValue interning (bool singletons, num(-1..100) cache)
+- evalProgramDirect: zero-Effect-overhead eval (71x faster, 0.17µs/eval)
 - runIRBatched: single TxRef read/write per program (was 2N)
 - Peephole optimizer: constant folding (binary + unary), dead code elimination
+- decompileIR: IR → readable formula (roundtrip)
 - Infix shunting-yard: nested functions, operator precedence, ranges, booleans
-- FUNCTION_CATALOG: 38 entries with autocomplete support
-- FormulaEngineV2: register/validate/recalcDirty/recalcAll, named ranges, volatile
+- FUNCTION_CATALOG: 54 entries with completeFunctions() autocomplete
+- FormulaEngineV2: register/validate/recalcDirty/recalcAll, named ranges, volatile, evalProgramDirect
 
 ## 🔜 NEXT — Remaining high-value work
 
 ### Wire FormulaEngineV2 into production
 - Replace FormulaConsistency's dependency on old FormulaEngine
-- Wire registerInfix as primary formula input path
+- Wire registerInfix as primary formula input path  
 - Connect to CellCache atoms for reactive UI updates
 - #1 remaining task for production readiness
-
-### Error recovery in formulas
-- =IFERROR chain: graceful degradation in multi-cell recalc
-- Partial recalc: skip errored cells, continue with others
-- Error reporting: collect all errors, not just first
 
 ### Conditional formatting via formulas
 - =IF(A1>100, "red", "green") style rules evaluated by FormulaEngineV2
@@ -36,10 +33,17 @@ Architecture highlights:
 - =ARRAYFORMULA(A1:A10 * B1:B10)
 - Element-wise operations on ranges
 
+### REPLACE/SEARCH (text functions)
+- REPLACE(text, start, len, new_text)
+- SEARCH(find, within) — case-insensitive version of FIND
+
+### COUNTIF/SUMIF (conditional aggregation)
+- Needs criteria parsing: ">5", "abc*", "<>0"
+- Complex but high-value for production spreadsheets
+
 ## 📌 DEFERRED
 - TxHashMap cell state (needs production wiring first)
 - WASM sandbox (Domain B, deferred until core is production-ready)
-- COUNTIF/SUMIF (needs criteria parsing — complex)
 
 ## 📊 v4 API Gotchas (Reference — 14 discoveries)
 | Wrong | Correct |

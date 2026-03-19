@@ -1400,6 +1400,17 @@ describe("infix parser", () => {
     expect(decompileIR(compileInfixSync("=UPPER(A1)"))).toBe("=UPPER(A1)")
   })
 
+  it("REPLACE: replace by position", () => {
+    expect(evalProgramDirect(compileInfixSync('=REPLACE("Hello",2,3,"XY")')).stack[0]).toEqual(str("HXYo"))
+    expect(evalProgramDirect(compileInfixSync('=REPLACE("abcdef",3,2,"XX")')).stack[0]).toEqual(str("abXXef"))
+  })
+
+  it("SEARCH: case-insensitive find", () => {
+    expect(evalProgramDirect(compileInfixSync('=SEARCH("CD","ABCDEF")')).stack[0]).toEqual(num(3))
+    expect(evalProgramDirect(compileInfixSync('=SEARCH("cd","ABCDEF")')).stack[0]).toEqual(num(3)) // case insensitive
+    expect(evalProgramDirect(compileInfixSync('=SEARCH("xyz","ABCDEF")')).stack[0]._tag).toBe("error")
+  })
+
   it("REPT/EXACT/FIND text functions", () => {
     expect(evalProgramDirect(compileInfixSync('=REPT("ab",3)')).stack[0]).toEqual(str("ababab"))
     expect(evalProgramDirect(compileInfixSync('=EXACT("Hello","Hello")')).stack[0]).toEqual(bool(true))

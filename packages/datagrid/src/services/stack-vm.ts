@@ -376,6 +376,8 @@ export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
 export const REPT_OP = Schema.TaggedStruct("REPT_OP", {})
 export const EXACT_OP = Schema.TaggedStruct("EXACT_OP", {})
 export const FIND_OP = Schema.TaggedStruct("FIND_OP", {})
+export const REPLACE_OP = Schema.TaggedStruct("REPLACE_OP", {})
+export const SEARCH_OP = Schema.TaggedStruct("SEARCH_OP", {})
 
 /** IFS — multi-condition branching */
 export const IFS_N = Schema.TaggedStruct("IFS_N", { n: Schema.Number })
@@ -493,7 +495,7 @@ export const Opcode = Schema.Union([
   LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
-  REPT_OP, EXACT_OP, FIND_OP,
+  REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
   IFS_N, SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
@@ -796,6 +798,33 @@ const EXEC: Record<string, Executor> = {
     const pos = haystack.indexOf(needle)
     return pos === -1 ? vmError("TYPE_MISMATCH", "FIND: not found") : num(pos + 1)
   }, "FIND") }),
+
+  // REPLACE: replace substring by position (1-based start)
+  REPLACE_OP: (_o, s) => {
+    if (s.length < 4) { s.push(vmError("STACK_UNDERFLOW", "REPLACE")); return { result: s[s.length-1] } }
+    const newText = s.pop()!
+    const len = s.pop()!
+    const start = s.pop()!
+    const text = s.pop()!
+    if (isVMError(text) || isVMError(start) || isVMError(len) || isVMError(newText)) {
+      const err = propagateError(text, start) ?? propagateError(len, newText)!
+      s.push(err); return { result: err }
+    }
+    const t = text._tag === "str" ? text.value : vmDisplay(text)
+    const si = Math.max(0, asNum(start) - 1)
+    const l = Math.max(0, Math.floor(asNum(len)))
+    const nt = newText._tag === "str" ? newText.value : vmDisplay(newText)
+    const result = str(t.substring(0, si) + nt + t.substring(si + l))
+    s.push(result); return { result }
+  },
+  // SEARCH: case-insensitive find (1-based)
+  SEARCH_OP: (_o, s) => ({ result: binop(s, (a, b) => {
+    const pe = propagateError(a, b); if (pe) return pe
+    const needle = (a._tag === "str" ? a.value : vmDisplay(a)).toLowerCase()
+    const haystack = (b._tag === "str" ? b.value : vmDisplay(b)).toLowerCase()
+    const pos = haystack.indexOf(needle)
+    return pos === -1 ? vmError("TYPE_MISMATCH", "SEARCH: not found") : num(pos + 1)
+  }, "SEARCH") }),
 
   // N: converts any value to number (Excel N function)
   N_OP: (_o, s) => ({ result: unop(s, a => {
@@ -1133,6 +1162,7 @@ const _OP: Record<string, Opcode> = {
   ISNUM_OP: { _tag: "ISNUM_OP" }, ISTEXT_OP: { _tag: "ISTEXT_OP" },
   ISERROR_OP: { _tag: "ISERROR_OP" }, ISBLANK_OP: { _tag: "ISBLANK_OP" },
   REPT_OP: { _tag: "REPT_OP" }, EXACT_OP: { _tag: "EXACT_OP" }, FIND_OP: { _tag: "FIND_OP" },
+  REPLACE_OP: { _tag: "REPLACE_OP" }, SEARCH_OP: { _tag: "SEARCH_OP" },
   VALUE_OP: { _tag: "VALUE_OP" }, TYPE_OP: { _tag: "TYPE_OP" }, N_OP: { _tag: "N_OP" },
   YEAR_OP: { _tag: "YEAR_OP" }, MONTH_OP: { _tag: "MONTH_OP" }, DAY_OP: { _tag: "DAY_OP" },
   HOUR_OP: { _tag: "HOUR_OP" }, MINUTE_OP: { _tag: "MINUTE_OP" }, SECOND_OP: { _tag: "SECOND_OP" },
@@ -1189,6 +1219,8 @@ function classifyToken(tok: string): Opcode | null {
     case "REPT_OP": return _OP.REPT_OP
     case "EXACT_OP": return _OP.EXACT_OP
     case "FIND_OP": return _OP.FIND_OP
+    case "REPLACE_OP": return _OP.REPLACE_OP
+    case "SEARCH_OP": return _OP.SEARCH_OP
     case "IFS_N": return { _tag: "IFS_N", n: 0 } as any
     case "SWITCH_N": return { _tag: "SWITCH_N", n: 0 } as any
     case "VALUE_OP": return _OP.VALUE_OP
@@ -1460,7 +1492,7 @@ const FUNC_MAP: Record<string, string> = {
   LEN: "LEN_OP", LEFT: "LEFT_OP", RIGHT: "RIGHT_OP", MID: "MID_OP",
   TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", SUBSTITUTE: "SUBSTITUTE_OP",
   ISNUM: "ISNUM_OP", ISTEXT: "ISTEXT_OP", ISERROR: "ISERROR_OP", ISBLANK: "ISBLANK_OP",
-  REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP",
+  REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
   IFS: "IFS_N", SWITCH: "SWITCH_N", VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
   YEAR: "YEAR_OP", MONTH: "MONTH_OP", DAY: "DAY_OP",
   HOUR: "HOUR_OP", MINUTE: "MINUTE_OP", SECOND: "SECOND_OP",
@@ -1783,7 +1815,9 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "SUBSTITUTE", args: "text, old, new", description: "Replace all occurrences", category: "text" },
   { name: "REPT", args: "text, count", description: "Repeat text N times", category: "text" },
   { name: "EXACT", args: "text1, text2", description: "Case-sensitive equality", category: "text" },
-  { name: "FIND", args: "find_text, within_text", description: "Position of substring (1-based)", category: "text" },
+  { name: "FIND", args: "find_text, within_text", description: "Position of substring (1-based, case-sensitive)", category: "text" },
+  { name: "SEARCH", args: "find_text, within_text", description: "Position of substring (1-based, case-insensitive)", category: "text" },
+  { name: "REPLACE", args: "text, start, length, new_text", description: "Replace by position (1-based)", category: "text" },
   { name: "CONCAT", args: "a, b", description: "Join two strings", category: "text" },
   // Logic
   { name: "IF", args: "condition, true_val, false_val", description: "Conditional value", category: "logic" },
@@ -1964,6 +1998,11 @@ export const decompileIR = (ir: StackIR): string => {
     if (op._tag === "SUBSTITUTE_OP") {
       const c = stack.pop() ?? "?"; const b = stack.pop() ?? "?"; const a = stack.pop() ?? "?"
       stack.push(`SUBSTITUTE(${a},${b},${c})`)
+      continue
+    }
+    if (op._tag === "REPLACE_OP") {
+      const d = stack.pop() ?? "?"; const c = stack.pop() ?? "?"; const b = stack.pop() ?? "?"; const a = stack.pop() ?? "?"
+      stack.push(`REPLACE(${a},${b},${c},${d})`)
       continue
     }
     if (op._tag === "IF" || op._tag === "IF_FN") {
