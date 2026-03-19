@@ -875,6 +875,61 @@ export const runIR = (
     return yield* TxRef.get(ref)
   })
 
+/**
+ * Batched IR execution: read TxRef once, execute all opcodes on mutable copy, write back once.
+ * This reduces TxRef get/set from 2N to 2 (N = number of opcodes).
+ * Preserves transactional atomicity — entire batch succeeds or rolls back.
+ */
+export const runIRBatched = (
+  ref: TxRef.TxRef<VMState>,
+  ir: StackIR,
+  ctx?: CellContext,
+): Effect.Effect<VMState, never, Effect.Transaction> =>
+  Effect.gen(function*() {
+    const initial = yield* TxRef.get(ref)
+    if (initial.halted) return initial
+
+    const s = [...initial.stack]
+    const trail = initial.trail as TrailEntry[]
+    const cellCtx = ctx ?? emptyCellContext
+    let step = initial.step
+    let halted = false
+
+    for (const op of ir) {
+      if (halted) break
+      if (step >= MAX_EVAL_STEPS) {
+        s.push(vmError("EVAL_OVERFLOW", `Exceeded ${MAX_EVAL_STEPS} steps`))
+        halted = true
+        break
+      }
+
+      const depthBefore = s.length
+      const exec = EXEC[op._tag]
+      const r = exec ? exec(op as any, s, cellCtx) : {}
+
+      trail.push({
+        step,
+        opcode: op._tag,
+        stackDepthBefore: depthBefore,
+        stackDepthAfter: s.length,
+        result: r.result,
+      })
+
+      if (r.halted === true) halted = true
+      step++
+    }
+
+    const finalState: VMState = {
+      stack: s,
+      registers: initial.registers,
+      trail,
+      step,
+      halted,
+    }
+    yield* TxRef.set(ref, finalState)
+    return finalState
+  })
+
 /** Run an Effect<VMValue> program, pushing result onto stack */
 export const runEffect = (
   ref: TxRef.TxRef<VMState>,
@@ -1497,7 +1552,7 @@ export const evalProgram = (ir: StackIR, ctx?: CellContext): Effect.Effect<VMSta
   Effect.transaction(
     Effect.gen(function*() {
       const ref = yield* TxRef.make(emptyState())
-      return yield* runIR(ref, ir, ctx)
+      return yield* runIRBatched(ref, ir, ctx)
     })
   )
 
