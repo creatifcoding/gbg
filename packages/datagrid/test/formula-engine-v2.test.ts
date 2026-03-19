@@ -676,6 +676,38 @@ describe("FormulaEngineV2", () => {
         expect(r2.recalculated.length).toBeGreaterThanOrEqual(3)
       }).pipe(Effect.provide(layer)))
     })
+    it("EXPERIMENT 152 CAPSTONE: 200-function formula engine showcase", async () => {
+      // Demonstrate the breadth: math, stat, text, logic, financial, date, engineering
+      const store = makeStore({
+        A1: CV.num(1000),   // investment
+        A2: CV.num(0.08),   // annual rate
+        A3: CV.num(12),     // months per year
+      })
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        // Financial: monthly payment on 200k mortgage at 8%
+        yield* e.registerInfix("B1", "=ROUND(ABS(PMT(A2/A3, 360, 200000)), 0)")
+        // Math: unit conversion + trig
+        yield* e.registerInfix("B2", '=ROUND(CONVERT(100, "C", "F"), 0)')
+        // Stat: normal distribution lookup
+        yield* e.registerInfix("B3", "=ROUND(NORMDIST(1.96, 0, 1), 4)")
+        // Engineering: Kronecker delta
+        yield* e.registerInfix("B4", "=DELTA(5, 5)")
+        // Text: formatted output
+        yield* e.registerInfix("B5", '=CONCAT("$", TEXT(B1, "#,##0"))')
+
+        yield* e.recalcAll()
+        const pmt = (store.cells.get("B1") as any)?.value
+        expect(pmt).toBeGreaterThan(1400) // ~$1468 monthly
+        expect(pmt).toBeLessThan(1600)
+        expect((store.cells.get("B2") as any)?.value).toBe(212) // 100°C = 212°F
+        const nd = (store.cells.get("B3") as any)?.value
+        expect(nd).toBeGreaterThan(0.97)
+        expect((store.cells.get("B4") as any)?.value).toBe(1) // 5==5
+        expect((store.cells.get("B5") as any)?.value).toMatch(/\$1,4/) // "$1,468" ish
+      }))
+    })
+
     it("EXPERIMENT 150 CAPSTONE: statistical hypothesis testing pipeline", async () => {
       // Scenario: Compare 5 measurements against target, compute z-score, confidence
       const store = makeStore({
