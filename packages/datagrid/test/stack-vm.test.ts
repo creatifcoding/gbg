@@ -3081,6 +3081,30 @@ describe("post-450 function coverage", () => {
   it("BOOLFLIP(1) = false", () => expect(d("=BOOLFLIP(1)")).toBe(false))
   it("BOOLFLIP(0) = true", () => expect(d("=BOOLFLIP(0)")).toBe(true))
 
+  // ── 1150 batch tests ──
+  it("SNAP(7, 5) = 5", () => expect(d("=SNAP(7, 5)")).toBe(5))
+  it("SNAP(13, 5) = 15", () => expect(d("=SNAP(13, 5)")).toBe(15))
+  it("CEIL2(3.1) = 4", () => expect(d("=CEIL2(3.1)")).toBe(4))
+  it("FLOOR2(3.9) = 3", () => expect(d("=FLOOR2(3.9)")).toBe(3))
+  it("TRUNC2(3.7) = 3", () => expect(d("=TRUNC2(3.7)")).toBe(3))
+  it("LOGBASE(8, 2) = 3", () => expect(d("=LOGBASE(8, 2)")).toBe(3))
+  it("SIGN2(-5) = -1", () => expect(d("=SIGN2(-5)")).toBe(-1))
+  it("IQR2(1,2,3,4,5,6,7,8) valid", () => { const v = d("=IQR2(1,2,3,4,5,6,7,8)") as number; expect(v).toBeGreaterThan(0) })
+  it("PEAK(1,3,2,5,1) = 2", () => expect(d("=PEAK(1,3,2,5,1)")).toBe(2))
+  it("TROUGH(3,1,2,0,5) = 2", () => expect(d("=TROUGH(3,1,2,0,5)")).toBe(2))
+  it("STREAK(1,1,1,0,1,1) = 3", () => expect(d("=STREAK(1,1,1,0,1,1)")).toBe(3))
+  it("SPAN(1,5,3) = 4", () => expect(d("=SPAN(1,5,3)")).toBe(4))
+  it("ANYOF(0,0,1) = true", () => expect(d("=ANYOF(0,0,1)")).toBe(true))
+  it("NONEOF(0,0,0) = true", () => expect(d("=NONEOF(0,0,0)")).toBe(true))
+  it("EXACTLYONE(0,1,0) = true", () => expect(d("=EXACTLYONE(0,1,0)")).toBe(true))
+  it("EXACTLYONE(1,1,0) = false", () => expect(d("=EXACTLYONE(1,1,0)")).toBe(false))
+  it("ISODD3(7) = true", () => expect(d("=ISODD3(7)")).toBe(true))
+  it("ISEVEN3(6) = true", () => expect(d("=ISEVEN3(6)")).toBe(true))
+  it("ISPOSINT(5) = true", () => expect(d("=ISPOSINT(5)")).toBe(true))
+  it("ISPOSINT(-3) = false", () => expect(d("=ISPOSINT(-3)")).toBe(false))
+  it("TEXTAPPEND joins", () => expect(d('=TEXTAPPEND("foo", "bar")')).toBe("foobar"))
+  it("PERPETUITY(100, 0.05) = 2000", () => expect(d("=PERPETUITY(100, 0.05)")).toBe(2000))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
