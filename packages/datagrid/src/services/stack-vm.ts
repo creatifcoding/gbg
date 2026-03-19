@@ -422,6 +422,11 @@ export const ISERROR_OP = Schema.TaggedStruct("ISERROR_OP", {})
 export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
 
 /** More text functions */
+export const STEYX_N = Schema.TaggedStruct("STEYX_N", { n: Schema.Number })
+export const FISHER_OP = Schema.TaggedStruct("FISHER_OP", {})
+export const FISHERINV_OP = Schema.TaggedStruct("FISHERINV_OP", {})
+export const KURT_N = Schema.TaggedStruct("KURT_N", { n: Schema.Number })
+export const SKEW_N = Schema.TaggedStruct("SKEW_N", { n: Schema.Number })
 export const CONVERT_OP = Schema.TaggedStruct("CONVERT_OP", {})
 export const SLOPE_N = Schema.TaggedStruct("SLOPE_N", { n: Schema.Number })
 export const INTERCEPT_N = Schema.TaggedStruct("INTERCEPT_N", { n: Schema.Number })
@@ -624,7 +629,7 @@ export const Opcode = Schema.Union([
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
-  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, IFNA_OP, EOMONTH_OP, DATEDIF_OP, PERMUT_OP, FACTDOUBLE_OP, MATCH_N, INDEX_N, MODE_N, HARMEAN_N, GEOMEAN_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, CONVERT_OP, SLOPE_N, INTERCEPT_N, RSQ_N, COVAR_N, FORECAST_N, STDEVP_N, VARP_N, CORREL_N, SUMSQ_N, DEVSQ_N, AVEDEV_N, TRIMMEAN_N, XOR_N, ISOWEEKNUM_OP, NETWORKDAYS_OP, SUBTOTAL_N, DELTA_OP, GESTEP_OP, MULTINOMIAL_N, SERIESSUM_N, SEC_OP, CSC_OP, COTH_OP, SECH_OP, CSCH_OP, SUMIFS_N, AVERAGEIFS_N, NA_OP, COT_OP, ACOT_OP, UNICODE_OP, UNICHAR_OP, ENCODEURL_OP, DAYS_OP, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
+  IRR_N, NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, IFNA_OP, EOMONTH_OP, DATEDIF_OP, PERMUT_OP, FACTDOUBLE_OP, MATCH_N, INDEX_N, MODE_N, HARMEAN_N, GEOMEAN_N, AGGREGATE_N, COUNTIF_N, SUMIF_N, COUNTIFS_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, STEYX_N, FISHER_OP, FISHERINV_OP, KURT_N, SKEW_N, CONVERT_OP, SLOPE_N, INTERCEPT_N, RSQ_N, COVAR_N, FORECAST_N, STDEVP_N, VARP_N, CORREL_N, SUMSQ_N, DEVSQ_N, AVEDEV_N, TRIMMEAN_N, XOR_N, ISOWEEKNUM_OP, NETWORKDAYS_OP, SUBTOTAL_N, DELTA_OP, GESTEP_OP, MULTINOMIAL_N, SERIESSUM_N, SEC_OP, CSC_OP, COTH_OP, SECH_OP, CSCH_OP, SUMIFS_N, AVERAGEIFS_N, NA_OP, COT_OP, ACOT_OP, UNICODE_OP, UNICHAR_OP, ENCODEURL_OP, DAYS_OP, DATEVALUE_OP, EDATE_OP, WEEKDAY_OP, WEEKNUM_OP, ROMAN_OP, ARABIC_OP, TEXT_OP, NUMBERVALUE_OP, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
   IFS_N, SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
@@ -938,6 +943,65 @@ const EXEC: Record<string, Executor> = {
     for (let i = 0; i < vals.length; i++) { while (n >= vals[i]) { result += syms[i]; n -= vals[i] } }
     return str(result)
   }, "ROMAN") }),
+  // STEYX_N: standard error of predicted y. Stack: [x1,...,xK, y1,...,yK]
+  STEYX_N: (op: any, s) => {
+    const n = op.n as number
+    if (s.length < n || n % 2 !== 0) { s.push(vmError("STACK_UNDERFLOW", "STEYX")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const half = n / 2
+    if (half < 3) { s.push(vmError("TYPE_MISMATCH", "STEYX: need ≥3 points")); return { result: s[s.length-1] } }
+    const xs = args.slice(0, half).map(asNum), ys = args.slice(half).map(asNum)
+    const meanX = xs.reduce((a, b) => a + b, 0) / half
+    const meanY = ys.reduce((a, b) => a + b, 0) / half
+    let sumXY = 0, sumX2 = 0, sumY2 = 0
+    for (let i = 0; i < half; i++) { const dx = xs[i] - meanX, dy = ys[i] - meanY; sumXY += dx * dy; sumX2 += dx * dx; sumY2 += dy * dy }
+    if (sumX2 === 0) { s.push(vmError("DIV_ZERO", "STEYX")); return { result: s[s.length-1] } }
+    const sse = sumY2 - (sumXY * sumXY) / sumX2
+    const result = num(Math.sqrt(sse / (half - 2))); s.push(result); return { result }
+  },
+  // FISHER_OP: Fisher transformation = 0.5 * ln((1+x)/(1-x))
+  FISHER_OP: (_o, s) => ({ result: unop(s, a => {
+    if (isVMError(a)) return a
+    const x = asNum(a)
+    if (x <= -1 || x >= 1) return vmError("TYPE_MISMATCH", "FISHER: x must be in (-1, 1)")
+    return num(0.5 * Math.log((1 + x) / (1 - x)))
+  }, "FISHER") }),
+  // FISHERINV_OP: inverse Fisher = (e^(2x) - 1) / (e^(2x) + 1)
+  FISHERINV_OP: (_o, s) => ({ result: unop(s, a => {
+    if (isVMError(a)) return a
+    const x = asNum(a)
+    const e2x = Math.exp(2 * x)
+    return num((e2x - 1) / (e2x + 1))
+  }, "FISHERINV") }),
+  // KURT_N: kurtosis
+  KURT_N: (op: any, s) => {
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "KURT")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const nums = args.filter(v => !isVMError(v)).map(asNum)
+    const k = nums.length
+    if (k < 4) { s.push(vmError("TYPE_MISMATCH", "KURT: need ≥4 values")); return { result: s[s.length-1] } }
+    const mean = nums.reduce((a, b) => a + b, 0) / k
+    const sd = Math.sqrt(nums.reduce((sum, v) => sum + (v - mean) ** 2, 0) / (k - 1))
+    if (sd === 0) { s.push(vmError("DIV_ZERO", "KURT")); return { result: s[s.length-1] } }
+    const m4 = nums.reduce((sum, v) => sum + ((v - mean) / sd) ** 4, 0)
+    const excess = (k * (k + 1) * m4) / ((k - 1) * (k - 2) * (k - 3)) - (3 * (k - 1) ** 2) / ((k - 2) * (k - 3))
+    const result = num(excess); s.push(result); return { result }
+  },
+  // SKEW_N: skewness
+  SKEW_N: (op: any, s) => {
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "SKEW")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const nums = args.filter(v => !isVMError(v)).map(asNum)
+    const k = nums.length
+    if (k < 3) { s.push(vmError("TYPE_MISMATCH", "SKEW: need ≥3 values")); return { result: s[s.length-1] } }
+    const mean = nums.reduce((a, b) => a + b, 0) / k
+    const sd = Math.sqrt(nums.reduce((sum, v) => sum + (v - mean) ** 2, 0) / (k - 1))
+    if (sd === 0) { s.push(vmError("DIV_ZERO", "SKEW")); return { result: s[s.length-1] } }
+    const m3 = nums.reduce((sum, v) => sum + ((v - mean) / sd) ** 3, 0)
+    const result = num((k * m3) / ((k - 1) * (k - 2))); s.push(result); return { result }
+  },
   // CONVERT_OP: unit conversion. CONVERT(value, from_unit, to_unit)
   CONVERT_OP: (_o, s) => {
     if (s.length < 3) { s.push(vmError("STACK_UNDERFLOW", "CONVERT")); return { result: s[s.length-1] } }
@@ -2398,7 +2462,7 @@ const _OP: Record<string, Opcode> = {
   ISERROR_OP: { _tag: "ISERROR_OP" }, ISBLANK_OP: { _tag: "ISBLANK_OP" },
   IFNA_OP: { _tag: "IFNA_OP" }, EOMONTH_OP: { _tag: "EOMONTH_OP" }, DATEDIF_OP: { _tag: "DATEDIF_OP" },
   PERMUT_OP: { _tag: "PERMUT_OP" }, FACTDOUBLE_OP: { _tag: "FACTDOUBLE_OP" },
-  CONVERT_OP: { _tag: "CONVERT_OP" }, ISOWEEKNUM_OP: { _tag: "ISOWEEKNUM_OP" }, NETWORKDAYS_OP: { _tag: "NETWORKDAYS_OP" },
+  FISHER_OP: { _tag: "FISHER_OP" }, FISHERINV_OP: { _tag: "FISHERINV_OP" }, CONVERT_OP: { _tag: "CONVERT_OP" }, ISOWEEKNUM_OP: { _tag: "ISOWEEKNUM_OP" }, NETWORKDAYS_OP: { _tag: "NETWORKDAYS_OP" },
   DELTA_OP: { _tag: "DELTA_OP" }, GESTEP_OP: { _tag: "GESTEP_OP" }, SEC_OP: { _tag: "SEC_OP" }, CSC_OP: { _tag: "CSC_OP" }, COTH_OP: { _tag: "COTH_OP" },
   SECH_OP: { _tag: "SECH_OP" }, CSCH_OP: { _tag: "CSCH_OP" },
   NA_OP: { _tag: "NA_OP" }, COT_OP: { _tag: "COT_OP" }, ACOT_OP: { _tag: "ACOT_OP" },
@@ -2544,6 +2608,11 @@ function classifyToken(tok: string): Opcode | null {
     case "DATEDIF_OP": return _OP.DATEDIF_OP
     case "PERMUT_OP": return _OP.PERMUT_OP
     case "FACTDOUBLE_OP": return _OP.FACTDOUBLE_OP
+    case "STEYX_N": return { _tag: "STEYX_N", n: 0 } as any
+    case "FISHER_OP": return _OP.FISHER_OP
+    case "FISHERINV_OP": return _OP.FISHERINV_OP
+    case "KURT_N": return { _tag: "KURT_N", n: 0 } as any
+    case "SKEW_N": return { _tag: "SKEW_N", n: 0 } as any
     case "CONVERT_OP": return _OP.CONVERT_OP
     case "SLOPE_N": return { _tag: "SLOPE_N", n: 0 } as any
     case "INTERCEPT_N": return { _tag: "INTERCEPT_N", n: 0 } as any
@@ -2787,14 +2856,14 @@ const INFIX_OP_MAP: Record<string, string> = {
 }
 const RIGHT_ASSOC = new Set<string>(["UNARY_NEG", "^"])
 const ZERO_ARG_FNS = new Set(["NOW", "RAND", "PI", "TODAY"])
-const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N", "SWITCH_N", "IFS_N", "IRR_N", "NPV_N", "VAR_N", "PERCENTILE_N", "COUNTA_N", "COUNTBLANK_N", "SUMPRODUCT_N", "MATCH_N", "INDEX_N", "MODE_N", "HARMEAN_N", "GEOMEAN_N", "AGGREGATE_N", "COUNTIF_N", "COUNTIFS_N", "SLOPE_N", "INTERCEPT_N", "RSQ_N", "COVAR_N", "FORECAST_N", "STDEVP_N", "VARP_N", "CORREL_N", "SUMSQ_N", "DEVSQ_N", "AVEDEV_N", "TRIMMEAN_N", "XOR_N", "SUBTOTAL_N", "MULTINOMIAL_N", "SERIESSUM_N", "SUMIFS_N", "AVERAGEIFS_N", "SUMIF_N", "MAXIFS_N", "MINIFS_N", "AVERAGEIF_N", "LARGE_N", "SMALL_N", "STDEV_N", "MEDIAN_N", "RANK_N", "CONCATENATE_N", "TEXTJOIN_N"])
+const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N", "SWITCH_N", "IFS_N", "IRR_N", "NPV_N", "VAR_N", "PERCENTILE_N", "COUNTA_N", "COUNTBLANK_N", "SUMPRODUCT_N", "MATCH_N", "INDEX_N", "MODE_N", "HARMEAN_N", "GEOMEAN_N", "AGGREGATE_N", "COUNTIF_N", "COUNTIFS_N", "STEYX_N", "KURT_N", "SKEW_N", "SLOPE_N", "INTERCEPT_N", "RSQ_N", "COVAR_N", "FORECAST_N", "STDEVP_N", "VARP_N", "CORREL_N", "SUMSQ_N", "DEVSQ_N", "AVEDEV_N", "TRIMMEAN_N", "XOR_N", "SUBTOTAL_N", "MULTINOMIAL_N", "SERIESSUM_N", "SUMIFS_N", "AVERAGEIFS_N", "SUMIF_N", "MAXIFS_N", "MINIFS_N", "AVERAGEIF_N", "LARGE_N", "SMALL_N", "STDEV_N", "MEDIAN_N", "RANK_N", "CONCATENATE_N", "TEXTJOIN_N"])
 const N_VARIANTS: Record<string, string> = {
   SUM_DYN: "SUM_N", MIN_DYN: "MIN_N", MAX_DYN: "MAX_N", AVG_DYN: "AVG_N",
   PRODUCT_DYN: "PRODUCT_N",
   AND_N: "AND_N", OR_N: "OR_N", CHOOSE_N: "CHOOSE_N", SWITCH_N: "SWITCH_N", IFS_N: "IFS_N",
   IRR_N: "IRR_N", NPV_N: "NPV_N", VAR_N: "VAR_N", PERCENTILE_N: "PERCENTILE_N", COUNTA_N: "COUNTA_N", COUNTBLANK_N: "COUNTBLANK_N",
   SUMPRODUCT_N: "SUMPRODUCT_N", MATCH_N: "MATCH_N", INDEX_N: "INDEX_N", MODE_N: "MODE_N", HARMEAN_N: "HARMEAN_N", GEOMEAN_N: "GEOMEAN_N", AGGREGATE_N: "AGGREGATE_N", COUNTIF_N: "COUNTIF_N", COUNTIFS_N: "COUNTIFS_N", SUMIF_N: "SUMIF_N", MAXIFS_N: "MAXIFS_N", MINIFS_N: "MINIFS_N", AVERAGEIF_N: "AVERAGEIF_N", LARGE_N: "LARGE_N", SMALL_N: "SMALL_N",
-  SLOPE_N: "SLOPE_N", INTERCEPT_N: "INTERCEPT_N", RSQ_N: "RSQ_N", COVAR_N: "COVAR_N", FORECAST_N: "FORECAST_N", STDEVP_N: "STDEVP_N", VARP_N: "VARP_N", CORREL_N: "CORREL_N", SUMSQ_N: "SUMSQ_N", DEVSQ_N: "DEVSQ_N", AVEDEV_N: "AVEDEV_N", TRIMMEAN_N: "TRIMMEAN_N",
+  STEYX_N: "STEYX_N", KURT_N: "KURT_N", SKEW_N: "SKEW_N", SLOPE_N: "SLOPE_N", INTERCEPT_N: "INTERCEPT_N", RSQ_N: "RSQ_N", COVAR_N: "COVAR_N", FORECAST_N: "FORECAST_N", STDEVP_N: "STDEVP_N", VARP_N: "VARP_N", CORREL_N: "CORREL_N", SUMSQ_N: "SUMSQ_N", DEVSQ_N: "DEVSQ_N", AVEDEV_N: "AVEDEV_N", TRIMMEAN_N: "TRIMMEAN_N",
   XOR_N: "XOR_N", SUBTOTAL_N: "SUBTOTAL_N",
   MULTINOMIAL_N: "MULTINOMIAL_N", SERIESSUM_N: "SERIESSUM_N",
   SUMIFS_N: "SUMIFS_N", AVERAGEIFS_N: "AVERAGEIFS_N",
@@ -2888,7 +2957,7 @@ const FUNC_MAP: Record<string, string> = {
   NPV: "NPV_N", VAR: "VAR_N", PERCENTILE: "PERCENTILE_N", COUNTA: "COUNTA_N", COUNTBLANK: "COUNTBLANK_N",
   SUMPRODUCT: "SUMPRODUCT_N", MATCH: "MATCH_N", INDEX: "INDEX_N", MODE: "MODE_N", HARMEAN: "HARMEAN_N", GEOMEAN: "GEOMEAN_N", AGGREGATE: "AGGREGATE_N", COUNTIF: "COUNTIF_N", COUNTIFS: "COUNTIFS_N", SUMIF: "SUMIF_N", MAXIFS: "MAXIFS_N", MINIFS: "MINIFS_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
   STDEV: "STDEV_N", MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
-  IFNA: "IFNA_OP", CONVERT: "CONVERT_OP", SLOPE: "SLOPE_N", INTERCEPT: "INTERCEPT_N", RSQ: "RSQ_N", COVAR: "COVAR_N", FORECAST: "FORECAST_N", "STDEV.P": "STDEVP_N", "VAR.P": "VARP_N", CORREL: "CORREL_N", SUMSQ: "SUMSQ_N", DEVSQ: "DEVSQ_N", AVEDEV: "AVEDEV_N", TRIMMEAN: "TRIMMEAN_N", XOR: "XOR_N", ISOWEEKNUM: "ISOWEEKNUM_OP", NETWORKDAYS: "NETWORKDAYS_OP", SUBTOTAL: "SUBTOTAL_N", DELTA: "DELTA_OP", GESTEP: "GESTEP_OP", MULTINOMIAL: "MULTINOMIAL_N", SERIESSUM: "SERIESSUM_N", SEC: "SEC_OP", CSC: "CSC_OP", COTH: "COTH_OP", SECH: "SECH_OP", CSCH: "CSCH_OP", SUMIFS: "SUMIFS_N", AVERAGEIFS: "AVERAGEIFS_N", NA: "NA_OP", COT: "COT_OP", ACOT: "ACOT_OP", UNICODE: "UNICODE_OP", UNICHAR: "UNICHAR_OP", ENCODEURL: "ENCODEURL_OP", DAYS: "DAYS_OP", EOMONTH: "EOMONTH_OP", DATEDIF: "DATEDIF_OP", PERMUT: "PERMUT_OP", FACTDOUBLE: "FACTDOUBLE_OP",
+  IFNA: "IFNA_OP", STEYX: "STEYX_N", FISHER: "FISHER_OP", FISHERINV: "FISHERINV_OP", KURT: "KURT_N", SKEW: "SKEW_N", CONVERT: "CONVERT_OP", SLOPE: "SLOPE_N", INTERCEPT: "INTERCEPT_N", RSQ: "RSQ_N", COVAR: "COVAR_N", FORECAST: "FORECAST_N", "STDEV.P": "STDEVP_N", "VAR.P": "VARP_N", CORREL: "CORREL_N", SUMSQ: "SUMSQ_N", DEVSQ: "DEVSQ_N", AVEDEV: "AVEDEV_N", TRIMMEAN: "TRIMMEAN_N", XOR: "XOR_N", ISOWEEKNUM: "ISOWEEKNUM_OP", NETWORKDAYS: "NETWORKDAYS_OP", SUBTOTAL: "SUBTOTAL_N", DELTA: "DELTA_OP", GESTEP: "GESTEP_OP", MULTINOMIAL: "MULTINOMIAL_N", SERIESSUM: "SERIESSUM_N", SEC: "SEC_OP", CSC: "CSC_OP", COTH: "COTH_OP", SECH: "SECH_OP", CSCH: "CSCH_OP", SUMIFS: "SUMIFS_N", AVERAGEIFS: "AVERAGEIFS_N", NA: "NA_OP", COT: "COT_OP", ACOT: "ACOT_OP", UNICODE: "UNICODE_OP", UNICHAR: "UNICHAR_OP", ENCODEURL: "ENCODEURL_OP", DAYS: "DAYS_OP", EOMONTH: "EOMONTH_OP", DATEDIF: "DATEDIF_OP", PERMUT: "PERMUT_OP", FACTDOUBLE: "FACTDOUBLE_OP",
   DATEVALUE: "DATEVALUE_OP", EDATE: "EDATE_OP", WEEKDAY: "WEEKDAY_OP", WEEKNUM: "WEEKNUM_OP", ROMAN: "ROMAN_OP", ARABIC: "ARABIC_OP", TEXT: "TEXT_OP", NUMBERVALUE: "NUMBERVALUE_OP", REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
   IFS: "IFS_N", SWITCH: "SWITCH_N", VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
   YEAR: "YEAR_OP", MONTH: "MONTH_OP", DAY: "DAY_OP",
@@ -3267,6 +3336,11 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "COMBIN", args: "n, k", description: "Combinations (n choose k)", category: "math" },
   { name: "SUBSTITUTE", args: "text, old, new", description: "Replace all occurrences", category: "text" },
   { name: "IFNA", args: "value, alt", description: "Return alt if value is error", category: "logic" },
+  { name: "STEYX", args: "x1,...,xK,y1,...,yK", description: "Standard error of predicted y", category: "stat" },
+  { name: "FISHER", args: "x", description: "Fisher transformation (arctanh)", category: "stat" },
+  { name: "FISHERINV", args: "y", description: "Inverse Fisher transformation (tanh)", category: "stat" },
+  { name: "KURT", args: "values...", description: "Excess kurtosis", category: "stat" },
+  { name: "SKEW", args: "values...", description: "Skewness", category: "stat" },
   { name: "CONVERT", args: "value, from_unit, to_unit", description: "Unit conversion (length/weight/temp/time)", category: "math" },
   { name: "SLOPE", args: "x1,...,xK,y1,...,yK", description: "Slope of linear regression line", category: "stat" },
   { name: "INTERCEPT", args: "x1,...,xK,y1,...,yK", description: "Y-intercept of linear regression", category: "stat" },

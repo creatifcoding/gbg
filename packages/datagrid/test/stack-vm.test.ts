@@ -1704,6 +1704,16 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("FISHER/FISHERINV/KURT/SKEW/STEYX: advanced statistical analysis", () => {
+    // FISHER(0.5) ≈ 0.5493
+    expect(evalProgramDirect(compileInfixSync("=ROUND(FISHER(0.5), 4)")).stack[0]).toEqual(num(0.5493))
+    // FISHERINV round-trip
+    expect(evalProgramDirect(compileInfixSync("=ROUND(FISHERINV(FISHER(0.75)), 4)")).stack[0]).toEqual(num(0.75))
+    // SKEW of symmetric data → near 0
+    const skew = evalProgramDirect(compileInfixSync("=ROUND(SKEW(1, 2, 3, 4, 5), 1)")).stack[0]
+    expect((skew as any).value).toBe(0)
+  })
+
   it("CONVERT: unit conversion engine", () => {
     // Length: 1 mile = 1609.344 meters
     expect(evalProgramDirect(compileInfixSync('=CONVERT(1, "mi", "m")')).stack[0]).toEqual(num(1609.344))
