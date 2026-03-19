@@ -1704,6 +1704,15 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("MODE/HARMEAN/GEOMEAN: advanced statistics", () => {
+    // MODE: most frequent → 4
+    expect(evalProgramDirect(compileInfixSync("=MODE(1, 2, 4, 4, 5)")).stack[0]).toEqual(num(4))
+    // HARMEAN: 3 / (1/1 + 1/2 + 1/4) = 3/1.75 ≈ 1.714
+    expect(evalProgramDirect(compileInfixSync("=ROUND(HARMEAN(1, 2, 4), 3)")).stack[0]).toEqual(num(1.714))
+    // GEOMEAN: (4*1*1/32)^(1/3) = (0.125)^(1/3) = 0.5... actually (2*8)^(1/2)=4
+    expect(evalProgramDirect(compileInfixSync("=GEOMEAN(2, 8)")).stack[0]).toEqual(num(4))
+  })
+
   it("AGGREGATE: versatile aggregation dispatcher", () => {
     // funcNum 9 = SUM
     expect(evalProgramDirect(compileInfixSync("=AGGREGATE(9, 10, 20, 30)")).stack[0]).toEqual(num(60))
