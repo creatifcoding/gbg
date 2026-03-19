@@ -1704,6 +1704,19 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("CONVERT: unit conversion engine", () => {
+    // Length: 1 mile = 1609.344 meters
+    expect(evalProgramDirect(compileInfixSync('=CONVERT(1, "mi", "m")')).stack[0]).toEqual(num(1609.344))
+    // Weight: 1 kg = 2.2046... lbs
+    expect(evalProgramDirect(compileInfixSync('=ROUND(CONVERT(1, "kg", "lb"), 2)')).stack[0]).toEqual(num(2.2))
+    // Temperature: 100°C = 212°F
+    expect(evalProgramDirect(compileInfixSync('=CONVERT(100, "C", "F")')).stack[0]).toEqual(num(212))
+    // Temperature: 0°C = 273.15K
+    expect(evalProgramDirect(compileInfixSync('=CONVERT(0, "C", "K")')).stack[0]).toEqual(num(273.15))
+    // Time: 1 hour = 3600 seconds
+    expect(evalProgramDirect(compileInfixSync('=CONVERT(1, "hr", "s")')).stack[0]).toEqual(num(3600))
+  })
+
   it("SLOPE/INTERCEPT/RSQ: linear regression suite", () => {
     // xs=[1,2,3], ys=[2,4,6] → y=2x → slope=2, intercept=0, R²=1
     expect(evalProgramDirect(compileInfixSync("=SLOPE(1, 2, 3, 2, 4, 6)")).stack[0]).toEqual(num(2))
