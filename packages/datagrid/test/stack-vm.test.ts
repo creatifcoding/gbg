@@ -1704,6 +1704,13 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("UNICODE/UNICHAR: full Unicode support", () => {
+    expect(evalProgramDirect(compileInfixSync('=UNICODE("A")')).stack[0]).toEqual(num(65))
+    expect(evalProgramDirect(compileInfixSync("=UNICHAR(128512)")).stack[0]).toEqual(str("😀"))
+    // Round-trip
+    expect(evalProgramDirect(compileInfixSync('=UNICHAR(UNICODE("Z"))')).stack[0]).toEqual(str("Z"))
+  })
+
   it("ENCODEURL: percent-encode text", () => {
     expect(evalProgramDirect(compileInfixSync('=ENCODEURL("hello world")')).stack[0]).toEqual(str("hello%20world"))
     expect(evalProgramDirect(compileInfixSync('=ENCODEURL("a&b=c")')).stack[0]).toEqual(str("a%26b%3Dc"))
