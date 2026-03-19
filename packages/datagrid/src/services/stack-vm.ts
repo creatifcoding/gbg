@@ -2033,6 +2033,26 @@ export const decompileIR = (ir: StackIR): string => {
   return stack.length === 1 ? `=${stack[0]}` : `=${stack.join(", ")}`
 }
 
+/**
+ * Bulk eval — run multiple IR programs in a single Effect.transaction.
+ * Amortizes transaction overhead across N evaluations.
+ * Returns array of VMStates in same order as input IR array.
+ */
+export const evalProgramBulk = (
+  programs: ReadonlyArray<{ ir: StackIR; ctx?: CellContext }>,
+): Effect.Effect<ReadonlyArray<VMState>> =>
+  Effect.transaction(
+    Effect.gen(function*() {
+      const results: VMState[] = []
+      for (const { ir, ctx } of programs) {
+        const ref = yield* TxRef.make(emptyState())
+        const state = yield* runIRBatched(ref, ir, ctx)
+        results.push(state)
+      }
+      return results
+    })
+  )
+
 /** Run an expression string with fresh state (can fail with CompileError) */
 export const evalExpr = (expr: string): Effect.Effect<VMState, CompileError> =>
   Effect.gen(function*() {

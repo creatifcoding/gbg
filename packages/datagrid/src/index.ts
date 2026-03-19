@@ -114,6 +114,7 @@ export {
   isVolatileIR,
   evalProgramDirect,
   decompileIR,
+  evalProgramBulk,
   FUNCTION_CATALOG,
   completeFunctions,
   type FunctionSignature,

@@ -26,7 +26,7 @@ import {
   type VMFailure,
   failureToVMError, timeoutToVMError, catchToErrorState,
   // VM core
-  evalProgram, evalProgramDirect, evalExpr, compileExpr, compileExprSync, isVolatileIR, decompileIR,
+  evalProgram, evalProgramDirect, evalProgramBulk, evalExpr, compileExpr, compileExprSync, isVolatileIR, decompileIR,
   compileInfix, compileInfixSync, extractDepsInfix,
   FUNCTION_CATALOG, completeFunctions,
   execOpcode, emptyState, MAX_EVAL_STEPS,
@@ -1324,6 +1324,14 @@ describe("infix parser", () => {
     const effect = Effect.runSync(evalProgram(ir))
     expect(direct.stack).toEqual(effect.stack)
     expect(direct.halted).toBe(effect.halted)
+  })
+
+  it("evalProgramBulk: batch N evals in single transaction", () => {
+    const ir = compileInfixSync("=2+3*4-1")
+    const programs = Array.from({ length: 100 }, () => ({ ir }))
+    const results = Effect.runSync(evalProgramBulk(programs))
+    expect(results.length).toBe(100)
+    expect(results.every(s => s.stack[0]._tag === "num" && (s.stack[0] as any).value === 13)).toBe(true)
   })
 
   it("evalProgramDirect: 10K evals faster than Effect path", () => {
