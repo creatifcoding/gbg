@@ -607,6 +607,24 @@ describe("FormulaEngineV2", () => {
       }))
     })
 
+    it("error recovery: one errored formula doesn't block others", async () => {
+      const store = makeStore({ A1: CV.num(10), B1: CV.num(0) })
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.registerInfix("C1", "=A1/B1")     // div by zero
+        yield* e.registerInfix("D1", "=A1*2")       // should still work
+        yield* e.registerInfix("E1", "=D1+5")       // depends on D1, should work
+        const r = yield* e.recalcAll()
+        // C1 has error (div/0), D1 and E1 are fine
+        expect(r.recalculated.length).toBe(3)
+        expect(store.cells.get("D1")).toEqual(CV.num(20))
+        expect(store.cells.get("E1")).toEqual(CV.num(25))
+        // C1 should be an error
+        const c1 = store.cells.get("C1")
+        expect(c1?._tag).toBe("Error")
+      }))
+    })
+
     it("text formulas: =UPPER(A1) & \" \" & UPPER(B1)", async () => {
       const store = makeStore({ A1: CV.str("hello"), B1: CV.str("world") })
       await run(store, Effect.gen(function*() {
