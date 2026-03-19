@@ -423,6 +423,8 @@ export const FIND_OP = Schema.TaggedStruct("FIND_OP", {})
 export const COUNTIF_N = Schema.TaggedStruct("COUNTIF_N", { n: Schema.Number })
 export const SUMIF_N = Schema.TaggedStruct("SUMIF_N", { n: Schema.Number })
 export const IRR_N = Schema.TaggedStruct("IRR_N", { n: Schema.Number })
+export const RATE_OP = Schema.TaggedStruct("RATE_OP", {})
+export const DB_OP = Schema.TaggedStruct("DB_OP", {})
 export const SLN_OP = Schema.TaggedStruct("SLN_OP", {})
 export const NPV_N = Schema.TaggedStruct("NPV_N", { n: Schema.Number })
 export const VAR_N = Schema.TaggedStruct("VAR_N", { n: Schema.Number })
@@ -557,7 +559,7 @@ export const Opcode = Schema.Union([
   EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR,
   AND_N, OR_N, CHOOSE_N,
   LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, PROPER_OP, CLEAN_OP, CHAR_OP, CODE_OP, T_OP, ISLOGICAL_OP, ISNONTEXT_OP, ERROR_TYPE_OP, ISEVEN_OP, ISODD_OP,
-  INT_OP, ROUNDUP_OP, ROUNDDOWN_OP, EVEN_OP, ODD_OP, TRUNC_OP, EXP_OP, LN_OP, LOG2_OP, RAND_BETWEEN, NPER_OP, SLN_OP, PMT_OP, FV_OP, PV_OP, MROUND_OP, FIXED_OP, DOLLAR_OP,
+  INT_OP, ROUNDUP_OP, ROUNDDOWN_OP, EVEN_OP, ODD_OP, TRUNC_OP, EXP_OP, LN_OP, LOG2_OP, RAND_BETWEEN, RATE_OP, DB_OP, NPER_OP, SLN_OP, PMT_OP, FV_OP, PV_OP, MROUND_OP, FIXED_OP, DOLLAR_OP,
   SINH_OP, COSH_OP, TANH_OP, SIN_OP, COS_OP, TAN_OP, ASIN_OP, ACOS_OP, ATAN_OP, ATAN2_OP, RADIANS_OP, DEGREES_OP,
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
@@ -964,6 +966,41 @@ const EXEC: Record<string, Executor> = {
     const life = asNum(s.pop()!), salvage = asNum(s.pop()!), cost = asNum(s.pop()!)
     if (life === 0) { s.push(vmError("DIV_ZERO", "SLN: life=0")); return { result: s[s.length-1] } }
     const result = num((cost - salvage) / life); s.push(result); return { result }
+  },
+
+  // RATE_OP: solve for interest rate. RATE(nper, pmt, pv) via Newton-Raphson
+  RATE_OP: (_o, s) => {
+    if (s.length < 3) { s.push(vmError("STACK_UNDERFLOW", "RATE")); return { result: s[s.length-1] } }
+    const pv = asNum(s.pop()!), pmt = asNum(s.pop()!), nper = asNum(s.pop()!)
+    if (nper <= 0) { s.push(vmError("TYPE_MISMATCH", "RATE: nper≤0")); return { result: s[s.length-1] } }
+    // Newton-Raphson: find r where pv + pmt*(1-(1+r)^-nper)/r = 0
+    let rate = 0.1
+    for (let iter = 0; iter < 100; iter++) {
+      const f1 = Math.pow(1 + rate, nper)
+      const f = pv * f1 + pmt * (f1 - 1) / rate
+      const df = pv * nper * Math.pow(1 + rate, nper - 1) + pmt * (nper * rate * Math.pow(1 + rate, nper - 1) - (f1 - 1)) / (rate * rate)
+      if (Math.abs(df) < 1e-15) break
+      const next = rate - f / df
+      if (Math.abs(next - rate) < 1e-10) { rate = next; break }
+      rate = next
+    }
+    const result = num(rate); s.push(result); return { result }
+  },
+
+  // DB_OP: declining balance depreciation. DB(cost, salvage, life, period)
+  DB_OP: (_o, s) => {
+    if (s.length < 4) { s.push(vmError("STACK_UNDERFLOW", "DB")); return { result: s[s.length-1] } }
+    const period = asNum(s.pop()!), life = asNum(s.pop()!), salvage = asNum(s.pop()!), cost = asNum(s.pop()!)
+    if (life <= 0 || period <= 0 || period > life) { s.push(vmError("TYPE_MISMATCH", "DB: invalid args")); return { result: s[s.length-1] } }
+    const rate = 1 - Math.pow(salvage / cost, 1 / life)
+    const rateRounded = Math.round(rate * 1000) / 1000 // Excel rounds rate to 3 decimal places
+    let value = cost
+    for (let i = 1; i <= period; i++) {
+      const depreciation = value * rateRounded
+      if (i === Math.floor(period)) { const result = num(Math.round(depreciation * 100) / 100); s.push(result); return { result } }
+      value -= depreciation
+    }
+    const result = num(0); s.push(result); return { result }
   },
 
   // NPV_N: net present value. Stack: [rate, cf1, cf2, ..., cfN]
@@ -1661,7 +1698,7 @@ const _OP: Record<string, Opcode> = {
   INT_OP: { _tag: "INT_OP" }, EVEN_OP: { _tag: "EVEN_OP" }, ODD_OP: { _tag: "ODD_OP" },
   ROUNDUP_OP: { _tag: "ROUNDUP_OP" }, ROUNDDOWN_OP: { _tag: "ROUNDDOWN_OP" },
   TRUNC_OP: { _tag: "TRUNC_OP" }, EXP_OP: { _tag: "EXP_OP" }, LN_OP: { _tag: "LN_OP" }, LOG2_OP: { _tag: "LOG2_OP" },
-  RAND_BETWEEN: { _tag: "RAND_BETWEEN" }, NPER_OP: { _tag: "NPER_OP" }, SLN_OP: { _tag: "SLN_OP" }, PMT_OP: { _tag: "PMT_OP" }, FV_OP: { _tag: "FV_OP" }, PV_OP: { _tag: "PV_OP" },
+  RAND_BETWEEN: { _tag: "RAND_BETWEEN" }, RATE_OP: { _tag: "RATE_OP" }, DB_OP: { _tag: "DB_OP" }, NPER_OP: { _tag: "NPER_OP" }, SLN_OP: { _tag: "SLN_OP" }, PMT_OP: { _tag: "PMT_OP" }, FV_OP: { _tag: "FV_OP" }, PV_OP: { _tag: "PV_OP" },
   MROUND_OP: { _tag: "MROUND_OP" }, FIXED_OP: { _tag: "FIXED_OP" }, DOLLAR_OP: { _tag: "DOLLAR_OP" },
   SIN_OP: { _tag: "SIN_OP" }, COS_OP: { _tag: "COS_OP" }, TAN_OP: { _tag: "TAN_OP" },
   ASIN_OP: { _tag: "ASIN_OP" }, ACOS_OP: { _tag: "ACOS_OP" }, ATAN_OP: { _tag: "ATAN_OP" }, ATAN2_OP: { _tag: "ATAN2_OP" },
@@ -1761,6 +1798,8 @@ function classifyToken(tok: string): Opcode | null {
     case "LOG2_OP": return _OP.LOG2_OP
     case "RAND_BETWEEN": return _OP.RAND_BETWEEN
     case "FIXED_OP": return _OP.FIXED_OP
+    case "RATE_OP": return _OP.RATE_OP
+    case "DB_OP": return _OP.DB_OP
     case "SLN_OP": return _OP.SLN_OP
     case "NPER_OP": return _OP.NPER_OP
     case "PMT_OP": return _OP.PMT_OP
@@ -2078,7 +2117,7 @@ const FUNC_MAP: Record<string, string> = {
   ISLOGICAL: "ISLOGICAL_OP", ISNONTEXT: "ISNONTEXT_OP", ERRORTYPE: "ERROR_TYPE_OP",
   ISEVEN: "ISEVEN_OP", ISODD: "ISODD_OP", ISNUMBER: "ISNUM_OP",
   INT: "INT_OP", ROUNDUP: "ROUNDUP_OP", ROUNDDOWN: "ROUNDDOWN_OP", EVEN: "EVEN_OP", ODD: "ODD_OP", TRUNC: "TRUNC_OP", EXP: "EXP_OP", LN: "LN_OP", LOG2: "LOG2_OP",
-  RANDBETWEEN: "RAND_BETWEEN", IRR: "IRR_N", NPER: "NPER_OP", SLN: "SLN_OP", PMT: "PMT_OP", FV: "FV_OP", PV: "PV_OP", MROUND: "MROUND_OP", FIXED: "FIXED_OP", DOLLAR: "DOLLAR_OP",
+  RANDBETWEEN: "RAND_BETWEEN", IRR: "IRR_N", RATE: "RATE_OP", DB: "DB_OP", NPER: "NPER_OP", SLN: "SLN_OP", PMT: "PMT_OP", FV: "FV_OP", PV: "PV_OP", MROUND: "MROUND_OP", FIXED: "FIXED_OP", DOLLAR: "DOLLAR_OP",
   SINH: "SINH_OP", COSH: "COSH_OP", TANH: "TANH_OP",
   SIN: "SIN_OP", COS: "COS_OP", TAN: "TAN_OP", ASIN: "ASIN_OP", ACOS: "ACOS_OP", ATAN: "ATAN_OP", ATAN2: "ATAN2_OP", RADIANS: "RADIANS_OP", DEGREES: "DEGREES_OP",
   FACT: "FACT_OP", QUOTIENT: "QUOTIENT_OP", GCD: "GCD_OP", LCM: "LCM_OP", COMBIN: "COMBIN_OP", SUBSTITUTE: "SUBSTITUTE_OP",
@@ -2428,6 +2467,8 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "LOG2", args: "number", description: "Base-2 logarithm", category: "math" },
   { name: "RANDBETWEEN", args: "low, high", description: "Random integer between bounds", category: "volatile" },
   { name: "IRR", args: "cashflows...", description: "Internal rate of return (Newton-Raphson)", category: "financial" },
+  { name: "RATE", args: "nper, pmt, pv", description: "Solve for interest rate (Newton-Raphson)", category: "financial" },
+  { name: "DB", args: "cost, salvage, life, period", description: "Declining balance depreciation", category: "financial" },
   { name: "SLN", args: "cost, salvage, life", description: "Straight-line depreciation", category: "financial" },
   { name: "NPV", args: "rate, cashflows...", description: "Net present value of cash flows", category: "financial" },
   { name: "NPER", args: "rate, pmt, pv", description: "Number of payment periods", category: "financial" },

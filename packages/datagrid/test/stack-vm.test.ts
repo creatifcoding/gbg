@@ -1533,6 +1533,20 @@ describe("infix parser", () => {
     expect((irr as any).value).toBeLessThan(22)
   })
 
+  it("RATE: solve for interest rate", () => {
+    // 360 months, $-1073.64/month payment, $200K loan → ~0.417% monthly (5% annual)
+    const rate = evalProgramDirect(compileInfixSync("=ROUND(RATE(360, -1073.64, 200000)*1200, 1)")).stack[0]
+    expect((rate as any).value).toBeGreaterThan(4.5)
+    expect((rate as any).value).toBeLessThan(5.5) // ~5.0%
+  })
+
+  it("DB: declining balance depreciation", () => {
+    // $1M asset, $100K salvage, 6 year life, period 1 → DB rate ≈ 0.319, period 1 = $319,000
+    const db1 = evalProgramDirect(compileInfixSync("=DB(1000000, 100000, 6, 1)")).stack[0]
+    expect((db1 as any).value).toBeGreaterThan(300000) 
+    expect((db1 as any).value).toBeLessThan(330000)
+  })
+
   it("SLN: straight-line depreciation", () => {
     // Asset $30K, salvage $7.5K, 10 year life → $2,250/year
     expect(evalProgramDirect(compileInfixSync("=SLN(30000, 7500, 10)")).stack[0]).toEqual(num(2250))
