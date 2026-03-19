@@ -2578,6 +2578,30 @@ describe("post-450 function coverage", () => {
   it("DAYSINMONTH(2024, 2) = 29", () => expect(d("=DAYSINMONTH(2024, 2)")).toBe(29))
   it("DAYSINMONTH(2023, 2) = 28", () => expect(d("=DAYSINMONTH(2023, 2)")).toBe(28))
 
+  // Financial: depreciation + rates
+  it("SLN(1000, 100, 10) = 90", () => expect(d("=SLN(1000, 100, 10)")).toBe(90))
+  it("SYD(1000, 100, 5, 1) = 300", () => expect(d("=SYD(1000, 100, 5, 1)")).toBe(300))
+  it("EFFECT.RATE(0.1, 12) ≈ 0.1047", () => expect(d("=ROUND(EFFECT.RATE(0.1, 12), 4)")).toBe(0.1047))
+  it("NOMINAL(0.1047, 12) ≈ 0.1", () => expect(d("=ROUND(NOMINAL(0.1047, 12), 2)")).toBe(0.1))
+
+  // Logic gates
+  it("NAND(1,1) = false", () => expect(d("=NAND(1,1)")).toBe(false))
+  it("NAND(1,0) = true", () => expect(d("=NAND(1,0)")).toBe(true))
+  it("NOR(0,0) = true", () => expect(d("=NOR(0,0)")).toBe(true))
+  it("NOR(1,0) = false", () => expect(d("=NOR(1,0)")).toBe(false))
+  it("XNOR(1,1) = true", () => expect(d("=XNOR(1,1)")).toBe(true))
+  it("XNOR(1,0) = false", () => expect(d("=XNOR(1,0)")).toBe(false))
+
+  // Text: mask + truncate
+  it("TEXTMASK(hello, 2) = he***", () => expect(d("=TEXTMASK(\"hello\", 2)")).toBe("he***"))
+  it("TEXTTRUNCATE short passthrough", () => expect(d("=TEXTTRUNCATE(\"hi\", 10)")).toBe("hi"))
+  it("TEXTTRUNCATE with ellipsis", () => expect(d("=TEXTTRUNCATE(\"hello world foo bar\", 10)")).toBe("hello w..."))
+  it("TEXTTITLE", () => expect(d("=TEXTTITLE(\"hello world\")")).toBe("Hello World"))
+
+  // Stat: ZSCORE
+  it("ZSCORE(110, 100, 10) = 1", () => expect(d("=ZSCORE(110, 100, 10)")).toBe(1))
+  it("ZSCORE(90, 100, 10) = -1", () => expect(d("=ZSCORE(90, 100, 10)")).toBe(-1))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
