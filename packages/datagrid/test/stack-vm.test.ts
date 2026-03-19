@@ -1422,6 +1422,12 @@ describe("infix parser", () => {
     expect(decompileIR(compileInfixSync("=UPPER(A1)"))).toBe("=UPPER(A1)")
   })
 
+  it("MEDIAN: odd and even count", () => {
+    expect(evalProgramDirect(compileInfixSync("=MEDIAN(3,1,2)")).stack[0]).toEqual(num(2)) // sorted: [1,2,3] → 2
+    expect(evalProgramDirect(compileInfixSync("=MEDIAN(4,1,2,3)")).stack[0]).toEqual(num(2.5)) // sorted: [1,2,3,4] → (2+3)/2
+    expect(evalProgramDirect(compileInfixSync("=MEDIAN(5)")).stack[0]).toEqual(num(5)) // single value
+  })
+
   it("RANK: rank value within set", () => {
     // Descending: highest=1
     expect(evalProgramDirect(compileInfixSync("=RANK(30, 10, 20, 30, 40, 50)")).stack[0]).toEqual(num(3)) // 40,50 are higher

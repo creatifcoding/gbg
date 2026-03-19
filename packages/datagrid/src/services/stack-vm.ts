@@ -376,6 +376,7 @@ export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
 export const REPT_OP = Schema.TaggedStruct("REPT_OP", {})
 export const EXACT_OP = Schema.TaggedStruct("EXACT_OP", {})
 export const FIND_OP = Schema.TaggedStruct("FIND_OP", {})
+export const MEDIAN_N = Schema.TaggedStruct("MEDIAN_N", { n: Schema.Number })
 export const RANK_N = Schema.TaggedStruct("RANK_N", { n: Schema.Number })
 export const CONCATENATE_N = Schema.TaggedStruct("CONCATENATE_N", { n: Schema.Number })
 export const TEXTJOIN_N = Schema.TaggedStruct("TEXTJOIN_N", { n: Schema.Number })
@@ -498,7 +499,7 @@ export const Opcode = Schema.Union([
   LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
-  RANK_N, CONCATENATE_N, TEXTJOIN_N, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
+  MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
   IFS_N, SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
@@ -823,6 +824,18 @@ const EXEC: Record<string, Executor> = {
     const result = str(t.substring(0, si) + nt + t.substring(si + l))
     s.push(result); return { result }
   },
+  // MEDIAN_N: median of N values
+  MEDIAN_N: (op: any, s) => {
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "MEDIAN")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const nums = args.filter(v => !isVMError(v)).map(asNum).sort((a, b) => a - b)
+    if (nums.length === 0) { const err = vmError("TYPE_MISMATCH", "MEDIAN: empty"); s.push(err); return { result: err } }
+    const mid = Math.floor(nums.length / 2)
+    const result = nums.length % 2 !== 0 ? num(nums[mid]) : num((nums[mid - 1] + nums[mid]) / 2)
+    s.push(result); return { result }
+  },
+
   // RANK_N: rank a value within a set. Args: [value, v1, v2, ..., vN]
   // Returns 1-based rank (descending by default). Ties get same rank.
   RANK_N: (op: any, s) => {
@@ -1263,6 +1276,7 @@ function classifyToken(tok: string): Opcode | null {
     case "ISTEXT_OP": return _OP.ISTEXT_OP
     case "ISERROR_OP": return _OP.ISERROR_OP
     case "ISBLANK_OP": return _OP.ISBLANK_OP
+    case "MEDIAN_N": return { _tag: "MEDIAN_N", n: 0 } as any
     case "RANK_N": return { _tag: "RANK_N", n: 0 } as any
     case "CONCATENATE_N": return { _tag: "CONCATENATE_N", n: 0 } as any
     case "TEXTJOIN_N": return { _tag: "TEXTJOIN_N", n: 0 } as any
@@ -1466,12 +1480,12 @@ const INFIX_OP_MAP: Record<string, string> = {
 }
 const RIGHT_ASSOC = new Set<string>(["UNARY_NEG", "^"])
 const ZERO_ARG_FNS = new Set(["NOW", "RAND", "PI", "TODAY"])
-const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N", "SWITCH_N", "IFS_N", "RANK_N", "CONCATENATE_N", "TEXTJOIN_N"])
+const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N", "SWITCH_N", "IFS_N", "MEDIAN_N", "RANK_N", "CONCATENATE_N", "TEXTJOIN_N"])
 const N_VARIANTS: Record<string, string> = {
   SUM_DYN: "SUM_N", MIN_DYN: "MIN_N", MAX_DYN: "MAX_N", AVG_DYN: "AVG_N",
   PRODUCT_DYN: "PRODUCT_N",
   AND_N: "AND_N", OR_N: "OR_N", CHOOSE_N: "CHOOSE_N", SWITCH_N: "SWITCH_N", IFS_N: "IFS_N",
-  RANK_N: "RANK_N", CONCATENATE_N: "CONCATENATE_N", TEXTJOIN_N: "TEXTJOIN_N",
+  MEDIAN_N: "MEDIAN_N", RANK_N: "RANK_N", CONCATENATE_N: "CONCATENATE_N", TEXTJOIN_N: "TEXTJOIN_N",
 }
 const FN_VARIANTS: Record<string, string> = { IF: "IF_FN", IFERROR: "IFERROR_FN" }
 
@@ -1543,7 +1557,7 @@ const FUNC_MAP: Record<string, string> = {
   LEN: "LEN_OP", LEFT: "LEFT_OP", RIGHT: "RIGHT_OP", MID: "MID_OP",
   TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", SUBSTITUTE: "SUBSTITUTE_OP",
   ISNUM: "ISNUM_OP", ISTEXT: "ISTEXT_OP", ISERROR: "ISERROR_OP", ISBLANK: "ISBLANK_OP",
-  RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
+  MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
   REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
   IFS: "IFS_N", SWITCH: "SWITCH_N", VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
   YEAR: "YEAR_OP", MONTH: "MONTH_OP", DAY: "DAY_OP",
@@ -1880,6 +1894,7 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "OR", args: "values...", description: "Any condition true", category: "logic" },
   { name: "NOT", args: "value", description: "Logical negation", category: "logic" },
   // Lookup / Ranking
+  { name: "MEDIAN", args: "values...", description: "Middle value (sorted)", category: "stat" },
   { name: "RANK", args: "value, values...", description: "Rank value (1=highest)", category: "stat" },
   { name: "CHOOSE", args: "index, values...", description: "Pick by 1-based index", category: "lookup" },
   // Branching
