@@ -1704,6 +1704,15 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("PERCENTRANK/QUARTILE/WEIBULL/GAMMADIST: extended stat functions", () => {
+    // QUARTILE: Q2 of [1,2,3,4,5] = median = 3
+    expect(evalProgramDirect(compileInfixSync("=QUARTILE(2, 1, 2, 3, 4, 5)")).stack[0]).toEqual(num(3))
+    // PERCENTRANK: 3 is at 50% of [1,2,3,4,5]
+    expect(evalProgramDirect(compileInfixSync("=PERCENTRANK(3, 1, 2, 3, 4, 5)")).stack[0]).toEqual(num(0.5))
+    // WEIBULL(1, 1, 1) = 1 - e^(-1) ≈ 0.6321
+    expect(evalProgramDirect(compileInfixSync("=ROUND(WEIBULL(1, 1, 1), 4)")).stack[0]).toEqual(num(0.6321))
+  })
+
   it("EXPONDIST/POISSON/BINOMDIST/LOGNORMDIST: distribution family", () => {
     // EXPONDIST(1, 1) = 1 - e^(-1) ≈ 0.6321
     expect(evalProgramDirect(compileInfixSync("=ROUND(EXPONDIST(1, 1), 4)")).stack[0]).toEqual(num(0.6321))
