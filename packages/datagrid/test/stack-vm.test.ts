@@ -1072,6 +1072,24 @@ describe("infix parser", () => {
     expect(s.stack[0]).toEqual(num(3))
   })
 
+  it("ROUND function: =ROUND(3.14159, 2)", () => {
+    const ir = compileInfixSync("=ROUND(3.14159, 2)")
+    const s = Effect.runSync(evalProgram(ir))
+    expect(s.stack[0]).toEqual(num(3.14))
+  })
+
+  it("FLOOR function: =FLOOR(3.7)", () => {
+    const ir = compileInfixSync("=FLOOR(3.7)")
+    const s = Effect.runSync(evalProgram(ir))
+    expect(s.stack[0]).toEqual(num(3))
+  })
+
+  it("CEIL function: =CEIL(3.2)", () => {
+    const ir = compileInfixSync("=CEIL(3.2)")
+    const s = Effect.runSync(evalProgram(ir))
+    expect(s.stack[0]).toEqual(num(4))
+  })
+
   it("rejects mismatched parentheses", async () => {
     await expect(
       Effect.runPromise(compileInfix("=(A1+B1"))

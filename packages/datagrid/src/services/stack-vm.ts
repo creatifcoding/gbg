@@ -329,6 +329,13 @@ export const COUNT_DYN = Schema.TaggedStruct("COUNT_DYN", {})
 /** POWER — raise base to exponent */
 export const POWER = Schema.TaggedStruct("POWER", {})
 
+/** ROUND — round to N decimal places */
+export const ROUND = Schema.TaggedStruct("ROUND", {})
+
+/** FLOOR_OP / CEIL_OP — floor/ceil a number */
+export const FLOOR_OP = Schema.TaggedStruct("FLOOR_OP", {})
+export const CEIL_OP = Schema.TaggedStruct("CEIL_OP", {})
+
 /**
  * CONCAT — string concatenation: pops 2 values, coerces to string, pushes joined.
  */
@@ -397,6 +404,7 @@ export const Opcode = Schema.Union([
   EQ, LT, GT, NOT, IF,
   SUM_N, MIN_N, MAX_N, AVG_N,
   SUM_DYN, MIN_DYN, MAX_DYN, AVG_DYN, COUNT_DYN, POWER,
+  ROUND, FLOOR_OP, CEIL_OP,
   HALT,
   READ_CELL, WRITE_CELL, READ_RANGE,
 ])
@@ -492,133 +500,160 @@ export const vmStateDiffer = Schema.toDifferJsonPatch(VMStateSchema)
  * Error propagation rule: if any operand is a VMError, propagate it
  * instead of computing. This mirrors spreadsheet semantics.
  */
-const opcodeDispatch = pipe(
-  Match.type<Opcode>(),
-  Match.tagsExhaustive({
-    PUSH_NUM: (o) => ({ result: num(o.value), pushVal: num(o.value) }),
-    PUSH_STR: (o) => ({ result: str(o.value), pushVal: str(o.value) }),
-    PUSH_BOOL: (o) => ({ result: bool(o.value), pushVal: bool(o.value) }),
-    ADD: () => ({
-      binop: (a: VMValue, b: VMValue) => {
-        const pe = propagateError(a, b); if (pe) return pe
-        return num(asNum(a) + asNum(b))
-      },
-      need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "ADD requires 2 operands",
-    }),
-    SUB: () => ({
-      binop: (a: VMValue, b: VMValue) => {
-        const pe = propagateError(a, b); if (pe) return pe
-        return num(asNum(a) - asNum(b))
-      },
-      need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "SUB requires 2 operands",
-    }),
-    MUL: () => ({
-      binop: (a: VMValue, b: VMValue) => {
-        const pe = propagateError(a, b); if (pe) return pe
-        return num(asNum(a) * asNum(b))
-      },
-      need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "MUL requires 2 operands",
-    }),
-    DIV: () => ({
-      binop: (a: VMValue, b: VMValue) => {
-        const pe = propagateError(a, b); if (pe) return pe
-        const bn = asNum(b)
-        return bn === 0 ? vmError("DIV_ZERO", "Division by zero") : num(asNum(a) / bn)
-      },
-      need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "DIV requires 2 operands",
-    }),
-    DUP: () => ({ dup: true }),
-    SWAP: () => ({ swap: true }),
-    DROP: () => ({ drop: true }),
-    NEG: () => ({
-      unop: (a: VMValue) => {
-        if (isVMError(a)) return a
-        return num(-asNum(a))
-      },
-      errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "NEG requires 1 operand",
-    }),
-    EQ: () => ({
-      binop: (a: VMValue, b: VMValue) => {
-        const pe = propagateError(a, b); if (pe) return pe
-        return bool(vmEq(a, b))
-      },
-      need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "EQ requires 2 operands",
-    }),
-    LT: () => ({
-      binop: (a: VMValue, b: VMValue) => {
-        const pe = propagateError(a, b); if (pe) return pe
-        return bool(asNum(a) < asNum(b))
-      },
-      need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "LT requires 2 operands",
-    }),
-    GT: () => ({
-      binop: (a: VMValue, b: VMValue) => {
-        const pe = propagateError(a, b); if (pe) return pe
-        return bool(asNum(a) > asNum(b))
-      },
-      need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "GT requires 2 operands",
-    }),
-    NOT: () => ({
-      unop: (a: VMValue) => {
-        if (isVMError(a)) return a
-        return bool(a._tag === "bool" ? !a.value : a._tag === "num" ? a.value === 0 : false)
-      },
-      errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "NOT requires 1 operand",
-    }),
-    MOD: () => ({
-      binop: (a: VMValue, b: VMValue) => {
-        const pe = propagateError(a, b); if (pe) return pe
-        const bn = asNum(b)
-        return bn === 0 ? vmError("DIV_ZERO", "Modulo by zero") : num(asNum(a) % bn)
-      },
-      need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "MOD requires 2 operands",
-    }),
-    CONCAT: () => ({
-      binop: (a: VMValue, b: VMValue) => {
-        const pe = propagateError(a, b); if (pe) return pe
-        return str(vmDisplay(a) + vmDisplay(b))
-      },
-      need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "CONCAT requires 2 operands",
-    }),
-    TO_NUM: () => ({
-      unop: (a: VMValue) => {
-        if (isVMError(a)) return a
-        const n = toNumber(a)
-        return n !== undefined ? num(n) : vmError("TYPE_MISMATCH", `Cannot convert ${a._tag} to number`)
-      },
-      errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "TO_NUM requires 1 operand",
-    }),
-    TO_STR: () => ({
-      unop: (a: VMValue) => {
-        if (isVMError(a)) return a
-        return str(vmDisplay(a))
-      },
-      errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "TO_STR requires 1 operand",
-    }),
-    ABS: () => ({
-      unop: (a: VMValue) => {
-        if (isVMError(a)) return a
-        return num(Math.abs(asNum(a)))
-      },
-      errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "ABS requires 1 operand",
-    }),
-    IF: () => ({ ifOp: true }),
-    SUM_N: (o) => ({ sumN: o.n }),
-    MIN_N: (o) => ({ minN: o.n }),
-    MAX_N: (o) => ({ maxN: o.n }),
-    AVG_N: (o) => ({ avgN: o.n }),
-    SUM_DYN: () => ({ sumDyn: true }),
-    MIN_DYN: () => ({ minDyn: true }),
-    MAX_DYN: () => ({ maxDyn: true }),
-    AVG_DYN: () => ({ avgDyn: true }),
-    COUNT_DYN: () => ({ countDyn: true }),
-    POWER: () => ({ power: true }),
-    HALT: () => ({ halt: true }),
-    READ_CELL: (o) => ({ readCell: o.addr }),
-    WRITE_CELL: (o) => ({ writeCell: o.addr }),
-    READ_RANGE: (o) => ({ readRange: o }),
-  })
-)
+// ── Dispatch helpers ────────────────────────────────────
+
+/** Binary operator: pop 2, apply fn, push result */
+const binop = (
+  s: VMValue[], fn: (a: VMValue, b: VMValue) => VMValue, name: string,
+): VMValue | undefined => {
+  if (s.length < 2) { const e = vmError("STACK_UNDERFLOW", `${name} requires 2 operands`); s.push(e); return e }
+  const b = s.pop()!; const a = s.pop()!; const v = fn(a, b); s.push(v); return v
+}
+
+/** Unary operator: pop 1, apply fn, push result */
+const unop = (
+  s: VMValue[], fn: (a: VMValue) => VMValue, name: string,
+): VMValue | undefined => {
+  if (s.length === 0) { const e = vmError("STACK_UNDERFLOW", `${name} requires 1 operand`); s.push(e); return e }
+  const a = s.pop()!; const v = fn(a); s.push(v); return v
+}
+
+/** Pop N values, check errors, run reducer */
+const aggregateN = (
+  s: VMValue[], n: number, reduce: (vals: VMValue[]) => VMValue, name: string,
+): VMValue | undefined => {
+  if (s.length < n) { const e = vmError("STACK_UNDERFLOW", `${name} requires ${n} operands`); s.push(e); return e }
+  const values: VMValue[] = []; for (let i = 0; i < n; i++) values.push(s.pop()!)
+  const firstErr = values.find(isVMError)
+  if (firstErr) { s.push(firstErr); return firstErr }
+  const r = reduce(values); s.push(r); return r
+}
+
+/** Dynamic aggregate: pop count from stack, then aggregate */
+const aggregateDyn = (
+  s: VMValue[], reduce: (vals: VMValue[], n: number) => VMValue, name: string,
+): VMValue | undefined => {
+  if (s.length === 0) { const e = vmError("STACK_UNDERFLOW", `${name} requires count on stack`); s.push(e); return e }
+  const countVal = s.pop()!; const n = countVal._tag === "num" ? countVal.value : 0
+  if (n <= 0 || s.length < n) { const e = vmError("STACK_UNDERFLOW", `${name} requires ${n} values`); s.push(e); return e }
+  const values: VMValue[] = []; for (let i = 0; i < n; i++) values.push(s.pop()!)
+  const firstErr = values.find(isVMError)
+  if (firstErr) { s.push(firstErr); return firstErr }
+  const r = reduce(values, n); s.push(r); return r
+}
+
+// ── Reducers ────────────────────────────────────────────
+
+const sumReduce = (vals: VMValue[]) => { let t = 0; for (const v of vals) t += asNum(v); return num(t) }
+const minReduce = (vals: VMValue[]) => { let m = asNum(vals[0]); for (let i = 1; i < vals.length; i++) { const v = asNum(vals[i]); if (v < m) m = v }; return num(m) }
+const maxReduce = (vals: VMValue[]) => { let m = asNum(vals[0]); for (let i = 1; i < vals.length; i++) { const v = asNum(vals[i]); if (v > m) m = v }; return num(m) }
+const avgReduce = (vals: VMValue[], n: number) => { let t = 0; for (const v of vals) t += asNum(v); return num(t / n) }
+
+// ── Flat dispatch table ────────────────────────────────
+// Each entry: (op, stack, ctx) → { result?, halted? }
+
+type ExecResult = { result?: VMValue; halted?: boolean }
+type Executor = (op: Opcode, s: VMValue[], ctx: CellContext) => ExecResult
+
+const EXEC: Record<string, Executor> = {
+  // ── Push ──
+  PUSH_NUM:  (o: any, s) => { const v = num(o.value); s.push(v); return { result: v } },
+  PUSH_STR:  (o: any, s) => { const v = str(o.value); s.push(v); return { result: v } },
+  PUSH_BOOL: (o: any, s) => { const v = bool(o.value); s.push(v); return { result: v } },
+
+  // ── Arithmetic (binary) ──
+  ADD:  (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); return pe ?? num(asNum(a) + asNum(b)) }, "ADD") }),
+  SUB:  (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); return pe ?? num(asNum(a) - asNum(b)) }, "SUB") }),
+  MUL:  (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); return pe ?? num(asNum(a) * asNum(b)) }, "MUL") }),
+  DIV:  (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); if (pe) return pe; const bn = asNum(b); return bn === 0 ? vmError("DIV_ZERO", "Division by zero") : num(asNum(a) / bn) }, "DIV") }),
+  MOD:  (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); if (pe) return pe; const bn = asNum(b); return bn === 0 ? vmError("DIV_ZERO", "Modulo by zero") : num(asNum(a) % bn) }, "MOD") }),
+  POWER:(_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); return pe ?? num(Math.pow(asNum(a), asNum(b))) }, "POWER") }),
+  ROUND:(_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); if (pe) return pe; const f = Math.pow(10, asNum(b)); return num(Math.round(asNum(a) * f) / f) }, "ROUND") }),
+
+  // ── Comparison (binary) ──
+  EQ: (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); return pe ?? bool(vmEq(a, b)) }, "EQ") }),
+  LT: (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); return pe ?? bool(asNum(a) < asNum(b)) }, "LT") }),
+  GT: (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); return pe ?? bool(asNum(a) > asNum(b)) }, "GT") }),
+
+  // ── String (binary) ──
+  CONCAT: (_o, s) => ({ result: binop(s, (a, b) => { const pe = propagateError(a, b); return pe ?? str(vmDisplay(a) + vmDisplay(b)) }, "CONCAT") }),
+
+  // ── Unary ──
+  NEG:    (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(-asNum(a)), "NEG") }),
+  NOT:    (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : bool(a._tag === "bool" ? !a.value : a._tag === "num" ? a.value === 0 : false), "NOT") }),
+  ABS:    (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.abs(asNum(a))), "ABS") }),
+  TO_NUM: (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const n = toNumber(a); return n !== undefined ? num(n) : vmError("TYPE_MISMATCH", `Cannot convert ${a._tag} to number`) }, "TO_NUM") }),
+  TO_STR: (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : str(vmDisplay(a)), "TO_STR") }),
+  FLOOR_OP: (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.floor(asNum(a))), "FLOOR") }),
+  CEIL_OP:  (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.ceil(asNum(a))), "CEIL") }),
+
+  // ── Stack manipulation ──
+  DUP: (_o, s) => {
+    if (s.length === 0) { const e = vmError("STACK_UNDERFLOW", "DUP requires 1 operand"); s.push(e); return { result: e } }
+    const v = s[s.length - 1]; s.push(v); return { result: v }
+  },
+  SWAP: (_o, s) => {
+    if (s.length < 2) { const e = vmError("STACK_UNDERFLOW", "SWAP requires 2 operands"); s.push(e); return { result: e } }
+    const b = s.pop()!; const a = s.pop()!; s.push(b, a); return {}
+  },
+  DROP: (_o, s) => {
+    if (s.length === 0) { const e = vmError("STACK_UNDERFLOW", "DROP requires 1 operand"); s.push(e); return { result: e } }
+    s.pop(); return {}
+  },
+
+  // ── Conditional ──
+  IF: (_o, s) => {
+    if (s.length < 3) { const e = vmError("STACK_UNDERFLOW", "IF requires 3 operands"); s.push(e); return { result: e } }
+    const condition = s.pop()!; const trueVal = s.pop()!; const falseVal = s.pop()!
+    const pe = propagateError(condition); if (pe) { s.push(pe); return { result: pe } }
+    const isTruthy = condition._tag === "bool" ? condition.value : condition._tag === "num" ? condition.value !== 0 : true
+    const v = isTruthy ? trueVal : falseVal; s.push(v); return { result: v }
+  },
+
+  // ── Fixed-N aggregates ──
+  SUM_N: (o: any, s) => ({ result: aggregateN(s, o.n, sumReduce, "SUM_N") }),
+  MIN_N: (o: any, s) => ({ result: aggregateN(s, o.n, minReduce, "MIN_N") }),
+  MAX_N: (o: any, s) => ({ result: aggregateN(s, o.n, maxReduce, "MAX_N") }),
+  AVG_N: (o: any, s) => {
+    if (o.n === 0) { const e = vmError("DIV_ZERO", "AVG_N with n=0"); s.push(e); return { result: e } }
+    return { result: aggregateN(s, o.n, vals => avgReduce(vals, o.n), "AVG_N") }
+  },
+
+  // ── Dynamic aggregates (used with READ_RANGE) ──
+  SUM_DYN:   (_o, s) => ({ result: aggregateDyn(s, (v) => sumReduce(v), "SUM_DYN") }),
+  MIN_DYN:   (_o, s) => ({ result: aggregateDyn(s, (v) => minReduce(v), "MIN_DYN") }),
+  MAX_DYN:   (_o, s) => ({ result: aggregateDyn(s, (v) => maxReduce(v), "MAX_DYN") }),
+  AVG_DYN:   (_o, s) => ({ result: aggregateDyn(s, avgReduce, "AVG_DYN") }),
+  COUNT_DYN: (_o, s) => {
+    if (s.length === 0) { const e = vmError("STACK_UNDERFLOW", "COUNT_DYN requires count on stack"); s.push(e); return { result: e } }
+    const countVal = s.pop()!; const n = countVal._tag === "num" ? countVal.value : 0
+    for (let i = 0; i < n && s.length > 0; i++) s.pop()
+    const r = num(n); s.push(r); return { result: r }
+  },
+
+  // ── Cell I/O ──
+  READ_CELL: (o: any, s, ctx) => { const v = ctx.readCell(o.addr); s.push(v); return { result: v } },
+  WRITE_CELL: (o: any, s, ctx) => {
+    if (s.length === 0) { const e = vmError("STACK_UNDERFLOW", "WRITE_CELL requires 1 operand"); s.push(e); return { result: e } }
+    const v = s.pop()!; ctx.writeCell(o.addr, v); return { result: v }
+  },
+  READ_RANGE: (o: any, s, ctx) => {
+    const { startCol, startRow, endCol, endRow } = o
+    let count = 0
+    if (startCol === endCol) {
+      for (let r = Math.min(startRow, endRow); r <= Math.max(startRow, endRow); r++) { s.push(ctx.readCell(`${startCol}${r}`)); count++ }
+    } else if (startRow === endRow) {
+      for (let c = Math.min(startCol.charCodeAt(0), endCol.charCodeAt(0)); c <= Math.max(startCol.charCodeAt(0), endCol.charCodeAt(0)); c++) { s.push(ctx.readCell(`${String.fromCharCode(c)}${startRow}`)); count++ }
+    } else {
+      for (let r = Math.min(startRow, endRow); r <= Math.max(startRow, endRow); r++)
+        for (let c = Math.min(startCol.charCodeAt(0), endCol.charCodeAt(0)); c <= Math.max(startCol.charCodeAt(0), endCol.charCodeAt(0)); c++) { s.push(ctx.readCell(`${String.fromCharCode(c)}${r}`)); count++ }
+    }
+    const cv = num(count); s.push(cv); return { result: cv }
+  },
+
+  // ── Control ──
+  HALT: () => ({ halted: true }),
+}
 
 // ═══════════════════════════════════════════════════════
 // OPCODE EXECUTION
@@ -652,225 +687,11 @@ export const execOpcode = (op: Opcode, state: VMState, ctx?: CellContext): VMSta
 
   const s = [...state.stack]
   const depthBefore = s.length
-  const cmd = opcodeDispatch(op) as any
-  let result: VMValue | undefined
+  const cellCtx = ctx ?? emptyCellContext
 
-  if (cmd.halt) {
-    // noop — halted flag set below
-  } else if (cmd.pushVal) {
-    s.push(cmd.pushVal); result = cmd.result
-  } else if (cmd.binop) {
-    if (s.length < cmd.need) {
-      const e = vmError(cmd.errCode, cmd.errMsg); s.push(e); result = e
-    } else {
-      const b = s.pop()!; const a = s.pop()!
-      const v = cmd.binop(a, b); s.push(v); result = v
-    }
-  } else if (cmd.unop) {
-    if (s.length === 0) {
-      const e = vmError(cmd.errCode, cmd.errMsg); s.push(e); result = e
-    } else {
-      const a = s.pop()!; const v = cmd.unop(a); s.push(v); result = v
-    }
-  } else if (cmd.dup) {
-    if (s.length === 0) {
-      const e = vmError("STACK_UNDERFLOW", "DUP requires 1 operand"); s.push(e); result = e
-    } else {
-      const v = s[s.length - 1]; s.push(v); result = v
-    }
-  } else if (cmd.swap) {
-    if (s.length < 2) {
-      const e = vmError("STACK_UNDERFLOW", "SWAP requires 2 operands"); s.push(e); result = e
-    } else {
-      const b = s.pop()!; const a = s.pop()!; s.push(b, a)
-    }
-  } else if (cmd.drop) {
-    if (s.length === 0) {
-      const e = vmError("STACK_UNDERFLOW", "DROP requires 1 operand"); s.push(e); result = e
-    } else {
-      s.pop()
-    }
-  } else if (cmd.sumN !== undefined) {
-    const n = cmd.sumN
-    if (s.length < n) {
-      const e = vmError("STACK_UNDERFLOW", `SUM_N requires ${n} operands`); s.push(e); result = e
-    } else {
-      // Error propagation: if any value is error, result is that error
-      const values: VMValue[] = []
-      for (let i = 0; i < n; i++) values.push(s.pop()!)
-      const firstErr = values.find(isVMError)
-      if (firstErr) {
-        s.push(firstErr); result = firstErr
-      } else {
-        let t = 0
-        for (const v of values) t += asNum(v)
-        const r = num(t); s.push(r); result = r
-      }
-    }
-  } else if (cmd.ifOp) {
-    if (s.length < 3) {
-      const e = vmError("STACK_UNDERFLOW", "IF requires 3 operands (false_val, true_val, condition)"); s.push(e); result = e
-    } else {
-      const condition = s.pop()!
-      const trueVal = s.pop()!
-      const falseVal = s.pop()!
-      const pe = propagateError(condition); if (pe) { s.push(pe); result = pe }
-      else {
-        const isTruthy = condition._tag === "bool" ? condition.value
-          : condition._tag === "num" ? condition.value !== 0
-          : true // strings are truthy
-        const v = isTruthy ? trueVal : falseVal
-        s.push(v); result = v
-      }
-    }
-  } else if (cmd.minN !== undefined) {
-    const n = cmd.minN
-    if (s.length < n) {
-      const e = vmError("STACK_UNDERFLOW", `MIN_N requires ${n} operands`); s.push(e); result = e
-    } else {
-      const values: VMValue[] = []
-      for (let i = 0; i < n; i++) values.push(s.pop()!)
-      const firstErr = values.find(isVMError)
-      if (firstErr) { s.push(firstErr); result = firstErr }
-      else {
-        let min = asNum(values[0])
-        for (let i = 1; i < n; i++) { const v = asNum(values[i]); if (v < min) min = v }
-        const r = num(min); s.push(r); result = r
-      }
-    }
-  } else if (cmd.maxN !== undefined) {
-    const n = cmd.maxN
-    if (s.length < n) {
-      const e = vmError("STACK_UNDERFLOW", `MAX_N requires ${n} operands`); s.push(e); result = e
-    } else {
-      const values: VMValue[] = []
-      for (let i = 0; i < n; i++) values.push(s.pop()!)
-      const firstErr = values.find(isVMError)
-      if (firstErr) { s.push(firstErr); result = firstErr }
-      else {
-        let max = asNum(values[0])
-        for (let i = 1; i < n; i++) { const v = asNum(values[i]); if (v > max) max = v }
-        const r = num(max); s.push(r); result = r
-      }
-    }
-  } else if (cmd.avgN !== undefined) {
-    const n = cmd.avgN
-    if (s.length < n) {
-      const e = vmError("STACK_UNDERFLOW", `AVG_N requires ${n} operands`); s.push(e); result = e
-    } else if (n === 0) {
-      const e = vmError("DIV_ZERO", "AVG_N with n=0"); s.push(e); result = e
-    } else {
-      const values: VMValue[] = []
-      for (let i = 0; i < n; i++) values.push(s.pop()!)
-      const firstErr = values.find(isVMError)
-      if (firstErr) { s.push(firstErr); result = firstErr }
-      else {
-        let sum = 0
-        for (const v of values) sum += asNum(v)
-        const r = num(sum / n); s.push(r); result = r
-      }
-    }
-  } else if (cmd.power) {
-    if (s.length < 2) {
-      const e = vmError("STACK_UNDERFLOW", "POWER requires 2 operands"); s.push(e); result = e
-    } else {
-      const exp = s.pop()!; const base = s.pop()!
-      const pe = propagateError(base, exp)
-      if (pe) { s.push(pe); result = pe }
-      else { const r = num(Math.pow(asNum(base), asNum(exp))); s.push(r); result = r }
-    }
-  } else if (cmd.countDyn) {
-    // Pop count from stack — that IS the result (count of items in range)
-    if (s.length === 0) {
-      const e = vmError("STACK_UNDERFLOW", "COUNT_DYN requires count on stack"); s.push(e); result = e
-    } else {
-      const countVal = s.pop()!
-      const n = countVal._tag === "num" ? countVal.value : 0
-      // Pop the n values (discard them, we just want the count)
-      for (let i = 0; i < n && s.length > 0; i++) s.pop()
-      const r = num(n); s.push(r); result = r
-    }
-  } else if (cmd.sumDyn || cmd.minDyn || cmd.maxDyn || cmd.avgDyn) {
-    // Pop count from stack, then aggregate that many values
-    if (s.length === 0) {
-      const e = vmError("STACK_UNDERFLOW", "Dynamic aggregate requires count on stack"); s.push(e); result = e
-    } else {
-      const countVal = s.pop()!
-      const n = countVal._tag === "num" ? countVal.value : 0
-      if (n <= 0 || s.length < n) {
-        const e = vmError("STACK_UNDERFLOW", `Dynamic aggregate requires ${n} values`); s.push(e); result = e
-      } else {
-        const values: VMValue[] = []
-        for (let i = 0; i < n; i++) values.push(s.pop()!)
-        const firstErr = values.find(isVMError)
-        if (firstErr) { s.push(firstErr); result = firstErr }
-        else if (cmd.sumDyn) {
-          let sum = 0; for (const v of values) sum += asNum(v)
-          const r = num(sum); s.push(r); result = r
-        } else if (cmd.minDyn) {
-          let min = asNum(values[0]); for (let i = 1; i < n; i++) { const v = asNum(values[i]); if (v < min) min = v }
-          const r = num(min); s.push(r); result = r
-        } else if (cmd.maxDyn) {
-          let max = asNum(values[0]); for (let i = 1; i < n; i++) { const v = asNum(values[i]); if (v > max) max = v }
-          const r = num(max); s.push(r); result = r
-        } else { // avgDyn
-          let sum = 0; for (const v of values) sum += asNum(v)
-          const r = num(sum / n); s.push(r); result = r
-        }
-      }
-    }
-  } else if (cmd.readCell !== undefined) {
-    const cellCtx = ctx ?? emptyCellContext
-    const v = cellCtx.readCell(cmd.readCell)
-    s.push(v); result = v
-  } else if (cmd.writeCell !== undefined) {
-    const cellCtx = ctx ?? emptyCellContext
-    if (s.length === 0) {
-      const e = vmError("STACK_UNDERFLOW", "WRITE_CELL requires 1 operand"); s.push(e); result = e
-    } else {
-      const v = s.pop()!
-      cellCtx.writeCell(cmd.writeCell, v)
-      result = v
-    }
-  } else if (cmd.readRange !== undefined) {
-    const cellCtx = ctx ?? emptyCellContext
-    const { startCol, startRow, endCol, endRow } = cmd.readRange
-    // Iterate range: single column (A1:A10) or single row (A1:D1)
-    let count = 0
-    if (startCol === endCol) {
-      // Column range: A1:A10
-      const lo = Math.min(startRow, endRow)
-      const hi = Math.max(startRow, endRow)
-      for (let r = lo; r <= hi; r++) {
-        s.push(cellCtx.readCell(`${startCol}${r}`))
-        count++
-      }
-    } else if (startRow === endRow) {
-      // Row range: A1:D1 — iterate cols
-      const lo = startCol.charCodeAt(0)
-      const hi = endCol.charCodeAt(0)
-      for (let c = Math.min(lo, hi); c <= Math.max(lo, hi); c++) {
-        s.push(cellCtx.readCell(`${String.fromCharCode(c)}${startRow}`))
-        count++
-      }
-    } else {
-      // 2D range: push all cells row by row
-      const loCol = Math.min(startCol.charCodeAt(0), endCol.charCodeAt(0))
-      const hiCol = Math.max(startCol.charCodeAt(0), endCol.charCodeAt(0))
-      const loRow = Math.min(startRow, endRow)
-      const hiRow = Math.max(startRow, endRow)
-      for (let r = loRow; r <= hiRow; r++) {
-        for (let c = loCol; c <= hiCol; c++) {
-          s.push(cellCtx.readCell(`${String.fromCharCode(c)}${r}`))
-          count++
-        }
-      }
-    }
-    // Push count onto stack (for SUM_N, MIN_N, etc.)
-    const countVal = num(count)
-    s.push(countVal)
-    result = countVal
-  }
+  // O(1) dispatch — single table lookup, no if-else chain
+  const exec = EXEC[op._tag]
+  const { result, halted } = exec ? exec(op as any, s, cellCtx) : {}
 
   const entry: TrailEntry = {
     step: state.step,
@@ -888,7 +709,7 @@ export const execOpcode = (op: Opcode, state: VMState, ctx?: CellContext): VMSta
     registers: state.registers,
     trail,
     step: state.step + 1,
-    halted: cmd.halt === true,
+    halted: halted === true,
   }
 }
 
@@ -982,6 +803,9 @@ function classifyToken(tok: string): Opcode | null {
     case "AVG_DYN": return { _tag: "AVG_DYN" }
     case "COUNT_DYN": return { _tag: "COUNT_DYN" }
     case "POWER": return { _tag: "POWER" }
+    case "ROUND": return { _tag: "ROUND" }
+    case "FLOOR": return { _tag: "FLOOR_OP" }
+    case "CEIL": return { _tag: "CEIL_OP" }
     case "HALT": return { _tag: "HALT" }
     case "true": return { _tag: "PUSH_BOOL", value: true }
     case "false": return { _tag: "PUSH_BOOL", value: false }
@@ -1211,6 +1035,7 @@ function tokenizeInfix(expr: string): string[] {
 const FUNC_MAP: Record<string, string> = {
   SUM: "SUM_DYN", MIN: "MIN_DYN", MAX: "MAX_DYN", AVG: "AVG_DYN",
   COUNT: "COUNT_DYN", POWER: "POWER",
+  ROUND: "ROUND", FLOOR: "FLOOR", CEIL: "CEIL",
   ABS: "ABS", NEG: "NEG", IF: "IF",
   CONCAT: "CONCAT", TO_NUM: "TO_NUM", TO_STR: "TO_STR",
 }
