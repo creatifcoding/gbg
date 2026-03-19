@@ -607,6 +607,20 @@ describe("FormulaEngineV2", () => {
       }))
     })
 
+    it("text formulas: =UPPER(A1) & \" \" & UPPER(B1)", async () => {
+      const store = makeStore({ A1: CV.str("hello"), B1: CV.str("world") })
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.registerInfix("C1", '=UPPER(A1) & " " & UPPER(B1)')
+        yield* e.recalcAll()
+        expect(store.cells.get("C1")).toEqual(CV.str("HELLO WORLD"))
+
+        store.cells.set("A1", CV.str("good"))
+        yield* e.recalcDirty(["A1"])
+        expect(store.cells.get("C1")).toEqual(CV.str("GOOD WORLD"))
+      }))
+    })
+
     it("realistic: tax calc with ROUND, IF, SUM, named range", async () => {
       const store = makeStore({
         A1: CV.num(1000),  // Income
