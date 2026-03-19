@@ -1704,6 +1704,20 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("CUMPRINC/PDURATION: financial utilities", () => {
+    // PDURATION: ln(fv/pv)/ln(1+rate); PDURATION(0.1, 100, 200) = ln(2)/ln(1.1) ≈ 7.27
+    const pd = (evalProgramDirect(compileInfixSync("=ROUND(PDURATION(0.1, 100, 200), 1)")).stack[0] as any).value
+    expect(pd).toBeCloseTo(7.3, 0)
+    // TBILLEQ: (365*d) / (360-d*dsm); TBILLEQ(0, 180, 0.05) = (365*0.05)/(360-0.05*180) = 18.25/351 ≈ 0.052
+    const tbe = (evalProgramDirect(compileInfixSync("=ROUND(TBILLEQ(0, 180, 0.05), 3)")).stack[0] as any).value
+    expect(tbe).toBeCloseTo(0.052, 2)
+  })
+
+  it("ROWS/TRANSPOSE/AREAS: lookup utilities", () => {
+    expect(evalProgramDirect(compileInfixSync("=ROWS(1, 2, 3)")).stack[0]).toEqual(num(3))
+    expect(evalProgramDirect(compileInfixSync("=AREAS(1, 2, 3)")).stack[0]).toEqual(num(3))
+  })
+
   it("PHI/GAUSS/TDIST: probability distributions", () => {
     // PHI(0) = 1/sqrt(2π) ≈ 0.3989
     const phi = (evalProgramDirect(compileInfixSync("=ROUND(PHI(0), 4)")).stack[0] as any).value
