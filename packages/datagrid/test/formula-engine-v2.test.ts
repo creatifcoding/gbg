@@ -676,5 +676,33 @@ describe("FormulaEngineV2", () => {
         expect(r2.recalculated.length).toBeGreaterThanOrEqual(3)
       }).pipe(Effect.provide(layer)))
     })
+    it("mini financial model: multi-level formulas with named ranges", async () => {
+      const store = makeStore({
+        A1: CV.num(100), A2: CV.num(200), A3: CV.num(150),  // Q1 sales
+        B1: CV.num(40), B2: CV.num(80), B3: CV.num(60),     // Q1 costs
+      })
+      const layer = FormulaEngineV2Live.pipe(
+        Layer.provide(Layer.succeed(FormulaEngineV2Config, FormulaEngineV2Config.of({
+          cellStore: store,
+          namedRanges: { Sales: "A1:A3", Costs: "B1:B3" },
+        }))),
+      )
+      await Effect.runPromise(Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.registerInfix("C1", "=SUM(Sales)")          // total sales
+        yield* e.registerInfix("C2", "=SUM(Costs)")          // total costs
+        yield* e.registerInfix("C3", "=C1-C2")               // gross profit
+        yield* e.registerInfix("C4", "=ROUND(C3/C1*100, 1)") // margin %
+        yield* e.registerInfix("C5", '=IF(C4>=30, "GOOD", IF(C4>=20, "OK", "LOW"))') // rating
+
+        const r = yield* e.recalcAll()
+        expect(store.cells.get("C1")).toEqual(CV.num(450))    // 100+200+150
+        expect(store.cells.get("C2")).toEqual(CV.num(180))    // 40+80+60
+        expect(store.cells.get("C3")).toEqual(CV.num(270))    // 450-180
+        expect(store.cells.get("C4")).toEqual(CV.num(60))     // 270/450*100=60%
+        expect(store.cells.get("C5")).toEqual(CV.str("GOOD")) // 60>=30
+        expect(r.errors.length).toBe(0)
+      }).pipe(Effect.provide(layer)))
+    })
   })
 })
