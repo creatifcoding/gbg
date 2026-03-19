@@ -45,7 +45,6 @@
 import * as Effect from "effect-v4/Effect"
 import * as Schema from "effect-v4/Schema"
 import * as TxRef from "effect-v4/TxRef"
-import * as Match from "effect-v4/Match"
 import * as Data from "effect-v4/Data"
 import * as ServiceMap from "effect-v4/ServiceMap"
 import * as Layer from "effect-v4/Layer"
