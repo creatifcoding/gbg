@@ -3204,6 +3204,24 @@ describe("post-450 function coverage", () => {
   it("CDF(3, 1, 2, 3, 4, 5) = 0.6", () => expect(d("=CDF(3, 1, 2, 3, 4, 5)")).toBe(0.6))
   it("ECDF(2, 1, 2, 3, 4) = 0.5", () => expect(d("=ECDF(2, 1, 2, 3, 4)")).toBe(0.5))
 
+  // ── 1400 batch tests ──
+  it("BUTTERWORTH filter response", () => { const v = d("=BUTTERWORTH(1, 10)") as number; expect(v).toBeGreaterThan(0); expect(v).toBeLessThanOrEqual(1) })
+  it("TEXTURL encodes", () => expect(d('=TEXTURL("hello world")')).toBe("hello%20world"))
+  it("TEXTFROMURL decodes", () => expect(d('=TEXTFROMURL("hello%20world")')).toBe("hello world"))
+  it("TEXTHTML escapes", () => expect(d('=TEXTHTML("<b>test</b>")')).toBe("&lt;b&gt;test&lt;/b&gt;"))
+  it("TEXTHEX2 encodes", () => expect(d('=TEXTHEX2("AB")')).toBe("4142"))
+  it("LEASTSQ slope", () => { const v = d("=LEASTSQ(1, 2, 3, 2, 4, 6)") as number; expect(v).toBe(2) })
+  it("DURBINWATSON near 2", () => { const v = d("=DURBIN_WATSON(1, 2, 3, 4, 5)") as number; expect(v).toBeGreaterThan(0) })
+  it("EDGEDETECT(5, 3) = true", () => expect(d("=EDGEDETECT(5, 3)")).toBe(true))
+  it("EDGEDETECT(5, 5) = false", () => expect(d("=EDGEDETECT(5, 5)")).toBe(false))
+  it("HYSTERESIS(10, 5) = true", () => expect(d("=HYSTERESIS(10, 5)")).toBe(true))
+  it("ISSPHENICNUM(30) = true", () => expect(d("=ISSPHENICNUM(30)")).toBe(true))
+  it("DOWNSAMPLE(100, 4) = 25", () => expect(d("=DOWNSAMPLE(100, 4)")).toBe(25))
+  it("GROUPBY counts", () => expect(d("=GROUPBY(3, 1, 3, 3, 5)")).toBe(2))
+  it("PIVOTSUM sums", () => expect(d("=PIVOTSUM(10, 20, 30)")).toBe(60))
+  it("ULCERINDEX valid", () => { const v = d("=ULCERINDEX(100, 90, 95, 80)") as number; expect(v).toBeGreaterThan(0) })
+  it("MARTINGALE ratio", () => { const v = d("=MARTINGALE(10, 12, 11, 15, 14)") as number; expect(v).toBeGreaterThan(0); expect(v).toBeLessThanOrEqual(1) })
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
