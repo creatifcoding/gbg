@@ -317,6 +317,15 @@ export const MAX_N = Schema.TaggedStruct("MAX_N", { n: Schema.Number })
 export const AVG_N = Schema.TaggedStruct("AVG_N", { n: Schema.Number })
 
 /**
+ * Dynamic aggregates — pop count from stack, then aggregate that many values.
+ * Used with READ_RANGE which pushes values + count.
+ */
+export const SUM_DYN = Schema.TaggedStruct("SUM_DYN", {})
+export const MIN_DYN = Schema.TaggedStruct("MIN_DYN", {})
+export const MAX_DYN = Schema.TaggedStruct("MAX_DYN", {})
+export const AVG_DYN = Schema.TaggedStruct("AVG_DYN", {})
+
+/**
  * CONCAT — string concatenation: pops 2 values, coerces to string, pushes joined.
  */
 export const CONCAT = Schema.TaggedStruct("CONCAT", {})
@@ -340,6 +349,22 @@ export const MOD = Schema.TaggedStruct("MOD", {})
  * ABS — absolute value: pops top, pushes |top|.
  */
 export const ABS = Schema.TaggedStruct("ABS", {})
+
+/**
+ * READ_RANGE — read a range of cells onto the stack.
+ *
+ * Pushes N values from cells startAddr..endAddr (inclusive) onto the stack,
+ * then pushes the count N. Used with SUM_N, MIN_N, MAX_N, AVG_N.
+ *
+ * Range format: "A1" to "A10" → reads A1, A2, ..., A10.
+ * Only supports single-column or single-row ranges.
+ */
+export const READ_RANGE = Schema.TaggedStruct("READ_RANGE", {
+  startCol: Schema.String,
+  startRow: Schema.Number,
+  endCol: Schema.String,
+  endRow: Schema.Number,
+})
 
 /**
  * READ_CELL — read a cell value onto the stack.
@@ -367,8 +392,9 @@ export const Opcode = Schema.Union([
   DUP, SWAP, DROP, NEG,
   EQ, LT, GT, NOT, IF,
   SUM_N, MIN_N, MAX_N, AVG_N,
+  SUM_DYN, MIN_DYN, MAX_DYN, AVG_DYN,
   HALT,
-  READ_CELL, WRITE_CELL,
+  READ_CELL, WRITE_CELL, READ_RANGE,
 ])
 export type Opcode = typeof Opcode.Type
 
@@ -577,9 +603,14 @@ const opcodeDispatch = pipe(
     MIN_N: (o) => ({ minN: o.n }),
     MAX_N: (o) => ({ maxN: o.n }),
     AVG_N: (o) => ({ avgN: o.n }),
+    SUM_DYN: () => ({ sumDyn: true }),
+    MIN_DYN: () => ({ minDyn: true }),
+    MAX_DYN: () => ({ maxDyn: true }),
+    AVG_DYN: () => ({ avgDyn: true }),
     HALT: () => ({ halt: true }),
     READ_CELL: (o) => ({ readCell: o.addr }),
     WRITE_CELL: (o) => ({ writeCell: o.addr }),
+    READ_RANGE: (o) => ({ readRange: o }),
   })
 )
 
@@ -733,6 +764,35 @@ export const execOpcode = (op: Opcode, state: VMState, ctx?: CellContext): VMSta
         const r = num(sum / n); s.push(r); result = r
       }
     }
+  } else if (cmd.sumDyn || cmd.minDyn || cmd.maxDyn || cmd.avgDyn) {
+    // Pop count from stack, then aggregate that many values
+    if (s.length === 0) {
+      const e = vmError("STACK_UNDERFLOW", "Dynamic aggregate requires count on stack"); s.push(e); result = e
+    } else {
+      const countVal = s.pop()!
+      const n = countVal._tag === "num" ? countVal.value : 0
+      if (n <= 0 || s.length < n) {
+        const e = vmError("STACK_UNDERFLOW", `Dynamic aggregate requires ${n} values`); s.push(e); result = e
+      } else {
+        const values: VMValue[] = []
+        for (let i = 0; i < n; i++) values.push(s.pop()!)
+        const firstErr = values.find(isVMError)
+        if (firstErr) { s.push(firstErr); result = firstErr }
+        else if (cmd.sumDyn) {
+          let sum = 0; for (const v of values) sum += asNum(v)
+          const r = num(sum); s.push(r); result = r
+        } else if (cmd.minDyn) {
+          let min = asNum(values[0]); for (let i = 1; i < n; i++) { const v = asNum(values[i]); if (v < min) min = v }
+          const r = num(min); s.push(r); result = r
+        } else if (cmd.maxDyn) {
+          let max = asNum(values[0]); for (let i = 1; i < n; i++) { const v = asNum(values[i]); if (v > max) max = v }
+          const r = num(max); s.push(r); result = r
+        } else { // avgDyn
+          let sum = 0; for (const v of values) sum += asNum(v)
+          const r = num(sum / n); s.push(r); result = r
+        }
+      }
+    }
   } else if (cmd.readCell !== undefined) {
     const cellCtx = ctx ?? emptyCellContext
     const v = cellCtx.readCell(cmd.readCell)
@@ -746,6 +806,44 @@ export const execOpcode = (op: Opcode, state: VMState, ctx?: CellContext): VMSta
       cellCtx.writeCell(cmd.writeCell, v)
       result = v
     }
+  } else if (cmd.readRange !== undefined) {
+    const cellCtx = ctx ?? emptyCellContext
+    const { startCol, startRow, endCol, endRow } = cmd.readRange
+    // Iterate range: single column (A1:A10) or single row (A1:D1)
+    let count = 0
+    if (startCol === endCol) {
+      // Column range: A1:A10
+      const lo = Math.min(startRow, endRow)
+      const hi = Math.max(startRow, endRow)
+      for (let r = lo; r <= hi; r++) {
+        s.push(cellCtx.readCell(`${startCol}${r}`))
+        count++
+      }
+    } else if (startRow === endRow) {
+      // Row range: A1:D1 — iterate cols
+      const lo = startCol.charCodeAt(0)
+      const hi = endCol.charCodeAt(0)
+      for (let c = Math.min(lo, hi); c <= Math.max(lo, hi); c++) {
+        s.push(cellCtx.readCell(`${String.fromCharCode(c)}${startRow}`))
+        count++
+      }
+    } else {
+      // 2D range: push all cells row by row
+      const loCol = Math.min(startCol.charCodeAt(0), endCol.charCodeAt(0))
+      const hiCol = Math.max(startCol.charCodeAt(0), endCol.charCodeAt(0))
+      const loRow = Math.min(startRow, endRow)
+      const hiRow = Math.max(startRow, endRow)
+      for (let r = loRow; r <= hiRow; r++) {
+        for (let c = loCol; c <= hiCol; c++) {
+          s.push(cellCtx.readCell(`${String.fromCharCode(c)}${r}`))
+          count++
+        }
+      }
+    }
+    // Push count onto stack (for SUM_N, MIN_N, etc.)
+    const countVal = num(count)
+    s.push(countVal)
+    result = countVal
   }
 
   const entry: TrailEntry = {
@@ -815,6 +913,8 @@ export const runEffect = (
 
 /** A1 notation pattern: one or more uppercase letters followed by one or more digits */
 const A1_PATTERN = /^[A-Z]+\d+$/
+/** Range pattern: A1:B10 */
+const RANGE_PATTERN = /^([A-Z]+)(\d+):([A-Z]+)(\d+)$/
 
 /**
  * Classify a token for compilation.
@@ -846,15 +946,31 @@ function classifyToken(tok: string): Opcode | null {
     case "DROP": return { _tag: "DROP" }
     case "NEG": return { _tag: "NEG" }
     case "IF": return { _tag: "IF" }
+    case "SUM_DYN": return { _tag: "SUM_DYN" }
+    case "MIN_DYN": return { _tag: "MIN_DYN" }
+    case "MAX_DYN": return { _tag: "MAX_DYN" }
+    case "AVG_DYN": return { _tag: "AVG_DYN" }
     case "HALT": return { _tag: "HALT" }
     case "true": return { _tag: "PUSH_BOOL", value: true }
     case "false": return { _tag: "PUSH_BOOL", value: false }
   }
 
-  // 3. A1 cell reference
+  // 3. Range reference (A1:A10)
+  const rangeMatch = RANGE_PATTERN.exec(tok)
+  if (rangeMatch) {
+    return {
+      _tag: "READ_RANGE",
+      startCol: rangeMatch[1],
+      startRow: parseInt(rangeMatch[2], 10),
+      endCol: rangeMatch[3],
+      endRow: parseInt(rangeMatch[4], 10),
+    }
+  }
+
+  // 4. A1 cell reference
   if (A1_PATTERN.test(tok)) return { _tag: "READ_CELL", addr: tok }
 
-  // 4. Unknown
+  // 5. Unknown
   return null
 }
 
@@ -935,11 +1051,40 @@ export const extractDeps = (expr: string): ReadonlyArray<string> => {
   const tokens = expr.trim().split(/\s+/)
   const deps: string[] = []
   const seen = new Set<string>()
+
+  const addDep = (addr: string) => {
+    if (!seen.has(addr)) { deps.push(addr); seen.add(addr) }
+  }
+
   for (const tok of tokens) {
-    if (A1_PATTERN.test(tok) && !seen.has(tok)) {
-      deps.push(tok)
-      seen.add(tok)
+    // Check range first (A1:A10)
+    const rangeMatch = RANGE_PATTERN.exec(tok)
+    if (rangeMatch) {
+      const [, sc, sr, ec, er] = rangeMatch
+      const startRow = parseInt(sr, 10)
+      const endRow = parseInt(er, 10)
+      if (sc === ec) {
+        // Column range
+        for (let r = Math.min(startRow, endRow); r <= Math.max(startRow, endRow); r++) {
+          addDep(`${sc}${r}`)
+        }
+      } else if (startRow === endRow) {
+        // Row range
+        for (let c = Math.min(sc.charCodeAt(0), ec.charCodeAt(0)); c <= Math.max(sc.charCodeAt(0), ec.charCodeAt(0)); c++) {
+          addDep(`${String.fromCharCode(c)}${startRow}`)
+        }
+      } else {
+        // 2D range
+        for (let r = Math.min(startRow, endRow); r <= Math.max(startRow, endRow); r++) {
+          for (let c = Math.min(sc.charCodeAt(0), ec.charCodeAt(0)); c <= Math.max(sc.charCodeAt(0), ec.charCodeAt(0)); c++) {
+            addDep(`${String.fromCharCode(c)}${r}`)
+          }
+        }
+      }
+      continue
     }
+    // Single cell ref
+    if (A1_PATTERN.test(tok)) addDep(tok)
   }
   return deps
 }

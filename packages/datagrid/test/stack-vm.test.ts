@@ -35,6 +35,31 @@ import {
   // Types
   type StackIR, type VMState, type VMValue,
 } from "../src/services/stack-vm"
+import * as CV from "../src/schemas/cell-value"
+import type { CellValue } from "../src/schemas/cell-value"
+import { FormulaEngineV2, FormulaEngineV2Config, FormulaEngineV2Live, type CellStore } from "../src/services/formula-engine-v2"
+const { Layer } = await import("effect-v4")
+
+// ── Range test helpers ──────────────────────────────
+
+function makeStore(initial?: Record<string, CellValue>): CellStore & { cells: Map<string, CellValue> } {
+  const cells = new Map<string, CellValue>(initial ? Object.entries(initial) : [])
+  return {
+    cells,
+    get: (addr) => cells.get(addr) ?? CV.empty(),
+    set: (addr, value) => cells.set(addr, value),
+  }
+}
+
+function run<A, E>(store: CellStore, effect: Effect.Effect<A, E, FormulaEngineV2>) {
+  return Effect.runPromise(effect.pipe(
+    Effect.provide(
+      FormulaEngineV2Live.pipe(
+        Layer.provide(Layer.succeed(FormulaEngineV2Config, FormulaEngineV2Config.of({ cellStore: store }))),
+      )
+    ),
+  ))
+}
 
 // ═══════════════════════════════════════════════════════
 // CHANNEL 1: VMValue ERRORS (inline on stack)
@@ -892,6 +917,80 @@ describe("dependency extraction", () => {
       { _tag: "ADD" },
     ]
     expect(extractDepsFromIR(ir)).toEqual(["A1"])
+  })
+})
+
+// ═══════════════════════════════════════════════════════
+// RANGE OPERATIONS
+// ═══════════════════════════════════════════════════════
+
+describe("range operations", () => {
+  const rangeCtx = {
+    readCell: (addr: string) => {
+      // A1=1, A2=2, ..., A10=10
+      const m = addr.match(/^([A-Z]+)(\d+)$/)
+      if (!m) return num(0)
+      return num(parseInt(m[2], 10))
+    },
+    writeCell: () => {},
+  }
+
+  it("READ_RANGE column: A1:A5 pushes 5 values + count", () => {
+    const ir = compileExprSync("A1:A5")
+    expect(ir[0]._tag).toBe("READ_RANGE")
+    const s = Effect.runSync(evalProgram(ir, rangeCtx))
+    // Stack should be: [1, 2, 3, 4, 5, 5(count)]
+    expect(s.stack).toHaveLength(6)
+    expect(s.stack[5]).toEqual(num(5)) // count
+  })
+
+  it("READ_RANGE + SUM_DYN = SUM(A1:A5)", () => {
+    const ir = compileExprSync("A1:A5 SUM_DYN")
+    const s = Effect.runSync(evalProgram(ir, rangeCtx))
+    expect(s.stack[0]).toEqual(num(15)) // 1+2+3+4+5
+  })
+
+  it("READ_RANGE + MIN_DYN = MIN(A1:A5)", () => {
+    const ir = compileExprSync("A1:A5 MIN_DYN")
+    const s = Effect.runSync(evalProgram(ir, rangeCtx))
+    expect(s.stack[0]).toEqual(num(1))
+  })
+
+  it("READ_RANGE + MAX_DYN = MAX(A1:A5)", () => {
+    const ir = compileExprSync("A1:A5 MAX_DYN")
+    const s = Effect.runSync(evalProgram(ir, rangeCtx))
+    expect(s.stack[0]).toEqual(num(5))
+  })
+
+  it("READ_RANGE + AVG_DYN = AVG(A1:A5)", () => {
+    const ir = compileExprSync("A1:A5 AVG_DYN")
+    const s = Effect.runSync(evalProgram(ir, rangeCtx))
+    expect(s.stack[0]).toEqual(num(3)) // (1+2+3+4+5)/5
+  })
+
+  it("extractDeps expands range to individual cells", () => {
+    expect(extractDeps("A1:A5 SUM_DYN")).toEqual(["A1", "A2", "A3", "A4", "A5"])
+  })
+
+  it("row range: A1:D1", () => {
+    const ir = compileExprSync("A1:D1 SUM_DYN")
+    const s = Effect.runSync(evalProgram(ir, rangeCtx))
+    // A1=1, B1=1, C1=1, D1=1 → all row 1
+    expect(s.stack[0]).toEqual(num(4)) // 1+1+1+1
+  })
+
+  it("range in FormulaEngineV2 context", async () => {
+    // Test via formula engine
+    const initial: Record<string, CellValue> = {}
+    for (let i = 1; i <= 5; i++) initial[`A${i}`] = CV.num(i * 10)
+    const store = makeStore(initial)
+
+    await run(store, Effect.gen(function*() {
+      const e = yield* FormulaEngineV2
+      yield* e.register("B1", "A1:A5 SUM_DYN")
+      yield* e.recalcDirty(["A1", "A2", "A3", "A4", "A5"])
+      expect(store.get("B1")).toEqual(CV.num(150)) // 10+20+30+40+50
+    }))
   })
 })
 
