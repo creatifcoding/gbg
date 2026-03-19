@@ -35,10 +35,13 @@
 
 ## 🔜 NEXT — Production Wiring
 
-### ✅ READ_CELL + WRITE_CELL + barrel export (DONE)
+### ✅ READ_CELL + WRITE_CELL + barrel export + A1 compiler + dep extraction (DONE)
 - READ_CELL/WRITE_CELL opcodes with CellContext injection
+- A1-aware compiler: cell refs compile to READ_CELL
+- extractDeps/extractDepsFromIR for auto dep registration
 - Full barrel export in index.ts
 - Error propagation through cell refs proven (DIV/0 → chain → Error)
+- E2E: compile → extractDeps → DepGraph → topo recalc → eval → write-back
 
 ### Replace formula-engine.ts
 - Wire DepGraph + StackVM into FormulaEngine or create FormulaEngineV2
