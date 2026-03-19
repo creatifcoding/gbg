@@ -2261,6 +2261,34 @@ export const evalProgramBulk = (
     })
   )
 
+/** Map VM error codes to Excel-style display strings */
+const ERROR_DISPLAY: Record<string, string> = {
+  DIV_ZERO: "#DIV/0!",
+  TYPE_MISMATCH: "#VALUE!",
+  STACK_UNDERFLOW: "#VALUE!",
+  CIRCULAR_REF: "#REF!",
+  REF_ERROR: "#REF!",
+  NAME_ERROR: "#NAME?",
+  COMPILE_ERROR: "#NAME?",
+  TIMEOUT: "#CALC!",
+}
+export const formatVMError = (v: VMValue): string | null => {
+  if (v._tag !== "error") return null
+  const code = (v as any).code as string
+  return ERROR_DISPLAY[code] ?? `#ERROR!`
+}
+
+/** Format any VMValue for cell display (numbers, strings, bools, errors) */
+export const formatCellValue = (v: VMValue): string => {
+  const err = formatVMError(v)
+  if (err) return err
+  if (v._tag === "num") return String((v as any).value)
+  if (v._tag === "str") return (v as any).value
+  if (v._tag === "bool") return (v as any).value ? "TRUE" : "FALSE"
+  if (v._tag === "blank") return ""
+  return vmDisplay(v)
+}
+
 /** Analyze IR complexity for optimization decisions */
 export interface IRMetrics {
   readonly opcodeCount: number

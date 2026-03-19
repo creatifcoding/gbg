@@ -26,7 +26,7 @@ import {
   type VMFailure,
   failureToVMError, timeoutToVMError, catchToErrorState,
   // VM core
-  evalProgram, evalProgramDirect, evalProgramBulk, evalExpr, compileExpr, compileExprSync, isVolatileIR, decompileIR, analyzeIR,
+  evalProgram, evalProgramDirect, evalProgramBulk, evalExpr, compileExpr, compileExprSync, isVolatileIR, decompileIR, analyzeIR, formatVMError, formatCellValue,
   compileInfix, compileInfixSync, extractDepsInfix,
   FUNCTION_CATALOG, completeFunctions,
   execOpcode, emptyState, MAX_EVAL_STEPS,
@@ -1398,6 +1398,18 @@ describe("infix parser", () => {
     const ir = compileInfixSync("=5>3")
     expect(ir.length).toBe(1)
     expect(ir[0]).toEqual({ _tag: "PUSH_BOOL", value: true })
+  })
+
+  it("formatCellValue: display formatting", () => {
+    expect(formatCellValue(num(42))).toBe("42")
+    expect(formatCellValue(str("hello"))).toBe("hello")
+    expect(formatCellValue(bool(true))).toBe("TRUE")
+    // Error mapping
+    const divErr = evalProgramDirect(compileInfixSync("=1/0")).stack[0]
+    expect(formatVMError(divErr)).toBe("#DIV/0!")
+    expect(formatCellValue(divErr)).toBe("#DIV/0!")
+    // Non-error returns null
+    expect(formatVMError(num(42))).toBeNull()
   })
 
   it("analyzeIR: complexity metrics", () => {

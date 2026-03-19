@@ -117,6 +117,8 @@ export {
   evalProgramBulk,
   analyzeIR,
   type IRMetrics,
+  formatVMError,
+  formatCellValue,
   FUNCTION_CATALOG,
   completeFunctions,
   type FunctionSignature,
