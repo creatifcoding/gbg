@@ -382,6 +382,9 @@ export const ATAN_OP = Schema.TaggedStruct("ATAN_OP", {})
 export const ATAN2_OP = Schema.TaggedStruct("ATAN2_OP", {})
 export const RADIANS_OP = Schema.TaggedStruct("RADIANS_OP", {})
 export const DEGREES_OP = Schema.TaggedStruct("DEGREES_OP", {})
+export const SINH_OP = Schema.TaggedStruct("SINH_OP", {})
+export const COSH_OP = Schema.TaggedStruct("COSH_OP", {})
+export const TANH_OP = Schema.TaggedStruct("TANH_OP", {})
 export const FACT_OP = Schema.TaggedStruct("FACT_OP", {})
 export const QUOTIENT_OP = Schema.TaggedStruct("QUOTIENT_OP", {})
 export const GCD_OP = Schema.TaggedStruct("GCD_OP", {})
@@ -536,7 +539,8 @@ export const Opcode = Schema.Union([
   EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR,
   AND_N, OR_N, CHOOSE_N,
   LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, PROPER_OP, CLEAN_OP, CHAR_OP, CODE_OP, T_OP, ERROR_TYPE_OP, ISEVEN_OP, ISODD_OP,
-  INT_OP, EVEN_OP, ODD_OP, TRUNC_OP, EXP_OP, LN_OP, LOG2_OP, RAND_BETWEEN, FIXED_OP, DOLLAR_OP, SIN_OP, COS_OP, TAN_OP, ASIN_OP, ACOS_OP, ATAN_OP, ATAN2_OP, RADIANS_OP, DEGREES_OP,
+  INT_OP, EVEN_OP, ODD_OP, TRUNC_OP, EXP_OP, LN_OP, LOG2_OP, RAND_BETWEEN, FIXED_OP, DOLLAR_OP,
+  SINH_OP, COSH_OP, TANH_OP, SIN_OP, COS_OP, TAN_OP, ASIN_OP, ACOS_OP, ATAN_OP, ATAN2_OP, RADIANS_OP, DEGREES_OP,
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
@@ -1179,6 +1183,10 @@ const EXEC: Record<string, Executor> = {
     const decimals = Math.round(asNum(s.pop()!)), value = asNum(s.pop()!)
     const result = str("$" + value.toFixed(Math.max(0, Math.min(decimals, 20)))); s.push(result); return { result }
   },
+  // Hyperbolic trig
+  SINH_OP:    (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.sinh(asNum(a))), "SINH") }),
+  COSH_OP:    (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.cosh(asNum(a))), "COSH") }),
+  TANH_OP:    (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.tanh(asNum(a))), "TANH") }),
   // Trigonometry
   SIN_OP:     (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.sin(asNum(a))), "SIN") }),
   COS_OP:     (_o, s) => ({ result: unop(s, a => isVMError(a) ? a : num(Math.cos(asNum(a))), "COS") }),
@@ -1463,6 +1471,7 @@ const _OP: Record<string, Opcode> = {
   SIN_OP: { _tag: "SIN_OP" }, COS_OP: { _tag: "COS_OP" }, TAN_OP: { _tag: "TAN_OP" },
   ASIN_OP: { _tag: "ASIN_OP" }, ACOS_OP: { _tag: "ACOS_OP" }, ATAN_OP: { _tag: "ATAN_OP" }, ATAN2_OP: { _tag: "ATAN2_OP" },
   RADIANS_OP: { _tag: "RADIANS_OP" }, DEGREES_OP: { _tag: "DEGREES_OP" },
+  SINH_OP: { _tag: "SINH_OP" }, COSH_OP: { _tag: "COSH_OP" }, TANH_OP: { _tag: "TANH_OP" },
   FACT_OP: { _tag: "FACT_OP" }, QUOTIENT_OP: { _tag: "QUOTIENT_OP" },
   GCD_OP: { _tag: "GCD_OP" }, LCM_OP: { _tag: "LCM_OP" }, COMBIN_OP: { _tag: "COMBIN_OP" }, SUBSTITUTE_OP: { _tag: "SUBSTITUTE_OP" },
   SQRT_OP: { _tag: "SQRT_OP" }, SIGN_OP: { _tag: "SIGN_OP" },
@@ -1545,6 +1554,9 @@ function classifyToken(tok: string): Opcode | null {
     case "ATAN2_OP": return _OP.ATAN2_OP
     case "RADIANS_OP": return _OP.RADIANS_OP
     case "DEGREES_OP": return _OP.DEGREES_OP
+    case "SINH_OP": return _OP.SINH_OP
+    case "COSH_OP": return _OP.COSH_OP
+    case "TANH_OP": return _OP.TANH_OP
     case "EXP_OP": return _OP.EXP_OP
     case "LN_OP": return _OP.LN_OP
     case "LOG2_OP": return _OP.LOG2_OP
@@ -1852,6 +1864,7 @@ const FUNC_MAP: Record<string, string> = {
   ISEVEN: "ISEVEN_OP", ISODD: "ISODD_OP", ISNUMBER: "ISNUM_OP",
   INT: "INT_OP", EVEN: "EVEN_OP", ODD: "ODD_OP", TRUNC: "TRUNC_OP", EXP: "EXP_OP", LN: "LN_OP", LOG2: "LOG2_OP",
   RANDBETWEEN: "RAND_BETWEEN", FIXED: "FIXED_OP", DOLLAR: "DOLLAR_OP",
+  SINH: "SINH_OP", COSH: "COSH_OP", TANH: "TANH_OP",
   SIN: "SIN_OP", COS: "COS_OP", TAN: "TAN_OP", ASIN: "ASIN_OP", ACOS: "ACOS_OP", ATAN: "ATAN_OP", ATAN2: "ATAN2_OP", RADIANS: "RADIANS_OP", DEGREES: "DEGREES_OP",
   FACT: "FACT_OP", QUOTIENT: "QUOTIENT_OP", GCD: "GCD_OP", LCM: "LCM_OP", COMBIN: "COMBIN_OP", SUBSTITUTE: "SUBSTITUTE_OP",
   ISNUM: "ISNUM_OP", ISTEXT: "ISTEXT_OP", ISERROR: "ISERROR_OP", ISBLANK: "ISBLANK_OP",
@@ -2196,6 +2209,9 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "RANDBETWEEN", args: "low, high", description: "Random integer between bounds", category: "volatile" },
   { name: "FIXED", args: "number, decimals", description: "Format number with fixed decimals", category: "text" },
   { name: "DOLLAR", args: "number, decimals", description: "Format as currency string", category: "text" },
+  { name: "SINH", args: "number", description: "Hyperbolic sine", category: "math" },
+  { name: "COSH", args: "number", description: "Hyperbolic cosine", category: "math" },
+  { name: "TANH", args: "number", description: "Hyperbolic tangent", category: "math" },
   { name: "SIN", args: "angle_rad", description: "Sine", category: "math" },
   { name: "COS", args: "angle_rad", description: "Cosine", category: "math" },
   { name: "TAN", args: "angle_rad", description: "Tangent", category: "math" },
@@ -2358,6 +2374,7 @@ export const decompileIR = (ir: StackIR): string => {
     LOG_OP: "LOG", LOG10_OP: "LOG10", FLOOR_OP: "FLOOR", CEIL_OP: "CEIL",
     LEN_OP: "LEN", TRIM_OP: "TRIM", UPPER_OP: "UPPER", LOWER_OP: "LOWER", PROPER_OP: "PROPER", CLEAN_OP: "CLEAN", CHAR_OP: "CHAR", CODE_OP: "CODE", T_OP: "T", ERROR_TYPE_OP: "ERRORTYPE", ISEVEN_OP: "ISEVEN", ISODD_OP: "ISODD",
     INT_OP: "INT", EVEN_OP: "EVEN", ODD_OP: "ODD", TRUNC_OP: "TRUNC", EXP_OP: "EXP", LN_OP: "LN", LOG2_OP: "LOG2", FACT_OP: "FACT",
+    SINH_OP: "SINH", COSH_OP: "COSH", TANH_OP: "TANH",
     SIN_OP: "SIN", COS_OP: "COS", TAN_OP: "TAN", ASIN_OP: "ASIN", ACOS_OP: "ACOS", ATAN_OP: "ATAN", RADIANS_OP: "RADIANS", DEGREES_OP: "DEGREES",
     ISNUM_OP: "ISNUM", ISTEXT_OP: "ISTEXT", ISERROR_OP: "ISERROR", ISBLANK_OP: "ISBLANK",
     YEAR_OP: "YEAR", MONTH_OP: "MONTH", DAY_OP: "DAY",

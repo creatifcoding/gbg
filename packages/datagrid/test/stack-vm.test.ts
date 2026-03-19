@@ -1508,6 +1508,12 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync("=LN(0)")).stack[0]._tag).toBe("error") // non-positive
   })
 
+  it("SINH/COSH/TANH: hyperbolic trig", () => {
+    expect(evalProgramDirect(compileInfixSync("=ROUND(SINH(1), 5)")).stack[0]).toEqual(num(1.1752))  // sinh(1)
+    expect(evalProgramDirect(compileInfixSync("=ROUND(COSH(0), 1)")).stack[0]).toEqual(num(1))
+    expect(evalProgramDirect(compileInfixSync("=ROUND(TANH(0), 1)")).stack[0]).toEqual(num(0))
+  })
+
   it("TRIG: SIN/COS/TAN/ASIN/ACOS/ATAN/ATAN2/RADIANS/DEGREES", () => {
     // SIN(PI/2) = 1, COS(0) = 1
     expect(evalProgramDirect(compileInfixSync("=ROUND(SIN(RADIANS(90)), 5)")).stack[0]).toEqual(num(1))
