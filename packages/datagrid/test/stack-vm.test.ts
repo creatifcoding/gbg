@@ -2602,6 +2602,24 @@ describe("post-450 function coverage", () => {
   it("ZSCORE(110, 100, 10) = 1", () => expect(d("=ZSCORE(110, 100, 10)")).toBe(1))
   it("ZSCORE(90, 100, 10) = -1", () => expect(d("=ZSCORE(90, 100, 10)")).toBe(-1))
 
+  // Math: sequences and distance
+  it("FIBONACCI(0) = 0", () => expect(d("=FIBONACCI(0)")).toBe(0))
+  it("FIBONACCI(1) = 1", () => expect(d("=FIBONACCI(1)")).toBe(1))
+  it("FIBONACCI(10) = 55", () => expect(d("=FIBONACCI(10)")).toBe(55))
+  it("COLLATZ(6) = 8", () => expect(d("=COLLATZ(6)")).toBe(8))
+  it("DISTANCE2D(0,0,3,4) = 5", () => expect(d("=DISTANCE2D(0,0,3,4)")).toBe(5))
+  it("MANHATTAN(0,0,3,4) = 7", () => expect(d("=MANHATTAN(0,0,3,4)")).toBe(7))
+  it("HYPOT3(1,2,2) = 3", () => expect(d("=HYPOT3(1,2,2)")).toBe(3))
+
+  // Financial: CAGR, DOLLARDE
+  it("CAGR(100, 200, 10) ≈ 0.0718", () => expect(d("=ROUND(CAGR(100, 200, 10), 4)")).toBe(0.0718))
+  it("DOLLARDE(1.02, 16) = 1.0125", () => expect(d("=DOLLARDE(1.02, 16)")).toBe(1.0125))
+
+  // Info: TYPEOF2
+  it("TYPEOF2(5) = number", () => expect(d("=TYPEOF2(5)")).toBe("number"))
+  it("TYPEOF2(\"hi\") = text", () => expect(d("=TYPEOF2(\"hi\")")).toBe("text"))
+  it("TYPEOF2(TRUE) = boolean", () => expect(d("=TYPEOF2(TRUE)")).toBe("boolean"))
+
   // Financial: quick sanity checks
   it("ISO.CEILING(4.3, 2) = 6", () => expect(d("=ISO.CEILING(4.3, 2)")).toBe(6))
   // ML activation functions
