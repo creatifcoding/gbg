@@ -1704,6 +1704,18 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("NORMINV/DDB: inverse normal + depreciation", () => {
+    // NORMINV(0.5, 0, 1) = 0 (median of standard normal)
+    const nv = (evalProgramDirect(compileInfixSync("=ROUND(NORMINV(0.5, 0, 1), 4)")).stack[0] as any).value
+    expect(Math.abs(nv)).toBeLessThan(0.01) // should be ~0
+    // NORMINV(0.975, 0, 1) ≈ 1.96
+    const nv2 = (evalProgramDirect(compileInfixSync("=ROUND(NORMINV(0.975, 0, 1), 2)")).stack[0] as any).value
+    expect(nv2).toBeGreaterThan(1.9)
+    expect(nv2).toBeLessThan(2.0)
+    // DDB(10000, 1000, 5, 1) → first period = 10000 * 2/5 = 4000
+    expect(evalProgramDirect(compileInfixSync("=DDB(10000, 1000, 5, 1)")).stack[0]).toEqual(num(4000))
+  })
+
   it("PERCENTRANK/QUARTILE/WEIBULL/GAMMADIST: extended stat functions", () => {
     // QUARTILE: Q2 of [1,2,3,4,5] = median = 3
     expect(evalProgramDirect(compileInfixSync("=QUARTILE(2, 1, 2, 3, 4, 5)")).stack[0]).toEqual(num(3))
