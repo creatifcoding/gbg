@@ -1704,6 +1704,11 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("TEXTREVERSE/CONCAT_WS: text utilities", () => {
+    expect(evalProgramDirect(compileInfixSync('=TEXTREVERSE("hello")')).stack[0]).toEqual(str("olleh"))
+    expect(evalProgramDirect(compileInfixSync('=CONCAT_WS("-", "a", "b", "c")')).stack[0]).toEqual(str("a-b-c"))
+  })
+
   it("ZTEST/COVARIANCE.S/STDEV.S: hypothesis testing + sample stats", () => {
     // STDEV.S of [2, 4, 4, 4, 5, 5, 7, 9] = 2.138...
     const sd = (evalProgramDirect(compileInfixSync("=ROUND(STDEV.S(2, 4, 4, 4, 5, 5, 7, 9), 2)")).stack[0] as any).value
