@@ -1704,6 +1704,14 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("HEX2BIN/OCT2HEX/ADDRESS/FORMULATEXT/DPRODUCT: remaining engineering", () => {
+    expect(evalProgramDirect(compileInfixSync('=HEX2BIN("A")')).stack[0]).toEqual(str("1010"))
+    expect(evalProgramDirect(compileInfixSync('=OCT2HEX("17")')).stack[0]).toEqual(str("F"))
+    expect(evalProgramDirect(compileInfixSync("=ADDRESS(1, 2)")).stack[0]).toEqual(str("$B$1"))
+    expect(evalProgramDirect(compileInfixSync("=FORMULATEXT(42)")).stack[0]).toEqual(str("42"))
+    expect(evalProgramDirect(compileInfixSync("=DPRODUCT(2, 3, 4)")).stack[0]).toEqual(num(24))
+  })
+
   it("BIN2DEC/DEC2BIN/HEX2DEC/DEC2HEX/BITAND/BITOR: base conversion + bitwise", () => {
     expect(evalProgramDirect(compileInfixSync('=BIN2DEC("1010")')).stack[0]).toEqual(num(10))
     expect(evalProgramDirect(compileInfixSync("=DEC2BIN(10)")).stack[0]).toEqual(str("1010"))
