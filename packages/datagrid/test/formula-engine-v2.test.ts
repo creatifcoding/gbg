@@ -676,6 +676,36 @@ describe("FormulaEngineV2", () => {
         expect(r2.recalculated.length).toBeGreaterThanOrEqual(3)
       }).pipe(Effect.provide(layer)))
     })
+    it("EXPERIMENT 136 CAPSTONE: full-breadth formula chain (10 categories)", async () => {
+      const store = makeStore({
+        A1: CV.num(42),       // input value
+        A2: CV.num(0.05),     // rate
+      })
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        // Math
+        yield* e.registerInfix("B1", "=SQRT(A1)")
+        // Text
+        yield* e.registerInfix("B2", '=CONCAT(UPPER("val:"), TEXT(A1, "0.0"))')
+        // Financial
+        yield* e.registerInfix("B3", "=ROUND(PMT(A2/12, 360, 200000), 2)")
+        // Logic
+        yield* e.registerInfix("B4", '=IF(A1>40, "PASS", "FAIL")')
+        // Info
+        yield* e.registerInfix("B5", "=ISNUMBER(A1)")
+        // Trig
+        yield* e.registerInfix("B6", "=ROUND(SIN(RADIANS(30)), 1)")
+
+        yield* e.recalcAll()
+        expect((store.cells.get("B1") as any)?.value).toBeCloseTo(6.4807, 3)
+        expect((store.cells.get("B2") as any)?.value).toBe("VAL:42.0")
+        expect((store.cells.get("B3") as any)?.value).toBeLessThan(-1000)
+        expect((store.cells.get("B4") as any)?.value).toBe("PASS")
+        expect((store.cells.get("B5") as any)?.value).toBe(true)
+        expect((store.cells.get("B6") as any)?.value).toBe(0.5)
+      }))
+    })
+
     it("EXPERIMENT 132 CAPSTONE: analytics dashboard (INDEX+MATCH+AGGREGATE+TEXT)", async () => {
       const store = makeStore({
         A1: CV.num(100),  A2: CV.num(200),  A3: CV.num(150),  A4: CV.num(300),  A5: CV.num(250),
