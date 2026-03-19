@@ -1434,6 +1434,13 @@ describe("infix parser", () => {
     expect(decompileIR(compileInfixSync("=UPPER(A1)"))).toBe("=UPPER(A1)")
   })
 
+  it("SUMPRODUCT: pairwise multiply + sum", () => {
+    // SUMPRODUCT(1,2,3, 4,5,6) = 1*4 + 2*5 + 3*6 = 4+10+18 = 32
+    expect(evalProgramDirect(compileInfixSync("=SUMPRODUCT(1,2,3, 4,5,6)")).stack[0]).toEqual(num(32))
+    // Weighted average: prices × quantities
+    expect(evalProgramDirect(compileInfixSync("=SUMPRODUCT(10,20,30, 2,3,1)")).stack[0]).toEqual(num(110)) // 20+60+30
+  })
+
   it("COUNTIF: criteria-based counting", () => {
     // Count values > 5
     expect(evalProgramDirect(compileInfixSync('=COUNTIF(">5", 3, 7, 2, 10, 5)')).stack[0]).toEqual(num(2)) // 7,10
