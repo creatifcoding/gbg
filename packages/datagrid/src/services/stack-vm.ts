@@ -297,6 +297,36 @@ export const SUM_N = Schema.TaggedStruct("SUM_N", { n: Schema.Number })
 export const HALT = Schema.TaggedStruct("HALT", {})
 
 /**
+ * IF — conditional: pops (condition, true_val, false_val), pushes result.
+ *
+ * Stack: [false_val, true_val, condition] → [result]
+ * If condition is truthy (bool true, or non-zero num), pushes true_val.
+ * Otherwise pushes false_val. Error conditions propagate.
+ */
+export const IF = Schema.TaggedStruct("IF", {})
+
+/**
+ * MIN_N / MAX_N — aggregate N values from stack.
+ */
+export const MIN_N = Schema.TaggedStruct("MIN_N", { n: Schema.Number })
+export const MAX_N = Schema.TaggedStruct("MAX_N", { n: Schema.Number })
+
+/**
+ * AVG_N — average N values from stack.
+ */
+export const AVG_N = Schema.TaggedStruct("AVG_N", { n: Schema.Number })
+
+/**
+ * MOD — modulo: pops (a, b), pushes a % b.
+ */
+export const MOD = Schema.TaggedStruct("MOD", {})
+
+/**
+ * ABS — absolute value: pops top, pushes |top|.
+ */
+export const ABS = Schema.TaggedStruct("ABS", {})
+
+/**
  * READ_CELL — read a cell value onto the stack.
  *
  * Takes a cell address string. At eval time, resolves the address
@@ -317,10 +347,11 @@ export const WRITE_CELL = Schema.TaggedStruct("WRITE_CELL", { addr: Schema.Strin
 
 export const Opcode = Schema.Union([
   PUSH_NUM, PUSH_STR, PUSH_BOOL,
-  ADD, SUB, MUL, DIV,
+  ADD, SUB, MUL, DIV, MOD, ABS,
   DUP, SWAP, DROP, NEG,
-  EQ, LT, GT, NOT,
-  SUM_N, HALT,
+  EQ, LT, GT, NOT, IF,
+  SUM_N, MIN_N, MAX_N, AVG_N,
+  HALT,
   READ_CELL, WRITE_CELL,
 ])
 export type Opcode = typeof Opcode.Type
@@ -488,7 +519,26 @@ const opcodeDispatch = pipe(
       },
       errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "NOT requires 1 operand",
     }),
+    MOD: () => ({
+      binop: (a: VMValue, b: VMValue) => {
+        const pe = propagateError(a, b); if (pe) return pe
+        const bn = asNum(b)
+        return bn === 0 ? vmError("DIV_ZERO", "Modulo by zero") : num(asNum(a) % bn)
+      },
+      need: 2, errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "MOD requires 2 operands",
+    }),
+    ABS: () => ({
+      unop: (a: VMValue) => {
+        if (isVMError(a)) return a
+        return num(Math.abs(asNum(a)))
+      },
+      errCode: "STACK_UNDERFLOW" as VMErrorCode, errMsg: "ABS requires 1 operand",
+    }),
+    IF: () => ({ ifOp: true }),
     SUM_N: (o) => ({ sumN: o.n }),
+    MIN_N: (o) => ({ minN: o.n }),
+    MAX_N: (o) => ({ maxN: o.n }),
+    AVG_N: (o) => ({ avgN: o.n }),
     HALT: () => ({ halt: true }),
     READ_CELL: (o) => ({ readCell: o.addr }),
     WRITE_CELL: (o) => ({ writeCell: o.addr }),
@@ -580,6 +630,69 @@ export const execOpcode = (op: Opcode, state: VMState, ctx?: CellContext): VMSta
         let t = 0
         for (const v of values) t += asNum(v)
         const r = num(t); s.push(r); result = r
+      }
+    }
+  } else if (cmd.ifOp) {
+    if (s.length < 3) {
+      const e = vmError("STACK_UNDERFLOW", "IF requires 3 operands (false_val, true_val, condition)"); s.push(e); result = e
+    } else {
+      const condition = s.pop()!
+      const trueVal = s.pop()!
+      const falseVal = s.pop()!
+      const pe = propagateError(condition); if (pe) { s.push(pe); result = pe }
+      else {
+        const isTruthy = condition._tag === "bool" ? condition.value
+          : condition._tag === "num" ? condition.value !== 0
+          : true // strings are truthy
+        const v = isTruthy ? trueVal : falseVal
+        s.push(v); result = v
+      }
+    }
+  } else if (cmd.minN !== undefined) {
+    const n = cmd.minN
+    if (s.length < n) {
+      const e = vmError("STACK_UNDERFLOW", `MIN_N requires ${n} operands`); s.push(e); result = e
+    } else {
+      const values: VMValue[] = []
+      for (let i = 0; i < n; i++) values.push(s.pop()!)
+      const firstErr = values.find(isVMError)
+      if (firstErr) { s.push(firstErr); result = firstErr }
+      else {
+        let min = asNum(values[0])
+        for (let i = 1; i < n; i++) { const v = asNum(values[i]); if (v < min) min = v }
+        const r = num(min); s.push(r); result = r
+      }
+    }
+  } else if (cmd.maxN !== undefined) {
+    const n = cmd.maxN
+    if (s.length < n) {
+      const e = vmError("STACK_UNDERFLOW", `MAX_N requires ${n} operands`); s.push(e); result = e
+    } else {
+      const values: VMValue[] = []
+      for (let i = 0; i < n; i++) values.push(s.pop()!)
+      const firstErr = values.find(isVMError)
+      if (firstErr) { s.push(firstErr); result = firstErr }
+      else {
+        let max = asNum(values[0])
+        for (let i = 1; i < n; i++) { const v = asNum(values[i]); if (v > max) max = v }
+        const r = num(max); s.push(r); result = r
+      }
+    }
+  } else if (cmd.avgN !== undefined) {
+    const n = cmd.avgN
+    if (s.length < n) {
+      const e = vmError("STACK_UNDERFLOW", `AVG_N requires ${n} operands`); s.push(e); result = e
+    } else if (n === 0) {
+      const e = vmError("DIV_ZERO", "AVG_N with n=0"); s.push(e); result = e
+    } else {
+      const values: VMValue[] = []
+      for (let i = 0; i < n; i++) values.push(s.pop()!)
+      const firstErr = values.find(isVMError)
+      if (firstErr) { s.push(firstErr); result = firstErr }
+      else {
+        let sum = 0
+        for (const v of values) sum += asNum(v)
+        const r = num(sum / n); s.push(r); result = r
       }
     }
   } else if (cmd.readCell !== undefined) {
@@ -685,10 +798,13 @@ function classifyToken(tok: string): Opcode | null {
     case "-": return { _tag: "SUB" }
     case "*": return { _tag: "MUL" }
     case "/": return { _tag: "DIV" }
+    case "%": return { _tag: "MOD" }
+    case "ABS": return { _tag: "ABS" }
     case "DUP": return { _tag: "DUP" }
     case "SWAP": return { _tag: "SWAP" }
     case "DROP": return { _tag: "DROP" }
     case "NEG": return { _tag: "NEG" }
+    case "IF": return { _tag: "IF" }
     case "HALT": return { _tag: "HALT" }
     case "true": return { _tag: "PUSH_BOOL", value: true }
     case "false": return { _tag: "PUSH_BOOL", value: false }

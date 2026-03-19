@@ -668,6 +668,148 @@ describe("cell I/O opcodes", () => {
 })
 
 // ═══════════════════════════════════════════════════════
+// EXTENDED OPCODES (IF, MOD, ABS, MIN_N, MAX_N, AVG_N)
+// ═══════════════════════════════════════════════════════
+
+describe("extended opcodes", () => {
+  describe("IF (conditional)", () => {
+    it("IF with true condition → picks true_val", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 10 }, // false_val
+        { _tag: "PUSH_NUM", value: 20 }, // true_val
+        { _tag: "PUSH_BOOL", value: true }, // condition
+        { _tag: "IF" },
+      ]))
+      expect(s.stack[0]).toEqual(num(20))
+    })
+
+    it("IF with false condition → picks false_val", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 10 },
+        { _tag: "PUSH_NUM", value: 20 },
+        { _tag: "PUSH_BOOL", value: false },
+        { _tag: "IF" },
+      ]))
+      expect(s.stack[0]).toEqual(num(10))
+    })
+
+    it("IF with numeric 0 → falsy", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_STR", value: "no" },
+        { _tag: "PUSH_STR", value: "yes" },
+        { _tag: "PUSH_NUM", value: 0 },
+        { _tag: "IF" },
+      ]))
+      expect(s.stack[0]).toEqual(str("no"))
+    })
+
+    it("IF with numeric non-zero → truthy", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_STR", value: "no" },
+        { _tag: "PUSH_STR", value: "yes" },
+        { _tag: "PUSH_NUM", value: 42 },
+        { _tag: "IF" },
+      ]))
+      expect(s.stack[0]).toEqual(str("yes"))
+    })
+
+    it("IF with error condition → propagates", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 10 },
+        { _tag: "PUSH_NUM", value: 20 },
+        { _tag: "PUSH_NUM", value: 0 },
+        { _tag: "PUSH_NUM", value: 0 },
+        { _tag: "DIV" }, // → DIV_ZERO error
+        { _tag: "IF" },
+      ]))
+      expect(s.stack[0]._tag).toBe("error")
+    })
+
+    it("IF via string compiler", async () => {
+      const s = await Effect.runPromise(evalExpr("10 20 true IF"))
+      expect(s.stack[0]).toEqual(num(20))
+    })
+  })
+
+  describe("MOD", () => {
+    it("modulo operation", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 10 },
+        { _tag: "PUSH_NUM", value: 3 },
+        { _tag: "MOD" },
+      ]))
+      expect(s.stack[0]).toEqual(num(1))
+    })
+
+    it("mod by zero → DIV_ZERO", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 10 },
+        { _tag: "PUSH_NUM", value: 0 },
+        { _tag: "MOD" },
+      ]))
+      expect(s.stack[0]._tag).toBe("error")
+    })
+  })
+
+  describe("ABS", () => {
+    it("absolute value of negative", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: -42 },
+        { _tag: "ABS" },
+      ]))
+      expect(s.stack[0]).toEqual(num(42))
+    })
+
+    it("absolute value of positive (no-op)", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 7 },
+        { _tag: "ABS" },
+      ]))
+      expect(s.stack[0]).toEqual(num(7))
+    })
+  })
+
+  describe("MIN_N / MAX_N / AVG_N", () => {
+    it("MIN_N finds minimum", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 5 },
+        { _tag: "PUSH_NUM", value: 3 },
+        { _tag: "PUSH_NUM", value: 8 },
+        { _tag: "MIN_N", n: 3 },
+      ]))
+      expect(s.stack[0]).toEqual(num(3))
+    })
+
+    it("MAX_N finds maximum", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 5 },
+        { _tag: "PUSH_NUM", value: 3 },
+        { _tag: "PUSH_NUM", value: 8 },
+        { _tag: "MAX_N", n: 3 },
+      ]))
+      expect(s.stack[0]).toEqual(num(8))
+    })
+
+    it("AVG_N computes average", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "PUSH_NUM", value: 10 },
+        { _tag: "PUSH_NUM", value: 20 },
+        { _tag: "PUSH_NUM", value: 30 },
+        { _tag: "AVG_N", n: 3 },
+      ]))
+      expect(s.stack[0]).toEqual(num(20))
+    })
+
+    it("AVG_N with n=0 → DIV_ZERO", () => {
+      const s = Effect.runSync(evalProgram([
+        { _tag: "AVG_N", n: 0 },
+      ]))
+      expect(s.stack[0]._tag).toBe("error")
+    })
+  })
+})
+
+// ═══════════════════════════════════════════════════════
 // DEPENDENCY EXTRACTION
 // ═══════════════════════════════════════════════════════
 
