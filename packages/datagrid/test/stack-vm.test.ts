@@ -1495,6 +1495,12 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync("=TRUNC(-3.7)")).stack[0]).toEqual(num(-3)) // toward zero, not floor
   })
 
+  it("MROUND: round to nearest multiple", () => {
+    expect(evalProgramDirect(compileInfixSync("=MROUND(7, 5)")).stack[0]).toEqual(num(5))    // 7 → nearest 5
+    expect(evalProgramDirect(compileInfixSync("=MROUND(8, 5)")).stack[0]).toEqual(num(10))   // 8 → nearest 5 = 10
+    expect(evalProgramDirect(compileInfixSync("=MROUND(1.3, 0.5)")).stack[0]).toEqual(num(1.5))
+  })
+
   it("LOG2/RANDBETWEEN/FIXED/DOLLAR", () => {
     expect(evalProgramDirect(compileInfixSync("=LOG2(8)")).stack[0]).toEqual(num(3))
     // RANDBETWEEN returns integer in range

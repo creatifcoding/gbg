@@ -372,6 +372,7 @@ export const LN_OP = Schema.TaggedStruct("LN_OP", {})
 export const LOG2_OP = Schema.TaggedStruct("LOG2_OP", {})
 export const RAND_BETWEEN = Schema.TaggedStruct("RAND_BETWEEN", {})
 export const FIXED_OP = Schema.TaggedStruct("FIXED_OP", {})
+export const MROUND_OP = Schema.TaggedStruct("MROUND_OP", {})
 export const DOLLAR_OP = Schema.TaggedStruct("DOLLAR_OP", {})
 export const SIN_OP = Schema.TaggedStruct("SIN_OP", {})
 export const COS_OP = Schema.TaggedStruct("COS_OP", {})
@@ -541,7 +542,7 @@ export const Opcode = Schema.Union([
   EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR,
   AND_N, OR_N, CHOOSE_N,
   LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, PROPER_OP, CLEAN_OP, CHAR_OP, CODE_OP, T_OP, ERROR_TYPE_OP, ISEVEN_OP, ISODD_OP,
-  INT_OP, EVEN_OP, ODD_OP, TRUNC_OP, EXP_OP, LN_OP, LOG2_OP, RAND_BETWEEN, FIXED_OP, DOLLAR_OP,
+  INT_OP, EVEN_OP, ODD_OP, TRUNC_OP, EXP_OP, LN_OP, LOG2_OP, RAND_BETWEEN, MROUND_OP, FIXED_OP, DOLLAR_OP,
   SINH_OP, COSH_OP, TANH_OP, SIN_OP, COS_OP, TAN_OP, ASIN_OP, ACOS_OP, ATAN_OP, ATAN2_OP, RADIANS_OP, DEGREES_OP,
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
@@ -1200,6 +1201,12 @@ const EXEC: Record<string, Executor> = {
     const decimals = Math.round(asNum(s.pop()!)), value = asNum(s.pop()!)
     const result = str(value.toFixed(Math.max(0, Math.min(decimals, 20)))); s.push(result); return { result }
   },
+  MROUND_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "MROUND")); return { result: s[s.length-1] } }
+    const multiple = asNum(s.pop()!), value = asNum(s.pop()!)
+    if (multiple === 0) { const result = num(0); s.push(result); return { result } }
+    const result = num(Math.round(value / multiple) * multiple); s.push(result); return { result }
+  },
   DOLLAR_OP: (_o, s) => {
     if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "DOLLAR")); return { result: s[s.length-1] } }
     const decimals = Math.round(asNum(s.pop()!)), value = asNum(s.pop()!)
@@ -1489,7 +1496,7 @@ const _OP: Record<string, Opcode> = {
   ISEVEN_OP: { _tag: "ISEVEN_OP" }, ISODD_OP: { _tag: "ISODD_OP" },
   INT_OP: { _tag: "INT_OP" }, EVEN_OP: { _tag: "EVEN_OP" }, ODD_OP: { _tag: "ODD_OP" },
   TRUNC_OP: { _tag: "TRUNC_OP" }, EXP_OP: { _tag: "EXP_OP" }, LN_OP: { _tag: "LN_OP" }, LOG2_OP: { _tag: "LOG2_OP" },
-  RAND_BETWEEN: { _tag: "RAND_BETWEEN" }, FIXED_OP: { _tag: "FIXED_OP" }, DOLLAR_OP: { _tag: "DOLLAR_OP" },
+  RAND_BETWEEN: { _tag: "RAND_BETWEEN" }, MROUND_OP: { _tag: "MROUND_OP" }, FIXED_OP: { _tag: "FIXED_OP" }, DOLLAR_OP: { _tag: "DOLLAR_OP" },
   SIN_OP: { _tag: "SIN_OP" }, COS_OP: { _tag: "COS_OP" }, TAN_OP: { _tag: "TAN_OP" },
   ASIN_OP: { _tag: "ASIN_OP" }, ACOS_OP: { _tag: "ACOS_OP" }, ATAN_OP: { _tag: "ATAN_OP" }, ATAN2_OP: { _tag: "ATAN2_OP" },
   RADIANS_OP: { _tag: "RADIANS_OP" }, DEGREES_OP: { _tag: "DEGREES_OP" },
@@ -1584,6 +1591,7 @@ function classifyToken(tok: string): Opcode | null {
     case "LOG2_OP": return _OP.LOG2_OP
     case "RAND_BETWEEN": return _OP.RAND_BETWEEN
     case "FIXED_OP": return _OP.FIXED_OP
+    case "MROUND_OP": return _OP.MROUND_OP
     case "DOLLAR_OP": return _OP.DOLLAR_OP
     case "FACT_OP": return _OP.FACT_OP
     case "QUOTIENT_OP": return _OP.QUOTIENT_OP
@@ -1888,7 +1896,7 @@ const FUNC_MAP: Record<string, string> = {
   TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", PROPER: "PROPER_OP", CLEAN: "CLEAN_OP", CHAR: "CHAR_OP", CODE: "CODE_OP", T: "T_OP", ERRORTYPE: "ERROR_TYPE_OP",
   ISEVEN: "ISEVEN_OP", ISODD: "ISODD_OP", ISNUMBER: "ISNUM_OP",
   INT: "INT_OP", EVEN: "EVEN_OP", ODD: "ODD_OP", TRUNC: "TRUNC_OP", EXP: "EXP_OP", LN: "LN_OP", LOG2: "LOG2_OP",
-  RANDBETWEEN: "RAND_BETWEEN", FIXED: "FIXED_OP", DOLLAR: "DOLLAR_OP",
+  RANDBETWEEN: "RAND_BETWEEN", MROUND: "MROUND_OP", FIXED: "FIXED_OP", DOLLAR: "DOLLAR_OP",
   SINH: "SINH_OP", COSH: "COSH_OP", TANH: "TANH_OP",
   SIN: "SIN_OP", COS: "COS_OP", TAN: "TAN_OP", ASIN: "ASIN_OP", ACOS: "ACOS_OP", ATAN: "ATAN_OP", ATAN2: "ATAN2_OP", RADIANS: "RADIANS_OP", DEGREES: "DEGREES_OP",
   FACT: "FACT_OP", QUOTIENT: "QUOTIENT_OP", GCD: "GCD_OP", LCM: "LCM_OP", COMBIN: "COMBIN_OP", SUBSTITUTE: "SUBSTITUTE_OP",
@@ -2233,6 +2241,7 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "LN", args: "number", description: "Natural logarithm", category: "math" },
   { name: "LOG2", args: "number", description: "Base-2 logarithm", category: "math" },
   { name: "RANDBETWEEN", args: "low, high", description: "Random integer between bounds", category: "volatile" },
+  { name: "MROUND", args: "number, multiple", description: "Round to nearest multiple", category: "math" },
   { name: "FIXED", args: "number, decimals", description: "Format number with fixed decimals", category: "text" },
   { name: "DOLLAR", args: "number, decimals", description: "Format as currency string", category: "text" },
   { name: "SINH", args: "number", description: "Hyperbolic sine", category: "math" },
