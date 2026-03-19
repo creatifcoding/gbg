@@ -1713,7 +1713,6 @@ export const evalProgram = (ir: StackIR, ctx?: CellContext): Effect.Effect<VMSta
  */
 export const evalProgramDirect = (ir: StackIR, ctx?: CellContext): VMState => {
   const s: VMValue[] = []
-  const trail: TrailEntry[] = []
   const cellCtx = ctx ?? emptyCellContext
   let step = 0
   let halted = false
@@ -1726,23 +1725,15 @@ export const evalProgramDirect = (ir: StackIR, ctx?: CellContext): VMState => {
       break
     }
 
-    const depthBefore = s.length
     const exec = EXEC[op._tag]
-    const r = exec ? exec(op as any, s, cellCtx) : {}
-
-    trail.push({
-      step,
-      opcode: op._tag,
-      stackDepthBefore: depthBefore,
-      stackDepthAfter: s.length,
-      result: r.result,
-    })
-
-    if (r.halted === true) halted = true
+    if (exec) {
+      const r = exec(op as any, s, cellCtx)
+      if (r.halted === true) halted = true
+    }
     step++
   }
 
-  return { stack: s, registers: {}, trail, step, halted }
+  return { stack: s, registers: {}, trail: [], step, halted }
 }
 
 /** Run an expression string with fresh state (can fail with CompileError) */
