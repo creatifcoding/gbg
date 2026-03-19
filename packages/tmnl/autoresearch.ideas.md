@@ -1,30 +1,29 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ STATUS — 171 experiments, 452 tests, 300 opcodes, 270 catalog entries
+## ✅ STATUS — 174 experiments, 455 tests, 331 opcodes, 300 catalog entries
 
-Production: ~5,100 LOC (stack-vm.ts) | Tests: ~2,500 LOC
-Benchmark: ~350ms median (~53% below 751ms baseline)
+Production: ~5,800 LOC (stack-vm.ts) | Tests: ~2,600 LOC
+Benchmark: ~370ms median (~50% below 751ms baseline)
 
 ### Milestones Hit
-- 🎉 200 opcodes (140), 250 opcodes (161), **300 opcodes (171)**
-- 🎉 200 catalog (152), 250 catalog (166), 260 catalog (169), 270 catalog (171)
-- 🎉 450+ tests
+- 🎉 200/250/300 opcodes | 200/250/300 catalog | 450+ tests
 
-### Category breakdown (270 catalog)
-math:73 | stat:67 | info:43 | text:38 | financial:28 | lookup:12 | logic:10 | volatile:5
+### Category breakdown (300 catalog)
+math:92 | stat:68 | info:45 | text:38 | financial:28 | lookup:13 | logic:10 | volatile:6
 
-### Complex number suite (10 functions)
-COMPLEX, IMREAL, IMAGINARY, IMABS, IMSUM, IMPRODUCT, IMARGUMENT, IMCONJUGATE, IMSQRT, BESSELJ
-
-### Regex suite (3 functions)
-REGEXMATCH, REGEXEXTRACT, REGEXREPLACE
-
-### Dynamic array suite (8 functions)
-SORT, UNIQUE, FILTER, TAKE, DROP, HSTACK, WRAPROWS, SEQUENCE, RANDARRAY
+### Suites
+- Complex: 17 functions (COMPLEX → IMLOG10)
+- Base conversion: 9 functions (BIN↔DEC↔HEX↔OCT)
+- Bitwise: 5 functions (AND/OR/XOR/LSHIFT/RSHIFT)
+- Bessel: 2 functions (J/Y)
+- Regex: 3 functions (MATCH/EXTRACT/REPLACE)
+- Dynamic arrays: 8+ functions (SORT/UNIQUE/FILTER/TAKE/DROP/HSTACK/WRAPROWS)
 
 ## 🔜 NEXT
-1. **Wire FormulaEngineV2 into production** — connect to CellCache + AG-Grid
-2. Push to 300 catalog (IMPOWER, IMEXP, IMLN, etc.)
+1. **Wire FormulaEngineV2 into production** — the #1 priority now!
+   - Connect to CellCache + AG-Grid
+   - vm-cell-bridge already exists, needs wiring
+2. More functions if needed post-wiring (aiming for Excel 365 parity)
 
 ## 📌 DEFERRED
 - VLOOKUP/HLOOKUP (needs range semantics)
