@@ -364,6 +364,8 @@ export const ERROR_TYPE_OP = Schema.TaggedStruct("ERROR_TYPE_OP", {})
 export const ISEVEN_OP = Schema.TaggedStruct("ISEVEN_OP", {})
 export const ISODD_OP = Schema.TaggedStruct("ISODD_OP", {})
 export const INT_OP = Schema.TaggedStruct("INT_OP", {})
+export const ROUNDUP_OP = Schema.TaggedStruct("ROUNDUP_OP", {})
+export const ROUNDDOWN_OP = Schema.TaggedStruct("ROUNDDOWN_OP", {})
 export const EVEN_OP = Schema.TaggedStruct("EVEN_OP", {})
 export const ODD_OP = Schema.TaggedStruct("ODD_OP", {})
 export const TRUNC_OP = Schema.TaggedStruct("TRUNC_OP", {})
@@ -549,7 +551,7 @@ export const Opcode = Schema.Union([
   EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR,
   AND_N, OR_N, CHOOSE_N,
   LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, PROPER_OP, CLEAN_OP, CHAR_OP, CODE_OP, T_OP, ERROR_TYPE_OP, ISEVEN_OP, ISODD_OP,
-  INT_OP, EVEN_OP, ODD_OP, TRUNC_OP, EXP_OP, LN_OP, LOG2_OP, RAND_BETWEEN, NPER_OP, PMT_OP, FV_OP, PV_OP, MROUND_OP, FIXED_OP, DOLLAR_OP,
+  INT_OP, ROUNDUP_OP, ROUNDDOWN_OP, EVEN_OP, ODD_OP, TRUNC_OP, EXP_OP, LN_OP, LOG2_OP, RAND_BETWEEN, NPER_OP, PMT_OP, FV_OP, PV_OP, MROUND_OP, FIXED_OP, DOLLAR_OP,
   SINH_OP, COSH_OP, TANH_OP, SIN_OP, COS_OP, TAN_OP, ASIN_OP, ACOS_OP, ATAN_OP, ATAN2_OP, RADIANS_OP, DEGREES_OP,
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
@@ -1350,6 +1352,21 @@ const EXEC: Record<string, Executor> = {
     for (let i = 0; i < k; i++) result = result * (n - i) / (i + 1)
     const r = num(Math.round(result)); s.push(r); return { result: r }
   },
+  // ROUNDUP/ROUNDDOWN: round away from / toward zero (2-arg: number, digits)
+  ROUNDUP_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "ROUNDUP")); return { result: s[s.length-1] } }
+    const digits = Math.round(asNum(s.pop()!)), value = asNum(s.pop()!)
+    const factor = Math.pow(10, digits)
+    const result = num(value >= 0 ? Math.ceil(value * factor) / factor : Math.floor(value * factor) / factor)
+    s.push(result); return { result }
+  },
+  ROUNDDOWN_OP: (_o, s) => {
+    if (s.length < 2) { s.push(vmError("STACK_UNDERFLOW", "ROUNDDOWN")); return { result: s[s.length-1] } }
+    const digits = Math.round(asNum(s.pop()!)), value = asNum(s.pop()!)
+    const factor = Math.pow(10, digits)
+    const result = num(Math.trunc(value * factor) / factor)
+    s.push(result); return { result }
+  },
   EVEN_OP:   (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const n = asNum(a); return num(n >= 0 ? Math.ceil(n / 2) * 2 : Math.floor(n / 2) * 2) }, "EVEN") }),
   ODD_OP:    (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; const n = asNum(a); const sign = n >= 0 ? 1 : -1; const abs = Math.abs(n); const ceil = Math.ceil(abs); const r = ceil % 2 === 0 ? ceil + 1 : ceil; return num(sign * r) }, "ODD") }),
   SUBSTITUTE_OP: (_o, s) => {
@@ -1579,6 +1596,7 @@ const _OP: Record<string, Opcode> = {
   CHAR_OP: { _tag: "CHAR_OP" }, CODE_OP: { _tag: "CODE_OP" }, T_OP: { _tag: "T_OP" }, ERROR_TYPE_OP: { _tag: "ERROR_TYPE_OP" },
   ISEVEN_OP: { _tag: "ISEVEN_OP" }, ISODD_OP: { _tag: "ISODD_OP" },
   INT_OP: { _tag: "INT_OP" }, EVEN_OP: { _tag: "EVEN_OP" }, ODD_OP: { _tag: "ODD_OP" },
+  ROUNDUP_OP: { _tag: "ROUNDUP_OP" }, ROUNDDOWN_OP: { _tag: "ROUNDDOWN_OP" },
   TRUNC_OP: { _tag: "TRUNC_OP" }, EXP_OP: { _tag: "EXP_OP" }, LN_OP: { _tag: "LN_OP" }, LOG2_OP: { _tag: "LOG2_OP" },
   RAND_BETWEEN: { _tag: "RAND_BETWEEN" }, NPER_OP: { _tag: "NPER_OP" }, PMT_OP: { _tag: "PMT_OP" }, FV_OP: { _tag: "FV_OP" }, PV_OP: { _tag: "PV_OP" },
   MROUND_OP: { _tag: "MROUND_OP" }, FIXED_OP: { _tag: "FIXED_OP" }, DOLLAR_OP: { _tag: "DOLLAR_OP" },
@@ -1655,6 +1673,8 @@ function classifyToken(tok: string): Opcode | null {
     case "ERROR_TYPE_OP": return _OP.ERROR_TYPE_OP
     case "ISEVEN_OP": return _OP.ISEVEN_OP
     case "ISODD_OP": return _OP.ISODD_OP
+    case "ROUNDUP_OP": return _OP.ROUNDUP_OP
+    case "ROUNDDOWN_OP": return _OP.ROUNDDOWN_OP
     case "INT_OP": return _OP.INT_OP
     case "EVEN_OP": return _OP.EVEN_OP
     case "ODD_OP": return _OP.ODD_OP
@@ -1987,7 +2007,7 @@ const FUNC_MAP: Record<string, string> = {
   LEN: "LEN_OP", LEFT: "LEFT_OP", RIGHT: "RIGHT_OP", MID: "MID_OP",
   TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", PROPER: "PROPER_OP", CLEAN: "CLEAN_OP", CHAR: "CHAR_OP", CODE: "CODE_OP", T: "T_OP", ERRORTYPE: "ERROR_TYPE_OP",
   ISEVEN: "ISEVEN_OP", ISODD: "ISODD_OP", ISNUMBER: "ISNUM_OP",
-  INT: "INT_OP", EVEN: "EVEN_OP", ODD: "ODD_OP", TRUNC: "TRUNC_OP", EXP: "EXP_OP", LN: "LN_OP", LOG2: "LOG2_OP",
+  INT: "INT_OP", ROUNDUP: "ROUNDUP_OP", ROUNDDOWN: "ROUNDDOWN_OP", EVEN: "EVEN_OP", ODD: "ODD_OP", TRUNC: "TRUNC_OP", EXP: "EXP_OP", LN: "LN_OP", LOG2: "LOG2_OP",
   RANDBETWEEN: "RAND_BETWEEN", NPER: "NPER_OP", PMT: "PMT_OP", FV: "FV_OP", PV: "PV_OP", MROUND: "MROUND_OP", FIXED: "FIXED_OP", DOLLAR: "DOLLAR_OP",
   SINH: "SINH_OP", COSH: "COSH_OP", TANH: "TANH_OP",
   SIN: "SIN_OP", COS: "COS_OP", TAN: "TAN_OP", ASIN: "ASIN_OP", ACOS: "ACOS_OP", ATAN: "ATAN_OP", ATAN2: "ATAN2_OP", RADIANS: "RADIANS_OP", DEGREES: "DEGREES_OP",
@@ -2325,6 +2345,8 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "ISEVEN", args: "number", description: "TRUE if even", category: "info" },
   { name: "ISODD", args: "number", description: "TRUE if odd", category: "info" },
   { name: "ISNUMBER", args: "value", description: "Alias for ISNUM", category: "info" },
+  { name: "ROUNDUP", args: "number, digits", description: "Round away from zero", category: "math" },
+  { name: "ROUNDDOWN", args: "number, digits", description: "Round toward zero", category: "math" },
   { name: "INT", args: "number", description: "Truncate to integer (toward negative infinity)", category: "math" },
   { name: "EVEN", args: "number", description: "Round up to nearest even integer", category: "math" },
   { name: "ODD", args: "number", description: "Round up to nearest odd integer", category: "math" },

@@ -1507,6 +1507,13 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync("=ISODD(6)")).stack[0]).toEqual(bool(false))
   })
 
+  it("ROUNDUP/ROUNDDOWN: directional rounding", () => {
+    expect(evalProgramDirect(compileInfixSync("=ROUNDUP(3.141, 2)")).stack[0]).toEqual(num(3.15))   // up
+    expect(evalProgramDirect(compileInfixSync("=ROUNDUP(-3.141, 2)")).stack[0]).toEqual(num(-3.15)) // away from zero
+    expect(evalProgramDirect(compileInfixSync("=ROUNDDOWN(3.149, 2)")).stack[0]).toEqual(num(3.14)) // toward zero
+    expect(evalProgramDirect(compileInfixSync("=ROUNDDOWN(-3.149, 2)")).stack[0]).toEqual(num(-3.14))
+  })
+
   it("TRUNC: truncate toward zero", () => {
     expect(evalProgramDirect(compileInfixSync("=TRUNC(3.7)")).stack[0]).toEqual(num(3))
     expect(evalProgramDirect(compileInfixSync("=TRUNC(-3.7)")).stack[0]).toEqual(num(-3)) // toward zero, not floor
