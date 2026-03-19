@@ -1704,6 +1704,17 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("PHI/GAUSS/TDIST: probability distributions", () => {
+    // PHI(0) = 1/sqrt(2π) ≈ 0.3989
+    const phi = (evalProgramDirect(compileInfixSync("=ROUND(PHI(0), 4)")).stack[0] as any).value
+    expect(phi).toBeCloseTo(0.3989, 3)
+    // GAUSS(0) = 0 (symmetric)
+    expect(evalProgramDirect(compileInfixSync("=ROUND(GAUSS(0), 4)")).stack[0]).toEqual(num(0))
+    // GAUSS(1) ≈ 0.3413
+    const g = (evalProgramDirect(compileInfixSync("=ROUND(GAUSS(1), 3)")).stack[0] as any).value
+    expect(g).toBeCloseTo(0.341, 2)
+  })
+
   it("TEXTREVERSE/CONCAT_WS: text utilities", () => {
     expect(evalProgramDirect(compileInfixSync('=TEXTREVERSE("hello")')).stack[0]).toEqual(str("olleh"))
     expect(evalProgramDirect(compileInfixSync('=CONCAT_WS("-", "a", "b", "c")')).stack[0]).toEqual(str("a-b-c"))
