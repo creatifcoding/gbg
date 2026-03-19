@@ -93,6 +93,7 @@ export {
   Opcode, type StackIR,
   PUSH_NUM, PUSH_STR, PUSH_BOOL,
   ADD, SUB, MUL, DIV, MOD, ABS,
+  CONCAT, TO_NUM, TO_STR,
   DUP, SWAP, DROP, NEG,
   EQ, LT, GT, NOT, IF,
   SUM_N, MIN_N, MAX_N, AVG_N,
