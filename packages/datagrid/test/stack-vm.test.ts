@@ -1704,6 +1704,15 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("IMSUM/IMPRODUCT/IMCONJUGATE/IMSQRT: complex arithmetic", () => {
+    // IMSUM: (1+2i) + (3+4i) = 4+6i
+    expect(evalProgramDirect(compileInfixSync('=IMSUM("1+2i", "3+4i")')).stack[0]).toEqual(str("4+6i"))
+    // IMPRODUCT: (1+2i)(3+4i) = (3-8)+(4+6)i = -5+10i
+    expect(evalProgramDirect(compileInfixSync('=IMPRODUCT("1+2i", "3+4i")')).stack[0]).toEqual(str("-5+10i"))
+    // IMCONJUGATE: 3+4i → 3-4i
+    expect(evalProgramDirect(compileInfixSync('=IMCONJUGATE("3+4i")')).stack[0]).toEqual(str("3-4i"))
+  })
+
   it("COMPLEX/IMREAL/IMAGINARY/IMABS/BESSELJ: engineering functions", () => {
     // COMPLEX: create complex string
     expect(evalProgramDirect(compileInfixSync("=COMPLEX(3, 4)")).stack[0]).toEqual(str("3+4i"))
