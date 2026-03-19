@@ -623,6 +623,20 @@ const EXEC: Record<string, Executor> = {
     const fallback = s.pop()!; const val = s.pop()!
     const v = isVMError(val) ? fallback : val; s.push(v); return { result: v }
   },
+  // Function-call variants: args in infix order (cond, true_val, false_val from bottom to top)
+  IF_FN: (_o, s) => {
+    if (s.length < 3) { const e = vmError("STACK_UNDERFLOW", "IF requires 3 operands"); s.push(e); return { result: e } }
+    const falseVal = s.pop()!; const trueVal = s.pop()!; const condition = s.pop()!
+    const pe = propagateError(condition); if (pe) { s.push(pe); return { result: pe } }
+    const isTruthy = condition._tag === "bool" ? condition.value : condition._tag === "num" ? condition.value !== 0 : true
+    const v = isTruthy ? trueVal : falseVal; s.push(v); return { result: v }
+  },
+  IFERROR_FN: (_o, s) => {
+    // Same as IFERROR — infix order is already correct (val, fallback)
+    if (s.length < 2) { const e = vmError("STACK_UNDERFLOW", "IFERROR requires 2 operands"); s.push(e); return { result: e } }
+    const fallback = s.pop()!; const val = s.pop()!
+    const v = isVMError(val) ? fallback : val; s.push(v); return { result: v }
+  },
 
   // ── Fixed-N aggregates ──
   SUM_N: (o: any, s) => ({ result: aggregateN(s, o.n, sumReduce, "SUM_N") }),
@@ -1128,8 +1142,9 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
     }
 
     // Boolean
-    if (tok === "true" || tok === "false") {
-      output.push({ _tag: "PUSH_BOOL", value: tok === "true" })
+    const tokUpper = tok.toUpperCase()
+    if (tokUpper === "TRUE" || tokUpper === "FALSE") {
+      output.push({ _tag: "PUSH_BOOL", value: tokUpper === "TRUE" })
       prevWasOperand = true
       continue
     }
@@ -1197,12 +1212,28 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
       if (opStack.length > 0 && opStack[opStack.length - 1].startsWith("FN:")) {
         const fnTok = opStack.pop()!
         const fnName = fnTok.slice(3)
+        const nArgs = argCounts.pop() ?? 1
         const opcodeName = FUNC_MAP[fnName]
         if (opcodeName) {
-          const op = classifyToken(opcodeName)
-          if (op) output.push(op)
+          // For aggregate functions: if multiple args, use _N variant.
+          // If single arg, use _DYN variant (could be a range that pushed count).
+          const N_VARIANTS: Record<string, string> = {
+            SUM_DYN: "SUM_N", MIN_DYN: "MIN_N", MAX_DYN: "MAX_N", AVG_DYN: "AVG_N",
+          }
+          // IF/IFERROR from infix: args are in function-call order on the stack,
+          // which is the OPPOSITE of RPN order. Emit _FN variant that pops correctly.
+          const FN_VARIANTS: Record<string, string> = { IF: "IF_FN", IFERROR: "IFERROR_FN" }
+          const fnVariant = FN_VARIANTS[opcodeName]
+          const nVariant = N_VARIANTS[opcodeName]
+          if (fnVariant) {
+            output.push({ _tag: fnVariant } as any)
+          } else if (nVariant && nArgs > 1) {
+            output.push({ _tag: nVariant, n: nArgs } as any)
+          } else {
+            const op = classifyToken(opcodeName)
+            if (op) output.push(op)
+          }
         }
-        argCounts.pop()
       }
       prevWasOperand = true
       continue

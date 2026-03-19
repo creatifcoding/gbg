@@ -1148,6 +1148,26 @@ describe("infix parser", () => {
     expect(s.stack[0]).toEqual(num(10))
   })
 
+  it("nested functions: =SUM(1, MAX(2, 3))", () => {
+    const ir = compileInfixSync("=SUM(1, MAX(2, 3))")
+    const s = Effect.runSync(evalProgram(ir))
+    // SUM(1, MAX(2,3)) = SUM(1, 3) = 4
+    expect(s.stack[0]).toEqual(num(4))
+  })
+
+  it("nested: =ROUND(AVG(10, 20, 30), 1)", () => {
+    const ir = compileInfixSync("=ROUND(AVG(10, 20, 30), 1)")
+    const s = Effect.runSync(evalProgram(ir))
+    expect(s.stack[0]).toEqual(num(20))
+  })
+
+  it("boolean TRUE/FALSE literals", () => {
+    const ir1 = compileInfixSync("=IF(TRUE, 1, 0)")
+    expect(Effect.runSync(evalProgram(ir1)).stack[0]).toEqual(num(1))
+    const ir2 = compileInfixSync("=IF(FALSE, 1, 0)")
+    expect(Effect.runSync(evalProgram(ir2)).stack[0]).toEqual(num(0))
+  })
+
   it("rejects mismatched parentheses", async () => {
     await expect(
       Effect.runPromise(compileInfix("=(A1+B1"))
