@@ -1704,6 +1704,13 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("LAMBDA/REDUCE/SCAN: functional programming primitives", () => {
+    // REDUCE: sum with initial 0
+    expect(evalProgramDirect(compileInfixSync("=REDUCE(0, 1, 2, 3, 4)")).stack[0]).toEqual(num(10))
+    // LAMBDA: returns last value (simplified)
+    expect(evalProgramDirect(compileInfixSync('=LAMBDA("x", "y", 42)')).stack[0]).toEqual(num(42))
+  })
+
   it("HEX2BIN/OCT2HEX/ADDRESS/FORMULATEXT/DPRODUCT: remaining engineering", () => {
     expect(evalProgramDirect(compileInfixSync('=HEX2BIN("A")')).stack[0]).toEqual(str("1010"))
     expect(evalProgramDirect(compileInfixSync('=OCT2HEX("17")')).stack[0]).toEqual(str("F"))
