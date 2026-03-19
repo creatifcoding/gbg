@@ -676,6 +676,29 @@ describe("FormulaEngineV2", () => {
         expect(r2.recalculated.length).toBeGreaterThanOrEqual(3)
       }).pipe(Effect.provide(layer)))
     })
+    it("mortgage calculator: PMT + interest breakdown", async () => {
+      const store = makeStore({
+        A1: CV.num(250000),   // loan amount
+        A2: CV.num(0.065),    // annual rate (6.5%)
+        A3: CV.num(30),       // years
+      })
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.registerInfix("B1", "=A2/12")                          // monthly rate
+        yield* e.registerInfix("B2", "=A3*12")                          // total payments
+        yield* e.registerInfix("B3", "=ROUND(PMT(B1, B2, A1), 2)")     // monthly payment
+        yield* e.registerInfix("B4", "=ROUND(B3*B2, 2)")               // total paid
+        yield* e.registerInfix("B5", "=ROUND(B4+A1, 2)")               // total interest (payment is negative)
+
+        yield* e.recalcAll()
+        const monthly = (store.cells.get("B3") as any)?.value
+        expect(monthly).toBeLessThan(-1500) // ~$-1580
+        expect(monthly).toBeGreaterThan(-1700)
+        const totalPaid = (store.cells.get("B4") as any)?.value
+        expect(totalPaid).toBeLessThan(-500000) // ~$-568,861
+      }))
+    })
+
     it("EXPERIMENT 100 CAPSTONE: full spreadsheet capabilities chain", async () => {
       // Simulates: product pricing sheet with derived metrics
       const store = makeStore({
