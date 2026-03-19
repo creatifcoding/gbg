@@ -1296,6 +1296,18 @@ describe("infix parser", () => {
     expect(v.value).toBeLessThan(1)
   })
 
+  it("PRODUCT: =PRODUCT(2, 3, 4) → 24", () => {
+    expect(Effect.runSync(evalProgram(compileInfixSync("=PRODUCT(2, 3, 4)"))).stack[0]).toEqual(num(24))
+  })
+
+  it("PI: =ROUND(PI(), 4) → 3.1416", () => {
+    expect(Effect.runSync(evalProgram(compileInfixSync("=ROUND(PI(), 4)"))).stack[0]).toEqual(num(3.1416))
+  })
+
+  it("circle area: =ROUND(PI() * 5^2, 2) → 78.54", () => {
+    expect(Effect.runSync(evalProgram(compileInfixSync("=ROUND(PI() * 5^2, 2)"))).stack[0]).toEqual(num(78.54))
+  })
+
   it("complex nested: =IF(AND(A1>0, B1>0), ROUND(SQRT(A1^2+B1^2), 2), 0)", () => {
     // Pythagorean theorem with validation
     const cells: Record<string, any> = { A1: num(3), B1: num(4) }

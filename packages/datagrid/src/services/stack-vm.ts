@@ -361,11 +361,18 @@ export const CHOOSE_N = Schema.TaggedStruct("CHOOSE_N", { n: Schema.Number })
 export const AND_N = Schema.TaggedStruct("AND_N", { n: Schema.Number })
 export const OR_N = Schema.TaggedStruct("OR_N", { n: Schema.Number })
 
+/** PRODUCT_DYN — multiply all values (like SUM but multiplication) */
+export const PRODUCT_DYN = Schema.TaggedStruct("PRODUCT_DYN", {})
+export const PRODUCT_N = Schema.TaggedStruct("PRODUCT_N", { n: Schema.Number })
+
 /** NOW — pushes current timestamp (ms since epoch) */
 export const NOW_OP = Schema.TaggedStruct("NOW_OP", {})
 
 /** RAND — pushes random number between 0 and 1 */
 export const RAND_OP = Schema.TaggedStruct("RAND_OP", {})
+
+/** PI_OP — pushes mathematical constant π */
+export const PI_OP = Schema.TaggedStruct("PI_OP", {})
 
 /** ROUND — round to N decimal places */
 export const ROUND = Schema.TaggedStruct("ROUND", {})
@@ -448,7 +455,7 @@ export const Opcode = Schema.Union([
   EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR,
   AND_N, OR_N, CHOOSE_N,
   LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, SUBSTITUTE_OP,
-  NOW_OP, RAND_OP,
+  PRODUCT_DYN, PRODUCT_N, NOW_OP, RAND_OP, PI_OP,
   SUM_N, MIN_N, MAX_N, AVG_N,
   SUM_DYN, MIN_DYN, MAX_DYN, AVG_DYN, COUNT_DYN, POWER,
   ROUND, FLOOR_OP, CEIL_OP, SQRT_OP, SIGN_OP, LOG_OP, LOG10_OP,
@@ -778,9 +785,14 @@ const EXEC: Record<string, Executor> = {
   AND_N: (o: any, s) => ({ result: aggregateN(s, o.n, vals => bool(vals.every(v => v._tag === "bool" ? v.value : v._tag === "num" ? v.value !== 0 : true)), "AND") }),
   OR_N:  (o: any, s) => ({ result: aggregateN(s, o.n, vals => bool(vals.some(v => v._tag === "bool" ? v.value : v._tag === "num" ? v.value !== 0 : true)), "OR") }),
 
-  // ── Volatile (zero-arg, side-effecting) ──
+  // ── Product aggregate ──
+  PRODUCT_N: (o: any, s) => ({ result: aggregateN(s, o.n, vals => { let p = 1; for (const v of vals) p *= asNum(v); return num(p) }, "PRODUCT") }),
+  PRODUCT_DYN: (_o, s) => ({ result: aggregateDyn(s, vals => { let p = 1; for (const v of vals) p *= asNum(v); return num(p) }, "PRODUCT") }),
+
+  // ── Volatile / constants (zero-arg) ──
   NOW_OP:  (_o, s) => { const v = num(Date.now()); s.push(v); return { result: v } },
   RAND_OP: (_o, s) => { const v = num(Math.random()); s.push(v); return { result: v } },
+  PI_OP:   (_o, s) => { const v = num(Math.PI); s.push(v); return { result: v } },
 
   // ── Control ──
   HALT: () => ({ halted: true }),
@@ -946,8 +958,11 @@ function classifyToken(tok: string): Opcode | null {
     case "SIGN_OP": return { _tag: "SIGN_OP" }
     case "LOG_OP": return { _tag: "LOG_OP" }
     case "LOG10_OP": return { _tag: "LOG10_OP" }
+    case "PRODUCT_DYN": return { _tag: "PRODUCT_DYN" }
+    case "PRODUCT_N": return { _tag: "PRODUCT_N", n: 0 } as any
     case "NOW_OP": return { _tag: "NOW_OP" }
     case "RAND_OP": return { _tag: "RAND_OP" }
+    case "PI_OP": return { _tag: "PI_OP" }
     case "IF": return { _tag: "IF" }
     case "SUM_DYN": return { _tag: "SUM_DYN" }
     case "MIN_DYN": return { _tag: "MIN_DYN" }
@@ -1184,7 +1199,8 @@ const FUNC_MAP: Record<string, string> = {
   SQRT: "SQRT_OP", SIGN: "SIGN_OP", LOG: "LOG_OP", LOG10: "LOG10_OP",
   ABS: "ABS", NEG: "NEG", IF: "IF", IFERROR: "IFERROR",
   AND: "AND_N", OR: "OR_N", CHOOSE: "CHOOSE_N",
-  NOW: "NOW_OP", RAND: "RAND_OP",
+  PRODUCT: "PRODUCT_DYN",
+  NOW: "NOW_OP", RAND: "RAND_OP", PI: "PI_OP",
   CONCAT: "CONCAT", TO_NUM: "TO_NUM", TO_STR: "TO_STR",
   LEN: "LEN_OP", LEFT: "LEFT_OP", RIGHT: "RIGHT_OP", MID: "MID_OP",
   TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", SUBSTITUTE: "SUBSTITUTE_OP",
@@ -1268,7 +1284,7 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
     }
 
     // Zero-arg function: NOW(), RAND() — emit immediately and skip parens
-    const ZERO_ARG_FNS = new Set(["NOW", "RAND"])
+    const ZERO_ARG_FNS = new Set(["NOW", "RAND", "PI"])
     if (ZERO_ARG_FNS.has(tok) && i + 2 < tokens.length && tokens[i + 1] === "(" && tokens[i + 2] === ")") {
       const opcodeName = FUNC_MAP[tok]
       if (opcodeName) { const op = classifyToken(opcodeName); if (op) output.push(op) }
@@ -1340,6 +1356,7 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
           // If single arg, use _DYN variant (could be a range that pushed count).
           const N_VARIANTS: Record<string, string> = {
             SUM_DYN: "SUM_N", MIN_DYN: "MIN_N", MAX_DYN: "MAX_N", AVG_DYN: "AVG_N",
+            PRODUCT_DYN: "PRODUCT_N",
             AND_N: "AND_N", OR_N: "OR_N", CHOOSE_N: "CHOOSE_N",
           }
           // IF/IFERROR from infix: args are in function-call order on the stack,
