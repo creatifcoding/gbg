@@ -1,28 +1,19 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ STATUS — 248 experiments, 881 tests, 1047 UNIQUE CATALOG, ~11,765 LOC
+## ✅ STATUS — 250 experiments, 906 tests, 1099 UNIQUE CATALOG, ~11,980 LOC
 
-### Category breakdown (1047 unique catalog)
-math:264 | stat:199 | text:168 | info:130 | financial:116 | logic:88 | lookup:80 | volatile:20
+### Category breakdown (1099 unique)
+math:278 | stat:209 | text:178 | info:136 | financial:122 | logic:92 | lookup:83 | volatile:21
 
-### This session
-- Discovered 58 phantom duplicates from prior batches, deduped to honest 942
-- Rebuilt to honest 1047 with collision-checked additions
-- Added waveforms (HEAVISIDE/RAMP/GAUSSIAN2/BOXCAR/TRIANGLE2/SAWTOOTH2)
-- Added windowing functions (WELCH/HAMMING/HANNING/BLACKMAN/KAISER/TUKEYWIN)
-- Added ML metrics (GINIIMPURITY/INFOGAIN)
-- Added number theory (ISCUBE/ISCOPRIME/ISTRIANGULAR/ISPENTAGONAL/ISHEXAGONAL/ISHARSHAD)
-
-## ⚠️ LESSONS LEARNED
-- ALWAYS check for existing names before adding — accumulated 58 duplicates across sessions
-- Python add scripts MUST check both `name:` in catalog AND `_OP`/`_N` tags in schemas
-- EXEC implementations from later batches SHADOW earlier ones (JS object last-key-wins)
-- Never hardcode EXEC implementations for "skipped" names — the skip logic must be in the impl block too
+### This session progress
+- Deduped 58 phantoms (942 honest → 1099 via collision-checked additions)
+- Added waveforms, windowing, ML metrics, time-series, financial ratios, number theory
+- Critical fix: all batch scripts now collision-check both name AND tag
 
 ## 🔜 NEXT
-1. Push toward 1100 unique catalog with collision checking
-2. More tests to increase coverage
-3. Compiler optimizations: constant folding, dead code elimination
+1. Push to 1150 unique catalog
+2. Increase test coverage (906 total, aim for 1000)
+3. Compiler constant folding optimization
 
 ## 📌 DEFERRED
 - MMULT/MINVERSE with true 2D matrix
