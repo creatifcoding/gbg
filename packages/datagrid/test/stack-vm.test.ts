@@ -1184,6 +1184,31 @@ describe("infix parser", () => {
     expect(deps.length).toBe(3)
   })
 
+  it("AND function: =AND(TRUE, TRUE) → true", () => {
+    const ir = compileInfixSync("=AND(TRUE, TRUE)")
+    expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(bool(true))
+  })
+
+  it("AND function: =AND(TRUE, FALSE) → false", () => {
+    const ir = compileInfixSync("=AND(TRUE, FALSE)")
+    expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(bool(false))
+  })
+
+  it("OR function: =OR(FALSE, TRUE) → true", () => {
+    const ir = compileInfixSync("=OR(FALSE, TRUE)")
+    expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(bool(true))
+  })
+
+  it("OR function: =OR(FALSE, FALSE) → false", () => {
+    const ir = compileInfixSync("=OR(FALSE, FALSE)")
+    expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(bool(false))
+  })
+
+  it("AND with comparisons: =AND(5>3, 10<20)", () => {
+    const ir = compileInfixSync("=AND(5>3, 10<20)")
+    expect(Effect.runSync(evalProgram(ir)).stack[0]).toEqual(bool(true))
+  })
+
   it("NOW() pushes a timestamp", () => {
     const ir = compileInfixSync("=NOW()")
     const before = Date.now()

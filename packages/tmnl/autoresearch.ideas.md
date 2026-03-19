@@ -1,52 +1,44 @@
 # Autoresearch Ideas — Formula DSL Stack VM
 
-## ✅ DONE — No longer actionable
+## ✅ COMPLETE — 50 experiments, 298 tests, 46 opcodes
 
-- 25 hypotheses, 80 spike tests, 22 Effect v4 modules
-- 4 production services: stack-vm.ts, vm-cell-bridge.ts, dep-graph.ts, formula-engine-v2.ts
-- Flat EXEC dispatch table (O(1)), 44+ opcodes
-- Infix shunting-yard: precedence, nested functions, ranges, boolean literals
-- Comparison: < > >= <= != <>, unary minus, string literals, & concat, ^ power
-- Aggregate: SUM/MIN/MAX/AVG/COUNT (both _N and _DYN), IFERROR
-- Multi-char columns (AA-AZ+) in READ_RANGE and dep extraction
-- IF_FN/IFERROR_FN for infix arg order
-- colToIdx/idxToCol helpers
+Production stack: stack-vm.ts (1497 LOC) + vm-cell-bridge.ts + dep-graph.ts + formula-engine-v2.ts = 2,455 LOC
+Tests: 4,766 LOC across 6 files (298 tests)
 
-## 🔜 NEXT — High-value paths
+Key milestones:
+- Flat EXEC dispatch table (O(1))
+- Infix shunting-yard: nested functions, operator precedence, ranges, booleans
+- 46 opcodes: arithmetic, comparison (incl >=,<=,!=), logic, aggregate (_N and _DYN), string, conditional (IF/IFERROR), volatile (NOW/RAND), cell I/O, ranges
+- FormulaEngineV2: register/validate/recalcDirty/recalcAll, named ranges, volatile
+- Multi-char columns (AA-AZ+)
 
-### FormulaEngineV2 IFERROR integration
-- Test: =IFERROR(A1/B1, 0) where B1=0 → should get 0 not #DIV/0!
-- Validates full pipeline: register → recalc → error handling → fallback
-
-### Volatile function support
-- Functions like NOW(), RAND() that must recalc every cycle
-- DepGraph needs "always-dirty" flag for volatile formulas
-- FormulaEngineV2.recalcAll already exists — need volatile detection
-
-### Named ranges / cell aliases
-- "Revenue" instead of "A1:A100"
-- Compiler resolves aliases to addresses before dep extraction
-- Could use a simple Map<string, string> registry
+## 🔜 NEXT — Remaining high-value work
 
 ### Wire FormulaEngineV2 into production
 - Replace FormulaConsistency's dependency on old FormulaEngine
 - Wire registerInfix as primary formula input path
 - Connect to CellCache atoms for reactive UI updates
+- This is the #1 remaining task for production readiness
 
-### Barrel exports audit
-- Ensure all new opcodes/types exported from index.ts
-- GTE, LTE, NEQ, IFERROR, ROUND, FLOOR_OP, CEIL_OP, POWER, COUNT_DYN
-- colToIdx, idxToCol utility exports
+### Formula bar autocomplete metadata
+- validate() already returns deps — add function name completions
+- Return available function names + signatures for the formula bar
+- Leverage FUNC_MAP keys
 
-## 📌 DEFERRED — Lower priority
+### Conditional formatting via formulas
+- =IF(A1>100, "red", "green") style rules evaluated by FormulaEngineV2
+- Cell renderer reads format from formula result
+- Novel use of the VM outside traditional spreadsheet formulas
 
-### TxHashMap cell state (production)
-- Replace Map with TxHashMap inside Effect.transaction
-- Multi-cell atomic reads/writes for bulk paste, undo
+### Array formulas / ARRAYFORMULA
+- =ARRAYFORMULA(A1:A10 * B1:B10)
+- Element-wise operations on ranges
+- Requires READ_RANGE to leave values on stack without count, or a new approach
 
-### WASM sandbox (Domain B)
-- Pool.make for QuickJS-WASM instances
-- Deferred until core formula DSL is production-ready
+## 📌 DEFERRED
+
+- TxHashMap cell state (needs production wiring first)
+- WASM sandbox (Domain B, deferred until core is production-ready)
 
 ## 📊 v4 API Gotchas (Reference — 14 discoveries)
 | Wrong | Correct |

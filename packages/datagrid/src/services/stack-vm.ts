@@ -335,6 +335,10 @@ export const POWER = Schema.TaggedStruct("POWER", {})
 /** IFERROR — if value is error, use fallback */
 export const IFERROR = Schema.TaggedStruct("IFERROR", {})
 
+/** AND_N / OR_N — logical N-ary: pop N booleans, push AND/OR */
+export const AND_N = Schema.TaggedStruct("AND_N", { n: Schema.Number })
+export const OR_N = Schema.TaggedStruct("OR_N", { n: Schema.Number })
+
 /** NOW — pushes current timestamp (ms since epoch) */
 export const NOW_OP = Schema.TaggedStruct("NOW_OP", {})
 
@@ -413,7 +417,7 @@ export const Opcode = Schema.Union([
   ADD, SUB, MUL, DIV, MOD, ABS,
   CONCAT, TO_NUM, TO_STR,
   DUP, SWAP, DROP, NEG,
-  EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR, NOW_OP, RAND_OP,
+  EQ, LT, GT, GTE, LTE, NEQ, NOT, IF, IFERROR, AND_N, OR_N, NOW_OP, RAND_OP,
   SUM_N, MIN_N, MAX_N, AVG_N,
   SUM_DYN, MIN_DYN, MAX_DYN, AVG_DYN, COUNT_DYN, POWER,
   ROUND, FLOOR_OP, CEIL_OP,
@@ -700,6 +704,10 @@ const EXEC: Record<string, Executor> = {
     const cv = num(count); s.push(cv); return { result: cv }
   },
 
+  // ── Logical N-ary ──
+  AND_N: (o: any, s) => ({ result: aggregateN(s, o.n, vals => bool(vals.every(v => v._tag === "bool" ? v.value : v._tag === "num" ? v.value !== 0 : true)), "AND") }),
+  OR_N:  (o: any, s) => ({ result: aggregateN(s, o.n, vals => bool(vals.some(v => v._tag === "bool" ? v.value : v._tag === "num" ? v.value !== 0 : true)), "OR") }),
+
   // ── Volatile (zero-arg, side-effecting) ──
   NOW_OP:  (_o, s) => { const v = num(Date.now()); s.push(v); return { result: v } },
   RAND_OP: (_o, s) => { const v = num(Math.random()); s.push(v); return { result: v } },
@@ -853,6 +861,8 @@ function classifyToken(tok: string): Opcode | null {
     case "NEQ": return { _tag: "NEQ" }
     case "NOT": return { _tag: "NOT" }
     case "IFERROR": return { _tag: "IFERROR" }
+    case "AND_N": return { _tag: "AND_N", n: 0 } as any
+    case "OR_N": return { _tag: "OR_N", n: 0 } as any
     case "NOW_OP": return { _tag: "NOW_OP" }
     case "RAND_OP": return { _tag: "RAND_OP" }
     case "IF": return { _tag: "IF" }
@@ -1089,6 +1099,7 @@ const FUNC_MAP: Record<string, string> = {
   COUNT: "COUNT_DYN", POWER: "POWER",
   ROUND: "ROUND", FLOOR: "FLOOR", CEIL: "CEIL",
   ABS: "ABS", NEG: "NEG", IF: "IF", IFERROR: "IFERROR",
+  AND: "AND_N", OR: "OR_N",
   NOW: "NOW_OP", RAND: "RAND_OP",
   CONCAT: "CONCAT", TO_NUM: "TO_NUM", TO_STR: "TO_STR",
 }
@@ -1243,15 +1254,18 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
           // If single arg, use _DYN variant (could be a range that pushed count).
           const N_VARIANTS: Record<string, string> = {
             SUM_DYN: "SUM_N", MIN_DYN: "MIN_N", MAX_DYN: "MAX_N", AVG_DYN: "AVG_N",
+            AND_N: "AND_N", OR_N: "OR_N",
           }
           // IF/IFERROR from infix: args are in function-call order on the stack,
           // which is the OPPOSITE of RPN order. Emit _FN variant that pops correctly.
           const FN_VARIANTS: Record<string, string> = { IF: "IF_FN", IFERROR: "IFERROR_FN" }
           const fnVariant = FN_VARIANTS[opcodeName]
           const nVariant = N_VARIANTS[opcodeName]
+          // N-ary functions that always use _N variant regardless of arg count
+          const ALWAYS_N = new Set(["AND_N", "OR_N"])
           if (fnVariant) {
             output.push({ _tag: fnVariant } as any)
-          } else if (nVariant && nArgs > 1) {
+          } else if (nVariant && (nArgs > 1 || ALWAYS_N.has(nVariant))) {
             output.push({ _tag: nVariant, n: nArgs } as any)
           } else {
             const op = classifyToken(opcodeName)
