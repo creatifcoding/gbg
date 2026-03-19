@@ -428,6 +428,8 @@ export const PERCENTILE_N = Schema.TaggedStruct("PERCENTILE_N", { n: Schema.Numb
 export const COUNTA_N = Schema.TaggedStruct("COUNTA_N", { n: Schema.Number })
 export const COUNTBLANK_N = Schema.TaggedStruct("COUNTBLANK_N", { n: Schema.Number })
 export const SUMPRODUCT_N = Schema.TaggedStruct("SUMPRODUCT_N", { n: Schema.Number })
+export const MAXIFS_N = Schema.TaggedStruct("MAXIFS_N", { n: Schema.Number })
+export const MINIFS_N = Schema.TaggedStruct("MINIFS_N", { n: Schema.Number })
 export const AVERAGEIF_N = Schema.TaggedStruct("AVERAGEIF_N", { n: Schema.Number })
 export const LARGE_N = Schema.TaggedStruct("LARGE_N", { n: Schema.Number })
 export const SMALL_N = Schema.TaggedStruct("SMALL_N", { n: Schema.Number })
@@ -558,7 +560,7 @@ export const Opcode = Schema.Union([
   FACT_OP, QUOTIENT_OP, GCD_OP, LCM_OP, COMBIN_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
-  NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, COUNTIF_N, SUMIF_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
+  NPV_N, VAR_N, PERCENTILE_N, COUNTA_N, COUNTBLANK_N, SUMPRODUCT_N, COUNTIF_N, SUMIF_N, MAXIFS_N, MINIFS_N, AVERAGEIF_N, LARGE_N, SMALL_N, STDEV_N, MEDIAN_N, RANK_N, CONCATENATE_N, TEXTJOIN_N, REPT_OP, EXACT_OP, FIND_OP, REPLACE_OP, SEARCH_OP,
   IFS_N, SWITCH_N, VALUE_OP, TYPE_OP, N_OP,
   YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
@@ -1008,6 +1010,30 @@ const EXEC: Record<string, Executor> = {
     const result = num(total); s.push(result); return { result }
   },
 
+  // MAXIFS_N: max of values matching criteria. Stack: [criteria, v1, ..., vN]
+  MAXIFS_N: (op: any, s) => {
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "MAXIFS")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const criteriaRaw = args[0]._tag === "str" ? args[0].value : vmDisplay(args[0])
+    const pred = parseCriteria(criteriaRaw)
+    let max = -Infinity, found = false
+    for (const v of args.slice(1)) { if (pred(v)) { const n = asNum(v); if (n > max) { max = n; found = true } } }
+    if (!found) { const err = vmError("TYPE_MISMATCH", "MAXIFS: no matches"); s.push(err); return { result: err } }
+    const result = num(max); s.push(result); return { result }
+  },
+  // MINIFS_N: min of values matching criteria
+  MINIFS_N: (op: any, s) => {
+    const n = op.n as number
+    if (s.length < n) { s.push(vmError("STACK_UNDERFLOW", "MINIFS")); return { result: s[s.length-1] } }
+    const args = s.splice(s.length - n, n)
+    const criteriaRaw = args[0]._tag === "str" ? args[0].value : vmDisplay(args[0])
+    const pred = parseCriteria(criteriaRaw)
+    let min = Infinity, found = false
+    for (const v of args.slice(1)) { if (pred(v)) { const n = asNum(v); if (n < min) { min = n; found = true } } }
+    if (!found) { const err = vmError("TYPE_MISMATCH", "MINIFS: no matches"); s.push(err); return { result: err } }
+    const result = num(min); s.push(result); return { result }
+  },
   // AVERAGEIF_N: average values matching criteria. Stack: [criteria, v1, ..., vN]
   AVERAGEIF_N: (op: any, s) => {
     const n = op.n as number
@@ -1724,6 +1750,8 @@ function classifyToken(tok: string): Opcode | null {
     case "PERCENTILE_N": return { _tag: "PERCENTILE_N", n: 0 } as any
     case "COUNTA_N": return { _tag: "COUNTA_N", n: 0 } as any
     case "COUNTBLANK_N": return { _tag: "COUNTBLANK_N", n: 0 } as any
+    case "MAXIFS_N": return { _tag: "MAXIFS_N", n: 0 } as any
+    case "MINIFS_N": return { _tag: "MINIFS_N", n: 0 } as any
     case "SUMPRODUCT_N": return { _tag: "SUMPRODUCT_N", n: 0 } as any
     case "COUNTIF_N": return { _tag: "COUNTIF_N", n: 0 } as any
     case "SUMIF_N": return { _tag: "SUMIF_N", n: 0 } as any
@@ -1935,13 +1963,13 @@ const INFIX_OP_MAP: Record<string, string> = {
 }
 const RIGHT_ASSOC = new Set<string>(["UNARY_NEG", "^"])
 const ZERO_ARG_FNS = new Set(["NOW", "RAND", "PI", "TODAY"])
-const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N", "SWITCH_N", "IFS_N", "NPV_N", "VAR_N", "PERCENTILE_N", "COUNTA_N", "COUNTBLANK_N", "SUMPRODUCT_N", "COUNTIF_N", "SUMIF_N", "AVERAGEIF_N", "LARGE_N", "SMALL_N", "STDEV_N", "MEDIAN_N", "RANK_N", "CONCATENATE_N", "TEXTJOIN_N"])
+const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N", "SWITCH_N", "IFS_N", "NPV_N", "VAR_N", "PERCENTILE_N", "COUNTA_N", "COUNTBLANK_N", "SUMPRODUCT_N", "COUNTIF_N", "SUMIF_N", "MAXIFS_N", "MINIFS_N", "AVERAGEIF_N", "LARGE_N", "SMALL_N", "STDEV_N", "MEDIAN_N", "RANK_N", "CONCATENATE_N", "TEXTJOIN_N"])
 const N_VARIANTS: Record<string, string> = {
   SUM_DYN: "SUM_N", MIN_DYN: "MIN_N", MAX_DYN: "MAX_N", AVG_DYN: "AVG_N",
   PRODUCT_DYN: "PRODUCT_N",
   AND_N: "AND_N", OR_N: "OR_N", CHOOSE_N: "CHOOSE_N", SWITCH_N: "SWITCH_N", IFS_N: "IFS_N",
   NPV_N: "NPV_N", VAR_N: "VAR_N", PERCENTILE_N: "PERCENTILE_N", COUNTA_N: "COUNTA_N", COUNTBLANK_N: "COUNTBLANK_N",
-  SUMPRODUCT_N: "SUMPRODUCT_N", COUNTIF_N: "COUNTIF_N", SUMIF_N: "SUMIF_N", AVERAGEIF_N: "AVERAGEIF_N", LARGE_N: "LARGE_N", SMALL_N: "SMALL_N",
+  SUMPRODUCT_N: "SUMPRODUCT_N", COUNTIF_N: "COUNTIF_N", SUMIF_N: "SUMIF_N", MAXIFS_N: "MAXIFS_N", MINIFS_N: "MINIFS_N", AVERAGEIF_N: "AVERAGEIF_N", LARGE_N: "LARGE_N", SMALL_N: "SMALL_N",
   STDEV_N: "STDEV_N", MEDIAN_N: "MEDIAN_N", RANK_N: "RANK_N", CONCATENATE_N: "CONCATENATE_N", TEXTJOIN_N: "TEXTJOIN_N",
 }
 const FN_VARIANTS: Record<string, string> = { IF: "IF_FN", IFERROR: "IFERROR_FN" }
@@ -2022,7 +2050,7 @@ const FUNC_MAP: Record<string, string> = {
   FACT: "FACT_OP", QUOTIENT: "QUOTIENT_OP", GCD: "GCD_OP", LCM: "LCM_OP", COMBIN: "COMBIN_OP", SUBSTITUTE: "SUBSTITUTE_OP",
   ISNUM: "ISNUM_OP", ISTEXT: "ISTEXT_OP", ISERROR: "ISERROR_OP", ISBLANK: "ISBLANK_OP",
   NPV: "NPV_N", VAR: "VAR_N", PERCENTILE: "PERCENTILE_N", COUNTA: "COUNTA_N", COUNTBLANK: "COUNTBLANK_N",
-  SUMPRODUCT: "SUMPRODUCT_N", COUNTIF: "COUNTIF_N", SUMIF: "SUMIF_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
+  SUMPRODUCT: "SUMPRODUCT_N", COUNTIF: "COUNTIF_N", SUMIF: "SUMIF_N", MAXIFS: "MAXIFS_N", MINIFS: "MINIFS_N", AVERAGEIF: "AVERAGEIF_N", LARGE: "LARGE_N", SMALL: "SMALL_N",
   STDEV: "STDEV_N", MEDIAN: "MEDIAN_N", RANK: "RANK_N", CONCATENATE: "CONCATENATE_N", TEXTJOIN: "TEXTJOIN_N",
   REPT: "REPT_OP", EXACT: "EXACT_OP", FIND: "FIND_OP", REPLACE: "REPLACE_OP", SEARCH: "SEARCH_OP",
   IFS: "IFS_N", SWITCH: "SWITCH_N", VALUE: "VALUE_OP", TYPE: "TYPE_OP", N: "N_OP",
@@ -2413,6 +2441,8 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "SUMPRODUCT", args: "a1,...aN, b1,...bN", description: "Sum of pairwise products", category: "math" },
   { name: "COUNTIF", args: "criteria, values...", description: "Count values matching criteria", category: "stat" },
   { name: "SUMIF", args: "criteria, values...", description: "Sum values matching criteria", category: "stat" },
+  { name: "MAXIFS", args: "criteria, values...", description: "Max of values matching criteria", category: "stat" },
+  { name: "MINIFS", args: "criteria, values...", description: "Min of values matching criteria", category: "stat" },
   { name: "AVERAGEIF", args: "criteria, values...", description: "Average values matching criteria", category: "stat" },
   { name: "LARGE", args: "k, values...", description: "K-th largest value", category: "stat" },
   { name: "SMALL", args: "k, values...", description: "K-th smallest value", category: "stat" },

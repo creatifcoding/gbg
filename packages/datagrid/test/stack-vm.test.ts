@@ -1655,6 +1655,12 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("MAXIFS/MINIFS: conditional max and min", () => {
+    expect(evalProgramDirect(compileInfixSync('=MAXIFS(">5", 3, 7, 2, 10, 5)')).stack[0]).toEqual(num(10))
+    expect(evalProgramDirect(compileInfixSync('=MINIFS(">5", 3, 7, 2, 10, 5)')).stack[0]).toEqual(num(7))
+    expect(evalProgramDirect(compileInfixSync('=MAXIFS("=0", 1, 2, 3)')).stack[0]._tag).toBe("error") // no matches
+  })
+
   it("AVERAGEIF: conditional average", () => {
     expect(evalProgramDirect(compileInfixSync('=AVERAGEIF(">5", 3, 7, 2, 10, 5)')).stack[0]).toEqual(num(8.5)) // (7+10)/2
     expect(evalProgramDirect(compileInfixSync('=AVERAGEIF("=0", 1, 2, 3)')).stack[0]._tag).toBe("error") // no matches → error
