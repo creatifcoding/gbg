@@ -372,6 +372,15 @@ export const ISTEXT_OP = Schema.TaggedStruct("ISTEXT_OP", {})
 export const ISERROR_OP = Schema.TaggedStruct("ISERROR_OP", {})
 export const ISBLANK_OP = Schema.TaggedStruct("ISBLANK_OP", {})
 
+/** Date/Time extraction */
+export const YEAR_OP = Schema.TaggedStruct("YEAR_OP", {})
+export const MONTH_OP = Schema.TaggedStruct("MONTH_OP", {})
+export const DAY_OP = Schema.TaggedStruct("DAY_OP", {})
+export const HOUR_OP = Schema.TaggedStruct("HOUR_OP", {})
+export const MINUTE_OP = Schema.TaggedStruct("MINUTE_OP", {})
+export const SECOND_OP = Schema.TaggedStruct("SECOND_OP", {})
+export const TODAY_OP = Schema.TaggedStruct("TODAY_OP", {})
+
 /** PRODUCT_DYN — multiply all values (like SUM but multiplication) */
 export const PRODUCT_DYN = Schema.TaggedStruct("PRODUCT_DYN", {})
 export const PRODUCT_N = Schema.TaggedStruct("PRODUCT_N", { n: Schema.Number })
@@ -468,6 +477,7 @@ export const Opcode = Schema.Union([
   LEN_OP, LEFT_OP, RIGHT_OP, MID_OP, TRIM_OP, UPPER_OP, LOWER_OP, SUBSTITUTE_OP,
   PRODUCT_DYN, PRODUCT_N,
   ISNUM_OP, ISTEXT_OP, ISERROR_OP, ISBLANK_OP,
+  YEAR_OP, MONTH_OP, DAY_OP, HOUR_OP, MINUTE_OP, SECOND_OP, TODAY_OP,
   NOW_OP, RAND_OP, PI_OP,
   SUM_N, MIN_N, MAX_N, AVG_N,
   SUM_DYN, MIN_DYN, MAX_DYN, AVG_DYN, COUNT_DYN, POWER,
@@ -683,6 +693,16 @@ const EXEC: Record<string, Executor> = {
   ISTEXT_OP:  (_o, s) => ({ result: unop(s, a => bool(a._tag === "str"), "ISTEXT") }),
   ISERROR_OP: (_o, s) => ({ result: unop(s, a => bool(isVMError(a)), "ISERROR") }),
   ISBLANK_OP: (_o, s) => ({ result: unop(s, a => bool(a._tag === "str" && a.value === ""), "ISBLANK") }),
+
+  // ── Date/Time ──
+  YEAR_OP:  (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; return num(new Date(asNum(a)).getFullYear()) }, "YEAR") }),
+  MONTH_OP: (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; return num(new Date(asNum(a)).getMonth() + 1) }, "MONTH") }),
+  DAY_OP:   (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; return num(new Date(asNum(a)).getDate()) }, "DAY") }),
+  HOUR_OP:  (_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; return num(new Date(asNum(a)).getHours()) }, "HOUR") }),
+  MINUTE_OP:(_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; return num(new Date(asNum(a)).getMinutes()) }, "MINUTE") }),
+  SECOND_OP:(_o, s) => ({ result: unop(s, a => { if (isVMError(a)) return a; return num(new Date(asNum(a)).getSeconds()) }, "SECOND") }),
+  // TODAY_OP = millisecond timestamp at midnight today
+  TODAY_OP: (_o, s) => { const d = new Date(); d.setHours(0,0,0,0); s.push(num(d.getTime())); return { result: s[s.length-1] } },
 
   // ── Stack manipulation ──
   DUP: (_o, s) => {
@@ -1011,6 +1031,9 @@ const _OP: Record<string, Opcode> = {
   FLOOR_OP: { _tag: "FLOOR_OP" }, CEIL_OP: { _tag: "CEIL_OP" },
   ISNUM_OP: { _tag: "ISNUM_OP" }, ISTEXT_OP: { _tag: "ISTEXT_OP" },
   ISERROR_OP: { _tag: "ISERROR_OP" }, ISBLANK_OP: { _tag: "ISBLANK_OP" },
+  YEAR_OP: { _tag: "YEAR_OP" }, MONTH_OP: { _tag: "MONTH_OP" }, DAY_OP: { _tag: "DAY_OP" },
+  HOUR_OP: { _tag: "HOUR_OP" }, MINUTE_OP: { _tag: "MINUTE_OP" }, SECOND_OP: { _tag: "SECOND_OP" },
+  TODAY_OP: { _tag: "TODAY_OP" },
   NOW_OP: { _tag: "NOW_OP" }, RAND_OP: { _tag: "RAND_OP" }, PI_OP: { _tag: "PI_OP" },
   HALT: { _tag: "HALT" },
   IF_FN: { _tag: "IF_FN" } as any, IFERROR_FN: { _tag: "IFERROR_FN" } as any,
@@ -1060,6 +1083,13 @@ function classifyToken(tok: string): Opcode | null {
     case "ISTEXT_OP": return _OP.ISTEXT_OP
     case "ISERROR_OP": return _OP.ISERROR_OP
     case "ISBLANK_OP": return _OP.ISBLANK_OP
+    case "YEAR_OP": return _OP.YEAR_OP
+    case "MONTH_OP": return _OP.MONTH_OP
+    case "DAY_OP": return _OP.DAY_OP
+    case "HOUR_OP": return _OP.HOUR_OP
+    case "MINUTE_OP": return _OP.MINUTE_OP
+    case "SECOND_OP": return _OP.SECOND_OP
+    case "TODAY_OP": return _OP.TODAY_OP
     case "SQRT_OP": return _OP.SQRT_OP
     case "SIGN_OP": return _OP.SIGN_OP
     case "LOG_OP": return _OP.LOG_OP
@@ -1242,7 +1272,7 @@ const INFIX_OP_MAP: Record<string, string> = {
   "=": "EQ", "<": "LT", ">": "GT", ">=": "GTE", "<=": "LTE", "!=": "NEQ", "^": "POWER",
 }
 const RIGHT_ASSOC = new Set<string>(["UNARY_NEG", "^"])
-const ZERO_ARG_FNS = new Set(["NOW", "RAND", "PI"])
+const ZERO_ARG_FNS = new Set(["NOW", "RAND", "PI", "TODAY"])
 const ALWAYS_N_FNS = new Set(["AND_N", "OR_N", "CHOOSE_N"])
 const N_VARIANTS: Record<string, string> = {
   SUM_DYN: "SUM_N", MIN_DYN: "MIN_N", MAX_DYN: "MAX_N", AVG_DYN: "AVG_N",
@@ -1314,11 +1344,13 @@ const FUNC_MAP: Record<string, string> = {
   ABS: "ABS", NEG: "NEG", IF: "IF", IFERROR: "IFERROR",
   AND: "AND_N", OR: "OR_N", CHOOSE: "CHOOSE_N",
   PRODUCT: "PRODUCT_DYN",
-  NOW: "NOW_OP", RAND: "RAND_OP", PI: "PI_OP",
+  NOW: "NOW_OP", RAND: "RAND_OP", PI: "PI_OP", TODAY: "TODAY_OP",
   CONCAT: "CONCAT", TO_NUM: "TO_NUM", TO_STR: "TO_STR",
   LEN: "LEN_OP", LEFT: "LEFT_OP", RIGHT: "RIGHT_OP", MID: "MID_OP",
   TRIM: "TRIM_OP", UPPER: "UPPER_OP", LOWER: "LOWER_OP", SUBSTITUTE: "SUBSTITUTE_OP",
   ISNUM: "ISNUM_OP", ISTEXT: "ISTEXT_OP", ISERROR: "ISERROR_OP", ISBLANK: "ISBLANK_OP",
+  YEAR: "YEAR_OP", MONTH: "MONTH_OP", DAY: "DAY_OP",
+  HOUR: "HOUR_OP", MINUTE: "MINUTE_OP", SECOND: "SECOND_OP",
 }
 
 /**
@@ -1597,7 +1629,7 @@ function optimizeIR(ir: StackIR): StackIR {
  * Handles both cell refs and ranges.
  */
 /** Tags that mark a formula as volatile (must recalc every cycle) */
-const VOLATILE_TAGS = new Set(["NOW_OP", "RAND_OP"])
+const VOLATILE_TAGS = new Set(["NOW_OP", "RAND_OP", "TODAY_OP"])
 
 /** Formula function catalog for autocomplete/validation UX */
 export interface FunctionSignature {
@@ -1645,6 +1677,14 @@ export const FUNCTION_CATALOG: ReadonlyArray<FunctionSignature> = [
   { name: "NOT", args: "value", description: "Logical negation", category: "logic" },
   // Lookup
   { name: "CHOOSE", args: "index, values...", description: "Pick by 1-based index", category: "lookup" },
+  // Date/Time
+  { name: "YEAR", args: "timestamp", description: "Extract year from timestamp", category: "info" },
+  { name: "MONTH", args: "timestamp", description: "Extract month (1-12) from timestamp", category: "info" },
+  { name: "DAY", args: "timestamp", description: "Extract day of month from timestamp", category: "info" },
+  { name: "HOUR", args: "timestamp", description: "Extract hour (0-23) from timestamp", category: "info" },
+  { name: "MINUTE", args: "timestamp", description: "Extract minute (0-59) from timestamp", category: "info" },
+  { name: "SECOND", args: "timestamp", description: "Extract second (0-59) from timestamp", category: "info" },
+  { name: "TODAY", args: "", description: "Midnight timestamp of today (volatile)", category: "volatile" },
   // Info / Type predicates
   { name: "ISNUM", args: "value", description: "True if value is a number", category: "info" },
   { name: "ISTEXT", args: "value", description: "True if value is text", category: "info" },

@@ -26,7 +26,7 @@ import {
   type VMFailure,
   failureToVMError, timeoutToVMError, catchToErrorState,
   // VM core
-  evalProgram, evalProgramDirect, evalExpr, compileExpr, compileExprSync,
+  evalProgram, evalProgramDirect, evalExpr, compileExpr, compileExprSync, isVolatileIR,
   compileInfix, compileInfixSync, extractDepsInfix,
   FUNCTION_CATALOG, completeFunctions,
   execOpcode, emptyState, MAX_EVAL_STEPS,
@@ -1390,6 +1390,26 @@ describe("infix parser", () => {
     const ir = compileInfixSync("=5>3")
     expect(ir.length).toBe(1)
     expect(ir[0]).toEqual({ _tag: "PUSH_BOOL", value: true })
+  })
+
+  it("date extraction: YEAR/MONTH/DAY from NOW()", () => {
+    const state = evalProgramDirect(compileInfixSync("=YEAR(NOW())"))
+    expect((state.stack[0] as any).value).toBe(new Date().getFullYear())
+    const m = evalProgramDirect(compileInfixSync("=MONTH(NOW())"))
+    expect((m.stack[0] as any).value).toBe(new Date().getMonth() + 1)
+    const d = evalProgramDirect(compileInfixSync("=DAY(NOW())"))
+    expect((d.stack[0] as any).value).toBe(new Date().getDate())
+  })
+
+  it("TODAY() returns midnight timestamp (volatile)", () => {
+    const state = evalProgramDirect(compileInfixSync("=TODAY()"))
+    const ts = (state.stack[0] as any).value as number
+    const d = new Date(ts)
+    expect(d.getHours()).toBe(0)
+    expect(d.getMinutes()).toBe(0)
+    // Verify volatile
+    const ir = compileInfixSync("=TODAY()")
+    expect(isVolatileIR(ir)).toBe(true)
   })
 
   it("ISNUM/ISTEXT/ISERROR/ISBLANK predicates", () => {
