@@ -1318,6 +1318,25 @@ describe("infix parser", () => {
     expect(s.stack[0]).toEqual(num(5)) // sqrt(9+16) = sqrt(25) = 5
   })
 
+  it("constant folding: =2+3 compiles to single PUSH_NUM(5)", () => {
+    const ir = compileInfixSync("=2+3")
+    expect(ir.length).toBe(1) // folded to single PUSH_NUM
+    expect(ir[0]).toEqual({ _tag: "PUSH_NUM", value: 5 })
+  })
+
+  it("constant folding: =2*3+4 folds progressively", () => {
+    const ir = compileInfixSync("=2*3+4")
+    // RPN: 2 3 * 4 + → fold 2*3=6 → 6 4 + → fold 6+4=10
+    expect(ir.length).toBe(1)
+    expect(ir[0]).toEqual({ _tag: "PUSH_NUM", value: 10 })
+  })
+
+  it("constant folding: comparison =5>3 folds to PUSH_BOOL(true)", () => {
+    const ir = compileInfixSync("=5>3")
+    expect(ir.length).toBe(1)
+    expect(ir[0]).toEqual({ _tag: "PUSH_BOOL", value: true })
+  })
+
   it("ISNUM/ISTEXT/ISERROR/ISBLANK predicates", () => {
     expect(Effect.runSync(evalProgram(compileInfixSync("=ISNUM(42)"))).stack[0]).toEqual(bool(true))
     expect(Effect.runSync(evalProgram(compileInfixSync('=ISTEXT("hello")'))).stack[0]).toEqual(bool(true))

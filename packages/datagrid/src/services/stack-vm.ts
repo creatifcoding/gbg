@@ -1528,7 +1528,54 @@ export const compileInfixSync = (rawExpr: string): StackIR => {
     pushOp(top)
   }
 
-  return output
+  return optimizeIR(output)
+}
+
+/**
+ * Peephole optimizer: constant folding for pure binary ops on adjacent PUSH_NUM pairs.
+ * Example: [PUSH_NUM(2), PUSH_NUM(3), ADD] → [PUSH_NUM(5)]
+ */
+const FOLDABLE = new Set(["ADD", "SUB", "MUL", "DIV", "MOD", "POWER", "EQ", "LT", "GT", "GTE", "LTE", "NEQ"])
+function optimizeIR(ir: StackIR): StackIR {
+  if (ir.length < 3) return ir
+  const out: Opcode[] = []
+  for (let i = 0; i < ir.length; i++) {
+    const op = ir[i]
+    // Constant folding: PUSH_NUM(a), PUSH_NUM(b), BinOp → PUSH_NUM(result)
+    if (FOLDABLE.has(op._tag) && out.length >= 2) {
+      const b = out[out.length - 1]
+      const a = out[out.length - 2]
+      if (a._tag === "PUSH_NUM" && b._tag === "PUSH_NUM") {
+        const va = (a as any).value as number
+        const vb = (b as any).value as number
+        let result: number | boolean | null = null
+        switch (op._tag) {
+          case "ADD": result = va + vb; break
+          case "SUB": result = va - vb; break
+          case "MUL": result = va * vb; break
+          case "DIV": if (vb !== 0) result = va / vb; break
+          case "MOD": if (vb !== 0) result = va % vb; break
+          case "POWER": result = va ** vb; break
+          case "EQ": result = va === vb; break
+          case "LT": result = va < vb; break
+          case "GT": result = va > vb; break
+          case "GTE": result = va >= vb; break
+          case "LTE": result = va <= vb; break
+          case "NEQ": result = va !== vb; break
+        }
+        if (result !== null) {
+          out.pop(); out.pop()
+          if (typeof result === "boolean") out.push(result ? _OP.PUSH_TRUE : _OP.PUSH_FALSE)
+          else out.push({ _tag: "PUSH_NUM", value: result })
+          continue
+        }
+      }
+    }
+    // Dead code: truncate after HALT
+    if (op._tag === "HALT") { out.push(op); break }
+    out.push(op)
+  }
+  return out
 }
 
 /**
