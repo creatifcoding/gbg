@@ -1704,6 +1704,14 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("ISPMT/DISC/INTRATE: bond and interest functions", () => {
+    // ISPMT(0.1, 1, 3, 8000000) = 8000000*0.1*(1/3-1) = -533333.33
+    const ip = (evalProgramDirect(compileInfixSync("=ROUND(ISPMT(0.1, 1, 3, 8000000), 0)")).stack[0] as any).value
+    expect(ip).toBeCloseTo(-533333, 0)
+    // INTRATE: invest 1000 on day 1, redeem 1050 on day 366 → ~5%/year
+    expect(evalProgramDirect(compileInfixSync("=ROUND(INTRATE(1, 366, 1000, 1050), 4)")).stack[0]).toEqual(num(0.05))
+  })
+
   it("SYD/EFFECT/NOMINAL: financial completions", () => {
     // SYD(10000, 1000, 5, 1): first year = 9000 * 5/15 = 3000
     expect(evalProgramDirect(compileInfixSync("=SYD(10000, 1000, 5, 1)")).stack[0]).toEqual(num(3000))
