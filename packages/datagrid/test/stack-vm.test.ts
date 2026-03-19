@@ -434,6 +434,30 @@ describe("StackVM correctness", () => {
       const s = await Effect.runPromise(evalExpr("true false"))
       expect(s.stack).toEqual([bool(true), bool(false)])
     })
+
+    it("compiles A1 cell references to READ_CELL", async () => {
+      const ir = await Effect.runPromise(compileExpr("A1 B1 +"))
+      expect(ir[0]).toEqual({ _tag: "READ_CELL", addr: "A1" })
+      expect(ir[1]).toEqual({ _tag: "READ_CELL", addr: "B1" })
+      expect(ir[2]).toEqual({ _tag: "ADD" })
+    })
+
+    it("handles complex A1 expression", async () => {
+      const ir = await Effect.runPromise(compileExpr("A1 B1 * C1 +"))
+      expect(ir).toHaveLength(5)
+      expect(ir[0]).toEqual({ _tag: "READ_CELL", addr: "A1" })
+      expect(ir[3]).toEqual({ _tag: "READ_CELL", addr: "C1" })
+    })
+
+    it("A1 expressions work with CellContext", () => {
+      const ctx = {
+        readCell: (addr: string) => addr === "A1" ? num(10) : addr === "B1" ? num(20) : num(0),
+        writeCell: () => {},
+      }
+      const ir = compileExprSync("A1 B1 +")
+      const state = Effect.runSync(evalProgram(ir, ctx))
+      expect(state.stack[0]).toEqual(num(30))
+    })
   })
 
   describe("trail", () => {

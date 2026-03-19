@@ -57,27 +57,31 @@ interface FormulaEntry {
 // ═══════════════════════════════════════════════════════
 
 /**
- * Evaluate a formula using READ_CELL opcodes and CellContext.
+ * Evaluate a formula using CellContext for READ_CELL resolution.
  *
- * The IR uses READ_CELL to resolve deps at eval time. CellContext
- * is wired from the sheet, so the VM reads live cell values.
+ * If the IR contains READ_CELL opcodes (from A1-aware compiler),
+ * they resolve directly via CellContext. Otherwise, deps are
+ * prepended as READ_CELL ops for backward compat.
  */
 function evalFormula(
   sheet: ReturnType<typeof makeSheet>,
   addr: string,
   entry: FormulaEntry,
 ): void {
-  // Build CellContext from sheet
-  const ctx = {
+  const ctx: CellContext = {
     readCell: (a: string) => sheet.getVM(a),
     writeCell: (a: string, v: VMValue) => sheet.set(a, vmToCell(v)),
   }
 
-  // Build IR: READ_CELL for each dep, then expression ops
-  const ir: StackIR = [
-    ...entry.deps.map((dep): StackIR[number] => ({ _tag: "READ_CELL", addr: dep })),
-    ...entry.ir,
-  ]
+  // If IR already has READ_CELL ops, use it directly.
+  // Otherwise prepend READ_CELL for each dep (legacy path).
+  const hasReadCell = entry.ir.some((op) => op._tag === "READ_CELL")
+  const ir: StackIR = hasReadCell
+    ? entry.ir
+    : [
+        ...entry.deps.map((dep): StackIR[number] => ({ _tag: "READ_CELL", addr: dep })),
+        ...entry.ir,
+      ]
 
   const state = Effect.runSync(evalProgram(ir, ctx))
   const result = state.stack[state.stack.length - 1] ?? num(0)
@@ -120,11 +124,10 @@ describe("VM Integration — full pipeline", () => {
     sheet.set("A1", CV.num(10))
     sheet.set("B1", CV.num(20))
 
-    // Register formula: C1 = deps[0] + deps[1] (ADD pops two, pushes sum)
-    // The deps are pushed first, then ADD operates on them
-    const ir = compileExprSync("+") // just the ADD opcode
+    // Register formula using A1 notation — compiler handles READ_CELL generation
+    const ir = compileExprSync("A1 B1 +")
     await Effect.runPromise(graph.registerFormula("C1", "=A1+B1", ["A1", "B1"]))
-    formulas.set("C1", { src: "=A1+B1", deps: ["A1", "B1"], ir })
+    formulas.set("C1", { src: "A1 B1 +", deps: ["A1", "B1"], ir })
 
     // Initial eval
     recalc(sheet, graph, formulas, ["A1", "B1"])

@@ -35,16 +35,15 @@
 
 ## 🔜 NEXT — Production Wiring
 
-### READ_CELL opcode (extends VM with cell context)
-- New opcode: `READ_CELL { addr: string }` — reads cell value into stack
-- Requires `CellContext` service (Effect DI) providing `getCell(addr) → VMValue`
-- Enables formulas to reference cells at eval time, not just at compile time
-- Test: `PUSH_STR "A1" READ_CELL` reads A1's value onto stack
+### ✅ READ_CELL + WRITE_CELL + barrel export (DONE)
+- READ_CELL/WRITE_CELL opcodes with CellContext injection
+- Full barrel export in index.ts
+- Error propagation through cell refs proven (DIV/0 → chain → Error)
 
 ### Replace formula-engine.ts
-- Wire DepGraph into FormulaEngine or replace the service
+- Wire DepGraph + StackVM into FormulaEngine or create FormulaEngineV2
 - FormulaConsistency should use StackVM for recalc instead of raw compute callbacks
-- Public barrel export from index.ts
+- Potentially deprecate old FormulaEngine in favor of StackVM + DepGraph combo
 
 ### TxHashMap cell state (production)
 - Replace Map<string, CellValue> with TxHashMap inside Effect.transaction

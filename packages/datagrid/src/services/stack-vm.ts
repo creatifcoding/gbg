@@ -662,11 +662,56 @@ export const runEffect = (
 // COMPILER (Shunting-Yard, string → StackIR)
 // ═══════════════════════════════════════════════════════
 
+/** A1 notation pattern: one or more uppercase letters followed by one or more digits */
+const A1_PATTERN = /^[A-Z]+\d+$/
+
+/**
+ * Classify a token for compilation.
+ *
+ * Order of precedence:
+ * 1. Numeric literal → PUSH_NUM
+ * 2. Keyword (operator, stack op, bool) → corresponding opcode
+ * 3. A1 cell reference → READ_CELL
+ * 4. Unknown → CompileError
+ */
+function classifyToken(tok: string): Opcode | null {
+  // 1. Numeric literal
+  const n = Number(tok)
+  if (!Number.isNaN(n)) return { _tag: "PUSH_NUM", value: n }
+
+  // 2. Keywords
+  switch (tok) {
+    case "+": return { _tag: "ADD" }
+    case "-": return { _tag: "SUB" }
+    case "*": return { _tag: "MUL" }
+    case "/": return { _tag: "DIV" }
+    case "DUP": return { _tag: "DUP" }
+    case "SWAP": return { _tag: "SWAP" }
+    case "DROP": return { _tag: "DROP" }
+    case "NEG": return { _tag: "NEG" }
+    case "HALT": return { _tag: "HALT" }
+    case "true": return { _tag: "PUSH_BOOL", value: true }
+    case "false": return { _tag: "PUSH_BOOL", value: false }
+  }
+
+  // 3. A1 cell reference
+  if (A1_PATTERN.test(tok)) return { _tag: "READ_CELL", addr: tok }
+
+  // 4. Unknown
+  return null
+}
+
 /**
  * Compile RPN expression string to StackIR.
  *
+ * Supports:
+ * - Numeric literals: `3`, `3.14`, `-1`
+ * - Operators: `+`, `-`, `*`, `/`
+ * - Stack ops: `DUP`, `SWAP`, `DROP`, `NEG`, `HALT`
+ * - Booleans: `true`, `false`
+ * - Cell references: `A1`, `B2`, `AA100` (compiled to READ_CELL)
+ *
  * Fails with CompileError (Effect E channel) on invalid tokens.
- * This is a recoverable error — the user should fix the expression.
  */
 export const compileExpr = (expr: string): Effect.Effect<StackIR, CompileError> => {
   const tokens = expr.trim().split(/\s+/)
@@ -676,31 +721,16 @@ export const compileExpr = (expr: string): Effect.Effect<StackIR, CompileError> 
     const tok = tokens[i]
     if (tok === "") continue
 
-    const n = Number(tok)
-    if (!Number.isNaN(n)) {
-      ops.push({ _tag: "PUSH_NUM", value: n })
-      continue
-    }
-
-    switch (tok) {
-      case "+": ops.push({ _tag: "ADD" }); break
-      case "-": ops.push({ _tag: "SUB" }); break
-      case "*": ops.push({ _tag: "MUL" }); break
-      case "/": ops.push({ _tag: "DIV" }); break
-      case "DUP": ops.push({ _tag: "DUP" }); break
-      case "SWAP": ops.push({ _tag: "SWAP" }); break
-      case "DROP": ops.push({ _tag: "DROP" }); break
-      case "NEG": ops.push({ _tag: "NEG" }); break
-      case "HALT": ops.push({ _tag: "HALT" }); break
-      case "true": ops.push({ _tag: "PUSH_BOOL", value: true }); break
-      case "false": ops.push({ _tag: "PUSH_BOOL", value: false }); break
-      default:
-        return Effect.fail(new CompileError({
-          expr,
-          token: tok,
-          position: i,
-          reason: `Unknown token: "${tok}"`,
-        }))
+    const op = classifyToken(tok)
+    if (op) {
+      ops.push(op)
+    } else {
+      return Effect.fail(new CompileError({
+        expr,
+        token: tok,
+        position: i,
+        reason: `Unknown token: "${tok}"`,
+      }))
     }
   }
 
@@ -718,22 +748,12 @@ export const compileExprSync = (expr: string): StackIR => {
   for (let i = 0; i < tokens.length; i++) {
     const tok = tokens[i]
     if (tok === "") continue
-    const n = Number(tok)
-    if (!Number.isNaN(n)) { ops.push({ _tag: "PUSH_NUM", value: n }); continue }
-    switch (tok) {
-      case "+": ops.push({ _tag: "ADD" }); break
-      case "-": ops.push({ _tag: "SUB" }); break
-      case "*": ops.push({ _tag: "MUL" }); break
-      case "/": ops.push({ _tag: "DIV" }); break
-      case "DUP": ops.push({ _tag: "DUP" }); break
-      case "SWAP": ops.push({ _tag: "SWAP" }); break
-      case "DROP": ops.push({ _tag: "DROP" }); break
-      case "NEG": ops.push({ _tag: "NEG" }); break
-      case "HALT": ops.push({ _tag: "HALT" }); break
-      case "true": ops.push({ _tag: "PUSH_BOOL", value: true }); break
-      case "false": ops.push({ _tag: "PUSH_BOOL", value: false }); break
-      default:
-        throw new CompileError({ expr, token: tok, position: i, reason: `Unknown token: "${tok}"` })
+
+    const op = classifyToken(tok)
+    if (op) {
+      ops.push(op)
+    } else {
+      throw new CompileError({ expr, token: tok, position: i, reason: `Unknown token: "${tok}"` })
     }
   }
   return ops
