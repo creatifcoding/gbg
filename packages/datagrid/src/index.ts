@@ -104,6 +104,7 @@ export {
   // Execution
   execOpcode, runIR, runEffect,
   evalProgram, evalExpr, compileExpr, compileExprSync,
+  extractDeps, extractDepsFromIR,
   type EvalInput, dualEval,
   // Service
   StackVM, StackVMLive, type StackVMConfig,

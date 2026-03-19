@@ -760,6 +760,51 @@ export const compileExprSync = (expr: string): StackIR => {
 }
 
 // ═══════════════════════════════════════════════════════
+// DEPENDENCY EXTRACTION
+// ═══════════════════════════════════════════════════════
+
+/**
+ * Extract cell dependencies from an RPN expression string.
+ *
+ * Scans tokens for A1-notation cell references.
+ * Used by DepGraph to register formula dependencies.
+ *
+ * ```ts
+ * extractDeps("A1 B1 + C1 *") // → ["A1", "B1", "C1"]
+ * extractDeps("3 4 +")         // → []
+ * ```
+ */
+export const extractDeps = (expr: string): ReadonlyArray<string> => {
+  const tokens = expr.trim().split(/\s+/)
+  const deps: string[] = []
+  const seen = new Set<string>()
+  for (const tok of tokens) {
+    if (A1_PATTERN.test(tok) && !seen.has(tok)) {
+      deps.push(tok)
+      seen.add(tok)
+    }
+  }
+  return deps
+}
+
+/**
+ * Extract cell dependencies from compiled StackIR.
+ *
+ * Scans opcodes for READ_CELL operations.
+ */
+export const extractDepsFromIR = (ir: StackIR): ReadonlyArray<string> => {
+  const deps: string[] = []
+  const seen = new Set<string>()
+  for (const op of ir) {
+    if (op._tag === "READ_CELL" && !seen.has(op.addr)) {
+      deps.push(op.addr)
+      seen.add(op.addr)
+    }
+  }
+  return deps
+}
+
+// ═══════════════════════════════════════════════════════
 // DUAL EVAL
 // ═══════════════════════════════════════════════════════
 

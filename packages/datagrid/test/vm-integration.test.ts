@@ -14,7 +14,7 @@
 import { describe, it, expect } from "vitest"
 import * as Effect from "effect-v4/Effect"
 
-import { num, str, bool, vmError, isVMError, evalProgram, compileExprSync, type StackIR, type VMValue, type VMState, type CellContext } from "../src/services/stack-vm"
+import { num, str, bool, vmError, isVMError, evalProgram, compileExprSync, extractDeps, type StackIR, type VMValue, type VMState, type CellContext } from "../src/services/stack-vm"
 import { cellToVM, vmToCell } from "../src/services/vm-cell-bridge"
 import { makeDepGraph, CircularDepError } from "../src/services/dep-graph"
 import * as CV from "../src/schemas/cell-value"
@@ -277,6 +277,43 @@ describe("VM Integration — full pipeline", () => {
     recalc(sheet, graph, formulas, ["A1", "C1"])
 
     expect(sheet.get("D1")).toEqual(CV.num(42)) // 10 + 2 + 30
+  })
+
+  it("end-to-end: A1 compile + extractDeps + DepGraph + eval", async () => {
+    const sheet = makeSheet()
+    const graph = makeDepGraph()
+    const formulas = new Map<string, FormulaEntry>()
+
+    sheet.set("A1", CV.num(5))
+    sheet.set("B1", CV.num(7))
+
+    // Compile from A1 expression — compiler handles everything
+    const expr1 = "A1 B1 +"
+    const ir1 = compileExprSync(expr1)
+    const deps1 = extractDeps(expr1) // → ["A1", "B1"]
+
+    // Register with auto-extracted deps
+    await Effect.runPromise(graph.registerFormula("C1", expr1, deps1))
+    formulas.set("C1", { src: expr1, deps: deps1, ir: ir1 })
+
+    // Chain: D1 = C1 * 2
+    const expr2 = "C1 2 *"
+    const ir2 = compileExprSync(expr2)
+    const deps2 = extractDeps(expr2) // → ["C1"]
+    await Effect.runPromise(graph.registerFormula("D1", expr2, deps2))
+    formulas.set("D1", { src: expr2, deps: deps2, ir: ir2 })
+
+    recalc(sheet, graph, formulas, ["A1", "B1"])
+
+    expect(sheet.get("C1")).toEqual(CV.num(12))  // 5 + 7
+    expect(sheet.get("D1")).toEqual(CV.num(24))  // 12 * 2
+
+    // Modify A1 → cascading recalc
+    sheet.set("A1", CV.num(100))
+    recalc(sheet, graph, formulas, ["A1"])
+
+    expect(sheet.get("C1")).toEqual(CV.num(107)) // 100 + 7
+    expect(sheet.get("D1")).toEqual(CV.num(214)) // 107 * 2
   })
 
   it("unregister removes formula from recalc", async () => {

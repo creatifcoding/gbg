@@ -28,6 +28,8 @@ import {
   // VM core
   evalProgram, evalExpr, compileExpr, compileExprSync,
   execOpcode, emptyState, MAX_EVAL_STEPS,
+  // Dependency extraction
+  extractDeps, extractDepsFromIR,
   // Service
   StackVM, StackVMLive,
   // Types
@@ -662,6 +664,38 @@ describe("cell I/O opcodes", () => {
       // B1 is an error → ADD propagates it
       expect(state.stack[0]._tag).toBe("error")
     })
+  })
+})
+
+// ═══════════════════════════════════════════════════════
+// DEPENDENCY EXTRACTION
+// ═══════════════════════════════════════════════════════
+
+describe("dependency extraction", () => {
+  it("extractDeps finds A1 references", () => {
+    expect(extractDeps("A1 B1 + C1 *")).toEqual(["A1", "B1", "C1"])
+  })
+
+  it("extractDeps returns empty for no refs", () => {
+    expect(extractDeps("3 4 +")).toEqual([])
+  })
+
+  it("extractDeps deduplicates", () => {
+    expect(extractDeps("A1 A1 +")).toEqual(["A1"])
+  })
+
+  it("extractDepsFromIR finds READ_CELL ops", () => {
+    const ir = compileExprSync("A1 B1 + C1 *")
+    expect(extractDepsFromIR(ir)).toEqual(["A1", "B1", "C1"])
+  })
+
+  it("extractDepsFromIR handles mixed IR", () => {
+    const ir: StackIR = [
+      { _tag: "PUSH_NUM", value: 1 },
+      { _tag: "READ_CELL", addr: "A1" },
+      { _tag: "ADD" },
+    ]
+    expect(extractDepsFromIR(ir)).toEqual(["A1"])
   })
 })
 
