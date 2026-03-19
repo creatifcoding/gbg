@@ -1704,6 +1704,14 @@ describe("infix parser", () => {
     expect(evalProgramDirect(compileInfixSync('=CLEAN("abc")')).stack[0]).toEqual(str("abc"))
   })
 
+  it("CELL/ROWS/SEQUENCE: info and dynamic array functions", () => {
+    // CELL: numeric value → "v"
+    expect(evalProgramDirect(compileInfixSync("=CELL(42)")).stack[0]).toEqual(str("v"))
+    expect(evalProgramDirect(compileInfixSync('=CELL("hello")')).stack[0]).toEqual(str("l"))
+    // ROWS: count of provided values
+    expect(evalProgramDirect(compileInfixSync("=ROWS(1, 2, 3, 4, 5)")).stack[0]).toEqual(num(5))
+  })
+
   it("XMATCH/CEILING.PRECISE/FLOOR.PRECISE: modern Excel functions", () => {
     // XMATCH: exact match → position 3
     expect(evalProgramDirect(compileInfixSync("=XMATCH(30, 10, 20, 30, 40)")).stack[0]).toEqual(num(3))
