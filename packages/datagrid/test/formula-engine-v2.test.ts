@@ -270,6 +270,135 @@ describe("FormulaEngineV2", () => {
   })
 
   // ═══════════════════════════════════════════════════════
+  // RE-REGISTRATION (formula update)
+  // ═══════════════════════════════════════════════════════
+
+  describe("re-registration", () => {
+    it("updating a formula changes its expression", async () => {
+      const store = makeStore({ A1: CV.num(10), B1: CV.num(5) })
+
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.register("C1", "A1 B1 +")
+        yield* e.recalcDirty(["A1"])
+        expect(store.get("C1")).toEqual(CV.num(15)) // 10 + 5
+
+        // Re-register with new expression
+        yield* e.unregister("C1")
+        yield* e.register("C1", "A1 B1 *")
+        yield* e.recalcDirty(["A1"])
+        expect(store.get("C1")).toEqual(CV.num(50)) // 10 * 5
+      }))
+    })
+
+    it("re-registering updates deps correctly", async () => {
+      const store = makeStore({ A1: CV.num(10), B1: CV.num(5), C1: CV.num(3) })
+
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        yield* e.register("D1", "A1 B1 +")
+        expect(e.dependenciesOf("D1")).toEqual(["A1", "B1"])
+
+        // Re-register with different deps
+        yield* e.unregister("D1")
+        yield* e.register("D1", "A1 C1 *")
+        expect(e.dependenciesOf("D1")).toEqual(["A1", "C1"])
+
+        // B1 change should NOT affect D1 anymore
+        store.set("B1", CV.num(999))
+        const r = yield* e.recalcDirty(["B1"])
+        expect(r.recalculated).toHaveLength(0)
+      }))
+    })
+  })
+
+  // ═══════════════════════════════════════════════════════
+  // BULK OPERATIONS
+  // ═══════════════════════════════════════════════════════
+
+  describe("bulk operations", () => {
+    it("handles many dirty cells efficiently", async () => {
+      const initial: Record<string, CellValue> = {}
+      for (let i = 0; i < 100; i++) {
+        initial[`A${i + 1}`] = CV.num(i)
+      }
+      const store = makeStore(initial)
+
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        // Register 50 formulas: B_i = A_i * 2
+        for (let i = 0; i < 50; i++) {
+          yield* e.register(`B${i + 1}`, `A${i + 1} 2 *`)
+        }
+
+        // Change all A cells → recalc all B formulas
+        const dirty = Array.from({ length: 50 }, (_, i) => `A${i + 1}`)
+        const r = yield* e.recalcDirty(dirty)
+        expect(r.recalculated).toHaveLength(50)
+        expect(r.durationMs).toBeLessThan(100) // should be fast
+
+        // Spot check
+        expect(store.get("B1")).toEqual(CV.num(0))   // 0 * 2
+        expect(store.get("B10")).toEqual(CV.num(18))  // 9 * 2
+        expect(store.get("B50")).toEqual(CV.num(98))  // 49 * 2
+      }))
+    })
+
+    it("chain of 20 formulas cascades correctly", async () => {
+      const store = makeStore({ A1: CV.num(1) })
+
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        // Chain: B1=A1+1, C1=B1+1, D1=C1+1, ..., T1=S1+1
+        const letters = "BCDEFGHIJKLMNOPQRST".split("")
+        let prev = "A1"
+        for (const letter of letters) {
+          const addr = `${letter}1`
+          yield* e.register(addr, `${prev} 1 +`)
+          prev = addr
+        }
+
+        yield* e.recalcDirty(["A1"])
+
+        // A1=1, B1=2, C1=3, ..., T1=20
+        expect(store.get("B1")).toEqual(CV.num(2))
+        expect(store.get("T1")).toEqual(CV.num(20))
+
+        // Change A1 → full cascade
+        store.set("A1", CV.num(100))
+        yield* e.recalcDirty(["A1"])
+        expect(store.get("T1")).toEqual(CV.num(119)) // 100 + 19
+      }))
+    })
+  })
+
+  // ═══════════════════════════════════════════════════════
+  // PERFORMANCE
+  // ═══════════════════════════════════════════════════════
+
+  describe("performance", () => {
+    it("1000 independent formulas recalc within 50ms", async () => {
+      const initial: Record<string, CellValue> = {}
+      for (let i = 0; i < 1000; i++) {
+        initial[`A${i + 1}`] = CV.num(i)
+      }
+      const store = makeStore(initial)
+
+      await run(store, Effect.gen(function*() {
+        const e = yield* FormulaEngineV2
+        for (let i = 0; i < 1000; i++) {
+          yield* e.register(`B${i + 1}`, `A${i + 1} 2 *`)
+        }
+
+        const dirty = Array.from({ length: 1000 }, (_, i) => `A${i + 1}`)
+        const r = yield* e.recalcDirty(dirty)
+        expect(r.recalculated).toHaveLength(1000)
+        expect(r.durationMs).toBeLessThan(50)
+      }))
+    })
+  })
+
+  // ═══════════════════════════════════════════════════════
   // CONDITIONAL FORMULAS
   // ═══════════════════════════════════════════════════════
 
