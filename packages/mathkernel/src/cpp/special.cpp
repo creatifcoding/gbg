@@ -2505,6 +2505,88 @@ double acosh_fn(double x) {
  * Newton iteration: w_{n+1} = w_n - (w_n + ln(w_n) - z)/(1 + 1/w_n).
  * Seed: w_0 = e^{z-1} for large z, z for z near 0.
  */
+/**
+ * Kelvin ber(x) = Re(J₀(x·√(-i))) = Re(J₀(x·e^{-iπ/4})).
+ * Series: ber(x) = Σ (-1)^k (x/2)^{4k} / ((2k)!)².
+ */
+double kelvin_ber(double x) {
+  double sum = 1.0;
+  double x4 = x * x * x * x / 16.0; // (x/2)^4
+  double term = 1.0;
+  for (int k = 1; k <= 50; ++k) {
+    double fac = (2.0*k) * (2.0*k-1);
+    term *= -x4 / (fac * fac / ((2.0*k-2) * (2.0*k-3)));
+    // Simpler: direct computation
+    double kk = static_cast<double>(k);
+    double sign = (k % 2 == 0) ? 1.0 : -1.0;
+    double p = std::pow(x / 2.0, 4.0 * kk);
+    double fac2k = 1.0;
+    for (int j = 1; j <= 2*k; ++j) fac2k *= j;
+    double val = sign * p / (fac2k * fac2k);
+    sum += val;
+    if (std::abs(val) < 1e-17 * std::abs(sum) && k > 3) break;
+  }
+  return sum;
+}
+
+/**
+ * Kelvin bei(x) = Im(J₀(x·√(-i))).
+ * Series: bei(x) = Σ (-1)^k (x/2)^{4k+2} / ((2k+1)!)².
+ */
+double kelvin_bei(double x) {
+  double sum = 0.0;
+  for (int k = 0; k <= 50; ++k) {
+    double kk = static_cast<double>(k);
+    double sign = (k % 2 == 0) ? 1.0 : -1.0;
+    double p = std::pow(x / 2.0, 4.0 * kk + 2.0);
+    double fac2k1 = 1.0;
+    for (int j = 1; j <= 2*k+1; ++j) fac2k1 *= j;
+    double val = sign * p / (fac2k1 * fac2k1);
+    sum += val;
+    if (k > 3 && std::abs(val) < 1e-17 * std::abs(sum)) break;
+  }
+  return sum;
+}
+
+/**
+ * Debye function D₅(x) = (5/x⁵)∫₀ˣ t⁵/(eᵗ-1) dt.
+ */
+double debye5(double x) {
+  if (x == 0) return 1.0;
+  if (std::abs(x) < 1e-6) return 1.0 - 5.0*x/12.0;
+  int N = 1000;
+  double h = x / N;
+  double sum = 0.0;
+  for (int i = 1; i < N; ++i) {
+    double t = i * h;
+    double f = std::pow(t, 5.0) / (std::exp(t) - 1.0);
+    sum += f * ((i % 2 == 0) ? 2.0 : 4.0);
+  }
+  sum += std::pow(x, 5.0) / (std::exp(x) - 1.0);
+  return sum * h / (3.0 * std::pow(x, 5.0) / 5.0);
+}
+
+/**
+ * Langevin function L(x) = coth(x) - 1/x.
+ * Important in magnetism and polymer physics.
+ */
+double langevin(double x) {
+  if (std::abs(x) < 1e-8) return x / 3.0; // Taylor: x/3 - x³/45 + ...
+  return 1.0 / std::tanh(x) - 1.0 / x;
+}
+
+/**
+ * Inverse Langevin function approximation (Padé).
+ * L⁻¹(y) ≈ y(3-y²)/(1-y²) for y ∈ [0,1).
+ */
+double inv_langevin(double y) {
+  if (std::abs(y) < 1e-10) return 3.0 * y;
+  if (std::abs(y) >= 1.0) return INFINITY;
+  // Cohen 1991 Padé [3,2]: L⁻¹(y) ≈ y(3-y²)/(1-y²)
+  double y2 = y * y;
+  return y * (3.0 - y2) / (1.0 - y2);
+}
+
 double wright_omega(double z) {
   if (std::isnan(z)) return NAN;
   // Seed from Lambert W relationship: W(z) = W₀(eᶻ) (principal branch)
@@ -2642,6 +2724,11 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("asinh_fn", &mathkernel::asinh_fn);
   function("acosh_fn", &mathkernel::acosh_fn);
   function("wright_omega", &mathkernel::wright_omega);
+  function("kelvin_ber", &mathkernel::kelvin_ber);
+  function("kelvin_bei", &mathkernel::kelvin_bei);
+  function("debye5", &mathkernel::debye5);
+  function("langevin", &mathkernel::langevin);
+  function("inv_langevin", &mathkernel::inv_langevin);
 }
 
 #endif

@@ -552,6 +552,30 @@ const REFERENCES: RefEntry[] = [
   { fn: "acosh_fn", args: [1],         expected: 0.0,              source: "acosh(1)=0" },
   { fn: "acosh_fn", args: [10],        expected: 2.993222846126381,  source: "std::acosh" },
 
+  // ── Kelvin ber ──
+  { fn: "kelvin_ber", args: [0],       expected: 1.0,              source: "ber(0)=1" },
+  { fn: "kelvin_ber", args: [1],       expected: 0.98438178121308695, source: "Series" },
+  { fn: "kelvin_ber", args: [2],       expected: 0.7517341827138083, source: "Series" },
+
+  // ── Kelvin bei ──
+  { fn: "kelvin_bei", args: [0],       expected: 0.0,              source: "bei(0)=0" },
+  { fn: "kelvin_bei", args: [1],       expected: 0.24956604003665972, source: "Series" },
+  { fn: "kelvin_bei", args: [2],       expected: 0.9722916273066612, source: "Series" },
+
+  // ── Debye D₅ ──
+  { fn: "debye5", args: [0],           expected: 1.0,              source: "D₅(0)=1" },
+  { fn: "debye5", args: [1],           expected: 0.6421002580218781, source: "Simpson 1000pt" },
+
+  // ── Langevin ──
+  { fn: "langevin", args: [1],         expected: 0.31303528549933146, source: "coth(1)-1" },
+  { fn: "langevin", args: [0],         expected: 0.0,              source: "L(0)=0" },
+  { fn: "langevin", args: [5],         expected: 0.8000908039820194, source: "coth(5)-1/5" },
+
+  // ── Inverse Langevin (Padé) ──
+  { fn: "inv_langevin", args: [0],     expected: 0.0,              source: "L⁻¹(0)=0" },
+  { fn: "inv_langevin", args: [0.5],   expected: 1.8333333333333333, source: "Padé" },
+  { fn: "inv_langevin", args: [0.9],   expected: 10.373684210526319, source: "Padé" },
+
   // ── 🏆 100th Function: Wright Omega ──
   { fn: "wright_omega", args: [0],     expected: 0.5671432904097838, source: "W₀(1)" },
   { fn: "wright_omega", args: [1],     expected: 1.0,              source: "1+ln(1)=1" },
