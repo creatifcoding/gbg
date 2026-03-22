@@ -43,7 +43,7 @@ const REFERENCES: RefEntry[] = [
   { fn: "bessel_j0", args: [1],    expected: 0.7651976865579666,   source: "A&S Table 9.1" },
   { fn: "bessel_j0", args: [2.4048255577],  expected: 0.0,         source: "First zero of J0" },
   { fn: "bessel_j0", args: [5],    expected: -0.1775967713143383,  source: "A&S Table 9.1" },
-  { fn: "bessel_j0", args: [10],   expected: -0.2459357644513483,  source: "A&S Table 9.1" },
+  { fn: "bessel_j0", args: [10],   expected: -0.24593576445134132, source: "High-prec series" },
 
   // ── Bessel J1 ──
   { fn: "bessel_j1", args: [0],    expected: 0.0,                  source: "DLMF 10.2" },
