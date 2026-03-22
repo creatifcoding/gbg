@@ -1,0 +1,75 @@
+{
+  "kind": "toc-cycle1-baseline",
+  "capturedAt": "2026-02-25T12:42:27.286Z",
+  "config": {
+    "url": "http://localhost:1420/window?testbed=floating",
+    "warmupMs": 1000,
+    "sampleMs": 5000,
+    "replicates": 1,
+    "runtime": "bun",
+    "browser": "playwright/chromium"
+  },
+  "summary": {
+    "p50": 16.69999999999891,
+    "p95": 50,
+    "p99": 83.20000000000073,
+    "mean": 20.226706231454006,
+    "samples": 337
+  },
+  "replicates": [
+    {
+      "replicate": 1,
+      "frameStats": {
+        "p50": 16.69999999999891,
+        "p95": 50,
+        "p99": 83.20000000000073,
+        "mean": 20.226706231454006,
+        "samples": 337
+      },
+      "latencies": [
+        {
+          "name": "spawn-chat",
+          "ms": 159.67393600000014,
+          "ok": true,
+          "detail": "__PANEL_TEST__.spawnTiledChat"
+        },
+        {
+          "name": "split-hotkey",
+          "ms": 187.24477900000056,
+          "ok": true,
+          "detail": "__PANEL_TEST__.splitHorizontal · tiled 1 -> increased"
+        },
+        {
+          "name": "drag-panel",
+          "ms": 1131.6074050000007,
+          "ok": true,
+          "detail": "panel moved"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 1889.3467710000004,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for first assistant activity :: {\"connection\":[\"Connected\",\"Connected\"],\"statusRows\":[],\"bodyHints\":[\"CONNECTED\",\"CONNECTED\"]}"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 5307.607787000001,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for assistant shell growth :: {\"connection\":[\"Connected\",\"Connected\"],\"statusRows\":[],\"bodyHints\":[\"CONNECTED\",\"CONNECTED\"]}"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 5307.607787000001,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for assistant shell growth :: {\"connection\":[\"Connected\",\"Connected\"],\"statusRows\":[],\"bodyHints\":[\"CONNECTED\",\"CONNECTED\"]}"
+        }
+      ],
+      "notes": [
+        "prompt-1 first activity timed out",
+        "prompt-1 full response timed out"
+      ],
+      "frameDeltaCount": 337
+    }
+  ],
+  "consoleErrors": []
+}

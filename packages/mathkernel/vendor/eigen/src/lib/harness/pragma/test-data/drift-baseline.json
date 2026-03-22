@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "created_at": "2026-03-01T20:40:00Z",
+  "corpus_version": "1.0.0",
+  "num_entries": 0,
+  "alert_threshold": 0.85,
+  "embeddings": [],
+  "_note": "Populated by running pragma-golden-gen.py with provisioned models. Empty until models are provisioned."
+}

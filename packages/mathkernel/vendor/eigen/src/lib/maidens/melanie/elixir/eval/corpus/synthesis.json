@@ -1,0 +1,137 @@
+[
+  {
+    "id": "sy-001",
+    "query": "Give me a summary of all the Jido architecture research from this week",
+    "gold": {
+      "tool_sequence": ["semantic_search", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:Jido"]},
+      "should_not_call": ["find_connections"]
+    }
+  },
+  {
+    "id": "sy-002",
+    "query": "Summarize what we've learned about Maiden domain contracts",
+    "gold": {
+      "tool_sequence": ["semantic_search", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:Maiden"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "sy-003",
+    "query": "What's the executive summary of the OAuth integration work?",
+    "gold": {
+      "tool_sequence": ["semantic_search", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:OAuth"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "sy-004",
+    "query": "Brief me on everything related to the alarm system",
+    "gold": {
+      "tool_sequence": ["semantic_search", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:alarm"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "sy-005",
+    "query": "Create a bullet-point overview of the research directives",
+    "gold": {
+      "tool_sequence": ["semantic_search", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:research directive"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "sy-006",
+    "query": "What progress has been made on BDI agent architecture? Summarize it.",
+    "gold": {
+      "tool_sequence": ["semantic_search", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:BDI"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "sy-007",
+    "query": "Compile everything about the order domain and give me the highlights",
+    "gold": {
+      "tool_sequence": ["semantic_search", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:order"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "sy-008",
+    "query": "What are the key decisions made about the Melanie agent? Brief format.",
+    "gold": {
+      "tool_sequence": ["semantic_search", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:Melanie"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "sy-009",
+    "query": "Summarize the AVA projection system status",
+    "gold": {
+      "tool_sequence": ["semantic_search", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:AVA"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "sy-010",
+    "query": "Give me a detailed analysis of the tool adapter research",
+    "gold": {
+      "tool_sequence": ["semantic_search", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:tool adapter"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "sy-011",
+    "query": "What's the state of the enterprise runtime? Narrative form.",
+    "gold": {
+      "tool_sequence": ["semantic_search", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:enterprise"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "sy-012",
+    "query": "Summarize all Jido sensor and signal patterns we've documented",
+    "gold": {
+      "tool_sequence": ["semantic_search", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:sensor"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "sy-013",
+    "query": "Give me the week in review for the Maidens project",
+    "gold": {
+      "tool_sequence": ["semantic_search", "summarize"],
+      "param_shapes": {},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "sy-014",
+    "query": "What do we know about NimbleOptions schemas in Jido? Quick overview.",
+    "gold": {
+      "tool_sequence": ["semantic_search", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:NimbleOptions"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "sy-015",
+    "query": "Compile the key learnings from the ReAct strategy integration",
+    "gold": {
+      "tool_sequence": ["semantic_search", "summarize"],
+      "param_shapes": {"semantic_search": ["contains_keyword:ReAct"]},
+      "should_not_call": []
+    }
+  }
+]

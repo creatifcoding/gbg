@@ -1,0 +1,153 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: cosmorouters.tmnl.gbg.dev
+spec:
+  group: tmnl.gbg.dev
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              required: [executionConfig]
+              properties:
+                executionConfig:
+                  type: object
+                  properties:
+                    configMapRef:
+                      type: object
+                      required: [name]
+                      properties:
+                        name:
+                          type: string
+                        key:
+                          type: string
+                          default: router.json
+                    inline:
+                      type: string
+                config:
+                  type: object
+                  properties:
+                    devMode:
+                      type: boolean
+                      default: false
+                    listenAddr:
+                      type: string
+                      default: "0.0.0.0:3002"
+                    graphqlPath:
+                      type: string
+                      default: "/graphql"
+                    playgroundEnabled:
+                      type: boolean
+                      default: true
+                    introspectionEnabled:
+                      type: boolean
+                      default: true
+                replicas:
+                  type: integer
+                  minimum: 1
+                  default: 1
+                image:
+                  type: object
+                  properties:
+                    repository:
+                      type: string
+                      default: ghcr.io/wundergraph/cosmo/router
+                    tag:
+                      type: string
+                      default: latest
+                    pullPolicy:
+                      type: string
+                      enum: [Always, IfNotPresent, Never]
+                      default: IfNotPresent
+                resources:
+                  type: object
+                  properties:
+                    requests:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+                    limits:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                        memory:
+                          type: string
+                service:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      enum: [ClusterIP, NodePort, LoadBalancer]
+                      default: ClusterIP
+                    port:
+                      type: integer
+                      default: 3002
+                subgraphs:
+                  type: array
+                  items:
+                    type: object
+                    required: [name]
+                    properties:
+                      name:
+                        type: string
+                      ref:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+            status:
+              type: object
+              properties:
+                phase:
+                  type: string
+                  enum: [Pending, Composing, Running, Failed]
+                observedGeneration:
+                  type: integer
+                subgraphCount:
+                  type: integer
+                compositionHash:
+                  type: string
+                conditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                      reason:
+                        type: string
+                      message:
+                        type: string
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: Subgraphs
+          type: integer
+          jsonPath: .status.subgraphCount
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+  scope: Namespaced
+  names:
+    plural: cosmorouters
+    singular: cosmorouter
+    kind: CosmoRouter
+    shortNames: [cr, router]

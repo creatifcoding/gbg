@@ -1,0 +1,2043 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+4. Repository files, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: src/**/*
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+<additional_info>
+
+</additional_info>
+
+</file_summary>
+
+<directory_structure>
+src/
+  .github/
+    workflows/
+      release.yml
+  browser.test.ts
+  browser.ts
+  createInspector.test.ts
+  createInspector.ts
+  createSkyInspector.ts
+  idleCallback.ts
+  index.ts
+  types.ts
+  useless.ts
+  utils.ts
+  webSocket.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="src/.github/workflows/release.yml">
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+
+      - name: Install Dependencies
+        run: yarn
+
+      - name: Create Release Pull Request
+        uses: changesets/action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+</file>
+
+<file path="src/browser.test.ts">
+import { expect, test } from 'vitest';
+import { createActor, createMachine } from 'xstate';
+import { createBrowserInspector } from './';
+import { StatelyActorEvent } from './types';
+import { JSDOM } from 'jsdom';
+
+test('inspector observes a state machine', async () => {
+  const dom = new JSDOM();
+
+  const events: StatelyActorEvent[] = [];
+
+  const trafficLightMachine = createMachine({
+    id: 'trafficLight',
+    initial: 'green',
+    states: {
+      green: {
+        after: {
+          10: 'yellow',
+        },
+      },
+      yellow: {
+        after: {
+          10: 'red',
+        },
+      },
+      red: {},
+    },
+  });
+
+  const inspector = createBrowserInspector({
+    window: dom.window as any as Window,
+  });
+  inspector.adapter.targetWindow = new JSDOM().window as any;
+
+  inspector.adapter.targetWindow!.addEventListener('message', (event) => {
+    events.push(event.data);
+  });
+
+  const trafficLightActor = createActor(trafficLightMachine, {
+    inspect: inspector.inspect,
+  });
+  trafficLightActor.start();
+
+  // simulate getting an event from the inspector
+  dom.window.postMessage(
+    {
+      type: '@statelyai.connected',
+    },
+    '*'
+  );
+
+  await new Promise<void>((res) => {
+    setTimeout(res, 30);
+  });
+
+  expect(events.map((ev) => ev.type)).toMatchInlineSnapshot(`
+    [
+      "@xstate.actor",
+      "@xstate.event",
+      "@xstate.snapshot",
+      "@xstate.event",
+      "@xstate.snapshot",
+      "@xstate.event",
+      "@xstate.snapshot",
+    ]
+  `);
+});
+
+test('inspector works with window undefined', async () => {
+  const inspector = createBrowserInspector({
+    window: undefined,
+  });
+
+  const machine = createMachine({});
+  const actor = createActor(machine, { inspect: inspector.inspect });
+
+  expect(() => {
+    actor.start();
+  }).not.toThrow();
+});
+
+test('browser inspector safely serializes HTML elements without freezing', async () => {
+  const dom = new JSDOM();
+  const events: any[] = [];
+
+  const inspector = createBrowserInspector({
+    window: dom.window as any as Window,
+    autoStart: false,
+  });
+  inspector.adapter.targetWindow = new JSDOM().window as any;
+
+  inspector.adapter.targetWindow!.addEventListener('message', (event) => {
+    events.push(event.data);
+  });
+
+  // Manually set up message listener (normally done in start())
+  dom.window.addEventListener('message', (event: any) => {
+    if (
+      event.data &&
+      typeof event.data === 'object' &&
+      event.data.type === '@statelyai.connected'
+    ) {
+      (inspector.adapter as any).status = 'connected';
+    }
+  });
+
+  // Simulate connection
+  dom.window.postMessage(
+    {
+      type: '@statelyai.connected',
+    },
+    '*'
+  );
+
+  await new Promise<void>((res) => {
+    setTimeout(res, 10);
+  });
+
+  // Create an actual HTMLElement using jsdom
+  const element = dom.window.document.createElement('div');
+  element.id = 'test-element';
+  element.textContent = 'Hello World';
+
+  let completed = false;
+  const startTime = Date.now();
+
+  expect(() => {
+    inspector.snapshot('test', {
+      status: 'active',
+      context: { element, data: 'test' },
+    });
+
+    setTimeout(() => {
+      completed = true;
+    }, 100);
+  }).not.toThrow();
+
+  // Verify serialization completes within reasonable time (not frozen)
+  await new Promise<void>((resolve) => {
+    setTimeout(() => {
+      const elapsed = Date.now() - startTime;
+      expect(elapsed).toBeLessThan(1000); // Should complete in less than 1 second
+      expect(completed).toBe(true);
+
+      // Verify the event was serialized and sent
+      const snapshotEvent = events.find((e) => e.type === '@xstate.snapshot');
+      expect(snapshotEvent).toBeDefined();
+
+      // The serialized event should be valid JSON
+      expect(() => {
+        JSON.stringify(snapshotEvent);
+      }).not.toThrow();
+
+      resolve();
+    }, 150);
+  });
+});
+
+test('browser inspector safely serializes deeply nested structures without freezing', async () => {
+  const dom = new JSDOM();
+  const events: any[] = [];
+
+  const inspector = createBrowserInspector({
+    window: dom.window as any as Window,
+    autoStart: false,
+  });
+  inspector.adapter.targetWindow = new JSDOM().window as any;
+
+  inspector.adapter.targetWindow!.addEventListener('message', (event) => {
+    events.push(event.data);
+  });
+
+  // Manually set up message listener (normally done in start())
+  dom.window.addEventListener('message', (event: any) => {
+    if (
+      event.data &&
+      typeof event.data === 'object' &&
+      event.data.type === '@statelyai.connected'
+    ) {
+      (inspector.adapter as any).status = 'connected';
+    }
+  });
+
+  // Simulate connection
+  dom.window.postMessage(
+    {
+      type: '@statelyai.connected',
+    },
+    '*'
+  );
+
+  await new Promise<void>((res) => {
+    setTimeout(res, 10);
+  });
+
+  // Create a deeply nested structure (deeper than the depthLimit of 10)
+  let deepObject: any = { value: 'deep' };
+  for (let i = 0; i < 20; i++) {
+    deepObject = { nested: deepObject };
+  }
+
+  let completed = false;
+  const startTime = Date.now();
+
+  expect(() => {
+    inspector.snapshot('test', {
+      status: 'active',
+      context: deepObject,
+    });
+
+    setTimeout(() => {
+      completed = true;
+    }, 100);
+  }).not.toThrow();
+
+  // Verify serialization completes within reasonable time (not frozen)
+  await new Promise<void>((resolve) => {
+    setTimeout(() => {
+      const elapsed = Date.now() - startTime;
+      expect(elapsed).toBeLessThan(1000); // Should complete in less than 1 second
+      expect(completed).toBe(true);
+
+      // Verify the event was serialized and sent
+      const snapshotEvent = events.find((e) => e.type === '@xstate.snapshot');
+      expect(snapshotEvent).toBeDefined();
+
+      // The serialized event should be valid JSON
+      expect(() => {
+        JSON.stringify(snapshotEvent);
+      }).not.toThrow();
+
+      resolve();
+    }, 150);
+  });
+});
+
+test('browser inspector serialize function respects depth limits', async () => {
+  const dom = new JSDOM();
+  const events: any[] = [];
+
+  const inspector = createBrowserInspector({
+    window: dom.window as any as Window,
+    autoStart: false,
+  });
+  inspector.adapter.targetWindow = new JSDOM().window as any;
+
+  inspector.adapter.targetWindow!.addEventListener('message', (event) => {
+    events.push(event.data);
+  });
+
+  // Manually set up message listener (normally done in start())
+  dom.window.addEventListener('message', (event: any) => {
+    if (
+      event.data &&
+      typeof event.data === 'object' &&
+      event.data.type === '@statelyai.connected'
+    ) {
+      (inspector.adapter as any).status = 'connected';
+    }
+  });
+
+  // Simulate connection
+  dom.window.postMessage(
+    {
+      type: '@statelyai.connected',
+    },
+    '*'
+  );
+
+  await new Promise<void>((res) => {
+    setTimeout(res, 10);
+  });
+
+  // Create a structure with HTML elements nested deeply
+  const element = dom.window.document.createElement('div');
+  element.innerHTML = '<span>Nested</span>';
+
+  const complexObject = {
+    level1: {
+      level2: {
+        level3: {
+          level4: {
+            level5: {
+              level6: {
+                level7: {
+                  level8: {
+                    level9: {
+                      level10: {
+                        level11: {
+                          element,
+                          data: 'deep',
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+
+  let completed = false;
+  const startTime = Date.now();
+
+  expect(() => {
+    inspector.snapshot('test', {
+      status: 'active',
+      context: complexObject,
+    });
+
+    setTimeout(() => {
+      completed = true;
+    }, 100);
+  }).not.toThrow();
+
+  // Verify serialization completes within reasonable time (not frozen)
+  await new Promise<void>((resolve) => {
+    setTimeout(() => {
+      const elapsed = Date.now() - startTime;
+      expect(elapsed).toBeLessThan(1000); // Should complete in less than 1 second
+      expect(completed).toBe(true);
+
+      // Verify the event was serialized and sent
+      const snapshotEvent = events.find((e) => e.type === '@xstate.snapshot');
+      expect(snapshotEvent).toBeDefined();
+
+      // The serialized event should be valid JSON
+      expect(() => {
+        JSON.stringify(snapshotEvent);
+      }).not.toThrow();
+
+      resolve();
+    }, 150);
+  });
+});
+
+test('browser inspector with custom depth limit works correctly', async () => {
+  const dom = new JSDOM();
+  const events: any[] = [];
+
+  const inspector = createBrowserInspector({
+    window: dom.window as any as Window,
+    autoStart: false,
+    serializationDepthLimit: 5,
+  });
+  inspector.adapter.targetWindow = new JSDOM().window as any;
+
+  inspector.adapter.targetWindow!.addEventListener('message', (event) => {
+    events.push(event.data);
+  });
+
+  // Manually set up message listener (normally done in start())
+  dom.window.addEventListener('message', (event: any) => {
+    if (
+      event.data &&
+      typeof event.data === 'object' &&
+      event.data.type === '@statelyai.connected'
+    ) {
+      (inspector.adapter as any).status = 'connected';
+    }
+  });
+
+  // Simulate connection
+  dom.window.postMessage(
+    {
+      type: '@statelyai.connected',
+    },
+    '*'
+  );
+
+  await new Promise<void>((res) => {
+    setTimeout(res, 10);
+  });
+
+  // Create a deeply nested structure
+  let deepObject: any = { value: 'deep' };
+  for (let i = 0; i < 10; i++) {
+    deepObject = { nested: deepObject };
+  }
+
+  let completed = false;
+  const startTime = Date.now();
+
+  expect(() => {
+    inspector.snapshot('test', {
+      status: 'active',
+      context: deepObject,
+    });
+
+    setTimeout(() => {
+      completed = true;
+    }, 100);
+  }).not.toThrow();
+
+  // Verify serialization completes within reasonable time (not frozen)
+  await new Promise<void>((resolve) => {
+    setTimeout(() => {
+      const elapsed = Date.now() - startTime;
+      expect(elapsed).toBeLessThan(1000); // Should complete in less than 1 second
+      expect(completed).toBe(true);
+      resolve();
+    }, 150);
+  });
+});
+</file>
+
+<file path="src/browser.ts">
+import safeStringify from 'fast-safe-stringify';
+import { AnyEventObject, Observer, Subscribable, toObserver } from 'xstate';
+import {
+  InspectorOptions,
+  createInspector,
+  defaultInspectorOptions,
+} from './createInspector';
+import { Adapter, Inspector, StatelyInspectionEvent } from './types';
+import { UselessAdapter } from './useless';
+
+interface BrowserReceiver extends Subscribable<StatelyInspectionEvent> {}
+
+export const CONNECTION_EVENT = '@statelyai.connected';
+
+export function isEventObject(event: unknown): event is AnyEventObject {
+  return (
+    typeof event === 'object' &&
+    event !== null &&
+    typeof (event as any).type === 'string'
+  );
+}
+
+export function isStatelyInspectionEvent(
+  event: unknown
+): event is StatelyInspectionEvent {
+  return (
+    typeof event === 'object' &&
+    event !== null &&
+    typeof (event as any).type === 'string' &&
+    typeof (event as any)._version === 'string'
+  );
+}
+
+export interface BrowserInspectorOptions extends InspectorOptions {
+  url?: string;
+  window?: Window;
+  iframe?: HTMLIFrameElement | null;
+}
+
+interface OptionalBrowserInspectorOptions {
+  send?: Adapter['send'];
+}
+
+/**
+ * Creates a browser-based inspector that sends events to a remote inspector window.
+ * The remote inspector opens an inspector window at the specified URL by default.
+ */
+export function createBrowserInspector(
+  options?: BrowserInspectorOptions & OptionalBrowserInspectorOptions
+): Inspector<BrowserAdapter> {
+  const resolvedWindow =
+    options?.window ?? (typeof window === 'undefined' ? undefined : window);
+
+  if (!resolvedWindow) {
+    console.error('Window does not exist; inspector cannot be started.');
+
+    return new UselessAdapter() as any;
+  }
+
+  const depthLimit =
+    options?.serializationDepthLimit ??
+    defaultInspectorOptions.serializationDepthLimit;
+  const resolvedOptions = {
+    ...defaultInspectorOptions,
+    url: 'https://stately.ai/inspect',
+    filter: () => true,
+    serialize: (inspectionEvent) =>
+      JSON.parse(
+        safeStringify(inspectionEvent, undefined, 2, {
+          depthLimit,
+          edgesLimit: depthLimit,
+        })
+      ),
+    autoStart: true,
+    iframe: null,
+    ...options,
+    window: resolvedWindow,
+  } satisfies Required<BrowserInspectorOptions> &
+    OptionalBrowserInspectorOptions;
+  const adapter = new BrowserAdapter(resolvedOptions);
+  const inspector = createInspector(adapter, resolvedOptions);
+
+  // Start immediately
+  if (resolvedOptions.autoStart) {
+    inspector.start();
+  }
+
+  return inspector;
+}
+
+interface BrowserReceiverOptions {
+  window?: Window;
+  /**
+   * The number of events from the current event to replay
+   */
+  replayCount?: number;
+}
+
+const defaultBrowserReceiverOptions: Required<BrowserReceiverOptions> = {
+  replayCount: 0,
+  window: typeof window !== 'undefined' ? window : (undefined as any),
+};
+
+export function createBrowserReceiver(
+  options?: BrowserReceiverOptions
+): BrowserReceiver {
+  const resolvedOptions = {
+    ...defaultBrowserReceiverOptions,
+    ...options,
+  };
+
+  const browserWindow = resolvedOptions.window;
+
+  const targetWindow: Window | null =
+    browserWindow.self === browserWindow.top
+      ? browserWindow.opener
+      : browserWindow.parent;
+
+  const observers = new Set<Observer<StatelyInspectionEvent>>();
+
+  browserWindow.addEventListener('message', (event) => {
+    if (!isStatelyInspectionEvent(event.data)) {
+      return;
+    }
+
+    observers.forEach((observer) => observer.next?.(event.data));
+  });
+
+  const receiver: BrowserReceiver = {
+    subscribe(observerOrFn) {
+      const observer = toObserver(observerOrFn);
+      observers.add(observer);
+
+      return {
+        unsubscribe() {
+          observers.delete(observer);
+        },
+      };
+    },
+  };
+
+  if (targetWindow) {
+    targetWindow.postMessage(
+      {
+        type: CONNECTION_EVENT,
+      },
+      '*'
+    );
+  }
+
+  return receiver;
+}
+
+export class BrowserAdapter implements Adapter {
+  private status = 'disconnected' as 'disconnected' | 'connected';
+  private deferredEvents: StatelyInspectionEvent[] = [];
+  public targetWindow: Window | null = null;
+
+  constructor(
+    public options: Required<BrowserInspectorOptions> &
+      OptionalBrowserInspectorOptions
+  ) {}
+  public start() {
+    this.targetWindow = this.options.iframe
+      ? null
+      : this.options.window.open(String(this.options.url), 'xstateinspector');
+
+    if (this.options.iframe) {
+      this.options.iframe.addEventListener('load', () => {
+        this.targetWindow = this.options.iframe?.contentWindow ?? null;
+      });
+      this.options.iframe?.setAttribute('src', String(this.options.url));
+    }
+
+    this.options.window.addEventListener('message', (event) => {
+      if (
+        isEventObject(event.data) &&
+        event.data.type === '@statelyai.connected'
+      ) {
+        this.status = 'connected';
+        this.deferredEvents.forEach((event) => {
+          const serializedEvent = this.options.serialize(event);
+          this.targetWindow?.postMessage(serializedEvent, '*');
+        });
+      }
+    });
+  }
+  public stop() {
+    this.targetWindow?.postMessage({ type: '@statelyai.disconnected' }, '*');
+    this.status = 'disconnected';
+  }
+  public send(event: StatelyInspectionEvent) {
+    const shouldSendEvent = this.options.filter(event);
+    if (!shouldSendEvent) {
+      return;
+    }
+
+    if (this.options.send) {
+      this.options.send(event);
+    } else if (this.status === 'connected') {
+      const serializedEvent = this.options.serialize(event);
+      this.targetWindow?.postMessage(serializedEvent, '*');
+    }
+
+    this.deferredEvents.push(event);
+
+    // Remove the oldest event if we've reached the max deferred events
+    if (this.deferredEvents.length > this.options.maxDeferredEvents) {
+      this.deferredEvents.shift();
+    }
+  }
+}
+</file>
+
+<file path="src/createInspector.test.ts">
+import { expect, test } from 'vitest';
+import { createInspector } from './createInspector';
+import { StatelyInspectionEvent, Adapter, StatelyEventEvent } from './types';
+import { createActor, createMachine } from 'xstate';
+import pkg from '../package.json';
+import { StatelyActorEvent } from '../dist';
+
+function simplifyEvent(ev: StatelyInspectionEvent) {
+  return ev.type === '@xstate.actor'
+    ? { type: ev.type, sessionId: ev.sessionId }
+    : ev.type === '@xstate.event'
+    ? { type: ev.type, sessionId: ev.sessionId, event: ev.event }
+    : {
+        type: ev.type,
+        sessionId: ev.sessionId,
+        snapshot: 'value' in ev.snapshot ? ev.snapshot.value : ev.snapshot,
+      };
+}
+
+test('Creates an inspector for a state machine', async () => {
+  const events: StatelyInspectionEvent[] = [];
+  const testAdapter: Adapter = {
+    send: (event) => {
+      events.push(event);
+    },
+    start: () => {},
+    stop: () => {},
+  };
+
+  const inspector = createInspector(testAdapter);
+
+  const machine = createMachine({
+    id: 'trafficLight',
+    initial: 'green',
+    states: {
+      green: {
+        after: {
+          10: 'yellow',
+        },
+      },
+      yellow: {
+        after: {
+          10: 'red',
+        },
+      },
+      red: {},
+    },
+  });
+
+  createActor(machine, {
+    inspect: inspector.inspect,
+  }).start();
+
+  await new Promise<void>((res) => {
+    setTimeout(() => {
+      expect(events.map(simplifyEvent)).toMatchInlineSnapshot(`
+        [
+          {
+            "sessionId": "x:0",
+            "type": "@xstate.actor",
+          },
+          {
+            "event": {
+              "input": undefined,
+              "type": "xstate.init",
+            },
+            "sessionId": "x:0",
+            "type": "@xstate.event",
+          },
+          {
+            "sessionId": "x:0",
+            "snapshot": "green",
+            "type": "@xstate.snapshot",
+          },
+          {
+            "event": {
+              "type": "xstate.after.10.trafficLight.green",
+            },
+            "sessionId": "x:0",
+            "type": "@xstate.event",
+          },
+          {
+            "sessionId": "x:0",
+            "snapshot": "yellow",
+            "type": "@xstate.snapshot",
+          },
+          {
+            "event": {
+              "type": "xstate.after.10.trafficLight.yellow",
+            },
+            "sessionId": "x:0",
+            "type": "@xstate.event",
+          },
+          {
+            "sessionId": "x:0",
+            "snapshot": "red",
+            "type": "@xstate.snapshot",
+          },
+        ]
+      `);
+      res();
+    }, 100);
+  });
+});
+
+test('Manually inspected events', () => {
+  const events: StatelyInspectionEvent[] = [];
+  const testAdapter: Adapter = {
+    send: (event) => {
+      events.push(event);
+    },
+    start: () => {},
+    stop: () => {},
+  };
+  const inspector = createInspector(testAdapter);
+
+  inspector.actor('test');
+  inspector.actor('another', { status: 'active', context: 10 });
+  inspector.event('test', 'stringEvent');
+  inspector.event('another', { type: 'objectEvent' }, { source: 'test' });
+  inspector.snapshot('test', { status: 'active', context: 20 });
+
+  inspector.snapshot(
+    'another',
+    { status: 'done', context: { foo: 'bar' } },
+    { event: { type: 'objectEvent' } }
+  );
+
+  expect(events.map(simplifyEvent)).toMatchInlineSnapshot(`
+    [
+      {
+        "sessionId": "test",
+        "type": "@xstate.actor",
+      },
+      {
+        "sessionId": "another",
+        "type": "@xstate.actor",
+      },
+      {
+        "event": {
+          "type": "stringEvent",
+        },
+        "sessionId": "test",
+        "type": "@xstate.event",
+      },
+      {
+        "event": {
+          "type": "objectEvent",
+        },
+        "sessionId": "another",
+        "type": "@xstate.event",
+      },
+      {
+        "sessionId": "test",
+        "snapshot": {
+          "context": 20,
+          "status": "active",
+        },
+        "type": "@xstate.snapshot",
+      },
+      {
+        "sessionId": "another",
+        "snapshot": {
+          "context": {
+            "foo": "bar",
+          },
+          "status": "done",
+        },
+        "type": "@xstate.snapshot",
+      },
+    ]
+  `);
+});
+
+test('Inspected event includes version', () => {
+  const events: StatelyInspectionEvent[] = [];
+  const testAdapter: Adapter = {
+    send: (event) => {
+      events.push(event);
+    },
+    start: () => {},
+    stop: () => {},
+  };
+  const inspector = createInspector(testAdapter);
+
+  inspector.actor('test');
+
+  expect(events[0]._version).toEqual(pkg.version);
+});
+
+test('options.serialize', async () => {
+  const events: StatelyInspectionEvent[] = [];
+  const testAdapter: Adapter = {
+    send: (event) => {
+      events.push(event);
+    },
+    start: () => {},
+    stop: () => {},
+  };
+  const inspector = createInspector(testAdapter, {
+    serialize: (ev) => {
+      if ('snapshot' in ev) {
+        return {
+          ...ev,
+          snapshot: {
+            context: { user: 'anonymous' },
+          } as any,
+        };
+      } else if (ev.type === '@xstate.event') {
+        return {
+          ...ev,
+          event: {
+            ...ev.event,
+            user: 'anonymous',
+          },
+        };
+      } else {
+        return ev;
+      }
+    },
+  });
+
+  inspector.actor('test', { context: { user: 'David' } });
+
+  expect((events[0] as StatelyActorEvent).snapshot.context).toEqual({
+    user: 'anonymous',
+  });
+
+  inspector.snapshot('test', { context: { user: 'David' } });
+
+  expect((events[1] as StatelyActorEvent).snapshot.context).toEqual({
+    user: 'anonymous',
+  });
+
+  inspector.event('test', { type: 'updateUser', user: 'David' });
+
+  expect((events[2] as StatelyEventEvent).event).toEqual({
+    type: 'updateUser',
+    user: 'anonymous',
+  });
+
+  inspector.inspect.next?.({
+    type: '@xstate.event',
+    actorRef: {} as any,
+    event: {
+      type: 'setUser',
+      user: 'Another',
+    },
+    rootId: '',
+    sourceRef: undefined,
+  });
+
+  await new Promise<void>((res) => {
+    setTimeout(res, 10);
+  });
+
+  expect((events[3] as StatelyEventEvent).event).toEqual({
+    type: 'setUser',
+    user: 'anonymous',
+  });
+});
+
+test('Sanitization options', async () => {
+  const events: StatelyInspectionEvent[] = [];
+  const testAdapter: Adapter = {
+    send: (event) => {
+      events.push(event);
+    },
+    start: () => {},
+    stop: () => {},
+  };
+  const inspector = createInspector(testAdapter, {
+    sanitizeContext: (ctx) => ({
+      ...ctx,
+      user: 'anonymous',
+    }),
+    sanitizeEvent: (ev) => {
+      if ('user' in ev) {
+        return { ...ev, user: 'anonymous' };
+      } else {
+        return ev;
+      }
+    },
+  });
+
+  inspector.actor('test', { context: { user: 'David' } });
+
+  expect((events[0] as StatelyActorEvent).snapshot.context).toEqual({
+    user: 'anonymous',
+  });
+
+  inspector.snapshot('test', { context: { user: 'David' } });
+
+  expect((events[1] as StatelyActorEvent).snapshot.context).toEqual({
+    user: 'anonymous',
+  });
+
+  inspector.event('test', { type: 'updateUser', user: 'David' });
+
+  expect((events[2] as StatelyEventEvent).event).toEqual({
+    type: 'updateUser',
+    user: 'anonymous',
+  });
+
+  inspector.inspect.next?.({
+    type: '@xstate.event',
+    actorRef: {} as any,
+    event: {
+      type: 'setUser',
+      user: 'Another',
+    },
+    rootId: '',
+    sourceRef: undefined,
+  });
+
+  await new Promise<void>((res) => {
+    setTimeout(res, 10);
+  });
+
+  expect((events[3] as StatelyEventEvent).event).toEqual({
+    type: 'setUser',
+    user: 'anonymous',
+  });
+});
+
+test('it safely stringifies objects with circular dependencies', () => {
+  const events: StatelyInspectionEvent[] = [];
+  const testAdapter: Adapter = {
+    send: (event) => {
+      events.push(event);
+    },
+    start: () => {},
+    stop: () => {},
+  };
+
+  const inspector = createInspector(testAdapter);
+
+  const circular = {
+    get val() {
+      return circular;
+    },
+  };
+
+  expect(() => {
+    inspector.inspect.next?.({
+      type: '@xstate.snapshot',
+      snapshot: { context: circular } as any,
+      actorRef: {} as any,
+      event: { type: 'any' },
+      rootId: '',
+    });
+  }).not.toThrow();
+});
+
+test('it safely serializes HTML elements without freezing', () => {
+  const events: StatelyInspectionEvent[] = [];
+  const testAdapter: Adapter = {
+    send: (event) => {
+      events.push(event);
+    },
+    start: () => {},
+    stop: () => {},
+  };
+
+  const inspector = createInspector(testAdapter);
+
+  // Create a mock HTMLElement-like object with circular references
+  // This simulates the problematic structure that causes freezing
+  const mockHTMLElement: any = {
+    outerHTML: '<div>test</div>',
+    nodeType: 1,
+    tagName: 'DIV',
+    parentElement: null,
+    children: [],
+  };
+  
+  // Create circular reference (common in DOM structures)
+  mockHTMLElement.parentElement = mockHTMLElement;
+  mockHTMLElement.children.push(mockHTMLElement);
+
+  // In a browser environment, this would be an actual HTMLElement
+  // The safeReplacer should handle it, but in Node.js we test with a mock
+  if (typeof HTMLElement !== 'undefined') {
+    Object.setPrototypeOf(mockHTMLElement, HTMLElement.prototype);
+  }
+
+  let completed = false;
+  const startTime = Date.now();
+
+  expect(() => {
+    inspector.inspect.next?.({
+      type: '@xstate.snapshot',
+      snapshot: { context: { element: mockHTMLElement } } as any,
+      actorRef: {} as any,
+      event: { type: 'any' },
+      rootId: '',
+    });
+
+    // Wait a bit to ensure serialization completes
+    setTimeout(() => {
+      completed = true;
+    }, 100);
+  }).not.toThrow();
+
+  // Verify serialization completes within reasonable time (not frozen)
+  return new Promise<void>((resolve) => {
+    setTimeout(() => {
+      const elapsed = Date.now() - startTime;
+      expect(elapsed).toBeLessThan(1000); // Should complete in less than 1 second
+      expect(completed).toBe(true);
+      resolve();
+    }, 150);
+  });
+});
+
+test('it safely serializes deeply nested structures without freezing', () => {
+  const events: StatelyInspectionEvent[] = [];
+  const testAdapter: Adapter = {
+    send: (event) => {
+      events.push(event);
+    },
+    start: () => {},
+    stop: () => {},
+  };
+
+  const inspector = createInspector(testAdapter);
+
+  // Create a deeply nested structure (deeper than the maximumDepth limit of 10)
+  let deepObject: any = { value: 'deep' };
+  for (let i = 0; i < 20; i++) {
+    deepObject = { nested: deepObject };
+  }
+
+  let completed = false;
+  const startTime = Date.now();
+
+  expect(() => {
+    inspector.inspect.next?.({
+      type: '@xstate.snapshot',
+      snapshot: { context: deepObject } as any,
+      actorRef: {} as any,
+      event: { type: 'any' },
+      rootId: '',
+    });
+
+    setTimeout(() => {
+      completed = true;
+    }, 100);
+  }).not.toThrow();
+
+  // Verify serialization completes within reasonable time (not frozen)
+  return new Promise<void>((resolve) => {
+    setTimeout(() => {
+      const elapsed = Date.now() - startTime;
+      expect(elapsed).toBeLessThan(1000); // Should complete in less than 1 second
+      expect(completed).toBe(true);
+      resolve();
+    }, 150);
+  });
+});
+
+test('it safely serializes snapshot with HTML element in context', async () => {
+  const events: StatelyInspectionEvent[] = [];
+  const testAdapter: Adapter = {
+    send: (event) => {
+      events.push(event);
+    },
+    start: () => {},
+    stop: () => {},
+  };
+
+  const inspector = createInspector(testAdapter);
+
+  // Create a mock HTMLElement-like object
+  const mockHTMLElement: any = {
+    outerHTML: '<div id="test">Hello</div>',
+    nodeType: 1,
+    tagName: 'DIV',
+  };
+
+  // In a browser environment, this would be an actual HTMLElement
+  if (typeof HTMLElement !== 'undefined') {
+    Object.setPrototypeOf(mockHTMLElement, HTMLElement.prototype);
+  }
+
+  inspector.snapshot('test', {
+    status: 'active',
+    context: { element: mockHTMLElement, data: 'test' },
+  });
+
+  // Verify the event was sent and serialized successfully
+  expect(events.length).toBeGreaterThan(0);
+  const snapshotEvent = events.find((e) => e.type === '@xstate.snapshot');
+  expect(snapshotEvent).toBeDefined();
+  
+  // The snapshot should be serializable
+  expect(() => {
+    JSON.stringify(snapshotEvent);
+  }).not.toThrow();
+});
+
+test('serialization without depth limit and DOM element handler will fail or hang', async () => {
+  const events: StatelyInspectionEvent[] = [];
+  const testAdapter: Adapter = {
+    send: (event) => {
+      events.push(event);
+    },
+    start: () => {},
+    stop: () => {},
+  };
+
+  // Create inspector with a custom serializer that doesn't have depth limits
+  // This simulates the old behavior before the fix
+  const inspector = createInspector(testAdapter, {
+    serialize: (event) => {
+      // Use JSON.stringify without depth limits - this will fail or hang
+      // with DOM elements or deeply nested structures
+      try {
+        JSON.stringify(event);
+        return event;
+      } catch (error) {
+        // Expected to fail with circular references or DOM elements
+        throw error;
+      }
+    },
+  });
+
+  // Create a mock HTMLElement-like object with circular references
+  const mockHTMLElement: any = {
+    outerHTML: '<div>test</div>',
+    nodeType: 1,
+    tagName: 'DIV',
+    parentElement: null,
+    children: [],
+  };
+  
+  // Create circular reference (common in DOM structures)
+  mockHTMLElement.parentElement = mockHTMLElement;
+  mockHTMLElement.children.push(mockHTMLElement);
+
+  // This should fail or hang without the fix
+  expect(() => {
+    inspector.snapshot('test', {
+      status: 'active',
+      context: { element: mockHTMLElement },
+    });
+  }).toThrow();
+});
+
+test('serialization with custom depth limit works correctly', () => {
+  const events: StatelyInspectionEvent[] = [];
+  const testAdapter: Adapter = {
+    send: (event) => {
+      events.push(event);
+    },
+    start: () => {},
+    stop: () => {},
+  };
+
+  // Test with a custom depth limit (lower than default)
+  const inspector = createInspector(testAdapter, {
+    serializationDepthLimit: 5,
+  });
+
+  // Create a deeply nested structure
+  let deepObject: any = { value: 'deep' };
+  for (let i = 0; i < 10; i++) {
+    deepObject = { nested: deepObject };
+  }
+
+  expect(() => {
+    inspector.inspect.next?.({
+      type: '@xstate.snapshot',
+      snapshot: { context: deepObject } as any,
+      actorRef: {} as any,
+      event: { type: 'any' },
+      rootId: '',
+    });
+  }).not.toThrow();
+
+  // Verify it completes quickly (not frozen)
+  return new Promise<void>((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, 100);
+  });
+});
+</file>
+
+<file path="src/createInspector.ts">
+import {
+  StatelyActorEvent,
+  StatelyEventEvent,
+  StatelyInspectionEvent,
+  StatelySnapshotEvent,
+  Adapter,
+  ActorRefLikeWithData,
+} from './types';
+import { toEventObject } from './utils';
+import { Inspector } from './types';
+import {
+  ActorRefLike,
+  AnyEventObject,
+  InspectionEvent,
+  MachineContext,
+  Snapshot,
+} from 'xstate';
+import pkg from '../package.json';
+import { idleCallback } from './idleCallback';
+import safeStableStringify from 'safe-stable-stringify';
+
+// Helper function to safely handle HTMLElement instances during serialization
+function safeReplacer(_key: string, value: any): any {
+  // Handle HTMLElement instances safely (only in browser environments)
+  if (
+    typeof HTMLElement !== 'undefined' &&
+    value &&
+    typeof value === 'object' &&
+    value instanceof HTMLElement
+  ) {
+    return value.outerHTML;
+  }
+  // Handle functions
+  if (typeof value === 'function') {
+    return { type: value.name };
+  }
+  return value;
+}
+
+// Helper function to create a configured safe stringify function with depth limit
+function createSafeStringify(depthLimit: number) {
+  return safeStableStringify.configure({
+    maximumDepth: depthLimit,
+  });
+}
+
+function getRoot(actorRef: ActorRefLike) {
+  let marker: ActorRefLikeWithData | undefined = actorRef;
+
+  do {
+    marker = marker._parent;
+  } while (marker?._parent);
+
+  return marker;
+}
+
+function getRootId(actorRefOrId: ActorRefLike | string): string | undefined {
+  const rootActorRef =
+    typeof actorRefOrId === 'string'
+      ? undefined
+      : getRoot(actorRefOrId)?.sessionId;
+
+  return rootActorRef ?? undefined;
+}
+
+export interface InspectorOptions {
+  filter?: (event: StatelyInspectionEvent) => boolean;
+  serialize?: (event: StatelyInspectionEvent) => StatelyInspectionEvent;
+  /**
+   * Whether to automatically start the inspector.
+   *
+   * @default true
+   */
+  autoStart?: boolean;
+  /**
+   * The maximum number of deferred events to hold in memory until the inspector is active.
+   * If the number of deferred events exceeds this number, the oldest events will be dropped.
+   *
+   * @default 200
+   */
+  maxDeferredEvents?: number;
+
+  /**
+   * Maximum depth for serialization. Prevents infinite recursion when serializing
+   * HTML elements or deeply nested structures. Lower values provide better performance
+   * but may truncate deeply nested data.
+   *
+   * @default 10
+   */
+  serializationDepthLimit?: number;
+
+  /**
+   * Sanitizes events sent to actors. Only the sanitized event will be sent to the inspector.
+   */
+  sanitizeEvent?: (event: AnyEventObject) => AnyEventObject;
+
+  /**
+   * Sanitizes actor snapshot context. Only the sanitized context will be sent to the inspector.
+   */
+  sanitizeContext?: (context: MachineContext) => MachineContext;
+}
+
+export const defaultInspectorOptions: Required<InspectorOptions> = {
+  filter: () => true,
+  serialize: (event) => event,
+  autoStart: true,
+  maxDeferredEvents: 200,
+  serializationDepthLimit: 10,
+  sanitizeEvent: (event) => event,
+  sanitizeContext: (context) => context,
+};
+
+export function createInspector<TAdapter extends Adapter>(
+  adapter: TAdapter,
+  options?: InspectorOptions
+): Inspector<TAdapter> {
+  const depthLimit =
+    options?.serializationDepthLimit ??
+    defaultInspectorOptions.serializationDepthLimit;
+  const safeStringify = createSafeStringify(depthLimit);
+
+  function sendAdapter(inspectionEvent: StatelyInspectionEvent): void {
+    if (options?.filter && !options.filter(inspectionEvent)) {
+      // Event filtered out
+      return;
+    }
+
+    const sanitizedEvent: typeof inspectionEvent =
+      options?.sanitizeContext || options?.sanitizeEvent
+        ? inspectionEvent
+        : {
+            ...inspectionEvent,
+          };
+    if (
+      options?.sanitizeContext &&
+      (sanitizedEvent.type === '@xstate.actor' ||
+        sanitizedEvent.type === '@xstate.snapshot')
+    ) {
+      sanitizedEvent.snapshot = {
+        ...sanitizedEvent.snapshot,
+        // @ts-ignore
+        context: options.sanitizeContext(
+          // @ts-ignore
+          sanitizedEvent.snapshot.context
+        ),
+      };
+    }
+    if (
+      options?.sanitizeEvent &&
+      (sanitizedEvent.type === '@xstate.event' ||
+        sanitizedEvent.type === '@xstate.snapshot')
+    ) {
+      sanitizedEvent.event = options.sanitizeEvent(sanitizedEvent.event);
+    }
+    const serializedEvent =
+      options?.serialize?.(sanitizedEvent) ?? sanitizedEvent;
+    adapter.send(serializedEvent);
+  }
+  const inspector: Inspector<TAdapter> = {
+    adapter,
+    actor: (actorRef, snapshot, info) => {
+      const sessionId =
+        typeof actorRef === 'string' ? actorRef : actorRef.sessionId;
+      const definitionObject = (actorRef as any)?.logic?.config;
+      const definition = definitionObject
+        ? safeStringify(definitionObject, safeReplacer)
+        : undefined;
+      const rootId =
+        info?.rootId ?? typeof actorRef === 'string'
+          ? undefined
+          : getRootId(actorRef);
+      const parentId =
+        info?.parentId ?? typeof actorRef === 'string'
+          ? undefined
+          : actorRef._parent?.sessionId;
+      const name = definitionObject ? definitionObject.id : sessionId;
+
+      sendAdapter({
+        type: '@xstate.actor',
+        name,
+        sessionId,
+        createdAt: Date.now().toString(),
+        _version: pkg.version,
+        rootId,
+        parentId,
+        id: null as any,
+        definition,
+        snapshot: snapshot ?? { status: 'active' },
+      } satisfies StatelyActorEvent);
+    },
+    event: (target, event, info) => {
+      const sessionId = typeof target === 'string' ? target : target.sessionId;
+      const sourceId = !info?.source
+        ? undefined
+        : typeof info.source === 'string'
+        ? info.source
+        : info.source.sessionId;
+      sendAdapter({
+        type: '@xstate.event',
+        sourceId,
+        sessionId,
+        event: toEventObject(event),
+        id: Math.random().toString(),
+        createdAt: Date.now().toString(),
+        rootId: 'anonymous',
+        _version: pkg.version,
+      });
+    },
+    snapshot: (actor, snapshot, info) => {
+      const sessionId = typeof actor === 'string' ? actor : actor.sessionId;
+      sendAdapter({
+        type: '@xstate.snapshot',
+        snapshot: {
+          status: 'active',
+          ...snapshot,
+        } as unknown as Snapshot<unknown>,
+        event: info?.event ?? { type: '' },
+        sessionId,
+        id: null as any,
+        createdAt: Date.now().toString(),
+        rootId: 'anonymous',
+        _version: pkg.version,
+      });
+    },
+    inspect: {
+      next: (event) => {
+        idleCallback(function inspectNext() {
+          const convertedEvent = convertXStateEvent(event, depthLimit);
+          if (convertedEvent) {
+            sendAdapter(convertedEvent);
+          }
+        });
+      },
+    },
+    start() {
+      adapter.start?.();
+    },
+    stop() {
+      adapter.stop?.();
+    },
+  };
+
+  return inspector;
+}
+
+export function convertXStateEvent(
+  inspectionEvent: InspectionEvent,
+  depthLimit: number = defaultInspectorOptions.serializationDepthLimit
+): StatelyInspectionEvent | undefined {
+  const safeStringify = createSafeStringify(depthLimit);
+
+  switch (inspectionEvent.type) {
+    case '@xstate.actor': {
+      const actorRef = inspectionEvent.actorRef;
+      const logic = (actorRef as any)?.logic;
+      const definitionObject = logic?.config;
+      let name = (actorRef as any).id;
+
+      // TODO: fix this in XState
+      if (name === actorRef.sessionId && definitionObject) {
+        name = definitionObject.id;
+      }
+      const definitionString =
+        typeof definitionObject === 'object'
+          ? safeStringify(definitionObject, safeReplacer)
+          : safeStringify(
+              {
+                id: name,
+              },
+              safeReplacer
+            );
+
+      return {
+        name,
+        type: '@xstate.actor',
+        definition: definitionString,
+        _version: pkg.version,
+        createdAt: Date.now().toString(),
+        id: null as any,
+        rootId: inspectionEvent.rootId,
+        parentId: (inspectionEvent.actorRef as any)._parent?.sessionId,
+        sessionId: inspectionEvent.actorRef.sessionId,
+        snapshot: inspectionEvent.actorRef.getSnapshot(),
+      } satisfies StatelyActorEvent;
+    }
+    case '@xstate.event': {
+      return {
+        type: '@xstate.event',
+        event: inspectionEvent.event,
+        sourceId: inspectionEvent.sourceRef?.sessionId,
+        // sessionId: inspectionEvent.targetRef.sessionId,
+        sessionId: inspectionEvent.actorRef.sessionId,
+        _version: pkg.version,
+        createdAt: Date.now().toString(),
+        id: null as any,
+        rootId: inspectionEvent.rootId,
+      } satisfies StatelyEventEvent;
+    }
+    case '@xstate.snapshot': {
+      return {
+        type: '@xstate.snapshot',
+        event: inspectionEvent.event,
+        snapshot: JSON.parse(
+          safeStringify(inspectionEvent.snapshot, safeReplacer) ?? 'null'
+        ),
+        sessionId: inspectionEvent.actorRef.sessionId,
+        _version: pkg.version,
+        createdAt: Date.now().toString(),
+        id: null as any,
+        rootId: inspectionEvent.rootId,
+      } satisfies StatelySnapshotEvent;
+    }
+    default: {
+      // Ignore future XState inspection events (assume that they are valid)
+      if (inspectionEvent.type.startsWith('@xstate.')) {
+        return undefined;
+      }
+      console.warn(
+        `Unhandled inspection event type: ${(inspectionEvent as any).type}`
+      );
+      return undefined;
+    }
+  }
+}
+</file>
+
+<file path="src/createSkyInspector.ts">
+import PartySocket from 'partysocket';
+import { stringify } from 'superjson';
+import { v4 as uuidv4 } from 'uuid';
+import { createBrowserInspector } from './browser';
+import {
+  InspectorOptions,
+  createInspector as inspectCreator,
+} from './createInspector';
+import { isNode } from './utils';
+
+// Not the most elegant way to do this, but it makes it much easier to test local changes
+const isDevMode = false;
+
+export function createSkyInspector(
+  options: {
+    apiKey?: string; // Not used yet, will be used to add additional features later
+    onerror?: (error: Error) => void;
+  } & InspectorOptions = {}
+): ReturnType<typeof inspectCreator> {
+  const { host, apiBaseURL } = {
+    host: isDevMode
+      ? 'localhost:1999'
+      : 'stately-sky-beta.mellson.partykit.dev',
+    apiBaseURL: isDevMode
+      ? 'http://localhost:3000/registry/api/sky'
+      : 'https://stately.ai/registry/api/sky',
+  };
+  const server = apiBaseURL.replace('/api/sky', '');
+  const { apiKey, onerror, ...inspectorOptions } = options;
+  const sessionId = uuidv4(); // Generate a unique session ID
+  const room = `inspect-${sessionId}`;
+  const socket = new PartySocket({
+    host,
+    room,
+    WebSocket: isNode ? require('isomorphic-ws') : undefined,
+  });
+  const liveInspectUrl = `${server}/inspect/${sessionId}`;
+  socket.onerror = onerror ?? console.error;
+  socket.onopen = () => {
+    console.log('Connected to Sky, link to your live inspect session:');
+    console.log(liveInspectUrl);
+  };
+  if (isNode) {
+    return inspectCreator({
+      ...inspectorOptions,
+      send(event) {
+        const skyEvent = apiKey ? { apiKey, ...event } : event;
+        socket.send(stringify(skyEvent));
+      },
+    });
+  } else {
+    return createBrowserInspector({
+      ...inspectorOptions,
+      url: liveInspectUrl,
+      send(event) {
+        const skyEvent = apiKey ? { apiKey, ...event } : event;
+        socket.send(stringify(skyEvent));
+      },
+    });
+  }
+}
+</file>
+
+<file path="src/idleCallback.ts">
+export function idleCallback(cb: () => void) {
+  if (typeof window !== 'undefined') {
+    const raf = window.requestIdleCallback || window.requestAnimationFrame;
+    raf(cb);
+  } else {
+    setTimeout(cb, 0);
+  }
+}
+</file>
+
+<file path="src/index.ts">
+export { createBrowserInspector, createBrowserReceiver } from './browser';
+export { createInspector } from './createInspector';
+export { createSkyInspector } from './createSkyInspector';
+export type {
+  StatelyActorEvent,
+  StatelyEventEvent,
+  StatelyInspectionEvent,
+  StatelySnapshotEvent,
+} from './types';
+export { createWebSocketInspector, createWebSocketReceiver } from './webSocket';
+</file>
+
+<file path="src/types.ts">
+import {
+  ActorRefLike,
+  AnyEventObject,
+  InspectionEvent,
+  Observer,
+  Snapshot,
+} from 'xstate';
+
+export interface StatelyBaseInspectionEvent {
+  // the session ID of the root
+  rootId: string | undefined;
+  sessionId: string;
+  createdAt: string; // Timestamp
+  id: string; // unique string for this actor update
+  _version: string; // version of this protocol
+}
+
+export type StatelySnapshotEvent = Pick<
+  InspectionEvent & { type: '@xstate.snapshot' },
+  'event' | 'rootId' | 'snapshot' | 'type'
+> &
+  StatelyBaseInspectionEvent;
+
+export type StatelyEventEvent = Pick<
+  InspectionEvent & { type: '@xstate.event' },
+  'event' | 'rootId' | 'type'
+> & {
+  // used instead of sourceRef
+  sourceId: string | undefined;
+} & StatelyBaseInspectionEvent;
+
+export type StatelyActorEvent = Pick<
+  InspectionEvent & { type: '@xstate.actor' },
+  'type'
+> & {
+  name: string;
+  snapshot: InspectedSnapshot; // JSON snapshot
+  definition: string | undefined; // JSON-stringified definition or URL
+  parentId: string | undefined;
+} & StatelyBaseInspectionEvent;
+
+export type StatelyInspectionEvent =
+  | StatelySnapshotEvent
+  | StatelyEventEvent
+  | StatelyActorEvent;
+
+export interface Adapter {
+  start?: () => void;
+  stop?: () => void;
+  send(event: StatelyInspectionEvent): void;
+}
+
+export interface InspectedSnapshot {
+  status?: Snapshot<unknown>['status'];
+  context?: any;
+  value?: any;
+  output?: any;
+}
+
+export interface Inspector<TAdapter extends Adapter> {
+  adapter: TAdapter;
+  /**
+   * Sends a snapshot inspection event. This represents the state of the actor.
+   */
+  snapshot(
+    actor: ActorRefLikeWithData | string,
+    snapshot: InspectedSnapshot,
+    info?: { event?: AnyEventObject }
+  ): void;
+  /**
+   * Sends an event inspection event. This represents the event that was sent to the actor.
+   */
+  event(
+    actor: ActorRefLikeWithData | string,
+    event: AnyEventObject | string,
+    info?: { source?: ActorRefLikeWithData | string }
+  ): void;
+  /**
+   * Sends an actor registration inspection event. This represents the actor that was created.
+   */
+  actor(
+    actor: ActorRefLikeWithData | string,
+    snapshot?: InspectedSnapshot,
+    info?: {
+      definition?: string;
+      parentId?: string;
+      rootId?: string;
+    }
+  ): void;
+  /**
+   * Starts the inspector.
+   */
+  start: () => void;
+  /**
+   * Stops the inspector.
+   */
+  stop: () => void;
+  /**
+   * An inspection observer that can be passed into XState.
+   * @example
+   * ```js
+   * import { createActor } from 'xstate';
+   * import { createInspector } from '@xstate/inspect';
+   * // ...
+   *
+   * const inspector = createInspector(...)
+   *
+   * const actor = createActor(someMachine, {
+   *   inspect: inspector.inspect
+   * })
+   * ```
+   */
+  inspect: Observer<InspectionEvent>;
+}
+
+export type ActorRefLikeWithData = ActorRefLike & {
+  _parent?: ActorRefLikeWithData;
+  id?: string;
+};
+</file>
+
+<file path="src/useless.ts">
+import { InspectorOptions } from './createInspector';
+import { Adapter, StatelyInspectionEvent } from './types';
+
+export class UselessAdapter implements Adapter {
+  constructor() {}
+  public start() {
+    // ...
+  }
+  public stop() {
+    // ...
+  }
+  public send(_event: StatelyInspectionEvent) {
+    // ...
+  }
+}
+</file>
+
+<file path="src/utils.ts">
+import type { AnyActorRef, AnyEventObject } from 'xstate';
+
+export function toEventObject(event: AnyEventObject | string): AnyEventObject {
+  if (typeof event === 'string') {
+    return { type: event };
+  }
+
+  return event;
+}
+
+export function isActorRef(actorRef: any): actorRef is AnyActorRef {
+  return (
+    typeof actorRef === 'object' &&
+    actorRef !== null &&
+    typeof actorRef.sessionId === 'string' &&
+    typeof actorRef.send === 'function'
+  );
+}
+
+export const isNode =
+  typeof process !== 'undefined' &&
+  typeof process.versions?.node !== 'undefined' &&
+  typeof document === 'undefined';
+</file>
+
+<file path="src/webSocket.ts">
+import {
+  InspectorOptions,
+  createInspector,
+  defaultInspectorOptions,
+} from './createInspector';
+import { Adapter, StatelyInspectionEvent } from './types';
+import WebSocket from 'isomorphic-ws';
+import safeStableStringify from 'safe-stable-stringify';
+import { Observer, Subscribable, toObserver } from 'xstate';
+
+export interface WebSocketInspectorOptions extends InspectorOptions {
+  url: string;
+}
+
+export class WebSocketAdapter implements Adapter {
+  private ws: WebSocket;
+  private status = 'closed' as 'closed' | 'open';
+  private deferredEvents: StatelyInspectionEvent[] = [];
+  private options: Required<WebSocketInspectorOptions>;
+  private safeStringify: ReturnType<typeof safeStableStringify.configure>;
+
+  constructor(options?: WebSocketInspectorOptions) {
+    const depthLimit = options?.serializationDepthLimit ?? defaultInspectorOptions.serializationDepthLimit;
+    this.safeStringify = safeStableStringify.configure({
+      maximumDepth: depthLimit,
+    });
+    
+    this.options = {
+      ...defaultInspectorOptions,
+      filter: () => true,
+      serialize: (inspectionEvent) =>
+        JSON.parse(this.safeStringify(inspectionEvent)),
+      autoStart: true,
+      url: 'ws://localhost:8080',
+      ...options,
+    };
+  }
+  public start() {
+    const start = () => {
+      this.ws = new WebSocket(this.options.url);
+
+      this.ws.onopen = () => {
+        console.log('websocket open');
+        this.status = 'open';
+        this.deferredEvents.forEach((inspectionEvent) => {
+          const preSerializedEvent =
+            defaultInspectorOptions.serialize(inspectionEvent);
+          const serializedEvent = this.options.serialize(preSerializedEvent);
+          this.ws.send(this.safeStringify(serializedEvent));
+        });
+      };
+
+      this.ws.onclose = () => {
+        console.log('websocket closed');
+      };
+
+      this.ws.onerror = async (event: unknown) => {
+        console.error('websocket error', event);
+        await new Promise((res) => setTimeout(res, 5000));
+        console.warn('restarting');
+        start();
+      };
+
+      this.ws.onmessage = (event: { data: unknown }) => {
+        if (typeof event.data !== 'string') {
+          return;
+        }
+
+        console.log('message', event.data);
+      };
+    };
+
+    start();
+  }
+  public stop() {
+    this.ws.close();
+    this.status = 'closed';
+  }
+  public send(inspectionEvent: StatelyInspectionEvent) {
+    if (this.status === 'open') {
+      this.ws.send(this.safeStringify(inspectionEvent));
+    } else {
+      this.deferredEvents.push(inspectionEvent);
+
+      if (this.deferredEvents.length > this.options.maxDeferredEvents) {
+        this.deferredEvents.shift();
+      }
+    }
+  }
+}
+
+export function createWebSocketInspector(options?: WebSocketInspectorOptions) {
+  const adapter = new WebSocketAdapter(options);
+
+  const inspector = createInspector(adapter, options);
+
+  return inspector;
+}
+
+interface WebSocketReceiver extends Subscribable<StatelyInspectionEvent> {}
+
+export function createWebSocketReceiver(options?: {
+  server: string;
+}): WebSocketReceiver {
+  const resolvedOptions = {
+    server: 'ws://localhost:8080',
+    ...options,
+  };
+
+  const observers = new Set<Observer<StatelyInspectionEvent>>();
+
+  const ws = new WebSocket(resolvedOptions.server);
+
+  ws.onopen = () => {
+    console.log('websocket open');
+
+    ws.onmessage = (event: { data: unknown }) => {
+      if (typeof event.data !== 'string') {
+        return;
+      }
+      console.log('message', event.data);
+      const eventData = JSON.parse(event.data);
+
+      observers.forEach((observer) => {
+        observer.next?.(eventData);
+      });
+    };
+  };
+
+  const receiver: WebSocketReceiver = {
+    subscribe(observerOrFn) {
+      const observer = toObserver(observerOrFn);
+      observers.add(observer);
+
+      return {
+        unsubscribe() {
+          observers.delete(observer);
+        },
+      };
+    },
+  };
+
+  return receiver;
+}
+</file>
+
+</files>

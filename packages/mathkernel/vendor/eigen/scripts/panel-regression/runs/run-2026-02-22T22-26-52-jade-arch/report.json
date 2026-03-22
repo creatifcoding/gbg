@@ -1,0 +1,1227 @@
+{
+  "runId": "run-2026-02-22T22-26-52-jade-arch",
+  "startedAt": "2026-02-22T22:26:52.298Z",
+  "completedAt": "2026-02-22T22:28:18.284Z",
+  "totalScenarios": 9,
+  "passed": 9,
+  "failed": 0,
+  "scenarios": [
+    {
+      "scenarioId": "amber-arch",
+      "title": "Basic collapse roundtrip",
+      "runId": "amber-arch",
+      "mode": "strip+tree",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "spawned",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/amber-arch/strip/002-spawned.png",
+          "step": 2,
+          "timestamp": 1771799215648
+        },
+        {
+          "name": "collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/amber-arch/strip/004-collapsed.png",
+          "step": 4,
+          "timestamp": 1771799216134
+        },
+        {
+          "name": "expanded",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/amber-arch/strip/006-expanded.png",
+          "step": 6,
+          "timestamp": 1771799216618
+        },
+        {
+          "name": "mode-switch-to-tree",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/amber-arch/strip/007-mode-switch-to-tree.png",
+          "step": 7,
+          "timestamp": 1771799217731
+        },
+        {
+          "name": "spawned",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/amber-arch/tree/002-spawned.png",
+          "step": 2,
+          "timestamp": 1771799220495
+        },
+        {
+          "name": "collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/amber-arch/tree/004-collapsed.png",
+          "step": 4,
+          "timestamp": 1771799220983
+        },
+        {
+          "name": "expanded",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/amber-arch/tree/006-expanded.png",
+          "step": 6,
+          "timestamp": 1771799221474
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799214967,
+          "durationMs": 600.673996
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799215364,
+          "durationMs": 396.43118600000025
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799215890,
+          "durationMs": 242.16115499999978
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799216377,
+          "durationMs": 242.53247600000032
+        },
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799219842,
+          "durationMs": 595.810794
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799220236,
+          "durationMs": 393.9870579999997
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799220740,
+          "durationMs": 245.2524599999997
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799221225,
+          "durationMs": 241.95085699999981
+        }
+      ],
+      "errors": [],
+      "durationMs": 9179.582339,
+      "startedAt": "2026-02-22T22:26:52.299Z"
+    },
+    {
+      "scenarioId": "bold-arch",
+      "title": "Vsplit + collapse both",
+      "runId": "bold-arch",
+      "mode": "strip+tree",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "vsplit-done",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/bold-arch/strip/003-vsplit-done.png",
+          "step": 3,
+          "timestamp": 1771799225363
+        },
+        {
+          "name": "both-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/bold-arch/strip/007-both-collapsed.png",
+          "step": 7,
+          "timestamp": 1771799226357
+        },
+        {
+          "name": "mode-switch-to-tree",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/bold-arch/strip/008-mode-switch-to-tree.png",
+          "step": 8,
+          "timestamp": 1771799227462
+        },
+        {
+          "name": "vsplit-done",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/bold-arch/tree/003-vsplit-done.png",
+          "step": 3,
+          "timestamp": 1771799230635
+        },
+        {
+          "name": "both-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/bold-arch/tree/007-both-collapsed.png",
+          "step": 7,
+          "timestamp": 1771799231645
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799224284,
+          "durationMs": 597.8695659999994
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799224683,
+          "durationMs": 398.5973520000007
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799225079,
+          "durationMs": 395.69902999999977
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799225608,
+          "durationMs": 244.59470399999918
+        },
+        {
+          "index": 1,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799225855,
+          "durationMs": 246.97306000000026
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799226101,
+          "durationMs": 245.8992930000004
+        },
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799229583,
+          "durationMs": 594.2713089999997
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799229979,
+          "durationMs": 395.4639050000005
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799230374,
+          "durationMs": 394.7428059999984
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799230881,
+          "durationMs": 245.4392110000008
+        },
+        {
+          "index": 1,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799231126,
+          "durationMs": 244.94806199999948
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799231369,
+          "durationMs": 243.37751500000013
+        }
+      ],
+      "errors": [],
+      "durationMs": 10127.676755,
+      "startedAt": "2026-02-22T22:27:01.522Z"
+    },
+    {
+      "scenarioId": "calm-arch",
+      "title": "Vsplit + hsplit mixed layout",
+      "runId": "calm-arch",
+      "mode": "strip+tree",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "mixed-layout",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/calm-arch/strip/004-mixed-layout.png",
+          "step": 4,
+          "timestamp": 1771799235980
+        },
+        {
+          "name": "bottom-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/calm-arch/strip/008-bottom-collapsed.png",
+          "step": 8,
+          "timestamp": 1771799236959
+        },
+        {
+          "name": "all-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/calm-arch/strip/011-all-collapsed.png",
+          "step": 11,
+          "timestamp": 1771799237687
+        },
+        {
+          "name": "mode-switch-to-tree",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/calm-arch/strip/012-mode-switch-to-tree.png",
+          "step": 12,
+          "timestamp": 1771799238795
+        },
+        {
+          "name": "mixed-layout",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/calm-arch/tree/004-mixed-layout.png",
+          "step": 4,
+          "timestamp": 1771799242340
+        },
+        {
+          "name": "bottom-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/calm-arch/tree/008-bottom-collapsed.png",
+          "step": 8,
+          "timestamp": 1771799243303
+        },
+        {
+          "name": "all-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/calm-arch/tree/011-all-collapsed.png",
+          "step": 11,
+          "timestamp": 1771799244036
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799234544,
+          "durationMs": 593.3219329999993
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799234938,
+          "durationMs": 393.4680359999984
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799235331,
+          "durationMs": 393.25724499999706
+        },
+        {
+          "index": 0,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799235724,
+          "durationMs": 392.5728479999998
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799236223,
+          "durationMs": 243.02218899999934
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799236466,
+          "durationMs": 243.04410100000314
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799236710,
+          "durationMs": 243.94732400000066
+        },
+        {
+          "index": 2,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799237202,
+          "durationMs": 242.99761600000056
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799237445,
+          "durationMs": 243.01069300000017
+        },
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799240907,
+          "durationMs": 591.616403
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799241299,
+          "durationMs": 392.29881300000125
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799241691,
+          "durationMs": 391.6790409999994
+        },
+        {
+          "index": 0,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799242083,
+          "durationMs": 391.87158499999714
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799242580,
+          "durationMs": 239.90487399999984
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799242822,
+          "durationMs": 241.89849999999933
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799243064,
+          "durationMs": 242.04128599999967
+        },
+        {
+          "index": 2,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799243547,
+          "durationMs": 243.67797900000005
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799243790,
+          "durationMs": 243.051958
+        }
+      ],
+      "errors": [],
+      "durationMs": 12327.628955,
+      "startedAt": "2026-02-22T22:27:11.712Z"
+    },
+    {
+      "scenarioId": "dark-arch",
+      "title": "Full tree regression (5 panels)",
+      "runId": "dark-arch",
+      "mode": "strip+tree",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "five-panels",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/dark-arch/strip/006-five-panels.png",
+          "step": 6,
+          "timestamp": 1771799249026
+        },
+        {
+          "name": "bottom-3-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/dark-arch/strip/012-bottom-3-collapsed.png",
+          "step": 12,
+          "timestamp": 1771799250488
+        },
+        {
+          "name": "all-5-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/dark-arch/strip/017-all-5-collapsed.png",
+          "step": 17,
+          "timestamp": 1771799251709
+        },
+        {
+          "name": "mode-switch-to-tree",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/dark-arch/strip/018-mode-switch-to-tree.png",
+          "step": 18,
+          "timestamp": 1771799252828
+        },
+        {
+          "name": "five-panels",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/dark-arch/tree/006-five-panels.png",
+          "step": 6,
+          "timestamp": 1771799257173
+        },
+        {
+          "name": "bottom-3-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/dark-arch/tree/012-bottom-3-collapsed.png",
+          "step": 12,
+          "timestamp": 1771799258657
+        },
+        {
+          "name": "all-5-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/dark-arch/tree/017-all-5-collapsed.png",
+          "step": 17,
+          "timestamp": 1771799259914
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799246778,
+          "durationMs": 596.9003890000022
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799247174,
+          "durationMs": 395.86370599999645
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799247567,
+          "durationMs": 393.0401950000014
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799247964,
+          "durationMs": 396.94574199999624
+        },
+        {
+          "index": 0,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799248361,
+          "durationMs": 397.01562900000135
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799248758,
+          "durationMs": 396.88209399999323
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799249271,
+          "durationMs": 244.68982300000062
+        },
+        {
+          "index": 1,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799249512,
+          "durationMs": 240.8562499999971
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799249754,
+          "durationMs": 242.01157099999546
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799249998,
+          "durationMs": 243.99807000000146
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799250242,
+          "durationMs": 243.88772400000016
+        },
+        {
+          "index": 2,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799250730,
+          "durationMs": 241.8049850000025
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799250974,
+          "durationMs": 243.9626169999974
+        },
+        {
+          "index": 2,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799251218,
+          "durationMs": 243.9212819999957
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799251460,
+          "durationMs": 241.9004150000037
+        },
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799254939,
+          "durationMs": 594.7689359999931
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799255333,
+          "durationMs": 394.2113079999981
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799255727,
+          "durationMs": 393.6494670000029
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799256120,
+          "durationMs": 392.9553989999986
+        },
+        {
+          "index": 0,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799256514,
+          "durationMs": 394.00501899999654
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799256910,
+          "durationMs": 396.0006530000028
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799257418,
+          "durationMs": 245.00449300000037
+        },
+        {
+          "index": 1,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799257662,
+          "durationMs": 243.90326099999947
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799257907,
+          "durationMs": 245.0156399999978
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799258150,
+          "durationMs": 242.90449999999691
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799258395,
+          "durationMs": 245.02611700000125
+        },
+        {
+          "index": 2,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799258901,
+          "durationMs": 243.78291100000206
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799259146,
+          "durationMs": 245.09242000000086
+        },
+        {
+          "index": 2,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799259393,
+          "durationMs": 246.8346840000013
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799259637,
+          "durationMs": 243.9502530000027
+        }
+      ],
+      "errors": [],
+      "durationMs": 15840.078259999998,
+      "startedAt": "2026-02-22T22:27:24.078Z"
+    },
+    {
+      "scenarioId": "eager-arch",
+      "title": "Focus navigation sweep",
+      "runId": "eager-arch",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "three-columns",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/eager-arch/strip/005-three-columns.png",
+          "step": 5,
+          "timestamp": 1771799264614
+        },
+        {
+          "name": "at-col1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/eager-arch/strip/008-at-col1.png",
+          "step": 8,
+          "timestamp": 1771799265341
+        },
+        {
+          "name": "at-col2-top",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/eager-arch/strip/010-at-col2-top.png",
+          "step": 10,
+          "timestamp": 1771799265863
+        },
+        {
+          "name": "at-col2-bottom",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/eager-arch/strip/012-at-col2-bottom.png",
+          "step": 12,
+          "timestamp": 1771799266352
+        },
+        {
+          "name": "at-col3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/eager-arch/strip/014-at-col3.png",
+          "step": 14,
+          "timestamp": 1771799266835
+        },
+        {
+          "name": "back-col2-top",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/eager-arch/strip/017-back-col2-top.png",
+          "step": 17,
+          "timestamp": 1771799267566
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799262764,
+          "durationMs": 595.4910959999979
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799263158,
+          "durationMs": 393.89274699999805
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799263551,
+          "durationMs": 392.80203999999503
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799263945,
+          "durationMs": 393.96802500000194
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799264342,
+          "durationMs": 397.0491669999974
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799264855,
+          "durationMs": 240.73996900000202
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799265097,
+          "durationMs": 241.9590559999997
+        },
+        {
+          "index": 2,
+          "tag": "focus-right",
+          "label": "Focus right (Alt+L)",
+          "timestamp": 1771799265585,
+          "durationMs": 243.45062500000495
+        },
+        {
+          "index": 3,
+          "tag": "focus-down",
+          "label": "Focus down (Alt+J)",
+          "timestamp": 1771799266104,
+          "durationMs": 240.68316200000118
+        },
+        {
+          "index": 4,
+          "tag": "focus-right",
+          "label": "Focus right (Alt+L)",
+          "timestamp": 1771799266594,
+          "durationMs": 241.40206199999375
+        },
+        {
+          "index": 5,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799267077,
+          "durationMs": 242.0356909999973
+        },
+        {
+          "index": 5,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799267320,
+          "durationMs": 243.0903959999996
+        }
+      ],
+      "errors": [],
+      "durationMs": 7599.491414000004,
+      "startedAt": "2026-02-22T22:27:39.970Z"
+    },
+    {
+      "scenarioId": "fast-arch",
+      "title": "Swap operations",
+      "runId": "fast-arch",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "two-columns",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/fast-arch/strip/003-two-columns.png",
+          "step": 3,
+          "timestamp": 1771799271477
+        },
+        {
+          "name": "swapped-left",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/fast-arch/strip/005-swapped-left.png",
+          "step": 5,
+          "timestamp": 1771799271969
+        },
+        {
+          "name": "swapped-right",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/fast-arch/strip/007-swapped-right.png",
+          "step": 7,
+          "timestamp": 1771799272459
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799270391,
+          "durationMs": 601.5440060000037
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799270783,
+          "durationMs": 391.5904389999996
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799271176,
+          "durationMs": 392.8833999999988
+        },
+        {
+          "index": 1,
+          "tag": "swap-left",
+          "label": "Swap left (Alt+Shift+H)",
+          "timestamp": 1771799271722,
+          "durationMs": 244.49692199999845
+        },
+        {
+          "index": 2,
+          "tag": "swap-right",
+          "label": "Swap right (Alt+Shift+L)",
+          "timestamp": 1771799272218,
+          "durationMs": 248.87381299999834
+        }
+      ],
+      "errors": [],
+      "durationMs": 4851.139418999999,
+      "startedAt": "2026-02-22T22:27:47.613Z"
+    },
+    {
+      "scenarioId": "grim-arch",
+      "title": "Width cycle presets",
+      "runId": "grim-arch",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial-half",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/grim-arch/strip/002-initial-half.png",
+          "step": 2,
+          "timestamp": 1771799275957
+        },
+        {
+          "name": "width-wide",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/grim-arch/strip/004-width-wide.png",
+          "step": 4,
+          "timestamp": 1771799276466
+        },
+        {
+          "name": "width-full",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/grim-arch/strip/006-width-full.png",
+          "step": 6,
+          "timestamp": 1771799276970
+        },
+        {
+          "name": "width-narrow",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/grim-arch/strip/008-width-narrow.png",
+          "step": 8,
+          "timestamp": 1771799277475
+        },
+        {
+          "name": "width-half-again",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/grim-arch/strip/010-width-half-again.png",
+          "step": 10,
+          "timestamp": 1771799277975
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799275290,
+          "durationMs": 595.9629149999964
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799275687,
+          "durationMs": 396.67446600000403
+        },
+        {
+          "index": 1,
+          "tag": "width-cycle",
+          "label": "Cycle column width (Alt+D)",
+          "timestamp": 1771799276203,
+          "durationMs": 245.3493989999988
+        },
+        {
+          "index": 2,
+          "tag": "width-cycle",
+          "label": "Cycle column width (Alt+D)",
+          "timestamp": 1771799276709,
+          "durationMs": 243.52135799999814
+        },
+        {
+          "index": 3,
+          "tag": "width-cycle",
+          "label": "Cycle column width (Alt+D)",
+          "timestamp": 1771799277214,
+          "durationMs": 243.55925299999944
+        },
+        {
+          "index": 4,
+          "tag": "width-cycle",
+          "label": "Cycle column width (Alt+D)",
+          "timestamp": 1771799277720,
+          "durationMs": 245.19517300000007
+        }
+      ],
+      "errors": [],
+      "durationMs": 5476.207714000004,
+      "startedAt": "2026-02-22T22:27:52.504Z"
+    },
+    {
+      "scenarioId": "hazy-arch",
+      "title": "Tree-aware panel close",
+      "runId": "hazy-arch",
+      "mode": "strip+tree",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "before-close",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/hazy-arch/strip/003-before-close.png",
+          "step": 3,
+          "timestamp": 1771799281885
+        },
+        {
+          "name": "after-close",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/hazy-arch/strip/005-after-close.png",
+          "step": 5,
+          "timestamp": 1771799282432
+        },
+        {
+          "name": "mode-switch-to-tree",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/hazy-arch/strip/006-mode-switch-to-tree.png",
+          "step": 6,
+          "timestamp": 1771799283556
+        },
+        {
+          "name": "before-close",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/hazy-arch/tree/003-before-close.png",
+          "step": 3,
+          "timestamp": 1771799286741
+        },
+        {
+          "name": "after-close",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/hazy-arch/tree/005-after-close.png",
+          "step": 5,
+          "timestamp": 1771799287308
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799280810,
+          "durationMs": 598.2891369999998
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799281201,
+          "durationMs": 391.3518880000047
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799281596,
+          "durationMs": 394.55488699999114
+        },
+        {
+          "index": 1,
+          "tag": "close",
+          "label": "Close panel (Alt+Q)",
+          "timestamp": 1771799282181,
+          "durationMs": 295.7186519999959
+        },
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799285672,
+          "durationMs": 597.2951679999969
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799286065,
+          "durationMs": 393.4055640000006
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799286458,
+          "durationMs": 392.53970700000355
+        },
+        {
+          "index": 1,
+          "tag": "close",
+          "label": "Close panel (Alt+Q)",
+          "timestamp": 1771799287033,
+          "durationMs": 291.613989999998
+        }
+      ],
+      "errors": [],
+      "durationMs": 9287.269656999997,
+      "startedAt": "2026-02-22T22:27:58.027Z"
+    },
+    {
+      "scenarioId": "icy-arch",
+      "title": "Mode switch with collapsed panels",
+      "runId": "icy-arch",
+      "mode": "strip+tree",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "complex-strip",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/icy-arch/strip/004-complex-strip.png",
+          "step": 4,
+          "timestamp": 1771799291618
+        },
+        {
+          "name": "partial-collapse-strip",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/icy-arch/strip/008-partial-collapse-strip.png",
+          "step": 8,
+          "timestamp": 1771799292596
+        },
+        {
+          "name": "mode-switch-to-tree",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/icy-arch/strip/009-mode-switch-to-tree.png",
+          "step": 9,
+          "timestamp": 1771799293701
+        },
+        {
+          "name": "complex-strip",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/icy-arch/tree/004-complex-strip.png",
+          "step": 4,
+          "timestamp": 1771799297276
+        },
+        {
+          "name": "partial-collapse-strip",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-26-52-jade-arch/icy-arch/tree/008-partial-collapse-strip.png",
+          "step": 8,
+          "timestamp": 1771799298240
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799290160,
+          "durationMs": 597.8436580000125
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799290556,
+          "durationMs": 396.0265300000028
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799290951,
+          "durationMs": 394.86362700001337
+        },
+        {
+          "index": 0,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799291354,
+          "durationMs": 402.57412399999157
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799291862,
+          "durationMs": 243.8002039999992
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799292107,
+          "durationMs": 244.97484399999666
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799292352,
+          "durationMs": 244.56470400000399
+        },
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799295816,
+          "durationMs": 594.4361750000098
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799296208,
+          "durationMs": 392.03961200000776
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799296603,
+          "durationMs": 394.87389899999835
+        },
+        {
+          "index": 0,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799296997,
+          "durationMs": 393.89493599999696
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799297518,
+          "durationMs": 242.16813299999922
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799297760,
+          "durationMs": 241.72602599998936
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799298001,
+          "durationMs": 241.03388699999778
+        }
+      ],
+      "errors": [],
+      "durationMs": 10876.988932000007,
+      "startedAt": "2026-02-22T22:28:07.367Z"
+    }
+  ]
+}

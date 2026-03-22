@@ -1,0 +1,122 @@
+{
+  "runId": "run-2026-02-24T10-18-00-keen-arch",
+  "startedAt": "2026-02-24T10:18:00.495Z",
+  "completedAt": "2026-02-24T10:18:07.399Z",
+  "totalScenarios": 1,
+  "passed": 1,
+  "failed": 0,
+  "scenarios": [
+    {
+      "scenarioId": "amber-arch",
+      "title": "Basic collapse roundtrip",
+      "runId": "amber-arch",
+      "mode": "strip+tree",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "spawned",
+          "path": "scripts/panel-regression/runs/run-2026-02-24T10-18-00-keen-arch/amber-arch/strip/002-spawned.png",
+          "step": 2,
+          "timestamp": 1771928282281
+        },
+        {
+          "name": "collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-24T10-18-00-keen-arch/amber-arch/strip/004-collapsed.png",
+          "step": 4,
+          "timestamp": 1771928282830
+        },
+        {
+          "name": "expanded",
+          "path": "scripts/panel-regression/runs/run-2026-02-24T10-18-00-keen-arch/amber-arch/strip/006-expanded.png",
+          "step": 6,
+          "timestamp": 1771928283383
+        },
+        {
+          "name": "mode-switch-to-tree",
+          "path": "scripts/panel-regression/runs/run-2026-02-24T10-18-00-keen-arch/amber-arch/strip/007-mode-switch-to-tree.png",
+          "step": 7,
+          "timestamp": 1771928284575
+        },
+        {
+          "name": "spawned",
+          "path": "scripts/panel-regression/runs/run-2026-02-24T10-18-00-keen-arch/amber-arch/tree/002-spawned.png",
+          "step": 2,
+          "timestamp": 1771928286290
+        },
+        {
+          "name": "collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-24T10-18-00-keen-arch/amber-arch/tree/004-collapsed.png",
+          "step": 4,
+          "timestamp": 1771928286831
+        },
+        {
+          "name": "expanded",
+          "path": "scripts/panel-regression/runs/run-2026-02-24T10-18-00-keen-arch/amber-arch/tree/006-expanded.png",
+          "step": 6,
+          "timestamp": 1771928287382
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771928281460,
+          "durationMs": 713.4258050000001
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771928281960,
+          "durationMs": 500.48488900000007
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771928282544,
+          "durationMs": 252.7263290000003
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771928283091,
+          "durationMs": 254.29420699999991
+        },
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771928285490,
+          "durationMs": 679.8009360000005
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771928285982,
+          "durationMs": 491.7721469999997
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771928286553,
+          "durationMs": 255.0012399999996
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771928287096,
+          "durationMs": 257.26733799999965
+        }
+      ],
+      "errors": [],
+      "durationMs": 6886.703160999999,
+      "startedAt": "2026-02-24T10:18:00.511Z"
+    }
+  ]
+}

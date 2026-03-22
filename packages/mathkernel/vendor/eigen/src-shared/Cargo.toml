@@ -1,0 +1,12 @@
+[package]
+name = "tmnl-shared"
+version = "0.1.0"
+edition = "2021"
+description = "Shared types and IPC protocol for TMNL apps (main + bar)"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+log = { workspace = true }
+tokio = { workspace = true }
+niri-ipc = { workspace = true }

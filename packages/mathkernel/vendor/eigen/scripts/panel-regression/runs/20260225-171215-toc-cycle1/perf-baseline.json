@@ -1,0 +1,76 @@
+{
+  "kind": "toc-cycle1-baseline",
+  "capturedAt": "2026-02-25T22:12:15.905Z",
+  "config": {
+    "url": "http://localhost:1420/window?testbed=floating",
+    "warmupMs": 1000,
+    "sampleMs": 5000,
+    "replicates": 1,
+    "runtime": "bun",
+    "browser": "playwright/chromium"
+  },
+  "summary": {
+    "p50": 16.69999999999891,
+    "p95": 33.29999999999927,
+    "p99": 66.70000000000073,
+    "mean": 18.831920903954803,
+    "samples": 354
+  },
+  "replicates": [
+    {
+      "replicate": 1,
+      "frameStats": {
+        "p50": 16.69999999999891,
+        "p95": 33.29999999999927,
+        "p99": 66.70000000000073,
+        "mean": 18.831920903954803,
+        "samples": 354
+      },
+      "latencies": [
+        {
+          "name": "spawn-chat",
+          "ms": 227.6356360000009,
+          "ok": true,
+          "detail": "__PANEL_TEST__.spawnTiledChat"
+        },
+        {
+          "name": "split-hotkey",
+          "ms": 151.11982599999828,
+          "ok": true,
+          "detail": "__PANEL_TEST__.splitHorizontal · tiled 4 -> increased"
+        },
+        {
+          "name": "drag-panel",
+          "ms": 1041.263922,
+          "ok": false,
+          "detail": "panel bbox unavailable after drag"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 5008.755418999999,
+          "ok": false,
+          "detail": "prompt-1: send dispatch failed: focus: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('textarea[placeholder=\"Message...\"]:visible, textarea[placeholder=\"Type a message...\"]:visible, textarea:visible').first()\u001b[22m\n"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 5008.755418999999,
+          "ok": false,
+          "detail": "prompt-1: send dispatch failed: focus: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('textarea[placeholder=\"Message...\"]:visible, textarea[placeholder=\"Type a message...\"]:visible, textarea:visible').first()\u001b[22m\n"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 5008.755418999999,
+          "ok": false,
+          "detail": "prompt-1: send dispatch failed: focus: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('textarea[placeholder=\"Message...\"]:visible, textarea[placeholder=\"Type a message...\"]:visible, textarea:visible').first()\u001b[22m\n"
+        }
+      ],
+      "notes": [
+        "drag warning: panel bbox unavailable after drag",
+        "prompt-1 first activity timed out",
+        "prompt-1 full response timed out"
+      ],
+      "frameDeltaCount": 354
+    }
+  ],
+  "consoleErrors": []
+}

@@ -1,0 +1,70 @@
+{
+  "runId": "run-2026-02-24T10-17-52-keen-arch",
+  "startedAt": "2026-02-24T10:17:52.436Z",
+  "completedAt": "2026-02-24T10:17:55.958Z",
+  "totalScenarios": 1,
+  "passed": 1,
+  "failed": 0,
+  "scenarios": [
+    {
+      "scenarioId": "jade-arch",
+      "title": "Strip float pop-off + pop-back",
+      "runId": "jade-arch",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "spawned",
+          "path": "scripts/panel-regression/runs/run-2026-02-24T10-17-52-keen-arch/jade-arch/strip/002-spawned.png",
+          "step": 2,
+          "timestamp": 1771928274228
+        },
+        {
+          "name": "floated",
+          "path": "scripts/panel-regression/runs/run-2026-02-24T10-17-52-keen-arch/jade-arch/strip/004-floated.png",
+          "step": 4,
+          "timestamp": 1771928275130
+        },
+        {
+          "name": "retiled",
+          "path": "scripts/panel-regression/runs/run-2026-02-24T10-17-52-keen-arch/jade-arch/strip/006-retiled.png",
+          "step": 6,
+          "timestamp": 1771928275946
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771928273409,
+          "durationMs": 714.6154300000001
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771928273914,
+          "durationMs": 504.79991599999994
+        },
+        {
+          "index": 1,
+          "tag": "float",
+          "label": "Float panel (Alt+Shift+F)",
+          "timestamp": 1771928274804,
+          "durationMs": 567.0084870000001
+        },
+        {
+          "index": 2,
+          "tag": "float",
+          "label": "Float panel (Alt+Shift+F)",
+          "timestamp": 1771928275654,
+          "durationMs": 514.1131700000001
+        }
+      ],
+      "errors": [],
+      "durationMs": 3504.288648,
+      "startedAt": "2026-02-24T10:17:52.454Z"
+    }
+  ]
+}

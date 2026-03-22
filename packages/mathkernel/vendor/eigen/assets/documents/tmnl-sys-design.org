@@ -1,0 +1,1287 @@
+#+TITLE: TMNL System Design & Operational Protocol
+#+AUTHOR: Val (AG-Grid Integration Architect)
+#+DATE: 2025-12-08
+#+PROPERTY: header-args :mkdirp yes
+#+STARTUP: overview
+#+OPTIONS: toc:3 num:t
+
+* Preamble
+:PROPERTIES:
+:CUSTOM_ID: preamble
+:END:
+
+This document formalizes the TMNL (Terminal & Multi-Modal Navigation Layer) system
+design, operational protocols, and agent orchestration. It serves as:
+
+1. *Specification* — V-model decomposition of system requirements
+2. *Reference* — MCP tool inventory and invocation patterns
+3. *Runbook* — Standard Operating Procedures for common workflows
+4. *Configuration* — Literate, tangleable definitions for agents, commands, skills, hooks
+
+#+begin_quote
+"The map is not the territory, but a good map makes the territory navigable."
+#+end_quote
+
+** Document Conventions
+
+| Symbol | Meaning                          |
+|--------+----------------------------------|
+| ~:tangle~ | Block tangles to specified file  |
+| ~:noweb~  | Block uses noweb reference syntax |
+| ~SOP~     | Standard Operating Procedure     |
+| ~BP~      | Business Process                 |
+| ~MCP~     | Model Context Protocol           |
+
+* V-Model Decomposition
+:PROPERTIES:
+:CUSTOM_ID: v-model
+:END:
+
+The V-model maps requirements (left arm) to validation (right arm) through
+a decomposition hierarchy:
+
+#+begin_example
+    REQUIREMENTS                              VALIDATION
+    ────────────                              ──────────
+
+    Epic (Strategic)  ◄─────────────────────► System Test
+         │                                         ▲
+         ▼                                         │
+    Feature (Tactical) ◄────────────────────► Integration Test
+         │                                         ▲
+         ▼                                         │
+    Task (Operational) ◄────────────────────► Unit Test
+         │                                         ▲
+         └──────────► IMPLEMENTATION ─────────────┘
+#+end_example
+
+** Hierarchy Semantics
+
+*** Epic (Requirements Level)
+- Strategic scope: entire subsystem or capability area
+- Acceptance: system-level behavior validation
+- Lifecycle: spans multiple sprints/iterations
+- Beads type: ~--type=epic~
+
+*** Feature (System Design Level)
+- Tactical scope: coherent functional unit
+- Acceptance: integration tests across components
+- Lifecycle: single sprint deliverable
+- Beads type: ~--type=feature~
+- Dependency: ~bd dep add <feature> <epic> --type parent-child~
+
+*** Task (Module Design Level)
+- Operational scope: atomic, testable unit of work
+- Acceptance: unit tests, type checks, lint passes
+- Lifecycle: hours to days
+- Beads type: ~--type=task~
+- Dependency: ~bd dep add <task> <feature> --type parent-child~
+
+** TMNL Decomposition Matrix
+
+| Epic              | Features | Tasks | Priority |
+|-------------------+----------+-------+----------|
+| Canvas System     |        3 |    10 | P1       |
+| Layer System      |        2 |     7 | P1       |
+| Animation System  |        2 |     7 | P1       |
+| Data Grid System  |        3 |     9 | P1       |
+| Streams Playground|        3 |    10 | P1       |
+| Data Manager      |        3 |    13 | P1       |
+| Modal System      |        3 |     7 | P2       |
+| Slider System     |        3 |    10 | P2       |
+| Tauri Integration |        3 |     8 | P2       |
+|-------------------+----------+-------+----------|
+| *TOTAL*           |       25 |    81 | —        |
+
+** Beads ID Registry
+
+#+NAME: epic-registry
+| Epic ID   | Name               | Feature IDs                    |
+|-----------+--------------------+--------------------------------|
+| tmnl-dfw  | Canvas System      | tmnl-hg2, tmnl-8r5, tmnl-rxa   |
+| tmnl-4wg  | Layer System       | tmnl-v7b, tmnl-6yl             |
+| tmnl-tov  | Animation System   | tmnl-c1c, tmnl-8pb             |
+| tmnl-zkx  | Data Grid System   | tmnl-z6o, tmnl-b7s, tmnl-qd3   |
+| tmnl-6gt  | Streams Playground | tmnl-t0l, tmnl-m9e, tmnl-0jk   |
+| tmnl-c29  | Data Manager       | tmnl-qow, tmnl-7gr, tmnl-5ua   |
+| tmnl-8us  | Modal System       | tmnl-bi1, tmnl-az2, tmnl-f06   |
+| tmnl-s38  | Slider System      | tmnl-e0l, tmnl-5no, tmnl-0td   |
+| tmnl-3xd  | Tauri Integration  | tmnl-65a, tmnl-9wh, tmnl-vs9   |
+
+* MCP Tool Inventory
+:PROPERTIES:
+:CUSTOM_ID: mcp-inventory
+:END:
+
+Model Context Protocol servers extend Claude Code with specialized capabilities.
+This section documents all configured MCPs, their tool signatures, and invocation patterns.
+
+** Beads (Issue Tracking)
+:PROPERTIES:
+:CUSTOM_ID: mcp-beads
+:END:
+
+Local CLI-based distributed issue tracking. Not an MCP server, but integrated
+via Bash tool invocations.
+
+*** Tool: ~bd create~
+
+Create a new issue in the beads database.
+
+#+begin_src bash :tangle no
+bd create --title="<title>" --type=<epic|feature|task|bug> --priority=<0-3> --description="<desc>" --json
+#+end_src
+
+| Parameter     | Required | Values                    | Description                |
+|---------------+----------+---------------------------+----------------------------|
+| ~--title~     | Yes      | string                    | Issue title                |
+| ~--type~      | No       | epic/feature/task/bug     | Issue classification       |
+| ~--priority~  | No       | 0-3 (0=highest)           | Urgency ranking            |
+| ~--description~ | No     | string                    | Detailed description       |
+| ~--json~      | No       | flag                      | Output as JSON             |
+
+*Example — Create Epic:*
+#+begin_src bash :tangle no
+bd create --title="Data Grid System" --type=epic --priority=1 \
+  --description="AG-Grid v34 integration: TmnlDataGrid, theme variants, cell renderers" --json
+#+end_src
+
+*** Tool: ~bd dep add~
+
+Wire parent-child or blocking dependencies between issues.
+
+#+begin_src bash :tangle no
+bd dep add <child-id> <parent-id> --type parent-child
+bd dep add <blocked-id> <blocker-id>
+#+end_src
+
+| Parameter     | Required | Description                              |
+|---------------+----------+------------------------------------------|
+| ~<child-id>~  | Yes      | Issue that depends on parent             |
+| ~<parent-id>~ | Yes      | Issue that child belongs to              |
+| ~--type~      | No       | "parent-child" for hierarchy, omit for blocking |
+
+*** Tool: ~bd update~
+
+Modify issue status, assignee, or metadata.
+
+#+begin_src bash :tangle no
+bd update <id> --status=<open|in_progress|closed> --assignee=<username>
+#+end_src
+
+*** Tool: ~bd list~
+
+Query issues with filters.
+
+#+begin_src bash :tangle no
+bd list --type=<type> --status=<status> --json
+bd ready                    # Show unblocked issues
+bd blocked                  # Show blocked issues
+#+end_src
+
+*** Tool: ~bd sync~
+
+Synchronize local beads database with git remote.
+
+#+begin_src bash :tangle no
+bd sync                     # Full sync
+bd sync --status            # Check sync status only
+#+end_src
+
+** GitHub MCP
+:PROPERTIES:
+:CUSTOM_ID: mcp-github
+:END:
+
+GitHub platform integration for repository, issue, and PR operations.
+
+*** Tool: ~mcp__github__search_code~
+
+Fast code search across repositories using GitHub's native search engine.
+
+#+begin_src json :tangle no
+{
+  "query": "content:Skill language:Java org:github",
+  "perPage": 10,
+  "page": 1
+}
+#+end_src
+
+*** Tool: ~mcp__github__list_issues~
+
+List issues in a repository with pagination and filtering.
+
+#+begin_src json :tangle no
+{
+  "owner": "creatifcoding",
+  "repo": "gbg",
+  "state": "OPEN",
+  "perPage": 20
+}
+#+end_src
+
+*** Tool: ~mcp__github__create_pull_request~
+
+Create a new pull request.
+
+#+begin_src json :tangle no
+{
+  "owner": "creatifcoding",
+  "repo": "gbg",
+  "title": "feat(tmnl): add data grid theming",
+  "head": "feat/data-grid-theme",
+  "base": "master",
+  "body": "## Summary\n- Implemented TMNL_TOKENS\n- Added cell renderers"
+}
+#+end_src
+
+*** Tool: ~mcp__github__pull_request_read~
+
+Read PR details, diff, status, files, or comments.
+
+#+begin_src json :tangle no
+{
+  "method": "get_diff",
+  "owner": "creatifcoding",
+  "repo": "gbg",
+  "pullNumber": 42
+}
+#+end_src
+
+| Method             | Description                          |
+|--------------------+--------------------------------------|
+| ~get~              | PR metadata                          |
+| ~get_diff~         | Unified diff                         |
+| ~get_status~       | Build/check status                   |
+| ~get_files~        | Changed files list                   |
+| ~get_review_comments~ | Line-level review comments        |
+| ~get_reviews~      | Review submissions                   |
+| ~get_comments~     | General PR comments                  |
+
+** Exa MCP
+:PROPERTIES:
+:CUSTOM_ID: mcp-exa
+:END:
+
+Web search and code context retrieval via Exa AI.
+
+*** Tool: ~mcp__exa__web_search_exa~
+
+Real-time web search with content scraping.
+
+#+begin_src json :tangle no
+{
+  "query": "Effect-TS Schema validation patterns 2025",
+  "numResults": 8,
+  "type": "auto"
+}
+#+end_src
+
+| Parameter              | Default | Description                        |
+|------------------------+---------+------------------------------------|
+| ~query~                | —       | Search query                       |
+| ~numResults~           | 8       | Result count                       |
+| ~type~                 | auto    | auto/fast/deep                     |
+| ~contextMaxCharacters~ | 10000   | Max chars for LLM context          |
+| ~livecrawl~            | fallback| fallback/preferred                 |
+
+*** Tool: ~mcp__exa__get_code_context_exa~
+
+Specialized code search for APIs, libraries, SDKs.
+
+#+begin_src json :tangle no
+{
+  "query": "AG-Grid React cell renderer TypeScript",
+  "tokensNum": 5000
+}
+#+end_src
+
+** Context7 MCP
+:PROPERTIES:
+:CUSTOM_ID: mcp-context7
+:END:
+
+Library documentation retrieval with version awareness.
+
+*** Tool: ~mcp__upstash-context-7-mcp__resolve-library-id~
+
+Resolve package name to Context7 library ID.
+
+#+begin_src json :tangle no
+{
+  "libraryName": "effect-ts"
+}
+#+end_src
+
+*** Tool: ~mcp__upstash-context-7-mcp__get-library-docs~
+
+Fetch documentation for a resolved library.
+
+#+begin_src json :tangle no
+{
+  "context7CompatibleLibraryID": "/effect-ts/effect",
+  "topic": "Schema",
+  "tokens": 5000
+}
+#+end_src
+
+** DeepWiki MCP
+:PROPERTIES:
+:CUSTOM_ID: mcp-deepwiki
+:END:
+
+GitHub repository documentation and Q&A.
+
+*** Tool: ~mcp__deepwiki__read_wiki_structure~
+
+Get documentation topic list for a repository.
+
+#+begin_src json :tangle no
+{
+  "repoName": "Effect-TS/effect"
+}
+#+end_src
+
+*** Tool: ~mcp__deepwiki__ask_question~
+
+Ask questions about repository architecture/patterns.
+
+#+begin_src json :tangle no
+{
+  "repoName": "Effect-TS/effect",
+  "question": "How should I structure Effect.Service for a slider behavior system?"
+}
+#+end_src
+
+** DocFork MCP
+:PROPERTIES:
+:CUSTOM_ID: mcp-docfork
+:END:
+
+Documentation search across GitHub and web sources.
+
+*** Tool: ~mcp__docfork-mcp__docfork_search_docs~
+
+Search documentation with language/framework context.
+
+#+begin_src json :tangle no
+{
+  "query": "AG-Grid theming TypeScript React",
+  "tokens": "dynamic"
+}
+#+end_src
+
+*** Tool: ~mcp__docfork-mcp__docfork_read_url~
+
+Read documentation URL as markdown.
+
+#+begin_src json :tangle no
+{
+  "url": "https://www.ag-grid.com/react-data-grid/theming/"
+}
+#+end_src
+
+** Ref MCP
+:PROPERTIES:
+:CUSTOM_ID: mcp-ref
+:END:
+
+Documentation search including private resources.
+
+*** Tool: ~mcp__Ref__ref_search_documentation~
+
+Search public and private documentation.
+
+#+begin_src json :tangle no
+{
+  "query": "Effect Schema TypeScript validation ref_src=private"
+}
+#+end_src
+
+** Chrome DevTools MCP
+:PROPERTIES:
+:CUSTOM_ID: mcp-chrome
+:END:
+
+Browser automation and debugging.
+
+*** Tool: ~mcp__chrome-devtools__navigate_page~
+
+Navigate browser to URL.
+
+#+begin_src json :tangle no
+{
+  "type": "url",
+  "url": "http://localhost:5173/testbed"
+}
+#+end_src
+
+*** Tool: ~mcp__chrome-devtools__take_snapshot~
+
+Capture accessibility tree snapshot.
+
+#+begin_src json :tangle no
+{
+  "verbose": false
+}
+#+end_src
+
+*** Tool: ~mcp__chrome-devtools__click~
+
+Click element by UID from snapshot.
+
+#+begin_src json :tangle no
+{
+  "uid": "abc123"
+}
+#+end_src
+
+** Anime.js MCP
+:PROPERTIES:
+:CUSTOM_ID: mcp-animejs
+:END:
+
+Animation library documentation and examples.
+
+*** Tool: ~mcp__anime-js__get_anime_component~
+
+Get component/API documentation.
+
+#+begin_src json :tangle no
+{
+  "componentName": "timeline"
+}
+#+end_src
+
+*** Tool: ~mcp__anime-js__search_anime_examples~
+
+Search animation pattern examples.
+
+#+begin_src json :tangle no
+{
+  "query": "stagger grid entrance"
+}
+#+end_src
+
+** Sequential Thinking MCP
+:PROPERTIES:
+:CUSTOM_ID: mcp-sequential
+:END:
+
+Structured problem-solving through iterative thoughts.
+
+*** Tool: ~mcp__smithery-ai-server-sequential-thinking__sequentialthinking~
+
+Execute a thought in a chain.
+
+#+begin_src json :tangle no
+{
+  "thought": "First, I need to understand the current layer architecture...",
+  "thoughtNumber": 1,
+  "totalThoughts": 5,
+  "nextThoughtNeeded": true,
+  "isRevision": false
+}
+#+end_src
+
+** Morph MCP
+:PROPERTIES:
+:CUSTOM_ID: mcp-morph
+:END:
+
+Efficient file editing with minimal context.
+
+*** Tool: ~mcp__morph-mcp__edit_file~
+
+Edit file using placeholder syntax.
+
+#+begin_src json :tangle no
+{
+  "path": "/path/to/file.tsx",
+  "instruction": "Adding error boundary wrapper",
+  "code_edit": "// ... existing code ...\n<ErrorBoundary>\n  {children}\n</ErrorBoundary>\n// ... existing code ..."
+}
+#+end_src
+
+* Standard Operating Procedures
+:PROPERTIES:
+:CUSTOM_ID: sops
+:END:
+
+** SOP-001: Session Initialization
+:PROPERTIES:
+:CUSTOM_ID: sop-001
+:END:
+
+#+begin_example
+┌─────────────────────────────────────────────────────────────┐
+│                  SESSION INITIALIZATION                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  1. Hook fires: SessionStart:compact                         │
+│     └─► Loads beads context, EDIN briefing                  │
+│                                                              │
+│  2. Run: bd prime (if .beads/ detected)                     │
+│     └─► Recovers beads state post-compaction                │
+│                                                              │
+│  3. Run: bd ready                                            │
+│     └─► Shows available work (no blockers)                  │
+│                                                              │
+│  4. Run: bd stats                                            │
+│     └─► Project health overview                             │
+│                                                              │
+│  5. Review: git status                                       │
+│     └─► Understand working tree state                       │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+#+end_example
+
+** SOP-002: Task Claim & Execution
+:PROPERTIES:
+:CUSTOM_ID: sop-002
+:END:
+
+#+begin_example
+┌─────────────────────────────────────────────────────────────┐
+│                    TASK EXECUTION                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  1. SELECT WORK                                              │
+│     bd ready                                                 │
+│     bd show <id>          # Review details + hierarchy      │
+│                                                              │
+│  2. CLAIM TASK                                               │
+│     bd update <id> --status=in_progress                     │
+│                                                              │
+│  3. EXECUTE                                                  │
+│     ├─► Read relevant files                                 │
+│     ├─► Implement changes                                   │
+│     ├─► Run tests: bun test                                 │
+│     └─► Run typecheck: bun typecheck                        │
+│                                                              │
+│  4. CLOSE                                                    │
+│     bd close <id>                                            │
+│     # Or with reason:                                        │
+│     bd close <id> --reason="Implemented in PR #42"          │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+#+end_example
+
+** SOP-003: Session Close Protocol
+:PROPERTIES:
+:CUSTOM_ID: sop-003
+:END:
+
+*CRITICAL: Never skip. Work is not done until pushed.*
+
+#+begin_example
+┌─────────────────────────────────────────────────────────────┐
+│                   SESSION CLOSE PROTOCOL                     │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  [ ] 1. git status           # Check what changed           │
+│                                                              │
+│  [ ] 2. git add <files>      # Stage code changes           │
+│                                                              │
+│  [ ] 3. bd sync              # Commit beads changes         │
+│         └─► If sync fails, manually:                        │
+│             git add .beads/                                  │
+│                                                              │
+│  [ ] 4. git commit -m "..."  # Commit with message          │
+│         └─► Format: <type>(<scope>): <description>          │
+│         └─► Include co-author trailer                       │
+│                                                              │
+│  [ ] 5. bd sync              # Commit any new beads changes │
+│                                                              │
+│  [ ] 6. git push             # Push to remote               │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+#+end_example
+
+** SOP-004: V-Model Decomposition
+:PROPERTIES:
+:CUSTOM_ID: sop-004
+:END:
+
+#+begin_example
+┌─────────────────────────────────────────────────────────────┐
+│               V-MODEL DECOMPOSITION WORKFLOW                 │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  PHASE 1: SUBSYSTEM SCAN                                     │
+│  ─────────────────────                                       │
+│  Deploy parallel subagents (Task tool) to scan each         │
+│  subsystem. Each agent:                                      │
+│   • Inventories files (status: COMPLETE/PARTIAL/STUB)       │
+│   • Identifies test coverage gaps                           │
+│   • Proposes tasks with acceptance criteria                 │
+│                                                              │
+│  PHASE 2: EPIC CREATION                                      │
+│  ──────────────────────                                      │
+│  For each subsystem:                                         │
+│    bd create --title="<Subsystem>" --type=epic --priority=1 │
+│                                                              │
+│  PHASE 3: FEATURE EXTRACTION                                 │
+│  ──────────────────────────                                  │
+│  Group related tasks into features:                          │
+│    bd create --title="<Feature>" --type=feature             │
+│    bd dep add <feature-id> <epic-id> --type parent-child    │
+│                                                              │
+│  PHASE 4: TASK ATOMIZATION                                   │
+│  ─────────────────────────                                   │
+│  Create atomic, testable tasks:                              │
+│    bd create --title="<Task>" --type=task --priority=<N>    │
+│    bd dep add <task-id> <feature-id> --type parent-child    │
+│                                                              │
+│  PHASE 5: DEPENDENCY WIRING                                  │
+│  ─────────────────────────                                   │
+│  Wire blocking dependencies (not parent-child):             │
+│    bd dep add <blocked> <blocker>                           │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+#+end_example
+
+** SOP-005: PR Creation
+:PROPERTIES:
+:CUSTOM_ID: sop-005
+:END:
+
+#+begin_example
+┌─────────────────────────────────────────────────────────────┐
+│                    PR CREATION WORKFLOW                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  1. GATHER CONTEXT (parallel)                                │
+│     git status                                               │
+│     git diff                                                 │
+│     git log master..HEAD                                     │
+│     git diff master...HEAD                                   │
+│                                                              │
+│  2. CHECK TEMPLATE                                           │
+│     Search: .github/PULL_REQUEST_TEMPLATE/                  │
+│     Or: pull_request_template.md                            │
+│                                                              │
+│  3. CREATE BRANCH (if needed)                                │
+│     git checkout -b <type>/<scope>-<description>            │
+│                                                              │
+│  4. PUSH                                                     │
+│     git push -u origin <branch>                             │
+│                                                              │
+│  5. CREATE PR                                                │
+│     mcp__github__create_pull_request                        │
+│     └─► title: <type>(<scope>): <description>               │
+│     └─► body: ## Summary + ## Test plan + trailer           │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+#+end_example
+
+* Agent Definitions
+:PROPERTIES:
+:CUSTOM_ID: agents
+:END:
+
+Literate configuration for Claude Code subagent types.
+Tangle to ~.claude/agents/~ for activation.
+
+** Explore Agent
+
+Fast codebase exploration with Glob/Grep/Read tools.
+
+#+begin_src yaml :tangle .claude/agents/explore.yaml :mkdirp yes
+name: Explore
+description: |
+  Fast agent specialized for exploring codebases. Use this when you need to
+  quickly find files by patterns (eg. "src/components/**/*.tsx"), search code
+  for keywords (eg. "API endpoints"), or answer questions about the codebase.
+
+  Specify thoroughness: "quick" for basic searches, "medium" for moderate
+  exploration, "very thorough" for comprehensive analysis.
+
+tools:
+  - Glob
+  - Grep
+  - Read
+  - Bash  # For git log, git blame, etc.
+
+prompts:
+  quick: |
+    Perform a quick search. Use 1-2 Glob or Grep calls max.
+    Return results immediately without deep exploration.
+
+  medium: |
+    Moderate exploration. Use up to 5 search calls.
+    Follow interesting leads but don't exhaustively explore.
+
+  very_thorough: |
+    Comprehensive analysis. Use as many calls as needed.
+    Explore multiple naming conventions, check related files,
+    trace dependencies across the codebase.
+#+end_src
+
+** Plan Agent
+
+Software architect for designing implementation plans.
+
+#+begin_src yaml :tangle .claude/agents/plan.yaml :mkdirp yes
+name: Plan
+description: |
+  Software architect agent for designing implementation plans. Use this when
+  you need to plan the implementation strategy for a task. Returns step-by-step
+  plans, identifies critical files, and considers architectural trade-offs.
+
+tools:
+  - Glob
+  - Grep
+  - Read
+  - WebSearch
+  - WebFetch
+  - mcp__deepwiki__ask_question
+
+outputs:
+  - Step-by-step implementation plan
+  - Critical files list
+  - Architectural trade-offs
+  - Risk assessment
+  - Estimated complexity
+
+constraints:
+  - No time estimates (focus on what, not when)
+  - Must read existing code before suggesting changes
+  - Must identify all affected files
+#+end_src
+
+** Beads Decomposition Agent
+
+Specialized agent for V-model issue decomposition.
+
+#+begin_src yaml :tangle .claude/agents/beads-decomp.yaml :mkdirp yes
+name: BeadsDecomposition
+description: |
+  V-model decomposition agent. Scans a subsystem, identifies gaps,
+  and proposes beads issues with acceptance criteria.
+
+tools:
+  - Glob
+  - Grep
+  - Read
+  - Bash  # For bd commands (if permitted)
+
+workflow:
+  1_scan:
+    description: Inventory all files in the subsystem
+    output: File status matrix (COMPLETE/PARTIAL/STUB)
+
+  2_analyze:
+    description: Identify test coverage and documentation gaps
+    output: Gap analysis report
+
+  3_propose:
+    description: Generate task proposals with acceptance criteria
+    output: List of proposed beads issues
+
+output_format: |
+  ## Subsystem: <name>
+
+  ### File Status Matrix
+  | File | Status | Notes |
+  |------|--------|-------|
+
+  ### Gap Analysis
+  - Test coverage: X%
+  - Documentation: Y%
+  - Missing: [list]
+
+  ### Proposed Tasks
+  1. **<title>** (P<priority>)
+     - Acceptance: <criteria>
+     - Files: <affected>
+#+end_src
+
+* Slash Commands
+:PROPERTIES:
+:CUSTOM_ID: commands
+:END:
+
+Custom slash commands for Claude Code.
+Tangle to ~.claude/commands/~ for activation.
+
+** /decompose — V-Model Decomposition
+
+#+begin_src markdown :tangle .claude/commands/decompose.md :mkdirp yes
+# V-Model Decomposition
+
+Decompose a subsystem or feature into beads issues using V-model methodology.
+
+## Usage
+/decompose <subsystem-name>
+/decompose --scope=full  (entire TMNL system)
+
+## Process
+1. Deploy parallel subagents to scan subsystem(s)
+2. Collect file status matrices and gap analyses
+3. Create Epic (if scope=full or new subsystem)
+4. Extract Features from logical groupings
+5. Atomize into Tasks with acceptance criteria
+6. Wire parent-child dependencies
+
+## Output
+- Summary table of created beads
+- Dependency graph visualization
+- Next steps recommendation
+#+end_src
+
+** /ready — Show Available Work
+
+#+begin_src markdown :tangle .claude/commands/ready.md :mkdirp yes
+# Show Ready Work
+
+Display beads issues that are ready to work (no blockers).
+
+## Process
+1. Run: bd ready
+2. Format output as table with priorities
+3. Suggest which task to tackle based on:
+   - Priority (P0 > P1 > P2 > P3)
+   - Dependencies (unblock others first)
+   - Context (related to recent work)
+#+end_src
+
+** /close-session — Session Close Protocol
+
+#+begin_src markdown :tangle .claude/commands/close-session.md :mkdirp yes
+# Session Close Protocol
+
+Execute the mandatory session close checklist.
+
+## Checklist
+1. [ ] git status — check what changed
+2. [ ] git add <files> — stage code changes
+3. [ ] bd sync — commit beads changes
+4. [ ] git commit -m "..." — commit code
+5. [ ] bd sync — commit any new beads changes
+6. [ ] git push — push to remote
+
+## Enforcement
+NEVER mark session complete until all items checked.
+Work is not done until pushed.
+#+end_src
+
+** /sync — Beads + Git Sync
+
+#+begin_src markdown :tangle .claude/commands/sync.md :mkdirp yes
+# Sync Beads and Git
+
+Synchronize beads database and push code changes.
+
+## Process
+1. Run: bd sync
+2. If sync fails:
+   - git add .beads/
+   - Report worktree error for user investigation
+3. Run: git status
+4. If uncommitted changes exist:
+   - Prompt for commit message
+   - git add . && git commit -m "<message>"
+5. Run: git push
+#+end_src
+
+* Skills
+:PROPERTIES:
+:CUSTOM_ID: skills
+:END:
+
+Specialized capabilities invocable via the Skill tool.
+
+** effect-patterns — Effect-TS Pattern Lookup
+
+#+begin_src yaml :tangle .claude/skills/effect-patterns.yaml :mkdirp yes
+name: effect-patterns
+description: |
+  Look up canonical Effect-TS patterns from submodule documentation
+  and CLAUDE.md examples.
+
+sources:
+  - ../../submodules/effect/packages/*/test/*.test.ts
+  - ../../submodules/website/
+  - CLAUDE.md (Schema Discipline section)
+  - .edin/EFFECT_PATTERNS.md
+
+patterns:
+  service:
+    description: Effect.Service + Layer.succeed
+    example: |
+      class MyService extends Context.Tag("app/MyService")<
+        MyService,
+        { readonly doThing: Effect.Effect<void> }
+      >() {}
+
+      const MyServiceLive = Layer.succeed(MyService, {
+        doThing: Effect.log("done")
+      })
+
+  schema:
+    description: Schema.TaggedStruct for discriminated unions
+    example: |
+      const MyEvent = Schema.TaggedStruct("MyEvent", {
+        payload: Schema.String
+      })
+      type MyEvent = typeof MyEvent.Type
+
+  atom:
+    description: Atom.runtime for Effect integration
+    example: |
+      const runtimeAtom = Atom.runtime(Layer.mergeAll(
+        ServiceA.Default,
+        ServiceB.Default
+      ))
+
+      const myAtom = runtimeAtom.atom(
+        Effect.gen(function*() {
+          const svc = yield* ServiceA
+          return yield* svc.getData()
+        })
+      )
+#+end_src
+
+** ag-grid — AG-Grid Integration Patterns
+
+#+begin_src yaml :tangle .claude/skills/ag-grid.yaml :mkdirp yes
+name: ag-grid
+description: |
+  AG-Grid v34 integration patterns for TMNL.
+
+sources:
+  - src/components/tldraw/shapes/data-grid-shape.tsx
+  - src/components/tldraw/shapes/data-grid-theme.ts
+  - src/lib/data-grid/
+  - assets/documents/AG_GRID_THEMING_ARCHITECTURE.md
+
+patterns:
+  module_registration:
+    description: Required for grid rendering
+    example: |
+      import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community'
+      ModuleRegistry.registerModules([AllCommunityModule])
+
+  cell_renderer:
+    description: Custom cell renderer component
+    example: |
+      const MyCellRenderer: React.FC<{ value: string }> = ({ value }) => (
+        <span className="font-mono">{value}</span>
+      )
+
+      // In columnDefs:
+      { field: 'name', cellRenderer: MyCellRenderer }
+
+  theme:
+    description: Programmatic theming via themeQuartz
+    example: |
+      import { themeQuartz } from 'ag-grid-community'
+
+      const myTheme = themeQuartz.withParams({
+        backgroundColor: '#1a1a2e',
+        foregroundColor: '#c8e4d8',
+        // ...
+      })
+
+      <AgGridReact theme={myTheme} ... />
+#+end_src
+
+* Hooks
+:PROPERTIES:
+:CUSTOM_ID: hooks
+:END:
+
+Shell commands executed in response to Claude Code events.
+Configure in ~.claude/settings.json~.
+
+** Session Start Hook
+
+#+begin_src json :tangle .claude/hooks/session-start.json :mkdirp yes
+{
+  "event": "session:start",
+  "command": "bd prime 2>/dev/null || true",
+  "description": "Recover beads state after session start/compaction"
+}
+#+end_src
+
+** Pre-Commit Hook
+
+#+begin_src json :tangle .claude/hooks/pre-commit.json :mkdirp yes
+{
+  "event": "git:pre-commit",
+  "command": "bd sync --status",
+  "description": "Check beads sync status before committing"
+}
+#+end_src
+
+** Post-Commit Hook
+
+#+begin_src json :tangle .claude/hooks/post-commit.json :mkdirp yes
+{
+  "event": "git:post-commit",
+  "command": "bd sync 2>/dev/null || (git add .beads/ && echo 'Beads staged for next commit')",
+  "description": "Auto-sync beads after code commits"
+}
+#+end_src
+
+* Decision Trees
+:PROPERTIES:
+:CUSTOM_ID: decisions
+:END:
+
+** DT-001: MCP Selection for Documentation
+
+#+begin_example
+                    ┌─────────────────────┐
+                    │ Need Documentation? │
+                    └──────────┬──────────┘
+                               │
+              ┌────────────────┼────────────────┐
+              ▼                ▼                ▼
+         Effect-TS?      AG-Grid?        Other Lib?
+              │                │                │
+              ▼                ▼                ▼
+    ┌─────────────────┐ ┌────────────┐ ┌────────────────┐
+    │ 1. website      │ │ 1. DocFork │ │ 1. Context7    │
+    │    submodule    │ │ 2. Exa     │ │ 2. DeepWiki    │
+    │ 2. DeepWiki     │ │ 3. WebFetch│ │ 3. Exa         │
+    │ 3. Context7     │ └────────────┘ │ 4. DocFork     │
+    └─────────────────┘                └────────────────┘
+#+end_example
+
+** DT-002: Issue Type Selection
+
+#+begin_example
+                    ┌─────────────────────┐
+                    │ What scope of work? │
+                    └──────────┬──────────┘
+                               │
+         ┌─────────────────────┼─────────────────────┐
+         ▼                     ▼                     ▼
+    Entire Subsystem?   Coherent Feature?    Single Unit?
+         │                     │                     │
+         ▼                     ▼                     ▼
+    ┌─────────┐          ┌─────────┐          ┌─────────┐
+    │  EPIC   │          │ FEATURE │          │  TASK   │
+    │ type=   │          │ type=   │          │ type=   │
+    │ epic    │          │ feature │          │ task    │
+    └─────────┘          └─────────┘          └─────────┘
+         │                     │                     │
+         ▼                     ▼                     ▼
+    No parent           Parent = Epic        Parent = Feature
+    (top-level)         parent-child dep     parent-child dep
+#+end_example
+
+** DT-003: When to Use Subagents
+
+#+begin_example
+                    ┌─────────────────────────┐
+                    │ Is task parallelizable? │
+                    └───────────┬─────────────┘
+                                │
+                    ┌───────────┴───────────┐
+                    ▼                       ▼
+                   NO                      YES
+                    │                       │
+                    ▼                       ▼
+           Execute directly        Multiple independent
+                               ┌───────────┴───────────┐
+                               ▼                       ▼
+                          Same tool?             Diff tools?
+                               │                       │
+                               ▼                       ▼
+                    Parallel tool calls      Task tool with
+                    in single message        multiple agents
+                               │                       │
+                               ▼                       ▼
+                    ┌─────────────────┐    ┌─────────────────┐
+                    │ Multiple calls  │    │ subagent_type=  │
+                    │ in single       │    │   explore       │
+                    │ message block   │    │   plan          │
+                    └─────────────────┘    └─────────────────┘
+#+end_example
+
+* Appendix A: Beads Feature ID Index
+:PROPERTIES:
+:CUSTOM_ID: appendix-a
+:END:
+
+Complete mapping of features to their parent epics and child tasks.
+
+** Canvas System (tmnl-dfw)
+
+| Feature ID | Name                  | Task IDs                              |
+|------------+-----------------------+---------------------------------------|
+| tmnl-hg2   | Custom Shape Utils    | tmnl-pnm, tmnl-4z2, tmnl-zb3, tmnl-iby |
+| tmnl-8r5   | Overlay System        | tmnl-746, tmnl-jeq, tmnl-8ni          |
+| tmnl-rxa   | Drag Ghost Lifecycle  | tmnl-09t, tmnl-6fv, tmnl-1xf          |
+
+** Layer System (tmnl-4wg)
+
+| Feature ID | Name              | Task IDs                              |
+|------------+-------------------+---------------------------------------|
+| tmnl-v7b   | v1 Stabilization  | tmnl-t9t, tmnl-9ti, tmnl-dzp          |
+| tmnl-6yl   | v2 Implementation | tmnl-4l5, tmnl-npi, tmnl-tsn, tmnl-lpk |
+
+** Animation System (tmnl-tov)
+
+| Feature ID | Name            | Task IDs                              |
+|------------+-----------------+---------------------------------------|
+| tmnl-c1c   | v1 Test Coverage| tmnl-mae, tmnl-8il, tmnl-ouu, tmnl-s0c |
+| tmnl-8pb   | v2 Actor Fix    | tmnl-kaz, tmnl-g84, tmnl-drd          |
+
+** Data Grid System (tmnl-zkx)
+
+| Feature ID | Name               | Task IDs                              |
+|------------+--------------------+---------------------------------------|
+| tmnl-z6o   | Test Suite         | tmnl-6c6, tmnl-1ex, tmnl-1k7          |
+| tmnl-b7s   | Runtime Validation | tmnl-7ir, tmnl-44g, tmnl-2jo, tmnl-8cu |
+| tmnl-qd3   | Documentation      | tmnl-r9t, tmnl-3at                    |
+
+** Streams Playground (tmnl-6gt)
+
+| Feature ID | Name              | Task IDs                              |
+|------------+-------------------+---------------------------------------|
+| tmnl-t0l   | Engine Integration| tmnl-0zk, tmnl-pjz, tmnl-8lu          |
+| tmnl-m9e   | Config Bridge     | tmnl-25w, tmnl-87o, tmnl-e9f          |
+| tmnl-0jk   | EventLog          | tmnl-57o, tmnl-19v, tmnl-54v          |
+
+** Data Manager (tmnl-c29)
+
+| Feature ID | Name          | Task IDs                                    |
+|------------+---------------+---------------------------------------------|
+| tmnl-qow   | v1 Production | tmnl-037, tmnl-bp6, tmnl-wan, tmnl-093      |
+| tmnl-7gr   | v2 Kernels    | tmnl-2uy, tmnl-z0b, tmnl-hah, tmnl-3tb, tmnl-oqd |
+| tmnl-5ua   | v2 Provider   | tmnl-zhg, tmnl-xju, tmnl-gtq, tmnl-dfe      |
+
+** Modal System (tmnl-8us)
+
+| Feature ID | Name       | Task IDs                              |
+|------------+------------+---------------------------------------|
+| tmnl-bi1   | Test Suite | tmnl-ms7, tmnl-jxq, tmnl-kzi, tmnl-cby |
+| tmnl-az2   | Stacking   | tmnl-2ae, tmnl-ffx                    |
+| tmnl-f06   | Animation  | tmnl-3i8                              |
+
+** Slider System (tmnl-s38)
+
+| Feature ID | Name            | Task IDs                                          |
+|------------+-----------------+---------------------------------------------------|
+| tmnl-e0l   | v1 Test Coverage| tmnl-1nv, tmnl-4lz, tmnl-n5n, tmnl-tnx, tmnl-080, tmnl-cmn |
+| tmnl-5no   | v2 Blockers     | tmnl-0ti, tmnl-sr6                                |
+| tmnl-0td   | v2 Effects      | tmnl-csz, tmnl-5ju                                |
+
+** Tauri Integration (tmnl-3xd)
+
+| Feature ID | Name           | Task IDs                                    |
+|------------+----------------+---------------------------------------------|
+| tmnl-65a   | IPC Layer      | tmnl-skx, tmnl-pct                          |
+| tmnl-9wh   | Build Stability| tmnl-y8c, tmnl-re9, tmnl-dly, tmnl-r2l, tmnl-itg |
+| tmnl-vs9   | Security       | tmnl-czz                                    |
+
+* Appendix B: MCP Tool Quick Reference
+:PROPERTIES:
+:CUSTOM_ID: appendix-b
+:END:
+
+| MCP Server      | Primary Tool                | Use Case                    |
+|-----------------+-----------------------------+-----------------------------|
+| Beads (CLI)     | bd create/update/dep        | Issue tracking              |
+| GitHub          | mcp__github__*              | PRs, issues, code search    |
+| Exa             | mcp__exa__web_search_exa    | Web search + code context   |
+| Context7        | mcp__upstash-context-7-mcp__* | Library docs               |
+| DeepWiki        | mcp__deepwiki__ask_question | Repo Q&A                    |
+| DocFork         | mcp__docfork-mcp__*         | Doc search + URL read       |
+| Ref             | mcp__Ref__ref_search_*      | Private doc search          |
+| Chrome DevTools | mcp__chrome-devtools__*     | Browser automation          |
+| Anime.js        | mcp__anime-js__*            | Animation patterns          |
+| Sequential      | mcp__smithery-ai-server-*   | Structured thinking         |
+| Morph           | mcp__morph-mcp__edit_file   | Efficient file edits        |
+
+* Appendix C: Commit Message Format
+:PROPERTIES:
+:CUSTOM_ID: appendix-c
+:END:
+
+#+begin_example
+<type>(<scope>): <description>
+
+[optional body]
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+#+end_example
+
+** Types
+
+| Type     | Description                                |
+|----------+--------------------------------------------|
+| feat     | New feature                                |
+| fix      | Bug fix                                    |
+| docs     | Documentation only                         |
+| style    | Formatting, no code change                 |
+| refactor | Code restructure, no feature/fix           |
+| perf     | Performance improvement                    |
+| test     | Adding/updating tests                      |
+| chore    | Build, config, tooling                     |
+
+** Scopes (TMNL)
+
+| Scope        | Area                          |
+|--------------+-------------------------------|
+| tmnl         | General TMNL changes          |
+| canvas       | Canvas system                 |
+| layer        | Layer system                  |
+| animation    | Animation library             |
+| data-grid    | AG-Grid integration           |
+| streams      | Streams playground            |
+| data-manager | Data manager service          |
+| modal        | Modal system                  |
+| slider       | Slider system                 |
+| tauri        | Tauri integration             |
+| beads        | Issue tracking                |
+
+* Colophon
+:PROPERTIES:
+:CUSTOM_ID: colophon
+:END:
+
+#+begin_quote
+Document: tmnl-sys-design.org
+Version: 1.0.0
+Created: 2025-12-08
+Author: Val (AG-Grid Integration Architect)
+Generator: Claude Code (claude-opus-4-5-20251101)
+#+end_quote
+
+** Tangling Instructions
+
+To extract configuration files from this document:
+
+#+begin_src bash :tangle no
+# In Emacs:
+# M-x org-babel-tangle
+
+# Or via command line (requires emacs):
+emacs --batch -l org --eval "(org-babel-tangle-file \"tmnl-sys-design.org\")"
+#+end_src
+
+This will create:
+- ~.claude/agents/*.yaml~ — Agent definitions
+- ~.claude/commands/*.md~ — Slash commands
+- ~.claude/skills/*.yaml~ — Skill configurations
+- ~.claude/hooks/*.json~ — Hook definitions
+
+** Document Maintenance
+
+This document should be updated when:
+1. New MCP servers are added
+2. SOPs change
+3. New agents/commands/skills/hooks are defined
+4. Beads hierarchy changes significantly
+
+#+begin_src bash :tangle no
+# After editing, re-tangle to update configurations:
+# M-x org-babel-tangle
+#+end_src

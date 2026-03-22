@@ -1,0 +1,1283 @@
+.rvn-chat__message {
+  border: 1px solid var(--rvn-border);
+  border-left: 3px solid var(--cchat-msg-accent, #9ca3af);
+  background: var(--cchat-msg-bg, #ffffff);
+  padding: 8px 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.rvn-chat__message[data-role='assistant'] {
+  --cchat-msg-accent: #111827;
+  --cchat-msg-bg: #ffffff;
+}
+
+.rvn-chat__message[data-role='user'] {
+  --cchat-msg-accent: #111827;
+  --cchat-msg-bg: #ffffff;
+  box-shadow: var(--rvn-shadow-hard);
+}
+
+.rvn-chat__message[data-role='system'] {
+  --cchat-msg-accent: #9ca3af;
+  --cchat-msg-bg: transparent;
+  border-color: transparent;
+  border-left-color: transparent;
+  box-shadow: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.rvn-chat__message[data-role='tool'] {
+  --cchat-msg-accent: #0f766e;
+  --cchat-msg-bg: #f0fdfa;
+}
+
+.rvn-chat__message-meta,
+.rvn-chat__message-header-cluster {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+  color: var(--rvn-text-muted);
+  text-transform: uppercase;
+}
+
+.rvn-chat__message-role,
+.rvn-chat__message-timestamp,
+.rvn-chat__message-streaming-marker {
+  font-size: var(--tmnl-text-xs, 12px);
+  color: var(--rvn-text-muted);
+}
+
+.rvn-chat__message-body,
+.rvn-chat__message-body-content {
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+  color: var(--rvn-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.45;
+}
+
+.rvn-chat__message-body[data-streaming],
+.rvn-chat__message-body-content[data-streaming] {
+  opacity: 0.92;
+}
+
+.rvn-chat__message-stream-cursor {
+  display: inline-block;
+  margin-left: 4px;
+  color: #0e7490;
+  animation: rvn-cursor-blink 1s steps(1, end) infinite;
+}
+
+@keyframes rvn-cursor-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.rvn-chat__message-footer,
+.rvn-chat__message-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.rvn-chat__message-actions-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rvn-chat__message-severity-rails {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rvn-chat__message-role-rail {
+  width: 10px;
+  min-height: 18px;
+  border: 1px solid var(--rvn-border);
+  background: repeating-linear-gradient(
+    45deg,
+    #111,
+    #111 2px,
+    #fff 2px,
+    #fff 4px
+  );
+}
+
+.rvn-chat__message-role-badge,
+.rvn-chat__message-streaming-badge,
+.rvn-chat__message-role-icon-rail {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 20px;
+  border: 1px solid var(--rvn-border);
+  background: #fff;
+  color: var(--rvn-text);
+  padding: 1px 6px;
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+  text-transform: uppercase;
+}
+
+.rvn-chat__message-role-badge-label,
+.rvn-chat__message-streaming-badge-label,
+.rvn-chat__message-role-icon-rail-label {
+  font-size: var(--tmnl-text-xs, 12px);
+}
+
+.rvn-chat__message-role-icon-rail-icon,
+.rvn-chat__message-streaming-badge-icon {
+  display: inline-flex;
+}
+
+.rvn-chat__message-role-badge[data-role='agent'],
+.rvn-chat__message-role-icon-rail[data-role='agent'] {
+  background: #000;
+  color: #fff;
+}
+
+.rvn-chat__message-role-badge[data-role='operator'],
+.rvn-chat__message-role-icon-rail[data-role='operator'] {
+  background: #fff;
+  color: #111;
+}
+
+.rvn-chat__message-role-badge[data-role='system'],
+.rvn-chat__message-role-icon-rail[data-role='system'] {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.rvn-chat__message-role-badge[data-role='tool'],
+.rvn-chat__message-role-icon-rail[data-role='tool'] {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.rvn-chat__message-streaming-badge[data-streaming] {
+  background: #ecfeff;
+  color: #0e7490;
+}
+
+.rvn-chat__message-attachment-lane {
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.rvn-chat__message-attachment-inline-task-thread,
+.rvn-chat__message-attachment-artifact-card,
+.rvn-chat__message-attachment-status-badges,
+.rvn-chat__message-attachment-collapse-controls {
+  display: block;
+}
+
+.rvn-chat__message-telemetry-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  min-height: 20px;
+  border: 1px solid var(--rvn-border);
+  background: #fff;
+  color: #92400e;
+  padding: 1px 6px;
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+  text-transform: uppercase;
+}
+
+.rvn-chat__message-telemetry-badge[data-active] {
+  border-color: #f59e0b;
+}
+
+.rvn-chat__message-telemetry-badge-label {
+  font-size: var(--tmnl-text-xs, 12px);
+}
+
+.rvn-chat__inline-task-thread,
+.rvn-chat__inline-task-thread-virtualized {
+  display: grid;
+  gap: 0;
+  border: 1px solid #111827;
+  background: #05070b;
+  color: #e5e7eb;
+  overflow: hidden;
+}
+
+.rvn-chat__inline-task-thread-virtualized:focus-visible {
+  outline: 1px solid #22d3ee;
+  outline-offset: 1px;
+}
+
+.rvn-chat__inline-task-thread-panel {
+  border: 0;
+  background: transparent;
+}
+
+.rvn-chat__inline-task-thread-panel--drawer {
+  border-color: transparent;
+}
+
+.rvn-chat__inline-task-thread-virtual-scroll {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.rvn-chat__inline-task-thread-virtual-inner {
+  position: relative;
+  width: 100%;
+}
+
+.rvn-chat__inline-task-thread-virtual-row {
+  position: absolute;
+  inset-inline: 0;
+}
+
+.rvn-chat__inline-task-thread-item {
+  display: block;
+}
+
+.rvn-chat__inline-task-row {
+  position: relative;
+  border: 1px solid #1f2937;
+  border-radius: 6px;
+  background: #0a0a0a;
+  margin-bottom: 4px;
+  overflow: hidden;
+  transition: border-color 200ms ease;
+}
+
+.rvn-chat__inline-task-row:hover {
+  border-color: #374151;
+}
+
+.rvn-chat__inline-task-row--draggable {
+  cursor: grab;
+}
+
+.rvn-chat__inline-task-row--draggable:active,
+.rvn-chat__inline-task-row[data-transfer-state='dragging'] {
+  cursor: grabbing;
+}
+
+.rvn-chat__inline-task-row[data-selected] {
+  box-shadow: inset 0 0 0 1px #22d3ee66;
+}
+
+.rvn-chat__inline-task-row[data-transfer-state='dragging'] {
+  box-shadow: inset 0 0 0 1px #22d3eeaa;
+}
+
+/* Transfer v2 — data-transfer-dragging on shell thread-band rows */
+.rvn-chat__inline-task-shell-thread-band-row[data-transfer-dragging] {
+  opacity: 0.4;
+  pointer-events: none;
+  transition: opacity 120ms ease-out;
+}
+
+/* Transfer v2 — copy badge animation */
+.transfer-copy-badge {
+  position: absolute;
+  top: -20px;
+  right: 8px;
+  font-family: var(--font-data, 'Share Tech Mono', monospace);
+  font-size: var(--tmnl-text-xs, 12px);
+  color: var(--rvn-accent-cyan, #00e5ff);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Transfer v2 — target accept/reject outlines */
+.transfer-target--accept {
+  outline: 1px solid var(--rvn-accent-cyan, #00e5ff);
+  outline-offset: -1px;
+}
+
+.transfer-target--reject {
+  outline: 1px dashed var(--rvn-status-error, #ff4444);
+  outline-offset: -1px;
+}
+
+/* Transfer v2 — source dragging class */
+.transfer-source--dragging {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.rvn-chat__composer-reference-lane {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.rvn-chat__composer-dropzone {
+  transition: box-shadow 120ms ease;
+}
+
+.rvn-chat__composer-dropzone[data-transfer-hover-state='accept'] {
+  box-shadow: inset 0 0 0 1px #22d3ee55;
+}
+
+.rvn-chat__composer-dropzone[data-transfer-hover-state='reject'] {
+  box-shadow: inset 0 0 0 1px #f8717155;
+}
+
+.rvn-chat__composer-reference-chip {
+  border: 1px solid var(--rvn-border-soft);
+  background: #ffffff;
+  color: var(--rvn-text-muted);
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+  min-height: 24px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.rvn-chat__inline-task-row-toggle {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 3px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rvn-chat__inline-task-row-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.rvn-chat__inline-task-row-grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.rvn-chat__composer-reference-chip:hover {
+  border-color: var(--rvn-border);
+  color: var(--rvn-text);
+}
+
+.rvn-chat__composer-drop-error {
+  border: 1px solid #f87171;
+  background: #2a1212;
+  color: #fecaca;
+  padding: 4px 8px;
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+  margin-bottom: 6px;
+}
+
+.rvn-chat__inline-task-row-title,
+.rvn-chat__inline-task-row-status,
+.rvn-chat__inline-task-row-message,
+.rvn-chat__inline-task-row-meta-item,
+.rvn-chat__inline-task-log-time,
+.rvn-chat__inline-task-log-message,
+.rvn-chat__inline-task-expand-control {
+  font-family: var(--rvn-font-mono);
+  font-size: 10px;
+}
+
+.rvn-chat__inline-task-row-title {
+  color: #e9e4d6;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rvn-chat__inline-task-row-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--tmnl-text-xs, 12px);
+  flex-shrink: 0;
+}
+
+/* Status badge variants — colored bg + border + glow (muse parity) */
+
+.rvn-chat__inline-task-row[data-status='completed'] .rvn-chat__inline-task-row-status {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.1);
+  border-color: rgba(74, 222, 128, 0.2);
+}
+
+.rvn-chat__inline-task-row[data-status='running'] .rvn-chat__inline-task-row-status {
+  color: #22d3ee;
+  background: rgba(34, 211, 238, 0.1);
+  border-color: rgba(34, 211, 238, 0.2);
+  box-shadow: 0 0 10px rgba(0, 225, 255, 0.15);
+  animation: rvn-status-glow-blue 2s infinite;
+}
+
+.rvn-chat__inline-task-row[data-status='queued'] .rvn-chat__inline-task-row-status,
+.rvn-chat__inline-task-row[data-status='claimed'] .rvn-chat__inline-task-row-status {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.rvn-chat__inline-task-row[data-status='failed'] .rvn-chat__inline-task-row-status,
+.rvn-chat__inline-task-row[data-status='blocked'] .rvn-chat__inline-task-row-status,
+.rvn-chat__inline-task-row[data-status='cancelled'] .rvn-chat__inline-task-row-status {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.2);
+}
+
+.rvn-chat__inline-task-row[data-status='paused'] .rvn-chat__inline-task-row-status {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.2);
+}
+
+@keyframes rvn-status-glow-blue {
+  0% { box-shadow: 0 0 0 0 rgba(0, 225, 255, 0.2); }
+  70% { box-shadow: 0 0 0 6px rgba(0, 225, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 225, 255, 0); }
+}
+
+/* ── Collapsed-row bottom bar (muse parity) ── */
+
+.rvn-chat__inline-task-row-bottom-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: rgba(6, 182, 212, 0.15);
+  overflow: hidden;
+}
+
+.rvn-chat__inline-task-row-bottom-bar-fill {
+  height: 100%;
+  background: #22d3ee;
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.15) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.15) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 1rem 1rem;
+}
+
+.rvn-chat__inline-task-row-bottom-bar--completed {
+  height: 1px;
+  background: rgba(74, 222, 128, 0.3);
+}
+
+.rvn-chat__inline-task-row-status-label {
+  color: inherit;
+}
+
+.rvn-chat__inline-task-row-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rvn-chat__inline-task-row-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #e9e4d6;
+  transition: transform 140ms ease;
+}
+
+.rvn-chat__inline-task-row[data-expanded] .rvn-chat__inline-task-row-chevron {
+  transform: rotate(180deg);
+}
+
+.rvn-chat__inline-task-row-details {
+  background: #080808;
+  border-top: 1px solid rgba(31, 41, 55, 0.5);
+}
+
+/* ── InlineTaskDetail compound component ── */
+
+.rvn-chat__inline-task-detail {
+  padding: 2px 0;
+}
+
+/* ── Primary header row (Task ID chip, Title, Status, Progress) ── */
+
+.rvn-chat__inline-task-detail-primary {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 6px 10px;
+  padding: 6px 8px;
+  border-bottom: 1px dashed #1a1a1a;
+}
+
+.rvn-chat__inline-task-detail-chip {
+  display: inline-block;
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-sm, 14px);
+  color: #e5e7eb;
+  background: #1a1a1a;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #2a2a2a;
+}
+
+.rvn-chat__inline-task-detail-field--wide {
+  grid-column: span 2;
+}
+
+/* ── Detail fields grid (all remaining schema fields) ── */
+
+.rvn-chat__inline-task-detail-grid {
+  margin: 0;
+  padding: 4px 6px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1px 8px;
+  background: #070b12;
+  border: 1px solid #1f2937;
+}
+
+.rvn-chat__inline-task-detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: background 120ms ease;
+}
+
+.rvn-chat__inline-task-detail-field:hover {
+  background: rgba(31, 41, 55, 0.3);
+}
+
+.rvn-chat__inline-task-detail-field dt,
+.rvn-chat__inline-task-detail-field dd {
+  display: block;
+  margin: 0;
+  font-family: var(--rvn-font-mono);
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rvn-chat__inline-task-detail-field dt {
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: var(--tmnl-text-xs, 12px);
+  letter-spacing: 0.06em;
+}
+
+.rvn-chat__inline-task-detail-field dd {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: normal;
+  overflow: hidden;
+}
+
+.rvn-chat__inline-task-detail-field dd .rvn-chat__inline-task-detail-field-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.rvn-chat__inline-task-detail-field dd .rvn-chat__inline-task-detail-field-copy {
+  flex-shrink: 0;
+}
+
+.rvn-chat__inline-task-detail-field-value {
+  color: #cbd5e1;
+  font-size: var(--tmnl-text-xs, 12px);
+}
+
+/* ── Status field (matches row gutter semantics) ── */
+
+.rvn-chat__inline-task-detail-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.rvn-chat__inline-task-detail-status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rvn-chat__inline-task-detail-status-label {
+  color: inherit;
+}
+
+.rvn-chat__inline-task-detail-status[data-status='running'] {
+  color: #22d3ee;
+}
+
+.rvn-chat__inline-task-detail-status[data-status='completed'] {
+  color: #4ade80;
+}
+
+.rvn-chat__inline-task-detail-status[data-status='failed'],
+.rvn-chat__inline-task-detail-status[data-status='blocked'],
+.rvn-chat__inline-task-detail-status[data-status='cancelled'] {
+  color: #f87171;
+}
+
+.rvn-chat__inline-task-detail-status[data-status='queued'],
+.rvn-chat__inline-task-detail-status[data-status='claimed'] {
+  color: #e9e4d6;
+}
+
+.rvn-chat__inline-task-detail-status[data-status='paused'] {
+  color: #fbbf24;
+}
+
+/* ── Dependency badges ── */
+
+.rvn-chat__inline-task-detail-deps {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.rvn-chat__inline-task-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 4px;
+  border: 1px solid #334155;
+  border-radius: 3px;
+  background: #0f172a;
+  color: #93c5fd;
+  font-family: var(--rvn-font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.rvn-chat__inline-task-badge:hover {
+  border-color: #60a5fa;
+  background: #1e293b;
+}
+
+.rvn-chat__inline-task-badge-id {
+  white-space: nowrap;
+}
+
+.rvn-chat__inline-task-badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #64748b;
+}
+
+.rvn-chat__inline-task-badge-dot[data-status='completed'] {
+  background: #4ade80;
+}
+
+.rvn-chat__inline-task-badge-dot[data-status='running'] {
+  background: #22d3ee;
+}
+
+.rvn-chat__inline-task-badge-dot[data-status='queued'],
+.rvn-chat__inline-task-badge-dot[data-status='claimed'] {
+  background: #e9e4d6;
+}
+
+.rvn-chat__inline-task-badge-dot[data-status='failed'],
+.rvn-chat__inline-task-badge-dot[data-status='blocked'],
+.rvn-chat__inline-task-badge-dot[data-status='cancelled'] {
+  background: #f87171;
+}
+
+.rvn-chat__inline-task-badge-dot[data-status='paused'] {
+  background: #fbbf24;
+}
+
+.rvn-chat__inline-task-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rvn-chat__inline-task-row-meta-item {
+  color: #e9e4d6;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rvn-chat__inline-task-row-message {
+  color: #e9e4d6;
+}
+
+.rvn-chat__inline-task-row-progress {
+  position: relative;
+  height: 5px;
+  border: 1px solid #2f3642;
+  background: #0b1220;
+  width: 68%;
+  margin-inline: auto;
+  overflow: hidden;
+}
+
+.rvn-chat__inline-task-row-progress-center {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.rvn-chat__inline-task-row-progress-bar {
+  display: block;
+  height: 100%;
+  background-color: #e9e4d6;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.55) 0,
+    rgba(255, 255, 255, 0.55) 5px,
+    rgba(223, 215, 196, 0.78) 5px,
+    rgba(223, 215, 196, 0.78) 10px
+  );
+  background-size: 20px 100%;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.35) inset;
+}
+
+.rvn-chat__inline-task-row[data-status='running']
+  .rvn-chat__inline-task-row-status {
+  color: #22d3ee;
+}
+
+.rvn-chat__inline-task-row[data-status='failed']
+  .rvn-chat__inline-task-row-status,
+.rvn-chat__inline-task-row[data-status='blocked']
+  .rvn-chat__inline-task-row-status,
+.rvn-chat__inline-task-row[data-status='cancelled']
+  .rvn-chat__inline-task-row-status {
+  color: #f87171;
+}
+
+.rvn-chat__inline-task-row[data-status='completed']
+  .rvn-chat__inline-task-row-status {
+  color: #4ade80;
+}
+
+.rvn-chat__inline-task-log {
+  list-style: none;
+  margin: 0;
+  padding: 6px 10px;
+  border-top: 1px solid #1f2937;
+  background: #0b0f16;
+  display: grid;
+  gap: 4px;
+}
+
+.rvn-chat__inline-task-log-entry {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+}
+
+.rvn-chat__inline-task-log-time {
+  color: #e9e4d6;
+}
+
+.rvn-chat__inline-task-log-message {
+  color: #e9e4d6;
+}
+
+.rvn-chat__inline-task-expand-control {
+  width: 100%;
+  min-height: 30px;
+  border: 0;
+  border-top: 1px solid #1f2937;
+  background: #03060a;
+  color: #cbd5e1;
+  padding: 6px 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  text-align: center;
+  cursor: pointer;
+}
+
+.rvn-chat__inline-task-expand-control[data-expanded] {
+  background: #111827;
+  color: #e5e7eb;
+}
+
+.rvn-chat__bubble-row {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.rvn-chat__bubble-main {
+  min-width: 0;
+  flex: 1;
+  max-width: min(100%, 980px);
+}
+
+.rvn-chat__bubble-rail {
+  width: 38px;
+  display: flex;
+  justify-content: center;
+  padding-top: 2px;
+}
+
+.rvn-chat__bubble-marker {
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--rvn-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--tmnl-text-xs, 12px);
+  font-family: var(--rvn-font-mono);
+}
+
+.rvn-chat__bubble-marker > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.rvn-chat__bubble-marker--solid {
+  background: #000;
+  color: #fff;
+}
+
+.rvn-chat__bubble-marker--square {
+  background: #fff;
+  color: #111;
+}
+
+.rvn-chat__bubble-marker--diamond {
+  width: 12px;
+  height: 12px;
+  border-width: 1px;
+  background: #d1d5db;
+  transform: rotate(45deg);
+}
+
+.rvn-chat__message-tag {
+  border: 1px solid var(--rvn-border-soft);
+  background: #e5e7eb;
+  color: #111;
+  padding: 1px 4px;
+  font-size: var(--tmnl-text-xs, 12px);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.rvn-chat__user-bubble {
+  border: 2px solid var(--rvn-border);
+  background: #fff;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.08);
+  padding: 14px 16px;
+  max-width: 980px;
+  font-size: var(--tmnl-text-base, 16px);
+  line-height: 1.4;
+}
+
+.rvn-chat__system-log {
+  color: #4b5563;
+  font-size: var(--tmnl-text-sm, 14px);
+  line-height: 1.5;
+}
+
+.rvn-chat__thread-tail {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #9ca3af;
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+  font-style: italic;
+  padding-left: 4px;
+}
+
+.rvn-chat__thread-tail-marker {
+  width: 8px;
+  height: 8px;
+  border: 1px solid currentColor;
+  background: #fff;
+  transform: rotate(45deg);
+}
+
+
+/* ==========================================================================
+   InlineTaskShell — shellified inline task compound
+   ========================================================================== */
+
+/* ── Shell Root ── */
+
+.rvn-chat__inline-task-shell {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  border: 1px solid #111827;
+  background: #05070b;
+  color: #e5e7eb;
+  overflow: hidden;
+}
+
+/* ── ExpandBand ── */
+
+.rvn-chat__inline-task-shell-expand-band {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid #1f2937;
+  background: #03060a;
+  color: #cbd5e1;
+  padding: 4px 10px;
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  transition: background 120ms ease;
+}
+
+.rvn-chat__inline-task-shell-expand-band:hover {
+  background: #111827;
+}
+
+.rvn-chat__inline-task-shell-expand-band[data-expanded] {
+  background: #111827;
+  color: #e5e7eb;
+}
+
+.rvn-chat__inline-task-shell-expand-band-count {
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.rvn-chat__inline-task-shell-expand-band-chevron {
+  display: inline-flex;
+  transition: transform 140ms ease;
+}
+
+.rvn-chat__inline-task-shell-expand-band[data-expanded]
+  .rvn-chat__inline-task-shell-expand-band-chevron {
+  transform: rotate(180deg);
+}
+
+/* ── MetricsBand ── */
+
+.rvn-chat__inline-task-shell-metrics-band {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid #1f2937;
+  background: #0d0d0d;
+}
+
+.rvn-chat__inline-task-shell-metric-cell {
+  padding: 4px 10px;
+  border-right: 1px solid #1f2937;
+}
+
+.rvn-chat__inline-task-shell-metric-cell:last-child {
+  border-right: 0;
+}
+
+.rvn-chat__inline-task-shell-metric-label {
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 1px;
+}
+
+.rvn-chat__inline-task-shell-metric-value {
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-base, 16px);
+  font-weight: 500;
+  color: #e5e7eb;
+  font-variant-numeric: tabular-nums;
+}
+
+.rvn-chat__inline-task-shell-metric-value[data-status='running'] {
+  color: #22d3ee;
+}
+
+.rvn-chat__inline-task-shell-metric-value[data-status='completed'] {
+  color: #4ade80;
+}
+
+.rvn-chat__inline-task-shell-metric-value[data-status='failed'] {
+  color: #f87171;
+}
+
+/* ── ThreadBand ── */
+
+.rvn-chat__inline-task-shell-thread-band {
+  overflow: hidden;
+  background: #050505;
+}
+
+.rvn-chat__inline-task-shell-thread-band-scroll {
+  overflow-y: auto;
+}
+
+.rvn-chat__inline-task-shell-thread-band-inner {
+  position: relative;
+}
+
+.rvn-chat__inline-task-shell-thread-band-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+/* ── SearchBand ── */
+
+.rvn-chat__inline-task-shell-search-band {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-top: 1px solid #1f2937;
+  background: #0a0a0a;
+}
+
+.rvn-chat__inline-task-shell-search-prompt {
+  color: #4ade80;
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+  flex-shrink: 0;
+}
+
+.rvn-chat__inline-task-shell-search-input {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: #cbd5e1;
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+  padding: 2px 0;
+}
+
+.rvn-chat__inline-task-shell-search-input::placeholder {
+  color: #4b5563;
+}
+
+.rvn-chat__inline-task-shell-search-hints {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.rvn-chat__inline-task-shell-search-hint {
+  padding: 1px 4px;
+  border: 1px solid #1f2937;
+  border-radius: 2px;
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+  font-weight: 700;
+  color: #4b5563;
+}
+
+/* ── Row Progress (standalone extracted) ── */
+
+.rvn-chat__inline-task-row-progress-standalone {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rvn-chat__inline-task-row-progress-track {
+  height: 4px;
+  flex: 1;
+  background: #1f2937;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.rvn-chat__inline-task-row-progress-fill {
+  height: 100%;
+  transition: width 300ms ease;
+}
+
+.rvn-chat__inline-task-row-progress-fill[data-status='running'],
+.rvn-chat__inline-task-row-progress-fill[data-status='queued'] {
+  background: #22d3ee;
+}
+
+.rvn-chat__inline-task-row-progress-fill[data-animating] {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.15) 0,
+    rgba(255, 255, 255, 0.15) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.15) 75%,
+    transparent 75%
+  );
+  background-size: 1rem 1rem;
+  animation: rvn-progress-stripes 1s linear infinite;
+}
+
+.rvn-chat__inline-task-row-progress-fill[data-status='completed'] {
+  background: #4ade80;
+}
+
+.rvn-chat__inline-task-row-progress-fill[data-status='failed'] {
+  background: #f87171;
+}
+
+.rvn-chat__inline-task-row-progress-percent {
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+  min-width: 28px;
+  text-align: right;
+}
+
+@keyframes rvn-progress-stripes {
+  from { background-position: 1rem 0; }
+  to { background-position: 0 0; }
+}
+
+/* ── Row Toolbar (extracted) ── */
+
+.rvn-chat__inline-task-row-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 8px 16px;
+  border-top: 1px solid rgba(31, 41, 55, 0.5);
+  background: #070707;
+}
+
+/* ── Row Action Button (generic variant) ── */
+
+.rvn-chat__inline-task-row-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.rvn-chat__inline-task-row-action-btn:hover {
+  color: #e5e7eb;
+  background: #1f2937;
+}
+
+.rvn-chat__inline-task-row-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rvn-chat__inline-task-row-action-btn--danger {
+  color: #f87171;
+}
+
+.rvn-chat__inline-task-row-action-btn--danger:hover {
+  color: #fca5a5;
+  background: rgba(127, 29, 29, 0.2);
+}
+
+.rvn-chat__inline-task-row-action-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Copy-to-Clipboard (detail fields) ── */
+
+.rvn-chat__inline-task-detail-field-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px;
+  border: 0;
+  background: transparent;
+  color: #4b5563;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease, color 120ms ease;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+.rvn-chat__inline-task-detail-field:hover .rvn-chat__inline-task-detail-field-copy {
+  opacity: 1;
+}
+
+.rvn-chat__inline-task-detail-field-copy:hover {
+  color: #e5e7eb;
+}
+
+.rvn-chat__inline-task-detail-field-copy[data-copied] {
+  opacity: 1;
+  color: #4ade80;
+}

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TMNL Session Architecture — Three Domains</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+:root {
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  --bg: #0d0f14;
+  --surface: #151821;
+  --surface2: #1c2030;
+  --border: rgba(255,255,255,0.06);
+  --border-bright: rgba(255,255,255,0.12);
+  --text: #e4e8f0;
+  --text-dim: #6b7394;
+  --amber: #f59e0b;
+  --amber-dim: rgba(245,158,11,0.12);
+  --cyan: #22d3ee;
+  --cyan-dim: rgba(34,211,238,0.1);
+  --rose: #fb7185;
+  --rose-dim: rgba(251,113,133,0.1);
+  --green: #4ade80;
+  --green-dim: rgba(74,222,128,0.1);
+  --violet: #a78bfa;
+  --violet-dim: rgba(167,139,250,0.1);
+  --blue: #60a5fa;
+  --blue-dim: rgba(96,165,250,0.1);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f8f9fc;
+    --surface: #ffffff;
+    --surface2: #f0f2f7;
+    --border: rgba(0,0,0,0.08);
+    --border-bright: rgba(0,0,0,0.15);
+    --text: #1a1d2e;
+    --text-dim: #6b7394;
+    --amber: #d97706;
+    --amber-dim: rgba(217,119,6,0.08);
+    --cyan: #0891b2;
+    --cyan-dim: rgba(8,145,178,0.08);
+    --rose: #e11d48;
+    --rose-dim: rgba(225,29,72,0.08);
+    --green: #16a34a;
+    --green-dim: rgba(22,163,74,0.08);
+    --violet: #7c3aed;
+    --violet-dim: rgba(124,58,237,0.08);
+    --blue: #2563eb;
+    --blue-dim: rgba(37,99,235,0.08);
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+.container { max-width: 1100px; margin: 0 auto; padding: 3rem 2rem; }
+h1 { font-size: 2.4rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.3em; }
+h1 span { color: var(--amber); }
+h2 { font-size: 1.5rem; font-weight: 600; margin: 3rem 0 1rem; letter-spacing: -0.02em; }
+h3 { font-size: 1.1rem; font-weight: 600; margin: 1.5rem 0 0.5rem; color: var(--cyan); }
+p { color: var(--text-dim); margin-bottom: 1em; max-width: 70ch; }
+.subtitle { font-size: 1.05rem; color: var(--text-dim); margin-bottom: 2rem; }
+
+/* Cards */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.2rem; margin: 1.5rem 0; }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 12px 12px 0 0;
+}
+.card.pi::before { background: var(--green); }
+.card.harness::before { background: var(--amber); }
+.card.morphchat::before { background: var(--cyan); }
+.card.gap::before { background: var(--rose); }
+.card h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.card h4 .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.card.pi h4 .dot { background: var(--green); }
+.card.harness h4 .dot { background: var(--amber); }
+.card.morphchat h4 .dot { background: var(--cyan); }
+.card.gap h4 .dot { background: var(--rose); }
+.card p { font-size: 0.9rem; margin-bottom: 0.5em; }
+.card code {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  background: var(--surface2);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+}
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+th, td { text-align: left; padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); }
+th { color: var(--text-dim); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+td { color: var(--text); }
+td code { font-family: var(--font-mono); font-size: 0.8rem; background: var(--surface2); padding: 0.1em 0.35em; border-radius: 3px; }
+tr:hover { background: var(--surface); }
+
+/* Status badges */
+.badge {
+  display: inline-block;
+  padding: 0.15em 0.5em;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+.badge.has { background: var(--green-dim); color: var(--green); }
+.badge.missing { background: var(--rose-dim); color: var(--rose); }
+.badge.partial { background: var(--amber-dim); color: var(--amber); }
+
+/* Mermaid */
+.mermaid-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+}
+.mermaid { text-align: center; }
+
+/* Section dividers */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 3rem 0 1rem;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-bright);
+}
+
+/* Flow arrow */
+.flow-arrow {
+  text-align: center;
+  padding: 0.5rem 0;
+  color: var(--text-dim);
+  font-size: 1.5rem;
+}
+
+/* Legend */
+.legend {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* Animate */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.card, .mermaid-wrap { animation: fadeUp 0.4s ease-out both; animation-delay: calc(var(--i, 0) * 80ms); }
+@media (prefers-reduced-motion: reduce) { .card, .mermaid-wrap { animation: none; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Session Architecture — <span>Three Domains</span></h1>
+<p class="subtitle">How TMNL's session management spans pi upstream, the harness engine, and the MorphChat consumer layer — and where the seams are.</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> pi Upstream</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div> Harness Engine</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div> MorphChat Consumer</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--rose)"></div> Gap / Missing</div>
+</div>
+
+<!-- Section 1: The Three Domains -->
+<div class="divider">Three Session Domains</div>
+
+<div class="card-grid">
+  <div class="card pi" style="--i:0">
+    <h4><span class="dot"></span> pi SessionManager</h4>
+    <p>Append-only <strong>tree</strong> of JSONL entries. Branching, compaction, leaf navigation, <code>/tree</code> TUI.</p>
+    <p>Stores: <code>~/.pi/agent/sessions/</code></p>
+    <p>Identity: <code>sessionId</code> → provider <code>prompt_cache_key</code></p>
+  </div>
+  <div class="card harness" style="--i:1">
+    <h4><span class="dot"></span> HarnessEngine</h4>
+    <p><strong>Flat log</strong> with monotonic <code>seq</code>. In-memory refs + JSONL file store. WS relay to browser.</p>
+    <p>Stores: <code>~/.tmnl/harness-sessions/</code></p>
+    <p>Identity: <code>chat-v2-piai-{nanoid}</code> passed through to pi-ai</p>
+  </div>
+  <div class="card morphchat" style="--i:2">
+    <h4><span class="dot"></span> MorphChat Consumer</h4>
+    <p>Atom families keyed by <code>instanceId</code>. Session ops as escape hatches from <code>useHarnessAdapter</code>.</p>
+    <p>Stores: localStorage (ContentSnapshot)</p>
+    <p>No typed session lifecycle contract</p>
+  </div>
+</div>
+
+<!-- Section 2: Identity Flow -->
+<div class="divider">End-to-End Identity Flow</div>
+
+<div class="mermaid-wrap" style="--i:3">
+<pre class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#1c2030', 'primaryTextColor': '#e4e8f0', 'primaryBorderColor': '#22d3ee', 'lineColor': '#6b7394', 'secondaryColor': '#151821', 'tertiaryColor': '#0d0f14', 'background': '#151821', 'mainBkg': '#1c2030', 'nodeBorder': '#22d3ee', 'clusterBkg': '#151821', 'clusterBorder': '#f59e0b44', 'titleColor': '#e4e8f0', 'edgeLabelBackground': '#1c2030'}}}%%
+flowchart TB
+    subgraph Browser["🖥️ Browser (MorphChat)"]
+        A["useHarnessAdapter<br/><code>connectOp$(instanceId)</code>"]
+        B["HarnessRuntimeBrowser<br/><code>openSession(nodeId, role)</code>"]
+    end
+    
+    subgraph Wire["🔌 WebSocket Protocol"]
+        C["<code>remote:chat_v2_open_session</code><br/>requestId correlation"]
+    end
+    
+    subgraph Server["⚙️ Server (Harness)"]
+        D["HarnessRemoteWsServer<br/>command dispatch"]
+        E["PiAiHarnessEngine<br/><code>sessionsRef + nodeToSessionRef</code>"]
+        F["SessionStoreJSONL<br/><code>upsertSession + appendEvent</code>"]
+    end
+    
+    subgraph Provider["🤖 pi-ai Provider"]
+        G["streamSimple(model, context, opts)<br/><code>opts.sessionId → prompt_cache_key</code>"]
+    end
+    
+    A --> B
+    B -->|WS request| C
+    C -->|dispatch| D
+    D --> E
+    E -->|persist| F
+    E -->|stream| G
+    
+    style Browser fill:#0891b222,stroke:#22d3ee44
+    style Wire fill:#f59e0b11,stroke:#f59e0b44
+    style Server fill:#f59e0b22,stroke:#f59e0b44
+    style Provider fill:#4ade8022,stroke:#4ade8044
+</pre>
+</div>
+
+<!-- Section 3: Status Model Divergence -->
+<div class="divider">Status Model Divergence</div>
+
+<p>Two taxonomies that don't round-trip:</p>
+
+<div class="mermaid-wrap" style="--i:4">
+<pre class="mermaid">
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#1c2030', 'primaryTextColor': '#e4e8f0', 'primaryBorderColor': '#f59e0b', 'lineColor': '#6b7394', 'background': '#151821', 'mainBkg': '#1c2030', 'nodeBorder': '#f59e0b'}}}%%
+flowchart LR
+    subgraph Execution["Execution Status"]
+        EA["active"]
+        EC["closed"]
+        EF["failed"]
+    end
+    
+    subgraph Metadata["Metadata Status"]
+        MA["active"]
+        MR["archived"]
+        MS["starred"]
+    end
+    
+    EA -->|"✅ maps"| MA
+    EC -->|"→ archived"| MR
+    EF -->|"❌ LOST"| MA
+    MR -->|"→ closed"| EC
+    MS -->|"❌ LOST"| EA
+    
+    style EF fill:#fb718522,stroke:#fb7185
+    style MS fill:#fb718522,stroke:#fb7185
+</pre>
+</div>
+
+<!-- Section 4: Capability Comparison -->
+<div class="divider">Capability Matrix</div>
+
+<table>
+<thead>
+<tr><th>Capability</th><th>pi</th><th>TMNL Harness</th><th>MorphChat</th></tr>
+</thead>
+<tbody>
+<tr><td>Branching</td><td><span class="badge has">tree + parentId</span></td><td><span class="badge missing">flat log</span></td><td><span class="badge missing">none</span></td></tr>
+<tr><td>Compaction</td><td><span class="badge has">CompactionEntry</span></td><td><span class="badge missing">unbounded</span></td><td><span class="badge missing">none</span></td></tr>
+<tr><td>Context rebuild</td><td><span class="badge has">buildSessionContext</span></td><td><span class="badge missing">replay events</span></td><td><span class="badge missing">none</span></td></tr>
+<tr><td>Session forking</td><td><span class="badge has">extract branch</span></td><td><span class="badge partial">copy full log</span></td><td><span class="badge partial">via server</span></td></tr>
+<tr><td>Labels / bookmarks</td><td><span class="badge has">LabelEntry</span></td><td><span class="badge missing">none</span></td><td><span class="badge missing">none</span></td></tr>
+<tr><td>Multi-instance</td><td><span class="badge missing">single session</span></td><td><span class="badge has">concurrent</span></td><td><span class="badge has">Atom.family</span></td></tr>
+<tr><td>Real-time streaming</td><td><span class="badge missing">sequential loop</span></td><td><span class="badge has">PubSub + Stream</span></td><td><span class="badge has">event processor</span></td></tr>
+<tr><td>Session metadata</td><td><span class="badge partial">minimal header</span></td><td><span class="badge has">rich meta</span></td><td><span class="badge has">list/filter/star</span></td></tr>
+<tr><td>Persistence</td><td><span class="badge has">JSONL tree</span></td><td><span class="badge has">JSONL flat</span></td><td><span class="badge has">localStorage</span></td></tr>
+<tr><td>Typed lifecycle API</td><td><span class="badge has">SessionManager</span></td><td><span class="badge has">HarnessRuntime</span></td><td><span class="badge missing">escape hatches</span></td></tr>
+<tr><td>Custom entries</td><td><span class="badge has">custom + custom_message</span></td><td><span class="badge missing">HarnessEvent only</span></td><td><span class="badge missing">none</span></td></tr>
+</tbody>
+</table>
+
+<!-- Section 5: Critical Gaps -->
+<div class="divider">Critical Gaps for Future Features</div>
+
+<div class="card-grid">
+  <div class="card gap" style="--i:5">
+    <h4><span class="dot"></span> No Programmatic Session API</h4>
+    <p><code>MorphChatAdapter</code> has <code>send</code>, <code>cancel</code>, <code>clear</code>. No <code>createSession</code>, <code>resumeSession</code>, <code>switchSession</code>, <code>forkSession</code>.</p>
+    <p>Blocks: kanban dispatch, multi-agent workflows</p>
+  </div>
+  <div class="card gap" style="--i:6">
+    <h4><span class="dot"></span> No Session State Machine</h4>
+    <p>Transitions (idle → connecting → connected → streaming) are implicit atom mutations. No guards, no history, no XState.</p>
+    <p>Blocks: reliable lifecycle, debugging, observability</p>
+  </div>
+  <div class="card gap" style="--i:7">
+    <h4><span class="dot"></span> No Context Reconstruction</h4>
+    <p>Hydrated sessions rebuild with empty <code>context.messages</code>. The model sees a fresh conversation. pi walks the tree + compaction.</p>
+    <p>Blocks: long-running agents, session continuity</p>
+  </div>
+  <div class="card gap" style="--i:8">
+    <h4><span class="dot"></span> No Branching</h4>
+    <p>Every "new session" is a completely new conversation. No way to branch from message N and explore alternatives.</p>
+    <p>Blocks: agent deliberation trees, A/B exploration</p>
+  </div>
+  <div class="card gap" style="--i:9">
+    <h4><span class="dot"></span> Global Event Fan-Out</h4>
+    <p>WS server relays ALL events to ALL connections. No per-session subscription. Single user only.</p>
+    <p>Blocks: multi-tenant, scaling, security</p>
+  </div>
+  <div class="card gap" style="--i:10">
+    <h4><span class="dot"></span> Status Model Divergence</h4>
+    <p>Execution <code>failed</code> becomes metadata <code>active</code>. Metadata <code>starred</code> becomes execution <code>active</code>. Information destroyed on round-trip.</p>
+    <p>Blocks: accurate session state reporting</p>
+  </div>
+</div>
+
+<!-- Section 6: Design North Star -->
+<div class="divider">Design North Star</div>
+
+<div class="card-grid">
+  <div class="card harness" style="--i:11">
+    <h4><span class="dot"></span> What We Need</h4>
+    <p><strong>A programmatic Session API</strong> that is:</p>
+    <p>• <strong>Generic</strong> — supports chat, kanban dispatch, long-running agents, multi-agent</p>
+    <p>• <strong>Tree-aware</strong> — branching and compaction from pi's model</p>
+    <p>• <strong>Multi-instance</strong> — concurrent sessions with isolation</p>
+    <p>• <strong>Effect-native</strong> — Service + Schema + Atom.kvs persistence</p>
+    <p>• <strong>Observable</strong> — XState lifecycle, typed transitions, span tracing</p>
+  </div>
+  <div class="card morphchat" style="--i:12">
+    <h4><span class="dot"></span> Consumer Contract</h4>
+    <p>A typed <code>SessionCapable</code> interface that any surface can consume:</p>
+    <p>• <code>createSession(config)</code> → <code>Effect&lt;Session&gt;</code></p>
+    <p>• <code>resumeSession(id)</code> → <code>Effect&lt;Session&gt;</code></p>
+    <p>• <code>switchSession(id)</code> → <code>Effect&lt;void&gt;</code></p>
+    <p>• <code>forkSession(id, atEntry?)</code> → <code>Effect&lt;Session&gt;</code></p>
+    <p>• <code>branch(entryId)</code> → <code>Effect&lt;void&gt;</code></p>
+    <p>• <code>compact()</code> → <code>Effect&lt;void&gt;</code></p>
+    <p>• <code>sessions$</code> — reactive session list atom</p>
+  </div>
+</div>
+
+</div>
+
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  securityLevel: 'loose',
+  flowchart: { curve: 'basis', padding: 20, useMaxWidth: true }
+});
+</script>
+</body>
+</html>

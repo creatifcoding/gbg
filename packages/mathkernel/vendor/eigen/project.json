@@ -1,0 +1,392 @@
+{
+  "name": "tmnl",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/tmnl/src",
+  "projectType": "application",
+  "release": {
+    "version": {
+      "manifestRootsToUpdate": ["dist/{projectRoot}"],
+      "currentVersionResolver": "git-tag",
+      "fallbackCurrentVersionResolver": "disk"
+    }
+  },
+  "tags": [],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run test",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "test:ui": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run test:ui",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "test:run": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run test:run",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "test:coverage": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run test:coverage",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:order": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:order",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:alarm": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:alarm",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:equipment-state": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:equipment-state",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:gen:line": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:gen:line",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:test:line": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:test:line",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:line": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:line",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:device": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:device",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:machine-asset": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:machine-asset",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:workcell": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:workcell",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:sensor-asset": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:sensor-asset",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:sensor": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:sensor",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:gen:plant": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:gen:plant",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:test:plant": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:test:plant",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:plant": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:plant",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:gen:enterprise": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:gen:enterprise",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:test:enterprise": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:test:enterprise",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:enterprise": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:enterprise",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:site": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:site",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:area": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:area",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "contracts:e2e:asset": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run contracts:e2e:asset",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "elixir:init": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run elixir:init",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "elixir:deps": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run elixir:deps",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "elixir:build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run elixir:build",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "elixir:test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run elixir:test",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "phoenix:init": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run phoenix:init",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "phoenix:dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run phoenix:dev",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "phoenix:test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run phoenix:test",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "dist/{projectRoot}"
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run dev",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run build",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "preview": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run preview",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "tauri:dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run tauri:dev",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "tauri:dev:windows": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run tauri:dev:windows",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "tauri:dev:both": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run tauri:dev:both",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "tauri:build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run tauri:build",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "panel:dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run panel:dev",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "ai:extract": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run ai:extract",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "ai:watch": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run ai:watch",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "egui:wasm:build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run egui:wasm:build",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "harness:remote-ws": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run harness:remote-ws",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "harness:piai:smoke": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run harness:piai:smoke",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "geoint:migrate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run geoint:migrate",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "geoint:registry:diff": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run geoint:registry:diff",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "geoint:rapid": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run geoint:rapid",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "task-logs:emit": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run task-logs:emit",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "spike:provider-marker:match": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run spike:provider-marker:match",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "spike:overlay-reducer:pipeline": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run spike:overlay-reducer:pipeline",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "spike:nu-cmdk:impl-spec": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run spike:nu-cmdk:impl-spec",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "telegram:agent": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run telegram:agent",
+        "cwd": "packages/tmnl"
+      }
+    },
+    "rfc-assemble": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run rfc:assemble",
+        "cwd": "packages/tmnl"
+      }
+    }
+  }
+}

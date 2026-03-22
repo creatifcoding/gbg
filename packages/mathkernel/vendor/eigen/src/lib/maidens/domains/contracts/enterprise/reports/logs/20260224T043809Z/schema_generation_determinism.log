@@ -1,0 +1,15 @@
+[enterprise-e2e] first generation run
+Generated schemas:
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/enterprise/schemas/enterprise.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/enterprise/schemas/enterprise_transition.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/enterprise/schemas/enterprise_agent_state.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/enterprise/schemas/enterprise_transition.mmd
+[enterprise-e2e] fingerprint before rerun: 54d4eb1a90bba77968d397bd8953c5280bf00af35b813f60599e5d20216bd541
+[enterprise-e2e] second generation run
+Generated schemas:
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/enterprise/schemas/enterprise.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/enterprise/schemas/enterprise_transition.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/enterprise/schemas/enterprise_agent_state.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/enterprise/schemas/enterprise_transition.mmd
+[enterprise-e2e] fingerprint after rerun:  54d4eb1a90bba77968d397bd8953c5280bf00af35b813f60599e5d20216bd541
+[enterprise-e2e] schema fingerprint stable: 54d4eb1a90bba77968d397bd8953c5280bf00af35b813f60599e5d20216bd541

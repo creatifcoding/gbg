@@ -1,0 +1,558 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "AssetAgentState": {
+      "type": "object",
+      "required": [
+        "asset_id",
+        "name",
+        "kind",
+        "status",
+        "description",
+        "location",
+        "properties",
+        "metadata",
+        "parent_id",
+        "hierarchy_path",
+        "enterprise_id",
+        "site_id",
+        "area_id",
+        "plant_id",
+        "line_id",
+        "work_cell_id",
+        "machine_id",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "asset_id": {
+          "$ref": "#/definitions/AssetId"
+        },
+        "name": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "kind": {
+          "$ref": "#/definitions/AssetKind"
+        },
+        "status": {
+          "$ref": "#/definitions/AssetStatus"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/AssetLocation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "properties": {
+          "$ref": "#/definitions/AssetProperties"
+        },
+        "metadata": {
+          "$ref": "#/definitions/AssetMetadata"
+        },
+        "parent_id": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/AssetId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "hierarchy_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "enterprise_id": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/EnterpriseId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "site_id": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SiteId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "area_id": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/AreaId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "plant_id": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PlantId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "line_id": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/LineId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "work_cell_id": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/WorkCellId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "machine_id": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/MachineId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "description": "ISO8601 UTC or offset timestamp string.",
+              "title": "ISO8601 Timestamp",
+              "format": "date-time"
+            }
+          ],
+          "description": "Timestamp value or null.",
+          "title": "Nullable Timestamp"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Canonical Jido agent-state contract for Asset runtime.",
+      "title": "Asset Agent State"
+    },
+    "AssetId": {
+      "type": "string",
+      "description": "Canonical ISA-95 asset identifier with hierarchy prefix (ENT|SIT|ARA|PLT|LIN|WCL|MCH|SNS|DEV).",
+      "title": "Asset ID",
+      "pattern": "^(ENT|SIT|ARA|PLT|LIN|WCL|MCH|SNS|DEV)-[a-zA-Z0-9-]+$"
+    },
+    "NonEmptyString": {
+      "type": "string",
+      "description": "a non empty string",
+      "title": "nonEmptyString",
+      "minLength": 1
+    },
+    "AssetKind": {
+      "type": "string",
+      "enum": [
+        "enterprise",
+        "site",
+        "area",
+        "plant",
+        "line",
+        "workcell",
+        "machine",
+        "sensor",
+        "device"
+      ],
+      "description": "ISA-95 equipment hierarchy discriminator.",
+      "title": "Asset Kind"
+    },
+    "AssetStatus": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "maintenance",
+        "decommissioned"
+      ],
+      "description": "Polymorphic ISA-95 asset lifecycle status.",
+      "title": "Asset Status"
+    },
+    "AssetLocation": {
+      "type": "object",
+      "required": [
+        "latitude",
+        "longitude",
+        "building",
+        "floor",
+        "zone",
+        "address",
+        "timezone"
+      ],
+      "properties": {
+        "latitude": {
+          "anyOf": [
+            {
+              "type": "number",
+              "description": "a number between -90 and 90",
+              "title": "between(-90, 90)",
+              "minimum": -90,
+              "maximum": 90
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "longitude": {
+          "anyOf": [
+            {
+              "type": "number",
+              "description": "a number between -180 and 180",
+              "title": "between(-180, 180)",
+              "minimum": -180,
+              "maximum": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "building": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "floor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "zone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Canonical location payload shared across IIoT assets.",
+      "title": "Asset Location"
+    },
+    "AssetProperties": {
+      "type": "object",
+      "required": [],
+      "properties": {},
+      "additionalProperties": {
+        "$id": "/schemas/unknown",
+        "title": "unknown"
+      },
+      "description": "Polymorphic asset property map (asset-polymorphic.ts).",
+      "title": "Asset Properties"
+    },
+    "AssetMetadata": {
+      "type": "object",
+      "required": [],
+      "properties": {},
+      "additionalProperties": {
+        "$id": "/schemas/unknown",
+        "title": "unknown"
+      },
+      "description": "Shared metadata map (assets/common/types.ts).",
+      "title": "Asset Metadata"
+    },
+    "EnterpriseId": {
+      "type": "string",
+      "description": "a string matching the pattern ^ENT-[a-zA-Z0-9-]+$",
+      "title": "Enterprise ID",
+      "pattern": "^ENT-[a-zA-Z0-9-]+$"
+    },
+    "SiteId": {
+      "type": "string",
+      "description": "a string matching the pattern ^SIT-[a-zA-Z0-9-]+$",
+      "title": "Site ID",
+      "pattern": "^SIT-[a-zA-Z0-9-]+$"
+    },
+    "AreaId": {
+      "type": "string",
+      "description": "a string matching the pattern ^ARA-[a-zA-Z0-9-]+$",
+      "title": "Area ID",
+      "pattern": "^ARA-[a-zA-Z0-9-]+$"
+    },
+    "PlantId": {
+      "type": "string",
+      "description": "a string matching the pattern ^PLT-[a-zA-Z0-9-]+$",
+      "title": "Plant ID",
+      "pattern": "^PLT-[a-zA-Z0-9-]+$"
+    },
+    "LineId": {
+      "type": "string",
+      "description": "a string matching the pattern ^LIN-[a-zA-Z0-9-]+$",
+      "title": "Line ID",
+      "pattern": "^LIN-[a-zA-Z0-9-]+$"
+    },
+    "WorkCellId": {
+      "type": "string",
+      "description": "a string matching the pattern ^WCL-[a-zA-Z0-9-]+$",
+      "title": "WorkCell ID",
+      "pattern": "^WCL-[a-zA-Z0-9-]+$"
+    },
+    "MachineId": {
+      "type": "string",
+      "description": "a string matching the pattern ^MCH-[a-zA-Z0-9-]+$",
+      "title": "Machine ID",
+      "pattern": "^MCH-[a-zA-Z0-9-]+$"
+    }
+  },
+  "type": "object",
+  "required": [
+    "asset_id",
+    "name",
+    "kind",
+    "status",
+    "description",
+    "location",
+    "properties",
+    "metadata",
+    "parent_id",
+    "hierarchy_path",
+    "enterprise_id",
+    "site_id",
+    "area_id",
+    "plant_id",
+    "line_id",
+    "work_cell_id",
+    "machine_id",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "asset_id": {
+      "$ref": "#/definitions/AssetId"
+    },
+    "name": {
+      "$ref": "#/definitions/NonEmptyString"
+    },
+    "kind": {
+      "$ref": "#/definitions/AssetKind"
+    },
+    "status": {
+      "$ref": "#/definitions/AssetStatus"
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "location": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/AssetLocation"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "properties": {
+      "$ref": "#/definitions/AssetProperties"
+    },
+    "metadata": {
+      "$ref": "#/definitions/AssetMetadata"
+    },
+    "parent_id": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/AssetId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "hierarchy_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "enterprise_id": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/EnterpriseId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "site_id": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/SiteId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "area_id": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/AreaId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "plant_id": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/PlantId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "line_id": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/LineId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "work_cell_id": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/WorkCellId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "machine_id": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/MachineId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        }
+      ],
+      "description": "Timestamp value or null.",
+      "title": "Nullable Timestamp"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/asset/ts/asset.contract.ts). Canonical Jido agent-state contract for Elixir preflight validation.",
+  "title": "AssetAgentState",
+  "$id": "/contracts/asset/asset_agent_state.schema.json"
+}

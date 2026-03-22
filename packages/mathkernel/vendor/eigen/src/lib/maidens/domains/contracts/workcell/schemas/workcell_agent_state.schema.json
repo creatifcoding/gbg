@@ -1,0 +1,401 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "WorkCellAgentState": {
+      "type": "object",
+      "required": [
+        "workcell_id",
+        "line_id",
+        "name",
+        "status",
+        "cell_type",
+        "cycle_time_seconds",
+        "position",
+        "description",
+        "location",
+        "metadata",
+        "hierarchy_path",
+        "enterprise_id",
+        "site_id",
+        "area_id",
+        "plant_id",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "workcell_id": {
+          "$ref": "#/definitions/WorkCellId"
+        },
+        "line_id": {
+          "$ref": "#/definitions/LineId"
+        },
+        "name": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "status": {
+          "$ref": "#/definitions/WorkCellStatus"
+        },
+        "cell_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cycle_time_seconds": {
+          "anyOf": [
+            {
+              "type": "number",
+              "description": "a positive number",
+              "title": "positive",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "position": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "description": "a non-negative number",
+              "title": "nonNegative",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/WorkCellLocation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "metadata": {
+          "$ref": "#/definitions/WorkCellMetadata"
+        },
+        "hierarchy_path": {
+          "type": "string"
+        },
+        "enterprise_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "site_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "area_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "plant_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "description": "ISO8601 UTC or offset timestamp string.",
+              "title": "ISO8601 Timestamp",
+              "format": "date-time"
+            }
+          ],
+          "description": "Timestamp value or null.",
+          "title": "Nullable Timestamp"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Canonical Jido agent-state contract for WorkCell runtime preflight.",
+      "title": "WorkCell Agent State"
+    },
+    "WorkCellId": {
+      "type": "string",
+      "description": "WorkCell identifier in WCL-{slug} format.",
+      "title": "WorkCell ID",
+      "pattern": "^WCL-[a-zA-Z0-9-]+$"
+    },
+    "LineId": {
+      "type": "string",
+      "description": "Line identifier in LIN-{slug} format.",
+      "title": "Line ID",
+      "pattern": "^LIN-[a-zA-Z0-9-]+$"
+    },
+    "NonEmptyString": {
+      "type": "string",
+      "description": "a non empty string",
+      "title": "nonEmptyString",
+      "minLength": 1
+    },
+    "WorkCellStatus": {
+      "type": "string",
+      "enum": [
+        "idle",
+        "setup",
+        "running",
+        "blocked",
+        "faulted",
+        "maintenance",
+        "decommissioned"
+      ],
+      "description": "ISA-95 workcell operational state.",
+      "title": "WorkCell Status"
+    },
+    "WorkCellLocation": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        },
+        "building": {
+          "type": "string"
+        },
+        "floor": {
+          "type": "string"
+        },
+        "zone": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "timezone": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Physical location details for a workcell.",
+      "title": "WorkCell Location"
+    },
+    "WorkCellMetadata": {
+      "type": "object",
+      "required": [],
+      "properties": {},
+      "additionalProperties": {
+        "$id": "/schemas/unknown",
+        "title": "unknown"
+      },
+      "description": "Extensible metadata map for workcell payloads.",
+      "title": "WorkCell Metadata"
+    }
+  },
+  "type": "object",
+  "required": [
+    "workcell_id",
+    "line_id",
+    "name",
+    "status",
+    "cell_type",
+    "cycle_time_seconds",
+    "position",
+    "description",
+    "location",
+    "metadata",
+    "hierarchy_path",
+    "enterprise_id",
+    "site_id",
+    "area_id",
+    "plant_id",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "workcell_id": {
+      "$ref": "#/definitions/WorkCellId"
+    },
+    "line_id": {
+      "$ref": "#/definitions/LineId"
+    },
+    "name": {
+      "$ref": "#/definitions/NonEmptyString"
+    },
+    "status": {
+      "$ref": "#/definitions/WorkCellStatus"
+    },
+    "cell_type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "cycle_time_seconds": {
+      "anyOf": [
+        {
+          "type": "number",
+          "description": "a positive number",
+          "title": "positive",
+          "exclusiveMinimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "position": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "description": "a non-negative number",
+          "title": "nonNegative",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "location": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/WorkCellLocation"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "metadata": {
+      "$ref": "#/definitions/WorkCellMetadata"
+    },
+    "hierarchy_path": {
+      "type": "string"
+    },
+    "enterprise_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "site_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "area_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "plant_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        }
+      ],
+      "description": "Timestamp value or null.",
+      "title": "Nullable Timestamp"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/workcell/ts/workcell.contract.ts). Canonical Jido agent-state contract for Elixir preflight validation.",
+  "title": "WorkCellAgentState",
+  "$id": "/contracts/workcell/workcell_agent_state.schema.json"
+}

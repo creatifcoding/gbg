@@ -1,0 +1,187 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "AssetTransitionEvent": {
+      "type": "object",
+      "required": [
+        "asset_id",
+        "from",
+        "to",
+        "at"
+      ],
+      "properties": {
+        "asset_id": {
+          "$ref": "#/definitions/AssetId"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/AssetKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "from": {
+          "$ref": "#/definitions/AssetStatus"
+        },
+        "to": {
+          "$ref": "#/definitions/AssetStatus"
+        },
+        "action": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/AssetTransitionAction"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "initiated_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Transition payload contract for polymorphic asset lifecycle events.",
+      "title": "Asset Transition Event"
+    },
+    "AssetId": {
+      "type": "string",
+      "description": "Canonical ISA-95 asset identifier with hierarchy prefix (ENT|SIT|ARA|PLT|LIN|WCL|MCH|SNS|DEV).",
+      "title": "Asset ID",
+      "pattern": "^(ENT|SIT|ARA|PLT|LIN|WCL|MCH|SNS|DEV)-[a-zA-Z0-9-]+$"
+    },
+    "AssetKind": {
+      "type": "string",
+      "enum": [
+        "enterprise",
+        "site",
+        "area",
+        "plant",
+        "line",
+        "workcell",
+        "machine",
+        "sensor",
+        "device"
+      ],
+      "description": "ISA-95 equipment hierarchy discriminator.",
+      "title": "Asset Kind"
+    },
+    "AssetStatus": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "maintenance",
+        "decommissioned"
+      ],
+      "description": "Polymorphic ISA-95 asset lifecycle status.",
+      "title": "Asset Status"
+    },
+    "AssetTransitionAction": {
+      "type": "string",
+      "enum": [
+        "Activate",
+        "Deactivate",
+        "StartMaintenance",
+        "CompleteMaintenance",
+        "Decommission"
+      ],
+      "description": "Named transition actions for generic polymorphic asset lifecycle.",
+      "title": "Asset Transition Action"
+    }
+  },
+  "type": "object",
+  "required": [
+    "asset_id",
+    "from",
+    "to",
+    "at"
+  ],
+  "properties": {
+    "asset_id": {
+      "$ref": "#/definitions/AssetId"
+    },
+    "kind": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/AssetKind"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "from": {
+      "$ref": "#/definitions/AssetStatus"
+    },
+    "to": {
+      "$ref": "#/definitions/AssetStatus"
+    },
+    "action": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/AssetTransitionAction"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "initiated_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/asset/ts/asset.contract.ts). Canonical transition event contract for TypeScript and Elixir.",
+  "title": "AssetTransitionEvent",
+  "$id": "/contracts/asset/asset_transition.schema.json"
+}

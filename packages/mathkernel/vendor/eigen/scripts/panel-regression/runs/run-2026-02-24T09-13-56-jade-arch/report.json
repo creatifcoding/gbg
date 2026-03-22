@@ -1,0 +1,141 @@
+{
+  "runId": "run-2026-02-24T09-13-56-jade-arch",
+  "startedAt": "2026-02-24T09:13:56.446Z",
+  "completedAt": "2026-02-24T09:14:02.797Z",
+  "totalScenarios": 1,
+  "passed": 0,
+  "failed": 1,
+  "scenarios": [
+    {
+      "scenarioId": "amber-arch",
+      "title": "Basic collapse roundtrip",
+      "runId": "amber-arch",
+      "mode": "strip+tree",
+      "passed": false,
+      "screenshots": [
+        {
+          "name": "spawned",
+          "path": "scripts/panel-regression/runs/run-2026-02-24T09-13-56-jade-arch/amber-arch/strip/002-spawned.png",
+          "step": 2,
+          "timestamp": 1771924438161
+        },
+        {
+          "name": "collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-24T09-13-56-jade-arch/amber-arch/strip/004-collapsed.png",
+          "step": 4,
+          "timestamp": 1771924438664
+        },
+        {
+          "name": "expanded",
+          "path": "scripts/panel-regression/runs/run-2026-02-24T09-13-56-jade-arch/amber-arch/strip/006-expanded.png",
+          "step": 6,
+          "timestamp": 1771924439165
+        },
+        {
+          "name": "mode-switch-to-tree",
+          "path": "scripts/panel-regression/runs/run-2026-02-24T09-13-56-jade-arch/amber-arch/strip/007-mode-switch-to-tree.png",
+          "step": 7,
+          "timestamp": 1771924440307
+        },
+        {
+          "name": "spawned",
+          "path": "scripts/panel-regression/runs/run-2026-02-24T09-13-56-jade-arch/amber-arch/tree/002-spawned.png",
+          "step": 2,
+          "timestamp": 1771924441775
+        },
+        {
+          "name": "collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-24T09-13-56-jade-arch/amber-arch/tree/004-collapsed.png",
+          "step": 4,
+          "timestamp": 1771924442276
+        },
+        {
+          "name": "expanded",
+          "path": "scripts/panel-regression/runs/run-2026-02-24T09-13-56-jade-arch/amber-arch/tree/006-expanded.png",
+          "step": 6,
+          "timestamp": 1771924442785
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771924437435,
+          "durationMs": 738.457549
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771924437902,
+          "durationMs": 467.131621
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771924438416,
+          "durationMs": 244.91515200000003
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771924438918,
+          "durationMs": 245.0660630000002
+        },
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771924441122,
+          "durationMs": 593.4282359999997
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771924441521,
+          "durationMs": 398.6978479999998
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771924442023,
+          "durationMs": 240.0218789999999
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771924442531,
+          "durationMs": 248.11644700000033
+        }
+      ],
+      "errors": [
+        "[strip] spawned.overlayOpen: expected true, got false",
+        "[strip] collapsed.collapsedCount: expected 1, got 0",
+        "[strip] collapsed.expandedCount: expected 0, got 1",
+        "[strip] collapsed.collapsedColumnCount: expected 1, got 0",
+        "[tree] spawned.totalPanels: expected 1, got 0",
+        "[tree] spawned.tiledCount: expected 1, got 0",
+        "[tree] spawned.expandedCount: expected 1, got 0",
+        "[tree] spawned.columnCount: expected 1, got 0",
+        "[tree] spawned.overlayOpen: expected true, got false",
+        "[tree] collapsed.totalPanels: expected 1, got 0",
+        "[tree] collapsed.tiledCount: expected 1, got 0",
+        "[tree] collapsed.collapsedCount: expected 1, got 0",
+        "[tree] collapsed.columnCount: expected 1, got 0",
+        "[tree] collapsed.collapsedColumnCount: expected 1, got 0",
+        "[tree] expanded.totalPanels: expected 1, got 0",
+        "[tree] expanded.tiledCount: expected 1, got 0",
+        "[tree] expanded.expandedCount: expected 1, got 0",
+        "[tree] expanded.columnCount: expected 1, got 0"
+      ],
+      "durationMs": 6326.363142,
+      "startedAt": "2026-02-24T09:13:56.471Z"
+    }
+  ]
+}

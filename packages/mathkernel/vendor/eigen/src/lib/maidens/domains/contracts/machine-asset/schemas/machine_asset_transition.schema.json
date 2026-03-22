@@ -1,0 +1,143 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "MachineAssetTransitionEvent": {
+      "type": "object",
+      "required": [
+        "machine_id",
+        "from",
+        "to",
+        "at"
+      ],
+      "properties": {
+        "machine_id": {
+          "$ref": "#/definitions/MachineAssetId"
+        },
+        "from": {
+          "$ref": "#/definitions/MachineAssetStatus"
+        },
+        "to": {
+          "$ref": "#/definitions/MachineAssetStatus"
+        },
+        "at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "initiated_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Transition payload contract for machine-asset lifecycle events.",
+      "title": "Machine Asset Transition Event"
+    },
+    "MachineAssetId": {
+      "type": "string",
+      "description": "Machine identifier in MCH-{slug} format.",
+      "title": "Machine Asset ID",
+      "pattern": "^MCH-[a-zA-Z0-9-]+$"
+    },
+    "MachineAssetStatus": {
+      "type": "string",
+      "enum": [
+        "commissioned",
+        "operational",
+        "idle",
+        "faulted",
+        "scheduled_maintenance",
+        "unscheduled_maintenance",
+        "retired",
+        "decommissioned"
+      ],
+      "description": "ISA-95 machine lifecycle status.",
+      "title": "Machine Asset Status"
+    }
+  },
+  "type": "object",
+  "required": [
+    "machine_id",
+    "from",
+    "to",
+    "at"
+  ],
+  "properties": {
+    "machine_id": {
+      "$ref": "#/definitions/MachineAssetId"
+    },
+    "from": {
+      "$ref": "#/definitions/MachineAssetStatus"
+    },
+    "to": {
+      "$ref": "#/definitions/MachineAssetStatus"
+    },
+    "at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "initiated_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/machine-asset/ts/machine-asset.contract.ts). Canonical transition event contract for TypeScript and Elixir.",
+  "title": "MachineAssetTransitionEvent",
+  "$id": "/contracts/machine-asset/machine_asset_transition.schema.json"
+}

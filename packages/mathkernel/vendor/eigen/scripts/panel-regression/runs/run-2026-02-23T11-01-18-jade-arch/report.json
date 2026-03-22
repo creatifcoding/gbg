@@ -1,0 +1,161 @@
+{
+  "runId": "run-2026-02-23T11-01-18-jade-arch",
+  "startedAt": "2026-02-23T11:01:18.041Z",
+  "completedAt": "2026-02-23T11:01:25.350Z",
+  "totalScenarios": 1,
+  "passed": 0,
+  "failed": 1,
+  "scenarios": [
+    {
+      "scenarioId": "amber-arch",
+      "title": "Basic collapse roundtrip",
+      "runId": "amber-arch",
+      "mode": "strip+tree",
+      "passed": false,
+      "screenshots": [
+        {
+          "name": "spawned",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/strip/002-spawned.png",
+          "step": 2,
+          "timestamp": 1771844479886
+        },
+        {
+          "name": "collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/strip/004-collapsed.png",
+          "step": 4,
+          "timestamp": 1771844480439
+        },
+        {
+          "name": "expanded",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/strip/006-expanded.png",
+          "step": 6,
+          "timestamp": 1771844481097
+        },
+        {
+          "name": "mode-switch-to-tree",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/strip/007-mode-switch-to-tree.png",
+          "step": 7,
+          "timestamp": 1771844482399
+        },
+        {
+          "name": "spawned",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/tree/002-spawned.png",
+          "step": 2,
+          "timestamp": 1771844484222
+        },
+        {
+          "name": "collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/tree/004-collapsed.png",
+          "step": 4,
+          "timestamp": 1771844484789
+        },
+        {
+          "name": "expanded",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/tree/006-expanded.png",
+          "step": 6,
+          "timestamp": 1771844485336
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771844479043,
+          "durationMs": 751.7342430000001
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844479538,
+          "durationMs": 495.44306300000017
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844480161,
+          "durationMs": 267.6520139999998
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844480788,
+          "durationMs": 340.7788029999997
+        },
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771844483386,
+          "durationMs": 737.8677149999994
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844483886,
+          "durationMs": 500.29356299999927
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844484485,
+          "durationMs": 255.31236499999977
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844485045,
+          "durationMs": 250.0232129999995
+        }
+      ],
+      "errors": [
+        "[strip] spawned.totalPanels: expected 1, got undefined",
+        "[strip] spawned.tiledCount: expected 1, got undefined",
+        "[strip] spawned.floatCount: expected 0, got undefined",
+        "[strip] spawned.collapsedCount: expected 0, got undefined",
+        "[strip] spawned.expandedCount: expected 1, got undefined",
+        "[strip] spawned.columnCount: expected 1, got undefined",
+        "[strip] spawned.overlayOpen: expected true, got undefined",
+        "[strip] collapsed.totalPanels: expected 1, got undefined",
+        "[strip] collapsed.tiledCount: expected 1, got undefined",
+        "[strip] collapsed.collapsedCount: expected 1, got undefined",
+        "[strip] collapsed.expandedCount: expected 0, got undefined",
+        "[strip] collapsed.columnCount: expected 1, got undefined",
+        "[strip] collapsed.collapsedColumnCount: expected 1, got undefined",
+        "[strip] expanded.totalPanels: expected 1, got undefined",
+        "[strip] expanded.tiledCount: expected 1, got undefined",
+        "[strip] expanded.collapsedCount: expected 0, got undefined",
+        "[strip] expanded.expandedCount: expected 1, got undefined",
+        "[strip] expanded.columnCount: expected 1, got undefined",
+        "[strip] expanded.collapsedColumnCount: expected 0, got undefined",
+        "[tree] spawned.totalPanels: expected 1, got undefined",
+        "[tree] spawned.tiledCount: expected 1, got undefined",
+        "[tree] spawned.floatCount: expected 0, got undefined",
+        "[tree] spawned.collapsedCount: expected 0, got undefined",
+        "[tree] spawned.expandedCount: expected 1, got undefined",
+        "[tree] spawned.columnCount: expected 1, got undefined",
+        "[tree] spawned.overlayOpen: expected true, got undefined",
+        "[tree] collapsed.totalPanels: expected 1, got undefined",
+        "[tree] collapsed.tiledCount: expected 1, got undefined",
+        "[tree] collapsed.collapsedCount: expected 1, got undefined",
+        "[tree] collapsed.expandedCount: expected 0, got undefined",
+        "[tree] collapsed.columnCount: expected 1, got undefined",
+        "[tree] collapsed.collapsedColumnCount: expected 1, got undefined",
+        "[tree] expanded.totalPanels: expected 1, got undefined",
+        "[tree] expanded.tiledCount: expected 1, got undefined",
+        "[tree] expanded.collapsedCount: expected 0, got undefined",
+        "[tree] expanded.expandedCount: expected 1, got undefined",
+        "[tree] expanded.columnCount: expected 1, got undefined",
+        "[tree] expanded.collapsedColumnCount: expected 0, got undefined"
+      ],
+      "durationMs": 7282.666983,
+      "startedAt": "2026-02-23T11:01:18.067Z"
+    }
+  ]
+}

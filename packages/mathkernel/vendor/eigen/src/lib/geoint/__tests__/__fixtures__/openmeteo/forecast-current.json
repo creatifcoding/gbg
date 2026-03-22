@@ -1,0 +1,44 @@
+{
+  "latitude": 37.7749,
+  "longitude": -122.4194,
+  "generationtime_ms": 0.5,
+  "utc_offset_seconds": -28800,
+  "timezone": "America/Los_Angeles",
+  "timezone_abbreviation": "PST",
+  "elevation": 16.0,
+  "current_units": {
+    "time": "iso8601",
+    "interval": "seconds",
+    "temperature_2m": "°C",
+    "relative_humidity_2m": "%",
+    "precipitation": "mm",
+    "weather_code": "wmo code",
+    "wind_speed_10m": "km/h",
+    "wind_direction_10m": "°"
+  },
+  "current": {
+    "time": "2024-01-15T12:00",
+    "interval": 900,
+    "temperature_2m": 15.5,
+    "relative_humidity_2m": 65,
+    "precipitation": 0.0,
+    "weather_code": 2,
+    "wind_speed_10m": 12.5,
+    "wind_direction_10m": 270
+  },
+  "hourly_units": {
+    "time": "iso8601",
+    "temperature_2m": "°C",
+    "precipitation_probability": "%"
+  },
+  "hourly": {
+    "time": [
+      "2024-01-15T12:00",
+      "2024-01-15T13:00",
+      "2024-01-15T14:00",
+      "2024-01-15T15:00"
+    ],
+    "temperature_2m": [15.5, 16.2, 16.8, 16.5],
+    "precipitation_probability": [0, 5, 10, 15]
+  }
+}

@@ -1,0 +1,1897 @@
+{
+  "runId": "run-2026-02-22T22-28-24-jade-arch",
+  "startedAt": "2026-02-22T22:28:24.228Z",
+  "completedAt": "2026-02-22T22:28:44.024Z",
+  "totalScenarios": 20,
+  "passed": 20,
+  "failed": 0,
+  "scenarios": [
+    {
+      "scenarioId": "odd-unit",
+      "title": "Fuzz #1 (depth=5, spawns=2)",
+      "runId": "odd-unit",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/odd-unit/strip/003-initial.png",
+          "step": 3,
+          "timestamp": 1771799308092
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/odd-unit/strip/006-fuzz-1.png",
+          "step": 6,
+          "timestamp": 1771799308822
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/odd-unit/strip/009-fuzz-3.png",
+          "step": 9,
+          "timestamp": 1771799309543
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/odd-unit/strip/011-final.png",
+          "step": 11,
+          "timestamp": 1771799310023
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799307043,
+          "durationMs": 598.718132
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799307440,
+          "durationMs": 396.86456099999987
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799307832,
+          "durationMs": 391.9858009999998
+        },
+        {
+          "index": 1,
+          "tag": "focus-down",
+          "label": "Focus down (Alt+J)",
+          "timestamp": 1771799308335,
+          "durationMs": 242.52763100000038
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799308578,
+          "durationMs": 242.81728199999998
+        },
+        {
+          "index": 2,
+          "tag": "focus-right",
+          "label": "Focus right (Alt+L)",
+          "timestamp": 1771799309062,
+          "durationMs": 240.35561000000052
+        },
+        {
+          "index": 2,
+          "tag": "focus-down",
+          "label": "Focus down (Alt+J)",
+          "timestamp": 1771799309306,
+          "durationMs": 243.76070199999958
+        },
+        {
+          "index": 3,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799309784,
+          "durationMs": 240.59215700000004
+        }
+      ],
+      "errors": [],
+      "durationMs": 5798.258245,
+      "startedAt": "2026-02-22T22:28:24.230Z"
+    },
+    {
+      "scenarioId": "pale-unit",
+      "title": "Fuzz #2 (depth=5, spawns=3)",
+      "runId": "pale-unit",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/pale-unit/strip/004-initial.png",
+          "step": 4,
+          "timestamp": 1771799308366
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/pale-unit/strip/007-fuzz-1.png",
+          "step": 7,
+          "timestamp": 1771799309250
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/pale-unit/strip/010-fuzz-3.png",
+          "step": 10,
+          "timestamp": 1771799310180
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/pale-unit/strip/012-final.png",
+          "step": 12,
+          "timestamp": 1771799310680
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799306921,
+          "durationMs": 595.852903
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799307315,
+          "durationMs": 393.8755809999998
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799307711,
+          "durationMs": 395.948766
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799308102,
+          "durationMs": 390.9815689999996
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799308609,
+          "durationMs": 242.49022799999966
+        },
+        {
+          "index": 1,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799309002,
+          "durationMs": 392.9649450000006
+        },
+        {
+          "index": 2,
+          "tag": "close",
+          "label": "Close panel (Alt+Q)",
+          "timestamp": 1771799309545,
+          "durationMs": 294.7315779999999
+        },
+        {
+          "index": 2,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799309935,
+          "durationMs": 390.0361779999994
+        },
+        {
+          "index": 3,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799310425,
+          "durationMs": 244.8070859999998
+        }
+      ],
+      "errors": [],
+      "durationMs": 6455.86493,
+      "startedAt": "2026-02-22T22:28:24.230Z"
+    },
+    {
+      "scenarioId": "rust-unit",
+      "title": "Fuzz #3 (depth=5, spawns=2)",
+      "runId": "rust-unit",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/rust-unit/strip/003-initial.png",
+          "step": 3,
+          "timestamp": 1771799308110
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/rust-unit/strip/006-fuzz-1.png",
+          "step": 6,
+          "timestamp": 1771799309145
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/rust-unit/strip/009-fuzz-3.png",
+          "step": 9,
+          "timestamp": 1771799310067
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/rust-unit/strip/011-final.png",
+          "step": 11,
+          "timestamp": 1771799310592
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799307046,
+          "durationMs": 596.7683179999999
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799307444,
+          "durationMs": 397.83975899999996
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799307839,
+          "durationMs": 395.0018789999999
+        },
+        {
+          "index": 1,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799308508,
+          "durationMs": 398.4456989999999
+        },
+        {
+          "index": 1,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799308900,
+          "durationMs": 391.9298409999992
+        },
+        {
+          "index": 2,
+          "tag": "close",
+          "label": "Close panel (Alt+Q)",
+          "timestamp": 1771799309438,
+          "durationMs": 292.92401400000017
+        },
+        {
+          "index": 2,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799309831,
+          "durationMs": 392.98085699999956
+        },
+        {
+          "index": 3,
+          "tag": "close",
+          "label": "Close panel (Alt+Q)",
+          "timestamp": 1771799310355,
+          "durationMs": 288.3585430000003
+        }
+      ],
+      "errors": [],
+      "durationMs": 6367.183439,
+      "startedAt": "2026-02-22T22:28:24.230Z"
+    },
+    {
+      "scenarioId": "sage-unit",
+      "title": "Fuzz #4 (depth=5, spawns=3)",
+      "runId": "sage-unit",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/sage-unit/strip/004-initial.png",
+          "step": 4,
+          "timestamp": 1771799308397
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/sage-unit/strip/007-fuzz-1.png",
+          "step": 7,
+          "timestamp": 1771799309417
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/sage-unit/strip/010-fuzz-3.png",
+          "step": 10,
+          "timestamp": 1771799310290
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/sage-unit/strip/012-final.png",
+          "step": 12,
+          "timestamp": 1771799310922
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799306961,
+          "durationMs": 597.7510520000001
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799307356,
+          "durationMs": 395.3980099999999
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799307747,
+          "durationMs": 390.5024790000002
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799308137,
+          "durationMs": 390.20779500000026
+        },
+        {
+          "index": 1,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799308790,
+          "durationMs": 392.928046
+        },
+        {
+          "index": 1,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799309181,
+          "durationMs": 391.02498300000025
+        },
+        {
+          "index": 2,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799309658,
+          "durationMs": 240.85159699999986
+        },
+        {
+          "index": 2,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799310054,
+          "durationMs": 395.4208929999995
+        },
+        {
+          "index": 3,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799310683,
+          "durationMs": 392.89485499999955
+        }
+      ],
+      "errors": [],
+      "durationMs": 6696.409759,
+      "startedAt": "2026-02-22T22:28:24.230Z"
+    },
+    {
+      "scenarioId": "true-unit",
+      "title": "Fuzz #5 (depth=5, spawns=3)",
+      "runId": "true-unit",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/true-unit/strip/004-initial.png",
+          "step": 4,
+          "timestamp": 1771799308635
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/true-unit/strip/007-fuzz-1.png",
+          "step": 7,
+          "timestamp": 1771799309597
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/true-unit/strip/010-fuzz-3.png",
+          "step": 10,
+          "timestamp": 1771799310467
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/true-unit/strip/012-final.png",
+          "step": 12,
+          "timestamp": 1771799310951
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799307183,
+          "durationMs": 603.6895240000003
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799307581,
+          "durationMs": 397.9074989999999
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799307975,
+          "durationMs": 394.0110239999999
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799308370,
+          "durationMs": 394.9777740000004
+        },
+        {
+          "index": 1,
+          "tag": "close",
+          "label": "Close panel (Alt+Q)",
+          "timestamp": 1771799308925,
+          "durationMs": 289.9945289999996
+        },
+        {
+          "index": 1,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799309317,
+          "durationMs": 392.0227789999999
+        },
+        {
+          "index": 2,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799309988,
+          "durationMs": 391.0544289999998
+        },
+        {
+          "index": 2,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799310229,
+          "durationMs": 241.0936299999994
+        },
+        {
+          "index": 3,
+          "tag": "width-cycle",
+          "label": "Cycle column width (Alt+D)",
+          "timestamp": 1771799310708,
+          "durationMs": 240.82956600000034
+        }
+      ],
+      "errors": [],
+      "durationMs": 6728.316895999999,
+      "startedAt": "2026-02-22T22:28:24.230Z"
+    },
+    {
+      "scenarioId": "vast-unit",
+      "title": "Fuzz #6 (depth=5, spawns=1)",
+      "runId": "vast-unit",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/vast-unit/strip/002-initial.png",
+          "step": 2,
+          "timestamp": 1771799307733
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/vast-unit/strip/005-fuzz-1.png",
+          "step": 5,
+          "timestamp": 1771799308515
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/vast-unit/strip/008-fuzz-3.png",
+          "step": 8,
+          "timestamp": 1771799309398
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/vast-unit/strip/010-final.png",
+          "step": 10,
+          "timestamp": 1771799309890
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799307070,
+          "durationMs": 596.7408609999998
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799307465,
+          "durationMs": 395.0729259999998
+        },
+        {
+          "index": 1,
+          "tag": "close",
+          "label": "Close panel (Alt+Q)",
+          "timestamp": 1771799308025,
+          "durationMs": 292.1981179999998
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799308268,
+          "durationMs": 242.6730309999998
+        },
+        {
+          "index": 2,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799308906,
+          "durationMs": 390.7678159999996
+        },
+        {
+          "index": 2,
+          "tag": "focus-right",
+          "label": "Focus right (Alt+L)",
+          "timestamp": 1771799309148,
+          "durationMs": 242.0683709999994
+        },
+        {
+          "index": 3,
+          "tag": "focus-down",
+          "label": "Focus down (Alt+J)",
+          "timestamp": 1771799309641,
+          "durationMs": 242.60461599999962
+        }
+      ],
+      "errors": [],
+      "durationMs": 5664.999234,
+      "startedAt": "2026-02-22T22:28:24.230Z"
+    },
+    {
+      "scenarioId": "wild-unit",
+      "title": "Fuzz #7 (depth=5, spawns=1)",
+      "runId": "wild-unit",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/wild-unit/strip/002-initial.png",
+          "step": 2,
+          "timestamp": 1771799307829
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/wild-unit/strip/005-fuzz-1.png",
+          "step": 5,
+          "timestamp": 1771799308715
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/wild-unit/strip/008-fuzz-3.png",
+          "step": 8,
+          "timestamp": 1771799309600
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/wild-unit/strip/010-final.png",
+          "step": 10,
+          "timestamp": 1771799310134
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799307137,
+          "durationMs": 597.3919820000001
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799307538,
+          "durationMs": 400.6953189999999
+        },
+        {
+          "index": 1,
+          "tag": "width-cycle",
+          "label": "Cycle column width (Alt+D)",
+          "timestamp": 1771799308073,
+          "durationMs": 243.901433
+        },
+        {
+          "index": 1,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799308468,
+          "durationMs": 394.99749999999995
+        },
+        {
+          "index": 2,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799309108,
+          "durationMs": 392.73113999999987
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799309351,
+          "durationMs": 242.4275120000002
+        },
+        {
+          "index": 3,
+          "tag": "close",
+          "label": "Close panel (Alt+Q)",
+          "timestamp": 1771799309890,
+          "durationMs": 290.0792279999996
+        }
+      ],
+      "errors": [],
+      "durationMs": 5908.276524,
+      "startedAt": "2026-02-22T22:28:24.230Z"
+    },
+    {
+      "scenarioId": "zinc-unit",
+      "title": "Fuzz #8 (depth=5, spawns=3)",
+      "runId": "zinc-unit",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/zinc-unit/strip/004-initial.png",
+          "step": 4,
+          "timestamp": 1771799308519
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/zinc-unit/strip/007-fuzz-1.png",
+          "step": 7,
+          "timestamp": 1771799309246
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/zinc-unit/strip/010-fuzz-3.png",
+          "step": 10,
+          "timestamp": 1771799310273
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/zinc-unit/strip/012-final.png",
+          "step": 12,
+          "timestamp": 1771799310751
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799307068,
+          "durationMs": 597.9219119999998
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799307462,
+          "durationMs": 393.830019
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799307856,
+          "durationMs": 393.7332029999998
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799308253,
+          "durationMs": 397.2893140000001
+        },
+        {
+          "index": 1,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799308760,
+          "durationMs": 241.09962199999973
+        },
+        {
+          "index": 1,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799309003,
+          "durationMs": 242.82298600000013
+        },
+        {
+          "index": 2,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799309639,
+          "durationMs": 392.8630749999993
+        },
+        {
+          "index": 2,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799310031,
+          "durationMs": 392.0570370000005
+        },
+        {
+          "index": 3,
+          "tag": "width-cycle",
+          "label": "Cycle column width (Alt+D)",
+          "timestamp": 1771799310514,
+          "durationMs": 241.14225999999962
+        }
+      ],
+      "errors": [],
+      "durationMs": 6525.687479,
+      "startedAt": "2026-02-22T22:28:24.230Z"
+    },
+    {
+      "scenarioId": "amber-volt",
+      "title": "Fuzz #9 (depth=5, spawns=3)",
+      "runId": "amber-volt",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/amber-volt/strip/004-initial.png",
+          "step": 4,
+          "timestamp": 1771799315297
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/amber-volt/strip/007-fuzz-1.png",
+          "step": 7,
+          "timestamp": 1771799316091
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/amber-volt/strip/010-fuzz-3.png",
+          "step": 10,
+          "timestamp": 1771799317125
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/amber-volt/strip/012-final.png",
+          "step": 12,
+          "timestamp": 1771799317624
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799313850,
+          "durationMs": 594.3600100000003
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799314245,
+          "durationMs": 394.5869359999997
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799314639,
+          "durationMs": 394.0992100000003
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799315034,
+          "durationMs": 394.87747500000114
+        },
+        {
+          "index": 1,
+          "tag": "close",
+          "label": "Close panel (Alt+Q)",
+          "timestamp": 1771799315592,
+          "durationMs": 295.05512199999976
+        },
+        {
+          "index": 1,
+          "tag": "focus-right",
+          "label": "Focus right (Alt+L)",
+          "timestamp": 1771799315838,
+          "durationMs": 245.87755300000026
+        },
+        {
+          "index": 2,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799316487,
+          "durationMs": 394.9980149999992
+        },
+        {
+          "index": 2,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799316877,
+          "durationMs": 390.43795899999895
+        },
+        {
+          "index": 3,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799317373,
+          "durationMs": 248.09939200000008
+        }
+      ],
+      "errors": [],
+      "durationMs": 6622.4094239999995,
+      "startedAt": "2026-02-22T22:28:31.006Z"
+    },
+    {
+      "scenarioId": "bold-volt",
+      "title": "Fuzz #10 (depth=5, spawns=2)",
+      "runId": "bold-volt",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/bold-volt/strip/003-initial.png",
+          "step": 3,
+          "timestamp": 1771799314878
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/bold-volt/strip/006-fuzz-1.png",
+          "step": 6,
+          "timestamp": 1771799315610
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/bold-volt/strip/009-fuzz-3.png",
+          "step": 9,
+          "timestamp": 1771799316529
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/bold-volt/strip/011-final.png",
+          "step": 11,
+          "timestamp": 1771799317179
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799313828,
+          "durationMs": 594.4736389999998
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799314220,
+          "durationMs": 392.12306499999977
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799314612,
+          "durationMs": 391.9878410000001
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799315122,
+          "durationMs": 244.34788900000058
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799315366,
+          "durationMs": 243.66510599999856
+        },
+        {
+          "index": 2,
+          "tag": "width-cycle",
+          "label": "Cycle column width (Alt+D)",
+          "timestamp": 1771799315851,
+          "durationMs": 241.10905699999967
+        },
+        {
+          "index": 2,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799316244,
+          "durationMs": 393.09377799999857
+        },
+        {
+          "index": 3,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799316926,
+          "durationMs": 396.8795620000001
+        }
+      ],
+      "errors": [],
+      "durationMs": 6177.335011000001,
+      "startedAt": "2026-02-22T22:28:31.006Z"
+    },
+    {
+      "scenarioId": "calm-volt",
+      "title": "Fuzz #11 (depth=5, spawns=2)",
+      "runId": "calm-volt",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/calm-volt/strip/003-initial.png",
+          "step": 3,
+          "timestamp": 1771799314873
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/calm-volt/strip/006-fuzz-1.png",
+          "step": 6,
+          "timestamp": 1771799315753
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/calm-volt/strip/009-fuzz-3.png",
+          "step": 9,
+          "timestamp": 1771799316694
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/calm-volt/strip/011-final.png",
+          "step": 11,
+          "timestamp": 1771799317178
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799313830,
+          "durationMs": 592.7683289999986
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799314222,
+          "durationMs": 391.65574600000036
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799314612,
+          "durationMs": 390.28729100000055
+        },
+        {
+          "index": 1,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799315269,
+          "durationMs": 396.0885299999991
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799315515,
+          "durationMs": 246.09969199999978
+        },
+        {
+          "index": 2,
+          "tag": "close",
+          "label": "Close panel (Alt+Q)",
+          "timestamp": 1771799316049,
+          "durationMs": 295.4058219999988
+        },
+        {
+          "index": 2,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799316441,
+          "durationMs": 392.48881299999994
+        },
+        {
+          "index": 3,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799316935,
+          "durationMs": 241.61799500000052
+        }
+      ],
+      "errors": [],
+      "durationMs": 6176.172745,
+      "startedAt": "2026-02-22T22:28:31.006Z"
+    },
+    {
+      "scenarioId": "dark-volt",
+      "title": "Fuzz #12 (depth=5, spawns=3)",
+      "runId": "dark-volt",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/dark-volt/strip/004-initial.png",
+          "step": 4,
+          "timestamp": 1771799315327
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/dark-volt/strip/007-fuzz-1.png",
+          "step": 7,
+          "timestamp": 1771799316061
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/dark-volt/strip/010-fuzz-3.png",
+          "step": 10,
+          "timestamp": 1771799316943
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/dark-volt/strip/012-final.png",
+          "step": 12,
+          "timestamp": 1771799317427
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799313885,
+          "durationMs": 596.5351540000011
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799314280,
+          "durationMs": 394.2679100000005
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799314672,
+          "durationMs": 392.2246670000004
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799315065,
+          "durationMs": 392.92010800000025
+        },
+        {
+          "index": 1,
+          "tag": "focus-down",
+          "label": "Focus down (Alt+J)",
+          "timestamp": 1771799315568,
+          "durationMs": 240.88247500000034
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799315812,
+          "durationMs": 243.94278499999928
+        },
+        {
+          "index": 2,
+          "tag": "focus-right",
+          "label": "Focus right (Alt+L)",
+          "timestamp": 1771799316302,
+          "durationMs": 241.00039099999958
+        },
+        {
+          "index": 2,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799316696,
+          "durationMs": 394.5170880000005
+        },
+        {
+          "index": 3,
+          "tag": "width-cycle",
+          "label": "Cycle column width (Alt+D)",
+          "timestamp": 1771799317183,
+          "durationMs": 240.05761600000005
+        }
+      ],
+      "errors": [],
+      "durationMs": 6425.880948,
+      "startedAt": "2026-02-22T22:28:31.006Z"
+    },
+    {
+      "scenarioId": "eager-volt",
+      "title": "Fuzz #13 (depth=5, spawns=1)",
+      "runId": "eager-volt",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/eager-volt/strip/002-initial.png",
+          "step": 2,
+          "timestamp": 1771799314350
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/eager-volt/strip/005-fuzz-1.png",
+          "step": 5,
+          "timestamp": 1771799315390
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/eager-volt/strip/008-fuzz-3.png",
+          "step": 8,
+          "timestamp": 1771799316181
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/eager-volt/strip/010-final.png",
+          "step": 10,
+          "timestamp": 1771799316861
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799313692,
+          "durationMs": 595.8195049999995
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799314085,
+          "durationMs": 392.96390299999985
+        },
+        {
+          "index": 1,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799314744,
+          "durationMs": 393.64729500000067
+        },
+        {
+          "index": 1,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799315137,
+          "durationMs": 393.0028949999996
+        },
+        {
+          "index": 2,
+          "tag": "close",
+          "label": "Close panel (Alt+Q)",
+          "timestamp": 1771799315685,
+          "durationMs": 295.0945410000004
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799315929,
+          "durationMs": 244.0775160000012
+        },
+        {
+          "index": 3,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799316571,
+          "durationMs": 389.7622100000008
+        }
+      ],
+      "errors": [],
+      "durationMs": 5859.954312000001,
+      "startedAt": "2026-02-22T22:28:31.006Z"
+    },
+    {
+      "scenarioId": "fast-volt",
+      "title": "Fuzz #14 (depth=5, spawns=1)",
+      "runId": "fast-volt",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/fast-volt/strip/002-initial.png",
+          "step": 2,
+          "timestamp": 1771799314479
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/fast-volt/strip/005-fuzz-1.png",
+          "step": 5,
+          "timestamp": 1771799315217
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/fast-volt/strip/008-fuzz-3.png",
+          "step": 8,
+          "timestamp": 1771799315965
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/fast-volt/strip/010-final.png",
+          "step": 10,
+          "timestamp": 1771799316456
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799313817,
+          "durationMs": 592.7420949999996
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799314212,
+          "durationMs": 394.86560800000007
+        },
+        {
+          "index": 1,
+          "tag": "focus-right",
+          "label": "Focus right (Alt+L)",
+          "timestamp": 1771799314724,
+          "durationMs": 244.29054499999984
+        },
+        {
+          "index": 1,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799314968,
+          "durationMs": 244.0268219999998
+        },
+        {
+          "index": 2,
+          "tag": "focus-right",
+          "label": "Focus right (Alt+L)",
+          "timestamp": 1771799315465,
+          "durationMs": 248.12952799999948
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799315711,
+          "durationMs": 246.06061299999965
+        },
+        {
+          "index": 3,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799316208,
+          "durationMs": 242.27606600000036
+        }
+      ],
+      "errors": [],
+      "durationMs": 5456.362123999999,
+      "startedAt": "2026-02-22T22:28:31.006Z"
+    },
+    {
+      "scenarioId": "grim-volt",
+      "title": "Fuzz #15 (depth=5, spawns=2)",
+      "runId": "grim-volt",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/grim-volt/strip/003-initial.png",
+          "step": 3,
+          "timestamp": 1771799314740
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/grim-volt/strip/006-fuzz-1.png",
+          "step": 6,
+          "timestamp": 1771799315627
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/grim-volt/strip/009-fuzz-3.png",
+          "step": 9,
+          "timestamp": 1771799316664
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/grim-volt/strip/011-final.png",
+          "step": 11,
+          "timestamp": 1771799317155
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799313696,
+          "durationMs": 598.2975109999988
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799314087,
+          "durationMs": 390.9654470000005
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799314481,
+          "durationMs": 393.9355140000007
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799314986,
+          "durationMs": 245.726329000001
+        },
+        {
+          "index": 1,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799315378,
+          "durationMs": 391.83262300000024
+        },
+        {
+          "index": 2,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799316022,
+          "durationMs": 394.58258600000045
+        },
+        {
+          "index": 2,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799316416,
+          "durationMs": 393.9483230000005
+        },
+        {
+          "index": 3,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799316910,
+          "durationMs": 245.113843000001
+        }
+      ],
+      "errors": [],
+      "durationMs": 6156.3029559999995,
+      "startedAt": "2026-02-22T22:28:31.006Z"
+    },
+    {
+      "scenarioId": "hazy-volt",
+      "title": "Fuzz #16 (depth=5, spawns=1)",
+      "runId": "hazy-volt",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/hazy-volt/strip/002-initial.png",
+          "step": 2,
+          "timestamp": 1771799314483
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/hazy-volt/strip/005-fuzz-1.png",
+          "step": 5,
+          "timestamp": 1771799315369
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/hazy-volt/strip/008-fuzz-3.png",
+          "step": 8,
+          "timestamp": 1771799316108
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/hazy-volt/strip/010-final.png",
+          "step": 10,
+          "timestamp": 1771799316644
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799313826,
+          "durationMs": 591.0249199999998
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799314220,
+          "durationMs": 393.76139799999874
+        },
+        {
+          "index": 1,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799314879,
+          "durationMs": 395.68406199999845
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799315121,
+          "durationMs": 241.8094030000011
+        },
+        {
+          "index": 2,
+          "tag": "focus-right",
+          "label": "Focus right (Alt+L)",
+          "timestamp": 1771799315614,
+          "durationMs": 244.5402780000004
+        },
+        {
+          "index": 2,
+          "tag": "width-cycle",
+          "label": "Cycle column width (Alt+D)",
+          "timestamp": 1771799315857,
+          "durationMs": 242.95594999999958
+        },
+        {
+          "index": 3,
+          "tag": "close",
+          "label": "Close panel (Alt+Q)",
+          "timestamp": 1771799316400,
+          "durationMs": 292.40537199999926
+        }
+      ],
+      "errors": [],
+      "durationMs": 5642.298061,
+      "startedAt": "2026-02-22T22:28:31.006Z"
+    },
+    {
+      "scenarioId": "icy-volt",
+      "title": "Fuzz #17 (depth=5, spawns=1)",
+      "runId": "icy-volt",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/icy-volt/strip/002-initial.png",
+          "step": 2,
+          "timestamp": 1771799320986
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/icy-volt/strip/005-fuzz-1.png",
+          "step": 5,
+          "timestamp": 1771799321772
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/icy-volt/strip/008-fuzz-3.png",
+          "step": 8,
+          "timestamp": 1771799322511
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/icy-volt/strip/010-final.png",
+          "step": 10,
+          "timestamp": 1771799323162
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799320335,
+          "durationMs": 592.943405
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799320730,
+          "durationMs": 395.0516609999995
+        },
+        {
+          "index": 1,
+          "tag": "close",
+          "label": "Close panel (Alt+Q)",
+          "timestamp": 1771799321278,
+          "durationMs": 292.3007340000004
+        },
+        {
+          "index": 1,
+          "tag": "width-cycle",
+          "label": "Cycle column width (Alt+D)",
+          "timestamp": 1771799321522,
+          "durationMs": 244.0778649999993
+        },
+        {
+          "index": 2,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799322013,
+          "durationMs": 240.84946999999738
+        },
+        {
+          "index": 2,
+          "tag": "focus-down",
+          "label": "Focus down (Alt+J)",
+          "timestamp": 1771799322259,
+          "durationMs": 245.93924799999877
+        },
+        {
+          "index": 3,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799322907,
+          "durationMs": 395.8348450000012
+        }
+      ],
+      "errors": [],
+      "durationMs": 5493.580434999998,
+      "startedAt": "2026-02-22T22:28:37.673Z"
+    },
+    {
+      "scenarioId": "jade-volt",
+      "title": "Fuzz #18 (depth=5, spawns=2)",
+      "runId": "jade-volt",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/jade-volt/strip/003-initial.png",
+          "step": 3,
+          "timestamp": 1771799321377
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/jade-volt/strip/006-fuzz-1.png",
+          "step": 6,
+          "timestamp": 1771799322156
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/jade-volt/strip/009-fuzz-3.png",
+          "step": 9,
+          "timestamp": 1771799323047
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/jade-volt/strip/011-final.png",
+          "step": 11,
+          "timestamp": 1771799323547
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799320324,
+          "durationMs": 594.1866840000002
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799320721,
+          "durationMs": 396.50270700000146
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799321116,
+          "durationMs": 394.9692839999989
+        },
+        {
+          "index": 1,
+          "tag": "close",
+          "label": "Close panel (Alt+Q)",
+          "timestamp": 1771799321669,
+          "durationMs": 292.3279670000011
+        },
+        {
+          "index": 1,
+          "tag": "width-cycle",
+          "label": "Cycle column width (Alt+D)",
+          "timestamp": 1771799321911,
+          "durationMs": 241.95916800000123
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799322400,
+          "durationMs": 243.9576960000013
+        },
+        {
+          "index": 2,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799322792,
+          "durationMs": 392.3173850000021
+        },
+        {
+          "index": 3,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799323291,
+          "durationMs": 243.73676100000012
+        }
+      ],
+      "errors": [],
+      "durationMs": 5878.543596000001,
+      "startedAt": "2026-02-22T22:28:37.673Z"
+    },
+    {
+      "scenarioId": "keen-volt",
+      "title": "Fuzz #19 (depth=5, spawns=3)",
+      "runId": "keen-volt",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/keen-volt/strip/004-initial.png",
+          "step": 4,
+          "timestamp": 1771799321930
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/keen-volt/strip/007-fuzz-1.png",
+          "step": 7,
+          "timestamp": 1771799322671
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/keen-volt/strip/010-fuzz-3.png",
+          "step": 10,
+          "timestamp": 1771799323468
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/keen-volt/strip/012-final.png",
+          "step": 12,
+          "timestamp": 1771799323955
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799320484,
+          "durationMs": 593.1337599999988
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799320877,
+          "durationMs": 392.9752180000014
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799321273,
+          "durationMs": 395.89679199999955
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799321669,
+          "durationMs": 395.87601500000164
+        },
+        {
+          "index": 1,
+          "tag": "width-cycle",
+          "label": "Cycle column width (Alt+D)",
+          "timestamp": 1771799322172,
+          "durationMs": 241.3827280000005
+        },
+        {
+          "index": 1,
+          "tag": "focus-down",
+          "label": "Focus down (Alt+J)",
+          "timestamp": 1771799322419,
+          "durationMs": 246.98603899999944
+        },
+        {
+          "index": 2,
+          "tag": "close",
+          "label": "Close panel (Alt+Q)",
+          "timestamp": 1771799322969,
+          "durationMs": 298.0063480000026
+        },
+        {
+          "index": 2,
+          "tag": "focus-right",
+          "label": "Focus right (Alt+L)",
+          "timestamp": 1771799323213,
+          "durationMs": 244.31484099999943
+        },
+        {
+          "index": 3,
+          "tag": "width-cycle",
+          "label": "Cycle column width (Alt+D)",
+          "timestamp": 1771799323711,
+          "durationMs": 242.63193300000057
+        }
+      ],
+      "errors": [],
+      "durationMs": 6285.397852000002,
+      "startedAt": "2026-02-22T22:28:37.673Z"
+    },
+    {
+      "scenarioId": "loud-volt",
+      "title": "Fuzz #20 (depth=5, spawns=2)",
+      "runId": "loud-volt",
+      "mode": "strip",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "initial",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/loud-volt/strip/003-initial.png",
+          "step": 3,
+          "timestamp": 1771799321493
+        },
+        {
+          "name": "fuzz-1",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/loud-volt/strip/006-fuzz-1.png",
+          "step": 6,
+          "timestamp": 1771799322427
+        },
+        {
+          "name": "fuzz-3",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/loud-volt/strip/009-fuzz-3.png",
+          "step": 9,
+          "timestamp": 1771799323455
+        },
+        {
+          "name": "final",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-28-24-jade-arch/loud-volt/strip/011-final.png",
+          "step": 11,
+          "timestamp": 1771799323939
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799320449,
+          "durationMs": 595.7548869999991
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799320840,
+          "durationMs": 390.870852
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799321233,
+          "durationMs": 393.3003200000021
+        },
+        {
+          "index": 1,
+          "tag": "close",
+          "label": "Close panel (Alt+Q)",
+          "timestamp": 1771799321789,
+          "durationMs": 295.6359399999965
+        },
+        {
+          "index": 1,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799322182,
+          "durationMs": 392.9824779999981
+        },
+        {
+          "index": 2,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799322820,
+          "durationMs": 392.89866600000096
+        },
+        {
+          "index": 2,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799323212,
+          "durationMs": 392.11016200000086
+        },
+        {
+          "index": 3,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799323700,
+          "durationMs": 244.43996300000072
+        }
+      ],
+      "errors": [],
+      "durationMs": 6269.567647000002,
+      "startedAt": "2026-02-22T22:28:37.673Z"
+    }
+  ]
+}

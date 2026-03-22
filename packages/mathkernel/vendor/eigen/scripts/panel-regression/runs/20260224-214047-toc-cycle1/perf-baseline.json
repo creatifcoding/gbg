@@ -1,0 +1,50 @@
+{
+  "kind": "toc-cycle1-baseline",
+  "capturedAt": "2026-02-25T02:40:47.739Z",
+  "config": {
+    "url": "http://localhost:1420/window?testbed=floating",
+    "warmupMs": 1000,
+    "sampleMs": 8000,
+    "replicates": 1,
+    "runtime": "bun",
+    "browser": "playwright/chromium"
+  },
+  "summary": {
+    "p50": 16.69999999999891,
+    "p95": 16.799999999999272,
+    "p99": 50,
+    "mean": 17.654192229038856,
+    "samples": 489
+  },
+  "replicates": [
+    {
+      "replicate": 1,
+      "frameStats": {
+        "p50": 16.69999999999891,
+        "p95": 16.799999999999272,
+        "p99": 50,
+        "mean": 17.654192229038856,
+        "samples": 489
+      },
+      "latencies": [
+        {
+          "name": "spawn-chat",
+          "ms": 375.1905569999999,
+          "ok": true,
+          "detail": "+ Chat (Live)"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 8189.941714,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for assistant response"
+        }
+      ],
+      "notes": [
+        "prompt-1 roundtrip timed out"
+      ],
+      "frameDeltaCount": 489
+    }
+  ],
+  "consoleErrors": []
+}

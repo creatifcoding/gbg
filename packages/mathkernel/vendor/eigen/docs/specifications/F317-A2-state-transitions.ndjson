@@ -1,0 +1,6 @@
+{"scenario":"scroll_pause_then_resume_jump","step":1,"event":"mount","tailMode":"tail","unreadCount":0,"note":"stream starts in live-follow mode"}
+{"scenario":"scroll_pause_then_resume_jump","step":2,"event":"scroll_up","scrollTop":500,"distanceFromBottom":400,"tailMode":"inspect","unreadCount":0,"note":"manual upward scroll exits tail-follow"}
+{"scenario":"scroll_pause_then_resume_jump","step":3,"event":"stream_append","tailMode":"inspect","unreadCountDelta":">0","note":"new entries accumulate while paused"}
+{"scenario":"scroll_pause_then_resume_jump","step":4,"event":"jump_to_latest","tailMode":"tail","unreadCount":0,"note":"resume action clears unread and returns to live"}
+{"scenario":"near_bottom_threshold_boundary","step":1,"event":"scroll_up","scrollTop":500,"tailMode":"inspect","note":"enter paused mode"}
+{"scenario":"near_bottom_threshold_boundary","step":2,"event":"scroll_near_bottom","scrollTop":876,"distanceFromBottom":24,"tailMode":"tail","unreadCount":0,"note":"boundary <=24px re-enters tail mode"}

@@ -1,0 +1,101 @@
+syntax = "proto3";
+package ava.registry.v1;
+
+import "google/protobuf/empty.proto";
+import "ava/execution/v1/execution.proto";
+
+// Service for managing spec templates and assemblages
+service RegistryService {
+  // List all spec templates
+  rpc ListTemplates(google.protobuf.Empty) returns (ListTemplatesResponse);
+
+  // Get a specific template
+  rpc GetTemplate(GetTemplateRequest) returns (ava.execution.v1.ViewProfileSpec);
+
+  // Save a spec as a template
+  rpc SaveSpec(SaveSpecRequest) returns (SaveSpecResponse);
+
+  // Delete a template
+  rpc DeleteTemplate(DeleteTemplateRequest) returns (google.protobuf.Empty);
+
+  // List assemblages
+  rpc ListAssemblages(google.protobuf.Empty) returns (ListAssemblagesResponse);
+
+  // Get a specific assemblage
+  rpc GetAssemblage(GetAssemblageRequest) returns (Assemblage);
+
+  // Create or update an assemblage
+  rpc SaveAssemblage(SaveAssemblageRequest) returns (SaveAssemblageResponse);
+
+  // Delete an assemblage
+  rpc DeleteAssemblage(DeleteAssemblageRequest) returns (google.protobuf.Empty);
+}
+
+message ListTemplatesResponse {
+  repeated TemplateMetadata templates = 1;
+}
+
+message TemplateMetadata {
+  string id = 1;
+  string name = 2;
+  optional string description = 3;
+  string created_at = 4;  // ISO 8601
+  string updated_at = 5;
+  uint32 version = 6;
+  repeated string tags = 7;
+}
+
+message GetTemplateRequest {
+  string template_id = 1;
+}
+
+message SaveSpecRequest {
+  ava.execution.v1.ViewProfileSpec spec = 1;
+  optional string description = 2;
+  repeated string tags = 3;
+}
+
+message SaveSpecResponse {
+  string template_id = 1;
+  uint32 version = 2;
+}
+
+message DeleteTemplateRequest {
+  string template_id = 1;
+}
+
+message ListAssemblagesResponse {
+  repeated Assemblage assemblages = 1;
+}
+
+message GetAssemblageRequest {
+  string assemblage_id = 1;
+}
+
+message Assemblage {
+  string id = 1;
+  string name = 2;
+  optional string description = 3;
+  repeated ChannelConstraint channel_constraints = 4;
+  repeated string allowed_source_ids = 5;  // Empty = all sources allowed
+  map<string, string> metadata = 6;
+}
+
+message ChannelConstraint {
+  string channel_id = 1;
+  ava.execution.v1.ChannelRole required_role = 2;
+  bool required = 3;
+  optional string description = 4;
+}
+
+message SaveAssemblageRequest {
+  Assemblage assemblage = 1;
+}
+
+message SaveAssemblageResponse {
+  string assemblage_id = 1;
+}
+
+message DeleteAssemblageRequest {
+  string assemblage_id = 1;
+}

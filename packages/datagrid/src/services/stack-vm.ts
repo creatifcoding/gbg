@@ -54,6 +54,7 @@ import * as Metric from "effect-v4/Metric"
 import * as Semaphore from "effect-v4/Semaphore"
 import * as Cause from "effect-v4/Cause"
 import { pipe } from "effect-v4/Function"
+import { tryWasmDispatch } from "./wasm-dispatch"
 
 // ═══════════════════════════════════════════════════════
 // ERROR CODE REGISTRY
@@ -6169,7 +6170,7 @@ const EXEC: Record<string, Executor> = {
   // SWITCH_RANGE_N: range-based switch. SWITCH(value, case1, result1, ..., default)
   // Already have SWITCH_N. Let's add TRUE()/FALSE() as zero-arg functions:
   // They already exist as PUSH_TRUE/PUSH_FALSE. Add as functions:
-  // NOT2_OP: ensure NOT works as function  
+  // NOT2_OP: ensure NOT works as function
   // Let's add TEXTJOIN_2_OP: simplified textjoin. Already have TEXTJOIN_N.
   // Add SUBSTITUTE count overload: SUBSTITUTEN_OP — replace Nth occurrence
   SUBSTITUTEN_OP: (_o, s) => {
@@ -6231,7 +6232,7 @@ const EXEC: Record<string, Executor> = {
     return str(vmDisplay(a).replace(/\b\w/g, c => c.toUpperCase()))
   }, "PROPER") }),
   // CHAR2_OP: same as CHAR but documented alias
-  // TRIM2_OP: trim + collapse whitespace  
+  // TRIM2_OP: trim + collapse whitespace
   // Let's add more math:
   // CEILING_PRECISE already exists. Add ISO.CEILING:
   ISO_CEILING_OP: (_o, s) => ({ result: binop(s, (a, b) => {
@@ -9162,9 +9163,14 @@ export const execOpcode = (op: Opcode, state: VMState, ctx?: CellContext): VMSta
   const depthBefore = s.length
   const cellCtx = ctx ?? emptyCellContext
 
+  // WASM-first dispatch: try WASM acceleration, fall through to JS if unavailable
+  const wasmResult = tryWasmDispatch(op._tag, op, s as any)
+
   // O(1) dispatch — single table lookup, no if-else chain
-  const exec = EXEC[op._tag]
-  const { result, halted } = exec ? exec(op as any, s, cellCtx) : {}
+  const exec = wasmResult ? null : EXEC[op._tag]
+  const { result, halted } = wasmResult
+    ? { result: wasmResult.result, halted: undefined }
+    : exec ? exec(op as any, s, cellCtx) : {}
 
   const entry: TrailEntry = {
     step: state.step,

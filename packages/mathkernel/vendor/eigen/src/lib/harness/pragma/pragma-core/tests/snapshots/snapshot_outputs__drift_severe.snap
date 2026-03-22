@@ -1,0 +1,11 @@
+---
+source: src/lib/harness/pragma/pragma-core/tests/snapshot_outputs.rs
+expression: "serde_json::json!({\n    \"mean_similarity\": (report.mean_similarity * 10000.0).round() / 10000.0,\n    \"min_similarity\": (report.min_similarity * 10000.0).round() / 10000.0,\n    \"drift_detected\": report.drift_detected, \"severity\":\n    format!(\"{:?}\", report.severity), \"sample_count\": report.sample_count,\n})"
+---
+{
+  "drift_detected": true,
+  "mean_similarity": 0.0,
+  "min_similarity": 0.0,
+  "sample_count": 5,
+  "severity": "High"
+}

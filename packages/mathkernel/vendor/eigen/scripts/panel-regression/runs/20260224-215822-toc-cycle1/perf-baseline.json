@@ -1,0 +1,75 @@
+{
+  "kind": "toc-cycle1-baseline",
+  "capturedAt": "2026-02-25T02:58:22.388Z",
+  "config": {
+    "url": "http://localhost:1420/window?testbed=floating",
+    "warmupMs": 1000,
+    "sampleMs": 8000,
+    "replicates": 1,
+    "runtime": "bun",
+    "browser": "playwright/chromium"
+  },
+  "summary": {
+    "p50": 16.69999999999891,
+    "p95": 49.900000000000546,
+    "p99": 66.69999999999982,
+    "mean": 19.241590909090906,
+    "samples": 440
+  },
+  "replicates": [
+    {
+      "replicate": 1,
+      "frameStats": {
+        "p50": 16.69999999999891,
+        "p95": 49.900000000000546,
+        "p99": 66.69999999999982,
+        "mean": 19.241590909090906,
+        "samples": 440
+      },
+      "latencies": [
+        {
+          "name": "spawn-chat",
+          "ms": 155.74465899999996,
+          "ok": true,
+          "detail": "__PANEL_TEST__.spawnTiledChat"
+        },
+        {
+          "name": "split-hotkey",
+          "ms": 192.06866000000082,
+          "ok": true,
+          "detail": "__PANEL_TEST__.splitHorizontal · tiled 1 -> increased"
+        },
+        {
+          "name": "drag-panel",
+          "ms": 1126.440043999999,
+          "ok": true,
+          "detail": "panel moved"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 1909.4546129999999,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for first assistant activity"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 6913.4555820000005,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for assistant shell growth"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 6913.4555820000005,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for assistant shell growth"
+        }
+      ],
+      "notes": [
+        "prompt-1 first activity timed out",
+        "prompt-1 full response timed out"
+      ],
+      "frameDeltaCount": 440
+    }
+  ],
+  "consoleErrors": []
+}

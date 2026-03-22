@@ -1,0 +1,137 @@
+[
+  {
+    "id": "rel-001",
+    "query": "How does the OAuth integration connect to the ReAct strategy work?",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections"],
+      "param_shapes": {"semantic_search": ["contains_keyword:OAuth"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "rel-002",
+    "query": "What other topics are connected to the alarm FSM contract?",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections"],
+      "param_shapes": {"semantic_search": ["contains_keyword:alarm"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "rel-003",
+    "query": "Show me what relates to note-20260225-001",
+    "gold": {
+      "tool_sequence": ["find_connections"],
+      "param_shapes": {"find_connections": ["contains_keyword:note-20260225-001"]},
+      "should_not_call": ["summarize"]
+    }
+  },
+  {
+    "id": "rel-004",
+    "query": "What's the relationship between the order domain and the site domain?",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections"],
+      "param_shapes": {"semantic_search": ["contains_keyword:order"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "rel-005",
+    "query": "Find what connects the Jido AgentServer to the Maidens boundary pattern",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections"],
+      "param_shapes": {"semantic_search": ["contains_keyword:AgentServer"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "rel-006",
+    "query": "Are there any connections between the ReAct strategy and the alarm domain?",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections"],
+      "param_shapes": {},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "rel-007",
+    "query": "What links card-20260224-003 to other entities?",
+    "gold": {
+      "tool_sequence": ["find_connections"],
+      "param_shapes": {"find_connections": ["contains_keyword:card-20260224-003"]},
+      "should_not_call": ["summarize"]
+    }
+  },
+  {
+    "id": "rel-008",
+    "query": "How do the research directives relate to each other?",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections"],
+      "param_shapes": {"semantic_search": ["contains_keyword:research directive"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "rel-009",
+    "query": "What patterns connect the AVA system to the Maidens architecture?",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections"],
+      "param_shapes": {},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "rel-010",
+    "query": "Map the dependencies between the order runtime and its related contracts",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections"],
+      "param_shapes": {"semantic_search": ["contains_keyword:order"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "rel-011",
+    "query": "What themes bridge the February 23rd and February 25th notes?",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections"],
+      "param_shapes": {},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "rel-012",
+    "query": "Find everything connected to the Melanie agent implementation",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections"],
+      "param_shapes": {"semantic_search": ["contains_keyword:Melanie"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "rel-013",
+    "query": "How does the tool adapter connect to the eval harness design?",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections"],
+      "param_shapes": {"semantic_search": ["contains_keyword:tool adapter"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "rel-014",
+    "query": "What entities reference event-20260226-001?",
+    "gold": {
+      "tool_sequence": ["find_connections"],
+      "param_shapes": {"find_connections": ["contains_keyword:event-20260226-001"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "rel-015",
+    "query": "Trace the connections from the sensor runtime to the workcell domain",
+    "gold": {
+      "tool_sequence": ["semantic_search", "find_connections"],
+      "param_shapes": {},
+      "should_not_call": []
+    }
+  }
+]

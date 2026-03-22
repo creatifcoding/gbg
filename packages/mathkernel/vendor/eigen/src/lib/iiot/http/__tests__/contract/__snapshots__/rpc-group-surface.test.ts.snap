@@ -1,0 +1,388 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`RPC Group Surface Area > AlarmRpcs (mixed entity + stateless) > should snapshot full tag list 1`] = `
+[
+  "Alarm.Alarm.Acknowledge",
+  "Alarm.Alarm.AcknowledgeDiscard",
+  "Alarm.Alarm.Clear",
+  "Alarm.Alarm.ClearDiscard",
+  "Alarm.Alarm.Create",
+  "Alarm.Alarm.CreateDiscard",
+  "Alarm.Alarm.Get",
+  "Alarm.Alarm.GetDiscard",
+  "Alarm.GetStats",
+  "Alarm.Query",
+  "AlarmContext.Get",
+]
+`;
+
+exports[`RPC Group Surface Area > Combined IIoTRpcs > should list all RPC tags sorted for diagnostic output 1`] = `257`;
+
+exports[`RPC Group Surface Area > Entity-derived sub-groups > AlarmRpcs > should snapshot tag list for surface stability 1`] = `
+[
+  "Alarm.Alarm.Acknowledge",
+  "Alarm.Alarm.AcknowledgeDiscard",
+  "Alarm.Alarm.Clear",
+  "Alarm.Alarm.ClearDiscard",
+  "Alarm.Alarm.Create",
+  "Alarm.Alarm.CreateDiscard",
+  "Alarm.Alarm.Get",
+  "Alarm.Alarm.GetDiscard",
+  "Alarm.GetStats",
+  "Alarm.Query",
+  "AlarmContext.Get",
+]
+`;
+
+exports[`RPC Group Surface Area > Entity-derived sub-groups > AreaRpcs > should snapshot tag list for surface stability 1`] = `
+[
+  "Area.Area.Activate",
+  "Area.Area.ActivateDiscard",
+  "Area.Area.ClearRestriction",
+  "Area.Area.ClearRestrictionDiscard",
+  "Area.Area.Create",
+  "Area.Area.CreateDiscard",
+  "Area.Area.Deactivate",
+  "Area.Area.DeactivateDiscard",
+  "Area.Area.Decommission",
+  "Area.Area.DecommissionDiscard",
+  "Area.Area.EnterMaintenance",
+  "Area.Area.EnterMaintenanceDiscard",
+  "Area.Area.ExitMaintenance",
+  "Area.Area.ExitMaintenanceDiscard",
+  "Area.Area.Get",
+  "Area.Area.GetDiscard",
+  "Area.Area.Restrict",
+  "Area.Area.RestrictDiscard",
+]
+`;
+
+exports[`RPC Group Surface Area > Entity-derived sub-groups > AssetEntityRpcs > should snapshot tag list for surface stability 1`] = `
+[
+  "Asset.Asset.Get",
+  "Asset.Asset.GetChildren",
+  "Asset.Asset.GetChildrenDiscard",
+  "Asset.Asset.GetDiscard",
+  "Asset.Asset.GetHierarchy",
+  "Asset.Asset.GetHierarchyDiscard",
+  "Asset.Asset.Update",
+  "Asset.Asset.UpdateDiscard",
+]
+`;
+
+exports[`RPC Group Surface Area > Entity-derived sub-groups > DeviceRpcs > should snapshot tag list for surface stability 1`] = `
+[
+  "Device.Device.ClearFault",
+  "Device.Device.ClearFaultDiscard",
+  "Device.Device.CompleteFirmwareUpdate",
+  "Device.Device.CompleteFirmwareUpdateDiscard",
+  "Device.Device.Create",
+  "Device.Device.CreateDiscard",
+  "Device.Device.Decommission",
+  "Device.Device.DecommissionDiscard",
+  "Device.Device.FailFirmwareUpdate",
+  "Device.Device.FailFirmwareUpdateDiscard",
+  "Device.Device.Get",
+  "Device.Device.GetDiscard",
+  "Device.Device.GoOffline",
+  "Device.Device.GoOfflineDiscard",
+  "Device.Device.GoOnline",
+  "Device.Device.GoOnlineDiscard",
+  "Device.Device.MarkFaulted",
+  "Device.Device.MarkFaultedDiscard",
+  "Device.Device.StartFirmwareUpdate",
+  "Device.Device.StartFirmwareUpdateDiscard",
+]
+`;
+
+exports[`RPC Group Surface Area > Entity-derived sub-groups > EnterpriseRpcs > should snapshot tag list for surface stability 1`] = `
+[
+  "Enterprise.Enterprise.CompleteRestructuring",
+  "Enterprise.Enterprise.CompleteRestructuringDiscard",
+  "Enterprise.Enterprise.Create",
+  "Enterprise.Enterprise.CreateDiscard",
+  "Enterprise.Enterprise.Dissolve",
+  "Enterprise.Enterprise.DissolveDiscard",
+  "Enterprise.Enterprise.Get",
+  "Enterprise.Enterprise.GetDiscard",
+  "Enterprise.Enterprise.Merge",
+  "Enterprise.Enterprise.MergeDiscard",
+  "Enterprise.Enterprise.Restructure",
+  "Enterprise.Enterprise.RestructureDiscard",
+]
+`;
+
+exports[`RPC Group Surface Area > Entity-derived sub-groups > EquipmentStateRpcs > should snapshot tag list for surface stability 1`] = `
+[
+  "EquipmentState.EquipmentState.GetCurrent",
+  "EquipmentState.EquipmentState.GetCurrentDiscard",
+  "EquipmentState.EquipmentState.GetDurations",
+  "EquipmentState.EquipmentState.GetDurationsDiscard",
+  "EquipmentState.EquipmentState.GetHistory",
+  "EquipmentState.EquipmentState.GetHistoryDiscard",
+  "EquipmentState.EquipmentState.GetOee",
+  "EquipmentState.EquipmentState.GetOeeDiscard",
+  "EquipmentState.EquipmentState.Transition",
+  "EquipmentState.EquipmentState.TransitionDiscard",
+  "EquipmentState.EquipmentState.UpdateReason",
+  "EquipmentState.EquipmentState.UpdateReasonDiscard",
+]
+`;
+
+exports[`RPC Group Surface Area > Entity-derived sub-groups > LineRpcs > should snapshot tag list for surface stability 1`] = `
+[
+  "Line.Line.BeginChangeover",
+  "Line.Line.BeginChangeoverDiscard",
+  "Line.Line.ClearBlocked",
+  "Line.Line.ClearBlockedDiscard",
+  "Line.Line.ClearStarved",
+  "Line.Line.ClearStarvedDiscard",
+  "Line.Line.CompleteChangeover",
+  "Line.Line.CompleteChangeoverDiscard",
+  "Line.Line.CompleteMaintenance",
+  "Line.Line.CompleteMaintenanceDiscard",
+  "Line.Line.Create",
+  "Line.Line.CreateDiscard",
+  "Line.Line.Decommission",
+  "Line.Line.DecommissionDiscard",
+  "Line.Line.EnterMaintenance",
+  "Line.Line.EnterMaintenanceDiscard",
+  "Line.Line.Get",
+  "Line.Line.GetDiscard",
+  "Line.Line.MarkBlocked",
+  "Line.Line.MarkBlockedDiscard",
+  "Line.Line.MarkStarved",
+  "Line.Line.MarkStarvedDiscard",
+  "Line.Line.Start",
+  "Line.Line.StartDiscard",
+  "Line.Line.Stop",
+  "Line.Line.StopDiscard",
+]
+`;
+
+exports[`RPC Group Surface Area > Entity-derived sub-groups > MachineAssetRpcs > should snapshot tag list for surface stability 1`] = `
+[
+  "MachineAsset.MachineAsset.Activate",
+  "MachineAsset.MachineAsset.ActivateDiscard",
+  "MachineAsset.MachineAsset.CompleteMaintenance",
+  "MachineAsset.MachineAsset.CompleteMaintenanceDiscard",
+  "MachineAsset.MachineAsset.Create",
+  "MachineAsset.MachineAsset.CreateDiscard",
+  "MachineAsset.MachineAsset.Decommission",
+  "MachineAsset.MachineAsset.DecommissionDiscard",
+  "MachineAsset.MachineAsset.EmergencyRepair",
+  "MachineAsset.MachineAsset.EmergencyRepairDiscard",
+  "MachineAsset.MachineAsset.Get",
+  "MachineAsset.MachineAsset.GetDiscard",
+  "MachineAsset.MachineAsset.GoIdle",
+  "MachineAsset.MachineAsset.GoIdleDiscard",
+  "MachineAsset.MachineAsset.MarkFaulted",
+  "MachineAsset.MachineAsset.MarkFaultedDiscard",
+  "MachineAsset.MachineAsset.Resume",
+  "MachineAsset.MachineAsset.ResumeDiscard",
+  "MachineAsset.MachineAsset.Retire",
+  "MachineAsset.MachineAsset.RetireDiscard",
+  "MachineAsset.MachineAsset.ScheduleMaintenance",
+  "MachineAsset.MachineAsset.ScheduleMaintenanceDiscard",
+  "MachineAsset.MachineAsset.ScheduleRepair",
+  "MachineAsset.MachineAsset.ScheduleRepairDiscard",
+]
+`;
+
+exports[`RPC Group Surface Area > Entity-derived sub-groups > PlantRpcs > should snapshot tag list for surface stability 1`] = `
+[
+  "Plant.Plant.BeginEmergencyMaintenance",
+  "Plant.Plant.BeginEmergencyMaintenanceDiscard",
+  "Plant.Plant.CompleteCommissioning",
+  "Plant.Plant.CompleteCommissioningDiscard",
+  "Plant.Plant.CompleteMaintenanceRestart",
+  "Plant.Plant.CompleteMaintenanceRestartDiscard",
+  "Plant.Plant.Create",
+  "Plant.Plant.CreateDiscard",
+  "Plant.Plant.Decommission",
+  "Plant.Plant.DecommissionDiscard",
+  "Plant.Plant.EmergencyShutdown",
+  "Plant.Plant.EmergencyShutdownDiscard",
+  "Plant.Plant.Get",
+  "Plant.Plant.GetDiscard",
+  "Plant.Plant.MaintenanceShutdown",
+  "Plant.Plant.MaintenanceShutdownDiscard",
+  "Plant.Plant.Restart",
+  "Plant.Plant.RestartDiscard",
+  "Plant.Plant.ScheduledShutdown",
+  "Plant.Plant.ScheduledShutdownDiscard",
+]
+`;
+
+exports[`RPC Group Surface Area > Entity-derived sub-groups > SensorAssetRpcs > should snapshot tag list for surface stability 1`] = `
+[
+  "SensorAsset.SensorAsset.BringOnline",
+  "SensorAsset.SensorAsset.BringOnlineDiscard",
+  "SensorAsset.SensorAsset.ClearFault",
+  "SensorAsset.SensorAsset.ClearFaultDiscard",
+  "SensorAsset.SensorAsset.CompleteCalibration",
+  "SensorAsset.SensorAsset.CompleteCalibrationDiscard",
+  "SensorAsset.SensorAsset.Create",
+  "SensorAsset.SensorAsset.CreateDiscard",
+  "SensorAsset.SensorAsset.Decommission",
+  "SensorAsset.SensorAsset.DecommissionDiscard",
+  "SensorAsset.SensorAsset.FailCalibration",
+  "SensorAsset.SensorAsset.FailCalibrationDiscard",
+  "SensorAsset.SensorAsset.FlagForCalibration",
+  "SensorAsset.SensorAsset.FlagForCalibrationDiscard",
+  "SensorAsset.SensorAsset.Get",
+  "SensorAsset.SensorAsset.GetDiscard",
+  "SensorAsset.SensorAsset.MarkFaulted",
+  "SensorAsset.SensorAsset.MarkFaultedDiscard",
+  "SensorAsset.SensorAsset.StartCalibration",
+  "SensorAsset.SensorAsset.StartCalibrationDiscard",
+  "SensorAsset.SensorAsset.TakeOffline",
+  "SensorAsset.SensorAsset.TakeOfflineDiscard",
+]
+`;
+
+exports[`RPC Group Surface Area > Entity-derived sub-groups > SensorEntityRpcs > should snapshot tag list for surface stability 1`] = `
+[
+  "Sensor.Sensor.GetAggregated",
+  "Sensor.Sensor.GetAggregatedDiscard",
+  "Sensor.Sensor.GetLatest",
+  "Sensor.Sensor.GetLatestDiscard",
+  "Sensor.Sensor.GetState",
+  "Sensor.Sensor.GetStateDiscard",
+  "Sensor.Sensor.GetStats",
+  "Sensor.Sensor.GetStatsDiscard",
+]
+`;
+
+exports[`RPC Group Surface Area > Entity-derived sub-groups > SiteRpcs > should snapshot tag list for surface stability 1`] = `
+[
+  "Site.Site.BeginConstruction",
+  "Site.Site.BeginConstructionDiscard",
+  "Site.Site.Close",
+  "Site.Site.CloseDiscard",
+  "Site.Site.Commission",
+  "Site.Site.CommissionDiscard",
+  "Site.Site.Create",
+  "Site.Site.CreateDiscard",
+  "Site.Site.Decommission",
+  "Site.Site.DecommissionDiscard",
+  "Site.Site.Get",
+  "Site.Site.GetDiscard",
+  "Site.Site.Reopen",
+  "Site.Site.ReopenDiscard",
+  "Site.Site.SeasonalShutdown",
+  "Site.Site.SeasonalShutdownDiscard",
+]
+`;
+
+exports[`RPC Group Surface Area > Entity-derived sub-groups > WorkCellRpcs > should snapshot tag list for surface stability 1`] = `
+[
+  "WorkCell.WorkCell.BeginSetup",
+  "WorkCell.WorkCell.BeginSetupDiscard",
+  "WorkCell.WorkCell.ClearBlocked",
+  "WorkCell.WorkCell.ClearBlockedDiscard",
+  "WorkCell.WorkCell.ClearFault",
+  "WorkCell.WorkCell.ClearFaultDiscard",
+  "WorkCell.WorkCell.CompleteMaintenance",
+  "WorkCell.WorkCell.CompleteMaintenanceDiscard",
+  "WorkCell.WorkCell.CompleteSetup",
+  "WorkCell.WorkCell.CompleteSetupDiscard",
+  "WorkCell.WorkCell.Create",
+  "WorkCell.WorkCell.CreateDiscard",
+  "WorkCell.WorkCell.Decommission",
+  "WorkCell.WorkCell.DecommissionDiscard",
+  "WorkCell.WorkCell.EnterMaintenance",
+  "WorkCell.WorkCell.EnterMaintenanceDiscard",
+  "WorkCell.WorkCell.Get",
+  "WorkCell.WorkCell.GetDiscard",
+  "WorkCell.WorkCell.MarkBlocked",
+  "WorkCell.WorkCell.MarkBlockedDiscard",
+  "WorkCell.WorkCell.MarkFaulted",
+  "WorkCell.WorkCell.MarkFaultedDiscard",
+  "WorkCell.WorkCell.Stop",
+  "WorkCell.WorkCell.StopDiscard",
+]
+`;
+
+exports[`RPC Group Surface Area > Entity-derived sub-groups > WorkOrderRpcs > should snapshot tag list for surface stability 1`] = `
+[
+  "WorkOrder.WorkOrder.Approve",
+  "WorkOrder.WorkOrder.ApproveDiscard",
+  "WorkOrder.WorkOrder.Cancel",
+  "WorkOrder.WorkOrder.CancelDiscard",
+  "WorkOrder.WorkOrder.Close",
+  "WorkOrder.WorkOrder.CloseDiscard",
+  "WorkOrder.WorkOrder.Complete",
+  "WorkOrder.WorkOrder.CompleteDiscard",
+  "WorkOrder.WorkOrder.Create",
+  "WorkOrder.WorkOrder.CreateDiscard",
+  "WorkOrder.WorkOrder.Fail",
+  "WorkOrder.WorkOrder.FailDiscard",
+  "WorkOrder.WorkOrder.Get",
+  "WorkOrder.WorkOrder.GetDiscard",
+  "WorkOrder.WorkOrder.Reject",
+  "WorkOrder.WorkOrder.RejectDiscard",
+  "WorkOrder.WorkOrder.Resume",
+  "WorkOrder.WorkOrder.ResumeDiscard",
+  "WorkOrder.WorkOrder.Start",
+  "WorkOrder.WorkOrder.StartDiscard",
+  "WorkOrder.WorkOrder.Submit",
+  "WorkOrder.WorkOrder.SubmitDiscard",
+  "WorkOrder.WorkOrder.Suspend",
+  "WorkOrder.WorkOrder.SuspendDiscard",
+]
+`;
+
+exports[`RPC Group Surface Area > Per-group request counts > AlarmRpcs request count should be stable 1`] = `11`;
+
+exports[`RPC Group Surface Area > Per-group request counts > AreaRpcs request count should be stable 1`] = `18`;
+
+exports[`RPC Group Surface Area > Per-group request counts > AssetEntityRpcs request count should be stable 1`] = `8`;
+
+exports[`RPC Group Surface Area > Per-group request counts > AssetRpcs request count should be stable 1`] = `8`;
+
+exports[`RPC Group Surface Area > Per-group request counts > DeviceRpcs request count should be stable 1`] = `20`;
+
+exports[`RPC Group Surface Area > Per-group request counts > EnterpriseRpcs request count should be stable 1`] = `12`;
+
+exports[`RPC Group Surface Area > Per-group request counts > EquipmentStateRpcs request count should be stable 1`] = `12`;
+
+exports[`RPC Group Surface Area > Per-group request counts > LineRpcs request count should be stable 1`] = `26`;
+
+exports[`RPC Group Surface Area > Per-group request counts > MachineAssetRpcs request count should be stable 1`] = `24`;
+
+exports[`RPC Group Surface Area > Per-group request counts > PlantRpcs request count should be stable 1`] = `20`;
+
+exports[`RPC Group Surface Area > Per-group request counts > SensorAssetRpcs request count should be stable 1`] = `22`;
+
+exports[`RPC Group Surface Area > Per-group request counts > SensorEntityRpcs request count should be stable 1`] = `8`;
+
+exports[`RPC Group Surface Area > Per-group request counts > SensorRpcs request count should be stable 1`] = `4`;
+
+exports[`RPC Group Surface Area > Per-group request counts > SiteRpcs request count should be stable 1`] = `16`;
+
+exports[`RPC Group Surface Area > Per-group request counts > WorkCellRpcs request count should be stable 1`] = `24`;
+
+exports[`RPC Group Surface Area > Per-group request counts > WorkOrderRpcs request count should be stable 1`] = `24`;
+
+exports[`RPC Group Surface Area > Stateless query sub-groups > AssetRpcs > should contain expected asset hierarchy tags 1`] = `
+[
+  "Plant.List",
+  "Plant.Get",
+  "PlantHierarchy.Get",
+  "Line.ListForPlant",
+  "Machine.ListForLine",
+  "Machine.GetWithSensors",
+  "Sensor.ListForMachine",
+  "SensorHierarchy.Get",
+]
+`;
+
+exports[`RPC Group Surface Area > Stateless query sub-groups > SensorRpcs > should contain expected sensor query tags 1`] = `
+[
+  "SensorReading.GetLatest",
+  "SensorReading.Query",
+  "AggregatedReading.Query",
+  "SensorReading.Subscribe",
+]
+`;

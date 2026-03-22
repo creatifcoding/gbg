@@ -1,0 +1,37 @@
+{
+  "name": "cosmo-operator",
+  "version": "0.1.0",
+  "description": "Pepr operator for Cosmo GraphQL Federation CRDs",
+  "keywords": [
+    "pepr",
+    "k8s",
+    "pepr-module",
+    "cosmo",
+    "graphql"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "pepr": {
+    "uuid": "cosmo-operator",
+    "onError": "reject",
+    "webhookTimeout": 25,
+    "alwaysIgnore": {
+      "namespaces": ["kube-system", "pepr-system"],
+      "labels": []
+    },
+    "includedFiles": [],
+    "env": {}
+  },
+  "dependencies": {
+    "pepr": "0.52.2"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3"
+  },
+  "scripts": {
+    "dev": "pepr dev",
+    "build": "pepr build",
+    "deploy": "pepr deploy"
+  }
+}

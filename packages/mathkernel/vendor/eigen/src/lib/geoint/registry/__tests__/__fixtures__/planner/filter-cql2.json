@@ -1,0 +1,76 @@
+{
+  "_tag": "RegistryQueryPlanV1",
+  "version": "geoint.registry.v1",
+  "planId": "plan-golden-filter-cql2-1767225600000",
+  "intent": {
+    "_tag": "PlannerIntentV1",
+    "version": "geoint.registry.v1",
+    "queryId": "golden-filter-cql2",
+    "requestedAt": "2026-01-01T00:00:00.000Z",
+    "requestedSources": [
+      "opensky",
+      "copernicus-stac"
+    ],
+    "constraints": {
+      "_tag": "QueryConstraintV1",
+      "filterLanguage": "cql2-json",
+      "maxSources": 4
+    }
+  },
+  "decision": {
+    "_tag": "PlanDecisionV1",
+    "strategy": "coverage-first",
+    "selected": [
+      {
+        "_tag": "SourceAttemptV1",
+        "sourceId": "copernicus-stac",
+        "canonicalSource": "copernicus-stac",
+        "role": "context",
+        "provider": "stac",
+        "priority": 80,
+        "weight": 0.85,
+        "rank": 0,
+        "rationale": "priority=80, weight=0.85, role=context, provider=stac, strategy=coverage-first, health=default:1.00"
+      }
+    ],
+    "rejected": [
+      {
+        "_tag": "SourceRejectionV1",
+        "sourceId": "opensky",
+        "canonicalSource": "opensky",
+        "reason": "missing filter language support: cql2-json"
+      },
+      {
+        "_tag": "SourceRejectionV1",
+        "sourceId": "adsb-exchange",
+        "canonicalSource": "adsb-lol",
+        "reason": "not requested by caller"
+      },
+      {
+        "_tag": "SourceRejectionV1",
+        "sourceId": "openmeteo-api",
+        "canonicalSource": "openmeteo",
+        "reason": "not requested by caller"
+      },
+      {
+        "_tag": "SourceRejectionV1",
+        "sourceId": "nws-api",
+        "canonicalSource": "noaa",
+        "reason": "not requested by caller"
+      },
+      {
+        "_tag": "SourceRejectionV1",
+        "sourceId": "planetary-computer",
+        "canonicalSource": "planetary-computer",
+        "reason": "not requested by caller"
+      },
+      {
+        "_tag": "SourceRejectionV1",
+        "sourceId": "gdacs",
+        "canonicalSource": "gdacs",
+        "reason": "not requested by caller"
+      }
+    ]
+  },
+  "generatedAt": "2026-01-01T00:00:00.000Z"
+}

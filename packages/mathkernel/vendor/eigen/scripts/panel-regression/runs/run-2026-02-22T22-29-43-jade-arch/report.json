@@ -1,0 +1,276 @@
+{
+  "runId": "run-2026-02-22T22-29-43-jade-arch",
+  "startedAt": "2026-02-22T22:29:43.892Z",
+  "completedAt": "2026-02-22T22:30:00.787Z",
+  "totalScenarios": 1,
+  "passed": 1,
+  "failed": 0,
+  "scenarios": [
+    {
+      "scenarioId": "dark-arch",
+      "title": "Full tree regression (5 panels)",
+      "runId": "dark-arch",
+      "mode": "strip+tree",
+      "passed": true,
+      "screenshots": [
+        {
+          "name": "five-panels",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-29-43-jade-arch/dark-arch/strip/006-five-panels.png",
+          "step": 6,
+          "timestamp": 1771799389325
+        },
+        {
+          "name": "bottom-3-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-29-43-jade-arch/dark-arch/strip/012-bottom-3-collapsed.png",
+          "step": 12,
+          "timestamp": 1771799390789
+        },
+        {
+          "name": "all-5-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-29-43-jade-arch/dark-arch/strip/017-all-5-collapsed.png",
+          "step": 17,
+          "timestamp": 1771799392015
+        },
+        {
+          "name": "mode-switch-to-tree",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-29-43-jade-arch/dark-arch/strip/018-mode-switch-to-tree.png",
+          "step": 18,
+          "timestamp": 1771799393147
+        },
+        {
+          "name": "five-panels",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-29-43-jade-arch/dark-arch/tree/006-five-panels.png",
+          "step": 6,
+          "timestamp": 1771799397992
+        },
+        {
+          "name": "bottom-3-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-29-43-jade-arch/dark-arch/tree/012-bottom-3-collapsed.png",
+          "step": 12,
+          "timestamp": 1771799399465
+        },
+        {
+          "name": "all-5-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-22T22-29-43-jade-arch/dark-arch/tree/017-all-5-collapsed.png",
+          "step": 17,
+          "timestamp": 1771799400705
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799387079,
+          "durationMs": 594.9715719999999
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799387472,
+          "durationMs": 392.811502
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799387867,
+          "durationMs": 395.435344
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799388263,
+          "durationMs": 395.4278049999998
+        },
+        {
+          "index": 0,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799388657,
+          "durationMs": 394.02128600000015
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799389052,
+          "durationMs": 394.84190899999976
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799389568,
+          "durationMs": 242.42536800000016
+        },
+        {
+          "index": 1,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799389813,
+          "durationMs": 244.944571
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799390055,
+          "durationMs": 242.0517630000004
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799390298,
+          "durationMs": 242.9856119999995
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799390540,
+          "durationMs": 241.83859699999994
+        },
+        {
+          "index": 2,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799391030,
+          "durationMs": 240.9390970000004
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799391272,
+          "durationMs": 241.95764700000018
+        },
+        {
+          "index": 2,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799391513,
+          "durationMs": 240.9683529999993
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799391756,
+          "durationMs": 243.00232899999992
+        },
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771799395766,
+          "durationMs": 591.4934120000016
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799396161,
+          "durationMs": 394.83502299999964
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771799396554,
+          "durationMs": 392.8788969999987
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799396948,
+          "durationMs": 394.27663100000063
+        },
+        {
+          "index": 0,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771799397345,
+          "durationMs": 396.502602999999
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771799397736,
+          "durationMs": 391.0041110000002
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799398235,
+          "durationMs": 242.5800139999992
+        },
+        {
+          "index": 1,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799398476,
+          "durationMs": 241.04102299999977
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799398719,
+          "durationMs": 242.93344500000057
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799398964,
+          "durationMs": 245.07946300000003
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799399207,
+          "durationMs": 242.76212599999963
+        },
+        {
+          "index": 2,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771799399709,
+          "durationMs": 244.0186250000006
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799399955,
+          "durationMs": 245.60777000000053
+        },
+        {
+          "index": 2,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771799400198,
+          "durationMs": 243.21620099999927
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771799400445,
+          "durationMs": 246.91652799999792
+        }
+      ],
+      "errors": [],
+      "durationMs": 16816.895825,
+      "startedAt": "2026-02-22T22:29:43.893Z"
+    }
+  ]
+}

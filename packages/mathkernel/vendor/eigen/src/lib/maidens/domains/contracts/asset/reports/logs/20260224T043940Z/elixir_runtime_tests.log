@@ -1,0 +1,7 @@
+Compiling 16 files (.ex)
+Generated maiden_asset_runtime app
+Running ExUnit with seed: 469275, max_cases: 32
+
+.........
+Finished in 0.05 seconds (0.05s async, 0.00s sync)
+9 tests, 0 failures

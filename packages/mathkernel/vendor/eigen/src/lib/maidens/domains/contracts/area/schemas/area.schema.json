@@ -1,0 +1,419 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Area": {
+      "type": "object",
+      "required": [
+        "area_id",
+        "name",
+        "status",
+        "enterprise_id",
+        "site_id",
+        "area_type",
+        "building",
+        "floor",
+        "zone",
+        "description",
+        "location",
+        "metadata",
+        "hierarchy_path",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "area_id": {
+          "$ref": "#/definitions/AreaId"
+        },
+        "name": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "status": {
+          "$ref": "#/definitions/AreaStatus"
+        },
+        "enterprise_id": {
+          "$ref": "#/definitions/EnterpriseId"
+        },
+        "site_id": {
+          "$ref": "#/definitions/SiteId"
+        },
+        "area_type": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/AreaType"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "building": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "floor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "zone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/AreaLocation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "metadata": {
+          "$ref": "#/definitions/AreaMetadata"
+        },
+        "hierarchy_path": {
+          "$ref": "#/definitions/AreaHierarchyPath"
+        },
+        "created_at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "description": "ISO8601 UTC or offset timestamp string.",
+              "title": "ISO8601 Timestamp",
+              "format": "date-time"
+            }
+          ],
+          "description": "Timestamp value or null.",
+          "title": "Nullable Timestamp"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Canonical Area payload generated from Effect Schema and consumed by Elixir runtime validators.",
+      "title": "Area"
+    },
+    "AreaId": {
+      "type": "string",
+      "description": "Area identifier with ARA- prefix and slug.",
+      "title": "Area ID",
+      "pattern": "^ARA-[a-zA-Z0-9-]+$"
+    },
+    "NonEmptyString": {
+      "type": "string",
+      "description": "a non empty string",
+      "title": "nonEmptyString",
+      "minLength": 1
+    },
+    "AreaStatus": {
+      "type": "string",
+      "enum": [
+        "active",
+        "restricted",
+        "maintenance",
+        "inactive",
+        "decommissioned"
+      ],
+      "description": "ISA-95 area lifecycle states.",
+      "title": "Area Status"
+    },
+    "EnterpriseId": {
+      "type": "string",
+      "description": "Enterprise identifier with ENT- prefix and slug.",
+      "title": "Enterprise ID",
+      "pattern": "^ENT-[a-zA-Z0-9-]+$"
+    },
+    "SiteId": {
+      "type": "string",
+      "description": "Site identifier with SIT- prefix and slug.",
+      "title": "Site ID",
+      "pattern": "^SIT-[a-zA-Z0-9-]+$"
+    },
+    "AreaType": {
+      "type": "string",
+      "enum": [
+        "production",
+        "warehouse",
+        "maintenance",
+        "quality",
+        "shipping",
+        "receiving"
+      ],
+      "description": "Area classification values from canonical Area schema.",
+      "title": "Area Type"
+    },
+    "AreaLocation": {
+      "type": "object",
+      "required": [
+        "latitude",
+        "longitude",
+        "building",
+        "floor",
+        "zone",
+        "address",
+        "timezone"
+      ],
+      "properties": {
+        "latitude": {
+          "anyOf": [
+            {
+              "type": "number",
+              "description": "a number between -90 and 90",
+              "title": "between(-90, 90)",
+              "minimum": -90,
+              "maximum": 90
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "longitude": {
+          "anyOf": [
+            {
+              "type": "number",
+              "description": "a number between -180 and 180",
+              "title": "between(-180, 180)",
+              "minimum": -180,
+              "maximum": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "building": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "floor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "zone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Location payload mirrored from canonical AssetLocation structure.",
+      "title": "Area Location"
+    },
+    "AreaMetadata": {
+      "type": "object",
+      "required": [],
+      "properties": {},
+      "additionalProperties": {
+        "$id": "/schemas/unknown",
+        "title": "unknown"
+      },
+      "description": "Extensible metadata map.",
+      "title": "Area Metadata"
+    },
+    "AreaHierarchyPath": {
+      "type": "string",
+      "description": "Hierarchy path preserving ISA-95 semantics: Area under Site directly or under Plant within Site.",
+      "title": "Area Hierarchy Path",
+      "pattern": "^\\/ENT-[a-zA-Z0-9-]+\\/SIT-[a-zA-Z0-9-]+(?:\\/PLT-[a-zA-Z0-9-]+)?\\/ARA-[a-zA-Z0-9-]+$"
+    }
+  },
+  "type": "object",
+  "required": [
+    "area_id",
+    "name",
+    "status",
+    "enterprise_id",
+    "site_id",
+    "area_type",
+    "building",
+    "floor",
+    "zone",
+    "description",
+    "location",
+    "metadata",
+    "hierarchy_path",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "area_id": {
+      "$ref": "#/definitions/AreaId"
+    },
+    "name": {
+      "$ref": "#/definitions/NonEmptyString"
+    },
+    "status": {
+      "$ref": "#/definitions/AreaStatus"
+    },
+    "enterprise_id": {
+      "$ref": "#/definitions/EnterpriseId"
+    },
+    "site_id": {
+      "$ref": "#/definitions/SiteId"
+    },
+    "area_type": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/AreaType"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "building": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "floor": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "zone": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "location": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/AreaLocation"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "metadata": {
+      "$ref": "#/definitions/AreaMetadata"
+    },
+    "hierarchy_path": {
+      "$ref": "#/definitions/AreaHierarchyPath"
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        }
+      ],
+      "description": "Timestamp value or null.",
+      "title": "Nullable Timestamp"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/area/ts/area.contract.ts). Canonical area payload contract for TypeScript and Elixir.",
+  "title": "Area",
+  "$id": "/contracts/area/area.schema.json"
+}

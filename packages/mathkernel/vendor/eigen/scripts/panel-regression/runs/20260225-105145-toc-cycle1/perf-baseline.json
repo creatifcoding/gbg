@@ -1,0 +1,226 @@
+{
+  "kind": "toc-cycle1-baseline",
+  "capturedAt": "2026-02-25T15:51:45.510Z",
+  "config": {
+    "url": "http://localhost:1420/window?testbed=floating",
+    "warmupMs": 5000,
+    "sampleMs": 20000,
+    "replicates": 3,
+    "runtime": "bun",
+    "browser": "playwright/chromium"
+  },
+  "summary": {
+    "p50": 33.400000000001455,
+    "p95": 66.70000000000073,
+    "p99": 83.40000000000873,
+    "mean": 42.121969057665254,
+    "samples": 1422
+  },
+  "replicates": [
+    {
+      "replicate": 1,
+      "frameStats": {
+        "p50": 49.89999999999782,
+        "p95": 66.70000000000073,
+        "p99": 116.60000000000036,
+        "mean": 42.682226980728046,
+        "samples": 467
+      },
+      "latencies": [
+        {
+          "name": "spawn-chat",
+          "ms": 206.18801499999972,
+          "ok": true,
+          "detail": "__PANEL_TEST__.spawnTiledChat"
+        },
+        {
+          "name": "split-hotkey",
+          "ms": 342.2033140000003,
+          "ok": true,
+          "detail": "__PANEL_TEST__.splitHorizontal · tiled 1 -> increased"
+        },
+        {
+          "name": "drag-panel",
+          "ms": 1411.938959000001,
+          "ok": true,
+          "detail": "panel moved"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 1402.6313709999995,
+          "ok": true,
+          "detail": "prompt-1: assistant shell or streaming indicator detected"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 1409.1417430000001,
+          "ok": true,
+          "detail": "prompt-1: assistant shell growth detected"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 1409.1417430000001,
+          "ok": true,
+          "detail": "prompt-1: assistant shell growth detected"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 409.2104479999998,
+          "ok": true,
+          "detail": "prompt-2: assistant shell or streaming indicator detected"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 1516.7442419999988,
+          "ok": true,
+          "detail": "prompt-2: assistant shell growth detected"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 1516.7442419999988,
+          "ok": true,
+          "detail": "prompt-2: assistant shell growth detected"
+        }
+      ],
+      "notes": [],
+      "frameDeltaCount": 467
+    },
+    {
+      "replicate": 2,
+      "frameStats": {
+        "p50": 33.400000000001455,
+        "p95": 50.10000000000582,
+        "p99": 83.30000000000291,
+        "mean": 38.61841392649904,
+        "samples": 517
+      },
+      "latencies": [
+        {
+          "name": "spawn-chat",
+          "ms": 116.99727800000255,
+          "ok": true,
+          "detail": "__PANEL_TEST__.spawnTiledChat"
+        },
+        {
+          "name": "split-hotkey",
+          "ms": 177.73027799999545,
+          "ok": true,
+          "detail": "__PANEL_TEST__.splitHorizontal · tiled 1 -> increased"
+        },
+        {
+          "name": "drag-panel",
+          "ms": 1204.5543309999994,
+          "ok": true,
+          "detail": "panel moved"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 1291.304888999999,
+          "ok": true,
+          "detail": "prompt-1: assistant shell or streaming indicator detected"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 1296.829236999998,
+          "ok": true,
+          "detail": "prompt-1: assistant shell growth detected"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 1296.829236999998,
+          "ok": true,
+          "detail": "prompt-1: assistant shell growth detected"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 396.87576800000534,
+          "ok": true,
+          "detail": "prompt-2: assistant shell or streaming indicator detected"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 2171.043715,
+          "ok": true,
+          "detail": "prompt-2: assistant shell growth detected"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 2171.043715,
+          "ok": true,
+          "detail": "prompt-2: assistant shell growth detected"
+        }
+      ],
+      "notes": [],
+      "frameDeltaCount": 517
+    },
+    {
+      "replicate": 3,
+      "frameStats": {
+        "p50": 50,
+        "p95": 83.30000000000291,
+        "p99": 100,
+        "mean": 45.660091324200906,
+        "samples": 438
+      },
+      "latencies": [
+        {
+          "name": "spawn-chat",
+          "ms": 155.62333700000454,
+          "ok": true,
+          "detail": "__PANEL_TEST__.spawnTiledChat"
+        },
+        {
+          "name": "split-hotkey",
+          "ms": 230.84096500000305,
+          "ok": true,
+          "detail": "__PANEL_TEST__.splitHorizontal · tiled 1 -> increased"
+        },
+        {
+          "name": "drag-panel",
+          "ms": 1252.1651029999994,
+          "ok": true,
+          "detail": "panel moved"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 1291.775505000005,
+          "ok": true,
+          "detail": "prompt-1: assistant shell or streaming indicator detected"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 1300.7785270000022,
+          "ok": true,
+          "detail": "prompt-1: assistant shell growth detected"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 1300.7785270000022,
+          "ok": true,
+          "detail": "prompt-1: assistant shell growth detected"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 426.87302399999317,
+          "ok": true,
+          "detail": "prompt-2: assistant shell or streaming indicator detected"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 1681.0687079999989,
+          "ok": true,
+          "detail": "prompt-2: assistant shell growth detected"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 1681.0687079999989,
+          "ok": true,
+          "detail": "prompt-2: assistant shell growth detected"
+        }
+      ],
+      "notes": [],
+      "frameDeltaCount": 438
+    }
+  ],
+  "consoleErrors": []
+}

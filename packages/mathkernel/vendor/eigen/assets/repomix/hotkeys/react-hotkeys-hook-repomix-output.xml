@@ -1,0 +1,3307 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+4. Repository files, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: packages/react-hotkeys-hook/src/
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+<additional_info>
+
+</additional_info>
+
+</file_summary>
+
+<directory_structure>
+packages/
+  react-hotkeys-hook/
+    src/
+      lib/
+        BoundHotkeysProxyProvider.tsx
+        deepEqual.ts
+        HotkeysProvider.tsx
+        index.ts
+        isHotkeyPressed.ts
+        parseHotkeys.ts
+        types.ts
+        useDeepEqualMemo.ts
+        useHotkeys.ts
+        useRecordHotkeys.ts
+        validators.ts
+      test/
+        HotkeysProvider.test.tsx
+        isHotkeyPressed.test.tsx
+        useHotkeys.test.tsx
+        useHotkeysContext.test.tsx
+        useRecordHotkeys.test.tsx
+      vite-env.d.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="packages/react-hotkeys-hook/src/lib/BoundHotkeysProxyProvider.tsx">
+import { createContext, type ReactNode, useContext } from 'react'
+import type { Hotkey } from './types'
+
+type BoundHotkeysProxyProviderType = {
+  addHotkey: (hotkey: Hotkey) => void
+  removeHotkey: (hotkey: Hotkey) => void
+}
+
+const BoundHotkeysProxyProvider = createContext<BoundHotkeysProxyProviderType | undefined>(undefined)
+
+export const useBoundHotkeysProxy = () => {
+  return useContext(BoundHotkeysProxyProvider)
+}
+
+interface Props {
+  children: ReactNode
+  addHotkey: (hotkey: Hotkey) => void
+  removeHotkey: (hotkey: Hotkey) => void
+}
+
+export default function BoundHotkeysProxyProviderProvider({ addHotkey, removeHotkey, children }: Props) {
+  return (
+    <BoundHotkeysProxyProvider.Provider value={{ addHotkey, removeHotkey }}>
+      {children}
+    </BoundHotkeysProxyProvider.Provider>
+  )
+}
+</file>
+
+<file path="packages/react-hotkeys-hook/src/lib/deepEqual.ts">
+export default function deepEqual(x?: unknown, y?: unknown): boolean {
+  return x && y && typeof x === 'object' && typeof y === 'object'
+    ? Object.keys(x).length === Object.keys(y).length &&
+        // @ts-expect-error TS7053
+        Object.keys(x).reduce((isEqual, key) => isEqual && deepEqual(x[key], y[key]), true)
+    : x === y
+}
+</file>
+
+<file path="packages/react-hotkeys-hook/src/lib/HotkeysProvider.tsx">
+import type { Hotkey } from './types'
+import { createContext, type ReactNode, useState, useContext, useCallback } from 'react'
+import BoundHotkeysProxyProviderProvider from './BoundHotkeysProxyProvider'
+import deepEqual from './deepEqual'
+
+export type HotkeysContextType = {
+  hotkeys: ReadonlyArray<Hotkey>
+  activeScopes: string[]
+  toggleScope: (scope: string) => void
+  enableScope: (scope: string) => void
+  disableScope: (scope: string) => void
+}
+
+// The context is only needed for special features like global scoping, so we use a graceful default fallback
+const HotkeysContext = createContext<HotkeysContextType>({
+  hotkeys: [],
+  activeScopes: [], // This array has to be empty instead of containing '*' as default, to check if the provider is set or not
+  toggleScope: () => {},
+  enableScope: () => {},
+  disableScope: () => {},
+})
+
+export const useHotkeysContext = () => {
+  return useContext(HotkeysContext)
+}
+
+interface Props {
+  initiallyActiveScopes?: string[]
+  children: ReactNode
+}
+
+export const HotkeysProvider = ({ initiallyActiveScopes = ['*'], children }: Props) => {
+  const [internalActiveScopes, setInternalActiveScopes] = useState(initiallyActiveScopes)
+  const [boundHotkeys, setBoundHotkeys] = useState<Hotkey[]>([])
+
+  const enableScope = useCallback((scope: string) => {
+    setInternalActiveScopes((prev) => {
+      if (prev.includes('*')) {
+        return [scope]
+      }
+      return Array.from(new Set([...prev, scope]))
+    })
+  }, [])
+
+  const disableScope = useCallback((scope: string) => {
+    setInternalActiveScopes((prev) => {
+      return prev.filter((s) => s !== scope)
+    })
+  }, [])
+
+  const toggleScope = useCallback((scope: string) => {
+    setInternalActiveScopes((prev) => {
+      if (prev.includes(scope)) {
+        return prev.filter((s) => s !== scope)
+      } else {
+        if (prev.includes('*')) {
+          return [scope]
+        }
+        return Array.from(new Set([...prev, scope]))
+      }
+    })
+  }, [])
+
+  const addBoundHotkey = useCallback((hotkey: Hotkey) => {
+    setBoundHotkeys((prev) => [...prev, hotkey])
+  }, [])
+
+  const removeBoundHotkey = useCallback((hotkey: Hotkey) => {
+    setBoundHotkeys((prev) => prev.filter((h) => !deepEqual(h, hotkey)))
+  }, [])
+
+  return (
+    <HotkeysContext.Provider
+      value={{ activeScopes: internalActiveScopes, hotkeys: boundHotkeys, enableScope, disableScope, toggleScope }}
+    >
+      <BoundHotkeysProxyProviderProvider addHotkey={addBoundHotkey} removeHotkey={removeBoundHotkey}>
+        {children}
+      </BoundHotkeysProxyProviderProvider>
+    </HotkeysContext.Provider>
+  )
+}
+</file>
+
+<file path="packages/react-hotkeys-hook/src/lib/index.ts">
+import useHotkeys from './useHotkeys'
+import type { Options, Keys, HotkeyCallback } from './types'
+import { HotkeysProvider, useHotkeysContext } from './HotkeysProvider'
+import { isHotkeyPressed } from './isHotkeyPressed'
+import useRecordHotkeys from './useRecordHotkeys'
+
+export {
+  useHotkeys,
+  useRecordHotkeys,
+  useHotkeysContext,
+  isHotkeyPressed,
+  HotkeysProvider,
+  type Options,
+  type Keys,
+  type HotkeyCallback,
+}
+</file>
+
+<file path="packages/react-hotkeys-hook/src/lib/isHotkeyPressed.ts">
+import { isHotkeyModifier, mapCode } from './parseHotkeys'
+;(() => {
+  if (typeof document !== 'undefined') {
+    document.addEventListener('keydown', (e) => {
+      if (e.code === undefined) {
+        // Synthetic event (e.g., Chrome autofill). Ignore.
+        return
+      }
+
+      pushToCurrentlyPressedKeys([mapCode(e.code)])
+    })
+
+    document.addEventListener('keyup', (e) => {
+      if (e.code === undefined) {
+        // Synthetic event (e.g., Chrome autofill). Ignore.
+        return
+      }
+
+      removeFromCurrentlyPressedKeys([mapCode(e.code)])
+    })
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('blur', () => {
+      currentlyPressedKeys.clear()
+    })
+
+    window.addEventListener('contextmenu', () => {
+      // Must clear pressed keys after existing `keydown` events in queue have resolved.
+      setTimeout(() => {
+        currentlyPressedKeys.clear()
+      }, 0)
+    })
+  }
+})()
+
+const currentlyPressedKeys: Set<string> = new Set<string>()
+
+// https://github.com/microsoft/TypeScript/issues/17002
+export function isReadonlyArray(value: unknown): value is readonly unknown[] {
+  return Array.isArray(value)
+}
+
+export function isHotkeyPressed(key: string | readonly string[], delimiter = ','): boolean {
+  const hotkeyArray = isReadonlyArray(key) ? key : key.split(delimiter)
+
+  return hotkeyArray.every((hotkey) => currentlyPressedKeys.has(hotkey.trim().toLowerCase()))
+}
+
+export function pushToCurrentlyPressedKeys(key: string | string[]): void {
+  const hotkeyArray = Array.isArray(key) ? key : [key]
+
+  /*
+  Due to a weird behavior on macOS we need to clear the set if the user pressed down the meta key and presses another key.
+  https://stackoverflow.com/questions/11818637/why-does-javascript-drop-keyup-events-when-the-metakey-is-pressed-on-mac-browser
+  Otherwise the set will hold all ever pressed keys while the meta key is down which leads to wrong results.
+   */
+  if (currentlyPressedKeys.has('meta')) {
+    currentlyPressedKeys.forEach((key) => !isHotkeyModifier(key) && currentlyPressedKeys.delete(key.toLowerCase()))
+  }
+
+  hotkeyArray.forEach((hotkey) => currentlyPressedKeys.add(hotkey.toLowerCase()))
+}
+
+export function removeFromCurrentlyPressedKeys(key: string | string[]): void {
+  const hotkeyArray = Array.isArray(key) ? key : [key]
+
+  /*
+  Due to a weird behavior on macOS we need to clear the set if the user pressed down the meta key and presses another key.
+  https://stackoverflow.com/questions/11818637/why-does-javascript-drop-keyup-events-when-the-metakey-is-pressed-on-mac-browser
+  Otherwise the set will hold all ever pressed keys while the meta key is down which leads to wrong results.
+   */
+  if (key === 'meta') {
+    currentlyPressedKeys.clear()
+  } else {
+    hotkeyArray.forEach((hotkey) => currentlyPressedKeys.delete(hotkey.toLowerCase()))
+  }
+}
+</file>
+
+<file path="packages/react-hotkeys-hook/src/lib/parseHotkeys.ts">
+import type { Hotkey, KeyboardModifiers } from './types'
+
+const reservedModifierKeywords = ['shift', 'alt', 'meta', 'mod', 'ctrl', 'control']
+
+const mappedKeys: Record<string, string> = {
+  esc: 'escape',
+  return: 'enter',
+  left: 'arrowleft',
+  right: 'arrowright',
+  up: 'arrowup',
+  down: 'arrowdown',
+  ShiftLeft: 'shift',
+  ShiftRight: 'shift',
+  AltLeft: 'alt',
+  AltRight: 'alt',
+  MetaLeft: 'meta',
+  MetaRight: 'meta',
+  OSLeft: 'meta',
+  OSRight: 'meta',
+  ControlLeft: 'ctrl',
+  ControlRight: 'ctrl',
+}
+
+export function mapCode(key: string): string {
+  return (mappedKeys[key.trim()] || key.trim()).toLowerCase().replace(/key|digit|numpad/, '')
+}
+
+export function isHotkeyModifier(key: string) {
+  return reservedModifierKeywords.includes(key)
+}
+
+export function parseKeysHookInput(keys: string, delimiter = ','): string[] {
+  return keys.toLowerCase().split(delimiter)
+}
+
+export function parseHotkey(
+  hotkey: string,
+  splitKey = '+',
+  sequenceSplitKey = '>',
+  useKey = false,
+  description?: string,
+  metadata?: Record<string, unknown>
+): Hotkey {
+  let keys: string[] = []
+  let isSequence = false
+
+  // hotkey might contain a leading space from eg. `ctrl+a, shift+a`
+  // biome-ignore lint/style/noParameterAssign: Sanitation of args variable
+  hotkey = hotkey.trim()
+
+  if (hotkey.includes(sequenceSplitKey)) {
+    isSequence = true
+    keys = hotkey
+      .toLocaleLowerCase()
+      .split(sequenceSplitKey)
+      .map((k) => mapCode(k))
+  } else {
+    keys = hotkey
+      .toLocaleLowerCase()
+      .split(splitKey)
+      .map((k) => mapCode(k))
+  }
+
+  const modifiers: KeyboardModifiers = {
+    alt: keys.includes('alt'),
+    ctrl: keys.includes('ctrl') || keys.includes('control'),
+    shift: keys.includes('shift'),
+    meta: keys.includes('meta'),
+    mod: keys.includes('mod'),
+    useKey,
+  }
+
+  const singleCharKeys = keys.filter((k) => !reservedModifierKeywords.includes(k))
+
+  return {
+    ...modifiers,
+    keys: singleCharKeys,
+    description,
+    isSequence,
+    hotkey,
+    metadata
+  }
+}
+</file>
+
+<file path="packages/react-hotkeys-hook/src/lib/types.ts">
+import type { DependencyList } from 'react'
+
+export type FormTags =
+  | 'input'
+  | 'textarea'
+  | 'select'
+  | 'INPUT'
+  | 'TEXTAREA'
+  | 'SELECT'
+  | 'searchbox'
+  | 'slider'
+  | 'spinbutton'
+  | 'menuitem'
+  | 'menuitemcheckbox'
+  | 'menuitemradio'
+  | 'option'
+  | 'radio'
+  | 'textbox'
+export type Keys = string | readonly string[]
+export type Scopes = string | readonly string[]
+
+export type EventListenerOptions =
+  | {
+      capture?: boolean
+      once?: boolean
+      passive?: boolean
+      signal?: AbortSignal
+    }
+  | boolean // useCapture
+
+export type KeyboardModifiers = {
+  alt?: boolean
+  ctrl?: boolean
+  meta?: boolean
+  shift?: boolean
+  mod?: boolean
+  useKey?: boolean // Custom modifier to listen to the produced key instead of the code
+}
+
+export type Hotkey = KeyboardModifiers & {
+  keys?: readonly string[]
+  scopes?: Scopes
+  description?: string
+  isSequence?: boolean
+  hotkey: string
+  metadata?: Record<string, unknown>
+}
+
+export type HotkeysEvent = Hotkey
+
+export type HotkeyCallback = (keyboardEvent: KeyboardEvent, hotkeysEvent: HotkeysEvent) => void
+
+export type Trigger = boolean | ((keyboardEvent: KeyboardEvent, hotkeysEvent: HotkeysEvent) => boolean)
+
+export type Options = {
+  // Main setting that determines if the hotkey is enabled or not. (Default: true)
+  enabled?: Trigger
+  // Enable hotkeys on a list of tags. (Default: false)
+  enableOnFormTags?: readonly FormTags[] | boolean
+  // Enable hotkeys on tags with contentEditable props. (Default: false)
+  enableOnContentEditable?: boolean
+  // Ignore evenets based on a condition (Default: undefined)
+  ignoreEventWhen?: (e: KeyboardEvent) => boolean
+  // Character to split keys in hotkeys combinations. (Default: +)
+  splitKey?: string
+  // Character to separate different hotkeys. (Default: ,)
+  delimiter?: string
+  // Scope of the hotkey. (Default: undefined)
+  scopes?: Scopes
+  // Trigger on keyup event? (Default: undefined)
+  keyup?: boolean
+  // Trigger on keydown event? (Default: true)
+  keydown?: boolean
+  // Prevent default browser behavior? (Default: false)
+  preventDefault?: Trigger
+  // Use this option to describe what the hotkey does. (Default: undefined)
+  description?: string
+  // Listen to events on the document instead of the window. (Default: false)
+  document?: Document
+  // Ignore modifiers when matching hotkeys. (Default: false)
+  ignoreModifiers?: boolean
+  // Pass through event listener options. (Default: undefined)
+  eventListenerOptions?: EventListenerOptions
+  // Listen to the produced key instead of the code. (Default: false)
+  useKey?: boolean
+  // The timeout to wait for the next key to be pressed. (Default: 1000ms)
+  sequenceTimeoutMs?: number
+  // The character to split the sequence of keys. (Default: >)
+  sequenceSplitKey?: string
+  // MetaData | Custom data to store and retrieve with the hotkey (Default: undefined)
+  metadata?: Record<string, unknown>
+}
+
+export type OptionsOrDependencyArray = Options | DependencyList
+</file>
+
+<file path="packages/react-hotkeys-hook/src/lib/useDeepEqualMemo.ts">
+import { useRef } from 'react'
+import deepEqual from './deepEqual'
+
+export default function useDeepEqualMemo<T>(value: T) {
+  const ref = useRef<T | undefined>(undefined)
+
+  if (!deepEqual(ref.current, value)) {
+    ref.current = value
+  }
+
+  return ref.current
+}
+</file>
+
+<file path="packages/react-hotkeys-hook/src/lib/useHotkeys.ts">
+import type { HotkeyCallback, Keys, Options, OptionsOrDependencyArray } from './types'
+import { type DependencyList, useCallback, useEffect, useLayoutEffect, useRef } from 'react'
+import { mapCode, parseHotkey, parseKeysHookInput, isHotkeyModifier } from './parseHotkeys'
+import {
+  isHotkeyEnabled,
+  isHotkeyEnabledOnTag,
+  isHotkeyMatchingKeyboardEvent,
+  isKeyboardEventTriggeredByInput,
+  isScopeActive,
+  maybePreventDefault,
+} from './validators'
+import { useHotkeysContext } from './HotkeysProvider'
+import { useBoundHotkeysProxy } from './BoundHotkeysProxyProvider'
+import useDeepEqualMemo from './useDeepEqualMemo'
+import { isReadonlyArray, pushToCurrentlyPressedKeys, removeFromCurrentlyPressedKeys } from './isHotkeyPressed'
+
+const stopPropagation = (e: KeyboardEvent): void => {
+  e.stopPropagation()
+  e.preventDefault()
+  e.stopImmediatePropagation()
+}
+
+const useSafeLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
+
+export default function useHotkeys<T extends HTMLElement>(
+  keys: Keys,
+  callback: HotkeyCallback,
+  options?: OptionsOrDependencyArray,
+  dependencies?: OptionsOrDependencyArray,
+) {
+  const ref = useRef<T>(null)
+  const hasTriggeredRef = useRef(false)
+
+  const _options: Options | undefined = !Array.isArray(options)
+    ? (options as Options)
+    : !Array.isArray(dependencies)
+      ? (dependencies as Options)
+      : undefined
+  const _keys: string = isReadonlyArray(keys) ? keys.join(_options?.delimiter) : keys
+  const _deps: DependencyList | undefined = Array.isArray(options)
+    ? options
+    : Array.isArray(dependencies)
+      ? dependencies
+      : undefined
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: is exhaustive
+  const memoisedCB = useCallback(callback, _deps ?? [])
+  const cbRef = useRef<HotkeyCallback>(memoisedCB)
+
+  if (_deps) {
+    cbRef.current = memoisedCB
+  } else {
+    cbRef.current = callback
+  }
+
+  const memoisedOptions = useDeepEqualMemo(_options)
+
+  const { activeScopes } = useHotkeysContext()
+  const proxy = useBoundHotkeysProxy()
+
+  useSafeLayoutEffect(() => {
+    if (memoisedOptions?.enabled === false || !isScopeActive(activeScopes, memoisedOptions?.scopes)) {
+      return
+    }
+
+    let recordedKeys: string[] = []
+    let sequenceTimer: NodeJS.Timeout | undefined
+
+    const listener = (e: KeyboardEvent, isKeyUp = false) => {
+      if (isKeyboardEventTriggeredByInput(e) && !isHotkeyEnabledOnTag(e, memoisedOptions?.enableOnFormTags)) {
+        return
+      }
+
+      // TODO: SINCE THE EVENT IS NOW ATTACHED TO THE REF, THE ACTIVE ELEMENT CAN NEVER BE INSIDE THE REF. THE HOTKEY ONLY TRIGGERS IF THE
+      // REF IS THE ACTIVE ELEMENT. THIS IS A PROBLEM SINCE FOCUSED SUB COMPONENTS WON'T TRIGGER THE HOTKEY.
+      if (ref.current !== null) {
+        const rootNode = ref.current.getRootNode()
+
+        if (
+          (rootNode instanceof Document || rootNode instanceof ShadowRoot) &&
+          rootNode.activeElement !== ref.current &&
+          !ref.current.contains(rootNode.activeElement)
+        ) {
+          stopPropagation(e)
+          return
+        }
+      }
+
+      if ((e.target as HTMLElement)?.isContentEditable && !memoisedOptions?.enableOnContentEditable) {
+        return
+      }
+
+      parseKeysHookInput(_keys, memoisedOptions?.delimiter).forEach((key) => {
+        if (key.includes(memoisedOptions?.splitKey ?? '+') && key.includes(memoisedOptions?.sequenceSplitKey ?? '>')) {
+          console.warn(
+            `Hotkey ${key} contains both ${memoisedOptions?.splitKey ?? '+'} and ${memoisedOptions?.sequenceSplitKey ?? '>'} which is not supported.`,
+          )
+          return
+        }
+
+        const hotkey = parseHotkey(
+          key,
+          memoisedOptions?.splitKey,
+          memoisedOptions?.sequenceSplitKey,
+          memoisedOptions?.useKey,
+          memoisedOptions?.description,
+          memoisedOptions?.metadata,
+        )
+
+        if (hotkey.isSequence) {
+          // Set a timeout to check post which the sequence should reset
+          sequenceTimer = setTimeout(() => {
+            recordedKeys = []
+          }, memoisedOptions?.sequenceTimeoutMs ?? 1000)
+
+          const currentKey = hotkey.useKey ? e.key : mapCode(e.code)
+
+          // TODO: Make modifiers work with sequences
+          if (isHotkeyModifier(currentKey.toLowerCase())) {
+            return
+          }
+
+          recordedKeys.push(currentKey)
+
+          const expectedKey = hotkey.keys?.[recordedKeys.length - 1]
+          if (currentKey !== expectedKey) {
+            recordedKeys = []
+            if (sequenceTimer) {
+              clearTimeout(sequenceTimer)
+            }
+            return
+          }
+
+          // If the sequence is complete, trigger the callback
+          if (recordedKeys.length === hotkey.keys?.length) {
+            cbRef.current(e, hotkey)
+
+            if (sequenceTimer) {
+              clearTimeout(sequenceTimer)
+            }
+
+            recordedKeys = []
+          }
+        } else {
+          if (
+            isHotkeyMatchingKeyboardEvent(e, hotkey, memoisedOptions?.ignoreModifiers) ||
+            hotkey.keys?.includes('*')
+          ) {
+            if (memoisedOptions?.ignoreEventWhen?.(e)) {
+              return
+            }
+
+            if (isKeyUp && hasTriggeredRef.current) {
+              return
+            }
+
+            maybePreventDefault(e, hotkey, memoisedOptions?.preventDefault)
+
+            if (!isHotkeyEnabled(e, hotkey, memoisedOptions?.enabled)) {
+              stopPropagation(e)
+
+              return
+            }
+
+            // Execute the user callback for that hotkey
+            cbRef.current(e, hotkey)
+
+            if (!isKeyUp) {
+              hasTriggeredRef.current = true
+            }
+          }
+        }
+      })
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code === undefined) {
+        // Synthetic event (e.g., Chrome autofill).  Ignore.
+        return
+      }
+
+      pushToCurrentlyPressedKeys(mapCode(event.code))
+
+      if ((memoisedOptions?.keydown === undefined && memoisedOptions?.keyup !== true) || memoisedOptions?.keydown) {
+        listener(event)
+      }
+    }
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.code === undefined) {
+        // Synthetic event (e.g., Chrome autofill).  Ignore.
+        return
+      }
+
+      removeFromCurrentlyPressedKeys(mapCode(event.code))
+
+      hasTriggeredRef.current = false
+
+      if (memoisedOptions?.keyup) {
+        listener(event, true)
+      }
+    }
+
+    const domNode = ref.current || _options?.document || document
+
+    // @ts-expect-error TS2345
+    domNode.addEventListener('keyup', handleKeyUp, _options?.eventListenerOptions)
+    // @ts-expect-error TS2345
+    domNode.addEventListener('keydown', handleKeyDown, _options?.eventListenerOptions)
+
+    if (proxy) {
+      parseKeysHookInput(_keys, memoisedOptions?.delimiter).forEach((key) =>
+        proxy.addHotkey(
+          parseHotkey(
+            key,
+            memoisedOptions?.splitKey,
+            memoisedOptions?.sequenceSplitKey,
+            memoisedOptions?.useKey,
+            memoisedOptions?.description,
+            memoisedOptions?.metadata,
+          ),
+        ),
+      )
+    }
+
+    return () => {
+      // @ts-expect-error TS2345
+      domNode.removeEventListener('keyup', handleKeyUp, _options?.eventListenerOptions)
+      // @ts-expect-error TS2345
+      domNode.removeEventListener('keydown', handleKeyDown, _options?.eventListenerOptions)
+
+      if (proxy) {
+        parseKeysHookInput(_keys, memoisedOptions?.delimiter).forEach((key) =>
+          proxy.removeHotkey(
+            parseHotkey(
+              key,
+              memoisedOptions?.splitKey,
+              memoisedOptions?.sequenceSplitKey,
+              memoisedOptions?.useKey,
+              memoisedOptions?.description,
+              memoisedOptions?.metadata,
+            ),
+          ),
+        )
+      }
+
+      recordedKeys = []
+      if (sequenceTimer) {
+        clearTimeout(sequenceTimer)
+      }
+    }
+  }, [_keys, memoisedOptions, activeScopes])
+
+  return ref
+}
+</file>
+
+<file path="packages/react-hotkeys-hook/src/lib/useRecordHotkeys.ts">
+import { useCallback, useState } from 'react'
+import { mapCode } from './parseHotkeys'
+
+export default function useRecordHotkeys(useKey = false) {
+  const [keys, setKeys] = useState(new Set<string>())
+  const [isRecording, setIsRecording] = useState(false)
+
+  const handler = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.code === undefined) {
+        // Synthetic event (e.g., Chrome autofill).  Ignore.
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      setKeys((prev) => {
+        const newKeys = new Set(prev)
+
+        newKeys.add(mapCode(useKey ? event.key : event.code))
+
+        return newKeys
+      })
+    },
+    [useKey],
+  )
+
+  const stop = useCallback(() => {
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('keydown', handler)
+
+      setIsRecording(false)
+    }
+  }, [handler])
+
+  const start = useCallback(() => {
+    setKeys(new Set<string>())
+
+    if (typeof document !== 'undefined') {
+      stop()
+
+      document.addEventListener('keydown', handler)
+
+      setIsRecording(true)
+    }
+  }, [handler, stop])
+
+  const resetKeys = useCallback(() => {
+    setKeys(new Set<string>())
+  }, [])
+
+  return [keys, { start, stop, resetKeys, isRecording }] as const
+}
+</file>
+
+<file path="packages/react-hotkeys-hook/src/lib/validators.ts">
+import type { FormTags, Hotkey, Scopes, Trigger } from './types'
+import { isHotkeyPressed, isReadonlyArray } from './isHotkeyPressed'
+import { mapCode } from './parseHotkeys'
+
+export function maybePreventDefault(e: KeyboardEvent, hotkey: Hotkey, preventDefault?: Trigger): void {
+  if ((typeof preventDefault === 'function' && preventDefault(e, hotkey)) || preventDefault === true) {
+    e.preventDefault()
+  }
+}
+
+export function isHotkeyEnabled(e: KeyboardEvent, hotkey: Hotkey, enabled?: Trigger): boolean {
+  if (typeof enabled === 'function') {
+    return enabled(e, hotkey)
+  }
+
+  return enabled === true || enabled === undefined
+}
+
+// these are ARIA roles that are considered form fields
+const FORM_TAGS_AND_ROLES: readonly FormTags[] = [
+  'input',
+  'textarea',
+  'select',
+  'searchbox',
+  'slider',
+  'spinbutton',
+  'menuitem',
+  'menuitemcheckbox',
+  'menuitemradio',
+  'option',
+  'radio',
+  'textbox',
+]
+
+export function isKeyboardEventTriggeredByInput(ev: KeyboardEvent): boolean {
+  return isHotkeyEnabledOnTag(ev, FORM_TAGS_AND_ROLES)
+}
+
+export function isHotkeyEnabledOnTag(
+  event: KeyboardEvent,
+  enabledOnTags: readonly FormTags[] | boolean = false,
+): boolean {
+  const { target, composed } = event
+
+  let targetTagName: EventTarget | string | undefined | null
+  let targetRole: string | undefined | null
+
+  if (isCustomElement(target as HTMLElement) && composed) {
+    targetTagName = event.composedPath()[0] && (event.composedPath()[0] as HTMLElement).tagName
+    targetRole = event.composedPath()[0] && (event.composedPath()[0] as HTMLElement).role
+  } else {
+    targetTagName = target && (target as HTMLElement).tagName
+    targetRole = target && (target as HTMLElement).role
+  }
+
+  if (isReadonlyArray(enabledOnTags)) {
+    return Boolean(
+      targetTagName &&
+        enabledOnTags &&
+        enabledOnTags.some((tag) => tag.toLowerCase() === targetTagName.toLowerCase() || tag === targetRole),
+    )
+  }
+
+  return Boolean(targetTagName && enabledOnTags && enabledOnTags)
+}
+
+export function isCustomElement(element: HTMLElement): boolean {
+  // We just do a basic check w/o any complex RegEx or validation against the list of legacy names containing a hyphen,
+  // as none of them is likely to be an event target, and it won't hurt anyway if we miss.
+  // see: https://html.spec.whatwg.org/multipage/custom-elements.html#prod-potentialcustomelementname
+  return !!element.tagName && !element.tagName.startsWith('-') && element.tagName.includes('-')
+}
+
+export function isScopeActive(activeScopes: string[], scopes?: Scopes): boolean {
+  if (activeScopes.length === 0 && scopes) {
+    console.warn(
+      'A hotkey has the "scopes" option set, however no active scopes were found. If you want to use the global scopes feature, you need to wrap your app in a <HotkeysProvider>',
+    )
+
+    return true
+  }
+
+  if (!scopes) {
+    return true
+  }
+
+  return activeScopes.some((scope) => scopes.includes(scope)) || activeScopes.includes('*')
+}
+
+export const isHotkeyMatchingKeyboardEvent = (e: KeyboardEvent, hotkey: Hotkey, ignoreModifiers = false): boolean => {
+  const { alt, meta, mod, shift, ctrl, keys, useKey } = hotkey
+  const { code, key: producedKey, ctrlKey, metaKey, shiftKey, altKey } = e
+
+  const mappedCode = mapCode(code)
+
+  if (useKey && keys?.length === 1 && keys.includes(producedKey)) {
+    return true
+  }
+
+  if (
+    !keys?.includes(mappedCode) &&
+    !['ctrl', 'control', 'unknown', 'meta', 'alt', 'shift', 'os'].includes(mappedCode)
+  ) {
+    return false
+  }
+
+  if (!ignoreModifiers) {
+    // We check the pressed keys for compatibility with the keyup event. In keyup events the modifier flags are not set.
+    if (alt !== altKey && mappedCode !== 'alt') {
+      return false
+    }
+
+    if (shift !== shiftKey && mappedCode !== 'shift') {
+      return false
+    }
+
+    // Mod is a special key name that is checking for meta on macOS and ctrl on other platforms
+    if (mod) {
+      if (!metaKey && !ctrlKey) {
+        return false
+      }
+    } else {
+      if (meta !== metaKey && mappedCode !== 'meta' && mappedCode !== 'os') {
+        return false
+      }
+
+      if (ctrl !== ctrlKey && mappedCode !== 'ctrl' && mappedCode !== 'control') {
+        return false
+      }
+    }
+  }
+
+  // All modifiers are correct, now check the key
+  // If the key is set, we check for the key
+  if (keys && keys.length === 1 && keys.includes(mappedCode)) {
+    return true
+  }
+
+  if (keys) {
+    // Check if all keys are present in pressedDownKeys set
+    return isHotkeyPressed(keys)
+  }
+
+  if (!keys) {
+    // If the key is not set, we only listen for modifiers, that check went alright, so we return true
+    return true
+  }
+
+  // There is nothing that matches.
+  return false
+}
+</file>
+
+<file path="packages/react-hotkeys-hook/src/test/HotkeysProvider.test.tsx">
+import { render, act, renderHook } from '@testing-library/react'
+import { HotkeysProvider, useHotkeysContext, useHotkeys } from '../lib'
+import type { ReactNode } from 'react'
+import type { HotkeysContextType } from '../lib/HotkeysProvider'
+import {test, expect} from 'vitest'
+
+test('should render children', () => {
+  const { getByText } = render(
+    <HotkeysProvider>
+      <div>Hello</div>
+    </HotkeysProvider>
+  )
+
+  expect(getByText('Hello')).toBeInTheDocument()
+})
+
+test('should default to wildcard scope', () => {
+  const { result } = renderHook(() => useHotkeysContext(), {
+    wrapper: HotkeysProvider,
+  })
+
+  expect(result.current.activeScopes).toEqual(['*'])
+})
+
+test('should return active scopes and scope modifying functions', () => {
+  const { result } = renderHook(() => useHotkeysContext(), {
+    wrapper: HotkeysProvider,
+  })
+
+  expect(result.current.activeScopes).toEqual(['*'])
+  expect(result.current.enableScope).toBeInstanceOf(Function)
+  expect(result.current.disableScope).toBeInstanceOf(Function)
+  expect(result.current.toggleScope).toBeInstanceOf(Function)
+})
+
+test('should activate scope by calling enableScope', () => {
+  const { result } = renderHook(() => useHotkeysContext(), {
+    wrapper: HotkeysProvider,
+  })
+
+  act(() => {
+    result.current.enableScope('foo')
+  })
+
+  expect(result.current.activeScopes).toEqual(['foo'])
+})
+
+test('should return multiple scopes if different scopes are activated', () => {
+  const { result } = renderHook(() => useHotkeysContext(), {
+    wrapper: HotkeysProvider,
+  })
+
+  act(() => {
+    result.current.enableScope('foo')
+  })
+
+  expect(result.current.activeScopes).toEqual(['foo'])
+
+  act(() => {
+    result.current.enableScope('bar')
+  })
+
+  expect(result.current.activeScopes).toEqual(['foo', 'bar'])
+})
+
+test('should deactivate scope by calling disableScope', () => {
+  const { result } = renderHook(() => useHotkeysContext(), {
+    wrapper: HotkeysProvider,
+  })
+
+  act(() => {
+    result.current.enableScope('foo')
+  })
+
+  act(() => {
+    result.current.enableScope('bar')
+  })
+
+  expect(result.current.activeScopes).toEqual(['foo', 'bar'])
+
+  act(() => {
+    result.current.disableScope('foo')
+  })
+
+  expect(result.current.activeScopes).toEqual(['bar'])
+})
+
+test('should toggle scope by calling toggleScope', () => {
+  const { result } = renderHook(() => useHotkeysContext(), {
+    wrapper: HotkeysProvider,
+  })
+
+  act(() => {
+    result.current.enableScope('foo')
+  })
+
+  expect(result.current.activeScopes).toEqual(['foo'])
+
+  act(() => {
+    result.current.toggleScope('foo')
+  })
+
+  expect(result.current.activeScopes).toEqual([])
+
+  act(() => {
+    result.current.toggleScope('foo')
+  })
+
+  expect(result.current.activeScopes).toEqual(['foo'])
+})
+
+test('should be able to disable wildcard like any other scope', () => {
+  const { result } = renderHook(() => useHotkeysContext(), {
+    wrapper: HotkeysProvider,
+  })
+
+  act(() => {
+    result.current.disableScope('*')
+  })
+
+  expect(result.current.activeScopes).toEqual([])
+})
+
+test('should return initially set scopes', () => {
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <HotkeysProvider initiallyActiveScopes={['foo', 'bar']}>{children}</HotkeysProvider>
+  )
+  const { result } = renderHook(() => useHotkeysContext(), {
+    wrapper,
+  })
+
+  expect(result.current.activeScopes).toEqual(['foo', 'bar'])
+})
+
+test('should return all bound hotkeys', () => {
+  const useIntegratedHotkeys = () => {
+    useHotkeys('a', () => null, { scopes: ['foo'] })
+
+    return useHotkeysContext()
+  }
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <HotkeysProvider initiallyActiveScopes={['foo']}>{children}</HotkeysProvider>
+  )
+  const { result } = renderHook(useIntegratedHotkeys, {
+    wrapper,
+  })
+
+  expect(result.current.hotkeys).toHaveLength(1)
+})
+
+test('should update bound hotkeys when useHotkeys changes its scopes', () => {
+  const useIntegratedHotkeys = (scopes: string[]) => {
+    useHotkeys('a', () => null, { scopes })
+
+    return useHotkeysContext()
+  }
+
+  const wrapper = ({ children }: { children: ReactNode }) => {
+    return <HotkeysProvider initiallyActiveScopes={['foo']}>{children}</HotkeysProvider>
+  }
+
+  const { result, rerender } = renderHook<HotkeysContextType, { scopes: string[] }>(
+    ({ scopes }) => useIntegratedHotkeys(scopes),
+    {
+      wrapper,
+      initialProps: {
+        scopes: ['foo'],
+      },
+    }
+  )
+
+  expect(result.current.hotkeys).toHaveLength(1)
+
+  rerender({ scopes: ['bar'] })
+
+  expect(result.current.hotkeys).toHaveLength(0)
+})
+
+test('should return bound hotkeys when defined as a string array', () => {
+  const useIntegratedHotkeys = () => {
+    useHotkeys(['a+c', 'b'], () => null, { scopes: ['foo'] })
+
+    return useHotkeysContext()
+  }
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <HotkeysProvider initiallyActiveScopes={['foo']}>{children}</HotkeysProvider>
+  )
+  const { result } = renderHook(useIntegratedHotkeys, {
+    wrapper,
+  })
+  expect(result.current.hotkeys[0].keys).toEqual(['a', 'c'])
+  expect(result.current.hotkeys[1].keys).toEqual(['b'])
+})
+
+test('should return descriptions for bound hotkeys', () => {
+  const useIntegratedHotkeys = () => {
+    useHotkeys('a', () => null, { scopes: ['foo'], description: 'bar' })
+
+    return useHotkeysContext()
+  }
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <HotkeysProvider initiallyActiveScopes={['foo']}>{children}</HotkeysProvider>
+  )
+  const { result } = renderHook(useIntegratedHotkeys, {
+    wrapper,
+  })
+
+  expect(result.current.hotkeys[0].description).toEqual('bar')
+})
+
+test('should have no active scopes after deactivating all current scopes', () => {
+  const { result } = renderHook(() => useHotkeysContext(), {
+    wrapper: HotkeysProvider,
+  })
+  act(() => {
+    result.current.enableScope('foo')
+  })
+  act(() => {
+    result.current.enableScope('bar')
+  })
+  expect(result.current.activeScopes).toEqual(['foo', 'bar'])
+  act(() => {
+    result.current.disableScope('foo')
+  })
+  act(() => {
+    result.current.disableScope('bar')
+  })
+
+  expect(result.current.activeScopes).toEqual([])
+})
+</file>
+
+<file path="packages/react-hotkeys-hook/src/test/isHotkeyPressed.test.tsx">
+import userEvent from '@testing-library/user-event'
+import { isHotkeyPressed } from '../lib'
+import {test, expect} from 'vitest'
+
+test('should return true if hotkey is currently pressed down', async () => {
+  const user = userEvent.setup()
+
+  await user.keyboard('{A>}')
+
+  expect(isHotkeyPressed('A')).toBe(true)
+  expect(isHotkeyPressed('a')).toBe(true)
+})
+
+test('should return false if hotkey is not pressed down', async () => {
+  const user = userEvent.setup()
+
+  await user.keyboard('{A>}')
+
+  expect(isHotkeyPressed('a')).toBe(true)
+
+  await user.keyboard('{/A}')
+
+  expect(isHotkeyPressed('a')).toBe(false)
+})
+
+test.skip('should take modifiers into account', async () => {
+  const user = userEvent.setup()
+
+  await user.keyboard('{Shift>}{Alt>}{Meta>}')
+
+  expect(isHotkeyPressed('shift')).toBe(true)
+  expect(isHotkeyPressed('alt')).toBe(true)
+  expect(isHotkeyPressed('meta')).toBe(true)
+})
+
+test('should support multiple hotkeys', async () => {
+  const user = userEvent.setup()
+
+  await user.keyboard('{B>}{A>}')
+
+  expect(isHotkeyPressed('a')).toBe(true)
+  expect(isHotkeyPressed('b')).toBe(true)
+  expect(isHotkeyPressed(['b', 'a'])).toBe(true)
+
+  await user.keyboard('{/B}')
+
+  expect(isHotkeyPressed('a')).toBe(true)
+  expect(isHotkeyPressed('b')).toBe(false)
+  expect(isHotkeyPressed(['b', 'a'])).toBe(false)
+})
+
+test('should support multiple hotkeys with modifiers', async () => {
+  const user = userEvent.setup()
+
+  await user.keyboard('{Shift>}{A>}')
+
+  expect(isHotkeyPressed('a')).toBe(true)
+  expect(isHotkeyPressed('shift')).toBe(true)
+  expect(isHotkeyPressed(['shift', 'a'])).toBe(true)
+
+  await user.keyboard('{/Shift}')
+
+  expect(isHotkeyPressed('a')).toBe(true)
+  expect(isHotkeyPressed('shift')).toBe(false)
+  expect(isHotkeyPressed(['shift', 'a'])).toBe(false)
+})
+
+test('should use , as delimiter as default', async () => {
+  const user = userEvent.setup()
+
+  await user.keyboard('{B>}{A>}')
+
+  expect(isHotkeyPressed('a')).toBe(true)
+  expect(isHotkeyPressed('b')).toBe(true)
+  expect(isHotkeyPressed('  a, b  ')).toBe(true)
+  expect(isHotkeyPressed(['a', 'b'])).toBe(true)
+
+  await user.keyboard('{/B}')
+
+  expect(isHotkeyPressed('a')).toBe(true)
+  expect(isHotkeyPressed('b')).toBe(false)
+  expect(isHotkeyPressed('  a, b  ')).toBe(false)
+  expect(isHotkeyPressed(['a', 'b'])).toBe(false)
+})
+
+test.skip('should respect the delimiter option', async () => {
+  const user = userEvent.setup()
+
+  await user.keyboard('{B>}{,>}')
+
+  expect(isHotkeyPressed(',')).toBe(false)
+  expect(isHotkeyPressed(',', '+')).toBe(true)
+  expect(isHotkeyPressed('b')).toBe(true)
+  expect(isHotkeyPressed('b, a')).toBe(false)
+  expect(isHotkeyPressed('ba,', 'a')).toBe(true)
+  expect(isHotkeyPressed(['b', ','])).toBe(true)
+
+  await user.keyboard('{/B}')
+
+  expect(isHotkeyPressed(',')).toBe(false)
+  expect(isHotkeyPressed(',', '+')).toBe(true)
+  expect(isHotkeyPressed('b')).toBe(false)
+  expect(isHotkeyPressed('b, a')).toBe(false)
+  expect(isHotkeyPressed('ba,', 'a')).toBe(false)
+  expect(isHotkeyPressed(['b', ','])).toBe(false)
+})
+
+test('Should clear pressed hotkeys when window blurs', async () => {
+  const user = userEvent.setup()
+
+  await user.keyboard('{Meta>}')
+
+  expect(isHotkeyPressed('meta')).toBe(true)
+
+  window.document.dispatchEvent(new Event("blur", {
+    bubbles: true,
+    cancelable: true
+  }))
+
+  expect(isHotkeyPressed('meta')).toBe(false)
+})
+
+test('Should return true for shift and 1 if shift+1 is held down, but not for ! as it is a produced key', async () => {
+  const user = userEvent.setup()
+
+  await user.keyboard('[ShiftLeft>]{1>}')
+
+  expect(isHotkeyPressed('shift')).toBe(true)
+  expect(isHotkeyPressed('1')).toBe(true)
+  expect(isHotkeyPressed('!')).toBe(false)
+})
+
+test('Should clear pressed hotkeys when contextmenu opens', async () => {
+  const user = userEvent.setup()
+
+  await user.keyboard('{Meta>}')
+
+  expect(isHotkeyPressed('meta')).toBe(true)
+
+  window.document.dispatchEvent(new Event("contextmenu", {
+    bubbles: true,
+    cancelable: true
+  }))
+
+  // Stuck keys are cleared asynchronously for `contextmenu`. Must check after queue is clear.
+  setTimeout(() => {
+    expect(isHotkeyPressed('meta')).toBe(false)
+  }, 0)
+})
+</file>
+
+<file path="packages/react-hotkeys-hook/src/test/useHotkeys.test.tsx">
+import userEvent from '@testing-library/user-event'
+import { useHotkeys, HotkeysProvider } from '../lib'
+import type { FormTags, HotkeyCallback, Keys, Options } from '../lib/types'
+import {
+  type DependencyList,
+  type JSXElementConstructor,
+  type MutableRefObject,
+  type ReactElement,
+  type ReactNode,
+  useCallback,
+  useState,
+} from 'react'
+import { createEvent, fireEvent, render, screen, renderHook, within } from '@testing-library/react'
+import {test, expect, beforeEach, vi} from 'vitest'
+
+const wrapper =
+  (initialScopes: string[]): JSXElementConstructor<{ children: ReactElement }> =>
+    ({ children }: { children: ReactNode }) =>
+      <HotkeysProvider initiallyActiveScopes={initialScopes}>{children}</HotkeysProvider>
+
+type HookParameters = {
+  keys: Keys
+  callback?: HotkeyCallback
+  options?: Options
+  dependencies?: DependencyList
+}
+
+beforeEach(() => {
+  window.dispatchEvent(new Event('DOMContentLoaded'))
+  vi.useFakeTimers({
+    shouldAdvanceTime: true,
+  })
+})
+
+test('should listen to esc modifier for escape key', async () => {
+  const user = userEvent.setup()
+
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('esc', callback))
+
+  await user.keyboard('{Escape}')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('should work without a wrapped context provider when not using scopes', async () => {
+  const user = userEvent.setup()
+
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('a', callback))
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('should log a warning when trying to set a scope without a wrapped provider', async () => {
+  console.warn = vi.fn()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('a', callback, { scopes: 'foo' }))
+
+  expect(console.warn).toHaveBeenCalledWith(
+    'A hotkey has the "scopes" option set, however no active scopes were found. If you want to use the global scopes feature, you need to wrap your app in a <HotkeysProvider>',
+  )
+  expect(callback).not.toHaveBeenCalled()
+})
+
+test('should call hotkey when scopes are set but activatedScopes includes wildcard scope', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  const render = (initialScopes: string[] = []) =>
+    renderHook<void, HookParameters>(({ keys, options }) => useHotkeys(keys, callback, options), {
+      wrapper: wrapper(initialScopes),
+      initialProps: {
+        keys: 'a',
+        options: { scopes: 'foo' },
+      },
+    })
+
+  render()
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalled()
+})
+
+test('should not call hotkey when scopes are set but activatedScopes does not include set scope', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  const render = (initialScopes: string[] = []) =>
+    renderHook<void, HookParameters>(({ keys, options }) => useHotkeys(keys, callback, options), {
+      wrapper: wrapper(initialScopes),
+      initialProps: {
+        keys: 'a',
+        options: { scopes: 'foo' },
+      },
+    })
+
+  render(['bar'])
+
+  await user.keyboard('A')
+
+  expect(callback).not.toHaveBeenCalled()
+})
+
+test('should call hotkey when scopes are set and activatedScopes does include some set scopes', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  const render = (initialScopes: string[] = []) =>
+    renderHook<void, HookParameters>(({ keys, options }) => useHotkeys(keys, callback, options), {
+      wrapper: wrapper(initialScopes),
+      initialProps: {
+        keys: 'a',
+        options: { scopes: 'foo' },
+      },
+    })
+
+  render(['foo'])
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalled()
+})
+
+test('should handle multiple scopes', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  const render = (initialScopes: string[] = []) =>
+    renderHook<void, HookParameters>(({ keys, options }) => useHotkeys(keys, callback, options), {
+      wrapper: wrapper(initialScopes),
+      initialProps: {
+        keys: 'a',
+        options: { scopes: ['foo', 'bar'] },
+      },
+    })
+
+  render(['baz', 'bar'])
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalled()
+})
+
+test('should update call behavior when set scopes change', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  const render = (initialScopes: string[] = []) =>
+    renderHook<void, HookParameters>(({ keys, options }) => useHotkeys(keys, callback, options), {
+      wrapper: wrapper(initialScopes),
+      initialProps: {
+        keys: 'a',
+        options: { scopes: 'foo' },
+      },
+    })
+
+  const { rerender } = render(['foo'])
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalled()
+
+  rerender({ keys: 'a', options: { scopes: 'bar' } })
+
+  userEvent.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('scope should take precedence over enabled flag/function', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  const render = (initialScopes: string[] = []) =>
+    renderHook<void, HookParameters>(({ keys, options }) => useHotkeys(keys, callback, options), {
+      wrapper: wrapper(initialScopes),
+      initialProps: {
+        keys: 'a',
+        options: { scopes: 'bar', enabled: true },
+      },
+    })
+
+  const { rerender } = render(['foo'])
+
+  await user.keyboard('A')
+
+  expect(callback).not.toHaveBeenCalled()
+
+  rerender({ keys: 'a', options: { scopes: 'foo', enabled: true } })
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalled()
+})
+
+test('should listen to key presses', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('a', callback))
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('should ignore unregistered key events', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('a', callback))
+
+  await user.keyboard('B')
+
+  expect(callback).not.toHaveBeenCalled()
+})
+
+test('should listen to multiple hotkeys', async () => {
+  const user = userEvent.setup()
+
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys(['a', 'b'], callback))
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  await user.keyboard('B')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+
+  await user.keyboard('C')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+})
+
+test('should be able to always output correct keys on multiple hotkeys', async () => {
+  const user = userEvent.setup()
+
+  const callbackA = vi.fn()
+  const callbackB = vi.fn()
+
+  renderHook(() => useHotkeys(['a'], callbackA))
+  renderHook(() => useHotkeys(['b'], callbackB))
+
+  await user.keyboard('{A>}')
+
+  expect(callbackA).toHaveBeenCalledTimes(1)
+
+  await user.keyboard('B')
+  expect(callbackA).toHaveBeenCalledTimes(1)
+  expect(callbackB).toHaveBeenCalledTimes(1)
+
+  await user.keyboard('C')
+
+  expect(callbackA).toHaveBeenCalledTimes(1)
+  expect(callbackB).toHaveBeenCalledTimes(1)
+
+  await user.keyboard('B')
+  expect(callbackA).toHaveBeenCalledTimes(1)
+  expect(callbackB).toHaveBeenCalledTimes(2)
+
+  await user.keyboard('{/A}')
+  expect(callbackA).toHaveBeenCalledTimes(1)
+  expect(callbackB).toHaveBeenCalledTimes(2)
+})
+
+test('should be able to parse first argument as string, array or readonly array', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  const { rerender } = renderHook<void, HookParameters>(({ keys }) => useHotkeys(keys, callback), {
+    initialProps: {
+      keys: 'a, b',
+    },
+  })
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  rerender({ keys: ['a', 'b'] })
+
+  await user.keyboard('B')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+
+  rerender({ keys: ['a', 'c'] as const })
+
+  await user.keyboard('C')
+
+  expect(callback).toHaveBeenCalledTimes(3)
+})
+
+test('should listen to combinations with modifiers', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  const { rerender } = renderHook<void, HookParameters>(({ keys }) => useHotkeys(keys, callback), {
+    initialProps: {
+      keys: 'meta+a',
+    },
+  })
+
+  await user.keyboard('{Meta>}A{/Meta}')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  rerender({ keys: 'meta+shift+a' })
+
+  await user.keyboard('{Meta}A{/Meta}')
+  await user.keyboard('{Meta>}{Shift>}A{/Shift}{/Meta}')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+
+  rerender({ keys: 'meta+shift+alt+a' })
+
+  await user.keyboard('{Meta>}{Alt>}{Shift>}A{/Shift}{/Alt}{/Meta}')
+
+  expect(callback).toHaveBeenCalledTimes(3)
+})
+
+test('should not trigger when combinations are incomplete', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys(['meta+a'], callback))
+
+  await user.keyboard('{Meta}')
+
+  expect(callback).not.toHaveBeenCalled()
+})
+
+test('should trigger on combinations without modifiers', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('a+b+c', callback))
+
+  await user.keyboard('{A>}{B>}C{/B}{/A}')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  await user.keyboard('{A>}B{/A}')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('should listen to multiple combinations with modifiers', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  const { rerender } = renderHook(() => useHotkeys('meta+shift+a, alt+b', callback))
+
+  await user.keyboard('{Meta>}{Shift>}A{/Shift}{/Meta}')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  rerender(() => useHotkeys('meta+shift+alt+a', callback))
+
+  await user.keyboard('{Alt>}B{/Alt}')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+
+  // Assert the leading space from alt+b is dropped
+  expect(callback).toHaveBeenCalledWith(expect.any(KeyboardEvent), {
+    keys: ['b'],
+    shift: false,
+    ctrl: false,
+    alt: true,
+    meta: false,
+    mod: false,
+    useKey: false,
+    isSequence: false,
+    hotkey: 'alt+b',
+  })
+})
+
+test('should listen to sequences', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  const { rerender } = renderHook<void, HookParameters>(({ keys }) => useHotkeys(keys, callback), {
+    initialProps: {
+      keys: 'y>e>e>t',
+    },
+  })
+
+  await user.keyboard('y')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('e')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('e')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('t')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  vi.runAllTimers()
+
+  rerender({ keys: 'y>e>e>t' })
+
+  await user.keyboard('y')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('e')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('e')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('t')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+})
+
+test('should not trigger when sequence is incomplete', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('y>e>e>t', callback))
+
+  await user.keyboard('y')
+  vi.advanceTimersByTime(500)
+  await user.keyboard('e')
+  vi.advanceTimersByTime(500)
+  await user.keyboard('e')
+  vi.advanceTimersByTime(500)
+
+  expect(callback).not.toHaveBeenCalled()
+})
+
+test('should not trigger when sequence and combination are mixed', async () => {
+  console.warn = vi.fn()
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('y>e+e>t', callback))
+
+  await user.keyboard('y')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('e')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('e')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('t')
+
+  expect(console.warn).toHaveBeenCalledWith(
+    'Hotkey y>e+e>t contains both + and > which is not supported.',
+  )
+
+  expect(callback).not.toHaveBeenCalled()
+})
+
+test('should work with sequences and other hotkeys together', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook<void, HookParameters>(({ keys }) => useHotkeys(keys, callback), {
+    initialProps: {
+      keys: ['y>e>e>t', 'y', 'meta+a'],
+    },
+  })
+
+  await user.keyboard('y')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('e')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('e')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('t')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+
+  await user.keyboard('{Meta>}A{/Meta}')
+
+  expect(callback).toHaveBeenCalledTimes(3)
+})
+
+test('should reset sequence when timeout occurs', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('y>e>e>t', callback))
+
+  await user.keyboard('y')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('e')
+  vi.advanceTimersByTime(1100)
+
+  await user.keyboard('y')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('e')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('e')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('t')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('should handle component unmount during sequence detection', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  const { unmount } = renderHook(() => useHotkeys('y>e>e>t', callback))
+
+  await user.keyboard('y')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('e')
+
+  unmount()
+
+  vi.advanceTimersByTime(1100)
+})
+
+test('should reset sequence when incorrect key is pressed', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('y>e>e>t', callback))
+
+  await user.keyboard('y')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('e')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('x')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('t')
+
+  expect(callback).not.toHaveBeenCalled()
+
+  vi.runAllTimers()
+
+  await user.keyboard('y')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('e')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('e')
+  vi.advanceTimersByTime(200)
+  await user.keyboard('t')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('should trigger sequence with useKey', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('%>!', callback, { useKey: true }))
+
+  await user.keyboard(`{Shift>}{%}{/Shift}`)
+  vi.advanceTimersByTime(200)
+  await user.keyboard(`{Shift>}{!}{/Shift}`)
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('should not trigger sequence without useKey', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('%>!', callback, { useKey: false }))
+
+  await user.keyboard(`{Shift>}{%}{/Shift}`)
+  vi.advanceTimersByTime(200)
+  await user.keyboard(`{Shift>}{!}{/Shift}`)
+
+  expect(callback).toHaveBeenCalledTimes(0)
+})
+
+test('should reflect set delimiter character', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  const { rerender } = renderHook<MutableRefObject<HTMLElement | null>, HookParameters>(
+    ({ keys, options }) => useHotkeys(keys, callback, options),
+    {
+      initialProps: { keys: 'a, b', options: undefined },
+    },
+  )
+
+  await user.keyboard('A')
+  await user.keyboard('B')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+
+  rerender({ keys: 'f. shift+g', options: { delimiter: '.' } })
+
+  await user.keyboard('F')
+  await user.keyboard('{Shift>}G{/Shift}')
+
+  expect(callback).toHaveBeenCalledTimes(4)
+})
+
+test('should listen to + if the splitKey is set to something different then +', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('+', callback, { splitKey: '-', useKey: true }))
+
+  await user.keyboard('+')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('should default to keydown if neither keyup nor keydown is passed', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('shift', callback))
+
+  await user.keyboard('{Shift>}')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('should not listen to keyup if keydown is passed', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('shift', callback, { keydown: true }))
+
+  await user.keyboard('{Shift>}')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  await user.keyboard('{/Shift}')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('should not listen to keydown if keyup is passed', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('a', callback, { keyup: true }))
+
+  await user.keyboard('{A>}')
+
+  expect(callback).toHaveBeenCalledTimes(0)
+
+  await user.keyboard('{/A}')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('should trigger on named keys when keyup is set to true', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('shift', callback, { keyup: true }))
+
+  await user.keyboard('{Shift>}')
+
+  expect(callback).toHaveBeenCalledTimes(0)
+
+  await user.keyboard('{/Shift}')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('should trigger twice if keyup and keydown are passed', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('A', callback, { keyup: true, keydown: true }))
+
+  await user.keyboard('{A}')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+})
+
+test('should be disabled on form tags by default', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+  const Component = ({ cb }: { cb: HotkeyCallback }) => {
+    useHotkeys<HTMLDivElement>('a', cb)
+
+    return <input type={'text'} data-testid={'form-tag'} />
+  }
+
+  const { getByTestId } = render(<Component cb={callback} />)
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  await user.click(getByTestId('form-tag'))
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+  expect(getByTestId('form-tag')).toHaveValue('A')
+})
+
+test('should be disabled on aria form roles by default', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+  const formCallback = vi.fn()
+  const Component = ({ cb }: { cb: HotkeyCallback }) => {
+    useHotkeys<HTMLDivElement>('a', cb)
+
+    return <div role={'searchbox'} tabIndex={0} onKeyDown={formCallback} data-testid={'form-tag'} />
+  }
+
+  const { getByTestId } = render(<Component cb={callback} />)
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  await user.click(getByTestId('form-tag'))
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+  expect(formCallback).toHaveBeenCalledTimes(1)
+})
+
+test('should be enabled on given form tags', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+  const Component = ({ cb, enableOnFormTags }: { cb: HotkeyCallback; enableOnFormTags?: readonly FormTags[] }) => {
+    useHotkeys<HTMLDivElement>('a', cb, { enableOnFormTags })
+
+    return <input type={'text'} data-testid={'form-tag'} />
+  }
+
+  const { getByTestId } = render(<Component cb={callback} enableOnFormTags={['INPUT']} />)
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  await user.click(getByTestId('form-tag'))
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+  expect(getByTestId('form-tag')).toHaveValue('A')
+})
+
+test('should ignore case of form tags', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+  const Component = ({ cb, enableOnFormTags }: { cb: HotkeyCallback; enableOnFormTags?: FormTags[] }) => {
+    useHotkeys<HTMLDivElement>('a', cb, { enableOnFormTags })
+
+    return <input type={'text'} data-testid={'form-tag'} />
+  }
+
+  const { getByTestId } = render(<Component cb={callback} enableOnFormTags={['input']} />)
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  await user.click(getByTestId('form-tag'))
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+  expect(getByTestId('form-tag')).toHaveValue('A')
+})
+
+test('should ignore event when ignoreEventWhen\'s condition matches', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+  const Component = ({ cb, ignoreEventWhen }: {
+    cb: HotkeyCallback;
+    ignoreEventWhen?: (e: KeyboardEvent) => boolean
+  }) => {
+    useHotkeys<HTMLDivElement>('a', cb, { ignoreEventWhen })
+
+    return <button className='ignore' data-testid={'test-button'} />
+  }
+
+  const eventCondition = (e: KeyboardEvent) => {
+    const element = e.target as HTMLElement
+
+    return element.className === 'ignore'
+  }
+
+  const { getByTestId } = render(<Component cb={callback} ignoreEventWhen={eventCondition} />)
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  await user.click(getByTestId('test-button'))
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('shouldn\'t ignore event when ignoreEventWhen\'s condition doesn\'t match', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+  const Component = ({ cb, ignoreEventWhen }: {
+    cb: HotkeyCallback;
+    ignoreEventWhen?: (e: KeyboardEvent) => boolean
+  }) => {
+    useHotkeys<HTMLDivElement>('a', cb, { ignoreEventWhen })
+
+    return <button className='dont-ignore' data-testid={'test-button'} />
+  }
+
+  const eventCondition = (e: KeyboardEvent) => {
+    const element = e.target as HTMLElement
+
+    return element.className === 'ignore'
+  }
+
+  const { getByTestId } = render(<Component cb={callback} ignoreEventWhen={eventCondition} />)
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  await user.click(getByTestId('test-button'))
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+})
+
+test('should call ignoreEventWhen callback only when event is a hotkey match', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+  const Component = ({ cb, ignoreEventWhen }: {
+    cb: HotkeyCallback;
+    ignoreEventWhen?: (e: KeyboardEvent) => boolean
+  }) => {
+    useHotkeys<HTMLDivElement>('a', cb, { ignoreEventWhen })
+
+    return <button className='ignore' data-testid={'test-button'} />
+  }
+
+  const { getByTestId } = render(<Component cb={vi.fn()} ignoreEventWhen={callback} />)
+
+  await user.keyboard('X')
+
+  expect(callback).not.toHaveBeenCalled()
+
+  await user.click(getByTestId('test-button'))
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('enabledOnTags should accept boolean', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+  const Component = ({ cb, enableOnFormTags }: { cb: HotkeyCallback; enableOnFormTags?: FormTags[] | boolean }) => {
+    useHotkeys<HTMLDivElement>('a', cb, { enableOnFormTags })
+
+    return <input type={'text'} data-testid={'form-tag'} />
+  }
+
+  const { getByTestId } = render(<Component cb={callback} enableOnFormTags />)
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  await user.click(getByTestId('form-tag'))
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+  expect(getByTestId('form-tag')).toHaveValue('A')
+})
+
+test('should prevent pressed down key propagate to input field when preventDefault is set to true and form tag is enabled', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+  const Component = ({ cb, enableOnFormTags }: { cb: HotkeyCallback; enableOnFormTags?: FormTags[] }) => {
+    useHotkeys<HTMLDivElement>('a', cb, { enableOnFormTags, preventDefault: true })
+
+    return <input type={'text'} data-testid={'form-tag'} />
+  }
+
+  const { getByTestId } = render(<Component cb={callback} enableOnFormTags={['INPUT']} />)
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  await user.click(getByTestId('form-tag'))
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+  expect(getByTestId('form-tag')).toHaveValue('')
+})
+
+test('should be disabled on all other tags by default', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+  const Component = ({ cb, enableOnFormTags }: { cb: HotkeyCallback; enableOnFormTags?: FormTags[] }) => {
+    useHotkeys<HTMLDivElement>('a', cb, { enableOnFormTags })
+
+    return (
+      <>
+        <input type={'text'} data-testid={'form-tag'} />
+        <textarea />
+      </>
+    )
+  }
+
+  const { getByTestId } = render(<Component cb={callback} enableOnFormTags={['TEXTAREA']} />)
+
+  await user.click(getByTestId('form-tag'))
+  await user.keyboard('A')
+
+  expect(callback).not.toHaveBeenCalled()
+  expect(getByTestId('form-tag')).toHaveValue('A')
+})
+
+test('should not bind the event if enabled is set to false', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('a', callback, { enabled: false }))
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(0)
+})
+
+test('should bind the event and trigger if enabled is set to true', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('a', callback, { enabled: true }))
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('should bind the event and execute the callback if enabled is set to a function and returns true', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  const { rerender } = renderHook<void, HookParameters>(({ keys, options }) => useHotkeys(keys, callback, options), {
+    initialProps: {
+      keys: 'a',
+      options: {
+        enabled: () => true,
+      },
+    },
+  })
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  rerender({
+    keys: 'a',
+    options: {
+      enabled: () => false,
+    },
+  })
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  rerender({
+    keys: 'a',
+    options: {
+      enabled: () => true,
+    },
+  })
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+})
+
+test('should return a ref', async () => {
+  const callback = vi.fn()
+
+  const { result } = renderHook(() => useHotkeys('a', callback))
+
+  expect(result.current).toBeDefined()
+})
+
+test('should only trigger when the element is focused if a ref is set', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  const Component = ({ cb }: { cb: HotkeyCallback }) => {
+    const ref = useHotkeys<HTMLDivElement>('a', cb)
+
+    return (
+      <div ref={ref} tabIndex={0} data-testid={'div'}>
+        <input type={'text'} />
+      </div>
+    )
+  }
+
+  const { getByTestId } = render(<Component cb={callback} />)
+
+  await user.keyboard('A')
+
+  expect(callback).not.toHaveBeenCalled()
+
+  await user.click(getByTestId('div'))
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test.skip('should preventDefault and stop propagation when ref is not focused', async () => {
+  const callback = vi.fn()
+
+  const Component = ({ cb }: { cb: HotkeyCallback }) => {
+    const ref = useHotkeys<HTMLDivElement>('a', cb)
+
+    return (
+      <div tabIndex={-1} data-testid={'div'}>
+        <div ref={ref} tabIndex={-1} data-testid={'ref'}>
+          <span>Example text</span>
+        </div>
+      </div>
+    )
+  }
+
+  render(<Component cb={vi.fn()} />)
+
+  await userEvent.click(screen.getByTestId('div'))
+
+  await userEvent.keyboard('A')
+
+  expect(callback).not.toHaveBeenCalled()
+
+  await userEvent.click(screen.getByTestId('ref'))
+
+  await userEvent.keyboard('A')
+
+  expect(callback).toHaveBeenCalled()
+})
+
+test('should allow * as a wildcard', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('*', callback))
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('should listen to function keys f1-f16', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('f1, f16', callback))
+
+  await user.keyboard('[F1]')
+  await user.keyboard('[F16]')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+})
+
+test.each([
+  'arrowUp',
+  'arrowDown',
+  'arrowLeft',
+  'arrowRight',
+  'space',
+  'enter',
+  'backspace',
+])('should allow named key %s', async (key) => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys(key, callback))
+
+  await user.keyboard(key === 'space' ? '[Space]' : `{${key}}`)
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test.skip('should trigger when used in portals', async () => {
+})
+
+test('should parse options and dependencies correctly no matter their position', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('a', callback, [true], { enabled: true }))
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  renderHook(() => useHotkeys('b', callback, { enabled: true }, [true]))
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+
+  renderHook(() => useHotkeys('c', callback, [true], { enabled: false }))
+
+  await user.keyboard('C')
+
+  renderHook(() => useHotkeys('d', callback, { enabled: false }, [true]))
+
+  await user.keyboard('D')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+})
+
+test('should pass keyboard event and hotkey object to callback', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('a', callback))
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+  expect(callback).toHaveBeenCalledWith(expect.any(KeyboardEvent), {
+    keys: ['a'],
+    shift: false,
+    ctrl: false,
+    alt: false,
+    meta: false,
+    mod: false,
+    useKey: false,
+    isSequence: false,
+    hotkey: 'a',
+  })
+})
+
+test('should set shift to true in hotkey object if listening to shift', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('shift+a', callback))
+
+  await user.keyboard('{Shift>}A{/Shift}')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+  expect(callback).toHaveBeenCalledWith(expect.any(KeyboardEvent), {
+    keys: ['a'],
+    shift: true,
+    ctrl: false,
+    alt: false,
+    meta: false,
+    mod: false,
+    useKey: false,
+    isSequence: false,
+    hotkey: 'shift+a',
+  })
+})
+
+test('should set ctrl to true in hotkey object if listening to ctrl', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('ctrl+a', callback))
+
+  await user.keyboard('{Control>}A{/Control}')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+  expect(callback).toHaveBeenCalledWith(expect.any(KeyboardEvent), {
+    keys: ['a'],
+    shift: false,
+    ctrl: true,
+    alt: false,
+    meta: false,
+    mod: false,
+    useKey: false,
+    isSequence: false,
+    hotkey: 'ctrl+a',
+  })
+})
+
+test('should set alt to true in hotkey object if listening to alt', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('alt+a', callback))
+
+  await user.keyboard('{Alt>}A{/Alt}')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+  expect(callback).toHaveBeenCalledWith(expect.any(KeyboardEvent), {
+    keys: ['a'],
+    shift: false,
+    ctrl: false,
+    alt: true,
+    meta: false,
+    mod: false,
+    useKey: false,
+    isSequence: false,
+    hotkey: 'alt+a',
+  })
+})
+
+test('should set mod to true in hotkey object if listening to mod', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('mod+a', callback))
+
+  await user.keyboard('{Meta>}A{/Meta}')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+  expect(callback).toHaveBeenCalledWith(expect.any(KeyboardEvent), {
+    keys: ['a'],
+    shift: false,
+    ctrl: false,
+    alt: false,
+    meta: false,
+    mod: true,
+    useKey: false,
+    isSequence: false,
+    hotkey: 'mod+a',
+  })
+})
+
+test('should set meta to true in hotkey object if listening to meta', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('meta+a', callback))
+
+  await user.keyboard('{Meta>}A{/Meta}')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+  expect(callback).toHaveBeenCalledWith(expect.any(KeyboardEvent), {
+    keys: ['a'],
+    shift: false,
+    ctrl: false,
+    alt: false,
+    meta: true,
+    mod: false,
+    useKey: false,
+    isSequence: false,
+    hotkey: 'meta+a',
+  })
+})
+
+test('should set multiple modifiers to true in hotkey object if listening to multiple modifiers', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('mod+shift+a', callback))
+
+  await user.keyboard('{Meta>}{Shift>}A{/Shift}{/Meta}')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+  expect(callback).toHaveBeenCalledWith(expect.any(KeyboardEvent), {
+    keys: ['a'],
+    shift: true,
+    alt: false,
+    ctrl: false,
+    meta: false,
+    mod: true,
+    useKey: false,
+    isSequence: false,
+    hotkey: 'mod+shift+a',
+  })
+})
+
+test('should stop propagation when enabled function resolves to false', async () => {
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('a', callback, { enabled: () => false }))
+
+  const keyDownEvent = createEvent.keyDown(document, {
+    key: 'A',
+    code: 'KeyA',
+  })
+
+  fireEvent(document, keyDownEvent)
+
+  expect(keyDownEvent.defaultPrevented).toBe(true)
+})
+
+test('should reflect preventDefault option when set', async () => {
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('a', callback, { preventDefault: true }))
+
+  const keyDownEvent = createEvent.keyDown(document, {
+    key: 'A',
+    code: 'KeyA',
+  })
+
+  fireEvent(document, keyDownEvent)
+
+  expect(callback).toHaveBeenCalledTimes(1)
+  expect(keyDownEvent.defaultPrevented).toBe(true)
+})
+
+test('should not prevent default behavior when preventDefault option is not set', async () => {
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('a', callback))
+
+  const keyDownEvent = createEvent.keyDown(document, {
+    key: 'A',
+    code: 'KeyA',
+  })
+
+  fireEvent(document, keyDownEvent)
+
+  expect(callback).toHaveBeenCalledTimes(1)
+  expect(keyDownEvent.defaultPrevented).toBe(false)
+})
+
+test('should prevent default behavior if preventDefault option is set to a function that returns true', async () => {
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('a', callback, { preventDefault: () => true }))
+
+  const keyDownEvent = createEvent.keyDown(document, {
+    key: 'A',
+    code: 'KeyA',
+  })
+
+  fireEvent(document, keyDownEvent)
+
+  expect(callback).toHaveBeenCalledTimes(1)
+  expect(keyDownEvent.defaultPrevented).toBe(true)
+})
+
+test('should not prevent default behavior if preventDefault option is set to a function that returns false', async () => {
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('a', callback, { preventDefault: () => false }))
+
+  const keyDownEvent = createEvent.keyDown(document, {
+    key: 'A',
+    code: 'KeyA',
+  })
+
+  fireEvent(document, keyDownEvent)
+
+  expect(callback).toHaveBeenCalledTimes(1)
+  expect(keyDownEvent.defaultPrevented).toBe(false)
+})
+
+test('should call preventDefault option function with hotkey and keyboard event', async () => {
+  const user = userEvent.setup()
+  const preventDefault = vi.fn()
+
+  renderHook(() => useHotkeys('a', async () => {
+  }, { preventDefault }))
+
+  await user.keyboard('A')
+
+  expect(preventDefault).toHaveBeenCalledTimes(1)
+  expect(preventDefault).toHaveBeenCalledWith(expect.any(KeyboardEvent), {
+    keys: ['a'],
+    shift: false,
+    alt: false,
+    ctrl: false,
+    meta: false,
+    mod: false,
+    useKey: false,
+    isSequence: false,
+    hotkey: 'a',
+  })
+})
+
+test('Should listen to space key', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('space', callback))
+
+  await user.keyboard(' ')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test.each([
+  ['esc', 'Escape'],
+  ['return', 'Enter'],
+  ['left', 'ArrowLeft'],
+  ['up', 'ArrowUp'],
+  ['right', 'ArrowRight'],
+  ['down', 'ArrowDown'],
+])('Should map key %s to %s', async (hotkey, keyboardKey) => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys(hotkey, callback))
+
+  await user.keyboard(`{${keyboardKey}}`)
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test.each(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'])(`Should listen to number key %s`, async (key) => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys(`shift+${key}`, callback))
+
+  await user.keyboard(`{Shift>}${key}{/Shift}`)
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('should not call callback if meta is held down but other key is not present in combination is pressed', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys(`meta+z`, callback))
+
+  await user.keyboard(`{Meta>}Z`)
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  await user.keyboard('Z')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+
+  await user.keyboard('F{/Meta}')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+})
+
+test('should listen to keydown permanently', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('A', callback, { keyup: true, keydown: true }))
+
+  await user.keyboard('{A}')
+  await user.keyboard('{A}')
+
+  expect(callback).toHaveBeenCalledTimes(4)
+})
+
+test('Should test for modifiers by default', async () => {
+  const user = userEvent.setup()
+
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('shift+d', callback))
+
+  await user.keyboard('{Shift>}d{/Shift}')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  await user.keyboard('d')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('Should ignore modifiers if option is set', async () => {
+  const user = userEvent.setup()
+
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('d', callback, { ignoreModifiers: true }))
+
+  await user.keyboard('{Shift>}d{/Shift}')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  await user.keyboard('d')
+
+  expect(callback).toHaveBeenCalledTimes(2)
+})
+
+
+test('should respect dependencies array if they are passed', async () => {
+  function Fixture() {
+    const [count, setCount] = useState(0)
+
+    const incrementCount = useCallback(() => {
+      setCount(count + 1)
+    }, [count])
+
+    useHotkeys('esc', incrementCount, [])
+
+    return <div>{count}</div>
+  }
+
+  const user = userEvent.setup()
+
+  const { getByText } = render(<Fixture />)
+
+  expect(getByText('0')).not.toBeNull()
+
+  await user.keyboard('{Escape}')
+  await user.keyboard('{Escape}')
+
+  expect(getByText('1')).not.toBeNull()
+})
+
+test('should use updated callback if no dependencies are passed', async () => {
+  function Fixture() {
+    const [count, setCount] = useState(0)
+
+    const incrementCount = useCallback(() => {
+      setCount(count + 1)
+    }, [count])
+
+    useHotkeys('esc', incrementCount)
+
+    return <div>{count}</div>
+  }
+
+  const user = userEvent.setup()
+
+  const { getByText } = render(<Fixture />)
+
+  expect(getByText('0')).not.toBeNull()
+
+  await user.keyboard('{Escape}')
+  await user.keyboard('{Escape}')
+
+  expect(getByText('2')).not.toBeNull()
+})
+
+test('Should trigger only callback for combination', async () => {
+  const user = userEvent.setup()
+
+  const combinationsCallback = vi.fn()
+  const keysCallback = vi.fn()
+
+  const handleHotkey: HotkeyCallback = (_, hotkeysEvent) => {
+    const { meta, keys } = hotkeysEvent
+    if (meta && keys && keys[0] === 'z') {
+      combinationsCallback()
+    } else if (!meta && keys && keys[0] === 'z') {
+      keysCallback()
+    }
+  }
+
+  renderHook(() => useHotkeys([`meta+z`, `z`], handleHotkey))
+
+  await user.keyboard(`{Meta>}Z`)
+
+  expect(combinationsCallback).toHaveBeenCalledTimes(1)
+  expect(keysCallback).toHaveBeenCalledTimes(0)
+})
+
+test.each(['Shift', 'Alt', 'Meta', 'Ctrl', 'Control'])('Should listen to %s on keyup', async (key) => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys(key, callback, { keyup: true }))
+
+  await user.keyboard(`{${key === 'Ctrl' ? 'Control' : key}}`)
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('Should listen to produced key and not to code', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys('!', callback))
+
+  await user.keyboard(`{Shift>}{!}{/Shift}`)
+
+  expect(callback).toHaveBeenCalledTimes(0)
+
+  renderHook(() => useHotkeys('shift+1', callback))
+
+  await user.keyboard(`{Shift>}{1}{/Shift}`)
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('Should not check produced key if useKey is not set', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys(`=`, callback))
+
+  await user.keyboard(`=`)
+
+  expect(callback).toHaveBeenCalledTimes(0)
+})
+
+test('Should check produced key if useKey is true', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  renderHook(() => useHotkeys(`=`, callback, { useKey: true }))
+
+  await user.keyboard(`=`)
+
+  expect(callback).toHaveBeenCalledTimes(1)
+})
+
+test('Should remove listener on AbortSignal', async () => {
+  const abortController = new AbortController()
+  const { signal } = abortController
+
+  function Fixture() {
+    const [count, setCount] = useState(0)
+
+    const incrementCount = useCallback(() => {
+      setCount(count + 1)
+    }, [count])
+
+    useHotkeys('esc', incrementCount, { eventListenerOptions: { signal } })
+
+    return <div>{count}</div>
+  }
+
+  const user = userEvent.setup()
+
+  const { getByText } = render(<Fixture />)
+
+  expect(getByText('0')).not.toBeNull()
+
+  await user.keyboard('{Escape}')
+  await user.keyboard('{Escape}')
+  abortController.abort()
+  await user.keyboard('{Escape}')
+
+  expect(getByText('2')).not.toBeNull()
+})
+
+test('should be disabled on form tags inside custom elements by default', async () => {
+  const user = userEvent.setup()
+  const callback = vi.fn()
+
+  customElements.define(
+    "custom-input",
+    class extends HTMLElement {
+      constructor() {
+        super();
+
+        const inputEle = document.createElement("input");
+        inputEle.setAttribute("type", "text");
+        inputEle.setAttribute("data-testid", "input");
+
+        const shadowRoot = this.attachShadow({
+          mode: "open"
+        });
+
+        shadowRoot.appendChild(inputEle);
+      }
+    },
+  );
+
+  const Component = ({ cb }: { cb: HotkeyCallback }) => {
+    useHotkeys<HTMLDivElement>('a', cb)
+
+    return <custom-input data-testid={'form-tag'}/>
+  }
+
+  const { getByTestId } = render(<Component cb={callback} />)
+
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+
+  await user.click(within(getByTestId('form-tag').shadowRoot).getByTestId('input'))
+  await user.keyboard('A')
+
+  expect(callback).toHaveBeenCalledTimes(1)
+  expect(within(getByTestId('form-tag').shadowRoot).getByTestId('input')).toHaveValue('A')
+})
+
+test('Should trigger only produced key hotkeys', async () => {
+  const user = userEvent.setup()
+
+  const callbackZ = vi.fn()
+  const callbackY = vi.fn()
+
+  renderHook(() => useHotkeys(['z'], callbackZ, {useKey: true}))
+  renderHook(() => useHotkeys(['y'], callbackY, {useKey: true}))
+
+  await user.keyboard('Z')
+  expect(callbackZ).toHaveBeenCalledTimes(1)
+  expect(callbackY).toHaveBeenCalledTimes(0)
+
+  await user.keyboard('Y')
+  expect(callbackZ).toHaveBeenCalledTimes(1)
+  expect(callbackY).toHaveBeenCalledTimes(1)
+
+  await user.keyboard('W')
+
+  expect(callbackZ).toHaveBeenCalledTimes(1)
+  expect(callbackY).toHaveBeenCalledTimes(1)
+
+  await user.keyboard('Y')
+  expect(callbackZ).toHaveBeenCalledTimes(1)
+  expect(callbackY).toHaveBeenCalledTimes(2)
+})
+</file>
+
+<file path="packages/react-hotkeys-hook/src/test/useHotkeysContext.test.tsx">
+import { renderHook } from '@testing-library/react'
+import { HotkeysProvider, useHotkeysContext, useHotkeys } from '../lib'
+import type { ReactNode } from 'react'
+import { test, expect } from 'vitest'
+
+test('should return hotkey with correct keys', () => {
+  const useIntegratedHotkeys = () => {
+    useHotkeys('ctrl+a', () => null)
+
+    return useHotkeysContext()
+  }
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <HotkeysProvider>{children}</HotkeysProvider>
+  )
+
+  const { result } = renderHook(useIntegratedHotkeys, {
+    wrapper,
+  })
+
+  expect(result.current.hotkeys).toHaveLength(1)
+  expect(result.current.hotkeys[0].hotkey).toEqual('ctrl+a')
+})
+
+test('should return hotkey with correct scope', () => {
+  const useIntegratedHotkeys = () => {
+    useHotkeys('ctrl+b', () => null, { scopes: ['scope'] })
+
+    return useHotkeysContext()
+  }
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <HotkeysProvider initiallyActiveScopes={['scope']}>{children}</HotkeysProvider>
+  )
+
+  const { result } = renderHook(useIntegratedHotkeys, {
+    wrapper,
+  })
+
+  expect(result.current.hotkeys).toHaveLength(1)
+  expect(result.current.hotkeys[0].hotkey).toEqual('ctrl+b')
+})
+
+test('should not return hotkey with different scope', () => {
+  const useIntegratedHotkeys = () => {
+    useHotkeys('ctrl+b', () => null, { scopes: ['differentScope'] })
+
+    return useHotkeysContext()
+  }
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <HotkeysProvider initiallyActiveScopes={['scope']}>{children}</HotkeysProvider>
+  )
+
+  const { result } = renderHook(useIntegratedHotkeys, {
+    wrapper,
+  })
+
+  console.log(result.current.hotkeys)
+  expect(result.current.hotkeys).toHaveLength(0)
+})
+
+test('should return hotkey with correct description and metadata', () => {
+  const useIntegratedHotkeys = () => {
+    useHotkeys('ctrl+c', () => null, {
+      description: 'Copy text',
+      metadata: { category: 'editing', priority: 'high' }
+    })
+
+    return useHotkeysContext()
+  }
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <HotkeysProvider>{children}</HotkeysProvider>
+  )
+
+  const { result } = renderHook(useIntegratedHotkeys, {
+    wrapper,
+  })
+
+  expect(result.current.hotkeys).toHaveLength(1)
+  expect(result.current.hotkeys[0].hotkey).toEqual('ctrl+c')
+  expect(result.current.hotkeys[0].description).toEqual('Copy text')
+  expect(result.current.hotkeys[0].metadata).toEqual({ category: 'editing', priority: 'high' })
+})
+</file>
+
+<file path="packages/react-hotkeys-hook/src/test/useRecordHotkeys.test.tsx">
+import { act, renderHook } from '@testing-library/react'
+import useRecordHotkeys from '../lib/useRecordHotkeys'
+import userEvent from '@testing-library/user-event'
+import {test, expect} from 'vitest'
+
+test('Should set record flag to true if recording is in progress', () => {
+  const { result } = renderHook(useRecordHotkeys)
+
+  expect(result.current[1].isRecording).toBe(false)
+
+  act(() => {
+    result.current[1].start()
+  })
+
+  expect(result.current[1].isRecording).toBe(true)
+
+  act(() => {
+    result.current[1].stop()
+  })
+
+  expect(result.current[1].isRecording).toBe(false)
+})
+
+test('Should record keys', async () => {
+  const user = userEvent.setup()
+  const { result } = renderHook(useRecordHotkeys)
+
+  act(() => {
+    result.current[1].start()
+  })
+
+  await act(async () => {
+    await user.keyboard('a')
+    await user.keyboard('b')
+    await user.keyboard('c')
+  })
+
+  act(() => {
+    result.current[1].stop()
+  })
+
+  expect(result.current[0]).toEqual(new Set(['a', 'b', 'c']))
+})
+
+test('Should record modifiers', async () => {
+  const user = userEvent.setup()
+  const { result } = renderHook(useRecordHotkeys)
+
+  act(() => {
+    result.current[1].start()
+  })
+
+  await act(async () => {
+    await user.keyboard('{Shift}a')
+  })
+
+  act(() => {
+    result.current[1].stop()
+  })
+
+  expect(result.current[0]).toEqual(new Set(['shift', 'a']))
+})
+
+test('Should record multiple keys only once', async () => {
+  const user = userEvent.setup()
+  const { result } = renderHook(useRecordHotkeys)
+
+  act(() => {
+    result.current[1].start()
+  })
+
+  await act(async () => {
+    await user.keyboard('a')
+    await user.keyboard('a')
+  })
+
+  act(() => {
+    result.current[1].stop()
+  })
+
+  expect(result.current[0]).toEqual(new Set(['a']))
+})
+
+test('Should not record keys if recording is not in progress', async () => {
+  const user = userEvent.setup()
+  const { result } = renderHook(useRecordHotkeys)
+
+  await act(async () => {
+    await user.keyboard('a')
+  })
+
+  expect(result.current[0]).toEqual(new Set())
+})
+
+test('Should reset keys if recording is restarted', async () => {
+  const user = userEvent.setup()
+  const { result } = renderHook(useRecordHotkeys)
+
+  act(() => {
+    result.current[1].start()
+  })
+
+  await act(async () => {
+    await user.keyboard('a')
+  })
+
+  act(() => {
+    result.current[1].stop()
+  })
+
+  act(() => {
+    result.current[1].start()
+  })
+
+  expect(result.current[0]).toEqual(new Set())
+})
+
+test('Should stop recording if recording is in progress and stop is called', async () => {
+  const user = userEvent.setup()
+  const { result } = renderHook(useRecordHotkeys)
+
+  act(() => {
+    result.current[1].start()
+  })
+
+  await act(async () => {
+    await user.keyboard('a')
+  })
+
+  act(() => {
+    result.current[1].stop()
+  })
+
+  await act(async () => {
+    await user.keyboard('b')
+  })
+
+  expect(result.current[0]).toEqual(new Set(['a']))
+})
+
+test('Should record steps, no matter the produced key', async () => {
+  const user = userEvent.setup()
+  const { result } = renderHook(useRecordHotkeys)
+
+  act(() => {
+    result.current[1].start()
+  })
+
+  await act(async () => {
+    await user.keyboard('{Shift>}1')
+  })
+
+  act(() => {
+    result.current[1].stop()
+  })
+
+  expect(result.current[0]).toEqual(new Set(['shift', '1']))
+})
+</file>
+
+<file path="packages/react-hotkeys-hook/src/vite-env.d.ts">
+/// <reference types="vite/client" />
+</file>
+
+</files>

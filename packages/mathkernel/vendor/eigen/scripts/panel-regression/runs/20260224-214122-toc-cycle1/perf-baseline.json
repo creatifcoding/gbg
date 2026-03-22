@@ -1,0 +1,57 @@
+{
+  "kind": "toc-cycle1-baseline",
+  "capturedAt": "2026-02-25T02:41:23.015Z",
+  "config": {
+    "url": "http://localhost:1420/window?testbed=floating",
+    "warmupMs": 1000,
+    "sampleMs": 8000,
+    "replicates": 1,
+    "runtime": "bun",
+    "browser": "playwright/chromium"
+  },
+  "summary": {
+    "p50": 16.69999999999891,
+    "p95": 33.29999999999927,
+    "p99": 50,
+    "mean": 18.01438202247191,
+    "samples": 445
+  },
+  "replicates": [
+    {
+      "replicate": 1,
+      "frameStats": {
+        "p50": 16.69999999999891,
+        "p95": 33.29999999999927,
+        "p99": 50,
+        "mean": 18.01438202247191,
+        "samples": 445
+      },
+      "latencies": [
+        {
+          "name": "spawn-chat",
+          "ms": 352.1745340000007,
+          "ok": true,
+          "detail": "+ Chat (Live)"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 2388.1505879999995,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for assistant response"
+        },
+        {
+          "name": "split-hotkey",
+          "ms": 5159.100898000001,
+          "ok": false,
+          "detail": "tiled 0 -> no-change"
+        }
+      ],
+      "notes": [
+        "prompt-1 roundtrip timed out",
+        "split did not increase tiled count"
+      ],
+      "frameDeltaCount": 445
+    }
+  ],
+  "consoleErrors": []
+}

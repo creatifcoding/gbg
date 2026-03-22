@@ -1,0 +1,284 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Alarm": {
+      "type": "object",
+      "required": [
+        "alarm_id",
+        "device_id",
+        "asset_id",
+        "severity",
+        "state",
+        "message",
+        "triggered_at",
+        "acknowledged_at",
+        "acknowledged_by",
+        "cleared_at",
+        "shelved_until",
+        "suppression_reason"
+      ],
+      "properties": {
+        "alarm_id": {
+          "$ref": "#/definitions/AlarmId"
+        },
+        "device_id": {
+          "type": "string"
+        },
+        "asset_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "severity": {
+          "$ref": "#/definitions/AlarmSeverity"
+        },
+        "state": {
+          "$ref": "#/definitions/AlarmState"
+        },
+        "message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "triggered_at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "acknowledged_at": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "description": "ISO8601 UTC or offset timestamp string.",
+              "title": "ISO8601 Timestamp",
+              "format": "date-time"
+            }
+          ],
+          "description": "Timestamp value or null.",
+          "title": "Nullable Timestamp"
+        },
+        "acknowledged_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cleared_at": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "description": "ISO8601 UTC or offset timestamp string.",
+              "title": "ISO8601 Timestamp",
+              "format": "date-time"
+            }
+          ],
+          "description": "Timestamp value or null.",
+          "title": "Nullable Timestamp"
+        },
+        "shelved_until": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "description": "ISO8601 UTC or offset timestamp string.",
+              "title": "ISO8601 Timestamp",
+              "format": "date-time"
+            }
+          ],
+          "description": "Timestamp value or null.",
+          "title": "Nullable Timestamp"
+        },
+        "suppression_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Canonical alarm state payload generated from Effect Schema and consumed by Elixir runtime validators.",
+      "title": "Alarm"
+    },
+    "AlarmId": {
+      "type": "string",
+      "description": "Slug-prefixed UUID (e.g. ALM-HIGH-TEMP-550e8400-e29b-41d4-a716-446655440000).",
+      "title": "Alarm ID",
+      "pattern": "^[A-Z][A-Z0-9_-]*-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "AlarmSeverity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "critical",
+        "emergency"
+      ],
+      "description": "ISA-18.2 severity classes.",
+      "title": "Alarm Severity"
+    },
+    "AlarmState": {
+      "type": "string",
+      "enum": [
+        "unacknowledged",
+        "acknowledged",
+        "shelved",
+        "suppressed",
+        "cleared",
+        "out_of_service"
+      ],
+      "description": "ISA-18.2 alarm lifecycle states.",
+      "title": "Alarm State"
+    }
+  },
+  "type": "object",
+  "required": [
+    "alarm_id",
+    "device_id",
+    "asset_id",
+    "severity",
+    "state",
+    "message",
+    "triggered_at",
+    "acknowledged_at",
+    "acknowledged_by",
+    "cleared_at",
+    "shelved_until",
+    "suppression_reason"
+  ],
+  "properties": {
+    "alarm_id": {
+      "$ref": "#/definitions/AlarmId"
+    },
+    "device_id": {
+      "type": "string"
+    },
+    "asset_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "severity": {
+      "$ref": "#/definitions/AlarmSeverity"
+    },
+    "state": {
+      "$ref": "#/definitions/AlarmState"
+    },
+    "message": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "triggered_at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "acknowledged_at": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        }
+      ],
+      "description": "Timestamp value or null.",
+      "title": "Nullable Timestamp"
+    },
+    "acknowledged_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "cleared_at": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        }
+      ],
+      "description": "Timestamp value or null.",
+      "title": "Nullable Timestamp"
+    },
+    "shelved_until": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        }
+      ],
+      "description": "Timestamp value or null.",
+      "title": "Nullable Timestamp"
+    },
+    "suppression_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/alarm/ts/alarm.contract.ts). Canonical alarm payload contract for TypeScript and Elixir.",
+  "title": "Alarm",
+  "$id": "/contracts/alarm/alarm.schema.json"
+}

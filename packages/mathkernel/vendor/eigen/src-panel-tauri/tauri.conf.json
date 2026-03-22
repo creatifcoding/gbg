@@ -1,0 +1,45 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicoverbruggen/tauri-vs-code/main/schemas/tauri-v2.json",
+  "productName": "tmnl-panel",
+  "version": "0.1.0",
+  "identifier": "com.gbg.tmnl-panel",
+  "build": {
+    "frontendDist": "../dist-panel",
+    "devUrl": "http://localhost:1422",
+    "beforeDevCommand": "",
+    "beforeBuildCommand": ""
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "panel",
+        "title": "TMNL Panel",
+        "width": 800,
+        "height": 600,
+        "decorations": false,
+        "transparent": true,
+        "resizable": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "../src-tauri/icons/32x32.png",
+      "../src-tauri/icons/128x128.png",
+      "../src-tauri/icons/128x128@2x.png",
+      "../src-tauri/icons/icon.icns",
+      "../src-tauri/icons/icon.ico"
+    ]
+  },
+  "plugins": {
+    "log": {
+      "level": "info"
+    }
+  }
+}

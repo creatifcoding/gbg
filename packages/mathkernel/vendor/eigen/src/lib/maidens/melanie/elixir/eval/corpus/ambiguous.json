@@ -1,0 +1,92 @@
+[
+  {
+    "id": "am-001",
+    "query": "Tell me about the architecture",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "am-002",
+    "query": "What happened recently?",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "am-003",
+    "query": "Is there anything interesting about agents?",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {"semantic_search": ["contains_keyword:agent"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "am-004",
+    "query": "What should I know?",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "am-005",
+    "query": "Connections",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {},
+      "should_not_call": ["find_connections"]
+    }
+  },
+  {
+    "id": "am-006",
+    "query": "How's everything going?",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "am-007",
+    "query": "The thing we discussed about patterns",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {"semantic_search": ["contains_keyword:pattern"]},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "am-008",
+    "query": "Summarize",
+    "gold": {
+      "tool_sequence": ["semantic_search", "summarize"],
+      "param_shapes": {},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "am-009",
+    "query": "Find something related to that note from Tuesday",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {},
+      "should_not_call": []
+    }
+  },
+  {
+    "id": "am-010",
+    "query": "More details on what you found",
+    "gold": {
+      "tool_sequence": ["semantic_search"],
+      "param_shapes": {},
+      "should_not_call": []
+    }
+  }
+]

@@ -1,0 +1,628 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Device": {
+      "type": "object",
+      "required": [
+        "device_id",
+        "name",
+        "status",
+        "device_type",
+        "control_mode",
+        "rated_power",
+        "power_unit",
+        "last_command_at",
+        "opc_ua_node_id",
+        "description",
+        "location",
+        "metadata",
+        "hierarchy_path",
+        "enterprise_id",
+        "site_id",
+        "area_id",
+        "plant_id",
+        "line_id",
+        "work_cell_id",
+        "machine_id",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "device_id": {
+          "$ref": "#/definitions/DeviceId"
+        },
+        "name": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "status": {
+          "$ref": "#/definitions/DeviceStatus"
+        },
+        "device_type": {
+          "$ref": "#/definitions/DeviceType"
+        },
+        "control_mode": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DeviceControlMode"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rated_power": {
+          "anyOf": [
+            {
+              "type": "number",
+              "description": "a positive number",
+              "title": "positive",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "power_unit": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DevicePowerUnit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_command_at": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "description": "ISO8601 UTC or offset timestamp string.",
+              "title": "ISO8601 Timestamp",
+              "format": "date-time"
+            }
+          ],
+          "description": "Timestamp value or null.",
+          "title": "Nullable Timestamp"
+        },
+        "opc_ua_node_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DeviceLocation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "metadata": {
+          "$ref": "#/definitions/DeviceMetadata"
+        },
+        "hierarchy_path": {
+          "type": "string"
+        },
+        "enterprise_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "site_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "area_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "plant_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "line_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "work_cell_id": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/WorkCellId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "machine_id": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/MachineId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "description": "ISO8601 UTC or offset timestamp string.",
+              "title": "ISO8601 Timestamp",
+              "format": "date-time"
+            }
+          ],
+          "description": "Timestamp value or null.",
+          "title": "Nullable Timestamp"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Canonical device payload generated from Effect Schema and consumed by Elixir runtime validators.",
+      "title": "Device"
+    },
+    "DeviceId": {
+      "type": "string",
+      "description": "Device identifier in DEV-{slug} format.",
+      "title": "Device ID",
+      "pattern": "^DEV-[a-zA-Z0-9-]+$"
+    },
+    "NonEmptyString": {
+      "type": "string",
+      "description": "a non empty string",
+      "title": "nonEmptyString",
+      "minLength": 1
+    },
+    "DeviceStatus": {
+      "type": "string",
+      "enum": [
+        "provisioned",
+        "online",
+        "offline",
+        "faulted",
+        "firmware_update",
+        "decommissioned"
+      ],
+      "description": "ISA-95 control-module lifecycle status for device assets.",
+      "title": "Device Status"
+    },
+    "DeviceType": {
+      "type": "string",
+      "enum": [
+        "motor",
+        "valve",
+        "pump",
+        "heater",
+        "cooler",
+        "conveyor",
+        "actuator",
+        "servo",
+        "relay",
+        "vfd",
+        "solenoid",
+        "gripper",
+        "light",
+        "alarm",
+        "other"
+      ],
+      "description": "Industrial actuator category for ISA-95 level-0 devices.",
+      "title": "Device Type"
+    },
+    "DeviceControlMode": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "auto",
+        "remote",
+        "local"
+      ],
+      "description": "Operational authority mode for device command handling.",
+      "title": "Device Control Mode"
+    },
+    "DevicePowerUnit": {
+      "type": "string",
+      "enum": [
+        "watts",
+        "kilowatts",
+        "horsepower"
+      ],
+      "description": "Rated power unit for actuator assets.",
+      "title": "Device Power Unit"
+    },
+    "DeviceLocation": {
+      "type": "object",
+      "required": [
+        "latitude",
+        "longitude",
+        "building",
+        "floor",
+        "zone",
+        "address",
+        "timezone"
+      ],
+      "properties": {
+        "latitude": {
+          "anyOf": [
+            {
+              "type": "number",
+              "description": "a number between -90 and 90",
+              "title": "between(-90, 90)",
+              "minimum": -90,
+              "maximum": 90
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "longitude": {
+          "anyOf": [
+            {
+              "type": "number",
+              "description": "a number between -180 and 180",
+              "title": "between(-180, 180)",
+              "minimum": -180,
+              "maximum": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "building": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "floor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "zone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Physical location details for level-0 device assets.",
+      "title": "Device Location"
+    },
+    "DeviceMetadata": {
+      "type": "object",
+      "required": [],
+      "properties": {},
+      "additionalProperties": {
+        "$id": "/schemas/unknown",
+        "title": "unknown"
+      },
+      "description": "Extensible metadata map for device payloads.",
+      "title": "Device Metadata"
+    },
+    "WorkCellId": {
+      "type": "string",
+      "description": "WorkCell identifier in WCL-{slug} format.",
+      "title": "WorkCell ID",
+      "pattern": "^WCL-[a-zA-Z0-9-]+$"
+    },
+    "MachineId": {
+      "type": "string",
+      "description": "Machine identifier in MCH-{slug} format.",
+      "title": "Machine ID",
+      "pattern": "^MCH-[a-zA-Z0-9-]+$"
+    }
+  },
+  "type": "object",
+  "required": [
+    "device_id",
+    "name",
+    "status",
+    "device_type",
+    "control_mode",
+    "rated_power",
+    "power_unit",
+    "last_command_at",
+    "opc_ua_node_id",
+    "description",
+    "location",
+    "metadata",
+    "hierarchy_path",
+    "enterprise_id",
+    "site_id",
+    "area_id",
+    "plant_id",
+    "line_id",
+    "work_cell_id",
+    "machine_id",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "device_id": {
+      "$ref": "#/definitions/DeviceId"
+    },
+    "name": {
+      "$ref": "#/definitions/NonEmptyString"
+    },
+    "status": {
+      "$ref": "#/definitions/DeviceStatus"
+    },
+    "device_type": {
+      "$ref": "#/definitions/DeviceType"
+    },
+    "control_mode": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/DeviceControlMode"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "rated_power": {
+      "anyOf": [
+        {
+          "type": "number",
+          "description": "a positive number",
+          "title": "positive",
+          "exclusiveMinimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "power_unit": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/DevicePowerUnit"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "last_command_at": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        }
+      ],
+      "description": "Timestamp value or null.",
+      "title": "Nullable Timestamp"
+    },
+    "opc_ua_node_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "location": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/DeviceLocation"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "metadata": {
+      "$ref": "#/definitions/DeviceMetadata"
+    },
+    "hierarchy_path": {
+      "type": "string"
+    },
+    "enterprise_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "site_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "area_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "plant_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "line_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "work_cell_id": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/WorkCellId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "machine_id": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/MachineId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        }
+      ],
+      "description": "Timestamp value or null.",
+      "title": "Nullable Timestamp"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/device/ts/device.contract.ts). Canonical device payload contract for TypeScript and Elixir.",
+  "title": "Device",
+  "$id": "/contracts/device/device.schema.json"
+}

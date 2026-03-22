@@ -1,0 +1,14 @@
+stateDiagram-v2
+  provisioned --> online
+  online --> offline
+  online --> faulted
+  online --> firmware_update
+  offline --> online
+  offline --> faulted
+  offline --> firmware_update
+  offline --> decommissioned
+  faulted --> offline
+  faulted --> decommissioned
+  firmware_update --> online
+  firmware_update --> offline
+  state decommissioned

@@ -1,0 +1,18 @@
+{
+  "id": "view-001",
+  "name": "Line Throughput",
+  "description": "Demo fixture for contract validation",
+  "assemblage_id": "assembly-alpha",
+  "version": 1,
+  "channels": [
+    {
+      "id": "state",
+      "role": "STATE",
+      "source": {
+        "id": "mock-source",
+        "kind": "sql",
+        "connection": "sqlite::memory:"
+      }
+    }
+  ]
+}

@@ -1,0 +1,316 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Plant": {
+      "type": "object",
+      "required": [
+        "plant_id",
+        "name",
+        "status",
+        "timezone",
+        "site_code",
+        "description",
+        "location",
+        "metadata",
+        "hierarchy_path",
+        "enterprise_id",
+        "site_id",
+        "area_id",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "plant_id": {
+          "$ref": "#/definitions/PlantId"
+        },
+        "name": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "status": {
+          "$ref": "#/definitions/PlantStatus"
+        },
+        "timezone": {
+          "type": "string"
+        },
+        "site_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PlantLocation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "metadata": {
+          "$ref": "#/definitions/PlantMetadata"
+        },
+        "hierarchy_path": {
+          "type": "string"
+        },
+        "enterprise_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "site_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "area_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "description": "ISO8601 UTC or offset timestamp string.",
+              "title": "ISO8601 Timestamp",
+              "format": "date-time"
+            }
+          ],
+          "description": "Timestamp value or null.",
+          "title": "Nullable Timestamp"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Canonical ISA-95 plant payload (Site/Area scoped parent of Line) generated from Effect Schema and consumed by Elixir runtime validators.",
+      "title": "Plant"
+    },
+    "PlantId": {
+      "type": "string",
+      "description": "Plant identifier in PLT-{slug} format.",
+      "title": "Plant ID",
+      "pattern": "^PLT-[a-zA-Z0-9-]+$"
+    },
+    "NonEmptyString": {
+      "type": "string",
+      "description": "a non empty string",
+      "title": "nonEmptyString",
+      "minLength": 1
+    },
+    "PlantStatus": {
+      "type": "string",
+      "enum": [
+        "commissioning",
+        "operational",
+        "scheduled_shutdown",
+        "emergency_shutdown",
+        "maintenance_shutdown",
+        "decommissioned"
+      ],
+      "description": "ISA-95 plant lifecycle status.",
+      "title": "Plant Status"
+    },
+    "PlantLocation": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        },
+        "building": {
+          "type": "string"
+        },
+        "floor": {
+          "type": "string"
+        },
+        "zone": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "timezone": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Physical location details for a plant.",
+      "title": "Plant Location"
+    },
+    "PlantMetadata": {
+      "type": "object",
+      "required": [],
+      "properties": {},
+      "additionalProperties": {
+        "$id": "/schemas/unknown",
+        "title": "unknown"
+      },
+      "description": "Extensible metadata map for plant payloads.",
+      "title": "Plant Metadata"
+    }
+  },
+  "type": "object",
+  "required": [
+    "plant_id",
+    "name",
+    "status",
+    "timezone",
+    "site_code",
+    "description",
+    "location",
+    "metadata",
+    "hierarchy_path",
+    "enterprise_id",
+    "site_id",
+    "area_id",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "plant_id": {
+      "$ref": "#/definitions/PlantId"
+    },
+    "name": {
+      "$ref": "#/definitions/NonEmptyString"
+    },
+    "status": {
+      "$ref": "#/definitions/PlantStatus"
+    },
+    "timezone": {
+      "type": "string"
+    },
+    "site_code": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "location": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/PlantLocation"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "metadata": {
+      "$ref": "#/definitions/PlantMetadata"
+    },
+    "hierarchy_path": {
+      "type": "string"
+    },
+    "enterprise_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "site_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "area_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        }
+      ],
+      "description": "Timestamp value or null.",
+      "title": "Nullable Timestamp"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/plant/ts/plant.contract.ts). Canonical plant payload contract for TypeScript and Elixir.",
+  "title": "Plant",
+  "$id": "/contracts/plant/plant.schema.json"
+}

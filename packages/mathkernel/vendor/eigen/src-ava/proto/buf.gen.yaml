@@ -1,0 +1,31 @@
+version: v2
+plugins:
+  # Rust: prost for message types
+  - remote: buf.build/community/neoeinstein-prost:v0.3.1
+    out: ../ava-domain/src/gen
+    opt:
+      - compile_well_known_types
+      - extern_path=.google.protobuf=::pbjson_types
+
+  # Rust: prost-serde for JSON serialization
+  - remote: buf.build/community/neoeinstein-prost-serde:v0.3.1
+    out: ../ava-domain/src/gen
+
+  # Rust: tonic for gRPC service traits
+  - remote: buf.build/community/neoeinstein-tonic:v0.4.0
+    out: ../ava-domain/src/gen
+    opt:
+      - compile_well_known_types
+      - extern_path=.google.protobuf=::pbjson_types
+
+  # TypeScript: protobuf-es for message types
+  - remote: buf.build/bufbuild/es:v2.0.0
+    out: ../../src/lib/ava/gen
+    opt:
+      - target=ts
+
+  # TypeScript: connect-es for gRPC-Web clients
+  - remote: buf.build/connectrpc/es:v1.4.0
+    out: ../../src/lib/ava/gen
+    opt:
+      - target=ts

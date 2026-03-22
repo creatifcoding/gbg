@@ -1,0 +1,42 @@
+[package]
+name = "tmnl"
+version = "0.1.0"
+description = "TMNL - Terminal & Multi-Modal Navigation Layer"
+authors = ["you"]
+license = ""
+repository = ""
+edition = "2021"
+rust-version = "1.77.2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "tmnl_lib"
+# Desktop-only: rlib for binary + tests. cdylib/staticlib omitted (Android/iOS)
+# to avoid MinGW ordinal overflow on Windows cross-compile (127k+ exported symbols).
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.5.1", features = [] }
+
+[dependencies]
+serde_json = { workspace = true }
+serde = { workspace = true }
+log = { workspace = true }
+tauri = { version = "2.9.2", features = ["macos-private-api"] }
+tauri-plugin-opener = "2"
+tauri-plugin-log = "2"
+tauri-plugin-devtools = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2"
+
+# FileBrowser hashing
+sha2 = "0.10"
+md5 = "0.7"
+
+# FileBrowser ignore patterns (same crate ripgrep uses)
+ignore = "0.4"
+
+[dev-dependencies]
+tempfile = "3"
+url = "2"  # For URL parsing tests

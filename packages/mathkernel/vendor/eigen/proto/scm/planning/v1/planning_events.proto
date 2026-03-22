@@ -1,0 +1,27 @@
+syntax = "proto3";
+package scm.planning.v1;
+
+import "google/protobuf/timestamp.proto";
+import "scm/common/v1/common.proto";
+
+message ConstraintModelPublished { string model_id = 1; google.protobuf.Timestamp ts = 2; map<string,string> attrs = 3; }
+message ObjectiveWeightsUpdated { string model_id = 1; map<string,string> weights = 2; map<string,string> attrs = 3; }
+
+message PlanRunRequested { string run_id = 1; string model_id = 2; map<string,string> attrs = 3; }
+message PlanRunStarted { string run_id = 1; google.protobuf.Timestamp ts = 2; map<string,string> attrs = 3; }
+message PlanRunCompleted { string run_id = 1; string status = 2; google.protobuf.Timestamp ts = 3; map<string,string> attrs = 4; }
+message PlanCommitted { string plan_id = 1; string run_id = 2; map<string,string> attrs = 3; }
+message PlanRolledBack { string plan_id = 1; string reason = 2; map<string,string> attrs = 3; }
+
+message ExceptionDetected { string exception_id = 1; string kind = 2; scm.common.v1.Severity severity = 3; map<string,string> attrs = 4; }
+message ExceptionAcknowledged { string exception_id = 1; string actor = 2; map<string,string> attrs = 3; }
+
+message PosteriorUpdated { string subject_kind = 1; string subject_id = 2; string metric = 3; map<string,string> params = 4; map<string,string> attrs = 5; }
+message KRIThresholdBreached { string kri_id = 1; string scope_id = 2; scm.common.v1.Severity severity = 3; map<string,string> attrs = 4; }
+message KRIThresholdCleared { string kri_id = 1; string scope_id = 2; map<string,string> attrs = 3; }
+
+message TTRComputed { string scope_id = 1; uint64 ttr_days = 2; map<string,string> attrs = 3; }
+message TTSComputed { string scope_id = 1; uint64 tts_days = 2; map<string,string> attrs = 3; }
+
+message ShockScenarioInjected { string experiment_id = 1; string scenario = 2; map<string,string> attrs = 3; }
+message ShockScenarioResulted { string experiment_id = 1; string summary = 2; map<string,string> attrs = 3; }

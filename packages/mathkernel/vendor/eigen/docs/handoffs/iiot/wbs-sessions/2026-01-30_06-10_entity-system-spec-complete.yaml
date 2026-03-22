@@ -1,0 +1,97 @@
+---
+session: wbs-fact-system
+date: 2026-01-30
+status: complete
+outcome: PARTIAL_PLUS
+---
+
+goal: Entity System architecture spec complete via parallel agent synthesis
+now: Implement Task 1.1 Core Types (EntityContract, BaseAssetFields, HierarchyPath)
+test: npx tsc --noEmit
+
+done_this_session:
+  - task: Conceptual Alignment Protocol (3 rounds)
+    files: []
+    notes: Aligned on naming (Schema postfix), hierarchy (full path), events (3 divergent bases), storage (dual-store)
+
+  - task: Phase 1 - 5 parallel architect agents wrote individual specs
+    files:
+      - thoughts/shared/specs/entity-system/01-entity-base-naming.md
+      - thoughts/shared/specs/entity-system/02-hierarchy-path.md
+      - thoughts/shared/specs/entity-system/03-event-hierarchy.md
+      - thoughts/shared/specs/entity-system/04-storage-architecture.md
+      - thoughts/shared/specs/entity-system/05-entity-catalog.md
+
+  - task: Phase 2 - Merger agent created unified specification
+    files:
+      - thoughts/shared/specs/entity-system/00-unified-entity-system-spec.md
+
+  - task: Phase 3 - WBS addendum integrated into project plans
+    files:
+      - thoughts/shared/plans/2026-01-30-entity-system-wbs-addendum.md
+
+  - task: Previous session - 10 ISA-95 entity schemas created
+    files:
+      - src/lib/iiot/schemas/assets/{enterprise,site,area,plant,line,workcell,machine,sensor,device}/schema.ts
+
+blockers: []
+
+questions:
+  - Should EntityContract be interface or abstract class?
+  - Exact parent constraint enforcement mechanism (compile vs runtime)?
+
+decisions:
+  - naming_convention: "{Entity}Schema" postfix for TaggedClasses, namespace pattern for .Schema/.Model/.DDL
+  - field_composition: Spread BaseAssetFields.fields (not .extend()) to preserve distinct _tag per entity
+  - hierarchy_path: HierarchyPath TaggedClass with segments array + materialized string + algorithmic methods
+  - event_bases_divergent: Three separate bases (Structural, Operational, Temporal) - NO common root
+  - dual_store: EventLog for domain events, TimescaleDB for temporal data, entityId as join key
+  - full_es: All entities event-sourced, hybrid for Sensor/Device (ES config, time-series readings)
+  - validation_depth: Defense in depth - TypeScript types + Schema.decode + DDL constraints
+
+findings:
+  - deepwiki_taggedclass: Schema.Class.extend keeps parent _tag; use field spread for distinct tags
+  - es_vs_crud: DeepWiki recommends ES for Line/Machine (dynamic), CRUD for Enterprise (stable)
+  - parallel_agents: 5 architect agents + 1 merger effectively synthesized 200KB of spec docs
+
+worked:
+  - Parallel architect agents for spec writing (5 simultaneous)
+  - Conceptual Alignment Protocol with iterative deepening
+  - DeepWiki queries for Effect Schema patterns
+  - Status file for agent completion tracking
+
+failed:
+  - Cannot modify running background agents (had to wait for Phase 1 to complete)
+
+next:
+  - Implement EntityContract interface in entity-contract.ts
+  - Implement BaseAssetFields with hierarchy fields in base-fields.ts
+  - Implement HierarchyPath TaggedClass with algorithmic operations
+  - Rename existing schemas with Schema postfix
+  - Add BaseAssetFields spread to all entity schemas
+  - Implement lifecycle hooks (onCreate, onUpdate, validate)
+
+files:
+  created:
+    - thoughts/shared/specs/entity-system/00-unified-entity-system-spec.md
+    - thoughts/shared/specs/entity-system/01-entity-base-naming.md
+    - thoughts/shared/specs/entity-system/02-hierarchy-path.md
+    - thoughts/shared/specs/entity-system/03-event-hierarchy.md
+    - thoughts/shared/specs/entity-system/04-storage-architecture.md
+    - thoughts/shared/specs/entity-system/05-entity-catalog.md
+    - thoughts/shared/plans/2026-01-30-entity-system-wbs-addendum.md
+  modified:
+    - .claude/cache/spec-writers-status.txt
+
+context:
+  spec_location: thoughts/shared/specs/entity-system/00-unified-entity-system-spec.md
+  wbs_addendum: thoughts/shared/plans/2026-01-30-entity-system-wbs-addendum.md
+  previous_handoff: thoughts/shared/handoffs/wbs-fact-system/2026-01-30_01-04_epic1-isa95-hierarchy-complete.yaml
+  total_spec_size: ~200KB across 6 files
+  wbs_impact: +17 SP (76 → 93 total)
+
+alignment_summary:
+  round_1: Namespace pattern, hierarchy tracking, HOC pattern
+  round_2: Entity contract enforcement, path storage shape, validation layers
+  round_3: Lifecycle hooks context, contract satisfaction mechanism
+  final: Full ES, separate event bases, dual-store architecture

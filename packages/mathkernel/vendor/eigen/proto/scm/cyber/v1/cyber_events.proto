@@ -1,0 +1,18 @@
+syntax = "proto3";
+package scm.cyber.v1;
+
+import "google/protobuf/timestamp.proto";
+import "scm/common/v1/common.proto";
+
+message CyberAssetDefined { string asset_id = 1; string kind = 2; string owner_scope = 3; map<string,string> attrs = 4; }
+message CyberPostureAttested { string asset_id = 1; google.protobuf.Timestamp ts = 2; map<string,string> attrs = 3; }
+
+message VulnerabilityDetected { string vuln_id = 1; string asset_id = 2; string cve = 3; scm.common.v1.Severity severity = 4; map<string,string> attrs = 5; }
+message CyberKEVRelevant { string asset_id = 1; string cve = 2; map<string,string> attrs = 3; }
+
+message IncidentDetected { string incident_id = 1; string scope_id = 2; scm.common.v1.Severity severity = 3; map<string,string> attrs = 4; }
+message IncidentContained { string incident_id = 1; google.protobuf.Timestamp ts = 2; map<string,string> attrs = 3; }
+message IncidentClosed { string incident_id = 1; google.protobuf.Timestamp ts = 2; map<string,string> attrs = 3; }
+
+message BackupVerified { string asset_id = 1; google.protobuf.Timestamp ts = 2; map<string,string> attrs = 3; }
+message RestoreTested { string asset_id = 1; google.protobuf.Timestamp ts = 2; map<string,string> attrs = 3; }

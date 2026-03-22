@@ -1,0 +1,112 @@
+{
+  "runId": "20260224T021429Z",
+  "status": "failed",
+  "startAt": "2026-02-24T02:14:29Z",
+  "endAt": "2026-02-24T02:14:37Z",
+  "durationMs": 8631,
+  "projectRoot": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+  "summary": {
+    "gatesTotal": 6,
+    "gatesPassed": 2,
+    "gatesFailed": 1,
+    "gatesSkipped": 3
+  },
+  "steps": [
+    {
+      "id": "ts_contract_tests",
+      "name": "TypeScript contract tests",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 2450,
+      "command": "bun run contracts:test:alarm",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/alarm/reports/logs/20260224T021429Z/ts_contract_tests.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "schema_generation_determinism",
+      "name": "JSON Schema generation + determinism",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 697,
+      "command": "bun run contracts:gen:alarm",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/alarm/reports/logs/20260224T021429Z/schema_generation_determinism.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": "77cb3ec714c512aea68ca27c364457128b0a305662507ac1de8ae0d38c04a394",
+        "fingerprintAfter": "77cb3ec714c512aea68ca27c364457128b0a305662507ac1de8ae0d38c04a394",
+        "fingerprintStable": true
+      }
+    },
+    {
+      "id": "elixir_runtime_tests",
+      "name": "Elixir runtime tests (validator + signal/sensor + persistence)",
+      "status": "failed",
+      "exitCode": 2,
+      "durationMs": 5008,
+      "command": "mix deps.get >/dev/null && mix test",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/alarm/elixir",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/alarm/reports/logs/20260224T021429Z/elixir_runtime_tests.log",
+      "errorSignature": "21:14:36.871 [notice] Executing Maiden.AlarmRuntime.Actions.AcknowledgeAlarm with params: %{at: \"2026-02-24T01:10:00Z\", to: \"acknowledged\", from: \"unacknowledged\", alarm_id: \"ALM-ACK-001-7790b177-f49a-4531-853c-d8aebb5c1edf\", by: \"operator-2\"} and context: %{state: %{message: \"warning\", state: \"unacknowledged\", severity: \"warning\", alarm_id: \"ALM-ACK-001-7790b177-f49a-4531-853c-d8aebb5c1edf\", device_id: \"TMP-ACK-001\", asset_id: nil, triggered_at: \"2026-02-24T01:00:00Z\", acknowledged_at: nil, acknowledged_by: nil, cleared_at: nil, shelved_until: nil, suppression_reason: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: \"processing\", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: \"idle\", auto_transition: true, current_instruction: %Jido.Instruction{id: \"019c8d6d-4dfd-75db-82ad-df9b1adf56cd\", action: Maiden.AlarmRuntime.Actions.AcknowledgeAlarm, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 5, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}}, action_metadata: %{name: \"acknowledge_alarm\", description: \"Acknowledge an unacknowledged alarm\", vsn: nil, category: nil, schema: [alarm_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, by: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}",
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "strategy_boundary_tests",
+      "name": "strategy boundary tests (SignalFsm + boundary directives)",
+      "status": "skipped",
+      "exitCode": null,
+      "durationMs": 0,
+      "command": "mix test test/alarm_strategy_boundary_test.exs",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/alarm/elixir",
+      "logPath": "",
+      "errorSignature": "skipped_due_to_previous_failure",
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "elixir_persistence_tests",
+      "name": "explicit persistence test file",
+      "status": "skipped",
+      "exitCode": null,
+      "durationMs": 0,
+      "command": "mix test test/alarm_persistence_test.exs",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/alarm/elixir",
+      "logPath": "",
+      "errorSignature": "skipped_due_to_previous_failure",
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "negative_gate_assertions",
+      "name": "negative-gate assertions (schema-valid/FSM-illegal rejection)",
+      "status": "skipped",
+      "exitCode": null,
+      "durationMs": 0,
+      "command": "mix test test/alarm_validator_test.exs --only negative_gate",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/alarm/elixir",
+      "logPath": "",
+      "errorSignature": "skipped_due_to_previous_failure",
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    }
+  ]
+}

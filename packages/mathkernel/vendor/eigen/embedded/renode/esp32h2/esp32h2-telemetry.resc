@@ -1,0 +1,17 @@
+:description: TMNL ESP32-H2 telemetry UART via PTY
+
+$name?="tmnl-esp32h2"
+$platform?=@platforms/cpus/esp32h2.repl
+$bin?=@embedded/renode/esp32h2/firmware/esp32h2.elf
+$uartDevice?=getbysysbus.uart0
+$uartPty?="/tmp/tmnl-esp32h2-uart"
+
+mach create $name
+using sysbus
+machine LoadPlatformDescription $platform
+sysbus LoadELF $bin
+
+emulation CreateUartPtyTerminal "uart_pty" $uartPty true
+connector Connect $uartDevice uart_pty
+
+start

@@ -1,0 +1,635 @@
+{
+  "runId": "run-2026-02-23T11-01-18-jade-arch",
+  "timestamp": "2026-02-23T11:01:25.350Z",
+  "totalCheckpoints": 6,
+  "passedCheckpoints": 0,
+  "failedCheckpoints": 6,
+  "regressions": [
+    {
+      "checkpoint": "spawned",
+      "description": "Single panel visible",
+      "scenarioId": "amber-arch",
+      "mode": "strip",
+      "timestamp": "2026-02-23T11:01:19.893Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/strip/002-spawned.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "floatCount",
+          "expected": 0,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedCount",
+          "expected": 0,
+          "status": "fail"
+        },
+        {
+          "field": "expandedCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "overlayOpen",
+          "expected": true,
+          "status": "fail"
+        }
+      ],
+      "passed": false,
+      "actual": "{\"totalPanels\":1,\"tiledCount\":1,\"floatCount\":0,\"collapsedCount\":0,\"expandedCount\":1,\"columnCount\":1,\"collapsedColumnCount\":0,\"focusPosition\":\"none\",\"stripMode\":\"unknown\",\"overlayOpen\":true,\"focusedColumnWidth\":\"unknown\",\"raw\":{\"activePanel\":\"p-morphchat:harness-1-mlz2gdw4\",\"zOrderLen\":0,\"panelIds\":[\"p-morphchat:harness-1-mlz2gdw4\"]}}",
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "floatCount": 0,
+        "collapsedCount": 0,
+        "expandedCount": 1,
+        "columnCount": 1,
+        "overlayOpen": true
+      }
+    },
+    {
+      "checkpoint": "collapsed",
+      "description": "Panel collapsed to 36px strip",
+      "scenarioId": "amber-arch",
+      "mode": "strip",
+      "timestamp": "2026-02-23T11:01:20.448Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/strip/004-collapsed.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "expandedCount",
+          "expected": 0,
+          "status": "fail"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedColumnCount",
+          "expected": 1,
+          "status": "fail"
+        }
+      ],
+      "passed": false,
+      "actual": "{\"totalPanels\":1,\"tiledCount\":1,\"floatCount\":0,\"collapsedCount\":0,\"expandedCount\":1,\"columnCount\":1,\"collapsedColumnCount\":0,\"focusPosition\":\"none\",\"stripMode\":\"unknown\",\"overlayOpen\":true,\"focusedColumnWidth\":\"unknown\",\"raw\":{\"activePanel\":\"p-morphchat:harness-1-mlz2gdw4\",\"zOrderLen\":0,\"panelIds\":[\"p-morphchat:harness-1-mlz2gdw4\"]}}",
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "collapsedCount": 1,
+        "expandedCount": 0,
+        "columnCount": 1,
+        "collapsedColumnCount": 1
+      }
+    },
+    {
+      "checkpoint": "expanded",
+      "description": "Panel expanded back",
+      "scenarioId": "amber-arch",
+      "mode": "strip",
+      "timestamp": "2026-02-23T11:01:21.105Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/strip/006-expanded.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedCount",
+          "expected": 0,
+          "status": "fail"
+        },
+        {
+          "field": "expandedCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedColumnCount",
+          "expected": 0,
+          "status": "fail"
+        }
+      ],
+      "passed": false,
+      "actual": "{\"totalPanels\":1,\"tiledCount\":1,\"floatCount\":0,\"collapsedCount\":0,\"expandedCount\":1,\"columnCount\":1,\"collapsedColumnCount\":0,\"focusPosition\":\"none\",\"stripMode\":\"unknown\",\"overlayOpen\":true,\"focusedColumnWidth\":\"unknown\",\"raw\":{\"activePanel\":\"p-morphchat:harness-1-mlz2gdw4\",\"zOrderLen\":0,\"panelIds\":[\"p-morphchat:harness-1-mlz2gdw4\"]}}",
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "collapsedCount": 0,
+        "expandedCount": 1,
+        "columnCount": 1,
+        "collapsedColumnCount": 0
+      }
+    },
+    {
+      "checkpoint": "spawned",
+      "description": "Single panel visible",
+      "scenarioId": "amber-arch",
+      "mode": "tree",
+      "timestamp": "2026-02-23T11:01:24.230Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/tree/002-spawned.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "floatCount",
+          "expected": 0,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedCount",
+          "expected": 0,
+          "status": "fail"
+        },
+        {
+          "field": "expandedCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "overlayOpen",
+          "expected": true,
+          "status": "fail"
+        }
+      ],
+      "passed": false,
+      "actual": "{\"totalPanels\":2,\"tiledCount\":2,\"floatCount\":0,\"collapsedCount\":0,\"expandedCount\":2,\"columnCount\":1,\"collapsedColumnCount\":0,\"focusPosition\":\"none\",\"stripMode\":\"unknown\",\"overlayOpen\":true,\"focusedColumnWidth\":\"unknown\",\"raw\":{\"activePanel\":\"p-morphchat:harness-2-mlz2gh8t\",\"zOrderLen\":0,\"panelIds\":[\"p-morphchat:harness-1-mlz2gdw4\",\"p-morphchat:harness-2-mlz2gh8t\"]}}",
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "floatCount": 0,
+        "collapsedCount": 0,
+        "expandedCount": 1,
+        "columnCount": 1,
+        "overlayOpen": true
+      }
+    },
+    {
+      "checkpoint": "collapsed",
+      "description": "Panel collapsed to 36px strip",
+      "scenarioId": "amber-arch",
+      "mode": "tree",
+      "timestamp": "2026-02-23T11:01:24.795Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/tree/004-collapsed.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "expandedCount",
+          "expected": 0,
+          "status": "fail"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedColumnCount",
+          "expected": 1,
+          "status": "fail"
+        }
+      ],
+      "passed": false,
+      "actual": "{\"totalPanels\":2,\"tiledCount\":2,\"floatCount\":0,\"collapsedCount\":0,\"expandedCount\":2,\"columnCount\":1,\"collapsedColumnCount\":0,\"focusPosition\":\"none\",\"stripMode\":\"unknown\",\"overlayOpen\":true,\"focusedColumnWidth\":\"unknown\",\"raw\":{\"activePanel\":\"p-morphchat:harness-2-mlz2gh8t\",\"zOrderLen\":0,\"panelIds\":[\"p-morphchat:harness-1-mlz2gdw4\",\"p-morphchat:harness-2-mlz2gh8t\"]}}",
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "collapsedCount": 1,
+        "expandedCount": 0,
+        "columnCount": 1,
+        "collapsedColumnCount": 1
+      }
+    },
+    {
+      "checkpoint": "expanded",
+      "description": "Panel expanded back",
+      "scenarioId": "amber-arch",
+      "mode": "tree",
+      "timestamp": "2026-02-23T11:01:25.346Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/tree/006-expanded.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedCount",
+          "expected": 0,
+          "status": "fail"
+        },
+        {
+          "field": "expandedCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedColumnCount",
+          "expected": 0,
+          "status": "fail"
+        }
+      ],
+      "passed": false,
+      "actual": "{\"totalPanels\":2,\"tiledCount\":2,\"floatCount\":0,\"collapsedCount\":0,\"expandedCount\":2,\"columnCount\":1,\"collapsedColumnCount\":0,\"focusPosition\":\"none\",\"stripMode\":\"unknown\",\"overlayOpen\":true,\"focusedColumnWidth\":\"unknown\",\"raw\":{\"activePanel\":\"p-morphchat:harness-2-mlz2gh8t\",\"zOrderLen\":0,\"panelIds\":[\"p-morphchat:harness-1-mlz2gdw4\",\"p-morphchat:harness-2-mlz2gh8t\"]}}",
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "collapsedCount": 0,
+        "expandedCount": 1,
+        "columnCount": 1,
+        "collapsedColumnCount": 0
+      }
+    }
+  ],
+  "failures": [
+    {
+      "checkpoint": "spawned",
+      "description": "Single panel visible",
+      "scenarioId": "amber-arch",
+      "mode": "strip",
+      "timestamp": "2026-02-23T11:01:19.893Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/strip/002-spawned.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "floatCount",
+          "expected": 0,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedCount",
+          "expected": 0,
+          "status": "fail"
+        },
+        {
+          "field": "expandedCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "overlayOpen",
+          "expected": true,
+          "status": "fail"
+        }
+      ],
+      "passed": false,
+      "actual": "{\"totalPanels\":1,\"tiledCount\":1,\"floatCount\":0,\"collapsedCount\":0,\"expandedCount\":1,\"columnCount\":1,\"collapsedColumnCount\":0,\"focusPosition\":\"none\",\"stripMode\":\"unknown\",\"overlayOpen\":true,\"focusedColumnWidth\":\"unknown\",\"raw\":{\"activePanel\":\"p-morphchat:harness-1-mlz2gdw4\",\"zOrderLen\":0,\"panelIds\":[\"p-morphchat:harness-1-mlz2gdw4\"]}}",
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "floatCount": 0,
+        "collapsedCount": 0,
+        "expandedCount": 1,
+        "columnCount": 1,
+        "overlayOpen": true
+      }
+    },
+    {
+      "checkpoint": "collapsed",
+      "description": "Panel collapsed to 36px strip",
+      "scenarioId": "amber-arch",
+      "mode": "strip",
+      "timestamp": "2026-02-23T11:01:20.448Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/strip/004-collapsed.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "expandedCount",
+          "expected": 0,
+          "status": "fail"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedColumnCount",
+          "expected": 1,
+          "status": "fail"
+        }
+      ],
+      "passed": false,
+      "actual": "{\"totalPanels\":1,\"tiledCount\":1,\"floatCount\":0,\"collapsedCount\":0,\"expandedCount\":1,\"columnCount\":1,\"collapsedColumnCount\":0,\"focusPosition\":\"none\",\"stripMode\":\"unknown\",\"overlayOpen\":true,\"focusedColumnWidth\":\"unknown\",\"raw\":{\"activePanel\":\"p-morphchat:harness-1-mlz2gdw4\",\"zOrderLen\":0,\"panelIds\":[\"p-morphchat:harness-1-mlz2gdw4\"]}}",
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "collapsedCount": 1,
+        "expandedCount": 0,
+        "columnCount": 1,
+        "collapsedColumnCount": 1
+      }
+    },
+    {
+      "checkpoint": "expanded",
+      "description": "Panel expanded back",
+      "scenarioId": "amber-arch",
+      "mode": "strip",
+      "timestamp": "2026-02-23T11:01:21.105Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/strip/006-expanded.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedCount",
+          "expected": 0,
+          "status": "fail"
+        },
+        {
+          "field": "expandedCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedColumnCount",
+          "expected": 0,
+          "status": "fail"
+        }
+      ],
+      "passed": false,
+      "actual": "{\"totalPanels\":1,\"tiledCount\":1,\"floatCount\":0,\"collapsedCount\":0,\"expandedCount\":1,\"columnCount\":1,\"collapsedColumnCount\":0,\"focusPosition\":\"none\",\"stripMode\":\"unknown\",\"overlayOpen\":true,\"focusedColumnWidth\":\"unknown\",\"raw\":{\"activePanel\":\"p-morphchat:harness-1-mlz2gdw4\",\"zOrderLen\":0,\"panelIds\":[\"p-morphchat:harness-1-mlz2gdw4\"]}}",
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "collapsedCount": 0,
+        "expandedCount": 1,
+        "columnCount": 1,
+        "collapsedColumnCount": 0
+      }
+    },
+    {
+      "checkpoint": "spawned",
+      "description": "Single panel visible",
+      "scenarioId": "amber-arch",
+      "mode": "tree",
+      "timestamp": "2026-02-23T11:01:24.230Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/tree/002-spawned.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "floatCount",
+          "expected": 0,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedCount",
+          "expected": 0,
+          "status": "fail"
+        },
+        {
+          "field": "expandedCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "overlayOpen",
+          "expected": true,
+          "status": "fail"
+        }
+      ],
+      "passed": false,
+      "actual": "{\"totalPanels\":2,\"tiledCount\":2,\"floatCount\":0,\"collapsedCount\":0,\"expandedCount\":2,\"columnCount\":1,\"collapsedColumnCount\":0,\"focusPosition\":\"none\",\"stripMode\":\"unknown\",\"overlayOpen\":true,\"focusedColumnWidth\":\"unknown\",\"raw\":{\"activePanel\":\"p-morphchat:harness-2-mlz2gh8t\",\"zOrderLen\":0,\"panelIds\":[\"p-morphchat:harness-1-mlz2gdw4\",\"p-morphchat:harness-2-mlz2gh8t\"]}}",
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "floatCount": 0,
+        "collapsedCount": 0,
+        "expandedCount": 1,
+        "columnCount": 1,
+        "overlayOpen": true
+      }
+    },
+    {
+      "checkpoint": "collapsed",
+      "description": "Panel collapsed to 36px strip",
+      "scenarioId": "amber-arch",
+      "mode": "tree",
+      "timestamp": "2026-02-23T11:01:24.795Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/tree/004-collapsed.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "expandedCount",
+          "expected": 0,
+          "status": "fail"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedColumnCount",
+          "expected": 1,
+          "status": "fail"
+        }
+      ],
+      "passed": false,
+      "actual": "{\"totalPanels\":2,\"tiledCount\":2,\"floatCount\":0,\"collapsedCount\":0,\"expandedCount\":2,\"columnCount\":1,\"collapsedColumnCount\":0,\"focusPosition\":\"none\",\"stripMode\":\"unknown\",\"overlayOpen\":true,\"focusedColumnWidth\":\"unknown\",\"raw\":{\"activePanel\":\"p-morphchat:harness-2-mlz2gh8t\",\"zOrderLen\":0,\"panelIds\":[\"p-morphchat:harness-1-mlz2gdw4\",\"p-morphchat:harness-2-mlz2gh8t\"]}}",
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "collapsedCount": 1,
+        "expandedCount": 0,
+        "columnCount": 1,
+        "collapsedColumnCount": 1
+      }
+    },
+    {
+      "checkpoint": "expanded",
+      "description": "Panel expanded back",
+      "scenarioId": "amber-arch",
+      "mode": "tree",
+      "timestamp": "2026-02-23T11:01:25.346Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-23T11-01-18-jade-arch/amber-arch/tree/006-expanded.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedCount",
+          "expected": 0,
+          "status": "fail"
+        },
+        {
+          "field": "expandedCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "status": "fail"
+        },
+        {
+          "field": "collapsedColumnCount",
+          "expected": 0,
+          "status": "fail"
+        }
+      ],
+      "passed": false,
+      "actual": "{\"totalPanels\":2,\"tiledCount\":2,\"floatCount\":0,\"collapsedCount\":0,\"expandedCount\":2,\"columnCount\":1,\"collapsedColumnCount\":0,\"focusPosition\":\"none\",\"stripMode\":\"unknown\",\"overlayOpen\":true,\"focusedColumnWidth\":\"unknown\",\"raw\":{\"activePanel\":\"p-morphchat:harness-2-mlz2gh8t\",\"zOrderLen\":0,\"panelIds\":[\"p-morphchat:harness-1-mlz2gdw4\",\"p-morphchat:harness-2-mlz2gh8t\"]}}",
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "collapsedCount": 0,
+        "expandedCount": 1,
+        "columnCount": 1,
+        "collapsedColumnCount": 0
+      }
+    }
+  ]
+}

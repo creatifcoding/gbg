@@ -1,0 +1,46 @@
+---
+source: src/lib/harness/pragma/pragma-ipc/tests/snapshot_error_codes.rs
+expression: constructors
+---
+{
+  "internal_error": {
+    "code": -32603,
+    "data": {
+      "detail": "unexpected panic in handler"
+    },
+    "message": "Internal error"
+  },
+  "invalid_params": {
+    "code": -32602,
+    "data": {
+      "detail": "missing 'prompt' field"
+    },
+    "message": "Invalid params"
+  },
+  "method_not_found": {
+    "code": -32601,
+    "message": "Method not found: foobar"
+  },
+  "model_corrupt": {
+    "code": -40005,
+    "data": {
+      "detail": "truncated at byte 50000"
+    },
+    "message": "Model corrupt: bert-base-uncased"
+  },
+  "model_unavailable": {
+    "code": -40001,
+    "message": "Model unavailable: all-MiniLM-L6-v2"
+  },
+  "parse_error": {
+    "code": -32700,
+    "data": {
+      "detail": "malformed JSON"
+    },
+    "message": "Parse error"
+  },
+  "payload_too_large": {
+    "code": -40007,
+    "message": "Payload too large: 2000000 bytes (max 1000000)"
+  }
+}

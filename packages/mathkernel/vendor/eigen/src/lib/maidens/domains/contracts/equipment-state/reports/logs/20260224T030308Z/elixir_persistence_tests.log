@@ -1,0 +1,51 @@
+Running ExUnit with seed: 941817, max_cases: 32
+
+
+22:04:42.498 [debug] Persist.hibernate starting for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-delete"
+
+22:04:42.510 [debug] Persist.hibernate completed for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-delete"
+
+22:04:42.510 [debug] Persist.thaw starting for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-delete"
+
+22:04:42.519 [debug] Persist.thaw: checkpoint not found for {Maiden.EquipmentStateRuntime.Agent, "equipment-state-persist-delete"}
+.
+22:04:42.653 [notice] Executing Maiden.EquipmentStateRuntime.Actions.SetIdleState with params: %{reason: "no_order", at: "2026-02-24T02:05:00Z", to: "idle", from: "running", equipment_state_id: "EST-PERSIST-001-e6e2975e-6f69-478d-8571-a1c76240ba15", machine_id: "MCH-PERSIST-001", operator_id: "operator-persist"} and context: %{state: %{reason: "production", state: "running", started_at: "2026-02-24T02:00:00Z", metadata: %{}, equipment_state_id: "EST-PERSIST-001-e6e2975e-6f69-478d-8571-a1c76240ba15", machine_id: "MCH-PERSIST-001", ended_at: nil, operator_id: "operator-persist", notes: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c8d9b-2b4b-7960-a568-53862364d972", action: Maiden.EquipmentStateRuntime.Actions.SetIdleState, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 7, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}}, action_metadata: %{name: "set_idle_state", description: "Set equipment state to idle", vsn: nil, category: nil, schema: [equipment_state_id: %{size: 2, type: :list, __truncated_depth__: 4}, machine_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, reason: %{size: 1, type: :list, __truncated_depth__: 4}, operator_id: %{size: 1, type: :list, __truncated_depth__: 4}, notes: %{size: 1, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+22:04:42.670 [debug] Persist.hibernate starting for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-001"
+
+22:04:42.670 [debug] Persist.hibernate completed for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-001"
+
+22:04:42.670 [debug] Persist.thaw starting for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-001"
+
+22:04:42.670 [debug] Persist.thaw completed for Maiden.EquipmentStateRuntime.Agent id=equipment-state-persist-001
+.
+22:04:42.672 [debug] Persist.hibernate starting for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-restart-66"
+
+22:04:42.672 [debug] Persist.hibernate completed for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-restart-66"
+
+22:04:42.672 [debug] Persist.thaw starting for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-restart-66"
+
+22:04:42.673 [debug] Persist.thaw completed for Maiden.EquipmentStateRuntime.Agent id=equipment-state-persist-restart-66
+
+22:04:42.733 [debug] [signal] type=equipment_state.transition.running directives=1 duration=2.31ms
+
+22:04:42.740 [notice] Executing Maiden.EquipmentStateRuntime.Actions.SetRunningState with params: %{reason: "production", at: "2026-02-24T02:20:00Z", to: "running", from: "blocked", equipment_state_id: "EST-PERSIST-RESTART-001-963f0c98-c008-47d6-81eb-cc97ce05c0ea", machine_id: "MCH-RESTART"} and context: %{state: %{reason: "blocked_downstream", state: "blocked", started_at: "2026-02-24T02:00:00Z", metadata: %{}, equipment_state_id: "EST-PERSIST-RESTART-001-963f0c98-c008-47d6-81eb-cc97ce05c0ea", machine_id: "MCH-RESTART", ended_at: nil, operator_id: "operator-r", notes: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c8d9b-2be6-7411-a396-586615acc9d9", action: Maiden.EquipmentStateRuntime.Actions.SetRunningState, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 6, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}}, action_metadata: %{name: "set_running_state", description: "Set equipment state to running", vsn: nil, category: nil, schema: [equipment_state_id: %{size: 2, type: :list, __truncated_depth__: 4}, machine_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, reason: %{size: 1, type: :list, __truncated_depth__: 4}, operator_id: %{size: 1, type: :list, __truncated_depth__: 4}, notes: %{size: 1, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+22:04:42.741 [debug] [directive] type=RunInstruction result=ok duration=7.85ms
+.
+22:04:42.772 [debug] Persist.thaw starting for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-invalid"
+.
+22:04:42.785 [debug] Persist.hibernate starting for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-thread-001"
+
+22:04:42.785 [debug] Persist: flushing 3 new entries for thread equipment-state-thread-707 from rev=0
+.
+22:04:42.786 [debug] Persist.hibernate completed for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-thread-001"
+
+
+22:04:42.786 [debug] Persist.thaw starting for Maiden.EquipmentStateRuntime.Agent key="equipment-state-persist-thread-001"
+
+22:04:42.786 [debug] Persist: rehydrating thread equipment-state-thread-707 with expected rev=3
+
+22:04:42.786 [debug] Persist.thaw completed for Maiden.EquipmentStateRuntime.Agent id=equipment-state-persist-thread-001
+Finished in 0.8 seconds (0.00s async, 0.8s sync)
+5 tests, 0 failures

@@ -1,0 +1,43 @@
+# Versions Document
+
+## 0.1.0
+
+- initial release
+
+
+## 0.2.0
+
+- adds `traverse/2` function
+
+## 0.3.0
+
+- adds `backtrack/1` function
+
+## 0.4.0
+
+- renames `traverse/2` to `join/2`
+- creates `pop/1` function
+
+## 0.5.0
+
+- renames `resolve/2` and `resolve!/2` to `resolve_json/2` and `resolve_json!/2` to
+  indicate that they operate on json as the first parameter.
+- creates `update_json!/3`
+
+## 0.6.0
+
+- renames `from_path` to `from_uri`, which operates on a path type
+- creates `from_uri`, which takes either a string uri or a uri struct and 
+  extracts from either the anchor or the path.
+
+## 1.0.0
+
+- changes namespace to JsonPtr and repoints github
+
+## 1.1.0
+
+- adds `map`, `each` and `reduce` functions
+
+## 1.2.0
+
+- adds `flat_map` function

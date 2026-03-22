@@ -1,0 +1,70 @@
+{
+  "name": "@tmnl/mathkernel",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/mathkernel/src",
+  "projectType": "library",
+  "tags": ["scope:tmnl", "type:lib", "domain:compute", "effect:v4", "lang:cpp"],
+  "targets": {
+    "build:wasm": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run build:wasm",
+        "cwd": "packages/mathkernel"
+      },
+      "cache": true,
+      "inputs": ["default"],
+      "outputs": [
+        "{projectRoot}/dist/mathkernel.js",
+        "{projectRoot}/dist/mathkernel.wasm",
+        "{projectRoot}/dist/mathkernel.d.ts"
+      ]
+    },
+    "build:ts": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run build:ts",
+        "cwd": "packages/mathkernel"
+      },
+      "dependsOn": ["build:wasm"],
+      "cache": true,
+      "inputs": ["default"],
+      "outputs": ["{projectRoot}/dist"]
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run build",
+        "cwd": "packages/mathkernel"
+      },
+      "dependsOn": ["build:wasm"],
+      "cache": true,
+      "inputs": ["default"],
+      "outputs": ["{projectRoot}/dist"]
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run test:run",
+        "cwd": "packages/mathkernel"
+      },
+      "cache": true,
+      "inputs": ["default"]
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run typecheck",
+        "cwd": "packages/mathkernel"
+      },
+      "cache": true,
+      "inputs": ["default"]
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run clean",
+        "cwd": "packages/mathkernel"
+      }
+    }
+  }
+}

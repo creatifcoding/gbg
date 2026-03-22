@@ -1,0 +1,157 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "SensorAssetTransitionEvent": {
+      "type": "object",
+      "required": [
+        "sensor_id",
+        "from",
+        "to",
+        "at"
+      ],
+      "properties": {
+        "sensor_id": {
+          "$ref": "#/definitions/SensorAssetId"
+        },
+        "from": {
+          "$ref": "#/definitions/SensorAssetStatus"
+        },
+        "to": {
+          "$ref": "#/definitions/SensorAssetStatus"
+        },
+        "action": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SensorAssetTransitionAction"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "initiated_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Transition payload contract for sensor-asset lifecycle events.",
+      "title": "Sensor Asset Transition Event"
+    },
+    "SensorAssetId": {
+      "type": "string",
+      "description": "Sensor identifier in SNS-{slug} format.",
+      "title": "Sensor Asset ID",
+      "pattern": "^SNS-[a-zA-Z0-9-]+$"
+    },
+    "SensorAssetStatus": {
+      "type": "string",
+      "enum": [
+        "active",
+        "calibrating",
+        "needs_calibration",
+        "faulted",
+        "offline",
+        "decommissioned"
+      ],
+      "description": "ISA-95 control-module lifecycle status for sensor assets.",
+      "title": "Sensor Asset Status"
+    },
+    "SensorAssetTransitionAction": {
+      "type": "string",
+      "enum": [
+        "StartCalibration",
+        "CompleteCalibration",
+        "FailCalibration",
+        "FlagForCalibration",
+        "MarkFaulted",
+        "ClearFault",
+        "TakeOffline",
+        "BringOnline",
+        "Decommission"
+      ],
+      "description": "Named transition actions from canonical sensor lifecycle graph.",
+      "title": "Sensor Asset Transition Action"
+    }
+  },
+  "type": "object",
+  "required": [
+    "sensor_id",
+    "from",
+    "to",
+    "at"
+  ],
+  "properties": {
+    "sensor_id": {
+      "$ref": "#/definitions/SensorAssetId"
+    },
+    "from": {
+      "$ref": "#/definitions/SensorAssetStatus"
+    },
+    "to": {
+      "$ref": "#/definitions/SensorAssetStatus"
+    },
+    "action": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/SensorAssetTransitionAction"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "initiated_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/sensor-asset/ts/sensor-asset.contract.ts). Canonical transition event contract for TypeScript and Elixir.",
+  "title": "SensorAssetTransitionEvent",
+  "$id": "/contracts/sensor-asset/sensor_asset_transition.schema.json"
+}

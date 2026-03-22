@@ -1,0 +1,288 @@
+{
+  "kind": "toc-cycle1-baseline",
+  "capturedAt": "2026-02-25T22:16:07.029Z",
+  "config": {
+    "url": "http://localhost:1420/window?testbed=floating",
+    "warmupMs": 5000,
+    "sampleMs": 20000,
+    "replicates": 3,
+    "runtime": "bun",
+    "browser": "playwright/chromium"
+  },
+  "summary": {
+    "p50": 16.700000000000728,
+    "p95": 66.59999999999854,
+    "p99": 100,
+    "mean": 27.72532717190388,
+    "samples": 2164
+  },
+  "replicates": [
+    {
+      "replicate": 1,
+      "frameStats": {
+        "p50": 16.700000000000728,
+        "p95": 66.59999999999854,
+        "p99": 100,
+        "mean": 26.88077956989247,
+        "samples": 744
+      },
+      "latencies": [
+        {
+          "name": "spawn-chat",
+          "ms": 209.54147999999986,
+          "ok": true,
+          "detail": "__PANEL_TEST__.spawnTiledChat"
+        },
+        {
+          "name": "split-hotkey",
+          "ms": 334.23704200000066,
+          "ok": true,
+          "detail": "__PANEL_TEST__.splitHorizontal · tiled 1 -> increased"
+        },
+        {
+          "name": "drag-panel",
+          "ms": 1520.5759940000007,
+          "ok": true,
+          "detail": "panel moved"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 547.801687000001,
+          "ok": true,
+          "detail": "prompt-1: assistant shell or streaming indicator detected"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 554.2812000000013,
+          "ok": true,
+          "detail": "prompt-1: assistant shell growth detected"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 554.2812000000013,
+          "ok": true,
+          "detail": "prompt-1: assistant shell growth detected"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 501.6297429999995,
+          "ok": true,
+          "detail": "prompt-2: assistant shell or streaming indicator detected"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 880.7078170000004,
+          "ok": true,
+          "detail": "prompt-2: assistant shell growth detected"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 880.7078170000004,
+          "ok": true,
+          "detail": "prompt-2: assistant shell growth detected"
+        }
+      ],
+      "notes": [],
+      "frameDeltaCount": 744
+    },
+    {
+      "replicate": 2,
+      "frameStats": {
+        "p50": 16.69999999999709,
+        "p95": 66.59999999999854,
+        "p99": 83.40000000000146,
+        "mean": 26.040651041666667,
+        "samples": 768
+      },
+      "latencies": [
+        {
+          "name": "spawn-chat",
+          "ms": 106.83498900000268,
+          "ok": true,
+          "detail": "__PANEL_TEST__.spawnTiledChat"
+        },
+        {
+          "name": "split-hotkey",
+          "ms": 233.7885019999958,
+          "ok": true,
+          "detail": "__PANEL_TEST__.splitHorizontal · tiled 1 -> increased"
+        },
+        {
+          "name": "drag-panel",
+          "ms": 1307.0539719999942,
+          "ok": true,
+          "detail": "panel moved"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 554.8416339999967,
+          "ok": true,
+          "detail": "prompt-1: assistant shell or streaming indicator detected"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 571.9823909999977,
+          "ok": true,
+          "detail": "prompt-1: assistant shell growth detected"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 571.9823909999977,
+          "ok": true,
+          "detail": "prompt-1: assistant shell growth detected"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 516.9097180000026,
+          "ok": true,
+          "detail": "prompt-2: assistant shell or streaming indicator detected"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 1098.220518000002,
+          "ok": true,
+          "detail": "prompt-2: assistant shell growth detected"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 1098.220518000002,
+          "ok": true,
+          "detail": "prompt-2: assistant shell growth detected"
+        }
+      ],
+      "notes": [],
+      "frameDeltaCount": 768
+    },
+    {
+      "replicate": 3,
+      "frameStats": {
+        "p50": 16.70000000001164,
+        "p95": 66.69999999999709,
+        "p99": 99.90000000000146,
+        "mean": 30.67344785276074,
+        "samples": 652
+      },
+      "latencies": [
+        {
+          "name": "spawn-chat",
+          "ms": 85.64527300000191,
+          "ok": true,
+          "detail": "__PANEL_TEST__.spawnTiledChat"
+        },
+        {
+          "name": "split-hotkey",
+          "ms": 220.42036599999847,
+          "ok": true,
+          "detail": "__PANEL_TEST__.splitHorizontal · tiled 1 -> increased"
+        },
+        {
+          "name": "drag-panel",
+          "ms": 1209.5657389999978,
+          "ok": true,
+          "detail": "panel moved"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 552.1122390000019,
+          "ok": true,
+          "detail": "prompt-1: assistant shell or streaming indicator detected"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 560.8546490000008,
+          "ok": true,
+          "detail": "prompt-1: assistant shell growth detected"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 560.8546490000008,
+          "ok": true,
+          "detail": "prompt-1: assistant shell growth detected"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 558.4170799999993,
+          "ok": true,
+          "detail": "prompt-2: assistant shell or streaming indicator detected"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 871.8590469999981,
+          "ok": true,
+          "detail": "prompt-2: assistant shell growth detected"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 871.8590469999981,
+          "ok": true,
+          "detail": "prompt-2: assistant shell growth detected"
+        }
+      ],
+      "notes": [],
+      "frameDeltaCount": 652
+    }
+  ],
+  "consoleErrors": [
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-NMkRAImjMCOMUMAUmbarE",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-eDXx0Tr-aP4y3B-PtBxx8"
+  ]
+}

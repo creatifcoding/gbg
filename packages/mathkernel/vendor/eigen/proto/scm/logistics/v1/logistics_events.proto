@@ -1,0 +1,26 @@
+syntax = "proto3";
+package scm.logistics.v1;
+
+import "google/protobuf/timestamp.proto";
+import "scm/common/v1/common.proto";
+
+message ShipmentPlanned { string shipment_id = 1; string from_facility_id = 2; string to_facility_id = 3; map<string,string> attrs = 4; }
+message CarrierBooked { string shipment_id = 1; string carrier_id = 2; string mode = 3; map<string,string> attrs = 4; }
+
+message AdvanceShipmentNotified { string shipment_id = 1; google.protobuf.Timestamp eta = 2; map<string,string> attrs = 3; }
+message ShipmentDeparted { string shipment_id = 1; google.protobuf.Timestamp ts = 2; map<string,string> attrs = 3; }
+message ShipmentArrived { string shipment_id = 1; google.protobuf.Timestamp ts = 2; map<string,string> attrs = 3; }
+message ShipmentStatusUpdated { string shipment_id = 1; string status = 2; google.protobuf.Timestamp ts = 3; map<string,string> attrs = 4; }
+
+message ShipmentDelayed { string shipment_id = 1; string reason = 2; google.protobuf.Timestamp ts = 3; map<string,string> attrs = 4; }
+message ShipmentRerouted { string shipment_id = 1; string new_route = 2; map<string,string> attrs = 3; }
+message ShipmentDamaged { string shipment_id = 1; scm.common.v1.Severity severity = 2; map<string,string> attrs = 3; }
+message ShipmentLost { string shipment_id = 1; map<string,string> attrs = 2; }
+
+message GoodsReceived { string receipt_id = 1; string shipment_id = 2; string facility_id = 3; google.protobuf.Timestamp ts = 4; map<string,string> attrs = 5; }
+
+message CustomsEntryFiled { string entry_id = 1; string shipment_id = 2; map<string,string> attrs = 3; }
+message CustomsHoldPlaced { string entry_id = 1; string reason = 2; map<string,string> attrs = 3; }
+message CustomsCleared { string entry_id = 1; google.protobuf.Timestamp ts = 2; map<string,string> attrs = 3; }
+message DemurrageIncurred { string shipment_id = 1; scm.common.v1.Money amount = 2; map<string,string> attrs = 3; }
+message FreightRateUpdated { string lane_id = 1; scm.common.v1.Money rate = 2; map<string,string> attrs = 3; }

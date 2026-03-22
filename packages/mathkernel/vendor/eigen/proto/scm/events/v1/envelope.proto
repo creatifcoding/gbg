@@ -1,0 +1,53 @@
+syntax = "proto3";
+package scm.events.v1;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+message HlcTimestamp {
+  int64 unix_millis = 1;
+  uint32 logical = 2;
+  string node_id = 3;
+}
+
+message SubjectRef {
+  string kind = 1; // "Part" | "SupplierOrg" | "Facility" | ...
+  string id = 2;   // namespace-qualified stable id
+  string role = 3; // "from"/"to"/"owner"/"carrier"/...
+}
+
+message Provenance {
+  string source = 1;        // "edi.as2.partnerX", "erp.sap", "plm.windchill"
+  string source_ref = 2;    // message id / doc id / file hash
+  string raw_payload_ref = 3; // blob/CAS pointer
+  string ingestor = 4;      // connector id/version
+}
+
+message SecurityLabel {
+  string classification = 1;      // "PUBLIC" | "CUI" | ...
+  repeated string tags = 2;       // "ITAR", "EXPORT", ...
+}
+
+message EventRef { string event_id = 1; }
+
+message EventHeader {
+  string event_id = 1;
+  HlcTimestamp hlc = 2;
+  google.protobuf.Timestamp ts_observed = 3;
+  google.protobuf.Timestamp ts_effective = 4;
+
+  string tenant_id = 5;
+  string shard_key = 6;
+  repeated SubjectRef subjects = 7;
+
+  Provenance provenance = 8;
+  SecurityLabel security = 9;
+
+  repeated EventRef depends_on = 10;
+  map<string,string> labels = 11; // freeform (program, lane, etc.)
+}
+
+message Event {
+  EventHeader header = 1;
+  google.protobuf.Any payload = 2; // type_url == event type
+}

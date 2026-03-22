@@ -1,0 +1,850 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =============================================================================
+   TMNL ROOT VARIABLES & FIXES
+   ============================================================================= */
+:root {
+  /* Layout dimensions */
+  --tmnl-size-header: 48px;
+  --tmnl-size-sidebar: 48px;
+
+  /* Border tokens */
+  --tmnl-border-chrome: 1px solid rgb(38, 38, 38); /* neutral-800 */
+
+  /* ─────────────────────────────────────────────────────────────
+     FONT FAMILY TOKENS (9 typefaces - brutalist typography v2)
+     ───────────────────────────────────────────────────────────── */
+
+  /* WORDMARK - VT323 (TMNL branding, retro terminal) */
+  --font-wordmark: 'VT323', monospace;
+
+  /* CONVERSATIONAL - Barlow Condensed (AI assistant, chat interfaces) */
+  --font-conversational: 'Barlow Condensed', sans-serif;
+
+  /* NUMERIC - Geo (displays, stats, counters - demoted Orbitron) */
+  --font-numeric: 'Geo', sans-serif;
+
+  /* DATA - Share Tech Mono (grids, tables, technical readouts) */
+  --font-data: 'Share Tech Mono', monospace;
+
+  /* TERMINAL - VT323 (retro aesthetic, boot sequences, splash) */
+  --font-terminal: 'VT323', monospace;
+
+  /* GEOMETRIC - Geo (PRIMARY workhorse - nav, buttons, body, data) */
+  --font-geometric: 'Geo', sans-serif;
+
+  /* GROTESK - Space Grotesk (neo-grotesque headings, brutalist character) */
+  --font-grotesk: 'Space Grotesk', sans-serif;
+
+  /* PIXEL - Silkscreen (retro UI, badges, pixel art) */
+  --font-pixel: 'Silkscreen', monospace;
+
+  /* HAIRLINE - Bungee Hairline (ultra-thin decorative accents) */
+  --font-hairline: 'Bungee Hairline', sans-serif;
+
+  /* LEGACY - Orbitron (demoted, kept for backward compat) */
+  --font-orbitron: 'Orbitron', sans-serif;
+
+  /* ─────────────────────────────────────────────────────────────
+     SEMANTIC ROLE MAPPINGS (Geo-primary brutalist system v2)
+     ───────────────────────────────────────────────────────────── */
+
+  /* Navigation, Buttons → Geo (functional, not flashy) */
+  --font-nav: 'Geo', sans-serif;
+  --font-button: 'Geo', sans-serif;
+
+  /* Data displays, Stats → Geo (tabular clarity) */
+  --font-stats: 'Geo', sans-serif;
+
+  /* Labels → Share Tech Mono (monospace precision) */
+  --font-label: 'Share Tech Mono', monospace;
+
+  /* Headings → Space Grotesk (neo-grotesque brutalist) */
+  --font-heading: 'Space Grotesk', sans-serif;
+
+  /* Body → Geo (primary workhorse) */
+  --font-body: 'Geo', sans-serif;
+
+  /* AI Chat → Barlow Condensed (conversational) */
+  --font-chat: 'Barlow Condensed', sans-serif;
+
+  /* Splash, Boot → VT323 (CRT aesthetic) */
+  --font-splash: 'VT323', monospace;
+
+  /* Legacy compatibility */
+  --font-tmnl: 'Geo', sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-code: 'Share Tech Mono', monospace;
+
+  /* NuCmdk command-surface stack (Pipeline ADR profile)
+     Deliberately mono-forward for tactical density + consistency. */
+  --font-cmdk-ui: var(--font-label), 'Share Tech Mono', monospace;
+  --font-cmdk-heading: var(--font-label), 'Share Tech Mono', monospace;
+  --font-cmdk-mono: var(--font-label), 'Share Tech Mono', monospace;
+
+  /* ─────────────────────────────────────────────────────────────
+     TYPOGRAPHY SCALE — Compact (−2px shift, 10px floor)
+     Body: sm=12px. Chrome: xs=10px. Headings: decoupled.
+     ───────────────────────────────────────────────────────────── */
+  --tmnl-text-xs: 10px;
+  --tmnl-text-sm: 12px;
+  --tmnl-text-base: 14px;
+  --tmnl-text-lg: 16px;
+  --tmnl-text-xl: 18px;
+  --tmnl-text-2xl: 22px;
+  --tmnl-text-3xl: 28px;
+  --tmnl-text-4xl: 34px;
+
+  /* ─── Heading scale (decoupled — stays visually prominent) ── */
+  --tmnl-heading-1: 18px;
+  --tmnl-heading-2: 15px;
+  --tmnl-heading-3: 13px;
+  --tmnl-heading-4: 12px;
+  --tmnl-heading-5: 11px;
+  --tmnl-heading-6: 10px;
+
+  /* Tauri/WebKitGTK overscroll fix */
+  overscroll-behavior: none;
+}
+
+/* =============================================================================
+   NATIVE DESKTOP APP CSS (Tauri)
+   Prevents web-app behaviors that break native feel
+   ============================================================================= */
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  user-select: none;
+  cursor: default;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prevent image/SVG drag ghosts */
+img, svg {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+/* Opt-in: selectable content (code blocks, text fields, etc.) */
+.selectable,
+input,
+textarea,
+[contenteditable="true"],
+pre,
+code {
+  user-select: text;
+  cursor: text;
+}
+
+/* Code elements use monospace font */
+pre,
+code,
+kbd,
+samp {
+  font-family: var(--font-code);
+}
+
+/* Form elements inherit body font (browser resets break inheritance) */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* Opt-in: pointer cursor for interactive elements */
+button,
+a,
+[role="button"],
+.clickable,
+[data-tauri-drag-region="false"] {
+  cursor: pointer;
+}
+
+/* =============================================================================
+   LCD / SEVEN-SEGMENT FONT
+   DSEG7 Classic - Authentic seven-segment display font
+   https://github.com/keshikan/DSEG
+   ============================================================================= */
+@font-face {
+  font-family: 'DSEG7';
+  src: url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Regular.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DSEG7';
+  src: url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2') format('woff2'),
+       url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* =============================================================================
+   TMNL LOCAL FONT STACK
+   8 typefaces for distinct semantic roles
+   ============================================================================= */
+
+/* BUNGEE SHADE - Wordmark only (TMNL branding) */
+@font-face {
+  font-family: 'Bungee Shade';
+  src: url('/assets/data/fonts/Bungee_Shade/BungeeShade-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* BARLOW CONDENSED - Conversational AI, assistant interfaces */
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/assets/data/fonts/Barlow_Condensed/BarlowCondensed-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/assets/data/fonts/Barlow_Condensed/BarlowCondensed-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/assets/data/fonts/Barlow_Condensed/BarlowCondensed-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/assets/data/fonts/Barlow_Condensed/BarlowCondensed-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/assets/data/fonts/Barlow_Condensed/BarlowCondensed-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ORBITRON - Numeric displays, status/alerts, general text */
+@font-face {
+  font-family: 'Orbitron';
+  src: url('/assets/data/fonts/Orbitron/Orbitron-VariableFont_wght.ttf') format('truetype-variations');
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* SHARE TECH MONO - Data grids, tables, technical data */
+@font-face {
+  font-family: 'Share Tech Mono';
+  src: url('/assets/data/fonts/Share_Tech_Mono/ShareTechMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* VT323 - Retro/terminal aesthetic, splash screens */
+@font-face {
+  font-family: 'VT323';
+  src: url('/assets/data/fonts/VT323/VT323-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* GEO - Numeric displays, status/alerts */
+@font-face {
+  font-family: 'Geo';
+  src: url('/assets/data/fonts/Geo/Geo-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geo';
+  src: url('/assets/data/fonts/Geo/Geo-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* SILKSCREEN - Pixel art, retro UI, badges */
+@font-face {
+  font-family: 'Silkscreen';
+  src: url('/assets/data/fonts/Silkscreen/Silkscreen-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Silkscreen';
+  src: url('/assets/data/fonts/Silkscreen/Silkscreen-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* BUNGEE HAIRLINE - Ultra-thin decorative, minimalist accents */
+@font-face {
+  font-family: 'Bungee Hairline';
+  src: url('/assets/data/fonts/Bungee_Hairline/BungeeHairline-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* SPACE GROTESK - Neo-grotesque headings (brutalist typography system v2)
+   Derived from Space Mono, retains quirky monospace heritage
+   Research: https://fonts.floriankarsten.com/space-grotesk */
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/assets/data/fonts/Space_Grotesk/SpaceGrotesk-VariableFont_wght.ttf') format('truetype-variations');
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* NIX-PROVISIONED COMMAND-SURFACE FONTS
+   Sync with: tmnl fonts-sync
+   Stored in: assets/data/fonts/nix */
+@font-face {
+  font-family: 'Inter TMNL';
+  src: url('/assets/data/fonts/nix/Inter/InterVariable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter TMNL';
+  src: url('/assets/data/fonts/nix/Inter/InterVariable-Italic.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans TMNL';
+  src: url('/assets/data/fonts/nix/IBM_Plex/IBMPlexSans-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans TMNL';
+  src: url('/assets/data/fonts/nix/IBM_Plex/IBMPlexSans-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans TMNL';
+  src: url('/assets/data/fonts/nix/IBM_Plex/IBMPlexSans-SemiBold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans Condensed TMNL';
+  src: url('/assets/data/fonts/nix/IBM_Plex/IBMPlexSansCondensed-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans Condensed TMNL';
+  src: url('/assets/data/fonts/nix/IBM_Plex/IBMPlexSansCondensed-SemiBold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono TMNL';
+  src: url('/assets/data/fonts/nix/JetBrains_Mono/JetBrainsMono-Variable.ttf') format('truetype');
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono TMNL';
+  src: url('/assets/data/fonts/nix/JetBrains_Mono/JetBrainsMono-VariableItalic.ttf') format('truetype');
+  font-weight: 100 800;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Hanken Grotesk TMNL';
+  src: url('/assets/data/fonts/nix/Hanken_Grotesk/HankenGrotesk-Variable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Hanken Grotesk TMNL';
+  src: url('/assets/data/fonts/nix/Hanken_Grotesk/HankenGrotesk-VariableItalic.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Commit Mono TMNL';
+  src: url('/assets/data/fonts/nix/Commit_Mono/CommitMono-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Commit Mono TMNL';
+  src: url('/assets/data/fonts/nix/Commit_Mono/CommitMono-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Departure Mono TMNL';
+  src: url('/assets/data/fonts/nix/Departure_Mono/DepartureMono-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #262626;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #404040;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@layer base {
+  :root {
+    /* Color tokens */
+    --tmnl-bg: 10 10 10;
+    --tmnl-surface: 0 0 0;
+    --tmnl-surface-raised: 13 13 13;
+    --tmnl-border: 26 26 26;
+    --tmnl-text-primary: 255 255 255;
+    --tmnl-text-secondary: 163 163 163;
+    --tmnl-text-tertiary: 82 82 82;
+    --tmnl-text-muted: 64 64 64;
+    --tmnl-text-ghost: 38 38 38;
+    --tmnl-accent-red: 220 38 38;
+    --tmnl-accent-red-dim: 153 27 27;
+    --tmnl-accent-green: 5 150 105;
+    --tmnl-accent-amber: 217 119 6;
+    --tmnl-accent-blue: 59 130 246;
+
+    /* Shadcn tokens */
+    --background: 0 0% 4%;
+    --foreground: 0 0% 64%;
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 64%;
+    --popover: 0 0% 0%;
+    --popover-foreground: 0 0% 64%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 0 0% 8%;
+    --secondary-foreground: 0 0% 64%;
+    --muted: 0 0% 8%;
+    --muted-foreground: 0 0% 32%;
+    --accent: 0 0% 8%;
+    --accent-foreground: 0 0% 64%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 10%;
+    --input: 0 0% 10%;
+    --ring: 0 0% 40%;
+    --radius: 0px;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    font-size: 12px; /* TMNL 12px floor - never go below this */
+  }
+
+  body {
+    background-color: rgb(10 10 10);
+    color: rgb(163 163 163);
+    font-family: var(--font-body);
+    font-size: 12px; /* TMNL 12px floor - never go below this */
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* 
+  TYPOGRAPHY TOKEN SYSTEM
+  =======================
+  5 Faces: tmnl, display, body, code, data
+  7 Weights: hairline(100), thin(200), light(300), normal(400), medium(500), semibold(600), bold(700)
+  
+  Usage Pattern:
+  - font-{face} text-tmnl-{size} font-{weight} tracking-tmnl-{spacing}
+  
+  Semantic Classes:
+  - .tmnl-type-{context} for pre-composed typography styles
+*/
+
+@layer components {
+  /* ========== SYSTEM IDENTIFIERS ========== */
+  /* Agent IDs, mission codes, serial numbers */
+  .tmnl-type-id {
+    @apply font-tmnl text-tmnl-2xl font-light tracking-tmnl-wide text-white;
+  }
+  .tmnl-type-id-sm {
+    @apply font-tmnl text-tmnl-lg font-light tracking-tmnl-wide text-white;
+  }
+
+  /* ========== STATISTICS & METRICS ========== */
+  /* Large numerical displays, counters, gauges */
+  .tmnl-type-stat {
+    @apply font-data text-tmnl-4xl font-hairline tracking-tmnl-snug text-white;
+  }
+  .tmnl-type-stat-md {
+    @apply font-data text-tmnl-3xl font-thin tracking-tmnl-snug text-white;
+  }
+  .tmnl-type-stat-sm {
+    @apply font-data text-tmnl-2xl font-light tracking-tmnl-normal text-white;
+  }
+  .tmnl-type-stat-unit {
+    @apply font-display text-tmnl-xs font-normal uppercase tracking-tmnl-widest text-neutral-500;
+  }
+
+  /* ========== HEADINGS ========== */
+  /* Section titles, group headers */
+  .tmnl-type-heading-xl {
+    @apply font-display text-tmnl-xl font-bold uppercase tracking-tmnl-wide text-white;
+  }
+  .tmnl-type-heading-lg {
+    @apply font-display text-tmnl-lg font-bold uppercase tracking-tmnl-wider text-white;
+  }
+  .tmnl-type-heading {
+    @apply font-display text-tmnl-md font-normal uppercase tracking-tmnl-wider text-white;
+  }
+  .tmnl-type-heading-sm {
+    @apply font-display text-tmnl-sm font-normal uppercase tracking-tmnl-widest text-neutral-300;
+  }
+
+  /* ========== LABELS ========== */
+  /* Field labels, category tags, metadata keys */
+  .tmnl-type-label {
+    @apply font-display text-tmnl-xs font-normal uppercase tracking-tmnl-widest text-neutral-500;
+  }
+  .tmnl-type-label-sm {
+    @apply font-display text-tmnl-2xs font-normal uppercase tracking-tmnl-ultra text-neutral-600;
+  }
+  .tmnl-type-label-xs {
+    @apply font-display text-tmnl-3xs font-normal uppercase tracking-tmnl-ultra text-neutral-700;
+  }
+
+  /* ========== BODY TEXT ========== */
+  /* Descriptions, mission briefs, general content */
+  .tmnl-type-body {
+    @apply font-body text-tmnl-base font-normal tracking-tmnl-wide text-neutral-400;
+  }
+  .tmnl-type-body-sm {
+    @apply font-body text-tmnl-sm font-normal tracking-tmnl-wide text-neutral-400;
+  }
+  .tmnl-type-body-xs {
+    @apply font-body text-tmnl-xs font-normal tracking-tmnl-wider text-neutral-500;
+  }
+  .tmnl-type-body-emphasis {
+    @apply font-body text-tmnl-base font-medium tracking-tmnl-normal text-white;
+  }
+
+  /* ========== CODE & TERMINAL ========== */
+  /* Console output, code snippets, commands */
+  .tmnl-type-code {
+    @apply font-code text-tmnl-sm font-normal tracking-tmnl-normal text-neutral-300;
+  }
+  .tmnl-type-code-sm {
+    @apply font-code text-tmnl-xs font-normal tracking-tmnl-normal text-neutral-400;
+  }
+  .tmnl-type-terminal {
+    @apply font-code text-tmnl-sm font-medium tracking-tmnl-normal text-emerald-500;
+  }
+  .tmnl-type-command {
+    @apply font-code text-tmnl-sm font-semibold tracking-tmnl-normal text-white;
+  }
+
+  /* ========== DATA DISPLAY ========== */
+  /* Coordinates, timestamps, technical values */
+  .tmnl-type-coords {
+    @apply font-tmnl text-tmnl-xs font-normal tracking-tmnl-wide text-neutral-600;
+  }
+  .tmnl-type-timestamp {
+    @apply font-tmnl text-tmnl-2xs font-normal tracking-tmnl-wider text-neutral-500;
+  }
+  .tmnl-type-value {
+    @apply font-tmnl text-tmnl-sm font-medium tracking-tmnl-normal text-white;
+  }
+
+  /* ========== NAVIGATION ========== */
+  /* Tabs, menu items, links */
+  .tmnl-type-nav {
+    @apply font-display text-tmnl-xs font-normal uppercase tracking-tmnl-widest text-neutral-500 transition-colors hover:text-neutral-400 hover:bg-neutral-900;
+  }
+  .tmnl-type-nav-active {
+    @apply font-display text-tmnl-xs font-bold uppercase tracking-tmnl-widest text-white;
+  }
+
+  /* ========== BADGES & TAGS ========== */
+  /* Status indicators, classification labels */
+  .tmnl-type-badge {
+    @apply font-display text-tmnl-2xs font-bold uppercase tracking-tmnl-wider;
+  }
+  .tmnl-type-tag {
+    @apply font-tmnl text-tmnl-3xs font-medium uppercase tracking-tmnl-ultra text-neutral-500;
+  }
+
+  /* ========== ALERTS & WARNINGS ========== */
+  .tmnl-type-alert {
+    @apply font-display text-tmnl-xs font-bold uppercase tracking-tmnl-wider text-red-500;
+  }
+  .tmnl-type-warning {
+    @apply font-display text-tmnl-xs font-bold uppercase tracking-tmnl-wider text-amber-500;
+  }
+  .tmnl-type-success {
+    @apply font-display text-tmnl-xs font-bold uppercase tracking-tmnl-wider text-emerald-500;
+  }
+
+  /* ========== LCD / SEVEN-SEGMENT DISPLAY ========== */
+  /* Stopwatches, timers, countdowns, numeric readouts */
+  .tmnl-type-lcd {
+    font-family: 'DSEG7', 'Courier New', monospace;
+    font-size: 1.75rem;
+    line-height: 1.5rem;
+    letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums;
+  }
+  .tmnl-type-lcd-sm {
+    font-family: 'DSEG7', 'Courier New', monospace;
+    font-size: 1.25rem;
+    line-height: 1.25rem;
+    letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums;
+  }
+  .tmnl-type-lcd-lg {
+    font-family: 'DSEG7', 'Courier New', monospace;
+    font-size: 2.75rem;
+    line-height: 2rem;
+    letter-spacing: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ========== MISSION CONTEXT ========== */
+  /* Operation names, target descriptions */
+  .tmnl-type-mission-code {
+    @apply font-tmnl text-tmnl-xs font-normal tracking-tmnl-wider text-neutral-500;
+  }
+  .tmnl-type-mission-title {
+    @apply font-body text-tmnl-base font-medium tracking-tmnl-normal text-white;
+  }
+  .tmnl-type-mission-desc {
+    @apply font-body text-tmnl-sm font-normal tracking-tmnl-wide text-neutral-400;
+  }
+
+  /* ========== GROUP HEADERS (KSP-G Matrix style) ========== */
+  .tmnl-type-group-header {
+    @apply font-body text-tmnl-xl font-medium tracking-tmnl-snug text-white flex items-center gap-2;
+  }
+  .tmnl-type-item-number {
+    @apply font-display text-tmnl-xs font-normal uppercase tracking-tmnl-widest text-neutral-400;
+  }
+  .tmnl-type-item-subtitle {
+    @apply font-body text-tmnl-sm font-normal tracking-tmnl-wide text-red-900;
+  }
+}
+
+/* ========== UTILITY CLASSES ========== */
+@layer utilities {
+  /* Typography floor enforcement (12px minimum) - general solution */
+  /* Apply to container: all descendants get 12px minimum font size */
+  .typography-floor,
+  .geoint-typography-floor {
+    font-size: 12px;
+  }
+
+  .typography-floor *,
+  .geoint-typography-floor * {
+    font-size: max(12px, inherit) !important;
+  }
+
+  /* Text transforms */
+  .text-tmnl-upper {
+    text-transform: uppercase;
+  }
+
+  /* Glow effects for emphasis */
+  .text-glow-red {
+    text-shadow: 0 0 8px rgb(220 38 38 / 0.5);
+  }
+  .text-glow-green {
+    text-shadow: 0 0 8px rgb(5 150 105 / 0.5);
+  }
+  .text-glow-amber {
+    text-shadow: 0 0 8px rgb(217 119 6 / 0.5);
+  }
+  .text-glow-blue {
+    text-shadow: 0 0 8px rgb(59 130 246 / 0.5);
+  }
+  .text-glow-cyan {
+    text-shadow: 0 0 8px rgb(34 211 238 / 0.5);
+  }
+
+  /* Scan line effect for retro feel */
+  .text-scanline {
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 1px,
+      rgba(0, 0, 0, 0.1) 1px,
+      rgba(0, 0, 0, 0.1) 2px
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+}
+
+/* tldraw overrides */
+.tl-container {
+  --color-background: rgb(10 10 10) !important;
+  --color-text: rgb(163 163 163) !important;
+}
+
+.tl-background {
+  background-color: rgb(10 10 10) !important;
+}
+
+::selection {
+  background: rgb(127 29 29);
+  color: rgb(255 255 255);
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* TMNL focus styles */
+*:focus-visible {
+  outline: 1px solid var(--tmnl-text-primary, #fff);
+  outline-offset: 1px;
+}
+
+/* Corner decoration utility */
+.tmnl-corners {
+  position: relative;
+}
+
+.tmnl-corners::before,
+.tmnl-corners::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-color: var(--tmnl-text-muted, #404040);
+  pointer-events: none;
+}
+
+.tmnl-corners::before {
+  top: 0;
+  left: 0;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+
+.tmnl-corners::after {
+  bottom: 0;
+  right: 0;
+  border-bottom: 1px solid;
+  border-right: 1px solid;
+}
+
+/* Glitch effect for critical states */
+@keyframes tmnl-glitch {
+  0%, 100% { transform: translate(0); }
+  20% { transform: translate(-1px, 1px); }
+  40% { transform: translate(1px, -1px); }
+  60% { transform: translate(-1px, -1px); }
+  80% { transform: translate(1px, 1px); }
+}
+
+.tmnl-glitch {
+  animation: tmnl-glitch 0.3s infinite;
+}
+
+/* Scanline effect */
+.tmnl-scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 4px
+  );
+  pointer-events: none;
+}

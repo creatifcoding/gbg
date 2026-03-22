@@ -1,0 +1,29 @@
+[package]
+name = "ava-wasm"
+description = "AVA WASM bindings for browser/Node.js integration"
+version.workspace = true
+edition = "2021"
+authors.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
+js-sys = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde-wasm-bindgen = "0.6"
+
+# Note: ava-domain pulls in arrow which may not compile to WASM
+# For now, we define WASM-compatible types directly
+# ava-domain = { path = "../ava-domain" }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[profile.release]
+opt-level = "s"
+lto = true

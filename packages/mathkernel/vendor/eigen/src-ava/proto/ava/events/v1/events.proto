@@ -1,0 +1,287 @@
+// AVA Events v1
+//
+// Event sourcing infrastructure for the reconciler.
+// ReconcilerEvent captures all view lifecycle transitions.
+// FiberAction represents low-level runtime operations.
+
+syntax = "proto3";
+
+package ava.events.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+import "ava/common/v1/identifiers.proto";
+import "ava/common/v1/errors.proto";
+import "ava/artifacts/v1/artifacts.proto";
+
+option java_multiple_files = true;
+option java_package = "com.ava.events.v1";
+
+// ReconcilerEvent - High-level view lifecycle event
+message ReconcilerEvent {
+  // Monotonic sequence number
+  ava.common.v1.EventSequence sequence = 1;
+
+  // When this event occurred
+  google.protobuf.Timestamp timestamp = 2;
+
+  // Correlation ID for distributed tracing
+  optional ava.common.v1.CorrelationId correlation_id = 3;
+
+  // The actual event
+  oneof event {
+    // View was requested by a client
+    ViewRequested view_requested = 10;
+
+    // View compilation started
+    ViewCompiling view_compiling = 11;
+
+    // View was successfully mounted
+    ViewMounted view_mounted = 12;
+
+    // View received a data update
+    ViewUpdated view_updated = 13;
+
+    // View was unmounted
+    ViewUnmounted view_unmounted = 14;
+
+    // View compilation failed
+    ViewCompilationFailed compilation_failed = 15;
+
+    // View was suspended
+    ViewSuspended view_suspended = 16;
+
+    // View was resumed from suspension
+    ViewResumed view_resumed = 17;
+
+    // View was invalidated
+    ViewInvalidated view_invalidated = 18;
+
+    // View spec was updated
+    ViewSpecUpdated view_spec_updated = 19;
+  }
+}
+
+// ViewRequested - A client requested a view
+message ViewRequested {
+  ava.common.v1.ViewId view_id = 1;
+  ava.artifacts.v1.ViewProfileSpec spec = 2;
+  optional ava.common.v1.AssetId asset_id = 3;
+  optional ava.common.v1.SessionId session_id = 4;
+  RequestPriority priority = 5;
+}
+
+// RequestPriority - Urgency of the view request
+enum RequestPriority {
+  REQUEST_PRIORITY_UNSPECIFIED = 0;
+  REQUEST_PRIORITY_LOW = 1;
+  REQUEST_PRIORITY_NORMAL = 2;
+  REQUEST_PRIORITY_HIGH = 3;
+  REQUEST_PRIORITY_IMMEDIATE = 4;
+}
+
+// ViewCompiling - View compilation has started
+message ViewCompiling {
+  ava.common.v1.ViewId view_id = 1;
+  ava.common.v1.FiberId fiber_id = 2;
+  uint32 channel_count = 3;
+}
+
+// ViewMounted - View was successfully compiled and mounted
+message ViewMounted {
+  ava.common.v1.ViewId view_id = 1;
+  ava.artifacts.v1.ViewArtifact artifact = 2;
+  uint32 compile_time_ms = 3;
+  ava.common.v1.FiberId fiber_id = 4;
+}
+
+// ViewUpdated - View received a data update
+message ViewUpdated {
+  ava.common.v1.ViewId view_id = 1;
+  ava.artifacts.v1.ViewDelta delta = 2;
+  uint32 version = 3;
+}
+
+// ViewUnmounted - View was unmounted
+message ViewUnmounted {
+  ava.common.v1.ViewId view_id = 1;
+  UnmountReason reason = 2;
+  optional string detail = 3;
+  uint32 lifetime_ms = 4;
+}
+
+// UnmountReason - Why a view was unmounted
+enum UnmountReason {
+  UNMOUNT_REASON_UNSPECIFIED = 0;
+  UNMOUNT_CLIENT_REQUEST = 1;       // Client explicitly unsubscribed
+  UNMOUNT_REPLACED = 2;             // Replaced by a newer version
+  UNMOUNT_ERROR = 3;                // Unrecoverable error
+  UNMOUNT_RESOURCE_LIMIT = 4;       // Resource quota exceeded
+  UNMOUNT_ASSEMBLAGE_MISMATCH = 5;  // Asset no longer matches assemblage
+  UNMOUNT_SHUTDOWN = 6;             // System shutdown
+  UNMOUNT_TIMEOUT = 7;              // Idle timeout
+  UNMOUNT_EVICTED = 8;              // Cache eviction
+}
+
+// ViewCompilationFailed - View failed to compile
+message ViewCompilationFailed {
+  ava.common.v1.ViewId view_id = 1;
+  ava.common.v1.ViewCompilationFailed error = 2;
+  uint32 attempt = 3;
+  bool will_retry = 4;
+}
+
+// ViewSuspended - View was suspended
+message ViewSuspended {
+  ava.common.v1.ViewId view_id = 1;
+  SuspendReason reason = 2;
+  optional google.protobuf.Any resume_hint = 3;
+}
+
+// SuspendReason - Why a view was suspended
+enum SuspendReason {
+  SUSPEND_REASON_UNSPECIFIED = 0;
+  SUSPEND_IDLE = 1;                 // No active subscribers
+  SUSPEND_RESOURCE_PRESSURE = 2;    // System under resource pressure
+  SUSPEND_SOURCE_UNAVAILABLE = 3;   // Data source temporarily unavailable
+  SUSPEND_CLIENT_REQUEST = 4;       // Client requested suspension
+  SUSPEND_RATE_LIMITED = 5;         // Hit rate limit
+}
+
+// ViewResumed - View was resumed from suspension
+message ViewResumed {
+  ava.common.v1.ViewId view_id = 1;
+  uint32 suspended_duration_ms = 2;
+  bool required_recompile = 3;
+}
+
+// ViewInvalidated - View was invalidated
+message ViewInvalidated {
+  ava.common.v1.ViewId view_id = 1;
+  InvalidationScope scope = 2;
+  optional string reason = 3;
+  optional ava.common.v1.SessionId triggered_by = 4;
+}
+
+// InvalidationScope - What was invalidated
+enum InvalidationScope {
+  INVALIDATION_SCOPE_UNSPECIFIED = 0;
+  FULL = 1;           // Entire artifact invalidated
+  CHANNELS = 2;       // Specific channels invalidated
+  METADATA = 3;       // Only metadata invalidated
+}
+
+// ViewSpecUpdated - View specification was updated
+message ViewSpecUpdated {
+  ava.common.v1.ViewId view_id = 1;
+  ava.artifacts.v1.ViewProfileSpec old_spec = 2;
+  ava.artifacts.v1.ViewProfileSpec new_spec = 3;
+  bool requires_recompile = 4;
+}
+
+// FiberAction - Low-level reconciler fiber action
+message FiberAction {
+  // Fiber identifier
+  ava.common.v1.FiberId fiber_id = 1;
+
+  // Sequence within this fiber
+  uint64 sequence = 2;
+
+  // When this action occurred
+  google.protobuf.Timestamp timestamp = 3;
+
+  // The action
+  oneof action {
+    FiberSpawned spawned = 10;
+    FiberYielded yielded = 11;
+    FiberResumed resumed = 12;
+    FiberCompleted completed = 13;
+    FiberFailed failed = 14;
+    FiberCancelled cancelled = 15;
+  }
+}
+
+// FiberSpawned - A new fiber was created
+message FiberSpawned {
+  ava.common.v1.ViewId view_id = 1;
+  FiberPriority priority = 2;
+  optional ava.common.v1.FiberId parent_fiber_id = 3;
+}
+
+// FiberPriority - Fiber scheduling priority
+enum FiberPriority {
+  FIBER_PRIORITY_UNSPECIFIED = 0;
+  FIBER_PRIORITY_BACKGROUND = 1;
+  FIBER_PRIORITY_NORMAL = 2;
+  FIBER_PRIORITY_HIGH = 3;
+  FIBER_PRIORITY_CRITICAL = 4;
+}
+
+// FiberYielded - Fiber yielded execution
+message FiberYielded {
+  YieldReason reason = 1;
+  optional uint32 yield_duration_ms = 2;
+}
+
+// YieldReason - Why a fiber yielded
+enum YieldReason {
+  YIELD_REASON_UNSPECIFIED = 0;
+  AWAIT_IO = 1;           // Waiting for I/O
+  AWAIT_DEPENDENCY = 2;   // Waiting for another fiber
+  FAIR_SHARE = 3;         // Cooperative scheduling
+  BACKPRESSURE = 4;       // Downstream backpressure
+}
+
+// FiberResumed - Fiber resumed execution
+message FiberResumed {
+  uint32 suspended_duration_ms = 1;
+}
+
+// FiberCompleted - Fiber completed successfully
+message FiberCompleted {
+  uint32 duration_ms = 1;
+  uint64 work_units = 2;
+}
+
+// FiberFailed - Fiber failed with an error
+message FiberFailed {
+  ava.common.v1.AvaError error = 1;
+  bool retryable = 2;
+  optional uint32 retry_after_ms = 3;
+}
+
+// FiberCancelled - Fiber was cancelled
+message FiberCancelled {
+  CancelReason reason = 1;
+  optional string detail = 2;
+}
+
+// CancelReason - Why a fiber was cancelled
+enum CancelReason {
+  CANCEL_REASON_UNSPECIFIED = 0;
+  CANCEL_CLIENT_REQUEST = 1;
+  CANCEL_SUPERSEDED = 2;
+  CANCEL_TIMEOUT = 3;
+  CANCEL_SHUTDOWN = 4;
+  CANCEL_PARENT_CANCELLED = 5;
+}
+
+// EventFilter - Filter for querying events
+message EventFilter {
+  // Filter by event types
+  repeated string event_types = 1;
+
+  // Filter by view IDs
+  repeated ava.common.v1.ViewId view_ids = 2;
+
+  // Filter by time range
+  optional google.protobuf.Timestamp from_timestamp = 3;
+  optional google.protobuf.Timestamp to_timestamp = 4;
+
+  // Filter by sequence range
+  optional ava.common.v1.EventSequence from_sequence = 5;
+  optional ava.common.v1.EventSequence to_sequence = 6;
+
+  // Filter by correlation ID
+  optional ava.common.v1.CorrelationId correlation_id = 7;
+}

@@ -1,0 +1,49 @@
+[package]
+name = "ava-adapters"
+description = "AVA source adapters: MemoryAdapter, SQLite, DataFusion TableProvider integration"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+# Internal
+ava-domain = { path = "../ava-domain" }
+
+# Async
+async-trait.workspace = true
+tokio = { workspace = true, features = ["sync", "rt"] }
+futures.workspace = true
+
+# Arrow / DataFusion
+arrow.workspace = true
+datafusion.workspace = true
+
+# SQL (for SQLiteAdapter)
+sqlx.workspace = true
+
+# Utilities
+thiserror.workspace = true
+dashmap = "6"
+
+# NATS (optional)
+async-nats = { workspace = true, optional = true }
+tracing = { workspace = true, optional = true }
+bytes = { version = "1.0", optional = true }
+serde_bytes = { version = "0.11", optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+scopeguard = { version = "1.2", optional = true }
+
+# Durable Streams (optional)
+reqwest = { version = "0.12", features = ["json"], optional = true }
+
+[features]
+default = []
+nats = ["dep:async-nats", "dep:tracing", "dep:bytes", "dep:serde_bytes", "dep:serde", "dep:serde_json", "dep:scopeguard"]
+durable-streams = ["dep:reqwest", "dep:serde", "dep:serde_json", "dep:tracing"]
+compression = ["nats"]
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+pretty_assertions.workspace = true

@@ -1,0 +1,42 @@
+defmodule Exonerate.Filter.MinLength do
+  @moduledoc false
+
+  alias Exonerate.Tools
+
+  defmacro filter(resource, pointer, opts) do
+    __CALLER__
+    |> Tools.subschema(resource, pointer)
+    |> build_filter(__CALLER__, resource, pointer, opts)
+    |> Tools.maybe_dump(__CALLER__, opts)
+  end
+
+  defp build_filter(min, caller, resource, pointer, opts) do
+    call = Tools.call(resource, pointer, opts)
+
+    case Tools.parent(caller, resource, pointer) do
+      %{"format" => "binary"} ->
+        quote do
+          defp unquote(call)(string, path) when byte_size(string) < unquote(min) do
+            require Exonerate.Tools
+            Exonerate.Tools.mismatch(string, unquote(resource), unquote(pointer), path)
+          end
+
+          defp unquote(call)(string, path), do: :ok
+        end
+
+      _ ->
+        quote do
+          defp unquote(call)(string, path) do
+            case String.length(string) do
+              length when length >= unquote(min) ->
+                :ok
+
+              _ ->
+                require Exonerate.Tools
+                Exonerate.Tools.mismatch(string, unquote(resource), unquote(pointer), path)
+            end
+          end
+        end
+    end
+  end
+end

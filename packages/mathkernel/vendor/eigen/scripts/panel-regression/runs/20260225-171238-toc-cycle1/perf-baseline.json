@@ -1,0 +1,98 @@
+{
+  "kind": "toc-cycle1-baseline",
+  "capturedAt": "2026-02-25T22:12:38.266Z",
+  "config": {
+    "url": "http://localhost:1420/window?testbed=floating",
+    "warmupMs": 1000,
+    "sampleMs": 5000,
+    "replicates": 1,
+    "runtime": "bun",
+    "browser": "playwright/chromium"
+  },
+  "summary": {
+    "p50": 50,
+    "p95": 100,
+    "p99": 233.39999999999964,
+    "mean": 50.16565656565656,
+    "samples": 99
+  },
+  "replicates": [
+    {
+      "replicate": 1,
+      "frameStats": {
+        "p50": 50,
+        "p95": 100,
+        "p99": 233.39999999999964,
+        "mean": 50.16565656565656,
+        "samples": 99
+      },
+      "latencies": [
+        {
+          "name": "spawn-chat",
+          "ms": 219.58125799999925,
+          "ok": true,
+          "detail": "__PANEL_TEST__.spawnTiledChat"
+        },
+        {
+          "name": "split-hotkey",
+          "ms": 304.64680300000055,
+          "ok": true,
+          "detail": "__PANEL_TEST__.splitHorizontal · tiled 1 -> increased"
+        },
+        {
+          "name": "drag-panel",
+          "ms": 1404.617632999999,
+          "ok": true,
+          "detail": "panel moved"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 601.1515319999999,
+          "ok": true,
+          "detail": "prompt-1: assistant shell or streaming indicator detected"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 603.9405979999992,
+          "ok": true,
+          "detail": "prompt-1: assistant shell growth detected"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 603.9405979999992,
+          "ok": true,
+          "detail": "prompt-1: assistant shell growth detected"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 504.6600390000003,
+          "ok": true,
+          "detail": "prompt-2: assistant shell or streaming indicator detected"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 1119.2016810000005,
+          "ok": true,
+          "detail": "prompt-2: assistant shell growth detected"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 1119.2016810000005,
+          "ok": true,
+          "detail": "prompt-2: assistant shell growth detected"
+        }
+      ],
+      "notes": [],
+      "frameDeltaCount": 99
+    }
+  ],
+  "consoleErrors": [
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-U4jKMrnQ64PmT6iLlIcrt",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-U4jKMrnQ64PmT6iLlIcrt",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-U4jKMrnQ64PmT6iLlIcrt",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-U4jKMrnQ64PmT6iLlIcrt",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-9Zhog0R__KK4Gz9WIlpQv",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-U4jKMrnQ64PmT6iLlIcrt",
+    "[error] Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version. msg-9Zhog0R__KK4Gz9WIlpQv"
+  ]
+}

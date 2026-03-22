@@ -1,0 +1,31 @@
+[package]
+name = "pragma-sidecar"
+version = "0.1.0"
+edition = "2021"
+description = "PRAGMA sidecar binary — JSON-RPC stdio main loop for Tauri sidecar integration"
+
+[[bin]]
+name = "pragma-sidecar"
+path = "src/main.rs"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+log = { workspace = true }
+pragma-ipc = { path = "../pragma-ipc" }
+pragma-automata = { path = "../pragma-automata" }
+# pragma-core wired when inference handlers go live (requires provisioned models).
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = "1"
+
+# Logging
+env_logger = "0.11"
+
+[dev-dependencies]
+proptest = "1"
+insta = { version = "1", features = ["json", "redactions"] }
+pretty_assertions = "1"
+assert_cmd = "2"
+predicates = "3"

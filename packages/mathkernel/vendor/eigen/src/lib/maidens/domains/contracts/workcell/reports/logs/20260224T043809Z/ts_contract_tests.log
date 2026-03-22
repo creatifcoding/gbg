@@ -1,0 +1,10 @@
+
+ RUN  v3.2.4 /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl
+
+ ✓ src/lib/maidens/domains/contracts/workcell/ts/workcell.contract.test.ts (6 tests) 19ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  23:38:10
+   Duration  1.60s (transform 78ms, setup 409ms, collect 178ms, tests 19ms, environment 316ms, prepare 92ms)
+

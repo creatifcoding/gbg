@@ -1,0 +1,64 @@
+# =============================================================================
+# TMNL IIoT Database Stack
+# Unified PostgreSQL 16 with TimescaleDB + Apache AGE + pg_mooncake
+#
+# Usage:
+#   docker compose -f docker-compose.iiot.yml up -d          # Start
+#   docker compose -f docker-compose.iiot.yml logs -f        # View logs
+#   docker compose -f docker-compose.iiot.yml down           # Stop
+#   docker compose -f docker-compose.iiot.yml down -v        # Stop + remove volumes
+#
+# Connection:
+#   psql postgres://iiot:iiot_dev@localhost:5433/iiot_mock
+#   Or: docker exec -it tmnl_iiot_db psql -U iiot -d iiot_mock
+#
+# Quick verification:
+#   docker exec tmnl_iiot_db psql -U iiot -d iiot_mock -c "SELECT * FROM iiot.health_check();"
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # IIoT Database - TimescaleDB + Apache AGE (+ optional pg_mooncake)
+  # ===========================================================================
+  iiot-db:
+    build:
+      context: ./iiot-db
+      dockerfile: Dockerfile.lite  # Use lite image (no pg_lake) for fast builds
+    container_name: tmnl_iiot_db
+    ports:
+      - '5433:5432'  # Different port to not conflict with main postgres
+    volumes:
+      - iiot-db-data:/home/postgres/pgdata/data
+    environment:
+      POSTGRES_USER: iiot
+      POSTGRES_PASSWORD: iiot_dev
+      POSTGRES_DB: iiot_mock
+      TIMESCALEDB_TELEMETRY: 'off'
+    # Enable logical replication and AGE extension preload
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+      - -c
+      - max_replication_slots=10
+      - -c
+      - max_wal_senders=10
+      - -c
+      - shared_preload_libraries=timescaledb,age
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U iiot -d iiot_mock']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s  # Longer start period for initial data generation
+    networks:
+      - iiot
+
+networks:
+  iiot:
+    driver: bridge
+
+volumes:
+  iiot-db-data:
+    driver: local

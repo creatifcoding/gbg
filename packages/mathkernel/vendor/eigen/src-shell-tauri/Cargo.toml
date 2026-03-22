@@ -1,0 +1,32 @@
+[package]
+name = "tmnl-shell"
+version = "0.1.0"
+edition = "2021"
+description = "TMNL Shell — Wayland Layer Shell sidecar panel"
+
+[lib]
+name = "tmnl_shell_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.5.1", features = [] }
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+log = { workspace = true }
+tokio = { workspace = true }
+tmnl-shared = { path = "../src-shared" }
+niri-ipc = { workspace = true }
+tauri = { version = "2.9.2", features = [] }
+tauri-plugin-log = "2"
+tauri-plugin-global-shortcut = "2"
+libc = "0.2"
+
+# GTK Layer Shell + Cairo for input region management
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = { package = "gtk", version = "0.18", features = ["v3_24"] }
+gdk = { version = "0.18" }
+glib = { version = "0.18" }
+cairo-rs = { version = "0.18", features = ["use_glib"] }
+gtk-layer-shell = { version = "0.8", features = ["v0_6"] }

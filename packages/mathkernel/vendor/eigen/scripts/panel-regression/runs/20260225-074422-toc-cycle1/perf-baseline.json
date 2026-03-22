@@ -1,0 +1,75 @@
+{
+  "kind": "toc-cycle1-baseline",
+  "capturedAt": "2026-02-25T12:44:22.447Z",
+  "config": {
+    "url": "http://localhost:1420/window?testbed=floating",
+    "warmupMs": 1000,
+    "sampleMs": 5000,
+    "replicates": 1,
+    "runtime": "bun",
+    "browser": "playwright/chromium"
+  },
+  "summary": {
+    "p50": 16.69999999999891,
+    "p95": 50,
+    "p99": 100,
+    "mean": 21.072948328267476,
+    "samples": 329
+  },
+  "replicates": [
+    {
+      "replicate": 1,
+      "frameStats": {
+        "p50": 16.69999999999891,
+        "p95": 50,
+        "p99": 100,
+        "mean": 21.072948328267476,
+        "samples": 329
+      },
+      "latencies": [
+        {
+          "name": "spawn-chat",
+          "ms": 160.62568199999987,
+          "ok": true,
+          "detail": "__PANEL_TEST__.spawnTiledChat"
+        },
+        {
+          "name": "split-hotkey",
+          "ms": 354.107849,
+          "ok": true,
+          "detail": "__PANEL_TEST__.splitHorizontal · tiled 1 -> increased"
+        },
+        {
+          "name": "drag-panel",
+          "ms": 1258.5678790000002,
+          "ok": true,
+          "detail": "panel moved"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 2007.6230689999993,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for first assistant activity :: dispatch={\"fillValueLength\":32,\"fillValueMatchesPrompt\":true,\"userBefore\":0,\"userAfterDispatch\":0} :: {\"connection\":[\"Connected\",\"Connected\"],\"statusRows\":[],\"bodyHints\":[\"CONNECTED\",\"CONNECTED\"]}"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 5128.769193999999,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for assistant shell growth :: dispatch={\"fillValueLength\":32,\"fillValueMatchesPrompt\":true,\"userBefore\":0,\"userAfterDispatch\":0} :: {\"connection\":[\"Connected\",\"Connected\"],\"statusRows\":[],\"bodyHints\":[\"CONNECTED\",\"CONNECTED\"]}"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 5128.769193999999,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for assistant shell growth :: dispatch={\"fillValueLength\":32,\"fillValueMatchesPrompt\":true,\"userBefore\":0,\"userAfterDispatch\":0} :: {\"connection\":[\"Connected\",\"Connected\"],\"statusRows\":[],\"bodyHints\":[\"CONNECTED\",\"CONNECTED\"]}"
+        }
+      ],
+      "notes": [
+        "prompt-1 first activity timed out",
+        "prompt-1 full response timed out"
+      ],
+      "frameDeltaCount": 329
+    }
+  ],
+  "consoleErrors": []
+}

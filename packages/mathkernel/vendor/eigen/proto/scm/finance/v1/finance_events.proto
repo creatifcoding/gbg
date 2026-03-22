@@ -1,0 +1,21 @@
+syntax = "proto3";
+package scm.finance.v1;
+
+import "google/protobuf/timestamp.proto";
+import "scm/common/v1/common.proto";
+
+message LandedCostModelRevised { string model_id = 1; string scope = 2; map<string,string> attrs = 3; }
+message StandardCostUpdated { string part_id = 1; scm.common.v1.Money cost = 2; map<string,string> attrs = 3; }
+
+message InvoiceReceived { string invoice_id = 1; string supplier_party_id = 2; scm.common.v1.Money total = 3; map<string,string> attrs = 4; }
+message InvoiceMatched { string invoice_id = 1; string po_id = 2; map<string,string> attrs = 3; }
+message InvoiceDisputed { string invoice_id = 1; string reason = 2; map<string,string> attrs = 3; }
+
+message PaymentIssued { string payment_id = 1; string invoice_id = 2; scm.common.v1.Money amount = 3; map<string,string> attrs = 4; }
+message PaymentFailed { string payment_id = 1; string reason = 2; map<string,string> attrs = 3; }
+message CreditHoldApplied { string party_id = 1; string reason = 2; map<string,string> attrs = 3; }
+message CreditHoldReleased { string party_id = 1; map<string,string> attrs = 2; }
+
+message FXRateObserved { string pair = 1; double rate = 2; google.protobuf.Timestamp ts = 3; map<string,string> attrs = 4; }
+message TariffRateUpdated { string hs_code = 1; double rate = 2; map<string,string> attrs = 3; }
+message WriteOffRecorded { string ref_id = 1; scm.common.v1.Money amount = 2; map<string,string> attrs = 3; }

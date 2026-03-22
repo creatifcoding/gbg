@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"/><title>DOM probe</title>
+<style>body{margin:0;background:#010101;color:#ccc;font:13px monospace;padding:12px}
+.ok{color:#22c55e}.err{color:#ef4444}.warn{color:#eab308}</style></head>
+<body><div id="log"></div>
+<script>
+const L=document.getElementById('log');
+const p=(c,m)=>{const d=document.createElement('div');d.className=c;d.textContent=m;L.appendChild(d)};
+
+// Redirect to /testbed/floating and poll the DOM
+window.location.href = '/testbed/floating';
+</script></body></html>

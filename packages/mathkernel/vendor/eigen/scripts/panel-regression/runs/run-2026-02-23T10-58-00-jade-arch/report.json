@@ -1,0 +1,1420 @@
+{
+  "runId": "run-2026-02-23T10-58-00-jade-arch",
+  "startedAt": "2026-02-23T10:58:00.618Z",
+  "completedAt": "2026-02-23T10:59:13.445Z",
+  "totalScenarios": 9,
+  "passed": 0,
+  "failed": 9,
+  "scenarios": [
+    {
+      "scenarioId": "amber-arch",
+      "title": "Basic collapse roundtrip",
+      "runId": "amber-arch",
+      "mode": "strip+tree",
+      "passed": false,
+      "screenshots": [
+        {
+          "name": "spawned",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/amber-arch/strip/002-spawned.png",
+          "step": 2,
+          "timestamp": 1771844282479
+        },
+        {
+          "name": "collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/amber-arch/strip/004-collapsed.png",
+          "step": 4,
+          "timestamp": 1771844283079
+        },
+        {
+          "name": "expanded",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/amber-arch/strip/006-expanded.png",
+          "step": 6,
+          "timestamp": 1771844283740
+        },
+        {
+          "name": "mode-switch-to-tree",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/amber-arch/strip/007-mode-switch-to-tree.png",
+          "step": 7,
+          "timestamp": 1771844285042
+        },
+        {
+          "name": "spawned",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/amber-arch/tree/002-spawned.png",
+          "step": 2,
+          "timestamp": 1771844286961
+        },
+        {
+          "name": "collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/amber-arch/tree/004-collapsed.png",
+          "step": 4,
+          "timestamp": 1771844287525
+        },
+        {
+          "name": "expanded",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/amber-arch/tree/006-expanded.png",
+          "step": 6,
+          "timestamp": 1771844288065
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771844281689,
+          "durationMs": 703.053815
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844282159,
+          "durationMs": 469.9333899999999
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844282777,
+          "durationMs": 279.0126120000002
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844283429,
+          "durationMs": 337.0441420000002
+        },
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771844286156,
+          "durationMs": 773.8853369999997
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844286666,
+          "durationMs": 509.41993100000036
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844287241,
+          "durationMs": 260.711464
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844287791,
+          "durationMs": 256.9803060000004
+        }
+      ],
+      "errors": [
+        "[strip] spawned.totalPanels: expected 1, got undefined",
+        "[strip] spawned.tiledCount: expected 1, got undefined",
+        "[strip] spawned.floatCount: expected 0, got undefined",
+        "[strip] spawned.collapsedCount: expected 0, got undefined",
+        "[strip] spawned.expandedCount: expected 1, got undefined",
+        "[strip] spawned.columnCount: expected 1, got undefined",
+        "[strip] spawned.overlayOpen: expected true, got undefined",
+        "[strip] collapsed.totalPanels: expected 1, got undefined",
+        "[strip] collapsed.tiledCount: expected 1, got undefined",
+        "[strip] collapsed.collapsedCount: expected 1, got undefined",
+        "[strip] collapsed.expandedCount: expected 0, got undefined",
+        "[strip] collapsed.columnCount: expected 1, got undefined",
+        "[strip] collapsed.collapsedColumnCount: expected 1, got undefined",
+        "[strip] expanded.totalPanels: expected 1, got undefined",
+        "[strip] expanded.tiledCount: expected 1, got undefined",
+        "[strip] expanded.collapsedCount: expected 0, got undefined",
+        "[strip] expanded.expandedCount: expected 1, got undefined",
+        "[strip] expanded.columnCount: expected 1, got undefined",
+        "[strip] expanded.collapsedColumnCount: expected 0, got undefined",
+        "[tree] spawned.totalPanels: expected 1, got undefined",
+        "[tree] spawned.tiledCount: expected 1, got undefined",
+        "[tree] spawned.floatCount: expected 0, got undefined",
+        "[tree] spawned.collapsedCount: expected 0, got undefined",
+        "[tree] spawned.expandedCount: expected 1, got undefined",
+        "[tree] spawned.columnCount: expected 1, got undefined",
+        "[tree] spawned.overlayOpen: expected true, got undefined",
+        "[tree] collapsed.totalPanels: expected 1, got undefined",
+        "[tree] collapsed.tiledCount: expected 1, got undefined",
+        "[tree] collapsed.collapsedCount: expected 1, got undefined",
+        "[tree] collapsed.expandedCount: expected 0, got undefined",
+        "[tree] collapsed.columnCount: expected 1, got undefined",
+        "[tree] collapsed.collapsedColumnCount: expected 1, got undefined",
+        "[tree] expanded.totalPanels: expected 1, got undefined",
+        "[tree] expanded.tiledCount: expected 1, got undefined",
+        "[tree] expanded.collapsedCount: expected 0, got undefined",
+        "[tree] expanded.expandedCount: expected 1, got undefined",
+        "[tree] expanded.columnCount: expected 1, got undefined",
+        "[tree] expanded.collapsedColumnCount: expected 0, got undefined"
+      ],
+      "durationMs": 7439.353921,
+      "startedAt": "2026-02-23T10:58:00.640Z"
+    },
+    {
+      "scenarioId": "bold-arch",
+      "title": "Vsplit + collapse both",
+      "runId": "bold-arch",
+      "mode": "strip+tree",
+      "passed": false,
+      "screenshots": [
+        {
+          "name": "vsplit-done",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/bold-arch/strip/003-vsplit-done.png",
+          "step": 3,
+          "timestamp": 1771844290547
+        },
+        {
+          "name": "both-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/bold-arch/strip/007-both-collapsed.png",
+          "step": 7,
+          "timestamp": 1771844291665
+        },
+        {
+          "name": "mode-switch-to-tree",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/bold-arch/strip/008-mode-switch-to-tree.png",
+          "step": 8,
+          "timestamp": 1771844292912
+        },
+        {
+          "name": "vsplit-done",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/bold-arch/tree/003-vsplit-done.png",
+          "step": 3,
+          "timestamp": 1771844295236
+        },
+        {
+          "name": "both-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/bold-arch/tree/007-both-collapsed.png",
+          "step": 7,
+          "timestamp": 1771844296361
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771844289183,
+          "durationMs": 750.3769380000003
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844289668,
+          "durationMs": 485.36736999999994
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771844290206,
+          "durationMs": 537.6089739999989
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844290850,
+          "durationMs": 289.39996299999984
+        },
+        {
+          "index": 1,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771844291107,
+          "durationMs": 256.3040550000005
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844291377,
+          "durationMs": 270.3748660000001
+        },
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771844293946,
+          "durationMs": 698.863460999999
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844294453,
+          "durationMs": 506.27693199999885
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771844294927,
+          "durationMs": 474.3186459999997
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844295517,
+          "durationMs": 270.1084149999988
+        },
+        {
+          "index": 1,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771844295811,
+          "durationMs": 293.1047519999993
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844296072,
+          "durationMs": 260.8893189999999
+        }
+      ],
+      "errors": [
+        "[strip] vsplit-done.totalPanels: expected 2, got undefined",
+        "[strip] vsplit-done.tiledCount: expected 2, got undefined",
+        "[strip] vsplit-done.collapsedCount: expected 0, got undefined",
+        "[strip] vsplit-done.expandedCount: expected 2, got undefined",
+        "[strip] vsplit-done.columnCount: expected 1, got undefined",
+        "[strip] both-collapsed.totalPanels: expected 2, got undefined",
+        "[strip] both-collapsed.tiledCount: expected 2, got undefined",
+        "[strip] both-collapsed.collapsedCount: expected 2, got undefined",
+        "[strip] both-collapsed.expandedCount: expected 0, got undefined",
+        "[strip] both-collapsed.columnCount: expected 1, got undefined",
+        "[strip] both-collapsed.collapsedColumnCount: expected 1, got undefined",
+        "[tree] vsplit-done.totalPanels: expected 2, got undefined",
+        "[tree] vsplit-done.tiledCount: expected 2, got undefined",
+        "[tree] vsplit-done.collapsedCount: expected 0, got undefined",
+        "[tree] vsplit-done.expandedCount: expected 2, got undefined",
+        "[tree] vsplit-done.columnCount: expected 1, got undefined",
+        "[tree] both-collapsed.totalPanels: expected 2, got undefined",
+        "[tree] both-collapsed.tiledCount: expected 2, got undefined",
+        "[tree] both-collapsed.collapsedCount: expected 2, got undefined",
+        "[tree] both-collapsed.expandedCount: expected 0, got undefined",
+        "[tree] both-collapsed.columnCount: expected 1, got undefined",
+        "[tree] both-collapsed.collapsedColumnCount: expected 1, got undefined"
+      ],
+      "durationMs": 8296.447639999999,
+      "startedAt": "2026-02-23T10:58:08.080Z"
+    },
+    {
+      "scenarioId": "calm-arch",
+      "title": "Vsplit + hsplit mixed layout",
+      "runId": "calm-arch",
+      "mode": "strip+tree",
+      "passed": false,
+      "screenshots": [
+        {
+          "name": "mixed-layout",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/calm-arch/strip/004-mixed-layout.png",
+          "step": 4,
+          "timestamp": 1771844299151
+        },
+        {
+          "name": "bottom-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/calm-arch/strip/008-bottom-collapsed.png",
+          "step": 8,
+          "timestamp": 1771844300287
+        },
+        {
+          "name": "all-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/calm-arch/strip/011-all-collapsed.png",
+          "step": 11,
+          "timestamp": 1771844301138
+        },
+        {
+          "name": "mode-switch-to-tree",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/calm-arch/strip/012-mode-switch-to-tree.png",
+          "step": 12,
+          "timestamp": 1771844302284
+        },
+        {
+          "name": "mixed-layout",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/calm-arch/tree/004-mixed-layout.png",
+          "step": 4,
+          "timestamp": 1771844305076
+        },
+        {
+          "name": "bottom-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/calm-arch/tree/008-bottom-collapsed.png",
+          "step": 8,
+          "timestamp": 1771844306133
+        },
+        {
+          "name": "all-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/calm-arch/tree/011-all-collapsed.png",
+          "step": 11,
+          "timestamp": 1771844306953
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771844297458,
+          "durationMs": 747.4650549999988
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844297942,
+          "durationMs": 483.7056080000002
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771844298436,
+          "durationMs": 494.5561229999985
+        },
+        {
+          "index": 0,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771844298865,
+          "durationMs": 428.3006950000017
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844299430,
+          "durationMs": 268.74236799999926
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771844299722,
+          "durationMs": 291.5840730000018
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844299991,
+          "durationMs": 268.7126190000017
+        },
+        {
+          "index": 2,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771844300562,
+          "durationMs": 264.4622810000001
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844300828,
+          "durationMs": 266.1101430000017
+        },
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771844303364,
+          "durationMs": 737.3692960000008
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844303867,
+          "durationMs": 502.6032039999991
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771844304358,
+          "durationMs": 490.6539440000015
+        },
+        {
+          "index": 0,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771844304789,
+          "durationMs": 430.90142000000196
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844305345,
+          "durationMs": 258.6021409999994
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771844305605,
+          "durationMs": 259.578214000001
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844305864,
+          "durationMs": 259.5173480000012
+        },
+        {
+          "index": 2,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771844306402,
+          "durationMs": 255.00558900000033
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844306660,
+          "durationMs": 257.9216899999992
+        }
+      ],
+      "errors": [
+        "[strip] mixed-layout.totalPanels: expected 3, got undefined",
+        "[strip] mixed-layout.tiledCount: expected 3, got undefined",
+        "[strip] mixed-layout.collapsedCount: expected 0, got undefined",
+        "[strip] mixed-layout.expandedCount: expected 3, got undefined",
+        "[strip] mixed-layout.columnCount: expected 1, got undefined",
+        "[strip] bottom-collapsed.totalPanels: expected 3, got undefined",
+        "[strip] bottom-collapsed.tiledCount: expected 3, got undefined",
+        "[strip] bottom-collapsed.collapsedCount: expected 2, got undefined",
+        "[strip] bottom-collapsed.expandedCount: expected 1, got undefined",
+        "[strip] bottom-collapsed.columnCount: expected 1, got undefined",
+        "[strip] bottom-collapsed.collapsedColumnCount: expected 0, got undefined",
+        "[strip] all-collapsed.totalPanels: expected 3, got undefined",
+        "[strip] all-collapsed.tiledCount: expected 3, got undefined",
+        "[strip] all-collapsed.collapsedCount: expected 3, got undefined",
+        "[strip] all-collapsed.expandedCount: expected 0, got undefined",
+        "[strip] all-collapsed.columnCount: expected 1, got undefined",
+        "[strip] all-collapsed.collapsedColumnCount: expected 1, got undefined",
+        "[tree] mixed-layout.totalPanels: expected 3, got undefined",
+        "[tree] mixed-layout.tiledCount: expected 3, got undefined",
+        "[tree] mixed-layout.collapsedCount: expected 0, got undefined",
+        "[tree] mixed-layout.expandedCount: expected 3, got undefined",
+        "[tree] mixed-layout.columnCount: expected 1, got undefined",
+        "[tree] bottom-collapsed.totalPanels: expected 3, got undefined",
+        "[tree] bottom-collapsed.tiledCount: expected 3, got undefined",
+        "[tree] bottom-collapsed.collapsedCount: expected 2, got undefined",
+        "[tree] bottom-collapsed.expandedCount: expected 1, got undefined",
+        "[tree] bottom-collapsed.columnCount: expected 1, got undefined",
+        "[tree] bottom-collapsed.collapsedColumnCount: expected 0, got undefined",
+        "[tree] all-collapsed.totalPanels: expected 3, got undefined",
+        "[tree] all-collapsed.tiledCount: expected 3, got undefined",
+        "[tree] all-collapsed.collapsedCount: expected 3, got undefined",
+        "[tree] all-collapsed.expandedCount: expected 0, got undefined",
+        "[tree] all-collapsed.columnCount: expected 1, got undefined",
+        "[tree] all-collapsed.collapsedColumnCount: expected 1, got undefined"
+      ],
+      "durationMs": 10598.709199,
+      "startedAt": "2026-02-23T10:58:16.376Z"
+    },
+    {
+      "scenarioId": "dark-arch",
+      "title": "Full tree regression (5 panels)",
+      "runId": "dark-arch",
+      "mode": "strip+tree",
+      "passed": false,
+      "screenshots": [
+        {
+          "name": "five-panels",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/dark-arch/strip/006-five-panels.png",
+          "step": 6,
+          "timestamp": 1771844310882
+        },
+        {
+          "name": "bottom-3-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/dark-arch/strip/012-bottom-3-collapsed.png",
+          "step": 12,
+          "timestamp": 1771844312572
+        },
+        {
+          "name": "all-5-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/dark-arch/strip/017-all-5-collapsed.png",
+          "step": 17,
+          "timestamp": 1771844313942
+        },
+        {
+          "name": "mode-switch-to-tree",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/dark-arch/strip/018-mode-switch-to-tree.png",
+          "step": 18,
+          "timestamp": 1771844315106
+        },
+        {
+          "name": "five-panels",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/dark-arch/tree/006-five-panels.png",
+          "step": 6,
+          "timestamp": 1771844318997
+        },
+        {
+          "name": "bottom-3-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/dark-arch/tree/012-bottom-3-collapsed.png",
+          "step": 12,
+          "timestamp": 1771844320641
+        },
+        {
+          "name": "all-5-collapsed",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/dark-arch/tree/017-all-5-collapsed.png",
+          "step": 17,
+          "timestamp": 1771844321982
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771844308132,
+          "durationMs": 817.9764260000011
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844308620,
+          "durationMs": 487.3436559999973
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844309208,
+          "durationMs": 588.4144840000008
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771844309721,
+          "durationMs": 512.8143879999989
+        },
+        {
+          "index": 0,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771844310158,
+          "durationMs": 436.59620899999936
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771844310588,
+          "durationMs": 429.63731200000257
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844311160,
+          "durationMs": 267.9699490000021
+        },
+        {
+          "index": 1,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771844311431,
+          "durationMs": 270.76700800000253
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844311720,
+          "durationMs": 289.18966199999704
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771844311996,
+          "durationMs": 275.6699750000007
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844312269,
+          "durationMs": 272.67402500000026
+        },
+        {
+          "index": 2,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771844312844,
+          "durationMs": 257.27406599999813
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844313134,
+          "durationMs": 290.12163000000146
+        },
+        {
+          "index": 2,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771844313399,
+          "durationMs": 264.37588900000264
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844313654,
+          "durationMs": 254.9170360000062
+        },
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771844316196,
+          "durationMs": 747.4241610000026
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844316679,
+          "durationMs": 483.1605879999988
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844317318,
+          "durationMs": 638.9396009999982
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771844317867,
+          "durationMs": 549.191015999997
+        },
+        {
+          "index": 0,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771844318307,
+          "durationMs": 440.07782399999996
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771844318730,
+          "durationMs": 422.62141800000245
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844319271,
+          "durationMs": 263.6159520000001
+        },
+        {
+          "index": 1,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771844319558,
+          "durationMs": 286.73199800000293
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844319823,
+          "durationMs": 265.6747269999978
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771844320081,
+          "durationMs": 257.205369000003
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844320353,
+          "durationMs": 272.467220999999
+        },
+        {
+          "index": 2,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771844320912,
+          "durationMs": 256.48447500000475
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844321198,
+          "durationMs": 285.7699950000024
+        },
+        {
+          "index": 2,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771844321459,
+          "durationMs": 261.0482059999995
+        },
+        {
+          "index": 2,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844321711,
+          "durationMs": 252.46481900000072
+        }
+      ],
+      "errors": [
+        "[strip] five-panels.totalPanels: expected 5, got undefined",
+        "[strip] five-panels.tiledCount: expected 5, got undefined",
+        "[strip] five-panels.floatCount: expected 0, got undefined",
+        "[strip] five-panels.collapsedCount: expected 0, got undefined",
+        "[strip] five-panels.expandedCount: expected 5, got undefined",
+        "[strip] five-panels.columnCount: expected 2, got undefined",
+        "[strip] bottom-3-collapsed.totalPanels: expected 5, got undefined",
+        "[strip] bottom-3-collapsed.tiledCount: expected 5, got undefined",
+        "[strip] bottom-3-collapsed.collapsedCount: expected 3, got undefined",
+        "[strip] bottom-3-collapsed.expandedCount: expected 2, got undefined",
+        "[strip] bottom-3-collapsed.columnCount: expected 2, got undefined",
+        "[strip] all-5-collapsed.totalPanels: expected 5, got undefined",
+        "[strip] all-5-collapsed.tiledCount: expected 5, got undefined",
+        "[strip] all-5-collapsed.collapsedCount: expected 5, got undefined",
+        "[strip] all-5-collapsed.expandedCount: expected 0, got undefined",
+        "[strip] all-5-collapsed.columnCount: expected 2, got undefined",
+        "[strip] all-5-collapsed.collapsedColumnCount: expected 2, got undefined",
+        "[tree] five-panels.totalPanels: expected 5, got undefined",
+        "[tree] five-panels.tiledCount: expected 5, got undefined",
+        "[tree] five-panels.floatCount: expected 0, got undefined",
+        "[tree] five-panels.collapsedCount: expected 0, got undefined",
+        "[tree] five-panels.expandedCount: expected 5, got undefined",
+        "[tree] five-panels.columnCount: expected 2, got undefined",
+        "[tree] bottom-3-collapsed.totalPanels: expected 5, got undefined",
+        "[tree] bottom-3-collapsed.tiledCount: expected 5, got undefined",
+        "[tree] bottom-3-collapsed.collapsedCount: expected 3, got undefined",
+        "[tree] bottom-3-collapsed.expandedCount: expected 2, got undefined",
+        "[tree] bottom-3-collapsed.columnCount: expected 2, got undefined",
+        "[tree] all-5-collapsed.totalPanels: expected 5, got undefined",
+        "[tree] all-5-collapsed.tiledCount: expected 5, got undefined",
+        "[tree] all-5-collapsed.collapsedCount: expected 5, got undefined",
+        "[tree] all-5-collapsed.expandedCount: expected 0, got undefined",
+        "[tree] all-5-collapsed.columnCount: expected 2, got undefined",
+        "[tree] all-5-collapsed.collapsedColumnCount: expected 2, got undefined"
+      ],
+      "durationMs": 15020.246933999999,
+      "startedAt": "2026-02-23T10:58:26.976Z"
+    },
+    {
+      "scenarioId": "eager-arch",
+      "title": "Focus navigation sweep",
+      "runId": "eager-arch",
+      "mode": "strip",
+      "passed": false,
+      "screenshots": [
+        {
+          "name": "three-columns",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/eager-arch/strip/005-three-columns.png",
+          "step": 5,
+          "timestamp": 1771844325604
+        },
+        {
+          "name": "at-col1",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/eager-arch/strip/008-at-col1.png",
+          "step": 8,
+          "timestamp": 1771844326475
+        },
+        {
+          "name": "at-col2-top",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/eager-arch/strip/010-at-col2-top.png",
+          "step": 10,
+          "timestamp": 1771844327024
+        },
+        {
+          "name": "at-col2-bottom",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/eager-arch/strip/012-at-col2-bottom.png",
+          "step": 12,
+          "timestamp": 1771844327592
+        },
+        {
+          "name": "at-col3",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/eager-arch/strip/014-at-col3.png",
+          "step": 14,
+          "timestamp": 1771844328159
+        },
+        {
+          "name": "back-col2-top",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/eager-arch/strip/017-back-col2-top.png",
+          "step": 17,
+          "timestamp": 1771844329029
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771844323052,
+          "durationMs": 715.060759
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844323562,
+          "durationMs": 509.94046199999866
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844324096,
+          "durationMs": 534.7524150000027
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771844324732,
+          "durationMs": 635.6881569999969
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844325298,
+          "durationMs": 565.9419500000004
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771844325924,
+          "durationMs": 308.38677299999836
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771844326185,
+          "durationMs": 260.49606499999936
+        },
+        {
+          "index": 2,
+          "tag": "focus-right",
+          "label": "Focus right (Alt+L)",
+          "timestamp": 1771844326745,
+          "durationMs": 259.6413320000065
+        },
+        {
+          "index": 3,
+          "tag": "focus-down",
+          "label": "Focus down (Alt+J)",
+          "timestamp": 1771844327303,
+          "durationMs": 269.32896400000027
+        },
+        {
+          "index": 4,
+          "tag": "focus-right",
+          "label": "Focus right (Alt+L)",
+          "timestamp": 1771844327870,
+          "durationMs": 264.37478000000556
+        },
+        {
+          "index": 5,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771844328488,
+          "durationMs": 312.5572670000038
+        },
+        {
+          "index": 5,
+          "tag": "focus-up",
+          "label": "Focus up (Alt+K)",
+          "timestamp": 1771844328752,
+          "durationMs": 263.44450199999847
+        }
+      ],
+      "errors": [
+        "[strip] three-columns.totalPanels: expected 4, got undefined",
+        "[strip] three-columns.tiledCount: expected 4, got undefined",
+        "[strip] three-columns.columnCount: expected 3, got undefined",
+        "[strip] at-col1.focusPosition: expected col:0, got undefined",
+        "[strip] at-col2-top.focusPosition: expected col:1/row:0, got undefined",
+        "[strip] at-col2-bottom.focusPosition: expected col:1/row:1, got undefined",
+        "[strip] at-col3.focusPosition: expected col:2, got undefined",
+        "[strip] back-col2-top.focusPosition: expected col:1/row:0, got undefined"
+      ],
+      "durationMs": 7048.158836000002,
+      "startedAt": "2026-02-23T10:58:41.996Z"
+    },
+    {
+      "scenarioId": "fast-arch",
+      "title": "Swap operations",
+      "runId": "fast-arch",
+      "mode": "strip",
+      "passed": false,
+      "screenshots": [
+        {
+          "name": "two-columns",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/fast-arch/strip/003-two-columns.png",
+          "step": 3,
+          "timestamp": 1771844331605
+        },
+        {
+          "name": "swapped-left",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/fast-arch/strip/005-swapped-left.png",
+          "step": 5,
+          "timestamp": 1771844332234
+        },
+        {
+          "name": "swapped-right",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/fast-arch/strip/007-swapped-right.png",
+          "step": 7,
+          "timestamp": 1771844332854
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771844330148,
+          "durationMs": 750.217048999999
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844330664,
+          "durationMs": 515.6527409999981
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844331285,
+          "durationMs": 621.032815999999
+        },
+        {
+          "index": 1,
+          "tag": "swap-left",
+          "label": "Swap left (Alt+Shift+H)",
+          "timestamp": 1771844331927,
+          "durationMs": 309.9526460000052
+        },
+        {
+          "index": 2,
+          "tag": "swap-right",
+          "label": "Swap right (Alt+Shift+L)",
+          "timestamp": 1771844332543,
+          "durationMs": 300.06732499999634
+        }
+      ],
+      "errors": [
+        "[strip] two-columns.totalPanels: expected 2, got undefined",
+        "[strip] two-columns.columnCount: expected 2, got undefined",
+        "[strip] two-columns.focusPosition: expected col:1, got undefined",
+        "[strip] swapped-left.totalPanels: expected 2, got undefined",
+        "[strip] swapped-left.columnCount: expected 2, got undefined",
+        "[strip] swapped-left.focusPosition: expected col:0, got undefined",
+        "[strip] swapped-right.totalPanels: expected 2, got undefined",
+        "[strip] swapped-right.columnCount: expected 2, got undefined",
+        "[strip] swapped-right.focusPosition: expected col:1, got undefined"
+      ],
+      "durationMs": 3830.351748000001,
+      "startedAt": "2026-02-23T10:58:49.044Z"
+    },
+    {
+      "scenarioId": "grim-arch",
+      "title": "Width cycle presets",
+      "runId": "grim-arch",
+      "mode": "strip",
+      "passed": false,
+      "screenshots": [
+        {
+          "name": "initial-half",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/grim-arch/strip/002-initial-half.png",
+          "step": 2,
+          "timestamp": 1771844334739
+        },
+        {
+          "name": "width-wide",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/grim-arch/strip/004-width-wide.png",
+          "step": 4,
+          "timestamp": 1771844335287
+        },
+        {
+          "name": "width-full",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/grim-arch/strip/006-width-full.png",
+          "step": 6,
+          "timestamp": 1771844335865
+        },
+        {
+          "name": "width-narrow",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/grim-arch/strip/008-width-narrow.png",
+          "step": 8,
+          "timestamp": 1771844336411
+        },
+        {
+          "name": "width-half-again",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/grim-arch/strip/010-width-half-again.png",
+          "step": 10,
+          "timestamp": 1771844336972
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771844333964,
+          "durationMs": 740.3809509999992
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844334439,
+          "durationMs": 475.0798149999973
+        },
+        {
+          "index": 1,
+          "tag": "width-cycle",
+          "label": "Cycle column width (Alt+D)",
+          "timestamp": 1771844335004,
+          "durationMs": 253.70737100000406
+        },
+        {
+          "index": 2,
+          "tag": "width-cycle",
+          "label": "Cycle column width (Alt+D)",
+          "timestamp": 1771844335560,
+          "durationMs": 259.1938979999977
+        },
+        {
+          "index": 3,
+          "tag": "width-cycle",
+          "label": "Cycle column width (Alt+D)",
+          "timestamp": 1771844336129,
+          "durationMs": 249.20672699999704
+        },
+        {
+          "index": 4,
+          "tag": "width-cycle",
+          "label": "Cycle column width (Alt+D)",
+          "timestamp": 1771844336685,
+          "durationMs": 260.2052040000053
+        }
+      ],
+      "errors": [
+        "[strip] initial-half.totalPanels: expected 1, got undefined",
+        "[strip] initial-half.columnCount: expected 1, got undefined",
+        "[strip] initial-half.focusedColumnWidth: expected half, got undefined",
+        "[strip] width-wide.focusedColumnWidth: expected wide, got undefined",
+        "[strip] width-full.focusedColumnWidth: expected full, got undefined",
+        "[strip] width-narrow.focusedColumnWidth: expected narrow, got undefined",
+        "[strip] width-half-again.focusedColumnWidth: expected half, got undefined"
+      ],
+      "durationMs": 4112.5001120000015,
+      "startedAt": "2026-02-23T10:58:52.875Z"
+    },
+    {
+      "scenarioId": "hazy-arch",
+      "title": "Tree-aware panel close",
+      "runId": "hazy-arch",
+      "mode": "strip+tree",
+      "passed": false,
+      "screenshots": [
+        {
+          "name": "before-close",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/hazy-arch/strip/003-before-close.png",
+          "step": 3,
+          "timestamp": 1771844339374
+        },
+        {
+          "name": "after-close",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/hazy-arch/strip/005-after-close.png",
+          "step": 5,
+          "timestamp": 1771844340088
+        },
+        {
+          "name": "mode-switch-to-tree",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/hazy-arch/strip/006-mode-switch-to-tree.png",
+          "step": 6,
+          "timestamp": 1771844341279
+        },
+        {
+          "name": "before-close",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/hazy-arch/tree/003-before-close.png",
+          "step": 3,
+          "timestamp": 1771844343678
+        },
+        {
+          "name": "after-close",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/hazy-arch/tree/005-after-close.png",
+          "step": 5,
+          "timestamp": 1771844344361
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771844338036,
+          "durationMs": 698.1382080000039
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844338534,
+          "durationMs": 498.3154759999961
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771844339069,
+          "durationMs": 534.9282190000013
+        },
+        {
+          "index": 1,
+          "tag": "close",
+          "label": "Close panel (Alt+Q)",
+          "timestamp": 1771844339753,
+          "durationMs": 370.4707039999994
+        },
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771844342401,
+          "durationMs": 749.0504660000006
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844342910,
+          "durationMs": 509.2823190000054
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771844343397,
+          "durationMs": 486.9288069999966
+        },
+        {
+          "index": 1,
+          "tag": "close",
+          "label": "Close panel (Alt+Q)",
+          "timestamp": 1771844344053,
+          "durationMs": 365.80235900000116
+        }
+      ],
+      "errors": [
+        "[strip] before-close.totalPanels: expected 2, got undefined",
+        "[strip] before-close.tiledCount: expected 2, got undefined",
+        "[strip] before-close.columnCount: expected 1, got undefined",
+        "[strip] after-close.totalPanels: expected 1, got undefined",
+        "[strip] after-close.tiledCount: expected 1, got undefined",
+        "[strip] after-close.columnCount: expected 1, got undefined",
+        "[tree] before-close.totalPanels: expected 2, got undefined",
+        "[tree] before-close.tiledCount: expected 2, got undefined",
+        "[tree] before-close.columnCount: expected 1, got undefined",
+        "[tree] after-close.totalPanels: expected 1, got undefined",
+        "[tree] after-close.tiledCount: expected 1, got undefined",
+        "[tree] after-close.columnCount: expected 1, got undefined"
+      ],
+      "durationMs": 7386.781599000002,
+      "startedAt": "2026-02-23T10:58:56.987Z"
+    },
+    {
+      "scenarioId": "icy-arch",
+      "title": "Mode switch with collapsed panels",
+      "runId": "icy-arch",
+      "mode": "strip+tree",
+      "passed": false,
+      "screenshots": [
+        {
+          "name": "complex-strip",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/icy-arch/strip/004-complex-strip.png",
+          "step": 4,
+          "timestamp": 1771844347260
+        },
+        {
+          "name": "partial-collapse-strip",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/icy-arch/strip/008-partial-collapse-strip.png",
+          "step": 8,
+          "timestamp": 1771844348360
+        },
+        {
+          "name": "mode-switch-to-tree",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/icy-arch/strip/009-mode-switch-to-tree.png",
+          "step": 9,
+          "timestamp": 1771844349547
+        },
+        {
+          "name": "complex-strip",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/icy-arch/tree/004-complex-strip.png",
+          "step": 4,
+          "timestamp": 1771844352342
+        },
+        {
+          "name": "partial-collapse-strip",
+          "path": "scripts/panel-regression/runs/run-2026-02-23T10-58-00-jade-arch/icy-arch/tree/008-partial-collapse-strip.png",
+          "step": 8,
+          "timestamp": 1771844353424
+        }
+      ],
+      "steps": [
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771844345485,
+          "durationMs": 759.6136130000014
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844346043,
+          "durationMs": 557.7200109999976
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771844346546,
+          "durationMs": 503.5370750000002
+        },
+        {
+          "index": 0,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771844346973,
+          "durationMs": 426.7041610000015
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844347539,
+          "durationMs": 266.27235099999234
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771844347806,
+          "durationMs": 267.20531000000483
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844348069,
+          "durationMs": 262.7406830000109
+        },
+        {
+          "index": 0,
+          "tag": "toggle-overlay",
+          "label": "Toggle panel overlay (Alt+P)",
+          "timestamp": 1771844350630,
+          "durationMs": 740.493226999999
+        },
+        {
+          "index": 0,
+          "tag": "spawn",
+          "label": "Spawn panel (Alt+Enter)",
+          "timestamp": 1771844351080,
+          "durationMs": 450.6209280000039
+        },
+        {
+          "index": 0,
+          "tag": "vsplit",
+          "label": "Vertical split (Alt+_)",
+          "timestamp": 1771844351605,
+          "durationMs": 524.5917220000119
+        },
+        {
+          "index": 0,
+          "tag": "hsplit",
+          "label": "Horizontal split (Alt+-)",
+          "timestamp": 1771844352049,
+          "durationMs": 444.1697520000016
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844352621,
+          "durationMs": 266.3987280000001
+        },
+        {
+          "index": 1,
+          "tag": "focus-left",
+          "label": "Focus left (Alt+H)",
+          "timestamp": 1771844352877,
+          "durationMs": 255.22628099999565
+        },
+        {
+          "index": 1,
+          "tag": "collapse",
+          "label": "Collapse focused (Alt+W)",
+          "timestamp": 1771844353140,
+          "durationMs": 263.69012099999236
+        }
+      ],
+      "errors": [
+        "[strip] complex-strip.totalPanels: expected 3, got undefined",
+        "[strip] complex-strip.tiledCount: expected 3, got undefined",
+        "[strip] complex-strip.collapsedCount: expected 0, got undefined",
+        "[strip] complex-strip.expandedCount: expected 3, got undefined",
+        "[strip] complex-strip.columnCount: expected 1, got undefined",
+        "[strip] partial-collapse-strip.totalPanels: expected 3, got undefined",
+        "[strip] partial-collapse-strip.tiledCount: expected 3, got undefined",
+        "[strip] partial-collapse-strip.collapsedCount: expected 2, got undefined",
+        "[strip] partial-collapse-strip.expandedCount: expected 1, got undefined",
+        "[strip] partial-collapse-strip.columnCount: expected 1, got undefined",
+        "[tree] complex-strip.totalPanels: expected 3, got undefined",
+        "[tree] complex-strip.tiledCount: expected 3, got undefined",
+        "[tree] complex-strip.collapsedCount: expected 0, got undefined",
+        "[tree] complex-strip.expandedCount: expected 3, got undefined",
+        "[tree] complex-strip.columnCount: expected 1, got undefined",
+        "[tree] partial-collapse-strip.totalPanels: expected 3, got undefined",
+        "[tree] partial-collapse-strip.tiledCount: expected 3, got undefined",
+        "[tree] partial-collapse-strip.collapsedCount: expected 2, got undefined",
+        "[tree] partial-collapse-strip.expandedCount: expected 1, got undefined",
+        "[tree] partial-collapse-strip.columnCount: expected 1, got undefined"
+      ],
+      "durationMs": 9069.925693000005,
+      "startedAt": "2026-02-23T10:59:04.374Z"
+    }
+  ]
+}

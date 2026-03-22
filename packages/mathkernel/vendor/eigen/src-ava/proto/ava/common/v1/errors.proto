@@ -1,0 +1,251 @@
+// AVA Common Errors v1
+//
+// Unified error hierarchy for all AVA services.
+// Provides structured error types with rich metadata for debugging.
+
+syntax = "proto3";
+
+package ava.common.v1;
+
+import "google/protobuf/any.proto";
+import "ava/common/v1/identifiers.proto";
+
+option java_multiple_files = true;
+option java_package = "com.ava.common.v1";
+
+// AvaError - Top-level error envelope
+message AvaError {
+  // Unique error code for programmatic handling
+  string code = 1;
+
+  // Human-readable error message
+  string message = 2;
+
+  // Optional correlation ID for distributed tracing
+  optional CorrelationId correlation_id = 3;
+
+  // Structured error details
+  oneof details {
+    ViewError view = 10;
+    ChannelError channel = 11;
+    AssemblageError assemblage = 12;
+    SourceError source = 13;
+    ReconcilerError reconciler = 14;
+    ValidationError validation = 15;
+    InternalError internal = 16;
+  }
+
+  // Optional cause chain for nested errors
+  repeated AvaError causes = 20;
+
+  // Arbitrary metadata for debugging
+  map<string, string> metadata = 21;
+}
+
+// ViewError - Errors related to view lifecycle
+message ViewError {
+  oneof error {
+    ViewNotFound not_found = 1;
+    ViewAlreadyExists already_exists = 2;
+    ViewCompilationFailed compilation_failed = 3;
+    ViewNotMounted not_mounted = 4;
+    ViewSuspended suspended = 5;
+    ViewInvalidSpec invalid_spec = 6;
+    ViewQuotaExceeded quota_exceeded = 7;
+  }
+}
+
+message ViewNotFound {
+  ViewId view_id = 1;
+}
+
+message ViewAlreadyExists {
+  ViewId view_id = 1;
+  optional string existing_name = 2;
+}
+
+message ViewCompilationFailed {
+  ViewId view_id = 1;
+  string reason = 2;
+  repeated CompilationDiagnostic diagnostics = 3;
+}
+
+message CompilationDiagnostic {
+  enum Severity {
+    SEVERITY_UNSPECIFIED = 0;
+    ERROR = 1;
+    WARNING = 2;
+    INFO = 3;
+  }
+  Severity severity = 1;
+  string message = 2;
+  optional string location = 3;
+  optional string suggestion = 4;
+}
+
+message ViewNotMounted {
+  ViewId view_id = 1;
+  string reason = 2;
+}
+
+message ViewSuspended {
+  ViewId view_id = 1;
+  string reason = 2;
+  optional google.protobuf.Any resume_hint = 3;
+}
+
+message ViewInvalidSpec {
+  ViewId view_id = 1;
+  repeated string violations = 2;
+}
+
+message ViewQuotaExceeded {
+  string resource = 1;
+  uint64 limit = 2;
+  uint64 requested = 3;
+}
+
+// ChannelError - Errors related to data channels
+message ChannelError {
+  oneof error {
+    ChannelNotFound not_found = 1;
+    ChannelTypeMismatch type_mismatch = 2;
+    ChannelHydrationFailed hydration_failed = 3;
+    ChannelTimeout timeout = 4;
+    ChannelBackpressure backpressure = 5;
+  }
+}
+
+message ChannelNotFound {
+  ChannelId channel_id = 1;
+  optional ViewId view_id = 2;
+}
+
+message ChannelTypeMismatch {
+  ChannelId channel_id = 1;
+  string expected_type = 2;
+  string actual_type = 3;
+}
+
+message ChannelHydrationFailed {
+  ChannelId channel_id = 1;
+  string reason = 2;
+  optional SourceId source_id = 3;
+}
+
+message ChannelTimeout {
+  ChannelId channel_id = 1;
+  uint64 timeout_ms = 2;
+}
+
+message ChannelBackpressure {
+  ChannelId channel_id = 1;
+  uint64 queue_depth = 2;
+  uint64 max_depth = 3;
+}
+
+// AssemblageError - Errors related to asset assemblages
+message AssemblageError {
+  oneof error {
+    AssemblageNotFound not_found = 1;
+    AssemblagePredicateInvalid predicate_invalid = 2;
+    AssemblageConstraintViolation constraint_violation = 3;
+  }
+}
+
+message AssemblageNotFound {
+  AssemblageId assemblage_id = 1;
+}
+
+message AssemblagePredicateInvalid {
+  AssemblageId assemblage_id = 1;
+  string predicate_type = 2;
+  string reason = 3;
+}
+
+message AssemblageConstraintViolation {
+  AssemblageId assemblage_id = 1;
+  string constraint = 2;
+  string violation = 3;
+}
+
+// SourceError - Errors related to data sources
+message SourceError {
+  oneof error {
+    SourceNotFound not_found = 1;
+    SourceConnectionFailed connection_failed = 2;
+    SourceQueryFailed query_failed = 3;
+    SourceSchemaInvalid schema_invalid = 4;
+  }
+}
+
+message SourceNotFound {
+  SourceId source_id = 1;
+}
+
+message SourceConnectionFailed {
+  SourceId source_id = 1;
+  string reason = 2;
+  optional uint32 retry_after_ms = 3;
+}
+
+message SourceQueryFailed {
+  SourceId source_id = 1;
+  string query = 2;
+  string reason = 3;
+}
+
+message SourceSchemaInvalid {
+  SourceId source_id = 1;
+  string expected_schema = 2;
+  string actual_schema = 3;
+}
+
+// ReconcilerError - Errors related to the reconciler runtime
+message ReconcilerError {
+  oneof error {
+    FiberNotFound fiber_not_found = 1;
+    FiberPanicked fiber_panicked = 2;
+    ReconcilerOverloaded overloaded = 3;
+    ReconcilerShuttingDown shutting_down = 4;
+  }
+}
+
+message FiberNotFound {
+  FiberId fiber_id = 1;
+}
+
+message FiberPanicked {
+  FiberId fiber_id = 1;
+  string panic_message = 2;
+  optional string backtrace = 3;
+}
+
+message ReconcilerOverloaded {
+  uint64 active_fibers = 1;
+  uint64 max_fibers = 2;
+  uint64 queue_depth = 3;
+}
+
+message ReconcilerShuttingDown {
+  string reason = 1;
+  optional uint64 drain_timeout_ms = 2;
+}
+
+// ValidationError - Request validation errors
+message ValidationError {
+  repeated FieldViolation field_violations = 1;
+}
+
+message FieldViolation {
+  string field = 1;
+  string description = 2;
+  optional string constraint = 3;
+}
+
+// InternalError - Unexpected internal errors
+message InternalError {
+  string message = 1;
+  optional string error_id = 2;  // For support/debugging reference
+  optional string component = 3;
+}

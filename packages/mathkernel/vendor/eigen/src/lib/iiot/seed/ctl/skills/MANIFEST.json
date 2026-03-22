@@ -1,0 +1,21 @@
+{
+  "name": "iiot-seed",
+  "version": "0.1.0",
+  "skills": [
+    {
+      "name": "iiot-seed/core",
+      "description": "Core patterns and commands for iiot-seed",
+      "path": "skills/core/SKILL.md",
+      "triggers": [
+        "iiot-seed",
+        "iiot-seed help",
+        "iiot-seed usage"
+      ]
+    }
+  ],
+  "dependencies": [
+    "cli/core",
+    "cli/messaging",
+    "cli/persistence"
+  ]
+}

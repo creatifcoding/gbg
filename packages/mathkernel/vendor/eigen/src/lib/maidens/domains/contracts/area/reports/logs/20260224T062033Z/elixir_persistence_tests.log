@@ -1,0 +1,25 @@
+Running ExUnit with seed: 482725, max_cases: 32
+
+
+01:20:45.884 [notice] Executing Maiden.AreaRuntime.Actions.SetAreaStatus with params: %{reason: "scheduled_maintenance", at: "2026-02-24T02:05:00Z", to: "maintenance", from: "active", area_id: "ARA-PERSIST-001", by: "operator-persist"} and context: %{state: %{name: "Persist Area", status: "active", floor: nil, description: nil, location: nil, metadata: %{}, zone: nil, enterprise_id: "ENT-acme", site_id: "SIT-cleveland", created_at: "2026-02-24T02:00:00Z", area_id: "ARA-PERSIST-001", updated_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c8e4e-a92f-78b8-8735-6f0d1234de7a", action: Maiden.AreaRuntime.Actions.SetAreaStatus, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 6, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, area_type: nil, building: nil, hierarchy_path: "/ENT-acme/SIT-cleveland/ARA-PERSIST-001"}, action_metadata: %{name: "set_area_status", description: "Set area status for a validated transition", vsn: nil, category: nil, schema: [area_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, reason: %{size: 1, type: :list, __truncated_depth__: 4}, by: %{size: 1, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+01:20:45.905 [debug] Persist.hibernate starting for Maiden.AreaRuntime.Agent key="area-persist-001"
+
+01:20:45.907 [debug] Persist.hibernate completed for Maiden.AreaRuntime.Agent key="area-persist-001"
+
+01:20:45.907 [debug] Persist.thaw starting for Maiden.AreaRuntime.Agent key="area-persist-001"
+
+01:20:45.911 [debug] Persist.thaw completed for Maiden.AreaRuntime.Agent id=area-persist-001
+
+01:20:45.911 [debug] Persist.thaw starting for Maiden.AreaRuntime.Agent key="area-persist-invalid"
+..
+01:20:45.917 [debug] Persist.hibernate starting for Maiden.AreaRuntime.Agent key="area-persist-delete"
+
+01:20:45.917 [debug] Persist.hibernate completed for Maiden.AreaRuntime.Agent key="area-persist-delete"
+
+01:20:45.917 [debug] Persist.thaw starting for Maiden.AreaRuntime.Agent key="area-persist-delete"
+
+01:20:45.920 [debug] Persist.thaw: checkpoint not found for {Maiden.AreaRuntime.Agent, "area-persist-delete"}
+.
+Finished in 0.4 seconds (0.00s async, 0.4s sync)
+3 tests, 0 failures

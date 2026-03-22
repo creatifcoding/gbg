@@ -1,0 +1,2660 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+4. Repository files, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: packages/xstate-store/src/
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+<additional_info>
+
+</additional_info>
+
+</file_summary>
+
+<directory_structure>
+packages/
+  xstate-store/
+    src/
+      alien.ts
+      atom.ts
+      fromStore.ts
+      index.ts
+      react.ts
+      select.test.ts
+      shallowEqual.ts
+      solid.ts
+      store.ts
+      toObserver.ts
+      types.ts
+      undo.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="packages/xstate-store/src/alien.ts">
+/* eslint-disable */
+// Adapted from Alien Signals
+// https://github.com/stackblitz/alien-signals/
+
+export interface ReactiveNode {
+  _deps?: Link;
+  _depsTail?: Link;
+  _subs?: Link;
+  _subsTail?: Link;
+  _flags: ReactiveFlags;
+}
+
+interface Link {
+  version: number;
+  dep: ReactiveNode;
+  sub: ReactiveNode;
+  prevSub: Link | undefined;
+  nextSub: Link | undefined;
+  prevDep: Link | undefined;
+  nextDep: Link | undefined;
+}
+
+interface Stack<T> {
+  value: T;
+  prev: Stack<T> | undefined;
+}
+
+export enum ReactiveFlags {
+  None = 0,
+  Mutable = 1 << 0,
+  Watching = 1 << 1,
+  RecursedCheck = 1 << 2,
+  Recursed = 1 << 3,
+  Dirty = 1 << 4,
+  Pending = 1 << 5
+}
+
+export function createReactiveSystem({
+  update,
+  notify,
+  unwatched
+}: {
+  update(sub: ReactiveNode): boolean;
+  notify(sub: ReactiveNode): void;
+  unwatched(sub: ReactiveNode): void;
+}) {
+  let currentVersion = 0;
+  return {
+    link,
+    unlink,
+    propagate,
+    checkDirty,
+    endTracking,
+    startTracking,
+    shallowPropagate
+  };
+
+  function link(dep: ReactiveNode, sub: ReactiveNode): void {
+    const prevDep = sub._depsTail;
+    if (prevDep !== undefined && prevDep.dep === dep) {
+      return;
+    }
+    const nextDep = prevDep !== undefined ? prevDep.nextDep : sub._deps;
+    if (nextDep !== undefined && nextDep.dep === dep) {
+      nextDep.version = currentVersion;
+      sub._depsTail = nextDep;
+      return;
+    }
+    const prevSub = dep._subsTail;
+    if (
+      prevSub !== undefined &&
+      prevSub.version === currentVersion &&
+      prevSub.sub === sub
+    ) {
+      return;
+    }
+    const newLink =
+      (sub._depsTail =
+      dep._subsTail =
+        {
+          version: currentVersion,
+          dep,
+          sub,
+          prevDep,
+          nextDep,
+          prevSub,
+          nextSub: undefined
+        });
+    if (nextDep !== undefined) {
+      nextDep.prevDep = newLink;
+    }
+    if (prevDep !== undefined) {
+      prevDep.nextDep = newLink;
+    } else {
+      sub._deps = newLink;
+    }
+    if (prevSub !== undefined) {
+      prevSub.nextSub = newLink;
+    } else {
+      dep._subs = newLink;
+    }
+  }
+
+  function unlink(link: Link, sub = link.sub): Link | undefined {
+    const dep = link.dep;
+    const prevDep = link.prevDep;
+    const nextDep = link.nextDep;
+    const nextSub = link.nextSub;
+    const prevSub = link.prevSub;
+    if (nextDep !== undefined) {
+      nextDep.prevDep = prevDep;
+    } else {
+      sub._depsTail = prevDep;
+    }
+    if (prevDep !== undefined) {
+      prevDep.nextDep = nextDep;
+    } else {
+      sub._deps = nextDep;
+    }
+    if (nextSub !== undefined) {
+      nextSub.prevSub = prevSub;
+    } else {
+      dep._subsTail = prevSub;
+    }
+    if (prevSub !== undefined) {
+      prevSub.nextSub = nextSub;
+    } else if ((dep._subs = nextSub) === undefined) {
+      unwatched(dep);
+    }
+    return nextDep;
+  }
+
+  function propagate(link: Link): void {
+    let next = link.nextSub;
+    let stack: Stack<Link | undefined> | undefined;
+
+    top: do {
+      const sub = link.sub;
+      let flags = sub._flags;
+
+      if (
+        !(
+          flags &
+          (60 as
+            | ReactiveFlags.RecursedCheck
+            | ReactiveFlags.Recursed
+            | ReactiveFlags.Dirty
+            | ReactiveFlags.Pending)
+        )
+      ) {
+        sub._flags = flags | (32 satisfies ReactiveFlags.Pending);
+      } else if (
+        !(flags & (12 as ReactiveFlags.RecursedCheck | ReactiveFlags.Recursed))
+      ) {
+        flags = 0 satisfies ReactiveFlags.None;
+      } else if (!(flags & (4 satisfies ReactiveFlags.RecursedCheck))) {
+        sub._flags =
+          (flags & ~(8 satisfies ReactiveFlags.Recursed)) |
+          (32 satisfies ReactiveFlags.Pending);
+      } else if (
+        !(flags & (48 as ReactiveFlags.Dirty | ReactiveFlags.Pending)) &&
+        isValidLink(link, sub)
+      ) {
+        sub._flags =
+          flags | (40 as ReactiveFlags.Recursed | ReactiveFlags.Pending);
+        flags &= 1 satisfies ReactiveFlags.Mutable;
+      } else {
+        flags = 0 satisfies ReactiveFlags.None;
+      }
+
+      if (flags & (2 satisfies ReactiveFlags.Watching)) {
+        notify(sub);
+      }
+
+      if (flags & (1 satisfies ReactiveFlags.Mutable)) {
+        const subSubs = sub._subs;
+        if (subSubs !== undefined) {
+          const nextSub = (link = subSubs).nextSub;
+          if (nextSub !== undefined) {
+            stack = { value: next, prev: stack };
+            next = nextSub;
+          }
+          continue;
+        }
+      }
+
+      if ((link = next!) !== undefined) {
+        next = link.nextSub;
+        continue;
+      }
+
+      while (stack !== undefined) {
+        link = stack.value!;
+        stack = stack.prev;
+        if (link !== undefined) {
+          next = link.nextSub;
+          continue top;
+        }
+      }
+
+      break;
+    } while (true);
+  }
+
+  function startTracking(sub: ReactiveNode): void {
+    ++currentVersion;
+    sub._depsTail = undefined;
+    sub._flags =
+      (sub._flags &
+        ~(56 as
+          | ReactiveFlags.Recursed
+          | ReactiveFlags.Dirty
+          | ReactiveFlags.Pending)) |
+      (4 satisfies ReactiveFlags.RecursedCheck);
+  }
+
+  function endTracking(sub: ReactiveNode): void {
+    const depsTail = sub._depsTail;
+    let toRemove = depsTail !== undefined ? depsTail.nextDep : sub._deps;
+    while (toRemove !== undefined) {
+      toRemove = unlink(toRemove, sub);
+    }
+    sub._flags &= ~(4 satisfies ReactiveFlags.RecursedCheck);
+  }
+
+  function checkDirty(link: Link, sub: ReactiveNode): boolean {
+    let stack: Stack<Link> | undefined;
+    let checkDepth = 0;
+
+    top: do {
+      const dep = link.dep;
+      const flags = dep._flags;
+      let dirty = false;
+
+      if (sub._flags & (16 satisfies ReactiveFlags.Dirty)) {
+        dirty = true;
+      } else if (
+        (flags & (17 as ReactiveFlags.Mutable | ReactiveFlags.Dirty)) ===
+        (17 as ReactiveFlags.Mutable | ReactiveFlags.Dirty)
+      ) {
+        if (update(dep)) {
+          const subs = dep._subs!;
+          if (subs.nextSub !== undefined) {
+            shallowPropagate(subs);
+          }
+          dirty = true;
+        }
+      } else if (
+        (flags & (33 as ReactiveFlags.Mutable | ReactiveFlags.Pending)) ===
+        (33 as ReactiveFlags.Mutable | ReactiveFlags.Pending)
+      ) {
+        if (link.nextSub !== undefined || link.prevSub !== undefined) {
+          stack = { value: link, prev: stack };
+        }
+        link = dep._deps!;
+        sub = dep;
+        ++checkDepth;
+        continue;
+      }
+
+      if (!dirty) {
+        const nextDep = link.nextDep;
+        if (nextDep !== undefined) {
+          link = nextDep;
+          continue;
+        }
+      }
+
+      while (checkDepth--) {
+        const firstSub = sub._subs!;
+        const hasMultipleSubs = firstSub.nextSub !== undefined;
+        if (hasMultipleSubs) {
+          link = stack!.value;
+          stack = stack!.prev;
+        } else {
+          link = firstSub;
+        }
+        if (dirty) {
+          if (update(sub)) {
+            if (hasMultipleSubs) {
+              shallowPropagate(firstSub);
+            }
+            sub = link.sub;
+            continue;
+          }
+        } else {
+          sub._flags &= ~(32 satisfies ReactiveFlags.Pending);
+        }
+        sub = link.sub;
+        const nextDep = link.nextDep;
+        if (nextDep !== undefined) {
+          link = nextDep;
+          continue top;
+        }
+        dirty = false;
+      }
+
+      return dirty;
+    } while (true);
+  }
+
+  function shallowPropagate(link: Link): void {
+    do {
+      const sub = link.sub;
+      const flags = sub._flags;
+      if (
+        (flags & (48 as ReactiveFlags.Pending | ReactiveFlags.Dirty)) ===
+        (32 satisfies ReactiveFlags.Pending)
+      ) {
+        sub._flags = flags | (16 satisfies ReactiveFlags.Dirty);
+        if (flags & (2 satisfies ReactiveFlags.Watching)) {
+          notify(sub);
+        }
+      }
+    } while ((link = link.nextSub!) !== undefined);
+  }
+
+  function isValidLink(checkLink: Link, sub: ReactiveNode): boolean {
+    let link = sub._depsTail;
+    while (link !== undefined) {
+      if (link === checkLink) {
+        return true;
+      }
+      link = link.prevDep;
+    }
+    return false;
+  }
+}
+</file>
+
+<file path="packages/xstate-store/src/atom.ts">
+import {
+  createReactiveSystem,
+  type ReactiveNode,
+  type ReactiveFlags
+} from './alien';
+import { toObserver } from './toObserver';
+import {
+  Atom,
+  AtomOptions,
+  BaseAtom,
+  InternalBaseAtom,
+  InternalReadonlyAtom,
+  Observer,
+  Readable,
+  ReadonlyAtom
+} from './types';
+
+const queuedEffects: (Effect | undefined)[] = [];
+const {
+  link,
+  unlink,
+  propagate,
+  checkDirty,
+  endTracking,
+  startTracking,
+  shallowPropagate
+} = createReactiveSystem({
+  update(atom: InternalReadonlyAtom<any>): boolean {
+    return atom._update();
+  },
+  notify(effect: Effect): void {
+    queuedEffects[queuedEffectsLength++] = effect;
+  },
+  unwatched(atom: InternalReadonlyAtom<any>): void {
+    let toRemove = atom._deps;
+    if (toRemove !== undefined) {
+      atom._flags = 17 as ReactiveFlags.Mutable | ReactiveFlags.Dirty;
+      do {
+        toRemove = unlink(toRemove, atom);
+      } while (toRemove !== undefined);
+    }
+  }
+});
+
+let notifyIndex = 0;
+let queuedEffectsLength = 0;
+let activeSub: ReactiveNode | undefined;
+
+function flush(): void {
+  while (notifyIndex < queuedEffectsLength) {
+    const effect = queuedEffects[notifyIndex]!;
+    queuedEffects[notifyIndex++] = undefined;
+    effect.notify();
+  }
+  notifyIndex = 0;
+  queuedEffectsLength = 0;
+}
+
+type AsyncAtomState<Data, Error = unknown> =
+  | { status: 'pending' }
+  | { status: 'done'; data: Data }
+  | { status: 'error'; error: Error };
+
+export function createAsyncAtom<T>(
+  getValue: () => Promise<T>,
+  options?: AtomOptions<AsyncAtomState<T>>
+): ReadonlyAtom<AsyncAtomState<T>> {
+  const atom = createAtom<AsyncAtomState<T>>(() => {
+    getValue().then(
+      (data) => {
+        if (atom._update({ status: 'done', data })) {
+          const subs = atom._subs;
+          if (subs !== undefined) {
+            propagate(subs);
+            shallowPropagate(subs);
+            flush();
+          }
+        }
+      },
+      (error) => {
+        if (atom._update({ status: 'error', error })) {
+          const subs = atom._subs;
+          if (subs !== undefined) {
+            propagate(subs);
+            shallowPropagate(subs);
+            flush();
+          }
+        }
+      }
+    );
+
+    return { status: 'pending' };
+  }, options) as InternalReadonlyAtom<AsyncAtomState<T>>;
+
+  return atom;
+}
+
+export function createAtom<T>(
+  getValue: (read: <U>(atom: Readable<U>) => U, prev?: NoInfer<T>) => T,
+  options?: AtomOptions<T>
+): ReadonlyAtom<T>;
+export function createAtom<T>(
+  initialValue: T,
+  options?: AtomOptions<T>
+): Atom<T>;
+export function createAtom<T>(
+  valueOrFn: T | ((read: <U>(atom: Readable<U>) => U, prev?: T) => T),
+  options?: AtomOptions<T>
+): Atom<T> | ReadonlyAtom<T> {
+  const isComputed = typeof valueOrFn === 'function';
+  const getter = valueOrFn as (
+    read: <U>(atom: Readable<U>) => U,
+    prev?: T
+  ) => T;
+
+  // Create plain object atom
+  const atom: InternalBaseAtom<T> & ReactiveNode = {
+    _snapshot: isComputed ? undefined! : valueOrFn,
+
+    _subs: undefined,
+    _subsTail: undefined,
+    _flags: 0 as ReactiveFlags.None,
+
+    get(): T {
+      if (activeSub !== undefined) {
+        link(atom, activeSub);
+      }
+      return atom._snapshot;
+    },
+
+    subscribe(observerOrFn: Observer<T> | ((value: T) => void)) {
+      const obs = toObserver(observerOrFn);
+      const observed = { current: false };
+      const e = effect(() => {
+        atom.get();
+        if (!observed.current) {
+          observed.current = true;
+        } else {
+          obs.next?.(atom._snapshot);
+        }
+      });
+
+      return {
+        unsubscribe: () => {
+          e.stop();
+        }
+      };
+    },
+    _update(getValue?: T | ((snapshot: T) => T)): boolean {
+      const prevSub = activeSub;
+      const compare = options?.compare ?? Object.is;
+      activeSub = atom as InternalReadonlyAtom<T>;
+      startTracking(atom as InternalReadonlyAtom<T>);
+      try {
+        const oldValue = atom._snapshot;
+        const read = (atom: Readable<any>) => atom.get();
+        const newValue =
+          typeof getValue === 'function'
+            ? (getValue as (snapshot: T) => T)(oldValue)
+            : getValue === undefined && isComputed
+              ? getter(read, oldValue)
+              : getValue!;
+        if (oldValue === undefined || !compare(oldValue, newValue)) {
+          atom._snapshot = newValue;
+          return true;
+        }
+        return false;
+      } finally {
+        activeSub = prevSub;
+        endTracking(atom as InternalReadonlyAtom<T>);
+      }
+    }
+  };
+
+  if (isComputed) {
+    Object.assign<
+      BaseAtom<T>,
+      Pick<InternalReadonlyAtom<T>, '_deps' | '_depsTail' | '_flags' | 'get'>
+    >(atom, {
+      _deps: undefined,
+      _depsTail: undefined,
+      _flags: 17 as ReactiveFlags.Mutable | ReactiveFlags.Dirty,
+      get(): T {
+        const flags = (this as unknown as InternalReadonlyAtom<T>)._flags;
+        if (
+          flags & (16 satisfies ReactiveFlags.Dirty) ||
+          (flags & (32 satisfies ReactiveFlags.Pending) &&
+            checkDirty(atom._deps!, atom))
+        ) {
+          if (atom._update()) {
+            const subs = atom._subs;
+            if (subs !== undefined) {
+              shallowPropagate(subs);
+            }
+          }
+        } else if (flags & (32 satisfies ReactiveFlags.Pending)) {
+          atom._flags = flags & ~(32 satisfies ReactiveFlags.Pending);
+        }
+        if (activeSub !== undefined) {
+          link(atom, activeSub);
+        }
+        return atom._snapshot;
+      }
+    });
+  } else {
+    Object.assign<BaseAtom<T>, Pick<Atom<T>, 'set'>>(atom, {
+      set(valueOrFn: T | ((prev: T) => T)): void {
+        if (atom._update(valueOrFn)) {
+          const subs = atom._subs;
+          if (subs !== undefined) {
+            propagate(subs);
+            shallowPropagate(subs);
+            flush();
+          }
+        }
+      }
+    });
+  }
+
+  return atom as Atom<T> | ReadonlyAtom<T>;
+}
+
+interface Effect extends ReactiveNode {
+  notify(): void;
+  stop(): void;
+}
+
+function effect<T>(fn: () => T): Effect {
+  const run = (): T => {
+    const prevSub = activeSub;
+    activeSub = effectObj;
+    startTracking(effectObj);
+    try {
+      return fn();
+    } finally {
+      activeSub = prevSub;
+      endTracking(effectObj);
+    }
+  };
+  const effectObj: Effect = {
+    _deps: undefined,
+    _depsTail: undefined,
+    _flags: 2 satisfies ReactiveFlags.Watching,
+
+    notify(): void {
+      const flags = this._flags;
+      if (
+        flags & (16 satisfies ReactiveFlags.Dirty) ||
+        (flags & (32 satisfies ReactiveFlags.Pending) &&
+          checkDirty(this._deps!, this))
+      ) {
+        run();
+      } else if (flags & (32 satisfies ReactiveFlags.Pending)) {
+        this._flags = flags & ~(32 satisfies ReactiveFlags.Pending);
+      }
+    },
+
+    stop(): void {
+      startTracking(this);
+      endTracking(this);
+    }
+  };
+
+  run();
+
+  return effectObj;
+}
+</file>
+
+<file path="packages/xstate-store/src/fromStore.ts">
+import { ActorLogic } from 'xstate';
+import { createStoreTransition, TransitionsFromEventPayloadMap } from './store';
+import {
+  EventPayloadMap,
+  StoreContext,
+  Snapshot,
+  StoreSnapshot,
+  EventObject,
+  ExtractEvents,
+  StoreAssigner
+} from './types';
+
+type StoreLogic<
+  TContext extends StoreContext,
+  TEvent extends EventObject,
+  TInput,
+  TEmitted extends EventObject
+> = ActorLogic<StoreSnapshot<TContext>, TEvent, TInput, any, TEmitted>;
+
+/**
+ * An actor logic creator which creates store [actor
+ * logic](https://stately.ai/docs/actors#actor-logic) for use with XState.
+ *
+ * @param config An object containing the store configuration
+ * @param config.context The initial context for the store, either a function
+ *   that returns context based on input, or the context itself
+ * @param config.on An object defining the transitions for different event types
+ * @param config.emits Optional object to define emitted event handlers
+ * @returns An actor logic creator function that creates store actor logic
+ */
+export function fromStore<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TInput,
+  TEmitted extends EventPayloadMap
+>(config: {
+  context: ((input: TInput) => TContext) | TContext;
+  on: {
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      NoInfer<TContext>,
+      { type: K } & TEventPayloadMap[K],
+      ExtractEvents<TEmitted>
+    >;
+  };
+  emits?: {
+    [K in keyof TEmitted & string]: (
+      payload: { type: K } & TEmitted[K]
+    ) => void;
+  };
+}): StoreLogic<
+  TContext,
+  ExtractEvents<TEventPayloadMap>,
+  TInput,
+  ExtractEvents<TEmitted>
+> {
+  const initialContext: ((input: TInput) => TContext) | TContext =
+    config.context;
+  const transitionsObj: TransitionsFromEventPayloadMap<
+    TEventPayloadMap,
+    NoInfer<TContext>,
+    EventObject
+  > = config.on;
+
+  const transition = createStoreTransition(transitionsObj);
+  return {
+    transition: (snapshot, event, actorScope) => {
+      const [nextSnapshot, effects] = transition(snapshot, event);
+
+      for (const effect of effects) {
+        if (typeof effect === 'function') {
+          effect();
+        } else {
+          actorScope.emit(effect as ExtractEvents<TEmitted>);
+        }
+      }
+
+      return nextSnapshot;
+    },
+    getInitialSnapshot: (_, input: TInput) => {
+      return {
+        status: 'active',
+        context:
+          typeof initialContext === 'function'
+            ? initialContext(input)
+            : initialContext,
+        output: undefined,
+        error: undefined
+      } satisfies StoreSnapshot<TContext>;
+    },
+    getPersistedSnapshot: (s: StoreSnapshot<TContext>) => s,
+    restoreSnapshot: (s: Snapshot<unknown>) => s as StoreSnapshot<TContext>
+  };
+}
+</file>
+
+<file path="packages/xstate-store/src/index.ts">
+export { shallowEqual } from './shallowEqual';
+export { fromStore } from './fromStore';
+export {
+  createStore,
+  createStoreWithProducer,
+  createStoreConfig
+} from './store';
+export { createAtom, createAsyncAtom } from './atom';
+export type {
+  EventPayloadMap,
+  ExtractEvents,
+  StoreEffect,
+  StoreAssigner,
+  StoreSnapshot,
+  Store,
+  StoreConfig,
+  AnyStore,
+  SnapshotFromStore,
+  EventFromStore,
+  Observer,
+  Subscription,
+  Subscribable,
+  EventObject,
+  StoreInspectionEvent,
+  StoreInspectedSnapshotEvent,
+  StoreInspectedActionEvent,
+  StoreInspectedEventEvent,
+  StoreInspectedActorEvent,
+  ActorRefLike,
+  Selector,
+  Selection,
+  Readable,
+  BaseAtom,
+  Atom,
+  AtomOptions,
+  AnyAtom,
+  ReadonlyAtom,
+  EventFromStoreConfig,
+  EmitsFromStoreConfig,
+  ContextFromStoreConfig
+} from './types';
+</file>
+
+<file path="packages/xstate-store/src/react.ts">
+import { useCallback, useRef, useSyncExternalStore } from 'react';
+import {
+  AnyStore,
+  StoreContext,
+  EventPayloadMap,
+  StoreConfig,
+  Store,
+  ExtractEvents,
+  Readable,
+  AnyAtom,
+  BaseAtom,
+  StoreSnapshot
+} from './types';
+import { createStore } from './store';
+
+function defaultCompare<T>(a: T | undefined, b: T) {
+  return a === b;
+}
+
+function identity<T>(snapshot: T): T {
+  return snapshot;
+}
+
+function useSelectorWithCompare<TStore extends Readable<any>, T>(
+  selector: (snapshot: TStore extends Readable<infer T> ? T : never) => T,
+  compare: (a: T | undefined, b: T) => boolean
+): (snapshot: TStore extends Readable<infer TValue> ? TValue : never) => T {
+  const previous = useRef<T | undefined>(undefined);
+
+  return (snapshot) => {
+    const next = selector(snapshot);
+    return previous.current && compare(previous.current, next)
+      ? previous.current
+      : (previous.current = next);
+  };
+}
+
+/**
+ * A React hook that subscribes to the `store` and selects a value from the
+ * store's snapshot via a selector function, with an optional compare function.
+ *
+ * @example
+ *
+ * ```ts
+ * function Component() {
+ *   const count = useSelector(store, (s) => s.count);
+ *
+ *   return <div>{count}</div>;
+ * }
+ * ```
+ *
+ * @param store The store, created from `createStore(…)`
+ * @param selector A function which takes in the `snapshot` and returns a
+ *   selected value
+ * @param compare An optional function which compares the selected value to the
+ *   previous value
+ * @returns The selected value
+ */
+export function useSelector<TStore extends Readable<any>, T>(
+  store: TStore,
+  selector: (snapshot: TStore extends Readable<infer T> ? T : never) => T,
+  compare?: (a: T | undefined, b: T) => boolean
+): T;
+/**
+ * A React hook that subscribes to the `store` and selects a value from the
+ * store's snapshot via an optional selector function (identity by default),
+ * with an optional compare function.
+ *
+ * @example
+ *
+ * ```ts
+ * function Component() {
+ *   const countSnapshot = useSelector(store);
+ *
+ *   return <div>{countSnapshot.context.count}</div>;
+ * }
+ * ```
+ *
+ * @param store The store, created from `createStore(…)`
+ * @param selector An optional function which takes in the `snapshot` and
+ *   returns a selected value
+ * @param compare An optional function which compares the selected value to the
+ *   previous value
+ * @returns The selected value
+ */
+export function useSelector<TStore extends Readable<any>>(
+  store: TStore,
+  selector?: undefined,
+  compare?: (
+    a: TStore extends Readable<infer T> ? T : never | undefined,
+    b: TStore extends Readable<infer T> ? T : never | undefined
+  ) => boolean
+): TStore extends Readable<infer T> ? T : never;
+export function useSelector<TStore extends Readable<any>, T>(
+  store: TStore,
+  selector: (
+    snapshot: TStore extends Readable<infer T> ? T : never
+  ) => T = identity,
+  compare: (a: T | undefined, b: T) => boolean = defaultCompare
+): T {
+  const selectorWithCompare = useSelectorWithCompare(selector, compare);
+
+  return useSyncExternalStore(
+    useCallback(
+      (handleStoreChange) => store.subscribe(handleStoreChange).unsubscribe,
+      [store]
+    ),
+    () => selectorWithCompare(store.get()),
+    () => selectorWithCompare(store.get())
+  );
+}
+
+export const useStore: {
+  <
+    TContext extends StoreContext,
+    TEventPayloadMap extends EventPayloadMap,
+    TEmitted extends EventPayloadMap
+  >(
+    definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
+  ): Store<TContext, TEventPayloadMap, ExtractEvents<TEmitted>>;
+  <
+    TContext extends StoreContext,
+    TEventPayloadMap extends EventPayloadMap,
+    TEmitted extends EventPayloadMap
+  >(
+    definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
+  ): Store<TContext, TEventPayloadMap, ExtractEvents<TEmitted>>;
+} = function useStoreImpl<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventPayloadMap
+>(definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>) {
+  const storeRef = useRef<AnyStore | undefined>(undefined);
+
+  if (!storeRef.current) {
+    storeRef.current = createStore(definition);
+  }
+
+  return storeRef.current;
+};
+
+/**
+ * A React hook that subscribes to the `atom` and returns the current value of
+ * the atom.
+ *
+ * @example
+ *
+ * ```ts
+ * const atom = createAtom(0);
+ *
+ * const Component = () => {
+ *   const count = useAtom(atom);
+ *
+ *   return (
+ *     <div>
+ *       <div>{count}</div>
+ *       <button onClick={() => atom.set((c) => c + 1)}>Increment</button>
+ *     </div>
+ *   );
+ * };
+ * ```
+ *
+ * @param atom The atom, created from `createAtom(…)`
+ * @param selector An optional function which takes in the `snapshot` and
+ *   returns a selected value
+ * @param compare An optional function which compares the selected value to the
+ *   previous value
+ */
+export function useAtom<T>(atom: BaseAtom<T>): T;
+export function useAtom<T, S>(
+  atom: BaseAtom<T>,
+  selector: (snapshot: T) => S,
+  compare?: (a: S, b: S) => boolean
+): S;
+export function useAtom(
+  atom: AnyAtom,
+  selector = identity,
+  compare = defaultCompare
+) {
+  const state = useSelector(atom, selector, compare);
+
+  return state;
+}
+
+/**
+ * Creates a custom hook that returns the selected value and the store from a
+ * store configuration object.
+ *
+ * @example
+ *
+ * ```ts
+ * const useCountStore = createStoreHook({
+ *   context: { count: 0 },
+ *   on: {
+ *     inc: (context, event: { by: number }) => ({
+ *       ...context,
+ *       count: context.count + event.by
+ *     })
+ *   }
+ * });
+ *
+ * function Component() {
+ *   const [count, store] = useCountStore(s => s.context.count);
+ *
+ *   return (
+ *     <div>
+ *       {count}
+ *       <button onClick={() => store.trigger.inc({ by: 1 })}>+</button>
+ *     </div>
+ *   );
+ * }
+ * ```
+ *
+ * @param definition The store configuration object
+ * @returns A custom hook that returns [selectedValue, store]
+ */
+export function createStoreHook<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventPayloadMap
+>(definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>) {
+  type TStore = Store<TContext, TEventPayloadMap, ExtractEvents<TEmitted>>;
+  type TSnapshot = StoreSnapshot<TContext>;
+
+  const store = createStore(definition);
+
+  function useStoreHook(): [TSnapshot, TStore];
+  function useStoreHook<T>(
+    selector: (snapshot: TSnapshot) => T,
+    compare?: (a: T | undefined, b: T) => boolean
+  ): [T, TStore];
+  function useStoreHook<T>(
+    selector?: (snapshot: TSnapshot) => T,
+    compare: (a: T | undefined, b: T) => boolean = defaultCompare
+  ) {
+    // If no selector provided, return full snapshot
+    if (!selector) {
+      const snapshot = useSelector(store, identity, defaultCompare);
+      return [snapshot, store] as const;
+    }
+
+    // Use selector with comparison
+    const selectedValue = useSelector(store, selector ?? identity, compare);
+    return [selectedValue, store] as const;
+  }
+
+  return useStoreHook;
+}
+</file>
+
+<file path="packages/xstate-store/src/select.test.ts">
+import { createStore } from './index';
+
+interface TestContext {
+  user: {
+    name: string;
+    age: number;
+  };
+  settings: {
+    theme: 'light' | 'dark';
+    notifications: boolean;
+  };
+}
+
+describe('select', () => {
+  it('should get current value', () => {
+    const store = createStore({
+      context: {
+        user: { name: 'John', age: 30 },
+        settings: { theme: 'dark', notifications: true }
+      } as TestContext,
+      on: {
+        UPDATE_NAME: (context, event: { name: string }) => ({
+          ...context,
+          user: { ...context.user, name: event.name }
+        }),
+        UPDATE_THEME: (context, event: { theme: 'light' | 'dark' }) => ({
+          ...context,
+          settings: { ...context.settings, theme: event.theme }
+        })
+      }
+    });
+
+    const name = store.select((state) => state.user.name).get();
+    expect(name).toBe('John');
+  });
+
+  it('should subscribe to changes', () => {
+    const store = createStore({
+      context: {
+        user: { name: 'John', age: 30 },
+        settings: { theme: 'dark', notifications: true }
+      } as TestContext,
+      on: {
+        UPDATE_NAME: (context, event: { name: string }) => ({
+          ...context,
+          user: { ...context.user, name: event.name }
+        }),
+        UPDATE_THEME: (context, event: { theme: 'light' | 'dark' }) => ({
+          ...context,
+          settings: { ...context.settings, theme: event.theme }
+        })
+      }
+    });
+
+    const callback = vi.fn();
+    store.select((state) => state.user.name).subscribe(callback);
+    store.send({ type: 'UPDATE_NAME', name: 'Jane' });
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith('Jane');
+  });
+
+  it('should not notify if selected value has not changed', () => {
+    const store = createStore({
+      context: {
+        user: { name: 'John', age: 30 },
+        settings: { theme: 'dark', notifications: true }
+      } as TestContext,
+      on: {
+        UPDATE_NAME: (context, event: { name: string }) => ({
+          ...context,
+          user: { ...context.user, name: event.name }
+        }),
+        UPDATE_THEME: (context, event: { theme: 'light' | 'dark' }) => ({
+          ...context,
+          settings: { ...context.settings, theme: event.theme }
+        })
+      }
+    });
+
+    const callback = vi.fn();
+    store.select((state) => state.user.name).subscribe(callback);
+    store.send({ type: 'UPDATE_THEME', theme: 'light' });
+
+    expect(callback).not.toHaveBeenCalled();
+  });
+
+  it('should support custom equality function', () => {
+    const store = createStore({
+      context: {
+        user: { name: 'John', age: 30 },
+        settings: { theme: 'dark', notifications: true }
+      } as TestContext,
+      on: {
+        UPDATE_NAME: (context, event: { name: string }) => ({
+          ...context,
+          user: { ...context.user, name: event.name }
+        }),
+        UPDATE_THEME: (context, event: { theme: 'light' | 'dark' }) => ({
+          ...context,
+          settings: { ...context.settings, theme: event.theme }
+        })
+      }
+    });
+
+    const callback = vi.fn();
+    const selector = (context: TestContext) => ({
+      name: context.user.name,
+      theme: context.settings.theme
+    });
+    const equalityFn = (a: { name: string }, b: { name: string }) =>
+      a.name === b.name; // Only compare names
+
+    store.select(selector, equalityFn).subscribe(callback);
+
+    store.send({ type: 'UPDATE_THEME', theme: 'light' });
+    expect(callback).not.toHaveBeenCalled();
+
+    store.send({ type: 'UPDATE_NAME', name: 'Jane' });
+    expect(callback).toHaveBeenCalledTimes(1);
+  });
+
+  it('should unsubscribe correctly', () => {
+    const store = createStore({
+      context: {
+        user: { name: 'John', age: 30 },
+        settings: { theme: 'dark', notifications: true }
+      } as TestContext,
+      on: {
+        UPDATE_NAME: (context, event: { name: string }) => ({
+          ...context,
+          user: { ...context.user, name: event.name }
+        }),
+        UPDATE_THEME: (context, event: { theme: 'light' | 'dark' }) => ({
+          ...context,
+          settings: { ...context.settings, theme: event.theme }
+        })
+      }
+    });
+
+    const callback = vi.fn();
+    const subscription = store
+      .select((state) => state.user.name)
+      .subscribe(callback);
+    subscription.unsubscribe();
+    store.send({ type: 'UPDATE_NAME', name: 'Jane' });
+
+    expect(callback).not.toHaveBeenCalled();
+  });
+
+  it('should handle updates with multiple subscribers', () => {
+    interface PositionContext {
+      position: {
+        x: number;
+        y: number;
+      };
+    }
+
+    const store = createStore({
+      context: {
+        position: { x: 0, y: 0 },
+        user: { name: 'John', age: 30 }
+      } as PositionContext,
+      on: {
+        positionUpdated: (
+          context,
+          event: { position: { x: number; y: number } }
+        ) => ({
+          ...context,
+          position: event.position
+        }),
+        userUpdated: (
+          context,
+          event: { user: { name: string; age: number } }
+        ) => ({
+          ...context,
+          user: event.user
+        })
+      }
+    });
+
+    // Mock DOM manipulation callback
+    const renderCallback = vi.fn();
+    store
+      .select((state) => state.position)
+      .subscribe((position) => {
+        renderCallback(position);
+      });
+
+    // Mock logger callback for x position only
+    const loggerCallback = vi.fn();
+    store
+      .select((state) => state.position.x)
+      .subscribe((x) => {
+        loggerCallback(x);
+      });
+
+    // Simulate position update
+    store.trigger.positionUpdated({
+      position: { x: 100, y: 200 }
+    });
+
+    // Verify render callback received full position update
+    expect(renderCallback).toHaveBeenCalledTimes(1);
+    expect(renderCallback).toHaveBeenCalledWith({ x: 100, y: 200 });
+
+    // Verify logger callback received only x position
+    expect(loggerCallback).toHaveBeenCalledTimes(1);
+    expect(loggerCallback).toHaveBeenCalledWith(100);
+
+    // Simulate another update
+    store.trigger.positionUpdated({
+      position: { x: 150, y: 300 }
+    });
+
+    expect(renderCallback).toHaveBeenCalledTimes(2);
+    expect(renderCallback).toHaveBeenLastCalledWith({ x: 150, y: 300 });
+    expect(loggerCallback).toHaveBeenCalledTimes(2);
+    expect(loggerCallback).toHaveBeenLastCalledWith(150);
+
+    // Simulate changing only the y position
+    store.trigger.positionUpdated({
+      position: { x: 150, y: 400 }
+    });
+
+    expect(renderCallback).toHaveBeenCalledTimes(3);
+    expect(renderCallback).toHaveBeenLastCalledWith({ x: 150, y: 400 });
+
+    // loggerCallback should not have been called
+    expect(loggerCallback).toHaveBeenCalledTimes(2);
+
+    // Simulate changing only the user
+    store.trigger.userUpdated({
+      user: { name: 'Jane', age: 25 }
+    });
+
+    // renderCallback should not have been called
+    expect(renderCallback).toHaveBeenCalledTimes(3);
+
+    // loggerCallback should not have been called
+    expect(loggerCallback).toHaveBeenCalledTimes(2);
+  });
+});
+</file>
+
+<file path="packages/xstate-store/src/shallowEqual.ts">
+// From https://github.com/reduxjs/react-redux/blob/720f0ba79236cdc3e1115f4ef9a7760a21784b48/src/utils/shallowEqual.ts
+function is(x: unknown, y: unknown) {
+  if (x === y) {
+    return x !== 0 || y !== 0 || 1 / x === 1 / y;
+  } else {
+    return x !== x && y !== y;
+  }
+}
+
+export function shallowEqual(objA: any, objB: any) {
+  if (is(objA, objB)) return true;
+
+  if (
+    typeof objA !== 'object' ||
+    objA === null ||
+    typeof objB !== 'object' ||
+    objB === null
+  ) {
+    return false;
+  }
+
+  const keysA = Object.keys(objA);
+  const keysB = Object.keys(objB);
+
+  if (keysA.length !== keysB.length) return false;
+
+  for (let i = 0; i < keysA.length; i++) {
+    if (
+      !Object.prototype.hasOwnProperty.call(objB, keysA[i]) ||
+      !is(objA[keysA[i]], objB[keysA[i]])
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+</file>
+
+<file path="packages/xstate-store/src/solid.ts">
+/* @jsxImportSource solid-js */
+import { createEffect, createSignal, onCleanup } from 'solid-js';
+import type { SnapshotFromStore, AnyStore } from './types';
+
+function defaultCompare<T>(a: T | undefined, b: T) {
+  return a === b;
+}
+
+function useSelectorWithCompare<TStore extends AnyStore, T>(
+  selector: (snapshot: SnapshotFromStore<TStore>) => T,
+  compare: (a: T | undefined, b: T) => boolean
+): (snapshot: SnapshotFromStore<TStore>) => T {
+  let previous: T | undefined;
+
+  return (state): T => {
+    const next = selector(state);
+
+    if (previous === undefined || !compare(previous, next)) {
+      previous = next;
+    }
+
+    return previous;
+  };
+}
+
+/**
+ * Creates a selector which subscribes to the store and selects a value from the
+ * store's snapshot, using an optional comparison function.
+ *
+ * @example
+ *
+ * ```tsx
+ * import { donutStore } from './donutStore.ts';
+ * import { useSelector } from '@xstate/store/solid';
+ *
+ * function DonutCounter() {
+ *   const donutCount = useSelector(donutStore, (state) => state.context.donuts);
+ *
+ *   return (
+ *     <div>
+ *       <button onClick={() => donutStore.send({ type: 'addDonut' })}>
+ *         Add donut ({donutCount()})
+ *       </button>
+ *     </div>
+ *   );
+ * }
+ * ```
+ *
+ * @param store The store, created from `createStore(…)`
+ * @param selector A function which takes in the snapshot and returns a selected
+ *   value from it
+ * @param compare An optional function which compares the selected value to the
+ *   previously selected value
+ * @returns A read-only signal of the selected value
+ */
+export function useSelector<TStore extends AnyStore, T>(
+  store: TStore,
+  selector: (snapshot: SnapshotFromStore<TStore>) => T,
+  compare: (a: T | undefined, b: T) => boolean = defaultCompare
+): () => T {
+  const selectorWithCompare = useSelectorWithCompare(selector, compare);
+  const [selectedValue, setSelectedValue] = createSignal(
+    selectorWithCompare(store.getSnapshot() as SnapshotFromStore<TStore>)
+  );
+
+  createEffect(() => {
+    const subscription = store.subscribe(() => {
+      const newValue = selectorWithCompare(
+        store.getSnapshot() as SnapshotFromStore<TStore>
+      );
+      setSelectedValue(() => newValue);
+    });
+
+    onCleanup(() => {
+      subscription.unsubscribe();
+    });
+  });
+
+  return selectedValue;
+}
+</file>
+
+<file path="packages/xstate-store/src/store.ts">
+import { createAtom } from './atom';
+import { toObserver } from './toObserver';
+import {
+  EnqueueObject,
+  EventObject,
+  EventPayloadMap,
+  ExtractEvents,
+  InteropSubscribable,
+  Observer,
+  Store,
+  StoreAssigner,
+  StoreContext,
+  StoreConfig,
+  StoreEffect,
+  StoreInspectionEvent,
+  StoreProducerAssigner,
+  StoreSnapshot,
+  Selector,
+  Selection,
+  InternalBaseAtom,
+  StoreLogic,
+  StoreTransition,
+  AnyStoreLogic,
+  SpecificStoreConfig
+} from './types';
+
+const symbolObservable: typeof Symbol.observable = (() =>
+  (typeof Symbol === 'function' && Symbol.observable) ||
+  '@@observable')() as any;
+
+const inspectionObservers = new WeakMap<
+  Store<any, any, any>,
+  Set<Observer<StoreInspectionEvent>>
+>();
+
+function createStoreCore<
+  TContext extends StoreContext,
+  TSnapshot extends StoreSnapshot<any>,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject
+>(
+  logic: StoreLogic<TSnapshot, ExtractEvents<TEventPayloadMap>, TEmitted>,
+  emits?: Record<string, (payload: any) => void> // TODO: improve this type
+): Store<TContext, TEventPayloadMap, TEmitted> {
+  type StoreEvent = ExtractEvents<TEventPayloadMap>;
+  let listeners: Map<TEmitted['type'], Set<any>> | undefined;
+  const initialSnapshot = logic.getInitialSnapshot();
+  let currentSnapshot: TSnapshot = initialSnapshot;
+  const atom = createAtom<StoreSnapshot<TContext>>(currentSnapshot);
+
+  const emit = (ev: TEmitted) => {
+    if (!listeners) {
+      return;
+    }
+    const type = ev.type;
+    const typeListeners = listeners.get(type);
+    if (typeListeners) {
+      typeListeners.forEach((listener) => listener(ev));
+    }
+  };
+
+  const transition = logic.transition;
+
+  function receive(event: StoreEvent) {
+    const [nextSnapshot, effects] = transition(currentSnapshot, event);
+    currentSnapshot = nextSnapshot;
+
+    inspectionObservers.get(store)?.forEach((observer) => {
+      observer.next?.({
+        type: '@xstate.snapshot',
+        event,
+        snapshot: nextSnapshot,
+        actorRef: store,
+        rootId: store.sessionId
+      });
+    });
+
+    atom.set(nextSnapshot);
+
+    for (const effect of effects) {
+      if (typeof effect === 'function') {
+        effect();
+      } else {
+        // handle the inherent effect first
+        emits?.[effect.type]?.(effect);
+        emit(effect);
+      }
+    }
+  }
+
+  const store: Store<TContext, TEventPayloadMap, TEmitted> &
+    Pick<InternalBaseAtom<any>, '_snapshot'> = {
+    get _snapshot() {
+      return (atom as unknown as InternalBaseAtom<any>)._snapshot;
+    },
+    on(emittedEventType, handler) {
+      if (!listeners) {
+        listeners = new Map();
+      }
+      let eventListeners = listeners.get(emittedEventType);
+      if (!eventListeners) {
+        eventListeners = new Set();
+        listeners.set(emittedEventType, eventListeners);
+      }
+      const wrappedHandler = handler.bind(undefined);
+      eventListeners.add(wrappedHandler);
+
+      return {
+        unsubscribe() {
+          eventListeners.delete(wrappedHandler);
+        }
+      };
+    },
+    transition: logic.transition as any, // TODO: fix this
+    sessionId: uniqueId(),
+    send(event) {
+      inspectionObservers.get(store)?.forEach((observer) => {
+        observer.next?.({
+          type: '@xstate.event',
+          event,
+          sourceRef: undefined,
+          actorRef: store,
+          rootId: store.sessionId
+        });
+      });
+      receive(event as unknown as StoreEvent);
+    },
+    getSnapshot() {
+      return currentSnapshot;
+    },
+    get() {
+      return atom.get();
+    },
+    getInitialSnapshot() {
+      return initialSnapshot;
+    },
+    subscribe: atom.subscribe.bind(atom),
+    [symbolObservable](): InteropSubscribable<StoreSnapshot<TContext>> {
+      return this;
+    },
+    inspect: (observerOrFn) => {
+      const observer = toObserver(observerOrFn);
+      inspectionObservers.set(
+        store,
+        inspectionObservers.get(store) ?? new Set()
+      );
+      inspectionObservers.get(store)!.add(observer);
+
+      observer.next?.({
+        type: '@xstate.actor',
+        actorRef: store,
+        rootId: store.sessionId
+      });
+
+      observer.next?.({
+        type: '@xstate.snapshot',
+        snapshot: initialSnapshot,
+        event: { type: '@xstate.init' },
+        actorRef: store,
+        rootId: store.sessionId
+      });
+
+      return {
+        unsubscribe() {
+          return inspectionObservers.get(store)?.delete(observer);
+        }
+      };
+    },
+    trigger: new Proxy(
+      {} as Store<TContext, TEventPayloadMap, TEmitted>['trigger'],
+      {
+        get: (_, eventType: string) => {
+          return (payload: any) => {
+            store.send({
+              ...payload,
+              type: eventType
+            });
+          };
+        }
+      }
+    ),
+    select<TSelected>(
+      selector: Selector<TContext, TSelected>,
+      equalityFn: (a: TSelected, b: TSelected) => boolean = Object.is
+    ): Selection<TSelected> {
+      return createAtom(() => selector(store.get().context), {
+        compare: equalityFn
+      });
+    }
+  };
+
+  return store;
+}
+
+export type TransitionsFromEventPayloadMap<
+  TEventPayloadMap extends EventPayloadMap,
+  TContext extends StoreContext,
+  TEmitted extends EventObject
+> = {
+  [K in keyof TEventPayloadMap & string]: StoreAssigner<
+    TContext,
+    {
+      type: K;
+    } & TEventPayloadMap[K],
+    TEmitted
+  >;
+};
+
+/**
+ * Creates a **store** that has its own internal state and can be sent events
+ * that update its internal state based on transitions.
+ *
+ * @example
+ *
+ * ```ts
+ * const store = createStore({
+ *   context: { count: 0, name: 'Ada' },
+ *   on: {
+ *     inc: (context, event: { by: number }) => ({
+ *       ...context,
+ *       count: context.count + event.by
+ *     })
+ *   }
+ * });
+ *
+ * store.subscribe((snapshot) => {
+ *   console.log(snapshot);
+ * });
+ *
+ * store.send({ type: 'inc', by: 5 });
+ * // Logs { context: { count: 5, name: 'Ada' }, status: 'active', ... }
+ * ```
+ *
+ * @param config - The store configuration object
+ * @param config.context - The initial state of the store
+ * @param config.on - An object mapping event types to transition functions
+ * @param config.emits - An object mapping emitted event types to handlers
+ * @returns A store instance with methods to send events and subscribe to state
+ *   changes
+ */
+export function createStore<
+  TContext extends StoreContext,
+  const TEventPayloadMap extends EventPayloadMap,
+  TEmittedPayloadMap extends EventPayloadMap
+>(
+  definition: StoreConfig<TContext, TEventPayloadMap, TEmittedPayloadMap>
+): Store<TContext, TEventPayloadMap, ExtractEvents<TEmittedPayloadMap>>;
+export function createStore<
+  TContext extends StoreContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+>(
+  definition:
+    | SpecificStoreConfig<TContext, TEvent, TEmitted>
+    | StoreLogic<StoreSnapshot<TContext>, TEvent, TEmitted>
+): Store<
+  TContext,
+  {
+    [E in TEvent as E['type']]: E;
+  },
+  TEmitted
+>;
+export function createStore(
+  definitionOrLogic: StoreConfig<any, any, any> | AnyStoreLogic
+) {
+  if ('transition' in definitionOrLogic) {
+    return createStoreCore(definitionOrLogic);
+  }
+  const transition = createStoreTransition(definitionOrLogic.on);
+  const logic: AnyStoreLogic = {
+    getInitialSnapshot: () => ({
+      status: 'active' as const,
+      context: definitionOrLogic.context,
+      output: undefined,
+      error: undefined
+    }),
+    transition
+  } satisfies AnyStoreLogic;
+  return createStoreCore(logic, definitionOrLogic.emits);
+}
+
+function _createStoreConfig<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventPayloadMap
+>(
+  definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
+): StoreConfig<TContext, TEventPayloadMap, TEmitted> {
+  return definition;
+}
+
+export const createStoreConfig: {
+  <
+    TContext extends StoreContext,
+    TEventPayloadMap extends EventPayloadMap,
+    TEmitted extends EventPayloadMap
+  >(
+    definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
+  ): StoreConfig<TContext, TEventPayloadMap, TEmitted>;
+  <
+    TContext extends StoreContext,
+    TEventPayloadMap extends EventPayloadMap,
+    TEmitted extends EventPayloadMap
+  >(
+    definition: StoreConfig<TContext, TEventPayloadMap, TEmitted>
+  ): StoreConfig<TContext, TEventPayloadMap, TEmitted>;
+} = _createStoreConfig;
+
+/**
+ * Creates a `Store` with a provided producer (such as Immer's `producer(…)` A
+ * store has its own internal state and can receive events.
+ *
+ * @example
+ *
+ * ```ts
+ * import { produce } from 'immer';
+ *
+ * const store = createStoreWithProducer(produce, {
+ *   context: { count: 0 },
+ *   on: {
+ *     inc: (context, event: { by: number }) => {
+ *       context.count += event.by;
+ *     }
+ *   }
+ * });
+ *
+ * store.subscribe((snapshot) => {
+ *   console.log(snapshot);
+ * });
+ *
+ * store.send({ type: 'inc', by: 5 });
+ * // Logs { context: { count: 5 }, status: 'active', ... }
+ * ```
+ */
+export function createStoreWithProducer<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmittedPayloadMap extends EventPayloadMap
+>(
+  producer: NoInfer<
+    (context: TContext, recipe: (context: TContext) => void) => TContext
+  >,
+  config: {
+    context: TContext;
+    on: {
+      [K in keyof TEventPayloadMap & string]: (
+        context: NoInfer<TContext>,
+        event: { type: K } & TEventPayloadMap[K],
+        enqueue: EnqueueObject<ExtractEvents<TEmittedPayloadMap>>
+      ) => void;
+    };
+    emits?: {
+      [K in keyof TEmittedPayloadMap & string]: (
+        payload: TEmittedPayloadMap[K]
+      ) => void;
+    };
+  }
+): Store<TContext, TEventPayloadMap, ExtractEvents<TEmittedPayloadMap>> {
+  const transition = createStoreTransition(config.on, producer);
+  const logic = {
+    getInitialSnapshot: () => ({
+      status: 'active' as const,
+      context: config.context,
+      output: undefined,
+      error: undefined
+    }),
+    transition
+  } satisfies AnyStoreLogic;
+
+  return createStoreCore(logic, config.emits);
+}
+
+declare global {
+  interface SymbolConstructor {
+    readonly observable: symbol;
+  }
+}
+
+/**
+ * Creates a store transition function that handles state updates based on
+ * events.
+ *
+ * @param transitions - An object mapping event types to transition functions
+ * @param producer - Optional producer function (e.g., Immer's produce) for
+ *   immutable updates
+ * @returns A transition function that takes a snapshot and event and returns a
+ *   new snapshot with effects
+ */
+export function createStoreTransition<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject
+>(
+  transitions: {
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      TContext,
+      { type: K } & TEventPayloadMap[K],
+      TEmitted
+    >;
+  },
+  producer?: (
+    context: TContext,
+    recipe: (context: TContext) => void
+  ) => TContext
+): StoreTransition<TContext, ExtractEvents<TEventPayloadMap>, TEmitted> {
+  return (
+    snapshot: StoreSnapshot<TContext>,
+    event: ExtractEvents<TEventPayloadMap>
+  ): [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]] => {
+    type StoreEvent = ExtractEvents<TEventPayloadMap>;
+    const currentContext = snapshot.context;
+    const assigner = transitions?.[event.type as StoreEvent['type']];
+    const effects: StoreEffect<TEmitted>[] = [];
+
+    const enqueue: EnqueueObject<TEmitted> = {
+      emit: new Proxy({} as any, {
+        get: (_, eventType: string) => {
+          return (payload: any) => {
+            effects.push({
+              ...payload,
+              type: eventType
+            });
+          };
+        }
+      }),
+      effect: (fn) => {
+        effects.push(fn);
+      }
+    };
+
+    if (!assigner) {
+      return [snapshot, effects];
+    }
+
+    const nextContext = producer
+      ? producer(currentContext, (draftContext) =>
+          (assigner as StoreProducerAssigner<TContext, StoreEvent, TEmitted>)(
+            draftContext,
+            event,
+            enqueue
+          )
+        )
+      : (assigner(currentContext, event as any, enqueue) ?? currentContext);
+
+    return [
+      nextContext === currentContext
+        ? snapshot
+        : { ...snapshot, context: nextContext },
+      effects
+    ];
+  };
+}
+
+/**
+ * Generates a unique 6-character identifier.
+ *
+ * @returns A random string identifier
+ */
+function uniqueId() {
+  return Math.random().toString(36).slice(6);
+}
+</file>
+
+<file path="packages/xstate-store/src/toObserver.ts">
+import { Observer } from './types';
+
+export function toObserver<T>(
+  nextHandler?: Observer<T> | ((value: T) => void),
+  errorHandler?: (error: any) => void,
+  completionHandler?: () => void
+): Observer<T> {
+  const isObserver = typeof nextHandler === 'object';
+  const self = isObserver ? nextHandler : undefined;
+
+  return {
+    next: (isObserver ? nextHandler.next : nextHandler)?.bind(self),
+    error: (isObserver ? nextHandler.error : errorHandler)?.bind(self),
+    complete: (isObserver ? nextHandler.complete : completionHandler)?.bind(
+      self
+    )
+  };
+}
+</file>
+
+<file path="packages/xstate-store/src/types.ts">
+import type { ReactiveNode } from './alien';
+
+export type EventPayloadMap = Record<string, {} | null | undefined>;
+
+export type ExtractEvents<T extends EventPayloadMap> = Values<{
+  [K in keyof T & string]: T[K] & { type: K };
+}>;
+
+type AllKeys<T> = T extends any ? keyof T : never;
+
+type EmitterFunction<TEmittedEvent extends EventObject> = (
+  ...args: { type: TEmittedEvent['type'] } extends TEmittedEvent
+    ? AllKeys<TEmittedEvent> extends 'type'
+      ? []
+      : [DistributiveOmit<TEmittedEvent, 'type'>?]
+    : [DistributiveOmit<TEmittedEvent, 'type'>]
+) => void;
+
+export type EnqueueObject<TEmittedEvent extends EventObject> = {
+  emit: {
+    [E in TEmittedEvent as E['type']]: EmitterFunction<E>;
+  };
+  effect: (fn: () => void) => void;
+};
+
+export type StoreEffect<TEmitted extends EventObject> = (() => void) | TEmitted;
+
+export type StoreAssigner<
+  TContext extends StoreContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = (
+  context: TContext,
+  event: TEvent,
+  enq: EnqueueObject<TEmitted>
+) => TContext | void;
+
+export type StoreProducerAssigner<
+  TContext extends StoreContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = (context: TContext, event: TEvent, enq: EnqueueObject<TEmitted>) => void;
+
+export type Snapshot<TOutput> =
+  | {
+      status: 'active';
+      output: undefined;
+      error: undefined;
+    }
+  | {
+      status: 'done';
+      output: TOutput;
+      error: undefined;
+    }
+  | {
+      status: 'error';
+      output: undefined;
+      error: unknown;
+    }
+  | {
+      status: 'stopped';
+      output: undefined;
+      error: undefined;
+    };
+
+export type StoreSnapshot<TContext> = Snapshot<undefined> & {
+  context: TContext;
+};
+
+/**
+ * An actor-like object that:
+ *
+ * - Has its own state
+ * - Can receive events
+ * - Is observable
+ */
+export interface Store<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventObject
+> extends Subscribable<StoreSnapshot<TContext>>,
+    InteropObservable<StoreSnapshot<TContext>>,
+    BaseAtom<StoreSnapshot<TContext>> {
+  send: (event: ExtractEvents<TEventPayloadMap>) => void;
+  getSnapshot: () => StoreSnapshot<TContext>;
+  /** @alias getSnapshot */
+  get: () => StoreSnapshot<TContext>;
+  getInitialSnapshot: () => StoreSnapshot<TContext>;
+  /**
+   * Subscribes to [inspection events](https://stately.ai/docs/inspection) from
+   * the store.
+   *
+   * Inspectors that call `store.inspect(…)` will immediately receive an
+   * "@xstate.actor" inspection event.
+   */
+  inspect: (
+    observer:
+      | Observer<StoreInspectionEvent>
+      | ((inspectionEvent: StoreInspectionEvent) => void)
+  ) => Subscription;
+  sessionId: string;
+  on: <TEmittedType extends TEmitted['type']>(
+    eventType: TEmittedType,
+    emittedEventHandler: (
+      emittedEvent: Compute<TEmitted & { type: TEmittedType }>
+    ) => void
+  ) => Subscription;
+  /**
+   * A proxy object that allows you to send events to the store without manually
+   * constructing event objects.
+   *
+   * @example
+   *
+   * ```ts
+   * // Equivalent to:
+   * // store.send({ type: 'increment', by: 1 });
+   * store.trigger.increment({ by: 1 });
+   * ```
+   */
+  trigger: {
+    [K in keyof TEventPayloadMap]: IsEmptyObject<
+      DistributiveOmit<TEventPayloadMap[K], 'type'>
+    > extends true
+      ? () => void
+      : (eventPayload: DistributiveOmit<TEventPayloadMap[K], 'type'>) => void;
+  };
+  select<TSelected>(
+    selector: Selector<TContext, TSelected>,
+    equalityFn?: (a: TSelected, b: TSelected) => boolean
+  ): Selection<TSelected>;
+  /**
+   * Returns the next state and effects for the given state and event, as a
+   * tuple.
+   *
+   * @example
+   *
+   * ```ts
+   * const [nextState, effects] = store.transition(store.getSnapshot(), {
+   *   type: 'increment',
+   *   by: 1
+   * });
+   * ```
+   */
+  transition: StoreTransition<
+    TContext,
+    ExtractEvents<TEventPayloadMap>,
+    TEmitted
+  >;
+}
+
+export type StoreTransition<
+  TContext extends StoreContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = (
+  state: StoreSnapshot<TContext>,
+  event: TEvent
+) => [StoreSnapshot<TContext>, StoreEffect<TEmitted>[]];
+
+export type StoreConfig<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmitted extends EventPayloadMap
+> = {
+  context: TContext;
+  emits?: {
+    [K in keyof TEmitted]: (payload: TEmitted[K]) => void;
+  };
+  on: {
+    [K in keyof TEventPayloadMap & string]: StoreAssigner<
+      TContext,
+      { type: K } & TEventPayloadMap[K],
+      ExtractEvents<TEmitted>
+    >;
+  };
+};
+
+export type SpecificStoreConfig<
+  TContext extends StoreContext,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = {
+  context: TContext;
+  emits?: {
+    [E in TEmitted as E['type']]: (payload: E) => void;
+  };
+  on: {
+    [E in TEvent as E['type']]: StoreAssigner<TContext, E, TEmitted>;
+  };
+};
+
+type IsEmptyObject<T> = T extends Record<string, never> ? true : false;
+
+export type AnyStore = Store<any, any, any>;
+
+type Compute<A> = { [K in keyof A]: A[K] };
+
+export type SnapshotFromStore<TStore extends Store<any, any, any>> =
+  TStore extends Store<infer TContext, any, any>
+    ? StoreSnapshot<TContext>
+    : never;
+
+/**
+ * Extract the type of events from a `Store`.
+ *
+ * @example
+ *
+ * ```ts
+ * const store = createStore(
+ *   { count: 0 },
+ *   {
+ *     inc: (context, event: { by: number }) => ({
+ *       count: context.count + event.by
+ *     }),
+ *     dec: (context, event: { by: number }) => ({
+ *       count: context.count - event.by
+ *     })
+ *   }
+ * );
+ * type StoreEvent = EventFromStore<typeof store>;
+ * //   ^? { type: 'inc', by: number } | { type: 'dec', by: number }
+ * ```
+ *
+ * @example
+ *
+ * Using utility types derived from `EventFromStore` to create individual
+ * type-safe event transition functions for a store:
+ *
+ * ```ts
+ * import {
+ *   createStore,
+ *   type EventFromStore,
+ *   type Store
+ * } from '@xstate/store';
+ *
+ * // Extract the event where `Type` matches the event's `type` from the given
+ * // `Store`.
+ * type EventByType<
+ *   TStore extends Store<any, any>,
+ *   Type extends EventFromStore<TStore>['type']
+ * > = Extract<EventFromStore<TStore>, { type: Type }>;
+ *
+ * // Extract a specific store event's "input" type (the event type without the
+ * // `type` property).
+ * type EventInputByType<
+ *   TStore extends Store<any, any>,
+ *   Type extends EventFromStore<TStore>['type']
+ * > = Omit<EventByType<TStore, Type>, 'type'>;
+ *
+ * const store = createStore(
+ *   { count: 0 },
+ *   {
+ *     add: (context, event: { addend: number }) => ({
+ *       count: context.count + event.addend
+ *     }),
+ *     multiply: (context, event: { multiplier: number }) => ({
+ *       count: context.count * event.multiplier
+ *     })
+ *   }
+ * );
+ *
+ * const add = (input: EventInputByType<typeof store, 'add'>) =>
+ *   store.send({ type: 'add', addend: input.addend });
+ *
+ * add({ addend: 1 }); // sends { type: 'add', addend: 1 }
+ *
+ * const multiply = (input: EventInputByType<typeof store, 'multiply'>) =>
+ *   store.send({ type: 'multiply', multiplier: input.multiplier });
+ *
+ * multiply({ multiplier: 2 }); // sends { type: 'multiply', multiplier: 2 }
+ * ```
+ */
+export type EventFromStore<TStore extends Store<any, any, any>> =
+  TStore extends Store<infer _TContext, infer TEventPayloadMap, infer _TEmitted>
+    ? ExtractEvents<TEventPayloadMap>
+    : never;
+
+// Copied from XState core
+// -----------------------
+
+export interface InteropSubscribable<T> {
+  subscribe(observer: Observer<T>): Subscription;
+}
+
+interface InteropObservable<T> {
+  [Symbol.observable]: () => InteropSubscribable<T>;
+}
+
+// Based on RxJS types
+export type Observer<T> = {
+  next?: (value: T) => void;
+  error?: (err: unknown) => void;
+  complete?: () => void;
+};
+
+export interface Subscription {
+  unsubscribe(): void;
+}
+
+export interface Subscribable<T> extends InteropSubscribable<T> {
+  subscribe(observer: Observer<T>): Subscription;
+  subscribe(
+    next: (value: T) => void,
+    error?: (error: any) => void,
+    complete?: () => void
+  ): Subscription;
+}
+
+// Same as MachineContext (for now)
+export type StoreContext = Record<string, any>;
+
+/** The full definition of an event, with a string `type`. */
+export type EventObject = {
+  /** The type of event that is sent. */
+  type: string;
+};
+type Values<T> = T[keyof T];
+
+export type StoreInspectionEvent =
+  | StoreInspectedSnapshotEvent
+  | StoreInspectedEventEvent
+  | StoreInspectedActorEvent;
+
+interface StoreBaseInspectionEventProperties {
+  rootId: string; // the session ID of the root
+  /**
+   * The relevant actorRef for the inspection event.
+   *
+   * - For snapshot events, this is the `actorRef` of the snapshot.
+   * - For event events, this is the target `actorRef` (recipient of event).
+   * - For actor events, this is the `actorRef` of the registered actor.
+   */
+  actorRef: ActorRefLike;
+}
+
+export interface StoreInspectedSnapshotEvent
+  extends StoreBaseInspectionEventProperties {
+  type: '@xstate.snapshot';
+  event: AnyEventObject; // { type: string, ... }
+  snapshot: Snapshot<unknown>;
+}
+
+export interface StoreInspectedActionEvent
+  extends StoreBaseInspectionEventProperties {
+  type: '@xstate.action';
+  action: {
+    type: string;
+    params: Record<string, unknown>;
+  };
+}
+
+export interface StoreInspectedEventEvent
+  extends StoreBaseInspectionEventProperties {
+  type: '@xstate.event';
+  sourceRef: AnyStore | undefined;
+  event: AnyEventObject; // { type: string, ... }
+}
+
+interface AnyEventObject {
+  type: string;
+  [key: string]: any;
+}
+
+export interface StoreInspectedActorEvent
+  extends StoreBaseInspectionEventProperties {
+  type: '@xstate.actor';
+}
+
+// export type ActorRefLike = Pick<
+//   AnyActorRef,
+//   'sessionId' | 'send' | 'getSnapshot'
+// >;
+
+export type ActorRefLike = {
+  sessionId: string;
+  // https://github.com/statelyai/xstate/pull/5037/files#r1717036732
+  send: (event: any) => void;
+  getSnapshot: () => any;
+};
+
+export type Selector<TContext, TSelected> = (context: TContext) => TSelected;
+
+export type Selection<TSelected> = Readable<TSelected>;
+
+export interface Readable<T> extends Subscribable<T> {
+  get: () => T;
+}
+
+export interface BaseAtom<T> extends Subscribable<T>, Readable<T> {}
+
+export interface InternalBaseAtom<T> extends Subscribable<T>, Readable<T> {
+  /** @internal */
+  _snapshot: T;
+  /** @internal */
+  _update(getValue?: T | ((snapshot: T) => T)): boolean;
+}
+
+export interface Atom<T> extends BaseAtom<T> {
+  /** Sets the value of the atom using a function. */
+  set(fn: (prevVal: T) => T): void;
+  /** Sets the value of the atom. */
+  set(value: T): void;
+}
+
+export interface AtomOptions<T> {
+  compare?: (prev: T, next: T) => boolean;
+}
+
+export type AnyAtom = BaseAtom<any>;
+
+export interface InternalReadonlyAtom<T>
+  extends InternalBaseAtom<T>,
+    ReactiveNode {}
+
+/**
+ * An atom that is read-only and cannot be set.
+ *
+ * @example
+ *
+ * ```ts
+ * const atom = createAtom(() => 42);
+ * // @ts-expect-error - Cannot set a readonly atom
+ * atom.set(43);
+ * ```
+ */
+export interface ReadonlyAtom<T> extends BaseAtom<T> {}
+
+/** A version of `Omit` that works with distributive types. */
+type DistributiveOmit<T, K extends PropertyKey> = T extends any
+  ? Omit<T, K>
+  : never;
+
+export type StoreLogic<
+  TSnapshot extends StoreSnapshot<any>,
+  TEvent extends EventObject,
+  TEmitted extends EventObject
+> = {
+  getInitialSnapshot: () => TSnapshot;
+  transition: (
+    snapshot: TSnapshot,
+    event: TEvent
+  ) => [TSnapshot, StoreEffect<TEmitted>[]];
+};
+export type AnyStoreLogic = StoreLogic<any, any, any>;
+
+export type AnyStoreConfig = StoreConfig<any, any, any>;
+export type EventFromStoreConfig<TStore extends AnyStoreConfig> =
+  TStore extends StoreConfig<any, infer TEventPayloadMap, any>
+    ? ExtractEvents<TEventPayloadMap>
+    : never;
+
+export type EmitsFromStoreConfig<TStore extends AnyStoreConfig> =
+  TStore extends StoreConfig<any, any, infer TEmitted>
+    ? ExtractEvents<TEmitted>
+    : never;
+
+export type ContextFromStoreConfig<TStore extends AnyStoreConfig> =
+  TStore extends StoreConfig<infer TContext, any, any> ? TContext : never;
+</file>
+
+<file path="packages/xstate-store/src/undo.ts">
+import {
+  AnyStoreLogic,
+  EventObject,
+  EventPayloadMap,
+  ExtractEvents,
+  StoreConfig,
+  StoreContext,
+  StoreLogic,
+  StoreSnapshot
+} from './types';
+import { createStoreTransition } from './store';
+
+type UndoEvent<TEvent extends EventObject> = {
+  event: TEvent;
+  transactionId?: string;
+};
+
+/**
+ * Creates store logic with undo/redo functionality.
+ *
+ * It maintains an event history and allows reverting to previous states by
+ * replaying events from the beginning up to a certain point.
+ *
+ * @example
+ *
+ * ```ts
+ * // Basic usage - each event is its own transaction
+ * const store = createStore(
+ *   undoRedo({
+ *     context: { count: 0 },
+ *     on: {
+ *       inc: (ctx) => ({ count: ctx.count + 1 }),
+ *       dec: (ctx) => ({ count: ctx.count - 1 })
+ *     }
+ *   })
+ * );
+ *
+ * store.trigger.inc(); // count = 1
+ * store.trigger.inc(); // count = 2
+ * store.trigger.undo(); // count = 1 (undoes last inc)
+ * store.trigger.redo(); // count = 2 (redoes the inc)
+ * ```
+ *
+ * @example
+ *
+ * ```ts
+ * // Grouped events by transaction ID
+ * const store = createStore(
+ *   undoRedo(
+ *     {
+ *       context: { count: 0 },
+ *       on: {
+ *         inc: (ctx) => ({ count: ctx.count + 1 }),
+ *         dec: (ctx) => ({ count: ctx.count - 1 })
+ *       }
+ *     },
+ *     {
+ *       getTransactionId: (event) => event.type
+ *     }
+ *   )
+ * );
+ *
+ * store.send({ type: 'inc' }); // count = 1 (1st transaction)
+ * store.send({ type: 'inc' }); // count = 2 (1st transaction)
+ * store.send({ type: 'dec' }); // count = 1 (2nd transaction)
+ * store.send({ type: 'dec' }); // count = 0 (2nd transaction)
+ *
+ * store.trigger.undo(); // count = 1 (undoes both dec events)
+ * store.trigger.undo(); // count = 0 (undoes both inc events)
+ * ```
+ *
+ * @example
+ *
+ * ```ts
+ * // Skip certain events from undo/redo
+ * const store = createStore(
+ *   undoRedo(
+ *     {
+ *       context: { count: 0 },
+ *       on: {
+ *         inc: (ctx) => ({ count: ctx.count + 1 }),
+ *         log: (ctx) => ctx // No state change, just logging
+ *       }
+ *     },
+ *     {
+ *       skipEvent: (event) => event.type === 'log'
+ *     }
+ *   )
+ * );
+ *
+ * store.send({ type: 'inc' }); // count = 1
+ * store.send({ type: 'log' }); // count = 1 (logged but not undoable)
+ * store.send({ type: 'inc' }); // count = 2
+ * store.trigger.undo(); // count = 1 (skips log event)
+ * ```
+ *
+ * @returns Store logic with additional `undo` and `redo` event handlers
+ */
+export function undoRedo<
+  TContext extends StoreContext,
+  TEventPayloadMap extends EventPayloadMap,
+  TEmittedPayloadMap extends EventPayloadMap
+>(
+  storeConfig: StoreConfig<TContext, TEventPayloadMap, TEmittedPayloadMap>,
+  options?: {
+    /** A function that returns the transaction ID of an event. */
+    getTransactionId?: (
+      event: ExtractEvents<TEventPayloadMap>,
+      snapshot: StoreSnapshot<TContext>
+    ) => string | null | undefined;
+    /**
+     * A function that returns whether an event should be skipped during
+     * undo/redo. Skipped events are not stored in history and are not replayed
+     * during undo/redo.
+     */
+    skipEvent?: (
+      event: ExtractEvents<TEventPayloadMap>,
+      snapshot: StoreSnapshot<TContext>
+    ) => boolean;
+  }
+): StoreLogic<
+  StoreSnapshot<TContext>,
+  ExtractEvents<TEventPayloadMap> | { type: 'undo' } | { type: 'redo' },
+  ExtractEvents<TEmittedPayloadMap>
+> {
+  type TEvent = ExtractEvents<TEventPayloadMap>;
+  const logic: AnyStoreLogic = {
+    getInitialSnapshot: () => ({
+      status: 'active',
+      context: storeConfig.context,
+      output: undefined,
+      error: undefined
+    }),
+    transition: createStoreTransition(storeConfig.on)
+  };
+
+  const enhancedLogic: AnyStoreLogic = {
+    getInitialSnapshot: () => ({
+      status: 'active',
+      context: storeConfig.context,
+      output: undefined,
+      error: undefined,
+      events: [],
+      undoStack: []
+    }),
+    transition: (snapshot, event) => {
+      if (event.type === 'undo') {
+        const events = snapshot.events.slice();
+        const undoStack = snapshot.undoStack.slice();
+        if (!snapshot.events.length) {
+          return [snapshot, []];
+        }
+
+        // Get the transaction ID of the last event
+        const lastTransactionId = events[events.length - 1].transactionId;
+
+        // Remove all events with the same transaction ID
+        // If transactionId is undefined, only remove the last event
+        const eventsToUndo: UndoEvent<TEvent>[] = [];
+        if (lastTransactionId === undefined) {
+          // When no transaction ID is provided, each event is its own transaction
+          const event = events.pop()!;
+          eventsToUndo.unshift(event);
+          undoStack.push(event);
+        } else {
+          // Remove all events with the same transaction ID
+          while (true) {
+            const event = events.pop()!;
+            eventsToUndo.unshift(event);
+            undoStack.push(event);
+            if (
+              lastTransactionId === undefined ||
+              !events.length ||
+              events[events.length - 1].transactionId !== lastTransactionId
+            ) {
+              break;
+            }
+          }
+        }
+
+        // Filter out events that should be skipped during undo
+        const eventsToReplay = events;
+
+        // Replay remaining events to get to the new state
+        let state = {
+          ...logic.getInitialSnapshot(),
+          events,
+          undoStack
+        };
+
+        for (const { event } of eventsToReplay) {
+          const [newState, _effects] = logic.transition(state, event);
+          state = {
+            ...newState,
+            events,
+            undoStack
+          };
+        }
+
+        return [state, []];
+      }
+
+      if (event.type === 'redo') {
+        const events = snapshot.events.slice();
+        const undoStack = snapshot.undoStack.slice();
+        if (!undoStack.length) {
+          return [
+            {
+              ...snapshot,
+              events,
+              undoStack
+            },
+            []
+          ];
+        }
+
+        const lastTransactionId = undoStack[undoStack.length - 1].transactionId;
+        let state = {
+          ...snapshot,
+          events,
+          undoStack
+        };
+        const allEffects: any[] = [];
+
+        if (lastTransactionId === undefined) {
+          // When no transaction ID is provided, each event is its own transaction
+          const undoEvent = undoStack.pop()!;
+          events.push(undoEvent);
+          const [newState, effects] = logic.transition(state, undoEvent.event);
+          state = {
+            ...newState,
+            events,
+            undoStack
+          };
+          allEffects.push(...effects);
+        } else {
+          // Remove all events with the same transaction ID
+          while (
+            undoStack.length > 0 &&
+            undoStack[undoStack.length - 1].transactionId === lastTransactionId
+          ) {
+            const undoEvent = undoStack.pop()!;
+            events.push(undoEvent);
+            const [newState, effects] = logic.transition(
+              state,
+              undoEvent.event
+            );
+            state = {
+              ...newState,
+              events,
+              undoStack
+            };
+            allEffects.push(...effects);
+          }
+        }
+
+        return [state, allEffects];
+      }
+
+      const [state, effects] = logic.transition(snapshot, event);
+      const isEventSkipped = options?.skipEvent?.(event, snapshot);
+      const events = isEventSkipped
+        ? snapshot.events
+        : snapshot.events.concat({
+            event,
+            transactionId: options?.getTransactionId?.(event, snapshot)
+          });
+
+      return [
+        {
+          ...state,
+          events,
+          // Clear the undo stack when new events occur
+          undoStack: []
+        },
+        effects
+      ];
+    }
+  };
+
+  return enhancedLogic;
+}
+</file>
+
+</files>

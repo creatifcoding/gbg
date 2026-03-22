@@ -1,0 +1,31 @@
+Running ExUnit with seed: 183215, max_cases: 32
+Including tags: [:live_provider]
+
+
+04:21:22.460 [debug] [signal] type=order.model.request directives=1 duration=11.23ms
+
+04:21:22.509 [notice] Executing Maiden.OrderRuntime.Actions.RequestModelInference with params: %{options: %{provider: "openai", temperature: 0.0, max_tokens: "[REDACTED]"}, prompt: "Reply with exactly ORDER-LIVE-OK", request_id: "req-live-194", model: "gpt-4.1-mini"} and context: %{state: %{total: 42.0, items: [%{sku: "SKU-LIVE", qty: 1}], order_id: "ORD-LIVE-001-1e101a19-9a38-45ba-86ba-994b0a5a9bd4", customer: "Live Lane", cancelled_reason: nil, shipped_at: nil, delivered_at: nil, model_status: "idle", model_result: nil, model_request_id: nil, model_name: nil, model_error: nil, model_options: %{}, model_prompt: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 0}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c8ef4-040d-7eb1-b00c-a88cdb1e153e", action: Maiden.OrderRuntime.Actions.RequestModelInference, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 4, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}}, action_metadata: %{name: "request_model_inference", description: "Request model inference for order runtime", vsn: nil, category: nil, schema: [request_id: %{size: 2, type: :list, __truncated_depth__: 4}, model: %{size: 2, type: :list, __truncated_depth__: 4}, prompt: %{size: 2, type: :list, __truncated_depth__: 4}, options: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+04:21:22.539 [debug] [directive] type=RunInstruction result=ok duration=76.81ms
+
+04:21:22.567 [debug] [directive] type=CallModelInference result=ok duration=27.62ms
+
+04:21:22.567 [debug] [signal] type=order.model.error directives=1 duration=87μs
+
+04:21:22.572 [notice] Executing Maiden.OrderRuntime.Actions.RecordModelInferenceError with params: %{error: {:bridge_exception, "invalid option :input with value \"{\\\"options\\\":{\\\"request_id\\\":\\\"req-live-194\\\",\\\"provider\\\":\\\"openai\\\",\\\"model\\\":\\\"gpt-4.1-mini\\\",\\\"temperature\\\":0.0,\\\"max_tokens\\\":96},\\\"prompt\\\":\\\"Reply with exactly ORDER-LIVE-OK\\\",\\\"provider\\\":\\\"openai\\\",\\\"model\\\":\\\"gp...(truncated 14 bytes)"}, request_id: "req-live-194", model: "gpt-4.1-mini"} and context: %{state: %{total: 42.0, items: [%{sku: "SKU-LIVE", qty: 1}], order_id: "ORD-LIVE-001-1e101a19-9a38-45ba-86ba-994b0a5a9bd4", customer: "Live Lane", cancelled_reason: nil, shipped_at: nil, delivered_at: nil, model_status: "pending", model_result: nil, model_request_id: "req-live-194", model_name: "gpt-4.1-mini", model_error: nil, model_options: %{provider: "openai", temperature: 0.0, max_tokens: "[REDACTED]"}, model_prompt: "Reply with exactly ORDER-LIVE-OK", __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: %{size: 7, type: :map, __truncated_depth__: 4}, status: "processing", transitions: %{size: 4, type: :map, __truncated_depth__: 4}, processed_count: 1}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c8ef4-0487-77cc-ab68-af835747a6d1", action: Maiden.OrderRuntime.Actions.RecordModelInferenceError, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 3, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}}, action_metadata: %{name: "record_model_inference_error", description: "Record model inference error", vsn: nil, category: nil, schema: [request_id: %{size: 2, type: :list, __truncated_depth__: 4}, model: %{size: 1, type: :list, __truncated_depth__: 4}, error: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+04:21:22.574 [debug] [directive] type=RunInstruction result=ok duration=6.81ms
+
+
+  1) test live provider call round-trips through model boundary (Maiden.OrderRuntime.LiveProviderTest)
+     test/order_live_provider_test.exs:37
+     Assertion with == failed
+     code:  assert server_state.agent.state.model_status == "completed"
+     left:  "failed"
+     right: "completed"
+     stacktrace:
+       test/order_live_provider_test.exs:81: (test)
+
+
+Finished in 0.4 seconds (0.00s async, 0.4s sync)
+1 test, 1 failure

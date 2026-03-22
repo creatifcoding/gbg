@@ -1,0 +1,211 @@
+{
+  "runId": "run-2026-02-24T10-17-52-keen-arch",
+  "timestamp": "2026-02-24T10:17:55.959Z",
+  "totalCheckpoints": 3,
+  "passedCheckpoints": 3,
+  "failedCheckpoints": 0,
+  "regressions": [
+    {
+      "checkpoint": "spawned",
+      "description": "Single tiled strip column",
+      "scenarioId": "jade-arch",
+      "mode": "strip",
+      "timestamp": "2026-02-24T10:17:54.237Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-24T10-17-52-keen-arch/jade-arch/strip/002-spawned.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "floatCount",
+          "expected": 0,
+          "actual": 0,
+          "status": "pass"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "overlayOpen",
+          "expected": true,
+          "actual": true,
+          "status": "pass"
+        }
+      ],
+      "passed": true,
+      "actual": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "floatCount": 0,
+        "collapsedCount": 0,
+        "expandedCount": 1,
+        "columnCount": 1,
+        "collapsedColumnCount": 0,
+        "focusPosition": "col:0",
+        "stripMode": "unknown",
+        "overlayOpen": true,
+        "focusedColumnWidth": "half",
+        "raw": {
+          "activePanel": "p-morphchat:harness-3-mm0gce1d",
+          "panelIds": [
+            "p-morphchat:harness-3-mm0gce1d"
+          ]
+        }
+      },
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "floatCount": 0,
+        "columnCount": 1,
+        "overlayOpen": true
+      }
+    },
+    {
+      "checkpoint": "floated",
+      "description": "Panel detached to floating; strip column removed",
+      "scenarioId": "jade-arch",
+      "mode": "strip",
+      "timestamp": "2026-02-24T10:17:55.140Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-24T10-17-52-keen-arch/jade-arch/strip/004-floated.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 0,
+          "actual": 0,
+          "status": "pass"
+        },
+        {
+          "field": "floatCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "columnCount",
+          "expected": 0,
+          "actual": 0,
+          "status": "pass"
+        },
+        {
+          "field": "overlayOpen",
+          "expected": true,
+          "actual": true,
+          "status": "pass"
+        }
+      ],
+      "passed": true,
+      "actual": {
+        "totalPanels": 1,
+        "tiledCount": 0,
+        "floatCount": 1,
+        "collapsedCount": 0,
+        "expandedCount": 0,
+        "columnCount": 0,
+        "collapsedColumnCount": 0,
+        "focusPosition": "none",
+        "stripMode": "unknown",
+        "overlayOpen": true,
+        "focusedColumnWidth": "unknown",
+        "raw": {
+          "activePanel": "p-morphchat:harness-3-mm0gce1d",
+          "panelIds": [
+            "p-morphchat:harness-3-mm0gce1d"
+          ]
+        }
+      },
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 0,
+        "floatCount": 1,
+        "columnCount": 0,
+        "overlayOpen": true
+      }
+    },
+    {
+      "checkpoint": "retiled",
+      "description": "Panel tiled back and strip column restored",
+      "scenarioId": "jade-arch",
+      "mode": "strip",
+      "timestamp": "2026-02-24T10:17:55.954Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-24T10-17-52-keen-arch/jade-arch/strip/006-retiled.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "floatCount",
+          "expected": 0,
+          "actual": 0,
+          "status": "pass"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "overlayOpen",
+          "expected": true,
+          "actual": true,
+          "status": "pass"
+        }
+      ],
+      "passed": true,
+      "actual": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "floatCount": 0,
+        "collapsedCount": 0,
+        "expandedCount": 1,
+        "columnCount": 1,
+        "collapsedColumnCount": 0,
+        "focusPosition": "col:0",
+        "stripMode": "unknown",
+        "overlayOpen": true,
+        "focusedColumnWidth": "half",
+        "raw": {
+          "activePanel": "p-morphchat:harness-3-mm0gce1d",
+          "panelIds": [
+            "p-morphchat:harness-3-mm0gce1d"
+          ]
+        }
+      },
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "floatCount": 0,
+        "columnCount": 1,
+        "overlayOpen": true
+      }
+    }
+  ],
+  "failures": []
+}

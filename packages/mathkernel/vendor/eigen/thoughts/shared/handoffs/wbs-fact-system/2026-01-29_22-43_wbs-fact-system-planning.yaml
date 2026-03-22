@@ -1,0 +1,60 @@
+---
+session: wbs-fact-system
+date: 2026-01-29
+status: complete
+outcome: PARTIAL_PLUS
+---
+
+goal: WBS expanded with Extensible Fact System (+16 SP, 267→283 total)
+now: Review updated WBS summary, begin Epic 7 implementation planning
+test: cat thoughts/shared/plans/fragments/wbs-summary-updated.md | head -50
+
+done_this_session:
+  - task: Analyzed extensible-fact-system-spec.md and extracted SP breakdown
+    files: [thoughts/shared/plans/fragments/extensible-fact-system-spec.md]
+  - task: Updated WBS summary with Fact System integration
+    files: [thoughts/shared/plans/fragments/wbs-summary-updated.md]
+  - task: Added FactStore service (+8 SP to Epic 7)
+    files: [thoughts/shared/plans/fragments/wbs-summary-updated.md]
+  - task: Added AlarmService Fact integration (+4 SP to Epic 8)
+    files: [thoughts/shared/plans/fragments/wbs-summary-updated.md]
+  - task: Added EquipmentStateService Fact integration (+4 SP to Epic 10)
+    files: [thoughts/shared/plans/fragments/wbs-summary-updated.md]
+  - task: Updated critical path diagram with FactStore dependencies
+    files: [thoughts/shared/plans/fragments/wbs-summary-updated.md]
+
+blockers: []
+
+questions:
+  - Should FactStore use Effect Schema for payload validation or stay JSONB-only?
+  - What is the retention/archival policy for Facts vs Events?
+  - Should Facts support versioning (v1, v2 payloads)?
+
+decisions:
+  - fact_as_extension_point: Events stay typed (AlarmTriggered), Facts are JSONB extension points
+  - epic_7_foundation: FactStore must complete before Fact integrations in Epics 8, 10
+  - dag_structure: Facts support parent_fact_id for graph/DAG relationships
+
+findings:
+  - wbs_expansion: +16 SP total for Fact System (8 Epic 7, 4 Epic 8, 4 Epic 10)
+  - timeline_impact: Duration extends to 6-8 months (12-16 sprints)
+  - parallel_opportunities: Epic 10 can run parallel to Epic 9 after Epic 7 completes
+
+worked:
+  - Subagent delegation for WBS summary updates
+  - Fragment-based planning docs in thoughts/shared/plans/fragments/
+
+failed:
+  - Context exhaustion from heavy subagent orchestration
+
+next:
+  - Review wbs-summary-updated.md for accuracy
+  - Begin Epic 7 detailed task breakdown (IIoTEventLog + FactStore)
+  - Define FactTypeRegistry schema for runtime validation
+  - Create iiot_facts.ddl.ts SQL schema
+
+files:
+  created:
+    - thoughts/shared/handoffs/wbs-fact-system/2026-01-29_22-43_wbs-fact-system-planning.yaml
+  modified:
+    - thoughts/shared/plans/fragments/wbs-summary-updated.md

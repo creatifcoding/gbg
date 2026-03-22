@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "outDir": "dist",
+    "rootDir": "src/ts",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "paths": {
+      "effect-v4": ["../../node_modules/effect-v4"],
+      "effect-v4/*": ["../../node_modules/effect-v4/*"]
+    }
+  },
+  "include": ["src/ts"],
+  "exclude": ["dist", "test", "node_modules", "build", "vendor"]
+}

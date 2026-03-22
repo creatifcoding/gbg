@@ -1,0 +1,30 @@
+syntax = "proto3";
+package scm.quality.v1;
+
+import "google/protobuf/timestamp.proto";
+import "scm/common/v1/common.proto";
+
+message TraceabilityRequirementDeclared { string policy_id = 1; string scope = 2; map<string,string> required_fields = 3; map<string,string> attrs = 4; }
+message SerializationPolicySet { string part_id = 1; string policy = 2; map<string,string> attrs = 3; }
+
+message LotCreated { string lot_id = 1; string part_id = 2; int64 qty = 3; map<string,string> attrs = 4; }
+message SerialAssigned { string serial_id = 1; string part_id = 2; string lot_id = 3; map<string,string> attrs = 4; }
+message GenealogyLinked { string parent_id = 1; string child_id = 2; map<string,string> attrs = 3; }
+
+message IncomingInspectionPlanned { string receipt_id = 1; string plan_id = 2; map<string,string> attrs = 3; }
+message IncomingInspectionCompleted { string receipt_id = 1; string result = 2; map<string,string> attrs = 3; }
+
+message TestPlanDefined { string test_plan_id = 1; string part_id = 2; string rev = 3; map<string,string> attrs = 4; }
+message TestStarted { string test_run_id = 1; string resource_id = 2; google.protobuf.Timestamp ts = 3; map<string,string> attrs = 4; }
+message TestCompleted { string test_run_id = 1; int64 pass = 2; int64 fail = 3; google.protobuf.Timestamp ts = 4; map<string,string> attrs = 5; }
+message TestYieldMeasured { string subject_id = 1; int64 good = 2; int64 total = 3; map<string,string> attrs = 4; }
+
+message NCRRaised { string ncr_id = 1; string part_id = 2; string lot_id = 3; scm.common.v1.Severity severity = 4; map<string,string> attrs = 5; }
+message NCRDispositioned { string ncr_id = 1; string disposition = 2; map<string,string> attrs = 3; }
+message CAPAOpened { string capa_id = 1; string trigger_ref = 2; map<string,string> attrs = 3; }
+message CAPAClosed { string capa_id = 1; google.protobuf.Timestamp ts = 2; map<string,string> attrs = 3; }
+
+message SuspectCounterfeitDetected { string part_id = 1; string supplier_party_id = 2; string lot_id = 3; string method = 4; scm.common.v1.Severity severity = 5; map<string,string> attrs = 6; }
+message CounterfeitConfirmed { string investigation_id = 1; string part_id = 2; string lot_id = 3; map<string,string> attrs = 4; }
+message QuarantineApplied { string quarantine_id = 1; string scope_id = 2; string reason = 3; map<string,string> attrs = 4; }
+message QuarantineReleased { string quarantine_id = 1; google.protobuf.Timestamp ts = 2; map<string,string> attrs = 3; }

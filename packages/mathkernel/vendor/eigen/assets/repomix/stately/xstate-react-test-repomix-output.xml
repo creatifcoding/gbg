@@ -1,0 +1,501 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+4. Repository files, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: packages/xstate-react/src/
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+<additional_info>
+
+</additional_info>
+
+</file_summary>
+
+<directory_structure>
+packages/
+  xstate-react/
+    src/
+      createActorContext.ts
+      false.ts
+      index.ts
+      shallowEqual.ts
+      stopRootWithRehydration.ts
+      true.ts
+      useActor.ts
+      useActorRef.ts
+      useMachine.ts
+      useSelector.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="packages/xstate-react/src/createActorContext.ts">
+import * as React from 'react';
+import { Actor, ActorOptions, AnyActorLogic, SnapshotFrom } from 'xstate';
+import { useActorRef } from './useActorRef';
+import { useSelector as useSelectorUnbound } from './useSelector';
+
+export function createActorContext<TLogic extends AnyActorLogic>(
+  actorLogic: TLogic,
+  actorOptions?: ActorOptions<TLogic>
+): {
+  useSelector: <T>(
+    selector: (snapshot: SnapshotFrom<TLogic>) => T,
+    compare?: (a: T, b: T) => boolean
+  ) => T;
+  useActorRef: () => Actor<TLogic>;
+  Provider: (props: {
+    children: React.ReactNode;
+    options?: ActorOptions<TLogic>;
+    /** @deprecated Use `logic` instead. */
+    machine?: never;
+    logic?: TLogic;
+  }) => React.ReactElement<any, any>;
+} {
+  const ReactContext = React.createContext<Actor<TLogic> | null>(null);
+
+  const OriginalProvider = ReactContext.Provider;
+
+  function Provider({
+    children,
+    logic: providedLogic = actorLogic,
+    machine,
+    options: providedOptions
+  }: {
+    children: React.ReactNode;
+    logic: TLogic;
+    /** @deprecated Use `logic` instead. */
+    machine?: never;
+    options?: ActorOptions<TLogic>;
+  }) {
+    if (machine) {
+      throw new Error(
+        `The "machine" prop has been deprecated. Please use "logic" instead.`
+      );
+    }
+
+    const actor = useActorRef(providedLogic, {
+      ...actorOptions,
+      ...providedOptions
+    });
+
+    return React.createElement(OriginalProvider, {
+      value: actor,
+      children
+    });
+  }
+
+  // TODO: add properties to actor ref to make more descriptive
+  Provider.displayName = `ActorProvider`;
+
+  function useContext(): Actor<TLogic> {
+    const actor = React.useContext(ReactContext);
+
+    if (!actor) {
+      throw new Error(
+        `You used a hook from "${Provider.displayName}" but it's not inside a <${Provider.displayName}> component.`
+      );
+    }
+
+    return actor;
+  }
+
+  function useSelector<T>(
+    selector: (snapshot: SnapshotFrom<TLogic>) => T,
+    compare?: (a: T, b: T) => boolean
+  ): T {
+    const actor = useContext();
+    return useSelectorUnbound(actor, selector, compare);
+  }
+
+  return {
+    Provider: Provider as any,
+    useActorRef: useContext,
+    useSelector
+  };
+}
+</file>
+
+<file path="packages/xstate-react/src/false.ts">
+export default false;
+</file>
+
+<file path="packages/xstate-react/src/index.ts">
+export { createActorContext } from './createActorContext.ts';
+export { shallowEqual } from './shallowEqual.ts';
+export { useActor } from './useActor.ts';
+export { useActorRef } from './useActorRef.ts';
+export { useSelector } from './useSelector.ts';
+
+// deprecated
+export { useMachine } from './useMachine.ts';
+</file>
+
+<file path="packages/xstate-react/src/shallowEqual.ts">
+// From https://github.com/reduxjs/react-redux/blob/720f0ba79236cdc3e1115f4ef9a7760a21784b48/src/utils/shallowEqual.ts
+function is(x: unknown, y: unknown) {
+  if (x === y) {
+    return x !== 0 || y !== 0 || 1 / x === 1 / y;
+  } else {
+    return x !== x && y !== y;
+  }
+}
+
+export function shallowEqual(objA: any, objB: any) {
+  if (is(objA, objB)) return true;
+
+  if (
+    typeof objA !== 'object' ||
+    objA === null ||
+    typeof objB !== 'object' ||
+    objB === null
+  ) {
+    return false;
+  }
+
+  const keysA = Object.keys(objA);
+  const keysB = Object.keys(objB);
+
+  if (keysA.length !== keysB.length) return false;
+
+  for (let i = 0; i < keysA.length; i++) {
+    if (
+      !Object.prototype.hasOwnProperty.call(objB, keysA[i]) ||
+      !is(objA[keysA[i]], objB[keysA[i]])
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+</file>
+
+<file path="packages/xstate-react/src/stopRootWithRehydration.ts">
+import { AnyActorRef, Snapshot } from 'xstate';
+
+const forEachActor = (
+  actorRef: AnyActorRef,
+  callback: (ref: AnyActorRef) => void
+) => {
+  callback(actorRef);
+  const children = actorRef.getSnapshot().children;
+  if (children) {
+    Object.values(children).forEach((child) => {
+      forEachActor(child as AnyActorRef, callback);
+    });
+  }
+};
+
+export function stopRootWithRehydration(actorRef: AnyActorRef) {
+  // persist snapshot here in a custom way allows us to persist inline actors and to preserve actor references
+  // we do it to avoid setState in useEffect when the effect gets "reconnected"
+  // this currently only happens in Strict Effects but it simulates the Offscreen aka Activity API
+  // it also just allows us to end up with a somewhat more predictable behavior for the users
+  const persistedSnapshots: Array<[AnyActorRef, Snapshot<unknown>]> = [];
+  forEachActor(actorRef, (ref) => {
+    persistedSnapshots.push([ref, ref.getSnapshot()]);
+    // muting observers allow us to avoid `useSelector` from being notified about the stopped snapshot
+    // React reconnects its subscribers (from the useSyncExternalStore) on its own
+    // and userland subscribers should basically always do the same anyway
+    // as each subscription should have its own cleanup logic and that should be called each such reconnect
+    (ref as any).observers = new Set();
+  });
+  const systemSnapshot = actorRef.system.getSnapshot?.();
+
+  actorRef.stop();
+
+  (actorRef.system as any)._snapshot = systemSnapshot;
+  persistedSnapshots.forEach(([ref, snapshot]) => {
+    (ref as any)._processingStatus = 0;
+    (ref as any)._snapshot = snapshot;
+  });
+}
+</file>
+
+<file path="packages/xstate-react/src/true.ts">
+export default true;
+</file>
+
+<file path="packages/xstate-react/src/useActor.ts">
+import isDevelopment from '#is-development';
+import { useCallback, useEffect } from 'react';
+import { useSyncExternalStore } from 'use-sync-external-store/shim';
+import {
+  Actor,
+  ActorOptions,
+  AnyActorLogic,
+  SnapshotFrom,
+  type ConditionalRequired,
+  type IsNotNever,
+  type RequiredActorOptionsKeys
+} from 'xstate';
+import { stopRootWithRehydration } from './stopRootWithRehydration.ts';
+import { useIdleActorRef } from './useActorRef.ts';
+
+export function useActor<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  ...[options]: ConditionalRequired<
+    [
+      options?: ActorOptions<TLogic> & {
+        [K in RequiredActorOptionsKeys<TLogic>]: unknown;
+      }
+    ],
+    IsNotNever<RequiredActorOptionsKeys<TLogic>>
+  >
+): [SnapshotFrom<TLogic>, Actor<TLogic>['send'], Actor<TLogic>] {
+  if (
+    isDevelopment &&
+    !!logic &&
+    'send' in logic &&
+    typeof logic.send === 'function'
+  ) {
+    throw new Error(
+      `useActor() expects actor logic (e.g. a machine), but received an ActorRef. Use the useSelector(actorRef, ...) hook instead to read the ActorRef's snapshot.`
+    );
+  }
+
+  const actorRef = useIdleActorRef(logic, options);
+
+  const getSnapshot = useCallback(() => {
+    return actorRef.getSnapshot();
+  }, [actorRef]);
+
+  const subscribe = useCallback(
+    (handleStoreChange: () => void) => {
+      const { unsubscribe } = actorRef.subscribe(handleStoreChange);
+      return unsubscribe;
+    },
+    [actorRef]
+  );
+
+  const actorSnapshot = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getSnapshot
+  );
+
+  useEffect(() => {
+    actorRef.start();
+
+    return () => {
+      stopRootWithRehydration(actorRef);
+    };
+  }, [actorRef]);
+
+  return [actorSnapshot, actorRef.send, actorRef];
+}
+</file>
+
+<file path="packages/xstate-react/src/useActorRef.ts">
+import { useEffect, useState } from 'react';
+import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
+import {
+  Actor,
+  ActorOptions,
+  AnyActorLogic,
+  AnyStateMachine,
+  Observer,
+  SnapshotFrom,
+  createActor,
+  toObserver,
+  type ConditionalRequired,
+  type IsNotNever,
+  type RequiredActorOptionsKeys
+} from 'xstate';
+import { stopRootWithRehydration } from './stopRootWithRehydration';
+
+export function useIdleActorRef<TLogic extends AnyActorLogic>(
+  logic: TLogic,
+  ...[options]: ConditionalRequired<
+    [
+      options?: ActorOptions<TLogic> & {
+        [K in RequiredActorOptionsKeys<TLogic>]: unknown;
+      }
+    ],
+    IsNotNever<RequiredActorOptionsKeys<TLogic>>
+  >
+): Actor<TLogic> {
+  let [[currentConfig, actorRef], setCurrent] = useState(() => {
+    const actorRef = createActor(logic, options);
+    return [logic.config, actorRef];
+  });
+
+  if (logic.config !== currentConfig) {
+    const newActorRef = createActor(logic, {
+      ...options,
+      snapshot: (actorRef.getPersistedSnapshot as any)({
+        __unsafeAllowInlineActors: true
+      })
+    });
+    setCurrent([logic.config, newActorRef]);
+    actorRef = newActorRef;
+  }
+
+  // TODO: consider using `useAsapEffect` that would do this in `useInsertionEffect` is that's available
+  useIsomorphicLayoutEffect(() => {
+    (actorRef.logic as any as AnyStateMachine).implementations = (
+      logic as any as AnyStateMachine
+    ).implementations;
+  });
+
+  return actorRef;
+}
+
+export function useActorRef<TLogic extends AnyActorLogic>(
+  machine: TLogic,
+  ...[options, observerOrListener]: IsNotNever<
+    RequiredActorOptionsKeys<TLogic>
+  > extends true
+    ? [
+        options: ActorOptions<TLogic> & {
+          [K in RequiredActorOptionsKeys<TLogic>]: unknown;
+        },
+        observerOrListener?:
+          | Observer<SnapshotFrom<TLogic>>
+          | ((value: SnapshotFrom<TLogic>) => void)
+      ]
+    : [
+        options?: ActorOptions<TLogic>,
+        observerOrListener?:
+          | Observer<SnapshotFrom<TLogic>>
+          | ((value: SnapshotFrom<TLogic>) => void)
+      ]
+): Actor<TLogic> {
+  const actorRef = useIdleActorRef(machine, options);
+
+  useEffect(() => {
+    if (!observerOrListener) {
+      return;
+    }
+    const sub = actorRef.subscribe(toObserver(observerOrListener));
+    return () => {
+      sub.unsubscribe();
+    };
+  }, [observerOrListener]);
+
+  useEffect(() => {
+    actorRef.start();
+
+    return () => {
+      stopRootWithRehydration(actorRef);
+    };
+  }, [actorRef]);
+
+  return actorRef;
+}
+</file>
+
+<file path="packages/xstate-react/src/useMachine.ts">
+import {
+  Actor,
+  ActorOptions,
+  AnyStateMachine,
+  StateFrom,
+  type ConditionalRequired,
+  type IsNotNever,
+  type RequiredActorOptionsKeys
+} from 'xstate';
+import { useActor } from './useActor.ts';
+
+/** @alias useActor */
+export function useMachine<TMachine extends AnyStateMachine>(
+  machine: TMachine,
+  ...[options]: ConditionalRequired<
+    [
+      options?: ActorOptions<TMachine> & {
+        [K in RequiredActorOptionsKeys<TMachine>]: unknown;
+      }
+    ],
+    IsNotNever<RequiredActorOptionsKeys<TMachine>>
+  >
+): [StateFrom<TMachine>, Actor<TMachine>['send'], Actor<TMachine>] {
+  return useActor(machine, options);
+}
+</file>
+
+<file path="packages/xstate-react/src/useSelector.ts">
+import { useCallback } from 'react';
+import { useSyncExternalStoreWithSelector } from 'use-sync-external-store/shim/with-selector';
+import { AnyActorRef } from 'xstate';
+
+type SyncExternalStoreSubscribe = Parameters<
+  typeof useSyncExternalStoreWithSelector
+>[0];
+
+function defaultCompare<T>(a: T, b: T) {
+  return a === b;
+}
+
+export function useSelector<
+  TActor extends Pick<AnyActorRef, 'subscribe' | 'getSnapshot'> | undefined,
+  T
+>(
+  actor: TActor,
+  selector: (
+    snapshot: TActor extends { getSnapshot(): infer TSnapshot }
+      ? TSnapshot
+      : undefined
+  ) => T,
+  compare: (a: T, b: T) => boolean = defaultCompare
+): T {
+  const subscribe: SyncExternalStoreSubscribe = useCallback(
+    (handleStoreChange) => {
+      if (!actor) {
+        return () => {};
+      }
+      const { unsubscribe } = actor.subscribe(handleStoreChange);
+      return unsubscribe;
+    },
+    [actor]
+  );
+
+  const boundGetSnapshot = useCallback(() => actor?.getSnapshot(), [actor]);
+
+  const selectedSnapshot = useSyncExternalStoreWithSelector(
+    subscribe,
+    boundGetSnapshot,
+    boundGetSnapshot,
+    selector,
+    compare
+  );
+
+  return selectedSnapshot;
+}
+</file>
+
+</files>

@@ -1,0 +1,100 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "OrderTransitionEvent": {
+      "type": "object",
+      "required": [
+        "order_id",
+        "from",
+        "to",
+        "at"
+      ],
+      "properties": {
+        "order_id": {
+          "$ref": "#/definitions/OrderId"
+        },
+        "from": {
+          "$ref": "#/definitions/OrderState"
+        },
+        "to": {
+          "$ref": "#/definitions/OrderState"
+        },
+        "at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Lifecycle transition event payload validated in TS and in Elixir via generated JSON Schema artifacts.",
+      "title": "Order Transition Event"
+    },
+    "OrderId": {
+      "type": "string",
+      "description": "Slug-prefixed UUID (e.g. ORD-550e8400-e29b-41d4-a716-446655440000).",
+      "title": "Order ID",
+      "pattern": "^[A-Z][A-Z0-9_-]*-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "OrderState": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "shipped",
+        "delivered",
+        "cancelled"
+      ],
+      "description": "Allowed finite states for an order lifecycle.",
+      "title": "Order State"
+    }
+  },
+  "type": "object",
+  "required": [
+    "order_id",
+    "from",
+    "to",
+    "at"
+  ],
+  "properties": {
+    "order_id": {
+      "$ref": "#/definitions/OrderId"
+    },
+    "from": {
+      "$ref": "#/definitions/OrderState"
+    },
+    "to": {
+      "$ref": "#/definitions/OrderState"
+    },
+    "at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/order/ts/order.contract.ts). Canonical transition event contract for TypeScript and Elixir.",
+  "title": "OrderTransitionEvent",
+  "$id": "/contracts/order/order_transition.schema.json"
+}

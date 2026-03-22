@@ -1,0 +1,241 @@
+{
+  "kind": "toc-cycle1-baseline",
+  "capturedAt": "2026-02-25T10:54:21.040Z",
+  "config": {
+    "url": "http://localhost:1420/window?testbed=floating",
+    "warmupMs": 5000,
+    "sampleMs": 20000,
+    "replicates": 3,
+    "runtime": "bun",
+    "browser": "playwright/chromium"
+  },
+  "summary": {
+    "p50": 16.69999999999709,
+    "p95": 49.89999999999418,
+    "p99": 66.60000000000582,
+    "mean": 19.600638353479255,
+    "samples": 3061
+  },
+  "replicates": [
+    {
+      "replicate": 1,
+      "frameStats": {
+        "p50": 16.69999999999891,
+        "p95": 16.799999999999272,
+        "p99": 33.399999999999636,
+        "mean": 17.360416666666666,
+        "samples": 1152
+      },
+      "latencies": [
+        {
+          "name": "spawn-chat",
+          "ms": 285.27986899999996,
+          "ok": true,
+          "detail": "__PANEL_TEST__.spawnTiledChat"
+        },
+        {
+          "name": "split-hotkey",
+          "ms": 141.15115100000003,
+          "ok": true,
+          "detail": "__PANEL_TEST__.splitHorizontal · tiled 4 -> increased"
+        },
+        {
+          "name": "drag-panel",
+          "ms": 748.2497700000004,
+          "ok": true,
+          "detail": "panel moved"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 1924.2231090000005,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for first assistant activity"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 6927.5362460000015,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for assistant shell growth"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 6927.5362460000015,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for assistant shell growth"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 1884.9120860000003,
+          "ok": false,
+          "detail": "prompt-2: timed out waiting for first assistant activity"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 6888.438767,
+          "ok": false,
+          "detail": "prompt-2: timed out waiting for assistant shell growth"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 6888.438767,
+          "ok": false,
+          "detail": "prompt-2: timed out waiting for assistant shell growth"
+        }
+      ],
+      "notes": [
+        "prompt-1 first activity timed out",
+        "prompt-1 full response timed out",
+        "prompt-2 first activity timed out",
+        "prompt-2 full response timed out"
+      ],
+      "frameDeltaCount": 1152
+    },
+    {
+      "replicate": 2,
+      "frameStats": {
+        "p50": 16.69999999999709,
+        "p95": 50,
+        "p99": 66.70000000000437,
+        "mean": 20.89775757575757,
+        "samples": 957
+      },
+      "latencies": [
+        {
+          "name": "spawn-chat",
+          "ms": 130.9151920000004,
+          "ok": true,
+          "detail": "__PANEL_TEST__.spawnTiledChat"
+        },
+        {
+          "name": "split-hotkey",
+          "ms": 173.6868059999979,
+          "ok": true,
+          "detail": "__PANEL_TEST__.splitHorizontal · tiled 1 -> increased"
+        },
+        {
+          "name": "drag-panel",
+          "ms": 1101.1758980000013,
+          "ok": true,
+          "detail": "panel moved"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 1859.2865320000055,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for first assistant activity"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 6882.993893999999,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for assistant shell growth"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 6882.993893999999,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for assistant shell growth"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 2112.6407580000014,
+          "ok": false,
+          "detail": "prompt-2: timed out waiting for first assistant activity"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 7115.174207000004,
+          "ok": false,
+          "detail": "prompt-2: timed out waiting for assistant shell growth"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 7115.174207000004,
+          "ok": false,
+          "detail": "prompt-2: timed out waiting for assistant shell growth"
+        }
+      ],
+      "notes": [
+        "prompt-1 first activity timed out",
+        "prompt-1 full response timed out",
+        "prompt-2 first activity timed out",
+        "prompt-2 full response timed out"
+      ],
+      "frameDeltaCount": 957
+    },
+    {
+      "replicate": 3,
+      "frameStats": {
+        "p50": 16.69999999999709,
+        "p95": 50,
+        "p99": 66.69999999999709,
+        "mean": 21.007563025210082,
+        "samples": 952
+      },
+      "latencies": [
+        {
+          "name": "spawn-chat",
+          "ms": 93.5333349999928,
+          "ok": true,
+          "detail": "__PANEL_TEST__.spawnTiledChat"
+        },
+        {
+          "name": "split-hotkey",
+          "ms": 192.19566399999894,
+          "ok": true,
+          "detail": "__PANEL_TEST__.splitHorizontal · tiled 1 -> increased"
+        },
+        {
+          "name": "drag-panel",
+          "ms": 1241.0373550000004,
+          "ok": true,
+          "detail": "panel moved"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 1865.585733999993,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for first assistant activity"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 6905.53098499999,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for assistant shell growth"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 6905.53098499999,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for assistant shell growth"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 1987.4551800000045,
+          "ok": false,
+          "detail": "prompt-2: timed out waiting for first assistant activity"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 6991.090421000001,
+          "ok": false,
+          "detail": "prompt-2: timed out waiting for assistant shell growth"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 6991.090421000001,
+          "ok": false,
+          "detail": "prompt-2: timed out waiting for assistant shell growth"
+        }
+      ],
+      "notes": [
+        "prompt-1 first activity timed out",
+        "prompt-1 full response timed out",
+        "prompt-2 first activity timed out",
+        "prompt-2 full response timed out"
+      ],
+      "frameDeltaCount": 952
+    }
+  ],
+  "consoleErrors": []
+}

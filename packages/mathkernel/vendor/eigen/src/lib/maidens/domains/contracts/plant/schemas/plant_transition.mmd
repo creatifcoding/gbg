@@ -1,0 +1,11 @@
+stateDiagram-v2
+  commissioning --> operational
+  operational --> scheduled_shutdown
+  operational --> emergency_shutdown
+  operational --> maintenance_shutdown
+  scheduled_shutdown --> operational
+  scheduled_shutdown --> decommissioned
+  emergency_shutdown --> maintenance_shutdown
+  maintenance_shutdown --> operational
+  maintenance_shutdown --> decommissioned
+  state decommissioned

@@ -1,0 +1,11 @@
+syntax = "proto3";
+package scm.events.v1;
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.MessageOptions {
+  // Optional: stable logical event name (lets you rename messages without breaking semantics).
+  string event_name = 51001;
+  // Optional: domain tag (engineering/procurement/etc)
+  string domain = 51002;
+}

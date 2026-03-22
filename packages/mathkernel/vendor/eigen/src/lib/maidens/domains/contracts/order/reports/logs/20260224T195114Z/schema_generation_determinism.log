@@ -1,0 +1,17 @@
+[order-e2e] first generation run
+$ bun run src/lib/maidens/domains/contracts/order/scripts/gen-order-schemas.ts
+Generated schemas:
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/order/schemas/order.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/order/schemas/order_transition.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/order/schemas/order_agent_state.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/order/schemas/order_transition.mmd
+[order-e2e] fingerprint before rerun: d17ac4d8dab1e47ba20e01b296ea45d50d5b2de66be4fbb576068c3bfbeec771
+[order-e2e] second generation run
+$ bun run src/lib/maidens/domains/contracts/order/scripts/gen-order-schemas.ts
+Generated schemas:
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/order/schemas/order.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/order/schemas/order_transition.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/order/schemas/order_agent_state.schema.json
+- /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/order/schemas/order_transition.mmd
+[order-e2e] fingerprint after rerun:  d17ac4d8dab1e47ba20e01b296ea45d50d5b2de66be4fbb576068c3bfbeec771
+[order-e2e] schema fingerprint stable: d17ac4d8dab1e47ba20e01b296ea45d50d5b2de66be4fbb576068c3bfbeec771

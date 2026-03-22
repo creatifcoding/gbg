@@ -1,0 +1,168 @@
+# AVA SLO alert rules (Task #2792)
+# Source thresholds: docs/AVA_SLO_ALERTS.md
+# Recovery telemetry source: docs/AVA_REDRIVE_METRICS_CONTRACT.md
+
+groups:
+  - name: ava_slo_alerts
+    interval: 30s
+    rules:
+      # SLO-1: command ingestion reliability
+      - alert: AvaIngressErrorRatioP2
+        expr: |
+          (
+            sum(rate(ava_elixir_bridge_ingress_total{status="error"}[5m]))
+            /
+            clamp_min(sum(rate(ava_elixir_bridge_ingress_total[5m])), 1)
+          ) > 0.02
+        for: 5m
+        labels:
+          severity: P2
+          slo: SLO-1
+          service: ava-elixir
+        annotations:
+          summary: "AVA ingress error ratio > 2% for 5m"
+          description: "Transient ingress degradation crossing SLO-1 threshold."
+          dashboard: "docs/dashboards/ava_redrive_projection_dashboard.json"
+          runbook: "docs/AVA_ASH_OBAN_RUNBOOK.md"
+
+      - alert: AvaIngressErrorRatioP1
+        expr: |
+          (
+            sum(rate(ava_elixir_bridge_ingress_total{status="error"}[5m]))
+            /
+            clamp_min(sum(rate(ava_elixir_bridge_ingress_total[5m])), 1)
+          ) > 0.02
+        for: 10m
+        labels:
+          severity: P1
+          slo: SLO-1
+          service: ava-elixir
+        annotations:
+          summary: "AVA ingress error ratio sustained > 2% for 10m"
+          description: "SLO-1 escalation path to P1 (sustained failure)."
+          dashboard: "docs/dashboards/ava_redrive_projection_dashboard.json"
+          runbook: "docs/AVA_ASH_OBAN_RUNBOOK.md"
+
+      # SLO-2: outbox freshness
+      - alert: AvaOutboxFreshnessP2
+        expr: |
+          (
+            max_over_time(ava_outbox_backlog_rows[5m]) > 200
+          )
+          or
+          (
+            histogram_quantile(
+              0.95,
+              sum by (le) (rate(ava_outbox_publish_latency_seconds_bucket[5m]))
+            ) > 5
+          )
+        for: 5m
+        labels:
+          severity: P2
+          slo: SLO-2
+          service: ava-elixir
+        annotations:
+          summary: "AVA outbox freshness degraded (backlog > 200 or p95 > 5s)"
+          description: "Outbox publish freshness violation for 5 minutes."
+          dashboard: "docs/dashboards/ava_redrive_projection_dashboard.json"
+          runbook: "docs/AVA_ASH_OBAN_RUNBOOK.md"
+
+      # SLO-3: dual-run parity drift
+      - alert: AvaParityMismatchRatioP1
+        expr: |
+          (
+            sum(rate(ava_elixir_bridge_dual_run_parity_total{parity_status=~"mismatch|missing_expected|missing_actual|error"}[5m]))
+            /
+            clamp_min(sum(rate(ava_elixir_bridge_dual_run_parity_total[5m])), 1)
+          ) > 0.01
+        for: 5m
+        labels:
+          severity: P1
+          slo: SLO-3
+          service: ava-elixir
+        annotations:
+          summary: "AVA parity mismatch ratio > 1% for 5m"
+          description: "Dual-run parity drift crossed SLO-3 threshold."
+          dashboard: "docs/dashboards/ava_redrive_projection_dashboard.json"
+          runbook: "docs/AVA_ASH_OBAN_RUNBOOK.md"
+
+      # SLO-4: rollback safety
+      - alert: AvaRollbackDrillFailureP1
+        expr: |
+          max_over_time(ava_elixir_rollback_drill_success[5m]) < 1
+        for: 1m
+        labels:
+          severity: P1
+          slo: SLO-4
+          service: ava-elixir
+        annotations:
+          summary: "AVA rollback drill failure detected"
+          description: "Rollback safety check failed; fallback path may not be runnable."
+          dashboard: "docs/dashboards/ava_redrive_projection_dashboard.json"
+          runbook: "docs/AVA_ASH_OBAN_RUNBOOK.md"
+
+      # Redrive contract-derived operator warnings (AVA_REDRIVE_METRICS_CONTRACT)
+      - alert: AvaRedriveEnqueueErrorRatioP2
+        expr: |
+          (
+            sum(increase(ava_elixir_outbox_redrive_enqueue_total{status="error"}[10m]))
+            /
+            clamp_min(sum(increase(ava_elixir_outbox_redrive_enqueue_total[10m])), 1)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: P2
+          category: redrive
+          service: ava-elixir
+        annotations:
+          summary: "AVA redrive enqueue error ratio > 5%"
+          description: "Redrive path is failing to enqueue reliably."
+          dashboard: "docs/dashboards/ava_redrive_projection_dashboard.json"
+          runbook: "docs/AVA_ASH_OBAN_RUNBOOK.md"
+
+      - alert: AvaRedriveNoProgressP2
+        expr: |
+          (
+            sum(increase(ava_elixir_outbox_redrive_summary_selected{dry_run="false"}[10m])) > 0
+          )
+          and
+          (
+            sum(increase(ava_elixir_outbox_redrive_summary_enqueued{dry_run="false"}[10m])) == 0
+          )
+        for: 10m
+        labels:
+          severity: P2
+          category: redrive
+          service: ava-elixir
+        annotations:
+          summary: "AVA redrive selected rows but enqueued none"
+          description: "Potential stuck recovery path despite selected backlog."
+          dashboard: "docs/dashboards/ava_redrive_projection_dashboard.json"
+          runbook: "docs/AVA_ASH_OBAN_RUNBOOK.md"
+
+      # P3 warning-only (config drift + dry-run backlog trend)
+      - alert: AvaConfigDriftWarningP3
+        expr: |
+          max_over_time(ava_config_drift_warning[15m]) > 0
+        for: 15m
+        labels:
+          severity: P3
+          category: config-drift
+          service: ava-elixir
+        annotations:
+          summary: "AVA warning-only configuration drift"
+          description: "Non-paging config drift signal routed to ticket queue."
+          dashboard: "docs/dashboards/ava_redrive_projection_dashboard.json"
+
+      - alert: AvaRedriveDryRunBacklogWarningP3
+        expr: |
+          sum(increase(ava_elixir_outbox_redrive_selection_count{dry_run="true"}[30m])) > 200
+        for: 15m
+        labels:
+          severity: P3
+          category: redrive
+          service: ava-elixir
+        annotations:
+          summary: "AVA repeated high dry-run redrive selections"
+          description: "Dry-run redrive repeatedly selecting large backlog; investigate trend."
+          dashboard: "docs/dashboards/ava_redrive_projection_dashboard.json"

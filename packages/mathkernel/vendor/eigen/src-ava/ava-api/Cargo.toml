@@ -1,0 +1,59 @@
+[package]
+name = "ava-api"
+description = "AVA API - gRPC and REST endpoints for view lifecycle management"
+version.workspace = true
+edition = "2021"
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+# AVA crates
+ava-domain = { path = "../ava-domain" }
+ava-runtime = { path = "../ava-runtime" }
+ava-adapters = { path = "../ava-adapters", features = ["nats"] }
+
+# gRPC
+tonic.workspace = true
+prost.workspace = true
+prost-types.workspace = true
+prost-wkt-types.workspace = true
+tokio-stream.workspace = true
+
+# Utilities
+uuid.workspace = true
+
+# REST
+axum.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+
+# OpenAPI
+utoipa.workspace = true
+utoipa-axum.workspace = true
+utoipa-swagger-ui.workspace = true
+
+# Core
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+thiserror.workspace = true
+
+# Async
+tokio.workspace = true
+async-trait.workspace = true
+futures.workspace = true
+
+# Logging
+tracing.workspace = true
+tracing-subscriber = { version = "0.3", features = ["fmt"] }
+
+[[bin]]
+name = "ava-server"
+path = "src/bin/ava-server.rs"
+
+[build-dependencies]
+tonic-build = "0.12"
+# protoc provided by nix shell (tmnl-grpc module)
+
+[dev-dependencies]
+pretty_assertions.workspace = true

@@ -1,0 +1,21 @@
+syntax = "proto3";
+package scm.riskintel.v1;
+
+import "google/protobuf/timestamp.proto";
+import "scm/common/v1/common.proto";
+
+message SupplierFinancialHealthUpdated { string party_id = 1; int32 score = 2; google.protobuf.Timestamp ts = 3; map<string,string> attrs = 4; }
+message SupplierBankruptcyFiled { string party_id = 1; google.protobuf.Timestamp ts = 2; map<string,string> attrs = 3; }
+message SupplierOwnershipChanged { string party_id = 1; string new_owner = 2; map<string,string> attrs = 3; }
+
+message EarthquakeObserved { string event_ref = 1; string region = 2; double magnitude = 3; map<string,string> attrs = 4; }
+message StormAlertIssued { string alert_ref = 1; string region = 2; scm.common.v1.Severity severity = 3; map<string,string> attrs = 4; }
+message FloodAlertIssued { string alert_ref = 1; string region = 2; scm.common.v1.Severity severity = 3; map<string,string> attrs = 4; }
+message WildfireAlertIssued { string alert_ref = 1; string region = 2; scm.common.v1.Severity severity = 3; map<string,string> attrs = 4; }
+
+message ConflictEscalationSignal { string region = 1; scm.common.v1.Severity severity = 2; map<string,string> attrs = 3; }
+message StrikeAnnounced { string facility_id = 1; scm.common.v1.RangeTs window = 2; map<string,string> attrs = 3; }
+message StrikeEnded { string facility_id = 1; google.protobuf.Timestamp ts = 2; map<string,string> attrs = 3; }
+
+message GIDEPAlertIngested { string gidep_id = 1; repeated string part_ids = 2; string category = 3; map<string,string> attrs = 4; }
+message RegulatoryChangeDetected { string ref = 1; string jurisdiction = 2; map<string,string> attrs = 3; }

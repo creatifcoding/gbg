@@ -1,0 +1,8 @@
+.rvn-chat__empty-state {
+  border: 1px dashed var(--rvn-border-soft);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--rvn-text-muted);
+  padding: 8px 10px;
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+}

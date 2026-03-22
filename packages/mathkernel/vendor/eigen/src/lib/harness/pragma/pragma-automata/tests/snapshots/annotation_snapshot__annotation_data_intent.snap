@@ -1,0 +1,26 @@
+---
+source: src/lib/harness/pragma/pragma-automata/tests/annotation_snapshot.rs
+expression: resp
+---
+{
+  "intent": {
+    "type": "DATA",
+    "confidence": 1.0,
+    "model_used": "minilm",
+    "tier_escalated": false
+  },
+  "candidates": [],
+  "disambiguation": [],
+  "hints": {
+    "temperature": 0.3,
+    "note": "Data intent, conf=1.00"
+  },
+  "prefix_block": "```generation-context\n{\n  \"components\": [],\n  \"confidence\": 1.0,\n  \"hints\": {\n    \"model_tier\": \"Minilm\",\n    \"note\": \"Data intent, conf=1.00\",\n    \"temperature\": 0.30000001192092896\n  },\n  \"intent\": \"Data\"\n}\n```",
+  "sideband": {
+    "models_used": [
+      "minilm"
+    ],
+    "latency_ms": "[latency]",
+    "catalog_recomputed": false
+  }
+}

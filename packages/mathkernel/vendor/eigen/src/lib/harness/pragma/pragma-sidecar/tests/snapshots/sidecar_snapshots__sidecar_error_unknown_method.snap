@@ -1,0 +1,8 @@
+---
+source: src/lib/harness/pragma/pragma-sidecar/tests/sidecar_snapshots.rs
+expression: "resp[\"error\"].clone()"
+---
+{
+  "code": -32601,
+  "message": "Method not found: nonexistent_method"
+}

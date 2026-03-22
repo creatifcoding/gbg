@@ -1,0 +1,721 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "SensorAgentState": {
+      "type": "object",
+      "required": [
+        "sensor_id",
+        "name",
+        "status",
+        "sensor_type",
+        "unit",
+        "sample_rate_ms",
+        "threshold_high",
+        "threshold_critical",
+        "threshold_low",
+        "threshold_critical_low",
+        "last_calibration_date",
+        "next_calibration_date",
+        "opc_ua_node_id",
+        "description",
+        "location",
+        "metadata",
+        "hierarchy_path",
+        "enterprise_id",
+        "site_id",
+        "area_id",
+        "plant_id",
+        "line_id",
+        "work_cell_id",
+        "machine_id",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "sensor_id": {
+          "$ref": "#/definitions/SensorId"
+        },
+        "name": {
+          "$ref": "#/definitions/NonEmptyString"
+        },
+        "status": {
+          "$ref": "#/definitions/SensorStatus"
+        },
+        "sensor_type": {
+          "$ref": "#/definitions/SensorType"
+        },
+        "unit": {
+          "$ref": "#/definitions/MeasurementUnit"
+        },
+        "sample_rate_ms": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "description": "a positive number",
+              "title": "positive",
+              "exclusiveMinimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "threshold_high": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "threshold_critical": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "threshold_low": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "threshold_critical_low": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "last_calibration_date": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "description": "ISO8601 UTC or offset timestamp string.",
+              "title": "ISO8601 Timestamp",
+              "format": "date-time"
+            }
+          ],
+          "description": "Timestamp value or null.",
+          "title": "Nullable Timestamp"
+        },
+        "next_calibration_date": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "description": "ISO8601 UTC or offset timestamp string.",
+              "title": "ISO8601 Timestamp",
+              "format": "date-time"
+            }
+          ],
+          "description": "Timestamp value or null.",
+          "title": "Nullable Timestamp"
+        },
+        "opc_ua_node_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SensorLocation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "metadata": {
+          "$ref": "#/definitions/SensorMetadata"
+        },
+        "hierarchy_path": {
+          "type": "string"
+        },
+        "enterprise_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "site_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "area_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "plant_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "line_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "work_cell_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "machine_id": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/MachineId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "description": "ISO8601 UTC or offset timestamp string.",
+              "title": "ISO8601 Timestamp",
+              "format": "date-time"
+            }
+          ],
+          "description": "Timestamp value or null.",
+          "title": "Nullable Timestamp"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Canonical Jido agent-state contract for Sensor runtime.",
+      "title": "Sensor Agent State"
+    },
+    "SensorId": {
+      "type": "string",
+      "description": "Sensor identifier in SNS-{slug} format.",
+      "title": "Sensor ID",
+      "pattern": "^SNS-[a-zA-Z0-9-]+$"
+    },
+    "NonEmptyString": {
+      "type": "string",
+      "description": "a non empty string",
+      "title": "nonEmptyString",
+      "minLength": 1
+    },
+    "SensorStatus": {
+      "type": "string",
+      "enum": [
+        "active",
+        "calibrating",
+        "needs_calibration",
+        "faulted",
+        "offline",
+        "decommissioned"
+      ],
+      "description": "ISA-95 control-module lifecycle status for sensor assets.",
+      "title": "Sensor Status"
+    },
+    "SensorType": {
+      "type": "string",
+      "enum": [
+        "temperature",
+        "pressure",
+        "vibration",
+        "humidity",
+        "flow",
+        "level",
+        "speed",
+        "position",
+        "current",
+        "voltage",
+        "power",
+        "force",
+        "torque",
+        "weight",
+        "ph",
+        "conductivity",
+        "other"
+      ],
+      "description": "Sensor measurement type classification from canonical IIoT schema.",
+      "title": "Sensor Type"
+    },
+    "MeasurementUnit": {
+      "type": "string",
+      "enum": [
+        "celsius",
+        "fahrenheit",
+        "kelvin",
+        "psi",
+        "bar",
+        "pascal",
+        "kpa",
+        "mm_s",
+        "in_s",
+        "g",
+        "l_min",
+        "gpm",
+        "m3_h",
+        "meters",
+        "feet",
+        "mm",
+        "inches",
+        "percent",
+        "rpm",
+        "ampere",
+        "volt",
+        "watt",
+        "newton",
+        "nm",
+        "kg",
+        "count",
+        "unitless"
+      ],
+      "description": "Measurement units supported by canonical sensor schema.",
+      "title": "Measurement Unit"
+    },
+    "SensorLocation": {
+      "type": "object",
+      "required": [
+        "latitude",
+        "longitude",
+        "building",
+        "floor",
+        "zone",
+        "address",
+        "timezone"
+      ],
+      "properties": {
+        "latitude": {
+          "anyOf": [
+            {
+              "type": "number",
+              "description": "a number between -90 and 90",
+              "title": "between(-90, 90)",
+              "minimum": -90,
+              "maximum": 90
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "longitude": {
+          "anyOf": [
+            {
+              "type": "number",
+              "description": "a number between -180 and 180",
+              "title": "between(-180, 180)",
+              "minimum": -180,
+              "maximum": 180
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "building": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "floor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "zone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "address": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Physical location details for level-0 sensor assets.",
+      "title": "Sensor Location"
+    },
+    "SensorMetadata": {
+      "type": "object",
+      "required": [],
+      "properties": {},
+      "additionalProperties": {
+        "$id": "/schemas/unknown",
+        "title": "unknown"
+      },
+      "description": "Extensible metadata map for sensor payloads.",
+      "title": "Sensor Metadata"
+    },
+    "MachineId": {
+      "type": "string",
+      "description": "Machine identifier in MCH-{slug} format.",
+      "title": "Machine ID",
+      "pattern": "^MCH-[a-zA-Z0-9-]+$"
+    }
+  },
+  "type": "object",
+  "required": [
+    "sensor_id",
+    "name",
+    "status",
+    "sensor_type",
+    "unit",
+    "sample_rate_ms",
+    "threshold_high",
+    "threshold_critical",
+    "threshold_low",
+    "threshold_critical_low",
+    "last_calibration_date",
+    "next_calibration_date",
+    "opc_ua_node_id",
+    "description",
+    "location",
+    "metadata",
+    "hierarchy_path",
+    "enterprise_id",
+    "site_id",
+    "area_id",
+    "plant_id",
+    "line_id",
+    "work_cell_id",
+    "machine_id",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "sensor_id": {
+      "$ref": "#/definitions/SensorId"
+    },
+    "name": {
+      "$ref": "#/definitions/NonEmptyString"
+    },
+    "status": {
+      "$ref": "#/definitions/SensorStatus"
+    },
+    "sensor_type": {
+      "$ref": "#/definitions/SensorType"
+    },
+    "unit": {
+      "$ref": "#/definitions/MeasurementUnit"
+    },
+    "sample_rate_ms": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "description": "a positive number",
+          "title": "positive",
+          "exclusiveMinimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "threshold_high": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "threshold_critical": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "threshold_low": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "threshold_critical_low": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "last_calibration_date": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        }
+      ],
+      "description": "Timestamp value or null.",
+      "title": "Nullable Timestamp"
+    },
+    "next_calibration_date": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        }
+      ],
+      "description": "Timestamp value or null.",
+      "title": "Nullable Timestamp"
+    },
+    "opc_ua_node_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "location": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/SensorLocation"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "metadata": {
+      "$ref": "#/definitions/SensorMetadata"
+    },
+    "hierarchy_path": {
+      "type": "string"
+    },
+    "enterprise_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "site_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "area_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "plant_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "line_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "work_cell_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "machine_id": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/MachineId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        }
+      ],
+      "description": "Timestamp value or null.",
+      "title": "Nullable Timestamp"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/sensor/ts/sensor.contract.ts). Canonical Jido agent-state contract for Elixir preflight validation.",
+  "title": "SensorAgentState",
+  "$id": "/contracts/sensor/sensor_agent_state.schema.json"
+}

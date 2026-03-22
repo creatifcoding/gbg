@@ -1,0 +1,75 @@
+{
+  "kind": "toc-cycle1-baseline",
+  "capturedAt": "2026-02-25T12:39:34.604Z",
+  "config": {
+    "url": "http://localhost:1420/window?testbed=floating",
+    "warmupMs": 1000,
+    "sampleMs": 5000,
+    "replicates": 1,
+    "runtime": "bun",
+    "browser": "playwright/chromium"
+  },
+  "summary": {
+    "p50": 16.69999999999891,
+    "p95": 66.60000000000036,
+    "p99": 83.39999999999964,
+    "mean": 22.441254125412545,
+    "samples": 303
+  },
+  "replicates": [
+    {
+      "replicate": 1,
+      "frameStats": {
+        "p50": 16.69999999999891,
+        "p95": 66.60000000000036,
+        "p99": 83.39999999999964,
+        "mean": 22.441254125412545,
+        "samples": 303
+      },
+      "latencies": [
+        {
+          "name": "spawn-chat",
+          "ms": 228.22089400000004,
+          "ok": true,
+          "detail": "__PANEL_TEST__.spawnTiledChat"
+        },
+        {
+          "name": "split-hotkey",
+          "ms": 451.79246500000045,
+          "ok": true,
+          "detail": "__PANEL_TEST__.splitHorizontal · tiled 1 -> increased"
+        },
+        {
+          "name": "drag-panel",
+          "ms": 1370.5592770000003,
+          "ok": true,
+          "detail": "panel moved"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 1878.5326459999997,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for first assistant activity :: {\"connection\":[\"Connected\",\"Connected\"],\"statusRows\":[],\"bodyHints\":[\"CONNECTED\",\"CONNECTED\"]}"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 4699.307737000001,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for assistant shell growth :: {\"connection\":[\"Connected\",\"Connected\"],\"statusRows\":[],\"bodyHints\":[\"CONNECTED\",\"CONNECTED\"]}"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 4699.307737000001,
+          "ok": false,
+          "detail": "prompt-1: timed out waiting for assistant shell growth :: {\"connection\":[\"Connected\",\"Connected\"],\"statusRows\":[],\"bodyHints\":[\"CONNECTED\",\"CONNECTED\"]}"
+        }
+      ],
+      "notes": [
+        "prompt-1 first activity timed out",
+        "prompt-1 full response timed out"
+      ],
+      "frameDeltaCount": 303
+    }
+  ],
+  "consoleErrors": []
+}

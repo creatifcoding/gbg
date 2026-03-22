@@ -1,0 +1,489 @@
+#+TITLE: TMNL Document Templates
+#+AUTHOR: TMNL Operations Division
+#+DATE: [2024-12-03]
+#+STARTUP: overview
+#+OPTIONS: toc:2 num:t
+
+* CLASSIFICATION: TMNL-INTERNAL
+
+* META: Document Template Library
+** Purpose
+Standardized formats for operational documentation, technical specifications,
+and intelligence products within the TMNL ecosystem.
+
+** Usage
+Copy relevant template sections. Replace bracketed placeholders.
+Maintain classification headers and document control footers.
+
+* TEMPLATE: MISSION BRIEF
+#+BEGIN_SRC org
+,* MISSION BRIEF: [CODENAME]
+,** CLASSIFICATION: [LEVEL]
+,** DOCUMENT CONTROL
+| Field        | Value                |
+|--------------+----------------------|
+| Brief ID     | [YYYY-MM-DD-NNNN]    |
+| Issued       | [DATETIME]           |
+| Valid Until  | [DATETIME]           |
+| Distribution | [RECIPIENTS]         |
+
+,** SITUATION
+,*** Background
+[Context and circumstances leading to this mission]
+
+,*** Current State
+[Present conditions, constraints, environment]
+
+,** MISSION
+[Single sentence: WHO will do WHAT, WHEN, WHERE, and WHY]
+
+,** EXECUTION
+,*** Commander's Intent
+[End state. What success looks like.]
+
+,*** Concept of Operations
+[How we achieve the mission]
+
+,*** Tasks
+| Priority | Task                 | Owner    | Status  |
+|----------+----------------------+----------+---------|
+| P0       | [Critical task]      | [Agent]  | PENDING |
+| P1       | [High priority]      | [Agent]  | PENDING |
+| P2       | [Standard]           | [Agent]  | PENDING |
+
+,** LOGISTICS
+,*** Resources Required
+- [Resource 1]
+- [Resource 2]
+
+,*** Dependencies
+- [Dependency 1]
+- [Dependency 2]
+
+,** COMMAND & SIGNAL
+,*** Command
+[Chain of command, decision authority]
+
+,*** Signal
+[Communication protocols, channels, frequencies]
+
+,** ACKNOWLEDGMENT
+| Agent    | Acknowledged | Timestamp |
+|----------+--------------+-----------|
+| [Name]   | [ ]          |           |
+#+END_SRC
+
+* TEMPLATE: TECHNICAL SPECIFICATION
+#+BEGIN_SRC org
+,* TECHNICAL SPECIFICATION: [SYSTEM NAME]
+,** CLASSIFICATION: [LEVEL]
+,** DOCUMENT CONTROL
+| Field      | Value             |
+|------------+-------------------|
+| Spec ID    | [TMNL-SPEC-NNNN]  |
+| Version    | [X.Y.Z]           |
+| Status     | [DRAFT/REVIEW/APPROVED] |
+| Author     | [Agent]           |
+| Reviewed   | [Agent]           |
+
+,** ABSTRACT
+[2-3 sentence summary of what this specification defines]
+
+,** REQUIREMENTS
+,*** Functional
+| ID     | Requirement              | Priority | Status |
+|--------+--------------------------+----------+--------|
+| FR-001 | [Functional requirement] | MUST     |        |
+| FR-002 | [Functional requirement] | SHOULD   |        |
+
+,*** Non-Functional
+| ID      | Requirement                  | Priority | Status |
+|---------+------------------------------+----------+--------|
+| NFR-001 | [Performance/security/etc]   | MUST     |        |
+
+,** ARCHITECTURE
+,*** Overview
+[High-level system description]
+
+,*** Components
+| Component | Responsibility        | Interface |
+|-----------+-----------------------+-----------|
+| [Name]    | [What it does]        | [API]     |
+
+,*** Data Flow
+[Description or ASCII diagram]
+
+,** INTERFACES
+,*** API Surface
+#+BEGIN_SRC typescript
+// [Interface definitions]
+#+END_SRC
+
+,*** Events
+| Event         | Payload    | Trigger            |
+|---------------+------------+--------------------|
+| [event.name]  | [Schema]   | [When emitted]     |
+
+,** IMPLEMENTATION NOTES
+[Gotchas, antipatterns discovered, critical decisions]
+
+,** TEST MATRIX
+| Test Case | Input       | Expected Output | Status |
+|-----------+-------------+-----------------+--------|
+| TC-001    | [Input]     | [Output]        |        |
+
+,** REVISION HISTORY
+| Version | Date       | Author  | Changes         |
+|---------+------------+---------+-----------------|
+| 0.1.0   | [DATE]     | [Agent] | Initial draft   |
+#+END_SRC
+
+* TEMPLATE: INTELLIGENCE SUMMARY (INTSUM)
+#+BEGIN_SRC org
+,* INTSUM: [SUBJECT]
+,** CLASSIFICATION: [LEVEL]
+,** DOCUMENT CONTROL
+| Field       | Value              |
+|-------------+--------------------|
+| INTSUM ID   | [YYYY-MM-DD-NNNN]  |
+| Period      | [FROM] to [TO]     |
+| Analyst     | [Agent]            |
+
+,** BLUF (Bottom Line Up Front)
+[Single paragraph: Most critical finding and recommended action]
+
+,** KEY FINDINGS
+1. [Finding with confidence level: HIGH/MEDIUM/LOW]
+2. [Finding with confidence level]
+3. [Finding with confidence level]
+
+,** DETAILED ANALYSIS
+,*** [Topic 1]
+[Analysis with source citations]
+
+,*** [Topic 2]
+[Analysis with source citations]
+
+,** IMPLICATIONS
+,*** Opportunities
+- [Opportunity identified]
+
+,*** Risks
+- [Risk identified]
+
+,** INFORMATION GAPS
+- [What we don't know but need to]
+
+,** SOURCES
+| Source ID | Type        | Reliability | Access Date |
+|-----------+-------------+-------------+-------------|
+| SRC-001   | [OSINT/DOC] | [A-F]       | [DATE]      |
+
+,** ANALYST NOTES
+[Caveats, assumptions, methodology]
+#+END_SRC
+
+* TEMPLATE: AFTER-ACTION REPORT (AAR)
+#+BEGIN_SRC org
+,* AFTER-ACTION REPORT: [OPERATION/EPOCH]
+,** CLASSIFICATION: [LEVEL]
+,** DOCUMENT CONTROL
+| Field        | Value              |
+|--------------+--------------------|
+| AAR ID       | [YYYY-MM-DD-NNNN]  |
+| Operation    | [CODENAME]         |
+| Period       | [FROM] to [TO]     |
+| Prepared By  | [Agent]            |
+
+,** EXECUTIVE SUMMARY
+[2-3 sentences: What happened, outcome, key lesson]
+
+,** MISSION RECAP
+,*** Original Objective
+[What we set out to do]
+
+,*** Actual Outcome
+[What actually happened]
+
+,** TIMELINE
+| Timestamp | Event                    | Notes          |
+|-----------+--------------------------+----------------|
+| [TIME]    | [Event description]      | [Observation]  |
+
+,** ANALYSIS
+,*** What Went Well (SUSTAIN)
+1. [Success factor]
+2. [Success factor]
+
+,*** What Went Wrong (IMPROVE)
+1. [Failure point]
+2. [Failure point]
+
+,*** What We Learned (ADAPT)
+1. [Lesson learned]
+2. [Lesson learned]
+
+,** ANTIPATTERNS DISCOVERED
+| ID     | Title                | Severity | Resolution        |
+|--------+----------------------+----------+-------------------|
+| AP-001 | [Antipattern name]   | CRITICAL | [How we fixed it] |
+
+,** RECOMMENDATIONS
+| Priority | Recommendation           | Owner   | Due Date |
+|----------+--------------------------+---------+----------|
+| P0       | [Action item]            | [Agent] | [DATE]   |
+
+,** METRICS
+| Metric              | Target | Actual | Delta |
+|---------------------+--------+--------+-------|
+| [KPI]               | [N]    | [N]    | [±N]  |
+
+,** ATTACHMENTS
+- [Reference to supporting documents]
+#+END_SRC
+
+* TEMPLATE: PROPOSAL
+#+BEGIN_SRC org
+,* PROPOSAL: [TITLE]
+,** CLASSIFICATION: [LEVEL]
+,** DOCUMENT CONTROL
+| Field      | Value              |
+|------------+--------------------|
+| Proposal   | [PROP-NNNN]        |
+| Status     | [DRAFT/SUBMITTED/APPROVED/REJECTED] |
+| Author     | [Agent]            |
+| Sponsor    | [Agent]            |
+
+,** BLUF
+[One sentence: What you want and why it matters]
+
+,** PROBLEM STATEMENT
+[What problem does this solve? Evidence of the problem.]
+
+,** PROPOSED SOLUTION
+,*** Overview
+[High-level description]
+
+,*** Approach
+[How we'll implement it]
+
+,*** Alternatives Considered
+| Alternative       | Pros           | Cons              | Verdict  |
+|-------------------+----------------+-------------------+----------|
+| [Option A]        | [Benefits]     | [Drawbacks]       | REJECTED |
+| [Option B]        | [Benefits]     | [Drawbacks]       | SELECTED |
+
+,** IMPACT ASSESSMENT
+,*** Benefits
+- [Benefit 1]
+- [Benefit 2]
+
+,*** Risks
+| Risk              | Likelihood | Impact | Mitigation        |
+|-------------------+------------+--------+-------------------|
+| [Risk]            | [H/M/L]    | [H/M/L]| [Strategy]        |
+
+,*** Resource Requirements
+- [Time/effort estimate]
+- [Dependencies]
+
+,** SUCCESS CRITERIA
+| Criterion         | Measurement       | Target            |
+|-------------------+-------------------+-------------------|
+| [Outcome]         | [How measured]    | [Threshold]       |
+
+,** DECISION REQUESTED
+[Specific approval or action needed]
+
+,** STAKEHOLDER SIGN-OFF
+| Stakeholder  | Decision | Date | Notes |
+|--------------+----------+------+-------|
+| [Agent]      |          |      |       |
+#+END_SRC
+
+* TEMPLATE: IDEA CAPTURE
+#+BEGIN_SRC org
+,* IDEA: [TITLE]
+,** META
+| Field       | Value           |
+|-------------+-----------------|
+| ID          | [IDEA-NNNN]     |
+| Origin      | [Context/Spark] |
+| Captured    | [DATETIME]      |
+| Status      | [RAW/REFINED/ACTIONABLE/ARCHIVED] |
+
+,** THE SPARK
+[Raw idea as it occurred. Don't edit, capture.]
+
+,** REFINED CONCEPT
+[Cleaned up version after reflection]
+
+,** WHY IT MATTERS
+[Problem it solves, value it creates]
+
+,** RELATED
+- [Link to related idea/spec/code]
+
+,** NEXT ACTION
+[ ] [Concrete next step to explore/validate]
+#+END_SRC
+
+* TEMPLATE: RECONTEXTUALIZATION (Session Handoff)
+#+BEGIN_SRC markdown
+# [DATE] — [TAGLINE]
+
+## Context
+
+[1-2 sentences: What triggered this session, what state we inherited]
+
+- **Strategy chosen**: [Key decision made]
+- **Approach**: [How we executed]
+
+## Changes
+
+### [Primary Change Category]
+
+| File | Action |
+|------|--------|
+| `path/to/file` | [What changed] |
+
+### [Secondary Change Category] (if applicable)
+
+[Details of secondary changes]
+
+## Lessons
+
+1. **[Lesson title]**: [Explanation]
+2. **[Lesson title]**: [Explanation]
+
+## Verification
+
+- `[command]` — [Result]
+- [Other verification steps]
+
+---
+
+## Ideas Parking Lot
+
+Threads surfaced. Captured before they evaporate.
+
+### [Category 1]
+
+| Item | Status | Notes |
+|------|--------|-------|
+| [Item name] | [Not started/Partial/Complete] | [Context] |
+
+### [Category 2]
+
+| Item | Status | Notes |
+|------|--------|-------|
+| [Item name] | [Status] | [Context] |
+
+[Repeat for all categories with pending work]
+
+---
+
+## Signature
+
+```
+Co-Authored-By: [Agent] <[email]>
+```
+#+END_SRC
+
+** Usage Notes
+- Create in =.agents/[agent]/journal/[YYYY-MM-DD].md=
+- Tagline should be memorable, captures session essence
+- Ideas Parking Lot prevents context loss across sessions
+- Categories should map to architectural domains (Animation, Components, etc.)
+- Status values: Not started | Partial | Complete | Blocked | Deferred
+
+** When to Generate
+- End of significant work session
+- Before anticipated context window exhaustion
+- After completing multi-step tasks
+- When surfacing forgotten threads
+
+* TEMPLATE: AGENTS SECTION (ZON)
+#+BEGIN_SRC org
+,* AGENTS                                                           :noexport:
+#+BEGIN_ZON
+type:manifest
+version:1.0.0
+audience:machine
+visibility:folded
+#+END_ZON
+
+,** CONTEXT INDEX
+#+BEGIN_ZON
+id:ctx-index
+type:registry
+updated:[YYYY-MM-DD]
+#+END_ZON
+
+#+BEGIN_ZON @contexts
+contexts:@(N):id,path,scope,priority
+[context-id],[path/to/file.md],[session|task|ephemeral],[1-10]
+#+END_ZON
+
+,** DIRECTIVES
+#+BEGIN_ZON
+id:ctx-directives
+type:instructions
+#+END_ZON
+
+,*** [Directive Name]
+#+BEGIN_ZON
+trigger:[command or event]
+scope:[session|task|ephemeral]
+action:[action-id]
+#+END_ZON
+
+[Directive description in prose]
+
+,** MACHINE SCHEMA
+#+BEGIN_ZON
+id:ctx-schema
+format:[typescript|json|zon]
+#+END_ZON
+
+#+BEGIN_SRC [language]
+// Schema definition
+#+END_SRC
+#+END_SRC
+
+** Usage Notes
+- Add to any org document that needs machine-parseable metadata
+- ZON format: ~key:value~ for properties, ~@(N):cols~ for tables
+- Booleans: ~T~ / ~F~
+- Scopes: ~session~ (full conversation), ~task~ (current operation), ~ephemeral~ (single read)
+- Priority: 1-10, higher = load first
+
+** ZON Reference
+- Specification: https://zonformat.org/docs/specification
+- Token-efficient: 35-50% reduction vs JSON
+- Line-oriented, human-readable, LLM-optimized
+
+* DOCUMENT CONTROL FOOTER
+#+BEGIN_SRC org
+,-----
+,DOCUMENT CONTROL
+,Classification: [LEVEL]
+,Distribution: [SCOPE]
+,Retention: [PERIOD]
+,Destruction: [METHOD]
+,-----
+#+END_SRC
+
+* CLASSIFICATION LEVELS
+| Level        | Meaning                                    |
+|--------------+--------------------------------------------|
+| TMNL-PUBLIC  | Unrestricted, external sharing permitted   |
+| TMNL-INTERNAL| Internal use only, team members            |
+| TMNL-RESTRICTED | Need-to-know basis                      |
+| TMNL-PRIME   | Prime's eyes only                          |
+
+* REVISION HISTORY
+| Version | Date       | Author | Changes                        |
+|---------+------------+--------+--------------------------------|
+| 1.1.0   | 2025-12-03 | Val    | Add AGENTS SECTION (ZON) template |
+| 1.0.0   | 2024-12-03 | Val    | Initial template library       |

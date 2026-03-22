@@ -1,0 +1,25 @@
+stateDiagram-v2
+  idle --> running
+  idle --> changeover
+  idle --> maintenance
+  idle --> decommissioned
+  running --> idle
+  running --> changeover
+  running --> starved
+  running --> blocked
+  running --> maintenance
+  changeover --> idle
+  changeover --> running
+  changeover --> maintenance
+  starved --> running
+  starved --> blocked
+  starved --> idle
+  starved --> maintenance
+  blocked --> running
+  blocked --> starved
+  blocked --> idle
+  blocked --> maintenance
+  maintenance --> idle
+  maintenance --> running
+  maintenance --> decommissioned
+  state decommissioned

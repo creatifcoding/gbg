@@ -1,0 +1,12 @@
+[
+  { "id": "edge-01", "prompt": "chart", "expected_intent": "DATA", "alternatives": ["IDLE"], "expected_confidence_min": 0.3, "category": "edge", "tags": ["single-word"] },
+  { "id": "edge-02", "prompt": "form", "expected_intent": "FORM", "alternatives": ["IDLE"], "expected_confidence_min": 0.3, "category": "edge", "tags": ["single-word"] },
+  { "id": "edge-03", "prompt": "maybe show something with data?", "expected_intent": "DATA", "alternatives": ["IDLE"], "expected_confidence_min": 0.3, "category": "edge", "tags": ["vague"] },
+  { "id": "edge-04", "prompt": "I need something visual", "expected_intent": "IDLE", "alternatives": ["DATA", "LAYOUT"], "expected_confidence_min": 0.0, "category": "edge", "tags": ["vague"] },
+  { "id": "edge-05", "prompt": "make it look good", "expected_intent": "IDLE", "alternatives": [], "expected_confidence_min": 0.0, "category": "edge", "tags": ["vague", "subjective"] },
+  { "id": "edge-06", "prompt": "a", "expected_intent": "IDLE", "alternatives": [], "expected_confidence_min": 0.0, "category": "edge", "tags": ["minimal"] },
+  { "id": "edge-07", "prompt": "", "expected_intent": "IDLE", "alternatives": [], "expected_confidence_min": 0.0, "category": "edge", "tags": ["empty"] },
+  { "id": "edge-08", "prompt": "SHOW ME A BIG CHART OF ALL THE DATA RIGHT NOW", "expected_intent": "DATA", "alternatives": [], "expected_confidence_min": 0.5, "category": "edge", "tags": ["uppercase", "emphatic"] },
+  { "id": "edge-09", "prompt": "show me a chart... no wait, actually make it a form... hmm, maybe a dashboard?", "expected_intent": "MIXED", "alternatives": ["LAYOUT"], "expected_confidence_min": 0.3, "category": "edge", "tags": ["indecisive"] },
+  { "id": "edge-10", "prompt": "can you help me with a thing that has boxes and stuff", "expected_intent": "IDLE", "alternatives": ["LAYOUT"], "expected_confidence_min": 0.0, "category": "edge", "tags": ["vague"] }
+]

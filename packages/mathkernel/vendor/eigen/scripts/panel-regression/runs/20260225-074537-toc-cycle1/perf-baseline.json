@@ -1,0 +1,93 @@
+{
+  "kind": "toc-cycle1-baseline",
+  "capturedAt": "2026-02-25T12:45:37.914Z",
+  "config": {
+    "url": "http://localhost:1420/window?testbed=floating",
+    "warmupMs": 1000,
+    "sampleMs": 5000,
+    "replicates": 1,
+    "runtime": "bun",
+    "browser": "playwright/chromium"
+  },
+  "summary": {
+    "p50": 33.19999999999891,
+    "p95": 66.70000000000073,
+    "p99": 133.3000000000011,
+    "mean": 34.488888888888894,
+    "samples": 144
+  },
+  "replicates": [
+    {
+      "replicate": 1,
+      "frameStats": {
+        "p50": 33.19999999999891,
+        "p95": 66.70000000000073,
+        "p99": 133.3000000000011,
+        "mean": 34.488888888888894,
+        "samples": 144
+      },
+      "latencies": [
+        {
+          "name": "spawn-chat",
+          "ms": 157.5344559999994,
+          "ok": true,
+          "detail": "__PANEL_TEST__.spawnTiledChat"
+        },
+        {
+          "name": "split-hotkey",
+          "ms": 170.56488100000024,
+          "ok": true,
+          "detail": "__PANEL_TEST__.splitHorizontal · tiled 1 -> increased"
+        },
+        {
+          "name": "drag-panel",
+          "ms": 1192.676735000001,
+          "ok": true,
+          "detail": "panel moved"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 1371.0457609999994,
+          "ok": true,
+          "detail": "prompt-1: assistant shell or streaming indicator detected"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 1381.0589440000003,
+          "ok": true,
+          "detail": "prompt-1: assistant shell growth detected"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 1381.0589440000003,
+          "ok": true,
+          "detail": "prompt-1: assistant shell growth detected"
+        },
+        {
+          "name": "send-first-activity",
+          "ms": 472.8460269999996,
+          "ok": true,
+          "detail": "prompt-2: assistant shell or streaming indicator detected"
+        },
+        {
+          "name": "send-full-response",
+          "ms": 1776.4171420000002,
+          "ok": true,
+          "detail": "prompt-2: assistant shell growth detected"
+        },
+        {
+          "name": "send-roundtrip",
+          "ms": 1776.4171420000002,
+          "ok": true,
+          "detail": "prompt-2: assistant shell growth detected"
+        }
+      ],
+      "notes": [],
+      "frameDeltaCount": 144
+    }
+  ],
+  "consoleErrors": [
+    "[warning] [send:diag] {instanceId: p-morphchat:harness-1-mm2124mz, sid: chat-v2-piai-yLxtjKlwoxr97IXIAcXnR, wiring: chat-v2-piai-yLxtjKlwoxr97IXIAcXnR}",
+    "[warning] [send:diag] {instanceId: p-morphchat:harness-1-mm2124mz, sid: chat-v2-piai-yLxtjKlwoxr97IXIAcXnR, wiring: chat-v2-piai-yLxtjKlwoxr97IXIAcXnR}"
+  ]
+}

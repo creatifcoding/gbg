@@ -1,0 +1,48 @@
+{
+  "runId": "20260224T043501Z",
+  "status": "passed",
+  "startAt": "2026-02-24T04:35:01Z",
+  "endAt": "2026-02-24T04:35:05Z",
+  "durationMs": 3241,
+  "projectRoot": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+  "summary": {
+    "gatesTotal": 2,
+    "gatesPassed": 2,
+    "gatesFailed": 0,
+    "gatesSkipped": 0
+  },
+  "steps": [
+    {
+      "id": "ts_contract_tests",
+      "name": "TypeScript contract tests",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 2292,
+      "command": "bunx vitest run src/lib/maidens/domains/contracts/plant/ts/plant.contract.test.ts",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/plant/reports/logs/20260224T043501Z/ts_contract_tests.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "schema_generation_determinism",
+      "name": "JSON Schema generation + determinism",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 702,
+      "command": "bun run src/lib/maidens/domains/contracts/plant/scripts/gen-plant-schemas.ts",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/plant/reports/logs/20260224T043501Z/schema_generation_determinism.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": "d3d3cc3069f427ab2d3235c0f84319d903dfa664ac392a9af3a4297a6efde25c",
+        "fingerprintAfter": "d3d3cc3069f427ab2d3235c0f84319d903dfa664ac392a9af3a4297a6efde25c",
+        "fingerprintStable": true
+      }
+    }
+  ]
+}

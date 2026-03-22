@@ -1,0 +1,10 @@
+
+ RUN  v3.2.4 /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl
+
+ ✓ src/lib/maidens/domains/contracts/machine-asset/ts/machine-asset.contract.test.ts (7 tests) 6ms
+
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+   Start at  01:30:40
+   Duration  1.75s (transform 102ms, setup 516ms, collect 154ms, tests 6ms, environment 297ms, prepare 110ms)
+

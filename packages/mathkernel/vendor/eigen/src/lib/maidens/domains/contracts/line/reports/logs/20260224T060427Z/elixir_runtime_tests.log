@@ -1,0 +1,546 @@
+Compiling 18 files (.ex)
+    warning: module attribute @line_schema_runtime in code block has no effect as it is never returned (remove the attribute or assign it to _ to avoid warnings)
+    │
+ 16 │   @line_schema_runtime
+    │   ~
+    │
+    └─ lib/maiden/line_runtime/validators/line_validator.ex:16:3: Maiden.LineRuntime.Validators.LineValidator (module)
+
+    warning: module attribute @transition_schema_runtime in code block has no effect as it is never returned (remove the attribute or assign it to _ to avoid warnings)
+    │
+ 22 │   @transition_schema_runtime
+    │   ~
+    │
+    └─ lib/maiden/line_runtime/validators/line_validator.ex:22:3: Maiden.LineRuntime.Validators.LineValidator (module)
+
+    warning: module attribute @agent_state_schema_runtime in code block has no effect as it is never returned (remove the attribute or assign it to _ to avoid warnings)
+    │
+ 28 │   @agent_state_schema_runtime
+    │   ~
+    │
+    └─ lib/maiden/line_runtime/validators/line_validator.ex:28:3: Maiden.LineRuntime.Validators.LineValidator (module)
+
+    warning: undefined module attribute @line_schema_runtime, please remove access to @line_schema_runtime or explicitly set it before access
+    │
+ 16 │   @line_schema_runtime
+    │   ~~~~~~~~~~~~~~~~~~~~
+    │
+    └─ lib/maiden/line_runtime/validators/line_validator.ex:16: Maiden.LineRuntime.Validators.LineValidator (module)
+
+    warning: undefined module attribute @transition_schema_runtime, please remove access to @transition_schema_runtime or explicitly set it before access
+    │
+ 22 │   @transition_schema_runtime
+    │   ~~~~~~~~~~~~~~~~~~~~~~~~~~
+    │
+    └─ lib/maiden/line_runtime/validators/line_validator.ex:22: Maiden.LineRuntime.Validators.LineValidator (module)
+
+    warning: undefined module attribute @agent_state_schema_runtime, please remove access to @agent_state_schema_runtime or explicitly set it before access
+    │
+ 28 │   @agent_state_schema_runtime
+    │   ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    │
+    └─ lib/maiden/line_runtime/validators/line_validator.ex:28: Maiden.LineRuntime.Validators.LineValidator (module)
+
+    warning: undefined module attribute @line_schema_runtime, please remove access to @line_schema_runtime or explicitly set it before access
+    │
+ 79 │     do: normalize_ex_json_schema(ExJsonSchema.Validator.validate(@line_schema_runtime, payload))
+    │     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    │
+    └─ lib/maiden/line_runtime/validators/line_validator.ex:79: Maiden.LineRuntime.Validators.LineValidator (module)
+
+    warning: undefined module attribute @transition_schema_runtime, please remove access to @transition_schema_runtime or explicitly set it before access
+    │
+ 83 │       normalize_ex_json_schema(ExJsonSchema.Validator.validate(@transition_schema_runtime, payload))
+    │       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    │
+    └─ lib/maiden/line_runtime/validators/line_validator.ex:83: Maiden.LineRuntime.Validators.LineValidator (module)
+
+    warning: undefined module attribute @agent_state_schema_runtime, please remove access to @agent_state_schema_runtime or explicitly set it before access
+    │
+ 87 │       normalize_ex_json_schema(ExJsonSchema.Validator.validate(@agent_state_schema_runtime, payload))
+    │       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    │
+    └─ lib/maiden/line_runtime/validators/line_validator.ex:87: Maiden.LineRuntime.Validators.LineValidator (module)
+
+Generated maiden_line_runtime app
+Running ExUnit with seed: 549093, max_cases: 32
+
+
+01:04:34.813 [debug] Persist.thaw starting for Maiden.LineRuntime.Agent key="line-persist-invalid"
+
+01:04:34.822 [debug] Persist.hibernate starting for Maiden.LineRuntime.Agent key="line-persist-delete"
+
+01:04:34.822 [debug] Persist.hibernate completed for Maiden.LineRuntime.Agent key="line-persist-delete"
+
+01:04:34.822 [debug] Persist.thaw starting for Maiden.LineRuntime.Agent key="line-persist-delete"
+
+01:04:34.824 [debug] Persist.thaw: checkpoint not found for {Maiden.LineRuntime.Agent, "line-persist-delete"}
+
+
+  1) test apply_signal_sync runs legal transition through runtime loop (Maiden.LineRuntime.LineRuntimeTest)
+     test/line_runtime_test.exs:24
+     ** (FunctionClauseError) no function clause matching in ExJsonSchema.Validator.validate/3
+
+     The following arguments were given to ExJsonSchema.Validator.validate/3:
+
+         # 1
+         nil
+
+         # 2
+         %{"at" => "2026-02-24T00:20:00Z", "from" => "idle", "initiated_by" => "ops-1", "line_id" => "LIN-runtime-loop-001", "reason" => "initial_startup", "to" => "running"}
+
+         # 3
+         []
+
+     Attempted function clauses (showing 2 out of 2):
+
+         def validate(-root = %ExJsonSchema.Schema.Root{}-, data, options) when is_list(options)
+         def validate(-schema = %{}-, data, options) when is_list(options)
+
+     code: Agent.apply_signal_sync(agent, "line.transition.running", %{
+     stacktrace:
+       (ex_json_schema 0.11.2) lib/ex_json_schema/validator.ex:21: ExJsonSchema.Validator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/validators/line_validator.ex:83: Maiden.LineRuntime.Validators.LineValidator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/fsm.ex:37: Maiden.LineRuntime.FSM.validate_transition_for_runtime/2
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/agent.ex:154: Maiden.LineRuntime.Agent.apply_transition/4
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/agent.ex:178: Maiden.LineRuntime.Agent.apply_signal_sync/4
+       test/line_runtime_test.exs:38: (test)
+
+.
+
+  2) test snapshot/thaw restore rejects invalid checkpoint state payload (Maiden.LineRuntime.LinePersistenceTest)
+     test/line_persistence_test.exs:56
+     ** (FunctionClauseError) no function clause matching in ExJsonSchema.Validator.validate/3
+
+     The following arguments were given to ExJsonSchema.Validator.validate/3:
+
+         # 1
+         nil
+
+         # 2
+         %{"area_id" => nil, "capacity" => nil, "created_at" => "2026-02-24T02:00:00Z", "description" => nil, "enterprise_id" => nil, "hierarchy_path" => "/ENT-acme/SIT-main/PLT-main/LIN-persist-invalid", "line_id" => "LIN-persist-invalid", "line_type" => nil, "location" => nil, "metadata" => %{}, "name" => "Broken Line", "operating_hours_per_day" => nil, "plant_id" => "PLT-main", "site_id" => nil, "status" => 123, "updated_at" => nil}
+
+         # 3
+         []
+
+     Attempted function clauses (showing 2 out of 2):
+
+         def validate(-root = %ExJsonSchema.Schema.Root{}-, data, options) when is_list(options)
+         def validate(-schema = %{}-, data, options) when is_list(options)
+
+     code: LineRuntime.thaw("line-persist-invalid", table: table)
+     stacktrace:
+       (ex_json_schema 0.11.2) lib/ex_json_schema/validator.ex:21: ExJsonSchema.Validator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/validators/line_validator.ex:87: Maiden.LineRuntime.Validators.LineValidator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/agent.ex:123: Maiden.LineRuntime.Agent.restore/2
+       (jido 2.0.0) lib/jido/persist.ex:347: Jido.Persist.restore_from_checkpoint/4
+       test/line_persistence_test.exs:87: (test)
+
+.
+
+  3) test snapshot/thaw round-trips persisted line runtime state (Maiden.LineRuntime.LinePersistenceTest)
+     test/line_persistence_test.exs:20
+     ** (FunctionClauseError) no function clause matching in ExJsonSchema.Validator.validate/3
+
+     The following arguments were given to ExJsonSchema.Validator.validate/3:
+
+         # 1
+         nil
+
+         # 2
+         %{"at" => "2026-02-24T02:05:00Z", "from" => "running", "initiated_by" => "operator-persist", "line_id" => "LIN-persist-001", "reason" => "downstream_jam", "to" => "blocked"}
+
+         # 3
+         []
+
+     Attempted function clauses (showing 2 out of 2):
+
+         def validate(-root = %ExJsonSchema.Schema.Root{}-, data, options) when is_list(options)
+         def validate(-schema = %{}-, data, options) when is_list(options)
+
+     code: Agent.apply_signal_sync(base_agent, "line.transition.blocked", %{
+     stacktrace:
+       (ex_json_schema 0.11.2) lib/ex_json_schema/validator.ex:21: ExJsonSchema.Validator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/validators/line_validator.ex:83: Maiden.LineRuntime.Validators.LineValidator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/fsm.ex:37: Maiden.LineRuntime.FSM.validate_transition_for_runtime/2
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/agent.ex:154: Maiden.LineRuntime.Agent.apply_transition/4
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/agent.ex:178: Maiden.LineRuntime.Agent.apply_signal_sync/4
+       test/line_persistence_test.exs:36: (test)
+
+.
+
+  4) test agent server executes boundary directive handlers on sensor path (Maiden.LineRuntime.LineStrategyBoundaryTest)
+     test/line_strategy_boundary_test.exs:104
+     ** (EXIT from #PID<0.495.0>) an exception was raised:
+         ** (ArgumentError) unknown registry: Jido.Default.Registry
+             (elixir 1.18.4) lib/registry.ex:1448: Registry.info!/1
+             (elixir 1.18.4) lib/registry.ex:1066: Registry.register/3
+             (jido 2.0.0) lib/jido/agent_server.ex:671: Jido.AgentServer.maybe_register_global/2
+             (jido 2.0.0) lib/jido/agent_server.ex:657: Jido.AgentServer.init/1
+             (stdlib 6.2.2.2) gen_server.erl:2229: :gen_server.init_it/2
+             (stdlib 6.2.2.2) gen_server.erl:2184: :gen_server.init_it/6
+             (stdlib 6.2.2.2) proc_lib.erl:329: :proc_lib.init_p_do_apply/3
+
+
+
+  5) test illegal transitions do not emit boundary directives (Maiden.LineRuntime.LineStrategyBoundaryTest)
+     test/line_strategy_boundary_test.exs:157
+     ** (FunctionClauseError) no function clause matching in ExJsonSchema.Validator.validate/3
+
+     The following arguments were given to ExJsonSchema.Validator.validate/3:
+
+         # 1
+         nil
+
+         # 2
+         %{"at" => "2026-02-24T03:20:00Z", "from" => "running", "line_id" => "LIN-boundary-illegal", "to" => "decommissioned"}
+
+         # 3
+         []
+
+     Attempted function clauses (showing 2 out of 2):
+
+         def validate(-root = %ExJsonSchema.Schema.Root{}-, data, options) when is_list(options)
+         def validate(-schema = %{}-, data, options) when is_list(options)
+
+     code: Agent.apply_signal_sync(agent, "line.transition.decommissioned", %{
+     stacktrace:
+       (ex_json_schema 0.11.2) lib/ex_json_schema/validator.ex:21: ExJsonSchema.Validator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/validators/line_validator.ex:83: Maiden.LineRuntime.Validators.LineValidator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/fsm.ex:37: Maiden.LineRuntime.FSM.validate_transition_for_runtime/2
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/agent.ex:154: Maiden.LineRuntime.Agent.apply_transition/4
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/agent.ex:178: Maiden.LineRuntime.Agent.apply_signal_sync/4
+       test/line_strategy_boundary_test.exs:171: (test)
+
+
+01:04:34.876 [error] GenServer #PID<0.519.0> terminating
+** (FunctionClauseError) no function clause matching in ExJsonSchema.Validator.validate/3
+    (ex_json_schema 0.11.2) lib/ex_json_schema/validator.ex:21: ExJsonSchema.Validator.validate(nil, %{"at" => "2026-02-24T00:14:00Z", "from" => "running", "line_id" => "LIN-sensor-line-rt-001", "to" => "blocked"}, [])
+    (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/validators/line_validator.ex:83: Maiden.LineRuntime.Validators.LineValidator.validate/3
+    (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/fsm.ex:37: Maiden.LineRuntime.FSM.validate_transition_for_runtime/2
+    (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/sensors/transition_sensor.ex:34: Maiden.LineRuntime.Sensors.TransitionSensor.handle_event/2
+    (jido 2.0.0) lib/jido/sensor/runtime.ex:234: Jido.Sensor.Runtime.handle_sensor_event/2
+    (stdlib 6.2.2.2) gen_server.erl:2371: :gen_server.try_handle_cast/3
+    (stdlib 6.2.2.2) gen_server.erl:2433: :gen_server.handle_msg/6
+    (stdlib 6.2.2.2) proc_lib.erl:329: :proc_lib.init_p_do_apply/3
+Last message: {:"$gen_cast", {:external_event, %{"at" => "2026-02-24T00:14:00Z", "from" => "running", "line_id" => "LIN-sensor-line-rt-001", "to" => "blocked"}}}
+State: %{id: "line-sensor-agent-264", config: %{source: "/sensor/line-transition", emit_rejections: false}, context: %{agent_ref: #PID<0.518.0>}, sensor: Maiden.LineRuntime.Sensors.TransitionSensor, sensor_state: %{config: %{source: "/sensor/line-transition", emit_rejections: false}, context: %{agent_ref: #PID<0.518.0>}}, timers: %{}}
+
+
+  6) test strategy emits boundary directives for successful transition (Maiden.LineRuntime.LineStrategyBoundaryTest)
+     test/line_strategy_boundary_test.exs:68
+     ** (FunctionClauseError) no function clause matching in ExJsonSchema.Validator.validate/3
+
+     The following arguments were given to ExJsonSchema.Validator.validate/3:
+
+         # 1
+         nil
+
+         # 2
+         %{"at" => "2026-02-24T03:05:00Z", "from" => "idle", "initiated_by" => "operator-b", "line_id" => "LIN-boundary-001", "reason" => "order_released", "to" => "running"}
+
+         # 3
+         []
+
+     Attempted function clauses (showing 2 out of 2):
+
+         def validate(-root = %ExJsonSchema.Schema.Root{}-, data, options) when is_list(options)
+         def validate(-schema = %{}-, data, options) when is_list(options)
+
+     code: Agent.apply_signal_sync(agent, "line.transition.running", %{
+     stacktrace:
+       (ex_json_schema 0.11.2) lib/ex_json_schema/validator.ex:21: ExJsonSchema.Validator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/validators/line_validator.ex:83: Maiden.LineRuntime.Validators.LineValidator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/fsm.ex:37: Maiden.LineRuntime.FSM.validate_transition_for_runtime/2
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/agent.ex:154: Maiden.LineRuntime.Agent.apply_transition/4
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/agent.ex:178: Maiden.LineRuntime.Agent.apply_signal_sync/4
+       test/line_strategy_boundary_test.exs:82: (test)
+
+
+01:04:34.883 [error] GenServer #PID<0.522.0> terminating
+** (FunctionClauseError) no function clause matching in ExJsonSchema.Validator.validate/3
+    (ex_json_schema 0.11.2) lib/ex_json_schema/validator.ex:21: ExJsonSchema.Validator.validate(nil, %{"at" => "2026-02-24T00:12:00Z", "from" => "idle", "line_id" => "LIN-sensor-line-001", "to" => "running"}, [])
+    (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/validators/line_validator.ex:83: Maiden.LineRuntime.Validators.LineValidator.validate/3
+    (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/fsm.ex:37: Maiden.LineRuntime.FSM.validate_transition_for_runtime/2
+    (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/sensors/transition_sensor.ex:34: Maiden.LineRuntime.Sensors.TransitionSensor.handle_event/2
+    (jido 2.0.0) lib/jido/sensor/runtime.ex:234: Jido.Sensor.Runtime.handle_sensor_event/2
+    (stdlib 6.2.2.2) gen_server.erl:2371: :gen_server.try_handle_cast/3
+    (stdlib 6.2.2.2) gen_server.erl:2433: :gen_server.handle_msg/6
+    (stdlib 6.2.2.2) proc_lib.erl:329: :proc_lib.init_p_do_apply/3
+Last message: {:"$gen_cast", {:external_event, %{"at" => "2026-02-24T00:12:00Z", "from" => "idle", "line_id" => "LIN-sensor-line-001", "to" => "running"}}}
+State: %{id: "line-sensor-self-450", config: %{source: "/sensor/test-line-transition", emit_rejections: true}, context: %{agent_ref: #PID<0.521.0>}, sensor: Maiden.LineRuntime.Sensors.TransitionSensor, sensor_state: %{config: %{source: "/sensor/test-line-transition", emit_rejections: true}, context: %{agent_ref: #PID<0.521.0>}}, timers: %{}}
+
+
+  7) test transition_event_validate/2 + FSM legality rejects schema-valid but FSM-illegal transition (Maiden.LineRuntime.LineValidatorTest)
+     test/line_validator_test.exs:72
+     ** (FunctionClauseError) no function clause matching in ExJsonSchema.Validator.validate/3
+
+     The following arguments were given to ExJsonSchema.Validator.validate/3:
+
+         # 1
+         nil
+
+         # 2
+         %{"at" => "2026-02-24T00:06:00Z", "from" => "running", "initiated_by" => nil, "line_id" => "LIN-assembly-04", "reason" => nil, "to" => "decommissioned"}
+
+         # 3
+         []
+
+     Attempted function clauses (showing 2 out of 2):
+
+         def validate(-root = %ExJsonSchema.Schema.Root{}-, data, options) when is_list(options)
+         def validate(-schema = %{}-, data, options) when is_list(options)
+
+     code: assert :ok = LineValidator.transition_event_validate(payload)
+     stacktrace:
+       (ex_json_schema 0.11.2) lib/ex_json_schema/validator.ex:21: ExJsonSchema.Validator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/validators/line_validator.ex:83: Maiden.LineRuntime.Validators.LineValidator.validate/3
+       test/line_validator_test.exs:82: (test)
+
+
+
+  8) test Jido action and signal wiring signal mutates status and resolves directives (Maiden.LineRuntime.LineValidatorTest)
+     test/line_validator_test.exs:110
+     ** (FunctionClauseError) no function clause matching in ExJsonSchema.Validator.validate/3
+
+     The following arguments were given to ExJsonSchema.Validator.validate/3:
+
+         # 1
+         nil
+
+         # 2
+         %{"at" => "2026-02-24T00:10:00Z", "from" => "idle", "initiated_by" => "scheduler-1", "line_id" => "LIN-agent-line-01", "reason" => "work_order_released", "to" => "running"}
+
+         # 3
+         []
+
+     Attempted function clauses (showing 2 out of 2):
+
+         def validate(-root = %ExJsonSchema.Schema.Root{}-, data, options) when is_list(options)
+         def validate(-schema = %{}-, data, options) when is_list(options)
+
+     code: Agent.apply_signal_sync(agent, "line.transition.running", %{
+     stacktrace:
+       (ex_json_schema 0.11.2) lib/ex_json_schema/validator.ex:21: ExJsonSchema.Validator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/validators/line_validator.ex:83: Maiden.LineRuntime.Validators.LineValidator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/fsm.ex:37: Maiden.LineRuntime.FSM.validate_transition_for_runtime/2
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/agent.ex:154: Maiden.LineRuntime.Agent.apply_transition/4
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/agent.ex:178: Maiden.LineRuntime.Agent.apply_signal_sync/4
+       test/line_validator_test.exs:124: (test)
+
+
+
+  9) test Jido action and signal wiring rejects schema-valid but FSM-illegal transition before cmd (Maiden.LineRuntime.LineValidatorTest)
+     test/line_validator_test.exs:146
+     ** (FunctionClauseError) no function clause matching in ExJsonSchema.Validator.validate/3
+
+     The following arguments were given to ExJsonSchema.Validator.validate/3:
+
+         # 1
+         nil
+
+         # 2
+         %{"at" => "2026-02-24T00:11:00Z", "from" => "running", "line_id" => "LIN-agent-line-illegal", "to" => "decommissioned"}
+
+         # 3
+         []
+
+     Attempted function clauses (showing 2 out of 2):
+
+         def validate(-root = %ExJsonSchema.Schema.Root{}-, data, options) when is_list(options)
+         def validate(-schema = %{}-, data, options) when is_list(options)
+
+     code: Agent.apply_signal(agent, "line.transition.decommissioned", payload)
+     stacktrace:
+       (ex_json_schema 0.11.2) lib/ex_json_schema/validator.ex:21: ExJsonSchema.Validator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/validators/line_validator.ex:83: Maiden.LineRuntime.Validators.LineValidator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/fsm.ex:37: Maiden.LineRuntime.FSM.validate_transition_for_runtime/2
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/agent.ex:154: Maiden.LineRuntime.Agent.apply_transition/4
+       test/line_validator_test.exs:167: (test)
+
+
+
+ 10) test line_validate/2 rejects invalid line payload (Maiden.LineRuntime.LineValidatorTest)
+     test/line_validator_test.exs:42
+     ** (FunctionClauseError) no function clause matching in ExJsonSchema.Validator.validate/3
+
+     The following arguments were given to ExJsonSchema.Validator.validate/3:
+
+         # 1
+         nil
+
+         # 2
+         %{"area_id" => nil, "capacity" => nil, "created_at" => "2026-02-24T06:04:34.863979Z", "description" => nil, "enterprise_id" => nil, "hierarchy_path" => "/ENT-acme/SIT-main/PLT-main/LIN-assembly-02", "line_id" => "LIN-assembly-02", "line_type" => nil, "location" => nil, "metadata" => %{}, "name" => "Assembly Line 02", "operating_hours_per_day" => nil, "plant_id" => "PLT-main", "site_id" => nil, "status" => "fault", "updated_at" => nil}
+
+         # 3
+         []
+
+     Attempted function clauses (showing 2 out of 2):
+
+         def validate(-root = %ExJsonSchema.Schema.Root{}-, data, options) when is_list(options)
+         def validate(-schema = %{}-, data, options) when is_list(options)
+
+     code: LineValidator.line_validate(payload)
+     stacktrace:
+       (ex_json_schema 0.11.2) lib/ex_json_schema/validator.ex:21: ExJsonSchema.Validator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/validators/line_validator.ex:79: Maiden.LineRuntime.Validators.LineValidator.validate/3
+       test/line_validator_test.exs:52: (test)
+
+
+
+ 11) test Jido agent preflight delegates transition preflight to FSM validator (Maiden.LineRuntime.LineValidatorTest)
+     test/line_validator_test.exs:95
+     ** (FunctionClauseError) no function clause matching in ExJsonSchema.Validator.validate/3
+
+     The following arguments were given to ExJsonSchema.Validator.validate/3:
+
+         # 1
+         nil
+
+         # 2
+         %{"at" => "2026-02-24T00:07:00Z", "from" => "idle", "initiated_by" => nil, "line_id" => "LIN-assembly-05", "reason" => nil, "to" => "running"}
+
+         # 3
+         []
+
+     Attempted function clauses (showing 2 out of 2):
+
+         def validate(-root = %ExJsonSchema.Schema.Root{}-, data, options) when is_list(options)
+         def validate(-schema = %{}-, data, options) when is_list(options)
+
+     code: assert :ok = Agent.preflight_transition(payload)
+     stacktrace:
+       (ex_json_schema 0.11.2) lib/ex_json_schema/validator.ex:21: ExJsonSchema.Validator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/validators/line_validator.ex:83: Maiden.LineRuntime.Validators.LineValidator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/fsm.ex:37: Maiden.LineRuntime.FSM.validate_transition_for_runtime/2
+       test/line_validator_test.exs:105: (test)
+
+.
+
+ 12) test transition_event_validate/2 + FSM legality accepts legal transition event (Maiden.LineRuntime.LineValidatorTest)
+     test/line_validator_test.exs:57
+     ** (FunctionClauseError) no function clause matching in ExJsonSchema.Validator.validate/3
+
+     The following arguments were given to ExJsonSchema.Validator.validate/3:
+
+         # 1
+         nil
+
+         # 2
+         %{"at" => "2026-02-24T00:05:00Z", "from" => "running", "initiated_by" => nil, "line_id" => "LIN-assembly-03", "reason" => nil, "to" => "blocked"}
+
+         # 3
+         []
+
+     Attempted function clauses (showing 2 out of 2):
+
+         def validate(-root = %ExJsonSchema.Schema.Root{}-, data, options) when is_list(options)
+         def validate(-schema = %{}-, data, options) when is_list(options)
+
+     code: assert :ok = LineValidator.transition_event_validate(payload)
+     stacktrace:
+       (ex_json_schema 0.11.2) lib/ex_json_schema/validator.ex:21: ExJsonSchema.Validator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/validators/line_validator.ex:83: Maiden.LineRuntime.Validators.LineValidator.validate/3
+       test/line_validator_test.exs:67: (test)
+
+
+
+ 13) test line_validate/2 accepts valid line payload (Maiden.LineRuntime.LineValidatorTest)
+     test/line_validator_test.exs:24
+     ** (FunctionClauseError) no function clause matching in ExJsonSchema.Validator.validate/3
+
+     The following arguments were given to ExJsonSchema.Validator.validate/3:
+
+         # 1
+         nil
+
+         # 2
+         %{"area_id" => nil, "capacity" => 500, "created_at" => "2026-02-24T00:00:00Z", "description" => nil, "enterprise_id" => nil, "hierarchy_path" => "/ENT-acme/SIT-cleveland/PLT-main/LIN-assembly-01", "line_id" => "LIN-assembly-01", "line_type" => "assembly", "location" => nil, "metadata" => %{}, "name" => "Assembly Line 01", "operating_hours_per_day" => 16, "plant_id" => "PLT-main", "site_id" => nil, "status" => "running", "updated_at" => nil}
+
+         # 3
+         []
+
+     Attempted function clauses (showing 2 out of 2):
+
+         def validate(-root = %ExJsonSchema.Schema.Root{}-, data, options) when is_list(options)
+         def validate(-schema = %{}-, data, options) when is_list(options)
+
+     code: assert :ok = LineValidator.line_validate(payload)
+     stacktrace:
+       (ex_json_schema 0.11.2) lib/ex_json_schema/validator.ex:21: ExJsonSchema.Validator.validate/3
+       (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/validators/line_validator.ex:79: Maiden.LineRuntime.Validators.LineValidator.validate/3
+       test/line_validator_test.exs:39: (test)
+
+
+
+ 14) test sensor ingress sensor -> agent server -> action -> FSM loop mutates state (Maiden.LineRuntime.LineValidatorTest)
+     test/line_validator_test.exs:210
+     ** (EXIT from #PID<0.517.0>) an exception was raised:
+
+          ** (FunctionClauseError) no function clause matching in ExJsonSchema.Validator.validate/3
+
+          The following arguments were given to ExJsonSchema.Validator.validate/3:
+
+              # 1
+              nil
+
+              # 2
+              %{"at" => "2026-02-24T00:14:00Z", "from" => "running", "line_id" => "LIN-sensor-line-rt-001", "to" => "blocked"}
+
+              # 3
+              []
+
+          Attempted function clauses (showing 2 out of 2):
+
+              def validate(-root = %ExJsonSchema.Schema.Root{}-, data, options) when is_list(options)
+              def validate(-schema = %{}-, data, options) when is_list(options)
+
+          stacktrace:
+            (ex_json_schema 0.11.2) lib/ex_json_schema/validator.ex:21: ExJsonSchema.Validator.validate/3
+            (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/validators/line_validator.ex:83: Maiden.LineRuntime.Validators.LineValidator.validate/3
+            (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/fsm.ex:37: Maiden.LineRuntime.FSM.validate_transition_for_runtime/2
+            (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/sensors/transition_sensor.ex:34: Maiden.LineRuntime.Sensors.TransitionSensor.handle_event/2
+            (jido 2.0.0) lib/jido/sensor/runtime.ex:234: Jido.Sensor.Runtime.handle_sensor_event/2
+            (stdlib 6.2.2.2) gen_server.erl:2371: :gen_server.try_handle_cast/3
+            (stdlib 6.2.2.2) gen_server.erl:2433: :gen_server.handle_msg/6
+            (stdlib 6.2.2.2) proc_lib.erl:329: :proc_lib.init_p_do_apply/3
+
+
+
+
+ 15) test sensor ingress sensor emits transition signal only after preflight succeeds (Maiden.LineRuntime.LineValidatorTest)
+     test/line_validator_test.exs:172
+     ** (EXIT from #PID<0.521.0>) an exception was raised:
+
+          ** (FunctionClauseError) no function clause matching in ExJsonSchema.Validator.validate/3
+
+          The following arguments were given to ExJsonSchema.Validator.validate/3:
+
+              # 1
+              nil
+
+              # 2
+              %{"at" => "2026-02-24T00:12:00Z", "from" => "idle", "line_id" => "LIN-sensor-line-001", "to" => "running"}
+
+              # 3
+              []
+
+          Attempted function clauses (showing 2 out of 2):
+
+              def validate(-root = %ExJsonSchema.Schema.Root{}-, data, options) when is_list(options)
+              def validate(-schema = %{}-, data, options) when is_list(options)
+
+          stacktrace:
+            (ex_json_schema 0.11.2) lib/ex_json_schema/validator.ex:21: ExJsonSchema.Validator.validate/3
+            (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/validators/line_validator.ex:83: Maiden.LineRuntime.Validators.LineValidator.validate/3
+            (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/fsm.ex:37: Maiden.LineRuntime.FSM.validate_transition_for_runtime/2
+            (maiden_line_runtime 0.1.0) lib/maiden/line_runtime/sensors/transition_sensor.ex:34: Maiden.LineRuntime.Sensors.TransitionSensor.handle_event/2
+            (jido 2.0.0) lib/jido/sensor/runtime.ex:234: Jido.Sensor.Runtime.handle_sensor_event/2
+            (stdlib 6.2.2.2) gen_server.erl:2371: :gen_server.try_handle_cast/3
+            (stdlib 6.2.2.2) gen_server.erl:2433: :gen_server.handle_msg/6
+            (stdlib 6.2.2.2) proc_lib.erl:329: :proc_lib.init_p_do_apply/3
+
+
+
+Finished in 0.3 seconds (0.00s async, 0.3s sync)
+19 tests, 15 failures

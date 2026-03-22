@@ -1,0 +1,15 @@
+{
+  "name": "core_5_decoys",
+  "description": "Core 5 + 3 decoy tools with deliberately similar descriptions (tests confusion)",
+  "tool_count": 8,
+  "tools": [
+    "semantic_search",
+    "summarize",
+    "find_connections",
+    "timeline_query",
+    "entity_lookup",
+    "keyword_search",
+    "topic_summary",
+    "graph_traverse"
+  ]
+}

@@ -1,0 +1,15 @@
+[package]
+name = "pragma-ipc"
+version = "0.1.0"
+edition = "2021"
+description = "PRAGMA IPC protocol — JSON-RPC schemas, error codes, and result envelope for sidecar communication"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+proptest = "1"
+insta = { version = "1", features = ["json", "redactions"] }
+pretty_assertions = "1"

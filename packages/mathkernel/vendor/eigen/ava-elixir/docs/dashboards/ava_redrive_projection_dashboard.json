@@ -1,0 +1,268 @@
+{
+  "title": "AVA Redrive Projection Dashboard",
+  "uid": "ava-redrive-projection",
+  "description": "Task #2792 dashboard artifact covering SLO ingress, outbox freshness, redrive recovery telemetry, parity drift, and rollback readiness.",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "timezone": "browser",
+  "tags": [
+    "ava",
+    "slo",
+    "redrive",
+    "projection"
+  ],
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Ingress Error Ratio (5m)",
+      "type": "timeseries",
+      "description": "SLO-1 ingress reliability. Thresholds from AVA_SLO_ALERTS.md: >2% for 5m (P2), sustained >10m (P1).",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.02
+              },
+              {
+                "color": "red",
+                "value": 0.03
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "error_ratio",
+          "expr": "sum(rate(ava_elixir_bridge_ingress_total{status=\"error\"}[5m])) / clamp_min(sum(rate(ava_elixir_bridge_ingress_total[5m])), 1)"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Outbox Backlog + Publish p95",
+      "type": "timeseries",
+      "description": "SLO-2 outbox freshness. Alert if backlog > 200 OR publish latency p95 > 5s for 5m.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 200
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "publish_p95_seconds"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "outbox_backlog_rows",
+          "expr": "max(ava_outbox_backlog_rows)"
+        },
+        {
+          "refId": "B",
+          "legendFormat": "ava_outbox_queue_depth",
+          "expr": "max(ava_oban_queue_depth{queue=\"ava_outbox\"})"
+        },
+        {
+          "refId": "C",
+          "legendFormat": "publish_p95_seconds",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(ava_outbox_publish_latency_seconds_bucket[5m])))"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Redrive Selection / Enqueue / Failed (5m increments)",
+      "type": "timeseries",
+      "description": "Recovery telemetry from AVA_REDRIVE_METRICS_CONTRACT: selection.count, summary.enqueued, summary.failed.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "selected",
+          "expr": "sum(increase(ava_elixir_outbox_redrive_selection_count[5m]))"
+        },
+        {
+          "refId": "B",
+          "legendFormat": "enqueued",
+          "expr": "sum(increase(ava_elixir_outbox_redrive_summary_enqueued[5m]))"
+        },
+        {
+          "refId": "C",
+          "legendFormat": "failed",
+          "expr": "sum(increase(ava_elixir_outbox_redrive_summary_failed[5m]))"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Parity Mismatch Ratio (5m)",
+      "type": "timeseries",
+      "description": "SLO-3 dual-run parity drift. Threshold: mismatch ratio > 1% for 5m (P1).",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.01
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "parity_mismatch_ratio",
+          "expr": "sum(rate(ava_elixir_bridge_dual_run_parity_total{parity_status=~\"mismatch|missing_expected|missing_actual|error\"}[5m])) / clamp_min(sum(rate(ava_elixir_bridge_dual_run_parity_total[5m])), 1)"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Rollback Drill Status",
+      "type": "stat",
+      "description": "SLO-4 recovery safety signal. Any rollback drill failure is P1.",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "PASS"
+                },
+                "0": {
+                  "text": "FAIL"
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "rollback_drill_success",
+          "expr": "max_over_time(ava_elixir_rollback_drill_success[15m])"
+        }
+      ]
+    }
+  ]
+}

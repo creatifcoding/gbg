@@ -1,0 +1,64 @@
+{
+  "runId": "20260224T043504Z",
+  "status": "passed",
+  "startAt": "2026-02-24T04:35:04Z",
+  "endAt": "2026-02-24T04:35:07Z",
+  "durationMs": 3297,
+  "projectRoot": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+  "summary": {
+    "gatesTotal": 3,
+    "gatesPassed": 2,
+    "gatesFailed": 0,
+    "gatesSkipped": 1
+  },
+  "steps": [
+    {
+      "id": "ts_contract_tests",
+      "name": "TypeScript contract tests",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 2393,
+      "command": "bunx vitest run src/lib/maidens/domains/contracts/area/ts/area.contract.test.ts",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/area/reports/logs/20260224T043504Z/ts_contract_tests.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "schema_generation_determinism",
+      "name": "JSON Schema generation + determinism",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 658,
+      "command": "bun src/lib/maidens/domains/contracts/area/scripts/gen-area-schemas.ts",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/area/reports/logs/20260224T043504Z/schema_generation_determinism.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": "d29f3cb9a9290adcac7bbb48db9e0b29c80f4ecb15bca0b5a6c1a4fb5a211e66",
+        "fingerprintAfter": "d29f3cb9a9290adcac7bbb48db9e0b29c80f4ecb15bca0b5a6c1a4fb5a211e66",
+        "fingerprintStable": true
+      }
+    },
+    {
+      "id": "elixir_runtime_tests",
+      "name": "Elixir runtime tests",
+      "status": "skipped",
+      "exitCode": null,
+      "durationMs": 0,
+      "command": "mix deps.get >/dev/null && mix test",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/area/elixir",
+      "logPath": "",
+      "errorSignature": "missing_mix_exs",
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    }
+  ]
+}

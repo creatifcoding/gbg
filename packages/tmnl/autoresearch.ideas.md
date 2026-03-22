@@ -16,3 +16,8 @@
 - MMULT/MINVERSE with true 2D matrix
 - Full LAMBDA closure support
 - WASM compilation target
+
+## WASM Kernel Accuracy Improvements
+- **Dawson integral**: Rybicki algorithm with NMAX=6 overestimates at x=1. Need higher NMAX or switch to Cephes-style rational approximation. Reference: D(1) = 0.53807950691
+- **Fresnel S/C**: Series expansion accuracy at x=1 needs validation against NIST tables
+- **Elliptic K/E**: AGM iteration would give machine-precision results vs current numerical integration

@@ -1,0 +1,9 @@
+No CI URL captured in this lane (local verification run).
+
+Local evidence commands executed:
+1) bunx tsc --noEmit --pretty false
+2) bunx vitest run src/lib/agents/tasks/services/__tests__/MockTransportService.test.ts src/lib/agents/tasks/views/__tests__/inline-task-log-view.tail.test.tsx src/lib/agents/tasks/views/__tests__/inline-task-log-view.integration.test.tsx src/lib/agents/tasks/atoms/__tests__/surface.querydsl.test.ts
+
+See:
+- docs/specifications/F321-E4-regression-matrix.md
+- docs/specifications/F321-handoff-inputs.md

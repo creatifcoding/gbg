@@ -1,0 +1,3 @@
+/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/mathkernel/build/CMakeFiles/mathkernel.dir
+/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/mathkernel/build/CMakeFiles/edit_cache.dir
+/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/mathkernel/build/CMakeFiles/rebuild_cache.dir

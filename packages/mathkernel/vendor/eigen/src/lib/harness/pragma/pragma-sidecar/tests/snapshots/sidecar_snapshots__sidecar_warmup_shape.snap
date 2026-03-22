@@ -1,0 +1,11 @@
+---
+source: src/lib/harness/pragma/pragma-sidecar/tests/sidecar_snapshots.rs
+expression: result
+---
+{
+  "catalog_embeddings_count": 0,
+  "drift_status": "no_baseline",
+  "models": [],
+  "ready": false,
+  "warmup_ms": 0.0
+}

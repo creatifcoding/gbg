@@ -1,0 +1,60 @@
+# NATS Helm Chart Values - Phase 0 Foundation
+# Deploy with: helm install nats nats/nats -f values.yaml -n nats
+
+nats:
+  image: nats:2.10-alpine
+
+  # JetStream configuration
+  jetstream:
+    enabled: true
+    memoryStore:
+      enabled: false
+      maxSize: 1Gi
+    fileStore:
+      enabled: true
+      size: 10Gi
+      storageClass: local-path
+      storageDirectory: /data
+
+  # Cluster configuration (HA)
+  cluster:
+    enabled: true
+    replicas: 3
+    noAdvertise: false
+
+  # NATS Box for testing/debugging
+  natsBox:
+    enabled: true
+
+  # Limits
+  limits:
+    maxPayload: 8MB
+    maxConnections: 100000
+    maxSubscriptions: 100000
+
+# MQTT support for IoT devices
+mqtt:
+  enabled: true
+  port: 1883
+  # TLS config (future)
+  # tls:
+  #   enabled: true
+
+# WebSocket support for browser clients
+websocket:
+  enabled: true
+  port: 8080
+  noTLS: true
+
+# Monitoring
+natsbox:
+  enabled: true
+
+# Resource limits (adjust for production)
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 2000m
+    memory: 4Gi

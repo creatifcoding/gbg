@@ -1,0 +1,468 @@
+{
+  "runId": "run-2026-02-24T10-15-53-jade-arch",
+  "timestamp": "2026-02-24T10:16:01.299Z",
+  "totalCheckpoints": 6,
+  "passedCheckpoints": 6,
+  "failedCheckpoints": 0,
+  "regressions": [
+    {
+      "checkpoint": "spawned",
+      "description": "Single panel visible",
+      "scenarioId": "amber-arch",
+      "mode": "strip",
+      "timestamp": "2026-02-24T10:15:55.613Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-24T10-15-53-jade-arch/amber-arch/strip/002-spawned.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "floatCount",
+          "expected": 0,
+          "actual": 0,
+          "status": "pass"
+        },
+        {
+          "field": "collapsedCount",
+          "expected": 0,
+          "actual": 0,
+          "status": "pass"
+        },
+        {
+          "field": "expandedCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "overlayOpen",
+          "expected": true,
+          "actual": true,
+          "status": "pass"
+        }
+      ],
+      "passed": true,
+      "actual": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "floatCount": 0,
+        "collapsedCount": 0,
+        "expandedCount": 1,
+        "columnCount": 1,
+        "collapsedColumnCount": 0,
+        "focusPosition": "col:0",
+        "stripMode": "unknown",
+        "overlayOpen": true,
+        "focusedColumnWidth": "half",
+        "raw": {
+          "activePanel": "p-morphchat:harness-1-mm0g9ui0",
+          "panelIds": [
+            "p-morphchat:harness-1-mm0g9ui0"
+          ]
+        }
+      },
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "floatCount": 0,
+        "collapsedCount": 0,
+        "expandedCount": 1,
+        "columnCount": 1,
+        "overlayOpen": true
+      }
+    },
+    {
+      "checkpoint": "collapsed",
+      "description": "Panel collapsed to 36px strip",
+      "scenarioId": "amber-arch",
+      "mode": "strip",
+      "timestamp": "2026-02-24T10:15:56.207Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-24T10-15-53-jade-arch/amber-arch/strip/004-collapsed.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "collapsedCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "expandedCount",
+          "expected": 0,
+          "actual": 0,
+          "status": "pass"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "collapsedColumnCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        }
+      ],
+      "passed": true,
+      "actual": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "floatCount": 0,
+        "collapsedCount": 1,
+        "expandedCount": 0,
+        "columnCount": 1,
+        "collapsedColumnCount": 1,
+        "focusPosition": "col:0",
+        "stripMode": "unknown",
+        "overlayOpen": true,
+        "focusedColumnWidth": "half",
+        "raw": {
+          "activePanel": "p-morphchat:harness-1-mm0g9ui0",
+          "panelIds": [
+            "p-morphchat:harness-1-mm0g9ui0"
+          ]
+        }
+      },
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "collapsedCount": 1,
+        "expandedCount": 0,
+        "columnCount": 1,
+        "collapsedColumnCount": 1
+      }
+    },
+    {
+      "checkpoint": "expanded",
+      "description": "Panel expanded back",
+      "scenarioId": "amber-arch",
+      "mode": "strip",
+      "timestamp": "2026-02-24T10:15:56.912Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-24T10-15-53-jade-arch/amber-arch/strip/006-expanded.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "collapsedCount",
+          "expected": 0,
+          "actual": 0,
+          "status": "pass"
+        },
+        {
+          "field": "expandedCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "collapsedColumnCount",
+          "expected": 0,
+          "actual": 0,
+          "status": "pass"
+        }
+      ],
+      "passed": true,
+      "actual": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "floatCount": 0,
+        "collapsedCount": 0,
+        "expandedCount": 1,
+        "columnCount": 1,
+        "collapsedColumnCount": 0,
+        "focusPosition": "col:0",
+        "stripMode": "unknown",
+        "overlayOpen": true,
+        "focusedColumnWidth": "half",
+        "raw": {
+          "activePanel": "p-morphchat:harness-1-mm0g9ui0",
+          "panelIds": [
+            "p-morphchat:harness-1-mm0g9ui0"
+          ]
+        }
+      },
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "collapsedCount": 0,
+        "expandedCount": 1,
+        "columnCount": 1,
+        "collapsedColumnCount": 0
+      }
+    },
+    {
+      "checkpoint": "spawned",
+      "description": "Single panel visible",
+      "scenarioId": "amber-arch",
+      "mode": "tree",
+      "timestamp": "2026-02-24T10:16:00.141Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-24T10-15-53-jade-arch/amber-arch/tree/002-spawned.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "floatCount",
+          "expected": 0,
+          "actual": 0,
+          "status": "pass"
+        },
+        {
+          "field": "collapsedCount",
+          "expected": 0,
+          "actual": 0,
+          "status": "pass"
+        },
+        {
+          "field": "expandedCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "overlayOpen",
+          "expected": true,
+          "actual": true,
+          "status": "pass"
+        }
+      ],
+      "passed": true,
+      "actual": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "floatCount": 0,
+        "collapsedCount": 0,
+        "expandedCount": 1,
+        "columnCount": 1,
+        "collapsedColumnCount": 0,
+        "focusPosition": "col:0",
+        "stripMode": "unknown",
+        "overlayOpen": true,
+        "focusedColumnWidth": "half",
+        "raw": {
+          "activePanel": "p-morphchat:harness-2-mm0g9y0u",
+          "panelIds": [
+            "p-morphchat:harness-2-mm0g9y0u"
+          ]
+        }
+      },
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "floatCount": 0,
+        "collapsedCount": 0,
+        "expandedCount": 1,
+        "columnCount": 1,
+        "overlayOpen": true
+      }
+    },
+    {
+      "checkpoint": "collapsed",
+      "description": "Panel collapsed to 36px strip",
+      "scenarioId": "amber-arch",
+      "mode": "tree",
+      "timestamp": "2026-02-24T10:16:00.726Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-24T10-15-53-jade-arch/amber-arch/tree/004-collapsed.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "collapsedCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "expandedCount",
+          "expected": 0,
+          "actual": 0,
+          "status": "pass"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "collapsedColumnCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        }
+      ],
+      "passed": true,
+      "actual": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "floatCount": 0,
+        "collapsedCount": 1,
+        "expandedCount": 0,
+        "columnCount": 1,
+        "collapsedColumnCount": 1,
+        "focusPosition": "col:0",
+        "stripMode": "unknown",
+        "overlayOpen": true,
+        "focusedColumnWidth": "half",
+        "raw": {
+          "activePanel": "p-morphchat:harness-2-mm0g9y0u",
+          "panelIds": [
+            "p-morphchat:harness-2-mm0g9y0u"
+          ]
+        }
+      },
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "collapsedCount": 1,
+        "expandedCount": 0,
+        "columnCount": 1,
+        "collapsedColumnCount": 1
+      }
+    },
+    {
+      "checkpoint": "expanded",
+      "description": "Panel expanded back",
+      "scenarioId": "amber-arch",
+      "mode": "tree",
+      "timestamp": "2026-02-24T10:16:01.293Z",
+      "screenshotPath": "scripts/panel-regression/runs/run-2026-02-24T10-15-53-jade-arch/amber-arch/tree/006-expanded.png",
+      "assertions": [
+        {
+          "field": "totalPanels",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "tiledCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "collapsedCount",
+          "expected": 0,
+          "actual": 0,
+          "status": "pass"
+        },
+        {
+          "field": "expandedCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "columnCount",
+          "expected": 1,
+          "actual": 1,
+          "status": "pass"
+        },
+        {
+          "field": "collapsedColumnCount",
+          "expected": 0,
+          "actual": 0,
+          "status": "pass"
+        }
+      ],
+      "passed": true,
+      "actual": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "floatCount": 0,
+        "collapsedCount": 0,
+        "expandedCount": 1,
+        "columnCount": 1,
+        "collapsedColumnCount": 0,
+        "focusPosition": "col:0",
+        "stripMode": "unknown",
+        "overlayOpen": true,
+        "focusedColumnWidth": "half",
+        "raw": {
+          "activePanel": "p-morphchat:harness-2-mm0g9y0u",
+          "panelIds": [
+            "p-morphchat:harness-2-mm0g9y0u"
+          ]
+        }
+      },
+      "expected": {
+        "totalPanels": 1,
+        "tiledCount": 1,
+        "collapsedCount": 0,
+        "expandedCount": 1,
+        "columnCount": 1,
+        "collapsedColumnCount": 0
+      }
+    }
+  ],
+  "failures": []
+}

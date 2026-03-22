@@ -1,0 +1,100 @@
+/**
+ * DataGrid Row Stagger Animation
+ *
+ * CSS-based staggered entrance for AG-Grid rows.
+ * Triggered by adding .dg-stagger-active to grid container.
+ */
+
+/* Animation keyframes */
+@keyframes dg-row-enter {
+  0% {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Stagger config */
+.dg-stagger-container {
+  --dg-stagger-delay: 40ms;
+  --dg-stagger-duration: 300ms;
+}
+
+/* When stagger is active, animate visible rows */
+.dg-stagger-active .ag-row {
+  animation: dg-row-enter var(--dg-stagger-duration) ease-out forwards;
+  animation-delay: calc(var(--row-index, 0) * var(--dg-stagger-delay));
+  opacity: 0;
+}
+
+/* Row index custom properties (set via getRowClass) */
+.dg-row-0 { --row-index: 0; }
+.dg-row-1 { --row-index: 1; }
+.dg-row-2 { --row-index: 2; }
+.dg-row-3 { --row-index: 3; }
+.dg-row-4 { --row-index: 4; }
+.dg-row-5 { --row-index: 5; }
+.dg-row-6 { --row-index: 6; }
+.dg-row-7 { --row-index: 7; }
+.dg-row-8 { --row-index: 8; }
+.dg-row-9 { --row-index: 9; }
+.dg-row-10 { --row-index: 10; }
+.dg-row-11 { --row-index: 11; }
+.dg-row-12 { --row-index: 12; }
+.dg-row-13 { --row-index: 13; }
+.dg-row-14 { --row-index: 14; }
+.dg-row-15 { --row-index: 15; }
+.dg-row-16 { --row-index: 16; }
+.dg-row-17 { --row-index: 17; }
+.dg-row-18 { --row-index: 18; }
+.dg-row-19 { --row-index: 19; }
+
+/* Cell-level fade for extra polish */
+.dg-stagger-active .ag-cell {
+  animation: dg-cell-fade var(--dg-stagger-duration) ease-out forwards;
+  animation-delay: calc(var(--row-index, 0) * var(--dg-stagger-delay) + 50ms);
+  opacity: 0;
+}
+
+@keyframes dg-cell-fade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Highlight shimmer after stagger completes */
+.dg-stagger-active .ag-row::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  animation: dg-shimmer 600ms ease-out forwards;
+  animation-delay: calc(var(--row-index, 0) * var(--dg-stagger-delay) + var(--dg-stagger-duration));
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes dg-shimmer {
+  0% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}

@@ -1,0 +1,241 @@
+Running ExUnit with seed: 127538, max_cases: 32
+Excluding tags: [:live_provider]
+
+
+13:09:29.782 [notice] Executing Maiden.OrderRuntime.Actions.ShipOrder with params: %{at: "2026-02-23T00:00:00Z", to: "shipped", from: "confirmed", order_id: "ORD-BOUNDARY-001-1a1f8372-21a3-4a38-842e-6440463aa6ff"} and context: %{state: %{total: 10.0, items: [%{sku: "SKU-B", qty: 1}], order_id: "ORD-BOUNDARY-001-1a1f8372-21a3-4a38-842e-6440463aa6ff", cancelled_reason: nil, customer: "Boundary Bob", shipped_at: nil, delivered_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", processed_count: 0, transitions: %{size: 4, type: :map, __truncated_depth__: 4}}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c90d7-867c-7803-9db6-32beb2288c2e", action: Maiden.OrderRuntime.Actions.ShipOrder, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 4, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, model_status: "idle", model_result: nil, model_request_id: nil, model_name: nil, model_error: nil, model_options: %{}, model_prompt: nil}, action_metadata: %{name: "ship_order", description: "Ship a confirmed order", vsn: nil, category: nil, schema: [order_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+.
+13:09:29.835 [debug] [signal] type=order.transition.shipped directives=1 duration=2.5ms
+
+13:09:29.836 [notice] Executing Maiden.OrderRuntime.Actions.ShipOrder with params: %{at: "2026-02-23T00:10:00Z", to: "shipped", from: "confirmed", order_id: "ORD-BOUNDARY-002-cfb7e80f-4de0-4353-8c84-5c0cf954ea03"} and context: %{state: %{total: 16.0, items: [%{sku: "SKU-B2", qty: 1}], order_id: "ORD-BOUNDARY-002-cfb7e80f-4de0-4353-8c84-5c0cf954ea03", cancelled_reason: nil, customer: "Boundary Blair", shipped_at: nil, delivered_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", processed_count: 0, transitions: %{size: 4, type: :map, __truncated_depth__: 4}}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c90d7-86e2-74e9-b6fd-877635e95978", action: Maiden.OrderRuntime.Actions.ShipOrder, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 4, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, model_status: "idle", model_result: nil, model_request_id: nil, model_name: nil, model_error: nil, model_options: %{}, model_prompt: nil}, action_metadata: %{name: "ship_order", description: "Ship a confirmed order", vsn: nil, category: nil, schema: [order_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+..
+13:09:30.285 [notice] Executing Maiden.OrderRuntime.Actions.RequestModelInference with params: %{options: %{}, prompt: "summarize order", request_id: "req-model-sync-001", model: "noop-model"} and context: %{state: %{total: 0.0, items: [], cancelled_reason: nil, shipped_at: nil, delivered_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", processed_count: 0, transitions: %{size: 4, type: :map, __truncated_depth__: 4}}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c90d7-88a9-7bcd-a1fd-6848556eb0be", action: Maiden.OrderRuntime.Actions.RequestModelInference, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 4, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, model_status: "idle", model_result: nil, model_request_id: nil, model_name: nil, model_error: nil, model_options: %{}, model_prompt: nil}, action_metadata: %{name: "request_model_inference", description: "Request model inference for order runtime", vsn: nil, category: nil, schema: [request_id: %{size: 2, type: :list, __truncated_depth__: 4}, model: %{size: 2, type: :list, __truncated_depth__: 4}, prompt: %{size: 2, type: :list, __truncated_depth__: 4}, options: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+.
+13:09:30.288 [debug] [signal] type=order.model.request directives=1 duration=75μs
+
+13:09:30.289 [notice] Executing Maiden.OrderRuntime.Actions.RequestModelInference with params: %{options: %{temperature: 0.1}, prompt: "classify order risk", request_id: "req-model-001", model: "noop-model"} and context: %{state: %{total: 9.0, items: [%{sku: "SKU-M1", qty: 1}], order_id: "ORD-MODEL-001-1a41adc1-d56a-41e9-817f-dbd9a2e0ad03", cancelled_reason: nil, customer: "Model Mika", shipped_at: nil, delivered_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", processed_count: 0, transitions: %{size: 4, type: :map, __truncated_depth__: 4}}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c90d7-88b0-719f-9e66-f909bad799a1", action: Maiden.OrderRuntime.Actions.RequestModelInference, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 4, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, model_status: "idle", model_result: nil, model_request_id: nil, model_name: nil, model_error: nil, model_options: %{}, model_prompt: nil}, action_metadata: %{name: "request_model_inference", description: "Request model inference for order runtime", vsn: nil, category: nil, schema: [request_id: %{size: 2, type: :list, __truncated_depth__: 4}, model: %{size: 2, type: :list, __truncated_depth__: 4}, prompt: %{size: 2, type: :list, __truncated_depth__: 4}, options: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+13:09:30.290 [debug] [signal] type=order.model.result directives=1 duration=43μs
+
+13:09:30.291 [notice] Executing Maiden.OrderRuntime.Actions.RecordModelInferenceResult with params: %{result: %{prompt: "classify order risk", content: "probe-ok"}, request_id: "req-model-001", model: "noop-model"} and context: %{state: %{total: 9.0, items: [%{sku: "SKU-M1", qty: 1}], order_id: "ORD-MODEL-001-1a41adc1-d56a-41e9-817f-dbd9a2e0ad03", cancelled_reason: nil, customer: "Model Mika", shipped_at: nil, delivered_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: %{size: 7, type: :map, __truncated_depth__: 4}, status: "processing", processed_count: 1, transitions: %{size: 4, type: :map, __truncated_depth__: 4}}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c90d7-88b2-76b5-9079-ff168d3e3609", action: Maiden.OrderRuntime.Actions.RecordModelInferenceResult, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 3, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, model_status: "pending", model_result: nil, model_request_id: "req-model-001", model_name: "noop-model", model_error: nil, model_options: %{temperature: 0.1}, model_prompt: "classify order risk"}, action_metadata: %{name: "record_model_inference_result", description: "Record model inference result", vsn: nil, category: nil, schema: [request_id: %{size: 2, type: :list, __truncated_depth__: 4}, model: %{size: 1, type: :list, __truncated_depth__: 4}, result: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+..
+13:09:30.340 [debug] [signal] type=order.model.request directives=1 duration=70μs
+
+13:09:30.341 [notice] Executing Maiden.OrderRuntime.Actions.RequestModelInference with params: %{options: %{}, prompt: "predict cancellation", request_id: "req-model-err-001", model: "broken-model"} and context: %{state: %{total: 12.0, items: [%{sku: "SKU-ME", qty: 1}], order_id: "ORD-MODEL-ERR-001-e6d8159e-a8b7-472e-847a-9ae029f683c4", cancelled_reason: nil, customer: "Model Erin", shipped_at: nil, delivered_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", processed_count: 0, transitions: %{size: 4, type: :map, __truncated_depth__: 4}}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c90d7-88e4-7532-8d3f-a7402ef5ab8e", action: Maiden.OrderRuntime.Actions.RequestModelInference, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 4, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, model_status: "idle", model_result: nil, model_request_id: nil, model_name: nil, model_error: nil, model_options: %{}, model_prompt: nil}, action_metadata: %{name: "request_model_inference", description: "Request model inference for order runtime", vsn: nil, category: nil, schema: [request_id: %{size: 2, type: :list, __truncated_depth__: 4}, model: %{size: 2, type: :list, __truncated_depth__: 4}, prompt: %{size: 2, type: :list, __truncated_depth__: 4}, options: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+13:09:30.342 [debug] [signal] type=order.model.error directives=1 duration=46μs
+
+13:09:30.343 [notice] Executing Maiden.OrderRuntime.Actions.RecordModelInferenceError with params: %{error: :adapter_down, request_id: "req-model-err-001", model: "broken-model"} and context: %{state: %{total: 12.0, items: [%{sku: "SKU-ME", qty: 1}], order_id: "ORD-MODEL-ERR-001-e6d8159e-a8b7-472e-847a-9ae029f683c4", cancelled_reason: nil, customer: "Model Erin", shipped_at: nil, delivered_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: %{size: 7, type: :map, __truncated_depth__: 4}, status: "processing", processed_count: 1, transitions: %{size: 4, type: :map, __truncated_depth__: 4}}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c90d7-88e6-76a4-b753-beb4ffbbb38c", action: Maiden.OrderRuntime.Actions.RecordModelInferenceError, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 3, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, model_status: "pending", model_result: nil, model_request_id: "req-model-err-001", model_name: "broken-model", model_error: nil, model_options: %{}, model_prompt: "predict cancellation"}, action_metadata: %{name: "record_model_inference_error", description: "Record model inference error", vsn: nil, category: nil, schema: [request_id: %{size: 2, type: :list, __truncated_depth__: 4}, model: %{size: 1, type: :list, __truncated_depth__: 4}, error: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+.
+13:09:30.396 [notice] Executing Maiden.OrderRuntime.Actions.ShipOrder with params: %{at: "2026-02-22T06:20:00Z", to: "shipped", from: "confirmed", order_id: "ORD-PERSIST-001-dbb02af7-8425-4074-8051-ee4f572c410b"} and context: %{state: %{total: 21.0, items: [%{sku: "SKU-PERSIST", qty: 2}], order_id: "ORD-PERSIST-001-dbb02af7-8425-4074-8051-ee4f572c410b", cancelled_reason: nil, customer: "Persist Penny", shipped_at: nil, delivered_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", processed_count: 0, transitions: %{size: 4, type: :map, __truncated_depth__: 4}}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c90d7-891a-73f3-9612-58a7f5ac22a7", action: Maiden.OrderRuntime.Actions.ShipOrder, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 4, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, model_status: "idle", model_result: nil, model_request_id: nil, model_name: nil, model_error: nil, model_options: %{}, model_prompt: nil}, action_metadata: %{name: "ship_order", description: "Ship a confirmed order", vsn: nil, category: nil, schema: [order_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+13:09:30.403 [debug] Persist.hibernate starting for Maiden.OrderRuntime.Agent key="order-persist-001"
+
+13:09:30.403 [debug] Persist.hibernate completed for Maiden.OrderRuntime.Agent key="order-persist-001"
+
+13:09:30.403 [debug] Persist.thaw starting for Maiden.OrderRuntime.Agent key="order-persist-001"
+
+13:09:30.403 [debug] Persist.thaw completed for Maiden.OrderRuntime.Agent id=order-persist-001
+.
+13:09:30.404 [debug] Persist.hibernate starting for Maiden.OrderRuntime.Agent key="order-persist-thread-001"
+.
+13:09:30.405 [debug] Persist: flushing 3 new entries for thread order-thread-1676 from rev=0
+.
+13:09:30.405 [debug] Persist.hibernate completed for Maiden.OrderRuntime.Agent key="order-persist-thread-001"
+
+13:09:30.405 [debug] Persist.thaw starting for Maiden.OrderRuntime.Agent key="order-persist-thread-001"
+
+13:09:30.406 [debug] Persist: rehydrating thread order-thread-1676 with expected rev=3
+
+13:09:30.406 [debug] Persist.thaw completed for Maiden.OrderRuntime.Agent id=order-persist-thread-001
+
+13:09:30.407 [debug] Persist.thaw starting for Maiden.OrderRuntime.Agent key="order-persist-invalid"
+
+13:09:30.408 [debug] Persist.hibernate starting for Maiden.OrderRuntime.Agent key="order-persist-file-001"
+
+13:09:30.410 [debug] Persist.hibernate completed for Maiden.OrderRuntime.Agent key="order-persist-file-001"
+
+13:09:30.411 [debug] Persist.thaw starting for Maiden.OrderRuntime.Agent key="order-persist-file-001"
+
+13:09:30.411 [debug] Persist.thaw completed for Maiden.OrderRuntime.Agent id=order-persist-file-001
+
+13:09:30.412 [debug] Persist.thaw starting for Maiden.OrderRuntime.Agent key="order-persist-file-001"
+
+13:09:30.418 [debug] Persist.thaw: checkpoint not found for {Maiden.OrderRuntime.Agent, "order-persist-file-001"}
+.
+13:09:30.420 [debug] Persist.hibernate starting for Maiden.OrderRuntime.Agent key="order-persist-delete"
+
+13:09:30.420 [debug] Persist.hibernate completed for Maiden.OrderRuntime.Agent key="order-persist-delete"
+
+13:09:30.420 [debug] Persist.thaw starting for Maiden.OrderRuntime.Agent key="order-persist-delete"
+.
+13:09:30.420 [debug] Persist.thaw: checkpoint not found for {Maiden.OrderRuntime.Agent, "order-persist-delete"}
+
+13:09:30.421 [debug] Persist.hibernate starting for Maiden.OrderRuntime.Agent key="order-persist-pg-69"
+
+13:09:30.640 [debug] QUERY OK db=0.9ms decode=2.2ms queue=64.0ms idle=0.0ms
+CREATE TABLE IF NOT EXISTS maiden_order_runtime_checkpoints (
+  key_hash TEXT PRIMARY KEY,
+  key_binary BYTEA NOT NULL,
+  checkpoint_binary BYTEA NOT NULL,
+  inserted_at_ms BIGINT NOT NULL,
+  updated_at_ms BIGINT NOT NULL
+)
+ []
+
+13:09:30.645 [debug] QUERY OK db=1.2ms queue=3.9ms idle=12.1ms
+CREATE TABLE IF NOT EXISTS maiden_order_runtime_thread_meta (
+  thread_id TEXT PRIMARY KEY,
+  rev BIGINT NOT NULL,
+  created_at_ms BIGINT NOT NULL,
+  updated_at_ms BIGINT NOT NULL,
+  metadata_binary BYTEA NOT NULL
+)
+ []
+
+13:09:30.647 [debug] QUERY OK db=0.8ms queue=0.6ms idle=17.3ms
+CREATE TABLE IF NOT EXISTS maiden_order_runtime_thread_entries (
+  thread_id TEXT NOT NULL,
+  seq BIGINT NOT NULL,
+  entry_binary BYTEA NOT NULL,
+  inserted_at_ms BIGINT NOT NULL,
+  PRIMARY KEY (thread_id, seq)
+)
+ []
+
+13:09:30.660 [debug] QUERY OK db=2.4ms queue=10.7ms idle=18.9ms
+CREATE INDEX IF NOT EXISTS maiden_order_runtime_checkpoints_updated_idx ON maiden_order_runtime_checkpoints (updated_at_ms) []
+
+13:09:30.669 [debug] QUERY OK db=4.1ms queue=3.9ms idle=32.2ms
+CREATE INDEX IF NOT EXISTS maiden_order_runtime_thread_entries_thread_seq_idx ON maiden_order_runtime_thread_entries (thread_id, seq) []
+
+13:09:30.672 [debug] QUERY OK db=1.8ms queue=1.2ms idle=35.1ms
+CREATE INDEX IF NOT EXISTS maiden_order_runtime_thread_meta_updated_idx ON maiden_order_runtime_thread_meta (updated_at_ms) []
+
+13:09:30.682 [debug] QUERY OK db=2.8ms queue=2.4ms idle=30.9ms
+INSERT INTO maiden_order_runtime_checkpoints
+  (key_hash, key_binary, checkpoint_binary, inserted_at_ms, updated_at_ms)
+VALUES ($1, $2, $3, $4, $4)
+ON CONFLICT (key_hash)
+DO UPDATE SET
+  key_binary = EXCLUDED.key_binary,
+  checkpoint_binary = EXCLUDED.checkpoint_binary,
+  updated_at_ms = EXCLUDED.updated_at_ms
+ ["3904c66402fed97bc6fe15f5d7b9d4a64d87dd47b76bbc5c9d7ad7b785c1f2d8", <<131, 104, 2, 119, 32, 69, 108, 105, 120, 105, 114, 46, 77, 97, 105, 100, 101, 110, 46, 79, 114, 100, 101, 114, 82, 117, 110, 116, 105, 109, 101, 46, 65, 103, 101, 110, 116, 109, 0, 0, 0, 19, 111, 114, 100, 101, 114, 45, ...>>, <<131, 116, 0, 0, 0, 6, 119, 2, 105, 100, 109, 0, 0, 0, 19, 111, 114, 100, 101, 114, 45, 112, 101, 114, 115, 105, 115, 116, 45, 112, 103, 45, 54, 57, 119, 7, 118, 101, 114, 115, 105, 111, 110, 97, 1, 119, 5, ...>>, 1771956570676]
+
+13:09:30.682 [debug] Persist.hibernate completed for Maiden.OrderRuntime.Agent key="order-persist-pg-69"
+
+13:09:30.682 [debug] Persist.thaw starting for Maiden.OrderRuntime.Agent key="order-persist-pg-69"
+
+13:09:30.691 [debug] QUERY OK db=7.5ms queue=1.0ms idle=35.0ms
+SELECT checkpoint_binary FROM maiden_order_runtime_checkpoints WHERE key_hash = $1 ["3904c66402fed97bc6fe15f5d7b9d4a64d87dd47b76bbc5c9d7ad7b785c1f2d8"]
+
+13:09:30.691 [debug] Persist.thaw completed for Maiden.OrderRuntime.Agent id=order-persist-pg-69
+
+13:09:30.705 [debug] QUERY ERROR queue=12.6ms
+DELETE FROM maiden_order_runtime_checkpoints WHERE key_hash = $1 ["3904c66402fed97bc6fe15f5d7b9d4a64d87dd47b76bbc5c9d7ad7b785c1f2d8"]
+
+
+  1) test postgres/ecto storage round-trips snapshot/thaw through Postgres adapter (Maiden.OrderRuntime.PersistenceTest)
+     test/order_persistence_test.exs:267
+     ** (exit) exited in: DBConnection.Holder.checkout(#PID<0.452.0>, [log: #Function<14.15571165/1 in Ecto.Adapters.SQL.with_log/4>, timeout: 15000, pool: DBConnection.ConnectionPool, repo: Maiden.OrderRuntime.Persistence.Repo, pool_size: 5, timeout: 15000])
+         ** (EXIT) no process: the process is not alive or there's no process currently associated with the given name, possibly because its application isn't started
+     stacktrace:
+       (db_connection 2.9.0) lib/db_connection/holder.ex:99: DBConnection.Holder.checkout/3
+       (db_connection 2.9.0) lib/db_connection.ex:1335: DBConnection.checkout/3
+       (db_connection 2.9.0) lib/db_connection.ex:1584: DBConnection.run_with_retries/5
+       (db_connection 2.9.0) lib/db_connection.ex:791: DBConnection.parsed_prepare_execute/5
+       (db_connection 2.9.0) lib/db_connection.ex:783: DBConnection.prepare_execute/4
+       (postgrex 0.22.0) lib/postgrex.ex:319: Postgrex.query_prepare_execute/4
+       (maiden_order_runtime 0.1.0) lib/maiden/order_runtime/persistence/postgres_storage.ex:519: Maiden.OrderRuntime.Persistence.PostgresStorage.query/4
+       (maiden_order_runtime 0.1.0) lib/maiden/order_runtime/persistence/postgres_storage.ex:133: anonymous fn/3 in Maiden.OrderRuntime.Persistence.PostgresStorage.delete_checkpoint/2
+       test/order_persistence_test.exs:400: Maiden.OrderRuntime.PersistenceTest.cleanup_snapshot/2
+       (ex_unit 1.18.4) lib/ex_unit/on_exit_handler.ex:136: ExUnit.OnExitHandler.exec_callback/1
+       (ex_unit 1.18.4) lib/ex_unit/on_exit_handler.ex:122: ExUnit.OnExitHandler.on_exit_runner_loop/0
+
+
+13:09:30.706 [notice] Executing Maiden.OrderRuntime.Actions.ShipOrder with params: %{at: "2026-02-23T08:15:00Z", to: "shipped", from: "confirmed", order_id: "ORD-PERSIST-PG-RESTART-d26c7787-24d3-4eee-81a8-d19654961fc6"} and context: %{state: %{total: 64.0, items: [%{sku: "SKU-PG-RESTART", qty: 1}], order_id: "ORD-PERSIST-PG-RESTART-d26c7787-24d3-4eee-81a8-d19654961fc6", cancelled_reason: nil, customer: "Pg Restart Robin", shipped_at: nil, delivered_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", processed_count: 0, transitions: %{size: 4, type: :map, __truncated_depth__: 4}}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c90d7-8a51-7a58-a800-fc7f4573ca84", action: Maiden.OrderRuntime.Actions.ShipOrder, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 4, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, model_status: "idle", model_result: nil, model_request_id: nil, model_name: nil, model_error: nil, model_options: %{}, model_prompt: nil}, action_metadata: %{name: "ship_order", description: "Ship a confirmed order", vsn: nil, category: nil, schema: [order_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+13:09:30.708 [debug] Persist.hibernate starting for Maiden.OrderRuntime.Agent key="order-persist-pg-restart-136"
+
+13:09:30.738 [debug] QUERY OK db=3.5ms queue=8.3ms idle=0.0ms
+INSERT INTO maiden_order_runtime_checkpoints
+  (key_hash, key_binary, checkpoint_binary, inserted_at_ms, updated_at_ms)
+VALUES ($1, $2, $3, $4, $4)
+ON CONFLICT (key_hash)
+DO UPDATE SET
+  key_binary = EXCLUDED.key_binary,
+  checkpoint_binary = EXCLUDED.checkpoint_binary,
+  updated_at_ms = EXCLUDED.updated_at_ms
+ ["c359793787d09a7d5589f6b4018b283e7903efb901c643b8da56e46aa0015b53", <<131, 104, 2, 119, 32, 69, 108, 105, 120, 105, 114, 46, 77, 97, 105, 100, 101, 110, 46, 79, 114, 100, 101, 114, 82, 117, 110, 116, 105, 109, 101, 46, 65, 103, 101, 110, 116, 109, 0, 0, 0, 28, 111, 114, 100, 101, 114, 45, ...>>, <<131, 116, 0, 0, 0, 6, 119, 2, 105, 100, 109, 0, 0, 0, 28, 111, 114, 100, 101, 114, 45, 112, 101, 114, 115, 105, 115, 116, 45, 112, 103, 45, 114, 101, 115, 116, 97, 114, 116, 45, 49, 51, 54, 119, 7, 118, 101, ...>>, 1771956570725]
+
+13:09:30.738 [debug] Persist.hibernate completed for Maiden.OrderRuntime.Agent key="order-persist-pg-restart-136"
+
+13:09:30.738 [debug] Persist.thaw starting for Maiden.OrderRuntime.Agent key="order-persist-pg-restart-136"
+
+13:09:30.743 [debug] QUERY OK db=1.8ms queue=2.6ms idle=7.1ms
+SELECT checkpoint_binary FROM maiden_order_runtime_checkpoints WHERE key_hash = $1 ["c359793787d09a7d5589f6b4018b283e7903efb901c643b8da56e46aa0015b53"]
+
+13:09:30.743 [debug] Persist.thaw completed for Maiden.OrderRuntime.Agent id=order-persist-pg-restart-136
+
+13:09:30.744 [debug] [signal] type=order.transition.delivered directives=1 duration=95μs
+
+13:09:30.746 [notice] Executing Maiden.OrderRuntime.Actions.DeliverOrder with params: %{at: "2026-02-23T08:22:00Z", to: "delivered", from: "shipped", order_id: "ORD-PERSIST-PG-RESTART-d26c7787-24d3-4eee-81a8-d19654961fc6"} and context: %{state: %{total: 64.0, items: [%{sku: "SKU-PG-RESTART", qty: 1}], order_id: "ORD-PERSIST-PG-RESTART-d26c7787-24d3-4eee-81a8-d19654961fc6", cancelled_reason: nil, customer: "Pg Restart Robin", shipped_at: "2026-02-23T08:15:00Z", delivered_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", processed_count: 0, transitions: %{size: 4, type: :map, __truncated_depth__: 4}}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c90d7-8a78-7f10-88a2-16657478cdf8", action: Maiden.OrderRuntime.Actions.DeliverOrder, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 4, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, model_status: "idle", model_result: nil, model_request_id: nil, model_name: nil, model_error: nil, model_options: %{}, model_prompt: nil}, action_metadata: %{name: "deliver_order", description: "Mark a shipped order as delivered", vsn: nil, category: nil, schema: [order_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+13:09:30.796 [debug] QUERY ERROR queue=1.1ms
+DELETE FROM maiden_order_runtime_checkpoints WHERE key_hash = $1 ["c359793787d09a7d5589f6b4018b283e7903efb901c643b8da56e46aa0015b53"]
+
+
+  2) test postgres/ecto storage restart continuity resumes lifecycle transitions after Postgres thaw (Maiden.OrderRuntime.PersistenceTest)
+     test/order_persistence_test.exs:293
+     ** (exit) exited in: DBConnection.Holder.checkout(#PID<0.467.0>, [log: #Function<14.15571165/1 in Ecto.Adapters.SQL.with_log/4>, timeout: 15000, pool: DBConnection.ConnectionPool, repo: Maiden.OrderRuntime.Persistence.Repo, pool_size: 5, timeout: 15000])
+         ** (EXIT) no process: the process is not alive or there's no process currently associated with the given name, possibly because its application isn't started
+     stacktrace:
+       (db_connection 2.9.0) lib/db_connection/holder.ex:99: DBConnection.Holder.checkout/3
+       (db_connection 2.9.0) lib/db_connection.ex:1335: DBConnection.checkout/3
+       (db_connection 2.9.0) lib/db_connection.ex:1584: DBConnection.run_with_retries/5
+       (db_connection 2.9.0) lib/db_connection.ex:791: DBConnection.parsed_prepare_execute/5
+       (db_connection 2.9.0) lib/db_connection.ex:783: DBConnection.prepare_execute/4
+       (postgrex 0.22.0) lib/postgrex.ex:319: Postgrex.query_prepare_execute/4
+       (maiden_order_runtime 0.1.0) lib/maiden/order_runtime/persistence/postgres_storage.ex:519: Maiden.OrderRuntime.Persistence.PostgresStorage.query/4
+       (maiden_order_runtime 0.1.0) lib/maiden/order_runtime/persistence/postgres_storage.ex:133: anonymous fn/3 in Maiden.OrderRuntime.Persistence.PostgresStorage.delete_checkpoint/2
+       test/order_persistence_test.exs:400: Maiden.OrderRuntime.PersistenceTest.cleanup_snapshot/2
+       (ex_unit 1.18.4) lib/ex_unit/on_exit_handler.ex:136: ExUnit.OnExitHandler.exec_callback/1
+       (ex_unit 1.18.4) lib/ex_unit/on_exit_handler.ex:122: ExUnit.OnExitHandler.on_exit_runner_loop/0
+
+
+13:09:30.798 [notice] Executing Maiden.OrderRuntime.Actions.ShipOrder with params: %{at: "2026-02-22T06:25:00Z", to: "shipped", from: "confirmed", order_id: "ORD-PERSIST-RESTART-001-37054d99-7915-45e8-86e6-2d9af7f3bbe8"} and context: %{state: %{total: 31.0, items: [%{sku: "SKU-RESTART", qty: 1}], order_id: "ORD-PERSIST-RESTART-001-37054d99-7915-45e8-86e6-2d9af7f3bbe8", cancelled_reason: nil, customer: "Restart Robin", shipped_at: nil, delivered_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", processed_count: 0, transitions: %{size: 4, type: :map, __truncated_depth__: 4}}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c90d7-8aad-7b29-bd32-b14ef15c4b16", action: Maiden.OrderRuntime.Actions.ShipOrder, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 4, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, model_status: "idle", model_result: nil, model_request_id: nil, model_name: nil, model_error: nil, model_options: %{}, model_prompt: nil}, action_metadata: %{name: "ship_order", description: "Ship a confirmed order", vsn: nil, category: nil, schema: [order_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+13:09:30.799 [debug] Persist.hibernate starting for Maiden.OrderRuntime.Agent key="order-persist-restart-264"
+
+13:09:30.799 [debug] Persist.hibernate completed for Maiden.OrderRuntime.Agent key="order-persist-restart-264"
+
+13:09:30.799 [debug] Persist.thaw starting for Maiden.OrderRuntime.Agent key="order-persist-restart-264"
+
+13:09:30.799 [debug] Persist.thaw completed for Maiden.OrderRuntime.Agent id=order-persist-restart-264
+
+13:09:30.800 [debug] [signal] type=order.transition.delivered directives=1 duration=98μs
+
+13:09:30.801 [notice] Executing Maiden.OrderRuntime.Actions.DeliverOrder with params: %{at: "2026-02-22T06:30:00Z", to: "delivered", from: "shipped", order_id: "ORD-PERSIST-RESTART-001-37054d99-7915-45e8-86e6-2d9af7f3bbe8"} and context: %{state: %{total: 31.0, items: [%{sku: "SKU-RESTART", qty: 1}], order_id: "ORD-PERSIST-RESTART-001-37054d99-7915-45e8-86e6-2d9af7f3bbe8", cancelled_reason: nil, customer: "Restart Robin", shipped_at: "2026-02-22T06:25:00Z", delivered_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", processed_count: 0, transitions: %{size: 4, type: :map, __truncated_depth__: 4}}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c90d7-8ab0-7ddb-9f17-27b1e00a6878", action: Maiden.OrderRuntime.Actions.DeliverOrder, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 4, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, model_status: "idle", model_result: nil, model_request_id: nil, model_name: nil, model_error: nil, model_options: %{}, model_prompt: nil}, action_metadata: %{name: "deliver_order", description: "Mark a shipped order as delivered", vsn: nil, category: nil, schema: [order_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+..
+13:09:30.854 [debug] [signal] type=order.transition.rejected directives=1 duration=113μs
+
+13:09:30.864 [debug] [directive] type=RunInstruction result=ok duration=9.67ms
+..
+13:09:30.868 [debug] [signal] type=order.transition.cancelled directives=1 duration=93μs
+
+13:09:30.872 [notice] Executing Maiden.OrderRuntime.Actions.CancelOrder with params: %{reason: "customer_request", at: "2026-02-22T06:14:00Z", to: "cancelled", from: "confirmed", order_id: "ORD-SENSOR-CANCEL-001-2cd0fecb-ccac-43ed-8986-dc64a41edaa6"} and context: %{state: %{total: 13.0, items: [%{sku: "SKU-CANCEL", qty: 1}], order_id: "ORD-SENSOR-CANCEL-001-2cd0fecb-ccac-43ed-8986-dc64a41edaa6", cancelled_reason: nil, customer: "Cancel Chris", shipped_at: nil, delivered_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", processed_count: 0, transitions: %{size: 4, type: :map, __truncated_depth__: 4}}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c90d7-8af4-704f-af97-f1c5a3831372", action: Maiden.OrderRuntime.Actions.CancelOrder, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 5, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, model_status: "idle", model_result: nil, model_request_id: nil, model_name: nil, model_error: nil, model_options: %{}, model_prompt: nil}, action_metadata: %{name: "cancel_order", description: "Cancel an order", vsn: nil, category: nil, schema: [order_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}, reason: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+
+13:09:30.874 [debug] [directive] type=RunInstruction result=ok duration=5.68ms
+....
+13:09:30.923 [debug] [signal] type=order.transition.shipped directives=1 duration=98μs
+
+13:09:30.924 [notice] Executing Maiden.OrderRuntime.Actions.ShipOrder with params: %{at: "2026-02-22T06:12:00Z", to: "shipped", from: "confirmed", order_id: "ORD-SENSOR-RT-001-7f003cbc-c4a2-4a7e-8842-6e58a38d4444"} and context: %{state: %{total: 9.5, items: [%{sku: "SKU-SENSOR", qty: 1}], order_id: "ORD-SENSOR-RT-001-7f003cbc-c4a2-4a7e-8842-6e58a38d4444", cancelled_reason: nil, customer: "Sensor Bob", shipped_at: nil, delivered_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", processed_count: 0, transitions: %{size: 4, type: :map, __truncated_depth__: 4}}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c90d7-8b2a-7641-903f-7f5c5ea0297c", action: Maiden.OrderRuntime.Actions.ShipOrder, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 4, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, model_status: "idle", model_result: nil, model_request_id: nil, model_name: nil, model_error: nil, model_options: %{}, model_prompt: nil}, action_metadata: %{name: "ship_order", description: "Ship a confirmed order", vsn: nil, category: nil, schema: [order_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+..
+13:09:30.980 [debug] [signal] type=order.transition.delivered directives=1 duration=131μs
+
+13:09:30.982 [notice] Executing Maiden.OrderRuntime.Actions.DeliverOrder with params: %{at: "2026-02-22T06:13:00Z", to: "delivered", from: "shipped", order_id: "ORD-SENSOR-DELIVER-001-5aa618d9-0382-4be9-8860-aa141f404984"} and context: %{state: %{total: 5.0, items: [%{sku: "SKU-DELIVER", qty: 1}], order_id: "ORD-SENSOR-DELIVER-001-5aa618d9-0382-4be9-8860-aa141f404984", cancelled_reason: nil, customer: "Deliver Dana", shipped_at: "2026-02-22T06:00:00Z", delivered_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", processed_count: 0, transitions: %{size: 4, type: :map, __truncated_depth__: 4}}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c90d7-8b64-7227-9c8d-e0727a3b5f4a", action: Maiden.OrderRuntime.Actions.DeliverOrder, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 4, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, model_status: "idle", model_result: nil, model_request_id: nil, model_name: nil, model_error: nil, model_options: %{}, model_prompt: nil}, action_metadata: %{name: "deliver_order", description: "Mark a shipped order as delivered", vsn: nil, category: nil, schema: [order_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+....
+13:09:31.040 [notice] Executing Maiden.OrderRuntime.Actions.ShipOrder with params: %{at: "2026-02-22T06:05:00Z", to: "shipped", from: "confirmed", order_id: "ORD-002-742dc2b7-d30e-474a-87ad-d4a9909f79a7"} and context: %{state: %{total: 12.0, items: [%{sku: "SKU-2", qty: 1}], order_id: "ORD-002-742dc2b7-d30e-474a-87ad-d4a9909f79a7", cancelled_reason: nil, customer: "Bob", shipped_at: nil, delivered_at: nil, __strategy__: %{machine: %Jido.Agent.Strategy.FSM.Machine{error: nil, last_result: nil, status: "processing", processed_count: 0, transitions: %{size: 4, type: :map, __truncated_depth__: 4}}, module: Jido.Agent.Strategy.FSM, initial_state: "idle", auto_transition: true, current_instruction: %Jido.Instruction{id: "019c90d7-8b9a-75e5-a3ba-e53eadb13904", action: Maiden.OrderRuntime.Actions.ShipOrder, opts: %{size: 0, type: :list, __truncated_depth__: 4}, context: %{size: 1, type: :map, __truncated_depth__: 4}, params: %{size: 4, type: :map, __truncated_depth__: 4}}, deferred_directives: [], pending_instructions: []}, model_status: "idle", model_result: nil, model_request_id: nil, model_name: nil, model_error: nil, model_options: %{}, model_prompt: nil}, action_metadata: %{name: "ship_order", description: "Ship a confirmed order", vsn: nil, category: nil, schema: [order_id: %{size: 2, type: :list, __truncated_depth__: 4}, from: %{size: 2, type: :list, __truncated_depth__: 4}, to: %{size: 2, type: :list, __truncated_depth__: 4}, at: %{size: 2, type: :list, __truncated_depth__: 4}], tags: [], output_schema: [], compensation: %{timeout: 5000, enabled: false, max_retries: 1}}}
+..
+Finished in 1.8 seconds (0.00s async, 1.8s sync)
+31 tests, 2 failures, 1 excluded

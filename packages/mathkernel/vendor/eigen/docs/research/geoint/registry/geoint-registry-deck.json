@@ -1,0 +1,139 @@
+{
+  "title": "TMNL GEOINT Registry — Research Pitch",
+  "slides": [
+    {
+      "id": "source-strategy",
+      "title": "Source Strategy (Broad GEOINT)",
+      "context": "Interoperability, composability, and reliability for OSINT-first operations.",
+      "columns": 3,
+      "options": [
+        {
+          "label": "Latency-first mesh",
+          "description": "Best for seconds/minutes operations.",
+          "aside": "Trigger lane plus corroboration lane.",
+          "previewBlocks": [
+            {
+              "type": "code",
+              "lang": "text",
+              "code": "Trigger lane\n- OpenSky or ADS-B Exchange\n- AISStream or MarineTraffic\n- NWS plus NEXRAD\n- USGS plus GDACS plus FIRMS\n\nCorroboration lane\n- Copernicus STAC\n- Sentinel Hub\n- Planetary Computer\n- ReliefWeb or HDX\n- GDELT or ACLED"
+            }
+          ]
+        },
+        {
+          "label": "Max-breadth federation",
+          "description": "All domains: EO, terrain, weather, mobility, humanitarian, infrastructure, population, events.",
+          "aside": "Highest analyst context.",
+          "previewBlocks": [
+            {
+              "type": "mermaid",
+              "content": "mindmap\n  root((Source Universe))\n    EO\n    Terrain\n    Weather\n    Mobility\n    Disaster\n    Infrastructure\n    Population\n    Events"
+            }
+          ]
+        },
+        {
+          "label": "Open-core with premium failover",
+          "description": "Open by default; selectively enable paid providers when SLOs are missed.",
+          "recommended": true,
+          "aside": "Best cost-control plus reliability balance.",
+          "previewBlocks": [
+            {
+              "type": "mermaid",
+              "content": "flowchart TD\n  A[Open Core Sources] --> B{SLO met}\n  B -- yes --> C[Keep open tier]\n  B -- no --> D[Enable premium provider]\n  D --> E[Re-score trust]\n  E --> C"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "architecture-options",
+      "title": "Registry Architecture Options",
+      "columns": 3,
+      "options": [
+        {
+          "label": "A: Layer graph compiler",
+          "description": "Conversational intent compiles into deterministic layer graph diffs.",
+          "previewBlocks": [
+            {
+              "type": "mermaid",
+              "content": "flowchart LR\n  U[Intent] --> M[Mode Compiler]\n  M --> G[Layer Graph]\n  G --> X[Executor]\n  X --> L[deck.gl layers]"
+            }
+          ]
+        },
+        {
+          "label": "B: Interop query backbone",
+          "description": "Canonical envelopes with adapters for STAC, OGC Features, and native feeds.",
+          "previewBlocks": [
+            {
+              "type": "mermaid",
+              "content": "flowchart LR\n  Q[RegistryQuery] --> N[CQL2 normalize]\n  N --> S[STAC adapter]\n  N --> O[OGC adapter]\n  N --> R[Native adapter]\n  S --> E[Envelope]\n  O --> E\n  R --> E"
+            }
+          ]
+        },
+        {
+          "label": "C: Hybrid B to A to C",
+          "description": "Backbone first, compiler second, policy and multi-view governance third.",
+          "recommended": true,
+          "previewBlocks": [
+            {
+              "type": "mermaid",
+              "content": "flowchart TD\n  B[Phase 1 Interop Backbone] --> A[Phase 2 Mode Compiler]\n  A --> C[Phase 3 Policy plus Multi-view]\n  C --> V[Map Timeline Detail]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "trust-policy",
+      "title": "Trust, Provenance, and Interoperability",
+      "columns": 2,
+      "options": [
+        {
+          "label": "Weighted trust with hard-fail gates",
+          "description": "Score ranking is allowed only after provenance and freshness hard checks pass.",
+          "recommended": true,
+          "previewBlocks": [
+            {
+              "type": "code",
+              "lang": "text",
+              "code": "TrustScore = weighted(latency, integrity, availability, freshness, coverage, cross_source)\n\nHard fail conditions\n- missing provenance chain\n- hash mismatch\n- stale beyond threshold\n- unknown source identity"
+            },
+            {
+              "type": "mermaid",
+              "content": "flowchart LR\n  I[Ingested record] --> H{Hard fail checks}\n  H -- fail --> Q[Quarantine]\n  H -- pass --> T[Score plus role]\n  T --> R[trigger or context or archive]"
+            }
+          ]
+        },
+        {
+          "label": "Interop contract baseline",
+          "description": "Registry contracts unify all provider differences.",
+          "previewBlocks": [
+            {
+              "type": "code",
+              "lang": "text",
+              "code": "RegistrySearchQueryV1\nRegistryEntityEnvelopeV1\nRegistryPageV1\n\nStandards baseline\n- STAC API\n- OGC API Features\n- CQL2 normalized filter IR\n- Opaque continuation paging\n- Append-only provenance hops"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "roadmap",
+      "title": "90-Day Plan (No Rewrite)",
+      "columns": 1,
+      "options": [
+        {
+          "label": "Recommended execution",
+          "description": "B-core to A-control to C-governance",
+          "recommended": true,
+          "previewBlocks": [
+            {
+              "type": "code",
+              "lang": "text",
+              "code": "Days 0 to 30\n- registry v1 schema\n- adapter normalization\n- provenance hashes\n- paging token codec\n\nDays 31 to 60\n- harness projection bridge\n- compiler shadow mode\n- parity tests\n\nDays 61 to 90\n- cutover geoint tools and sdk.geoint\n- policy audit mode\n- selective enforcement\n- persistence hardening"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "_tag": "RegistryQueryPlanV1",
+  "version": "geoint.registry.v1",
+  "planId": "plan-golden-latency-max2-1767225600000",
+  "intent": {
+    "_tag": "PlannerIntentV1",
+    "version": "geoint.registry.v1",
+    "queryId": "golden-latency-max2",
+    "requestedAt": "2026-01-01T00:00:00.000Z",
+    "text": "air tracks over AOI",
+    "requestedSources": [
+      "opensky",
+      "adsb-lol",
+      "openmeteo"
+    ],
+    "constraints": {
+      "_tag": "QueryConstraintV1",
+      "maxSources": 2
+    }
+  },
+  "decision": {
+    "_tag": "PlanDecisionV1",
+    "strategy": "latency-first",
+    "selected": [
+      {
+        "_tag": "SourceAttemptV1",
+        "sourceId": "opensky",
+        "canonicalSource": "opensky",
+        "role": "trigger",
+        "provider": "native",
+        "priority": 95,
+        "weight": 1,
+        "rank": 0,
+        "rationale": "priority=95, weight=1.00, role=trigger, provider=native, strategy=latency-first, health=default:1.00"
+      },
+      {
+        "_tag": "SourceAttemptV1",
+        "sourceId": "adsb-exchange",
+        "canonicalSource": "adsb-lol",
+        "role": "trigger",
+        "provider": "stream",
+        "priority": 90,
+        "weight": 0.95,
+        "rank": 1,
+        "rationale": "priority=90, weight=0.95, role=trigger, provider=stream, strategy=latency-first, health=default:1.00",
+        "fallbackOf": "opensky"
+      }
+    ],
+    "rejected": [
+      {
+        "_tag": "SourceRejectionV1",
+        "sourceId": "nws-api",
+        "canonicalSource": "noaa",
+        "reason": "not requested by caller"
+      },
+      {
+        "_tag": "SourceRejectionV1",
+        "sourceId": "copernicus-stac",
+        "canonicalSource": "copernicus-stac",
+        "reason": "not requested by caller"
+      },
+      {
+        "_tag": "SourceRejectionV1",
+        "sourceId": "planetary-computer",
+        "canonicalSource": "planetary-computer",
+        "reason": "not requested by caller"
+      },
+      {
+        "_tag": "SourceRejectionV1",
+        "sourceId": "gdacs",
+        "canonicalSource": "gdacs",
+        "reason": "not requested by caller"
+      },
+      {
+        "_tag": "SourceRejectionV1",
+        "sourceId": "openmeteo-api",
+        "canonicalSource": "openmeteo",
+        "reason": "ranked below maxSources=2"
+      }
+    ]
+  },
+  "generatedAt": "2026-01-01T00:00:00.000Z"
+}

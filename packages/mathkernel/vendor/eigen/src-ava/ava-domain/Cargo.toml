@@ -1,0 +1,19 @@
+[package]
+name = "ava-domain"
+description = "AVA domain types with Typeshare annotations for TypeScript generation"
+version.workspace = true
+edition = "2021"
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+typeshare = { workspace = true }
+thiserror = { workspace = true }
+async-trait = { workspace = true }
+arrow = { workspace = true }
+
+[dev-dependencies]
+pretty_assertions = { workspace = true }
+ava-macros = { path = "../ava-macros" }

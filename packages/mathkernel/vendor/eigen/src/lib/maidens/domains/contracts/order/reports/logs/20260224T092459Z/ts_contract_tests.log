@@ -1,0 +1,11 @@
+$ bunx vitest run src/lib/maidens/domains/contracts/order/ts/order.contract.test.ts
+
+ RUN  v3.2.4 /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl
+
+ ✓ src/lib/maidens/domains/contracts/order/ts/order.contract.test.ts (6 tests) 9ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  04:25:00
+   Duration  1.89s (transform 93ms, setup 503ms, collect 147ms, tests 9ms, environment 303ms, prepare 120ms)
+

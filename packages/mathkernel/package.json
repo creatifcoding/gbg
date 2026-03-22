@@ -1,0 +1,53 @@
+{
+  "name": "@tmnl/mathkernel",
+  "version": "0.0.1",
+  "author": "GBG",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gbg/gbg.git",
+    "directory": "packages/mathkernel"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./wasm": {
+      "import": "./dist/mathkernel.js",
+      "types": "./dist/mathkernel.d.ts"
+    }
+  },
+  "description": "WASM compute substrate — C++20/Eigen linear algebra, regression, decomposition, time series, DSP, and statistics via Emscripten/Embind. Effect-native service layer for @tmnl/datagrid Stack VM and codemode agent API.",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "wasm",
+    "linear-algebra",
+    "regression",
+    "eigen",
+    "emscripten",
+    "effect",
+    "math-kernel",
+    "datagrid"
+  ],
+  "scripts": {
+    "build:wasm": "mkdir -p build && cd build && emcmake cmake .. -DCMAKE_BUILD_TYPE=Release && cmake --build . --parallel",
+    "build:ts": "tsc --project tsconfig.json",
+    "build": "bun run build:wasm && bun run build:ts",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf build dist"
+  },
+  "dependencies": {
+    "effect-v4": "npm:effect@4.0.0-beta.23"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0",
+    "typescript": "^5.8.0"
+  }
+}

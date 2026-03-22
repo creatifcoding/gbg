@@ -1,0 +1,37 @@
+// ── Context ─────────────────────────────────────────────────
+export {
+  MorphChatContext,
+  useMorphChatContext,
+  type MorphChatContextValue,
+} from './surface-context'
+
+// ── Root Surface ────────────────────────────────────────────
+export {
+  MorphChatSurface,
+  type MorphChatSurfaceProps,
+} from './surface-root'
+
+// ── Topology Resolver ───────────────────────────────────────
+export { SurfaceContent } from './surface-content'
+
+// ── View Resolvers ──────────────────────────────────────────
+export { ComposerView } from './composer-view'
+export { ThreadView } from './thread-view'
+export { ThreadTailControls } from './thread-tail-controls'
+export { InlineTasksView } from './inline-tasks-view'
+export { FrameChromeView } from './frame-chrome-view'
+export { ConnectionView } from './connection-view'
+export { ConnectionCapsule, LatencySparkline, latencyColor, latencyGlow } from './connection-capsule'
+export { ModelSelectorView } from './model-selector-view'
+export { StatusBannerView } from './status-banner'
+export { AnalysisCard, RemediationCard } from './artifact-cards'
+export type { AnalysisCardProps, RemediationCardProps } from './artifact-cards'
+export { MetricsPanel } from './metrics-panel'
+export type { MetricsPanelProps } from './metrics-panel'
+export { SessionDrawer, SessionCard } from './session-drawer'
+export type {
+  SessionDrawerProps,
+  SessionCardProps,
+  SessionCardSession,
+} from './session-drawer'
+// MorphOverlay archived — layout morphing (#F368) will replace it

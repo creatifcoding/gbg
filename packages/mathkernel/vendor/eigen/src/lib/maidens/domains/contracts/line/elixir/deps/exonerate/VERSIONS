@@ -1,0 +1,62 @@
+# Versions Document
+
+## 0.1.0
+
+- initial release
+- support for JSONSchema-draft 6 and almost all of JSONSchema-draft 7
+
+## 0.1.1
+- defp support
+- function_from_file support
+- format_options -> format
+- specification for broad formatting
+- ability to use other decoders (e.g. YAML)
+
+# 0.2.0
+- error details for compositions like anyOf, oneOf
+- "ref traces" for jumping through references
+- support for draft-4, draft-6, draft-7 and draft-2019, draft-2020
+
+# 0.2.1
+- expose missing `required` as an extra paramter
+
+# 0.2.2
+- fixes it so that defp content with metadata don't cause compilation
+  errors
+
+# 0.3.0
+- switch to using `:json_ptr` library
+- implementation of `unevaluatedItems` and `unevaluatedProperties`
+
+# 0.3.1
+- pinned elixir version to minimum 1.14.1, due to use of Macro.expand_literals
+
+# 0.3.2
+- changed common uri to exonerate:// over function:// -- this allows for resources
+  to be pinned based on sha256 of the schema
+- store string content using resource id.
+- refactors array processing for performance
+- changes `dump: true` to provide function names which can be copy/pasted into
+  elixir and recompiled.
+- `maybe_dump` function now expands macros inside of functions.
+
+# 0.3.3
+- fixes a bug where prefixItems are never evaluted before items
+
+# 1.0.0
+- fixes regression where id properties are labelled as ids
+- moves to using JsonPtr 
+
+# 1.0.1
+- fixes problem where $ref walking doesn't properly substitute location
+
+# 1.1.0
+- deprecates `:content_type` option and renames it `:encoding`
+
+# 1.1.1
+- updates elixir versioning requirements
+
+# 1.1.2
+- adds extra message when the reference pointer is not found
+- fixes bug where references are not recursively cached when the entrypoint
+  isn't the root entrypoint

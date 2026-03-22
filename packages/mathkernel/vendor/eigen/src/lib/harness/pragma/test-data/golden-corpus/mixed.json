@@ -1,0 +1,10 @@
+[
+  { "id": "mixed-01", "prompt": "build a dashboard with charts and a settings form", "expected_intent": "MIXED", "alternatives": ["LAYOUT"], "expected_confidence_min": 0.3, "category": "core", "tags": ["dashboard", "chart", "form"] },
+  { "id": "mixed-02", "prompt": "create a form with a data table preview below it", "expected_intent": "MIXED", "alternatives": ["FORM"], "expected_confidence_min": 0.3, "category": "core", "tags": ["form", "table"] },
+  { "id": "mixed-03", "prompt": "show me a layout with sidebar navigation and error alerts", "expected_intent": "MIXED", "alternatives": ["LAYOUT"], "expected_confidence_min": 0.3, "category": "core", "tags": ["layout", "feedback"] },
+  { "id": "mixed-04", "prompt": "dashboard showing graphs, input forms, and toast notifications", "expected_intent": "MIXED", "alternatives": [], "expected_confidence_min": 0.3, "category": "core", "tags": ["dashboard", "graph", "form", "toast"] },
+  { "id": "mixed-05", "prompt": "create a page with a chart on top and a contact form below", "expected_intent": "MIXED", "alternatives": ["DATA", "FORM"], "expected_confidence_min": 0.3, "category": "core", "tags": ["chart", "form"] },
+  { "id": "mixed-06", "prompt": "build a data entry form with live chart preview and validation alerts", "expected_intent": "MIXED", "alternatives": [], "expected_confidence_min": 0.3, "category": "core", "tags": ["form", "chart", "alert"] },
+  { "id": "mixed-07", "prompt": "two-column layout: sidebar with navigation, main area with table and loading indicators", "expected_intent": "MIXED", "alternatives": ["LAYOUT"], "expected_confidence_min": 0.3, "category": "core", "tags": ["layout", "table", "loading"] },
+  { "id": "mixed-08", "prompt": "design a wizard with form steps and progress bar", "expected_intent": "MIXED", "alternatives": ["FORM"], "expected_confidence_min": 0.3, "category": "core", "tags": ["form", "progress"] }
+]

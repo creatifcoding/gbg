@@ -1,0 +1,27 @@
+# ngrok tunnel configuration for TMNL
+# Tunnels: SSH server + TMNL web app
+#
+# Environment variables required:
+#   NGROK_AUTHTOKEN - Your ngrok authtoken from dashboard.ngrok.com
+
+version: 2
+authtoken: 2yhP6iV3yMghTv0ffmlgtrEkEYK_3JUrYU3Z6vARqfkbaq2n1
+
+# API endpoint for tunnel URL discovery
+api_key: null
+web_addr: 0.0.0.0:4040
+
+tunnels:
+  # SSH tunnel for Termius/mobile terminal access
+  ssh:
+    proto: tcp
+    addr: tmnl_ssh:2222
+    metadata: '{"service": "ssh", "description": "SSH access to TMNL dev environment"}'
+
+  # TMNL web app tunnel (Tauri dev server on host)
+  tmnl:
+    proto: http
+    addr: host.docker.internal:1420
+    metadata: '{"service": "tmnl", "description": "TMNL web application"}'
+    # Optional: inspect traffic
+    inspect: true

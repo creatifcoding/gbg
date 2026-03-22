@@ -1,0 +1,24 @@
+{
+  "kind": "toc-cycle1-live-send-probe",
+  "startedAt": "2026-02-25T03:34:33.763Z",
+  "url": "http://localhost:1420/window?testbed=floating",
+  "apiPresence": {
+    "panelTest": "object",
+    "spawnTiledChat": "function",
+    "snapshot": "function"
+  },
+  "sendDispatchError": "focus: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('textarea[placeholder=\"Message...\"], textarea[placeholder=\"Type a message...\"], textarea').first()\u001b[22m\n\u001b[2m    - locator resolved to <textarea rows=\"1\" placeholder=\"Message...\" class=\"w-full resize-none border-none outline-none bg-transparent text-white placeholder:text-neutral-500 font-mono\"></textarea>\u001b[22m\n\u001b[2m  - element was detached from the DOM, retrying\u001b[22m\n",
+  "firstMarkerObserved": false,
+  "firstMarkerDetail": "none",
+  "beforeAssistantCount": 0,
+  "observed": {
+    "assistantCount": 0,
+    "streamingCount": 0,
+    "badgeText": null,
+    "statusNodes": [],
+    "hasConnectedText": false,
+    "hasOfflineText": false
+  },
+  "connectedByText": false,
+  "consoleErrors": []
+}

@@ -1,0 +1,30 @@
+syntax = "proto3";
+package scm.procurement.v1;
+
+import "google/protobuf/timestamp.proto";
+import "scm/common/v1/common.proto";
+
+message SourcingEventCreated { string sourcing_id = 1; string kind = 2; repeated string part_ids = 3; map<string,string> attrs = 4; }
+message QuoteReceived { string quote_id = 1; string supplier_party_id = 2; map<string,string> attrs = 3; }
+message QuoteRevised { string quote_id = 1; map<string,string> patch = 2; map<string,string> attrs = 3; }
+message SupplierSelected { string sourcing_id = 1; string supplier_party_id = 2; map<string,string> attrs = 3; }
+
+message ContractCreated { string contract_id = 1; string supplier_party_id = 2; scm.common.v1.RangeTs term = 3; map<string,string> attrs = 4; }
+message ContractAmended { string contract_id = 1; map<string,string> patch = 2; map<string,string> attrs = 3; }
+
+message PurchaseOrderIssued { string po_id = 1; string buyer_party_id = 2; string supplier_party_id = 3; map<string,string> attrs = 4;
+  message Line { string line_id = 1; string part_id = 2; int64 qty = 3; google.protobuf.Timestamp need_by = 4; scm.common.v1.Money unit_price = 5; map<string,string> attrs = 6; }
+  repeated Line lines = 5;
+}
+message PurchaseOrderAcknowledged { string po_id = 1; string ack_code = 2; google.protobuf.Timestamp committed_date = 3; map<string,string> attrs = 4; }
+message PurchaseOrderChanged { string po_id = 1; map<string,string> patch = 2; map<string,string> attrs = 3; }
+message PurchaseOrderCancelled { string po_id = 1; string reason = 2; map<string,string> attrs = 3; }
+
+message SupplierCapacityDeclared { string supplier_party_id = 1; string facility_id = 2; string resource_kind = 3; int64 capacity_per_week = 4; map<string,string> attrs = 5; }
+message SupplierCapacityReduced { string supplier_party_id = 1; int64 delta = 2; map<string,string> attrs = 3; }
+message SupplierCapacityRecovered { string supplier_party_id = 1; int64 delta = 2; map<string,string> attrs = 3; }
+
+message AllocationNoticeReceived { string supplier_party_id = 1; repeated string part_ids = 2; map<string,string> attrs = 3; }
+message ExpediteRequested { string ref_id = 1; string reason = 2; map<string,string> attrs = 3; }
+message ExpediteAccepted { string ref_id = 1; google.protobuf.Timestamp new_date = 2; map<string,string> attrs = 3; }
+message ExpediteRejected { string ref_id = 1; string reason = 2; map<string,string> attrs = 3; }

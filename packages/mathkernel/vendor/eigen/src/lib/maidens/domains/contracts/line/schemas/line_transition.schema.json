@@ -1,0 +1,122 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "LineTransitionEvent": {
+      "type": "object",
+      "required": [
+        "line_id",
+        "from",
+        "to",
+        "at"
+      ],
+      "properties": {
+        "line_id": {
+          "$ref": "#/definitions/LineId"
+        },
+        "from": {
+          "$ref": "#/definitions/LineStatus"
+        },
+        "to": {
+          "$ref": "#/definitions/LineStatus"
+        },
+        "at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "initiated_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Transition payload contract for line lifecycle events.",
+      "title": "Line Transition Event"
+    },
+    "LineId": {
+      "type": "string",
+      "description": "Line identifier in LIN-{slug} format.",
+      "title": "Line ID",
+      "pattern": "^LIN-[a-zA-Z0-9-]+$"
+    },
+    "LineStatus": {
+      "type": "string",
+      "enum": [
+        "idle",
+        "running",
+        "changeover",
+        "starved",
+        "blocked",
+        "maintenance",
+        "decommissioned"
+      ],
+      "description": "ISA-95 line operational status.",
+      "title": "Line Status"
+    }
+  },
+  "type": "object",
+  "required": [
+    "line_id",
+    "from",
+    "to",
+    "at"
+  ],
+  "properties": {
+    "line_id": {
+      "$ref": "#/definitions/LineId"
+    },
+    "from": {
+      "$ref": "#/definitions/LineStatus"
+    },
+    "to": {
+      "$ref": "#/definitions/LineStatus"
+    },
+    "at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "initiated_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/line/ts/line.contract.ts). Canonical transition event contract for TypeScript and Elixir.",
+  "title": "LineTransitionEvent",
+  "$id": "/contracts/line/line_transition.schema.json"
+}

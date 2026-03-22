@@ -1,0 +1,441 @@
+# TMNL Collaboration, Persistence & Search/Ingestion Cluster Stack
+#
+# Services:
+#   - y-sweet:                  Real-time Yjs document sync (content stored in MinIO)
+#   - minio:                    S3-compatible object storage for y-sweet documents
+#   - nats:                     Message broker with JetStream for KV (metadata storage)
+#   - minio-init:               One-shot container to create bucket
+#   - postgres:                 PostgreSQL + PostGIS + TimescaleDB for spatiotemporal data
+#   - electric:                 ElectricSQL sync engine (Postgres → client real-time sync)
+#   - durable-streams:          Persistent stream primitive for reliable data streaming
+#   - search-cluster-coordinator: Effect Cluster node for search aggregation
+#   - search-cluster-sources:   Effect Cluster node for source-specific search
+#   - ingestion-cluster:        Effect Cluster node for on-demand data ingestion (flights, POI, weather, imagery)
+#
+# Usage:
+#   docker compose up -d          # Start all services
+#   docker compose logs -f        # View logs
+#   docker compose down           # Stop
+#   docker compose down -v        # Stop and remove volumes
+#
+# Connection strings:
+#   y-sweet:          http://localhost:8080
+#   MinIO:            http://localhost:9000 (API), http://localhost:9001 (Console)
+#   NATS:             nats://localhost:4222 (TCP), ws://localhost:9222 (WebSocket), http://localhost:8222 (Monitoring)
+#   durable-streams:  http://localhost:3030 (HTTP API for persistent streams)
+#   PostgreSQL:       postgres://tmnl:tmnl_dev_password@localhost:5432/tmnl
+#   Electric:         http://localhost:3000 (Postgres sync to client)
+#   Search Cluster:   http://localhost:8100 (coordinator), http://localhost:8101 (sources)
+#   Ingestion Cluster: http://localhost:8102 (flights, POI, weather, imagery)
+
+services:
+  # ===========================================================================
+  # MinIO - S3-compatible object storage for y-sweet documents
+  # ===========================================================================
+  minio:
+    image: minio/minio:latest
+    container_name: tmnl_minio
+    command: server /data --console-address ":9001"
+    ports:
+      - '9000:9000' # S3 API
+      - '9001:9001' # Web Console
+    volumes:
+      - minio-data:/data
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - tmnl
+
+  # ===========================================================================
+  # MinIO Init - Create bucket on startup
+  # ===========================================================================
+  minio-init:
+    image: minio/mc:latest
+    container_name: tmnl_minio_init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 minioadmin minioadmin;
+      mc mb local/tmnl-docs --ignore-existing;
+      mc anonymous set download local/tmnl-docs;
+      echo 'Bucket tmnl-docs created successfully';
+      exit 0;
+      "
+    networks:
+      - tmnl
+
+  # ===========================================================================
+  # NATS - Message broker with JetStream for KV storage
+  # ===========================================================================
+  nats:
+    image: nats:2.10-alpine
+    container_name: tmnl_nats
+    command:
+      - '--config'
+      - '/etc/nats/nats-server.conf'
+    ports:
+      - '4222:4222' # Client connections (TCP)
+      - '8222:8222' # HTTP monitoring
+      - '9222:9222' # WebSocket (for browser clients)
+    volumes:
+      - nats-data:/data
+      - ./nats/nats-server.conf:/etc/nats/nats-server.conf:ro
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -q --spider http://localhost:8222/healthz || exit 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - tmnl
+
+  # ===========================================================================
+  # y-Sweet - Yjs document sync server (stores content in MinIO)
+  # ===========================================================================
+  y-sweet:
+    image: ghcr.io/jamsocket/y-sweet:latest
+    container_name: tmnl_y_sweet
+    entrypoint: ['/usr/local/bin/y-sweet']
+    command: ['serve', '--host', '0.0.0.0']
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+    ports:
+      - '8080:8080'
+    environment:
+      # Server config
+      PORT: '8080'
+      # S3 storage via MinIO
+      Y_SWEET_STORE: 's3://tmnl-docs/ysweet'
+      AWS_ACCESS_KEY_ID: 'minioadmin'
+      AWS_SECRET_ACCESS_KEY: 'minioadmin'
+      AWS_ENDPOINT_URL_S3: 'http://minio:9000'
+      AWS_REGION: 'us-east-1'
+      # Required for MinIO (path-style addressing)
+      AWS_S3_USE_PATH_STYLE: 'true'
+      # Checkpoint every 5 seconds for local dev (faster persistence)
+      Y_SWEET_CHECKPOINT_FREQ_SECONDS: '5'
+      # No auth for local dev (NEVER do this in production)
+      # Y_SWEET_AUTH: your-secret-key
+    restart: unless-stopped
+    healthcheck:
+      # y-sweet image doesn't ship curl; probe TCP port directly via bash /dev/tcp
+      test: ['CMD-SHELL', 'bash -lc "echo > /dev/tcp/localhost/8080"']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - tmnl
+
+  # ===========================================================================
+  # PostgreSQL + TimescaleDB + Apache AGE - Spatiotemporal + Graph data storage
+  # ===========================================================================
+  postgres:
+    build:
+      context: ./iiot-db
+      dockerfile: Dockerfile
+    image: tmnl-iiot-db:latest
+    container_name: tmnl_postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/home/postgres/pgdata/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    environment:
+      POSTGRES_USER: tmnl
+      POSTGRES_PASSWORD: tmnl_dev_password
+      POSTGRES_DB: tmnl
+      # TimescaleDB settings
+      TIMESCALEDB_TELEMETRY: 'off'
+    # Enable logical replication for Electric + preload AGE
+    command:
+      - postgres
+      - -c
+      - wal_level=logical
+      - -c
+      - max_replication_slots=10
+      - -c
+      - max_wal_senders=10
+      - -c
+      - shared_preload_libraries=timescaledb,age
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U tmnl -d tmnl']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - tmnl
+
+  # ===========================================================================
+  # Electric - Postgres to client sync engine
+  # ===========================================================================
+  electric:
+    image: electricsql/electric:latest
+    container_name: tmnl_electric
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - '3000:3000' # Electric HTTP API
+    environment:
+      DATABASE_URL: postgresql://tmnl:tmnl_dev_password@postgres:5432/tmnl
+      ELECTRIC_WRITE_TO_PG_MODE: direct_writes
+      ELECTRIC_INSECURE: 'true'  # Dev mode - no auth required
+      # Enable logical replication (required)
+      PG_PROXY_PORT: '65432'
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:3000/v1/health || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - tmnl
+
+  # ===========================================================================
+  # Durable Streams - Persistent stream primitive for reliable data streaming
+  # ===========================================================================
+  durable-streams:
+    build:
+      context: ./durable-streams
+      dockerfile: Dockerfile
+    container_name: tmnl_durable_streams
+    ports:
+      - '3030:3030' # HTTP API
+    volumes:
+      - durable-streams-data:/data
+    environment:
+      PORT: '3030'
+      HOST: '0.0.0.0'
+      DATA_DIR: '/data'
+      LONG_POLL_TIMEOUT: '30000'
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q --spider http://localhost:3030/ || exit 0']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - tmnl
+
+  # ===========================================================================
+  # SSH Server - Remote access via ngrok tunnel
+  # ===========================================================================
+  ssh:
+    image: linuxserver/openssh-server:latest
+    container_name: tmnl_ssh
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/New_York}
+      - USER_NAME=${SSH_USER:-prime}
+      - PUBLIC_KEY_FILE=/config/.ssh/authorized_keys
+      - SUDO_ACCESS=true
+      - LOG_STDOUT=true
+    volumes:
+      - ssh-config:/config
+      - ${SSH_AUTHORIZED_KEYS_PATH:-~/.ssh/authorized_keys}:/config/.ssh/authorized_keys:ro
+      # WSL filesystem mounts
+      - ${WSL_HOME:-/home/getbygenius}:/home/${SSH_USER:-prime}/wsl:rw
+      - ${WINDOWS_ROOT:-/mnt/c}:/home/${SSH_USER:-prime}/windows:rw
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'nc -z localhost 2222 || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - tmnl
+
+  # ===========================================================================
+  # ngrok - Tunnel proxy for SSH and TMNL web app
+  # ===========================================================================
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: tmnl_ngrok
+    command: start --all --config /etc/ngrok.yml
+    depends_on:
+      ssh:
+        condition: service_healthy
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    volumes:
+      - ./ngrok/ngrok.yml:/etc/ngrok.yml:ro
+    ports:
+      - '4040:4040' # ngrok web interface / API
+    restart: unless-stopped
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:4040/api/tunnels || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - tmnl
+
+  # ===========================================================================
+  # ngrok-notify - Send tunnel URLs to Telegram on startup
+  # ===========================================================================
+  ngrok-notify:
+    image: alpine:latest
+    container_name: tmnl_ngrok_notify
+    depends_on:
+      ngrok:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - NGROK_API_URL=http://ngrok:4040
+      - NATS_URL=nats://nats:4222
+    volumes:
+      - ./ngrok-notify/notify.sh:/notify.sh:ro
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        apk add --no-cache curl jq && /bin/sh /notify.sh
+    networks:
+      - tmnl
+
+  # ===========================================================================
+  # Search Cluster - Coordinator Node (aggregation, fan-out/fan-in)
+  # ===========================================================================
+  search-cluster-coordinator:
+    build:
+      context: ../../..
+      dockerfile: packages/tmnl/docker/search-cluster/Dockerfile
+    container_name: tmnl_search_coordinator
+    depends_on:
+      postgres:
+        condition: service_healthy
+      durable-streams:
+        condition: service_healthy
+    ports:
+      - '8100:8000' # Cluster communication port
+    environment:
+      RUNNER_HOST: search-cluster-coordinator
+      RUNNER_PORT: '8000'
+      SHARD_GROUPS: search-coordinator,search-default
+      DATABASE_URL: postgres://tmnl:tmnl_dev_password@postgres:5432/tmnl
+      DURABLE_STREAMS_URL: http://durable-streams:3030
+      LOG_LEVEL: info
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:8000/health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - tmnl
+
+  # ===========================================================================
+  # Search Cluster - Source Worker Node (tracks, OSM, flights, features)
+  # ===========================================================================
+  search-cluster-sources:
+    build:
+      context: ../../..
+      dockerfile: packages/tmnl/docker/search-cluster/Dockerfile
+    container_name: tmnl_search_sources
+    depends_on:
+      postgres:
+        condition: service_healthy
+      durable-streams:
+        condition: service_healthy
+    ports:
+      - '8101:8000' # Cluster communication port
+    environment:
+      RUNNER_HOST: search-cluster-sources
+      RUNNER_PORT: '8000'
+      SHARD_GROUPS: source-tracks,source-osm,source-flights,source-features
+      DATABASE_URL: postgres://tmnl:tmnl_dev_password@postgres:5432/tmnl
+      DURABLE_STREAMS_URL: http://durable-streams:3030
+      LOG_LEVEL: info
+      # OpenSky API credentials (optional, for higher rate limits)
+      # OPENSKY_USERNAME: ''
+      # OPENSKY_PASSWORD: ''
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:8000/health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - tmnl
+
+  # ===========================================================================
+  # Ingestion Cluster - On-demand data ingestion via RPC
+  # ===========================================================================
+  ingestion-cluster:
+    build:
+      context: ../../..
+      dockerfile: packages/tmnl/docker/search-cluster/Dockerfile
+    container_name: tmnl_ingestion_cluster
+    depends_on:
+      postgres:
+        condition: service_healthy
+      durable-streams:
+        condition: service_healthy
+    ports:
+      - '8102:8000' # Cluster communication port
+    environment:
+      RUNNER_HOST: ingestion-cluster
+      RUNNER_PORT: '8000'
+      SHARD_GROUPS: ingestion-default,ingestion-flights,ingestion-poi,ingestion-weather,ingestion-imagery
+      DATABASE_URL: postgres://tmnl:tmnl_dev_password@postgres:5432/tmnl
+      DURABLE_STREAMS_URL: http://durable-streams:3030
+      LOG_LEVEL: info
+      # OpenSky API credentials (optional, for higher rate limits)
+      # OPENSKY_USERNAME: ''
+      # OPENSKY_PASSWORD: ''
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://localhost:8000/health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - tmnl
+
+networks:
+  tmnl:
+    driver: bridge
+
+volumes:
+  minio-data:
+    driver: local
+  nats-data:
+    driver: local
+  durable-streams-data:
+    driver: local
+  ssh-config:
+    driver: local
+  postgres-data:
+    driver: local

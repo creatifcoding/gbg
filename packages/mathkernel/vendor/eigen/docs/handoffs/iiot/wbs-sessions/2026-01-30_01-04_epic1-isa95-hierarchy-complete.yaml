@@ -1,0 +1,119 @@
+---
+session: wbs-fact-system
+date: 2026-01-30
+status: complete
+outcome: PARTIAL_PLUS
+---
+
+goal: Epic 1 Schema Architecture - Full ISA-95 hierarchy with 12 parallel agents
+now: Review schemas, run tests, proceed to Epic 2 or other WBS items
+test: npx tsc --noEmit
+
+done_this_session:
+  - task: Deleted wrong assets-v2.ts approach (single combined file)
+    files: [src/lib/iiot/schemas/assets-v2.ts (deleted)]
+  - task: Created separate directory structure for ISA-95 entities
+    files: [src/lib/iiot/schemas/assets/]
+  - task: Phase 1 - 10 parallel kraken agents for entity schemas
+    files:
+      - src/lib/iiot/schemas/assets/common/types.ts
+      - src/lib/iiot/schemas/assets/enterprise/schema.ts
+      - src/lib/iiot/schemas/assets/site/schema.ts
+      - src/lib/iiot/schemas/assets/area/schema.ts
+      - src/lib/iiot/schemas/assets/plant/schema.ts
+      - src/lib/iiot/schemas/assets/line/schema.ts
+      - src/lib/iiot/schemas/assets/workcell/schema.ts
+      - src/lib/iiot/schemas/assets/machine/schema.ts
+      - src/lib/iiot/schemas/assets/sensor/schema.ts
+      - src/lib/iiot/schemas/assets/device/schema.ts
+  - task: Phase 2 - EquipmentState (OEE) and DeviceConfig (audit)
+    files:
+      - src/lib/iiot/schemas/equipment-state/schema.ts
+      - src/lib/iiot/schemas/equipment-state/events.ts
+      - src/lib/iiot/schemas/device-config/schema.ts
+      - src/lib/iiot/schemas/device-config/audit.ts
+  - task: Phase 3 - Barrel exports and integration
+    files:
+      - src/lib/iiot/schemas/assets/index.ts
+      - src/lib/iiot/schemas/index.ts
+
+blockers: []
+
+questions:
+  - Should EquipmentState history be event-sourced or simple table?
+  - Plant vs Site distinction - Plant is functional unit within Site?
+
+decisions:
+  - separate_directories: Each ISA-95 entity in own directory (not combined file)
+  - embedded_slugs: IDs embed prefix (ENT-, SIT-, PLT-, LIN-, etc.) validated by regex
+  - discriminated_unions: Each entity is distinct TaggedClass with _tag for pattern matching
+  - factory_functions: makePlantId('slug') -> 'PLT-slug' as PlantId
+  - device_vs_sensor: Sensor reads (L0), Device writes/actuates (L0) - both are control modules
+  - parallel_agents: 12 kraken agents used for max parallelism
+
+findings:
+  - parallel_agent_pattern: run_in_background=true + status file for coordination works well
+  - isa95_full_hierarchy: Enterprise→Site→Area→Plant→Line→WorkCell→Machine→Sensor/Device
+  - oee_states: 6 standard states (running, idle, planned_downtime, unplanned_downtime, setup, blocked)
+
+worked:
+  - Parallel kraken agents with shared status file
+  - /parallel-agents skill for coordination pattern
+  - Aggressive resource allocation (12 agents simultaneously)
+
+failed:
+  - Previous session's assets-v2.ts single-file approach (user rejected)
+
+next:
+  - Run full test suite to verify all schemas
+  - Review discriminated union at assets/index.ts for Asset type
+  - Continue to Epic 2 or other WBS items
+  - Consider adding AnyAssetId union type
+
+files:
+  created:
+    - src/lib/iiot/schemas/assets/index.ts
+    - src/lib/iiot/schemas/assets/common/types.ts
+    - src/lib/iiot/schemas/assets/common/index.ts
+    - src/lib/iiot/schemas/assets/enterprise/schema.ts
+    - src/lib/iiot/schemas/assets/enterprise/index.ts
+    - src/lib/iiot/schemas/assets/site/schema.ts
+    - src/lib/iiot/schemas/assets/site/index.ts
+    - src/lib/iiot/schemas/assets/area/schema.ts
+    - src/lib/iiot/schemas/assets/area/index.ts
+    - src/lib/iiot/schemas/assets/plant/schema.ts
+    - src/lib/iiot/schemas/assets/plant/index.ts
+    - src/lib/iiot/schemas/assets/line/schema.ts
+    - src/lib/iiot/schemas/assets/line/index.ts
+    - src/lib/iiot/schemas/assets/workcell/schema.ts
+    - src/lib/iiot/schemas/assets/workcell/index.ts
+    - src/lib/iiot/schemas/assets/machine/schema.ts
+    - src/lib/iiot/schemas/assets/machine/index.ts
+    - src/lib/iiot/schemas/assets/sensor/schema.ts
+    - src/lib/iiot/schemas/assets/sensor/index.ts
+    - src/lib/iiot/schemas/assets/device/schema.ts
+    - src/lib/iiot/schemas/assets/device/index.ts
+    - src/lib/iiot/schemas/equipment-state/schema.ts
+    - src/lib/iiot/schemas/equipment-state/events.ts
+    - src/lib/iiot/schemas/equipment-state/index.ts
+    - src/lib/iiot/schemas/device-config/schema.ts
+    - src/lib/iiot/schemas/device-config/audit.ts
+    - src/lib/iiot/schemas/device-config/index.ts
+  modified:
+    - src/lib/iiot/schemas/index.ts
+  deleted:
+    - src/lib/iiot/schemas/assets-v2.ts
+
+context:
+  wbs_location: thoughts/shared/plans/fragments/wbs-summary-updated.md
+  previous_handoff: thoughts/shared/handoffs/wbs-fact-system/2026-01-30_00-25_epic1-schema-implementation.yaml
+  id_patterns:
+    enterprise: ENT-{slug}
+    site: SIT-{slug}
+    area: ARA-{slug}
+    plant: PLT-{slug}
+    line: LIN-{slug}
+    workcell: WCL-{slug}
+    machine: MCH-{slug}
+    sensor: SNS-{slug}
+    device: DEV-{slug}

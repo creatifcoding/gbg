@@ -1,0 +1,6 @@
+#+TITLE: TMNL FTW
+
+* inbox
+* ideaz
+* notez
+* taskz

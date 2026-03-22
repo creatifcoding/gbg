@@ -1,0 +1,78 @@
+.rvn-chat__status-cluster {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.rvn-chat__status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  border: 1px solid var(--rvn-border);
+  background: var(--rvn-bg-panel);
+  color: var(--cchat-chip-color, var(--rvn-text-muted));
+  padding: 1px 7px;
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rvn-chat__connection-badge,
+.rvn-chat-shell__header-connection-badge {
+  color: var(--cchat-chip-color, var(--rvn-text-muted));
+}
+
+.rvn-chat__connection-badge-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rvn-chat__connection-badge-label {
+  color: var(--rvn-text);
+}
+
+.rvn-chat__connection-badge-details {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rvn-chat__connection-badge-latency {
+  color: var(--rvn-text-muted);
+  font-size: var(--tmnl-text-xs, 12px);
+}
+
+.rvn-chat__connection-badge-probe {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 18px;
+  border: 1px solid var(--rvn-border);
+  background: #fff;
+  color: var(--rvn-text);
+  padding: 0 5px;
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.rvn-chat__telemetry-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  border: 1px solid var(--rvn-border);
+  background: #fff;
+  color: var(--rvn-text-tan);
+  padding: 1px 7px;
+  font-family: var(--rvn-font-mono);
+  font-size: var(--tmnl-text-xs, 12px);
+  font-weight: 700;
+  text-transform: uppercase;
+}

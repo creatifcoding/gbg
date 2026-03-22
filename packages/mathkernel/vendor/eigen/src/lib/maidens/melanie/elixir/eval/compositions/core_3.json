@@ -1,0 +1,10 @@
+{
+  "name": "core_3",
+  "description": "Melanie's base toolset — the three real tools",
+  "tool_count": 3,
+  "tools": [
+    "semantic_search",
+    "summarize",
+    "find_connections"
+  ]
+}

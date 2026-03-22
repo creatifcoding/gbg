@@ -1,0 +1,10 @@
+
+ RUN  v3.2.4 /home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl
+
+ ✓ src/lib/maidens/domains/contracts/sensor-asset/ts/sensor-asset.contract.test.ts (9 tests) 10ms
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  01:44:53
+   Duration  1.50s (transform 91ms, setup 403ms, collect 142ms, tests 10ms, environment 213ms, prepare 83ms)
+

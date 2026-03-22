@@ -1,0 +1,19 @@
+---
+source: src/lib/harness/pragma/pragma-sidecar/tests/sidecar_snapshots.rs
+expression: result
+---
+{
+  "bertscore": {
+    "f1": 1.0,
+    "precision": 1.0,
+    "recall": 1.0
+  },
+  "drift_delta": 0.0,
+  "sideband": {
+    "catalog_recomputed": false,
+    "latency_ms": "[latency]",
+    "models_used": [
+      "minilm"
+    ]
+  }
+}

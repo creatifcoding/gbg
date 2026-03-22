@@ -1,0 +1,20 @@
+syntax = "proto3";
+package scm.common.v1;
+
+import "google/protobuf/timestamp.proto";
+
+message Money { string currency = 1; int64 minor_units = 2; }
+message Quantity { int64 value = 1; string uom = 2; }
+
+message RangeTs {
+  google.protobuf.Timestamp start = 1;
+  google.protobuf.Timestamp end = 2;
+}
+
+message DocRef { string kind = 1; string id = 2; string uri = 3; }
+message PartyRef { string party_id = 1; string role = 2; }
+message FacilityRef { string facility_id = 1; string role = 2; }
+message PartRef { string part_id = 1; string role = 2; }
+message ProgramRef { string program_id = 1; string role = 2; }
+
+message Severity { string level = 1; int32 score = 2; } // level: INFO/WARN/CRIT

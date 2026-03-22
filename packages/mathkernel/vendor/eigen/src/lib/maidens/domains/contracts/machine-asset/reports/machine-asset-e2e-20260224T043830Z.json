@@ -1,0 +1,80 @@
+{
+  "runId": "20260224T043830Z",
+  "status": "passed",
+  "startAt": "2026-02-24T04:38:30Z",
+  "endAt": "2026-02-24T04:38:43Z",
+  "durationMs": 13078,
+  "projectRoot": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+  "summary": {
+    "gatesTotal": 4,
+    "gatesPassed": 4,
+    "gatesFailed": 0,
+    "gatesSkipped": 0
+  },
+  "steps": [
+    {
+      "id": "ts_contract_tests",
+      "name": "TypeScript contract tests",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 2444,
+      "command": "bunx vitest run src/lib/maidens/domains/contracts/machine-asset/ts/machine-asset.contract.test.ts",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/machine-asset/reports/logs/20260224T043830Z/ts_contract_tests.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "schema_generation_determinism",
+      "name": "JSON Schema generation + determinism",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 791,
+      "command": "bun src/lib/maidens/domains/contracts/machine-asset/scripts/gen-machine-asset-schemas.ts",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/machine-asset/reports/logs/20260224T043830Z/schema_generation_determinism.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": "0dd0756685f77848940768bef7bc8f6c5a057b54efdc4862371e5b8205aeb7c2",
+        "fingerprintAfter": "0dd0756685f77848940768bef7bc8f6c5a057b54efdc4862371e5b8205aeb7c2",
+        "fingerprintStable": true
+      }
+    },
+    {
+      "id": "elixir_deps",
+      "name": "Elixir deps fetch",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 1868,
+      "command": "mix deps.get",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/machine-asset/elixir",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/machine-asset/reports/logs/20260224T043830Z/elixir_deps.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    },
+    {
+      "id": "elixir_runtime_tests",
+      "name": "Elixir runtime tests (validator + fsm + id compile path)",
+      "status": "passed",
+      "exitCode": 0,
+      "durationMs": 7564,
+      "command": "mix test",
+      "cwd": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/machine-asset/elixir",
+      "logPath": "/home/getbygenius/getbyzenbook/projects/gbg/assets/code/repos/gbg/packages/tmnl/src/lib/maidens/domains/contracts/machine-asset/reports/logs/20260224T043830Z/elixir_runtime_tests.log",
+      "errorSignature": null,
+      "artifacts": {
+        "fingerprintBefore": null,
+        "fingerprintAfter": null,
+        "fingerprintStable": null
+      }
+    }
+  ]
+}

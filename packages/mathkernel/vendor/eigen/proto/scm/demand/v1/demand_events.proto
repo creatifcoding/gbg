@@ -1,0 +1,22 @@
+syntax = "proto3";
+package scm.demand.v1;
+
+import "google/protobuf/timestamp.proto";
+import "scm/common/v1/common.proto";
+
+message ProgramDefined { string program_id = 1; string name = 2; map<string,string> attrs = 3; }
+message ProgramPriorityChanged { string program_id = 1; string priority = 2; map<string,string> attrs = 3; }
+message ServiceLevelTargetSet { string program_id = 1; double fill_rate_target = 2; map<string,string> attrs = 3; }
+
+message ForecastPublished { string forecast_id = 1; string program_id = 2; scm.common.v1.RangeTs horizon = 3; map<string,string> attrs = 4; }
+message ForecastAdjusted { string forecast_id = 1; string reason = 2; map<string,string> attrs = 3; }
+message ForecastBiasDetected { string program_id = 1; double bias = 2; map<string,string> attrs = 3; }
+message DemandSpikeDetected { string program_id = 1; double magnitude = 2; map<string,string> attrs = 3; }
+
+message CustomerOrderReceived { string so_id = 1; string customer_party_id = 2; string program_id = 3; map<string,string> attrs = 4; }
+message CustomerOrderChanged { string so_id = 1; map<string,string> patch = 2; map<string,string> attrs = 3; }
+message CustomerOrderCancelled { string so_id = 1; string reason = 2; map<string,string> attrs = 3; }
+
+message ATPCommitted { string so_id = 1; google.protobuf.Timestamp promised_date = 2; map<string,string> attrs = 3; }
+message BackorderCreated { string so_id = 1; string part_id = 2; int64 qty = 3; map<string,string> attrs = 4; }
+message BackorderResolved { string so_id = 1; map<string,string> attrs = 2; }

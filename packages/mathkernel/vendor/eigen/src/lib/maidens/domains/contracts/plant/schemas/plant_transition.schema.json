@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "PlantTransitionEvent": {
+      "type": "object",
+      "required": [
+        "plant_id",
+        "from",
+        "to",
+        "at"
+      ],
+      "properties": {
+        "plant_id": {
+          "$ref": "#/definitions/PlantId"
+        },
+        "from": {
+          "$ref": "#/definitions/PlantStatus"
+        },
+        "to": {
+          "$ref": "#/definitions/PlantStatus"
+        },
+        "at": {
+          "type": "string",
+          "description": "ISO8601 UTC or offset timestamp string.",
+          "title": "ISO8601 Timestamp",
+          "format": "date-time"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "initiated_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Transition payload contract for plant lifecycle events.",
+      "title": "Plant Transition Event"
+    },
+    "PlantId": {
+      "type": "string",
+      "description": "Plant identifier in PLT-{slug} format.",
+      "title": "Plant ID",
+      "pattern": "^PLT-[a-zA-Z0-9-]+$"
+    },
+    "PlantStatus": {
+      "type": "string",
+      "enum": [
+        "commissioning",
+        "operational",
+        "scheduled_shutdown",
+        "emergency_shutdown",
+        "maintenance_shutdown",
+        "decommissioned"
+      ],
+      "description": "ISA-95 plant lifecycle status.",
+      "title": "Plant Status"
+    }
+  },
+  "type": "object",
+  "required": [
+    "plant_id",
+    "from",
+    "to",
+    "at"
+  ],
+  "properties": {
+    "plant_id": {
+      "$ref": "#/definitions/PlantId"
+    },
+    "from": {
+      "$ref": "#/definitions/PlantStatus"
+    },
+    "to": {
+      "$ref": "#/definitions/PlantStatus"
+    },
+    "at": {
+      "type": "string",
+      "description": "ISO8601 UTC or offset timestamp string.",
+      "title": "ISO8601 Timestamp",
+      "format": "date-time"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "initiated_by": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "description": "Generated from Effect Schema (src/lib/maidens/domains/contracts/plant/ts/plant.contract.ts). Canonical transition event contract for TypeScript and Elixir.",
+  "title": "PlantTransitionEvent",
+  "$id": "/contracts/plant/plant_transition.schema.json"
+}

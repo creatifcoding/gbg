@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TMNL // INTAKE FORM</title>
+  <link href="https://fonts.googleapis.com/css2?family=Geo&family=Share+Tech+Mono&family=Space+Grotesk:wght@300;400;500;600;700&family=VT323&family=Barlow+Condensed:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; border-color: rgb(26 26 26); }
+
+    ::selection { background: rgb(127 29 29); color: #fff; }
+
+    html { font-size: 12px; }
+
+    body {
+      background: rgb(10 10 10);
+      color: rgb(163 163 163);
+      font-family: 'Geo', sans-serif;
+      font-size: 12px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+    }
+
+    /* ═══ FORM CONTAINER ═══ */
+    .form-shell {
+      width: 420px;
+      background: rgb(0 0 0);
+      border: 1px solid rgb(26 26 26);
+      position: relative;
+    }
+
+    /* Corner decorations */
+    .form-shell::before,
+    .form-shell::after {
+      content: '';
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-color: rgb(64 64 64);
+      pointer-events: none;
+    }
+    .form-shell::before {
+      top: 0; left: 0;
+      border-top: 1px solid;
+      border-left: 1px solid;
+    }
+    .form-shell::after {
+      bottom: 0; right: 0;
+      border-bottom: 1px solid;
+      border-right: 1px solid;
+    }
+
+    /* ═══ HEADER ═══ */
+    .form-header {
+      border-bottom: 1px solid rgb(26 26 26);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .form-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: #fff;
+    }
+
+    .form-status {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      color: rgb(5 150 105);
+      letter-spacing: 0.05em;
+    }
+
+    .form-status::before {
+      content: '●';
+      margin-right: 6px;
+      font-size: 8px;
+      vertical-align: middle;
+    }
+
+    /* ═══ MISSION CODE ═══ */
+    .mission-code {
+      padding: 10px 20px;
+      border-bottom: 1px solid rgb(26 26 26);
+      font-family: 'VT323', monospace;
+      font-size: 14px;
+      color: rgb(82 82 82);
+      letter-spacing: 0.1em;
+    }
+
+    /* ═══ FORM BODY ═══ */
+    .form-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ═══ FIELD GROUP ═══ */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field-label {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px;
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: rgb(82 82 82);
+    }
+
+    .field-label .required {
+      color: rgb(220 38 38);
+      margin-left: 2px;
+    }
+
+    /* ═══ INPUTS ═══ */
+    input, select, textarea {
+      width: 100%;
+      background: rgb(13 13 13);
+      border: 1px solid rgb(26 26 26);
+      border-radius: 0;
+      color: #fff;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      padding: 10px 12px;
+      letter-spacing: 0.05em;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input::placeholder, textarea::placeholder {
+      color: rgb(38 38 38);
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: rgb(64 64 64);
+      outline: 1px solid #fff;
+      outline-offset: 1px;
+    }
+
+    input:hover, select:hover, textarea:hover {
+      border-color: rgb(38 38 38);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 72px;
+    }
+
+    select {
+      appearance: none;
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23525252' stroke-width='1'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 32px;
+    }
+
+    select option {
+      background: rgb(0 0 0);
+      color: rgb(163 163 163);
+    }
+
+    /* ═══ ROW (side by side) ═══ */
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* ═══ CHECKBOX ═══ */
+    .field-check {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      padding: 8px 0;
+    }
+
+    .field-check input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      padding: 0;
+      accent-color: rgb(220 38 38);
+      cursor: pointer;
+    }
+
+    .field-check span {
+      font-family: 'Geo', sans-serif;
+      font-size: 12px;
+      color: rgb(163 163 163);
+      letter-spacing: 0.05em;
+    }
+
+    /* ═══ DIVIDER ═══ */
+    .divider {
+      height: 1px;
+      background: rgb(26 26 26);
+      margin: 4px 0;
+    }
+
+    /* ═══ ACTIONS ═══ */
+    .form-actions {
+      padding: 16px 20px;
+      border-top: 1px solid rgb(26 26 26);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .btn {
+      font-family: 'Geo', sans-serif;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 8px 20px;
+      border: 1px solid;
+      cursor: pointer;
+      transition: all 0.15s;
+      border-radius: 0;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border-color: rgb(26 26 26);
+      color: rgb(82 82 82);
+    }
+
+    .btn-ghost:hover {
+      border-color: rgb(64 64 64);
+      color: rgb(163 163 163);
+      background: rgb(13 13 13);
+    }
+
+    .btn-primary {
+      background: #fff;
+      border-color: #fff;
+      color: rgb(0 0 0);
+      font-weight: 500;
+    }
+
+    .btn-primary:hover {
+      background: rgb(163 163 163);
+      border-color: rgb(163 163 163);
+    }
+
+    .btn-primary:active {
+      background: rgb(82 82 82);
+      border-color: rgb(82 82 82);
+    }
+
+    /* ═══ FOOTER META ═══ */
+    .form-meta {
+      padding: 10px 20px;
+      border-top: 1px solid rgb(26 26 26);
+      display: flex;
+      justify-content: space-between;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      color: rgb(38 38 38);
+      letter-spacing: 0.1em;
+    }
+
+    /* ═══ SCANLINES OVERLAY ═══ */
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.06) 2px,
+        rgba(0, 0, 0, 0.06) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+  <div class="scanlines"></div>
+
+  <div class="form-shell">
+    <!-- Header -->
+    <div class="form-header">
+      <span class="form-title">Asset Intake</span>
+      <span class="form-status">Online</span>
+    </div>
+
+    <!-- Mission code -->
+    <div class="mission-code">REF:TM-2025-0614 // INTAKE.v1</div>
+
+    <!-- Form -->
+    <form class="form-body" onsubmit="event.preventDefault();">
+      <div class="field">
+        <label class="field-label">Designator <span class="required">*</span></label>
+        <input type="text" placeholder="Asset callsign or identifier" required>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Classification</label>
+          <select>
+            <option value="">— Select —</option>
+            <option>UNCLASSIFIED</option>
+            <option>RESTRICTED</option>
+            <option>CONFIDENTIAL</option>
+            <option>SECRET</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Priority</label>
+          <select>
+            <option value="">— Select —</option>
+            <option>ROUTINE</option>
+            <option>PRIORITY</option>
+            <option>IMMEDIATE</option>
+            <option>FLASH</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Sector</label>
+          <input type="text" placeholder="e.g. NORTH-7">
+        </div>
+        <div class="field">
+          <label class="field-label">Grid Ref</label>
+          <input type="text" placeholder="e.g. 38.8977° N">
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Mission Brief</label>
+        <textarea placeholder="Describe operational context..."></textarea>
+      </div>
+
+      <div class="divider"></div>
+
+      <label class="field-check">
+        <input type="checkbox">
+        <span>Acknowledge data handling protocols</span>
+      </label>
+      <label class="field-check">
+        <input type="checkbox">
+        <span>Enable persistent telemetry feed</span>
+      </label>
+    </form>
+
+    <!-- Actions -->
+    <div class="form-actions">
+      <button class="btn btn-ghost" type="button">Discard</button>
+      <button class="btn btn-primary" type="submit">Submit Intake</button>
+    </div>
+
+    <!-- Footer meta -->
+    <div class="form-meta">
+      <span>SYS::TMNL.INTAKE</span>
+      <span id="clock"></span>
+    </div>
+  </div>
+
+  <script>
+    // Live clock in footer
+    const clock = document.getElementById('clock');
+    function tick() {
+      const now = new Date();
+      clock.textContent = now.toISOString().replace('T', ' ').slice(0, 19) + 'Z';
+    }
+    tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+[package]
+name = "ava-runtime"
+description = "AVA Runtime - Central orchestrator for view lifecycle management"
+version.workspace = true
+edition = "2021"
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+# AVA crates
+ava-domain = { path = "../ava-domain" }
+ava-compiler = { path = "../ava-compiler" }
+ava-adapters = { path = "../ava-adapters" }
+ava-reconciler = { path = "../ava-reconciler" }
+
+# Core
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+# Async
+tokio.workspace = true
+async-trait.workspace = true
+futures.workspace = true
+
+# DataFusion
+datafusion.workspace = true
+arrow.workspace = true
+arrow-json.workspace = true
+
+# NATS (optional)
+tracing = { workspace = true, optional = true }
+
+[features]
+default = []
+nats = ["ava-adapters/nats", "dep:tracing"]
+
+[dev-dependencies]
+pretty_assertions.workspace = true

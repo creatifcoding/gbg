@@ -1,0 +1,23 @@
+syntax = "proto3";
+package scm.platform.v1;
+
+import "google/protobuf/timestamp.proto";
+import "scm/common/v1/common.proto";
+import "scm/events/v1/options.proto";
+
+message CrdtDeltaObserved { option (scm.events.v1.event_name)="scm.platform.v1.CrdtDeltaObserved";
+  string doc_id = 1; bytes delta = 2; map<string,string> attrs = 3;
+}
+message CrdtCheckpointCreated { string doc_id = 1; string checkpoint_id = 2; google.protobuf.Timestamp ts = 3; map<string,string> attrs = 4; }
+message CrdtCompactionCompleted { string doc_id = 1; string checkpoint_id = 2; uint64 pruned_events = 3; map<string,string> attrs = 4; }
+message ShardAssigned { string shard_id = 1; string owner_node_id = 2; map<string,string> attrs = 3; }
+message ShardRebalanced { string shard_id = 1; string reason = 2; map<string,string> attrs = 3; }
+message PeerJoined { string node_id = 1; string addr = 2; map<string,string> attrs = 3; }
+message PeerLeft { string node_id = 1; string reason = 2; map<string,string> attrs = 3; }
+message ReplicationLagMeasured { string shard_id = 1; uint64 lag_ms = 2; map<string,string> attrs = 3; }
+message IngestSourceRegistered { string source = 1; string kind = 2; map<string,string> attrs = 3; }
+message IngestSourceHeartbeat { string source = 1; google.protobuf.Timestamp ts = 2; map<string,string> attrs = 3; }
+message RawPayloadStored { string raw_payload_ref = 1; string content_type = 2; uint64 size_bytes = 3; map<string,string> attrs = 4; }
+message SchemaRegistryUpdated { string version = 1; map<string,string> attrs = 2; }
+message DataQualityIssueDetected { string issue_id = 1; string category = 2; string subject_id = 3; map<string,string> attrs = 4; }
+message EventRejected { string reason = 1; string details = 2; map<string,string> attrs = 3; }
