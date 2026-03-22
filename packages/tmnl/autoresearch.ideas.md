@@ -17,7 +17,7 @@
 - Full LAMBDA closure support
 - WASM compilation target
 
-## WASM Kernel Accuracy — Current State (628.6 digits, 40 functions, 29 experiments, avg 15.7 digits/fn)
+## WASM Kernel Accuracy — Current State (801.1 digits, 51 functions, 33 experiments, avg 15.7 digits/fn)
 
 ### Completed optimizations (16 functions):
 - ✅ Dawson: Cephes piecewise rational (0→15.0 digits)

@@ -316,6 +316,16 @@ const REFERENCES: RefEntry[] = [
   { fn: "sph_bessel_y", args: [0, 1],    expected: -0.5403023058681398, source: "-cos(1)/1" },
   { fn: "sph_bessel_y", args: [1, 1],    expected: -1.3817732906760363, source: "Recurrence" },
   { fn: "sph_bessel_y", args: [2, 2],    expected: -0.73399142468765410, source: "WASM recurrence" },
+
+  // ── Harmonic Number H_n ──
+  { fn: "harmonic", args: [1],           expected: 1.0,               source: "Definition" },
+  { fn: "harmonic", args: [10],          expected: 2.9289682539682538, source: "Direct sum" },
+  { fn: "harmonic", args: [100],         expected: 5.187377517639621,  source: "Direct sum" },
+
+  // ── Generalized Harmonic H_n^m ──
+  { fn: "gen_harmonic", args: [100, 2],  expected: 1.634983900184893,  source: "Σ 1/k²" },
+  { fn: "gen_harmonic", args: [1000, 2], expected: 1.6439345666815597, source: "Σ 1/k²" },
+  { fn: "gen_harmonic", args: [100, 3],  expected: 1.2020074006596775, source: "Σ 1/k³" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────

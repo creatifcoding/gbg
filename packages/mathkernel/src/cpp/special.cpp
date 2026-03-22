@@ -1599,6 +1599,63 @@ double sph_bessel_y(int n, double x) {
   return y1;
 }
 
+/**
+ * Regularized incomplete beta function I_x(a,b).
+ * Series expansion for x < (a+1)/(a+b+2), CF otherwise.
+ */
+double betainc(double a, double b, double x) {
+  if (x <= 0) return 0.0;
+  if (x >= 1) return 1.0;
+
+  // Use the identity: I_x(a,b) = 1 - I_{1-x}(b,a) for better convergence
+  bool flip = x > (a + 1.0) / (a + b + 2.0);
+  double aa = flip ? b : a;
+  double bb = flip ? a : b;
+  double xx = flip ? 1.0 - x : x;
+
+  // Series: I_x(a,b) = x^a (1-x)^b / (a·B(a,b)) · Σ_{k=0} (1-b)_k x^k / ((a+k) k!)
+  double prefix = std::exp(
+    aa * std::log(xx) + bb * std::log(1.0 - xx)
+    - std::lgamma(aa) - std::lgamma(bb) + std::lgamma(aa + bb)
+  ) / aa;
+
+  double term = 1.0;
+  double sum = 1.0;
+  for (int k = 1; k <= 200; ++k) {
+    term *= xx * (static_cast<double>(k) - bb) / static_cast<double>(k);
+    double contrib = term * aa / (aa + static_cast<double>(k));
+    sum += contrib;
+    if (std::abs(contrib) < 1e-16 * std::abs(sum)) break;
+  }
+
+  double result = prefix * sum;
+  return flip ? 1.0 - result : result;
+}
+
+/**
+ * Harmonic number H_n = 1 + 1/2 + 1/3 + ... + 1/n.
+ */
+double harmonic(int n) {
+  if (n <= 0) return 0.0;
+  double sum = 0.0;
+  for (int k = n; k >= 1; --k) { // reverse for Kahan-like stability
+    sum += 1.0 / static_cast<double>(k);
+  }
+  return sum;
+}
+
+/**
+ * Generalized harmonic number H_n^m = Σ_{k=1}^n 1/k^m.
+ */
+double gen_harmonic(int n, double m) {
+  if (n <= 0) return 0.0;
+  double sum = 0.0;
+  for (int k = n; k >= 1; --k) {
+    sum += 1.0 / std::pow(static_cast<double>(k), m);
+  }
+  return sum;
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -1663,5 +1720,8 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("binomial_coeff", &mathkernel::binomial_coeff);
   function("sph_bessel_j", &mathkernel::sph_bessel_j);
   function("sph_bessel_y", &mathkernel::sph_bessel_y);
+  function("betainc", &mathkernel::betainc);
+  function("harmonic", &mathkernel::harmonic);
+  function("gen_harmonic", &mathkernel::gen_harmonic);
 }
 #endif
