@@ -251,6 +251,16 @@ const REFERENCES: RefEntry[] = [
   { fn: "normsinv", args: [0.5],       expected: 0.0,                source: "Symmetry" },
   { fn: "normsinv", args: [0.975],     expected: 1.9599639845400540, source: "Known value" },
   { fn: "normsinv", args: [0.025],     expected: -1.9599639845400540, source: "Symmetry" },
+
+  // ── Sigmoid σ(x) ──
+  { fn: "sigmoid", args: [0],          expected: 0.5,                source: "Definition" },
+  { fn: "sigmoid", args: [1],          expected: 0.7310585786300049, source: "1/(1+e⁻¹)" },
+  { fn: "sigmoid", args: [-5],         expected: 0.006692850924284856, source: "1/(1+e⁵)" },
+
+  // ── Logit ──
+  { fn: "logit", args: [0.5],          expected: 0.0,                source: "ln(1) = 0" },
+  { fn: "logit", args: [0.731058578630005], expected: 1.0,           source: "inverse of σ(1)" },
+  { fn: "logit", args: [0.9],          expected: 2.1972245773362196, source: "ln(9)" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────
