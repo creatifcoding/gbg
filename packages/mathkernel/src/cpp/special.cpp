@@ -2300,6 +2300,7 @@ double abs_gamma(double x) {
  */
 double dirichlet_eta(double s) {
   if (s == 1.0) return std::log(2.0); // η(1) = ln(2)
+  if (s == 0.0) return 0.5;
   return (1.0 - std::pow(2.0, 1.0 - s)) * riemann_zeta(s);
 }
 

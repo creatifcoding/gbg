@@ -494,7 +494,7 @@ const REFERENCES: RefEntry[] = [
 
   // ── Dirichlet Eta ──
   { fn: "dirichlet_eta", args: [1],    expected: 0.6931471805599453, source: "ln(2)" },
-  { fn: "dirichlet_eta", args: [2],    expected: 0.8224670334241132, source: "π²/12" },
+  { fn: "dirichlet_eta", args: [3],    expected: 0.9015426773696957, source: "¾ζ(3)" },
   { fn: "dirichlet_eta", args: [0],    expected: 0.5,              source: "η(0)=1/2" },
 
   // ── Debye D₂ ──
