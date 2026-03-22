@@ -1949,6 +1949,72 @@ double assoc_laguerre(int n, double alpha, double x) {
   return l1;
 }
 
+/**
+ * Bessel K_n(x) for arbitrary integer order via forward recurrence from K₀, K₁.
+ */
+double bessel_kn(int n, double x) {
+  if (n == 0) return bessel_k0(x);
+  if (n == 1) return bessel_k1(x);
+  if (x <= 0) return (x == 0) ? INFINITY : NAN;
+  double k0 = bessel_k0(x);
+  double k1 = bessel_k1(x);
+  for (int k = 1; k < n; ++k) {
+    double k2 = k0 + 2.0 * static_cast<double>(k) / x * k1;
+    k0 = k1;
+    k1 = k2;
+  }
+  return k1;
+}
+
+/**
+ * Spherical harmonic normalization factor
+ * Y_l^m normalization: √((2l+1)/(4π) · (l-m)!/(l+m)!)
+ */
+double sph_harm_norm(int l, int m) {
+  if (m < 0) m = -m;
+  double factor = (2.0*l + 1.0) / (4.0 * M_PI);
+  for (int j = l - m + 1; j <= l + m; ++j) {
+    factor /= static_cast<double>(j);
+  }
+  return std::sqrt(factor);
+}
+
+/**
+ * Hurwitz zeta ζ(s,a) = Σ_{n=0}^∞ 1/(n+a)^s for s > 1.
+ */
+double hurwitz_zeta(double s, double a) {
+  if (s <= 1.0 || a <= 0.0) return NAN;
+  // Euler-Maclaurin with sufficient terms
+  double sum = 0.0;
+  int N = 1000;
+  for (int n = 0; n < N; ++n) {
+    sum += 1.0 / std::pow(static_cast<double>(n) + a, s);
+  }
+  // Integral approximation for tail: ∫_N^∞ 1/(t+a)^s dt = (N+a)^{1-s}/(s-1)
+  double Na = static_cast<double>(N) + a;
+  sum += std::pow(Na, 1.0 - s) / (s - 1.0);
+  // Leading Bernoulli corrections
+  sum += 0.5 * std::pow(Na, -s);
+  sum += s / 12.0 * std::pow(Na, -s - 1.0);
+  return sum;
+}
+
+/**
+ * Bernstein basis polynomial B_{k,n}(t) = C(n,k) t^k (1-t)^{n-k}.
+ */
+double bernstein(int n, int k, double t) {
+  if (k < 0 || k > n) return 0.0;
+  return binomial_coeff(n, k) * std::pow(t, k) * std::pow(1.0 - t, n - k);
+}
+
+/**
+ * Catalan number C_n = C(2n,n)/(n+1).
+ */
+double catalan_number(int n) {
+  if (n < 0) return 0.0;
+  return binomial_coeff(2*n, n) / static_cast<double>(n + 1);
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -2027,5 +2093,10 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("polygamma", &mathkernel::polygamma);
   function("expint_en", &mathkernel::expint_en);
   function("assoc_laguerre", &mathkernel::assoc_laguerre);
+  function("bessel_kn", &mathkernel::bessel_kn);
+  function("hurwitz_zeta", &mathkernel::hurwitz_zeta);
+  function("bernstein", &mathkernel::bernstein);
+  function("catalan_number", &mathkernel::catalan_number);
+  function("sph_harm_norm", &mathkernel::sph_harm_norm);
 }
 #endif

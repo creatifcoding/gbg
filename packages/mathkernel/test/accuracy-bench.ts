@@ -381,6 +381,31 @@ const REFERENCES: RefEntry[] = [
   { fn: "assoc_laguerre", args: [2, 1, 1],    expected: 0.5,          source: "Recurrence" },
   { fn: "assoc_laguerre", args: [3, 0.5, 2],  expected: -0.8958333333333334, source: "Recurrence" },
   { fn: "assoc_laguerre", args: [0, 2, 5],    expected: 1.0,          source: "L₀=1" },
+
+  // ── Bessel K_n ──
+  { fn: "bessel_kn", args: [2, 1],      expected: 1.6248388986351774, source: "Recurrence K0/K1" },
+  { fn: "bessel_kn", args: [3, 2],      expected: 0.6473853909486345, source: "Recurrence" },
+  { fn: "bessel_kn", args: [0, 1],      expected: 0.4210244382407084, source: "=K0(1)" },
+
+  // ── Hurwitz Zeta ──
+  { fn: "hurwitz_zeta", args: [2, 1],   expected: 1.6449340668482264, source: "π²/6" },
+  { fn: "hurwitz_zeta", args: [3, 1],   expected: 1.2020569031595942, source: "ζ(3)" },
+  { fn: "hurwitz_zeta", args: [2, 0.5], expected: 4.934802200544679,  source: "3ζ(2)" },
+
+  // ── Bernstein Basis ──
+  { fn: "bernstein", args: [3, 1, 0.5], expected: 0.375,             source: "C(3,1)·½·¼" },
+  { fn: "bernstein", args: [4, 2, 0.5], expected: 0.375,             source: "C(4,2)·¼·¼" },
+  { fn: "bernstein", args: [5, 0, 0.3], expected: 0.16807,           source: "0.7⁵" },
+
+  // ── Catalan Number ──
+  { fn: "catalan_number", args: [5],     expected: 42.0,             source: "Known" },
+  { fn: "catalan_number", args: [10],    expected: 16796.0,          source: "Known" },
+  { fn: "catalan_number", args: [0],     expected: 1.0,              source: "C₀=1" },
+
+  // ── Spherical Harmonic Normalization ──
+  { fn: "sph_harm_norm", args: [0, 0],  expected: 0.28209479177387814, source: "1/(2√π)" },
+  { fn: "sph_harm_norm", args: [1, 0],  expected: 0.4886025119029199,  source: "√(3/(4π))" },
+  { fn: "sph_harm_norm", args: [2, 1],  expected: 0.2575161346821264,  source: "Exact" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────
