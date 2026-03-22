@@ -98,7 +98,7 @@ const REFERENCES: RefEntry[] = [
   { fn: "gamma_fn", args: [0.25],  expected: 3.6256099082219083,   source: "Wolfram" },
 
   // ── Digamma ──
-  { fn: "digamma", args: [1],      expected: -0.5772156649015329,  source: "ψ(1) = -γ" },
+  { fn: "digamma", args: [1],      expected: -0.5772156649015329,  source: "ψ(1) = -γ (Euler-Mascheroni)" },
   { fn: "digamma", args: [2],      expected: 0.4227843350984671,   source: "ψ(2) = 1 - γ" },
   { fn: "digamma", args: [0.5],    expected: -1.9635100260214235,  source: "Wolfram" },
   { fn: "digamma", args: [10],     expected: 2.2517525890667211,   source: "Wolfram" },
