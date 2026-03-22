@@ -113,9 +113,17 @@ const REFERENCES: RefEntry[] = [
   { fn: "erf_fn", args: [2.0],     expected: 0.9953222650189527,   source: "A&S Table 7.1" },
   { fn: "erf_fn", args: [3.0],     expected: 0.9999779095030014,   source: "A&S 7.1 / Python math.erf" },
 
+  // ── Bessel Jn (general order via Miller recurrence) ──
+  { fn: "bessel_jn", args: [2, 1],  expected: 0.11490348493190048, source: "Wolfram J_2(1)" },
+  { fn: "bessel_jn", args: [2, 5],  expected: 0.04656511627775222, source: "Wolfram J_2(5)" },
+  { fn: "bessel_jn", args: [3, 2],  expected: 0.12894324947440205, source: "Wolfram J_3(2)" },
+  { fn: "bessel_jn", args: [5, 3],  expected: 0.04302843487704758, source: "Python scipy J_5(3)" },
+
   // ── Erfc ──
   { fn: "erfc_fn", args: [0],      expected: 1.0,                  source: "erfc(0) = 1" },
+  { fn: "erfc_fn", args: [0.5],    expected: 0.4795001221869535,   source: "Python math.erfc" },
   { fn: "erfc_fn", args: [1.0],    expected: 0.1572992070502851,   source: "1 - erf(1)" },
+  { fn: "erfc_fn", args: [1.5],    expected: 0.033894853524689270, source: "Python math.erfc" },
   { fn: "erfc_fn", args: [2.0],    expected: 0.004677734981047266, source: "1 - erf(2)" },
 ];
 
