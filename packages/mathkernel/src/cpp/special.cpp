@@ -36,18 +36,17 @@ namespace mathkernel {
  * For |x| > 8: Hankel asymptotic expansion.
  */
 double bessel_j0(double x) {
-  double sum = 1.0, term = 1.0, comp = 0.0;
+  // Split positive and negative terms to reduce cancellation
+  double pos = 1.0, neg = 0.0;
+  double term = 1.0;
   double x2 = x * x / 4.0;
   for (int k = 0; k <= 80; ++k) {
-    term *= -x2 / ((k + 1.0) * (k + 1.0));
-    // Kahan compensated addition
-    double y = term - comp;
-    double t = sum + y;
-    comp = (t - sum) - y;
-    sum = t;
-    if (std::abs(term) < 1e-17 * std::abs(sum)) break;
+    term *= x2 / ((k + 1.0) * (k + 1.0));
+    if (k % 2 == 0) neg += term;  // (-1)^{k+1} for k=0,2,4... → subtract
+    else             pos += term;  // (-1)^{k+1} for k=1,3,5... → add
+    if (term < 1e-17 * std::max(pos, neg)) break;
   }
-  return sum;
+  return pos - neg;
 }
 
 /**
@@ -58,17 +57,16 @@ double bessel_j0(double x) {
  * For |x| > 8: Hankel asymptotic expansion.
  */
 double bessel_j1(double x) {
-  double sum = 1.0, term = 1.0, comp = 0.0;
+  double pos = 1.0, neg = 0.0;
+  double term = 1.0;
   double x2 = x * x / 4.0;
   for (int k = 0; k <= 80; ++k) {
-    term *= -x2 / ((k + 1.0) * (k + 2.0));
-    double y = term - comp;
-    double t = sum + y;
-    comp = (t - sum) - y;
-    sum = t;
-    if (std::abs(term) < 1e-17 * std::abs(sum)) break;
+    term *= x2 / ((k + 1.0) * (k + 2.0));
+    if (k % 2 == 0) neg += term;
+    else             pos += term;
+    if (term < 1e-17 * std::max(pos, neg)) break;
   }
-  return sum * x / 2.0;
+  return (pos - neg) * x / 2.0;
 }
 
 /**
