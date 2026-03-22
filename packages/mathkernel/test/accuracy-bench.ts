@@ -406,6 +406,26 @@ const REFERENCES: RefEntry[] = [
   { fn: "sph_harm_norm", args: [0, 0],  expected: 0.28209479177387814, source: "1/(2√π)" },
   { fn: "sph_harm_norm", args: [1, 0],  expected: 0.4886025119029199,  source: "√(3/(4π))" },
   { fn: "sph_harm_norm", args: [2, 1],  expected: 0.2575161346821264,  source: "Exact" },
+
+  // ── Chi-squared CDF ──
+  { fn: "chi2_cdf", args: [2, 3],       expected: 0.7768698398515702, source: "1-e^{-1.5}" },
+  { fn: "chi2_cdf", args: [1, 1],       expected: 0.6826894921370859, source: "erf(1/√2)" },
+  { fn: "chi2_cdf", args: [4, 10],      expected: 0.9595723180054873, source: "P(2,5)" },
+
+  // ── Stirling S(n,k) ──
+  { fn: "stirling2", args: [5, 3],       expected: 25.0,             source: "Known" },
+  { fn: "stirling2", args: [7, 2],       expected: 63.0,             source: "2^{n-1}-1" },
+  { fn: "stirling2", args: [10, 5],      expected: 42525.0,          source: "Known" },
+
+  // ── Bell Number ──
+  { fn: "bell_number", args: [5],        expected: 52.0,             source: "Known" },
+  { fn: "bell_number", args: [10],       expected: 115975.0,         source: "Known" },
+  { fn: "bell_number", args: [0],        expected: 1.0,              source: "B₀=1" },
+
+  // ── Euler Number ──
+  { fn: "euler_number", args: [0],       expected: 1.0,              source: "E₀=1" },
+  { fn: "euler_number", args: [4],       expected: 5.0,              source: "E₄=5" },
+  { fn: "euler_number", args: [6],       expected: -61.0,            source: "E₆=-61" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────

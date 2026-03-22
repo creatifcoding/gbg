@@ -2015,6 +2015,78 @@ double catalan_number(int n) {
   return binomial_coeff(2*n, n) / static_cast<double>(n + 1);
 }
 
+/**
+ * Chi-squared CDF: P(k/2, x/2) where P is the regularized lower gamma.
+ */
+double chi2_cdf(double k, double x) {
+  return gamma_p(k / 2.0, x / 2.0);
+}
+
+/**
+ * Wigner 3j symbol lookup for (j1=1, j2=1, j3=1, m1=0, m2=0, m3=0).
+ * Too specialized — skip.
+ * Instead: Stirling number of the second kind S(n,k).
+ * S(n,1)=1, S(n,n)=1, S(n,k) = k·S(n-1,k) + S(n-1,k-1).
+ */
+double stirling2(int n, int k) {
+  if (k < 0 || k > n) return 0.0;
+  if (k == 0) return (n == 0) ? 1.0 : 0.0;
+  if (k == 1 || k == n) return 1.0;
+
+  // DP table for moderate n
+  if (n > 100) return NAN;
+  // Use recurrence row by row
+  std::vector<double> prev(k + 1, 0.0);
+  std::vector<double> curr(k + 1, 0.0);
+  prev[1] = 1.0;
+  for (int i = 2; i <= n; ++i) {
+    for (int j = 1; j <= std::min(i, k); ++j) {
+      curr[j] = static_cast<double>(j) * prev[j] + prev[j - 1];
+    }
+    std::swap(prev, curr);
+    std::fill(curr.begin(), curr.end(), 0.0);
+  }
+  return prev[k];
+}
+
+/**
+ * Bell number B_n = Σ S(n,k).
+ */
+double bell_number(int n) {
+  if (n < 0) return 0.0;
+  if (n == 0) return 1.0;
+  double sum = 0.0;
+  for (int k = 1; k <= n; ++k) {
+    sum += stirling2(n, k);
+  }
+  return sum;
+}
+
+/**
+ * Euler number E_n (the secant/tangent numbers).
+ * E_0=1, E_1=0, E_2=-1, E_3=0, E_4=5, E_5=0, E_6=-61...
+ * Using the formula: E_{2n} = (-1)^n × sum formula.
+ * Simpler: use forward differences.
+ */
+double euler_number(int n) {
+  if (n < 0) return 0.0;
+  if (n % 2 == 1) return 0.0; // Odd Euler numbers are 0
+  int m = n / 2;
+  if (m == 0) return 1.0;
+  // E_{2m} via the recursion involving binomial coefficients
+  // E_0=1, and E_{2m} = -Σ_{k=0}^{m-1} C(2m,2k)·E_{2k}
+  std::vector<double> E(m + 1, 0.0);
+  E[0] = 1.0;
+  for (int i = 1; i <= m; ++i) {
+    double sum = 0.0;
+    for (int j = 0; j < i; ++j) {
+      sum += binomial_coeff(2*i, 2*j) * E[j];
+    }
+    E[i] = -sum;
+  }
+  return E[m];
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -2098,5 +2170,9 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("bernstein", &mathkernel::bernstein);
   function("catalan_number", &mathkernel::catalan_number);
   function("sph_harm_norm", &mathkernel::sph_harm_norm);
+  function("chi2_cdf", &mathkernel::chi2_cdf);
+  function("stirling2", &mathkernel::stirling2);
+  function("bell_number", &mathkernel::bell_number);
+  function("euler_number", &mathkernel::euler_number);
 }
 #endif
