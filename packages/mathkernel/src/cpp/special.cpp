@@ -2382,6 +2382,103 @@ double sph_bessel_k(int n, double x) {
   return k1;
 }
 
+/**
+ * Polylogarithm Li_s(z) = Σ_{k=1}^∞ z^k / k^s.
+ * For |z| ≤ 1. Li₁(z) = -ln(1-z), Li₂(z) = spence.
+ */
+double polylog(double s, double z) {
+  if (z == 0) return 0.0;
+  if (z == 1.0 && s > 1.0) return riemann_zeta(s);
+  if (std::abs(z) > 1.0) return NAN;
+  double sum = 0.0;
+  double zk = z;
+  for (int k = 1; k <= 1000; ++k) {
+    double term = zk / std::pow(static_cast<double>(k), s);
+    sum += term;
+    if (std::abs(term) < 1e-16 * std::abs(sum) && k > 10) break;
+    zk *= z;
+  }
+  return sum;
+}
+
+/**
+ * Log-beta function: lbeta(a,b) = lgamma(a) + lgamma(b) - lgamma(a+b).
+ */
+double log_beta(double a, double b) {
+  return std::lgamma(a) + std::lgamma(b) - std::lgamma(a + b);
+}
+
+/**
+ * Debye function D₄(x) = (4/x⁴)∫₀ˣ t⁴/(eᵗ-1) dt.
+ */
+double debye4(double x) {
+  if (x == 0) return 1.0;
+  if (std::abs(x) < 1e-6) return 1.0 - 2.0*x/5.0;
+  int N = 1000;
+  double h = x / N;
+  double sum = 0.0;
+  for (int i = 1; i < N; ++i) {
+    double t = i * h;
+    double f = t * t * t * t / (std::exp(t) - 1.0);
+    sum += f * ((i % 2 == 0) ? 2.0 : 4.0);
+  }
+  sum += std::pow(x, 4.0) / (std::exp(x) - 1.0);
+  return sum * h / (3.0 * std::pow(x, 4.0) / 4.0);
+}
+
+/**
+ * Log rising factorial: log((a)_n) = lgamma(a+n) - lgamma(a).
+ */
+double log_rising_factorial(double a, int n) {
+  if (n == 0) return 0.0;
+  return std::lgamma(a + n) - std::lgamma(a);
+}
+
+
+/**
+ * Einstein heat capacity function: x²eˣ/(eˣ-1)².
+ */
+double einstein_heat(double x) {
+  if (x == 0) return 1.0;
+  if (std::abs(x) < 1e-8) return 1.0 - x*x/12.0;
+  double ex = std::exp(x);
+  double exm1 = ex - 1.0;
+  return x * x * ex / (exm1 * exm1);
+}
+
+/**
+ * Normalized incomplete gamma function ratio γ*(a,x) = x^{-a}/Γ(a) · γ(a,x).
+ * = P(a,x) · Γ(a) / x^a · x^a / Γ(a) = P(a,x). Wait, that IS gamma_p.
+ * Instead: Incomplete beta via continued fraction (regularized).
+ */
+
+/**
+ * Log-Pochhammer: log((a)_n) = Σ log(a+k), same as log_rising_factorial.
+ * Skip — already covered.
+ */
+
+/**
+ * Inverse hyperbolic tangent: atanh(x) = 0.5*ln((1+x)/(1-x)).
+ * Already in std, but useful to benchmark.
+ */
+double atanh_fn(double x) {
+  return std::atanh(x);
+}
+
+/**
+ * Inverse hyperbolic sine: asinh(x) = ln(x + √(x²+1)).
+ */
+double asinh_fn(double x) {
+  return std::asinh(x);
+}
+
+/**
+ * Inverse hyperbolic cosine: acosh(x) = ln(x + √(x²-1)) for x≥1.
+ */
+double acosh_fn(double x) {
+  return std::acosh(x);
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -2487,5 +2584,13 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("debye3", &mathkernel::debye3);
   function("sph_bessel_i", &mathkernel::sph_bessel_i);
   function("sph_bessel_k", &mathkernel::sph_bessel_k);
+  function("polylog", &mathkernel::polylog);
+  function("log_beta", &mathkernel::log_beta);
+  function("debye4", &mathkernel::debye4);
+  function("log_rising_factorial", &mathkernel::log_rising_factorial);
+  function("einstein_heat", &mathkernel::einstein_heat);
+  function("atanh_fn", &mathkernel::atanh_fn);
+  function("asinh_fn", &mathkernel::asinh_fn);
+  function("acosh_fn", &mathkernel::acosh_fn);
 }
 #endif

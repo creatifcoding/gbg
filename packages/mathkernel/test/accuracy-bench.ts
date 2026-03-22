@@ -514,6 +514,43 @@ const REFERENCES: RefEntry[] = [
   { fn: "sph_bessel_k", args: [0, 1],  expected: 0.5778636748954609, source: "π/(2e)" },
   { fn: "sph_bessel_k", args: [1, 1],  expected: 1.1557273497909218, source: "k₀(1+1/1)" },
   { fn: "sph_bessel_k", args: [0, 2],  expected: 0.10629208289690908, source: "π/(4e²)" },
+
+  // ── Polylogarithm ──
+  { fn: "polylog", args: [2, 0.5],     expected: 0.5822405264650125, source: "π²/12-ln²2/2" },
+  { fn: "polylog", args: [2, 0],       expected: 0.0,              source: "Li_s(0)=0" },
+  { fn: "polylog", args: [1, 0.5],     expected: 0.6931471805599453, source: "-ln(0.5)=ln2" },
+
+  // ── Log Beta ──
+  { fn: "log_beta", args: [2, 3],      expected: -2.4849066497880004, source: "lgΓ(2)+lgΓ(3)-lgΓ(5)" },
+  { fn: "log_beta", args: [0.5, 0.5],  expected: 1.1447298858494002, source: "ln(π)" },
+  { fn: "log_beta", args: [1, 1],      expected: 0.0,              source: "B(1,1)=1" },
+
+  // ── Debye D₄ ──
+  { fn: "debye4", args: [0],           expected: 1.0,              source: "D₄(0)=1" },
+  { fn: "debye4", args: [1],           expected: 0.6548740688865751, source: "Simpson 1000pt" },
+
+  // ── Log Rising Factorial ──
+  { fn: "log_rising_factorial", args: [3, 2], expected: 2.4849066497880004, source: "ln(12)" },
+  { fn: "log_rising_factorial", args: [1, 5], expected: 4.787491742782046, source: "ln(120)=ln(5!)" },
+  { fn: "log_rising_factorial", args: [1, 0], expected: 0.0,       source: "log(1)=0" },
+
+  // ── Einstein Heat Capacity ──
+  { fn: "einstein_heat", args: [0],    expected: 1.0,              source: "lim→1" },
+  { fn: "einstein_heat", args: [1],    expected: 0.9206735942077924, source: "e/(e-1)²" },
+  { fn: "einstein_heat", args: [5],    expected: 0.17074182200480142, source: "25e⁵/(e⁵-1)²" },
+
+  // ── Inverse Hyperbolic ──
+  { fn: "atanh_fn", args: [0.5],       expected: 0.5493061443340549, source: "std::atanh" },
+  { fn: "atanh_fn", args: [0],         expected: 0.0,              source: "atanh(0)=0" },
+  { fn: "atanh_fn", args: [0.9],       expected: 1.4722194895832204, source: "std::atanh" },
+
+  { fn: "asinh_fn", args: [1],         expected: 0.881373587019543,  source: "std::asinh" },
+  { fn: "asinh_fn", args: [0],         expected: 0.0,              source: "asinh(0)=0" },
+  { fn: "asinh_fn", args: [2],         expected: 1.4436354751788103, source: "std::asinh" },
+
+  { fn: "acosh_fn", args: [2],         expected: 1.3169578969248166, source: "std::acosh" },
+  { fn: "acosh_fn", args: [1],         expected: 0.0,              source: "acosh(1)=0" },
+  { fn: "acosh_fn", args: [10],        expected: 2.993222846126381,  source: "std::acosh" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────
