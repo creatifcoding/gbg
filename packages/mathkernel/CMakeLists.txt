@@ -54,8 +54,10 @@ if(EMSCRIPTEN)
     ${CMAKE_SOURCE_DIR}/src/cpp
   )
 
-  # C++ exception support (wasm-exceptions for proper propagation to JS)
-  target_compile_options(mathkernel PRIVATE -fwasm-exceptions)
+  # Optimization: -O2 for performance + accuracy (no -ffast-math!)
+  # -ffp-contract=off prevents FMA which can change rounding behavior
+  # -fno-fast-math ensures strict IEEE 754 compliance
+  target_compile_options(mathkernel PRIVATE -O2 -fwasm-exceptions -ffp-contract=off -fno-fast-math)
 
   # Embind for JS/TS bindings
   target_link_options(mathkernel PRIVATE

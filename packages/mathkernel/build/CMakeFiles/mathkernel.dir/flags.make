@@ -6,5 +6,5 @@ CXX_DEFINES =
 
 CXX_INCLUDES = @CMakeFiles/mathkernel.dir/includes_CXX.rsp
 
-CXX_FLAGS = -std=gnu++20 -fwasm-exceptions
+CXX_FLAGS = -std=gnu++20 -O2 -fwasm-exceptions -ffp-contract=off -fno-fast-math
 

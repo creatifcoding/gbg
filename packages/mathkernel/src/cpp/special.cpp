@@ -89,7 +89,9 @@ double bessel_j0(double x) {
   double q = 25.0 / (x * x);
   double p = polevl(q, j0_PP, 6) / polevl(q, j0_PQ, 6);
   q = polevl(q, j0_QP, 7) / p1evl(q, j0_QQ, 7);
-  double xn = x - M_PI / 4.0;
+  // Use exact PIO4 constant for maximum precision
+  static const double PIO4 = 0.78539816339744830962;
+  double xn = x - PIO4;
   p = p * std::cos(xn) - w * q * std::sin(xn);
   return p * SQ2OPI / std::sqrt(x);
 }
@@ -433,25 +435,7 @@ double elliptic_e(double k) {
 double gamma_fn(double x) {
   if (x <= 0 && x == std::floor(x))
     throw std::invalid_argument("gamma_fn: undefined for non-positive integers");
-
-  // Reflection formula for x < 0.5
-  if (x < 0.5) {
-    return M_PI / (std::sin(M_PI * x) * gamma_fn(1.0 - x));
-  }
-
-  x -= 1.0;
-  const double g = 7.0;
-  const double c[] = {
-    0.99999999999980993, 676.5203681218851, -1259.1392167224028,
-    771.32342877765313, -176.61502916214059, 12.507343278686905,
-    -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7
-  };
-
-  double sum = c[0];
-  for (int i = 1; i < 9; ++i) sum += c[i] / (x + i);
-
-  double t = x + g + 0.5;
-  return std::sqrt(2.0 * M_PI) * std::pow(t, x + 0.5) * std::exp(-t) * sum;
+  return std::tgamma(x);
 }
 
 /**
@@ -496,7 +480,8 @@ double digamma(double x) {
  * Beta function B(a, b) = Γ(a)Γ(b)/Γ(a+b).
  */
 double beta_fn(double a, double b) {
-  return gamma_fn(a) * gamma_fn(b) / gamma_fn(a + b);
+  // Use lgamma to avoid overflow for large arguments
+  return std::exp(std::lgamma(a) + std::lgamma(b) - std::lgamma(a + b));
 }
 
 /**
