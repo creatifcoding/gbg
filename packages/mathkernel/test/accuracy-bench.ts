@@ -261,6 +261,11 @@ const REFERENCES: RefEntry[] = [
   { fn: "logit", args: [0.5],          expected: 0.0,                source: "ln(1) = 0" },
   { fn: "logit", args: [0.731058578630005], expected: 1.0,           source: "inverse of σ(1)" },
   { fn: "logit", args: [0.9],          expected: 2.1972245773362196, source: "ln(9)" },
+
+  // ── Struve H₀ ──
+  { fn: "struve_h0", args: [0],        expected: 0.0,                source: "Definition" },
+  { fn: "struve_h0", args: [1],        expected: 0.56865669249814501, source: "A&S Table 12.1" },
+  { fn: "struve_h0", args: [2],        expected: 0.79085898040783726, source: "Quadrature" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────

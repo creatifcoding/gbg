@@ -1475,5 +1475,7 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("normsinv", &mathkernel::normsinv);
   function("sigmoid", &mathkernel::sigmoid);
   function("logit", &mathkernel::logit);
+  function("struve_h0", &mathkernel::struve_h0);
+  function("catalan_constant", &mathkernel::catalan_constant);
 }
 #endif
