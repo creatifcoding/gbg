@@ -513,33 +513,9 @@ double beta_fn(double a, double b) {
 double erfc_fn(double x);
 
 double erf_fn(double x) {
-  int sign = (x >= 0) ? 1 : -1;
-  double ax = std::abs(x);
-
-  if (ax >= 6.0) return sign * 1.0;  // erfc < 2e-17
-
-  if (ax < 3.5) {
-    // Taylor series with Kahan summation:
-    // erf(x) = (2/√π) · Σ (-1)^n x^{2n+1} / (n!(2n+1))
-    double x2 = ax * ax;
-    double term = ax;
-    double sum = ax;
-    double comp = 0.0;  // Kahan compensator
-    for (int n = 1; n <= 100; ++n) {
-      term *= -x2 / static_cast<double>(n);
-      double contrib = term / static_cast<double>(2 * n + 1);
-      // Kahan compensated addition
-      double y = contrib - comp;
-      double t = sum + y;
-      comp = (t - sum) - y;
-      sum = t;
-      if (std::abs(contrib) < 1e-17 * std::abs(sum)) break;
-    }
-    return sign * sum * (2.0 / std::sqrt(M_PI));
-  }
-
-  // For |x| >= 3.5: use erfc via continued fraction, then 1 - erfc
-  return sign * (1.0 - erfc_fn(ax));
+  // Use C++ standard library — in Emscripten/musl, this is a
+  // high-quality implementation (typically ~15 digit accuracy)
+  return std::erf(x);
 }
 
 /**
@@ -551,56 +527,7 @@ double erf_fn(double x) {
  * where aₙ = n/2. Evaluated via backward recurrence.
  */
 double erfc_fn(double x) {
-  double ax = std::abs(x);
-
-  if (ax < 3.5) {
-    return 1.0 - erf_fn(x);
-  }
-
-  if (ax >= 27.0) {
-    return (x >= 0) ? 0.0 : 2.0;
-  }
-
-  // Laplace continued fraction for erfc:
-  //   erfc(x) = exp(-x²)/(x√π) · CF
-  // where CF = 1/(1 + a₁/(1 + a₂/(1 + ...)))  with aₙ = n/(2x²)
-  //
-  // Equivalently, backward recurrence: start from f_N = 1,
-  //   f_n = 1 + (n+1)/(2x²) / f_{n+1}
-  // Then erfc(x) = exp(-x²)/(x√π) / f₀
-  //
-  // This is the standard Laplace CF for erfc.
-  // More iterations = more accurate; 100 gives ~15 digits for x ≥ 0.5.
-  double x2 = ax * ax;
-  double twoX2 = 2.0 * x2;
-
-  // Backward recurrence from high N
-  const int N = 100;
-  double f = 1.0;
-  for (int n = N; n >= 0; --n) {
-    f = 1.0 + static_cast<double>(n + 1) / twoX2 / f;
-  }
-
-  // erfc(x) = exp(-x²) / (x * √π * f)
-  // But for x near 0.5, this CF converges slowly. Use a different form.
-  // Actually, the standard form: erfc(x) = exp(-x²)/√π · 1/(x + 1/(2x + 2/(x + 3/(2x + ...))))
-  // Backward recurrence: f_N = x, then for n=N..1: f_n = x + n/(2·f_{n+1}) for odd n
-  //                                                 f_n = x + n/(2·f_{n+1}) ... nope.
-
-  // Let's use the cleaner form from A&S 7.1.14:
-  // erfc(x) = (exp(-x²)/√π) * CF  where CF = 1/(x + 0.5/(x + 1/(x + 1.5/(x + 2/(x + ...)))))
-  // i.e., the numerators are 0.5, 1, 1.5, 2, 2.5, ... = n/2 for n=1,2,3,...
-  // Backward: f_N = x, then f_n = x + (n/2) / f_{n+1}
-
-  f = ax;
-  for (int n = N; n >= 1; --n) {
-    f = ax + (0.5 * static_cast<double>(n)) / f;
-  }
-
-  double result = std::exp(-ax * ax) / (std::sqrt(M_PI) * f);
-
-  if (x < 0) return 2.0 - result;
-  return result;
+  return std::erfc(x);
 }
 
 #endif // __EMSCRIPTEN__

@@ -111,7 +111,7 @@ const REFERENCES: RefEntry[] = [
   { fn: "erf_fn", args: [0.5],     expected: 0.5204998778130465,   source: "A&S Table 7.1" },
   { fn: "erf_fn", args: [1.0],     expected: 0.8427007929497149,   source: "A&S Table 7.1" },
   { fn: "erf_fn", args: [2.0],     expected: 0.9953222650189527,   source: "A&S Table 7.1" },
-  { fn: "erf_fn", args: [3.0],     expected: 0.9999779095030014,   source: "A&S Table 7.1" },
+  { fn: "erf_fn", args: [3.0],     expected: 0.9999779095030014,   source: "A&S 7.1 / Python math.erf" },
 
   // ── Erfc ──
   { fn: "erfc_fn", args: [0],      expected: 1.0,                  source: "erfc(0) = 1" },
