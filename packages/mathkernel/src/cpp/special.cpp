@@ -1984,18 +1984,38 @@ double sph_harm_norm(int l, int m) {
  */
 double hurwitz_zeta(double s, double a) {
   if (s <= 1.0 || a <= 0.0) return NAN;
-  // Euler-Maclaurin with sufficient terms
+  // Euler-Maclaurin summation with Bernoulli number corrections
   double sum = 0.0;
-  int N = 1000;
+  int N = 200;
   for (int n = 0; n < N; ++n) {
     sum += 1.0 / std::pow(static_cast<double>(n) + a, s);
   }
-  // Integral approximation for tail: ∫_N^∞ 1/(t+a)^s dt = (N+a)^{1-s}/(s-1)
   double Na = static_cast<double>(N) + a;
+  // Integral tail
   sum += std::pow(Na, 1.0 - s) / (s - 1.0);
-  // Leading Bernoulli corrections
+  // f(N)/2
   sum += 0.5 * std::pow(Na, -s);
-  sum += s / 12.0 * std::pow(Na, -s - 1.0);
+  // Bernoulli corrections B_{2k}/(2k)! * prod_{j=0}^{2k-2}(s+j) * Na^{-s-2k+1}
+  // B₂/2! = 1/12
+  double prod = s;
+  double nap = std::pow(Na, -s - 1.0);
+  sum += (1.0/12.0) * prod * nap;
+  // B₄/4! = -1/720, prod = s(s+1)(s+2)
+  prod *= (s+1.0)*(s+2.0);
+  nap /= Na*Na;
+  sum += (-1.0/720.0) * prod * nap;
+  // B₆/6! = 1/30240, prod = s(s+1)...(s+4)
+  prod *= (s+3.0)*(s+4.0);
+  nap /= Na*Na;
+  sum += (1.0/30240.0) * prod * nap;
+  // B₈/8! = -1/1209600
+  prod *= (s+5.0)*(s+6.0);
+  nap /= Na*Na;
+  sum += (-1.0/1209600.0) * prod * nap;
+  // B₁₀/10! = 1/47900160 (B₁₀=5/66)
+  prod *= (s+7.0)*(s+8.0);
+  nap /= Na*Na;
+  sum += (1.0/47900160.0) * prod * nap;
   return sum;
 }
 
