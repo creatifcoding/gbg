@@ -266,6 +266,21 @@ const REFERENCES: RefEntry[] = [
   { fn: "struve_h0", args: [0],        expected: 0.0,                source: "Definition" },
   { fn: "struve_h0", args: [1],        expected: 0.56865669249814501, source: "A&S Table 12.1" },
   { fn: "struve_h0", args: [2],        expected: 0.79085898040783726, source: "Quadrature" },
+
+  // ── Gegenbauer C_n^λ ──
+  { fn: "gegenbauer_c", args: [2, 0.5, 0.5],  expected: -0.125,    source: "=P2(0.5)" },
+  { fn: "gegenbauer_c", args: [3, 1.0, 0.5],  expected: -1.0,      source: "=U3(0.5)" },
+  { fn: "gegenbauer_c", args: [5, 1.5, 0.3],  expected: 2.02174875, source: "Recurrence" },
+
+  // ── Upper Incomplete Gamma Γ(a,x) ──
+  { fn: "upper_gamma", args: [1, 1],    expected: 0.36787944117144233, source: "e⁻¹" },
+  { fn: "upper_gamma", args: [2, 3],    expected: 0.19914827347145573, source: "4e⁻³" },
+  { fn: "upper_gamma", args: [0.5, 1],  expected: 0.27880558528066196, source: "√π·erfc(1)" },
+
+  // ── Regularized Gamma P(a,x) ──
+  { fn: "gamma_p", args: [1, 1],        expected: 0.6321205588285577, source: "1-e⁻¹" },
+  { fn: "gamma_p", args: [2, 3],        expected: 0.8008517265285443, source: "1-4e⁻³" },
+  { fn: "gamma_p", args: [0.5, 1],      expected: 0.8427007929497149, source: "erf(1)" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────

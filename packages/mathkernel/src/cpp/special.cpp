@@ -1423,6 +1423,78 @@ double catalan_constant() {
   return sum;
 }
 
+/**
+ * Gegenbauer (ultraspherical) polynomial C_n^λ(x).
+ * C_0^λ = 1, C_1^λ = 2λx
+ * (n+1)C_{n+1}^λ = 2(n+λ)x·C_n^λ - (n+2λ-1)C_{n-1}^λ
+ */
+double gegenbauer_c(int n, double lambda, double x) {
+  if (n == 0) return 1.0;
+  if (n == 1) return 2.0 * lambda * x;
+  double c0 = 1.0, c1 = 2.0 * lambda * x;
+  for (int k = 1; k < n; ++k) {
+    double dk = static_cast<double>(k);
+    double c2 = (2.0 * (dk + lambda) * x * c1 - (dk + 2.0*lambda - 1.0) * c0) / (dk + 1.0);
+    c0 = c1;
+    c1 = c2;
+  }
+  return c1;
+}
+
+/**
+ * Upper incomplete gamma Γ(a,x) = ∫_x^∞ t^{a-1} e^{-t} dt.
+ * For x > a+1: continued fraction (Legendre).
+ * For x ≤ a+1: use Γ(a) - γ(a,x) via series.
+ */
+double upper_gamma(double a, double x) {
+  if (x < 0) return NAN;
+  if (x == 0) return std::tgamma(a);
+
+  if (x > a + 1.0) {
+    // Continued fraction: Γ(a,x) = e^{-x} x^a · CF
+    // CF via Lentz's method
+    double b = x + 1.0 - a;
+    double c = 1e30;
+    double d = 1.0 / b;
+    double h = d;
+    for (int k = 1; k <= 100; ++k) {
+      double an = -static_cast<double>(k) * (static_cast<double>(k) - a);
+      b += 2.0;
+      d = b + an * d;
+      if (std::abs(d) < 1e-30) d = 1e-30;
+      c = b + an / c;
+      if (std::abs(c) < 1e-30) c = 1e-30;
+      d = 1.0 / d;
+      double del = d * c;
+      h *= del;
+      if (std::abs(del - 1.0) < 1e-16) break;
+    }
+    return std::exp(-x + a * std::log(x)) * h;
+  }
+
+  // Series: γ(a,x) = e^{-x} x^a Σ x^k / (a(a+1)...(a+k))
+  // Then Γ(a,x) = Γ(a) - γ(a,x)
+  double term = 1.0 / a;
+  double sum = term;
+  for (int k = 1; k <= 100; ++k) {
+    term *= x / (a + static_cast<double>(k));
+    sum += term;
+    if (std::abs(term) < 1e-16 * std::abs(sum)) break;
+  }
+  double lower = std::exp(-x + a * std::log(x)) * sum;
+  return std::tgamma(a) - lower;
+}
+
+/**
+ * Lower incomplete gamma ratio P(a,x) = γ(a,x)/Γ(a).
+ * Also known as the regularized gamma function.
+ */
+double gamma_p(double a, double x) {
+  if (x < 0) return NAN;
+  if (x == 0) return 0.0;
+  return 1.0 - upper_gamma(a, x) / std::tgamma(a);
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -1477,5 +1549,8 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("logit", &mathkernel::logit);
   function("struve_h0", &mathkernel::struve_h0);
   function("catalan_constant", &mathkernel::catalan_constant);
+  function("gegenbauer_c", &mathkernel::gegenbauer_c);
+  function("upper_gamma", &mathkernel::upper_gamma);
+  function("gamma_p", &mathkernel::gamma_p);
 }
 #endif
