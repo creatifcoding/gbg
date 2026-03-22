@@ -17,35 +17,35 @@
 - Full LAMBDA closure support
 - WASM compilation target
 
-## WASM Kernel Accuracy — Current State (188.4/208 digits, 9 experiments)
+## WASM Kernel Accuracy — Current State (250.0/256 digits, 19 experiments, 97.7%)
 
-### Completed optimizations:
-- ✅ Dawson: Cephes piecewise rational (0→13.4 digits)
-- ✅ Fresnel S/C: Recurrence series (0→14.4/15.2 digits)
+### Completed optimizations (16 functions):
+- ✅ Dawson: Cephes piecewise rational (0→15.0 digits)
+- ✅ Fresnel S/C: Cephes rational + auxiliary f/g (0→15.6/15.5 digits)
 - ✅ Elliptic K/E: Cephes P-log(x)Q polynomial (1→16 digits)
-- ✅ Erf: Taylor+Kahan for |x|<3.5 (6.6→13.5 digits)
-- ✅ Erfc: Laplace CF 100 iterations (4.6→13.2 digits)
+- ✅ Erf/Erfc: std::erf/std::erfc (6.6→16.0 / 4.6→15.7 digits)
 - ✅ Digamma: 7 Bernoulli terms, shift x>10 (8.3→15 digits)
-- ✅ Bessel J0/J1: Cephes rational approx (11.7→12.1/11.5→14.1)
+- ✅ Bessel J0/J1: Cephes rational + Hankel (11.7→15.8 / 11.5→15.5)
+- ✅ Bessel Jn: Miller backward recurrence (NEW, 15.4 digits)
+- ✅ Bessel Y0: Cephes rational + log·J0 (NEW, 14.7 digits)
+- ✅ Gamma/Beta: std::tgamma/lgamma (14.4→15.9 / 15.1→16.0)
+- ✅ lgamma: std::lgamma (NEW, 15.8 digits)
+- ✅ Sinc: sin(πx)/(πx) (16.0 digits — perfect)
+- ✅ Reference values audited via Simpson quadrature & Cephes Python
 
-### WASM/Emscripten Precision Limitation (DISCOVERED)
-Emscripten WASM produces ~2e-12 accuracy for Cephes-style rational approximations where
-native C++ and JavaScript V8 both achieve ~1e-15. Affects:
-- Bessel J0(10) Hankel branch: 8.5e-13 in WASM vs 7e-15 native
-- Fresnel S/C(3) auxiliary functions: 2e-12 in WASM vs 2e-15 native
-- Not an FMA issue (tested with -ffp-contract=off and volatile)
-- Not optimizer issue (tested with noinline, -O0)
-- Appears to be fundamental to Emscripten's codegen or musl math library
-- Standard library functions (std::erf, std::tgamma) have the same accuracy as our custom code
+### CRITICAL LESSON: Build Verification
+The biggest gain (202→244, +21%) came from discovering that special.cpp had COMPILE ERRORS
+that were hidden by piping build output through `tail -3`. The Cephes implementations were
+never actually compiled — old .wasm artifacts were silently reused. Forward declarations
+of polevl/p1evl fixed the build, and all Cephes algorithms immediately showed 15+ digit accuracy.
 
-### Remaining improvement paths (with WASM limitation):
-- **Add more functions**: Currently 14/100 exports benchmarked. lgamma, bessel_y0/y1, modified Bessel I0/I1 could add ~14 digits each
-- **Bessel J0 (12.1)**: At WASM precision ceiling for Hankel at x=10. Cannot improve without fixing Emscripten
-- **Erf/Erfc (13.2-13.5)**: At musl std::erf/erfc precision. Same as custom implementation
-- **Dawson (13.4)**: At Cephes quality — diminishing returns
-- **Gamma (14.4)**: At std::tgamma quality. Stirling for large args won't help (test point is Γ(10))
-- **Reference value auditing**: Several improvements came from correcting reference values (J0(10), J5(3)). More test points could shift digits
+### LESSON: Reference Value Accuracy
+Several "algorithm improvements" were actually just fixing bad reference values:
+- J0(10): Series-computed reference had cancellation error → fixed with Cephes Python
+- Dawson D(5): Old "Wolfram" reference was 4.3e-15 off → verified via 1M-point Simpson
 
-### Deferred:
-- Implement bessel_y0, bessel_i0, lgamma in C++ → 3 more benchmark functions → +42 potential digits
-- Investigate Emscripten 4.0 or -s STANDALONE_WASM for potentially better precision
+### Remaining room (6 digits to theoretical max 256):
+- **Bessel Y0 (14.7)**: Could improve with better small-x coefficients
+- **Bessel Jn (15.4)**: Depends on J0 quality via Miller normalization
+- **Digamma (15.0)**: At machine epsilon — cannot improve
+- **Add more functions**: bessel_y1, bessel_i0/i1, airy → +14-16 digits each

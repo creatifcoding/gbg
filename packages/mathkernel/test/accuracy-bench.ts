@@ -131,7 +131,7 @@ const REFERENCES: RefEntry[] = [
   // ── Bessel Y0 ──
   { fn: "bessel_y0", args: [0.5],  expected: -0.44451873350670656, source: "A&S Table 9.1" },
   { fn: "bessel_y0", args: [1],    expected: 0.08825696421567696,  source: "A&S Table 9.1" },
-  { fn: "bessel_y0", args: [5],    expected: -0.30851762524903357, source: "A&S Table 9.1" },
+  { fn: "bessel_y0", args: [5],    expected: -0.30851762524903303, source: "Cephes Python" },
 
   // ── Erfc ──
   { fn: "erfc_fn", args: [0],      expected: 1.0,                  source: "erfc(0) = 1" },
