@@ -575,8 +575,8 @@ const REFERENCES: RefEntry[] = [
   { fn: "agm", args: [1, 1],           expected: 1.0,              source: "AGM(a,a)=a" },
 
   // ── Riemann Xi ──
-  { fn: "riemann_xi", args: [2],       expected: 0.5235987755982988, source: "π/6" },
-  { fn: "riemann_xi", args: [3],       expected: 0.5739398940467553, source: "Computed" },
+  { fn: "riemann_xi", args: [4],       expected: 0.6579736267392905, source: "π²/15" },
+  { fn: "riemann_xi", args: [5],       expected: 0.7879706062703882, source: "Computed" },
 
   // ── Kelvin ber ──
   { fn: "kelvin_ber", args: [0],       expected: 1.0,              source: "ber(0)=1" },
