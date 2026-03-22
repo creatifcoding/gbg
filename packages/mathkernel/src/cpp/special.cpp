@@ -2479,6 +2479,35 @@ double acosh_fn(double x) {
   return std::acosh(x);
 }
 
+/**
+ * 🏆 100th FUNCTION: Wright Omega W(z).
+ * W(z) + ln(W(z)) = z.
+ * Newton iteration: w_{n+1} = w_n - (w_n + ln(w_n) - z)/(1 + 1/w_n).
+ * Seed: w_0 = e^{z-1} for large z, z for z near 0.
+ */
+double wright_omega(double z) {
+  if (std::isnan(z)) return NAN;
+  // Seed from Lambert W relationship: W(z) = W₀(eᶻ) (principal branch)
+  double w;
+  if (z < -50) {
+    w = std::exp(z); // W(z) ≈ eᶻ for very negative z
+  } else if (z > 50) {
+    w = z - std::log(z); // asymptotic for large z
+  } else {
+    // Use Lambert W: W(z) = W₀(eᶻ)
+    w = lambertw(std::exp(z));
+  }
+  // Newton refinement
+  for (int i = 0; i < 50; ++i) {
+    double logw = std::log(w);
+    double f = w + logw - z;
+    if (std::abs(f) < 1e-16 * std::abs(w)) break;
+    double fp = 1.0 + 1.0 / w;
+    w -= f / fp;
+  }
+  return w;
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -2592,5 +2621,7 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("atanh_fn", &mathkernel::atanh_fn);
   function("asinh_fn", &mathkernel::asinh_fn);
   function("acosh_fn", &mathkernel::acosh_fn);
+  function("wright_omega", &mathkernel::wright_omega);
 }
+
 #endif

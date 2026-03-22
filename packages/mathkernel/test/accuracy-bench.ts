@@ -551,6 +551,11 @@ const REFERENCES: RefEntry[] = [
   { fn: "acosh_fn", args: [2],         expected: 1.3169578969248166, source: "std::acosh" },
   { fn: "acosh_fn", args: [1],         expected: 0.0,              source: "acosh(1)=0" },
   { fn: "acosh_fn", args: [10],        expected: 2.993222846126381,  source: "std::acosh" },
+
+  // ── 🏆 100th Function: Wright Omega ──
+  { fn: "wright_omega", args: [0],     expected: 0.5671432904097838, source: "W₀(1)" },
+  { fn: "wright_omega", args: [1],     expected: 1.0,              source: "1+ln(1)=1" },
+  { fn: "wright_omega", args: [2],     expected: 1.5571455989976115, source: "Newton" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────
