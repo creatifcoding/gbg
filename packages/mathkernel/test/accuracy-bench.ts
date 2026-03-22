@@ -159,6 +159,16 @@ const REFERENCES: RefEntry[] = [
   { fn: "expint_e1", args: [0.5],  expected: 0.5597735947761608,   source: "A&S Table 5.1" },
   { fn: "expint_e1", args: [1],    expected: 0.21938393439552027,  source: "A&S Table 5.1" },
   { fn: "expint_e1", args: [5],    expected: 0.0011482955912753258, source: "A&S Table 5.1" },
+
+  // ── Modified Bessel K0 ──
+  { fn: "bessel_k0", args: [0.5],  expected: 0.9244190712276659,   source: "Series Python" },
+  { fn: "bessel_k0", args: [1],    expected: 0.42102443824070834,  source: "A&S Table 9.8" },
+  { fn: "bessel_k0", args: [2],    expected: 0.11389387274953343,  source: "Python mpmath" },
+
+  // ── Riemann Zeta ──
+  { fn: "riemann_zeta", args: [3],  expected: 1.2020569031595942,  source: "Apéry's constant" },
+  { fn: "riemann_zeta", args: [4],  expected: 1.0823232337111381,  source: "π⁴/90" },
+  { fn: "riemann_zeta", args: [10], expected: 1.0009945751278180,  source: "Wolfram" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────
