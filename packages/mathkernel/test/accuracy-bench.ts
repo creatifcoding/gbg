@@ -150,9 +150,23 @@ async function main() {
     }
 
     const absErr = Math.abs(actual - ref.expected);
+    // For zero-expected values, use absolute error bounded by the function's
+    // typical magnitude (1.0 for Bessel, etc.) to get meaningful "digits"
     const relErr = ref.expected === 0
-      ? (actual === 0 ? 0 : Math.abs(actual))  // absolute for zero-expected
+      ? (actual === 0 ? 0 : Math.abs(actual))  // absolute when expected=0
       : absErr / Math.abs(ref.expected);
+
+    // Skip zero-expected points from max relative error — they dominate unfairly
+    if (ref.expected === 0) {
+      // Still track absolute error for reporting
+      entry.maxAbsErr = Math.max(entry.maxAbsErr, absErr);
+      if (absErr > 1e-10) {
+        entry.fails.push(
+          `${ref.fn}(${ref.args.join(", ")}): got ${actual}, expected 0, absErr=${absErr.toExponential(3)}`
+        );
+      }
+      continue;  // Don't let zero-expected inflate maxRelErr
+    }
 
     entry.maxAbsErr = Math.max(entry.maxAbsErr, absErr);
     entry.maxRelErr = Math.max(entry.maxRelErr, relErr);
