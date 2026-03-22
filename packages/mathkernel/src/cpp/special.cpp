@@ -1656,6 +1656,111 @@ double gen_harmonic(int n, double m) {
   return sum;
 }
 
+/**
+ * Jacobi polynomial P_n^{α,β}(x).
+ * P_0 = 1
+ * P_1 = (α-β)/2 + (α+β+2)x/2
+ * Recurrence: a1·P_{n+1} = (a2 + a3·x)·P_n - a4·P_{n-1}
+ */
+double jacobi_p(int n, double alpha, double beta, double x) {
+  if (n == 0) return 1.0;
+  double p0 = 1.0;
+  double p1 = (alpha - beta) / 2.0 + (alpha + beta + 2.0) * x / 2.0;
+  if (n == 1) return p1;
+  for (int k = 1; k < n; ++k) {
+    double dk = static_cast<double>(k);
+    double ab = alpha + beta;
+    double a1 = 2.0 * (dk + 1.0) * (dk + ab + 1.0) * (2.0 * dk + ab);
+    double a2 = (2.0 * dk + ab + 1.0) * (alpha * alpha - beta * beta);
+    double a3 = (2.0 * dk + ab) * (2.0 * dk + ab + 1.0) * (2.0 * dk + ab + 2.0);
+    double a4 = 2.0 * (dk + alpha) * (dk + beta) * (2.0 * dk + ab + 2.0);
+    double p2 = ((a2 + a3 * x) * p1 - a4 * p0) / a1;
+    p0 = p1;
+    p1 = p2;
+  }
+  return p1;
+}
+
+/**
+ * Associated Legendre function P_l^m(x) (without Condon-Shortley phase).
+ * Uses forward recurrence.
+ */
+double assoc_legendre(int l, int m, double x) {
+  if (m < 0 || m > l) return 0.0;
+  // P_m^m(x) = (2m-1)!! (1-x²)^{m/2}
+  double pmm = 1.0;
+  if (m > 0) {
+    double somx2 = std::sqrt(1.0 - x * x);
+    double fact = 1.0;
+    for (int i = 1; i <= m; ++i) {
+      pmm *= fact * somx2;
+      fact += 2.0;
+    }
+  }
+  if (l == m) return pmm;
+  // P_{m+1}^m = x(2m+1) P_m^m
+  double pmm1 = x * (2.0 * m + 1.0) * pmm;
+  if (l == m + 1) return pmm1;
+  // Forward recurrence
+  double pll = 0.0;
+  for (int ll = m + 2; ll <= l; ++ll) {
+    pll = (x * (2.0 * ll - 1.0) * pmm1 - (ll + m - 1.0) * pmm) / (ll - m);
+    pmm = pmm1;
+    pmm1 = pll;
+  }
+  return pll;
+}
+
+/**
+ * Exponential integral Ei(x) = -PV ∫_{-x}^∞ e^{-t}/t dt = γ + ln|x| + Σ x^k/(k·k!).
+ */
+double expint_ei(double x) {
+  if (x == 0) return -INFINITY;
+  if (x < 0) {
+    // Ei(-x) = -E1(x) for x > 0
+    return -expint_e1(-x);
+  }
+  if (x <= 40.0) {
+    // Series: Ei(x) = γ + ln(x) + Σ_{k=1}^∞ x^k/(k·k!)
+    double sum = 0.5772156649015329 + std::log(x);
+    double term = x;
+    sum += term;
+    for (int k = 2; k <= 100; ++k) {
+      term *= x / static_cast<double>(k);
+      double contrib = term / static_cast<double>(k);
+      sum += contrib;
+      if (std::abs(contrib) < 1e-16 * std::abs(sum)) break;
+    }
+    return sum;
+  }
+  // Asymptotic: Ei(x) ≈ e^x/x (1 + 1!/x + 2!/x² + ...)
+  double sum = 0.0;
+  double term = 1.0;
+  for (int k = 1; k <= 40; ++k) {
+    double old_term = term;
+    term *= static_cast<double>(k) / x;
+    if (std::abs(term) > std::abs(old_term)) break;
+    sum += term;
+  }
+  return std::exp(x) / x * (1.0 + sum);
+}
+
+/**
+ * Bessel Y_n(x) for arbitrary order n via forward recurrence from Y0/Y1.
+ */
+double bessel_yn(int n, double x) {
+  if (n == 0) return bessel_y0(x);
+  if (n == 1) return bessel_y1(x);
+  double y0 = bessel_y0(x);
+  double y1 = bessel_y1(x);
+  for (int k = 1; k < n; ++k) {
+    double y2 = (2.0 * k) / x * y1 - y0;
+    y0 = y1;
+    y1 = y2;
+  }
+  return y1;
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -1723,5 +1828,9 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("betainc", &mathkernel::betainc);
   function("harmonic", &mathkernel::harmonic);
   function("gen_harmonic", &mathkernel::gen_harmonic);
+  function("jacobi_p", &mathkernel::jacobi_p);
+  function("assoc_legendre", &mathkernel::assoc_legendre);
+  function("expint_ei", &mathkernel::expint_ei);
+  function("bessel_yn", &mathkernel::bessel_yn);
 }
 #endif

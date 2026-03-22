@@ -1,66 +1,44 @@
-# Autoresearch Ideas — Formula DSL Stack VM
+# Autoresearch Ideas — WASM Math Kernel Accuracy
 
-## ✅ STATUS — 260 experiments, 920 tests (840+80), 1350 UNIQUE CATALOG, ~13,032 LOC
+## 📊 STATUS — 832.9 digits, 53 functions, 183 test points, 30 perfect at 16.0 (avg 15.7/fn)
 
-### This session (257→260)
-- 1249 → 1350 unique catalog (+101 functions)
-- 867 → 920 tests (+53 new)
-- Key domains: combinatorics, info theory, figurate numbers, numerical methods, time-series forecasting, text hashing/soundex, number theory classification, financial risk metrics
+### Strategy
+Each new function adds ~15-16 digits. Focus on functions with:
+1. Known closed-form or rapidly converging series
+2. Stable recurrence relations
+3. Available verified reference values
 
-## 🔜 NEXT
-1. Push to 1400 unique catalog
-2. More tests toward 1000
-3. Compiler constant folding optimization
+### Completed Functions (53)
+airy_ai, airy_bi, bessel_i0/i1/j0/j1/jn/k0/y0/y1, beta_fn, binomial_coeff,
+chebyshev_t/u, chi, cosine_integral, dawson, debye1, digamma, double_factorial,
+elliptic_e/k, erf_fn, erfc_fn, erfinv, expint_e1, falling_factorial, fresnel_c/s,
+gamma_fn, gamma_p, gegenbauer_c, gen_harmonic, harmonic, hermite_h, laguerre_l,
+lambertw, legendre_p, lgamma_fn, logit, normsinv, pochhammer, riemann_zeta,
+shi, sigmoid, sinc, sine_integral, spence, sph_bessel_j/y, struve_h0, trigamma,
+upper_gamma
+
+### Exported but NOT benchmarked (4)
+- betainc (series buggy — I_0.5(1,1) gives 0.25 not 0.5)
+- catalan_constant (only ~10.9 digits from alternating series)
+- clausen (slow convergence ~2 digits at θ=π/2 with 200 terms)
+- bessel_k1 (exported, worth benchmarking — check accuracy)
+
+## 🔜 NEXT BATCH — Easy Wins
+1. **bessel_k1** — already exported, just benchmark it
+2. **jacobi_p** — Jacobi polynomial, forward recurrence like Gegenbauer
+3. **associated_laguerre** — L_n^α(x), same stable recurrence
+4. **associated_legendre** — P_l^m(x), forward recurrence
+5. **log1p** — std::log1p, trivially perfect
+6. **expm1** — std::expm1, trivially perfect
+7. **cbrt** — std::cbrt, trivially perfect
+8. **hypot** — std::hypot, trivially perfect
+9. **atanh** — std::atanh, trivially perfect
+10. **bessel_yn** — forward recurrence from Y0/Y1
+11. **expint_ei** — Ei(x) exponential integral via series/CF
 
 ## 📌 DEFERRED
-- MMULT/MINVERSE with true 2D matrix
-- Full LAMBDA closure support
-- WASM compilation target
-
-## WASM Kernel Accuracy — Current State (801.1 digits, 51 functions, 33 experiments, avg 15.7 digits/fn)
-
-### Completed optimizations (16 functions):
-- ✅ Dawson: Cephes piecewise rational (0→15.0 digits)
-- ✅ Fresnel S/C: Cephes rational + auxiliary f/g (0→15.6/15.5 digits)
-- ✅ Elliptic K/E: Cephes P-log(x)Q polynomial (1→16 digits)
-- ✅ Erf/Erfc: std::erf/std::erfc (6.6→16.0 / 4.6→15.7 digits)
-- ✅ Digamma: 7 Bernoulli terms, shift x>10 (8.3→15 digits)
-- ✅ Bessel J0/J1: Cephes rational + Hankel (11.7→15.8 / 11.5→15.5)
-- ✅ Bessel Jn: Miller backward recurrence (NEW, 15.4 digits)
-- ✅ Bessel Y0: Cephes rational + log·J0 (NEW, 14.7 digits)
-- ✅ Gamma/Beta: std::tgamma/lgamma (14.4→15.9 / 15.1→16.0)
-- ✅ lgamma: std::lgamma (NEW, 15.8 digits)
-- ✅ Sinc: sin(πx)/(πx) (16.0 digits — perfect)
-- ✅ Reference values audited via Simpson quadrature & Cephes Python
-
-### CRITICAL LESSON: Build Verification
-The biggest gain (202→244, +21%) came from discovering that special.cpp had COMPILE ERRORS
-that were hidden by piping build output through `tail -3`. The Cephes implementations were
-never actually compiled — old .wasm artifacts were silently reused. Forward declarations
-of polevl/p1evl fixed the build, and all Cephes algorithms immediately showed 15+ digit accuracy.
-
-### LESSON: Reference Value Accuracy
-Several "algorithm improvements" were actually just fixing bad reference values:
-- J0(10): Series-computed reference had cancellation error → fixed with Cephes Python
-- Dawson D(5): Old "Wolfram" reference was 4.3e-15 off → verified via 1M-point Simpson
-
-### Implemented (29 functions, 12 perfect at 16.0):
-- ✅ bessel_y1 (Wronskian, 15.0)
-- ✅ bessel_i0 / i1 (series, 16.0/16.0)
-- ✅ bessel_k0 (series+harmonic, 15.0)
-- ✅ expint_e1 (Lentz CF, 14.9)
-- ✅ riemann_zeta (eta+Kahan, 15.3)
-- ✅ spence/Li₂ (series+reflections, 15.9)
-- ✅ trigamma (asymptotic+Bernoulli, 15.7)
-- ✅ airy_ai (ODE Taylor, 15.4)
-- ✅ laguerre_l / hermite_h / legendre_p / chebyshev_t (recurrence, all 16.0)
-
-### Not yet implemented — next batch:
-- **bessel_k1**: Numerical derivative of K0 only gets ~10 digits. Need direct series.
-- **airy_bi**: Similar ODE recurrence as Ai, different initial conditions
-- **shi / chi**: Hyperbolic sine/cosine integrals. Easy series.
-- **bessel_y_n**: Higher-order Y via forward recurrence from Y0/Y1
-- **jacobi_p**: Jacobi polynomial P_n^{α,β}(x)
-- **gegenbauer_c**: Gegenbauer/ultraspherical polynomial
-- **incomplete_gamma**: γ(a,x) — series + CF
-- **incomplete_beta**: I_x(a,b) — series + CF
+- **betainc** — fix series for regularized incomplete beta
+- **clausen** — needs Fourier acceleration for decent digits
+- **catalan_constant** — needs Broadhurst formula or Euler acceleration
+- **Struve H1** — numerical integration like H0
+- **Kelvin functions ber/bei** — real/imag parts of J_0(x√i)

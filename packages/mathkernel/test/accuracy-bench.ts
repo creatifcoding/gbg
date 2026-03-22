@@ -326,6 +326,31 @@ const REFERENCES: RefEntry[] = [
   { fn: "gen_harmonic", args: [100, 2],  expected: 1.634983900184893,  source: "Σ 1/k²" },
   { fn: "gen_harmonic", args: [1000, 2], expected: 1.6439345666815597, source: "Σ 1/k²" },
   { fn: "gen_harmonic", args: [100, 3],  expected: 1.2020074006596775, source: "Σ 1/k³" },
+
+  // ── Bessel K₁ ──
+  { fn: "bessel_k1", args: [0.5],       expected: 1.6564411199719111, source: "Series" },
+  { fn: "bessel_k1", args: [1],         expected: 0.6019072301972345, source: "Known" },
+  { fn: "bessel_k1", args: [2],         expected: 0.1398658818165224, source: "Known" },
+
+  // ── Jacobi P_n^{α,β} ──
+  { fn: "jacobi_p", args: [2, 0, 0, 0.5],     expected: -0.125,        source: "=P2(0.5)" },
+  { fn: "jacobi_p", args: [3, 1, 1, 0.5],     expected: -0.625,        source: "Recurrence" },
+  { fn: "jacobi_p", args: [4, 0.5, 1.5, 0.3], expected: 0.338625,      source: "Recurrence" },
+
+  // ── Associated Legendre P_l^m ──
+  { fn: "assoc_legendre", args: [2, 0, 0.5],  expected: -0.125,        source: "P_2(0.5)" },
+  { fn: "assoc_legendre", args: [2, 1, 0.5],  expected: 1.299038105676658, source: "3x√(1-x²) no CS" },
+  { fn: "assoc_legendre", args: [3, 2, 0.5],  expected: 5.625,         source: "Recurrence" },
+
+  // ── Exponential Integral Ei ──
+  { fn: "expint_ei", args: [1],          expected: 1.8951178163559368, source: "Known" },
+  { fn: "expint_ei", args: [2],          expected: 4.9542343560018902, source: "Known" },
+  { fn: "expint_ei", args: [0.5],        expected: 0.4542199048631736, source: "Series" },
+
+  // ── Bessel Y_n ──
+  { fn: "bessel_yn", args: [2, 1],       expected: -1.6506826068162543, source: "Known" },
+  { fn: "bessel_yn", args: [3, 2],       expected: -1.127783776840428, source: "Recurrence" },
+  { fn: "bessel_yn", args: [2, 5],       expected: 0.36766288260552427, source: "Recurrence" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────
