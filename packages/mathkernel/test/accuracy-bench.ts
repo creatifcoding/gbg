@@ -281,6 +281,21 @@ const REFERENCES: RefEntry[] = [
   { fn: "gamma_p", args: [1, 1],        expected: 0.6321205588285577, source: "1-e⁻¹" },
   { fn: "gamma_p", args: [2, 3],        expected: 0.8008517265285443, source: "1-4e⁻³" },
   { fn: "gamma_p", args: [0.5, 1],      expected: 0.8427007929497149, source: "erf(1)" },
+
+  // ── Chebyshev U_n ──
+  { fn: "chebyshev_u", args: [3, 0.5],  expected: -1.0,             source: "sin(4·arccos(0.5))/sin(arccos(0.5))" },
+  { fn: "chebyshev_u", args: [5, 0.5],  expected: 0.0,              source: "Exact zero" },
+  { fn: "chebyshev_u", args: [4, 0.3],  expected: 0.0496,           source: "Recurrence" },
+
+  // ── Pochhammer (a)_n ──
+  { fn: "pochhammer", args: [2, 5],     expected: 720.0,            source: "2·3·4·5·6" },
+  { fn: "pochhammer", args: [0.5, 4],   expected: 6.5625,           source: "0.5·1.5·2.5·3.5" },
+  { fn: "pochhammer", args: [1, 10],    expected: 3628800.0,        source: "10!" },
+
+  // ── Falling Factorial ──
+  { fn: "falling_factorial", args: [5, 3],  expected: 60.0,         source: "5·4·3" },
+  { fn: "falling_factorial", args: [10, 4], expected: 5040.0,       source: "10·9·8·7" },
+  { fn: "falling_factorial", args: [3.5, 3], expected: 13.125,      source: "3.5·2.5·1.5" },
 ];
 
 // ── Run benchmark ──────────────────────────────────────────────────────────

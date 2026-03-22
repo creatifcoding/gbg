@@ -1495,6 +1495,48 @@ double gamma_p(double a, double x) {
   return 1.0 - upper_gamma(a, x) / std::tgamma(a);
 }
 
+/**
+ * Chebyshev polynomial of the second kind U_n(x).
+ * U_0 = 1, U_1 = 2x, U_{n+1} = 2x·U_n - U_{n-1}
+ */
+double chebyshev_u(int n, double x) {
+  if (n == 0) return 1.0;
+  if (n == 1) return 2.0 * x;
+  double u0 = 1.0, u1 = 2.0 * x;
+  for (int k = 1; k < n; ++k) {
+    double u2 = 2.0 * x * u1 - u0;
+    u0 = u1;
+    u1 = u2;
+  }
+  return u1;
+}
+
+/**
+ * Pochhammer symbol (rising factorial) (a)_n = a(a+1)(a+2)...(a+n-1).
+ */
+double pochhammer(double a, int n) {
+  if (n == 0) return 1.0;
+  if (n < 0) return NAN;
+  double result = 1.0;
+  for (int k = 0; k < n; ++k) {
+    result *= (a + static_cast<double>(k));
+  }
+  return result;
+}
+
+/**
+ * Falling factorial x^{(n)} = x(x-1)(x-2)...(x-n+1).
+ */
+double falling_factorial(double x, int n) {
+  if (n == 0) return 1.0;
+  if (n < 0) return NAN;
+  double result = 1.0;
+  for (int k = 0; k < n; ++k) {
+    result *= (x - static_cast<double>(k));
+  }
+  return result;
+}
+
 #endif // __EMSCRIPTEN__
 
 } // namespace mathkernel
@@ -1552,5 +1594,8 @@ EMSCRIPTEN_BINDINGS(mathkernel_special) {
   function("gegenbauer_c", &mathkernel::gegenbauer_c);
   function("upper_gamma", &mathkernel::upper_gamma);
   function("gamma_p", &mathkernel::gamma_p);
+  function("chebyshev_u", &mathkernel::chebyshev_u);
+  function("pochhammer", &mathkernel::pochhammer);
+  function("falling_factorial", &mathkernel::falling_factorial);
 }
 #endif
